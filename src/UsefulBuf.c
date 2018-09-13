@@ -50,9 +50,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  
  =====================================================================================*/
 
-#include <string.h>
 #include "UsefulBuf.h"
-#include <stringl.h>
 
 #define USEFUL_OUT_BUF_MAGIC  (0x0B0F) // used to catch use of uninitialized or corrupted UOBs
 
@@ -64,7 +62,7 @@ int UsefulBuf_Copy(UsefulBuf *pDest, const UsefulBufC Src)
    if(Src.len > pDest->len)
       return 1;
    
-   memscpy(pDest->ptr, pDest->len, Src.ptr, Src.len);
+   memcpy(pDest->ptr, Src.ptr, Src.len);
    
    pDest->len = Src.len;
    
@@ -228,14 +226,14 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
    size_t   uRoomInDestination  = me->size - (uInsertionPos + NewData.len); // PtrMath #4
    
    if(uNumBytesToMove && me->UB.ptr) {
-      memsmove(pDestinationOfMove, uRoomInDestination, pSourceOfMove, uNumBytesToMove);
+      memmove(pDestinationOfMove, pSourceOfMove, uNumBytesToMove);
    }
    
    /* 4. Put the new data in */
    uint8_t *pInsertionPoint = ((uint8_t *)me->UB.ptr) + uInsertionPos; // PtrMath #5
    uRoomInDestination       = me->size - uInsertionPos; // PtrMath #6
    if(me->UB.ptr) {
-      memsmove(pInsertionPoint, uRoomInDestination, NewData.ptr, NewData.len);
+      memmove(pInsertionPoint, NewData.ptr, NewData.len);
    }
    me->UB.len += NewData.len ;
 }
@@ -307,7 +305,7 @@ int UsefulOutBuf_CopyOut(UsefulOutBuf *me, void *pBuf, size_t uBufSize, size_t *
       return 1; // buffer was too small
    }
    
-   memsmove(pBuf, uBufSize, B.ptr, B.len);
+   memmove(pBuf, B.ptr, B.len);
 
    *puCopied = me->UB.len;
    

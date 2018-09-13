@@ -50,11 +50,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  =====================================================================================*/
 
 #include "qcbor.h"
-#include <stdint.h>
 
-#ifdef QSEE
-#include "stringl.h"
-#endif
 
 /*...... This is a ruler that is 80 characters long...........................*/
 

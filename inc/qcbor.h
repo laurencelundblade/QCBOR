@@ -722,7 +722,7 @@ typedef struct _QCBORItem {
  */
 static inline EncodedCBORC EncodedCBORConst(const EncodedCBOR ECBOR)
 {
-   return (EncodedCBORC){UsefulBufConst(ECBOR.Bytes), ECBOR.uItems};
+   return (EncodedCBORC){UsefulBuf_Const(ECBOR.Bytes), ECBOR.uItems};
 }
 
 
@@ -743,9 +743,6 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
  @param[in,out]  pCtx    The encoder context to initialize.
  @param[out]     pBuf    The buffer into which this encoded result will be placed.
  @param[in]      uBufLen The length of pBuf.
- 
- @return
- None.
  
  Call this once at the start of an encoding of a CBOR structure. Then
  call the various QCBOREncode_AddXXX() functions to add the data
@@ -782,10 +779,7 @@ void QCBOREncode_Init(QCBOREncodeContext *pCtx, void *pBuf, size_t uBufLen);
  @param[in] szLabel   The string map label for this integer value.
  @param[in] nLabel    The integer map label for this integer value.
  @param[in] uTag      A CBOR type 6 tag
- @param[in] uNum      The integer to add.
- 
- @return
- None.
+ @param[in] nNum      The integer to add.
  
  The functions and macros with a "U" add unsigned integers and those
  without add signed. The main reason to use the unsigned versions is
@@ -854,10 +848,7 @@ void QCBOREncode_AddUInt64_3(QCBOREncodeContext *pCtx, const char *szLabel, int6
  @param[in] szLabel   The string map label for this integer value.
  @param[in] nLabel    The integer map label for this integer value.
  @param[in] uTag      A CBOR type 6 tag
- @param[in] Num       The float to add.
- 
- @return
- None.
+ @param[in] fNum       The float to add.
  
  This works the same as QCBOREncode_AddInt64_3() except it is for floats and doubles.
  
@@ -893,9 +884,6 @@ void QCBOREncode_AddDouble_3(QCBOREncodeContext *pCtx, const char *szLabel, int6
  @param[in] szLabel  The string map label for this integer value.
  @param[in] nLabel   The integer map label for this integer value.
  @param[in] date     Number of seconds since 1970-01-01T00:00Z in UTC time.
- 
- @return
- None.
  
  As per RFC 7049 this is similar to UNIX/Linux/POSIX dates. This is
  the most compact way to specify a date and time in CBOR. Note that this
@@ -943,11 +931,8 @@ static inline void QCBOREncode_AddDateEpoch_2(QCBOREncodeContext *pCtx, const ch
  @param[in] pCtx      The context to initialize.
  @param[in] szLabel   The string map label for this integer value.
  @param[in] nLabel    The integer map label for this integer value.
- @param[in[ uTag      Optional CBOR data tag or CBOR_TAG_NONE.
+ @param[in] uTag      Optional CBOR data tag or CBOR_TAG_NONE.
  @param[in] Bytes     Pointer and length of the input data.
- 
- @return
- None.
  
  Simply adds the bytes to the encoded output and CBOR major type 2.
  
@@ -1006,11 +991,8 @@ void QCBOREncode_AddBytes_3(QCBOREncodeContext *pCtx, const char *szLabel, int64
  @param[in] pCtx     The context to initialize.
  @param[in] szLabel  The string map label for this integer value.
  @param[in] nLabel   The integer map label for this integer value.
- @param[in[ uTag     Optional CBOR data tag or CBOR_TAG_NONE.
+ @param[in] uTag     Optional CBOR data tag or CBOR_TAG_NONE.
  @param[in] Bytes    Pointer and length of text to add.
- 
- @return
- None
  
  The text passed in must be unencoded UTF-8 according to RFC
  3629. There is no NULL termination.
@@ -1143,9 +1125,6 @@ inline static void QCBOREncode_AddSZString_3(QCBOREncodeContext *pCtx, const cha
  @param[in] nLabel    The integer map label for this integer value.
  @param[in] uTag      Optional CBOR data tag or CBOR_TAG_NONE.
  @param[in] uSimple   One of CBOR_SIMPLEV_FALSE through _UNDEF
- 
- @return
- None.
 
  CBOR defines encoding for special values "true", "false", "null" and "undef". This
  function can add these values.
@@ -1172,10 +1151,7 @@ void QCBOREncode_AddSimple_3(QCBOREncodeContext *pCtx, const char *szLabel, int6
  @param[in] szLabel   A string label for the bytes to add. NULL if no label.
  @param[in] nLabel    The integer map label for this integer value.
  @param[in] uTag      Optional CBOR data tag or CBOR_TAG_NONE.
- @param[in] bool      true or false from stdbool. Anything will result in an error.
- 
- @return
- None.
+ @param[in] b      true or false from stdbool. Anything will result in an error.
  
  Error handling is the same as QCBOREncode_AddInt64_3().
  */
@@ -1206,9 +1182,6 @@ inline static void QCBOREncode_AddBool_3(QCBOREncodeContext *pCtx, const char *s
  @param[in] nLabel An integer label for the whole map. QCBOR_NO_INT_LABEL for no integer label.
  @param[in] uTag A tag for the whole map or CBOR_TAG_NONE.
  @param[in] bBstrWrap Indicates entire map should be wrapped as a binary string. Normally 0.
- 
- @return
- None.
  
  Arrays are the basic CBOR aggregate or structure type. Call this
  function to start or open an array. The call the various AddXXX
@@ -1269,9 +1242,6 @@ void QCBOREncode_OpenArray_3(QCBOREncodeContext *pCtx, const char *szLabel, uint
  @param[in] uTag A tag for the whole map or CBOR_TAG_NONE.
  @param[in] bBstrWrap Indicates entire map should be wrapped as a binary string. Normally 0.
  
- @return
- None.
- 
  See QCBOREncode_OpenArray() for more information.
  
  When adding items to maps, they must be added in pairs, the label and
@@ -1309,9 +1279,6 @@ void QCBOREncode_OpenMap_3(QCBOREncodeContext *pCtx, const char *szLabel,  uint6
  
  @param[in] pCtx The context to add to.
  
- @return
- None.
- 
  This reduces the nesting level by one.
  
  If more Close's have been called than Open's the error state is
@@ -1330,12 +1297,7 @@ void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
  Add some already-encoded CBOR bytes
  
  @param[in] pCtx The context to add to.
- @param[in] pEncodedCBOR The already-encoded CBOR to add to the context.
- @param[in] nEncodedLength The length of pEncodedCBOR.
- @param[in] nItems The number of items in the encoded CBOR.
- 
- @return
- None.
+ @param[in] Encoded The already-encoded CBOR to add to the context.
  
  The CBOR added here must be self-consistent and not have any arrays
  or maps open. Specifically, if an array or map with N encoded items is
@@ -1368,11 +1330,8 @@ void QCBOREncode_AddRaw(QCBOREncodeContext *pCtx, EncodedCBORC Encoded);
  @param[in] pCtx      The encoding context to add the simple value to.
  @param[in] szLabel   A string label for the bytes to add. NULL if no label.
  @param[in] nLabel    The integer map tag / label for this integer value.
- @param[in[ uTag      Optional CBOR data tag or CBOR_TAG_NONE.
+ @param[in] uTag      Optional CBOR data tag or CBOR_TAG_NONE.
  @param[in] uSimple   One of CBOR_SIMPLEV_xxx.
- 
- @return
- None.
  
  There should be no need to use this function directly unless some
  extensions to the CBOR standard are created and put to use.  All the defined
@@ -1472,9 +1431,6 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
  @param[in] pCtx The context to initialize.
  @param[in] EncodedCBOR The buffer with CBOR encoded bytes to be decoded.
  @param[in] nMode One of QCBOR_DECODE_MODE_xxx
- 
- @return
- None.
  
  Initialize context for a pre-order traveral of the encoded CBOR tree.
  
@@ -1606,8 +1562,8 @@ int QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 /**
   Convert int64_t to smaller int's safely
  
- @param src[in]    An int64_t
- @param dest[out]  A smaller sized int to convert to
+ @param [in]  src    An int64_t
+ @param [out] dest   A smaller sized int to convert to
   
  @return 0 on success -1 if not
  

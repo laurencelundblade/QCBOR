@@ -55,8 +55,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _UsefulBuf_h
 
 
-#include <stdint.h>
-#include <string.h>
+#include <stdint.h> // for uint8_t, uint16_t....
+#include <string.h> // for strlen, memcpy, memmove, memset
 #include <stddef.h> // for size_t
 
 /**
@@ -130,13 +130,13 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  
 */
 
-typedef struct __UsefulBuf {
+typedef struct {
    void  *ptr;
    size_t len;
 } UsefulBuf;
 
 
-typedef struct __UsefulBufC {
+typedef struct {
    const void *ptr;
    size_t      len;
 } UsefulBufC;
@@ -153,12 +153,6 @@ typedef struct __UsefulBufC {
  */
 
 static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB)
-{
-   return (UsefulBufC){UB.ptr, UB.len};
-}
-
-// Old form. Should be deprecated.
-static inline UsefulBufC UsefulBufConst(const UsefulBuf UB)
 {
    return (UsefulBufC){UB.ptr, UB.len};
 }
@@ -261,8 +255,9 @@ void UsefulBuf_Set(UsefulBuf *pDest, uint8_t value);
 /**
  @brief Copy a pointer into a UsefulBuf
  
- @param[in] pDest The destination buffer to copy into
- @param[out] Src  The source to copy from
+ @param[in,out] pDest The destination buffer to copy into
+ @param[in] ptr  The source to copy from
+ @param[in] len  Length of the source; amoutn to copy
  
  @return 0 on success, 1 on failure
  
@@ -418,7 +413,7 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
  can go on the stack or be a C99 function parameter.
  */
 
-typedef struct __UsefulOutBuf {
+typedef struct {
    UsefulBuf  UB;
    size_t     size;  // size of the buffer (not the valid data in the buffer)
    uint16_t   magic; // Used to detect corruption and lack of initialization
@@ -429,11 +424,9 @@ typedef struct __UsefulOutBuf {
 /**
  @brief Initialize and supply the actual output buffer
  
- @param[out] pOutBuf The UsefulOutBuf to initialize
+ @param[out] me The UsefulOutBuf to initialize
  @param[in] pStorage Pointer to data buffer to use
- @param[in] nStorageSize Size of buffer pStorage
- 
- @return None
+ @param[in] uStorageSize Size of buffer pStorage
  
  Intializes the UsefulOutBuf with storage. Sets the current position
  to the beginning of the buffer clears the error.
@@ -516,8 +509,6 @@ static inline int UsefulOutBuf_AtStart(UsefulOutBuf *me)
  @param[in] NewData UsefulBuf with the bytes to insert
  @param[in] uPos Index in output buffer at which to insert
  
- @return None
- 
  NewData is the pointer and length for the bytes to be added to the
  output buffer. There must be room in the output buffer for all of
  NewData or an error will occur.
@@ -552,8 +543,6 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
  @param[in] pBytes Pointer to the bytes to insert
  @param[in] uLen Length of the bytes to insert
  @param[in] uPos Index in output buffer at which to insert
-
- @return None
  
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
  the difference being a pointer and length is passed in rather than an
@@ -574,7 +563,6 @@ static inline void UsefulOutBuf_InsertData(UsefulOutBuf *me, const void *pBytes,
  @param[in] me Pointer to the UsefulOutBuf
  @param[in] szString string to append
  
- @return None
  */
 static inline void UsefulOutBuf_InsertString(UsefulOutBuf *me, const char *szString, size_t uPos)
 {
@@ -586,10 +574,8 @@ static inline void UsefulOutBuf_InsertString(UsefulOutBuf *me, const char *szStr
  @brief Insert a byte into the UsefulOutBuf
  
  @param[in] me Pointer to the UsefulOutBul
- @param[in] pByte Bytes to insert
- @param[in] nPos Index in output buffer at which to insert
- 
- @return None
+ @param[in] byte Bytes to insert
+ @param[in] uPos Index in output buffer at which to insert
  
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
  the difference being a single byte is to be inserted.
@@ -605,9 +591,7 @@ static inline void UsefulOutBuf_InsertByte(UsefulOutBuf *me, uint8_t byte, size_
  
  @param[in] me Pointer to the UsefulOutBul
  @param[in] uInteger16 Integer to insert
- @param[in] nPos Index in output buffer at which to insert
- 
- @return None
+ @param[in] uPos Index in output buffer at which to insert
  
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
  the difference being a single byte is to be inserted.
@@ -629,9 +613,7 @@ static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *me, uint16_t uInteger
  
  @param[in] me Pointer to the UsefulOutBul
  @param[in] uInteger32 Integer to insert
- @param[in] nPos Index in output buffer at which to insert
- 
- @return None
+ @param[in] uPos Index in output buffer at which to insert
  
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
  the difference being a single byte is to be inserted.
@@ -655,9 +637,7 @@ static inline void UsefulOutBuf_InsertUint32(UsefulOutBuf *me, uint32_t uInteger
  
  @param[in] me Pointer to the UsefulOutBul
  @param[in] uInteger64 Integer to insert
- @param[in] nPos Index in output buffer at which to insert
- 
- @return None
+ @param[in] uPos Index in output buffer at which to insert
  
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
  the difference being a single byte is to be inserted.
@@ -685,9 +665,7 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *me, uint64_t uInteger
  
  @param[in] me Pointer to the UsefulOutBul
  @param[in] f Integer to insert
- @param[in] nPos Index in output buffer at which to insert
- 
- @return None
+ @param[in] uPos Index in output buffer at which to insert
  
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
  the difference being a single byte is to be inserted.
@@ -707,9 +685,7 @@ static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *me, float f, size_t uP
  
  @param[in] me Pointer to the UsefulOutBul
  @param[in] d Integer to insert
- @param[in] nPos Index in output buffer at which to insert
- 
- @return None
+ @param[in] uPos Index in output buffer at which to insert
  
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
  the difference being a single byte is to be inserted.
@@ -730,8 +706,6 @@ static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *me, double d, size_t 
  @param[in] me Pointer to the UsefulOutBuf
  @param[in] NewData UsefulBuf with the bytes to append
  
- @return None
- 
  See UsefulOutBuf_InsertUsefulBuf() for details. This does the same
  with the insertion point at the end of the valid data.
  
@@ -748,9 +722,7 @@ static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *me, UsefulBufC New
  
  @param[in] me Pointer to the UsefulOutBuf
  @param[in] pBytes Pointer to bytes to append
- @param[in] nLen Index in output buffer at which to append
- 
- @return None
+ @param[in] uLen Index in output buffer at which to append
  
  See UsefulOutBuf_InsertUsefulBuf() for details. This does the same
  with the insertion point at the end of the valid data.
@@ -769,7 +741,6 @@ static inline void UsefulOutBuf_AppendData(UsefulOutBuf *me, const void *pBytes,
  @param[in] me Pointer to the UsefulOutBuf
  @param[in] szString string to append
  
- @return None
  */
 static inline void UsefulOutBuf_AppendString(UsefulOutBuf *me, const char *szString)
 {
@@ -1001,7 +972,7 @@ int UsefulOutBuf_CopyOut(UsefulOutBuf *me, void *pBuf, size_t uBufSize, size_t *
 
 #define UIB_MAGIC (0xB00F)
 
-typedef struct __UsefulInputBuf {
+typedef struct {
    UsefulBufC UB;
    size_t     cursor;
    uint16_t   magic;
@@ -1044,9 +1015,7 @@ static inline size_t UsefulInputBuf_Tell(UsefulInputBuf *me) {
  Sets current position in input buffer
  
  @param[in] me Pointer to the UsefulInputBuf.
- @param[in] nPos  Position to set to
- 
- @return None.
+ @param[in] uPos  Position to set to
  
  If the position is off the end of the input buffer, the error state
  is entered and all functions will do nothing.
