@@ -339,9 +339,8 @@ inline static int DecodeBytes(int nMajorType, uint64_t uNumber, UsefulInputBuf *
    int nReturn = QCBOR_ERR_HIT_END; 
    
    if(pBytes != NULL) {
-      pDecodedItem->val.string.ptr = pBytes;
-      pDecodedItem->val.string.len = uNumber;
-      pDecodedItem->uDataType      = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING) ? QCBOR_TYPE_BYTE_STRING : QCBOR_TYPE_TEXT_STRING;
+      pDecodedItem->val.string = (UsefulBufC){pBytes, uNumber};
+      pDecodedItem->uDataType  = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING) ? QCBOR_TYPE_BYTE_STRING : QCBOR_TYPE_TEXT_STRING;
       nReturn = QCBOR_SUCCESS;
    }
    

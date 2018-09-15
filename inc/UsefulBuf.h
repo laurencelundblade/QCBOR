@@ -60,6 +60,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stddef.h> // for size_t
 
 /**
+ @file UsefulBuf.h
  
  The goal of this code is to make buffer and pointer manipulation
  easier and safer.
@@ -109,9 +110,16 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  gigabit-per-second IP router), it is probably better to have cleaner
  code you can be most certain about the security of.
  
- The len field is the length of the valid data pointed to.
+ The non-const UsefulBuf is usually used to refer a buffer
+ to be filled in. The length is the size of the buffer.
  
- There is also a const version of it when the data is const.
+ The const UsefulBufC is usually used to refer to some
+ data that has been filled in. The length is amount
+ of valid data pointed to.
+ 
+ A common use is to pass a UsefulBuf to a function, the function
+ fills it in, the function returns a UsefulBufC. The pointer
+ is the same in both.
  
  A UsefulBuf is NULL, it has no value, when the ptr in it is NULL.
  
@@ -132,15 +140,25 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef struct {
    void  *ptr;
-   size_t len;
+   const size_t len;
 } UsefulBuf;
 
 
 typedef struct {
    const void *ptr;
-   size_t      len;
+   const size_t      len;
 } UsefulBufC;
 
+
+/**
+ A "NULL" UsefulBuf is one that has no value in the same way a NULL pointer has no value.
+ A UsefulBuf is NULL when the ptr field is NULL. It doesn't matter what len is.
+ */
+#define UsefulBuf_IsNULL(UB)  (!(UB).ptr)
+
+#define NULLUsefulBufC        ((UsefulBufC) {NULL, 0})
+
+#define NULLUsefulBuf         ((UsefulBuf) {NULL, 0})
 
 
 
@@ -171,21 +189,55 @@ static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
 }
 
 
+
+
 /**
-  A "NULL" UsefulBuf is one that has no value in the same way a NULL pointer has no value.
-  A UsefulBuf is NULL when the ptr field is NULL. It doesn't matter what len is.
+ Convert a literal string to a UsefulBufC.
+ 
+ szString must be a literal string that you can take sizeof.
+ This is better for literal strings than SZToUsefulBufC
+ because it generates less code. It will not work on
+ non-literal strings.
+ 
+ The terminating \0 (NULL) is NOT included in the length!
+ 
  */
-#define UsefulBuf_IsNULL(UB)  (!(UB).ptr)
+#define SZLiteralToUsefulBufC(szString) \
+    ((UsefulBufC) {(szString), sizeof(szString)-1})
 
-#define NULLUsefulBufC        ((UsefulBufC) {NULL, 0})
+#define UsefulBuf_FromSZLiteral(szString) \
+    ((UsefulBufC) {(szString), sizeof(szString)-1})
 
-#define NULLUsefulBuf         ((UsefulBuf) {NULL, 0})
+
+/**
+ Convert a literal byte array to a UsefulBufC.
+ 
+ pBytes must be a literal string that you can take sizeof.
+ It will not work on  non-literal strings.
+ 
+ */
+#define ByteArrayLiteralToUsefulBufC(pBytes) \
+    ((UsefulBufC) {(pBytes), sizeof(pBytes)})
+
+#define UsefulBuf_FromByteArrayLiteral(pBytes) \
+    ((UsefulBufC) {(pBytes), sizeof(pBytes)})
+
+
+// Make an automatic variable with name of type UsefulBuf and point it to a stack
+// variable of the give size
+#define  MakeUsefulBufOnStack(name, size) \
+    uint8_t    __pBuf##name[(size)];\
+    UsefulBuf  name = {__pBuf##name , sizeof( __pBuf##name )}
+
+#define  UsefulBuf_MakeStackUB(name, size) \
+    uint8_t    __pBuf##name[(size)];\
+    UsefulBuf  name = {__pBuf##name , sizeof( __pBuf##name )}
 
 
 /*
  An "Empty" UsefulBuf is one that has a value and can be considered to be set,
- but that value is of zero length.  It is empty when len is zero. It 
- doesn't matter what the ptr is. 
+ but that value is of zero length.  It is empty when len is zero. It
+ doesn't matter what the ptr is.
  
  A lot of uses will not need to clearly distinguish a NULL UsefulBuf
  from an empty one and can have the ptr NULL and the len 0.  However
@@ -197,6 +249,9 @@ static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
 
 #define UsefulBuf_IsNULLOrEmpty(UB) (UsefulBuf_IsNULL(UB) || UsefulBuf_IsEmpty(UB))
 
+static inline int UsefulBuf_IsEmptyX(UsefulBufC UB) {
+    return !UB.len;
+}
 
 
 
@@ -213,28 +268,27 @@ static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
  The terminating \0 (NULL) is NOT included in the length!
  
  */
-static inline UsefulBufC SZToUsefulBufC(const char *szString){
-   return ((UsefulBufC) {szString, strlen(szString)});
+static inline UsefulBufC UsefulBuf_FromSZ(const char *szString){
+    return ((UsefulBufC) {szString, strlen(szString)});
 }
 
 
 /**
  @brief Copy one UsefulBuf into another
  
- @param[in] pDest The destination buffer to copy into
+ @param[in] Dest The destination buffer to copy into
  @param[out] Src  The source to copy from
  
- @return 0 on success, 1 on failure
+ @return filled in UsefulBufC on success, NULLUsefulBufC on failure
  
- This fails and returns 1 if Src.len is greater than
- pDest->len.
+ This fails if Src.len is greater than Dest.len.
  
  Note that like memcpy, the pointers are not checked and
- this will crash, rather than return 1 if they are NULL
- or invalid.
+ this will crash, rather than return NULLUsefulBufC if
+ they are NULL or invalid.
  
  */
-int UsefulBuf_Copy(UsefulBuf *pDest, const UsefulBufC Src);
+UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src);
 
 
 
@@ -255,7 +309,7 @@ void UsefulBuf_Set(UsefulBuf *pDest, uint8_t value);
 /**
  @brief Copy a pointer into a UsefulBuf
  
- @param[in,out] pDest The destination buffer to copy into
+ @param[in,out] Dest The destination buffer to copy into
  @param[in] ptr  The source to copy from
  @param[in] len  Length of the source; amoutn to copy
  
@@ -269,9 +323,9 @@ void UsefulBuf_Set(UsefulBuf *pDest, uint8_t value);
  or invalid.
  
  */
-inline static int UsefulBuf_CopyPtr(UsefulBuf *pDest, const void *ptr, size_t len)
+inline static UsefulBufC UsefulBuf_CopyPtr(UsefulBuf Dest, const void *ptr, size_t len)
 {
-   return UsefulBuf_Copy(pDest, (UsefulBufC){ptr, len});
+   return UsefulBuf_Copy(Dest, (UsefulBufC){ptr, len});
 }
 
 
@@ -312,37 +366,6 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
 
-/**
- Convert a literal string to a UsefulBufC.
- 
- szString must be a literal string that you can take sizeof. 
- This is better for literal strings than SZToUsefulBufC
- because it generates less code. It will not work on
- non-literal strings.
- 
- The terminating \0 (NULL) is NOT included in the length!
-
- */
-#define SZLiteralToUsefulBufC(szString) \
-      ((UsefulBufC) {(szString), sizeof(szString)-1})
-
-
-/**
- Convert a literal byte array to a UsefulBufC.
- 
- pBytes must be a literal string that you can take sizeof.
- It will not work on  non-literal strings.
- 
- */
-#define ByteArrayLiteralToUsefulBufC(pBytes) \
-      ((UsefulBufC) {(pBytes), sizeof(pBytes)})
-
-
-// Make an automatic variable with name of type UsefulBuf and point it to a stack
-// variable of the give size
-#define  MakeUsefulBufOnStack(name, size) \
-   uint8_t    __pBuf##name[(size)];\
-   UsefulBuf  name = {__pBuf##name , sizeof( __pBuf##name )}
 
 
 
@@ -415,7 +438,7 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 typedef struct {
    UsefulBuf  UB;
-   size_t     size;  // size of the buffer (not the valid data in the buffer)
+   size_t     data_len;  // length of the data
    uint16_t   magic; // Used to detect corruption and lack of initialization
    uint8_t    err;
 } UsefulOutBuf;
@@ -425,15 +448,14 @@ typedef struct {
  @brief Initialize and supply the actual output buffer
  
  @param[out] me The UsefulOutBuf to initialize
- @param[in] pStorage Pointer to data buffer to use
- @param[in] uStorageSize Size of buffer pStorage
+ @param[in] Storage  Buffer to output into
  
  Intializes the UsefulOutBuf with storage. Sets the current position
  to the beginning of the buffer clears the error.
  
  This must be called before the UsefulOutBuf is used.
  */
-void UsefulOutBuf_Init(UsefulOutBuf *me, void *pStorage, size_t uStorageSize);
+void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage);
 
 
 
@@ -462,7 +484,7 @@ void UsefulOutBuf_Init(UsefulOutBuf *me, void *pStorage, size_t uStorageSize);
  */
 static inline void UsefulOutBuf_Reset(UsefulOutBuf *me)
 {
-   me->UB.len = 0;
+   me->data_len = 0;
    me->err    = 0;
 }
 
@@ -484,7 +506,7 @@ static inline void UsefulOutBuf_Reset(UsefulOutBuf *me)
  */
 static inline size_t UsefulOutBuf_GetEndPosition(UsefulOutBuf *me)
 {
-   return me->UB.len;
+   return me->data_len;
 }
 
 
@@ -498,7 +520,7 @@ static inline size_t UsefulOutBuf_GetEndPosition(UsefulOutBuf *me)
  */
 static inline int UsefulOutBuf_AtStart(UsefulOutBuf *me)
 {
-   return 0 == me->UB.len;
+   return 0 == me->data_len;
 }
 
 
@@ -875,7 +897,7 @@ static inline int UsefulOutBuf_GetError(UsefulOutBuf *me)
 
 static inline size_t UsefulOutBuf_RoomLeft(UsefulOutBuf *me)
 {
-   return me->size - me->UB.len;
+   return me->UB.len - me->data_len;
 }
 
 
@@ -901,9 +923,8 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *me, size_t uLen)
   @brief Returns the resulting valid data in a UsefulBuf
  
   @param[in] me Pointer to the UsefulOutBuf
-  @param[out] O UsefuBuf structure holding pointer and length
  
-  @return Same as UsefulOutBuf_GetError()
+ @return TODO:
  
   If you want a pointer and length to the resulting data, dereference
   O.
@@ -913,7 +934,7 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *me, size_t uLen)
   so you can keep adding data.
  */
 
-int UsefulOutBuf_OutUBuf(UsefulOutBuf *me, UsefulBuf *O);
+UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me);
 
 
 /**
@@ -1118,15 +1139,11 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *me, size_t uNum);
 static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *me, size_t uNum)
 {
    const void *pResult = UsefulInputBuf_GetBytes(me, uNum);
-   
-   UsefulBufC UBR = {NULL, 0};
-   
-   if(pResult) {
-      UBR.len = uNum;
-      UBR.ptr = pResult;
-   }
-   
-   return UBR;
+    if(!pResult) {
+        return NULLUsefulBufC;
+    } else {
+        return (UsefulBufC){pResult, uNum};
+    }
 }
 
 

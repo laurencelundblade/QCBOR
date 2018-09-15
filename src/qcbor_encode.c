@@ -193,13 +193,13 @@ inline static bool Nesting_IsBstrWrapped(QCBORTrackNesting *pNesting)
 /*
  Public function for initialization. See header qcbor.h
  */
-void QCBOREncode_Init(QCBOREncodeContext *me, void *pBuf, size_t uBufLen)
+void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
 {
    memset(me, 0, sizeof(QCBOREncodeContext));
-   if(uBufLen > UINT32_MAX) {
+   if(Storage.len > UINT32_MAX) {
       me->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
    } else {
-      UsefulOutBuf_Init(&(me->OutBuf), pBuf, uBufLen);
+      UsefulOutBuf_Init(&(me->OutBuf), Storage);
       Nesting_Init(&(me->nesting));
    }
 }
@@ -604,8 +604,9 @@ int QCBOREncode_Finish2(QCBOREncodeContext *me, EncodedCBOR *pEncodedCBOR)
       me->uError = QCBOR_ERR_BUFFER_TOO_SMALL;
       goto Done;
    }
-   
-   UsefulOutBuf_OutUBuf(&(me->OutBuf), &(pEncodedCBOR->Bytes));
+
+   pEncodedCBOR->Bytes = UsefulOutBuf_OutUBuf(&(me->OutBuf));
+
    pEncodedCBOR->uItems = Nesting_GetCount(&(me->nesting));
    
 Done:

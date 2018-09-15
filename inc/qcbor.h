@@ -499,7 +499,7 @@ typedef struct __EncodedCBORC {
 } EncodedCBORC;
 
 typedef struct __EncodedCBOR {
-   UsefulBuf  Bytes;
+   UsefulBufC  Bytes;
    uint16_t   uItems;
 } EncodedCBOR;
 
@@ -722,7 +722,7 @@ typedef struct _QCBORItem {
  */
 static inline EncodedCBORC EncodedCBORConst(const EncodedCBOR ECBOR)
 {
-   return (EncodedCBORC){UsefulBuf_Const(ECBOR.Bytes), ECBOR.uItems};
+   return (EncodedCBORC){ECBOR.Bytes, ECBOR.uItems};
 }
 
 
@@ -766,7 +766,7 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
  
  */
 
-void QCBOREncode_Init(QCBOREncodeContext *pCtx, void *pBuf, size_t uBufLen);
+void QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
 
 
 
@@ -1022,7 +1022,7 @@ void QCBOREncode_AddText_3(QCBOREncodeContext *pCtx, const char *szLabel, int64_
       QCBOREncode_AddText_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE, (Bytes))
 
 inline static void QCBOREncode_AddSZString_3(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, uint64_t uTag, const char *szString) {
-   QCBOREncode_AddText_3(pCtx, szLabel, nLabel, uTag, SZToUsefulBufC(szString));
+   QCBOREncode_AddText_3(pCtx, szLabel, nLabel, uTag, UsefulBuf_FromSZ(szString));
 }
 
 #define QCBOREncode_AddSZString(pCtx, szString) \

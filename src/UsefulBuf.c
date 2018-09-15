@@ -57,16 +57,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*
    Public function -- see UsefulBuf.h
  */
-int UsefulBuf_Copy(UsefulBuf *pDest, const UsefulBufC Src)
+UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src)
 {
-   if(Src.len > pDest->len)
-      return 1;
+   if(Src.len > Dest.len)
+      return NULLUsefulBufC;
    
-   memcpy(pDest->ptr, Src.ptr, Src.len);
-   
-   pDest->len = Src.len;
-   
-   return 0;
+   memcpy(Dest.ptr, Src.ptr, Src.len);
+    
+   return((UsefulBufC){Dest.ptr, Src.len});
 }
 
 /*
@@ -121,7 +119,8 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind)
  
  THIS FUNCTION DOES POINTER MATH
  */
-void UsefulOutBuf_Init(UsefulOutBuf *me, void *pStorage, size_t uStorageSize)
+#if NODEF
+void UsefulOutBuf_InitOld(UsefulOutBuf *me, void *pStorage, size_t uStorageSize)
 {
    me->magic  = USEFUL_OUT_BUF_MAGIC;
    UsefulOutBuf_Reset(me);
@@ -141,6 +140,27 @@ void UsefulOutBuf_Init(UsefulOutBuf *me, void *pStorage, size_t uStorageSize)
       me->err = 1;
 #endif
 }
+#endif
+
+void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage)
+{
+    me->magic  = USEFUL_OUT_BUF_MAGIC;
+    UsefulOutBuf_Reset(me);
+    me->UB     = Storage;
+    
+    // The following check fails on ThreadX
+#if 0
+    // Sanity check on the pointer and size to be sure we are not
+    // passed a buffer that goes off the end of the address space.
+    // Given this test, we know that all unsigned lengths less than
+    // me->size are valid and won't wrap in any pointer additions
+    // based off of pStorage in the rest of this code.
+    const uintptr_t ptrM = UINTPTR_MAX - uStorageSize;
+    if(pStorage && (uintptr_t)pStorage > ptrM) // Check #0
+        me->err = 1;
+#endif
+}
+
 
 
 /*
@@ -197,7 +217,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
    // Make sure valid data is less than buffer size. This would only occur
    // if there was corruption of me, but it is also part of the checks to
    // be sure there is no pointer arithmatic under/overflow.
-   if(me->UB.len > me->size) {  // Check #1
+   if(me->data_len > me->UB.len) {  // Check #1
       me->err = 1;
       return; // Offset of valid data is off the end of the UsefulOutBuf due to uninitialization or corruption
    }
@@ -223,7 +243,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
    uint8_t *pSourceOfMove       = ((uint8_t *)me->UB.ptr) + uInsertionPos; // PtrMath #1
    size_t   uNumBytesToMove     = me->UB.len - uInsertionPos; // PtrMath #2
    uint8_t *pDestinationOfMove  = pSourceOfMove + NewData.len; // PtrMath #3
-   size_t   uRoomInDestination  = me->size - (uInsertionPos + NewData.len); // PtrMath #4
+   size_t   uRoomInDestination  = me->UB.len - (uInsertionPos + NewData.len); // PtrMath #4
    
    if(uNumBytesToMove && me->UB.ptr) {
       memmove(pDestinationOfMove, pSourceOfMove, uNumBytesToMove);
@@ -231,11 +251,11 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
    
    /* 4. Put the new data in */
    uint8_t *pInsertionPoint = ((uint8_t *)me->UB.ptr) + uInsertionPos; // PtrMath #5
-   uRoomInDestination       = me->size - uInsertionPos; // PtrMath #6
+   uRoomInDestination       = me->UB.len - uInsertionPos; // PtrMath #6
    if(me->UB.ptr) {
       memmove(pInsertionPoint, NewData.ptr, NewData.len);
    }
-   me->UB.len += NewData.len ;
+   me->data_len += NewData.len ;
 }
 
 
@@ -267,24 +287,31 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
 
 
 /*
- Public function -- see UsefulBuf.h
- 
- Returns the resulting valid data in a UsefulBuf
- 
+ Public function -- see UsefulBuf.h 
  */
-int UsefulOutBuf_OutUBuf(UsefulOutBuf *me, UsefulBuf *O)
+UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me)
 {
    if(me->err) {
-      return me->err;
+      return NULLUsefulBufC;
    }
    
    if(me->magic != USEFUL_OUT_BUF_MAGIC) {
       me->err = 1;
-      return 1;
+      return NULLUsefulBufC;
    }
-   
-   *O = me->UB;
-   return 0;
+    
+    return(UsefulBufC){me->UB.ptr,me->data_len};
+}
+
+
+UsefulBufC UsefulOutBuf_CopyOut2(UsefulOutBuf *me, UsefulBuf pDest)
+{
+    UsefulBufC Tmp = UsefulOutBuf_OutUBuf(me);
+    if(UsefulBuf_IsNULL(Tmp)) {
+        return NULLUsefulBufC;
+    }
+    
+    return UsefulBuf_Copy(pDest, Tmp);
 }
 
 
@@ -296,18 +323,12 @@ int UsefulOutBuf_OutUBuf(UsefulOutBuf *me, UsefulBuf *O)
  */
 int UsefulOutBuf_CopyOut(UsefulOutBuf *me, void *pBuf, size_t uBufSize, size_t *puCopied)
 {
-   UsefulBuf B;
-   if(UsefulOutBuf_OutUBuf(me, &B)) {
-      return 1; // was in error state or was corrupted
-   }
-   
-   if(B.len > uBufSize) {
-      return 1; // buffer was too small
-   }
-   
-   memmove(pBuf, B.ptr, B.len);
+    UsefulBufC B = UsefulOutBuf_CopyOut2(me, (UsefulBuf){pBuf, uBufSize});
+    if(UsefulBuf_IsNULL(B)) {
+        return 1; // was in error state or was corrupted or pBuf too small
+    }
 
-   *puCopied = me->UB.len;
+   *puCopied = B.len;
    
    return 0;
 }

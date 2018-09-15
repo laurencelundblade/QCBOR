@@ -13,10 +13,10 @@
 
 int basic_test_one()
 {
-    uint8_t buffer[512];
+    MakeUsefulBufOnStack(Storage, 512);
     QCBOREncodeContext EC;
     
-    QCBOREncode_Init(&EC, buffer, sizeof(buffer));
+    QCBOREncode_Init(&EC, Storage);
     
     QCBOREncode_AddBool(&EC, true);
     
@@ -29,7 +29,7 @@ int basic_test_one()
     
     QCBORDecodeContext DC;
     QCBORItem Item;
-    QCBORDecode_Init(&DC, UsefulBuf_Const(Encoded.Bytes), QCBOR_DECODE_MODE_NORMAL);
+    QCBORDecode_Init(&DC, Encoded.Bytes, QCBOR_DECODE_MODE_NORMAL);
     
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_TRUE) {
