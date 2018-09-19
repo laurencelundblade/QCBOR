@@ -12,7 +12,6 @@
 		E776E091214AE07500E67947 /* qcbor_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E08E214AE07500E67947 /* qcbor_decode.c */; };
 		E776E097214AE0C700E67947 /* cmd_line_main.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E096214AE0C700E67947 /* cmd_line_main.c */; };
 		E776E09D214AEEEA00E67947 /* basic_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E09C214AEEEA00E67947 /* basic_test.c */; };
-		E776E160214D92E600E67947 /* code_size_check.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E15F214D92E600E67947 /* code_size_check.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -37,8 +36,6 @@
 		E776E096214AE0C700E67947 /* cmd_line_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_line_main.c; sourceTree = "<group>"; };
 		E776E09B214AEEEA00E67947 /* basic_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = basic_test.h; path = test/basic_test.h; sourceTree = "<group>"; };
 		E776E09C214AEEEA00E67947 /* basic_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = basic_test.c; path = test/basic_test.c; sourceTree = "<group>"; };
-		E776E15E214D92E600E67947 /* code_size_check.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = code_size_check.h; sourceTree = "<group>"; };
-		E776E15F214D92E600E67947 /* code_size_check.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = code_size_check.c; sourceTree = "<group>"; };
 		E776E161214EE19C00E67947 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -57,8 +54,6 @@
 			isa = PBXGroup;
 			children = (
 				E776E161214EE19C00E67947 /* README.md */,
-				E776E15E214D92E600E67947 /* code_size_check.h */,
-				E776E15F214D92E600E67947 /* code_size_check.c */,
 				E776E096214AE0C700E67947 /* cmd_line_main.c */,
 				E776E095214AE0B600E67947 /* test */,
 				E776E092214AE07C00E67947 /* inc */,
@@ -159,7 +154,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E776E160214D92E600E67947 /* code_size_check.c in Sources */,
 				E776E08F214AE07500E67947 /* qcbor_encode.c in Sources */,
 				E776E091214AE07500E67947 /* qcbor_decode.c in Sources */,
 				E776E090214AE07500E67947 /* UsefulBuf.c in Sources */,
