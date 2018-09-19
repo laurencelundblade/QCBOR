@@ -50,6 +50,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  =====================================================================================*/
 
 #include "qcbor.h"
+#include "ieee754.h"
 
 
 /*...... This is a ruler that is 80 characters long...........................*/
@@ -268,7 +269,7 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorTyp
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_FOUR_BYTES, uPos);
       UsefulOutBuf_InsertUint32(&(me->OutBuf), (uint32_t)uNumber, uPos+1);
       
-   } else if (uNumber > 0xff) {
+   } else if (uNumber > 0xff || uMinLen>= 2) {
       // Between 0 and 65535
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_TWO_BYTES, uPos);
       UsefulOutBuf_InsertUint16(&(me->OutBuf), (uint16_t)uNumber, uPos+1);
@@ -579,6 +580,35 @@ void QCBOREncode_AddDouble_3(QCBOREncodeContext *me, const char *szLabel, int64_
    AddSimpleInternal(me, szLabel, nLabel, uTag, sizeof(double), uNum);
 }
 
+void QCBOREncode_AddFloatAsHalf_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, float fNum)
+{
+    AddSimpleInternal(me, szLabel, nLabel, uTag, sizeof(uint16_t), IEEE754_FloatToHalf(fNum));
+}
+
+static void QCBOREncode_AddFUnionAsSmallest_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, IEEE754_union uNum)
+{
+   switch(uNum.uTag) {
+      case IEEE754_UNION_IS_HALF:
+         AddSimpleInternal(me, szLabel, nLabel, uTag, sizeof(uint16_t), uNum.u16);
+         break;
+      case IEEE754_UNION_IS_SINGLE:
+         AddSimpleInternal(me, szLabel, nLabel, uTag, sizeof(uint32_t), uNum.u32);
+         break;
+      case IEEE754_UNION_IS_DOUBLE:
+         AddSimpleInternal(me, szLabel, nLabel, uTag, sizeof(uint64_t), uNum.u64);
+         break;
+   }
+}
+
+void QCBOREncode_AddFloatAsSmallest_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, float fNum)
+{
+   QCBOREncode_AddFUnionAsSmallest_3(me, szLabel, nLabel, uTag, IEEE754_FloatToSmallest(fNum));
+}
+
+void QCBOREncode_AddDoubleAsSmallest_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, double dNum)
+{
+   QCBOREncode_AddFUnionAsSmallest_3(me, szLabel, nLabel, uTag, IEEE754_DoubleToSmallest(dNum));
+}
 
 
 

@@ -874,6 +874,90 @@ void QCBOREncode_AddDouble_3(QCBOREncodeContext *pCtx, const char *szLabel, int6
 #define QCBOREncode_AddDoubleToMapN(pCtx, nLabel, dNum) \
       QCBOREncode_AddDouble_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE, (dNum))
 
+/*
+ @brief  Add a half-precision floating point number to the encoded output
+ 
+ @param[in] pCtx      The encoding context to add the float to.
+ @param[in] szLabel   The string map label for this integer value.
+ @param[in] nLabel    The integer map label for this integer value.
+ @param[in] uTag      A CBOR type 6 tag
+ @param[in] fNum      The float to add.
+ 
+ This will truncate the precision of the single precision float to half-precision.
+ Numbers whose absolute value is larger than 65504 will be encoded as infinity as this is the largest number
+ half-precision can encode. Numbers whose absolute value is less than 5.96E−8 will be
+ encoded as 0. Single precision floats smaller than 6.10E−5 will be converted
+ half-precision subnormal numbers.
+ 
+ Infinity and NaN are handled correctly. NaN payloads are partially carried.
+ 
+ Half-precision floating point number take up 2 bytes, half that of single-precision.
+ 
+ This works the same as QCBOREncode_AddInt64_3() except it is for half-precision floats.
+
+ */
+void QCBOREncode_AddFloatAsHalf_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, float fNum);
+
+/*
+ @brief  Add a half-precision floating point number to the encoded output
+ 
+ @param[in] pCtx      The encoding context to add the float to.
+ @param[in] szLabel   The string map label for this integer value.
+ @param[in] nLabel    The integer map label for this integer value.
+ @param[in] uTag      A CBOR type 6 tag
+ @param[in] fNum      The float to add.
+ 
+ This will selectively encode the single-precision floating point number as either
+ single-precision or half-precision. It will always encode infinity, NaN and 0
+ has half precision. If no precision will be lost in the conversion to half-precision
+ then it will be performed, otherwise it will not be performed.
+ 
+ This reduces the size of encoded messages a lot, maybe even half if most values are
+ 0, infinity or NaN.
+ 
+ Half-precision floating point numbers take up 2 bytes, half that of single-precision.
+ 
+ These will always be decoded into a float as standard C doesn't have a widely used
+ standard representation for half-precision floats yet.
+ 
+ This works the same as QCBOREncode_AddInt64_3() except it is for single and half-precision floats.
+ 
+ */
+
+
+void QCBOREncode_AddFloatAsSmallest_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, float fNum);
+
+/*
+ @brief  Add a half-precision floating point number to the encoded output
+ 
+ @param[in] pCtx      The encoding context to add the float to.
+ @param[in] szLabel   The string map label for this integer value.
+ @param[in] nLabel    The integer map label for this integer value.
+ @param[in] uTag      A CBOR type 6 tag
+ @param[in] dNum      The float to add.
+ 
+ This will selectively encode the double-precision floating point number as either
+ double-precision, single-precision or half-precision. It will always encode infinity, NaN and 0
+ has half precision. If no precision will be lost in the conversion to half-precision
+ then it will be converted and encoded. If not and no precision will be lost in
+ conversion to single-precision, then it will be converted and encoded. If not, then
+ no conversion is performed and it sent as a double.
+ 
+ Half-precision floating point numbers take up 2 bytes, half that of single-precision.
+ 
+ This reduces the size of encoded messages a lot, maybe even by four if a lot of values are
+ 0, infinity or NaN.
+ 
+ On decode, these will always be represented has float or double. Half-precision values
+ will decode as float as standard C doesn't have a widely used
+ standard representation for half-precision floats yet. The designer of the protocol
+ using this approach can / should assume that floats received actually have the precision
+ of double. They should probably cast the float received to double.
+ 
+ This works the same as QCBOREncode_AddInt64_3() except it is for half-precision floats.
+ 
+ */
+void QCBOREncode_AddDoubleAsSmallest_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, double dNum);
 
 
 /**

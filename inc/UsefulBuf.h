@@ -370,6 +370,43 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
 
+/*
+ Convenient functions to avoid type punning, compiler warnings and such
+ The optimizer reduces them to a simple assignment
+ This is a crusty corner of C. It shouldn't be this hard.
+ */
+static inline uint32_t UsefulBufUtil_CopyFloatToUint32(float f)
+{
+    uint32_t u32;
+    memcpy(&u32, &f, sizeof(uint32_t));
+    return u32;
+}
+
+static inline uint64_t UsefulBufUtil_CopyDoubleToUint64(double d)
+{
+    uint64_t u64;
+    memcpy(&u64, &d, sizeof(uint64_t));
+    return u64;
+}
+
+static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64)
+{
+    double d;
+    memcpy(&d, &u64, sizeof(uint64_t));
+    return d;
+}
+
+static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32)
+{
+    float f;
+    memcpy(&f, &u32, sizeof(uint32_t));
+    return f;
+}
+
+
+
+
+
 /**
  UsefulOutBuf is a structure and functions (an object) that are good
  for serializing data into a buffer such as is often done with network
