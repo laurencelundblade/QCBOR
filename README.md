@@ -21,16 +21,23 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 **Clear documented public interface** – The public interface is separated from the implementation. It can be put to use without reading the source. 
 
 ## Code Status
-This was originally developed by Qualcomm. It was [open sourced through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a permissive Linux license, September 2018 (thanks Qualcomm!).
+QCBOR was originally developed by Qualcomm. It was [open sourced through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a permissive Linux license, September 2018 (thanks Qualcomm!).
 
-This code in Laurence's GitHub has diverged some from the CAF source with some small simplifications and tidying up. 
+This code in Laurence's GitHub has diverged some from the CAF source with some small simplifications and tidying up.  The full test suite is not up and running and available in GitHub yet, so some caution is advised. This should be remedies soon.
 
-The following modifications are planned as of September 2018:
+The following modifications are planned:
 * Floating point support
 * Indefinite length support
 * Improve design for handling multiple tags
 
 These changes may result in some interface changes. 
+
+## Building
+There are no makefiles or build scripts.  You should be able to just incorprate the src and inc directories into your project with nothing more needed.  The code should be portable enough to just compile and run. 
+
+The test directory includes some tests that are nearly as portable with a simple entry point. They can be handled the same way to verify the code is working correctly in your environment.
+
+
 
 
 
