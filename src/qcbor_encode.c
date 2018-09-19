@@ -297,7 +297,7 @@ inline static void AppendEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uM
 }
 
 
-static void AddBytesInternal(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, UsefulBufC Bytes, uint8_t uMajorType, uint16_t uItems);
+static void AddBytesInternal(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, UsefulBufC Bytes, uint8_t uMajorType);
 
 
 /*
@@ -307,7 +307,7 @@ static void AddLabelAndOptionalTag(QCBOREncodeContext *me, const char *szLabel, 
 {
    if(szLabel) {
       UsefulBufC SZText = {szLabel, strlen(szLabel)};
-      AddBytesInternal(me, NULL, nLabel, CBOR_TAG_NONE, SZText, CBOR_MAJOR_TYPE_TEXT_STRING, 0);
+      AddBytesInternal(me, NULL, nLabel, CBOR_TAG_NONE, SZText, CBOR_MAJOR_TYPE_TEXT_STRING);
    } else if (QCBOR_NO_INT_LABEL != nLabel) {
       // Add an integer label. This is just adding an integer at this point
       // This will result in a call right back to here, but the call won't do anything
@@ -323,10 +323,10 @@ static void AddLabelAndOptionalTag(QCBOREncodeContext *me, const char *szLabel, 
 /*
  Does the work of adding some bytes to the CBOR output. Works for a
  byte and text strings, which are the same in in CBOR though they have
- different major types.  This is also used to insert raw or
- pre-formatted CBOR.
+ different major types.  This is also used to insert raw
+ pre-encoded CBOR.
  */
-static void AddBytesInternal(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, UsefulBufC Bytes, uint8_t uMajorType, uint16_t uItems)
+static void AddBytesInternal(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, UsefulBufC Bytes, uint8_t uMajorType)
 {
    if(Bytes.len >= UINT32_MAX) {
       // This implementation doesn't allow buffers larger than UINT32_MAX. This is
@@ -350,7 +350,7 @@ static void AddBytesInternal(QCBOREncodeContext *me, const char *szLabel, int64_
          UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), Bytes);
          
          // Update the array counting if there is any nesting at all
-         me->uError = Nesting_Increment(&(me->nesting), uMajorType == CBOR_MAJOR_NONE_TYPE_RAW ? uItems : 1);
+         me->uError = Nesting_Increment(&(me->nesting), 1);
       }
    }
 }
@@ -363,19 +363,18 @@ static void AddBytesInternal(QCBOREncodeContext *me, const char *szLabel, int64_
  */
 void QCBOREncode_AddBytes_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, UsefulBufC Bytes)
 {
-   AddBytesInternal(me, szLabel, nLabel, uTag, Bytes, CBOR_MAJOR_TYPE_BYTE_STRING, 0);
+   AddBytesInternal(me, szLabel, nLabel, uTag, Bytes, CBOR_MAJOR_TYPE_BYTE_STRING);
 }
 
 void QCBOREncode_AddText_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, UsefulBufC Bytes)
 {
-   AddBytesInternal(me, szLabel, nLabel, uTag, Bytes, CBOR_MAJOR_TYPE_TEXT_STRING, 0);
+   AddBytesInternal(me, szLabel, nLabel, uTag, Bytes, CBOR_MAJOR_TYPE_TEXT_STRING);
 }
 
-void QCBOREncode_AddRaw(QCBOREncodeContext *me, EncodedCBORC Raw)
+void QCBOREncode_AddEncodedToMap_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag, UsefulBufC Encoded)
 {
-   AddBytesInternal(me, NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, Raw.Bytes, CBOR_MAJOR_NONE_TYPE_RAW, Raw.uItems);
+    AddBytesInternal(me, szLabel, nLabel, uTag, Encoded, CBOR_MAJOR_NONE_TYPE_RAW);
 }
-
 
 
 
@@ -585,7 +584,7 @@ void QCBOREncode_AddDouble_3(QCBOREncodeContext *me, const char *szLabel, int64_
 /*
  Public functions to finish and get the encoded result. See header qcbor.h
  */
-int QCBOREncode_Finish2(QCBOREncodeContext *me, EncodedCBOR *pEncodedCBOR)
+int QCBOREncode_Finish2(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
 {
    if(me->uError)
       goto Done;
@@ -605,9 +604,7 @@ int QCBOREncode_Finish2(QCBOREncodeContext *me, EncodedCBOR *pEncodedCBOR)
       goto Done;
    }
 
-   pEncodedCBOR->Bytes = UsefulOutBuf_OutUBuf(&(me->OutBuf));
-
-   pEncodedCBOR->uItems = Nesting_GetCount(&(me->nesting));
+   *pEncodedCBOR = UsefulOutBuf_OutUBuf(&(me->OutBuf));
    
 Done:
    return me->uError;
@@ -615,12 +612,12 @@ Done:
 
 int QCBOREncode_Finish(QCBOREncodeContext *me, size_t *puEncodedLen)
 {
-   EncodedCBOR Enc;
+   UsefulBufC Enc;
    
    int nReturn = QCBOREncode_Finish2(me, &Enc);
    
    if(nReturn == QCBOR_SUCCESS) {
-      *puEncodedLen = Enc.Bytes.len;
+      *puEncodedLen = Enc.len;
    }
    
    return nReturn;

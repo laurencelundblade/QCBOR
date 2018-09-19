@@ -84,13 +84,7 @@ int UsefulBuf_Compare(const UsefulBufC UB1, const UsefulBufC UB2)
 }
 
 
-/*
- Public function -- see UsefulBuf.h
- */
-void UsefulBuf_Set(UsefulBuf *pDest, uint8_t value)
-{
-   memset(pDest->ptr, value, pDest->len);
-}
+
 
 
 /*
@@ -307,7 +301,7 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me)
 UsefulBufC UsefulOutBuf_CopyOut2(UsefulOutBuf *me, UsefulBuf pDest)
 {
     UsefulBufC Tmp = UsefulOutBuf_OutUBuf(me);
-    if(UsefulBuf_IsNULL(Tmp)) {
+    if(UsefulBuf_IsNULLC(Tmp)) {
         return NULLUsefulBufC;
     }
     
@@ -324,7 +318,7 @@ UsefulBufC UsefulOutBuf_CopyOut2(UsefulOutBuf *me, UsefulBuf pDest)
 int UsefulOutBuf_CopyOut(UsefulOutBuf *me, void *pBuf, size_t uBufSize, size_t *puCopied)
 {
     UsefulBufC B = UsefulOutBuf_CopyOut2(me, (UsefulBuf){pBuf, uBufSize});
-    if(UsefulBuf_IsNULL(B)) {
+    if(UsefulBuf_IsNULLC(B)) {
         return 1; // was in error state or was corrupted or pBuf too small
     }
 

@@ -472,39 +472,7 @@ struct _QCBORDecodeContext {
  */
 
 
-
 /**
- This holds some encoded CBOR. It is primarily the pointer and length
- of the encoded CBOR.
- 
- It also includes a count of the number of items at the top level of 
- the encoded CBOR. When the top level of CBOR is a map or an array
- the item count will be 1 because there is one map or array. It is
- only greater than 1 if the top level is not a map or an array.
- 
- For the most part the item count can be ignored. It is only needed
- when piecing together separately encoded chunks using QCBOREncode_AddRaw().
- (In this case it saves the parsing the encoded CBOR that is being
- added to get the item count).
- 
- The item count is the actual number of individual items. In array
- it is the same as the CBOR count. For a map it is double because
- the CBOR count is label/data pairs while this count the label 
- and the data separately
- */
-
-typedef struct __EncodedCBORC {
-   UsefulBufC Bytes;
-   uint16_t   uItems;
-} EncodedCBORC;
-
-typedef struct __EncodedCBOR {
-   UsefulBufC  Bytes;
-   uint16_t   uItems;
-} EncodedCBOR;
-
-
-/** 
  The maximum number of items in a single array or map when encoding of decoding.
 */
 #define QCBOR_MAX_ITEMS_IN_ARRAY (UINT16_MAX) // This value is 65,535 a lot of items for an array
@@ -712,20 +680,6 @@ typedef struct _QCBORItem {
  */
 #define QCBOR_NO_INT_LABEL           INT64_MAX
 
-
-/**
- Convert a non const EncodedCBOR to a const EncodedCBORC
- 
- @param[in] ECBOR The EncodedCBOR to convert
- 
- Returns: a EncodedCBORC struct
- */
-static inline EncodedCBORC EncodedCBORConst(const EncodedCBOR ECBOR)
-{
-   return (EncodedCBORC){ECBOR.Bytes, ECBOR.uItems};
-}
-
-
 /**
  QCBOREncodeContext is the data type that holds context for all the
  encoding functions. It is a little over 100 bytes so it can go on 
@@ -741,8 +695,7 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
  Initialize the the encoder to prepare to encode some CBOR.
  
  @param[in,out]  pCtx    The encoder context to initialize.
- @param[out]     pBuf    The buffer into which this encoded result will be placed.
- @param[in]      uBufLen The length of pBuf.
+ @param[in]      Storage The buffer into which this encoded result will be placed.
  
  Call this once at the start of an encoding of a CBOR structure. Then
  call the various QCBOREncode_AddXXX() functions to add the data
@@ -1297,30 +1250,36 @@ void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
  Add some already-encoded CBOR bytes
  
  @param[in] pCtx The context to add to.
+ @param[in] szLabel A NULL-terminated string label for the map. May be a NULL pointer.
+ @param[in] nLabel An integer label for the whole map. QCBOR_NO_INT_LABEL for no integer label.
+ @param[in] uTag A tag for the whole map or CBOR_TAG_NONE.
  @param[in] Encoded The already-encoded CBOR to add to the context.
  
- The CBOR added here must be self-consistent and not have any arrays
- or maps open. Specifically, if an array or map with N encoded items is
- added all N items must be present in pEncodedCBOR.  This is because
- the bytes added here are not examined in any way for correct CBOR
- formatting or to figure out if all the arrays and maps are closed or
- not.
+ The encoded CBOR being added must be fully conforming CBOR. It must
+ be complete with no arrays or maps that are incomplete. While this
+ encoder doesn't every produce indefinite lengths, it is OK for the
+ raw CBOR added here to have indefinite lengths.
  
- If what you are adding is one array or map at the top level, then
- pass 1 for nItems. This is really the main intended use for this
- function.
+ The raw CBOR added here is not checked in anyway. If it is not
+ conforming or has open arrays or such, the final encoded CBOR
+ will probably be wrong or not what was intended.
  
- Otherwise you must provide the correct count for the number of items,
- particularly if you have a map or array open so the correct count can
- be added when it is closed.
+ If the encoded CBOR being added here contains multiple items, they
+ must be enclosed in a map or array. At the top level the raw
+ CBOR must have a single item. 
  
- It is a good idea to use http://cbor.me, the CBOR playground to validate
- CBOR generated when you use this function.
  */
 
-void QCBOREncode_AddRaw(QCBOREncodeContext *pCtx, EncodedCBORC Encoded);
+void QCBOREncode_AddEncodedToMap_3(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t nLabel, uint64_t uTag, UsefulBufC Encoded);
 
+#define QCBOREncode_AddEncodedToMapN(pCtx, nLabel, Encoded) \
+      QCBOREncode_AddEncodedToMap_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE, Encoded)
 
+#define QCBOREncode_AddEncoded(pCtx, Encoded) \
+      QCBOREncode_AddEncodedToMap_3((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (Encoded))
+
+#define QCBOREncode_AddEncodedToMap(pCtx, szLabel, Encoded) \
+      QCBOREncode_AddEncodedToMap_3((pCtx), (szLabel), QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (Encoded))
 
 
 /**
@@ -1391,7 +1350,7 @@ int QCBOREncode_Finish(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
  If no buffer was passed to QCBOR_Init(), then only the length and
  number of items was computed. The length is in
  pEncodedCBOR->Bytes.len. The number of items is in
- pEncodedCBOR->nItems. pEncodedCBOR->Bytes.ptr is NULL.
+ pEncodedCBOR->nItems. pEncodedCBOR->Bytes.ptr is NULL. TODO: fix documentation
  
  If a buffer was passed, then pEncodedCBOR->Bytes.ptr is the same as
  the buffer passed to QCBOR_Init() and contains the encoded CBOR.
@@ -1407,7 +1366,7 @@ int QCBOREncode_Finish(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
  
  */
 
-int QCBOREncode_Finish2(QCBOREncodeContext *pCtx, EncodedCBOR *pEncodedCBOR);
+int QCBOREncode_Finish2(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
 
 
 
