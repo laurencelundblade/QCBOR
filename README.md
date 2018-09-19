@@ -29,13 +29,26 @@ The following modifications are planned:
 * Floating point support
 * Indefinite length support
 * Improve design for handling multiple tags
+* Improvements for handling bstr wrapping to support COSE better
 
 These changes may result in some interface changes. 
 
 ## Building
-There are no makefiles or build scripts.  You should be able to just incorprate the src and inc directories into your project with nothing more needed.  The code should be portable enough to just compile and run. 
+There is a simple makefile for the UNIX style command line binary that compiles everything to run the tests.
 
-The test directory includes some tests that are nearly as portable with a simple entry point. They can be handled the same way to verify the code is working correctly in your environment.
+The actual non-test source files are these five:
+* inc/UsefulBuf.h
+* inc/qcbor.h
+* src/UsefulBuf.c
+* src/qcbor_encode.c
+* src/qcbor_decode.c
+
+For most use cases you should just be able to add them to your project. Hopefully the easy portability of this implementation makes this work straight away, whatever your development environment is.
+
+The test directory includes some tests that are nearly as portable as the main implementation.  If your development environment doesn't support UNIX style command line and make, 
+you should be able to make a simple project and add the test files to it.
+
+
 
 
 
