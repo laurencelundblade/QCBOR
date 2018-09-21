@@ -194,8 +194,8 @@ void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage)
  
  Destination is represented as:
    me->UB.ptr -- start of the buffer
-   me->UB.len -- length of valid data in the buffer
-   me->size -- size of the buffer UB.ptr
+   me->UB.len -- size of the buffer UB.ptr
+   me->data_len -- length of value data in UB
  
  Source is data:
    NewData.ptr -- start of source buffer
@@ -243,7 +243,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
    }
    
    /* 1. Will it fit? */
-   // WillItFit() is the same as: NewData.len <= (me->size - me->UB.len)
+   // WillItFit() is the same as: NewData.len <= (me->size - me->data_len)
    // Check #1 makes sure subtraction in RoomLeft will not wrap around
    if(! UsefulOutBuf_WillItFit(me, NewData.len)) { // Check #2
       // The new data will not fit into the the buffer.
@@ -261,7 +261,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
    
    /* 3. Slide existing data to the right */
    uint8_t *pSourceOfMove       = ((uint8_t *)me->UB.ptr) + uInsertionPos; // PtrMath #1
-   size_t   uNumBytesToMove     = me->UB.len - uInsertionPos; // PtrMath #2
+   size_t   uNumBytesToMove     = me->data_len - uInsertionPos; // PtrMath #2
    uint8_t *pDestinationOfMove  = pSourceOfMove + NewData.len; // PtrMath #3
    size_t   uRoomInDestination  = me->UB.len - (uInsertionPos + NewData.len); // PtrMath #4
    
@@ -284,25 +284,25 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
  
  PtrMath #1 will never wrap around over because
    Check #0 in UsefulOutBuf_Init makes sure me-UB.ptr + me->size doesn't wrap
-   Check #1 makes sure me->UB.len is less than me->size
-   Check #3 makes sure uInsertionPos is less than me->UB.len
+   Check #1 makes sure me->data_len is less than me->UB.len
+   Check #3 makes sure uInsertionPos is less than me->data_len
  
  PtrMath #2 will never wrap around under because
-   Check #3 makes sure uInsertionPos is less than me->UB.len
+   Check #3 makes sure uInsertionPos is less than me->data_len
  
  PtrMath #3 will never wrap around over because   todo
    PtrMath #1 is checked resulting in pStartOfDataToMove being between me->UB.ptr and a maximum valid ptr
    
  PtrMath #4 will never wrap under because
-    Check #3 makes sure uInsertionPos is less than me->UB.len
+    Check #3 makes sure uInsertionPos is less than me->data_len
     Check #3 allows Check #2 to be refactored as NewData.Len > (me->size - uInsertionPos)
     This algebraically rearranges to me->size > uInsertionPos + NewData.len
  
  PtrMath #5 is exactly the same as PtrMath #1
  
  PtrMath #6 will never wrap under because
-   Check #1 makes sure me->UB.len is less than me->size
-   Check #3 makes sure uInsertionPos is less than me->UB.len
+   Check #1 makes sure me->data_len is less than me->size
+   Check #3 makes sure uInsertionPos is less than me->data_len
  */
 
 
