@@ -1,3 +1,29 @@
+/*==============================================================================
+ Copyright 2018 Laurence Lundblade
+ 
+ Permission is hereby granted, free of charge, to any person obtaining
+ a copy of this software and associated documentation files (the
+ "Software"), to deal in the Software without restriction, including
+ without limitation the rights to use, copy, modify, merge, publish,
+ distribute, sublicense, and/or sell copies of the Software, and to
+ permit persons to whom the Software is furnished to do so, subject to
+ the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included
+ in all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ 
+ (This is the MIT license)
+ ==============================================================================*/
+
 //
 //  ieee754.c
 //  Indefinite
@@ -139,7 +165,7 @@ static inline float CopyUint32ToFloat(uint32_t u32)
 
 
 // Public function; see ieee754.h
-int16_t IEEE754_FloatToHalf(float f)
+uint16_t IEEE754_FloatToHalf(float f)
 {
     // Pull the three parts out of the single-precision float
     const uint32_t uSingle = CopyFloatToUint32(f);
@@ -204,7 +230,7 @@ int16_t IEEE754_FloatToHalf(float f)
 
 
 // Public function; see ieee754.h
-int16_t IEEE754_DoubleToHalf(double d)
+uint16_t IEEE754_DoubleToHalf(double d)
 {
     // Pull the three parts out of the double-precision float
     const uint64_t uDouble = CopyDoubleToUint64(d);

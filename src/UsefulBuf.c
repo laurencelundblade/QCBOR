@@ -241,7 +241,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
    
    /* 3. Slide existing data to the right */
    uint8_t *pSourceOfMove       = ((uint8_t *)me->UB.ptr) + uInsertionPos; // PtrMath #1
-   size_t   uNumBytesToMove     = me->UB.len - uInsertionPos; // PtrMath #2
+   size_t   uNumBytesToMove     = me->data_len - uInsertionPos; // PtrMath #2
    uint8_t *pDestinationOfMove  = pSourceOfMove + NewData.len; // PtrMath #3
    size_t   uRoomInDestination  = me->UB.len - (uInsertionPos + NewData.len); // PtrMath #4
    

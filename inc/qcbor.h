@@ -896,10 +896,21 @@ void QCBOREncode_AddDouble_3(QCBOREncodeContext *pCtx, const char *szLabel, int6
  This works the same as QCBOREncode_AddInt64_3() except it is for half-precision floats.
 
  */
+
 void QCBOREncode_AddFloatAsHalf_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, float fNum);
 
+#define QCBOREncode_AddFloatAsHalf(pCtx, fNum) \
+      QCBOREncode_AddFloatAsHalf_3((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (fNum))
+
+#define QCBOREncode_AddFloatAsHalfToMap(pCtx, szLabel, fNum) \
+      QCBOREncode_AddFloatAsHalf_3((pCtx), (szLabel), QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (fNum))
+
+#define QCBOREncode_AddFloatAsHalfToMapN(pCtx, nLabel, fNum) \
+      QCBOREncode_AddFloatAsHalf_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE, (fNum))
+
+
 /*
- @brief  Add a half-precision floating point number to the encoded output
+ @brief  Add a dynamically sized floating point number to the encoded output
  
  @param[in] pCtx      The encoding context to add the float to.
  @param[in] szLabel   The string map label for this integer value.
@@ -924,11 +935,20 @@ void QCBOREncode_AddFloatAsHalf_3(QCBOREncodeContext *me, const char *szLabel, i
  
  */
 
-
 void QCBOREncode_AddFloatAsSmallest_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, float fNum);
 
+#define QCBOREncode_AddFloatAsSmallest(pCtx, fNum) \
+      QCBOREncode_AddFloatAsSmallest_3((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (fNum))
+
+#define QCBOREncode_AddFloatAsSmallestToMap(pCtx, szLabel, fNum) \
+      QCBOREncode_AddFloatAsSmallest_3((pCtx), (szLabel), QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (fNum))
+
+#define QCBOREncode_AddFloatAsSmallestToMapN(pCtx, nLabel, fNum) \
+      QCBOREncode_AddFloatAsSmallest_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE, (fNum))
+
+
 /*
- @brief  Add a half-precision floating point number to the encoded output
+ @brief  Add a dynamically sized floating point number to the encoded output
  
  @param[in] pCtx      The encoding context to add the float to.
  @param[in] szLabel   The string map label for this integer value.
@@ -943,9 +963,10 @@ void QCBOREncode_AddFloatAsSmallest_3(QCBOREncodeContext *me, const char *szLabe
  conversion to single-precision, then it will be converted and encoded. If not, then
  no conversion is performed and it sent as a double.
  
- Half-precision floating point numbers take up 2 bytes, half that of single-precision.
+ Half-precision floating point numbers take up 2 bytes, half that of single-precision,
+ one quarter of double-preceision
  
- This reduces the size of encoded messages a lot, maybe even by four if a lot of values are
+ This reduces the size of encoded messages a lot, maybe even by four if a most of values are
  0, infinity or NaN.
  
  On decode, these will always be represented has float or double. Half-precision values
@@ -954,10 +975,21 @@ void QCBOREncode_AddFloatAsSmallest_3(QCBOREncodeContext *me, const char *szLabe
  using this approach can / should assume that floats received actually have the precision
  of double. They should probably cast the float received to double.
  
- This works the same as QCBOREncode_AddInt64_3() except it is for half-precision floats.
+ This works the same as QCBOREncode_AddInt64_3() except it is for floating point types.
  
  */
+
 void QCBOREncode_AddDoubleAsSmallest_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, double dNum);
+
+#define QCBOREncode_AddDoubleAsSmallest(pCtx, dNum) \
+      QCBOREncode_AddDoubleAsSmallest_3((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (dNum))
+
+#define QCBOREncode_AddDoubleAsSmallestToMap(pCtx, szLabel, dNum) \
+      QCBOREncode_AddDoubleAsSmallest_3((pCtx), (szLabel), QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (dNum))
+
+#define QCBOREncode_AddDoubleAsSmallestToMapN(pCtx, nLabel, dNum) \
+      QCBOREncode_AddDoubleAsSmallest_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE, (dNum))
+
 
 
 /**

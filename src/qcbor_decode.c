@@ -302,11 +302,11 @@ inline static int DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber, QCBORI
          nReturn = QCBOR_ERR_UNSUPPORTED;
          break;
            
-      case SINGLE_PREC_FLOAT:
+      case HALF_PREC_FLOAT:
          pDecodedItem->val.fnum  = IEEE754_HalfToFloat((uint16_t)uNumber);
          pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
          break;
-      case HALF_PREC_FLOAT:
+      case SINGLE_PREC_FLOAT:
          pDecodedItem->val.fnum = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uNumber);
          break;
       case DOUBLE_PREC_FLOAT:
