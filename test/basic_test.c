@@ -32,6 +32,8 @@
 //
 
 #include "basic_test.h"
+#include "half_precision_test.h"
+
 
 #include "qcbor.h"
 
@@ -116,15 +118,17 @@ const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 
 typedef int (test_fun_t)(void);
 
-#define TEST_ENTRY(test_name)  {#test_name, test_name},
+#define TEST_ENTRY(test_name)  {#test_name, test_name}
 typedef struct {
     const char *szTestName;
     test_fun_t  *test_fun;
 } test_entry;
 
 test_entry s_tests[] = {
-    TEST_ENTRY(basic_test_one)
-    TEST_ENTRY(fail_test)
+    TEST_ENTRY(basic_test_one),
+    //TEST_ENTRY(fail_test),
+    TEST_ENTRY(half_precision_encode_basic),
+    TEST_ENTRY(half_precision_decode_basic)
 };
 
 

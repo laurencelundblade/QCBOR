@@ -22,30 +22,20 @@
  SOFTWARE.
  
  (This is the MIT license)
- ==============================================================================*/
-
-//
-//  main.c
+ ==============================================================================*///
+//  half_precision_test.h
 //  QCBOR
 //
-//  Created by Laurence Lundblade on 9/13/18.
+//  Created by Laurence Lundblade on 9/19/18.
 //  Copyright © 2018 Laurence Lundblade. All rights reserved.
 //
 
-#include <stdio.h>
+#ifndef half_precision_test_h
+#define half_precision_test_h
 
-#include "basic_test.h"
+int half_precision_encode_basic(void);
 
-
-int fputs_wrapper(const char *szString, void *ctx)
-{
-    return fputs(szString, (FILE *)ctx);
-}
+int half_precision_decode_basic(void);
 
 
-int main(int argc, const char * argv[]) {   
-   
-    int nNumTestsFailed = run_tests(&fputs_wrapper, stdout, NULL);
-
-    return nNumTestsFailed;
-}
+#endif /* half_precision_test_h */
