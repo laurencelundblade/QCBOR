@@ -459,7 +459,7 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
     const uint64_t uDroppedSingleBits = DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS;
         
     // The various cases
-    if(uDouble == 0) {
+    if(d == 0.0) { // Take care of positive and negative zero
         // Value is 0.0000, not a a subnormal
         result.uTag = IEEE754_UNION_IS_HALF;
         result.u16  = IEEE754_DoubleToHalf(d);

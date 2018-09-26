@@ -259,7 +259,7 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorTyp
    // always generated internally, not by the caller, b) this is for CBOR
    // _generation_, not parsing c) a mistake will result in bad CBOR generation,
    // not a security vulnerability.
-   uMajorType <<= 5;
+   uMajorType <<= 5; // TODO: make this a constant
    
    if(uNumber > 0xffffffff || uMinLen >= 8) {
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_EIGHT_BYTES, uPos);

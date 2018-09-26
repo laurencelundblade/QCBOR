@@ -128,7 +128,10 @@ test_entry s_tests[] = {
     TEST_ENTRY(basic_test_one),
     //TEST_ENTRY(fail_test),
     TEST_ENTRY(half_precision_encode_basic),
-    TEST_ENTRY(half_precision_decode_basic)
+    TEST_ENTRY(half_precision_decode_basic),
+    TEST_ENTRY(half_precision_to_float_transitive_test),
+    TEST_ENTRY(double_as_smallest_encode_basic),
+    TEST_ENTRY(half_precision_to_float_vs_rfc_test),
 };
 
 

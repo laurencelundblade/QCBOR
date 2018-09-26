@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		E73B574E215713FA0080D658 /* half_precision_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B574D215713FA0080D658 /* half_precision_test.c */; };
+		E73B575121589DB20080D658 /* half_to_double_from_rfc7049.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B575021589DB20080D658 /* half_to_double_from_rfc7049.c */; };
 		E776E08F214AE07500E67947 /* qcbor_encode.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E08C214AE07400E67947 /* qcbor_encode.c */; };
 		E776E090214AE07500E67947 /* UsefulBuf.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E08D214AE07500E67947 /* UsefulBuf.c */; };
 		E776E091214AE07500E67947 /* qcbor_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E08E214AE07500E67947 /* qcbor_decode.c */; };
@@ -31,6 +32,8 @@
 /* Begin PBXFileReference section */
 		E73B574C215713FA0080D658 /* half_precision_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = half_precision_test.h; path = test/half_precision_test.h; sourceTree = "<group>"; };
 		E73B574D215713FA0080D658 /* half_precision_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = half_precision_test.c; path = test/half_precision_test.c; sourceTree = "<group>"; };
+		E73B574F21589DB20080D658 /* half_to_double_from_rfc7049.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = half_to_double_from_rfc7049.h; path = test/half_to_double_from_rfc7049.h; sourceTree = "<group>"; };
+		E73B575021589DB20080D658 /* half_to_double_from_rfc7049.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = half_to_double_from_rfc7049.c; path = test/half_to_double_from_rfc7049.c; sourceTree = "<group>"; };
 		E776E07C214ADF7F00E67947 /* QCBOR */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = QCBOR; sourceTree = BUILT_PRODUCTS_DIR; };
 		E776E08C214AE07400E67947 /* qcbor_encode.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_encode.c; path = src/qcbor_encode.c; sourceTree = "<group>"; tabWidth = 3; };
 		E776E08D214AE07500E67947 /* UsefulBuf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = UsefulBuf.c; path = src/UsefulBuf.c; sourceTree = "<group>"; };
@@ -102,6 +105,8 @@
 				E73B574C215713FA0080D658 /* half_precision_test.h */,
 				E776E09C214AEEEA00E67947 /* basic_test.c */,
 				E776E09B214AEEEA00E67947 /* basic_test.h */,
+				E73B574F21589DB20080D658 /* half_to_double_from_rfc7049.h */,
+				E73B575021589DB20080D658 /* half_to_double_from_rfc7049.c */,
 			);
 			name = test;
 			sourceTree = "<group>";
@@ -168,6 +173,7 @@
 				E776E164214F81EC00E67947 /* ieee754.c in Sources */,
 				E776E090214AE07500E67947 /* UsefulBuf.c in Sources */,
 				E776E097214AE0C700E67947 /* cmd_line_main.c in Sources */,
+				E73B575121589DB20080D658 /* half_to_double_from_rfc7049.c in Sources */,
 				E776E09D214AEEEA00E67947 /* basic_test.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

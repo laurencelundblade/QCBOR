@@ -23,26 +23,18 @@
  
  (This is the MIT license)
  ==============================================================================*/
+
 //
-//  half_precision_test.h
+//  half_to_double_from_rfc7049.h
 //  QCBOR
 //
-//  Created by Laurence Lundblade on 9/19/18.
+//  Created by Laurence Lundblade on 9/23/18.
 //  Copyright © 2018 Laurence Lundblade. All rights reserved.
 //
 
-#ifndef half_precision_test_h
-#define half_precision_test_h
+#ifndef half_to_double_from_rfc7049_h
+#define half_to_double_from_rfc7049_h
 
-int half_precision_encode_basic(void);
+double decode_half(unsigned char *halfp);
 
-int half_precision_decode_basic(void);
-
-int half_precision_to_float_transitive_test(void);
-
-int double_as_smallest_encode_basic(void);
-
-int half_precision_to_float_vs_rfc_test(void);
-
-
-#endif /* half_precision_test_h */
+#endif /* half_to_double_from_rfc7049_h */
