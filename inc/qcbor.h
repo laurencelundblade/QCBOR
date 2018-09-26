@@ -183,6 +183,12 @@ struct _QCBORDecodeContext {
    uint8_t        uDecodeMode;
    
    QCBORDecodeNesting nesting;
+   
+   // This is NULL or points to a QCBORStringAllocator. It is void
+   // here because _QCBORDecodeContext is defined early n the
+   // private part of this file and QCBORStringAllocat is defined
+   // later in the public part of this file.
+   void *pStringAllocator;
 };
 
 
@@ -627,9 +633,10 @@ struct _QCBORDecodeContext {
 /** Type for the simple value undef; nothing more; nothing in val union. */
 #define QCBOR_TYPE_UNDEF         23
 
+#define QCBOR_TYPE_BREAK         31 // Used internally; never returned
 
 #define QCBOR_TYPE_OPTTAG     254 // Used internally; never returned
-#define QCBOR_TYPE_BREAK      255 // Used internally; never returned
+//#define QCBOR_TYPE_BREAK      255 // Used internally; never returned
 
 
 
@@ -677,6 +684,18 @@ typedef struct _QCBORItem {
    uint64_t uTagBits; /** Bits corresponding to tag values less than 63 as defined in RFC 7049, section 2.4 */
    
 } QCBORItem;
+
+
+/*
+ Optional to set up an allocator for bstr and tstr types.
+ Required to process indefinite length bstr and tstr types.
+ (indefinite length maps can be processed without this).
+ */
+typedef struct {
+    void *pAllocaterContext;
+    void * (*AllocatorFunction)(void *pMem, size_t uNewSize);
+    bool bAlwaysAlloc;
+} QCBORStringAllocator;
 
 
 /** See the descriptions for CBOR_SIMPLEV_FALSE, CBOR_TAG_DATE_EPOCH... for
@@ -1434,6 +1453,13 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
  */
 
 void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t nMode);
+
+
+/*
+ 
+ */
+void QCBOR_Decode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator);
+
 
 
 /**

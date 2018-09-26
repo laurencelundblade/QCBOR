@@ -31,6 +31,10 @@
 #include "basic_test.h"
 
 int main(int argc, const char * argv[]) {
+     indefinite_length_decode_test();
+
+    
+    
     printf("Test Result %d\n", basic_test_one());
     
     

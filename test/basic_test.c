@@ -137,3 +137,60 @@ int basic_test_one()
     
     return 0;
 }
+
+
+static const uint8_t pIndefiniteLenString[] = {0x7f, 0x65, 0x73, 0x74, 0x72, 0x65, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x67, 0xff};
+
+static const uint8_t pIndefiniteArray[] = {0x9f, 0x01, 0x82, 0x02, 0x03, 0xff};
+
+//0x9f018202039f0405ffff
+
+int indefinite_length_decode_test() {
+    UsefulBufC IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArray);
+    
+    
+    // Decode it and see if it is OK
+    QCBORDecodeContext DC;
+    QCBORItem Item;
+    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
+    
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+        return -1;
+    }
+
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_INT64) {
+        return -1;
+    }
+  
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+        return -1;
+    }
+    
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_INT64) {
+        return -1;
+    }
+    
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_INT64) {
+        return -1;
+    }
+
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_INT64) {
+        return -1;
+    }
+    
+    
+    return 0;
+}
+
+
+
+
+
+
+

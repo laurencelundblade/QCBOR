@@ -31,4 +31,6 @@
 
 int basic_test_one(void);
 
+int indefinite_length_decode_test(void);
+
 #endif /* basic_test_h */

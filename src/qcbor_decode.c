@@ -92,26 +92,44 @@ inline static int DecodeNesting_IsNested(const QCBORDecodeNesting *pNesting)
    return pNesting->pCurrent != &(pNesting->pMapsAndArrays[0]);
 }
 
+inline static int IsIndefiniteLength(const QCBORDecodeNesting *pNesting)
+{
+   if(!DecodeNesting_IsNested(pNesting)) {
+      return 0;
+   }
+   
+   return pNesting->pCurrent->uCount == UINT16_MAX;
+}
+
 inline static int DecodeNesting_TypeIsMap(const QCBORDecodeNesting *pNesting)
 {
-   if(!DecodeNesting_IsNested(pNesting))
+   if(!DecodeNesting_IsNested(pNesting)) {
       return 0;
+   }
    
    return CBOR_MAJOR_TYPE_MAP == pNesting->pCurrent->uMajorType;
 }
 
-inline static void DecodeNesting_Decrement(QCBORDecodeNesting *pNesting, uint8_t uDataType)
+inline static void DecodeNesting_Decrement(QCBORDecodeNesting *pNesting)
 {
    if(!DecodeNesting_IsNested(pNesting)) {
       return;  // at top level where there is no tracking
    }
    
-   // Decrement
-   pNesting->pCurrent->uCount--;
-   
-   // Pop up nesting levels if the counts at the levels is zero
-   while(0 == pNesting->pCurrent->uCount && DecodeNesting_IsNested(pNesting)) {
+   if(IsIndefiniteLength(pNesting)) {
+      // Decrement only gets called once. Only at the end of the array/map
+      // when the break is encountered. There is no tracking of the number
+      // of items in the array/map.
       pNesting->pCurrent--;
+
+   } else {
+      // Decrement
+      pNesting->pCurrent->uCount--;
+   
+      // Pop up nesting levels if the counts at the levels is zero
+      while(0 == pNesting->pCurrent->uCount && DecodeNesting_IsNested(pNesting)) {
+         pNesting->pCurrent--;
+      }
    }
 }
 
@@ -166,6 +184,15 @@ void QCBORDecode_Init(QCBORDecodeContext *me, UsefulBufC EncodedCBOR, int8_t nDe
 
 
 /*
+ Public function, see header file
+ */
+void QCBOR_Decode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator)
+{
+    pCtx->pStringAllocator = (void *)pAllocator;
+}
+
+
+/*
  This decodes the fundamental part of a CBOR data item, the type and number
  
  This is the Counterpart to InsertEncodedTypeAndNumber().
@@ -211,10 +238,11 @@ inline static int DecodeTypeAndNumber(UsefulInputBuf *pUInBuf, int *pnMajorType,
       case ADDINFO_RESERVED1: // reserved by CBOR spec
       case ADDINFO_RESERVED2: // reserved by CBOR spec
       case ADDINFO_RESERVED3: // reserved by CBOR spec
-      case LEN_IS_INDEFINITE: // indefinite types not supported (yet)
          nReturn = QCBOR_ERR_UNSUPPORTED;
          goto Done;
-         
+
+       case LEN_IS_INDEFINITE:
+           // Fall through OK to see what happens: TODO: check this.
       default:
          uTmpValue = uAdditionalInfo;
          break;
@@ -299,6 +327,10 @@ inline static int DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDe
 #error QCBOR_TYPE_UNDEF macro value wrong
 #endif
 
+#if QCBOR_TYPE_BREAK != CBOR_SIMPLE_BREAK
+#error QCBOR_TYPE_BREAK macro value wrong
+#endif
+
 #if QCBOR_TYPE_DOUBLE != DOUBLE_PREC_FLOAT
 #error QCBOR_TYPE_DOUBLE macro value wrong
 #endif
@@ -323,7 +355,6 @@ inline static int DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber, QCBORI
       case ADDINFO_RESERVED1:  // 28
       case ADDINFO_RESERVED2:  // 29
       case ADDINFO_RESERVED3:  // 30
-      case CBOR_SIMPLE_BREAK:  // 31
          nReturn = QCBOR_ERR_UNSUPPORTED;
          break;
          
@@ -331,6 +362,7 @@ inline static int DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber, QCBORI
       case CBOR_SIMPLEV_TRUE:  // 21
       case CBOR_SIMPLEV_NULL:  // 22
       case CBOR_SIMPLEV_UNDEF: // 23
+      case CBOR_SIMPLE_BREAK:  // 31
          break; // nothing to do
          
       case CBOR_SIMPLEV_ONEBYTE: // 24
@@ -591,7 +623,11 @@ static int GetAnItem(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, int bCall
             nReturn = QCBOR_ERR_ARRAY_TOO_LONG;
             goto Done;
          }
-         pDecodedItem->val.uCount = uNumber; // type conversion OK because of check above
+         if(uAdditionalInfo == LEN_IS_INDEFINITE) {
+            pDecodedItem->val.uCount = UINT16_MAX;
+         } else {
+            pDecodedItem->val.uCount = (uint16_t)uNumber; // type conversion OK because of check above
+         }
          pDecodedItem->uDataType  = uMajorType; // C preproc #if above makes sure constants align
          break;
          
@@ -678,9 +714,19 @@ int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    if(IsMapOrArray(pDecodedItem->uDataType) && pDecodedItem->val.uCount) {
       nReturn = DecodeNesting_Descend(&(me->nesting), pDecodedItem->uDataType, pDecodedItem->val.uCount);
    } else {
-      // Track number of items in maps and arrays and ascend nesting if all are consumed
-      // Note that an empty array or map is like a integer or string in effect here
-      DecodeNesting_Decrement(&(me->nesting), pDecodedItem->uDataType);
+      if(!IsIndefiniteLength(&(me->nesting))) {
+         // Is a definite length array or map
+         // Track number of items in maps and arrays and ascend nesting if all are consumed
+         // Note that an empty array or map is like a integer or string in effect here
+         DecodeNesting_Decrement(&(me->nesting));
+      } else {
+         // Is an indefinite length array or map
+         if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
+            // Only decrement when the end is encountered.
+            DecodeNesting_Decrement(&(me->nesting));
+            // TODO: get another item here....
+         }
+      }
    }
    
 Done:
