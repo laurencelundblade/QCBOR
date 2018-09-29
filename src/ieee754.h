@@ -37,6 +37,30 @@
 #include <stdint.h>
 
 
+
+/*
+ General comments
+ 
+ This is a complete in that it handles all conversion cases
+ including +/- infinity, +/- zero, subnormal numbers, qNaN, sNaN
+ and NaN payloads.
+ 
+ This confirms to IEEE 754-2008, but note that this doesn't
+ specify conversions, just the encodings.
+ 
+ NaN payloads are preserved with alignment on the LSB. The
+ qNaN bit is handled differently and explicity copied. It
+ is always the MSB of the significand. The NaN payload MSBs
+ (except the qNaN bit) are truncated when going from
+ double or single to half.
+ 
+ TODO: what does the C cast do with NaN payloads from
+ double to single?
+ 
+ 
+ 
+ */
+
 /*
  Most simply just explicilty encode the type you want, single or double.
  This works easily everywhere since standard C supports both
@@ -78,12 +102,35 @@
  
  */
 
+
+
+/*
+ Convert single precision float to half-precision float.
+ Precision and NaN payload bits will be lost. Too large
+ values will round up to infinity and too small to zero.
+ */
 uint16_t IEEE754_FloatToHalf(float f);
 
+
+/*
+ Convert half precision float to single precision float.
+ This is a loss-less conversion.
+ */
 float IEEE754_HalfToFloat(uint16_t uHalfPrecision);
 
+
+/*
+ Convert double precision float to half-precision float.
+ Precision and NaN payload bits will be lost. Too large
+ values will round up to infinity and too small to zero.
+ */
 uint16_t IEEE754_DoubleToHalf(double d);
 
+
+/*
+ Convert half precision float to double precision float.
+ This is a loss-less conversion.
+ */
 double IEEE754_HalfToDouble(uint16_t uHalfPrecision);
 
 
@@ -103,10 +150,15 @@ typedef struct {
 } IEEE754_union;
 
 
+/*
+ Converts double-precision to single-precision or half-precision if possible without
+ loss of precisions. If not, leaves it as a double. Only converts to single-precision
+ unless bAllowHalfPrecision is set.
+ */
 IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision);
 
 /*
- Converts double-precision to half- or single-precision if possible without
+ Converts double-precision to single-precision if possible without
  loss of precision. If not, leaves it as a double.
  */
 static inline IEEE754_union IEEE754_DoubleToSmall(double d)
@@ -116,7 +168,7 @@ static inline IEEE754_union IEEE754_DoubleToSmall(double d)
 
 
 /*
- Converts double-precision to single-precision if possible without
+ Converts double-precision to single-precision or half-precision if possible without
  loss of precisions. If not, leaves it as a double.
  */
 static inline IEEE754_union IEEE754_DoubleToSmallest(double d)
@@ -124,18 +176,11 @@ static inline IEEE754_union IEEE754_DoubleToSmallest(double d)
     return IEEE754_DoubleToSmallestInternal(d, 1);
 }
 
-
 /*
  Converts single-precision to half-precision if possible without
  loss of precision. If not leaves as single-precision.
  */
 IEEE754_union IEEE754_FloatToSmallest(float f);
-
-
-
-
-
-
 
 
 #endif /* ieee754_h */

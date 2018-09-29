@@ -35,19 +35,32 @@
 #include "ieee754.h"
 #include <string.h> // For memcpy()
 
+
 /*
- 
- https://stackoverflow.com/questions/19800415/why-does-ieee-754-reserve-so-many-nan-values
- 
- These values come from IEEE 754-2008 section 3.6
- 
  This code is written for clarity and verifiability, not for size, on the assumption
  that the optimizer will do a good job. The LLVM optimizer, -Os, does seem to do the
- job and the resulting object code is smaller from combing code for the many different
+ job and the resulting object code is smaller from combining code for the many different
  cases (normal, subnormal, infinity, zero...) for the conversions.
  
  Dead stripping is also really helpful to get code size down.
  
+ This code also works solely using shifts and masks and thus has no dependency on
+ any math libraries. It will even work if the CPU doesn't have any floating
+ point support.
+ 
+ The memcpy() dependency is only for CopyFloatToUint32() and friends which only
+ is needed to avoid type punning when converting the actual float bits to
+ an unsigned value so the bit shifts and masks can work.
+ */
+
+/*
+ The references used to write this code:
+ 
+ - IEEE 754-2008, particularly section 3.6 and 6.2.1
+ 
+ - https://en.wikipedia.org/wiki/IEEE_754 and subordinate pages
+ 
+ - https://stackoverflow.com/questions/19800415/why-does-ieee-754-reserve-so-many-nan-values
  */
 
 
@@ -86,9 +99,10 @@
 #define SINGLE_EXPONENT_SHIFT       (SINGLE_NUM_SIGNIFICAND_BITS)
 #define SINGLE_SIGN_SHIFT           (SINGLE_NUM_SIGNIFICAND_BITS + SINGLE_NUM_EXPONENT_BITS)
 
-#define SINGLE_SIGNIFICAND_MASK     (0x7fffff) // The lower 23 bits
-#define SINGLE_EXPONENT_MASK        (0xff << SINGLE_EXPONENT_SHIFT) // 8 bits of exponent
-#define SINGLE_SIGN_MASK            (0x01 << SINGLE_SIGN_SHIFT) // 1 bit of sign
+#define SINGLE_SIGNIFICAND_MASK     (0x7fffffUL) // The lower 23 bits
+#define SINGLE_EXPONENT_MASK        (0xffUL << SINGLE_EXPONENT_SHIFT) // 8 bits of exponent
+#define SINGLE_SIGN_MASK            (0x01UL << SINGLE_SIGN_SHIFT) // 1 bit of sign
+#define SINGLE_QUIET_NAN_BIT        (0x01UL << (SINGLE_NUM_SIGNIFICAND_BITS-1))
 
 /* Biased  Biased   Unbiased  Use
     0x0000     0     -127      0 and subnormal
@@ -112,9 +126,11 @@
 #define DOUBLE_EXPONENT_SHIFT       (DOUBLE_NUM_SIGNIFICAND_BITS)
 #define DOUBLE_SIGN_SHIFT           (DOUBLE_NUM_SIGNIFICAND_BITS + DOUBLE_NUM_EXPONENT_BITS)
 
-#define DOUBLE_SIGNIFICAND_MASK     (0xfffffffffffffLL) // The lower 52 bits
-#define DOUBLE_EXPONENT_MASK        (0x7ffLL << DOUBLE_EXPONENT_SHIFT) // 11 bits of exponent
-#define DOUBLE_SIGN_MASK            (0x01LL << DOUBLE_SIGN_SHIFT) // 1 bit of sign
+#define DOUBLE_SIGNIFICAND_MASK     (0xfffffffffffffULL) // The lower 52 bits
+#define DOUBLE_EXPONENT_MASK        (0x7ffULL << DOUBLE_EXPONENT_SHIFT) // 11 bits of exponent
+#define DOUBLE_SIGN_MASK            (0x01ULL << DOUBLE_SIGN_SHIFT) // 1 bit of sign
+#define DOUBLE_QUIET_NAN_BIT        (0x01ULL << (DOUBLE_NUM_SIGNIFICAND_BITS-1))
+
 
 /* Biased      Biased   Unbiased  Use
    0x00000000     0     -1023     0 and subnormal
@@ -131,8 +147,13 @@
 
 /*
  Convenient functions to avoid type punning, compiler warnings and such
- The optimizer reduces them to a simple assignment
+ The optimizer reduces them to a simple assignment.
  This is a crusty corner of C. It shouldn't be this hard.
+ 
+ These are also in UsefulBuf.h under a different name. They are copied
+ here because to avoid a dependency on UsefulBuf.h. There is no
+ object code size impact because these always optimze down to a
+ simple assignment.
  */
 static inline uint32_t CopyFloatToUint32(float f)
 {
@@ -183,17 +204,18 @@ uint16_t IEEE754_FloatToHalf(float f)
             // Infinity
             uHalfSignificand = 0;
         } else {
-            // NaN; significand has to be non-zero
-            if(!(uSingleSignificand & HALF_SIGNIFICAND_MASK)) {
-                // NaN payload bits that can't be carried; convert to a quite NaN
-                // since this has to be non-zero to still be a NaN
-                uHalfSignificand = HALF_QUIET_NAN_BIT; // standard qNaN;
+            // Copy the LBSs of the NaN payload that will fit from the single to the half
+            uHalfSignificand = uSingleSignificand & (HALF_SIGNIFICAND_MASK & ~HALF_QUIET_NAN_BIT);
+            if(uSingleSignificand & SINGLE_QUIET_NAN_BIT) {
+                // It's a qNaN; copy the qNaN bit
+                uHalfSignificand |= HALF_QUIET_NAN_BIT;
             } else {
-                // The LSBs are preserved, but not the MSBs
-                // This preservation allows some limited form of NaN payloads / boxing
-                // Would be good to find out what other implementations do for
-                // this kind of conversion of NaN
-                uHalfSignificand = uSingleSignificand & HALF_SIGNIFICAND_MASK;
+                // It's a sNaN; make sure the significand is not zero so it stays a NaN
+                // This is needed because not all significand bits are copied from single
+                if(!uHalfSignificand) {
+                    // Set the LSB. This is what wikipedia shows for sNAN.
+                    uHalfSignificand |= 0x01;
+                }
             }
         }
     } else if(nSingleUnbiasedExponent == SINGLE_EXPONENT_ZERO) {
@@ -248,17 +270,18 @@ uint16_t IEEE754_DoubleToHalf(double d)
             // Infinity
             uHalfSignificand = 0;
         } else {
-            // NaN; significand has to be non-zero
-            if(!(uDoubleSignificand & HALF_SIGNIFICAND_MASK)) {
-                // NaN payload bits that can't be carried; convert to a quite NaN
-                // since this has to be non-zero to still be a NaN
-                uHalfSignificand = HALF_QUIET_NAN_BIT; // standard qNaN;
+            // Copy the LBSs of the NaN payload that will fit from the double to the half
+            uHalfSignificand = uDoubleSignificand & (HALF_SIGNIFICAND_MASK & ~HALF_QUIET_NAN_BIT);
+            if(uDoubleSignificand & DOUBLE_QUIET_NAN_BIT) {
+                // It's a qNaN; copy the qNaN bit
+                uHalfSignificand |= HALF_QUIET_NAN_BIT;
             } else {
-                // The LSBs are preserved, but not the MSBs
-                // This preservation allows some limited form of NaN payloads / boxing
-                // Would be good to find out what other implementations do for
-                // this kind of conversion of NaN
-                uHalfSignificand = uDoubleSignificand & HALF_SIGNIFICAND_MASK;
+                // It's an sNaN; make sure the significand is not zero so it stays a NaN
+                // This is needed because not all significand bits are copied from single
+                if(!uHalfSignificand) {
+                    // Set the LSB. This is what wikipedia shows for sNAN.
+                    uHalfSignificand |= 0x01;
+                }
             }
         }
     } else if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_ZERO) {
@@ -329,8 +352,13 @@ float IEEE754_HalfToFloat(uint16_t uHalfPrecision)
         // NaN or Inifinity
         uSingleBiasedExponent = SINGLE_EXPONENT_INF_OR_NAN + SINGLE_EXPONENT_BIAS;
         if(uHalfSignificand) {
-            // Preserve NaN payload for NaN boxing
-            uSingleSignificand = uHalfSignificand;
+            // NaN
+            // First preserve the NaN payload from half to single
+            uSingleSignificand = uHalfSignificand & ~HALF_QUIET_NAN_BIT;
+            if(uHalfSignificand & HALF_QUIET_NAN_BIT) {
+                // Next, set qNaN if needed since half qNaN bit is not copied above
+                uSingleSignificand |= SINGLE_QUIET_NAN_BIT;
+            }
         } else {
             // Infinity
             uSingleSignificand = 0;
@@ -386,8 +414,13 @@ double IEEE754_HalfToDouble(uint16_t uHalfPrecision)
         // NaN or Inifinity
         uDoubleBiasedExponent = DOUBLE_EXPONENT_INF_OR_NAN + DOUBLE_EXPONENT_BIAS;
         if(uHalfSignificand) {
-            // Preserve NaN payload for NaN boxing
-            uDoubleSignificand = uHalfSignificand;
+            // NaN
+            // First preserve the NaN payload from half to single
+            uDoubleSignificand = uHalfSignificand & ~HALF_QUIET_NAN_BIT;
+            if(uHalfSignificand & HALF_QUIET_NAN_BIT) {
+                // Next, set qNaN if needed since half qNaN bit is not copied above
+                uDoubleSignificand |= DOUBLE_QUIET_NAN_BIT;
+            }
         } else {
             // Infinity
             uDoubleSignificand = 0;
@@ -444,7 +477,7 @@ IEEE754_union IEEE754_FloatToSmallest(float f)
     return result;
 }
 
-
+// Public function; see ieee754.h
 IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision)
 {
     IEEE754_union result;

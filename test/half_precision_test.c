@@ -257,7 +257,7 @@ int half_precision_to_float_transitive_test()
 
 int half_precision_to_float_vs_rfc_test()
 {
-    for(uint32_t uHalfP = 0; uHalfP < 0x1fff; uHalfP += 10) {
+    for(uint32_t uHalfP = 0; uHalfP < 0xffff; uHalfP += 1) {
         unsigned char x[2];
         x[1] = uHalfP & 0xff;
         x[0] = uHalfP >> 8;
