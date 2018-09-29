@@ -1262,8 +1262,8 @@ void QCBOREncode_OpenMap_3(QCBOREncodeContext *pCtx, const char *szLabel,  uint6
  @param[in] uMajorType The major CBOR type to close
  @param[out] pWrappedCBOR UsefulBufC containing wrapped bytes
  
- This reduces the nesting level by one. Usually one of the
- macros below is called rather than calling this directly.
+ This reduces the nesting level by one. Usually one of the macros
+ below is called rather than calling this directly.
  
  If more Close's have been called than Open's the error state is
  entered, no value is returned and the error can be discovered when
@@ -1274,13 +1274,13 @@ void QCBOREncode_OpenMap_3(QCBOREncodeContext *pCtx, const char *szLabel,  uint6
  QCBOR_ERR_CLOSE_MISMATCH will be returned when QCBOREncode_Finish()
  is called.
  
- A pointer and length of the enclosed encoded CBOR is returned
- in *pWrappedCBOR if it is not NULL. The main purpose of this
- is so this data can be hashed (e.g., with SHA-256) as part of
- a COSE implementation. **WARNING**, this pointer and length
- should be used right away before any other calls to QCBOREncode_xxxx()
- as they will move data around and the pointer and length
- will no longer be to the correct encoded CBOR.
+ A pointer and length of the enclosed encoded CBOR is returned in
+ *pWrappedCBOR if it is not NULL. The main purpose of this is so this
+ data can be hashed (e.g., with SHA-256) as part of a COSE (RFC 8152)
+ implementation. **WARNING**, this pointer and length should be used
+ right away before any other calls to QCBOREncode_xxxx() as they will
+ move data around and the pointer and length will no longer be to the
+ correct encoded CBOR.
  
  */
 void QCBOREncode_Close(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC *pWrappedCBOR);
@@ -1303,15 +1303,17 @@ void QCBOREncode_Close(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC 
  @param[in] nLabel An integer label for the whole map. QCBOR_NO_INT_LABEL for no integer label.
  @param[in] uTag A tag for the whole map or CBOR_TAG_NONE.
 
- All added encoded items between this call and a call to QCBOREncode_CloseBstrWrap()
- will be wrapped in a bstr. They will appear in the final output as a byte string.
- That byte string will contain encoded CBOR.
+ All added encoded items between this call and a call to
+ QCBOREncode_CloseBstrWrap() will be wrapped in a bstr. They will
+ appear in the final output as a byte string.  That byte string will
+ contain encoded CBOR.
  
  The typical use case is for encoded CBOR that is to be
- cryptographically hashed, typically as part of a COSE implementation. This
- avoid having to encode the items first in one buffer (e.g., the COSE payload)
- and then add that buffer as a bstr to another encoding (e.g. the COSE
- to-be-signed bytes, the Sig_structure potentially saving a lot of memory.
+ cryptographically hashed, as part of a COSE (RFC 8152)
+ implementation. This avoids having to encode the items first in one
+ buffer (e.g., the COSE payload) and then add that buffer as a bstr to
+ another encoding (e.g. the COSE to-be-signed bytes, the
+ Sig_structure) potentially saving a lot of memory.
 
  */
 void QCBOREncode_OpenBstrWrap_3(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t nLabel, uint64_t uTag);
