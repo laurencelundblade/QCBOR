@@ -31,8 +31,16 @@
 #include "basic_test.h"
 
 int main(int argc, const char * argv[]) {
-    printf("Test Result %d\n", basic_test_one());
     
+    int x = cose_sign1_tbs_test();
+
+    x = bstr_wrap_nest_test();
+    
+    x = bstr_wrap_error_test();
+    
+    x = bstrwraptest();
+    
+    printf("Test Result %d\n", basic_test_one());
     
     return 0;
 }

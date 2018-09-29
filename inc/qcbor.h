@@ -124,7 +124,6 @@ typedef struct __QCBORTrackNesting {
       uint32_t  uStart;     // uStart is the byte position where the array starts
       uint16_t  uCount;     // Number of items in the arrary or map; counts items in a map, not pairs of items 
       uint8_t   uMajorType; // Indicates if item is a map or an array
-      uint8_t   bBstrWrap;  // non-zero if map/array should be wrapped in a bstring
    } pArrays[QCBOR_MAX_ARRAY_NESTING1+1], // stored state for the nesting levels
    *pCurrentNesting; // the current nesting level
 } QCBORTrackNesting;
@@ -578,6 +577,10 @@ struct _QCBORDecodeContext {
 
 /** Returned by QCBORDecode_Finish() if all the inputs bytes have not been consumed */
 #define QCBOR_ERR_EXTRA_BYTES             16
+
+/** Closing something different than is open */
+#define QCBOR_ERR_CLOSE_MISMATCH          17
+
 
 
 /** See QCBORDecode_Init() */
@@ -1161,7 +1164,6 @@ inline static void QCBOREncode_AddBool_3(QCBOREncodeContext *pCtx, const char *s
  @param[in] szLabel A NULL-terminated string label for the map. May be a NULL pointer.
  @param[in] nLabel An integer label for the whole map. QCBOR_NO_INT_LABEL for no integer label.
  @param[in] uTag A tag for the whole map or CBOR_TAG_NONE.
- @param[in] bBstrWrap Indicates entire map should be wrapped as a binary string. Normally 0.
  
  Arrays are the basic CBOR aggregate or structure type. Call this
  function to start or open an array. The call the various AddXXX
@@ -1200,16 +1202,16 @@ inline static void QCBOREncode_AddBool_3(QCBOREncodeContext *pCtx, const char *s
  to get to all the data needed for a signature verification.
  */
 
-void QCBOREncode_OpenArray_3(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t nLabel, uint64_t uTag, bool bBstrWrap);
+void QCBOREncode_OpenArray_3(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t nLabel, uint64_t uTag);
 
 #define QCBOREncode_OpenArray(pCtx) \
-      QCBOREncode_OpenArray_3((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, 0)
+      QCBOREncode_OpenArray_3((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE)
 
 #define QCBOREncode_OpenArrayInMap(pCtx, szLabel) \
-      QCBOREncode_OpenArray_3((pCtx), (szLabel), QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, 0)
+      QCBOREncode_OpenArray_3((pCtx), (szLabel), QCBOR_NO_INT_LABEL, CBOR_TAG_NONE)
 
 #define QCBOREncode_OpenArrayInMapN(pCtx, nLabel) \
-      QCBOREncode_OpenArray_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE, 0)
+      QCBOREncode_OpenArray_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE)
 
 
 /**
@@ -1220,7 +1222,6 @@ void QCBOREncode_OpenArray_3(QCBOREncodeContext *pCtx, const char *szLabel, uint
  @param[in] szLabel A NULL-terminated string label for the map. May be a NULL pointer.
  @param[in] nLabel An integer label for the whole map. QCBOR_NO_INT_LABEL for no integer label.
  @param[in] uTag A tag for the whole map or CBOR_TAG_NONE.
- @param[in] bBstrWrap Indicates entire map should be wrapped as a binary string. Normally 0.
  
  See QCBOREncode_OpenArray() for more information.
  
@@ -1241,35 +1242,88 @@ void QCBOREncode_OpenArray_3(QCBOREncodeContext *pCtx, const char *szLabel, uint
  
  */
 
-void QCBOREncode_OpenMap_3(QCBOREncodeContext *pCtx, const char *szLabel,  uint64_t nLabel, uint64_t uTag, uint8_t bBstrWrap);
+void QCBOREncode_OpenMap_3(QCBOREncodeContext *pCtx, const char *szLabel,  uint64_t nLabel, uint64_t uTag);
 
 #define QCBOREncode_OpenMap(pCtx) \
-      QCBOREncode_OpenMap_3((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, 0)
+      QCBOREncode_OpenMap_3((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE)
 
 #define QCBOREncode_OpenMapInMap(pCtx, szLabel) \
-      QCBOREncode_OpenMap_3((pCtx), (szLabel), QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, 0)
+      QCBOREncode_OpenMap_3((pCtx), (szLabel), QCBOR_NO_INT_LABEL, CBOR_TAG_NONE)
 
 #define QCBOREncode_OpenMapInMapN(pCtx, nLabel) \
-      QCBOREncode_OpenMap_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE, 0)
+      QCBOREncode_OpenMap_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE)
 
 
 /**
  
- @brief Closes the current open array.
+ @brief Closes array, map or bstr wrapping
  
  @param[in] pCtx The context to add to.
+ @param[in] uMajorType The major CBOR type to close
+ @param[out] pWrappedCBOR UsefulBufC containing wrapped bytes
  
- This reduces the nesting level by one.
+ This reduces the nesting level by one. Usually one of the
+ macros below is called rather than calling this directly.
  
  If more Close's have been called than Open's the error state is
  entered, no value is returned and the error can be discovered when
  QCBOREncode_Finish() is called. The error will be
  QCBOR_ERR_TOO_MANY_CLOSES.
+ 
+ If uMajorType doesn't match the type of what is open then
+ QCBOR_ERR_CLOSE_MISMATCH will be returned when QCBOREncode_Finish()
+ is called.
+ 
+ A pointer and length of the enclosed encoded CBOR is returned
+ in *pWrappedCBOR if it is not NULL. The main purpose of this
+ is so this data can be hashed (e.g., with SHA-256) as part of
+ a COSE implementation. **WARNING**, this pointer and length
+ should be used right away before any other calls to QCBOREncode_xxxx()
+ as they will move data around and the pointer and length
+ will no longer be to the correct encoded CBOR.
+ 
  */
+void QCBOREncode_Close(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC *pWrappedCBOR);
 
-void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
+#define QCBOREncode_CloseBstrWrap(pCtx, pWrappedCBOR) \
+    QCBOREncode_Close(pCtx, CBOR_MAJOR_TYPE_BYTE_STRING, pWrappedCBOR)
 
-#define QCBOREncode_CloseMap(pCtx)  QCBOREncode_CloseArray(pCtx)
+#define QCBOREncode_CloseArray(pCtx) \
+    QCBOREncode_Close(pCtx, CBOR_MAJOR_TYPE_ARRAY, NULL)
+
+#define QCBOREncode_CloseMap(pCtx) \
+    QCBOREncode_Close(pCtx, CBOR_MAJOR_TYPE_MAP, NULL)
+
+
+/**
+ @brief Indicate start of encoded CBOR to be wrapped in a bstr
+ 
+ @param[in] pCtx The context to add to.
+ @param[in] szLabel A NULL-terminated string label for the map. May be a NULL pointer.
+ @param[in] nLabel An integer label for the whole map. QCBOR_NO_INT_LABEL for no integer label.
+ @param[in] uTag A tag for the whole map or CBOR_TAG_NONE.
+
+ All added encoded items between this call and a call to QCBOREncode_CloseBstrWrap()
+ will be wrapped in a bstr. They will appear in the final output as a byte string.
+ That byte string will contain encoded CBOR.
+ 
+ The typical use case is for encoded CBOR that is to be
+ cryptographically hashed, typically as part of a COSE implementation. This
+ avoid having to encode the items first in one buffer (e.g., the COSE payload)
+ and then add that buffer as a bstr to another encoding (e.g. the COSE
+ to-be-signed bytes, the Sig_structure potentially saving a lot of memory.
+
+ */
+void QCBOREncode_OpenBstrWrap_3(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t nLabel, uint64_t uTag);
+
+#define QCBOREncode_BstrWrap(pCtx) \
+      QCBOREncode_OpenBstrWrap_3((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE)
+
+#define QCBOREncode_BstrWrapInMap(pCtx, szLabel) \
+      QCBOREncode_OpenBstrWrap_3((pCtx), (szLabel), QCBOR_NO_INT_LABEL, CBOR_TAG_NONE)
+
+#define QCBOREncode_BstrWrapMapN(pCtx, nLabel) \
+      QCBOREncode_OpenBstrWrap_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE)
 
 
 

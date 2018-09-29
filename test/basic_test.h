@@ -31,4 +31,13 @@
 
 int basic_test_one(void);
 
+int  bstrwraptest(void);
+
+int bstr_wrap_error_test(void);
+
+int bstr_wrap_nest_test(void);
+
+int cose_sign1_tbs_test(void);
+
+
 #endif /* basic_test_h */
