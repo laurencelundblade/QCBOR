@@ -1,5 +1,5 @@
 /*
- cmd_line_mainc.c -- basic tests for qcbor encoder / decoder
+ bstrwrap_tests.c -- tests for bstr wrapping in CBOR encoding
  
  This is governed by the MIT license.
  
@@ -25,24 +25,17 @@
  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
  */
+//  Created by Laurence Lundblade on 9/29/18.
 
-#include <stdio.h>
+#ifndef bstrwrap_tests_h
+#define bstrwrap_tests_h
 
-#include "basic_test.h"
-#include "bstrwrap_tests.h"
+int  bstrwraptest(void);
 
-int main(int argc, const char * argv[]) {
+int bstr_wrap_error_test(void);
 
-    printf("basic-test_one Result %d\n", basic_test_one());
+int bstr_wrap_nest_test(void);
 
-    printf("cose_sign1_tbs_test %d\n", cose_sign1_tbs_test());
+int cose_sign1_tbs_test(void);
 
-    printf("bstr_wrap_nest_test %d\n", bstr_wrap_nest_test());
-    
-    printf("bstr_wrap_error_test %d\n", bstr_wrap_error_test());
-    
-    printf("bstrwraptest %d\n", bstrwraptest());
-    
-    
-    return 0;
-}
+#endif /* bstrwrap_tests_h */
