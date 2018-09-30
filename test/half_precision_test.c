@@ -37,7 +37,7 @@
 #include <math.h> // For INFINITY and NAN and isnan()
 
 static const uint8_t ExpectedHalf[] = {
-    0xAD,
+    0xB1,
         0x64,
             0x7A, 0x65, 0x72, 0x6F,
         0xF9, 0x00, 0x00,   // 0.000
@@ -74,14 +74,23 @@ static const uint8_t ExpectedHalf[] = {
             0x73, 0x75, 0x62, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C, 0x20, 0x73, 0x69, 0x6E, 0x67, 0x6C, 0x65,
         0xF9, 0x00, 0x00,
         0x03,
-        0xF9, 0xC0, 0x00    // -2.0
+        0xF9, 0xC0, 0x00,    // -2
+        0x04,
+        0xF9, 0x7E, 0x00,    // qNaN
+        0x05,
+        0xF9, 0x7C, 0x01,    // sNaN
+        0x06,
+        0xF9, 0x7E, 0x0F,    // qNaN with payload 0x0f
+        0x07,
+        0xF9, 0x7C, 0x0F,    // sNaN with payload 0x0f
+    
 };
 
 
 
 int half_precision_encode_basic()
 {
-    UsefulBuf_MakeStackUB(EncodedHalfsMem, 220);
+    UsefulBuf_MakeStackUB(EncodedHalfsMem, 250);
 
     QCBOREncodeContext EC;
     QCBOREncode_Init(&EC, EncodedHalfsMem);
@@ -102,6 +111,10 @@ int half_precision_encode_basic()
     QCBOREncode_AddFloatAsHalfToMap(&EC, "biggest subnormal",  0.0000610351563F); // in hex single is 0x38800000, exponent -14, significand 0
     QCBOREncode_AddFloatAsHalfToMap(&EC, "subnormal single", 4e-40F); 
     QCBOREncode_AddFloatAsHalfToMapN(&EC, 3, -2.0F);
+    QCBOREncode_AddFloatAsHalfToMapN(&EC, 4, UsefulBufUtil_CopyUint32ToFloat(0x7fc00000L)); // qNaN
+    QCBOREncode_AddFloatAsHalfToMapN(&EC, 5, UsefulBufUtil_CopyUint32ToFloat(0x7f800001L)); // sNaN
+    QCBOREncode_AddFloatAsHalfToMapN(&EC, 6, UsefulBufUtil_CopyUint32ToFloat(0x7fc0f00fL)); // qNaN with payload
+    QCBOREncode_AddFloatAsHalfToMapN(&EC, 7, UsefulBufUtil_CopyUint32ToFloat(0x7f80f00fL)); // sNaN with payload
     QCBOREncode_CloseMap(&EC);
     
     EncodedCBOR EncodedHalfs;
@@ -134,71 +147,88 @@ int half_precision_decode_basic()
 
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 0.0F) {
-        return -1;
+        return -2;
     }
     
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != INFINITY) {
-        return -1;
+        return -3;
     }
 
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != -INFINITY) {
-        return -1;
+        return -4;
     }
 
     QCBORDecode_GetNext(&DC, &Item); // TODO, is this really converting right? It is carrying payload, but this confuses things.
     if(Item.uDataType != QCBOR_TYPE_FLOAT || !isnan(Item.val.fnum)) {
-        return -1;
+        return -5;
     }
 
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 1.0F) {
-        return -1;
+        return -6;
     }
     
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 0.333251953125F) {
-        return -1;
+        return -7;
     }
 
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 65504.0F) {
-        return -1;
+        return -8;
     }
 
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != INFINITY) {
-        return -1;
+        return -9;
     }
     
     QCBORDecode_GetNext(&DC, &Item); // TODO: check this
     if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 0.0000000596046448F) {
-        return -1;
+        return -10;
     }
 
     QCBORDecode_GetNext(&DC, &Item); // TODO: check this
     if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 0.0000609755516F) {
-        return -1;
+        return -11;
     }
 
     QCBORDecode_GetNext(&DC, &Item); // TODO check this
     if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 0.0000610351563F) {
-        return -1;
+        return -12;
     }
     
     QCBORDecode_GetNext(&DC, &Item); 
     if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 0) {
-        return -1;
+        return -13;
     }
     
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != -2.0F) {
-        return -1;
+        return -14;
+    }
+
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_FLOAT || UsefulBufUtil_CopyFloatToUint32(Item.val.fnum) != 0x7fc00000L) {
+        return -15;
+    }
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_FLOAT || UsefulBufUtil_CopyFloatToUint32(Item.val.fnum) != 0x7f800001) {
+        return -16;
+    }
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_FLOAT || UsefulBufUtil_CopyFloatToUint32(Item.val.fnum) != 0x7fc0000f) {
+        return -17;
+    }
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_FLOAT || UsefulBufUtil_CopyFloatToUint32(Item.val.fnum) != 0x7f80000f) {
+        return -18;
     }
     
     if(QCBORDecode_Finish(&DC)) {
-        return -1;
+        return -19;
     }
     
     return 0;
@@ -257,7 +287,7 @@ int half_precision_to_float_transitive_test()
 
 int half_precision_to_float_vs_rfc_test()
 {
-    for(uint32_t uHalfP = 0; uHalfP < 0xffff; uHalfP += 1) {
+    for(uint32_t uHalfP = 0; uHalfP < 0xffff; uHalfP += 60) {
         unsigned char x[2];
         x[1] = uHalfP & 0xff;
         x[0] = uHalfP >> 8;
@@ -283,10 +313,19 @@ int half_precision_to_float_vs_rfc_test()
             return -1;
         }
         
-        //printf("%04x  QCBOR:%15.15f  RFC: %15.15f\n", uHalfP,Item.val.fnum, d );
+        //printf("%04x  QCBOR:%15.15f  RFC: %15.15f (%8x)\n", uHalfP,Item.val.fnum, d , UsefulBufUtil_CopyFloatToUint32(d));
         
-        if(Item.val.fnum != d) {
-            return -2;
+        if(isnan(d)) {
+            // The RFC code uses the native instructions which may or may not
+            // handle sNaN, qNaN and NaN payloads correctly. This test just
+            // makes sure it is a NaN and doesn't worry about the type of NaN
+            if(!isnan(Item.val.fnum)) {
+                return -3;
+            }
+        } else {
+            if(Item.val.fnum != d) {
+                return -2;
+            }
         }
     }
     return 0;
@@ -300,6 +339,7 @@ int half_precision_to_float_vs_rfc_test()
 static const uint8_t sExpectedSmallest[] = {
     0xB4, 0x64, 0x7A, 0x65, 0x72, 0x6F, 0xF9, 0x00, 0x00, 0x6D, 0x6E, 0x65, 0x67, 0x61, 0x74, 0x69, 0x76, 0x65, 0x20, 0x7A, 0x65, 0x72, 0x6F, 0xF9, 0x80, 0x00, 0x6A, 0x69, 0x6E, 0x66, 0x69, 0x6E, 0x69, 0x74, 0x69, 0x74, 0x79, 0xF9, 0x7C, 0x00, 0x73, 0x6E, 0x65, 0x67, 0x61, 0x74, 0x69, 0x76, 0x65, 0x20, 0x69, 0x6E, 0x66, 0x69, 0x6E, 0x69, 0x74, 0x69, 0x74, 0x79, 0xF9, 0xFC, 0x00, 0x63, 0x4E, 0x61, 0x4E, 0xF9, 0x7E, 0x00, 0x63, 0x6F, 0x6E, 0x65, 0xF9, 0x3C, 0x00, 0x69, 0x6F, 0x6E, 0x65, 0x20, 0x74, 0x68, 0x69, 0x72, 0x64, 0xF9, 0x35, 0x55, 0x76, 0x6C, 0x61, 0x72, 0x67, 0x65, 0x73, 0x74, 0x20, 0x68, 0x61, 0x6C, 0x66, 0x2D, 0x70, 0x72, 0x65, 0x63, 0x69, 0x73, 0x69, 0x6F, 0x6E, 0xF9, 0x7B, 0xFF, 0x78, 0x20, 0x6C, 0x61, 0x72, 0x67, 0x65, 0x73, 0x74, 0x20, 0x68, 0x61, 0x6C, 0x66, 0x2D, 0x70, 0x72, 0x65, 0x63, 0x69, 0x73, 0x69, 0x6F, 0x6E, 0x20, 0x70, 0x6F, 0x69, 0x6E, 0x74, 0x20, 0x6F, 0x6E, 0x65, 0xFB, 0x40, 0xEF, 0xFC, 0x03, 0x33, 0x33, 0x33, 0x33, 0x78, 0x18, 0x74, 0x6F, 0x6F, 0x2D, 0x6C, 0x61, 0x72, 0x67, 0x65, 0x20, 0x68, 0x61, 0x6C, 0x66, 0x2D, 0x70, 0x72, 0x65, 0x63, 0x69, 0x73, 0x69, 0x6F, 0x6E, 0xFA, 0x47, 0x80, 0x00, 0x00, 0x72, 0x73, 0x6D, 0x61, 0x6C, 0x6C, 0x65, 0x73, 0x74, 0x20, 0x73, 0x75, 0x62, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C, 0xFB, 0x3E, 0x70, 0x00, 0x00, 0x00, 0x1C, 0x5F, 0x68, 0x6F, 0x73, 0x6D, 0x61, 0x6C, 0x6C, 0x65, 0x73, 0x74, 0x20, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C, 0xFA, 0x38, 0x7F, 0xFF, 0xFF, 0x71, 0x62, 0x69, 0x67, 0x67, 0x65, 0x73, 0x74, 0x20, 0x73, 0x75, 0x62, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C, 0xF9, 0x04, 0x00, 0x70, 0x73, 0x75, 0x62, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C, 0x20, 0x73, 0x69, 0x6E, 0x67, 0x6C, 0x65, 0xFB, 0x37, 0xC1, 0x6C, 0x28, 0x00, 0x00, 0x00, 0x00, 0x03, 0xF9, 0xC0, 0x00, 0x70, 0x6C, 0x61, 0x72, 0x67, 0x65, 0x20, 0x73, 0x69, 0x6E, 0x67, 0x6C, 0x65, 0x20, 0x65, 0x78, 0x70, 0xFA, 0x7F, 0x40, 0x00, 0x00, 0x74, 0x74, 0x6F, 0x6F, 0x2D, 0x6C, 0x61, 0x72, 0x67, 0x65, 0x20, 0x73, 0x69, 0x6E, 0x67, 0x6C, 0x65, 0x20, 0x65, 0x78, 0x70, 0xFB, 0x47, 0xF8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x78, 0x18, 0x62, 0x69, 0x67, 0x67, 0x65, 0x73, 0x74, 0x20, 0x73, 0x69, 0x6E, 0x67, 0x6C, 0x65, 0x20, 0x77, 0x69, 0x74, 0x68, 0x20, 0x70, 0x72, 0x65, 0x63, 0xFA, 0x4B, 0x80, 0x00, 0x00, 0x78, 0x1B, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20, 0x73, 0x69, 0x6E, 0x67, 0x6C, 0x65, 0x20, 0x77, 0x69, 0x74, 0x68, 0x20, 0x70, 0x72, 0x65, 0x63, 0x20, 0x6C, 0x6F, 0x73, 0x73, 0xFB, 0x41, 0x70, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x63, 0x66, 0x69, 0x6E
 };
+
 
 
 int double_as_smallest_encode_basic()
@@ -431,8 +471,52 @@ int double_as_smallest_encode_basic()
     }
     
     return 0;
-}
+};
 
+
+
+#ifdef NAN_EXPERIMENT
+/*
+ Code for checking what the double to float cast does with
+ NaNs.  Not run as part of tests. Keep it around to
+ be able to check various platforms and CPUs.
+ */
+
+#define DOUBLE_NUM_SIGNIFICAND_BITS (52)
+#define DOUBLE_NUM_EXPONENT_BITS    (11)
+#define DOUBLE_NUM_SIGN_BITS        (1)
+
+#define DOUBLE_SIGNIFICAND_SHIFT    (0)
+#define DOUBLE_EXPONENT_SHIFT       (DOUBLE_NUM_SIGNIFICAND_BITS)
+#define DOUBLE_SIGN_SHIFT           (DOUBLE_NUM_SIGNIFICAND_BITS + DOUBLE_NUM_EXPONENT_BITS)
+
+#define DOUBLE_SIGNIFICAND_MASK     (0xfffffffffffffULL) // The lower 52 bits
+#define DOUBLE_EXPONENT_MASK        (0x7ffULL << DOUBLE_EXPONENT_SHIFT) // 11 bits of exponent
+#define DOUBLE_SIGN_MASK            (0x01ULL << DOUBLE_SIGN_SHIFT) // 1 bit of sign
+#define DOUBLE_QUIET_NAN_BIT        (0x01ULL << (DOUBLE_NUM_SIGNIFICAND_BITS-1))
+
+
+static int NaNExperiments() {
+    double dqNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT);
+    double dsNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | 0x01);
+    double dqNaNPayload = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT | 0xf00f);
+    
+    float f1 = (float)dqNaN;
+    float f2 = (float)dsNaN;
+    float f3 = (float)dqNaNPayload;
+    
+    
+    uint32_t uqNaN = UsefulBufUtil_CopyFloatToUint32((float)dqNaN);
+    uint32_t usNaN = UsefulBufUtil_CopyFloatToUint32((float)dsNaN);
+    uint32_t uqNaNPayload = UsefulBufUtil_CopyFloatToUint32((float)dqNaNPayload);
+    
+    // Result of this on x86 is that every NaN is a qNaN. The intel
+    // CVTSD2SS instruction ignores the NaN payload and even converts
+    // a sNaN to a qNaN.
+    
+    return 0;
+}
+#endif
 
 
 
