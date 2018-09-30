@@ -29,7 +29,6 @@ The following modifications are planned:
 * Floating point support
 * Indefinite length support
 * Improve design for handling multiple tags
-* Improvements for handling bstr wrapping to support COSE better
 
 These changes may result in some interface changes. 
 

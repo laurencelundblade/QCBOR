@@ -114,7 +114,7 @@ inline static void Nesting_Init(QCBORTrackNesting *pNesting)
    pNesting->pCurrentNesting->uMajorType = CBOR_MAJOR_TYPE_ARRAY;
 }
 
-inline static int Nesting_Increase(QCBORTrackNesting *pNesting, uint8_t uMajorType, uint32_t uPos, bool bBstWrap)
+inline static int Nesting_Increase(QCBORTrackNesting *pNesting, uint8_t uMajorType, uint32_t uPos)
 {
    int nReturn = QCBOR_SUCCESS;
    
@@ -126,7 +126,6 @@ inline static int Nesting_Increase(QCBORTrackNesting *pNesting, uint8_t uMajorTy
       pNesting->pCurrentNesting->uCount     = 0;
       pNesting->pCurrentNesting->uStart     = uPos;
       pNesting->pCurrentNesting->uMajorType = uMajorType;
-      pNesting->pCurrentNesting->bBstrWrap  = bBstWrap;
    }
    return nReturn;
 }
@@ -173,10 +172,6 @@ inline static int Nesting_IsInNest(QCBORTrackNesting *pNesting)
    return pNesting->pCurrentNesting == &pNesting->pArrays[0] ? 0 : 1;
 }
 
-inline static bool Nesting_IsBstrWrapped(QCBORTrackNesting *pNesting)
-{
-   return pNesting->pCurrentNesting->bBstrWrap;
-}
 
 
 
@@ -411,7 +406,7 @@ void QCBOREncode_AddEncodedToMap_3(QCBOREncodeContext *me, const char *szLabel, 
  successfully.  Call it one more time gives an error.
  
  */
-static void OpenMapOrArrayInternal(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, uint64_t nLabel, uint64_t uTag, bool bBstrWrap)
+static void OpenMapOrArrayInternal(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, uint64_t nLabel, uint64_t uTag) 
 {
    AddLabelAndOptionalTag(me, szLabel, nLabel, uTag);
    
@@ -422,9 +417,7 @@ static void OpenMapOrArrayInternal(QCBOREncodeContext *me, uint8_t uMajorType, c
          // Increase nesting level because this is a map or array
          // Cast from size_t to uin32_t is safe because the UsefulOutBuf
          // size is limited to UINT32_MAX in QCBOR_Init().
-         me->uError = Nesting_Increase(&(me->nesting),
-                                       uMajorType, (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)),
-                                       bBstrWrap);
+         me->uError = Nesting_Increase(&(me->nesting), uMajorType, (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
       }
    }
 }
@@ -433,58 +426,67 @@ static void OpenMapOrArrayInternal(QCBOREncodeContext *me, uint8_t uMajorType, c
 /*
  Public functions for opening / closing arrays and maps. See header qcbor.h
  */
-void QCBOREncode_OpenArray_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag, bool bBstrWrap)
+void QCBOREncode_OpenArray_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag)
 {
-   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_ARRAY, szLabel, nLabel, uTag, bBstrWrap);
+   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_ARRAY, szLabel, nLabel, uTag);
 }
 
-void QCBOREncode_OpenMap_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag, uint8_t bBstrWrap)
+void QCBOREncode_OpenMap_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag)
 {
-   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_MAP, szLabel, nLabel, uTag, bBstrWrap);
+   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_MAP, szLabel, nLabel, uTag);
 }
 
-void QCBOREncode_CloseArray(QCBOREncodeContext *me)
+void QCBOREncode_OpenBstrWrap_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag)
 {
-   if(!Nesting_IsInNest(&(me->nesting))) {
-      me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
-      
-   } else {
-      // When the array was opened, nothing was done except note the position
-      // of the start of the array. This code goes back and inserts the type
-      // (array or map) and length. That means all the data in the array or map
-      // and any nested arrays or maps have to be slid right. This is done
-      // by UsefulOutBuf's insert function that is called from inside
-      // InsertEncodedTypeAndNumber()
-      
-      const uint32_t uInsertPosition = Nesting_GetStartPos(&(me->nesting));
-      
-      InsertEncodedTypeAndNumber(me,
-                                 Nesting_GetMajorType(&(me->nesting)),  // the major type (array or map)
-                                 0,                                     // no minimum length for encoding
-                                 Nesting_GetCount(&(me->nesting)),      // number of items in array or map
-                                 uInsertPosition);                      // position in output buffer
-      
-      if(Nesting_IsBstrWrapped(&(me->nesting))) {
-         // This map or array is to be wrapped in a byte string. This is typically because
-         // the data is to be hashed or cryprographically signed. This is what COSE
-         // signing does.
+   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_BYTE_STRING, szLabel, nLabel, uTag);
+}
+
+void QCBOREncode_Close(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC *pWrappedCBOR)
+{
+   if(!me->uError) {
+      if(!Nesting_IsInNest(&(me->nesting))) {
+         me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+      } else if( Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
+         me->uError = QCBOR_ERR_CLOSE_MISMATCH; 
+      } else {
+         const uint32_t uInsertPosition = Nesting_GetStartPos(&(me->nesting));
+         // When the array, map or bstr wrap was started, nothing was done except
+         // note the position of the start of it. This code goes back and inserts
+         // the actual CBOR array, map or bstr and its length. That means all the
+         // data that is in the array, map or wrapped needs to be slid to the
+         // right. This is done by UsefulOutBuf's insert function that is called
+         // from inside InsertEncodedTypeAndNumber()
          
          // Cast from size_t to uin32_t is safe because the UsefulOutBuf
          // size is limited to UINT32_MAX in QCBOR_Init().
-         uint32_t uLenOfEncodedMapOrArray = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)) - uInsertPosition;
- 
-         // Insert the bstring wrapping
+         const uint32_t uEndPosition = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf));
+         const uint32_t uLenOfEncodedMapOrArray = uEndPosition - uInsertPosition;
+         
+         // Length is number of bytes for a bstr and number of items for map & array
+         const uint32_t uLength = uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING ?
+                                    uLenOfEncodedMapOrArray : Nesting_GetCount(&(me->nesting));
+         
+         // Actually insert
          InsertEncodedTypeAndNumber(me,
-                                    CBOR_MAJOR_TYPE_BYTE_STRING,  // major type bstring
-                                    0,                            // no minimum length for encoding
-                                    uLenOfEncodedMapOrArray,      // length of the map
-                                    uInsertPosition);             // position in out buffer
+                                    uMajorType,       // major type bstr, array or map
+                                    0,                // no minimum length for encoding
+                                    uLength,          // either len of bstr or num items in array or map
+                                    uInsertPosition); // position in out buffer
+         
+         // Return pointer and length to the enclosed encoded CBOR. The intended
+         // use is for it to be hashed (e.g., SHA-256) in a COSE implementation.
+         // This must be used right away, as the pointer and length go invalid
+         // on any subsequent calls to this function because of the
+         // InsertEncodedTypeAndNumber() call that slides data to the right.
+         if(pWrappedCBOR) {
+            UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
+            uint32_t uBstrLen = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)) - uEndPosition;
+            *pWrappedCBOR = UsefulBuf_Tail(PartialResult, uInsertPosition+uBstrLen);
+         }
+         Nesting_Decrease(&(me->nesting));
       }
-      
-      Nesting_Decrease(&(me->nesting));
    }
 }
-
 
 
 
