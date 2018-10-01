@@ -596,6 +596,12 @@ typedef struct {
  */
 void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage);
 
+static inline void UsefulOutBuf_Realloc(UsefulOutBuf *me, UsefulBuf Storage)
+{
+   me->UB = Storage;
+}
+
+
 
 
 /** Convenience marco to make a UsefulOutBuf on the stack and

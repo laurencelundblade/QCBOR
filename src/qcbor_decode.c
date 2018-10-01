@@ -608,7 +608,12 @@ static int GetAnItem(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, int bCall
    switch (uMajorType) {
       case CBOR_MAJOR_TYPE_POSITIVE_INT: // Major type 0
       case CBOR_MAJOR_TYPE_NEGATIVE_INT: // Major type 1
-         nReturn = DecodeInteger(uMajorType, uNumber, pDecodedItem);
+         if(uAdditionalInfo == 31) {// TODO: right constant
+            pDecodedItem->uDataType  = (uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING) ? QCBOR_TYPE_BYTE_STRING : QCBOR_TYPE_TEXT_STRING;
+            pDecodedItem->val.string = (UsefulBufC){NULL, 0xffff};
+         } else {
+            nReturn = DecodeInteger(uMajorType, uNumber, pDecodedItem);
+         }
          break;
          
       case CBOR_MAJOR_TYPE_BYTE_STRING: // Major type 2
@@ -653,6 +658,57 @@ static int GetAnItem(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, int bCall
    
 Done:
    return nReturn;
+}
+
+
+/*
+ Layer to process indefinite lengths
+ 
+ */
+
+UsefulBuf XX(QCBORStringAllocator *pAlloc, UsefulBufC yy, size_t add)
+{
+   // TODO: what about allocator context?
+   // TODO: pointer arithmatic
+   uint8_t *x = (*pAlloc->AllocatorFunction) (yy.ptr, yy.len + add );
+   return (UsefulBuf) {x, yy.len + add};
+}
+ 
+int GetFullItem(QCBORStringAllocator *pAlloc, UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, int bCalledFromDecodeOptional)
+{
+   int nReturn = GetAnItem(pUInBuf, pDecodedItem, bCalledFromDecodeOptional);
+   
+   if(pDecodedItem->uDataType != CBOR_MAJOR_TYPE_BYTE_STRING && pDecodedItem->uDataType != CBOR_MAJOR_TYPE_TEXT_STRING) {
+      return nReturn;
+   }
+   
+   if(pDecodedItem->val.uCount != 0xffff) {
+      return nReturn;
+   }
+   
+   if(pAlloc == NULL) {
+      return -99; // TODO: error
+   }
+   
+   QCBORItem Item = *pDecodedItem;
+   UsefulOutBuf UOB;
+   UsefulOutBuf_Init(&UOB, XX(pAlloc, (UsefulBufC){NULL,0}, 0)); // Dummy storage allocation to start
+   
+   // loop getting segments of indefinite string
+
+   do {
+      UsefulOutBuf_Realloc(&UOB, XX(pAlloc, UsefulOutBuf_OutUBuf(&UOB), Item.val.string.len));
+      UsefulOutBuf_AppendUsefulBuf(&UOB, Item.val.string);
+      
+      int xx = GetAnItem(pUInBuf, &Item, bCalledFromDecodeOptional);
+      // Lots of error conditions here
+      
+   } while(Item.uDataType != QCBOR_TYPE_BREAK);
+   
+   pDecodedItem->val.string = UsefulOutBuf_OutUBuf(&UOB);
+   
+   return 0;
+   
 }
 
 
