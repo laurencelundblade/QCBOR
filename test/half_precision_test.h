@@ -1,8 +1,6 @@
-/*
- cmd_line_mainc.c -- basic tests for qcbor encoder / decoder
- 
- This is governed by the MIT license.
- 
+/*==============================================================================
+ half_precision_test.h -- tests for converstion to/from half-precision
+
  Copyright 2018 Laurence Lundblade
  
  Permission is hereby granted, free of charge, to any person obtaining
@@ -24,23 +22,24 @@
  ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
- */
-//  Created by Laurence Lundblade on 9/13/18.
-
-#include <stdio.h>
-
-#include "run_tests.h"
+ 
+ (This is the MIT license)
+ ==============================================================================*/
+//  Created by Laurence Lundblade on 9/19/18.
 
 
-int fputs_wrapper(const char *szString, void *ctx)
-{
-    return fputs(szString, (FILE *)ctx);
-}
+#ifndef half_precision_test_h
+#define half_precision_test_h
+
+int half_precision_encode_basic(void);
+
+int half_precision_decode_basic(void);
+
+int half_precision_to_float_transitive_test(void);
+
+int double_as_smallest_encode_basic(void);
+
+int half_precision_to_float_vs_rfc_test(void);
 
 
-int main(int argc, const char * argv[]) {   
-   
-    int nNumTestsFailed = run_tests(&fputs_wrapper, stdout, NULL);
-
-    return nNumTestsFailed;
-}
+#endif /* half_precision_test_h */

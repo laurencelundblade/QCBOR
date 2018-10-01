@@ -26,7 +26,6 @@ QCBOR was originally developed by Qualcomm. It was [open sourced through CAF](ht
 This code in Laurence's GitHub has diverged some from the CAF source with some small simplifications and tidying up.  The full test suite is not up and running and available in GitHub yet, so some caution is advised. This should be remedies soon.
 
 The following modifications are planned:
-* Floating point support
 * Indefinite length support
 * Improve design for handling multiple tags
 
@@ -35,17 +34,25 @@ These changes may result in some interface changes.
 ## Building
 There is a simple makefile for the UNIX style command line binary that compiles everything to run the tests.
 
-The actual non-test source files are these five:
+The actual non-test source files are these seven:
 * inc/UsefulBuf.h
 * inc/qcbor.h
 * src/UsefulBuf.c
 * src/qcbor_encode.c
 * src/qcbor_decode.c
+* src/ieee754.h
+* src/ieee754.c
 
 For most use cases you should just be able to add them to your project. Hopefully the easy portability of this implementation makes this work straight away, whatever your development environment is.
 
-The test directory includes some tests that are nearly as portable as the main implementation.  If your development environment doesn't support UNIX style command line and make, 
-you should be able to make a simple project and add the test files to it.
+The files ieee754.c and ieee754.h are support for half-precision floating point. The encoding side of the floating point functionality is about
+500 bytes. If it is never called because no floating point numbers are ever encoded, all 500 bytes will be dead stripped and not
+impact code size. The decoding side is about 150 bytes of object code. It is never dead stripped because it always linked, however it 
+doesn't add very much to the size.
+
+The test directory includes some tests that are nearly as portable as the main implementation.  If your development environment 
+doesn't support UNIX style command line and make, you should be able to make a simple project and add the test files to it.
+Then just call run_tests() to invole them all. 
 
 
 

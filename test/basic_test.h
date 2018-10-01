@@ -1,7 +1,5 @@
-/*
- basic_test.h -- basic tests for qcbor encoder / decoder
- 
- This is governed by the MIT license.
+/*==============================================================================
+ basic_test.h -- most basic test for QCBOR
  
  Copyright 2018 Laurence Lundblade
  
@@ -25,6 +23,8 @@
  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
  */
+
+//  Created by Laurence Lundblade on 9/13/18.
 
 #ifndef basic_test_h
 #define basic_test_h

@@ -1,8 +1,4 @@
-/*
- cmd_line_mainc.c -- basic tests for qcbor encoder / decoder
- 
- This is governed by the MIT license.
- 
+/*==============================================================================
  Copyright 2018 Laurence Lundblade
  
  Permission is hereby granted, free of charge, to any person obtaining
@@ -24,23 +20,21 @@
  ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
- */
-//  Created by Laurence Lundblade on 9/13/18.
+ 
+ (This is the MIT license)
+ ==============================================================================*/
 
-#include <stdio.h>
+//
+//  half_to_double_from_rfc7049.h
+//  QCBOR
+//
+//  Created by Laurence Lundblade on 9/23/18.
+//  Copyright © 2018 Laurence Lundblade. All rights reserved.
+//
 
-#include "run_tests.h"
+#ifndef half_to_double_from_rfc7049_h
+#define half_to_double_from_rfc7049_h
 
+double decode_half(unsigned char *halfp);
 
-int fputs_wrapper(const char *szString, void *ctx)
-{
-    return fputs(szString, (FILE *)ctx);
-}
-
-
-int main(int argc, const char * argv[]) {   
-   
-    int nNumTestsFailed = run_tests(&fputs_wrapper, stdout, NULL);
-
-    return nNumTestsFailed;
-}
+#endif /* half_to_double_from_rfc7049_h */

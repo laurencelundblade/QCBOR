@@ -122,44 +122,43 @@ int bstr_wrap_error_test()
 // Part of bstr_wrap_nest_test
 /*
  83 array with three
- 53  byte string with 19 bytes
- 01  #1
- 50 byte string with 16 bytes
- 02
- 4D byte string with 13 bytes
- 03
- 4A byte string with 10 bytes
- 04
- 47 byte string with 7 bytes
- 05
- 44 byte string with 4 bytes
- 06
- 41 byte string with 1 byte
- 07
- 01
- 02
- 03
- 04
- 05
- 06
- 07
- 
- A2 map with two items
- 18 20  label for byte string
- 54 byte string of length 20
- 82 Array with two items
- 10  The integer value 10
- A2 map with two items
- 18 21 label for byte string
- 44 byte string with 4 bytes
- 81 array with 1 item
- 11 integer value 11
- 18 30 integer value 30
- 18 40 integer label 40
- 65 68 65 6C 6C 6F text string hello
- 18 31 integer value 31
- 18 41 integer label 41
- 65 68 65 6C 6C 6F text string hello
+   53  byte string with 19 bytes
+      01  #1
+      50 byte string with 16 bytes
+           02
+           4D byte string with 13 bytes
+               03
+               4A byte string with 10 bytes
+                    04
+                    47 byte string with 7 bytes
+                        05
+                        44 byte string with 4 bytes
+                            06
+                            41 byte string with 1 byte
+                                 07
+                            01
+                        02
+                    03
+               04
+           05
+       06
+  07
+    A2 map with two items
+      18 20  label for byte string
+      54 byte string of length 20
+         82 Array with two items
+            10  The integer value 10
+            A2 map with two items
+               18 21 label for byte string
+               44 byte string with 4 bytes
+                  81 array with 1 item
+                     11 integer value 11
+                  18 30 integer value 30
+               18 40 integer label 40
+               65 68 65 6C 6C 6F text string hello
+         18 31 integer value 31
+      18 41 integer label 41
+      65 68 65 6C 6C 6F text string hello
  
  
  */

@@ -75,6 +75,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  =====================================================================================*/
 
 #include "qcbor.h"
+#include "ieee754.h"
 
 
 
@@ -325,6 +326,17 @@ inline static int DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber, QCBORI
       case ADDINFO_RESERVED3:  // 30
       case CBOR_SIMPLE_BREAK:  // 31
          nReturn = QCBOR_ERR_UNSUPPORTED;
+         break;
+           
+      case HALF_PREC_FLOAT:
+         pDecodedItem->val.fnum  = IEEE754_HalfToFloat((uint16_t)uNumber);
+         pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
+         break;
+      case SINGLE_PREC_FLOAT:
+         pDecodedItem->val.fnum = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uNumber);
+         break;
+      case DOUBLE_PREC_FLOAT:
+         pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uNumber);
          break;
          
       case CBOR_SIMPLEV_FALSE: // 20
