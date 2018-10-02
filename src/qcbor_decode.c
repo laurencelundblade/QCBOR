@@ -191,6 +191,12 @@ void QCBOR_Decode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllo
     pCtx->pStringAllocator = (void *)pAllocator;
 }
 
+const QCBORStringAllocator *QCBORDecode_GetAllocator(QCBORDecodeContext *pCtx)
+{
+   return pCtx->pStringAllocator;
+}
+
+
 
 /*
  This decodes the fundamental part of a CBOR data item, the type and number
@@ -668,9 +674,8 @@ Done:
 
 UsefulBuf XX(QCBORStringAllocator *pAlloc, UsefulBufC yy, size_t add)
 {
-   // TODO: what about allocator context?
    // TODO: pointer arithmatic
-   uint8_t *x = (*pAlloc->AllocatorFunction) (yy.ptr, yy.len + add );
+   uint8_t *x = (*pAlloc->AllocatorFunction) (pAlloc->pAllocaterContext, yy.ptr, yy.len + add );
    return (UsefulBuf) {x, yy.len + add};
 }
  
@@ -798,6 +803,21 @@ int QCBORDecode_Finish(QCBORDecodeContext *me)
    return UsefulInputBuf_BytesUnconsumed(&(me->InBuf)) ? QCBOR_ERR_EXTRA_BYTES : QCBOR_SUCCESS;
 }
 
+
+
+/*
+ 
+ Use the 64-bit map. 48 8-bit tags built in, 1 16 bit tag, 15 64-bit tags can be assigned as of interest
+ 
+ There is a tag map.
+ 
+ TODO: how does tinyCBOR do it?
+ 
+ 
+ 
+ 
+ 
+ */
 
 
 /* 

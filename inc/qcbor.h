@@ -693,7 +693,7 @@ typedef struct _QCBORItem {
  */
 typedef struct {
     void *pAllocaterContext;
-    void * (*AllocatorFunction)(void *pMem, size_t uNewSize);
+    void * (*AllocatorFunction)(void *pMem, void *pOld, size_t uNewSize);
     bool bAlwaysAlloc;
 } QCBORStringAllocator;
 
@@ -1459,6 +1459,8 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t n
  
  */
 void QCBOR_Decode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator);
+
+const QCBORStringAllocator *QCBORDecode_GetAllocator(QCBORDecodeContext *pCtx);
 
 
 
