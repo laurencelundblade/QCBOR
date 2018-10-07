@@ -93,6 +93,18 @@ UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src)
    return((UsefulBufC){Dest.ptr, Src.len});
 }
 
+
+UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC Src)
+{
+    if(Src.len > Dest.len - uOffset) {
+        return NULLUsefulBufC;
+    }
+    
+    memcpy(Dest.ptr + uOffset, Src.ptr, Src.len);
+    
+    return((UsefulBufC){Dest.ptr, Src.len});
+}
+
 /*
    Public function -- see UsefulBuf.h
  */
@@ -170,6 +182,7 @@ void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage)
     
     // The following check fails on ThreadX
 #if 0
+    // TODO: fix this for new way of doing storage
     // Sanity check on the pointer and size to be sure we are not
     // passed a buffer that goes off the end of the address space.
     // Given this test, we know that all unsigned lengths less than

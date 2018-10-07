@@ -93,6 +93,8 @@ typedef struct {
 } test_entry;
 
 test_entry s_tests[] = {
+    TEST_ENTRY(indefinite_length_decode_string_test),
+    TEST_ENTRY(indefinite_length_decode_test),
     TEST_ENTRY(basic_test_one),
     TEST_ENTRY(half_precision_encode_basic),
     TEST_ENTRY(half_precision_decode_basic),

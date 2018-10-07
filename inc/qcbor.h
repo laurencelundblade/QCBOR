@@ -180,8 +180,15 @@ struct _QCBORDecodeContext {
    UsefulInputBuf InBuf;
    
    uint8_t        uDecodeMode;
+   uint8_t        bStringAllocateAll; // TODO: fully implement this
    
    QCBORDecodeNesting nesting;
+   
+   // This is NULL or points to a QCBORStringAllocator. It is void
+   // here because _QCBORDecodeContext is defined early n the
+   // private part of this file and QCBORStringAllocat is defined
+   // later in the public part of this file.
+   void *pStringAllocator;
 };
 
 
@@ -581,6 +588,17 @@ struct _QCBORDecodeContext {
 /** Closing something different than is open */
 #define QCBOR_ERR_CLOSE_MISMATCH          17
 
+/** Unable to decode an indefinitely length string because no string allocator was configured */
+#define QCBOR_ERR_NO_STRING_ALLOCATOR     18
+
+/** One of the segments in an indefinite length string is of the wrong type */
+#define QCBOR_ERR_INDEFINITE_STRING_SEG   19
+
+/** Error allocating space for indefinite length string segment */
+#define QCBOR_ERR_STRING_ALLOC            20
+
+/** The a break occurred outside an indefinite length item */
+#define QCBOR_ERR_BAD_BREAK               21
 
 
 /** See QCBORDecode_Init() */
@@ -630,9 +648,10 @@ struct _QCBORDecodeContext {
 /** Type for the simple value undef; nothing more; nothing in val union. */
 #define QCBOR_TYPE_UNDEF         23
 
+#define QCBOR_TYPE_BREAK         31 // Used internally; never returned
 
 #define QCBOR_TYPE_OPTTAG     254 // Used internally; never returned
-#define QCBOR_TYPE_BREAK      255 // Used internally; never returned
+//#define QCBOR_TYPE_BREAK      255 // Used internally; never returned
 
 
 
@@ -651,6 +670,7 @@ typedef struct _QCBORItem {
    uint8_t  uDataType;     /** Tells what element of the val union to use. One of QCBOR_TYPE_XXXX */
    uint8_t  uNestingLevel; /** How deep the nesting from arrays and maps are. 0 is the top level with no arrays or maps entered */
    uint8_t  uLabelType;    /** Tells what element of the label union to use */
+   uint8_t  uAllocated;    /** 1 if allocated with string allocator, 0 if not. See xxx TODO: */
    
    union {
       int64_t     int64;      /** The value for uDataType QCBOR_TYPE_INT64 */
@@ -680,6 +700,19 @@ typedef struct _QCBORItem {
    uint64_t uTagBits; /** Bits corresponding to tag values less than 63 as defined in RFC 7049, section 2.4 */
    
 } QCBORItem;
+
+
+/*
+ Optional to set up an allocator for bstr and tstr types.
+ Required to process indefinite length bstr and tstr types.
+ (indefinite length maps can be processed without this).
+ */
+typedef struct {
+   void    *pAllocaterContext;
+   UsefulBuf (*fAllocate)(void *pAllocaterContext, void *pOldMem, size_t uNewSize);
+   void   (*fFree)(void *pAllocaterContext, void *pMem);
+   void   (*fDestructor)(void *pAllocaterContext);
+} QCBORStringAllocator;
 
 
 /** See the descriptions for CBOR_SIMPLEV_FALSE, CBOR_TAG_DATE_EPOCH... for
@@ -1606,6 +1639,49 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
  */
 
 void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t nMode);
+
+
+/**
+ Set up a memory pool for indefinite length strings
+ 
+ @param[in] pCtx The decode context to initialize.
+ @param[in] MemPool The pointer and length of the memory pool
+ @param[in] bAllStrings true means to put even definite length strings in the pool
+ 
+ Indefinite length strings (text and byte) cannot be decoded unless there is
+ either a memory pool set up or a string allocator configured.
+ 
+ The MemPool must be sized large enough. For a 64-bit CPU it must be sized
+ at 64 bytes plus space to hold all the indefinite length strings. For a 32-bit CPU
+ the size is 32 bytes plus space for the strings. There is no overhead per
+ string. This includes indefinite length strings that are serve as labels
+ for map items.
+ 
+ If bAllStrings is set then the size will be 64 or 32 bytes plus the space to
+ hold **all** strings, definite and indefinite length, value or label.
+ The advantage of this
+ is that after the parse is complete, the original memory holding the
+ encoded CBOR does not need to remain valid.
+ 
+ The memory from MemPool will be where all the pointers in returned
+ QCBORItems will point.
+ 
+ 
+ 
+ */
+void QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAllStrings);
+
+
+int QCBORDecode_SetMemPool_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t nMode, UsefulBuf MemPool);
+
+
+/**
+ 
+ */
+void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator);
+
+QCBORStringAllocator *QCBORDecode_GetAllocator(QCBORDecodeContext *pCtx);
+
 
 
 /**

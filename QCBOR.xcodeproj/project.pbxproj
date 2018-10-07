@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0F60E27B2164705400483952 /* qcbor_decode_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F60E27A2164705400483952 /* qcbor_decode_malloc.c */; };
 		E73B5756216071900080D658 /* bstrwrap_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B5755216071900080D658 /* bstrwrap_tests.c */; };
 		E73B57592161CA690080D658 /* ieee754.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B57582161CA690080D658 /* ieee754.c */; };
 		E73B575E2161CA7C0080D658 /* half_precision_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B575A2161CA7C0080D658 /* half_precision_test.c */; };
@@ -32,6 +33,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0F60E27A2164705400483952 /* qcbor_decode_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = qcbor_decode_malloc.c; sourceTree = "<group>"; };
 		E73B5754216071900080D658 /* bstrwrap_tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = bstrwrap_tests.h; path = test/bstrwrap_tests.h; sourceTree = "<group>"; };
 		E73B5755216071900080D658 /* bstrwrap_tests.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = bstrwrap_tests.c; path = test/bstrwrap_tests.c; sourceTree = "<group>"; };
 		E73B57572161CA680080D658 /* ieee754.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ieee754.h; path = src/ieee754.h; sourceTree = "<group>"; };
@@ -45,8 +47,8 @@
 		E776E07C214ADF7F00E67947 /* QCBOR */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = QCBOR; sourceTree = BUILT_PRODUCTS_DIR; };
 		E776E08C214AE07400E67947 /* qcbor_encode.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_encode.c; path = src/qcbor_encode.c; sourceTree = "<group>"; tabWidth = 3; };
 		E776E08D214AE07500E67947 /* UsefulBuf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = UsefulBuf.c; path = src/UsefulBuf.c; sourceTree = "<group>"; };
-		E776E08E214AE07500E67947 /* qcbor_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qcbor_decode.c; path = src/qcbor_decode.c; sourceTree = "<group>"; };
-		E776E093214AE08B00E67947 /* qcbor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor.h; path = inc/qcbor.h; sourceTree = "<group>"; };
+		E776E08E214AE07500E67947 /* qcbor_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_decode.c; path = src/qcbor_decode.c; sourceTree = "<group>"; tabWidth = 3; };
+		E776E093214AE08B00E67947 /* qcbor.h */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.h; name = qcbor.h; path = inc/qcbor.h; sourceTree = "<group>"; tabWidth = 3; };
 		E776E094214AE09700E67947 /* UsefulBuf.h */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.h; name = UsefulBuf.h; path = inc/UsefulBuf.h; sourceTree = "<group>"; tabWidth = 3; };
 		E776E096214AE0C700E67947 /* cmd_line_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_line_main.c; sourceTree = "<group>"; };
 		E776E09B214AEEEA00E67947 /* basic_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = basic_test.h; path = test/basic_test.h; sourceTree = "<group>"; };
@@ -88,6 +90,7 @@
 		E776E08B214AE06600E67947 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				0F60E27A2164705400483952 /* qcbor_decode_malloc.c */,
 				E73B57582161CA690080D658 /* ieee754.c */,
 				E73B57572161CA680080D658 /* ieee754.h */,
 				E776E08E214AE07500E67947 /* qcbor_decode.c */,
@@ -180,6 +183,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E776E08F214AE07500E67947 /* qcbor_encode.c in Sources */,
+				0F60E27B2164705400483952 /* qcbor_decode_malloc.c in Sources */,
 				E73B57592161CA690080D658 /* ieee754.c in Sources */,
 				E73B575F2161CA7C0080D658 /* half_to_double_from_rfc7049.c in Sources */,
 				E73B57652161F8F80080D658 /* run_tests.c in Sources */,

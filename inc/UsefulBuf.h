@@ -372,6 +372,9 @@ static inline UsefulBufC UsefulBuf_FromSZ(const char *szString){
  */
 UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src);
 
+UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC Src);
+
+
 
 /**
  @brief Set all bytes in a UsefulBuf to a value, for example 0
@@ -632,6 +635,12 @@ typedef struct {
  This must be called before the UsefulOutBuf is used.
  */
 void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage);
+
+static inline void UsefulOutBuf_Realloc(UsefulOutBuf *me, UsefulBuf Storage)
+{
+   me->UB = Storage;
+}
+
 
 
 
