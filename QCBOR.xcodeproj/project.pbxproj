@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0F60E27B2164705400483952 /* qcbor_decode_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F60E27A2164705400483952 /* qcbor_decode_malloc.c */; };
+		0F58EB9C216A388E002FD6D1 /* qcbor_decode_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F58EB9B216A388E002FD6D1 /* qcbor_decode_malloc.c */; };
 		E73B5756216071900080D658 /* bstrwrap_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B5755216071900080D658 /* bstrwrap_tests.c */; };
 		E73B57592161CA690080D658 /* ieee754.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B57582161CA690080D658 /* ieee754.c */; };
 		E73B575E2161CA7C0080D658 /* half_precision_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B575A2161CA7C0080D658 /* half_precision_test.c */; };
@@ -33,7 +33,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0F60E27A2164705400483952 /* qcbor_decode_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = qcbor_decode_malloc.c; sourceTree = "<group>"; };
+		0F58EB9B216A388E002FD6D1 /* qcbor_decode_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qcbor_decode_malloc.c; path = src/qcbor_decode_malloc.c; sourceTree = "<group>"; };
 		E73B5754216071900080D658 /* bstrwrap_tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = bstrwrap_tests.h; path = test/bstrwrap_tests.h; sourceTree = "<group>"; };
 		E73B5755216071900080D658 /* bstrwrap_tests.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = bstrwrap_tests.c; path = test/bstrwrap_tests.c; sourceTree = "<group>"; };
 		E73B57572161CA680080D658 /* ieee754.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ieee754.h; path = src/ieee754.h; sourceTree = "<group>"; };
@@ -90,7 +90,7 @@
 		E776E08B214AE06600E67947 /* src */ = {
 			isa = PBXGroup;
 			children = (
-				0F60E27A2164705400483952 /* qcbor_decode_malloc.c */,
+				0F58EB9B216A388E002FD6D1 /* qcbor_decode_malloc.c */,
 				E73B57582161CA690080D658 /* ieee754.c */,
 				E73B57572161CA680080D658 /* ieee754.h */,
 				E776E08E214AE07500E67947 /* qcbor_decode.c */,
@@ -183,7 +183,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E776E08F214AE07500E67947 /* qcbor_encode.c in Sources */,
-				0F60E27B2164705400483952 /* qcbor_decode_malloc.c in Sources */,
+				0F58EB9C216A388E002FD6D1 /* qcbor_decode_malloc.c in Sources */,
 				E73B57592161CA690080D658 /* ieee754.c in Sources */,
 				E73B575F2161CA7C0080D658 /* half_to_double_from_rfc7049.c in Sources */,
 				E73B57652161F8F80080D658 /* run_tests.c in Sources */,
