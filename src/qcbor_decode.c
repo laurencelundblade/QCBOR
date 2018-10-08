@@ -635,8 +635,8 @@ Done:
 
 
 /*
- This layer deals with indefinite length strings
- 
+ This layer deals with indefinite length strings. It pulls all the
+ individual segment items together into one QCBORItem
  */
 static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
@@ -654,26 +654,25 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    // To reduce code size by removing support for indefinite length strings, the
    // code in this function from here down can be eliminated. Run tests to be sure
    // all is OK if you remove this.
-   if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
-      nReturn = QCBOR_ERR_BAD_BREAK;
-      goto Done;
-   }
    
+   // Only do indefinite length processing on strings
    if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING && pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
       goto Done; // no need to do any work here on non-string types
    }
    
+   // Is this a string with an indefinite length?
    if(pDecodedItem->val.string.len != SIZE_MAX) { // TODO: is this right? Is there a better way to mark this?
-      goto Done; // length is not indefinite, so no work to do
+      goto Done; // length is not indefinite, so no work to do here
    }
    
+   // can't do indefinite length strings without a string allocator
    if(pAlloc == NULL) {
-      // can't do indefinite length strings without an allocator
       nReturn = QCBOR_ERR_NO_STRING_ALLOCATOR;
       goto Done;
    }
    
    // There is an indefinite length string to work on...
+   // Track which type of string it is
    const uint8_t uStringType = pDecodedItem->uDataType;
    
    // Loop getting segments of indefinite string
@@ -688,7 +687,7 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       
       // See if it is marker at end of indefinite length string
       if(Item.uDataType == QCBOR_TYPE_BREAK) {
-         // SUCCESS!!!
+         // String is complete
          pDecodedItem->val.string = FullString;
          pDecodedItem->uAllocated = 1;
          break;
@@ -819,7 +818,7 @@ Done:
 
 
 /*
- This layer takes care of map entries. It combines the label and data items into one item.
+ This layer takes care of map entries. It combines the label and data items into one QCBORItem.
  */
 static inline int GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
@@ -867,6 +866,32 @@ Done:
 }
 
 
+/* Loops processing breaks until a non-break is encountered
+ or an error is encountered
+ */
+static int LoopOverBreaks(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+{
+   int nReturn = QCBOR_SUCCESS;
+   
+   do {
+      nReturn = GetNext_MapEntry(me, pDecodedItem);
+      if(nReturn) {
+         goto Done;
+      }
+      
+      if(pDecodedItem->uDataType != QCBOR_TYPE_BREAK) {
+         break;
+      }
+      
+      nReturn = DecodeNesting_BreakAscend(&(me->nesting));
+      if(nReturn) {
+         goto Done;
+      }
+   } while (DecodeNesting_IsNested(&(me->nesting)));
+Done:
+   return nReturn;
+}
+
 /*
  Public function, see header qcbor.h file
  */
@@ -887,22 +912,9 @@ int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    int nReturn;
    
    // Loop getting items until one that is not a break is fetched
-   for(;;) {
-      nReturn = GetNext_MapEntry(me, pDecodedItem);
-      if(nReturn) {
-         goto Done;
-      }
-      
-      if(pDecodedItem->uDataType != QCBOR_TYPE_BREAK) {
-         break;
-      }
-
-      // Item is a break. That means we have to try to reduce
-      // nesting level.
-      nReturn = DecodeNesting_BreakAscend(&(me->nesting));
-      if(nReturn) {
-         goto Done;
-      }
+   nReturn = LoopOverBreaks(me, pDecodedItem);
+   if(nReturn) {
+      goto Done;
    }
    
    // Now have the next item that is not a break, the one that is going to be returned
@@ -932,36 +944,36 @@ int QCBORDecode_Finish(QCBORDecodeContext *me)
 {
    int nReturn = QCBOR_SUCCESS;
    
-   // Consume any breaks ending indefinite length arrays or maps here
+   // Consume any last breaks ending indefinite length arrays or maps here
    // Definite length arrays and maps get closed off above when they
    // the last item in them is consumed; they are not handled here.
-   // TODO: put in a function and make common with above similar code
-   while(DecodeNesting_GetLevel(&(me->nesting))) {
+   if(DecodeNesting_IsNested(&(me->nesting))) {
       QCBORItem Item;
-      int nReturn = GetNext_Item(&(me->InBuf), &Item, NULL);
+      nReturn = LoopOverBreaks(me, &Item);
       if(nReturn) {
-         break;
-      }
-      if(Item.uDataType != QCBOR_TYPE_BREAK) {
-         nReturn = QCBOR_ERR_EXTRA_BYTES;
-         break;
-      }
-      nReturn = DecodeNesting_BreakAscend(&(me->nesting));
-      if(nReturn) {
-         break;
+         goto Done;
       }
    }
    
-   // Call the desctructor for the string allocator if there is one
+   // Error out if all the maps/arrays are not closed out
+   if(DecodeNesting_IsNested(&(me->nesting))) {
+      nReturn = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
+      goto Done;
+   }
+
+   // Error out if not all the bytes are consumed
+   if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf))) {
+      nReturn = QCBOR_ERR_EXTRA_BYTES;
+   }
+   
+Done:
+   // Call the destructor for the string allocator if there is one
+   // Always called, even if there are errors; always have to clean up
    if(me->pStringAllocator) {
       QCBORStringAllocator *pAllocator = (QCBORStringAllocator *)me->pStringAllocator;
       if(pAllocator->fDestructor) {
          (pAllocator->fDestructor)(pAllocator->pAllocaterContext);
       }
-   }
-   
-   if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf))) {
-      nReturn = QCBOR_ERR_EXTRA_BYTES;
    }
    
    return nReturn;
