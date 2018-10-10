@@ -52,7 +52,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  Parse a well-known set of integers including those around the boundaries and
  make sure the expected values come out
  */
-int IntegerValuesParseTest();
+int IntegerValuesParseTest(void);
 
 
 
@@ -62,7 +62,7 @@ int IntegerValuesParseTest();
  Decode a simple CBOR encoded array and make sure it returns all the correct values.
  This is a decode test.
  */
-int SimpleArrayTest();
+int SimpleArrayTest(void);
 
 
 /*
@@ -70,21 +70,21 @@ int SimpleArrayTest();
  reported nesting level is correct.  This uses test vector
  of CBOR encoded data with a depth of 10.  This a parse test.
  */
-int ParseDeepArrayTest();
+int ParseDeepArrayTest(void);
 
 
 /*
  See that the correct error is reported when parsing
  an array of depth 11, one too large.
  */
-int ParseTooDeepArrayTest();
+int ParseTooDeepArrayTest(void);
 
 
 /*
   Try to parse some legit CBOR types that this parsers
   doesn't support.
  */
-int UnsupportedCBORDecodeTest();
+int UnsupportedCBORDecodeTest(void);
 
 
 /* 
@@ -92,70 +92,70 @@ int UnsupportedCBORDecodeTest();
   it over and over with one more byte less each time. It should fail
   every time on incorrect CBOR input. This is a hostile input decode test.
  */
-int ShortBufferParseTest();
+int ShortBufferParseTest(void);
 
 
 /* 
    Same as ShortBufferParseTest, but with a different encoded CBOR input.
    It is another hostile input test
  */
-int ShortBufferParseTest2();
+int ShortBufferParseTest2(void);
 
 
 /*
   Parses the somewhat complicated CBOR MAP and makes sure all the correct
   values parse out.  About 15 values are tested. This is a decode test.
  */
-int ParseMapTest();
+int ParseMapTest(void);
 
 
 
-int FloatValuesTest1();
+int FloatValuesTest1(void);
 
 
 
-int SimpleValuesTest1();
+int SimpleValuesTest1(void);
 
 
 
-int ParseSimpleTest();
+int ParseSimpleTest(void);
 
 
 
 /*
  Tests a number of failure cases on bad CBOR to get the right error code
  */
-int FailureTests();
+int FailureTests(void);
 
 
 /*
  Generate all possible input strings up to length x and tries to parse them completely
  */
-int ComprehensiveInputTest();
+int ComprehensiveInputTest(void);
 
 
 /*
  Thest the date types -- epoch and strings
  */
-int DateParseTest();
+int DateParseTest(void);
 
 
 /*
   Test optional tags like the CBOR magic number.
  */
-int OptTagParseTest();
+int OptTagParseTest(void);
 
 
 /*
  Parse some big numbers, positive and negative
  */
-int BignumParseTest();
+int BignumParseTest(void);
 
 
 /*
  Parse some nested maps
  */
-int NestedMapTest();
+int NestedMapTest(void);
 
 
 

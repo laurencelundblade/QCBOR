@@ -150,6 +150,9 @@ inline static void DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
    // Pop up nesting levels if the counts at the levels are zero
    while(DecodeNesting_IsNested(pNesting) && 0 == pNesting->pCurrent->uCount) {
       pNesting->pCurrent--;
+      if(!DecodeNesting_IsIndefiniteLength(pNesting)) {
+         pNesting->pCurrent->uCount--;
+      }
    }
 }
 
@@ -532,6 +535,25 @@ static int DecodeDateEpoch(QCBORItem Item, QCBORItem *pDecodedItem)
          pDecodedItem->val.epochDate.nSeconds = Item.val.uint64;
          break;
          
+      case QCBOR_TYPE_FLOAT:
+         // TODO: can we save code by widening a float to a double here? Then drop into double-handling code
+         if(Item.val.fnum > INT64_MAX) {
+            nReturn = QCBOR_ERR_DATE_OVERFLOW;
+            goto Done;
+         }
+         pDecodedItem->val.epochDate.nSeconds = Item.val.fnum;
+         pDecodedItem->val.epochDate.fSecondsFraction = Item.val.fnum - pDecodedItem->val.epochDate.nSeconds;
+         break;
+
+      case QCBOR_TYPE_DOUBLE:
+         if(Item.val.dfnum > INT64_MAX) {
+            nReturn = QCBOR_ERR_DATE_OVERFLOW;
+            goto Done;
+         }
+         pDecodedItem->val.epochDate.nSeconds = Item.val.dfnum;
+         pDecodedItem->val.epochDate.fSecondsFraction = Item.val.dfnum - pDecodedItem->val.epochDate.nSeconds;
+         break;
+         
       default:
          nReturn = QCBOR_ERR_BAD_OPT_TAG;
    }
@@ -869,7 +891,7 @@ Done:
 /* Loops processing breaks until a non-break is encountered
  or an error is encountered
  */
-static int LoopOverBreaks(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+static int GetNext_GetNonBreak(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    int nReturn = QCBOR_SUCCESS;
    
@@ -912,7 +934,7 @@ int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    int nReturn;
    
    // Loop getting items until one that is not a break is fetched
-   nReturn = LoopOverBreaks(me, pDecodedItem);
+   nReturn = GetNext_GetNonBreak(me, pDecodedItem);
    if(nReturn) {
       goto Done;
    }
@@ -923,13 +945,19 @@ int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    // decrementing and decsending
    pDecodedItem->uNestingLevel = DecodeNesting_GetLevel(&(me->nesting));
    
-   // Always decrement the count at the current level no matter what type
-   // except for breaks as breaks are always processed above
-   DecodeNesting_DecrementCount(&(me->nesting));
-   
-   // If the new item is array or map, the nesting level descends
    if(IsMapOrArray(pDecodedItem->uDataType)) {
+      // If the new item is array or map, the nesting level descends
       nReturn = DecodeNesting_Descend(&(me->nesting), pDecodedItem);
+      // Maps and arrays do count in as items in the map/array that encloses
+      // them so a decrement needs to be done for them too, but that is done
+      // only when all the items in them have been processed, not when they
+      // are opened.
+   } else {
+      // Decrement the count of items in the enclosing map/array
+      // If the count in the enclosing map/array goes to zero, that
+      // triggers a decrement for in the map/array above that and
+      // and ascend in mnesting level.
+      DecodeNesting_DecrementCount(&(me->nesting));
    }
    
 Done:
@@ -949,7 +977,7 @@ int QCBORDecode_Finish(QCBORDecodeContext *me)
    // the last item in them is consumed; they are not handled here.
    if(DecodeNesting_IsNested(&(me->nesting))) {
       QCBORItem Item;
-      nReturn = LoopOverBreaks(me, &Item);
+      nReturn = GetNext_GetNonBreak(me, &Item);
       if(nReturn) {
          goto Done;
       }
@@ -1043,8 +1071,8 @@ static UsefulBuf MemPool_Alloc(void *ctx, void *pMem, size_t uNewSize)
    if(pMem) {
       // Realloc case
       // TODO: review this pointer math
-      if((uint8_t *)pMem + uNewSize <= me->pEnd && (uint8_t *)pMem > me->pStart) {
-         me->pFree = pMem + uNewSize;
+      if((uint8_t *)pMem + uNewSize <= me->pEnd) {//} && (uint8_t *)pMem > me->pStart) {
+         me->pFree = (uint8_t *)pMem + uNewSize;
          pReturn = pMem;
       }
    } else {

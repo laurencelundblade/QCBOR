@@ -27,12 +27,37 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ==============================================================================*/
 
+/*==============================================================================
+ Modifications beyond the version released on CAF are under the MIT license:
+ 
+ Copyright 2018 Laurence Lundblade
+ 
+ Permission is hereby granted, free of charge, to any person obtaining
+ a copy of this software and associated documentation files (the
+ "Software"), to deal in the Software without restriction, including
+ without limitation the rights to use, copy, modify, merge, publish,
+ distribute, sublicense, and/or sell copies of the Software, and to
+ permit persons to whom the Software is furnished to do so, subject to
+ the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included
+ in all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ ==============================================================================*/
+
 #include "qcbor.h"
 #include "qcbor_decode_tests.h"
 #include <stdio.h>
 #include <strings.h>
-#include <float.h>
-#include <math.h>
+#include <math.h> // for fabs()
 #include <stdlib.h>
 
 
@@ -462,7 +487,7 @@ static int CreateSimpleArray(int nInt1, int nInt2, uint8_t **pEncoded, size_t *p
    // calucate the length so buffer can be allocated correctly,
    // and last with the buffer to do the actual encoding
    do {
-      QCBOREncode_Init(&ECtx, *pEncoded, *pEncodedLen);
+       QCBOREncode_Init(&ECtx, (UsefulBuf){*pEncoded, *pEncodedLen});
       QCBOREncode_OpenArray(&ECtx);
       QCBOREncode_AddInt64(&ECtx, nInt1);
       QCBOREncode_AddInt64(&ECtx, nInt2);
@@ -488,7 +513,6 @@ Done:
    return (nReturn);
    
 }
-
 
 
 /*
@@ -561,6 +585,7 @@ Done:
 
 
 
+
 int SimpleArrayTest()
 {
    uint8_t *pEncoded;
@@ -591,6 +616,7 @@ int SimpleArrayTest()
 }
 
 
+
 static uint8_t s_pDeepArrays[] = {0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x80};
 
 int ParseDeepArrayTest()
@@ -614,7 +640,6 @@ int ParseDeepArrayTest()
    
    return(nReturn);
 }
-
 
 
 static uint8_t s_pTooDeepArrays[] = {0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x80};
@@ -648,21 +673,6 @@ int ParseTooDeepArrayTest()
 
 
 
-static uint8_t s_indefiniteLenString[] = { 0x7f, 0x65, 0x73, 0x74, 0x72, 0x65, 0x61, 0x64, 0x6d, 0x69, 0x6e, 0x67, 0xff};
-
-
-int UnsupportedCBORDecodeTest()
-{
-   QCBORDecodeContext DCtx;
-   QCBORItem Item;
-   
-   QCBORDecode_Init(&DCtx, (UsefulBufC){s_indefiniteLenString, sizeof(s_indefiniteLenString)}, QCBOR_DECODE_MODE_NORMAL);
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_UNSUPPORTED)
-      return -1;
-   
-   return 0;
-}
-
 
 
 int ShortBufferParseTest()
@@ -688,6 +698,7 @@ int ShortBufferParseTest()
 Done:
    return nResult;
 }
+
 
 
 int ShortBufferParseTest2()
@@ -717,7 +728,6 @@ int ShortBufferParseTest2()
    
    return(nReturn);
 }
-
 
 
 static int ParseMapTest1()
@@ -824,6 +834,8 @@ static int ParseMapTest1()
 
 /*
  This test parses pValidMapEncoded and checks for extra bytes along the way
+ // TODO: this test doesn't work the same way... what to do do
+ // The error handling is different because of the way Finish works.
  */
 static int ExtraBytesTest()
 {
@@ -844,7 +856,7 @@ static int ExtraBytesTest()
       Item.val.uCount != 3)
       return -1;
 
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_EXTRA_BYTES) {
+   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
       return -1;
    }
    
@@ -992,7 +1004,7 @@ int ParseSimpleTest()
    int nCBORError;
    
    
-   QCBORDecode_Init(&DCtx, ByteArrayLiteralToUsefulBufC(s_pSimpleValues), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_pSimpleValues), QCBOR_DECODE_MODE_NORMAL);
    
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -1022,7 +1034,7 @@ int ParseSimpleTest()
       return -1;
 
    // A break
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_UNSUPPORTED)
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_BAD_BREAK)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -1133,7 +1145,7 @@ int FailureTests()
       QCBORItem Item;
       int nCBORError;
       
-      QCBORDecode_Init(&DCtx, ByteArrayLiteralToUsefulBufC(s_pSimpleValues), QCBOR_DECODE_MODE_NORMAL);
+      QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_pSimpleValues), QCBOR_DECODE_MODE_NORMAL);
 
       if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
          return nCBORError;
@@ -1210,7 +1222,6 @@ int ComprehensiveInputTest()
    return 0;
 }
 
-
 static uint8_t s_DateTestInput[] = {
    0xc0, // tag for string date
    0x6a, '1','9','8','5','-','0','4','-','1','2', // Date string
@@ -1250,13 +1261,13 @@ int DateParseTest()
    QCBORItem Item;
    int nCBORError;
    
-   QCBORDecode_Init(&DCtx, ByteArrayLiteralToUsefulBufC(s_DateTestInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_DateTestInput), QCBOR_DECODE_MODE_NORMAL);
    
    // String date
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return -1;
    if(Item.uDataType != QCBOR_TYPE_DATE_STRING ||
-      UsefulBuf_Compare(Item.val.dateString, SZLiteralToUsefulBufC("1985-04-12"))){
+      UsefulBuf_Compare(Item.val.dateString, UsefulBuf_FromSZ("1985-04-12"))){
       return -1;
    }
 
@@ -1304,7 +1315,6 @@ int DateParseTest()
    return 0;
 }
 
-
 static uint8_t s_OptTestInput[] = {
    0xd9, 0xd9, 0xf7, // CBOR magic number
    0x81,
@@ -1318,7 +1328,7 @@ int OptTagParseTest()
    int nCBORError;
    
    
-   QCBORDecode_Init(&DCtx, ByteArrayLiteralToUsefulBufC(s_OptTestInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_OptTestInput), QCBOR_DECODE_MODE_NORMAL);
    
    //
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -1365,7 +1375,7 @@ int BignumParseTest()
    QCBORItem Item;
    int nCBORError;
    
-   QCBORDecode_Init(&DCtx, ByteArrayLiteralToUsefulBufC(s_BigNumInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_BigNumInput), QCBOR_DECODE_MODE_NORMAL);
    
    
    //
@@ -1379,7 +1389,7 @@ int BignumParseTest()
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return -1;
    if(Item.uDataType != QCBOR_TYPE_POSBIGNUM ||
-      UsefulBuf_Compare(Item.val.bigNum, ByteArrayLiteralToUsefulBufC(sBigNum))){
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FromByteArrayLiteral(sBigNum))){
       return -1;
    }
 
@@ -1387,7 +1397,7 @@ int BignumParseTest()
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return -1;
    if(Item.uDataType != QCBOR_TYPE_NEGBIGNUM ||
-      UsefulBuf_Compare(Item.val.bigNum, ByteArrayLiteralToUsefulBufC(sBigNum))){
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FromByteArrayLiteral(sBigNum))){
       return -1;
    }
    
@@ -1402,7 +1412,7 @@ int BignumParseTest()
       return -1;
    if(Item.uDataType != QCBOR_TYPE_POSBIGNUM ||
       Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      UsefulBuf_Compare(Item.val.bigNum, ByteArrayLiteralToUsefulBufC(sBigNum))){
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FromByteArrayLiteral(sBigNum))){
       return -1;
    }
 
@@ -1411,7 +1421,7 @@ int BignumParseTest()
    if(Item.uDataType != QCBOR_TYPE_POSBIGNUM ||
       Item.uLabelType != QCBOR_TYPE_INT64 ||
       Item.label.int64 != 64 ||
-      UsefulBuf_Compare(Item.val.bigNum, ByteArrayLiteralToUsefulBufC(sBigNum))){
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FromByteArrayLiteral(sBigNum))){
       return -1;
    }
    
@@ -1419,7 +1429,7 @@ int BignumParseTest()
       return -1;
    if(Item.uDataType != QCBOR_TYPE_NEGBIGNUM ||
       Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      UsefulBuf_Compare(Item.val.bigNum, ByteArrayLiteralToUsefulBufC(sBigNum))){
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FromByteArrayLiteral(sBigNum))){
       return -1;
    }
    
@@ -1428,7 +1438,7 @@ int BignumParseTest()
    if(Item.uDataType != QCBOR_TYPE_NEGBIGNUM ||
       Item.uLabelType != QCBOR_TYPE_INT64 ||
       Item.label.int64 != -64 ||
-      UsefulBuf_Compare(Item.val.bigNum, ByteArrayLiteralToUsefulBufC(sBigNum))){
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FromByteArrayLiteral(sBigNum))){
       return -1;
    }
    
@@ -1500,7 +1510,7 @@ int NestedMapTest()
 {
    QCBORDecodeContext DCtx;
    
-   QCBORDecode_Init(&DCtx, ByteArrayLiteralToUsefulBufC(s_CSRInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_CSRInput), QCBOR_DECODE_MODE_NORMAL);
    
    if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_MAP, 0, 0, NULL)) return -1;
 
@@ -1525,6 +1535,7 @@ int NestedMapTest()
    
    return 0;
 }
+
 
 
 

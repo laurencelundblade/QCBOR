@@ -89,41 +89,73 @@ int basic_test_one()
     if(QCBOREncode_Finish2(&EC, &Encoded2)) {
         return -3;
     }
-    
+    /*
+     [                // 0    1:3
+        451,          // 1    1:2
+        {             // 1    1:2   2:1
+          66: true    // 2    1:1
+        },
+        {             // 1    1:1   2:1
+          -70000: {   // 2    1:1   2:1   3:1
+            66: true  // 3    XXXXXX
+          }
+        }
+     ]
+     
+     
+     
+      83                # array(3)
+         19 01C3        # unsigned(451)
+         A1             # map(1)
+            18 42       # unsigned(66)
+            F5          # primitive(21)
+         A1             # map(1)
+            3A 0001116F # negative(69999)
+            A1          # map(1)
+               18 42    # unsigned(66)
+               F5       # primitive(21)
+     */
     
     // Decode it and see if it is OK
     QCBORDecode_Init(&DC, Encoded2, QCBOR_DECODE_MODE_NORMAL);
 
+    // 0    1:3
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_ARRAY || Item.val.uCount != 3) {
         return -1;
     }
-    
+   
+    // 1    1:2
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_INT64 || Item.val.uint64 != 451) {
         return -1;
     }
 
+    // 1    1:2   2:1
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1) {
         return -1;
     }
-    
+   
+    // 2    1:1
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_TRUE) {
         return -1;
     }
 
+    // 1    1:1   2:1
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1) {
         return -1;
     }
-    
+   
+    // 2    1:1   2:1   3:1
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1 || Item.uLabelType != QCBOR_TYPE_INT64 || Item.label.int64 != -70000) {
         return -1;
     }
 
+    // 3    XXXXXX
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_TRUE || Item.uLabelType != QCBOR_TYPE_INT64 || Item.label.int64 != 66) {
         return -1;
@@ -148,9 +180,13 @@ static const uint8_t pIndefiniteLenString[] = {
 
 static const uint8_t pIndefiniteArray[] = {0x9f, 0x01, 0x82, 0x02, 0x03, 0xff};
 
+// [1, [2, 3]]
+
+
 //0x9f018202039f0405ffff
 
-int indefinite_length_decode_test() {
+int indefinite_length_decode_test()
+{
     UsefulBufC IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArray);
     
     

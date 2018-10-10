@@ -9,6 +9,6 @@
 #ifndef mempool_test_h
 #define mempool_test_h
 
-#include <stdio.h>
+int mempool_test(void);
 
 #endif /* mempool_test_h */

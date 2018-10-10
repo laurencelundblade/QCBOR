@@ -36,6 +36,8 @@
 #include "half_precision_test.h"
 #include "basic_test.h"
 #include "bstrwrap_tests.h"
+#include "mempool_test.h"
+#include "qcbor_decode_tests.h"
 
 // Used to test the test runner
 int fail_test()
@@ -93,9 +95,23 @@ typedef struct {
 } test_entry;
 
 test_entry s_tests[] = {
-    TEST_ENTRY(indefinite_length_decode_string_test),
+    TEST_ENTRY(ParseTooDeepArrayTest),
+    TEST_ENTRY(ComprehensiveInputTest),
+    TEST_ENTRY(ParseMapTest),
     TEST_ENTRY(indefinite_length_decode_test),
     TEST_ENTRY(basic_test_one),
+    TEST_ENTRY(NestedMapTest),
+    TEST_ENTRY(BignumParseTest),
+    TEST_ENTRY(OptTagParseTest),
+    TEST_ENTRY(DateParseTest),
+    TEST_ENTRY(ParseSimpleTest),
+    TEST_ENTRY(ShortBufferParseTest2),
+    TEST_ENTRY(ShortBufferParseTest),
+    TEST_ENTRY(ParseDeepArrayTest),
+    TEST_ENTRY(SimpleArrayTest),
+    TEST_ENTRY(IntegerValuesParseTest),
+    TEST_ENTRY(mempool_test),
+    TEST_ENTRY(indefinite_length_decode_string_test),
     TEST_ENTRY(half_precision_encode_basic),
     TEST_ENTRY(half_precision_decode_basic),
     TEST_ENTRY(half_precision_to_float_transitive_test),

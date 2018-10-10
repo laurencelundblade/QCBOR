@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		0F58EB9C216A388E002FD6D1 /* qcbor_decode_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F58EB9B216A388E002FD6D1 /* qcbor_decode_malloc.c */; };
+		0F58EB9F216B91AA002FD6D1 /* mempool_test.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F58EB9E216B91AA002FD6D1 /* mempool_test.c */; };
+		0FA9BEB7216CE6CA00BA646B /* qcbor_decode_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */; };
 		E73B5756216071900080D658 /* bstrwrap_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B5755216071900080D658 /* bstrwrap_tests.c */; };
 		E73B57592161CA690080D658 /* ieee754.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B57582161CA690080D658 /* ieee754.c */; };
 		E73B575E2161CA7C0080D658 /* half_precision_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B575A2161CA7C0080D658 /* half_precision_test.c */; };
@@ -34,6 +36,10 @@
 
 /* Begin PBXFileReference section */
 		0F58EB9B216A388E002FD6D1 /* qcbor_decode_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qcbor_decode_malloc.c; path = src/qcbor_decode_malloc.c; sourceTree = "<group>"; };
+		0F58EB9D216B91AA002FD6D1 /* mempool_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = mempool_test.h; path = test/mempool_test.h; sourceTree = "<group>"; };
+		0F58EB9E216B91AA002FD6D1 /* mempool_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = mempool_test.c; path = test/mempool_test.c; sourceTree = "<group>"; };
+		0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qcbor_decode_tests.c; path = test/qcbor_decode_tests.c; sourceTree = "<group>"; };
+		0FA9BEB6216CE6CA00BA646B /* qcbor_decode_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_decode_tests.h; path = test/qcbor_decode_tests.h; sourceTree = "<group>"; };
 		E73B5754216071900080D658 /* bstrwrap_tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = bstrwrap_tests.h; path = test/bstrwrap_tests.h; sourceTree = "<group>"; };
 		E73B5755216071900080D658 /* bstrwrap_tests.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = bstrwrap_tests.c; path = test/bstrwrap_tests.c; sourceTree = "<group>"; };
 		E73B57572161CA680080D658 /* ieee754.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ieee754.h; path = src/ieee754.h; sourceTree = "<group>"; };
@@ -112,6 +118,8 @@
 		E776E095214AE0B600E67947 /* test */ = {
 			isa = PBXGroup;
 			children = (
+				0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */,
+				0FA9BEB6216CE6CA00BA646B /* qcbor_decode_tests.h */,
 				E73B57632161F8F70080D658 /* run_tests.c */,
 				E73B57642161F8F80080D658 /* run_tests.h */,
 				E73B575A2161CA7C0080D658 /* half_precision_test.c */,
@@ -122,6 +130,8 @@
 				E73B5754216071900080D658 /* bstrwrap_tests.h */,
 				E73B5755216071900080D658 /* bstrwrap_tests.c */,
 				E776E09B214AEEEA00E67947 /* basic_test.h */,
+				0F58EB9D216B91AA002FD6D1 /* mempool_test.h */,
+				0F58EB9E216B91AA002FD6D1 /* mempool_test.c */,
 			);
 			name = test;
 			sourceTree = "<group>";
@@ -189,10 +199,12 @@
 				E73B57652161F8F80080D658 /* run_tests.c in Sources */,
 				E776E091214AE07500E67947 /* qcbor_decode.c in Sources */,
 				E73B575E2161CA7C0080D658 /* half_precision_test.c in Sources */,
+				0FA9BEB7216CE6CA00BA646B /* qcbor_decode_tests.c in Sources */,
 				E776E090214AE07500E67947 /* UsefulBuf.c in Sources */,
 				E776E097214AE0C700E67947 /* cmd_line_main.c in Sources */,
 				E73B5756216071900080D658 /* bstrwrap_tests.c in Sources */,
 				E776E09D214AEEEA00E67947 /* basic_test.c in Sources */,
+				0F58EB9F216B91AA002FD6D1 /* mempool_test.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
