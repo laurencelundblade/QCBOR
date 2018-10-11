@@ -917,18 +917,6 @@ Done:
 /*
  Public function, see header qcbor.h file
  */
-/*
- Decoding items is done in layers:
- - This top layer takes care of tracking for decsending into and
-   ascending out of maps and arrays  GetNext()
- - The next layer takes care of map entries that are made up
-   of a label and a data item. They are returned as one. GetNextMap() GetNext_MapEntry()
- - The next layer takes care of tagging and tagged types  GetNext_TaggedItem()
- - The next layer takes care of indefinite length strings GetFullItem()  GetNext_FullItem()
- - The next layer does the main decoding of the non-compound GetAnItem()  GetNext_Item()
-   items, all the different types of them
- 
- */
 int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    int nReturn;
@@ -963,6 +951,40 @@ int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 Done:
    return nReturn;
 }
+
+
+/*
+ Decoding items is done in 6 layered functions, one calling the
+ next one down. If a layer has no work to do for a particular item
+ it returns quickly.
+ 
+ - QCBORDecode_GetNext -- The top layer manages the beginnings and
+ ends of maps and arrays. It tracks descending into and ascending
+ out of maps/arrays.
+ 
+ - GetNext_GetNonBreak -- This handles the "break" items that
+ terminate indefinite length arrays and maps. It's job is to
+ loop over one or more breaks.
+ 
+ - GetNext_MapEntry -- This handles the combining of two
+ items, the label and the data, that make up a map entry.
+ It only does work on maps. It combines the label and data
+ items into one labeled item.
+ 
+ - GetNext_TaggedItem -- This handles the type 6 tagged items.
+ It accumulates all the tags and combines them with the following
+ non-tagged item. If the tagged item is something that is understood
+ like a date, the decoding of that item is invoked.
+ 
+ - GetNext_FullItem -- This assembles the sub items that make up
+ an indefinte length string into one string item. It uses the
+ string allocater to create contiguous space for the item.
+ 
+ - GetNext_Item -- This gets and decodes the most atomic
+ item in CBOR, the thing with an initial byte containing
+ the major type.
+ 
+ */
 
 
 /*
@@ -1014,12 +1036,7 @@ Done:
  Use the 64-bit map. 48 8-bit tags built in, 1 16 bit tag, 15 64-bit tags can be assigned as of interest
  
  There is a tag map.
- 
- TODO: how does tinyCBOR do it?
- 
- 
- 
- 
+
  
  */
 
