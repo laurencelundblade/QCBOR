@@ -27,8 +27,33 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ==============================================================================*/
 
+/*==============================================================================
+ Modifications beyond the version released on CAF are under the MIT license:
+ 
+ Copyright 2018 Laurence Lundblade
+ 
+ Permission is hereby granted, free of charge, to any person obtaining
+ a copy of this software and associated documentation files (the
+ "Software"), to deal in the Software without restriction, including
+ without limitation the rights to use, copy, modify, merge, publish,
+ distribute, sublicense, and/or sell copies of the Software, and to
+ permit persons to whom the Software is furnished to do so, subject to
+ the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included
+ in all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ ==============================================================================*/
+
 #include "UsefulBuf.h"
-#include <string.h>
 
 
 /* Basic exercise...
@@ -43,11 +68,11 @@ const char * NonAdversarialUOBTest()
 {
    const char *szReturn = NULL;
 
-   char outbuf[50];
+   UsefulBuf_MakeStackUB(outbuf,50);
    
    UsefulOutBuf UOB;
    
-   UsefulOutBuf_Init(&UOB, outbuf, sizeof(outbuf));
+   UsefulOutBuf_Init(&UOB, outbuf);
    
    if(!UsefulOutBuf_AtStart(&UOB)) {
       szReturn = "Not at start";
@@ -81,20 +106,18 @@ const char * NonAdversarialUOBTest()
    UsefulOutBuf_AppendByte(&UOB, '\0');
    
    
-   UsefulBuf U;
-   int nErr = UsefulOutBuf_OutUBuf(&UOB, &U);
+   UsefulBufC U = UsefulOutBuf_OutUBuf(&UOB);
    
    const char *expected = "heffalump unbounce bluster hunny";
    
-   if(nErr || U.len-1 != strlen(expected) || strcmp(expected, U.ptr) || UsefulOutBuf_GetError(&UOB)) {
+   if(UsefulBuf_IsNULLC(U) || U.len-1 != strlen(expected) || strcmp(expected, U.ptr) || UsefulOutBuf_GetError(&UOB)) {
       szReturn = "OutUBuf";
    }
    
-   char buf[50];
-   size_t xxx;
-   nErr = UsefulOutBuf_CopyOut(&UOB, buf, sizeof(buf), &xxx);
+   UsefulBuf_MakeStackUB(buf, 50);
+   UsefulBufC Out =  UsefulOutBuf_CopyOut(&UOB, buf);
    
-   if(nErr || xxx-1 != strlen(expected) || strcmp(expected, buf)) {
+   if(UsefulBuf_IsNULLC(Out) || Out.len-1 != strlen(expected) || strcmp(expected, Out.ptr)) {
       szReturn = "CopyOut";
    }
    
@@ -123,6 +146,8 @@ static int AppendTest(UsefulOutBuf *pUOB, size_t num, int expected)
    
    // append the bytes
    UsefulOutBuf_AppendData(pUOB, (const uint8_t *)"bluster", num);
+      
+   // TODO: test UsefulOutBuf_AppendString
    
    // check error status after
    if(UsefulOutBuf_GetError(pUOB) != expected)
@@ -137,7 +162,7 @@ static int AppendTest(UsefulOutBuf *pUOB, size_t num, int expected)
  */
 static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
 {
-   //reset
+   // reset
    UsefulOutBuf_Reset(pUOB);
    
    // check
@@ -145,6 +170,8 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
       return 1;
    
    UsefulOutBuf_InsertData(pUOB, (const uint8_t *)"bluster", num, pos);
+   
+   // TODO: test UsefulOutBuf_InsertString
    
    if(UsefulOutBuf_GetError(pUOB) != expected)
       return 1;
@@ -166,11 +193,11 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
 
 const char *BoundaryConditionsTest()
 {
-   char outbuf[2];
+   UsefulBuf_MakeStackUB(outbuf,2);
    
    UsefulOutBuf UOB;
    
-   UsefulOutBuf_Init(&UOB, outbuf, sizeof(outbuf));
+   UsefulOutBuf_Init(&UOB, outbuf);
 
    // append 0 byte to a 2 byte buffer --> success
    if(AppendTest(&UOB, 0, 0))
@@ -205,9 +232,9 @@ const char *BoundaryConditionsTest()
       return "Bad insertion point not caught";
    
    
-   char outBuf2[10];
+   UsefulBuf_MakeStackUB(outBuf2,10);
    
-   UsefulOutBuf_Init(&UOB, outBuf2, sizeof(outBuf2));
+   UsefulOutBuf_Init(&UOB, outBuf2);
    
    UsefulOutBuf_Reset(&UOB);
    // put data in the buffer
@@ -220,26 +247,25 @@ const char *BoundaryConditionsTest()
    }
    
 
-   UsefulOutBuf_Init(&UOB, NULL, SIZE_MAX - 5);
+   UsefulOutBuf_Init(&UOB, (UsefulBuf){NULL, SIZE_MAX - 5});
    UsefulOutBuf_AppendData(&UOB, "123456789", SIZE_MAX -6);
    if(UsefulOutBuf_GetError(&UOB)) {
       return "insert in huge should have succeeded";
    }
    
-   UsefulOutBuf_Init(&UOB, NULL, SIZE_MAX - 5);
+   UsefulOutBuf_Init(&UOB, (UsefulBuf){NULL, SIZE_MAX - 5});
    UsefulOutBuf_AppendData(&UOB, "123456789", SIZE_MAX -5);
    if(UsefulOutBuf_GetError(&UOB)) {
       return "insert in huge should have succeeded";
    }
    
-   UsefulOutBuf_Init(&UOB, NULL, SIZE_MAX - 5);
+   UsefulOutBuf_Init(&UOB, (UsefulBuf){NULL, SIZE_MAX - 5});
    UsefulOutBuf_AppendData(&UOB, "123456789", SIZE_MAX - 4);
    if(!UsefulOutBuf_GetError(&UOB)) {
       return "lengths near max size";
    }
    
    return NULL;
-   
 }
 
 
@@ -250,16 +276,17 @@ const char *BoundaryConditionsTest()
 
 const char *TestBasicSanity()
 {
-   char outbuf[10];
+   UsefulBuf_MakeStackUB(outbuf,10);
    
    UsefulOutBuf UOB;
    
    // First -- make sure that the room left function returns the right amount
-   UsefulOutBuf_Init(&UOB, outbuf, sizeof(outbuf));
+   UsefulOutBuf_Init(&UOB, outbuf);
  
-   if(UsefulOutBuf_RoomLeft(&UOB) != sizeof(outbuf))
+   if(UsefulOutBuf_RoomLeft(&UOB) != 10)
       return "room left failed";
    
+   // TODO: test UsefulOutBuf_WillItFit
    
    // Next -- make sure that the magic number checking is working right
    UOB.magic = 8888; // make magic bogus
@@ -272,9 +299,9 @@ const char *TestBasicSanity()
    
    
    // Next make sure that the valid data length check is working right
-   UsefulOutBuf_Init(&UOB, outbuf, sizeof(outbuf));
+   UsefulOutBuf_Init(&UOB, outbuf);
    
-   UOB.UB.len = UOB.size+1; // make size bogus
+   UOB.data_len = UOB.UB.len+1; // make size bogus
    
    UsefulOutBuf_AppendData(&UOB, (const uint8_t *)"bluster", 7);
    if(!UsefulOutBuf_GetError(&UOB))
@@ -289,22 +316,22 @@ const char *UBMacroConversionsTest()
 {
    char *szFoo = "foo";
    
-   UsefulBufC Foo = SZToUsefulBufC(szFoo);
+   UsefulBufC Foo = UsefulBuf_FromSZ(szFoo);
    if(Foo.len != 3 || strncmp(Foo.ptr, szFoo, 3))
       return "SZToUsefulBufC failed";
    
-   UsefulBufC Too = SZLiteralToUsefulBufC("Toooo");
+   UsefulBufC Too = UsefulBuf_FromSZLiteral("Toooo");
    if(Too.len != 5 || strncmp(Too.ptr, "Toooo", 5))
-      return "SZLiteralToUsefulBufC failed";
+      return "UsefulBuf_FromSZLiteral failed";
 
    uint8_t pB[] = {0x42, 0x6f, 0x6f};
-   UsefulBufC Boo = ByteArrayLiteralToUsefulBufC(pB);
+   UsefulBufC Boo = UsefulBuf_FromByteArrayLiteral(pB);
    if(Boo.len != 3 || strncmp(Boo.ptr, "Boo", 3))
-     return "ByteArrayLiteralToUsefulBufC failed";
+     return "UsefulBuf_FromByteArrayLiteral failed";
    
    char *sz = "not const"; // some data for the test
    UsefulBuf B = (UsefulBuf){sz, sizeof(sz)};
-   UsefulBufC BC = UsefulBufConst(B);
+   UsefulBufC BC = UsefulBuf_Const(B);
    if(BC.len != sizeof(sz) || BC.ptr != sz)
       return "UsefulBufConst failed";
    
@@ -319,19 +346,32 @@ const char *UBUtilTests()
    if(!UsefulBuf_IsNULL(UB)){
       return "IsNull failed";
    }
-   
-   UsefulBufC UBC = UsefulBuf_Const(UB);
-   
-   if(!UsefulBuf_IsNULL(UBC)){
-      return "IsNull const failed";
-   }
-   
-   if(!UsefulBuf_IsEmpty(UBC)){
+
+   if(!UsefulBuf_IsEmpty(UB)){
       return "IsEmpty failed";
    }
    
-   if(!UsefulBuf_IsNULLOrEmpty(UBC)){
+   if(!UsefulBuf_IsNULLOrEmpty(UB)) {
       return "IsNULLOrEmpty failed";
+   }
+   
+   UsefulBufC UBC = UsefulBuf_Const(UB);
+   
+   if(!UsefulBuf_IsNULLC(UBC)){
+      return "IsNull const failed";
+   }
+   
+   if(!UsefulBuf_IsEmptyC(UBC)){
+      return "IsEmptyC failed";
+   }
+   
+   if(!UsefulBuf_IsNULLOrEmptyC(UBC)){
+      return "IsNULLOrEmptyC failed";
+   }
+   
+   UsefulBuf UB2 = UsefulBuf_Unconst(UBC);
+   if(!UsefulBuf_IsEmpty(UB2)) {
+      return "Back to UB is Empty failed";
    }
    
    UB.ptr = "x"; // just some valid pointer
@@ -340,7 +380,7 @@ const char *UBUtilTests()
       return "IsNull failed";
    }
    
-   if(!UsefulBuf_IsEmpty(UBC)){
+   if(!UsefulBuf_IsEmptyC(UBC)){
       return "IsEmpty failed";
    }
    
@@ -354,14 +394,23 @@ const char *UBUtilTests()
    UsefulBuf_Set(&Temp, '+');
    
    // Try to copy into a buf that is too small and see failure
-   MakeUsefulBufOnStack(Temp2, 99);
-   if(!UsefulBuf_Copy(&Temp2, UsefulBuf_Const(Temp))) {
+   UsefulBuf_MakeStackUB(Temp2, 99);
+   if(!UsefulBuf_IsNULLC(UsefulBuf_Copy(Temp2, UsefulBuf_Const(Temp)))) {
       return "Copy should have failed";
    }
-
+   
+   // TODO: complete this test
+   // UsefulBuf_CopyOffset();
+   // TODO: complete this test
+   // UsefulBuf_CopyPtr();
+   // TODO: complete this test
+   // UsefulBuf_Head();
+   // TODO: complete this test
+   // UsefulBuf_CopyPtr();
+   
    // Try to copy into a NULL/empty buf and see failure
    UsefulBuf UBNull = NULLUsefulBuf;
-   if(!UsefulBuf_Copy(&UBNull, UsefulBuf_Const(Temp))) {
+   if(!UsefulBuf_IsNULLC(UsefulBuf_Copy(UBNull, UsefulBuf_Const(Temp)))) {
       return "Copy to NULL should have failed";
    }
    
@@ -370,7 +419,7 @@ const char *UBUtilTests()
    
    // Copy successfully to a buffer
    MakeUsefulBufOnStack(Temp3, 101);
-   if(UsefulBuf_Copy(&Temp3, UsefulBuf_Const(Temp))) {
+   if(UsefulBuf_IsNULLC(UsefulBuf_Copy(Temp3, UsefulBuf_Const(Temp)))) {
       return "Copy should not have failed";
    }
    
@@ -417,7 +466,7 @@ const char *UBUtilTests()
    };
    UsefulBufC ExpectedBigger = ByteArrayLiteralToUsefulBufC(pExpectedBigger);
    
-   // Expect -1 with the first arg is smaller
+   // Expect -1 when the first arg is smaller
    if(UsefulBuf_Compare(Expected, ExpectedBigger) >= 0){
       return "Compare with bigger";
    }
@@ -436,7 +485,7 @@ const char *UBUtilTests()
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '*',
    };
    UsefulBufC ExpectedSmaller = ByteArrayLiteralToUsefulBufC(pExpectedSmaller);
-   // Expect +1 with the first arg is larger
+   // Expect +1 when the first arg is larger
    if(UsefulBuf_Compare(Expected, ExpectedSmaller) <= 0){
       return "Compare with smaller";
    }
@@ -456,7 +505,7 @@ const char *UBUtilTests()
    };
    UsefulBufC ExpectedLonger = ByteArrayLiteralToUsefulBufC(pExpectedLonger);
    
-   // Expect -1 with the first arg is smaller
+   // Expect -1 when the first arg is smaller
    if(UsefulBuf_Compare(Expected, ExpectedLonger) >= 0){
       return "Compare with longer";
    }
@@ -481,12 +530,8 @@ const char *UBUtilTests()
    }
    
    
-   if(UsefulBuf_Copy(&Temp, NULLUsefulBufC)) {
+   if(UsefulBuf_IsNULLC(UsefulBuf_Copy(Temp, NULLUsefulBufC))) {
       return "Copy null/empty failed";
-   }
-   
-   if(UsefulBuf_Compare(UsefulBuf_Const(Temp), NULLUsefulBufC)) {
-      return "Copy Null failed";
    }
    
    // Look for +++++... in +++++... and find it at the beginning
@@ -518,9 +563,7 @@ const char *UBUtilTests()
 
 const char *  UBIntegerFormatTests()
 {
-   char outbuf[100];
-   
-   UsefulOutBuf UOB;
+   UsefulOutBuf_MakeOnStack(UOB,100);
    
    const uint32_t u32 = 0x0A0B0C0D; // from https://en.wikipedia.org/wiki/Endianness
    const uint64_t u64 = 1984738472938472;
@@ -529,17 +572,16 @@ const char *  UBIntegerFormatTests()
    const float    f  = (float)314.15;
    const double   d  = 2.1e10;
    
-   UsefulOutBuf_Init(&UOB, outbuf, sizeof(outbuf));
    
-   UsefulOutBuf_AppendUint32(&UOB, u32);
-   UsefulOutBuf_AppendUint64(&UOB, u64);
-   UsefulOutBuf_AppendUint16(&UOB, u16);
+   UsefulOutBuf_AppendUint32(&UOB, u32); // Also tests UsefulOutBuf_InsertUint64 and UsefulOutBuf_GetEndPosition
+   UsefulOutBuf_AppendUint64(&UOB, u64); // Also tests UsefulOutBuf_InsertUint32
+   UsefulOutBuf_AppendUint16(&UOB, u16); // Also tests UsefulOutBuf_InsertUint16
    UsefulOutBuf_AppendByte(&UOB, u8);
-   UsefulOutBuf_AppendFloat(&UOB, f);
-   UsefulOutBuf_AppendDouble(&UOB, d);
+   UsefulOutBuf_AppendFloat(&UOB, f); // Also tests UsefulOutBuf_InsertFloat
+   UsefulOutBuf_AppendDouble(&UOB, d); // Also tests UsefulOutBuf_InsertDouble
    
-   UsefulBuf O;
-   if(UsefulOutBuf_OutUBuf(&UOB, &O))
+   UsefulBufC O = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_IsNULLC(O))
       return "Couldn't output integers";
    
    // from https://en.wikipedia.org/wiki/Endianness
@@ -550,7 +592,11 @@ const char *  UBIntegerFormatTests()
    
    UsefulInputBuf UIB;
    
-   UsefulInputBuf_Init(&UIB, UsefulBuf_Const(O));
+   UsefulInputBuf_Init(&UIB, O);
+   
+   if(UsefulInputBuf_Tell(&UIB) != 0) {
+      return "UsefulInputBuf_Tell failed";
+   }
    
    if(UsefulInputBuf_GetUint32(&UIB) != u32) {
       return "u32 out then in failed";
@@ -570,7 +616,35 @@ const char *  UBIntegerFormatTests()
    if(UsefulInputBuf_GetDouble(&UIB) != d) {
       return "double out then in failed";
    }
+   
+   // TODO: test UsefulInputBuf_Seek
+   // TODO: test UsefulInputBuf_BytesUnconsumed
+   // TODO: test UsefulInputBuf_BytesAvailable
+   // TODO: test UsefulInputBuf_GetBytes
+   // TODO: test UsefulInputBuf_GetUsefulBuf
+   // TODO: test UsefulInputBuf_GetError
 
+   return NULL;
+}
+
+
+const char *UBCopyUtilTest()
+{
+   if(UsefulBufUtil_CopyFloatToUint32(65536.0F) != 0x47800000) {
+      return "CopyFloatToUint32 failed";
+   }
+
+   if(UsefulBufUtil_CopyDoubleToUint64(4e-40F) != 0X37C16C2800000000ULL) {
+      return "CopyDoubleToUint64 failed";
+   }
+   
+   if(UsefulBufUtil_CopyUint64ToDouble(0X37C16C2800000000ULL) != 4e-40F) {
+      return "CopyUint64ToDouble failed";
+   }
+   
+   if(UsefulBufUtil_CopyUint32ToFloat(0x47800000) != 65536.0F) {
+      return "CopyUint32ToFloat failed";
+   }
    
    return NULL;
 }

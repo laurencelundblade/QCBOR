@@ -268,7 +268,7 @@ static inline int UsefulBuf_IsNULLOrEmpty(UsefulBuf UB) {
  
  @return 1 if it is either NULL or empty, 0 if not.
  */
-static inline int UsefulBuf_IsNULLOrEmptyXC(UsefulBufC UB) {
+static inline int UsefulBuf_IsNULLOrEmptyC(UsefulBufC UB) {
    return UsefulBuf_IsEmptyC(UB) || UsefulBuf_IsNULLC(UB);
 }
 
@@ -372,6 +372,26 @@ static inline UsefulBufC UsefulBuf_FromSZ(const char *szString){
  */
 UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src);
 
+
+/**
+ @brief Copy one UsefulBuf into another at an offset
+ 
+ @param[in] Dest Destiation buffer to copy into
+ @param[in] uOffset The byte offset in Dest at which to copy to
+ @param[in] Src The bytes to copy
+ 
+ @return Pointer and length of the copy
+ 
+ This fails and returns NULLUsefulBufC Src.len + uOffset > Dest.len.
+ 
+ Like memcpy, there is no check for NULL. If NULL is passed
+ this will crash.
+ 
+ There is an assumption that there is valid data in Dest up to
+ uOffset as the resulting UsefulBufC returned starts
+ at the beginning of Dest and goes to Src.len + uOffset.
+ 
+ */
 UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC Src);
 
 
@@ -489,7 +509,7 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
 
-#if NOT_DEPRECATED
+#if 1 // NOT_DEPRECATED
 /** Deprecated macro; use UsefulBuf_FromSZLiteral instead */
 #define SZLiteralToUsefulBufC(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
@@ -647,10 +667,10 @@ static inline void UsefulOutBuf_Realloc(UsefulOutBuf *me, UsefulBuf Storage)
 /** Convenience marco to make a UsefulOutBuf on the stack and
    initialize it with stack buffer
  */
-#define  MakeUsefulOutBufOnStack(name, size) \
+#define  UsefulOutBuf_MakeOnStack(name, size) \
    uint8_t       __pBuf##name[(size)];\
    UsefulOutBuf  name;\
-   UsefulOutBuf_Init(&(name), __pBuf##name, (size));
+   UsefulOutBuf_Init(&(name), (UsefulBuf){__pBuf##name, (size)});
 
 
 
@@ -756,7 +776,6 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
  UsefulBuf.
  
  */
-
 static inline void UsefulOutBuf_InsertData(UsefulOutBuf *me, const void *pBytes, size_t uLen, size_t uPos)
 {
    UsefulBufC Data = {pBytes, uLen};
@@ -881,9 +900,7 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *me, uint64_t uInteger
  */
 static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *me, float f, size_t uPos)
 {
-   // Have to cast a pointer and deref so the bit pattern is what put
-   // passed. This is to avoid 3.1415 getting converted to 3.
-   UsefulOutBuf_InsertUint32(me, *(uint32_t *)&f, uPos);
+   UsefulOutBuf_InsertUint32(me, UsefulBufUtil_CopyFloatToUint32(f), uPos);
 }
 
 
@@ -901,8 +918,7 @@ static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *me, float f, size_t uP
  */
 static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *me, double d, size_t uPos)
 {
-   // See UsefulOutBuf_InsertFloat
-   UsefulOutBuf_InsertUint64(me, *(uint64_t *)&d, uPos);
+   UsefulOutBuf_InsertUint64(me, UsefulBufUtil_CopyDoubleToUint64(d), uPos);
 }
 
 
@@ -1105,18 +1121,18 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *me, size_t uLen)
 
 
 /**
-  @brief Returns the resulting valid data in a UsefulBuf
+   @brief Returns the resulting valid data in a UsefulOutBuf
  
-  @param[in] me Pointer to the UsefulOutBuf
+   @param[in] me Pointer to the UsefulOutBuf.
  
- @return TODO:
+   @return The valid data in UsefulOutBuf.
  
-  If you want a pointer and length to the resulting data, dereference
-  O.
+   The storage for the returned data is Storage parameter passed
+   to UsefulOutBuf_Init(). See also UsefulOutBuf_CopyOut().
  
-  This can be called anytime and many times to get intermediate
-  results. It doesn't change the data or reset the current position
-  so you can keep adding data.
+   This can be called anytime and many times to get intermediate
+   results. It doesn't change the data or reset the current position
+   so you can keep adding data.
  */
 
 UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me);
@@ -1126,16 +1142,14 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me);
  @brief Copies the valid data out into a supplied buffer
  
  @param[in] me Pointer to the UsefulOutBuf
- @param[out] pBuf buffer to copy data into
- @param[in] uBufSize size of pBuf
- @param[out] puCopied number of valid bytes copied into pBuf
+ @param[out] Dest The destination buffer to copy into
  
- @return Same as UsefulOutBuf_GetError()
+ @return Pointer and length of copied data.
  
  This is the same as UsefulOutBuf_OutUBuf() except it copies the data.
- */
+*/
 
-int UsefulOutBuf_CopyOut(UsefulOutBuf *me, void *pBuf, size_t uBufSize, size_t *puCopied);
+UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf Dest);
 
 
 
@@ -1451,7 +1465,7 @@ static inline float UsefulInputBuf_GetFloat(UsefulInputBuf *me)
 {
    uint32_t uResult = UsefulInputBuf_GetUint32(me);
 
-   return uResult ? *(float *)&uResult : 0;
+   return uResult ? UsefulBufUtil_CopyUint32ToFloat(uResult) : 0;
 
 }
 
@@ -1471,7 +1485,7 @@ static inline double UsefulInputBuf_GetDouble(UsefulInputBuf *me)
 {
    uint64_t uResult = UsefulInputBuf_GetUint64(me);
 
-   return uResult ? *(double *)&uResult : 0;
+   return uResult ? UsefulBufUtil_CopyUint64ToDouble(uResult) : 0;
 }
 
 

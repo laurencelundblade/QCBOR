@@ -47,13 +47,27 @@ For most use cases you should just be able to add them to your project. Hopefull
 
 The files ieee754.c and ieee754.h are support for half-precision floating point. The encoding side of the floating point functionality is about
 500 bytes. If it is never called because no floating point numbers are ever encoded, all 500 bytes will be dead stripped and not
-impact code size. The decoding side is about 150 bytes of object code. It is never dead stripped because it always linked, however it 
-doesn't add very much to the size.
+impact code size. The decoding side is about 150 bytes of object code. It is never dead stripped because it directly referenced by
+the core decoder , however it doesn't add very much to the size.
 
 The test directory includes some tests that are nearly as portable as the main implementation.  If your development environment 
 doesn't support UNIX style command line and make, you should be able to make a simple project and add the test files to it.
 Then just call run_tests() to invole them all. 
 
+
+## Changes from CAF Version
+* QCBOREncode_Init takes a UsefulBuf instead of a pointer and size
+* QCBOREncode_Finish takes a UsefulBufC and EncodedCBOR is remove
+* bstr wrapping of arrays/maps is replaced with OpenBstrwrap
+* AddRaw can now only add whole arrays or maps, not partial maps and arrays (simplification; was a dangerous feature)
+* Finish cannot be called repeatedly on a partial decode (some tests used this, but it is not really a good thing to rely on)
+* Float support is restored
+* Minimal length float is restored
+* indefinite length arrays/maps are supported
+* indefinite length strings are supported
+* Addition functions in UsefulBuf
+* UsefulOutBuf_OutUBuf changed to work differently 
+* UsefulOutBuf_Init works differently
 
 
 

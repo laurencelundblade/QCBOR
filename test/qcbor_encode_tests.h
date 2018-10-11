@@ -50,7 +50,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  Encode lots of integer values, particularly around the boundary and make sure they
  Match the expected binary output. Primarily an encoding test.
  */
-int IntegerValuesTest1();
+int IntegerValuesTest1(void);
 
 
 
@@ -58,70 +58,70 @@ int IntegerValuesTest1();
  Create nested arrays to the max depth allowed and make sure it succeeds.
  This is an encoding test.
  */
-int ArrayNestingTest1();
+int ArrayNestingTest1(void);
 
 
 /*
  Create nested arrays to one more than the meax depth and make sure it fails.
  This is an encoding test.
  */
-int ArrayNestingTest2();
+int ArrayNestingTest2(void);
 
 
 /*
  Encoding test.
  Create arrays to max depth and close one extra time and look for correct error code
  */
-int ArrayNestingTest3();
+int ArrayNestingTest3(void);
 
 
 /*
  This tests the QCBOREncode_AddRaw() function by adding two chunks or RAWCBOR to an
  array and comparing with expected values. This is an encoding test.
  */
-int EncodeRawTest();
+int EncodeRawTest(void);
 
 
 /*
  This creates a somewhat complicated CBOR MAP and verifies it against expected
  data. This is an encoding test.
  */
-int MapEncodeTest();
+int MapEncodeTest(void);
 
 
 
 /*
  Encodes a goodly number of floats and doubles and checks encoding is right
  */
-int FloatValuesTest1();
+int FloatValuesTest1(void);
 
 
 /*
  Encodes true, false and the like
  */
-int SimpleValuesTest1();
+int SimpleValuesTest1(void);
 
 
 /*
  Encodes most data formats that are supported */
-int EncodeDateTest();
+int EncodeDateTest(void);
 
 
 /*
  Encodes particular data structure that a particular app will need...
  */
-int RTICResultsTest();
+int RTICResultsTest(void);
 
 
 /*
  Calls all public encode methods in qcbor.h once.
  */
-int AllAddMethodsTest();
+int AllAddMethodsTest(void);
 
 /*
  The binary string wrapping of maps and arrays used by COSE
  */
-int BStrWrapTests();
+int BStrWrapTests(void);
 
 
 

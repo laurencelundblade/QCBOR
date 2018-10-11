@@ -38,6 +38,8 @@
 #include "bstrwrap_tests.h"
 #include "mempool_test.h"
 #include "qcbor_decode_tests.h"
+#include "qcbor_encode_tests.h"
+#include "UsefulBuf_Tests.h"
 
 // Used to test the test runner
 int fail_test()
@@ -87,6 +89,8 @@ const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 
 
 typedef int (test_fun_t)(void);
+typedef const char * (test_fun2_t)(void);
+
 
 #define TEST_ENTRY(test_name)  {#test_name, test_name}
 typedef struct {
@@ -94,7 +98,32 @@ typedef struct {
     test_fun_t  *test_fun;
 } test_entry;
 
+typedef struct {
+    const char *szTestName;
+    test_fun2_t  *test_fun;
+} test_entry2;
+
+test_entry2 s_tests2[] = {
+    TEST_ENTRY(UBCopyUtilTest),
+    TEST_ENTRY(NonAdversarialUOBTest),
+    TEST_ENTRY(TestBasicSanity),
+    TEST_ENTRY(BoundaryConditionsTest),
+    TEST_ENTRY(UBMacroConversionsTest),
+    TEST_ENTRY(UBUtilTests),
+    TEST_ENTRY(UBIntegerFormatTests)
+};
+
+
 test_entry s_tests[] = {
+    TEST_ENTRY(RTICResultsTest),
+    TEST_ENTRY(MapEncodeTest),
+    TEST_ENTRY(ArrayNestingTest1),
+    TEST_ENTRY(ArrayNestingTest2),
+    TEST_ENTRY(ArrayNestingTest3),
+    TEST_ENTRY(EncodeDateTest),
+    TEST_ENTRY(SimpleValuesTest1),
+    TEST_ENTRY(IntegerValuesTest1),
+    TEST_ENTRY(AllAddMethodsTest),
     TEST_ENTRY(ParseTooDeepArrayTest),
     TEST_ENTRY(ComprehensiveInputTest),
     TEST_ENTRY(ParseMapTest),
@@ -130,6 +159,31 @@ int run_tests(outputstring output, void *poutCtx, int *pNumTestsRun)
     int nTestsFailed = 0;
     int nTestsRun = 0;
     UsefulBuf_MakeStackUB(StringStorage, 5);
+
+    test_entry2 *t2;
+    const test_entry2 *s_tests2_end = s_tests2 + sizeof(s_tests2)/sizeof(test_entry2);
+    
+    for(t2 = s_tests2; t2 < s_tests2_end; t2++) {
+        const char * x = (t2->test_fun)();
+        nTestsRun++;
+        if(output) {
+            (*output)(t2->szTestName, poutCtx);
+        }
+        
+        if(x) {
+            if(output) {
+                (*output)(" FAILED (returned ", poutCtx);
+                (*output)(x, poutCtx);
+                (*output)(")\n", poutCtx);
+            }
+            nTestsFailed++;
+        } else {
+            if(output) {
+                (*output)( " PASSED\n", poutCtx);
+            }
+        }
+    }
+    
     
     test_entry *t;
     const test_entry *s_tests_end = s_tests + sizeof(s_tests)/sizeof(test_entry);

@@ -85,8 +85,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src)
 {
-   if(Src.len > Dest.len)
+   if(Src.len > Dest.len) {
       return NULLUsefulBufC;
+   }
    
    memcpy(Dest.ptr, Src.ptr, Src.len);
     
@@ -94,6 +95,9 @@ UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src)
 }
 
 
+/*
+ Public function -- see UsefulBuf.h
+ */
 UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC Src)
 {
     if(Src.len > Dest.len - uOffset) {
@@ -104,6 +108,7 @@ UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC
     
     return((UsefulBufC){Dest.ptr, Src.len});
 }
+
 
 /*
    Public function -- see UsefulBuf.h
@@ -123,10 +128,8 @@ int UsefulBuf_Compare(const UsefulBufC UB1, const UsefulBufC UB2)
 
 
 
-
-
 /*
- returns SIZE_MAX when there is no match
+ Public function -- see UsefulBuf.h
  */
 size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind)
 {
@@ -147,49 +150,26 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind)
 /*
  Public function -- see UsefulBuf.h
  
- The core of UsefulOutBuf -- put some bytes in the buffer without writing off the end of it.
- 
- THIS FUNCTION DOES POINTER MATH
+ Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
-#if NODEF
-void UsefulOutBuf_InitOld(UsefulOutBuf *me, void *pStorage, size_t uStorageSize)
-{
-   me->magic  = USEFUL_OUT_BUF_MAGIC;
-   UsefulOutBuf_Reset(me);
-   
-   me->UB.ptr = pStorage;
-   me->size   = uStorageSize;
-
-   // The following check fails on ThreadX
-#if 0
-   // Sanity check on the pointer and size to be sure we are not
-   // passed a buffer that goes off the end of the address space.
-   // Given this test, we know that all unsigned lengths less than
-   // me->size are valid and won't wrap in any pointer additions
-   // based off of pStorage in the rest of this code.
-   const uintptr_t ptrM = UINTPTR_MAX - uStorageSize;
-   if(pStorage && (uintptr_t)pStorage > ptrM) // Check #0
-      me->err = 1;
-#endif
-}
-#endif
-
 void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage)
 {
     me->magic  = USEFUL_OUT_BUF_MAGIC;
     UsefulOutBuf_Reset(me);
     me->UB     = Storage;
     
-    // The following check fails on ThreadX
 #if 0
-    // TODO: fix this for new way of doing storage
+   // This check is off by default.
+   
+   // The following check fails on ThreadX
+
     // Sanity check on the pointer and size to be sure we are not
     // passed a buffer that goes off the end of the address space.
     // Given this test, we know that all unsigned lengths less than
     // me->size are valid and won't wrap in any pointer additions
     // based off of pStorage in the rest of this code.
-    const uintptr_t ptrM = UINTPTR_MAX - uStorageSize;
-    if(pStorage && (uintptr_t)pStorage > ptrM) // Check #0
+    const uintptr_t ptrM = UINTPTR_MAX - Storage.len;
+    if(Storage.ptr && (uintptr_t)Storage.ptr > ptrM) // Check #0
         me->err = 1;
 #endif
 }
@@ -266,7 +246,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
    
    /* 2. Check the Insertion Position */
    // This, with Check #1, also confirms that uInsertionPos <= me->size
-   if(uInsertionPos > me->UB.len) { // Check #3
+   if(uInsertionPos > me->data_len) { // Check #3
       // Off the end of the valid data in the buffer.
       me->err = 1;
       return;
@@ -333,37 +313,22 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me)
       return NULLUsefulBufC;
    }
     
-    return(UsefulBufC){me->UB.ptr,me->data_len};
-}
-
-
-UsefulBufC UsefulOutBuf_CopyOut2(UsefulOutBuf *me, UsefulBuf pDest)
-{
-    UsefulBufC Tmp = UsefulOutBuf_OutUBuf(me);
-    if(UsefulBuf_IsNULLC(Tmp)) {
-        return NULLUsefulBufC;
-    }
-    
-    return UsefulBuf_Copy(pDest, Tmp);
+   return(UsefulBufC){me->UB.ptr,me->data_len};
 }
 
 
 /*
  Public function -- see UsefulBuf.h
-
- Copy out the data accumulated in the output buffer.
  
+ Copy out the data accumulated in to the output buffer.
  */
-int UsefulOutBuf_CopyOut(UsefulOutBuf *me, void *pBuf, size_t uBufSize, size_t *puCopied)
+UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf pDest)
 {
-    UsefulBufC B = UsefulOutBuf_CopyOut2(me, (UsefulBuf){pBuf, uBufSize});
-    if(UsefulBuf_IsNULLC(B)) {
-        return 1; // was in error state or was corrupted or pBuf too small
-    }
-
-   *puCopied = B.len;
-   
-   return 0;
+   UsefulBufC Tmp = UsefulOutBuf_OutUBuf(me);
+   if(UsefulBuf_IsNULLC(Tmp)) {
+      return NULLUsefulBufC;
+   }
+   return UsefulBuf_Copy(pDest, Tmp);
 }
 
 
