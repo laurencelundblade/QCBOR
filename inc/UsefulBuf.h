@@ -1165,8 +1165,8 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf Dest);
 
 /**
  UsefulInputBuf is the counterpart to UsefulOutBuf and is for parsing
- data read or received.  The idea is that you initialize with the data
- you got off the network and its length. Then you use the functions
+ data read or received.  Initialize it with the data
+ from the network and its length. Then  use the functions
  here to get the various data types out of it. It maintains a position
  for getting the next item. This means you don't have to track a
  pointer as you get each object. UsefulInputBuf does that for you and
@@ -1182,17 +1182,26 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf Dest);
  fetched before checking for the error and this can simplify your
  code.
  
- The integer parsing expects network byte order (big endian). Network
- byte order is what is used by TCP/IP, CBOR and most internet protocols.
+ The integer and float parsing expects network byte order (big endian).
+ Network byte order is what is used by TCP/IP, CBOR and most internet
+ protocols.
  
- 64-bit machine: 16 + 8 + 2 + 1 (5 bytes padding to align) = 32 bytes
- 32-bit machine: 8 + 4 + 2 + 1 (1 byte padding to align) = 16 bytes
+ Lots of inlining is used to keep code size down. The code optimizer,
+ particularly with the -Os, also reduces code size a lot. The only
+ non-inline code is UsefulInputBuf_GetBytes() which is less than 100
+ bytes so use of UsefulInputBuf doesn't add much code for all the messy
+ hard-to-get right issues with parsing in C that is solves.
+ 
+ The parse context size is:
+   64-bit machine: 16 + 8 + 2 + 1 (5 bytes padding to align) = 32 bytes
+   32-bit machine: 8 + 4 + 2 + 1 (1 byte padding to align) = 16 bytes
 
  */
 
 #define UIB_MAGIC (0xB00F)
 
 typedef struct {
+   // Private data structure
    UsefulBufC UB;
    size_t     cursor;
    uint16_t   magic;
@@ -1202,11 +1211,12 @@ typedef struct {
 
 
 /**
+ @brief Initialize the UsefulInputBuf structure before use.
  
- Initialize the UsefulInputBuf structure before use.
+ @param[in] me Pointer to the UsefulInputBuf instance.
+ @param[in] UB Pointer to the data to parse.
  
  */
-
 static inline void UsefulInputBuf_Init(UsefulInputBuf *me, UsefulBufC UB)
 {
    me->cursor = 0;
@@ -1217,7 +1227,7 @@ static inline void UsefulInputBuf_Init(UsefulInputBuf *me, UsefulBufC UB)
 
 
 /**
- Returns current position in input buffer
+ @brief Returns current position in input buffer
  
  @param[in] me Pointer to the UsefulInputBuf.
  
@@ -1226,13 +1236,14 @@ static inline void UsefulInputBuf_Init(UsefulInputBuf *me, UsefulBufC UB)
  The position that the next bytes will be returned from.
  
  */
-static inline size_t UsefulInputBuf_Tell(UsefulInputBuf *me) {
+static inline size_t UsefulInputBuf_Tell(UsefulInputBuf *me)
+{
    return me->cursor;
 }
 
 
 /**
- Sets current position in input buffer
+ @brief Sets current position in input buffer
  
  @param[in] me Pointer to the UsefulInputBuf.
  @param[in] uPos  Position to set to
@@ -1244,7 +1255,6 @@ static inline size_t UsefulInputBuf_Tell(UsefulInputBuf *me) {
  state. Only re initialization will do that.
  
  */
-
 static inline void UsefulInputBuf_Seek(UsefulInputBuf *me, size_t uPos)
 {
    if(uPos > me->UB.len) {
@@ -1256,48 +1266,54 @@ static inline void UsefulInputBuf_Seek(UsefulInputBuf *me, size_t uPos)
 
 
 /**
- 
- Returns the number of bytes from the cursor to the end of the buffer,
+ @brief Returns the number of bytes from the cursor to the end of the buffer,
  the uncomsummed bytes.
+ 
+ @param[in] me Pointer to the UsefulInputBuf.
+
+ @return number of bytes unconsumed or 0 on error.
  
  This is a critical function for input length validation. This does
  some pointer / offset math.
  
- Returrns 0 if the cursor it invalid or corruption of the structure is
+ Returns 0 if the cursor it invalid or corruption of the structure is
  detected.
+ 
+ Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
 static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *me)
 {
-   // Magic number is messed up. Either the structu got overwritten
+   // Magic number is messed up. Either the structure got overwritten
    // or was never initialized.
-   if(me->magic != UIB_MAGIC)
+   if(me->magic != UIB_MAGIC) {
       return 0;
+   }
    
    // The cursor is off the end of the input buffer given
    // Presuming there are no bugs in this code, this should never happen.
    // If it so, the struct was corrupted. The check is retained as
    // as a defense in case there is a bug in this code or the struct is corrupted.
-   if(me->cursor > me->UB.len)
+   if(me->cursor > me->UB.len) {
       return 0;
+   }
    
    // subtraction can't go neative because of check above
    return me->UB.len - me->cursor;
 }
 
 
-/*
+/**
+ @brief Check if there are any unconsumed bytes
  
- Returns 1 if len bytes are available after the cursor, and 0 if not
+ @param[in] me Pointer to the UsefulInputBuf.
+
+ @return 1 if len bytes are available after the cursor, and 0 if not
  
  */
-
 static inline int UsefulInputBuf_BytesAvailable(UsefulInputBuf *me, size_t uLen)
 {
    return UsefulInputBuf_BytesUnconsumed(me) >= uLen ? 1 : 0;
 }
-
-
-
 
 
 /**
@@ -1320,7 +1336,7 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *me, size_t uNum);
 
 
 /**
- @brief Get UsefulBuf  out of the input buffer
+ @brief Get UsefulBuf out of the input buffer
  
  @param[in] me Pointer to the UsefulInputBuf.
  @param[in] uNum  Number of bytes to get
@@ -1338,16 +1354,16 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *me, size_t uNum);
 static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *me, size_t uNum)
 {
    const void *pResult = UsefulInputBuf_GetBytes(me, uNum);
-    if(!pResult) {
-        return NULLUsefulBufC;
-    } else {
-        return (UsefulBufC){pResult, uNum};
-    }
+   if(!pResult) {
+      return NULLUsefulBufC;
+   } else {
+      return (UsefulBufC){pResult, uNum};
+   }
 }
 
 
 /**
- @brief Get a byte out of the input buffer
+ @brief Get a byte out of the input buffer.
  
  @param[in] me Pointer to the UsefulInputBuf.
  
@@ -1372,6 +1388,7 @@ static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *me)
    return pResult ? *(uint8_t *)pResult : 0;
 }
 
+
 /**
  @brief Get a uint16_t out of the input buffer
  
@@ -1395,6 +1412,7 @@ static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *me)
    return  ((uint16_t)pResult[0] << 8) + (uint16_t)pResult[1];
 }
 
+
 /**
  @brief Get a uint32_t out of the input buffer
  
@@ -1417,6 +1435,7 @@ static inline uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *me)
    
    return ((uint32_t)pResult[0]<<24) + ((uint32_t)pResult[1]<<16) + ((uint32_t)pResult[2]<<8) + (uint32_t)pResult[3];
 }
+
 
 /**
  @brief Get a uint64_t out of the input buffer
@@ -1450,7 +1469,7 @@ static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *me)
 
 
 /**
- Get a float out of the input buffer
+ @brief Get a float out of the input buffer
  
  @param[in] me Pointer to the UsefulInputBuf.
  
@@ -1466,11 +1485,10 @@ static inline float UsefulInputBuf_GetFloat(UsefulInputBuf *me)
    uint32_t uResult = UsefulInputBuf_GetUint32(me);
 
    return uResult ? UsefulBufUtil_CopyUint32ToFloat(uResult) : 0;
-
 }
 
 /**
- Get a double out of the input buffer
+ @brief Get a double out of the input buffer
  
  @param[in] me Pointer to the UsefulInputBuf.
  
@@ -1489,9 +1507,8 @@ static inline double UsefulInputBuf_GetDouble(UsefulInputBuf *me)
 }
 
 
-
 /**
- Get the error status
+ @brief Get the error status
  
  @param[in] me Pointer to the UsefulInputBuf.
  
