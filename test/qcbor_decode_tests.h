@@ -158,6 +158,10 @@ int BignumParseTest(void);
 int NestedMapTest(void);
 
 
+int indefinite_length_decode_test(void);
+int indefinite_length_decode_string_test(void);
+
+
 int mempool_test(void);
 
 

@@ -1537,6 +1537,101 @@ int NestedMapTest()
 }
 
 
+
+
+
+
+
+static const uint8_t pIndefiniteLenString[] = {
+    0x81, // Array of length one
+    0x7f, // text string marked with indefinite length
+    0x65, 0x73, 0x74, 0x72, 0x65, 0x61, // first segment
+    0x64, 0x6d, 0x69, 0x6e, 0x67, // second segment
+    0xff // ending break
+};
+
+static const uint8_t pIndefiniteArray[] = {0x9f, 0x01, 0x82, 0x02, 0x03, 0xff};
+
+// [1, [2, 3]]
+
+
+//0x9f018202039f0405ffff
+
+int indefinite_length_decode_test()
+{
+    UsefulBufC IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArray);
+    
+    
+    // Decode it and see if it is OK
+    UsefulBuf_MakeStackUB(MemPool, 200);
+    QCBORDecodeContext DC;
+    QCBORItem Item;
+    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
+    
+    QCBORDecode_SetMemPool(&DC, MemPool, false);
+    
+    
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+        return -1;
+    }
+    
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_INT64) {
+        return -1;
+    }
+    
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+        return -1;
+    }
+    
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_INT64) {
+        return -1;
+    }
+    
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_INT64) {
+        return -1;
+    }
+    
+    if(QCBORDecode_Finish(&DC)) {
+        return -2;
+    }
+    
+    return 0;
+}
+
+int indefinite_length_decode_string_test() {
+    UsefulBufC IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteLenString);
+    
+    
+    // Decode it and see if it is OK
+    QCBORDecodeContext DC;
+    QCBORItem Item;
+    UsefulBuf_MakeStackUB(MemPool, 200);
+    
+    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
+    
+    QCBORDecode_SetMemPool(&DC,  MemPool, false);
+    
+    
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+        return -1;
+    }
+    
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING) {
+        return -1;
+    }
+    
+    return 0;
+}
+
+
+
 int mempool_test(void)
 {
     QCBORDecodeContext DC;

@@ -34,7 +34,6 @@
 #include <stdbool.h>
 
 #include "float_tests.h"
-#include "basic_test.h"
 #include "qcbor_decode_tests.h"
 #include "qcbor_encode_tests.h"
 #include "UsefulBuf_Tests.h"
@@ -127,7 +126,7 @@ test_entry s_tests[] = {
     TEST_ENTRY(ComprehensiveInputTest),
     TEST_ENTRY(ParseMapTest),
     TEST_ENTRY(indefinite_length_decode_test),
-    TEST_ENTRY(basic_test_one),
+    TEST_ENTRY(basic_encode_test),
     TEST_ENTRY(NestedMapTest),
     TEST_ENTRY(BignumParseTest),
     TEST_ENTRY(OptTagParseTest),

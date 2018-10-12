@@ -19,7 +19,6 @@
 		E776E090214AE07500E67947 /* UsefulBuf.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E08D214AE07500E67947 /* UsefulBuf.c */; };
 		E776E091214AE07500E67947 /* qcbor_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E08E214AE07500E67947 /* qcbor_decode.c */; };
 		E776E097214AE0C700E67947 /* cmd_line_main.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E096214AE0C700E67947 /* cmd_line_main.c */; };
-		E776E09D214AEEEA00E67947 /* basic_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E09C214AEEEA00E67947 /* basic_test.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -57,8 +56,6 @@
 		E776E093214AE08B00E67947 /* qcbor.h */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.h; name = qcbor.h; path = inc/qcbor.h; sourceTree = "<group>"; tabWidth = 3; };
 		E776E094214AE09700E67947 /* UsefulBuf.h */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.h; name = UsefulBuf.h; path = inc/UsefulBuf.h; sourceTree = "<group>"; tabWidth = 3; };
 		E776E096214AE0C700E67947 /* cmd_line_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_line_main.c; sourceTree = "<group>"; };
-		E776E09B214AEEEA00E67947 /* basic_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = basic_test.h; path = test/basic_test.h; sourceTree = "<group>"; };
-		E776E09C214AEEEA00E67947 /* basic_test.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = basic_test.c; path = test/basic_test.c; sourceTree = "<group>"; tabWidth = 3; };
 		E776E161214EE19C00E67947 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -78,9 +75,9 @@
 			children = (
 				E776E161214EE19C00E67947 /* README.md */,
 				E776E096214AE0C700E67947 /* cmd_line_main.c */,
-				E776E095214AE0B600E67947 /* test */,
 				E776E092214AE07C00E67947 /* inc */,
 				E776E08B214AE06600E67947 /* src */,
+				E776E095214AE0B600E67947 /* test */,
 				E776E07D214ADF7F00E67947 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -96,12 +93,12 @@
 		E776E08B214AE06600E67947 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				E776E08C214AE07400E67947 /* qcbor_encode.c */,
+				E776E08E214AE07500E67947 /* qcbor_decode.c */,
 				0F58EB9B216A388E002FD6D1 /* qcbor_decode_malloc.c */,
+				E776E08D214AE07500E67947 /* UsefulBuf.c */,
 				E73B57582161CA690080D658 /* ieee754.c */,
 				E73B57572161CA680080D658 /* ieee754.h */,
-				E776E08E214AE07500E67947 /* qcbor_decode.c */,
-				E776E08C214AE07400E67947 /* qcbor_encode.c */,
-				E776E08D214AE07500E67947 /* UsefulBuf.c */,
 			);
 			name = src;
 			sourceTree = "<group>";
@@ -118,20 +115,18 @@
 		E776E095214AE0B600E67947 /* test */ = {
 			isa = PBXGroup;
 			children = (
+				E73B57632161F8F70080D658 /* run_tests.c */,
+				E73B57642161F8F80080D658 /* run_tests.h */,
 				0FA9BEBC216DE31700BA646B /* UsefulBuf_Tests.c */,
 				0FA9BEBB216DE31700BA646B /* UsefulBuf_Tests.h */,
 				0FA9BEB8216DC7AD00BA646B /* qcbor_encode_tests.c */,
 				0FA9BEB9216DC7AD00BA646B /* qcbor_encode_tests.h */,
 				0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */,
 				0FA9BEB6216CE6CA00BA646B /* qcbor_decode_tests.h */,
-				E73B57632161F8F70080D658 /* run_tests.c */,
-				E73B57642161F8F80080D658 /* run_tests.h */,
 				E73B575A2161CA7C0080D658 /* float_tests.c */,
 				E73B575C2161CA7C0080D658 /* float_tests.h */,
 				E73B575D2161CA7C0080D658 /* half_to_double_from_rfc7049.c */,
 				E73B575B2161CA7C0080D658 /* half_to_double_from_rfc7049.h */,
-				E776E09C214AEEEA00E67947 /* basic_test.c */,
-				E776E09B214AEEEA00E67947 /* basic_test.h */,
 			);
 			name = test;
 			sourceTree = "<group>";
@@ -203,7 +198,6 @@
 				E776E090214AE07500E67947 /* UsefulBuf.c in Sources */,
 				0FA9BEBA216DC7AD00BA646B /* qcbor_encode_tests.c in Sources */,
 				E776E097214AE0C700E67947 /* cmd_line_main.c in Sources */,
-				E776E09D214AEEEA00E67947 /* basic_test.c in Sources */,
 				0FA9BEBD216DE31700BA646B /* UsefulBuf_Tests.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -47,6 +47,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /*
+ Most basic test.
+ */
+int basic_encode_test(void);
+
+
+/*
  Encode lots of integer values, particularly around the boundary and make sure they
  Match the expected binary output. Primarily an encoding test.
  */
