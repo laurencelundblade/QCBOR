@@ -121,7 +121,13 @@ int AllAddMethodsTest(void);
 /*
  The binary string wrapping of maps and arrays used by COSE
  */
-int BStrWrapTests(void);
+int  bstrwraptest(void);
+
+int bstr_wrap_error_test(void);
+
+int bstr_wrap_nest_test(void);
+
+int cose_sign1_tbs_test(void);
 
 
 

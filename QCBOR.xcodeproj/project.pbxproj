@@ -12,7 +12,6 @@
 		0FA9BEB7216CE6CA00BA646B /* qcbor_decode_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */; };
 		0FA9BEBA216DC7AD00BA646B /* qcbor_encode_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEB8216DC7AD00BA646B /* qcbor_encode_tests.c */; };
 		0FA9BEBD216DE31700BA646B /* UsefulBuf_Tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEBC216DE31700BA646B /* UsefulBuf_Tests.c */; };
-		E73B5756216071900080D658 /* bstrwrap_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B5755216071900080D658 /* bstrwrap_tests.c */; };
 		E73B57592161CA690080D658 /* ieee754.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B57582161CA690080D658 /* ieee754.c */; };
 		E73B575E2161CA7C0080D658 /* float_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B575A2161CA7C0080D658 /* float_tests.c */; };
 		E73B575F2161CA7C0080D658 /* half_to_double_from_rfc7049.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B575D2161CA7C0080D658 /* half_to_double_from_rfc7049.c */; };
@@ -46,8 +45,6 @@
 		0FA9BEB9216DC7AD00BA646B /* qcbor_encode_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_encode_tests.h; path = test/qcbor_encode_tests.h; sourceTree = "<group>"; };
 		0FA9BEBB216DE31700BA646B /* UsefulBuf_Tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UsefulBuf_Tests.h; path = test/UsefulBuf_Tests.h; sourceTree = "<group>"; };
 		0FA9BEBC216DE31700BA646B /* UsefulBuf_Tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = UsefulBuf_Tests.c; path = test/UsefulBuf_Tests.c; sourceTree = "<group>"; tabWidth = 3; };
-		E73B5754216071900080D658 /* bstrwrap_tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = bstrwrap_tests.h; path = test/bstrwrap_tests.h; sourceTree = "<group>"; };
-		E73B5755216071900080D658 /* bstrwrap_tests.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = bstrwrap_tests.c; path = test/bstrwrap_tests.c; sourceTree = "<group>"; };
 		E73B57572161CA680080D658 /* ieee754.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ieee754.h; path = src/ieee754.h; sourceTree = "<group>"; };
 		E73B57582161CA690080D658 /* ieee754.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ieee754.c; path = src/ieee754.c; sourceTree = "<group>"; };
 		E73B575A2161CA7C0080D658 /* float_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = float_tests.c; path = test/float_tests.c; sourceTree = "<group>"; };
@@ -137,8 +134,6 @@
 				E73B575D2161CA7C0080D658 /* half_to_double_from_rfc7049.c */,
 				E73B575B2161CA7C0080D658 /* half_to_double_from_rfc7049.h */,
 				E776E09C214AEEEA00E67947 /* basic_test.c */,
-				E73B5754216071900080D658 /* bstrwrap_tests.h */,
-				E73B5755216071900080D658 /* bstrwrap_tests.c */,
 				E776E09B214AEEEA00E67947 /* basic_test.h */,
 				0F58EB9D216B91AA002FD6D1 /* mempool_test.h */,
 				0F58EB9E216B91AA002FD6D1 /* mempool_test.c */,
@@ -213,7 +208,6 @@
 				E776E090214AE07500E67947 /* UsefulBuf.c in Sources */,
 				0FA9BEBA216DC7AD00BA646B /* qcbor_encode_tests.c in Sources */,
 				E776E097214AE0C700E67947 /* cmd_line_main.c in Sources */,
-				E73B5756216071900080D658 /* bstrwrap_tests.c in Sources */,
 				E776E09D214AEEEA00E67947 /* basic_test.c in Sources */,
 				0FA9BEBD216DE31700BA646B /* UsefulBuf_Tests.c in Sources */,
 				0F58EB9F216B91AA002FD6D1 /* mempool_test.c in Sources */,
