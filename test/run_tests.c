@@ -104,13 +104,13 @@ typedef struct {
 } test_entry2;
 
 test_entry2 s_tests2[] = {
-    TEST_ENTRY(UBCopyUtilTest),
-    TEST_ENTRY(NonAdversarialUOBTest),
+    TEST_ENTRY(UBUTest_CopyUtil),
+    TEST_ENTRY(UOBTest_NonAdversarial),
     TEST_ENTRY(TestBasicSanity),
-    TEST_ENTRY(BoundaryConditionsTest),
+    TEST_ENTRY(UOBTest_BoundaryConditionsTest),
     TEST_ENTRY(UBMacroConversionsTest),
     TEST_ENTRY(UBUtilTests),
-    TEST_ENTRY(UBIntegerFormatTests)
+    TEST_ENTRY(UIBTest_IntegerFormat)
 };
 
 

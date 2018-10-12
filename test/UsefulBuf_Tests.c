@@ -64,7 +64,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  
    There is nothing adversarial in this test
  */
-const char * NonAdversarialUOBTest()
+const char * UOBTest_NonAdversarial()
 {
    const char *szReturn = NULL;
 
@@ -146,8 +146,6 @@ static int AppendTest(UsefulOutBuf *pUOB, size_t num, int expected)
    
    // append the bytes
    UsefulOutBuf_AppendData(pUOB, (const uint8_t *)"bluster", num);
-      
-   // TODO: test UsefulOutBuf_AppendString
    
    // check error status after
    if(UsefulOutBuf_GetError(pUOB) != expected)
@@ -171,8 +169,6 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
    
    UsefulOutBuf_InsertData(pUOB, (const uint8_t *)"bluster", num, pos);
    
-   // TODO: test UsefulOutBuf_InsertString
-   
    if(UsefulOutBuf_GetError(pUOB) != expected)
       return 1;
    
@@ -191,7 +187,7 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
  
  */
 
-const char *BoundaryConditionsTest()
+const char *UOBTest_BoundaryConditionsTest()
 {
    UsefulBuf_MakeStackUB(outbuf,2);
    
@@ -238,9 +234,9 @@ const char *BoundaryConditionsTest()
    
    UsefulOutBuf_Reset(&UOB);
    // put data in the buffer
-   UsefulOutBuf_AppendData(&UOB, "abc123", 6);
+   UsefulOutBuf_AppendString(&UOB, "abc123");
    
-   UsefulOutBuf_InsertData(&UOB, "xyz*&^", 6, 0);
+   UsefulOutBuf_InsertString(&UOB, "xyz*&^", 0);
    
    if(!UsefulOutBuf_GetError(&UOB)) {
       return "insert with data should have failed";
@@ -286,7 +282,14 @@ const char *TestBasicSanity()
    if(UsefulOutBuf_RoomLeft(&UOB) != 10)
       return "room left failed";
    
-   // TODO: test UsefulOutBuf_WillItFit
+   if(!UsefulOutBuf_WillItFit(&UOB, 9)) {
+      return "it did not fit";
+   }
+
+   if(UsefulOutBuf_WillItFit(&UOB, 11)) {
+      return "it should have not fit";
+   }
+   
    
    // Next -- make sure that the magic number checking is working right
    UOB.magic = 8888; // make magic bogus
@@ -399,20 +402,41 @@ const char *UBUtilTests()
       return "Copy should have failed";
    }
    
-   // TODO: complete this test
-   // UsefulBuf_CopyOffset();
-   // TODO: complete this test
-   // UsefulBuf_CopyPtr();
-   // TODO: complete this test
-   // UsefulBuf_Head();
-   // TODO: complete this test
-   // UsefulBuf_CopyPtr();
+   if(UsefulBuf_IsNULLC(UsefulBuf_CopyPtr(Temp2, "xx", 2))) {
+      return "CopyPtr failed";
+   }
+   
+   UsefulBufC xxyy = UsefulBuf_CopyOffset(Temp2, 2, UsefulBuf_FromSZLiteral("yy"));
+   if(UsefulBuf_IsNULLC(xxyy)) {
+      return "CopyOffset Failed";
+   }
+   
+   if(UsefulBuf_Compare(UsefulBuf_Head(xxyy, 3), UsefulBuf_FromSZLiteral("xxy"))) {
+      return "head failed";
+   }
+
+   if(UsefulBuf_Compare(UsefulBuf_Tail(xxyy, 1), UsefulBuf_FromSZLiteral("xyy"))) {
+      return "tail failed";
+   }
+   
+   if(!UsefulBuf_IsNULLC(UsefulBuf_Head(xxyy, 5))) {
+      return "head should have failed";
+   }
+
+   if(!UsefulBuf_IsNULLC(UsefulBuf_Tail(xxyy, 5))) {
+      return "tail should have failed";
+   }
+   
+   if(!UsefulBuf_IsNULLC(UsefulBuf_CopyOffset(Temp2, 100, UsefulBuf_FromSZLiteral("yy")))) {
+      return "Copy Offset should have failed";
+   }
    
    // Try to copy into a NULL/empty buf and see failure
    UsefulBuf UBNull = NULLUsefulBuf;
    if(!UsefulBuf_IsNULLC(UsefulBuf_Copy(UBNull, UsefulBuf_Const(Temp)))) {
       return "Copy to NULL should have failed";
    }
+   
    
    // Try to set a NULL/empty buf; nothing should happen
    UsefulBuf_Set(&UBNull, '+'); // This will crash on failure
@@ -561,7 +585,7 @@ const char *UBUtilTests()
 }
 
 
-const char *  UBIntegerFormatTests()
+const char *  UIBTest_IntegerFormat()
 {
    UsefulOutBuf_MakeOnStack(UOB,100);
    
@@ -616,19 +640,56 @@ const char *  UBIntegerFormatTests()
    if(UsefulInputBuf_GetDouble(&UIB) != d) {
       return "double out then in failed";
    }
-   
-   // TODO: test UsefulInputBuf_Seek
-   // TODO: test UsefulInputBuf_BytesUnconsumed
-   // TODO: test UsefulInputBuf_BytesAvailable
-   // TODO: test UsefulInputBuf_GetBytes
-   // TODO: test UsefulInputBuf_GetUsefulBuf
-   // TODO: test UsefulInputBuf_GetError
 
+   // Reset and go again for a few more tests
+   UsefulInputBuf_Init(&UIB, O);
+   
+   UsefulBufC Four = UsefulInputBuf_GetUsefulBuf(&UIB, 4);
+   if(UsefulBuf_IsNULLC(Four)) {
+      return "Four is NULL";
+   }
+   if(UsefulBuf_Compare(Four, UsefulBuf_FromByteArrayLiteral(pExpectedNetworkOrder))) {
+      return "Four compare failed";
+   }
+   
+   if(UsefulInputBuf_BytesUnconsumed(&UIB) != 23){
+      return "Wrong number of unconsumed bytes";
+   }
+
+   if(!UsefulInputBuf_BytesAvailable(&UIB, 23)){
+      return "Wrong number of bytes available I";
+   }
+
+   if(UsefulInputBuf_BytesAvailable(&UIB, 24)){
+      return "Wrong number of bytes available II";
+   }
+   
+   UsefulInputBuf_Seek(&UIB, 0);
+   
+   if(UsefulInputBuf_GetError(&UIB)) {
+      return "unexpected error after seek";
+   }
+   
+   const uint8_t *pGetBytes = (const uint8_t *)UsefulInputBuf_GetBytes(&UIB, 4);
+   if(pGetBytes == NULL) {
+      return "GetBytes returns NULL";
+   }
+   
+   if(memcmp(pGetBytes, pExpectedNetworkOrder, 4)) {
+      return "Got wrong bytes";
+   }
+   
+   UsefulInputBuf_Seek(&UIB, 28);
+
+   if(!UsefulInputBuf_GetError(&UIB)) {
+      return "expected error after seek";
+   }
+   
    return NULL;
 }
 
 
-const char *UBCopyUtilTest()
+const char *UBUTest_CopyUtil()
 {
    if(UsefulBufUtil_CopyFloatToUint32(65536.0F) != 0x47800000) {
       return "CopyFloatToUint32 failed";

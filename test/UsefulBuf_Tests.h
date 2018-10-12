@@ -56,18 +56,18 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef UsefulBuf_UsefulBuf_Tests_h
 #define UsefulBuf_UsefulBuf_Tests_h
 
-const char * NonAdversarialUOBTest(void);
+const char * UOBTest_NonAdversarial(void);
 
 const char *  TestBasicSanity(void);
 
-const char *  BoundaryConditionsTest(void);
+const char *  UOBTest_BoundaryConditionsTest(void);
 
 const char *  UBMacroConversionsTest(void);
 
 const char *  UBUtilTests(void);
 
-const char *  UBIntegerFormatTests(void);
+const char *  UIBTest_IntegerFormat(void);
 
-const char *  UBCopyUtilTest(void);
+const char *  UBUTest_CopyUtil(void);
 
 #endif

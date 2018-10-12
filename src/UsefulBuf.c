@@ -100,13 +100,14 @@ UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src)
  */
 UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC Src)
 {
-    if(Src.len > Dest.len - uOffset) {
-        return NULLUsefulBufC;
-    }
+   // Do this with subtraction so it doesn't give erroneous result if uOffset + Src.len overflows
+   if(uOffset > Dest.len || Src.len > Dest.len - uOffset) { // uOffset + Src.len > Dest.len
+      return NULLUsefulBufC;
+   }
     
-    memcpy(Dest.ptr + uOffset, Src.ptr, Src.len);
+   memcpy(Dest.ptr + uOffset, Src.ptr, Src.len);
     
-    return((UsefulBufC){Dest.ptr, Src.len});
+   return((UsefulBufC){Dest.ptr, Src.len + uOffset});
 }
 
 
