@@ -1,5 +1,5 @@
 /*==============================================================================
- half_precision_test.h -- tests for converstion to/from half-precision
+ float_tests.h -- tests for float and conversion to/from half-precision
 
  Copyright 2018 Laurence Lundblade
  
@@ -28,8 +28,10 @@
 //  Created by Laurence Lundblade on 9/19/18.
 
 
-#ifndef half_precision_test_h
-#define half_precision_test_h
+#ifndef float_tests_h
+#define float_tests_h
+
+int FloatValuesTest1(void);
 
 int half_precision_encode_basic(void);
 
@@ -42,4 +44,4 @@ int double_as_smallest_encode_basic(void);
 int half_precision_to_float_vs_rfc_test(void);
 
 
-#endif /* half_precision_test_h */
+#endif /* float_tests_h */

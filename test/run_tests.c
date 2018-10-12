@@ -33,7 +33,7 @@
 #include "UsefulBuf.h"
 #include <stdbool.h>
 
-#include "half_precision_test.h"
+#include "float_tests.h"
 #include "basic_test.h"
 #include "bstrwrap_tests.h"
 #include "mempool_test.h"
@@ -115,6 +115,7 @@ test_entry2 s_tests2[] = {
 
 
 test_entry s_tests[] = {
+    TEST_ENTRY(FloatValuesTest1),
     TEST_ENTRY(RTICResultsTest),
     TEST_ENTRY(MapEncodeTest),
     TEST_ENTRY(ArrayNestingTest1),
