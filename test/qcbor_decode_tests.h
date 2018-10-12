@@ -158,5 +158,8 @@ int BignumParseTest(void);
 int NestedMapTest(void);
 
 
+int mempool_test(void);
+
+
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

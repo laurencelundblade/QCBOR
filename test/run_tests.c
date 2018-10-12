@@ -35,8 +35,6 @@
 
 #include "float_tests.h"
 #include "basic_test.h"
-#include "bstrwrap_tests.h"
-#include "mempool_test.h"
 #include "qcbor_decode_tests.h"
 #include "qcbor_encode_tests.h"
 #include "UsefulBuf_Tests.h"

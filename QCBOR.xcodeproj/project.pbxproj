@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		0F58EB9C216A388E002FD6D1 /* qcbor_decode_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F58EB9B216A388E002FD6D1 /* qcbor_decode_malloc.c */; };
-		0F58EB9F216B91AA002FD6D1 /* mempool_test.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F58EB9E216B91AA002FD6D1 /* mempool_test.c */; };
 		0FA9BEB7216CE6CA00BA646B /* qcbor_decode_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */; };
 		0FA9BEBA216DC7AD00BA646B /* qcbor_encode_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEB8216DC7AD00BA646B /* qcbor_encode_tests.c */; };
 		0FA9BEBD216DE31700BA646B /* UsefulBuf_Tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEBC216DE31700BA646B /* UsefulBuf_Tests.c */; };
@@ -37,8 +36,6 @@
 
 /* Begin PBXFileReference section */
 		0F58EB9B216A388E002FD6D1 /* qcbor_decode_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qcbor_decode_malloc.c; path = src/qcbor_decode_malloc.c; sourceTree = "<group>"; };
-		0F58EB9D216B91AA002FD6D1 /* mempool_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = mempool_test.h; path = test/mempool_test.h; sourceTree = "<group>"; };
-		0F58EB9E216B91AA002FD6D1 /* mempool_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = mempool_test.c; path = test/mempool_test.c; sourceTree = "<group>"; };
 		0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qcbor_decode_tests.c; path = test/qcbor_decode_tests.c; sourceTree = "<group>"; };
 		0FA9BEB6216CE6CA00BA646B /* qcbor_decode_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_decode_tests.h; path = test/qcbor_decode_tests.h; sourceTree = "<group>"; };
 		0FA9BEB8216DC7AD00BA646B /* qcbor_encode_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_encode_tests.c; path = test/qcbor_encode_tests.c; sourceTree = "<group>"; tabWidth = 3; };
@@ -135,8 +132,6 @@
 				E73B575B2161CA7C0080D658 /* half_to_double_from_rfc7049.h */,
 				E776E09C214AEEEA00E67947 /* basic_test.c */,
 				E776E09B214AEEEA00E67947 /* basic_test.h */,
-				0F58EB9D216B91AA002FD6D1 /* mempool_test.h */,
-				0F58EB9E216B91AA002FD6D1 /* mempool_test.c */,
 			);
 			name = test;
 			sourceTree = "<group>";
@@ -210,7 +205,6 @@
 				E776E097214AE0C700E67947 /* cmd_line_main.c in Sources */,
 				E776E09D214AEEEA00E67947 /* basic_test.c in Sources */,
 				0FA9BEBD216DE31700BA646B /* UsefulBuf_Tests.c in Sources */,
-				0F58EB9F216B91AA002FD6D1 /* mempool_test.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
