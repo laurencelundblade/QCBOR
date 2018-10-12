@@ -448,10 +448,7 @@ static int IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
 
 /* 
    Tests the decoding of lots of different integers sizes 
-   and values.  
- 
-   Todo: test values 254, 255 and 256
- 
+   and values.
  */
 
 int IntegerValuesParseTest()
@@ -834,21 +831,23 @@ static int ParseMapTest1()
 
 /*
  This test parses pValidMapEncoded and checks for extra bytes along the way
- // TODO: this test doesn't work the same way... what to do do
- // The error handling is different because of the way Finish works.
  */
-static int ExtraBytesTest()
+static int ExtraBytesTest(int nLevel)
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
    int nCBORError;
    
-   
    QCBORDecode_Init(&DCtx, (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)}, QCBOR_DECODE_MODE_NORMAL);
    
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_EXTRA_BYTES) {
-      return -1;
+   if(nLevel < 1) {
+      if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_EXTRA_BYTES) {
+         return -1;
+      } else {
+         return 0;
+      }
    }
+   
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return nCBORError;
@@ -856,9 +855,14 @@ static int ExtraBytesTest()
       Item.val.uCount != 3)
       return -1;
 
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
-      return -1;
+   if(nLevel < 2) {
+      if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+         return -1;
+      } else {
+         return 0;
+      }
    }
+   
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return nCBORError;
@@ -869,8 +873,12 @@ static int ExtraBytesTest()
       memcmp(Item.label.string.ptr, "first integer", 13))
       return -1;
    
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_EXTRA_BYTES) {
-      return -1;
+   if(nLevel < 3) {
+      if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+         return -1;
+      } else {
+         return 0;
+      }
    }
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -882,8 +890,13 @@ static int ExtraBytesTest()
       Item.val.uCount != 2)
       return -1;
    
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_EXTRA_BYTES) {
-      return -1;
+   
+   if(nLevel < 4) {
+      if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+         return -1;
+      } else {
+         return 0;
+      }
    }
    
    
@@ -894,8 +907,12 @@ static int ExtraBytesTest()
       memcmp(Item.val.string.ptr, "string1", 7))
       return -1;
    
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_EXTRA_BYTES) {
-      return -1;
+   if(nLevel < 5) {
+      if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+         return -1;
+      } else {
+         return 0;
+      }
    }
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -905,8 +922,12 @@ static int ExtraBytesTest()
       memcmp(Item.val.string.ptr, "string2", 7))
       return -1;
  
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_EXTRA_BYTES) {
-      return -1;
+   if(nLevel < 6) {
+      if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+         return -1;
+      } else {
+         return 0;
+      }
    }
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -918,8 +939,12 @@ static int ExtraBytesTest()
       Item.val.uCount != 4)
       return -1;
    
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_EXTRA_BYTES) {
-      return -1;
+   if(nLevel < 7) {
+      if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+         return -1;
+      } else {
+         return 0;
+      }
    }
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -932,8 +957,12 @@ static int ExtraBytesTest()
       memcmp(Item.val.string.ptr, "xxxx", 4))
       return -1;
    
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_EXTRA_BYTES) {
-      return -1;
+   if(nLevel < 8) {
+      if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+         return -1;
+      } else {
+         return 0;
+      }
    }
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -946,8 +975,12 @@ static int ExtraBytesTest()
       memcmp(Item.val.string.ptr, "yyyy", 4))
       return -1;
    
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_EXTRA_BYTES) {
-      return -1;
+   if(nLevel < 9) {
+      if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+         return -1;
+      } else {
+         return 0;
+      }
    }
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -959,8 +992,12 @@ static int ExtraBytesTest()
       Item.val.int64 != 98)
       return -1;
    
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_EXTRA_BYTES) {
-      return -1;
+   if(nLevel < 10) {
+      if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+         return -1;
+      } else {
+         return 0;
+      }
    }
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -985,10 +1022,15 @@ static int ExtraBytesTest()
 
 int ParseMapTest()
 {
-   int n = ParseMapTest1();
+   int n = ParseMapTest1();  // TODO: review this test carefully
    
    if(!n) {
-      n = ExtraBytesTest();
+      for(int i = 0; i < 10; i++) {
+         n = ExtraBytesTest(i);
+         if(n) {
+            break;
+         }
+      }
    }
    
    return(n);

@@ -80,7 +80,6 @@ static void printencoded(const uint8_t *pEncoded, size_t nLen)
    fflush(stdout);
 }
 
-#endif
 
 #include <stdio.h>
 
@@ -95,13 +94,15 @@ int Compare(UsefulBufC U1, UsefulBufC U2) {
    return 0;
    
 }
+#endif
 
 
-/*#define CheckResults(Enc, Expected) \
-   UsefulBuf_Compare(Enc, (UsefulBufC){Expected, sizeof(Expected)}) */
 
 #define CheckResults(Enc, Expected) \
-   Compare(Enc, (UsefulBufC){Expected, sizeof(Expected)})
+   UsefulBuf_Compare(Enc, (UsefulBufC){Expected, sizeof(Expected)})
+
+//#define CheckResults(Enc, Expected) \
+//   Compare(Enc, (UsefulBufC){Expected, sizeof(Expected)})
 
 
 
@@ -899,7 +900,6 @@ int ArrayNestingTest1()
    }
    size_t nEncodedLen;
    if(QCBOREncode_Finish(&ECtx, &nEncodedLen)) {
-      printf("ArrayNestingTest1 Failed\n");
       nReturn = -1;
    }
    //printencoded(pEncoded, nEncodedLen);
@@ -958,42 +958,8 @@ int ArrayNestingTest3()
    return(nReturn);
 }
 
-#if 0
-
 
 static uint8_t s_pFiveArrarys[] = {0x81, 0x81, 0x81, 0x81, 0x80};
-
-static int EncodeRaw(uint8_t **pEncoded, size_t *pEncodedLen)
-{
-   QCBOREncodeContext ECtx;
-   int nReturn = -1;
-   
-   *pEncoded = NULL;
-   *pEncodedLen = INT32_MAX; // largest buffer this CBOR implementation will deal with
-   
-   // loop runs CBOR encoding twice. First with no buffer to
-   // calucate the length so buffer can be allocated correctly,
-   // and last with the buffer to do the actual encoding
-   do {
-      QCBOREncode_Init(&ECtx, *pEncoded, *pEncodedLen);
-      QCBOREncode_OpenArray(&ECtx);
-      QCBOREncode_AddRaw(&ECtx, (EncodedCBORC){((UsefulBufC) {s_pFiveArrarys, 5}), 1});
-      QCBOREncode_AddRaw(&ECtx, (EncodedCBORC){((UsefulBufC) {pExpectedEncodedInts, sizeof(pExpectedEncodedInts)}), 1});
-      QCBOREncode_CloseArray(&ECtx);
-      
-      if(QCBOREncode_Finish(&ECtx, pEncodedLen))
-         goto Done;
-      if(*pEncoded != NULL) {
-         nReturn = 0;
-         goto Done;
-      }
-      *pEncoded = malloc(*pEncodedLen);
-   } while(1);
-   
-Done:
-   return(nReturn);
-}
-
 
 // Validated at http://cbor.me and by manually examining its output
 static uint8_t s_pEncodeRawExpected[] = {
@@ -1023,26 +989,31 @@ static uint8_t s_pEncodeRawExpected[] = {
    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 
-
 int EncodeRawTest()
 {
-   uint8_t *pEncodedRaw;
-   size_t nEncodedRawLen;
+   UsefulBuf_MakeStackUB(RawTestStorage, 220);
    
-   if(EncodeRaw(&pEncodedRaw, &nEncodedRawLen)) {
-      return(-1);
+   QCBOREncodeContext ECtx;
+
+   QCBOREncode_Init(&ECtx, RawTestStorage);
+   QCBOREncode_OpenArray(&ECtx);
+   QCBOREncode_AddEncoded(&ECtx, UsefulBuf_FromByteArrayLiteral(s_pFiveArrarys));
+   QCBOREncode_AddEncoded(&ECtx, UsefulBuf_FromByteArrayLiteral(pExpectedEncodedInts));
+   QCBOREncode_CloseArray(&ECtx);
+   
+   UsefulBufC EncodedRawTest;
+   
+   if(QCBOREncode_Finish2(&ECtx, &EncodedRawTest)) {
+      return -4;
    }
    
-   //printencoded(pEncodedRaw, nEncodedRawLen);
+   if(UsefulBuf_Compare(EncodedRawTest, UsefulBuf_FromByteArrayLiteral(s_pEncodeRawExpected))) {
+      return -5;
+   }
    
-  int nReturn = 0;
-  if(nEncodedRawLen != sizeof(s_pEncodeRawExpected) ||  memcmp(s_pEncodeRawExpected, pEncodedRaw, sizeof(s_pEncodeRawExpected)))
-      nReturn = 1;
-   
-   return(nReturn);
+   return 0;
 }
 
-#endif
 
 
 

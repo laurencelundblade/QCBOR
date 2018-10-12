@@ -35,7 +35,7 @@
 
 /* Begin PBXFileReference section */
 		0F58EB9B216A388E002FD6D1 /* qcbor_decode_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qcbor_decode_malloc.c; path = src/qcbor_decode_malloc.c; sourceTree = "<group>"; };
-		0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qcbor_decode_tests.c; path = test/qcbor_decode_tests.c; sourceTree = "<group>"; };
+		0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_decode_tests.c; path = test/qcbor_decode_tests.c; sourceTree = "<group>"; tabWidth = 3; };
 		0FA9BEB6216CE6CA00BA646B /* qcbor_decode_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_decode_tests.h; path = test/qcbor_decode_tests.h; sourceTree = "<group>"; };
 		0FA9BEB8216DC7AD00BA646B /* qcbor_encode_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_encode_tests.c; path = test/qcbor_encode_tests.c; sourceTree = "<group>"; tabWidth = 3; };
 		0FA9BEB9216DC7AD00BA646B /* qcbor_encode_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_encode_tests.h; path = test/qcbor_encode_tests.h; sourceTree = "<group>"; };
@@ -319,7 +319,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -328,7 +328,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
