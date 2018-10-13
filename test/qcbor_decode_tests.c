@@ -1579,31 +1579,79 @@ int NestedMapTest()
 }
 
 
+static UsefulBufC make_nested_indefinite_arrays(int n, UsefulBuf Storage)
+{
+   UsefulOutBuf UOB;
+   UsefulOutBuf_Init(&UOB, Storage);
+   
+   int i;
+   for(i = 0; i < n; i++) {
+      UsefulOutBuf_AppendByte(&UOB, 0x9f);
+   }
+
+   for(i = 0; i < n; i++) {
+      UsefulOutBuf_AppendByte(&UOB, 0xff);
+   }
+   return UsefulOutBuf_OutUBuf(&UOB);
+}
 
 
+static int parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
+{
+   QCBORDecodeContext DC;
+   QCBORDecode_Init(&DC, Nested, 0);
+   
+   int j;
+   for(j = 0; j < nNestLevel; j++) {
+      QCBORItem Item;
+      int nReturn = QCBORDecode_GetNext(&DC, &Item);
+      if(j >= QCBOR_MAX_ARRAY_NESTING) {
+         // Should be in error
+         if(nReturn != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+            return -4;
+         } else {
+            return 0; // Decoding doesn't recover after an error
+         }
+      } else {
+         // Should be no error
+         if(nReturn) {
+            return -9; // Should not have got an error
+         }
+      }
+      if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+         return -7;
+      }
+   }
+   int nReturn = QCBORDecode_Finish(&DC);
+   if(nReturn) {
+      return -3;
+   }
+   return 0;
+}
 
 
+int indeflen_nest_test()
+{
+   UsefulBuf_MakeStackUB(Storage, 50);
+   int i;
+   for(i=1; i < QCBOR_MAX_ARRAY_NESTING+4; i++) {
+      UsefulBufC Nested = make_nested_indefinite_arrays(i, Storage);
+      int nReturn = parse_indeflen_nested(Nested, i);
+      if(nReturn) {
+         return nReturn;
+      }
+   }
+   return 0;
+}
 
-static const uint8_t pIndefiniteLenString[] = {
-    0x81, // Array of length one
-    0x7f, // text string marked with indefinite length
-    0x65, 0x73, 0x74, 0x72, 0x65, 0x61, // first segment
-    0x64, 0x6d, 0x69, 0x6e, 0x67, // second segment
-    0xff // ending break
-};
-
-static const uint8_t pIndefiniteArray[] = {0x9f, 0x01, 0x82, 0x02, 0x03, 0xff};
 
 // [1, [2, 3]]
-
-
-//0x9f018202039f0405ffff
+static const uint8_t pIndefiniteArray[] = {0x9f, 0x01, 0x82, 0x02, 0x03, 0xff};
 
 int indefinite_length_decode_test()
 {
     UsefulBufC IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArray);
-    
-    
+   
     // Decode it and see if it is OK
     UsefulBuf_MakeStackUB(MemPool, 200);
     QCBORDecodeContext DC;
@@ -1644,6 +1692,15 @@ int indefinite_length_decode_test()
     
     return 0;
 }
+
+
+static const uint8_t pIndefiniteLenString[] = {
+   0x81, // Array of length one
+   0x7f, // text string marked with indefinite length
+   0x65, 0x73, 0x74, 0x72, 0x65, 0x61, // first segment
+   0x64, 0x6d, 0x69, 0x6e, 0x67, // second segment
+   0xff // ending break
+};
 
 int indefinite_length_decode_string_test() {
     UsefulBufC IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteLenString);

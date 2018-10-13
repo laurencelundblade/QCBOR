@@ -112,6 +112,7 @@ test_entry2 s_tests2[] = {
 
 
 test_entry s_tests[] = {
+    TEST_ENTRY(indeflen_nest_test),
     TEST_ENTRY(EncodeRawTest),
     TEST_ENTRY(FloatValuesTest1),
     TEST_ENTRY(RTICResultsTest),
