@@ -127,6 +127,7 @@ test_entry s_tests[] = {
     TEST_ENTRY(ParseTooDeepArrayTest),
     TEST_ENTRY(ComprehensiveInputTest),
     TEST_ENTRY(ParseMapTest),
+    TEST_ENTRY(NestedMapTestIndefLen),
     TEST_ENTRY(indefinite_length_decode_test),
     TEST_ENTRY(basic_encode_test),
     TEST_ENTRY(NestedMapTest),

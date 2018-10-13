@@ -1513,6 +1513,36 @@ static int CheckItemWithIntLabel(QCBORDecodeContext *pCtx, uint8_t uDataType, ui
 }
 
 
+// Same code checks definite and indefinite length versions of the map
+static int CheckCSRMaps(QCBORDecodeContext *pDC)
+{
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 0, 0, NULL)) return -1;
+   
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 1, -23, NULL)) return -1;
+   
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 2, -20, NULL)) return -1;
+   
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, -18, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, -17, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, -15, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, -16, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, -14, NULL)) return -1;
+   
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 2, -19, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 3, -11, NULL)) return -1;
+   
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_INT64, 4, -9, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_BYTE_STRING, 3, -10, NULL)) return -1;
+   
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 1, -22, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_INT64, 2, -5, NULL)) return -1;
+   
+   if(QCBORDecode_Finish(pDC)) return -2;
+   
+   return 0;
+}
+
+
 /*
 // cbor.me decoded output
 {
@@ -1537,6 +1567,7 @@ static int CheckItemWithIntLabel(QCBORDecodeContext *pCtx, uint8_t uDataType, ui
 }
  */
 
+
 static uint8_t s_CSRInput[] = {
    0xa2, 0x36, 0xa2, 0x33, 0xa5, 0x31, 0x6c, 0x4f,
    0x72, 0x67, 0x61, 0x6e, 0x69, 0x7a, 0x61, 0x74,
@@ -1554,29 +1585,30 @@ int NestedMapTest()
    
    QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_CSRInput), QCBOR_DECODE_MODE_NORMAL);
    
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_MAP, 0, 0, NULL)) return -1;
-
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_MAP, 1, -23, NULL)) return -1;
-
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_MAP, 2, -20, NULL)) return -1;
-
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_TEXT_STRING, 3, -18, NULL)) return -1;
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_TEXT_STRING, 3, -17, NULL)) return -1;
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_TEXT_STRING, 3, -15, NULL)) return -1;
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_TEXT_STRING, 3, -16, NULL)) return -1;
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_TEXT_STRING, 3, -14, NULL)) return -1;
-
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_MAP, 2, -19, NULL)) return -1;
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_MAP, 3, -11, NULL)) return -1;
-   
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_INT64, 4, -9, NULL)) return -1;
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_BYTE_STRING, 3, -10, NULL)) return -1;
-   
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_MAP, 1, -22, NULL)) return -1;
-   if(CheckItemWithIntLabel(&DCtx, QCBOR_TYPE_INT64, 2, -5, NULL)) return -1;
-   
-   return 0;
+   return CheckCSRMaps(&DCtx);
 }
+
+// Same map as above, but using indefinite lengths
+static uint8_t s_CSRInputIndefLen[] = {
+   0xbf, 0x36, 0xbf, 0x33, 0xbf, 0x31, 0x6c, 0x4f,
+   0x72, 0x67, 0x61, 0x6e, 0x69, 0x7a, 0x61, 0x74,
+   0x69, 0x6f, 0x6e, 0x30, 0x63, 0x53, 0x53, 0x47,
+   0x2e, 0x69, 0x43, 0x6f, 0x6e, 0x66, 0x75, 0x73,
+   0x69, 0x6f, 0x6e, 0x2f, 0x69, 0x53, 0x61, 0x6e,
+   0x20, 0x44, 0x69, 0x65, 0x67, 0x6f, 0x2d, 0x62,
+   0x55, 0x53,  0xff, 0x32, 0xbf, 0x2a, 0xbf, 0x28,  0x26, 0xff,
+   0x29, 0x4a, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+   0x07, 0x08, 0x09, 0x0a, 0xff, 0xff, 0x35, 0xbf, 0x24, 0x22, 0xff, 0xff};
+
+int NestedMapTestIndefLen()
+{
+   QCBORDecodeContext DCtx;
+   
+   QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_CSRInputIndefLen), QCBOR_DECODE_MODE_NORMAL);
+   
+   return CheckCSRMaps(&DCtx);
+}
+
 
 
 static UsefulBufC make_nested_indefinite_arrays(int n, UsefulBuf Storage)

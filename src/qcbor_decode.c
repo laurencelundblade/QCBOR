@@ -833,6 +833,10 @@ static inline int GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedIt
    if(nReturn)
       goto Done;
    
+   if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
+      goto Done;
+   }
+   
    // If in a map and the right decoding mode, get the label
    if(DecodeNesting_TypeIsMap(&(me->nesting)) && me->uDecodeMode != QCBOR_DECODE_MODE_MAP_AS_ARRAY) {
       // In a map and caller wants maps decoded, not treated as arrays
