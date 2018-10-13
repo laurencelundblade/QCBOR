@@ -1647,9 +1647,15 @@ int indeflen_nest_test()
 
 // [1, [2, 3]]
 static const uint8_t pIndefiniteArray[] = {0x9f, 0x01, 0x82, 0x02, 0x03, 0xff};
+static const uint8_t pIndefiniteArrayBad1[] = {0x9f}; // No closing break
+static const uint8_t pIndefiniteArrayBad2[] = {0x9f, 0x9f, 0x02, 0xff}; // Not enough closing breaks
+static const uint8_t pIndefiniteArrayBad3[] = {0x9f, 0x02, 0xff, 0xff}; // Too many closing breaks
+
 
 int indefinite_length_decode_test()
 {
+   int nResult;
+   // --- first test -----
     UsefulBufC IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArray);
    
     // Decode it and see if it is OK
@@ -1689,7 +1695,75 @@ int indefinite_length_decode_test()
     if(QCBORDecode_Finish(&DC)) {
         return -2;
     }
-    
+   
+   // --- next test -----
+   IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArrayBad1);
+   
+   QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
+   
+   QCBORDecode_SetMemPool(&DC, MemPool, false);
+   
+   nResult = QCBORDecode_GetNext(&DC, &Item);
+   if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return -1;
+   }
+   
+   nResult = QCBORDecode_Finish(&DC); // TODO: find bug related to this
+   if(nResult != QCBOR_ERR_HIT_END) {
+      return -2;
+   }
+
+   
+   // --- next test -----
+   IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArrayBad2);
+   
+   QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
+   
+   QCBORDecode_SetMemPool(&DC, MemPool, false);
+   
+   nResult = QCBORDecode_GetNext(&DC, &Item);
+   if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return -1;
+   }
+
+   nResult = QCBORDecode_GetNext(&DC, &Item);
+   if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return -1;
+   }
+   
+   nResult = QCBORDecode_GetNext(&DC, &Item);
+   if(nResult || Item.uDataType != QCBOR_TYPE_INT64) {
+      return -1;
+   }
+   
+   nResult = QCBORDecode_Finish(&DC);
+   if(nResult != QCBOR_ERR_HIT_END) { // TODO: is this the error that should really be returned here?
+      return -2;
+   }
+   
+   
+   // --- next test -----
+   IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArrayBad3);
+   
+   QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
+   
+   QCBORDecode_SetMemPool(&DC, MemPool, false);
+   
+   nResult = QCBORDecode_GetNext(&DC, &Item);
+   if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return -1;
+   }
+   
+   nResult = QCBORDecode_GetNext(&DC, &Item);
+   if(nResult || Item.uDataType != QCBOR_TYPE_INT64) {
+      return -1;
+   }
+   
+   nResult = QCBORDecode_Finish(&DC);
+   if(nResult != QCBOR_ERR_EXTRA_BYTES) {
+      return -2;
+   }
+
     return 0;
 }
 
