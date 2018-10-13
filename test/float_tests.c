@@ -567,7 +567,7 @@ int double_as_smallest_encode_basic()
     }
     
     return 0;
-};
+}
 
 
 

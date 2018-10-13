@@ -437,21 +437,6 @@ Done:
 /*
  Decode text and byte strings
  */
-inline static int DecodeBytesOld(int nMajorType, uint64_t uNumber, UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem)
-{
-   const void *pBytes = UsefulInputBuf_GetBytes(pUInBuf, uNumber);
-   
-   int nReturn = QCBOR_ERR_HIT_END; 
-   
-   if(pBytes != NULL) {
-      pDecodedItem->val.string = (UsefulBufC){pBytes, uNumber};
-      pDecodedItem->uDataType  = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING) ? QCBOR_TYPE_BYTE_STRING : QCBOR_TYPE_TEXT_STRING;
-      nReturn = QCBOR_SUCCESS;
-   }
-   
-   return nReturn;
-}
-
 inline static int DecodeBytes(QCBORStringAllocator *pAlloc, int nMajorType, uint64_t uNumber, UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem)
 {
     UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, uNumber);
@@ -1123,9 +1108,9 @@ void QCBORDecode_SetMemPool(QCBORDecodeContext *me, UsefulBuf Pool, bool bAllStr
    pMP->StringAllocator.fFree       = MemPool_Free;
    pMP->StringAllocator.fDestructor = NULL;
    
-   pMP->pStart = Pool.ptr + sizeof(MemPool);
+   pMP->pStart = (uint8_t *)Pool.ptr + sizeof(MemPool);
    pMP->pFree  = pMP->pStart;
-   pMP->pEnd   = Pool.ptr + Pool.len;
+   pMP->pEnd   = (uint8_t *)Pool.ptr + Pool.len;
    pMP->StringAllocator.pAllocaterContext = pMP;
    
    me->pStringAllocator = pMP;

@@ -105,7 +105,7 @@ UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC
       return NULLUsefulBufC;
    }
     
-   memcpy(Dest.ptr + uOffset, Src.ptr, Src.len);
+   memcpy((uint8_t *)Dest.ptr + uOffset, Src.ptr, Src.len);
     
    return((UsefulBufC){Dest.ptr, Src.len + uOffset});
 }

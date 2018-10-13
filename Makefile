@@ -1,4 +1,4 @@
-CFLAGS=-I inc -I test -Os
+CFLAGS=-I inc -I test -Os -Wall -Werror -pedantic-errors -Wextra -Wshadow
 
 QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o
 

@@ -38,7 +38,10 @@ int fputs_wrapper(const char *szString, void *ctx)
 }
 
 
-int main(int argc, const char * argv[]) {   
+int main(int argc, const char * argv[])
+{
+    (void)argc; // Suppress unused warning
+    (void)argv; // Supress unused warning
    
     int nNumTestsFailed = run_tests(&fputs_wrapper, stdout, NULL);
 

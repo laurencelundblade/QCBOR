@@ -53,7 +53,7 @@ int fail_test()
  */
 const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 {
-    const uint32_t uMax = 1000000000;
+    const int32_t nMax = 1000000000;
     
     UsefulOutBuf OutBuf;
     UsefulOutBuf_Init(&OutBuf, StringMem);
@@ -62,12 +62,12 @@ const char *NumToString(int32_t nNum, UsefulBuf StringMem)
         UsefulOutBuf_AppendByte(&OutBuf, '-');
         nNum = -nNum;
     }
-    if(nNum > uMax-1) {
+    if(nNum > nMax-1) {
         return "XXX";
     }
     
     bool bDidSomeOutput = false;
-    for(int n = uMax; n > 0; n/=10) {
+    for(int n = nMax; n > 0; n/=10) {
         int x = nNum/n;
         if(x || bDidSomeOutput){
             bDidSomeOutput = true;

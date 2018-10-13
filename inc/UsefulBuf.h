@@ -467,7 +467,7 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
    if(uAmount > UB.len) {
       return NULLUsefulBufC;
    }
-   return (UsefulBufC){UB.ptr + uAmount, UB.len - uAmount};
+   return (UsefulBufC){(uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
 }
 
 

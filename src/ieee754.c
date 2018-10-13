@@ -42,11 +42,12 @@
  job and the resulting object code is smaller from combining code for the many different
  cases (normal, subnormal, infinity, zero...) for the conversions.
  
- Dead stripping is also really helpful to get code size down.
+ Dead stripping is also really helpful to get code size down when floating point
+ encoding is not needed.
  
- This code also works solely using shifts and masks and thus has no dependency on
- any math libraries. It will even work if the CPU doesn't have any floating
- point support.
+ This code works solely using shifts and masks and thus has no dependency on
+ any math libraries. It can even work if the CPU doesn't have any floating
+ point support, though that isn't the most useful thing to do.
  
  The memcpy() dependency is only for CopyFloatToUint32() and friends which only
  is needed to avoid type punning when converting the actual float bits to
@@ -167,13 +168,6 @@ static inline uint64_t CopyDoubleToUint64(double d)
     uint64_t u64;
     memcpy(&u64, &d, sizeof(uint64_t));
     return u64;
-}
-
-static inline double CopyUint64ToDouble(uint64_t u64)
-{
-    double d;
-    memcpy(&d, &u64, sizeof(uint64_t));
-    return d;
 }
 
 static inline float CopyUint32ToFloat(uint32_t u32)
