@@ -1683,7 +1683,7 @@ static const uint8_t pIndefiniteArrayBad1[] = {0x9f}; // No closing break
 static const uint8_t pIndefiniteArrayBad2[] = {0x9f, 0x9f, 0x02, 0xff}; // Not enough closing breaks
 static const uint8_t pIndefiniteArrayBad3[] = {0x9f, 0x02, 0xff, 0xff}; // Too many closing breaks
 static const uint8_t pIndefiniteArrayBad4[] = {0x81, 0x9f}; // Unclosed indeflen inside def len
-
+//static const uint8_t pIndefiniteArrayBad5[] = {0x9f, 0xc7, 0xff}; // confused tag
 
 int indefinite_length_decode_test()
 {
@@ -1796,7 +1796,6 @@ int indefinite_length_decode_test()
    if(nResult != QCBOR_ERR_EXTRA_BYTES) {
       return -2;
    }
-
    
    // --- next test -----
    IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArrayBad4);
@@ -1809,7 +1808,7 @@ int indefinite_length_decode_test()
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
       return -1;
    }
-
+   
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
       return -1;
@@ -1819,6 +1818,33 @@ int indefinite_length_decode_test()
    if(nResult != QCBOR_ERR_HIT_END) {
       return -2;
    }
+   
+#if 0
+
+   // --- next test -----
+   IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArrayBad5);
+   
+   QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
+   
+   QCBORDecode_SetMemPool(&DC, MemPool, false);
+   
+   nResult = QCBORDecode_GetNext(&DC, &Item);
+   if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return -1;
+   }
+   
+   nResult = QCBORDecode_GetNext(&DC, &Item);
+   if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return -1;
+   }
+   
+   nResult = QCBORDecode_Finish(&DC);
+   if(nResult != QCBOR_ERR_HIT_END) {
+      return -2;
+   }
+#endif
+
+   
    
     return 0;
 }
@@ -1832,7 +1858,8 @@ static const uint8_t pIndefiniteLenString[] = {
    0xff // ending break
 };
 
-int indefinite_length_decode_string_test() {
+int indefinite_length_decode_string_test()
+{
     UsefulBufC IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteLenString);
     
     
@@ -1843,7 +1870,9 @@ int indefinite_length_decode_string_test() {
     
     QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
     
-    QCBORDecode_SetMemPool(&DC,  MemPool, false);
+   if(QCBORDecode_SetMemPool(&DC,  MemPool, false)) {
+      return -4;
+   }
     
     
     QCBORDecode_GetNext(&DC, &Item);
@@ -1855,7 +1884,45 @@ int indefinite_length_decode_string_test() {
     if(Item.uDataType != QCBOR_TYPE_TEXT_STRING) {
         return -1;
     }
-    
+
+   // ------ Don't set a string allocator and see an error
+   QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
+   
+   QCBORDecode_GetNext(&DC, &Item);
+   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return -1;
+   }
+   
+   if(QCBORDecode_GetNext(&DC, &Item) != QCBOR_ERR_NO_STRING_ALLOCATOR) {
+      return -1;
+   }
+   
+   // ----- Mempool is way too small -----
+   UsefulBuf_MakeStackUB(MemPoolTooSmall, 20); // 20 is too small no matter what
+
+   QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
+   if(!QCBORDecode_SetMemPool(&DC,  MemPoolTooSmall, false)) {
+      return -8;
+   }
+
+
+   
+   // ----- Mempool is way too small -----
+   UsefulBuf_MakeStackUB(MemPoolSmall, 60); // TODO: this tests needs some big strings to be CPU indepedent
+   
+   QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
+   if(QCBORDecode_SetMemPool(&DC,  MemPoolSmall, false)) {
+      return -8;
+   }
+   
+   QCBORDecode_GetNext(&DC, &Item);
+   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return -1;
+   }
+   if(QCBORDecode_GetNext(&DC, &Item) != QCBOR_ERR_STRING_ALLOC) {
+      return -1;
+   }
+      
     return 0;
 }
 

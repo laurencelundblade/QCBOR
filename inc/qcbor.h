@@ -481,7 +481,7 @@ struct _QCBORDecodeContext {
    QCBOR_MAX_ARRAY_NESTING (this is typically 10).
  - Max items in an array or map when encoding / decoding is
    QCBOR_MAX_ITEMS_IN_ARRAY (typicall 65,536).
- - Does not support encoding or decoding indefinite lengths.
+ - Does not support encoding indefinite lengths.
  - Does not directly support some tagged types: decimal fractions, big floats
  - Does not directly support labels in maps other than text strings and ints.
  - Epoch dates limited to INT64_MAX (+/- 292 billion years)
@@ -542,7 +542,7 @@ struct _QCBORDecodeContext {
 #define QCBOR_ERR_TOO_MANY_CLOSES         4
 
 /**  During decoding, some CBOR construct was encountered that this decoder
- doesn't support. For example indefinite lengths. */
+ doesn't support. */
 #define QCBOR_ERR_UNSUPPORTED             5
 
 /**  During decoding, hit the end of the given data to decode. For example,
@@ -688,7 +688,7 @@ typedef struct _QCBORItem {
       UsefulBufC  bigNum;     /** The value for uDataType QCBOR_TYPE_BIGNUM */
       uint8_t     uSimple;    /** The integer value for unknown simple types */
       
-   } val;  /** The union holding the item's value. Select union member based on uMajorType */
+   } val;  /** The union holding the item's value. Select union member based on uDataType */
    
    union {
       UsefulBufC  string;  /** The label for uLabelType QCBOR_TYPE_BYTE_STRING and QCBOR_TYPE_TEXT_STRING */
@@ -1648,12 +1648,15 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t n
  @param[in] MemPool The pointer and length of the memory pool
  @param[in] bAllStrings true means to put even definite length strings in the pool
  
+ @return 0 if the MemPool was at least minimum size, 1 if not.
+ 
  Indefinite length strings (text and byte) cannot be decoded unless there is
  either a memory pool set up or a string allocator configured.
  
  The MemPool must be sized large enough. For a 64-bit CPU it must be sized
- at 64 bytes plus space to hold all the indefinite length strings. For a 32-bit CPU
- the size is 32 bytes plus space for the strings. There is no overhead per
+ at 72 bytes plus space to hold all the indefinite length strings. For a 32-bit CPU
+ the size is 36 bytes plus space for the strings. (This is space for 9 pointers;
+ it may vary from one CPU or OS to another). There is no overhead per
  string. This includes indefinite length strings that are serve as labels
  for map items.
  
@@ -1669,18 +1672,13 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t n
  
  
  */
-void QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAllStrings);
-
-
-int QCBORDecode_SetMemPool_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t nMode, UsefulBuf MemPool);
+int QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAllStrings);
 
 
 /**
  
  */
 void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator);
-
-QCBORStringAllocator *QCBORDecode_GetAllocator(QCBORDecodeContext *pCtx);
 
 
 

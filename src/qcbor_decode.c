@@ -648,11 +648,8 @@ Done:
 static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    int nReturn;
-   UsefulBufC FullString = NULLUsefulBufC;
-   QCBORStringAllocator *pAlloc =  (QCBORStringAllocator *)me->pStringAllocator;
+   QCBORStringAllocator *pAlloc = (QCBORStringAllocator *)me->pStringAllocator;
    
-   // TODO: can this call to GetNext_Item go in the loop below so there is only
-   // one call to it so it can inline?
    nReturn = GetNext_Item(&(me->InBuf), pDecodedItem, me->bStringAllocateAll ? pAlloc: NULL);
    if(nReturn) {
       goto Done;
@@ -681,6 +678,7 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    // There is an indefinite length string to work on...
    // Track which type of string it is
    const uint8_t uStringType = pDecodedItem->uDataType;
+   UsefulBufC FullString = NULLUsefulBufC;
    
    // Loop getting segments of indefinite string
    for(;;) {
@@ -718,7 +716,7 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    }
    
 Done:
-   if(nReturn && FullString.ptr) {
+   if(pAlloc && nReturn && FullString.ptr) {
       // Getting item failed, clean up the allocated memory
       (pAlloc->fFree)(pAlloc->pAllocaterContext, (void *)FullString.ptr); // TODO unconst construct
    }
@@ -878,7 +876,27 @@ Done:
 
 
 /* Loops processing breaks until a non-break is encountered
- or an error is encountered
+ or an error is encountered.
+ 
+ Case 1) data ends correctly in a break
+ 
+ Case 2) data is short a break
+ 
+ Case 3) data is short other than a break
+ 
+ Case 4) extra break
+ 
+ Case 5) other extra stuff
+ 
+ 
+ Can stop when nesting is exhausted, possibly returning a break
+ 
+ Can stop when getting to a non-break or to end of data
+    return error on end of data or return no error on end of data
+ 
+ All getnexts either return an item or an error so far
+ 
+ 
  */
 static int GetNext_GetNonBreak(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
@@ -921,6 +939,21 @@ int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    // Record the nesting level for this data item before processing any of
    // decrementing and decsending
    pDecodedItem->uNestingLevel = DecodeNesting_GetLevel(&(me->nesting));
+#if 0
+   // Maybe peek at next item here.
+   {
+      // Only need to do this is current item is indefinite length
+      if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf))) {
+         size_t uPeek = UsefulInputBuf_Tell(&(me->InBuf));
+         QCBORItem Peek;
+         GetNext_Item(&(me->InBuf), &Peek, NULL);
+         if(Peek.uDataType == 99) { // TODO:
+            // Mark current item as end of array / map
+         }
+         UsefulInputBuf_Seek(&(me->InBuf), uPeek);
+      }
+   }
+#endif
    
    if(IsMapOrArray(pDecodedItem->uDataType)) {
       // If the new item is array or map, the nesting level descends
@@ -1041,9 +1074,7 @@ Decoder errors handled in this file
  - Hit end of input while decoding a text or byte string QCBOR_ERR_HIT_END
  
  - Encountered conflicting tags -- e.g., an item is tagged both a date string and an epoch date QCBOR_ERR_UNSUPPORTED
- 
- - Encountered a break, not supported because indefinite lengths are not supported QCBOR_ERR_UNSUPPORTED
- 
+  
  - Encontered an array or mapp that has too many items QCBOR_ERR_ARRAY_TOO_LONG
  
  - Encountered array/map nesting that is too deep QCBOR_ERR_ARRAY_NESTING_TOO_DEEP
@@ -1100,10 +1131,10 @@ static void MemPool_Free(void *ctx, void *pOldMem)
 }
 
 
-void QCBORDecode_SetMemPool(QCBORDecodeContext *me, UsefulBuf Pool, bool bAllStrings)
+int QCBORDecode_SetMemPool(QCBORDecodeContext *me, UsefulBuf Pool, bool bAllStrings)
 {
    if(Pool.len < sizeof(MemPool)+1) {
-      return; // Failure will happen when first string needs to be allocated
+      return 1;
    }
    
    MemPool *pMP = (MemPool *)Pool.ptr;
@@ -1119,6 +1150,8 @@ void QCBORDecode_SetMemPool(QCBORDecodeContext *me, UsefulBuf Pool, bool bAllStr
    
    me->pStringAllocator = pMP;
    me->bStringAllocateAll = bAllStrings;
+   
+   return 0;
 }
 
 
