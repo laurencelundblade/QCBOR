@@ -1666,7 +1666,7 @@ int indeflen_nest_test()
 {
    UsefulBuf_MakeStackUB(Storage, 50);
    int i;
-   for(i=1; i < QCBOR_MAX_ARRAY_NESTING+4; i++) {
+   for(i=1; i < QCBOR_MAX_ARRAY_NESTING+4; i++) { 
       UsefulBufC Nested = make_nested_indefinite_arrays(i, Storage);
       int nReturn = parse_indeflen_nested(Nested, i);
       if(nReturn) {
@@ -1677,13 +1677,13 @@ int indeflen_nest_test()
 }
 
 
-// [1, [2, 3]]
-static const uint8_t pIndefiniteArray[] = {0x9f, 0x01, 0x82, 0x02, 0x03, 0xff};
+
+static const uint8_t pIndefiniteArray[] = {0x9f, 0x01, 0x82, 0x02, 0x03, 0xff}; // [1, [2, 3]]
 static const uint8_t pIndefiniteArrayBad1[] = {0x9f}; // No closing break
 static const uint8_t pIndefiniteArrayBad2[] = {0x9f, 0x9f, 0x02, 0xff}; // Not enough closing breaks
 static const uint8_t pIndefiniteArrayBad3[] = {0x9f, 0x02, 0xff, 0xff}; // Too many closing breaks
 static const uint8_t pIndefiniteArrayBad4[] = {0x81, 0x9f}; // Unclosed indeflen inside def len
-//static const uint8_t pIndefiniteArrayBad5[] = {0x9f, 0xc7, 0xff}; // confused tag
+static const uint8_t pIndefiniteArrayBad5[] = {0x9f, 0xc7, 0xff}; // confused tag
 
 int indefinite_length_decode_test()
 {
@@ -1692,41 +1692,51 @@ int indefinite_length_decode_test()
     UsefulBufC IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArray);
    
     // Decode it and see if it is OK
-    UsefulBuf_MakeStackUB(MemPool, 200);
+    UsefulBuf_MakeStackUB(MemPool, 150);
     QCBORDecodeContext DC;
     QCBORItem Item;
     QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
     
     QCBORDecode_SetMemPool(&DC, MemPool, false);
-    
-    
+        
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
-        return -1;
+
+    if(Item.uDataType != QCBOR_TYPE_ARRAY ||
+       Item.uNestingLevel != 0 ||
+       Item.uNextNestLevel != 1) {
+       return -111;
     }
     
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_INT64) {
-        return -1;
+    if(Item.uDataType != QCBOR_TYPE_INT64 ||
+       Item.uNestingLevel != 1 ||
+       Item.uNextNestLevel != 1) {
+        return -2;
     }
     
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
-        return -1;
+    if(Item.uDataType != QCBOR_TYPE_ARRAY ||
+       Item.uNestingLevel != 1 ||
+       Item.uNextNestLevel != 2) {
+        return -3;
     }
     
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_INT64) {
-        return -1;
+    if(Item.uDataType != QCBOR_TYPE_INT64 |
+       Item.uNestingLevel != 2 ||
+       Item.uNextNestLevel != 2) {
+        return -4;
     }
     
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_INT64) {
-        return -1;
+    if(Item.uDataType != QCBOR_TYPE_INT64 |
+       Item.uNestingLevel != 2 ||
+       Item.uNextNestLevel != 0) {
+        return -5;
     }
     
     if(QCBORDecode_Finish(&DC)) {
-        return -2;
+        return -6;
     }
    
    // --- next test -----
@@ -1738,12 +1748,12 @@ int indefinite_length_decode_test()
    
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return -1;
+      return -7;
    }
    
    nResult = QCBORDecode_Finish(&DC);
-   if(nResult != QCBOR_ERR_HIT_END) {
-      return -2;
+   if(nResult != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return -8;
    }
 
    
@@ -1756,22 +1766,22 @@ int indefinite_length_decode_test()
    
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return -1;
+      return -9;
    }
 
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return -1;
+      return -10;
    }
    
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_INT64) {
-      return -1;
+      return -11;
    }
    
    nResult = QCBORDecode_Finish(&DC);
-   if(nResult != QCBOR_ERR_HIT_END) { // TODO: is this the error that should really be returned here?
-      return -2;
+   if(nResult != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return -12;
    }
    
    
@@ -1784,18 +1794,14 @@ int indefinite_length_decode_test()
    
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return -1;
+      return -13;
    }
    
    nResult = QCBORDecode_GetNext(&DC, &Item);
-   if(nResult || Item.uDataType != QCBOR_TYPE_INT64) {
-      return -1;
+   if(nResult != QCBOR_ERR_BAD_BREAK) {
+      return -14;
    }
-   
-   nResult = QCBORDecode_Finish(&DC);
-   if(nResult != QCBOR_ERR_EXTRA_BYTES) {
-      return -2;
-   }
+
    
    // --- next test -----
    IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArrayBad4);
@@ -1806,21 +1812,19 @@ int indefinite_length_decode_test()
    
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return -1;
+      return -15;
    }
    
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return -1;
+      return -16;
    }
    
    nResult = QCBORDecode_Finish(&DC);
-   if(nResult != QCBOR_ERR_HIT_END) {
-      return -2;
+   if(nResult != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return -17;
    }
    
-#if 0
-
    // --- next test -----
    IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArrayBad5);
    
@@ -1830,21 +1834,13 @@ int indefinite_length_decode_test()
    
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return -1;
+      return -18;
    }
    
    nResult = QCBORDecode_GetNext(&DC, &Item);
-   if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return -1;
+   if(nResult != QCBOR_ERR_BAD_BREAK) {
+      return -19;
    }
-   
-   nResult = QCBORDecode_Finish(&DC);
-   if(nResult != QCBOR_ERR_HIT_END) {
-      return -2;
-   }
-#endif
-
-   
    
     return 0;
 }

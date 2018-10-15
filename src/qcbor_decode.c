@@ -875,52 +875,6 @@ Done:
 }
 
 
-/* Loops processing breaks until a non-break is encountered
- or an error is encountered.
- 
- Case 1) data ends correctly in a break
- 
- Case 2) data is short a break
- 
- Case 3) data is short other than a break
- 
- Case 4) extra break
- 
- Case 5) other extra stuff
- 
- 
- Can stop when nesting is exhausted, possibly returning a break
- 
- Can stop when getting to a non-break or to end of data
-    return error on end of data or return no error on end of data
- 
- All getnexts either return an item or an error so far
- 
- 
- */
-static int GetNext_GetNonBreak(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
-{
-   int nReturn = QCBOR_SUCCESS;
-   
-   do {
-      nReturn = GetNext_MapEntry(me, pDecodedItem);
-      if(nReturn) {
-         goto Done;
-      }
-      
-      if(pDecodedItem->uDataType != QCBOR_TYPE_BREAK) {
-         break;
-      }
-      
-      nReturn = DecodeNesting_BreakAscend(&(me->nesting));
-      if(nReturn) {
-         goto Done;
-      }
-   } while (DecodeNesting_IsNested(&(me->nesting)));
-Done:
-   return nReturn;
-}
-
 /*
  Public function, see header qcbor.h file
  */
@@ -928,33 +882,24 @@ int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    int nReturn;
    
-   // Loop getting items until one that is not a break is fetched
-   nReturn = GetNext_GetNonBreak(me, pDecodedItem);
+   nReturn = GetNext_MapEntry(me, pDecodedItem);
    if(nReturn) {
       goto Done;
    }
    
-   // Now have the next item that is not a break, the one that is going to be returned
-
-   // Record the nesting level for this data item before processing any of
-   // decrementing and decsending
-   pDecodedItem->uNestingLevel = DecodeNesting_GetLevel(&(me->nesting));
-#if 0
-   // Maybe peek at next item here.
-   {
-      // Only need to do this is current item is indefinite length
-      if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf))) {
-         size_t uPeek = UsefulInputBuf_Tell(&(me->InBuf));
-         QCBORItem Peek;
-         GetNext_Item(&(me->InBuf), &Peek, NULL);
-         if(Peek.uDataType == 99) { // TODO:
-            // Mark current item as end of array / map
-         }
-         UsefulInputBuf_Seek(&(me->InBuf), uPeek);
-      }
+   if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
+      // Breaks are always processed at the end of this function
+      // They should never show up here.
+      nReturn = QCBOR_ERR_BAD_BREAK;
+      goto Done;
    }
-#endif
    
+   // Record the nesting level for this data item before processing any of
+   // decrementing and descending
+   pDecodedItem->uNestingLevel = DecodeNesting_GetLevel(&(me->nesting));
+   
+   // Process the item just received for descent or decrement, and
+   // ascent if decrements are enough to close out a definite length array/map
    if(IsMapOrArray(pDecodedItem->uDataType)) {
       // If the new item is array or map, the nesting level descends
       nReturn = DecodeNesting_Descend(&(me->nesting), pDecodedItem);
@@ -965,10 +910,46 @@ int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    } else {
       // Decrement the count of items in the enclosing map/array
       // If the count in the enclosing map/array goes to zero, that
-      // triggers a decrement for in the map/array above that and
-      // and ascend in mnesting level.
+      // triggers a decrement in the map/array above that and
+      // an ascend in nesting level.
       DecodeNesting_DecrementCount(&(me->nesting));
    }
+   if(nReturn) {
+      goto Done;
+   }
+   
+   // For indefinite length maps/arrays, looking at any and
+   // all breaks that might terminate them. The equivalent
+   // for definite length maps/arrays happens in
+   // DecodeNesting_DecrementCount().
+   if(DecodeNesting_IsNested(&(me->nesting)) && DecodeNesting_IsIndefiniteLength(&(me->nesting))) {
+      while(UsefulInputBuf_BytesUnconsumed(&(me->InBuf))) {
+         // Peek forward one item to see if it is a break.
+         QCBORItem Peek;
+         size_t uPeek = UsefulInputBuf_Tell(&(me->InBuf));
+         nReturn = GetNext_Item(&(me->InBuf), &Peek, NULL);
+         if(nReturn) {
+            goto Done;
+         }
+         if(Peek.uDataType != QCBOR_TYPE_BREAK) {
+            // It is not a break, rewind so it can be processed normally.
+            UsefulInputBuf_Seek(&(me->InBuf), uPeek);
+            break;
+         }
+         // It is a break. Ascend one nesting level.
+         // The break consumed.
+         nReturn = DecodeNesting_BreakAscend(&(me->nesting));
+         if(nReturn) {
+            // break occured outside of an indefinite length array/map
+            goto Done;
+         }
+      }
+   }
+   
+   // Tell the caller what level is next. This tells them what maps/arrays
+   // were closed out and makes it possible for them to reconstruct
+   // the tree with just the information returned by GetNext
+   pDecodedItem->uNextNestLevel = DecodeNesting_GetLevel(&(me->nesting));
    
 Done:
    return nReturn;
@@ -976,17 +957,14 @@ Done:
 
 
 /*
- Decoding items is done in 6 layered functions, one calling the
+ Decoding items is done in 5 layered functions, one calling the
  next one down. If a layer has no work to do for a particular item
  it returns quickly.
  
  - QCBORDecode_GetNext -- The top layer manages the beginnings and
  ends of maps and arrays. It tracks descending into and ascending
- out of maps/arrays.
- 
- - GetNext_GetNonBreak -- This handles the "break" items that
- terminate indefinite length arrays and maps. It's job is to
- loop over one or more breaks.
+ out of maps/arrays. It processes all breaks that terminate
+ maps and arrays.
  
  - GetNext_MapEntry -- This handles the combining of two
  items, the label and the data, that make up a map entry.
@@ -1000,7 +978,8 @@ Done:
  
  - GetNext_FullItem -- This assembles the sub items that make up
  an indefinte length string into one string item. It uses the
- string allocater to create contiguous space for the item.
+ string allocater to create contiguous space for the item. It
+ processes all breaks that are part of indefinite length strings.
  
  - GetNext_Item -- This gets and decodes the most atomic
  item in CBOR, the thing with an initial byte containing
@@ -1016,17 +995,6 @@ int QCBORDecode_Finish(QCBORDecodeContext *me)
 {
    int nReturn = QCBOR_SUCCESS;
    
-   // Consume any last breaks ending indefinite length arrays or maps here
-   // Definite length arrays and maps get closed off above when they
-   // the last item in them is consumed; they are not handled here.
-   if(DecodeNesting_IsNested(&(me->nesting))) {
-      QCBORItem Item;
-      nReturn = GetNext_GetNonBreak(me, &Item);
-      if(nReturn) {
-         goto Done;
-      }
-   }
-   
    // Error out if all the maps/arrays are not closed out
    if(DecodeNesting_IsNested(&(me->nesting))) {
       nReturn = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
@@ -1039,7 +1007,7 @@ int QCBORDecode_Finish(QCBORDecodeContext *me)
    }
    
 Done:
-   // Call the destructor for the string allocator if there is one
+   // Call the destructor for the string allocator if there is one.
    // Always called, even if there are errors; always have to clean up
    if(me->pStringAllocator) {
       QCBORStringAllocator *pAllocator = (QCBORStringAllocator *)me->pStringAllocator;

@@ -650,8 +650,7 @@ struct _QCBORDecodeContext {
 
 #define QCBOR_TYPE_BREAK         31 // Used internally; never returned
 
-#define QCBOR_TYPE_OPTTAG     254 // Used internally; never returned
-//#define QCBOR_TYPE_BREAK      255 // Used internally; never returned
+#define QCBOR_TYPE_OPTTAG       254 // Used internally; never returned
 
 
 
@@ -670,7 +669,8 @@ typedef struct _QCBORItem {
    uint8_t  uDataType;     /** Tells what element of the val union to use. One of QCBOR_TYPE_XXXX */
    uint8_t  uNestingLevel; /** How deep the nesting from arrays and maps are. 0 is the top level with no arrays or maps entered */
    uint8_t  uLabelType;    /** Tells what element of the label union to use */
-   uint8_t  uAllocated;    /** 1 if allocated with string allocator, 0 if not. See xxx TODO: */
+   uint8_t  uAllocated;    /** 1 if allocated with string allocator, 0 if not. See xxx TODO: more work; also exceeds padding size on 32-bit machine*/
+   uint8_t  uNextNestLevel; /** If not equal to uNestingLevel, this item closed out at least one map/array */
    
    union {
       int64_t     int64;      /** The value for uDataType QCBOR_TYPE_INT64 */
@@ -1765,6 +1765,15 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAlloc
  text string                1
  byte string                1
  @endverbatim
+ 
+ In QCBORItem, uNextNestLevel is the nesting level for the next call
+ to QCBORDecode_GetNext(). It indicates if any maps or arrays were closed
+ out during the processing of the just-fecthed QCBORItem. This processing
+ includes a look-ahead for any breaks that close out indefinite length
+ arrays or maps. This value is needed to be able to understand the
+ hierarchical structure. If uNextNestLevel is not equal to uNestLevel
+ the end of the current map or array has been encountered. This
+ works the same for both definite and indefinite length arrays.
  
  */
 
