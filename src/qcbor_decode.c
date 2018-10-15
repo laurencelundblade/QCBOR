@@ -586,7 +586,7 @@ static int GetNext_Item(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, QCBORS
    
    pDecodedItem->uTagBits = 0;
    pDecodedItem->uTag     = 0;
-   pDecodedItem->uAllocated = 0;
+   pDecodedItem->uDataAlloc = 0;
    
    // At this point the major type and the value are valid. We've got the type and the number that
    // starts every CBOR data item.
@@ -694,7 +694,7 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       if(Item.uDataType == QCBOR_TYPE_BREAK) {
          // String is complete
          pDecodedItem->val.string = FullString;
-         pDecodedItem->uAllocated = 1;
+         pDecodedItem->uDataAlloc = 1;
          break;
       }
       
@@ -841,7 +841,7 @@ static inline int GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedIt
       
       // Get the next item which will be the real data; Item will be the label
       QCBORItem LabelItem = *pDecodedItem;
-      nReturn = GetNext_TaggedItem(me, pDecodedItem); // TODO: test indefinite length string labels
+      nReturn = GetNext_TaggedItem(me, pDecodedItem);
       if(nReturn)
          goto Done;
       
@@ -861,6 +861,7 @@ static inline int GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedIt
          pDecodedItem->uLabelType = QCBOR_TYPE_UINT64;
       } else if(LabelItem.uDataType == QCBOR_TYPE_BYTE_STRING) {
          pDecodedItem->label.string = LabelItem.val.string;
+         pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
          pDecodedItem->uLabelType = QCBOR_TYPE_BYTE_STRING;
       } else {
          // label is not an int or a string. It is an arrray

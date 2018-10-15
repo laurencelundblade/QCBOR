@@ -669,7 +669,8 @@ typedef struct _QCBORItem {
    uint8_t  uDataType;     /** Tells what element of the val union to use. One of QCBOR_TYPE_XXXX */
    uint8_t  uNestingLevel; /** How deep the nesting from arrays and maps are. 0 is the top level with no arrays or maps entered */
    uint8_t  uLabelType;    /** Tells what element of the label union to use */
-   uint8_t  uAllocated;    /** 1 if allocated with string allocator, 0 if not. See xxx TODO: more work; also exceeds padding size on 32-bit machine*/
+   uint8_t  uDataAlloc;    /** 1 if allocated with string allocator, 0 if not. See xxx TODO: more work; also exceeds padding size on 32-bit machine*/
+   uint8_t  uLabelAlloc;   /** Like uDataAlloc, but for label */
    uint8_t  uNextNestLevel; /** If not equal to uNestingLevel, this item closed out at least one map/array */
    
    union {
