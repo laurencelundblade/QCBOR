@@ -1922,17 +1922,19 @@ static int CheckBigString(UsefulBufC BigString)
    return 0;
 }
 
+
 int indefinite_length_decode_string_test()
 {
    QCBORDecodeContext DC;
    QCBORItem Item;
+   // big enough for MakeIndefiniteBigBstr() + MemPool overhead
    UsefulBuf_MakeStackUB(MemPool, 320);
    
    // --- Simple normal indefinite length string ------
    UsefulBufC IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteLenString);
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
     
-   if(QCBORDecode_SetMemPool(&DC,  MemPool, false)) {
+   if(QCBORDecode_SetMemPool(&DC, MemPool, false)) {
       return -1;
    }
     
@@ -2007,7 +2009,6 @@ int indefinite_length_decode_string_test()
       return -18;
    }
    
-   
    // ------ Don't set a string allocator and see an error -----
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
    
@@ -2027,14 +2028,12 @@ int indefinite_length_decode_string_test()
    if(!QCBORDecode_SetMemPool(&DC,  MemPoolTooSmall, false)) {
       return -21;
    }
-
-
    
    // ----- Mempool is way too small -----
    UsefulBuf_MakeStackUB(BigIndefBStrStorage, 290);
    UsefulBufC BigIndefBStr = MakeIndefiniteBigBstr(BigIndefBStrStorage);
    
-   UsefulBuf_MakeStackUB(MemPoolSmall, 80); // 80 is big enough for the overhead, but not BigIndefBStr
+   UsefulBuf_MakeStackUB(MemPoolSmall, 80); // 80 is big enough for MemPool overhead, but not BigIndefBStr
    
    QCBORDecode_Init(&DC, BigIndefBStr, QCBOR_DECODE_MODE_NORMAL);
    if(QCBORDecode_SetMemPool(&DC,  MemPoolSmall, false)) {
@@ -2056,15 +2055,17 @@ int indefinite_length_decode_string_test()
       return -25;
    }
    
-   QCBORDecode_GetNext(&DC, &Item);
-   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+   if(QCBORDecode_GetNext(&DC, &Item)) {
+      return -26;
+   }
+   if(Item.uDataType != QCBOR_TYPE_ARRAY || Item.uDataAlloc) {
       return -26;
    }
    
    if(QCBORDecode_GetNext(&DC, &Item)) {
       return -27;
    }
-   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
+   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING || !Item.uDataAlloc || Item.uNestingLevel != 1) {
       return -28;
    }
    if(CheckBigString(Item.val.string)) {

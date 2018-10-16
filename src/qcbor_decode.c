@@ -78,6 +78,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ieee754.h"
 
 
+/*
+ This casts away the const-ness of a pointer, usually so it can be
+ freed or realloced.
+ */
+#define UNCONST_POINTER(ptr)    ((void *)(ptr))
+
 
 /*
  Collection of functions to track the map/array nesting for decoding
@@ -566,7 +572,6 @@ Done:
  Errors detected here include: an array that is too long to decode, hit end of buffer unexpectedly,
     a few forms of invalid encoded CBOR
  */
-
 static int GetNext_Item(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, QCBORStringAllocator *pAlloc)
 {
    int nReturn;
@@ -643,7 +648,9 @@ Done:
 
 /*
  This layer deals with indefinite length strings. It pulls all the
- individual segment items together into one QCBORItem
+ individual segment items together into one QCBORItem.
+ 
+ Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
  */
 static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
@@ -656,8 +663,8 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    }
    
    // To reduce code size by removing support for indefinite length strings, the
-   // code in this function from here down can be eliminated. Run tests to be sure
-   // all is OK if you remove this.
+   // code in this function from here down can be eliminated. Run tests, except
+   // indefinite length string tests, to be sure all is OK if this is removed.
    
    // Only do indefinite length processing on strings
    if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING && pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
@@ -665,11 +672,11 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    }
    
    // Is this a string with an indefinite length?
-   if(pDecodedItem->val.string.len != SIZE_MAX) { // TODO: is this right? Is there a better way to mark this?
+   if(pDecodedItem->val.string.len != SIZE_MAX) {
       goto Done; // length is not indefinite, so no work to do here
    }
    
-   // can't do indefinite length strings without a string allocator
+   // Can't do indefinite length strings without a string allocator
    if(pAlloc == NULL) {
       nReturn = QCBOR_ERR_NO_STRING_ALLOCATOR;
       goto Done;
@@ -678,19 +685,19 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    // There is an indefinite length string to work on...
    // Track which type of string it is
    const uint8_t uStringType = pDecodedItem->uDataType;
-   UsefulBufC FullString = NULLUsefulBufC;
    
    // Loop getting segments of indefinite string
+   UsefulBufC FullString = NULLUsefulBufC;
    for(;;) {
       // Get item for next segment
       QCBORItem Item;
-      nReturn = GetNext_Item(&(me->InBuf), &Item, NULL); // Never alloc segments of indefinite length strings
+      // NULL passed to never alloc segments of indefinite length strings
+      nReturn = GetNext_Item(&(me->InBuf), &Item, NULL);
       if(nReturn) {
-         // Error getting the next segment
-         break;
+         break;  // Error getting the next segment
       }
       
-      // See if it is marker at end of indefinite length string
+      // See if it is a marker at end of indefinite length string
       if(Item.uDataType == QCBOR_TYPE_BREAK) {
          // String is complete
          pDecodedItem->val.string = FullString;
@@ -698,15 +705,19 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
          break;
       }
       
-      // Match data type of segment to type at beginning
+      // Match data type of segment to type at beginning.
+      // Also catches error of other non-string types that don't belong.
       if(Item.uDataType != uStringType) {
          nReturn = QCBOR_ERR_INDEFINITE_STRING_SEG;
          break;
       }
       
       // Expand the buffer so it can fit
-      UsefulBuf NewMem = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, (void *)FullString.ptr, FullString.len + Item.val.string.len);
+      UsefulBuf NewMem = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext,
+                                              UNCONST_POINTER(FullString.ptr),
+                                              FullString.len + Item.val.string.len);
       if(UsefulBuf_IsNULL(NewMem)) {
+         // Allocation of memory for the string failed
          nReturn = QCBOR_ERR_STRING_ALLOC;
          break;
       }
@@ -718,7 +729,7 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 Done:
    if(pAlloc && nReturn && FullString.ptr) {
       // Getting item failed, clean up the allocated memory
-      (pAlloc->fFree)(pAlloc->pAllocaterContext, (void *)FullString.ptr); // TODO unconst construct
+      (pAlloc->fFree)(pAlloc->pAllocaterContext, UNCONST_POINTER(FullString.ptr));
    }
    
    return nReturn;
@@ -881,22 +892,24 @@ Done:
  */
 int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
+   // The public entry point for fetching and parsing the next QCBORItem.
+   // All the CBOR parsing work is here and in subordinate calls.
    int nReturn;
    
    nReturn = GetNext_MapEntry(me, pDecodedItem);
    if(nReturn) {
       goto Done;
    }
-   
+
+   // Break ending arrays/maps are always processed at the end of this function.
+   // They should never show up here.
    if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
-      // Breaks are always processed at the end of this function
-      // They should never show up here.
       nReturn = QCBOR_ERR_BAD_BREAK;
       goto Done;
    }
    
    // Record the nesting level for this data item before processing any of
-   // decrementing and descending
+   // decrementing and descending.
    pDecodedItem->uNestingLevel = DecodeNesting_GetLevel(&(me->nesting));
    
    // Process the item just received for descent or decrement, and
@@ -938,7 +951,7 @@ int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
             break;
          }
          // It is a break. Ascend one nesting level.
-         // The break consumed.
+         // The break is consumed.
          nReturn = DecodeNesting_BreakAscend(&(me->nesting));
          if(nReturn) {
             // break occured outside of an indefinite length array/map
