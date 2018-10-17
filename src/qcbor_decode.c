@@ -171,7 +171,7 @@ inline static int DecodeNesting_Descend(QCBORDecodeNesting *pNesting, QCBORItem 
       // Nothing to do for empty definite lenth arrays. They are just are
       // effectively the same as an item that is not a map or array
       goto Done;
-      // Empty indefinite length maps and arrays are handled elsewhere; TODO: where?
+      // Empty indefinite length maps and arrays are handled elsewhere
    }
    
    // Error out if arrays is too long to handle
@@ -281,9 +281,6 @@ inline static int DecodeTypeAndNumber(UsefulInputBuf *pUInBuf, int *pnMajorType,
          nReturn = QCBOR_ERR_UNSUPPORTED;
          goto Done;
 
-      case LEN_IS_INDEFINITE:
-         // Fall through to see what happens: TODO: check this.
-         
       default:
          // This is when the "number" is in the additional info
          uTmpValue = uAdditionalInfo;
@@ -443,19 +440,19 @@ Done:
 /*
  Decode text and byte strings
  */
-inline static int DecodeBytes(QCBORStringAllocator *pAlloc, int nMajorType, uint64_t uNumber, UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem)
+inline static int DecodeBytes(QCBORStringAllocator *pAlloc, int nMajorType, uint64_t uStrLen, UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem)
 {
-    UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, uNumber);
+    UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, uStrLen);
    
    int nReturn = QCBOR_ERR_HIT_END;
    
    if(!UsefulBuf_IsNULLC(Bytes)) {
       if(pAlloc) {
-         UsefulBuf NewMem = pAlloc->fAllocate(pAlloc->pAllocaterContext, NULL, uNumber);
-         if(UsefulBuf_IsNULL(NewMem)) {
+         UsefulBuf NewMem = pAlloc->fAllocate(pAlloc->pAllocaterContext, NULL, uStrLen);
+         if(!UsefulBuf_IsNULL(NewMem)) {
             pDecodedItem->val.string = UsefulBuf_Copy(NewMem, Bytes);
          } else {
-            // TODO: failure
+            return QCBOR_ERR_STRING_ALLOC;
          }
       } else {
          pDecodedItem->val.string = Bytes;
@@ -605,7 +602,7 @@ static int GetNext_Item(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, QCBORS
       case CBOR_MAJOR_TYPE_TEXT_STRING: // Major type 3
          if(uAdditionalInfo == LEN_IS_INDEFINITE) {
             pDecodedItem->uDataType  = (uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING) ? QCBOR_TYPE_BYTE_STRING : QCBOR_TYPE_TEXT_STRING;
-            pDecodedItem->val.string = (UsefulBufC){NULL, SIZE_MAX}; // TODO: SIZE_MAX this is OK, right?
+            pDecodedItem->val.string = (UsefulBufC){NULL, SIZE_MAX};
          } else {
             nReturn = DecodeBytes(pAlloc, uMajorType, uNumber, pUInBuf, pDecodedItem);
          }
@@ -619,7 +616,7 @@ static int GetNext_Item(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, QCBORS
             goto Done;
          }
          if(uAdditionalInfo == LEN_IS_INDEFINITE) {
-            pDecodedItem->val.uCount = UINT16_MAX; // Indicate indefinite length; TODO: a better way?
+            pDecodedItem->val.uCount = UINT16_MAX; // Indicate indefinite length
          } else {
             pDecodedItem->val.uCount = (uint16_t)uNumber; // type conversion OK because of check above
          }
@@ -744,7 +741,7 @@ static int GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    int nReturn;
    
-   // TODO: optimize loop below so there is only one call to GetNext_FullItem
+   // TODO: optimize loop below so there is only one call to GetNext_FullItem?
    nReturn = GetNext_FullItem(me, pDecodedItem);
    if(nReturn) {
       goto Done;

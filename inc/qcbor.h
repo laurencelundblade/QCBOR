@@ -335,10 +335,19 @@ struct _QCBORDecodeContext {
  off the end of the buffer an error is returned.  During decoding
  the caller supplies the encoded CBOR in a contiguous buffer
  and the decoder returns pointers and lengths into that buffer
- for strings. 
+ for strings.
  
- This implementation does not use malloc at all. All data structures
+ This implementation does not use malloc. All data structures
  passed in/out of the APIs can fit on the stack.
+ 
+ Decoding of indefinite length strings is a special case that requires
+ a "string allocator" to allocate memory into which the segments of
+ the string are coalesced. Without this, decoding will error out if
+ an indefinite length string is encountered (indefinite length maps
+ and arrays do not require the string allocator). A simple string
+ allocator called MemPool is built-in and will work if supplied with
+ a block of memory to allocate. The string allocator can optionally
+ use malloc() or some other custom scheme.
  
  Here are some terms and definitions:
  
@@ -405,7 +414,7 @@ struct _QCBORDecodeContext {
  parse such labels, but it is not explicitly supported.
  
  
- The intended encoding usage mode is to invoke the encoding twice. First
+ A common encoding usage mode is to invoke the encoding twice. First
  with no output buffer to compute the length of the needed output
  buffer. Then the correct sized output buffer is allocated. Last the
  encoder is invoked again, this time with the output buffer.
@@ -481,7 +490,7 @@ struct _QCBORDecodeContext {
    QCBOR_MAX_ARRAY_NESTING (this is typically 10).
  - Max items in an array or map when encoding / decoding is
    QCBOR_MAX_ITEMS_IN_ARRAY (typicall 65,536).
- - Does not support encoding indefinite lengths.
+ - Does not support encoding indefinite lengths (decoding is supported).
  - Does not directly support some tagged types: decimal fractions, big floats
  - Does not directly support labels in maps other than text strings and ints.
  - Epoch dates limited to INT64_MAX (+/- 292 billion years)
@@ -594,7 +603,7 @@ struct _QCBORDecodeContext {
 /** One of the segments in an indefinite length string is of the wrong type */
 #define QCBOR_ERR_INDEFINITE_STRING_SEG   19
 
-/** Error allocating space for indefinite length string segment */
+/** Error allocating space for a string, usually for an indefinite length string */
 #define QCBOR_ERR_STRING_ALLOC            20
 
 /** The a break occurred outside an indefinite length item */
@@ -703,16 +712,32 @@ typedef struct _QCBORItem {
 } QCBORItem;
 
 
-/*
- Optional to set up an allocator for bstr and tstr types.
- Required to process indefinite length bstr and tstr types.
- (indefinite length maps can be processed without this).
+/**
+  This is a set of functions and pointer context (in object-oriented parlance,
+ an "object") used to allocate memory for coalescing the segments of an indefinite
+ length string into one.
+ 
+ The fAllocate function works as an initial allocator and a reallocator to
+ expand the string for each new segment. When it is an initial allocator
+ pOldMem is NULL.
+ 
+ The fFree function is called to clean up an individual allocation when an error occurs.
+ 
+ The fDesctructor function is called when QCBORDecode_Finish is called.
+ 
+ Any memory allocated with this will be marked by setting uXXXAlloc in the
+ QCBORItem structure so the caller knows they have to free it.
+ 
+ fAllocate is only ever called to increase the single most recent
+ allocation made, making implementation of a memory pool very simple.
+ 
+ fFree is also only called on the single most recent allocation.
  */
 typedef struct {
-   void    *pAllocaterContext;
+   void       *pAllocaterContext;
    UsefulBuf (*fAllocate)(void *pAllocaterContext, void *pOldMem, size_t uNewSize);
-   void   (*fFree)(void *pAllocaterContext, void *pMem);
-   void   (*fDestructor)(void *pAllocaterContext);
+   void      (*fFree)(void *pAllocaterContext, void *pMem);
+   void      (*fDestructor)(void *pAllocaterContext);
 } QCBORStringAllocator;
 
 
@@ -1643,50 +1668,63 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t n
 
 
 /**
- Set up a memory pool for indefinite length strings
+ Set up the MemPool string allocator for indefinite length strings.
  
  @param[in] pCtx The decode context to initialize.
- @param[in] MemPool The pointer and length of the memory pool
- @param[in] bAllStrings true means to put even definite length strings in the pool
+ @param[in] MemPool The pointer and length of the memory pool.
+ @param[in] bAllStrings true means to put even definite length strings in the pool.
  
- @return 0 if the MemPool was at least minimum size, 1 if not.
+ @return 0 if the MemPool was at least minimum size, 1 if too small.
  
  Indefinite length strings (text and byte) cannot be decoded unless there is
- either a memory pool set up or a string allocator configured.
+ a string allocator configured. MemPool is a simple built-in string allocator
+ that allocates bytes from a block of memory handed to it by calling
+ this function.
  
- The MemPool must be sized large enough. For a 64-bit CPU it must be sized
- at 72 bytes plus space to hold all the indefinite length strings. For a 32-bit CPU
- the size is 36 bytes plus space for the strings. (This is space for 9 pointers;
- it may vary from one CPU or OS to another). There is no overhead per
- string. This includes indefinite length strings that are serve as labels
- for map items.
+ The buffer must be large enough to hold some fixed overhead plus the
+ space for all the strings allocated. The fixed overhead does vary
+ per implementation, but can roughly be computed as the space for
+ nine pointers, 72 bytes of a 64-bit CPU.  There is no overhead
+ per string allocated
  
- If bAllStrings is set then the size will be 64 or 32 bytes plus the space to
- hold **all** strings, definite and indefinite length, value or label.
- The advantage of this
- is that after the parse is complete, the original memory holding the
- encoded CBOR does not need to remain valid.
+ This memory pool is used for all indefinite length strings that are text
+ strings or byte strings, including strings used as labels.
  
- The memory from MemPool will be where all the pointers in returned
- QCBORItems will point.
+ The pointers to strings in QCBORItem will point into the buffer passed set
+ here. They do not need to be individually freed. Just discard the buffer
+ when they are no longer needed.
  
- 
+ If bAllStrings is set then the size will be the overhead plus the space to
+ hold **all** strings, definite and indefinite length, value or label. The
+ advantage of this is that after the decode is complete, the original memory
+ holding the encoded CBOR does not need to remain valid.
  
  */
 int QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAllStrings);
 
 
 /**
+ @brief Sets up a custom string allocator for indefinite length strings
  
+ @param[in] pCtx The decoder context to set up an allocator for
+ @param[in] pAllocator The string allocator "object"
+ 
+ See QCBORStringAllocator for the requirements of the string allocator.
+ 
+ Typically this is used if the simple MemPool allocator isn't desired.
+ 
+ A malloc based string allocator can be obtained by calling
+ QCBORDecode_MakeMallocStringAllocator(). Pass its result to
+ this function.
  */
-void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator);
 
+void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator);
 
 
 /**
  Gets the next item (integer, byte string, array...) in pre order traversal of CBOR tree
  
- @param[in]  pCtx          The context to initialize
+ @param[in]  pCtx          The decoder context.
  @param[out] pDecodedItem  Holds the CBOR item just decoded.
  
  @return

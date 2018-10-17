@@ -28,8 +28,8 @@
 //  Created by Laurence Lundblade on 9/13/18.
 
 #include <stdio.h>
-
 #include "run_tests.h"
+#include "qcbor.h" // to print sizes of the structures.
 
 
 int fputs_wrapper(const char *szString, void *ctx)
@@ -42,7 +42,12 @@ int main(int argc, const char * argv[])
 {
     (void)argc; // Suppress unused warning
     (void)argv; // Suppress unused warning
-   
+    
+    printf("sizeof(QCBOREncodeContext) %d\n", (uint32_t)sizeof(QCBOREncodeContext));
+    printf("sizeof(QCBORDecodeContext) %d\n", (uint32_t)sizeof(QCBORDecodeContext));
+    printf("sizeof(QCBORItem) %d\n", (uint32_t)sizeof(QCBORItem));
+    printf("sizeof(QCBORStringAllocator) %d\n\n", (uint32_t)sizeof(QCBORStringAllocator));
+
     int nNumTestsFailed = run_tests(&fputs_wrapper, stdout, NULL);
 
     return nNumTestsFailed;

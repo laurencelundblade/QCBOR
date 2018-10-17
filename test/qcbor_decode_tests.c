@@ -603,8 +603,8 @@ int SimpleArrayTest()
       i2 != 6000 ||
       i3 != 8 ||
       i4 != 11 ||
-      bcmp("galactic", s3, 8) !=0 ||
-      bcmp("haven token", s4, 11) !=0) {
+      memcmp("galactic", s3, 8) !=0 ||
+      memcmp("haven token", s4, 11) !=0) {
       printf("SimpleArraryTest Failed\n");
       return(-1);
    }
@@ -1489,7 +1489,7 @@ int BignumParseTest()
 
 
 
-static int CheckItemWithIntLabel(QCBORDecodeContext *pCtx, uint8_t uDataType, uint8_t uNestingLevel, int64_t nLabel, QCBORItem *pItem)
+static int CheckItemWithIntLabel(QCBORDecodeContext *pCtx, uint8_t uDataType, uint8_t uNestingLevel, uint8_t uNextNest, int64_t nLabel, QCBORItem *pItem)
 {
    QCBORItem Item;
    int nCBORError;
@@ -1505,6 +1505,7 @@ static int CheckItemWithIntLabel(QCBORDecodeContext *pCtx, uint8_t uDataType, ui
       }
    }
    if(Item.uNestingLevel != uNestingLevel) return -1;
+   if(Item.uNextNestLevel != uNextNest) return -1;
    
    if(pItem) {
       *pItem = Item;
@@ -1516,26 +1517,26 @@ static int CheckItemWithIntLabel(QCBORDecodeContext *pCtx, uint8_t uDataType, ui
 // Same code checks definite and indefinite length versions of the map
 static int CheckCSRMaps(QCBORDecodeContext *pDC)
 {
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 0, 0, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 0, 1, 0, NULL)) return -1;
    
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 1, -23, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 1, 2, -23, NULL)) return -1;
    
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 2, -20, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 2, 3, -20, NULL)) return -1;
    
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, -18, NULL)) return -1;
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, -17, NULL)) return -1;
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, -15, NULL)) return -1;
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, -16, NULL)) return -1;
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, -14, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, 3, -18, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, 3, -17, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, 3, -15, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, 3, -16, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_TEXT_STRING, 3, 2, -14, NULL)) return -1;
    
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 2, -19, NULL)) return -1;
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 3, -11, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 2, 3, -19, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 3, 4, -11, NULL)) return -1;
    
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_INT64, 4, -9, NULL)) return -1;
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_BYTE_STRING, 3, -10, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_INT64, 4, 3, -9, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_BYTE_STRING, 3, 1, -10, NULL)) return -1;
    
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 1, -22, NULL)) return -1;
-   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_INT64, 2, -5, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 1, 2, -22, NULL)) return -1;
+   if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_INT64, 2, 0, -5, NULL)) return -1;
    
    if(QCBORDecode_Finish(pDC)) return -2;
    
@@ -1662,7 +1663,7 @@ static int parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
 }
 
 
-int indeflen_nest_test()
+int IndefiniteLengthNestTest()
 {
    UsefulBuf_MakeStackUB(Storage, 50);
    int i;
@@ -1685,7 +1686,7 @@ static const uint8_t pIndefiniteArrayBad3[] = {0x9f, 0x02, 0xff, 0xff}; // Too m
 static const uint8_t pIndefiniteArrayBad4[] = {0x81, 0x9f}; // Unclosed indeflen inside def len
 static const uint8_t pIndefiniteArrayBad5[] = {0x9f, 0xc7, 0xff}; // confused tag
 
-int indefinite_length_decode_test()
+int IndefiniteLengthArrayMapTest()
 {
    int nResult;
    // --- first test -----
@@ -1923,7 +1924,7 @@ static int CheckBigString(UsefulBufC BigString)
 }
 
 
-int indefinite_length_decode_string_test()
+int IndefiniteLengthStringTest()
 {
    QCBORDecodeContext DC;
    QCBORItem Item;
@@ -2104,8 +2105,96 @@ int indefinite_length_decode_string_test()
 }
 
 
+int AllocAllStringsTest()
+{
+   QCBORDecodeContext DC;
+   
+   // First test, use the "CSRMap" as easy input and checking
+   QCBORDecode_Init(&DC, UsefulBuf_FromByteArrayLiteral(s_CSRInput), QCBOR_DECODE_MODE_NORMAL);
+   
+   UsefulBuf_MakeStackUB(Pool, 300);
+   
+   QCBORDecode_SetMemPool(&DC, Pool, 1); // Turn on copying.
+   
+   if(CheckCSRMaps(&DC)) {
+      return -1;
+   }
+   
+   // Next parse, save pointers to a few strings, destroy original and see all is OK.
+   MakeUsefulBufOnStack(CopyOfStorage, 160);
+   UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FromByteArrayLiteral(pValidMapEncoded));
 
-int mempool_test(void)
+   QCBORDecode_Init(&DC, CopyOf, QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_SetMemPool(&DC, Pool, 1); // Turn on copying.
+   
+   int nCBORError;
+   QCBORItem Item1, Item2, Item3, Item4;
+   if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
+      return nCBORError;
+   if(Item1.uDataType != QCBOR_TYPE_MAP ||
+      Item1.val.uCount != 3)
+      return -1;
+   if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
+      return nCBORError;
+   if((nCBORError = QCBORDecode_GetNext(&DC, &Item2)))
+      return nCBORError;
+   if((nCBORError = QCBORDecode_GetNext(&DC, &Item3)))
+      return nCBORError;
+   if((nCBORError = QCBORDecode_GetNext(&DC, &Item4)))
+      return nCBORError;
+   
+   UsefulBuf_Set(&CopyOfStorage, '_');
+   
+   if(Item1.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      Item1.label.string.len != 13 ||
+      Item1.uDataType != QCBOR_TYPE_INT64 ||
+      Item1.val.int64 != 42 ||
+      memcmp(Item1.label.string.ptr, "first integer", 13))
+      return -1;
+   
+
+   if(Item2.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      Item2.label.string.len != 23 ||
+      memcmp(Item2.label.string.ptr, "an array of two strings", 23) ||
+      Item2.uDataType != QCBOR_TYPE_ARRAY ||
+      Item2.val.uCount != 2)
+      return -1;
+   
+   if(Item3.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item3.val.string.len != 7 ||
+      memcmp(Item3.val.string.ptr, "string1", 7))
+      return -1;
+   
+   if(Item4.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item4.val.string.len != 7 ||
+      memcmp(Item4.val.string.ptr, "string2", 7))
+      return -1;
+   
+   // Next parse with a pool that is too small
+   UsefulBuf_MakeStackUB(SmallPool, 80);
+   QCBORDecode_Init(&DC, UsefulBuf_FromByteArrayLiteral(pValidMapEncoded), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_SetMemPool(&DC, SmallPool, 1); // Turn on copying.
+   if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
+      return nCBORError;
+   if(Item1.uDataType != QCBOR_TYPE_MAP ||
+      Item1.val.uCount != 3)
+      return -1;
+   if(!(nCBORError = QCBORDecode_GetNext(&DC, &Item1))){
+      if(!(nCBORError = QCBORDecode_GetNext(&DC, &Item2))) {
+         if(!(nCBORError = QCBORDecode_GetNext(&DC, &Item3))) {
+            nCBORError = QCBORDecode_GetNext(&DC, &Item4);
+         }
+      }
+   }
+   if(nCBORError != QCBOR_ERR_STRING_ALLOC) {
+      return -5;
+   }
+
+   return 0;
+}
+
+
+int MemPoolTest(void)
 {
     QCBORDecodeContext DC;
     

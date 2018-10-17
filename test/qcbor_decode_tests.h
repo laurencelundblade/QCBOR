@@ -160,12 +160,15 @@ int NestedMapTest(void);
 int NestedMapTestIndefLen(void);
 
 
-int indefinite_length_decode_test(void);
-int indefinite_length_decode_string_test(void);
+int IndefiniteLengthArrayMapTest(void);
 
-int indeflen_nest_test(void);
+int IndefiniteLengthStringTest(void);
 
-int mempool_test(void);
+int IndefiniteLengthNestTest(void);
+
+int AllocAllStringsTest(void);
+
+int MemPoolTest(void);
 
 
 
