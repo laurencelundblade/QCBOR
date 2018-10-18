@@ -775,7 +775,7 @@ int IntegerValuesTest1()
    if(CheckResults(Enc, pExpectedEncodedInts))
      return -1;
    
-   if(Enc.len != sizeof(pExpectedEncodedInts) || bcmp(pEncoded, pExpectedEncodedInts, Enc.len))
+   if(Enc.len != sizeof(pExpectedEncodedInts) || memcmp(pEncoded, pExpectedEncodedInts, Enc.len))
       nReturn = -1;
    
    //printencoded(pEncoded, nEncodedLen);
@@ -817,7 +817,7 @@ int SimpleValuesTest1()
       nReturn = -1;
    }
    
-   if(ECBOR.len != sizeof(pExpectedEncodedSimple) || bcmp(pEncoded, pExpectedEncodedSimple, ECBOR.len))
+   if(ECBOR.len != sizeof(pExpectedEncodedSimple) || memcmp(pEncoded, pExpectedEncodedSimple, ECBOR.len))
       nReturn = -1;
    
    // printencoded(pEncoded, nEncodedLen);
@@ -874,7 +874,7 @@ int EncodeDateTest()
       nReturn = -1;
    }
    
-   if(nEncodedLen != sizeof(pExpectedEncodedDates) || bcmp(pEncoded, pExpectedEncodedDates, nEncodedLen))
+   if(nEncodedLen != sizeof(pExpectedEncodedDates) || memcmp(pEncoded, pExpectedEncodedDates, nEncodedLen))
       nReturn = -1;
    
    //printencoded(pEncoded, nEncodedLen);

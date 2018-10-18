@@ -222,9 +222,10 @@ void QCBORDecode_Init(QCBORDecodeContext *me, UsefulBufC EncodedCBOR, int8_t nDe
 /*
  Public function, see header file
  */
-void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator)
+void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator, bool bAllocAll)
 {
     pCtx->pStringAllocator = (void *)pAllocator;
+   pCtx->bStringAllocateAll = bAllocAll;
 }
 
 
@@ -438,29 +439,34 @@ Done:
 
 
 /*
- Decode text and byte strings
+ Decode text and byte strings. Call the string allocator if asked to.
  */
 inline static int DecodeBytes(QCBORStringAllocator *pAlloc, int nMajorType, uint64_t uStrLen, UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem)
 {
-    UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, uStrLen);
+   int nReturn = QCBOR_SUCCESS;
    
-   int nReturn = QCBOR_ERR_HIT_END;
-   
-   if(!UsefulBuf_IsNULLC(Bytes)) {
-      if(pAlloc) {
-         UsefulBuf NewMem = pAlloc->fAllocate(pAlloc->pAllocaterContext, NULL, uStrLen);
-         if(!UsefulBuf_IsNULL(NewMem)) {
-            pDecodedItem->val.string = UsefulBuf_Copy(NewMem, Bytes);
-         } else {
-            return QCBOR_ERR_STRING_ALLOC;
-         }
-      } else {
-         pDecodedItem->val.string = Bytes;
-      }
-      pDecodedItem->uDataType  = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING) ? QCBOR_TYPE_BYTE_STRING : QCBOR_TYPE_TEXT_STRING;
-      nReturn = QCBOR_SUCCESS;
+   UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, uStrLen);
+   if(UsefulBuf_IsNULLC(Bytes)) {
+      // Failed to get the bytes for this string item
+      nReturn = QCBOR_ERR_HIT_END;
+      goto Done;
    }
+
+   if(pAlloc) {
+      // We are asked to use string allocator to make a copy
+      UsefulBuf NewMem = pAlloc->fAllocate(pAlloc->pAllocaterContext, NULL, uStrLen);
+      if(UsefulBuf_IsNULL(NewMem)) {
+         nReturn = QCBOR_ERR_STRING_ALLOC;
+         goto Done;
+      }
+      pDecodedItem->val.string = UsefulBuf_Copy(NewMem, Bytes);
+   } else {
+      // Normal case with no string allocator
+      pDecodedItem->val.string = Bytes;
+   }
+   pDecodedItem->uDataType  = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING) ? QCBOR_TYPE_BYTE_STRING : QCBOR_TYPE_TEXT_STRING;
    
+Done:
    return nReturn;
 }
 
@@ -586,8 +592,8 @@ static int GetNext_Item(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, QCBORS
    if(nReturn)
       goto Done;
    
-   pDecodedItem->uTagBits = 0;
-   pDecodedItem->uTag     = 0;
+   pDecodedItem->uTagBits   = 0;
+   pDecodedItem->uTag       = 0;
    pDecodedItem->uDataAlloc = 0;
    
    // At this point the major type and the value are valid. We've got the type and the number that
@@ -645,7 +651,8 @@ Done:
 
 /*
  This layer deals with indefinite length strings. It pulls all the
- individual segment items together into one QCBORItem.
+ individual segment items together into one QCBORItem using the
+ string allocator.
  
  Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
  */
@@ -653,6 +660,7 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    int nReturn;
    QCBORStringAllocator *pAlloc = (QCBORStringAllocator *)me->pStringAllocator;
+   UsefulBufC FullString = NULLUsefulBufC;
    
    nReturn = GetNext_Item(&(me->InBuf), pDecodedItem, me->bStringAllocateAll ? pAlloc: NULL);
    if(nReturn) {
@@ -684,18 +692,17 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    const uint8_t uStringType = pDecodedItem->uDataType;
    
    // Loop getting segments of indefinite string
-   UsefulBufC FullString = NULLUsefulBufC;
    for(;;) {
       // Get item for next segment
-      QCBORItem Item;
-      // NULL passed to never alloc segments of indefinite length strings
-      nReturn = GetNext_Item(&(me->InBuf), &Item, NULL);
+      QCBORItem StringSegmentItem;
+      // NULL passed to never string alloc segments of indefinite length strings
+      nReturn = GetNext_Item(&(me->InBuf), &StringSegmentItem, NULL);
       if(nReturn) {
          break;  // Error getting the next segment
       }
       
       // See if it is a marker at end of indefinite length string
-      if(Item.uDataType == QCBOR_TYPE_BREAK) {
+      if(StringSegmentItem.uDataType == QCBOR_TYPE_BREAK) {
          // String is complete
          pDecodedItem->val.string = FullString;
          pDecodedItem->uDataAlloc = 1;
@@ -704,27 +711,27 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       
       // Match data type of segment to type at beginning.
       // Also catches error of other non-string types that don't belong.
-      if(Item.uDataType != uStringType) {
+      if(StringSegmentItem.uDataType != uStringType) {
          nReturn = QCBOR_ERR_INDEFINITE_STRING_SEG;
          break;
       }
       
-      // Expand the buffer so it can fit
+      // Alloc new buffer or expand previously allocated buffer so it can fit
       UsefulBuf NewMem = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext,
                                               UNCONST_POINTER(FullString.ptr),
-                                              FullString.len + Item.val.string.len);
+                                              FullString.len + StringSegmentItem.val.string.len);
       if(UsefulBuf_IsNULL(NewMem)) {
          // Allocation of memory for the string failed
          nReturn = QCBOR_ERR_STRING_ALLOC;
          break;
       }
       
-      // Copy data to the end of it.
-      FullString = UsefulBuf_CopyOffset(NewMem, FullString.len, Item.val.string);
+      // Copy new string segment at the end of string so far.
+      FullString = UsefulBuf_CopyOffset(NewMem, FullString.len, StringSegmentItem.val.string);
    }
    
 Done:
-   if(pAlloc && nReturn && FullString.ptr) {
+   if(pAlloc && nReturn && !UsefulBuf_IsNULLC(FullString)) {
       // Getting item failed, clean up the allocated memory
       (pAlloc->fFree)(pAlloc->pAllocaterContext, UNCONST_POINTER(FullString.ptr));
    }

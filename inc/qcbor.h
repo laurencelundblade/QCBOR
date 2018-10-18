@@ -1718,7 +1718,27 @@ int QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAl
  this function.
  */
 
-void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator);
+void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator, bool bAllStrings);
+
+
+/**
+ @brief This returns a string allocator that uses malloc
+ 
+ @return pointer to string allocator or NULL
+ 
+ Call this to get the string allocator and then configure it into
+ the decoder by calling QCBORDecode_SetUpAllocator().  If you
+ don't call this, there will be no dependency on malloc
+ in QCBOR. Some deployments of QCBOR might even exclude
+ the implementation of this function if they don't have
+ malloc() at all.
+ 
+ If you do set up this malloc-based string allocator, then
+ every string marked as allocated in a QCBORItem must
+ freed.
+ */
+
+QCBORStringAllocator *QCBORDecode_MakeMallocStringAllocator(void);
 
 
 /**
@@ -1836,6 +1856,7 @@ int QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  */
 
 int QCBORDecode_Finish(QCBORDecodeContext *pCtx);
+
 
 
 
