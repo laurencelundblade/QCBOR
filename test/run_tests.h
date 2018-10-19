@@ -27,7 +27,6 @@
  (This is the MIT license)
  ==============================================================================*/
 //  Created by Laurence Lundblade on 9/30/18.
-
 typedef int (*outputstring)(const char *szString, void *ctx);
 
 int run_tests(outputstring output, void *poutCtx, int *pNumTestsRun);
