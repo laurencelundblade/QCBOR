@@ -42,9 +42,12 @@ int main(int argc, const char * argv[])
 {
     (void)argc; // Suppress unused warning
     (void)argv; // Suppress unused warning
-    
+
+    // Type and size of return from sizeof() varies. These will never be large so cast is safe
+    // TODO: use fputs_wrapper to output these
     printf("sizeof(QCBOREncodeContext) %d\n", (uint32_t)sizeof(QCBOREncodeContext));
     printf("sizeof(QCBORDecodeContext) %d\n", (uint32_t)sizeof(QCBORDecodeContext));
+    printf("sizeof(QCBORDecodeNesting) %d\n", (uint32_t)sizeof(QCBORDecodeNesting));
     printf("sizeof(QCBORItem) %d\n", (uint32_t)sizeof(QCBORItem));
     printf("sizeof(QCBORStringAllocator) %d\n\n", (uint32_t)sizeof(QCBORStringAllocator));
 

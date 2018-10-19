@@ -8,7 +8,7 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
 **Focused on C / native data representation** – Simpler code because there is no support for encoding/decoding to/from JSON, pretty printing, diagnostic notation... Only encoding from native C representations and decoding to native C representations is supported.
 
-**Small simple memory model** – Malloc is not used. The encode context is 128 bytes, decode context is 168 bytes and the description of decoded data item is 56 bytes. Stack use is very light and there is no recursion. The caller supplies the memory to hold the encoded CBOR and encode/decode contexts so caller has full control of memory usage and it is good for embedded implementations that have to run in small fixed memory. 
+**Small simple memory model** – Malloc is not needed. The encode context is 136 bytes, decode context is 104 bytes and the description of decoded data item is 56 bytes. Stack use is very light and there is no recursion. The caller supplies the memory to hold the encoded CBOR and encode/decode contexts so caller has full control of memory usage and it is good for embedded implementations that have to run in small fixed memory. 
 
 **Supports nearly all of RFC 7049** – Only minor, corner-case parts of RFC 7049 are not directly supported (canonicalization, decimal fractions, big floats). Decoding
 indefinite length strings but requires a string allocator (see documentation). Encoding indefinite length strings is not supported, but

@@ -157,19 +157,46 @@ int BignumParseTest(void);
  */
 int NestedMapTest(void);
 
+
+/*
+ Parse maps with indefinite lengths
+ */
 int NestedMapTestIndefLen(void);
 
 
+/*
+ Parse some maps and arrays with indefinite lengths.
+ Includes some error cases.
+ */
 int IndefiniteLengthArrayMapTest(void);
 
+
+/*
+ Parse indefinite length strings. Uses
+ MemPool. Includes error cases.
+ */
 int IndefiniteLengthStringTest(void);
 
+
+/*
+ Test deep nesting of indefinite length
+ maps and arrays including too deep.
+ */
 int IndefiniteLengthNestTest(void);
 
+
+/*
+ Test parsing strings were all strings, not
+ just indefinite length strings, are
+ allocated. Includes error test cases.
+ */
 int AllocAllStringsTest(void);
 
-int MemPoolTest(void);
 
+/*
+ Direct test of MemPool string allocator
+ */
+int MemPoolTest(void);
 
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

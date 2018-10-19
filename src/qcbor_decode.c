@@ -441,7 +441,7 @@ Done:
 /*
  Decode text and byte strings. Call the string allocator if asked to.
  */
-inline static int DecodeBytes(QCBORStringAllocator *pAlloc, int nMajorType, uint64_t uStrLen, UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem)
+inline static int DecodeBytes(const QCBORStringAllocator *pAlloc, int nMajorType, uint64_t uStrLen, UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem)
 {
    int nReturn = QCBOR_SUCCESS;
    
@@ -575,7 +575,7 @@ Done:
  Errors detected here include: an array that is too long to decode, hit end of buffer unexpectedly,
     a few forms of invalid encoded CBOR
  */
-static int GetNext_Item(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, QCBORStringAllocator *pAlloc)
+static int GetNext_Item(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, const QCBORStringAllocator *pAlloc)
 {
    int nReturn;
    
@@ -592,9 +592,7 @@ static int GetNext_Item(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, QCBORS
    if(nReturn)
       goto Done;
    
-   pDecodedItem->uTagBits   = 0;
-   pDecodedItem->uTag       = 0;
-   pDecodedItem->uDataAlloc = 0;
+   memset(pDecodedItem, 0, sizeof(QCBORItem));
    
    // At this point the major type and the value are valid. We've got the type and the number that
    // starts every CBOR data item.
@@ -860,6 +858,8 @@ static inline int GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedIt
       if(nReturn)
          goto Done;
       
+      pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
+
       if(LabelItem.uDataType == QCBOR_TYPE_TEXT_STRING) {
          // strings are always good labels
          pDecodedItem->label.string = LabelItem.val.string;

@@ -153,8 +153,9 @@ struct _QCBOREncodeContext {
  and the DecodeNesting_xxx functions form an "object" that does the work
  for arrays and maps.
  
- 64-bit machine: 27 + 1 + 96 = 32+96 = 128 bytes
- 32-bit machine: 15 + 1 + 96 = 114 bytes
+ Size approximation (varies with CPU/compiler):
+   64-bit machine: 4 * 10 + 8 + 4 padding =  56
+   32-bit machine: 4 * 10 + 4 = 44
  */
 typedef struct __QCBORDecodeNesting  {
   // PRIVATE DATA STRUCTURE
@@ -172,20 +173,21 @@ typedef struct __QCBORDecodeNesting  {
  The decode context. This data structure plus the public QCBORDecode_xxx
  functions form an "object" that does CBOR decoding.
 
- 64-bit machine: 32 + 1 + (7 bytes padding) + 128 = 168 bytes
- 32-bit machine: 16 + 1 + (3 bytes padding) + 114 = 134 bytes
+ Size approximation (varies with CPU/compiler):
+   64-bit machine: 32 + 1 + 1 + 6 bytes padding + 56 + 8 = 104 bytes
+   32-bit machine: 16 + 1 + 1 + 2 bytes padding + 44 + 4 = 68 bytes
  */
 struct _QCBORDecodeContext {
    // PRIVATE DATA STRUCTURE   
    UsefulInputBuf InBuf;
    
    uint8_t        uDecodeMode;
-   uint8_t        bStringAllocateAll; // TODO: fully implement this
+   uint8_t        bStringAllocateAll;
    
    QCBORDecodeNesting nesting;
    
    // This is NULL or points to a QCBORStringAllocator. It is void
-   // here because _QCBORDecodeContext is defined early n the
+   // here because _QCBORDecodeContext is defined early in the
    // private part of this file and QCBORStringAllocat is defined
    // later in the public part of this file.
    void *pStringAllocator;

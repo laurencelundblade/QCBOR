@@ -726,13 +726,15 @@ int ShortBufferParseTest2()
    return(nReturn);
 }
 
-
+/*
+ Decode and thoroughly check a moderately complex
+ set of maps
+ */
 static int ParseMapTest1()
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
    int nCBORError;
-   
    
    QCBORDecode_Init(&DCtx, (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)}, QCBOR_DECODE_MODE_NORMAL);
    
@@ -742,14 +744,14 @@ static int ParseMapTest1()
       Item.val.uCount != 3)
       return -1;
    
-   
- 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return nCBORError;
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       Item.label.string.len != 13 ||
       Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 42 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
       memcmp(Item.label.string.ptr, "first integer", 13))
       return -1;
    
@@ -757,6 +759,8 @@ static int ParseMapTest1()
       return nCBORError;
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       Item.label.string.len != 23 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
       memcmp(Item.label.string.ptr, "an array of two strings", 23) ||
       Item.uDataType != QCBOR_TYPE_ARRAY ||
       Item.val.uCount != 2)
@@ -766,6 +770,8 @@ static int ParseMapTest1()
       return nCBORError;
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
       Item.val.string.len != 7 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
       memcmp(Item.val.string.ptr, "string1", 7))
       return -1;
    
@@ -773,6 +779,8 @@ static int ParseMapTest1()
       return nCBORError;
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
       Item.val.string.len != 7 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
       memcmp(Item.val.string.ptr, "string2", 7))
       return -1;
    
@@ -780,6 +788,8 @@ static int ParseMapTest1()
       return nCBORError;
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       Item.label.string.len != 12 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
       memcmp(Item.label.string.ptr, "map in a map", 12) ||
       Item.uDataType != QCBOR_TYPE_MAP ||
       Item.val.uCount != 4)
@@ -792,6 +802,8 @@ static int ParseMapTest1()
       memcmp(Item.label.string.ptr, "bytes 1", 7)||
       Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
       Item.val.string.len != 4 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
       memcmp(Item.val.string.ptr, "xxxx", 4))
       return -1;
    
@@ -802,6 +814,8 @@ static int ParseMapTest1()
       memcmp(Item.label.string.ptr, "bytes 2", 7) ||
       Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
       Item.val.string.len != 4 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
       memcmp(Item.val.string.ptr, "yyyy", 4))
       return -1;
    
@@ -809,6 +823,8 @@ static int ParseMapTest1()
       return nCBORError;
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       Item.label.string.len != 11 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
       memcmp(Item.label.string.ptr, "another int", 11) ||
       Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 98)
@@ -821,6 +837,8 @@ static int ParseMapTest1()
       memcmp(Item.label.string.ptr, "text 2", 6)||
       Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
       Item.val.string.len != 30 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
       memcmp(Item.val.string.ptr, "lies, damn lies and statistics", 30))
       return -1;
    
@@ -830,7 +848,16 @@ static int ParseMapTest1()
 
 
 /*
- This test parses pValidMapEncoded and checks for extra bytes along the way
+ Fully or partially decode pValidMapEncoded. When
+ partially decoding check for the right error code.
+ How much partial decoding depends on nLevel.
+ 
+ The partial decodes test error conditions of
+ incomplete encoded input.
+ 
+ This could be combined with the above test
+ and made prettier and maybe a little more
+ thorough.
  */
 static int ExtraBytesTest(int nLevel)
 {
@@ -847,7 +874,7 @@ static int ExtraBytesTest(int nLevel)
          return 0;
       }
    }
-   
+
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return nCBORError;
@@ -1010,7 +1037,7 @@ static int ExtraBytesTest(int nLevel)
       memcmp(Item.val.string.ptr, "lies, damn lies and statistics", 30))
       return -1;
    
-   if(QCBORDecode_Finish(&DCtx) == QCBOR_ERR_EXTRA_BYTES) {
+   if(QCBORDecode_Finish(&DCtx)) {
       return -1;
    }
    
@@ -1022,7 +1049,8 @@ static int ExtraBytesTest(int nLevel)
 
 int ParseMapTest()
 {
-   int n = ParseMapTest1();  // TODO: review this test carefully
+   // Parse a moderatly complex map structure very thoroughl
+   int n = ParseMapTest1();
    
    if(!n) {
       for(int i = 0; i < 10; i++) {
