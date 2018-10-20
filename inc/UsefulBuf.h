@@ -406,9 +406,10 @@ UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC
  this will crash if NULL or invalid.
  
  */
-static inline void UsefulBuf_Set(UsefulBuf *pDest, uint8_t value)
+static inline UsefulBufC UsefulBuf_Set(UsefulBuf pDest, uint8_t value)
 {
-    memset(pDest->ptr, value, pDest->len);
+   memset(pDest.ptr, value, pDest.len);
+   return (UsefulBufC){pDest.ptr, pDest.len};
 }
 
 

@@ -66,7 +66,7 @@ int MallocAllStringsTest()
     if((nCBORError = QCBORDecode_GetNext(&DC, &Item4)))
         return nCBORError;
     
-    UsefulBuf_Set(&CopyOfStorage, '_');
+    UsefulBuf_Set(CopyOfStorage, '_');
     
     if(Item1.uLabelType != QCBOR_TYPE_TEXT_STRING ||
        Item1.label.string.len != 13 ||

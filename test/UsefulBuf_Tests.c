@@ -394,11 +394,11 @@ const char *UBUtilTests()
    
    // Set 100 bytes of '+'; validated a few tests later
    MakeUsefulBufOnStack(Temp, 100);
-   UsefulBuf_Set(&Temp, '+');
+   UsefulBufC TempC = UsefulBuf_Set(Temp, '+');
    
    // Try to copy into a buf that is too small and see failure
    UsefulBuf_MakeStackUB(Temp2, 99);
-   if(!UsefulBuf_IsNULLC(UsefulBuf_Copy(Temp2, UsefulBuf_Const(Temp)))) {
+   if(!UsefulBuf_IsNULLC(UsefulBuf_Copy(Temp2, TempC))) {
       return "Copy should have failed";
    }
    
@@ -433,17 +433,17 @@ const char *UBUtilTests()
    
    // Try to copy into a NULL/empty buf and see failure
    UsefulBuf UBNull = NULLUsefulBuf;
-   if(!UsefulBuf_IsNULLC(UsefulBuf_Copy(UBNull, UsefulBuf_Const(Temp)))) {
+   if(!UsefulBuf_IsNULLC(UsefulBuf_Copy(UBNull, TempC))) {
       return "Copy to NULL should have failed";
    }
    
    
    // Try to set a NULL/empty buf; nothing should happen
-   UsefulBuf_Set(&UBNull, '+'); // This will crash on failure
+   UsefulBuf_Set(UBNull, '+'); // This will crash on failure
    
    // Copy successfully to a buffer
    MakeUsefulBufOnStack(Temp3, 101);
-   if(UsefulBuf_IsNULLC(UsefulBuf_Copy(Temp3, UsefulBuf_Const(Temp)))) {
+   if(UsefulBuf_IsNULLC(UsefulBuf_Copy(Temp3, TempC))) {
       return "Copy should not have failed";
    }
    
@@ -461,7 +461,7 @@ const char *UBUtilTests()
    };
    UsefulBufC Expected = ByteArrayLiteralToUsefulBufC(pExpected);
    // This validates comparison for equality and the UsefulBuf_Set
-   if(UsefulBuf_Compare(Expected, UsefulBuf_Const(Temp))) {
+   if(UsefulBuf_Compare(Expected, TempC)) {
       return "Set / Copy / Compare failed";
    }
    
