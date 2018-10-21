@@ -133,7 +133,7 @@ test_entry s_tests[] = {
     TEST_ENTRY(ComprehensiveInputTest),
     TEST_ENTRY(ParseMapTest),
     TEST_ENTRY(IndefiniteLengthArrayMapTest),
-    TEST_ENTRY(basic_encode_test),
+    TEST_ENTRY(BasicEncodeTest),
     TEST_ENTRY(NestedMapTest),
     TEST_ENTRY(BignumParseTest),
     TEST_ENTRY(OptTagParseTest),
@@ -150,10 +150,10 @@ test_entry s_tests[] = {
     TEST_ENTRY(half_precision_to_float_transitive_test),
     TEST_ENTRY(double_as_smallest_encode_basic),
     TEST_ENTRY(half_precision_to_float_vs_rfc_test),
-    TEST_ENTRY(bstrwraptest),
-    TEST_ENTRY(bstr_wrap_error_test),
-    TEST_ENTRY(bstr_wrap_nest_test),
-    TEST_ENTRY(cose_sign1_tbs_test),
+    TEST_ENTRY(BstrWrapTest),
+    TEST_ENTRY(BstrWrapErrorTest),
+    TEST_ENTRY(BstrWrapNestTest),
+    TEST_ENTRY(CoseSign1TBSTest),
     //TEST_ENTRY(fail_test),
 };
 

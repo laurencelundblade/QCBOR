@@ -55,14 +55,22 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "qcbor.h"
 #include "qcbor_encode_tests.h"
-#include <strings.h>
-#include <stdlib.h>
 
 
+/*
+ This is the test set for CBOR encoding.
+ 
+ This is largely complete for the implemented.
+ 
+ A few more things to do include:
+   - Add a test for counting the top level items and adding it back in with AddRaw()
+   - Run on some different CPUs like 32-bit and maybe even 16-bit
+   - Test the large array count limit
+   - Add the CBOR diagnostic output for every expected
+ 
+ */
 
-// TODO: -- test on a 32-bit machine)
-
-// TODO: test QCBOR_MAX_ITEMS_IN_ARRAY (this is very large...)
+//#define PRINT_FUNCTIONS_FOR_DEBUGGINGXX
 
 #ifdef PRINT_FUNCTIONS_FOR_DEBUGGINGXX
 #include <stdio.h>
@@ -81,9 +89,8 @@ static void printencoded(const uint8_t *pEncoded, size_t nLen)
 }
 
 
-#include <stdio.h>
-
-int Compare(UsefulBufC U1, UsefulBufC U2) {
+// Do the comparison and print out where it fails
+static int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
    int i;
    for(i = 0; i < U1.len; i++) {
       if(((uint8_t *)U1.ptr)[i] != ((uint8_t *)U2.ptr)[i]) {
@@ -94,36 +101,43 @@ int Compare(UsefulBufC U1, UsefulBufC U2) {
    return 0;
    
 }
-#endif
 
+#define CheckResults(Enc, Expected) \
+   UsefulBuf_Compare_Print(Enc, (UsefulBufC){Expected, sizeof(Expected)})
 
+#else
 
 #define CheckResults(Enc, Expected) \
    UsefulBuf_Compare(Enc, (UsefulBufC){Expected, sizeof(Expected)})
 
-//#define CheckResults(Enc, Expected) \
-//   Compare(Enc, (UsefulBufC){Expected, sizeof(Expected)})
+#endif
+
+
+
+// One big buffer that is used by all the tests to encode into
+// Putting it in uninitialized data is better than using a lot
+// of stack. The tests should run on small devices too.
+static uint8_t spBigBuf[2200];
 
 
 
 /*
  Some very minimal tests.
  */
-int basic_encode_test()
+int BasicEncodeTest()
 {
    // Very simple CBOR, a map with one boolean that is true in it
-   UsefulBuf_MakeStackUB(MemoryForEncoded, 100);
    QCBOREncodeContext EC;
    
-   QCBOREncode_Init(&EC, MemoryForEncoded);
-   
+   QCBOREncode_Init(&EC, UsefulBuf_FromByteArray(spBigBuf));
+
    QCBOREncode_OpenMap(&EC);
    QCBOREncode_AddBoolToMapN(&EC, 66, true);
    QCBOREncode_CloseMap(&EC);
    
    UsefulBufC Encoded;
    if(QCBOREncode_Finish2(&EC, &Encoded)) {
-      return -3;
+      return -1;
    }
    
    
@@ -134,21 +148,21 @@ int basic_encode_test()
    
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_MAP) {
-      return -1;
+      return -2;
    }
    
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_TRUE) {
-      return -1;
+      return -3;
    }
    
    if(QCBORDecode_Finish(&DC)) {
-      return -2;
+      return -4;
    }
    
    
    // Make another encoded message with the CBOR from the previous put into this one
-   UsefulBuf_MakeStackUB(MemoryForEncoded2, 100);
+   UsefulBuf_MakeStackUB(MemoryForEncoded2, 20);
    QCBOREncode_Init(&EC, MemoryForEncoded2);
    QCBOREncode_OpenArray(&EC);
    QCBOREncode_AddUInt64(&EC, 451);
@@ -160,7 +174,7 @@ int basic_encode_test()
    
    UsefulBufC Encoded2;
    if(QCBOREncode_Finish2(&EC, &Encoded2)) {
-      return -3;
+      return -5;
    }
     /*
      [                // 0    1:3
@@ -195,47 +209,47 @@ int basic_encode_test()
    // 0    1:3
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_ARRAY || Item.val.uCount != 3) {
-      return -1;
+      return -6;
    }
    
    // 1    1:2
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_INT64 || Item.val.uint64 != 451) {
-      return -1;
+      return -7;
    }
    
    // 1    1:2   2:1
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1) {
-      return -1;
+      return -8;
    }
    
    // 2    1:1
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_TRUE) {
-      return -1;
+      return -9;
    }
    
    // 1    1:1   2:1
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1) {
-      return -1;
+      return -10;
    }
    
    // 2    1:1   2:1   3:1
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1 || Item.uLabelType != QCBOR_TYPE_INT64 || Item.label.int64 != -70000) {
-      return -1;
+      return -11;
    }
    
    // 3    XXXXXX
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_TRUE || Item.uLabelType != QCBOR_TYPE_INT64 || Item.label.int64 != 66) {
-      return -1;
+      return -12;
    }
    
    if(QCBORDecode_Finish(&DC)) {
-      return -2;
+      return -13;
    }
    
    return 0;
@@ -243,8 +257,7 @@ int basic_encode_test()
 
 
 
-static const uint8_t pExpectedEncodedAll[] = {
-   
+static const uint8_t spExpectedEncodedAll[] = {
  0x98, 0x29, 0x66, 0x55, 0x49, 0x4e, 0x54, 0x36, 0x32, 0xd8,
  0x64, 0x1a, 0x05, 0x5d, 0x23, 0x15, 0x65, 0x49, 0x4e, 0x54,
  0x36, 0x34, 0xd8, 0x4c, 0x1b, 0x00, 0x00, 0x00, 0x12, 0x16,
@@ -490,10 +503,7 @@ int AllAddMethodsTest()
    QCBOREncodeContext ECtx;
    int nReturn = 0;
    
-   uint8_t pEncoded[3000];
-   size_t nEncodedLen = sizeof(pEncoded);
-   
-   QCBOREncode_Init(&ECtx, (UsefulBuf){pEncoded, nEncodedLen});
+   QCBOREncode_Init(&ECtx, UsefulBuf_FromByteArray(spBigBuf));
    
    QCBOREncode_OpenArray(&ECtx);
 
@@ -621,7 +631,7 @@ int AllAddMethodsTest()
    
    
    // UUIDs
-   static uint8_t ppppUUID[] = {0x53, 0x4D, 0x41, 0x52, 0x54, 0x43, 0x53, 0x4C, 0x54, 0x54, 0x43, 0x46, 0x49, 0x43, 0x41, 0x32};
+   static const uint8_t ppppUUID[] = {0x53, 0x4D, 0x41, 0x52, 0x54, 0x43, 0x53, 0x4C, 0x54, 0x54, 0x43, 0x46, 0x49, 0x43, 0x41, 0x32};
    UsefulBufC XXUUID = ByteArrayLiteralToUsefulBufC(ppppUUID);
    QCBOREncode_AddBinaryUUID(&ECtx, XXUUID);
    QCBOREncode_OpenMap(&ECtx);
@@ -639,7 +649,7 @@ int AllAddMethodsTest()
    QCBOREncode_CloseMap(&ECtx);
 
 
-   static uint8_t pBignum[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+   static const uint8_t pBignum[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
    UsefulBufC BIGNUM = ByteArrayLiteralToUsefulBufC(pBignum);
    QCBOREncode_AddPositiveBignum(&ECtx, BIGNUM);
    QCBOREncode_AddNegativeBignum(&ECtx, BIGNUM);
@@ -659,19 +669,64 @@ int AllAddMethodsTest()
       goto Done;
    }
    
-   //printencodedE(Enc);
-   
-   if(CheckResults(Enc, pExpectedEncodedAll))
-      nReturn = -1;
+   if(CheckResults(Enc, spExpectedEncodedAll))
+      nReturn = -2;
    
 Done:
    return nReturn;
 }
 
-// todo -- add a test for counting the top level items and adding it back in with AddRaw()
-
-
-static const uint8_t pExpectedEncodedInts[] = {
+/*
+ 98 2F                  # array(47)
+   3B 7FFFFFFFFFFFFFFF # negative(9223372036854775807)
+   3B 0000000100000000 # negative(4294967296)
+   3A FFFFFFFF         # negative(4294967295)
+   3A FFFFFFFE         # negative(4294967294)
+   3A FFFFFFFD         # negative(4294967293)
+   3A 7FFFFFFF         # negative(2147483647)
+   3A 7FFFFFFE         # negative(2147483646)
+   3A 00010001         # negative(65537)
+   3A 00010000         # negative(65536)
+   39 FFFF             # negative(65535)
+   39 FFFE             # negative(65534)
+   39 FFFD             # negative(65533)
+   39 0100             # negative(256)
+   38 FF               # negative(255)
+   38 FE               # negative(254)
+   38 FD               # negative(253)
+   38 18               # negative(24)
+   37                  # negative(23)
+   36                  # negative(22)
+   20                  # negative(0)
+   00                  # unsigned(0)
+   00                  # unsigned(0)
+   01                  # unsigned(1)
+   16                  # unsigned(22)
+   17                  # unsigned(23)
+   18 18               # unsigned(24)
+   18 19               # unsigned(25)
+   18 1A               # unsigned(26)
+   18 FE               # unsigned(254)
+   18 FF               # unsigned(255)
+   19 0100             # unsigned(256)
+   19 0101             # unsigned(257)
+   19 FFFE             # unsigned(65534)
+   19 FFFF             # unsigned(65535)
+   1A 00010000         # unsigned(65536)
+   1A 00010001         # unsigned(65537)
+   1A 00010002         # unsigned(65538)
+   1A 7FFFFFFF         # unsigned(2147483647)
+   1A 7FFFFFFF         # unsigned(2147483647)
+   1A 80000000         # unsigned(2147483648)
+   1A 80000001         # unsigned(2147483649)
+   1A FFFFFFFE         # unsigned(4294967294)
+   1A FFFFFFFF         # unsigned(4294967295)
+   1B 0000000100000000 # unsigned(4294967296)
+   1B 0000000100000001 # unsigned(4294967297)
+   1B 7FFFFFFFFFFFFFFF # unsigned(9223372036854775807)
+   1B FFFFFFFFFFFFFFFF # unsigned(18446744073709551615)
+ */
+static const uint8_t spExpectedEncodedInts[] = {
    0x98, 0x2f, 0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff,
    0xff, 0xff, 0xff, 0x3b, 0x00, 0x00, 0x00, 0x01,
    0x00, 0x00, 0x00, 0x00, 0x3a, 0xff, 0xff, 0xff,
@@ -711,10 +766,7 @@ int IntegerValuesTest1()
    QCBOREncodeContext ECtx;
    int nReturn = 0;
    
-   uint8_t pEncoded[1000];
-   size_t nEncodedLen = sizeof(pEncoded);
-   
-   QCBOREncode_Init(&ECtx, (UsefulBuf){pEncoded, nEncodedLen});
+   QCBOREncode_Init(&ECtx, UsefulBuf_FromByteArray(spBigBuf));
    QCBOREncode_OpenArray(&ECtx);
 
    QCBOREncode_AddInt64(&ECtx, -9223372036854775807LL - 1);
@@ -772,32 +824,33 @@ int IntegerValuesTest1()
       nReturn = -1;
    }
    
-   if(CheckResults(Enc, pExpectedEncodedInts))
-     return -1;
-   
-   if(Enc.len != sizeof(pExpectedEncodedInts) || memcmp(pEncoded, pExpectedEncodedInts, Enc.len))
-      nReturn = -1;
-   
-   //printencoded(pEncoded, nEncodedLen);
+   if(CheckResults(Enc, spExpectedEncodedInts))
+     return -2;
    
    return(nReturn);
 }
 
 
-
-static uint8_t pExpectedEncodedSimple[] = {
+/*
+ 85                  # array(5)
+   F5               # primitive(21)
+   F4               # primitive(20)
+   F6               # primitive(22)
+   F7               # primitive(23)
+   A1               # map(1)
+      65            # text(5)
+         554E446566 # "UNDef"
+      F7            # primitive(23)
+ */
+static const uint8_t spExpectedEncodedSimple[] = {
    0x85, 0xf5, 0xf4, 0xf6, 0xf7, 0xa1, 0x65, 0x55, 0x4e, 0x44, 0x65, 0x66, 0xf7};
-
 
 int SimpleValuesTest1()
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
    
-   uint8_t pEncoded[100];
-   size_t nEncodedLen = sizeof(pEncoded);
-   
-   QCBOREncode_Init(&ECtx, (UsefulBuf) {pEncoded, nEncodedLen});
+   QCBOREncode_Init(&ECtx, UsefulBuf_FromByteArray(spBigBuf));
    QCBOREncode_OpenArray(&ECtx);
    
    QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_TRUE);
@@ -817,28 +870,41 @@ int SimpleValuesTest1()
       nReturn = -1;
    }
    
-   if(ECBOR.len != sizeof(pExpectedEncodedSimple) || memcmp(pEncoded, pExpectedEncodedSimple, ECBOR.len))
-      nReturn = -1;
-   
-   // printencoded(pEncoded, nEncodedLen);
+   if(CheckResults(ECBOR, spExpectedEncodedSimple))
+      return -2;
    
    return(nReturn);
 }
 
 
-
-static uint8_t pExpectedEncodedDates[] = {
-   0x83, 0xc0, 0x74, 0x32, 0x30, 0x31, 0x33, 0x2d, 0x30, 0x33, 0x2d, 0x32, 0x31, 0x54,
-   0x32, 0x30, 0x3a, 0x30, 0x34, 0x3a, 0x30, 0x30,
-   0x5a, 0xc1, 0x1a, 0x51, 0x4b, 0x67, 0xb0, 0xa2,
-   0x78, 0x19, 0x53, 0x61, 0x6d, 0x70, 0x6c, 0x65,
-   0x20, 0x44, 0x61, 0x74, 0x65, 0x20, 0x66, 0x72,
-   0x6f, 0x6d, 0x20, 0x52, 0x46, 0x43, 0x20, 0x33,
-   0x33, 0x33, 0x39, 0xc0, 0x77, 0x31, 0x39, 0x38,
-   0x35, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x32, 0x54,
-   0x32, 0x33, 0x3a, 0x32, 0x30, 0x3a, 0x35, 0x30,
-   0x2e, 0x35, 0x32, 0x5a, 0x62, 0x53, 0x44, 0xc1,
-   0x19, 0x03, 0xe7
+/*
+ 83                                      # array(3)
+   C0                                   # tag(0)
+      74                                # text(20)
+         323031332D30332D32315432303A30343A30305A # "2013-03-21T20:04:00Z"
+   C1                                   # tag(1)
+      1A 514B67B0                       # unsigned(1363896240)
+   A2                                   # map(2)
+      78 19                             # text(25)
+         53616D706C6520446174652066726F6D205246432033333339 # "Sample Date from RFC 3339"
+      C0                                # tag(0)
+         77                             # text(23)
+            313938352D30342D31325432333A32303A35302E35325A # "1985-04-12T23:20:50.52Z"
+      62                                # text(2)
+         5344                           # "SD"
+      C1                                # tag(1)
+         19 03E7                        # unsigned(999)
+ */
+static const uint8_t spExpectedEncodedDates[] = {
+   0x83, 0xc0, 0x74, 0x32, 0x30, 0x31, 0x33, 0x2d, 0x30, 0x33,
+   0x2d, 0x32, 0x31, 0x54, 0x32, 0x30, 0x3a, 0x30, 0x34, 0x3a,
+   0x30, 0x30, 0x5a, 0xc1, 0x1a, 0x51, 0x4b, 0x67, 0xb0, 0xa2,
+   0x78, 0x19, 0x53, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x20, 0x44,
+   0x61, 0x74, 0x65, 0x20, 0x66, 0x72, 0x6f, 0x6d, 0x20, 0x52,
+   0x46, 0x43, 0x20, 0x33, 0x33, 0x33, 0x39, 0xc0, 0x77, 0x31,
+   0x39, 0x38, 0x35, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x32, 0x54,
+   0x32, 0x33, 0x3a, 0x32, 0x30, 0x3a, 0x35, 0x30, 0x2e, 0x35,
+   0x32, 0x5a, 0x62, 0x53, 0x44, 0xc1, 0x19, 0x03, 0xe7
 };
 
 int EncodeDateTest()
@@ -846,10 +912,7 @@ int EncodeDateTest()
    QCBOREncodeContext ECtx;
    int nReturn = 0;
    
-   uint8_t pEncoded[1000];
-   size_t nEncodedLen = sizeof(pEncoded);
-   
-   QCBOREncode_Init(&ECtx, (UsefulBuf){pEncoded, nEncodedLen});
+   QCBOREncode_Init(&ECtx, UsefulBuf_FromByteArray(spBigBuf));
    
    QCBOREncode_OpenArray(&ECtx);
 
@@ -862,26 +925,24 @@ int EncodeDateTest()
 
    QCBOREncode_AddDateStringToMap(&ECtx, "Sample Date from RFC 3339", "1985-04-12T23:20:50.52Z");
    
-   
    QCBOREncode_AddDateEpochToMap(&ECtx, "SD", 999);
    
    QCBOREncode_CloseMap(&ECtx);
    
    QCBOREncode_CloseArray(&ECtx);
 
-   
-   if(QCBOREncode_Finish(&ECtx, &nEncodedLen)) {
+   UsefulBufC ECBOR;
+
+   if(QCBOREncode_Finish2(&ECtx, &ECBOR)) {
       nReturn = -1;
    }
    
-   if(nEncodedLen != sizeof(pExpectedEncodedDates) || memcmp(pEncoded, pExpectedEncodedDates, nEncodedLen))
-      nReturn = -1;
-   
-   //printencoded(pEncoded, nEncodedLen);
+   if(CheckResults(ECBOR, spExpectedEncodedDates))
+      return -2;
    
    return(nReturn);
-   
 }
+
 
 int ArrayNestingTest1()
 {
@@ -889,9 +950,7 @@ int ArrayNestingTest1()
    int i;
    int nReturn = 0;
    
-   UsefulBuf_MakeStackUB(Encode, 100);
-
-   QCBOREncode_Init(&ECtx, Encode);
+   QCBOREncode_Init(&ECtx, UsefulBuf_FromByteArray(spBigBuf));
    for(i = QCBOR_MAX_ARRAY_NESTING; i; i--) {
       QCBOREncode_OpenArray(&ECtx);
    }
@@ -902,7 +961,6 @@ int ArrayNestingTest1()
    if(QCBOREncode_Finish(&ECtx, &nEncodedLen)) {
       nReturn = -1;
    }
-   //printencoded(pEncoded, nEncodedLen);
 
    return(nReturn);
 }
@@ -915,9 +973,7 @@ int ArrayNestingTest2()
    int i;
    int nReturn = 0;
    
-   UsefulBuf_MakeStackUB(Encode, 100);
-   
-   QCBOREncode_Init(&ECtx, Encode);
+   QCBOREncode_Init(&ECtx, UsefulBuf_FromByteArray(spBigBuf));
    for(i = QCBOR_MAX_ARRAY_NESTING+1; i; i--) {
       QCBOREncode_OpenArray(&ECtx);
    }
@@ -941,9 +997,7 @@ int ArrayNestingTest3()
    int i;
    int nReturn = 0;
    
-   UsefulBuf_MakeStackUB(Encode, 100);
-
-   QCBOREncode_Init(&ECtx, Encode);
+   QCBOREncode_Init(&ECtx, UsefulBuf_FromByteArray(spBigBuf));
    for(i = QCBOR_MAX_ARRAY_NESTING; i; i--) {
       QCBOREncode_OpenArray(&ECtx);
    }
@@ -959,10 +1013,73 @@ int ArrayNestingTest3()
 }
 
 
-static uint8_t s_pFiveArrarys[] = {0x81, 0x81, 0x81, 0x81, 0x80};
+/*
+ 81             # array(1)
+ 81          # array(1)
+ 81       # array(1)
+ 81    # array(1)
+ 80 # array(0)
+*/
+static const uint8_t spFiveArrarys[] = {0x81, 0x81, 0x81, 0x81, 0x80};
 
 // Validated at http://cbor.me and by manually examining its output
-static uint8_t s_pEncodeRawExpected[] = {
+/*
+ 82                        # array(2)
+ 81                     # array(1)
+ 81                  # array(1)
+ 81               # array(1)
+ 81            # array(1)
+ 80         # array(0)
+ 98 2F                  # array(47)
+ 3B 7FFFFFFFFFFFFFFF # negative(9223372036854775807)
+ 3B 0000000100000000 # negative(4294967296)
+ 3A FFFFFFFF         # negative(4294967295)
+ 3A FFFFFFFE         # negative(4294967294)
+ 3A FFFFFFFD         # negative(4294967293)
+ 3A 7FFFFFFF         # negative(2147483647)
+ 3A 7FFFFFFE         # negative(2147483646)
+ 3A 00010001         # negative(65537)
+ 3A 00010000         # negative(65536)
+ 39 FFFF             # negative(65535)
+ 39 FFFE             # negative(65534)
+ 39 FFFD             # negative(65533)
+ 39 0100             # negative(256)
+ 38 FF               # negative(255)
+ 38 FE               # negative(254)
+ 38 FD               # negative(253)
+ 38 18               # negative(24)
+ 37                  # negative(23)
+ 36                  # negative(22)
+ 20                  # negative(0)
+ 00                  # unsigned(0)
+ 00                  # unsigned(0)
+ 01                  # unsigned(1)
+ 16                  # unsigned(22)
+ 17                  # unsigned(23)
+ 18 18               # unsigned(24)
+ 18 19               # unsigned(25)
+ 18 1A               # unsigned(26)
+ 18 FE               # unsigned(254)
+ 18 FF               # unsigned(255)
+ 19 0100             # unsigned(256)
+ 19 0101             # unsigned(257)
+ 19 FFFE             # unsigned(65534)
+ 19 FFFF             # unsigned(65535)
+ 1A 00010000         # unsigned(65536)
+ 1A 00010001         # unsigned(65537)
+ 1A 00010002         # unsigned(65538)
+ 1A 7FFFFFFF         # unsigned(2147483647)
+ 1A 7FFFFFFF         # unsigned(2147483647)
+ 1A 80000000         # unsigned(2147483648)
+ 1A 80000001         # unsigned(2147483649)
+ 1A FFFFFFFE         # unsigned(4294967294)
+ 1A FFFFFFFF         # unsigned(4294967295)
+ 1B 0000000100000000 # unsigned(4294967296)
+ 1B 0000000100000001 # unsigned(4294967297)
+ 1B 7FFFFFFFFFFFFFFF # unsigned(9223372036854775807)
+ 1B FFFFFFFFFFFFFFFF # unsigned(18446744073709551615)
+ */
+static const uint8_t spEncodeRawExpected[] = {
    0x82, 0x81, 0x81, 0x81, 0x81, 0x80, 0x98, 0x2f,
    0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    0xff, 0x3b, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
@@ -991,14 +1108,12 @@ static uint8_t s_pEncodeRawExpected[] = {
 
 int EncodeRawTest()
 {
-   UsefulBuf_MakeStackUB(RawTestStorage, 220);
-   
    QCBOREncodeContext ECtx;
 
-   QCBOREncode_Init(&ECtx, RawTestStorage);
+   QCBOREncode_Init(&ECtx, UsefulBuf_FromByteArray(spBigBuf));
    QCBOREncode_OpenArray(&ECtx);
-   QCBOREncode_AddEncoded(&ECtx, UsefulBuf_FromByteArrayLiteral(s_pFiveArrarys));
-   QCBOREncode_AddEncoded(&ECtx, UsefulBuf_FromByteArrayLiteral(pExpectedEncodedInts));
+   QCBOREncode_AddEncoded(&ECtx, UsefulBuf_FromByteArrayLiteral(spFiveArrarys));
+   QCBOREncode_AddEncoded(&ECtx, UsefulBuf_FromByteArrayLiteral(spExpectedEncodedInts));
    QCBOREncode_CloseArray(&ECtx);
    
    UsefulBufC EncodedRawTest;
@@ -1007,16 +1122,16 @@ int EncodeRawTest()
       return -4;
    }
    
-   if(UsefulBuf_Compare(EncodedRawTest, UsefulBuf_FromByteArrayLiteral(s_pEncodeRawExpected))) {
+   if(CheckResults(EncodedRawTest, spEncodeRawExpected)) {
       return -5;
    }
    
    return 0;
 }
 
-
-
-
+/*
+ This returns a pointer to spBigBuf
+ */
 static int CreateMap(uint8_t **pEncoded, size_t *pEncodedLen)
 {
    QCBOREncodeContext ECtx;
@@ -1024,6 +1139,7 @@ static int CreateMap(uint8_t **pEncoded, size_t *pEncodedLen)
    
    *pEncoded = NULL;
    *pEncodedLen = INT32_MAX;
+   size_t uFirstSizeEstimate = 0;
    
    // loop runs CBOR encoding twice. First with no buffer to
    // calucate the length so buffer can be allocated correctly,
@@ -1048,28 +1164,70 @@ static int CreateMap(uint8_t **pEncoded, size_t *pEncodedLen)
       if(QCBOREncode_Finish(&ECtx, pEncodedLen))
          goto Done;
       if(*pEncoded != NULL) {
-         nReturn = 0;
+         if(uFirstSizeEstimate != *pEncodedLen) {
+            nReturn = 1;
+         } else {
+            nReturn = 0;
+         }
          goto Done;
       }
-      *pEncoded = malloc(*pEncodedLen);
+      *pEncoded = spBigBuf;
+      uFirstSizeEstimate = *pEncodedLen;
+      
    } while(1);
    
  Done:
    return(nReturn);
 }
 
-
-static uint8_t pValidMapEncoded[] = {
-   0xa3, 0x6d, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x18, 0x2a,
-   0x77, 0x61, 0x6e, 0x20, 0x61, 0x72, 0x72, 0x61, 0x79, 0x20, 0x6f, 0x66, 0x20, 0x74, 0x77, 0x6f, 0x20,
-   0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x73, 0x82, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x31, 0x67,
-   0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x32, 0x6c, 0x6d, 0x61, 0x70, 0x20, 0x69, 0x6e, 0x20, 0x61, 0x20,
-   0x6d, 0x61, 0x70, 0xa4, 0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x31, 0x44, 0x78, 0x78, 0x78, 0x78,
-   0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x32, 0x44, 0x79, 0x79, 0x79, 0x79, 0x6b, 0x61, 0x6e, 0x6f,
-   0x74, 0x68, 0x65, 0x72, 0x20, 0x69, 0x6e, 0x74, 0x18, 0x62, 0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32,
-   0x78, 0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x64, 0x61, 0x6d, 0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73,
-   0x20, 0x61, 0x6e, 0x64, 0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63, 0x73 } ;
-
+/*
+ A3                                      # map(3)
+   6D                                   # text(13)
+      666972737420696E7465676572        # "first integer"
+   18 2A                                # unsigned(42)
+   77                                   # text(23)
+      616E206172726179206F662074776F20737472696E6773 # "an array of two strings"
+   82                                   # array(2)
+      67                                # text(7)
+         737472696E6731                 # "string1"
+      67                                # text(7)
+         737472696E6732                 # "string2"
+   6C                                   # text(12)
+      6D617020696E2061206D6170          # "map in a map"
+   A4                                   # map(4)
+      67                                # text(7)
+         62797465732031                 # "bytes 1"
+      44                                # bytes(4)
+         78787878                       # "xxxx"
+      67                                # text(7)
+         62797465732032                 # "bytes 2"
+      44                                # bytes(4)
+         79797979                       # "yyyy"
+      6B                                # text(11)
+         616E6F7468657220696E74         # "another int"
+      18 62                             # unsigned(98)
+      66                                # text(6)
+         746578742032                   # "text 2"
+      78 1E                             # text(30)
+         6C6965732C2064616D6E206C69657320616E642073746174697374696373 # "lies, damn lies and statistics"
+ */
+static const uint8_t spValidMapEncoded[] = {
+   0xa3, 0x6d, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20, 0x69, 0x6e,
+   0x74, 0x65, 0x67, 0x65, 0x72, 0x18, 0x2a, 0x77, 0x61, 0x6e,
+   0x20, 0x61, 0x72, 0x72, 0x61, 0x79, 0x20, 0x6f, 0x66, 0x20,
+   0x74, 0x77, 0x6f, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67,
+   0x73, 0x82, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x31,
+   0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x32, 0x6c, 0x6d,
+   0x61, 0x70, 0x20, 0x69, 0x6e, 0x20, 0x61, 0x20, 0x6d, 0x61,
+   0x70, 0xa4, 0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x31,
+   0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62, 0x79, 0x74, 0x65,
+   0x73, 0x20, 0x32, 0x44, 0x79, 0x79, 0x79, 0x79, 0x6b, 0x61,
+   0x6e, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x20, 0x69, 0x6e, 0x74,
+   0x18, 0x62, 0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32, 0x78,
+   0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x64, 0x61, 0x6d,
+   0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73, 0x20, 0x61, 0x6e, 0x64,
+   0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63,
+   0x73 } ;
 
 
 int MapEncodeTest()
@@ -1078,14 +1236,12 @@ int MapEncodeTest()
    size_t nEncodedMapLen;
    
    if(CreateMap(&pEncodedMaps, &nEncodedMapLen)) {
-      return(-1);
+      return -1;
    }
    
-   //printencoded(pEncodedMaps, nEncodedMapLen);
-   
    int nReturn = 0;
-   if(memcmp(pValidMapEncoded, pEncodedMaps, sizeof(pValidMapEncoded)))
-      nReturn = 1;
+   if(memcmp(spValidMapEncoded, pEncodedMaps, sizeof(spValidMapEncoded)))
+      nReturn = 2;
    
    return(nReturn);
 }
@@ -1112,7 +1268,7 @@ int MapEncodeTest()
  
  */
 
-int FormatRTICResults(int nRResult, uint64_t time, const char *szType, const char *szAlexString, uint8_t *pOut, size_t *pnLen)
+static UsefulBufC FormatRTICResults(int nRResult, uint64_t time, const char *szType, const char *szAlexString, UsefulBuf Storage)
 {
    // Buffer that the result will be written in to
    // It is fixed size and small that a stack variable will be fine
@@ -1120,7 +1276,7 @@ int FormatRTICResults(int nRResult, uint64_t time, const char *szType, const cha
    
    // Context for the encoder
    QCBOREncodeContext ECtx;
-   QCBOREncode_Init(&ECtx, (UsefulBuf){pOut, *pnLen});
+   QCBOREncode_Init(&ECtx, Storage);
    
    // All the RTIC results are grouped in a CBOR Map which will get turned into a JSON Object
    // Contents are label / value pairs
@@ -1154,7 +1310,7 @@ int FormatRTICResults(int nRResult, uint64_t time, const char *szType, const cha
          QCBOREncode_AddInt64ToMap(&ECtx, "IQ", 0xffffffff);
 
          // Add a few fake integers and buffers for now.
-         const uint8_t pPV[] = {0x66, 0x67, 0x00, 0x56, 0xaa, 0xbb, 0x01, 0x01};
+         static const uint8_t pPV[] = {0x66, 0x67, 0x00, 0x56, 0xaa, 0xbb, 0x01, 0x01};
          UsefulBufC WSPV = {pPV, sizeof(pPV)};
             
          QCBOREncode_AddBytesToMap(&ECtx, "WhaleSharkPatternVector", WSPV);
@@ -1167,41 +1323,93 @@ int FormatRTICResults(int nRResult, uint64_t time, const char *szType, const cha
    // Close the map
    QCBOREncode_CloseMap(&ECtx);
    
-   return QCBOREncode_Finish(&ECtx, pnLen);
+   UsefulBufC Result;
+   
+   QCBOREncode_Finish2(&ECtx, &Result);
+   
+   return Result;
 }
 
 
-static const uint8_t pExpectedRTIC[] = {0xa5, 0x69, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x72, 0x69, 0x74, 0x79, 0xf4, 0x64, 0x74, 0x79, 0x70, 0x65, 0x66, 0x72, 0x65, 0x63, 0x65, 0x6e, 0x74, 0x64, 0x74, 0x69, 0x6d, 0x65, 0xc1, 0x1a, 0x58, 0x0d, 0x41, 0x72, 0x64, 0x64, 0x69, 0x61, 0x67, 0x6a, 0x30, 0x78, 0x41, 0x31, 0x65, 0x43, 0x35, 0x30, 0x30, 0x31, 0x69, 0x74, 0x65, 0x6c, 0x65, 0x6d, 0x65, 0x74, 0x72, 0x79, 0xa3, 0x69, 0x53, 0x68, 0x6f, 0x65, 0x20, 0x53, 0x69, 0x7a, 0x65, 0x0c, 0x62, 0x49, 0x51, 0x1a, 0xff, 0xff, 0xff, 0xff, 0x77, 0x57, 0x68, 0x61, 0x6c, 0x65, 0x53, 0x68, 0x61, 0x72, 0x6b, 0x50, 0x61, 0x74, 0x74, 0x65, 0x72, 0x6e, 0x56, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x48, 0x66, 0x67, 0x00, 0x56, 0xaa, 0xbb, 0x01, 0x01};
+/*
+ A5                                      # map(5)
+   69                                   # text(9)
+      696E74656772697479                # "integrity"
+   F4                                   # primitive(20)
+   64                                   # text(4)
+      74797065                          # "type"
+   66                                   # text(6)
+      726563656E74                      # "recent"
+   64                                   # text(4)
+      74696D65                          # "time"
+   C1                                   # tag(1)
+      1A 580D4172                       # unsigned(1477263730)
+   64                                   # text(4)
+      64696167                          # "diag"
+   6A                                   # text(10)
+      30784131654335303031              # "0xA1eC5001"
+   69                                   # text(9)
+      74656C656D65747279                # "telemetry"
+   A3                                   # map(3)
+      69                                # text(9)
+         53686F652053697A65             # "Shoe Size"
+      0C                                # unsigned(12)
+      62                                # text(2)
+         4951                           # "IQ"
+      1A FFFFFFFF                       # unsigned(4294967295)
+      77                                # text(23)
+         5768616C65536861726B5061747465726E566563746F72 # "WhaleSharkPatternVector"
+      48                                # bytes(8)
+         66670056AABB0101               # "fg\x00V\xAA\xBB\x01\x01"
+ */
+static const uint8_t spExpectedRTIC[] = {
+   0xa5, 0x69, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x72, 0x69, 0x74,
+   0x79, 0xf4, 0x64, 0x74, 0x79, 0x70, 0x65, 0x66, 0x72, 0x65,
+   0x63, 0x65, 0x6e, 0x74, 0x64, 0x74, 0x69, 0x6d, 0x65, 0xc1,
+   0x1a, 0x58, 0x0d, 0x41, 0x72, 0x64, 0x64, 0x69, 0x61, 0x67,
+   0x6a, 0x30, 0x78, 0x41, 0x31, 0x65, 0x43, 0x35, 0x30, 0x30,
+   0x31, 0x69, 0x74, 0x65, 0x6c, 0x65, 0x6d, 0x65, 0x74, 0x72,
+   0x79, 0xa3, 0x69, 0x53, 0x68, 0x6f, 0x65, 0x20, 0x53, 0x69,
+   0x7a, 0x65, 0x0c, 0x62, 0x49, 0x51, 0x1a, 0xff, 0xff, 0xff,
+   0xff, 0x77, 0x57, 0x68, 0x61, 0x6c, 0x65, 0x53, 0x68, 0x61,
+   0x72, 0x6b, 0x50, 0x61, 0x74, 0x74, 0x65, 0x72, 0x6e, 0x56,
+   0x65, 0x63, 0x74, 0x6f, 0x72, 0x48, 0x66, 0x67, 0x00, 0x56,
+   0xaa, 0xbb, 0x01, 0x01};
 
 
 int RTICResultsTest()
 {
-   uint8_t out[200];
-   size_t len = sizeof(out);
-   
-   int nResult = FormatRTICResults(CBOR_SIMPLEV_FALSE, 1477263730, "recent", "0xA1eC5001",  out, &len);
-   if(nResult)
+   UsefulBufC Encoded = FormatRTICResults(CBOR_SIMPLEV_FALSE, 1477263730,
+                                          "recent", "0xA1eC5001",
+                                          UsefulBuf_FromByteArray(spBigBuf));
+   if(UsefulBuf_IsNULLC(Encoded)) {
       return -1;
+   }
    
-   if(memcmp(pExpectedRTIC, out, sizeof(pExpectedRTIC)))
-      return 1;
-   
-   //printencoded(out,  len);
+   if(CheckResults(Encoded, spExpectedRTIC)) {
+      return -2;
+   }
    
    return 0;  
 }
 
 
+/*
+ 82           # array(2)
+   19 01C3   # unsigned(451)
+   43        # bytes(3)
+      1901D2 # "\x19\x01\xD2"
+*/
+static const uint8_t spExpectedBstrWrap[] = {0x82, 0x19, 0x01, 0xC3, 0x43, 0x19, 0x01, 0xD2};
 
 /*
  Very basic bstr wrapping test
  */
-int bstrwraptest()
+int BstrWrapTest()
 {
-   UsefulBuf_MakeStackUB(MemoryForEncoded, 100);
    QCBOREncodeContext EC;
    
-   QCBOREncode_Init(&EC, MemoryForEncoded);
+   QCBOREncode_Init(&EC, UsefulBuf_FromByteArray(spBigBuf));
    
    QCBOREncode_OpenArray(&EC);
    QCBOREncode_AddUInt64(&EC, 451);
@@ -1219,8 +1427,7 @@ int bstrwraptest()
       return -1;
    }
    
-   const uint8_t pExpected[] = {0x82, 0x19, 0x01, 0xC3, 0x43, 0x19, 0x01, 0xD2};
-   if(UsefulBuf_Compare(UsefulBuf_FromByteArrayLiteral(pExpected), Encoded)) {
+   if(CheckResults(Encoded, spExpectedBstrWrap)) {
       return -2;
    }
    
@@ -1229,13 +1436,12 @@ int bstrwraptest()
 
 
 
-int bstr_wrap_error_test()
+int BstrWrapErrorTest()
 {
    // -------------- Test closing a bstrwrap when it is an array that is open -----------
-   UsefulBuf_MakeStackUB(MemoryForEncoded, 100);
    QCBOREncodeContext EC;
    
-   QCBOREncode_Init(&EC, MemoryForEncoded);
+   QCBOREncode_Init(&EC, UsefulBuf_FromByteArray(spBigBuf));
    
    QCBOREncode_OpenArray(&EC);
    QCBOREncode_AddUInt64(&EC, 451);
@@ -1255,14 +1461,14 @@ int bstr_wrap_error_test()
    }
    
    // ----------- test closing a bstrwrap when nothing is open ---------------------
-   QCBOREncode_Init(&EC, MemoryForEncoded);
+   QCBOREncode_Init(&EC, UsefulBuf_FromByteArray(spBigBuf));
    QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
    if(QCBOREncode_Finish2(&EC, &Encoded2) != QCBOR_ERR_TOO_MANY_CLOSES) {
       return -2;
    }
    
    // --------------- test nesting too deep ----------------------------------
-   QCBOREncode_Init(&EC, MemoryForEncoded);
+   QCBOREncode_Init(&EC, UsefulBuf_FromByteArray(spBigBuf));
    for(int i = 1; i < 18; i++) {
       QCBOREncode_BstrWrap(&EC);
    }
@@ -1324,7 +1530,22 @@ int bstr_wrap_error_test()
  
  
  */
-static const uint8_t sExpectedDeepBstr[] =
+
+
+/*
+ 83                                      # array(3)
+   56                                   # bytes(22)
+      00530150024D034A0447054406410700010203040506 # "\x00S\x01P\x02M\x03J\x04G\x05D\x06A\a\x00\x01\x02\x03\x04\x05\x06"
+   07                                   # unsigned(7)
+   A2                                   # map(2)
+      18 20                             # unsigned(32)
+      54                                # bytes(20)
+         8210A21821448111183018406568656C6C6F1831 # "\x82\x10\xA2\x18!D\x81\x11\x180\x18@ehello\x181"
+      18 41                             # unsigned(65)
+      65                                # text(5)
+         68656C6C6F                     # "hello"
+ */
+static const uint8_t spExpectedDeepBstr[] =
 {
    0x83, 0x56, 0x00, 0x53, 0x01, 0x50, 0x02, 0x4D,
    0x03, 0x4A, 0x04, 0x47, 0x05, 0x44, 0x06, 0x41,
@@ -1337,7 +1558,7 @@ static const uint8_t sExpectedDeepBstr[] =
 };
 
 // Part of bstr_wrap_nest_test
-static int decode_next_nested(UsefulBufC Wrapped)
+static int DecodeNextNested(UsefulBufC Wrapped)
 {
    int nReturn;
    QCBORDecodeContext DC;
@@ -1359,7 +1580,7 @@ static int decode_next_nested(UsefulBufC Wrapped)
    if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
       return -13;
    }
-   nReturn =  decode_next_nested(Item.val.string);
+   nReturn =  DecodeNextNested(Item.val.string);
    if(nReturn) {
       return nReturn;
    }
@@ -1380,7 +1601,7 @@ static int decode_next_nested(UsefulBufC Wrapped)
 }
 
 // Part of bstr_wrap_nest_test
-static int decode_next_nested2(UsefulBufC Wrapped)
+static int DecodeNextNested2(UsefulBufC Wrapped)
 {
    int nReturn;
    QCBORDecodeContext DC;
@@ -1418,7 +1639,7 @@ static int decode_next_nested2(UsefulBufC Wrapped)
    if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
       return -13;
    }
-   nReturn =  decode_next_nested2(Item.val.string);
+   nReturn =  DecodeNextNested2(Item.val.string);
    if(nReturn) {
       return nReturn;
    }
@@ -1446,11 +1667,10 @@ static int decode_next_nested2(UsefulBufC Wrapped)
 }
 
 
-int bstr_wrap_nest_test()
+int BstrWrapNestTest()
 {
-   UsefulBuf_MakeStackUB(MemoryForEncoded, 300);
    QCBOREncodeContext EC;
-   QCBOREncode_Init(&EC, MemoryForEncoded);
+   QCBOREncode_Init(&EC, UsefulBuf_FromByteArray(spBigBuf));
    
    // ---- Make a complicated nested CBOR structure ---
    QCBOREncode_OpenArray(&EC);
@@ -1487,7 +1707,7 @@ int bstr_wrap_nest_test()
    }
    
    // ---Compare it to expected. Expected was hand checked with use of CBOR playground ----
-   if(UsefulBuf_Compare(UsefulBuf_FromByteArrayLiteral(sExpectedDeepBstr), Encoded)) {
+   if(UsefulBuf_Compare(UsefulBuf_FromByteArrayLiteral(spExpectedDeepBstr), Encoded)) {
       return -25;
    }
    
@@ -1507,7 +1727,7 @@ int bstr_wrap_nest_test()
       return -3;
    }
    
-   int nReturn = decode_next_nested(Item.val.string);
+   int nReturn = DecodeNextNested(Item.val.string);
    if(nReturn) {
       return nReturn;
    }
@@ -1529,7 +1749,7 @@ int bstr_wrap_nest_test()
    if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
       return -3;
    }
-   nReturn = decode_next_nested2(Item.val.string);
+   nReturn = DecodeNextNested2(Item.val.string);
    if(nReturn) {
       return nReturn;
    }
@@ -1550,6 +1770,41 @@ int bstr_wrap_nest_test()
 }
 
 
+static const uint8_t spSignature[] = {
+   0x8e, 0xb3, 0x3e, 0x4c, 0xa3, 0x1d, 0x1c, 0x46, 0x5a, 0xb0,
+   0x5a, 0xac, 0x34, 0xcc, 0x6b, 0x23, 0xd5, 0x8f, 0xef, 0x5c,
+   0x08, 0x31, 0x06, 0xc4, 0xd2, 0x5a, 0x91, 0xae, 0xf0, 0xb0,
+   0x11, 0x7e, 0x2a, 0xf9, 0xa2, 0x91, 0xaa, 0x32, 0xe1, 0x4a,
+   0xb8, 0x34, 0xdc, 0x56, 0xed, 0x2a, 0x22, 0x34, 0x44, 0x54,
+   0x7e, 0x01, 0xf1, 0x1d, 0x3b, 0x09, 0x16, 0xe5, 0xa4, 0xc3,
+   0x45, 0xca, 0xcb, 0x36};
+
+/*
+ D2                                      # tag(18)
+   84                                   # array(4)
+      43                                # bytes(3)
+         A10126                         # "\xA1\x01&"
+      A1                                # map(1)
+         04                             # unsigned(4)
+         42                             # bytes(2)
+            3131                        # "11"
+      54                                # bytes(20)
+         546869732069732074686520636F6E74656E742E # "This is the content."
+      58 40                             # bytes(64)
+         8EB33E4CA31D1C465AB05AAC34CC6B23D58FEF5C083106C4D25A91AEF0B0117E2AF9A291AA32E14AB834DC56ED2A223444547E01F11D3B0916E5A4C345CACB36 # "\x8E\xB3>L\xA3\x1D\x1CFZ\xB0Z\xAC4\xCCk#\xD5\x8F\xEF\\\b1\x06\xC4\xD2Z\x91\xAE\xF0\xB0\x11~*\xF9\xA2\x91\xAA2\xE1J\xB84\xDCV\xED*\"4DT~\x01\xF1\x1D;\t\x16\xE5\xA4\xC3E\xCA\xCB6"
+ */
+static const uint8_t spExpected[] = {
+   0xD2, 0x84, 0x43, 0xA1, 0x01, 0x26, 0xA1, 0x04, 0x42, 0x31,
+   0x31, 0x54, 0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20,
+   0x74, 0x68, 0x65, 0x20, 0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E,
+   0x74, 0x2E, 0x58, 0x40, 0x8E, 0xB3, 0x3E, 0x4C, 0xA3, 0x1D,
+   0x1C, 0x46, 0x5A, 0xB0, 0x5A, 0xAC, 0x34, 0xCC, 0x6B, 0x23,
+   0xD5, 0x8F, 0xEF, 0x5C, 0x08, 0x31, 0x06, 0xC4, 0xD2, 0x5A,
+   0x91, 0xAE, 0xF0, 0xB0, 0x11, 0x7E, 0x2A, 0xF9, 0xA2, 0x91,
+   0xAA, 0x32, 0xE1, 0x4A, 0xB8, 0x34, 0xDC, 0x56, 0xED, 0x2A,
+   0x22, 0x34, 0x44, 0x54, 0x7E, 0x01, 0xF1, 0x1D, 0x3B, 0x09,
+   0x16, 0xE5, 0xA4, 0xC3, 0x45, 0xCA, 0xCB, 0x36};
+
 /*
  this corresponds exactly to the example in RFC 8152
  section C.2.1. This doesn't actually verify the signature
@@ -1557,43 +1812,23 @@ int bstr_wrap_nest_test()
  really good. That would require bring in ECDSA crypto
  to this test.
  */
-int cose_sign1_tbs_test()
+int CoseSign1TBSTest()
 {
    // All of this is from RFC 8152 C.2.1
    const char *szKid = "11";
    UsefulBufC Kid = UsefulBuf_FromSZ(szKid);
    const char *szPayload = "This is the content.";
    UsefulBufC Payload = UsefulBuf_FromSZ(szPayload);
-   const uint8_t pProtectedHeaders[] = {0xa1, 0x01, 0x26};
+   static const uint8_t pProtectedHeaders[] = {0xa1, 0x01, 0x26};
    UsefulBufC ProtectedHeaders = UsefulBuf_FromByteArrayLiteral(pProtectedHeaders);
-   const uint8_t sSignature[] = {
-      0x8e, 0xb3, 0x3e, 0x4c, 0xa3, 0x1d, 0x1c, 0x46, 0x5a, 0xb0,
-      0x5a, 0xac, 0x34, 0xcc, 0x6b, 0x23, 0xd5, 0x8f, 0xef, 0x5c,
-      0x08, 0x31, 0x06, 0xc4, 0xd2, 0x5a, 0x91, 0xae, 0xf0, 0xb0,
-      0x11, 0x7e, 0x2a, 0xf9, 0xa2, 0x91, 0xaa, 0x32, 0xe1, 0x4a,
-      0xb8, 0x34, 0xdc, 0x56, 0xed, 0x2a, 0x22, 0x34, 0x44, 0x54,
-      0x7e, 0x01, 0xf1, 0x1d, 0x3b, 0x09, 0x16, 0xe5, 0xa4, 0xc3,
-      0x45, 0xca, 0xcb, 0x36};
+
    // It would be good to compare this to the output from
    // a COSE implementation like COSE-C. It has been checked
    // against the CBOR playground.
-   UsefulBufC Signature = UsefulBuf_FromByteArrayLiteral(sSignature);
-   const uint8_t sExpected[] = {
-      0xD2, 0x84, 0x43, 0xA1, 0x01, 0x26, 0xA1, 0x04, 0x42, 0x31,
-      0x31, 0x54, 0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20,
-      0x74, 0x68, 0x65, 0x20, 0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E,
-      0x74, 0x2E, 0x58, 0x40, 0x8E, 0xB3, 0x3E, 0x4C, 0xA3, 0x1D,
-      0x1C, 0x46, 0x5A, 0xB0, 0x5A, 0xAC, 0x34, 0xCC, 0x6B, 0x23,
-      0xD5, 0x8F, 0xEF, 0x5C, 0x08, 0x31, 0x06, 0xC4, 0xD2, 0x5A,
-      0x91, 0xAE, 0xF0, 0xB0, 0x11, 0x7E, 0x2A, 0xF9, 0xA2, 0x91,
-      0xAA, 0x32, 0xE1, 0x4A, 0xB8, 0x34, 0xDC, 0x56, 0xED, 0x2A,
-      0x22, 0x34, 0x44, 0x54, 0x7E, 0x01, 0xF1, 0x1D, 0x3B, 0x09,
-      0x16, 0xE5, 0xA4, 0xC3, 0x45, 0xCA, 0xCB, 0x36};
-   UsefulBufC Expected = UsefulBuf_FromByteArrayLiteral(sExpected);
+   UsefulBufC Signature = UsefulBuf_FromByteArrayLiteral(spSignature);
    
-   UsefulBuf_MakeStackUB(MemoryForEncoded, 98);
    QCBOREncodeContext EC;
-   QCBOREncode_Init(&EC, MemoryForEncoded);
+   QCBOREncode_Init(&EC, UsefulBuf_FromByteArray(spBigBuf));
    
    // top level array for cose sign1, 18 is the tag for COSE sign
    QCBOREncode_OpenArray_3(&EC, NULL, QCBOR_NO_INT_LABEL, 18);
@@ -1632,7 +1867,7 @@ int cose_sign1_tbs_test()
       return -3;
    }
    
-   if(UsefulBuf_Compare(COSE_Sign1, Expected)) {
+   if(CheckResults(COSE_Sign1, spExpected)) {
       return -4;
    }
    

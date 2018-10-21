@@ -49,7 +49,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*
  Most basic test.
  */
-int basic_encode_test(void);
+int BasicEncodeTest(void);
 
 
 /*
@@ -127,13 +127,13 @@ int AllAddMethodsTest(void);
 /*
  The binary string wrapping of maps and arrays used by COSE
  */
-int  bstrwraptest(void);
+int  BstrWrapTest(void);
 
-int bstr_wrap_error_test(void);
+int BstrWrapErrorTest(void);
 
-int bstr_wrap_nest_test(void);
+int BstrWrapNestTest(void);
 
-int cose_sign1_tbs_test(void);
+int CoseSign1TBSTest(void);
 
 
 

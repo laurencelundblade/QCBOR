@@ -336,6 +336,12 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
 
 
 /**
+ Make a byte array in to a UsefulBuf
+ */
+#define UsefulBuf_FromByteArray(pBytes) \
+    ((UsefulBuf) {(pBytes), sizeof(pBytes)})
+
+/**
  @brief Convert a NULL terminated string to a UsefulBufC.
 
  @param[in] szString The string to convert
