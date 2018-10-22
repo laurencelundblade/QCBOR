@@ -71,7 +71,7 @@ int FloatValuesTest1()
     QCBOREncodeContext ECtx;
     int nReturn = 0;
     
-    UsefulBuf_MakeStackUB(EncodedStorage, 1000);
+    UsefulBuf_MAKE_STACK_UB(EncodedStorage, 1000);
     
     QCBOREncode_Init(&ECtx, EncodedStorage);
     QCBOREncode_OpenArray(&ECtx);
@@ -120,7 +120,7 @@ int FloatValuesTest1()
         nReturn = -1;
     }
     
-    if(UsefulBuf_Compare(Encoded, UsefulBuf_FromByteArrayLiteral(pExpectedEncodedFloat))) {
+    if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedEncodedFloat))) {
         nReturn = -2;
     }
     
@@ -186,7 +186,7 @@ static const uint8_t ExpectedHalf[] = {
 
 int half_precision_encode_basic()
 {
-    UsefulBuf_MakeStackUB(EncodedHalfsMem, 250);
+    UsefulBuf_MAKE_STACK_UB(EncodedHalfsMem, 250);
 
     QCBOREncodeContext EC;
     QCBOREncode_Init(&EC, EncodedHalfsMem);
@@ -219,7 +219,7 @@ int half_precision_encode_basic()
         return -1;
     }
     
-    if(UsefulBuf_Compare(EncodedHalfs, UsefulBuf_FromByteArrayLiteral(ExpectedHalf))) {
+    if(UsefulBuf_Compare(EncodedHalfs, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(ExpectedHalf))) {
         return -3;
     }
     
@@ -229,7 +229,7 @@ int half_precision_encode_basic()
 
 int half_precision_decode_basic()
 {
-    UsefulBufC HalfPrecision = UsefulBuf_FromByteArrayLiteral(ExpectedHalf);
+    UsefulBufC HalfPrecision = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(ExpectedHalf);
     
     QCBORDecodeContext DC;
     QCBORDecode_Init(&DC, HalfPrecision, 0);
@@ -335,7 +335,7 @@ int half_precision_to_float_transitive_test()
 {
     for(uint32_t uHalfP = 0; uHalfP < 0xffff; uHalfP += 1) {
         // Contruct the CBOR for the half-precision float by hand
-        UsefulBuf_MakeStackUB(EncodedCBORMem, 3);
+        UsefulBuf_MAKE_STACK_UB(EncodedCBORMem, 3);
         UsefulOutBuf UOB;
         UsefulOutBuf_Init(&UOB, EncodedCBORMem);
         
@@ -358,7 +358,7 @@ int half_precision_to_float_transitive_test()
 
         
         // Now generate CBOR with the half-precision value. This will invoke the conversion from float to half
-        UsefulBuf_MakeStackUB(OtherEncodedCBORMem, 5);
+        UsefulBuf_MAKE_STACK_UB(OtherEncodedCBORMem, 5);
         QCBOREncodeContext EC;
         QCBOREncode_Init(&EC, OtherEncodedCBORMem);
         QCBOREncode_AddFloatAsHalf(&EC, Item.val.fnum);
@@ -390,7 +390,7 @@ int half_precision_to_float_vs_rfc_test()
         double d = decode_half(x);
         
         // Contruct the CBOR for the half-precision float by hand
-        UsefulBuf_MakeStackUB(__xx, 3);
+        UsefulBuf_MAKE_STACK_UB(__xx, 3);
         UsefulOutBuf UOB;
         UsefulOutBuf_Init(&UOB, __xx);
         
@@ -440,7 +440,7 @@ static const uint8_t sExpectedSmallest[] = {
 
 int double_as_smallest_encode_basic()
 {
-    UsefulBuf_MakeStackUB(EncodedHalfsMem, 420);
+    UsefulBuf_MAKE_STACK_UB(EncodedHalfsMem, 420);
     
     QCBOREncodeContext EC;
     QCBOREncode_Init(&EC, EncodedHalfsMem);
@@ -562,7 +562,7 @@ int double_as_smallest_encode_basic()
         return -1;
     }
     
-    if(UsefulBuf_Compare(EncodedHalfs, UsefulBuf_FromByteArrayLiteral(sExpectedSmallest))) {
+    if(UsefulBuf_Compare(EncodedHalfs, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sExpectedSmallest))) {
         return -3;
     }
     

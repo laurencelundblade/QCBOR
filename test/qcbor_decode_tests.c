@@ -1074,7 +1074,7 @@ int ParseSimpleTest()
    int nCBORError;
    
    
-   QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_pSimpleValues), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(s_pSimpleValues), QCBOR_DECODE_MODE_NORMAL);
    
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -1215,7 +1215,7 @@ int FailureTests()
       QCBORItem Item;
       int nCBORError;
       
-      QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_pSimpleValues), QCBOR_DECODE_MODE_NORMAL);
+      QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(s_pSimpleValues), QCBOR_DECODE_MODE_NORMAL);
 
       if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
          return nCBORError;
@@ -1331,7 +1331,7 @@ int DateParseTest()
    QCBORItem Item;
    int nCBORError;
    
-   QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_DateTestInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(s_DateTestInput), QCBOR_DECODE_MODE_NORMAL);
    
    // String date
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -1398,7 +1398,7 @@ int OptTagParseTest()
    int nCBORError;
    
    
-   QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_OptTestInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(s_OptTestInput), QCBOR_DECODE_MODE_NORMAL);
    
    //
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -1445,7 +1445,7 @@ int BignumParseTest()
    QCBORItem Item;
    int nCBORError;
    
-   QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_BigNumInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(s_BigNumInput), QCBOR_DECODE_MODE_NORMAL);
    
    
    //
@@ -1459,7 +1459,7 @@ int BignumParseTest()
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return -1;
    if(Item.uDataType != QCBOR_TYPE_POSBIGNUM ||
-      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FromByteArrayLiteral(sBigNum))){
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sBigNum))){
       return -1;
    }
 
@@ -1467,7 +1467,7 @@ int BignumParseTest()
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return -1;
    if(Item.uDataType != QCBOR_TYPE_NEGBIGNUM ||
-      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FromByteArrayLiteral(sBigNum))){
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sBigNum))){
       return -1;
    }
    
@@ -1482,7 +1482,7 @@ int BignumParseTest()
       return -1;
    if(Item.uDataType != QCBOR_TYPE_POSBIGNUM ||
       Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FromByteArrayLiteral(sBigNum))){
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sBigNum))){
       return -1;
    }
 
@@ -1491,7 +1491,7 @@ int BignumParseTest()
    if(Item.uDataType != QCBOR_TYPE_POSBIGNUM ||
       Item.uLabelType != QCBOR_TYPE_INT64 ||
       Item.label.int64 != 64 ||
-      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FromByteArrayLiteral(sBigNum))){
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sBigNum))){
       return -1;
    }
    
@@ -1499,7 +1499,7 @@ int BignumParseTest()
       return -1;
    if(Item.uDataType != QCBOR_TYPE_NEGBIGNUM ||
       Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FromByteArrayLiteral(sBigNum))){
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sBigNum))){
       return -1;
    }
    
@@ -1508,7 +1508,7 @@ int BignumParseTest()
    if(Item.uDataType != QCBOR_TYPE_NEGBIGNUM ||
       Item.uLabelType != QCBOR_TYPE_INT64 ||
       Item.label.int64 != -64 ||
-      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FromByteArrayLiteral(sBigNum))){
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sBigNum))){
       return -1;
    }
    
@@ -1612,7 +1612,7 @@ int NestedMapTest()
 {
    QCBORDecodeContext DCtx;
    
-   QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_CSRInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(s_CSRInput), QCBOR_DECODE_MODE_NORMAL);
    
    return CheckCSRMaps(&DCtx);
 }
@@ -1633,7 +1633,7 @@ int NestedMapTestIndefLen()
 {
    QCBORDecodeContext DCtx;
    
-   QCBORDecode_Init(&DCtx, UsefulBuf_FromByteArrayLiteral(s_CSRInputIndefLen), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(s_CSRInputIndefLen), QCBOR_DECODE_MODE_NORMAL);
    
    return CheckCSRMaps(&DCtx);
 }
@@ -1693,7 +1693,7 @@ static int parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
 
 int IndefiniteLengthNestTest()
 {
-   UsefulBuf_MakeStackUB(Storage, 50);
+   UsefulBuf_MAKE_STACK_UB(Storage, 50);
    int i;
    for(i=1; i < QCBOR_MAX_ARRAY_NESTING+4; i++) { 
       UsefulBufC Nested = make_nested_indefinite_arrays(i, Storage);
@@ -1718,10 +1718,10 @@ int IndefiniteLengthArrayMapTest()
 {
    int nResult;
    // --- first test -----
-    UsefulBufC IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArray);
+    UsefulBufC IndefLen = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pIndefiniteArray);
    
     // Decode it and see if it is OK
-    UsefulBuf_MakeStackUB(MemPool, 150);
+    UsefulBuf_MAKE_STACK_UB(MemPool, 150);
     QCBORDecodeContext DC;
     QCBORItem Item;
     QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
@@ -1769,7 +1769,7 @@ int IndefiniteLengthArrayMapTest()
     }
    
    // --- next test -----
-   IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArrayBad1);
+   IndefLen = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pIndefiniteArrayBad1);
    
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
    
@@ -1787,7 +1787,7 @@ int IndefiniteLengthArrayMapTest()
 
    
    // --- next test -----
-   IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArrayBad2);
+   IndefLen = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pIndefiniteArrayBad2);
    
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
    
@@ -1815,7 +1815,7 @@ int IndefiniteLengthArrayMapTest()
    
    
    // --- next test -----
-   IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArrayBad3);
+   IndefLen = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pIndefiniteArrayBad3);
    
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
    
@@ -1833,7 +1833,7 @@ int IndefiniteLengthArrayMapTest()
 
    
    // --- next test -----
-   IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArrayBad4);
+   IndefLen = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pIndefiniteArrayBad4);
    
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
    
@@ -1855,7 +1855,7 @@ int IndefiniteLengthArrayMapTest()
    }
    
    // --- next test -----
-   IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteArrayBad5);
+   IndefLen = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pIndefiniteArrayBad5);
    
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
    
@@ -1957,10 +1957,10 @@ int IndefiniteLengthStringTest()
    QCBORDecodeContext DC;
    QCBORItem Item;
    // big enough for MakeIndefiniteBigBstr() + MemPool overhead
-   UsefulBuf_MakeStackUB(MemPool, 320);
+   UsefulBuf_MAKE_STACK_UB(MemPool, 320);
    
    // --- Simple normal indefinite length string ------
-   UsefulBufC IndefLen = UsefulBuf_FromByteArrayLiteral(pIndefiniteLenString);
+   UsefulBufC IndefLen = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pIndefiniteLenString);
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
     
    if(QCBORDecode_SetMemPool(&DC, MemPool, false)) {
@@ -1985,7 +1985,7 @@ int IndefiniteLengthStringTest()
    }
 
    // ----- types mismatch ---
-   QCBORDecode_Init(&DC, UsefulBuf_FromByteArrayLiteral(pIndefiniteLenStringBad2), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pIndefiniteLenStringBad2), QCBOR_DECODE_MODE_NORMAL);
    
    if(QCBORDecode_SetMemPool(&DC,  MemPool, false)) {
       return -7;
@@ -2003,7 +2003,7 @@ int IndefiniteLengthStringTest()
    }
 
    // ----- not a string ---
-   QCBORDecode_Init(&DC, UsefulBuf_FromByteArrayLiteral(pIndefiniteLenStringBad3), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pIndefiniteLenStringBad3), QCBOR_DECODE_MODE_NORMAL);
    
    if(QCBORDecode_SetMemPool(&DC,  MemPool, false)) {
       return -11;
@@ -2021,7 +2021,7 @@ int IndefiniteLengthStringTest()
    }
 
    // ----- no end -----
-   QCBORDecode_Init(&DC, UsefulBuf_FromByteArrayLiteral(pIndefiniteLenStringBad4), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pIndefiniteLenStringBad4), QCBOR_DECODE_MODE_NORMAL);
    
    if(QCBORDecode_SetMemPool(&DC,  MemPool, false)) {
       return -15;
@@ -2051,7 +2051,7 @@ int IndefiniteLengthStringTest()
    }
    
    // ----- Mempool is way too small -----
-   UsefulBuf_MakeStackUB(MemPoolTooSmall, 20); // 20 is too small no matter what
+   UsefulBuf_MAKE_STACK_UB(MemPoolTooSmall, 20); // 20 is too small no matter what
 
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
    if(!QCBORDecode_SetMemPool(&DC,  MemPoolTooSmall, false)) {
@@ -2059,10 +2059,10 @@ int IndefiniteLengthStringTest()
    }
    
    // ----- Mempool is way too small -----
-   UsefulBuf_MakeStackUB(BigIndefBStrStorage, 290);
+   UsefulBuf_MAKE_STACK_UB(BigIndefBStrStorage, 290);
    UsefulBufC BigIndefBStr = MakeIndefiniteBigBstr(BigIndefBStrStorage);
    
-   UsefulBuf_MakeStackUB(MemPoolSmall, 80); // 80 is big enough for MemPool overhead, but not BigIndefBStr
+   UsefulBuf_MAKE_STACK_UB(MemPoolSmall, 80); // 80 is big enough for MemPool overhead, but not BigIndefBStr
    
    QCBORDecode_Init(&DC, BigIndefBStr, QCBOR_DECODE_MODE_NORMAL);
    if(QCBORDecode_SetMemPool(&DC,  MemPoolSmall, false)) {
@@ -2105,7 +2105,7 @@ int IndefiniteLengthStringTest()
    }
    
    // --- label is an indefinite length string ------
-   QCBORDecode_Init(&DC, UsefulBuf_FromByteArrayLiteral(pIndefiniteLenStringLabel), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pIndefiniteLenStringLabel), QCBOR_DECODE_MODE_NORMAL);
    
    if(QCBORDecode_SetMemPool(&DC,  MemPool, false)) {
       return -30;
@@ -2138,9 +2138,9 @@ int AllocAllStringsTest()
    QCBORDecodeContext DC;
    
    // First test, use the "CSRMap" as easy input and checking
-   QCBORDecode_Init(&DC, UsefulBuf_FromByteArrayLiteral(s_CSRInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(s_CSRInput), QCBOR_DECODE_MODE_NORMAL);
    
-   UsefulBuf_MakeStackUB(Pool, 300);
+   UsefulBuf_MAKE_STACK_UB(Pool, 300);
    
    QCBORDecode_SetMemPool(&DC, Pool, 1); // Turn on copying.
    
@@ -2149,8 +2149,8 @@ int AllocAllStringsTest()
    }
    
    // Next parse, save pointers to a few strings, destroy original and see all is OK.
-   MakeUsefulBufOnStack(CopyOfStorage, 160);
-   UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FromByteArrayLiteral(pValidMapEncoded));
+   UsefulBuf_MAKE_STACK_UB(CopyOfStorage, 160);
+   UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
 
    QCBORDecode_Init(&DC, CopyOf, QCBOR_DECODE_MODE_NORMAL);
    QCBORDecode_SetMemPool(&DC, Pool, 1); // Turn on copying.
@@ -2199,8 +2199,8 @@ int AllocAllStringsTest()
       return -1;
    
    // Next parse with a pool that is too small
-   UsefulBuf_MakeStackUB(SmallPool, 80);
-   QCBORDecode_Init(&DC, UsefulBuf_FromByteArrayLiteral(pValidMapEncoded), QCBOR_DECODE_MODE_NORMAL);
+   UsefulBuf_MAKE_STACK_UB(SmallPool, 80);
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), QCBOR_DECODE_MODE_NORMAL);
    QCBORDecode_SetMemPool(&DC, SmallPool, 1); // Turn on copying.
    if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
       return nCBORError;
@@ -2228,9 +2228,9 @@ int MemPoolTest(void)
     
     const uint8_t pMinimalCBOR[] = {0xa0}; // One empty map
     
-    QCBORDecode_Init(&DC, UsefulBuf_FromByteArrayLiteral(pMinimalCBOR),0);
+    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pMinimalCBOR),0);
     
-    UsefulBuf_MakeStackUB(Pool, 100);
+    UsefulBuf_MAKE_STACK_UB(Pool, 100);
     
     QCBORDecode_SetMemPool(&DC, Pool, 0);
     

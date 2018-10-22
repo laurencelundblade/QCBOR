@@ -311,7 +311,7 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
  The terminating \0 (NULL) is NOT included in the length!
  
  */
-#define UsefulBuf_FromSZLiteral(szString) \
+#define UsefulBuf_FROM_SZ_LITERAL(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
 
 
@@ -322,7 +322,7 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
  It will not work on  non-literal arrays.
  
  */
-#define UsefulBuf_FromByteArrayLiteral(pBytes) \
+#define UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBytes) \
     ((UsefulBufC) {(pBytes), sizeof(pBytes)})
 
 
@@ -330,7 +330,7 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
  Make an automatic variable with name of type UsefulBuf and point it to a stack
  variable of the give size
  */
-#define  UsefulBuf_MakeStackUB(name, size) \
+#define  UsefulBuf_MAKE_STACK_UB(name, size) \
     uint8_t    __pBuf##name[(size)];\
     UsefulBuf  name = {__pBuf##name , sizeof( __pBuf##name )}
 
@@ -338,7 +338,7 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
 /**
  Make a byte array in to a UsefulBuf
  */
-#define UsefulBuf_FromByteArray(pBytes) \
+#define UsefulBuf_FROM_BYTE_ARRAY(pBytes) \
     ((UsefulBuf) {(pBytes), sizeof(pBytes)})
 
 /**
@@ -516,17 +516,17 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
 
-#if 1 // NOT_DEPRECATED
-/** Deprecated macro; use UsefulBuf_FromSZLiteral instead */
+#if 0 // NOT_DEPRECATED TODO: remove all use of these in tests
+/** Deprecated macro; use UsefulBuf_FROM_SZ_LITERAL instead */
 #define SZLiteralToUsefulBufC(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
 
-/** Deprecated macro; use UsefulBuf_MakeStackUB instead */
+/** Deprecated macro; use UsefulBuf_MAKE_STACK_UB instead */
 #define  MakeUsefulBufOnStack(name, size) \
     uint8_t    __pBuf##name[(size)];\
     UsefulBuf  name = {__pBuf##name , sizeof( __pBuf##name )}
 
-/** Deprecated macro; use UsefulBuf_FromByteArrayLiteral instead */
+/** Deprecated macro; use UsefulBuf_FROM_BYTE_ARRAY_LITERAL instead */
 #define ByteArrayLiteralToUsefulBufC(pBytes) \
     ((UsefulBufC) {(pBytes), sizeof(pBytes)})
 

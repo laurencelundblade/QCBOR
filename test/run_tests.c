@@ -162,7 +162,7 @@ int run_tests(outputstring output, void *poutCtx, int *pNumTestsRun)
 {
     int nTestsFailed = 0;
     int nTestsRun = 0;
-    UsefulBuf_MakeStackUB(StringStorage, 5);
+    UsefulBuf_MAKE_STACK_UB(StringStorage, 5);
 
     test_entry2 *t2;
     const test_entry2 *s_tests2_end = s_tests2 + sizeof(s_tests2)/sizeof(test_entry2);
