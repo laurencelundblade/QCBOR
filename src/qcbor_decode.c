@@ -775,7 +775,7 @@ Done:
 
 /*
  This layer deals with indefinite length strings. It pulls all the
- individual segment items together into one QCBORItem using the
+ individual chunk items together into one QCBORItem using the
  string allocator.
  
  Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
@@ -816,27 +816,27 @@ static inline int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedIt
    // Track which type of string it is
    const uint8_t uStringType = pDecodedItem->uDataType;
    
-   // Loop getting segments of indefinite string
+   // Loop getting chunk of indefinite string
    for(;;) {
-      // Get item for next segment
-      QCBORItem StringSegmentItem; // TODO: rename segment to chunk to line up with new RFC
-      // NULL passed to never string alloc segments of indefinite length strings
-      nReturn = GetNext_Item(&(me->InBuf), &StringSegmentItem, NULL);
+      // Get item for next chunk
+      QCBORItem StringChunkItem;
+      // NULL passed to never string alloc chunk of indefinite length strings
+      nReturn = GetNext_Item(&(me->InBuf), &StringChunkItem, NULL);
       if(nReturn) {
-         break;  // Error getting the next segment
+         break;  // Error getting the next chunk
       }
       
       // See if it is a marker at end of indefinite length string
-      if(StringSegmentItem.uDataType == QCBOR_TYPE_BREAK) {
+      if(StringChunkItem.uDataType == QCBOR_TYPE_BREAK) {
          // String is complete
          pDecodedItem->val.string = FullString;
          pDecodedItem->uDataAlloc = 1;
          break;
       }
       
-      // Match data type of segment to type at beginning.
+      // Match data type of chunk to type at beginning.
       // Also catches error of other non-string types that don't belong.
-      if(StringSegmentItem.uDataType != uStringType) {
+      if(StringChunkItem.uDataType != uStringType) {
          nReturn = QCBOR_ERR_INDEFINITE_STRING_SEG;
          break;
       }
@@ -844,15 +844,15 @@ static inline int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedIt
       // Alloc new buffer or expand previously allocated buffer so it can fit
       UsefulBuf NewMem = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext,
                                               UNCONST_POINTER(FullString.ptr),
-                                              FullString.len + StringSegmentItem.val.string.len);
+                                              FullString.len + StringChunkItem.val.string.len);
       if(UsefulBuf_IsNULL(NewMem)) {
          // Allocation of memory for the string failed
          nReturn = QCBOR_ERR_STRING_ALLOC;
          break;
       }
       
-      // Copy new string segment at the end of string so far.
-      FullString = UsefulBuf_CopyOffset(NewMem, FullString.len, StringSegmentItem.val.string);
+      // Copy new string chunk at the end of string so far.
+      FullString = UsefulBuf_CopyOffset(NewMem, FullString.len, StringChunkItem.val.string);
    }
    
 Done:
