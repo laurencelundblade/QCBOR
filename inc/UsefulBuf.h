@@ -517,7 +517,7 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
 
-#if 0 // NOT_DEPRECATED TODO: remove all use of these in tests
+#if 0 // NOT_DEPRECATED
 /** Deprecated macro; use UsefulBuf_FROM_SZ_LITERAL instead */
 #define SZLiteralToUsefulBufC(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
