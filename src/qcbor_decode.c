@@ -204,6 +204,126 @@ inline static void DecodeNesting_Init(QCBORDecodeNesting *pNesting)
 
 
 
+/*
+ This list of built-in tags. Only add tags here that are
+ clearly established and useful. Once a tag is added here
+ it can't be taken out as that would break backwards compatibility.
+ There are only 48 slots available forever.
+ */
+static const uint16_t spBuiltInTagMap[] = {
+   CBOR_TAG_DATE_STRING, // See TAG_MAPPER_FIRST_FOUR
+   CBOR_TAG_DATE_EPOCH, // See TAG_MAPPER_FIRST_FOUR
+   CBOR_TAG_POS_BIGNUM, // See TAG_MAPPER_FIRST_FOUR
+   CBOR_TAG_NEG_BIGNUM, // See TAG_MAPPER_FIRST_FOUR
+   CBOR_TAG_FRACTION,
+   CBOR_TAG_BIGFLOAT,
+   CBOR_TAG_COSE_ENCRYPTO,
+   CBOR_TAG_COSE_MAC0,
+   CBOR_TAG_COSE_SIGN1,
+   CBOR_TAG_ENC_AS_B64URL,
+   CBOR_TAG_ENC_AS_B64,
+   CBOR_TAG_ENC_AS_B16,
+   CBOR_TAG_CBOR,
+   CBOR_TAG_URI,
+   CBOR_TAG_B64URL,
+   CBOR_TAG_B64,
+   CBOR_TAG_REGEX,
+   CBOR_TAG_MIME,
+   CBOR_TAG_BIN_UUID,
+   CBOR_TAG_CWT,
+   CBOR_TAG_ENCRYPT,
+   CBOR_TAG_MAC,
+   CBOR_TAG_SIGN,
+   CBOR_TAG_GEO_COORD,
+   CBOR_TAG_CBOR_MAGIC
+};
+
+// This is used in a bit of cleverness in GetNext_TaggedItem() to
+// keep code size down and switch for the internal processing of
+// these types. This will break if the first four items in
+// spBuiltInTagMap don't have values 0,1,2,3. That is the
+// mapping is 0 to 0, 1 to 1, 2 to 2 and 3 to 3.
+#define QCBOR_TAGFLAG_DATE_STRING    (0x01LL << CBOR_TAG_DATE_STRING)
+#define QCBOR_TAGFLAG_DATE_EPOCH     (0x01LL << CBOR_TAG_DATE_EPOCH)
+#define QCBOR_TAGFLAG_POS_BIGNUM     (0x01LL << CBOR_TAG_POS_BIGNUM)
+#define QCBOR_TAGFLAG_NEG_BIGNUM     (0x01LL << CBOR_TAG_NEG_BIGNUM)
+
+#define TAG_MAPPER_FIRST_FOUR (QCBOR_TAGFLAG_DATE_STRING |\
+                               QCBOR_TAGFLAG_DATE_EPOCH  |\
+                               QCBOR_TAGFLAG_POS_BIGNUM  |\
+                               QCBOR_TAGFLAG_NEG_BIGNUM)
+
+#define TAG_MAPPER_TOTAL_TAG_BITS 64 // Number of bits in a uint64_t
+#define TAG_MAPPER_CUSTOM_TAGS_BASE_INDEX (TAG_MAPPER_TOTAL_TAG_BITS - QCBOR_MAX_CUSTOM_TAGS) // 48
+#define TAG_MAPPER_MAX_SIZE_BUILT_IN_TAGS (TAG_MAPPER_TOTAL_TAG_BITS - QCBOR_MAX_CUSTOM_TAGS ) // 48
+
+static inline int TagMapper_LookupBuiltIn(uint64_t uTag)
+{
+   if(sizeof(spBuiltInTagMap)/sizeof(uint16_t) > TAG_MAPPER_MAX_SIZE_BUILT_IN_TAGS) {
+      // This is a cross-check to make sure the above array doesn't
+      // accidentally get made too big.
+      // In normal conditions the above test should optimize out
+      // as all the values are known at compile time.
+      return -1;
+   }
+   
+   if(uTag > UINT16_MAX) {
+      // This tag map works only on 16-bit tags
+      return -1;
+   }
+   
+   for(int nTagBitIndex = 0; nTagBitIndex < (int)(sizeof(spBuiltInTagMap)/sizeof(uint16_t)); nTagBitIndex++) {
+      if(spBuiltInTagMap[nTagBitIndex] == uTag) {
+         return nTagBitIndex;
+      }
+   }
+   return -1; // Indicates no match
+}
+
+static inline int TagMapper_LookupCallerConfigured(const QCBORTagListIn *pCallerConfiguredTagMap, uint64_t uTag)
+{
+   for(int nTagBitIndex = 0; nTagBitIndex < pCallerConfiguredTagMap->uNumTags; nTagBitIndex++) {
+      if(pCallerConfiguredTagMap->puTags[nTagBitIndex] == uTag) {
+         return nTagBitIndex + TAG_MAPPER_CUSTOM_TAGS_BASE_INDEX;
+      }
+   }
+   
+   return -1; // Indicates no match
+}
+
+/*
+  Find the tag bit index for a given tag value, or error out
+ 
+ This and the above functions could probably be optimized and made
+ clearer and neater. 
+ */
+static int TagMapper_Lookup(const QCBORTagListIn *pCallerConfiguredTagMap, uint64_t uTag, uint8_t *puTagBitIndex)
+{
+   int nTagBitIndex = TagMapper_LookupBuiltIn(uTag);
+   if(nTagBitIndex >= 0) {
+      // Cast is safe because TagMapper_LookupBuiltIn never returns > 47
+      *puTagBitIndex = (uint8_t)nTagBitIndex;
+      return QCBOR_SUCCESS;
+   }
+   
+   if(pCallerConfiguredTagMap) {
+      if(pCallerConfiguredTagMap->uNumTags > QCBOR_MAX_CUSTOM_TAGS) {
+         return QCBOR_ERR_TOO_MANY_TAGS;
+      }
+      nTagBitIndex = TagMapper_LookupCallerConfigured(pCallerConfiguredTagMap, uTag);
+      if(nTagBitIndex >= 0) {
+         // Cast is safe because TagMapper_LookupBuiltIn never returns > 63
+
+         *puTagBitIndex = (uint8_t)nTagBitIndex;
+         return QCBOR_SUCCESS;
+      }
+   }
+   
+   return QCBOR_ERR_BAD_OPT_TAG;
+}
+
+
+
 
 /*
  Public function, see header file
@@ -224,8 +344,13 @@ void QCBORDecode_Init(QCBORDecodeContext *me, UsefulBufC EncodedCBOR, int8_t nDe
  */
 void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator, bool bAllocAll)
 {
-    pCtx->pStringAllocator = (void *)pAllocator;
+   pCtx->pStringAllocator = (void *)pAllocator;
    pCtx->bStringAllocateAll = bAllocAll;
+}
+
+void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *me, const QCBORTagListIn *pTagList)
+{
+   me->pCallerConfiguredTagList = pTagList;
 }
 
 
@@ -246,6 +371,7 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAlloc
  */
 inline static int DecodeTypeAndNumber(UsefulInputBuf *pUInBuf, int *pnMajorType, uint64_t *puNumber, uint8_t *puAdditionalInfo)
 {
+   // Stack usage: int/ptr 5 -- 40
    int nReturn;
    
    // Get the initial byte that every CBOR data item has
@@ -323,6 +449,7 @@ Done:
  */
 inline static int DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDecodedItem)
 {
+   // Stack usage: int/ptr 1 -- 8
    int nReturn = QCBOR_SUCCESS;
    
    if(nMajorType == CBOR_MAJOR_TYPE_POSITIVE_INT) {
@@ -385,6 +512,7 @@ inline static int DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDe
 
 inline static int DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
 {
+   // Stack usage: 0
    int nReturn = QCBOR_SUCCESS;
    
    // uAdditionalInfo is 5 bits from the initial byte
@@ -443,6 +571,7 @@ Done:
  */
 inline static int DecodeBytes(const QCBORStringAllocator *pAlloc, int nMajorType, uint64_t uStrLen, UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem)
 {
+   // Stack usage: UsefulBuf 2, int/ptr 1  40
    int nReturn = QCBOR_SUCCESS;
    
    UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, uStrLen);
@@ -474,15 +603,16 @@ Done:
 /*
  Mostly just assign the right data type for the date string.
  */
-inline static int DecodeDateString(QCBORItem Item, QCBORItem *pDecodedItem)
+inline static int DecodeDateString(QCBORItem *pDecodedItem)
 {
-   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING) {
+   // Stack Use: UsefulBuf 1 16
+   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
       return QCBOR_ERR_BAD_OPT_TAG;
    }
-   pDecodedItem->val.dateString = Item.val.string;
-   pDecodedItem->uDataType = QCBOR_TYPE_DATE_STRING;
-   pDecodedItem->uTagBits = Item.uTagBits;
-   pDecodedItem->uTag = Item.uTag;
+   
+   UsefulBufC Temp              = pDecodedItem->val.string;
+   pDecodedItem->val.dateString = Temp;
+   pDecodedItem->uDataType      = QCBOR_TYPE_DATE_STRING;
    return QCBOR_SUCCESS;
 }
 
@@ -490,15 +620,15 @@ inline static int DecodeDateString(QCBORItem Item, QCBORItem *pDecodedItem)
 /*
  Mostly just assign the right data type for the bignum.
  */
-inline static int DecodeBigNum(QCBORItem Item, QCBORItem *pDecodedItem, uint64_t uTagFlags)
+inline static int DecodeBigNum(QCBORItem *pDecodedItem)
 {
-   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
+   // Stack Use: UsefulBuf 1  -- 16
+   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
       return QCBOR_ERR_BAD_OPT_TAG;
    }
-   pDecodedItem->val.bigNum     = Item.val.string;
-   pDecodedItem->uDataType      = uTagFlags & QCBOR_TAGFLAG_POS_BIGNUM ? QCBOR_TYPE_POSBIGNUM : QCBOR_TYPE_NEGBIGNUM;
-   pDecodedItem->uTagBits       = Item.uTagBits;
-   pDecodedItem->uTag           = Item.uTag;
+   UsefulBufC Temp          = pDecodedItem->val.string;
+   pDecodedItem->val.bigNum = Temp;
+   pDecodedItem->uDataType  = pDecodedItem->uTagBits & QCBOR_TAGFLAG_POS_BIGNUM ? QCBOR_TYPE_POSBIGNUM : QCBOR_TYPE_NEGBIGNUM; // TODO: check this
    return QCBOR_SUCCESS;
 }
 
@@ -506,51 +636,46 @@ inline static int DecodeBigNum(QCBORItem Item, QCBORItem *pDecodedItem, uint64_t
 /*
  The epoch formatted date. Turns lots of different forms of encoding date into uniform one
  */
-static int DecodeDateEpoch(QCBORItem Item, QCBORItem *pDecodedItem)
+static int DecodeDateEpoch(QCBORItem *pDecodedItem)
 {
+   // Stack usage: 1
    int nReturn = QCBOR_SUCCESS;
    
-   pDecodedItem->uTagBits                       = Item.uTagBits;
-   pDecodedItem->uTag                           = Item.uTag;
-   pDecodedItem->uDataType                      = QCBOR_TYPE_DATE_EPOCH;
    pDecodedItem->val.epochDate.fSecondsFraction = 0;
+   double d = pDecodedItem->val.dfnum; // Might not use this, but keeps code flow neater below
    
-   switch (Item.uDataType) {
+   switch (pDecodedItem->uDataType) {
          
       case QCBOR_TYPE_INT64:
-         pDecodedItem->val.epochDate.nSeconds = Item.val.int64;
+         pDecodedItem->val.epochDate.nSeconds = pDecodedItem->val.int64;
          break;
          
       case QCBOR_TYPE_UINT64:
-         if(Item.val.uint64 > INT64_MAX) {
-            nReturn = QCBOR_ERR_DATE_OVERFLOW; 
+         if(pDecodedItem->val.uint64 > INT64_MAX) {
+            nReturn = QCBOR_ERR_DATE_OVERFLOW;
             goto Done;
          }
-         pDecodedItem->val.epochDate.nSeconds = Item.val.uint64;
+         pDecodedItem->val.epochDate.nSeconds = pDecodedItem->val.uint64;
          break;
          
       case QCBOR_TYPE_FLOAT:
-         // TODO: can we save code by widening a float to a double here? Then drop into double-handling code
-         if(Item.val.fnum > INT64_MAX) {
-            nReturn = QCBOR_ERR_DATE_OVERFLOW;
-            goto Done;
-         }
-         pDecodedItem->val.epochDate.nSeconds = Item.val.fnum;
-         pDecodedItem->val.epochDate.fSecondsFraction = Item.val.fnum - pDecodedItem->val.epochDate.nSeconds;
-         break;
-
+         d = pDecodedItem->val.fnum;
+         // Fall through
+         
       case QCBOR_TYPE_DOUBLE:
-         if(Item.val.dfnum > INT64_MAX) {
+         if(d > INT64_MAX) {
             nReturn = QCBOR_ERR_DATE_OVERFLOW;
             goto Done;
          }
-         pDecodedItem->val.epochDate.nSeconds = Item.val.dfnum;
-         pDecodedItem->val.epochDate.fSecondsFraction = Item.val.dfnum - pDecodedItem->val.epochDate.nSeconds;
+         pDecodedItem->val.epochDate.nSeconds = d; // Float to integer conversion happening here.
+         pDecodedItem->val.epochDate.fSecondsFraction = d - pDecodedItem->val.epochDate.nSeconds;
          break;
          
       default:
          nReturn = QCBOR_ERR_BAD_OPT_TAG;
+         goto Done;
    }
+   pDecodedItem->uDataType = QCBOR_TYPE_DATE_EPOCH;
    
 Done:
    return nReturn;
@@ -577,6 +702,7 @@ Done:
  */
 static int GetNext_Item(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, const QCBORStringAllocator *pAlloc)
 {
+   // Stack usage: int/ptr 3 -- 24
    int nReturn;
    
    // Get the major type and the number. Number could be length of more bytes or the value depending on the major type
@@ -628,7 +754,7 @@ static int GetNext_Item(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, const 
          break;
          
       case CBOR_MAJOR_TYPE_OPTIONAL: // Major type 6, optional prepended tags
-         pDecodedItem->uTag      = uNumber;
+         pDecodedItem->val.uTagV = uNumber;
          pDecodedItem->uDataType = QCBOR_TYPE_OPTTAG;
          break;
          
@@ -654,8 +780,9 @@ Done:
  
  Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
  */
-static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+static inline int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
+   // Stack usage; int/ptr 2 UsefulBuf 2 QCBORItem  -- 96
    int nReturn;
    QCBORStringAllocator *pAlloc = (QCBORStringAllocator *)me->pStringAllocator;
    UsefulBufC FullString = NULLUsefulBufC;
@@ -692,7 +819,7 @@ static int GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    // Loop getting segments of indefinite string
    for(;;) {
       // Get item for next segment
-      QCBORItem StringSegmentItem;
+      QCBORItem StringSegmentItem; // TODO: rename segment to chunk to line up with new RFC
       // NULL passed to never string alloc segments of indefinite length strings
       nReturn = GetNext_Item(&(me->InBuf), &StringSegmentItem, NULL);
       if(nReturn) {
@@ -742,86 +869,74 @@ Done:
  Returns an error if there was something wrong with the optional item or it couldn't
  be handled.
  */
-static int GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+static int GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
 {
-   int nReturn;
-   
-   // TODO: optimize loop below so there is only one call to GetNext_FullItem?
-   nReturn = GetNext_FullItem(me, pDecodedItem);
-   if(nReturn) {
-      goto Done;
+   // Stack usage: int/ptr: 3 -- 24
+   int       nReturn;
+   uint64_t  uTagBits = 0;
+   if(pTags) {
+      pTags->uNumUsed = 0;
    }
-   
-   if(pDecodedItem->uDataType != QCBOR_TYPE_OPTTAG) {
-      goto Done;
-   }
-   
-   uint64_t uTagFlags = 0; // accumulate the tags in the form of flags
-   uint64_t uTagToProcess = pDecodedItem->uTag; // First process tag passed in
-   
-   QCBORItem Item;
-   
-   do {
-      if(uTagToProcess < 63) { // 63 is the number of bits in a uint64 - 1
-         uTagFlags |= 0x01LL << uTagToProcess;
-      } else if(uTagToProcess == CBOR_TAG_CBOR_MAGIC) {
-         uTagFlags |= QCBOR_TAGFLAG_CBOR_MAGIC;
-      }
-      /* This code ignores the all but the first tag of value
-       greater than 63. Ignoring tags that are not understoof
-       is allowed by the standard. Multiple tags are
-       presumably rare. */
-      
-      nReturn = GetNext_FullItem(me, &Item);
+
+   for(;;) {
+      nReturn = GetNext_FullItem(me, pDecodedItem);
       if(nReturn) {
-         // Bail out of the whole item fetch on any sort of error here
-         goto Done;
+         goto Done; // Error out of the loop
       }
       
-      if(Item.uDataType != QCBOR_TYPE_OPTTAG) {
+      if(pDecodedItem->uDataType != QCBOR_TYPE_OPTTAG) {
+         // Successful exit from loop; maybe got some tags, maybe not
+         pDecodedItem->uTagBits = uTagBits;
          break;
       }
+   
+      uint8_t uTagBitIndex;
+      // Tag was mapped, tag was not mapped, error with tag list
+      switch(TagMapper_Lookup(me->pCallerConfiguredTagList, pDecodedItem->val.uTagV, &uTagBitIndex)) {
+            
+         case QCBOR_SUCCESS:
+            // Successfully mapped the tag
+            uTagBits |= 0x01ULL << uTagBitIndex;
+            break;
+            
+         case QCBOR_ERR_BAD_OPT_TAG:
+            // Tag is not recognized. Do nothing
+            break;
+            
+         default:
+            // Error Condition
+            goto Done;
+      }
       
-      uTagToProcess = Item.uTag;
-   } while (1);
+      if(pTags) {
+         // Caller wants all tags recorded in the provided buffer
+         if(pTags->uNumUsed >= pTags->uNumAllocated) {
+            nReturn = QCBOR_ERR_TOO_MANY_TAGS;
+            goto Done;
+         }
+         pTags->puTags[pTags->uNumUsed] = pDecodedItem->val.uTagV;
+         pTags->uNumUsed++;
+      }
+   }
    
-   
-   /*
-    CBOR allows multiple tags on a data item. It also defines
-    a number of standard tag values, most of which are
-    less than 64.  This code can deal with multiple tag
-    values that are less than 64 and the last tag of multiple
-    if the value is more than 64. Or said another way
-    if there is one tag with a value >64 this code works.
-    
-    The assumption is that multiple tag values > 64 are rare.
-    
-    At this point in this code. uTagFlags has all the flags
-    < 64 and uTagToProcess has the last tag.
-    
-    Does this deal with multiple tags on an item we process?
-    */
-   
-   Item.uTagBits = uTagFlags;
-   Item.uTag = uTagToProcess;
-   
-   switch(uTagFlags & (QCBOR_TAGFLAG_DATE_STRING | QCBOR_TAGFLAG_DATE_EPOCH | QCBOR_TAGFLAG_POS_BIGNUM |QCBOR_TAGFLAG_NEG_BIGNUM)) {
+   switch(pDecodedItem->uTagBits & TAG_MAPPER_FIRST_FOUR) {
       case 0:
-         // No tags we know about. Pass them up
-         *pDecodedItem = Item;
+         // No tags at all or none we know about. Nothing to do.
+         // This is part of the pass-through path of this function
+         // that will mostly be taken when decoding any item.
          break;
          
       case QCBOR_TAGFLAG_DATE_STRING:
-         nReturn = DecodeDateString(Item, pDecodedItem);
+         nReturn = DecodeDateString(pDecodedItem);
          break;
          
       case QCBOR_TAGFLAG_DATE_EPOCH:
-         nReturn = DecodeDateEpoch(Item, pDecodedItem);
+         nReturn = DecodeDateEpoch(pDecodedItem);
          break;
          
       case QCBOR_TAGFLAG_POS_BIGNUM:
       case QCBOR_TAGFLAG_NEG_BIGNUM:
-         nReturn = DecodeBigNum(Item, pDecodedItem, uTagFlags);
+         nReturn = DecodeBigNum(pDecodedItem);
          break;
          
       default:
@@ -838,13 +953,15 @@ Done:
 /*
  This layer takes care of map entries. It combines the label and data items into one QCBORItem.
  */
-static inline int GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+static inline int GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
 {
-   int nReturn = GetNext_TaggedItem(me, pDecodedItem);
+   // Stack use: int/ptr 1, QCBORItem  -- 56
+   int nReturn = GetNext_TaggedItem(me, pDecodedItem, pTags);
    if(nReturn)
       goto Done;
    
    if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
+      // Break can't be a map entry
       goto Done;
    }
    
@@ -854,7 +971,7 @@ static inline int GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedIt
       
       // Get the next item which will be the real data; Item will be the label
       QCBORItem LabelItem = *pDecodedItem;
-      nReturn = GetNext_TaggedItem(me, pDecodedItem);
+      nReturn = GetNext_TaggedItem(me, pDecodedItem, pTags);
       if(nReturn)
          goto Done;
       
@@ -881,6 +998,7 @@ static inline int GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedIt
       } else {
          // label is not an int or a string. It is an arrray
          // or a float or such and this implementation doesn't handle that.
+         // Also, tags on labels are ignored.
          nReturn = QCBOR_ERR_MAP_LABEL_TYPE ;
          goto Done;
       }
@@ -894,13 +1012,15 @@ Done:
 /*
  Public function, see header qcbor.h file
  */
-int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+int QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
 {
+   // Stack ptr/int: 2, QCBORItem : 64
+
    // The public entry point for fetching and parsing the next QCBORItem.
    // All the CBOR parsing work is here and in subordinate calls.
    int nReturn;
    
-   nReturn = GetNext_MapEntry(me, pDecodedItem);
+   nReturn = GetNext_MapEntry(me, pDecodedItem, pTags);
    if(nReturn) {
       goto Done;
    }
@@ -974,6 +1094,12 @@ Done:
 }
 
 
+int QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+{
+   return QCBORDecode_GetNextWithTags(me, pDecodedItem, NULL);
+}
+
+
 /*
  Decoding items is done in 5 layered functions, one calling the
  next one down. If a layer has no work to do for a particular item
@@ -1003,7 +1129,29 @@ Done:
  item in CBOR, the thing with an initial byte containing
  the major type.
  
+ Roughly this takes 300 bytes of stack for vars. Need to
+ evaluate this more carefully and correctly.
+ 
  */
+
+
+/*
+ Public function, see header qcbor.h file
+ */
+int QCBORDecode_IsTagged(QCBORDecodeContext *me, const QCBORItem *pItem, uint64_t uTag)
+{
+   const QCBORTagListIn *pCallerConfiguredTagMap = me->pCallerConfiguredTagList;
+   
+   uint8_t uTagBitIndex;
+   // Do not care about errors in pCallerConfiguredTagMap here. They are
+   // caught during GetNext() before this is called.
+   if(TagMapper_Lookup(pCallerConfiguredTagMap, uTag, &uTagBitIndex)) {
+      return 0;
+   }
+   
+   const uint64_t uTagBit = 0x01ULL << uTagBitIndex;
+   return (uTagBit & pItem->uTagBits) != 0;
+}
 
 
 /*

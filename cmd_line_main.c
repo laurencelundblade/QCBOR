@@ -51,6 +51,7 @@ int main(int argc, const char * argv[])
     printf("sizeof(QCBORItem) %d\n", (uint32_t)sizeof(QCBORItem));
     printf("sizeof(QCBORStringAllocator) %d\n\n", (uint32_t)sizeof(QCBORStringAllocator));
 
+    // TODO: command line arg to select test
     int nNumTestsFailed = run_tests(&fputs_wrapper, stdout, NULL);
 
     return nNumTestsFailed;
