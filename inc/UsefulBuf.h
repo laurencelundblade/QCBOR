@@ -360,26 +360,6 @@ static inline UsefulBufC UsefulBuf_FromSZ(const char *szString){
 
 
 /**
- @brief Copy one UsefulBuf into another
- 
- @param[in] Dest The destination buffer to copy into
- @param[out] Src  The source to copy from
- 
- @return filled in UsefulBufC on success, NULLUsefulBufC on failure
- 
- This fails if Src.len is greater than Dest.len.
- 
- Note that like memcpy, the pointers are not checked and
- this will crash, rather than return NULLUsefulBufC if
- they are NULL or invalid.
- 
- Results are undefined if Dest and Src overlap.
- 
- */
-UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src);
-
-
-/**
  @brief Copy one UsefulBuf into another at an offset
  
  @param[in] Dest Destiation buffer to copy into
@@ -400,6 +380,27 @@ UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src);
  */
 UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC Src);
 
+
+/**
+ @brief Copy one UsefulBuf into another
+ 
+ @param[in] Dest The destination buffer to copy into
+ @param[out] Src  The source to copy from
+ 
+ @return filled in UsefulBufC on success, NULLUsefulBufC on failure
+ 
+ This fails if Src.len is greater than Dest.len.
+ 
+ Note that like memcpy, the pointers are not checked and
+ this will crash, rather than return NULLUsefulBufC if
+ they are NULL or invalid.
+ 
+ Results are undefined if Dest and Src overlap.
+ 
+ */
+static inline UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src) {
+   return UsefulBuf_CopyOffset(Dest, 0, Src);
+}
 
 
 /**
