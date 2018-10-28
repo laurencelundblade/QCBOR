@@ -61,6 +61,7 @@ Then just call run_tests() to invole them all.
 * Minimal length float encoding is added
 * indefinite length arrays/maps are supported
 * indefinite length strings are supported
+* Tag decoding is changed; unlimited number of tags supported, any tag value supported, tag utility function for easier tag checking
 * Addition functions in UsefulBuf
 * QCBOREncode_Init takes a UsefulBuf instead of a pointer and size
 * QCBOREncode_Finish takes a UsefulBufC and EncodedCBOR is remove
@@ -69,6 +70,7 @@ Then just call run_tests() to invole them all.
 * Finish cannot be called repeatedly on a partial decode (some tests used this, but it is not really a good thing to use in the first place)
 * UsefulOutBuf_OutUBuf changed to work differently 
 * UsefulOutBuf_Init works differently
+
 
 
 
