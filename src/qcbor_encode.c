@@ -319,28 +319,27 @@ inline static void AppendEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uM
 }
 
 
-static void AddBytesInternal(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, UsefulBufC Bytes, uint8_t uMajorType);
+
 
 
 /*
- Add an optional label and optional tag. It will go in front of a real data item.
+ Internal function for adding positive and negative integers of all different sizes
  */
-static void AddLabelAndOptionalTag(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag)
+void InsertInt64(QCBOREncodeContext *me, int64_t nNum, uint32_t uPos)
 {
-   if(szLabel) {
-      UsefulBufC SZText = {szLabel, strlen(szLabel)};
-      AddBytesInternal(me, NULL, nLabel, CBOR_TAG_NONE, SZText, CBOR_MAJOR_TYPE_TEXT_STRING);
-   } else if (QCBOR_NO_INT_LABEL != nLabel) {
-      // Add an integer label. This is just adding an integer at this point
-      // This will result in a call right back to here, but the call won't do anything
-      // because of the params NULL, QCBOR_NO_INT_LABEL and CBOR_TAG_NONE
-      QCBOREncode_AddInt64_3(me, NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, nLabel);
+   uint8_t      uMajorType;
+   uint64_t     uValue;
+   
+   if(nNum < 0) {
+      uValue = (uint64_t)(-nNum - 1); // This is the way negative ints work in CBOR. -1 encodes as 0x00 with major type negative int.
+      uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
+   } else {
+      uValue = (uint64_t)nNum;
+      uMajorType = CBOR_MAJOR_TYPE_POSITIVE_INT;
    }
-   if(uTag != CBOR_TAG_NONE) {
-      AppendEncodedTypeAndNumber(me, CBOR_MAJOR_TYPE_OPTIONAL, uTag);
-   }
+   
+   InsertEncodedTypeAndNumber(me, uMajorType, 0, uValue, uPos);
 }
-
 
 /*
  Does the work of adding some bytes to the CBOR output. Works for a
@@ -348,7 +347,7 @@ static void AddLabelAndOptionalTag(QCBOREncodeContext *me, const char *szLabel, 
  different major types.  This is also used to insert raw
  pre-encoded CBOR.
  */
-static void AddBytesInternal(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, UsefulBufC Bytes, uint8_t uMajorType)
+static void AddBytesInternal2(QCBOREncodeContext *me, UsefulBufC Bytes, uint8_t uMajorType, uint32_t uPos)
 {
    if(Bytes.len >= UINT32_MAX) {
       // This implementation doesn't allow buffers larger than UINT32_MAX. This is
@@ -359,17 +358,20 @@ static void AddBytesInternal(QCBOREncodeContext *me, const char *szLabel, int64_
       
    } else {
       
-      AddLabelAndOptionalTag(me, szLabel, nLabel, uTag);
-      
       if(!me->uError) {
-
+         
          // If it is not Raw CBOR, add the type and the length
+         uint32_t xx = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf));
          if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
-            AppendEncodedTypeAndNumber(me, uMajorType, Bytes.len);
+            InsertEncodedTypeAndNumber(me, uMajorType, 0, Bytes.len, uPos);
          }
+         uint32_t yy = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf));
+         uPos += yy-xx;
+         
          
          // Actually add the bytes
-         UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), Bytes);
+         // TODO: how do we know where to insert this?
+         UsefulOutBuf_InsertUsefulBuf(&(me->OutBuf), Bytes, uPos);
          
          // Update the array counting if there is any nesting at all
          me->uError = Nesting_Increment(&(me->nesting), 1);
@@ -377,25 +379,69 @@ static void AddBytesInternal(QCBOREncodeContext *me, const char *szLabel, int64_
    }
 }
 
+/*
+ Add an optional label. It will go in front of a real data item.
+ */
+
+static void AddLabel(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel)
+{
+   uint32_t uPos = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)); // TODO: justify cast
+   if(Nesting_GetMajorType(&(me->nesting)) == 0x1f) {
+      uPos = Nesting_GetStartPos(&(me->nesting));
+      Nesting_Decrease(&(me->nesting));
+   }
+
+   if(szLabel) {
+      UsefulBufC SZText = UsefulBuf_FromSZ(szLabel);
+      AddBytesInternal2(me, SZText, CBOR_MAJOR_TYPE_TEXT_STRING, uPos);
+   } else if (QCBOR_NO_INT_LABEL != nLabel) {
+      InsertInt64(me, nLabel, uPos);
+   }
+}
 
 
+
+/*
+ Public Function
+ */
+void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
+{
+   uint8_t uNestingType = Nesting_GetMajorType(&(me->nesting));
+   if(uNestingType == CBOR_MAJOR_TYPE_MAP) {
+      // Remember where the first tag is for this item
+      // So we can go back and insert the label in front of it.
+      me->uError = Nesting_Increase(&(me->nesting), 0x1f, (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+   }
+
+   AppendEncodedTypeAndNumber(me, CBOR_MAJOR_TYPE_OPTIONAL, uTag);
+}
+
+
+
+void QCBOREncode_AddBytes_2(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
+{
+   AddLabel(me, szLabel, nLabel);
+   if(!me->uError) {
+      AddBytesInternal2(me, Bytes, uMajorType, (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+   }
+}
 
 /*
  Public functions for adding strings and raw encoded CBOR. See header qcbor.h
  */
 void QCBOREncode_AddBytes_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, UsefulBufC Bytes)
 {
-   AddBytesInternal(me, szLabel, nLabel, uTag, Bytes, CBOR_MAJOR_TYPE_BYTE_STRING);
+   QCBOREncode_AddBytes_2(me, CBOR_MAJOR_TYPE_BYTE_STRING, szLabel, nLabel, Bytes);
 }
 
 void QCBOREncode_AddText_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, UsefulBufC Bytes)
 {
-   AddBytesInternal(me, szLabel, nLabel, uTag, Bytes, CBOR_MAJOR_TYPE_TEXT_STRING);
+   QCBOREncode_AddBytes_2(me, CBOR_MAJOR_TYPE_TEXT_STRING, szLabel, nLabel, Bytes);
 }
 
 void QCBOREncode_AddEncodedToMap_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag, UsefulBufC Encoded)
 {
-    AddBytesInternal(me, szLabel, nLabel, uTag, Encoded, CBOR_MAJOR_NONE_TYPE_RAW);
+   QCBOREncode_AddBytes_2(me, CBOR_MAJOR_NONE_TYPE_RAW, szLabel, nLabel, Encoded);
 }
 
 
@@ -407,9 +453,9 @@ void QCBOREncode_AddEncodedToMap_3(QCBOREncodeContext *me, const char *szLabel, 
  successfully.  Call it one more time gives an error.
  
  */
-static void OpenMapOrArrayInternal(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, uint64_t nLabel, uint64_t uTag) 
+static void OpenMapOrArrayInternal(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, uint64_t nLabel)
 {
-   AddLabelAndOptionalTag(me, szLabel, nLabel, uTag);
+   AddLabel(me, szLabel, nLabel);
    
    if(!me->uError) {
       // Add one item to the nesting level we are in for the new map or array
@@ -429,17 +475,17 @@ static void OpenMapOrArrayInternal(QCBOREncodeContext *me, uint8_t uMajorType, c
  */
 void QCBOREncode_OpenArray_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag)
 {
-   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_ARRAY, szLabel, nLabel, uTag);
+   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_ARRAY, szLabel, nLabel);
 }
 
 void QCBOREncode_OpenMap_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag)
 {
-   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_MAP, szLabel, nLabel, uTag);
+   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_MAP, szLabel, nLabel);
 }
 
 void QCBOREncode_OpenBstrWrap_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag)
 {
-   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_BYTE_STRING, szLabel, nLabel, uTag);
+   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_BYTE_STRING, szLabel, nLabel);
 }
 
 void QCBOREncode_Close(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC *pWrappedCBOR)
@@ -492,40 +538,25 @@ void QCBOREncode_Close(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC *p
 
 
 /*
- Internal function for adding positive and negative integers of all different sizes
+ Public functions for adding integers. See header qcbor.h
  */
-static void AddUInt64Internal(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, uint8_t uMajorType, uint64_t n)
+
+void QCBOREncode_AddUInt64_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uNum)
 {
-   AddLabelAndOptionalTag(me, szLabel, nLabel, uTag);
+   AddLabel(me, szLabel, nLabel);
    if(!me->uError) {
-      AppendEncodedTypeAndNumber(me, uMajorType, n);
+      AppendEncodedTypeAndNumber(me, CBOR_MAJOR_TYPE_POSITIVE_INT, uNum);
       me->uError = Nesting_Increment(&(me->nesting), 1);
    }
 }
 
-
-/*
- Public functions for adding integers. See header qcbor.h
- */
-void QCBOREncode_AddUInt64_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, uint64_t uNum)
+void QCBOREncode_AddInt64_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, int64_t nNum)
 {
-   AddUInt64Internal(me, szLabel, nLabel, uTag, CBOR_MAJOR_TYPE_POSITIVE_INT, uNum);
-}
-
-void QCBOREncode_AddInt64_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, int64_t nNum)
-{
-   uint8_t      uMajorType;
-   uint64_t     uValue;
-   
-   // Handle CBOR's particular format for positive and negative integers
-   if(nNum < 0) {
-      uValue = (uint64_t)(-nNum - 1); // This is the way negative ints work in CBOR. -1 encodes as 0x00 with major type negative int.
-      uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
-   } else {
-      uValue = (uint64_t)nNum;
-      uMajorType = CBOR_MAJOR_TYPE_POSITIVE_INT;
+   AddLabel(me, szLabel, nLabel);
+   if(!me->uError) {
+      InsertInt64(me, nNum, (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+      me->uError = Nesting_Increment(&(me->nesting), 1);
    }
-   AddUInt64Internal(me, szLabel, nLabel, uTag, uMajorType, uValue);
 }
 
 
@@ -547,7 +578,7 @@ void QCBOREncode_AddInt64_3(QCBOREncodeContext *me, const char *szLabel, int64_t
  */
 static void AddSimpleInternal(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, size_t uSize, uint64_t uNum)
 {
-   AddLabelAndOptionalTag(me, szLabel, nLabel,  uTag);
+   AddLabel(me, szLabel, nLabel);
    if(!me->uError) {
       // This function call takes care of endian swapping for the float / double
       InsertEncodedTypeAndNumber(me,

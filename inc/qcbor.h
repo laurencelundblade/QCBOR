@@ -495,6 +495,7 @@ struct _QCBORDecodeContext {
  - Does not support encoding indefinite lengths (decoding is supported).
  - Does not directly support some tagged types: decimal fractions, big floats
  - Does not directly support labels in maps other than text strings and ints.
+ - Does not directly support int labels > INT64_MAX
  - Epoch dates limited to INT64_MAX (+/- 292 billion years)
  - Only one tag per data item is supported for tag values > 62
  - Tags on labels are ignored
@@ -812,7 +813,9 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
 
 void QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
 
-
+/* TODO: add documentation
+ */
+void QCBOREncode_AddTag(QCBOREncodeContext *pCtx,uint64_t uTag);
 
 
 /**
@@ -860,26 +863,26 @@ void QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  
  */
 
-void QCBOREncode_AddInt64_3(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, uint64_t uTag, int64_t nNum);
-void QCBOREncode_AddUInt64_3(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, uint64_t uTag, uint64_t uNum);
+void QCBOREncode_AddInt64_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, int64_t nNum);
+void QCBOREncode_AddUInt64_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, uint64_t uNum);
 
 #define QCBOREncode_AddUInt64(pCtx, uNum) \
-      QCBOREncode_AddUInt64_3((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (uNum))
+      QCBOREncode_AddUInt64_2((pCtx), NULL, QCBOR_NO_INT_LABEL, (uNum))
 
 #define QCBOREncode_AddUInt64ToMap(pCtx, szLabel, uNum) \
-      QCBOREncode_AddUInt64_3((pCtx), (szLabel), QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (uNum))
+      QCBOREncode_AddUInt64_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (uNum))
 
 #define QCBOREncode_AddUInt64ToMapN(pCtx, nLabel, uNum) \
-      QCBOREncode_AddUInt64_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE, (uNum))
+      QCBOREncode_AddUInt64_2((pCtx), NULL, (nLabel), (uNum))
 
 #define QCBOREncode_AddInt64(pCtx, nNum) \
-      QCBOREncode_AddInt64_3((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (nNum))
+      QCBOREncode_AddInt64_2((pCtx), NULL, QCBOR_NO_INT_LABEL, (nNum))
 
 #define QCBOREncode_AddInt64ToMap(pCtx, szLabel, nNum) \
-      QCBOREncode_AddInt64_3((pCtx), (szLabel), QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (nNum))
+      QCBOREncode_AddInt64_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (nNum))
 
 #define QCBOREncode_AddInt64ToMapN(pCtx, nLabel, nNum) \
-      QCBOREncode_AddInt64_3((pCtx), NULL, (nLabel), CBOR_TAG_NONE, (nNum))
+      QCBOREncode_AddInt64_2((pCtx), NULL, (nLabel), (nNum))
 
 
 
@@ -1069,7 +1072,8 @@ void QCBOREncode_AddDoubleAsSmallest_3(QCBOREncodeContext *me, const char *szLab
 
 static inline void QCBOREncode_AddDateEpoch_2(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t nLabel, int64_t date)
 {
-   QCBOREncode_AddInt64_3(pCtx, szLabel, nLabel, CBOR_TAG_DATE_EPOCH, date);
+   QCBOREncode_AddTag(pCtx, CBOR_TAG_DATE_EPOCH);
+   QCBOREncode_AddInt64_2(pCtx, szLabel, nLabel, date);
 }
 
 #define QCBOREncode_AddDateEpoch(pCtx, date) \
