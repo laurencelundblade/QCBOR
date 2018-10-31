@@ -82,14 +82,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*...... This is a ruler that is 80 characters long...........................*/
 
 
-// Used internally in the impementation here
-// Must not conflict with any of the official CBOR types
-#define CBOR_MAJOR_NONE_TYPE_RAW  9
-
-
-
-
-
 /*
  CBOR's two nesting types, arrays and maps, are tracked here. There is a
  limit of QCBOR_MAX_ARRAY_NESTING to the number of arrays and maps
@@ -325,7 +317,7 @@ inline static void AppendEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uM
 /*
  Internal function for adding positive and negative integers of all different sizes
  */
-void InsertInt64(QCBOREncodeContext *me, int64_t nNum, uint32_t uPos)
+void InsertInt64(QCBOREncodeContext *me, int64_t nNum, size_t uPos)
 {
    uint8_t      uMajorType;
    uint64_t     uValue;
@@ -339,6 +331,7 @@ void InsertInt64(QCBOREncodeContext *me, int64_t nNum, uint32_t uPos)
    }
    
    InsertEncodedTypeAndNumber(me, uMajorType, 0, uValue, uPos);
+   me->uError = Nesting_Increment(&(me->nesting), 1);
 }
 
 /*
@@ -347,7 +340,7 @@ void InsertInt64(QCBOREncodeContext *me, int64_t nNum, uint32_t uPos)
  different major types.  This is also used to insert raw
  pre-encoded CBOR.
  */
-static void AddBytesInternal2(QCBOREncodeContext *me, UsefulBufC Bytes, uint8_t uMajorType, uint32_t uPos)
+static void AddBytesInternal2(QCBOREncodeContext *me, UsefulBufC Bytes, uint8_t uMajorType, size_t uPos)
 {
    if(Bytes.len >= UINT32_MAX) {
       // This implementation doesn't allow buffers larger than UINT32_MAX. This is
@@ -357,20 +350,15 @@ static void AddBytesInternal2(QCBOREncodeContext *me, UsefulBufC Bytes, uint8_t 
       me->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
       
    } else {
-      
       if(!me->uError) {
-         
          // If it is not Raw CBOR, add the type and the length
-         uint32_t xx = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf));
+         const size_t uPosBeforeInsert = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
          if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
             InsertEncodedTypeAndNumber(me, uMajorType, 0, Bytes.len, uPos);
          }
-         uint32_t yy = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf));
-         uPos += yy-xx;
-         
+         uPos += UsefulOutBuf_GetEndPosition(&(me->OutBuf)) - uPosBeforeInsert;
          
          // Actually add the bytes
-         // TODO: how do we know where to insert this?
          UsefulOutBuf_InsertUsefulBuf(&(me->OutBuf), Bytes, uPos);
          
          // Update the array counting if there is any nesting at all
@@ -379,26 +367,28 @@ static void AddBytesInternal2(QCBOREncodeContext *me, UsefulBufC Bytes, uint8_t 
    }
 }
 
+
 /*
  Add an optional label. It will go in front of a real data item.
  */
-
 static void AddLabel(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel)
 {
-   uint32_t uPos = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)); // TODO: justify cast
-   if(Nesting_GetMajorType(&(me->nesting)) == 0x1f) {
+   size_t uPos = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
+   if(Nesting_GetMajorType(&(me->nesting)) == CBOR_MAJOR_NONE_TAG_LABEL_REORDER) {
+      // Have to insert the label rather than just appen if a tag
+      // has been added. This is so the tag ends up on the value, not
+      // on the label.
       uPos = Nesting_GetStartPos(&(me->nesting));
       Nesting_Decrease(&(me->nesting));
    }
 
    if(szLabel) {
-      UsefulBufC SZText = UsefulBuf_FromSZ(szLabel);
+      const UsefulBufC SZText = UsefulBuf_FromSZ(szLabel);
       AddBytesInternal2(me, SZText, CBOR_MAJOR_TYPE_TEXT_STRING, uPos);
    } else if (QCBOR_NO_INT_LABEL != nLabel) {
       InsertInt64(me, nLabel, uPos);
    }
 }
-
 
 
 /*
@@ -407,10 +397,12 @@ static void AddLabel(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel
 void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
 {
    uint8_t uNestingType = Nesting_GetMajorType(&(me->nesting));
-   if(uNestingType == CBOR_MAJOR_TYPE_MAP) {
+   if(uNestingType == CBOR_MAJOR_TYPE_MAP || uNestingType == CBOR_MAJOR_TYPE_ARRAY) { // TODO: really do this for arrays?
       // Remember where the first tag is for this item
       // So we can go back and insert the label in front of it.
-      me->uError = Nesting_Increase(&(me->nesting), 0x1f, (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+      // Cast to uint32_t here is OK all sizes are limited to 4GB by other checks
+      const uint32_t uPos = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf));
+      me->uError = Nesting_Increase(&(me->nesting), CBOR_MAJOR_NONE_TAG_LABEL_REORDER, uPos);
    }
 
    AppendEncodedTypeAndNumber(me, CBOR_MAJOR_TYPE_OPTIONAL, uTag);
@@ -422,38 +414,21 @@ void QCBOREncode_AddBytes_2(QCBOREncodeContext *me, uint8_t uMajorType, const ch
 {
    AddLabel(me, szLabel, nLabel);
    if(!me->uError) {
-      AddBytesInternal2(me, Bytes, uMajorType, (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+      AddBytesInternal2(me, Bytes, uMajorType, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
    }
 }
 
-/*
- Public functions for adding strings and raw encoded CBOR. See header qcbor.h
- */
-void QCBOREncode_AddBytes_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, UsefulBufC Bytes)
-{
-   QCBOREncode_AddBytes_2(me, CBOR_MAJOR_TYPE_BYTE_STRING, szLabel, nLabel, Bytes);
-}
-
-void QCBOREncode_AddText_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, UsefulBufC Bytes)
-{
-   QCBOREncode_AddBytes_2(me, CBOR_MAJOR_TYPE_TEXT_STRING, szLabel, nLabel, Bytes);
-}
-
-void QCBOREncode_AddEncodedToMap_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag, UsefulBufC Encoded)
-{
-   QCBOREncode_AddBytes_2(me, CBOR_MAJOR_NONE_TYPE_RAW, szLabel, nLabel, Encoded);
-}
-
 
 
 /*
+ TODO: fix docu
  Internal function common to opening an array or a map
  
  QCBOR_MAX_ARRAY_NESTING is the number of times Open can be called
  successfully.  Call it one more time gives an error.
  
  */
-static void OpenMapOrArrayInternal(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, uint64_t nLabel)
+void OpenMapOrArray_2(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, uint64_t nLabel)
 {
    AddLabel(me, szLabel, nLabel);
    
@@ -471,22 +446,8 @@ static void OpenMapOrArrayInternal(QCBOREncodeContext *me, uint8_t uMajorType, c
 
 
 /*
- Public functions for opening / closing arrays and maps. See header qcbor.h
+ Public functions for closing arrays and maps. See header qcbor.h
  */
-void QCBOREncode_OpenArray_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag)
-{
-   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_ARRAY, szLabel, nLabel);
-}
-
-void QCBOREncode_OpenMap_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag)
-{
-   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_MAP, szLabel, nLabel);
-}
-
-void QCBOREncode_OpenBstrWrap_3(QCBOREncodeContext *me, const char *szLabel, uint64_t nLabel, uint64_t uTag)
-{
-   OpenMapOrArrayInternal(me, CBOR_MAJOR_TYPE_BYTE_STRING, szLabel, nLabel);
-}
 
 void QCBOREncode_Close(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC *pWrappedCBOR)
 {
@@ -506,6 +467,7 @@ void QCBOREncode_Close(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC *p
          
          // Cast from size_t to uin32_t is safe because the UsefulOutBuf
          // size is limited to UINT32_MAX in QCBOR_Init().
+         // TODO: can these be size_t? Check them for over/underflow
          const uint32_t uEndPosition = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf));
          const uint32_t uLenOfEncodedMapOrArray = uEndPosition - uInsertPosition;
          
@@ -555,7 +517,6 @@ void QCBOREncode_AddInt64_2(QCBOREncodeContext *me, const char *szLabel, int64_t
    AddLabel(me, szLabel, nLabel);
    if(!me->uError) {
       InsertInt64(me, nNum, (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
-      me->uError = Nesting_Increment(&(me->nesting), 1);
    }
 }
 
@@ -576,7 +537,7 @@ void QCBOREncode_AddInt64_2(QCBOREncodeContext *me, const char *szLabel, int64_t
      - additional integer 31 is a "break"
      - additional integers 32-255 are unassigned and could be used in an update to CBOR
  */
-static void AddSimpleInternal(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, size_t uSize, uint64_t uNum)
+static void AddSimpleInternal(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, size_t uSize, uint64_t uNum)
 {
    AddLabel(me, szLabel, nLabel);
    if(!me->uError) {
@@ -595,21 +556,21 @@ static void AddSimpleInternal(QCBOREncodeContext *me, const char *szLabel, int64
 /*
  Public function for adding simple values. See header qcbor.h
  */
-void QCBOREncode_AddRawSimple_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, uint8_t uSimple)
+void QCBOREncode_AddRawSimple_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint8_t uSimple)
 {
-   AddSimpleInternal(me, szLabel, nLabel, uTag, 0, uSimple);
+   AddSimpleInternal(me, szLabel, nLabel, 0, uSimple);
 }
 
 
 /*
  Public function for adding simple values. See header qcbor.h
  */
-void QCBOREncode_AddSimple_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, uint8_t uSimple)
+void QCBOREncode_AddSimple_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint8_t uSimple)
 {
    if(uSimple < CBOR_SIMPLEV_FALSE || uSimple > CBOR_SIMPLEV_UNDEF) {
       me->uError = QCBOR_ERR_BAD_SIMPLE;
    } else {
-      QCBOREncode_AddRawSimple_3(me, szLabel, nLabel, uTag, uSimple);
+      QCBOREncode_AddRawSimple_2(me, szLabel, nLabel, uSimple);
    }
 }
 
@@ -617,7 +578,7 @@ void QCBOREncode_AddSimple_3(QCBOREncodeContext *me, const char *szLabel, int64_
 /*
  Public functions for floating point numbers. See header qcbor.h
  */
-void QCBOREncode_AddFloat_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, float fNum)
+void QCBOREncode_AddFloat_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, float fNum)
 {
    // Convert the *type* of the data from a float to a uint so the
    // standard integer encoding can work.  This takes advantage
@@ -626,46 +587,46 @@ void QCBOREncode_AddFloat_3(QCBOREncodeContext *me, const char *szLabel, int64_t
    const float *pfNum  = &fNum;
    const uint32_t uNum = *(uint32_t *)pfNum;
       
-   AddSimpleInternal(me, szLabel, nLabel, uTag, sizeof(float), uNum);
+   AddSimpleInternal(me, szLabel, nLabel, sizeof(float), uNum);
 }
 
-void QCBOREncode_AddDouble_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, double dNum)
+void QCBOREncode_AddDouble_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, double dNum)
 {
    // see how it is done for floats above
    const double *pdNum = &dNum;
    const uint64_t uNum = *(uint64_t *)pdNum;
    
-   AddSimpleInternal(me, szLabel, nLabel, uTag, sizeof(double), uNum);
+   AddSimpleInternal(me, szLabel, nLabel, sizeof(double), uNum);
 }
 
-void QCBOREncode_AddFloatAsHalf_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, float fNum)
+void QCBOREncode_AddFloatAsHalf_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, float fNum)
 {
-    AddSimpleInternal(me, szLabel, nLabel, uTag, sizeof(uint16_t), IEEE754_FloatToHalf(fNum));
+    AddSimpleInternal(me, szLabel, nLabel, sizeof(uint16_t), IEEE754_FloatToHalf(fNum));
 }
 
-static void QCBOREncode_AddFUnionAsSmallest_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, IEEE754_union uNum)
+static void QCBOREncode_AddFUnionAsSmallest_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, IEEE754_union uNum)
 {
    switch(uNum.uTag) {
       case IEEE754_UNION_IS_HALF:
-         AddSimpleInternal(me, szLabel, nLabel, uTag, sizeof(uint16_t), uNum.u16);
+         AddSimpleInternal(me, szLabel, nLabel, sizeof(uint16_t), uNum.u16);
          break;
       case IEEE754_UNION_IS_SINGLE:
-         AddSimpleInternal(me, szLabel, nLabel, uTag, sizeof(uint32_t), uNum.u32);
+         AddSimpleInternal(me, szLabel, nLabel, sizeof(uint32_t), uNum.u32);
          break;
       case IEEE754_UNION_IS_DOUBLE:
-         AddSimpleInternal(me, szLabel, nLabel, uTag, sizeof(uint64_t), uNum.u64);
+         AddSimpleInternal(me, szLabel, nLabel, sizeof(uint64_t), uNum.u64);
          break;
    }
 }
 
-void QCBOREncode_AddFloatAsSmallest_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, float fNum)
+void QCBOREncode_AddFloatAsSmallest_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, float fNum)
 {
-   QCBOREncode_AddFUnionAsSmallest_3(me, szLabel, nLabel, uTag, IEEE754_FloatToSmallest(fNum));
+   QCBOREncode_AddFUnionAsSmallest_2(me, szLabel, nLabel, IEEE754_FloatToSmallest(fNum));
 }
 
-void QCBOREncode_AddDoubleAsSmallest_3(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uTag, double dNum)
+void QCBOREncode_AddDoubleAsSmallest_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, double dNum)
 {
-   QCBOREncode_AddFUnionAsSmallest_3(me, szLabel, nLabel, uTag, IEEE754_DoubleToSmallest(dNum));
+   QCBOREncode_AddFUnionAsSmallest_2(me, szLabel, nLabel, IEEE754_DoubleToSmallest(dNum));
 }
 
 

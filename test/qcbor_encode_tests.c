@@ -64,13 +64,13 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // TODO: test QCBOR_MAX_ITEMS_IN_ARRAY (this is very large...)
 
-#ifdef PRINT_FUNCTIONS_FOR_DEBUGGINGXX
+#if PRINT_FUNCTIONS_FOR_DEBUGGINGXX
 #include <stdio.h>
 
 // ifdef these out to not have compiler warnings
 static void printencoded(const uint8_t *pEncoded, size_t nLen)
 {
-   int i;
+   size_t i;
    for(i = 0; i < nLen; i++) {
       uint8_t Z = pEncoded[i];
       printf("%02x ", Z);
@@ -84,25 +84,30 @@ static void printencoded(const uint8_t *pEncoded, size_t nLen)
 #include <stdio.h>
 
 int Compare(UsefulBufC U1, UsefulBufC U2) {
-   int i;
+   size_t i;
    for(i = 0; i < U1.len; i++) {
       if(((uint8_t *)U1.ptr)[i] != ((uint8_t *)U2.ptr)[i]) {
-         printf("%d 0x%x 0x%x\n", i, ((uint8_t *)U1.ptr)[i], ((uint8_t *)U2.ptr)[i]);
+         printf("Position: %d  Actual: 0x%x   Expected: 0x%x\n", i, ((uint8_t *)U1.ptr)[i], ((uint8_t *)U2.ptr)[i]);
          return 1;
       }
    }
    return 0;
    
 }
-#endif
 
+#define CheckResults(Enc, Expected) \
+   Compare(Enc, (UsefulBufC){Expected, sizeof(Expected)})
 
+#else
 
 #define CheckResults(Enc, Expected) \
    UsefulBuf_Compare(Enc, (UsefulBufC){Expected, sizeof(Expected)})
 
-//#define CheckResults(Enc, Expected) \
-//   Compare(Enc, (UsefulBufC){Expected, sizeof(Expected)})
+#endif
+
+
+
+
 
 
 
@@ -498,8 +503,10 @@ int AllAddMethodsTest()
    QCBOREncode_OpenArray(&ECtx);
 
    // Non-map ints
-   // QCBOREncode_AddUInt64_3(&ECtx, "UINT62", QCBOR_NO_INT_LABEL, 100, 89989909); TODO: fix these tests
-   //QCBOREncode_AddInt64_3(&ECtx, "INT64", QCBOR_NO_INT_LABEL, 76, 77689989909);
+   QCBOREncode_AddTag(&ECtx, 100);
+   QCBOREncode_AddUInt64_2(&ECtx, "UINT62", QCBOR_NO_INT_LABEL, 89989909);
+   QCBOREncode_AddTag(&ECtx, 76);
+   QCBOREncode_AddInt64_2(&ECtx, "INT64", QCBOR_NO_INT_LABEL, 77689989909);
    QCBOREncode_AddUInt64(&ECtx,0);
    QCBOREncode_AddInt64(&ECtx, -44);
 
@@ -512,8 +519,10 @@ int AllAddMethodsTest()
    QCBOREncode_CloseMap(&ECtx);
 
    // floats and doubles
-   QCBOREncode_AddFloat_3(&ECtx, "Jaime", QCBOR_NO_INT_LABEL, 88, 3.14159);
-   QCBOREncode_AddDouble_3(&ECtx, "Street", QCBOR_NO_INT_LABEL, 99, 8.654309);
+   QCBOREncode_AddTag(&ECtx, 88);
+   QCBOREncode_AddFloat_2(&ECtx, "Jaime", QCBOR_NO_INT_LABEL, 3.14159);
+   QCBOREncode_AddTag(&ECtx, 99);
+   QCBOREncode_AddDouble_2(&ECtx, "Street", QCBOR_NO_INT_LABEL, 8.654309);
    QCBOREncode_AddFloat(&ECtx, 1);
    QCBOREncode_AddDouble(&ECtx, 1);
 
@@ -540,7 +549,8 @@ int AllAddMethodsTest()
 
    // binary blobs in maps
    QCBOREncode_OpenMap(&ECtx);
-   QCBOREncode_AddBytes_3(&ECtx, "binbin", QCBOR_NO_INT_LABEL, 100000, ((UsefulBufC) {(uint8_t []){0x00}, 1}));
+   QCBOREncode_AddTag(&ECtx, 100000);
+   QCBOREncode_AddBytes_2(&ECtx, CBOR_MAJOR_TYPE_BYTE_STRING, "binbin", QCBOR_NO_INT_LABEL, ((UsefulBufC) {(uint8_t []){0x00}, 1}));
    QCBOREncode_AddBytesToMap(&ECtx, "blabel", ((UsefulBufC){(uint8_t []){0x01, 0x02, 0x03}, 3}));
    QCBOREncode_AddBytesToMapN(&ECtx, 0, ((UsefulBufC){(uint8_t []){0x04, 0x02, 0x03, 0xfe}, 4}));
    QCBOREncode_CloseMap(&ECtx);
@@ -556,8 +566,9 @@ int AllAddMethodsTest()
    // text blobs in maps
    QCBOREncode_OpenMap(&ECtx);
    QCBOREncode_AddTextToMap(&ECtx, "#####", SZLiteralToUsefulBufC("foo bar foo foo"));
-   QCBOREncode_AddText_3(&ECtx, "____", QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, SZLiteralToUsefulBufC("foo bar"));
-   QCBOREncode_AddSZString_3(&ECtx, "()()()", QCBOR_NO_INT_LABEL, 1000, "rab rab oof");
+   QCBOREncode_AddTextToMap(&ECtx, "____", SZLiteralToUsefulBufC("foo bar")); // TODO _2? 
+   QCBOREncode_AddTag(&ECtx, 1000);
+   QCBOREncode_AddSZString_2(&ECtx, "()()()", QCBOR_NO_INT_LABEL, "rab rab oof");
    QCBOREncode_AddTextToMapN(&ECtx,22, SZLiteralToUsefulBufC("foo foo foo foo"));
    QCBOREncode_AddSZStringToMap(&ECtx, "^^", "oooooooof");
    QCBOREncode_AddSZStringToMapN(&ECtx, 99, "ffffoooooooof");
@@ -581,7 +592,8 @@ int AllAddMethodsTest()
    // true / false ...
    QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_UNDEF);
    QCBOREncode_OpenMap(&ECtx);
-   QCBOREncode_AddSimple_3(&ECtx, "dare", QCBOR_NO_INT_LABEL, 66, CBOR_SIMPLEV_TRUE);
+   QCBOREncode_AddTag(&ECtx, 66);
+   QCBOREncode_AddSimple_2(&ECtx, "dare", QCBOR_NO_INT_LABEL, CBOR_SIMPLEV_TRUE);
    QCBOREncode_AddSimpleToMap(&ECtx, "uu", CBOR_SIMPLEV_FALSE);
    QCBOREncode_AddSimpleToMapN(&ECtx, 737634, CBOR_SIMPLEV_NULL);
    QCBOREncode_CloseMap(&ECtx);
@@ -592,7 +604,8 @@ int AllAddMethodsTest()
 
    // opening arrays in a map
    QCBOREncode_OpenMap(&ECtx);
-   QCBOREncode_OpenArray_3(&ECtx, "label and tagged empty array", QCBOR_NO_INT_LABEL, 1093);
+   QCBOREncode_AddTag(&ECtx, 1093);
+   QCBOREncode_OpenArray_2(&ECtx, "label and tagged empty array", QCBOR_NO_INT_LABEL);
    QCBOREncode_CloseArray(&ECtx);
    QCBOREncode_OpenArrayInMap(&ECtx, "alabl");
    QCBOREncode_CloseArray(&ECtx);
@@ -604,7 +617,8 @@ int AllAddMethodsTest()
    QCBOREncode_OpenMap(&ECtx);
    QCBOREncode_OpenMapInMap(&ECtx, "in a map");
    QCBOREncode_OpenMapInMapN(&ECtx, 5556);
-   QCBOREncode_OpenMap_3(&ECtx, "in a in a in a", QCBOR_NO_INT_LABEL, 9087);
+   QCBOREncode_AddTag(&ECtx, 9087);
+   QCBOREncode_OpenMap_2(&ECtx, "in a in a in a", QCBOR_NO_INT_LABEL);
    QCBOREncode_CloseMap(&ECtx);
    QCBOREncode_CloseMap(&ECtx);
    QCBOREncode_CloseMap(&ECtx);
@@ -612,11 +626,15 @@ int AllAddMethodsTest()
    
    // Extended simple values (these are not standard...)
    QCBOREncode_OpenMap(&ECtx);
-   QCBOREncode_AddRawSimple_3(&ECtx, "s1", QCBOR_NO_INT_LABEL, 88, 255);
-   QCBOREncode_AddRawSimple_3(&ECtx, "s2", QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, 0);
-   QCBOREncode_AddRawSimple_3(&ECtx, "s3", QCBOR_NO_INT_LABEL, 88, 33);
-   QCBOREncode_AddRawSimple_3(&ECtx, NULL, 88378374, 88, 255);
-   QCBOREncode_AddRawSimple_3(&ECtx, NULL, 89, 88, 19);
+   QCBOREncode_AddTag(&ECtx, 88);
+   QCBOREncode_AddRawSimple_2(&ECtx, "s1", QCBOR_NO_INT_LABEL, 255);
+   QCBOREncode_AddRawSimple_2(&ECtx, "s2", QCBOR_NO_INT_LABEL, 0);
+   QCBOREncode_AddTag(&ECtx, 88);
+   QCBOREncode_AddRawSimple_2(&ECtx, "s3", QCBOR_NO_INT_LABEL, 33);
+   QCBOREncode_AddTag(&ECtx, 88);
+   QCBOREncode_AddRawSimple_2(&ECtx, NULL, 88378374, 255);
+   QCBOREncode_AddTag(&ECtx, 88);
+   QCBOREncode_AddRawSimple_2(&ECtx, NULL, 89, 19);
    QCBOREncode_CloseMap(&ECtx);
    
    
@@ -1596,7 +1614,8 @@ int cose_sign1_tbs_test()
    QCBOREncode_Init(&EC, MemoryForEncoded);
    
    // top level array for cose sign1, 18 is the tag for COSE sign
-   QCBOREncode_OpenArray_3(&EC, NULL, QCBOR_NO_INT_LABEL, 18);
+   QCBOREncode_AddTag(&EC, 18); // TODO: replace with constant
+   QCBOREncode_OpenArray_2(&EC, NULL, QCBOR_NO_INT_LABEL); // TODO: _2
    
    // Add protected headers
    QCBOREncode_AddBytes(&EC, ProtectedHeaders);
