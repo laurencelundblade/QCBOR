@@ -18,7 +18,7 @@ is also not necessary or preferred.
 
 **Secure Coding Style** – Uses a construct called UsefulBuf as a discipline for very safe coding the handling of binary data.
 
-**Small Code Size** – When optimized for size using the compiler -Os option, x86 code is less than 5KB (~2KB encode, 2KB decode, 1KB common). 
+**Small Code Size** – When optimized for size using the compiler -Os option, x86 code is less than 5KB (~1.7B encode, 2.8KB decode, 0.4KB common). 
 
 **Clear documented public interface** – The public interface is separated from the implementation. It can be put to use without reading the source. 
 
