@@ -550,7 +550,7 @@ int AllAddMethodsTest()
    // binary blobs in maps
    QCBOREncode_OpenMap(&ECtx);
    QCBOREncode_AddTag(&ECtx, 100000);
-   QCBOREncode_AddBytes_2(&ECtx, CBOR_MAJOR_TYPE_BYTE_STRING, "binbin", QCBOR_NO_INT_LABEL, ((UsefulBufC) {(uint8_t []){0x00}, 1}));
+   QCBOREncode_AddBytes_2(&ECtx, "binbin", QCBOR_NO_INT_LABEL, ((UsefulBufC) {(uint8_t []){0x00}, 1}));
    QCBOREncode_AddBytesToMap(&ECtx, "blabel", ((UsefulBufC){(uint8_t []){0x01, 0x02, 0x03}, 3}));
    QCBOREncode_AddBytesToMapN(&ECtx, 0, ((UsefulBufC){(uint8_t []){0x04, 0x02, 0x03, 0xfe}, 4}));
    QCBOREncode_CloseMap(&ECtx);
@@ -627,14 +627,14 @@ int AllAddMethodsTest()
    // Extended simple values (these are not standard...)
    QCBOREncode_OpenMap(&ECtx);
    QCBOREncode_AddTag(&ECtx, 88);
-   QCBOREncode_AddRawSimple_2(&ECtx, "s1", QCBOR_NO_INT_LABEL, 255);
-   QCBOREncode_AddRawSimple_2(&ECtx, "s2", QCBOR_NO_INT_LABEL, 0);
+   QCBOREncode_AddType7_2(&ECtx, "s1", QCBOR_NO_INT_LABEL, 0, 255);
+   QCBOREncode_AddType7_2(&ECtx, "s2", QCBOR_NO_INT_LABEL, 0, 0);
    QCBOREncode_AddTag(&ECtx, 88);
-   QCBOREncode_AddRawSimple_2(&ECtx, "s3", QCBOR_NO_INT_LABEL, 33);
+   QCBOREncode_AddType7_2(&ECtx, "s3", QCBOR_NO_INT_LABEL, 0, 33);
    QCBOREncode_AddTag(&ECtx, 88);
-   QCBOREncode_AddRawSimple_2(&ECtx, NULL, 88378374, 255);
+   QCBOREncode_AddType7_2(&ECtx, NULL, 88378374, 0, 255);
    QCBOREncode_AddTag(&ECtx, 88);
-   QCBOREncode_AddRawSimple_2(&ECtx, NULL, 89, 19);
+   QCBOREncode_AddType7_2(&ECtx, NULL, 89, 0, 19);
    QCBOREncode_CloseMap(&ECtx);
    
    

@@ -196,7 +196,7 @@ inline static int Nesting_IsInNest(QCBORTrackNesting *pNesting)
  error checks in this code if you knew the caller called it
  correctly. Maybe someday CDDL or some such language will be able to
  generate the code to call this and the calling code would always be
- correct. This could also make automatically size some of the data
+ correct. This could also automatically size some of the data
  structures like array/map nesting resulting in some good memory
  savings.
  */
@@ -272,7 +272,7 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorTyp
    // always generated internally, not by the caller, b) this is for CBOR
    // _generation_, not parsing c) a mistake will result in bad CBOR generation,
    // not a security vulnerability.
-   uMajorType <<= 5; // TODO: make this a constant
+   uMajorType <<= 5;
    
    if(uNumber > 0xffffffff || uMinLen >= 8) {
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_EIGHT_BYTES, uPos);
@@ -313,7 +313,6 @@ inline static void AppendEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uM
 
 
 
-
 /*
  Internal function for adding positive and negative integers of all different sizes
  */
@@ -334,29 +333,34 @@ void InsertInt64(QCBOREncodeContext *me, int64_t nNum, size_t uPos)
    me->uError = Nesting_Increment(&(me->nesting), 1);
 }
 
+
 /*
  Does the work of adding some bytes to the CBOR output. Works for a
  byte and text strings, which are the same in in CBOR though they have
  different major types.  This is also used to insert raw
  pre-encoded CBOR.
  */
-static void AddBytesInternal2(QCBOREncodeContext *me, UsefulBufC Bytes, uint8_t uMajorType, size_t uPos)
+static void AddBufferInternal(QCBOREncodeContext *me, UsefulBufC Bytes, uint8_t uMajorType, size_t uPos)
 {
    if(Bytes.len >= UINT32_MAX) {
-      // This implementation doesn't allow buffers larger than UINT32_MAX. This is
-      // primarily because QCBORTrackNesting.pArrays[].uStart is an uint32 rather
-      // than size_t to keep the stack usage down. Also it is entirely impractical
-      // to create tokens bigger than 4GB in contiguous RAM
+      // This implementation doesn't allow buffers larger than UINT32_MAX.
+      // This is primarily because QCBORTrackNesting.pArrays[].uStart is
+      // an uint32 rather than size_t to keep the stack usage down. Also
+      // it is entirely impractical to create tokens bigger than 4GB in
+      // contiguous RAM
       me->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
       
    } else {
       if(!me->uError) {
          // If it is not Raw CBOR, add the type and the length
-         const size_t uPosBeforeInsert = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
          if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
+            const size_t uPosBeforeInsert = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
             InsertEncodedTypeAndNumber(me, uMajorType, 0, Bytes.len, uPos);
+            // The increment in uPos is to account for bytes added for
+            // type and number so the buffer being added goes to the
+            // right place
+            uPos += UsefulOutBuf_GetEndPosition(&(me->OutBuf)) - uPosBeforeInsert;
          }
-         uPos += UsefulOutBuf_GetEndPosition(&(me->OutBuf)) - uPosBeforeInsert;
          
          // Actually add the bytes
          UsefulOutBuf_InsertUsefulBuf(&(me->OutBuf), Bytes, uPos);
@@ -384,7 +388,7 @@ static void AddLabel(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel
 
    if(szLabel) {
       const UsefulBufC SZText = UsefulBuf_FromSZ(szLabel);
-      AddBytesInternal2(me, SZText, CBOR_MAJOR_TYPE_TEXT_STRING, uPos);
+      AddBufferInternal(me, SZText, CBOR_MAJOR_TYPE_TEXT_STRING, uPos);
    } else if (QCBOR_NO_INT_LABEL != nLabel) {
       InsertInt64(me, nLabel, uPos);
    }
@@ -397,10 +401,10 @@ static void AddLabel(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel
 void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
 {
    uint8_t uNestingType = Nesting_GetMajorType(&(me->nesting));
-   if(uNestingType == CBOR_MAJOR_TYPE_MAP || uNestingType == CBOR_MAJOR_TYPE_ARRAY) { // TODO: really do this for arrays?
+   if(uNestingType == CBOR_MAJOR_TYPE_MAP || uNestingType == CBOR_MAJOR_TYPE_ARRAY) {
       // Remember where the first tag is for this item
       // So we can go back and insert the label in front of it.
-      // Cast to uint32_t here is OK all sizes are limited to 4GB by other checks
+      // Cast to uint32_t here OK as all inputs are limited to 4GB
       const uint32_t uPos = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf));
       me->uError = Nesting_Increase(&(me->nesting), CBOR_MAJOR_NONE_TAG_LABEL_REORDER, uPos);
    }
@@ -409,26 +413,26 @@ void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
 }
 
 
-
-void QCBOREncode_AddBytes_2(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
+/*
+ Semi-public interface. Called by inline functions to add text and byte strings
+ and already-encoded CBOR. They are the real public interface, even though this
+ is the main entry point. The code is structured like this to reduce code size.
+ */
+void QCBOREncode_AddBuffer_2(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
 {
    AddLabel(me, szLabel, nLabel);
    if(!me->uError) {
-      AddBytesInternal2(me, Bytes, uMajorType, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+      AddBufferInternal(me, Bytes, uMajorType, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
    }
 }
 
 
-
 /*
- TODO: fix docu
- Internal function common to opening an array or a map
- 
- QCBOR_MAX_ARRAY_NESTING is the number of times Open can be called
- successfully.  Call it one more time gives an error.
- 
+ Semi-public interfaced. Called by inline functions to open arrays, maps and
+ bstr wrapped CBOR. They are the real public interface, even though this is the
+ main entry point. This code is structured like this to reduce code size.
  */
-void OpenMapOrArray_2(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, uint64_t nLabel)
+void QCBOREncode_OpenMapOrArray_2(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, uint64_t nLabel)
 {
    AddLabel(me, szLabel, nLabel);
    
@@ -448,7 +452,6 @@ void OpenMapOrArray_2(QCBOREncodeContext *me, uint8_t uMajorType, const char *sz
 /*
  Public functions for closing arrays and maps. See header qcbor.h
  */
-
 void QCBOREncode_Close(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC *pWrappedCBOR)
 {
    if(!me->uError) {
@@ -457,22 +460,22 @@ void QCBOREncode_Close(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC *p
       } else if( Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
          me->uError = QCBOR_ERR_CLOSE_MISMATCH; 
       } else {
-         const uint32_t uInsertPosition = Nesting_GetStartPos(&(me->nesting));
-         // When the array, map or bstr wrap was started, nothing was done except
-         // note the position of the start of it. This code goes back and inserts
-         // the actual CBOR array, map or bstr and its length. That means all the
-         // data that is in the array, map or wrapped needs to be slid to the
-         // right. This is done by UsefulOutBuf's insert function that is called
-         // from inside InsertEncodedTypeAndNumber()
+         // When the array, map or bstr wrap was started, nothing was done
+         // except note the position of the start of it. This code goes back
+         // and inserts the actual CBOR array, map or bstr and its length.
+         // That means all the data that is in the array, map or wrapped
+         // needs to be slid to the right. This is done by UsefulOutBuf's
+         // insert function that is called from inside
+         // InsertEncodedTypeAndNumber()
+         const size_t uInsertPosition         = Nesting_GetStartPos(&(me->nesting));
+         const size_t uEndPosition            = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
+         // This can't go negative because the UsefulOutBuf always only grows
+         // and never shrinks. UsefulOutBut itself also has defenses such that
+         // it won't write were it should not even if given hostile input lengths
+         const size_t uLenOfEncodedMapOrArray = uEndPosition - uInsertPosition;
          
-         // Cast from size_t to uin32_t is safe because the UsefulOutBuf
-         // size is limited to UINT32_MAX in QCBOR_Init().
-         // TODO: can these be size_t? Check them for over/underflow
-         const uint32_t uEndPosition = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf));
-         const uint32_t uLenOfEncodedMapOrArray = uEndPosition - uInsertPosition;
-         
-         // Length is number of bytes for a bstr and number of items for map & array
-         const uint32_t uLength = uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING ?
+         // Length is number of bytes for a bstr and number of items a for map & array
+         const size_t uLength = uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING ?
                                     uLenOfEncodedMapOrArray : Nesting_GetCount(&(me->nesting));
          
          // Actually insert
@@ -489,7 +492,7 @@ void QCBOREncode_Close(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC *p
          // InsertEncodedTypeAndNumber() call that slides data to the right.
          if(pWrappedCBOR) {
             UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
-            uint32_t uBstrLen = (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)) - uEndPosition;
+            size_t uBstrLen = UsefulOutBuf_GetEndPosition(&(me->OutBuf)) - uEndPosition;
             *pWrappedCBOR = UsefulBuf_Tail(PartialResult, uInsertPosition+uBstrLen);
          }
          Nesting_Decrease(&(me->nesting));
@@ -498,11 +501,9 @@ void QCBOREncode_Close(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC *p
 }
 
 
-
 /*
  Public functions for adding integers. See header qcbor.h
  */
-
 void QCBOREncode_AddUInt64_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint64_t uNum)
 {
    AddLabel(me, szLabel, nLabel);
@@ -512,18 +513,25 @@ void QCBOREncode_AddUInt64_2(QCBOREncodeContext *me, const char *szLabel, int64_
    }
 }
 
+
+/*
+ Public functions for adding integers. See header qcbor.h
+ */
 void QCBOREncode_AddInt64_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, int64_t nNum)
 {
    AddLabel(me, szLabel, nLabel);
    if(!me->uError) {
+      // Cast is OK here because the output buffer is limited to 4GB in Init().
       InsertInt64(me, nNum, (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
    }
 }
 
 
-
-
 /*
+ Semi-public interfaced. Called by inline functions to add simple and float
+ types. They are the real public interface, even though this is the
+ main entry point. This code is structured like this to reduce code size.
+ 
  Common code for adding floats and doubles and simple types like true and false
  
  One way to look at simple values is that they are:
@@ -537,15 +545,18 @@ void QCBOREncode_AddInt64_2(QCBOREncodeContext *me, const char *szLabel, int64_t
      - additional integer 31 is a "break"
      - additional integers 32-255 are unassigned and could be used in an update to CBOR
  */
-static void AddSimpleInternal(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, size_t uSize, uint64_t uNum)
+void QCBOREncode_AddType7_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, size_t uSize, uint64_t uNum)
 {
    AddLabel(me, szLabel, nLabel);
    if(!me->uError) {
       // This function call takes care of endian swapping for the float / double
       InsertEncodedTypeAndNumber(me,
-                                 CBOR_MAJOR_TYPE_SIMPLE,  // The major type for floats and doubles
-                                 uSize,                   // min size / tells encoder to do it right
-                                 uNum,                    // Bytes of the floating point number as a uint
+                                 CBOR_MAJOR_TYPE_SIMPLE,  // The major type for
+                                                          // floats and doubles
+                                 uSize,                   // min size / tells
+                                                          // encoder to do it right
+                                 uNum,                    // Bytes of the floating
+                                                          // point number as a uint
                                  UsefulOutBuf_GetEndPosition(&(me->OutBuf))); // end position for append
       
       me->uError = Nesting_Increment(&(me->nesting), 1);
@@ -554,67 +565,34 @@ static void AddSimpleInternal(QCBOREncodeContext *me, const char *szLabel, int64
 
 
 /*
- Public function for adding simple values. See header qcbor.h
- */
-void QCBOREncode_AddRawSimple_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint8_t uSimple)
-{
-   AddSimpleInternal(me, szLabel, nLabel, 0, uSimple);
-}
-
-
-/*
- Public function for adding simple values. See header qcbor.h
- */
-void QCBOREncode_AddSimple_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, uint8_t uSimple)
-{
-   if(uSimple < CBOR_SIMPLEV_FALSE || uSimple > CBOR_SIMPLEV_UNDEF) {
-      me->uError = QCBOR_ERR_BAD_SIMPLE;
-   } else {
-      QCBOREncode_AddRawSimple_2(me, szLabel, nLabel, uSimple);
-   }
-}
-
-
-/*
  Public functions for floating point numbers. See header qcbor.h
  */
 void QCBOREncode_AddFloat_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, float fNum)
-{
-   // Convert the *type* of the data from a float to a uint so the
-   // standard integer encoding can work.  This takes advantage
-   // of CBOR's indicator for a float being the same as for a 4
-   // byte integer too.
-   const float *pfNum  = &fNum;
-   const uint32_t uNum = *(uint32_t *)pfNum;
-      
-   AddSimpleInternal(me, szLabel, nLabel, sizeof(float), uNum);
+{      
+   QCBOREncode_AddType7_2(me, szLabel, nLabel, sizeof(float), UsefulBufUtil_CopyFloatToUint32(fNum));
 }
 
 void QCBOREncode_AddDouble_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, double dNum)
 {
-   // see how it is done for floats above
-   const double *pdNum = &dNum;
-   const uint64_t uNum = *(uint64_t *)pdNum;
-   
-   AddSimpleInternal(me, szLabel, nLabel, sizeof(double), uNum);
+   QCBOREncode_AddType7_2(me, szLabel, nLabel, sizeof(double), UsefulBufUtil_CopyDoubleToUint64(dNum));
 }
 
 void QCBOREncode_AddFloatAsHalf_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, float fNum)
 {
-    AddSimpleInternal(me, szLabel, nLabel, sizeof(uint16_t), IEEE754_FloatToHalf(fNum));
+    QCBOREncode_AddType7_2(me, szLabel, nLabel, sizeof(uint16_t), IEEE754_FloatToHalf(fNum));
 }
 
 static void QCBOREncode_AddFUnionAsSmallest_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, IEEE754_union uNum)
 {
    switch(uNum.uTag) {
       case IEEE754_UNION_IS_HALF:
-         AddSimpleInternal(me, szLabel, nLabel, sizeof(uint16_t), uNum.u16);
+         QCBOREncode_AddType7_2(me, szLabel, nLabel, sizeof(uint16_t), uNum.u16);
          break;
       case IEEE754_UNION_IS_SINGLE:
-         AddSimpleInternal(me, szLabel, nLabel, sizeof(uint32_t), uNum.u32);
+         QCBOREncode_AddType7_2(me, szLabel, nLabel, sizeof(uint32_t), uNum.u32);
          break;
       case IEEE754_UNION_IS_DOUBLE:
-         AddSimpleInternal(me, szLabel, nLabel, sizeof(uint64_t), uNum.u64);
+         QCBOREncode_AddType7_2(me, szLabel, nLabel, sizeof(uint64_t), uNum.u64);
          break;
    }
 }
@@ -628,6 +606,7 @@ void QCBOREncode_AddDoubleAsSmallest_2(QCBOREncodeContext *me, const char *szLab
 {
    QCBOREncode_AddFUnionAsSmallest_2(me, szLabel, nLabel, IEEE754_DoubleToSmallest(dNum));
 }
+
 
 
 
@@ -646,10 +625,11 @@ int QCBOREncode_Finish2(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
    
    if(UsefulOutBuf_GetError(&(me->OutBuf))) {
       // Stuff didn't fit in the buffer.
-      // This check catches this condition for all the appends and inserts so checks aren't needed
-      // when the appends and inserts are performed.  And of course UsefulBuf will never
-      // overrun the input buffer given to it. No complex analysis of the error handling
-      // in this file is needed to know that is true. Just read the UsefulBuf code.
+      // This check catches this condition for all the appends and inserts
+      // so checks aren't needed when the appends and inserts are performed.
+      // And of course UsefulBuf will never overrun the input buffer given
+      // to it. No complex analysis of the error handling in this file is
+      // needed to know that is true. Just read the UsefulBuf code.
       me->uError = QCBOR_ERR_BUFFER_TOO_SMALL;
       goto Done;
    }

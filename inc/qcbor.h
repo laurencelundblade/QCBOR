@@ -450,12 +450,12 @@ struct _QCBORDecodeContext {
  buffers need only to be valid during the "Add" calls. The 
  data is copied into the output buf during the "Add" call.
  
- TODO: remote discussion of tags
- There are several "Add" functions / macros for each type. The one
- with named ending in "_2", for example QCBOREncode_AddInt64_3(),
- takes parameters for labels and tags and is the most powerful.
+ There are several "Add" functions / macros for each type. The
+ main one is named ending in "_2", for example
+ QCBOREncode_AddInt64_2().
  Generally it is better to use the macros that only take the
- parameters necessary. For example, QCBOREncode_AddInt64(),
+ parameters necessary what you are adding. For example,
+ QCBOREncode_AddInt64(),
  only takes the integer value to add with no labels and tags.
  
  The simplest aggregate type is an array, which is a simple ordered
@@ -474,22 +474,13 @@ struct _QCBORDecodeContext {
  Note that when you nest arrays or maps in a map, the nested
  array or map has a label.
  
- As mentioned callers of this API will generally not need tags
- and thus not need the "_3" functions, but they are available
- if need be. There is an IANA registry for new tags that are
+ Usually it is not necessary to add tags explcitly as most
+ tagged types have functions here, but they can be added by
+ calling QCBOREncode_AddTag().  There is an IANA registry for new tags that are
  for broad use and standardization as per RFC 7049. It is also 
  allowed for protocols to make up new tags in the range above 256.
  Note that even arrays and maps can be tagged.
  
- Tags in CBOR are a bit open-ended in particular allowing
- multiple tags per item, and the ability to tag deeply nested maps
- and arrays. Partly this is good as it allows them to be used 
- in lots of ways, but also makes a general purpose decoder 
- like this more difficult.
- 
- This implementation only supports one tag per data item
- during encoding and decoding.
-  
  Summary Limits of this implementation:
  - The entire encoded CBOR must fit into contiguous memory.
  - Max size of encoded / decoded CBOR data is UINT32_MAX (4GB).
@@ -502,7 +493,6 @@ struct _QCBORDecodeContext {
  - Does not directly support labels in maps other than text strings and ints.
  - Does not directly support int labels > INT64_MAX
  - Epoch dates limited to INT64_MAX (+/- 292 billion years)
- - Only one tag per data item is supported for tag values > 62
  - Tags on labels are ignored
  
  This implementation is intended to run on 32 and 64-bit CPUs. It
@@ -818,7 +808,22 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
 
 void QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
 
-/* TODO: add documentation
+
+/**
+ @brief[in] Add an optional tag
+ 
+ @param[in] pCtx  The encoding context to add the integer to.
+ @param[in] uTag  The tag to add
+
+ The tag is applied to the next data item added to the encoded
+ output. That data item can be of any major CBOR type.
+ 
+ Any number of tags can be added to a data item.
+ 
+ When one of the Add functions is called with either a string or
+ integer label after a call to this function, the output will be
+ re ordered so that the tag comes after the label and tags the
+ value, not the label.
  */
 void QCBOREncode_AddTag(QCBOREncodeContext *pCtx,uint64_t uTag);
 
@@ -930,7 +935,6 @@ void QCBOREncode_AddDouble_2(QCBOREncodeContext *pCtx, const char *szLabel, int6
  @param[in] pCtx      The encoding context to add the float to.
  @param[in] szLabel   The string map label for this integer value.
  @param[in] nLabel    The integer map label for this integer value.
- @param[in] uTag      A CBOR type 6 tag
  @param[in] fNum      The float to add.
  
  This will truncate the precision of the single precision float to half-precision.
@@ -965,7 +969,6 @@ void QCBOREncode_AddFloatAsHalf_2(QCBOREncodeContext *me, const char *szLabel, i
  @param[in] pCtx      The encoding context to add the float to.
  @param[in] szLabel   The string map label for this integer value.
  @param[in] nLabel    The integer map label for this integer value.
- @param[in] uTag      A CBOR type 6 tag
  @param[in] fNum      The float to add.
  
  This will selectively encode the single-precision floating point number as either
@@ -997,13 +1000,12 @@ void QCBOREncode_AddFloatAsSmallest_2(QCBOREncodeContext *me, const char *szLabe
       QCBOREncode_AddFloatAsSmallest_2((pCtx), NULL, (nLabel), (fNum))
 
 
-/*
+/**
  @brief  Add a dynamically sized floating point number to the encoded output
  
  @param[in] pCtx      The encoding context to add the float to.
  @param[in] szLabel   The string map label for this integer value.
  @param[in] nLabel    The integer map label for this integer value.
- @param[in] uTag      A CBOR type 6 tag
  @param[in] dNum      The float to add.
  
  This will selectively encode the double-precision floating point number as either
@@ -1029,7 +1031,7 @@ void QCBOREncode_AddFloatAsSmallest_2(QCBOREncodeContext *me, const char *szLabe
  
  */
 
-void QCBOREncode_AddDoubleAsSmallest_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, double dNum);
+void QCBOREncode_AddDoubleAsSmallest_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, double dNum);
 
 #define QCBOREncode_AddDoubleAsSmallest(pCtx, dNum) \
       QCBOREncode_AddDoubleAsSmallest_2((pCtx), NULL, QCBOR_NO_INT_LABEL, (dNum))
@@ -1089,8 +1091,15 @@ static inline void QCBOREncode_AddDateEpoch_2(QCBOREncodeContext *pCtx, const ch
       QCBOREncode_AddDateEpoch_2((pCtx), NULL, (nLabel), (date))
 
 
-// TODO: document this
-void QCBOREncode_AddBytes_2(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, int64_t nLabel, UsefulBufC Bytes);
+/*
+ Use QCBOREncode_AddBytes_2() or QCBOREncode_AddBText_2() or
+ QCBOREncode_AddEncoded_2() instead of this. Their inline
+ implementations call this to do their work.
+ 
+ The code is structured like this with the inline functions
+ to reduce object code.
+ */
+void QCBOREncode_AddBuffer_2(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, int64_t nLabel, UsefulBufC Bytes);
 
 
 /**
@@ -1100,7 +1109,6 @@ void QCBOREncode_AddBytes_2(QCBOREncodeContext *me, uint8_t uMajorType, const ch
  @param[in] pCtx      The context to initialize.
  @param[in] szLabel   The string map label for this integer value.
  @param[in] nLabel    The integer map label for this integer value.
- @param[in] uTag      Optional CBOR data tag or CBOR_TAG_NONE.
  @param[in] Bytes     Pointer and length of the input data.
  
  Simply adds the bytes to the encoded output and CBOR major type 2.
@@ -1110,21 +1118,26 @@ void QCBOREncode_AddBytes_2(QCBOREncodeContext *me, uint8_t uMajorType, const ch
  
  */
 
+static inline void QCBOREncode_AddBytes_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
+{
+   QCBOREncode_AddBuffer_2(pCtx, CBOR_MAJOR_TYPE_BYTE_STRING, szLabel, nLabel, Bytes);
+}
+
 #define QCBOREncode_AddBytes(pCtx, Bytes) \
-      QCBOREncode_AddBytes_2((pCtx), CBOR_MAJOR_TYPE_BYTE_STRING, NULL, QCBOR_NO_INT_LABEL, Bytes)
+      QCBOREncode_AddBytes_2((pCtx), NULL, QCBOR_NO_INT_LABEL, Bytes)
 
 #define QCBOREncode_AddBytesToMap(pCtx, szLabel, Bytes) \
-      QCBOREncode_AddBytes_2((pCtx), CBOR_MAJOR_TYPE_BYTE_STRING, (szLabel), QCBOR_NO_INT_LABEL, (Bytes))
+      QCBOREncode_AddBytes_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (Bytes))
 
 #define QCBOREncode_AddBytesToMapN(pCtx, nLabel, Bytes) \
-      QCBOREncode_AddBytes_2((pCtx), CBOR_MAJOR_TYPE_BYTE_STRING, NULL, (nLabel), (Bytes))
+      QCBOREncode_AddBytes_2((pCtx), NULL, (nLabel), (Bytes))
 
 
 
 static inline void QCBOREncode_AddBinaryUUID_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
 {
    QCBOREncode_AddTag(pCtx, CBOR_TAG_BIN_UUID);
-   QCBOREncode_AddBytes_2(pCtx, CBOR_MAJOR_TYPE_BYTE_STRING, szLabel, nLabel, Bytes);
+   QCBOREncode_AddBytes_2(pCtx, szLabel, nLabel, Bytes);
 }
 
 
@@ -1141,7 +1154,7 @@ static inline void QCBOREncode_AddBinaryUUID_2(QCBOREncodeContext *pCtx, const c
 static inline void QCBOREncode_AddPositiveBignum_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
 {
    QCBOREncode_AddTag(pCtx, CBOR_TAG_POS_BIGNUM);
-   QCBOREncode_AddBytes_2(pCtx, CBOR_MAJOR_TYPE_BYTE_STRING, szLabel, nLabel, Bytes);
+   QCBOREncode_AddBytes_2(pCtx, szLabel, nLabel, Bytes);
 }
 
 #define QCBOREncode_AddPositiveBignum(pCtx, Bytes) \
@@ -1157,7 +1170,7 @@ static inline void QCBOREncode_AddPositiveBignum_2(QCBOREncodeContext *pCtx, con
 static inline void QCBOREncode_AddNegativeBignum_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
 {
    QCBOREncode_AddTag(pCtx, CBOR_TAG_NEG_BIGNUM);
-   QCBOREncode_AddBytes_2(pCtx, CBOR_MAJOR_TYPE_BYTE_STRING, szLabel, nLabel, Bytes);
+   QCBOREncode_AddBytes_2(pCtx, szLabel, nLabel, Bytes);
 }
 
 #define QCBOREncode_AddNegativeBignum(pCtx, Bytes) \
@@ -1178,7 +1191,6 @@ static inline void QCBOREncode_AddNegativeBignum_2(QCBOREncodeContext *pCtx, con
  @param[in] pCtx     The context to initialize.
  @param[in] szLabel  The string map label for this integer value.
  @param[in] nLabel   The integer map label for this integer value.
- @param[in] uTag     Optional CBOR data tag or CBOR_TAG_NONE.
  @param[in] Bytes    Pointer and length of text to add.
  
  The text passed in must be unencoded UTF-8 according to RFC
@@ -1196,21 +1208,24 @@ static inline void QCBOREncode_AddNegativeBignum_2(QCBOREncodeContext *pCtx, con
  Error handling is the same as QCBOREncode_AddInt64_2().
  
  */
+static inline void QCBOREncode_AddText_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
+{
+   QCBOREncode_AddBuffer_2(pCtx, CBOR_MAJOR_TYPE_TEXT_STRING, szLabel, nLabel, Bytes);
+}
 
-// TODO: AddText_2? 
 #define QCBOREncode_AddText(pCtx, Bytes) \
-      QCBOREncode_AddBytes_2((pCtx), CBOR_MAJOR_TYPE_TEXT_STRING, NULL, QCBOR_NO_INT_LABEL, (Bytes))
+      QCBOREncode_AddText_2((pCtx), NULL, QCBOR_NO_INT_LABEL, (Bytes))
 
 #define QCBOREncode_AddTextToMap(pCtx, szLabel, Bytes) \
-      QCBOREncode_AddBytes_2((pCtx), CBOR_MAJOR_TYPE_TEXT_STRING, (szLabel), QCBOR_NO_INT_LABEL, (Bytes))
+      QCBOREncode_AddText_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (Bytes))
 
 #define QCBOREncode_AddTextToMapN(pCtx, nLabel, Bytes) \
-      QCBOREncode_AddBytes_2((pCtx), CBOR_MAJOR_TYPE_TEXT_STRING, NULL, (nLabel),  (Bytes))
+      QCBOREncode_AddText_2((pCtx), NULL, (nLabel),  (Bytes))
 
 
 inline static void QCBOREncode_AddSZString_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, const char *szString)
 {
-   QCBOREncode_AddBytes_2(pCtx, CBOR_MAJOR_TYPE_TEXT_STRING, szLabel, nLabel,UsefulBuf_FromSZ(szString));
+   QCBOREncode_AddText_2(pCtx, szLabel, nLabel,UsefulBuf_FromSZ(szString));
 }
 
 #define QCBOREncode_AddSZString(pCtx, szString) \
@@ -1228,7 +1243,7 @@ inline static void QCBOREncode_AddSZString_2(QCBOREncodeContext *pCtx, const cha
 static inline void QCBOREncode_AddURI_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
 {
    QCBOREncode_AddTag(pCtx, CBOR_TAG_URI);
-   QCBOREncode_AddBytes_2(pCtx, CBOR_MAJOR_TYPE_TEXT_STRING, szLabel, nLabel, Bytes);
+   QCBOREncode_AddText_2(pCtx, szLabel, nLabel, Bytes);
 }
 
 #define QCBOREncode_AddURI(pCtx, Bytes) \
@@ -1244,7 +1259,7 @@ static inline void QCBOREncode_AddURI_2(QCBOREncodeContext *pCtx, const char *sz
 static inline void QCBOREncode_AddB64Text_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
 {
    QCBOREncode_AddTag(pCtx, CBOR_TAG_B64);
-   QCBOREncode_AddBytes_2(pCtx, CBOR_MAJOR_TYPE_TEXT_STRING, szLabel, nLabel, Bytes);
+   QCBOREncode_AddText_2(pCtx, szLabel, nLabel, Bytes);
 }
 
 #define QCBOREncode_AddB64Text(pCtx, Bytes) \
@@ -1261,24 +1276,24 @@ static inline void QCBOREncode_AddB64Text_2(QCBOREncodeContext *pCtx, const char
 static inline void QCBOREncode_AddB64URLText_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
 {
    QCBOREncode_AddTag(pCtx, CBOR_TAG_B64URL);
-   QCBOREncode_AddBytes_2(pCtx, CBOR_MAJOR_TYPE_TEXT_STRING, szLabel, nLabel, Bytes);
+   QCBOREncode_AddText_2(pCtx, szLabel, nLabel, Bytes);
 }
 
 #define QCBOREncode_AddB64URLText(pCtx, Bytes) \
-      QCBOREncode_AddB64URLText_2((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_B64URL, (Bytes))
+      QCBOREncode_AddB64URLText_2((pCtx), NULL, QCBOR_NO_INT_LABEL, (Bytes))
 
 #define QCBOREncode_AddB64URLTextToMap(pCtx, szLabel, Bytes) \
-      QCBOREncode_AddB64URLText_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, CBOR_TAG_B64URL, (Bytes))
+      QCBOREncode_AddB64URLText_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (Bytes))
 
 #define QCBOREncode_AddB64URLTextToMapN(pCtx, nLabel, Bytes) \
-      QCBOREncode_AddB64URLText_2((pCtx), NULL, (nLabel), CBOR_TAG_B64URL, (Bytes))
+      QCBOREncode_AddB64URLText_2((pCtx), NULL, (nLabel), (Bytes))
 
 
 
 static inline void QCBOREncode_AddRegex_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
 {
    QCBOREncode_AddTag(pCtx, CBOR_TAG_REGEX);
-   QCBOREncode_AddBytes_2(pCtx, CBOR_MAJOR_TYPE_TEXT_STRING, szLabel, nLabel, Bytes);
+   QCBOREncode_AddText_2(pCtx, szLabel, nLabel, Bytes);
 }
 
 #define QCBOREncode_AddRegex(pCtx, Bytes) \
@@ -1295,7 +1310,7 @@ static inline void QCBOREncode_AddRegex_2(QCBOREncodeContext *pCtx, const char *
 static inline void QCBOREncode_AddMIMEData_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, UsefulBufC Bytes)
 {
    QCBOREncode_AddTag(pCtx, CBOR_TAG_MIME);
-   QCBOREncode_AddBytes_2(pCtx, CBOR_MAJOR_TYPE_TEXT_STRING, szLabel, nLabel, Bytes);
+   QCBOREncode_AddText_2(pCtx, szLabel, nLabel, Bytes);
 }
 
 #define QCBOREncode_AddMIMEData(pCtx, Bytes) \
@@ -1346,6 +1361,15 @@ static inline void QCBOREncode_AddDateString_2(QCBOREncodeContext *pCtx, const c
       QCBOREncode_AddDateString_2(pCtx, NULL, (nLabel), (szDate))
 
 
+/*
+Use QCBOREncode_AddSimple_2() or QCBOREncode_AddBool_2()
+instead of this. Their inline
+implementations call this to do their work.
+
+The code is structured like this with the inline functions
+to reduce object code.
+ */
+void QCBOREncode_AddType7_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, size_t uSize, uint64_t uNum);
 
 
 /**
@@ -1362,8 +1386,14 @@ static inline void QCBOREncode_AddDateString_2(QCBOREncodeContext *pCtx, const c
  
  Error handling is the same as QCBOREncode_AddInt64_2().
  */
-void QCBOREncode_AddSimple_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, uint8_t uSimple);
-
+static inline void QCBOREncode_AddSimple_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, uint8_t uSimple)
+{
+   if(uSimple < CBOR_SIMPLEV_FALSE || uSimple > CBOR_SIMPLEV_UNDEF) {
+      pCtx->uError = QCBOR_ERR_BAD_SIMPLE;
+   } else {
+      QCBOREncode_AddType7_2(pCtx, szLabel, nLabel, 0, uSimple);
+   }
+}
 
 #define QCBOREncode_AddSimple(pCtx, uSimple) \
       QCBOREncode_AddSimple_2((pCtx), NULL,  QCBOR_NO_INT_LABEL, (uSimple))
@@ -1373,7 +1403,6 @@ void QCBOREncode_AddSimple_2(QCBOREncodeContext *pCtx, const char *szLabel, int6
 
 #define QCBOREncode_AddSimpleToMapN(pCtx, nLabel, uSimple) \
       QCBOREncode_AddSimple_2((pCtx), NULL, (nLabel), (uSimple))
-
 
 
 
@@ -1388,7 +1417,6 @@ void QCBOREncode_AddSimple_2(QCBOREncodeContext *pCtx, const char *szLabel, int6
  
  Error handling is the same as QCBOREncode_AddInt64_2().
  */
-
 
 inline static void QCBOREncode_AddBool_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, bool b)
 {
@@ -1409,8 +1437,16 @@ inline static void QCBOREncode_AddBool_2(QCBOREncodeContext *pCtx, const char *s
 
 
 
-// TODO: document this
-void OpenMapOrArray_2(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, uint64_t nLabel);
+/*
+  Call QCBOREncode_OpenArray_2(), QCBOREncode_OpenMap_2() or
+ QCBOREncode_OpenBstrWrap_2() instead of this. Their inline
+ implementations call this to do their work.
+ 
+ The code is structured like this with the inline functions
+ to reduce object code.
+ */
+void QCBOREncode_OpenMapOrArray_2(QCBOREncodeContext *me, uint8_t uMajorType, const char *szLabel, uint64_t nLabel);
+
 
 /**
  
@@ -1459,7 +1495,7 @@ void OpenMapOrArray_2(QCBOREncodeContext *me, uint8_t uMajorType, const char *sz
 
 static inline void QCBOREncode_OpenArray_2(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t nLabel)
 {
-   OpenMapOrArray_2(pCtx, CBOR_MAJOR_TYPE_ARRAY, szLabel, nLabel);
+   QCBOREncode_OpenMapOrArray_2(pCtx, CBOR_MAJOR_TYPE_ARRAY, szLabel, nLabel);
 }
 
 #define QCBOREncode_OpenArray(pCtx) \
@@ -1501,9 +1537,8 @@ static inline void QCBOREncode_OpenArray_2(QCBOREncodeContext *pCtx, const char 
 
 static inline void QCBOREncode_OpenMap_2(QCBOREncodeContext *pCtx, const char *szLabel,  uint64_t nLabel)
 {
-   OpenMapOrArray_2(pCtx, CBOR_MAJOR_TYPE_MAP, szLabel, nLabel);
+   QCBOREncode_OpenMapOrArray_2(pCtx, CBOR_MAJOR_TYPE_MAP, szLabel, nLabel);
 }
-
 
 #define QCBOREncode_OpenMap(pCtx) \
       QCBOREncode_OpenMap_2((pCtx), NULL, QCBOR_NO_INT_LABEL)
@@ -1578,7 +1613,7 @@ void QCBOREncode_Close(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC 
  */
 static inline void QCBOREncode_OpenBstrWrap_2(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t nLabel)
 {
-   OpenMapOrArray_2(pCtx, CBOR_MAJOR_TYPE_BYTE_STRING, szLabel, nLabel);
+   QCBOREncode_OpenMapOrArray_2(pCtx, CBOR_MAJOR_TYPE_BYTE_STRING, szLabel, nLabel);
 }
 
 #define QCBOREncode_BstrWrap(pCtx) \
@@ -1617,7 +1652,7 @@ static inline void QCBOREncode_OpenBstrWrap_2(QCBOREncodeContext *pCtx, const ch
 
 static inline void QCBOREncode_AddEncodedToMap_2(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t nLabel, UsefulBufC Encoded)
 {
-   QCBOREncode_AddBytes_2(pCtx, CBOR_MAJOR_NONE_TYPE_RAW, szLabel, nLabel, Encoded);
+   QCBOREncode_AddBuffer_2(pCtx, CBOR_MAJOR_NONE_TYPE_RAW, szLabel, nLabel, Encoded);
 }
 
 #define QCBOREncode_AddEncodedToMapN(pCtx, nLabel, Encoded) \
@@ -1628,26 +1663,6 @@ static inline void QCBOREncode_AddEncodedToMap_2(QCBOREncodeContext *pCtx, const
 
 #define QCBOREncode_AddEncodedToMap(pCtx, szLabel, Encoded) \
       QCBOREncode_AddEncodedToMap_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (Encoded))
-
-
-/**
- 
- @brief  Add a simple value
- 
- @param[in] pCtx      The encoding context to add the simple value to.
- @param[in] szLabel   A string label for the bytes to add. NULL if no label.
- @param[in] nLabel    The integer map tag / label for this integer value.
- @param[in] uSimple   One of CBOR_SIMPLEV_xxx.
- 
- There should be no need to use this function directly unless some
- extensions to the CBOR standard are created and put to use.  All the defined
- simple types are available via the macros for false...null
- below. Float and double are also simple types and have functions to
- add them above.
- 
- Error handling is the same as QCBOREncode_AddInt64_2().
- */
-void QCBOREncode_AddRawSimple_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, uint8_t uSimple);
 
 
 
