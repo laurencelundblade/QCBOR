@@ -191,12 +191,17 @@ struct _QCBORDecodeContext {
    // private part of this file and QCBORStringAllocat is defined
    // later in the public part of this file.
    void *pStringAllocator;
+   
+   // This is NULL or points to QCBORTagList.
+   // It is type void for the same reason as above.
+   const void *pCallerConfiguredTagList;
 };
 
 // Used internally in the impementation here
 // Must not conflict with any of the official CBOR types
 #define CBOR_MAJOR_NONE_TYPE_RAW  9
 #define CBOR_MAJOR_NONE_TAG_LABEL_REORDER 10
+
 
 /* ===========================================================================
    END OF PRIVATE PART OF THIS FILE
@@ -274,6 +279,11 @@ struct _QCBORDecodeContext {
 #define CBOR_TAG_NEG_BIGNUM     3
 #define CBOR_TAG_FRACTION       4
 #define CBOR_TAG_BIGFLOAT       5
+
+#define CBOR_TAG_COSE_ENCRYPTO 16
+#define CBOR_TAG_COSE_MAC0     17
+#define CBOR_TAG_COSE_SIGN1    18
+
 /* The data in byte string should be converted in base 64 URL when encoding in JSON or similar text-based representations */
 #define CBOR_TAG_ENC_AS_B64URL 21
 /* The data in byte string should be encoded in base 64 when encoding in JSON */
@@ -293,6 +303,16 @@ struct _QCBORDecodeContext {
 #define CBOR_TAG_MIME          36
 /** Binary UUID */
 #define CBOR_TAG_BIN_UUID      37
+
+#define CBOR_TAG_CWT           61
+
+#define CBOR_TAG_ENCRYPT       96
+#define CBOR_TAG_MAC           97
+#define CBOR_TAG_SIGN          98
+
+#define CBOR_TAG_GEO_COORD    103
+
+
 /** The data is CBOR data */
 #define CBOR_TAG_CBOR_MAGIC 55799
 #define CBOR_TAG_NONE  UINT64_MAX
@@ -406,8 +426,8 @@ struct _QCBORDecodeContext {
  
  Implementors using this API will primarily work with labels. Generally
  tags are only needed for making up new data types. This implementation
- covers most of the data types defined in the RFC using tags. However,
- it does allow for the creation of news tags if necessary.
+ covers most of the data types defined in the RFC using tags. It also,
+ allows for the creation of news tags if necessary.
  
  This implementation explicitly supports labels that are text strings
  and integers. Text strings translate nicely into JSON objects and
@@ -473,7 +493,7 @@ struct _QCBORDecodeContext {
  
  Note that when you nest arrays or maps in a map, the nested
  array or map has a label.
- 
+
  Usually it is not necessary to add tags explcitly as most
  tagged types have functions here, but they can be added by
  calling QCBOREncode_AddTag().  There is an IANA registry for new tags that are
@@ -523,6 +543,12 @@ struct _QCBORDecodeContext {
  of decoding if it is exceeded
 */
 #define QCBOR_MAX_ARRAY_NESTING  QCBOR_MAX_ARRAY_NESTING1
+
+/**
+ The maximum number of tags that can be in QCBORTagListIn and passed to
+ QCBORDecode_SetCallerConfiguredTagList()
+ */
+#define QCBOR_MAX_CUSTOM_TAGS    16
 
 
 
@@ -606,6 +632,9 @@ struct _QCBORDecodeContext {
 
 /** The a break occurred outside an indefinite length item */
 #define QCBOR_ERR_BAD_BREAK               21
+
+/** Too many tags in the caller-configured tag list, or not enough space in QCBORTagListOut */
+#define QCBOR_ERR_TOO_MANY_TAGS           22
 
 
 /** See QCBORDecode_Init() */
@@ -695,6 +724,7 @@ typedef struct _QCBORItem {
       UsefulBufC  dateString; /** The value for uDataType QCBOR_TYPE_DATE_STRING */
       UsefulBufC  bigNum;     /** The value for uDataType QCBOR_TYPE_BIGNUM */
       uint8_t     uSimple;    /** The integer value for unknown simple types */
+      uint64_t    uTagV;
       
    } val;  /** The union holding the item's value. Select union member based on uDataType */
    
@@ -704,8 +734,7 @@ typedef struct _QCBORItem {
       uint64_t    uint64;  /** The label for uLabelType for QCBOR_TYPE_UINT64 */
    } label; /** Union holding the different label types selected based on uLabelType */
    
-   uint64_t uTag;     /** Any tag value that is greater than 63.  If there is more than one, then only the last one is recorded */
-   uint64_t uTagBits; /** Bits corresponding to tag values less than 63 as defined in RFC 7049, section 2.4 */
+   uint64_t uTagBits; /** Bit indicating which tags (major type 6) on this item.  */
    
 } QCBORItem;
 
@@ -739,25 +768,40 @@ typedef struct {
 } QCBORStringAllocator;
 
 
-/** See the descriptions for CBOR_SIMPLEV_FALSE, CBOR_TAG_DATE_EPOCH... for
-    the meaning of the individual tags.  The values here are bit flags
-    associated with each tag.  These flags are set in uTagsBits in QCBORItem */
-#define QCBOR_TAGFLAG_DATE_STRING    (0x01LL << CBOR_TAG_DATE_STRING)
-#define QCBOR_TAGFLAG_DATE_EPOCH     (0x01LL << CBOR_TAG_DATE_EPOCH)
-#define QCBOR_TAGFLAG_POS_BIGNUM     (0x01LL << CBOR_TAG_POS_BIGNUM)
-#define QCBOR_TAGFLAG_NEG_BIGNUM     (0x01LL << CBOR_TAG_NEG_BIGNUM)
-#define QCBOR_TAGFLAG_FRACTION       (0x01LL << CBOR_TAG_FRACTION)
-#define QCBOR_TAGFLAG_BIGFLOAT       (0x01LL << CBOR_TAG_BIGFLOAT)
-#define QCBOR_TAGFLAG_ENC_AS_B64URL  (0x01LL << CBOR_TAG_ENC_AS_B64URL)
-#define QCBOR_TAGFLAG_ENC_AS_B64     (0x01LL << CBOR_TAG_ENC_AS_B64)
-#define QCBOR_TAGFLAG_ENC_AS_B16     (0x01LL << CBOR_TAG_ENC_AS_B16)
-#define QCBOR_TAGFLAG_CBOR           (0x01LL << CBOR_TAG_CBOR)
-#define QCBOR_TAGFLAG_URI            (0x01LL << CBOR_TAG_URI)
-#define QCBOR_TAGFLAG_B64URL         (0x01LL << CBOR_TAG_B64URL)
-#define QCBOR_TAGFLAG_B64            (0x01LL << CBOR_TAG_B64)
-#define QCBOR_TAGFLAG_REGEX          (0x01LL << CBOR_TAG_REGEX)
-#define QCBOR_TAGFLAG_MIME           (0x01LL << CBOR_TAG_MIME)
-#define QCBOR_TAGFLAG_CBOR_MAGIC     (0x01ULL << 63)
+
+/**
+ This is used to tell the decoder about tags that it should
+ record in uTagBits in QCBORItem beyond the built-in
+ tags. puTags points to an
+ array of uint64_t integers that are the tags. uNumTags
+ is the number of integers in the array. The maximum
+ size is QCBOR_MAX_CUSTOM_TAGS.  See QCBORDecode_IsTagged()
+ and QCBORDecode_SetCallerAddedTagMap().
+ */
+typedef struct {
+   uint8_t uNumTags;
+   const uint64_t *puTags;
+} QCBORTagListIn;
+
+
+/**
+ This is for QCBORDecode_GetNextWithTags() to be able to return the
+ full list of  tags on an item. It not needed for most CBOR protocol
+ implementations. Its primary use is for pretty-printing CBOR or
+ protocol conversion to another format.
+ 
+ On input, puTags points to a buffer to be filled in
+ and uNumAllocated is the number of uint64_t values
+ in the buffer.
+ 
+ On output the buffer contains the tags for the item.
+ uNumUsed tells how many there are.
+ */
+typedef struct {
+   uint8_t uNumUsed;
+   uint8_t uNumAllocated;
+   uint64_t *puTags;
+} QCBORTagListOut;
 
 
 /**
@@ -1737,7 +1781,7 @@ int QCBOREncode_Finish2(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
 
 /**
  QCBORDecodeContext is the data type that holds context decoding the
- data items for some received CBOR.  It is about 50 bytes so it can go
+ data items for some received CBOR.  It is about 100 bytes so it can go
  on the stack.  The contents are opaque and the caller should not
  access any internal items.  A context may be re used serially as long
  as it is re initialized.
@@ -1754,6 +1798,14 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
  @param[in] nMode One of QCBOR_DECODE_MODE_xxx
  
  Initialize context for a pre-order traveral of the encoded CBOR tree.
+ 
+ Most CBOR decoding can be completed by calling this function to start
+ and QCBORDecode_GetNext() in a loop.  If indefinite length strings
+ are to be decoded, then QCBORDecode_SetMemPool() or QCBORDecode_SetUpAllocator()
+ must be called.  If tags other than built-in tags are to be
+ recognized, then QCBORDecode_SetCallerAddedTagMap() must be called.
+ The built-in tags are those for which a macro of the form
+ CBOR_TAG_XXX is defined.
  
  Three decoding modes are supported.  In normal mode, maps are decoded
  and strings and ints are accepted as map labels. If a label is other
@@ -1774,7 +1826,7 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t n
 /**
  Set up the MemPool string allocator for indefinite length strings.
  
- @param[in] pCtx The decode context to initialize.
+ @param[in] pCtx The decode context.
  @param[in] MemPool The pointer and length of the memory pool.
  @param[in] bAllStrings true means to put even definite length strings in the pool.
  
@@ -1826,6 +1878,22 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAlloc
 
 
 /**
+ @brief Configure list of caller selected tags to be recognized
+ 
+ @param[in] pCtx The decode context.
+ @param[out] pTagList Structure holding the list of tags to configure
+ 
+ This is used to tell the decoder about tags beyond those that are
+ built-in that should be recognized. The built-in tags are those
+ with macros of the form CBOR_TAG_XXX.
+ 
+ See description of QCBORTagListIn.
+ */
+
+void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBORTagListIn *pTagList);
+
+
+/**
  @brief This returns a string allocator that uses malloc
  
  @return pointer to string allocator or NULL
@@ -1846,13 +1914,12 @@ QCBORStringAllocator *QCBORDecode_MakeMallocStringAllocator(void);
 
 
 /**
- Gets the next item (integer, byte string, array...) in pre order traversal of CBOR tree
+ @brief Gets the next item (integer, byte string, array...) in pre order traversal of CBOR tree
  
  @param[in]  pCtx          The decoder context.
  @param[out] pDecodedItem  Holds the CBOR item just decoded.
  
- @return
- 0 or error.
+ @return 0 or error.
  
  pDecodedItem is filled in with the value parsed. Generally, the
  folloinwg data is returned in the structure.
@@ -1880,10 +1947,6 @@ QCBORStringAllocator *QCBORDecode_MakeMallocStringAllocator(void);
  CBOR_MAJOR_TYPE_ARRAY_MAP. QCBORItem.nCount will indicate the number
  if Items in the array or map.  Typically an implementation will call
  QCBORDecode_GetNext() in a for loop to fetch them all.
- 
- Optional tags are integer tags that are prepended to the actual data
- item. That tell more about the data. For example it can indicate data
- is a date or a big number or a URL.
  
  Note that when traversing maps, the count is the number of pairs of
  items, so the for loop would decrement once for every two calls to
@@ -1938,25 +2001,105 @@ QCBORStringAllocator *QCBORDecode_MakeMallocStringAllocator(void);
  the end of the current map or array has been encountered. This
  works the same for both definite and indefinite length arrays.
  
+ Most uses of this decoder will not need to do anything extra for
+ tag handling. The built-in tags, those with a macro of the form
+ CBOR_TAG_XXXX, will be enough.
+
+ If tags beyond built-in tags are to be recognized, they must be
+ configured by calling QCBORDecode_SetCallerConfiguredTags(). If
+ a tag is not recognized it is silently ignored.
+ 
+ Several tagged types are automatically recognized and decoded and
+ returned in their decoded form.
+ 
+ To find ound if a QCBORItem was tagged with a particular tag
+ call QCBORDecode_IsTagged(). This works only for built-in
+ tags and caller-configured tags.
+ 
+ To get the full list of tags on an Item without having to
+ pre-configure any predetermined list of tags use
+ QCBORDecode_GetNextWithTags().
+ 
  */
 
 int QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
- Check whether all the bytes have been decoded
+ @brief Gets the next item including full list of tags for item
+ 
+ @param[in]  pCtx          The decoder context.
+ @param[out] pDecodedItem  Holds the CBOR item just decoded.
+ @param[in,out] pTagList   On input array to put tags in; on output the tags on this item.
+ 
+ @return 0 or error.
+ 
+ This works the same as QCBORDecode_GetNext() except that it also returns
+ the full list of tags for the data item. This function should only
+ be needed when parsing CBOR to print it out or convert it to some other
+ format. It should not be needed in an actual CBOR protocol implementation.
+ 
+ Tags will be returned here whether or not they are in the built-in or
+ caller-configured tag lists.
+ 
+ CBOR has no upper bound of limit on the number of tags that can be
+ associated with a data item. In practice the number of tags on an item
+ will usually be small, perhaps less than five. This will return an error
+ if the array in pTagList is too small to hold all the tags for an item.
+ 
+ (This function is separate from  QCBORDecode_GetNext() so as to not have to
+ make QCBORItem large enough to be able to hold a full list of tags. Even a list of
+ five tags would nearly double its size because tags can be a uint64_t).
+ 
+ */
+
+int QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
+
+
+/**
+ @brief Determine if a CBOR item was tagged with a particular tag
+ 
+ @param[in] pCtx    The decoder context.
+ @param[in] pItem   The CBOR item to check
+ @param[in] uTag    The tag to check
+
+ @return 1 if it was tagged, 0 if not
+ 
+ QCBORDecode_GetNext() processes tags by looking them up
+ in two lists and setting a bit corresponding to the tag
+ in uTagBits in the QCBORItem. To find out if a
+ QCBORItem was tagged with a particular tag, call
+ this function. It handles the mapping between
+ the two lists of tags and the bits set for it.
+ 
+ The first tag list is the built-in tags, those
+ with a macro of the form CBOR_TAG_XXX in this
+ header file. There are up to 48 of these,
+ corresponding to the lower 48 tag bits.
+ 
+ The other optional tag list is the ones
+ the caller configured using QCBORDecode_SetCallerConfiguredTagList()
+ There are QCBOR_MAX_CUSTOM_TAGS (16) of these corresponding to the
+ upper 16 tag bits.
+ 
+ See also QCBORDecode_GetTags() and QCBORDecode_GetNextWithTags()
+ 
+ */
+int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint64_t uTag);
+
+
+/**
+ Check whether all the bytes have been decoded and maps and arrays closed.
  
  @param[in]  pCtx          The context to check
  
- @return QCBOR_ERR_EXTRA_BYTES or QCBOR_SUCCESS
+ @return QCBOR_SUCCESS or error
  
- This tells you if all the bytes give to QCBORDecode_Init() have
- been consumed or not. In most cases all bytes should be consumed
- in a correct parse. 
- 
- It is OK to call this multiple times during decoding and to call
- QCBORDecode_GetNext() after calling this. This only
- performs a check. It does not change the state of the decoder.
+ This tells you if all the bytes given to QCBORDecode_Init() have
+ been consumed and whether all maps and arrays were closed.
+ The decode is considered to be incorrect or incomplete if not
+ and an error will be returned.
+
  */
 
 int QCBORDecode_Finish(QCBORDecodeContext *pCtx);

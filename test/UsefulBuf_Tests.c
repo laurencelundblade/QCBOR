@@ -68,7 +68,7 @@ const char * UOBTest_NonAdversarial()
 {
    const char *szReturn = NULL;
 
-   UsefulBuf_MakeStackUB(outbuf,50);
+   UsefulBuf_MAKE_STACK_UB(outbuf,50);
    
    UsefulOutBuf UOB;
    
@@ -114,7 +114,7 @@ const char * UOBTest_NonAdversarial()
       szReturn = "OutUBuf";
    }
    
-   UsefulBuf_MakeStackUB(buf, 50);
+   UsefulBuf_MAKE_STACK_UB(buf, 50);
    UsefulBufC Out =  UsefulOutBuf_CopyOut(&UOB, buf);
    
    if(UsefulBuf_IsNULLC(Out) || Out.len-1 != strlen(expected) || strcmp(expected, Out.ptr)) {
@@ -189,7 +189,7 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
 
 const char *UOBTest_BoundaryConditionsTest()
 {
-   UsefulBuf_MakeStackUB(outbuf,2);
+   UsefulBuf_MAKE_STACK_UB(outbuf,2);
    
    UsefulOutBuf UOB;
    
@@ -228,7 +228,7 @@ const char *UOBTest_BoundaryConditionsTest()
       return "Bad insertion point not caught";
    
    
-   UsefulBuf_MakeStackUB(outBuf2,10);
+   UsefulBuf_MAKE_STACK_UB(outBuf2,10);
    
    UsefulOutBuf_Init(&UOB, outBuf2);
    
@@ -272,7 +272,7 @@ const char *UOBTest_BoundaryConditionsTest()
 
 const char *TestBasicSanity()
 {
-   UsefulBuf_MakeStackUB(outbuf,10);
+   UsefulBuf_MAKE_STACK_UB(outbuf,10);
    
    UsefulOutBuf UOB;
    
@@ -323,14 +323,14 @@ const char *UBMacroConversionsTest()
    if(Foo.len != 3 || strncmp(Foo.ptr, szFoo, 3))
       return "SZToUsefulBufC failed";
    
-   UsefulBufC Too = UsefulBuf_FromSZLiteral("Toooo");
+   UsefulBufC Too = UsefulBuf_FROM_SZ_LITERAL("Toooo");
    if(Too.len != 5 || strncmp(Too.ptr, "Toooo", 5))
-      return "UsefulBuf_FromSZLiteral failed";
+      return "UsefulBuf_FROM_SZ_LITERAL failed";
 
    uint8_t pB[] = {0x42, 0x6f, 0x6f};
-   UsefulBufC Boo = UsefulBuf_FromByteArrayLiteral(pB);
+   UsefulBufC Boo = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pB);
    if(Boo.len != 3 || strncmp(Boo.ptr, "Boo", 3))
-     return "UsefulBuf_FromByteArrayLiteral failed";
+     return "UsefulBuf_FROM_BYTE_ARRAY_LITERAL failed";
    
    char *sz = "not const"; // some data for the test
    UsefulBuf B = (UsefulBuf){sz, sizeof(sz)};
@@ -388,17 +388,17 @@ const char *UBUtilTests()
    }
    
    // test the Unconst.
-   if(UsefulBufC_Unconst(UBC).ptr != NULL) {
+   if(UsefulBuf_Unconst(UBC).ptr != NULL) {
       return "Unconst failed";
    }
    
    // Set 100 bytes of '+'; validated a few tests later
-   MakeUsefulBufOnStack(Temp, 100);
-   UsefulBuf_Set(&Temp, '+');
+   UsefulBuf_MAKE_STACK_UB(Temp, 100);
+   UsefulBufC TempC = UsefulBuf_Set(Temp, '+');
    
    // Try to copy into a buf that is too small and see failure
-   UsefulBuf_MakeStackUB(Temp2, 99);
-   if(!UsefulBuf_IsNULLC(UsefulBuf_Copy(Temp2, UsefulBuf_Const(Temp)))) {
+   UsefulBuf_MAKE_STACK_UB(Temp2, 99);
+   if(!UsefulBuf_IsNULLC(UsefulBuf_Copy(Temp2, TempC))) {
       return "Copy should have failed";
    }
    
@@ -406,16 +406,16 @@ const char *UBUtilTests()
       return "CopyPtr failed";
    }
    
-   UsefulBufC xxyy = UsefulBuf_CopyOffset(Temp2, 2, UsefulBuf_FromSZLiteral("yy"));
+   UsefulBufC xxyy = UsefulBuf_CopyOffset(Temp2, 2, UsefulBuf_FROM_SZ_LITERAL("yy"));
    if(UsefulBuf_IsNULLC(xxyy)) {
       return "CopyOffset Failed";
    }
    
-   if(UsefulBuf_Compare(UsefulBuf_Head(xxyy, 3), UsefulBuf_FromSZLiteral("xxy"))) {
+   if(UsefulBuf_Compare(UsefulBuf_Head(xxyy, 3), UsefulBuf_FROM_SZ_LITERAL("xxy"))) {
       return "head failed";
    }
 
-   if(UsefulBuf_Compare(UsefulBuf_Tail(xxyy, 1), UsefulBuf_FromSZLiteral("xyy"))) {
+   if(UsefulBuf_Compare(UsefulBuf_Tail(xxyy, 1), UsefulBuf_FROM_SZ_LITERAL("xyy"))) {
       return "tail failed";
    }
    
@@ -427,23 +427,23 @@ const char *UBUtilTests()
       return "tail should have failed";
    }
    
-   if(!UsefulBuf_IsNULLC(UsefulBuf_CopyOffset(Temp2, 100, UsefulBuf_FromSZLiteral("yy")))) {
+   if(!UsefulBuf_IsNULLC(UsefulBuf_CopyOffset(Temp2, 100, UsefulBuf_FROM_SZ_LITERAL("yy")))) {
       return "Copy Offset should have failed";
    }
    
    // Try to copy into a NULL/empty buf and see failure
    UsefulBuf UBNull = NULLUsefulBuf;
-   if(!UsefulBuf_IsNULLC(UsefulBuf_Copy(UBNull, UsefulBuf_Const(Temp)))) {
+   if(!UsefulBuf_IsNULLC(UsefulBuf_Copy(UBNull, TempC))) {
       return "Copy to NULL should have failed";
    }
    
    
    // Try to set a NULL/empty buf; nothing should happen
-   UsefulBuf_Set(&UBNull, '+'); // This will crash on failure
+   UsefulBuf_Set(UBNull, '+'); // This will crash on failure
    
    // Copy successfully to a buffer
-   MakeUsefulBufOnStack(Temp3, 101);
-   if(UsefulBuf_IsNULLC(UsefulBuf_Copy(Temp3, UsefulBuf_Const(Temp)))) {
+   UsefulBuf_MAKE_STACK_UB(Temp3, 101);
+   if(UsefulBuf_IsNULLC(UsefulBuf_Copy(Temp3, TempC))) {
       return "Copy should not have failed";
    }
    
@@ -459,9 +459,9 @@ const char *UBUtilTests()
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '+',
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '+',
    };
-   UsefulBufC Expected = ByteArrayLiteralToUsefulBufC(pExpected);
+   UsefulBufC Expected = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpected);
    // This validates comparison for equality and the UsefulBuf_Set
-   if(UsefulBuf_Compare(Expected, UsefulBuf_Const(Temp))) {
+   if(UsefulBuf_Compare(Expected, TempC)) {
       return "Set / Copy / Compare failed";
    }
    
@@ -488,7 +488,7 @@ const char *UBUtilTests()
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '+',
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  ',',
    };
-   UsefulBufC ExpectedBigger = ByteArrayLiteralToUsefulBufC(pExpectedBigger);
+   UsefulBufC ExpectedBigger = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedBigger);
    
    // Expect -1 when the first arg is smaller
    if(UsefulBuf_Compare(Expected, ExpectedBigger) >= 0){
@@ -508,7 +508,7 @@ const char *UBUtilTests()
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '+',
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '*',
    };
-   UsefulBufC ExpectedSmaller = ByteArrayLiteralToUsefulBufC(pExpectedSmaller);
+   UsefulBufC ExpectedSmaller = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedSmaller);
    // Expect +1 when the first arg is larger
    if(UsefulBuf_Compare(Expected, ExpectedSmaller) <= 0){
       return "Compare with smaller";
@@ -527,7 +527,7 @@ const char *UBUtilTests()
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '+',
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '+', '+'
    };
-   UsefulBufC ExpectedLonger = ByteArrayLiteralToUsefulBufC(pExpectedLonger);
+   UsefulBufC ExpectedLonger = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedLonger);
    
    // Expect -1 when the first arg is smaller
    if(UsefulBuf_Compare(Expected, ExpectedLonger) >= 0){
@@ -547,7 +547,7 @@ const char *UBUtilTests()
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '+',
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',
    };
-   UsefulBufC ExpectedShorter = ByteArrayLiteralToUsefulBufC(pExpectedShorter);
+   UsefulBufC ExpectedShorter = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedShorter);
    // Expect +1 with the first arg is larger
    if(UsefulBuf_Compare(Expected, ExpectedShorter) <= 0){
       return "Compare with shorter";
@@ -565,7 +565,7 @@ const char *UBUtilTests()
    
    // look for ++* in ....++* and find it at the end
    static const uint8_t pToFind[] = {'+', '+', '*'};
-   UsefulBufC ToBeFound = ByteArrayLiteralToUsefulBufC(pToFind);
+   UsefulBufC ToBeFound = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pToFind);
    
    if(97 != UsefulBuf_FindBytes(ExpectedSmaller, ToBeFound)){
       return "Failed to find 2";
@@ -648,7 +648,7 @@ const char *  UIBTest_IntegerFormat()
    if(UsefulBuf_IsNULLC(Four)) {
       return "Four is NULL";
    }
-   if(UsefulBuf_Compare(Four, UsefulBuf_FromByteArrayLiteral(pExpectedNetworkOrder))) {
+   if(UsefulBuf_Compare(Four, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedNetworkOrder))) {
       return "Four compare failed";
    }
    

@@ -42,8 +42,8 @@ int MallocAllStringsTest()
     QCBORDecodeContext DC;
     
     // Next parse, save pointers to a few strings, destroy original and see all is OK.
-    MakeUsefulBufOnStack(CopyOfStorage, 160);
-    UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FromByteArrayLiteral(pValidMapEncoded));
+    UsefulBuf_MAKE_STACK_UB(CopyOfStorage, 160);
+    UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
     
     QCBORDecode_Init(&DC, CopyOf, QCBOR_DECODE_MODE_NORMAL);
     QCBORStringAllocator *pAlloc = QCBORDecode_MakeMallocStringAllocator();
@@ -66,7 +66,7 @@ int MallocAllStringsTest()
     if((nCBORError = QCBORDecode_GetNext(&DC, &Item4)))
         return nCBORError;
     
-    UsefulBuf_Set(&CopyOfStorage, '_');
+    UsefulBuf_Set(CopyOfStorage, '_');
     
     if(Item1.uLabelType != QCBOR_TYPE_TEXT_STRING ||
        Item1.label.string.len != 13 ||

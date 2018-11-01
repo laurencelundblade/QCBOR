@@ -33,15 +33,15 @@
 
 int FloatValuesTest1(void);
 
-int half_precision_encode_basic(void);
+int HalfPrecisionEncodeBasicTests(void);
 
-int half_precision_decode_basic(void);
+int HalfPrecisionDecodeBasicTests(void);
 
-int half_precision_to_float_transitive_test(void);
+int HalfPrecisionTransitiveTest(void);
 
-int double_as_smallest_encode_basic(void);
+int DoubleAsSmallestTest(void);
 
-int half_precision_to_float_vs_rfc_test(void);
+int HalfPrecisionAgainstRFCCodeTest(void);
 
 
 #endif /* float_tests_h */

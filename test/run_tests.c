@@ -133,7 +133,7 @@ test_entry s_tests[] = {
     TEST_ENTRY(ComprehensiveInputTest),
     TEST_ENTRY(ParseMapTest),
     TEST_ENTRY(IndefiniteLengthArrayMapTest),
-    TEST_ENTRY(basic_encode_test),
+    TEST_ENTRY(BasicEncodeTest),
     TEST_ENTRY(NestedMapTest),
     TEST_ENTRY(BignumParseTest),
     TEST_ENTRY(OptTagParseTest),
@@ -145,15 +145,15 @@ test_entry s_tests[] = {
     TEST_ENTRY(IntegerValuesParseTest),
     TEST_ENTRY(MemPoolTest),
     TEST_ENTRY(IndefiniteLengthStringTest),
-    TEST_ENTRY(half_precision_encode_basic),
-    TEST_ENTRY(half_precision_decode_basic),
-    TEST_ENTRY(half_precision_to_float_transitive_test),
-    TEST_ENTRY(double_as_smallest_encode_basic),
-    TEST_ENTRY(half_precision_to_float_vs_rfc_test),
-    TEST_ENTRY(bstrwraptest),
-    TEST_ENTRY(bstr_wrap_error_test),
-    TEST_ENTRY(bstr_wrap_nest_test),
-    TEST_ENTRY(cose_sign1_tbs_test),
+    TEST_ENTRY(HalfPrecisionEncodeBasicTests),
+    TEST_ENTRY(HalfPrecisionDecodeBasicTests),
+    TEST_ENTRY(HalfPrecisionTransitiveTest),
+    TEST_ENTRY(DoubleAsSmallestTest),
+    TEST_ENTRY(HalfPrecisionAgainstRFCCodeTest),
+    TEST_ENTRY(BstrWrapTest),
+    TEST_ENTRY(BstrWrapErrorTest),
+    TEST_ENTRY(BstrWrapNestTest),
+    TEST_ENTRY(CoseSign1TBSTest),
     //TEST_ENTRY(fail_test),
 };
 
@@ -162,7 +162,7 @@ int run_tests(outputstring output, void *poutCtx, int *pNumTestsRun)
 {
     int nTestsFailed = 0;
     int nTestsRun = 0;
-    UsefulBuf_MakeStackUB(StringStorage, 5);
+    UsefulBuf_MAKE_STACK_UB(StringStorage, 5);
 
     test_entry2 *t2;
     const test_entry2 *s_tests2_end = s_tests2 + sizeof(s_tests2)/sizeof(test_entry2);

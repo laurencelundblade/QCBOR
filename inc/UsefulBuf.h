@@ -311,7 +311,7 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
  The terminating \0 (NULL) is NOT included in the length!
  
  */
-#define UsefulBuf_FromSZLiteral(szString) \
+#define UsefulBuf_FROM_SZ_LITERAL(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
 
 
@@ -322,7 +322,7 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
  It will not work on  non-literal arrays.
  
  */
-#define UsefulBuf_FromByteArrayLiteral(pBytes) \
+#define UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBytes) \
     ((UsefulBufC) {(pBytes), sizeof(pBytes)})
 
 
@@ -330,10 +330,16 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
  Make an automatic variable with name of type UsefulBuf and point it to a stack
  variable of the give size
  */
-#define  UsefulBuf_MakeStackUB(name, size) \
+#define  UsefulBuf_MAKE_STACK_UB(name, size) \
     uint8_t    __pBuf##name[(size)];\
     UsefulBuf  name = {__pBuf##name , sizeof( __pBuf##name )}
 
+
+/**
+ Make a byte array in to a UsefulBuf
+ */
+#define UsefulBuf_FROM_BYTE_ARRAY(pBytes) \
+    ((UsefulBuf) {(pBytes), sizeof(pBytes)})
 
 /**
  @brief Convert a NULL terminated string to a UsefulBufC.
@@ -351,26 +357,6 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
 static inline UsefulBufC UsefulBuf_FromSZ(const char *szString){
     return ((UsefulBufC) {szString, strlen(szString)});
 }
-
-
-/**
- @brief Copy one UsefulBuf into another
- 
- @param[in] Dest The destination buffer to copy into
- @param[out] Src  The source to copy from
- 
- @return filled in UsefulBufC on success, NULLUsefulBufC on failure
- 
- This fails if Src.len is greater than Dest.len.
- 
- Note that like memcpy, the pointers are not checked and
- this will crash, rather than return NULLUsefulBufC if
- they are NULL or invalid.
- 
- Results are undefined if Dest and Src overlap.
- 
- */
-UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src);
 
 
 /**
@@ -395,6 +381,27 @@ UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src);
 UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC Src);
 
 
+/**
+ @brief Copy one UsefulBuf into another
+ 
+ @param[in] Dest The destination buffer to copy into
+ @param[out] Src  The source to copy from
+ 
+ @return filled in UsefulBufC on success, NULLUsefulBufC on failure
+ 
+ This fails if Src.len is greater than Dest.len.
+ 
+ Note that like memcpy, the pointers are not checked and
+ this will crash, rather than return NULLUsefulBufC if
+ they are NULL or invalid.
+ 
+ Results are undefined if Dest and Src overlap.
+ 
+ */
+static inline UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src) {
+   return UsefulBuf_CopyOffset(Dest, 0, Src);
+}
+
 
 /**
  @brief Set all bytes in a UsefulBuf to a value, for example 0
@@ -406,9 +413,10 @@ UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC
  this will crash if NULL or invalid.
  
  */
-static inline void UsefulBuf_Set(UsefulBuf *pDest, uint8_t value)
+static inline UsefulBufC UsefulBuf_Set(UsefulBuf pDest, uint8_t value)
 {
-    memset(pDest->ptr, value, pDest->len);
+   memset(pDest.ptr, value, pDest.len);
+   return (UsefulBufC){pDest.ptr, pDest.len};
 }
 
 
@@ -509,17 +517,17 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
 
-#if 1 // NOT_DEPRECATED
-/** Deprecated macro; use UsefulBuf_FromSZLiteral instead */
+#if 0 // NOT_DEPRECATED
+/** Deprecated macro; use UsefulBuf_FROM_SZ_LITERAL instead */
 #define SZLiteralToUsefulBufC(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
 
-/** Deprecated macro; use UsefulBuf_MakeStackUB instead */
+/** Deprecated macro; use UsefulBuf_MAKE_STACK_UB instead */
 #define  MakeUsefulBufOnStack(name, size) \
     uint8_t    __pBuf##name[(size)];\
     UsefulBuf  name = {__pBuf##name , sizeof( __pBuf##name )}
 
-/** Deprecated macro; use UsefulBuf_FromByteArrayLiteral instead */
+/** Deprecated macro; use UsefulBuf_FROM_BYTE_ARRAY_LITERAL instead */
 #define ByteArrayLiteralToUsefulBufC(pBytes) \
     ((UsefulBufC) {(pBytes), sizeof(pBytes)})
 

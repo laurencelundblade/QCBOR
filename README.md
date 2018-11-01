@@ -61,6 +61,7 @@ Then just call run_tests() to invole them all.
 * Minimal length float encoding is added
 * indefinite length arrays/maps are supported
 * indefinite length strings are supported
+* Tag decoding is changed; unlimited number of tags supported, any tag value supported, tag utility function for easier tag checking
 * Addition functions in UsefulBuf
 * QCBOREncode_Init takes a UsefulBuf instead of a pointer and size
 * QCBOREncode_Finish takes a UsefulBufC and EncodedCBOR is remove
@@ -72,6 +73,7 @@ Then just call run_tests() to invole them all.
 * The "_3" functions are replaced with "_2" functions (the macros that referenced _3, now reference _2 and work the same)
 * There is a new AddTag functon instead of the "_3" functions, making the interface simpler and saving some code
 * QCBOREncode_AddRawSimple_2 is removed (the macros that referenced still exist and work the same)
+
 
 
 

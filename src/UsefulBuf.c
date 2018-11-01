@@ -80,20 +80,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define USEFUL_OUT_BUF_MAGIC  (0x0B0F) // used to catch use of uninitialized or corrupted UOBs
 
-/*
-   Public function -- see UsefulBuf.h
- */
-UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src)
-{
-   if(Src.len > Dest.len) {
-      return NULLUsefulBufC;
-   }
-   
-   memcpy(Dest.ptr, Src.ptr, Src.len);
-    
-   return((UsefulBufC){Dest.ptr, Src.len});
-}
-
 
 /*
  Public function -- see UsefulBuf.h
