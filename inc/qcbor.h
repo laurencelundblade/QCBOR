@@ -984,41 +984,6 @@ void QCBOREncode_AddFloatAsHalf_2(QCBOREncodeContext *me, const char *szLabel, i
       QCBOREncode_AddFloatAsHalf_2((pCtx), NULL, (nLabel), (fNum))
 
 
-/*
- @brief  Add a dynamically sized floating point number to the encoded output
- 
- @param[in] pCtx      The encoding context to add the float to.
- @param[in] szLabel   The string map label for this integer value.
- @param[in] nLabel    The integer map label for this integer value.
- @param[in] fNum      The float to add.
- 
- This will selectively encode the single-precision floating point number as either
- single-precision or half-precision. It will always encode infinity, NaN and 0
- has half precision. If no precision will be lost in the conversion to half-precision
- then it will be performed, otherwise it will not be performed.
- 
- This reduces the size of encoded messages a lot, maybe even half if most values are
- 0, infinity or NaN.
- 
- Half-precision floating point numbers take up 2 bytes, half that of single-precision.
- 
- These will always be decoded into a float as standard C doesn't have a widely used
- standard representation for half-precision floats yet.
- 
- This works the same as QCBOREncode_AddInt64_2() except it is for single and half-precision floats.
- 
- */
-
-void QCBOREncode_AddFloatAsSmallest_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, float fNum);
-
-#define QCBOREncode_AddFloatAsSmallest(pCtx, fNum) \
-      QCBOREncode_AddFloatAsSmallest_2((pCtx), NULL, QCBOR_NO_INT_LABEL, CBOR_TAG_NONE, (fNum))
-
-#define QCBOREncode_AddFloatAsSmallestToMap(pCtx, szLabel, fNum) \
-      QCBOREncode_AddFloatAsSmallest_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (fNum))
-
-#define QCBOREncode_AddFloatAsSmallestToMapN(pCtx, nLabel, fNum) \
-      QCBOREncode_AddFloatAsSmallest_2((pCtx), NULL, (nLabel), (fNum))
 
 
 /**

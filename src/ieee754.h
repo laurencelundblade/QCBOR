@@ -141,18 +141,14 @@ double IEEE754_HalfToDouble(uint16_t uHalfPrecision);
 
 
 
-
-#define IEEE754_UNION_IS_HALF   0
-#define IEEE754_UNION_IS_SINGLE 1
-#define IEEE754_UNION_IS_DOUBLE 2
+// Both tags the value and gives the size
+#define IEEE754_UNION_IS_HALF   2
+#define IEEE754_UNION_IS_SINGLE 4
+#define IEEE754_UNION_IS_DOUBLE 8
 
 typedef struct {
-    uint8_t uTag;  // One of IEEE754_IS_xxxx
-    union {
-        uint16_t u16;
-        uint32_t u32;
-        uint64_t u64;
-    };
+    uint8_t uSize;  // One of IEEE754_IS_xxxx
+    uint64_t uValue;
 } IEEE754_union;
 
 

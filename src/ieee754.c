@@ -403,20 +403,20 @@ IEEE754_union IEEE754_FloatToSmallest(float f)
     // Optimizer will re organize so there is only one call to IEEE754_FloatToHalf()
     if(uSingle == 0) {
         // Value is 0.0000, not a a subnormal
-        result.uTag = IEEE754_UNION_IS_HALF;
-        result.u16  = IEEE754_FloatToHalf(f);
+        result.uSize = IEEE754_UNION_IS_HALF;
+        result.uValue  = IEEE754_FloatToHalf(f);
     } else if(nSingleExponent == SINGLE_EXPONENT_INF_OR_NAN) {
         // NaN, +/- infinity
-        result.uTag = IEEE754_UNION_IS_HALF;
-        result.u16  = IEEE754_FloatToHalf(f);
+        result.uSize = IEEE754_UNION_IS_HALF;
+        result.uValue  = IEEE754_FloatToHalf(f);
     } else if((nSingleExponent >= HALF_EXPONENT_MIN) && nSingleExponent <= HALF_EXPONENT_MAX && (!(uSingleSignificand & uDroppedSingleBits))) {
         // Normal number in exponent range and precision won't be lost
-        result.uTag = IEEE754_UNION_IS_HALF;
-        result.u16  = IEEE754_FloatToHalf(f);
+        result.uSize = IEEE754_UNION_IS_HALF;
+        result.uValue  = IEEE754_FloatToHalf(f);
     } else {
         // Subnormal, exponent out of range, or precision will be lost
-        result.uTag = IEEE754_UNION_IS_SINGLE;
-        result.u32  = uSingle;
+        result.uSize = IEEE754_UNION_IS_SINGLE;
+        result.uValue  = uSingle;
     }
     
     return result;
@@ -439,24 +439,24 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
     // The various cases
     if(d == 0.0) { // Take care of positive and negative zero
         // Value is 0.0000, not a a subnormal
-        result.uTag = IEEE754_UNION_IS_HALF;
-        result.u16  = IEEE754_DoubleToHalf(d);
+        result.uSize  = IEEE754_UNION_IS_HALF;
+        result.uValue = IEEE754_DoubleToHalf(d);
     } else if(nDoubleExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
         // NaN, +/- infinity
-        result.uTag = IEEE754_UNION_IS_HALF;
-        result.u16  = IEEE754_DoubleToHalf(d);
+        result.uSize  = IEEE754_UNION_IS_HALF;
+        result.uValue = IEEE754_DoubleToHalf(d);
     } else if(bAllowHalfPrecision && (nDoubleExponent >= HALF_EXPONENT_MIN) && nDoubleExponent <= HALF_EXPONENT_MAX && (!(uDoubleSignificand & uDroppedDoubleBits))) {
         // Can convert to half without precision loss
-        result.uTag = IEEE754_UNION_IS_HALF;
-        result.u16  = IEEE754_DoubleToHalf(d);
+        result.uSize  = IEEE754_UNION_IS_HALF;
+        result.uValue = IEEE754_DoubleToHalf(d);
     } else if((nDoubleExponent >= SINGLE_EXPONENT_MIN) && nDoubleExponent <= SINGLE_EXPONENT_MAX && (!(uDoubleSignificand & uDroppedSingleBits))) {
         // Can convert to single without precision loss
-        result.uTag = IEEE754_UNION_IS_SINGLE;
-        result.u32  = CopyFloatToUint32((float)d);
+        result.uSize  = IEEE754_UNION_IS_SINGLE;
+        result.uValue = CopyFloatToUint32((float)d);
     } else {
         // Can't convert without precision loss
-        result.uTag = IEEE754_UNION_IS_DOUBLE;
-        result.u64  = uDouble;
+        result.uSize  = IEEE754_UNION_IS_DOUBLE;
+        result.uValue = uDouble;
     }
     
     return result;

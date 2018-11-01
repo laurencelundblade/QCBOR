@@ -561,17 +561,7 @@ void QCBOREncode_AddFloatAsHalf_2(QCBOREncodeContext *me, const char *szLabel, i
 
 static void QCBOREncode_AddFUnionAsSmallest_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, IEEE754_union uNum)
 {
-   switch(uNum.uTag) {
-      case IEEE754_UNION_IS_HALF:
-         QCBOREncode_AddType7_2(me, szLabel, nLabel, sizeof(uint16_t), uNum.u16);
-         break;
-      case IEEE754_UNION_IS_SINGLE:
-         QCBOREncode_AddType7_2(me, szLabel, nLabel, sizeof(uint32_t), uNum.u32);
-         break;
-      case IEEE754_UNION_IS_DOUBLE:
-         QCBOREncode_AddType7_2(me, szLabel, nLabel, sizeof(uint64_t), uNum.u64);
-         break;
-   }
+   QCBOREncode_AddType7_2(me, szLabel, nLabel, uNum.uSize, uNum.uValue);
 }
 
 void QCBOREncode_AddFloatAsSmallest_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, float fNum)
