@@ -59,7 +59,7 @@ int main(int argc, const char * argv[])
     QCBOREncode_CloseMap(&EC);
     
     UsefulBufC Encoded;
-    if(QCBOREncode_Finish2(&EC, &Encoded)) {
+    if(QCBOREncode_Finish(&EC, &Encoded)) {
         return -1;
     }
     
@@ -96,7 +96,7 @@ int main(int argc, const char * argv[])
     QCBOREncode_CloseArray(&EC);
     
     UsefulBufC Encoded2;
-    if(QCBOREncode_Finish2(&EC, &Encoded2)) {
+    if(QCBOREncode_Finish(&EC, &Encoded2)) {
         return -5;
     }
     /*
