@@ -35,13 +35,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef float_tests_h
 #define float_tests_h
 
-int FloatValuesTest1(void);
-
-int HalfPrecisionEncodeBasicTests(void);
-
 int HalfPrecisionDecodeBasicTests(void);
-
-int HalfPrecisionTransitiveTest(void);
 
 int DoubleAsSmallestTest(void);
 

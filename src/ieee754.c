@@ -157,7 +157,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  This is a crusty corner of C. It shouldn't be this hard.
  
  These are also in UsefulBuf.h under a different name. They are copied
- here because to avoid a dependency on UsefulBuf.h. There is no
+ here to avoid a dependency on UsefulBuf.h. There is no
  object code size impact because these always optimze down to a
  simple assignment.
  */

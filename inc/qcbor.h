@@ -850,7 +850,6 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx,uint64_t uTag);
 
 
 /**
- 
  @brief  Add a 64-bit integer to the encoded output
  
  @param[in] pCtx      The encoding context to add the integer to.
@@ -916,78 +915,8 @@ void QCBOREncode_AddUInt64_2(QCBOREncodeContext *pCtx, const char *szLabel, int6
 
 
 
-
 /**
- 
- @brief  Add a float or double value to the encoded output
- 
- @param[in] pCtx      The encoding context to add the float to.
- @param[in] szLabel   The string map label for this integer value.
- @param[in] nLabel    The integer map label for this integer value.
- @param[in] fNum       The float to add.
- 
- This works the same as QCBOREncode_AddInt64_2() except it is for floats and doubles.
- 
- */
-void QCBOREncode_AddFloat_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, float fNum);
-void QCBOREncode_AddDouble_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, double dNum);
-
-#define QCBOREncode_AddFloat(pCtx, fNum) \
-      QCBOREncode_AddFloat_2((pCtx), NULL, QCBOR_NO_INT_LABEL, (fNum))
-
-#define QCBOREncode_AddFloatToMap(pCtx, szLabel, fNum) \
-      QCBOREncode_AddFloat_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (fNum))
-
-#define QCBOREncode_AddFloatToMapN(pCtx, nLabel, fNum) \
-      QCBOREncode_AddFloat_2((pCtx), NULL, (nLabel), (fNum))
-
-#define QCBOREncode_AddDouble(pCtx, dNum) \
-      QCBOREncode_AddDouble_2((pCtx), NULL, QCBOR_NO_INT_LABEL, (dNum))
-
-#define QCBOREncode_AddDoubleToMap(pCtx, szLabel, dNum) \
-      QCBOREncode_AddDouble_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (dNum))
-
-#define QCBOREncode_AddDoubleToMapN(pCtx, nLabel, dNum) \
-      QCBOREncode_AddDouble_2((pCtx), NULL, (nLabel), (dNum))
-
-/*
- @brief  Add a half-precision floating point number to the encoded output
- 
- @param[in] pCtx      The encoding context to add the float to.
- @param[in] szLabel   The string map label for this integer value.
- @param[in] nLabel    The integer map label for this integer value.
- @param[in] fNum      The float to add.
- 
- This will truncate the precision of the single precision float to half-precision.
- Numbers whose absolute value is larger than 65504 will be encoded as infinity as this is the largest number
- half-precision can encode. Numbers whose absolute value is less than 5.96E−8 will be
- encoded as 0. Single precision floats smaller than 6.10E−5 will be converted
- half-precision subnormal numbers.
- 
- Infinity and NaN are handled correctly. NaN payloads are partially carried.
- 
- Half-precision floating point number take up 2 bytes, half that of single-precision.
- 
- This works the same as QCBOREncode_AddInt64_2() except it is for half-precision floats.
-
- */
-
-void QCBOREncode_AddFloatAsHalf_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, float fNum);
-
-#define QCBOREncode_AddFloatAsHalf(pCtx, fNum) \
-      QCBOREncode_AddFloatAsHalf_2((pCtx), NULL, QCBOR_NO_INT_LABEL, (fNum))
-
-#define QCBOREncode_AddFloatAsHalfToMap(pCtx, szLabel, fNum) \
-      QCBOREncode_AddFloatAsHalf_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (fNum))
-
-#define QCBOREncode_AddFloatAsHalfToMapN(pCtx, nLabel, fNum) \
-      QCBOREncode_AddFloatAsHalf_2((pCtx), NULL, (nLabel), (fNum))
-
-
-
-
-/**
- @brief  Add a dynamically sized floating point number to the encoded output
+ @brief  Add a floating point number to the encoded output
  
  @param[in] pCtx      The encoding context to add the float to.
  @param[in] szLabel   The string map label for this integer value.
@@ -999,7 +928,7 @@ void QCBOREncode_AddFloatAsHalf_2(QCBOREncodeContext *me, const char *szLabel, i
  has half precision. If no precision will be lost in the conversion to half-precision
  then it will be converted and encoded. If not and no precision will be lost in
  conversion to single-precision, then it will be converted and encoded. If not, then
- no conversion is performed and it sent as a double.
+ no conversion is performed and it encoded as a double.
  
  Half-precision floating point numbers take up 2 bytes, half that of single-precision,
  one quarter of double-preceision
@@ -1017,16 +946,16 @@ void QCBOREncode_AddFloatAsHalf_2(QCBOREncodeContext *me, const char *szLabel, i
  
  */
 
-void QCBOREncode_AddDoubleAsSmallest_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, double dNum);
+void QCBOREncode_AddDouble_2(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nLabel, double dNum);
 
 #define QCBOREncode_AddDoubleAsSmallest(pCtx, dNum) \
-      QCBOREncode_AddDoubleAsSmallest_2((pCtx), NULL, QCBOR_NO_INT_LABEL, (dNum))
+      QCBOREncode_AddDouble_2((pCtx), NULL, QCBOR_NO_INT_LABEL, (dNum))
 
 #define QCBOREncode_AddDoubleAsSmallestToMap(pCtx, szLabel, dNum) \
-      QCBOREncode_AddDoubleAsSmallest_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (dNum))
+      QCBOREncode_AddDouble_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (dNum))
 
 #define QCBOREncode_AddDoubleAsSmallestToMapN(pCtx, nLabel, dNum) \
-      QCBOREncode_AddDoubleAsSmallest_2((pCtx), NULL, (nLabel), (dNum))
+      QCBOREncode_AddDouble_2((pCtx), NULL, (nLabel), (dNum))
 
 
 

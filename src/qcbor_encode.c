@@ -541,37 +541,11 @@ void QCBOREncode_AddType7_2(QCBOREncodeContext *me, const char *szLabel, int64_t
 }
 
 
-/*
- Public functions for floating point numbers. See header qcbor.h
- */
-void QCBOREncode_AddFloat_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, float fNum)
-{      
-   QCBOREncode_AddType7_2(me, szLabel, nLabel, sizeof(float), UsefulBufUtil_CopyFloatToUint32(fNum));
-}
-
 void QCBOREncode_AddDouble_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, double dNum)
 {
-   QCBOREncode_AddType7_2(me, szLabel, nLabel, sizeof(double), UsefulBufUtil_CopyDoubleToUint64(dNum));
-}
-
-void QCBOREncode_AddFloatAsHalf_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, float fNum)
-{
-    QCBOREncode_AddType7_2(me, szLabel, nLabel, sizeof(uint16_t), IEEE754_FloatToHalf(fNum));
-}
-
-static void QCBOREncode_AddFUnionAsSmallest_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, IEEE754_union uNum)
-{
+   const IEEE754_union uNum = IEEE754_DoubleToSmallest(dNum);
+   
    QCBOREncode_AddType7_2(me, szLabel, nLabel, uNum.uSize, uNum.uValue);
-}
-
-void QCBOREncode_AddFloatAsSmallest_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, float fNum)
-{
-   QCBOREncode_AddFUnionAsSmallest_2(me, szLabel, nLabel, IEEE754_FloatToSmallest(fNum));
-}
-
-void QCBOREncode_AddDoubleAsSmallest_2(QCBOREncodeContext *me, const char *szLabel, int64_t nLabel, double dNum)
-{
-   QCBOREncode_AddFUnionAsSmallest_2(me, szLabel, nLabel, IEEE754_DoubleToSmallest(dNum));
 }
 
 
