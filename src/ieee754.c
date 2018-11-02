@@ -182,6 +182,12 @@ static inline float CopyUint32ToFloat(uint32_t u32)
     return f;
 }
 
+static inline double CopyUint64ToDouble(uint64_t u64)
+{
+    double d;
+    memcpy(&d, &u64, sizeof(uint64_t));
+    return d;
+}
 
 
 // Public function; see ieee754.h
@@ -379,10 +385,65 @@ float IEEE754_HalfToFloat(uint16_t uHalfPrecision)
 }
 
 
-/*
- double IEEE754_HalfToDouble(uint16_t uHalfPrecision) is not needed
-*/
-
+// Public function; see ieee754.h
+double IEEE754_HalfToDouble(uint16_t uHalfPrecision)
+{
+    // Pull out the three parts of the half-precision float
+    const uint16_t uHalfSignificand      =   uHalfPrecision & HALF_SIGNIFICAND_MASK;
+    const int16_t  nHalfUnBiasedExponent = ((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
+    const uint16_t uHalfSign             =  (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
+    
+    
+    // Make the three parts of hte single-precision number
+    uint64_t uDoubleSignificand, uDoubleSign, uDoubleBiasedExponent;
+    if(nHalfUnBiasedExponent == HALF_EXPONENT_ZERO) {
+        // 0 or subnormal
+        uDoubleBiasedExponent = DOUBLE_EXPONENT_ZERO + DOUBLE_EXPONENT_BIAS;
+        if(uHalfSignificand) {
+            // Subnormal case
+            uDoubleBiasedExponent = -HALF_EXPONENT_BIAS + DOUBLE_EXPONENT_BIAS +1;
+            // A half-precision subnormal can always be converted to a normal double-precision float because the ranges line up
+            uDoubleSignificand = uHalfSignificand;
+            // Shift bits from right of the decimal to left, reducing the exponent by 1 each time
+            do {
+                uDoubleSignificand <<= 1;
+                uDoubleBiasedExponent--;
+            } while ((uDoubleSignificand & 0x400) == 0);
+            uDoubleSignificand &= HALF_SIGNIFICAND_MASK;
+            uDoubleSignificand <<= (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
+        } else {
+            // Just zero
+            uDoubleSignificand = 0;
+        }
+    } else if(nHalfUnBiasedExponent == HALF_EXPONENT_INF_OR_NAN) {
+        // NaN or Inifinity
+        uDoubleBiasedExponent = DOUBLE_EXPONENT_INF_OR_NAN + DOUBLE_EXPONENT_BIAS;
+        if(uHalfSignificand) {
+            // NaN
+            // First preserve the NaN payload from half to single
+            uDoubleSignificand = uHalfSignificand & ~HALF_QUIET_NAN_BIT;
+            if(uHalfSignificand & HALF_QUIET_NAN_BIT) {
+                // Next, set qNaN if needed since half qNaN bit is not copied above
+                uDoubleSignificand |= DOUBLE_QUIET_NAN_BIT;
+            }
+        } else {
+            // Infinity
+            uDoubleSignificand = 0;
+        }
+    } else {
+        // Normal number
+        uDoubleBiasedExponent = nHalfUnBiasedExponent + DOUBLE_EXPONENT_BIAS;
+        uDoubleSignificand    = (uint64_t)uHalfSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
+    }
+    uDoubleSign = uHalfSign;
+    
+    
+    // Shift the 3 parts into place as a double-precision
+    const uint64_t uDouble = uDoubleSignificand |
+                            (uDoubleBiasedExponent << DOUBLE_EXPONENT_SHIFT) |
+                            (uDoubleSign << DOUBLE_SIGN_SHIFT);
+    return CopyUint64ToDouble(uDouble);
+}
 
 
 // Public function; see ieee754.h

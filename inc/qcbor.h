@@ -692,7 +692,6 @@ typedef struct _QCBORItem {
 
       UsefulBufC  string;     /** The value for uDataType QCBOR_TYPE_BYTE_STRING and QCBOR_TYPE_TEXT_STRING */
       uint16_t    uCount;     /** The "value" for uDataType QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP -- the number of items in the array or map */ // TODO: indefinite len arrays
-      float       fnum;       /** The value for uDataType QCBOR_TYPE_FLOAT */
       double      dfnum;      /** The value for uDataType QCBOR_TYPE_DOUBLE */
       struct {
          int64_t  nSeconds;

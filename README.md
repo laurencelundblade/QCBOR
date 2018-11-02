@@ -25,12 +25,10 @@ is also not necessary or preferred.
 ## Code Status
 QCBOR was originally developed by Qualcomm. It was [open sourced through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a permissive Linux license, September 2018 (thanks Qualcomm!).
 
-This code in Laurence's GitHub has diverged some from the CAF source with some small simplifications and tidying up.  The full test suite is not up and running and available in GitHub yet, so some caution is advised. This should be remedies soon.
+This code in Laurence's GitHub has diverged some from the CAF source with some small simplifications and tidying up.  T
 
-The following modifications are planned:
-* Improve design for handling multiple tags
-
-These changes may result in some interface changes. 
+From Nov 3 on, the interface and code are fairly stable. Large changes are not planned or expected, particularly in the interface. The test coverage
+is pretty good.
 
 ## Building
 There is a simple makefile for the UNIX style command line binary that compiles everything to run the tests.
@@ -41,6 +39,7 @@ The actual non-test source files are these seven:
 * src/UsefulBuf.c
 * src/qcbor_encode.c
 * src/qcbor_decode.c
+* src/qcbor_decode_malloc.c (optional; only for indefinite length strings you want handled with malloc)
 * src/ieee754.h
 * src/ieee754.c
 

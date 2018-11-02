@@ -504,14 +504,16 @@ inline static int DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber, QCBORI
          break;
            
       case HALF_PREC_FLOAT:
-         pDecodedItem->val.fnum  = IEEE754_HalfToFloat((uint16_t)uNumber);
-         pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
+         pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
+         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
          break;
       case SINGLE_PREC_FLOAT:
-         pDecodedItem->val.fnum = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uNumber);
+         pDecodedItem->val.dfnum = (double)UsefulBufUtil_CopyUint32ToFloat((uint32_t)uNumber);
+         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
          break;
       case DOUBLE_PREC_FLOAT:
          pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uNumber);
+         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
          break;
          
       case CBOR_SIMPLEV_FALSE: // 20
@@ -605,7 +607,7 @@ inline static int DecodeBigNum(QCBORItem *pDecodedItem)
    }
    UsefulBufC Temp          = pDecodedItem->val.string;
    pDecodedItem->val.bigNum = Temp;
-   pDecodedItem->uDataType  = pDecodedItem->uTagBits & QCBOR_TAGFLAG_POS_BIGNUM ? QCBOR_TYPE_POSBIGNUM : QCBOR_TYPE_NEGBIGNUM; // TODO: check this
+   pDecodedItem->uDataType  = pDecodedItem->uTagBits & QCBOR_TAGFLAG_POS_BIGNUM ? QCBOR_TYPE_POSBIGNUM : QCBOR_TYPE_NEGBIGNUM;
    return QCBOR_SUCCESS;
 }
 
@@ -619,7 +621,6 @@ static int DecodeDateEpoch(QCBORItem *pDecodedItem)
    int nReturn = QCBOR_SUCCESS;
    
    pDecodedItem->val.epochDate.fSecondsFraction = 0;
-   double d = pDecodedItem->val.dfnum; // Might not use this, but keeps code flow neater below
    
    switch (pDecodedItem->uDataType) {
          
@@ -635,17 +636,16 @@ static int DecodeDateEpoch(QCBORItem *pDecodedItem)
          pDecodedItem->val.epochDate.nSeconds = pDecodedItem->val.uint64;
          break;
          
-      case QCBOR_TYPE_FLOAT:
-         d = pDecodedItem->val.fnum;
-         // Fall through
-         
       case QCBOR_TYPE_DOUBLE:
-         if(d > INT64_MAX) {
-            nReturn = QCBOR_ERR_DATE_OVERFLOW;
-            goto Done;
+         {
+            const double d = pDecodedItem->val.dfnum;
+            if(d > INT64_MAX) {
+               nReturn = QCBOR_ERR_DATE_OVERFLOW;
+               goto Done;
+            }
+            pDecodedItem->val.epochDate.nSeconds = d; // Float to integer conversion happening here.
+            pDecodedItem->val.epochDate.fSecondsFraction = d - pDecodedItem->val.epochDate.nSeconds;
          }
-         pDecodedItem->val.epochDate.nSeconds = d; // Float to integer conversion happening here.
-         pDecodedItem->val.epochDate.fSecondsFraction = d - pDecodedItem->val.epochDate.nSeconds;
          break;
          
       default:

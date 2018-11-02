@@ -1313,46 +1313,46 @@ int DateParseTest()
       return -1;
    if(Item.uDataType != QCBOR_TYPE_DATE_STRING ||
       UsefulBuf_Compare(Item.val.dateString, UsefulBuf_FromSZ("1985-04-12"))){
-      return -1;
+      return -2;
    }
 
    // Epoch date
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return -1;
+      return -3;
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
       Item.val.epochDate.nSeconds != 1400000000 ||
       Item.val.epochDate.fSecondsFraction != 0 ) {
-      return -1;
+      return -4;
    }
    
    // Epoch date with extra CBOR_TAG_B64 tag that doesn't really mean anything
    // but want to be sure extra tag doesn't cause a problem
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return -1;
+      return -5;
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
       Item.val.epochDate.nSeconds != 1400000001 ||
       Item.val.epochDate.fSecondsFraction != 0 ||
       !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_B64)) {
-      return -1;
+      return -6;
    }
    
    // Epoch date that is too large for our representation
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
-      return -1;
+      return -7;
    }
    
    // Epoch date in float format with fractional seconds
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return -1;
+      return -8;
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
       Item.val.epochDate.nSeconds != 1 ||
       CHECK_EXPECTED_DOUBLE(Item.val.epochDate.fSecondsFraction, 0.1 )) {
-      return -1;
+      return -9;
    }
    
    // Epoch date float that is too large for our representation
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
-      return -1;
+      return -10;
    }
    
    // TODO: could use a few more tests with float, double, and half precsion and negative (but coverage is still pretty good)

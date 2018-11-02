@@ -105,87 +105,88 @@ int HalfPrecisionDecodeBasicTests()
     }
 
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 0.0F) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 0.0F) {
         return -2;
     }
     
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != INFINITY) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != INFINITY) {
         return -3;
     }
 
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != -INFINITY) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != -INFINITY) {
         return -4;
     }
 
     QCBORDecode_GetNext(&DC, &Item); // TODO, is this really converting right? It is carrying payload, but this confuses things.
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || !isnan(Item.val.fnum)) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || !isnan(Item.val.dfnum)) {
         return -5;
     }
 
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 1.0F) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 1.0F) {
         return -6;
     }
     
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 0.333251953125F) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 0.333251953125F) {
         return -7;
     }
 
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 65504.0F) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 65504.0F) {
         return -8;
     }
 
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != INFINITY) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != INFINITY) {
         return -9;
     }
     
     QCBORDecode_GetNext(&DC, &Item); // TODO: check this
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 0.0000000596046448F) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 0.0000000596046448F) {
         return -10;
     }
 
     QCBORDecode_GetNext(&DC, &Item); // TODO: check this
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 0.0000609755516F) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 0.0000609755516F) {
         return -11;
     }
 
     QCBORDecode_GetNext(&DC, &Item); // TODO check this
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 0.0000610351563F) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 0.0000610351563F) {
         return -12;
     }
     
     QCBORDecode_GetNext(&DC, &Item); 
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != 0) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 0) {
         return -13;
     }
     
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || Item.val.fnum != -2.0F) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != -2.0F) {
         return -14;
     }
-
-    QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || UsefulBufUtil_CopyFloatToUint32(Item.val.fnum) != 0x7fc00000L) {
+    
+    // TODO: double check these four tests
+    QCBORDecode_GetNext(&DC, &Item); // qNaN
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff8000000000000ULL) {
         return -15;
     }
-    QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || UsefulBufUtil_CopyFloatToUint32(Item.val.fnum) != 0x7f800001) {
+    QCBORDecode_GetNext(&DC, &Item); // sNaN
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff0000000000001ULL) {
         return -16;
     }
-    QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || UsefulBufUtil_CopyFloatToUint32(Item.val.fnum) != 0x7fc0000f) {
+    QCBORDecode_GetNext(&DC, &Item); // qNaN with payload 0x0f
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff800000000000fULL) {
         return -17;
     }
-    QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_FLOAT || UsefulBufUtil_CopyFloatToUint32(Item.val.fnum) != 0x7f80000f) {
+    QCBORDecode_GetNext(&DC, &Item); // sNaN with payload 0x0f
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE || UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff000000000000fULL) {
         return -18;
     }
-    
+
     if(QCBORDecode_Finish(&DC)) {
         return -19;
     }
@@ -220,7 +221,7 @@ int HalfPrecisionAgainstRFCCodeTest()
         QCBORItem Item;
         
         QCBORDecode_GetNext(&DC, &Item);
-        if(Item.uDataType != QCBOR_TYPE_FLOAT) {
+        if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
             return -1;
         }
         
@@ -230,11 +231,11 @@ int HalfPrecisionAgainstRFCCodeTest()
             // The RFC code uses the native instructions which may or may not
             // handle sNaN, qNaN and NaN payloads correctly. This test just
             // makes sure it is a NaN and doesn't worry about the type of NaN
-            if(!isnan(Item.val.fnum)) {
+            if(!isnan(Item.val.dfnum)) {
                 return -3;
             }
         } else {
-            if(Item.val.fnum != d) {
+            if(Item.val.dfnum != d) {
                 return -2;
             }
         }
