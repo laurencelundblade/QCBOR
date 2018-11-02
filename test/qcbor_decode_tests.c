@@ -454,7 +454,7 @@ static int CreateSimpleArray(int nInt1, int nInt2, uint8_t **pEncoded, size_t *p
    // calucate the length so buffer can be allocated correctly,
    // and last with the buffer to do the actual encoding
    do {
-       QCBOREncode_Init(&ECtx, (UsefulBuf){*pEncoded, *pEncodedLen});
+      QCBOREncode_Init(&ECtx, (UsefulBuf){*pEncoded, *pEncodedLen});
       QCBOREncode_OpenArray(&ECtx);
       QCBOREncode_AddInt64(&ECtx, nInt1);
       QCBOREncode_AddInt64(&ECtx, nInt2);
@@ -462,14 +462,16 @@ static int CreateSimpleArray(int nInt1, int nInt2, uint8_t **pEncoded, size_t *p
       QCBOREncode_AddBytes(&ECtx, ((UsefulBufC) {"haven token", 11}));
       QCBOREncode_CloseArray(&ECtx);
       
-      if(QCBOREncode_Finish(&ECtx, pEncodedLen))
+      UsefulBufC Encoded;
+      if(QCBOREncode_Finish(&ECtx, &Encoded))
          goto Done;
 
       if(*pEncoded != NULL) {
+         *pEncodedLen = Encoded.len;
          nReturn = 0;
          goto Done;
       }
-      *pEncoded = malloc(*pEncodedLen);
+      *pEncoded = malloc(Encoded.len);
       if(*pEncoded == NULL) {
          nReturn = -1;
          goto Done;

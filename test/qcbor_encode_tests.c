@@ -113,7 +113,7 @@ int BasicEncodeTest()
    QCBOREncode_CloseMap(&EC);
    
    UsefulBufC Encoded;
-   if(QCBOREncode_Finish2(&EC, &Encoded)) {
+   if(QCBOREncode_Finish(&EC, &Encoded)) {
       return -1;
    }
    
@@ -150,7 +150,7 @@ int BasicEncodeTest()
    QCBOREncode_CloseArray(&EC);
    
    UsefulBufC Encoded2;
-   if(QCBOREncode_Finish2(&EC, &Encoded2)) {
+   if(QCBOREncode_Finish(&EC, &Encoded2)) {
       return -5;
    }
     /*
@@ -629,7 +629,7 @@ int AllAddMethodsTest()
 
    UsefulBufC Enc;
    
-   if(QCBOREncode_Finish2(&ECtx, &Enc)) {
+   if(QCBOREncode_Finish(&ECtx, &Enc)) {
       nReturn = -1;
       goto Done;
    }
@@ -785,7 +785,7 @@ int IntegerValuesTest1()
    QCBOREncode_CloseArray(&ECtx);
    
    UsefulBufC Enc;
-   if(QCBOREncode_Finish2(&ECtx, &Enc)) {
+   if(QCBOREncode_Finish(&ECtx, &Enc)) {
       nReturn = -1;
    }
    
@@ -831,7 +831,7 @@ int SimpleValuesTest1()
    QCBOREncode_CloseArray(&ECtx);
    
    UsefulBufC ECBOR;
-   if(QCBOREncode_Finish2(&ECtx, &ECBOR)) {
+   if(QCBOREncode_Finish(&ECtx, &ECBOR)) {
       nReturn = -1;
    }
    
@@ -898,7 +898,7 @@ int EncodeDateTest()
 
    UsefulBufC ECBOR;
 
-   if(QCBOREncode_Finish2(&ECtx, &ECBOR)) {
+   if(QCBOREncode_Finish(&ECtx, &ECBOR)) {
       nReturn = -1;
    }
    
@@ -922,8 +922,8 @@ int ArrayNestingTest1()
    for(i = QCBOR_MAX_ARRAY_NESTING; i; i--) {
       QCBOREncode_CloseArray(&ECtx);
    }
-   size_t nEncodedLen;
-   if(QCBOREncode_Finish(&ECtx, &nEncodedLen)) {
+   UsefulBufC Encoded;
+   if(QCBOREncode_Finish(&ECtx, &Encoded)) {
       nReturn = -1;
    }
 
@@ -946,8 +946,8 @@ int ArrayNestingTest2()
       QCBOREncode_CloseArray(&ECtx);
    }
    
-   size_t nEncodedLen;
-   if(QCBOREncode_Finish(&ECtx, &nEncodedLen) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   UsefulBufC Encoded;
+   if(QCBOREncode_Finish(&ECtx, &Encoded) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
       nReturn = -1;
    }
    
@@ -969,8 +969,8 @@ int ArrayNestingTest3()
    for(i = QCBOR_MAX_ARRAY_NESTING+1 ; i; i--) {
       QCBOREncode_CloseArray(&ECtx);
    }
-   size_t nEncodedLen;
-   if(QCBOREncode_Finish(&ECtx, &nEncodedLen) != QCBOR_ERR_TOO_MANY_CLOSES) {
+   UsefulBufC Encoded;
+   if(QCBOREncode_Finish(&ECtx, &Encoded) != QCBOR_ERR_TOO_MANY_CLOSES) {
       nReturn = -1;
    }
    
@@ -1083,7 +1083,7 @@ int EncodeRawTest()
    
    UsefulBufC EncodedRawTest;
    
-   if(QCBOREncode_Finish2(&ECtx, &EncodedRawTest)) {
+   if(QCBOREncode_Finish(&ECtx, &EncodedRawTest)) {
       return -4;
    }
    
@@ -1125,8 +1125,7 @@ static int CreateMap(uint8_t **pEncoded, size_t *pEncodedLen)
       QCBOREncode_CloseMap(&ECtx);
       QCBOREncode_CloseMap(&ECtx);
       
-      
-      if(QCBOREncode_Finish(&ECtx, pEncodedLen))
+      if(QCBOREncode_FinishGetSize(&ECtx, pEncodedLen))
          goto Done;
       if(*pEncoded != NULL) {
          if(uFirstSizeEstimate != *pEncodedLen) {
@@ -1290,7 +1289,7 @@ static UsefulBufC FormatRTICResults(int nRResult, uint64_t time, const char *szT
    
    UsefulBufC Result;
    
-   QCBOREncode_Finish2(&ECtx, &Result);
+   QCBOREncode_Finish(&ECtx, &Result);
    
    return Result;
 }
@@ -1388,7 +1387,7 @@ int BstrWrapTest()
    QCBOREncode_CloseArray(&EC);
    
    UsefulBufC Encoded;
-   if(QCBOREncode_Finish2(&EC, &Encoded)) {
+   if(QCBOREncode_Finish(&EC, &Encoded)) {
       return -1;
    }
    
@@ -1421,14 +1420,14 @@ int BstrWrapErrorTest()
    QCBOREncode_CloseArray(&EC);
    
    UsefulBufC Encoded2;
-   if(QCBOREncode_Finish2(&EC, &Encoded2) != QCBOR_ERR_CLOSE_MISMATCH) {
+   if(QCBOREncode_Finish(&EC, &Encoded2) != QCBOR_ERR_CLOSE_MISMATCH) {
       return -1;
    }
    
    // ----------- test closing a bstrwrap when nothing is open ---------------------
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
-   if(QCBOREncode_Finish2(&EC, &Encoded2) != QCBOR_ERR_TOO_MANY_CLOSES) {
+   if(QCBOREncode_Finish(&EC, &Encoded2) != QCBOR_ERR_TOO_MANY_CLOSES) {
       return -2;
    }
    
@@ -1443,7 +1442,7 @@ int BstrWrapErrorTest()
       QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
    }
    
-   if(QCBOREncode_Finish2(&EC, &Encoded2) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   if(QCBOREncode_Finish(&EC, &Encoded2) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
       return -3;
    }
    
@@ -1667,7 +1666,7 @@ int BstrWrapNestTest()
    QCBOREncode_CloseArray(&EC);
    
    UsefulBufC Encoded;
-   if(QCBOREncode_Finish2(&EC, &Encoded)) {
+   if(QCBOREncode_Finish(&EC, &Encoded)) {
       return -1;
    }
    
@@ -1824,7 +1823,7 @@ int CoseSign1TBSTest()
    
    // Finish and check the results
    UsefulBufC COSE_Sign1;
-   if(QCBOREncode_Finish2(&EC, &COSE_Sign1)) {
+   if(QCBOREncode_Finish(&EC, &COSE_Sign1)) {
       return -2;
    }
    

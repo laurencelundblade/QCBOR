@@ -1579,38 +1579,6 @@ static inline void QCBOREncode_AddEncodedToMap_2(QCBOREncodeContext *pCtx, const
       QCBOREncode_AddEncodedToMap_2((pCtx), (szLabel), QCBOR_NO_INT_LABEL, (Encoded))
 
 
-
-/**
- Get the encoded CBOR and error status.
- 
- @param[in] pCtx  The context to finish encoding with.
- @param[out] uEncodedLen The length of the encoded or potentially encoded CBOR in bytes.
- 
- @return
- One of the CBOR error codes.
- 
- If this returns success QCBOR_SUCCESS the encoding was a success and
- the return length is correct and complete.
- 
- If no buffer was passed to QCBOR_Init(), then only the length was
- computed. If a buffer was passed, then the encoded CBOR is in the
- buffer.
- 
- If an error is returned, the buffer may have partially encoded
- incorrect CBOR in it and it should not be used. Likewise the length
- may be incorrect and should not be used.
- 
- Note that the error could have occurred in one of the many
- QCBOR_AddXXX calls long before QCBOREncode_Finish() was called. This
- error handling reduces the CBOR implementation size, but makes
- debugging harder.
- 
- */
-
-int QCBOREncode_Finish(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
-
-
-
 /**
  Get the encoded result.
  
@@ -1642,7 +1610,36 @@ int QCBOREncode_Finish(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
  
  */
 
-int QCBOREncode_Finish2(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
+int QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
+
+/**
+ Get the encoded CBOR and error status.
+ 
+ @param[in] pCtx  The context to finish encoding with.
+ @param[out] uEncodedLen The length of the encoded or potentially encoded CBOR in bytes.
+ 
+ @return
+ One of the CBOR error codes.
+ 
+ If this returns success QCBOR_SUCCESS the encoding was a success and
+ the return length is correct and complete.
+ 
+ If no buffer was passed to QCBOR_Init(), then only the length was
+ computed. If a buffer was passed, then the encoded CBOR is in the
+ buffer.
+ 
+ If an error is returned, the buffer may have partially encoded
+ incorrect CBOR in it and it should not be used. Likewise the length
+ may be incorrect and should not be used.
+ 
+ Note that the error could have occurred in one of the many
+ QCBOR_AddXXX calls long before QCBOREncode_Finish() was called. This
+ error handling reduces the CBOR implementation size, but makes
+ debugging harder.
+ 
+ */
+
+int QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
 
 
 

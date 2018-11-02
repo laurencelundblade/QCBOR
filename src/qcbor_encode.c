@@ -554,7 +554,7 @@ void QCBOREncode_AddDouble_2(QCBOREncodeContext *me, const char *szLabel, int64_
 /*
  Public functions to finish and get the encoded result. See header qcbor.h
  */
-int QCBOREncode_Finish2(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
+int QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
 {
    if(me->uError)
       goto Done;
@@ -581,11 +581,12 @@ Done:
    return me->uError;
 }
 
-int QCBOREncode_Finish(QCBOREncodeContext *me, size_t *puEncodedLen)
+
+int QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLen)
 {
    UsefulBufC Enc;
    
-   int nReturn = QCBOREncode_Finish2(me, &Enc);
+   int nReturn = QCBOREncode_Finish(me, &Enc);
    
    if(nReturn == QCBOR_SUCCESS) {
       *puEncodedLen = Enc.len;
