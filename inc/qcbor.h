@@ -528,90 +528,101 @@ struct _QCBORDecodeContext {
 #define QCBOR_MAX_CUSTOM_TAGS    16
 
 
+typedef enum {
+   /** The encode or decode completely correctly. */
+   QCBOR_SUCCESS = 0,
 
+   /** The buffer provided for the encoded output when doing encoding was
+       too small and the encoded output will not fit. Also, when the buffer
+       given to QCBORDecode_SetMemPool() is too small. */
+   QCBOR_ERR_BUFFER_TOO_SMALL,
 
-/** The encode or decode completely correctly. */
-#define QCBOR_SUCCESS                     0
+   /** During encoding or decoding, the array or map nesting was deeper than
+    this implementation can handle. Note that in the interest of code size
+    and memory use, this implementation has a hard limit on array nesting. The
+    limit is defined as the constant QCBOR_MAX_ARRAY_NESTING. */
+   QCBOR_ERR_ARRAY_NESTING_TOO_DEEP,
 
-/** The buffer provided for the encoded output when doing encoding was
- too small and the encoded output will not fit. */
-#define QCBOR_ERR_BUFFER_TOO_SMALL        1
+   /** During decoding or encoding, the array or map had too many items in it.
+       This limit QCBOR_MAX_ITEMS_IN_ARRAY, typically 65,535. */
+   QCBOR_ERR_ARRAY_TOO_LONG,
 
-/**  During encoding or decoding, the array or map nesting was deeper than this
- implementation can handle. Note that in the interest of code size and
- memory use, this implementation has a hard limit on array nesting. The
- limit is defined as the constant QCBOR_MAX_ARRAY_NESTING. */
-#define QCBOR_ERR_ARRAY_NESTING_TOO_DEEP  2
+   /** During encoding, more arrays or maps were closed than opened. This is a
+       coding error on the part of the caller of the encoder. */
+   QCBOR_ERR_TOO_MANY_CLOSES,
 
-/**  During decoding the array or map had too many items in it. This limit is quite
- high at 65,535. */
-#define QCBOR_ERR_ARRAY_TOO_LONG          3
+   /** During decoding, some CBOR construct was encountered that this decoder
+        doesn't support, primarily this is the reserved additional info values,
+        28 through 30. */
+   QCBOR_ERR_UNSUPPORTED,
 
-/**  During encoding, more arrays or maps were closed than opened. This is a
- coding error on the part of the caller of the encoder. */
-#define QCBOR_ERR_TOO_MANY_CLOSES         4
+   /** During decoding, hit the end of the given data to decode. For example,
+       a byte string of 100 bytes was expected, but the end of the input was
+       hit before finding those 100 bytes.  Corrupted CBOR input will often
+       result in this error. */
+   QCBOR_ERR_HIT_END,
 
-/**  During decoding, some CBOR construct was encountered that this decoder
- doesn't support. */
-#define QCBOR_ERR_UNSUPPORTED             5
+   /** During encoding, the length of the input buffer was too large. This might
+       happen on a 64-bit machine when a buffer larger than UINT32_MAX is passed.
+     */
+   QCBOR_ERR_BUFFER_TOO_LARGE,
 
-/**  During decoding, hit the end of the given data to decode. For example,
- a byte string of 100 bytes was expected, but the end of the input
- was hit before finding those 100 bytes.  Corrupted CBOR
- input will often result in this error. */
-#define QCBOR_ERR_HIT_END                 6
+   /** During decoding, an integer smaller than INT64_MIN was received (CBOR
+       can represent integers smaller than INT64_MIN, but C cannot). */
+   QCBOR_ERR_INT_OVERFLOW,
 
-/** The length of the input buffer was too large. This might happen
- on a 64-bit machine when a buffer larger than INT32_MAX is passed */
-#define QCBOR_ERR_BUFFER_TOO_LARGE        7
+   /** During decoding, the label for a map entry is bad. What causes this
+       error depends on the decoding mode. */
+   QCBOR_ERR_MAP_LABEL_TYPE,
 
-/** The simple value added for encoding (e.g. passed to QCBOR_AddSimple) was not valid */
-#define QCBOR_ERR_INVALID_SIMPLE          8
+   /** During encoding or decoding, the number of array or map opens was not
+       matched by the number of closes. */
+   QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN,
 
-/** During parsing, the integer received was larger than can be handled. This is
- most likely a large negative number as CBOR can represent large negative integers
- that C cannot */
-#define QCBOR_ERR_INT_OVERFLOW            9
+   /** During encoding, the simple value is not between CBOR_SIMPLEV_FALSE
+       and CBOR_SIMPLEV_UNDEF. */
+   QCBOR_ERR_BAD_SIMPLE,
 
-/** During parsing, the label for a map entry is bad. An array is used as a map label,
- in mode to accept strings only as labels and it is not a string... */
-#define QCBOR_ERR_MAP_LABEL_TYPE          10
+   /** During decoding, a date greater than +- 292 billion years from Jan 1
+       1970 encountered during parsing. */
+   QCBOR_ERR_DATE_OVERFLOW,
 
-/** The number of array or map opens was not matched by the number of closes */
-#define QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN 11
+   /** During decoding, the CBOR is not valid, primarily a simple type is encoded in
+      a prohibited way. */
+   QCBOR_ERR_INVALID_CBOR,
 
-/** The simple value is not between CBOR_SIMPLEV_FALSE and CBOR_SIMPLEV_UNDEF */
-#define QCBOR_ERR_BAD_SIMPLE              12 // todo combine with 8?
+   /** Optional tagging that doesn't make sense (an int is tagged as a
+       date string) or can't be handled. */
+   QCBOR_ERR_BAD_OPT_TAG,
 
-/** Date greater than +- 292 billion years from Jan 1 1970 encountered during parsing */
-#define QCBOR_ERR_DATE_OVERFLOW           13
+   /** Returned by QCBORDecode_Finish() if all the inputs bytes have not
+       been consumed. */
+   QCBOR_ERR_EXTRA_BYTES,
 
-/** The CBOR is not valid (a simple type is encoded wrong)  */
-#define QCBOR_ERR_INVALID_CBOR            14
+   /** During encoding, QCBOREncode_Close() call with a different type than
+       is currently open. */
+   QCBOR_ERR_CLOSE_MISMATCH,
 
-/** Optional tagging that doesn't make sense (an int is tagged as a date string) or can't be handled. */
-#define QCBOR_ERR_BAD_OPT_TAG             15
+   /** Unable to decode an indefinite length string because no string
+       allocator was configured. */
+   QCBOR_ERR_NO_STRING_ALLOCATOR,
 
-/** Returned by QCBORDecode_Finish() if all the inputs bytes have not been consumed */
-#define QCBOR_ERR_EXTRA_BYTES             16
+   /** One of the chunks in an indefinite length string is not of the type of
+       the string. */
+   QCBOR_ERR_INDEFINITE_STRING_CHUNK,
 
-/** Closing something different than is open */
-#define QCBOR_ERR_CLOSE_MISMATCH          17
+   /** Error allocating space for a string, usually for an indefinite length
+       string. */
+   QCBOR_ERR_STRING_ALLOCATE,
 
-/** Unable to decode an indefinitely length string because no string allocator was configured */
-#define QCBOR_ERR_NO_STRING_ALLOCATOR     18
+   /** During decoding, a break occurred outside an indefinite length item. */
+   QCBOR_ERR_BAD_BREAK,
 
-/** One of the segments in an indefinite length string is of the wrong type */
-#define QCBOR_ERR_INDEFINITE_STRING_SEG   19
-
-/** Error allocating space for a string, usually for an indefinite length string */
-#define QCBOR_ERR_STRING_ALLOC            20
-
-/** The a break occurred outside an indefinite length item */
-#define QCBOR_ERR_BAD_BREAK               21
-
-/** Too many tags in the caller-configured tag list, or not enough space in QCBORTagListOut */
-#define QCBOR_ERR_TOO_MANY_TAGS           22
+   /** During decoding, too many tags in the caller-configured tag list, or not
+       enough space in QCBORTagListOut. */
+   QCBOR_ERR_TOO_MANY_TAGS
+   
+} QCBORError;
 
 
 /** See QCBORDecode_Init() */
@@ -1610,7 +1621,7 @@ static inline void QCBOREncode_AddEncodedToMap_2(QCBOREncodeContext *pCtx, const
  
  */
 
-int QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
+QCBORError QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
 
 /**
  Get the encoded CBOR and error status.
@@ -1639,7 +1650,7 @@ int QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
  
  */
 
-int QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
+QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
 
 
 
@@ -1723,7 +1734,7 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t n
  holding the encoded CBOR does not need to remain valid.
  
  */
-int QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAllStrings);
+QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAllStrings);
 
 
 /**
@@ -1786,7 +1797,18 @@ QCBORStringAllocator *QCBORDecode_MakeMallocStringAllocator(void);
  @param[in]  pCtx          The decoder context.
  @param[out] pDecodedItem  Holds the CBOR item just decoded.
  
- @return 0 or error.
+ @return 0 or error. All errors except QCBOR_ERR_TOO_MANY_TAGS
+ and QCBOR_ERR_STRING_ALLOCATE indicate that the CBOR input
+ could not be decoded. In most cases
+ this is because the CBOR is invalid. In a few cases
+ (QCBOR_ERR_ARRAY_NESTING_TOO_DEEP, QCBOR_ERR_INT_OVERFLOW,
+ QCBOR_ERR_DATE_OVERFLOW) it is because the CBOR is beyond
+ the limits of what this implementation can handle.
+ QCBOR_ERR_NO_STRING_ALLOCATOR indicates CBOR that cannot
+ be handled unless a string allocator is configured.
+ QCBOR_ERR_MAP_LABEL_TYPE is in a way a limitation of
+ this implementation, but can be avoided by decoding
+ in QCBOR_DECODE_MODE_MAP_AS_ARRAY mode.
  
  pDecodedItem is filled in with the value parsed. Generally, the
  folloinwg data is returned in the structure.
@@ -1889,7 +1911,7 @@ QCBORStringAllocator *QCBORDecode_MakeMallocStringAllocator(void);
  
  */
 
-int QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
+QCBORError QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
@@ -1920,7 +1942,7 @@ int QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  
  */
 
-int QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
+QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
 
 
 /**
@@ -1969,7 +1991,7 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint6
 
  */
 
-int QCBORDecode_Finish(QCBORDecodeContext *pCtx);
+QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 
 
 

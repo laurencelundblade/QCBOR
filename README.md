@@ -33,7 +33,7 @@ is pretty good.
 ## Building
 There is a simple makefile for the UNIX style command line binary that compiles everything to run the tests.
 
-The actual non-test source files are these seven:
+The actual non-test source files are these eight:
 * inc/UsefulBuf.h
 * inc/qcbor.h
 * src/UsefulBuf.c

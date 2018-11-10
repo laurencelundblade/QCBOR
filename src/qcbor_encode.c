@@ -84,9 +84,9 @@ inline static void Nesting_Init(QCBORTrackNesting *pNesting)
    pNesting->pCurrentNesting->uMajorType = CBOR_MAJOR_TYPE_ARRAY;
 }
 
-inline static int Nesting_Increase(QCBORTrackNesting *pNesting, uint8_t uMajorType, uint32_t uPos)
+inline static QCBORError Nesting_Increase(QCBORTrackNesting *pNesting, uint8_t uMajorType, uint32_t uPos)
 {
-   int nReturn = QCBOR_SUCCESS;
+   QCBORError nReturn = QCBOR_SUCCESS;
    
    if(pNesting->pCurrentNesting == &pNesting->pArrays[QCBOR_MAX_ARRAY_NESTING]) {
       // trying to open one too many
@@ -105,7 +105,7 @@ inline static void Nesting_Decrease(QCBORTrackNesting *pNesting)
    pNesting->pCurrentNesting--;
 }
 
-inline static int Nesting_Increment(QCBORTrackNesting *pNesting, uint16_t uAmount)
+inline static QCBORError Nesting_Increment(QCBORTrackNesting *pNesting, uint16_t uAmount)
 {
    if(uAmount >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
       return QCBOR_ERR_ARRAY_TOO_LONG;
@@ -554,7 +554,7 @@ void QCBOREncode_AddDouble_2(QCBOREncodeContext *me, const char *szLabel, int64_
 /*
  Public functions to finish and get the encoded result. See header qcbor.h
  */
-int QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
+QCBORError QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
 {
    if(me->uError)
       goto Done;
@@ -582,11 +582,11 @@ Done:
 }
 
 
-int QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLen)
+QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLen)
 {
    UsefulBufC Enc;
    
-   int nReturn = QCBOREncode_Finish(me, &Enc);
+   QCBORError nReturn = QCBOREncode_Finish(me, &Enc);
    
    if(nReturn == QCBOR_SUCCESS) {
       *puEncodedLen = Enc.len;

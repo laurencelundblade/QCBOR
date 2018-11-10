@@ -2276,7 +2276,7 @@ int IndefiniteLengthStringTest()
       return -9;
    }
    
-   if(QCBORDecode_GetNext(&DC, &Item) != QCBOR_ERR_INDEFINITE_STRING_SEG) {
+   if(QCBORDecode_GetNext(&DC, &Item) != QCBOR_ERR_INDEFINITE_STRING_CHUNK) {
       return -10;
    }
 
@@ -2294,7 +2294,7 @@ int IndefiniteLengthStringTest()
       return -13;
    }
    
-   if(QCBORDecode_GetNext(&DC, &Item) != QCBOR_ERR_INDEFINITE_STRING_SEG) {
+   if(QCBORDecode_GetNext(&DC, &Item) != QCBOR_ERR_INDEFINITE_STRING_CHUNK) {
       return -14;
    }
 
@@ -2351,7 +2351,7 @@ int IndefiniteLengthStringTest()
    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
       return -23;
    }
-   if(QCBORDecode_GetNext(&DC, &Item) != QCBOR_ERR_STRING_ALLOC) {
+   if(QCBORDecode_GetNext(&DC, &Item) != QCBOR_ERR_STRING_ALLOCATE) {
       return -24;
    }
    
@@ -2492,7 +2492,7 @@ int AllocAllStringsTest()
          }
       }
    }
-   if(nCBORError != QCBOR_ERR_STRING_ALLOC) {
+   if(nCBORError != QCBOR_ERR_STRING_ALLOCATE) {
       return -5;
    }
 
