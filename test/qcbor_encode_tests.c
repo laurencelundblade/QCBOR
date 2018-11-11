@@ -1637,26 +1637,28 @@ int BstrWrapNestTest()
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    
    // ---- Make a complicated nested CBOR structure ---
-   QCBOREncode_OpenArray(&EC);
+#define BSTR_TEST_DEPTH 10
    
-   for(int i = 0; i < QCBOR_MAX_ARRAY_NESTING-2; i++) {
+   QCBOREncode_OpenArray(&EC);
+
+   for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
       QCBOREncode_BstrWrap(&EC);
       QCBOREncode_AddUInt64(&EC, i);
    }
    
-   for(int i = 0; i < QCBOR_MAX_ARRAY_NESTING-2; i++) {
+   for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
       QCBOREncode_CloseBstrWrap(&EC, NULL);
       QCBOREncode_AddUInt64(&EC, i);
    }
    
-   for(int i = 0; i < (QCBOR_MAX_ARRAY_NESTING-2)/3; i++) {
+   for(int i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
       QCBOREncode_OpenMap(&EC);
       QCBOREncode_BstrWrapMapN(&EC, i+0x20);
       QCBOREncode_OpenArray(&EC);
       QCBOREncode_AddUInt64(&EC, i+0x10);
    }
    
-   for(int i = 0; i < (QCBOR_MAX_ARRAY_NESTING-2)/3; i++) {
+   for(int i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
       QCBOREncode_CloseArray(&EC);
       QCBOREncode_AddUInt64(&EC, i+0x30);
       QCBOREncode_CloseBstrWrap(&EC, NULL);

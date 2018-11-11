@@ -78,7 +78,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  that is public. This is done this way so there can be a nice
  separation of public and private parts in this file.
 */
-#define QCBOR_MAX_ARRAY_NESTING1 10 // Do not increase this over 255
+#define QCBOR_MAX_ARRAY_NESTING1 15 // Do not increase this over 255
 
 
 /*  
@@ -91,8 +91,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  struct down so it can be on the stack without any concern.  It would be about
  double if size_t was used instead.
  
- 64-bit machine: 10 * (4 + 2 + 1 + 1) + 8 = 88 bytes
- 32-bit machine: 10 * (4 + 2 + 1 + 1) + 4 = 84 bytes
+ Size approximation (varies with CPU/compiler):
+    64-bit machine: (15 + 1) * (4 + 2 + 1 + 1 pad) + 8 = 136 bytes
+    32-bit machine: (15 + 1) * (4 + 2 + 1 + 1 pad) + 4 = 132 bytes
 */
 typedef struct __QCBORTrackNesting {
    // PRIVATE DATA STRUCTURE
@@ -112,8 +113,9 @@ typedef struct __QCBORTrackNesting {
  Context / data object for encoding some CBOR. Used by all encode functions to 
  form a public "object" that does the job of encdoing.
  
- 64-bit machine: 27 + 1 (+ 4 padding) + 88 = 32+88 = 120 bytes
- 32-bit machine: 15 + 1 + 84 = 90 bytes
+ Size approximation (varies with CPU/compiler):
+   64-bit machine: 27 + 1 (+ 4 padding) + 136 = 32 + 136 = 168 bytes
+   32-bit machine: 15 + 1 + 132 = 148 bytes
 */
 struct _QCBOREncodeContext {
    // PRIVATE DATA STRUCTURE
@@ -131,8 +133,8 @@ struct _QCBOREncodeContext {
  for arrays and maps.
  
  Size approximation (varies with CPU/compiler):
-   64-bit machine: 4 * 10 + 8 + 4 padding =  56
-   32-bit machine: 4 * 10 + 4 = 44
+   64-bit machine: 4 * 16 + 8 = 72
+   32-bit machine: 4 * 16 + 4 = 68
  */
 typedef struct __QCBORDecodeNesting  {
   // PRIVATE DATA STRUCTURE
@@ -151,8 +153,8 @@ typedef struct __QCBORDecodeNesting  {
  functions form an "object" that does CBOR decoding.
 
  Size approximation (varies with CPU/compiler):
-   64-bit machine: 32 + 1 + 1 + 6 bytes padding + 56 + 8 = 104 bytes
-   32-bit machine: 16 + 1 + 1 + 2 bytes padding + 44 + 4 = 68 bytes
+   64-bit machine: 32 + 1 + 1 + 6 bytes padding + 72 + 16 = 128 bytes
+   32-bit machine: 16 + 1 + 1 + 2 bytes padding + 68 + 8  = 68 bytes
  */
 struct _QCBORDecodeContext {
    // PRIVATE DATA STRUCTURE   

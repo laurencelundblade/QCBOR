@@ -611,8 +611,11 @@ int ParseDeepArrayTest()
    return(nReturn);
 }
 
-
-static uint8_t spTooDeepArrays[] = {0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x80};
+// Big enough to test nesting to the depth of 24
+static uint8_t spTooDeepArrays[] = {0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
+                                    0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
+                                    0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
+                                    0x80};
 
 int ParseTooDeepArrayTest()
 {
@@ -624,7 +627,7 @@ int ParseTooDeepArrayTest()
    
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooDeepArrays), QCBOR_DECODE_MODE_NORMAL);
    
-   for(i = 0; i < 10; i++) {
+   for(i = 0; i < QCBOR_MAX_ARRAY_NESTING1; i++) {
       
       if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
          Item.uDataType != QCBOR_TYPE_ARRAY ||

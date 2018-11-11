@@ -57,7 +57,7 @@ test/float_tests.o:	inc/qcbor.h inc/UsefulBuf.h test/float_tests.h test/half_to_
 test/half_to_double_from_rfc7049.o:	test/half_to_double_from_rfc7049.h
 test/qcbor_decode_malloc_test.o:	test/qcbor_decode_malloc_tests.h
 
-cmd_line_main.o:	test/run_tests.h
+cmd_line_main.o:	test/run_tests.h inc/qcbor.h
 
 min_use_main.o:		inc/qcbor.h inc/UsefulBuf.h
 
