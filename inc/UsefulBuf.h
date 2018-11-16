@@ -86,12 +86,11 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  coding errors and simple memory corruption. They are helpful, but not a
  substitute for proper code review, input validation and such.
 
- This code has a lot of simple small functions to hopefully create clarity
- about what it does so it is easier to review. UsefulOutBuf and UsefulInputBuf
- are also objects in a form (a largely private data structure and accessor 
- functions). This code will benefit enormously from aggressive optimization
- such as the -Os or -O3 options.
- 
+ This code consists of a lot of inline functions and a few that are not.
+ It should not generate very much object code, especially with the
+ optimizer turned up to -Os or -O3. The idea is that the inline
+ functions are easier to review and understand and the optimizer does
+ the work of making the code small.
  */
 
 
@@ -124,8 +123,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  
  A UsefulBuf is NULL, it has no value, when the ptr in it is NULL.
  
- There are a few utility functions and macros associated with
- UsefulBuf including the equivalent of memxxx() functions.
+ There are utility functions for the following:
+  - Checking for UsefulBufs that are NULL, empty or both
+  - Copying, copying with offset, copying head or tail
+  - Comparing and finding substrings
+  - Initializating
+  - Create initialized const UsefulBufC from compiler literals
+  - Create initialized const UsefulBufC from NULL-terminated string
+  - Make an empty UsefulBuf on the stack
  
  See also UsefulOutBuf. It is a richer structure that has both the size of
  the valid data and the size of the buffer.
