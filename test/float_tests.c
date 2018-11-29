@@ -316,6 +316,10 @@ int DoubleAsSmallestTest()
 {
     UsefulBuf_MAKE_STACK_UB(EncodedHalfsMem, 420);
     
+#define QCBOREncode_AddDoubleAsSmallestToMap QCBOREncode_AddDoubleToMap
+#define QCBOREncode_AddDoubleAsSmallestToMapN QCBOREncode_AddDoubleToMapN
+
+    
     QCBOREncodeContext EC;
     QCBOREncode_Init(&EC, EncodedHalfsMem);
     // These are mostly from https://en.wikipedia.org/wiki/Half-precision_floating-point_format
