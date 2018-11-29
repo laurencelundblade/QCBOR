@@ -86,19 +86,20 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  coding errors and simple memory corruption. They are helpful, but not a
  substitute for proper code review, input validation and such.
 
- This code has a lot of simple small functions to hopefully create clarity
- about what it does so it is easier to review. UsefulOutBuf and UsefulInputBuf
- are also objects in a form (a largely private data structure and accessor 
- functions). This code will benefit enormously from aggressive optimization
- such as the -Os or -O3 options.
- 
+ This code consists of a lot of inline functions and a few that are not.
+ It should not generate very much object code, especially with the
+ optimizer turned up to -Os or -O3. The idea is that the inline
+ functions are easier to review and understand and the optimizer does
+ the work of making the code small.
  */
 
 
+/*...... This is a ruler that is 80 characters long...........................*/
+
 /**
- UsefulBufC and UsefulBuf are simple data structures to hold a pointer and length for
- a binary data.  In C99 this data structure can be passed on the stack
- making a lot of code cleaner than carrying around a pointer and
+ UsefulBufC and UsefulBuf are simple data structures to hold a pointer and
+ length for a binary data.  In C99 this data structure can be passed on the
+ stack making a lot of code cleaner than carrying around a pointer and
  length as two parameters.
  
  This is also conducive to secure code practice as the lengths are
@@ -107,35 +108,38 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  
  While it might be possible to write buffer and pointer code more
  efficiently in some use cases, the thought is that unless there is an
- extreme need for performance (e.g. you are building a
- gigabit-per-second IP router), it is probably better to have cleaner
- code you can be most certain about the security of.
+ extreme need for performance (e.g., you are building a gigabit-per-second
+ IP router), it is probably better to have cleaner code you can be most
+ certain about the security of.
  
- The non-const UsefulBuf is usually used to refer a buffer
- to be filled in. The length is the size of the buffer.
+ The non-const UsefulBuf is usually used to refer a buffer to be filled in.
+ The length is the size of the buffer.
  
- The const UsefulBufC is usually used to refer to some
- data that has been filled in. The length is amount
- of valid data pointed to.
+ The const UsefulBufC is usually used to refer to some data that has been
+ filled in. The length is amount of valid data pointed to.
  
- A common use is to pass a UsefulBuf to a function, the function
- fills it in, the function returns a UsefulBufC. The pointer
- is the same in both.
+ A common use is to pass a UsefulBuf to a function, the function fills it
+ in, the function returns a UsefulBufC. The pointer is the same in both.
  
  A UsefulBuf is NULL, it has no value, when the ptr in it is NULL.
  
- There are only a few utility functions and macros associated with 
- UsefulBuf including the equivalent of memxxx() functions.
+ There are utility functions for the following:
+  - Checking for UsefulBufs that are NULL, empty or both
+  - Copying, copying with offset, copying head or tail
+  - Comparing and finding substrings
+  - Initializating
+  - Create initialized const UsefulBufC from compiler literals
+  - Create initialized const UsefulBufC from NULL-terminated string
+  - Make an empty UsefulBuf on the stack
  
- See also UsefulOutBuf. It is a richer structure that has both the
- size of the valid data and the size of the buffer.
+ See also UsefulOutBuf. It is a richer structure that has both the size of
+ the valid data and the size of the buffer.
  
- UsefulBufC is only 16 or 8 bytes on a 64- or 32-bit machine so it can go on the
- stack and be a function parameter or return value.
+ UsefulBuf is only 16 or 8 bytes on a 64- or 32-bit machine so it can go
+ on the stack and be a function parameter or return value.
  
- UsefulBuf is kind of like the Useful Pot Pooh gave Eeyore on his
- birthday. Eeyore's balloon fits beautifully, "it goes in and out like
- anything".
+ UsefulBuf is kind of like the Useful Pot Pooh gave Eeyore on his birthday.
+ Eeyore's balloon fits beautifully, "it goes in and out like anything".
  
 */
 typedef struct {
