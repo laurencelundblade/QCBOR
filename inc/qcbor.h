@@ -2064,17 +2064,20 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType, U
  @brief  Semi-private method to add simple types.
  
  @param[in] pCtx      The encoding context to add the simple value to.
- @param[in] uSimple   One of CBOR_SIMPLEV_FALSE through _UNDEF
+ @param[in] uSize     Minimum encoding size for uNum. Usually 0.
+ @param[in] uNum      One of CBOR_SIMPLEV_FALSE through _UNDEF or other.
  
- CBOR defines encoding for special values "true", "false", "null" and "undef". This
- function can add these values.
+ This is used to add simple types like true and false.
  
- This function can add simple values that are not defined by CBOR yet. These expansion
+ Call QCBOREncode_AddBool(), QCBOREncode_AddNULL(), QCBOREncode_AddUndef()
+ instead of this.
+ 
+ This function can add simple values that are not defined by CBOR yet. This expansion
  point in CBOR should not be used unless they are standardized.
  
  Error handling is the same as QCBOREncode_AddInt64().
  */
-void QCBOREncode_AddSimple(QCBOREncodeContext *pCtx, uint8_t uSimple);
+void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, size_t uSize, uint64_t uNum);
 
 
 static void inline QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum)
@@ -2380,6 +2383,11 @@ static inline void QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx, int
    QCBOREncode_AddSZString(pCtx, szDate);
 }
 
+
+static inline void QCBOREncode_AddSimple(QCBOREncodeContext *pCtx, uint64_t uNum)
+{
+   QCBOREncode_AddType7(pCtx, 0, uNum);
+}
 
 static inline void QCBOREncode_AddSimpleToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint8_t uSimple)
 {

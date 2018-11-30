@@ -311,29 +311,6 @@ inline static void AppendEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uM
 }
 
 
-/*
- Internal function for adding floating point and simple
- types to the encoded output.
- */
-static void AppendType7(QCBOREncodeContext *me, size_t uSize, uint64_t uNum)
-{
-   if(me->uError == QCBOR_SUCCESS) {
-      // This function call takes care of endian swapping for the float / double
-      InsertEncodedTypeAndNumber(me,
-                                 CBOR_MAJOR_TYPE_SIMPLE,  // The major type for
-                                 // floats and doubles
-                                 uSize,                   // min size / tells
-                                 // encoder to do it right
-                                 uNum,                    // Bytes of the floating
-                                 // point number as a uint
-                                 UsefulOutBuf_GetEndPosition(&(me->OutBuf))); // end position for append
-      
-      me->uError = Nesting_Increment(&(me->nesting), 1);
-   }
-}
-
-
-
 
 /*
  Public functions for closing arrays and maps. See header qcbor.h
@@ -420,12 +397,29 @@ void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
 }
 
 
+
+
 /*
- Public functions for closing arrays and maps. See header qcbor.h
+ Semi-private function. It is exposed to user of the interface,
+ but they will usually call one of the inline wrappers rather than this.
+ 
+ See header qcbor.h
  */
-void QCBOREncode_AddSimple(QCBOREncodeContext *pCtx, uint8_t uSimple)
+void QCBOREncode_AddType7(QCBOREncodeContext *me, size_t uSize, uint64_t uNum)
 {
-   AppendType7(pCtx, 0, uSimple);
+   if(me->uError == QCBOR_SUCCESS) {
+      // This function call takes care of endian swapping for the float / double
+      InsertEncodedTypeAndNumber(me,
+                                 CBOR_MAJOR_TYPE_SIMPLE,  // The major type for
+                                 // floats and doubles
+                                 uSize,                   // min size / tells
+                                 // encoder to do it right
+                                 uNum,                    // Bytes of the floating
+                                 // point number as a uint
+                                 UsefulOutBuf_GetEndPosition(&(me->OutBuf))); // end position for append
+      
+      me->uError = Nesting_Increment(&(me->nesting), 1);
+   }
 }
 
 
@@ -436,7 +430,7 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 {
    const IEEE754_union uNum = IEEE754_DoubleToSmallest(dNum);
    
-   AppendType7(me, uNum.uSize, uNum.uValue);
+   QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
 }
 
 
