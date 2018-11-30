@@ -646,7 +646,7 @@ typedef enum {
 #define QCBOR_TYPE_UINT64         3
 /** Type for an array. The number of items in the array is in val.uCount. */
 #define QCBOR_TYPE_ARRAY          4
-/** Type for a map; number of items in map is in val.uCount */ // todo note how map decoding works
+/** Type for a map; number of items in map is in val.uCount */
 #define QCBOR_TYPE_MAP            5
 /** Type for a buffer full of bytes. Data is in val.string. */
 #define QCBOR_TYPE_BYTE_STRING    6
@@ -696,7 +696,7 @@ typedef struct _QCBORItem {
    uint8_t  uDataType;     /** Tells what element of the val union to use. One of QCBOR_TYPE_XXXX */
    uint8_t  uNestingLevel; /** How deep the nesting from arrays and maps are. 0 is the top level with no arrays or maps entered */
    uint8_t  uLabelType;    /** Tells what element of the label union to use */
-   uint8_t  uDataAlloc;    /** 1 if allocated with string allocator, 0 if not. See xxx TODO: more work; also exceeds padding size on 32-bit machine*/
+   uint8_t  uDataAlloc;    /** 1 if allocated with string allocator, 0 if not. See QCBORDecode_MakeMallocStringAllocator() */
    uint8_t  uLabelAlloc;   /** Like uDataAlloc, but for label */
    uint8_t  uNextNestLevel; /** If not equal to uNestingLevel, this item closed out at least one map/array */
    
@@ -705,7 +705,8 @@ typedef struct _QCBORItem {
       uint64_t    uint64;     /** The value for uDataType QCBOR_TYPE_UINT64 */
 
       UsefulBufC  string;     /** The value for uDataType QCBOR_TYPE_BYTE_STRING and QCBOR_TYPE_TEXT_STRING */
-      uint16_t    uCount;     /** The "value" for uDataType QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP -- the number of items in the array or map */
+      uint16_t    uCount;     /** The "value" for uDataType QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP -- the number of items in the array or map
+                                  UINT16_MAX when decoding indefinite lengths maps and arrays. */
       double      dfnum;      /** The value for uDataType QCBOR_TYPE_DOUBLE */
       struct {
          int64_t  nSeconds;
@@ -1689,7 +1690,8 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  
  If you do set up this malloc-based string allocator, then
  every string marked as allocated in a QCBORItem must
- freed.
+ freed. They are marked by uDataAlloc and uLabelAlloc
+ in QCBORItem
  */
 QCBORStringAllocator *QCBORDecode_MakeMallocStringAllocator(void);
 
@@ -1736,13 +1738,12 @@ QCBORStringAllocator *QCBORDecode_MakeMallocStringAllocator(void);
  
  This function also handles arrays and maps. When first encountered a
  QCBORItem will be returned with major type CBOR_MAJOR_TYPE_ARRAY or
- CBOR_MAJOR_TYPE_ARRAY_MAP. QCBORItem.nCount will indicate the number
- if Items in the array or map.  Typically an implementation will call
- QCBORDecode_GetNext() in a for loop to fetch them all.
- 
- Note that when traversing maps, the count is the number of pairs of
- items, so the for loop would decrement once for every two calls to
- QCBORDecode_GetNext().
+ CBOR_MAJOR_TYPE_ARRAY_MAP. QCBORItem.val.uCount will indicate the number
+ of Items in the array or map.  Typically, an implementation will call
+ QCBORDecode_GetNext() in a for loop to fetch them all. When decoding
+ indefinite length maps and arrays, QCBORItem.val.uCount is UINT16_MAX
+ and uNextNestLevel must be used to know when the end of a map
+ or array is reached.
  
  Nesting level 0 is the outside top-most nesting level. For example in
  a CBOR structure with two items, an integer and a byte string only,
