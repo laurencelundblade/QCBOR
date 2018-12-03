@@ -2411,9 +2411,9 @@ static inline void QCBOREncode_AddSimpleToMapN(QCBOREncodeContext *pCtx, int nLa
 
 static inline void QCBOREncode_AddBool(QCBOREncodeContext *pCtx, bool b)
 {
-   uint8_t uSimple = CBOR_SIMPLE_BREAK; // CBOR_SIMPLE_BREAK is invalid here. The point is to cause an error later
-   if(b == true || b == false) { // TODO: test this with hostile values of b
-      uSimple = CBOR_SIMPLEV_FALSE + b;
+   uint8_t uSimple = CBOR_SIMPLEV_FALSE;
+   if(b) {
+      uSimple = CBOR_SIMPLEV_TRUE;
    }
    QCBOREncode_AddSimple(pCtx, uSimple);
 }
