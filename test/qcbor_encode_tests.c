@@ -828,7 +828,7 @@ int SimpleValuesTest1()
    
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenArray(&ECtx);
-   
+
    QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_TRUE);
    QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_FALSE);
    QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_NULL);
@@ -1808,7 +1808,7 @@ int CoseSign1TBSTest()
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    
    // top level array for cose sign1, 18 is the tag for COSE sign
-   QCBOREncode_AddTag(&EC, 18); // TODO: replace with constant
+   QCBOREncode_AddTag(&EC, CBOR_TAG_COSE_SIGN1);
    QCBOREncode_OpenArray(&EC);
    
    // Add protected headers
