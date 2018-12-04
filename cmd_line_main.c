@@ -43,16 +43,28 @@ int fputs_wrapper(const char *szString, void *ctx)
 }
 
 
+static void PrintSize(const char *szWhat, uint32_t uSize)
+{
+    UsefulBuf_MAKE_STACK_UB(foo, 20);
+    
+    fputs_wrapper(szWhat, stdout);
+    fputs_wrapper(" ", stdout);
+    fputs_wrapper(NumToString(uSize,foo), stdout);
+    fputs_wrapper("\n", stdout);
+}
+
+
 int main(int argc, const char * argv[])
 {
     // Type and size of return from sizeof() varies. These will never be large so cast is safe
-    // TODO: use fputs_wrapper to output these
-    printf("sizeof(QCBORTrackNesting) %d\n", (uint32_t)sizeof(QCBORTrackNesting));
-    printf("sizeof(QCBOREncodeContext) %d\n", (uint32_t)sizeof(QCBOREncodeContext));
-    printf("sizeof(QCBORDecodeContext) %d\n", (uint32_t)sizeof(QCBORDecodeContext));
-    printf("sizeof(QCBORDecodeNesting) %d\n", (uint32_t)sizeof(QCBORDecodeNesting));
-    printf("sizeof(QCBORItem) %d\n", (uint32_t)sizeof(QCBORItem));
-    printf("sizeof(QCBORStringAllocator) %d\n\n", (uint32_t)sizeof(QCBORStringAllocator));
+    PrintSize("sizeof(QCBORTrackNesting)", (uint32_t)sizeof(QCBORTrackNesting));
+    PrintSize("sizeof(QCBORTrackNesting)", (uint32_t)sizeof(QCBORTrackNesting));
+    PrintSize("sizeof(QCBOREncodeContext)", (uint32_t)sizeof(QCBOREncodeContext));
+    PrintSize("sizeof(QCBORDecodeContext)", (uint32_t)sizeof(QCBORDecodeContext));
+    PrintSize("sizeof(QCBORDecodeNesting)", (uint32_t)sizeof(QCBORDecodeNesting));
+    PrintSize("sizeof(QCBORItem)", (uint32_t)sizeof(QCBORItem));
+    PrintSize("sizeof(QCBORStringAllocator)", (uint32_t)sizeof(QCBORStringAllocator));
+    fputs_wrapper("\n", stdout);
 
     int nNumTestsFailed = 0;
     

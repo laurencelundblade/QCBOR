@@ -34,3 +34,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef int (*outputstring)(const char *szString, void *ctx);
 
 int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *pNumTestsRun);
+
+
+#include <stdint.h>
+#include "UsefulBuf.h"
+
+const char *NumToString(int32_t nNum, UsefulBuf StringMem);
+
