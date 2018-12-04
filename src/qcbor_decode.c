@@ -1164,16 +1164,6 @@ Done:
 
 
 
-/*
- 
- Use the 64-bit map. 48 8-bit tags built in, 1 16 bit tag, 15 64-bit tags can be assigned as of interest
- 
- There is a tag map.
-
- 
- */
-
-
 /* 
  
 Decoder errors handled in this file
@@ -1200,33 +1190,46 @@ Decoder errors handled in this file
 
 
 
+
+/*
+ This is a very primitive memory allocator. It does not track individual
+ allocations, only a high-water mark. A free or reallotcation must be of
+ the last chunk allocated.
+ 
+ All of this following code will get dead-stripped if QCBORDecode_SetMemPool()
+ is not called.
+ */
+
 typedef struct {
    QCBORStringAllocator  StringAllocator;
-   uint8_t              *pStart;
-   uint8_t              *pEnd;
-   uint8_t              *pFree;
+   uint8_t              *pStart;  // First byte that can be allocated
+   uint8_t              *pEnd;    // One past the last byte that can be allocated
+   uint8_t              *pFree;   // Where the next free chunk is
 } MemPool;
 
 
 /*
+ Internal function for an allocation
+ 
  Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
 static UsefulBuf MemPool_Alloc(void *ctx, void *pMem, size_t uNewSize)
 {
-   MemPool *me = (MemPool *)ctx;
-   void *pReturn = NULL;
+   MemPool *me      = (MemPool *)ctx;
+   void    *pReturn = NULL;
    
    if(pMem) {
       // Realloc case
-      // TODO: review this pointer math
-      if((uint8_t *)pMem + uNewSize <= me->pEnd) {//} && (uint8_t *)pMem > me->pStart) {
+      // This check will work even if uNewSize is a super-large value like UINT64_MAX
+      if((uNewSize <= (size_t)(me->pEnd - (uint8_t *)pMem)) && ((uint8_t *)pMem >= me->pStart)) {
          me->pFree = (uint8_t *)pMem + uNewSize;
-         pReturn = pMem;
+         pReturn   = pMem;
       }
    } else {
       // New chunk case
-      if(me->pFree + uNewSize <= me->pEnd) {
-         pReturn = me->pFree;
+      // This check will work even if uNewSize is a super large value like UINT64_MAX
+      if(uNewSize <= (size_t)(me->pEnd - me->pFree)) {
+         pReturn    = me->pFree;
          me->pFree += uNewSize;
       }
    }
@@ -1234,34 +1237,61 @@ static UsefulBuf MemPool_Alloc(void *ctx, void *pMem, size_t uNewSize)
    return (UsefulBuf){pReturn, uNewSize};
 }
 
-
+/*
+ Internal function to free memory
+ */
 static void MemPool_Free(void *ctx, void *pOldMem)
 {
    MemPool *me = (MemPool *)ctx;
-   me->pFree = pOldMem;
+   me->pFree   = pOldMem;
 }
 
-
+/*
+ Public function, see header qcbor.h file
+ */
 QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *me, UsefulBuf Pool, bool bAllStrings)
 {
+   // The first bytes of the Pool passed in are used
+   // as the context (vtable of sorts) for the memory pool
+   // allocator.
    if(Pool.len < sizeof(MemPool)+1) {
       return QCBOR_ERR_BUFFER_TOO_SMALL;
    }
    
    MemPool *pMP = (MemPool *)Pool.ptr;
    
+   // Fill in the "vtable"
    pMP->StringAllocator.fAllocate   = MemPool_Alloc;
    pMP->StringAllocator.fFree       = MemPool_Free;
    pMP->StringAllocator.fDestructor = NULL;
    
+   // Set up the pointers to the memory to be allocated
    pMP->pStart = (uint8_t *)Pool.ptr + sizeof(MemPool);
    pMP->pFree  = pMP->pStart;
    pMP->pEnd   = (uint8_t *)Pool.ptr + Pool.len;
-   pMP->StringAllocator.pAllocaterContext = pMP;
    
-   me->pStringAllocator = pMP;
+   // More book keeping of context
+   pMP->StringAllocator.pAllocaterContext = pMP;
+   me->pStringAllocator   = pMP;
+   
+   // The flag indicating when to use the allocator
    me->bStringAllocateAll = bAllStrings;
    
    return QCBOR_SUCCESS;
+}
+
+
+/*
+ Extra little hook to make MemPool testing work right
+ without adding any code size or overhead to non-test
+ uses. This will get dead-stripped for non-test use.
+ 
+ This is not a public function. 
+ */
+size_t MemPoolTestHook_GetPoolSize(void *ctx)
+{
+   MemPool *me = (MemPool *)ctx;
+   
+   return me->pEnd - me->pStart;
 }
 

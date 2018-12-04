@@ -1626,19 +1626,21 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t n
  
  Indefinite length strings (text and byte) cannot be decoded unless there is
  a string allocator configured. MemPool is a simple built-in string allocator
- that allocates bytes from a block of memory handed to it by calling
- this function.
+ that allocates bytes from a memory pool handed to it by calling
+ this function.  The memory pool is just a pointer and length for some
+ block of memory that is to be used for string allocation. It can
+ come from the stack, heap or other.
  
- The buffer must be large enough to hold some fixed overhead plus the
+ The memory pool must be large enough to hold some fixed overhead plus the
  space for all the strings allocated. The fixed overhead does vary
- per implementation, but can roughly be computed as the space for
- nine pointers, 72 bytes of a 64-bit CPU.  There is no overhead
+ by CPU and compiler, but can roughly be computed as the space for
+ seven pointers, 56 bytes for a 64-bit CPU.  There is no overhead
  per string allocated
  
  This memory pool is used for all indefinite length strings that are text
  strings or byte strings, including strings used as labels.
  
- The pointers to strings in QCBORItem will point into the buffer passed set
+ The pointers to strings in QCBORItem will point into the memory pool set
  here. They do not need to be individually freed. Just discard the buffer
  when they are no longer needed.
  
@@ -1646,6 +1648,10 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t n
  hold **all** strings, definite and indefinite length, value or label. The
  advantage of this is that after the decode is complete, the original memory
  holding the encoded CBOR does not need to remain valid.
+ 
+ If this function is not called because there is no need to support indefinite
+ length strings, the MemPool implementation should be dead-stripped by the loader
+ and not add to code size.
  */
 QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAllStrings);
 
@@ -1663,6 +1669,9 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, b
  A malloc based string allocator can be obtained by calling
  QCBORDecode_MakeMallocStringAllocator(). Pass its result to
  this function.
+ 
+ You can also write your own allocator. Create the allocate, free,
+ and destroy functions and put pointers to them in a QCBORStringAllocator.
  */
 void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator, bool bAllStrings);
 

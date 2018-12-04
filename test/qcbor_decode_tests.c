@@ -2502,75 +2502,85 @@ int AllocAllStringsTest()
    return 0;
 }
 
+// Cheating declaration to get to the special test hook
+size_t MemPoolTestHook_GetPoolSize(void *ctx);
+
 
 int MemPoolTest(void)
 {
-    QCBORDecodeContext DC;
-    
-    const uint8_t pMinimalCBOR[] = {0xa0}; // One empty map
-    
-    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pMinimalCBOR),0);
-    
-    UsefulBuf_MAKE_STACK_UB(Pool, 100);
-    
-    QCBORDecode_SetMemPool(&DC, Pool, 0);
-    
-    // Cheat a little to get to the string allocator object
-    // so we can call it directly to test it
-    QCBORStringAllocator *pAlloc = (QCBORStringAllocator *)DC.pStringAllocator;
-    
-    // Ask for too much in one go
-    // 90 < 100, but there is some overhead taken out of the 100
-    UsefulBuf Allocated = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, 90);
-    if(!UsefulBuf_IsNULL(Allocated)) {
-        return -1;
-    }
-    
-    
-    
-    QCBORDecode_SetMemPool(&DC, Pool, 0);
-    
-    // Cheat a little to get to the string allocator object
-    // so we can call it directly to test it
-    pAlloc = (QCBORStringAllocator *)DC.pStringAllocator;
-    
-    Allocated = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, 30);
-    if(UsefulBuf_IsNULL(Allocated)) { // expected to succeed
-        return -1;
-    }
-    UsefulBuf Allocated2 = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, 30);
-    if(!UsefulBuf_IsNULL(Allocated2)) { // expected to fail
-        return -1;
-    }
-    (*pAlloc->fFree)(pAlloc->pAllocaterContext, Allocated.ptr);
-    Allocated = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, 30);
-    if(UsefulBuf_IsNULL(Allocated)) { // succeed because of the free
-        return -1;
-    }
-    
-    
-    QCBORDecode_SetMemPool(&DC, Pool, 0);
-    
-    // Cheat a little to get to the string allocator object
-    // so we can call it directly to test it
-    pAlloc = (QCBORStringAllocator *)DC.pStringAllocator;
-    Allocated = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, 20);
-    if(UsefulBuf_IsNULL(Allocated)) { // expected to succeed
-        return -1;
-    }
-    Allocated2 = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, Allocated.ptr, 25);
-    if(UsefulBuf_IsNULL(Allocated2)) { // expected to fail
-        return -1;
-    }
-    if(Allocated2.ptr != Allocated.ptr || Allocated2.len != 25) {
-        return -1;
-    }
-    
-    return 0;
-}
-
-
-
-
+   // Set up the decoder with a tiny bit of CBOR to parse
+   QCBORDecodeContext DC;
+   const uint8_t pMinimalCBOR[] = {0xa0}; // One empty map
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pMinimalCBOR),0);
    
+   // Set up an memory pool of 100 bytes
+   UsefulBuf_MAKE_STACK_UB(Pool, 100);
+   QCBORDecode_SetMemPool(&DC, Pool, 0);
+    
+   // Cheat a little to get to the string allocator object
+   // so we can call it directly to test it
+   QCBORStringAllocator *pAlloc = (QCBORStringAllocator *)DC.pStringAllocator;
+   // Cheat some more to know exactly the 
+   size_t uAvailPool = MemPoolTestHook_GetPoolSize(pAlloc);
+
+   // First test -- ask for too much in one go
+   UsefulBuf Allocated = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, uAvailPool+1);
+   if(!UsefulBuf_IsNULL(Allocated)) {
+      return -1;
+   }
+   
+   
+   // Re do the set up for the next test that will do a successful alloc,
+   // a fail, a free and then success
+   // This test should work on 32 and 64-bit machines if the compiler
+   // does the expected thing with pointer sizes for the internal
+   // MemPool implementation leaving 44 or 72 bytes of pool memory.
+   QCBORDecode_SetMemPool(&DC, Pool, 0);
+    
+   // Cheat a little to get to the string allocator object
+   // so we can call it directly to test it
+   pAlloc = (QCBORStringAllocator *)DC.pStringAllocator;
+   // Cheat some more to know exactly the
+   uAvailPool = MemPoolTestHook_GetPoolSize(pAlloc);
+    
+   Allocated = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, uAvailPool-1);
+   if(UsefulBuf_IsNULL(Allocated)) { // expected to succeed
+      return -2;
+   }
+   UsefulBuf Allocated2 = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, uAvailPool/2);
+   if(!UsefulBuf_IsNULL(Allocated2)) { // expected to fail
+      return -3;
+   }
+   (*pAlloc->fFree)(pAlloc->pAllocaterContext, Allocated.ptr);
+   Allocated = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, uAvailPool/2);
+   if(UsefulBuf_IsNULL(Allocated)) { // succeed because of the free
+      return -4;
+   }
+    
+   
+   // Re do set up for next test that involves a successful alloc,
+   // and a successful realloc and a failed realloc
+   QCBORDecode_SetMemPool(&DC, Pool, 0);
+    
+   // Cheat a little to get to the string allocator object
+   // so we can call it directly to test it
+   pAlloc = (QCBORStringAllocator *)DC.pStringAllocator;
+   Allocated = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, uAvailPool/2);
+   if(UsefulBuf_IsNULL(Allocated)) { // expected to succeed
+      return -5;
+   }
+   Allocated2 = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, Allocated.ptr, uAvailPool);
+   if(UsefulBuf_IsNULL(Allocated2)) {
+      return -6;
+   }
+   if(Allocated2.ptr != Allocated.ptr || Allocated2.len != uAvailPool) {
+      return -7;
+   }
+   UsefulBuf Allocated3 = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, Allocated.ptr, uAvailPool+1);
+   if(!UsefulBuf_IsNULL(Allocated3)) { // expected to fail
+      return -8;
+   }
+    
+   return 0;
+}
 
