@@ -45,9 +45,6 @@ int fputs_wrapper(const char *szString, void *ctx)
 
 int main(int argc, const char * argv[])
 {
-    (void)argc; // Suppress unused warning
-    (void)argv; // Suppress unused warning
-
     // Type and size of return from sizeof() varies. These will never be large so cast is safe
     // TODO: use fputs_wrapper to output these
     printf("sizeof(QCBORTrackNesting) %d\n", (uint32_t)sizeof(QCBORTrackNesting));
@@ -57,8 +54,13 @@ int main(int argc, const char * argv[])
     printf("sizeof(QCBORItem) %d\n", (uint32_t)sizeof(QCBORItem));
     printf("sizeof(QCBORStringAllocator) %d\n\n", (uint32_t)sizeof(QCBORStringAllocator));
 
-    // TODO: command line arg to select test
-    int nNumTestsFailed = run_tests(&fputs_wrapper, stdout, NULL);
+    int nNumTestsFailed = 0;
+    
+    if(argc > 1) {
+        nNumTestsFailed += run_tests(argv[1], &fputs_wrapper, stdout, NULL);
+    } else {
+        nNumTestsFailed += run_tests(NULL, &fputs_wrapper, stdout, NULL);
+    }
 
     return nNumTestsFailed;
 }

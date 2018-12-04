@@ -28,7 +28,8 @@ SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
 BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. ==============================================================================*/
+IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ==============================================================================*/
 //  Created by Laurence Lundblade on 9/30/18.
 
 
@@ -158,7 +159,7 @@ test_entry s_tests[] = {
 };
 
 
-int run_tests(outputstring output, void *poutCtx, int *pNumTestsRun)
+int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *pNumTestsRun)
 {
     int nTestsFailed = 0;
     int nTestsRun = 0;
@@ -168,6 +169,9 @@ int run_tests(outputstring output, void *poutCtx, int *pNumTestsRun)
     const test_entry2 *s_tests2_end = s_tests2 + sizeof(s_tests2)/sizeof(test_entry2);
     
     for(t2 = s_tests2; t2 < s_tests2_end; t2++) {
+        if(szTestName && strcmp(szTestName, t2->szTestName)) {
+            continue;
+        }
         const char * x = (t2->test_fun)();
         nTestsRun++;
         if(output) {
@@ -193,6 +197,9 @@ int run_tests(outputstring output, void *poutCtx, int *pNumTestsRun)
     const test_entry *s_tests_end = s_tests + sizeof(s_tests)/sizeof(test_entry);
     
     for(t = s_tests; t < s_tests_end; t++) {
+        if(szTestName && strcmp(szTestName, t->szTestName)) {
+            continue;
+        }
         int x = (t->test_fun)();
         nTestsRun++;
         if(output) {

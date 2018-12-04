@@ -33,4 +33,4 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //  Created by Laurence Lundblade on 9/30/18.
 typedef int (*outputstring)(const char *szString, void *ctx);
 
-int run_tests(outputstring output, void *poutCtx, int *pNumTestsRun);
+int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *pNumTestsRun);
