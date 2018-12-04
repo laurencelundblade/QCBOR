@@ -47,6 +47,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  11/9/18            llundblade      Error codes are now enums.
  11/1/18            llundblade      Floating support.
  10/31/18           llundblade      Switch to one license that is almost BSD-3.
+ 10/15/18           llundblade      Indefinite length maps and arrays supported
+ 10/8/18            llundblade      Indefinite length strings supported
  09/28/18           llundblade      Added bstr wrapping feature for COSE implementation.
  07/05/17           llundbla        Add bstr wrapping of maps/arrays for COSE.
  03/01/17           llundbla        More data types; decoding improvements and fixes.

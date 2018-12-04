@@ -42,6 +42,13 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 11/9/18            llundblade      Error codes are now enums.
+ 11/2/18            llundblade      Simplify float decoding and align with preferred
+                                    float encoding
+ 10/31/18           llundblade      Switch to one license that is almost BSD-3.
+ 10/28/18           llundblade      Reworked tag decoding
+ 10/15/18           llundblade      Indefinite length maps and arrays supported
+ 10/8/18            llundblade      Indefinite length strings supported
  02/04/17           llundbla        Work on CPUs that don's require pointer alignment
                                     by making use of changes in UsefulBuf
  03/01/17           llundbla        More data types; decoding improvements and fixes
