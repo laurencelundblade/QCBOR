@@ -53,9 +53,7 @@ int fail_test()
 /*
  Convert a number up to 999999999 to a string. This is so sprintf doesn't
  have to be linked in so as to minimized dependencies even in test code.
- 
- This function does pointer math. TODO: test this.
- */
+  */
 const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 {
     const int32_t nMax = 1000000000;
