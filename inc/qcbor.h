@@ -647,6 +647,8 @@ typedef enum {
 
 
 /* Do not renumber these. Code depends on some of these values. */
+/** The type is unknown, unset or invalid */
+#define QCBOR_TYPE_NONE           0
 /** Type for an integer that decoded either between INT64_MIN and INT32_MIN or INT32_MAX and INT64_MAX; val.int64 */
 #define QCBOR_TYPE_INT64          2
 /** Type for an integer that decoded to a more than INT64_MAX and UINT64_MAX; val.uint64 */

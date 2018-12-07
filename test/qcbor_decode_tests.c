@@ -57,9 +57,6 @@ static void printencoded(const char *szLabel, const uint8_t *pEncoded, size_t nL
 }
 
 
-// TODO: -- add a test for counting the top level items and adding it back in with AddRaw()
-
-
 static const uint8_t spExpectedEncodedInts[] = {
    0x98, 0x2f, 0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff,
    0xff, 0xff, 0xff, 0x3b, 0x00, 0x00, 0x00, 0x01,
@@ -486,12 +483,15 @@ Done:
 
 /*
  {"first integer": 42,
-  "an array of two strings": ["string1", "string2"], 
+  "an array of two strings": [
+      "string1", "string2"
+  ],
   "map in a map": {
       "bytes 1": h'78787878',
       "bytes 2": h'79797979',
-      "another int": 98, "text 2": 
-      "lies, damn lies and statistics"}
+      "another int": 98,
+      "text 2": "lies, damn lies and statistics"
+   }
   }
  */
 
@@ -712,113 +712,316 @@ static int ParseMapTest1()
    
    QCBORDecode_Init(&DCtx, (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)}, QCBOR_DECODE_MODE_NORMAL);
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uDataType != QCBOR_TYPE_MAP ||
       Item.val.uCount != 3)
       return -1;
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 13 ||
       Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 42 ||
       Item.uDataAlloc ||
       Item.uLabelAlloc ||
-      memcmp(Item.label.string.ptr, "first integer", 13))
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("first integer"))) {
       return -1;
+   }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 23 ||
       Item.uDataAlloc ||
       Item.uLabelAlloc ||
-      memcmp(Item.label.string.ptr, "an array of two strings", 23) ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("an array of two strings")) ||
       Item.uDataType != QCBOR_TYPE_ARRAY ||
       Item.val.uCount != 2)
       return -1;
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      Item.val.string.len != 7 ||
       Item.uDataAlloc ||
       Item.uLabelAlloc ||
-      memcmp(Item.val.string.ptr, "string1", 7))
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("string1"))) {
       return -1;
+   }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      Item.val.string.len != 7 ||
       Item.uDataAlloc ||
       Item.uLabelAlloc ||
-      memcmp(Item.val.string.ptr, "string2", 7))
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("string2"))) {
       return -1;
+   }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 12 ||
       Item.uDataAlloc ||
       Item.uLabelAlloc ||
-      memcmp(Item.label.string.ptr, "map in a map", 12) ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("map in a map")) ||
       Item.uDataType != QCBOR_TYPE_MAP ||
-      Item.val.uCount != 4)
+      Item.val.uCount != 4) {
       return -1;
+   }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 7 ||
-      memcmp(Item.label.string.ptr, "bytes 1", 7)||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("bytes 1"))||
       Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
-      Item.val.string.len != 4 ||
       Item.uDataAlloc ||
       Item.uLabelAlloc ||
-      memcmp(Item.val.string.ptr, "xxxx", 4))
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("xxxx"))) {
       return -1;
+   }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 7 ||
-      memcmp(Item.label.string.ptr, "bytes 2", 7) ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("bytes 2")) ||
       Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
-      Item.val.string.len != 4 ||
       Item.uDataAlloc ||
       Item.uLabelAlloc ||
-      memcmp(Item.val.string.ptr, "yyyy", 4))
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("yyyy"))) {
       return -1;
+   }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 11 ||
       Item.uDataAlloc ||
       Item.uLabelAlloc ||
-      memcmp(Item.label.string.ptr, "another int", 11) ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("another int")) ||
       Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 98)
       return -1;
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 6 ||
-      memcmp(Item.label.string.ptr, "text 2", 6)||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("text 2"))||
       Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      Item.val.string.len != 30 ||
       Item.uDataAlloc ||
       Item.uLabelAlloc ||
-      memcmp(Item.val.string.ptr, "lies, damn lies and statistics", 30))
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("lies, damn lies and statistics"))) {
       return -1;
+   }
    
    return 0;
 }
 
+
+/*
+ Decode and thoroughly check a moderately complex
+ set of maps
+ */
+int ParseMapAsArrayTest()
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem Item;
+   int nCBORError;
+   
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), QCBOR_DECODE_MODE_MAP_AS_ARRAY);
+   
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP ||
+      Item.val.uCount != 6) { // TODO: this should be 6
+      return -1;
+   }
+   
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      Item.uLabelType != QCBOR_TYPE_NONE ||
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("first integer"))) {
+      return -2;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataType != QCBOR_TYPE_INT64 ||
+      Item.val.int64 != 42 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc) {
+      return -3;
+   }
+   
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("an array of two strings")) ||
+      Item.uDataType != QCBOR_TYPE_TEXT_STRING) {
+      return -4;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      Item.uDataType != QCBOR_TYPE_ARRAY ||
+      Item.val.uCount != 2) {
+      return -5;
+   }
+   
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.val.string.len != 7 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("string1"))) {
+      return -6;
+   }
+   
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("string2"))) {
+      return -7;
+   }
+   
+   
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("map in a map"))) {
+      return -8;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      Item.uDataType != QCBOR_TYPE_MAP ||
+      Item.val.uCount != 4) { // TODO: is this correct?
+      return -9;
+   }
+   
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("bytes 1"))||
+      Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc) {
+      return -10;
+   }
+   
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("xxxx"))) {
+      return -11;
+   }
+   
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("bytes 2")) ||
+      Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc) {
+      return -12;
+   }
+   
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("yyyy"))) {
+      return -13;
+   }
+   
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("another int")) ||
+      Item.uDataType != QCBOR_TYPE_TEXT_STRING) {
+      return -14;
+   }
+  
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      Item.uDataType != QCBOR_TYPE_INT64 ||
+      Item.val.int64 != 98) {
+      return -15;
+   }
+   
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("text 2"))||
+      Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc) {
+      return -16;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("lies, damn lies and statistics"))) {
+      return -17;
+   }
+   
+   return 0;
+}
 
 
 /*
@@ -850,8 +1053,9 @@ static int ExtraBytesTest(int nLevel)
    }
 
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uDataType != QCBOR_TYPE_MAP ||
       Item.val.uCount != 3)
       return -1;
@@ -865,14 +1069,15 @@ static int ExtraBytesTest(int nLevel)
    }
    
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 13 ||
       Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.uCount != 42 ||
-      memcmp(Item.label.string.ptr, "first integer", 13))
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("first integer"))) {
       return -1;
+   }
    
    if(nLevel < 3) {
       if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
@@ -882,14 +1087,15 @@ static int ExtraBytesTest(int nLevel)
       }
    }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 23 ||
-      memcmp(Item.label.string.ptr, "an array of two strings", 23) ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("an array of two strings")) ||
       Item.uDataType != QCBOR_TYPE_ARRAY ||
-      Item.val.uCount != 2)
+      Item.val.uCount != 2) {
       return -1;
+   }
    
    
    if(nLevel < 4) {
@@ -901,12 +1107,13 @@ static int ExtraBytesTest(int nLevel)
    }
    
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      Item.val.string.len != 7 ||
-      memcmp(Item.val.string.ptr, "string1", 7))
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("string1"))) {
       return -1;
+   }
    
    if(nLevel < 5) {
       if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
@@ -916,12 +1123,13 @@ static int ExtraBytesTest(int nLevel)
       }
    }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      Item.val.string.len != 7 ||
-      memcmp(Item.val.string.ptr, "string2", 7))
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("string2"))) {
       return -1;
+   }
  
    if(nLevel < 6) {
       if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
@@ -931,11 +1139,11 @@ static int ExtraBytesTest(int nLevel)
       }
    }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 12 ||
-      memcmp(Item.label.string.ptr, "map in a map", 12) ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("map in a map")) ||
       Item.uDataType != QCBOR_TYPE_MAP ||
       Item.val.uCount != 4)
       return -1;
@@ -948,15 +1156,15 @@ static int ExtraBytesTest(int nLevel)
       }
    }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 7 ||
-      memcmp(Item.label.string.ptr, "bytes 1", 7)||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("bytes 1")) ||
       Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
-      Item.val.string.len != 4 ||
-      memcmp(Item.val.string.ptr, "xxxx", 4))
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("xxxx"))) {
       return -1;
+   }
    
    if(nLevel < 8) {
       if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
@@ -966,15 +1174,15 @@ static int ExtraBytesTest(int nLevel)
       }
    }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 7 ||
-      memcmp(Item.label.string.ptr, "bytes 2", 7) ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("bytes 2")) ||
       Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
-      Item.val.string.len != 4 ||
-      memcmp(Item.val.string.ptr, "yyyy", 4))
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("yyyy"))) {
       return -1;
+   }
    
    if(nLevel < 9) {
       if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
@@ -984,11 +1192,11 @@ static int ExtraBytesTest(int nLevel)
       }
    }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 11 ||
-      memcmp(Item.label.string.ptr, "another int", 11) ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("another int")) ||
       Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 98)
       return -1;
@@ -1001,15 +1209,15 @@ static int ExtraBytesTest(int nLevel)
       }
    }
    
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
+   }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item.label.string.len != 6 ||
-      memcmp(Item.label.string.ptr, "text 2", 6)||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("text 2"))||
       Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      Item.val.string.len != 30 ||
-      memcmp(Item.val.string.ptr, "lies, damn lies and statistics", 30))
+      UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("lies, damn lies and statistics"))) {
       return -1;
+   }
    
    if(QCBORDecode_Finish(&DCtx)) {
       return -1;
@@ -2455,29 +2663,28 @@ int AllocAllStringsTest()
    UsefulBuf_Set(CopyOfStorage, '_');
    
    if(Item1.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item1.label.string.len != 13 ||
       Item1.uDataType != QCBOR_TYPE_INT64 ||
       Item1.val.int64 != 42 ||
-      memcmp(Item1.label.string.ptr, "first integer", 13))
+      UsefulBuf_Compare(Item1.label.string, UsefulBuf_FromSZ("first integer"))) {
       return -1;
+   }
    
 
    if(Item2.uLabelType != QCBOR_TYPE_TEXT_STRING ||
-      Item2.label.string.len != 23 ||
-      memcmp(Item2.label.string.ptr, "an array of two strings", 23) ||
+      UsefulBuf_Compare(Item2.label.string, UsefulBuf_FromSZ("an array of two strings")) ||
       Item2.uDataType != QCBOR_TYPE_ARRAY ||
       Item2.val.uCount != 2)
       return -1;
    
    if(Item3.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      Item3.val.string.len != 7 ||
-      memcmp(Item3.val.string.ptr, "string1", 7))
+      UsefulBuf_Compare(Item3.val.string, UsefulBuf_FromSZ("string1"))) {
       return -1;
+   }
    
    if(Item4.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      Item4.val.string.len != 7 ||
-      memcmp(Item4.val.string.ptr, "string2", 7))
+      UsefulBuf_Compare(Item4.val.string, UsefulBuf_FromSZ("string2"))) {
       return -1;
+   }
    
    // Next parse with a pool that is too small
    UsefulBuf_MAKE_STACK_UB(SmallPool, 80);
@@ -2486,8 +2693,9 @@ int AllocAllStringsTest()
    if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
       return nCBORError;
    if(Item1.uDataType != QCBOR_TYPE_MAP ||
-      Item1.val.uCount != 3)
+      Item1.val.uCount != 3) {
       return -1;
+   }
    if(!(nCBORError = QCBORDecode_GetNext(&DC, &Item1))){
       if(!(nCBORError = QCBORDecode_GetNext(&DC, &Item2))) {
          if(!(nCBORError = QCBORDecode_GetNext(&DC, &Item3))) {
