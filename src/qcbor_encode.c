@@ -266,6 +266,7 @@ void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
  encoded in 2, 4 or 8 bytes.
  
  */
+#ifdef FORMAL
 static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorType, size_t uMinLen, uint64_t uNumber, size_t uPos)
 {
    // No need to worry about integer overflow here because a) uMajorType is
@@ -297,6 +298,56 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorTyp
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + (uint8_t)uNumber, uPos);
    }
 }
+#else
+
+#include <arpa/inet.h>
+
+
+static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorType, size_t uMinLen, uint64_t uNumber, size_t uPos)
+{
+   uint8_t bytes[9];
+   size_t  bytesLen;
+   // No need to worry about integer overflow here because a) uMajorType is
+   // always generated internally, not by the caller, b) this is for CBOR
+   // _generation_, not parsing c) a mistake will result in bad CBOR generation,
+   // not a security vulnerability.
+   uMajorType <<= 5;
+   
+   if(uNumber > 0xffffffff || uMinLen >= 8) {
+      bytes[0] =  uMajorType + LEN_IS_EIGHT_BYTES;
+      uNumber = htonll(uNumber);
+      memcpy(&bytes[1], &uNumber, sizeof(uint64_t));
+      bytesLen = 1 + sizeof(uint64_t);
+      
+   } else if(uNumber > 0xffff || uMinLen >= 4) {
+      bytes[0] =  uMajorType + LEN_IS_FOUR_BYTES;
+      uint32_t uNumber32 = htonl(uNumber);
+      memcpy(&bytes[1], &uNumber32, sizeof(uint32_t));
+      bytesLen = 1 + sizeof(uint32_t);
+
+   } else if (uNumber > 0xff || uMinLen>= 2) {
+      // Between 0 and 65535
+      bytes[0] =  uMajorType + LEN_IS_TWO_BYTES;
+      uint16_t uNumber16 = htons(uNumber);
+      memcpy(&bytes[1], &uNumber16, sizeof(uint16_t));
+      bytesLen = sizeof(uint16_t) + 1;
+      
+   } else if(uNumber >= 24) {
+      // Between 0 and 255, but only between 24 and 255 is ever encoded here
+      bytes[0] =  uMajorType + LEN_IS_ONE_BYTE;
+      uint8_t uNumber8 = uNumber;
+      memcpy(&bytes[1], &uNumber8, sizeof(uint8_t));
+      bytesLen = sizeof(uint8_t) + 1;
+      
+   } else {
+      // Between 0 and 23
+      bytes[0] = uMajorType + (uint8_t)uNumber;
+      bytesLen = 1;
+   }
+   UsefulOutBuf_InsertData(&(me->OutBuf), bytes, bytesLen, uPos);
+}
+#endif
+
 
 
 /*
@@ -602,7 +653,223 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
  */
 
 
-
+/*
+ _InsertEncodedTypeAndNumber:            ## @InsertEncodedTypeAndNumber
+Lfunc_begin10:
+	.loc	7 307 0                 ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:307:0
+	.cfi_startproc
+## BB#0:
+	pushq	%rbp
+Lcfi30:
+	.cfi_def_cfa_offset 16
+Lcfi31:
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+Lcfi32:
+	subq	$80, %rsp
+	movb	%sil, %al
+	movl	$4294967295, %esi       ## imm = 0xFFFFFFFF
+	movl	%esi, %r9d
+	movq	(%r10), %r10
+	movq	%r10, -8(%rbp)
+	movq	%rdi, -32(%rbp)
+	movb	%al, -33(%rbp)
+	movq	%rdx, -48(%rbp)
+	movq	%rcx, -56(%rbp)
+	movq	%r8, -64(%rbp)
+Ltmp50:
+	.loc	7 314 15 prologue_end   ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:314:15
+	movzbl	-33(%rbp), %esi
+	shll	$5, %esi
+	movb	%sil, %al
+	movb	%al, -33(%rbp)
+Ltmp51:
+	.loc	7 316 15                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:316:15
+	cmpq	%r9, -56(%rbp)
+	.loc	7 316 28 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:316:28
+	ja	LBB10_2
+## BB#1:
+	.loc	7 316 39                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:316:39
+	cmpq	$8, -48(%rbp)
+Ltmp52:
+	.loc	7 316 7                 ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:316:7
+	jb	LBB10_3
+LBB10_2:
+Ltmp53:
+	.loc	7 317 19 is_stmt 1      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:317:19
+	movzbl	-33(%rbp), %eax
+	.loc	7 317 30 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:317:30
+	addl	$27, %eax
+	.loc	7 317 19                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:317:19
+	movb	%al, %cl
+	.loc	7 317 16                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:317:16
+	movb	%cl, -17(%rbp)
+	.loc	7 318 17 is_stmt 1      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:318:17
+	movq	-56(%rbp), %rdi
+	callq	__OSSwapInt64
+	.loc	7 318 15 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:318:15
+	movq	%rax, -56(%rbp)
+	.loc	7 319 7 is_stmt 1       ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:319:7
+	movq	-56(%rbp), %rax
+	movq	%rax, -16(%rbp)
+	.loc	7 320 16                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:320:16
+	movq	$9, -72(%rbp)
+	.loc	7 322 4                 ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:322:4
+	jmp	LBB10_15
+Ltmp54:
+LBB10_3:
+	.loc	7 322 22 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:322:22
+	cmpq	$65535, -56(%rbp)       ## imm = 0xFFFF
+	.loc	7 322 31                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:322:31
+	ja	LBB10_5
+## BB#4:
+	.loc	7 322 42                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:322:42
+	cmpq	$4, -48(%rbp)
+Ltmp55:
+	.loc	7 322 14                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:322:14
+	jb	LBB10_6
+LBB10_5:
+Ltmp56:
+	.loc	7 323 19 is_stmt 1      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:323:19
+	movzbl	-33(%rbp), %eax
+	.loc	7 323 30 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:323:30
+	addl	$26, %eax
+	.loc	7 323 19                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:323:19
+	movb	%al, %cl
+	.loc	7 323 16                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:323:16
+	movb	%cl, -17(%rbp)
+	.loc	7 324 28 is_stmt 1      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:324:28
+	movq	-56(%rbp), %rdx
+	movl	%edx, %eax
+	movl	%eax, %edi
+	callq	__OSSwapInt32
+	.loc	7 324 16 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:324:16
+	movl	%eax, -76(%rbp)
+	.loc	7 325 7 is_stmt 1       ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:325:7
+	movl	-76(%rbp), %eax
+	movl	%eax, -16(%rbp)
+	.loc	7 326 16                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:326:16
+	movq	$5, -72(%rbp)
+	.loc	7 328 4                 ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:328:4
+	jmp	LBB10_14
+Ltmp57:
+LBB10_6:
+	.loc	7 328 23 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:328:23
+	cmpq	$255, -56(%rbp)
+	.loc	7 328 30                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:328:30
+	ja	LBB10_8
+## BB#7:
+	.loc	7 328 40                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:328:40
+	cmpq	$2, -48(%rbp)
+Ltmp58:
+	.loc	7 328 15                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:328:15
+	jb	LBB10_9
+LBB10_8:
+Ltmp59:
+	.loc	7 330 19 is_stmt 1      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:330:19
+	movzbl	-33(%rbp), %eax
+	.loc	7 330 30 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:330:30
+	addl	$25, %eax
+	.loc	7 330 19                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:330:19
+	movb	%al, %cl
+	.loc	7 330 16                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:330:16
+	movb	%cl, -17(%rbp)
+	.loc	7 331 28 is_stmt 1      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:331:28
+	movq	-56(%rbp), %rdx
+	movw	%dx, %si
+	movzwl	%si, %edi
+	callq	__OSSwapInt16
+	movzwl	%ax, %edi
+	movw	%di, %ax
+	.loc	7 331 16 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:331:16
+	movw	%ax, -78(%rbp)
+	.loc	7 332 7 is_stmt 1       ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:332:7
+	movw	-78(%rbp), %ax
+	movw	%ax, -16(%rbp)
+	.loc	7 333 16                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:333:16
+	movq	$3, -72(%rbp)
+	.loc	7 335 4                 ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:335:4
+	jmp	LBB10_13
+Ltmp60:
+LBB10_9:
+	.loc	7 335 22 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:335:22
+	cmpq	$24, -56(%rbp)
+Ltmp61:
+	.loc	7 335 14                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:335:14
+	jb	LBB10_11
+## BB#10:
+Ltmp62:
+	.loc	7 337 19 is_stmt 1      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:337:19
+	movzbl	-33(%rbp), %eax
+	.loc	7 337 30 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:337:30
+	addl	$24, %eax
+	.loc	7 337 19                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:337:19
+	movb	%al, %cl
+	.loc	7 337 16                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:337:16
+	movb	%cl, -17(%rbp)
+	.loc	7 338 26 is_stmt 1      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:338:26
+	movq	-56(%rbp), %rdx
+	movb	%dl, %cl
+	.loc	7 338 15 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:338:15
+	movb	%cl, -79(%rbp)
+	.loc	7 339 7 is_stmt 1       ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:339:7
+	movb	-79(%rbp), %cl
+	movb	%cl, -16(%rbp)
+	.loc	7 340 16                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:340:16
+	movq	$2, -72(%rbp)
+	.loc	7 342 4                 ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:342:4
+	jmp	LBB10_12
+Ltmp63:
+LBB10_11:
+	.loc	7 344 18                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:344:18
+	movzbl	-33(%rbp), %eax
+	.loc	7 344 40 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:344:40
+	movq	-56(%rbp), %rcx
+	.loc	7 344 31                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:344:31
+	movb	%cl, %dl
+	movzbl	%dl, %esi
+	.loc	7 344 29                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:344:29
+	addl	%esi, %eax
+	.loc	7 344 18                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:344:18
+	movb	%al, %dl
+	.loc	7 344 16                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:344:16
+	movb	%dl, -17(%rbp)
+	.loc	7 345 16 is_stmt 1      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:345:16
+	movq	$1, -72(%rbp)
+Ltmp64:
+LBB10_12:
+	.loc	7 0 16 is_stmt 0        ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:0:16
+	jmp	LBB10_13
+LBB10_13:
+	jmp	LBB10_14
+LBB10_14:
+	jmp	LBB10_15
+LBB10_15:
+	leaq	-17(%rbp), %rsi
+	.loc	7 347 30 is_stmt 1      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:347:30
+	movq	-32(%rbp), %rdi
+	.loc	7 347 50 is_stmt 0      ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:347:50
+	movq	-72(%rbp), %rdx
+	.loc	7 347 60                ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:347:60
+	movq	-64(%rbp), %rcx
+	.loc	7 347 4                 ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:347:4
+	callq	_UsefulOutBuf_InsertData
+	movq	___stack_chk_guard@GOTPCREL(%rip), %rcx
+	movq	(%rcx), %rcx
+	movq	-8(%rbp), %rdx
+	cmpq	%rdx, %rcx
+	jne	LBB10_17
+## BB#16:
+	.loc	7 348 1 is_stmt 1       ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:348:1
+	addq	$80, %rsp
+	popq	%rbp
+	retq
+LBB10_17:
+	.loc	7 0 0 is_stmt 0         ## /Users/laurencelundblade/Code/QCBOR/master/src/qcbor_encode.c:0:0
+	callq	___stack_chk_fail
+Ltmp65:
+Lfunc_end10:
+	.cfi_endproc
 
 
 
