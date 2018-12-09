@@ -312,7 +312,7 @@ static QCBORError TagMapper_Lookup(const QCBORTagListIn *pCallerConfiguredTagMap
 /*
  Public function, see header file
  */
-void QCBORDecode_Init(QCBORDecodeContext *me, UsefulBufC EncodedCBOR, int8_t nDecodeMode)
+void QCBORDecode_Init(QCBORDecodeContext *me, UsefulBufC EncodedCBOR, QCBORDecodeMode nDecodeMode)
 {
    memset(me, 0, sizeof(QCBORDecodeContext));
    UsefulInputBuf_Init(&(me->InBuf), EncodedCBOR);
@@ -949,11 +949,12 @@ static inline QCBORError GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDe
       goto Done;
    }
    
-   // If in a map and the right decoding mode, get the label
-   if(DecodeNesting_TypeIsMap(&(me->nesting))) {
-      if(me->uDecodeMode != QCBOR_DECODE_MODE_MAP_AS_ARRAY) {
-         // In a map and caller wants maps decoded, not treated as arrays
-         
+   if(me->uDecodeMode != QCBOR_DECODE_MODE_MAP_AS_ARRAY) {
+      // In a map and caller wants maps decoded, not treated as arrays
+
+      if(DecodeNesting_TypeIsMap(&(me->nesting))) {
+         // If in a map and the right decoding mode, get the label
+
          // Get the next item which will be the real data; Item will be the label
          QCBORItem LabelItem = *pDecodedItem;
          nReturn = GetNext_TaggedItem(me, pDecodedItem, pTags);
@@ -987,8 +988,12 @@ static inline QCBORError GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDe
             nReturn = QCBOR_ERR_MAP_LABEL_TYPE;
             goto Done;
          }
-      } else {
-         pDecodedItem->val.uCount *= 2; // interpreting maps as arrays
+      }
+   } else {
+      if(pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
+         // Decoding a map as an array
+         pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
+         pDecodedItem->val.uCount *= 2;
       }
    }
    

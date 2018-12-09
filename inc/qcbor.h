@@ -635,12 +635,14 @@ typedef enum {
 } QCBORError;
 
 
-/** See QCBORDecode_Init() */
-#define QCBOR_DECODE_MODE_NORMAL            0
-/** See QCBORDecode_Init() */
-#define QCBOR_DECODE_MODE_MAP_STRINGS_ONLY  1
-/** See QCBORDecode_Init() */
-#define QCBOR_DECODE_MODE_MAP_AS_ARRAY      2
+typedef enum {
+   /** See QCBORDecode_Init() */
+   QCBOR_DECODE_MODE_NORMAL = 0,
+   /** See QCBORDecode_Init() */
+   QCBOR_DECODE_MODE_MAP_STRINGS_ONLY = 1,
+   /** See QCBORDecode_Init() */
+   QCBOR_DECODE_MODE_MAP_AS_ARRAY = 2
+} QCBORDecodeMode;
 
 
 
@@ -661,10 +663,6 @@ typedef enum {
 #define QCBOR_TYPE_BYTE_STRING    6
 /** Type for a UTF-8 string. It is not NULL terminated. Data is in val.string.  */
 #define QCBOR_TYPE_TEXT_STRING    7
-/** Type for a floating point number. Data is in val.float. */
-#define QCBOR_TYPE_FLOAT         26
-/** Type for a double floating point number. Data is in val.double. */
-#define QCBOR_TYPE_DOUBLE        27
 /** Type for a positive big number. Data is in val.bignum, a pointer and a length. */
 #define QCBOR_TYPE_POSBIGNUM     9
 /** Type for a negative big number. Data is in val.bignum, a pointer and a length. */
@@ -683,6 +681,12 @@ typedef enum {
 #define QCBOR_TYPE_NULL          22
 /** Type for the simple value undef; nothing more; nothing in val union. */
 #define QCBOR_TYPE_UNDEF         23
+/** Type for a floating point number. Data is in val.float. */
+#define QCBOR_TYPE_FLOAT         26
+/** Type for a double floating point number. Data is in val.double. */
+#define QCBOR_TYPE_DOUBLE        27
+/** For QCBOR_DECODE_MODE_MAP_AS_ARRAY decode mode, a map that is being traversed as an array. See QCBORDecode_Init() */
+#define QCBOR_TYPE_MAP_AS_ARRAY  32
 
 #define QCBOR_TYPE_BREAK         31 // Used internally; never returned
 
@@ -1598,25 +1602,36 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
  Initialize context for a pre-order travesal of the encoded CBOR tree.
  
  Most CBOR decoding can be completed by calling this function to start
- and QCBORDecode_GetNext() in a loop.  If indefinite length strings
- are to be decoded, then QCBORDecode_SetMemPool() or QCBORDecode_SetUpAllocator()
- must be called.  If tags other than built-in tags are to be
- recognized, then QCBORDecode_SetCallerAddedTagMap() must be called.
- The built-in tags are those for which a macro of the form
- CBOR_TAG_XXX is defined.
+ and QCBORDecode_GetNext() in a loop.
  
- Three decoding modes are supported.  In normal mode, maps are decoded
- and strings and ints are accepted as map labels. If a label is other
- than these, the error QCBOR_ERR_MAP_LABEL_TYPE is returned by
- QCBORDecode_GetNext(). In strings-only mode, only text strings are
- accepted for map labels.  This lines up with CBOR that converts to
- JSON. The error QCBOR_ERR_MAP_LABEL_TYPE is returned by
+ If indefinite length strings are to be decoded, then
+ QCBORDecode_SetMemPool() or QCBORDecode_SetUpAllocator() must be
+ called to set up a string allocator.
+ 
+ If tags other than built-in tags are to be recognized, then
+ QCBORDecode_SetCallerAddedTagMap() must be called. The built-in tags
+ are those for which a macro of the form  CBOR_TAG_XXX is defined.
+ 
+ Three decoding modes are supported.  In normal mode,
+ QCBOR_DECODE_MODE_NORMAL, maps are decoded and strings and ints are
+ accepted as map labels. If a label is other than these, the error
+ QCBOR_ERR_MAP_LABEL_TYPE is returned by QCBORDecode_GetNext().
+ 
+ In strings-only mode, QCBOR_DECODE_MODE_MAP_STRINGS_ONLY, only text
+ strings are accepted for map labels.  This lines up with CBOR that
+ converts to JSON. The error QCBOR_ERR_MAP_LABEL_TYPE is returned by
  QCBORDecode_GetNext() if anything but a text string label is
- encountered. In array mode, the maps are treated as arrays. This will
- decode any type of label, but the caller must figure out all the map
- decoding.
+ encountered.
+ 
+ In QCBOR_DECODE_MODE_MAP_AS_ARRAY maps are treated as special arrays.
+ They will be return with special uDataType QCBOR_TYPE_MAP_AS_ARRAY
+ and uCount, the number of items, will be double what it would be
+ for a normal map because the labels are also counted. This mode
+ is useful for decoding CBOR that has labels that are not
+ integers or text strings, but the caller must manage much of
+ the map decoding.
  */
-void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, int8_t nMode);
+void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDecodeMode nMode);
 
 
 /**

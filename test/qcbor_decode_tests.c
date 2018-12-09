@@ -840,8 +840,8 @@ int ParseMapAsArrayTest()
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
    }
-   if(Item.uDataType != QCBOR_TYPE_MAP ||
-      Item.val.uCount != 6) { // TODO: this should be 6
+   if(Item.uDataType != QCBOR_TYPE_MAP_AS_ARRAY ||
+      Item.val.uCount != 6) {
       return -1;
    }
    
@@ -927,8 +927,8 @@ int ParseMapAsArrayTest()
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataAlloc ||
       Item.uLabelAlloc ||
-      Item.uDataType != QCBOR_TYPE_MAP ||
-      Item.val.uCount != 4) { // TODO: is this correct?
+      Item.uDataType != QCBOR_TYPE_MAP_AS_ARRAY ||
+      Item.val.uCount != 8) {
       return -9;
    }
    
