@@ -161,6 +161,9 @@ int OptTagParseTest(void);
 int BignumParseTest(void);
 
 
+int StringDecoderModeFailTest(void);
+
+
 /*
  Parse some nested maps
  */

@@ -38,8 +38,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 
 
-// TODO: test other than the normal decoder mode
-
 static void printencoded(const char *szLabel, const uint8_t *pEncoded, size_t nLen)
 {
    if(szLabel) {
@@ -704,13 +702,13 @@ int ShortBufferParseTest2()
  Decode and thoroughly check a moderately complex
  set of maps
  */
-static int ParseMapTest1()
+static int ParseMapTest1(QCBORDecodeMode nMode)
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
    int nCBORError;
    
-   QCBORDecode_Init(&DCtx, (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)}, QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)}, nMode);
    
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
@@ -1232,8 +1230,10 @@ static int ExtraBytesTest(int nLevel)
 int ParseMapTest()
 {
    // Parse a moderatly complex map structure very thoroughl
-   int n = ParseMapTest1();
-   
+   int n = ParseMapTest1(QCBOR_DECODE_MODE_NORMAL);
+
+   n = ParseMapTest1(QCBOR_DECODE_MODE_MAP_STRINGS_ONLY);
+
    if(!n) {
       for(int i = 0; i < 10; i++) {
          n = ExtraBytesTest(i);
@@ -2104,6 +2104,33 @@ int NestedMapTest()
    
    return CheckCSRMaps(&DCtx);
 }
+
+
+
+int StringDecoderModeFailTest()
+{
+   QCBORDecodeContext DCtx;
+   
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRInput), QCBOR_DECODE_MODE_MAP_STRINGS_ONLY);
+   
+   QCBORItem Item;
+   QCBORError nCBORError;
+   
+   if(QCBORDecode_GetNext(&DCtx, &Item)) {
+      return -1;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP) {
+      return -2;
+   }
+   
+   nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(nCBORError != QCBOR_ERR_MAP_LABEL_TYPE) {
+      return -3;
+   }
+
+   return 0;
+}
+
 
 // Same map as above, but using indefinite lengths
 static uint8_t spCSRInputIndefLen[] = {
