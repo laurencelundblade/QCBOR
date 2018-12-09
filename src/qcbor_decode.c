@@ -312,7 +312,7 @@ static QCBORError TagMapper_Lookup(const QCBORTagListIn *pCallerConfiguredTagMap
 /*
  Public function, see header file
  */
-void QCBORDecode_Init(QCBORDecodeContext *me, UsefulBufC EncodedCBOR, int8_t nDecodeMode)
+void QCBORDecode_Init(QCBORDecodeContext *me, UsefulBufC EncodedCBOR, QCBORDecodeMode nDecodeMode)
 {
    memset(me, 0, sizeof(QCBORDecodeContext));
    UsefulInputBuf_Init(&(me->InBuf), EncodedCBOR);
@@ -949,42 +949,51 @@ static inline QCBORError GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDe
       goto Done;
    }
    
-   // If in a map and the right decoding mode, get the label
-   if(DecodeNesting_TypeIsMap(&(me->nesting)) && me->uDecodeMode != QCBOR_DECODE_MODE_MAP_AS_ARRAY) {
+   if(me->uDecodeMode != QCBOR_DECODE_MODE_MAP_AS_ARRAY) {
       // In a map and caller wants maps decoded, not treated as arrays
-      
-      // Get the next item which will be the real data; Item will be the label
-      QCBORItem LabelItem = *pDecodedItem;
-      nReturn = GetNext_TaggedItem(me, pDecodedItem, pTags);
-      if(nReturn)
-         goto Done;
-      
-      pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
 
-      if(LabelItem.uDataType == QCBOR_TYPE_TEXT_STRING) {
-         // strings are always good labels
-         pDecodedItem->label.string = LabelItem.val.string;
-         pDecodedItem->uLabelType = QCBOR_TYPE_TEXT_STRING;
-      } else if (QCBOR_DECODE_MODE_MAP_STRINGS_ONLY == me->uDecodeMode) {
-         // It's not a string and we only want strings, probably for easy translation to JSON
-         nReturn = QCBOR_ERR_MAP_LABEL_TYPE;
-         goto Done;
-      } else if(LabelItem.uDataType == QCBOR_TYPE_INT64) {
-         pDecodedItem->label.int64 = LabelItem.val.int64;
-         pDecodedItem->uLabelType = QCBOR_TYPE_INT64;
-      } else if(LabelItem.uDataType == QCBOR_TYPE_UINT64) {
-         pDecodedItem->label.uint64 = LabelItem.val.uint64;
-         pDecodedItem->uLabelType = QCBOR_TYPE_UINT64;
-      } else if(LabelItem.uDataType == QCBOR_TYPE_BYTE_STRING) {
-         pDecodedItem->label.string = LabelItem.val.string;
+      if(DecodeNesting_TypeIsMap(&(me->nesting))) {
+         // If in a map and the right decoding mode, get the label
+
+         // Get the next item which will be the real data; Item will be the label
+         QCBORItem LabelItem = *pDecodedItem;
+         nReturn = GetNext_TaggedItem(me, pDecodedItem, pTags);
+         if(nReturn)
+            goto Done;
+         
          pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
-         pDecodedItem->uLabelType = QCBOR_TYPE_BYTE_STRING;
-      } else {
-         // label is not an int or a string. It is an arrray
-         // or a float or such and this implementation doesn't handle that.
-         // Also, tags on labels are ignored.
-         nReturn = QCBOR_ERR_MAP_LABEL_TYPE;
-         goto Done;
+
+         if(LabelItem.uDataType == QCBOR_TYPE_TEXT_STRING) {
+            // strings are always good labels
+            pDecodedItem->label.string = LabelItem.val.string;
+            pDecodedItem->uLabelType = QCBOR_TYPE_TEXT_STRING;
+         } else if (QCBOR_DECODE_MODE_MAP_STRINGS_ONLY == me->uDecodeMode) {
+            // It's not a string and we only want strings, probably for easy translation to JSON
+            nReturn = QCBOR_ERR_MAP_LABEL_TYPE;
+            goto Done;
+         } else if(LabelItem.uDataType == QCBOR_TYPE_INT64) {
+            pDecodedItem->label.int64 = LabelItem.val.int64;
+            pDecodedItem->uLabelType = QCBOR_TYPE_INT64;
+         } else if(LabelItem.uDataType == QCBOR_TYPE_UINT64) {
+            pDecodedItem->label.uint64 = LabelItem.val.uint64;
+            pDecodedItem->uLabelType = QCBOR_TYPE_UINT64;
+         } else if(LabelItem.uDataType == QCBOR_TYPE_BYTE_STRING) {
+            pDecodedItem->label.string = LabelItem.val.string;
+            pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
+            pDecodedItem->uLabelType = QCBOR_TYPE_BYTE_STRING;
+         } else {
+            // label is not an int or a string. It is an arrray
+            // or a float or such and this implementation doesn't handle that.
+            // Also, tags on labels are ignored.
+            nReturn = QCBOR_ERR_MAP_LABEL_TYPE;
+            goto Done;
+         }
+      }
+   } else {
+      if(pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
+         // Decoding a map as an array
+         pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
+         pDecodedItem->val.uCount *= 2;
       }
    }
    

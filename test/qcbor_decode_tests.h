@@ -120,6 +120,12 @@ int FloatValuesTest1(void);
 int SimpleValuesTest1(void);
 
 
+/*
+ 
+ */
+int ParseMapAsArrayTest(void);
+
+
 
 int ParseSimpleTest(void);
 
