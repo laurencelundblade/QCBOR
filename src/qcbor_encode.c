@@ -266,8 +266,57 @@ void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
  encoded in 2, 4 or 8 bytes.
  
  */
-#ifdef FORMAL
-static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorType, size_t uMinLen, uint64_t uNumber, size_t uPos)
+#ifndef FORMALLY_CORRECT_INSERTENCODEDTYPEANDNUMBER
+/* This code does endian conversion without hton or knowing the
+ endianness of the machine with masks and shifts. It avoids the
+ dependency on hton and any mess of figuring out how to find
+ the machines's endianness.
+ 
+ It is a good efficient implementation on little endian machines.
+ A better implementation is possible on big endian machines
+ because CBOR/network byte order is big endian. However big
+ endian machines are uncommon.
+ 
+ It is about 200 bytes instead of 500 bytes of code on x86.
+ 
+ This also does the preferred shortest encoding for integers.
+ 
+ It works backwards from the LSB to the MSB as needed.
+ 
+ Code Reviewers: THIS FUNCTION DOES POINTER MATH
+ */
+
+static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorType, int nMinLen, uint64_t uNumber, size_t uPos)
+{
+   uint8_t bytes[sizeof(uint64_t)+2];
+   uint8_t *pByte = &bytes[sizeof(bytes)];
+   uint8_t ib;
+   
+   if(uNumber < CBOR_TWENTY_FOUR && nMinLen == 0) {
+      ib = uNumber;
+   } else  {
+      static const uint8_t aIterate[] = {1,1,2,4};
+      ib = 0;
+      while(uNumber || nMinLen > 0) {
+         const uint8_t x = aIterate[ib];
+         nMinLen -= x;
+         for (int i = 0; i < x; i++) {
+            *--pByte = uNumber & 0xff;
+            uNumber = uNumber >> 8;
+         }
+         ib++;
+      }
+      ib += LEN_IS_ONE_BYTE-1;
+   }
+   *--pByte = (uMajorType << 5) + ib;
+   
+   UsefulOutBuf_InsertData(&(me->OutBuf), pByte, &bytes[sizeof(bytes)] - pByte, uPos);
+}
+
+#else
+
+/* This does the same as the above, but is easier to understand. This also does no pointer math. */
+static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorType, int nMinLen, uint64_t uNumber, size_t uPos)
 {
    // No need to worry about integer overflow here because a) uMajorType is
    // always generated internally, not by the caller, b) this is for CBOR
@@ -275,15 +324,15 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorTyp
    // not a security vulnerability.
    uMajorType <<= 5;
    
-   if(uNumber > 0xffffffff || uMinLen >= 8) {
+   if(uNumber > 0xffffffff || nMinLen >= 8) {
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_EIGHT_BYTES, uPos);
       UsefulOutBuf_InsertUint64(&(me->OutBuf), (uint64_t)uNumber, uPos+1);
       
-   } else if(uNumber > 0xffff || uMinLen >= 4) {
+   } else if(uNumber > 0xffff || nMinLen >= 4) {
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_FOUR_BYTES, uPos);
       UsefulOutBuf_InsertUint32(&(me->OutBuf), (uint32_t)uNumber, uPos+1);
       
-   } else if (uNumber > 0xff || uMinLen>= 2) {
+   } else if (uNumber > 0xff || nMinLen>= 2) {
       // Between 0 and 65535
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_TWO_BYTES, uPos);
       UsefulOutBuf_InsertUint16(&(me->OutBuf), (uint16_t)uNumber, uPos+1);
@@ -298,54 +347,7 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorTyp
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + (uint8_t)uNumber, uPos);
    }
 }
-#else
 
-#include <arpa/inet.h>
-
-
-static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorType, size_t uMinLen, uint64_t uNumber, size_t uPos)
-{
-   uint8_t bytes[9];
-   size_t  bytesLen;
-   // No need to worry about integer overflow here because a) uMajorType is
-   // always generated internally, not by the caller, b) this is for CBOR
-   // _generation_, not parsing c) a mistake will result in bad CBOR generation,
-   // not a security vulnerability.
-   uMajorType <<= 5;
-   
-   if(uNumber > 0xffffffff || uMinLen >= 8) {
-      bytes[0] =  uMajorType + LEN_IS_EIGHT_BYTES;
-      uNumber = htonll(uNumber);
-      memcpy(&bytes[1], &uNumber, sizeof(uint64_t));
-      bytesLen = 1 + sizeof(uint64_t);
-      
-   } else if(uNumber > 0xffff || uMinLen >= 4) {
-      bytes[0] =  uMajorType + LEN_IS_FOUR_BYTES;
-      uint32_t uNumber32 = htonl(uNumber);
-      memcpy(&bytes[1], &uNumber32, sizeof(uint32_t));
-      bytesLen = 1 + sizeof(uint32_t);
-
-   } else if (uNumber > 0xff || uMinLen>= 2) {
-      // Between 0 and 65535
-      bytes[0] =  uMajorType + LEN_IS_TWO_BYTES;
-      uint16_t uNumber16 = htons(uNumber);
-      memcpy(&bytes[1], &uNumber16, sizeof(uint16_t));
-      bytesLen = sizeof(uint16_t) + 1;
-      
-   } else if(uNumber >= 24) {
-      // Between 0 and 255, but only between 24 and 255 is ever encoded here
-      bytes[0] =  uMajorType + LEN_IS_ONE_BYTE;
-      uint8_t uNumber8 = uNumber;
-      memcpy(&bytes[1], &uNumber8, sizeof(uint8_t));
-      bytesLen = sizeof(uint8_t) + 1;
-      
-   } else {
-      // Between 0 and 23
-      bytes[0] = uMajorType + (uint8_t)uNumber;
-      bytesLen = 1;
-   }
-   UsefulOutBuf_InsertData(&(me->OutBuf), bytes, bytesLen, uPos);
-}
 #endif
 
 
@@ -463,7 +465,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, size_t uSize, uint64_t uNum)
       InsertEncodedTypeAndNumber(me,
                                  CBOR_MAJOR_TYPE_SIMPLE,  // The major type for
                                  // floats and doubles
-                                 uSize,                   // min size / tells
+                                 (int)uSize,              // min size / tells
                                  // encoder to do it right
                                  uNum,                    // Bytes of the floating
                                  // point number as a uint
@@ -635,11 +637,6 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
  _QCBOREncode_Finish   72
  
  Total is about 1.4KB (including FinishGetSize and AddTag and AddDouble)
- 
- _InsertEncodedTypeAndNumber is large because a lot of UsefulBuf
- code inlines into it including the conversion to network byte
- order. This could be optimized to at least half the size, but
- code would probably not be quite as clean.
  
  _QCBOREncode_CloseMapOrArray is larger because it has a lot
  of nesting tracking to do and much of Nesting_ inlines
@@ -871,7 +868,7 @@ Ltmp65:
 Lfunc_end10:
 	.cfi_endproc
 
-
+*/
 
 
 
