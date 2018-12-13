@@ -34,13 +34,14 @@ QCBOR_OBJ2=$(QCBOR_OBJ) src/qcbor_decode_malloc.o
 TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o test/qcbor_decode_tests.o test/run_tests.o \
   test/float_tests.o test/half_to_double_from_rfc7049.o test/qcbor_decode_malloc_tests.o
 
-CMD_LINE_OBJ=$(QCBOR_OBJ2) $(TEST_OBJ) cmd_line_main.o
+qcbortest: libqcbor.a $(TEST_OBJ) cmd_line_main.o
+	cc -o $@ $^ $(CFLAGS) libqcbor.a
 
-qcbortest: $(CMD_LINE_OBJ)
-	cc -o $@ $^ $(CFLAGS)
+qcbormin: libqcbor.a min_use_main.c
+	cc -dead_strip -o $@ $^ $(CFLAGS) libqcbor.a
 
-qcbormin: $(QCBOR_OBJ) min_use_main.c
-	cc -dead_strip -o $@ $^ $(CFLAGS)
+libqcbor.a: $(QCBOR_OBJ2)
+	ar -r $@ $^
 
 src/UsefulBuf.o:	inc/UsefulBuf.h
 src/qcbor_decode.o:	inc/UsefulBuf.h inc/qcbor.h src/ieee754.h
@@ -62,4 +63,4 @@ cmd_line_main.o:	test/run_tests.h inc/qcbor.h
 min_use_main.o:		inc/qcbor.h inc/UsefulBuf.h
 
 clean:
-	rm $(CMD_LINE_OBJ)
+	rm -f $(QCBOR_OBJ2) $(TEST_OBJ) libqcbor.a
