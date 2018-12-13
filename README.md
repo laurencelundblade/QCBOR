@@ -10,9 +10,7 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
 **Small simple memory model** – Malloc is not needed. The encode context is 136 bytes, decode context is 104 bytes and the description of decoded data item is 56 bytes. Stack use is light and there is no recursion. The caller supplies the memory to hold the encoded CBOR and encode/decode contexts so caller has full control of memory usage making it good for embedded implementations that have to run in small fixed memory. 
 
-**Supports nearly all of RFC 7049** – Only minor, corner-case parts of RFC 7049 are not directly supported (canonicalization, decimal fractions, big floats). Decoding
-indefinite length strings but requires a string allocator (see documentation). Encoding indefinite length strings is not supported, but
-is also not necessary or preferred.
+**Supports nearly all of RFC 7049** – Only minor, corner-case parts of RFC 7049 are not directly supported (canonicalization, decimal fractions, big floats). Decoding indefinite length strings but requires a string allocator (see documentation). Encoding indefinite length strings is not supported, but is also not necessary or preferred.
 
 **Extensible and General** – Provides a way to handle data types that are not directly supported.
 
@@ -27,8 +25,7 @@ QCBOR was originally developed by Qualcomm. It was [open sourced through CAF](ht
 
 This code in Laurence's GitHub has diverged some from the CAF source with some small simplifications and tidying up.  
 
-From Nov 3, 2018, the interface and code are fairly stable. Large changes are not planned or expected, particularly in the interface. The test coverage
-is pretty good.
+From Nov 3, 2018, the interface and code are fairly stable. Large changes are not planned or expected, particularly in the interface. The test coverage is pretty good.
 
 ## Building
 There is a simple makefile for the UNIX style command line binary that compiles everything to run the tests.
@@ -45,14 +42,13 @@ The actual non-test source files are these eight:
 
 For most use cases you should just be able to add them to your project. Hopefully the easy portability of this implementation makes this work straight away, whatever your development environment is.
 
-The files ieee754.c and ieee754.h are support for half-precision floating point. The encoding side of the floating point functionality is about
-500 bytes. If it is never called because no floating point numbers are ever encoded, all 500 bytes will be dead stripped and not
+The files ieee754.c and ieee754.h are support for half-precision floating point. The encoding side of the floating point functionality is about 500 bytes. If it is never called because no floating point numbers are ever encoded, all 500 bytes will be dead stripped and not
 impact code size. The decoding side is about 150 bytes of object code. It is never dead stripped because it directly referenced by
 the core decoder, however it doesn't add very much to the size.
 
 The test directory includes some tests that are nearly as portable as the main implementation.  If your development environment 
 doesn't support UNIX style command line and make, you should be able to make a simple project and add the test files to it.
-Then just call run_tests() to invole them all. 
+Then just call run_tests() to invoke them all. 
 
 
 ## Changes from CAF Version

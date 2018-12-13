@@ -43,6 +43,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 12/13/18           llundblade      Documentatation improvements
  11/29/18           llundblade      Rework to simpler handling of tags and labels.
  11/9/18            llundblade      Error codes are now enums.
  11/1/18            llundblade      Floating support.

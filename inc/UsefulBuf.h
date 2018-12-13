@@ -42,6 +42,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 12/13/2018         llundblade      Documentation improvements
+ 09/18/2018         llundblade      Cleaner distinction between UsefulBuf and UsefulBufC
  02/02/18           llundbla        Full support for integers in and out; fix pointer alignment bug
                                     Incompatible change: integers in/out are now in network byte order.
  08/12/17           llundbla        Added UsefulOutBuf_AtStart and UsefulBuf_Find
