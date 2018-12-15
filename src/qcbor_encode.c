@@ -613,17 +613,16 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
  2, 3                QCBOREncode_AddBuffer, Also QCBOREncode_OpenMapOrArray
  4, 5                QCBOREncode_OpenMapOrArray
  6                   QCBOREncode_AddTag
- 7                   QCBOREncode_AddDouble, QCBOREncode_AddSimple
+ 7                   QCBOREncode_AddDouble, QCBOREncode_AddType7
  
- Object code sizes on X86 with LLVM compiler and -Os (Dec 13, 2018)
+ Object code sizes on X86 with LLVM compiler and -Os (Dec 14, 2018)
  
  _QCBOREncode_Init   71
  _QCBOREncode_AddUInt64   76
  _QCBOREncode_AddInt64   87
  _QCBOREncode_AddBuffer   113
  _QCBOREncode_AddTag 27
- _QCBOREncode_AddSimple   30
- _AppendType7   83
+ _QCBOREncode_AddType7   83
  _QCBOREncode_AddDouble 36
  _QCBOREncode_OpenMapOrArray   103
  _QCBOREncode_CloseMapOrArray   181
