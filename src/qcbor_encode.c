@@ -110,13 +110,13 @@ inline static void Nesting_Decrease(QCBORTrackNesting *pNesting)
    pNesting->pCurrentNesting--;
 }
 
-inline static QCBORError Nesting_Increment(QCBORTrackNesting *pNesting, uint16_t uAmount)
+inline static QCBORError Nesting_Increment(QCBORTrackNesting *pNesting)
 {
-   if(uAmount >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
+   if(1 >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
       return QCBOR_ERR_ARRAY_TOO_LONG;
    }
       
-   pNesting->pCurrentNesting->uCount += uAmount;
+   pNesting->pCurrentNesting->uCount += 1;
    return QCBOR_SUCCESS;
 }
 
@@ -210,12 +210,8 @@ inline static int Nesting_IsInNest(QCBORTrackNesting *pNesting)
 void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
 {
    memset(me, 0, sizeof(QCBOREncodeContext));
-   if(Storage.len > UINT32_MAX) {
-      me->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
-   } else {
-      UsefulOutBuf_Init(&(me->OutBuf), Storage);
-      Nesting_Init(&(me->nesting));
-   }
+   UsefulOutBuf_Init(&(me->OutBuf), Storage);
+   Nesting_Init(&(me->nesting));
 }
 
 
@@ -374,7 +370,7 @@ void QCBOREncode_AddUInt64(QCBOREncodeContext *me, uint64_t uValue)
 {
    if(me->uError == QCBOR_SUCCESS) {
       AppendEncodedTypeAndNumber(me, CBOR_MAJOR_TYPE_POSITIVE_INT, uValue);
-      me->uError = Nesting_Increment(&(me->nesting), 1);
+      me->uError = Nesting_Increment(&(me->nesting));
    }
 }
 
@@ -397,7 +393,7 @@ void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
       }
       
       AppendEncodedTypeAndNumber(me, uMajorType, uValue);
-      me->uError = Nesting_Increment(&(me->nesting), 1);
+      me->uError = Nesting_Increment(&(me->nesting));
    }
 }
 
@@ -415,30 +411,20 @@ void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
  */
 void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC Bytes)
 {
-   if(Bytes.len >= UINT32_MAX) {
-      // This implementation doesn't allow buffers larger than UINT32_MAX.
-      // This is primarily because QCBORTrackNesting.pArrays[].uStart is
-      // an uint32 rather than size_t to keep the stack usage down. Also
-      // it is entirely impractical to create tokens bigger than 4GB in
-      // contiguous RAM
-      me->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
-      
-   } else {
-      if(!me->uError) {
-         // If it is not Raw CBOR, add the type and the length
-         if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
-            AppendEncodedTypeAndNumber(me, uMajorType, Bytes.len);
-            // The increment in uPos is to account for bytes added for
-            // type and number so the buffer being added goes to the
-            // right place
-         }
-         
-         // Actually add the bytes
-         UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), Bytes);
-         
-         // Update the array counting if there is any nesting at all
-         me->uError = Nesting_Increment(&(me->nesting), 1);
+   if(!me->uError) {
+      // If it is not Raw CBOR, add the type and the length
+      if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
+         AppendEncodedTypeAndNumber(me, uMajorType, Bytes.len);
+         // The increment in uPos is to account for bytes added for
+         // type and number so the buffer being added goes to the
+         // right place
       }
+      
+      // Actually add the bytes
+      UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), Bytes);
+      
+      // Update the array counting if there is any nesting at all
+      me->uError = Nesting_Increment(&(me->nesting));
    }
 }
 
@@ -473,7 +459,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, size_t uSize, uint64_t uNum)
                                  // point number as a uint
                                  UsefulOutBuf_GetEndPosition(&(me->OutBuf))); // end position for append
       
-      me->uError = Nesting_Increment(&(me->nesting), 1);
+      me->uError = Nesting_Increment(&(me->nesting));
    }
 }
 
@@ -497,14 +483,18 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 */
 void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 {
-      // Add one item to the nesting level we are in for the new map or array
-      me->uError = Nesting_Increment(&(me->nesting), 1);
-      if(!me->uError) {
+   // Add one item to the nesting level we are in for the new map or array
+   me->uError = Nesting_Increment(&(me->nesting));
+   if(!me->uError) {
+      size_t uEndPosition = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
+      if(uEndPosition >= UINT32_MAX-sizeof(uint64_t)) {
+         me->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
+      } else {
          // Increase nesting level because this is a map or array
-         // Cast from size_t to uin32_t is safe because the UsefulOutBuf
-         // size is limited to UINT32_MAX in QCBOR_Init().
-         me->uError = Nesting_Increase(&(me->nesting), uMajorType, (uint32_t)UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+         // Cast from size_t to uin32_t is safe because of check above
+         me->uError = Nesting_Increase(&(me->nesting), uMajorType, (uint32_t)uEndPosition);
       }
+   }
 }
 
 
@@ -516,7 +506,7 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType, Use
    if(!me->uError) {
       if(!Nesting_IsInNest(&(me->nesting))) {
          me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
-      } else if( Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
+      } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
          me->uError = QCBOR_ERR_CLOSE_MISMATCH;
       } else {
          // When the array, map or bstr wrap was started, nothing was done
@@ -627,15 +617,15 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
  
  Object code sizes on X86 with LLVM compiler and -Os (Dec 13, 2018)
  
- _QCBOREncode_Init   84
+ _QCBOREncode_Init   71
  _QCBOREncode_AddUInt64   76
  _QCBOREncode_AddInt64   87
- _QCBOREncode_AddBuffer   131
+ _QCBOREncode_AddBuffer   113
  _QCBOREncode_AddTag 27
  _QCBOREncode_AddSimple   30
  _AppendType7   83
  _QCBOREncode_AddDouble 36
- _QCBOREncode_OpenMapOrArray   89
+ _QCBOREncode_OpenMapOrArray   103
  _QCBOREncode_CloseMapOrArray   181
  _InsertEncodedTypeAndNumber   190
  _QCBOREncode_Finish   72

@@ -153,6 +153,7 @@ test_entry s_tests[] = {
     TEST_ENTRY(BstrWrapErrorTest),
     TEST_ENTRY(BstrWrapNestTest),
     TEST_ENTRY(CoseSign1TBSTest),
+    TEST_ENTRY(EncodeErrorTests),
     //TEST_ENTRY(fail_test),
 };
 

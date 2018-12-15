@@ -1852,3 +1852,38 @@ int CoseSign1TBSTest()
    return 0;
 }
 
+
+int EncodeErrorTests()
+{
+   QCBOREncodeContext EC;
+   
+   // Do all of these tests with NULL buffers as buffers would have to 4GB
+   UsefulBuf Giant = (UsefulBuf){NULL, (uint64_t)UINT32_MAX + ((uint64_t)UINT32_MAX / 2)};
+   
+   // First verify no error from a really big buffer
+   QCBOREncode_Init(&EC, Giant);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, (uint64_t)UINT32_MAX + 10000ULL});
+   QCBOREncode_CloseArray(&EC);
+   size_t xx;
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_SUCCESS) {
+      return -1;
+   }
+   
+
+   // second verify error from an array in encoded output too large
+   QCBOREncode_Init(&EC, Giant);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, (uint64_t)UINT32_MAX+10000ULL});
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_CloseArray(&EC);
+   QCBOREncode_CloseArray(&EC);
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_BUFFER_TOO_LARGE) {
+      return -2;
+   }
+
+   // Need more tests for more error conditions until they are all covered exactly
+   
+   
+   return 0;
+}

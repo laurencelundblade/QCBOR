@@ -138,6 +138,8 @@ int BstrWrapNestTest(void);
 
 int CoseSign1TBSTest(void);
 
+int EncodeErrorTests(void);
+
 
 
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */
