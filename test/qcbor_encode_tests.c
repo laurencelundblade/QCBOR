@@ -1857,6 +1857,8 @@ int EncodeErrorTests()
 {
    QCBOREncodeContext EC;
    
+   
+   // ------ Test for QCBOR_ERR_BUFFER_TOO_LARGE ------
    // Do all of these tests with NULL buffers as buffers would have to 4GB
    UsefulBuf Giant = (UsefulBuf){NULL, (uint64_t)UINT32_MAX + ((uint64_t)UINT32_MAX / 2)};
    
@@ -1869,7 +1871,6 @@ int EncodeErrorTests()
    if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_SUCCESS) {
       return -1;
    }
-   
 
    // second verify error from an array in encoded output too large
    QCBOREncode_Init(&EC, Giant);
@@ -1882,8 +1883,95 @@ int EncodeErrorTests()
       return -2;
    }
 
-   // Need more tests for more error conditions until they are all covered exactly
+   
+   // ----- QCBOR_ERR_BUFFER_TOO_SMALL --------------
+   // Work close to the 4GB size limit for a better test
+   const uint32_t uLargeSize =  UINT32_MAX - 1024;
+   UsefulBuf Large = (UsefulBuf){NULL,uLargeSize};
+
+   QCBOREncode_Init(&EC, Large);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, uLargeSize/2 + 1});
+   QCBOREncode_CloseArray(&EC);
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_SUCCESS) {
+      // Making sure it succeeds when it should first
+      return -3;
+   }
+
+   QCBOREncode_Init(&EC, Large);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, uLargeSize/2 + 1});
+   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, uLargeSize/2});
+   QCBOREncode_CloseArray(&EC);
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_BUFFER_TOO_SMALL) {
+      // Now just 1 byte over, see that it fails
+      return -4;
+   }
    
    
+   // ----- QCBOR_ERR_ARRAY_NESTING_TOO_DEEP -------
+   QCBOREncode_Init(&EC, Large);
+   for(int i = QCBOR_MAX_ARRAY_NESTING; i > 0; i--) {
+      QCBOREncode_OpenArray(&EC);
+   }
+   for(int i = QCBOR_MAX_ARRAY_NESTING; i > 0; i--) {
+      QCBOREncode_CloseArray(&EC);
+   }
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_SUCCESS) {
+      // Making sure it succeeds when it should first
+      return -5;
+   }
+
+   QCBOREncode_Init(&EC, Large);
+   for(int i = QCBOR_MAX_ARRAY_NESTING+1; i > 0; i--) {
+      QCBOREncode_OpenArray(&EC);
+   }
+   for(int i = QCBOR_MAX_ARRAY_NESTING+1; i > 0; i--) {
+      QCBOREncode_CloseArray(&EC);
+   }
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+      // One more level to cause error
+      return -6;
+   }
+   
+   
+   // ------ QCBOR_ERR_TOO_MANY_CLOSES --------
+   QCBOREncode_Init(&EC, Large);
+   for(int i = QCBOR_MAX_ARRAY_NESTING; i > 0; i--) {
+      QCBOREncode_OpenArray(&EC);
+   }
+   for(int i = QCBOR_MAX_ARRAY_NESTING+1; i > 0; i--) {
+      QCBOREncode_CloseArray(&EC);
+   }
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_TOO_MANY_CLOSES) {
+      // One more level to cause error
+      return -7;
+   }
+   
+   
+   // ------ QCBOR_ERR_CLOSE_MISMATCH --------
+   QCBOREncode_Init(&EC, Large);
+   QCBOREncode_OpenArray(&EC);
+   UsefulBufC Wrap;
+   QCBOREncode_CloseBstrWrap(&EC, &Wrap);
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_CLOSE_MISMATCH) {
+      return -8;
+   }
+
+
+   // ------ QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN ---------
+   QCBOREncode_Init(&EC, Large);
+   for(int i = QCBOR_MAX_ARRAY_NESTING; i > 0; i--) {
+      QCBOREncode_OpenArray(&EC);
+   }
+   for(int i = QCBOR_MAX_ARRAY_NESTING-1; i > 0; i--) {
+      QCBOREncode_CloseArray(&EC);
+   }
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      // One more level to cause error
+      return -9;
+   }
+   
+
    return 0;
 }
