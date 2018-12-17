@@ -305,7 +305,7 @@ uint16_t IEEE754_DoubleToHalf(double d)
         // Also have to shift the significand by the difference in number of bits between a double and a half significand
         const int64_t nSignificandBitsDiff = DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS;
         // Add in the 1 that is implied in the significand of a normal number; it needs to be present in a subnormal
-        const uint64_t uDoubleSignificandSubnormal = uDoubleSignificand + (0x01L << DOUBLE_NUM_SIGNIFICAND_BITS);
+        const uint64_t uDoubleSignificandSubnormal = uDoubleSignificand + (0x01ULL << DOUBLE_NUM_SIGNIFICAND_BITS);
         uHalfSignificand = uDoubleSignificandSubnormal >> (nExpDiff + nSignificandBitsDiff);
     } else {
         // The normal case
