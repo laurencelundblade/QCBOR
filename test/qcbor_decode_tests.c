@@ -32,7 +32,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "qcbor.h"
 #include "qcbor_decode_tests.h"
-#include <strings.h>
+#include <string.h>
 #include <math.h> // for fabs()
 #include <stdlib.h>
 
