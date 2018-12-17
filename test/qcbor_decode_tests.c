@@ -32,12 +32,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "qcbor.h"
 #include "qcbor_decode_tests.h"
-#include <stdio.h>
 #include <strings.h>
 #include <math.h> // for fabs()
 #include <stdlib.h>
 
-
+#ifdef  PRINT_FUNCTIONS_FOR_DEBUGGINGXX
+#include <stdio.h>
 static void printencoded(const char *szLabel, const uint8_t *pEncoded, size_t nLen)
 {
    if(szLabel) {
@@ -53,6 +53,7 @@ static void printencoded(const char *szLabel, const uint8_t *pEncoded, size_t nL
 
    fflush(stdout);
 }
+#endif
 
 
 static const uint8_t spExpectedEncodedInts[] = {
@@ -576,7 +577,6 @@ int SimpleArrayTest()
       i4 != 11 ||
       memcmp("galactic", s3, 8) !=0 ||
       memcmp("haven token", s4, 11) !=0) {
-      printf("SimpleArraryTest Failed\n");
       return(-1);
    }
    
@@ -685,8 +685,6 @@ int ShortBufferParseTest2()
    if(CreateSimpleArray(23, 6000, &pEncoded, &nEncodedLen) < 0) {
       return(-1);
    }
-   
-   //printencoded(pEncoded,  nEncodedLen);
    
    for(nEncodedLen--; nEncodedLen; nEncodedLen--) {
       int nResult = ParseOrderedArray(pEncoded, (uint32_t)nEncodedLen, &i1, &i2, &s3, &i3, &s4, &i4);
@@ -1356,16 +1354,6 @@ struct FailInput  Failures[] = {
 };
 
 
-void Dump(UsefulBufC Input, int x)
-{
-   char label[10];
-   
-   sprintf(label, "%d", x);
-   
-   printencoded(label, Input.ptr, Input.len);
-}
-
-
 int FailureTests()
 {
    int nResult = 0;
@@ -1386,7 +1374,6 @@ int FailureTests()
          }
          if(nCBORError != pF->nError) {
             nResult = 1;
-            // Dump(pF->Input, nCBORError);
             break;
          }
       }
@@ -1446,12 +1433,10 @@ static void Recurser(uint8_t *pBuf, int nLen, int nLenMax)
          }
          if(nCBORError != QCBOR_SUCCESS) {
             if(nCBORError != QCBOR_ERR_UNSUPPORTED && nCBORError != QCBOR_ERR_HIT_END && nCBORError != QCBOR_ERR_INVALID_CBOR) {
-               //Dump(Input, nCBORError);
             }
             break;
          }
       }
-      //Dump(Input, -1);
 
    
       Recurser(pBuf, nLen+1, nLenMax);
