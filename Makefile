@@ -26,7 +26,7 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-CFLAGS=-I inc -I test -Os -Wall -Werror -pedantic-errors -Wextra -Wshadow -Wparentheses
+CFLAGS=-I inc -I test -Os -Wall -Werror -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
 
 QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o 
 QCBOR_OBJ2=$(QCBOR_OBJ) src/qcbor_decode_malloc.o
@@ -35,10 +35,10 @@ TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o test/qcbor_decode_test
   test/float_tests.o test/half_to_double_from_rfc7049.o test/qcbor_decode_malloc_tests.o
 
 qcbortest: libqcbor.a $(TEST_OBJ) cmd_line_main.o
-	cc -o $@ $^ $(CFLAGS) libqcbor.a
+	cc -o $@ $^  libqcbor.a
 
-qcbormin: libqcbor.a min_use_main.c
-	cc -dead_strip -o $@ $^ $(CFLAGS) libqcbor.a
+qcbormin: libqcbor.a min_use_main.o
+	cc -dead_strip -o $@ $^ libqcbor.a
 
 libqcbor.a: $(QCBOR_OBJ2)
 	ar -r $@ $^
