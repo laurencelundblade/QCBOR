@@ -26,7 +26,7 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-CFLAGS=-I inc -I test -Os -Wall -Werror -pedantic-errors -Wextra -Wshadow
+CFLAGS=-I inc -I test -Os -Wall -Werror -pedantic-errors -Wextra -Wshadow -Wparentheses
 
 QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o 
 QCBOR_OBJ2=$(QCBOR_OBJ) src/qcbor_decode_malloc.o

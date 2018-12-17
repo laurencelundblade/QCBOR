@@ -524,7 +524,7 @@ static int ParseOrderedArray(const uint8_t *pEncoded, size_t nLen, int64_t *pInt
       goto Done;
    
    // First integer
-   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 | Item.uDataType != QCBOR_TYPE_INT64)
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 || Item.uDataType != QCBOR_TYPE_INT64)
       goto Done;
    *pInt1 = Item.val.int64;
    
@@ -2267,14 +2267,14 @@ int IndefiniteLengthArrayMapTest()
     }
     
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_INT64 |
+    if(Item.uDataType != QCBOR_TYPE_INT64 ||
        Item.uNestingLevel != 2 ||
        Item.uNextNestLevel != 2) {
         return -4;
     }
     
     QCBORDecode_GetNext(&DC, &Item);
-    if(Item.uDataType != QCBOR_TYPE_INT64 |
+    if(Item.uDataType != QCBOR_TYPE_INT64 ||
        Item.uNestingLevel != 2 ||
        Item.uNextNestLevel != 0) {
         return -5;
