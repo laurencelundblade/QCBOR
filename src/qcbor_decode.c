@@ -560,7 +560,7 @@ inline static QCBORError DecodeBytes(const QCBORStringAllocator *pAlloc, int nMa
    // Stack usage: UsefulBuf 2, int/ptr 1  40
    QCBORError nReturn = QCBOR_SUCCESS;
    
-   UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, uStrLen);
+   const UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, uStrLen);
    if(UsefulBuf_IsNULLC(Bytes)) {
       // Failed to get the bytes for this string item
       nReturn = QCBOR_ERR_HIT_END;
@@ -596,7 +596,7 @@ inline static QCBORError DecodeDateString(QCBORItem *pDecodedItem)
       return QCBOR_ERR_BAD_OPT_TAG;
    }
    
-   UsefulBufC Temp              = pDecodedItem->val.string;
+   const UsefulBufC Temp        = pDecodedItem->val.string;
    pDecodedItem->val.dateString = Temp;
    pDecodedItem->uDataType      = QCBOR_TYPE_DATE_STRING;
    return QCBOR_SUCCESS;
@@ -612,7 +612,7 @@ inline static QCBORError DecodeBigNum(QCBORItem *pDecodedItem)
    if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
       return QCBOR_ERR_BAD_OPT_TAG;
    }
-   UsefulBufC Temp          = pDecodedItem->val.string;
+   const UsefulBufC Temp    = pDecodedItem->val.string;
    pDecodedItem->val.bigNum = Temp;
    pDecodedItem->uDataType  = pDecodedItem->uTagBits & QCBOR_TAGFLAG_POS_BIGNUM ? QCBOR_TYPE_POSBIGNUM : QCBOR_TYPE_NEGBIGNUM;
    return QCBOR_SUCCESS;

@@ -66,7 +66,7 @@ int MallocAllStringsTest()
     
     // Next parse, save pointers to a few strings, destroy original and see all is OK.
     UsefulBuf_MAKE_STACK_UB(CopyOfStorage, 160);
-    UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
+    const UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
     
     QCBORDecode_Init(&DC, CopyOf, QCBOR_DECODE_MODE_NORMAL);
     QCBORStringAllocator *pAlloc = QCBORDecode_MakeMallocStringAllocator();

@@ -1422,7 +1422,7 @@ static void Recurser(uint8_t *pBuf, int nLen, int nLenMax)
       QCBORItem Item;
       int nCBORError;
       
-      UsefulBufC Input = {pBuf, nLen+1};
+      const UsefulBufC Input = {pBuf, nLen+1};
       
       QCBORDecode_Init(&DCtx, Input, QCBOR_DECODE_MODE_NORMAL);
       
@@ -2197,7 +2197,7 @@ int IndefiniteLengthNestTest()
    UsefulBuf_MAKE_STACK_UB(Storage, 50);
    int i;
    for(i=1; i < QCBOR_MAX_ARRAY_NESTING+4; i++) { 
-      UsefulBufC Nested = make_nested_indefinite_arrays(i, Storage);
+      const UsefulBufC Nested = make_nested_indefinite_arrays(i, Storage);
       int nReturn = parse_indeflen_nested(Nested, i);
       if(nReturn) {
          return nReturn;
@@ -2561,7 +2561,7 @@ int IndefiniteLengthStringTest()
    
    // ----- Mempool is way too small -----
    UsefulBuf_MAKE_STACK_UB(BigIndefBStrStorage, 290);
-   UsefulBufC BigIndefBStr = MakeIndefiniteBigBstr(BigIndefBStrStorage);
+   const UsefulBufC BigIndefBStr = MakeIndefiniteBigBstr(BigIndefBStrStorage);
    
    UsefulBuf_MAKE_STACK_UB(MemPoolSmall, 80); // 80 is big enough for MemPool overhead, but not BigIndefBStr
    
@@ -2651,7 +2651,7 @@ int AllocAllStringsTest()
    
    // Next parse, save pointers to a few strings, destroy original and see all is OK.
    UsefulBuf_MAKE_STACK_UB(CopyOfStorage, 160);
-   UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
+   const UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
 
    QCBORDecode_Init(&DC, CopyOf, QCBOR_DECODE_MODE_NORMAL);
    QCBORDecode_SetMemPool(&DC, Pool, 1); // Turn on copying.

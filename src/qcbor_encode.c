@@ -495,8 +495,8 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType, Use
          // on any subsequent calls to this function because of the
          // InsertEncodedTypeAndNumber() call that slides data to the right.
          if(pWrappedCBOR) {
-            UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
-            size_t uBstrLen = UsefulOutBuf_GetEndPosition(&(me->OutBuf)) - uEndPosition;
+            const UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
+            const size_t uBstrLen = UsefulOutBuf_GetEndPosition(&(me->OutBuf)) - uEndPosition;
             *pWrappedCBOR = UsefulBuf_Tail(PartialResult, uInsertPosition+uBstrLen);
          }
          Nesting_Decrease(&(me->nesting));

@@ -335,7 +335,7 @@ const char *UBUtilTests()
       return "IsNULLOrEmpty failed";
    }
    
-   UsefulBufC UBC = UsefulBuf_Const(UB);
+   const UsefulBufC UBC = UsefulBuf_Const(UB);
    
    if(!UsefulBuf_IsNULLC(UBC)){
       return "IsNull const failed";
@@ -349,7 +349,7 @@ const char *UBUtilTests()
       return "IsNULLOrEmptyC failed";
    }
    
-   UsefulBuf UB2 = UsefulBuf_Unconst(UBC);
+   const UsefulBuf UB2 = UsefulBuf_Unconst(UBC);
    if(!UsefulBuf_IsEmpty(UB2)) {
       return "Back to UB is Empty failed";
    }
@@ -371,7 +371,7 @@ const char *UBUtilTests()
    
    // Set 100 bytes of '+'; validated a few tests later
    UsefulBuf_MAKE_STACK_UB(Temp, 100);
-   UsefulBufC TempC = UsefulBuf_Set(Temp, '+');
+   const UsefulBufC TempC = UsefulBuf_Set(Temp, '+');
    
    // Try to copy into a buf that is too small and see failure
    UsefulBuf_MAKE_STACK_UB(Temp2, 99);
@@ -409,7 +409,7 @@ const char *UBUtilTests()
    }
    
    // Try to copy into a NULL/empty buf and see failure
-   UsefulBuf UBNull = NULLUsefulBuf;
+   const UsefulBuf UBNull = NULLUsefulBuf;
    if(!UsefulBuf_IsNULLC(UsefulBuf_Copy(UBNull, TempC))) {
       return "Copy to NULL should have failed";
    }
@@ -465,7 +465,7 @@ const char *UBUtilTests()
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '+',
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  ',',
    };
-   UsefulBufC ExpectedBigger = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedBigger);
+   const UsefulBufC ExpectedBigger = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedBigger);
    
    // Expect -1 when the first arg is smaller
    if(UsefulBuf_Compare(Expected, ExpectedBigger) >= 0){
@@ -485,7 +485,7 @@ const char *UBUtilTests()
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '+',
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '*',
    };
-   UsefulBufC ExpectedSmaller = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedSmaller);
+   const UsefulBufC ExpectedSmaller = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedSmaller);
    // Expect +1 when the first arg is larger
    if(UsefulBuf_Compare(Expected, ExpectedSmaller) <= 0){
       return "Compare with smaller";
@@ -504,7 +504,7 @@ const char *UBUtilTests()
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '+',
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '+', '+'
    };
-   UsefulBufC ExpectedLonger = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedLonger);
+   const UsefulBufC ExpectedLonger = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedLonger);
    
    // Expect -1 when the first arg is smaller
    if(UsefulBuf_Compare(Expected, ExpectedLonger) >= 0){
@@ -524,7 +524,7 @@ const char *UBUtilTests()
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',  '+',
       '+',  '+',  '+',  '+', '+',  '+',  '+', '+',  '+',
    };
-   UsefulBufC ExpectedShorter = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedShorter);
+   const UsefulBufC ExpectedShorter = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExpectedShorter);
    // Expect +1 with the first arg is larger
    if(UsefulBuf_Compare(Expected, ExpectedShorter) <= 0){
       return "Compare with shorter";
@@ -542,7 +542,7 @@ const char *UBUtilTests()
    
    // look for ++* in ....++* and find it at the end
    static const uint8_t pToFind[] = {'+', '+', '*'};
-   UsefulBufC ToBeFound = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pToFind);
+   const UsefulBufC ToBeFound = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pToFind);
    
    if(97 != UsefulBuf_FindBytes(ExpectedSmaller, ToBeFound)){
       return "Failed to find 2";
@@ -581,7 +581,7 @@ const char *  UIBTest_IntegerFormat()
    UsefulOutBuf_AppendFloat(&UOB, f); // Also tests UsefulOutBuf_InsertFloat
    UsefulOutBuf_AppendDouble(&UOB, d); // Also tests UsefulOutBuf_InsertDouble
    
-   UsefulBufC O = UsefulOutBuf_OutUBuf(&UOB);
+   const UsefulBufC O = UsefulOutBuf_OutUBuf(&UOB);
    if(UsefulBuf_IsNULLC(O))
       return "Couldn't output integers";
    
@@ -621,7 +621,7 @@ const char *  UIBTest_IntegerFormat()
    // Reset and go again for a few more tests
    UsefulInputBuf_Init(&UIB, O);
    
-   UsefulBufC Four = UsefulInputBuf_GetUsefulBuf(&UIB, 4);
+   const UsefulBufC Four = UsefulInputBuf_GetUsefulBuf(&UIB, 4);
    if(UsefulBuf_IsNULLC(Four)) {
       return "Four is NULL";
    }

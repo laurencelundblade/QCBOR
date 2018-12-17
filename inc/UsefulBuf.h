@@ -146,7 +146,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 typedef struct {
     const void *ptr;
-    const size_t      len;
+    size_t      len;
 } UsefulBufC;
 
 
@@ -157,7 +157,7 @@ typedef struct {
  */
 typedef struct {
    void  *ptr;
-   const size_t len;
+   size_t len;
 } UsefulBuf;
 
 
@@ -646,11 +646,6 @@ typedef struct {
  This must be called before the UsefulOutBuf is used.
  */
 void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage);
-
-static inline void UsefulOutBuf_Realloc(UsefulOutBuf *me, UsefulBuf Storage)
-{
-   me->UB = Storage;
-}
 
 
 

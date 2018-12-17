@@ -609,7 +609,7 @@ int AllAddMethodsTest()
    
    // UUIDs
    static const uint8_t ppppUUID[] = {0x53, 0x4D, 0x41, 0x52, 0x54, 0x43, 0x53, 0x4C, 0x54, 0x54, 0x43, 0x46, 0x49, 0x43, 0x41, 0x32};
-   UsefulBufC XXUUID = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(ppppUUID);
+   const UsefulBufC XXUUID = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(ppppUUID);
    QCBOREncode_AddBinaryUUID(&ECtx, XXUUID);
    QCBOREncode_OpenMap(&ECtx);
    QCBOREncode_AddBinaryUUIDToMap(&ECtx, "UUUU", XXUUID);
@@ -626,7 +626,7 @@ int AllAddMethodsTest()
 
 
    static const uint8_t pBignum[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-   UsefulBufC BIGNUM = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBignum);
+   const UsefulBufC BIGNUM = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBignum);
    QCBOREncode_AddPositiveBignum(&ECtx, BIGNUM);
    QCBOREncode_AddNegativeBignum(&ECtx, BIGNUM);
    QCBOREncode_OpenMap(&ECtx);
@@ -1286,7 +1286,7 @@ static UsefulBufC FormatRTICResults(int nRResult, uint64_t time, const char *szT
 
          // Add a few fake integers and buffers for now.
          static const uint8_t pPV[] = {0x66, 0x67, 0x00, 0x56, 0xaa, 0xbb, 0x01, 0x01};
-         UsefulBufC WSPV = {pPV, sizeof(pPV)};
+         const UsefulBufC WSPV = {pPV, sizeof(pPV)};
             
          QCBOREncode_AddBytesToMap(&ECtx, "WhaleSharkPatternVector", WSPV);
       }
@@ -1354,7 +1354,7 @@ static const uint8_t spExpectedRTIC[] = {
 
 int RTICResultsTest()
 {
-   UsefulBufC Encoded = FormatRTICResults(CBOR_SIMPLEV_FALSE, 1477263730,
+   const UsefulBufC Encoded = FormatRTICResults(CBOR_SIMPLEV_FALSE, 1477263730,
                                           "recent", "0xA1eC5001",
                                           UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    if(UsefulBuf_IsNULLC(Encoded)) {
@@ -1793,16 +1793,16 @@ int CoseSign1TBSTest()
 {
    // All of this is from RFC 8152 C.2.1
    const char *szKid = "11";
-   UsefulBufC Kid = UsefulBuf_FromSZ(szKid);
+   const UsefulBufC Kid = UsefulBuf_FromSZ(szKid);
    const char *szPayload = "This is the content.";
-   UsefulBufC Payload = UsefulBuf_FromSZ(szPayload);
+   const UsefulBufC Payload = UsefulBuf_FromSZ(szPayload);
    static const uint8_t pProtectedHeaders[] = {0xa1, 0x01, 0x26};
-   UsefulBufC ProtectedHeaders = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pProtectedHeaders);
+   const UsefulBufC ProtectedHeaders = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pProtectedHeaders);
 
    // It would be good to compare this to the output from
    // a COSE implementation like COSE-C. It has been checked
    // against the CBOR playground.
-   UsefulBufC Signature = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSignature);
+   const UsefulBufC Signature = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSignature);
    
    QCBOREncodeContext EC;
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));

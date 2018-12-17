@@ -70,7 +70,7 @@ UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC
     
    memcpy((uint8_t *)Dest.ptr + uOffset, Src.ptr, Src.len);
     
-   return((UsefulBufC){Dest.ptr, Src.len + uOffset});
+   return (UsefulBufC){Dest.ptr, Src.len + uOffset};
 }
 
 
@@ -277,7 +277,7 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me)
       return NULLUsefulBufC;
    }
     
-   return(UsefulBufC){me->UB.ptr,me->data_len};
+   return (UsefulBufC){me->UB.ptr,me->data_len};
 }
 
 
@@ -288,7 +288,7 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me)
  */
 UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf pDest)
 {
-   UsefulBufC Tmp = UsefulOutBuf_OutUBuf(me);
+   const UsefulBufC Tmp = UsefulOutBuf_OutUBuf(me);
    if(UsefulBuf_IsNULLC(Tmp)) {
       return NULLUsefulBufC;
    }
