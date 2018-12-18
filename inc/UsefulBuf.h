@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 12/17/2018         llundblade      Remove const from UsefulBuf and UsefulBufC .len
  12/13/2018         llundblade      Documentation improvements
  09/18/2018         llundblade      Cleaner distinction between UsefulBuf and UsefulBufC
  02/02/18           llundbla        Full support for integers in and out; fix pointer alignment bug
