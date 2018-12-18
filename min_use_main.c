@@ -15,7 +15,7 @@ met:
     * The name "Laurence Lundblade" may not be used to
       endorse or promote products derived from this software without
       specific prior written permission.
- 
+
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
@@ -40,50 +40,50 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  that is good as an example and for
  checking code size with all the
  inlining and dead stripping on.
- 
+
  */
 
 int main(int argc, const char * argv[])
 {
     (void)argc; // Suppress unused warning
     (void)argv; // Suppress unused warning
-    
+
     uint8_t pBuf[300];
     // Very simple CBOR, a map with one boolean that is true in it
     QCBOREncodeContext EC;
-    
+
     QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(pBuf));
-    
+
     QCBOREncode_OpenMap(&EC);
     QCBOREncode_AddBoolToMapN(&EC, 66, true);
     QCBOREncode_CloseMap(&EC);
-    
+
     UsefulBufC Encoded;
     if(QCBOREncode_Finish(&EC, &Encoded)) {
         return -1;
     }
-    
-    
+
+
     // Decode it and see that is right
     QCBORDecodeContext DC;
     QCBORItem Item;
     QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
-    
+
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_MAP) {
         return -2;
     }
-    
+
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_TRUE) {
         return -3;
     }
-    
+
     if(QCBORDecode_Finish(&DC)) {
         return -4;
     }
-    
-    
+
+
     // Make another encoded message with the CBOR from the previous put into this one
     UsefulBuf_MAKE_STACK_UB(MemoryForEncoded2, 20);
     QCBOREncode_Init(&EC, MemoryForEncoded2);
@@ -94,7 +94,7 @@ int main(int argc, const char * argv[])
     QCBOREncode_AddEncodedToMapN(&EC, -70000, Encoded);
     QCBOREncode_CloseMap(&EC);
     QCBOREncode_CloseArray(&EC);
-    
+
     UsefulBufC Encoded2;
     if(QCBOREncode_Finish(&EC, &Encoded2)) {
         return -5;
@@ -111,9 +111,9 @@ int main(int argc, const char * argv[])
      }
      }
      ]
-     
-     
-     
+
+
+
      83                # array(3)
      19 01C3        # unsigned(451)
      A1             # map(1)
@@ -125,55 +125,55 @@ int main(int argc, const char * argv[])
      18 42    # unsigned(66)
      F5       # primitive(21)
      */
-    
+
     // Decode it and see if it is OK
     QCBORDecode_Init(&DC, Encoded2, QCBOR_DECODE_MODE_NORMAL);
-    
+
     // 0    1:3
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_ARRAY || Item.val.uCount != 3) {
         return -6;
     }
-    
+
     // 1    1:2
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_INT64 || Item.val.uint64 != 451) {
         return -7;
     }
-    
+
     // 1    1:2   2:1
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1) {
         return -8;
     }
-    
+
     // 2    1:1
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_TRUE) {
         return -9;
     }
-    
+
     // 1    1:1   2:1
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1) {
         return -10;
     }
-    
+
     // 2    1:1   2:1   3:1
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1 || Item.uLabelType != QCBOR_TYPE_INT64 || Item.label.int64 != -70000) {
         return -11;
     }
-    
+
     // 3    XXXXXX
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_TRUE || Item.uLabelType != QCBOR_TYPE_INT64 || Item.label.int64 != 66) {
         return -12;
     }
-    
+
     if(QCBORDecode_Finish(&DC)) {
         return -13;
     }
-    
+
     return 0;
 }

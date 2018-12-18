@@ -1,5 +1,5 @@
 /*==============================================================================
- 
+
  Copyright (c) 2018, Laurence Lundblade.
  All rights reserved.
 
@@ -15,7 +15,7 @@ met:
     * The name "Laurence Lundblade" may not be used to
       endorse or promote products derived from this software without
       specific prior written permission.
- 
+
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
@@ -45,25 +45,25 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*
  General comments
- 
+
  This is a complete in that it handles all conversion cases
  including +/- infinity, +/- zero, subnormal numbers, qNaN, sNaN
  and NaN payloads.
- 
+
  This confirms to IEEE 754-2008, but note that this doesn't
  specify conversions, just the encodings.
- 
+
  NaN payloads are preserved with alignment on the LSB. The
  qNaN bit is handled differently and explicity copied. It
  is always the MSB of the significand. The NaN payload MSBs
  (except the qNaN bit) are truncated when going from
  double or single to half.
- 
+
  TODO: what does the C cast do with NaN payloads from
  double to single?
- 
- 
- 
+
+
+
  */
 
 /*
@@ -72,26 +72,26 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  these types and so does qcbor.  This encoder also supports
  half precision and there's a few ways to use it to encode
  floating point numbers in less space.
- 
+
  Without losing precision, you can encode a single or double
  such that the special values of 0, NaN and Infinity encode
  as half-precision.  This CBOR decodoer and most others
  should handle this properly.
- 
+
  If you don't mind losing precision, then you can use half-precision.
  One way to do this is to set up your environment to use
  ___fp_16. Some compilers and CPUs support it even though it is not
  standard C. What is nice about this is that your program
  will use less memory and floating point operations like
  multiplying, adding and such will be faster.
- 
+
  Another way to make use of half-precision is to represent
  the values in your program as single or double, but encode
  them in CBOR as half-precision. This cuts the size
  of the encoded messages by 2 or 4, but doesn't reduce
  memory needs or speed because you are still using
  single or double in your code.
- 
+
 
  encode:
     - float as float
@@ -101,10 +101,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  - double as half_precision, for environments that don't support a half-precision type
  - float with NaN, Infinity and 0 as half
  - double with NaN, Infinity and 0 as half
- 
- 
- 
- 
+
+
+
+
  */
 
 

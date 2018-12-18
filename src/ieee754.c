@@ -1,8 +1,8 @@
 /*==============================================================================
- 
+
  Copyright (c) 2018, Laurence Lundblade.
  All rights reserved.
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
@@ -15,7 +15,7 @@ met:
     * The name "Laurence Lundblade" may not be used to
       endorse or promote products derived from this software without
       specific prior written permission.
- 
+
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
@@ -46,14 +46,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  that the optimizer will do a good job. The LLVM optimizer, -Os, does seem to do the
  job and the resulting object code is smaller from combining code for the many different
  cases (normal, subnormal, infinity, zero...) for the conversions.
- 
+
  Dead stripping is also really helpful to get code size down when floating point
  encoding is not needed.
- 
+
  This code works solely using shifts and masks and thus has no dependency on
  any math libraries. It can even work if the CPU doesn't have any floating
  point support, though that isn't the most useful thing to do.
- 
+
  The memcpy() dependency is only for CopyFloatToUint32() and friends which only
  is needed to avoid type punning when converting the actual float bits to
  an unsigned value so the bit shifts and masks can work.
@@ -61,11 +61,11 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*
  The references used to write this code:
- 
+
  - IEEE 754-2008, particularly section 3.6 and 6.2.1
- 
+
  - https://en.wikipedia.org/wiki/IEEE_754 and subordinate pages
- 
+
  - https://stackoverflow.com/questions/19800415/why-does-ieee-754-reserve-so-many-nan-values
  */
 
@@ -155,7 +155,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  Convenient functions to avoid type punning, compiler warnings and such
  The optimizer reduces them to a simple assignment.
  This is a crusty corner of C. It shouldn't be this hard.
- 
+
  These are also in UsefulBuf.h under a different name. They are copied
  here to avoid a dependency on UsefulBuf.h. There is no
  object code size impact because these always optimze down to a
@@ -198,8 +198,8 @@ uint16_t IEEE754_FloatToHalf(float f)
     const int32_t  nSingleUnbiasedExponent = ((uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT) - SINGLE_EXPONENT_BIAS;
     const uint32_t uSingleSign             =  (uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
     const uint32_t uSingleSignificand      =   uSingle & SINGLE_SIGNIFICAND_MASK;
-    
-    
+
+
     // Now convert the three parts to half-precision.
     uint16_t uHalfSign, uHalfSignificand, uHalfBiasedExponent;
     if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN) {
@@ -265,7 +265,7 @@ uint16_t IEEE754_DoubleToHalf(double d)
     const uint64_t uDoubleSign             =  (uDouble & DOUBLE_SIGN_MASK) >> DOUBLE_SIGN_SHIFT;
     const uint64_t uDoubleSignificand      =   uDouble & DOUBLE_SIGNIFICAND_MASK;
 
-    
+
     // Now convert the three parts to half-precision.
     uint16_t uHalfSign, uHalfSignificand, uHalfBiasedExponent;
     if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
@@ -313,8 +313,8 @@ uint16_t IEEE754_DoubleToHalf(double d)
         uHalfSignificand    = uDoubleSignificand >> (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
     }
     uHalfSign = uDoubleSign;
-    
-    
+
+
     // Put the 3 values in the right place for a half precision
     const uint16_t uHalfPrecision =  uHalfSignificand |
                                     (uHalfBiasedExponent << HALF_EXPONENT_SHIFT) |
@@ -330,8 +330,8 @@ float IEEE754_HalfToFloat(uint16_t uHalfPrecision)
     const uint16_t uHalfSignificand      =   uHalfPrecision & HALF_SIGNIFICAND_MASK;
     const int16_t  nHalfUnBiasedExponent = ((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
     const uint16_t uHalfSign             =  (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
-    
-    
+
+
     // Make the three parts of the single-precision number
     uint32_t uSingleSignificand, uSingleSign, uSingleBiasedExponent;
     if(nHalfUnBiasedExponent == HALF_EXPONENT_ZERO) {
@@ -374,13 +374,13 @@ float IEEE754_HalfToFloat(uint16_t uHalfPrecision)
         uSingleSignificand = uHalfSignificand << (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
     }
     uSingleSign = uHalfSign;
-    
-    
+
+
     // Shift the three parts of the single precision into place
     const uint32_t uSinglePrecision = uSingleSignificand |
                                      (uSingleBiasedExponent << SINGLE_EXPONENT_SHIFT) |
                                      (uSingleSign << SINGLE_SIGN_SHIFT);
-    
+
     return CopyUint32ToFloat(uSinglePrecision);
 }
 
@@ -392,8 +392,8 @@ double IEEE754_HalfToDouble(uint16_t uHalfPrecision)
     const uint16_t uHalfSignificand      =   uHalfPrecision & HALF_SIGNIFICAND_MASK;
     const int16_t  nHalfUnBiasedExponent = ((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
     const uint16_t uHalfSign             =  (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
-    
-    
+
+
     // Make the three parts of hte single-precision number
     uint64_t uDoubleSignificand, uDoubleSign, uDoubleBiasedExponent;
     if(nHalfUnBiasedExponent == HALF_EXPONENT_ZERO) {
@@ -436,8 +436,8 @@ double IEEE754_HalfToDouble(uint16_t uHalfPrecision)
         uDoubleSignificand    = (uint64_t)uHalfSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
     }
     uDoubleSign = uHalfSign;
-    
-    
+
+
     // Shift the 3 parts into place as a double-precision
     const uint64_t uDouble = uDoubleSignificand |
                             (uDoubleBiasedExponent << DOUBLE_EXPONENT_SHIFT) |
@@ -450,12 +450,12 @@ double IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 IEEE754_union IEEE754_FloatToSmallest(float f)
 {
     IEEE754_union result;
-    
+
     // Pull the neeed two parts out of the single-precision float
     const uint32_t uSingle = CopyFloatToUint32(f);
     const int32_t  nSingleExponent    = ((uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT) - SINGLE_EXPONENT_BIAS;
     const uint32_t uSingleSignificand =   uSingle & SINGLE_SIGNIFICAND_MASK;
-    
+
     // Bit mask that is the significand bits that would be lost when converting
     // from single-precision to half-precision
     const uint64_t uDroppedSingleBits = SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS;
@@ -478,7 +478,7 @@ IEEE754_union IEEE754_FloatToSmallest(float f)
         result.uSize = IEEE754_UNION_IS_SINGLE;
         result.uValue  = uSingle;
     }
-    
+
     return result;
 }
 
@@ -486,16 +486,16 @@ IEEE754_union IEEE754_FloatToSmallest(float f)
 IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision)
 {
     IEEE754_union result;
-    
+
     // Pull the needed two parts out of the double-precision float
     const uint64_t uDouble = CopyDoubleToUint64(d);
     const int64_t  nDoubleExponent     = ((uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT) - DOUBLE_EXPONENT_BIAS;
     const uint64_t uDoubleSignificand  =   uDouble & DOUBLE_SIGNIFICAND_MASK;
-    
+
     // Masks to check whether dropped significand bits are zero or not
     const uint64_t uDroppedDoubleBits = DOUBLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS;
     const uint64_t uDroppedSingleBits = DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS;
-        
+
     // The various cases
     if(d == 0.0) { // Take care of positive and negative zero
         // Value is 0.0000, not a a subnormal
@@ -518,7 +518,7 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
         result.uSize  = IEEE754_UNION_IS_DOUBLE;
         result.uValue = uDouble;
     }
-    
+
     return result;
 }
 

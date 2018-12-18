@@ -1,9 +1,9 @@
 /*==============================================================================
  cmd_line_mainc.c -- basic tests for qcbor encoder / decoder
- 
+
  Copyright (c) 2018, Laurence Lundblade.
  All rights reserved.
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
@@ -17,7 +17,7 @@ met:
       contributors, nor the name "Laurence Lundblade" may be used to
       endorse or promote products derived from this software without
       specific prior written permission.
- 
+
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
@@ -46,7 +46,7 @@ int fputs_wrapper(const char *szString, void *ctx)
 static void PrintSize(const char *szWhat, uint32_t uSize)
 {
     UsefulBuf_MAKE_STACK_UB(foo, 20);
-    
+
     fputs_wrapper(szWhat, stdout);
     fputs_wrapper(" ", stdout);
     fputs_wrapper(NumToString(uSize,foo), stdout);
@@ -67,7 +67,7 @@ int main(int argc, const char * argv[])
     fputs_wrapper("\n", stdout);
 
     int nNumTestsFailed = 0;
-    
+
     if(argc > 1) {
         nNumTestsFailed += run_tests(argv[1], &fputs_wrapper, stdout, NULL);
     } else {

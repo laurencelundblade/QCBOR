@@ -1,8 +1,8 @@
 /*
- 
+
  Copyright (c) 2013 IETF Trust and the persons identified as the
  document authors.  All rights reserved.
- 
+
  This document is subject to BCP 78 and the IETF Trust's Legal
  Provisions Relating to IETF Documents
  (http://trustee.ietf.org/license-info) in effect on the date of
@@ -12,7 +12,7 @@
  include Simplified BSD License text as described in Section 4.e of
  the Trust Legal Provisions and are provided without warranty as
  described in the Simplified BSD License.
- 
+
  */
 
 /*
@@ -20,13 +20,13 @@
  because:
    a) it adds a dependency on <math.h> and ldexp().
    b) the license may be an issue
- 
+
  QCBOR does support half-precision, but rather than using
  floating point math like this, it does it with bit shifting
  and masking.
- 
+
  This code is here to test that code.
- 
+
  */
 
 #include "half_to_double_from_rfc7049.h"

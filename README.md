@@ -1,6 +1,6 @@
 # QCBOR
 
-QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR. 
+QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
 ## Characteristics
 
@@ -106,7 +106,7 @@ value supported, tag utility function for easier tag checking
 not partial maps and arrays (simplification; was a dangerous feature)
 * Finish cannot be called repeatedly on a partial decode (some tests used
 this, but it is not really a good thing to use in the first place)
-* UsefulOutBuf_OutUBuf changed to work differently 
+* UsefulOutBuf_OutUBuf changed to work differently
 * UsefulOutBuf_Init works differently
 * The "_3" functions are replaced with a small number of simpler functions
 * There is a new AddTag functon instead of the "_3" functions, making

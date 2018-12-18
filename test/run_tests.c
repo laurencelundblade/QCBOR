@@ -1,10 +1,10 @@
 
 /*==============================================================================
  run_tests.c -- test aggregator and results reporting
- 
+
  Copyright (c) 2018, Laurence Lundblade.
  All rights reserved.
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
@@ -17,7 +17,7 @@ met:
     * The name "Laurence Lundblade" may not be used to
       endorse or promote products derived from this software without
       specific prior written permission.
- 
+
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
@@ -57,10 +57,10 @@ int fail_test()
 const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 {
     const int32_t nMax = 1000000000;
-    
+
     UsefulOutBuf OutBuf;
     UsefulOutBuf_Init(&OutBuf, StringMem);
-    
+
     if(nNum < 0) {
         UsefulOutBuf_AppendByte(&OutBuf, '-');
         nNum = -nNum;
@@ -68,7 +68,7 @@ const char *NumToString(int32_t nNum, UsefulBuf StringMem)
     if(nNum > nMax-1) {
         return "XXX";
     }
-    
+
     bool bDidSomeOutput = false;
     for(int n = nMax; n > 0; n/=10) {
         int x = nNum/n;
@@ -82,7 +82,7 @@ const char *NumToString(int32_t nNum, UsefulBuf StringMem)
         UsefulOutBuf_AppendByte(&OutBuf, '0');
     }
     UsefulOutBuf_AppendByte(&OutBuf, '\0');
-    
+
     return UsefulOutBuf_GetError(&OutBuf) ? "" : StringMem.ptr;
 }
 
@@ -167,7 +167,7 @@ int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *p
 
     test_entry2 *t2;
     const test_entry2 *s_tests2_end = s_tests2 + sizeof(s_tests2)/sizeof(test_entry2);
-    
+
     for(t2 = s_tests2; t2 < s_tests2_end; t2++) {
         if(szTestName && strcmp(szTestName, t2->szTestName)) {
             continue;
@@ -177,7 +177,7 @@ int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *p
         if(output) {
             (*output)(t2->szTestName, poutCtx);
         }
-        
+
         if(x) {
             if(output) {
                 (*output)(" FAILED (returned ", poutCtx);
@@ -191,11 +191,11 @@ int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *p
             }
         }
     }
-    
-    
+
+
     test_entry *t;
     const test_entry *s_tests_end = s_tests + sizeof(s_tests)/sizeof(test_entry);
-    
+
     for(t = s_tests; t < s_tests_end; t++) {
         if(szTestName && strcmp(szTestName, t->szTestName)) {
             continue;
@@ -205,7 +205,7 @@ int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *p
         if(output) {
             (*output)(t->szTestName, poutCtx);
         }
-        
+
         if(x) {
             if(output) {
                 (*output)(" FAILED (returned ", poutCtx);
@@ -219,11 +219,11 @@ int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *p
             }
         }
     }
-    
+
     if(pNumTestsRun) {
         *pNumTestsRun = nTestsRun;
     }
-    
+
     if(output) {
         (*output)( "SUMMARY: ", poutCtx);
         (*output)( NumToString(nTestsRun, StringStorage), poutCtx);
@@ -231,6 +231,6 @@ int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *p
         (*output)( NumToString(nTestsFailed, StringStorage), poutCtx);
         (*output)( " tests failed\n", poutCtx);
     }
-    
+
     return nTestsFailed;
 }

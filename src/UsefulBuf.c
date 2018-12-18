@@ -2,7 +2,7 @@
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018, Laurence Lundblade.
  All rights reserved.
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
@@ -16,7 +16,7 @@ met:
       contributors, nor the name "Laurence Lundblade" may be used to
       endorse or promote products derived from this software without
       specific prior written permission.
- 
+
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
@@ -32,17 +32,17 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*===================================================================================
  FILE:  UsefulBuf.c
- 
+
  DESCRIPTION:  General purpose input and output buffers
- 
+
  EDIT HISTORY FOR FILE:
- 
+
  This section contains comments describing changes made to the module.
  Notice that changes are listed in reverse chronological order.
- 
+
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
- 09/07/17           llundbla        Fix critical bug in UsefulBuf_Find() -- a read off 
+ 09/07/17           llundbla        Fix critical bug in UsefulBuf_Find() -- a read off
                                     the end of memory when the bytes to find is longer
                                     than the bytes to search.
  06/27/17           llundbla        Fix UsefulBuf_Compare() bug. Only affected comparison
@@ -50,7 +50,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                     UsefulBuf_Set() function.
  05/30/17           llundbla        Functions for NULL UsefulBufs and const / unconst
  11/13/16           llundbla        Initial Version.
- 
+
  =====================================================================================*/
 
 #include "UsefulBuf.h"
@@ -67,9 +67,9 @@ UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC
    if(uOffset > Dest.len || Src.len > Dest.len - uOffset) { // uOffset + Src.len > Dest.len
       return NULLUsefulBufC;
    }
-    
+
    memcpy((uint8_t *)Dest.ptr + uOffset, Src.ptr, Src.len);
-    
+
    return (UsefulBufC){Dest.ptr, Src.len + uOffset};
 }
 
@@ -86,7 +86,7 @@ int UsefulBuf_Compare(const UsefulBufC UB1, const UsefulBufC UB2)
    } else if (UB1.len > UB2.len) {
       return 1;
    } // else UB1.len == UB2.len
-   
+
    return memcmp(UB1.ptr, UB2.ptr, UB1.len);
 }
 
@@ -100,20 +100,20 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind)
    if(BytesToSearch.len < BytesToFind.len) {
       return SIZE_MAX;
    }
-   
+
    for(size_t uPos = 0; uPos <= BytesToSearch.len - BytesToFind.len; uPos++) {
       if(!UsefulBuf_Compare((UsefulBufC){((uint8_t *)BytesToSearch.ptr) + uPos, BytesToFind.len}, BytesToFind)) {
          return uPos;
       }
    }
-   
+
    return SIZE_MAX;
 }
 
 
 /*
  Public function -- see UsefulBuf.h
- 
+
  Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
 void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage)
@@ -121,10 +121,10 @@ void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage)
     me->magic  = USEFUL_OUT_BUF_MAGIC;
     UsefulOutBuf_Reset(me);
     me->UB     = Storage;
-    
+
 #if 0
    // This check is off by default.
-   
+
    // The following check fails on ThreadX
 
     // Sanity check on the pointer and size to be sure we are not
@@ -142,37 +142,37 @@ void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage)
 
 /*
  Public function -- see UsefulBuf.h
- 
+
  The core of UsefulOutBuf -- put some bytes in the buffer without writing off the end of it.
- 
+
  Code Reviewers: THIS FUNCTION DOES POINTER MATH
- 
+
  This function inserts the source buffer, NewData, into the destination buffer, me->UB.ptr.
- 
+
  Destination is represented as:
    me->UB.ptr -- start of the buffer
    me->UB.len -- size of the buffer UB.ptr
    me->data_len -- length of value data in UB
- 
+
  Source is data:
    NewData.ptr -- start of source buffer
    NewData.len -- length of source buffer
- 
+
  Insertion point:
    uInsertionPos.
- 
+
  Steps:
- 
+
  0. Corruption checks on UsefulOutBuf
- 
+
  1. Figure out if the new data will fit or not
- 
+
  2. Is insertion position in the range of valid data?
- 
+
  3. If insertion point is not at the end, slide data to the right of the insertion point to the right
- 
+
  4. Put the new data in at the insertion position.
- 
+
  */
 void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t uInsertionPos)
 {
@@ -180,7 +180,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
       // Already in error state.
       return;
    }
-   
+
    /* 0. Sanity check the UsefulOutBuf structure */
    // A "counter measure". If magic number is not the right number it
    // probably means me was not initialized or it was corrupted. Attackers
@@ -198,7 +198,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
       me->err = 1;
       return; // Offset of valid data is off the end of the UsefulOutBuf due to uninitialization or corruption
    }
-   
+
    /* 1. Will it fit? */
    // WillItFit() is the same as: NewData.len <= (me->size - me->data_len)
    // Check #1 makes sure subtraction in RoomLeft will not wrap around
@@ -207,7 +207,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
       me->err = 1;
       return;
    }
-   
+
    /* 2. Check the Insertion Position */
    // This, with Check #1, also confirms that uInsertionPos <= me->size
    if(uInsertionPos > me->data_len) { // Check #3
@@ -215,17 +215,17 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
       me->err = 1;
       return;
    }
-   
+
    /* 3. Slide existing data to the right */
    uint8_t *pSourceOfMove       = ((uint8_t *)me->UB.ptr) + uInsertionPos; // PtrMath #1
    size_t   uNumBytesToMove     = me->data_len - uInsertionPos; // PtrMath #2
    uint8_t *pDestinationOfMove  = pSourceOfMove + NewData.len; // PtrMath #3
    size_t   uRoomInDestination  = me->UB.len - (uInsertionPos + NewData.len); // PtrMath #4
-   
+
    if(uNumBytesToMove && me->UB.ptr) {
       memmove(pDestinationOfMove, pSourceOfMove, uNumBytesToMove);
    }
-   
+
    /* 4. Put the new data in */
    uint8_t *pInsertionPoint = ((uint8_t *)me->UB.ptr) + uInsertionPos; // PtrMath #5
    uRoomInDestination       = me->UB.len - uInsertionPos; // PtrMath #6
@@ -238,25 +238,25 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
 
 /*
  Rationale that describes why the above pointer math is safe
- 
+
  PtrMath #1 will never wrap around over because
    Check #0 in UsefulOutBuf_Init makes sure me-UB.ptr + me->size doesn't wrap
    Check #1 makes sure me->data_len is less than me->UB.len
    Check #3 makes sure uInsertionPos is less than me->data_len
- 
+
  PtrMath #2 will never wrap around under because
    Check #3 makes sure uInsertionPos is less than me->data_len
- 
+
  PtrMath #3 will never wrap around over because   todo
    PtrMath #1 is checked resulting in pStartOfDataToMove being between me->UB.ptr and a maximum valid ptr
-   
+
  PtrMath #4 will never wrap under because
     Check #3 makes sure uInsertionPos is less than me->data_len
     Check #3 allows Check #2 to be refactored as NewData.Len > (me->size - uInsertionPos)
     This algebraically rearranges to me->size > uInsertionPos + NewData.len
- 
+
  PtrMath #5 is exactly the same as PtrMath #1
- 
+
  PtrMath #6 will never wrap under because
    Check #1 makes sure me->data_len is less than me->size
    Check #3 makes sure uInsertionPos is less than me->data_len
@@ -264,26 +264,26 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
 
 
 /*
- Public function -- see UsefulBuf.h 
+ Public function -- see UsefulBuf.h
  */
 UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me)
 {
    if(me->err) {
       return NULLUsefulBufC;
    }
-   
+
    if(me->magic != USEFUL_OUT_BUF_MAGIC) {
       me->err = 1;
       return NULLUsefulBufC;
    }
-    
+
    return (UsefulBufC){me->UB.ptr,me->data_len};
 }
 
 
 /*
  Public function -- see UsefulBuf.h
- 
+
  Copy out the data accumulated in to the output buffer.
  */
 UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf pDest)
@@ -302,7 +302,7 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf pDest)
  Public function -- see UsefulBuf.h
 
  The core of UsefulInputBuf -- consume some bytes without going off the end of the buffer.
- 
+
  Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
 const void * UsefulInputBuf_GetBytes(UsefulInputBuf *me, size_t uAmount)
@@ -311,13 +311,13 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *me, size_t uAmount)
    if(me->err) {
       return NULL;
    }
-   
+
    if(!UsefulInputBuf_BytesAvailable(me, uAmount)) {
       // The number of bytes asked for at current position are more than available
       me->err = 1;
       return NULL;
    }
-   
+
    // This is going to succeed
    const void * const result = ((uint8_t *)me->UB.ptr) + me->cursor;
    me->cursor += uAmount; // this will not overflow because of check using UsefulInputBuf_BytesAvailable()

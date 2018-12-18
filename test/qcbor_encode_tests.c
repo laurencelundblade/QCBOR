@@ -2,7 +2,7 @@
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018, Laurence Lundblade.
  All rights reserved.
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
@@ -16,7 +16,7 @@ met:
       contributors, nor the name "Laurence Lundblade" may be used to
       endorse or promote products derived from this software without
       specific prior written permission.
- 
+
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
@@ -36,15 +36,15 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*
  This is the test set for CBOR encoding.
- 
+
  This is largely complete for the implemented.
- 
+
  A few more things to do include:
    - Add a test for counting the top level items and adding it back in with AddRaw()
    - Run on some different CPUs like 32-bit and maybe even 16-bit
    - Test the large array count limit
    - Add the CBOR diagnostic output for every expected
- 
+
  */
 
 //#define PRINT_FUNCTIONS_FOR_DEBUGGINGXX
@@ -76,7 +76,7 @@ static int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
       }
    }
    return 0;
-   
+
 }
 
 #define CheckResults(Enc, Expected) \
@@ -105,39 +105,39 @@ int BasicEncodeTest()
 {
    // Very simple CBOR, a map with one boolean that is true in it
    QCBOREncodeContext EC;
-   
+
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
    QCBOREncode_OpenMap(&EC);
    QCBOREncode_AddBoolToMapN(&EC, 66, true);
    QCBOREncode_CloseMap(&EC);
-   
+
    UsefulBufC Encoded;
    if(QCBOREncode_Finish(&EC, &Encoded)) {
       return -1;
    }
-   
-   
+
+
    // Decode it and see that is right
    QCBORDecodeContext DC;
    QCBORItem Item;
    QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
-   
+
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_MAP) {
       return -2;
    }
-   
+
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_TRUE) {
       return -3;
    }
-   
+
    if(QCBORDecode_Finish(&DC)) {
       return -4;
    }
-   
-   
+
+
    // Make another encoded message with the CBOR from the previous put into this one
    UsefulBuf_MAKE_STACK_UB(MemoryForEncoded2, 20);
    QCBOREncode_Init(&EC, MemoryForEncoded2);
@@ -148,7 +148,7 @@ int BasicEncodeTest()
    QCBOREncode_AddEncodedToMapN(&EC, -70000, Encoded);
    QCBOREncode_CloseMap(&EC);
    QCBOREncode_CloseArray(&EC);
-   
+
    UsefulBufC Encoded2;
    if(QCBOREncode_Finish(&EC, &Encoded2)) {
       return -5;
@@ -165,9 +165,9 @@ int BasicEncodeTest()
           }
         }
      ]
-     
-     
-     
+
+
+
       83                # array(3)
          19 01C3        # unsigned(451)
          A1             # map(1)
@@ -179,56 +179,56 @@ int BasicEncodeTest()
                18 42    # unsigned(66)
                F5       # primitive(21)
      */
-   
+
    // Decode it and see if it is OK
    QCBORDecode_Init(&DC, Encoded2, QCBOR_DECODE_MODE_NORMAL);
-   
+
    // 0    1:3
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_ARRAY || Item.val.uCount != 3) {
       return -6;
    }
-   
+
    // 1    1:2
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_INT64 || Item.val.uint64 != 451) {
       return -7;
    }
-   
+
    // 1    1:2   2:1
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1) {
       return -8;
    }
-   
+
    // 2    1:1
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_TRUE) {
       return -9;
    }
-   
+
    // 1    1:1   2:1
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1) {
       return -10;
    }
-   
+
    // 2    1:1   2:1   3:1
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1 || Item.uLabelType != QCBOR_TYPE_INT64 || Item.label.int64 != -70000) {
       return -11;
    }
-   
+
    // 3    XXXXXX
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_TRUE || Item.uLabelType != QCBOR_TYPE_INT64 || Item.label.int64 != 66) {
       return -12;
    }
-   
+
    if(QCBORDecode_Finish(&DC)) {
       return -13;
    }
-   
+
    return 0;
 }
 
@@ -471,9 +471,9 @@ int AllAddMethodsTest()
    // TODO: this test should be broken down into several so it is more managable. Tags and labels could be more sensible
    QCBOREncodeContext ECtx;
    int nReturn = 0;
-   
+
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   
+
    QCBOREncode_OpenArray(&ECtx);
 
    // Some ints that are tagged and have strings preceeding them (not labels becase it is not a map)
@@ -493,17 +493,17 @@ int AllAddMethodsTest()
    QCBOREncode_AddInt64ToMap(&ECtx, "NEGLBLTHAT IS KIND OF LONG", -2394893489238);
    QCBOREncode_AddInt64ToMapN(&ECtx, -100000000, -800000000);
    QCBOREncode_CloseMap(&ECtx);
-   
+
    // Epoch Date
    QCBOREncode_AddDateEpoch(&ECtx, 2383748234);
-   
+
    // Epoch date with labels
    QCBOREncode_OpenMap(&ECtx);
    QCBOREncode_AddDateEpochToMap(&ECtx, "LongLiveDenisRitchie", 1400000000);
    QCBOREncode_AddDateEpochToMap(&ECtx, "time()", 1477263730);
    QCBOREncode_AddDateEpochToMapN(&ECtx, -1969, 1477263222);
    QCBOREncode_CloseMap(&ECtx);
-   
+
    // Binary blobs
    QCBOREncode_AddBytes(&ECtx, ((UsefulBufC) {(uint8_t []){0xff, 0x00}, 2}));
 
@@ -515,7 +515,7 @@ int AllAddMethodsTest()
    QCBOREncode_AddBytesToMap(&ECtx, "blabel", ((UsefulBufC) {(uint8_t []){0x01, 0x02, 0x03}, 3}));
    QCBOREncode_AddBytesToMapN(&ECtx, 0, ((UsefulBufC){(uint8_t []){0x04, 0x02, 0x03, 0xfe}, 4}));
    QCBOREncode_CloseMap(&ECtx);
-   
+
    // text blobs
    QCBOREncode_AddText(&ECtx, UsefulBuf_FROM_SZ_LITERAL("bar bar foo bar"));
    QCBOREncode_AddSZString(&ECtx, "oof\n");
@@ -523,7 +523,7 @@ int AllAddMethodsTest()
    QCBOREncode_AddB64Text(&ECtx, UsefulBuf_FROM_SZ_LITERAL("YW55IGNhcm5hbCBwbGVhc3VyZQ=="));
    QCBOREncode_AddRegex(&ECtx, UsefulBuf_FROM_SZ_LITERAL("[^abc]+"));
    QCBOREncode_AddMIMEData(&ECtx, UsefulBuf_FromSZ(szMIME));
-   
+
    // text blobs in maps
    QCBOREncode_OpenMap(&ECtx);
    QCBOREncode_AddTextToMap(&ECtx, "#####", UsefulBuf_FROM_SZ_LITERAL("foo bar foo foo"));
@@ -550,7 +550,7 @@ int AllAddMethodsTest()
    QCBOREncode_AddDateStringToMap(&ECtx, "Bed time", "2003-12-13T18:30:02.25+01:00");
    QCBOREncode_AddDateStringToMapN(&ECtx, 88, "2003-12-13T18:30:02.25+01:00");
    QCBOREncode_CloseMap(&ECtx);
-   
+
    // true / false ...
    QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_UNDEF);
    QCBOREncode_OpenMap(&ECtx);
@@ -560,7 +560,7 @@ int AllAddMethodsTest()
    QCBOREncode_AddBoolToMap(&ECtx, "uu", false);
    QCBOREncode_AddSimpleToMapN(&ECtx, 737634, CBOR_SIMPLEV_NULL);
    QCBOREncode_CloseMap(&ECtx);
-   
+
    // opening an array
    QCBOREncode_OpenArray(&ECtx);
    QCBOREncode_CloseArray(&ECtx);
@@ -574,9 +574,9 @@ int AllAddMethodsTest()
    QCBOREncode_OpenArrayInMap(&ECtx, "alabl");
    QCBOREncode_CloseArray(&ECtx);
    QCBOREncode_OpenArrayInMapN(&ECtx, 42);
-   QCBOREncode_CloseArray(&ECtx); 
+   QCBOREncode_CloseArray(&ECtx);
    QCBOREncode_CloseMap(&ECtx);
- 
+
    // opening maps with labels and tagging
    QCBOREncode_OpenMap(&ECtx);
    QCBOREncode_OpenMapInMap(&ECtx, "in a map");
@@ -588,7 +588,7 @@ int AllAddMethodsTest()
    QCBOREncode_CloseMap(&ECtx);
    QCBOREncode_CloseMap(&ECtx);
    QCBOREncode_CloseMap(&ECtx);
-   
+
 
    // Extended simple values (these are not standard...)
    QCBOREncode_OpenMap(&ECtx);
@@ -606,7 +606,7 @@ int AllAddMethodsTest()
    QCBOREncode_AddTag(&ECtx, 88);
    QCBOREncode_AddSimple(&ECtx, 19);
    QCBOREncode_CloseMap(&ECtx);
-   
+
    // UUIDs
    static const uint8_t ppppUUID[] = {0x53, 0x4D, 0x41, 0x52, 0x54, 0x43, 0x53, 0x4C, 0x54, 0x54, 0x43, 0x46, 0x49, 0x43, 0x41, 0x32};
    const UsefulBufC XXUUID = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(ppppUUID);
@@ -615,7 +615,7 @@ int AllAddMethodsTest()
    QCBOREncode_AddBinaryUUIDToMap(&ECtx, "UUUU", XXUUID);
    QCBOREncode_AddBinaryUUIDToMapN(&ECtx, 99, XXUUID);
    QCBOREncode_CloseMap(&ECtx);
-   
+
    // Bool
    QCBOREncode_AddBool(&ECtx, true);
    QCBOREncode_AddBool(&ECtx, false);
@@ -635,19 +635,19 @@ int AllAddMethodsTest()
    QCBOREncode_AddNegativeBignumToMap(&ECtx, "BN-", BIGNUM);
    QCBOREncode_AddNegativeBignumToMapN(&ECtx, -64, BIGNUM);
    QCBOREncode_CloseMap(&ECtx);
-   
+
    QCBOREncode_CloseArray(&ECtx);
 
    UsefulBufC Enc;
-   
+
    if(QCBOREncode_Finish(&ECtx, &Enc)) {
       nReturn = -1;
       goto Done;
    }
-   
+
    if(CheckResults(Enc, spExpectedEncodedAll))
       nReturn = -2;
-   
+
 Done:
    return nReturn;
 }
@@ -729,19 +729,19 @@ static const uint8_t spExpectedEncodedInts[] = {
    0xff, 0xff};
 
 /*
- 
+
   Test the generation of integers. This also ends up testing
   encoding of all the different lengths. It encodes integers
   of many lengths and values, especially around the boundaries
   for different types of integers.  It compares the output
   to expected values generated from http://cbor.me.
- 
+
  */
 int IntegerValuesTest1()
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
-   
+
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenArray(&ECtx);
 
@@ -792,17 +792,17 @@ int IntegerValuesTest1()
    QCBOREncode_AddInt64(&ECtx, 4294967297);
    QCBOREncode_AddInt64(&ECtx, 9223372036854775807LL);
    QCBOREncode_AddUInt64(&ECtx, 18446744073709551615ULL);
-   
+
    QCBOREncode_CloseArray(&ECtx);
-   
+
    UsefulBufC Enc;
    if(QCBOREncode_Finish(&ECtx, &Enc)) {
       nReturn = -1;
    }
-   
+
    if(CheckResults(Enc, spExpectedEncodedInts))
      return -2;
-   
+
    return(nReturn);
 }
 
@@ -825,7 +825,7 @@ int SimpleValuesTest1()
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
-   
+
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenArray(&ECtx);
 
@@ -833,22 +833,22 @@ int SimpleValuesTest1()
    QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_FALSE);
    QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_NULL);
    QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_UNDEF);
-   
+
    QCBOREncode_OpenMap(&ECtx);
 
    QCBOREncode_AddSimpleToMap(&ECtx, "UNDef", CBOR_SIMPLEV_UNDEF);
    QCBOREncode_CloseMap(&ECtx);
 
    QCBOREncode_CloseArray(&ECtx);
-   
+
    UsefulBufC ECBOR;
    if(QCBOREncode_Finish(&ECtx, &ECBOR)) {
       nReturn = -1;
    }
-   
+
    if(CheckResults(ECBOR, spExpectedEncodedSimple))
       return -2;
-   
+
    return(nReturn);
 }
 
@@ -887,24 +887,24 @@ int EncodeDateTest()
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
-   
+
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   
+
    QCBOREncode_OpenArray(&ECtx);
 
-   
+
    QCBOREncode_AddDateString(&ECtx, "2013-03-21T20:04:00Z"); // from CBOR RFC
    QCBOREncode_AddDateEpoch(&ECtx, 1363896240); // from CBOR RFC
 
-   
+
    QCBOREncode_OpenMap(&ECtx);
 
    QCBOREncode_AddDateStringToMap(&ECtx, "Sample Date from RFC 3339", "1985-04-12T23:20:50.52Z");
-   
+
    QCBOREncode_AddDateEpochToMap(&ECtx, "SD", 999);
-   
+
    QCBOREncode_CloseMap(&ECtx);
-   
+
    QCBOREncode_CloseArray(&ECtx);
 
    UsefulBufC ECBOR;
@@ -912,10 +912,10 @@ int EncodeDateTest()
    if(QCBOREncode_Finish(&ECtx, &ECBOR)) {
       nReturn = -1;
    }
-   
+
    if(CheckResults(ECBOR, spExpectedEncodedDates))
       return -2;
-   
+
    return(nReturn);
 }
 
@@ -925,7 +925,7 @@ int ArrayNestingTest1()
    QCBOREncodeContext ECtx;
    int i;
    int nReturn = 0;
-   
+
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    for(i = QCBOR_MAX_ARRAY_NESTING; i; i--) {
       QCBOREncode_OpenArray(&ECtx);
@@ -948,7 +948,7 @@ int ArrayNestingTest2()
    QCBOREncodeContext ECtx;
    int i;
    int nReturn = 0;
-   
+
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    for(i = QCBOR_MAX_ARRAY_NESTING+1; i; i--) {
       QCBOREncode_OpenArray(&ECtx);
@@ -956,12 +956,12 @@ int ArrayNestingTest2()
    for(i = QCBOR_MAX_ARRAY_NESTING; i; i--) {
       QCBOREncode_CloseArray(&ECtx);
    }
-   
+
    UsefulBufC Encoded;
    if(QCBOREncode_Finish(&ECtx, &Encoded) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
       nReturn = -1;
    }
-   
+
    return(nReturn);
 }
 
@@ -972,7 +972,7 @@ int ArrayNestingTest3()
    QCBOREncodeContext ECtx;
    int i;
    int nReturn = 0;
-   
+
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    for(i = QCBOR_MAX_ARRAY_NESTING; i; i--) {
       QCBOREncode_OpenArray(&ECtx);
@@ -984,7 +984,7 @@ int ArrayNestingTest3()
    if(QCBOREncode_Finish(&ECtx, &Encoded) != QCBOR_ERR_TOO_MANY_CLOSES) {
       nReturn = -1;
    }
-   
+
    return(nReturn);
 }
 
@@ -1091,17 +1091,17 @@ int EncodeRawTest()
    QCBOREncode_AddEncoded(&ECtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFiveArrarys));
    QCBOREncode_AddEncoded(&ECtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedEncodedInts));
    QCBOREncode_CloseArray(&ECtx);
-   
+
    UsefulBufC EncodedRawTest;
-   
+
    if(QCBOREncode_Finish(&ECtx, &EncodedRawTest)) {
       return -4;
    }
-   
+
    if(CheckResults(EncodedRawTest, spEncodeRawExpected)) {
       return -5;
    }
-   
+
    return 0;
 }
 
@@ -1112,11 +1112,11 @@ static int CreateMap(uint8_t **pEncoded, size_t *pEncodedLen)
 {
    QCBOREncodeContext ECtx;
    int nReturn = -1;
-   
+
    *pEncoded = NULL;
    *pEncodedLen = INT32_MAX;
    size_t uFirstSizeEstimate = 0;
-   
+
    // loop runs CBOR encoding twice. First with no buffer to
    // calucate the length so buffer can be allocated correctly,
    // and last with the buffer to do the actual encoding
@@ -1135,7 +1135,7 @@ static int CreateMap(uint8_t **pEncoded, size_t *pEncodedLen)
       QCBOREncode_AddTextToMap(&ECtx, "text 2", ((UsefulBufC) {"lies, damn lies and statistics", 30}));
       QCBOREncode_CloseMap(&ECtx);
       QCBOREncode_CloseMap(&ECtx);
-      
+
       if(QCBOREncode_FinishGetSize(&ECtx, pEncodedLen))
          goto Done;
       if(*pEncoded != NULL) {
@@ -1148,9 +1148,9 @@ static int CreateMap(uint8_t **pEncoded, size_t *pEncodedLen)
       }
       *pEncoded = spBigBuf;
       uFirstSizeEstimate = *pEncodedLen;
-      
+
    } while(1);
-   
+
  Done:
    return(nReturn);
 }
@@ -1209,38 +1209,38 @@ int MapEncodeTest()
 {
    uint8_t *pEncodedMaps;
    size_t nEncodedMapLen;
-   
+
    if(CreateMap(&pEncodedMaps, &nEncodedMapLen)) {
       return -1;
    }
-   
+
    int nReturn = 0;
    if(memcmp(spValidMapEncoded, pEncodedMaps, sizeof(spValidMapEncoded)))
       nReturn = 2;
-   
+
    return(nReturn);
 }
 
 
 /*
  @brief  Encode the RTIC results
- 
+
  @param[in]     nRResult        CBOR_SIMPLEV_TRUE, CBOR_SIMPLEV_FALSE or CBOR_SIMPLEV_NULL
  @param[in]     time            Time stamp in UNIX epoch time or 0 for no time stamp
  @param[in]     szAlexString    Diagnostic code.
  @param[in[     pOut            Buffer to put the result in
  @param[in/out] pnLen           Size of pOut buffer when called; length of data output in buffer on return
- 
+
  @return
  One of the CBOR encoder errors. QCBOR_SUCCESS, which is has value 0, if no error.
- 
+
  The size of pOut should be 30 bytes plus the length of pnLen.  If you make it too
- short an error will be returned. This function will never write off the end 
+ short an error will be returned. This function will never write off the end
  of the buffer passed to it.
- 
+
  If the result is 0, then the correct encoded CBOR is in pOut and *pnLen is the
  length of the encoded CBOR.
- 
+
  */
 
 static UsefulBufC FormatRTICResults(int nRResult, uint64_t time, const char *szType, const char *szAlexString, UsefulBuf Storage)
@@ -1248,17 +1248,17 @@ static UsefulBufC FormatRTICResults(int nRResult, uint64_t time, const char *szT
    // Buffer that the result will be written in to
    // It is fixed size and small that a stack variable will be fine
    // QCBOREncode will never write off the end of this buffer. If it won't fit QCBOREncode_Finish will return an error.
-   
+
    // Context for the encoder
    QCBOREncodeContext ECtx;
    QCBOREncode_Init(&ECtx, Storage);
-   
+
    // All the RTIC results are grouped in a CBOR Map which will get turned into a JSON Object
    // Contents are label / value pairs
    QCBOREncode_OpenMap(&ECtx);
-   
+
    { // Brace / indention just to show CBOR encoding nesting
-      
+
       // The result: 0 if scan happened and found nothing; 1 if it happened and found something wrong; 2 if it didn't happen
       QCBOREncode_AddSimpleToMap(&ECtx, "integrity", nRResult);
 
@@ -1277,7 +1277,7 @@ static UsefulBufC FormatRTICResults(int nRResult, uint64_t time, const char *szT
       QCBOREncode_OpenMapInMap(&ECtx, "telemetry");
 
       { // Brace / indention just to show CBOR encoding nesting
-         
+
          // Add a few fake integers and buffers for now.
          QCBOREncode_AddInt64ToMap(&ECtx, "Shoe Size", 12);
 
@@ -1287,21 +1287,21 @@ static UsefulBufC FormatRTICResults(int nRResult, uint64_t time, const char *szT
          // Add a few fake integers and buffers for now.
          static const uint8_t pPV[] = {0x66, 0x67, 0x00, 0x56, 0xaa, 0xbb, 0x01, 0x01};
          const UsefulBufC WSPV = {pPV, sizeof(pPV)};
-            
+
          QCBOREncode_AddBytesToMap(&ECtx, "WhaleSharkPatternVector", WSPV);
       }
    }
-   
+
    // Close the telemetry map
    QCBOREncode_CloseMap(&ECtx);
-   
+
    // Close the map
    QCBOREncode_CloseMap(&ECtx);
-   
+
    UsefulBufC Result;
-   
+
    QCBOREncode_Finish(&ECtx, &Result);
-   
+
    return Result;
 }
 
@@ -1360,12 +1360,12 @@ int RTICResultsTest()
    if(UsefulBuf_IsNULLC(Encoded)) {
       return -1;
    }
-   
+
    if(CheckResults(Encoded, spExpectedRTIC)) {
       return -2;
    }
-   
-   return 0;  
+
+   return 0;
 }
 
 
@@ -1383,29 +1383,29 @@ static const uint8_t spExpectedBstrWrap[] = {0x82, 0x19, 0x01, 0xC3, 0x43, 0x19,
 int BstrWrapTest()
 {
    QCBOREncodeContext EC;
-   
+
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   
+
    QCBOREncode_OpenArray(&EC);
    QCBOREncode_AddUInt64(&EC, 451);
-   
+
    QCBOREncode_BstrWrap(&EC);
    QCBOREncode_AddUInt64(&EC, 466);
-   
+
    UsefulBufC Wrapped;
    QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
-   
+
    QCBOREncode_CloseArray(&EC);
-   
+
    UsefulBufC Encoded;
    if(QCBOREncode_Finish(&EC, &Encoded)) {
       return -1;
    }
-   
+
    if(CheckResults(Encoded, spExpectedBstrWrap)) {
       return -2;
    }
-   
+
    return 0;
 }
 
@@ -1415,48 +1415,48 @@ int BstrWrapErrorTest()
 {
    // -------------- Test closing a bstrwrap when it is an array that is open -----------
    QCBOREncodeContext EC;
-   
+
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   
+
    QCBOREncode_OpenArray(&EC);
    QCBOREncode_AddUInt64(&EC, 451);
-   
+
    QCBOREncode_BstrWrap(&EC);
    QCBOREncode_AddUInt64(&EC, 466);
    QCBOREncode_OpenArray(&EC);
-   
+
    UsefulBufC Wrapped;
    QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
-   
+
    QCBOREncode_CloseArray(&EC);
-   
+
    UsefulBufC Encoded2;
    if(QCBOREncode_Finish(&EC, &Encoded2) != QCBOR_ERR_CLOSE_MISMATCH) {
       return -1;
    }
-   
+
    // ----------- test closing a bstrwrap when nothing is open ---------------------
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
    if(QCBOREncode_Finish(&EC, &Encoded2) != QCBOR_ERR_TOO_MANY_CLOSES) {
       return -2;
    }
-   
+
    // --------------- test nesting too deep ----------------------------------
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    for(int i = 1; i < 18; i++) {
       QCBOREncode_BstrWrap(&EC);
    }
    QCBOREncode_AddBool(&EC, true);
-   
+
    for(int i = 1; i < 18; i++) {
       QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
    }
-   
+
    if(QCBOREncode_Finish(&EC, &Encoded2) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
       return -3;
    }
-   
+
    return 0;
 }
 
@@ -1502,8 +1502,8 @@ int BstrWrapErrorTest()
  18 31 integer value 31
  18 41 integer label 41
  65 68 65 6C 6C 6F text string hello
- 
- 
+
+
  */
 
 
@@ -1538,7 +1538,7 @@ static int DecodeNextNested(UsefulBufC Wrapped)
    int nReturn;
    QCBORDecodeContext DC;
    QCBORDecode_Init(&DC, Wrapped, QCBOR_DECODE_MODE_NORMAL);
-   
+
    QCBORItem Item;
    nReturn = QCBORDecode_GetNext(&DC, &Item);
    if(nReturn) {
@@ -1547,7 +1547,7 @@ static int DecodeNextNested(UsefulBufC Wrapped)
    if(Item.uDataType != QCBOR_TYPE_INT64) {
       return -12;
    }
-   
+
    nReturn = QCBORDecode_GetNext(&DC, &Item);
    if(nReturn == QCBOR_ERR_HIT_END) {
       return 0;
@@ -1559,7 +1559,7 @@ static int DecodeNextNested(UsefulBufC Wrapped)
    if(nReturn) {
       return nReturn;
    }
-   
+
    nReturn = QCBORDecode_GetNext(&DC, &Item);
    if(nReturn) {
       return -14;
@@ -1567,11 +1567,11 @@ static int DecodeNextNested(UsefulBufC Wrapped)
    if(Item.uDataType != QCBOR_TYPE_INT64) {
       return -15;
    }
-   
+
    if(QCBORDecode_Finish(&DC)) {
       return -16;
    }
-   
+
    return 0;
 }
 
@@ -1581,7 +1581,7 @@ static int DecodeNextNested2(UsefulBufC Wrapped)
    int nReturn;
    QCBORDecodeContext DC;
    QCBORDecode_Init(&DC, Wrapped, QCBOR_DECODE_MODE_NORMAL);
-   
+
    QCBORItem Item;
    nReturn = QCBORDecode_GetNext(&DC, &Item);
    if(nReturn) {
@@ -1590,7 +1590,7 @@ static int DecodeNextNested2(UsefulBufC Wrapped)
    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
       return -12;
    }
-   
+
    nReturn = QCBORDecode_GetNext(&DC, &Item);
    if(nReturn) {
       return -11;
@@ -1598,7 +1598,7 @@ static int DecodeNextNested2(UsefulBufC Wrapped)
    if(Item.uDataType != QCBOR_TYPE_INT64) {
       return -12;
    }
-   
+
    nReturn = QCBORDecode_GetNext(&DC, &Item);
    if(nReturn) {
       return -11;
@@ -1606,7 +1606,7 @@ static int DecodeNextNested2(UsefulBufC Wrapped)
    if(Item.uDataType != QCBOR_TYPE_MAP) {
       return 0;
    }
-   
+
    nReturn = QCBORDecode_GetNext(&DC, &Item);
    if(nReturn) {
       return -11;
@@ -1618,7 +1618,7 @@ static int DecodeNextNested2(UsefulBufC Wrapped)
    if(nReturn) {
       return nReturn;
    }
-   
+
    nReturn = QCBORDecode_GetNext(&DC, &Item);
    if(nReturn) {
       return -11;
@@ -1633,11 +1633,11 @@ static int DecodeNextNested2(UsefulBufC Wrapped)
    if(Item.uDataType != QCBOR_TYPE_INT64) {
       return -12;
    }
-   
+
    if(QCBORDecode_Finish(&DC)) {
       return -16;
    }
-   
+
    return 0;
 }
 
@@ -1646,29 +1646,29 @@ int BstrWrapNestTest()
 {
    QCBOREncodeContext EC;
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   
+
    // ---- Make a complicated nested CBOR structure ---
 #define BSTR_TEST_DEPTH 10
-   
+
    QCBOREncode_OpenArray(&EC);
 
    for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
       QCBOREncode_BstrWrap(&EC);
       QCBOREncode_AddUInt64(&EC, i);
    }
-   
+
    for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
       QCBOREncode_CloseBstrWrap(&EC, NULL);
       QCBOREncode_AddUInt64(&EC, i);
    }
-   
+
    for(int i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
       QCBOREncode_OpenMap(&EC);
       QCBOREncode_BstrWrapInMapN(&EC, i+0x20);
       QCBOREncode_OpenArray(&EC);
       QCBOREncode_AddUInt64(&EC, i+0x10);
    }
-   
+
    for(int i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
       QCBOREncode_CloseArray(&EC);
       QCBOREncode_AddUInt64(&EC, i+0x30);
@@ -1677,38 +1677,38 @@ int BstrWrapNestTest()
       QCBOREncode_CloseMap(&EC);
    }
    QCBOREncode_CloseArray(&EC);
-   
+
    UsefulBufC Encoded;
    if(QCBOREncode_Finish(&EC, &Encoded)) {
       return -1;
    }
-   
+
    // ---Compare it to expected. Expected was hand checked with use of CBOR playground ----
    if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedDeepBstr), Encoded)) {
       return -25;
    }
-   
-   
+
+
    // ---- Decode it and see if it is OK ------
    QCBORDecodeContext DC;
    QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
-   
+
    QCBORItem Item;
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_ARRAY || Item.val.uCount != 3) {
       return -2;
    }
-   
+
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
       return -3;
    }
-   
+
    int nReturn = DecodeNextNested(Item.val.string);
    if(nReturn) {
       return nReturn;
    }
-   
+
    nReturn = QCBORDecode_GetNext(&DC, &Item);
    if(nReturn) {
       return -11;
@@ -1716,12 +1716,12 @@ int BstrWrapNestTest()
    if(Item.uDataType != QCBOR_TYPE_INT64) {
       return -12;
    }
-   
+
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 2) {
       return -2;
    }
-   
+
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
       return -3;
@@ -1730,7 +1730,7 @@ int BstrWrapNestTest()
    if(nReturn) {
       return nReturn;
    }
-   
+
    nReturn = QCBORDecode_GetNext(&DC, &Item);
    if(nReturn) {
       return -11;
@@ -1738,11 +1738,11 @@ int BstrWrapNestTest()
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING) {
       return -12;
    }
-   
+
    if(QCBORDecode_Finish(&DC)) {
       return -16;
    }
-   
+
    return 0;
 }
 
@@ -1803,52 +1803,52 @@ int CoseSign1TBSTest()
    // a COSE implementation like COSE-C. It has been checked
    // against the CBOR playground.
    const UsefulBufC Signature = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSignature);
-   
+
    QCBOREncodeContext EC;
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   
+
    // top level array for cose sign1, 18 is the tag for COSE sign
    QCBOREncode_AddTag(&EC, CBOR_TAG_COSE_SIGN1);
    QCBOREncode_OpenArray(&EC);
-   
+
    // Add protected headers
    QCBOREncode_AddBytes(&EC, ProtectedHeaders);
-   
+
    // Empty map with unprotected headers
    QCBOREncode_OpenMap(&EC);
    QCBOREncode_AddBytesToMapN(&EC, 4, Kid);
    QCBOREncode_CloseMap(&EC);
-   
+
    // The payload
    UsefulBufC WrappedPayload;
    QCBOREncode_BstrWrap(&EC);
    QCBOREncode_AddEncoded(&EC, Payload); // Payload is not actually CBOR in example C.2.1
    QCBOREncode_CloseBstrWrap(&EC, &WrappedPayload);
-   
+
    // Check we got back the actual payload expected
    if(UsefulBuf_Compare(WrappedPayload, Payload)) {
       return -1;
    }
-   
+
    // The signature
    QCBOREncode_AddBytes(&EC, Signature);
    QCBOREncode_CloseArray(&EC);
-   
+
    // Finish and check the results
    UsefulBufC COSE_Sign1;
    if(QCBOREncode_Finish(&EC, &COSE_Sign1)) {
       return -2;
    }
-   
+
    // 98 is the size from RFC 8152 C.2.1
    if(COSE_Sign1.len != 98) {
       return -3;
    }
-   
+
    if(CheckResults(COSE_Sign1, spExpected)) {
       return -4;
    }
-   
+
    return 0;
 }
 

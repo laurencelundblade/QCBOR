@@ -2,7 +2,7 @@
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018, Laurence Lundblade.
  All rights reserved.
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
@@ -16,7 +16,7 @@ met:
       contributors, nor the name "Laurence Lundblade" may be used to
       endorse or promote products derived from this software without
       specific prior written permission.
- 
+
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
@@ -36,16 +36,16 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcbor.h"
 
 
-/* 
+/*
  Notes:
- 
+
  - All the functions in qcbor.h are called once in the aggregation of all the tests below.
- 
+
  - All the types that are supported are given as input and parsed by these tests
- 
+
  - There is some hostile input such as invalid lengths and CBOR too complex
    and types this parser doesn't handle
- 
+
  */
 
 
@@ -90,7 +90,7 @@ int ParseTooDeepArrayTest(void);
 int UnsupportedCBORDecodeTest(void);
 
 
-/* 
+/*
   This takes the encoded CBOR integers used in the above test and parses
   it over and over with one more byte less each time. It should fail
   every time on incorrect CBOR input. This is a hostile input decode test.
@@ -98,7 +98,7 @@ int UnsupportedCBORDecodeTest(void);
 int ShortBufferParseTest(void);
 
 
-/* 
+/*
    Same as ShortBufferParseTest, but with a different encoded CBOR input.
    It is another hostile input test
  */
@@ -121,7 +121,7 @@ int SimpleValuesTest1(void);
 
 
 /*
- 
+
  */
 int ParseMapAsArrayTest(void);
 

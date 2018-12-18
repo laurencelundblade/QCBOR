@@ -3,7 +3,7 @@
 
  Copyright (c) 2018, Laurence Lundblade.
  All rights reserved.
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
@@ -16,7 +16,7 @@ met:
     * The name "Laurence Lundblade" may not be used to
       endorse or promote products derived from this software without
       specific prior written permission.
- 
+
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
@@ -86,17 +86,17 @@ static const uint8_t spExpectedHalf[] = {
         0xF9, 0x7E, 0x0F,    // qNaN with payload 0x0f
         0x07,
         0xF9, 0x7C, 0x0F,    // sNaN with payload 0x0f
-    
+
 };
 
 
 int HalfPrecisionDecodeBasicTests()
 {
     UsefulBufC HalfPrecision = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedHalf);
-    
+
     QCBORDecodeContext DC;
     QCBORDecode_Init(&DC, HalfPrecision, 0);
-    
+
     QCBORItem Item;
 
     QCBORDecode_GetNext(&DC, &Item);
@@ -108,7 +108,7 @@ int HalfPrecisionDecodeBasicTests()
     if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 0.0F) {
         return -2;
     }
-    
+
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != INFINITY) {
         return -3;
@@ -128,7 +128,7 @@ int HalfPrecisionDecodeBasicTests()
     if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 1.0F) {
         return -6;
     }
-    
+
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 0.333251953125F) {
         return -7;
@@ -143,7 +143,7 @@ int HalfPrecisionDecodeBasicTests()
     if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != INFINITY) {
         return -9;
     }
-    
+
     QCBORDecode_GetNext(&DC, &Item); // TODO: check this
     if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 0.0000000596046448F) {
         return -10;
@@ -158,17 +158,17 @@ int HalfPrecisionDecodeBasicTests()
     if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 0.0000610351563F) {
         return -12;
     }
-    
-    QCBORDecode_GetNext(&DC, &Item); 
+
+    QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != 0) {
         return -13;
     }
-    
+
     QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_DOUBLE || Item.val.dfnum != -2.0F) {
         return -14;
     }
-    
+
     // TODO: double check these four tests
     QCBORDecode_GetNext(&DC, &Item); // qNaN
     if(Item.uDataType != QCBOR_TYPE_DOUBLE || UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff8000000000000ULL) {
@@ -190,7 +190,7 @@ int HalfPrecisionDecodeBasicTests()
     if(QCBORDecode_Finish(&DC)) {
         return -19;
     }
-    
+
     return 0;
 }
 
@@ -204,12 +204,12 @@ int HalfPrecisionAgainstRFCCodeTest()
         x[1] = uHalfP & 0xff;
         x[0] = uHalfP >> 8;
         double d = decode_half(x);
-        
+
         // Contruct the CBOR for the half-precision float by hand
         UsefulBuf_MAKE_STACK_UB(__xx, 3);
         UsefulOutBuf UOB;
         UsefulOutBuf_Init(&UOB, __xx);
-        
+
         const uint8_t uHalfPrecInitialByte = HALF_PREC_FLOAT + (CBOR_MAJOR_TYPE_SIMPLE << 5); // 0xf9
         UsefulOutBuf_AppendByte(&UOB, uHalfPrecInitialByte); // The initial byte for a half-precision float
         UsefulOutBuf_AppendUint16(&UOB, (uint16_t)uHalfP);
@@ -217,16 +217,16 @@ int HalfPrecisionAgainstRFCCodeTest()
         // Now parse the hand-constructed CBOR. This will invoke the conversion to a float
         QCBORDecodeContext DC;
         QCBORDecode_Init(&DC, UsefulOutBuf_OutUBuf(&UOB), 0);
-        
+
         QCBORItem Item;
-        
+
         QCBORDecode_GetNext(&DC, &Item);
         if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
             return -1;
         }
-        
+
         //printf("%04x  QCBOR:%15.15f  RFC: %15.15f (%8x)\n", uHalfP,Item.val.fnum, d , UsefulBufUtil_CopyFloatToUint32(d));
-        
+
         if(isnan(d)) {
             // The RFC code uses the native instructions which may or may not
             // handle sNaN, qNaN and NaN payloads correctly. This test just
@@ -315,11 +315,11 @@ static const uint8_t spExpectedSmallest[] = {
 int DoubleAsSmallestTest()
 {
     UsefulBuf_MAKE_STACK_UB(EncodedHalfsMem, 420);
-    
+
 #define QCBOREncode_AddDoubleAsSmallestToMap QCBOREncode_AddDoubleToMap
 #define QCBOREncode_AddDoubleAsSmallestToMapN QCBOREncode_AddDoubleToMapN
 
-    
+
     QCBOREncodeContext EC;
     QCBOREncode_Init(&EC, EncodedHalfsMem);
     // These are mostly from https://en.wikipedia.org/wiki/Half-precision_floating-point_format
@@ -333,34 +333,34 @@ int DoubleAsSmallestTest()
     //    7A65726F                          # "negative zero"
     // F9 8000                              # primitive(0)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "negative zero", -0.00);
-    
+
     // 6A                                   # text(10)
     //    696E66696E6974697479              # "infinitity"
     // F9 7C00                              # primitive(31744)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "infinitity", INFINITY);
-    
+
     // 73                                   # text(19)
     //    6E6567617469766520696E66696E6974697479 # "negative infinitity"
     // F9 FC00                              # primitive(64512)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "negative infinitity", -INFINITY);
-    
+
     // 63                                   # text(3)
     //    4E614E                            # "NaN"
     // F9 7E00                              # primitive(32256)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "NaN", NAN);
-    
+
     // TODO: test a few NaN variants
-    
+
     // 63                                   # text(3)
     //    6F6E65                            # "one"
     // F9 3C00                              # primitive(15360)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "one", 1.0);
-    
+
     // 69                                   # text(9)
     //    6F6E65207468697264                # "one third"
     // F9 3555                              # primitive(13653)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "one third", 0.333251953125);
-    
+
     // 76                                   # text(22)
     //    6C6172676573742068616C662D707265636973696F6E # "largest half-precision"
     // F9 7BFF                              # primitive(31743)
@@ -370,20 +370,20 @@ int DoubleAsSmallestTest()
     //    6C6172676573742068616C662D707265636973696F6E # "largest half-precision"
     // F9 7BFF                              # primitive(31743)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "largest half-precision point one",65504.1);
-    
+
     // Float 65536.0F is 0x47800000 in hex. It has an exponent of 16, which is larger than 15, the largest half-precision exponent
     // 78 18                                # text(24)
     //    746F6F2D6C617267652068616C662D707265636973696F6E # "too-large half-precision"
     // FA 47800000                          # primitive(31743)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "too-large half-precision", 65536.0);
-    
+
     // The smallest possible half-precision subnormal, but digitis are lost converting
     // to half, so this turns into a double
     // 72                                   # text(18)
     //    736D616C6C657374207375626E6F726D616C # "smallest subnormal"
     // FB 3E700000001C5F68                  # primitive(4499096027744984936)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "smallest subnormal", 0.0000000596046448);
-    
+
     // The smallest possible half-precision snormal, but digitis are lost converting
     // to half, so this turns into a single TODO: confirm this is right
     // 6F                                   # text(15)
@@ -391,22 +391,22 @@ int DoubleAsSmallestTest()
     // FA 387FFFFF                          # primitive(947912703)
     // in hex single is 0x387fffff, exponent -15, significand 7fffff
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "smallest normal",    0.0000610351526F);
-    
+
     // 71                                   # text(17)
     //    62696767657374207375626E6F726D616C # "biggest subnormal"
     // F9 0400                              # primitive(1024)
     // in hex single is 0x38800000, exponent -14, significand 0
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "biggest subnormal",  0.0000610351563F);
-    
+
     // 70                                   # text(16)
     //    7375626E6F726D616C2073696E676C65  # "subnormal single"
     // FB 37C16C2800000000                  # primitive(4017611261645684736)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "subnormal single", 4e-40F);
-    
+
     // 03                                   # unsigned(3)
     // F9 C000                              # primitive(49152)
     QCBOREncode_AddDoubleAsSmallestToMapN(&EC, 3, -2.0);
-    
+
     // 70                                   # text(16)
     //    6C617267652073696E676C6520657870  # "large single exp"
     // FA 7F400000                          # primitive(2134900736)
@@ -423,27 +423,27 @@ int DoubleAsSmallestTest()
     //    646664666465                      # "dfdfde"
     // FA 4B800000                          # primitive(1266679808)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "biggest single with prec",16777216); // Single with no precision loss
-    
+
     // 78 18                                # text(24)
     //    626967676573742073696E676C6520776974682070726563 # "biggest single with prec"
     // FA 4B800000                          # primitive(1266679808)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "first single with prec loss",16777217); // Double becuase of precision loss
-    
+
     // Just a convenient marker when cutting and pasting encoded CBOR
     QCBOREncode_AddSZStringToMapN(&EC, 1, "fin");
 
     QCBOREncode_CloseMap(&EC);
-    
+
     UsefulBufC EncodedHalfs;
     int nReturn = QCBOREncode_Finish(&EC, &EncodedHalfs);
     if(nReturn) {
         return -1;
     }
-    
+
     if(UsefulBuf_Compare(EncodedHalfs, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedSmallest))) {
         return -3;
     }
-    
+
     return 0;
 }
 
@@ -474,20 +474,20 @@ static int NaNExperiments() {
     double dqNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT);
     double dsNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | 0x01);
     double dqNaNPayload = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT | 0xf00f);
-    
+
     float f1 = (float)dqNaN;
     float f2 = (float)dsNaN;
     float f3 = (float)dqNaNPayload;
-    
-    
+
+
     uint32_t uqNaN = UsefulBufUtil_CopyFloatToUint32((float)dqNaN);
     uint32_t usNaN = UsefulBufUtil_CopyFloatToUint32((float)dsNaN);
     uint32_t uqNaNPayload = UsefulBufUtil_CopyFloatToUint32((float)dqNaNPayload);
-    
+
     // Result of this on x86 is that every NaN is a qNaN. The intel
     // CVTSD2SS instruction ignores the NaN payload and even converts
     // a sNaN to a qNaN.
-    
+
     return 0;
 }
 #endif

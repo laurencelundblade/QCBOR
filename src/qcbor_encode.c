@@ -2,7 +2,7 @@
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018, Laurence Lundblade.
  All rights reserved.
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
@@ -16,7 +16,7 @@ met:
       contributors, nor the name "Laurence Lundblade" may be used to
       endorse or promote products derived from this software without
       specific prior written permission.
- 
+
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
@@ -32,14 +32,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*===================================================================================
  FILE:  qcbor_encode.c
- 
+
  DESCRIPTION:  This file contains the implementation of QCBOR.
- 
+
  EDIT HISTORY FOR FILE:
- 
+
  This section contains comments describing changes made to the module.
  Notice that changes are listed in reverse chronological order.
- 
+
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
  11/29/18           llundblade      Rework to simpler handling of tags and labels.
@@ -47,14 +47,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  11/1/18            llundblade      Floating support.
  10/31/18           llundblade      Switch to one license that is almost BSD-3.
  09/28/18           llundblade      Added bstr wrapping feature for COSE implementation.
- 02/05/18           llundbla        Works on CPUs which require integer alignment. 
+ 02/05/18           llundbla        Works on CPUs which require integer alignment.
                                     Requires new version of UsefulBuf.
  07/05/17           llundbla        Add bstr wrapping of maps/arrays for COSE
  03/01/17           llundbla        More data types
  11/13/16           llundbla        Integrate most TZ changes back into github version.
  09/30/16           gkanike         Porting to TZ.
  03/15/16           llundbla        Initial Version.
- 
+
  =====================================================================================*/
 
 #include "qcbor.h"
@@ -69,13 +69,13 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  limit of QCBOR_MAX_ARRAY_NESTING to the number of arrays and maps
  that can be nested in one encoding so the encoding context stays
  small enough to fit on the stack.
- 
+
  When an array / map is opened, pCurrentNesting points to the element
  in pArrays that records the type, start position and accumluates a
  count of the number of items added. When closed the start position is
  used to go back and fill in the type and number of items in the array
  / map.
- 
+
  Encoded output be just items like ints and strings that are
  not part of any array / map. That is, the first thing encoded
  does not have to be an array or a map.
@@ -92,7 +92,7 @@ inline static void Nesting_Init(QCBORTrackNesting *pNesting)
 inline static QCBORError Nesting_Increase(QCBORTrackNesting *pNesting, uint8_t uMajorType, uint32_t uPos)
 {
    QCBORError nReturn = QCBOR_SUCCESS;
-   
+
    if(pNesting->pCurrentNesting == &pNesting->pArrays[QCBOR_MAX_ARRAY_NESTING]) {
       // trying to open one too many
       nReturn = QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
@@ -115,7 +115,7 @@ inline static QCBORError Nesting_Increment(QCBORTrackNesting *pNesting, uint16_t
    if(uAmount >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
       return QCBOR_ERR_ARRAY_TOO_LONG;
    }
-      
+
    pNesting->pCurrentNesting->uCount += uAmount;
    return QCBOR_SUCCESS;
 }
@@ -157,23 +157,23 @@ inline static int Nesting_IsInNest(QCBORTrackNesting *pNesting)
  context.  Once either of these errors is set they are never
  cleared. Only Init() resets them. Or said another way, they must
  never be cleared or we'll tell the caller all is good when it is not.
- 
+
  Only one error code is reported by Finish() even if there are
  multiple errors. The last one set wins. The caller might have to fix
  one error to reveal the next one they have to fix.  This is OK.
- 
+
  The buffer full error tracked by UsefulBuf is only pulled out of
  UsefulBuf in Finish() so it is the one that usually wins.  UsefulBuf
  will never go off the end of the buffer even if it is called again
  and again when full.
- 
+
  It is really tempting to not check for overflow on the count in the
  number of items in an array. It would save a lot of code, it is
  extremely unlikely that any one will every put 65,000 items in an
  array, and the only bad thing that would happen is the CBOR would be
  bogus.  Once we prove that is the only consequence, then we can make
  the change.
- 
+
  Since this does not parse any input, you could in theory remove all
  error checks in this code if you knew the caller called it
  correctly. Maybe someday CDDL or some such language will be able to
@@ -181,24 +181,24 @@ inline static int Nesting_IsInNest(QCBORTrackNesting *pNesting)
  correct. This could also automatically size some of the data
  structures like array/map nesting resulting in some good memory
  savings.
- 
+
  Errors returned here fall into three categories:
- 
+
  Sizes
    QCBOR_ERR_BUFFER_TOO_LARGE -- A buffer passed in > UINT32_MAX
    QCBOR_ERR_BUFFER_TOO_SMALL -- output buffer too small
- 
+
    QCBOR_ERR_ARRAY_NESTING_TOO_DEEP -- Too many opens without closes
    QCBOR_ERR_ARRAY_TOO_LONG -- Too many things added to an array/map
- 
+
  Nesting constructed incorrectly
    QCBOR_ERR_TOO_MANY_CLOSES -- more close calls than opens
    QCBOR_ERR_CLOSE_MISMATCH -- Type of close does not match open
    QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN -- Finish called without enough closes
- 
+
  Bad data
    QCBOR_ERR_BAD_SIMPLE -- Simple value integer not valid
- 
+
  */
 
 
@@ -221,50 +221,50 @@ void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
 
 
 
-/* 
+/*
  All CBOR data items have a type and a number. The number is either
  the value of the item for integer types, the length of the content
  for string, byte, array and map types, a tag for major type 6, and
  has serveral uses for major type 7.
- 
+
  This function encodes the type and the number. There are several
  encodings for the number depending on how large it is and how it is
  used.
- 
- Every encoding of the type and number has at least one byte, the 
+
+ Every encoding of the type and number has at least one byte, the
  "initial byte".
- 
+
  The top three bits of the initial byte are the major type for the
  CBOR data item.  The eight major types defined by the standard are
  defined as CBOR_MAJOR_TYPE_xxxx in qcbor.h.
- 
+
  The remaining five bits, known as "additional information", and
  possibly more bytes encode the number. If the number is less than 24,
  then it is encoded entirely in the five bits. This is neat because it
  allows you to encode an entire CBOR data item in 1 byte for many
  values and types (integers 0-23, true, false, and tags).
- 
+
  If the number is larger than 24, then it is encoded in 1,2,4 or 8
  additional bytes, with the number of these bytes indicated by the
  values of the 5 bits 24, 25, 25 and 27.
- 
+
  It is possible to encode a particular number in many ways with this
  representation.  This implementation always uses the smallest
  possible representation. This is also the suggestion made in the RFC
  for cannonical CBOR.
- 
+
  This function inserts them into the output buffer at the specified
  position. AppendEncodedTypeAndNumber() appends to the end.
- 
- This function takes care of converting to network byte order. 
- 
+
+ This function takes care of converting to network byte order.
+
  This function is also used to insert floats and doubles. Before this
  function is called the float or double must be copied into a
  uint64_t. That is how they are passed in. They are then converted to
  network byte order correctly. The uMinLen param makes sure that even
  if all the digits of a halft, float or double are 0 it is still correctly
  encoded in 2, 4 or 8 bytes.
- 
+
  */
 static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorType, size_t uMinLen, uint64_t uNumber, size_t uPos)
 {
@@ -273,20 +273,20 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorTyp
    // _generation_, not parsing c) a mistake will result in bad CBOR generation,
    // not a security vulnerability.
    uMajorType <<= 5;
-   
+
    if(uNumber > 0xffffffff || uMinLen >= 8) {
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_EIGHT_BYTES, uPos);
       UsefulOutBuf_InsertUint64(&(me->OutBuf), (uint64_t)uNumber, uPos+1);
-      
+
    } else if(uNumber > 0xffff || uMinLen >= 4) {
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_FOUR_BYTES, uPos);
       UsefulOutBuf_InsertUint32(&(me->OutBuf), (uint32_t)uNumber, uPos+1);
-      
+
    } else if (uNumber > 0xff || uMinLen>= 2) {
       // Between 0 and 65535
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_TWO_BYTES, uPos);
       UsefulOutBuf_InsertUint16(&(me->OutBuf), (uint16_t)uNumber, uPos+1);
-      
+
    } else if(uNumber >= 24) {
       // Between 0 and 255, but only between 24 and 255 is ever encoded here
       UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_ONE_BYTE, uPos);
@@ -301,7 +301,7 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorTyp
 
 /*
  Append the type and number info to the end of the buffer.
- 
+
  See InsertEncodedTypeAndNumber() function above for details
 */
 inline static void AppendEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorType, uint64_t uNumber)
@@ -332,7 +332,7 @@ void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
    if(me->uError == QCBOR_SUCCESS) {
       uint8_t      uMajorType;
       uint64_t     uValue;
-      
+
       if(nNum < 0) {
          uValue = (uint64_t)(-nNum - 1); // This is the way negative ints work in CBOR. -1 encodes as 0x00 with major type negative int.
          uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
@@ -340,7 +340,7 @@ void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
          uValue = (uint64_t)nNum;
          uMajorType = CBOR_MAJOR_TYPE_POSITIVE_INT;
       }
-      
+
       AppendEncodedTypeAndNumber(me, uMajorType, uValue);
       me->uError = Nesting_Increment(&(me->nesting), 1);
    }
@@ -350,9 +350,9 @@ void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
 /*
  Semi-private function. It is exposed to user of the interface,
  but they will usually call one of the inline wrappers rather than this.
- 
+
  See header qcbor.h
- 
+
  Does the work of adding some bytes to the CBOR output. Works for a
  byte and text strings, which are the same in in CBOR though they have
  different major types.  This is also used to insert raw
@@ -367,7 +367,7 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBuf
       // it is entirely impractical to create tokens bigger than 4GB in
       // contiguous RAM
       me->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
-      
+
    } else {
       if(!me->uError) {
          // If it is not Raw CBOR, add the type and the length
@@ -377,10 +377,10 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBuf
             // type and number so the buffer being added goes to the
             // right place
          }
-         
+
          // Actually add the bytes
          UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), Bytes);
-         
+
          // Update the array counting if there is any nesting at all
          me->uError = Nesting_Increment(&(me->nesting), 1);
       }
@@ -402,7 +402,7 @@ void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
 /*
  Semi-private function. It is exposed to user of the interface,
  but they will usually call one of the inline wrappers rather than this.
- 
+
  See header qcbor.h
  */
 void QCBOREncode_AddType7(QCBOREncodeContext *me, size_t uSize, uint64_t uNum)
@@ -417,7 +417,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, size_t uSize, uint64_t uNum)
                                  uNum,                    // Bytes of the floating
                                  // point number as a uint
                                  UsefulOutBuf_GetEndPosition(&(me->OutBuf))); // end position for append
-      
+
       me->uError = Nesting_Increment(&(me->nesting), 1);
    }
 }
@@ -429,7 +429,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, size_t uSize, uint64_t uNum)
 void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 {
    const IEEE754_union uNum = IEEE754_DoubleToSmallest(dNum);
-   
+
    QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
 }
 
@@ -437,7 +437,7 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 /*
  Semi-public function. It is exposed to user of the interface,
  but they will usually call one of the inline wrappers rather than this.
- 
+
  See header qcbor.h
 */
 void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
@@ -477,18 +477,18 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType, Use
          // and never shrinks. UsefulOutBut itself also has defenses such that
          // it won't write were it should not even if given hostile input lengths
          const size_t uLenOfEncodedMapOrArray = uEndPosition - uInsertPosition;
-         
+
          // Length is number of bytes for a bstr and number of items a for map & array
          const size_t uLength = uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING ?
                                     uLenOfEncodedMapOrArray : Nesting_GetCount(&(me->nesting));
-         
+
          // Actually insert
          InsertEncodedTypeAndNumber(me,
                                     uMajorType,       // major type bstr, array or map
                                     0,                // no minimum length for encoding
                                     uLength,          // either len of bstr or num items in array or map
                                     uInsertPosition); // position in out buffer
-         
+
          // Return pointer and length to the enclosed encoded CBOR. The intended
          // use is for it to be hashed (e.g., SHA-256) in a COSE implementation.
          // This must be used right away, as the pointer and length go invalid
@@ -512,16 +512,16 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType, Use
 QCBORError QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
 {
    QCBORError uReturn = me->uError;
-   
+
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
-   
+
    if (Nesting_IsInNest(&(me->nesting))) {
       uReturn = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
       goto Done;
    }
-   
+
    if(UsefulOutBuf_GetError(&(me->OutBuf))) {
       // Stuff didn't fit in the buffer.
       // This check catches this condition for all the appends and inserts
@@ -534,7 +534,7 @@ QCBORError QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
    }
 
    *pEncodedCBOR = UsefulOutBuf_OutUBuf(&(me->OutBuf));
-   
+
 Done:
    return uReturn;
 }
@@ -546,13 +546,13 @@ Done:
 QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLen)
 {
    UsefulBufC Enc;
-   
+
    QCBORError nReturn = QCBOREncode_Finish(me, &Enc);
-   
+
    if(nReturn == QCBOR_SUCCESS) {
       *puEncodedLen = Enc.len;
    }
-   
+
    return nReturn;
 }
 
@@ -561,7 +561,7 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
 
 /*
  Notes on the code
- 
+
  CBOR Major Type     Public Function
  0                   QCBOREncode_AddUInt64
  0, 1                QCBOREncode_AddUInt64, QCBOREncode_AddInt64
@@ -569,9 +569,9 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
  4, 5                QCBOREncode_OpenMapOrArray
  6                   QCBOREncode_AddTag
  7                   QCBOREncode_AddDouble, QCBOREncode_AddSimple
- 
+
  Object code sizes on X86 with LLVM compiler and -Os (Nov 27, 2018)
- 
+
  _QCBOREncode_Init   84
  _QCBOREncode_AddUInt64   76
  _QCBOREncode_AddInt64   87
@@ -582,23 +582,23 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
  _QCBOREncode_CloseMapOrArray   181
  _InsertEncodedTypeAndNumber   480
  _QCBOREncode_Finish   72
- 
+
  Total is about 1.4KB (including FinishGetSize and AddTag and AddDouble)
- 
+
  _InsertEncodedTypeAndNumber is large because a lot of UsefulBuf
  code inlines into it including the conversion to network byte
  order. This could be optimized to at least half the size, but
  code would probably not be quite as clean.
- 
+
  _QCBOREncode_CloseMapOrArray is larger because it has a lot
  of nesting tracking to do and much of Nesting_ inlines
  into it. It probably can't be reduced much.
- 
+
  If the error returned by Nesting_Increment() can be ignored
  because the limit is so high and the consequence of exceeding
  is proved to be inconsequential, then a lot of if(me->uError)
  instance can be removed, saving some code.
- 
+
  */
 
 
