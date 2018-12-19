@@ -67,8 +67,6 @@ The actual non-test source files are these eight:
 * src/UsefulBuf.c
 * src/qcbor_encode.c
 * src/qcbor_decode.c
-* src/qcbor_decode_malloc.c (optional; only for indefinite length
-strings you want handled with malloc)
 * src/ieee754.h
 * src/ieee754.c
 

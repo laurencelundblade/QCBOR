@@ -29,10 +29,9 @@
 CFLAGS=-I inc -I test -Os -Wall -Werror -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
 
 QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o 
-QCBOR_OBJ2=$(QCBOR_OBJ) src/qcbor_decode_malloc.o
 
 TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o test/qcbor_decode_tests.o test/run_tests.o \
-  test/float_tests.o test/half_to_double_from_rfc7049.o test/qcbor_decode_malloc_tests.o
+  test/float_tests.o test/half_to_double_from_rfc7049.o 
 
 qcbortest: libqcbor.a $(TEST_OBJ) cmd_line_main.o
 	cc -o $@ $^  libqcbor.a
@@ -47,16 +46,14 @@ src/UsefulBuf.o:	inc/UsefulBuf.h
 src/qcbor_decode.o:	inc/UsefulBuf.h inc/qcbor.h src/ieee754.h
 src/qcbor_encode.o:	inc/UsefulBuf.h inc/qcbor.h src/ieee754.h
 src/iee754.o:	src/ieee754.h 
-src/qcbor_malloc_decode.o:	inc/qcbor.h
 
 test/run_tests.o:	test/UsefulBuf_Tests.h test/float_tests.h test/run_tests.h test/qcbor_encode_tests.h\
-    test/qcbor_decode_tests.h test/qcbor_decode_malloc_tests.h
+    test/qcbor_decode_tests.h 
 test/UsefulBuf_Tests.o:	test/UsefulBuf_Tests.h inc/qcbor.h inc/UsefulBuf.h
 test/qcbor_encode_tests.o:	test/qcbor_encode_tests.h inc/qcbor.h inc/UsefulBuf.h
 test/qcbor_decode_tests.o:	test/qcbor_decode_tests.h inc/qcbor.h inc/UsefulBuf.h
 test/float_tests.o:	inc/qcbor.h inc/UsefulBuf.h test/float_tests.h test/half_to_double_from_rfc7049.h
 test/half_to_double_from_rfc7049.o:	test/half_to_double_from_rfc7049.h
-test/qcbor_decode_malloc_test.o:	test/qcbor_decode_malloc_tests.h
 
 cmd_line_main.o:	test/run_tests.h inc/qcbor.h
 

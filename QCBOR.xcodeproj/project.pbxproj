@@ -7,11 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0F58EB9C216A388E002FD6D1 /* qcbor_decode_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F58EB9B216A388E002FD6D1 /* qcbor_decode_malloc.c */; };
 		0FA9BEB7216CE6CA00BA646B /* qcbor_decode_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */; };
 		0FA9BEBA216DC7AD00BA646B /* qcbor_encode_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEB8216DC7AD00BA646B /* qcbor_encode_tests.c */; };
 		0FA9BEBD216DE31700BA646B /* UsefulBuf_Tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEBC216DE31700BA646B /* UsefulBuf_Tests.c */; };
-		0FA9BF9021788F4A00BA646B /* qcbor_decode_malloc_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BF8F21788F4A00BA646B /* qcbor_decode_malloc_tests.c */; };
 		E73B57592161CA690080D658 /* ieee754.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B57582161CA690080D658 /* ieee754.c */; };
 		E73B575E2161CA7C0080D658 /* float_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B575A2161CA7C0080D658 /* float_tests.c */; };
 		E73B575F2161CA7C0080D658 /* half_to_double_from_rfc7049.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B575D2161CA7C0080D658 /* half_to_double_from_rfc7049.c */; };
@@ -35,15 +33,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0F58EB9B216A388E002FD6D1 /* qcbor_decode_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qcbor_decode_malloc.c; path = src/qcbor_decode_malloc.c; sourceTree = "<group>"; };
 		0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_decode_tests.c; path = test/qcbor_decode_tests.c; sourceTree = "<group>"; tabWidth = 3; };
 		0FA9BEB6216CE6CA00BA646B /* qcbor_decode_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_decode_tests.h; path = test/qcbor_decode_tests.h; sourceTree = "<group>"; };
 		0FA9BEB8216DC7AD00BA646B /* qcbor_encode_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_encode_tests.c; path = test/qcbor_encode_tests.c; sourceTree = "<group>"; tabWidth = 3; };
 		0FA9BEB9216DC7AD00BA646B /* qcbor_encode_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_encode_tests.h; path = test/qcbor_encode_tests.h; sourceTree = "<group>"; };
 		0FA9BEBB216DE31700BA646B /* UsefulBuf_Tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UsefulBuf_Tests.h; path = test/UsefulBuf_Tests.h; sourceTree = "<group>"; };
 		0FA9BEBC216DE31700BA646B /* UsefulBuf_Tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = UsefulBuf_Tests.c; path = test/UsefulBuf_Tests.c; sourceTree = "<group>"; tabWidth = 3; };
-		0FA9BF8E21788F4A00BA646B /* qcbor_decode_malloc_tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = qcbor_decode_malloc_tests.h; path = test/qcbor_decode_malloc_tests.h; sourceTree = "<group>"; };
-		0FA9BF8F21788F4A00BA646B /* qcbor_decode_malloc_tests.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = qcbor_decode_malloc_tests.c; path = test/qcbor_decode_malloc_tests.c; sourceTree = "<group>"; };
 		E73B57572161CA680080D658 /* ieee754.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ieee754.h; path = src/ieee754.h; sourceTree = "<group>"; };
 		E73B57582161CA690080D658 /* ieee754.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ieee754.c; path = src/ieee754.c; sourceTree = "<group>"; };
 		E73B575A2161CA7C0080D658 /* float_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = float_tests.c; path = test/float_tests.c; sourceTree = "<group>"; };
@@ -98,7 +93,6 @@
 			children = (
 				E776E08C214AE07400E67947 /* qcbor_encode.c */,
 				E776E08E214AE07500E67947 /* qcbor_decode.c */,
-				0F58EB9B216A388E002FD6D1 /* qcbor_decode_malloc.c */,
 				E776E08D214AE07500E67947 /* UsefulBuf.c */,
 				E73B57582161CA690080D658 /* ieee754.c */,
 				E73B57572161CA680080D658 /* ieee754.h */,
@@ -130,8 +124,6 @@
 				E73B575C2161CA7C0080D658 /* float_tests.h */,
 				E73B575D2161CA7C0080D658 /* half_to_double_from_rfc7049.c */,
 				E73B575B2161CA7C0080D658 /* half_to_double_from_rfc7049.h */,
-				0FA9BF8E21788F4A00BA646B /* qcbor_decode_malloc_tests.h */,
-				0FA9BF8F21788F4A00BA646B /* qcbor_decode_malloc_tests.c */,
 			);
 			name = test;
 			sourceTree = "<group>";
@@ -192,9 +184,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0FA9BF9021788F4A00BA646B /* qcbor_decode_malloc_tests.c in Sources */,
 				E776E08F214AE07500E67947 /* qcbor_encode.c in Sources */,
-				0F58EB9C216A388E002FD6D1 /* qcbor_decode_malloc.c in Sources */,
 				E73B57592161CA690080D658 /* ieee754.c in Sources */,
 				E73B575F2161CA7C0080D658 /* half_to_double_from_rfc7049.c in Sources */,
 				E73B57652161F8F80080D658 /* run_tests.c in Sources */,

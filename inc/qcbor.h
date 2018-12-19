@@ -43,6 +43,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 12/18/18           llundblade      Move decode malloc optional code to separate repository
  12/13/18           llundblade      Documentatation improvements
  11/29/18           llundblade      Rework to simpler handling of tags and labels.
  11/9/18            llundblade      Error codes are now enums.
@@ -1687,8 +1688,9 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, b
  Typically, this is used if the simple MemPool allocator isn't desired.
 
  A malloc based string allocator can be obtained by calling
- QCBORDecode_MakeMallocStringAllocator(). Pass its result to
- this function.
+ QCBOR_DMalloc(). This function is supply separately from qcbor
+ to keep qcbor smaller and neater. It is in a separate
+ GitHub repository.
 
  You can also write your own allocator. Create the allocate, free,
  and destroy functions and put pointers to them in a QCBORStringAllocator.
@@ -1709,26 +1711,6 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAlloc
  See description of QCBORTagListIn.
  */
 void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBORTagListIn *pTagList);
-
-
-/**
- @brief This returns a string allocator that uses malloc
-
- @return pointer to string allocator or NULL
-
- Call this to get the string allocator and then configure it into
- the decoder by calling QCBORDecode_SetUpAllocator().  If you
- don't call this, there will be no dependency on malloc
- in QCBOR. Some deployments of QCBOR might even exclude
- the implementation of this function if they don't have
- malloc() at all.
-
- If you do set up this malloc-based string allocator, then
- every string marked as allocated in a QCBORItem must
- freed. They are marked by uDataAlloc and uLabelAlloc
- in QCBORItem.
- */
-QCBORStringAllocator *QCBORDecode_MakeMallocStringAllocator(void);
 
 
 /**

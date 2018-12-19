@@ -41,7 +41,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcbor_decode_tests.h"
 #include "qcbor_encode_tests.h"
 #include "UsefulBuf_Tests.h"
-#include "qcbor_decode_malloc_tests.h"
 
 // Used to test the test runner
 int fail_test()
@@ -116,7 +115,6 @@ test_entry2 s_tests2[] = {
 
 test_entry s_tests[] = {
     TEST_ENTRY(ParseMapAsArrayTest),
-    TEST_ENTRY(MallocAllStringsTest),
     TEST_ENTRY(AllocAllStringsTest),
     TEST_ENTRY(IndefiniteLengthNestTest),
     TEST_ENTRY(NestedMapTestIndefLen),
