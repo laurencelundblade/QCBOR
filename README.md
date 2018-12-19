@@ -61,7 +61,7 @@ interface. The test coverage is pretty good.
 There is a simple makefile for the UNIX style command line binary that
 compiles everything to run the tests.
 
-The actual non-test source files are these eight:
+The actual non-test source files are these seven:
 * inc/UsefulBuf.h
 * inc/qcbor.h
 * src/UsefulBuf.c
