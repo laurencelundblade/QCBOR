@@ -39,7 +39,7 @@ qcbortest: libqcbor.a $(TEST_OBJ) cmd_line_main.o
 qcbormin: libqcbor.a min_use_main.o
 	cc -dead_strip -o $@ $^ libqcbor.a
 
-libqcbor.a: $(QCBOR_OBJ2)
+libqcbor.a: $(QCBOR_OBJ)
 	ar -r $@ $^
 
 src/UsefulBuf.o:	inc/UsefulBuf.h
