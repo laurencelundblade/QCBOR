@@ -1267,13 +1267,29 @@ static void MemPool_Free(void *ctx, void *pOldMem)
  */
 QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *me, UsefulBuf Pool, bool bAllStrings)
 {
+   // The idea behind QCBOR_MIN_MEM_POOL_SIZE is
+   // that the caller knows exactly what size to
+   // allocate and that the tests can run conclusively
+   // no matter what size MemPool is
+   // even though it wastes some memory. MemPool
+   // will vary depending on pointer size of the
+   // the machine. QCBOR_MIN_MEM_POOL_SIZE is
+   // set for pointers up to 64-bits. This
+   // wastes about 50 bytes on a 32-bit machine.
+   // This check makes sure things don't go
+   // horribly wrong. It should optimize out
+   // when there is no problem as the sizes are
+   // known at compile time.
+   if(sizeof(MemPool) > QCBOR_DECODE_MIN_MEM_POOL_SIZE) {
+      return QCBOR_ERR_MEM_POOL_INTERNAL;
+   }
+   
    // The first bytes of the Pool passed in are used
    // as the context (vtable of sorts) for the memory pool
    // allocator.
-   if(Pool.len < sizeof(MemPool)+1) {
+   if(Pool.len < QCBOR_DECODE_MIN_MEM_POOL_SIZE) {
       return QCBOR_ERR_BUFFER_TOO_SMALL;
    }
-
    MemPool *pMP = (MemPool *)Pool.ptr;
 
    // Fill in the "vtable"
@@ -1282,7 +1298,7 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *me, UsefulBuf Pool, bool b
    pMP->StringAllocator.fDestructor = NULL;
 
    // Set up the pointers to the memory to be allocated
-   pMP->pStart = (uint8_t *)Pool.ptr + sizeof(MemPool);
+   pMP->pStart = (uint8_t *)Pool.ptr + QCBOR_DECODE_MIN_MEM_POOL_SIZE;
    pMP->pFree  = pMP->pStart;
    pMP->pEnd   = (uint8_t *)Pool.ptr + Pool.len;
 

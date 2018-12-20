@@ -632,8 +632,13 @@ typedef enum {
 
    /** During decoding, too many tags in the caller-configured tag list, or not
        enough space in QCBORTagListOut. */
-   QCBOR_ERR_TOO_MANY_TAGS
+   QCBOR_ERR_TOO_MANY_TAGS,
 
+   /** Returned by QCBORDecode_SetMemPool() when xx is too small. This should
+       never happen on a machine with 64-bit or smaller pointers. Fixing
+       it is probably by increasing QCBOR_DECODE_MIN_MEM_POOL_SIZE. */
+   QCBOR_ERR_MEM_POOL_INTERNAL
+   
 } QCBORError;
 
 
@@ -774,6 +779,16 @@ typedef struct {
    void      (*fDestructor)(void *pAllocaterContext);
 } QCBORStringAllocator;
 
+
+/**
+ This only matters if you use a string allocator
+ and and set it up with QCBORDecode_SetMemPool(). It is
+ the size of the overhead needed needed by
+ QCBORDecode_SetMemPool().  If you write your own
+ string allocator or use the separately available malloc
+ based string allocator, this size will not apply
+ */
+#define QCBOR_DECODE_MIN_MEM_POOL_SIZE 72
 
 
 /**
@@ -1637,42 +1652,40 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDec
 
 
 /**
- Set up the MemPool string allocator for indefinite length strings.
+ @brief Set up the MemPool string allocator for indefinite length strings.
 
  @param[in] pCtx The decode context.
  @param[in] MemPool The pointer and length of the memory pool.
  @param[in] bAllStrings true means to put even definite length strings in the pool.
 
- @return 0 if the MemPool was at least minimum size, 1 if too small.
+ @return error if the MemPool was less than QCBOR_DECODE_MIN_MEM_POOL_SIZE.
 
- Indefinite length strings (text and byte) cannot be decoded unless there is
- a string allocator configured. MemPool is a simple built-in string allocator
- that allocates bytes from a memory pool handed to it by calling
- this function.  The memory pool is just a pointer and length for some
- block of memory that is to be used for string allocation. It can
- come from the stack, heap or other.
+ Indefinite length strings (text and byte) cannot be decoded unless
+ there is a string allocator configured. MemPool is a simple built-in
+ string allocator that allocates bytes from a memory pool handed to it
+ by calling this function.  The memory pool is just a pointer and
+ length for some block of memory that is to be used for string
+ allocation. It can come from the stack, heap or other.
 
- The memory pool must be large enough to hold some fixed overhead plus the
- space for all the strings allocated. The fixed overhead does vary
- by CPU and compiler, but can roughly be computed as the space for
- seven pointers, 56 bytes for a 64-bit CPU.  There is no overhead
- per string allocated
+ The memory pool must be QCBOR_DECODE_MIN_MEM_POOL_SIZE plus space for
+ all the strings allocated.  There is no overhead per string allocated
 
- This memory pool is used for all indefinite length strings that are text
- strings or byte strings, including strings used as labels.
+ This memory pool is used for all indefinite length strings that are
+ text strings or byte strings, including strings used as labels.
 
  The pointers to strings in QCBORItem will point into the memory pool set
  here. They do not need to be individually freed. Just discard the buffer
  when they are no longer needed.
 
- If bAllStrings is set, then the size will be the overhead plus the space to
- hold **all** strings, definite and indefinite length, value or label. The
- advantage of this is that after the decode is complete, the original memory
- holding the encoded CBOR does not need to remain valid.
+ If bAllStrings is set, then the size will be the overhead plus the
+ space to hold **all** strings, definite and indefinite length, value
+ or label. The advantage of this is that after the decode is complete,
+ the original memory holding the encoded CBOR does not need to remain
+ valid.
 
- If this function is not called because there is no need to support indefinite
- length strings, the MemPool implementation should be dead-stripped by the loader
- and not add to code size.
+ If this function is never called because there is no need to support
+ indefinite length strings, the MemPool implementation should be
+ dead-stripped by the loader and not add to code size.
  */
 QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAllStrings);
 

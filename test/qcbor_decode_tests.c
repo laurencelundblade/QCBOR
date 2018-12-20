@@ -2416,7 +2416,7 @@ static const uint8_t spIndefiniteLenStringLabel[] = {
    0x01 // integer being labeled.
 };
 
-static UsefulBufC MakeIndefiniteBigBstr(UsefulBuf Storage)
+static UsefulBufC MakeIndefiniteBigBstr(UsefulBuf Storage) // TODO: size this
 {
    UsefulOutBuf UOB;
 
@@ -2458,7 +2458,7 @@ int IndefiniteLengthStringTest()
    QCBORDecodeContext DC;
    QCBORItem Item;
    // big enough for MakeIndefiniteBigBstr() + MemPool overhead
-   UsefulBuf_MAKE_STACK_UB(MemPool, 320);
+   UsefulBuf_MAKE_STACK_UB(MemPool, 350);
 
    // --- Simple normal indefinite length string ------
    UsefulBufC IndefLen = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefiniteLenString);
@@ -2637,32 +2637,37 @@ int IndefiniteLengthStringTest()
 int AllocAllStringsTest()
 {
    QCBORDecodeContext DC;
+   QCBORError nCBORError;
+
 
    // First test, use the "CSRMap" as easy input and checking
    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRInput), QCBOR_DECODE_MODE_NORMAL);
 
-   UsefulBuf_MAKE_STACK_UB(Pool, 300);
+   UsefulBuf_MAKE_STACK_UB(Pool, sizeof(spCSRInput) + QCBOR_DECODE_MIN_MEM_POOL_SIZE);
 
-   QCBORDecode_SetMemPool(&DC, Pool, 1); // Turn on copying.
-
-   if(CheckCSRMaps(&DC)) {
+   nCBORError = QCBORDecode_SetMemPool(&DC, Pool, 1); // Turn on copying.
+   if(nCBORError) {
       return -1;
    }
 
+   if(CheckCSRMaps(&DC)) {
+      return -2;
+   }
+
    // Next parse, save pointers to a few strings, destroy original and see all is OK.
-   UsefulBuf_MAKE_STACK_UB(CopyOfStorage, 160);
+   UsefulBuf_MAKE_STACK_UB(CopyOfStorage, sizeof(pValidMapEncoded) + QCBOR_DECODE_MIN_MEM_POOL_SIZE);
    const UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
 
    QCBORDecode_Init(&DC, CopyOf, QCBOR_DECODE_MODE_NORMAL);
+   UsefulBuf_Set(Pool, '/'); 
    QCBORDecode_SetMemPool(&DC, Pool, 1); // Turn on copying.
 
-   int nCBORError;
    QCBORItem Item1, Item2, Item3, Item4;
    if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
       return nCBORError;
    if(Item1.uDataType != QCBOR_TYPE_MAP ||
       Item1.val.uCount != 3)
-      return -1;
+      return -3;
    if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
       return nCBORError;
    if((nCBORError = QCBORDecode_GetNext(&DC, &Item2)))
@@ -2678,7 +2683,7 @@ int AllocAllStringsTest()
       Item1.uDataType != QCBOR_TYPE_INT64 ||
       Item1.val.int64 != 42 ||
       UsefulBuf_Compare(Item1.label.string, UsefulBuf_FromSZ("first integer"))) {
-      return -1;
+      return -4;
    }
 
 
@@ -2686,27 +2691,27 @@ int AllocAllStringsTest()
       UsefulBuf_Compare(Item2.label.string, UsefulBuf_FromSZ("an array of two strings")) ||
       Item2.uDataType != QCBOR_TYPE_ARRAY ||
       Item2.val.uCount != 2)
-      return -1;
+      return -5;
 
    if(Item3.uDataType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item3.val.string, UsefulBuf_FromSZ("string1"))) {
-      return -1;
+      return -6;
    }
 
    if(Item4.uDataType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item4.val.string, UsefulBuf_FromSZ("string2"))) {
-      return -1;
+      return -7;
    }
 
    // Next parse with a pool that is too small
-   UsefulBuf_MAKE_STACK_UB(SmallPool, 80);
+   UsefulBuf_MAKE_STACK_UB(SmallPool, QCBOR_DECODE_MIN_MEM_POOL_SIZE + 1);
    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), QCBOR_DECODE_MODE_NORMAL);
    QCBORDecode_SetMemPool(&DC, SmallPool, 1); // Turn on copying.
    if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
-      return nCBORError;
+      return -8;
    if(Item1.uDataType != QCBOR_TYPE_MAP ||
       Item1.val.uCount != 3) {
-      return -1;
+      return -9;
    }
    if(!(nCBORError = QCBORDecode_GetNext(&DC, &Item1))){
       if(!(nCBORError = QCBORDecode_GetNext(&DC, &Item2))) {
@@ -2716,7 +2721,7 @@ int AllocAllStringsTest()
       }
    }
    if(nCBORError != QCBOR_ERR_STRING_ALLOCATE) {
-      return -5;
+      return -10;
    }
 
    return 0;
@@ -2735,7 +2740,10 @@ int MemPoolTest(void)
 
    // Set up an memory pool of 100 bytes
    UsefulBuf_MAKE_STACK_UB(Pool, 100);
-   QCBORDecode_SetMemPool(&DC, Pool, 0);
+   QCBORError nError = QCBORDecode_SetMemPool(&DC, Pool, 0);
+   if(nError) {
+      return -9;
+   }
 
    // Cheat a little to get to the string allocator object
    // so we can call it directly to test it
