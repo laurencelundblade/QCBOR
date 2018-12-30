@@ -158,6 +158,7 @@ test_entry s_tests[] = {
     TEST_ENTRY(CoseSign1TBSTest),
     TEST_ENTRY(StringDecoderModeFailTest),
     TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
+    TEST_ENTRY(EncodeErrorTests),
     //TEST_ENTRY(fail_test),
 };
 
