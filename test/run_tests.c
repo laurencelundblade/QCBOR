@@ -91,15 +91,19 @@ typedef int (test_fun_t)(void);
 typedef const char * (test_fun2_t)(void);
 
 
-#define TEST_ENTRY(test_name)  {#test_name, test_name}
+#define TEST_ENTRY(test_name)  {#test_name, test_name, true}
+#define TEST_ENTRY_DISABLED(test_name)  {#test_name, test_name, false}
+
 typedef struct {
-    const char *szTestName;
+    const char  *szTestName;
     test_fun_t  *test_fun;
+    bool         bEnabled;
 } test_entry;
 
 typedef struct {
     const char *szTestName;
     test_fun2_t  *test_fun;
+    bool         bEnabled;
 } test_entry2;
 
 test_entry2 s_tests2[] = {
@@ -153,6 +157,7 @@ test_entry s_tests[] = {
     TEST_ENTRY(BstrWrapNestTest),
     TEST_ENTRY(CoseSign1TBSTest),
     TEST_ENTRY(StringDecoderModeFailTest),
+    TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
     //TEST_ENTRY(fail_test),
 };
 
@@ -167,19 +172,24 @@ int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *p
     const test_entry2 *s_tests2_end = s_tests2 + sizeof(s_tests2)/sizeof(test_entry2);
 
     for(t2 = s_tests2; t2 < s_tests2_end; t2++) {
+        if(!t2->bEnabled && !szTestName) {
+            // Don't run disabled tests when all tests are being run
+            // as indicated by no specific test name being given
+            continue;
+        }
         if(szTestName && strcmp(szTestName, t2->szTestName)) {
             continue;
         }
-        const char * x = (t2->test_fun)();
+        const char * szTestResult = (t2->test_fun)();
         nTestsRun++;
         if(output) {
             (*output)(t2->szTestName, poutCtx);
         }
 
-        if(x) {
+        if(szTestResult) {
             if(output) {
                 (*output)(" FAILED (returned ", poutCtx);
-                (*output)(x, poutCtx);
+                (*output)(szTestResult, poutCtx);
                 (*output)(")\n", poutCtx);
             }
             nTestsFailed++;
@@ -195,19 +205,24 @@ int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *p
     const test_entry *s_tests_end = s_tests + sizeof(s_tests)/sizeof(test_entry);
 
     for(t = s_tests; t < s_tests_end; t++) {
+        if(!t->bEnabled && !szTestName) {
+            // Don't run disabled tests when all tests are being run
+            // as indicated by no specific test name being given
+            continue;
+        }
         if(szTestName && strcmp(szTestName, t->szTestName)) {
             continue;
         }
-        int x = (t->test_fun)();
+        int nTestResult = (t->test_fun)();
         nTestsRun++;
         if(output) {
             (*output)(t->szTestName, poutCtx);
         }
 
-        if(x) {
+        if(nTestResult) {
             if(output) {
                 (*output)(" FAILED (returned ", poutCtx);
-                (*output)(NumToString(x, StringStorage), poutCtx);
+                (*output)(NumToString(nTestResult, StringStorage), poutCtx);
                 (*output)(")\n", poutCtx);
             }
             nTestsFailed++;

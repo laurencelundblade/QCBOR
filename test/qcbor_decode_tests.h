@@ -138,9 +138,24 @@ int FailureTests(void);
 
 
 /*
- Generate all possible input strings up to length x and tries to parse them completely
+ Parses all possible inputs that are two bytes long. Main point
+ is that the test doesn't crash as it doesn't evaluate the
+ input for correctness in any way.
+ 
+ (Parsing all possible 3 byte strings takes too long on all but
+  very fast machines). 
  */
 int ComprehensiveInputTest(void);
+
+
+/*
+ Parses all possible inputs that are four bytes long. Main point
+ is that the test doesn't crash as it doesn't evaluate the
+ input for correctness in any way. This runs very slow, so it
+ is only practical as a once-in-a-while regression test on
+ fast machines.
+ */
+int BigComprehensiveInputTest(void);
 
 
 /*

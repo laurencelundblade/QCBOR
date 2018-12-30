@@ -36,23 +36,29 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h> // for fabs()
 #include <stdlib.h>
 
-#ifdef  PRINT_FUNCTIONS_FOR_DEBUGGINGXX
+#ifdef  PRINT_FUNCTIONS_FOR_DEBUGGING
 #include <stdio.h>
-static void printencoded(const char *szLabel, const uint8_t *pEncoded, size_t nLen)
+
+static void PrintUsefulBufC(const char *szLabel, UsefulBufC Buf)
 {
    if(szLabel) {
       printf("%s ", szLabel);
    }
-
+   
    size_t i;
-   for(i = 0; i < nLen; i++) {
-      uint8_t Z = pEncoded[i];
+   for(i = 0; i < Buf.len; i++) {
+      uint8_t Z = ((uint8_t *)Buf.ptr)[i];
       printf("%02x ", Z);
    }
    printf("\n");
-
+   
    fflush(stdout);
 }
+
+/*static void printencoded(const char *szLabel, const uint8_t *pEncoded, size_t nLen)
+{
+   PrintUsefulBufC(szLabel, (UsefulBufC){pEncoded, nLen});
+}*/
 #endif
 
 
@@ -1404,60 +1410,74 @@ int FailureTests()
 }
 
 
-
-
-static void Recurser(uint8_t *pBuf, int nLen, int nLenMax)
+/* Try all 256 values of the byte at nLen including recursing for
+ each of the values to try values at nLen+1 ... up to nLenMax
+ */
+static void ComprehensiveInputRecurser(uint8_t *pBuf, int nLen, int nLenMax)
 {
-
    if(nLen >= nLenMax) {
       return;
    }
-
-   //printf("__%d__%d__\n", nLen, nLenMax);
-
-   for(int i = 0; i < 256; i++) {
-      pBuf[nLen] = i;
-
-      QCBORDecodeContext DCtx;
-      QCBORItem Item;
-      int nCBORError;
-
+   
+   for(int inputByte = 0; inputByte < 256; inputByte++) {
+      // Set up the input
+      pBuf[nLen] = inputByte;
       const UsefulBufC Input = {pBuf, nLen+1};
-
+      
+      // Get ready to parse
+      QCBORDecodeContext DCtx;
       QCBORDecode_Init(&DCtx, Input, QCBOR_DECODE_MODE_NORMAL);
 
+      // Parse by getting the next item until an error occurs
+      // Just about every possible decoder error can occur here
+      // The goal of this test is not to check for the correct
+      // error since that is not really possible. It is to
+      // see that there is no crash on hostile input.
       while(1) {
-         nCBORError =  QCBORDecode_GetNext(&DCtx, &Item);
-         if(QCBOR_ERR_HIT_END == nCBORError) {
-            break;
-         }
+         QCBORItem Item;
+         QCBORError nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
          if(nCBORError != QCBOR_SUCCESS) {
-            if(nCBORError != QCBOR_ERR_UNSUPPORTED && nCBORError != QCBOR_ERR_HIT_END && nCBORError != QCBOR_ERR_INVALID_CBOR) {
-            }
             break;
          }
       }
 
-
-      Recurser(pBuf, nLen+1, nLenMax);
+      ComprehensiveInputRecurser(pBuf, nLen+1, nLenMax);
    }
 }
 
 
 /*
- Runs all possible input strings of a given length. This is set to 3 to make the test
- run in reasonable time.
- Main point of this test is to not crash.
+ Public function for initialization. See header qcbor.h
  */
-
 int ComprehensiveInputTest()
 {
-   uint8_t pBuf[3]; // 3 keeps it running in reasonable time. 4 takes tens of minutes.
+   // Size 2 tests 64K inputs and runs quickly
+   uint8_t pBuf[2];
 
-   Recurser(pBuf, 0, sizeof(pBuf));
+   ComprehensiveInputRecurser(pBuf, 0, sizeof(pBuf));
 
    return 0;
 }
+
+
+/*
+ Public function for initialization. See header qcbor.h
+ */
+int BigComprehensiveInputTest()
+{
+   // size 3 tests 16 million inputs and runs OK
+   // in seconds on fast machines. Size 4 takes
+   // 10+ minutes and 5 half a day on fast
+   // machines. This test is kept separate from
+   // the others so as to no slow down the use
+   // of them as a very frequent regression.
+   uint8_t pBuf[3]; //
+   
+   ComprehensiveInputRecurser(pBuf, 0, sizeof(pBuf));
+   
+   return 0;
+}
+
 
 static uint8_t spDateTestInput[] = {
    0xc0, // tag for string date
