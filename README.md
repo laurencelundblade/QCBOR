@@ -106,21 +106,8 @@ not partial maps and arrays (simplification; was a dangerous feature)
 this, but it is not really a good thing to use in the first place)
 * UsefulOutBuf_OutUBuf changed to work differently
 * UsefulOutBuf_Init works differently
-<<<<<<< HEAD
 * The "_3" functions are replaced with a small number of simpler functions
 * There is a new AddTag functon instead of the "_3" functions, making
 the interface simpler and saving some code
 * QCBOREncode_AddRawSimple_2 is removed (the macros that referenced
 still exist and work the same)
-
-
-
-
-
-
-
-=======
-* The "_3" functions are replaced with "_2" functions (the macros that referenced _3, now reference _2 and work the same)
-* There is a new AddTag functon instead of the "_3" functions, making the interface simpler and saving some code
-* QCBOREncode_AddRawSimple_2 is removed (the macros that referenced still exist and work the same)
->>>>>>> origin/smallinsert

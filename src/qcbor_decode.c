@@ -1283,7 +1283,7 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *me, UsefulBuf Pool, bool b
    if(sizeof(MemPool) > QCBOR_DECODE_MIN_MEM_POOL_SIZE) {
       return QCBOR_ERR_MEM_POOL_INTERNAL;
    }
-   
+
    // The first bytes of the Pool passed in are used
    // as the context (vtable of sorts) for the memory pool
    // allocator.
