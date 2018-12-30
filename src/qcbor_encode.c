@@ -218,16 +218,16 @@ void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
 
 
 /* 
- All CBOR data items have a type and a number. The number is either
- the value of the item for integer types, the length of the content
- for string, byte, array and map types, a tag for major type 6, and
- has serveral uses for major type 7.
+ All CBOR data items have a type and an "argument". The argument is
+ either the value of the item for integer types, the length of the
+ content for string, byte, array and map types, a tag for major type
+ 6, and has several uses for major type 7.
  
- This function encodes the type and the number. There are several
- encodings for the number depending on how large it is and how it is
+ This function encodes the type and the argument. There are several
+ encodings for the argument depending on how large it is and how it is
  used.
  
- Every encoding of the type and number has at least one byte, the 
+ Every encoding of the type and argument has at least one byte, the
  "initial byte".
  
  The top three bits of the initial byte are the major type for the
@@ -235,19 +235,18 @@ void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
  defined as CBOR_MAJOR_TYPE_xxxx in qcbor.h.
  
  The remaining five bits, known as "additional information", and
- possibly more bytes encode the number. If the number is less than 24,
- then it is encoded entirely in the five bits. This is neat because it
- allows you to encode an entire CBOR data item in 1 byte for many
- values and types (integers 0-23, true, false, and tags).
+ possibly more bytes encode the argument. If the argument is less than
+ 24, then it is encoded entirely in the five bits. This is neat
+ because it allows you to encode an entire CBOR data item in 1 byte
+ for many values and types (integers 0-23, true, false, and tags).
  
- If the number is larger than 24, then it is encoded in 1,2,4 or 8
+ If the argument is larger than 24, then it is encoded in 1,2,4 or 8
  additional bytes, with the number of these bytes indicated by the
  values of the 5 bits 24, 25, 25 and 27.
  
- It is possible to encode a particular number in many ways with this
+ It is possible to encode a particular argument in many ways with this
  representation.  This implementation always uses the smallest
- possible representation. This is also the suggestion made in the RFC
- for cannonical CBOR.
+ possible representation. This conforms with CBOR preferred encoding.
  
  This function inserts them into the output buffer at the specified
  position. AppendEncodedTypeAndNumber() appends to the end.
@@ -258,95 +257,81 @@ void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
  function is called the float or double must be copied into a
  uint64_t. That is how they are passed in. They are then converted to
  network byte order correctly. The uMinLen param makes sure that even
- if all the digits of a half, float or double are 0 it is still correctly
- encoded in 2, 4 or 8 bytes.
- 
+ if all the digits of a half, float or double are 0 it is still
+ correctly encoded in 2, 4 or 8 bytes.
  */
-#ifndef FORMAL_UNOPTIMIZED_INSERTENCODEDTYPEANDNUMBER
-/* This code does endian conversion without hton or knowing the
- endianness of the machine with masks and shifts. It avoids the
- dependency on hton and any mess of figuring out how to find
- the machines's endianness.
- 
- It is a good efficient implementation on little endian machines.
- A better implementation is possible on big endian machines
- because CBOR/network byte order is big endian. However big
- endian machines are uncommon.
- 
- On x86, it is about 200 bytes instead of 500 bytes for the
- more formal unoptimized code.
- 
- This also does the CBOR preferred shortest encoding for integers
- and is called to do endian conversion for floats.
- 
- It works backwards from the LSB to the MSB as needed.
- 
- Code Reviewers: THIS FUNCTION DOES POINTER MATH
- */
-#include <stdio.h>
-static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorType, int nMinLen, uint64_t uNumber, size_t uPos)
+
+static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me,
+                                       uint8_t uMajorType,
+                                       int nMinLen,
+                                       uint64_t uNumber,
+                                       size_t uPos)
 {
+   /*
+    This code does endian conversion without hton or knowing the
+    endianness of the machine using masks and shifts. this avoids the
+    dependency on hton and the mess of figuring out how to find the
+    machine's endianness.
+    
+    This is a good efficient implementation on little-endian machines.
+    A faster and small implementation is possible on big-endian
+    machines because CBOR/network byte order is big endian. However
+    big endian machines are uncommon.
+    
+    On x86, it is about 200 bytes instead of 500 bytes for the more
+    formal unoptimized code.
+    
+    This also does the CBOR preferred shortest encoding for integers
+    and is called to do endian conversion for floats.
+    
+    It works backwards from the LSB to the MSB as needed.
+    
+    Code Reviewers: THIS FUNCTION DOES POINTER MATH
+    */
+   // Holds up to 9 bytes of type and argument
+   // plus one extra so pointer always points to
+   // valid bytes.
    uint8_t bytes[sizeof(uint64_t)+2];
+   // Point to the last bytes and work backwards
    uint8_t *pByte = &bytes[sizeof(bytes)-1];
-   uint8_t ib;
+   // This is the 5 bits in the initial byte that is not the major type
+   uint8_t uAdditionalInfo;
    
    if(uNumber < CBOR_TWENTY_FOUR && nMinLen == 0) {
-      ib = uNumber;
+      // Simple case where argument is < 24
+      uAdditionalInfo = uNumber;
    } else  {
+      /*
+       Encode argument in 1,2,4 or 8 bytes. Outer loop
+       runs once for 1 byte and 4 times for 8 bytes.
+       Inner loop runs 1, 2 or 4 times depending on
+       outer loop counter. This works backwards taking
+       8 bits off the argument being encoded at a time
+       until all bits from uNumber have been encoded
+       and the minimum encoding size is reached.
+       Minimum encoding size is for floating point
+       numbers with zero bytes correctly.
+       */
       static const uint8_t aIterate[] = {1,1,2,4};
-      ib = 0;
-      while(uNumber || nMinLen > 0) {
-         const uint8_t uIterations = aIterate[ib];
-         nMinLen -= uIterations;
-         for (int i = 0; i < uIterations; i++) {
+      uint8_t i;
+      for(i = 0; uNumber || nMinLen > 0; i++) {
+         const uint8_t uIterations = aIterate[i];
+         for(int j = 0; j < uIterations; j++) {
             *--pByte = uNumber & 0xff;
             uNumber = uNumber >> 8;
          }
-         ib++;
+         nMinLen -= uIterations;
       }
-      ib += LEN_IS_ONE_BYTE-1;
+      // Additional info is the encoding of the
+      // number of additional bytes to encode
+      // argument.
+      uAdditionalInfo = LEN_IS_ONE_BYTE-1 + i;
    }
-   *--pByte = (uMajorType << 5) + ib;
+   *--pByte = (uMajorType << 5) + uAdditionalInfo;
 
    UsefulOutBuf_InsertData(&(me->OutBuf), pByte, &bytes[sizeof(bytes)-1] - pByte, uPos);
 }
 
-#else
-
-/* This does the same as the above, but is easier to understand. This also does no pointer math. */
-static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me, uint8_t uMajorType, int nMinLen, uint64_t uNumber, size_t uPos)
-{
-   // No need to worry about integer overflow here because a) uMajorType is
-   // always generated internally, not by the caller, b) this is for CBOR
-   // _generation_, not parsing c) a mistake will result in bad CBOR generation,
-   // not a security vulnerability.
-   uMajorType <<= 5;
-   
-   if(uNumber > 0xffffffff || nMinLen >= 8) {
-      UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_EIGHT_BYTES, uPos);
-      UsefulOutBuf_InsertUint64(&(me->OutBuf), (uint64_t)uNumber, uPos+1);
-      
-   } else if(uNumber > 0xffff || nMinLen >= 4) {
-      UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_FOUR_BYTES, uPos);
-      UsefulOutBuf_InsertUint32(&(me->OutBuf), (uint32_t)uNumber, uPos+1);
-      
-   } else if (uNumber > 0xff || nMinLen>= 2) {
-      // Between 0 and 65535
-      UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_TWO_BYTES, uPos);
-      UsefulOutBuf_InsertUint16(&(me->OutBuf), (uint16_t)uNumber, uPos+1);
-      
-   } else if(uNumber >= 24) {
-      // Between 0 and 255, but only between 24 and 255 is ever encoded here
-      UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + LEN_IS_ONE_BYTE, uPos);
-      UsefulOutBuf_InsertByte(&(me->OutBuf), (uint8_t)uNumber, uPos+1);
-
-   } else {
-      // Between 0 and 23
-      UsefulOutBuf_InsertByte(&(me->OutBuf), uMajorType + (uint8_t)uNumber, uPos);
-   }
-}
-
-#endif
 
 
 
