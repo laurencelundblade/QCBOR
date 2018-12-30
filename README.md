@@ -18,7 +18,9 @@ is also not necessary or preferred.
 
 **Secure Coding Style** – Uses a construct called UsefulBuf as a discipline for very safe coding the handling of binary data.
 
-**Small Code Size** – When optimized for size using the compiler -Os option, x86 code is less than 5KB (~1.7B encode, ~2.8KB decode, ~0.4KB common). 
+**Small Code Size** – When optimized for size using the compiler -Os
+  option, x86 code is less than 5KB (~1.1B encode, ~2.8KB decode,
+  ~0.4KB common).
 
 **Clear documented public interface** – The public interface is separated from the implementation. It can be put to use without reading the source. 
 
@@ -72,11 +74,3 @@ Then just call run_tests() to invole them all.
 * The "_3" functions are replaced with "_2" functions (the macros that referenced _3, now reference _2 and work the same)
 * There is a new AddTag functon instead of the "_3" functions, making the interface simpler and saving some code
 * QCBOREncode_AddRawSimple_2 is removed (the macros that referenced still exist and work the same)
-
-
-
-
-
-
-
-

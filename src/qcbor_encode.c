@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 12/30/18           llundblade      Small efficient clever encode of type & argument.
  11/29/18           llundblade      Rework to simpler handling of tags and labels.
  11/9/18            llundblade      Error codes are now enums.
  11/1/18            llundblade      Floating support.
@@ -602,12 +603,12 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
  
  Object code sizes on X86 with LLVM compiler and -Os (Dec 14, 2018)
  
- _QCBOREncode_Init   71
+ _QCBOREncode_Init   69
  _QCBOREncode_AddUInt64   76
  _QCBOREncode_AddInt64   87
  _QCBOREncode_AddBuffer   113
  _QCBOREncode_AddTag 27
- _QCBOREncode_AddType7   83
+ _QCBOREncode_AddType7   87
  _QCBOREncode_AddDouble 36
  _QCBOREncode_OpenMapOrArray   103
  _QCBOREncode_CloseMapOrArray   181
