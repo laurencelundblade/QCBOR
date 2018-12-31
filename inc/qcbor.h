@@ -982,18 +982,20 @@ static void QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLab
 
  This outputs a floating-point number with CBOR major type 7.
 
- This will selectively encode the double-precision floating point number as either
- double-precision, single-precision or half-precision. It will always encode infinity, NaN and 0
- has half precision. If no precision will be lost in the conversion to half-precision
- then it will be converted and encoded. If not and no precision will be lost in
- conversion to single-precision, then it will be converted and encoded. If not, then
- no conversion is performed, and it encoded as a double.
+ This will selectively encode the double-precision floating point
+ number as either double-precision, single-precision or
+ half-precision. It will always encode infinity, NaN and 0 has half
+ precision. If no precision will be lost in the conversion to
+ half-precision then it will be converted and encoded. If not and no
+ precision will be lost in conversion to single-precision, then it
+ will be converted and encoded. If not, then no conversion is
+ performed, and it encoded as a double.
 
- Half-precision floating point numbers take up 2 bytes, half that of single-precision,
- one quarter of double-precision
+ Half-precision floating point numbers take up 2 bytes, half that of
+ single-precision, one quarter of double-precision
 
- This automatically reduces the size of encoded messages a lot, maybe even by four if most of values are
- 0, infinity or NaN.
+ This automatically reduces the size of encoded messages a lot, maybe
+ even by four if most of values are 0, infinity or NaN.
 
  On decode, these will always be returned as a double.
 
@@ -1327,24 +1329,24 @@ static void QCBOREncode_AddUndefToMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
  Arrays are the basic CBOR aggregate or structure type. Call this
  function to start or open an array. Then call the various AddXXX
  functions to add the items that go into the array. Then call
- QCBOREncode_CloseArray() when all items have been added. The
- data items in the array can be of any type and can be of
- mixed types.
+ QCBOREncode_CloseArray() when all items have been added. The data
+ items in the array can be of any type and can be of mixed types.
 
  Nesting of arrays and maps is allowed and supported just by calling
- OpenArray again before calling CloseArray.  While CBOR has no limit
- on nesting, this implementation does in order to keep it smaller and
- simpler.  The limit is QCBOR_MAX_ARRAY_NESTING. This is the max
- number of times this can be called without calling
+ QCBOREncode_OpenArray() again before calling CloseArray.  While CBOR
+ has no limit on nesting, this implementation does in order to keep it
+ smaller and simpler.  The limit is QCBOR_MAX_ARRAY_NESTING. This is
+ the max number of times this can be called without calling
  QCBOREncode_CloseArray(). QCBOREncode_Finish() will return
- QCBOR_ERR_ARRAY_TOO_LONG when it is called as this function just sets
- an error state and returns no value when this occurs.
+ QCBOR_ERR_ARRAY_NESTING_TOO_DEEP when it is called as this function
+ just sets an error state and returns no value when this occurs.
 
- If you try to add more than 32,767 items to an array or map, incorrect CBOR will
- be produced by this encoder.
+ If you try to add more than QCBOR_MAX_ITEMS_IN_ARRAY items to a
+ single array or map, QCBOR_ERR_ARRAY_TOO_LONG will be returned when
+ QCBOREncode_Finish() is called.
 
- An array itself must have a label if it is being added to a map.  Note that
- array elements do not have labels (but map elements do).
+ An array itself must have a label if it is being added to a map.
+ Note that array elements do not have labels (but map elements do).
 
  An array itself may be tagged.
  */
@@ -1361,19 +1363,19 @@ static void QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabe
  @param[in] pCtx The context to add to.
 
  The closes an array opened by QCBOREncode_OpenArray(). It reduces
- nesting level by one. All arrays (and maps) must be closed
- before calling QCBOREncode_Finish().
+ nesting level by one. All arrays (and maps) must be closed before
+ calling QCBOREncode_Finish().
 
  When an error occurs as a result of this call, the encoder records
  the error and enters the error state. The error will be returned when
  QCBOREncode_Finish() is called.
 
- If this has been called more times than QCBOREncode_OpenArray(),
- then QCBOR_ERR_TOO_MANY_CLOSES will be returned when
- QCBOREncode_Finish() is called.
+ If this has been called more times than QCBOREncode_OpenArray(), then
+ QCBOR_ERR_TOO_MANY_CLOSES will be returned when QCBOREncode_Finish()
+ is called.
 
- If this is called and it is not an array that is currently
- open, QCBOR_ERR_CLOSE_MISMATCH will be returned when QCBOREncode_Finish()
+ If this is called and it is not an array that is currently open,
+ QCBOR_ERR_CLOSE_MISMATCH will be returned when QCBOREncode_Finish()
  is called.
  */
 static void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
@@ -1384,7 +1386,8 @@ static void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
 
  @param[in] pCtx The context to add to.
 
- See QCBOREncode_OpenArray() for more information.
+ See QCBOREncode_OpenArray() for more information, particularly error
+ handling.
 
  CBOR maps are an aggregate type where each item in the map consists
  of a label and a value. They are similar to JSON objects.
@@ -1392,9 +1395,8 @@ static void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
  The value can be any CBOR type including another map.
 
  The label can also be any CBOR type, but in practice they are
- typically, integers as this gives the most compact output. They
- might also be text strings which gives readability and translation
- to JSON.
+ typically, integers as this gives the most compact output. They might
+ also be text strings which gives readability and translation to JSON.
 
  Every QCBOREncode_AddXXX() call has once version that is "InMap" for
  adding items to maps with string labels and on that is "InMapN" that
@@ -1421,8 +1423,8 @@ static void QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 
  @param[in] pCtx The context to add to.
 
- The closes a map opened by QCBOREncode_OpenMap(). It reduces
- nesting level by one.
+ The closes a map opened by QCBOREncode_OpenMap(). It reduces nesting
+ level by one.
 
  When an error occurs as a result of this call, the encoder records
  the error and enters the error state. The error will be returned when
@@ -1456,19 +1458,19 @@ static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
  another encoding (e.g. the COSE to-be-signed bytes, the
  Sig_structure) potentially saving a lot of memory.
 
- When constructing cryptographically signed CBOR objects, maps or arrays, they
- typically are encoded
- normally and then wrapped as a byte string. The COSE standard for example
- does this. The wrapping is simply treating the encoded CBOR map
- as a byte string.
+ When constructing cryptographically signed CBOR objects, maps or
+ arrays, they typically are encoded normally and then wrapped as a
+ byte string. The COSE standard for example does this. The wrapping is
+ simply treating the encoded CBOR map as a byte string.
 
- The stated purpose of this wrapping is to prevent code relaying the signed data
- but not verifying it from tampering with the signed data thus making
- the signature unverifiable. It is also quite beneficial for the
- signature verification code. Standard CBOR parsers usually do not give
- access to partially parsed CBOR as would be need to check the signature
- of some CBOR. With this wrapping, standard CBOR parsers can be used
- to get to all the data needed for a signature verification.
+ The stated purpose of this wrapping is to prevent code relaying the
+ signed data but not verifying it from tampering with the signed data
+ thus making the signature unverifiable. It is also quite beneficial
+ for the signature verification code. Standard CBOR parsers usually do
+ not give access to partially parsed CBOR as would be need to check
+ the signature of some CBOR. With this wrapping, standard CBOR parsers
+ can be used to get to all the data needed for a signature
+ verification.
  */
 static void QCBOREncode_BstrWrap(QCBOREncodeContext *pCtx);
 
@@ -1510,7 +1512,7 @@ static void QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWra
 
 
 /**
- Add some already-encoded CBOR bytes.
+ @brief Add some already-encoded CBOR bytes.
 
  @param[in] pCtx The context to add to.
  @param[in] Encoded The already-encoded CBOR to add to the context.
@@ -1536,7 +1538,7 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
 
 
 /**
- Get the encoded result.
+ @brief Get the encoded result.
 
  @param[in] pCtx  The context to finish encoding with.
  @param[out] pEncodedCBOR  Pointer and length of encoded CBOR.
@@ -1568,7 +1570,7 @@ QCBORError QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR
 
 
 /**
- Get the encoded CBOR and error status.
+ @brief Get the encoded CBOR and error status.
 
  @param[in] pCtx  The context to finish encoding with.
  @param[out] uEncodedLen The length of the encoded or potentially encoded CBOR in bytes.

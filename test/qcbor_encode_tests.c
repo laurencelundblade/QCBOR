@@ -1972,6 +1972,8 @@ int EncodeErrorTests()
       return -9;
    }
    
+   /* QCBOR_ERR_ARRAY_TOO_LONG is not tested here as
+    it would require a 64KB of RAM to test */
 
    return 0;
 }
