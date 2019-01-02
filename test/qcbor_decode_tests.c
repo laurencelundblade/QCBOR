@@ -30,11 +30,11 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ==============================================================================*/
 
-#include "qcbor.h"
 #include "qcbor_decode_tests.h"
+#include "qcbor.h"
 #include <string.h>
 #include <math.h> // for fabs()
-#include <stdlib.h>
+
 
 #ifdef  PRINT_FUNCTIONS_FOR_DEBUGGING
 #include <stdio.h>
@@ -44,14 +44,14 @@ static void PrintUsefulBufC(const char *szLabel, UsefulBufC Buf)
    if(szLabel) {
       printf("%s ", szLabel);
    }
-   
+
    size_t i;
    for(i = 0; i < Buf.len; i++) {
       uint8_t Z = ((uint8_t *)Buf.ptr)[i];
       printf("%02x ", Z);
    }
    printf("\n");
-   
+
    fflush(stdout);
 }
 
@@ -444,6 +444,8 @@ int IntegerValuesParseTest()
 
  */
 
+static uint8_t spSimpleArrayBuffer[50];
+
 static int CreateSimpleArray(int nInt1, int nInt2, uint8_t **pEncoded, size_t *pEncodedLen)
 {
    QCBOREncodeContext ECtx;
@@ -453,7 +455,7 @@ static int CreateSimpleArray(int nInt1, int nInt2, uint8_t **pEncoded, size_t *p
    *pEncodedLen = INT32_MAX;
 
    // loop runs CBOR encoding twice. First with no buffer to
-   // calucate the length so buffer can be allocated correctly,
+   // calculate the length so buffer can be allocated correctly,
    // and last with the buffer to do the actual encoding
    do {
       QCBOREncode_Init(&ECtx, (UsefulBuf){*pEncoded, *pEncodedLen});
@@ -464,25 +466,24 @@ static int CreateSimpleArray(int nInt1, int nInt2, uint8_t **pEncoded, size_t *p
       QCBOREncode_AddBytes(&ECtx, ((UsefulBufC) {"haven token", 11}));
       QCBOREncode_CloseArray(&ECtx);
 
-      UsefulBufC Encoded;
-      if(QCBOREncode_Finish(&ECtx, &Encoded))
+      if(QCBOREncode_FinishGetSize(&ECtx, pEncodedLen))
          goto Done;
 
       if(*pEncoded != NULL) {
-         *pEncodedLen = Encoded.len;
          nReturn = 0;
          goto Done;
       }
-      *pEncoded = malloc(Encoded.len);
-      if(*pEncoded == NULL) {
-         nReturn = -1;
+
+      // Use static buffer to avoid dependency on malloc()
+      if(*pEncodedLen > sizeof(spSimpleArrayBuffer)) {
          goto Done;
       }
+      *pEncoded = spSimpleArrayBuffer;
 
    } while(1);
-Done:
-   return (nReturn);
 
+Done:
+   return nReturn;
 }
 
 
@@ -1418,12 +1419,12 @@ static void ComprehensiveInputRecurser(uint8_t *pBuf, int nLen, int nLenMax)
    if(nLen >= nLenMax) {
       return;
    }
-   
+
    for(int inputByte = 0; inputByte < 256; inputByte++) {
       // Set up the input
       pBuf[nLen] = inputByte;
       const UsefulBufC Input = {pBuf, nLen+1};
-      
+
       // Get ready to parse
       QCBORDecodeContext DCtx;
       QCBORDecode_Init(&DCtx, Input, QCBOR_DECODE_MODE_NORMAL);
@@ -1472,9 +1473,9 @@ int BigComprehensiveInputTest()
    // the others so as to no slow down the use
    // of them as a very frequent regression.
    uint8_t pBuf[3]; //
-   
+
    ComprehensiveInputRecurser(pBuf, 0, sizeof(pBuf));
-   
+
    return 0;
 }
 
@@ -2679,7 +2680,7 @@ int AllocAllStringsTest()
    const UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
 
    QCBORDecode_Init(&DC, CopyOf, QCBOR_DECODE_MODE_NORMAL);
-   UsefulBuf_Set(Pool, '/'); 
+   UsefulBuf_Set(Pool, '/');
    QCBORDecode_SetMemPool(&DC, Pool, 1); // Turn on copying.
 
    QCBORItem Item1, Item2, Item3, Item4;

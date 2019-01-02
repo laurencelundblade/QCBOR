@@ -5,8 +5,8 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 ## Characteristics
 
 **Implemented in C with minimal dependecy** – Only dependencies are
-C99, stdint.h, stddef.h, stdbool.h and string.h making it highly
-portable. There are no #ifdefs.
+C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making it highly
+portable. There are no #ifdefs to be configured at all.
 
 **Focused on C / native data representation** – Simpler code because
 there is no support for encoding/decoding to/from JSON, pretty
@@ -28,19 +28,24 @@ representations and decoding to native C representations is supported.
   length strings is not supported, but is also not necessary or
   preferred.
 
-**Extensible and General** – Provides a way to handle data types that
+**Extensible and general** – Provides a way to handle data types that
   are not directly supported.
 
-**Secure Coding Style** – Uses a construct called UsefulBuf as a
+**Secure coding style** – Uses a construct called UsefulBuf as a
   discipline for very safe coding the handling of binary data.
 
-**Small Code Size** – When optimized for size using the compiler -Os
+**Small code size** – When optimized for size using the compiler -Os
   option, x86 code is less than 5KB (~1.1B encode, ~2.8KB decode,
   ~0.4KB common).
 
 **Clear documented public interface** – The public interface is
   separated from the implementation. It can be put to use without
   reading the source.
+
+  **Comprehensive test suite** – Easy to verify on a new platform
+  or OS with the test suite. The test suite dependencies are also
+  minimal, only additionally requiring <math.h> for floating point
+  tests.
 
 ## Code Status
 

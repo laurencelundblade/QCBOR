@@ -1,5 +1,7 @@
 /*==============================================================================
- cmd_line_mainc.c -- basic tests for qcbor encoder / decoder
+ cmd_line_mainc.c -- Runs tests for QCBOR encoder / decoder
+
+ Created on 9/13/18.
 
  Copyright (c) 2018, Laurence Lundblade.
  All rights reserved.
@@ -30,49 +32,30 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ==============================================================================*/
-//  Created by Laurence Lundblade on 9/13/18.
+
 
 #include <stdio.h>
 #include "run_tests.h"
-#include "qcbor.h" // just to print sizes of the structures.
 
 
-int fputs_wrapper(const char *szString, void *ctx)
+/*
+ This is an implementation of OutputStringCB built using stdio. If
+ you don't have stdio, replaces this is
+ */
+static void fputs_wrapper(const char *szString, void *ctx)
 {
-    return fputs(szString, (FILE *)ctx);
-}
-
-
-static void PrintSize(const char *szWhat, uint32_t uSize)
-{
-    UsefulBuf_MAKE_STACK_UB(foo, 20);
-
-    fputs_wrapper(szWhat, stdout);
-    fputs_wrapper(" ", stdout);
-    fputs_wrapper(NumToString(uSize,foo), stdout);
-    fputs_wrapper("\n", stdout);
+    fputs(szString, (FILE *)ctx);
 }
 
 
 int main(int argc, const char * argv[])
 {
-    // Type and size of return from sizeof() varies. These will never be large so cast is safe
-    PrintSize("sizeof(QCBORTrackNesting)", (uint32_t)sizeof(QCBORTrackNesting));
-    PrintSize("sizeof(QCBORTrackNesting)", (uint32_t)sizeof(QCBORTrackNesting));
-    PrintSize("sizeof(QCBOREncodeContext)", (uint32_t)sizeof(QCBOREncodeContext));
-    PrintSize("sizeof(QCBORDecodeContext)", (uint32_t)sizeof(QCBORDecodeContext));
-    PrintSize("sizeof(QCBORDecodeNesting)", (uint32_t)sizeof(QCBORDecodeNesting));
-    PrintSize("sizeof(QCBORItem)", (uint32_t)sizeof(QCBORItem));
-    PrintSize("sizeof(QCBORStringAllocator)", (uint32_t)sizeof(QCBORStringAllocator));
-    fputs_wrapper("\n", stdout);
+   (void)argc; // Avoid unused parameter error
 
-    int nNumTestsFailed = 0;
+   // This call prints out sizes of data structures to remind us
+   // to keep them small.
+   PrintSizes(&fputs_wrapper, stdout);
 
-    if(argc > 1) {
-        nNumTestsFailed += run_tests(argv[1], &fputs_wrapper, stdout, NULL);
-    } else {
-        nNumTestsFailed += run_tests(NULL, &fputs_wrapper, stdout, NULL);
-    }
-
-    return nNumTestsFailed;
+   // This runs all the tests
+   return RunTests(argv+1, &fputs_wrapper, stdout, NULL);
 }

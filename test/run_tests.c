@@ -1,8 +1,9 @@
-
 /*==============================================================================
  run_tests.c -- test aggregator and results reporting
 
- Copyright (c) 2018, Laurence Lundblade.
+ Created on 9/30/18
+
+ Copyright (c) 2018-2019, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +31,6 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ==============================================================================*/
-//  Created by Laurence Lundblade on 9/30/18.
 
 
 #include "run_tests.h"
@@ -42,11 +42,15 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcbor_encode_tests.h"
 #include "UsefulBuf_Tests.h"
 
-// Used to test the test runner
+
+
+// Used to test RunTests
 int fail_test()
 {
     return -44;
 }
+
+
 
 
 /*
@@ -84,6 +88,7 @@ const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 
     return UsefulOutBuf_GetError(&OutBuf) ? "" : StringMem.ptr;
 }
+
 
 
 
@@ -163,7 +168,7 @@ test_entry s_tests[] = {
 };
 
 
-int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *pNumTestsRun)
+int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *poutCtx, int *pNumTestsRun)
 {
     int nTestsFailed = 0;
     int nTestsRun = 0;
@@ -173,30 +178,43 @@ int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *p
     const test_entry2 *s_tests2_end = s_tests2 + sizeof(s_tests2)/sizeof(test_entry2);
 
     for(t2 = s_tests2; t2 < s_tests2_end; t2++) {
-        if(!t2->bEnabled && !szTestName) {
-            // Don't run disabled tests when all tests are being run
-            // as indicated by no specific test name being given
-            continue;
+        if(szTestNames[0]) {
+            // Some tests have been named
+            const char **szRequestedNames;
+            for(szRequestedNames = szTestNames; *szRequestedNames;  szRequestedNames++) {
+                if(!strcmp(t2->szTestName, *szRequestedNames)) {
+                    break; // Name matched
+                }
+            }
+            if(*szRequestedNames == NULL) {
+                // Didn't match this test
+                continue;
+            }
+        } else {
+            // no tests named, but don't run "disabled" tests
+            if(!t2->bEnabled) {
+                // Don't run disabled tests when all tests are being run
+                // as indicated by no specific test names being given
+                continue;
+            }
         }
-        if(szTestName && strcmp(szTestName, t2->szTestName)) {
-            continue;
-        }
+
         const char * szTestResult = (t2->test_fun)();
         nTestsRun++;
-        if(output) {
-            (*output)(t2->szTestName, poutCtx);
+        if(pfOutput) {
+            (*pfOutput)(t2->szTestName, poutCtx);
         }
 
         if(szTestResult) {
-            if(output) {
-                (*output)(" FAILED (returned ", poutCtx);
-                (*output)(szTestResult, poutCtx);
-                (*output)(")\n", poutCtx);
+            if(pfOutput) {
+                (*pfOutput)(" FAILED (returned ", poutCtx);
+                (*pfOutput)(szTestResult, poutCtx);
+                (*pfOutput)(")\n", poutCtx);
             }
             nTestsFailed++;
         } else {
-            if(output) {
-                (*output)( " PASSED\n", poutCtx);
+            if(pfOutput) {
+                (*pfOutput)( " PASSED\n", poutCtx);
             }
         }
     }
@@ -206,30 +224,43 @@ int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *p
     const test_entry *s_tests_end = s_tests + sizeof(s_tests)/sizeof(test_entry);
 
     for(t = s_tests; t < s_tests_end; t++) {
-        if(!t->bEnabled && !szTestName) {
-            // Don't run disabled tests when all tests are being run
-            // as indicated by no specific test name being given
-            continue;
+        if(szTestNames[0]) {
+            // Some tests have been named
+            const char **szRequestedNames;
+            for(szRequestedNames = szTestNames; *szRequestedNames;  szRequestedNames++) {
+                if(!strcmp(t->szTestName, *szRequestedNames)) {
+                    break; // Name matched
+                }
+            }
+            if(*szRequestedNames == NULL) {
+                // Didn't match this test
+                continue;
+            }
+        } else {
+            // no tests named, but don't run "disabled" tests
+            if(!t->bEnabled) {
+                // Don't run disabled tests when all tests are being run
+                // as indicated by no specific test names being given
+                continue;
+            }
         }
-        if(szTestName && strcmp(szTestName, t->szTestName)) {
-            continue;
-        }
+
         int nTestResult = (t->test_fun)();
         nTestsRun++;
-        if(output) {
-            (*output)(t->szTestName, poutCtx);
+        if(pfOutput) {
+            (*pfOutput)(t->szTestName, poutCtx);
         }
 
         if(nTestResult) {
-            if(output) {
-                (*output)(" FAILED (returned ", poutCtx);
-                (*output)(NumToString(nTestResult, StringStorage), poutCtx);
-                (*output)(")\n", poutCtx);
+            if(pfOutput) {
+                (*pfOutput)(" FAILED (returned ", poutCtx);
+                (*pfOutput)(NumToString(nTestResult, StringStorage), poutCtx);
+                (*pfOutput)(")\n", poutCtx);
             }
             nTestsFailed++;
         } else {
-            if(output) {
-                (*output)( " PASSED\n", poutCtx);
+            if(pfOutput) {
+                (*pfOutput)( " PASSED\n", poutCtx);
             }
         }
     }
@@ -238,13 +269,40 @@ int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *p
         *pNumTestsRun = nTestsRun;
     }
 
-    if(output) {
-        (*output)( "SUMMARY: ", poutCtx);
-        (*output)( NumToString(nTestsRun, StringStorage), poutCtx);
-        (*output)( " tests run; ", poutCtx);
-        (*output)( NumToString(nTestsFailed, StringStorage), poutCtx);
-        (*output)( " tests failed\n", poutCtx);
+    if(pfOutput) {
+        (*pfOutput)( "SUMMARY: ", poutCtx);
+        (*pfOutput)( NumToString(nTestsRun, StringStorage), poutCtx);
+        (*pfOutput)( " tests run; ", poutCtx);
+        (*pfOutput)( NumToString(nTestsFailed, StringStorage), poutCtx);
+        (*pfOutput)( " tests failed\n", poutCtx);
     }
 
     return nTestsFailed;
+}
+
+
+
+
+static void PrintSize(const char *szWhat, uint32_t uSize, OutputStringCB pfOutput, void *pOutCtx)
+{
+    UsefulBuf_MAKE_STACK_UB(foo, 20);
+
+    (*pfOutput)(szWhat, pOutCtx);
+    (*pfOutput)(" ", pOutCtx);
+    (*pfOutput)(NumToString(uSize,foo), pOutCtx);
+    (*pfOutput)("\n", pOutCtx);
+}
+
+void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
+{
+    // Type and size of return from sizeof() varies. These will never be large so cast is safe
+    PrintSize("sizeof(QCBORTrackNesting)", (uint32_t)sizeof(QCBORTrackNesting), pfOutput, pOutCtx);
+    PrintSize("sizeof(QCBOREncodeContext)", (uint32_t)sizeof(QCBOREncodeContext), pfOutput, pOutCtx);
+    PrintSize("sizeof(QCBORDecodeNesting)", (uint32_t)sizeof(QCBORDecodeNesting), pfOutput, pOutCtx);
+    PrintSize("sizeof(QCBORDecodeContext)", (uint32_t)sizeof(QCBORDecodeContext), pfOutput, pOutCtx);
+    PrintSize("sizeof(QCBORItem)", (uint32_t)sizeof(QCBORItem), pfOutput, pOutCtx);
+    PrintSize("sizeof(QCBORStringAllocator)", (uint32_t)sizeof(QCBORStringAllocator), pfOutput, pOutCtx);
+    PrintSize("sizeof(QCBORTagListIn)", (uint32_t)sizeof(QCBORTagListIn), pfOutput, pOutCtx);
+    PrintSize("sizeof(QCBORTagListOut)", (uint32_t)sizeof(QCBORTagListOut), pfOutput, pOutCtx);
+    (*pfOutput)("\n", pOutCtx);
 }

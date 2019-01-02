@@ -2,6 +2,8 @@
 /*==============================================================================
  run_tests.c -- test aggregator and results reporting
 
+ Created 9/30/18.
+
  Copyright (c) 2018, Laurence Lundblade.
  All rights reserved.
 
@@ -30,14 +32,41 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ==============================================================================*/
-//  Created by Laurence Lundblade on 9/30/18.
-typedef int (*outputstring)(const char *szString, void *ctx);
-
-int run_tests(const char *szTestName, outputstring output, void *poutCtx, int *pNumTestsRun);
 
 
-#include <stdint.h>
-#include "UsefulBuf.h"
+/**
+ @brief Type for function to output a text string
 
-const char *NumToString(int32_t nNum, UsefulBuf StringMem);
+ @param[in] szString   The string to output
+ @param[in] pOutCtx    A context pointer; NULL if not needed
+
+ This is a prototype of a function to be passed to run_tests() to
+ output text strings.  This can be implemented with stdio (if
+ available) using a straight call to fputs() where the FILE *
+ is passed as the ctx.
+*/
+typedef void (*OutputStringCB)(const char *szString, void *pOutCtx);
+
+
+/**
+ @brief Runs the QCBOR tests
+
+ @param[in] szTestNames    An argv-style list of test names to run. If
+                           empty, all are run.
+ @param[in] pfOutput         Function that is called to output text strings.
+ @param[in] pOutCtx        Context pointer passed to output function.
+ @param[out] pNumTestsRun  Returns the number of tests run. May be NULL.
+
+ @return The number of tests that failed. Zero means overall success.
+ */
+int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *pOutCtx, int *pNumTestsRun);
+
+
+/**
+ @brief Print sizes of encoder / decoder contexts.
+
+ @param[in] pfOutput         Function that is called to output text strings.
+ @param[in] pOutCtx        Context pointer passed to output function.
+ */
+void PrintSizes(OutputStringCB pfOutput, void *pOutCtx);
 
