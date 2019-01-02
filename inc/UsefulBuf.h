@@ -448,18 +448,29 @@ static inline UsefulBufC UsefulBuf_Head(UsefulBufC UB, size_t uAmount)
 /**
  @brief  Returns bytes from the end of a UsefulBufC
 
- @param[in] UB The buffer to get the tail of
- @param[in] uAmount The offset from the start where the tail is to begin
+ @param[in] UB       The buffer to get the tail of
+ @param[in] uAmount  The offset from the start where the tail is to begin
 
- @return A UsefulBufC that is the tail of UB
-
+ @return A UsefulBufC that is the tail of UB or NULLUsefulBufC if
+         uAmount is greater than the length of the UsefulBufC
+ 
+ If the input UsefulBufC is NULL, but the len is not, then the
+ length of the tail will be calculated and returned along
+ with a NULL ptr.
  */
 static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
 {
+   UsefulBufC ReturnValue;
+   
    if(uAmount > UB.len) {
-      return NULLUsefulBufC;
+      ReturnValue = NULLUsefulBufC;
+   } else if(UB.ptr == NULL) {
+      ReturnValue = (UsefulBufC){NULL, UB.len - uAmount};
+   } else {
+      ReturnValue = (UsefulBufC){(uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
    }
-   return (UsefulBufC){(uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
+   
+   return ReturnValue;
 }
 
 

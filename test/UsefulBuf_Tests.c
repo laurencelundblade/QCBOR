@@ -403,6 +403,15 @@ const char *UBUtilTests()
    if(!UsefulBuf_IsNULLC(UsefulBuf_Tail(xxyy, 5))) {
       return "tail should have failed";
    }
+   
+   if(!UsefulBuf_IsNULLC(UsefulBuf_Tail(NULLUsefulBufC, 0))) {
+      return "tail of NULLUsefulBufC is not NULLUsefulBufC";
+   }
+   
+   const UsefulBufC TailResult = UsefulBuf_Tail((UsefulBufC){NULL, 100}, 99);
+   if(TailResult.ptr != NULL || TailResult.len != 1) {
+      return "tail of NULL and length incorrect";
+   }
 
    if(!UsefulBuf_IsNULLC(UsefulBuf_CopyOffset(Temp2, 100, UsefulBuf_FROM_SZ_LITERAL("yy")))) {
       return "Copy Offset should have failed";

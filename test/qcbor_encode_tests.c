@@ -1405,6 +1405,20 @@ int BstrWrapTest()
    if(CheckResults(Encoded, spExpectedBstrWrap)) {
       return -2;
    }
+   
+   /* Another test; see about handling length calculation */
+   QCBOREncode_Init(&EC, (UsefulBuf){NULL, INT32_MAX});
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_BstrWrap(&EC);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddNULL(&EC);
+   QCBOREncode_CloseArray(&EC);
+   UsefulBufC BStr;
+   QCBOREncode_CloseBstrWrap(&EC, &BStr);
+   // 2 is one byte for an array of length 1 and 1 byte for a NULL
+   if(BStr.ptr != NULL || BStr.len != 2) {
+      return -5;
+   }
 
    return 0;
 }
@@ -1742,7 +1756,7 @@ int BstrWrapNestTest()
    if(QCBORDecode_Finish(&DC)) {
       return -16;
    }
-
+   
    return 0;
 }
 
