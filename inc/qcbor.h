@@ -524,7 +524,8 @@ struct _QCBORDecodeContext {
 /**
  The maximum number of items in a single array or map when encoding of decoding.
 */
-#define QCBOR_MAX_ITEMS_IN_ARRAY (UINT16_MAX) // This value is 65,535 a lot of items for an array
+// -1 is because the value UINT16_MAX is used to track indefinite length arraysUINT16_MAX
+#define QCBOR_MAX_ITEMS_IN_ARRAY (UINT16_MAX-1)
 
 /**
  The maximum nesting of arrays and maps when encoding or decoding. The
@@ -2113,26 +2114,26 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType, U
 void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, size_t uSize, uint64_t uNum);
 
 
-static void inline QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum)
+static inline void QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum)
 {
    QCBOREncode_AddBuffer(pCtx, CBOR_MAJOR_TYPE_TEXT_STRING, UsefulBuf_FromSZ(szLabel)); // AddSZString not defined yet
    QCBOREncode_AddInt64(pCtx, uNum);
 }
 
-static void inline QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t uNum)
+static inline void QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t uNum)
 {
    QCBOREncode_AddInt64(pCtx, nLabel);
    QCBOREncode_AddInt64(pCtx, uNum);
 }
 
 
-static void inline QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t uNum)
+static inline void QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t uNum)
 {
    QCBOREncode_AddBuffer(pCtx, CBOR_MAJOR_TYPE_TEXT_STRING, UsefulBuf_FromSZ(szLabel)); // AddSZString not defined yet
    QCBOREncode_AddUInt64(pCtx, uNum);
 }
 
-static void inline QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t uNum)
+static inline void QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t uNum)
 {
    QCBOREncode_AddInt64(pCtx, nLabel);
    QCBOREncode_AddUInt64(pCtx, uNum);
@@ -2175,13 +2176,13 @@ static inline void QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64
 }
 
 
-static void inline QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pCtx, const char *szLabel, double dNum)
+static inline void QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pCtx, const char *szLabel, double dNum)
 {
    QCBOREncode_AddSZString(pCtx, szLabel);
    QCBOREncode_AddDouble(pCtx, dNum);
 }
 
-static void inline QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNum)
+static inline void QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNum)
 {
    QCBOREncode_AddInt64(pCtx, nLabel);
    QCBOREncode_AddDouble(pCtx, dNum);

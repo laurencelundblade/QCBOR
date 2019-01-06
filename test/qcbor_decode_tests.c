@@ -567,9 +567,10 @@ int SimpleArrayTest()
    uint8_t *pEncoded;
    size_t  nEncodedLen;
 
-   int64_t i1, i2;
-   size_t i3, i4;
-   const uint8_t *s3, *s4;
+   int64_t i1=0, i2=0;
+   size_t i3=0, i4=0;
+   const uint8_t *s3= (uint8_t *)"";
+   const uint8_t *s4= (uint8_t *)"";
 
 
    if(CreateSimpleArray(23, 6000, &pEncoded, &nEncodedLen) < 0) {

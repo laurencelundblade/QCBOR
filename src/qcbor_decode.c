@@ -536,6 +536,7 @@ inline static QCBORError DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber,
             nReturn = QCBOR_ERR_INVALID_CBOR;
             goto Done;
          }
+         /* FALLTHROUGH */
          // fall through intentionally
 
       default: // 0-19
