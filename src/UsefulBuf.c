@@ -209,7 +209,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
    }
 
    /* 2. Check the Insertion Position */
-   // This, with Check #1, also confirms that uInsertionPos <= me->size
+   // This, with Check #1, also confirms that uInsertionPos <= me->data_len
    if(uInsertionPos > me->data_len) { // Check #3
       // Off the end of the valid data in the buffer.
       me->err = 1;
@@ -220,16 +220,16 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
    uint8_t *pSourceOfMove       = ((uint8_t *)me->UB.ptr) + uInsertionPos; // PtrMath #1
    size_t   uNumBytesToMove     = me->data_len - uInsertionPos; // PtrMath #2
    uint8_t *pDestinationOfMove  = pSourceOfMove + NewData.len; // PtrMath #3
-   size_t   uRoomInDestination  = me->UB.len - (uInsertionPos + NewData.len); // PtrMath #4
 
    if(uNumBytesToMove && me->UB.ptr) {
+      // To know memmove won't go off end of destination, see PtrMath #4
       memmove(pDestinationOfMove, pSourceOfMove, uNumBytesToMove);
    }
 
    /* 4. Put the new data in */
    uint8_t *pInsertionPoint = ((uint8_t *)me->UB.ptr) + uInsertionPos; // PtrMath #5
-   uRoomInDestination       = me->UB.len - uInsertionPos; // PtrMath #6
    if(me->UB.ptr) {
+      // To know memmove won't go off end of destination, see PtrMath #6
       memmove(pInsertionPoint, NewData.ptr, NewData.len);
    }
    me->data_len += NewData.len ;
@@ -240,17 +240,19 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
  Rationale that describes why the above pointer math is safe
 
  PtrMath #1 will never wrap around over because
-   Check #0 in UsefulOutBuf_Init makes sure me-UB.ptr + me->size doesn't wrap
-   Check #1 makes sure me->data_len is less than me->UB.len
-   Check #3 makes sure uInsertionPos is less than me->data_len
+    Check #0 in UsefulOutBuf_Init makes sure me->UB.ptr + me->UB.len doesn't wrap
+    Check #1 makes sure me->data_len is less than me->UB.len
+    Check #3 makes sure uInsertionPos is less than me->data_len
 
  PtrMath #2 will never wrap around under because
-   Check #3 makes sure uInsertionPos is less than me->data_len
+    Check #3 makes sure uInsertionPos is less than me->data_len
 
  PtrMath #3 will never wrap around over because   todo
-   PtrMath #1 is checked resulting in pStartOfDataToMove being between me->UB.ptr and a maximum valid ptr
+    PtrMath #1 is checked resulting in pSourceOfMove being between me->UB.ptr and a maximum valid ptr
+    Check #2 that NewData.len will fit
 
  PtrMath #4 will never wrap under because
+    Calculation for extent or memmove is uRoomInDestination  = me->UB.len - (uInsertionPos + NewData.len)
     Check #3 makes sure uInsertionPos is less than me->data_len
     Check #3 allows Check #2 to be refactored as NewData.Len > (me->size - uInsertionPos)
     This algebraically rearranges to me->size > uInsertionPos + NewData.len
@@ -258,8 +260,9 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
  PtrMath #5 is exactly the same as PtrMath #1
 
  PtrMath #6 will never wrap under because
-   Check #1 makes sure me->data_len is less than me->size
-   Check #3 makes sure uInsertionPos is less than me->data_len
+    Calculation for extent of memove is uRoomInDestination = me->UB.len - uInsertionPos;
+    Check #1 makes sure me->data_len is less than me->size
+    Check #3 makes sure uInsertionPos is less than me->data_len
  */
 
 
