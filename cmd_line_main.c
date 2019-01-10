@@ -3,7 +3,7 @@
 
  Created on 9/13/18.
 
- Copyright (c) 2018, Laurence Lundblade.
+ Copyright (c) 2018-2019, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
