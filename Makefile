@@ -60,4 +60,4 @@ cmd_line_main.o:	test/run_tests.h inc/qcbor.h
 min_use_main.o:		inc/qcbor.h inc/UsefulBuf.h
 
 clean:
-	rm -f $(QCBOR_OBJ2) $(TEST_OBJ) libqcbor.a
+	rm -f $(QCBOR_OBJ) $(TEST_OBJ) libqcbor.a min_use_main.o cmd_line_main.o
