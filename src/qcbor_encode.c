@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018, Laurence Lundblade.
+ Copyright (c) 2018-2019, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -475,11 +475,24 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
    // Add one item to the nesting level we are in for the new map or array
    me->uError = Nesting_Increment(&(me->nesting));
    if(me->uError == QCBOR_SUCCESS) {
+      // The offset where the length of an array or map will get written
+      // is stored in a uint32_t, not a size_t to keep stack usage smaller. This
+      // checks to be sure there is no wrap around when recording the offset.
+      // Note that on 64-bit machines CBOR larger than 4GB can be encoded as long as no
+      // array / map offsets occur past the 4GB mark, but the public interface
+      // says that the maximum is 4GB to keep the discussion simpler.
       size_t uEndPosition = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
-      if(uEndPosition >= UINT32_MAX-sizeof(uint64_t)) {
+
+      // QCBOR_MAX_ARRAY_OFFSET is slightly less than UINT32_MAX so this
+      // code can run on a 32-bit machine and tests can pass on a 32-bit
+      // machine. If it was exactly UINT32_MAX, then this code would
+      // not compile or run on a 32-bit machine and an #ifdef or some
+      // machine size detection would be needed reducing portability.
+      if(uEndPosition >= QCBOR_MAX_ARRAY_OFFSET) {
          me->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
+
       } else {
-         // Increase nesting level because this is a map or array
+         // Increase nesting level because this is a map or array.
          // Cast from size_t to uin32_t is safe because of check above
          me->uError = Nesting_Increase(&(me->nesting), uMajorType, (uint32_t)uEndPosition);
       }

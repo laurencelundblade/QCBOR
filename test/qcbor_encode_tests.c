@@ -1873,31 +1873,44 @@ int EncodeErrorTests()
    
    
    // ------ Test for QCBOR_ERR_BUFFER_TOO_LARGE ------
-   // Do all of these tests with NULL buffers as buffers would have to 4GB
-   UsefulBuf Giant = (UsefulBuf){NULL, (uint64_t)UINT32_MAX + ((uint64_t)UINT32_MAX / 2)};
+   // Do all of these tests with NULL buffers so no actual large allocations are neccesary
+   UsefulBuf Buffer = (UsefulBuf){NULL, UINT32_MAX};
    
-   // First verify no error from a really big buffer
-   QCBOREncode_Init(&EC, Giant);
+   // First verify no error from a big buffer
+   QCBOREncode_Init(&EC, Buffer);
    QCBOREncode_OpenArray(&EC);
-   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, (uint64_t)UINT32_MAX + 10000ULL});
+   // 6 is the CBOR overhead for opening the array and encodng the length
+   // This exactly fills the buffer.
+   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, UINT32_MAX-6});
    QCBOREncode_CloseArray(&EC);
    size_t xx;
    if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_SUCCESS) {
       return -1;
    }
 
-   // second verify error from an array in encoded output too large
-   QCBOREncode_Init(&EC, Giant);
+   // Second verify error from an array in encoded output too large
+   QCBOREncode_Init(&EC, Buffer);
    QCBOREncode_OpenArray(&EC);
-   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, (uint64_t)UINT32_MAX+10000ULL});
-   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, UINT32_MAX-6});
+   QCBOREncode_OpenArray(&EC); // Where QCBOR internally encounters and records error
    QCBOREncode_CloseArray(&EC);
    QCBOREncode_CloseArray(&EC);
    if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_BUFFER_TOO_LARGE) {
       return -2;
    }
-
    
+   // Third, fit an array in exactly at max position allowed
+   QCBOREncode_Init(&EC, Buffer);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, QCBOR_MAX_ARRAY_OFFSET-6});
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_CloseArray(&EC);
+   QCBOREncode_CloseArray(&EC);
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_SUCCESS) {
+      return -10;
+   }
+
+
    // ----- QCBOR_ERR_BUFFER_TOO_SMALL --------------
    // Work close to the 4GB size limit for a better test
    const uint32_t uLargeSize =  UINT32_MAX - 1024;
@@ -1991,3 +2004,4 @@ int EncodeErrorTests()
 
    return 0;
 }
+

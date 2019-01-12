@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018, Laurence Lundblade.
+ Copyright (c) 2018-2019, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -89,6 +89,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #define QCBOR_MAX_ARRAY_NESTING1 15 // Do not increase this over 255
 
+
+/* The largest offset to the start of an array or map. It is slightly
+ less than UINT32_MAX so the error condition can be tests on 32-bit machines.
+ UINT32_MAX comes from uStart in QCBORTrackNesting being a uin32_t.
+
+ This will cause trouble on a machine where size_t is less than 32-bits.
+ */
+#define QCBOR_MAX_ARRAY_OFFSET  (UINT32_MAX - 100)
 
 /*
  PRIVATE DATA STRUCTURE
@@ -504,8 +512,8 @@ struct _QCBORDecodeContext {
  - Epoch dates limited to INT64_MAX (+/- 292 billion years)
  - Tags on labels are ignored during decoding
 
- This implementation is intended to run on 32 and 64-bit CPUs. It
- will probably work on 16-bit CPUs but less efficiently.
+ This implementation is intended to run on 32 and 64-bit CPUs. Minor
+ modifications are needed for it to work on 16-bit CPUs.
 
  The public interface uses size_t for all lengths. Internally the
  implementation uses 32-bit lengths by design to use less memory and
@@ -575,8 +583,7 @@ typedef enum {
        result in this error. */
    QCBOR_ERR_HIT_END,
 
-   /** During encoding, the length of the input buffer was too large. This might
-       happen on a 64-bit machine when a buffer larger than UINT32_MAX is passed.
+   /** During encoding, the length of the encoded CBOR exceeded UINT32_MAX.
      */
    QCBOR_ERR_BUFFER_TOO_LARGE,
 
@@ -639,7 +646,7 @@ typedef enum {
        never happen on a machine with 64-bit or smaller pointers. Fixing
        it is probably by increasing QCBOR_DECODE_MIN_MEM_POOL_SIZE. */
    QCBOR_ERR_MEM_POOL_INTERNAL
-   
+
 } QCBORError;
 
 
