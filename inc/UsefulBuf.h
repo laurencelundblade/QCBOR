@@ -453,7 +453,7 @@ static inline UsefulBufC UsefulBuf_Head(UsefulBufC UB, size_t uAmount)
 
  @return A UsefulBufC that is the tail of UB or NULLUsefulBufC if
          uAmount is greater than the length of the UsefulBufC
- 
+
  If the input UsefulBufC is NULL, but the len is not, then the
  length of the tail will be calculated and returned along
  with a NULL ptr.
@@ -461,7 +461,7 @@ static inline UsefulBufC UsefulBuf_Head(UsefulBufC UB, size_t uAmount)
 static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
 {
    UsefulBufC ReturnValue;
-   
+
    if(uAmount > UB.len) {
       ReturnValue = NULLUsefulBufC;
    } else if(UB.ptr == NULL) {
@@ -469,7 +469,7 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
    } else {
       ReturnValue = (UsefulBufC){(uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
    }
-   
+
    return ReturnValue;
 }
 
