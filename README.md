@@ -4,14 +4,14 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
 ## Characteristics
 
-**Implemented in C with minimal dependecy** – Only dependencies are
-C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making it highly
-portable. There are no #ifdefs to be configured at all.
+**Implemented in C with minimal dependency** – Only dependencies are
+  C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making it
+  highly portable. There are no #ifdefs to be configured at all.
 
 **Focused on C / native data representation** – Simpler code because
-there is no support for encoding/decoding to/from JSON, pretty
-printing, diagnostic notation... Only encoding from native C
-representations and decoding to native C representations is supported.
+  there is no support for encoding/decoding to/from JSON, pretty
+  printing, diagnostic notation... Only encoding from native C
+  representations and decoding to native C representations is supported.
 
 **Small simple memory model** – Malloc is not needed. The encode
   context is 136 bytes, decode context is 104 bytes and the
@@ -23,8 +23,8 @@ representations and decoding to native C representations is supported.
 
 **Supports nearly all of RFC 7049** – Only minor, corner-case parts of
   RFC 7049 are not directly supported (canonicalization, decimal
-  fractions, big floats). Decoding indefinite length strings but
-  requires a string allocator (see documentation). Encoding indefinite
+  fractions, big floats). Decoding indefinite length strings is supported, 
+  but requires a string allocator (see documentation). Encoding indefinite
   length strings is not supported, but is also not necessary or
   preferred.
 
@@ -35,14 +35,17 @@ representations and decoding to native C representations is supported.
   discipline for very safe coding the handling of binary data.
 
 **Small code size** – When optimized for size using the compiler -Os
-  option, x86 code is less than 5KB (~1.1B encode, ~2.8KB decode,
-  ~0.4KB common).
+  option, x86 code is less than 5KB (~1.1KB encode, ~2.8KB decode,
+  ~0.4KB common). Other decoders may be smaller, but they may
+  also do less for you, so overall size of the implementation may
+  be larger. For example, QCBOR internally tracks error status
+  so you don't have to check a return code on every operation.
 
 **Clear documented public interface** – The public interface is
   separated from the implementation. It can be put to use without
   reading the source.
 
-  **Comprehensive test suite** – Easy to verify on a new platform
+**Comprehensive test suite** – Easy to verify on a new platform
   or OS with the test suite. The test suite dependencies are also
   minimal, only additionally requiring <math.h> for floating point
   tests.
