@@ -35,7 +35,7 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
   discipline for very safe coding the handling of binary data.
 
 **Small code size** – When optimized for size using the compiler -Os
-  option, x86 code is less than 5KB (~1.1KB encode, ~2.8KB decode,
+  option, x86 code is about 4KB (~1.1KB encode, ~2.5KB decode,
   ~0.4KB common). Other decoders may be smaller, but they may
   also do less for you, so overall size of the implementation may
   be larger. For example, QCBOR internally tracks error status
