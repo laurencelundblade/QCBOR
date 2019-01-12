@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 01/10/19           llundblade      Clever type and argument decoder is 250 bytes smaller
  11/9/18            llundblade      Error codes are now enums.
  11/2/18            llundblade      Simplify float decoding and align with preferred
                                     float encoding
@@ -353,70 +354,58 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *me, const QCBORT
    puAdditionalInfo -- Pass this along to know what kind of float or if length is indefinite
 
  */
-inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf, int *pnMajorType, uint64_t *puNumber, uint8_t *puAdditionalInfo)
+inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
+                                              int *pnMajorType,
+                                              uint64_t *puArgument,
+                                              uint8_t *puAdditionalInfo)
 {
-   // Stack usage: int/ptr 5 -- 40
    QCBORError nReturn;
-
+   
    // Get the initial byte that every CBOR data item has
-   const uint8_t InitialByte = UsefulInputBuf_GetByte(pUInBuf);
-
+   const uint8_t uInitialByte = UsefulInputBuf_GetByte(pUInBuf);
+   
    // Break down the initial byte
-   const uint8_t uTmpMajorType   = InitialByte >> 5;
-   const uint8_t uAdditionalInfo = InitialByte & 0x1f;
+   const uint8_t uTmpMajorType   = uInitialByte >> 5;
+   const uint8_t uAdditionalInfo = uInitialByte & 0x1f;
+   
+   // Where the number or argument accumulates
+   uint64_t uArgument;
 
-   // Get the integer that follows the major type. Do not know if this is a length, value, float or tag at this point
-   // Also convert from network byte order.
-   uint64_t uTmpValue;
-   switch(uAdditionalInfo) {
+   if(uAdditionalInfo >= LEN_IS_ONE_BYTE && uAdditionalInfo <= LEN_IS_EIGHT_BYTES) {
+      // Need to get 1,2,4 or 8 additional argument bytes
+      // Map LEN_IS_ONE_BYTE.. LEN_IS_EIGHT_BYTES to actual length
+      static const uint8_t aIterate[] = {1,2,4,8};
 
-      case LEN_IS_ONE_BYTE:
-         uTmpValue = UsefulInputBuf_GetByte(pUInBuf);
-         break;
-
-      case LEN_IS_TWO_BYTES:
-         uTmpValue = UsefulInputBuf_GetUint16(pUInBuf);
-         break;
-
-      case LEN_IS_FOUR_BYTES:
-         uTmpValue = UsefulInputBuf_GetUint32(pUInBuf);
-         break;
-
-      case LEN_IS_EIGHT_BYTES:
-         uTmpValue = UsefulInputBuf_GetUint64(pUInBuf);
-         break;
-
-      case ADDINFO_RESERVED1: // reserved by CBOR spec
-      case ADDINFO_RESERVED2: // reserved by CBOR spec
-      case ADDINFO_RESERVED3: // reserved by CBOR spec
-         nReturn = QCBOR_ERR_UNSUPPORTED;
-         goto Done;
-
-      default:
-         // This is when the "number" is in the additional info
-         uTmpValue = uAdditionalInfo;
-         break;
+      // Loop getting all the bytes in the argument
+      uArgument = 0;
+      for(int i = aIterate[uAdditionalInfo - LEN_IS_ONE_BYTE]; i; i--) {
+         // This shift and add gives the endian conversion
+         uArgument = (uArgument << 8) + UsefulInputBuf_GetByte(pUInBuf);
+      }
+   } else if(uAdditionalInfo >= ADDINFO_RESERVED1 && uAdditionalInfo <= ADDINFO_RESERVED3) {
+      // The reserved and thus-far unused additional info values
+      nReturn = QCBOR_ERR_UNSUPPORTED;
+      goto Done;
+   } else {
+      // Less than 24, additional info is argument or 31, an indefinite length
+      // No more bytes to get
+      uArgument = uAdditionalInfo;
    }
-
-   // If any of the UsefulInputBuf_Get calls fail we will get here with uTmpValue as 0.
-   // There is no harm in this. This following check takes care of catching all of
-   // these errors.
-
+   
    if(UsefulInputBuf_GetError(pUInBuf)) {
       nReturn = QCBOR_ERR_HIT_END;
       goto Done;
    }
-
+   
    // All successful if we got here.
    nReturn           = QCBOR_SUCCESS;
    *pnMajorType      = uTmpMajorType;
-   *puNumber         = uTmpValue;
+   *puArgument       = uArgument;
    *puAdditionalInfo = uAdditionalInfo;
-
+   
 Done:
    return nReturn;
 }
-
 
 /*
  CBOR doesn't explicitly specify two's compliment for integers but all CPUs
