@@ -42,9 +42,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  This is an implementation of OutputStringCB built using stdio. If
  you don't have stdio, replaces this is
  */
-static void fputs_wrapper(const char *szString, void *ctx)
+static void fputs_wrapper(const char *szString, void *pOutCtx, int bNewLine)
 {
-    fputs(szString, (FILE *)ctx);
+    fputs(szString, (FILE *)pOutCtx);
+    if(bNewLine) {
+        fputs("\n", pOutCtx);
+    }
 }
 
 

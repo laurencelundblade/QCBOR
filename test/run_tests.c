@@ -202,19 +202,19 @@ int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *poutCtx, 
         const char * szTestResult = (t2->test_fun)();
         nTestsRun++;
         if(pfOutput) {
-            (*pfOutput)(t2->szTestName, poutCtx);
+            (*pfOutput)(t2->szTestName, poutCtx, 0);
         }
 
         if(szTestResult) {
             if(pfOutput) {
-                (*pfOutput)(" FAILED (returned ", poutCtx);
-                (*pfOutput)(szTestResult, poutCtx);
-                (*pfOutput)(")\n", poutCtx);
+                (*pfOutput)(" FAILED (returned ", poutCtx, 0);
+                (*pfOutput)(szTestResult, poutCtx, 0);
+                (*pfOutput)(")\n", poutCtx, 1);
             }
             nTestsFailed++;
         } else {
             if(pfOutput) {
-                (*pfOutput)( " PASSED\n", poutCtx);
+                (*pfOutput)( " PASSED", poutCtx, 1);
             }
         }
     }
@@ -248,19 +248,19 @@ int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *poutCtx, 
         int nTestResult = (t->test_fun)();
         nTestsRun++;
         if(pfOutput) {
-            (*pfOutput)(t->szTestName, poutCtx);
+            (*pfOutput)(t->szTestName, poutCtx, 0);
         }
 
         if(nTestResult) {
             if(pfOutput) {
-                (*pfOutput)(" FAILED (returned ", poutCtx);
-                (*pfOutput)(NumToString(nTestResult, StringStorage), poutCtx);
-                (*pfOutput)(")\n", poutCtx);
+                (*pfOutput)(" FAILED (returned ", poutCtx, 0);
+                (*pfOutput)(NumToString(nTestResult, StringStorage), poutCtx, 0);
+                (*pfOutput)(")", poutCtx, 1);
             }
             nTestsFailed++;
         } else {
             if(pfOutput) {
-                (*pfOutput)( " PASSED\n", poutCtx);
+                (*pfOutput)( " PASSED", poutCtx, 1);
             }
         }
     }
@@ -270,11 +270,11 @@ int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *poutCtx, 
     }
 
     if(pfOutput) {
-        (*pfOutput)( "SUMMARY: ", poutCtx);
-        (*pfOutput)( NumToString(nTestsRun, StringStorage), poutCtx);
-        (*pfOutput)( " tests run; ", poutCtx);
-        (*pfOutput)( NumToString(nTestsFailed, StringStorage), poutCtx);
-        (*pfOutput)( " tests failed\n", poutCtx);
+        (*pfOutput)( "SUMMARY: ", poutCtx, 0);
+        (*pfOutput)( NumToString(nTestsRun, StringStorage), poutCtx, 0);
+        (*pfOutput)( " tests run; ", poutCtx, 0);
+        (*pfOutput)( NumToString(nTestsFailed, StringStorage), poutCtx, 0);
+        (*pfOutput)( " tests failed", poutCtx, 1);
     }
 
     return nTestsFailed;
@@ -285,24 +285,24 @@ int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *poutCtx, 
 
 static void PrintSize(const char *szWhat, uint32_t uSize, OutputStringCB pfOutput, void *pOutCtx)
 {
-    UsefulBuf_MAKE_STACK_UB(foo, 20);
+   UsefulBuf_MAKE_STACK_UB(buffer, 20);
 
-    (*pfOutput)(szWhat, pOutCtx);
-    (*pfOutput)(" ", pOutCtx);
-    (*pfOutput)(NumToString(uSize,foo), pOutCtx);
-    (*pfOutput)("\n", pOutCtx);
+   (*pfOutput)(szWhat, pOutCtx, 0);
+   (*pfOutput)(" ", pOutCtx, 0);
+   (*pfOutput)(NumToString(uSize, buffer), pOutCtx, 0);
+   (*pfOutput)("", pOutCtx, 1);
 }
 
 void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
 {
-    // Type and size of return from sizeof() varies. These will never be large so cast is safe
-    PrintSize("sizeof(QCBORTrackNesting)", (uint32_t)sizeof(QCBORTrackNesting), pfOutput, pOutCtx);
-    PrintSize("sizeof(QCBOREncodeContext)", (uint32_t)sizeof(QCBOREncodeContext), pfOutput, pOutCtx);
-    PrintSize("sizeof(QCBORDecodeNesting)", (uint32_t)sizeof(QCBORDecodeNesting), pfOutput, pOutCtx);
-    PrintSize("sizeof(QCBORDecodeContext)", (uint32_t)sizeof(QCBORDecodeContext), pfOutput, pOutCtx);
-    PrintSize("sizeof(QCBORItem)", (uint32_t)sizeof(QCBORItem), pfOutput, pOutCtx);
-    PrintSize("sizeof(QCBORStringAllocator)", (uint32_t)sizeof(QCBORStringAllocator), pfOutput, pOutCtx);
-    PrintSize("sizeof(QCBORTagListIn)", (uint32_t)sizeof(QCBORTagListIn), pfOutput, pOutCtx);
-    PrintSize("sizeof(QCBORTagListOut)", (uint32_t)sizeof(QCBORTagListOut), pfOutput, pOutCtx);
-    (*pfOutput)("\n", pOutCtx);
+   // Type and size of return from sizeof() varies. These will never be large so cast is safe
+   PrintSize("sizeof(QCBORTrackNesting)",   (uint32_t)sizeof(QCBORTrackNesting), pfOutput, pOutCtx);
+   PrintSize("sizeof(QCBOREncodeContext)",  (uint32_t)sizeof(QCBOREncodeContext), pfOutput, pOutCtx);
+   PrintSize("sizeof(QCBORDecodeNesting)",  (uint32_t)sizeof(QCBORDecodeNesting), pfOutput, pOutCtx);
+   PrintSize("sizeof(QCBORDecodeContext)",  (uint32_t)sizeof(QCBORDecodeContext), pfOutput, pOutCtx);
+   PrintSize("sizeof(QCBORItem)",           (uint32_t)sizeof(QCBORItem), pfOutput, pOutCtx);
+   PrintSize("sizeof(QCBORStringAllocator)",(uint32_t)sizeof(QCBORStringAllocator), pfOutput, pOutCtx);
+   PrintSize("sizeof(QCBORTagListIn)",      (uint32_t)sizeof(QCBORTagListIn), pfOutput, pOutCtx);
+   PrintSize("sizeof(QCBORTagListOut)",     (uint32_t)sizeof(QCBORTagListOut), pfOutput, pOutCtx);
+   (*pfOutput)("", pOutCtx, 1);
 }

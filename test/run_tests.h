@@ -1,6 +1,6 @@
 
 /*==============================================================================
- run_tests.c -- test aggregator and results reporting
+ run_tests.h -- test aggregator and results reporting
 
  Created 9/30/18.
 
@@ -34,28 +34,41 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ==============================================================================*/
 
 
+
+
 /**
  @brief Type for function to output a text string
 
  @param[in] szString   The string to output
  @param[in] pOutCtx    A context pointer; NULL if not needed
+ @param[in] bNewline   If non-zero, output a newline after the string
 
- This is a prototype of a function to be passed to run_tests() to
+ This is a prototype of a function to be passed to RunTests() to
  output text strings.  This can be implemented with stdio (if
  available) using a straight call to fputs() where the FILE *
  is passed as the ctx.
+ 
+ @code
+    static void fputs_wrapper(const char *szString, void *pOutCtx, int bNewLine)
+    {
+        fputs(szString, (FILE *)pOutCtx);
+        if(bNewLine) {
+            fputs("\n", pOutCtx);
+        }
+     }
+ @endcode
 */
-typedef void (*OutputStringCB)(const char *szString, void *pOutCtx);
+typedef void (*OutputStringCB)(const char *szString, void *pOutCtx, int bNewline);
 
 
 /**
- @brief Runs the QCBOR tests
+ @brief Runs the QCBOR tests.
 
- @param[in] szTestNames    An argv-style list of test names to run. If
-                           empty, all are run.
- @param[in] pfOutput         Function that is called to output text strings.
- @param[in] pOutCtx        Context pointer passed to output function.
- @param[out] pNumTestsRun  Returns the number of tests run. May be NULL.
+ @param[in]  szTestNames    An argv-style list of test names to run. If
+                            empty, all are run.
+ @param[in]  pfOutput       Function that is called to output text strings.
+ @param[in]  pOutCtx        Context pointer passed to output function.
+ @param[out] pNumTestsRun   Returns the number of tests run. May be NULL.
 
  @return The number of tests that failed. Zero means overall success.
  */
@@ -65,8 +78,8 @@ int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *pOutCtx, 
 /**
  @brief Print sizes of encoder / decoder contexts.
 
- @param[in] pfOutput         Function that is called to output text strings.
- @param[in] pOutCtx        Context pointer passed to output function.
+ @param[in] pfOutput     Function that is called to output text strings.
+ @param[in] pOutCtx      Context pointer passed to output function.
  */
 void PrintSizes(OutputStringCB pfOutput, void *pOutCtx);
 
