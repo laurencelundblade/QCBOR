@@ -23,7 +23,7 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
 **Supports nearly all of RFC 7049** – Only minor, corner-case parts of
   RFC 7049 are not directly supported (canonicalization, decimal
-  fractions, big floats). Decoding indefinite length strings is supported, 
+  fractions, big floats). Decoding indefinite length strings is supported,
   but requires a string allocator (see documentation). Encoding indefinite
   length strings is not supported, but is also not necessary or
   preferred.
@@ -119,3 +119,53 @@ this, but it is not really a good thing to use in the first place)
 the interface simpler and saving some code
 * QCBOREncode_AddRawSimple_2 is removed (the macros that referenced
 still exist and work the same)
+
+## Credits
+* Ganesh Kanike for porting to QSEE
+* Mark Bapst for sponsorship and release as open source by Qualcomm
+* Sachin Sharma for release through CAF
+* Tamas Ban for porting to TF-M and 32-bit ARM
+
+## Copyright and License
+
+QCBOR is available under what is essentially the 3-Clause BSD License.
+
+Files created inside Qualcomm and open-sourced through CAF (The Code
+Aurora Forum) have a slightly modified 3-Clause BSD License. The
+modification additional disclaims NON-INFRINGEMENT.
+
+Files created after release to CAF use the standard 3-Clause BSD
+License with no modification. These files have the SPDX license
+identifier, "SPDX-License-Identifier: BSD-3-Clause" in them.
+
+### BSD-3-Clause license
+
+* Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+### Copyright for this README
+
+Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+
+
+

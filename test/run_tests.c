@@ -209,7 +209,7 @@ int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *poutCtx, 
             if(pfOutput) {
                 (*pfOutput)(" FAILED (returned ", poutCtx, 0);
                 (*pfOutput)(szTestResult, poutCtx, 0);
-                (*pfOutput)(")\n", poutCtx, 1);
+                (*pfOutput)(")", poutCtx, 1);
             }
             nTestsFailed++;
         } else {

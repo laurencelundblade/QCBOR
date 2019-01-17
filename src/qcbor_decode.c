@@ -360,14 +360,14 @@ inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
                                               uint8_t *puAdditionalInfo)
 {
    QCBORError nReturn;
-   
+
    // Get the initial byte that every CBOR data item has
    const uint8_t uInitialByte = UsefulInputBuf_GetByte(pUInBuf);
-   
+
    // Break down the initial byte
    const uint8_t uTmpMajorType   = uInitialByte >> 5;
    const uint8_t uAdditionalInfo = uInitialByte & 0x1f;
-   
+
    // Where the number or argument accumulates
    uint64_t uArgument;
 
@@ -391,18 +391,18 @@ inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
       // No more bytes to get
       uArgument = uAdditionalInfo;
    }
-   
+
    if(UsefulInputBuf_GetError(pUInBuf)) {
       nReturn = QCBOR_ERR_HIT_END;
       goto Done;
    }
-   
+
    // All successful if we got here.
    nReturn           = QCBOR_SUCCESS;
    *pnMajorType      = uTmpMajorType;
    *puArgument       = uArgument;
    *puAdditionalInfo = uAdditionalInfo;
-   
+
 Done:
    return nReturn;
 }
