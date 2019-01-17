@@ -1405,7 +1405,7 @@ int BstrWrapTest()
    if(CheckResults(Encoded, spExpectedBstrWrap)) {
       return -2;
    }
-   
+
    /* Another test; see about handling length calculation */
    QCBOREncode_Init(&EC, (UsefulBuf){NULL, INT32_MAX});
    QCBOREncode_OpenArray(&EC);
@@ -1756,7 +1756,7 @@ int BstrWrapNestTest()
    if(QCBORDecode_Finish(&DC)) {
       return -16;
    }
-   
+
    return 0;
 }
 
@@ -1870,12 +1870,12 @@ int CoseSign1TBSTest()
 int EncodeErrorTests()
 {
    QCBOREncodeContext EC;
-   
-   
+
+
    // ------ Test for QCBOR_ERR_BUFFER_TOO_LARGE ------
    // Do all of these tests with NULL buffers so no actual large allocations are neccesary
    UsefulBuf Buffer = (UsefulBuf){NULL, UINT32_MAX};
-   
+
    // First verify no error from a big buffer
    QCBOREncode_Init(&EC, Buffer);
    QCBOREncode_OpenArray(&EC);
@@ -1898,7 +1898,7 @@ int EncodeErrorTests()
    if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_BUFFER_TOO_LARGE) {
       return -2;
    }
-   
+
    // Third, fit an array in exactly at max position allowed
    QCBOREncode_Init(&EC, Buffer);
    QCBOREncode_OpenArray(&EC);
@@ -1934,8 +1934,8 @@ int EncodeErrorTests()
       // Now just 1 byte over, see that it fails
       return -4;
    }
-   
-   
+
+
    // ----- QCBOR_ERR_ARRAY_NESTING_TOO_DEEP -------
    QCBOREncode_Init(&EC, Large);
    for(int i = QCBOR_MAX_ARRAY_NESTING; i > 0; i--) {
@@ -1960,8 +1960,8 @@ int EncodeErrorTests()
       // One more level to cause error
       return -6;
    }
-   
-   
+
+
    // ------ QCBOR_ERR_TOO_MANY_CLOSES --------
    QCBOREncode_Init(&EC, Large);
    for(int i = QCBOR_MAX_ARRAY_NESTING; i > 0; i--) {
@@ -1974,8 +1974,8 @@ int EncodeErrorTests()
       // One more level to cause error
       return -7;
    }
-   
-   
+
+
    // ------ QCBOR_ERR_CLOSE_MISMATCH --------
    QCBOREncode_Init(&EC, Large);
    QCBOREncode_OpenArray(&EC);
@@ -1998,7 +1998,7 @@ int EncodeErrorTests()
       // One more level to cause error
       return -9;
    }
-   
+
    /* QCBOR_ERR_ARRAY_TOO_LONG is not tested here as
     it would require a 64KB of RAM to test */
 
