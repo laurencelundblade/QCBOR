@@ -69,14 +69,18 @@ interface. The test coverage is pretty good.
 There is a simple makefile for the UNIX style command line binary that
 compiles everything to run the tests.
 
-The actual non-test source files are these seven:
-* inc/UsefulBuf.h
-* inc/qcbor.h
-* src/UsefulBuf.c
-* src/qcbor_encode.c
-* src/qcbor_decode.c
-* src/ieee754.h
-* src/ieee754.c
+These seven files, the contents of the src and inc directories, make
+up the entire implementation.  
+
+* inc
+   * UsefulBuf.h
+   * qcbor.h
+* src
+   * UsefulBuf.c
+   * qcbor_encode.c
+   * qcbor_decode.c
+   * ieee754.h
+   * ieee754.c
 
 For most use cases you should just be able to add them to your
 project. Hopefully the easy portability of this implementation makes
@@ -94,7 +98,7 @@ The test directory includes some tests that are nearly as portable as
 the main implementation.  If your development environment doesn't
 support UNIX style command line and make, you should be able to make a
 simple project and add the test files to it.  Then just call
-run_tests() to invoke them all.
+RunTests() to invoke them all.
 
 
 ## Changes from CAF Version
@@ -132,7 +136,7 @@ QCBOR is available under what is essentially the 3-Clause BSD License.
 
 Files created inside Qualcomm and open-sourced through CAF (The Code
 Aurora Forum) have a slightly modified 3-Clause BSD License. The
-modification additional disclaims NON-INFRINGEMENT.
+modification additionally disclaims NON-INFRINGEMENT.
 
 Files created after release to CAF use the standard 3-Clause BSD
 License with no modification. These files have the SPDX license
