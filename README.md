@@ -70,7 +70,7 @@ There is a simple makefile for the UNIX style command line binary that
 compiles everything to run the tests.
 
 These seven files, the contents of the src and inc directories, make
-up the entire implementation.  
+up the entire implementation.
 
 * inc
    * UsefulBuf.h
