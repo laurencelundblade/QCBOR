@@ -146,7 +146,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  Eeyore's balloon fits beautifully, "it goes in and out like anything".
 
 */
-typedef struct {
+typedef struct useful_buf_c {
     const void *ptr;
     size_t      len;
 } UsefulBufC;
@@ -157,7 +157,7 @@ typedef struct {
  that is to be filled in. The len is the amount of memory,
  not the length of the valid data in the buffer.
  */
-typedef struct {
+typedef struct useful_buf {
    void  *ptr;
    size_t len;
 } UsefulBuf;
@@ -639,7 +639,7 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32)
  can go on the stack or be a C99 function parameter.
  */
 
-typedef struct {
+typedef struct useful_out_buf {
    UsefulBuf  UB; // Memory that is being output to
    size_t     data_len;  // length of the data
    uint16_t   magic; // Used to detect corruption and lack of initialization
@@ -1199,7 +1199,7 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf Dest);
 
 #define UIB_MAGIC (0xB00F)
 
-typedef struct {
+typedef struct useful_input_buf {
    // Private data structure
    UsefulBufC UB;     // Data being parsed
    size_t     cursor; // Current offset in data being parse
