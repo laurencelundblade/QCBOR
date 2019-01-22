@@ -1,12 +1,12 @@
 /*==============================================================================
  ieee754.c -- floating point conversion between half, double and single precision
- 
+
  Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
- 
+
  See BSD-3-Clause license in README.md
- 
+
  Created on 7/23/18
  ==============================================================================*/
 

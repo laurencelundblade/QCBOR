@@ -4,9 +4,9 @@
  Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
- 
+
  See BSD-3-Clause license in README.md
- 
+
  Created 9/30/18
  ==============================================================================*/
 
