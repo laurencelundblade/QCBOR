@@ -45,8 +45,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  12/17/2018         llundblade      Remove const from UsefulBuf and UsefulBufC .len
  12/13/2018         llundblade      Documentation improvements
  09/18/2018         llundblade      Cleaner distinction between UsefulBuf and UsefulBufC
- 02/02/18           llundbla        Full support for integers in and out; fix pointer alignment bug
-                                    Incompatible change: integers in/out are now in network byte order.
+ 02/02/18           llundbla        Full support for integers in and out; fix pointer
+                                    alignment bug. Incompatible change: integers in/out
+                                    are now in network byte order.
  08/12/17           llundbla        Added UsefulOutBuf_AtStart and UsefulBuf_Find
  06/27/17           llundbla        Fix UsefulBuf_Compare() bug. Only affected comparison
                                     for < or > for unequal length buffers.  Added
@@ -145,7 +146,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  Eeyore's balloon fits beautifully, "it goes in and out like anything".
 
 */
-typedef struct {
+typedef struct useful_buf_c {
     const void *ptr;
     size_t      len;
 } UsefulBufC;
@@ -156,7 +157,7 @@ typedef struct {
  that is to be filled in. The len is the amount of memory,
  not the length of the valid data in the buffer.
  */
-typedef struct {
+typedef struct useful_buf {
    void  *ptr;
    size_t len;
 } UsefulBuf;
@@ -638,7 +639,7 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32)
  can go on the stack or be a C99 function parameter.
  */
 
-typedef struct {
+typedef struct useful_out_buf {
    UsefulBuf  UB; // Memory that is being output to
    size_t     data_len;  // length of the data
    uint16_t   magic; // Used to detect corruption and lack of initialization
@@ -1198,12 +1199,12 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf Dest);
 
 #define UIB_MAGIC (0xB00F)
 
-typedef struct {
+typedef struct useful_input_buf {
    // Private data structure
-   UsefulBufC UB;
-   size_t     cursor;
-   uint16_t   magic;
-   uint8_t    err; // set if off end of buffer; also can set if this structure is corrupt or inconsistent.
+   UsefulBufC UB;     // Data being parsed
+   size_t     cursor; // Current offset in data being parse
+   uint16_t   magic;  // Check for corrupted or uninitialized UsefulInputBuf
+   uint8_t    err;    // Set request goes off end or magic number is bad
 } UsefulInputBuf;
 
 
@@ -1431,7 +1432,10 @@ static inline uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *me)
       return 0;
    }
 
-   return ((uint32_t)pResult[0]<<24) + ((uint32_t)pResult[1]<<16) + ((uint32_t)pResult[2]<<8) + (uint32_t)pResult[3];
+   return ((uint32_t)pResult[0]<<24) +
+          ((uint32_t)pResult[1]<<16) +
+          ((uint32_t)pResult[2]<<8) +
+           (uint32_t)pResult[3];
 }
 
 

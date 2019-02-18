@@ -141,9 +141,9 @@ int FailureTests(void);
  Parses all possible inputs that are two bytes long. Main point
  is that the test doesn't crash as it doesn't evaluate the
  input for correctness in any way.
- 
+
  (Parsing all possible 3 byte strings takes too long on all but
-  very fast machines). 
+  very fast machines).
  */
 int ComprehensiveInputTest(void);
 
