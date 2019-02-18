@@ -42,6 +42,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 02/17/19           llundblade      Fixed: QCBORItem.u{Data|Label}Alloc when bAllStrings set
+ 02/16/19           llundblade      Redesign MemPool to fix memory access alignment bug
  01/10/19           llundblade      Clever type and argument decoder is 250 bytes smaller
  11/9/18            llundblade      Error codes are now enums.
  11/2/18            llundblade      Simplify float decoding and align with preferred
@@ -309,6 +311,39 @@ static QCBORError TagMapper_Lookup(const QCBORTagListIn *pCallerConfiguredTagMap
 
 
 
+/* ===========================================================================
+   QCBORStringAllocate -- STRING ALLOCATOR INVOCATION
+
+   The following four functions are pretty wrappers for invocation of
+   the string allocator supplied by the caller.
+
+ ==============================================================================*/
+
+static inline void StringAllocator_Free(const QCORInternalAllocator *pMe, void *pMem)
+{
+   (pMe->pfAllocator)(pMe->pAllocateCxt, pMem, 0);
+}
+
+// StringAllocator_Reallocate called with pMem NULL is equal to StringAllocator_Allocate()
+static inline UsefulBuf StringAllocator_Reallocate(const QCORInternalAllocator *pMe, void *pMem, size_t uSize)
+{
+   return (pMe->pfAllocator)(pMe->pAllocateCxt, pMem, uSize);
+}
+
+static inline UsefulBuf StringAllocator_Allocate(const QCORInternalAllocator *pMe, size_t uSize)
+{
+   return (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, uSize);
+}
+
+static inline void StringAllocator_Destruct(const QCORInternalAllocator *pMe)
+{
+   if(pMe->pfAllocator) {
+      (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, 0);
+   }
+}
+
+
+
 
 /*
  Public function, see header file
@@ -327,12 +362,20 @@ void QCBORDecode_Init(QCBORDecodeContext *me, UsefulBufC EncodedCBOR, QCBORDecod
 /*
  Public function, see header file
  */
-void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator, bool bAllocAll)
+void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pMe,
+                                QCBORStringAllocate pfAllocateFunction,
+                                void *pAllocateContext,
+                                bool bAllStrings)
 {
-   pCtx->pStringAllocator = (void *)pAllocator;
-   pCtx->bStringAllocateAll = bAllocAll;
+   pMe->StringAllocator.pfAllocator   = pfAllocateFunction;
+   pMe->StringAllocator.pAllocateCxt  = pAllocateContext;
+   pMe->bStringAllocateAll            = bAllStrings;
 }
 
+
+/*
+ Public function, see header file
+ */
 void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *me, const QCBORTagListIn *pTagList)
 {
    me->pCallerConfiguredTagList = pTagList;
@@ -360,14 +403,14 @@ inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
                                               uint8_t *puAdditionalInfo)
 {
    QCBORError nReturn;
-   
+
    // Get the initial byte that every CBOR data item has
    const uint8_t uInitialByte = UsefulInputBuf_GetByte(pUInBuf);
-   
+
    // Break down the initial byte
    const uint8_t uTmpMajorType   = uInitialByte >> 5;
    const uint8_t uAdditionalInfo = uInitialByte & 0x1f;
-   
+
    // Where the number or argument accumulates
    uint64_t uArgument;
 
@@ -391,18 +434,18 @@ inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
       // No more bytes to get
       uArgument = uAdditionalInfo;
    }
-   
+
    if(UsefulInputBuf_GetError(pUInBuf)) {
       nReturn = QCBOR_ERR_HIT_END;
       goto Done;
    }
-   
+
    // All successful if we got here.
    nReturn           = QCBOR_SUCCESS;
    *pnMajorType      = uTmpMajorType;
    *puArgument       = uArgument;
    *puAdditionalInfo = uAdditionalInfo;
-   
+
 Done:
    return nReturn;
 }
@@ -545,7 +588,11 @@ Done:
 /*
  Decode text and byte strings. Call the string allocator if asked to.
  */
-inline static QCBORError DecodeBytes(const QCBORStringAllocator *pAlloc, int nMajorType, uint64_t uStrLen, UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem)
+inline static QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
+                                     int nMajorType,
+                                     uint64_t uStrLen,
+                                     UsefulInputBuf *pUInBuf,
+                                     QCBORItem *pDecodedItem)
 {
    // Stack usage: UsefulBuf 2, int/ptr 1  40
    QCBORError nReturn = QCBOR_SUCCESS;
@@ -557,14 +604,15 @@ inline static QCBORError DecodeBytes(const QCBORStringAllocator *pAlloc, int nMa
       goto Done;
    }
 
-   if(pAlloc) {
+   if(pAllocator) {
       // We are asked to use string allocator to make a copy
-      UsefulBuf NewMem = pAlloc->fAllocate(pAlloc->pAllocaterContext, NULL, uStrLen);
+      UsefulBuf NewMem = StringAllocator_Allocate(pAllocator, uStrLen);
       if(UsefulBuf_IsNULL(NewMem)) {
          nReturn = QCBOR_ERR_STRING_ALLOCATE;
          goto Done;
       }
       pDecodedItem->val.string = UsefulBuf_Copy(NewMem, Bytes);
+      pDecodedItem->uDataAlloc = 1;
    } else {
       // Normal case with no string allocator
       pDecodedItem->val.string = Bytes;
@@ -674,7 +722,9 @@ Done:
  Errors detected here include: an array that is too long to decode, hit end of buffer unexpectedly,
     a few forms of invalid encoded CBOR
  */
-static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem, const QCBORStringAllocator *pAlloc)
+static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
+                               QCBORItem *pDecodedItem,
+                               const QCORInternalAllocator *pAllocator)
 {
    // Stack usage: int/ptr 3 -- 24
    QCBORError nReturn;
@@ -708,7 +758,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf, QCBORItem *pDecodedItem,
             pDecodedItem->uDataType  = (uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING) ? QCBOR_TYPE_BYTE_STRING : QCBOR_TYPE_TEXT_STRING;
             pDecodedItem->val.string = (UsefulBufC){NULL, SIZE_MAX};
          } else {
-            nReturn = DecodeBytes(pAlloc, uMajorType, uNumber, pUInBuf, pDecodedItem);
+            nReturn = DecodeBytes(pAllocator, uMajorType, uNumber, pUInBuf, pDecodedItem);
          }
          break;
 
@@ -758,10 +808,14 @@ static inline QCBORError GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDe
 {
    // Stack usage; int/ptr 2 UsefulBuf 2 QCBORItem  -- 96
    QCBORError nReturn;
-   QCBORStringAllocator *pAlloc = (QCBORStringAllocator *)me->pStringAllocator;
+   const QCORInternalAllocator *pAllocator = me->StringAllocator.pfAllocator ?
+                                                      &(me->StringAllocator) :
+                                                      NULL;
    UsefulBufC FullString = NULLUsefulBufC;
 
-   nReturn = GetNext_Item(&(me->InBuf), pDecodedItem, me->bStringAllocateAll ? pAlloc: NULL);
+   nReturn = GetNext_Item(&(me->InBuf),
+                          pDecodedItem,
+                          me->bStringAllocateAll ? pAllocator: NULL);
    if(nReturn) {
       goto Done;
    }
@@ -781,7 +835,7 @@ static inline QCBORError GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDe
    }
 
    // Can't do indefinite length strings without a string allocator
-   if(pAlloc == NULL) {
+   if(pAllocator == NULL) {
       nReturn = QCBOR_ERR_NO_STRING_ALLOCATOR;
       goto Done;
    }
@@ -795,7 +849,7 @@ static inline QCBORError GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDe
       // Get item for next chunk
       QCBORItem StringChunkItem;
       // NULL passed to never string alloc chunk of indefinite length strings
-      nReturn = GetNext_Item(&(me->InBuf), &StringChunkItem, NULL);
+      nReturn = GetNext_Item(&(me->InBuf), &StringChunkItem, pAllocator);
       if(nReturn) {
          break;  // Error getting the next chunk
       }
@@ -816,9 +870,12 @@ static inline QCBORError GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDe
       }
 
       // Alloc new buffer or expand previously allocated buffer so it can fit
-      UsefulBuf NewMem = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext,
-                                              UNCONST_POINTER(FullString.ptr),
-                                              FullString.len + StringChunkItem.val.string.len);
+      // The first time throurgh FullString.ptr is NULL and this is
+      // equivalent to StringAllocator_Allocate()
+      UsefulBuf NewMem = StringAllocator_Reallocate(pAllocator,
+                                                    UNCONST_POINTER(FullString.ptr),
+                                                    FullString.len + StringChunkItem.val.string.len);
+
       if(UsefulBuf_IsNULL(NewMem)) {
          // Allocation of memory for the string failed
          nReturn = QCBOR_ERR_STRING_ALLOCATE;
@@ -830,9 +887,9 @@ static inline QCBORError GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDe
    }
 
 Done:
-   if(pAlloc && nReturn && !UsefulBuf_IsNULLC(FullString)) {
-      // Getting item failed, clean up the allocated memory
-      (pAlloc->fFree)(pAlloc->pAllocaterContext, UNCONST_POINTER(FullString.ptr));
+   if(nReturn != QCBOR_SUCCESS && !UsefulBuf_IsNULLC(FullString)) {
+      // Getting the item failed, clean up the allocated memory
+      StringAllocator_Free(pAllocator, UNCONST_POINTER(FullString.ptr));
    }
 
    return nReturn;
@@ -1158,12 +1215,7 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *me)
 Done:
    // Call the destructor for the string allocator if there is one.
    // Always called, even if there are errors; always have to clean up
-   if(me->pStringAllocator) {
-      QCBORStringAllocator *pAllocator = (QCBORStringAllocator *)me->pStringAllocator;
-      if(pAllocator->fDestructor) {
-         (pAllocator->fDestructor)(pAllocator->pAllocaterContext);
-      }
-   }
+   StringAllocator_Destruct(&(me->StringAllocator));
 
    return nReturn;
 }
@@ -1197,123 +1249,176 @@ Decoder errors handled in this file
 
 
 
+/* ===========================================================================
+   MemPool -- BUILT-IN SIMPLE STRING ALLOCATOR
+
+   This implements a simple sting allocator for indefinite length
+   strings that can be enabled by calling QCBORDecode_SetMemPool(). It
+   implements the function type QCBORStringAllocate and allows easy
+   use of it.
+
+   This particular allocator is built-in for convenience. The caller
+   can implement their own.  All of this following code will get
+   dead-stripped if QCBORDecode_SetMemPool() is not called.
+
+   This is a very primitive memory allocator. It does not track
+   individual allocations, only a high-water mark. A free or
+   reallocation must be of the last chunk allocated.
+
+   The size of the pool and offset to free memory are packed into the
+   first 8 bytes of the memory pool so we don't have to keep them in
+   the decode context. Since the address of the pool may not be
+   aligned, they have to be packed and unpacked as if they were
+   serialized data of the wire or such.
+
+   The sizes packed in are uint32_t to be the same on all CPU types
+   and simplify the code.
+   =========================================================================== */
+
+
+static inline int MemPool_Unpack(const void *pMem, uint32_t *puPoolSize, uint32_t *puFreeOffset)
+{
+   // Use of UsefulInputBuf is overkill, but it is convenient.
+   UsefulInputBuf UIB;
+
+   // Just assume the size here. It was checked during SetUp so the assumption is safe.
+   UsefulInputBuf_Init(&UIB, (UsefulBufC){pMem, QCBOR_DECODE_MIN_MEM_POOL_SIZE});
+   *puPoolSize     = UsefulInputBuf_GetUint32(&UIB);
+   *puFreeOffset   = UsefulInputBuf_GetUint32(&UIB);
+   return UsefulInputBuf_GetError(&UIB);
+}
+
+
+static inline int MemPool_Pack(UsefulBuf Pool, uint32_t uFreeOffset)
+{
+   // Use of UsefulOutBuf is overkill, but convenient. The
+   // length check performed here is useful.
+   UsefulOutBuf UOB;
+
+   UsefulOutBuf_Init(&UOB, Pool);
+   UsefulOutBuf_AppendUint32(&UOB, (uint32_t)Pool.len); // size of pool
+   UsefulOutBuf_AppendUint32(&UOB, uFreeOffset); // first free position
+   return UsefulOutBuf_GetError(&UOB);
+}
+
+
 /*
- This is a very primitive memory allocator. It does not track individual
- allocations, only a high-water mark. A free or reallotcation must be of
- the last chunk allocated.
+ Internal function for an allocation, reallocation free and destuct.
 
- All of this following code will get dead-stripped if QCBORDecode_SetMemPool()
- is not called.
- */
-
-typedef struct {
-   QCBORStringAllocator  StringAllocator;
-   uint8_t              *pStart;  // First byte that can be allocated
-   uint8_t              *pEnd;    // One past the last byte that can be allocated
-   uint8_t              *pFree;   // Where the next free chunk is
-} MemPool;
-
-
-/*
- Internal function for an allocation
+ Having only one function rather than one each per mode saves space in
+ QCBORDecodeContext.
 
  Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
-static UsefulBuf MemPool_Alloc(void *ctx, void *pMem, size_t uNewSize)
+static UsefulBuf MemPool_Function(void *pPool, void *pMem, size_t uNewSize)
 {
-   MemPool *me      = (MemPool *)ctx;
-   void    *pReturn = NULL;
+   UsefulBuf ReturnValue = NULLUsefulBuf;
 
-   if(pMem) {
-      // Realloc case
-      // This check will work even if uNewSize is a super-large value like UINT64_MAX
-      if((uNewSize <= (size_t)(me->pEnd - (uint8_t *)pMem)) && ((uint8_t *)pMem >= me->pStart)) {
-         me->pFree = (uint8_t *)pMem + uNewSize;
-         pReturn   = pMem;
+   uint32_t uPoolSize;
+   uint32_t uFreeOffset;
+
+   if(uNewSize > UINT32_MAX) {
+      // This allocator is only good up to 4GB.  This check should
+      // optimize out if sizeof(size_t) == sizeof(uint32_t)
+      goto Done;
+   }
+   const uint32_t uNewSize32 = (uint32_t)uNewSize;
+
+   if(MemPool_Unpack(pPool, &uPoolSize, &uFreeOffset)) {
+      goto Done;
+   }
+
+   if(uNewSize) {
+      if(pMem) {
+         // REALLOCATION MODE
+         // Calculate pointer to the end of the memory pool.  It is
+         // assumed that pPool + uPoolSize won't wrap around by
+         // assuming the caller won't pass a pool buffer in that is
+         // not in legitimate memory space.
+         const void *pPoolEnd = (uint8_t *)pPool + uPoolSize;
+
+         // Check that the pointer for reallocation is in the range of the
+         // pool. This also makes sure that pointer math further down
+         // doesn't wrap under or over.
+         if(pMem >= pPool && pMem < pPoolEnd) {
+            // Offset to start of chunk for reallocation. This won't
+            // wrap under because of check that pMem >= pPool.  Cast
+            // is safe because the pool is always less than UINT32_MAX
+            // because of check in QCBORDecode_SetMemPool().
+            const uint32_t uMemOffset = (uint32_t)((uint8_t *)pMem - (uint8_t *)pPool);
+
+            // Check to see if the allocation will fit. uPoolSize -
+            // uMemOffset will not wrap under because of check that
+            // pMem is in the range of the uPoolSize by check above.
+            if(uNewSize <= uPoolSize - uMemOffset) {
+               ReturnValue.ptr = pMem;
+               ReturnValue.len = uNewSize;
+
+               // Addition won't wrap around over because uNewSize was
+               // checked to be sure it is less than the pool size.
+               uFreeOffset = uMemOffset + uNewSize32;
+            }
+         }
+      } else {
+         // ALLOCATION MODE
+         // uPoolSize - uFreeOffset will not underflow because this
+         // pool implementation makes sure uFreeOffset is always
+         // smaller than uPoolSize through this check here and
+         // reallocation case.
+         if(uNewSize <= uPoolSize - uFreeOffset) {
+            ReturnValue.len = uNewSize;
+            ReturnValue.ptr = (uint8_t *)pPool + uFreeOffset;
+            uFreeOffset    += uNewSize;
+         }
       }
    } else {
-      // New chunk case
-      // This check will work even if uNewSize is a super large value like UINT64_MAX
-      if(uNewSize <= (size_t)(me->pEnd - me->pFree)) {
-         pReturn    = me->pFree;
-         me->pFree += uNewSize;
+      if(pMem) {
+         // FREE MODE
+         // Cast is safe because of limit on pool size in
+         // QCBORDecode_SetMemPool()
+         uFreeOffset = (uint32_t)((uint8_t *)pMem - (uint8_t *)pPool);
+      } else {
+         // DESTRUCT MODE
+         // Nothing to do for this allocator
       }
    }
 
-   return (UsefulBuf){pReturn, uNewSize};
+   UsefulBuf Pool = {pPool, uPoolSize};
+   MemPool_Pack(Pool, uFreeOffset);
+
+Done:
+   return ReturnValue;
 }
 
-/*
- Internal function to free memory
- */
-static void MemPool_Free(void *ctx, void *pOldMem)
-{
-   MemPool *me = (MemPool *)ctx;
-   me->pFree   = pOldMem;
-}
 
 /*
  Public function, see header qcbor.h file
  */
-QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *me, UsefulBuf Pool, bool bAllStrings)
+QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe, UsefulBuf Pool, bool bAllStrings)
 {
-   // The idea behind QCBOR_MIN_MEM_POOL_SIZE is
-   // that the caller knows exactly what size to
-   // allocate and that the tests can run conclusively
-   // no matter what size MemPool is
-   // even though it wastes some memory. MemPool
-   // will vary depending on pointer size of the
-   // the machine. QCBOR_MIN_MEM_POOL_SIZE is
-   // set for pointers up to 64-bits. This
-   // wastes about 50 bytes on a 32-bit machine.
-   // This check makes sure things don't go
-   // horribly wrong. It should optimize out
-   // when there is no problem as the sizes are
-   // known at compile time.
-   if(sizeof(MemPool) > QCBOR_DECODE_MIN_MEM_POOL_SIZE) {
-      return QCBOR_ERR_MEM_POOL_INTERNAL;
-   }
-
-   // The first bytes of the Pool passed in are used
-   // as the context (vtable of sorts) for the memory pool
-   // allocator.
-   if(Pool.len < QCBOR_DECODE_MIN_MEM_POOL_SIZE) {
+   // The pool size and free mem offset are packed into the beginning
+   // of the pool memory. This compile time check make sure the
+   // constant in the header is correct.  This check should optimize
+   // down to nothing.
+   if(QCBOR_DECODE_MIN_MEM_POOL_SIZE < 2 * sizeof(uint32_t)) {
       return QCBOR_ERR_BUFFER_TOO_SMALL;
    }
-   MemPool *pMP = (MemPool *)Pool.ptr;
 
-   // Fill in the "vtable"
-   pMP->StringAllocator.fAllocate   = MemPool_Alloc;
-   pMP->StringAllocator.fFree       = MemPool_Free;
-   pMP->StringAllocator.fDestructor = NULL;
+   // The pool size and free offset packed in to the beginning of pool
+   // memory are only 32-bits. This check will optimize out on 32-bit
+   // machines.
+   if(Pool.len > UINT32_MAX) {
+      return QCBOR_ERR_BUFFER_TOO_LARGE;
+   }
 
-   // Set up the pointers to the memory to be allocated
-   pMP->pStart = (uint8_t *)Pool.ptr + QCBOR_DECODE_MIN_MEM_POOL_SIZE;
-   pMP->pFree  = pMP->pStart;
-   pMP->pEnd   = (uint8_t *)Pool.ptr + Pool.len;
+   // This checks that the pool buffer given is big enough.
+   if(MemPool_Pack(Pool, QCBOR_DECODE_MIN_MEM_POOL_SIZE)) {
+      return QCBOR_ERR_BUFFER_TOO_SMALL;
+   }
 
-   // More book keeping of context
-   pMP->StringAllocator.pAllocaterContext = pMP;
-   me->pStringAllocator   = pMP;
-
-   // The flag indicating when to use the allocator
-   me->bStringAllocateAll = bAllStrings;
+   pMe->StringAllocator.pfAllocator    = MemPool_Function;
+   pMe->StringAllocator.pAllocateCxt  = Pool.ptr;
+   pMe->bStringAllocateAll             = bAllStrings;
 
    return QCBOR_SUCCESS;
 }
-
-
-/*
- Extra little hook to make MemPool testing work right
- without adding any code size or overhead to non-test
- uses. This will get dead-stripped for non-test use.
-
- This is not a public function.
- */
-size_t MemPoolTestHook_GetPoolSize(void *ctx)
-{
-   MemPool *me = (MemPool *)ctx;
-
-   return me->pEnd - me->pStart;
-}
-

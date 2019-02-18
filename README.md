@@ -14,8 +14,8 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
   representations and decoding to native C representations is supported.
 
 **Small simple memory model** – Malloc is not needed. The encode
-  context is 136 bytes, decode context is 104 bytes and the
-  description of decoded data item is 56 bytes. Stack use is light and
+  context is 136 bytes, decode context is 144 bytes and the
+  description of decoded data item is 48 bytes. Stack use is light and
   there is no recursion. The caller supplies the memory to hold the
   encoded CBOR and encode/decode contexts so caller has full control
   of memory usage making it good for embedded implementations that
@@ -63,6 +63,10 @@ the CAF source with some small simplifications and tidying up.
 From Nov 3, 2018, the interface and code are fairly stable. Large
 changes are not planned or expected, particularly in the
 interface. The test coverage is pretty good.
+
+On Feb 18 2019, there was an interface change to QCBORDecode_SetUpAllocator
+for external string allocator set up. The change was part of a
+memory access alignment fix and code simplification.
 
 ## Building
 

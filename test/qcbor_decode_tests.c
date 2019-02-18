@@ -2574,7 +2574,7 @@ int IndefiniteLengthStringTest()
    }
 
    // ----- Mempool is way too small -----
-   UsefulBuf_MAKE_STACK_UB(MemPoolTooSmall, 20); // 20 is too small no matter what
+   UsefulBuf_MAKE_STACK_UB(MemPoolTooSmall, QCBOR_DECODE_MIN_MEM_POOL_SIZE-1);
 
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
    if(!QCBORDecode_SetMemPool(&DC,  MemPoolTooSmall, false)) {
@@ -2652,7 +2652,7 @@ int IndefiniteLengthStringTest()
       return -34;
    }
 
-    return 0;
+   return 0;
 }
 
 
@@ -2704,6 +2704,8 @@ int AllocAllStringsTest()
    if(Item1.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       Item1.uDataType != QCBOR_TYPE_INT64 ||
       Item1.val.int64 != 42 ||
+      Item1.uDataAlloc != 0 ||
+      Item1.uLabelAlloc == 0 ||
       UsefulBuf_Compare(Item1.label.string, UsefulBuf_FromSZ("first integer"))) {
       return -4;
    }
@@ -2712,15 +2714,21 @@ int AllocAllStringsTest()
    if(Item2.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item2.label.string, UsefulBuf_FromSZ("an array of two strings")) ||
       Item2.uDataType != QCBOR_TYPE_ARRAY ||
+      Item2.uDataAlloc != 0 ||
+      Item2.uLabelAlloc == 0 ||
       Item2.val.uCount != 2)
       return -5;
 
    if(Item3.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item3.uDataAlloc == 0 ||
+      Item3.uLabelAlloc != 0 ||
       UsefulBuf_Compare(Item3.val.string, UsefulBuf_FromSZ("string1"))) {
       return -6;
    }
 
    if(Item4.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item4.uDataAlloc == 0 ||
+      Item4.uLabelAlloc != 0 ||
       UsefulBuf_Compare(Item4.val.string, UsefulBuf_FromSZ("string2"))) {
       return -7;
    }
@@ -2749,86 +2757,134 @@ int AllocAllStringsTest()
    return 0;
 }
 
-// Cheating declaration to get to the special test hook
-size_t MemPoolTestHook_GetPoolSize(void *ctx);
 
 
 int MemPoolTest(void)
 {
-   // Set up the decoder with a tiny bit of CBOR to parse
+   // Set up the decoder with a tiny bit of CBOR to parse because
+   // nothing can be done with it unless that is set up.
    QCBORDecodeContext DC;
    const uint8_t pMinimalCBOR[] = {0xa0}; // One empty map
    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pMinimalCBOR),0);
 
    // Set up an memory pool of 100 bytes
+   // Then fish into the internals of the decode context
+   // to get the allocator function so it can be called directly.
+   // Also figure out how much pool is available for use
+   // buy subtracting out the overhead.
    UsefulBuf_MAKE_STACK_UB(Pool, 100);
    QCBORError nError = QCBORDecode_SetMemPool(&DC, Pool, 0);
    if(nError) {
       return -9;
    }
+   QCBORStringAllocate pAlloc = DC.StringAllocator.pfAllocator;
+   void *pAllocCtx            = DC.StringAllocator.pAllocateCxt;
+   size_t uAvailPool = Pool.len - QCBOR_DECODE_MIN_MEM_POOL_SIZE;
 
-   // Cheat a little to get to the string allocator object
-   // so we can call it directly to test it
-   QCBORStringAllocator *pAlloc = (QCBORStringAllocator *)DC.pStringAllocator;
-   // Cheat some more to know exactly the
-   size_t uAvailPool = MemPoolTestHook_GetPoolSize(pAlloc);
-
-   // First test -- ask for too much in one go
-   UsefulBuf Allocated = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, uAvailPool+1);
+   // First test -- ask for one more byte than available and see failure
+   UsefulBuf Allocated = (*pAlloc)(pAllocCtx, NULL, uAvailPool+1);
    if(!UsefulBuf_IsNULL(Allocated)) {
       return -1;
    }
 
-
    // Re do the set up for the next test that will do a successful alloc,
    // a fail, a free and then success
-   // This test should work on 32 and 64-bit machines if the compiler
-   // does the expected thing with pointer sizes for the internal
-   // MemPool implementation leaving 44 or 72 bytes of pool memory.
    QCBORDecode_SetMemPool(&DC, Pool, 0);
+   pAlloc    = DC.StringAllocator.pfAllocator;
+   pAllocCtx = DC.StringAllocator.pAllocateCxt;
+   uAvailPool = Pool.len - QCBOR_DECODE_MIN_MEM_POOL_SIZE;
 
-   // Cheat a little to get to the string allocator object
-   // so we can call it directly to test it
-   pAlloc = (QCBORStringAllocator *)DC.pStringAllocator;
-   // Cheat some more to know exactly the
-   uAvailPool = MemPoolTestHook_GetPoolSize(pAlloc);
-
-   Allocated = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, uAvailPool-1);
+   // Allocate one byte less than available and see success
+   Allocated = (pAlloc)(pAllocCtx, NULL, uAvailPool-1);
    if(UsefulBuf_IsNULL(Allocated)) { // expected to succeed
       return -2;
    }
-   UsefulBuf Allocated2 = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, uAvailPool/2);
+   // Ask for some more and see failure
+   UsefulBuf Allocated2 = (*pAlloc)(pAllocCtx, NULL, uAvailPool/2);
    if(!UsefulBuf_IsNULL(Allocated2)) { // expected to fail
       return -3;
    }
-   (*pAlloc->fFree)(pAlloc->pAllocaterContext, Allocated.ptr);
-   Allocated = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, uAvailPool/2);
+   // Free the first allocate, retry the second and see success
+   (*pAlloc)(pAllocCtx, Allocated.ptr, 0); // Free
+   Allocated = (*pAlloc)(pAllocCtx, NULL, uAvailPool/2);
    if(UsefulBuf_IsNULL(Allocated)) { // succeed because of the free
       return -4;
    }
 
-
    // Re do set up for next test that involves a successful alloc,
    // and a successful realloc and a failed realloc
    QCBORDecode_SetMemPool(&DC, Pool, 0);
+   pAlloc    = DC.StringAllocator.pfAllocator;
+   pAllocCtx = DC.StringAllocator.pAllocateCxt;
 
-   // Cheat a little to get to the string allocator object
-   // so we can call it directly to test it
-   pAlloc = (QCBORStringAllocator *)DC.pStringAllocator;
-   Allocated = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, NULL, uAvailPool/2);
+   // Allocate half the pool and see success
+   Allocated = (*pAlloc)(pAllocCtx, NULL, uAvailPool/2);
    if(UsefulBuf_IsNULL(Allocated)) { // expected to succeed
       return -5;
    }
-   Allocated2 = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, Allocated.ptr, uAvailPool);
+   // Reallocate to take up the whole pool and see success
+   Allocated2 = (*pAlloc)(pAllocCtx, Allocated.ptr, uAvailPool);
    if(UsefulBuf_IsNULL(Allocated2)) {
       return -6;
    }
+   // Make sure its the same pointer and the size is right
    if(Allocated2.ptr != Allocated.ptr || Allocated2.len != uAvailPool) {
       return -7;
    }
-   UsefulBuf Allocated3 = (*pAlloc->fAllocate)(pAlloc->pAllocaterContext, Allocated.ptr, uAvailPool+1);
-   if(!UsefulBuf_IsNULL(Allocated3)) { // expected to fail
+   // Try to allocate more to be sure there is failure after a realloc
+   UsefulBuf Allocated3 = (*pAlloc)(pAllocCtx, Allocated.ptr, uAvailPool+1);
+   if(!UsefulBuf_IsNULL(Allocated3)) {
       return -8;
+   }
+
+   return 0;
+}
+
+
+/* Just enough of an allocator to test configuration of one */
+static UsefulBuf AllocateTestFunction(void *pCtx, void *pOldMem, size_t uNewSize)
+{
+   (void)pOldMem; // unused variable
+
+   if(uNewSize) {
+      // Assumes the context pointer is the buffer and
+      // nothing too big will ever be asked for.
+      // This is only good for this basic test!
+      return (UsefulBuf) {pCtx, uNewSize};
+   } else {
+      return NULLUsefulBuf;
+   }
+}
+
+
+int SetUpAllocatorTest(void)
+{
+   // Set up the decoder with a tiny bit of CBOR to parse because
+   // nothing can be done with it unless that is set up.
+   QCBORDecodeContext DC;
+   const uint8_t pMinimalCBOR[] = {0x62, 0x48, 0x69}; // "Hi"
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pMinimalCBOR),0);
+
+   uint8_t pAllocatorBuffer[50];
+
+   // This is really just to test that this call works.
+   // The full functionality of string allocators is tested
+   // elsewhere with the MemPool internal allocator.
+   QCBORDecode_SetUpAllocator(&DC, AllocateTestFunction, pAllocatorBuffer, 1);
+
+   QCBORItem Item;
+   if(QCBORDecode_GetNext(&DC, &Item) != QCBOR_SUCCESS) {
+      return -1;
+   }
+
+   if(Item.uDataAlloc == 0 ||
+      Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.val.string.ptr != pAllocatorBuffer) {
+      return -2;
+   }
+
+   if(QCBORDecode_Finish(&DC) != QCBOR_SUCCESS) {
+      return -3;
    }
 
    return 0;

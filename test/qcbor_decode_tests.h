@@ -226,4 +226,12 @@ int AllocAllStringsTest(void);
 int MemPoolTest(void);
 
 
+/*
+ Test the setting up of an external string allocator.
+ */
+int SetUpAllocatorTest(void);
+
+
+
+
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

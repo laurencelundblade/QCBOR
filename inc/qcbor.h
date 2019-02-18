@@ -43,6 +43,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 02/16/19           llundblade      Redesign MemPool to fix memory access alignment bug
  12/18/18           llundblade      Move decode malloc optional code to separate repository
  12/13/18           llundblade      Documentatation improvements
  11/29/18           llundblade      Rework to simpler handling of tags and labels.
@@ -163,6 +164,13 @@ typedef struct __QCBORDecodeNesting  {
 } QCBORDecodeNesting;
 
 
+typedef struct  {
+   // PRIVATE DATA STRUCTURE
+   void *pAllocateCxt;
+   UsefulBuf (* pfAllocator)(void *pAllocateCxt, void *pOldMem, size_t uNewSize);
+} QCORInternalAllocator;
+
+
 /*
  PRIVATE DATA STRUCTURE
 
@@ -170,8 +178,8 @@ typedef struct __QCBORDecodeNesting  {
  functions form an "object" that does CBOR decoding.
 
  Size approximation (varies with CPU/compiler):
-   64-bit machine: 32 + 1 + 1 + 6 bytes padding + 72 + 16 = 128 bytes
-   32-bit machine: 16 + 1 + 1 + 2 bytes padding + 68 + 8  = 68 bytes
+   64-bit machine: 32 + 1 + 1 + 6 bytes padding + 72 + 16 + 8 + 8 = 144 bytes
+   32-bit machine: 16 + 1 + 1 + 2 bytes padding + 68 +  8 + 8 + 4 = 108 bytes
  */
 struct _QCBORDecodeContext {
    // PRIVATE DATA STRUCTURE
@@ -182,11 +190,16 @@ struct _QCBORDecodeContext {
 
    QCBORDecodeNesting nesting;
 
-   // This is NULL or points to a QCBORStringAllocator. It is void
-   // here because _QCBORDecodeContext is defined early in the
-   // private part of this file and QCBORStringAllocat is defined
-   // later in the public part of this file.
-   void *pStringAllocator;
+   // If a string allocator is configured for indefinite length
+   // strings, it is configured here.
+   QCORInternalAllocator StringAllocator;
+
+   // These are special for the internal MemPool allocator.
+   // They are not used otherwise. We tried packing these
+   // in the MemPool itself, but there are issues
+   // with memory alignment.
+   uint32_t uMemPoolSize;
+   uint32_t uMemPoolFreeOffset;
 
    // This is NULL or points to QCBORTagList.
    // It is type void for the same reason as above.
@@ -758,45 +771,78 @@ typedef struct _QCBORItem {
 } QCBORItem;
 
 
+
 /**
- This is a set of functions and pointer context (in object-oriented parlance,
- an "object") used to allocate memory for coalescing the segments of an indefinite
- length string into one.
+  \brief The type defining what a string allocator function must do.
 
- The fAllocate function works as an initial allocator and a reallocator to
- expand the string for each new segment. When it is an initial allocator
- pOldMem is NULL.
+ * \param[in] pAllocateCxt  Pointer to context for the particular
+                             allocator implementation What is in the
+                             context is dependent on how a particular
+                             string allocator works. Typically, it
+                             will contain a pointer to the memory pool
+                             and some booking keeping data.
+ \param[in] pOldMem          Points to some memory allocated by the
+                             allocator that is either to be freed or
+                             to be reallocated to be larger. It is
+                             NULL for new allocations and when call as
+                             a destructor to clean up the whole
+                             allocation.
+ \param[in] uNewSize         Size of memory to be allocated or new
+                             size of chunk to be reallocated. Zero for
+                             a new allocation or when called as a
+                             destructor.
 
- The fFree function is called to clean up an individual allocation when an error occurs.
+ \return   Either the allocated buffer is returned, or \c
+           NULLUsefulBufC. \c NULLUsefulBufC is returned on a failed
+           allocation or in the two cases where there is nothing to
+           return.
 
- The fDesctructor function is called when QCBORDecode_Finish is called.
+ This is called in one of four modes:
 
- Any memory allocated with this will be marked by setting uDataAlloc
- or uLabelAlloc in the QCBORItem structure so the caller knows they
- have to free it.
+ Allocate -- \c uNewSize is the amount to allocate. \c pOldMem is \c
+ NULL.
 
- fAllocate is only ever called to increase the single most recent
- allocation made, making implementation of a memory pool very simple.
+ Free -- \c uNewSize is 0. \c pOldMem points to the memory to be
+ freed.  When the decoder calls this, it will always be the most
+ recent block that was either allocated or reallocated.
 
- fFree is also only called on the single most recent allocation.
+ Reallocate -- \c pOldMem is the block to reallocate. \c uNewSize is
+ its new size.  When the decoder calls this, it will always be the
+ most recent block that was either allocated or reallocated.
+
+ Destruct -- \c pOldMem is NULL and \c uNewSize is 0. This is called
+ when the decoding is complete by QCBORDecode_Finish(). Usually the
+ strings allocated by a string allocator are in use after the decoding
+ is completed so this usually will not free those strings. Many string
+ allocators will not need to do anything in this mode.
+
+ The strings allocated by this will have \c uDataAlloc set to true in
+ the \ref QCBORItem when they are returned. The user of the strings
+ will have to free them. How they free them, depends on the string
+ allocator.
+
+ If QCBORDecode_SetMemPool() is called, the internal MemPool will be
+ used. It has it's own internal implementation of this function, so
+ one does not need to be implemented.
+
  */
-typedef struct {
-   void       *pAllocaterContext;
-   UsefulBuf (*fAllocate)(void *pAllocaterContext, void *pOldMem, size_t uNewSize);
-   void      (*fFree)(void *pAllocaterContext, void *pMem);
-   void      (*fDestructor)(void *pAllocaterContext);
-} QCBORStringAllocator;
+typedef UsefulBuf (* QCBORStringAllocate)(void *pAllocateCxt, void *pOldMem, size_t uNewSize);
 
 
 /**
- This only matters if you use a string allocator
- and and set it up with QCBORDecode_SetMemPool(). It is
+ This only matters if you use the built-in string allocator
+ by settig it up with QCBORDecode_SetMemPool(). This is
  the size of the overhead needed needed by
- QCBORDecode_SetMemPool().  If you write your own
+ QCBORDecode_SetMemPool(). The amount of memory
+ available for decoded strings will be the
+ size of the buffer given to QCBORDecode_SetMemPool() less
+ this amount.
+
+ If you write your own
  string allocator or use the separately available malloc
  based string allocator, this size will not apply
  */
-#define QCBOR_DECODE_MIN_MEM_POOL_SIZE 72
+#define QCBOR_DECODE_MIN_MEM_POOL_SIZE 8
 
 
 /**
@@ -1664,11 +1710,14 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDec
 /**
  @brief Set up the MemPool string allocator for indefinite length strings.
 
- @param[in] pCtx The decode context.
- @param[in] MemPool The pointer and length of the memory pool.
- @param[in] bAllStrings true means to put even definite length strings in the pool.
+ @param[in] pCtx         The decode context.
+ @param[in] MemPool      The pointer and length of the memory pool.
 
- @return error if the MemPool was less than QCBOR_DECODE_MIN_MEM_POOL_SIZE.
+ @param[in] bAllStrings  If true, all strings, even of definite
+                         length, will be allocated with the string
+                         allocator.
+
+ @return Error if the MemPool was less than \ref QCBOR_DECODE_MIN_MEM_POOL_SIZE.
 
  Indefinite length strings (text and byte) cannot be decoded unless
  there is a string allocator configured. MemPool is a simple built-in
@@ -1677,25 +1726,28 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDec
  length for some block of memory that is to be used for string
  allocation. It can come from the stack, heap or other.
 
- The memory pool must be QCBOR_DECODE_MIN_MEM_POOL_SIZE plus space for
- all the strings allocated.  There is no overhead per string allocated
+ The memory pool must be \ref QCBOR_DECODE_MIN_MEM_POOL_SIZE plus
+ space for all the strings allocated.  There is no overhead per string
+ allocated. A conservative way to size this buffer is to make it the
+ same size as the CBOR being decoded plus \ref
+ QCBOR_DECODE_MIN_MEM_POOL_SIZE.
 
  This memory pool is used for all indefinite length strings that are
  text strings or byte strings, including strings used as labels.
 
- The pointers to strings in QCBORItem will point into the memory pool set
- here. They do not need to be individually freed. Just discard the buffer
- when they are no longer needed.
+ The pointers to strings in \ref QCBORItem will point into the memory
+ pool set here. They do not need to be individually freed. Just
+ discard the buffer when they are no longer needed.
 
- If bAllStrings is set, then the size will be the overhead plus the
+ If \c bAllStrings is set, then the size will be the overhead plus the
  space to hold **all** strings, definite and indefinite length, value
  or label. The advantage of this is that after the decode is complete,
  the original memory holding the encoded CBOR does not need to remain
  valid.
 
  If this function is never called because there is no need to support
- indefinite length strings, the MemPool implementation should be
- dead-stripped by the loader and not add to code size.
+ indefinite length strings, the internal MemPool implementation should
+ be dead-stripped by the loader and not add to code size.
  */
 QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAllStrings);
 
@@ -1703,23 +1755,44 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, b
 /**
  @brief Sets up a custom string allocator for indefinite length strings
 
- @param[in] pCtx The decoder context to set up an allocator for
- @param[in] pAllocator The string allocator "object"
+ @param[in] pCtx                 The decoder context to set up an
+                                 allocator for.
+ @param[in] pfAllocateFunction   Pointer to function that will be
+                                 called by QCBOR for allocations and
+                                 frees.
+ @param[in] pAllocateContext     Context passed to \c
+                                 pfAllocateFunction.
+ @param[in] bAllStrings          If true, all strings, even of definite
+                                 length, will be allocated with the
+                                 string allocator.
 
- See QCBORStringAllocator for the requirements of the string allocator.
+ Indefinite length strings (text and byte) cannot be decoded unless
+ there a string allocator is configured. QCBORDecode_SetUpAllocator()
+ allows the caller to configure an external string allocator
+ implementation if the internal string allocator is not suitable. See
+ QCBORDecode_SetMemPool() to configure the internal allocator. Note
+ that the internal allocator is not automatically set up.
 
- Typically, this is used if the simple MemPool allocator isn't desired.
+ The string allocator configured here can be a custom one designed and
+ implemented by the caller.  See \ref QCBORStringAllocate for the
+ requirements for a string allocator implementation.
 
- A malloc based string allocator can be obtained by calling
- QCBOR_DMalloc(). This function is supply separately from qcbor
- to keep qcbor smaller and neater. It is in a separate
- GitHub repository.
+ A malloc-based string external allocator can be obtained by calling
+ \c QCBORDecode_MakeMallocStringAllocator(). It will return a function
+ and pointer that can be given here as \c pAllocatorFunction and \c
+ pAllocatorContext. It uses standard \c malloc() so \c free() must be
+ called onall strings marked by \c uDataAlloc \c == \c 1 or \c
+ uLabelAlloc \c == \c 1 in \ref QCBORItem.
 
- You can also write your own allocator. Create the allocate, free,
- and destroy functions and put pointers to them in a QCBORStringAllocator.
+ Note that an older version of this function took an allocator
+ structure, rather than single function and pointer.  The older
+ version \c QCBORDecode_MakeMallocStringAllocator() also implemented
+ the older interface.
  */
-void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx, const QCBORStringAllocator *pAllocator, bool bAllStrings);
-
+void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
+                                QCBORStringAllocate pfAllocateFunction,
+                                void *pAllocateContext,
+                                bool bAllStrings);
 
 /**
  @brief Configure list of caller selected tags to be recognized

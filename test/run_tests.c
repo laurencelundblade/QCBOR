@@ -164,6 +164,7 @@ test_entry s_tests[] = {
     TEST_ENTRY(StringDecoderModeFailTest),
     TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
     TEST_ENTRY(EncodeErrorTests),
+    TEST_ENTRY(SetUpAllocatorTest),
     //TEST_ENTRY(fail_test),
 };
 
@@ -301,7 +302,6 @@ void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
    PrintSize("sizeof(QCBORDecodeNesting)",  (uint32_t)sizeof(QCBORDecodeNesting), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORDecodeContext)",  (uint32_t)sizeof(QCBORDecodeContext), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORItem)",           (uint32_t)sizeof(QCBORItem), pfOutput, pOutCtx);
-   PrintSize("sizeof(QCBORStringAllocator)",(uint32_t)sizeof(QCBORStringAllocator), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORTagListIn)",      (uint32_t)sizeof(QCBORTagListIn), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORTagListOut)",     (uint32_t)sizeof(QCBORTagListOut), pfOutput, pOutCtx);
    (*pfOutput)("", pOutCtx, 1);
