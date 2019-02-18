@@ -849,7 +849,7 @@ static inline QCBORError GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDe
       // Get item for next chunk
       QCBORItem StringChunkItem;
       // NULL passed to never string alloc chunk of indefinite length strings
-      nReturn = GetNext_Item(&(me->InBuf), &StringChunkItem, pAllocator);
+      nReturn = GetNext_Item(&(me->InBuf), &StringChunkItem, NULL);
       if(nReturn) {
          break;  // Error getting the next chunk
       }
