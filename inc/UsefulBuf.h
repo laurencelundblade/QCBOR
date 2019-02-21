@@ -66,6 +66,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h> // for strlen, memcpy, memmove, memset
 #include <stddef.h> // for size_t
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  @file UsefulBuf.h
 
@@ -1530,6 +1534,10 @@ static inline int UsefulInputBuf_GetError(UsefulInputBuf *me)
    return me->err;
 }
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // _UsefulBuf_h
 

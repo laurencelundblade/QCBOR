@@ -81,6 +81,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdbool.h>
 #include "UsefulBuf.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  The maxium nesting of arrays and maps when encoding or decoding.
@@ -2665,6 +2668,10 @@ static inline void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_
  END OF PRIVATE INLINE IMPLEMENTATION
 
  =========================================================================== */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* defined(__QCBOR__qcbor__) */
 
