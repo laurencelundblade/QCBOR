@@ -1,7 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2019, Laurence Lundblade.
- All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -42,6 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 3/6/2019           llundblade      Add UsefulBuf_IsValue()
  12/17/2018         llundblade      Remove const from UsefulBuf and UsefulBufC .len
  12/13/2018         llundblade      Documentation improvements
  09/18/2018         llundblade      Cleaner distinction between UsefulBuf and UsefulBufC
@@ -480,10 +480,10 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
 
 
 /**
- @brief Compare two UsefulBufCs
+ @brief Compare two UsefulBufCs.
 
- @param[in] UB1 The destination buffer to copy into
- @param[in] UB2  The source to copy from
+ @param[in] UB1  First UsefulBufC to compare.
+ @param[in] UB2  Second UsefulBufC to compare.
 
  @return 0 if equal...
 
@@ -501,6 +501,27 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
 
  */
 int UsefulBuf_Compare(const UsefulBufC UB1, const UsefulBufC UB2);
+
+
+/**
+ @brief Find first byte that is not a particular byte value.
+
+ @param[in] UB     The destination buffer for byte comparison.
+ @param[in] uValue The byte value to compare to.
+
+ @return  Offset of first byte that isn't \c uValue or
+          SIZE_MAX if all bytes are \c uValue.
+
+ Note that unlike most comparison functions, 0
+ does not indicate a successful comparison,  so the
+ test for match is:
+
+      UsefulBuf_IsValue(...) == SIZE_MAX
+
+ If \c UB is NULL or empty, there is no match
+ and 0 is returned.
+ */
+size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue);
 
 
 /**

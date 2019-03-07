@@ -1,7 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2019, Laurence Lundblade.
- All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -42,6 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 3/6/2019           llundblade      Add UsefulBuf_IsValue()
  09/07/17           llundbla        Fix critical bug in UsefulBuf_Find() -- a read off
                                     the end of memory when the bytes to find is longer
                                     than the bytes to search.
@@ -90,6 +90,28 @@ int UsefulBuf_Compare(const UsefulBufC UB1, const UsefulBufC UB2)
    return memcmp(UB1.ptr, UB2.ptr, UB1.len);
 }
 
+
+/*
+ Public function -- see UsefulBuf.h
+ */
+size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue)
+{
+   if(UsefulBuf_IsNULLOrEmptyC(UB)) {
+      /* Not a match */
+      return 0;
+   }
+
+   const uint8_t * const pEnd = (uint8_t *)UB.ptr + UB.len;
+   for(const uint8_t *p = UB.ptr; p < pEnd; p++) {
+      if(*p != uValue) {
+         /* Byte didn't match */
+         return p - (uint8_t *)UB.ptr;
+      }
+   }
+
+   /* Success. All bytes matched */
+   return SIZE_MAX;
+}
 
 
 /*

@@ -544,6 +544,30 @@ const char *UBUtilTests()
       return "Copy null/empty failed";
    }
 
+   if(UsefulBuf_IsValue(ExpectedShorter, '+') != SIZE_MAX) {
+      return "IsValue failed to match all";
+   }
+
+   if(UsefulBuf_IsValue(ExpectedShorter, '-') != 0) {
+      return "IsValue should have failed right away";
+   }
+
+   if(UsefulBuf_IsValue(NULLUsefulBufC, 0x00) != 0) {
+      return "IsValue failed on NULLUsefulBufC";
+   }
+
+   if(UsefulBuf_IsValue((UsefulBufC){(uint8_t[]){0x00}, 1}, 0x00) != SIZE_MAX) {
+      return "IsValue failed finding 0 in one byte of 0";
+   }
+
+   if(UsefulBuf_IsValue((UsefulBufC){(uint8_t[]){0x00}, 1}, 0x01) != 0) {
+      return "IsValue failed not finding 1 in one byte of 0";
+   }
+
+   if(UsefulBuf_IsValue(ExpectedSmaller, '+') != ExpectedSmaller.len -1) {
+      return "IsValue failed to find final *";
+   }
+
    // Look for +++++... in +++++... and find it at the beginning
    if(0 != UsefulBuf_FindBytes(ExpectedLonger, ExpectedShorter)){
       return "Failed to find";
