@@ -67,7 +67,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stddef.h> // for size_t
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 /**
@@ -76,78 +76,86 @@ extern "C" {
  The goal of this code is to make buffer and pointer manipulation
  easier and safer when working with binary data.
 
- You use the UsefulBuf, UsefulOutBuf and UsefulInputBuf
- structures to represent buffers rather than ad hoc pointers and lengths.
+ \ref UsefulBuf, \ref UsefulOutBuf and \ref UsefulInputBuf structures are used to
+ represent buffers rather than ad hoc pointers and lengths.
 
- With these it will often be possible to write code that does little or no
- direct pointer manipulation for copying and formatting data. For example
- the QCBOR encoder was rewritten using these and has no direct pointer
+ With these it is possible to write code that does little or no direct
+ pointer manipulation for copying and formatting data. For example the
+ QCBOR encoder was rewritten using these and has no direct pointer
  manipulation.
 
- While it is true that object code using these functions will be a little
- larger and slower than a white-knuckle clever use of pointers might be, but
- not by that much or enough to have an affect for most use cases. For
- security-oriented code this is highly worthwhile. Clarity, simplicity,
- reviewability and are more important.
+ While it is true that object code using these functions may be a
+ little larger and slower than a white-knuckle clever use of pointers
+ might be, but not by that much or enough to have an effect for most
+ use cases. For security-oriented code this is highly
+ worthwhile. Clarity, simplicity, reviewability and are more
+ important.
 
- There are some extra sanity and double checks in this code to help catch
- coding errors and simple memory corruption. They are helpful, but not a
- substitute for proper code review, input validation and such.
+ There are some extra sanity and double checks in this code to help
+ catch coding errors and simple memory corruption. They are helpful,
+ but not a substitute for proper code review, input validation and
+ such.
 
- This code consists of a lot of inline functions and a few that are not.
- It should not generate very much object code, especially with the
- optimizer turned up to -Os or -O3. The idea is that the inline
+ This code consists of a lot of inline functions and a few that are
+ not.  It should not generate very much object code, especially with
+ the optimizer turned up to -Os or -O3. The idea is that the inline
  functions are easier to review and understand and the optimizer does
  the work of making the code small.
  */
 
 
-/*...... This is a ruler that is 80 characters long...........................*/
-
 /**
- UsefulBufC and UsefulBuf are simple data structures to hold a pointer and
- length for a binary data.  In C99 this data structure can be passed on the
- stack making a lot of code cleaner than carrying around a pointer and
- length as two parameters.
+ \ref UsefulBufC and \ref UsefulBuf are simple data structures to hold a pointer
+ and length for a binary data.  In C99 this data structure can be
+ passed on the stack making a lot of code cleaner than carrying around
+ a pointer and length as two parameters.
 
- This is also conducive to secure code practice as the lengths are
+ This is also conducive to secure coding practice as the lengths are
  always carried with the pointer and the convention for handling a
  pointer and a length is clear.
 
  While it might be possible to write buffer and pointer code more
  efficiently in some use cases, the thought is that unless there is an
- extreme need for performance (e.g., you are building a gigabit-per-second
- IP router), it is probably better to have cleaner code you can be most
- certain about the security of.
+ extreme need for performance (e.g., you are building a
+ gigabit-per-second IP router), it is probably better to have cleaner
+ code you can be most certain about the security of.
 
- The non-const UsefulBuf is usually used to refer a buffer to be filled in.
- The length is the size of the buffer.
+ The non-const \ref UsefulBuf is usually used to refer a buffer to be
+ filled in.  The length is the size of the buffer.
 
- The const UsefulBufC is usually used to refer to some data that has been
- filled in. The length is amount of valid data pointed to.
+ The const \ref UsefulBufC is usually used to refer to some data that has
+ been filled in. The length is amount of valid data pointed to.
 
- A common use is to pass a UsefulBuf to a function, the function fills it
- in, the function returns a UsefulBufC. The pointer is the same in both.
+ A common use is to pass a \ref UsefulBuf to a function, the function fills
+ it in, the function returns a \ref UsefulBufC. The pointer is the same in
+ both.
 
- A UsefulBuf is NULL, it has no value, when the ptr in it is NULL.
+ A \ref UsefulBuf is NULL, it has no value, when the ptr in it is \c NULL.
 
  There are utility functions for the following:
   - Checking for UsefulBufs that are NULL, empty or both
   - Copying, copying with offset, copying head or tail
-  - Comparing and finding substrings
+  - Comparing, finding a byte value and finding a substring
   - Initializating
   - Create initialized const UsefulBufC from compiler literals
   - Create initialized const UsefulBufC from NULL-terminated string
   - Make an empty UsefulBuf on the stack
 
- See also UsefulOutBuf. It is a richer structure that has both the size of
- the valid data and the size of the buffer.
+ See also \ref UsefulOutBuf. It is a richer structure that has both the
+ size of the valid data and the size of the buffer.
 
- UsefulBuf is only 16 or 8 bytes on a 64- or 32-bit machine so it can go
- on the stack and be a function parameter or return value.
+ \ref UsefulBuf is only 16 or 8 bytes on a 64- or 32-bit machine so it can
+ go on the stack and be a function parameter or return value.
+ 
+ Another way to look at it is this. C has the NULL-terminated string
+ as a means for handling text strings, but no means or convention
+ for binary strings. Many other languages do have a some means,
+ in particular Rust, a compiled efficient language like C means
+ for handling binary strings fundamentally built in.
 
- UsefulBuf is kind of like the Useful Pot Pooh gave Eeyore on his birthday.
- Eeyore's balloon fits beautifully, "it goes in and out like anything".
+ \ref UsefulBuf is kind of like the Useful Pot Pooh gave Eeyore on his
+ birthday.  Eeyore's balloon fits beautifully, "it goes in and out
+ like anything".
 
 */
 typedef struct q_useful_buf_c {
@@ -168,14 +176,14 @@ typedef struct q_useful_buf {
 
 
 /**
- A "NULL" UsefulBufC is one that has no value in the same way a NULL pointer has no value.
- A UsefulBuf is NULL when the ptr field is NULL. It doesn't matter what len is.
+ A "NULL" \ref UsefulBufC is one that has no value in the same way a NULL pointer has no value.
+ A \ref UsefulBuf is NULL when the \c ptr field is \c NULL. It doesn't matter what \c len is.
  See UsefulBuf_IsEmpty() for the distinction between NULL and empty.
  */
 #define NULLUsefulBufC  ((UsefulBufC) {NULL, 0})
 
-/** A NULL UsefulBuf is one that has no memory associated the say way
- NULL points to nothing. It does not matter what len is.
+/** A NULL \ref UsefulBuf is one that has no memory associated the say way
+ \c NULL points to nothing. It does not matter what len is.
  */
 #define NULLUsefulBuf   ((UsefulBuf) {NULL, 0})
 
@@ -525,10 +533,10 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue);
 
 
 /**
- @brief Find one UsefulBuf in another
+ @brief Find one UsefulBuf in another.
 
- @param[in] BytesToSearch  UsefulBuf to search through
- @param[in] BytesToFind    UsefulBuf with bytes to be found
+ @param[in] BytesToSearch  UsefulBuf to search through.
+ @param[in] BytesToFind    UsefulBuf with bytes to be found.
 
  @return position of found bytes or SIZE_MAX if not found.
 
@@ -673,22 +681,22 @@ typedef struct useful_out_buf {
 
 
 /**
- @brief Initialize and supply the actual output buffer
+ @brief Initialize and supply the actual output buffer.
 
- @param[out] me The UsefulOutBuf to initialize
- @param[in] Storage  Buffer to output into
+ @param[out] me      The \re UsefulOutBuf to initialize.
+ @param[in] Storage  Buffer to output into.
 
- Intializes the UsefulOutBuf with storage. Sets the current position
+ Intializes the \ref UsefulOutBuf with storage. Sets the current position
  to the beginning of the buffer clears the error.
 
- This must be called before the UsefulOutBuf is used.
+ This must be called before the \ref UsefulOutBuf is used.
  */
 void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage);
 
 
 
 
-/** Convenience marco to make a UsefulOutBuf on the stack and
+/** Convenience marco to make a \ref UsefulOutBuf on the stack and
    initialize it with stack buffer
  */
 #define  UsefulOutBuf_MakeOnStack(name, size) \
@@ -699,9 +707,9 @@ void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage);
 
 
 /**
- @brief Reset a UsefulOutBuf for re use
+ @brief Reset a \ref UsefulOutBuf for re use
 
- @param[in] me Pointer to the UsefulOutBuf
+ @param[in] me Pointer to the \ref UsefulOutBuf
 
  This sets the amount of data in the output buffer to none and
  clears the error state.
@@ -709,60 +717,47 @@ void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage);
  The output buffer is still the same one and size as from the
  UsefulOutBuf_Init() call.
 
- It doesn't zero the data, just resets to 0 bytes of valid data.
+ This doesn't zero the data, just resets to 0 bytes of valid data.
  */
-static inline void UsefulOutBuf_Reset(UsefulOutBuf *me)
-{
-   me->data_len = 0;
-   me->err    = 0;
-}
-
+static inline void UsefulOutBuf_Reset(UsefulOutBuf *me);
 
 /**
- @brief Returns position of end of data in the UsefulOutBuf
+ @brief Returns position of end of data in the \ref UsefulOutBuf
 
- @param[in] me Pointer to the UsefulOutBuf
+ @param[in] me Pointer to the \ref UsefulOutBuf
 
  @return position of end of data
 
- On a freshly initialized UsefulOutBuf with no data added, this will
+ On a freshly initialized \ref UsefulOutBuf with no data added, this will
  return 0. After ten bytes have been added, it will return 10 and so
  on.
 
  Generally callers will not need this function for most uses of
- UsefulOutBuf.
-
+ \ref UsefulOutBuf.
  */
-static inline size_t UsefulOutBuf_GetEndPosition(UsefulOutBuf *me)
-{
-   return me->data_len;
-}
+static inline size_t UsefulOutBuf_GetEndPosition(UsefulOutBuf *me);
 
 
 /**
- @brief Returns whether any data has been added to the UsefulOutBuf
+ @brief Returns whether any data has been added to the \ref UsefulOutBuf
 
- @param[in] me Pointer to the UsefulOutBuf
+ @param[in] me Pointer to the \ref UsefulOutBuf
 
  @return 1 if output position is at start
-
  */
-static inline int UsefulOutBuf_AtStart(UsefulOutBuf *me)
-{
-   return 0 == me->data_len;
-}
+static inline int UsefulOutBuf_AtStart(UsefulOutBuf *me);
 
 
 /**
- @brief Inserts bytes into the UsefulOutBuf
+ @brief Inserts bytes into the \ref UsefulOutBuf.
 
- @param[in] me Pointer to the UsefulOutBuf
- @param[in] NewData UsefulBuf with the bytes to insert
- @param[in] uPos Index in output buffer at which to insert
+ @param[in] me      Pointer to the \ref UsefulOutBuf.
+ @param[in] NewData The bytes to insert.
+ @param[in] uPos    Index in output buffer at which to insert.
 
- NewData is the pointer and length for the bytes to be added to the
+ \c NewData is the pointer and length for the bytes to be added to the
  output buffer. There must be room in the output buffer for all of
- NewData or an error will occur.
+ \c NewData or an error will occur.
 
  The insertion point must be between 0 and the current valid data. If
  not an error will occur. Appending data to the output buffer is
@@ -773,195 +768,144 @@ static inline int UsefulOutBuf_AtStart(UsefulOutBuf *me)
  the end of data previously added to the output buffer is slid to the
  right to make room for the new data.
 
- Overlapping buffers are OK. NewData can point to data in the output
+ Overlapping buffers are OK. \c NewData can point to data in the output
  buffer.
 
- If an error occurs an error state is set in the UsefulOutBuf. No
+ If an error occurs an error state is set in the \ref UsefulOutBuf. No
  error is returned.  All subsequent attempts to add data will do
  nothing.
 
- Call UsefulOutBuf_GetError() to find out if there is an error. This
- is usually not needed until all additions of data are complete.
-
+ Call UsefulOutBuf_GetError() to find out if there is an error. The
+ intended usage is to check the error only once after all calls
+ have been made to insert and append data, keeping code doing
+ the output much neater.
  */
 void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t uPos);
 
 
 /**
- @brief Insert a data buffer into the UsefulOutBuf
+ @brief Insert a data buffer into the \ref UsefulOutBuf.
 
- @param[in] me Pointer to the UsefulOutBul
+ @param[in] me     Pointer to the \ref UsefulOutBuf.
  @param[in] pBytes Pointer to the bytes to insert
- @param[in] uLen Length of the bytes to insert
- @param[in] uPos Index in output buffer at which to insert
+ @param[in] uLen   Length of the bytes to insert
+ @param[in] uPos   Index in output buffer at which to insert
 
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
  the difference being a pointer and length is passed in rather than an
- UsefulBuf.
-
+ \ref UsefulBufC.
  */
-static inline void UsefulOutBuf_InsertData(UsefulOutBuf *me, const void *pBytes, size_t uLen, size_t uPos)
-{
-   UsefulBufC Data = {pBytes, uLen};
-   UsefulOutBuf_InsertUsefulBuf(me, Data, uPos);
-}
+static inline void UsefulOutBuf_InsertData(UsefulOutBuf *me, const void *pBytes, size_t uLen, size_t uPos);
 
 
 /**
- @brief Insert a NULL-terminated string into the UsefulOutBuf
+ @brief Insert a NULL-terminated string into the UsefulOutBuf.
 
- @param[in] me Pointer to the UsefulOutBuf
- @param[in] szString string to append
-
+ @param[in] me       Pointer to the \ref UsefulOutBuf.
+ @param[in] szString String to append.
  */
-static inline void UsefulOutBuf_InsertString(UsefulOutBuf *me, const char *szString, size_t uPos)
-{
-   UsefulOutBuf_InsertUsefulBuf(me, (UsefulBufC){szString, strlen(szString)}, uPos);
-}
+static inline void UsefulOutBuf_InsertString(UsefulOutBuf *me, const char *szString, size_t uPos);
 
 
 /**
- @brief Insert a byte into the UsefulOutBuf
+ @brief Insert a byte into the \ref UsefulOutBuf.
 
- @param[in] me Pointer to the UsefulOutBul
- @param[in] byte Bytes to insert
- @param[in] uPos Index in output buffer at which to insert
+ @param[in] me   Pointer to the UsefulOutBuf.
+ @param[in] byte Bytes to insert.
+ @param[in] uPos Index in output buffer at which to insert.
 
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
  the difference being a single byte is to be inserted.
  */
-static inline void UsefulOutBuf_InsertByte(UsefulOutBuf *me, uint8_t byte, size_t uPos)
-{
-   UsefulOutBuf_InsertData(me, &byte, 1, uPos);
-}
+static inline void UsefulOutBuf_InsertByte(UsefulOutBuf *me, uint8_t byte, size_t uPos);
 
 
 /**
- @brief Insert a 16-bit integer into the UsefulOutBuf
+ @brief Insert a 16-bit integer into the \ref UsefulOutBuf.
 
- @param[in] me Pointer to the UsefulOutBul
- @param[in] uInteger16 Integer to insert
- @param[in] uPos Index in output buffer at which to insert
+ @param[in] me         Pointer to the \ref UsefulOutBuf.
+ @param[in] uInteger16 Integer to insert.
+ @param[in] uPos       Index in output buffer at which to insert.
 
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a single byte is to be inserted.
+ the difference being a two byte integer is to be inserted.
 
- The integer will be inserted in network byte order (big endian)
+ The integer will be inserted in network byte order (big endian).
  */
-static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *me, uint16_t uInteger16, size_t uPos)
-{
-   // Converts native integer format to network byte order (big endian)
-   uint8_t tmp[2];
-   tmp[0] = (uInteger16 & 0xff00) >> 8;
-   tmp[1] = (uInteger16 & 0xff);
-   UsefulOutBuf_InsertData(me, tmp, 2, uPos);
-}
+static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *me, uint16_t uInteger16, size_t uPos);
 
 
 /**
- @brief Insert a 32-bit integer into the UsefulOutBuf
+ @brief Insert a 32-bit integer into the \ref UsefulOutBuf.
 
- @param[in] me Pointer to the UsefulOutBul
- @param[in] uInteger32 Integer to insert
- @param[in] uPos Index in output buffer at which to insert
+ @param[in] me         Pointer to the \ref UsefulOutBulf.
+ @param[in] uInteger32 Integer to insert.
+ @param[in] uPos       Index in output buffer at which to insert.
 
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a single byte is to be inserted.
+ the difference being a four byte integer is to be inserted.
 
- The integer will be inserted in network byte order (big endian)
+ The integer will be inserted in network byte order (big endian).
  */
-static inline void UsefulOutBuf_InsertUint32(UsefulOutBuf *me, uint32_t uInteger32, size_t uPos)
-{
-   // Converts native integer format to network byte order (big endian)
-   uint8_t tmp[4];
-   tmp[0] = (uInteger32 & 0xff000000) >> 24;
-   tmp[1] = (uInteger32 & 0xff0000) >> 16;
-   tmp[2] = (uInteger32 & 0xff00) >> 8;
-   tmp[3] = (uInteger32 & 0xff);
-   UsefulOutBuf_InsertData(me, tmp, 4, uPos);
-}
+static inline void UsefulOutBuf_InsertUint32(UsefulOutBuf *me, uint32_t uInteger32, size_t uPos);
 
 
 /**
- @brief Insert a 64-bit integer into the UsefulOutBuf
+ @brief Insert a 64-bit integer into the UsefulOutBuf.
 
- @param[in] me Pointer to the UsefulOutBul
- @param[in] uInteger64 Integer to insert
- @param[in] uPos Index in output buffer at which to insert
+ @param[in] me         Pointer to the \ref UsefulOutBuf.
+ @param[in] uInteger64 Integer to insert.
+ @param[in] uPos       Index in output buffer at which to insert.
 
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a single byte is to be inserted.
+ the difference being an eight byte integer is to be inserted.
 
- The integer will be inserted in network byte order (big endian)
+ The integer will be inserted in network byte order (big endian).
  */
-static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *me, uint64_t uInteger64, size_t uPos)
-{
-   // Converts native integer format to network byte order (big endian)
-   uint8_t tmp[8];
-   tmp[0] = (uInteger64 & 0xff00000000000000) >> 56;
-   tmp[1] = (uInteger64 & 0xff000000000000) >> 48;
-   tmp[2] = (uInteger64 & 0xff0000000000) >> 40;
-   tmp[3] = (uInteger64 & 0xff00000000) >> 32;
-   tmp[4] = (uInteger64 & 0xff000000) >> 24;
-   tmp[5] = (uInteger64 & 0xff0000) >> 16;
-   tmp[6] = (uInteger64 & 0xff00) >> 8;
-   tmp[7] = (uInteger64 & 0xff);
-   UsefulOutBuf_InsertData(me, tmp, 8, uPos);
-}
+static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *me, uint64_t uInteger64, size_t uPos);
 
 
 /**
- @brief Insert a float into the UsefulOutBuf
+ @brief Insert a float into the \ref UsefulOutBuf.
 
- @param[in] me Pointer to the UsefulOutBul
- @param[in] f Integer to insert
- @param[in] uPos Index in output buffer at which to insert
+ @param[in] me   Pointer to the \ref UsefulOutBuf.
+ @param[in] f    Integer to insert.
+ @param[in] uPos Index in output buffer at which to insert.
 
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a single byte is to be inserted.
+ the difference being a float is to be inserted.
 
  The float will be inserted in network byte order (big endian)
  */
-static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *me, float f, size_t uPos)
-{
-   UsefulOutBuf_InsertUint32(me, UsefulBufUtil_CopyFloatToUint32(f), uPos);
-}
+static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *me, float f, size_t uPos);
 
 
 /**
- @brief Insert a double into the UsefulOutBuf
+ @brief Insert a double into the \ref UsefulOutBuf.
 
- @param[in] me Pointer to the UsefulOutBul
- @param[in] d Integer to insert
- @param[in] uPos Index in output buffer at which to insert
+ @param[in] me   Pointer to the \ref sefulOutBul.
+ @param[in] d    Integer to insert.
+ @param[in] uPos Index in output buffer at which to insert.
 
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a single byte is to be inserted.
+ the difference being a double is to be inserted.
 
- The double will be inserted in network byte order (big endian)
+ The double will be inserted in network byte order (big endian).
  */
-static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *me, double d, size_t uPos)
-{
-   UsefulOutBuf_InsertUint64(me, UsefulBufUtil_CopyDoubleToUint64(d), uPos);
-}
-
+static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *me, double d, size_t uPos);
 
 
 /**
- Append a UsefulBuf into the UsefulOutBuf
+ Append a UsefulBuf into the \ref UsefulOutBuf
 
- @param[in] me Pointer to the UsefulOutBuf
+ @param[in] me Pointer to the \ref UsefulOutBuf
  @param[in] NewData UsefulBuf with the bytes to append
 
  See UsefulOutBuf_InsertUsefulBuf() for details. This does the same
  with the insertion point at the end of the valid data.
 
 */
-static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData)
-{
-   // An append is just a insert at the end
-   UsefulOutBuf_InsertUsefulBuf(me, NewData, UsefulOutBuf_GetEndPosition(me));
-}
+static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData);
 
 
 /**
@@ -974,12 +918,7 @@ static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *me, UsefulBufC New
  See UsefulOutBuf_InsertUsefulBuf() for details. This does the same
  with the insertion point at the end of the valid data.
  */
-
-static inline void UsefulOutBuf_AppendData(UsefulOutBuf *me, const void *pBytes, size_t uLen)
-{
-   UsefulBufC Data = {pBytes, uLen};
-   UsefulOutBuf_AppendUsefulBuf(me, Data);
-}
+static inline void UsefulOutBuf_AppendData(UsefulOutBuf *me, const void *pBytes, size_t uLen);
 
 
 /**
@@ -987,12 +926,8 @@ static inline void UsefulOutBuf_AppendData(UsefulOutBuf *me, const void *pBytes,
 
  @param[in] me Pointer to the UsefulOutBuf
  @param[in] szString string to append
-
  */
-static inline void UsefulOutBuf_AppendString(UsefulOutBuf *me, const char *szString)
-{
-   UsefulOutBuf_AppendUsefulBuf(me, (UsefulBufC){szString, strlen(szString)});
-}
+static inline void UsefulOutBuf_AppendString(UsefulOutBuf *me, const char *szString);
 
 
 /**
@@ -1004,10 +939,8 @@ static inline void UsefulOutBuf_AppendString(UsefulOutBuf *me, const char *szStr
  See UsefulOutBuf_InsertUsefulBuf() for details. This does the same
  with the insertion point at the end of the valid data.
  */
-static inline void UsefulOutBuf_AppendByte(UsefulOutBuf *me, uint8_t byte)
-{
-   UsefulOutBuf_AppendData(me, &byte, 1);
-}
+static inline void UsefulOutBuf_AppendByte(UsefulOutBuf *me, uint8_t byte);
+
 
 /**
  @brief Append an integer to the UsefulOutBuf
@@ -1020,9 +953,8 @@ static inline void UsefulOutBuf_AppendByte(UsefulOutBuf *me, uint8_t byte)
 
  The integer will be appended in network byte order (big endian).
  */
-static inline void UsefulOutBuf_AppendUint16(UsefulOutBuf *me, uint16_t uInteger16){
-   UsefulOutBuf_InsertUint16(me, uInteger16, UsefulOutBuf_GetEndPosition(me));
-}
+static inline void UsefulOutBuf_AppendUint16(UsefulOutBuf *me, uint16_t uInteger16);
+
 
 /**
  @brief Append an integer to the UsefulOutBuf
@@ -1035,9 +967,8 @@ static inline void UsefulOutBuf_AppendUint16(UsefulOutBuf *me, uint16_t uInteger
 
  The integer will be appended in network byte order (big endian).
  */
-static inline void UsefulOutBuf_AppendUint32(UsefulOutBuf *me, uint32_t uInteger32){
-   UsefulOutBuf_InsertUint32(me, uInteger32, UsefulOutBuf_GetEndPosition(me));
-}
+static inline void UsefulOutBuf_AppendUint32(UsefulOutBuf *me, uint32_t uInteger32);
+
 
 /**
  @brief Append an integer to the UsefulOutBuf
@@ -1050,9 +981,7 @@ static inline void UsefulOutBuf_AppendUint32(UsefulOutBuf *me, uint32_t uInteger
 
  The integer will be appended in network byte order (big endian).
  */
-static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *me, uint64_t uInteger64){
-   UsefulOutBuf_InsertUint64(me, uInteger64, UsefulOutBuf_GetEndPosition(me));
-}
+static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *me, uint64_t uInteger64);
 
 
 /**
@@ -1066,9 +995,8 @@ static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *me, uint64_t uInteger
 
  The float will be appended in network byte order (big endian).
  */
-static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *me, float f){
-   UsefulOutBuf_InsertFloat(me, f, UsefulOutBuf_GetEndPosition(me));
-}
+static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *me, float f);
+
 
 /**
  @brief Append a float to the UsefulOutBuf
@@ -1081,9 +1009,8 @@ static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *me, float f){
 
  The double will be appended in network byte order (big endian).
  */
-static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *me, double d){
-   UsefulOutBuf_InsertDouble(me, d, UsefulOutBuf_GetEndPosition(me));
-}
+static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *me, double d);
+
 
 /**
  @brief Returns the current error status
@@ -1102,11 +1029,7 @@ static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *me, double d){
    - current position is off end of buffer (probably corruption or uninitialized)
    - detect corruption / uninitialized by bad magic number
  */
-
-static inline int UsefulOutBuf_GetError(UsefulOutBuf *me)
-{
-   return me->err;
-}
+static inline int UsefulOutBuf_GetError(UsefulOutBuf *me);
 
 
 /**
@@ -1119,11 +1042,7 @@ static inline int UsefulOutBuf_GetError(UsefulOutBuf *me)
  Because of the error handling strategy and checks in UsefulOutBuf_InsertUsefulBuf()
  it is usually not necessary to use this.
  */
-
-static inline size_t UsefulOutBuf_RoomLeft(UsefulOutBuf *me)
-{
-   return me->UB.len - me->data_len;
-}
+static inline size_t UsefulOutBuf_RoomLeft(UsefulOutBuf *me);
 
 
 /**
@@ -1137,11 +1056,7 @@ static inline size_t UsefulOutBuf_RoomLeft(UsefulOutBuf *me)
  Because of the error handling strategy and checks in UsefulOutBuf_InsertUsefulBuf()
  it is usually not necessary to use this.
  */
-
-static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *me, size_t uLen)
-{
-   return uLen <= UsefulOutBuf_RoomLeft(me);
-}
+static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *me, size_t uLen);
 
 
 /**
@@ -1158,7 +1073,6 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *me, size_t uLen)
    results. It doesn't change the data or reset the current position
    so you can keep adding data.
  */
-
 UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me);
 
 
@@ -1172,7 +1086,6 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me);
 
  This is the same as UsefulOutBuf_OutUBuf() except it copies the data.
 */
-
 UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf Dest);
 
 
@@ -1222,8 +1135,6 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf Dest);
 
  */
 
-#define UIB_MAGIC (0xB00F)
-
 typedef struct useful_input_buf {
    // Private data structure
    UsefulBufC UB;     // Data being parsed
@@ -1232,6 +1143,7 @@ typedef struct useful_input_buf {
    uint8_t    err;    // Set request goes off end or magic number is bad
 } UsefulInputBuf;
 
+#define UIB_MAGIC (0xB00F)
 
 
 /**
@@ -1241,13 +1153,7 @@ typedef struct useful_input_buf {
  @param[in] UB Pointer to the data to parse.
 
  */
-static inline void UsefulInputBuf_Init(UsefulInputBuf *me, UsefulBufC UB)
-{
-   me->cursor = 0;
-   me->err    = 0;
-   me->magic  = UIB_MAGIC;
-   me->UB     = UB;
-}
+static inline void UsefulInputBuf_Init(UsefulInputBuf *me, UsefulBufC UB);
 
 
 /**
@@ -1260,10 +1166,7 @@ static inline void UsefulInputBuf_Init(UsefulInputBuf *me, UsefulBufC UB)
  The position that the next bytes will be returned from.
 
  */
-static inline size_t UsefulInputBuf_Tell(UsefulInputBuf *me)
-{
-   return me->cursor;
-}
+static size_t UsefulInputBuf_Tell(UsefulInputBuf *me);
 
 
 /**
@@ -1279,14 +1182,7 @@ static inline size_t UsefulInputBuf_Tell(UsefulInputBuf *me)
  state. Only re initialization will do that.
 
  */
-static inline void UsefulInputBuf_Seek(UsefulInputBuf *me, size_t uPos)
-{
-   if(uPos > me->UB.len) {
-      me->err = 1;
-   } else {
-      me->cursor = uPos;
-   }
-}
+static void UsefulInputBuf_Seek(UsefulInputBuf *me, size_t uPos);
 
 
 /**
@@ -1305,25 +1201,7 @@ static inline void UsefulInputBuf_Seek(UsefulInputBuf *me, size_t uPos)
 
  Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
-static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *me)
-{
-   // Magic number is messed up. Either the structure got overwritten
-   // or was never initialized.
-   if(me->magic != UIB_MAGIC) {
-      return 0;
-   }
-
-   // The cursor is off the end of the input buffer given
-   // Presuming there are no bugs in this code, this should never happen.
-   // If it so, the struct was corrupted. The check is retained as
-   // as a defense in case there is a bug in this code or the struct is corrupted.
-   if(me->cursor > me->UB.len) {
-      return 0;
-   }
-
-   // subtraction can't go neative because of check above
-   return me->UB.len - me->cursor;
-}
+static size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *me);
 
 
 /**
@@ -1334,10 +1212,7 @@ static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *me)
  @return 1 if len bytes are available after the cursor, and 0 if not
 
  */
-static inline int UsefulInputBuf_BytesAvailable(UsefulInputBuf *me, size_t uLen)
-{
-   return UsefulInputBuf_BytesUnconsumed(me) >= uLen ? 1 : 0;
-}
+static int UsefulInputBuf_BytesAvailable(UsefulInputBuf *me, size_t uLen);
 
 
 /**
@@ -1375,15 +1250,7 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *me, size_t uNum);
 
  It advances the current position by n bytes.
  */
-static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *me, size_t uNum)
-{
-   const void *pResult = UsefulInputBuf_GetBytes(me, uNum);
-   if(!pResult) {
-      return NULLUsefulBufC;
-   } else {
-      return (UsefulBufC){pResult, uNum};
-   }
-}
+static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *me, size_t uNum);
 
 
 /**
@@ -1405,12 +1272,7 @@ static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *me, size_t 
 
  It advances the current position by 1 byte.
  */
-static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *me)
-{
-   const void *pResult = UsefulInputBuf_GetBytes(me, sizeof(uint8_t));
-
-   return pResult ? *(uint8_t *)pResult : 0;
-}
+static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *me);
 
 
 /**
@@ -1425,16 +1287,7 @@ static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *me)
 
  The input bytes must be in network order (big endian).
  */
-static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *me)
-{
-   const uint8_t *pResult = (const uint8_t *)UsefulInputBuf_GetBytes(me, sizeof(uint16_t));
-
-   if(!pResult) {
-      return 0;
-   }
-
-   return  ((uint16_t)pResult[0] << 8) + (uint16_t)pResult[1];
-}
+static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *me);
 
 
 /**
@@ -1449,19 +1302,7 @@ static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *me)
 
  The input bytes must be in network order (big endian).
  */
-static inline uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *me)
-{
-   const uint8_t *pResult = (const uint8_t *)UsefulInputBuf_GetBytes(me, sizeof(uint32_t));
-
-   if(!pResult) {
-      return 0;
-   }
-
-   return ((uint32_t)pResult[0]<<24) +
-          ((uint32_t)pResult[1]<<16) +
-          ((uint32_t)pResult[2]<<8) +
-           (uint32_t)pResult[3];
-}
+static uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *me);
 
 
 /**
@@ -1476,23 +1317,7 @@ static inline uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *me)
 
  The input bytes must be in network order (big endian).
  */
-static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *me)
-{
-   const uint8_t *pResult = (const uint8_t *)UsefulInputBuf_GetBytes(me, sizeof(uint64_t));
-
-   if(!pResult) {
-      return 0;
-   }
-
-   return   ((uint64_t)pResult[0]<<56) +
-            ((uint64_t)pResult[1]<<48) +
-            ((uint64_t)pResult[2]<<40) +
-            ((uint64_t)pResult[3]<<32) +
-            ((uint64_t)pResult[4]<<24) +
-            ((uint64_t)pResult[5]<<16) +
-            ((uint64_t)pResult[6]<<8)  +
-            (uint64_t)pResult[7];
-}
+static uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *me);
 
 
 /**
@@ -1507,12 +1332,8 @@ static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *me)
 
  The input bytes must be in network order (big endian).
  */
-static inline float UsefulInputBuf_GetFloat(UsefulInputBuf *me)
-{
-   uint32_t uResult = UsefulInputBuf_GetUint32(me);
+static float UsefulInputBuf_GetFloat(UsefulInputBuf *me);
 
-   return uResult ? UsefulBufUtil_CopyUint32ToFloat(uResult) : 0;
-}
 
 /**
  @brief Get a double out of the input buffer
@@ -1526,12 +1347,7 @@ static inline float UsefulInputBuf_GetFloat(UsefulInputBuf *me)
 
  The input bytes must be in network order (big endian).
  */
-static inline double UsefulInputBuf_GetDouble(UsefulInputBuf *me)
-{
-   uint64_t uResult = UsefulInputBuf_GetUint64(me);
-
-   return uResult ? UsefulBufUtil_CopyUint64ToDouble(uResult) : 0;
-}
+static double UsefulInputBuf_GetDouble(UsefulInputBuf *me);
 
 
 /**
@@ -1550,14 +1366,314 @@ static inline double UsefulInputBuf_GetDouble(UsefulInputBuf *me)
  of following items you will have to check the error.
 
  */
-static inline int UsefulInputBuf_GetError(UsefulInputBuf *me)
+static int UsefulInputBuf_GetError(UsefulInputBuf *me);
+
+
+
+/*----------------------------------------------------------
+ Inline implementations.
+ */
+static inline void UsefulOutBuf_Reset(UsefulOutBuf *me)
+{
+   me->data_len = 0;
+   me->err    = 0;
+}
+
+
+static inline size_t UsefulOutBuf_GetEndPosition(UsefulOutBuf *me)
+{
+   return me->data_len;
+}
+
+
+static inline int UsefulOutBuf_AtStart(UsefulOutBuf *me)
+{
+   return 0 == me->data_len;
+}
+
+
+static inline void UsefulOutBuf_InsertData(UsefulOutBuf *me, const void *pBytes, size_t uLen, size_t uPos)
+{
+   UsefulBufC Data = {pBytes, uLen};
+   UsefulOutBuf_InsertUsefulBuf(me, Data, uPos);
+}
+
+
+static inline void UsefulOutBuf_InsertString(UsefulOutBuf *me, const char *szString, size_t uPos)
+{
+   UsefulOutBuf_InsertUsefulBuf(me, (UsefulBufC){szString, strlen(szString)}, uPos);
+}
+
+
+static inline void UsefulOutBuf_InsertByte(UsefulOutBuf *me, uint8_t byte, size_t uPos)
+{
+   UsefulOutBuf_InsertData(me, &byte, 1, uPos);
+}
+
+
+static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *me, uint16_t uInteger16, size_t uPos)
+{
+   // Converts native integer format to network byte order (big endian)
+   uint8_t tmp[2];
+   tmp[0] = (uInteger16 & 0xff00) >> 8;
+   tmp[1] = (uInteger16 & 0xff);
+   UsefulOutBuf_InsertData(me, tmp, 2, uPos);
+}
+
+
+static inline void UsefulOutBuf_InsertUint32(UsefulOutBuf *me, uint32_t uInteger32, size_t uPos)
+{
+   // Converts native integer format to network byte order (big endian)
+   uint8_t tmp[4];
+   tmp[0] = (uInteger32 & 0xff000000) >> 24;
+   tmp[1] = (uInteger32 & 0xff0000) >> 16;
+   tmp[2] = (uInteger32 & 0xff00) >> 8;
+   tmp[3] = (uInteger32 & 0xff);
+   UsefulOutBuf_InsertData(me, tmp, 4, uPos);
+}
+
+
+static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *me, uint64_t uInteger64, size_t uPos)
+{
+   // Converts native integer format to network byte order (big endian)
+   uint8_t tmp[8];
+   tmp[0] = (uInteger64 & 0xff00000000000000) >> 56;
+   tmp[1] = (uInteger64 & 0xff000000000000) >> 48;
+   tmp[2] = (uInteger64 & 0xff0000000000) >> 40;
+   tmp[3] = (uInteger64 & 0xff00000000) >> 32;
+   tmp[4] = (uInteger64 & 0xff000000) >> 24;
+   tmp[5] = (uInteger64 & 0xff0000) >> 16;
+   tmp[6] = (uInteger64 & 0xff00) >> 8;
+   tmp[7] = (uInteger64 & 0xff);
+   UsefulOutBuf_InsertData(me, tmp, 8, uPos);
+}
+
+
+static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *me, float f, size_t uPos)
+{
+   UsefulOutBuf_InsertUint32(me, UsefulBufUtil_CopyFloatToUint32(f), uPos);
+}
+
+
+static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *me, double d, size_t uPos)
+{
+   UsefulOutBuf_InsertUint64(me, UsefulBufUtil_CopyDoubleToUint64(d), uPos);
+}
+
+
+static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData)
+{
+   // An append is just a insert at the end
+   UsefulOutBuf_InsertUsefulBuf(me, NewData, UsefulOutBuf_GetEndPosition(me));
+}
+
+
+static inline void UsefulOutBuf_AppendData(UsefulOutBuf *me, const void *pBytes, size_t uLen)
+{
+   UsefulBufC Data = {pBytes, uLen};
+   UsefulOutBuf_AppendUsefulBuf(me, Data);
+}
+
+
+static inline void UsefulOutBuf_AppendString(UsefulOutBuf *me, const char *szString)
+{
+   UsefulOutBuf_AppendUsefulBuf(me, (UsefulBufC){szString, strlen(szString)});
+}
+
+
+static inline void UsefulOutBuf_AppendByte(UsefulOutBuf *me, uint8_t byte)
+{
+   UsefulOutBuf_AppendData(me, &byte, 1);
+}
+
+
+static inline void UsefulOutBuf_AppendUint16(UsefulOutBuf *me, uint16_t uInteger16)
+{
+   UsefulOutBuf_InsertUint16(me, uInteger16, UsefulOutBuf_GetEndPosition(me));
+}
+
+static inline void UsefulOutBuf_AppendUint32(UsefulOutBuf *me, uint32_t uInteger32)
+{
+   UsefulOutBuf_InsertUint32(me, uInteger32, UsefulOutBuf_GetEndPosition(me));
+}
+
+
+static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *me, uint64_t uInteger64)
+{
+   UsefulOutBuf_InsertUint64(me, uInteger64, UsefulOutBuf_GetEndPosition(me));
+}
+
+
+static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *me, float f)
+{
+   UsefulOutBuf_InsertFloat(me, f, UsefulOutBuf_GetEndPosition(me));
+}
+
+
+static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *me, double d)
+{
+   UsefulOutBuf_InsertDouble(me, d, UsefulOutBuf_GetEndPosition(me));
+}
+
+
+static inline int UsefulOutBuf_GetError(UsefulOutBuf *me)
 {
    return me->err;
 }
 
 
-#ifdef __cplusplus
+static inline size_t UsefulOutBuf_RoomLeft(UsefulOutBuf *me)
+{
+   return me->UB.len - me->data_len;
 }
+
+
+static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *me, size_t uLen)
+{
+   return uLen <= UsefulOutBuf_RoomLeft(me);
+}
+
+
+
+
+static inline void UsefulInputBuf_Init(UsefulInputBuf *me, UsefulBufC UB)
+{
+   me->cursor = 0;
+   me->err    = 0;
+   me->magic  = UIB_MAGIC;
+   me->UB     = UB;
+}
+
+static inline size_t UsefulInputBuf_Tell(UsefulInputBuf *me)
+{
+   return me->cursor;
+}
+
+
+static inline void UsefulInputBuf_Seek(UsefulInputBuf *me, size_t uPos)
+{
+   if(uPos > me->UB.len) {
+      me->err = 1;
+   } else {
+      me->cursor = uPos;
+   }
+}
+
+
+static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *me)
+{
+   // Magic number is messed up. Either the structure got overwritten
+   // or was never initialized.
+   if(me->magic != UIB_MAGIC) {
+      return 0;
+   }
+   
+   // The cursor is off the end of the input buffer given
+   // Presuming there are no bugs in this code, this should never happen.
+   // If it so, the struct was corrupted. The check is retained as
+   // as a defense in case there is a bug in this code or the struct is corrupted.
+   if(me->cursor > me->UB.len) {
+      return 0;
+   }
+   
+   // subtraction can't go neative because of check above
+   return me->UB.len - me->cursor;
+}
+
+
+static inline int UsefulInputBuf_BytesAvailable(UsefulInputBuf *me, size_t uLen)
+{
+   return UsefulInputBuf_BytesUnconsumed(me) >= uLen ? 1 : 0;
+}
+
+
+static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *me, size_t uNum)
+{
+   const void *pResult = UsefulInputBuf_GetBytes(me, uNum);
+   if(!pResult) {
+      return NULLUsefulBufC;
+   } else {
+      return (UsefulBufC){pResult, uNum};
+   }
+}
+
+
+static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *me)
+{
+   const void *pResult = UsefulInputBuf_GetBytes(me, sizeof(uint8_t));
+   
+   return pResult ? *(uint8_t *)pResult : 0;
+}
+
+static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *me)
+{
+   const uint8_t *pResult = (const uint8_t *)UsefulInputBuf_GetBytes(me, sizeof(uint16_t));
+   
+   if(!pResult) {
+      return 0;
+   }
+   
+   return  ((uint16_t)pResult[0] << 8) + (uint16_t)pResult[1];
+}
+
+
+static inline uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *me)
+{
+   const uint8_t *pResult = (const uint8_t *)UsefulInputBuf_GetBytes(me, sizeof(uint32_t));
+   
+   if(!pResult) {
+      return 0;
+   }
+   
+   return ((uint32_t)pResult[0]<<24) +
+   ((uint32_t)pResult[1]<<16) +
+   ((uint32_t)pResult[2]<<8) +
+   (uint32_t)pResult[3];
+}
+
+
+static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *me)
+{
+   const uint8_t *pResult = (const uint8_t *)UsefulInputBuf_GetBytes(me, sizeof(uint64_t));
+   
+   if(!pResult) {
+      return 0;
+   }
+   
+   return   ((uint64_t)pResult[0]<<56) +
+   ((uint64_t)pResult[1]<<48) +
+   ((uint64_t)pResult[2]<<40) +
+   ((uint64_t)pResult[3]<<32) +
+   ((uint64_t)pResult[4]<<24) +
+   ((uint64_t)pResult[5]<<16) +
+   ((uint64_t)pResult[6]<<8)  +
+   (uint64_t)pResult[7];
+}
+
+
+static inline float UsefulInputBuf_GetFloat(UsefulInputBuf *me)
+{
+   uint32_t uResult = UsefulInputBuf_GetUint32(me);
+   
+   return uResult ? UsefulBufUtil_CopyUint32ToFloat(uResult) : 0;
+}
+
+
+static inline double UsefulInputBuf_GetDouble(UsefulInputBuf *me)
+{
+   uint64_t uResult = UsefulInputBuf_GetUint64(me);
+   
+   return uResult ? UsefulBufUtil_CopyUint64ToDouble(uResult) : 0;
+}
+
+
+static inline int UsefulInputBuf_GetError(UsefulInputBuf *me)
+{
+   return me->err;
+}
+
+#ifdef __cplusplus
+//}
 #endif
 
 #endif  // _UsefulBuf_h
