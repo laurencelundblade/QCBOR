@@ -138,11 +138,11 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind)
 
  Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
-void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage)
+void UsefulOutBuf_Init(UsefulOutBuf *pMe, UsefulBuf Storage)
 {
-    me->magic  = USEFUL_OUT_BUF_MAGIC;
-    UsefulOutBuf_Reset(me);
-    me->UB     = Storage;
+    pMe->magic  = USEFUL_OUT_BUF_MAGIC;
+    UsefulOutBuf_Reset(pMe);
+    pMe->UB     = Storage;
 
 #if 0
    // This check is off by default.
@@ -196,9 +196,9 @@ void UsefulOutBuf_Init(UsefulOutBuf *me, UsefulBuf Storage)
  4. Put the new data in at the insertion position.
 
  */
-void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t uInsertionPos)
+void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t uInsertionPos)
 {
-   if(me->err) {
+   if(pMe->err) {
       // Already in error state.
       return;
    }
@@ -208,53 +208,53 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
    // probably means me was not initialized or it was corrupted. Attackers
    // can defeat this, but it is a hurdle and does good with very
    // little code.
-   if(me->magic != USEFUL_OUT_BUF_MAGIC) {
-      me->err = 1;
+   if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
+      pMe->err = 1;
       return;  // Magic number is wrong due to uninitalization or corrption
    }
 
    // Make sure valid data is less than buffer size. This would only occur
    // if there was corruption of me, but it is also part of the checks to
    // be sure there is no pointer arithmatic under/overflow.
-   if(me->data_len > me->UB.len) {  // Check #1
-      me->err = 1;
+   if(pMe->data_len > pMe->UB.len) {  // Check #1
+      pMe->err = 1;
       return; // Offset of valid data is off the end of the UsefulOutBuf due to uninitialization or corruption
    }
 
    /* 1. Will it fit? */
    // WillItFit() is the same as: NewData.len <= (me->size - me->data_len)
    // Check #1 makes sure subtraction in RoomLeft will not wrap around
-   if(! UsefulOutBuf_WillItFit(me, NewData.len)) { // Check #2
+   if(! UsefulOutBuf_WillItFit(pMe, NewData.len)) { // Check #2
       // The new data will not fit into the the buffer.
-      me->err = 1;
+      pMe->err = 1;
       return;
    }
 
    /* 2. Check the Insertion Position */
    // This, with Check #1, also confirms that uInsertionPos <= me->data_len
-   if(uInsertionPos > me->data_len) { // Check #3
+   if(uInsertionPos > pMe->data_len) { // Check #3
       // Off the end of the valid data in the buffer.
-      me->err = 1;
+      pMe->err = 1;
       return;
    }
 
    /* 3. Slide existing data to the right */
-   uint8_t *pSourceOfMove       = ((uint8_t *)me->UB.ptr) + uInsertionPos; // PtrMath #1
-   size_t   uNumBytesToMove     = me->data_len - uInsertionPos; // PtrMath #2
+   uint8_t *pSourceOfMove       = ((uint8_t *)pMe->UB.ptr) + uInsertionPos; // PtrMath #1
+   size_t   uNumBytesToMove     = pMe->data_len - uInsertionPos; // PtrMath #2
    uint8_t *pDestinationOfMove  = pSourceOfMove + NewData.len; // PtrMath #3
 
-   if(uNumBytesToMove && me->UB.ptr) {
+   if(uNumBytesToMove && pMe->UB.ptr) {
       // To know memmove won't go off end of destination, see PtrMath #4
       memmove(pDestinationOfMove, pSourceOfMove, uNumBytesToMove);
    }
 
    /* 4. Put the new data in */
-   uint8_t *pInsertionPoint = ((uint8_t *)me->UB.ptr) + uInsertionPos; // PtrMath #5
-   if(me->UB.ptr) {
+   uint8_t *pInsertionPoint = ((uint8_t *)pMe->UB.ptr) + uInsertionPos; // PtrMath #5
+   if(pMe->UB.ptr) {
       // To know memmove won't go off end of destination, see PtrMath #6
       memmove(pInsertionPoint, NewData.ptr, NewData.len);
    }
-   me->data_len += NewData.len ;
+   pMe->data_len += NewData.len ;
 }
 
 
@@ -291,18 +291,18 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *me, UsefulBufC NewData, size_t u
 /*
  Public function -- see UsefulBuf.h
  */
-UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me)
+UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pMe)
 {
-   if(me->err) {
+   if(pMe->err) {
       return NULLUsefulBufC;
    }
 
-   if(me->magic != USEFUL_OUT_BUF_MAGIC) {
-      me->err = 1;
+   if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
+      pMe->err = 1;
       return NULLUsefulBufC;
    }
 
-   return (UsefulBufC){me->UB.ptr,me->data_len};
+   return (UsefulBufC){pMe->UB.ptr, pMe->data_len};
 }
 
 
@@ -311,9 +311,9 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *me)
 
  Copy out the data accumulated in to the output buffer.
  */
-UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf pDest)
+UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pMe, UsefulBuf pDest)
 {
-   const UsefulBufC Tmp = UsefulOutBuf_OutUBuf(me);
+   const UsefulBufC Tmp = UsefulOutBuf_OutUBuf(pMe);
    if(UsefulBuf_IsNULLC(Tmp)) {
       return NULLUsefulBufC;
    }
@@ -330,22 +330,22 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *me, UsefulBuf pDest)
 
  Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
-const void * UsefulInputBuf_GetBytes(UsefulInputBuf *me, size_t uAmount)
+const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pMe, size_t uAmount)
 {
    // Already in error state. Do nothing.
-   if(me->err) {
+   if(pMe->err) {
       return NULL;
    }
 
-   if(!UsefulInputBuf_BytesAvailable(me, uAmount)) {
+   if(!UsefulInputBuf_BytesAvailable(pMe, uAmount)) {
       // The number of bytes asked for at current position are more than available
-      me->err = 1;
+      pMe->err = 1;
       return NULL;
    }
 
    // This is going to succeed
-   const void * const result = ((uint8_t *)me->UB.ptr) + me->cursor;
-   me->cursor += uAmount; // this will not overflow because of check using UsefulInputBuf_BytesAvailable()
+   const void * const result = ((uint8_t *)pMe->UB.ptr) + pMe->cursor;
+   pMe->cursor += uAmount; // this will not overflow because of check using UsefulInputBuf_BytesAvailable()
    return result;
 }
 
