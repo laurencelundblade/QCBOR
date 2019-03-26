@@ -85,7 +85,7 @@ extern "C" {
  With these it will often be possible to write code that does little
  or no direct pointer manipulation for copying and formatting
  data. For example, the QCBOR encoder was written using these and
- has no direct pointer manipulation.
+ has no less pointer manipulation.
 
  While it is true that object code using these functions will be a
  little larger and slower than a white-knuckle clever use of pointers
@@ -469,15 +469,15 @@ int UsefulBuf_Compare(const UsefulBufC UB1, const UsefulBufC UB2);
  @param[in] uValue The byte value to compare to.
 
  @return  Offset of first byte that isn't \c uValue or
-          SIZE_MAX if all bytes are \c uValue.
+          \c SIZE_MAX if all bytes are \c uValue.
 
  Note that unlike most comparison functions, 0
- does not indicate a successful comparison,  so the
+ does not indicate a successful comparison, so the
  test for match is:
 
       UsefulBuf_IsValue(...) == SIZE_MAX
 
- If \c UB is NULL or empty, there is no match
+ If \c UB is null or empty, there is no match
  and 0 is returned.
  */
 size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue);
@@ -681,8 +681,6 @@ typedef struct useful_out_buf {
 void UsefulOutBuf_Init(UsefulOutBuf *pUOutBuf, UsefulBuf Storage);
 
 
-
-
 /**
  Convenience macro to make a \ref UsefulOutBuf on the stack and
  initialize it with a stack buffer of the given size. The variable
@@ -692,7 +690,6 @@ void UsefulOutBuf_Init(UsefulOutBuf *pUOutBuf, UsefulBuf Storage);
    uint8_t       __pBuf##name[(size)];\
    UsefulOutBuf  name;\
    UsefulOutBuf_Init(&(name), (UsefulBuf){__pBuf##name, (size)});
-
 
 
 /**
@@ -923,7 +920,7 @@ static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
 
  @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
  @param[in] pBytes    Pointer to bytes to append.
- @param[in] uLen      Length of \pBytes to append.
+ @param[in] uLen      Length of \c pBytes to append.
 
  See UsefulOutBuf_InsertData() for details. This does the same
  with the insertion point at the end of the valid data.
@@ -1216,18 +1213,18 @@ static size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pUInBuf);
 
 
 /**
- @brief Check if there are any unconsumed bytes
+ @brief Check if there are any unconsumed bytes.
 
  @param[in] pUInBuf  Pointer to the UsefulInputBuf.
+ @param[in] uLen     Number of bytes to check availability for.
 
- @return 1 if \c len bytes are available after the cursor, and 0 if not.
-
+ @return 1 if \c uLen bytes are available after the cursor, and 0 if not.
  */
 static int UsefulInputBuf_BytesAvailable(UsefulInputBuf *pUInBuf, size_t uLen);
 
 
 /**
- @brief Get pointer to bytes out of the input buffer
+ @brief Get pointer to bytes out of the input buffer.
 
  @param[in] pUInBuf  Pointer to the UsefulInputBuf.
  @param[in] uNum     Number of bytes to get.
@@ -1385,6 +1382,7 @@ static double UsefulInputBuf_GetDouble(UsefulInputBuf *pUInBuf);
  check the error.
  */
 static int UsefulInputBuf_GetError(UsefulInputBuf *pUInBuf);
+
 
 
 
