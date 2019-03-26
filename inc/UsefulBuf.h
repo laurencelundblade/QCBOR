@@ -147,7 +147,7 @@ extern "C" {
 
  \ref UsefulBuf is only 16 or 8 bytes on a 64- or 32-bit machine so it
  can go on the stack and be a function parameter or return value.
- 
+
  Another way to look at it is this. C has the NULL-terminated string
  as a means for handling text strings, but no means or convention for
  binary strings. Other languages do have such means, Rust, an
@@ -183,7 +183,7 @@ typedef struct q_useful_buf {
 #define NULLUsefulBufC  ((UsefulBufC) {NULL, 0})
 
 
-/** 
+/**
  A null \ref UsefulBuf is one that has no memory associated the same
  way \c NULL points to nothing. It does not matter what \c len is.
  */
@@ -347,12 +347,12 @@ static inline UsefulBufC UsefulBuf_FromSZ(const char *szString);
 
  This fails and returns \ref NULLUsefulBufC if \c offset is beyond the
  size of \c Dest.
- 
+
  This fails and returns \ref NULLUsefulBufC if the \c Src length plus
  \c uOffset is greater than the length of \c Dest.
- 
+
  The results are undefined if \c Dest and \c Src overlap.
- 
+
  This assumes that there is valid data in \c Dest up to \c
  uOffset. The \ref UsefulBufC returned starts at the beginning of \c
  Dest and goes to \c Src.len \c + \c uOffset.
@@ -520,11 +520,11 @@ static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
 
 /**
  @brief Copy a \c float to a \c uint32_t.
- 
+
  @param[in] f  Float value to copy.
- 
+
  @return  A \c uint32_t with the float bits.
- 
+
  Convenience function to avoid type punning, compiler warnings and
  such. The optimizer usually reduces this to a simple assignment.  This
  is a crusty corner of C.
@@ -534,11 +534,11 @@ static inline uint32_t UsefulBufUtil_CopyFloatToUint32(float f);
 
 /**
  @brief Copy a \c double to a \c uint64_t.
- 
+
  @param[in] d  Double value to copy.
- 
+
  @return  A \c uint64_t with the double bits.
- 
+
  Convenience function to avoid type punning, compiler warnings and
  such. The optimizer usually reduces this to a simple assignment.  This
  is a crusty corner of C.
@@ -548,11 +548,11 @@ static inline uint64_t UsefulBufUtil_CopyDoubleToUint64(double d);
 
 /**
  @brief Copy a \c uint32_t to a \c float.
- 
+
  @param[in] u32  Integer value to copy.
- 
+
  @return  The value as a \c float.
- 
+
  Convenience function to avoid type punning, compiler warnings and
  such. The optimizer usually reduces this to a simple assignment.  This
  is a crusty corner of C.
@@ -562,11 +562,11 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32);
 
 /**
  @brief Copy a \c uint64_t to a \c double.
- 
+
  @param[in] u64  Integer value to copy.
- 
+
  @return  The value as a \c double.
- 
+
  Convenience function to avoid type punning, compiler warnings and
  such. The optimizer usually reduces this to a simple assignment.  This
  is a crusty corner of C.
@@ -614,15 +614,15 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
       buffer given to it can be from the heap, stack or
       otherwise. \ref UsefulOutBuf_MakeOnStack is a convenience macro
       that makes a buffer on the stack and initializes it.
- 
+
     - Call methods like UsefulOutBuf_InsertString(),
       UsefulOutBuf_AppendUint32() and UsefulOutBuf_InsertUsefulBuf()
       to output data. The append calls add data to the end of the
       valid data. The insert calls take a position argument.
- 
+
     - Call UsefulOutBuf_OutUBuf() or UsefulOutBuf_CopyOut() to see
       there were no errors and to get the serialized output bytes.
- 
+
  \ref UsefulOutBuf can be used in a size calculation mode to calculate
  the size of output that would be generated. This is useful to
  calculate the size of a buffer that is to be allocated to hold the
@@ -631,18 +631,18 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  \c (UsefulBuf){NULL,MAX_UINT32}. Then call all the Insert and Add
  functions. No attempt will made to actually copy data, so only the
  lengths have to be valid for these calls.
- 
+
  Methods like UsefulOutBuf_InsertUint64() always output in network
  bytes order (big endian).
- 
+
  The possible errors are:
   - The \ref UsefulOutBuf was not initialized or was corrupted.
- 
+
   - An attempt was made to add data that will not fit.
- 
+
   - An attempt was made to insert data at a position beyond the end of
     the buffer.
- 
+
   - An attempt was made to insert data at a position beyond the valid
     data in the buffer.
 
@@ -683,7 +683,7 @@ void UsefulOutBuf_Init(UsefulOutBuf *pUOutBuf, UsefulBuf Storage);
 
 
 
-/** 
+/**
  Convenience macro to make a \ref UsefulOutBuf on the stack and
  initialize it with a stack buffer of the given size. The variable
  will be named \c name.
@@ -1120,7 +1120,7 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
  for parsing data read or received.  Initialize it with the data from
  the network. Then use the functions here to get data chunks of
  various types. A position cursor is maintained internally.
- 
+
  As long as the functions here are used, there will never be a
  reference off the end of the given buffer. This is true even if they
  care called incorrectly, an attempt is made to seek of the end of the
@@ -1374,7 +1374,7 @@ static double UsefulInputBuf_GetDouble(UsefulInputBuf *pUInBuf);
  - Attempt to seek to a position past the end of the buffer
  - Attempt to get data from an uninitialized  or corrupt instance
    of \ref UsefulInputBuf
- 
+
  Once in the error state, it can only be cleared by calling
  UsefulInputBuf_Init().
 
@@ -1476,7 +1476,7 @@ static inline UsefulBufC UsefulBuf_Head(UsefulBufC UB, size_t uAmount)
 static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
 {
    UsefulBufC ReturnValue;
-   
+
    if(uAmount > UB.len) {
       ReturnValue = NULLUsefulBufC;
    } else if(UB.ptr == NULL) {
@@ -1484,7 +1484,7 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
    } else {
       ReturnValue = (UsefulBufC){(uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
    }
-   
+
    return ReturnValue;
 }
 
@@ -1746,7 +1746,7 @@ static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pMe)
    if(pMe->magic != UIB_MAGIC) {
       return 0;
    }
-   
+
    // The cursor is off the end of the input buffer given.
    // Presuming there are no bugs in this code, this should never happen.
    // If it so, the struct was corrupted. The check is retained as
@@ -1755,7 +1755,7 @@ static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pMe)
    if(pMe->cursor > pMe->UB.len) {
       return 0;
    }
-   
+
    // subtraction can't go neative because of check above
    return pMe->UB.len - pMe->cursor;
 }
@@ -1781,18 +1781,18 @@ static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *pMe, size_t
 static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *pMe)
 {
    const void *pResult = UsefulInputBuf_GetBytes(pMe, sizeof(uint8_t));
-   
+
    return pResult ? *(uint8_t *)pResult : 0;
 }
 
 static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pMe)
 {
    const uint8_t *pResult = (const uint8_t *)UsefulInputBuf_GetBytes(pMe, sizeof(uint16_t));
-   
+
    if(!pResult) {
       return 0;
    }
-   
+
    return  ((uint16_t)pResult[0] << 8) + (uint16_t)pResult[1];
 }
 
@@ -1800,11 +1800,11 @@ static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pMe)
 static inline uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *pMe)
 {
    const uint8_t *pResult = (const uint8_t *)UsefulInputBuf_GetBytes(pMe, sizeof(uint32_t));
-   
+
    if(!pResult) {
       return 0;
    }
-   
+
    return ((uint32_t)pResult[0]<<24) +
    ((uint32_t)pResult[1]<<16) +
    ((uint32_t)pResult[2]<<8) +
@@ -1815,11 +1815,11 @@ static inline uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *pMe)
 static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pMe)
 {
    const uint8_t *pResult = (const uint8_t *)UsefulInputBuf_GetBytes(pMe, sizeof(uint64_t));
-   
+
    if(!pResult) {
       return 0;
    }
-   
+
    return   ((uint64_t)pResult[0]<<56) +
    ((uint64_t)pResult[1]<<48) +
    ((uint64_t)pResult[2]<<40) +
@@ -1834,7 +1834,7 @@ static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pMe)
 static inline float UsefulInputBuf_GetFloat(UsefulInputBuf *pMe)
 {
    uint32_t uResult = UsefulInputBuf_GetUint32(pMe);
-   
+
    return uResult ? UsefulBufUtil_CopyUint32ToFloat(uResult) : 0;
 }
 
@@ -1842,7 +1842,7 @@ static inline float UsefulInputBuf_GetFloat(UsefulInputBuf *pMe)
 static inline double UsefulInputBuf_GetDouble(UsefulInputBuf *pMe)
 {
    uint64_t uResult = UsefulInputBuf_GetUint64(pMe);
-   
+
    return uResult ? UsefulBufUtil_CopyUint64ToDouble(uResult) : 0;
 }
 
