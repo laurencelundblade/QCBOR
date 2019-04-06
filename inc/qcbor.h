@@ -43,6 +43,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 4/6/19             llundblade      Wrapped bstr returned now includes the wrapping bstr
  02/16/19           llundblade      Redesign MemPool to fix memory access alignment bug
  12/18/18           llundblade      Move decode malloc optional code to separate repository
  12/13/18           llundblade      Documentatation improvements
@@ -1539,15 +1540,16 @@ static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
 /**
  @brief Close a wrapping bstr.
 
- @param[in] pCtx The context to add to.
- @param[out] pWrappedCBOR UsefulBufC containing wrapped bytes
+ @param[in]  pCtx          The context to add to.
+ @param[out] pWrappedCBOR  UsefulBufC containing wrapped bytes,
 
  The closes a wrapping bstr opened by QCBOREncode_BstrWrap(). It reduces
  nesting level by one.
 
- A pointer and length of the enclosed encoded CBOR is returned in
- *pWrappedCBOR if it is not NULL. The main purpose of this is so this
- data can be hashed (e.g., with SHA-256) as part of a COSE (RFC 8152)
+ A pointer and length of the wrapped and encoded CBOR is returned in
+ *pWrappedCBOR if it is not NULL. This includes the wrapping bstr
+ itself.  The main purpose of this is so this data can be hashed
+ (e.g., with SHA-256) as part of a COSE (RFC 8152)
  implementation. **WARNING**, this pointer and length should be used
  right away before any other calls to QCBOREncode_xxxx() as they will
  move data around and the pointer and length will no longer be to the

@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 4/6/19             llundblade      Wrapped bstr returned now includes the wrapping bstr
  12/30/18           llundblade      Small efficient clever encode of type & argument.
  11/29/18           llundblade      Rework to simpler handling of tags and labels.
  11/9/18            llundblade      Error codes are now enums.
@@ -541,12 +542,11 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me,
          // Return pointer and length to the enclosed encoded CBOR. The intended
          // use is for it to be hashed (e.g., SHA-256) in a COSE implementation.
          // This must be used right away, as the pointer and length go invalid
-         // on any subsequent calls to this function because of the
-         // InsertEncodedTypeAndNumber() call that slides data to the right.
+         // on any subsequent calls to this function because there might be calls to
+         // InsertEncodedTypeAndNumber() that slides data to the right.
          if(pWrappedCBOR) {
             const UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
-            const size_t uBstrLen = UsefulOutBuf_GetEndPosition(&(me->OutBuf)) - uEndPosition;
-            *pWrappedCBOR = UsefulBuf_Tail(PartialResult, uInsertPosition+uBstrLen);
+            *pWrappedCBOR = UsefulBuf_Tail(PartialResult, uInsertPosition);
          }
          Nesting_Decrease(&(me->nesting));
       }
@@ -573,7 +573,7 @@ QCBORError QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
    }
 
    if(UsefulOutBuf_GetError(&(me->OutBuf))) {
-      // Stuff didn't fit in the buffer.
+      // items didn't fit in the buffer.
       // This check catches this condition for all the appends and inserts
       // so checks aren't needed when the appends and inserts are performed.
       // And of course UsefulBuf will never overrun the input buffer given

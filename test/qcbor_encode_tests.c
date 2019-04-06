@@ -1370,6 +1370,8 @@ int RTICResultsTest()
 
 
 /*
+ The expected encoding for first test in BstrWrapTest()
+ 
  82           # array(2)
    19 01C3   # unsigned(451)
    43        # bytes(3)
@@ -1384,6 +1386,7 @@ int BstrWrapTest()
 {
    QCBOREncodeContext EC;
 
+   // First test - make some wrapped CBOR and see that it is as expected
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
    QCBOREncode_OpenArray(&EC);
@@ -1406,7 +1409,9 @@ int BstrWrapTest()
       return -2;
    }
 
-   /* Another test; see about handling length calculation */
+   // Second test - see if the length of the wrapped
+   // bstr is correct. Also tests bstr wrapping
+   // in length calculation only mode.
    QCBOREncode_Init(&EC, (UsefulBuf){NULL, INT32_MAX});
    QCBOREncode_OpenArray(&EC);
    QCBOREncode_BstrWrap(&EC);
@@ -1415,8 +1420,8 @@ int BstrWrapTest()
    QCBOREncode_CloseArray(&EC);
    UsefulBufC BStr;
    QCBOREncode_CloseBstrWrap(&EC, &BStr);
-   // 2 is one byte for an array of length 1 and 1 byte for a NULL
-   if(BStr.ptr != NULL || BStr.len != 2) {
+   // 3 is one byte for the wrapping bstr, 1 for an array of length 1, and 1 byte for a NULL
+   if(BStr.ptr != NULL || BStr.len != 3) {
       return -5;
    }
 
@@ -1761,7 +1766,7 @@ int BstrWrapNestTest()
 }
 
 
-static const uint8_t spSignature[] = {
+static const uint8_t spCoseSign1Signature[] = {
    0x8e, 0xb3, 0x3e, 0x4c, 0xa3, 0x1d, 0x1c, 0x46, 0x5a, 0xb0,
    0x5a, 0xac, 0x34, 0xcc, 0x6b, 0x23, 0xd5, 0x8f, 0xef, 0x5c,
    0x08, 0x31, 0x06, 0xc4, 0xd2, 0x5a, 0x91, 0xae, 0xf0, 0xb0,
@@ -1782,9 +1787,16 @@ static const uint8_t spSignature[] = {
       54                                # bytes(20)
          546869732069732074686520636F6E74656E742E # "This is the content."
       58 40                             # bytes(64)
-         8EB33E4CA31D1C465AB05AAC34CC6B23D58FEF5C083106C4D25A91AEF0B0117E2AF9A291AA32E14AB834DC56ED2A223444547E01F11D3B0916E5A4C345CACB36 # "\x8E\xB3>L\xA3\x1D\x1CFZ\xB0Z\xAC4\xCCk#\xD5\x8F\xEF\\\b1\x06\xC4\xD2Z\x91\xAE\xF0\xB0\x11~*\xF9\xA2\x91\xAA2\xE1J\xB84\xDCV\xED*\"4DT~\x01\xF1\x1D;\t\x16\xE5\xA4\xC3E\xCA\xCB6"
+         8EB33E4CA31D1C465AB05AAC34CC6B23D58FEF5C083106C4D25
+         A91AEF0B0117E2AF9A291AA32E14AB834DC56ED2A223444547E
+         01F11D3B0916E5A4C345CACB36     # "\x8E\xB3>L\xA3\x1D\x1CFZ\xB0Z\xAC4
+                                           \xCCk#\xD5\x8F\xEF\b1\x06\xC4\xD2Z
+                                           \x91\xAE\xF0\xB0\x11~*\xF9\xA2\x91
+                                           \xAA2\xE1J\xB84\xDCV\xED*\"4DT~\x01
+                                           \xF1\x1D;\t\x16\xE5\xA4\xC3E\xCA
+                                           \xCB6"
  */
-static const uint8_t spExpected[] = {
+static const uint8_t spCoseSign1TBSExpected[] = {
    0xD2, 0x84, 0x43, 0xA1, 0x01, 0x26, 0xA1, 0x04, 0x42, 0x31,
    0x31, 0x54, 0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20,
    0x74, 0x68, 0x65, 0x20, 0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E,
@@ -1796,27 +1808,24 @@ static const uint8_t spExpected[] = {
    0x22, 0x34, 0x44, 0x54, 0x7E, 0x01, 0xF1, 0x1D, 0x3B, 0x09,
    0x16, 0xE5, 0xA4, 0xC3, 0x45, 0xCA, 0xCB, 0x36};
 
+static const uint8_t pProtectedHeaders[] = {0xa1, 0x01, 0x26};
+
+
 /*
- this corresponds exactly to the example in RFC 8152
- section C.2.1. This doesn't actually verify the signature
- though that would be nice as it would make the test
- really good. That would require bring in ECDSA crypto
- to this test.
+ This corresponds exactly to the example in RFC 8152 section
+ C.2.1. This doesn't actually verify the signature though that would
+ be nice as it would make the test really good. That would require
+ bring in ECDSA crypto to this test.
  */
 int CoseSign1TBSTest()
 {
    // All of this is from RFC 8152 C.2.1
-   const char *szKid = "11";
-   const UsefulBufC Kid = UsefulBuf_FromSZ(szKid);
-   const char *szPayload = "This is the content.";
-   const UsefulBufC Payload = UsefulBuf_FromSZ(szPayload);
-   static const uint8_t pProtectedHeaders[] = {0xa1, 0x01, 0x26};
-   const UsefulBufC ProtectedHeaders = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pProtectedHeaders);
-
-   // It would be good to compare this to the output from
-   // a COSE implementation like COSE-C. It has been checked
-   // against the CBOR playground.
-   const UsefulBufC Signature = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSignature);
+   const char          *szKid     = "11";
+   const UsefulBufC     Kid       = UsefulBuf_FromSZ(szKid);
+   const char          *szPayload = "This is the content.";
+   const UsefulBufC     Payload   = UsefulBuf_FromSZ(szPayload);
+   const UsefulBufC     ProtectedHeaders = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pProtectedHeaders);
+   const UsefulBufC     Signature        = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCoseSign1Signature);
 
    QCBOREncodeContext EC;
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
@@ -1836,11 +1845,15 @@ int CoseSign1TBSTest()
    // The payload
    UsefulBufC WrappedPayload;
    QCBOREncode_BstrWrap(&EC);
-   QCBOREncode_AddEncoded(&EC, Payload); // Payload is not actually CBOR in example C.2.1
+   // Payload is not actually CBOR in example C.2.1 like it would be
+   // for a CWT or EAT. It is just a text string.
+   QCBOREncode_AddEncoded(&EC, Payload);
    QCBOREncode_CloseBstrWrap(&EC, &WrappedPayload);
 
    // Check we got back the actual payload expected
-   if(UsefulBuf_Compare(WrappedPayload, Payload)) {
+   // The extra "T" is 0x54, which is the initial byte a bstr of length 20.
+   if(UsefulBuf_Compare(WrappedPayload,
+                        UsefulBuf_FROM_SZ_LITERAL("TThis is the content."))) {
       return -1;
    }
 
@@ -1859,7 +1872,10 @@ int CoseSign1TBSTest()
       return -3;
    }
 
-   if(CheckResults(COSE_Sign1, spExpected)) {
+   // It would be good to compare this to the output from a COSE
+   // implementation like COSE-C. This has been checked against the
+   // CBOR playground.
+   if(CheckResults(COSE_Sign1, spCoseSign1TBSExpected)) {
       return -4;
    }
 
