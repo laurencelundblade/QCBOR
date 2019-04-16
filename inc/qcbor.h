@@ -43,6 +43,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 04/xx/19           llundblade      Big documentation & style update. No interface
+                                    change.
  02/16/19           llundblade      Redesign MemPool to fix memory access alignment bug
  12/18/18           llundblade      Move decode malloc optional code to separate repository
  12/13/18           llundblade      Documentatation improvements
@@ -274,59 +276,78 @@ struct _QCBORDecodeContext {
 
 /*
  24 is a special number for CBOR. Integers and lengths
- less than it are encoded in the same byte as the major type
+ less than it are encoded in the same byte as the major type.
  */
 #define CBOR_TWENTY_FOUR   24
 
 
 /*
- Tags that are used with CBOR_MAJOR_TYPE_OPTIONAL. These are
- the ones defined in the CBOR spec.
+ Tags that are used with CBOR_MAJOR_TYPE_OPTIONAL. These
+ are types defined in RFC 7049 and some additional ones
+ in the IANA CBOR tags registry.
  */
-/** See QCBOREncode_AddDateString() below */
+/** See QCBOREncode_AddDateString(). */
 #define CBOR_TAG_DATE_STRING    0
-/** See QCBOREncode_AddDateEpoch_2() */
+/** See QCBOREncode_AddDateEpoch(). */
 #define CBOR_TAG_DATE_EPOCH     1
+/** See QCBOREncode_AddPositiveBignum(). */
 #define CBOR_TAG_POS_BIGNUM     2
+/** See QCBOREncode_AddNegativeBignum(). */
 #define CBOR_TAG_NEG_BIGNUM     3
+/** CBOR tag for a two element array representing a fraction with a mantissa and base-10 scaling factor. No API is provided for this tag. */
 #define CBOR_TAG_FRACTION       4
+/** CBOR tag for a two element array representing a fraction with a mantissa and base-2 scaling factor. No API is provided for this tag. */
 #define CBOR_TAG_BIGFLOAT       5
-
+   
+/** Tag for COSE format encryption with no recipient identification. See RFC 8152. No API is provided for this tag. */
 #define CBOR_TAG_COSE_ENCRYPTO 16
+/** Tag for COSE format MAC'd data with no recipient identification. See RFC 8152. No API is provided for this tag.*/
 #define CBOR_TAG_COSE_MAC0     17
+/** Tag for COSE format single signature signing. No API is provided for this tag. See RFC 8152. */
 #define CBOR_TAG_COSE_SIGN1    18
 
-/* The data in byte string should be converted in base 64 URL when encoding in JSON or similar text-based representations */
+/** Tag indicating data in byte string should be converted to base64url when encoding in JSON or similar text-based
+ representations. No API is provided for this tag. */
 #define CBOR_TAG_ENC_AS_B64URL 21
-/* The data in byte string should be encoded in base 64 when encoding in JSON */
+/** The data in byte string should be encoded in Base64 when encoding in JSON or similar text-based
+    representations. No API is provided for this tag. */
 #define CBOR_TAG_ENC_AS_B64    22
-/* The data in byte string should be encoded in base 16 when encoding in JSON */
+/** The data in byte string should be encoded in base 16 format per RFC 4648 when encoding in JSON
+ or similar text-based representations. Essentially, Base 16 encoding is the standard case-
+ insensitive hex encoding and may be referred to as "hex". No API is provided for this tag. */
 #define CBOR_TAG_ENC_AS_B16    23
+   
+/** Tag to indicate a byte string contains encoded CBOR. No API is provided for this tag. */
 #define CBOR_TAG_CBOR          24
-/** The data in the string is a URIs, as defined in RFC3986 */
+/** See QCBOREncode_AddURI(). */
 #define CBOR_TAG_URI           32
-/** The data in the string is a base 64'd URL */
+/** See QCBOREncode_AddB64URLText(). */
 #define CBOR_TAG_B64URL        33
-/** The data in the string is base 64'd */
+/** See QCBOREncode_AddB64Text(). */
 #define CBOR_TAG_B64           34
-/** regular expressions in Perl Compatible Regular Expressions (PCRE) / JavaScript syntax ECMA262. */
+/** See QCBOREncode_AddRegex(). */
 #define CBOR_TAG_REGEX         35
-/** MIME messages (including all headers), as defined in RFC2045 */
+/** See QCBOREncode_AddMIMEData(). */
 #define CBOR_TAG_MIME          36
-/** Binary UUID */
+/** See QCBOREncode_AddBinaryUUID(). */
 #define CBOR_TAG_BIN_UUID      37
 
+/** The data is a CBOR Web Token per RFC 8392. No API is provided for this tag. */
 #define CBOR_TAG_CWT           61
 
+/** Tag for COSE format encryption. See RFC 8152. No API is provided for this tag. */
 #define CBOR_TAG_ENCRYPT       96
+/** Tag for COSE format MAC. See RFC 8152. No API is provided for this tag. */
 #define CBOR_TAG_MAC           97
+/** Tag for COSE format signed data. See RFC 8152. No API is provided for this tag. */
 #define CBOR_TAG_SIGN          98
 
+/** World geographic coordinates. See ISO 6709, RFC 5870 and WGS-84. No API is provided for this tag. */
 #define CBOR_TAG_GEO_COORD    103
 
-
-/** The data is CBOR data */
+/** The magic number, self-described CBOR. No API is provided for this tag. */
 #define CBOR_TAG_CBOR_MAGIC 55799
+   
 #define CBOR_TAG_NONE  UINT64_MAX
 
 
@@ -360,7 +381,7 @@ struct _QCBORDecodeContext {
  Q C B O R   E n c o d e / D e c o d e
 
  This implements CBOR -- Concise Binary Object Representation as defined
- in RFC 7049. More info is at http://cbor.io.  This is a near-complete
+ in [RFC 7049] (https://tools.ietf.org/html/rfc7049). More info is at http://cbor.io.  This is a near-complete
  implementation of the specification. Limitations are listed further down.
 
  CBOR is intentionally designed to be translatable to JSON, but not
@@ -406,14 +427,16 @@ struct _QCBORDecodeContext {
 
  - "Key": See "Label" above.
 
- - "Tag": Optional info that can be added before each data item. This is always
- CBOR major type 6.
-
+ - "Tag": Optional integer that can be added before each data item usually to
+indicate it is  new or more specific data type. For example, a tag can indicate
+an integer is a date, or that a map is to be considered a type (analagous to
+a typedef in C).
+ 
  - "Initial Byte": The first byte of an encoded item. Encoding and decoding of
  this byte is taken care of by the implementation.
 
  - "Additional Info": In addition to the major type, all data items have some
- other info. This is usually the length of the data, but can be several
+ other info. This is usually the length of the data but can be several
  other things. Encoding and decoding of this is taken care of by the
  implementation.
 
@@ -424,30 +447,30 @@ struct _QCBORDecodeContext {
 
  - First it is CBOR_MAJOR_TYPE_POSITIVE_INT, the primitive positive
  integer.
- - Next it has a "tag" CBOR_TAG_DATE_EPOCH indicating the integer
+ - Next it has a "tag" \ref CBOR_TAG_DATE_EPOCH indicating the integer
  represents a date in the form of the number of seconds since
  Jan 1, 1970.
  - Last it has a string "label" like "BirthDate" indicating
  the meaning of the data.
 
  The encoded binary looks like this:
-   a1                      # Map of 1 item
-      69                   # Indicates text string of 9 bytes
-        426972746844617465 # The text "BirthDate"
-     c1                    # Tags next int as epoch date
-        1a                 # Indicates 4 byte integer
-            580d4172       # unsigned integer date 1477263730
+     a1                      # Map of 1 item
+        69                   # Indicates text string of 9 bytes
+          426972746844617465 # The text "BirthDate"
+       c1                    # Tags next int as epoch date
+          1a                 # Indicates a 4-byte integer
+              580d4172       # unsigned integer date 1477263730
 
- Implementors using this API will primarily work with labels. Generally
+ Implementors using this API will primarily work with labels. Generally,
  tags are only needed for making up new data types. This implementation
  covers most of the data types defined in the RFC using tags. It also,
- allows for the creation of news tags if necessary.
+ allows for the use of custom tags if necessary.
 
  This implementation explicitly supports labels that are text strings
  and integers. Text strings translate nicely into JSON objects and
- are very readable.  Integer labels are much less readable, but
+ are very readable.  Integer labels are much less readable but
  can be very compact. If they are in the range of -23 to
- 23 they take up only one byte.
+ 23, they take up only one byte.
 
  CBOR allows a label to be any type of data including an array or
  a map. It is possible to use this API to construct and
@@ -458,14 +481,14 @@ struct _QCBORDecodeContext {
  buffer. Then the correct sized output buffer is allocated. Last the
  encoder is invoked again, this time with the output buffer.
 
- The double invocation is not required if the max output buffer size
+ The double invocation is not required if the maximum output buffer size
  can be predicted. This is usually possible for simple CBOR structures.
  If the double invocation is implemented, it can be
  in a loop or function as in the example code so that the code doesn't
  have to actually be written twice, saving code size.
 
  If a buffer too small to hold the encoded output is given, the error
- QCBOR_ERR_BUFFER_TOO_SMALL will be returned. Data will never be
+ \ref QCBOR_ERR_BUFFER_TOO_SMALL will be returned. Data will never be
  written off the end of the output buffer no matter which functions
  here are called or what parameters are passed to them.
 
@@ -506,40 +529,64 @@ struct _QCBORDecodeContext {
 
  Note that when you nest arrays or maps in a map, the nested
  array or map has a label.
-
- Usually it is not necessary to add tags explicitly as most
- tagged types have functions here, but they can be added by
- calling QCBOREncode_AddTag().  There is an IANA registry for new tags that are
- for broad use and standardization as per RFC 7049. It is also
- allowed for protocols to make up new tags in the range above 256.
- Note that even arrays and maps can be tagged.
-
+ 
+ \anchor Tags-Overview
+ Any CBOR data item can be tagged to add semantics, define a new data
+ type or such. Some tags are fully standardized and some are just
+ registered. Others are not registered and used in a proprietary way.
+ 
+ Encoding and decoding of many of the registered tags is fully
+ implemented. It is also possible to encode and decode tags that are
+ not directly supported.  For many use cases the built-in tag support
+ should be adequate.
+ 
+ For example, the registered epoch date tag is supported in encoding
+ by QCBOREncode_AddDateEpoch() and in decoding by \ref
+ QCBOR_TYPE_DATE_EPOCH and the \c epochDate member of \ref
+ QCBORItem. This is typical of the built-in tag support. There is an
+ API to encode data for it and a \c QCBOR_TYPE_XXX when it is decoded.
+ 
+ Tags are registered in the [IANA CBOR Tags Registry]
+ (https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml). There
+ are roughly three options to create a new tag. First, a public
+ specification can be created and the new tag registered with IANA.
+ This is the most formal. Second, the new tag can be registered with
+ IANA with just a short description rather than a full specification.
+ These tags must be greater than 256. Third, a tag can be used without
+ any IANA registration, though the registry should be checked to see
+ that the new value doesn't collide with one that is registered. The
+ value of these tags must be 256 or larger.
+ 
+ The encoding side of tags not built-in is handled by
+ QCBOREncode_AddTag() and is relatively simple. Tag decoding is more
+ complex and mainly handled by QCBORDecode_GetNext(). Decoding of the
+ structure tagged data not built-in (if there is any) has to be
+ implemented by the caller.
+ 
  Summary Limits of this implementation:
  - The entire encoded CBOR must fit into contiguous memory.
- - Max size of encoded / decoded CBOR data is UINT32_MAX (4GB).
+ - Max size of encoded / decoded CBOR data is \c UINT32_MAX (4GB).
  - Max array / map nesting level when encoding / decoding is
-   QCBOR_MAX_ARRAY_NESTING (this is typically 15).
+   \ref QCBOR_MAX_ARRAY_NESTING (this is typically 15).
  - Max items in an array or map when encoding / decoding is
-   QCBOR_MAX_ITEMS_IN_ARRAY (typically 65,536).
+   \ref QCBOR_MAX_ITEMS_IN_ARRAY (typically 65,536).
  - Does not support encoding indefinite lengths (decoding is supported).
  - Does not directly support some tagged types: decimal fractions, big floats
  - Does not directly support labels in maps other than text strings and ints.
- - Does not directly support int labels greater than INT64_MAX
- - Epoch dates limited to INT64_MAX (+/- 292 billion years)
- - Tags on labels are ignored during decoding
+ - Does not directly support int labels greater than \c INT64_MAX.
+ - Epoch dates limited to \c INT64_MAX (+/- 292 billion years).
+ - Tags on labels are ignored during decoding.
+ - Works only on 32- and 64-bit CPUs (modifications could make it work on 16-bit CPUs).
 
- This implementation is intended to run on 32 and 64-bit CPUs. Minor
- modifications are needed for it to work on 16-bit CPUs.
-
- The public interface uses size_t for all lengths. Internally the
+ The public interface uses \c size_t for all lengths. Internally the
  implementation uses 32-bit lengths by design to use less memory and
  fit structures on the stack. This limits the encoded
- CBOR it can work with to size UINT32_MAX (4GB) which should be
+ CBOR it can work with to size \c UINT32_MAX (4GB) which should be
  enough.
 
  This implementation assumes two's compliment integer
- machines. Stdint.h also requires this. It of course would be easy to
- fix this implementation for another integer representation, but all
+ machines. \c <stdint.h> also requires this. It is possible to
+ modify this implementation for another integer representation, but all
  modern machines seem to be two's compliment.
 
  */
@@ -548,23 +595,26 @@ struct _QCBORDecodeContext {
 /**
  The maximum number of items in a single array or map when encoding of decoding.
 */
-// -1 is because the value UINT16_MAX is used to track indefinite length arraysUINT16_MAX
+// -1 is because the value UINT16_MAX is used to track indefinite length arrays
 #define QCBOR_MAX_ITEMS_IN_ARRAY (UINT16_MAX-1)
 
 /**
  The maximum nesting of arrays and maps when encoding or decoding. The
- error QCBOR_ERR_ARRAY_NESTING_TOO_DEEP will be returned on encoding
+ error \ref QCBOR_ERR_ARRAY_NESTING_TOO_DEEP will be returned on encoding
  of decoding if it is exceeded
 */
 #define QCBOR_MAX_ARRAY_NESTING  QCBOR_MAX_ARRAY_NESTING1
 
 /**
- The maximum number of tags that can be in QCBORTagListIn and passed to
+ The maximum number of tags that can be in \ref QCBORTagListIn and passed to
  QCBORDecode_SetCallerConfiguredTagList()
  */
 #define QCBOR_MAX_CUSTOM_TAGS    16
 
 
+/**
+ Error codes returned by QCBOR Encoder and Decoder.
+ */
 typedef enum {
    /** The encode or decode completely correctly. */
    QCBOR_SUCCESS = 0,
@@ -577,11 +627,11 @@ typedef enum {
    /** During encoding or decoding, the array or map nesting was deeper than
     this implementation can handle. Note that in the interest of code size
     and memory use, this implementation has a hard limit on array nesting. The
-    limit is defined as the constant QCBOR_MAX_ARRAY_NESTING. */
+    limit is defined as the constant \ref QCBOR_MAX_ARRAY_NESTING. */
    QCBOR_ERR_ARRAY_NESTING_TOO_DEEP,
 
    /** During decoding or encoding, the array or map had too many items in it.
-       This limit QCBOR_MAX_ITEMS_IN_ARRAY, typically 65,535. */
+       This limit \ref QCBOR_MAX_ITEMS_IN_ARRAY, typically 65,535. */
    QCBOR_ERR_ARRAY_TOO_LONG,
 
    /** During encoding, more arrays or maps were closed than opened. This is a
@@ -599,7 +649,7 @@ typedef enum {
        result in this error. */
    QCBOR_ERR_HIT_END,
 
-   /** During encoding, the length of the encoded CBOR exceeded UINT32_MAX.
+   /** During encoding, the length of the encoded CBOR exceeded \c UINT32_MAX.
      */
    QCBOR_ERR_BUFFER_TOO_LARGE,
 
@@ -615,7 +665,7 @@ typedef enum {
        matched by the number of closes. */
    QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN,
 
-   /** During encoding, the simple value is not between CBOR_SIMPLEV_FALSE
+   /** During encoding, the simple value is not between CBOR_SIMPLEV_FALSE (TODO: public or not?)
        and CBOR_SIMPLEV_UNDEF. */
    QCBOR_ERR_BAD_SIMPLE,
 
@@ -635,7 +685,7 @@ typedef enum {
        been consumed. */
    QCBOR_ERR_EXTRA_BYTES,
 
-   /** During encoding, QCBOREncode_Close() call with a different type than
+   /** During encoding, QCBOREncode_CloseXxxx() called with a different type than
        is currently open. */
    QCBOR_ERR_CLOSE_MISMATCH,
 
@@ -655,17 +705,15 @@ typedef enum {
    QCBOR_ERR_BAD_BREAK,
 
    /** During decoding, too many tags in the caller-configured tag list, or not
-       enough space in QCBORTagListOut. */
+       enough space in \ref QCBORTagListOut. */
    QCBOR_ERR_TOO_MANY_TAGS,
-
-   /** Returned by QCBORDecode_SetMemPool() when xx is too small. This should
-       never happen on a machine with 64-bit or smaller pointers. Fixing
-       it is probably by increasing QCBOR_DECODE_MIN_MEM_POOL_SIZE. */
-   QCBOR_ERR_MEM_POOL_INTERNAL
 
 } QCBORError;
 
 
+/**
+ The decode mode options.
+ */
 typedef enum {
    /** See QCBORDecode_Init() */
    QCBOR_DECODE_MODE_NORMAL = 0,
@@ -680,43 +728,46 @@ typedef enum {
 
 
 /* Do not renumber these. Code depends on some of these values. */
-/** The type is unknown, unset or invalid */
+/** The data type is unknown, unset or invalid. */
 #define QCBOR_TYPE_NONE           0
-/** Type for an integer that decoded either between INT64_MIN and INT32_MIN or INT32_MAX and INT64_MAX; val.int64 */
+/** Type for an integer that decoded either between \c INT64_MIN and
+    \c INT32_MIN or \c INT32_MAX and \c INT64_MAX. Data is in member \c val.int64. */
 #define QCBOR_TYPE_INT64          2
-/** Type for an integer that decoded to a more than INT64_MAX and UINT64_MAX; val.uint64 */
+/** Type for an integer that decoded to a more than \c INT64_MAX and \c UINT64_MAX.
+     Data is in member \c val.uint64. */
 #define QCBOR_TYPE_UINT64         3
-/** Type for an array. The number of items in the array is in val.uCount. */
+/** Type for an array. The number of items in the array is in \c val.uCount. */
 #define QCBOR_TYPE_ARRAY          4
-/** Type for a map; number of items in map is in val.uCount */
+/** Type for a map; number of items in map is in \c val.uCount. */
 #define QCBOR_TYPE_MAP            5
-/** Type for a buffer full of bytes. Data is in val.string. */
+/** Type for a buffer full of bytes. Data is in \c val.string. */
 #define QCBOR_TYPE_BYTE_STRING    6
-/** Type for a UTF-8 string. It is not NULL terminated. Data is in val.string.  */
+/** Type for a UTF-8 string. It is not NULL-terminated. Data is in \c val.string.  */
 #define QCBOR_TYPE_TEXT_STRING    7
-/** Type for a positive big number. Data is in val.bignum, a pointer and a length. */
-#define QCBOR_TYPE_POSBIGNUM     9
-/** Type for a negative big number. Data is in val.bignum, a pointer and a length. */
+/** Type for a positive big number. Data is in \c val.bignum, a pointer and a length. */
+#define QCBOR_TYPE_POSBIGNUM      9
+/** Type for a negative big number. Data is in \c val.bignum, a pointer and a length. */
 #define QCBOR_TYPE_NEGBIGNUM     10
-/** Type for RFC 3339 date string, possibly with time zone. Data is in val.dateString */
+/** Type for RFC 3339 date string, possibly with time zone. Data is in \c val.dateString */
 #define QCBOR_TYPE_DATE_STRING   11
-/** Type for integer seconds since Jan 1970 + floating point fraction. Data is in val.epochDate */
+/** Type for integer seconds since Jan 1970 + floating point fraction. Data is in \c val.epochDate */
 #define QCBOR_TYPE_DATE_EPOCH    12
-/** A simple type that this CBOR implementation doesn't know about; Type is in val.uSimple. */
+/** A simple type that this CBOR implementation doesn't know about; Type is in \c val.uSimple. */
 #define QCBOR_TYPE_UKNOWN_SIMPLE 13
-/** Type for the simple value false; nothing more; nothing in val union. */
+/** Type for the value false */
 #define QCBOR_TYPE_FALSE         20
-/** Type for the simple value true; nothing more; nothing in val union. */
+/** Type for the value true */
 #define QCBOR_TYPE_TRUE          21
-/** Type for the simple value null; nothing more; nothing in val union. */
+/** Type for the value null */
 #define QCBOR_TYPE_NULL          22
-/** Type for the simple value undef; nothing more; nothing in val union. */
+/** Type for the value undef */
 #define QCBOR_TYPE_UNDEF         23
-/** Type for a floating point number. Data is in val.float. */
+/** Type for a floating-point number. Data is in \c val.float. */
 #define QCBOR_TYPE_FLOAT         26
-/** Type for a double floating point number. Data is in val.double. */
+/** Type for a double floating-point number. Data is in \c val.double. */
 #define QCBOR_TYPE_DOUBLE        27
-/** For QCBOR_DECODE_MODE_MAP_AS_ARRAY decode mode, a map that is being traversed as an array. See QCBORDecode_Init() */
+/** For \ref QCBOR_DECODE_MODE_MAP_AS_ARRAY decode mode,
+     a map that is being traversed as an array. See QCBORDecode_Init() */
 #define QCBOR_TYPE_MAP_AS_ARRAY  32
 
 #define QCBOR_TYPE_BREAK         31 // Used internally; never returned
@@ -737,37 +788,37 @@ typedef enum {
  QCBORItem holds the type, value and other info for a decoded item returned by GetNextItem().
  */
 typedef struct _QCBORItem {
-   uint8_t  uDataType;     /** Tells what element of the val union to use. One of QCBOR_TYPE_XXXX */
-   uint8_t  uNestingLevel; /** How deep the nesting from arrays and maps are. 0 is the top level with no arrays or maps entered */
-   uint8_t  uLabelType;    /** Tells what element of the label union to use */
-   uint8_t  uDataAlloc;    /** 1 if allocated with string allocator, 0 if not. See QCBORDecode_MakeMallocStringAllocator() */
-   uint8_t  uLabelAlloc;   /** Like uDataAlloc, but for label */
-   uint8_t  uNextNestLevel; /** If not equal to uNestingLevel, this item closed out at least one map/array */
+   uint8_t  uDataType;     /** Tells what element of the \c val union to use. One of \c QCBOR_TYPE_XXXX */
+   uint8_t  uNestingLevel; /** How deep the nesting from arrays and maps are. 0 is the top level with no arrays or maps entered. */
+   uint8_t  uLabelType;    /** Tells what element of the label union to use. */
+   uint8_t  uDataAlloc;    /** 1 if allocated with string allocator, 0 if not. See QCBORDecode_SetMemPool() or QCBORDecode_SetUpAllocator() */
+   uint8_t  uLabelAlloc;   /** Like \c uDataAlloc, but for label. */
+   uint8_t  uNextNestLevel; /** If not equal to \c uNestingLevel, this item closed out at least one map/array */
 
    union {
-      int64_t     int64;      /** The value for uDataType QCBOR_TYPE_INT64 */
-      uint64_t    uint64;     /** The value for uDataType QCBOR_TYPE_UINT64 */
+      int64_t     int64;      /** The value for uDataType \ref QCBOR_TYPE_INT64. */
+      uint64_t    uint64;     /** The value for uDataType \ref QCBOR_TYPE_UINT64. */
 
-      UsefulBufC  string;     /** The value for uDataType QCBOR_TYPE_BYTE_STRING and QCBOR_TYPE_TEXT_STRING */
-      uint16_t    uCount;     /** The "value" for uDataType QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP -- the number of items in the array or map
-                                  UINT16_MAX when decoding indefinite lengths maps and arrays. */
-      double      dfnum;      /** The value for uDataType QCBOR_TYPE_DOUBLE */
+      UsefulBufC  string;     /** The value for \c uDataType \ref QCBOR_TYPE_BYTE_STRING and \ref QCBOR_TYPE_TEXT_STRING. */
+      uint16_t    uCount;     /** The "value" for \c uDataType \ref QCBOR_TYPE_ARRAY or \ref QCBOR_TYPE_MAP -- the number of items in the array or map
+                                  \c UINT16_MAX when decoding indefinite lengths maps and arrays. */
+      double      dfnum;      /** The value for \c uDataType \ref QCBOR_TYPE_DOUBLE. */
       struct {
          int64_t  nSeconds;
          double   fSecondsFraction;
-      } epochDate;            /** The value for uDataType QCBOR_TYPE_DATE_EPOCH */
-      UsefulBufC  dateString; /** The value for uDataType QCBOR_TYPE_DATE_STRING */
-      UsefulBufC  bigNum;     /** The value for uDataType QCBOR_TYPE_BIGNUM */
-      uint8_t     uSimple;    /** The integer value for unknown simple types */
-      uint64_t    uTagV;
+      } epochDate;            /** The value for \c uDataType \ref QCBOR_TYPE_DATE_EPOCH. */
+      UsefulBufC  dateString; /** The value for \c uDataType \ref QCBOR_TYPE_DATE_STRING. */
+      UsefulBufC  bigNum;     /** The value for \c uDataType \ref QCBOR_TYPE_POSBIGNUM and \ref QCBOR_TYPE_NEGBIGNUM. */
+      uint8_t     uSimple;    /** The integer value for unknown simple types. */
+      uint64_t    uTagV;  // Used internally during decoding
 
-   } val;  /** The union holding the item's value. Select union member based on uDataType */
+   } val;  /** The union holding the item's value. Select union member based on \c uDataType */
 
    union {
-      UsefulBufC  string;  /** The label for uLabelType QCBOR_TYPE_BYTE_STRING and QCBOR_TYPE_TEXT_STRING */
-      int64_t     int64;   /** The label for uLabelType for QCBOR_TYPE_INT64 */
-      uint64_t    uint64;  /** The label for uLabelType for QCBOR_TYPE_UINT64 */
-   } label; /** Union holding the different label types selected based on uLabelType */
+      UsefulBufC  string;  /** The label for \c uLabelType \ref QCBOR_TYPE_BYTE_STRING and \ref QCBOR_TYPE_TEXT_STRING */
+      int64_t     int64;   /** The label for \c uLabelType for \ref QCBOR_TYPE_INT64 */
+      uint64_t    uint64;  /** The label for \c uLabelType for \ref QCBOR_TYPE_UINT64 */
+   } label; /** Union holding the different label types selected based on \c uLabelType */
 
    uint64_t uTagBits; /** Bit indicating which tags (major type 6) on this item.  */
 
@@ -779,24 +830,24 @@ typedef struct _QCBORItem {
   \brief The type defining what a string allocator function must do.
 
  * \param[in] pAllocateCxt  Pointer to context for the particular
-                             allocator implementation What is in the
-                             context is dependent on how a particular
-                             string allocator works. Typically, it
-                             will contain a pointer to the memory pool
-                             and some booking keeping data.
- \param[in] pOldMem          Points to some memory allocated by the
-                             allocator that is either to be freed or
-                             to be reallocated to be larger. It is
-                             NULL for new allocations and when call as
-                             a destructor to clean up the whole
-                             allocation.
- \param[in] uNewSize         Size of memory to be allocated or new
-                             size of chunk to be reallocated. Zero for
-                             a new allocation or when called as a
-                             destructor.
+                            allocator implementation What is in the
+                            context is dependent on how a particular
+                            string allocator works. Typically, it
+                            will contain a pointer to the memory pool
+                            and some booking keeping data.
+ \param[in] pOldMem         Points to some memory allocated by the
+                            allocator that is either to be freed or
+                            to be reallocated to be larger. It is
+                            \c NULL for new allocations and when call as
+                            a destructor to clean up the whole
+                            allocation.
+ \param[in] uNewSize        Size of memory to be allocated or new
+                            size of chunk to be reallocated. Zero for
+                            a new allocation or when called as a
+                            destructor.
 
- \return   Either the allocated buffer is returned, or \c
-           NULLUsefulBufC. \c NULLUsefulBufC is returned on a failed
+ \return   Either the allocated buffer is returned, or \ref
+           NULLUsefulBufC. \ref NULLUsefulBufC is returned on a failed
            allocation or in the two cases where there is nothing to
            return.
 
@@ -825,7 +876,7 @@ typedef struct _QCBORItem {
  allocator.
 
  If QCBORDecode_SetMemPool() is called, the internal MemPool will be
- used. It has it's own internal implementation of this function, so
+ used. It has its own internal implementation of this function, so
  one does not need to be implemented.
 
  */
@@ -849,32 +900,32 @@ typedef UsefulBuf (* QCBORStringAllocate)(void *pAllocateCxt, void *pOldMem, siz
 
 
 /**
- This is used to tell the decoder about tags that it should
- record in uTagBits in QCBORItem beyond the built-in
- tags. puTags points to an
- array of uint64_t integers that are the tags. uNumTags
- is the number of integers in the array. The maximum
- size is QCBOR_MAX_CUSTOM_TAGS.  See QCBORDecode_IsTagged()
- and QCBORDecode_SetCallerAddedTagMap().
+ This is used by QCBORDecode_SetCallerConfiguredTagList() to
+ set a list of tags beyond the built-in ones.
+ 
+ See also QCBORDecode_GetNext() for general description
+ of tag decoding.
  */
 typedef struct {
+   /** The number of tags in the \c puTags. The maximum
+    size is \ref QCBOR_MAX_CUSTOM_TAGS. */
    uint8_t uNumTags;
+   /** An array of tags to add to recognize in addition to the built-in ones. */
    const uint64_t *puTags;
 } QCBORTagListIn;
 
 
 /**
  This is for QCBORDecode_GetNextWithTags() to be able to return the
- full list of tags on an item. It not needed for most CBOR protocol
+ full list of tags on an item. It is not needed for most CBOR protocol
  implementations. Its primary use is for pretty-printing CBOR or
  protocol conversion to another format.
 
- On input, puTags points to a buffer to be filled in
- and uNumAllocated is the number of uint64_t values
- in the buffer.
+ On input, \c puTags points to a buffer to be filled in and
+ uNumAllocated is the number of \c uint64_t values in the buffer.
 
- On output the buffer contains the tags for the item.
- uNumUsed tells how many there are.
+ On output the buffer contains the tags for the item.  \c uNumUsed
+ tells how many there are.
  */
 typedef struct {
    uint8_t uNumUsed;
@@ -894,29 +945,29 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
 
 
 /**
- Initialize the the encoder to prepare to encode some CBOR.
+ Initialize the encoder to prepare to encode some CBOR.
 
- @param[in,out]  pCtx    The encoder context to initialize.
- @param[in]      Storage The buffer into which this encoded result will be placed.
+ @param[in,out]  pCtx     The encoder context to initialize.
+ @param[in]      Storage  The buffer into which this encoded result will be placed.
 
  Call this once at the start of an encoding of a CBOR structure. Then
- call the various QCBOREncode_AddXXX() functions to add the data
+ call the various \c QCBOREncode_AddXXX() functions to add the data
  items. Then call QCBOREncode_Finish().
 
- The maximum output buffer is UINT32_MAX (4GB). This is not a practical
+ The maximum output buffer is \c UINT32_MAX (4GB). This is not a practical
  limit in any way and reduces the memory needed by the implementation.
- The error QCBOR_ERR_BUFFER_TOO_LARGE will be returned by QCBOR_Finish()
+ The error \ref QCBOR_ERR_BUFFER_TOO_LARGE will be returned by QCBOREncode_Finish()
  if a larger buffer length is passed in.
 
- If this is called with pBuf as NULL and uBufLen a large value like
- UINT32_MAX, all the QCBOREncode_AddXXXX() functions and
- QCBORE_Encode_Finish() can still be called. No data will be encoded,
+ If this is called with \c pBuf as \c NULL and \c uBufLen a large value like
+ \c UINT32_MAX, all the QCBOREncode_AddXxxx() functions and
+ QCBOREEncode_Finish() can still be called. No data will be encoded,
  but the length of what would be encoded will be calculated. The
  length of the encoded structure will be handed back in the call to
  QCBOREncode_Finish(). You can then allocate a buffer of that size
  and call all the encoding again, this time to fill in the buffer.
 
- A QCBORContext can be reused over and over as long as
+ A \ref QCBOREncodeContext can be reused over and over as long as
  QCBOREncode_Init() is called.
  */
 void QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
@@ -925,8 +976,8 @@ void QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
 /**
  @brief  Add a signed 64-bit integer to the encoded output.
 
- @param[in] pCtx      The encoding context to add the integer to.
- @param[in] nNum      The integer to add.
+ @param[in] pCtx   The encoding context to add the integer to.
+ @param[in] nNum   The integer to add.
 
  The integer will be encoded and added to the CBOR output.
 
@@ -940,15 +991,16 @@ void QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  tags can be kept between -23 and 23 they will be encoded in one byte
  including the major type.
 
- If you pass a smaller int, say an int16_t or a small value, say 100,
+ If you pass a smaller int, say an \c int16_t or a small value, say 100,
  the encoding will still be CBOR's most compact that can represent the
  value.  For example, CBOR always encodes the value 0 as one byte,
  0x00. The representation as 0x00 includes identification of the type
- as an integer too as the major type for an integer is 0. See RFC 7049
+ as an integer too as the major type for an integer is 0. See [RFC 7049]
+ (https://tools.ietf.org/html/rfc7049)
  Appendix A for more examples of CBOR encoding. This compact encoding
  is also canonical CBOR as per section 3.9 in RFC 7049.
 
- There are no functions to add int16_t or int32_t because they are
+ There are no functions to add \c int16_t or \c int32_t because they are
  not necessary because this always encodes to the smallest number
  of bytes based on the value (If this code is running on a 32-bit
  machine having a way to add 32-bit integers would reduce code size some).
@@ -970,13 +1022,13 @@ static void QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
 /**
  @brief  Add an unsigned 64-bit integer to the encoded output.
 
- @param[in] pCtx      The encoding context to add the integer to.
- @param[in] uNum      The integer to add.
+ @param[in] pCtx  The encoding context to add the integer to.
+ @param[in] uNum  The integer to add.
 
  The integer will be encoded and added to the CBOR output.
 
  The only reason so use this function is for integers larger than
- INT64_MAX and smaller than UINT64_MAX. Otherwise QCBOREncode_AddInt64()
+ \c INT64_MAX and smaller than \c UINT64_MAX. Otherwise QCBOREncode_AddInt64()
  will work fine.
 
  Error handling is the same as for QCBOREncode_AddInt64().
@@ -989,20 +1041,19 @@ static void QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel
 
 
 /**
+ @brief  Add a UTF-8 text string to the encoded output.
 
- @brief  Add a UTF-8 text string to the encoded output
-
- @param[in] pCtx     The context to initialize.
- @param[in] Text    Pointer and length of text to add.
+ @param[in] pCtx   The context to initialize.
+ @param[in] Text   Pointer and length of text to add.
 
  The text passed in must be unencoded UTF-8 according to RFC
  3629. There is no NULL termination. The text is added as CBOR
  major type 3.
 
- If called with nBytesLen equal to 0, an empty string will be
- added. When nBytesLen is 0, pBytes may be NULL.
+ If called with \c nBytesLen equal to 0, an empty string will be
+ added. When \c nBytesLen is 0, pBytes may be \c NULL.
 
- Note that the restriction of the buffer length to an uint32_t is
+ Note that the restriction of the buffer length to a \c uint32_t is
  entirely intentional as this encoder is not capable of encoding
  lengths greater. This limit to 4GB for a text string should not be a
  problem.
@@ -1017,7 +1068,7 @@ static void QCBOREncode_AddTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
 
 
 /**
- @brief  Add a UTF-8 text string to the encoded output
+ @brief  Add a UTF-8 text string to the encoded output.
 
  @param[in] pCtx      The context to initialize.
  @param[in] szString  Null-terminated text to add.
@@ -1032,23 +1083,23 @@ static void QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLab
 
 
 /**
- @brief  Add a floating-point number to the encoded output
+ @brief  Add a floating-point number to the encoded output.
 
- @param[in] pCtx      The encoding context to add the float to.
- @param[in] dNum      The double precision number to add.
+ @param[in] pCtx  The encoding context to add the float to.
+ @param[in] dNum  The double precision number to add.
 
  This outputs a floating-point number with CBOR major type 7.
 
- This will selectively encode the double-precision floating point
+ This will selectively encode the double-precision floating-point
  number as either double-precision, single-precision or
  half-precision. It will always encode infinity, NaN and 0 has half
  precision. If no precision will be lost in the conversion to
- half-precision then it will be converted and encoded. If not and no
+ half-precision, then it will be converted and encoded. If not and no
  precision will be lost in conversion to single-precision, then it
  will be converted and encoded. If not, then no conversion is
  performed, and it encoded as a double.
 
- Half-precision floating point numbers take up 2 bytes, half that of
+ Half-precision floating-point numbers take up 2 bytes, half that of
  single-precision, one quarter of double-precision
 
  This automatically reduces the size of encoded messages a lot, maybe
@@ -1066,31 +1117,36 @@ static void QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel
 
 
 /**
- @brief[in] Add an optional tag
+ @brief Add an optional tag.
 
  @param[in] pCtx  The encoding context to add the integer to.
  @param[in] uTag  The tag to add
 
- This outputs a CBOR major type 6 optional tag.
-
+ This outputs a CBOR major type 6 item that tags the next data item
+ that is output usually to indicate it is some new data type.
+ 
+ For many of the common standard tags, a function to encode data using
+ it is provided and this is not needed. For example,
+ QCBOREncode_AddDateEpoch() already exists to output integers
+ representing dates with the right tag.
+ 
  The tag is applied to the next data item added to the encoded
- output. That data item that is to be tagged can be of any major
- CBOR type. Any number of tags can be added to a data item by calling
- this multiple times before the data item is added.
-
- For many of the common standard tags a function to encode
- data using it already exists and this is not needed. For example,
- QCBOREncode_AddDateEpoch() already exists to output
- integers representing dates with the right tag.
+ output. That data item that is to be tagged can be of any major CBOR
+ type. Any number of tags can be added to a data item by calling this
+ multiple times before the data item is added.
+ 
+ See \ref Tags-Overview for discussion of creating new non-standard
+ tags. See QCBORDecode_GetNext() for discussion of decoding custom
+ tags.
 */
 void QCBOREncode_AddTag(QCBOREncodeContext *pCtx,uint64_t uTag);
 
 
 /**
- @brief  Add an epoch-based date
+ @brief  Add an epoch-based date.
 
- @param[in] pCtx     The encoding context to add the simple value to.
- @param[in] date     Number of seconds since 1970-01-01T00:00Z in UTC time.
+ @param[in] pCtx  The encoding context to add the simple value to.
+ @param[in] date  Number of seconds since 1970-01-01T00:00Z in UTC time.
 
  As per RFC 7049 this is similar to UNIX/Linux/POSIX dates. This is
  the most compact way to specify a date and time in CBOR. Note that this
@@ -1098,9 +1154,11 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx,uint64_t uTag);
  QCBOREncode_AddDateString() if you want to include the time zone.
 
  The integer encoding rules apply here so the date will be encoded in a
- minimal number of 1, 2 4 or 8 bytes. Until about the year 2106 these
- dates should encode in 6 bytes -- one byte for the tag, one byte for the type
- and 4 bytes for the integer.
+ minimal number of bytes. Until about the year 2106 these
+ dates will encode in 6 bytes -- one byte for the tag, one byte for the type
+ and 4 bytes for the integer. After that it will encode to 10 bytes.
+ 
+ Negative values are supported for dates before 1970.
 
  If you care about leap-seconds and that level of accuracy, make sure the
  system you are running this code on does it correctly. This code just takes
@@ -1123,13 +1181,13 @@ static  void QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx, int64_t nL
 /**
  @brief Add a byte string to the encoded output.
 
- @param[in] pCtx      The context to initialize.
- @param[in] Bytes     Pointer and length of the input data.
+ @param[in] pCtx   The context to initialize.
+ @param[in] Bytes  Pointer and length of the input data.
 
  Simply adds the bytes to the encoded output as CBOR major type 2.
 
- If called with Bytes.len equal to 0, an empty string will be
- added. When Bytes.len is 0, Bytes.ptr may be NULL.
+ If called with \c Bytes.len equal to 0, an empty string will be
+ added. When Bytes.len is 0, \c Bytes.ptr may be \c NULL.
 
  Error handling is the same as QCBOREncode_AddInt64().
  */
@@ -1144,13 +1202,13 @@ static void QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
 /**
  @brief Add a binary UUID to the encoded output.
 
- @param[in] pCtx      The context to initialize.
- @param[in] Bytes     Pointer and length of the binary UUID.
+ @param[in] pCtx   The context to initialize.
+ @param[in] Bytes  Pointer and length of the binary UUID.
 
- A binary UUID as defined in RFC 4122 is added to the ouput.
+ A binary UUID as defined in RFC 4122 is added to the output.
 
  It is output as CBOR major type 2, a binary string, with
- optional tag 36 indicating the binary string is a UUID.
+ tag 36 indicating the binary string is a UUID.
  */
 static void QCBOREncode_AddBinaryUUID(QCBOREncodeContext *pCtx, UsefulBufC Bytes);
 
@@ -1162,14 +1220,14 @@ static void QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nL
 /**
  @brief Add a positive big number to the encoded output.
 
- @param[in] pCtx      The context to initialize.
- @param[in] Bytes     Pointer and length of the big number.
+ @param[in] pCtx   The context to initialize.
+ @param[in] Bytes  Pointer and length of the big number.
 
  Big numbers are integers larger than 64-bits. Their format
  is described in RFC 7049.
 
  It is output as CBOR major type 2, a binary string, with
- optional tag 2 indicating the binary string is a positive big
+ tag 2 indicating the binary string is a positive big
  number.
 
  Often big numbers are used to represent cryptographic keys,
@@ -1186,14 +1244,14 @@ static void QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx, int64_
 /**
  @brief Add a negative big number to the encoded output.
 
- @param[in] pCtx      The context to initialize.
- @param[in] Bytes     Pointer and length of the big number.
+ @param[in] pCtx   The context to initialize.
+ @param[in] Bytes  Pointer and length of the big number.
 
  Big numbers are integers larger than 64-bits. Their format
  is described in RFC 7049.
 
  It is output as CBOR major type 2, a binary string, with
- optional tag 2 indicating the binary string is a negative big
+ tag 3 indicating the binary string is a negative big
  number.
 
  Often big numbers are used to represent cryptographic keys,
@@ -1210,13 +1268,16 @@ static void QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx, int64_
 /**
  @brief Add a text URI to the encoded output.
 
- @param[in] pCtx    The context to initialize.
- @param[in] URI     Pointer and length of the URI.
+ @param[in] pCtx  The context to initialize.
+ @param[in] URI   Pointer and length of the URI.
 
- The format of URI is RFC 3986.
+ The format of URI must be per RFC 3986.
 
  It is output as CBOR major type 3, a text string, with
- optional tag 32 indicating the text string is a URI.
+ tag 32 indicating the text string is a URI.
+ 
+ A URI in a NULL-terminated string can be converted to
+ a UsefulBufC with UsefulBuf_FromSZ().
  */
 static void QCBOREncode_AddURI(QCBOREncodeContext *pCtx, UsefulBufC URI);
 
@@ -1226,15 +1287,15 @@ static void QCBOREncode_AddURIToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, U
 
 
 /**
- @brief Add base 64-encoded text to encoded output.
+ @brief Add Base64-encoded text to encoded output.
 
  @param[in] pCtx     The context to initialize.
  @param[in] B64Text  Pointer and length of the base-64 encoded text.
 
- The text content is base 64 encoded data per RFC 4648.
+ The text content is Base64 encoded data per RFC 4648.
 
  It is output as CBOR major type 3, a text string, with
- optional tag 34 indicating the text string is a URI.
+ tag 34 indicating the text string is a URI.
  */
 static void QCBOREncode_AddB64Text(QCBOREncodeContext *pCtx, UsefulBufC B64Text);
 
@@ -1244,15 +1305,15 @@ static void QCBOREncode_AddB64TextToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
 
 
 /**
- @brief Add base 64URL -encoded URL to encoded output.
+ @brief Add base64url encoded data to encoded output.
 
- @param[in] pCtx    The context to initialize.
- @param[in] B64Text  Pointer and length of the base-64 encoded text.
+ @param[in] pCtx     The context to initialize.
+ @param[in] B64Text  Pointer and length of the base64url encoded text.
 
- The text content is base 64 URL format encoded text as per RFC 4648.
+ The text content is base64URL encoded text as per RFC 4648.
 
  It is output as CBOR major type 3, a text string, with
- optional tag 33 indicating the text string is a URI.
+ tag 33 indicating the text string is a URI.
  */
 static void QCBOREncode_AddB64URLText(QCBOREncodeContext *pCtx, UsefulBufC B64Text);
 
@@ -1262,7 +1323,7 @@ static void QCBOREncode_AddB64URLTextToMapN(QCBOREncodeContext *pCtx, int64_t nL
 
 
 /**
- @brief Add Perl Compatible Regular Expression
+ @brief Add Perl Compatible Regular Expression.
 
  @param[in] pCtx    The context to initialize.
  @param[in] Regex   Pointer and length of the regular expression.
@@ -1271,7 +1332,7 @@ static void QCBOREncode_AddB64URLTextToMapN(QCBOREncodeContext *pCtx, int64_t nL
  Expressions (PCRE) / JavaScript syntax [ECMA262].
 
  It is output as CBOR major type 3, a text string, with
- optional tag 35 indicating the text string is a regular expression.
+ tag 35 indicating the text string is a regular expression.
  */
 static void QCBOREncode_AddRegex(QCBOREncodeContext *pCtx, UsefulBufC Regex);
 
@@ -1286,10 +1347,11 @@ static void QCBOREncode_AddRegexToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
  @param[in] pCtx      The context to initialize.
  @param[in] MIMEData  Pointer and length of the regular expression.
 
- The text content is in MIME format per RFC 2045 including the headers.
+ The text content is in MIME format per RFC 2045 including the headers. Note
+ that this only supports text-format MIME. Binary MIME is not supported.
 
  It is output as CBOR major type 3, a text string, with
- optional tag 36 indicating the text string is MIME data.
+ tag 36 indicating the text string is MIME data.
  */
 static void QCBOREncode_AddMIMEData(QCBOREncodeContext *pCtx, UsefulBufC MIMEData);
 
@@ -1301,8 +1363,8 @@ static void QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pCtx, int64_t nLab
 /**
  @brief  Add an RFC 3339 date string
 
- @param[in] pCtx      The encoding context to add the simple value to.
- @param[in] szDate    Null-terminated string with date to add
+ @param[in] pCtx    The encoding context to add the simple value to.
+ @param[in] szDate  Null-terminated string with date to add
 
  The string szDate should be in the form of RFC 3339 as defined by section
  3.3 in RFC 4287. This is as described in section 2.4.1 in RFC 7049.
@@ -1321,12 +1383,12 @@ static void QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx, int64_t nL
 
 
 /**
- @brief  Add a standard boolean.
+ @brief  Add a standard Boolean.
 
  @param[in] pCtx   The encoding context to add the simple value to.
  @param[in] b      true or false from stdbool. Anything will result in an error.
 
- Adds a boolean value as CBOR major type 7.
+ Adds a Boolean value as CBOR major type 7.
 
  Error handling is the same as QCBOREncode_AddInt64().
  */
@@ -1341,7 +1403,7 @@ static void QCBOREncode_AddBoolToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
 /**
  @brief  Add a NULL to the encoded output.
 
- @param[in] pCtx   The encoding context to add the simple value to.
+ @param[in] pCtx  The encoding context to add the simple value to.
 
  Adds the NULL value as CBOR major type 7.
 
@@ -1360,7 +1422,7 @@ static void QCBOREncode_AddNULLToMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 /**
  @brief  Add an "undef" to the encoded output.
 
- @param[in] pCtx   The encoding context to add the simple value to.
+ @param[in] pCtx  The encoding context to add the simple value to.
 
  Adds the undef value as CBOR major type 7.
 
@@ -1384,21 +1446,21 @@ static void QCBOREncode_AddUndefToMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
  @param[in] pCtx The encoding context to open the array in.
 
  Arrays are the basic CBOR aggregate or structure type. Call this
- function to start or open an array. Then call the various AddXXX
+ function to start or open an array. Then call the various \c QCBOREncode_AddXXX()
  functions to add the items that go into the array. Then call
  QCBOREncode_CloseArray() when all items have been added. The data
  items in the array can be of any type and can be of mixed types.
 
  Nesting of arrays and maps is allowed and supported just by calling
- QCBOREncode_OpenArray() again before calling CloseArray.  While CBOR
+ QCBOREncode_OpenArray() again before calling QCBOREncode_CloseArray().  While CBOR
  has no limit on nesting, this implementation does in order to keep it
- smaller and simpler.  The limit is QCBOR_MAX_ARRAY_NESTING. This is
+ smaller and simpler.  The limit is \ref QCBOR_MAX_ARRAY_NESTING. This is
  the max number of times this can be called without calling
  QCBOREncode_CloseArray(). QCBOREncode_Finish() will return
- QCBOR_ERR_ARRAY_NESTING_TOO_DEEP when it is called as this function
+ \ref QCBOR_ERR_ARRAY_NESTING_TOO_DEEP when it is called as this function
  just sets an error state and returns no value when this occurs.
 
- If you try to add more than QCBOR_MAX_ITEMS_IN_ARRAY items to a
+ If you try to add more than \ref QCBOR_MAX_ITEMS_IN_ARRAY items to a
  single array or map, QCBOR_ERR_ARRAY_TOO_LONG will be returned when
  QCBOREncode_Finish() is called.
 
@@ -1428,11 +1490,11 @@ static void QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabe
  QCBOREncode_Finish() is called.
 
  If this has been called more times than QCBOREncode_OpenArray(), then
- QCBOR_ERR_TOO_MANY_CLOSES will be returned when QCBOREncode_Finish()
+ \ref QCBOR_ERR_TOO_MANY_CLOSES will be returned when QCBOREncode_Finish()
  is called.
 
  If this is called and it is not an array that is currently open,
- QCBOR_ERR_CLOSE_MISMATCH will be returned when QCBOREncode_Finish()
+ \ref QCBOR_ERR_CLOSE_MISMATCH will be returned when QCBOREncode_Finish()
  is called.
  */
 static void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
@@ -1455,13 +1517,13 @@ static void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
  typically, integers as this gives the most compact output. They might
  also be text strings which gives readability and translation to JSON.
 
- Every QCBOREncode_AddXXX() call has once version that is "InMap" for
+ Every \c QCBOREncode_AddXXX() call has once version that is "InMap" for
  adding items to maps with string labels and on that is "InMapN" that
  is for adding with integer labels.
 
  RFC 7049 uses the term "key" instead of "label".
 
- If you wish to use map labels that are neither integer labels or
+ If you wish to use map labels that are neither integer labels nor
  text strings, then just call the QCBOREncode_AddXXX() function
  explicitly to add the label. Then call it again to add the value.
 
@@ -1488,11 +1550,11 @@ static void QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
  QCBOREncode_Finish() is called.
 
  If this has been called more times than QCBOREncode_OpenMap(),
- then QCBOR_ERR_TOO_MANY_CLOSES will be returned when
+ then \ref QCBOR_ERR_TOO_MANY_CLOSES will be returned when
  QCBOREncode_Finish() is called.
 
  If this is called and it is not a map that is currently
- open, QCBOR_ERR_CLOSE_MISMATCH will be returned when QCBOREncode_Finish()
+ open, \ref QCBOR_ERR_CLOSE_MISMATCH will be returned when QCBOREncode_Finish()
  is called.
  */
 static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
@@ -1539,17 +1601,17 @@ static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
 /**
  @brief Close a wrapping bstr.
 
- @param[in] pCtx The context to add to.
- @param[out] pWrappedCBOR UsefulBufC containing wrapped bytes
+ @param[in] pCtx           The context to add to.
+ @param[out] pWrappedCBOR  A \ref UsefulBufC containing wrapped bytes.
 
- The closes a wrapping bstr opened by QCBOREncode_BstrWrap(). It reduces
+ The closes a wrapping bstr opened by QCBOREncode_CloseBstrWrap(). It reduces
  nesting level by one.
 
  A pointer and length of the enclosed encoded CBOR is returned in
- *pWrappedCBOR if it is not NULL. The main purpose of this is so this
+ \c *pWrappedCBOR if it is not \c NULL. The main purpose of this is so this
  data can be hashed (e.g., with SHA-256) as part of a COSE (RFC 8152)
  implementation. **WARNING**, this pointer and length should be used
- right away before any other calls to QCBOREncode_xxxx() as they will
+ right away before any other calls to \c QCBOREncode_xxxx() as they will
  move data around and the pointer and length will no longer be to the
  correct encoded CBOR.
 
@@ -1558,11 +1620,11 @@ static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
  QCBOREncode_Finish() is called.
 
  If this has been called more times then QCBOREncode_BstrWrap(),
- then QCBOR_ERR_TOO_MANY_CLOSES will be returned when
+ then \ref QCBOR_ERR_TOO_MANY_CLOSES will be returned when
  QCBOREncode_Finish() is called.
 
  If this is called and it is not a wrapping bstr that is currently
- open, QCBOR_ERR_CLOSE_MISMATCH will be returned when QCBOREncode_Finish()
+ open, \ref QCBOR_ERR_CLOSE_MISMATCH will be returned when QCBOREncode_Finish()
  is called.
  */
 static void QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWrappedCBOR);
@@ -1571,8 +1633,8 @@ static void QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWra
 /**
  @brief Add some already-encoded CBOR bytes.
 
- @param[in] pCtx The context to add to.
- @param[in] Encoded The already-encoded CBOR to add to the context.
+ @param[in] pCtx     The context to add to.
+ @param[in] Encoded  The already-encoded CBOR to add to the context.
 
  The encoded CBOR being added must be fully conforming CBOR. It must
  be complete with no arrays or maps that are incomplete. While this
@@ -1597,20 +1659,19 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
 /**
  @brief Get the encoded result.
 
- @param[in] pCtx  The context to finish encoding with.
+ @param[in] pCtx           The context to finish encoding with.
  @param[out] pEncodedCBOR  Pointer and length of encoded CBOR.
 
- @return
- One of the CBOR error codes.
+ @return  One of the CBOR error codes.
 
- If this returns success QCBOR_SUCCESS the encoding was a success and
+ If this returns success \ref QCBOR_SUCCESS the encoding was a success and
  the return length is correct and complete.
 
- If no buffer was passed to QCBOR_Init(), then only the length and
+ If no buffer was passed to QCBOREncode_Init(), then only the length and
  number of items was computed. The length is in
- pEncodedCBOR->Bytes.len. pEncodedCBOR->Bytes.ptr is NULL.
+ \c pEncodedCBOR->Bytes.len. \c pEncodedCBOR->Bytes.ptr is \c NULL.
 
- If a buffer was passed, then pEncodedCBOR->Bytes.ptr is the same as
+ If a buffer was passed, then \c pEncodedCBOR->Bytes.ptr is the same as
  the buffer passed to QCBOR_Init() and contains the encoded CBOR
  and the length is filled in.
 
@@ -1619,7 +1680,7 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
  may be incorrect and should not be used.
 
  Note that the error could have occurred in one of the many
- QCBOR_AddXXX calls long before QCBOREncode_Finish() was called. This
+ \c QCBOREncode_QCBOR_AddXxx() calls long before QCBOREncode_Finish() was called. This
  error handling approach reduces the CBOR implementation size, but makes
  debugging a problem a little more difficult.
  */
@@ -1629,16 +1690,16 @@ QCBORError QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR
 /**
  @brief Get the encoded CBOR and error status.
 
- @param[in] pCtx  The context to finish encoding with.
- @param[out] uEncodedLen The length of the encoded or potentially encoded CBOR in bytes.
+ @param[in] pCtx          The context to finish encoding with.
+ @param[out] uEncodedLen  The length of the encoded or potentially encoded CBOR in bytes.
 
  @return
  One of the CBOR error codes.
 
- If this returns success QCBOR_SUCCESS the encoding was a success and
+ If this returns success \ref QCBOR_SUCCESS the encoding was a success and
  the return length is correct and complete.
 
- If no buffer was passed to QCBOR_Init(), then only the length was
+ If no buffer was passed to QCBOREncode_Init(), then only the length was
  computed. If a buffer was passed, then the encoded CBOR is in the
  buffer.
 
@@ -1647,8 +1708,8 @@ QCBORError QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR
  may be incorrect and should not be used.
 
  Note that the error could have occurred in one of the many
- QCBOR_AddXXX calls long before QCBOREncode_Finish() was called. This
- error handling reduces the CBOR implementation size, but makes
+ \c QCBOREncode_AddXXX() calls long before QCBOREncode_Finish() was called. This
+ error handling reduces the CBOR implementation size but makes
  debugging harder.
  */
 QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
@@ -1671,9 +1732,9 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
 /**
  Initialize the CBOR decoder context.
 
- @param[in] pCtx The context to initialize.
- @param[in] EncodedCBOR The buffer with CBOR encoded bytes to be decoded.
- @param[in] nMode One of QCBOR_DECODE_MODE_xxx
+ @param[in] pCtx         The context to initialize.
+ @param[in] EncodedCBOR  The buffer with CBOR encoded bytes to be decoded.
+ @param[in] nMode        See below and \ref QCBORDecodeMode.
 
  Initialize context for a pre-order travesal of the encoded CBOR tree.
 
@@ -1684,24 +1745,24 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
  QCBORDecode_SetMemPool() or QCBORDecode_SetUpAllocator() must be
  called to set up a string allocator.
 
- If tags other than built-in tags are to be recognized, then
- QCBORDecode_SetCallerAddedTagMap() must be called. The built-in tags
- are those for which a macro of the form  CBOR_TAG_XXX is defined.
+ If tags other than built-in tags are to be recognized and recorded in \c uTagBits, then
+ QCBORDecode_SetCallerConfiguredTagList() must be called. The built-in tags
+ are those for which a macro of the form \c CBOR_TAG_XXX is defined.
 
  Three decoding modes are supported.  In normal mode,
- QCBOR_DECODE_MODE_NORMAL, maps are decoded and strings and ints are
+ \ref QCBOR_DECODE_MODE_NORMAL, maps are decoded and strings and ints are
  accepted as map labels. If a label is other than these, the error
  QCBOR_ERR_MAP_LABEL_TYPE is returned by QCBORDecode_GetNext().
 
- In strings-only mode, QCBOR_DECODE_MODE_MAP_STRINGS_ONLY, only text
+ In strings-only mode, \ref QCBOR_DECODE_MODE_MAP_STRINGS_ONLY, only text
  strings are accepted for map labels.  This lines up with CBOR that
- converts to JSON. The error QCBOR_ERR_MAP_LABEL_TYPE is returned by
+ converts to JSON. The error \ref QCBOR_ERR_MAP_LABEL_TYPE is returned by
  QCBORDecode_GetNext() if anything but a text string label is
  encountered.
 
- In QCBOR_DECODE_MODE_MAP_AS_ARRAY maps are treated as special arrays.
- They will be return with special uDataType QCBOR_TYPE_MAP_AS_ARRAY
- and uCount, the number of items, will be double what it would be
+ In \ref QCBOR_DECODE_MODE_MAP_AS_ARRAY maps are treated as special arrays.
+ They will be return with special \c uDataType \ref QCBOR_TYPE_MAP_AS_ARRAY
+ and \c uCount, the number of items, will be double what it would be
  for a normal map because the labels are also counted. This mode
  is useful for decoding CBOR that has labels that are not
  integers or text strings, but the caller must manage much of
@@ -1714,8 +1775,7 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDec
  @brief Set up the MemPool string allocator for indefinite length strings.
 
  @param[in] pCtx         The decode context.
- @param[in] MemPool      The pointer and length of the memory pool.
-
+ @param[in] MemPool       The pointer and length of the memory pool.
  @param[in] bAllStrings  If true, all strings, even of definite
                          length, will be allocated with the string
                          allocator.
@@ -1784,7 +1844,7 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, b
  \c QCBORDecode_MakeMallocStringAllocator(). It will return a function
  and pointer that can be given here as \c pAllocatorFunction and \c
  pAllocatorContext. It uses standard \c malloc() so \c free() must be
- called onall strings marked by \c uDataAlloc \c == \c 1 or \c
+ called on all strings marked by \c uDataAlloc \c == \c 1 or \c
  uLabelAlloc \c == \c 1 in \ref QCBORItem.
 
  Note that an older version of this function took an allocator
@@ -1798,22 +1858,30 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
                                 bool bAllStrings);
 
 /**
- @brief Configure list of caller selected tags to be recognized
+ @brief Configure list of caller-selected tags to be recognized.
 
- @param[in] pCtx The decode context.
- @param[out] pTagList Structure holding the list of tags to configure
+ @param[in] pCtx       The decode context.
+ @param[out] pTagList  Structure holding the list of tags to configure.
 
  This is used to tell the decoder about tags beyond those that are
- built-in that should be recognized. The built-in tags are those
- with macros of the form CBOR_TAG_XXX.
-
- See description of QCBORTagListIn.
+ built-in that should be recognized. The built-in tags are those with
+ macros of the form \c CBOR_TAG_XXX.
+ 
+ The list pointed to by \c pTagList must persist during decoding.  No
+ copy of it is made.
+ 
+ The maximum number of tags that can be added is \ref
+ QCBOR_MAX_CUSTOM_TAGS.  If a list larger than this is given, the
+ error will be returned when QCBORDecode_GetNext() is called, not
+ here.
+ 
+ See description of \ref QCBORTagListIn.
  */
 void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBORTagListIn *pTagList);
 
 
 /**
- @brief Gets the next item (integer, byte string, array...) in pre order traversal of CBOR tree
+ @brief Gets the next item (integer, byte string, array...) in preorder traversal of CBOR tree.
 
  @param[in]  pCtx          The decoder context.
  @param[out] pDecodedItem  Holds the CBOR item just decoded.
@@ -1828,13 +1896,13 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  QCBOR_ERR_NO_STRING_ALLOCATOR indicates CBOR that cannot
  be handled unless a string allocator is configured.
  QCBOR_ERR_MAP_LABEL_TYPE is in a way a limitation of
- this implementation, but can be avoided by decoding
+ this implementation but can be avoided by decoding
  in QCBOR_DECODE_MODE_MAP_AS_ARRAY mode.
 
  pDecodedItem is filled in with the value parsed. Generally, the
  following data is returned in the structure.
 
- - The data type in uDataType which indicates which member of the val
+ - The data type in \c uDataType which indicates which member of the \c val
    union the data is in. This decoder figures out the type based on the
    CBOR major type, the CBOR "additionalInfo", the CBOR optional tags
    and the value of the integer.
@@ -1853,12 +1921,12 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  on what is returned.
 
  This function also handles arrays and maps. When first encountered a
- QCBORItem will be returned with major type CBOR_MAJOR_TYPE_ARRAY or
- CBOR_MAJOR_TYPE_ARRAY_MAP. QCBORItem.val.uCount will indicate the number
+ \ref QCBORItem will be returned with major type \ref QCBOR_TYPE_ARRAY or
+ \ref QCBOR_TYPE_MAP. \c QCBORItem.val.uCount will indicate the number
  of Items in the array or map.  Typically, an implementation will call
  QCBORDecode_GetNext() in a for loop to fetch them all. When decoding
- indefinite length maps and arrays, QCBORItem.val.uCount is UINT16_MAX
- and uNextNestLevel must be used to know when the end of a map
+ indefinite length maps and arrays, \c QCBORItem.val.uCount is \c UINT16_MAX
+ and \c uNextNestLevel must be used to know when the end of a map
  or array is reached.
 
  Nesting level 0 is the outside top-most nesting level. For example, in
@@ -1876,7 +1944,7 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  Byte String                0
  @endverbatim
 
- Here is an example of how the nesting level is reported with an a simple
+ Here is an example of how the nesting level is reported with a simple
  array and some top-level items.
 
  @verbatim
@@ -1901,62 +1969,86 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  byte string                1
  @endverbatim
 
- In QCBORItem, uNextNestLevel is the nesting level for the next call
+ In \ref QCBORItem, \c uNextNestLevel is the nesting level for the next call
  to QCBORDecode_GetNext(). It indicates if any maps or arrays were closed
- out during the processing of the just-fecthed QCBORItem. This processing
+ out during the processing of the just-fetched \ref QCBORItem. This processing
  includes a look-ahead for any breaks that close out indefinite length
  arrays or maps. This value is needed to be able to understand the
- hierarchical structure. If uNextNestLevel is not equal to uNestLevel
+ hierarchical structure. If \c uNextNestLevel is not equal to \c uNestLevel
  the end of the current map or array has been encountered. This
  works the same for both definite and indefinite length arrays.
 
- Most uses of this decoder will not need to do anything extra for
- tag handling. The built-in tags, those with a macro of the form
- CBOR_TAG_XXXX, will be enough.
-
- If tags beyond built-in tags are to be recognized, they must be
- configured by calling QCBORDecode_SetCallerConfiguredTags(). If
- a tag is not recognized it is silently ignored.
-
- Several tagged types are automatically recognized and decoded and
- returned in their decoded form.
-
- To find out if a QCBORItem was tagged with a particular tag
- call QCBORDecode_IsTagged(). This works only for built-in
- tags and caller-configured tags.
-
- To get the full list of tags on an Item without having to
- pre-configure any predetermined list of tags use
- QCBORDecode_GetNextWithTags().
+ Not all data items are tagged but some are. The decoding of
+ particular given tag value may be supported in one of three different
+ ways.
+ 
+ First, some common tags are fully and transparently supported by
+ automatically decoding them and returning them in a \ref QCBORItem.
+ These tags have a \c QCBOR_TYPE_XXX associated with them and manifest
+ pretty much the same as a standard CBOR type. \ref
+ QCBOR_TYPE_DATE_EPOCH and the \c epochDate member of \ref QCBORItem
+ is an example.
+ 
+ Second are tags that are automatically recognized, but not decoded.
+ These are tags that have a \c #define of the form \c CBOR_TAG_XXX.
+ These are recorded in the \c uTagBits member of \ref QCBORItem. There
+ is an internal table that maps each bit to a particular tag value
+ allowing up to 64 tags on an individual item to be reported (it is
+ rare to have more than one or two). To find out if a particular tag
+ value is set call QCBORDecode_IsTagged() on the \ref QCBORItem.  See
+ also QCBORDecode_GetNextWithTags().
+ 
+ Third are tags that are not automatically recognized, because they
+ are proprietary, custom or more recently registered with IANA. The
+ internal mapping table has to be configured to recognize these. Call
+ QCBORDecode_SetCallerConfiguredTagList() to do that. Then
+ QCBORDecode_IsTagged() will work with them.
+ 
+ The actual decoding of tags supported in the second and third way
+ must be handled by the caller. Often this is simply verifying that
+ the expected tag is present on a map, byte string or such.  In other
+ cases, there might a complicated map structure to decode.
+ 
+ See \ref Tags-Overview for a description of how to go about creating
+ custom tags.
+ 
+ This tag decoding design is to be open-ended and flexible to be able
+ to handle newly defined tags, while using very little memory, in
+ particular keeping \ref QCBORItem as small as possible.
+ 
  */
 QCBORError QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
- @brief Gets the next item including full list of tags for item
+ @brief Gets the next item including full list of tags for item.
 
  @param[in]  pCtx          The decoder context.
  @param[out] pDecodedItem  Holds the CBOR item just decoded.
- @param[in,out] pTagList   On input array to put tags in; on output the tags on this item.
+ @param[in,out] pTagList   On input array to put tags in; on output the tags on this item. See \ref QCBORTagListOut.
 
  @return 0 or error.
 
- This works the same as QCBORDecode_GetNext() except that it also returns
- the full list of tags for the data item. This function should only
- be needed when parsing CBOR to print it out or convert it to some other
- format. It should not be needed in an actual CBOR protocol implementation.
+ This works the same as QCBORDecode_GetNext() except that it also
+ returns the full list of tags for the data item. This function should
+ only be needed when parsing CBOR to print it out or convert it to
+ some other format. It should not be needed to implement a CBOR-based
+ protocol.  See QCBORDecode_GetNext() for the main description of tag
+ decoding.
 
  Tags will be returned here whether or not they are in the built-in or
  caller-configured tag lists.
 
  CBOR has no upper bound of limit on the number of tags that can be
- associated with a data item. In practice the number of tags on an item
- will usually be small, perhaps less than five. This will return an error
- if the array in pTagList is too small to hold all the tags for an item.
+ associated with a data item though in practice the number of tags on
+ an item will usually be small, perhaps less than five. This will
+ return an error if the array in \c pTagList is too small to hold all
+ the tags for the item.
 
- (This function is separate from  QCBORDecode_GetNext() so as to not have to
- make QCBORItem large enough to be able to hold a full list of tags. Even a list of
- five tags would nearly double its size because tags can be a uint64_t).
+ (This function is separate from QCBORDecode_GetNext() so as to not
+ have to make \ref QCBORItem large enough to be able to hold a full
+ list of tags. Even a list of five tags would nearly double its size
+ because tags can be a \c uint64_t ).
  */
 QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
 
@@ -1965,29 +2057,24 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDec
  @brief Determine if a CBOR item was tagged with a particular tag
 
  @param[in] pCtx    The decoder context.
- @param[in] pItem   The CBOR item to check
- @param[in] uTag    The tag to check
+ @param[in] pItem   The CBOR item to check.
+ @param[in] uTag    The tag to check.
 
  @return 1 if it was tagged, 0 if not
 
- QCBORDecode_GetNext() processes tags by looking them up
- in two lists and setting a bit corresponding to the tag
- in uTagBits in the QCBORItem. To find out if a
- QCBORItem was tagged with a particular tag, call
- this function. It handles the mapping between
- the two lists of tags and the bits set for it.
-
- The first tag list is the built-in tags, those
- with a macro of the form CBOR_TAG_XXX in this
- header file. There are up to 48 of these,
- corresponding to the lower 48 tag bits.
-
- The other optional tag list is the ones
- the caller configured using QCBORDecode_SetCallerConfiguredTagList()
- There are QCBOR_MAX_CUSTOM_TAGS (16) of these corresponding to the
- upper 16 tag bits.
-
- See also QCBORDecode_GetTags() and QCBORDecode_GetNextWithTags().
+ See QCBORDecode_GetNext() for the main description of tag
+ handling. For tags that are not fully decoded a bit corresponding to
+ the tag is set in in \c uTagBits in the \ref QCBORItem. The
+ particular bit depends on an internal mapping table. This function
+ checks for set bits against the mapping table.
+ 
+ Typically, a protocol implementation just wants to know if a
+ particular tag is present. That is what this provides. To get the
+ full list of tags on a data item, see QCBORDecode_GetNextWithTags().
+ 
+ Also see QCBORDecode_SetCallerConfiguredTagList() for the means to
+ add new tags to the internal list so they can be checked for with
+ this function.
  */
 int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint64_t uTag);
 
@@ -1995,9 +2082,9 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint6
 /**
  Check whether all the bytes have been decoded and maps and arrays closed.
 
- @param[in]  pCtx          The context to check
+ @param[in]  pCtx  The context to check.
 
- @return QCBOR_SUCCESS or error
+ @return An error or \ref QCBOR_SUCCESS.
 
  This tells you if all the bytes given to QCBORDecode_Init() have
  been consumed and whether all maps and arrays were closed.
@@ -2010,10 +2097,10 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 
 
 /**
-  Convert int64_t to smaller int's safely
+  Convert int64_t to smaller int's safely.
 
- @param [in]  src    An int64_t
- @param [out] dest   A smaller sized int to convert to
+ @param [in]  src   An \c int64_t.
+ @param [out] dest  A smaller sized int to convert to.
 
  @return 0 on success -1 if not
 
@@ -2027,20 +2114,20 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
  are 8 bytes or less in length. Then encoders like this one use the
  smallest number of 1, 2, 4 or 8 bytes to represent the integer based
  on its value. There is thus no notion that one data item in CBOR is
- an 1 byte integer and another is a 4 byte integer.
+ a 1-byte integer and another is a 4-byte integer.
 
  The interface to this CBOR encoder only uses 64-bit integers. Some
  CBOR protocols or implementations of CBOR protocols may not want to
  work with something smaller than a 64-bit integer.  Perhaps an array
  of 1000 integers needs to be sent and none has a value larger than
- 50,000 and are represented as uint16_t.
+ 50,000 and are represented as \c uint16_t.
 
  The sending / encoding side is easy. Integers are temporarily widened
  to 64-bits as a parameter passing through QCBOREncode_AddInt64() and
  encoded in the smallest way possible for their value, possibly in
- less than an uint16_t.
+ less than an \c uint16_t.
 
- On the decoding side the integers will be returned at int64_t even if
+ On the decoding side the integers will be returned at \c int64_t even if
  they are small and were represented by only 1 or 2 bytes in the
  encoded CBOR. The functions here will convert integers to a small
  representation with an overflow check.
@@ -2145,8 +2232,8 @@ static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
  code size down and because the C language has no way to make
  it private.
 
- If this is called the major type should be CBOR_MAJOR_TYPE_TEXT_STRING,
- CBOR_MAJOR_TYPE_BYTE_STRING or CBOR_MAJOR_NONE_TYPE_RAW. The last
+ If this is called the major type should be \c CBOR_MAJOR_TYPE_TEXT_STRING,
+ \c CBOR_MAJOR_TYPE_BYTE_STRING or \c CBOR_MAJOR_NONE_TYPE_RAW. The last
  one is special for adding already-encoded CBOR.
  */
 void QCBOREncode_AddBuffer(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC Bytes);
@@ -2155,8 +2242,8 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulB
 /**
  @brief Semi-private method to open a map, array or bstr wrapped CBOR
 
- @param[in] pCtx The context to add to.
- @param[in] uMajorType The major CBOR type to close
+ @param[in] pCtx        The context to add to.
+ @param[in] uMajorType  The major CBOR type to close
 
  Call QCBOREncode_OpenArray(), QCBOREncode_OpenMap() or
  QCBOREncode_BstrWrap() instead of this.
@@ -2167,9 +2254,9 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType);
 /**
  @brief Semi-private method to close a map, array or bstr wrapped CBOR
 
- @param[in] pCtx The context to add to.
- @param[in] uMajorType The major CBOR type to close
- @param[out] pWrappedCBOR UsefulBufC containing wrapped bytes
+ @param[in] pCtx           The context to add to.
+ @param[in] uMajorType     The major CBOR type to close.
+ @param[out] pWrappedCBOR  Pointer to \c UsefulBufC containing wrapped bytes.
 
  Call QCBOREncode_CloseArray(), QCBOREncode_CloseMap() or
  QCBOREncode_CloseBstrWrap() instead of this.
@@ -2180,9 +2267,9 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType, U
 /**
  @brief  Semi-private method to add simple types.
 
- @param[in] pCtx      The encoding context to add the simple value to.
- @param[in] uSize     Minimum encoding size for uNum. Usually 0.
- @param[in] uNum      One of CBOR_SIMPLEV_FALSE through _UNDEF or other.
+ @param[in] pCtx   The encoding context to add the simple value to.
+ @param[in] uSize  Minimum encoding size for uNum. Usually 0.
+ @param[in] uNum   One of CBOR_SIMPLEV_FALSE through _UNDEF or other.
 
  This is used to add simple types like true and false.
 
