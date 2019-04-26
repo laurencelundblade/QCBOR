@@ -565,7 +565,7 @@ inline static QCBORError DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber,
       case CBOR_SIMPLEV_ONEBYTE: // 24
          if(uNumber <= CBOR_SIMPLE_BREAK) {
             // This takes out f8 00 ... f8 1f which should be encoded as e0 … f7
-            nReturn = QCBOR_ERR_INVALID_CBOR;
+            nReturn = QCBOR_ERR_BAD_TYPE_7;
             goto Done;
          }
          /* FALLTHROUGH */
