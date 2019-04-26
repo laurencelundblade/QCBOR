@@ -78,7 +78,7 @@ extern "C" {
  The goal of this code is to make buffer and pointer manipulation
  easier and safer when working with binary data.
 
- The \ref UsefulBuf, \ref UsefulOutBuf and \ref UsefulInputBuf
+ The @ref UsefulBuf, @ref UsefulOutBuf and @ref UsefulInputBuf
  structures are used to represent buffers rather than ad hoc pointers and
  lengths.
 
@@ -101,12 +101,12 @@ extern "C" {
 
  This code consists of a lot of inline functions and a few that are
  not.  It should not generate very much object code, especially with
- the optimizer turned up to \c -Os or \c -O3.
+ the optimizer turned up to @c -Os or @c -O3.
  */
 
 
 /**
- \ref UsefulBufC and \ref UsefulBuf are simple data structures to hold
+ @ref UsefulBufC and @ref UsefulBuf are simple data structures to hold
  a pointer and length for binary data.  In C99 this data structure can
  be passed on the stack making a lot of code cleaner than carrying
  around a pointer and length as two parameters.
@@ -121,31 +121,31 @@ extern "C" {
  gigabit-per-second IP router), it is probably better to have cleaner
  code you can be most certain about the security of.
 
- The non-const \ref UsefulBuf is usually used to refer a buffer to be
+ The non-const @ref UsefulBuf is usually used to refer a buffer to be
  filled in.  The length is the size of the buffer.
 
- The const \ref UsefulBufC is usually used to refer to some data that
+ The const @ref UsefulBufC is usually used to refer to some data that
  has been filled in. The length is amount of valid data pointed to.
 
- A common use is to pass a \ref UsefulBuf to a function, the function
- fills it in, the function returns a \ref UsefulBufC. The pointer is
+ A common use is to pass a @ref UsefulBuf to a function, the function
+ fills it in, the function returns a @ref UsefulBufC. The pointer is
  the same in both.
 
- A \ref UsefulBuf is null, it has no value, when \c ptr in it is \c NULL.
+ A @ref UsefulBuf is null, it has no value, when @c ptr in it is @c NULL.
 
  There are utility functions for the following:
   - Initializing
-  - Create initialized const \ref UsefulBufC from compiler literals
-  - Create initialized const \ref UsefulBufC from NULL-terminated string
-  - Make an empty \ref UsefulBuf on the stack
-  - Checking whether a \ref UsefulBuf is null, empty or both
+  - Create initialized const @ref UsefulBufC from compiler literals
+  - Create initialized const @ref UsefulBufC from NULL-terminated string
+  - Make an empty @ref UsefulBuf on the stack
+  - Checking whether a @ref UsefulBuf is null, empty or both
   - Copying, copying with offset, copying head or tail
   - Comparing and finding substrings
 
- See also \ref UsefulOutBuf. It is a richer structure that has both
+ See also @ref UsefulOutBuf. It is a richer structure that has both
  the size of the valid data and the size of the buffer.
 
- \ref UsefulBuf is only 16 or 8 bytes on a 64- or 32-bit machine so it
+ @ref UsefulBuf is only 16 or 8 bytes on a 64- or 32-bit machine so it
  can go on the stack and be a function parameter or return value.
 
  Another way to look at it is this. C has the NULL-terminated string
@@ -153,7 +153,7 @@ extern "C" {
  binary strings. Other languages do have such means, Rust, an
  efficient compiled language, for example.
 
- \ref UsefulBuf is kind of like the Useful Pot Pooh gave Eeyore on his
+ @ref UsefulBuf is kind of like the Useful Pot Pooh gave Eeyore on his
  birthday.  Eeyore's balloon fits beautifully, "it goes in and out
  like anything".
 */
@@ -164,8 +164,8 @@ typedef struct q_useful_buf_c {
 
 
 /**
- This non-const \ref UsefulBuf is typically used for some allocated
- memory that is to be filled in. The \c len is the amount of memory,
+ This non-const @ref UsefulBuf is typically used for some allocated
+ memory that is to be filled in. The @c len is the amount of memory,
  not the length of the valid data in the buffer.
  */
 typedef struct q_useful_buf {
@@ -175,65 +175,65 @@ typedef struct q_useful_buf {
 
 
 /**
- A null \ref UsefulBufC is one that has no value in the same way a \c
- NULL pointer has no value.  A \ref UsefulBufC is \c NULL when the \c
- ptr field is \c NULL. It doesn't matter what \c len is.  See
+ A null @ref UsefulBufC is one that has no value in the same way a @c
+ NULL pointer has no value.  A @ref UsefulBufC is @c NULL when the @c
+ ptr field is @c NULL. It doesn't matter what @c len is.  See
  UsefulBuf_IsEmpty() for the distinction between null and empty.
  */
 #define NULLUsefulBufC  ((UsefulBufC) {NULL, 0})
 
 
 /**
- A null \ref UsefulBuf is one that has no memory associated the same
- way \c NULL points to nothing. It does not matter what \c len is.
+ A null @ref UsefulBuf is one that has no memory associated the same
+ way @c NULL points to nothing. It does not matter what @c len is.
  */
 #define NULLUsefulBuf   ((UsefulBuf) {NULL, 0})
 
 
 /**
- @brief Check if a \ref UsefulBuf is \ref NULLUsefulBuf or not.
+ @brief Check if a @ref UsefulBuf is @ref NULLUsefulBuf or not.
 
  @param[in] UB The UsefulBuf to check.
 
- @return 1 if it is \ref NULLUsefulBuf, 0 if not.
+ @return 1 if it is @ref NULLUsefulBuf, 0 if not.
  */
 static inline int UsefulBuf_IsNULL(UsefulBuf UB);
 
 
 /**
- @brief Check if a \ref UsefulBufC is \ref NULLUsefulBufC or not.
+ @brief Check if a @ref UsefulBufC is @ref NULLUsefulBufC or not.
 
- @param[in] UB The \ref UsefulBufC to check.
+ @param[in] UB The @ref UsefulBufC to check.
 
- @return 1 if it is \c NULLUsefulBufC, 0 if not.
+ @return 1 if it is @c NULLUsefulBufC, 0 if not.
  */
 static inline int UsefulBuf_IsNULLC(UsefulBufC UB);
 
 
 /**
- @brief Check if a \ref UsefulBuf is empty or not.
+ @brief Check if a @ref UsefulBuf is empty or not.
 
- @param[in] UB The \ref UsefulBuf to check.
+ @param[in] UB The @ref UsefulBuf to check.
 
  @return 1 if it is empty, 0 if not.
 
- An "empty" \ref UsefulBuf is one that has a value and can be
+ An "empty" @ref UsefulBuf is one that has a value and can be
  considered to be set, but that value is of zero length.  It is empty
- when \c len is zero. It doesn't matter what the \c ptr is.
+ when @c len is zero. It doesn't matter what the @c ptr is.
 
- A lot of uses will not need to clearly distinguish a \c NULL \ref
- UsefulBuf from an empty one and can have the \c ptr \c NULL and the
- \c len 0.  However if a use of \ref UsefulBuf needs to make a
- distinction then \c ptr should not be \c NULL when the \ref UsefulBuf
- is considered empty, but not \c NULL.
+ A lot of uses will not need to clearly distinguish a @c NULL @ref
+ UsefulBuf from an empty one and can have the @c ptr @c NULL and the
+ @c len 0.  However if a use of @ref UsefulBuf needs to make a
+ distinction then @c ptr should not be @c NULL when the @ref UsefulBuf
+ is considered empty, but not @c NULL.
  */
 static inline int UsefulBuf_IsEmpty(UsefulBuf UB);
 
 
 /**
- @brief Check if a \ref UsefulBufC is empty or not.
+ @brief Check if a @ref UsefulBufC is empty or not.
 
- @param[in] UB The \ref UsefulBufC to check.
+ @param[in] UB The @ref UsefulBufC to check.
 
  @return 1 if it is empty, 0 if not.
  */
@@ -241,49 +241,49 @@ static inline int UsefulBuf_IsEmptyC(UsefulBufC UB);
 
 
 /**
- @brief Check if a \ref UsefulBuf is \ref NULLUsefulBuf or empty.
+ @brief Check if a @ref UsefulBuf is @ref NULLUsefulBuf or empty.
 
- @param[in] UB The \ref UsefulBuf to check.
+ @param[in] UB The @ref UsefulBuf to check.
 
- @return 1 if it is either \ref NULLUsefulBuf or empty, 0 if not.
+ @return 1 if it is either @ref NULLUsefulBuf or empty, 0 if not.
  */
 static inline int UsefulBuf_IsNULLOrEmpty(UsefulBuf UB);
 
 
 /**
- @brief Check if a \ref UsefulBufC is \ref NULLUsefulBufC or empty.
+ @brief Check if a @ref UsefulBufC is @ref NULLUsefulBufC or empty.
 
- @param[in] UB The \ref UsefulBufC to check.
+ @param[in] UB The @ref UsefulBufC to check.
 
- @return 1 if it is either \ref NULLUsefulBufC or empty, 0 if not.
+ @return 1 if it is either @ref NULLUsefulBufC or empty, 0 if not.
  */
 static inline int UsefulBuf_IsNULLOrEmptyC(UsefulBufC UB);
 
 
 /**
- @brief Convert a non-const \ref UsefulBuf to a const \ref UsefulBufC.
+ @brief Convert a non-const @ref UsefulBuf to a const @ref UsefulBufC.
 
- @param[in] UB The \ref UsefulBuf to convert.
+ @param[in] UB The @ref UsefulBuf to convert.
 
- @return A \ref UsefulBufC struct.
+ @return A @ref UsefulBufC struct.
  */
 static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB);
 
 
 /**
- @brief Convert a const \ref UsefulBufC to a non-const \ref UsefulBuf.
+ @brief Convert a const @ref UsefulBufC to a non-const @ref UsefulBuf.
 
- @param[in] UBC The \ref UsefulBuf to convert.
+ @param[in] UBC The @ref UsefulBuf to convert.
 
- @return A non-const \ref UsefulBuf struct.
+ @return A non-const @ref UsefulBuf struct.
  */
 static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 
 
 /**
- Convert a literal string to a \ref UsefulBufC.
+ Convert a literal string to a @ref UsefulBufC.
 
- \c szString must be a literal string that \c sizeof() works on.  This
+ @c szString must be a literal string that @c sizeof() works on.  This
  is better for literal strings than UsefulBuf_FromSZ() because it
  generates less code. It will not work on non-literal strings.
 
@@ -294,9 +294,9 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 
 
 /**
- Convert a literal byte array to a \ref UsefulBufC.
+ Convert a literal byte array to a @ref UsefulBufC.
 
- \c pBytes must be a literal string that \c sizeof() works on.  It
+ @c pBytes must be a literal string that @c sizeof() works on.  It
  will not work on non-literal arrays.
  */
 #define UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBytes) \
@@ -304,8 +304,8 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 
 
 /**
- Make an automatic variable named \c name of type \ref UsefulBuf and
- point it to a stack variable of the given \c size.
+ Make an automatic variable named @c name of type @ref UsefulBuf and
+ point it to a stack variable of the given @c size.
  */
 #define  UsefulBuf_MAKE_STACK_UB(name, size) \
     uint8_t    __pBuf##name[(size)];\
@@ -313,8 +313,8 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 
 
 /**
- Make a byte array in to a \ref UsefulBuf. This is usually used on
- stack variables or static variables.  Also see \ref
+ Make a byte array in to a @ref UsefulBuf. This is usually used on
+ stack variables or static variables.  Also see @ref
  UsefulBuf_MAKE_STACK_UB.
  */
 #define UsefulBuf_FROM_BYTE_ARRAY(pBytes) \
@@ -322,13 +322,13 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 
 
 /**
- @brief Convert a NULL-terminated string to a \ref UsefulBufC.
+ @brief Convert a NULL-terminated string to a @ref UsefulBufC.
 
  @param[in] szString The string to convert.
 
- @return A \ref UsefulBufC struct.
+ @return A @ref UsefulBufC struct.
 
- \c UsefulBufC.ptr points to the string so its lifetime must be
+ @c UsefulBufC.ptr points to the string so its lifetime must be
  maintained.
 
  The terminating \0 (NULL) is NOT included in the length.
@@ -337,63 +337,63 @@ static inline UsefulBufC UsefulBuf_FromSZ(const char *szString);
 
 
 /**
- @brief Copy one \ref UsefulBuf into another at an offset.
+ @brief Copy one @ref UsefulBuf into another at an offset.
 
  @param[in] Dest     Destination buffer to copy into.
- @param[in] uOffset  The byte offset in \c Dest at which to copy to.
+ @param[in] uOffset  The byte offset in @c Dest at which to copy to.
  @param[in] Src      The bytes to copy.
 
- @return Pointer and length of the copy or \ref NULLUsefulBufC.
+ @return Pointer and length of the copy or @ref NULLUsefulBufC.
 
- This fails and returns \ref NULLUsefulBufC if \c offset is beyond the
- size of \c Dest.
+ This fails and returns @ref NULLUsefulBufC if @c offset is beyond the
+ size of @c Dest.
 
- This fails and returns \ref NULLUsefulBufC if the \c Src length plus
- \c uOffset is greater than the length of \c Dest.
+ This fails and returns @ref NULLUsefulBufC if the @c Src length plus
+ @c uOffset is greater than the length of @c Dest.
 
- The results are undefined if \c Dest and \c Src overlap.
+ The results are undefined if @c Dest and @c Src overlap.
 
- This assumes that there is valid data in \c Dest up to \c
- uOffset. The \ref UsefulBufC returned starts at the beginning of \c
- Dest and goes to \c Src.len \c + \c uOffset.
+ This assumes that there is valid data in @c Dest up to @c
+ uOffset. The @ref UsefulBufC returned starts at the beginning of @c
+ Dest and goes to @c Src.len @c + @c uOffset.
  */
 UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC Src);
 
 
 /**
- @brief Copy one \ref UsefulBuf into another.
+ @brief Copy one @ref UsefulBuf into another.
 
  @param[in] Dest  The destination buffer to copy into.
  @param[out] Src  The source to copy from.
 
- @return Filled in \ref UsefulBufC on success, \ref NULLUsefulBufC
+ @return Filled in @ref UsefulBufC on success, @ref NULLUsefulBufC
          on failure.
 
- This fails if \c Src.len is greater than \c Dest.len.
+ This fails if @c Src.len is greater than @c Dest.len.
 
- Note that like \c memcpy(), the pointers are not checked and this
- will crash rather than return \ref NULLUsefulBufC if they are \c
+ Note that like @c memcpy(), the pointers are not checked and this
+ will crash rather than return @ref NULLUsefulBufC if they are @c
  NULL or invalid.
 
- The results are undefined if \c Dest and \c Src overlap.
+ The results are undefined if @c Dest and @c Src overlap.
  */
 static inline UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src);
 
 
 /**
- @brief Set all bytes in a \ref UsefulBuf to a value, for example to 0.
+ @brief Set all bytes in a @ref UsefulBuf to a value, for example to 0.
 
  @param[in] pDest  The destination buffer to copy into.
  @param[in] value  The value to set the bytes to.
 
- Note that like \c memset(), the pointer in \c pDest is not checked
- and this will crash if \c NULL or invalid.
+ Note that like @c memset(), the pointer in @c pDest is not checked
+ and this will crash if @c NULL or invalid.
  */
 static inline UsefulBufC UsefulBuf_Set(UsefulBuf pDest, uint8_t value);
 
 
 /**
- @brief Copy a pointer into a \ref UsefulBuf.
+ @brief Copy a pointer into a @ref UsefulBuf.
 
  @param[in,out] Dest  The destination buffer to copy into.
  @param[in] ptr       The source to copy from.
@@ -401,11 +401,11 @@ static inline UsefulBufC UsefulBuf_Set(UsefulBuf pDest, uint8_t value);
 
  @return 0 on success, 1 on failure.
 
- This fails and returns \ref NULLUsefulBufC if \c uLen is greater than
- \c pDest->len.
+ This fails and returns @ref NULLUsefulBufC if @c uLen is greater than
+ @c pDest->len.
 
- Note that like \c memcpy(), the pointers are not checked and this
- will crash, rather than return 1 if they are \c NULL or invalid.
+ Note that like @c memcpy(), the pointers are not checked and this
+ will crash, rather than return 1 if they are @c NULL or invalid.
  */
 static inline UsefulBufC UsefulBuf_CopyPtr(UsefulBuf Dest,
                                            const void *ptr,
@@ -413,51 +413,51 @@ static inline UsefulBufC UsefulBuf_CopyPtr(UsefulBuf Dest,
 
 
 /**
-  @brief Returns a truncation of a \ref UsefulBufC.
+  @brief Returns a truncation of a @ref UsefulBufC.
 
   @param[in] UB       The buffer to get the head of.
   @param[in] uAmount  The number of bytes in the head.
 
-  @return A \ref UsefulBufC that is the head of UB.
+  @return A @ref UsefulBufC that is the head of UB.
  */
 static inline UsefulBufC UsefulBuf_Head(UsefulBufC UB, size_t uAmount);
 
 
 /**
- @brief  Returns bytes from the end of a \ref UsefulBufC.
+ @brief  Returns bytes from the end of a @ref UsefulBufC.
 
  @param[in] UB       The buffer to get the tail of.
  @param[in] uAmount  The offset from the start where the tail is to begin.
 
- @return A \ref UsefulBufC that is the tail of \c UB or \ref NULLUsefulBufC
-         if \c uAmount is greater than the length of the \ref UsefulBufC.
+ @return A @ref UsefulBufC that is the tail of @c UB or @ref NULLUsefulBufC
+         if @c uAmount is greater than the length of the @ref UsefulBufC.
 
- If \c UB.ptr is \c NULL, but \c UB.len is not zero, then the result will
- be a \ref UsefulBufC with a \c NULL \c ptr and \c len with the length
+ If @c UB.ptr is @c NULL, but @c UB.len is not zero, then the result will
+ be a @ref UsefulBufC with a @c NULL @c ptr and @c len with the length
  of the tail.
  */
 static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount);
 
 
 /**
- @brief Compare one \ref UsefulBufC to another.
+ @brief Compare one @ref UsefulBufC to another.
 
  @param[in] UB1  The first buffer to compare.
  @param[in] UB2  The second buffer to compare.
 
  @return 0, positive or negative value.
 
- Returns a negative value if \c UB1 if is less than \c UB2. \c UB1 is
- less than \c UB2 if it is shorter or the first byte that is not the
+ Returns a negative value if @c UB1 if is less than @c UB2. @c UB1 is
+ less than @c UB2 if it is shorter or the first byte that is not the
  same is less.
 
  Returns 0 if the inputs are the same.
 
- Returns a positive value if \c UB2 is less than \c UB1.
+ Returns a positive value if @c UB2 is less than @c UB1.
 
  All that is of significance is that the result is positive, negative
  or 0. (This doesn't return the difference between the first
- non-matching byte like \c memcmp() ).
+ non-matching byte like @c memcmp() ).
  */
 int UsefulBuf_Compare(const UsefulBufC UB1, const UsefulBufC UB2);
 
@@ -468,8 +468,8 @@ int UsefulBuf_Compare(const UsefulBufC UB1, const UsefulBufC UB2);
  @param[in] UB     The destination buffer for byte comparison.
  @param[in] uValue The byte value to compare to.
 
- @return  Offset of first byte that isn't \c uValue or
-          \c SIZE_MAX if all bytes are \c uValue.
+ @return  Offset of first byte that isn't @c uValue or
+          @c SIZE_MAX if all bytes are @c uValue.
 
  Note that unlike most comparison functions, 0
  does not indicate a successful comparison, so the
@@ -477,25 +477,25 @@ int UsefulBuf_Compare(const UsefulBufC UB1, const UsefulBufC UB2);
 
       UsefulBuf_IsValue(...) == SIZE_MAX
 
- If \c UB is null or empty, there is no match
+ If @c UB is null or empty, there is no match
  and 0 is returned.
  */
 size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue);
 
 
 /**
- @brief Find one \ref UsefulBufC in another.
+ @brief Find one @ref UsefulBufC in another.
 
  @param[in] BytesToSearch  Buffer to search through.
  @param[in] BytesToFind    Buffer with bytes to be found.
 
- @return Position of found bytes or \c SIZE_MAX if not found.
+ @return Position of found bytes or @c SIZE_MAX if not found.
  */
 size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
 #if 1 // NOT_DEPRECATED
-/** Deprecated macro; use \ref UsefulBuf_FROM_SZ_LITERAL instead */
+/** Deprecated macro; use @ref UsefulBuf_FROM_SZ_LITERAL instead */
 #define SZLiteralToUsefulBufC(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
 
@@ -504,7 +504,7 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
     uint8_t    __pBuf##name[(size)];\
     UsefulBuf  name = {__pBuf##name , sizeof( __pBuf##name )}
 
-/** Deprecated macro; use \ref UsefulBuf_FROM_BYTE_ARRAY_LITERAL instead */
+/** Deprecated macro; use @ref UsefulBuf_FROM_BYTE_ARRAY_LITERAL instead */
 #define ByteArrayLiteralToUsefulBufC(pBytes) \
     ((UsefulBufC) {(pBytes), sizeof(pBytes)})
 
@@ -519,11 +519,11 @@ static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
 
 
 /**
- @brief Copy a \c float to a \c uint32_t.
+ @brief Copy a @c float to a @c uint32_t.
 
  @param[in] f  Float value to copy.
 
- @return  A \c uint32_t with the float bits.
+ @return  A @c uint32_t with the float bits.
 
  Convenience function to avoid type punning, compiler warnings and
  such. The optimizer usually reduces this to a simple assignment.  This
@@ -533,11 +533,11 @@ static inline uint32_t UsefulBufUtil_CopyFloatToUint32(float f);
 
 
 /**
- @brief Copy a \c double to a \c uint64_t.
+ @brief Copy a @c double to a @c uint64_t.
 
  @param[in] d  Double value to copy.
 
- @return  A \c uint64_t with the double bits.
+ @return  A @c uint64_t with the double bits.
 
  Convenience function to avoid type punning, compiler warnings and
  such. The optimizer usually reduces this to a simple assignment.  This
@@ -547,11 +547,11 @@ static inline uint64_t UsefulBufUtil_CopyDoubleToUint64(double d);
 
 
 /**
- @brief Copy a \c uint32_t to a \c float.
+ @brief Copy a @c uint32_t to a @c float.
 
  @param[in] u32  Integer value to copy.
 
- @return  The value as a \c float.
+ @return  The value as a @c float.
 
  Convenience function to avoid type punning, compiler warnings and
  such. The optimizer usually reduces this to a simple assignment.  This
@@ -561,11 +561,11 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32);
 
 
 /**
- @brief Copy a \c uint64_t to a \c double.
+ @brief Copy a @c uint64_t to a @c double.
 
  @param[in] u64  Integer value to copy.
 
- @return  The value as a \c double.
+ @return  The value as a @c double.
 
  Convenience function to avoid type punning, compiler warnings and
  such. The optimizer usually reduces this to a simple assignment.  This
@@ -582,19 +582,19 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  to file.
 
  The main idea is that all the pointer manipulation is performed by
- \ref UsefulOutBuf functions so the caller doesn't have to do any
+ @ref UsefulOutBuf functions so the caller doesn't have to do any
  pointer manipulation.  The pointer manipulation is centralized.  This
  code will have been reviewed and written carefully so it spares the
  caller of much of this work and results in safer code with less work.
 
- The \ref UsefulOutBuf methods that add data to the output buffer
+ The @ref UsefulOutBuf methods that add data to the output buffer
  always check the length and will never write off the end of the
  output buffer. If an attempt to add data that will not fit is made,
  an internal error flag will be set and further attempts to add data
  will not do anything.
 
  There is no way to ever write off the end of that buffer when calling
- the \c UsefulOutBuf_AddXxx() and \c UsefulOutBuf_InsertXxx()
+ the @c UsefulOutBuf_AddXxx() and @c UsefulOutBuf_InsertXxx()
  functions.
 
  The functions to add data do not return an error. The working model
@@ -610,9 +610,9 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
 
  The general call flow is:
 
-    - Initialize by calling \ref UsefulOutBuf_Init(). The output
+    - Initialize by calling @ref UsefulOutBuf_Init(). The output
       buffer given to it can be from the heap, stack or
-      otherwise. \ref UsefulOutBuf_MakeOnStack is a convenience macro
+      otherwise. @ref UsefulOutBuf_MakeOnStack is a convenience macro
       that makes a buffer on the stack and initializes it.
 
     - Call methods like UsefulOutBuf_InsertString(),
@@ -623,12 +623,12 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
     - Call UsefulOutBuf_OutUBuf() or UsefulOutBuf_CopyOut() to see
       there were no errors and to get the serialized output bytes.
 
- \ref UsefulOutBuf can be used in a size calculation mode to calculate
+ @ref UsefulOutBuf can be used in a size calculation mode to calculate
  the size of output that would be generated. This is useful to
  calculate the size of a buffer that is to be allocated to hold the
- output. To use \ref UsefulOutBuf in this mode, call
- UsefulOutBuf_Init() with the \c Storage \ref UsefulBuf as
- \c (UsefulBuf){NULL,MAX_UINT32}. Then call all the Insert and Add
+ output. To use @ref UsefulOutBuf in this mode, call
+ UsefulOutBuf_Init() with the @c Storage @ref UsefulBuf as
+ @c (UsefulBuf){NULL,MAX_UINT32}. Then call all the Insert and Add
  functions. No attempt will made to actually copy data, so only the
  lengths have to be valid for these calls.
 
@@ -636,7 +636,7 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  bytes order (big endian).
 
  The possible errors are:
-  - The \ref UsefulOutBuf was not initialized or was corrupted.
+  - The @ref UsefulOutBuf was not initialized or was corrupted.
 
   - An attempt was made to add data that will not fit.
 
@@ -654,7 +654,7 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  almost no pointer manipulation in it, is easier to read, and easier
  to review.
 
- A \ref UsefulOutBuf is small and can go on the stack:
+ A @ref UsefulOutBuf is small and can go on the stack:
    - 32 bytes (27 bytes plus alignment padding) on a 64-bit machine
    - 16 bytes (15 bytes plus alignment padding) on a 32-bit machines
  */
@@ -670,21 +670,21 @@ typedef struct useful_out_buf {
 /**
  @brief Initialize and supply the actual output buffer.
 
- @param[out] pUOutBuf  The \ref UsefulOutBuf to initialize.
+ @param[out] pUOutBuf  The @ref UsefulOutBuf to initialize.
  @param[in] Storage    Buffer to output into.
 
- Initializes  the \ref UsefulOutBuf with storage. Sets the current
+ Initializes  the @ref UsefulOutBuf with storage. Sets the current
  position to the beginning of the buffer clears the error.
 
- This must be called before the \ref UsefulOutBuf is used.
+ This must be called before the @ref UsefulOutBuf is used.
  */
 void UsefulOutBuf_Init(UsefulOutBuf *pUOutBuf, UsefulBuf Storage);
 
 
 /**
- Convenience macro to make a \ref UsefulOutBuf on the stack and
+ Convenience macro to make a @ref UsefulOutBuf on the stack and
  initialize it with a stack buffer of the given size. The variable
- will be named \c name.
+ will be named @c name.
  */
 #define  UsefulOutBuf_MakeOnStack(name, size) \
    uint8_t       __pBuf##name[(size)];\
@@ -693,9 +693,9 @@ void UsefulOutBuf_Init(UsefulOutBuf *pUOutBuf, UsefulBuf Storage);
 
 
 /**
- @brief Reset a \ref UsefulOutBuf for re use
+ @brief Reset a @ref UsefulOutBuf for re use
 
- @param[in] pUOutBuf Pointer to the \ref UsefulOutBuf
+ @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf
 
  This sets the amount of data in the output buffer to none and clears
  the error state.
@@ -709,26 +709,26 @@ static inline void UsefulOutBuf_Reset(UsefulOutBuf *pUOutBuf);
 
 
 /**
- @brief Returns position of end of data in the \ref UsefulOutBuf.
+ @brief Returns position of end of data in the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
 
  @return position of end of data.
 
- On a freshly initialized \ref UsefulOutBuf with no data added, this
+ On a freshly initialized @ref UsefulOutBuf with no data added, this
  will return 0. After 10 bytes have been added, it will return 10 and
  so on.
 
- Generally callers will not need this function for most uses of \ref
+ Generally callers will not need this function for most uses of @ref
  UsefulOutBuf.
  */
 static inline size_t UsefulOutBuf_GetEndPosition(UsefulOutBuf *pUOutBuf);
 
 
 /**
- @brief Returns whether any data has been added to the \ref UsefulOutBuf.
+ @brief Returns whether any data has been added to the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
 
  @return 1 if output position is at start.
  */
@@ -736,14 +736,14 @@ static inline int UsefulOutBuf_AtStart(UsefulOutBuf *pUOutBuf);
 
 
 /**
- @brief Inserts bytes into the \ref UsefulOutBuf.
+ @brief Inserts bytes into the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  @param[in] NewData   The bytes to insert.
  @param[in] uPos      Index in output buffer at which to insert.
 
- \c NewData is the pointer and length for the bytes to be added to the
- output buffer. There must be room in the output buffer for all of \c
+ @c NewData is the pointer and length for the bytes to be added to the
+ output buffer. There must be room in the output buffer for all of @c
  NewData or an error will occur.
 
  The insertion point must be between 0 and the current valid data. If
@@ -755,16 +755,16 @@ static inline int UsefulOutBuf_AtStart(UsefulOutBuf *pUOutBuf);
  and the end of data previously added to the output buffer are slid to
  the right to make room for the new data.
 
- Overlapping buffers are OK. \c NewData can point to data in the
+ Overlapping buffers are OK. @c NewData can point to data in the
  output buffer.
 
- If an error occurs an error state is set in the \ref UsefulOutBuf. No
+ If an error occurs an error state is set in the @ref UsefulOutBuf. No
  error is returned.  All subsequent attempts to add data will do
  nothing.
 
  The intended use is that all additions are made without checking for
  an error. The error will be taken into account when
- UsefulOutBuf_OutUBuf() returns \c NullUsefulBufC.
+ UsefulOutBuf_OutUBuf() returns @c NullUsefulBufC.
  UsefulOutBuf_GetError() can also be called to check for an error.
  */
 void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pUOutBuf,
@@ -773,16 +773,16 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a data buffer into the \ref UsefulOutBuf.
+ @brief Insert a data buffer into the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  @param[in] pBytes    Pointer to the bytes to insert
  @param[in] uLen      Length of the bytes to insert
  @param[in] uPos      Index in output buffer at which to insert
 
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
  the difference being a pointer and length is passed in rather than an
- \ref UsefulBufC.
+ @ref UsefulBufC.
  */
 static inline void UsefulOutBuf_InsertData(UsefulOutBuf *pUOutBuf,
                                            const void *pBytes,
@@ -793,7 +793,7 @@ static inline void UsefulOutBuf_InsertData(UsefulOutBuf *pUOutBuf,
 /**
  @brief Insert a NULL-terminated string into the UsefulOutBuf.
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  @param[in] szString  NULL-terminated string to insert.
  @param[in] uPos      Index in output buffer at which to insert.
  */
@@ -803,7 +803,7 @@ static inline void UsefulOutBuf_InsertString(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a byte into the \ref UsefulOutBuf.
+ @brief Insert a byte into the @ref UsefulOutBuf.
 
  @param[in] pUOutBuf  Pointer to the UsefulOutBuf.
  @param[in] byte      Bytes to insert.
@@ -818,9 +818,9 @@ static inline void UsefulOutBuf_InsertByte(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a 16-bit integer into the \ref UsefulOutBuf.
+ @brief Insert a 16-bit integer into the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf    Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
  @param[in] uInteger16  Integer to insert.
  @param[in] uPos        Index in output buffer at which to insert.
 
@@ -835,9 +835,9 @@ static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a 32-bit integer into the \ref UsefulOutBuf.
+ @brief Insert a 32-bit integer into the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf    Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
  @param[in] uInteger32  Integer to insert.
  @param[in] uPos        Index in output buffer at which to insert.
 
@@ -852,9 +852,9 @@ static inline void UsefulOutBuf_InsertUint32(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a 64-bit integer into the \ref UsefulOutBuf.
+ @brief Insert a 64-bit integer into the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf    Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
  @param[in] uInteger64  Integer to insert.
  @param[in] uPos        Index in output buffer at which to insert.
 
@@ -869,16 +869,16 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a \c float into the \ref UsefulOutBuf.
+ @brief Insert a @c float into the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
- @param[in] f         \c float to insert.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ @param[in] f         @c float to insert.
  @param[in] uPos      Index in output buffer at which to insert.
 
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a \c float is to be inserted.
+ the difference being a @c float is to be inserted.
 
- The \c float will be inserted in network byte order (big endian).
+ The @c float will be inserted in network byte order (big endian).
  */
 static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *pUOutBuf,
                                             float f,
@@ -886,16 +886,16 @@ static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a \c double into the \ref UsefulOutBuf.
+ @brief Insert a @c double into the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
- @param[in] d         \c double  to insert.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ @param[in] d         @c double  to insert.
  @param[in] uPos      Index in output buffer at which to insert.
 
  See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a \c double is to be inserted.
+ the difference being a @c double is to be inserted.
 
- The \c double will be inserted in network byte order (big endian).
+ The @c double will be inserted in network byte order (big endian).
  */
 static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pUOutBuf,
                                              double d,
@@ -903,10 +903,10 @@ static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Append a \ref UsefulBuf into the \ref UsefulOutBuf.
+ @brief Append a @ref UsefulBuf into the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
- @param[in] NewData   The \ref UsefulBuf with the bytes to append.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ @param[in] NewData   The @ref UsefulBuf with the bytes to append.
 
  See UsefulOutBuf_InsertUsefulBuf() for details. This does the same
  with the insertion point at the end of the valid data.
@@ -916,11 +916,11 @@ static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Append bytes to the \ref UsefulOutBuf.
+ @brief Append bytes to the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  @param[in] pBytes    Pointer to bytes to append.
- @param[in] uLen      Length of \c pBytes to append.
+ @param[in] uLen      Length of @c pBytes to append.
 
  See UsefulOutBuf_InsertData() for details. This does the same
  with the insertion point at the end of the valid data.
@@ -931,9 +931,9 @@ static inline void UsefulOutBuf_AppendData(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Append a NULL-terminated string to the \ref UsefulOutBuf
+ @brief Append a NULL-terminated string to the @ref UsefulOutBuf
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  @param[in] szString  NULL-terminated string to append.
  */
 static inline void UsefulOutBuf_AppendString(UsefulOutBuf *pUOutBuf,
@@ -941,9 +941,9 @@ static inline void UsefulOutBuf_AppendString(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Append a byte to the \ref UsefulOutBuf
+ @brief Append a byte to the @ref UsefulOutBuf
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  @param[in] byte      Bytes to append.
 
  See UsefulOutBuf_InsertByte() for details. This does the same
@@ -954,9 +954,9 @@ static inline void UsefulOutBuf_AppendByte(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Append an integer to the \ref UsefulOutBuf
+ @brief Append an integer to the @ref UsefulOutBuf
 
- @param[in] pUOutBuf    Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
  @param[in] uInteger16  Integer to append.
 
  See UsefulOutBuf_InsertUint16() for details. This does the same
@@ -969,9 +969,9 @@ static inline void UsefulOutBuf_AppendUint16(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Append an integer to the \ref UsefulOutBuf
+ @brief Append an integer to the @ref UsefulOutBuf
 
- @param[in] pUOutBuf    Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
  @param[in] uInteger32  Integer to append.
 
  See UsefulOutBuf_InsertUint32() for details. This does the same
@@ -984,9 +984,9 @@ static inline void UsefulOutBuf_AppendUint32(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Append an integer to the \ref UsefulOutBuf
+ @brief Append an integer to the @ref UsefulOutBuf
 
- @param[in] pUOutBuf    Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
  @param[in] uInteger64  Integer to append.
 
  See UsefulOutBuf_InsertUint64() for details. This does the same
@@ -999,10 +999,10 @@ static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Append a \c float to the \ref UsefulOutBuf
+ @brief Append a @c float to the @ref UsefulOutBuf
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
- @param[in] f         \c float to append.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ @param[in] f         @c float to append.
 
  See UsefulOutBuf_InsertFloat() for details. This does the same
  with the insertion point at the end of the valid data.
@@ -1014,10 +1014,10 @@ static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Append a \c double to the \ref UsefulOutBuf
+ @brief Append a @c double to the @ref UsefulOutBuf
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
- @param[in] d         \c double to append.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ @param[in] d         @c double to append.
 
  See UsefulOutBuf_InsertDouble() for details. This does the same
  with the insertion point at the end of the valid data.
@@ -1031,7 +1031,7 @@ static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pUOutBuf,
 /**
  @brief Returns the current error status.
 
- @param[in] pUOutBuf Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
 
  @return 0 if all OK, 1 on error.
 
@@ -1051,7 +1051,7 @@ static inline int UsefulOutBuf_GetError(UsefulOutBuf *pUOutBuf);
 /**
  @brief Returns number of bytes unused used in the output buffer.
 
- @param[in] pUOutBuf Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
 
  @return Number of unused bytes or zero.
 
@@ -1063,12 +1063,12 @@ static inline size_t UsefulOutBuf_RoomLeft(UsefulOutBuf *pUOutBuf);
 
 
 /**
- @brief Returns 1 if some number of bytes will fit in the \ref UsefulOutBuf.
+ @brief Returns 1 if some number of bytes will fit in the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf    Pointer to the \ref UsefulOutBuf
+ @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf
  @param[in] uLen  Number of bytes for which to check
 
- @return 1 if \c uLen bytes will fit, 0 if not.
+ @return 1 if @c uLen bytes will fit, 0 if not.
 
  Because of the error handling strategy and checks in
  UsefulOutBuf_InsertUsefulBuf() it is usually not necessary to use
@@ -1080,12 +1080,12 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *pUOutBuf, size_t uLen);
 /**
    @brief Returns the resulting valid data in a UsefulOutBuf
 
-   @param[in] pUOutBuf Pointer to the \ref UsefulOutBuf.
+   @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
 
-   @return The valid data in \ref UsefulOutBuf or
-           \ref NULLUsefulBufC if there was an error adding data.
+   @return The valid data in @ref UsefulOutBuf or
+           @ref NULLUsefulBufC if there was an error adding data.
 
-   The storage for the returned data is the \c Storage parameter passed
+   The storage for the returned data is the @c Storage parameter passed
    to UsefulOutBuf_Init(). See also UsefulOutBuf_CopyOut().
 
    This can be called anytime and many times to get intermediate
@@ -1098,14 +1098,14 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pUOutBuf);
 /**
  @brief Copies the valid data into a supplied buffer
 
- @param[in] pUOutBuf  Pointer to the \ref UsefulOutBuf.
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  @param[out] Dest     The destination buffer to copy into.
 
- @return Pointer and length of copied data or \c NULLUsefulBufC
-         if it will not fit in the \c Dest buffer.
+ @return Pointer and length of copied data or @c NULLUsefulBufC
+         if it will not fit in the @c Dest buffer.
 
  This is the same as UsefulOutBuf_OutUBuf() except it copies the data
- to \c Dest.
+ to @c Dest.
 */
 UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
 
@@ -1113,7 +1113,7 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
 
 
 /**
- \ref UsefulInputBuf is the counterpart to \ref UsefulOutBuf and is
+ @ref UsefulInputBuf is the counterpart to @ref UsefulOutBuf and is
  for parsing data read or received.  Initialize it with the data from
  the network. Then use the functions here to get data chunks of
  various types. A position cursor is maintained internally.
@@ -1123,14 +1123,14 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
  care called incorrectly, an attempt is made to seek of the end of the
  buffer, etc. This makes it easier to write safe and correct code.
  For example, the QCBOR decoder implementation is safer and easier to
- review through its use of \ref UsefulInputBuf.
+ review through its use of @ref UsefulInputBuf.
 
- \ref UsefulInputBuf maintains an internal error state.  The
+ @ref UsefulInputBuf maintains an internal error state.  The
  intended use is that data chunks can be fetched without error
  checking until the end.  Once data has been requested off the end of
  the buffer, the error state is entered. In the error state the
- \c UsefulInputBuf_GetXxxx() functions return 0, or \c NULL or
- \ref NULLUsefulBufC. As long as null are not dereferenced, the
+ @c UsefulInputBuf_GetXxxx() functions return 0, or @c NULL or
+ @ref NULLUsefulBufC. As long as null are not dereferenced, the
  error check can be put off until the end, simplifying the calling
  code.
 
@@ -1139,9 +1139,9 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
  internet protocols.
 
  Lots of inline functions are used to keep code size down. The code
- optimizer, particularly with the \c -Os or \c -O3, also reduces code
+ optimizer, particularly with the @c -Os or @c -O3, also reduces code
  size a lot. The only non-inline code is UsefulInputBuf_GetBytes()
- which is less than 100 bytes so use of \ref UsefulInputBuf doesn't
+ which is less than 100 bytes so use of @ref UsefulInputBuf doesn't
  add much code for all the messy hard-to-get right issues with parsing
  in C that is solves.
 
@@ -1218,7 +1218,7 @@ static size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pUInBuf);
  @param[in] pUInBuf  Pointer to the UsefulInputBuf.
  @param[in] uLen     Number of bytes to check availability for.
 
- @return 1 if \c uLen bytes are available after the cursor, and 0 if not.
+ @return 1 if @c uLen bytes are available after the cursor, and 0 if not.
  */
 static int UsefulInputBuf_BytesAvailable(UsefulInputBuf *pUInBuf, size_t uLen);
 
@@ -1231,33 +1231,33 @@ static int UsefulInputBuf_BytesAvailable(UsefulInputBuf *pUInBuf, size_t uLen);
 
  @return Pointer to bytes.
 
- This consumes \c uNum bytes from the input buffer. It returns a
- pointer to the start of the \c uNum bytes.
+ This consumes @c uNum bytes from the input buffer. It returns a
+ pointer to the start of the @c uNum bytes.
 
- If there are not \c uNum bytes in the input buffer, \c NULL will be
+ If there are not @c uNum bytes in the input buffer, @c NULL will be
  returned and an error will be set.
 
- It advances the current position by \c uNum bytes.
+ It advances the current position by @c uNum bytes.
  */
 const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pUInBuf, size_t uNum);
 
 
 /**
- @brief Get \ref UsefulBuf out of the input buffer.
+ @brief Get @ref UsefulBuf out of the input buffer.
 
  @param[in] pUInBuf  Pointer to the UsefulInputBuf.
  @param[in] uNum     Number of bytes to get.
 
- @return A \ref UsefulBufC with ptr and length of bytes consumed.
+ @return A @ref UsefulBufC with ptr and length of bytes consumed.
 
- This consumes \c uNum bytes from the input buffer and returns the
- pointer and length for them as a \ref UsefulBufC. The length returned
- will always be \c uNum.
+ This consumes @c uNum bytes from the input buffer and returns the
+ pointer and length for them as a @ref UsefulBufC. The length returned
+ will always be @c uNum.
 
- If there are not \c uNum bytes in the input buffer, \ref NULLUsefulBufC
+ If there are not @c uNum bytes in the input buffer, @ref NULLUsefulBufC
  will be returned and the error state is set.
 
- It advances the current position by \c uNum bytes.
+ It advances the current position by @c uNum bytes.
  */
 static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *pUInBuf, size_t uNum);
 
@@ -1265,7 +1265,7 @@ static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *pUInBuf, si
 /**
  @brief Get a byte out of the input buffer.
 
- @param[in] pUInBuf  Pointer to the \ref UsefulInputBuf.
+ @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
 
  @return The byte.
 
@@ -1276,8 +1276,8 @@ static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *pUInBuf, si
  to know whether the 0 was the real value or just returned in error,
  but you may not have to do that right away.  Check the error state
  with UsefulInputBuf_GetError().  You can also know you are in the
- error state if UsefulInputBuf_GetBytes() returns \c NULL or the \c
- ptr from UsefulInputBuf_GetUsefulBuf() is \c NULL.
+ error state if UsefulInputBuf_GetBytes() returns @c NULL or the @c
+ ptr from UsefulInputBuf_GetUsefulBuf() is @c NULL.
 
  It advances the current position by 1 byte.
  */
@@ -1285,14 +1285,14 @@ static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *pUInBuf);
 
 
 /**
- @brief Get a \c uint16_t out of the input buffer.
+ @brief Get a @c uint16_t out of the input buffer.
 
  @param[in] pUInBuf  Pointer to the UsefulInputBuf.
 
- @return The \c uint16_t.
+ @return The @c uint16_t.
 
  See UsefulInputBuf_GetByte(). This works the same, except it returns
- a \c uint16_t and two bytes are consumed.
+ a @c uint16_t and two bytes are consumed.
 
  The input bytes must be in network order (big endian).
  */
@@ -1304,10 +1304,10 @@ static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pUInBuf);
 
  @param[in] pUInBuf  Pointer to the UsefulInputBuf.
 
- @return The \c uint32_t.
+ @return The @c uint32_t.
 
  See UsefulInputBuf_GetByte(). This works the same, except it returns
- a \c uint32_t and four bytes are consumed.
+ a @c uint32_t and four bytes are consumed.
 
  The input bytes must be in network order (big endian).
  */
@@ -1322,7 +1322,7 @@ static uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *pUInBuf);
  @return The uint64_t.
 
  See UsefulInputBuf_GetByte(). This works the same, except it returns
- a \c uint64_t and eight bytes are consumed.
+ a @c uint64_t and eight bytes are consumed.
 
  The input bytes must be in network order (big endian).
  */
@@ -1362,7 +1362,7 @@ static double UsefulInputBuf_GetDouble(UsefulInputBuf *pUInBuf);
 /**
  @brief Get the error status.
 
- @param[in] pUInBuf  Pointer to the \ref UsefulInputBuf.
+ @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
 
  @return 0 if there is no error, 1 if there is.
 
@@ -1370,7 +1370,7 @@ static double UsefulInputBuf_GetDouble(UsefulInputBuf *pUInBuf);
  - Attempt to fetch data past the end of the buffer
  - Attempt to seek to a position past the end of the buffer
  - Attempt to get data from an uninitialized  or corrupt instance
-   of \ref UsefulInputBuf
+   of @ref UsefulInputBuf
 
  Once in the error state, it can only be cleared by calling
  UsefulInputBuf_Init().

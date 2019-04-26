@@ -1305,13 +1305,13 @@ int ParseSimpleTest()
    if(Item.uDataType != QCBOR_TYPE_UKNOWN_SIMPLE || Item.val.uSimple != 19)
       return -1;
 
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_INVALID_CBOR)
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_BAD_TYPE_7)
       return -1;
 
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_INVALID_CBOR)
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_BAD_TYPE_7)
       return -1;
 
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_INVALID_CBOR)
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_BAD_TYPE_7)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -1352,8 +1352,8 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0x7c}, 1}, QCBOR_ERR_UNSUPPORTED }, // Reserved additional info = 28
    { {(uint8_t[]){0x7f}, 1}, QCBOR_ERR_UNSUPPORTED }, // Indefinite length UTF-8 string
    { {(uint8_t[]){0xff}, 1}, QCBOR_ERR_UNSUPPORTED } , // break
-   { {(uint8_t[]){0xf8, 0x00}, 2}, QCBOR_ERR_INVALID_CBOR }, // An invalid encoding of a simple type
-   { {(uint8_t[]){0xf8, 0x1f}, 2}, QCBOR_ERR_INVALID_CBOR },  // An invalid encoding of a simple type
+   { {(uint8_t[]){0xf8, 0x00}, 2}, QCBOR_ERR_BAD_TYPE_7 }, // An invalid encoding of a simple type
+   { {(uint8_t[]){0xf8, 0x1f}, 2}, QCBOR_ERR_BAD_TYPE_7 },  // An invalid encoding of a simple type
    { {(uint8_t[]){0xc0, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },  // Text-based date, with an integer
    { {(uint8_t[]){0xc1, 0x41, 0x33}, 3}, QCBOR_ERR_BAD_OPT_TAG },   // Epoch date, with an byte string
    { {(uint8_t[]){0xc1, 0xc0, 0x00}, 3}, QCBOR_ERR_BAD_OPT_TAG },   // tagged as both epoch and string dates
