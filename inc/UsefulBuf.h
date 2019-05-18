@@ -80,6 +80,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The efficiency improvements are not large, so the main reason really
  is to reduce code size.
+
  */
 
 
@@ -1641,7 +1642,7 @@ static inline void UsefulOutBuf_InsertByte(UsefulOutBuf *me,
    UsefulOutBuf_InsertData(me, &byte, 1, uPos);
 }
 
-   
+
 static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *me,
                                              uint16_t uInteger16,
                                              size_t uPos)
@@ -1659,7 +1660,6 @@ static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *me,
    
 #elif defined(USEFULBUF_CONFIG_LITTLE_ENDIAN) && defined(USEFULBUF_CONFIG_BSWAP)
    uint16_t uTmp = __builtin_bswap16(uInteger16);
-   
    pBytes = &uTmp;
 
 #else
@@ -2041,6 +2041,7 @@ static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pMe)
    // endianness so this must only be used on little-endian machines.
    
    return __builtin_bswap64(uTmp);
+
    
 #endif
 
@@ -2049,6 +2050,7 @@ static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pMe)
    // endianness with no dependency on ntoh().  This works on CPUs
    // that either allow or do not allow unaligned access. It will
    // always work, but usually is a little less efficient than ntoh().
+
    return   ((uint64_t)pResult[0]<<56) +
             ((uint64_t)pResult[1]<<48) +
             ((uint64_t)pResult[2]<<40) +
