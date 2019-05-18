@@ -61,6 +61,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  =============================================================================*/
 
+
 #ifndef _UsefulBuf_h
 #define _UsefulBuf_h
 
@@ -128,7 +129,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  also affect the 16-, 32-bit, float and double versions of these
  instructions. Since they are inline, they size effect is not in the
  UsefulBuf object code, but in the calling code.
- 
+
  */
 
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN) && defined(USEFULBUF_CONFIG_LITTLE_ENDIAN)
