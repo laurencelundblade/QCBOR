@@ -61,7 +61,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  =============================================================================*/
 
-
 #ifndef _UsefulBuf_h
 #define _UsefulBuf_h
 
