@@ -129,6 +129,13 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  instructions. Since they are inline, they size effect is not in the
  UsefulBuf object code, but in the calling code.
 
+ Summary:
+   USEFULBUF_CONFIG_BIG_ENDIAN -- Force configuration to big-endian.
+   USEFULBUF_CONFIG_LITTLE_ENDIAN -- Force to little-endian.
+   USEFULBUF_CONFIG_HTON -- Use hton(), htonl(), ntohl()... to
+     handle big and little-endian with system option.
+   USEFULBUF_CONFIG_BSWAP -- With USEFULBUF_CONFIG_LITTLE_ENDIAN,
+     use __builtin_bswapXX().
  */
 
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN) && defined(USEFULBUF_CONFIG_LITTLE_ENDIAN)
