@@ -2459,13 +2459,13 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType, U
  */
 void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, size_t uSize, uint64_t uNum);
 
-    
+
 /**
  @brief Semi-private method to add only the type and length of a byte string.
- 
+
  @param[in] pCtx    The context to initialize.
  @param[in] Bytes   Pointer and length of the input data.
- 
+
  This is the same as QCBOREncode_AddBytes() except it only adds the
  CBOR encoding for the type and the length. It doesn't actually add
  the bytes. You can't actually produce correct CBOR with this and the
@@ -2476,7 +2476,7 @@ void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, size_t uSize, uint64_t uNum
  separately and then the bytes is hashed. This makes it possible to
  implement COSE Sign1 with only one copy of the payload in the output
  buffer, rather than two, roughly cutting memory use in half.
- 
+
  This is only used for this odd case, but this is a supported
  tested function.
 */
@@ -2487,7 +2487,7 @@ static inline void QCBOREncode_AddBytesLenOnlyToMap(QCBOREncodeContext *pCtx, co
 static inline void QCBOREncode_AddBytesLenOnlyToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
 
 
-   
+
 
 static inline void QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum)
 {
