@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 6/xx/19            llundblade      Add support for decimal fractions and bigfloats.
  4/6/19             llundblade      Wrapped bstr returned now includes the wrapping bstr
  12/30/18           llundblade      Small efficient clever encode of type & argument.
  11/29/18           llundblade      Rework to simpler handling of tags and labels.
@@ -478,6 +479,37 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 
    QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
 }
+
+
+#ifndef QCBOR_CONFIG_DISABLE_TAG_4_AND_5
+/*
+ Semi-public function. It is exposed to user of the interface,
+ but they will usually call one of the inline wrappers rather than this.
+
+ See header qcbor.h
+ */
+void QCBOREncode_AddTag4or5(QCBOREncodeContext *pMe,
+                            uint64_t            uTag,
+                            UsefulBufC          BigNumMantissa,
+                            bool                bBigNumIsNegative,
+                            int64_t             nMantissa,
+                            int64_t             nExponent)
+{
+   QCBOREncode_AddTag(pMe, uTag);
+   QCBOREncode_OpenArray(pMe);
+   if(!UsefulBuf_IsNULLC(BigNumMantissa)) {
+      if(bBigNumIsNegative) {
+         QCBOREncode_AddNegativeBignum(pMe, BigNumMantissa);
+      } else {
+         QCBOREncode_AddPositiveBignum(pMe, BigNumMantissa);
+      }
+   } else {
+      QCBOREncode_AddInt64(pMe, nMantissa);
+   }
+   QCBOREncode_AddInt64(pMe, nExponent);
+   QCBOREncode_CloseArray(pMe);
+}
+#endif
 
 
 /*

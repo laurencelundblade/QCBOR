@@ -202,7 +202,7 @@ static const uint16_t spBuiltInTagMap[] = {
    CBOR_TAG_DATE_EPOCH, // See TAG_MAPPER_FIRST_FOUR
    CBOR_TAG_POS_BIGNUM, // See TAG_MAPPER_FIRST_FOUR
    CBOR_TAG_NEG_BIGNUM, // See TAG_MAPPER_FIRST_FOUR
-   CBOR_TAG_FRACTION,
+   CBOR_TAG_DECIMAL_FRACTION,
    CBOR_TAG_BIGFLOAT,
    CBOR_TAG_COSE_ENCRYPTO,
    CBOR_TAG_COSE_MAC0,
@@ -1052,7 +1052,7 @@ Done:
 /*
  Public function, see header qcbor.h file
  */
-QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
+QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
 {
    // Stack ptr/int: 2, QCBORItem : 64
 
@@ -1128,6 +1128,92 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
    // were closed out and makes it possible for them to reconstruct
    // the tree with just the information returned by GetNext
    pDecodedItem->uNextNestLevel = DecodeNesting_GetLevel(&(me->nesting));
+
+Done:
+   return nReturn;
+}
+
+
+
+
+QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
+{
+   QCBORError nReturn;
+
+   nReturn = QCBORDecode_GetNextMapOrArray(me, pDecodedItem, pTags);
+   if(nReturn != QCBOR_SUCCESS) {
+      goto Done;
+   }
+
+   // No tag bits set, so there is nothing to do here.
+   if(!(pDecodedItem->uTagBits)) {
+      goto Done;
+   }
+
+   if(QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION) ||
+      QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_BIGFLOAT)) {
+      // Process Decimal Fraction of Bigfloat
+
+      // Make sure it is an array
+      if(pDecodedItem->uDataType != QCBOR_TYPE_ARRAY) {
+         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
+         goto Done;
+      }
+
+      // Is it a decimal fraction or a bigfloat?
+      pDecodedItem->uDataType = QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION) ?
+                                   QCBOR_TYPE_DECIMAL_FRACTION : QCBOR_TYPE_BIGFLOAT;
+
+      // A check for pDecodedItem->val.uCount == 2 would work
+      // for definite length arrays, but not for indefnite.
+      // Instead remember the nesting level the two integers
+      // must be add, which is one deeper than that of the array.
+      const int nNestLevel = pDecodedItem->uNestingLevel + 1;
+
+      // Get the mantissa
+      QCBORItem intItem;
+      nReturn = QCBORDecode_GetNextMapOrArray(me, &intItem, pTags);
+      if(nReturn != QCBOR_SUCCESS) {
+         goto Done;
+      }
+      if(intItem.uNestingLevel != nNestLevel) {
+         // Array is empty
+         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
+         goto Done;
+      }
+      if(intItem.uDataType == QCBOR_TYPE_INT64) {
+         pDecodedItem->val.decimalFraction.Mantissa.nMantissa = intItem.val.int64;
+      } else if(intItem.uDataType == QCBOR_TYPE_POSBIGNUM || intItem.uDataType == QCBOR_TYPE_NEGBIGNUM) {
+         pDecodedItem->val.decimalFraction.Mantissa.bigNum = intItem.val.bigNum;
+         pDecodedItem->uDataType += intItem.uDataType - QCBOR_TYPE_POSBIGNUM;
+      } else {
+         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
+         goto Done;
+      }
+
+      pDecodedItem->val.decimalFraction.Mantissa.nMantissa = intItem.val.int64;
+
+      // Get the exponent
+      nReturn = QCBORDecode_GetNextMapOrArray(me, &intItem, pTags);
+      if(nReturn != QCBOR_SUCCESS) {
+         goto Done;
+      }
+      if(intItem.uDataType != QCBOR_TYPE_INT64) {
+         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
+         goto Done;
+      }
+      if(intItem.uNestingLevel != nNestLevel) {
+         // The second integer is not present
+         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
+         goto Done;
+      }
+      if(intItem.uNextNestLevel == nNestLevel) {
+         // There's other stuff in the array besides the two integers
+         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
+         goto Done;
+      }
+      pDecodedItem->val.decimalFraction.nExponent = intItem.val.int64;
+   }
 
 Done:
    return nReturn;

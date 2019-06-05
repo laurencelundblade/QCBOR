@@ -142,6 +142,7 @@ test_entry s_tests[] = {
     TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
     TEST_ENTRY(EncodeErrorTests),
     TEST_ENTRY(SetUpAllocatorTest),
+    TEST_ENTRY(Type4And5EncodeTests),
     //TEST_ENTRY(fail_test),
 };
 
@@ -150,7 +151,7 @@ int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *poutCtx, 
 {
     int nTestsFailed = 0;
     int nTestsRun = 0;
-    UsefulBuf_MAKE_STACK_UB(StringStorage, 5);
+    UsefulBuf_MAKE_STACK_UB(StringStorage, 10);
 
     test_entry2 *t2;
     const test_entry2 *s_tests2_end = s_tests2 + sizeof(s_tests2)/sizeof(test_entry2);

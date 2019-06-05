@@ -91,6 +91,35 @@ static int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
 
 
 
+/*
+ Returns 0 if UsefulBufs are equal
+ Returns 1000000 + offeset if they are not equal.
+
+
+
+*/
+struct UBCompareDiagnostic {
+   uint8_t uActual;
+   uint8_t uExpected;
+};
+
+static int32_t UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual, UsefulBufC Expected, struct UBCompareDiagnostic *pDiag) {
+   size_t i;
+   for(i = 0; i < Actual.len; i++) {
+      if(((uint8_t *)Actual.ptr)[i] != ((uint8_t *)Expected.ptr)[i]) {
+         if(pDiag) {
+            pDiag->uActual   = ((uint8_t *)Actual.ptr)[i];
+            pDiag->uExpected = ((uint8_t *)Expected.ptr)[i];
+         }
+         return (int32_t)i + 1000000; // Cast to int is OK as this is only a diagnostic and the sizes here are never over a few KB.
+      }
+   }
+   return 0;
+
+}
+
+
+
 // One big buffer that is used by all the tests to encode into
 // Putting it in uninitialized data is better than using a lot
 // of stack. The tests should run on small devices too.
@@ -2048,6 +2077,108 @@ int EncodeErrorTests()
    QCBOREncode_Init(&EC, Buffer);
    if(QCBOREncode_IsBufferNULL(&EC) == 0) {
       return -11;
+   }
+
+   return 0;
+}
+
+
+static const uint8_t spExpected4And5Array[] = {
+   0x86, 0xC4, 0x82, 0x03, 0x20, 0xC4, 0x82, 0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x33, 0xC4, 0x82, 0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC5, 0x82, 0x18, 0x64, 0x19, 0x01, 0x2C, 0xC5, 0x82, 0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x33, 0xC5, 0x82, 0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x3B, 0x09, 0x16, 0xE5};
+
+static const uint8_t spExpected4And5Map[] = {
+   0x86, 0xC4, 0x82, 0x03, 0x20, 0xC4, 0x82, 0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x19, 0x33, 0xC4, 0x82, 0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x19, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC5, 0x82, 0x18, 0x64, 0x19, 0x01, 0x2C, 0xC5, 0x82, 0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x19, 0x33, 0xC5, 0x82, 0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x19, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x3B, 0x09, 0x16, 0xE5};
+
+int Type4And5EncodeTests()
+{
+   QCBOREncodeContext EC;
+   UsefulBufC Encoded4And5;
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddDecimalFraction(&EC, 3, -1); // 3 * (10 ^ -1)
+   static const uint8_t spBigNum[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x010};
+   QCBOREncode_AddDecimalFractionBigNum(&EC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum), false, -20);
+   QCBOREncode_AddDecimalFractionBigNum(&EC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum), true, INT64_MAX);
+
+   QCBOREncode_AddBigFloat(&EC, 100, 300);
+   QCBOREncode_AddBigFloatBigNum(&EC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum), false, -20);
+   QCBOREncode_AddBigFloatBigNum(&EC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum), true, INT64_MIN);
+   QCBOREncode_CloseArray(&EC);
+
+   if(QCBOREncode_Finish(&EC, &Encoded4And5)) {
+      return -2;
+   }
+
+   int nReturn = UsefulBuf_CompareWithDiagnostic(Encoded4And5,
+                                                 UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpected4And5Array),
+                                                 NULL);
+   if(nReturn) {
+      return nReturn;
+   }
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddDecimalFractionToMap(&EC, "decimal fraction", 3, -1); // 3 * (10 ^ -1)
+   QCBOREncode_AddDecimalFractionToMapN(&EC, 300, 3, -1); // 3 * (10 ^ -1)
+
+   QCBOREncode_AddDecimalFractionBigNumToMap(&EC,
+                                             "decimal fraction bignum postive",
+                                             UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                             false,
+                                             -200);
+   QCBOREncode_AddDecimalFractionBigNumToMapN(&EC,
+                                              400,
+                                              UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                              false,
+                                              INT32_MAX);
+   QCBOREncode_AddDecimalFractionBigNumToMap(&EC,
+                                             "decimal fraction bignum negative",
+                                             UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                             true,
+                                             INT64_MAX);
+   QCBOREncode_AddDecimalFractionBigNumToMapN(&EC,
+                                              500,
+                                              UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                              true,
+                                              INT64_MAX);
+
+   QCBOREncode_AddBigFloatToMap(&EC, "big float", 100, 300);
+   QCBOREncode_AddBigFloatToMapN(&EC, 600, 100, 300);
+
+   QCBOREncode_AddBigFloatBigNumToMap(&EC,
+                                      "big float bignum positive",
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                      false,
+                                      -20);
+   QCBOREncode_AddBigFloatBigNumToMapN(&EC,
+                                       700,
+                                       UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                       false,
+                                       -20);
+
+   QCBOREncode_AddBigFloatBigNumToMap(&EC,
+                                      "big float bignum negative",
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                      true,
+                                      INT64_MIN);
+   QCBOREncode_AddBigFloatBigNumToMapN(&EC,
+                                       800,
+                                       UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                       true,
+                                       INT64_MIN);
+
+   QCBOREncode_CloseMap(&EC);
+
+   if(QCBOREncode_Finish(&EC, &Encoded4And5)) {
+      return -2;
+   }
+
+   nReturn = UsefulBuf_CompareWithDiagnostic(Encoded4And5,
+                                             UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpected4And5Map),
+                                             NULL);
+   if(nReturn) {
+      return nReturn + 1000000; // Add 1000000 to distinguish from first test above
    }
 
    return 0;

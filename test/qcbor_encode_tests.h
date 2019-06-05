@@ -140,6 +140,7 @@ int CoseSign1TBSTest(void);
 
 int EncodeErrorTests(void);
 
+int Type4And5EncodeTests(void);
 
 
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */
