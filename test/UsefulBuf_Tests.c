@@ -238,6 +238,11 @@ const char *UOBTest_BoundaryConditionsTest()
       return "lengths near max size";
    }
 
+   UsefulOutBuf_Init(&UOB, (UsefulBuf){NULL, 100});
+   if(!UsefulOutBuf_IsBufferNULL(&UOB)) {
+      return "NULL check failed";
+   }
+
    return NULL;
 }
 

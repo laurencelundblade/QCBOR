@@ -43,6 +43,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
+ 05/26/19   llundblade      Add QCBOREncode_GetErrorState() and _IsBufferNULL().
  04/26/19   llundblade      Big documentation & style update. No interface change.
  02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug.
  12/18/18   llundblade      Move decode malloc optional code to separate repository.
@@ -1827,7 +1828,34 @@ QCBORError QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR
 QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
 
 
+/**
+ @brief Indicate whether output buffer is NULL or not.
 
+ @param[in] pCtx  The encoding ontext.
+
+ @return 1 if the output buffer is @c NULL.
+
+ Sometimes a @c NULL input buffer is given to QCBOREncode_Init() so
+ that the size of the generated CBOR can be calculated without
+ allocating a buffer for it. This returns 1 when the output buffer is
+ NULL and 0 when it is not.
+*/
+static int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
+
+ /**
+ @brief Get the encoding error state.
+
+ @param[in] pCtx  The encoding ontext.
+
+ @return One of \ref QCBORError. See return values from
+         QCBOREncode_Finish()
+
+ Normally encoding errors need only be handled at the end of encoding
+ when QCBOREncode_Finish() is called. This can be called to get the
+ error result before finish should there be a need to halt encoding
+ before QCBOREncode_Finish().  is called.
+*/
+static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
 
 
 
@@ -2972,6 +3000,17 @@ static inline void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_
 {
    QCBOREncode_AddInt64(pCtx, nLabel);
    QCBOREncode_AddEncoded(pCtx, Encoded);
+}
+
+
+static inline int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx)
+{
+   return UsefulOutBuf_IsBufferNULL(&(pCtx->OutBuf));
+}
+
+static inline QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx)
+{
+   return pCtx->uError;
 }
 
 

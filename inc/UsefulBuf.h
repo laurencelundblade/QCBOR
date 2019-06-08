@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  when         who             what, where, why
  --------     ----            --------------------------------------------------
  5/21/2019    llundblade      #define configs for efficient endianness handling.
+ 5/16/2019    llundblade      Add UsefulOutBuf_IsBufferNULL().
  3/23/2019    llundblade      Big documentation & style update. No interface
                               change.
  3/6/2019     llundblade      Add UsefulBuf_IsValue()
@@ -1149,8 +1150,8 @@ static inline size_t UsefulOutBuf_RoomLeft(UsefulOutBuf *pUOutBuf);
 /**
  @brief Returns 1 if some number of bytes will fit in the @ref UsefulOutBuf.
 
- @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf
- @param[in] uLen  Number of bytes for which to check
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf
+ @param[in] uLen      Number of bytes for which to check
 
  @return 1 if @c uLen bytes will fit, 0 if not.
 
@@ -1159,6 +1160,19 @@ static inline size_t UsefulOutBuf_RoomLeft(UsefulOutBuf *pUOutBuf);
  this.
  */
 static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *pUOutBuf, size_t uLen);
+
+
+ /**
+ @brief Returns 1 if buffer given to UsefulOutBuf_Init() was @c NULL.
+
+ @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf
+
+ @return 1 if buffer given to UsefulOutBuf_Init() was @c NULL.
+
+ Giving a @c NULL output buffer to UsefulOutBuf_Init() is used
+ when just calculating the length of the encoded data.
+ */
+static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pUOutBuf);
 
 
 /**
@@ -1870,6 +1884,11 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *pMe, size_t uLen)
    return uLen <= UsefulOutBuf_RoomLeft(pMe);
 }
 
+
+static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pMe)
+{
+   return pMe->UB.ptr == NULL;
+}
 
 
 
