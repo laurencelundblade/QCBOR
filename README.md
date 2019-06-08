@@ -4,9 +4,10 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
 ## Characteristics
 
-**Implemented in C with minimal dependency** – Only dependencies are
-  C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making it
-  highly portable. There are no #ifdefs to be configured at all.
+**Implemented in C with minimal dependency** – The only dependencies
+  are C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making it
+  highly portable. No #ifdefs or compiler options need to be set for it
+  to run correctly.
 
 **Focused on C / native data representation** – Simpler code because
   there is no support for encoding/decoding to/from JSON, pretty
@@ -104,6 +105,15 @@ support UNIX style command line and make, you should be able to make a
 simple project and add the test files to it.  Then just call
 RunTests() to invoke them all.
 
+While this code will run fine without configuration, there are several
+C pre processor macros that can be defined in order to:
+
+* use a more efficient implementation
+  * to reduce code size
+  * to improve performance (a little)
+* remove features to reduce code size
+
+See the comment sections on "Configuration" in inc/UsefulBuf.h.
 
 ## Changes from CAF Version
 * Float support is restored
