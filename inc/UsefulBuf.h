@@ -92,7 +92,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  the device is. All the code will run correctly on either big or
  little endian CPUs.
 
- Here's the recipe for configuring the endianness-related #defines.
+ Here's the recipe for configuring the endianness-related #defines
+ to use more efficient CPU/OS/compiler dependent features to reduce
+ code size. Note these only affect the integer arrays (tagged
+ arrays) feature of QCBOR. All other endianness handling in
+ QCBOR is integrated with code that also handles alignment and
+ preferred encoding.
 
  The first option is to not define anything. This will work fine on
  with all CPU's, OS's and compilers. The code for encoding
@@ -107,7 +112,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  the most efficient code, the same as USEFULBUF_CONFIG_BIG_ENDIAN
  does. On little-endian CPUs it should call the system-defined byte
  swapping method which is presumably implemented efficiently. In some
- cases, this will be a dedicated byte swap instruction like Intel
+ cases, this will be a dedicated byte swap instruction like Intel's
  bswap.
  
  If USEFULBUF_CONFIG_HTON works and you know your CPU is
@@ -120,7 +125,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  system-defined byte swap method. However, note
  https://hardwarebug.org/2010/01/14/beware-the-builtins/.  Perhaps
  this is fixed now. Often hton() and ntoh() will call the built-in
- bswap, so this size issue could affect USEFULBUF_CONFIG_HTON.
+ __builtin_bswapXX()() function, so this size issue could affect
+ USEFULBUF_CONFIG_HTON.
  
  Last, run the tests. They must all pass.
 
