@@ -26,14 +26,14 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
   RFC 7049 are not directly supported (canonicalization, decimal
   fractions, big floats). Decoding indefinite length strings is supported,
   but requires a string allocator (see documentation). Encoding indefinite
-  length strings is not supported, but is also not necessary or
+  length strings is not supported, but is not necessary or
   preferred.
 
 **Extensible and general** – Provides a way to handle data types that
   are not directly supported.
 
 **Secure coding style** – Uses a construct called UsefulBuf as a
-  discipline for very safe coding the handling of binary data.
+  discipline for very safe coding and handling of binary data.
 
 **Small code size** – When optimized for size using the compiler -Os
   option, x86 code is about 4KB (~1.1KB encode, ~2.5KB decode,
@@ -59,7 +59,8 @@ permissive Linux license, September 2018 (thanks Qualcomm!).
 
 This code in [Laurence's
 GitHub](https://github.com/laurencelundblade/QCBOR) has diverged from
-the CAF source with some small simplifications and tidying up.
+the CAF source with some simplifications, tidying up and feature
+additions.
 
 From Nov 3, 2018, the interface and code are fairly stable. Large
 changes are not planned or expected, particularly in the
@@ -106,7 +107,7 @@ simple project and add the test files to it.  Then just call
 RunTests() to invoke them all.
 
 While this code will run fine without configuration, there are several
-C pre processor macros that can be defined in order to:
+C pre processor macros that can be #defined in order to:
 
 * use a more efficient implementation
   * to reduce code size
