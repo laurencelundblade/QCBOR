@@ -114,11 +114,11 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  swapping method which is presumably implemented efficiently. In some
  cases, this will be a dedicated byte swap instruction like Intel's
  bswap.
- 
+
  If USEFULBUF_CONFIG_HTON works and you know your CPU is
  little-endian, it is also good to define
  USEFULBUF_CONFIG_LITTLE_ENDIAN.
- 
+
  if USEFULBUF_CONFIG_HTON doesn't work and you know your system is
  little-endian, try defining both USEFULBUF_CONFIG_LITTLE_ENDIAN and
  USEFULBUF_CONFIG_BSWAP. This should call the most efficient
@@ -127,7 +127,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  this is fixed now. Often hton() and ntoh() will call the built-in
  __builtin_bswapXX()() function, so this size issue could affect
  USEFULBUF_CONFIG_HTON.
- 
+
  Last, run the tests. They must all pass.
 
  These #define config options affect the inline implementation of
@@ -1684,7 +1684,7 @@ static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *me,
 #elif defined(USEFULBUF_CONFIG_HTON)
    uint16_t uTmp = htons(uInteger16);
    pBytes        = &uTmp;
-   
+
 #elif defined(USEFULBUF_CONFIG_LITTLE_ENDIAN) && defined(USEFULBUF_CONFIG_BSWAP)
    uint16_t uTmp = __builtin_bswap16(uInteger16);
    pBytes = &uTmp;
@@ -1716,10 +1716,10 @@ static inline void UsefulOutBuf_InsertUint32(UsefulOutBuf *pMe,
 #elif defined(USEFULBUF_CONFIG_HTON)
    uint32_t uTmp = htonl(uInteger32);
    pBytes = &uTmp;
-   
+
 #elif defined(USEFULBUF_CONFIG_LITTLE_ENDIAN) && defined(USEFULBUF_CONFIG_BSWAP)
    uint32_t uTmp = __builtin_bswap32(uInteger32);
-   
+
    pBytes = &uTmp;
 
 #else
@@ -1759,7 +1759,7 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pMe,
    uint64_t uTmp = htonll(uInteger64);
 
    pBytes = &uTmp;
-   
+
 #elif defined(USEFULBUF_CONFIG_LITTLE_ENDIAN) && defined(USEFULBUF_CONFIG_BSWAP)
    // Use built-in function for byte swapping. This usually compiles
    // to an efficient special byte swap instruction. Unlike hton() it
@@ -1991,7 +1991,7 @@ static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pMe)
 
 #else
    return __builtin_bswap16(uTmp);
-   
+
 #endif
 
 #else
@@ -2019,7 +2019,7 @@ static inline uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *pMe)
 
 #elif defined(USEFULBUF_CONFIG_HTON)
    return ntohl(uTmp);
-   
+
 #else
    return __builtin_bswap32(uTmp);
 
@@ -2055,7 +2055,7 @@ static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pMe)
    // network byte order is big-endian, there is nothing to do.
 
    return uTmp;
-   
+
 #elif defined(USEFULBUF_CONFIG_HTON)
    // We have been told to use ntoh(), the system function to handle
    // big- and little-endian. This works on both big- and
@@ -2065,16 +2065,16 @@ static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pMe)
    // instruction.
 
    return ntohll(uTmp);
-   
+
 #else
    // Little-endian (since it is not USEFULBUF_CONFIG_BIG_ENDIAN) and
    // USEFULBUF_CONFIG_BSWAP (since it is not USEFULBUF_CONFIG_HTON).
    // __builtin_bswap64() and friends are not conditional on CPU
    // endianness so this must only be used on little-endian machines.
-   
+
    return __builtin_bswap64(uTmp);
 
-   
+
 #endif
 
 #else
