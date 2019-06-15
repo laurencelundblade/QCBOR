@@ -16,7 +16,6 @@
 #include "q_useful_buf.h"
 #include "t_cose_util.h"
 #include <stdbool.h>
-#include "qcbor_util.h"
 
 
 /**
@@ -66,6 +65,331 @@ Done:
 }
 
 
+static inline QCBORError
+consume_item(QCBORDecodeContext *decode_context,
+             const QCBORItem    *item_to_consume,
+             uint_fast8_t       *next_nest_level)
+{
+    QCBORError return_value;
+    QCBORItem  item;
+
+    if(item_to_consume->uDataType == QCBOR_TYPE_MAP ||
+       item_to_consume->uDataType == QCBOR_TYPE_ARRAY) {
+        /* There is only real work to do for maps and arrays */
+
+        /* This works for definite and indefinite length
+         * maps and arrays by using the nesting level
+         */
+        do {
+            return_value = QCBORDecode_GetNext(decode_context, &item);
+            if(return_value != QCBOR_SUCCESS) {
+                goto Done;
+            }
+        } while(item.uNextNestLevel >= item_to_consume->uNextNestLevel);
+
+        *next_nest_level = item.uNextNestLevel;
+        return_value = QCBOR_SUCCESS;
+
+    } else {
+        /* item_to_consume is not a map or array */
+        /* Just pass the nesting level through */
+        *next_nest_level = item_to_consume->uNextNestLevel;
+        return_value = QCBOR_SUCCESS;
+    }
+
+Done:
+    return return_value;
+}
+
+
+struct t_cose_headers {
+    int32_t               cose_alg_id; // TODO: text versions of this
+    struct q_useful_buf_c kid;
+    struct q_useful_buf_c iv;
+    struct q_useful_buf_c partial_iv;
+    struct q_useful_buf_c content_type; // TODO: integer versions of this
+};
+
+
+#define HEADER_LIST_MAX 11  // 10 slots plus a list terminator
+#define HEADER_ALG_LIST_TERMINATOR 0 // TODO: check this is an invalid alg ID
+struct t_cose_header_list {
+    // Terminated by value HEADER_ALG_LIST_TERMINATOR
+    uint64_t int_headers[HEADER_LIST_MAX];
+    // Terminated by a NULL_Q_USEFUL_BUF_C
+    struct q_useful_buf_c tstr_headers[HEADER_LIST_MAX];
+};
+
+
+enum t_cose_err_t parse_critical_headers(QCBORDecodeContext *decode_context,
+                                         struct t_cose_header_list *critical_headers)
+{
+    QCBORItem         item;
+    uint_fast8_t      num_int_headers;
+    uint_fast8_t      num_tstr_headers;
+    enum t_cose_err_t return_value;
+    QCBORError        cbor_result;
+    uint_fast8_t      nest_level;
+
+    // TODO: is this initialization good for int_headers?
+    memset(critical_headers, 0, sizeof(struct t_cose_header_list));
+    num_int_headers  = 0;
+    num_tstr_headers = 0;
+
+    nest_level = 0;
+
+    while(1) {
+        cbor_result = QCBORDecode_GetNext(decode_context, &item);
+        if(cbor_result != QCBOR_SUCCESS) {
+            return_value = 999;
+            goto Done;
+        }
+        if(nest_level == 0) {
+            // Record nesting level of first item
+            // When nesting level is not this
+            // then at end of array.
+            nest_level = item.uNestingLevel;
+        }
+
+        if(item.uDataType == QCBOR_TYPE_INT64) {
+            if(num_int_headers == HEADER_LIST_MAX) {
+                return_value = 99; // Too many
+                goto Done;
+            }
+            critical_headers->int_headers[num_int_headers++] = item.val.int64;
+        } else if(item.uDataType == QCBOR_TYPE_BYTE_STRING) {
+            if(num_tstr_headers == HEADER_LIST_MAX) {
+                return_value = 99; // To many
+                goto Done;
+            }
+            critical_headers->tstr_headers[num_tstr_headers++] = item.val.string;
+        } else {
+            return_value = 888; // Wrong type
+            goto Done;
+        }
+
+        if(nest_level != item.uNestingLevel) {
+            return_value = T_COSE_SUCCESS;
+            break;
+        }
+    }
+
+Done:
+    return return_value;
+}
+
+
+static inline enum t_cose_err_t check_critical_headers(const struct t_cose_header_list *critical_headers, const struct t_cose_header_list *unknown_headers)
+{
+    enum t_cose_err_t return_value;
+    uint_fast8_t      num_unknown_headers;
+    uint_fast8_t      num_critical_headers;
+
+    /* Assume success until an unhandled critical headers is found */
+    return_value = T_COSE_SUCCESS;
+
+    // Iterate over integer unknown headers
+    for(num_unknown_headers = 0; unknown_headers->int_headers[num_unknown_headers]; num_unknown_headers++) {
+        // iterate over critical integer headers looking for the unknown header
+        for(num_critical_headers = 0; critical_headers->int_headers[num_critical_headers]; num_critical_headers++) {
+            if(critical_headers->int_headers[num_critical_headers] == unknown_headers->int_headers[num_unknown_headers]) {
+                return_value = 3989384;
+                goto Done;
+            }
+        }
+        /* Normal exit from loop means unknown header wasn't critical */
+    }
+
+    // Iterate over string unknown headers
+    for(num_unknown_headers = 0; !q_useful_buf_c_is_null(unknown_headers->tstr_headers[num_unknown_headers]); num_unknown_headers++) {
+        // iterate over critical integer headers looking for the unknown header
+        for(num_critical_headers = 0; !q_useful_buf_c_is_null(critical_headers->tstr_headers[num_critical_headers]); num_critical_headers++) {
+            if(!q_useful_buf_compare(critical_headers->tstr_headers[num_critical_headers], unknown_headers->tstr_headers[num_unknown_headers])) {
+                return_value = 3989384;
+                goto Done;
+            }
+        }
+        /* Normal exit from loop means unknown header wasn't critical */
+    }
+
+Done:
+    return return_value;
+}
+
+
+static enum t_cose_err_t add_unknown_header(const QCBORItem *item, struct t_cose_header_list *unknown_headers)
+{
+    enum t_cose_err_t return_value;
+    uint_fast8_t      num_unknown_headers;
+
+    /* Assume success until an error adding is encountered. */
+    return_value = T_COSE_SUCCESS;
+
+    if(item->uDataType == QCBOR_TYPE_INT64) {
+        for(num_unknown_headers = 0; unknown_headers->int_headers[num_unknown_headers]; num_unknown_headers++);
+        if(num_unknown_headers == HEADER_LIST_MAX) {
+            return_value = 999;
+            goto Done;
+        }
+        unknown_headers->int_headers[num_unknown_headers] = item->val.int64;
+
+    } else if(item->uDataType == QCBOR_TYPE_BYTE_STRING) {
+        for(num_unknown_headers = 0; !q_useful_buf_c_is_null(unknown_headers->tstr_headers[num_unknown_headers]); num_unknown_headers++);
+        if(num_unknown_headers == HEADER_LIST_MAX) {
+            return_value = 999;
+            goto Done;
+        }
+        unknown_headers->tstr_headers[num_unknown_headers] = item->val.string;
+    } else {
+        return_value = 9999;
+    }
+
+Done:
+    return return_value;
+}
+
+
+static enum t_cose_err_t process_unknown_header(QCBORDecodeContext *decode_context,
+                                                const QCBORItem *item,
+                                                struct t_cose_header_list *unknown_headers,
+                                                uint_fast8_t *next_nest_level)
+{
+    int return_value;
+
+    return_value = add_unknown_header(item, unknown_headers);
+    if(return_value) { // TODO:
+        goto Done;
+    }
+    /* The unknown header must be consumed. It could be
+     complex deeply-nested CBOR */
+    if(consume_item(decode_context, item, next_nest_level)) {
+        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+        goto Done;
+    }
+
+Done:
+    return return_value;
+}
+
+
+static enum t_cose_err_t parse_cose_headers(QCBORDecodeContext *decode_context,
+                              struct t_cose_headers *returned_headers)
+{
+    QCBORItem                 item;
+    int                       return_value;
+    uint_fast8_t              map_nest_level;
+    uint_fast8_t              next_nest_level;
+    struct t_cose_header_list unknown_headers, critical_headers;
+
+
+    // clear usefulbufs to NULL and algorithm ID to COSE_ALGORITHM_INVALID
+#if COSE_ALGORITHM_INVALID != 0
+#error Invalid algorithm designator not 0. Header list initialization fails.
+#endif
+    memset(returned_headers, 0, sizeof(struct t_cose_headers));
+
+    /* This assumes the next thing to decode is the map
+     */
+    /* Get the data item that is the map that is being searched */
+    QCBORDecode_GetNext(decode_context, &item);
+    if(item.uDataType != QCBOR_TYPE_MAP) {
+        return_value = 88; // TODO: proper error cod
+        goto Done;
+    }
+
+    /* Loop over all the items in the map. They could be
+     * deeply nested and this should handle both definite
+     * and indefinite length maps and arrays, so this
+     * adds some complexity. */
+    map_nest_level = item.uNextNestLevel;
+
+    while(1) {
+        if(QCBORDecode_GetNext(decode_context, &item) != QCBOR_SUCCESS) {
+            /* Got non-well-formed CBOR */
+            return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+            goto Done;
+        }
+
+        if(item.uLabelType != QCBOR_TYPE_INT64) {
+            // Non integer label. We don't handle those...
+            return_value = process_unknown_header(decode_context, &item, &unknown_headers, &next_nest_level);
+            if(return_value) {
+                goto Done;
+            }
+
+        } else {
+            switch(item.label.int64) {
+
+                case COSE_HEADER_PARAM_ALG:
+                    if(item.uDataType != QCBOR_TYPE_INT64) {
+                        return_value = 99; // TODO: error -- can't handle text string alg IDs
+                        goto Done;
+                    }
+                    returned_headers->cose_alg_id = (int32_t)item.val.int64; // todo: test for overflow
+                    next_nest_level = 44; // TODO:
+                    break;
+
+                case COSE_HEADER_PARAM_KID:
+                    if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
+                        return_value = 99; // TODO:
+                        goto Done;
+                    }
+                    returned_headers->kid = item.val.string;
+                    next_nest_level = 44; // TODO:
+                    break;
+
+                case COSE_HEADER_PARAM_IV:
+                    if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
+                        return_value = 99; // TODO:
+                        goto Done;
+                    }
+                    returned_headers->iv = item.val.string;
+                    next_nest_level = 44; // TODO:
+                    break;
+
+                case COSE_HEADER_PARAM_PARTIAL_IV:
+                    if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
+                        return_value = 99; // TODO:
+                        goto Done;
+                    }
+                    returned_headers->iv = item.val.string;
+                    next_nest_level = 44; // TODO:
+                    break;
+
+                case COSE_HEADER_PARAM_CRIT:
+                    if(item.uDataType != QCBOR_TYPE_ARRAY) {
+                        return_value = 99; // TODO:
+                        goto Done;
+                    }
+                    return_value = parse_critical_headers(decode_context, &critical_headers);
+                    if(return_value != 999) {
+                        goto Done;
+                    }
+
+                default:
+                    /* The header is not recognized. It has to be added to the
+                       the list of unknown headers so it can be checked against
+                       the list of critical headers */
+                    return_value = process_unknown_header(decode_context, &item, &unknown_headers, &next_nest_level);
+
+                    if(return_value) { // TODO:
+                        goto Done;
+                    }
+            }
+        }
+        if(next_nest_level < map_nest_level) {
+            // TODO: handle this correctly
+            return_value = check_critical_headers(&critical_headers, &unknown_headers);
+
+            /* Got all the items in the map. This is the non-error exit
+             * from the loop. */
+            break;
+        }
+    }
+
+    Done:
+        return return_value;
+}
 
 
 /**
@@ -75,7 +399,7 @@ Done:
  *                              protected headers to parse.
  * \param[out] cose_alg_id      Place to return the COSE algorithm ID
  *
- * \returns 0 on success, non-zero on failure.
+ * \returns 0 on success, non-zero on failure. TODO: fix this
  *
  * This parses the contents of the protected headers after the bstr
  * wrapping is removed.  It only looks for the COSE algorithm ID and
@@ -86,78 +410,33 @@ Done:
  * algorithm ID is larger than \c INT32_MAX or smaller than \c
  * INT32_MIN.
  */
-static int parse_protected_headers(struct q_useful_buf_c protected_headers,
-                                   int32_t *cose_alg_id)
+static inline enum t_cose_err_t parse_protected_headers(struct q_useful_buf_c protected_headers,
+                                                        int32_t *cose_alg_id)
 {
-    QCBORDecodeContext  decode_context;
-    QCBORItem           item;
+    QCBORDecodeContext     decode_context;
+    struct t_cose_headers  parsed_protected_headers;
+    enum t_cose_err_t      return_value;
 
     QCBORDecode_Init(&decode_context, protected_headers, 0);
 
-    if(qcbor_util_get_item_in_map(&decode_context,
-                                 COSE_HEADER_PARAM_ALG,
-                                 &item)) {
-        return 1;
+    return_value =  parse_cose_headers(&decode_context, &parsed_protected_headers);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
     }
 
     if(QCBORDecode_Finish(&decode_context)) {
-        return 1;
-    }
-
-    if(item.uDataType != QCBOR_TYPE_INT64 || item.val.int64 > INT32_MAX) {
-        return 1;
-    }
-
-    *cose_alg_id = (int32_t)item.val.int64;
-
-    return 0;
-}
-
-
-/**
- * \brief Parse the unprotected COSE header to find the kid
- *
- * \param[in,out] decode_context The CBOR decoding context to read the
- *                               unprotected headers from.
- * \param[out] kid               Pointer and length of the kid found.
- *                               The storage for the kid is whatever was
- *                               passed to the decoder.
- *
- * \retval -1
- *         CBOR was not well-formed
- * \retval 0
- *         Success
- * \retval 1
- *         Was not a CBOR map or no kid was found
- *
- * This will consume the entire map containing the unprotected
- * headers. Any headers except the kid will be ignored.
- */
-static int parse_unprotected_headers(QCBORDecodeContext *decode_context,
-                                     struct q_useful_buf_c *kid)
-{
-    struct qcbor_util_items_to_get_t   items[2];
-    int                     return_value;
-
-    items[0].label = COSE_HEADER_PARAM_KID; /* kid */
-    items[1].label = 0; /* terminate list */
-
-    return_value = qcbor_util_get_items_in_map(decode_context, items);
-    if(return_value) {
+        return_value = 99; // TODO: fix this
         goto Done;
     }
 
-    /* did we get a proper kid */
-    if(items[0].item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-        /* have to get a kid, or is it fail */
-        return_value = 1;
-        goto Done;
+    if(parsed_protected_headers.cose_alg_id == COSE_ALGORITHM_INVALID ||
+       parsed_protected_headers.cose_alg_id > INT32_MAX) {
+        return 1; // TODO: error code
     }
 
-    *kid = items[0].item.val.string;
-
+    *cose_alg_id = (int32_t)parsed_protected_headers.cose_alg_id;
 Done:
-    return return_value; /* have to get a kid, or is it fail */
+    return return_value;
 }
 
 
@@ -173,9 +452,7 @@ enum t_cose_err_t t_cose_sign1_verify(int32_t option_flags,
     QCBORItem                     item;
     struct q_useful_buf_c         protected_headers;
     int32_t                       cose_algorithm_id;
-    struct q_useful_buf_c         kid;
     enum t_cose_err_t             return_value;
-    int                           result;
     /* Buffer for the tbs hash. Only big enough for SHA256 */
     Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_tbs_hash,
                                       T_COSE_CRYPTO_SHA256_SIZE);
@@ -184,6 +461,7 @@ enum t_cose_err_t t_cose_sign1_verify(int32_t option_flags,
     Q_USEFUL_BUF_MAKE_STACK_UB   (buf_for_short_circuit_kid,
                                       T_COSE_SHORT_CIRCUIT_KID_SIZE);
     struct q_useful_buf_c         short_circuit_kid;
+    struct t_cose_headers         unprotected_headers;
 
     *payload = NULL_Q_USEFUL_BUF_C;
 
@@ -207,21 +485,16 @@ enum t_cose_err_t t_cose_sign1_verify(int32_t option_flags,
 
     protected_headers = item.val.string;
 
-    result = parse_protected_headers(protected_headers, &cose_algorithm_id);
-    if(result == -1) {
-        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
-        goto Done;
-    } else if (result == 1) {
-        return_value = T_COSE_ERR_NO_ALG_ID;
+    return_value = parse_protected_headers(protected_headers, &cose_algorithm_id);
+    if(return_value == T_COSE_SUCCESS) {
         goto Done;
     }
 
     /* --  Get the unprotected headers -- */
-    result = parse_unprotected_headers(&decode_context, &kid);
-    if(result == -1) {
-        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+    return_value = parse_cose_headers(&decode_context, &unprotected_headers);
+    if(return_value != T_COSE_SUCCESS) {
         goto Done;
-    } else if (result == 1) {
+    } else if (q_useful_buf_c_is_null(unprotected_headers.kid)) {
         return_value = T_COSE_ERR_NO_KID;
         goto Done;
     }
@@ -260,7 +533,7 @@ enum t_cose_err_t t_cose_sign1_verify(int32_t option_flags,
     /* -- Check for short-circuit signature and verify if it exists -- */
     return_value = get_short_circuit_kid(buf_for_short_circuit_kid,
                                            &short_circuit_kid);
-    if(!return_value && !q_useful_buf_compare(kid, short_circuit_kid)) {
+    if(!return_value && !q_useful_buf_compare(unprotected_headers.kid, short_circuit_kid)) {
         if(!(option_flags & T_COSE_OPT_ALLOW_SHORT_CIRCUIT)) {
             return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG;
             goto Done;
@@ -276,7 +549,7 @@ enum t_cose_err_t t_cose_sign1_verify(int32_t option_flags,
     /* -- Verify the signature -- */
     return_value = t_cose_crypto_pub_key_verify(cose_algorithm_id,
                                                 key_select,
-                                                kid,
+                                                unprotected_headers.kid,
                                                 tbs_hash,
                                                 signature);
 

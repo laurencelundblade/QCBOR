@@ -40,12 +40,27 @@
  */
 #define COSE_HEADER_PARAM_ALG 1
 
+
+
+#define COSE_HEADER_PARAM_CRIT 2
+
+#define COSE_HEADER_PARAM_CONTENT_TYPE 3
+
+
+
 /**
  * \def COSE_HEADER_PARAM_KID
  *
  * \brief Label of COSE header that contains a key ID.
  */
 #define COSE_HEADER_PARAM_KID 4
+
+#define COSE_HEADER_PARAM_IV 5
+
+#define COSE_HEADER_PARAM_PARTIAL_IV 6
+
+#define COSE_HEADER_PARAM_COUNTER_SIGNATURE 6
+
 
 
 
@@ -62,6 +77,12 @@
 /* ------------- COSE Algorithms ----------------------------
  * https://www.iana.org/assignments/cose/cose.xhtml#algorithms
  */
+
+/*
+ This is not defined by IANA, but is used in this implementation.
+ */
+#define COSE_ALGORITHM_INVALID 0
+
 
 /**
  * \def COSE_ALGORITHM_ES256
