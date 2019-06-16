@@ -38,7 +38,7 @@
 #include "openssl/ecdsa.h"
 #include "openssl/obj_mac.h" // for NID for EC curve
 
-psa_status_t psa_asymmetric_sign_old(psa_key_slot_t key,
+psa_status_t psa_asymmetric_sign_old(psa_key_handle_t key,
                                  psa_algorithm_t alg,
                                  const uint8_t *hash,
                                  size_t hash_length,
@@ -60,7 +60,7 @@ psa_status_t psa_asymmetric_sign_old(psa_key_slot_t key,
 }
 
 
-psa_status_t psa_asymmetric_sign(psa_key_slot_t key,
+psa_status_t psa_asymmetric_sign(psa_key_handle_t key,
                                  psa_algorithm_t alg,
                                  const uint8_t *hash,
                                  size_t hash_length,

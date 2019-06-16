@@ -10,6 +10,7 @@
 
 #include "t_cose_test.h"
 #include "t_cose_sign1_sign.h"
+#include "t_cose_sign1_verify.h"
 #include "t_cose_defines.h"
 #include "q_useful_buf.h"
 
@@ -39,10 +40,12 @@ int_fast16_t minimal_test()
     return_value = t_cose_sign1_finish(&sign_ctx, wrapped_payload);
     
     QCBOREncode_Finish(&cbor_encode, &signed_cose);
+
+    struct q_useful_buf_c payload;
+
+    t_cose_sign1_verify(T_COSE_OPT_ALLOW_SHORT_CIRCUIT, 0, signed_cose, &payload);
     
     
-    
-    
-    
+
     return 0;
 }

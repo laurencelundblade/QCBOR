@@ -59,7 +59,7 @@ t_cose_crypto_pub_key_sign(int32_t cose_alg_id,
         return T_COSE_ERR_FAIL;
     }
 
-    psa_ret = psa_asymmetric_sign(ATTEST_PRIVATE_KEY_SLOT,
+    psa_ret = psa_asymmetric_sign(0,
                                   0, /* FixMe: algorithm ID */
                                   hash_to_sign.ptr,
                                   hash_to_sign.len,
