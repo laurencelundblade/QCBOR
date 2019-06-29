@@ -746,6 +746,9 @@ typedef enum {
        list, or not enough space in @ref QCBORTagListOut. */
    QCBOR_ERR_TOO_MANY_TAGS = 20,
 
+   /** An integer type is encoded with a bad length (an indefinite length) */
+   QCBOR_ERR_BAD_INT = 21,
+
 } QCBORError;
 
 
@@ -2039,7 +2042,7 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  @retval QCBOR_ERR_UNSUPPORTED     Not well-formed, input contains
                                    unsupported CBOR.
 
- @retval QCBOR_ERR_HIT_END         Not well-formed, unexpected ran out
+ @retval QCBOR_ERR_HIT_END         Not well-formed, unexpectedly ran out
                                    of bytes.
 
  @retval QCBOR_ERR_BAD_TYPE_7      Not well-formed, bad simple type value.
@@ -2049,6 +2052,9 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
 
  @retval QCBOR_ERR_EXTRA_BYTES     Not well-formed, unprocessed bytes at
                                    the end.
+
+ @retval QCBOR_ERR_BAD_INT         Not well-formed, length of integer is
+                                   bad.
 
  @retval QCBOR_ERR_BAD_OPT_TAG     Invalid CBOR, tag on wrong type.
 

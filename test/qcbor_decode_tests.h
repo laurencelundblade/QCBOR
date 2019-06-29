@@ -134,7 +134,7 @@ int ParseSimpleTest(void);
 /*
  Tests a number of failure cases on bad CBOR to get the right error code
  */
-int FailureTests(void);
+int DecodeFailureTests(void);
 
 
 /*

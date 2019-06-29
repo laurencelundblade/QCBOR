@@ -1330,85 +1330,94 @@ int ParseSimpleTest()
 
 
 struct FailInput {
-   UsefulBufC Input;
-   int nError;
+   UsefulBufC Input;  // CBOR to decode
+   QCBORError nError; // The error expected
 };
 
-
 struct FailInput  Failures[] = {
+   { {(uint8_t[]){0xa1, 0x00}, 2}, QCBOR_ERR_HIT_END }, //  map with odd number of entries
    { {(uint8_t[]){0x18}, 1}, QCBOR_ERR_HIT_END },     // 1 byte integer missing the byte
    { {(uint8_t[]){0x1c}, 1}, QCBOR_ERR_UNSUPPORTED }, // Reserved additional info = 28
    { {(uint8_t[]){0x1d}, 1}, QCBOR_ERR_UNSUPPORTED }, // Reserved additional info = 29
    { {(uint8_t[]){0x1e}, 1}, QCBOR_ERR_UNSUPPORTED }, // Reserved additional info = 30
-   { {(uint8_t[]){0x1f}, 1}, QCBOR_ERR_UNSUPPORTED }, // Indefinite length integer
+   { {(uint8_t[]){0x1f}, 1}, QCBOR_ERR_BAD_INT }, // Indefinite length integer
    { {(uint8_t[]){0x3c}, 1}, QCBOR_ERR_UNSUPPORTED }, // 1 byte integer missing the byte
    { {(uint8_t[]){0x3d}, 1}, QCBOR_ERR_UNSUPPORTED }, // 1 byte integer missing the byte
    { {(uint8_t[]){0x3e}, 1}, QCBOR_ERR_UNSUPPORTED }, // 1 byte integer missing the byte
-   { {(uint8_t[]){0x3f}, 1}, QCBOR_ERR_UNSUPPORTED }, // Indefinite length negative integer
+   { {(uint8_t[]){0x3f}, 1}, QCBOR_ERR_BAD_INT }, // Indefinite length negative integer
    { {(uint8_t[]){0x41}, 1}, QCBOR_ERR_HIT_END },     // Short byte string
    { {(uint8_t[]){0x5c}, 1}, QCBOR_ERR_UNSUPPORTED }, // Reserved additional info = 28
-   { {(uint8_t[]){0x5f}, 1}, QCBOR_ERR_UNSUPPORTED }, // Indefinite length byte string
    { {(uint8_t[]){0x61}, 1}, QCBOR_ERR_HIT_END },     // Short UTF-8 string
    { {(uint8_t[]){0x7c}, 1}, QCBOR_ERR_UNSUPPORTED }, // Reserved additional info = 28
-   { {(uint8_t[]){0x7f}, 1}, QCBOR_ERR_UNSUPPORTED }, // Indefinite length UTF-8 string
-   { {(uint8_t[]){0xff}, 1}, QCBOR_ERR_UNSUPPORTED } , // break
+   { {(uint8_t[]){0xff}, 1}, QCBOR_ERR_BAD_BREAK } ,  // break
    { {(uint8_t[]){0xf8, 0x00}, 2}, QCBOR_ERR_BAD_TYPE_7 }, // An invalid encoding of a simple type
    { {(uint8_t[]){0xf8, 0x1f}, 2}, QCBOR_ERR_BAD_TYPE_7 },  // An invalid encoding of a simple type
    { {(uint8_t[]){0xc0, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },  // Text-based date, with an integer
    { {(uint8_t[]){0xc1, 0x41, 0x33}, 3}, QCBOR_ERR_BAD_OPT_TAG },   // Epoch date, with an byte string
    { {(uint8_t[]){0xc1, 0xc0, 0x00}, 3}, QCBOR_ERR_BAD_OPT_TAG },   // tagged as both epoch and string dates
-   { {(uint8_t[]){0xc2, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG }  // big num tagged an int, not a byte string
-
+   { {(uint8_t[]){0xc2, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },  // big num tagged an int, not a byte string
 };
 
-
-int FailureTests()
+int DecodeFailureTests()
 {
-   int nResult = 0;
+   // Loop over the failures
+   const struct FailInput * const pFEnd = &Failures[0] +
+                                          sizeof(Failures)/sizeof(struct FailInput);
 
-   struct FailInput *pFEnd = &Failures[0] + sizeof(Failures)/sizeof(struct FailInput);
-
-   for(struct FailInput *pF = &Failures[0]; pF < pFEnd ;pF++) {
+   for(const struct FailInput *pF = &Failures[0]; pF < pFEnd ;pF++) {
       QCBORDecodeContext DCtx;
-      QCBORItem Item;
-      int nCBORError;
+      QCBORItem          Item;
+      QCBORError         nCBORError;
 
       QCBORDecode_Init(&DCtx, pF->Input, QCBOR_DECODE_MODE_NORMAL);
 
       while(1) {
          nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
-         if(QCBOR_ERR_HIT_END == nCBORError) {
-            break;
+         if(QCBOR_SUCCESS == nCBORError) {
+            // Must end in an error, so if success keep going
+            continue;
          }
+
          if(nCBORError != pF->nError) {
-            nResult = 1;
+            // Not success, nor error expected so a test failure
+            // Return code is 1000 plus index into Failures of test that failed
+            return 1000 + (int)(pF - &Failures[0]);
+         } else {
+            // Got the error expected
             break;
          }
       }
    }
 
+   // Corrupt the UsefulInputBuf and see that
+   // it reflected correctly for CBOR decoding
    {
       QCBORDecodeContext DCtx;
-      QCBORItem Item;
-      int nCBORError;
+      QCBORItem          Item;
+      QCBORError         nCBORError;
 
-      QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleValues), QCBOR_DECODE_MODE_NORMAL);
+      QCBORDecode_Init(&DCtx,
+                       UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleValues),
+                       QCBOR_DECODE_MODE_NORMAL);
 
       if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
          return nCBORError;
       if(Item.uDataType != QCBOR_TYPE_ARRAY ||
-         Item.val.uCount != 10)
+         Item.val.uCount != 10) {
+         // This wasn't supposed to happen
          return -1;
+      }
 
-      DCtx.InBuf.magic = 0; // Corrupt the UsefulInputBuf
+      DCtx.InBuf.magic = 0; // Reach in and corrupt the UsefulInputBuf
 
       nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
-      if(nCBORError != QCBOR_ERR_HIT_END)
-         return -1;
+      if(nCBORError != QCBOR_ERR_HIT_END) {
+         // Did not get back the error expected
+         return -2;
+      }
    }
 
-
-   return nResult;
+   return 0;
 }
 
 

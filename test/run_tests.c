@@ -105,6 +105,7 @@ test_entry s_tests[] = {
     TEST_ENTRY(IndefiniteLengthNestTest),
     TEST_ENTRY(NestedMapTestIndefLen),
     TEST_ENTRY(ParseSimpleTest),
+    TEST_ENTRY(DecodeFailureTests),
     TEST_ENTRY(EncodeRawTest),
     TEST_ENTRY(RTICResultsTest),
     TEST_ENTRY(MapEncodeTest),

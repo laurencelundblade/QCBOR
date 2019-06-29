@@ -739,8 +739,9 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
 
    // Error out here if we got into trouble on the type and number.
    // The code after this will not work if the type and number is not good.
-   if(nReturn)
+   if(nReturn) {
       goto Done;
+   }
 
    memset(pDecodedItem, 0, sizeof(QCBORItem));
 
@@ -749,7 +750,11 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
    switch (uMajorType) {
       case CBOR_MAJOR_TYPE_POSITIVE_INT: // Major type 0
       case CBOR_MAJOR_TYPE_NEGATIVE_INT: // Major type 1
-         nReturn = DecodeInteger(uMajorType, uNumber, pDecodedItem);
+         if(uAdditionalInfo == LEN_IS_INDEFINITE) {
+            nReturn = QCBOR_ERR_BAD_INT;
+         } else {
+            nReturn = DecodeInteger(uMajorType, uNumber, pDecodedItem);
+         }
          break;
 
       case CBOR_MAJOR_TYPE_BYTE_STRING: // Major type 2
