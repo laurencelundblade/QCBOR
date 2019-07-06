@@ -569,14 +569,12 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me,
 }
 
 
-
-
 /*
  Public functions to finish and get the encoded result. See header qcbor.h
  */
 QCBORError QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
 {
-   QCBORError uReturn = me->uError;
+   QCBORError uReturn = QCBOREncode_GetErrorState(me);
 
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
@@ -587,22 +585,12 @@ QCBORError QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
       goto Done;
    }
 
-   if(UsefulOutBuf_GetError(&(me->OutBuf))) {
-      // Items didn't fit in the buffer.
-      // This check catches this condition for all the appends and inserts
-      // so checks aren't needed when the appends and inserts are performed.
-      // And of course UsefulBuf will never overrun the input buffer given
-      // to it. No complex analysis of the error handling in this file is
-      // needed to know that is true. Just read the UsefulBuf code.
-      uReturn = QCBOR_ERR_BUFFER_TOO_SMALL;
-      goto Done;
-   }
-
    *pEncodedCBOR = UsefulOutBuf_OutUBuf(&(me->OutBuf));
 
 Done:
    return uReturn;
 }
+
 
 
 /*

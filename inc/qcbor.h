@@ -529,10 +529,12 @@ struct _QCBORDecodeContext {
  The encoding error handling is simple. The only possible errors are
  trying to encode structures that are too large or too complex. There
  are no internal malloc calls so there will be no failures for out of
- memory.  Only the final call, QCBOREncode_Finish(), returns an error
- code.  Once an error happens, the encoder goes into an error state
- and calls to it will do nothing so the encoding can just go on. An
- error check is not needed after every data item is added.
+ memory.  The error state is tracked internally, so there is no need
+ to check for errors when encoding. Only the return code from
+ QCBOREncode_Finish() need be checked as once an error happens, the
+ encoder goes into an error state and calls to it to add more data
+ will do nothing. An error check is not needed after every data item
+ is added.
 
  Encoding generally proceeds by calling QCBOREncode_Init(), calling
  lots of @c QCBOREncode_AddXxx() functions and calling
@@ -1784,8 +1786,8 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
  was computed. If a buffer was passed, then the encoded CBOR is in the
  buffer.
 
- All encoding errors manifest here as no other encoding function
- returns any errors. They just set the error state in the encode
+ Encoding errors primarily manifest here as most other encoding function
+ do no return an error. They just set the error state in the encode
  context after which no encoding function does anything.
 
  Three types of errors manifest here. The first type are nesting
@@ -1812,6 +1814,10 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
 
  This may be called multiple times. It will always return the same. It
  can also be interleaved with calls to QCBOREncode_FinishGetSize().
+
+ QCBOREncode_GetErrorState() can be called to get the current
+ error state and abort encoding early as an optimization, but is
+ is never required.
  */
 QCBORError QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
 
@@ -1856,7 +1862,7 @@ static int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
  Normally encoding errors need only be handled at the end of encoding
  when QCBOREncode_Finish() is called. This can be called to get the
  error result before finish should there be a need to halt encoding
- before QCBOREncode_Finish().  is called.
+ before QCBOREncode_Finish() is called.
 */
 static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
 
@@ -3016,6 +3022,18 @@ static inline int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx)
 
 static inline QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx)
 {
+   if(UsefulOutBuf_GetError(&(pCtx->OutBuf))) {
+      // Items didn't fit in the buffer.
+      // This check catches this condition for all the appends and inserts
+      // so checks aren't needed when the appends and inserts are performed.
+      // And of course UsefulBuf will never overrun the input buffer given
+      // to it. No complex analysis of the error handling in this file is
+      // needed to know that is true. Just read the UsefulBuf code.
+      pCtx->uError = QCBOR_ERR_BUFFER_TOO_SMALL;
+      // QCBOR_ERR_BUFFER_TOO_SMALL masks other errors, but that is
+      // OK. Once the caller fixes this, they'll be unmasked.
+   }
+
    return pCtx->uError;
 }
 
