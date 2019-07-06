@@ -49,3 +49,54 @@ int_fast16_t minimal_test()
 
     return 0;
 }
+
+
+int_fast16_t early_error_test()
+{
+    struct t_cose_sign1_ctx sign_ctx;
+    QCBOREncodeContext cbor_encode;
+    enum t_cose_err_t  return_value;
+    struct q_useful_buf_c wrapped_payload = NULL_Q_USEFUL_BUF_C;
+    Q_USEFUL_BUF_MAKE_STACK_UB(foo, 500);
+
+
+    QCBOREncode_Init(&cbor_encode, foo);
+
+    return_value = t_cose_sign1_init(&sign_ctx, true, COSE_ALGORITHM_ES256, 0, &cbor_encode);
+
+    QCBOREncode_BstrWrap(&cbor_encode);
+
+    QCBOREncode_AddSZString(&cbor_encode, "payload");
+
+    QCBOREncode_CloseMap(&cbor_encode);
+
+    return_value = t_cose_sign1_finish(&sign_ctx, wrapped_payload);
+
+    if(return_value != T_COSE_ERR_CBOR_FORMATTING) {
+        return -33;
+    }
+
+
+    Q_USEFUL_BUF_MAKE_STACK_UB(foo2, 15);
+
+    QCBOREncode_Init(&cbor_encode, foo2);
+
+    return_value = t_cose_sign1_init(&sign_ctx, true, COSE_ALGORITHM_ES256, 0, &cbor_encode);
+
+    QCBOREncode_BstrWrap(&cbor_encode);
+
+    QCBOREncode_AddSZString(&cbor_encode, "payload");
+
+    QCBOREncode_CloseMap(&cbor_encode);
+
+    return_value = t_cose_sign1_finish(&sign_ctx, wrapped_payload);
+
+    if(return_value != T_COSE_ERR_TOO_SMALL) {
+        return -34;
+    }
+
+
+
+
+    return 0;
+}

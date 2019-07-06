@@ -10,7 +10,7 @@ C_OPTS=-Os -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
 
 CFLAGS=$(ALL_INC) $(C_OPTS)
 
-SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/qcbor_util.o
+SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o 
 
 TEST_OBJ=test/t_cose_test.o
 

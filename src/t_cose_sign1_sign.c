@@ -435,6 +435,7 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me,
      * with calls not inlined; 450
      */
     enum t_cose_err_t            return_value;
+    QCBORError                   cbor_err;
     /* pointer and length of the completed tbs hash */
     struct q_useful_buf_c        tbs_hash;
     /* Pointer and length of the completed signature */
@@ -445,6 +446,21 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me,
     /* Buffer for the tbs hash. Only big enough for SHA256 */
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash,
                                      T_COSE_CRYPTO_SHA256_SIZE);
+
+    /* Check there are no CBOR encoding errors before
+     * proceeding with hashing and signing. This is
+     * not actually necessary as the errors will be caught
+     * correctly later, but it does make it a bit easier
+     * for the caller to debug problems
+     */
+    cbor_err = QCBOREncode_GetErrorState(me->cbor_encode_ctx);
+    if(cbor_err == QCBOR_ERR_BUFFER_TOO_SMALL) {
+        return_value = T_COSE_ERR_TOO_SMALL;
+        goto Done;
+    } else if(cbor_err != QCBOR_SUCCESS) {
+        return_value = T_COSE_ERR_CBOR_FORMATTING;
+        goto Done;
+    }
 
     /* Create the hash of the to-be-signed bytes. Inputs to the hash
      * are the protected headers, the payload that is getting signed, the
@@ -492,9 +508,11 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me,
     QCBOREncode_AddBytes(me->cbor_encode_ctx, signature);
     QCBOREncode_CloseArray(me->cbor_encode_ctx);
 
-    /* CBOR encoding errors are tracked in the CBOR encoding context
-     and handled in the layer above this */
-
+    /* The layer above this must check for and handle CBOR
+     * encoding errors CBOR encoding errors.  Some are
+     * detected at the start of this function, but they
+     * cannot all be deteced there.
+     */
 Done:
     return return_value;
 }

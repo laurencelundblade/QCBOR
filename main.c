@@ -15,6 +15,9 @@
 #include "t_cose_test.h"
 
 int main(int argc, const char * argv[]) {
+
+    early_error_test();
+
     minimal_test();
     
     printf("Hello, World!\n");

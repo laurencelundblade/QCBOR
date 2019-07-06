@@ -43,7 +43,7 @@ t_cose_crypto_short_circuit_verify(int32_t cose_alg_id,
                                    struct q_useful_buf_c signature)
 {
     struct q_useful_buf_c hash_from_sig;
-    enum t_cose_err_t   return_value;
+    enum t_cose_err_t     return_value;
 
     (void)cose_alg_id; /* unused variable */
 
@@ -126,18 +126,22 @@ struct t_cose_headers {
 
  On a 32-bit machine: 16 * HEADER_LIST_MAX = 176
 
+ This is a big consumer of stack in this implementation.
+ Some cleverness with a union could save almost 200 bytes
+ of stack, as this is on the stack twice.
+
  */
-#define HEADER_LIST_MAX 11  // 10 slots plus a list terminator
 #define HEADER_ALG_LIST_TERMINATOR 0 // TODO: check this is an invalid alg ID
 struct t_cose_header_list {
     // Terminated by value HEADER_ALG_LIST_TERMINATOR
-    uint64_t int_headers[HEADER_LIST_MAX];
+    uint64_t int_headers[T_COSE_HEADER_LIST_MAX+1];
     // Terminated by a NULL_Q_USEFUL_BUF_C
-    struct q_useful_buf_c tstr_headers[HEADER_LIST_MAX];
+    struct q_useful_buf_c tstr_headers[T_COSE_HEADER_LIST_MAX+1];
 };
 
 
-static void clear_header_list(struct t_cose_header_list *list)
+static void
+clear_header_list(struct t_cose_header_list *list)
 {
     // TODO: is this initialization good for int_headers?
     memset(list, 0, sizeof(struct t_cose_header_list));
@@ -148,8 +152,9 @@ static void clear_header_list(struct t_cose_header_list *list)
  Parse the header that contains the list of critical headers and return
  the list of critical headers.
  */
-enum t_cose_err_t parse_critical_headers(QCBORDecodeContext *decode_context,
-                                         struct t_cose_header_list *critical_headers)
+static inline enum t_cose_err_t
+parse_critical_headers(QCBORDecodeContext *decode_context,
+                       struct t_cose_header_list *critical_headers)
 {
     /* Stack use 64-bit: 56 + 12 = 68 */
     QCBORItem         item;
@@ -168,7 +173,7 @@ enum t_cose_err_t parse_critical_headers(QCBORDecodeContext *decode_context,
     while(1) {
         cbor_result = QCBORDecode_GetNext(decode_context, &item);
         if(cbor_result != QCBOR_SUCCESS) {
-            return_value = 999;
+            return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
             goto Done;
         }
         if(nest_level == 0) {
@@ -179,19 +184,19 @@ enum t_cose_err_t parse_critical_headers(QCBORDecodeContext *decode_context,
         }
 
         if(item.uDataType == QCBOR_TYPE_INT64) {
-            if(num_int_headers == HEADER_LIST_MAX) {
-                return_value = 99; // Too many
+            if(num_int_headers == T_COSE_HEADER_LIST_MAX+1) {
+                return_value = T_COSE_ERR_TOO_MANY_HEADERS;
                 goto Done;
             }
             critical_headers->int_headers[num_int_headers++] = item.val.int64;
         } else if(item.uDataType == QCBOR_TYPE_BYTE_STRING) {
-            if(num_tstr_headers == HEADER_LIST_MAX) {
-                return_value = 99; // Too many
+            if(num_tstr_headers == T_COSE_HEADER_LIST_MAX+1) {
+                return_value = T_COSE_ERR_TOO_MANY_HEADERS;
                 goto Done;
             }
             critical_headers->tstr_headers[num_tstr_headers++] = item.val.string;
         } else {
-            return_value = 888; // Wrong type
+            return_value = T_COSE_ERR_CBOR_STRUCTURE; // Wrong type
             goto Done;
         }
 
@@ -211,7 +216,9 @@ Done:
 
  Return an error if one headers in the unknown list is in the critical headers list.
  */
-static inline enum t_cose_err_t check_critical_headers(const struct t_cose_header_list *critical_headers, const struct t_cose_header_list *unknown_headers)
+static inline enum t_cose_err_t
+check_critical_headers(const struct t_cose_header_list *critical_headers,
+                       const struct t_cose_header_list *unknown_headers)
 {
     enum t_cose_err_t return_value;
     uint_fast8_t      num_unknown_headers;
@@ -220,28 +227,30 @@ static inline enum t_cose_err_t check_critical_headers(const struct t_cose_heade
     /* Assume success until an unhandled critical headers is found */
     return_value = T_COSE_SUCCESS;
 
-    // Iterate over integer unknown headers
+    /* Iterate over unknown integer headers */
     for(num_unknown_headers = 0; unknown_headers->int_headers[num_unknown_headers]; num_unknown_headers++) {
-        // iterate over critical integer headers looking for the unknown header
+        /* iterate over critical integer headers looking for the unknown header */
         for(num_critical_headers = 0; critical_headers->int_headers[num_critical_headers]; num_critical_headers++) {
             if(critical_headers->int_headers[num_critical_headers] == unknown_headers->int_headers[num_unknown_headers]) {
-                return_value = 3989384;
+                /* Found a critical header that is unknown to us */
+                return_value = T_COSE_UNKNOWN_CRITICAL_HEADER;
                 goto Done;
             }
         }
-        /* Normal exit from loop means unknown header wasn't critical */
+        /* Normal exit from loop here means all unknown headers were not critical */
     }
 
-    // Iterate over string unknown headers
+    // Iterate over unknown string headers
     for(num_unknown_headers = 0; !q_useful_buf_c_is_null(unknown_headers->tstr_headers[num_unknown_headers]); num_unknown_headers++) {
-        // iterate over critical integer headers looking for the unknown header
+        /* iterate over critical string headers looking for the unknown header */
         for(num_critical_headers = 0; !q_useful_buf_c_is_null(critical_headers->tstr_headers[num_critical_headers]); num_critical_headers++) {
             if(!q_useful_buf_compare(critical_headers->tstr_headers[num_critical_headers], unknown_headers->tstr_headers[num_unknown_headers])) {
-                return_value = 3989384;
+                /* Found a critical header that is unknown to us */
+                return_value = T_COSE_UNKNOWN_CRITICAL_HEADER;
                 goto Done;
             }
         }
-        /* Normal exit from loop means unknown header wasn't critical */
+        /* Normal exit from loop here means all unknown headers were not critical */
     }
 
 Done:
@@ -249,7 +258,9 @@ Done:
 }
 
 
-static inline enum t_cose_err_t add_header_label_to_list(const QCBORItem *item, struct t_cose_header_list *header_list)
+static inline enum t_cose_err_t
+add_header_label_to_list(const QCBORItem *item,
+                         struct t_cose_header_list *header_list)
 {
     enum t_cose_err_t return_value;
     uint_fast8_t      num_headers;
@@ -260,9 +271,9 @@ static inline enum t_cose_err_t add_header_label_to_list(const QCBORItem *item, 
     if(item->uDataType == QCBOR_TYPE_INT64) {
         /* Add an integer-labeled header to the end of the list */
         for(num_headers = 0; header_list->int_headers[num_headers]; num_headers++);
-        if(num_headers == HEADER_LIST_MAX) {
+        if(num_headers == T_COSE_HEADER_LIST_MAX+1) {
             /* List is full -- error out */
-            return_value = 999;
+            return_value = T_COSE_ERR_TOO_MANY_HEADERS;
             goto Done;
         }
         header_list->int_headers[num_headers] = item->val.int64;
@@ -270,15 +281,15 @@ static inline enum t_cose_err_t add_header_label_to_list(const QCBORItem *item, 
     } else if(item->uDataType == QCBOR_TYPE_BYTE_STRING) {
         /* Add a string-labeled header to the end of the list */
         for(num_headers = 0; !q_useful_buf_c_is_null(header_list->tstr_headers[num_headers]); num_headers++);
-        if(num_headers == HEADER_LIST_MAX) {
+        if(num_headers == T_COSE_HEADER_LIST_MAX+1) {
             /* List is full -- error out */
-            return_value = 999;
+            return_value = T_COSE_ERR_TOO_MANY_HEADERS;
             goto Done;
         }
         header_list->tstr_headers[num_headers] = item->val.string;
     } else {
         /* error because header is neither integer or string */
-        return_value = 9999;
+        return_value = T_COSE_ERR_CBOR_STRUCTURE;
     }
 
 Done:
@@ -286,15 +297,16 @@ Done:
 }
 
 
-static enum t_cose_err_t process_unknown_header(QCBORDecodeContext *decode_context,
-                                                const QCBORItem *unknown_header,
-                                                struct t_cose_header_list *unknown_headers,
-                                                uint_fast8_t *next_nest_level)
+static enum t_cose_err_t
+process_unknown_header(QCBORDecodeContext *decode_context,
+                       const QCBORItem *unknown_header,
+                       struct t_cose_header_list *unknown_headers,
+                       uint_fast8_t *next_nest_level)
 {
     enum t_cose_err_t return_value;
 
     return_value = add_header_label_to_list(unknown_header, unknown_headers);
-    if(return_value) { // TODO:
+    if(return_value) {
         goto Done;
     }
     /* The unknown header must be consumed. It could be
@@ -309,8 +321,9 @@ Done:
 }
 
 
-static enum t_cose_err_t parse_cose_headers(QCBORDecodeContext *decode_context,
-                              struct t_cose_headers *returned_headers)
+static enum t_cose_err_t
+parse_cose_headers(QCBORDecodeContext *decode_context,
+                   struct t_cose_headers *returned_headers)
 {
     /* Stack use 64-bit: 56 + 1 + 1 + 1 + 244 = 304
        Stack use 32-bit: 32 + 1 + 1 + 1 + 176 = 212 */
@@ -318,7 +331,8 @@ static enum t_cose_err_t parse_cose_headers(QCBORDecodeContext *decode_context,
     enum t_cose_err_t         return_value;
     uint_fast8_t              map_nest_level;
     uint_fast8_t              next_nest_level;
-    struct t_cose_header_list unknown_headers, critical_headers;
+    struct t_cose_header_list unknown_headers;
+    struct t_cose_header_list critical_headers;
 
 
     // clear usefulbufs to NULL and algorithm ID to COSE_ALGORITHM_INVALID
@@ -367,12 +381,12 @@ static enum t_cose_err_t parse_cose_headers(QCBORDecodeContext *decode_context,
                         return_value = 99; // TODO: error -- can't handle text string alg IDs
                         goto Done;
                     }
-                    returned_headers->cose_alg_id = (int32_t)item.val.int64; // todo: test for overflow
+                    returned_headers->cose_alg_id = (int32_t)item.val.int64; // TODO: test for overflow
                     break;
 
                 case COSE_HEADER_PARAM_KID:
                     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-                        return_value = 99; // TODO:
+                        return_value = T_COSE_ERR_SIGN1_FORMAT;
                         goto Done;
                     }
                     returned_headers->kid = item.val.string;
@@ -380,7 +394,7 @@ static enum t_cose_err_t parse_cose_headers(QCBORDecodeContext *decode_context,
 
                 case COSE_HEADER_PARAM_IV:
                     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-                        return_value = 99; // TODO:
+                        return_value = T_COSE_ERR_SIGN1_FORMAT;
                         goto Done;
                     }
                     returned_headers->iv = item.val.string;
@@ -388,7 +402,7 @@ static enum t_cose_err_t parse_cose_headers(QCBORDecodeContext *decode_context,
 
                 case COSE_HEADER_PARAM_PARTIAL_IV:
                     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-                        return_value = 99; // TODO:
+                        return_value = T_COSE_ERR_SIGN1_FORMAT;
                         goto Done;
                     }
                     returned_headers->iv = item.val.string;
@@ -396,7 +410,7 @@ static enum t_cose_err_t parse_cose_headers(QCBORDecodeContext *decode_context,
 
                 case COSE_HEADER_PARAM_CRIT:
                     if(item.uDataType != QCBOR_TYPE_ARRAY) {
-                        return_value = 99; // TODO:
+                        return_value = T_COSE_ERR_SIGN1_FORMAT;
                         goto Done;
                     }
                     return_value = parse_critical_headers(decode_context, &critical_headers);
@@ -450,8 +464,9 @@ static enum t_cose_err_t parse_cose_headers(QCBORDecodeContext *decode_context,
  * algorithm ID is larger than \c INT32_MAX or smaller than \c
  * INT32_MIN.
  */
-static enum t_cose_err_t parse_protected_headers(const struct q_useful_buf_c protected_headers,
-                                                        int32_t *cose_alg_id)
+static enum t_cose_err_t
+parse_protected_headers(const struct q_useful_buf_c protected_headers,
+                        int32_t *cose_alg_id)
 {
     /* Stack use 64-bit: 144 + 72 + 1 = 217
      Stack use 32-bit:   108 + 36 + 1 = 145 */
@@ -485,10 +500,11 @@ Done:
 /*
  * Public function. See t_cose_sign1_verify.h
  */
-enum t_cose_err_t t_cose_sign1_verify(int32_t option_flags,
-                                      int32_t key_select,
-                                      struct q_useful_buf_c cose_sign1,
-                                      struct q_useful_buf_c *payload)
+enum t_cose_err_t
+t_cose_sign1_verify(int32_t option_flags,
+                    int32_t key_select,
+                    struct q_useful_buf_c cose_sign1,
+                    struct q_useful_buf_c *payload)
 {
     /* Stack use:
          144     108

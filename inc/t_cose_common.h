@@ -83,7 +83,7 @@ enum t_cose_err_t {
     /**
      * When verifying a \c COSE_Sign1, something is wrong with the
      * format of the CBOR. For example, it is missing something like
-     * the payload.
+     * the payload or something is of an unexpected type.
      */
     T_COSE_ERR_SIGN1_FORMAT,
     /**
@@ -92,6 +92,7 @@ enum t_cose_err_t {
      * either not or it has been corrupted.
      */
     T_COSE_ERR_CBOR_NOT_WELL_FORMED,
+    T_COSE_ERR_CBOR_STRUCTURE,
     /**
      * No algorithm ID was found when one is needed. For example, when
      * verifying a \c COSE_Sign1.
@@ -147,8 +148,31 @@ enum t_cose_err_t {
     /**
      * Something generally went wrong when signing or verifying.
      */
-    T_COSE_ERR_SIG_FAIL
+    T_COSE_ERR_SIG_FAIL,
+    /** Something went wrong formatting the CBOR, most likely the
+     payload has maps or arrays that are not closed. */
+    T_COSE_ERR_CBOR_FORMATTING,
+     /** The buffer passed in to receive the output is too small. */
+    T_COSE_ERR_TOO_SMALL,
+
+    /** More headers (more than T_COSE_HEADER_LIST_MAX) than this implementation can handle. Note that
+        all headers need to be checked for criticality so all
+        headers need to be examined. */
+    T_COSE_ERR_TOO_MANY_HEADERS,
+
+    T_COSE_UNKNOWN_CRITICAL_HEADER
 };
+
+
+/* The maximum number of headers this implementation can handle.
+ * The limit is T_COSE_HEADER_LIST_MAX for integer labeled-
+ * headers and the same additional for tstr-labeled headers.
+ * This is a hard maximum so the implementation doesn't need
+ * malloc. This constant can be increased if needed. Doing so
+ * will increase stack usage.
+ */
+#define T_COSE_HEADER_LIST_MAX 10
+
 
 #ifdef __cplusplus
 }
