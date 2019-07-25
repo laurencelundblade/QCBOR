@@ -852,6 +852,53 @@ int SimpleValuesTest1()
    return(nReturn);
 }
 
+/*
+ 9F                  # array(5)
+   F5               # primitive(21)
+   F4               # primitive(20)
+   F6               # primitive(22)
+   F7               # primitive(23)
+   BF               # map(1)
+      65            # text(5)
+         554E446566 # "UNDef"
+      F7            # primitive(23)
+      FF            # break
+   FF               # break
+ */
+static const uint8_t spExpectedEncodedSimpleIndefiniteLength[] = {
+   0x9f, 0xf5, 0xf4, 0xf6, 0xf7, 0xbf, 0x65, 0x55, 0x4e, 0x44, 0x65, 0x66, 0xf7, 0xff, 0xff};
+
+int SimpleValuesIndefiniteLengthTest1()
+{
+   QCBOREncodeContext ECtx;
+   int nReturn = 0;
+
+   QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenArrayIndefiniteLength(&ECtx);
+
+   QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_TRUE);
+   QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_FALSE);
+   QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_NULL);
+   QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_UNDEF);
+
+   QCBOREncode_OpenMapIndefiniteLength(&ECtx);
+
+   QCBOREncode_AddSimpleToMap(&ECtx, "UNDef", CBOR_SIMPLEV_UNDEF);
+   QCBOREncode_CloseMapIndefiniteLength(&ECtx);
+
+   QCBOREncode_CloseArrayIndefiniteLength(&ECtx);
+
+   UsefulBufC ECBOR;
+   if(QCBOREncode_Finish(&ECtx, &ECBOR)) {
+      nReturn = -1;
+   }
+
+   if(CheckResults(ECBOR, spExpectedEncodedSimpleIndefiniteLength))
+      return -2;
+
+   return(nReturn);
+}
+
 
 /*
  83                                      # array(3)
@@ -2052,4 +2099,3 @@ int EncodeErrorTests()
 
    return 0;
 }
-

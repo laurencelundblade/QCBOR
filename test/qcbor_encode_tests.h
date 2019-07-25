@@ -112,6 +112,12 @@ int SimpleValuesTest1(void);
 
 
 /*
+ Encodes basic maps and arrays with indefinite length
+ */
+int SimpleValuesIndefiniteLengthTest1(void);
+
+
+/*
  Encodes most data formats that are supported */
 int EncodeDateTest(void);
 

@@ -143,6 +143,7 @@ test_entry s_tests[] = {
     TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
     TEST_ENTRY(EncodeErrorTests),
     TEST_ENTRY(SetUpAllocatorTest),
+    TEST_ENTRY(SimpleValuesIndefiniteLengthTest1),
     //TEST_ENTRY(fail_test),
 };
 
