@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 7/25/19            janjongboom     Add indefinite length encoding for maps and arrays
  4/6/19             llundblade      Wrapped bstr returned now includes the wrapping bstr
  12/30/18           llundblade      Small efficient clever encode of type & argument.
  11/29/18           llundblade      Rework to simpler handling of tags and labels.
@@ -303,6 +304,12 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me,
    if(uNumber < CBOR_TWENTY_FOUR && nMinLen == 0) {
       // Simple case where argument is < 24
       uAdditionalInfo = uNumber;
+   } else if (uNumber == LEN_IS_INDEFINITE) {
+      // If the length is indefinite we don't need to encode in multiple bytes
+      uAdditionalInfo = uNumber;
+   } else if (uMajorType == CBOR_MAJOR_TYPE_SIMPLE && uNumber == CBOR_SIMPLE_BREAK) {
+      // Break statement can be encoded in single byte too (0xff)
+      uAdditionalInfo = uNumber;
    } else  {
       /*
        Encode argument in 1,2,4 or 8 bytes. Outer loop
@@ -515,6 +522,19 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
    }
 }
 
+/*
+ Semi-public function. It is exposed to user of the interface,
+ but they will usually call one of the inline wrappers rather than this.
+
+ See header qcbor.h
+*/
+void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
+{
+   // insert the indefinite length marker (0x9f for arrays, 0xbf for maps)
+   InsertEncodedTypeAndNumber(me, uMajorType, 0, LEN_IS_INDEFINITE, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+
+   QCBOREncode_OpenMapOrArray(me, uMajorType);
+}
 
 /*
  Public functions for closing arrays and maps. See header qcbor.h
@@ -563,6 +583,36 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me,
             const UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
             *pWrappedCBOR = UsefulBuf_Tail(PartialResult, uInsertPosition);
          }
+         Nesting_Decrease(&(me->nesting));
+      }
+   }
+}
+
+/*
+ Public functions for closing arrays and maps. See header qcbor.h
+ */
+void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC *pWrappedCBOR)
+{
+   if(me->uError == QCBOR_SUCCESS) {
+      if(!Nesting_IsInNest(&(me->nesting))) {
+         me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+      } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
+         me->uError = QCBOR_ERR_CLOSE_MISMATCH;
+      } else {
+         // insert the break marker (0xff for both arrays and maps)
+         InsertEncodedTypeAndNumber(me, CBOR_MAJOR_TYPE_SIMPLE, 0, CBOR_SIMPLE_BREAK, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+
+         // Return pointer and length to the enclosed encoded CBOR. The intended
+         // use is for it to be hashed (e.g., SHA-256) in a COSE implementation.
+         // This must be used right away, as the pointer and length go invalid
+         // on any subsequent calls to this function because there might be calls to
+         // InsertEncodedTypeAndNumber() that slides data to the right.
+         if(pWrappedCBOR) {
+            const UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
+            *pWrappedCBOR = UsefulBuf_Tail(PartialResult, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+         }
+
+         // Decrease nesting level
          Nesting_Decrease(&(me->nesting));
       }
    }
@@ -650,4 +700,3 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
  instance can be removed, saving some code.
 
  */
-
