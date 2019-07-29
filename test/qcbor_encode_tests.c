@@ -1588,7 +1588,7 @@ static int DecodeNextNested(UsefulBufC Wrapped)
    }
 
    nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn == QCBOR_ERR_HIT_END) {
+   if(nReturn == QCBOR_ERR_HIT_END || nReturn == QCBOR_ERR_NO_MORE_ITEMS) {
       return 0;
    }
    if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {

@@ -687,7 +687,9 @@ typedef enum {
    /** During decoding, hit the end of the given data to decode. For
        example, a byte string of 100 bytes was expected, but the end
        of the input was hit before finding those 100 bytes.  Corrupted
-       CBOR input will often result in this error. */
+       CBOR input will often result in this error. See also @ref
+       QCBOR_ERR_NO_MORE_ITEMS.
+     */
    QCBOR_ERR_HIT_END = 6,
 
    /** During encoding, the length of the encoded CBOR exceeded @c
@@ -750,6 +752,13 @@ typedef enum {
 
    /** An integer type is encoded with a bad length (an indefinite length) */
    QCBOR_ERR_BAD_INT = 21,
+
+   /** All well-formed data items have been consumed and there are no
+       more. If parsing a CBOR stream this indicates the non-error
+       end of the stream. If parsing a TODO: this probably indicates
+       that some data items expected are not present. See also
+       @ref QCBOR_ERR_HIT_END. */
+   QCBOR_ERR_NO_MORE_ITEMS = 22
 
 } QCBORError;
 
