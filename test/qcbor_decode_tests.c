@@ -34,6 +34,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcbor.h"
 #include <string.h>
 #include <math.h> // for fabs()
+#include "not_well_formed_cbor.h"
 
 
 #ifdef  PRINT_FUNCTIONS_FOR_DEBUGGING
@@ -654,20 +655,16 @@ int ParseTooDeepArrayTest()
 
 int ShortBufferParseTest()
 {
-   int nResult  = 0;
-   QCBORDecodeContext DCtx;
-   int num;
+   int nResult = 0;
 
-   for(num = sizeof(spExpectedEncodedInts)-1; num; num--) {
-      int n;
+   for(int nNum = sizeof(spExpectedEncodedInts)-1; nNum; nNum--) {
+      QCBORDecodeContext DCtx;
 
-      QCBORDecode_Init(&DCtx, (UsefulBufC){spExpectedEncodedInts, num}, QCBOR_DECODE_MODE_NORMAL);
+      QCBORDecode_Init(&DCtx, (UsefulBufC){spExpectedEncodedInts, nNum}, QCBOR_DECODE_MODE_NORMAL);
 
-      n = IntegerValuesParseTestInternal(&DCtx);
+      const QCBORError nErr = IntegerValuesParseTestInternal(&DCtx);
 
-      //printf("Len %d, result: %d\n", num, n);
-
-      if(n != QCBOR_ERR_HIT_END) {
+      if(nErr != QCBOR_ERR_HIT_END && nErr != QCBOR_ERR_NO_MORE_ITEMS) {
          nResult = -1;
          goto Done;
       }
@@ -1329,14 +1326,321 @@ int ParseSimpleTest()
 }
 
 
+static int IsNotWellFormedError(QCBORError nErr)
+{
+   switch(nErr){
+      case QCBOR_ERR_INDEFINITE_STRING_CHUNK:
+      case QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN:
+      case QCBOR_ERR_UNSUPPORTED:
+      case QCBOR_ERR_HIT_END:
+      case QCBOR_ERR_BAD_TYPE_7:
+      case QCBOR_ERR_BAD_BREAK:
+      case QCBOR_ERR_EXTRA_BYTES:
+      case QCBOR_ERR_BAD_INT:
+         return 1;
+      default:
+         return 0;
+   }
+}
+
+
+int NotWellFormedTests()
+{
+   // Loop over all the not-well-formed instance of CBOR
+   // that are test vectors in not_well_formed_cbor.h
+   const uint16_t nArraySize = sizeof(paNotWellFormedCBOR)/sizeof(struct someBinaryBytes);
+   for(uint16_t nIterate = 0; nIterate < nArraySize; nIterate++) {
+      const struct someBinaryBytes *pBytes = &paNotWellFormedCBOR[nIterate];
+      const UsefulBufC Input = (UsefulBufC){pBytes->p, pBytes->n};
+
+      // Set up decoder context. String allocator needed for indefinite string test cases
+      QCBORDecodeContext DCtx;
+      QCBORDecode_Init(&DCtx, Input, QCBOR_DECODE_MODE_NORMAL);
+      UsefulBuf_MAKE_STACK_UB(Pool, 100);
+      QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+
+      // Loop getting items until no more to get
+      QCBORError nCBORError;
+      do {
+         QCBORItem Item;
+
+         nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+      } while(nCBORError == QCBOR_SUCCESS);
+
+      // Every test vector must fail with
+      // a not-well-formed error. If not
+      // this test fails.
+      if(!IsNotWellFormedError(nCBORError)) {
+         // Return index of failure in the error code
+         return 2000 + nIterate;
+      }
+   }
+   return 0;
+}
+
+
 struct FailInput {
    UsefulBufC Input;  // CBOR to decode
    QCBORError nError; // The error expected
 };
 
 struct FailInput  Failures[] = {
+
+   // Indefinite length strings must be closed off
+   // An indefinite length byte string not closed off
+   { {(uint8_t[]){0x5f, 0x41, 0x00}, 3}, QCBOR_ERR_HIT_END },
+   // An indefinite length text string not closed off
+   { {(uint8_t[]){0x7f, 0x61, 0x00}, 3}, QCBOR_ERR_HIT_END },
+
+
+   // All the chunks in an indefinite length string must be of the type of indefinite length string
+   // indefinite length byte string with text string chunk
+   { {(uint8_t[]){0x5f, 0x61, 0x00, 0xff}, 4}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
+   // indefinite length text string with a byte string chunk
+   { {(uint8_t[]){0x7f, 0x41, 0x00, 0xff}, 4}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
+   // indefinite length byte string with an positive integer chunk
+   { {(uint8_t[]){0x5f, 0x00, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
+   // indefinite length byte string with an negative integer chunk
+   { {(uint8_t[]){0x5f, 0x21, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
+   // indefinite length byte string with an array chunk
+   { {(uint8_t[]){0x5f, 0x80, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
+   // indefinite length byte string with an map chunk
+   { {(uint8_t[]){0x5f, 0xa0, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
+   // indefinite length byte string with tagged integer chunk
+   { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
+   // indefinite length byte string with an simple type chunk
+   { {(uint8_t[]){0x5f, 0xe0, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
+
+
+   // Definte length maps and arrays must be closed by having the right number of items
+   // A definte length array that is supposed to have 1 item, but has none
+   { {(uint8_t[]){0x81}, 1}, QCBOR_ERR_HIT_END },
+   // A definte length array that is supposed to have 2 items, but has only 1
+   { {(uint8_t[]){0x82, 0x00}, 2}, QCBOR_ERR_HIT_END },
+   // A definte length array that is supposed to have 511 items, but has only 1
+   { {(uint8_t[]){0x99, 0x01, 0xff, 0x00}, 4}, QCBOR_ERR_HIT_END },
+   // A definte length map that is supposed to have 1 item, but has none
+   { {(uint8_t[]){0xa1}, 1}, QCBOR_ERR_HIT_END },
+   // A definte length map that is supposed to have s item, but has only 1
+   { {(uint8_t[]){0xa2, 0x01, 0x02}, 3}, QCBOR_ERR_HIT_END },
+
+
+   // Indefinte length maps and arrays must be ended by a break
+   // Indefinite length array with zero items and no break
+   { {(uint8_t[]){0x9f}, 1}, QCBOR_ERR_HIT_END },
+   // Indefinite length array with two items and no break
+   { {(uint8_t[]){0x9f, 0x01, 0x02}, 3}, QCBOR_ERR_HIT_END },
+   // Indefinite length map with zero items and no break
+   { {(uint8_t[]){0xbf}, 1}, QCBOR_ERR_HIT_END },
+   // Indefinite length map with two items and no break
+   { {(uint8_t[]){0xbf, 0x01, 0x02, 0x01, 0x02}, 5}, QCBOR_ERR_HIT_END },
+
+
+   // Nested maps and arrays must be closed off (some extra nested test vectors)
+   // Unclosed indefinite array containing a close definite array
+   { {(uint8_t[]){0x9f, 0x80, 0x00}, 3}, QCBOR_ERR_HIT_END },
+   // Definite length array containing an unclosed indefinite array
+   { {(uint8_t[]){0x81, 0x9f}, 2}, QCBOR_ERR_HIT_END },
+   // Deeply nested definite length arrays with deepest one unclosed
+   { {(uint8_t[]){0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}, 9}, QCBOR_ERR_HIT_END },
+   // Deeply nested indefinite length arrays with deepest one unclosed
+   { {(uint8_t[]){0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_HIT_END },
+   // Mixed nesting with indefinite unclosed
+   { {(uint8_t[]){0x9f, 0x81, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_BAD_BREAK }, // TODO: think through this one
+   // Mixed nesting with definite unclosed
+   { {(uint8_t[]){0x9f, 0x82, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 10}, QCBOR_ERR_BAD_BREAK }, // TODO: think through this one
+
+
+   // The "argument" for the data item is incomplete
+   // Positive integer missing 1 byte argument
+   { {(uint8_t[]){0x18}, 1}, QCBOR_ERR_HIT_END },
+   // Positive integer missing 2 byte argument
+   { {(uint8_t[]){0x19}, 1}, QCBOR_ERR_HIT_END },
+   // Positive integer missing 4 byte argument
+   { {(uint8_t[]){0x1a}, 1}, QCBOR_ERR_HIT_END },
+   // Positive integer missing 8 byte argument
+   { {(uint8_t[]){0x1b}, 1}, QCBOR_ERR_HIT_END },
+   // Positive integer missing 1 byte of 2 byte argument
+   { {(uint8_t[]){0x19, 0x01}, 2}, QCBOR_ERR_HIT_END },
+   // Positive integer missing 2 bytes of 4 byte argument
+   { {(uint8_t[]){0x1a, 0x01, 0x02}, 3}, QCBOR_ERR_HIT_END },
+   // Positive integer missing 1 bytes of 7 byte argument
+   { {(uint8_t[]){0x1b, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}, 8}, QCBOR_ERR_HIT_END },
+   // Negative integer missing 1 byte argument
+   { {(uint8_t[]){0x38}, 1}, QCBOR_ERR_HIT_END },
+   // Binary string missing 1 byte argument
+   { {(uint8_t[]){0x58}, 1}, QCBOR_ERR_HIT_END },
+   // Text string missing 1 byte argument
+   { {(uint8_t[]){0x78}, 1}, QCBOR_ERR_HIT_END },
+   // Array missing 1 byte argument
+   { {(uint8_t[]){0x98}, 1}, QCBOR_ERR_HIT_END },
+   // Map missing 1 byte argument
+   { {(uint8_t[]){0xb8}, 1}, QCBOR_ERR_HIT_END },
+   // Tag missing 1 byte argument
+   { {(uint8_t[]){0xd8}, 1}, QCBOR_ERR_HIT_END },
+   // Simple missing 1 byte argument
+   { {(uint8_t[]){0xf8}, 1}, QCBOR_ERR_HIT_END },
+
+
+   // Breaks must not occur in definite length arrays and maps
+   // Array of length 1 with sole member replaced by a break
+   { {(uint8_t[]){0x81, 0xff}, 2}, QCBOR_ERR_BAD_BREAK },
+   // Array of length 2 with 2nd member replaced by a break
+   { {(uint8_t[]){0x82, 0x00, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
+   // Map of length 1 with sole member label replaced by a break
+   { {(uint8_t[]){0xa1, 0xff}, 2}, QCBOR_ERR_BAD_BREAK },
+   // Map of length 1 with sole member label replaced by break
+   // Alternate representation that some decoders handle difference
+   { {(uint8_t[]){0xa1, 0xff, 0x00}, 3}, QCBOR_ERR_BAD_BREAK },
+   // Array of length 1 with 2nd member value replaced by a break
+   { {(uint8_t[]){0xa1, 0x00, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
+   // Map of length 2 with 2nd member replaced by a break
+   { {(uint8_t[]){0xa2, 0x00, 0x00, 0xff}, 4}, QCBOR_ERR_BAD_BREAK },
+
+
+   // Breaks must not occur on their own out of an indefinite length data item
+   // A bare break is not well formed
+   { {(uint8_t[]){0xff}, 1}, QCBOR_ERR_BAD_BREAK },
+   // A bare break after a zero length definite length array
+   { {(uint8_t[]){0x80, 0xff}, 2}, QCBOR_ERR_BAD_BREAK },
+   // A bare break after a zero length indefinite length map
+   { {(uint8_t[]){0x9f, 0xff, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
+
+
+   // Forbidden two byte encodings of simple types
+   // Must use 0xe0 instead
+   { {(uint8_t[]){0xf8, 0x00}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xe1 instead
+   { {(uint8_t[]){0xf8, 0x01}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xe2 instead
+   { {(uint8_t[]){0xf8, 0x02}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xe3 instead
+   { {(uint8_t[]){0xf8, 0x03}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xe4 instead
+   { {(uint8_t[]){0xf8, 0x04}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xe5 instead
+   { {(uint8_t[]){0xf8, 0x05}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xe6 instead
+   { {(uint8_t[]){0xf8, 0x06}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xe7 instead
+   { {(uint8_t[]){0xf8, 0x07}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xe8 instead
+   { {(uint8_t[]){0xf8, 0x08}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xe9 instead
+   { {(uint8_t[]){0xf8, 0x09}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xea instead
+   { {(uint8_t[]){0xf8, 0x0a}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xeb instead
+   { {(uint8_t[]){0xf8, 0x0b}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xec instead
+   { {(uint8_t[]){0xf8, 0x0c}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xed instead
+   { {(uint8_t[]){0xf8, 0x0d}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xee instead
+   { {(uint8_t[]){0xf8, 0x0e}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xef instead
+   { {(uint8_t[]){0xf8, 0x0f}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xf0 instead
+   { {(uint8_t[]){0xf8, 0x10}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xf1 instead
+   { {(uint8_t[]){0xf8, 0x11}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Should use 0xf2 instead
+   { {(uint8_t[]){0xf8, 0x12}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Must use 0xf3 instead
+   { {(uint8_t[]){0xf8, 0x13}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Must use 0xf4 instead
+   { {(uint8_t[]){0xf8, 0x14}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Must use 0xf5 instead
+   { {(uint8_t[]){0xf8, 0x15}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Must use 0xf6 instead
+   { {(uint8_t[]){0xf8, 0x16}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Must use 0xf7 instead
+   { {(uint8_t[]){0xf8, 0x17}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+   // Must use 0xf8 instead
+   { {(uint8_t[]){0xf8, 0x18}, 2}, QCBOR_ERR_BAD_TYPE_7 },
+
+
+   // Integers with additional info indefinite length
+   // Positive integer with additional info indefinite length
+   { {(uint8_t[]){0x1f}, 1}, QCBOR_ERR_BAD_INT },
+   // Negative integer with additional info indefinite length
+   { {(uint8_t[]){0x3f}, 1}, QCBOR_ERR_BAD_INT },
+
+
+   // Missing bytes from a deterministic length string
+   // A byte string is of length 1 without the 1 byte
+   { {(uint8_t[]){0x41}, 1}, QCBOR_ERR_HIT_END },
+   // A text string is of length 1 without the 1 byte
+   { {(uint8_t[]){0x61}, 1}, QCBOR_ERR_HIT_END },
+   // Byte string should have 2^32-1 bytes, but has one
+   { {(uint8_t[]){0x5a, 0xff, 0xff, 0xff, 0xff, 0x00}, 6}, QCBOR_ERR_HIT_END },
+   // Byte string should have 2^32-1 bytes, but has one
+   { {(uint8_t[]){0x7a, 0xff, 0xff, 0xff, 0xff, 0x00}, 6}, QCBOR_ERR_HIT_END },
+
+
+   // Use of unassigned additional information values
+   // Major type positive integer with reserved value 28
+   { {(uint8_t[]){0x1c}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type positive integer with reserved value 29
+   { {(uint8_t[]){0x1d}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type positive integer with reserved value 30
+   { {(uint8_t[]){0x1e}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type negative integer with reserved value 28
+   { {(uint8_t[]){0x3c}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type negative integer with reserved value 29
+   { {(uint8_t[]){0x3d}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type negative integer with reserved value 30
+   { {(uint8_t[]){0x3e}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type byte string with reserved value 28 length
+   { {(uint8_t[]){0x5c}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type byte string with reserved value 29 length
+   { {(uint8_t[]){0x5d}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type byte string with reserved value 30 length
+   { {(uint8_t[]){0x5e}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type text string with reserved value 28 length
+   { {(uint8_t[]){0x7c}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type text string with reserved value 29 length
+   { {(uint8_t[]){0x7d}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type text string with reserved value 30 length
+   { {(uint8_t[]){0x7e}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type array with reserved value 28 length
+   { {(uint8_t[]){0x9c}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type array with reserved value 29 length
+   { {(uint8_t[]){0x9d}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type array with reserved value 30 length
+   { {(uint8_t[]){0x9e}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type map with reserved value 28 length
+   { {(uint8_t[]){0xbc}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type map with reserved value 29 length
+   { {(uint8_t[]){0xbd}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type map with reserved value 30 length
+   { {(uint8_t[]){0xbe}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type tag with reserved value 28 length
+   { {(uint8_t[]){0xdc}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type tag with reserved value 29 length
+   { {(uint8_t[]){0xdd}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type tag with reserved value 30 length
+   { {(uint8_t[]){0xde}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type simple with reserved value 28 length
+   { {(uint8_t[]){0xfc}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type simple with reserved value 29 length
+   { {(uint8_t[]){0xfd}, 1}, QCBOR_ERR_UNSUPPORTED },
+   // Major type simple with reserved value 30 length
+   { {(uint8_t[]){0xfe}, 1}, QCBOR_ERR_UNSUPPORTED },
+
+
+   // Maps must have an even number of data items (key & value)
+   // Map with 1 item when it should have 2
+   { {(uint8_t[]){0xa1, 0x00}, 2}, QCBOR_ERR_HIT_END },
+   // Map with 3 item when it should have 4
+   { {(uint8_t[]){0xa2, 0x00, 0x00, 0x00}, 2}, QCBOR_ERR_HIT_END },
+   // Map with 1 item when it should have 2
+   { {(uint8_t[]){0xbf, 0x00, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
+   // Map with 3 item when it should have 4
+   { {(uint8_t[]){0xbf, 0x00, 0x00, 0x00, 0xff}, 5}, QCBOR_ERR_BAD_BREAK },
+
+
    { {(uint8_t[]){0xa1, 0x00}, 2}, QCBOR_ERR_HIT_END }, //  map with odd number of entries
-   { {(uint8_t[]){0x18}, 1}, QCBOR_ERR_HIT_END },     // 1 byte integer missing the byte
    { {(uint8_t[]){0x1c}, 1}, QCBOR_ERR_UNSUPPORTED }, // Reserved additional info = 28
    { {(uint8_t[]){0x1d}, 1}, QCBOR_ERR_UNSUPPORTED }, // Reserved additional info = 29
    { {(uint8_t[]){0x1e}, 1}, QCBOR_ERR_UNSUPPORTED }, // Reserved additional info = 30
@@ -1356,6 +1660,42 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0xc1, 0x41, 0x33}, 3}, QCBOR_ERR_BAD_OPT_TAG },   // Epoch date, with an byte string
    { {(uint8_t[]){0xc1, 0xc0, 0x00}, 3}, QCBOR_ERR_BAD_OPT_TAG },   // tagged as both epoch and string dates
    { {(uint8_t[]){0xc2, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },  // big num tagged an int, not a byte string
+
+   { {(uint8_t[]){0x80, 0xff}, 2}, QCBOR_ERR_BAD_BREAK}, // Start some nesting, close it off, then a bare break
+   { {(uint8_t[]){0x81, 0x00, 0xff}, 3}, QCBOR_ERR_BAD_BREAK}, // Start some nesting, close it off, then a bare break
+   { {(uint8_t[]){0x9f, 0xff, 0xff}, 3}, QCBOR_ERR_BAD_BREAK},
+   { {(uint8_t[]){0x82, 0x00, 0xff}, 3}, QCBOR_ERR_BAD_BREAK},
+   { {(uint8_t[]){0x81, 0xff}, 2}, QCBOR_ERR_BAD_BREAK},
+
+   { {(uint8_t[]){0x9c}, 1}, QCBOR_ERR_UNSUPPORTED }, // Reserved additional info = 28
+   { {(uint8_t[]){0xbc}, 1}, QCBOR_ERR_UNSUPPORTED }, // Reserved additional info = 28
+   { {(uint8_t[]){0xfc}, 1}, QCBOR_ERR_UNSUPPORTED }, // Reserved additional info = 28
+
+
+   // all these are short lengths & arguments, could be more...
+   { {(uint8_t[]){0x18}, 1}, QCBOR_ERR_HIT_END },     // 1 byte integer missing the byte
+   { {(uint8_t[]){0x19}, 1}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0x19, 0x00}, 2}, QCBOR_ERR_HIT_END },
+  // { {(uint8_t[]){0x20}, 1}, QCBOR_ERR_HIT_END },
+   //{ {(uint8_t[]){0x20, 0x01, 0x02, 0x03,}, 4}, QCBOR_ERR_HIT_END },
+   //{ {(uint8_t[]){0x21}, 1}, QCBOR_ERR_HIT_END },
+   //{ {(uint8_t[]){0x21, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}, 8}, QCBOR_ERR_HIT_END },
+
+   { {(uint8_t[]){0x38}, 1}, QCBOR_ERR_HIT_END },     // 1 byte integer missing the byte
+   { {(uint8_t[]){0x58}, 1}, QCBOR_ERR_HIT_END },     // 1 byte integer missing the byte
+   { {(uint8_t[]){0x78}, 1}, QCBOR_ERR_HIT_END },     // 1 byte integer missing the byte
+   { {(uint8_t[]){0x98}, 1}, QCBOR_ERR_HIT_END },     // 1 byte integer missing the byte
+   { {(uint8_t[]){0xb8}, 1}, QCBOR_ERR_HIT_END },     // 1 byte integer missing the byte
+   { {(uint8_t[]){0xd8}, 1}, QCBOR_ERR_HIT_END },     // 1 byte integer missing the byte
+   { {(uint8_t[]){0xf8}, 1}, QCBOR_ERR_HIT_END },     // 1 byte integer missing the byte
+
+
+   { {(uint8_t[]){0xfc}, 1}, QCBOR_ERR_UNSUPPORTED },     // 1 byte integer missing the byte
+   { {(uint8_t[]){0xfd}, 1}, QCBOR_ERR_UNSUPPORTED },     // 1 byte integer missing the byte
+
+   { {(uint8_t[]){0xfd}, 1}, QCBOR_ERR_UNSUPPORTED },     // 1 byte integer missing the byte
+
+
 };
 
 int DecodeFailureTests()
@@ -1366,26 +1706,24 @@ int DecodeFailureTests()
 
    for(const struct FailInput *pF = &Failures[0]; pF < pFEnd ;pF++) {
       QCBORDecodeContext DCtx;
-      QCBORItem          Item;
       QCBORError         nCBORError;
 
       QCBORDecode_Init(&DCtx, pF->Input, QCBOR_DECODE_MODE_NORMAL);
 
-      while(1) {
-         nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
-         if(QCBOR_SUCCESS == nCBORError) {
-            // Must end in an error, so if success keep going
-            continue;
-         }
+      UsefulBuf_MAKE_STACK_UB(Pool, 100);
+      QCBORError nError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+      if(nError) {
+         return -9;
+      }
 
-         if(nCBORError != pF->nError) {
-            // Not success, nor error expected so a test failure
-            // Return code is 1000 plus index into Failures of test that failed
-            return 1000 + (int)(pF - &Failures[0]);
-         } else {
-            // Got the error expected
-            break;
-         }
+      do {
+         QCBORItem Item;
+
+         nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+      } while(nCBORError == QCBOR_SUCCESS);
+
+      if(nCBORError != pF->nError) {
+         return 1000 + (int)(pF - &Failures[0]);
       }
    }
 
