@@ -130,6 +130,13 @@ int ParseMapAsArrayTest(void);
 int ParseSimpleTest(void);
 
 
+/*
+ This tests all the not-well-formed CBOR from the CBOR RFC.
+ (This is the CBORbis RFC which is not yet published at the
+ time this test was added).
+ */
+int NotWellFormedTests(void);
+
 
 /*
  Tests a number of failure cases on bad CBOR to get the right error code

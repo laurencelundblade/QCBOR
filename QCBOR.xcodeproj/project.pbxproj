@@ -33,6 +33,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0F8BADA722EF40FC008B6513 /* not_well_formed_cbor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = not_well_formed_cbor.h; path = test/not_well_formed_cbor.h; sourceTree = "<group>"; };
 		0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_decode_tests.c; path = test/qcbor_decode_tests.c; sourceTree = "<group>"; tabWidth = 3; };
 		0FA9BEB6216CE6CA00BA646B /* qcbor_decode_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_decode_tests.h; path = test/qcbor_decode_tests.h; sourceTree = "<group>"; };
 		0FA9BEB8216DC7AD00BA646B /* qcbor_encode_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_encode_tests.c; path = test/qcbor_encode_tests.c; sourceTree = "<group>"; tabWidth = 3; };
@@ -124,6 +125,7 @@
 				E73B575C2161CA7C0080D658 /* float_tests.h */,
 				E73B575D2161CA7C0080D658 /* half_to_double_from_rfc7049.c */,
 				E73B575B2161CA7C0080D658 /* half_to_double_from_rfc7049.h */,
+				0F8BADA722EF40FC008B6513 /* not_well_formed_cbor.h */,
 			);
 			name = test;
 			sourceTree = "<group>";
