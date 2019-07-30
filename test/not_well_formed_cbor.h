@@ -27,7 +27,7 @@ struct someBinaryBytes {
 static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
     // Indefinite length strings must be closed off
-							     
+
     // An indefinite length byte string not closed off
     {(uint8_t[]){0x5f, 0x41, 0x00}, 3},
     // An indefinite length text string not closed off
@@ -36,7 +36,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
     // All the chunks in an indefinite length string must be of the
     // type of indefinite length string and indefinite
-    
+
     // indefinite length byte string with text string chunk
     {(uint8_t[]){0x5f, 0x61, 0x00, 0xff}, 4},
     // indefinite length text string with a byte string chunk
@@ -60,7 +60,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
     // Definte length maps and arrays must be closed by having the
     // right number of items
-    
+
     // A definte length array that is supposed to have 1 item, but has none
     {(uint8_t[]){0x81}, 1},
     // A definte length array that is supposed to have 2 items, but has only 1
@@ -74,7 +74,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
 
     // Indefinte length maps and arrays must be ended by a break
-    
+
     // Indefinite length array with zero items and no break
     {(uint8_t[]){0x9f}, 1},
     // Indefinite length array with two items and no break
@@ -86,7 +86,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
 
     // Some extra test vectors for unclosed arrays and maps
-    
+
     // Unclosed indefinite array containing a close definite array
     {(uint8_t[]){0x9f, 0x80, 0x00}, 3},
     // Definite length array containing an unclosed indefinite array
@@ -102,7 +102,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
 
     // The "argument" for the data item is missing bytes
-    
+
     // Positive integer missing 1 byte argument
     {(uint8_t[]){0x18}, 1},
     // Positive integer missing 2 byte argument
@@ -134,7 +134,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
 
     // Breaks must not occur in definite length arrays and maps
-    
+
     // Array of length 1 with sole member replaced by a break
     {(uint8_t[]){0x81, 0xff}, 2},
     // Array of length 2 with 2nd member replaced by a break
@@ -152,7 +152,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
     // Breaks must not occur on their own out of an indefinite length
     // data item
-    
+
     // A bare break is not well formed
     {(uint8_t[]){0xff}, 1},
     // A bare break after a zero length definite length array
@@ -162,7 +162,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
 
     // Forbidden two-byte encodings of simple types
-    
+
     // Must use 0xe0 instead
     {(uint8_t[]){0xf8, 0x00}, 2},
     // Should use 0xe1 instead
@@ -216,7 +216,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
 
     // Integers with "argument" equal to an indefinite length
-    
+
     // Positive integer with "argument" an indefinite length
     {(uint8_t[]){0x1f}, 1},
     // Negative integer with "argument" an indefinite length
@@ -228,7 +228,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
 
     // Missing content bytes from a definite length string
-    
+
     // A byte string is of length 1 without the 1 byte
     {(uint8_t[]){0x41}, 1},
     // A text string is of length 1 without the 1 byte
@@ -240,7 +240,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
 
     // Use of unassigned additional information values
-    
+
     // Major type positive integer with reserved value 28
     {(uint8_t[]){0x1c}, 1},
     // Major type positive integer with reserved value 29
@@ -292,7 +292,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
 
     // Maps must have an even number of data items (key & value)
-    
+
     // Map with 1 item when it should have 2
     {(uint8_t[]){0xa1, 0x00}, 2},
     // Map with 3 item when it should have 4
