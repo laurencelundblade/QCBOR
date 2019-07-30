@@ -42,6 +42,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 07/31/19           llundblade      Decode error fixes for some not-well-formed CBOR
+ 07/31/19           llundblade      New error code for better end of data handling
  02/17/19           llundblade      Fixed: QCBORItem.u{Data|Label}Alloc when bAllStrings set
  02/16/19           llundblade      Redesign MemPool to fix memory access alignment bug
  01/10/19           llundblade      Clever type and argument decoder is 250 bytes smaller
@@ -536,12 +538,7 @@ inline static QCBORError DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber,
    pDecodedItem->uDataType = uAdditionalInfo;
 
    switch(uAdditionalInfo) {
-         // TODO: this appears to be dead code as check is made previously
-    /*  case ADDINFO_RESERVED1:  // 28
-      case ADDINFO_RESERVED2:  // 29
-      case ADDINFO_RESERVED3:  // 30
-         nReturn = QCBOR_ERR_UNSUPPORTED + 100;
-         break;*/
+      // No check for ADDINFO_RESERVED1 - ADDINFO_RESERVED3 as it is caught before this is called.
 
       case HALF_PREC_FLOAT:
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
