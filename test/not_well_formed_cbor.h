@@ -131,7 +131,12 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     {(uint8_t[]){0xd8}, 1},
     // Simple missing 1 byte argument
     {(uint8_t[]){0xf8}, 1},
-
+    // Half-precision missing 1 byte
+    {(uint8_t[]){0xf9, 0x00}, 2},
+    // Float missing 2 bytes
+    {(uint8_t[]){0xfa, 0x00, 0x00}, 3},
+    // Double missing 5 bytes
+    {(uint8_t[]){0xfb, 0x00, 0x00, 0x00}, 4},
 
     // Breaks must not occur in definite length arrays and maps
 
@@ -211,9 +216,22 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     {(uint8_t[]){0xf8, 0x16}, 2},
     // Must use 0xf7 instead
     {(uint8_t[]){0xf8, 0x17}, 2},
-    // Must use 0xf8 instead
+    // Permanently disallowed (designated as reserved in RFC 7049)
     {(uint8_t[]){0xf8, 0x18}, 2},
-
+    // Permanently disallowed (designated as reserved in RFC 7049)
+    {(uint8_t[]){0xf8, 0x19}, 2},
+    // Permanently disallowed (designated as reserved in RFC 7049)
+    {(uint8_t[]){0xf8, 0x1a}, 2},
+    // Permanently disallowed (designated as reserved in RFC 7049)
+    {(uint8_t[]){0xf8, 0x1b}, 2},
+    // Permanently disallowed (designated as reserved in RFC 7049)
+    {(uint8_t[]){0xf8, 0x1c}, 2},
+    // Permanently disallowed (designated as reserved in RFC 7049)
+    {(uint8_t[]){0xf8, 0x1d}, 2},
+    // Permanently disallowed (designated as reserved in RFC 7049)
+    {(uint8_t[]){0xf8, 0x1e}, 2},
+    // Permanently disallowed (designated as reserved in RFC 7049)
+    {(uint8_t[]){0xf8, 0x1f}, 2},
 
     // Integers with "argument" equal to an indefinite length
 
