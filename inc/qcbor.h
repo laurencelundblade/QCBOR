@@ -218,6 +218,8 @@ struct _QCBORDecodeContext {
 #define CBOR_MAJOR_NONE_TYPE_RAW  9
 #define CBOR_MAJOR_NONE_TAG_LABEL_REORDER 10
 #define CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY 11
+#define CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN 12
+#define CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN 13
 
 
 /* ===========================================================================
@@ -2998,7 +3000,7 @@ static inline void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx)
 
 static inline void QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pCtx)
 {
-   QCBOREncode_OpenMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_TYPE_ARRAY);
+   QCBOREncode_OpenMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
 }
 
 static inline void QCBOREncode_OpenArrayIndefiniteLengthInMap(QCBOREncodeContext *pCtx, const char *szLabel)
@@ -3015,13 +3017,13 @@ static inline void QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContex
 
 static inline void QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pCtx)
 {
-   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_TYPE_ARRAY, NULL);
+   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN, NULL);
 }
 
 
 static inline void QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pCtx)
 {
-   QCBOREncode_OpenMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_TYPE_MAP);
+   QCBOREncode_OpenMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
 
 static inline void QCBOREncode_OpenMapIndefiniteLengthInMap(QCBOREncodeContext *pCtx, const char *szLabel)
@@ -3038,7 +3040,7 @@ static inline void QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext 
 
 static inline void QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx)
 {
-   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_TYPE_MAP, NULL);
+   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN, NULL);
 }
 
 static inline void QCBOREncode_BstrWrap(QCBOREncodeContext *pCtx)

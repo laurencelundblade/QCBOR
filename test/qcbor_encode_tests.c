@@ -653,7 +653,7 @@ Done:
 }
 
 /*
- 98 2F                  # array(47)
+ 98 30                  # array(48)
    3B 7FFFFFFFFFFFFFFF # negative(9223372036854775807)
    3B 0000000100000000 # negative(4294967296)
    3A FFFFFFFF         # negative(4294967295)
@@ -682,6 +682,7 @@ Done:
    18 18               # unsigned(24)
    18 19               # unsigned(25)
    18 1A               # unsigned(26)
+   18 1F               # unsigned(31)
    18 FE               # unsigned(254)
    18 FF               # unsigned(255)
    19 0100             # unsigned(256)
@@ -703,7 +704,7 @@ Done:
    1B FFFFFFFFFFFFFFFF # unsigned(18446744073709551615)
  */
 static const uint8_t spExpectedEncodedInts[] = {
-   0x98, 0x2f, 0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff,
+   0x98, 0x30, 0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff,
    0xff, 0xff, 0xff, 0x3b, 0x00, 0x00, 0x00, 0x01,
    0x00, 0x00, 0x00, 0x00, 0x3a, 0xff, 0xff, 0xff,
    0xff, 0x3a, 0xff, 0xff, 0xff, 0xfe, 0x3a, 0xff,
@@ -714,19 +715,19 @@ static const uint8_t spExpectedEncodedInts[] = {
    0x39, 0x01, 0x00, 0x38, 0xff, 0x38, 0xfe, 0x38,
    0xfd, 0x38, 0x18, 0x37, 0x36, 0x20, 0x00, 0x00,
    0x01, 0x16, 0x17, 0x18, 0x18, 0x18, 0x19, 0x18,
-   0x1a, 0x18, 0xfe, 0x18, 0xff, 0x19, 0x01, 0x00,
-   0x19, 0x01, 0x01, 0x19, 0xff, 0xfe, 0x19, 0xff,
-   0xff, 0x1a, 0x00, 0x01, 0x00, 0x00, 0x1a, 0x00,
-   0x01, 0x00, 0x01, 0x1a, 0x00, 0x01, 0x00, 0x02,
-   0x1a, 0x7f, 0xff, 0xff, 0xff, 0x1a, 0x7f, 0xff,
-   0xff, 0xff, 0x1a, 0x80, 0x00, 0x00, 0x00, 0x1a,
-   0x80, 0x00, 0x00, 0x01, 0x1a, 0xff, 0xff, 0xff,
-   0xfe, 0x1a, 0xff, 0xff, 0xff, 0xff, 0x1b, 0x00,
-   0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x1b,
-   0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-   0x1b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-   0xff, 0x1b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-   0xff, 0xff};
+   0x1a, 0x18, 0x1f, 0x18, 0xfe, 0x18, 0xff, 0x19,
+   0x01, 0x00, 0x19, 0x01, 0x01, 0x19, 0xff, 0xfe,
+   0x19, 0xff, 0xff, 0x1a, 0x00, 0x01, 0x00, 0x00,
+   0x1a, 0x00, 0x01, 0x00, 0x01, 0x1a, 0x00, 0x01,
+   0x00, 0x02, 0x1a, 0x7f, 0xff, 0xff, 0xff, 0x1a,
+   0x7f, 0xff, 0xff, 0xff, 0x1a, 0x80, 0x00, 0x00,
+   0x00, 0x1a, 0x80, 0x00, 0x00, 0x01, 0x1a, 0xff,
+   0xff, 0xff, 0xfe, 0x1a, 0xff, 0xff, 0xff, 0xff,
+   0x1b, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+   0x00, 0x1b, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+   0x00, 0x01, 0x1b, 0x7f, 0xff, 0xff, 0xff, 0xff,
+   0xff, 0xff, 0xff, 0x1b, 0xff, 0xff, 0xff, 0xff,
+   0xff, 0xff, 0xff, 0xff};
 
 /*
 
@@ -773,6 +774,7 @@ int IntegerValuesTest1()
    QCBOREncode_AddInt64(&ECtx, 24);
    QCBOREncode_AddInt64(&ECtx, 25);
    QCBOREncode_AddInt64(&ECtx, 26);
+   QCBOREncode_AddInt64(&ECtx, 31);
    QCBOREncode_AddInt64(&ECtx, 254);
    QCBOREncode_AddInt64(&ECtx, 255);
    QCBOREncode_AddInt64(&ECtx, 256);
@@ -894,6 +896,219 @@ int SimpleValuesIndefiniteLengthTest1()
    }
 
    if(CheckResults(ECBOR, spExpectedEncodedSimpleIndefiniteLength))
+      return -2;
+
+   return(nReturn);
+}
+
+/*
+A5                                      # map(5)
+   63                                   # text(3)
+      617272                            # "arr"
+   98 1F                                # array(31)
+      00                                # unsigned(0)
+      01                                # unsigned(1)
+      02                                # unsigned(2)
+      03                                # unsigned(3)
+      04                                # unsigned(4)
+      05                                # unsigned(5)
+      06                                # unsigned(6)
+      07                                # unsigned(7)
+      08                                # unsigned(8)
+      09                                # unsigned(9)
+      0A                                # unsigned(10)
+      0B                                # unsigned(11)
+      0C                                # unsigned(12)
+      0D                                # unsigned(13)
+      0E                                # unsigned(14)
+      0F                                # unsigned(15)
+      10                                # unsigned(16)
+      11                                # unsigned(17)
+      12                                # unsigned(18)
+      13                                # unsigned(19)
+      14                                # unsigned(20)
+      15                                # unsigned(21)
+      16                                # unsigned(22)
+      17                                # unsigned(23)
+      18 18                             # unsigned(24)
+      18 19                             # unsigned(25)
+      18 1A                             # unsigned(26)
+      18 1B                             # unsigned(27)
+      18 1C                             # unsigned(28)
+      18 1D                             # unsigned(29)
+      18 1E                             # unsigned(30)
+   63                                   # text(3)
+      6D6170                            # "map"
+   B8 1F                                # map(31)
+      61                                # text(1)
+         61                             # "a"
+      00                                # unsigned(0)
+      61                                # text(1)
+         62                             # "b"
+      01                                # unsigned(1)
+      61                                # text(1)
+         63                             # "c"
+      02                                # unsigned(2)
+      61                                # text(1)
+         64                             # "d"
+      03                                # unsigned(3)
+      61                                # text(1)
+         65                             # "e"
+      04                                # unsigned(4)
+      61                                # text(1)
+         66                             # "f"
+      05                                # unsigned(5)
+      61                                # text(1)
+         67                             # "g"
+      06                                # unsigned(6)
+      61                                # text(1)
+         68                             # "h"
+      07                                # unsigned(7)
+      61                                # text(1)
+         69                             # "i"
+      08                                # unsigned(8)
+      61                                # text(1)
+         6A                             # "j"
+      09                                # unsigned(9)
+      61                                # text(1)
+         6B                             # "k"
+      0A                                # unsigned(10)
+      61                                # text(1)
+         6C                             # "l"
+      0B                                # unsigned(11)
+      61                                # text(1)
+         6D                             # "m"
+      0C                                # unsigned(12)
+      61                                # text(1)
+         6E                             # "n"
+      0D                                # unsigned(13)
+      61                                # text(1)
+         6F                             # "o"
+      0E                                # unsigned(14)
+      61                                # text(1)
+         70                             # "p"
+      0F                                # unsigned(15)
+      61                                # text(1)
+         71                             # "q"
+      10                                # unsigned(16)
+      61                                # text(1)
+         72                             # "r"
+      11                                # unsigned(17)
+      61                                # text(1)
+         73                             # "s"
+      12                                # unsigned(18)
+      61                                # text(1)
+         74                             # "t"
+      13                                # unsigned(19)
+      61                                # text(1)
+         75                             # "u"
+      14                                # unsigned(20)
+      61                                # text(1)
+         76                             # "v"
+      15                                # unsigned(21)
+      61                                # text(1)
+         77                             # "w"
+      16                                # unsigned(22)
+      61                                # text(1)
+         78                             # "x"
+      17                                # unsigned(23)
+      61                                # text(1)
+         79                             # "y"
+      18 18                             # unsigned(24)
+      61                                # text(1)
+         7A                             # "z"
+      18 19                             # unsigned(25)
+      61                                # text(1)
+         41                             # "A"
+      18 1A                             # unsigned(26)
+      61                                # text(1)
+         42                             # "B"
+      18 1B                             # unsigned(27)
+      61                                # text(1)
+         43                             # "C"
+      18 1C                             # unsigned(28)
+      61                                # text(1)
+         44                             # "D"
+      18 1D                             # unsigned(29)
+      61                                # text(1)
+         45                             # "E"
+      18 1E                             # unsigned(30)
+   65                                   # text(5)
+      6D696E3331                        # "min31"
+   38 1E                                # negative(30)
+   66                                   # text(6)
+      706C75733331                      # "plus31"
+   18 1F                                # unsigned(31)
+   63                                   # text(3)
+      737472                            # "str"
+   78 1F                                # text(31)
+      7465737474657374746573747465737474657374746573747163626F723131 # "testtesttesttesttesttestqcbor11"
+ */
+static const uint8_t EncodeLengthThirtyone[] = {
+   0xa5, 0x63, 0x61, 0x72, 0x72, 0x98, 0x1f, 0x00, 0x01, 0x02, 0x03, 0x04,
+   0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
+   0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x18, 0x18, 0x19, 0x18,
+   0x1a, 0x18, 0x1b, 0x18, 0x1c, 0x18, 0x1d, 0x18, 0x1e, 0x63, 0x6d, 0x61,
+   0x70, 0xb8, 0x1f, 0x61, 0x61, 0x00, 0x61, 0x62, 0x01, 0x61, 0x63, 0x02,
+   0x61, 0x64, 0x03, 0x61, 0x65, 0x04, 0x61, 0x66, 0x05, 0x61, 0x67, 0x06,
+   0x61, 0x68, 0x07, 0x61, 0x69, 0x08, 0x61, 0x6a, 0x09, 0x61, 0x6b, 0x0a,
+   0x61, 0x6c, 0x0b, 0x61, 0x6d, 0x0c, 0x61, 0x6e, 0x0d, 0x61, 0x6f, 0x0e,
+   0x61, 0x70, 0x0f, 0x61, 0x71, 0x10, 0x61, 0x72, 0x11, 0x61, 0x73, 0x12,
+   0x61, 0x74, 0x13, 0x61, 0x75, 0x14, 0x61, 0x76, 0x15, 0x61, 0x77, 0x16,
+   0x61, 0x78, 0x17, 0x61, 0x79, 0x18, 0x18, 0x61, 0x7a, 0x18, 0x19, 0x61,
+   0x41, 0x18, 0x1a, 0x61, 0x42, 0x18, 0x1b, 0x61, 0x43, 0x18, 0x1c, 0x61,
+   0x44, 0x18, 0x1d, 0x61, 0x45, 0x18, 0x1e, 0x65, 0x6d, 0x69, 0x6e, 0x33,
+   0x31, 0x38, 0x1e, 0x66, 0x70, 0x6c, 0x75, 0x73, 0x33, 0x31, 0x18, 0x1f,
+   0x63, 0x73, 0x74, 0x72, 0x78, 0x1f, 0x74, 0x65, 0x73, 0x74, 0x74, 0x65,
+   0x73, 0x74, 0x74, 0x65, 0x73, 0x74, 0x74, 0x65, 0x73, 0x74, 0x74, 0x65,
+   0x73, 0x74, 0x74, 0x65, 0x73, 0x74, 0x71, 0x63, 0x62, 0x6f, 0x72, 0x31,
+   0x31
+};
+
+int EncodeLengthThirtyoneTest()
+{
+   QCBOREncodeContext ECtx;
+   int nReturn = 0;
+
+   QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenMap(&ECtx);
+
+   // add array with 31 items
+   QCBOREncode_OpenArrayInMap(&ECtx, "arr");
+   for (size_t ix = 0; ix < 31; ix++) {
+      QCBOREncode_AddInt64(&ECtx, ix);
+   }
+   QCBOREncode_CloseArray(&ECtx);
+
+   // add map with 31 items
+   QCBOREncode_OpenMapInMap(&ECtx, "map");
+   for (size_t ix = 0; ix < 31; ix++) {
+      // make sure we have unique keys in the map (a-z then follow by A-Z)
+      char c = 'a';
+      if (ix < 26) c = c + ix;
+      else c = 'A' + (ix - 26);
+      char buffer[2] = { c, 0 };
+      QCBOREncode_AddInt64ToMap(&ECtx, buffer, ix);
+   }
+   QCBOREncode_CloseMap(&ECtx);
+
+   // add -31 and +31
+   QCBOREncode_AddInt64ToMap(&ECtx, "min31", -31);
+   QCBOREncode_AddInt64ToMap(&ECtx, "plus31", 31);
+
+   // add string with length 31
+   const char *str = "testtesttesttesttesttestqcbor11";
+   UsefulBufC str_b = { str, 31 };
+   QCBOREncode_AddTextToMap(&ECtx, "str", str_b);
+
+   QCBOREncode_CloseMap(&ECtx);
+
+   UsefulBufC ECBOR;
+   if(QCBOREncode_Finish(&ECtx, &ECBOR)) {
+      nReturn = -1;
+   }
+
+   if(CheckResults(ECBOR, EncodeLengthThirtyone))
       return -2;
 
    return(nReturn);
@@ -1053,7 +1268,7 @@ static const uint8_t spFiveArrarys[] = {0x81, 0x81, 0x81, 0x81, 0x80};
  81               # array(1)
  81            # array(1)
  80         # array(0)
- 98 2F                  # array(47)
+ 98 30                  # array(48)
  3B 7FFFFFFFFFFFFFFF # negative(9223372036854775807)
  3B 0000000100000000 # negative(4294967296)
  3A FFFFFFFF         # negative(4294967295)
@@ -1082,6 +1297,7 @@ static const uint8_t spFiveArrarys[] = {0x81, 0x81, 0x81, 0x81, 0x80};
  18 18               # unsigned(24)
  18 19               # unsigned(25)
  18 1A               # unsigned(26)
+ 18 1F               # unsigned(31)
  18 FE               # unsigned(254)
  18 FF               # unsigned(255)
  19 0100             # unsigned(256)
@@ -1103,7 +1319,7 @@ static const uint8_t spFiveArrarys[] = {0x81, 0x81, 0x81, 0x81, 0x80};
  1B FFFFFFFFFFFFFFFF # unsigned(18446744073709551615)
  */
 static const uint8_t spEncodeRawExpected[] = {
-   0x82, 0x81, 0x81, 0x81, 0x81, 0x80, 0x98, 0x2f,
+   0x82, 0x81, 0x81, 0x81, 0x81, 0x80, 0x98, 0x30,
    0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    0xff, 0x3b, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
    0x00, 0x00, 0x3a, 0xff, 0xff, 0xff, 0xff, 0x3a,
@@ -1115,18 +1331,19 @@ static const uint8_t spEncodeRawExpected[] = {
    0x00, 0x38, 0xff, 0x38, 0xfe, 0x38, 0xfd, 0x38,
    0x18, 0x37, 0x36, 0x20, 0x00, 0x00, 0x01, 0x16,
    0x17, 0x18, 0x18, 0x18, 0x19, 0x18, 0x1a, 0x18,
-   0xfe, 0x18, 0xff, 0x19, 0x01, 0x00, 0x19, 0x01,
-   0x01, 0x19, 0xff, 0xfe, 0x19, 0xff, 0xff, 0x1a,
-   0x00, 0x01, 0x00, 0x00, 0x1a, 0x00, 0x01, 0x00,
-   0x01, 0x1a, 0x00, 0x01, 0x00, 0x02, 0x1a, 0x7f,
-   0xff, 0xff, 0xff, 0x1a, 0x7f, 0xff, 0xff, 0xff,
-   0x1a, 0x80, 0x00, 0x00, 0x00, 0x1a, 0x80, 0x00,
-   0x00, 0x01, 0x1a, 0xff, 0xff, 0xff, 0xfe, 0x1a,
-   0xff, 0xff, 0xff, 0xff, 0x1b, 0x00, 0x00, 0x00,
-   0x01, 0x00, 0x00, 0x00, 0x00, 0x1b, 0x00, 0x00,
-   0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x1b, 0x7f,
-   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1b,
-   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+   0x1f, 0x18, 0xfe, 0x18, 0xff, 0x19, 0x01, 0x00,
+   0x19, 0x01, 0x01, 0x19, 0xff, 0xfe, 0x19, 0xff,
+   0xff, 0x1a, 0x00, 0x01, 0x00, 0x00, 0x1a, 0x00,
+   0x01, 0x00, 0x01, 0x1a, 0x00, 0x01, 0x00, 0x02,
+   0x1a, 0x7f, 0xff, 0xff, 0xff, 0x1a, 0x7f, 0xff,
+   0xff, 0xff, 0x1a, 0x80, 0x00, 0x00, 0x00, 0x1a,
+   0x80, 0x00, 0x00, 0x01, 0x1a, 0xff, 0xff, 0xff,
+   0xfe, 0x1a, 0xff, 0xff, 0xff, 0xff, 0x1b, 0x00,
+   0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x1b,
+   0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+   0x1b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+   0xff, 0x1b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+   0xff, 0xff};
 
 
 int EncodeRawTest()

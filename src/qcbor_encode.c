@@ -301,11 +301,14 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me,
    // This is the 5 bits in the initial byte that is not the major type
    uint8_t uAdditionalInfo;
 
-   if(uNumber < CBOR_TWENTY_FOUR && nMinLen == 0) {
+   if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN) {
+      uMajorType = CBOR_MAJOR_TYPE_ARRAY;
+      uAdditionalInfo = LEN_IS_INDEFINITE;
+   } else if (uMajorType == CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN) {
+      uMajorType = CBOR_MAJOR_TYPE_MAP;
+      uAdditionalInfo = LEN_IS_INDEFINITE;
+   } else if (uNumber < CBOR_TWENTY_FOUR && nMinLen == 0) {
       // Simple case where argument is < 24
-      uAdditionalInfo = uNumber;
-   } else if (uNumber == LEN_IS_INDEFINITE) {
-      // If the length is indefinite we don't need to encode in multiple bytes
       uAdditionalInfo = uNumber;
    } else if (uMajorType == CBOR_MAJOR_TYPE_SIMPLE && uNumber == CBOR_SIMPLE_BREAK) {
       // Break statement can be encoded in single byte too (0xff)
@@ -531,7 +534,7 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
    // insert the indefinite length marker (0x9f for arrays, 0xbf for maps)
-   InsertEncodedTypeAndNumber(me, uMajorType, 0, LEN_IS_INDEFINITE, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+   InsertEncodedTypeAndNumber(me, uMajorType, 0, 0, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
 
    QCBOREncode_OpenMapOrArray(me, uMajorType);
 }
