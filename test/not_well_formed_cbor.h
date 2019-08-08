@@ -216,21 +216,21 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     {(uint8_t[]){0xf8, 0x16}, 2},
     // Must use 0xf7 instead
     {(uint8_t[]){0xf8, 0x17}, 2},
-    // Permanently disallowed (designated as reserved in RFC 7049)
+    // Reserved (as defined in RFC 8126), considered not-well-formed
     {(uint8_t[]){0xf8, 0x18}, 2},
-    // Permanently disallowed (designated as reserved in RFC 7049)
+    // Reserved (as defined in RFC 8126), considered not-well-formed
     {(uint8_t[]){0xf8, 0x19}, 2},
-    // Permanently disallowed (designated as reserved in RFC 7049)
+    // Reserved (as defined in RFC 8126), considered not-well-formed
     {(uint8_t[]){0xf8, 0x1a}, 2},
-    // Permanently disallowed (designated as reserved in RFC 7049)
+    // Reserved (as defined in RFC 8126), considered not-well-formed
     {(uint8_t[]){0xf8, 0x1b}, 2},
-    // Permanently disallowed (designated as reserved in RFC 7049)
+    // Reserved (as defined in RFC 8126), considered not-well-formed
     {(uint8_t[]){0xf8, 0x1c}, 2},
-    // Permanently disallowed (designated as reserved in RFC 7049)
+    // Reserved (as defined in RFC 8126), considered not-well-formed
     {(uint8_t[]){0xf8, 0x1d}, 2},
-    // Permanently disallowed (designated as reserved in RFC 7049)
+    // Reserved (as defined in RFC 8126), considered not-well-formed
     {(uint8_t[]){0xf8, 0x1e}, 2},
-    // Permanently disallowed (designated as reserved in RFC 7049)
+    // Reserved (as defined in RFC 8126), considered not-well-formed
     {(uint8_t[]){0xf8, 0x1f}, 2},
 
     // Integers with "argument" equal to an indefinite length

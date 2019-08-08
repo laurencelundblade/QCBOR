@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 8/7/19             llundblade      Prevent encoding simple type reserved values 24..31
  4/6/19             llundblade      Wrapped bstr returned now includes the wrapping bstr
  12/30/18           llundblade      Small efficient clever encode of type & argument.
  11/29/18           llundblade      Rework to simpler handling of tags and labels.
@@ -188,7 +189,7 @@ inline static int Nesting_IsInNest(QCBORTrackNesting *pNesting)
  structures like array/map nesting resulting in some stack memory
  savings.
 
- Errors returned here fall into two categories:
+ Errors returned here fall into three categories:
 
  Sizes
    QCBOR_ERR_BUFFER_TOO_LARGE -- Encoded output exceeded UINT32_MAX
@@ -201,6 +202,9 @@ inline static int Nesting_IsInNest(QCBORTrackNesting *pNesting)
    QCBOR_ERR_TOO_MANY_CLOSES -- more close calls than opens
    QCBOR_ERR_CLOSE_MISMATCH -- Type of close does not match open
    QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN -- Finish called without enough closes
+
+ Would generate not-well-formed CBOR
+   QCBOR_ERR_UNSUPPORTED -- Simple type between 24 and 31
  */
 
 
@@ -453,18 +457,22 @@ void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
 void QCBOREncode_AddType7(QCBOREncodeContext *me, size_t uSize, uint64_t uNum)
 {
    if(me->uError == QCBOR_SUCCESS) {
-      // This function call takes care of endian swapping for the float / double
-      InsertEncodedTypeAndNumber(me,
-                                 // The major type for floats and doubles
-                                 CBOR_MAJOR_TYPE_SIMPLE,
-                                 // size makes sure floats with zeros encode correctly
-                                 (int)uSize,
-                                 // Bytes of the floating point number as a uint
-                                 uNum,
-                                 // end position because this is append
-                                 UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+      if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
+         me->uError = QCBOR_ERR_UNSUPPORTED;
+      } else {
+         // This function call takes care of endian swapping for the float / double
+         InsertEncodedTypeAndNumber(me,
+                                    // The major type for floats and doubles
+                                    CBOR_MAJOR_TYPE_SIMPLE,
+                                    // size makes sure floats with zeros encode correctly
+                                    (int)uSize,
+                                    // Bytes of the floating point number as a uint
+                                    uNum,
+                                    // end position because this is append
+                                    UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
 
-      me->uError = Nesting_Increment(&(me->nesting));
+         me->uError = Nesting_Increment(&(me->nesting));
+      }
    }
 }
 

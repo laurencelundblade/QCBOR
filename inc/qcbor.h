@@ -43,7 +43,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
- 07/31/19   llundblade      New error code for better end of data handling
+ 08/7/19    llundblade      Better handling of not well-formed encode and decode.
+ 07/31/19   llundblade      New error code for better end of data handling.
  05/26/19   llundblade      Add QCBOREncode_GetErrorState() and _IsBufferNULL().
  04/26/19   llundblade      Big documentation & style update. No interface change.
  02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug.
@@ -393,6 +394,8 @@ struct _QCBORDecodeContext {
 #define SINGLE_PREC_FLOAT    26
 #define DOUBLE_PREC_FLOAT    27
 #define CBOR_SIMPLE_BREAK    31
+#define CBOR_SIMPLEV_RESERVED_START  CBOR_SIMPLEV_ONEBYTE
+#define CBOR_SIMPLEV_RESERVED_END    CBOR_SIMPLE_BREAK
 
 
 
@@ -682,7 +685,8 @@ typedef enum {
 
    /** During decoding, some CBOR construct was encountered that this
        decoder doesn't support, primarily this is the reserved
-       additional info values, 28 through 30. */
+       additional info values, 28 through 30. During encoding,
+       an attempt to create simple value between 24 and 31. */
    QCBOR_ERR_UNSUPPORTED = 5,
 
    /** During decoding, hit the end of the given data to decode. For

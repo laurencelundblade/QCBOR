@@ -2050,6 +2050,21 @@ int EncodeErrorTests()
       return -11;
    }
 
+   // ------ QCBOR_ERR_UNSUPPORTED --------
+   QCBOREncode_Init(&EC, Large);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddSimple(&EC, 24); // CBOR_SIMPLEV_RESERVED_START
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_UNSUPPORTED) {
+      return -12;
+   }
+
+   QCBOREncode_Init(&EC, Large);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddSimple(&EC, 31); // CBOR_SIMPLEV_RESERVED_END
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_UNSUPPORTED) {
+      return -13;
+   }
+
    return 0;
 }
 
