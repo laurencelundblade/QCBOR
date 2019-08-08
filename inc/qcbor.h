@@ -43,6 +43,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
+ 7/25/19    janjongboom     Add indefinite length encoding for maps and arrays
  05/26/19   llundblade      Add QCBOREncode_GetErrorState() and _IsBufferNULL().
  04/26/19   llundblade      Big documentation & style update. No interface change.
  02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug.
@@ -217,6 +218,8 @@ struct _QCBORDecodeContext {
 #define CBOR_MAJOR_NONE_TYPE_RAW  9
 #define CBOR_MAJOR_NONE_TAG_LABEL_REORDER 10
 #define CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY 11
+#define CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN 12
+#define CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN 13
 
 
 /* ===========================================================================
@@ -607,7 +610,6 @@ struct _QCBORDecodeContext {
    @ref QCBOR_MAX_ARRAY_NESTING (this is typically 15).
  - Max items in an array or map when encoding / decoding is
    @ref QCBOR_MAX_ITEMS_IN_ARRAY (typically 65,536).
- - Does not support encoding indefinite lengths (decoding is supported).
  - Does not directly support some tagged types: decimal fractions, big floats
  - Does not directly support labels in maps other than text strings and integers.
  - Does not directly support integer labels greater than @c INT64_MAX.
@@ -2467,6 +2469,18 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType);
 
 
 /**
+ @brief Semi-private method to open a map, array or bstr wrapped CBOR with indefinite length
+
+ @param[in] pCtx        The context to add to.
+ @param[in] uMajorType  The major CBOR type to close
+
+ Call QCBOREncode_OpenArrayIndefiniteLength() or QCBOREncode_OpenMapIndefiniteLength()
+ instead of this.
+ */
+void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx, uint8_t uMajorType);
+
+
+/**
  @brief Semi-private method to close a map, array or bstr wrapped CBOR
 
  @param[in] pCtx           The context to add to.
@@ -2478,6 +2492,17 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType);
  */
 void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC *pWrappedCBOR);
 
+/**
+ @brief Semi-private method to close a map, array or bstr wrapped CBOR with indefinite length
+
+ @param[in] pCtx           The context to add to.
+ @param[in] uMajorType     The major CBOR type to close.
+ @param[out] pWrappedCBOR  Pointer to @ref UsefulBufC containing wrapped bytes.
+
+ Call QCBOREncode_CloseArrayIndefiniteLength() or QCBOREncode_CloseMapIndefiniteLength()
+ instead of this.
+ */
+void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC *pWrappedCBOR);
 
 /**
  @brief  Semi-private method to add simple types.
@@ -2973,6 +2998,50 @@ static inline void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx)
    QCBOREncode_CloseMapOrArray(pCtx, CBOR_MAJOR_TYPE_MAP, NULL);
 }
 
+static inline void QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pCtx)
+{
+   QCBOREncode_OpenMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
+}
+
+static inline void QCBOREncode_OpenArrayIndefiniteLengthInMap(QCBOREncodeContext *pCtx, const char *szLabel)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_OpenArrayIndefiniteLength(pCtx);
+}
+
+static inline void QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_OpenArrayIndefiniteLength(pCtx);
+}
+
+static inline void QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pCtx)
+{
+   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN, NULL);
+}
+
+
+static inline void QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pCtx)
+{
+   QCBOREncode_OpenMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+}
+
+static inline void QCBOREncode_OpenMapIndefiniteLengthInMap(QCBOREncodeContext *pCtx, const char *szLabel)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_OpenMapIndefiniteLength(pCtx);
+}
+
+static inline void QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_OpenMapIndefiniteLength(pCtx);
+}
+
+static inline void QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx)
+{
+   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN, NULL);
+}
 
 static inline void QCBOREncode_BstrWrap(QCBOREncodeContext *pCtx)
 {
@@ -3034,7 +3103,7 @@ static inline QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx)
       // OK. Once the caller fixes this, they'll be unmasked.
    }
 
-   return pCtx->uError;
+   return (QCBORError)pCtx->uError;
 }
 
 
@@ -3048,4 +3117,3 @@ static inline QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx)
 #endif
 
 #endif /* defined(__QCBOR__qcbor__) */
-

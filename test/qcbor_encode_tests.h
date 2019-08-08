@@ -112,6 +112,18 @@ int SimpleValuesTest1(void);
 
 
 /*
+ Encodes basic maps and arrays with indefinite length
+ */
+int SimpleValuesIndefiniteLengthTest1(void);
+
+/*
+ Indefinite length arrays and maps use the 'magic' number 31, verify that
+ everything with length 31 still works properly
+ */
+int EncodeLengthThirtyoneTest(void);
+
+
+/*
  Encodes most data formats that are supported */
 int EncodeDateTest(void);
 
