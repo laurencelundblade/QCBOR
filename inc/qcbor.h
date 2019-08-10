@@ -44,8 +44,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
  08/7/19    llundblade      Better handling of not well-formed encode and decode.
- 07/31/19   llundblade      New error code for better end of data handling
- 7/25/19    janjongboom     Add indefinite length encoding for maps and arrays
+ 07/31/19   llundblade      New error code for better end of data handling.
+ 7/25/19    janjongboom     Add indefinite length encoding for maps and arrays.
  05/26/19   llundblade      Add QCBOREncode_GetErrorState() and _IsBufferNULL().
  04/26/19   llundblade      Big documentation & style update. No interface change.
  02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug.
