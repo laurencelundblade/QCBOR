@@ -762,9 +762,9 @@ typedef enum {
 
    /** All well-formed data items have been consumed and there are no
        more. If parsing a CBOR stream this indicates the non-error
-       end of the stream. If parsing a TODO: this probably indicates
-       that some data items expected are not present. See also
-       @ref QCBOR_ERR_HIT_END. */
+       end of the stream. If parsing a CBOR stream / sequence, this
+       probably indicates that some data items expected are not present.
+       See also @ref QCBOR_ERR_HIT_END. */
    QCBOR_ERR_NO_MORE_ITEMS = 22
 
 } QCBORError;
@@ -2102,6 +2102,10 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  @retval QCBOR_ERR_NO_STRING_ALLOCATOR  Configuration error, encountered
                                         indefinite-length string with no
                                         allocator configured.
+ @retval QCBOR_ERR_NO_MORE_ITEMS   No more bytes to decode. The previous
+                                   item was successfully decoded. This
+                                   is usually how the non-error end of
+                                   a CBOR stream / sequence is detected.
 
  @c pDecodedItem is filled in with the value parsed. Generally, the
  following data is returned in the structure:
