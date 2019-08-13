@@ -42,6 +42,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 07/31/19           llundblade      Decode error fixes for some not-well-formed CBOR
+ 07/31/19           llundblade      New error code for better end of data handling
  02/17/19           llundblade      Fixed: QCBORItem.u{Data|Label}Alloc when bAllStrings set
  02/16/19           llundblade      Redesign MemPool to fix memory access alignment bug
  01/10/19           llundblade      Clever type and argument decoder is 250 bytes smaller
@@ -536,11 +538,7 @@ inline static QCBORError DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber,
    pDecodedItem->uDataType = uAdditionalInfo;
 
    switch(uAdditionalInfo) {
-      case ADDINFO_RESERVED1:  // 28
-      case ADDINFO_RESERVED2:  // 29
-      case ADDINFO_RESERVED3:  // 30
-         nReturn = QCBOR_ERR_UNSUPPORTED;
-         break;
+      // No check for ADDINFO_RESERVED1 - ADDINFO_RESERVED3 as it is caught before this is called.
 
       case HALF_PREC_FLOAT:
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
@@ -783,8 +781,12 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
          break;
 
       case CBOR_MAJOR_TYPE_OPTIONAL: // Major type 6, optional prepended tags
-         pDecodedItem->val.uTagV = uNumber;
-         pDecodedItem->uDataType = QCBOR_TYPE_OPTTAG;
+         if(uAdditionalInfo == LEN_IS_INDEFINITE) {
+            nReturn = QCBOR_ERR_BAD_INT;
+         } else {
+            pDecodedItem->val.uTagV = uNumber;
+            pDecodedItem->uDataType = QCBOR_TYPE_OPTTAG;
+         }
          break;
 
       case CBOR_MAJOR_TYPE_SIMPLE: // Major type 7, float, double, true, false, null...
@@ -869,7 +871,8 @@ static inline QCBORError GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDe
 
       // Match data type of chunk to type at beginning.
       // Also catches error of other non-string types that don't belong.
-      if(StringChunkItem.uDataType != uStringType) {
+      // Also catches indefinite length strings inside indefinite length strings
+      if(StringChunkItem.uDataType != uStringType || StringChunkItem.val.string.len == SIZE_MAX) {
          nReturn = QCBOR_ERR_INDEFINITE_STRING_CHUNK;
          break;
       }
@@ -1064,6 +1067,12 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
    // The public entry point for fetching and parsing the next QCBORItem.
    // All the CBOR parsing work is here and in subordinate calls.
    QCBORError nReturn;
+
+   // Check if there are an
+   if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf)) == 0 && !DecodeNesting_IsNested(&(me->nesting))) {
+      nReturn = QCBOR_ERR_NO_MORE_ITEMS;
+      goto Done;
+   }
 
    nReturn = GetNext_MapEntry(me, pDecodedItem, pTags);
    if(nReturn) {

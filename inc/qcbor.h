@@ -43,7 +43,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
- 7/25/19    janjongboom     Add indefinite length encoding for maps and arrays
+ 08/7/19    llundblade      Better handling of not well-formed encode and decode.
+ 07/31/19   llundblade      New error code for better end of data handling.
+ 7/25/19    janjongboom     Add indefinite length encoding for maps and arrays.
  05/26/19   llundblade      Add QCBOREncode_GetErrorState() and _IsBufferNULL().
  04/26/19   llundblade      Big documentation & style update. No interface change.
  02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug.
@@ -395,6 +397,8 @@ struct _QCBORDecodeContext {
 #define SINGLE_PREC_FLOAT    26
 #define DOUBLE_PREC_FLOAT    27
 #define CBOR_SIMPLE_BREAK    31
+#define CBOR_SIMPLEV_RESERVED_START  CBOR_SIMPLEV_ONEBYTE
+#define CBOR_SIMPLEV_RESERVED_END    CBOR_SIMPLE_BREAK
 
 
 
@@ -683,13 +687,16 @@ typedef enum {
 
    /** During decoding, some CBOR construct was encountered that this
        decoder doesn't support, primarily this is the reserved
-       additional info values, 28 through 30. */
+       additional info values, 28 through 30. During encoding,
+       an attempt to create simple value between 24 and 31. */
    QCBOR_ERR_UNSUPPORTED = 5,
 
    /** During decoding, hit the end of the given data to decode. For
        example, a byte string of 100 bytes was expected, but the end
        of the input was hit before finding those 100 bytes.  Corrupted
-       CBOR input will often result in this error. */
+       CBOR input will often result in this error. See also @ref
+       QCBOR_ERR_NO_MORE_ITEMS.
+     */
    QCBOR_ERR_HIT_END = 6,
 
    /** During encoding, the length of the encoded CBOR exceeded @c
@@ -752,6 +759,13 @@ typedef enum {
 
    /** An integer type is encoded with a bad length (an indefinite length) */
    QCBOR_ERR_BAD_INT = 21,
+
+   /** All well-formed data items have been consumed and there are no
+       more. If parsing a CBOR stream this indicates the non-error
+       end of the stream. If parsing a CBOR stream / sequence, this
+       probably indicates that some data items expected are not present.
+       See also @ref QCBOR_ERR_HIT_END. */
+   QCBOR_ERR_NO_MORE_ITEMS = 22
 
 } QCBORError;
 
@@ -2088,6 +2102,10 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  @retval QCBOR_ERR_NO_STRING_ALLOCATOR  Configuration error, encountered
                                         indefinite-length string with no
                                         allocator configured.
+ @retval QCBOR_ERR_NO_MORE_ITEMS   No more bytes to decode. The previous
+                                   item was successfully decoded. This
+                                   is usually how the non-error end of
+                                   a CBOR stream / sequence is detected.
 
  @c pDecodedItem is filled in with the value parsed. Generally, the
  following data is returned in the structure:

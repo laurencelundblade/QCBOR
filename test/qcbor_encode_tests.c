@@ -1852,7 +1852,7 @@ static int DecodeNextNested(UsefulBufC Wrapped)
    }
 
    nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn == QCBOR_ERR_HIT_END) {
+   if(nReturn == QCBOR_ERR_HIT_END || nReturn == QCBOR_ERR_NO_MORE_ITEMS) {
       return 0;
    }
    if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
@@ -2312,6 +2312,21 @@ int EncodeErrorTests()
    QCBOREncode_Init(&EC, Buffer);
    if(QCBOREncode_IsBufferNULL(&EC) == 0) {
       return -11;
+   }
+
+   // ------ QCBOR_ERR_UNSUPPORTED --------
+   QCBOREncode_Init(&EC, Large);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddSimple(&EC, 24); // CBOR_SIMPLEV_RESERVED_START
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_UNSUPPORTED) {
+      return -12;
+   }
+
+   QCBOREncode_Init(&EC, Large);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddSimple(&EC, 31); // CBOR_SIMPLEV_RESERVED_END
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_UNSUPPORTED) {
+      return -13;
    }
 
    return 0;
