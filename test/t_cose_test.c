@@ -15,7 +15,7 @@
 #include "q_useful_buf.h"
 
 
-int_fast16_t minimal_test()
+int_fast32_t minimal_test()
 {
     struct t_cose_sign1_ctx sign_ctx;
     QCBOREncodeContext cbor_encode;
@@ -51,7 +51,7 @@ int_fast16_t minimal_test()
 }
 
 
-int_fast16_t early_error_test()
+int_fast32_t early_error_test()
 {
     struct t_cose_sign1_ctx sign_ctx;
     QCBOREncodeContext cbor_encode;

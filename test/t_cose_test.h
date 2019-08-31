@@ -18,10 +18,10 @@
  *
  * \return non-zero on failure.
  */
-int_fast16_t minimal_test(void);
+int_fast32_t minimal_test(void);
 
 
-int_fast16_t early_error_test(void);
+int_fast32_t early_error_test(void);
 
 
 

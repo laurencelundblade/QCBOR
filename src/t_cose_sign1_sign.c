@@ -22,6 +22,7 @@
  */
 
 
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 /**
  * \brief Create a short-circuit signature
  *
@@ -82,7 +83,7 @@ short_circuit_sign(int32_t cose_alg_id,
 Done:
     return return_value;
 }
-
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 
 /**
@@ -489,10 +490,15 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me,
      * mode that always works.
      */
     if(me->short_circuit_sign) {
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         return_value = short_circuit_sign(me->cose_algorithm_id,
                                           tbs_hash,
                                           buffer_for_signature,
                                           &signature);
+#else
+        return_value = 99 ; // TODO: error code
+        goto Done;
+#endif
     } else {
         return_value = t_cose_crypto_pub_key_sign(me->cose_algorithm_id,
                                                   me->key_select,

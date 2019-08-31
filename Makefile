@@ -12,7 +12,7 @@ CFLAGS=$(ALL_INC) $(C_OPTS)
 
 SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o 
 
-TEST_OBJ=test/t_cose_test.o
+TEST_OBJ=test/t_cose_test.o test/run_tests.o
 
 PSA_CRYPTO_OBJ=crypto_adapters/t_cose_psa_off_target_hashes.o crypto_adapters/t_cose_psa_off_target_signature.o ../../crypto-algorithms/sha256.o crypto_adapters/t_cose_psa_crypto_hash.o crypto_adapters/t_cose_openssl_signature.o
 

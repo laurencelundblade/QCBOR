@@ -24,6 +24,16 @@ extern "C" {
  */
 
 
+/*
+
+ T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+
+ */
+//#define T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+
+
+    
+
 /* Private value. Intentionally not documented for Doxygen.
  * This is the size allocated for the encoded protected headers.  It
  * needs to be big enough for make_protected_header() to succeed. It

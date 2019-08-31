@@ -23,7 +23,7 @@
  * \brief \c COSE_Sign1 verification implementation.
  */
 
-
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 /**
  *  \brief Verify a short-circuit signature
  *
@@ -62,6 +62,7 @@ t_cose_crypto_short_circuit_verify(int32_t cose_alg_id,
 Done:
     return return_value;
 }
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 
 static inline QCBORError
@@ -531,10 +532,12 @@ t_cose_sign1_verify(int32_t option_flags,
                                       T_COSE_CRYPTO_SHA256_SIZE);
     struct q_useful_buf_c         tbs_hash;
     struct q_useful_buf_c         signature;
+    struct t_cose_headers         unprotected_headers;
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     Q_USEFUL_BUF_MAKE_STACK_UB   (buf_for_short_circuit_kid,
                                       T_COSE_SHORT_CIRCUIT_KID_SIZE);
     struct q_useful_buf_c         short_circuit_kid;
-    struct t_cose_headers         unprotected_headers;
+#endif
 
     *payload = NULL_Q_USEFUL_BUF_C;
 
@@ -602,7 +605,7 @@ t_cose_sign1_verify(int32_t option_flags,
         goto Done;
     }
 
-
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     /* -- Check for short-circuit signature and verify if it exists -- */
     return_value = get_short_circuit_kid(buf_for_short_circuit_kid,
                                            &short_circuit_kid);
@@ -617,6 +620,7 @@ t_cose_sign1_verify(int32_t option_flags,
                                                           signature);
         goto Done;
     }
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 
     /* -- Verify the signature -- */
