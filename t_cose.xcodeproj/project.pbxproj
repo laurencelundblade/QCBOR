@@ -89,7 +89,6 @@
 		E7EF498E2270E3E000F2D836 /* tfm_memory_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tfm_memory_utils.h; sourceTree = "<group>"; };
 		E7F70AAD2270D676007CE07F /* sha256.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sha256.c; path = "../../../crypto-algorithms/sha256.c"; sourceTree = "<group>"; };
 		E7F70AAE2270D676007CE07F /* sha256.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sha256.h; path = "../../../crypto-algorithms/sha256.h"; sourceTree = "<group>"; };
-		E7F70AB12270D72F007CE07F /* attest_token.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = attest_token.h; path = ../../AttestToken/master/src/attest_token.h; sourceTree = "<group>"; };
 		E7F70AB32270D989007CE07F /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = "../../openssl/openssl-1.1.1b/libcrypto.a"; sourceTree = "<group>"; };
 		E7F70AB82270DC7F007CE07F /* tfm_plat_crypto_keys.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tfm_plat_crypto_keys.h; path = "../../../TF-M/trusted-firmware-m/platform/include/tfm_plat_crypto_keys.h"; sourceTree = "<group>"; };
 		E7F70AB92270DCCA007CE07F /* psa_crypto_platform.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = psa_crypto_platform.h; path = "../../../TF-M/trusted-firmware-m/interface/include/psa_crypto_platform.h"; sourceTree = "<group>"; };
@@ -130,7 +129,6 @@
 				E7E36EA2226CBA540040613B /* crypto_adapters */,
 				E7E36E95226CB9C90040613B /* QCBOR Interface */,
 				E7E36E98226CB9F70040613B /* QCBOR Src */,
-				E7F70AB02270D6FF007CE07F /* Temp Ref to Attest Token */,
 				E7E36E79226CB8400040613B /* Products */,
 				E7F70AB22270D989007CE07F /* Frameworks */,
 			);
@@ -222,14 +220,6 @@
 				E7F70AAE2270D676007CE07F /* sha256.h */,
 			);
 			name = b_con_hash;
-			sourceTree = "<group>";
-		};
-		E7F70AB02270D6FF007CE07F /* Temp Ref to Attest Token */ = {
-			isa = PBXGroup;
-			children = (
-				E7F70AB12270D72F007CE07F /* attest_token.h */,
-			);
-			name = "Temp Ref to Attest Token";
 			sourceTree = "<group>";
 		};
 		E7F70AB22270D989007CE07F /* Frameworks */ = {
@@ -327,6 +317,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = E7E36E6F226CB8400040613B;
 			productRefGroup = E7E36E79226CB8400040613B /* Products */;

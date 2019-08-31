@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * See BSD-3-Clause license in README.mdE.
+ * See BSD-3-Clause license in README.md
  */
 
 #include "t_cose_util.h"

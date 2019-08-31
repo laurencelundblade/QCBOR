@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * See BSD-3-Clause license in README.mdE.
+ * See BSD-3-Clause license in README.md
  */
 
 #ifndef t_cose_test_h
@@ -21,7 +21,7 @@
 int_fast16_t minimal_test(void);
 
 
-int_fast16_t early_error_test();
+int_fast16_t early_error_test(void);
 
 
 
