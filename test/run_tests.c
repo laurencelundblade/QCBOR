@@ -14,8 +14,8 @@
 #include "UsefulBuf.h"
 #include <stdbool.h>
 
-#include "t_cose_sign1_sign.h" /* For size printing */
 #include "t_cose_test.h"
+#include "t_cose_openssl_test.h"
 
 
 /*
@@ -48,10 +48,15 @@ static test_entry2 s_tests2[] = {
 #endif
 
 static test_entry s_tests[] = {
-    TEST_ENTRY(minimal_test),
-    TEST_ENTRY(early_error_test),
+    TEST_ENTRY(short_circuit_hash_fail_test),
+    TEST_ENTRY(openssl_make_cwt_test),
+    TEST_ENTRY(short_circuit_make_cwt_test),
+    TEST_ENTRY(short_circuit_signing_error_conditions_test),
+    TEST_ENTRY(short_circuit_verify_fail_test),
+    TEST_ENTRY(openssl_sig_fail_test),
+    TEST_ENTRY(openssl_self_test),
+    TEST_ENTRY(short_circuit_self_test),
 };
-
 
 
 
@@ -227,9 +232,15 @@ static void PrintSize(const char *szWhat, uint32_t uSize, OutputStringCB pfOutpu
 /*
  Public function. See run_test.h.
  */
+
+#include "t_cose_sign1_sign.h" /* For size printing */
+#include "t_cose_crypto.h"
+
 void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
 {
    // Type and size of return from sizeof() varies. These will never be large so cast is safe
-   PrintSize("sizeof(struct t_cose_sign1_ctx)",   (uint32_t)sizeof(struct t_cose_sign1_ctx), pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_sign1_ctx)",   (uint32_t)sizeof(struct t_cose_sign1_ctx), pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_signing_key)",   (uint32_t)sizeof(struct t_cose_signing_key), pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_crypto_hash)",   (uint32_t)sizeof(struct t_cose_crypto_hash), pfOutput, pOutCtx);
    (*pfOutput)("", pOutCtx, 1);
 }

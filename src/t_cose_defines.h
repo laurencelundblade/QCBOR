@@ -79,9 +79,10 @@
  */
 
 /*
- This is not defined by IANA, but is used in this implementation.
+ This is defined as reserved by IANA. This implementation uses
+ it to mean the end of a list of algorithm IDs.
  */
-#define COSE_ALGORITHM_INVALID 0
+#define COSE_ALGORITHM_RESERVED 0
 
 
 /**
@@ -89,7 +90,7 @@
  *
  * \brief Indicates ECDSA with SHA-256.
  *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA.  w/SHA-256
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA w/SHA-256
  */
 #define COSE_ALGORITHM_ES256 -7
 
@@ -98,7 +99,7 @@
  *
  * \brief Indicates ECDSA with SHA-384.
  *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA.  w/SHA-384
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA w/SHA-384
  */
 #define COSE_ALGORITHM_ES384 -35
 
@@ -107,24 +108,37 @@
  *
  * \brief Indicates ECDSA with SHA-384.
  *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA.  w/SHA-512
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA w/SHA-512
  */
 #define COSE_ALGORITHM_ES512 -36
 
 
 /**
- * \def COSE_ALG_SHA256_PROPRIETARY
+ * \def COSE_ALGORITHM_SHA_256
  *
- * \brief COSE-style algorithm ID for SHA256. The official COSE
- * algorithm registry doesn't yet define an ID for a pure hash
- * function. One is needed for internal use, so this is defined.
+ * \brief Indicates simple SHA-256 hash.
  *
- * This is only used internally in the implementation and doesn't
- * appear in any protocol messages so there are no interoperability
- * issues. When this gets defined in the IANA registry, that value can
- * be substituted here and all will work fine.
+ * This is not used in the t_cose interface. It is just used internally.
  */
-#define COSE_ALG_SHA256_PROPRIETARY -72000
+#define COSE_ALGORITHM_SHA_256 -16
+
+/**
+ * \def COSE_ALGORITHM_SHA_384
+ *
+ * \brief Indicates simple SHA-384 hash.
+ *
+ * This is not used in the t_cose interface. It is just used internally.
+ */
+#define COSE_ALGORITHM_SHA_384 -43
+
+/**
+ * \def COSE_ALGORITHM_SHA_512
+ *
+ * \brief Indicates simple SHA-512 hash.
+ *
+ * This is not used in the t_cose interface. It is just used internally.
+ */
+#define COSE_ALGORITHM_SHA_512 -44
 
 
 

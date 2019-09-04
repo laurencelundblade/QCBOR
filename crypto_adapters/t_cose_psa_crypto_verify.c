@@ -13,7 +13,7 @@
 
 enum t_cose_err_t
 t_cose_crypto_pub_key_verify(int32_t cose_alg_id,
-                             int32_t key_select,
+                             struct t_cose_signing_key signing_key,
                              struct q_useful_buf_c key_id,
                              struct q_useful_buf_c hash_to_verify,
                              struct q_useful_buf_c signature)

@@ -17,11 +17,43 @@
  * \brief Minimal token creation test using a short-circuit signature.
  *
  * \return non-zero on failure.
+ *
+ * This test makes a simple COSE_Sign1 and verifies it.
+ * It uses short-circuit signatures so no keys or even
+ * integration with public key crypto is necessary.
  */
-int_fast32_t minimal_test(void);
+int_fast32_t short_circuit_self_test(void);
 
 
-int_fast32_t early_error_test(void);
+/**
+ * \brief Test where payload bytes are corrupted and sig fails.
+ *
+ * \return non-zero on failure.
+ *
+ * This test makes a simple COSE_Sign1 and verifies it.
+ * It uses short-circuit signatures so no keys or even
+ * integration with public key crypto is necessary.
+ */
+int_fast32_t short_circuit_verify_fail_test(void);
+
+
+/**
+ * \brief Tests error condidtions for creating COSE_Sign1.
+ *
+ * \return non-zero on failure.
+ *
+ * This test makes a simple COSE_Sign1 and verifies it.
+ * It uses short-circuit signatures so no keys or even
+ * integration with public key crypto is necessary.
+ */
+int_fast32_t short_circuit_signing_error_conditions_test(void);
+
+
+int_fast32_t short_circuit_make_cwt_test(void);
+
+
+
+int_fast32_t short_circuit_hash_fail_test(void);
 
 
 

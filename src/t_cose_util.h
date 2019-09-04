@@ -121,21 +121,15 @@ enum t_cose_err_t create_tbs_hash(int32_t cose_alg_id,
 /**
  * \brief Get the special kid for short-circuit signing.
  *
- * \param[in] buffer_for_kid Pointer and length of buffer into which
- *                           the resulting hash is put. It should
- *                           always be at least \ref
- *                           T_COSE_SHORT_CIRCUIT_KID_SIZE.
- * \param[out] kid           Pointer and length of the returned kid.
- *
- * \retval T_COSE_SUCCESS
- *         The kid was returned.
- * \retval T_COSE_ERR_KEY_BUFFER_SIZE
- *         \c buffer_for_kid is too small
+ * \returns Buffer with the kid.
  *
  * This always returns the same key ID. It always indicates
  * short-circuit signing. It is OK to hard code this as the
  * probability of collision with this ID is extremely low and the same
  * as for collision between any two key IDs (kids) of any sort.
+ *
+ * This always returns pointers to the same memory as the
+ * result returned by this never changes.
  *
  * This is the value of the kid.
  *
@@ -145,9 +139,8 @@ enum t_cose_err_t create_tbs_hash(int32_t cose_alg_id,
  *        0xa9, 0xa7, 0x1f, 0x49, 0x51, 0x7e, 0x18, 0xc6
  *
  */
-enum t_cose_err_t
-get_short_circuit_kid(struct q_useful_buf buffer_for_kid,
-                      struct q_useful_buf_c *kid);
+struct q_useful_buf_c get_short_circuit_kid(void);
+
 
 #ifdef __cplusplus
 }

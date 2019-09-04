@@ -63,18 +63,25 @@ extern "C" {
 
 
 /**
+ * The error \ref T_COSE_ERR_NO_KID is returned if the header kid header
+ * is missing. Note that the kid header is primarily passed
+ * on to the crypto layer so the crypto layer can look up the
+ * key. If the verification key is determined by other than
+ * the kid, then it is fine if there is no kid.
+ */
+#define T_COSE_OPT_REQUIRE_KID 0x02
+
+
+/**
  * \brief Verify a COSE_Sign1
  *
- * \param[in] option_flags Options controlling the verification.
- * \param[in] key_select   A key selection that may be used to either
- *                         override the lookup by the kid in the COSE
- *                         headers, or instead of the kid. How
- *                         this works is platform / OS dependent. It
- *                         may depend on \c option_flags too.
- * \param[in] sign1        Pointer and length of CBOR encoded \c COSE_Sign1
- *                         that is to be verified.
- * \param[out] payload     Pointer and length of the still CBOR encoded
- *                         payload
+ * \param[in] option_flags      Options controlling the verification.
+ * \param[in] verification_key  The verification key to use. Maybe empty
+                                by TODO.
+ * \param[in] sign1             Pointer and length of CBOR encoded \c COSE_Sign1
+ *                              that is to be verified.
+ * \param[out] payload          Pointer and length of the still CBOR encoded
+ *                              payload
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -96,7 +103,9 @@ extern "C" {
  * error out.
  *
  * The verification key is obtained. This may be by kid in the
- * protected headers or by the key_select.
+ * protected headers or the verification_key passed in. Typically,
+ * what is passed in through verification_key takes precidence.
+ * TODO: elaborate
  *
  * Finally, the signature verification is performed.
  *
@@ -106,10 +115,10 @@ extern "C" {
  * This will recognize the special kid for short-circuit signing
  * and verify it if the \ref T_COSE_OPT_ALLOW_SHORT_CIRCUIT is set.
  */
-enum t_cose_err_t  t_cose_sign1_verify(int32_t option_flags,
-                                       int32_t key_select,
-                                       struct q_useful_buf_c sign1,
-                                       struct q_useful_buf_c *payload);
+enum t_cose_err_t t_cose_sign1_verify(int32_t option_flags,
+                                      struct t_cose_signing_key verification_key,
+                                      struct q_useful_buf_c sign1,
+                                      struct q_useful_buf_c *payload);
 
 
 #endif /* __T_COSE_SIGN1_VERIFY_H__ */

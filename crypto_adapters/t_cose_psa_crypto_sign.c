@@ -46,7 +46,7 @@ t_cose_crypto_pub_key_sign(int32_t cose_alg_id,
 
     ARG_UNUSED(key_select);
 
-    if (sig_size > signature_buffer.len) {
+    if (sig_size + 5000 > signature_buffer.len) {
         return T_COSE_ERR_SIG_BUFFER_SIZE;
     }
 

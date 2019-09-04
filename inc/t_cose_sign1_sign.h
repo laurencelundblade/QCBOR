@@ -41,9 +41,11 @@ extern "C" {
  *
  * There is a cryptographic adaptation layer defined in
  * t_cose_crypto.h.  An implementation can be made of the functions in
- * it for different platforms or OS's. This means that different
- * platforms and OS's may support only signing with a particular set
- * of algorithms.
+ * it for different cryptographic libraries. This means that different
+ * integrations with different cryptographic libraries may support only
+ * signing with a particular set
+ * of algorithms. Key ID look up also varies by different cryptographic
+ * library integrations.
  *
  * This \c COSE_Sign1 implementations is optimized for creating EAT
  * tokens.
@@ -59,7 +61,7 @@ extern "C" {
 /**
  * This is the context for creating a \c COSE_Sign1 structure. The caller
  * should allocate it and pass it to the functions here.  This is
- * about 32 bytes so it fits easily on the stack.
+ * about 72 bytes so it fits easily on the stack.
  */
 struct t_cose_sign1_ctx {
     /* Private data structure */
@@ -67,23 +69,37 @@ struct t_cose_sign1_ctx {
                               T_COSE_SIGN1_MAX_PROT_HEADER];
     struct q_useful_buf_c protected_headers;
     int32_t               cose_algorithm_id;
-    int32_t               key_select;
-    bool                  short_circuit_sign;
+    struct                t_cose_signing_key signing_key;
+    int32_t               option_flags;
     QCBOREncodeContext   *cbor_encode_ctx;
 };
+
+
+/**
+ * An option_flag for t_cose_sign1_init() to request a short-ciruit signature
+ */
+#define T_COSE_OPT_SHORT_CIRCUIT_SIG 0x01
+
+
+/**
+ * An option_flag for t_cose_sign1_init() to not add the CBOR type 6 tag
+ * for COSE_Sign1.
+ */
+#define T_COSE_OPT_OMIT_CBOR_TAG 0x02
 
 
 /**
  * \brief  Initialize to start creating a \c COSE_Sign1.
  *
  * \param[in] me                 The t_cose signing context.
- * \param[in] short_circuit_sign \c true to select special test mode.
+ * \param[in] option_flags       Select different signing options.
  * \param[in] cose_algorithm_id  The algorithm to sign with. The IDs are
  *                               defined in [COSE (RFC 8152)]
  *                               (https://tools.ietf.org/html/rfc8152) or
  *                               in the [IANA COSE Registry]
  *                           (https://www.iana.org/assignments/cose/cose.xhtml).
- * \param[in] key_select         Which signing key to use.
+ * \param[in] signing_key        Which signing key to use.
+ * \param[in] key_id             COSE kid header or \ref NULL_Q_USEFUL_BUF_C.
  * \param[in] cbor_encode_ctx    The CBOR encoder context to output to.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
@@ -97,9 +113,11 @@ struct t_cose_sign1_ctx {
  * like this, the cryptographic functions will not actually run, but
  * the size of their output will be taken into account.
  *
- * The key selection depends on the platform / OS.
+ * The contents if signing_key depends on the crypto library t_cose is integrated with
+ * With some libraries it might be a pointer to a structure with the key
+ * and on others an integer handle or descriptor.
  *
- * Which signing algorithms are supported depends on the platform/OS.
+ * Which signing algorithms are supported depends on the crypto library.
  * The header file t_cose_defines.h contains defined constants for
  * some of them. A typical example is \ref COSE_ALGORITHM_ES256 which
  * indicates ECDSA with the NIST P-256 curve and SHA-256.
@@ -107,7 +125,8 @@ struct t_cose_sign1_ctx {
  * To use this, create a \c QCBOREncodeContext and initialize it with
  * an output buffer big enough to hold the payload and the COSE Sign 1
  * overhead. This overhead is about 30 bytes plus the size of the
- * signature and the size of the key ID.
+ * signature and the size of the key ID. This is about 150 bytes
+ * for ECDSA 256 with a 32-byte key id.
  *
  * After the \c QCBOREncodeContext is initialized, call
  * t_cose_sign1_init() on it.
@@ -136,6 +155,9 @@ struct t_cose_sign1_ctx {
  * public key cryptographic functions have not been connected up in
  * the cryptographic adaptation layer.
  *
+ * To select it pass \ref T_COSE_OPT_SHORT_CIRCUIT_SIG as one of the
+ * option_flags.
+ *
  * It has no value for security at all. Data signed this way should
  * not be trusted as anyone can sign like this.
  *
@@ -147,17 +169,12 @@ struct t_cose_sign1_ctx {
  * This mode is very useful for testing because all the code except
  * the actual signing algorithm is run exactly as it would if a proper
  * signing algorithm was run.
- *
- * The kid (Key ID) put in the unprotected headers is created as
- * follows. The EC public key is CBOR encoded as a \c COSE_Key as
- * defined in the COSE standard. That encoded CBOR is then
- * hashed with SHA-256. This is similar to key IDs defined in IETF
- * PKIX, but is based on COSE and CBOR rather than ASN.1.
  */
 enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
-                                    bool short_circuit_sign,
+                                    int32_t option_flags,
                                     int32_t cose_algorithm_id,
-                                    int32_t key_select,
+                                    struct t_cose_signing_key signing_key,
+                                    struct q_useful_buf_c key_id,
                                     QCBOREncodeContext *cbor_encode_ctx);
 
 
@@ -172,7 +189,7 @@ enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
  * Call this to complete creation of a signed token started with
  * t_cose_sign1_init().
  *
- * This is when the signature algorithm is run.
+ * This is when the cryptographic signature algorithm is run.
  *
  * The payload parameter is used only to compute the hash for
  * signing. The completed \c COSE_Sign1 is retrieved from the \c

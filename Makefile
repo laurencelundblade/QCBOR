@@ -12,7 +12,7 @@ CFLAGS=$(ALL_INC) $(C_OPTS)
 
 SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o 
 
-TEST_OBJ=test/t_cose_test.o test/run_tests.o
+TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_openssl_test.o
 
 PSA_CRYPTO_OBJ=crypto_adapters/t_cose_psa_off_target_hashes.o crypto_adapters/t_cose_psa_off_target_signature.o ../../crypto-algorithms/sha256.o crypto_adapters/t_cose_psa_crypto_hash.o crypto_adapters/t_cose_openssl_signature.o
 
@@ -21,9 +21,11 @@ OSSL_CRYPTO_OBJ=crypto_adapters/t_cose_openssl_signature.o crypto_adapters/t_cos
 QCBOR=../../QCBOR/master/libqcbor.a
 LIBCRYPT=../../openssl/openssl-1.1.1b/libcrypto.a
 
+# TODO - header file dependency list
+
 t_cose_test: main.o $(SRC_OBJ) $(OSSL_CRYPTO_OBJ) $(TEST_OBJ)
 	cc -o $@ $^ $(QCBOR) $(LIBCRYPT)
 
 
 clean:
-	rm -f $(SRC_OBJ) $(TEST_OBJ) $(OSSL_CRYPTO_OBJ) $(TEST_OBJ2) $(PSA_CRYPTO_OBJ)
+	rm -f $(SRC_OBJ) $(TEST_OBJ) $(OSSL_CRYPTO_OBJ) $(PSA_CRYPTO_OBJ)

@@ -65,9 +65,15 @@ extern "C" {
 
 
 /**
- * Size of the signature output for the NIST P-256 Curve.
+ * Size of the signature output for the various curves.
+ * https://crypto.stackexchange.com/questions/12299/ecc-key-size-and-signature-size/12300
  */
 #define T_COSE_EC_P256_SIG_SIZE 64
+
+#define T_COSE_EC_P384_SIG_SIZE 96
+
+#define T_COSE_EC_P512_SIG_SIZE 132
+
 
 /**
  * Size of the largest signature of any of the algorithm types
@@ -105,7 +111,7 @@ static inline size_t t_cose_signature_size(int32_t cose_sig_alg_id);
  *                              A proprietary ID can also be defined
  *                              locally (\c \#define) if the needed
  *                              one hasn't been registered.
- * \param[in] key_select        Indicates which key to use to sign.
+ * \param[in] signing_key       Indicates or contains key to sign with.
  * \param[in] hash_to_sign      The bytes to sign. Typically, a hash of
  *                              a payload.
  * \param[in] signature_buffer  Pointer and length of buffer into which
@@ -150,7 +156,7 @@ static inline size_t t_cose_signature_size(int32_t cose_sig_alg_id);
  */
 enum t_cose_err_t
 t_cose_crypto_pub_key_sign(int32_t cose_alg_id,
-                           int32_t key_select,
+                           struct t_cose_signing_key signing_key,
                            struct q_useful_buf_c hash_to_sign,
                            struct q_useful_buf signature_buffer,
                            struct q_useful_buf_c *signature);
@@ -160,18 +166,18 @@ t_cose_crypto_pub_key_sign(int32_t cose_alg_id,
  * \brief perform public key signature verification. Part of the
  * t_cose crypto adaptation layer.
  *
- * \param[in] cose_alg_id    The algorithm to use for verification.
- *                           The IDs are defined in [COSE (RFC 8152)]
- *                           (https://tools.ietf.org/html/rfc8152)
- *                           or in the [IANA COSE Registry]
+ * \param[in] cose_alg_id      The algorithm to use for verification.
+ *                             The IDs are defined in [COSE (RFC 8152)]
+ *                             (https://tools.ietf.org/html/rfc8152)
+ *                             or in the [IANA COSE Registry]
  *                       (https://www.iana.org/assignments/cose/cose.xhtml).
- *                           A proprietary ID can also be defined
- *                           locally (\c \#define) if the needed one
- *                           hasn't been registered.
- * \param[in] key_select     Verification key selection.
- * \param[in] key_id         A key id or \c NULL_Q_USEFUL_BUF_C.
- * \param[in] hash_to_verify The data or hash that is to be verified.
- * \param[in] signature      The signature.
+ *                             A proprietary ID can also be defined
+ *                             locally (\c \#define) if the needed one
+ *                             hasn't been registered.
+ * \param[in] verification_key The verification key to use.
+ * \param[in] key_id           A key id or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] hash_to_verify   The data or hash that is to be verified.
+ * \param[in] signature        The signature.
  *
  * This verifies that the \c signature passed in was over the \c
  * hash_to_verify passed in.
@@ -208,7 +214,7 @@ t_cose_crypto_pub_key_sign(int32_t cose_alg_id,
  */
 enum t_cose_err_t
 t_cose_crypto_pub_key_verify(int32_t cose_alg_id,
-                             int32_t key_select,
+                             struct t_cose_signing_key verification_key,
                              struct q_useful_buf_c key_id,
                              struct q_useful_buf_c hash_to_verify,
                              struct q_useful_buf_c signature);
@@ -224,61 +230,6 @@ t_cose_crypto_pub_key_verify(int32_t cose_alg_id,
  */
 #define T_COSE_CRYPTO_EC_P256_COORD_SIZE 32
 
-
-/**
- * \brief Get an elliptic curve public key. Part of the t_cose crypto
- * adaptation layer.
- *
- * \param[in] key_select     Used to look up the public
- *                           key to return when \c kid is
- *                           \c NULL_Q_USEFUL_BUF_C.
- * \param[in] kid            A key ID to look up against. May be
- *                           \c NULL_Q_USEFUL_BUF_C. This is typically
- *                           the kid from the COSE unprotected header.
- * \param[out] cose_curve_id The curve ID of the key returned as
- *                           defined by [COSE (RFC 8152)]
- *                           (https://tools.ietf.org/html/rfc8152)
- *                           or the IANA COSE registry.
- * \param[in] buf_to_hold_x_coord Pointer and length into which the
- *                                X coordinate is put.
- * \param[in] buf_to_hold_y_coord Pointer and length into which the
- *                                Y coordinate is put.
- * \param[out] x_coord       Pointer and length of the returned X
- *                           coordinate.
- * \param[out] y_coord       Pointer and length of the returned Y
- *                           coordinate.
- *
- * \retval T_COSE_SUCCESS
- *         The key was found and is returned.
- * \retval T_COSE_ERR_UNKNOWN_KEY
- *         The key identified by \c key_select or a \c kid was not
- *         found.
- * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
- *         The key was found, but it was the wrong type for the
- *         operation.
- * \retval T_COSE_ERR_FAIL
- *         General unspecific failure.
- * \retval T_COSE_ERR_KEY_BUFFER_SIZE
- *         Buffer to hold the output was too small.
- *
- * This finds and returns a public key. Where it looks for the key is
- * dependent on the OS / platform.
- *
- * \ref T_COSE_CRYPTO_EC_P256_COORD_SIZE is the size of the X or Y
- * coordinate for the NIST P-256 curve.
- *
- * See the note in the Detailed Description (the \\file comment block)
- * for details on how \c q_useful_buf and \c q_useful_buf_c are used to
- * return the X and Y coordinates.
- */
-enum t_cose_err_t
-t_cose_crypto_get_ec_pub_key(int32_t key_select,
-                             struct q_useful_buf_c kid,
-                             int32_t *cose_curve_id,
-                             struct q_useful_buf buf_to_hold_x_coord,
-                             struct q_useful_buf buf_to_hold_y_coord,
-                             struct q_useful_buf_c  *x_coord,
-                             struct q_useful_buf_c  *y_coord);
 
 
 /*
@@ -348,13 +299,30 @@ struct t_cose_crypto_hash {
 
 
 /**
- * The size of the output of SHA-256 in bytes.
+ * The size of the output of SHA-256, 384 & 512 in bytes.
  *
- * (It is safe to define this independently here as its size is
+ * (It is safe to define these independently here as they are
  * well-known and fixed. There is no need to reference
  * platform-specific headers and incur messy dependence.)
  */
 #define T_COSE_CRYPTO_SHA256_SIZE 32
+#define T_COSE_CRYPTO_SHA384_SIZE 48
+#define T_COSE_CRYPTO_SHA512_SIZE 64
+
+
+/**
+ * The maximum needed to hold a hash. It is smaller and less stack is used
+ * if the larger hashes are disabled.
+ */
+#ifndef T_COSE_DISABLE_ES512
+    #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA512_SIZE
+#else
+    #ifndef T_COSE_DISABLE_ES384
+        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA384_SIZE
+    #else
+        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA256_SIZE
+    #endif
+#endif
 
 
 /**
@@ -455,10 +423,18 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
 static inline size_t t_cose_signature_size(int32_t cose_sig_alg_id)
 {
     switch(cose_sig_alg_id) {
-        case COSE_ALGORITHM_ES256:
-            return T_COSE_EC_P256_SIG_SIZE;
-        default:
-            return T_COSE_EC_P256_SIG_SIZE;
+    case COSE_ALGORITHM_ES256:
+        return T_COSE_EC_P256_SIG_SIZE;
+#ifndef T_COSE_DISABLE_ES384
+    case COSE_ALGORITHM_ES384:
+        return T_COSE_EC_P384_SIG_SIZE;
+#endif
+#ifndef T_COSE_DISABLE_ES512
+    case COSE_ALGORITHM_ES512:
+        return T_COSE_EC_P512_SIG_SIZE;
+#endif
+    default:
+        return T_COSE_EC_P256_SIG_SIZE;
     }
 }
 

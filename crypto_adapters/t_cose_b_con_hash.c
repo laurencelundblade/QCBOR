@@ -20,13 +20,18 @@
 
 SHA256_CTX s_context; /* not thread safe! */
 
+int hash_test_mode = 0;
+
 /*
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
                                            int32_t cose_hash_alg_id)
 {
-    if(cose_hash_alg_id != COSE_ALG_SHA256_PROPRIETARY) {
+    if(hash_test_mode == 1) {
+        return T_COSE_ERR_UNSUPPORTED_HASH;
+    }
+    if(cose_hash_alg_id != COSE_ALGORITHM_SHA_256) {
         return T_COSE_ERR_UNSUPPORTED_HASH;
     }
     //printf("=== start hash  ===\n");
@@ -75,6 +80,9 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
                           struct q_useful_buf_c *hash_result)
 {
     //printf("\n=== finish hash  ===\n");
+    if(hash_test_mode == 2) {
+        return T_COSE_ERR_HASH_GENERAL_FAIL;
+    }
 
 #if 1
     (void)hash_ctx; /* unused parameter */

@@ -132,7 +132,18 @@ struct t_cose_headers {
  of stack, as this is on the stack twice.
 
  */
-#define HEADER_ALG_LIST_TERMINATOR 0 // TODO: check this is an invalid alg ID
+
+/*
+ * The IANA COSE Algorithm registry lists alg ID 0 as "reserved". This means
+ * it can be used, but only by a revision of the COSE standard if it is
+ * deemed necessary for some large and good reason. It cannot just be
+ * allocated by IANA as any normal assignment. See [IANA COSE Registry]
+ * (https://www.iana.org/assignments/cose/cose.xhtml).
+ *
+ * It is considered safe to use as the list terminator.
+ */
+#define HEADER_ALG_LIST_TERMINATOR 0
+
 struct t_cose_header_list {
     // Terminated by value HEADER_ALG_LIST_TERMINATOR
     uint64_t int_headers[T_COSE_HEADER_LIST_MAX+1];
@@ -152,6 +163,10 @@ clear_header_list(struct t_cose_header_list *list)
 /*
  Parse the header that contains the list of critical headers and return
  the list of critical headers.
+
+ \retval  T_COSE_ERR_CBOR_NOT_WELL_FORMED Unparsable CBOR
+ \retval T_COSE_ERR_TOO_MANY_HEADERS  More critical headers than this implementation can handle
+ \retval T_COSE_ERR_CBOR_STRUCTURE  CBOR data type of listed header is not int or string.
  */
 static inline enum t_cose_err_t
 parse_critical_headers(QCBORDecodeContext *decode_context,
@@ -298,6 +313,16 @@ Done:
 }
 
 
+/*
+  \param[in] decode_context  CBOR decode context to read from
+  \param[in] unknown_header  The data item for the unknown header
+  \param[in/out] unknown_headers  The list of unknown headers to which to add this new unknown header to
+  \param[out] next_nest_level The nest level of the next item that will be fetched. Helps to know if at end of list.
+
+  \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED  The CBOR is not well-formed.
+  \retval T_COSE_ERR_TOO_MANY_HEADERS  The unknown header list is full.
+  \retval T_COSE_ERR_CBOR_STRUCTURE The CBOR structure is not as expected.
+ */
 static enum t_cose_err_t
 process_unknown_header(QCBORDecodeContext *decode_context,
                        const QCBORItem *unknown_header,
@@ -330,26 +355,28 @@ parse_cose_headers(QCBORDecodeContext *decode_context,
        Stack use 32-bit: 32 + 1 + 1 + 1 + 176 = 212 */
     QCBORItem                 item;
     enum t_cose_err_t         return_value;
-    uint_fast8_t              map_nest_level;
+    uint_fast8_t              end_of_map_level;
     uint_fast8_t              next_nest_level;
     struct t_cose_header_list unknown_headers;
     struct t_cose_header_list critical_headers;
 
 
     // clear usefulbufs to NULL and algorithm ID to COSE_ALGORITHM_INVALID
-#if COSE_ALGORITHM_INVALID != 0
+#if COSE_ALGORITHM_RESERVED != 0
 #error Invalid algorithm designator not 0. Header list initialization fails.
 #endif
     memset(returned_headers, 0, sizeof(struct t_cose_headers));
 
     clear_header_list(&unknown_headers);
+    clear_header_list(&critical_headers);
+
 
     /* This assumes the next thing to decode is the map
      */
     /* Get the data item that is the map that is being searched */
     QCBORDecode_GetNext(decode_context, &item);
     if(item.uDataType != QCBOR_TYPE_MAP) {
-        return_value = 88; // TODO: proper error cod
+        return_value = T_COSE_ERR_CBOR_STRUCTURE;
         goto Done;
     }
 
@@ -357,9 +384,7 @@ parse_cose_headers(QCBORDecodeContext *decode_context,
      * deeply nested and this should handle both definite
      * and indefinite length maps and arrays, so this
      * adds some complexity. */
-    map_nest_level = item.uNextNestLevel;
-
-    while(1) {
+    for(end_of_map_level = item.uNestingLevel; item.uNextNestLevel > end_of_map_level;) {
         if(QCBORDecode_GetNext(decode_context, &item) != QCBOR_SUCCESS) {
             /* Got non-well-formed CBOR */
             return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
@@ -382,7 +407,11 @@ parse_cose_headers(QCBORDecodeContext *decode_context,
                         return_value = 99; // TODO: error -- can't handle text string alg IDs
                         goto Done;
                     }
-                    returned_headers->cose_alg_id = (int32_t)item.val.int64; // TODO: test for overflow
+                    if(item.val.int64 == COSE_ALGORITHM_RESERVED ||
+                       item.val.int64 > INT32_MAX) {
+                        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+                    }
+                    returned_headers->cose_alg_id = (int32_t)item.val.int64;
                     break;
 
                 case COSE_HEADER_PARAM_KID:
@@ -415,7 +444,7 @@ parse_cose_headers(QCBORDecodeContext *decode_context,
                         goto Done;
                     }
                     return_value = parse_critical_headers(decode_context, &critical_headers);
-                    if(return_value != 3) { // TODO:
+                    if(return_value) { // TODO:
                         goto Done;
                     }
 
@@ -424,23 +453,14 @@ parse_cose_headers(QCBORDecodeContext *decode_context,
                        the list of unknown headers so it can be checked against
                        the list of critical headers */
                     return_value = process_unknown_header(decode_context, &item, &unknown_headers, &next_nest_level);
-
-                    if(return_value) { // TODO:
+                    if(return_value) {
                         goto Done;
                     }
             }
         }
-        if(next_nest_level < map_nest_level) {
-            /* Got all the items in the map. This is the non-error exit
-             * from the loop. */
-
-            /* Last thing to do is to check that there were
-                no unknown critical headers
-             */
-            return_value = check_critical_headers(&critical_headers, &unknown_headers);
-            break;
-        }
     }
+    return_value = check_critical_headers(&critical_headers, &unknown_headers);
+
 
     Done:
         return return_value;
@@ -454,7 +474,7 @@ parse_cose_headers(QCBORDecodeContext *decode_context,
  *                              protected headers to parse.
  * \param[out] cose_alg_id      Place to return the COSE algorithm ID
  *
- * \returns 0 on success, non-zero on failure. TODO: fix this
+ * \returns
  *
  * This parses the contents of the protected headers after the bstr
  * wrapping is removed.  It only looks for the COSE algorithm ID and
@@ -483,13 +503,9 @@ parse_protected_headers(const struct q_useful_buf_c protected_headers,
     }
 
     if(QCBORDecode_Finish(&decode_context)) {
-        return_value = 99; // TODO: fix this
+        /* A CBOR error here is always not-well-formed */
+        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
         goto Done;
-    }
-
-    if(parsed_protected_headers.cose_alg_id == COSE_ALGORITHM_INVALID ||
-       parsed_protected_headers.cose_alg_id > INT32_MAX) {
-        return 1; // TODO: error code
     }
 
     *cose_alg_id = (int32_t)parsed_protected_headers.cose_alg_id;
@@ -503,7 +519,7 @@ Done:
  */
 enum t_cose_err_t
 t_cose_sign1_verify(int32_t option_flags,
-                    int32_t key_select,
+                    struct t_cose_signing_key signing_key,
                     struct q_useful_buf_c cose_sign1,
                     struct q_useful_buf_c *payload)
 {
@@ -527,15 +543,12 @@ t_cose_sign1_verify(int32_t option_flags,
     struct q_useful_buf_c         protected_headers;
     int32_t                       cose_algorithm_id;
     enum t_cose_err_t             return_value;
-    /* Buffer for the tbs hash. Only big enough for SHA256 */
     Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_tbs_hash,
-                                      T_COSE_CRYPTO_SHA256_SIZE);
+                                      T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c         tbs_hash;
     struct q_useful_buf_c         signature;
     struct t_cose_headers         unprotected_headers;
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    Q_USEFUL_BUF_MAKE_STACK_UB   (buf_for_short_circuit_kid,
-                                      T_COSE_SHORT_CIRCUIT_KID_SIZE);
     struct q_useful_buf_c         short_circuit_kid;
 #endif
 
@@ -544,6 +557,7 @@ t_cose_sign1_verify(int32_t option_flags,
     QCBORDecode_Init(&decode_context, cose_sign1, QCBOR_DECODE_MODE_NORMAL);
 
     /* --  The array of four -- */
+    // TODO: this doesn't handle indefinite length arrays
     QCBORDecode_GetNext(&decode_context, &item);
     if(item.uDataType != QCBOR_TYPE_ARRAY || item.val.uCount != 4 ||
        !QCBORDecode_IsTagged(&decode_context, &item, CBOR_TAG_COSE_SIGN1)) {
@@ -570,7 +584,8 @@ t_cose_sign1_verify(int32_t option_flags,
     return_value = parse_cose_headers(&decode_context, &unprotected_headers);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
-    } else if (q_useful_buf_c_is_null(unprotected_headers.kid)) {
+    } else if ((option_flags & T_COSE_OPT_REQUIRE_KID) &&
+               q_useful_buf_c_is_null(unprotected_headers.kid)) {
         return_value = T_COSE_ERR_NO_KID;
         goto Done;
     }
@@ -607,8 +622,7 @@ t_cose_sign1_verify(int32_t option_flags,
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     /* -- Check for short-circuit signature and verify if it exists -- */
-    return_value = get_short_circuit_kid(buf_for_short_circuit_kid,
-                                           &short_circuit_kid);
+    short_circuit_kid = get_short_circuit_kid();
     if(!return_value && !q_useful_buf_compare(unprotected_headers.kid, short_circuit_kid)) {
         if(!(option_flags & T_COSE_OPT_ALLOW_SHORT_CIRCUIT)) {
             return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG;
@@ -620,12 +634,16 @@ t_cose_sign1_verify(int32_t option_flags,
                                                           signature);
         goto Done;
     }
+#else
+    /* avoid an unused argument warning. When another type of option flag
+     is added, this can go away. */
+    (void)option_flags;
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 
     /* -- Verify the signature -- */
     return_value = t_cose_crypto_pub_key_verify(cose_algorithm_id,
-                                                key_select,
+                                                signing_key,
                                                 unprotected_headers.kid,
                                                 tbs_hash,
                                                 signature);

@@ -54,9 +54,9 @@ short_circuit_sign(int32_t cose_alg_id,
     /* approximate stack use on 32-bit machine: local use: 16
      */
     enum t_cose_err_t return_value;
-    size_t array_indx;
-    size_t amount_to_copy;
-    size_t sig_size;
+    size_t            array_indx;
+    size_t            amount_to_copy;
+    size_t            sig_size;
 
     sig_size = t_cose_signature_size(cose_alg_id);
 
@@ -84,196 +84,6 @@ Done:
     return return_value;
 }
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-
-
-/**
- * The maximum size of a CBOR Encoded \c COSE_Key that this
- * implementation can handle. \c COSE_Key is the serialization format
- * for public and other types of keys defined by [COSE (RFC 8152)]
- * (https://tools.ietf.org/html/rfc8152).
- *
- *  This can be increased to handle larger keys, but stack usage will
- *  go up with this increase.
- */
-#define MAX_ENCODED_COSE_KEY_SIZE \
-    1 + /* 1 byte to encode map */ \
-    2 + /* 2 bytes to encode key type */ \
-    2 + /* 2 bytes to encode curve */ \
-    2 * /* the X and Y coordinates at 32 bytes each */ \
-        (T_COSE_CRYPTO_EC_P256_COORD_SIZE + 1 + 2)
-
-
-/**
- * \brief CBOR encode a public key as a \c COSE_Key
- *
- * \param[in] key_select  Identifies the public key to encode.
- *
- * \param[in] buffer_for_cose_key  Pointer and length of buffer into which
- *                              the encoded \c COSE_Key is put.
- * \param[in] cose_key         Pointer and length of the encoded \c COSE_Key.
- *
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * \c COSE_Key is the COSE-defined format for serializing a key for
- * transmission in a protocol. This function encodes an EC public key
- * expressed as an X and Y coordinate.
- */
-static enum t_cose_err_t
-t_cose_encode_cose_key(int32_t key_select,
-                       struct q_useful_buf buffer_for_cose_key,
-                       struct q_useful_buf_c *cose_key)
-{
-    /* approximate stack use on 32-bit machine:
-     * local use: 328
-     * with calls: 370
-     */
-    enum t_cose_err_t           return_value;
-    QCBORError                  qcbor_result;
-    QCBOREncodeContext          cbor_encode_ctx;
-    Q_USEFUL_BUF_MAKE_STACK_UB( buffer_for_x_coord,
-                                    T_COSE_CRYPTO_EC_P256_COORD_SIZE);
-    Q_USEFUL_BUF_MAKE_STACK_UB( buffer_for_y_coord,
-                                    T_COSE_CRYPTO_EC_P256_COORD_SIZE);
-    struct q_useful_buf_c       x_coord;
-    struct q_useful_buf_c       y_coord;
-    int32_t                     cose_curve_id;
-    struct q_useful_buf_c       encoded_key_id;
-
-    /* Get the public key x and y */
-    return_value = t_cose_crypto_get_ec_pub_key(key_select,
-                                                NULL_Q_USEFUL_BUF_C,
-                                                &cose_curve_id,
-                                                buffer_for_x_coord,
-                                                buffer_for_y_coord,
-                                                &x_coord,
-                                                &y_coord);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-    /* Encode it into a COSE_Key structure */
-    QCBOREncode_Init(&cbor_encode_ctx, buffer_for_cose_key);
-    QCBOREncode_OpenMap(&cbor_encode_ctx);
-    QCBOREncode_AddInt64ToMapN(&cbor_encode_ctx,
-                               COSE_KEY_COMMON_KTY,
-                               COSE_KEY_TYPE_EC2);
-    QCBOREncode_AddInt64ToMapN(&cbor_encode_ctx,
-                               COSE_KEY_PARAM_CRV,
-                               cose_curve_id);
-    QCBOREncode_AddBytesToMapN(&cbor_encode_ctx,
-                               COSE_KEY_PARAM_X_COORDINATE,
-                               x_coord);
-    QCBOREncode_AddBytesToMapN(&cbor_encode_ctx,
-                               COSE_KEY_PARAM_Y_COORDINATE,
-                               y_coord);
-    QCBOREncode_CloseMap(&cbor_encode_ctx);
-
-    qcbor_result = QCBOREncode_Finish(&cbor_encode_ctx, &encoded_key_id);
-    if(qcbor_result != QCBOR_SUCCESS) {
-        /* Mainly means that the COSE_Key was too big for buffer_for_cose_key */
-        return_value = T_COSE_ERR_PROTECTED_HEADERS;
-        goto Done;
-    }
-
-    /* Finish up and return */
-    *cose_key = encoded_key_id;
-    return_value = T_COSE_SUCCESS;
-
-Done:
-    return return_value;
-}
-
-
-/**
- * \brief SHA-256 hash a buffer in one quick function
- *
- * \param[in] bytes_to_hash The bytes to be hashed.
- *
- * \param[in] buffer_for_hash  Pointer and length into which
- *                                   the resulting hash is put.
- * \param[out] hash           Pointer and length of the
- *                                   resulting hash.
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * Simple wrapper for start, update and finish interface to a hash.
- *
- * Having this as a separate function helps keep stack usage down and
- * is convenient.
- */
-static enum t_cose_err_t quick_sha256(struct q_useful_buf_c bytes_to_hash,
-                                      struct q_useful_buf buffer_for_hash,
-                                      struct q_useful_buf_c *hash)
-{
-    /* approximate stack use on 32-bit machine:
-     local use: 132
-     */
-    enum t_cose_err_t           return_value = 0;
-    struct t_cose_crypto_hash   hash_ctx;
-
-    return_value = t_cose_crypto_hash_start(&hash_ctx,
-                                            COSE_ALG_SHA256_PROPRIETARY);
-    if(return_value) {
-        goto Done;
-    }
-    t_cose_crypto_hash_update(&hash_ctx, bytes_to_hash);
-    return_value = t_cose_crypto_hash_finish(&hash_ctx,
-                                             buffer_for_hash,
-                                             hash);
-
-Done:
-    return return_value;
-}
-
-
-/**
- * \brief Make a key ID based on the public key to go in the kid
- * unprotected header.
- *
- * \param[in] key_select         Identifies the public key.
- * \param[in] buffer_for_key_id  Pointer and length into which
- *                               the resulting key ID is put.
- * \param[out] key_id            Pointer and length of the
- *                               resulting key ID.
- *
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- *
- * See t_cose_sign1_init() for documentation of the key ID format
- * created here.
- */
-static inline enum t_cose_err_t get_keyid(int32_t key_select,
-                                          struct q_useful_buf buffer_for_key_id,
-                                          struct q_useful_buf_c *key_id)
-{
-    /* approximate stack use on 32-bit machine:
-     * local use: 100
-     * with calls inlined: 560
-     * with calls not inlined: 428
-     */
-    enum t_cose_err_t             return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_cose_key,
-                                      MAX_ENCODED_COSE_KEY_SIZE);
-    struct q_useful_buf_c         cose_key;
-
-    /* Doing the COSE encoding and the hashing in separate functions
-     * called from here reduces the stack usage in this function by a
-     * lot
-     */
-
-    /* Get the key and encode it as a COSE_Key  */
-    return_value = t_cose_encode_cose_key(key_select,
-                                          buffer_for_cose_key,
-                                          &cose_key);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-    /* SHA256 hash of it is all we care about in the end */
-    return_value = quick_sha256(cose_key, buffer_for_key_id, key_id);
-
-Done:
-    return return_value;
-}
 
 
 /**
@@ -342,7 +152,9 @@ static inline void add_unprotected_headers(QCBOREncodeContext *cbor_encode_ctx,
                                            struct q_useful_buf_c kid)
 {
     QCBOREncode_OpenMap(cbor_encode_ctx);
-    QCBOREncode_AddBytesToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_KID, kid);
+    if(!q_useful_buf_c_is_null_or_empty(kid)) {
+        QCBOREncode_AddBytesToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_KID, kid);
+    }
     QCBOREncode_CloseMap(cbor_encode_ctx);
 }
 
@@ -351,50 +163,40 @@ static inline void add_unprotected_headers(QCBOREncodeContext *cbor_encode_ctx,
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
-                                    bool short_circuit_sign,
+                                    int32_t option_flags,
                                     int32_t cose_alg_id,
-                                    int32_t key_select,
+                                    struct t_cose_signing_key signing_key,
+                                    struct q_useful_buf_c key_id,
                                     QCBOREncodeContext *cbor_encode_ctx)
 {
     /* approximate stack use on 32-bit machine:
-     * local use: 66
-     * with calls inlined: 900
-     * with calls not inlined: 500
+     * local use: 16
+     * with calls inlined: 240
      */
-
-    int32_t                       hash_alg;
-    enum t_cose_err_t             return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_kid, T_COSE_CRYPTO_SHA256_SIZE);
-    struct q_useful_buf_c         kid;
-    struct q_useful_buf           buffer_for_protected_header;
+    int32_t              hash_alg_id;
+    enum t_cose_err_t    return_value;
+    struct q_useful_buf  buffer_for_protected_header;
 
     /* Check the cose_alg_id now by getting the hash alg as an early
      error check even though it is not used until later. */
-    hash_alg = hash_alg_id_from_sig_alg_id(cose_alg_id);
-    if(hash_alg == INT32_MAX) {
+    hash_alg_id = hash_alg_id_from_sig_alg_id(cose_alg_id);
+    if(hash_alg_id == INT32_MAX) {
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
 
     /* Remember all the parameters in the context */
     me->cose_algorithm_id   = cose_alg_id;
-    me->key_select          = key_select;
-    me->short_circuit_sign  = short_circuit_sign;
+    me->signing_key         = signing_key;
+    me->option_flags        = option_flags;
     me->cbor_encode_ctx     = cbor_encode_ctx;
 
-    /* Get the key id because it goes into the headers that are about
-     to be made. */
-    if(short_circuit_sign) {
-        return_value = get_short_circuit_kid(buffer_for_kid, &kid);
-    } else {
-        return_value = get_keyid(key_select, buffer_for_kid, &kid);
-    }
-    if(return_value) {
-        goto Done;
+    /* Add the CBOR tag indicating COSE_Sign1 */
+    if(!(option_flags & T_COSE_OPT_OMIT_CBOR_TAG)) {
+        QCBOREncode_AddTag(cbor_encode_ctx, CBOR_TAG_COSE_SIGN1);
     }
 
     /* Get started with the tagged array that holds the four parts of
      a cose single signed message */
-    QCBOREncode_AddTag(cbor_encode_ctx, CBOR_TAG_COSE_SIGN1);
     QCBOREncode_OpenArray(cbor_encode_ctx);
 
     /* The protected headers, which are added as a wrapped bstr  */
@@ -411,7 +213,17 @@ enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
     QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_headers);
 
     /* The Unprotected headers */
-    add_unprotected_headers(cbor_encode_ctx, kid);
+    /* Get the key id because it goes into the headers that are about
+     to be made. */
+    if(option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+        key_id = get_short_circuit_kid();
+#else
+        return_value = T_COSE_SHORT_CIRCUIT_SIG_DISABLED;
+        goto Done;
+#endif
+    }
+    add_unprotected_headers(cbor_encode_ctx, key_id);
 
     /* Any failures in CBOR encoding will be caught in finish
      when the CBOR encoding is closed off. No need to track
@@ -431,9 +243,8 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me,
                                       struct q_useful_buf_c signed_payload)
 {
     /* approximate stack use on 32-bit machine:
-     *   local use: 116
-     * with calls inline: 500
-     * with calls not inlined; 450
+     *   local use: 150-260 depending on algs supported
+     *   total use: 400 - 510 or more depending on crypto library
      */
     enum t_cose_err_t            return_value;
     QCBORError                   cbor_err;
@@ -446,13 +257,13 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me,
                                      T_COSE_MAX_EC_SIG_SIZE);
     /* Buffer for the tbs hash. Only big enough for SHA256 */
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash,
-                                     T_COSE_CRYPTO_SHA256_SIZE);
+                                     T_COSE_CRYPTO_MAX_HASH_SIZE);
 
     /* Check there are no CBOR encoding errors before
      * proceeding with hashing and signing. This is
      * not actually necessary as the errors will be caught
      * correctly later, but it does make it a bit easier
-     * for the caller to debug problems
+     * for the caller to debug problems.
      */
     cbor_err = QCBOREncode_GetErrorState(me->cbor_encode_ctx);
     if(cbor_err == QCBOR_ERR_BUFFER_TOO_SMALL) {
@@ -489,23 +300,22 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me,
      * public key operation and requires no key. It is just a test
      * mode that always works.
      */
-    if(me->short_circuit_sign) {
+    if(!(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG)) {
+        /* Normal, non-short-circuit signing */
+        return_value = t_cose_crypto_pub_key_sign(me->cose_algorithm_id,
+                                                  me->signing_key,
+                                                  tbs_hash,
+                                                  buffer_for_signature,
+                                                  &signature);
+    } else {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         return_value = short_circuit_sign(me->cose_algorithm_id,
                                           tbs_hash,
                                           buffer_for_signature,
                                           &signature);
-#else
-        return_value = 99 ; // TODO: error code
-        goto Done;
 #endif
-    } else {
-        return_value = t_cose_crypto_pub_key_sign(me->cose_algorithm_id,
-                                                  me->key_select,
-                                                  tbs_hash,
-                                                  buffer_for_signature,
-                                                  &signature);
     }
+
     if(return_value) {
         goto Done;
     }

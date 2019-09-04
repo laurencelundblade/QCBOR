@@ -36,8 +36,15 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_sig_alg_id)
      */
     switch(cose_sig_alg_id) {
     case COSE_ALGORITHM_ES256:
-        return COSE_ALG_SHA256_PROPRIETARY;
-
+        return COSE_ALGORITHM_SHA_256;
+#ifndef T_COSE_DISABLE_ES384
+    case COSE_ALGORITHM_ES384:
+        return COSE_ALGORITHM_SHA_384;
+#endif
+#ifndef T_COSE_DISABLE_ES512
+     case COSE_ALGORITHM_ES512:
+        return COSE_ALGORITHM_SHA_512;
+#endif
     default:
         return INT32_MAX;
     }
@@ -197,37 +204,29 @@ Done:
 }
 
 
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+/* This is a random hard coded key ID that is used to indicate
+ * short-circuit signing. It is OK to hard code this as the
+ * probability of collision with this ID is very low and the same
+ * as for collision between any two key IDs of any sort.
+ */
+
+static const uint8_t defined_short_circuit_kid[] = {
+    0xef, 0x95, 0x4b, 0x4b, 0xd9, 0xbd, 0xf6, 0x70,
+    0xd0, 0x33, 0x60, 0x82, 0xf5, 0xef, 0x15, 0x2a,
+    0xf8, 0xf3, 0x5b, 0x6a, 0x6c, 0x00, 0xef, 0xa6,
+    0xa9, 0xa7, 0x1f, 0x49, 0x51, 0x7e, 0x18, 0xc6};
+
+static struct q_useful_buf_c ss_kid;
+
 /*
  * Public function. See t_cose_util.h
  */
-enum t_cose_err_t
-get_short_circuit_kid(struct q_useful_buf buffer_for_kid,
-                      struct q_useful_buf_c *kid)
+struct q_useful_buf_c get_short_circuit_kid(void)
 {
-    /* This is a random hard coded key ID that is used to indicate
-     * short-circuit signing. It is OK to hard code this as the
-     * probability of collision with this ID is very low and the same
-     * as for collision between any two key IDs of any sort.
-     */
-    uint8_t defined_short_circuit_kid[] = {
-        0xef, 0x95, 0x4b, 0x4b, 0xd9, 0xbd, 0xf6, 0x70,
-        0xd0, 0x33, 0x60, 0x82, 0xf5, 0xef, 0x15, 0x2a,
-        0xf8, 0xf3, 0x5b, 0x6a, 0x6c, 0x00, 0xef, 0xa6,
-        0xa9, 0xa7, 0x1f, 0x49, 0x51, 0x7e, 0x18, 0xc6};
+    ss_kid.len = sizeof(defined_short_circuit_kid);
+    ss_kid.ptr = defined_short_circuit_kid;
 
-    /* Prevent a dumb error where the size constant in the header is
-     * wrong.This check will be evaluated at compile time and optimize
-     * out when all is correct.
-     */
-    if(sizeof(defined_short_circuit_kid) != T_COSE_SHORT_CIRCUIT_KID_SIZE) {
-        return T_COSE_ERR_BAD_SHORT_CIRCUIT_KID;
-    }
-
-    *kid = q_useful_buf_copy(buffer_for_kid,
-                             Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(
-                                 defined_short_circuit_kid));
-
-    return q_useful_buf_c_is_null(*kid) ?
-              T_COSE_ERR_KEY_BUFFER_SIZE :
-              T_COSE_SUCCESS;
+    return ss_kid;
 }
+#endif

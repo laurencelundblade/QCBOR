@@ -12,6 +12,8 @@
 #ifndef __T_COSE_COMMON_H__
 #define __T_COSE_COMMON_H__
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,7 +34,36 @@ extern "C" {
 //#define T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 
 
-    
+#define T_COSE_MAX_HASH 
+
+/*
+ * This is used to indicate or pass a key through
+ * the t_cose implementation to the underlying,
+ * platform-specific cryptography libraries for
+ * signing and verifying signature.
+ *
+ * 
+
+
+ */
+
+enum t_cose_crypto_lib_t {
+    T_COSE_CRYPTO_LIB_UNIDENTIFIED = 0,
+    T_COSE_CRYPTO_LIB_OPENSSL = 1,
+    T_COSE_CRYPTO_LIB_TF_M = 2
+};
+
+struct t_cose_signing_key {
+    enum t_cose_crypto_lib_t crypto_lib;
+    union {
+        void *key_ptr;
+        int   key_handle;
+    } k;
+};
+
+
+
+
 
 /* Private value. Intentionally not documented for Doxygen.
  * This is the size allocated for the encoded protected headers.  It
@@ -98,10 +129,14 @@ enum t_cose_err_t {
     T_COSE_ERR_SIGN1_FORMAT,
     /**
      * When decoding some CBOR like a \c COSE_Sign1, the CBOR was not
-     * well-formed. Most likely what was supposed to be CBOR was is
+     * "well-formed". Most likely what was supposed to be CBOR was is
      * either not or it has been corrupted.
      */
     T_COSE_ERR_CBOR_NOT_WELL_FORMED,
+    /**
+     * The CBOR is "well-formed", but the structure is not right. For example
+     * an array occurs when a map is expected, or a string occurs when an
+     * integer is expected */
     T_COSE_ERR_CBOR_STRUCTURE,
     /**
      * No algorithm ID was found when one is needed. For example, when
@@ -151,7 +186,8 @@ enum t_cose_err_t {
      */
     T_COSE_ERR_SIG_STRUCT,
     /**
-      * Signature was short-circuit. The option to allow verification
+      * Signature was short-circuit. The option
+       \ref T_COSE_OPT_ALLOW_SHORT_CIRCUIT to allow verification
       * of short-circuit signatures was not set.
      */
     T_COSE_ERR_SHORT_CIRCUIT_SIG,
@@ -164,13 +200,21 @@ enum t_cose_err_t {
     T_COSE_ERR_CBOR_FORMATTING,
      /** The buffer passed in to receive the output is too small. */
     T_COSE_ERR_TOO_SMALL,
-
     /** More headers (more than T_COSE_HEADER_LIST_MAX) than this implementation can handle. Note that
         all headers need to be checked for criticality so all
         headers need to be examined. */
     T_COSE_ERR_TOO_MANY_HEADERS,
 
-    T_COSE_UNKNOWN_CRITICAL_HEADER
+    T_COSE_UNKNOWN_CRITICAL_HEADER,
+    /** A request was made to signed with a short-ciruit sig,
+        \ref T_COSE_OPT_SHORT_CIRCUIT_SIG, but short circuit signature are
+        disabled (compiled out) for this implementation  */
+    T_COSE_SHORT_CIRCUIT_SIG_DISABLED,
+
+    /* The key type in a t_cose_signing_key is wrong for the
+     cryptographic library used by this integration of t_cose.
+     */
+    T_COSE_INCORRECT_KEY_FOR_LIB
 };
 
 
