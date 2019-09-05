@@ -15,14 +15,13 @@
 #include "t_cose_crypto.h"
 
 #include "openssl/ecdsa.h"
-#include "openssl/obj_mac.h" /* for NID for EC curve */
 #include "openssl/err.h"
 
 
 /**
  * \file t_cose_openssl_signature.c
  *
- * \brief Glue code for t_cose to use openssl ECDSA
+ * \brief Crypto Adaptation for t_cose to use openssl ECDSA
  */
 
 
@@ -39,7 +38,7 @@ convert_signature_from_ossl(const ECDSA_SIG *ossl_signature,
 
     /* Get the signature r and s as big nums */
     ECDSA_SIG_get0(ossl_signature, &ossl_signature_r_bn, &ossl_signature_s_bn);
-    // ECDSA_SIG_get0 returns void
+    /* ECDSA_SIG_get0 returns void */
 
     /* Check the lengths to see if fits in the output buffer */
     r_len = BN_num_bytes(ossl_signature_r_bn);
@@ -62,29 +61,25 @@ Done:
 
 
 enum t_cose_err_t
-t_cose_crypto_pub_key_sign(int32_t cose_alg_id,
+t_cose_crypto_pub_key_sign(int32_t                   cose_alg_id,
                            struct t_cose_signing_key signing_key,
-                           struct q_useful_buf_c hash_to_sign,
-                           struct q_useful_buf signature_buffer,
-                           struct q_useful_buf_c *signature)
+                           struct q_useful_buf_c     hash_to_sign,
+                           struct q_useful_buf       signature_buffer,
+                           struct q_useful_buf_c    *signature)
 {
     enum t_cose_err_t  return_value;
-    EC_GROUP          *ossl_ec_group = NULL;
-    EC_KEY            *ossl_ec_key = NULL;
+    EC_KEY            *ossl_ec_key;
     ECDSA_SIG         *ossl_signature = NULL;
-
-    /*
-     * The interpretation of openssl's errors could be more detailed
-     * and helpful, but as of now this is used just for test purposes.
-     */
-    
-    if(cose_alg_id != COSE_ALGORITHM_ES256) {
-        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-        goto Done;
-    }
 
     if(signing_key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
         return_value = T_COSE_INCORRECT_KEY_FOR_LIB;
+        goto Done;
+    }
+
+    if(cose_alg_id != COSE_ALGORITHM_ES256 &&
+       cose_alg_id != COSE_ALGORITHM_ES384 &&
+       cose_alg_id != COSE_ALGORITHM_ES512) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }
 
@@ -95,6 +90,10 @@ t_cose_crypto_pub_key_sign(int32_t cose_alg_id,
                                    (int)hash_to_sign.len,
                                    ossl_ec_key);
     if(ossl_signature == NULL) {
+        /*
+         * The interpretation of openssl's errors could be more detailed
+         * and helpful, but as of now this is used primarily for test purposes.
+         */
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
@@ -109,8 +108,7 @@ t_cose_crypto_pub_key_sign(int32_t cose_alg_id,
     
 Done:
     /* These (are assumed to) all check for NULL before they free, so
-     * it is not necessary to check here */
-    EC_GROUP_free(ossl_ec_group);
+     * it is not necessary to check for NULL here */
     ECDSA_SIG_free(ossl_signature);
     
     return return_value;
@@ -120,12 +118,16 @@ Done:
 /* Returns shit that has to be freed */
 // TODO: check out error conditions
 static  enum t_cose_err_t
-convert_signature_to_ossl(struct q_useful_buf_c signature, ECDSA_SIG **ossl_sig_to_verify)
+convert_signature_to_ossl(int32_t cose_alg_id,
+                          struct q_useful_buf_c signature,
+                          ECDSA_SIG **ossl_sig_to_verify)
 {
     enum t_cose_err_t return_value;
     BIGNUM           *ossl_signature_r_bn = NULL;
     BIGNUM           *ossl_signature_s_bn = NULL;
     int               ossl_result;
+    size_t            sig_size;
+    int               half_sig_size;
 
     /* Openssl frees BNs associated with a sig when the
      * sig is freed. That makes this error handling in
@@ -135,33 +137,38 @@ convert_signature_to_ossl(struct q_useful_buf_c signature, ECDSA_SIG **ossl_sig_
 
     /* Check the signature length (it will vary with algorithm when
      * multiple are supported */
-    // TODO: fix signature lengths
-    if(signature.len != 64) {
+
+    sig_size = t_cose_signature_size(cose_alg_id);
+    if(signature.len != sig_size) {
         return_value = T_COSE_ERR_SIG_VERIFY;
-        goto Done2;
+        goto Done;
     }
+
+    /* Cast to int is safe because of check against return from t_cose_signature_size() */
+    half_sig_size = (int)sig_size/2;
 
     /* Put the r and the s from the signature into big numbers */
-    ossl_signature_r_bn = BN_bin2bn(signature.ptr, 32, NULL);
+    ossl_signature_r_bn = BN_bin2bn(signature.ptr, half_sig_size, NULL);
     if(ossl_signature_r_bn == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
-        goto Done2;
+        goto Done;
     }
 
-    ossl_signature_s_bn = BN_bin2bn(((uint8_t *)signature.ptr)+32, 32, NULL);
+    ossl_signature_s_bn = BN_bin2bn(((uint8_t *)signature.ptr)+half_sig_size, half_sig_size, NULL);
     if(ossl_signature_s_bn == NULL) {
         BN_free(ossl_signature_r_bn);
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
-        goto Done2;
+        goto Done;
     }
 
     /* Put the signature bytes into an ECDSA_SIG */
     *ossl_sig_to_verify = ECDSA_SIG_new();
     if(ossl_sig_to_verify == NULL) {
+        /* Don't leak memory in error condition */
         BN_free(ossl_signature_r_bn);
         BN_free(ossl_signature_s_bn);
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
-        goto Done2;
+        goto Done;
     }
 
     /* Put the r and s bignums into an ECDSA_SIG. Freeing
@@ -178,9 +185,7 @@ convert_signature_to_ossl(struct q_useful_buf_c signature, ECDSA_SIG **ossl_sig_
     return_value = T_COSE_SUCCESS;
 
 Done:
-Done2:
     /* The BN's r and s get freed when ossl_sig_to_verify is freed */
-
     return return_value;
 }
 
@@ -189,42 +194,52 @@ Done2:
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_pub_key_verify(int32_t cose_alg_id,
-                             struct t_cose_signing_key signing_key,
-                             struct q_useful_buf_c key_id,
-                             struct q_useful_buf_c hash_to_verify,
-                             struct q_useful_buf_c signature)
+t_cose_crypto_pub_key_verify(int32_t                   cose_alg_id,
+                             struct t_cose_signing_key verification_key,
+                             struct q_useful_buf_c     key_id,
+                             struct q_useful_buf_c     hash_to_verify,
+                             struct q_useful_buf_c     signature)
 {
     (void)key_id;  /* unused parameter */
 
     int               ossl_result;
     enum t_cose_err_t return_value;
-    EC_KEY           *ossl_pub_key = NULL;
+    EC_KEY           *ossl_pub_key;
     ECDSA_SIG        *ossl_sig_to_verify = NULL;
+
+    if(verification_key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
+        return_value = T_COSE_INCORRECT_KEY_FOR_LIB;
+        goto Done;
+    }
+
+    /* Get the pub key out of the union passed in. It is
+     assume the key is pointer to an openssl key object */
+    ossl_pub_key = (EC_KEY *)verification_key.k.key_ptr;
+
+    /* Chek the algorithm identifier */
+    if(cose_alg_id != COSE_ALGORITHM_ES256 &&
+       cose_alg_id != COSE_ALGORITHM_ES384 &&
+       cose_alg_id != COSE_ALGORITHM_ES512) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done;
+    }
+
 
     /*
      * The interpretation of openssl's errors could be more detailed
      * and helpful, but as of now this is used just for test purposes.
      */
 
-    /* Chek the algorithm identifier */
-    if(cose_alg_id != COSE_ALGORITHM_ES256) {
-        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-        goto Done;
-    }
-
     /* Convert the serialized signature off the wire into the
        openssl object / structure */
-    return_value = convert_signature_to_ossl(signature, &ossl_sig_to_verify);
+    return_value = convert_signature_to_ossl(cose_alg_id,
+                                             signature,
+                                             &ossl_sig_to_verify);
     if(return_value) {
         goto Done;
     }
-
-    /* Get the pub key out of the union passed in. It is
-     assume the key is pointer to an openssl key object */
-    ossl_pub_key = (EC_KEY *)signing_key.k.key_ptr;
     
-    /* Check the key to be sure */
+    /* Check the key to be sure it is OK */
     ossl_result = EC_KEY_check_key(ossl_pub_key);
     if(ossl_result == 0) {
         return_value = T_COSE_ERR_SIG_FAIL;
@@ -249,6 +264,5 @@ Done:
      * it is not necessary to check here */
     ECDSA_SIG_free(ossl_sig_to_verify);
 
-Done2:
     return return_value;
 }
