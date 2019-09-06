@@ -88,6 +88,10 @@ because the keys and signatures are relatively small, but this depends on the cr
 
 The standard OpenSSL library does use malloc.
 
+## Limitations
+* Doesn't not handle and headers with string labels. Only integer label are handled. This is OK because no string labels have been allocated by IANA.
+* Doesn't handle string algorithm IDs. Only integer algorithm IDs are handled. This is OK because no string algorithm IDs have been allocated by IANA.
+
 ## Credit
 
 * Tamas Ban for lots code review comments, design ideas and porting to ARM PSA.

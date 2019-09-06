@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0F91057A2321878F00008572 /* t_cose_headers.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F9105792321878F00008572 /* t_cose_headers.c */; };
 		E71D9E8D231C3DBA00A21F7F /* t_cose_openssl_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E71D9E8B231C3DB900A21F7F /* t_cose_openssl_test.c */; };
 		E72FB01D231ADAA8000970FE /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
 		E7E36E7C226CB8400040613B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E7B226CB8400040613B /* main.c */; };
@@ -61,6 +62,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0F9105782321878F00008572 /* t_cose_headers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_headers.h; sourceTree = "<group>"; };
+		0F9105792321878F00008572 /* t_cose_headers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_headers.c; sourceTree = "<group>"; };
 		E71D9E8B231C3DB900A21F7F /* t_cose_openssl_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_openssl_test.c; sourceTree = "<group>"; };
 		E71D9E8C231C3DBA00A21F7F /* t_cose_openssl_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_openssl_test.h; sourceTree = "<group>"; };
 		E71D9E8E231C930B00A21F7F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -168,6 +171,8 @@
 				E7E36E88226CB9460040613B /* t_cose_defines.h */,
 				E7E36E89226CB9460040613B /* t_cose_util.c */,
 				E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */,
+				0F9105782321878F00008572 /* t_cose_headers.h */,
+				0F9105792321878F00008572 /* t_cose_headers.c */,
 				E7E36E8C226CB9460040613B /* t_cose_util.h */,
 				E7E36E8D226CB9460040613B /* t_cose_crypto.h */,
 				E7E36E8E226CB9460040613B /* t_cose_sign1_sign.c */,
@@ -355,6 +360,7 @@
 				E7EF498F2270E49A00F2D836 /* t_cose_b_con_hash.c in Sources */,
 				E7F70AAF2270D676007CE07F /* sha256.c in Sources */,
 				E7E36E9E226CBA1A0040613B /* ieee754.c in Sources */,
+				0F91057A2321878F00008572 /* t_cose_headers.c in Sources */,
 				E7E36E90226CB9460040613B /* t_cose_util.c in Sources */,
 				E7E36E9F226CBA1A0040613B /* qcbor_encode.c in Sources */,
 				E7F70AC62270DFAE007CE07F /* t_cose_test.c in Sources */,

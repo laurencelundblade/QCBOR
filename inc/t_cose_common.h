@@ -204,17 +204,22 @@ enum t_cose_err_t {
         all headers need to be checked for criticality so all
         headers need to be examined. */
     T_COSE_ERR_TOO_MANY_HEADERS,
-
+    /** A header was encountered that was unknown and also listed in the critical headers header. */
     T_COSE_UNKNOWN_CRITICAL_HEADER,
     /** A request was made to signed with a short-ciruit sig,
         \ref T_COSE_OPT_SHORT_CIRCUIT_SIG, but short circuit signature are
         disabled (compiled out) for this implementation  */
     T_COSE_SHORT_CIRCUIT_SIG_DISABLED,
 
-    /* The key type in a t_cose_signing_key is wrong for the
+    /** The key type in a t_cose_signing_key is wrong for the
      cryptographic library used by this integration of t_cose.
      */
-    T_COSE_INCORRECT_KEY_FOR_LIB
+    T_COSE_INCORRECT_KEY_FOR_LIB,
+    /** This implementation only handles integer COSE algorithm IDs with
+     values less than INT32_MAX */
+    T_COSE_NON_INTEGER_ALG_ID,
+    /** The content type header contains a content type that neither integer or text string */
+    T_COSE_BAD_CONTENT_TYPE,
 };
 
 

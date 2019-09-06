@@ -69,7 +69,16 @@ extern "C" {
  * key. If the verification key is determined by other than
  * the kid, then it is fine if there is no kid.
  */
-#define T_COSE_OPT_REQUIRE_KID 0x02
+#define T_COSE_OPT_REQUIRE_KID 0x00000002
+
+
+/* Decode the CBOR as COSE even if the tag
+ * indicating so is absent.
+ *
+ * Even with this flag set it is an error if
+ * a tag other than for COSE_Sign1 is present.
+ */
+#define T_COSE_OPT_TAG_NOT_REQUIRED  0x00000004
 
 
 /**
