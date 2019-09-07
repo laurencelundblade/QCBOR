@@ -145,7 +145,7 @@ inline static void DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
    // Pop up nesting levels if the counts at the levels are zero
    while(DecodeNesting_IsNested(pNesting) && 0 == pNesting->pCurrent->uCount) {
       pNesting->pCurrent--;
-      if(!DecodeNesting_IsIndefiniteLength(pNesting)) {
+      if(!DecodeNesting_IsIndefiniteLength(pNesting) && pNesting->pCurrent->uCount) {
          pNesting->pCurrent->uCount--;
       }
    }
@@ -1098,7 +1098,10 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
       // Maps and arrays do count in as items in the map/array that encloses
       // them so a decrement needs to be done for them too, but that is done
       // only when all the items in them have been processed, not when they
-      // are opened.
+      // are opened with the exception of an empty map or array.
+       if(pDecodedItem->val.uCount == 0) {
+           DecodeNesting_DecrementCount(&(me->nesting));
+       }
    } else {
       // Decrement the count of items in the enclosing map/array
       // If the count in the enclosing map/array goes to zero, that
