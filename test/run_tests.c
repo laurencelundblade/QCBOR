@@ -100,6 +100,7 @@ test_entry2 s_tests2[] = {
 
 
 test_entry s_tests[] = {
+    TEST_ENTRY(EmptyMapsAndArraysTest),
     TEST_ENTRY(NotWellFormedTests),
     TEST_ENTRY(ParseMapAsArrayTest),
     TEST_ENTRY(AllocAllStringsTest),

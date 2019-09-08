@@ -593,6 +593,149 @@ int SimpleArrayTest()
 }
 
 
+/*
+ [
+    0,
+    [],
+    [
+       [],
+       [
+          0
+       ],
+       {},
+       {
+          1: {},
+          2: {},
+          3: []
+       }
+    ]
+ ]
+ */
+static uint8_t sEmpties[] = {0x83, 0x00, 0x80, 0x84, 0x80, 0x81, 0x00, 0xa0,
+                             0xa3, 0x01, 0xa0, 0x02, 0xa0, 0x03, 0x80};
+
+int EmptyMapsAndArraysTest()
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem Item;
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmpties), QCBOR_DECODE_MODE_NORMAL);
+
+   // Array with 3 items
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
+      Item.uDataType != QCBOR_TYPE_ARRAY ||
+      Item.uNestingLevel != 0 ||
+      Item.uNextNestLevel != 1 ||
+      Item.val.uCount != 3) {
+      return -1;
+   }
+
+   // An integer 0
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
+      Item.uDataType != QCBOR_TYPE_INT64 ||
+      Item.uNestingLevel != 1 ||
+      Item.uNextNestLevel != 1 ||
+      Item.val.uint64 != 0) {
+      return -2;
+   }
+
+   // An empty array
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
+      Item.uDataType != QCBOR_TYPE_ARRAY ||
+      Item.uNestingLevel != 1 ||
+      Item.uNextNestLevel != 1 ||
+      Item.val.uCount != 0) {
+      return -3;
+   }
+
+   // An array with 4 items
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
+      Item.uDataType != QCBOR_TYPE_ARRAY ||
+      Item.uNestingLevel != 1 ||
+      Item.uNextNestLevel != 2 ||
+      Item.val.uCount != 4) {
+      return -4;
+   }
+
+   // An empty array
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
+      Item.uDataType != QCBOR_TYPE_ARRAY ||
+      Item.uNestingLevel != 2 ||
+      Item.uNextNestLevel != 2 ||
+      Item.val.uCount != 0) {
+      return -5;
+   }
+
+   // An array with 1 item
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
+      Item.uDataType != QCBOR_TYPE_ARRAY ||
+      Item.uNestingLevel != 2 ||
+      Item.uNextNestLevel != 3 ||
+      Item.val.uCount != 1) {
+      return -6;
+   }
+
+   // An integer 0
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
+      Item.uDataType != QCBOR_TYPE_INT64 ||
+      Item.uNestingLevel != 3 ||
+      Item.uNextNestLevel != 2 ||
+      Item.val.uint64 != 0) {
+      return -7;
+   }
+
+   // An empty map
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
+      Item.uDataType != QCBOR_TYPE_MAP ||
+      Item.uNestingLevel != 2 ||
+      Item.uNextNestLevel != 2 ||
+      Item.val.uCount != 0) {
+      return -8;
+   }
+
+   // An map with 3 items
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
+      Item.uDataType != QCBOR_TYPE_MAP ||
+      Item.uNestingLevel != 2 ||
+      Item.uNextNestLevel != 3 ||
+      Item.val.uCount != 3) {
+      return -9;
+   }
+
+   // An empty map
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
+      Item.uDataType != QCBOR_TYPE_MAP ||
+      Item.uNestingLevel != 3 ||
+      Item.uNextNestLevel != 3 ||
+      Item.val.uCount != 0) {
+      return -10;
+   }
+
+   // An empty map
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
+      Item.uDataType != QCBOR_TYPE_MAP ||
+      Item.uNestingLevel != 3 ||
+      Item.uNextNestLevel != 3 ||
+      Item.val.uCount != 0) {
+      return -11;
+   }
+
+   // An empty array
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
+      Item.uDataType != QCBOR_TYPE_ARRAY ||
+      Item.uNestingLevel != 3 ||
+      Item.uNextNestLevel != 0 ||
+      Item.val.uCount != 0) {
+      return -12;
+   }
+
+   if(QCBORDecode_Finish(&DCtx) != QCBOR_SUCCESS) {
+      return -13;
+   }
+
+   return 0;
+}
+
 
 static uint8_t spDeepArrays[] = {0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x80};
 

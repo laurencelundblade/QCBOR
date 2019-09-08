@@ -67,6 +67,11 @@ int IntegerValuesParseTest(void);
  */
 int SimpleArrayTest(void);
 
+/*
+ Tests with empty maps and arrays
+ */
+int EmptyMapsAndArraysTest(void);
+
 
 /*
  Make sure a maximally deep array can be parsed and that the
