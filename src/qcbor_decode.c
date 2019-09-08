@@ -127,7 +127,7 @@ inline static QCBORError DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
    return QCBOR_SUCCESS;
 }
 
-
+// Called on every single item except breaks including the opening of a map/array
 inline static void DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
 {
    while(DecodeNesting_IsNested(pNesting)) {
