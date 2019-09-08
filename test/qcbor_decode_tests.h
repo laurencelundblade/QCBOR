@@ -33,8 +33,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __QCBOR__qcbort_decode_tests__
 #define __QCBOR__qcbort_decode_tests__
 
-#include "qcbor.h"
-
 
 /*
  Notes:
@@ -49,8 +47,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 
-
-
 /*
  Parse a well-known set of integers including those around the boundaries and
  make sure the expected values come out
@@ -58,14 +54,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int IntegerValuesParseTest(void);
 
 
-
-
-
 /*
  Decode a simple CBOR encoded array and make sure it returns all the correct values.
  This is a decode test.
  */
 int SimpleArrayTest(void);
+
 
 /*
  Tests with empty maps and arrays
@@ -117,21 +111,15 @@ int ShortBufferParseTest2(void);
 int ParseMapTest(void);
 
 
-
-int FloatValuesTest1(void);
-
-
-
-int SimpleValuesTest1(void);
-
-
 /*
-
+Test the decoder mode where maps are treated as arrays.
  */
 int ParseMapAsArrayTest(void);
 
 
-
+/*
+ Test parsing of some simple values like true, false, null...
+ */
 int ParseSimpleTest(void);
 
 
@@ -188,6 +176,9 @@ int OptTagParseTest(void);
 int BignumParseTest(void);
 
 
+/*
+ Test of mode where only string labels are allowed
+ */
 int StringDecoderModeFailTest(void);
 
 
@@ -242,8 +233,6 @@ int MemPoolTest(void);
  Test the setting up of an external string allocator.
  */
 int SetUpAllocatorTest(void);
-
-
 
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

@@ -33,8 +33,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __QCBOR__qcbor_encode_tests__
 #define __QCBOR__qcbor_encode_tests__
 
-#include "qcbor.h"
-
 
 /*
  Notes:
@@ -60,7 +58,6 @@ int BasicEncodeTest(void);
  Match the expected binary output. Primarily an encoding test.
  */
 int IntegerValuesTest1(void);
-
 
 
 /*
@@ -96,7 +93,6 @@ int EncodeRawTest(void);
  data. This is an encoding test.
  */
 int MapEncodeTest(void);
-
 
 
 /*
@@ -144,14 +140,32 @@ int AllAddMethodsTest(void);
  */
 int  BstrWrapTest(void);
 
+
+/*
+ Test error cases for bstr wrapping encoding such as closing an open
+ array with CloseBstrWrap
+ */
 int BstrWrapErrorTest(void);
 
+
+/*
+ Test complicated nested bstr wrapping
+ */
 int BstrWrapNestTest(void);
 
+
+/*
+ Test encoding a COSE_Sign1 with bstr wrapping
+ */
 int CoseSign1TBSTest(void);
 
-int EncodeErrorTests(void);
 
+/*
+ Test the error cases when encoding CBOR such as buffer too large,
+ buffer too small, array nesting too deep. Aims to cover the error
+ codes returned when encoding CBOR
+ */
+int EncodeErrorTests(void);
 
 
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */
