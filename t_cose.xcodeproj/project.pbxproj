@@ -67,6 +67,7 @@
 		E71D9E8B231C3DB900A21F7F /* t_cose_openssl_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_openssl_test.c; sourceTree = "<group>"; };
 		E71D9E8C231C3DBA00A21F7F /* t_cose_openssl_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_openssl_test.h; sourceTree = "<group>"; };
 		E71D9E8E231C930B00A21F7F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		E71D9E8F2326A7A100A21F7F /* t_cose_rfc_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_rfc_constants.h; sourceTree = "<group>"; };
 		E72FB01B231ADAA8000970FE /* run_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = run_tests.h; sourceTree = "<group>"; };
 		E72FB01C231ADAA8000970FE /* run_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = run_tests.c; sourceTree = "<group>"; };
 		E7E36E78226CB8400040613B /* t_cose_openssl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_openssl; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -75,7 +76,6 @@
 		E7E36E84226CB9460040613B /* t_cose_sign1_sign.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_sign1_sign.h; sourceTree = "<group>"; };
 		E7E36E85226CB9460040613B /* t_cose_sign1_verify.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_sign1_verify.h; sourceTree = "<group>"; };
 		E7E36E87226CB9460040613B /* t_cose_psa_crypto_hash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_psa_crypto_hash.c; sourceTree = "<group>"; };
-		E7E36E88226CB9460040613B /* t_cose_defines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_defines.h; sourceTree = "<group>"; };
 		E7E36E89226CB9460040613B /* t_cose_util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_util.c; sourceTree = "<group>"; };
 		E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_sign1_verify.c; sourceTree = "<group>"; };
 		E7E36E8C226CB9460040613B /* t_cose_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_util.h; sourceTree = "<group>"; };
@@ -168,7 +168,7 @@
 		E7E36E86226CB9460040613B /* src */ = {
 			isa = PBXGroup;
 			children = (
-				E7E36E88226CB9460040613B /* t_cose_defines.h */,
+				E71D9E8F2326A7A100A21F7F /* t_cose_rfc_constants.h */,
 				E7E36E89226CB9460040613B /* t_cose_util.c */,
 				E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */,
 				0F9105782321878F00008572 /* t_cose_headers.h */,

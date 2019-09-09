@@ -11,7 +11,7 @@
  */
 
 
-#include "t_cose_defines.h"
+#include "t_cose_rfc_constants.h"
 #include "t_cose_crypto.h"
 
 #include "openssl/ecdsa.h"

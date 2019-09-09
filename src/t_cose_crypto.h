@@ -15,7 +15,7 @@
 #include "t_cose_common.h"
 #include "q_useful_buf.h"
 #include <stdint.h>
-#include "t_cose_defines.h"
+#include "t_cose_rfc_constants.h"
 
 #ifdef __cplusplus
 extern "C" {
