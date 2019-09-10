@@ -22,8 +22,8 @@
  *
  * \returns A CBOR decoding error or QCBOR_SUCCESS.
  *
- * The primary purpose of this is to consume (read) all the members
- * of a map or an array, however deeply nested it is.
+ * The primary purpose of this is to consume (read) all the members of
+ * a map or an array, however deeply nested it is.
  *
  * This doesn't do much work for non-nested data items.
  */
@@ -70,18 +70,18 @@ Done:
 /**
  * A list of COSE headers labels, both integer and string.
  *
- * It is fixed size to avoid the complexity of memory management
- * and because the number of headers is assumed to be small.
+ * It is fixed size to avoid the complexity of memory management and
+ * because the number of headers is assumed to be small.
  *
- * On a 64-bit machine it is 24 * HEADER_LIST_MAX which is
- * 244 bytes. That accommodates 10 string headers and 10
- * integer headers and is small enough to go on the stack.
+ * On a 64-bit machine it is 24 * HEADER_LIST_MAX which is 244
+ * bytes. That accommodates 10 string headers and 10 integer headers
+ * and is small enough to go on the stack.
  *
  * On a 32-bit machine: 16 * HEADER_LIST_MAX = 176
  *
- * This is a big consumer of stack in this implementation.
- * Some cleverness with a union could save almost 200 bytes
- * of stack, as this is on the stack twice.
+ * This is a big consumer of stack in this implementation.  Some
+ * cleverness with a union could save almost 200 bytes of stack, as
+ * this is on the stack twice.
 */
 struct t_cose_header_list {
     /* Terminated by value HEADER_ALG_LIST_TERMINATOR */
@@ -92,12 +92,13 @@ struct t_cose_header_list {
 
 
 /*
- * The IANA COSE Header Parameters registry lists label 0 as "reserved". This means
- * it can be used, but only by a revision of the COSE standard if it is
- * deemed necessary for some large and good reason. It cannot just be
- * allocated by IANA as any normal assignment. See [IANA COSE Registry]
- * (https://www.iana.org/assignments/cose/cose.xhtml).
- * It is thus considered safe to use as the list terminator.
+ * The IANA COSE Header Parameters registry lists label 0 as
+ * "reserved". This means it can be used, but only by a revision of
+ * the COSE standard if it is deemed necessary for some large and good
+ * reason. It cannot just be allocated by IANA as any normal
+ * assignment. See [IANA COSE Registry]
+ * (https://www.iana.org/assignments/cose/cose.xhtml).  It is thus
+ * considered safe to use as the list terminator.
  */
 #define HEADER_ALG_LIST_TERMINATOR 0
 
@@ -180,7 +181,8 @@ Done:
 static inline enum t_cose_err_t
 decode_critical_headers(QCBORDecodeContext       *decode_context,
                        const QCBORItem           *crit_header_item,
-                       struct t_cose_header_list *critical_header_labels)
+                       struct t_cose_header_list *critical_header_labels,
+                       uint_fast8_t              *return_next_nest_level)
 {
     /* Stack use 64-bit: 56 + 40 = 96
      *           32-bit: 52 + 20 = 72
@@ -190,31 +192,26 @@ decode_critical_headers(QCBORDecodeContext       *decode_context,
     uint_fast8_t      num_tstr_headers;
     enum t_cose_err_t return_value;
     QCBORError        cbor_result;
-    uint_fast8_t      nest_level;
+    uint_fast8_t      next_nest_level;
+    uint_fast8_t      array_nest_level;
 
     clear_header_list(critical_header_labels);
     num_int_headers  = 0;
     num_tstr_headers = 0;
 
-    nest_level = 0; // TODO: this may not work for an empty array
+    array_nest_level = crit_header_item->uNestingLevel;
+    next_nest_level  = crit_header_item->uNextNestLevel;
 
     if(crit_header_item->uDataType != QCBOR_TYPE_ARRAY) {
         return_value = T_COSE_ERR_SIGN1_FORMAT;
         goto Done;
     }
 
-    while(1) {
+    while(next_nest_level > array_nest_level) {
         cbor_result = QCBORDecode_GetNext(decode_context, &item);
         if(cbor_result != QCBOR_SUCCESS) {
             return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
             goto Done;
-        }
-        if(nest_level == 0) {
-            /* Record nesting level of first item.
-             * When nesting level is not this
-             * then at end of array.
-             */
-            nest_level = item.uNestingLevel;
         }
 
         if(item.uDataType == QCBOR_TYPE_INT64) {
@@ -233,16 +230,13 @@ decode_critical_headers(QCBORDecodeContext       *decode_context,
             return_value = T_COSE_ERR_CBOR_STRUCTURE; // TODO: Wrong type
             goto Done;
         }
-
-        if(nest_level != item.uNestingLevel) {
-            /* Successful exit from the loop. */
-            // TODO:....
-            return_value = T_COSE_SUCCESS;
-            break;
-        }
+        next_nest_level = item.uNextNestLevel;
     }
 
+    return_value = T_COSE_SUCCESS;
+
 Done:
+    *return_next_nest_level = next_nest_level;
     return return_value;
 }
 
@@ -256,8 +250,8 @@ Done:
  * \retval T_COSE_SUCCESS None of the unknown headers are critical.
  * \retval T_COSE_UNKNOWN_CRITICAL_HEADER At least one of the unknown headers is critical.
  *
- * Both lists are of header labels (CBOR keys). Check to see none of the
- * header labels in the unknown list occur in the critical list.
+ * Both lists are of header labels (CBOR keys). Check to see none of
+ * the header labels in the unknown list occur in the critical list.
  */
 static inline enum t_cose_err_t
 check_critical_headers(const struct t_cose_header_list *critical_headers,
@@ -374,7 +368,7 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
      */
     QCBORItem                 item;
     enum t_cose_err_t         return_value;
-    uint_fast8_t              end_of_map_level;
+    uint_fast8_t              map_nest_level;
     uint_fast8_t              next_nest_level;
     struct t_cose_header_list unknown_headers;
     struct t_cose_header_list critical_headers;
@@ -390,11 +384,20 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
         goto Done;
     }
 
-    /* Loop over all the items in the map. They could be
-     * deeply nested and this handles both definite
-     * and indefinite length maps and arrays, so this
-     * adds some complexity. */
-    for(end_of_map_level = item.uNestingLevel; item.uNextNestLevel > end_of_map_level;) {
+    /* Loop over all the items in the map. The map may contain further
+     * maps and arrays. This also needs to handle definite and
+     * indefinite length maps and array.
+     *
+     * map_nest_level is the nesting level of the data item opening
+     * the map that is being scanned. All data items inside this map
+     * have a nesting level greater than it. The data item following
+     * the map being scanned has a nesting level that is equal to or
+     * higher than map_nest_level.
+     */
+    map_nest_level  = item.uNestingLevel;
+    next_nest_level = item.uNextNestLevel;
+    while(next_nest_level > map_nest_level) {
+
         if(QCBORDecode_GetNext(decode_context, &item) != QCBOR_SUCCESS) {
             /* Got not-well-formed CBOR */
             return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
@@ -455,7 +458,8 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
                     /* parse_critical_headers() consumes all the items in the critical headers array */
                     return_value = decode_critical_headers(decode_context,
                                                            &item,
-                                                           &critical_headers);
+                                                           &critical_headers,
+                                                           &next_nest_level);
                     if(return_value) {
                         goto Done;
                     }
@@ -472,9 +476,11 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
                     }
 
                 default:
-                    /* The header is not recognized. It has to be added to the
-                     the list of unknown headers so it can be checked against
-                     the list of critical headers */
+                    /* The header is not recognized. It has to be
+                     * added to the the list of unknown headers so it
+                     * can be checked against the list of critical
+                     * headers
+                     */
                     return_value = process_unknown_header(decode_context,
                                                           &item,
                                                           &unknown_headers,
