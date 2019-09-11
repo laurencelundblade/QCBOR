@@ -140,7 +140,7 @@ t_cose_sign1_verify(int32_t                   option_flags,
 
 
     /* --  Get the unprotected headers -- */
-    return_value = parse_cose_headers(&decode_context, &unprotected_headers);
+    return_value = parse_unprotected_headers(&decode_context, &unprotected_headers);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }

@@ -468,7 +468,10 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
                     if(item.uDataType == QCBOR_TYPE_TEXT_STRING) {
                         returned_headers->content_type_tstr = item.val.string;
                     } else if(item.uDataType == QCBOR_TYPE_INT64) {
-                        // TODO: read RFCs and figure out how to check for overflow
+                        if(item.val.int64 < 0 || item.val.int64 > UINT16_MAX) {
+                            return_value = T_COSE_BAD_CONTENT_TYPE;
+                            goto Done;
+                        }
                         returned_headers->content_type_uint = (uint32_t)item.val.int64;
                     } else {
                         return_value = T_COSE_BAD_CONTENT_TYPE;

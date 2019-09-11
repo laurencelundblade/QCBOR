@@ -38,11 +38,15 @@ struct t_cose_headers {
     struct q_useful_buf_c partial_iv;
     /** The content type as a MIME type like "text/plain". NULL_Q_USEFUL_BUF_C if header is not present */
     struct q_useful_buf_c content_type_tstr; // TODO: integer versions of this
-    /** The content type as a CoAP Content-Format integer. T_COSE_EMPTY_UINT_CONTENT_TYPE if header is not present */
+    /** The content type as a CoAP Content-Format integer. T_COSE_EMPTY_UINT_CONTENT_TYPE if header is not present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
     uint32_t              content_type_uint;
 };
 
-#define T_COSE_EMPTY_UINT_CONTENT_TYPE 4000000 // TODO: correct this value
+/**
+ This value indicates no integer content type was specified. It is outside
+ the allowed range of 0 to UINT16_MAX.
+ */
+#define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
 
 
 /**
@@ -69,6 +73,30 @@ parse_cose_headers(QCBORDecodeContext *decode_context,
 
 
 /**
+ * \brief Parse the unprotected COSE headers
+ *
+ * \param[in] decode_context  The QCBOR decode context to read the header from
+ *
+ * \param[out] returned_headers  The parsed headers
+
+ \retval T_COSE_SUCCESS if headers were parsed correctly
+ \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED  The CBOR of the headers is not parsable
+ \retval T_COSE_ERR_CBOR_STRUCTURE The CBOR is parsable, but not the right structure (e.g. an array instead of a map)
+
+ No headers are mandatory. Which headers were present or not is indicated
+ in \c returned_headers.
+ It is OK for there to be no headers at all.
+
+ The first item to be read from the decode_context must be the map
+ data item that contains the headers.
+ */
+static enum t_cose_err_t
+parse_unprotected_headers(QCBORDecodeContext *decode_context,
+                   struct t_cose_headers *returned_headers);
+
+
+
+/**
  * \brief Parse the unprotected headers.
  *
  * \param[in] protected_headers Pointer and length of CBOR-encoded
@@ -89,5 +117,18 @@ parse_cose_headers(QCBORDecodeContext *decode_context,
 enum t_cose_err_t
 parse_protected_headers(const struct q_useful_buf_c protected_headers,
                         struct t_cose_headers *returned_headers);
+
+
+
+
+/*
+ * Static inline implementation. See documentation above
+ */
+static inline enum t_cose_err_t
+parse_unprotected_headers(QCBORDecodeContext *decode_context,
+                          struct t_cose_headers *returned_headers)
+{
+    return parse_cose_headers(decode_context, returned_headers);
+}
 
 #endif /* t_cose_headers_h */

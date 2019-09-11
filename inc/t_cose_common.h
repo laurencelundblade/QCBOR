@@ -218,7 +218,7 @@ enum t_cose_err_t {
     /** This implementation only handles integer COSE algorithm IDs with
      values less than INT32_MAX */
     T_COSE_NON_INTEGER_ALG_ID,
-    /** The content type header contains a content type that neither integer or text string */
+    /** The content type header contains a content type that neither integer or text string or it is an integer not in the range of 0 to UINT16_MAX. */
     T_COSE_BAD_CONTENT_TYPE,
 };
 
