@@ -12,16 +12,15 @@ CFLAGS=$(ALL_INC) $(C_OPTS)
 
 SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_headers.o
 
-TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_openssl_test.o
-
 PSA_CRYPTO_OBJ=crypto_adapters/t_cose_psa_off_target_hashes.o crypto_adapters/t_cose_psa_off_target_signature.o ../../crypto-algorithms/sha256.o crypto_adapters/t_cose_psa_crypto_hash.o crypto_adapters/t_cose_openssl_signature.o
 
-OSSL_CRYPTO_OBJ=crypto_adapters/t_cose_openssl_signature.o crypto_adapters/t_cose_b_con_hash.o ../../crypto-algorithms/sha256.o
+OSSL_CRYPTO_OBJ=crypto_adapters/t_cose_openssl_crypto.o
 
 QCBOR=../../QCBOR/master/libqcbor.a
 LIBCRYPT=../../openssl/openssl-1.1.1b/libcrypto.a
 
-# TODO - header file dependency list
+TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_openssl_test.o
+
 
 t_cose_test: main.o $(SRC_OBJ) $(OSSL_CRYPTO_OBJ) $(TEST_OBJ)
 	cc -o $@ $^ $(QCBOR) $(LIBCRYPT)
@@ -35,5 +34,5 @@ t_cose_sign1_verify.o:	t_cose_sign1_verify.h t_cose_crypto.h t_cose_util.h t_cos
 t_cose_headers.o: t_cose_headers.h t_cose_rfc_constants.h
 t_cose_sign1_sign.o: t_cose_sign1_sign.h q_cose_rfc_constants.h t_cose_crypto.h t_cose_util.h t_cose_common.h 
 
-t_cose_openssl_signature.o: t_cose_crypto.h t_cose_common.h t_cose_rfc_constants.h
+t_cose_openssl_crypto.o: t_cose_crypto.h t_cose_common.h t_cose_rfc_constants.h
 

@@ -102,7 +102,7 @@ enum t_cose_err_t create_tbs_hash(int32_t cose_alg_id,
     /* approximate stack use on 32-bit machine:
      * local use: 210
      * total with calls: 250
-     * Can be another 128 bytes or so depending on
+     * Can be another 128-256 bytes or so depending on
      * t_cose_crypto_hash implementation. It sometimes
      * includes the full hashing context.
      */
@@ -115,7 +115,7 @@ enum t_cose_err_t create_tbs_hash(int32_t cose_alg_id,
     int32_t                     hash_alg_id;
     size_t                      bytes_to_omit;
 
-    /* This builds the CBOR-format to-be-signed bytes */
+    /* This builds the CBOR format to-be-signed bytes */
     QCBOREncode_Init(&cbor_encode_ctx, buffer_for_TBS_first_part);
     QCBOREncode_OpenArray(&cbor_encode_ctx);
     /* context */

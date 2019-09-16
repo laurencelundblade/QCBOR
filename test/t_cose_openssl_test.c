@@ -18,6 +18,8 @@
 #include "openssl/obj_mac.h" /* for NID for EC curve */
 #include "openssl/err.h"
 
+// TODO: put the openssl commands to generate these keys in comments
+
 
 /*
  * A fixed key pair for testing
@@ -33,7 +35,7 @@
     "1e9a74f7c8d26dd2e90c14570e206431211da8c8c97a2c92834ff0ce3d31b289"
 
 
-static int make_ecdsa_key_pair(struct t_cose_signing_key *ossl_key)
+static int make_ecdsa_key_pair(struct t_cose_signing_key *ossl_key, int32_t cose_alg)
 {
     EC_GROUP          *ossl_ec_group = NULL;
     enum t_cose_err_t  return_value;
@@ -41,11 +43,29 @@ static int make_ecdsa_key_pair(struct t_cose_signing_key *ossl_key)
     EC_KEY            *ossl_ec_key = NULL;
     int                ossl_result;
     EC_POINT         *ossl_pub_key_point = NULL;
+    int nid;
+
+    switch (cose_alg) {
+        case COSE_ALGORITHM_ES256:
+        nid = NID_X9_62_prime256v1;
+        break;
+
+        case COSE_ALGORITHM_ES384:
+            nid = NID_secp384r1;
+            break;
+
+        case COSE_ALGORITHM_ES512:
+            nid = NID_secp521r1;
+            break;
+
+    default:
+        return -1;
+
+    }
 
 
     /* Make a group which is neeed because TODO */
-    /* NID_X9_62_prime256v1 corresponds to COSE_ALGORITHM_ES256 */
-    ossl_ec_group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1);
+    ossl_ec_group = EC_GROUP_new_by_curve_name(nid);
     if(ossl_ec_group == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
         goto Done;
@@ -127,7 +147,7 @@ static void free_ecdsa_key_pair(struct t_cose_signing_key ossl_key)
 }
 
 
-int_fast32_t openssl_self_test()
+int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
 {
     struct t_cose_sign1_ctx     sign_ctx;
     QCBOREncodeContext          cbor_encode;
@@ -140,7 +160,7 @@ int_fast32_t openssl_self_test()
     QCBORError                  cbor_error;
 
 
-    return_value = make_ecdsa_key_pair(&ossl_key);
+    return_value = make_ecdsa_key_pair(&ossl_key, cose_alg);
     if(return_value) {
         return 7000 + return_value;
     }
@@ -151,7 +171,7 @@ int_fast32_t openssl_self_test()
     
     return_value = t_cose_sign1_init(&sign_ctx, /* Signing context */
                                      0, /* No option flags */
-                                     COSE_ALGORITHM_ES256, /* ECDSA 256 with SHA 256 */
+                                     cose_alg, /* The ECDSA signing algorithm to use */
                                      ossl_key, /* The signing key */
                                      NULL_Q_USEFUL_BUF_C, /* skipping key id for now */
                                      &cbor_encode /* encoder context to output to */
@@ -190,6 +210,29 @@ int_fast32_t openssl_self_test()
 }
 
 
+int_fast32_t openssl_basic_test()
+{
+    int_fast32_t return_value;
+
+    return_value  = openssl_basic_test_alg(COSE_ALGORITHM_ES256);
+    if(return_value) {
+        goto Done;
+    } /*
+
+    return_value  = openssl_basic_test_alg(COSE_ALGORITHM_ES384);
+    if(return_value) {
+        goto Done;
+    }
+
+    return_value  = openssl_basic_test_alg(COSE_ALGORITHM_ES512);
+    if(return_value) {
+        goto Done;
+    } */
+
+Done:
+    return return_value;
+}
+
 
 int_fast32_t openssl_sig_fail_test()
 {
@@ -204,7 +247,7 @@ int_fast32_t openssl_sig_fail_test()
     QCBORError                  cbor_error;
 
 
-    return_value = make_ecdsa_key_pair(&ossl_key);
+    return_value = make_ecdsa_key_pair(&ossl_key, COSE_ALGORITHM_ES256);
 
 
 
@@ -328,7 +371,7 @@ int_fast32_t openssl_make_cwt_test()
     QCBORError                  cbor_error;
 
 
-    return_value = make_ecdsa_key_pair(&ossl_key);
+    return_value = make_ecdsa_key_pair(&ossl_key, COSE_ALGORITHM_ES256);
 
 
 

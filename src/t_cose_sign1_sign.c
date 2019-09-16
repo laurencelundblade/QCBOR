@@ -19,6 +19,19 @@
  * \file t_cose_sign1_sign.c
  *
  * \brief This implements t_cose signing
+ *
+ * Stack usage to sign is dependent on the signing alg and key size and type
+ * of hash implementation.
+ *
+ * In this code ES256 requires
+     xxx -- overhead of this implementation
+     buffer to hold hash -- 32 to 64 depending hash alg
+     buffer to hold sig -- 64 to 132 depending on ECDSA alg
+     hash context -- depends on hash implementatype and alg 8 to 256 bytes
+     crypto -- stack used by the crypto algorithm
+
+ Total: xxx + (104 to 452) + crypto == 204 to 556 + crypto 
+ *
  */
 
 
@@ -255,7 +268,7 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me,
     /* Buffer for the actual signature */
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_signature,
                                      T_COSE_MAX_EC_SIG_SIZE);
-    /* Buffer for the tbs hash. Only big enough for SHA256 */
+    /* Buffer for the tbs hash. */
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash,
                                      T_COSE_CRYPTO_MAX_HASH_SIZE);
 

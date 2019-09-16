@@ -85,6 +85,7 @@ Done:
 */
 struct t_cose_header_list {
     /* Terminated by value HEADER_ALG_LIST_TERMINATOR */
+    // TODO: is uint64 right? maybe signed?
     uint64_t int_header_labels[T_COSE_HEADER_LIST_MAX+1];
     /*  Terminated by a NULL_Q_USEFUL_BUF_C */
     struct q_useful_buf_c tstr_header_labels[T_COSE_HEADER_LIST_MAX+1];

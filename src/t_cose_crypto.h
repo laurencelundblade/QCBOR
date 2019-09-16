@@ -21,6 +21,11 @@
 extern "C" {
 #endif
 
+
+//#define T_COSE_DISABLE_ES512
+//#define T_COSE_DISABLE_ES384
+
+
 /**
  * \file t_cose_crypto.h
  *
@@ -85,7 +90,16 @@ extern "C" {
  * This is a compile time constant so it can be used to define stack
  * variable sizes.
  */
-#define T_COSE_MAX_EC_SIG_SIZE T_COSE_EC_P256_SIG_SIZE
+
+#ifndef T_COSE_DISABLE_ES512
+    #define T_COSE_MAX_EC_SIG_SIZE T_COSE_EC_P512_SIG_SIZE
+#else
+    #ifndef T_COSE_DISABLE_ES384
+        #define T_COSE_MAX_EC_SIG_SIZE T_COSE_EC_P384_SIG_SIZE
+    #else
+        #define T_COSE_MAX_EC_SIG_SIZE T_COSE_EC_P256_SIG_SIZE
+    #endif
+#endif
 
 
 /**
@@ -239,7 +253,8 @@ t_cose_crypto_pub_key_verify(int32_t cose_alg_id,
  */
 
 
-
+#define T_COSE_USE_OPENSSL_HASH
+#undef T_COSE_USE_B_CON_SHA256
 
 #ifdef T_COSE_USE_B_CON_SHA256
 /* This is code for use with Brad Conte's crypto.  See
@@ -247,6 +262,10 @@ t_cose_crypto_pub_key_verify(int32_t cose_alg_id,
  * of t_cose_crypto_hash
  */
 #include "sha256.h"
+#endif
+
+#ifdef T_COSE_USE_OPENSSL_HASH
+#include <openssl/sha.h>
 #endif
 
 
@@ -280,6 +299,22 @@ t_cose_crypto_pub_key_verify(int32_t cose_alg_id,
  */
 struct t_cose_crypto_hash {
 
+#ifdef T_COSE_USE_OPENSSL_HASH
+    /* What is needed for a full proper integration of OpenSSL's hashes */
+    /* The hash context goes on the stack. This is 224 bytes on 64-bit x86 */
+    union {
+        SHA256_CTX sha_256;
+#if !defined T_COSE_DISABLE_ES512 || !defined T_COSE_DISABLE_ES384
+        // SHA 384 uses the sha_512 context
+        // This uses about 100 bytes above SHA-256
+        SHA512_CTX sha_512;
+#endif
+    } ctx;
+
+    int     update_error; /* Used to track error return by SHAXXX_Upate() */
+    int32_t cose_hash_alg_id; /* COSE integer ID for the hash alg */
+
+#else
 #ifdef T_COSE_USE_B_CON_SHA256
     /* Specific context for Brad Conte's sha256.c */
     SHA256_CTX context;
@@ -293,6 +328,7 @@ struct t_cose_crypto_hash {
         uint64_t handle;
     } context;
     int64_t status;
+#endif
 #endif
 
 };

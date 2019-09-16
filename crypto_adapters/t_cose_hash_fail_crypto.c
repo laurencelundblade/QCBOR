@@ -266,3 +266,124 @@ Done:
 
     return return_value;
 }
+
+
+#include "openssl/sha.h"
+
+int hash_test_mode = 0;
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
+                                           int32_t cose_hash_alg_id)
+{
+    int ossl_result;
+
+    if(hash_test_mode == 1) {
+        return T_COSE_ERR_UNSUPPORTED_HASH;
+    }
+
+    switch(cose_hash_alg_id) {
+        case COSE_ALGORITHM_SHA_256:
+            ossl_result = SHA256_Init(&hash_ctx->ctx.sha_256);
+            break;
+
+#ifndef T_COSE_DISABLE_ES384
+        case COSE_ALGORITHM_SHA_384:
+            ossl_result = SHA384_Init(&hash_ctx->ctx.sha_512);
+            break;
+#endif
+
+#ifndef T_COSE_DISABLE_ES512
+        case COSE_ALGORITHM_ES512:
+            ossl_result = SHA512_Init(&hash_ctx->ctx.sha_512);
+            break;
+#endif
+
+        default:
+            return T_COSE_ERR_UNSUPPORTED_HASH;
+
+    }
+    hash_ctx->cose_hash_alg_id = cose_hash_alg_id;
+    hash_ctx->update_error = 1; /* 1 is success in OpenSSL */
+
+    /* OpenSSL returns 1 for success, not 0 */
+    return ossl_result ? T_COSE_SUCCESS : T_COSE_ERR_HASH_GENERAL_FAIL;
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
+                               struct q_useful_buf_c data_to_hash)
+{
+    if(hash_ctx->update_error) {
+        if(data_to_hash.ptr) {
+            switch(hash_ctx->cose_hash_alg_id) {
+                case COSE_ALGORITHM_SHA_256:
+                    hash_ctx->update_error = SHA256_Update(&hash_ctx->ctx.sha_256, data_to_hash.ptr, data_to_hash.len);
+                    break;
+
+#ifndef T_COSE_DISABLE_ES384
+                case COSE_ALGORITHM_SHA_384:
+                    hash_ctx->update_error = SHA384_Update(&hash_ctx->ctx.sha_512, data_to_hash.ptr, data_to_hash.len);
+                    break;
+#endif
+
+#ifndef T_COSE_DISABLE_ES512
+                case COSE_ALGORITHM_ES512:
+                    hash_ctx->update_error = SHA512_Update(&hash_ctx->ctx.sha_512, data_to_hash.ptr, data_to_hash.len);
+                    break;
+#endif
+            }
+        }
+    }
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
+                          struct q_useful_buf buffer_to_hold_result,
+                          struct q_useful_buf_c *hash_result)
+{
+    size_t hash_result_len = 0;
+
+    int ossl_result = 0; /* Assume failure */
+
+    if(!hash_ctx->update_error) {
+        return T_COSE_ERR_HASH_GENERAL_FAIL;
+    }
+
+    if(hash_test_mode == 2) {
+        return T_COSE_ERR_HASH_GENERAL_FAIL;
+    }
+
+    switch(hash_ctx->cose_hash_alg_id) {
+        case COSE_ALGORITHM_SHA_256:
+            ossl_result = SHA256_Final(buffer_to_hold_result.ptr, &hash_ctx->ctx.sha_256);
+            hash_result_len = T_COSE_CRYPTO_SHA256_SIZE;
+            break;
+
+#ifndef T_COSE_DISABLE_ES384
+        case COSE_ALGORITHM_SHA_384:
+            ossl_result = SHA384_Final(buffer_to_hold_result.ptr, &hash_ctx->ctx.sha_512);
+            hash_result_len = T_COSE_CRYPTO_SHA384_SIZE;
+            break;
+#endif
+
+#ifndef T_COSE_DISABLE_ES512
+        case COSE_ALGORITHM_ES512:
+            ossl_result = SHA512_Final(buffer_to_hold_result.ptr, &hash_ctx->ctx.sha_512);
+            hash_result_len = T_COSE_CRYPTO_SHA512_SIZE;
+            break;
+#endif
+    }
+
+    *hash_result = (UsefulBufC){buffer_to_hold_result.ptr, hash_result_len};
+
+    /* OpenSSL returns 1 for success, not 0 */
+    return ossl_result ? T_COSE_SUCCESS : T_COSE_ERR_HASH_GENERAL_FAIL;
+}

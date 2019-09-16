@@ -13,12 +13,13 @@
 
 #include <stdint.h>
 
+
 /**
  * \brief Minimal token creation test using a short-circuit signature.
  *
  * \return non-zero on failure.
  *
- * This test makes a simple COSE_Sign1 and verifies it.
+ * This test makes a simple COSE_Sign1 and verify it.
  * It uses short-circuit signatures so no keys or even
  * integration with public key crypto is necessary.
  */
@@ -30,7 +31,7 @@ int_fast32_t short_circuit_self_test(void);
  *
  * \return non-zero on failure.
  *
- * This test makes a simple COSE_Sign1 and verifies it.
+ * This test makes a simple COSE_Sign1 modify the payload and see that verification fails.
  * It uses short-circuit signatures so no keys or even
  * integration with public key crypto is necessary.
  */
@@ -42,18 +43,16 @@ int_fast32_t short_circuit_verify_fail_test(void);
  *
  * \return non-zero on failure.
  *
- * This test makes a simple COSE_Sign1 and verifies it.
  * It uses short-circuit signatures so no keys or even
  * integration with public key crypto is necessary.
  */
 int_fast32_t short_circuit_signing_error_conditions_test(void);
 
 
+/* Make a CWT and see that it compares to the sample in the CWT RFC
+ */
 int_fast32_t short_circuit_make_cwt_test(void);
 
-
-
-int_fast32_t short_circuit_hash_fail_test(void);
 
 
 

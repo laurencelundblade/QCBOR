@@ -17,6 +17,10 @@
 #include "t_cose_test.h"
 #include "t_cose_openssl_test.h"
 
+#ifdef T_COSE_DO_HASH_FAIL_TEST
+#include "t_cose_hash_fail_test.h"
+#endif /* T_COSE_DO_HASH_FAIL_TEST */
+
 
 /*
  Test configuration
@@ -48,14 +52,17 @@ static test_entry2 s_tests2[] = {
 #endif
 
 static test_entry s_tests[] = {
-    TEST_ENTRY(short_circuit_hash_fail_test),
     TEST_ENTRY(openssl_make_cwt_test),
     TEST_ENTRY(short_circuit_make_cwt_test),
     TEST_ENTRY(short_circuit_signing_error_conditions_test),
     TEST_ENTRY(short_circuit_verify_fail_test),
     TEST_ENTRY(openssl_sig_fail_test),
-    TEST_ENTRY(openssl_self_test),
+    TEST_ENTRY(openssl_basic_test),
     TEST_ENTRY(short_circuit_self_test),
+
+#ifdef T_COSE_DO_HASH_FAIL_TEST
+    TEST_ENTRY(short_circuit_hash_fail_test),
+#endif /* T_COSE_DO_HASH_FAIL_TEST */
 };
 
 
