@@ -296,7 +296,7 @@ enum t_cose_err_t t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
 #endif
 
 #ifndef T_COSE_DISABLE_ES512
-        case COSE_ALGORITHM_ES512:
+        case COSE_ALGORITHM_SHA_512:
             ossl_result = SHA512_Init(&hash_ctx->ctx.sha_512);
             break;
 #endif
@@ -332,7 +332,7 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
 #endif
 
 #ifndef T_COSE_DISABLE_ES512
-                case COSE_ALGORITHM_ES512:
+                case COSE_ALGORITHM_SHA_512:
                     hash_ctx->update_error = SHA512_Update(&hash_ctx->ctx.sha_512, data_to_hash.ptr, data_to_hash.len);
                     break;
 #endif
@@ -375,7 +375,7 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
 #endif
 
 #ifndef T_COSE_DISABLE_ES512
-        case COSE_ALGORITHM_ES512:
+        case COSE_ALGORITHM_SHA_512:
             ossl_result = SHA512_Final(buffer_to_hold_result.ptr, &hash_ctx->ctx.sha_512);
             hash_result_len = T_COSE_CRYPTO_SHA512_SIZE;
             break;
