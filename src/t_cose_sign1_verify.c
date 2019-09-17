@@ -29,7 +29,6 @@
 /**
  *  \brief Verify a short-circuit signature
  *
- * \param[in] cose_alg_id     The COSE signature algorithm to use.
  * \param[in] hash_to_verify  Pointer and length of hash to verify.
  * \param[in] signature       Pointer and length of signature
  *
@@ -40,14 +39,11 @@
  * signature.
  */
 static inline enum t_cose_err_t
-t_cose_crypto_short_circuit_verify(int32_t cose_alg_id,
-                                   struct q_useful_buf_c hash_to_verify,
+t_cose_crypto_short_circuit_verify(struct q_useful_buf_c hash_to_verify,
                                    struct q_useful_buf_c signature)
 {
     struct q_useful_buf_c hash_from_sig;
     enum t_cose_err_t     return_value;
-
-    (void)cose_alg_id; /* unused variable */
 
     hash_from_sig = q_useful_buf_head(signature, hash_to_verify.len);
     if(q_useful_buf_c_is_null(hash_from_sig)) {
@@ -94,7 +90,6 @@ t_cose_sign1_verify(int32_t                   option_flags,
     QCBORDecodeContext            decode_context;
     QCBORItem                     item;
     struct q_useful_buf_c         protected_headers;
-    int32_t                       cose_algorithm_id;
     enum t_cose_err_t             return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_tbs_hash,
                                       T_COSE_CRYPTO_MAX_HASH_SIZE);
@@ -136,7 +131,6 @@ t_cose_sign1_verify(int32_t                   option_flags,
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    cose_algorithm_id = parsed_protected_headers.cose_alg_id;
 
 
     /* --  Get the unprotected headers -- */
@@ -168,6 +162,7 @@ t_cose_sign1_verify(int32_t                   option_flags,
     }
     signature = item.val.string;
 
+    
     /* -- Finish up the CBOR decode -- */
     /* This check make sure the array only had the expected four
      items. Works for definite and indefinte length arrays. Also
@@ -177,8 +172,15 @@ t_cose_sign1_verify(int32_t                   option_flags,
         goto Done;
     }
 
+
+    /* -- Skip signature verification if requested --*/
+    if(option_flags & T_COSE_OPT_PARSE_ONLY) {
+        return_value = T_COSE_SUCCESS;
+        goto Done;
+    }
+
     /* -- Compute the TBS bytes -- */
-    return_value = create_tbs_hash(cose_algorithm_id,
+    return_value = create_tbs_hash(parsed_protected_headers.cose_alg_id,
                                    buffer_for_tbs_hash,
                                    &tbs_hash,
                                    protected_headers,
@@ -197,8 +199,7 @@ t_cose_sign1_verify(int32_t                   option_flags,
             goto Done;
         }
 
-        return_value = t_cose_crypto_short_circuit_verify(cose_algorithm_id,
-                                                          tbs_hash,
+        return_value = t_cose_crypto_short_circuit_verify(tbs_hash,
                                                           signature);
         goto Done;
     }
@@ -206,7 +207,7 @@ t_cose_sign1_verify(int32_t                   option_flags,
 
 
     /* -- Verify the signature (if it wasn't short-circuit) -- */
-    return_value = t_cose_crypto_pub_key_verify(cose_algorithm_id,
+    return_value = t_cose_crypto_pub_key_verify(parsed_protected_headers.cose_alg_id,
                                                 verification_key,
                                                 unprotected_headers.kid,
                                                 tbs_hash,

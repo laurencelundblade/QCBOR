@@ -13,6 +13,7 @@
 #include "t_cose_sign1_verify.h"
 #include "t_cose_rfc_constants.h"
 #include "q_useful_buf.h"
+#include "t_cose_crypto.h" // For signature size constant
 
 
 int_fast32_t short_circuit_self_test()
@@ -412,3 +413,99 @@ int_fast32_t short_circuit_make_cwt_test()
     return 0;
 }
 
+
+
+int_fast32_t short_circuit_no_parse_test()
+{
+    struct t_cose_sign1_ctx     sign_ctx;
+    QCBOREncodeContext          cbor_encode;
+    enum t_cose_err_t           return_value;
+    struct q_useful_buf_c       wrapped_payload;
+    Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
+    struct q_useful_buf_c       signed_cose;
+    struct t_cose_signing_key   degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
+    struct q_useful_buf_c       payload;
+    Q_USEFUL_BUF_MAKE_STACK_UB( expected_payload_buffer, 10);
+    struct q_useful_buf_c       expected_payload;
+    QCBORError                  cbor_error;
+
+    /* --- Start making COSE Sign1 object  --- */
+
+    /* The CBOR encoder instance that the COSE_Sign1 is output into */
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    /* Do the first part of the the COSE_Sign1, the headers */
+    return_value =
+    t_cose_sign1_init(/* Signing context carried betwteen _init and _finish
+                       */
+                      &sign_ctx,
+                      /* The options flags. Select short-circuit signing */
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                      /* The signing alg. It doesn't really matter what
+                       * what it is for short-circuit, but it has to be
+                       * something valid. Use ECDSA 256 with SHA 256 */
+                      COSE_ALGORITHM_ES256,
+                      /* No key necessary with short circuit */
+                      degenerate_key,
+                      /* No key ID needed with short circuit */
+                      NULL_Q_USEFUL_BUF_C,
+                      /* Pass in the CBOR encoder context that the output
+                       * will be written to. For this part is it the
+                       * opening array and headers */
+                      &cbor_encode
+                      );
+    if(return_value) {
+        return 1000 + return_value;
+    }
+
+    /* Do the payload of the COSE_Sign1. It must be bstr wrapped according
+     * to the COSE standard */
+    QCBOREncode_BstrWrap(&cbor_encode);
+    QCBOREncode_AddSZString(&cbor_encode, "payload");
+    QCBOREncode_CloseBstrWrap(&cbor_encode, &wrapped_payload);
+
+    /* Finish up the COSE_Sign1. This is where the signing happens */
+    return_value = t_cose_sign1_finish(&sign_ctx, wrapped_payload);
+    if(return_value) {
+        return 2000 + return_value;
+    }
+
+    /* Finally close of the CBOR formatting and get the pointer and length
+     * of the resulting COSE_Sign1
+     */
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
+    if(cbor_error) {
+        return 3000 + cbor_error;
+    }
+    /* --- Done making COSE Sign1 object  --- */
+
+    /* -- Tweak signature bytes -- */
+    /* The signature is the last thing so reach back that many bytes and tweak */
+    const size_t last_byte_offset = signed_cose.len - T_COSE_EC_P256_SIG_SIZE;
+    ((uint8_t *)signed_cose.ptr)[last_byte_offset] += 1;
+
+
+
+    /* --- Start verifying the COSE Sign1 object  --- */
+    /* Run the signature verification */
+    return_value = t_cose_sign1_verify(T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_PARSE_ONLY,
+                                       degenerate_key,
+                                       signed_cose,
+                                       &payload);
+    if(return_value) {
+        return 4000 + return_value;
+    }
+
+    /* Format the expected payload CBOR fragment */
+    QCBOREncode_Init(&cbor_encode, expected_payload_buffer);
+    QCBOREncode_AddSZString(&cbor_encode, "payload");
+    QCBOREncode_Finish(&cbor_encode, &expected_payload);
+
+    /* compare payload output to the one expected */
+    if(q_useful_buf_compare(payload, expected_payload)) {
+        return 5000;
+    }
+    /* --- Done verifying the COSE Sign1 object  --- */
+
+    return 0;
+}

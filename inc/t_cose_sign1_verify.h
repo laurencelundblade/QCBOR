@@ -81,6 +81,19 @@ extern "C" {
 #define T_COSE_OPT_TAG_NOT_REQUIRED  0x00000004
 
 
+/* Option that disables signature verification.
+ * With this option the \c verification_key is not needed.
+ * This is useful to parse the COSE_Sign1 to get the key ID
+ * so the key can be found and t_cose_sign1_verify() can
+ * be called again, this time with the key.
+ *
+ * (Note that key ID look up can be part of the crypto adaptation layer
+ * so it is not always necessary to use this option.)
+ *
+ */
+#define T_COSE_OPT_PARSE_ONLY  0x00000008
+
+
 /**
  * \brief Verify a COSE_Sign1
  *

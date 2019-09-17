@@ -54,6 +54,7 @@ int_fast32_t short_circuit_signing_error_conditions_test(void);
 int_fast32_t short_circuit_make_cwt_test(void);
 
 
+int_fast32_t short_circuit_no_parse_test(void);
 
 
 #endif /* t_cose_test_h */

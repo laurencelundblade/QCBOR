@@ -34,18 +34,8 @@ extern "C" {
 //#define T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 
 
-#define T_COSE_MAX_HASH 
-
-/*
- * This is used to indicate or pass a key through
- * the t_cose implementation to the underlying,
- * platform-specific cryptography libraries for
- * signing and verifying signature.
- *
- * 
 
 
- */
 
 enum t_cose_crypto_lib_t {
     T_COSE_CRYPTO_LIB_UNIDENTIFIED = 0,
@@ -53,11 +43,20 @@ enum t_cose_crypto_lib_t {
     T_COSE_CRYPTO_LIB_TF_M = 2
 };
 
+
+/*
+ * This is used to indicate or pass a key through
+ * the t_cose implementation to the underlying,
+ * platform-specific cryptography libraries for
+ * signing and verifying signature.
+ *
+ *
+ */
 struct t_cose_signing_key {
     enum t_cose_crypto_lib_t crypto_lib;
     union {
         void *key_ptr;
-        int   key_handle;
+        uint64_t key_handle;
     } k;
 };
 

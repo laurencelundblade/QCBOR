@@ -50,15 +50,15 @@ struct t_cose_headers {
 
 
 /**
- * \brief Parse some COSE headers
+ * \brief Parse some COSE headers.
  *
- * \param[in] decode_context  The QCBOR decode context to read the header from
- *
- * \param[out] returned_headers  The parsed headers
+ * \param[in] decode_context  The QCBOR decode context to read the headers from.
+ * \param[out] returned_headers  The parsed headers being returned.
 
  \retval T_COSE_SUCCESS if headers were parsed correctly
  \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED  The CBOR of the headers is not parsable
  \retval T_COSE_ERR_CBOR_STRUCTURE The CBOR is parsable, but not the right structure (e.g. an array instead of a map)
+ \retval T_COSE_NON_INTEGER_ALG_ID The algorithm ID is not an integer. This implementation doesn't support string algorithm IDs.
 
  No headers are mandatory. Which headers were present or not is indicated
  in \c returned_headers.
@@ -92,16 +92,16 @@ parse_cose_headers(QCBORDecodeContext *decode_context,
  */
 static enum t_cose_err_t
 parse_unprotected_headers(QCBORDecodeContext *decode_context,
-                   struct t_cose_headers *returned_headers);
+                          struct t_cose_headers *returned_headers);
 
 
 
 /**
- * \brief Parse the unprotected headers.
+ * \brief Parse the protected headers.
  *
  * \param[in] protected_headers Pointer and length of CBOR-encoded
  *                              protected headers to parse.
- * \param[out] returned_headers The parsed headers.
+ * \param[out] returned_headers The parsed headers that are returned.
  *
  * \retval T_COSE_SUCCESS Protected headers successfully parsed
  * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED The CBOR formatting of the protected headers is unparsable.
@@ -122,7 +122,7 @@ parse_protected_headers(const struct q_useful_buf_c protected_headers,
 
 
 /*
- * Static inline implementation. See documentation above
+ * Static inline implementation. See documentation above.
  */
 static inline enum t_cose_err_t
 parse_unprotected_headers(QCBORDecodeContext *decode_context,
