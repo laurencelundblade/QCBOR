@@ -71,18 +71,21 @@
 
 
 
-
-static int make_ecdsa_key_pair(struct t_cose_signing_key *ossl_key, int32_t cose_alg)
+/*
+ * The key object returned by this is malloced and has to be freed. This
+ * heap use is a part of OpenSSL and not t_cose which does not use the heap
+ */
+static int make_ecdsa_key_pair(struct t_cose_key *ossl_key, int32_t cose_alg)
 {
     EC_GROUP          *ossl_ec_group = NULL;
     enum t_cose_err_t  return_value;
     BIGNUM            *ossl_private_key_bn = NULL;
     EC_KEY            *ossl_ec_key = NULL;
     int                ossl_result;
-    EC_POINT         *ossl_pub_key_point = NULL;
-    int nid;
-    const char *public_key;
-    const char *private_key;
+    EC_POINT          *ossl_pub_key_point = NULL;
+    int                nid;
+    const char        *public_key;
+    const char        *private_key;
 
     switch (cose_alg) {
         case COSE_ALGORITHM_ES256:
@@ -105,11 +108,10 @@ static int make_ecdsa_key_pair(struct t_cose_signing_key *ossl_key, int32_t cose
 
     default:
         return -1;
-
     }
 
 
-    /* Make a group which is neeed because TODO */
+    /* Make a group for the particular EC algorithm */
     ossl_ec_group = EC_GROUP_new_by_curve_name(nid);
     if(ossl_ec_group == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
@@ -123,29 +125,29 @@ static int make_ecdsa_key_pair(struct t_cose_signing_key *ossl_key, int32_t cose
         goto Done;
     }
 
-    /* Associate group with key. */
+    /* Associate group with key object */
     ossl_result = EC_KEY_set_group(ossl_ec_key, ossl_ec_group);
     if (!ossl_result) {
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
 
-    /* Make an instance of a big number to store the key */
-    ossl_private_key_bn  = BN_new();
+    /* Make an instance of a big number to store the private key */
+    ossl_private_key_bn = BN_new();
     if(ossl_private_key_bn == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
         goto Done;
     }
     BN_zero(ossl_private_key_bn);
 
-    /* Stuff the private key into the big num */
+    /* Stuff the specific private key into the big num */
     ossl_result = BN_hex2bn(&ossl_private_key_bn, private_key);
     if(ossl_private_key_bn == 0) {
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
 
-    /* Now associate the big num with the private key so we finally
+    /* Now associate the big num with the key object so we finally
      * have a key set up and ready for signing */
     ossl_result = EC_KEY_set_private_key(ossl_ec_key, ossl_private_key_bn);
     if (!ossl_result) {
@@ -154,7 +156,7 @@ static int make_ecdsa_key_pair(struct t_cose_signing_key *ossl_key, int32_t cose
     }
 
 
-    /* Make an empty EC point into which the key gets loaded */
+    /* Make an empty EC point into which the public key gets loaded */
     ossl_pub_key_point = EC_POINT_new(ossl_ec_group);
     if(ossl_pub_key_point == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
@@ -171,7 +173,8 @@ static int make_ecdsa_key_pair(struct t_cose_signing_key *ossl_key, int32_t cose
         goto Done;
     }
 
-    /* Associate the EC point with openssl's pub key structure */
+    /* Associate the EC point with key object */
+    /* The key object has both the public and private keys in it */
     ossl_result = EC_KEY_set_public_key(ossl_ec_key, ossl_pub_key_point);
     if(ossl_result == 0) {
         return_value = T_COSE_ERR_SIG_FAIL;
@@ -179,14 +182,15 @@ static int make_ecdsa_key_pair(struct t_cose_signing_key *ossl_key, int32_t cose
     }
 
     ossl_key->crypto_lib = T_COSE_CRYPTO_LIB_OPENSSL;
-    ossl_key->k.key_ptr = ossl_ec_key;
-    return_value = T_COSE_SUCCESS;
+    ossl_key->k.key_ptr  = ossl_ec_key;
+    return_value         = T_COSE_SUCCESS;
 
 Done:
     return return_value;
 }
 
-static void free_ecdsa_key_pair(struct t_cose_signing_key ossl_key)
+
+static void free_ecdsa_key_pair(struct t_cose_key ossl_key)
 {
     EC_KEY_free(ossl_key.k.key_ptr);
 }
@@ -197,59 +201,88 @@ int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
     struct t_cose_sign1_ctx     sign_ctx;
     QCBOREncodeContext          cbor_encode;
     enum t_cose_err_t           return_value;
-    struct q_useful_buf_c       wrapped_payload;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 300);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_signing_key   ossl_key;
+    struct t_cose_key   ossl_key;
     struct q_useful_buf_c       payload;
     QCBORError                  cbor_error;
+    Q_USEFUL_BUF_MAKE_STACK_UB( expected_payload_buffer, 10);
+    struct q_useful_buf_c       expected_payload;
 
 
+    /* Make an ECDSA key pair that will be used for both signing and
+     * verification.
+     */
     return_value = make_ecdsa_key_pair(&ossl_key, cose_alg);
     if(return_value) {
         return 7000 + return_value;
     }
 
 
+    /* Get the encoder context ready with a buffer big enough for the
+     * COSE_Sign1 that is being created.
+     */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
     
-    
-    return_value = t_cose_sign1_init(&sign_ctx, /* Signing context */
-                                     0, /* No option flags */
-                                     cose_alg, /* The ECDSA signing algorithm to use */
-                                     ossl_key, /* The signing key */
-                                     NULL_Q_USEFUL_BUF_C, /* skipping key id for now */
-                                     &cbor_encode /* encoder context to output to */
+    /* Initialize for signing. The encoder context is passed in and
+     * the protected unprotected headers will be output to it
+     */
+    return_value = t_cose_sign1_init(&sign_ctx,            /* Signing context */
+                                     0,                    /* No option flags */
+                                     cose_alg,       /* The signing algorithm */
+                                     ossl_key,             /* The signing key */
+                                     NULL_Q_USEFUL_BUF_C,   /* No key id used */
+                                     &cbor_encode   /* output encoder context */
                                      );
     if(return_value) {
         return 1000 + return_value;
     }
-    
-    QCBOREncode_BstrWrap(&cbor_encode);
-    
+
+
+    /* This is the actual payload. This typically is larger and more complex
+     */
     QCBOREncode_AddSZString(&cbor_encode, "payload");
-    
-    QCBOREncode_CloseBstrWrap(&cbor_encode, &wrapped_payload);
-    
-    return_value = t_cose_sign1_finish(&sign_ctx, wrapped_payload);
+
+    /* Finish the signing. This does the crypto, outputs the signature
+     * to the encode context and closes off the COSE_Sign1
+     */
+    return_value = t_cose_sign1_finish(&sign_ctx);
     if(return_value) {
         return 2000 + return_value;
     }
-    
+
+    /* Close off the CBOR encoding. This will detect and CBOR encoding
+     * errors in made in the payload. For example if arrays and maps were
+     * opened, but not closed
+     */
     cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
     if(cbor_error) {
         return 3000 + cbor_error;
     }
 
-    return_value = t_cose_sign1_verify(0,
-                                       ossl_key,
-                                       signed_cose,
-                                       &payload);
+
+    /* Verification is done in one step */
+    return_value = t_cose_sign1_verify(0,                  /* No option flags */
+                                       ossl_key,      /* The verification key */
+                                       signed_cose,         /* COSE to verify */
+                                       &payload); /* Payload from signed_cose */
     if(return_value) {
         return 4000 + return_value;
     }
 
+    /* OpenSSL uses malloc to allocate buffers for keys, so they have to be freed */
     free_ecdsa_key_pair(ossl_key);
+
+
+    /* Format the expected payload CBOR fragment */
+    QCBOREncode_Init(&cbor_encode, expected_payload_buffer);
+    QCBOREncode_AddSZString(&cbor_encode, "payload");
+    QCBOREncode_Finish(&cbor_encode, &expected_payload);
+
+    /* compare payload output to the one expected */
+    if(q_useful_buf_compare(payload, expected_payload)) {
+        return 5000;
+    }
 
     return 0;
 }
@@ -286,39 +319,32 @@ int_fast32_t openssl_sig_fail_test()
     struct t_cose_sign1_ctx     sign_ctx;
     QCBOREncodeContext          cbor_encode;
     enum t_cose_err_t           return_value;
-    struct q_useful_buf_c       wrapped_payload;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 300);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_signing_key   ossl_key;
+    struct t_cose_key   ossl_key;
     struct q_useful_buf_c       payload;
     QCBORError                  cbor_error;
 
 
     return_value = make_ecdsa_key_pair(&ossl_key, COSE_ALGORITHM_ES256);
 
-
-
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-
-    return_value = t_cose_sign1_init(&sign_ctx, /* Signing context */
-                                     0, /* No option flags */
-                                     COSE_ALGORITHM_ES256, /* ECDSA 256 with SHA 256 */
-                                     ossl_key, /* The signing key */
-                                     NULL_Q_USEFUL_BUF_C, /* skipping key id for now */
-                                     &cbor_encode /* encoder context to output to */
+    return_value = t_cose_sign1_init(&sign_ctx,            /* Signing context */
+                                     0,                    /* No option flags */
+                                     COSE_ALGORITHM_ES256,  /* ECDSA + SHA256 */
+                                     ossl_key,             /* The signing key */
+                                     NULL_Q_USEFUL_BUF_C,   /* No key id used */
+                                     &cbor_encode   /* output encoder context */
                                      );
     if(return_value) {
         return 1000 + return_value;
     }
 
-    QCBOREncode_BstrWrap(&cbor_encode);
-
     QCBOREncode_AddSZString(&cbor_encode, "payload");
 
-    QCBOREncode_CloseBstrWrap(&cbor_encode, &wrapped_payload);
 
-    return_value = t_cose_sign1_finish(&sign_ctx, wrapped_payload);
+    return_value = t_cose_sign1_finish(&sign_ctx);
     if(return_value) {
         return 2000 + return_value;
     }
@@ -336,10 +362,10 @@ int_fast32_t openssl_sig_fail_test()
     ((char *)signed_cose.ptr)[xx] = 'h';
 
 
-    return_value = t_cose_sign1_verify(0,
-                                       ossl_key,
-                                       signed_cose,
-                                       &payload);
+    return_value = t_cose_sign1_verify(0,                  /* No option flags */
+                                       ossl_key,      /* The verification key */
+                                       signed_cose,         /* COSE to verify */
+                                       &payload); /* Payload from signed_cose */
     if(return_value != T_COSE_ERR_SIG_VERIFY) {
         return 4000 + return_value;
     }
@@ -355,35 +381,30 @@ int_fast32_t openssl_make_cwt_test()
     struct t_cose_sign1_ctx     sign_ctx;
     QCBOREncodeContext          cbor_encode;
     enum t_cose_err_t           return_value;
-    struct q_useful_buf_c       wrapped_payload;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 300);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_signing_key   ossl_key;
+    struct t_cose_key           ossl_key;
     struct q_useful_buf_c       payload;
     QCBORError                  cbor_error;
+    struct q_useful_buf_c       cwt_example_key_id;
 
 
     return_value = make_ecdsa_key_pair(&ossl_key, COSE_ALGORITHM_ES256);
 
-
-
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-
-    return_value = t_cose_sign1_init(&sign_ctx, /* Signing context */
-                                     0, /* No option flags */
-                                     COSE_ALGORITHM_ES256, /* ECDSA 256 with SHA 256 */
-                                     ossl_key, /* The signing key */
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("AsymmetricECDSA256"), /* key id from example */
-                                     &cbor_encode /* encoder context to output to */
+    /* key id from example in RFC */
+    cwt_example_key_id = Q_USEFUL_BUF_FROM_SZ_LITERAL("AsymmetricECDSA256");
+    return_value = t_cose_sign1_init(&sign_ctx,            /* Signing context */
+                                     0,                    /* No option flags */
+                                     COSE_ALGORITHM_ES256, /* ECDSA + SHA 256 */
+                                     ossl_key,             /* The signing key */
+                                     cwt_example_key_id,            /* key id */
+                                     &cbor_encode   /* output encoder context */
                                      );
     if(return_value) {
         return 1000 + return_value;
     }
-
-    /* Do the payload of the COSE_Sign1. It must be bstr wrapped according
-     * to the COSE standard */
-    QCBOREncode_BstrWrap(&cbor_encode);
 
     QCBOREncode_OpenMap(&cbor_encode);
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
@@ -396,10 +417,9 @@ int_fast32_t openssl_make_cwt_test()
     QCBOREncode_AddBytesToMapN(&cbor_encode, 7, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xx));
     QCBOREncode_CloseMap(&cbor_encode);
 
-    QCBOREncode_CloseBstrWrap(&cbor_encode, &wrapped_payload);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    return_value = t_cose_sign1_finish(&sign_ctx, wrapped_payload);
+    return_value = t_cose_sign1_finish(&sign_ctx);
     if(return_value) {
         return 2000 + return_value;
     }
@@ -426,7 +446,7 @@ int_fast32_t openssl_make_cwt_test()
         0x67, 0x68, 0x74, 0x2e, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2e,
         0x63, 0x6f, 0x6d, 0x04, 0x1a, 0x56, 0x12, 0xae, 0xb0, 0x05, 0x1a, 0x56,
         0x10, 0xd9, 0xf0, 0x06, 0x1a, 0x56, 0x10, 0xd9, 0xf0, 0x07, 0x42, 0x0b,
-        0x71};//, 0x58, 0x40}; TODO
+        0x71};
     struct q_useful_buf_c fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_first_part_bytes);
     struct q_useful_buf_c head = q_useful_buf_head(signed_cose, sizeof(rfc8392_first_part_bytes));
     if(q_useful_buf_compare(head, fp)) {
@@ -435,10 +455,11 @@ int_fast32_t openssl_make_cwt_test()
 
     /* --- Start verifying the COSE Sign1 object  --- */
     /* Run the signature verification */
-    return_value = t_cose_sign1_verify(T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
-                                       ossl_key,
-                                       signed_cose,
-                                       &payload);
+    return_value =
+        t_cose_sign1_verify(T_COSE_OPT_ALLOW_SHORT_CIRCUIT,       /* opt flag */
+                            ossl_key,                 /* The verification key */
+                            signed_cose,                    /* COSE to verify */
+                            &payload);            /* Payload from signed_cose */
     if(return_value) {
         return 4000 + return_value;
     }

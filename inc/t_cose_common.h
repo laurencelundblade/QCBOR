@@ -52,7 +52,7 @@ enum t_cose_crypto_lib_t {
  *
  *
  */
-struct t_cose_signing_key {
+struct t_cose_key {
     enum t_cose_crypto_lib_t crypto_lib;
     union {
         void *key_ptr;

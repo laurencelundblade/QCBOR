@@ -25,7 +25,7 @@ int_fast32_t short_circuit_hash_fail_test()
     enum t_cose_err_t           return_value;
     struct q_useful_buf_c       wrapped_payload;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
-    struct t_cose_signing_key   degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
+    struct t_cose_key   degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
 
 
     /* --- Start making COSE Sign1 object  --- */

@@ -138,7 +138,7 @@ extern "C" {
  * and verify it if the \ref T_COSE_OPT_ALLOW_SHORT_CIRCUIT is set.
  */
 enum t_cose_err_t t_cose_sign1_verify(int32_t option_flags,
-                                      struct t_cose_signing_key verification_key,
+                                      struct t_cose_key verification_key,
                                       struct q_useful_buf_c sign1,
                                       struct q_useful_buf_c *payload);
 

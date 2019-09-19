@@ -69,7 +69,7 @@ struct t_cose_sign1_ctx {
                               T_COSE_SIGN1_MAX_PROT_HEADER];
     struct q_useful_buf_c protected_headers;
     int32_t               cose_algorithm_id;
-    struct                t_cose_signing_key signing_key;
+    struct                t_cose_key signing_key;
     int32_t               option_flags;
     QCBOREncodeContext   *cbor_encode_ctx;
 };
@@ -113,7 +113,7 @@ struct t_cose_sign1_ctx {
  * like this, the cryptographic functions will not actually run, but
  * the size of their output will be taken into account.
  *
- * The contents if signing_key depends on the crypto library t_cose is integrated with
+ * The contents of signing_key depends on the crypto library t_cose is integrated with
  * With some libraries it might be a pointer to a structure with the key
  * and on others an integer handle or descriptor.
  *
@@ -131,15 +131,8 @@ struct t_cose_sign1_ctx {
  * After the \c QCBOREncodeContext is initialized, call
  * t_cose_sign1_init() on it.
  *
- * Next call \c QCBOREncode_BstrWrap() to indicate the start of the
- * payload.
- *
  * Next call various \c QCBOREncode_Addxxxx() methods to create the
  * payload.
- *
- * Next call \c QCBOREncode_CloseBstrWrap() to indicate the end of the
- * payload. This will also return a pointer and length of the payload
- * that gets hashed.
  *
  * Next call t_cose_sign1_finish() with the pointer and length of the
  * payload.  This will do all the cryptography and complete the COSE
@@ -173,7 +166,7 @@ struct t_cose_sign1_ctx {
 enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
                                     int32_t option_flags,
                                     int32_t cose_algorithm_id,
-                                    struct t_cose_signing_key signing_key,
+                                    struct t_cose_key signing_key,
                                     struct q_useful_buf_c key_id,
                                     QCBOREncodeContext *cbor_encode_ctx);
 
@@ -182,7 +175,6 @@ enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
  * \brief Finish creation of the \c COSE_Sign1.
  *
  * \param[in] me       The t_cose signing context.
- * \param[in] payload  The pointer and length of the payload.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -191,12 +183,10 @@ enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
  *
  * This is when the cryptographic signature algorithm is run.
  *
- * The payload parameter is used only to compute the hash for
- * signing. The completed \c COSE_Sign1 is retrieved from the \c
+ * The completed \c COSE_Sign1 is retrieved from the \c
  * cbor_encode_ctx by calling \c QCBOREncode_Finish()
  */
-enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me,
-                                      struct q_useful_buf_c payload);
+enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me);
 
 
 #ifdef __cplusplus

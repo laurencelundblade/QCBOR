@@ -178,7 +178,7 @@ static inline void add_unprotected_headers(QCBOREncodeContext *cbor_encode_ctx,
 enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
                                     int32_t option_flags,
                                     int32_t cose_alg_id,
-                                    struct t_cose_signing_key signing_key,
+                                    struct t_cose_key signing_key,
                                     struct q_useful_buf_c key_id,
                                     QCBOREncodeContext *cbor_encode_ctx)
 {
@@ -238,6 +238,10 @@ enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
     }
     add_unprotected_headers(cbor_encode_ctx, key_id);
 
+
+    QCBOREncode_BstrWrap(cbor_encode_ctx);
+
+
     /* Any failures in CBOR encoding will be caught in finish
      when the CBOR encoding is closed off. No need to track
      here as the CBOR encoder tracks it internally. */
@@ -252,8 +256,7 @@ Done:
 /*
  * Public function. See t_cose_sign1_sign.h
  */
-enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me,
-                                      struct q_useful_buf_c signed_payload)
+enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me)
 {
     /* approximate stack use on 32-bit machine:
      *   local use: 150-260 depending on algs supported
@@ -271,6 +274,9 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me,
     /* Buffer for the tbs hash. */
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash,
                                      T_COSE_CRYPTO_MAX_HASH_SIZE);
+    struct q_useful_buf_c        signed_payload;
+
+    QCBOREncode_CloseBstrWrap(me->cbor_encode_ctx, &signed_payload);
 
     /* Check there are no CBOR encoding errors before
      * proceeding with hashing and signing. This is
@@ -336,6 +342,8 @@ enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me,
     /* Add signature to CBOR and close out the array */
     QCBOREncode_AddBytes(me->cbor_encode_ctx, signature);
     QCBOREncode_CloseArray(me->cbor_encode_ctx);
+
+    
 
     /* The layer above this must check for and handle CBOR
      * encoding errors CBOR encoding errors.  Some are
