@@ -62,7 +62,7 @@ Done:
 
 enum t_cose_err_t
 t_cose_crypto_pub_key_sign(int32_t                   cose_alg_id,
-                           struct t_cose_signing_key signing_key,
+                           struct t_cose_key signing_key,
                            struct q_useful_buf_c     hash_to_sign,
                            struct q_useful_buf       signature_buffer,
                            struct q_useful_buf_c    *signature)
@@ -196,7 +196,7 @@ Done:
  */
 enum t_cose_err_t
 t_cose_crypto_pub_key_verify(int32_t                   cose_alg_id,
-                             struct t_cose_signing_key verification_key,
+                             struct t_cose_key verification_key,
                              struct q_useful_buf_c     key_id,
                              struct q_useful_buf_c     hash_to_verify,
                              struct q_useful_buf_c     signature)
