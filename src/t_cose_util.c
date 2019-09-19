@@ -10,7 +10,7 @@
 
 #include "t_cose_util.h"
 #include "qcbor.h"
-#include "t_cose_rfc_constants.h"
+#include "t_cose_standard_constants.h"
 #include "t_cose_common.h"
 #include "t_cose_crypto.h"
 

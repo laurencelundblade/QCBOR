@@ -10,7 +10,7 @@
 
 
 #include "t_cose_headers.h"
-#include "t_cose_rfc_constants.h"
+#include "t_cose_standard_constants.h"
 
 
 /**

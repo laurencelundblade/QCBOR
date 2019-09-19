@@ -1,5 +1,5 @@
 /*
- * t_cose_defines.h
+ * t_cose_standard_constants.h
  *
  * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
  *
@@ -8,8 +8,8 @@
  * See BSD-3-Clause license in README.md
  */
 
-#ifndef __T_COSE_DEFINES_H__
-#define __T_COSE_DEFINES_H__
+#ifndef __T_COSE_STANDARD_CONSTANTS_H__
+#define __T_COSE_STANDARD_CONSTANTS_H__
 
 /**
  * \file t_cose_defines.h
@@ -323,4 +323,4 @@
 #define COSE_SIG_CONTEXT_STRING_SIGNATURE1 "Signature1"
 
 
-#endif /* __T_COSE_DEFINES_H__ */
+#endif /* __T_COSE_STANDARD_CONSTANTS_H__ */

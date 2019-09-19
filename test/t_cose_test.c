@@ -11,7 +11,7 @@
 #include "t_cose_test.h"
 #include "t_cose_sign1_sign.h"
 #include "t_cose_sign1_verify.h"
-#include "t_cose_rfc_constants.h"
+#include "t_cose_standard_constants.h"
 #include "q_useful_buf.h"
 #include "t_cose_crypto.h" /* For signature size constant */
 

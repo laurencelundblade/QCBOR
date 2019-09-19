@@ -93,11 +93,11 @@
 		E71D9E8B231C3DB900A21F7F /* t_cose_openssl_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_openssl_test.c; sourceTree = "<group>"; };
 		E71D9E8C231C3DBA00A21F7F /* t_cose_openssl_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_openssl_test.h; sourceTree = "<group>"; };
 		E71D9E8E231C930B00A21F7F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		E71D9E8F2326A7A100A21F7F /* t_cose_rfc_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_rfc_constants.h; sourceTree = "<group>"; };
 		E71D9EBD232B8F6800A21F7F /* t_cose_openssl_hf */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_openssl_hf; sourceTree = BUILT_PRODUCTS_DIR; };
 		E71D9EC1232F4F7000A21F7F /* t_cose_hash_fail_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_hash_fail_test.c; sourceTree = "<group>"; };
 		E71D9EC2232F4F7000A21F7F /* t_cose_hash_fail_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_hash_fail_test.h; sourceTree = "<group>"; };
 		E71D9EC5233012B500A21F7F /* t_cose_hash_fail_crypto.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_hash_fail_crypto.c; sourceTree = "<group>"; };
+		E71D9ECA23341D8200A21F7F /* t_cose_standard_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_standard_constants.h; sourceTree = "<group>"; };
 		E72FB01B231ADAA8000970FE /* run_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = run_tests.h; sourceTree = "<group>"; };
 		E72FB01C231ADAA8000970FE /* run_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = run_tests.c; sourceTree = "<group>"; };
 		E7E36E78226CB8400040613B /* t_cose_openssl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_openssl; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -207,7 +207,7 @@
 		E7E36E86226CB9460040613B /* src */ = {
 			isa = PBXGroup;
 			children = (
-				E71D9E8F2326A7A100A21F7F /* t_cose_rfc_constants.h */,
+				E71D9ECA23341D8200A21F7F /* t_cose_standard_constants.h */,
 				E7E36E89226CB9460040613B /* t_cose_util.c */,
 				E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */,
 				0F9105782321878F00008572 /* t_cose_headers.h */,
