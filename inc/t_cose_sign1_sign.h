@@ -78,14 +78,14 @@ struct t_cose_sign1_ctx {
 /**
  * An option_flag for t_cose_sign1_init() to request a short-ciruit signature
  */
-#define T_COSE_OPT_SHORT_CIRCUIT_SIG 0x01
+#define T_COSE_OPT_SHORT_CIRCUIT_SIG 0x00000001
 
 
 /**
  * An option_flag for t_cose_sign1_init() to not add the CBOR type 6 tag
  * for COSE_Sign1.
  */
-#define T_COSE_OPT_OMIT_CBOR_TAG 0x02
+#define T_COSE_OPT_OMIT_CBOR_TAG 0x00000002
 
 
 /**

@@ -30,7 +30,7 @@
  *  \brief Verify a short-circuit signature
  *
  * \param[in] hash_to_verify  Pointer and length of hash to verify.
- * \param[in] signature       Pointer and length of signature
+ * \param[in] signature       Pointer and length of signature.
  *
  * \return This returns one of the error codes defined by \ref
  *         t_cose_err_t.
@@ -67,25 +67,17 @@ Done:
  * Public function. See t_cose_sign1_verify.h
  */
 enum t_cose_err_t
-t_cose_sign1_verify(int32_t                   option_flags,
-                    struct t_cose_key verification_key,
-                    struct q_useful_buf_c     cose_sign1,
-                    struct q_useful_buf_c     *payload)
+t_cose_sign1_verify(int32_t                 option_flags,
+                    struct t_cose_key       verification_key,
+                    struct q_useful_buf_c   cose_sign1,
+                    struct q_useful_buf_c  *payload)
 {
-    /* Stack use:
-         144     108
-          56      52
-          16       8
-           4       4
-           8       4
-          32      32
-          16       8
-          16       8
-          32      32
-          16       8
-          72      36
-         ---     ---
-         396     300
+    /* Stack use for 32-bit CPUs:
+     *   268 for local except hash output
+     *   32 to 64 local for hash output
+     *   220 to 434 to make TBS hash
+     * Total 420 to 768 depending on hash and EC alg.
+     * Stack used internally by hash and crypto is extra.
      */
     QCBORDecodeContext            decode_context;
     QCBORItem                     item;
@@ -112,8 +104,9 @@ t_cose_sign1_verify(int32_t                   option_flags,
         goto Done;
     }
 
-    if(!QCBORDecode_IsTagged(&decode_context, &item, CBOR_TAG_COSE_SIGN1)) {
-        return_value = T_COSE_ERR_SIGN1_FORMAT;
+    if((option_flags & T_COSE_OPT_TAG_REQUIRED) &&
+       !QCBORDecode_IsTagged(&decode_context, &item, CBOR_TAG_COSE_SIGN1)) {
+        return_value = T_COSE_ERR_INCORRECTLY_TAGGED;
         goto Done;
     }
 
@@ -127,14 +120,16 @@ t_cose_sign1_verify(int32_t                   option_flags,
 
     protected_headers = item.val.string;
 
-    return_value = parse_protected_headers(protected_headers, &parsed_protected_headers);
+    return_value = parse_protected_headers(protected_headers,
+                                           &parsed_protected_headers);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
 
     /* --  Get the unprotected headers -- */
-    return_value = parse_unprotected_headers(&decode_context, &unprotected_headers);
+    return_value = parse_unprotected_headers(&decode_context,
+                                             &unprotected_headers);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -167,10 +162,13 @@ t_cose_sign1_verify(int32_t                   option_flags,
     /* This check make sure the array only had the expected four
      items. Works for definite and indefinte length arrays. Also
      make sure there were no extra bytes. */
+#ifdef xxx
+    // TODO, re enables this when newer qcbor is picked up
     if(QCBORDecode_Finish(&decode_context) != QCBOR_SUCCESS) {
         return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
         goto Done;
     }
+#endif
 
 
     /* -- Skip signature verification if requested --*/
@@ -193,7 +191,7 @@ t_cose_sign1_verify(int32_t                   option_flags,
     /* -- Check for short-circuit signature and verify if it exists -- */
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     short_circuit_kid = get_short_circuit_kid();
-    if(!return_value && !q_useful_buf_compare(unprotected_headers.kid, short_circuit_kid)) {
+    if(!q_useful_buf_compare(unprotected_headers.kid, short_circuit_kid)) {
         if(!(option_flags & T_COSE_OPT_ALLOW_SHORT_CIRCUIT)) {
             return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG;
             goto Done;
@@ -207,11 +205,12 @@ t_cose_sign1_verify(int32_t                   option_flags,
 
 
     /* -- Verify the signature (if it wasn't short-circuit) -- */
-    return_value = t_cose_crypto_pub_key_verify(parsed_protected_headers.cose_alg_id,
-                                                verification_key,
-                                                unprotected_headers.kid,
-                                                tbs_hash,
-                                                signature);
+    return_value =
+       t_cose_crypto_pub_key_verify(parsed_protected_headers.cose_alg_id,
+                                    verification_key,
+                                    unprotected_headers.kid,
+                                    tbs_hash,
+                                    signature);
 
 Done:
     return return_value;

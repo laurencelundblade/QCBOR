@@ -21,7 +21,8 @@
  * \brief Implementation of t_cose utility functions.
  *
  * These are some functions common to signing and
- * verification.
+ * verification, primarily the to-be-signed bytes
+ * hashing.
  */
 
 
@@ -32,19 +33,23 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_sig_alg_id)
 {
     /* If other hashes, particularly those that output bigger hashes
      * are added here, various other parts of this code have to be
-     * changed to have larger buffers.
+     * changed to have larger buffers, in particular
+     * \ref T_COSE_CRYPTO_MAX_HASH_SIZE.
      */
     switch(cose_sig_alg_id) {
     case COSE_ALGORITHM_ES256:
         return COSE_ALGORITHM_SHA_256;
+
 #ifndef T_COSE_DISABLE_ES384
     case COSE_ALGORITHM_ES384:
         return COSE_ALGORITHM_SHA_384;
 #endif
+
 #ifndef T_COSE_DISABLE_ES512
      case COSE_ALGORITHM_ES512:
         return COSE_ALGORITHM_SHA_512;
 #endif
+
     default:
         return INT32_MAX;
     }
@@ -100,11 +105,9 @@ enum t_cose_err_t create_tbs_hash(int32_t cose_alg_id,
                                   struct q_useful_buf_c payload)
 {
     /* approximate stack use on 32-bit machine:
-     * local use: 210
-     * total with calls: 250
-     * Can be another 128-256 bytes or so depending on
-     * t_cose_crypto_hash implementation. It sometimes
-     * includes the full hashing context.
+     *    210 bytes for all but hash context
+     *    8 to 224 of hash context depending on hash implementation
+     *    220 to 434 bytes total
      */
     enum t_cose_err_t           return_value;
     QCBOREncodeContext          cbor_encode_ctx;
@@ -118,12 +121,14 @@ enum t_cose_err_t create_tbs_hash(int32_t cose_alg_id,
     /* This builds the CBOR format to-be-signed bytes */
     QCBOREncode_Init(&cbor_encode_ctx, buffer_for_TBS_first_part);
     QCBOREncode_OpenArray(&cbor_encode_ctx);
+
     /* context */
     QCBOREncode_AddSZString(&cbor_encode_ctx,
                             COSE_SIG_CONTEXT_STRING_SIGNATURE1);
     /* body_protected */
     QCBOREncode_AddBytes(&cbor_encode_ctx,
                          protected_headers);
+
     /* sign_protected is not used for Sign1 */
 
     /* external_aad. There is none so an empty bstr */
@@ -162,7 +167,7 @@ enum t_cose_err_t create_tbs_hash(int32_t cose_alg_id,
     /* Start the hashing */
     hash_alg_id = hash_alg_id_from_sig_alg_id(cose_alg_id);
     /* Don't check hash_alg_id for failure. t_cose_crypto_hash_start()
-     * will handle it properly.
+     * will handle error properly.
      */
     return_value = t_cose_crypto_hash_start(&hash_ctx, hash_alg_id);
     if(return_value) {

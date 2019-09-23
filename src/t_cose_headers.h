@@ -37,10 +37,11 @@ struct t_cose_headers {
     /** The COSE partial initialization vector. NULL_Q_USEFUL_BUF_C if header is not present */
     struct q_useful_buf_c partial_iv;
     /** The content type as a MIME type like "text/plain". NULL_Q_USEFUL_BUF_C if header is not present */
-    struct q_useful_buf_c content_type_tstr; // TODO: integer versions of this
+    struct q_useful_buf_c content_type_tstr;
     /** The content type as a CoAP Content-Format integer. T_COSE_EMPTY_UINT_CONTENT_TYPE if header is not present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
     uint32_t              content_type_uint;
 };
+
 
 /**
  This value indicates no integer content type was specified. It is outside
@@ -55,10 +56,14 @@ struct t_cose_headers {
  * \param[in] decode_context  The QCBOR decode context to read the headers from.
  * \param[out] returned_headers  The parsed headers being returned.
 
+
  \retval T_COSE_SUCCESS if headers were parsed correctly
  \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED  The CBOR of the headers is not parsable
- \retval T_COSE_ERR_CBOR_STRUCTURE The CBOR is parsable, but not the right structure (e.g. an array instead of a map)
- \retval T_COSE_NON_INTEGER_ALG_ID The algorithm ID is not an integer. This implementation doesn't support string algorithm IDs.
+ \retval T_COSE_ERR_HEADER_CBOR The CBOR is parsable, but not the right structure (e.g. an array instead of a map)
+ \retval T_COSE_ERR_NON_INTEGER_ALG_ID The algorithm ID is not an integer. This implementation doesn't support string algorithm IDs.
+ \retval T_COSE_ERR_BAD_CONTENT_TYPE Error in content type header.
+ \retval T_COSE_ERR_TOO_MANY_HEADERS
+ \retval T_COSE_ERR_UNKNOWN_CRITICAL_HEADER
 
  No headers are mandatory. Which headers were present or not is indicated
  in \c returned_headers.

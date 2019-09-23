@@ -72,7 +72,7 @@ t_cose_crypto_pub_key_sign(int32_t                   cose_alg_id,
     ECDSA_SIG         *ossl_signature = NULL;
 
     if(signing_key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return_value = T_COSE_INCORRECT_KEY_FOR_LIB;
+        return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
         goto Done;
     }
 
@@ -208,7 +208,7 @@ t_cose_crypto_pub_key_verify(int32_t                   cose_alg_id,
     ECDSA_SIG        *ossl_sig_to_verify = NULL;
 
     if(verification_key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return_value = T_COSE_INCORRECT_KEY_FOR_LIB;
+        return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
         goto Done;
     }
 

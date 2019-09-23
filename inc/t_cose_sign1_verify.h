@@ -25,7 +25,7 @@ extern "C" {
  *
  * \brief Verify a COSE_Sign1
  *
- * This creates a \c COSE_Sign1 in compliance with [COSE (RFC 8152)]
+ * This verifies a \c COSE_Sign1 in compliance with [COSE (RFC 8152)]
  * (https://tools.ietf.org/html/rfc8152). A \c COSE_Sign1 is a CBOR
  * encoded binary blob that contains headers, a payload and a
  * signature. Usually the signature is made with an EC signing
@@ -44,13 +44,6 @@ extern "C" {
  * platforms and OS's may support only signing with a particular set
  * of algorithms.
  *
- * This should not yet be considered a real commercial
- * implementation of COSE signature verification. It is
- * close, but not there yet. It's purpose is to test
- * COSE signing. The main thing this needs to become
- * a real commercial implementation is code that
- * tests this. It is a parser / decoder, so a
- * proper test involves a lot of hostile input.
  */
 
 
@@ -72,16 +65,17 @@ extern "C" {
 #define T_COSE_OPT_REQUIRE_KID 0x00000002
 
 
-/* Decode the CBOR as COSE even if the tag
- * indicating so is absent.
- *
- * Even with this flag set it is an error if
- * a tag other than for COSE_Sign1 is present.
+/**
+ * Normally this will decode the CBOR presented as a
+ * COSE_Sign1 whether it is tagged as such or not.
+ * This this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is returned if
+ * it is not tagged.
  */
-#define T_COSE_OPT_TAG_NOT_REQUIRED  0x00000004
+#define T_COSE_OPT_TAG_REQUIRED  0x00000004
 
 
-/* Option that disables signature verification.
+/**
+ * Option that disables signature verification.
  * With this option the \c verification_key is not needed.
  * This is useful to parse the COSE_Sign1 to get the key ID
  * so the key can be found and t_cose_sign1_verify() can
@@ -98,12 +92,10 @@ extern "C" {
  * \brief Verify a COSE_Sign1
  *
  * \param[in] option_flags      Options controlling the verification.
- * \param[in] verification_key  The verification key to use. Maybe empty
-                                by TODO.
+ * \param[in] verification_key  The verification key to use. May be empty.
  * \param[in] sign1             Pointer and length of CBOR encoded \c COSE_Sign1
  *                              that is to be verified.
- * \param[out] payload          Pointer and length of the still CBOR encoded
- *                              payload
+ * \param[out] payload          Pointer and length of the payload.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -124,17 +116,16 @@ extern "C" {
  * headers. If the algorithm is not known or not supported this will
  * error out.
  *
- * The verification key is obtained. This may be by kid in the
- * protected headers or the verification_key passed in. Typically,
- * what is passed in through verification_key takes precidence.
- * TODO: elaborate
+ * The verification key can either be passed in as \c verification_key or looked up by
+ * the key id in the header. Which depends on the way the crypto
+ * library is integrated. In more simple integrations then key
+ * must be passed in.
  *
  * Finally, the signature verification is performed.
  *
  * If it is successful, the pointer of the CBOR-encoded payload is
  * returned.
- *
- * This will recognize the special kid for short-circuit signing
+ *\ref  T_COSE_OPT_TAG_REQUIRED * This will recognize the special kid for short-circuit signing
  * and verify it if the \ref T_COSE_OPT_ALLOW_SHORT_CIRCUIT is set.
  */
 enum t_cose_err_t t_cose_sign1_verify(int32_t option_flags,

@@ -21,17 +21,8 @@
  * \brief This implements t_cose signing
  *
  * Stack usage to sign is dependent on the signing alg and key size and type
- * of hash implementation.
- *
- * In this code ES256 requires
-     xxx -- overhead of this implementation
-     buffer to hold hash -- 32 to 64 depending hash alg
-     buffer to hold sig -- 64 to 132 depending on ECDSA alg
-     hash context -- depends on hash implementatype and alg 8 to 256 bytes
-     crypto -- stack used by the crypto algorithm
-
- Total: xxx + (104 to 452) + crypto == 204 to 556 + crypto 
- *
+ * of hash implementation. t_cose_sign1_finish() is the main user of stack
+ * It is 384 for \ref COSE_ALGORITHM_ES256 and 778 for \ref COSE_ALGORITHM_ES512.
  */
 
 
@@ -59,12 +50,12 @@
  * even if key material is not set up or accessible.
  */
 static inline enum t_cose_err_t
-short_circuit_sign(int32_t cose_alg_id,
+short_circuit_sign(int32_t               cose_alg_id,
                    struct q_useful_buf_c hash_to_sign,
-                   struct q_useful_buf signature_buffer,
+                   struct q_useful_buf   signature_buffer,
                    struct q_useful_buf_c *signature)
 {
-    /* approximate stack use on 32-bit machine: local use: 16
+    /* approximate stack use on 32-bit machine: local use: 16 bytes
      */
     enum t_cose_err_t return_value;
     size_t            array_indx;
@@ -84,8 +75,7 @@ short_circuit_sign(int32_t cose_alg_id,
         amount_to_copy = sig_size - array_indx;
         if(amount_to_copy > hash_to_sign.len) {
             amount_to_copy = hash_to_sign.len;
-        }
-        memcpy((uint8_t *)signature_buffer.ptr + array_indx,
+        }        memcpy((uint8_t *)signature_buffer.ptr + array_indx,
                hash_to_sign.ptr,
                amount_to_copy);
     }
@@ -259,8 +249,12 @@ Done:
 enum t_cose_err_t t_cose_sign1_finish(struct t_cose_sign1_ctx *me)
 {
     /* approximate stack use on 32-bit machine:
-     *   local use: 150-260 depending on algs supported
-     *   total use: 400 - 510 or more depending on crypto library
+     *   32 bytes local use
+     *   220 to 434 for calls dependin on hash implementation
+     *   32 to 64 bytes depending on hash alg (SHA256, 384 or 512)
+     *   64 to 260 depending on EC alg
+     *   348 to 778 depending on hash and EC alg
+     *   Also add stack use by EC and hash functions
      */
     enum t_cose_err_t            return_value;
     QCBORError                   cbor_err;

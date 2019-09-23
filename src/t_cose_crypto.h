@@ -22,8 +22,6 @@ extern "C" {
 #endif
 
 
-//#define T_COSE_DISABLE_ES512
-//#define T_COSE_DISABLE_ES384
 
 
 /**
@@ -265,7 +263,7 @@ t_cose_crypto_pub_key_verify(int32_t cose_alg_id,
 #endif
 
 #ifdef T_COSE_USE_OPENSSL_HASH
-#include <openssl/sha.h>
+#include "openssl/sha.h"
 #endif
 
 

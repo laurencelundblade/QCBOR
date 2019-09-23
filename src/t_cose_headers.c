@@ -85,8 +85,7 @@ Done:
 */
 struct t_cose_header_list {
     /* Terminated by value HEADER_ALG_LIST_TERMINATOR */
-    // TODO: is uint64 right? maybe signed?
-    uint64_t int_header_labels[T_COSE_HEADER_LIST_MAX+1];
+    int64_t int_header_labels[T_COSE_HEADER_LIST_MAX+1];
     /*  Terminated by a NULL_Q_USEFUL_BUF_C */
     struct q_useful_buf_c tstr_header_labels[T_COSE_HEADER_LIST_MAX+1];
 };
@@ -124,7 +123,7 @@ clear_header_list(struct t_cose_header_list *list)
  *
  * \retval T_COSE_SUCCESS If added correctly.
  * \retval T_COSE_ERR_TOO_MANY_HEADERS  Header list is full.
- * \retval T_COSE_ERR_CBOR_STRUCTURE  The item to add doesn't have a label type that is understood TODO...
+ * \retval T_COSE_ERR_HEADER_CBOR  The item to add doesn't have a label type that is understood
  *
  * The label / key from \c item is added to \c header_list.
  */
@@ -140,7 +139,7 @@ add_header_label_to_list(const QCBORItem           *item,
 
     if(item->uLabelType == QCBOR_TYPE_INT64) {
         /* Add an integer-labeled header to the end of the list */
-        for(num_headers = 0; header_list->int_header_labels[num_headers]; num_headers++);
+        for(num_headers = 0; header_list->int_header_labels[num_headers] != HEADER_ALG_LIST_TERMINATOR; num_headers++);
         if(num_headers == T_COSE_HEADER_LIST_MAX+1) {
             /* List is full -- error out */
             return_value = T_COSE_ERR_TOO_MANY_HEADERS;
@@ -159,7 +158,7 @@ add_header_label_to_list(const QCBORItem           *item,
         header_list->tstr_header_labels[num_headers] = item->label.string;
     } else {
         /* error because header is neither integer or string */
-        return_value = T_COSE_ERR_CBOR_STRUCTURE;
+        return_value = T_COSE_ERR_HEADER_CBOR;
     }
 
 Done:
@@ -204,7 +203,7 @@ decode_critical_headers(QCBORDecodeContext       *decode_context,
     next_nest_level  = crit_header_item->uNextNestLevel;
 
     if(crit_header_item->uDataType != QCBOR_TYPE_ARRAY) {
-        return_value = T_COSE_ERR_SIGN1_FORMAT;
+        return_value = T_COSE_ERR_HEADER_CBOR;
         goto Done;
     }
 
@@ -228,7 +227,7 @@ decode_critical_headers(QCBORDecodeContext       *decode_context,
             }
             critical_header_labels->tstr_header_labels[num_tstr_headers++] = item.val.string;
         } else {
-            return_value = T_COSE_ERR_CBOR_STRUCTURE; // TODO: Wrong type
+            return_value = T_COSE_ERR_HEADER_CBOR;
             goto Done;
         }
         next_nest_level = item.uNextNestLevel;
@@ -271,7 +270,7 @@ check_critical_headers(const struct t_cose_header_list *critical_headers,
         for(num_critical_headers = 0; critical_headers->int_header_labels[num_critical_headers]; num_critical_headers++) {
             if(critical_headers->int_header_labels[num_critical_headers] == unknown_headers->int_header_labels[num_unknown_headers]) {
                 /* Found a critical header that is unknown to us */
-                return_value = T_COSE_UNKNOWN_CRITICAL_HEADER;
+                return_value = T_COSE_ERR_UNKNOWN_CRITICAL_HEADER;
                 goto Done;
             }
         }
@@ -284,7 +283,7 @@ check_critical_headers(const struct t_cose_header_list *critical_headers,
         for(num_critical_headers = 0; !q_useful_buf_c_is_null(critical_headers->tstr_header_labels[num_critical_headers]); num_critical_headers++) {
             if(!q_useful_buf_compare(critical_headers->tstr_header_labels[num_critical_headers], unknown_headers->tstr_header_labels[num_unknown_headers])) {
                 /* Found a critical header that is unknown to us */
-                return_value = T_COSE_UNKNOWN_CRITICAL_HEADER;
+                return_value = T_COSE_ERR_UNKNOWN_CRITICAL_HEADER;
                 goto Done;
             }
         }
@@ -381,7 +380,7 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
     /* Get the data item that is the map that is being searched */
     QCBORDecode_GetNext(decode_context, &item);
     if(item.uDataType != QCBOR_TYPE_MAP) {
-        return_value = T_COSE_ERR_CBOR_STRUCTURE;
+        return_value = T_COSE_ERR_HEADER_CBOR;
         goto Done;
     }
 
@@ -421,19 +420,19 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
 
                 case COSE_HEADER_PARAM_ALG:
                     if(item.uDataType != QCBOR_TYPE_INT64) {
-                        return_value = T_COSE_NON_INTEGER_ALG_ID;
+                        return_value = T_COSE_ERR_NON_INTEGER_ALG_ID;
                         goto Done;
                     }
                     if(item.val.int64 == COSE_ALGORITHM_RESERVED ||
                        item.val.int64 > INT32_MAX) {
-                        return T_COSE_NON_INTEGER_ALG_ID;
+                        return T_COSE_ERR_NON_INTEGER_ALG_ID;
                     }
                     returned_headers->cose_alg_id = (int32_t)item.val.int64;
                     break;
 
                 case COSE_HEADER_PARAM_KID:
                     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-                        return_value = T_COSE_ERR_SIGN1_FORMAT;
+                        return_value = T_COSE_ERR_HEADER_CBOR;
                         goto Done;
                     }
                     returned_headers->kid = item.val.string;
@@ -441,7 +440,7 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
 
                 case COSE_HEADER_PARAM_IV:
                     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-                        return_value = T_COSE_ERR_SIGN1_FORMAT;
+                        return_value = T_COSE_ERR_HEADER_CBOR;
                         goto Done;
                     }
                     returned_headers->iv = item.val.string;
@@ -449,7 +448,7 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
 
                 case COSE_HEADER_PARAM_PARTIAL_IV:
                     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-                        return_value = T_COSE_ERR_SIGN1_FORMAT;
+                        return_value = T_COSE_ERR_HEADER_CBOR;
                         goto Done;
                     }
                     returned_headers->iv = item.val.string;
@@ -470,12 +469,12 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
                         returned_headers->content_type_tstr = item.val.string;
                     } else if(item.uDataType == QCBOR_TYPE_INT64) {
                         if(item.val.int64 < 0 || item.val.int64 > UINT16_MAX) {
-                            return_value = T_COSE_BAD_CONTENT_TYPE;
+                            return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
                             goto Done;
                         }
                         returned_headers->content_type_uint = (uint32_t)item.val.int64;
                     } else {
-                        return_value = T_COSE_BAD_CONTENT_TYPE;
+                        return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
                         goto Done;
                     }
 

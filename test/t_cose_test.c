@@ -558,3 +558,103 @@ int_fast32_t short_circuit_no_parse_test()
 
     return 0;
 }
+
+
+enum t_cose_err_t t_cose_sign1_sign(int32_t option_flags,
+                                    int32_t cose_algorithm_id,
+                                    struct t_cose_key signing_key,
+                                    struct q_useful_buf_c key_id,
+                                    struct q_useful_buf_c payload,
+                                    struct q_useful_buf outbuf,
+                                    struct q_useful_buf_c *result)
+{
+    struct t_cose_sign1_ctx  cose_context;
+    QCBOREncodeContext       encode_context;
+    enum t_cose_err_t        return_value;
+
+    QCBOREncode_Init(&encode_context, outbuf);
+
+    return_value = t_cose_sign1_init(&cose_context,
+                                     option_flags,
+                                     cose_algorithm_id,
+                                     signing_key, key_id,
+                                     &encode_context);
+    if(return_value) {
+        goto Done;
+    }
+
+    /* Payload may or may not actually be CBOR format here. This function
+     * does the job just fine because it just adds bytes to the
+     * encoded output without anything extra
+     */
+    QCBOREncode_AddEncoded( &encode_context, payload);
+
+    return_value = t_cose_sign1_finish(&cose_context);
+    if(return_value) {
+        goto Done;
+    }
+
+    if(QCBOREncode_Finish(&encode_context, result)) {
+        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+        goto Done;
+    }
+
+    return_value = T_COSE_SUCCESS;
+
+Done:
+    return return_value;
+
+}
+
+
+/*
+ 18( [
+    / protected / h’a10126’ / {
+        \ alg \ 1:-7 \ ECDSA 256 \
+    }/ ,
+    / unprotected / {
+      / kid / 4:’11’
+    },
+    / payload / ’This is the content.’,
+
+       / signature / h’8eb33e4ca31d1c465ab05aac34cc6b23d58fef5c083106c4
+   d25a91aef0b0117e2af9a291aa32e14ab834dc56ed2a223444547e01f11d3b0916e5
+   a4c345cacb36’
+] )
+ */
+
+int easy_test()
+{
+    // TODO finish this test with comparison
+    enum t_cose_err_t result;
+    struct t_cose_key           degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
+    Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
+    struct q_useful_buf_c output;
+
+    /* Make example C.2.1 from RFC 8152 */
+
+    result = t_cose_sign1_sign(T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                               COSE_ALGORITHM_ES256,
+                               degenerate_key,
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("11"),
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("This is the content."),
+                               signed_cose_buffer,
+                               &output);
+
+    return result;
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

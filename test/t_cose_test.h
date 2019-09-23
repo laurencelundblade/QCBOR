@@ -56,5 +56,21 @@ int_fast32_t short_circuit_make_cwt_test(void);
 
 int_fast32_t short_circuit_no_parse_test(void);
 
+/*
+- protected header not well formed CBOR
+- unprotected header not well formed CBOR
+- unknown algorithm ID
+- No algorithm ID header
+
+ */
+
+int_fast32_t bad_headers_test(void);
+
+
+
+int_fast32_t easy_test(void);
+
+
+
 
 #endif /* t_cose_test_h */

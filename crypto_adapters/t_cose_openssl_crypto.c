@@ -72,7 +72,7 @@ t_cose_crypto_pub_key_sign(int32_t                   cose_alg_id,
     ECDSA_SIG         *ossl_signature = NULL;
 
     if(signing_key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return_value = T_COSE_INCORRECT_KEY_FOR_LIB;
+        return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
         goto Done;
     }
 
@@ -195,11 +195,11 @@ Done:
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_pub_key_verify(int32_t                   cose_alg_id,
-                             struct t_cose_key verification_key,
-                             struct q_useful_buf_c     key_id,
-                             struct q_useful_buf_c     hash_to_verify,
-                             struct q_useful_buf_c     signature)
+t_cose_crypto_pub_key_verify(int32_t                cose_alg_id,
+                             struct t_cose_key      verification_key,
+                             struct q_useful_buf_c  key_id,
+                             struct q_useful_buf_c  hash_to_verify,
+                             struct q_useful_buf_c  signature)
 {
     (void)key_id;  /* unused parameter */
 
@@ -209,7 +209,12 @@ t_cose_crypto_pub_key_verify(int32_t                   cose_alg_id,
     ECDSA_SIG        *ossl_sig_to_verify = NULL;
 
     if(verification_key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return_value = T_COSE_INCORRECT_KEY_FOR_LIB;
+        return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
+        goto Done;
+    }
+
+    if(verification_key.k.key_ptr == NULL) {
+        return_value = T_COSE_ERR_EMPTY_KEY;
         goto Done;
     }
 

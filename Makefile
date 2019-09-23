@@ -29,10 +29,10 @@ t_cose_test: main.o $(SRC_OBJ) $(OSSL_CRYPTO_OBJ) $(TEST_OBJ)
 clean:
 	rm -f $(SRC_OBJ) $(TEST_OBJ) $(OSSL_CRYPTO_OBJ) $(PSA_CRYPTO_OBJ)
 
-t_cose_util.o:	t_cose_util.h t_cose_standard_constants.h t_cose_common.h t_cose_crypto.h
-t_cose_sign1_verify.o:	t_cose_sign1_verify.h t_cose_crypto.h t_cose_util.h t_cose_headers.h t_cose_common.h t_cose_standard_constants.h
-t_cose_headers.o: t_cose_headers.h t_cose_standard_constants.h
-t_cose_sign1_sign.o: t_cose_sign1_sign.h q_cose_standard_constants.h t_cose_crypto.h t_cose_util.h t_cose_common.h 
+src/t_cose_util.o:	src/t_cose_util.h src/t_cose_standard_constants.h inc/t_cose_common.h src/t_cose_crypto.h
+src/t_cose_sign1_verify.o:	inc/t_cose_sign1_verify.h src/t_cose_crypto.h src/t_cose_util.h src/t_cose_headers.h inc/t_cose_common.h src/t_cose_standard_constants.h
+src/t_cose_headers.o: src/t_cose_headers.h src/t_cose_standard_constants.h
+src/t_cose_sign1_sign.o: inc/t_cose_sign1_sign.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose_common.h 
 
-t_cose_openssl_crypto.o: t_cose_crypto.h t_cose_common.h t_cose_rfc_constants.h
+src/t_cose_openssl_crypto.o: src/t_cose_crypto.h inc/t_cose_common.h src/t_cose_rfc_constants.h
 
