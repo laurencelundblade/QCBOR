@@ -162,14 +162,11 @@ t_cose_sign1_verify(int32_t                 option_flags,
     /* This check make sure the array only had the expected four
      items. Works for definite and indefinte length arrays. Also
      make sure there were no extra bytes. */
-#ifdef xxx
-    // TODO, re enables this when newer qcbor is picked up
     if(QCBORDecode_Finish(&decode_context) != QCBOR_SUCCESS) {
         return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
         goto Done;
     }
-#endif
-
+    
 
     /* -- Skip signature verification if requested --*/
     if(option_flags & T_COSE_OPT_PARSE_ONLY) {
