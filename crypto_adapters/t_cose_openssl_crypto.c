@@ -30,8 +30,8 @@ convert_signature_from_ossl(int32_t             cose_alg_id,
                             const ECDSA_SIG    *ossl_signature,
                             struct q_useful_buf signature_buffer)
 {
-    int                   r_len;
-    int                   s_len;
+    size_t                r_len;
+    size_t                s_len;
     const BIGNUM         *ossl_signature_r_bn = NULL;
     const BIGNUM         *ossl_signature_s_bn = NULL;
     size_t                sig_len;
@@ -55,8 +55,10 @@ convert_signature_from_ossl(int32_t             cose_alg_id,
      will fit into the expected size. Important to
      be sure the output buffer is not overrun.
      */
-    r_len = BN_num_bytes(ossl_signature_r_bn);
-    s_len = BN_num_bytes(ossl_signature_s_bn);
+    /* cast is safe because BN_num_bytes() is documented
+     to not return negative numbers */
+    r_len = (size_t)BN_num_bytes(ossl_signature_r_bn);
+    s_len = (size_t)BN_num_bytes(ossl_signature_s_bn);
     if(r_len + s_len > signature_buffer.len) {
         signature = NULL_Q_USEFUL_BUF_C;
         goto Done;
