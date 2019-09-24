@@ -302,12 +302,11 @@ int_fast32_t openssl_basic_test()
         goto Done;
     }
 
-    /* TODO: not working yet... issue with signature length
     return_value  = openssl_basic_test_alg(COSE_ALGORITHM_ES512);
     if(return_value) {
         goto Done;
     }
-     */
+    
 
 Done:
     return return_value;

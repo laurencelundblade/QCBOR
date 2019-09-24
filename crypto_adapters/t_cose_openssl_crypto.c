@@ -26,33 +26,50 @@
 
 
 static inline struct q_useful_buf_c
-convert_signature_from_ossl(const ECDSA_SIG *ossl_signature,
+convert_signature_from_ossl(int32_t             cose_alg_id,
+                            const ECDSA_SIG    *ossl_signature,
                             struct q_useful_buf signature_buffer)
 {
     int                   r_len;
     int                   s_len;
     const BIGNUM         *ossl_signature_r_bn = NULL;
     const BIGNUM         *ossl_signature_s_bn = NULL;
-    int                   sig_len;
+    size_t                sig_len;
     struct q_useful_buf_c signature;;
 
     /* Get the signature r and s as big nums */
     ECDSA_SIG_get0(ossl_signature, &ossl_signature_r_bn, &ossl_signature_s_bn);
     /* ECDSA_SIG_get0 returns void */
 
-    /* Check the lengths to see if fits in the output buffer */
+    sig_len = t_cose_signature_size(cose_alg_id);
+    if(sig_len > signature_buffer.len) {
+        /* Buffer given for signature is too small */
+        signature = NULL_Q_USEFUL_BUF_C;
+        goto Done;
+    }
+
+    /* Zero the buffer so that bytes r and s are padded with zeros */
+    q_useful_buf_set(signature_buffer, 0);
+
+    /* Internal consistency check that the r and s values
+     will fit into the expected size. Important to
+     be sure the output buffer is not overrun.
+     */
     r_len = BN_num_bytes(ossl_signature_r_bn);
     s_len = BN_num_bytes(ossl_signature_s_bn);
-    sig_len = r_len + s_len;
-    if(sig_len < 0 && (size_t)sig_len > signature_buffer.len) {
+    if(r_len + s_len > signature_buffer.len) {
         signature = NULL_Q_USEFUL_BUF_C;
         goto Done;
     }
 
     /* Copy r and s of signature to output buffer and set length */
-    BN_bn2bin(ossl_signature_r_bn, signature_buffer.ptr);
-    BN_bn2bin(ossl_signature_s_bn, (uint8_t *)signature_buffer.ptr + r_len);
-    signature.len = r_len + s_len;
+    void *r_start_ptr = (uint8_t *)signature_buffer.ptr + (sig_len / 2) - r_len;
+    BN_bn2bin(ossl_signature_r_bn, r_start_ptr);
+
+    void *s_start_ptr = (uint8_t *)signature_buffer.ptr + sig_len - s_len;
+    BN_bn2bin(ossl_signature_s_bn, s_start_ptr);
+
+    signature.len = sig_len;
     signature.ptr = signature_buffer.ptr;
 
 Done:
@@ -101,7 +118,9 @@ t_cose_crypto_pub_key_sign(int32_t                   cose_alg_id,
     /* Convert signature from OSSL format to the serialized
        format in q useful buf
      */
-    *signature = convert_signature_from_ossl(ossl_signature, signature_buffer);
+    *signature = convert_signature_from_ossl(cose_alg_id,
+                                             ossl_signature,
+                                             signature_buffer);
 
     /* Everything succeeded */
     return_value = T_COSE_SUCCESS;
@@ -135,10 +154,7 @@ convert_signature_to_ossl(int32_t cose_alg_id,
      * individuallly on errors before association.
      */
 
-    /* Check the signature length (it will vary with algorithm when
-     * multiple are supported */
-
-    // TODO figure out what to do with 521 byte sigs
+    /* Check the signature length */
     sig_size = t_cose_signature_size(cose_alg_id);
     if(signature.len != sig_size) {
         return_value = T_COSE_ERR_SIG_VERIFY;
@@ -383,3 +399,4 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
     /* OpenSSL returns 1 for success, not 0 */
     return ossl_result ? T_COSE_SUCCESS : T_COSE_ERR_HASH_GENERAL_FAIL;
 }
+
