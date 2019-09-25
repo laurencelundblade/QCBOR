@@ -66,15 +66,13 @@ int_fast32_t short_circuit_hash_fail_test()
     QCBOREncode_CloseBstrWrap(&cbor_encode, &wrapped_payload);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    return_value = t_cose_sign1_finish(&sign_ctx, wrapped_payload);
+    return_value = t_cose_sign1_finish(&sign_ctx);
 
     hash_test_mode = 0;
 
     if(return_value != T_COSE_ERR_UNSUPPORTED_HASH) {
         return 2000 + return_value;
     }
-
-
 
 
     /* The CBOR encoder instance that the COSE_Sign1 is output into */
@@ -113,7 +111,7 @@ int_fast32_t short_circuit_hash_fail_test()
     QCBOREncode_CloseBstrWrap(&cbor_encode, &wrapped_payload);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    return_value = t_cose_sign1_finish(&sign_ctx, wrapped_payload);
+    return_value = t_cose_sign1_finish(&sign_ctx);
 
     hash_test_mode = 0;
 

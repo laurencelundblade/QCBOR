@@ -546,8 +546,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				"HEADER_SEARCH_PATHS[arch=*]" = "/Users/lgl/Code/openssl/openssl-1.1.1b/include";
-				"LIBRARY_SEARCH_PATHS[arch=*]" = "/Users/lgl/Code/openssl/openssl-1.1.1b";
+				"HEADER_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1b/include";
+				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1b";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -600,8 +600,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				"HEADER_SEARCH_PATHS[arch=*]" = "/Users/lgl/Code/openssl/openssl-1.1.1b/include";
-				"LIBRARY_SEARCH_PATHS[arch=*]" = "/Users/lgl/Code/openssl/openssl-1.1.1b";
+				"HEADER_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1b/include";
+				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1b";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;

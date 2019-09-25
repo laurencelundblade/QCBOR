@@ -106,7 +106,7 @@ extern "C" {
  * \param[in] cose_sig_alg_id  The COSE algorithm ID.
  *
  * \return The size in bytes of the signature for a public-key signing
- * algorithm.
+ * algorithm or zero for unknown algorithm IDs.
  */
 static inline size_t t_cose_signature_size(int32_t cose_sig_alg_id);
 
@@ -468,7 +468,7 @@ static inline size_t t_cose_signature_size(int32_t cose_sig_alg_id)
         return T_COSE_EC_P512_SIG_SIZE;
 #endif
     default:
-        return T_COSE_EC_P256_SIG_SIZE;
+        return 0;
     }
 }
 

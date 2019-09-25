@@ -62,7 +62,12 @@ short_circuit_sign(int32_t               cose_alg_id,
     size_t            amount_to_copy;
     size_t            sig_size;
 
+    /* Check the signature length against buffer size*/
     sig_size = t_cose_signature_size(cose_alg_id);
+    if(sig_size == 0) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done;
+    }
 
     if(sig_size > signature_buffer.len) {
         /* Buffer too small for this signature type */
@@ -75,7 +80,8 @@ short_circuit_sign(int32_t               cose_alg_id,
         amount_to_copy = sig_size - array_indx;
         if(amount_to_copy > hash_to_sign.len) {
             amount_to_copy = hash_to_sign.len;
-        }        memcpy((uint8_t *)signature_buffer.ptr + array_indx,
+        }
+        memcpy((uint8_t *)signature_buffer.ptr + array_indx,
                hash_to_sign.ptr,
                amount_to_copy);
     }

@@ -192,7 +192,8 @@ enum t_cose_err_t {
      * of short-circuit signatures was not set.  */
     T_COSE_ERR_SHORT_CIRCUIT_SIG = 22,
 
-    /** Something generally went wrong when signing or verifying.  */
+    /** Something generally went wrong in the crypto adaptor when signing or verifying.
+     For example, a memory allocation failure. */
     T_COSE_ERR_SIG_FAIL = 23,
 
     /** Something went wrong formatting the CBOR, most likely the
