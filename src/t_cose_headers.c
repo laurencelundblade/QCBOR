@@ -140,7 +140,7 @@ add_header_label_to_list(const QCBORItem           *item,
     if(item->uLabelType == QCBOR_TYPE_INT64) {
         /* Add an integer-labeled header to the end of the list */
         for(num_headers = 0; header_list->int_header_labels[num_headers] != HEADER_ALG_LIST_TERMINATOR; num_headers++);
-        if(num_headers == T_COSE_HEADER_LIST_MAX+1) {
+        if(num_headers == T_COSE_HEADER_LIST_MAX) {
             /* List is full -- error out */
             return_value = T_COSE_ERR_TOO_MANY_HEADERS;
             goto Done;
@@ -150,7 +150,7 @@ add_header_label_to_list(const QCBORItem           *item,
     } else if(item->uLabelType == QCBOR_TYPE_BYTE_STRING) {
         /* Add a string-labeled header to the end of the list */
         for(num_headers = 0; !q_useful_buf_c_is_null(header_list->tstr_header_labels[num_headers]); num_headers++);
-        if(num_headers == T_COSE_HEADER_LIST_MAX+1) {
+        if(num_headers == T_COSE_HEADER_LIST_MAX) {
             /* List is full -- error out */
             return_value = T_COSE_ERR_TOO_MANY_HEADERS;
             goto Done;
@@ -413,6 +413,8 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
             if(return_value) {
                 goto Done;
             }
+            return_value = T_COSE_ERR_HEADER_CBOR;
+            goto Done;
 
         } else {
             next_nest_level = item.uNextNestLevel;
@@ -463,6 +465,7 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
                     if(return_value) {
                         goto Done;
                     }
+                    break;
 
                 case COSE_HEADER_PARAM_CONTENT_TYPE:
                     if(item.uDataType == QCBOR_TYPE_TEXT_STRING) {
@@ -477,6 +480,7 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
                         return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
                         goto Done;
                     }
+                    break;
 
                 default:
                     /* The header is not recognized. It has to be
@@ -491,6 +495,7 @@ parse_cose_headers(QCBORDecodeContext    *decode_context,
                     if(return_value) {
                         goto Done;
                     }
+                    break;
             }
         }
     }

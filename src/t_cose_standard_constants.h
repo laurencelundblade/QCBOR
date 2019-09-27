@@ -41,7 +41,7 @@
 #define COSE_HEADER_PARAM_ALG 1
 
 
-
+// TODO: explain these
 #define COSE_HEADER_PARAM_CRIT 2
 
 #define COSE_HEADER_PARAM_CONTENT_TYPE 3

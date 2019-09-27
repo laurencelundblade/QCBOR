@@ -10,6 +10,7 @@
 
 #include "t_cose_test.h"
 #include "t_cose_sign1_sign.h"
+#include "t_cose_make_test_tokens.h"
 #include "t_cose_sign1_verify.h"
 #include "t_cose_standard_constants.h"
 #include "q_useful_buf.h"
@@ -647,7 +648,138 @@ int easy_test()
 }
 
 
+static enum t_cose_err_t make_it(int32_t option)
+{
+    struct t_cose_make_test_token     sign_ctx;
+    QCBOREncodeContext          cbor_encode;
+    enum t_cose_err_t           return_value;
+    Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
+    struct q_useful_buf_c       signed_cose;
+    struct t_cose_key           degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
+    struct q_useful_buf_c       payload;
+    QCBORError                  cbor_error;
 
+    /* --- Start making COSE Sign1 object  --- */
+
+    /* The CBOR encoder instance that the COSE_Sign1 is output into */
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    /* Do the first part of the the COSE_Sign1, the headers */
+    return_value =
+       t_cose_make_test_token_init(
+                                /* Signing context carried betwteen _init and _finish
+                                 */
+                                &sign_ctx,
+                                /* The options flags. Select short-circuit signing */
+                                T_COSE_OPT_SHORT_CIRCUIT_SIG | option,
+                                /* The signing alg. It doesn't really matter what
+                                 * what it is for short-circuit, but it has to be
+                                 * something valid. Use ECDSA 256 with SHA 256 */
+                                COSE_ALGORITHM_ES256,
+                                /* No key necessary with short circuit */
+                                degenerate_key,
+                                /* No key ID needed with short circuit */
+                                NULL_Q_USEFUL_BUF_C,
+                                /* Pass in the CBOR encoder context that the output
+                                 * will be written to. For this part is it the
+                                 * opening array and headers */
+                                &cbor_encode
+                                );
+    if(return_value) {
+        return 1000 + return_value;
+    }
+
+    /* Do the payload of the COSE_Sign1. */
+    QCBOREncode_AddSZString(&cbor_encode, "payload");
+
+    /* Finish up the COSE_Sign1. This is where the signing happens */
+    return_value = t_cose_make_test_token_finish(&sign_ctx);
+    if(return_value) {
+        return 2000 + return_value;
+    }
+
+    /* Finally close of the CBOR formatting and get the pointer and length
+     * of the resulting COSE_Sign1
+     */
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
+    if(cbor_error) {
+        return 3000 + cbor_error;
+    }
+    /* --- Done making COSE Sign1 object  --- */
+
+
+    /* --- Start verifying the COSE Sign1 object  --- */
+    /* Run the signature verification */
+    return_value = t_cose_sign1_verify(/* Select short circuit signing */
+                                       T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
+                                       /* No key necessary with short circuit */
+                                       degenerate_key,
+                                       /* COSE to verify */
+                                       signed_cose,
+                                       /* The returned payload */
+                                       &payload);
+
+    return return_value;
+}
+
+
+
+
+int_fast32_t bad_headers_test()
+{
+   /* This one isn't working yet
+    if( make_it(XXX_NWFH_2) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
+        return -999555;
+    }*/
+
+    if( make_it(XXX_NWFH_1) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
+        return -999555;
+    }
+
+    if( make_it(XXX_NO_UNPROTECTED_HEADERS) != T_COSE_ERR_HEADER_CBOR) {
+        return -999;
+    }
+
+    if( make_it(XXX_NO_PROTECTED_HEADERS) != T_COSE_ERR_SIGN1_FORMAT) {
+        return -999;
+    }
+
+    if( make_it(XXX_EXTRA_HEADER) != T_COSE_SUCCESS) {
+        return -999;
+    }
+
+    if( make_it(XXX_BAD_CRIT_HEADER) != T_COSE_ERR_HEADER_CBOR) {
+        return -99977;
+    }
+
+    if( make_it(XXX_HEADER_LABEL_TEST) != T_COSE_ERR_HEADER_CBOR) {
+        return -999;
+    }
+
+
+
+    return 0;
+}
+
+
+
+int_fast32_t critical_headers_test()
+{
+    if( make_it(XXX_UNKNOWN_CRIT_HEADER) != T_COSE_ERR_UNKNOWN_CRITICAL_HEADER) {
+        return -955;
+    }
+
+    if( make_it(XXX_CRIT_HEADER_EXIST) != T_COSE_SUCCESS) {
+        return -555;
+    }
+
+    /* Not passing yet
+    if( make_it(XXX_TOO_MANY_CRIT_HEADER_EXIST) != T_COSE_ERR_TOO_MANY_HEADERS) {
+        return -9556;
+    }*/
+
+    return 0;
+}
 
 
 

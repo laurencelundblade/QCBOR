@@ -54,7 +54,11 @@ int_fast32_t short_circuit_signing_error_conditions_test(void);
 int_fast32_t short_circuit_make_cwt_test(void);
 
 
+/*
+ *
+ */
 int_fast32_t short_circuit_no_parse_test(void);
+
 
 /*
 - protected header not well formed CBOR
@@ -63,13 +67,17 @@ int_fast32_t short_circuit_no_parse_test(void);
 - No algorithm ID header
 
  */
-
 int_fast32_t bad_headers_test(void);
 
 
 
 int_fast32_t easy_test(void);
 
+
+/*
+ Various tests involving critical headers
+ */
+int_fast32_t critical_headers_test(void);
 
 
 
