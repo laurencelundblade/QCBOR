@@ -111,6 +111,9 @@ static test_entry s_tests[] = {
 /*
  Convert a number up to 999999999 to a string. This is so sprintf doesn't
  have to be linked in so as to minimized dependencies even in test code.
+
+ StringMem should be 12 bytes long, 9 for digits, 1 for minus and
+ 1 for \0 termination.
  */
 static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 {
@@ -152,7 +155,7 @@ int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *poutCtx, 
 {
     int nTestsFailed = 0;
     int nTestsRun = 0;
-    UsefulBuf_MAKE_STACK_UB(StringStorage, 5);
+    UsefulBuf_MAKE_STACK_UB(StringStorage, 12);
 
     test_entry2 *t2;
     const test_entry2 *s_tests2_end = s_tests2 + sizeof(s_tests2)/sizeof(test_entry2);
