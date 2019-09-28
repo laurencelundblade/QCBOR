@@ -18,7 +18,7 @@
 #include "qcbor.h"
 
 
-
+// TODO: can critical headers be mixed across protected and unprotected?
 
 /**
  The result of parsing a set of COSE headers.
@@ -27,25 +27,32 @@
  Size on 32-bit machine: 4 + (4 * 8) = 36
  */
 struct t_cose_headers {
-    /** The algorithm ID. COSE_ALGORITHM_RESERVED if the algorithm ID header is not
-     present. String type algorithm IDs are not supported */
+    /** The algorithm ID. COSE_ALGORITHM_RESERVED if the algorithm ID
+     * header is not present. String type algorithm IDs are not
+     * supported */
     int32_t               cose_alg_id;
-    /** The COSE key ID. NULL_Q_USEFUL_BUF_C if header is not present */
+    /** The COSE key ID. NULL_Q_USEFUL_BUF_C if header is not
+	present */
     struct q_useful_buf_c kid;
-    /** The COSE initialization vector. NULL_Q_USEFUL_BUF_C if header is not present */
+    /** The COSE initialization vector. NULL_Q_USEFUL_BUF_C if header
+	is not present */
     struct q_useful_buf_c iv;
-    /** The COSE partial initialization vector. NULL_Q_USEFUL_BUF_C if header is not present */
+    /** The COSE partial initialization vector. NULL_Q_USEFUL_BUF_C if
+	header is not present */
     struct q_useful_buf_c partial_iv;
-    /** The content type as a MIME type like "text/plain". NULL_Q_USEFUL_BUF_C if header is not present */
+    /** The content type as a MIME type like
+	"text/plain". NULL_Q_USEFUL_BUF_C if header is not present */
     struct q_useful_buf_c content_type_tstr;
-    /** The content type as a CoAP Content-Format integer. T_COSE_EMPTY_UINT_CONTENT_TYPE if header is not present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
+    /** The content type as a CoAP Content-Format
+	integer. T_COSE_EMPTY_UINT_CONTENT_TYPE if header is not
+	present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
     uint32_t              content_type_uint;
 };
 
 
 /**
- This value indicates no integer content type was specified. It is outside
- the allowed range of 0 to UINT16_MAX.
+ This value indicates no integer content type was specified. It is
+ outside the allowed range of 0 to UINT16_MAX.
  */
 #define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
 
@@ -53,47 +60,50 @@ struct t_cose_headers {
 /**
  * \brief Parse some COSE headers.
  *
- * \param[in] decode_context  The QCBOR decode context to read the headers from.
+ * \param[in] decode_context     The QCBOR decode context to read from.
  * \param[out] returned_headers  The parsed headers being returned.
-
-
- \retval T_COSE_SUCCESS if headers were parsed correctly
- \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED  The CBOR of the headers is not parsable
- \retval T_COSE_ERR_HEADER_CBOR The CBOR is parsable, but not the right structure (e.g. an array instead of a map)
- \retval T_COSE_ERR_NON_INTEGER_ALG_ID The algorithm ID is not an integer. This implementation doesn't support string algorithm IDs.
- \retval T_COSE_ERR_BAD_CONTENT_TYPE Error in content type header.
- \retval T_COSE_ERR_TOO_MANY_HEADERS
- \retval T_COSE_ERR_UNKNOWN_CRITICAL_HEADER
-
- No headers are mandatory. Which headers were present or not is indicated
- in \c returned_headers.
- It is OK for there to be no headers at all.
-
- The first item to be read from the decode_context must be the map
- data item that contains the headers.
-*/
+ *
+ *
+ * \retval T_COSE_SUCCESS              The headers were parsed correctly.
+ * \retval T_COSE_ERR_HEADER_CBOR      CBOR is parsable, but not the right
+ *                                     structure (e.g. array instead of a map)
+ * \retval T_COSE_ERR_TOO_MANY_HEADERS More than \ref T_COSE_HEADER_LIST_MAX
+ *                                     headers.
+ * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED    The CBOR is not parsable.
+ * \retval T_COSE_ERR_NON_INTEGER_ALG_ID      The algorithm ID is not an
+ *                                            integer. This implementation
+ *                                            doesn't support string algorithm
+ *                                            IDs.
+ * \retval T_COSE_ERR_BAD_CONTENT_TYPE        Error in content type header.
+ * \retval T_COSE_ERR_UNKNOWN_CRITICAL_HEADER A header marked critical is
+ *                                            present and not understood.
+ *
+ * No headers are mandatory. Which headers were present or not is
+ * indicated in \c returned_headers.  It is OK for there to be no
+ * headers at all.
+ *
+ * The first item to be read from the decode_context must be the map
+ * data item that contains the headers.
+ */
 enum t_cose_err_t
 parse_cose_headers(QCBORDecodeContext *decode_context,
                    struct t_cose_headers *returned_headers);
 
 
 /**
- * \brief Parse the unprotected COSE headers
+ * \brief Parse the unprotected COSE headers.
  *
- * \param[in] decode_context  The QCBOR decode context to read the header from
+ * \param[in] decode_context     CBOR decode context to read the header from.
+ * \param[out] returned_headers  The parsed headers.
  *
- * \param[out] returned_headers  The parsed headers
-
- \retval T_COSE_SUCCESS if headers were parsed correctly
- \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED  The CBOR of the headers is not parsable
- \retval T_COSE_ERR_CBOR_STRUCTURE The CBOR is parsable, but not the right structure (e.g. an array instead of a map)
-
- No headers are mandatory. Which headers were present or not is indicated
- in \c returned_headers.
- It is OK for there to be no headers at all.
-
- The first item to be read from the decode_context must be the map
- data item that contains the headers.
+ * \returns The same as parse_cose_headers().
+ *
+ * No headers are mandatory. Which headers were present or not is
+ * indicated in \c returned_headers.  It is OK for there to be no
+ * headers at all.
+ *
+ * The first item to be read from the decode_context must be the map
+ * data item that contains the headers.
  */
 static enum t_cose_err_t
 parse_unprotected_headers(QCBORDecodeContext *decode_context,
@@ -108,14 +118,15 @@ parse_unprotected_headers(QCBORDecodeContext *decode_context,
  *                              protected headers to parse.
  * \param[out] returned_headers The parsed headers that are returned.
  *
- * \retval T_COSE_SUCCESS Protected headers successfully parsed
- * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED The CBOR formatting of the protected headers is unparsable.
+ * \retval T_COSE_SUCCESS                  Protected headers parsed.
+ * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED The CBOR formatting of the protected
+ *                                         headers is unparsable.
  *
  * This parses the contents of the protected headers after the bstr
- * wrapping is removed. 
+ * wrapping is removed.
  *
  * This will error out if the CBOR is not well-formed, the protected
- * headers are not a map the algorithm ID is not found, or the
+ * headers are not a map, the algorithm ID is not found, or the
  * algorithm ID is larger than \c INT32_MAX or smaller than \c
  * INT32_MIN.
  */

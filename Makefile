@@ -19,7 +19,7 @@ OSSL_CRYPTO_OBJ=crypto_adapters/t_cose_openssl_crypto.o
 QCBOR=../../QCBOR/master/libqcbor.a
 LIBCRYPT=../../openssl/openssl-1.1.1b/libcrypto.a
 
-TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_openssl_test.o
+TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_openssl_test.o test/t_cose_make_test_tokens.o
 
 
 t_cose_test: main.o $(SRC_OBJ) $(OSSL_CRYPTO_OBJ) $(TEST_OBJ)

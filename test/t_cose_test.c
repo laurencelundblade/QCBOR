@@ -765,6 +765,10 @@ int_fast32_t bad_headers_test()
 
 int_fast32_t critical_headers_test()
 {
+    if( make_it(XXX_BAD_CRIT_LABEL) != T_COSE_ERR_HEADER_CBOR) {
+        return -9557;
+    }
+    
     if( make_it(XXX_UNKNOWN_CRIT_HEADER) != T_COSE_ERR_UNKNOWN_CRITICAL_HEADER) {
         return -955;
     }
@@ -773,10 +777,12 @@ int_fast32_t critical_headers_test()
         return -555;
     }
 
-    /* Not passing yet
     if( make_it(XXX_TOO_MANY_CRIT_HEADER_EXIST) != T_COSE_ERR_TOO_MANY_HEADERS) {
         return -9556;
-    }*/
+    }
+
+
+
 
     return 0;
 }
