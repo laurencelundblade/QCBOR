@@ -487,7 +487,7 @@ inline static QCBORError DecodeInteger(int nMajorType, uint64_t uNumber, QCBORIt
 
       } else {
          // C can't represent a negative integer in this range
-         // so it is an error.  todo -- test this condition
+         // so it is an error.
          nReturn = QCBOR_ERR_INT_OVERFLOW;
       }
    }

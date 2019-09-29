@@ -419,21 +419,43 @@ static int IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
 }
 
 
+// The largest negative int possible in CBOR.
+// Not possible in C.
+static const uint8_t spTooBigNegative[] = {
+   0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+};
+
+
 /*
    Tests the decoding of lots of different integers sizes
    and values.
  */
-
 int IntegerValuesParseTest()
 {
-   int n;
+   int nReturn;
    QCBORDecodeContext DCtx;
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedEncodedInts), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedEncodedInts),
+                    QCBOR_DECODE_MODE_NORMAL);
 
-   n = IntegerValuesParseTestInternal(&DCtx);
+   // The really big test of all successes
+   nReturn = IntegerValuesParseTestInternal(&DCtx);
+   if(nReturn) {
+      return nReturn;
+   }
 
-   return(n);
+   // The one large negative integer that can be parsed
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooBigNegative),
+                    QCBOR_DECODE_MODE_NORMAL);
+
+   QCBORItem item;
+   if(QCBORDecode_GetNext(&DCtx, &item) != QCBOR_ERR_INT_OVERFLOW) {
+      nReturn = -4000;
+   }
+
+   return(nReturn);
 }
 
 
