@@ -863,7 +863,6 @@ int_fast32_t all_headers_test()
     }
 
     return 0;
-
 }
 
 
@@ -871,22 +870,25 @@ int_fast32_t bad_headers_test()
 {
     /* TODO: also test too many string headers.
      TODO: complicated / nested unknown header
-     protected headers are not a CBOR map
      protected header with CBOR map not closed out
-     unprotected headers are not a CBOR map
      member of header map is not well formed
      Duplicate headers
-     Test all the header types
      Content type > 2^16
      unknown header with complex CBOR that is NWF
-     header duplicated between protected and unprotected
-     See that the proper header values are returned
-
      */
+
+
+    if(run_sign_and_verify(T_COSE_TEST_KID_IN_PROTECTED) != T_COSE_ERR_DUPLICATE_HEADER) {
+        return -527;
+    }
+
     if(run_sign_and_verify(T_COSE_TEST_TOO_MANY_UNKNOWN) != T_COSE_ERR_TOO_MANY_HEADERS) {
         return -77;
     }
 
+    if(run_sign_and_verify(T_COSE_TEST_UNPROTECTED_NOT_MAP) != T_COSE_ERR_HEADER_CBOR) {
+        return -865;
+    }
 
    /* This one isn't working yet. It needs to make consume_item error out
     if( make_it(T_COSE_TEST_NOT_WELL_FORMED_2) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
@@ -915,6 +917,10 @@ int_fast32_t bad_headers_test()
 
     if(run_sign_and_verify(T_COSE_TEST_HEADER_LABEL) != T_COSE_ERR_HEADER_CBOR) {
         return -96699;
+    }
+
+    if(run_sign_and_verify(T_COSE_TEST_BAD_PROTECTED) != T_COSE_ERR_HEADER_CBOR) {
+        return -9889;
     }
 
     return 0;
@@ -969,13 +975,5 @@ int_fast32_t critical_headers_test()
 
     return 0;
 }
-
-
-
-
-
-
-
-
 
 
