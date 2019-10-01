@@ -41,10 +41,48 @@ extern "C" {
  * There is a cryptographic adaptation layer defined in
  * t_cose_crypto.h.  An implementation can be made of the functions in
  * it for different platforms or OS's. This means that different
- * platforms and OS's may support only signing with a particular set
+ * platforms and OS's may support only verification with a particular set
  * of algorithms.
- *
  */
+
+
+/**
+ The result of parsing a set of COSE headers.
+
+ Size on 64-bit machine: 4 + (4 * 16) + 4pad = 72
+ Size on 32-bit machine: 4 + (4 * 8) = 36
+ */
+struct t_cose_headers {
+    /** The algorithm ID. \ref COSE_ALGORITHM_RESERVED if the algorithm ID
+     * header is not present. String type algorithm IDs are not
+     * supported */
+    // TODO, reference to COSE_ALGORITHM_RESERVED
+    int32_t               cose_alg_id;
+    /** The COSE key ID. \c NULL_Q_USEFUL_BUF_C if header is not
+	present */
+    struct q_useful_buf_c kid;
+    /** The COSE initialization vector. \c NULL_Q_USEFUL_BUF_C if header
+	is not present */
+    struct q_useful_buf_c iv;
+    /** The COSE partial initialization vector. \c NULL_Q_USEFUL_BUF_C if
+	header is not present */
+    struct q_useful_buf_c partial_iv;
+    /** The content type as a MIME type like
+	"text/plain". \c NULL_Q_USEFUL_BUF_C if header is not present */
+    struct q_useful_buf_c content_type_tstr;
+    /** The content type as a CoAP Content-Format
+	integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if header is not
+	present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
+    uint32_t              content_type_uint;
+};
+
+
+/**
+ This value indicates no integer content type was specified. It is
+ outside the allowed range of 0 to UINT16_MAX.
+ */
+#define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
+
 
 
 /**
@@ -81,9 +119,11 @@ extern "C" {
  * so the key can be found and t_cose_sign1_verify() can
  * be called again, this time with the key.
  *
+ * The payload will always be returned whether this is
+ * option is given or not.
+ *
  * (Note that key ID look up can be part of the crypto adaptation layer
  * so it is not always necessary to use this option.)
- *
  */
 #define T_COSE_OPT_PARSE_ONLY  0x00000008
 
@@ -96,42 +136,61 @@ extern "C" {
  * \param[in] sign1             Pointer and length of CBOR encoded \c COSE_Sign1
  *                              that is to be verified.
  * \param[out] payload          Pointer and length of the payload.
+ * \param[out] headers          Place to return parsed headers. Maybe be NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
+ * The source of the verification key depends on the how the how the
+ * underlying cryptographic layer works. Simpler layers have no key
+ * store or database in which case the verification key must be passed in
+ * the \c verification_key parameter.
+ * The OpenSSL cryptographic layer works like this.
+ *
+ * Usually the key ID (kid) header parameter identifies the verification
+ * key needed to verify the signature. With a simple cryptographic adaption
+ * layer, the caller wishing to use the key ID should call this function
+ * twice, the first time with the \ref T_COSE_OPT_PARSE_ONLY option set
+ * and with \c header non-NULL. The kid will be returned in \c headers.
+ * The caller must then find the key on their own, then call this
+ * again without the \ref T_COSE_OPT_PARSE_ONLY option.
+ *
+ * When the cryptographic adaptation layer supports key lookup,
+ * then calling this twice is not necessary. Also, if the key is
+ * somehow know without examining the \c COSE_Sign1, calling this
+ * twice is not necessary.
+ *
  * Verification involves the following steps.
  *
- * The CBOR structure is parsed and verified. It makes sure \c sign1
- * is valid CBOR and that it is tagged as a \c COSE_Sign1.
+ * The CBOR-format COSE_Sign1 structure is parsed. It makes sure \c sign1
+ * is valid CBOR and follows the required structure for \c COSE_Sign1.
  *
- * The signing algorithm is pulled out of the protected headers.
+ * The protected headers are parsed, particular the algorithm id.
  *
- * The kid (key ID) is parsed out of the unprotected headers.
+ * The unprotected headers are parsed, particularly the key id.
  *
- * The payload is identified. It doesn't have to be parsed in detail
- * because it is wrapped in a bstr.
+ * The payload is identified. The internals of the payboad are not parsed.
  *
  * The expected hash, the "to-be-signed" bytes are computed. The hash
  * algorithm to use comes from the signing algorithm in the protected
  * headers. If the algorithm is not known or not supported this will
  * error out.
  *
- * The verification key can either be passed in as \c verification_key or looked up by
- * the key id in the header. Which depends on the way the crypto
- * library is integrated. In more simple integrations then key
- * must be passed in.
- *
  * Finally, the signature verification is performed.
  *
  * If it is successful, the pointer of the CBOR-encoded payload is
- * returned.
- *\ref  T_COSE_OPT_TAG_REQUIRED * This will recognize the special kid for short-circuit signing
+ * returned. The headers are returned if requested.
+ *
+ * Note that this only handles standard COSE headers. There are no
+ * facilities for custom headers, even though they are allowed.
+ *
+ * This will recognize the special key ID for short-circuit signing
  * and verify it if the \ref T_COSE_OPT_ALLOW_SHORT_CIRCUIT is set.
  */
-enum t_cose_err_t t_cose_sign1_verify(int32_t option_flags,
-                                      struct t_cose_key verification_key,
-                                      struct q_useful_buf_c sign1,
-                                      struct q_useful_buf_c *payload);
+enum t_cose_err_t t_cose_sign1_verify(int32_t                option_flags,
+                                      struct t_cose_key      verification_key,
+                                      struct q_useful_buf_c  sign1,
+                                      struct q_useful_buf_c *payload,
+                                      struct t_cose_headers *headers);
 
 
 #endif /* __T_COSE_SIGN1_VERIFY_H__ */

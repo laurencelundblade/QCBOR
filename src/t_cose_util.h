@@ -67,7 +67,7 @@ enum t_cose_tbs_hash_mode_t {
  *
  * If the needed algorithm identifiers are not in the IANA registry,
  * they can be added to it. This will take some time and work.  It is
- * also fine to use algorithms in the proprietary space.
+ * also fine to use algorithms in the COSE proprietary space.
  */
 int32_t hash_alg_id_from_sig_alg_id(int32_t cose_sig_alg_id);
 

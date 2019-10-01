@@ -265,7 +265,8 @@ int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
     return_value = t_cose_sign1_verify(0,                  /* No option flags */
                                        ossl_key,      /* The verification key */
                                        signed_cose,         /* COSE to verify */
-                                       &payload); /* Payload from signed_cose */
+                                       &payload,  /* Payload from signed_cose */
+                                       NULL);         /* Don't return headers */
     if(return_value) {
         return 4000 + return_value;
     }
@@ -364,7 +365,9 @@ int_fast32_t openssl_sig_fail_test()
     return_value = t_cose_sign1_verify(0,                  /* No option flags */
                                        ossl_key,      /* The verification key */
                                        signed_cose,         /* COSE to verify */
-                                       &payload); /* Payload from signed_cose */
+                                       &payload,  /* Payload from signed_cose */
+                                       NULL);         /* Don't return headers */
+
     if(return_value != T_COSE_ERR_SIG_VERIFY) {
         return 4000 + return_value;
     }
@@ -458,7 +461,9 @@ int_fast32_t openssl_make_cwt_test()
         t_cose_sign1_verify(T_COSE_OPT_ALLOW_SHORT_CIRCUIT,       /* opt flag */
                             ossl_key,                 /* The verification key */
                             signed_cose,                    /* COSE to verify */
-                            &payload);            /* Payload from signed_cose */
+                            &payload,             /* Payload from signed_cose */
+                            NULL);         /* Don't return headers */
+
     if(return_value) {
         return 4000 + return_value;
     }

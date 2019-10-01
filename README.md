@@ -96,8 +96,10 @@ is created and used and so there is a duplicate of UsefulBuf. The two are identi
 just have different names.
 
 ## Limitations
-* Doesn't not handle and headers with string labels. Only integer label are handled. This is OK because no string labels have been allocated by IANA.
 * Doesn't handle string algorithm IDs. Only integer algorithm IDs are handled. This is OK because no string algorithm IDs have been allocated by IANA.
+* No way to add the content type when creating a COSE_Sign1.
+* No way to handle custom headers with signing or verifying. Only standard COSE headers are handled.
+* Only ECDSA is supported so far (facilities are available to add others).
 
 ## Credit
 

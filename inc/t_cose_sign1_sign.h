@@ -48,7 +48,7 @@ extern "C" {
  * library integrations.
  *
  * This \c COSE_Sign1 implementations is optimized for creating EAT
- * tokens.
+ * and CWT tokens.
  *
  * It should work for CWT and others use cases too. The main point of
  * the optimization is that only one output buffer is needed. There is
@@ -65,8 +65,7 @@ extern "C" {
  */
 struct t_cose_sign1_ctx {
     /* Private data structure */
-    uint8_t               buffer_for_protected_headers[
-                              T_COSE_SIGN1_MAX_PROT_HEADER];
+    uint8_t               buffer_for_protected_headers[T_COSE_SIGN1_MAX_PROT_HEADER];
     struct q_useful_buf_c protected_headers;
     int32_t               cose_algorithm_id;
     struct                t_cose_key signing_key;

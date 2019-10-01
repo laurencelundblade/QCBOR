@@ -70,7 +70,8 @@ enum t_cose_err_t
 t_cose_sign1_verify(int32_t                 option_flags,
                     struct t_cose_key       verification_key,
                     struct q_useful_buf_c   cose_sign1,
-                    struct q_useful_buf_c  *payload)
+                    struct q_useful_buf_c  *payload,
+                    struct t_cose_headers  *headers)
 {
     /* Stack use for 32-bit CPUs:
      *   268 for local except hash output
@@ -89,6 +90,8 @@ t_cose_sign1_verify(int32_t                 option_flags,
     struct q_useful_buf_c         signature;
     struct t_cose_headers         unprotected_headers;
     struct t_cose_headers         parsed_protected_headers;
+    struct t_cose_label_list      critical_header_labels;
+    struct t_cose_label_list      unknown_header_labels;
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     struct q_useful_buf_c         short_circuit_kid;
 #endif
@@ -110,6 +113,9 @@ t_cose_sign1_verify(int32_t                 option_flags,
         goto Done;
     }
 
+    /* -- Clear list where uknown headers are accumulated -- */
+    clear_header_list(&unknown_header_labels);
+
 
     /* --  Get the protected headers -- */
     QCBORDecode_GetNext(&decode_context, &item);
@@ -118,10 +124,13 @@ t_cose_sign1_verify(int32_t                 option_flags,
         goto Done;
     }
 
+    // TODO make sure this handles the proper empty forms of protected header
     protected_headers = item.val.string;
 
     return_value = parse_protected_headers(protected_headers,
-                                           &parsed_protected_headers);
+                                           &parsed_protected_headers,
+                                           &critical_header_labels,
+                                           &unknown_header_labels);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -129,13 +138,30 @@ t_cose_sign1_verify(int32_t                 option_flags,
 
     /* --  Get the unprotected headers -- */
     return_value = parse_unprotected_headers(&decode_context,
-                                             &unprotected_headers);
+                                             &unprotected_headers,
+                                             &unknown_header_labels);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
     if((option_flags & T_COSE_OPT_REQUIRE_KID) &&
         q_useful_buf_c_is_null(unprotected_headers.kid)) {
         return_value = T_COSE_ERR_NO_KID;
+        goto Done;
+    }
+
+
+    /* -- Check critical headers -- */
+    return_value = check_critical_header_labels(&unknown_header_labels,
+                                               &critical_header_labels);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    /* -- Check for duplicate headers and copy to returned headers -- */
+    return_value = check_and_copy_headers(&parsed_protected_headers,
+                                          &unprotected_headers,
+                                          headers);
+    if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
@@ -168,12 +194,13 @@ t_cose_sign1_verify(int32_t                 option_flags,
     }
     
 
-    /* -- Skip signature verification if requested --*/
+    /* -- Skip signature verification if such is requested --*/
     if(option_flags & T_COSE_OPT_PARSE_ONLY) {
         return_value = T_COSE_SUCCESS;
         goto Done;
     }
 
+    
     /* -- Compute the TBS bytes -- */
     return_value = create_tbs_hash(parsed_protected_headers.cose_alg_id,
                                    buffer_for_tbs_hash,
@@ -184,6 +211,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
     if(return_value) {
         goto Done;
     }
+
 
     /* -- Check for short-circuit signature and verify if it exists -- */
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN

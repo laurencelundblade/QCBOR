@@ -87,7 +87,9 @@ int_fast32_t short_circuit_self_test()
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
-                                       &payload);
+                                       &payload,
+                                       /* Not requesting headers returned */
+                                       NULL);
     if(return_value) {
         return 4000 + return_value;
     }
@@ -188,7 +190,9 @@ int_fast32_t short_circuit_verify_fail_test()
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
-                                       &payload);
+                                       &payload,
+                                       /* Not requesting headers returned */
+                                       NULL);
     if(return_value != T_COSE_ERR_SIG_VERIFY) {
         return 4000 + return_value;
     }
@@ -443,7 +447,9 @@ int_fast32_t short_circuit_make_cwt_test()
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
-                                       &payload);
+                                       &payload,
+                                       /* Not requesting headers returned */
+                                       NULL);
     if(return_value) {
         return 4000 + return_value;
     }
@@ -539,7 +545,9 @@ int_fast32_t short_circuit_no_parse_test()
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
-                                       &payload);
+                                       &payload,
+                                       /* Not requesting headers returned */
+                                       NULL);
 
 
     if(return_value) {
@@ -561,12 +569,13 @@ int_fast32_t short_circuit_no_parse_test()
 }
 
 
-enum t_cose_err_t t_cose_sign1_sign(int32_t option_flags,
-                                    int32_t cose_algorithm_id,
-                                    struct t_cose_key signing_key,
-                                    struct q_useful_buf_c key_id,
-                                    struct q_useful_buf_c payload,
-                                    struct q_useful_buf outbuf,
+/* This could become a public function someday */
+enum t_cose_err_t t_cose_sign1_sign(int32_t                option_flags,
+                                    int32_t                cose_algorithm_id,
+                                    struct t_cose_key      signing_key,
+                                    struct q_useful_buf_c  key_id,
+                                    struct q_useful_buf_c  payload,
+                                    struct q_useful_buf    outbuf,
                                     struct q_useful_buf_c *result)
 {
     struct t_cose_sign1_ctx  cose_context;
@@ -588,7 +597,7 @@ enum t_cose_err_t t_cose_sign1_sign(int32_t option_flags,
      * does the job just fine because it just adds bytes to the
      * encoded output without anything extra
      */
-    QCBOREncode_AddEncoded( &encode_context, payload);
+    QCBOREncode_AddEncoded(&encode_context, payload);
 
     return_value = t_cose_sign1_finish(&cose_context);
     if(return_value) {
@@ -604,7 +613,6 @@ enum t_cose_err_t t_cose_sign1_sign(int32_t option_flags,
 
 Done:
     return return_value;
-
 }
 
 
@@ -624,13 +632,14 @@ Done:
 ] )
  */
 
-int easy_test()
+int make_cwt_test()
 {
-    // TODO finish this test with comparison
-    enum t_cose_err_t result;
-    struct t_cose_key           degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
+    // TODO finish this test with comparison to expected
+    enum t_cose_err_t           result;
+    const struct t_cose_key     degenerate_key =
+                                    {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
-    struct q_useful_buf_c output;
+    struct q_useful_buf_c       output;
 
     /* Make example C.2.1 from RFC 8152 */
 
@@ -643,12 +652,10 @@ int easy_test()
                                &output);
 
     return result;
-
-
 }
 
 
-static enum t_cose_err_t make_it(int32_t option)
+static enum t_cose_err_t run_sign_and_verify(int32_t option)
 {
     struct t_cose_make_test_token     sign_ctx;
     QCBOREncodeContext          cbor_encode;
@@ -717,7 +724,9 @@ static enum t_cose_err_t make_it(int32_t option)
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
-                                       &payload);
+                                       &payload,
+                                       /* Not requesting headers returned */
+                                       NULL);
 
     return return_value;
 }
@@ -727,36 +736,53 @@ static enum t_cose_err_t make_it(int32_t option)
 
 int_fast32_t bad_headers_test()
 {
-   /* This one isn't working yet
-    if( make_it(XXX_NWFH_2) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
-        return -999555;
+    /* TODO: also test too many string headers.
+     TODO: complicated / nested unknown header
+     protected headers are not a CBOR map
+     protected header with CBOR map not closed out
+     unprotected headers are not a CBOR map
+     member of header map is not well formed
+     Duplicate headers
+     Test all the header types
+     Content type > 2^16
+     unknown header with complex CBOR that is NWF
+     header duplicated between protected and unprotected
+     See that the proper header values are returned
+
+     */
+    if(run_sign_and_verify(T_COSE_TEST_TOO_MANY_UNKNOWN) != T_COSE_ERR_TOO_MANY_HEADERS) {
+        return -77;
+    }
+
+
+   /* This one isn't working yet. It needs to make consume_item error out
+    if( make_it(T_COSE_TEST_NOT_WELL_FORMED_2) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
+        return -11;
     }*/
 
-    if( make_it(XXX_NWFH_1) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
-        return -999555;
+    if(run_sign_and_verify(T_COSE_TEST_BAD_CRIT_HEADER) != T_COSE_ERR_HEADER_NOT_PROTECTED) {
+        return -22;
     }
 
-    if( make_it(XXX_NO_UNPROTECTED_HEADERS) != T_COSE_ERR_HEADER_CBOR) {
-        return -999;
+    if(run_sign_and_verify(T_COSE_TEST_NOT_WELL_FORMED_1) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
+        return -33;
     }
 
-    if( make_it(XXX_NO_PROTECTED_HEADERS) != T_COSE_ERR_SIGN1_FORMAT) {
-        return -999;
+    if(run_sign_and_verify(T_COSE_TEST_NO_UNPROTECTED_HEADERS) != T_COSE_ERR_HEADER_CBOR) {
+        return -99;
     }
 
-    if( make_it(XXX_EXTRA_HEADER) != T_COSE_SUCCESS) {
-        return -999;
+    if(run_sign_and_verify(T_COSE_TEST_NO_PROTECTED_HEADERS) != T_COSE_ERR_SIGN1_FORMAT) {
+        return -44;
     }
 
-    if( make_it(XXX_BAD_CRIT_HEADER) != T_COSE_ERR_HEADER_CBOR) {
-        return -99977;
+    if(run_sign_and_verify(T_COSE_TEST_EXTRA_HEADER) != T_COSE_SUCCESS) {
+        return -55;
     }
 
-    if( make_it(XXX_HEADER_LABEL_TEST) != T_COSE_ERR_HEADER_CBOR) {
-        return -999;
+    if(run_sign_and_verify(T_COSE_TEST_HEADER_LABEL) != T_COSE_ERR_HEADER_CBOR) {
+        return -96699;
     }
-
-
 
     return 0;
 }
@@ -765,24 +791,48 @@ int_fast32_t bad_headers_test()
 
 int_fast32_t critical_headers_test()
 {
-    if( make_it(XXX_BAD_CRIT_LABEL) != T_COSE_ERR_HEADER_CBOR) {
-        return -9557;
-    }
-    
-    if( make_it(XXX_UNKNOWN_CRIT_HEADER) != T_COSE_ERR_UNKNOWN_CRITICAL_HEADER) {
-        return -955;
-    }
-
-    if( make_it(XXX_CRIT_HEADER_EXIST) != T_COSE_SUCCESS) {
-        return -555;
+    /* Test existance of the critical header. Also makes sure that
+     * it works with the max number of labels allowed in it.
+     */
+    if(run_sign_and_verify(T_COSE_TEST_CRIT_HEADER_EXIST) != T_COSE_SUCCESS) {
+        return -1;
     }
 
-    if( make_it(XXX_TOO_MANY_CRIT_HEADER_EXIST) != T_COSE_ERR_TOO_MANY_HEADERS) {
-        return -9556;
+    /* Exceed the max number of labels by one and get an error */
+    if(run_sign_and_verify(T_COSE_TEST_TOO_MANY_CRIT_HEADER_EXIST) !=
+       T_COSE_ERR_TOO_MANY_HEADERS) {
+        return -2;
     }
 
+    /* A critical header exists in the protected section, but the
+     * format of the internals of this header is not the expected CBOR
+     */
+    if(run_sign_and_verify(T_COSE_TEST_BAD_CRIT_LABEL) !=
+       T_COSE_ERR_HEADER_CBOR) {
+        return -3;
+    }
 
+    /* A critical header is listed in the protected section, but
+     * the header doesn't exist. This works for integer-labeled header params.
+     */
+    if(run_sign_and_verify(T_COSE_TEST_UNKNOWN_CRIT_UINT_HEADER) !=
+       T_COSE_ERR_UNKNOWN_CRITICAL_HEADER) {
+        return -4;
+    }
 
+    /* A critical header is listed in the protected section, but
+     * the header doesn't exist. This works for string-labeled header params.
+     */
+    if(run_sign_and_verify(T_COSE_TEST_UNKNOWN_CRIT_TSTR_HEADER) !=
+       T_COSE_ERR_UNKNOWN_CRITICAL_HEADER) {
+        return -5;
+    }
+
+    /* The critical headers list is not a protected header */
+    if(run_sign_and_verify(T_COSE_TEST_CRIT_NOT_PROTECTED) !=
+       T_COSE_ERR_HEADER_NOT_PROTECTED) {
+        return -6;
+    }
 
     return 0;
 }

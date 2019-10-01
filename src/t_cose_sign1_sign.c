@@ -216,7 +216,7 @@ enum t_cose_err_t t_cose_sign1_init(struct t_cose_sign1_ctx *me,
     if(q_useful_buf_c_is_null(me->protected_headers)) {
         /* The sizing of storage for protected headers is
           off (should never happen in tested, released code) */
-        return_value = T_COSE_SUCCESS;
+        return_value = T_COSE_ERR_MAKING_PROTECTED;
         goto Done;
     }
     QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_headers);

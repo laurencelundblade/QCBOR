@@ -94,10 +94,11 @@ struct t_cose_key {
  * bytes for the ID. If this is made accidentially too small, QCBOR will
  * only return an error, and not overrun any buffers.
  *
- * 9 extra bytes are added, rounding it up to 16 total, in case some
- * other protected header is to be added.
+ * 17 extra bytes are added, rounding it up to 24 total, in case some
+ * other protected header is to be added and so the test using
+ * T_COSE_TEST_CRIT_HEADER_EXIST can work. 
  */
-#define T_COSE_SIGN1_MAX_PROT_HEADER (1+1+5+9)
+#define T_COSE_SIGN1_MAX_PROT_HEADER (1+1+5+17)
 
 
 /**
@@ -105,6 +106,9 @@ struct t_cose_key {
  *
  * Do not reorder these. It is OK to add
  * new ones at the end.
+ *
+ * Explicit values are added because debuggers
+ * and such don't always show the symbol.
  */
 enum t_cose_err_t {
     /** Operation completed successfully */
@@ -236,6 +240,14 @@ enum t_cose_err_t {
 
     /** The signing or verification key given is empty. */
     T_COSE_ERR_EMPTY_KEY = 33,
+
+    T_COSE_ERR_DUPLICATE_HEADER = 34,
+
+    /** A header that should be protected (alg id or crit) is not */
+    T_COSE_ERR_HEADER_NOT_PROTECTED = 35,
+
+    T_COSE_ERR_MAKING_PROTECTED = 36
+
 };
 
 

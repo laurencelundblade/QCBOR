@@ -134,11 +134,11 @@ enum t_cose_err_t create_tbs_hash(int32_t cose_alg_id,
     /* external_aad. There is none so an empty bstr */
     QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
 
-    /* The short fake payload. */
+    /* The short fake payload */
     if(payload_mode == T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED) {
         /* Fake payload is just an empty bstr. It is here only
          * to make the array count right. It must be ommitted
-         * in the actual hashing below
+         * in the actual hashing below.
          */
         bytes_to_omit = 1;
         QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
@@ -152,7 +152,7 @@ enum t_cose_err_t create_tbs_hash(int32_t cose_alg_id,
     }
     /* Cleverness only works because the payload is last in the array */
 
-    /* Close of the array */
+    /* Close off the array */
     QCBOREncode_CloseArray(&cbor_encode_ctx);
 
     /* get the encoded results, except for payload */
@@ -188,7 +188,7 @@ enum t_cose_err_t create_tbs_hash(int32_t cose_alg_id,
      * when signing and another when verifying.
      */
 
-    /* This is hashing of the first part, all the CBOR
+    /* This is the hashing of the first part, all the CBOR
      * except the payload.
      */
     t_cose_crypto_hash_update(&hash_ctx,

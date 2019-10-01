@@ -71,7 +71,7 @@ int_fast32_t bad_headers_test(void);
 
 
 
-int_fast32_t easy_test(void);
+int_fast32_t make_cwt_test(void);
 
 
 /*
