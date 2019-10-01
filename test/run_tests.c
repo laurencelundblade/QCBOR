@@ -52,10 +52,11 @@ static test_entry2 s_tests2[] = {
 #endif
 
 static test_entry s_tests[] = {
+    TEST_ENTRY(all_headers_test),
+    TEST_ENTRY(make_cwt_test),
     TEST_ENTRY(critical_headers_test),
     TEST_ENTRY(bad_headers_test),
     TEST_ENTRY(openssl_basic_test),
-    TEST_ENTRY(easy_test),
     TEST_ENTRY(short_circuit_no_parse_test),
     TEST_ENTRY(openssl_make_cwt_test),
     TEST_ENTRY(short_circuit_make_cwt_test),

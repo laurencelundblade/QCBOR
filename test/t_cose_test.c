@@ -616,6 +616,53 @@ Done:
 }
 
 
+
+/* This could become a public function someday */
+enum t_cose_err_t t_cose_make_token_sign(int32_t                option_flags,
+                                    int32_t                cose_algorithm_id,
+                                    struct t_cose_key      signing_key,
+                                    struct q_useful_buf_c  key_id,
+                                    struct q_useful_buf_c  payload,
+                                    struct q_useful_buf    outbuf,
+                                    struct q_useful_buf_c *result)
+{
+    struct t_cose_make_test_token  cose_context;
+    QCBOREncodeContext       encode_context;
+    enum t_cose_err_t        return_value;
+
+    QCBOREncode_Init(&encode_context, outbuf);
+
+    return_value = t_cose_make_test_token_init(&cose_context,
+                                     option_flags,
+                                     cose_algorithm_id,
+                                     signing_key, key_id,
+                                     &encode_context);
+    if(return_value) {
+        goto Done;
+    }
+
+    /* Payload may or may not actually be CBOR format here. This function
+     * does the job just fine because it just adds bytes to the
+     * encoded output without anything extra
+     */
+    QCBOREncode_AddEncoded(&encode_context, payload);
+
+    return_value = t_cose_make_test_token_finish(&cose_context);
+    if(return_value) {
+        goto Done;
+    }
+
+    if(QCBOREncode_Finish(&encode_context, result)) {
+        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+        goto Done;
+    }
+
+    return_value = T_COSE_SUCCESS;
+
+Done:
+    return return_value;
+}
+
 /*
  18( [
     / protected / h’a10126’ / {
@@ -732,6 +779,92 @@ static enum t_cose_err_t run_sign_and_verify(int32_t option)
 }
 
 
+/* copied from t_cose_util.c */
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+/* This is a random hard coded key ID that is used to indicate
+ * short-circuit signing. It is OK to hard code this as the
+ * probability of collision with this ID is very low and the same
+ * as for collision between any two key IDs of any sort.
+ */
+
+static const uint8_t defined_short_circuit_kid[] = {
+    0xef, 0x95, 0x4b, 0x4b, 0xd9, 0xbd, 0xf6, 0x70,
+    0xd0, 0x33, 0x60, 0x82, 0xf5, 0xef, 0x15, 0x2a,
+    0xf8, 0xf3, 0x5b, 0x6a, 0x6c, 0x00, 0xef, 0xa6,
+    0xa9, 0xa7, 0x1f, 0x49, 0x51, 0x7e, 0x18, 0xc6};
+
+static struct q_useful_buf_c ss_kid;
+
+/*
+ * Public function. See t_cose_util.h
+ */
+static struct q_useful_buf_c get_short_circuit_kid(void)
+{
+    ss_kid.len = sizeof(defined_short_circuit_kid);
+    ss_kid.ptr = defined_short_circuit_kid;
+
+    return ss_kid;
+}
+#endif
+
+int_fast32_t all_headers_test()
+{
+    enum t_cose_err_t           return_value;
+    const struct t_cose_key     degenerate_key =
+                                   {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
+    Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 300);
+    struct q_useful_buf_c       output;
+    struct q_useful_buf_c       payload;
+    struct t_cose_headers       headers;
+
+
+    return_value = t_cose_make_token_sign(T_COSE_OPT_SHORT_CIRCUIT_SIG | T_COSE_TEST_ALL_HEADERS,
+                               COSE_ALGORITHM_ES256,
+                               degenerate_key,
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("11"),
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("This is the content."),
+                               signed_cose_buffer,
+                               &output);
+
+    if(return_value) {
+        return 1;
+    }
+
+    return_value = t_cose_sign1_verify(/* Select short circuit signing */
+                                       T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
+                                       /* No key necessary with short circuit */
+                                       degenerate_key,
+                                       /* COSE to verify */
+                                       output,
+                                       /* The returned payload */
+                                       &payload,
+                                       /* Get headers for checking */
+                                       &headers);
+
+    // Need to compare to short circuit kid
+    if(q_useful_buf_compare(headers.kid, get_short_circuit_kid())) {
+        return 2;
+    }
+
+    if(headers.cose_alg_id != COSE_ALGORITHM_ES256) {
+        return 3;
+    }
+
+    if(headers.content_type_uint != 1) {
+        return 4;
+    }
+
+    if(q_useful_buf_compare(headers.iv, Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"))) {
+        return 5;
+    }
+
+    if(q_useful_buf_compare(headers.partial_iv, Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"))) {
+        return 6;
+    }
+
+    return 0;
+
+}
 
 
 int_fast32_t bad_headers_test()
