@@ -598,16 +598,16 @@ int_fast32_t bad_headers_test()
      Duplicate headers
      */
 
-    if( run_sign_and_verify(T_COSE_TEST_UNCLOSED_PROTECTED) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
+    if( run_test_sign_and_verify(T_COSE_TEST_UNCLOSED_PROTECTED) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
         return -557;
     }
 
-    if( run_sign_and_verify(T_COSE_TEST_TOO_LARGE_CONTENT_TYPE) != T_COSE_ERR_BAD_CONTENT_TYPE) {
+    if( run_test_sign_and_verify(T_COSE_TEST_TOO_LARGE_CONTENT_TYPE) != T_COSE_ERR_BAD_CONTENT_TYPE) {
         return -155;
     }
 
     /* This makes consume_item() error out */
-     if( run_sign_and_verify(T_COSE_TEST_NOT_WELL_FORMED_2) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
+     if( run_test_sign_and_verify(T_COSE_TEST_NOT_WELL_FORMED_2) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
         return -11;
      }
 
