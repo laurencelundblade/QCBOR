@@ -58,6 +58,10 @@ extern "C" {
 
 #define T_COSE_TEST_KID_IN_PROTECTED 0x00004000
 
+#define T_COSE_TEST_TOO_LARGE_CONTENT_TYPE 0x00002000
+
+#define T_COSE_TEST_UNCLOSED_PROTECTED 0x00001000
+
 
 /**
  * \file t_cose_sign1_sign.h

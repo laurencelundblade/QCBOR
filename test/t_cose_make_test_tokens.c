@@ -120,6 +120,11 @@ make_protected_header(int32_t option_flags,
     QCBOREncodeContext    cbor_encode_ctx;
     struct q_useful_buf_c return_value;
 
+    if(option_flags & T_COSE_TEST_UNCLOSED_PROTECTED) {
+        *(uint8_t *)(buffer_for_header.ptr) = 0xa1;
+        return (struct q_useful_buf_c){buffer_for_header.ptr, 1};
+    }
+
     QCBOREncode_Init(&cbor_encode_ctx, buffer_for_header);
 
     if(option_flags & T_COSE_TEST_BAD_PROTECTED) {
@@ -257,8 +262,11 @@ static inline void add_unprotected_headers(int32_t option_flags,
     if(option_flags & T_COSE_TEST_NOT_WELL_FORMED_2) {
         QCBOREncode_OpenArrayInMapN(cbor_encode_ctx, 55);
         QCBOREncode_OpenMap(cbor_encode_ctx);
-        /* '=' is 0x3d a reserved initial byte  */
-        QCBOREncode_AddEncoded(cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("====="));
+        QCBOREncode_AddSZStringToMapN(cbor_encode_ctx, 66, "hi");
+        /* '=' is 0x3d a reserved initial byte and thus not-well-formed */
+        QCBOREncode_AddEncoded(cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("="));
+        QCBOREncode_AddSZStringToMapN(cbor_encode_ctx, 67, "bye");
+
         QCBOREncode_CloseMap(cbor_encode_ctx);
         QCBOREncode_CloseArray(cbor_encode_ctx);
     }
@@ -290,6 +298,21 @@ static inline void add_unprotected_headers(int32_t option_flags,
         QCBOREncode_AddBytesToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_IV, Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"));
         QCBOREncode_AddBytesToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_PARTIAL_IV, Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"));
         QCBOREncode_AddInt64ToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_CONTENT_TYPE, 1);
+        /* A slighly complex unknown header */
+        QCBOREncode_OpenArrayInMapN(cbor_encode_ctx, 55);
+        QCBOREncode_OpenMap(cbor_encode_ctx);
+        QCBOREncode_AddSZStringToMapN(cbor_encode_ctx, 66, "hi");
+        QCBOREncode_AddSZStringToMapN(cbor_encode_ctx, 67, "bye");
+        QCBOREncode_CloseMap(cbor_encode_ctx);
+        QCBOREncode_OpenArray(cbor_encode_ctx);
+        QCBOREncode_OpenMap(cbor_encode_ctx);
+        QCBOREncode_CloseMap(cbor_encode_ctx);
+        QCBOREncode_CloseArray(cbor_encode_ctx);
+        QCBOREncode_CloseArray(cbor_encode_ctx);
+    }
+
+    if(option_flags & T_COSE_TEST_TOO_LARGE_CONTENT_TYPE) {
+        QCBOREncode_AddInt64ToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_CONTENT_TYPE, UINT16_MAX+1);
     }
 
     QCBOREncode_CloseMap(cbor_encode_ctx);
