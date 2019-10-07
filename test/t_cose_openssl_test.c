@@ -210,34 +210,30 @@ int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
     struct q_useful_buf_c       expected_payload;
 
 
+    /* -- Get started with context initialization, selecting the alg -- */
+    t_cose_sign1_init(&sign_ctx, 0, cose_alg);
+
     /* Make an ECDSA key pair that will be used for both signing and
      * verification.
      */
     return_value = make_ecdsa_key_pair(&ossl_key, cose_alg);
     if(return_value) {
-        return 7000 + return_value;
+        return 1000 + return_value;
     }
+    t_cose_sign1_set_key(&sign_ctx, ossl_key,  NULL_Q_USEFUL_BUF_C);
 
 
     /* Get the encoder context ready with a buffer big enough for the
      * COSE_Sign1 that is being created.
      */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
-    
-    /* Initialize for signing. The encoder context is passed in and
-     * the protected unprotected headers will be output to it
-     */
-    return_value = t_cose_sign1_init(&sign_ctx,            /* Signing context */
-                                     0,                    /* No option flags */
-                                     cose_alg,       /* The signing algorithm */
-                                     ossl_key,             /* The signing key */
-                                     NULL_Q_USEFUL_BUF_C,   /* No key id used */
-                                     &cbor_encode   /* output encoder context */
-                                     );
+
+    return_value = t_cose_sign1_output_headers(&sign_ctx, &cbor_encode);
     if(return_value) {
-        return 1000 + return_value;
+        return 2000 + return_value;
     }
 
+    // TODO: simply this test by using other API
 
     /* This is the actual payload. This typically is larger and more complex
      */
@@ -246,9 +242,9 @@ int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
     /* Finish the signing. This does the crypto, outputs the signature
      * to the encode context and closes off the COSE_Sign1
      */
-    return_value = t_cose_sign1_finish(&sign_ctx);
+    return_value = t_cose_sign1_output_signature(&sign_ctx, &cbor_encode);
     if(return_value) {
-        return 2000 + return_value;
+        return 3000 + return_value;
     }
 
     /* Close off the CBOR encoding. This will detect and CBOR encoding
@@ -257,7 +253,7 @@ int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
      */
     cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
     if(cbor_error) {
-        return 3000 + cbor_error;
+        return 4000 + cbor_error;
     }
 
 
@@ -268,7 +264,7 @@ int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
                                        &payload,  /* Payload from signed_cose */
                                        NULL);         /* Don't return headers */
     if(return_value) {
-        return 4000 + return_value;
+        return 5000 + return_value;
     }
 
     /* OpenSSL uses malloc to allocate buffers for keys, so they have to be freed */
@@ -282,7 +278,7 @@ int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
 
     /* compare payload output to the one expected */
     if(q_useful_buf_compare(payload, expected_payload)) {
-        return 5000;
+        return 6000;
     }
 
     return 0;
@@ -326,32 +322,35 @@ int_fast32_t openssl_sig_fail_test()
     QCBORError                  cbor_error;
 
 
+    /* Make an ECDSA key pair that will be used for both signing and
+     * verification.
+     */
     return_value = make_ecdsa_key_pair(&ossl_key, COSE_ALGORITHM_ES256);
+    if(return_value) {
+        return 1000 + return_value;
+    }
 
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    return_value = t_cose_sign1_init(&sign_ctx,            /* Signing context */
-                                     0,                    /* No option flags */
-                                     COSE_ALGORITHM_ES256,  /* ECDSA + SHA256 */
-                                     ossl_key,             /* The signing key */
-                                     NULL_Q_USEFUL_BUF_C,   /* No key id used */
-                                     &cbor_encode   /* output encoder context */
-                                     );
+    t_cose_sign1_init(&sign_ctx,  0,  COSE_ALGORITHM_ES256);
+    t_cose_sign1_set_key(&sign_ctx, ossl_key,NULL_Q_USEFUL_BUF_C);
+
+    return_value = t_cose_sign1_output_headers(&sign_ctx, &cbor_encode);
     if(return_value) {
-        return 1000 + return_value;
+        return 2000 + return_value;
     }
 
     QCBOREncode_AddSZString(&cbor_encode, "payload");
 
 
-    return_value = t_cose_sign1_finish(&sign_ctx);
+    return_value = t_cose_sign1_output_signature(&sign_ctx, &cbor_encode);
     if(return_value) {
-        return 2000 + return_value;
+        return 3000 + return_value;
     }
 
     cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
     if(cbor_error) {
-        return 3000 + cbor_error;
+        return 4000 + cbor_error;
     }
 
     /* tamper with the pay load to see that the signature verification fails */
@@ -369,7 +368,7 @@ int_fast32_t openssl_sig_fail_test()
                                        NULL);         /* Don't return headers */
 
     if(return_value != T_COSE_ERR_SIG_VERIFY) {
-        return 4000 + return_value;
+        return 5000 + return_value;
     }
 
     free_ecdsa_key_pair(ossl_key);
@@ -388,26 +387,36 @@ int_fast32_t openssl_make_cwt_test()
     struct t_cose_key           ossl_key;
     struct q_useful_buf_c       payload;
     QCBORError                  cbor_error;
-    struct q_useful_buf_c       cwt_example_key_id;
+
+    
+    /* -- initialize for signing --
+     *  No special options selected
+     */
+    t_cose_sign1_init(&sign_ctx,  0,  COSE_ALGORITHM_ES256);
 
 
+    /* -- Key and kid --
+     * The ECDSA key pair made is both for signing and verification.
+     * The kid comes from RFC 8932
+     */
     return_value = make_ecdsa_key_pair(&ossl_key, COSE_ALGORITHM_ES256);
-
-    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
-
-    /* key id from example in RFC */
-    cwt_example_key_id = Q_USEFUL_BUF_FROM_SZ_LITERAL("AsymmetricECDSA256");
-    return_value = t_cose_sign1_init(&sign_ctx,            /* Signing context */
-                                     0,                    /* No option flags */
-                                     COSE_ALGORITHM_ES256, /* ECDSA + SHA 256 */
-                                     ossl_key,             /* The signing key */
-                                     cwt_example_key_id,            /* key id */
-                                     &cbor_encode   /* output encoder context */
-                                     );
     if(return_value) {
         return 1000 + return_value;
     }
+    t_cose_sign1_set_key(&sign_ctx,
+                         ossl_key,
+                         Q_USEFUL_BUF_FROM_SZ_LITERAL("AsymmetricECDSA256"));
 
+
+    /* -- Encoding context and output of headers -- */
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+    return_value = t_cose_sign1_output_headers(&sign_ctx, &cbor_encode);
+    if(return_value) {
+        return 2000 + return_value;
+    }
+
+
+    /* -- The payload as from RFC 8932 -- */
     QCBOREncode_OpenMap(&cbor_encode);
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
     QCBOREncode_AddSZStringToMapN(&cbor_encode, 2, "erikw");
@@ -420,13 +429,13 @@ int_fast32_t openssl_make_cwt_test()
     QCBOREncode_CloseMap(&cbor_encode);
 
 
-    /* Finish up the COSE_Sign1. This is where the signing happens */
-    return_value = t_cose_sign1_finish(&sign_ctx);
+    /* -- Finish up the COSE_Sign1. This is where the signing happens -- */
+    return_value = t_cose_sign1_output_signature(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + return_value;
     }
 
-    /* Finally close of the CBOR formatting and get the pointer and length
+    /* Finally close off the CBOR formatting and get the pointer and length
      * of the resulting COSE_Sign1
      */
     cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
@@ -472,10 +481,10 @@ int_fast32_t openssl_make_cwt_test()
 
     /* Skip the key id, because this has the short-circuit key id */
     const size_t key_id_encoded_len =
-    1 +
-    1 +
-    1 +
-    strlen("AsymmetricECDSA256"); // length of short-circuit key id
+      1 +
+      1 +
+      1 +
+      strlen("AsymmetricECDSA256"); // length of short-circuit key id
 
 
     /* compare payload output to the one expected */

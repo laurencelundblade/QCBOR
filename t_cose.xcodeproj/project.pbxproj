@@ -7,7 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0F8B2FEA233C3DD600A22349 /* t_cose_make_test_tokens.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F8B2FE8233C3DD600A22349 /* t_cose_make_test_tokens.c */; };
+		0F8B2FEF2345A33A00A22349 /* t_cose_make_test_tokens.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F8B2FE8233C3DD600A22349 /* t_cose_make_test_tokens.c */; };
+		0F8B2FF02345A33B00A22349 /* t_cose_make_test_tokens.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F8B2FE8233C3DD600A22349 /* t_cose_make_test_tokens.c */; };
 		0F91057A2321878F00008572 /* t_cose_headers.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F9105792321878F00008572 /* t_cose_headers.c */; };
 		E71D9E8D231C3DBA00A21F7F /* t_cose_openssl_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E71D9E8B231C3DB900A21F7F /* t_cose_openssl_test.c */; };
 		E71D9EA9232B8F6800A21F7F /* t_cose_sign1_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */; };
@@ -423,6 +424,7 @@
 				E71D9EAB232B8F6800A21F7F /* qcbor_decode.c in Sources */,
 				E71D9EAC232B8F6800A21F7F /* t_cose_openssl_test.c in Sources */,
 				E71D9EAE232B8F6800A21F7F /* sha256.c in Sources */,
+				0F8B2FF02345A33B00A22349 /* t_cose_make_test_tokens.c in Sources */,
 				E71D9EAF232B8F6800A21F7F /* ieee754.c in Sources */,
 				E71D9EB0232B8F6800A21F7F /* t_cose_headers.c in Sources */,
 				E71D9EB1232B8F6800A21F7F /* t_cose_util.c in Sources */,
@@ -447,7 +449,7 @@
 				E7F70AAF2270D676007CE07F /* sha256.c in Sources */,
 				E7E36E9E226CBA1A0040613B /* ieee754.c in Sources */,
 				0F91057A2321878F00008572 /* t_cose_headers.c in Sources */,
-				0F8B2FEA233C3DD600A22349 /* t_cose_make_test_tokens.c in Sources */,
+				0F8B2FEF2345A33A00A22349 /* t_cose_make_test_tokens.c in Sources */,
 				E7E36E90226CB9460040613B /* t_cose_util.c in Sources */,
 				E7E36E9F226CBA1A0040613B /* qcbor_encode.c in Sources */,
 				E7F70AC62270DFAE007CE07F /* t_cose_test.c in Sources */,

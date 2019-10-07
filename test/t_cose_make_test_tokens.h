@@ -121,14 +121,6 @@ struct t_cose_make_test_token {
  * \brief  Initialize to start creating a \c COSE_Sign1.
  *
  * \param[in] me                 The t_cose signing context.
- * \param[in] option_flags       Select different signing options.
- * \param[in] cose_algorithm_id  The algorithm to sign with. The IDs are
- *                               defined in [COSE (RFC 8152)]
- *                               (https://tools.ietf.org/html/rfc8152) or
- *                               in the [IANA COSE Registry]
- *                           (https://www.iana.org/assignments/cose/cose.xhtml).
- * \param[in] signing_key        Which signing key to use.
- * \param[in] key_id             COSE kid header or \ref NULL_Q_USEFUL_BUF_C.
  * \param[in] cbor_encode_ctx    The CBOR encoder context to output to.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
@@ -192,11 +184,7 @@ struct t_cose_make_test_token {
  * the actual signing algorithm is run exactly as it would if a proper
  * signing algorithm was run.
  */
-enum t_cose_err_t t_cose_make_test_token_init(struct t_cose_make_test_token *me,
-                                    int32_t option_flags,
-                                    int32_t cose_algorithm_id,
-                                    struct t_cose_key signing_key,
-                                    struct q_useful_buf_c key_id,
+enum t_cose_err_t t_cose_make_test_output_headers(struct t_cose_sign1_ctx *me,
                                     QCBOREncodeContext *cbor_encode_ctx);
 
 
@@ -215,8 +203,16 @@ enum t_cose_err_t t_cose_make_test_token_init(struct t_cose_make_test_token *me,
  * The completed \c COSE_Sign1 is retrieved from the \c
  * cbor_encode_ctx by calling \c QCBOREncode_Finish()
  */
-enum t_cose_err_t t_cose_make_test_token_finish(struct t_cose_make_test_token *me);
+enum t_cose_err_t
+t_cose_make_test_output_signature(struct t_cose_sign1_ctx *me,
+                                  QCBOREncodeContext *encode_ctx);
 
+
+enum t_cose_err_t
+t_cose_test_token_sign1_sign(struct t_cose_sign1_ctx *me,
+                             struct q_useful_buf_c   payload,
+                             struct q_useful_buf     out_buf,
+                             struct q_useful_buf_c  *result);
 
 #ifdef __cplusplus
 }

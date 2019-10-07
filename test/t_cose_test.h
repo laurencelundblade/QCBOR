@@ -72,7 +72,7 @@ int_fast32_t bad_headers_test(void);
 
 /* Test that makes a CWT (CBOR Web Token)
  */
-int_fast32_t make_cwt_test(void);
+int_fast32_t cose_example_test(void);
 
 
 /*
@@ -85,6 +85,12 @@ int_fast32_t critical_headers_test(void);
  Check that all types of headers are correctly returned.
  */
 int_fast32_t all_headers_test(void);
+
+/*
+ * Check that setting the content type works
+ */
+int_fast32_t content_type_test(void);
+
 
 
 #endif /* t_cose_test_h */

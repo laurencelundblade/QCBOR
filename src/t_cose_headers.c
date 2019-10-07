@@ -309,6 +309,10 @@ static inline void clear_cose_headers(struct t_cose_headers *headers)
 #error Invalid algorithm designator not 0. Header list initialization fails.
 #endif
 
+#if T_COSE_UNSET_ALGORITHM_ID != COSE_ALGORITHM_RESERVED
+#error Constant for unset algorithm ID not aligned with COSE_ALGORITHM_RESERVED
+#endif
+
     /* This clears all the useful bufs to NULL_Q_USEFUL_BUF_C
      * and the cose_alg_id to COSE_ALGORITHM_RESERVED
      */
@@ -425,11 +429,11 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
                     return_value = T_COSE_ERR_NON_INTEGER_ALG_ID;
                     goto Done;
                 }
-                if(returned_headers->cose_alg_id != COSE_ALGORITHM_RESERVED) {
+                if(returned_headers->cose_algorithm_id != COSE_ALGORITHM_RESERVED) {
                     return_value = T_COSE_ERR_DUPLICATE_HEADER;
                     goto Done;
                 }
-                returned_headers->cose_alg_id = (int32_t)item.val.int64;
+                returned_headers->cose_algorithm_id = (int32_t)item.val.int64;
                 break;
 
             case COSE_HEADER_PARAM_KID:
@@ -607,13 +611,13 @@ check_and_copy_headers(const struct t_cose_headers  *protected,
      * header is not NULL and there is the same un protected header
      * error out. If it is not NULL and there is no unprotected
      * header, copy it */
-    if(protected->cose_alg_id != COSE_ALGORITHM_RESERVED) {
-        if(unprotected->cose_alg_id != COSE_ALGORITHM_RESERVED) {
+    if(protected->cose_algorithm_id != COSE_ALGORITHM_RESERVED) {
+        if(unprotected->cose_algorithm_id != COSE_ALGORITHM_RESERVED) {
             return_value = T_COSE_ERR_DUPLICATE_HEADER;
             goto Done;
         }
         if(returned_headers) {
-            returned_headers->cose_alg_id = protected->cose_alg_id;
+            returned_headers->cose_algorithm_id = protected->cose_algorithm_id;
         }
     }
 

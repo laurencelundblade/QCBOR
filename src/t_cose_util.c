@@ -98,11 +98,11 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_sig_alg_id)
  * Public function. See t_cose_util.h
  */
 enum t_cose_err_t create_tbs_hash(int32_t cose_alg_id,
-                                  struct q_useful_buf buffer_for_hash,
-                                  struct q_useful_buf_c *hash,
                                   struct q_useful_buf_c protected_headers,
                                   enum t_cose_tbs_hash_mode_t payload_mode,
-                                  struct q_useful_buf_c payload)
+                                  struct q_useful_buf_c payload,
+                                  struct q_useful_buf buffer_for_hash,
+                                  struct q_useful_buf_c *hash)
 {
     /* approximate stack use on 32-bit machine:
      *    210 bytes for all but hash context

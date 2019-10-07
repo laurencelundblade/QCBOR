@@ -25,8 +25,7 @@ extern "C" {
  *
  *  Configuration Options
  *
- *  T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
- *
+ * T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
  * This disables short-circuit signing test mode. This saves
  * a small amount of object code
  *
@@ -39,6 +38,9 @@ extern "C" {
  * Disables the COSE algorithm ES384 algorithm. This saves a tiny
  * amount of code and a few hundred bytes of stack. No stack will be
  * saved if T_COSE_DISABLE_ES512 is not also defined.
+ *
+ * T_COSE_DISABLE_CONTENT_TYPE
+ * Disables the content type headers for both signing an verifying.
  */
 
 
@@ -83,7 +85,8 @@ struct t_cose_key {
     } k;
 };
 
-
+/** An empty or \c NULL \c t_cose_key */
+#define T_COSE_NULL_KEY ((struct t_cose_key){T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}})
 
 
 /* Private value. Intentionally not documented for Doxygen.
@@ -259,6 +262,14 @@ enum t_cose_err_t {
  * will increase stack usage.
  */
 #define T_COSE_HEADER_LIST_MAX 10
+
+
+
+/**
+ * The value of an unsigned integer content type indicating no content type.
+ * See \ref t_cose_headers.
+ */
+#define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
 
 
 #ifdef __cplusplus

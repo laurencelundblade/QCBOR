@@ -53,11 +53,10 @@ extern "C" {
  Size on 32-bit machine: 4 + (4 * 8) = 36
  */
 struct t_cose_headers {
-    /** The algorithm ID. \ref COSE_ALGORITHM_RESERVED if the algorithm ID
+    /** The algorithm ID. \ref T_COSE_UNSET_ALGORITHM_ID if the algorithm ID
      * header is not present. String type algorithm IDs are not
      * supported */
-    // TODO, reference to COSE_ALGORITHM_RESERVED
-    int32_t               cose_alg_id;
+    int32_t               cose_algorithm_id;
     /** The COSE key ID. \c NULL_Q_USEFUL_BUF_C if header is not
 	present */
     struct q_useful_buf_c kid;
@@ -76,12 +75,11 @@ struct t_cose_headers {
     uint32_t              content_type_uint;
 };
 
-
 /**
- This value indicates no integer content type was specified. It is
- outside the allowed range of 0 to UINT16_MAX.
+ * Indicates no COSE algorithm ID or an unset COSE algorithm ID.
  */
-#define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
+#define T_COSE_UNSET_ALGORITHM_ID 0
+
 
 
 

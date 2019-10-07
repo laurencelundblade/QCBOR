@@ -64,8 +64,6 @@ static void
 clear_header_list(struct t_cose_label_list *list);
 
 
-
-
 /**
  * \brief Check the unknown headers against the critical header list.
  *
@@ -107,7 +105,6 @@ parse_unprotected_headers(QCBORDecodeContext       *decode_context,
                           struct t_cose_label_list *unknown);
 
 
-
 /**
  * \brief Parse the protected headers.
  *
@@ -135,9 +132,20 @@ parse_protected_headers(const struct q_useful_buf_c protected_headers,
 
 
 /**
- * \brief Check for duplicate copy to combine headers
+ * \brief Copy and combine protected and unprotected headers.
  *
- * TODO: finish documentation ehre
+ * \param[in] protected          The protected headers to copy.
+ * \param[in] unprotected        The unprotected headers to copy.
+ * \param[out] returned_headers  Destination for copy.
+ *
+ * \retval T_COSE_ERR_DUPLICATE_HEADER  If the same header occurs in both
+ *                                      protected and unprotected.
+ * \retval T_COSE_SUCCESS               If there were no duplicates and the
+ *                                      copy and combine succeeded.
+ *
+ * This merges the protected and unprotected headers. The COSE standard
+ * does not allow a header to duplicated in protected and unprotected so
+ * this checks and returns an error if so.
  */
 enum t_cose_err_t
 check_and_copy_headers(const struct t_cose_headers  *protected,
@@ -146,15 +154,17 @@ check_and_copy_headers(const struct t_cose_headers  *protected,
 
 
 
-
+/* ------------------------------------------------------------------------
+ * Inline implementations of public functions defined above.
+ */
 static void inline clear_header_list(struct t_cose_label_list *list)
 {
     memset(list, 0, sizeof(struct t_cose_label_list));
 }
 
 
-// TODO: document this
-static bool inline is_header_list_clear(const struct t_cose_label_list *list)
+static bool inline
+is_header_list_clear(const struct t_cose_label_list *list)
 {
     return list->int_labels[0] == 0 &&
                 q_useful_buf_c_is_null_or_empty(list->tstr_labels[0]);

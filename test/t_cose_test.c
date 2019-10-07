@@ -20,60 +20,25 @@
 int_fast32_t short_circuit_self_test()
 {
     struct t_cose_sign1_ctx     sign_ctx;
-    QCBOREncodeContext          cbor_encode;
     enum t_cose_err_t           return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_key           degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     struct q_useful_buf_c       payload;
-    Q_USEFUL_BUF_MAKE_STACK_UB( expected_payload_buffer, 10);
-    struct q_useful_buf_c       expected_payload;
-    QCBORError                  cbor_error;
 
-    /* --- Start making COSE Sign1 object  --- */
 
-    /* The CBOR encoder instance that the COSE_Sign1 is output into */
-    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+    /* --- Make COSE Sign1 object --- */
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                      COSE_ALGORITHM_ES256);
 
-    /* Do the first part of the the COSE_Sign1, the headers */
-    return_value =
-        t_cose_sign1_init(/* Signing context carried betwteen _init and _finish
-                           */
-                          &sign_ctx,
-                          /* The options flags. Select short-circuit signing */
-                          T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                          /* The signing alg. It doesn't really matter what
-                           * what it is for short-circuit, but it has to be
-                           * something valid. Use ECDSA 256 with SHA 256 */
-                          COSE_ALGORITHM_ES256,
-                          /* No key necessary with short circuit */
-                          degenerate_key,
-                          /* No key ID needed with short circuit */
-                          NULL_Q_USEFUL_BUF_C,
-                          /* Pass in the CBOR encoder context that the output
-                           * will be written to. For this part is it the
-                           * opening array and headers */
-                          &cbor_encode
-                          );
+    /* No key necessary because short-circuit test mode is used */
+
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     signed_cose_buffer,
+                                     &signed_cose);
     if(return_value) {
         return 1000 + return_value;
-    }
-
-    /* Do the payload of the COSE_Sign1. */
-    QCBOREncode_AddSZString(&cbor_encode, "payload");
-
-    /* Finish up the COSE_Sign1. This is where the signing happens */
-    return_value = t_cose_sign1_finish(&sign_ctx);
-    if(return_value) {
-        return 2000 + return_value;
-    }
-
-    /* Finally close of the CBOR formatting and get the pointer and length
-     * of the resulting COSE_Sign1
-     */
-    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
-    if(cbor_error) {
-        return 3000 + cbor_error;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -83,7 +48,7 @@ int_fast32_t short_circuit_self_test()
     return_value = t_cose_sign1_verify(/* Select short circuit signing */
                                        T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
                                        /* No key necessary with short circuit */
-                                       degenerate_key,
+                                       T_COSE_NULL_KEY,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
@@ -91,17 +56,12 @@ int_fast32_t short_circuit_self_test()
                                        /* Not requesting headers returned */
                                        NULL);
     if(return_value) {
-        return 4000 + return_value;
+        return 2000 + return_value;
     }
 
-    /* Format the expected payload CBOR fragment */
-    QCBOREncode_Init(&cbor_encode, expected_payload_buffer);
-    QCBOREncode_AddSZString(&cbor_encode, "payload");
-    QCBOREncode_Finish(&cbor_encode, &expected_payload);
-
     /* compare payload output to the one expected */
-    if(q_useful_buf_compare(payload, expected_payload)) {
-        return 5000;
+    if(q_useful_buf_compare(payload, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"))) {
+        return 3000;
     }
     /* --- Done verifying the COSE Sign1 object  --- */
 
@@ -113,66 +73,33 @@ int_fast32_t short_circuit_self_test()
 int_fast32_t short_circuit_verify_fail_test()
 {
     struct t_cose_sign1_ctx     sign_ctx;
-    QCBOREncodeContext          cbor_encode;
     enum t_cose_err_t           return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_key   degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     struct q_useful_buf_c       payload;
-    QCBORError                  cbor_error;
     size_t                      payload_offset;
 
     /* --- Start making COSE Sign1 object  --- */
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                      COSE_ALGORITHM_ES256);
 
-    /* The CBOR encoder instance that the COSE_Sign1 is output into */
-    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+    /* No key necessary because short-circuit test mode is used */
 
-    /* Do the first part of the the COSE_Sign1, the headers */
-    return_value =
-        t_cose_sign1_init(/* Signing context carried betwteen _init and _finish
-                           */
-                          &sign_ctx,
-                          /* The options flags. Select short-circuit signing */
-                          T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                          /* The signing alg. It doesn't really matter what
-                           * what it is for short-circuit, but it has to be
-                           * something valid. Use ECDSA 256 with SHA 256 */
-                          COSE_ALGORITHM_ES256,
-                          /* No key necessary with short circuit */
-                          degenerate_key,
-                          /* No key ID needed with short circuit */
-                          NULL_Q_USEFUL_BUF_C,
-                          /* Pass in the CBOR encoder context that the output
-                           * will be written to. For this part is it the
-                           * opening array and headers */
-                          &cbor_encode); /* encoder context to output to */
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     signed_cose_buffer,
+                                     &signed_cose);
     if(return_value) {
         return 1000 + return_value;
-    }
-
-    /* Do the payload of the COSE_Sign1. It must be bstr wrapped according
-     * to the COSE standard */
-    QCBOREncode_AddSZString(&cbor_encode, "payload");
-
-    /* Finish up the COSE_Sign1. This is where the signing happens */
-    return_value = t_cose_sign1_finish(&sign_ctx);
-    if(return_value) {
-        return 2000 + return_value;
-    }
-
-    /* Finally close of the CBOR formatting and get the pointer and length
-     * of the resulting COSE_Sign1
-     */
-    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
-    if(cbor_error) {
-        return 3000 + cbor_error;
     }
     /* --- Done making COSE Sign1 object  --- */
 
 
     /* --- Start Tamper with payload  --- */
     /* Find the offset of the payload in COSE_Sign1 */
-    payload_offset = q_useful_buf_find_bytes(signed_cose, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
+    payload_offset = q_useful_buf_find_bytes(signed_cose,
+                                             Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
     if(payload_offset == SIZE_MAX) {
         return 6000;
     }
@@ -186,7 +113,7 @@ int_fast32_t short_circuit_verify_fail_test()
     return_value = t_cose_sign1_verify(/* Select short circuit signing */
                                        T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
                                        /* No key necessary with short circuit */
-                                       degenerate_key,
+                                       T_COSE_NULL_KEY,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
@@ -204,124 +131,73 @@ int_fast32_t short_circuit_verify_fail_test()
 
 int_fast32_t short_circuit_signing_error_conditions_test()
 {
-    struct t_cose_sign1_ctx sign_ctx;
-    QCBOREncodeContext cbor_encode;
-    enum t_cose_err_t  return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB(foo, 500);
-    struct t_cose_key degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
+    struct t_cose_sign1_ctx      sign_ctx;
+    QCBOREncodeContext           cbor_encode;
+    enum t_cose_err_t            return_value;
+    Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
+    Q_USEFUL_BUF_MAKE_STACK_UB(  small_signed_cose_buffer, 15);
+    struct q_useful_buf_c        signed_cose;
 
 
-    /* Test bad algorithm ID 0 */
-    QCBOREncode_Init(&cbor_encode, foo);
+    /* -- Test bad algorithm ID 0 -- */
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                      0); /* Reserved alg ID 0 to cause error. */
 
-    return_value =
-        t_cose_sign1_init(/* Signing context carried betwteen _init and _finish
-                           */
-                          &sign_ctx,
-                           /* The options flags. Select short-circuit signing */
-                          T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                          /* Reserved alg ID 0 to cause error. */
-                          0,
-                          /* No key necessary with short circuit */
-                          degenerate_key,
-                          /* No key ID needed with short circuit */
-                          NULL_Q_USEFUL_BUF_C,
-                          /* Pass in the CBOR encoder context that the output
-                           * will be written to. For this part is it the
-                           * opening array and headers */
-                          &cbor_encode);
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     signed_cose_buffer,
+                                     &signed_cose);
     if(return_value != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
         return -1;
     }
 
 
-    /* Test bad algorithm ID -4444444 */
-    QCBOREncode_Init(&cbor_encode, foo);
+    /* -- Test bad algorithm ID -4444444 -- */
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                      -4444444); /* Unknown alg ID 0 to cause error. */
 
-    return_value =
-        t_cose_sign1_init(/* Signing context carried betwteen _init and _finish
-                          */
-                          &sign_ctx,
-                          /* The options flags. Select short-circuit signing */
-                          T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                          /* alg ID to cause error. Unlikely to be a rea one */
-                          -4444444,
-                          /* No key necessary with short circuit */
-                          degenerate_key,
-                          /* No key ID needed with short circuit */
-                          NULL_Q_USEFUL_BUF_C,
-                          /* Pass in the CBOR encoder context that the output
-                           * will be written to. For this part is it the
-                           * opening array and headers */
-                          &cbor_encode);
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     signed_cose_buffer,
+                                     &signed_cose);
     if(return_value != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
         return -1;
     }
 
 
 
-    /* Tests detection of CBOR encoding error in the payload */
-    QCBOREncode_Init(&cbor_encode, foo);
+    /* -- Tests detection of CBOR encoding error in the payload -- */
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    return_value =
-        t_cose_sign1_init(/* Signing context carried betwteen _init and _finish
-                           */
-                          &sign_ctx,
-                          /* The options flags. Select short-circuit signing */
-                          T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                          /* The signing alg. It doesn't really matter what
-                           * what it is for short-circuit, but it has to be
-                           * something valid. Use ECDSA 256 with SHA 256 */
-                          COSE_ALGORITHM_ES256,
-                          /* No key necessary with short circuit */
-                          degenerate_key,
-                          /* No key ID needed with short circuit */
-                          NULL_Q_USEFUL_BUF_C,
-                          /* Pass in the CBOR encoder context that the output
-                           * will be written to. For this part is it the
-                           * opening array and headers */
-                          &cbor_encode);
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                      COSE_ALGORITHM_ES256);
+    return_value = t_cose_sign1_output_headers(&sign_ctx, &cbor_encode);
 
 
     QCBOREncode_AddSZString(&cbor_encode, "payload");
     /* Force a CBOR encoding error by closing a map that is not open */
     QCBOREncode_CloseMap(&cbor_encode);
 
-    return_value = t_cose_sign1_finish(&sign_ctx);
+    return_value = t_cose_sign1_output_signature(&sign_ctx,
+                                                 &cbor_encode);
 
     if(return_value != T_COSE_ERR_CBOR_FORMATTING) {
         return -33;
     }
 
 
-    /* Tests the output buffer being too small */
-    Q_USEFUL_BUF_MAKE_STACK_UB(foo2, 15);
+    /* -- Tests the output buffer being too small -- */
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                      COSE_ALGORITHM_ES256);
 
-    QCBOREncode_Init(&cbor_encode, foo2);
-
-    return_value =
-       t_cose_sign1_init(/* Signing context carried betwteen _init and _finish
-                          */
-                         &sign_ctx,
-                         /* The options flags. Select short-circuit signing */
-                         T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                         /* The signing alg. It doesn't really matter what
-                          * what it is for short-circuit, but it has to be
-                          * something valid. Use ECDSA 256 with SHA 256 */
-                         COSE_ALGORITHM_ES256,
-                         /* No key necessary with short circuit */
-                         degenerate_key,
-                         /* No key ID needed with short circuit */
-                         NULL_Q_USEFUL_BUF_C,
-                         /* Pass in the CBOR encoder context that the output
-                          * will be written to. For this part is it the
-                          * opening array and headers */
-                         &cbor_encode);
-
-
-    QCBOREncode_AddSZString(&cbor_encode, "payload");
-
-    return_value = t_cose_sign1_finish(&sign_ctx);
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     small_signed_cose_buffer,
+                                     &signed_cose);
 
     if(return_value != T_COSE_ERR_TOO_SMALL) {
         return -34;
@@ -339,7 +215,6 @@ int_fast32_t short_circuit_make_cwt_test()
     enum t_cose_err_t           return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_key   degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     struct q_useful_buf_c       payload;
     QCBORError                  cbor_error;
 
@@ -348,25 +223,12 @@ int_fast32_t short_circuit_make_cwt_test()
     /* The CBOR encoder instance that the COSE_Sign1 is output into */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                      COSE_ALGORITHM_ES256);
+
     /* Do the first part of the the COSE_Sign1, the headers */
-    return_value =
-        t_cose_sign1_init(/* Signing context carried betwteen _init and _finish
-                           */
-                          &sign_ctx,
-                          /* The options flags. Select short-circuit signing */
-                          T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                          /* The signing alg. It doesn't really matter what
-                           * what it is for short-circuit, but it has to be
-                           * something valid. Use ECDSA 256 with SHA 256 */
-                          COSE_ALGORITHM_ES256,
-                          /* No key necessary with short circuit */
-                          degenerate_key,
-                          /* No key ID needed with short circuit */
-                          NULL_Q_USEFUL_BUF_C,
-                          /* Pass in the CBOR encoder context that the output
-                           * will be written to. For this part is it the
-                           * opening array and headers */
-                          &cbor_encode);
+    return_value = t_cose_sign1_output_headers(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 1000 + return_value;
     }
@@ -383,7 +245,7 @@ int_fast32_t short_circuit_make_cwt_test()
     QCBOREncode_CloseMap(&cbor_encode);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    return_value = t_cose_sign1_finish(&sign_ctx);
+    return_value = t_cose_sign1_output_signature(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + return_value;
     }
@@ -443,7 +305,7 @@ int_fast32_t short_circuit_make_cwt_test()
     return_value = t_cose_sign1_verify(/* Select short circuit signing */
                                        T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
                                        /* No key necessary with short circuit */
-                                       degenerate_key,
+                                       T_COSE_NULL_KEY,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
@@ -474,7 +336,6 @@ int_fast32_t short_circuit_no_parse_test()
     enum t_cose_err_t           return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_key           degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     struct q_useful_buf_c       payload;
     Q_USEFUL_BUF_MAKE_STACK_UB( expected_payload_buffer, 10);
     struct q_useful_buf_c       expected_payload;
@@ -485,26 +346,12 @@ int_fast32_t short_circuit_no_parse_test()
     /* The CBOR encoder instance that the COSE_Sign1 is output into */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                      COSE_ALGORITHM_ES256);
+
     /* Do the first part of the the COSE_Sign1, the headers */
-    return_value =
-        t_cose_sign1_init(/* Signing context carried betwteen _init and _finish
-                           */
-                          &sign_ctx,
-                          /* The options flags. Select short-circuit signing */
-                          T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                          /* The signing alg. It doesn't really matter what
-                           * what it is for short-circuit, but it has to be
-                           * something valid. Use ECDSA 256 with SHA 256 */
-                          COSE_ALGORITHM_ES256,
-                          /* No key necessary with short circuit */
-                          degenerate_key,
-                          /* No key ID needed with short circuit */
-                          NULL_Q_USEFUL_BUF_C,
-                          /* Pass in the CBOR encoder context that the output
-                           * will be written to. For this part is it the
-                           * opening array and headers */
-                          &cbor_encode
-                          );
+    return_value = t_cose_sign1_output_headers(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 1000 + return_value;
     }
@@ -513,7 +360,7 @@ int_fast32_t short_circuit_no_parse_test()
     QCBOREncode_AddSZString(&cbor_encode, "payload");
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    return_value = t_cose_sign1_finish(&sign_ctx);
+    return_value = t_cose_sign1_output_signature(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + return_value;
     }
@@ -541,7 +388,7 @@ int_fast32_t short_circuit_no_parse_test()
                                        /* Select no parsing option to test it */
                                        T_COSE_OPT_PARSE_ONLY,
                                        /* No key necessary with short circuit */
-                                       degenerate_key,
+                                       T_COSE_NULL_KEY,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
@@ -569,100 +416,6 @@ int_fast32_t short_circuit_no_parse_test()
 }
 
 
-/* This could become a public function someday */
-enum t_cose_err_t t_cose_sign1_sign(int32_t                option_flags,
-                                    int32_t                cose_algorithm_id,
-                                    struct t_cose_key      signing_key,
-                                    struct q_useful_buf_c  key_id,
-                                    struct q_useful_buf_c  payload,
-                                    struct q_useful_buf    outbuf,
-                                    struct q_useful_buf_c *result)
-{
-    struct t_cose_sign1_ctx  cose_context;
-    QCBOREncodeContext       encode_context;
-    enum t_cose_err_t        return_value;
-
-    QCBOREncode_Init(&encode_context, outbuf);
-
-    return_value = t_cose_sign1_init(&cose_context,
-                                     option_flags,
-                                     cose_algorithm_id,
-                                     signing_key, key_id,
-                                     &encode_context);
-    if(return_value) {
-        goto Done;
-    }
-
-    /* Payload may or may not actually be CBOR format here. This function
-     * does the job just fine because it just adds bytes to the
-     * encoded output without anything extra
-     */
-    QCBOREncode_AddEncoded(&encode_context, payload);
-
-    return_value = t_cose_sign1_finish(&cose_context);
-    if(return_value) {
-        goto Done;
-    }
-
-    if(QCBOREncode_Finish(&encode_context, result)) {
-        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
-        goto Done;
-    }
-
-    return_value = T_COSE_SUCCESS;
-
-Done:
-    return return_value;
-}
-
-
-
-/* This could become a public function someday */
-enum t_cose_err_t t_cose_make_token_sign(int32_t                option_flags,
-                                    int32_t                cose_algorithm_id,
-                                    struct t_cose_key      signing_key,
-                                    struct q_useful_buf_c  key_id,
-                                    struct q_useful_buf_c  payload,
-                                    struct q_useful_buf    outbuf,
-                                    struct q_useful_buf_c *result)
-{
-    struct t_cose_make_test_token  cose_context;
-    QCBOREncodeContext       encode_context;
-    enum t_cose_err_t        return_value;
-
-    QCBOREncode_Init(&encode_context, outbuf);
-
-    return_value = t_cose_make_test_token_init(&cose_context,
-                                     option_flags,
-                                     cose_algorithm_id,
-                                     signing_key, key_id,
-                                     &encode_context);
-    if(return_value) {
-        goto Done;
-    }
-
-    /* Payload may or may not actually be CBOR format here. This function
-     * does the job just fine because it just adds bytes to the
-     * encoded output without anything extra
-     */
-    QCBOREncode_AddEncoded(&encode_context, payload);
-
-    return_value = t_cose_make_test_token_finish(&cose_context);
-    if(return_value) {
-        goto Done;
-    }
-
-    if(QCBOREncode_Finish(&encode_context, result)) {
-        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
-        goto Done;
-    }
-
-    return_value = T_COSE_SUCCESS;
-
-Done:
-    return return_value;
-}
-
 /*
  18( [
     / protected / h’a10126’ / {
@@ -679,85 +432,55 @@ Done:
 ] )
  */
 
-int make_cwt_test()
+int cose_example_test()
 {
     // TODO finish this test with comparison to expected
-    enum t_cose_err_t           result;
-    const struct t_cose_key     degenerate_key =
-                                    {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
+    enum t_cose_err_t           return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
     struct q_useful_buf_c       output;
+    struct t_cose_sign1_ctx     sign_ctx;
+
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                      COSE_ALGORITHM_ES256);
+
+    t_cose_sign1_set_key(&sign_ctx, T_COSE_NULL_KEY, Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
     /* Make example C.2.1 from RFC 8152 */
 
-    result = t_cose_sign1_sign(T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                               COSE_ALGORITHM_ES256,
-                               degenerate_key,
-                               Q_USEFUL_BUF_FROM_SZ_LITERAL("11"),
+    return_value = t_cose_sign1_sign(&sign_ctx,
                                Q_USEFUL_BUF_FROM_SZ_LITERAL("This is the content."),
                                signed_cose_buffer,
                                &output);
 
-    return result;
+    return return_value;
 }
 
 
-static enum t_cose_err_t run_sign_and_verify(int32_t option)
+static enum t_cose_err_t run_test_sign_and_verify(int32_t option)
 {
-    struct t_cose_make_test_token     sign_ctx;
+    struct t_cose_sign1_ctx     sign_ctx;
     QCBOREncodeContext          cbor_encode;
     enum t_cose_err_t           return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
     struct q_useful_buf_c       signed_cose;
-    struct t_cose_key           degenerate_key = {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     struct q_useful_buf_c       payload;
-    QCBORError                  cbor_error;
 
     /* --- Start making COSE Sign1 object  --- */
 
     /* The CBOR encoder instance that the COSE_Sign1 is output into */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    /* Do the first part of the the COSE_Sign1, the headers */
-    return_value =
-       t_cose_make_test_token_init(
-                                /* Signing context carried betwteen _init and _finish
-                                 */
-                                &sign_ctx,
-                                /* The options flags. Select short-circuit signing */
-                                T_COSE_OPT_SHORT_CIRCUIT_SIG | option,
-                                /* The signing alg. It doesn't really matter what
-                                 * what it is for short-circuit, but it has to be
-                                 * something valid. Use ECDSA 256 with SHA 256 */
-                                COSE_ALGORITHM_ES256,
-                                /* No key necessary with short circuit */
-                                degenerate_key,
-                                /* No key ID needed with short circuit */
-                                NULL_Q_USEFUL_BUF_C,
-                                /* Pass in the CBOR encoder context that the output
-                                 * will be written to. For this part is it the
-                                 * opening array and headers */
-                                &cbor_encode
-                                );
-    if(return_value) {
-        return 1000 + return_value;
-    }
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG | option,
+                      COSE_ALGORITHM_ES256);
 
-    /* Do the payload of the COSE_Sign1. */
-    QCBOREncode_AddSZString(&cbor_encode, "payload");
-
-    /* Finish up the COSE_Sign1. This is where the signing happens */
-    return_value = t_cose_make_test_token_finish(&sign_ctx);
+    return_value = t_cose_test_token_sign1_sign(&sign_ctx,
+                      Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                      signed_cose_buffer,
+                      &signed_cose);
     if(return_value) {
         return 2000 + return_value;
-    }
-
-    /* Finally close of the CBOR formatting and get the pointer and length
-     * of the resulting COSE_Sign1
-     */
-    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
-    if(cbor_error) {
-        return 3000 + cbor_error;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -767,7 +490,7 @@ static enum t_cose_err_t run_sign_and_verify(int32_t option)
     return_value = t_cose_sign1_verify(/* Select short circuit signing */
                                        T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
                                        /* No key necessary with short circuit */
-                                       degenerate_key,
+                                       T_COSE_NULL_KEY,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
@@ -810,22 +533,25 @@ static struct q_useful_buf_c get_short_circuit_kid(void)
 int_fast32_t all_headers_test()
 {
     enum t_cose_err_t           return_value;
-    const struct t_cose_key     degenerate_key =
-                                   {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}};
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 300);
     struct q_useful_buf_c       output;
     struct q_useful_buf_c       payload;
     struct t_cose_headers       headers;
+    struct t_cose_sign1_ctx     sign_ctx;
 
+    t_cose_sign1_init(&sign_ctx,
+                       T_COSE_OPT_SHORT_CIRCUIT_SIG | T_COSE_TEST_ALL_HEADERS,
+                       COSE_ALGORITHM_ES256);
 
-    return_value = t_cose_make_token_sign(T_COSE_OPT_SHORT_CIRCUIT_SIG | T_COSE_TEST_ALL_HEADERS,
-                               COSE_ALGORITHM_ES256,
-                               degenerate_key,
-                               Q_USEFUL_BUF_FROM_SZ_LITERAL("11"),
-                               Q_USEFUL_BUF_FROM_SZ_LITERAL("This is the content."),
-                               signed_cose_buffer,
-                               &output);
+    t_cose_sign1_set_key(&sign_ctx,
+                         T_COSE_NULL_KEY,
+                         Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
+    return_value = t_cose_test_token_sign1_sign(&sign_ctx,
+                                      Q_USEFUL_BUF_FROM_SZ_LITERAL(
+                                          "This is the content."),
+                                      signed_cose_buffer,
+                                     &output);
     if(return_value) {
         return 1;
     }
@@ -833,7 +559,7 @@ int_fast32_t all_headers_test()
     return_value = t_cose_sign1_verify(/* Select short circuit signing */
                                        T_COSE_OPT_ALLOW_SHORT_CIRCUIT,
                                        /* No key necessary with short circuit */
-                                       degenerate_key,
+                                       T_COSE_NULL_KEY,
                                        /* COSE to verify */
                                        output,
                                        /* The returned payload */
@@ -846,7 +572,7 @@ int_fast32_t all_headers_test()
         return 2;
     }
 
-    if(headers.cose_alg_id != COSE_ALGORITHM_ES256) {
+    if(headers.cose_algorithm_id != COSE_ALGORITHM_ES256) {
         return 3;
     }
 
@@ -885,44 +611,44 @@ int_fast32_t bad_headers_test()
         return -11;
      }
 
-    if(run_sign_and_verify(T_COSE_TEST_KID_IN_PROTECTED) != T_COSE_ERR_DUPLICATE_HEADER) {
+    if(run_test_sign_and_verify(T_COSE_TEST_KID_IN_PROTECTED) != T_COSE_ERR_DUPLICATE_HEADER) {
         return -527;
     }
 
-    if(run_sign_and_verify(T_COSE_TEST_TOO_MANY_UNKNOWN) != T_COSE_ERR_TOO_MANY_HEADERS) {
+    if(run_test_sign_and_verify(T_COSE_TEST_TOO_MANY_UNKNOWN) != T_COSE_ERR_TOO_MANY_HEADERS) {
         return -77;
     }
 
-    if(run_sign_and_verify(T_COSE_TEST_UNPROTECTED_NOT_MAP) != T_COSE_ERR_HEADER_CBOR) {
+    if(run_test_sign_and_verify(T_COSE_TEST_UNPROTECTED_NOT_MAP) != T_COSE_ERR_HEADER_CBOR) {
         return -865;
     }
 
 
-    if(run_sign_and_verify(T_COSE_TEST_BAD_CRIT_HEADER) != T_COSE_ERR_HEADER_NOT_PROTECTED) {
+    if(run_test_sign_and_verify(T_COSE_TEST_BAD_CRIT_HEADER) != T_COSE_ERR_HEADER_NOT_PROTECTED) {
         return -22;
     }
 
-    if(run_sign_and_verify(T_COSE_TEST_NOT_WELL_FORMED_1) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
+    if(run_test_sign_and_verify(T_COSE_TEST_NOT_WELL_FORMED_1) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
         return -33;
     }
 
-    if(run_sign_and_verify(T_COSE_TEST_NO_UNPROTECTED_HEADERS) != T_COSE_ERR_HEADER_CBOR) {
+    if(run_test_sign_and_verify(T_COSE_TEST_NO_UNPROTECTED_HEADERS) != T_COSE_ERR_HEADER_CBOR) {
         return -99;
     }
 
-    if(run_sign_and_verify(T_COSE_TEST_NO_PROTECTED_HEADERS) != T_COSE_ERR_SIGN1_FORMAT) {
+    if(run_test_sign_and_verify(T_COSE_TEST_NO_PROTECTED_HEADERS) != T_COSE_ERR_SIGN1_FORMAT) {
         return -44;
     }
 
-    if(run_sign_and_verify(T_COSE_TEST_EXTRA_HEADER) != T_COSE_SUCCESS) {
+    if(run_test_sign_and_verify(T_COSE_TEST_EXTRA_HEADER) != T_COSE_SUCCESS) {
         return -55;
     }
 
-    if(run_sign_and_verify(T_COSE_TEST_HEADER_LABEL) != T_COSE_ERR_HEADER_CBOR) {
+    if(run_test_sign_and_verify(T_COSE_TEST_HEADER_LABEL) != T_COSE_ERR_HEADER_CBOR) {
         return -96699;
     }
 
-    if(run_sign_and_verify(T_COSE_TEST_BAD_PROTECTED) != T_COSE_ERR_HEADER_CBOR) {
+    if(run_test_sign_and_verify(T_COSE_TEST_BAD_PROTECTED) != T_COSE_ERR_HEADER_CBOR) {
         return -9889;
     }
 
@@ -936,12 +662,12 @@ int_fast32_t critical_headers_test()
     /* Test existance of the critical header. Also makes sure that
      * it works with the max number of labels allowed in it.
      */
-    if(run_sign_and_verify(T_COSE_TEST_CRIT_HEADER_EXIST) != T_COSE_SUCCESS) {
+    if(run_test_sign_and_verify(T_COSE_TEST_CRIT_HEADER_EXIST) != T_COSE_SUCCESS) {
         return -1;
     }
 
     /* Exceed the max number of labels by one and get an error */
-    if(run_sign_and_verify(T_COSE_TEST_TOO_MANY_CRIT_HEADER_EXIST) !=
+    if(run_test_sign_and_verify(T_COSE_TEST_TOO_MANY_CRIT_HEADER_EXIST) !=
        T_COSE_ERR_TOO_MANY_HEADERS) {
         return -2;
     }
@@ -949,7 +675,7 @@ int_fast32_t critical_headers_test()
     /* A critical header exists in the protected section, but the
      * format of the internals of this header is not the expected CBOR
      */
-    if(run_sign_and_verify(T_COSE_TEST_BAD_CRIT_LABEL) !=
+    if(run_test_sign_and_verify(T_COSE_TEST_BAD_CRIT_LABEL) !=
        T_COSE_ERR_HEADER_CBOR) {
         return -3;
     }
@@ -957,7 +683,7 @@ int_fast32_t critical_headers_test()
     /* A critical header is listed in the protected section, but
      * the header doesn't exist. This works for integer-labeled header params.
      */
-    if(run_sign_and_verify(T_COSE_TEST_UNKNOWN_CRIT_UINT_HEADER) !=
+    if(run_test_sign_and_verify(T_COSE_TEST_UNKNOWN_CRIT_UINT_HEADER) !=
        T_COSE_ERR_UNKNOWN_CRITICAL_HEADER) {
         return -4;
     }
@@ -965,18 +691,111 @@ int_fast32_t critical_headers_test()
     /* A critical header is listed in the protected section, but
      * the header doesn't exist. This works for string-labeled header params.
      */
-    if(run_sign_and_verify(T_COSE_TEST_UNKNOWN_CRIT_TSTR_HEADER) !=
+    if(run_test_sign_and_verify(T_COSE_TEST_UNKNOWN_CRIT_TSTR_HEADER) !=
        T_COSE_ERR_UNKNOWN_CRITICAL_HEADER) {
         return -5;
     }
 
     /* The critical headers list is not a protected header */
-    if(run_sign_and_verify(T_COSE_TEST_CRIT_NOT_PROTECTED) !=
+    if(run_test_sign_and_verify(T_COSE_TEST_CRIT_NOT_PROTECTED) !=
        T_COSE_ERR_HEADER_NOT_PROTECTED) {
         return -6;
     }
 
     return 0;
 }
+
+
+int_fast32_t content_type_test()
+{
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+
+    struct t_cose_headers       headers;
+    struct t_cose_sign1_ctx     sign_ctx;
+    Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
+    struct q_useful_buf_c       output;
+    struct q_useful_buf_c       payload;
+    enum t_cose_err_t           return_value;
+
+    /* -- integer content type -- */
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG ,
+                      COSE_ALGORITHM_ES256);
+
+    t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
+
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                          Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                          signed_cose_buffer,
+                          &output);
+    if(return_value) {
+        return 1;
+    }
+
+    return_value = t_cose_sign1_verify(T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                        T_COSE_NULL_KEY,
+                        output,
+                        &payload,
+                        &headers);
+    if(return_value) {
+        return 2;
+    }
+
+    if(headers.content_type_uint != 42) {
+        return 5;
+    }
+
+
+    /* -- string content type -- */
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG ,
+                      COSE_ALGORITHM_ES256);
+
+    t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
+
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     signed_cose_buffer,
+                                     &output);
+    if(return_value) {
+        return 1;
+    }
+
+    return_value = t_cose_sign1_verify(T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                                       T_COSE_NULL_KEY,
+                                       output,
+                                       &payload,
+                                       &headers);
+    if(return_value) {
+        return 2;
+    }
+
+    if(q_useful_buf_compare(headers.content_type_tstr,
+                            Q_USEFUL_BUF_FROM_SZ_LITERAL("text/plain"))) {
+        return 6;
+    }
+
+
+    /* -- content type in error -- */
+    t_cose_sign1_init(&sign_ctx,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG ,
+                      COSE_ALGORITHM_ES256);
+
+    t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
+    t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
+
+
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     signed_cose_buffer,
+                                     &output);
+    if(return_value != T_COSE_ERR_DUPLICATE_HEADER) {
+        return 1;
+    }
+#endif
+    return 0;
+
+}
+
 
 

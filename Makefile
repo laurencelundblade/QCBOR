@@ -31,7 +31,7 @@ clean:
 
 src/t_cose_util.o:	src/t_cose_util.h src/t_cose_standard_constants.h inc/t_cose_common.h src/t_cose_crypto.h
 src/t_cose_sign1_verify.o:	inc/t_cose_sign1_verify.h src/t_cose_crypto.h src/t_cose_util.h src/t_cose_headers.h inc/t_cose_common.h src/t_cose_standard_constants.h
-src/t_cose_headers.o: src/t_cose_headers.h src/t_cose_standard_constants.h
+src/t_cose_headers.o: src/t_cose_headers.h src/t_cose_standard_constants.h inc/t_cose_sign1_verify.h inc/t_cose_common.h
 src/t_cose_sign1_sign.o: inc/t_cose_sign1_sign.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose_common.h 
 
 src/t_cose_openssl_crypto.o: src/t_cose_crypto.h inc/t_cose_common.h src/t_cose_rfc_constants.h
