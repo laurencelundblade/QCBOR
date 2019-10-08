@@ -199,16 +199,11 @@ static void free_ecdsa_key_pair(struct t_cose_key ossl_key)
 int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
 {
     struct t_cose_sign1_ctx     sign_ctx;
-    QCBOREncodeContext          cbor_encode;
     enum t_cose_err_t           return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 300);
     struct q_useful_buf_c       signed_cose;
     struct t_cose_key   ossl_key;
     struct q_useful_buf_c       payload;
-    QCBORError                  cbor_error;
-    Q_USEFUL_BUF_MAKE_STACK_UB( expected_payload_buffer, 10);
-    struct q_useful_buf_c       expected_payload;
-
 
     /* -- Get started with context initialization, selecting the alg -- */
     t_cose_sign1_init(&sign_ctx, 0, cose_alg);
@@ -222,40 +217,13 @@ int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
     }
     t_cose_sign1_set_key(&sign_ctx, ossl_key,  NULL_Q_USEFUL_BUF_C);
 
-
-    /* Get the encoder context ready with a buffer big enough for the
-     * COSE_Sign1 that is being created.
-     */
-    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
-
-    return_value = t_cose_sign1_output_headers(&sign_ctx, &cbor_encode);
+    t_cose_sign1_sign(&sign_ctx,
+                      Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                      signed_cose_buffer,
+                      &signed_cose);
     if(return_value) {
         return 2000 + return_value;
     }
-
-    // TODO: simply this test by using other API
-
-    /* This is the actual payload. This typically is larger and more complex
-     */
-    QCBOREncode_AddSZString(&cbor_encode, "payload");
-
-    /* Finish the signing. This does the crypto, outputs the signature
-     * to the encode context and closes off the COSE_Sign1
-     */
-    return_value = t_cose_sign1_output_signature(&sign_ctx, &cbor_encode);
-    if(return_value) {
-        return 3000 + return_value;
-    }
-
-    /* Close off the CBOR encoding. This will detect and CBOR encoding
-     * errors in made in the payload. For example if arrays and maps were
-     * opened, but not closed
-     */
-    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
-    if(cbor_error) {
-        return 4000 + cbor_error;
-    }
-
 
     /* Verification is done in one step */
     return_value = t_cose_sign1_verify(0,                  /* No option flags */
@@ -270,14 +238,8 @@ int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
     /* OpenSSL uses malloc to allocate buffers for keys, so they have to be freed */
     free_ecdsa_key_pair(ossl_key);
 
-
-    /* Format the expected payload CBOR fragment */
-    QCBOREncode_Init(&cbor_encode, expected_payload_buffer);
-    QCBOREncode_AddSZString(&cbor_encode, "payload");
-    QCBOREncode_Finish(&cbor_encode, &expected_payload);
-
     /* compare payload output to the one expected */
-    if(q_useful_buf_compare(payload, expected_payload)) {
+    if(q_useful_buf_compare(payload, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"))) {
         return 6000;
     }
 
@@ -291,22 +253,25 @@ int_fast32_t openssl_basic_test()
 
     return_value  = openssl_basic_test_alg(COSE_ALGORITHM_ES256);
     if(return_value) {
-        goto Done;
+        return 20000 + return_value;
     }
 
+#ifndef T_COSE_DISABLE_ES384
     return_value  = openssl_basic_test_alg(COSE_ALGORITHM_ES384);
     if(return_value) {
-        goto Done;
+        return 30000 + return_value;
     }
+#endif
 
+#ifndef T_COSE_DISABLE_ES512
     return_value  = openssl_basic_test_alg(COSE_ALGORITHM_ES512);
     if(return_value) {
-        goto Done;
+        return 50000 + return_value;
     }
-    
+#endif
 
-Done:
-    return return_value;
+    return 0;
+
 }
 
 
