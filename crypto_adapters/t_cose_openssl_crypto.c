@@ -32,7 +32,7 @@
 /**
  * \brief Convert OpenSSL ECDSA_SIG to serialized on-the-wire format
  *
- * \param[in] cose_alg_id       Signing algorithm identifier
+ * \param[in] cose_algorithm_id Signing algorithm identifier
  * \param[in] ossl_signature    The OpenSSL signature to convert
  * \param[in] signature_buffer  The buffer to put the output into
  *
@@ -42,7 +42,7 @@
  * internals are NULL.
  */
 static inline struct q_useful_buf_c
-convert_signature_from_ossl(int32_t             cose_alg_id,
+convert_signature_from_ossl(int32_t             cose_algorithm_id,
                             const ECDSA_SIG    *ossl_signature,
                             struct q_useful_buf signature_buffer)
 {
@@ -54,7 +54,7 @@ convert_signature_from_ossl(int32_t             cose_alg_id,
     struct q_useful_buf_c signature;;
 
     /* Check the signature size and against the buffer size */
-    sig_len = t_cose_signature_size(cose_alg_id);
+    sig_len = t_cose_signature_size(cose_algorithm_id);
     if(sig_len == 0) {
         /* Unknown algorithm */
         signature = NULL_Q_USEFUL_BUF_C;
@@ -107,7 +107,7 @@ Done:
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_pub_key_sign(int32_t                cose_alg_id,
+t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
                            struct t_cose_key      signing_key,
                            struct q_useful_buf_c  hash_to_sign,
                            struct q_useful_buf    signature_buffer,
@@ -118,9 +118,9 @@ t_cose_crypto_pub_key_sign(int32_t                cose_alg_id,
     ECDSA_SIG         *ossl_signature = NULL;
 
     /* Check the algorithm identifier */
-    if(cose_alg_id != COSE_ALGORITHM_ES256 &&
-       cose_alg_id != COSE_ALGORITHM_ES384 &&
-       cose_alg_id != COSE_ALGORITHM_ES512) {
+    if(cose_algorithm_id != COSE_ALGORITHM_ES256 &&
+       cose_algorithm_id != COSE_ALGORITHM_ES384 &&
+       cose_algorithm_id != COSE_ALGORITHM_ES512) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }
@@ -149,7 +149,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_alg_id,
      * a q_useful_buf. Presumably everything inside ossl_signature is
      * correct since it is not NULL.
      */
-    *signature = convert_signature_from_ossl(cose_alg_id,
+    *signature = convert_signature_from_ossl(cose_algorithm_id,
                                              ossl_signature,
                                              signature_buffer);
     if(q_useful_buf_c_is_null(*signature)) {
@@ -173,14 +173,14 @@ Done:
 /**
  * \brief Convert serialized on-the-wire sig to OpenSSL ECDSA_SIG.
  *
- * \param[in] cose_alg_id         Signing algorithm identifier.
+ * \param[in] cose_algorithm_id         Signing algorithm identifier.
  * \param[in] signature           The serialized input signature.
  * \param[out] ossl_sig_to_verify Place to return ECDSA_SIG.
  *
  * \return one of the \ref t_cose_err_t error codes.
  */
 static  enum t_cose_err_t
-convert_signature_to_ossl(int32_t                cose_alg_id,
+convert_signature_to_ossl(int32_t                cose_algorithm_id,
                           struct q_useful_buf_c  signature,
                           ECDSA_SIG            **ossl_sig_to_verify)
 {
@@ -192,7 +192,7 @@ convert_signature_to_ossl(int32_t                cose_alg_id,
     int               half_sig_size;
 
     /* Check the signature length against expected */
-    sig_size = t_cose_signature_size(cose_alg_id);
+    sig_size = t_cose_signature_size(cose_algorithm_id);
     if(sig_size == 0) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
@@ -256,7 +256,7 @@ Done:
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_pub_key_verify(int32_t                cose_alg_id,
+t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
                              struct t_cose_key      verification_key,
                              struct q_useful_buf_c  key_id,
                              struct q_useful_buf_c  hash_to_verify,
@@ -272,9 +272,9 @@ t_cose_crypto_pub_key_verify(int32_t                cose_alg_id,
     (void)key_id;
 
     /* Check the algorithm identifier */
-    if(cose_alg_id != COSE_ALGORITHM_ES256 &&
-       cose_alg_id != COSE_ALGORITHM_ES384 &&
-       cose_alg_id != COSE_ALGORITHM_ES512) {
+    if(cose_algorithm_id != COSE_ALGORITHM_ES256 &&
+       cose_algorithm_id != COSE_ALGORITHM_ES384 &&
+       cose_algorithm_id != COSE_ALGORITHM_ES512) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }
@@ -293,7 +293,7 @@ t_cose_crypto_pub_key_verify(int32_t                cose_alg_id,
     /* Convert the serialized signature off the wire into the openssl
      * object / structure
      */
-    return_value = convert_signature_to_ossl(cose_alg_id,
+    return_value = convert_signature_to_ossl(cose_algorithm_id,
                                              signature,
                                              &ossl_sig_to_verify);
     if(return_value) {

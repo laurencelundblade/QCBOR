@@ -1,5 +1,5 @@
 /*
- *  t_cose_openssl_test.c
+ *  t_cose_hash_fail_test.c
  *
  * Copyright 2019, Laurence Lundblade
  *
@@ -8,13 +8,15 @@
  * See BSD-3-Clause license in README.md
  */
 
-#include "t_cose_test.h"
+#include "t_cose_hash_fail_test.h"
 #include "t_cose_sign1_sign.h"
 #include "t_cose_sign1_verify.h"
-#include "t_cose_standard_constants.h"
 #include "q_useful_buf.h"
 
-
+/* Special global external reference to special crypto to test
+ * handling of hash failures. They generally never fail so it requires
+ * a hacked version of the hash adaptor to implement this test.
+ */
 extern int hash_test_mode;
 
 
@@ -62,9 +64,6 @@ int_fast32_t short_circuit_hash_fail_test()
     if(return_value != T_COSE_ERR_HASH_GENERAL_FAIL) {
         return 2000 + return_value;
     }
-
-
-
 
     return 0;
 }

@@ -15,7 +15,7 @@
 
 
 /**
- * \brief Minimal token creation test using a short-circuit signature.
+ * \brief Minimal message creation test using a short-circuit signature.
  *
  * \return non-zero on failure.
  *

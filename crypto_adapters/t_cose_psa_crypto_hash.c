@@ -128,7 +128,7 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
 
     if(data_to_hash.ptr == NULL) {
         /* This allows for NULL buffers to be passed in all the way at
-         * the top of signer or token creator when all that is
+         * the top of signer or message creator when all that is
          * happening is the size of the result is being computed.
          */
         return;

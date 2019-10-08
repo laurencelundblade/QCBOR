@@ -6,7 +6,7 @@ QCBOR_INC= -I ../../QCBOR/master/inc
 INC=-I inc -I Test  -I src
 ALL_INC=$(OSSL_INC) $(PSA_INC) $(QCBOR_INC) $(INC) $(HASH_INC)
 
-C_OPTS=-Os -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
+C_OPTS=-Os -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99 -DT_COSE_USE_OPENSSL_HASH
 
 CFLAGS=$(ALL_INC) $(C_OPTS)
 
@@ -19,7 +19,7 @@ OSSL_CRYPTO_OBJ=crypto_adapters/t_cose_openssl_crypto.o
 QCBOR=../../QCBOR/master/libqcbor.a
 LIBCRYPT=../../openssl/openssl-1.1.1b/libcrypto.a
 
-TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_openssl_test.o test/t_cose_make_test_tokens.o
+TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_openssl_test.o test/t_cose_make_test_messages.o
 
 
 t_cose_test: main.o $(SRC_OBJ) $(OSSL_CRYPTO_OBJ) $(TEST_OBJ)
@@ -35,4 +35,10 @@ src/t_cose_headers.o: src/t_cose_headers.h src/t_cose_standard_constants.h inc/t
 src/t_cose_sign1_sign.o: inc/t_cose_sign1_sign.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose_common.h 
 
 src/t_cose_openssl_crypto.o: src/t_cose_crypto.h inc/t_cose_common.h src/t_cose_rfc_constants.h
+
+test/t_cose_test.o: test/t_cose_test.h inc/t_cose_sign1_sign.h inc/t_cose_sign1_verify.h inc/t_cose_common.h test/t_cose_make_test_messages.h src/t_cose_crypto.h
+test/t_cose_openssl_tests.o: test/t_cose_openssl_tests.h inc/t_cose_sign1_sign.h inc/t_cose_sign1_verify.hinc/t_cose/common.h src/t_cose_standard_constants.h
+test/t_cose_make_test_messages.o: test/t_cose_make_test_messages.h inc/t_cose_sign1_sign.h inc/t_cose_common.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h
+test/t_cose_hash_fail_test.o: test/t_cose_hash_fail_test.h inc/t_cose_sign1_sign.h inc/t_cose_sign1_verify.hinc/t_cose/common.h 
+test/run_test.o: test/run_test.htest/t_cose_openssltests.h test/t_cose_test.h test/t_cose_hash_fail_test.h
 

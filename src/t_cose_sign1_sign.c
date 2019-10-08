@@ -30,7 +30,7 @@
 /**
  * \brief Create a short-circuit signature
  *
- * \param[in] cose_alg_id       Algorithm ID. This is used only to make
+ * \param[in] cose_algorithm_id Algorithm ID. This is used only to make
  *                              the short-circuit signature the same size
  *                              as the real signature would be for the
  *                              particular algorithm.
@@ -50,7 +50,7 @@
  * even if key material is not set up or accessible.
  */
 static inline enum t_cose_err_t
-short_circuit_sign(int32_t               cose_alg_id,
+short_circuit_sign(int32_t               cose_algorithm_id,
                    struct q_useful_buf_c hash_to_sign,
                    struct q_useful_buf   signature_buffer,
                    struct q_useful_buf_c *signature)
@@ -63,7 +63,7 @@ short_circuit_sign(int32_t               cose_alg_id,
     size_t            sig_size;
 
     /* Check the signature length against buffer size*/
-    sig_size = t_cose_signature_size(cose_alg_id);
+    sig_size = t_cose_signature_size(cose_algorithm_id);
     if(sig_size == 0) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
@@ -218,7 +218,7 @@ t_cose_sign1_output_headers(struct t_cose_sign1_ctx *me,
     struct q_useful_buf_c  key_id;
     int32_t                hash_alg_id;
 
-    /* Check the cose_alg_id now by getting the hash alg as an early
+    /* Check the cose_algorithm_id now by getting the hash alg as an early
      * error check even though it is not used until later.
      */
     hash_alg_id = hash_alg_id_from_sig_alg_id(me->cose_algorithm_id);

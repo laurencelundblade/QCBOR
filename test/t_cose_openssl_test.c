@@ -8,7 +8,7 @@
  * See BSD-3-Clause license in README.md
  */
 
-#include "t_cose_test.h"
+#include "t_cose_openssl_test.h"
 #include "t_cose_sign1_sign.h"
 #include "t_cose_sign1_verify.h"
 #include "t_cose_standard_constants.h"

@@ -21,7 +21,6 @@ extern "C" {
 #endif
 
     // TODO: kid or key_id
-    // TODO: remove mention of token
 
 /**
  * \file t_cose_sign1_sign.h

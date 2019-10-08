@@ -314,7 +314,7 @@ static inline void clear_cose_headers(struct t_cose_headers *headers)
 #endif
 
     /* This clears all the useful bufs to NULL_Q_USEFUL_BUF_C
-     * and the cose_alg_id to COSE_ALGORITHM_RESERVED
+     * and the cose_algorithm_id to COSE_ALGORITHM_RESERVED
      */
     memset(headers, 0, sizeof(struct t_cose_headers));
 

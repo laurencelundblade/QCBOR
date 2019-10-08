@@ -1,5 +1,5 @@
 /*
- * t_cose_make_test_token.h
+ * t_cose_make_test_messages.h
  *
  * Copyright (c) 2019, Laurence Lundblade. All rights reserved.
  *
@@ -8,8 +8,8 @@
  * See BSD-3-Clause license in README.md
  */
 
-#ifndef __T_COSE_MAKE_TEST_TOKENS__
-#define __T_COSE_MAKE_TEST_TOKENS__
+#ifndef __T_COSE_MAKE_TEST_MESSAGES__
+#define __T_COSE_MAKE_TEST_MESSAGES__
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -62,11 +62,13 @@ extern "C" {
 
 #define T_COSE_TEST_UNCLOSED_PROTECTED 0x00001000
 
+#define T_COSE_TEST_DUP_CONTENT_ID 0x00000800
+
 
 /**
  * \file t_cose_sign1_sign.h
  *
- * \brief Create a \c COSE_Sign1, usually for EAT or CWT Token.
+ * \brief Create a \c COSE_Sign1 message, usually for EAT or CWT Token.
  *
  * This creates a \c COSE_Sign1 in compliance with [COSE (RFC 8152)]
  * (https://tools.ietf.org/html/rfc8152). A \c COSE_Sign1 is a CBOR
@@ -90,7 +92,7 @@ extern "C" {
  * library integrations.
  *
  * This \c COSE_Sign1 implementations is optimized for creating EAT
- * tokens.
+ * and CWT tokens.
  *
  * It should work for CWT and others use cases too. The main point of
  * the optimization is that only one output buffer is needed. There is
@@ -105,7 +107,7 @@ extern "C" {
  * should allocate it and pass it to the functions here.  This is
  * about 72 bytes so it fits easily on the stack.
  */
-struct t_cose_make_test_token {
+struct t_cose_make_test_message {
     /* Private data structure */
     uint8_t               buffer_for_protected_headers[
                               T_COSE_SIGN1_MAX_PROT_HEADER+200];
@@ -118,7 +120,7 @@ struct t_cose_make_test_token {
 
 
 /**
- * \brief  Initialize to start creating a \c COSE_Sign1.
+ * \brief  Initialize to start creating a \c COSE_Sign1 message.
  *
  * \param[in] me                 The t_cose signing context.
  * \param[in] cbor_encode_ctx    The CBOR encoder context to output to.
@@ -126,11 +128,11 @@ struct t_cose_make_test_token {
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
  * It is possible to use this to compute the exact size of the
- * resulting token so the exact sized buffer can be allocated. To do
+ * resulting message so the exact sized buffer can be allocated. To do
  * this initialize the \c cbor_encode_ctx with \c UsefulBufC that has
  * a \c NULL pointer and large length like \c UINT32_MAX. Then run the
- * normal token creation.  The result will have a NULL pointer and the
- * length of the token that would have been created. When this is run
+ * normal message creation.  The result will have a NULL pointer and the
+ * length of the message that would have been created. When this is run
  * like this, the cryptographic functions will not actually run, but
  * the size of their output will be taken into account.
  *
@@ -160,7 +162,7 @@ struct t_cose_make_test_token {
  * Sign1.
  *
  * Finally, call \c QCBOREncode_Finish() to get the pointer and length
- * of the complete token.
+ * of the complete message.
  *
  * This implements a special signing test mode called _short_
  * _circuit_ _signing_. This mode is useful when there is no signing
@@ -195,7 +197,7 @@ enum t_cose_err_t t_cose_make_test_output_headers(struct t_cose_sign1_ctx *me,
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * Call this to complete creation of a signed token started with
+ * Call this to complete creation of a signed message started with
  * t_cose_sign1_init().
  *
  * This is when the cryptographic signature algorithm is run.
@@ -209,7 +211,7 @@ t_cose_make_test_output_signature(struct t_cose_sign1_ctx *me,
 
 
 enum t_cose_err_t
-t_cose_test_token_sign1_sign(struct t_cose_sign1_ctx *me,
+t_cose_test_message_sign1_sign(struct t_cose_sign1_ctx *me,
                              struct q_useful_buf_c   payload,
                              struct q_useful_buf     out_buf,
                              struct q_useful_buf_c  *result);
@@ -218,4 +220,4 @@ t_cose_test_token_sign1_sign(struct t_cose_sign1_ctx *me,
 }
 #endif
 
-#endif /* __T_COSE_MAKE_TEST_TOKENS__ */
+#endif /* __T_COSE_MAKE_TEST_MESSAGES__ */

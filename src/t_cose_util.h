@@ -49,7 +49,7 @@ enum t_cose_tbs_hash_mode_t {
 /**
  * \brief Return hash algorithm ID from a signature algorithm ID
  *
- * \param[in] cose_sig_alg_id  A COSE signature algorithm identifier.
+ * \param[in] cose_algorithm_id  A COSE signature algorithm identifier.
  *
  * \return \c INT32_MAX when the signature algorithm ID is not known.
  *
@@ -69,13 +69,13 @@ enum t_cose_tbs_hash_mode_t {
  * they can be added to it. This will take some time and work.  It is
  * also fine to use algorithms in the COSE proprietary space.
  */
-int32_t hash_alg_id_from_sig_alg_id(int32_t cose_sig_alg_id);
+int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
 
 
 /**
  * \brief Create the hash of the to-be-signed (TBS) bytes for COSE.
  *
- * \param[in] cose_alg_id       The COSE signing algorithm ID. Used to
+ * \param[in] cose_algorithm_id The COSE signing algorithm ID. Used to
  *                              determine which hash function to use.
  * \param[in] protected_headers The CBOR encoded protected headers.
  * \param[in] payload_mode      See \ref t_cose_tbs_hash_mode_t.
@@ -103,12 +103,12 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_sig_alg_id);
  * and computes the hash of it. These are known as the to-be-signed or
  * "TBS" bytes.
  */
-enum t_cose_err_t create_tbs_hash(int32_t cose_alg_id,
-                                  struct q_useful_buf_c protected_headers,
+enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
+                                  struct q_useful_buf_c       protected_headers,
                                   enum t_cose_tbs_hash_mode_t payload_mode,
-                                  struct q_useful_buf_c payload,
-                                  struct q_useful_buf buffer_for_hash,
-                                  struct q_useful_buf_c *hash);
+                                  struct q_useful_buf_c       payload,
+                                  struct q_useful_buf         buffer_for_hash,
+                                  struct q_useful_buf_c      *hash);
 
 
 /**

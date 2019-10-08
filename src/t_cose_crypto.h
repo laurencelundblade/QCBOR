@@ -31,7 +31,7 @@ extern "C" {
  * t_cose.
  *
  * This is  small wrapper around the cryptographic functions to:
- * - Map COSE algorithm IDs to TF-M algorithm IDs
+ * - Map COSE algorithm IDs to cryptographic library IDs
  * - Map crypto errors to \ref t_cose_err_t errors
  * - Have inputs and outputs be \c struct \c q_useful_buf_c and
  *   \c struct \c q_useful_buf
@@ -103,19 +103,19 @@ extern "C" {
 /**
  * \brief Get the size in bytes of a particular signature type.
  *
- * \param[in] cose_sig_alg_id  The COSE algorithm ID.
+ * \param[in] cose_algorithm_id  The COSE algorithm ID.
  *
  * \return The size in bytes of the signature for a public-key signing
  * algorithm or zero for unknown algorithm IDs.
  */
-static inline size_t t_cose_signature_size(int32_t cose_sig_alg_id);
+static inline size_t t_cose_signature_size(int32_t cose_algorithm_id);
 
 
 /**
  * \brief Perform public key signing. Part of the t_cose crypto
  * adaptation layer.
  *
- * \param[in] cose_alg_id       The algorithm to sign with. The IDs are
+ * \param[in] cose_algorithm_id The algorithm to sign with. The IDs are
  *                              defined in [COSE (RFC 8152)]
  *                              (https://tools.ietf.org/html/rfc8152) or
  *                              in the [IANA COSE Registry]
@@ -136,7 +136,7 @@ static inline size_t t_cose_signature_size(int32_t cose_sig_alg_id);
  * \retval T_COSE_ERR_SIG_BUFFER_SIZE
  *         The \c signature_buffer too small.
  * \retval T_COSE_ERR_UNSUPPORTED_SIGNING_ALG
- *         The requested signing algorithm, \c cose_alg_id, is not
+ *         The requested signing algorithm, \c cose_algorithm_id, is not
  *         supported.
  * \retval T_COSE_ERR_UNKNOWN_KEY
  *         The key identified by \c key_select was not found.
@@ -167,10 +167,10 @@ static inline size_t t_cose_signature_size(int32_t cose_sig_alg_id);
  * \c signature->len.
  */
 enum t_cose_err_t
-t_cose_crypto_pub_key_sign(int32_t cose_alg_id,
-                           struct t_cose_key signing_key,
-                           struct q_useful_buf_c hash_to_sign,
-                           struct q_useful_buf signature_buffer,
+t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
+                           struct t_cose_key      signing_key,
+                           struct q_useful_buf_c  hash_to_sign,
+                           struct q_useful_buf    signature_buffer,
                            struct q_useful_buf_c *signature);
 
 
@@ -178,18 +178,18 @@ t_cose_crypto_pub_key_sign(int32_t cose_alg_id,
  * \brief perform public key signature verification. Part of the
  * t_cose crypto adaptation layer.
  *
- * \param[in] cose_alg_id      The algorithm to use for verification.
- *                             The IDs are defined in [COSE (RFC 8152)]
- *                             (https://tools.ietf.org/html/rfc8152)
- *                             or in the [IANA COSE Registry]
+ * \param[in] cose_algorithm_id The algorithm to use for verification.
+ *                              The IDs are defined in [COSE (RFC 8152)]
+ *                              (https://tools.ietf.org/html/rfc8152)
+ *                              or in the [IANA COSE Registry]
  *                       (https://www.iana.org/assignments/cose/cose.xhtml).
- *                             A proprietary ID can also be defined
- *                             locally (\c \#define) if the needed one
- *                             hasn't been registered.
- * \param[in] verification_key The verification key to use.
- * \param[in] key_id           A key id or \c NULL_Q_USEFUL_BUF_C.
- * \param[in] hash_to_verify   The data or hash that is to be verified.
- * \param[in] signature        The signature.
+ *                              A proprietary ID can also be defined
+ *                              locally (\c \#define) if the needed one
+ *                              hasn't been registered.
+ * \param[in] verification_key  The verification key to use.
+ * \param[in] key_id            A key id or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] hash_to_verify    The data or hash that is to be verified.
+ * \param[in] signature         The signature.
  *
  * This verifies that the \c signature passed in was over the \c
  * hash_to_verify passed in.
@@ -199,7 +199,7 @@ t_cose_crypto_pub_key_sign(int32_t cose_alg_id,
  * is.
  *
  * The key selected must be, or include, a public key of the correct
- * type for \c cose_alg_id.
+ * type for \c cose_algorithm_id.
  *
  * \retval T_COSE_SUCCESS
  *         The signature is valid
@@ -225,8 +225,8 @@ t_cose_crypto_pub_key_sign(int32_t cose_alg_id,
  *         Equivalent to \c PSA_ERROR_TAMPERING_DETECTED.
  */
 enum t_cose_err_t
-t_cose_crypto_pub_key_verify(int32_t cose_alg_id,
-                             struct t_cose_key verification_key,
+t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
+                             struct t_cose_key     verification_key,
                              struct q_useful_buf_c key_id,
                              struct q_useful_buf_c hash_to_verify,
                              struct q_useful_buf_c signature);
@@ -250,9 +250,6 @@ t_cose_crypto_pub_key_verify(int32_t cose_alg_id,
  * t_cose_crypto_pub_key_sign().
  */
 
-
-#define T_COSE_USE_OPENSSL_HASH
-#undef T_COSE_USE_B_CON_SHA256
 
 #ifdef T_COSE_USE_B_CON_SHA256
 /* This is code for use with Brad Conte's crypto.  See
@@ -392,7 +389,7 @@ struct t_cose_crypto_hash {
  */
 enum t_cose_err_t
 t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
-                         int32_t cose_hash_alg_id);
+                         int32_t                    cose_hash_alg_id);
 
 
 /**
@@ -416,7 +413,7 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
  * hash for encoded data structure size calculations.
  */
 void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
-                               struct q_useful_buf_c data_to_hash);
+                               struct q_useful_buf_c      data_to_hash);
 
 
 /**
@@ -446,17 +443,17 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
  */
 enum t_cose_err_t
 t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
-                          struct q_useful_buf buffer_to_hold_result,
-                          struct q_useful_buf_c *hash_result);
+                          struct q_useful_buf        buffer_to_hold_result,
+                          struct q_useful_buf_c     *hash_result);
 
 
 
 /*
  * Public inline function. See documentation above.
  */
-static inline size_t t_cose_signature_size(int32_t cose_sig_alg_id)
+static inline size_t t_cose_signature_size(int32_t cose_algorithm_id)
 {
-    switch(cose_sig_alg_id) {
+    switch(cose_algorithm_id) {
     case COSE_ALGORITHM_ES256:
         return T_COSE_EC_P256_SIG_SIZE;
 #ifndef T_COSE_DISABLE_ES384

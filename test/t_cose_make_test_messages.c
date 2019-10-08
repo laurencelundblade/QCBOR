@@ -1,5 +1,5 @@
 /*
- * t_cose_make_test_token.c
+ * t_cose_make_test_messages.c
  *
  * Copyright (c) 2019, Laurence Lundblade. All rights reserved.
  *
@@ -8,7 +8,7 @@
  * See BSD-3-Clause license in README.md
  */
 
-#include "t_cose_make_test_tokens.h"
+#include "t_cose_make_test_messages.h"
 #include "qcbor.h"
 #include "t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
@@ -21,7 +21,7 @@
 /**
  * \brief Create a short-circuit signature
  *
- * \param[in] cose_alg_id       Algorithm ID. This is used only to make
+ * \param[in] cose_algorithm_id Algorithm ID. This is used only to make
  *                              the short-circuit signature the same size
  *                              as the real signature would be for the
  *                              particular algorithm.
@@ -41,7 +41,7 @@
  * even if key material is not set up or accessible.
  */
 static inline enum t_cose_err_t
-short_circuit_sign(int32_t               cose_alg_id,
+short_circuit_sign(int32_t               cose_algorithm_id,
                    struct q_useful_buf_c hash_to_sign,
                    struct q_useful_buf   signature_buffer,
                    struct q_useful_buf_c *signature)
@@ -54,7 +54,7 @@ short_circuit_sign(int32_t               cose_alg_id,
     size_t            sig_size;
 
     /* Check the signature length against buffer size*/
-    sig_size = t_cose_signature_size(cose_alg_id);
+    sig_size = t_cose_signature_size(cose_algorithm_id);
     if(sig_size == 0) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
@@ -87,10 +87,10 @@ Done:
 
 
 /**
- * \brief  Makes the protected headers for COSE.
+ * \brief  Makes various protected headers for various tests
  *
- * \param[in] cose_alg_id  The COSE algorithm ID to put in the headers.
- *
+ * \param[in] option_flags       Flags to select test modes.
+ * \param[in] cose_algorithm_id  The COSE algorithm ID to put in the headers.
  * \param[in] buffer_for_header  Pointer and length into which
  *                               the resulting encoded protected
  *                               headers is put.
@@ -108,7 +108,7 @@ Done:
  */
 static inline struct q_useful_buf_c
 make_protected_header(int32_t option_flags,
-                      int32_t cose_alg_id,
+                      int32_t cose_algorithm_id,
                       struct q_useful_buf buffer_for_header)
 {
     /* approximate stack use on 32-bit machine:
@@ -137,7 +137,7 @@ make_protected_header(int32_t option_flags,
     QCBOREncode_OpenMap(&cbor_encode_ctx);
     QCBOREncode_AddInt64ToMapN(&cbor_encode_ctx,
                                COSE_HEADER_PARAM_ALG,
-                               cose_alg_id);
+                               cose_algorithm_id);
 
     if(option_flags & T_COSE_TEST_UNKNOWN_CRIT_UINT_HEADER) {
         /* This is the header that will be unknown */
@@ -194,6 +194,12 @@ make_protected_header(int32_t option_flags,
         QCBOREncode_AddBytesToMapN(&cbor_encode_ctx,
                                    COSE_HEADER_PARAM_KID,
                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("kid"));
+    }
+
+    if(option_flags & T_COSE_TEST_DUP_CONTENT_ID) {
+        QCBOREncode_AddUInt64ToMapN(&cbor_encode_ctx,
+                                    COSE_HEADER_PARAM_CONTENT_TYPE,
+                                    3);
     }
 
 
@@ -315,6 +321,12 @@ static inline void add_unprotected_headers(int32_t option_flags,
         QCBOREncode_AddInt64ToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_CONTENT_TYPE, UINT16_MAX+1);
     }
 
+    if(option_flags & T_COSE_TEST_DUP_CONTENT_ID) {
+        QCBOREncode_AddUInt64ToMapN(cbor_encode_ctx,
+                                    COSE_HEADER_PARAM_CONTENT_TYPE,
+                                    3);
+    }
+
     QCBOREncode_CloseMap(cbor_encode_ctx);
 }
 
@@ -323,7 +335,7 @@ static inline void add_unprotected_headers(int32_t option_flags,
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_test_token_output_headers(struct t_cose_sign1_ctx *me,
+t_cose_sign1_test_message_output_headers(struct t_cose_sign1_ctx *me,
                                        QCBOREncodeContext *cbor_encode_ctx)
 {
     enum t_cose_err_t      return_value;
@@ -331,7 +343,7 @@ t_cose_sign1_test_token_output_headers(struct t_cose_sign1_ctx *me,
     struct q_useful_buf_c  key_id;
     int32_t                hash_alg_id;
 
-    /* Check the cose_alg_id now by getting the hash alg as an early
+    /* Check the cose_algorithm_id now by getting the hash alg as an early
      * error check even though it is not used until later.
      */
     hash_alg_id = hash_alg_id_from_sig_alg_id(me->cose_algorithm_id);
@@ -399,7 +411,7 @@ Done:
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_test_token_output_signature(struct t_cose_sign1_ctx *me,
+t_cose_sign1_test_message_output_signature(struct t_cose_sign1_ctx *me,
                                          QCBOREncodeContext *cbor_encode_ctx)
 {
     /* approximate stack use on 32-bit machine:
@@ -506,7 +518,7 @@ Done:
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_test_token_sign1_sign(struct t_cose_sign1_ctx *me,
+t_cose_test_message_sign1_sign(struct t_cose_sign1_ctx *me,
                   struct q_useful_buf_c   payload,
                   struct q_useful_buf     out_buf,
                   struct q_useful_buf_c  *result)
@@ -518,7 +530,7 @@ t_cose_test_token_sign1_sign(struct t_cose_sign1_ctx *me,
     QCBOREncode_Init(&encode_context, out_buf);
 
     /* -- Output the headers into the encoder context -- */
-    return_value = t_cose_sign1_test_token_output_headers(me, &encode_context);
+    return_value = t_cose_sign1_test_message_output_headers(me, &encode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -531,7 +543,7 @@ t_cose_test_token_sign1_sign(struct t_cose_sign1_ctx *me,
     QCBOREncode_AddEncoded(&encode_context, payload);
 
     /* -- Sign and put signature in the encoder context -- */
-    return_value = t_cose_sign1_test_token_output_signature(me, &encode_context);
+    return_value = t_cose_sign1_test_message_output_signature(me, &encode_context);
     if(return_value) {
         goto Done;
     }

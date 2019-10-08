@@ -10,9 +10,8 @@
 
 #include "t_cose_test.h"
 #include "t_cose_sign1_sign.h"
-#include "t_cose_make_test_tokens.h"
+#include "t_cose_make_test_messages.h"
 #include "t_cose_sign1_verify.h"
-#include "t_cose_standard_constants.h"
 #include "q_useful_buf.h"
 #include "t_cose_crypto.h" /* For signature size constant */
 
@@ -475,7 +474,7 @@ static enum t_cose_err_t run_test_sign_and_verify(int32_t option)
                       T_COSE_OPT_SHORT_CIRCUIT_SIG | option,
                       COSE_ALGORITHM_ES256);
 
-    return_value = t_cose_test_token_sign1_sign(&sign_ctx,
+    return_value = t_cose_test_message_sign1_sign(&sign_ctx,
                       Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
                       signed_cose_buffer,
                       &signed_cose);
@@ -547,7 +546,7 @@ int_fast32_t all_headers_test()
                          T_COSE_NULL_KEY,
                          Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
-    return_value = t_cose_test_token_sign1_sign(&sign_ctx,
+    return_value = t_cose_test_message_sign1_sign(&sign_ctx,
                                       Q_USEFUL_BUF_FROM_SZ_LITERAL(
                                           "This is the content."),
                                       signed_cose_buffer,
@@ -595,8 +594,11 @@ int_fast32_t all_headers_test()
 int_fast32_t bad_headers_test()
 {
     /* TODO: also test too many string headers.
-     Duplicate headers
      */
+
+    if( run_test_sign_and_verify(T_COSE_TEST_DUP_CONTENT_ID) != T_COSE_ERR_DUPLICATE_HEADER) {
+        return -557;
+    }
 
     if( run_test_sign_and_verify(T_COSE_TEST_UNCLOSED_PROTECTED) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
         return -557;
