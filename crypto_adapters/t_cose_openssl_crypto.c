@@ -258,7 +258,7 @@ Done:
 enum t_cose_err_t
 t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
                              struct t_cose_key      verification_key,
-                             struct q_useful_buf_c  key_id,
+                             struct q_useful_buf_c  kid,
                              struct q_useful_buf_c  hash_to_verify,
                              struct q_useful_buf_c  signature)
 {
@@ -268,8 +268,8 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
     ECDSA_SIG        *ossl_sig_to_verify = NULL;
 
     /* This implementation doesn't use any key store with the ability
-     * to look up a key based on key_id. */
-    (void)key_id;
+     * to look up a key based on kid. */
+    (void)kid;
 
     /* Check the algorithm identifier */
     if(cose_algorithm_id != COSE_ALGORITHM_ES256 &&

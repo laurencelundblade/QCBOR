@@ -157,7 +157,7 @@ make_protected_header(int32_t             cose_algorithm_id,
  * No error is returned. If an error occurred it will be returned when
  * \c QCBOR_Finish() is called on \c cbor_encode_ctx.
  *
- * The unprotected headers added by this are just the key ID
+ * The unprotected headers added by this are just the \c kid.
  */
 static inline enum t_cose_err_t
 add_unprotected_headers(const struct t_cose_sign1_ctx *me,
@@ -215,7 +215,7 @@ t_cose_sign1_output_headers(struct t_cose_sign1_ctx *me,
      */
     enum t_cose_err_t      return_value;
     struct q_useful_buf    buffer_for_protected_header;
-    struct q_useful_buf_c  key_id;
+    struct q_useful_buf_c  kid;
     int32_t                hash_alg_id;
 
     /* Check the cose_algorithm_id now by getting the hash alg as an early
@@ -249,20 +249,20 @@ t_cose_sign1_output_headers(struct t_cose_sign1_ctx *me,
     QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_headers);
 
     /* The Unprotected headers */
-    /* Get the key id because it goes into the headers that are about
+    /* Get the kid because it goes into the headers that are about
      to be made. */
     if(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-        key_id = get_short_circuit_kid();
+        kid = get_short_circuit_kid();
 #else
         return_value = T_COSE_SHORT_CIRCUIT_SIG_DISABLED;
         goto Done;
 #endif
     } else {
-        key_id = me->kid;
+        kid = me->kid;
     }
 
-    return_value = add_unprotected_headers(me, key_id, cbor_encode_ctx);
+    return_value = add_unprotected_headers(me, kid, cbor_encode_ctx);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }

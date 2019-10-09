@@ -269,7 +269,7 @@ int_fast32_t short_circuit_make_cwt_test()
     }
 
     /* Skip the key id, because this has the short-circuit key id */
-    const size_t key_id_encoded_len =
+    const size_t kid_encoded_len =
        1 +
        1 +
        2 +
@@ -289,7 +289,7 @@ int_fast32_t short_circuit_make_cwt_test()
     struct q_useful_buf_c fp2 = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_payload_bytes);
 
     struct q_useful_buf_c payload2 = q_useful_buf_tail(signed_cose,
-                                                       sizeof(rfc8392_first_part_bytes)+key_id_encoded_len);
+                                                       sizeof(rfc8392_first_part_bytes)+kid_encoded_len);
     struct q_useful_buf_c pl3 = q_useful_buf_head(payload2, sizeof(rfc8392_payload_bytes));
     if(q_useful_buf_compare(pl3, fp2)) {
         return -1;

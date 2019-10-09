@@ -14,7 +14,7 @@
 enum t_cose_err_t
 t_cose_crypto_pub_key_verify(int32_t cose_alg_id,
                              struct t_cose_signing_key signing_key,
-                             struct q_useful_buf_c key_id,
+                             struct q_useful_buf_c kid,
                              struct q_useful_buf_c hash_to_verify,
                              struct q_useful_buf_c signature)
 {
@@ -23,7 +23,7 @@ t_cose_crypto_pub_key_verify(int32_t cose_alg_id,
      */
     ARG_UNUSED(cose_alg_id);
     ARG_UNUSED(key_select);
-    ARG_UNUSED(key_id);
+    ARG_UNUSED(kid);
     ARG_UNUSED(hash_to_verify);
     ARG_UNUSED(signature);
 

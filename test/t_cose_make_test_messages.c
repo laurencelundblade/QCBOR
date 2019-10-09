@@ -227,10 +227,11 @@ Finish:
  * No error is returned. If an error occurred it will be returned when
  * \c QCBOR_Finish() is called on \c cbor_encode_ctx.
  *
- * The unprotected headers added by this are just the key ID
+ * The unprotected headers added by this are the key ID plus
+ * lots of different test headers.
  */
-static inline void add_unprotected_headers(int32_t option_flags,
-                                           QCBOREncodeContext *cbor_encode_ctx,
+static inline void add_unprotected_headers(int32_t              option_flags,
+                                           QCBOREncodeContext  *cbor_encode_ctx,
                                            struct q_useful_buf_c kid)
 {
     if(option_flags & T_COSE_TEST_UNPROTECTED_NOT_MAP) {
@@ -340,7 +341,7 @@ t_cose_sign1_test_message_output_headers(struct t_cose_sign1_ctx *me,
 {
     enum t_cose_err_t      return_value;
     struct q_useful_buf    buffer_for_protected_header;
-    struct q_useful_buf_c  key_id;
+    struct q_useful_buf_c  kid;
     int32_t                hash_alg_id;
 
     /* Check the cose_algorithm_id now by getting the hash alg as an early
@@ -381,17 +382,17 @@ t_cose_sign1_test_message_output_headers(struct t_cose_sign1_ctx *me,
      to be made. */
     if(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-        key_id = get_short_circuit_kid();
+        kid = get_short_circuit_kid();
 #else
         return_value = T_COSE_SHORT_CIRCUIT_SIG_DISABLED;
         goto Done;
 #endif
     } else {
-        key_id = me->kid;
+        kid = me->kid;
     }
 
     if( ! (me->option_flags & T_COSE_TEST_NO_UNPROTECTED_HEADERS)) {
-        add_unprotected_headers(me->option_flags, cbor_encode_ctx, key_id);
+        add_unprotected_headers(me->option_flags, cbor_encode_ctx, kid);
     }
 
     QCBOREncode_BstrWrap(cbor_encode_ctx);

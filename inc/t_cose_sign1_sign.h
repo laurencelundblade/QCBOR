@@ -20,7 +20,6 @@
 extern "C" {
 #endif
 
-    // TODO: kid or key_id
 
 /**
  * \file t_cose_sign1_sign.h
@@ -149,23 +148,23 @@ t_cose_sign1_init(struct t_cose_sign1_ctx *context,
 
 
 /**
- * \brief  Set the key and key id for signing.
+ * \brief  Set the key and kid (key ID) for signing.
  *
  * \param[in] context      The t_cose signing context.
  * \param[in] signing_key  The signing key to use or \ref T_COSE_NULL_KEY.
- * \param[in] key_id       COSE kid header or \ref NULL_Q_USEFUL_BUF_C.
+ * \param[in] kid          COSE kid (key ID) header or \ref NULL_Q_USEFUL_BUF_C.
  *
  * This needs to be called to set the signing key to use. The
- * \c key_id may be omitted.
+ * \c kid may be omitted.
  *
  * If short-circuit signing is used (\ref T_COSE_OPT_SHORT_CIRCUIT_SIG), then this does not need to be
- * called. If it is called the \c key_id will be used, but the
+ * called. If it is called the \c kid will be used, but the
  * \c signing_key is never used.
  */
 static void
 t_cose_sign1_set_key(struct t_cose_sign1_ctx *context,
                      struct t_cose_key        signing_key,
-                     struct q_useful_buf_c    key_id);
+                     struct q_useful_buf_c    kid);
 
 
 /**
@@ -221,7 +220,7 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_ctx *context,
  *
  * Typically the required size of \c out_buf is about 30 bytes plus the size of the
  * signature and the size of the key ID. This is about 150 bytes
- * for ECDSA 256 with a 32-byte key id.
+ * for ECDSA 256 with a 32-byte key ID.
  *
  * To compute the size of the buffer needed before it is allocated
  * call this with \c out_buf containg a \c NULL pointer and large length like \c UINT32_MAX.
@@ -337,9 +336,9 @@ t_cose_sign1_init(struct t_cose_sign1_ctx *me,
 static inline void
 t_cose_sign1_set_key(struct t_cose_sign1_ctx *me,
                      struct t_cose_key signing_key,
-                     struct q_useful_buf_c key_id)
+                     struct q_useful_buf_c kid)
 {
-    me->kid         = key_id;
+    me->kid         = kid;
     me->signing_key = signing_key;
 }
 

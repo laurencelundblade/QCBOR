@@ -161,7 +161,7 @@ enum t_cose_err_t {
      * verifying a \c COSE_Sign1. */
     T_COSE_ERR_NO_ALG_ID = 11,
 
-    /** No key ID was found when one is needed. For example, when
+    /** No kid (key ID) was found when one is needed. For example, when
      * verifying a \c COSE_Sign1. */
     T_COSE_ERR_NO_KID = 12,
 

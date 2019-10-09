@@ -120,7 +120,7 @@ struct t_cose_make_test_message {
 
 
 /**
- * \brief  Initialize to start creating a \c COSE_Sign1 message.
+ * \brief Start creating a \c COSE_Sign1 message by output the headers.
  *
  * \param[in] me                 The t_cose signing context.
  * \param[in] cbor_encode_ctx    The CBOR encoder context to output to.

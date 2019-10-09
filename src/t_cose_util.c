@@ -210,7 +210,7 @@ Done:
 
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-/* This is a random hard coded key ID that is used to indicate
+/* This is a random hard coded kid (key ID) that is used to indicate
  * short-circuit signing. It is OK to hard code this as the
  * probability of collision with this ID is very low and the same
  * as for collision between any two key IDs of any sort.

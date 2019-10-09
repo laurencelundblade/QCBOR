@@ -445,7 +445,7 @@ int_fast32_t openssl_make_cwt_test()
     /* Format the expected payload CBOR fragment */
 
     /* Skip the key id, because this has the short-circuit key id */
-    const size_t key_id_encoded_len =
+    const size_t kid_encoded_len =
       1 +
       1 +
       1 +
@@ -453,7 +453,7 @@ int_fast32_t openssl_make_cwt_test()
 
 
     /* compare payload output to the one expected */
-    if(q_useful_buf_compare(payload, q_useful_buf_tail(fp, key_id_encoded_len + 8))) {
+    if(q_useful_buf_compare(payload, q_useful_buf_tail(fp, kid_encoded_len + 8))) {
         return 5000;
     }
     /* --- Done verifying the COSE Sign1 object  --- */

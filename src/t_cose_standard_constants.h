@@ -51,7 +51,7 @@
 /**
  * \def COSE_HEADER_PARAM_KID
  *
- * \brief Label of COSE header that contains a key ID.
+ * \brief Label of COSE header that contains a kid (key ID).
  */
 #define COSE_HEADER_PARAM_KID 4
 

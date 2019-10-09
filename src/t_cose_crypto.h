@@ -187,7 +187,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
  *                              locally (\c \#define) if the needed one
  *                              hasn't been registered.
  * \param[in] verification_key  The verification key to use.
- * \param[in] key_id            A key id or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] kid               The COSE kid (key ID) or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] hash_to_verify    The data or hash that is to be verified.
  * \param[in] signature         The signature.
  *
@@ -195,7 +195,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
  * hash_to_verify passed in.
  *
  * The public key used to verify the signature is selected by the \c
- * key_id if it is not \c NULL_Q_USEFUL_BUF_C or the \c key_select if it
+ * kid if it is not \c NULL_Q_USEFUL_BUF_C or the \c key_select if it
  * is.
  *
  * The key selected must be, or include, a public key of the correct
@@ -227,7 +227,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
 enum t_cose_err_t
 t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
                              struct t_cose_key     verification_key,
-                             struct q_useful_buf_c key_id,
+                             struct q_useful_buf_c kid,
                              struct q_useful_buf_c hash_to_verify,
                              struct q_useful_buf_c signature);
 

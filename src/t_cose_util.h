@@ -123,7 +123,7 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
  *
  * \returns Buffer with the kid.
  *
- * This always returns the same key ID. It always indicates
+ * This always returns the same kid. It always indicates
  * short-circuit signing. It is OK to hard code this as the
  * probability of collision with this ID is extremely low and the same
  * as for collision between any two key IDs (kids) of any sort.

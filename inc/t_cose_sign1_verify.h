@@ -113,7 +113,7 @@ struct t_cose_headers {
 /**
  * Option that disables signature verification.
  * With this option the \c verification_key is not needed.
- * This is useful to parse the COSE_Sign1 to get the key ID
+ * This is useful to parse the COSE_Sign1 to get the kid (key ID)
  * so the key can be found and t_cose_sign1_verify() can
  * be called again, this time with the key.
  *
@@ -144,7 +144,7 @@ struct t_cose_headers {
  * the \c verification_key parameter.
  * The OpenSSL cryptographic layer works like this.
  *
- * Usually the key ID (kid) header parameter identifies the verification
+ * Usually the kid (key ID) header parameter identifies the verification
  * key needed to verify the signature. With a simple cryptographic adaption
  * layer, the caller wishing to use the key ID should call this function
  * twice, the first time with the \ref T_COSE_OPT_PARSE_ONLY option set
@@ -164,7 +164,7 @@ struct t_cose_headers {
  *
  * The protected headers are parsed, particular the algorithm id.
  *
- * The unprotected headers are parsed, particularly the key id.
+ * The unprotected headers are parsed, particularly the kid.
  *
  * The payload is identified. The internals of the payboad are not parsed.
  *
