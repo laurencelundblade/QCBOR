@@ -363,10 +363,11 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
      * Total stack use 64-bit: 568 + 96 + 50 = 694
      * Total stack use 32-bit: 414 + 72 + 25 = 501
      */
-    QCBORItem                 item;
-    enum t_cose_err_t         return_value;
-    uint_fast8_t              map_nest_level;
-    uint_fast8_t              next_nest_level;
+    QCBORItem          item;
+    enum t_cose_err_t  return_value;
+    uint_fast8_t       map_nest_level;
+    uint_fast8_t       next_nest_level;
+    QCBORError         qcbor_result;
 
     clear_cose_headers(returned_headers);
 
@@ -375,7 +376,15 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
     }
 
     /* Get the data item that is the map that is being searched */
-    QCBORDecode_GetNext(decode_context, &item);
+    qcbor_result = QCBORDecode_GetNext(decode_context, &item);
+    if(qcbor_result == QCBOR_ERR_NO_MORE_ITEMS) {
+        return_value = T_COSE_SUCCESS;
+        goto Done;
+    }
+    if(qcbor_result != QCBOR_SUCCESS) {
+        return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+        goto Done;
+    }
     if(item.uDataType != QCBOR_TYPE_MAP) {
         return_value = T_COSE_ERR_HEADER_CBOR;
         goto Done;

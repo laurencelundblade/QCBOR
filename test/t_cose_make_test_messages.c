@@ -120,6 +120,12 @@ make_protected_header(int32_t option_flags,
     QCBOREncodeContext    cbor_encode_ctx;
     struct q_useful_buf_c return_value;
 
+    if(option_flags & T_COSE_TEST_EMPTY_PROTECTED_HEADER) {
+        /* An empty q_useful_buf_c */
+        return (struct q_useful_buf_c){buffer_for_header.ptr, 0};
+    }
+
+
     if(option_flags & T_COSE_TEST_UNCLOSED_PROTECTED) {
         *(uint8_t *)(buffer_for_header.ptr) = 0xa1;
         return (struct q_useful_buf_c){buffer_for_header.ptr, 1};
@@ -374,6 +380,7 @@ t_cose_sign1_test_message_output_headers(struct t_cose_sign1_ctx *me,
         goto Done;
     }
     if( ! (me->option_flags & T_COSE_TEST_NO_PROTECTED_HEADERS)) {
+        /* The use of _AddBytes here achieves the bstr wrapping */
         QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_headers);
     }
 

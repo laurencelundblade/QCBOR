@@ -246,6 +246,7 @@ t_cose_sign1_output_headers(struct t_cose_sign1_ctx *me,
         return_value = T_COSE_ERR_MAKING_PROTECTED;
         goto Done;
     }
+    /* The use of _AddBytes here achieves the bstr wrapping */
     QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_headers);
 
     /* The Unprotected headers */

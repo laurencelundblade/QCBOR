@@ -596,6 +596,11 @@ int_fast32_t bad_headers_test()
     /* TODO: also test too many string headers.
      */
 
+    if(run_test_sign_and_verify(T_COSE_TEST_EMPTY_PROTECTED_HEADER) != T_COSE_ERR_UNSUPPORTED_HASH) {
+        /* Could test more here... */
+        return -6657;
+    }
+
     if( run_test_sign_and_verify(T_COSE_TEST_DUP_CONTENT_ID) != T_COSE_ERR_DUPLICATE_HEADER) {
         return -557;
     }

@@ -64,6 +64,8 @@ extern "C" {
 
 #define T_COSE_TEST_DUP_CONTENT_ID 0x00000800
 
+#define T_COSE_TEST_EMPTY_PROTECTED_HEADER 0x00000400
+
 
 /**
  * \file t_cose_sign1_sign.h

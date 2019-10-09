@@ -118,13 +118,13 @@ t_cose_sign1_verify(int32_t                 option_flags,
 
 
     /* --  Get the protected headers -- */
+    // TODO, what if this fails?
     QCBORDecode_GetNext(&decode_context, &item);
     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
         return_value = T_COSE_ERR_SIGN1_FORMAT;
         goto Done;
     }
 
-    // TODO make sure this handles the proper empty forms of protected header
     protected_headers = item.val.string;
 
     return_value = parse_protected_headers(protected_headers,
@@ -167,6 +167,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
 
 
     /* -- Get the payload -- */
+    // TODO, what if this fails?
     QCBORDecode_GetNext(&decode_context, &item);
     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
         return_value = T_COSE_ERR_SIGN1_FORMAT;
@@ -176,6 +177,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
 
 
     /* -- Get the signature -- */
+    // TODO, what if this fails?
     QCBORDecode_GetNext(&decode_context, &item);
     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
         return_value = T_COSE_ERR_SIGN1_FORMAT;
