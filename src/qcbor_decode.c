@@ -733,6 +733,8 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
    uint64_t uNumber;
    uint8_t  uAdditionalInfo;
 
+   memset(pDecodedItem, 0, sizeof(QCBORItem));
+
    nReturn = DecodeTypeAndNumber(pUInBuf, &uMajorType, &uNumber, &uAdditionalInfo);
 
    // Error out here if we got into trouble on the type and number.
@@ -740,8 +742,6 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
    if(nReturn) {
       goto Done;
    }
-
-   memset(pDecodedItem, 0, sizeof(QCBORItem));
 
    // At this point the major type and the value are valid. We've got the type and the number that
    // starts every CBOR data item.
