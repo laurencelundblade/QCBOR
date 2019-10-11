@@ -116,6 +116,15 @@ C pre processor macros that can be #defined in order to:
 
 See the comment sections on "Configuration" in inc/UsefulBuf.h.
 
+## Other Software Using QCBOR
+
+* [t_cose](https://github.com/laurencelundblade/t_cose) implements enough of
+[COSE, RFC 8152](https://tools.ietf.org/html/rfc8152) to support
+[CBOR Web Token (CWT)](https://tools.ietf.org/html/rfc8392) and
+[Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01). 
+Specifically it supports signing and verification of the COSE_Sign1 message.
+
+
 ## Changes from CAF Version
 * Float support is restored
 * Minimal length float encoding is added
