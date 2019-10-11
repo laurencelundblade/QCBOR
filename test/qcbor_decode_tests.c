@@ -1828,7 +1828,7 @@ int DecodeFailureTests()
                                           sizeof(Failures)/sizeof(struct FailInput);
    for(const struct FailInput *pF = &Failures[0]; pF < pFEnd ;pF++) {
 
-      // Set up the decoding context including a mem pool so that
+      // Set up the decoding context including a memory pool so that
       // indefinite length items can be checked
       QCBORDecodeContext DCtx;
       QCBORDecode_Init(&DCtx, pF->Input, QCBOR_DECODE_MODE_NORMAL);
@@ -1838,15 +1838,20 @@ int DecodeFailureTests()
          return -9;
       }
 
-      // Iterate until there is an error of some sort
+      // Iterate until there is an error of some sort error
+      QCBORItem Item;
       do {
-         QCBORItem Item;
+         // Set to something none-zero other than QCBOR_TYPE_NONE
+         memset(&Item, 0x33, sizeof(Item));
 
          nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
       } while(nCBORError == QCBOR_SUCCESS);
 
       // Must get the expected error or the this test fails
-      if(nCBORError != pF->nError) {
+      // The data and label type must also be QCBOR_TYPE_NONE
+      if(nCBORError != pF->nError ||
+         Item.uDataType != QCBOR_TYPE_NONE ||
+         Item.uLabelType != QCBOR_TYPE_NONE) {
          // return index of CBOR + 1000
          return 1000 + (int)(pF - &Failures[0]);
       }

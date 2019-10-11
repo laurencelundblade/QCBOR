@@ -1147,6 +1147,10 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
    pDecodedItem->uNextNestLevel = DecodeNesting_GetLevel(&(me->nesting));
 
 Done:
+   if(nReturn != QCBOR_SUCCESS) {
+      // Make sure uDataType and uLabelType are QCBOR_TYPE_NONE
+      memset(pDecodedItem, 0, sizeof(QCBORItem));
+   }
    return nReturn;
 }
 

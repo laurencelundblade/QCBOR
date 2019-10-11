@@ -2226,6 +2226,11 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  to handle newly defined tags, while using very little memory, in
  particular keeping @ref QCBORItem as small as possible.
 
+ If any error occurs, \c uDataType and \c uLabelType will be set
+ to \ref QCBOR_TYPE_NONE. If there is no need to know the specific
+ error, \ref QCBOR_TYPE_NONE can be checked for and the return value
+ ignored.
+
  Errors fall in several categories as noted in list above:
 
  - Not well-formed errors are those where there is something
