@@ -36,29 +36,79 @@
 /**
  * \def COSE_HEADER_PARAM_ALG
  *
- * \brief Label of COSE header that indicates an algorithm.
+ * \brief Label of COSE parameter that indicates an algorithm.
+ *
+ * The algorithm assignments are found in the IANA registry here
+ * https://www.iana.org/assignments/cose/cose.xhtml#algorithms
+ * Signing algorithms are identified as combinations of the
+ * public key algorithm, padding mode and hash. This must be
+ * a protected header. They may be string or integers. This
+ * implementation only support integer IDs.
  */
 #define COSE_HEADER_PARAM_ALG 1
 
 
-// TODO: explain these
+/**
+ * \def COSE_HEADER_PARAM_CRIT
+ *
+ * \brief Label of COSE parameter listing critical header parameters
+ *
+ * The contents is an array of header parameter labels, either string or
+ * integer. The implementation must know how to process them or it is
+ * an error.
+ */
 #define COSE_HEADER_PARAM_CRIT 2
 
-#define COSE_HEADER_PARAM_CONTENT_TYPE 3
 
+/**
+ * \def COSE_HEADER_PARAM_CONTENT_TYPE
+ *
+ * \brief Label of COSE parameter with the content type
+ *
+ * Either an integer CoAP content type or a string MIME type. This is
+ * the type of the data in the payload.
+ */
+#define COSE_HEADER_PARAM_CONTENT_TYPE 3
 
 
 /**
  * \def COSE_HEADER_PARAM_KID
  *
- * \brief Label of COSE header that contains a kid (key ID).
+ * \brief Label of COSE parameter that contains a kid (key ID).
+ *
+ * The kid is a byte string identifying the key. It is optional and there
+ * is no required format. They are not even required to be unique.
  */
 #define COSE_HEADER_PARAM_KID 4
 
+
+/**
+ * \def COSE_HEADER_PARAM_IV
+ *
+ * \brief Label of COSE parameter that contains an initialization vector.
+ *
+ * A binary string initialization vector.
+ */
 #define COSE_HEADER_PARAM_IV 5
 
+
+/**
+ * \def COSE_HEADER_PARAM_PARTIAL_IV
+ *
+ * \brief Label of COSE parameter that contains a partial initialization vector.
+ *
+ * A binary string partial initialization vector.
+ */
 #define COSE_HEADER_PARAM_PARTIAL_IV 6
 
+
+/**
+ * \def COSE_HEADER_PARAM_COUNTER_SIGNATURE
+ *
+ * \brief Label of COSE parameter that holds one or more counter signature.
+ *
+ * Counter signatures can be full COSE_Sign1, COSE_Signature and such messages.
+ */
 #define COSE_HEADER_PARAM_COUNTER_SIGNATURE 6
 
 
