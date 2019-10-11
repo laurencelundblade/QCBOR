@@ -31,23 +31,20 @@ have to run in small fixed memory.
 
 ## Code Status
 
-As of September 2019, the code is in reasonable working order, but needs some more 
-test and refinement. The signing code is more thoroughly tested and fully featured than
-the verification code. 
+As of October 2019, the code is in reasonable working order and the public interface is 
+fairly stable. There is a crypto adaptaion layer for [OpenSSL](https://www.openssl.org).
 
 ### The to-do list:
-* Add lots of test cases for verification, particularly hostile input
-* Lots of code clean up, formatting and documentation
-* Resolve what to do with string algorithm IDs and integer content types in the verifier
-* Makefile needs improvements
+* Add some more tests, particular test vectors from C_COSE or such
+* General documentation clean up, spelling checks and formatting.
 
 ## Building and Dependencies
 
-There is a simple makefile (probably too simple, but at least a starting point)
+There is a simple makefile.
 
 * [QCBOR](https://github.com/laurencelundblade/QCBOR) is required
 * Some cryptographic library that supports ECDSA and at least SHA-256 is required
-* * A porting layer for [OpenSSL](https://www.openssl.org) is included (soon).
+* * A porting layer for [OpenSSL](https://www.openssl.org) is included.
 
 ## Memory Usage
 
@@ -97,14 +94,15 @@ just have different names.
 
 ## Limitations
 * Doesn't handle string algorithm IDs. Only integer algorithm IDs are handled. This is OK because no string algorithm IDs have been allocated by IANA.
-* No way to add the content type when creating a COSE_Sign1.
-* No way to handle custom headers with signing or verifying. Only standard COSE headers are handled.
+* No way to handle custom headers with signing.
 * Only ECDSA is supported so far (facilities are available to add others).
+* Does not handle indefinite length strings (indefinite length maps and arrays are handled).
+* The payload input and output and the signed structure input and output must be in contiguous memory.
 
 ## Credit
 
 * Tamas Ban for lots code review comments, design ideas and porting to ARM PSA.
-* Rob Coombs, Shebu Varghese Kuriakose and other ARM folks for sponsorship
+* Rob Coombs, Shebu Varghese Kuriakose and other ARM folks for sponsorship.
 
 ## Copyright and License
 
