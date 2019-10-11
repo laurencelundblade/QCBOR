@@ -26,7 +26,7 @@
  * needed.
  */
 
-
+// TODO: are the headers, parameters or header parameters?
 
 
 /* --------------- COSE Header parameters -----------

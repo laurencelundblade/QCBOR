@@ -196,6 +196,11 @@ make_protected_header(int32_t option_flags,
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
+    if(option_flags & T_COSE_TEST_EMPTY_CRIT_HEADERS_PARAM) {
+        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+        QCBOREncode_CloseArray(&cbor_encode_ctx);
+    }
+
     if(option_flags & T_COSE_TEST_KID_IN_PROTECTED) {
         QCBOREncode_AddBytesToMapN(&cbor_encode_ctx,
                                    COSE_HEADER_PARAM_KID,

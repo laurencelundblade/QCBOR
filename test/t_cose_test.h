@@ -92,5 +92,12 @@ int_fast32_t all_headers_test(void);
 int_fast32_t content_type_test(void);
 
 
+/*
+ * Check that setting the content type works
+ */
+int_fast32_t sign1_structure_decode_test(void);
+
+
+
 
 #endif /* t_cose_test_h */

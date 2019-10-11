@@ -66,6 +66,8 @@ extern "C" {
 
 #define T_COSE_TEST_EMPTY_PROTECTED_HEADER 0x00000400
 
+#define T_COSE_TEST_EMPTY_CRIT_HEADERS_PARAM 0x00000200
+
 
 /**
  * \file t_cose_sign1_sign.h

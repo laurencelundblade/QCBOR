@@ -675,7 +675,7 @@ int_fast32_t critical_headers_test()
 
     /* Exceed the max number of labels by one and get an error */
     if(run_test_sign_and_verify(T_COSE_TEST_TOO_MANY_CRIT_HEADER_EXIST) !=
-       T_COSE_ERR_TOO_MANY_HEADERS) {
+       T_COSE_ERR_CRIT_HEADER_PARAM) {
         return -2;
     }
 
@@ -683,7 +683,7 @@ int_fast32_t critical_headers_test()
      * format of the internals of this header is not the expected CBOR
      */
     if(run_test_sign_and_verify(T_COSE_TEST_BAD_CRIT_LABEL) !=
-       T_COSE_ERR_HEADER_CBOR) {
+       T_COSE_ERR_CRIT_HEADER_PARAM) {
         return -3;
     }
 
@@ -708,6 +708,12 @@ int_fast32_t critical_headers_test()
        T_COSE_ERR_HEADER_NOT_PROTECTED) {
         return -6;
     }
+
+    if(run_test_sign_and_verify(T_COSE_TEST_EMPTY_CRIT_HEADERS_PARAM) != T_COSE_ERR_CRIT_HEADER_PARAM) {
+        /* Could test more here... */
+        return -6657;
+    }
+
 
     return 0;
 }
@@ -805,4 +811,56 @@ int_fast32_t content_type_test()
 }
 
 
+struct sign1_sample {
+    struct q_useful_buf_c CBOR;
+    enum t_cose_err_t     expected_error;
+};
 
+static struct sign1_sample sign1_sample_inputs[] = {
+    /* Too few items in unprotected headers */
+    { {(uint8_t[]){0x84, 0x40, 0xa3, 0x40, 0x40}, 5}, T_COSE_ERR_HEADER_CBOR},
+    /* Too few items in definite array */
+    { {(uint8_t[]){0x83, 0x40, 0xa0, 0x40}, 4}, T_COSE_ERR_SIGN1_FORMAT},
+    /* Too-long signature */
+    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x4f}, 5}, T_COSE_ERR_SIGN1_FORMAT},
+    /* Too-long payload */
+    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x4f, 0x40}, 5}, T_COSE_ERR_SIGN1_FORMAT},
+    /* Too-long protected headers */
+    { {(uint8_t[]){0x84, 0x4f, 0xa0, 0x40, 0x40}, 5}, T_COSE_ERR_SIGN1_FORMAT},
+    /* Unterminated indefinite length */
+    { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40}, 6}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
+    /* The smallest legal COSE_Sign1 using indefinite lengths */
+    { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40, 0xff}, 7}, T_COSE_SUCCESS},
+    /* The smallest legal COSE_Sign1 using definite lengths */
+    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x40}, 5}, T_COSE_SUCCESS},
+    /* Just one not-well-formed byte -- a reserved value */
+    { {(uint8_t[]){0x3c}, 1}, T_COSE_ERR_SIGN1_FORMAT },
+
+    /* terminate the list */
+    {(struct q_useful_buf_c){NULL, 0}, 0}
+};
+
+
+
+
+int_fast32_t sign1_structure_decode_test(void)
+{
+    const struct sign1_sample *sample;
+    struct q_useful_buf_c     payload;
+
+    for(sample = sign1_sample_inputs; !q_useful_buf_c_is_null(sample->CBOR); sample++) {
+        enum t_cose_err_t x;
+
+        x = t_cose_sign1_verify(T_COSE_OPT_PARSE_ONLY,
+                                T_COSE_NULL_KEY,
+                                sample->CBOR,
+                                &payload,
+                                NULL);
+        if(x != sample->expected_error) {
+            return -99;
+        }
+
+    }
+
+    return 0;
+}

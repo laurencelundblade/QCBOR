@@ -165,7 +165,7 @@ decode_critical_headers(QCBORDecodeContext       *decode_context,
     next_nest_level  = crit_header_item->uNextNestLevel;
 
     if(crit_header_item->uDataType != QCBOR_TYPE_ARRAY) {
-        return_value = T_COSE_ERR_HEADER_CBOR;
+        return_value = T_COSE_ERR_CRIT_HEADER_PARAM;
         goto Done;
     }
 
@@ -178,7 +178,7 @@ decode_critical_headers(QCBORDecodeContext       *decode_context,
 
         if(item.uDataType == QCBOR_TYPE_INT64) {
             if(num_int_labels >= T_COSE_HEADER_LIST_MAX) {
-                return_value = T_COSE_ERR_TOO_MANY_HEADERS;
+                return_value = T_COSE_ERR_CRIT_HEADER_PARAM;
                 goto Done;
             }
             critical_labels->int_labels[num_int_labels++] = item.val.int64;
@@ -189,10 +189,16 @@ decode_critical_headers(QCBORDecodeContext       *decode_context,
             }
             critical_labels->tstr_labels[num_tstr_labels++] = item.val.string;
         } else {
-            return_value = T_COSE_ERR_HEADER_CBOR;
+            return_value = T_COSE_ERR_CRIT_HEADER_PARAM;
             goto Done;
         }
         next_nest_level = item.uNextNestLevel;
+    }
+
+    if(is_header_list_clear(critical_labels)) {
+        /* Per RFC 8152 critical headers can't be empty */
+        return_value = T_COSE_ERR_CRIT_HEADER_PARAM;
+        goto Done;
     }
 
     return_value = T_COSE_SUCCESS;
@@ -482,7 +488,6 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
                 break;
 
             case COSE_HEADER_PARAM_CRIT:
-                    // TODO: various empty forms
                 if(critical_labels == NULL) {
                     /* critical header labels occuring in non-protected
                      * headers */
@@ -490,6 +495,9 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
                     goto Done;
                 }
                 if(!is_header_list_clear(critical_labels)) {
+                    /* Duplicate detection must be here because it is not
+                     * done in check_and_copy_headers()
+                     */
                     return_value = T_COSE_ERR_DUPLICATE_HEADER;
                     goto Done;
                 }

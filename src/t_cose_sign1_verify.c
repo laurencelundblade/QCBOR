@@ -99,11 +99,14 @@ t_cose_sign1_verify(int32_t                 option_flags,
     *payload = NULL_Q_USEFUL_BUF_C;
 
     QCBORDecode_Init(&decode_context, cose_sign1, QCBOR_DECODE_MODE_NORMAL);
+    /* Calls to QCBORDecode_GetNext() rely on item.uDataType != QCBOR_TYPE_ARRAY
+     * to detect decoding errors rather than checking the return code.
+     */
 
     /* --  The array of four -- */
-    QCBORDecode_GetNext(&decode_context, &item);
+    (void)QCBORDecode_GetNext(&decode_context, &item);
     if(item.uDataType != QCBOR_TYPE_ARRAY) {
-        return_value = T_COSE_ERR_SIG_STRUCT;
+        return_value = T_COSE_ERR_SIGN1_FORMAT;
         goto Done;
     }
 
@@ -118,8 +121,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
 
 
     /* --  Get the protected headers -- */
-    // TODO, what if this fails?
-    QCBORDecode_GetNext(&decode_context, &item);
+    (void)QCBORDecode_GetNext(&decode_context, &item);
     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
         return_value = T_COSE_ERR_SIGN1_FORMAT;
         goto Done;
@@ -167,8 +169,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
 
 
     /* -- Get the payload -- */
-    // TODO, what if this fails?
-    QCBORDecode_GetNext(&decode_context, &item);
+    (void)QCBORDecode_GetNext(&decode_context, &item);
     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
         return_value = T_COSE_ERR_SIGN1_FORMAT;
         goto Done;
@@ -177,8 +178,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
 
 
     /* -- Get the signature -- */
-    // TODO, what if this fails?
-    QCBORDecode_GetNext(&decode_context, &item);
+    (void)QCBORDecode_GetNext(&decode_context, &item);
     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
         return_value = T_COSE_ERR_SIGN1_FORMAT;
         goto Done;

@@ -244,12 +244,21 @@ enum t_cose_err_t {
     /** The signing or verification key given is empty. */
     T_COSE_ERR_EMPTY_KEY = 33,
 
+    /** A header parameter occurs twice, perhaps once in protected and once
+     * in unprotected.
+     */
     T_COSE_ERR_DUPLICATE_HEADER = 34,
 
     /** A header that should be protected (alg id or crit) is not */
     T_COSE_ERR_HEADER_NOT_PROTECTED = 35,
 
-    T_COSE_ERR_MAKING_PROTECTED = 36
+    /** Internal error when making protected headers, usually because they
+     * are too big. It is internal because the caller can't really affect
+     * the size of protected headers. */
+    T_COSE_ERR_MAKING_PROTECTED = 36,
+
+    /** Something is wrong with the critical headers parameter. */
+    T_COSE_ERR_CRIT_HEADER_PARAM = 37,
 
 };
 
