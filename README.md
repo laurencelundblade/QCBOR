@@ -93,11 +93,13 @@ is created and used and so there is a duplicate of UsefulBuf. The two are identi
 just have different names.
 
 ## Limitations
-* Doesn't handle string algorithm IDs. Only integer algorithm IDs are handled. This is OK because no string algorithm IDs have been allocated by IANA.
-* No way to handle custom headers with signing.
+* The payload input and output and the signed structure input and output must be in 
+contiguous memory.
+* Doesn't handle COSE string algorithm IDs. Only COSE integer algorithm IDs are handled. 
+Thus far no string algorithm IDs have been assigned by IANA.
+* No way to add custom headers with creating signed messages.
 * Only ECDSA is supported so far (facilities are available to add others).
-* Does not handle indefinite length strings (indefinite length maps and arrays are handled).
-* The payload input and output and the signed structure input and output must be in contiguous memory.
+* Does not handle CBOR indefinite length strings (indefinite length maps and arrays are handled).
 
 ## Credit
 

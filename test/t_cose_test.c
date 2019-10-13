@@ -818,6 +818,8 @@ struct sign1_sample {
 };
 
 static struct sign1_sample sign1_sample_inputs[] = {
+    /* With an indefinite length string payload */
+    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x5f, 0x00, 0xff, 0x40}, 7}, T_COSE_ERR_SIGN1_FORMAT},
     /* Too few items in unprotected headers */
     { {(uint8_t[]){0x84, 0x40, 0xa3, 0x40, 0x40}, 5}, T_COSE_ERR_HEADER_CBOR},
     /* Too few items in definite array */
@@ -836,7 +838,6 @@ static struct sign1_sample sign1_sample_inputs[] = {
     { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x40}, 5}, T_COSE_SUCCESS},
     /* Just one not-well-formed byte -- a reserved value */
     { {(uint8_t[]){0x3c}, 1}, T_COSE_ERR_SIGN1_FORMAT },
-
     /* terminate the list */
     {(struct q_useful_buf_c){NULL, 0}, 0}
 };

@@ -183,6 +183,10 @@ struct t_cose_headers {
  *
  * This will recognize the special key ID for short-circuit signing
  * and verify it if the \ref T_COSE_OPT_ALLOW_SHORT_CIRCUIT is set.
+ *
+ * Indefinite lengths strings are not supported. \ref T_COSE_ERR_SIGN1_FORMAT
+ * will be returned if they are in the input \c COSE_Sign1 messages. For
+ * example, if the payload is an indefinite length byte string.
  */
 enum t_cose_err_t t_cose_sign1_verify(int32_t                option_flags,
                                       struct t_cose_key      verification_key,
