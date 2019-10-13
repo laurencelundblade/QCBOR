@@ -184,7 +184,7 @@ decode_critical_headers(QCBORDecodeContext       *decode_context,
             critical_labels->int_labels[num_int_labels++] = item.val.int64;
         } else if(item.uDataType == QCBOR_TYPE_TEXT_STRING) {
             if(num_tstr_labels >= T_COSE_HEADER_LIST_MAX) {
-                return_value = T_COSE_ERR_TOO_MANY_HEADERS;
+                return_value = T_COSE_ERR_CRIT_HEADER_PARAM;
                 goto Done;
             }
             critical_labels->tstr_labels[num_tstr_labels++] = item.val.string;

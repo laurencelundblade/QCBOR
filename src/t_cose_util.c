@@ -118,7 +118,7 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
     int32_t                     hash_alg_id;
     size_t                      bytes_to_omit;
 
-    /* This builds the CBOR format to-be-signed bytes */
+    /* This builds the CBOR-format to-be-signed bytes */
     QCBOREncode_Init(&cbor_encode_ctx, buffer_for_TBS_first_part);
     QCBOREncode_OpenArray(&cbor_encode_ctx);
 
@@ -129,7 +129,7 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
     QCBOREncode_AddBytes(&cbor_encode_ctx,
                          protected_headers);
 
-    /* sign_protected is not used for Sign1 */
+    /* sign_protected is not used for COSE_Sign1 */
 
     /* external_aad. There is none so an empty bstr */
     QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
@@ -222,16 +222,16 @@ static const uint8_t defined_short_circuit_kid[] = {
     0xf8, 0xf3, 0x5b, 0x6a, 0x6c, 0x00, 0xef, 0xa6,
     0xa9, 0xa7, 0x1f, 0x49, 0x51, 0x7e, 0x18, 0xc6};
 
-static struct q_useful_buf_c ss_kid;
+static struct q_useful_buf_c short_circuit_kid;
 
 /*
  * Public function. See t_cose_util.h
  */
 struct q_useful_buf_c get_short_circuit_kid(void)
 {
-    ss_kid.len = sizeof(defined_short_circuit_kid);
-    ss_kid.ptr = defined_short_circuit_kid;
+    short_circuit_kid.len = sizeof(defined_short_circuit_kid);
+    short_circuit_kid.ptr = defined_short_circuit_kid;
 
-    return ss_kid;
+    return short_circuit_kid;
 }
 #endif

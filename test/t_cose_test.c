@@ -162,7 +162,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
                                      signed_cose_buffer,
                                      &signed_cose);
     if(return_value != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
-        return -1;
+        return -2;
     }
 
 
@@ -184,7 +184,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
                                                  &cbor_encode);
 
     if(return_value != T_COSE_ERR_CBOR_FORMATTING) {
-        return -33;
+        return -3;
     }
 
 
@@ -199,7 +199,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
                                      &signed_cose);
 
     if(return_value != T_COSE_ERR_TOO_SMALL) {
-        return -34;
+        return -4;
     }
 
     return 0;
@@ -292,7 +292,7 @@ int_fast32_t short_circuit_make_cwt_test()
                                                        sizeof(rfc8392_first_part_bytes)+kid_encoded_len);
     struct q_useful_buf_c pl3 = q_useful_buf_head(payload2, sizeof(rfc8392_payload_bytes));
     if(q_useful_buf_compare(pl3, fp2)) {
-        return -1;
+        return -2;
     }
 
     /* Skip the signature because ECDSA signatures usually have a random
@@ -593,70 +593,67 @@ int_fast32_t all_headers_test()
 
 int_fast32_t bad_headers_test()
 {
-    /* TODO: also test too many string headers.
-     */
-
     if(run_test_sign_and_verify(T_COSE_TEST_EMPTY_PROTECTED_HEADER) != T_COSE_ERR_UNSUPPORTED_HASH) {
         /* Could test more here... */
-        return -6657;
+        return -1;
     }
 
     if( run_test_sign_and_verify(T_COSE_TEST_DUP_CONTENT_ID) != T_COSE_ERR_DUPLICATE_HEADER) {
-        return -557;
+        return -2;
     }
 
     if( run_test_sign_and_verify(T_COSE_TEST_UNCLOSED_PROTECTED) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
-        return -557;
+        return -3;
     }
 
     if( run_test_sign_and_verify(T_COSE_TEST_TOO_LARGE_CONTENT_TYPE) != T_COSE_ERR_BAD_CONTENT_TYPE) {
-        return -155;
+        return -4;
     }
 
     /* This makes consume_item() error out */
      if( run_test_sign_and_verify(T_COSE_TEST_NOT_WELL_FORMED_2) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
-        return -11;
+        return -5;
      }
 
     if(run_test_sign_and_verify(T_COSE_TEST_KID_IN_PROTECTED) != T_COSE_ERR_DUPLICATE_HEADER) {
-        return -527;
+        return -6;
     }
 
     if(run_test_sign_and_verify(T_COSE_TEST_TOO_MANY_UNKNOWN) != T_COSE_ERR_TOO_MANY_HEADERS) {
-        return -77;
+        return -7;
     }
 
     if(run_test_sign_and_verify(T_COSE_TEST_UNPROTECTED_NOT_MAP) != T_COSE_ERR_HEADER_CBOR) {
-        return -865;
+        return -8;
     }
 
 
     if(run_test_sign_and_verify(T_COSE_TEST_BAD_CRIT_HEADER) != T_COSE_ERR_HEADER_NOT_PROTECTED) {
-        return -22;
+        return -9;
     }
 
     if(run_test_sign_and_verify(T_COSE_TEST_NOT_WELL_FORMED_1) != T_COSE_ERR_CBOR_NOT_WELL_FORMED) {
-        return -33;
+        return -10;
     }
 
     if(run_test_sign_and_verify(T_COSE_TEST_NO_UNPROTECTED_HEADERS) != T_COSE_ERR_HEADER_CBOR) {
-        return -99;
+        return -11;
     }
 
     if(run_test_sign_and_verify(T_COSE_TEST_NO_PROTECTED_HEADERS) != T_COSE_ERR_SIGN1_FORMAT) {
-        return -44;
+        return -12;
     }
 
     if(run_test_sign_and_verify(T_COSE_TEST_EXTRA_HEADER) != T_COSE_SUCCESS) {
-        return -55;
+        return -13;
     }
 
     if(run_test_sign_and_verify(T_COSE_TEST_HEADER_LABEL) != T_COSE_ERR_HEADER_CBOR) {
-        return -96699;
+        return -14;
     }
 
     if(run_test_sign_and_verify(T_COSE_TEST_BAD_PROTECTED) != T_COSE_ERR_HEADER_CBOR) {
-        return -9889;
+        return -15;
     }
 
     return 0;
@@ -711,9 +708,13 @@ int_fast32_t critical_headers_test()
 
     if(run_test_sign_and_verify(T_COSE_TEST_EMPTY_CRIT_HEADERS_PARAM) != T_COSE_ERR_CRIT_HEADER_PARAM) {
         /* Could test more here... */
-        return -6657;
+        return -7;
     }
 
+    if(run_test_sign_and_verify(T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS) !=
+       T_COSE_ERR_CRIT_HEADER_PARAM) {
+        return -8;
+    }
 
     return 0;
 }
@@ -841,25 +842,22 @@ static struct sign1_sample sign1_sample_inputs[] = {
 };
 
 
-
-
 int_fast32_t sign1_structure_decode_test(void)
 {
     const struct sign1_sample *sample;
     struct q_useful_buf_c     payload;
+    enum t_cose_err_t         result;
 
     for(sample = sign1_sample_inputs; !q_useful_buf_c_is_null(sample->CBOR); sample++) {
-        enum t_cose_err_t x;
-
-        x = t_cose_sign1_verify(T_COSE_OPT_PARSE_ONLY,
+        result = t_cose_sign1_verify(T_COSE_OPT_PARSE_ONLY,
                                 T_COSE_NULL_KEY,
                                 sample->CBOR,
                                 &payload,
                                 NULL);
-        if(x != sample->expected_error) {
-            return -99;
+        if(result != sample->expected_error) {
+            /* Returns 100 * index of the input + error code not expected */
+            return (int32_t)(sample - sign1_sample_inputs+1)*100 + result;
         }
-
     }
 
     return 0;

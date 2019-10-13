@@ -68,6 +68,8 @@ extern "C" {
 
 #define T_COSE_TEST_EMPTY_CRIT_HEADERS_PARAM 0x00000200
 
+#define T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS 0x00000100
+
 
 /**
  * \file t_cose_sign1_sign.h

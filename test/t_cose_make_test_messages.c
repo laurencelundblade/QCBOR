@@ -196,6 +196,17 @@ make_protected_header(int32_t option_flags,
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
+    if(option_flags & T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS) {
+        /* This is the critical headers header */
+        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+        int i;
+        /* One more than the maximum */
+        for(i = 0; i < T_COSE_HEADER_LIST_MAX+1; i++) {
+            QCBOREncode_AddSZString(&cbor_encode_ctx, "");
+        }
+        QCBOREncode_CloseArray(&cbor_encode_ctx);
+    }
+
     if(option_flags & T_COSE_TEST_EMPTY_CRIT_HEADERS_PARAM) {
         QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
         QCBOREncode_CloseArray(&cbor_encode_ctx);
