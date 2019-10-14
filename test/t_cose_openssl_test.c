@@ -198,15 +198,16 @@ static void free_ecdsa_key_pair(struct t_cose_key ossl_key)
 
 int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
 {
-    struct t_cose_sign1_ctx     sign_ctx;
-    enum t_cose_err_t           return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 300);
-    struct q_useful_buf_c       signed_cose;
-    struct t_cose_key   ossl_key;
-    struct q_useful_buf_c       payload;
+    struct t_cose_sign1_sign_ctx   sign_ctx;
+    enum t_cose_err_t              return_value;
+    Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
+    struct q_useful_buf_c          signed_cose;
+    struct t_cose_key              ossl_key;
+    struct q_useful_buf_c          payload;
+    struct t_cose_sign1_verify_ctx verify_ctx;
 
     /* -- Get started with context initialization, selecting the alg -- */
-    t_cose_sign1_init(&sign_ctx, 0, cose_alg);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_alg);
 
     /* Make an ECDSA key pair that will be used for both signing and
      * verification.
@@ -215,7 +216,7 @@ int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
     if(return_value) {
         return 1000 + return_value;
     }
-    t_cose_sign1_set_key(&sign_ctx, ossl_key,  NULL_Q_USEFUL_BUF_C);
+    t_cose_sign1_set_signing_key(&sign_ctx, ossl_key,  NULL_Q_USEFUL_BUF_C);
 
     t_cose_sign1_sign(&sign_ctx,
                       Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
@@ -225,9 +226,12 @@ int_fast32_t openssl_basic_test_alg(int32_t cose_alg)
         return 2000 + return_value;
     }
 
-    /* Verification is done in one step */
-    return_value = t_cose_sign1_verify(0,                  /* No option flags */
-                                       ossl_key,      /* The verification key */
+    /* Verification */
+    t_cose_sign1_verify_init(&verify_ctx, 0);
+
+    t_cose_sign1_set_verification_key(&verify_ctx, ossl_key);
+
+    return_value = t_cose_sign1_verify(&verify_ctx,
                                        signed_cose,         /* COSE to verify */
                                        &payload,  /* Payload from signed_cose */
                                        NULL);         /* Don't return headers */
@@ -277,14 +281,15 @@ int_fast32_t openssl_basic_test()
 
 int_fast32_t openssl_sig_fail_test()
 {
-    struct t_cose_sign1_ctx     sign_ctx;
-    QCBOREncodeContext          cbor_encode;
-    enum t_cose_err_t           return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 300);
-    struct q_useful_buf_c       signed_cose;
-    struct t_cose_key   ossl_key;
-    struct q_useful_buf_c       payload;
-    QCBORError                  cbor_error;
+    struct t_cose_sign1_sign_ctx   sign_ctx;
+    QCBOREncodeContext             cbor_encode;
+    enum t_cose_err_t              return_value;
+    Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
+    struct q_useful_buf_c          signed_cose;
+    struct t_cose_key              ossl_key;
+    struct q_useful_buf_c          payload;
+    QCBORError                     cbor_error;
+    struct t_cose_sign1_verify_ctx verify_ctx;
 
 
     /* Make an ECDSA key pair that will be used for both signing and
@@ -297,10 +302,10 @@ int_fast32_t openssl_sig_fail_test()
 
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_init(&sign_ctx,  0,  COSE_ALGORITHM_ES256);
-    t_cose_sign1_set_key(&sign_ctx, ossl_key,NULL_Q_USEFUL_BUF_C);
+    t_cose_sign1_sign_init(&sign_ctx,  0,  COSE_ALGORITHM_ES256);
+    t_cose_sign1_set_signing_key(&sign_ctx, ossl_key,NULL_Q_USEFUL_BUF_C);
 
-    return_value = t_cose_sign1_output_headers(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + return_value;
     }
@@ -308,7 +313,7 @@ int_fast32_t openssl_sig_fail_test()
     QCBOREncode_AddSZString(&cbor_encode, "payload");
 
 
-    return_value = t_cose_sign1_output_signature(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 3000 + return_value;
     }
@@ -319,15 +324,19 @@ int_fast32_t openssl_sig_fail_test()
     }
 
     /* tamper with the pay load to see that the signature verification fails */
-    size_t xx = q_useful_buf_find_bytes(signed_cose, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
+    size_t xx = q_useful_buf_find_bytes(signed_cose,
+                                        Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
     if(xx == SIZE_MAX) {
         return 99;
     }
     ((char *)signed_cose.ptr)[xx] = 'h';
 
 
-    return_value = t_cose_sign1_verify(0,                  /* No option flags */
-                                       ossl_key,      /* The verification key */
+    t_cose_sign1_verify_init(&verify_ctx, 0);
+
+    t_cose_sign1_set_verification_key(&verify_ctx, ossl_key);
+
+    return_value = t_cose_sign1_verify(&verify_ctx,
                                        signed_cose,         /* COSE to verify */
                                        &payload,  /* Payload from signed_cose */
                                        NULL);         /* Don't return headers */
@@ -344,20 +353,22 @@ int_fast32_t openssl_sig_fail_test()
 
 int_fast32_t openssl_make_cwt_test()
 {
-    struct t_cose_sign1_ctx     sign_ctx;
-    QCBOREncodeContext          cbor_encode;
-    enum t_cose_err_t           return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 300);
-    struct q_useful_buf_c       signed_cose;
-    struct t_cose_key           ossl_key;
-    struct q_useful_buf_c       payload;
-    QCBORError                  cbor_error;
+    struct t_cose_sign1_sign_ctx   sign_ctx;
+    QCBOREncodeContext             cbor_encode;
+    enum t_cose_err_t              return_value;
+    Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
+    struct q_useful_buf_c          signed_cose;
+    struct t_cose_key              ossl_key;
+    struct q_useful_buf_c          payload;
+    QCBORError                     cbor_error;
+    struct t_cose_sign1_verify_ctx verify_ctx;
+
 
     
     /* -- initialize for signing --
      *  No special options selected
      */
-    t_cose_sign1_init(&sign_ctx,  0,  COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx,  0,  COSE_ALGORITHM_ES256);
 
 
     /* -- Key and kid --
@@ -368,14 +379,14 @@ int_fast32_t openssl_make_cwt_test()
     if(return_value) {
         return 1000 + return_value;
     }
-    t_cose_sign1_set_key(&sign_ctx,
+    t_cose_sign1_set_signing_key(&sign_ctx,
                          ossl_key,
                          Q_USEFUL_BUF_FROM_SZ_LITERAL("AsymmetricECDSA256"));
 
 
     /* -- Encoding context and output of headers -- */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
-    return_value = t_cose_sign1_output_headers(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + return_value;
     }
@@ -395,7 +406,7 @@ int_fast32_t openssl_make_cwt_test()
 
 
     /* -- Finish up the COSE_Sign1. This is where the signing happens -- */
-    return_value = t_cose_sign1_output_signature(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + return_value;
     }
@@ -431,9 +442,12 @@ int_fast32_t openssl_make_cwt_test()
 
     /* --- Start verifying the COSE Sign1 object  --- */
     /* Run the signature verification */
+    t_cose_sign1_verify_init(&verify_ctx, 0);
+
+    t_cose_sign1_set_verification_key(&verify_ctx, ossl_key);
+
     return_value =
-        t_cose_sign1_verify(T_COSE_OPT_ALLOW_SHORT_CIRCUIT,       /* opt flag */
-                            ossl_key,                 /* The verification key */
+        t_cose_sign1_verify(&verify_ctx,
                             signed_cose,                    /* COSE to verify */
                             &payload,             /* Payload from signed_cose */
                             NULL);         /* Don't return headers */

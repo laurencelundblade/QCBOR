@@ -67,11 +67,10 @@ Done:
  * Public function. See t_cose_sign1_verify.h
  */
 enum t_cose_err_t
-t_cose_sign1_verify(int32_t                 option_flags,
-                    struct t_cose_key       verification_key,
-                    struct q_useful_buf_c   cose_sign1,
-                    struct q_useful_buf_c  *payload,
-                    struct t_cose_headers  *headers)
+t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
+                    struct q_useful_buf_c           cose_sign1,
+                    struct q_useful_buf_c          *payload,
+                    struct t_cose_headers          *headers)
 {
     /* Stack use for 32-bit CPUs:
      *   268 for local except hash output
@@ -110,7 +109,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
         goto Done;
     }
 
-    if((option_flags & T_COSE_OPT_TAG_REQUIRED) &&
+    if((me->option_flags & T_COSE_OPT_TAG_REQUIRED) &&
        !QCBORDecode_IsTagged(&decode_context, &item, CBOR_TAG_COSE_SIGN1)) {
         return_value = T_COSE_ERR_INCORRECTLY_TAGGED;
         goto Done;
@@ -145,7 +144,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    if((option_flags & T_COSE_OPT_REQUIRE_KID) &&
+    if((me->option_flags & T_COSE_OPT_REQUIRE_KID) &&
         q_useful_buf_c_is_null(unprotected_headers.kid)) {
         return_value = T_COSE_ERR_NO_KID;
         goto Done;
@@ -197,7 +196,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
     
 
     /* -- Skip signature verification if such is requested --*/
-    if(option_flags & T_COSE_OPT_PARSE_ONLY) {
+    if(me->option_flags & T_COSE_OPT_PARSE_ONLY) {
         return_value = T_COSE_SUCCESS;
         goto Done;
     }
@@ -219,7 +218,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     short_circuit_kid = get_short_circuit_kid();
     if(!q_useful_buf_compare(unprotected_headers.kid, short_circuit_kid)) {
-        if(!(option_flags & T_COSE_OPT_ALLOW_SHORT_CIRCUIT)) {
+        if(!(me->option_flags & T_COSE_OPT_ALLOW_SHORT_CIRCUIT)) {
             return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG;
             goto Done;
         }
@@ -234,7 +233,7 @@ t_cose_sign1_verify(int32_t                 option_flags,
     /* -- Verify the signature (if it wasn't short-circuit) -- */
     return_value =
        t_cose_crypto_pub_key_verify(parsed_protected_headers.cose_algorithm_id,
-                                    verification_key,
+                                    me->verification_key,
                                     unprotected_headers.kid,
                                     tbs_hash,
                                     signature);

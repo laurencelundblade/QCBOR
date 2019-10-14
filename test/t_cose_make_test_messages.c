@@ -358,8 +358,8 @@ static inline void add_unprotected_headers(int32_t              option_flags,
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_test_message_output_headers(struct t_cose_sign1_ctx *me,
-                                       QCBOREncodeContext *cbor_encode_ctx)
+t_cose_sign1_test_message_output_headers(struct t_cose_sign1_sign_ctx *me,
+                                         QCBOREncodeContext *cbor_encode_ctx)
 {
     enum t_cose_err_t      return_value;
     struct q_useful_buf    buffer_for_protected_header;
@@ -435,8 +435,8 @@ Done:
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_test_message_output_signature(struct t_cose_sign1_ctx *me,
-                                         QCBOREncodeContext *cbor_encode_ctx)
+t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
+                                           QCBOREncodeContext *cbor_encode_ctx)
 {
     /* approximate stack use on 32-bit machine:
      *   32 bytes local use
@@ -542,10 +542,10 @@ Done:
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_test_message_sign1_sign(struct t_cose_sign1_ctx *me,
-                  struct q_useful_buf_c   payload,
-                  struct q_useful_buf     out_buf,
-                  struct q_useful_buf_c  *result)
+t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
+                               struct q_useful_buf_c         payload,
+                               struct q_useful_buf           out_buf,
+                               struct q_useful_buf_c        *result)
 {
     QCBOREncodeContext  encode_context;
     enum t_cose_err_t   return_value;

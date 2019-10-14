@@ -22,10 +22,10 @@ extern int hash_test_mode;
 
 int_fast32_t short_circuit_hash_fail_test()
 {
-    struct t_cose_sign1_ctx     sign_ctx;
-    enum t_cose_err_t           return_value;
-    struct q_useful_buf_c       wrapped_payload;
-    Q_USEFUL_BUF_MAKE_STACK_UB( signed_cose_buffer, 200);
+    struct t_cose_sign1_sign_ctx sign_ctx;
+    enum t_cose_err_t            return_value;
+    struct q_useful_buf_c        wrapped_payload;
+    Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 200);
 
 
     /* Set the global variable to cause the hash implementation to

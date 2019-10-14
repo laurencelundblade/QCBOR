@@ -256,8 +256,14 @@ static void PrintSize(const char *szWhat, uint32_t uSize, OutputStringCB pfOutpu
 void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
 {
    // Type and size of return from sizeof() varies. These will never be large so cast is safe
-    PrintSize("sizeof(struct t_cose_sign1_ctx)",   (uint32_t)sizeof(struct t_cose_sign1_ctx), pfOutput, pOutCtx);
-    PrintSize("sizeof(struct t_cose_signing_key)",   (uint32_t)sizeof(struct t_cose_key), pfOutput, pOutCtx);
-    PrintSize("sizeof(struct t_cose_crypto_hash)",   (uint32_t)sizeof(struct t_cose_crypto_hash), pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_sign1_ctx)",
+              (uint32_t)sizeof(struct t_cose_sign1_sign_ctx),
+              pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_signing_key)",
+              (uint32_t)sizeof(struct t_cose_key),
+              pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_crypto_hash)",
+              (uint32_t)sizeof(struct t_cose_crypto_hash),
+              pfOutput, pOutCtx);
    (*pfOutput)("", pOutCtx, 1);
 }

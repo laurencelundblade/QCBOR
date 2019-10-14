@@ -192,8 +192,9 @@ struct t_cose_make_test_message {
  * the actual signing algorithm is run exactly as it would if a proper
  * signing algorithm was run.
  */
-enum t_cose_err_t t_cose_make_test_output_headers(struct t_cose_sign1_ctx *me,
-                                    QCBOREncodeContext *cbor_encode_ctx);
+enum t_cose_err_t
+t_cose_make_test_output_headers(struct t_cose_sign1_sign_ctx *me,
+                                QCBOREncodeContext *cbor_encode_ctx);
 
 
 /**
@@ -212,15 +213,15 @@ enum t_cose_err_t t_cose_make_test_output_headers(struct t_cose_sign1_ctx *me,
  * cbor_encode_ctx by calling \c QCBOREncode_Finish()
  */
 enum t_cose_err_t
-t_cose_make_test_output_signature(struct t_cose_sign1_ctx *me,
+t_cose_make_test_output_signature(struct t_cose_sign1_sign_ctx *me,
                                   QCBOREncodeContext *encode_ctx);
 
 
 enum t_cose_err_t
-t_cose_test_message_sign1_sign(struct t_cose_sign1_ctx *me,
-                             struct q_useful_buf_c   payload,
-                             struct q_useful_buf     out_buf,
-                             struct q_useful_buf_c  *result);
+t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
+                             struct q_useful_buf_c           payload,
+                             struct q_useful_buf             out_buf,
+                             struct q_useful_buf_c          *result);
 
 #ifdef __cplusplus
 }

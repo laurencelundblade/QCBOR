@@ -160,9 +160,9 @@ make_protected_header(int32_t             cose_algorithm_id,
  * The unprotected headers added by this are just the \c kid.
  */
 static inline enum t_cose_err_t
-add_unprotected_headers(const struct t_cose_sign1_ctx *me,
-                        const struct q_useful_buf_c   kid,
-                        QCBOREncodeContext           *cbor_encode_ctx)
+add_unprotected_headers(const struct t_cose_sign1_sign_ctx *me,
+                        const struct q_useful_buf_c         kid,
+                        QCBOREncodeContext                 *cbor_encode_ctx)
 {
     QCBOREncode_OpenMap(cbor_encode_ctx);
 
@@ -205,8 +205,8 @@ add_unprotected_headers(const struct t_cose_sign1_ctx *me,
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_output_headers(struct t_cose_sign1_ctx *me,
-                            QCBOREncodeContext *cbor_encode_ctx)
+t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *me,
+                            QCBOREncodeContext           *cbor_encode_ctx)
 {
     /* approximate stack use on 32-bit machine:
      *    48 bytes local use
@@ -284,8 +284,8 @@ Done:
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_output_signature(struct t_cose_sign1_ctx *me,
-                              QCBOREncodeContext *cbor_encode_ctx)
+t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
+                              QCBOREncodeContext           *cbor_encode_ctx)
 {
     /* approximate stack use on 32-bit machine:
      *   32 bytes local use
@@ -392,10 +392,10 @@ Done:
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_sign(struct t_cose_sign1_ctx *me,
-                  struct q_useful_buf_c    payload,
-                  struct q_useful_buf      out_buf,
-                  struct q_useful_buf_c   *result)
+t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *me,
+                  struct q_useful_buf_c         payload,
+                  struct q_useful_buf           out_buf,
+                  struct q_useful_buf_c        *result)
 {
     QCBOREncodeContext  encode_context;
     enum t_cose_err_t   return_value;
@@ -404,7 +404,7 @@ t_cose_sign1_sign(struct t_cose_sign1_ctx *me,
     QCBOREncode_Init(&encode_context, out_buf);
 
     /* -- Output the headers into the encoder context -- */
-    return_value = t_cose_sign1_output_headers(me, &encode_context);
+    return_value = t_cose_sign1_encode_headers(me, &encode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -417,7 +417,7 @@ t_cose_sign1_sign(struct t_cose_sign1_ctx *me,
     QCBOREncode_AddEncoded(&encode_context, payload);
 
     /* -- Sign and put signature in the encoder context -- */
-    return_value = t_cose_sign1_output_signature(me, &encode_context);
+    return_value = t_cose_sign1_encode_signature(me, &encode_context);
     if(return_value) {
         goto Done;
     }

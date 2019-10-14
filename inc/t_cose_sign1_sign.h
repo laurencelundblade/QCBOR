@@ -63,7 +63,8 @@ extern "C" {
  * should allocate it and pass it to the functions here.  This is
  * about 100 bytes so it fits easily on the stack.
  */
-struct t_cose_sign1_ctx {
+    // TODO: rename this to indicating it is for signing, not verification; also all related functions.
+struct t_cose_sign1_sign_ctx {
     /* Private data structure */
     uint8_t               protected_headers_buffer[T_COSE_SIGN1_MAX_PROT_HEADER];
     struct q_useful_buf_c protected_headers;
@@ -138,13 +139,13 @@ struct t_cose_sign1_ctx {
  * indicates ECDSA with the NIST P-256 curve and SHA-256.
  *
  * Errors such as the passing of a bad \c cose_algorithm_id
- * are reported later when t_cose_sign1_sign() or t_cose_sign1_output_headers()
+ * are reported later when t_cose_sign1_sign() or t_cose_sign1_encode_headers"()
  * is called.
  */
 static void
-t_cose_sign1_init(struct t_cose_sign1_ctx *context,
-                   int32_t                 option_flags,
-                   int32_t                 cose_algorithm_id);
+t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
+                       int32_t                       option_flags,
+                       int32_t                       cose_algorithm_id);
 
 
 /**
@@ -162,9 +163,9 @@ t_cose_sign1_init(struct t_cose_sign1_ctx *context,
  * \c signing_key is never used.
  */
 static void
-t_cose_sign1_set_key(struct t_cose_sign1_ctx *context,
-                     struct t_cose_key        signing_key,
-                     struct q_useful_buf_c    kid);
+t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
+                             struct t_cose_key             signing_key,
+                             struct q_useful_buf_c         kid);
 
 
 /**
@@ -176,13 +177,13 @@ t_cose_sign1_set_key(struct t_cose_sign1_ctx *context,
  * (https://www.iana.org/assignments/core-parameters/core-parameters.xhtml#content-formats)
  *
  * It is not allowed to have both a CoAP and MIME content type. This
- * error will show up when t_cose_sign1_sign() or t_cose_sign1_output_headers()
+ * error will show up when t_cose_sign1_sign() or t_cose_sign1_encode_headers"()
  * is called.
  *
  */
 static inline void
-t_cose_sign1_set_content_type_uint(struct t_cose_sign1_ctx *context,
-                                   uint16_t                 content_type);
+t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
+                                   uint16_t                      content_type);
 
 /**
  * \brief Set the payload content type using MIME content types.
@@ -194,12 +195,12 @@ t_cose_sign1_set_content_type_uint(struct t_cose_sign1_ctx *context,
  * have been known as MIME types in the past. 
  *
  * It is not allowed to have both a CoAP and MIME content type. This
- * error will show up when t_cose_sign1_sign() or t_cose_sign1_output_headers()
+ * error will show up when t_cose_sign1_sign() or t_cose_sign1_encode_headers"()
  * is called.
  */
 static inline void
-t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_ctx *context,
-                                   const char *             content_type);
+t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
+                                   const char                   *content_type);
 
 
 /**
@@ -210,7 +211,7 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_ctx *context,
  * \param[in] out_buf  Pointer and length of buffer to output to.
  * \param[out] result  Pointer and length of the resulting \c COSE_Sign1.
  *
- * The \c context must have been initialized with t_cose_sign1_init()
+ * The \c context must have been initialized with t_cose_sign1_sign_init()
  * and the key set with t_cose_sign1_set_key() before this is called.
  *
  * This creates the COSE headers, hashes and signs the payload
@@ -237,15 +238,15 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_ctx *context,
  * contains the payload preceeded by the headers and followed
  * by the signature, all CBOR formatted. This function
  * thus requires two copies of the payload to be in memory.
- * Alternatively t_cose_sign1_output_headers() and t_cose_sign1_output_signature()
+ * Alternatively t_cose_sign1_encode_headers"() and t_cose_sign1_encode_signature"()
  * can be used. They are more complex to use, but  avoid
  * the two copies of the payload.
  */
 enum t_cose_err_t
-t_cose_sign1_sign(struct t_cose_sign1_ctx *context,
-                  struct q_useful_buf_c   payload,
-                  struct q_useful_buf     out_buf,
-                  struct q_useful_buf_c  *result);
+t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *context,
+                  struct q_useful_buf_c         payload,
+                  struct q_useful_buf           out_buf,
+                  struct q_useful_buf_c        *result);
 
 
 /**
@@ -267,26 +268,26 @@ t_cose_sign1_sign(struct t_cose_sign1_ctx *context,
  * various \c QCBOREncode_AddXxx calls. It can be as simple
  * or complex as needed.
  *
- * To complete the \c COSE_Sign1 call t_cose_sign1_output_signature().
+ * To complete the \c COSE_Sign1 call t_cose_sign1_encode_signature"().
  *
  * The \c cbor_encode_ctx must have been initialized with an
  * output buffer to hold the \c COSE_Sign1 headers, the payload
  * and the signature.
  *
- * This and t_cose_sign1_output_signature() can be used to
+ * This and t_cose_sign1_encode_signature"() can be used to
  * calculate the size of the \c COSE_Sign1 in the way
  * QCBOREncode is usually used to calculate sizes. In this
  * case the \c t_cose_sign1_ctx should be initialized with the
  * options, algorithm, key and kid just as normal as these are
  * needed to calculate the size. Then set up the QCBOR encoder
  * context with a \c NULL pointer and large length like \c UINT32_MAX.
- * Call t_cose_sign1_output_headers(), then format the payload into
- * the encoder context, then call t_cose_sign1_output_signature().
+ * Call t_cose_sign1_encode_headers"(), then format the payload into
+ * the encoder context, then call t_cose_sign1_encode_signature"().
  * Finally call QCBOREncode_FinishGetSize() to get the length.
  */
 enum t_cose_err_t
-t_cose_sign1_output_headers(struct t_cose_sign1_ctx *context,
-                            QCBOREncodeContext      *cbor_encode_ctx);
+t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *context,
+                            QCBOREncodeContext           *cbor_encode_ctx);
 
 
 /**
@@ -298,7 +299,7 @@ t_cose_sign1_output_headers(struct t_cose_sign1_ctx *context,
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
  * Call this to complete creation of a signed \c COSE_Sign1 started with
- * t_cose_sign1_output_headers().
+ * t_cose_sign1_encode_headers"().
  *
  * This is when the cryptographic signature algorithm is run.
  *
@@ -306,8 +307,8 @@ t_cose_sign1_output_headers(struct t_cose_sign1_ctx *context,
  * cbor_encode_ctx by calling \c QCBOREncode_Finish().
  */
 enum t_cose_err_t
-t_cose_sign1_output_signature(struct t_cose_sign1_ctx *context,
-                              QCBOREncodeContext      *cbor_encode_ctx);
+t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *context,
+                              QCBOREncodeContext           *cbor_encode_ctx);
 
 
 
@@ -318,9 +319,9 @@ t_cose_sign1_output_signature(struct t_cose_sign1_ctx *context,
  * Inline implementations of public functions defined above.
  */
 static inline void
-t_cose_sign1_init(struct t_cose_sign1_ctx *me,
-                   int32_t option_flags,
-                   int32_t cose_algorithm_id)
+t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
+                       int32_t                       option_flags,
+                       int32_t                       cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
@@ -334,9 +335,9 @@ t_cose_sign1_init(struct t_cose_sign1_ctx *me,
 
 
 static inline void
-t_cose_sign1_set_key(struct t_cose_sign1_ctx *me,
-                     struct t_cose_key signing_key,
-                     struct q_useful_buf_c kid)
+t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
+                             struct t_cose_key             signing_key,
+                             struct q_useful_buf_c         kid)
 {
     me->kid         = kid;
     me->signing_key = signing_key;
@@ -345,16 +346,16 @@ t_cose_sign1_set_key(struct t_cose_sign1_ctx *me,
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
 static inline void
-t_cose_sign1_set_content_type_uint(struct t_cose_sign1_ctx *me,
-                                   uint16_t                 content_type)
+t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *me,
+                                   uint16_t                     content_type)
 {
     me->content_type_uint = content_type;
 }
 
 
 static inline void
-t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_ctx *me,
-                                   const char *             content_type)
+t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *me,
+                                   const char                   *content_type)
 {
     me->content_type_tstr = content_type;
 }
