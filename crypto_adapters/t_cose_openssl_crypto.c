@@ -1,5 +1,5 @@
 /*
- *  t_cose_openssl_signature.c
+ *  t_cose_openssl_crypto.c
  *
  * Copyright 2019, Laurence Lundblade
  *
@@ -21,7 +21,7 @@
 
 
 /**
- * \file t_cose_openssl_signature.c
+ * \file t_cose_openssl_crypto.c
  *
  * \brief Crypto Adaptation for t_cose to use openssl ECDSA and hashes.
  */

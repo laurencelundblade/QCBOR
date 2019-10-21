@@ -12,6 +12,7 @@
 #include "t_cose_sign1_sign.h"
 #include "t_cose_sign1_verify.h"
 #include "q_useful_buf.h"
+#include "t_cose_standard_constants.h"
 
 /* Special global external reference to special crypto to test
  * handling of hash failures. They generally never fail so it requires
@@ -33,7 +34,7 @@ int_fast32_t short_circuit_hash_fail_test()
      */
     hash_test_mode = 1;
 
-    t_cose_sign1_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, COSE_ALGORITHM_ES256);
 
     return_value = t_cose_sign1_sign(&sign_ctx,
                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
@@ -52,7 +53,7 @@ int_fast32_t short_circuit_hash_fail_test()
      */
     hash_test_mode = 2;
 
-    t_cose_sign1_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, COSE_ALGORITHM_ES256);
 
     return_value = t_cose_sign1_sign(&sign_ctx,
                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),

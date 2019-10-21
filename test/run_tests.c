@@ -68,6 +68,10 @@ static test_entry s_tests[] = {
     TEST_ENTRY(short_circuit_self_test),
 
 #ifdef T_COSE_DO_HASH_FAIL_TEST
+    /* This test requires a build with a special crypto adaptor. This code
+     * this tests is simple, stable and has few portability issues so
+     * it is OK not to run this for every regression test.
+     */
     TEST_ENTRY(short_circuit_hash_fail_test),
 #endif /* T_COSE_DO_HASH_FAIL_TEST */
 };

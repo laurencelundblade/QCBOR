@@ -1,5 +1,5 @@
 /*
- *  t_cose_openssl_signature.c
+ *  t_cose_hash_fail_crypto.c
  *
  * Copyright 2019, Laurence Lundblade
  *
@@ -21,9 +21,19 @@
 
 
 /**
- * \file t_cose_openssl_signature.c
+ * \file t_cose_hash_fail_crypto.c
  *
- * \brief Crypto Adaptation for t_cose to use openssl ECDSA and hashes.
+ * \brief Crypto Adaptation for testing hash failures.
+ *
+ * This is a hacked version of t_cose_openssl_crypto.c. It has a
+ * simple hack that allows a global variable to be set that makes the
+ * hash functions fail to t_cose's handling of these failures can be
+ * tested. This test is enabled only by special build because it is
+ * not really necessary to do regression of this. The code it tests is
+ * simple and not really subject to portability issues.
+ *
+ * There's not really any better way to test this type of failure.
+ *
  */
 
 
