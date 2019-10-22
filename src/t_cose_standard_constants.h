@@ -24,6 +24,11 @@
  * Many constants in the IANA registry are not included here yet as
  * they are not needed by t_cose. They can be added if they become
  * needed.
+ *
+ * This file is not part of the public interface as it contains lots
+ * of stuff not needed in the public interface. The parts that are
+ * needed in the public interface are defined as \ref T_COSE_ALGORITHM_ES256
+ * and cross checked in t_cose_sign1_sign.c
  */
 
 // TODO: are the headers, parameters or header parameters?
@@ -156,7 +161,7 @@
 /**
  * \def COSE_ALGORITHM_ES512
  *
- * \brief Indicates ECDSA with SHA-384.
+ * \brief Indicates ECDSA with SHA-512.
  *
  * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA w/SHA-512
  */

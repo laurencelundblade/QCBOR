@@ -95,24 +95,24 @@ t_cose_crypto_get_ec_pub_key(int32_t    key_select,
     /* This is just a stub that returns fake keys */
     struct q_useful_buf_c x;
     struct q_useful_buf_c y;
-    
+
     (void)key_select;  /* unused parameter */
     (void)kid;  /* unused parameter */
-    
+
     x = Q_USEFUL_BUF_FROM_SZ_LITERAL("xxxxxxxx9xxxxxxxxx9xxxxxxxxx9xx2");
     y = Q_USEFUL_BUF_FROM_SZ_LITERAL("yyyyyyyy9yyyyyyyyy9yyyyyyyyy9yy2");
-    
+
     /* q_useful_buf_copy does size checking */
     *x_coord = q_useful_buf_copy(buf_to_hold_x_coord, x);
     *y_coord = q_useful_buf_copy(buf_to_hold_y_coord, y);
-    
+
     if(q_useful_buf_c_is_null(*x_coord) ||
        q_useful_buf_c_is_null(*y_coord)) {
         return T_COSE_ERR_KEY_BUFFER_SIZE;
     }
-    
+
     *cose_curve_id = COSE_ELLIPTIC_CURVE_P_256;
-    
+
     return T_COSE_SUCCESS;
 }
 

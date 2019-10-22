@@ -171,17 +171,25 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		E730E605235E0B1800175CE0 /* QCBOR */ = {
+			isa = PBXGroup;
+			children = (
+				E7E36E98226CB9F70040613B /* QCBOR Src */,
+				E7E36E95226CB9C90040613B /* QCBOR Interface */,
+			);
+			name = QCBOR;
+			sourceTree = "<group>";
+		};
 		E7E36E6F226CB8400040613B = {
 			isa = PBXGroup;
 			children = (
 				E71D9E8E231C930B00A21F7F /* README.md */,
 				E7E36E7B226CB8400040613B /* main.c */,
-				E7F70AC32270DF90007CE07F /* test */,
 				E7E36E82226CB9460040613B /* inc */,
 				E7E36E86226CB9460040613B /* src */,
 				E7E36EA2226CBA540040613B /* crypto_adapters */,
-				E7E36E95226CB9C90040613B /* QCBOR Interface */,
-				E7E36E98226CB9F70040613B /* QCBOR Src */,
+				E7F70AC32270DF90007CE07F /* test */,
+				E730E605235E0B1800175CE0 /* QCBOR */,
 				E7E36E79226CB8400040613B /* Products */,
 				E7F70AB22270D989007CE07F /* Frameworks */,
 			);

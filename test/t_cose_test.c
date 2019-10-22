@@ -30,7 +30,7 @@ int_fast32_t short_circuit_self_test()
     /* --- Make COSE Sign1 object --- */
     t_cose_sign1_sign_init(&sign_ctx,
                       T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                      COSE_ALGORITHM_ES256);
+                      T_COSE_ALGORITHM_ES256);
 
     /* No key necessary because short-circuit test mode is used */
 
@@ -86,7 +86,7 @@ int_fast32_t short_circuit_verify_fail_test()
     /* --- Start making COSE Sign1 object  --- */
     t_cose_sign1_sign_init(&sign_ctx,
                       T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                      COSE_ALGORITHM_ES256);
+                      T_COSE_ALGORITHM_ES256);
 
     /* No key necessary because short-circuit test mode is used */
 
@@ -180,7 +180,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 
     t_cose_sign1_sign_init(&sign_ctx,
                       T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                      COSE_ALGORITHM_ES256);
+                      T_COSE_ALGORITHM_ES256);
     return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
 
 
@@ -199,7 +199,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     /* -- Tests the output buffer being too small -- */
     t_cose_sign1_sign_init(&sign_ctx,
                       T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                      COSE_ALGORITHM_ES256);
+                      T_COSE_ALGORITHM_ES256);
 
     return_value = t_cose_sign1_sign(&sign_ctx,
                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
@@ -233,7 +233,7 @@ int_fast32_t short_circuit_make_cwt_test()
 
     t_cose_sign1_sign_init(&sign_ctx,
                       T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                      COSE_ALGORITHM_ES256);
+                      T_COSE_ALGORITHM_ES256);
 
     /* Do the first part of the the COSE_Sign1, the headers */
     return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
@@ -358,7 +358,7 @@ int_fast32_t short_circuit_no_parse_test()
 
     t_cose_sign1_sign_init(&sign_ctx,
                       T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                      COSE_ALGORITHM_ES256);
+                      T_COSE_ALGORITHM_ES256);
 
     /* Do the first part of the the COSE_Sign1, the headers */
     return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
@@ -451,7 +451,7 @@ int cose_example_test()
 
     t_cose_sign1_sign_init(&sign_ctx,
                       T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                      COSE_ALGORITHM_ES256);
+                      T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_signing_key(&sign_ctx, T_COSE_NULL_KEY, Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
@@ -483,7 +483,7 @@ static enum t_cose_err_t run_test_sign_and_verify(int32_t option)
 
     t_cose_sign1_sign_init(&sign_ctx,
                       T_COSE_OPT_SHORT_CIRCUIT_SIG | option,
-                      COSE_ALGORITHM_ES256);
+                      T_COSE_ALGORITHM_ES256);
 
     return_value = t_cose_test_message_sign1_sign(&sign_ctx,
                       Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
@@ -555,7 +555,7 @@ int_fast32_t all_headers_test()
 
     t_cose_sign1_sign_init(&sign_ctx,
                        T_COSE_OPT_SHORT_CIRCUIT_SIG | T_COSE_TEST_ALL_HEADERS,
-                       COSE_ALGORITHM_ES256);
+                       T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_signing_key(&sign_ctx,
                          T_COSE_NULL_KEY,
@@ -588,7 +588,7 @@ int_fast32_t all_headers_test()
         return 2;
     }
 
-    if(headers.cose_algorithm_id != COSE_ALGORITHM_ES256) {
+    if(headers.cose_algorithm_id != T_COSE_ALGORITHM_ES256) {
         return 3;
     }
 
@@ -753,7 +753,7 @@ int_fast32_t content_type_test()
     /* -- integer content type -- */
     t_cose_sign1_sign_init(&sign_ctx,
                       T_COSE_OPT_SHORT_CIRCUIT_SIG ,
-                      COSE_ALGORITHM_ES256);
+                      T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
 
@@ -783,7 +783,7 @@ int_fast32_t content_type_test()
     /* -- string content type -- */
     t_cose_sign1_sign_init(&sign_ctx,
                       T_COSE_OPT_SHORT_CIRCUIT_SIG ,
-                      COSE_ALGORITHM_ES256);
+                      T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
 
@@ -814,7 +814,7 @@ int_fast32_t content_type_test()
     /* -- content type in error -- */
     t_cose_sign1_sign_init(&sign_ctx,
                       T_COSE_OPT_SHORT_CIRCUIT_SIG ,
-                      COSE_ALGORITHM_ES256);
+                      T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
     t_cose_sign1_set_content_type_uint(&sign_ctx, 42);

@@ -43,6 +43,9 @@ extern "C" {
  * it for different platforms or OS's. This means that different
  * platforms and OS's may support only verification with a particular set
  * of algorithms.
+ *
+ * See t_cose_common.h for preprocessor defines to reduce object code
+ * and stack use by disabling features.
  */
 
 
@@ -55,23 +58,26 @@ extern "C" {
 struct t_cose_headers {
     /** The algorithm ID. \ref T_COSE_UNSET_ALGORITHM_ID if the algorithm ID
      * header is not present. String type algorithm IDs are not
-     * supported */
+     * supported.  See the
+     * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml)
+     * for the algorithms corresponding to the integer values.
+     */
     int32_t               cose_algorithm_id;
     /** The COSE key ID. \c NULL_Q_USEFUL_BUF_C if header is not
-	present */
+     *present */
     struct q_useful_buf_c kid;
     /** The COSE initialization vector. \c NULL_Q_USEFUL_BUF_C if header
-	is not present */
+     * is not present */
     struct q_useful_buf_c iv;
     /** The COSE partial initialization vector. \c NULL_Q_USEFUL_BUF_C if
-	header is not present */
+     * header is not present */
     struct q_useful_buf_c partial_iv;
     /** The content type as a MIME type like
-	"text/plain". \c NULL_Q_USEFUL_BUF_C if header is not present */
+     * "text/plain". \c NULL_Q_USEFUL_BUF_C if header is not present */
     struct q_useful_buf_c content_type_tstr;
     /** The content type as a CoAP Content-Format
-	integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if header is not
-	present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
+     * integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if header is not
+     * present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
     uint32_t              content_type_uint;
 };
 
@@ -105,7 +111,8 @@ struct t_cose_headers {
 /**
  * Normally this will decode the CBOR presented as a
  * COSE_Sign1 whether it is tagged as such or not.
- * This this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is returned if
+ * This this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
+ * returned if
  * it is not tagged.
  */
 #define T_COSE_OPT_TAG_REQUIRED  0x00000004
@@ -221,7 +228,8 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * will be returned if they are in the input \c COSE_Sign1 messages. For
  * example, if the payload is an indefinite length byte string.
  */
-enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,                                                                        struct q_useful_buf_c           sign1,
+enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
+                                      struct q_useful_buf_c           sign1,
                                       struct q_useful_buf_c          *payload,
                                       struct t_cose_headers          *headers);
 

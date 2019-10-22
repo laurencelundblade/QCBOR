@@ -11,7 +11,6 @@
  */
 
 
-#include "t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
 
 #include "openssl/ecdsa.h"
@@ -135,7 +134,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
         goto Done;
     }
     ossl_ec_key = (EC_KEY *)signing_key.k.key_ptr;
-    
+
     /* Actually do the EC signature over the hash */
     ossl_signature = ECDSA_do_sign(hash_to_sign.ptr,
                                    (int)hash_to_sign.len,
@@ -159,13 +158,13 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
 
     /* Everything succeeded */
     return_value = T_COSE_SUCCESS;
-    
+
 Done:
     /* These (are assumed to) all check for NULL before they free, so
      * it is not necessary to check for NULL here.
      */
     ECDSA_SIG_free(ossl_signature);
-    
+
     return return_value;
 }
 
@@ -299,14 +298,14 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
     if(return_value) {
         goto Done;
     }
-    
+
     /* Check the key to be sure it is OK */
     ossl_result = EC_KEY_check_key(ossl_pub_key);
     if(ossl_result == 0) {
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
-    
+
     /* Actually do the signature verification */
     ossl_result = ECDSA_do_verify(hash_to_verify.ptr,
                                   (int)hash_to_verify.len,
@@ -321,10 +320,10 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
-    
+
     /* Everything succeeded */
     return_value = T_COSE_SUCCESS;
-    
+
 Done:
     /* These (are assumed to) all check for NULL before they free, so
      * it is not necessary to check here */

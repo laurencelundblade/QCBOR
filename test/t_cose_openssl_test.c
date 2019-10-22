@@ -11,7 +11,6 @@
 #include "t_cose_openssl_test.h"
 #include "t_cose_sign1_sign.h"
 #include "t_cose_sign1_verify.h"
-#include "t_cose_standard_constants.h"
 #include "q_useful_buf.h"
 
 #include "openssl/ecdsa.h"
@@ -88,19 +87,19 @@ static int make_ecdsa_key_pair(struct t_cose_key *ossl_key, int32_t cose_alg)
     const char        *private_key;
 
     switch (cose_alg) {
-        case COSE_ALGORITHM_ES256:
+        case T_COSE_ALGORITHM_ES256:
             nid = NID_X9_62_prime256v1;
             public_key = PUBLIC_KEY_prime256v1;
             private_key =  PRIVATE_KEY_prime256v1 ;
             break;
 
-        case COSE_ALGORITHM_ES384:
+        case T_COSE_ALGORITHM_ES384:
             nid = NID_secp384r1;
             public_key = PUBLIC_KEY_secp384r1;
             private_key = PRIVATE_KEY_secp384r1;
             break;
 
-        case COSE_ALGORITHM_ES512:
+        case T_COSE_ALGORITHM_ES512:
             nid = NID_secp521r1;
             public_key = PUBLIC_KEY_secp521r1;
             private_key = PRIVATE_KEY_secp521r1;
@@ -255,20 +254,20 @@ int_fast32_t openssl_basic_test()
 {
     int_fast32_t return_value;
 
-    return_value  = openssl_basic_test_alg(COSE_ALGORITHM_ES256);
+    return_value  = openssl_basic_test_alg(T_COSE_ALGORITHM_ES256);
     if(return_value) {
         return 20000 + return_value;
     }
 
 #ifndef T_COSE_DISABLE_ES384
-    return_value  = openssl_basic_test_alg(COSE_ALGORITHM_ES384);
+    return_value  = openssl_basic_test_alg(T_COSE_ALGORITHM_ES384);
     if(return_value) {
         return 30000 + return_value;
     }
 #endif
 
 #ifndef T_COSE_DISABLE_ES512
-    return_value  = openssl_basic_test_alg(COSE_ALGORITHM_ES512);
+    return_value  = openssl_basic_test_alg(T_COSE_ALGORITHM_ES512);
     if(return_value) {
         return 50000 + return_value;
     }
@@ -295,14 +294,14 @@ int_fast32_t openssl_sig_fail_test()
     /* Make an ECDSA key pair that will be used for both signing and
      * verification.
      */
-    return_value = make_ecdsa_key_pair(&ossl_key, COSE_ALGORITHM_ES256);
+    return_value = make_ecdsa_key_pair(&ossl_key, T_COSE_ALGORITHM_ES256);
     if(return_value) {
         return 1000 + return_value;
     }
 
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx,  0,  COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx,  0,  T_COSE_ALGORITHM_ES256);
     t_cose_sign1_set_signing_key(&sign_ctx, ossl_key,NULL_Q_USEFUL_BUF_C);
 
     return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
@@ -368,14 +367,14 @@ int_fast32_t openssl_make_cwt_test()
     /* -- initialize for signing --
      *  No special options selected
      */
-    t_cose_sign1_sign_init(&sign_ctx,  0,  COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx,  0,  T_COSE_ALGORITHM_ES256);
 
 
     /* -- Key and kid --
      * The ECDSA key pair made is both for signing and verification.
      * The kid comes from RFC 8932
      */
-    return_value = make_ecdsa_key_pair(&ossl_key, COSE_ALGORITHM_ES256);
+    return_value = make_ecdsa_key_pair(&ossl_key, T_COSE_ALGORITHM_ES256);
     if(return_value) {
         return 1000 + return_value;
     }

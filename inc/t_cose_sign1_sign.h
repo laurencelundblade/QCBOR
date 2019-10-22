@@ -55,6 +55,9 @@ extern "C" {
  * no need for one buffer to hold the payload and another to hold the
  * end result \c COSE_Sign1. The payload is encoded right into its final
  * place in the end result \c COSE_Sign1.
+ *
+ * See t_cose_common.h for preprocessor defines to reduce object code
+ * and stack use by disabling features.
  */
 
 
@@ -63,7 +66,6 @@ extern "C" {
  * should allocate it and pass it to the functions here.  This is
  * about 100 bytes so it fits easily on the stack.
  */
-    // TODO: rename this to indicating it is for signing, not verification; also all related functions.
 struct t_cose_sign1_sign_ctx {
     /* Private data structure */
     uint8_t               protected_headers_buffer[T_COSE_SIGN1_MAX_PROT_HEADER];
@@ -122,24 +124,25 @@ struct t_cose_sign1_sign_ctx {
  * \brief  Initialize to start creating a \c COSE_Sign1.
  *
  * \param[in] context            The t_cose signing context.
- * \param[in] option_flags       One of \c T_COSE_OPT_XXXX
- * \param[in] cose_algorithm_id  The algorithm to sign with. The IDs are
- *                               defined in [COSE (RFC 8152)]
- *                               (https://tools.ietf.org/html/rfc8152) or
- *                               in the [IANA COSE Registry]
- *                           (https://www.iana.org/assignments/cose/cose.xhtml).
+ * \param[in] option_flags       One of \c T_COSE_OPT_XXXX.
+ * \param[in] cose_algorithm_id  The algorithm to sign with, for example
+ *                               \ref T_COSE_ALGORITHM_ES256.
  *
  * Initialize the \c t_cose_sign1_ctx context. Typically,
  * no \c option_flags are needed and 0 is passed. A
- * \c cose_algorithm_id must always be given.
+ * \c cose_algorithm_id must always be given. See
+ * \ref T_COSE_OPT_SHORT_CIRCUIT_SIG and related for possible option
+ * flags.
  *
- * Which signing algorithms are supported depends on the crypto library.
- * The header file t_cose_defines.h contains defined constants for
- * some of them. A typical example is \ref COSE_ALGORITHM_ES256 which
- * indicates ECDSA with the NIST P-256 curve and SHA-256.
+ * The algorithm ID space is from
+ * [COSE (RFC 8152)](https://tools.ietf.org/html/rfc8152) and
+ * the [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ * \ref T_COSE_ALGORITHM_ES256 and a few others are defined here
+ * for convenience. The signing algorithms supported depends on the
+ * cryptographic library that t_cose is integrated with.
  *
- * Errors such as the passing of a bad \c cose_algorithm_id
- * are reported later when t_cose_sign1_sign() or t_cose_sign1_encode_headers"()
+ * Errors such as the passing of an unsupported \c cose_algorithm_id
+ * are reported when t_cose_sign1_sign() or t_cose_sign1_encode_headers()
  * is called.
  */
 static void
@@ -192,7 +195,7 @@ t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
  * \param[in] content_type The content type of the payload as defined
  *                         in the IANA Media Types registry.
  * (https://www.iana.org/assignments/media-types/media-types.xhtml) These
- * have been known as MIME types in the past. 
+ * have been known as MIME types in the past.
  *
  * It is not allowed to have both a CoAP and MIME content type. This
  * error will show up when t_cose_sign1_sign() or t_cose_sign1_encode_headers"()

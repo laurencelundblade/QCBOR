@@ -10,7 +10,6 @@
 
 #include "t_cose_make_test_messages.h"
 #include "qcbor.h"
-#include "t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
 #include "t_cose_util.h"
 

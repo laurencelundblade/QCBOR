@@ -184,7 +184,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     }
     signature = item.val.string;
 
-    
+
     /* -- Finish up the CBOR decode -- */
     /* This check make sure the array only had the expected four
      items. Works for definite and indefinte length arrays. Also
@@ -193,7 +193,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
         return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
         goto Done;
     }
-    
+
 
     /* -- Skip signature verification if such is requested --*/
     if(me->option_flags & T_COSE_OPT_PARSE_ONLY) {
@@ -201,7 +201,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
         goto Done;
     }
 
-    
+
     /* -- Compute the TBS bytes -- */
     return_value = create_tbs_hash(parsed_protected_headers.cose_algorithm_id,
                                    protected_headers,

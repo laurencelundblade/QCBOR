@@ -26,6 +26,23 @@
  */
 
 
+/*
+ * Cross-check to make sure public definition of algorithm
+ * IDs matches the internal ones.
+ */
+#if T_COSE_ALGORITHM_ES256 != COSE_ALGORITHM_ES256
+#error COSE algorithm identifier definitions are in error
+#endif
+
+#if T_COSE_ALGORITHM_ES384 != COSE_ALGORITHM_ES384
+#error COSE algorithm identifier definitions are in error
+#endif
+
+#if T_COSE_ALGORITHM_ES512 != COSE_ALGORITHM_ES512
+#error COSE algorithm identifier definitions are in error
+#endif
+
+
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 /**
  * \brief Create a short-circuit signature

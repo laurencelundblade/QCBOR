@@ -44,6 +44,41 @@ extern "C" {
  */
 
 
+
+
+/**
+ * \def T_COSE_ALGORITHM_ES256
+ *
+ * \brief Indicates ECDSA with SHA-256.
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ */
+#define T_COSE_ALGORITHM_ES256 -7
+
+/**
+ * \def T_COSE_ALGORITHM_ES384
+ *
+ * \brief Indicates ECDSA with SHA-384.
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ */
+#define T_COSE_ALGORITHM_ES384 -35
+
+/**
+ * \def T_COSE_ALGORITHM_ES512
+ *
+ * \brief Indicates ECDSA with SHA-512.
+ *
+ * This value comes from the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ */
+#define T_COSE_ALGORITHM_ES512 -36
+
+
+
+
 /**
  * Indicates the cryptographic library the key the struct t_cose_key is
  * intended for. Usually only one cryptographic library is integrated
@@ -99,7 +134,7 @@ struct t_cose_key {
  *
  * 17 extra bytes are added, rounding it up to 24 total, in case some
  * other protected header is to be added and so the test using
- * T_COSE_TEST_CRIT_HEADER_EXIST can work. 
+ * T_COSE_TEST_CRIT_HEADER_EXIST can work.
  */
 #define T_COSE_SIGN1_MAX_PROT_HEADER (1+1+5+17)
 
@@ -261,6 +296,8 @@ enum t_cose_err_t {
     T_COSE_ERR_CRIT_HEADER_PARAM = 37,
 
 };
+
+
 
 
 /** The maximum number of headers this implementation can handle.
