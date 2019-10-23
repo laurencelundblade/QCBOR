@@ -88,7 +88,7 @@ Done:
 /**
  * \brief  Makes various protected headers for various tests
  *
- * \param[in] option_flags       Flags to select test modes.
+ * \param[in] test_mess_options  Flags to select test modes.
  * \param[in] cose_algorithm_id  The COSE algorithm ID to put in the headers.
  * \param[in] buffer_for_header  Pointer and length into which
  *                               the resulting encoded protected
@@ -106,7 +106,7 @@ Done:
  * small. See also definition of \ref T_COSE_SIGN1_MAX_PROT_HEADER
  */
 static inline struct q_useful_buf_c
-make_protected_header(int32_t option_flags,
+make_protected_header(int32_t test_mess_options,
                       int32_t cose_algorithm_id,
                       struct q_useful_buf buffer_for_header)
 {
@@ -119,20 +119,20 @@ make_protected_header(int32_t option_flags,
     QCBOREncodeContext    cbor_encode_ctx;
     struct q_useful_buf_c return_value;
 
-    if(option_flags & T_COSE_TEST_EMPTY_PROTECTED_HEADER) {
+    if(test_mess_options & T_COSE_TEST_EMPTY_PROTECTED_HEADER) {
         /* An empty q_useful_buf_c */
         return (struct q_useful_buf_c){buffer_for_header.ptr, 0};
     }
 
 
-    if(option_flags & T_COSE_TEST_UNCLOSED_PROTECTED) {
+    if(test_mess_options & T_COSE_TEST_UNCLOSED_PROTECTED) {
         *(uint8_t *)(buffer_for_header.ptr) = 0xa1;
         return (struct q_useful_buf_c){buffer_for_header.ptr, 1};
     }
 
     QCBOREncode_Init(&cbor_encode_ctx, buffer_for_header);
 
-    if(option_flags & T_COSE_TEST_BAD_PROTECTED) {
+    if(test_mess_options & T_COSE_TEST_BAD_PROTECTED) {
         QCBOREncode_OpenArray(&cbor_encode_ctx);
         QCBOREncode_AddInt64(&cbor_encode_ctx, 42);
         QCBOREncode_CloseArray(&cbor_encode_ctx);
@@ -144,7 +144,7 @@ make_protected_header(int32_t option_flags,
                                COSE_HEADER_PARAM_ALG,
                                cose_algorithm_id);
 
-    if(option_flags & T_COSE_TEST_UNKNOWN_CRIT_UINT_HEADER) {
+    if(test_mess_options & T_COSE_TEST_UNKNOWN_CRIT_UINT_HEADER) {
         /* This is the header that will be unknown */
         QCBOREncode_AddInt64ToMapN(&cbor_encode_ctx, 42, 43);
         /* This is the critical headers header */
@@ -155,7 +155,7 @@ make_protected_header(int32_t option_flags,
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
-    if(option_flags & T_COSE_TEST_UNKNOWN_CRIT_TSTR_HEADER) {
+    if(test_mess_options & T_COSE_TEST_UNKNOWN_CRIT_TSTR_HEADER) {
         /* This is the header that will be unknown */
         QCBOREncode_AddInt64ToMap(&cbor_encode_ctx, "hh", 43);
         /* This is the critical headers header */
@@ -166,14 +166,14 @@ make_protected_header(int32_t option_flags,
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
-    if(option_flags & T_COSE_TEST_BAD_CRIT_LABEL) {
+    if(test_mess_options & T_COSE_TEST_BAD_CRIT_LABEL) {
         /* This is the critical headers header */
         QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
         QCBOREncode_AddBool(&cbor_encode_ctx, true);
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
-    if(option_flags & T_COSE_TEST_CRIT_HEADER_EXIST) {
+    if(test_mess_options & T_COSE_TEST_CRIT_HEADER_EXIST) {
         /* This is the critical headers header */
         QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
         int i;
@@ -184,7 +184,7 @@ make_protected_header(int32_t option_flags,
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
-    if(option_flags & T_COSE_TEST_TOO_MANY_CRIT_HEADER_EXIST) {
+    if(test_mess_options & T_COSE_TEST_TOO_MANY_CRIT_HEADER_EXIST) {
         /* This is the critical headers header */
         QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
         int i;
@@ -195,7 +195,7 @@ make_protected_header(int32_t option_flags,
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
-    if(option_flags & T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS) {
+    if(test_mess_options & T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS) {
         /* This is the critical headers header */
         QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
         int i;
@@ -206,18 +206,18 @@ make_protected_header(int32_t option_flags,
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
-    if(option_flags & T_COSE_TEST_EMPTY_CRIT_HEADERS_PARAM) {
+    if(test_mess_options & T_COSE_TEST_EMPTY_CRIT_HEADERS_PARAM) {
         QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
-    if(option_flags & T_COSE_TEST_KID_IN_PROTECTED) {
+    if(test_mess_options & T_COSE_TEST_KID_IN_PROTECTED) {
         QCBOREncode_AddBytesToMapN(&cbor_encode_ctx,
                                    COSE_HEADER_PARAM_KID,
                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("kid"));
     }
 
-    if(option_flags & T_COSE_TEST_DUP_CONTENT_ID) {
+    if(test_mess_options & T_COSE_TEST_DUP_CONTENT_ID) {
         QCBOREncode_AddUInt64ToMapN(&cbor_encode_ctx,
                                     COSE_HEADER_PARAM_CONTENT_TYPE,
                                     3);
@@ -251,11 +251,11 @@ Finish:
  * The unprotected headers added by this are the key ID plus
  * lots of different test headers.
  */
-static inline void add_unprotected_headers(int32_t              option_flags,
+static inline void add_unprotected_headers(int32_t test_mess_options,
                                            QCBOREncodeContext  *cbor_encode_ctx,
                                            struct q_useful_buf_c kid)
 {
-    if(option_flags & T_COSE_TEST_UNPROTECTED_NOT_MAP) {
+    if(test_mess_options & T_COSE_TEST_UNPROTECTED_NOT_MAP) {
         QCBOREncode_OpenArray(cbor_encode_ctx);
         QCBOREncode_AddBytes(cbor_encode_ctx, kid);
         QCBOREncode_CloseArray(cbor_encode_ctx);
@@ -264,21 +264,21 @@ static inline void add_unprotected_headers(int32_t              option_flags,
 
     QCBOREncode_OpenMap(cbor_encode_ctx);
 
-    if(option_flags & T_COSE_TEST_NOT_WELL_FORMED_1) {
+    if(test_mess_options & T_COSE_TEST_NOT_WELL_FORMED_1) {
         QCBOREncode_AddEncoded(cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("xxxxxx"));
     }
 
     /* Put in a byte string (not a text string) for the header label */
-    if(option_flags & T_COSE_TEST_HEADER_LABEL) {
+    if(test_mess_options & T_COSE_TEST_HEADER_LABEL) {
         QCBOREncode_AddBytes(cbor_encode_ctx, kid);
         QCBOREncode_AddBytes(cbor_encode_ctx, kid);
     }
 
-    if(option_flags & T_COSE_TEST_BAD_CRIT_HEADER) {
+    if(test_mess_options & T_COSE_TEST_BAD_CRIT_HEADER) {
         QCBOREncode_AddSZStringToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_CRIT, "hi");
     }
 
-    if(option_flags & T_COSE_TEST_EXTRA_HEADER) {
+    if(test_mess_options & T_COSE_TEST_EXTRA_HEADER) {
         QCBOREncode_OpenArrayInMapN(cbor_encode_ctx, 55);
         QCBOREncode_OpenMap(cbor_encode_ctx);
         QCBOREncode_AddSZStringToMapN(cbor_encode_ctx, 66, "hi");
@@ -287,7 +287,7 @@ static inline void add_unprotected_headers(int32_t              option_flags,
     }
 
 
-    if(option_flags & T_COSE_TEST_NOT_WELL_FORMED_2) {
+    if(test_mess_options & T_COSE_TEST_NOT_WELL_FORMED_2) {
         QCBOREncode_OpenArrayInMapN(cbor_encode_ctx, 55);
         QCBOREncode_OpenMap(cbor_encode_ctx);
         QCBOREncode_AddSZStringToMapN(cbor_encode_ctx, 66, "hi");
@@ -299,7 +299,7 @@ static inline void add_unprotected_headers(int32_t              option_flags,
         QCBOREncode_CloseArray(cbor_encode_ctx);
     }
 
-    if(option_flags & T_COSE_TEST_CRIT_NOT_PROTECTED) {
+    if(test_mess_options & T_COSE_TEST_CRIT_NOT_PROTECTED) {
         /* This is the critical headers header */
         QCBOREncode_OpenArrayInMapN(cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
         int i;
@@ -311,7 +311,7 @@ static inline void add_unprotected_headers(int32_t              option_flags,
         QCBOREncode_CloseArray(cbor_encode_ctx);
     }
 
-    if(option_flags & T_COSE_TEST_TOO_MANY_UNKNOWN) {
+    if(test_mess_options & T_COSE_TEST_TOO_MANY_UNKNOWN) {
         int i;
         for(i = 0; i < T_COSE_HEADER_LIST_MAX + 1; i++ ) {
             QCBOREncode_AddBoolToMapN(cbor_encode_ctx, i+10, true);
@@ -322,10 +322,15 @@ static inline void add_unprotected_headers(int32_t              option_flags,
         QCBOREncode_AddBytesToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_KID, kid);
     }
 
-    if(option_flags & T_COSE_TEST_ALL_HEADERS) {
-        QCBOREncode_AddBytesToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_IV, Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"));
-        QCBOREncode_AddBytesToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_PARTIAL_IV, Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"));
-        QCBOREncode_AddInt64ToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_CONTENT_TYPE, 1);
+    if(test_mess_options & T_COSE_TEST_ALL_HEADERS) {
+        QCBOREncode_AddBytesToMapN(cbor_encode_ctx,
+                                   COSE_HEADER_PARAM_IV,
+                                   Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"));
+        QCBOREncode_AddBytesToMapN(cbor_encode_ctx,
+                                   COSE_HEADER_PARAM_PARTIAL_IV,
+                                   Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"));
+        QCBOREncode_AddInt64ToMapN(cbor_encode_ctx,
+                                   COSE_HEADER_PARAM_CONTENT_TYPE, 1);
         /* A slighly complex unknown header */
         QCBOREncode_OpenArrayInMapN(cbor_encode_ctx, 55);
         QCBOREncode_OpenMap(cbor_encode_ctx);
@@ -339,11 +344,13 @@ static inline void add_unprotected_headers(int32_t              option_flags,
         QCBOREncode_CloseArray(cbor_encode_ctx);
     }
 
-    if(option_flags & T_COSE_TEST_TOO_LARGE_CONTENT_TYPE) {
-        QCBOREncode_AddInt64ToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_CONTENT_TYPE, UINT16_MAX+1);
+    if(test_mess_options & T_COSE_TEST_TOO_LARGE_CONTENT_TYPE) {
+        QCBOREncode_AddInt64ToMapN(cbor_encode_ctx,
+                                   COSE_HEADER_PARAM_CONTENT_TYPE,
+                                   UINT16_MAX+1);
     }
 
-    if(option_flags & T_COSE_TEST_DUP_CONTENT_ID) {
+    if(test_mess_options & T_COSE_TEST_DUP_CONTENT_ID) {
         QCBOREncode_AddUInt64ToMapN(cbor_encode_ctx,
                                     COSE_HEADER_PARAM_CONTENT_TYPE,
                                     3);
@@ -353,11 +360,13 @@ static inline void add_unprotected_headers(int32_t              option_flags,
 }
 
 
-/*
- * Public function. See t_cose_sign1_sign.h
+/**
+ * Replica of t_cose_sign1_output_headers() with modifications to
+ * output various good and bad messages for testing verification.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_test_message_output_headers(struct t_cose_sign1_sign_ctx *me,
+                                         int32_t test_mess_options,
                                          QCBOREncodeContext *cbor_encode_ctx)
 {
     enum t_cose_err_t      return_value;
@@ -385,7 +394,7 @@ t_cose_sign1_test_message_output_headers(struct t_cose_sign1_sign_ctx *me,
     /* The protected headers, which are added as a wrapped bstr  */
     buffer_for_protected_header =
         Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->protected_headers_buffer);
-    me->protected_headers = make_protected_header(me->option_flags,
+    me->protected_headers = make_protected_header(test_mess_options,
                                                   me->cose_algorithm_id,
                                                   buffer_for_protected_header);
     if(q_useful_buf_c_is_null(me->protected_headers)) {
@@ -394,7 +403,7 @@ t_cose_sign1_test_message_output_headers(struct t_cose_sign1_sign_ctx *me,
         return_value = T_COSE_ERR_MAKING_PROTECTED;
         goto Done;
     }
-    if( ! (me->option_flags & T_COSE_TEST_NO_PROTECTED_HEADERS)) {
+    if( ! (test_mess_options & T_COSE_TEST_NO_PROTECTED_HEADERS)) {
         /* The use of _AddBytes here achieves the bstr wrapping */
         QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_headers);
     }
@@ -413,8 +422,8 @@ t_cose_sign1_test_message_output_headers(struct t_cose_sign1_sign_ctx *me,
         kid = me->kid;
     }
 
-    if( ! (me->option_flags & T_COSE_TEST_NO_UNPROTECTED_HEADERS)) {
-        add_unprotected_headers(me->option_flags, cbor_encode_ctx, kid);
+    if( ! (test_mess_options & T_COSE_TEST_NO_UNPROTECTED_HEADERS)) {
+        add_unprotected_headers(test_mess_options, cbor_encode_ctx, kid);
     }
 
     QCBOREncode_BstrWrap(cbor_encode_ctx);
@@ -430,10 +439,11 @@ Done:
 }
 
 
-/*
- * Public function. See t_cose_sign1_sign.h
+/**
+ * Replica of t_cose_sign1_output_signature() with modifications to
+ * output various good and bad messages for testing verification.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
                                            QCBOREncodeContext *cbor_encode_ctx)
 {
@@ -483,7 +493,6 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
      * doesn't need to be checked here.
      */
     return_value = create_tbs_hash(me->cose_algorithm_id,
-
                                    me->protected_headers,
                                    T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED,
                                    signed_payload,
@@ -538,10 +547,11 @@ Done:
 
 
 /*
- * Public function. See t_cose_sign1_sign.h
+ * Public function. See t_cose_make_test_messages.h
  */
 enum t_cose_err_t
 t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
+                               int32_t                       test_mess_options,
                                struct q_useful_buf_c         payload,
                                struct q_useful_buf           out_buf,
                                struct q_useful_buf_c        *result)
@@ -553,7 +563,9 @@ t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_Init(&encode_context, out_buf);
 
     /* -- Output the headers into the encoder context -- */
-    return_value = t_cose_sign1_test_message_output_headers(me, &encode_context);
+    return_value = t_cose_sign1_test_message_output_headers(me,
+                                                            test_mess_options,
+                                                            &encode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -566,7 +578,8 @@ t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_AddEncoded(&encode_context, payload);
 
     /* -- Sign and put signature in the encoder context -- */
-    return_value = t_cose_sign1_test_message_output_signature(me, &encode_context);
+    return_value = t_cose_sign1_test_message_output_signature(me,
+                                                              &encode_context);
     if(return_value) {
         goto Done;
     }

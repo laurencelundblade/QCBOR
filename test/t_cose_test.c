@@ -10,8 +10,8 @@
 
 #include "t_cose_test.h"
 #include "t_cose_sign1_sign.h"
-#include "t_cose_make_test_messages.h"
 #include "t_cose_sign1_verify.h"
+#include "t_cose_make_test_messages.h"
 #include "q_useful_buf.h"
 #include "t_cose_crypto.h" /* For signature size constant */
 
@@ -466,7 +466,7 @@ int cose_example_test()
 }
 
 
-static enum t_cose_err_t run_test_sign_and_verify(int32_t option)
+static enum t_cose_err_t run_test_sign_and_verify(int32_t test_mess_options)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -482,13 +482,15 @@ static enum t_cose_err_t run_test_sign_and_verify(int32_t option)
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
     t_cose_sign1_sign_init(&sign_ctx,
-                      T_COSE_OPT_SHORT_CIRCUIT_SIG | option,
+                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
                       T_COSE_ALGORITHM_ES256);
 
-    return_value = t_cose_test_message_sign1_sign(&sign_ctx,
-                      Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
-                      signed_cose_buffer,
-                      &signed_cose);
+    return_value =
+        t_cose_test_message_sign1_sign(&sign_ctx,
+                                       test_mess_options,
+                                       Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                       signed_cose_buffer,
+                                       &signed_cose);
     if(return_value) {
         return 2000 + return_value;
     }
@@ -554,18 +556,20 @@ int_fast32_t all_headers_test()
 
 
     t_cose_sign1_sign_init(&sign_ctx,
-                       T_COSE_OPT_SHORT_CIRCUIT_SIG | T_COSE_TEST_ALL_HEADERS,
+                       T_COSE_OPT_SHORT_CIRCUIT_SIG,
                        T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_signing_key(&sign_ctx,
                          T_COSE_NULL_KEY,
                          Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
-    return_value = t_cose_test_message_sign1_sign(&sign_ctx,
-                                      Q_USEFUL_BUF_FROM_SZ_LITERAL(
-                                          "This is the content."),
-                                      signed_cose_buffer,
-                                     &output);
+    return_value =
+        t_cose_test_message_sign1_sign(&sign_ctx,
+                                       T_COSE_TEST_ALL_HEADERS,
+                                       Q_USEFUL_BUF_FROM_SZ_LITERAL(
+                                            "This is the content."),
+                                       signed_cose_buffer,
+                                      &output);
     if(return_value) {
         return 1;
     }
