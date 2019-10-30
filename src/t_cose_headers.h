@@ -157,13 +157,13 @@ check_and_copy_headers(const struct t_cose_headers  *protected,
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
-static void inline clear_header_list(struct t_cose_label_list *list)
+inline static void clear_header_list(struct t_cose_label_list *list)
 {
     memset(list, 0, sizeof(struct t_cose_label_list));
 }
 
 
-static bool inline
+inline static bool
 is_header_list_clear(const struct t_cose_label_list *list)
 {
     return list->int_labels[0] == 0 &&

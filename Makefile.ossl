@@ -1,4 +1,4 @@
-# Makefile -- UNIX-style make for t_cose
+# Makefile -- UNIX-style make for t_cose using OpenSSL crypto
 #
 # Copyright (c) 2019, Laurence Lundblade. All rights reserved.
 #
@@ -8,9 +8,8 @@
 #
 
 # ---- comment ----
-# This t_cose makefile is for test crypto
-# It has no dependency on any external crypto library, but doesn't
-# support real ECDSA signing. The only external code needed is QCBOR.
+# This is for OpenSSL Crypto. Adjust CRYPTO_INC and CRYPTO_LIB for the location of
+# the openssl libraries on your build machine.
 
 
 # ---- QCBOR location ----
@@ -20,10 +19,10 @@ QCBOR_LIB=../../QCBOR/master/libqcbor.a
 
 
 # ---- crypto configuration -----
-# Uses only the internal Brad Conte hash implementation that is bundled with t_cose
-CRYPTO_INC=-I crypto_adapters/b_con_hash
-CRYPTO_OBJ=crypto_adapters/t_cose_test_crypto.o crypto_adapters/b_con_hash/sha256.o
-CRYPTO_LIB=
+# Set up for OpenSSL. This may have to be adjusted for your build environment.
+CRYPTO_INC=-I ../../openssl/openssl-1.1.1b/include/openssl -I ../../openssl/openssl-1.1.1b/include
+CRYPTO_OBJ=crypto_adapters/t_cose_openssl_crypto.o
+CRYPTO_LIB=../../openssl/openssl-1.1.1b/libcrypto.a
 
 
 # ---- compiler configuration -----
@@ -31,9 +30,9 @@ C_OPTS=-Os -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
 
 
 # ---- T_COSE Config and test options ----
-CONFIG_OPTS=-DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_USE_B_CON_SHA256 -DT_COSE_DISABLE_SIGN_VERIFY_TESTS
-CRYPTO_TEST_OBJ=
-TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_make_test_messages.o $(CRYPTO_TEST_OBJ)
+CONFIG_OPTS=-DT_COSE_USE_OPENSSL_CRYPTO
+CRYPTO_TEST_OBJ=test/t_cose_make_openssl_test_key.o
+TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_sign_verify_test.o test/t_cose_make_test_messages.o $(CRYPTO_TEST_OBJ)
 
 
 # ---- the main body that is invariant ----
@@ -43,8 +42,8 @@ CFLAGS=$(ALL_INC) $(C_OPTS) $(CONFIG_OPTS)
 
 SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_headers.o
 
-all:	t_cose_test libt_cose.a
-
+all:	t_cose_test
+	
 
 libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
 	ar -r $@ $^
@@ -55,7 +54,7 @@ t_cose_test: main.o  libt_cose.a $(TEST_OBJ)
 
 
 clean:
-	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) libt_cose.a t_cose_test
+	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) libt_cose.a
 
 
 # ---- source dependecies -----
@@ -69,8 +68,7 @@ src/t_cose_sign1_sign.o: inc/t_cose_sign1_sign.h src/t_cose_standard_constants.h
 test/t_cose_test.o: test/t_cose_test.h inc/t_cose_sign1_sign.h inc/t_cose_sign1_verify.h inc/t_cose_common.h test/t_cose_make_test_messages.h src/t_cose_crypto.h
 test/t_cose_make_test_messages.o: test/t_cose_make_test_messages.h inc/t_cose_sign1_sign.h inc/t_cose_common.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h
 test/run_test.o: test/run_test.h test/t_cose_test.h test/t_cose_hash_fail_test.h
-
+test/t_cose_make_openssl_test_key.o:	test/t_cose_make_test_pub_key.h inc/t_cose_common.h
 
 # ---- crypto dependencies ----
-crypto_adapters/t_cose_test_crypto.o:	src/t_cose_crypto.h inc/t_cose_common.h src/t_cose_standard_constants.h inc/q_useful_buf.h crypto_adapters/b_con_hash/sha256.h
-crypto_adapters/b_con_hash/sha256.o:	crypto_adapters/b_con_hash/sha256.h
+crypto_adapters/t_cose_openssl_crypto.o:	src/t_cose_crypto.h inc/t_cose_common.h src/t_cose_standard_constants.h inc/q_useful_buf.h 

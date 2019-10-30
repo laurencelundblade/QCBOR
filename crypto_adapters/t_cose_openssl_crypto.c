@@ -11,7 +11,7 @@
  */
 
 
-#include "t_cose_crypto.h"
+#include "t_cose_crypto.h" /* The interface this code implements */
 
 #include "openssl/ecdsa.h"
 #include "openssl/err.h"
@@ -23,47 +23,57 @@
  * \file t_cose_openssl_crypto.c
  *
  * \brief Crypto Adaptation for t_cose to use openssl ECDSA and hashes.
+ *
+ * This connects up the abstracted crypto services defined in
+ * t_cose_crypto.h to the OpenSSL implementation of them.
+ *
+ * This adapter layer doesn't bloat the implementation as everything here
+ * had to be done anyway -- the mapping of algorithm IDs, the data format
+ * rearranging, the error code translation.
+ *
+ * This code should just work out of the box if compiled and linked
+ * against OpenSSL and with the T_COSE_USE_OPENSSL_CRYPTO preprocessor
+ * define set for the build.
+ *
+ * You can disable SHA-384 and SHA-512 to save code and space by
+ * defining T_COSE_DISABLE_ES384 or T_COSE_DISABLE_ES512. This saving
+ * is most in stack space in the main t_cose implementation. (It seems
+ * likely that changes to OpenSSL itself would be needed to remove
+ * the SHA-384 and SHA-512 implementations to save that code).
  */
-
 
 
 
 /**
  * \brief Convert OpenSSL ECDSA_SIG to serialized on-the-wire format
  *
- * \param[in] cose_algorithm_id Signing algorithm identifier
- * \param[in] ossl_signature    The OpenSSL signature to convert
- * \param[in] signature_buffer  The buffer to put the output into
+ * \param[in] key_len             Size of the key in bytes -- governs sig size.
+ * \param[in] ossl_signature      The OpenSSL signature to convert.
+ * \param[in] signature_buffer    The buffer for output.
  *
- * \return The serialized signature or NULL_Q_USEFUL_BUF_C on error.
+ * \return The pointer and length of serialized signature in \c signature_buffer
+           or NULL_Q_USEFUL_BUF_C on error.
  *
- * This doesn't check inputs for NULL in ossl_signature or it's
+ * The serialized format is defined by COSE in RFC 8152 section
+ * 8.1. The signature which consist of two integers, r and s,
+ * are simply zero padded to the nearest byte length and
+ * concatenated.
+ *
+ * This doesn't check inputs for NULL in ossl_signature or its
  * internals are NULL.
  */
 static inline struct q_useful_buf_c
-convert_signature_from_ossl(int32_t             cose_algorithm_id,
-                            const ECDSA_SIG    *ossl_signature,
-                            struct q_useful_buf signature_buffer)
+convert_ecdsa_signature_from_ossl(int                 key_len,
+                                  const ECDSA_SIG    *ossl_signature,
+                                  struct q_useful_buf signature_buffer)
 {
     size_t                r_len;
     size_t                s_len;
     const BIGNUM         *ossl_signature_r_bn;
     const BIGNUM         *ossl_signature_s_bn;
-    size_t                sig_len;
-    struct q_useful_buf_c signature;;
-
-    /* Check the signature size and against the buffer size */
-    sig_len = t_cose_signature_size(cose_algorithm_id);
-    if(sig_len == 0) {
-        /* Unknown algorithm */
-        signature = NULL_Q_USEFUL_BUF_C;
-        goto Done;
-    }
-    if(sig_len > signature_buffer.len) {
-        /* Buffer given for signature is too small */
-        signature = NULL_Q_USEFUL_BUF_C;
-        goto Done;
-    }
+    struct q_useful_buf_c signature;
+    void                 *r_start_ptr;
+    void                 *s_start_ptr;
 
     /* Zero the buffer so that bytes r and s are padded with zeros */
     q_useful_buf_set(signature_buffer, 0);
@@ -89,132 +99,58 @@ convert_signature_from_ossl(int32_t             cose_algorithm_id,
     }
 
     /* Copy r and s of signature to output buffer and set length */
-    void *r_start_ptr = (uint8_t *)signature_buffer.ptr + (sig_len / 2) - r_len;
+    r_start_ptr = (uint8_t *)(signature_buffer.ptr) + key_len - r_len;
     BN_bn2bin(ossl_signature_r_bn, r_start_ptr);
 
-    void *s_start_ptr = (uint8_t *)signature_buffer.ptr + sig_len - s_len;
+    s_start_ptr = (uint8_t *)signature_buffer.ptr + 2 * key_len - s_len;
     BN_bn2bin(ossl_signature_s_bn, s_start_ptr);
 
-    signature = (UsefulBufC){signature_buffer.ptr, sig_len};
+    signature = (UsefulBufC){signature_buffer.ptr, 2 * key_len};
 
 Done:
     return signature;
 }
 
 
-/*
- * See documentation in t_cose_crypto.h
- */
-enum t_cose_err_t
-t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
-                           struct t_cose_key      signing_key,
-                           struct q_useful_buf_c  hash_to_sign,
-                           struct q_useful_buf    signature_buffer,
-                           struct q_useful_buf_c *signature)
-{
-    enum t_cose_err_t  return_value;
-    EC_KEY            *ossl_ec_key;
-    ECDSA_SIG         *ossl_signature = NULL;
-
-    /* Check the algorithm identifier */
-    if(cose_algorithm_id != COSE_ALGORITHM_ES256 &&
-       cose_algorithm_id != COSE_ALGORITHM_ES384 &&
-       cose_algorithm_id != COSE_ALGORITHM_ES512) {
-        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-        goto Done;
-    }
-
-    /* Check the signing key and get it out of the union */
-    if(signing_key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
-        goto Done;
-    }
-    if(signing_key.k.key_ptr == NULL) {
-        return_value = T_COSE_ERR_EMPTY_KEY;
-        goto Done;
-    }
-    ossl_ec_key = (EC_KEY *)signing_key.k.key_ptr;
-
-    /* Actually do the EC signature over the hash */
-    ossl_signature = ECDSA_do_sign(hash_to_sign.ptr,
-                                   (int)hash_to_sign.len,
-                                   ossl_ec_key);
-    if(ossl_signature == NULL) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
-
-    /* Convert signature from OSSL format to the serialized format in
-     * a q_useful_buf. Presumably everything inside ossl_signature is
-     * correct since it is not NULL.
-     */
-    *signature = convert_signature_from_ossl(cose_algorithm_id,
-                                             ossl_signature,
-                                             signature_buffer);
-    if(q_useful_buf_c_is_null(*signature)) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
-
-    /* Everything succeeded */
-    return_value = T_COSE_SUCCESS;
-
-Done:
-    /* These (are assumed to) all check for NULL before they free, so
-     * it is not necessary to check for NULL here.
-     */
-    ECDSA_SIG_free(ossl_signature);
-
-    return return_value;
-}
-
-
 /**
  * \brief Convert serialized on-the-wire sig to OpenSSL ECDSA_SIG.
  *
- * \param[in] cose_algorithm_id         Signing algorithm identifier.
+ * \param[in] key_len             Size of the key in bytes -- governs sig size.
  * \param[in] signature           The serialized input signature.
  * \param[out] ossl_sig_to_verify Place to return ECDSA_SIG.
  *
  * \return one of the \ref t_cose_err_t error codes.
+ *
+ * The serialized format is defined by COSE in RFC 8152 section
+ * 8.1. The signature which consist of two integers, r and s,
+ * are simply zero padded to the nearest byte length and
+ * concatenated.
  */
-static  enum t_cose_err_t
-convert_signature_to_ossl(int32_t                cose_algorithm_id,
-                          struct q_useful_buf_c  signature,
-                          ECDSA_SIG            **ossl_sig_to_verify)
+static enum t_cose_err_t
+convert_ecdsa_signature_to_ossl(int                    key_len,
+                                struct q_useful_buf_c  signature,
+                                ECDSA_SIG            **ossl_sig_to_verify)
 {
     enum t_cose_err_t return_value;
     BIGNUM           *ossl_signature_r_bn = NULL;
     BIGNUM           *ossl_signature_s_bn = NULL;
     int               ossl_result;
-    size_t            sig_size;
-    int               half_sig_size;
 
     /* Check the signature length against expected */
-    sig_size = t_cose_signature_size(cose_algorithm_id);
-    if(sig_size == 0) {
-        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-        goto Done;
-    }
-    if(signature.len != sig_size) {
+    if(signature.len != (size_t)key_len * 2) {
         return_value = T_COSE_ERR_SIG_VERIFY;
         goto Done;
     }
 
-    /* Cast to int is safe because of check against return from
-     * t_cose_signature_size()
-     */
-    half_sig_size = (int)sig_size/2;
-
     /* Put the r and the s from the signature into big numbers */
-    ossl_signature_r_bn = BN_bin2bn(signature.ptr, half_sig_size, NULL);
+    ossl_signature_r_bn = BN_bin2bn(signature.ptr, key_len, NULL);
     if(ossl_signature_r_bn == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
         goto Done;
     }
 
-    ossl_signature_s_bn = BN_bin2bn(((uint8_t *)signature.ptr)+half_sig_size,
-                                    half_sig_size,
+    ossl_signature_s_bn = BN_bin2bn(((uint8_t *)signature.ptr)+key_len,
+                                    key_len,
                                     NULL);
     if(ossl_signature_s_bn == NULL) {
         BN_free(ossl_signature_r_bn);
@@ -251,6 +187,157 @@ Done:
 }
 
 
+
+
+/**
+ * \brief Common checks and conversions for signing and verification key.
+ *
+ * \param[in] t_cose_key                 The key to check and convert.
+ * \param[out] return_ossl_ec_key        The OpenSSL key in memory.
+ * \param[out] return_key_size_in_bytes  How big the key is.
+ *
+ * \return Error or \ref T_COSE_SUCCESS.
+ *
+ * It pulls the OpenSSL in-memory key out of \c t_cose_key
+ * and checks it and figures out the number of bytes
+ * in the key rounded up. This is also the size of r and s
+ * in the signature.
+ */
+static enum t_cose_err_t
+ecdsa_key_checks(struct t_cose_key  t_cose_key,
+                 EC_KEY           **return_ossl_ec_key,
+                 int               *return_key_size_in_bytes)
+{
+    enum t_cose_err_t  return_value;
+    const EC_GROUP    *key_group;
+    int                key_len_bits; /* type int is conscious choice */
+    int                key_len_bytes; /* type int is conscious choice */
+    int                ossl_result; /* type int is conscious choice */
+    EC_KEY            *ossl_ec_key;
+
+    /* Check the signing key and get it out of the union */
+    if(t_cose_key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
+        return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
+        goto Done;
+    }
+    if(t_cose_key.k.key_ptr == NULL) {
+        return_value = T_COSE_ERR_EMPTY_KEY;
+        goto Done;
+    }
+    ossl_ec_key = (EC_KEY *)t_cose_key.k.key_ptr;
+
+    /* Check the key to be sure it is OK */
+    ossl_result = EC_KEY_check_key(ossl_ec_key);
+    if(ossl_result == 0) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    /* Get the key size, which depends on the group */
+    key_group = EC_KEY_get0_group(ossl_ec_key);
+    if(key_group == NULL) {
+        return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
+        goto Done;
+    }
+    key_len_bits = EC_GROUP_get_degree(key_group);
+
+    /* Convert group size in bits to key size in bytes per
+     * RFC 8152 section 8.1. This is also the size of
+     * r and s in the signature. This is by rounding up
+     * to the number of bytes to hold the give number of bits.
+     */
+    key_len_bytes = key_len_bits / 8;
+    if(key_len_bits % 8) {
+        key_len_bytes++;
+    }
+
+    *return_key_size_in_bytes = key_len_bytes;
+    *return_ossl_ec_key       = ossl_ec_key;
+
+    return_value = T_COSE_SUCCESS;
+
+Done:
+    return return_value;
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
+                           struct t_cose_key      signing_key,
+                           struct q_useful_buf_c  hash_to_sign,
+                           struct q_useful_buf    signature_buffer,
+                           struct q_useful_buf_c *serialized_signature)
+{
+    enum t_cose_err_t  return_value;
+    EC_KEY            *ossl_ec_key;
+    ECDSA_SIG         *ossl_signature;
+    int                key_len; /* in bytes; type int is conscious choice */
+
+    ossl_signature = NULL;
+
+    /* This implementation supports ECDSA and only ECDSA. The
+     * interface allows it to support other, but none are implemented.
+     * This implementation works for different keys lengths and
+     * curves. That is, the curve and key length as associated
+     * with the \c signing_key passed in, not the \c cose_algorithm_id
+     * This check looks for ECDSA signing as indicated by COSE and rejects what
+     * is not since it only supports ECDSA.
+     *
+     * If RSA or such is to be added, it would be added here and switch
+     * based on the cose_algorithm_id would select it.
+     */
+    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done;
+    }
+
+    /* Check out a few things that are common between signing and verification*/
+    return_value = ecdsa_key_checks(signing_key,
+                                   &ossl_ec_key,
+                                   &key_len);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    /* Actually do the EC signature over the hash */
+    ossl_signature = ECDSA_do_sign(hash_to_sign.ptr,
+                                   (int)hash_to_sign.len,
+                                   ossl_ec_key);
+    if(ossl_signature == NULL) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    /* Convert signature from OSSL format to the serialized format in
+     * a q_useful_buf. Presumably everything inside ossl_signature is
+     * correct since it is not NULL.
+     */
+    *serialized_signature =
+        convert_ecdsa_signature_from_ossl(key_len,
+                                          ossl_signature,
+                                          signature_buffer);
+    if(q_useful_buf_c_is_null(*serialized_signature)) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+    /* Everything succeeded */
+    return_value = T_COSE_SUCCESS;
+
+Done:
+    /* This (is assumed to) checks for NULL before free, so
+     * it is not necessary to check for NULL here.
+     */
+    ECDSA_SIG_free(ossl_signature);
+
+    return return_value;
+}
+
+
+
 /*
  * See documentation in t_cose_crypto.h
  */
@@ -259,50 +346,41 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
                              struct t_cose_key      verification_key,
                              struct q_useful_buf_c  kid,
                              struct q_useful_buf_c  hash_to_verify,
-                             struct q_useful_buf_c  signature)
+                             struct q_useful_buf_c  serialized_sig_to_verify)
 {
     int               ossl_result;
     enum t_cose_err_t return_value;
     EC_KEY           *ossl_pub_key;
-    ECDSA_SIG        *ossl_sig_to_verify = NULL;
+    ECDSA_SIG        *ossl_sig_to_verify;
+    int               key_len; /* in bytes; type int is conscious choice */
 
     /* This implementation doesn't use any key store with the ability
      * to look up a key based on kid. */
     (void)kid;
 
-    /* Check the algorithm identifier */
-    if(cose_algorithm_id != COSE_ALGORITHM_ES256 &&
-       cose_algorithm_id != COSE_ALGORITHM_ES384 &&
-       cose_algorithm_id != COSE_ALGORITHM_ES512) {
+    ossl_sig_to_verify = NULL;
+
+    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }
 
-    /* Check the signing key and get it out of the union */
-    if(verification_key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
+    /* Check out a few things that are common between signing and verification*/
+    return_value = ecdsa_key_checks(verification_key,
+                                   &ossl_pub_key,
+                                   &key_len);
+    if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    if(verification_key.k.key_ptr == NULL) {
-        return_value = T_COSE_ERR_EMPTY_KEY;
-        goto Done;
-    }
-    ossl_pub_key = (EC_KEY *)verification_key.k.key_ptr;
 
     /* Convert the serialized signature off the wire into the openssl
      * object / structure
      */
-    return_value = convert_signature_to_ossl(cose_algorithm_id,
-                                             signature,
-                                             &ossl_sig_to_verify);
+    return_value =
+       convert_ecdsa_signature_to_ossl(key_len,
+                                        serialized_sig_to_verify,
+                                       &ossl_sig_to_verify);
     if(return_value) {
-        goto Done;
-    }
-
-    /* Check the key to be sure it is OK */
-    ossl_result = EC_KEY_check_key(ossl_pub_key);
-    if(ossl_result == 0) {
-        return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
 
@@ -331,6 +409,8 @@ Done:
 
     return return_value;
 }
+
+
 
 
 /*
@@ -377,7 +457,7 @@ enum t_cose_err_t t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
 void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
                                struct q_useful_buf_c data_to_hash)
 {
-    if(hash_ctx->update_error) {
+    if(hash_ctx->update_error) { /* 1 is no error, 0 means error for OpenSSL */
         if(data_to_hash.ptr) {
             switch(hash_ctx->cose_hash_alg_id) {
 

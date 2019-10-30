@@ -42,9 +42,33 @@ fairly stable. There is a crypto adaptaion layer for [OpenSSL](https://www.opens
 
 There is a simple makefile.
 
-* [QCBOR](https://github.com/laurencelundblade/QCBOR) is required
-* Some cryptographic library that supports ECDSA and at least SHA-256 is required
-* * A porting layer for [OpenSSL](https://www.openssl.org) is included.
+[QCBOR](https://github.com/laurencelundblade/QCBOR) is required
+
+### Crypto Library
+Some cryptographic library that supports ECDSA and at least SHA-256 is required.
+
+#### Test Crypto
+Out of the box, this compiles, links and runs with no additional crypto library, but only in
+a test mode. This allows for quickly geting started. This mode allows more than half the tests to run.
+It is however not good for real commercial use as it doesn't do real public key signing and
+verification.
+
+For this test mode a bundled SHA-256 hash implementation is used, the ECDSA signing
+is stubbed to do nothing and the test short-circuit signing is used.
+
+#### OpenSSL Crypto
+This OpenSSL integration supports SHA-256, SHA-384 and SHA-512 with ECDSA to support
+the COSE algorithms ES256, ES384 and ES512. 
+
+To enable this:
+* #define T_COSE_USE_OPENSSL_CRYPTO 
+* Make with crypto_adapters/t_cose_openssl_crypto.c
+* Define the include path to OpenSSL headers in your build environment
+* Link with the OpenSSL libary
+
+#### PSA Crypto
+
+
 
 ## Memory Usage
 

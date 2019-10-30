@@ -864,7 +864,7 @@ static struct sign1_sample sign1_sample_inputs[] = {
     /* Just one not-well-formed byte -- a reserved value */
     { {(uint8_t[]){0x3c}, 1}, T_COSE_ERR_SIGN1_FORMAT },
     /* terminate the list */
-    {(struct q_useful_buf_c){NULL, 0}, 0}
+    { {NULL, 0}, 0 },
 };
 
 
@@ -892,3 +892,57 @@ int_fast32_t sign1_structure_decode_test(void)
 
     return 0;
 }
+
+#ifdef T_COSE_ENABLE_HASH_FAIL_TEST
+extern int hash_test_mode;
+
+
+int_fast32_t short_circuit_hash_fail_test()
+{
+    struct t_cose_sign1_sign_ctx sign_ctx;
+    enum t_cose_err_t            return_value;
+    struct q_useful_buf_c        wrapped_payload;
+    Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 200);
+
+
+    /* Set the global variable to cause the hash implementation to
+     * error out so this test can see what happens
+     */
+    hash_test_mode = 1;
+
+    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, T_COSE_ALGORITHM_ES256);
+
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     signed_cose_buffer,
+                                     &wrapped_payload);
+
+    hash_test_mode = 0;
+
+    if(return_value != T_COSE_ERR_HASH_GENERAL_FAIL) {
+        return 2000 + return_value;
+    }
+
+
+    /* Set the global variable to cause the hash implementation to
+     * error out so this test can see what happens
+     */
+    hash_test_mode = 2;
+
+    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, T_COSE_ALGORITHM_ES256);
+
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     signed_cose_buffer,
+                                     &wrapped_payload);
+
+    hash_test_mode = 0;
+
+    if(return_value != T_COSE_ERR_HASH_GENERAL_FAIL) {
+        return 2000 + return_value;
+    }
+
+    return 0;
+}
+
+#endif

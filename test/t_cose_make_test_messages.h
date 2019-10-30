@@ -97,7 +97,7 @@ t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
                                struct q_useful_buf           out_buf,
                                struct q_useful_buf_c        *result);
 
-    
+
 #ifdef __cplusplus
 }
 #endif

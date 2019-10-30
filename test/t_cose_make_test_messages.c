@@ -52,8 +52,13 @@ short_circuit_sign(int32_t               cose_algorithm_id,
     size_t            amount_to_copy;
     size_t            sig_size;
 
+    sig_size =
+       cose_algorithm_id == COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
+       cose_algorithm_id == COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
+       cose_algorithm_id == COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
+       0;
+
     /* Check the signature length against buffer size*/
-    sig_size = t_cose_signature_size(cose_algorithm_id);
     if(sig_size == 0) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
@@ -463,7 +468,7 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
     struct q_useful_buf_c        signature;
     /* Buffer for the actual signature */
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_signature,
-                                     T_COSE_MAX_EC_SIG_SIZE);
+                                     T_COSE_MAX_SIG_SIZE);
     /* Buffer for the tbs hash. */
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash,
                                      T_COSE_CRYPTO_MAX_HASH_SIZE);

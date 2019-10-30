@@ -36,23 +36,18 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
      * changed to have larger buffers, in particular
      * \ref T_COSE_CRYPTO_MAX_HASH_SIZE.
      */
-    switch(cose_algorithm_id) {
-    case COSE_ALGORITHM_ES256:
-        return COSE_ALGORITHM_SHA_256;
-
+    /* ? : operator precedence is correct here. This makes smaller
+     * code than a switch statement and is easier to read.
+     */
+    return
+        cose_algorithm_id == COSE_ALGORITHM_ES256 ? COSE_ALGORITHM_SHA_256 :
 #ifndef T_COSE_DISABLE_ES384
-    case COSE_ALGORITHM_ES384:
-        return COSE_ALGORITHM_SHA_384;
+        cose_algorithm_id == COSE_ALGORITHM_ES384 ? COSE_ALGORITHM_SHA_384 :
 #endif
-
 #ifndef T_COSE_DISABLE_ES512
-     case COSE_ALGORITHM_ES512:
-        return COSE_ALGORITHM_SHA_512;
+        cose_algorithm_id == COSE_ALGORITHM_ES512 ? COSE_ALGORITHM_SHA_512 :
 #endif
-
-    default:
-        return INT32_MAX;
-    }
+                                                    INT32_MAX;
 }
 
 

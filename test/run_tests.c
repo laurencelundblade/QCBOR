@@ -16,10 +16,7 @@
 
 #include "t_cose_test.h"
 #include "t_cose_openssl_test.h"
-
-#ifdef T_COSE_DO_HASH_FAIL_TEST
-#include "t_cose_hash_fail_test.h"
-#endif /* T_COSE_DO_HASH_FAIL_TEST */
+#include "t_cose_sign_verify_test.h"
 
 
 /*
@@ -52,28 +49,29 @@ static test_entry2 s_tests2[] = {
 #endif
 
 static test_entry s_tests[] = {
+#ifndef T_COSE_DISABLE_SIGN_VERIFY_TESTS
+    /* Many tests can be run without a crypto library integration and provide
+     * good test coverage of everything but the signing and verification. These
+     * tests can't be run with signing and verification short circuited */
+    TEST_ENTRY(sign_verify_basic_test),
+    TEST_ENTRY(sign_verify_make_cwt_test),
+    TEST_ENTRY(sign_verify_sig_fail_test),
+#endif
     TEST_ENTRY(sign1_structure_decode_test),
     TEST_ENTRY(content_type_test),
     TEST_ENTRY(all_headers_test),
     TEST_ENTRY(cose_example_test),
     TEST_ENTRY(critical_headers_test),
     TEST_ENTRY(bad_headers_test),
-    TEST_ENTRY(openssl_basic_test),
     TEST_ENTRY(short_circuit_no_parse_test),
-    TEST_ENTRY(openssl_make_cwt_test),
     TEST_ENTRY(short_circuit_make_cwt_test),
     TEST_ENTRY(short_circuit_signing_error_conditions_test),
     TEST_ENTRY(short_circuit_verify_fail_test),
-    TEST_ENTRY(openssl_sig_fail_test),
     TEST_ENTRY(short_circuit_self_test),
 
-#ifdef T_COSE_DO_HASH_FAIL_TEST
-    /* This test requires a build with a special crypto adaptor. This code
-     * this tests is simple, stable and has few portability issues so
-     * it is OK not to run this for every regression test.
-     */
+#ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     TEST_ENTRY(short_circuit_hash_fail_test),
-#endif /* T_COSE_DO_HASH_FAIL_TEST */
+#endif /* T_COSE_DISABLE_HASH_FAIL_TEST */
 };
 
 

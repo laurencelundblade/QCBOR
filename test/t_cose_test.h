@@ -31,7 +31,8 @@ int_fast32_t short_circuit_self_test(void);
  *
  * \return non-zero on failure.
  *
- * This test makes a simple COSE_Sign1 modify the payload and see that verification fails.
+ * This test makes a simple COSE_Sign1 modify the payload and see that
+ * verification fails.
  * It uses short-circuit signatures so no keys or even
  * integration with public key crypto is necessary.
  */
@@ -98,6 +99,7 @@ int_fast32_t content_type_test(void);
 int_fast32_t sign1_structure_decode_test(void);
 
 
+int_fast32_t short_circuit_hash_fail_test(void);
 
 
 #endif /* t_cose_test_h */

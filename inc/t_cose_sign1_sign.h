@@ -171,6 +171,8 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
                              struct q_useful_buf_c         kid);
 
 
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
 /**
  * \brief Set the payload content type using CoAP content types.
  *
@@ -204,6 +206,7 @@ t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
 static inline void
 t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
                                    const char                   *content_type);
+#endif
 
 
 /**

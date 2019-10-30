@@ -1,36 +1,15 @@
 /*
- psa_off_target_hashes.c
-
- Copyright 2018, Laurence Lundblade
-
- Redistribution and use in source and binary forms, with or without modification,
- are permitted provided that the following conditions are met:
-
- 1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer.
-
- 2. Redistributions in binary form must reproduce the above copyright notice, this
- list of conditions and the following disclaimer in the documentation and/or other
- materials provided with the distribution.
-
- 3. Neither the name of the copyright holder nor the names of its contributors may
- be used to endorse or promote products derived from this software without specific
- prior written permission.
-
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- OF SUCH DAMAGE.
+ * psa_off_target_hashes.c
+ *
+ * Copyright 2019, Laurence Lundblade
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.mdE.
  */
 
-#include "psa_crypto.h"
-#include "sha256.h"
+#include "crypto.h" /* PSA crypto services */
+#include "openssl/sha.h" /* OpenSSL hash functions */
 
 
 /*
@@ -39,19 +18,59 @@
  It is for off-target testing only.
  */
 static SHA256_CTX g_s256_ctx;
+static SHA512_CTX g_s512_ctx;
 
-static uint32_t x;
+
+/* Track status of the single hash context */
+typedef enum {IDLE, S256, S384, S512} off_target_hash_status_t;
+static off_target_hash_status_t s_status = IDLE;
 
 psa_status_t psa_hash_setup(psa_hash_operation_t *operation,
                             psa_algorithm_t alg)
 {
-    (void)alg; /* unused variable */
+    int                      ossl_result;
+    off_target_hash_status_t new_status;
+    psa_status_t             return_value;
 
-    x = operation->handle;
-    
-    sha256_init(&g_s256_ctx);
+    if(s_status != IDLE) {
+        return_value = PSA_ERROR_BAD_STATE;
+        goto Done;
+    }
 
-    return 0;
+    switch(alg) {
+        case PSA_ALG_SHA_256:
+            ossl_result = SHA256_Init(&g_s256_ctx);
+            new_status = S256;
+            break;
+
+        case PSA_ALG_SHA_384:
+            ossl_result = SHA384_Init(&g_s512_ctx);
+            new_status = S384;
+            break;
+
+        case PSA_ALG_SHA_512:
+            ossl_result = SHA512_Init(&g_s512_ctx);
+            new_status = S512;
+            break;
+
+        default:
+            return_value = PSA_ERROR_NOT_SUPPORTED;
+            new_status = IDLE;
+            goto Done;
+            break;
+    }
+
+    if(!ossl_result) {
+        return_value = PSA_ERROR_GENERIC_ERROR;
+        goto Done;
+    }
+
+    operation->handle = new_status;
+    s_status = new_status;
+    return_value = PSA_SUCCESS;
+
+  Done:
+    return return_value;
 }
 
 
@@ -59,13 +78,32 @@ psa_status_t psa_hash_update(psa_hash_operation_t *operation,
                              const uint8_t *input,
                              size_t input_length)
 {
-    if(x !=  operation->handle) {
-        return 1;
-    }
-    
-    sha256_update(&g_s256_ctx, input, input_length);
+    int ossl_result;
 
-    return 0;
+    if(s_status !=  operation->handle) {
+        /* Caller is out of sync with our one context */
+        return PSA_ERROR_BAD_STATE;
+    }
+
+    switch((off_target_hash_status_t)operation->handle) {
+        case IDLE:
+            ossl_result = 0;
+            break;
+
+        case S256:
+            ossl_result = SHA256_Update(&g_s256_ctx, input, input_length);
+            break;
+
+        case S384:
+            ossl_result = SHA384_Update(&g_s512_ctx, input, input_length);
+            break;
+
+        case S512:
+            ossl_result = SHA512_Update(&g_s512_ctx, input, input_length);
+            break;
+    }
+
+    return ossl_result ? PSA_SUCCESS : PSA_ERROR_GENERIC_ERROR;
 }
 
 psa_status_t psa_hash_finish(psa_hash_operation_t *operation,
@@ -73,16 +111,52 @@ psa_status_t psa_hash_finish(psa_hash_operation_t *operation,
                              size_t hash_size,
                              size_t *hash_length)
 {
-    if(x !=  operation->handle) {
-        return 1;
+    int            ossl_result;
+    psa_status_t   return_value;
+
+    if(s_status !=  operation->handle) {
+        /* Caller is out of sync with our one context */
+        return PSA_ERROR_BAD_STATE;
     }
 
-    (void)hash_size; /* unused variable */
+    switch((off_target_hash_status_t)operation->handle) {
+        case IDLE:
+            ossl_result = 0;
+            break;
 
-    sha256_final(&g_s256_ctx, hash);
-    *hash_length = 32;
+        case S256:
+            if(hash_size < PSA_HASH_SIZE(PSA_ALG_SHA_256)) {
+                return_value = PSA_ERROR_BUFFER_TOO_SMALL;
+                goto Done;
+            }
+            ossl_result = SHA256_Final(hash, &g_s256_ctx);
+            *hash_length = PSA_HASH_SIZE(PSA_ALG_SHA_256);
+            break;
 
-    return 0;
+        case S384:
+            if(hash_size < PSA_HASH_SIZE(PSA_ALG_SHA_384)) {
+                return_value = PSA_ERROR_BUFFER_TOO_SMALL;
+                goto Done;
+            }
+            ossl_result = SHA384_Final(hash, &g_s512_ctx);
+            *hash_length = PSA_HASH_SIZE(PSA_ALG_SHA_384);
+            break;
+
+        case S512:
+            if(hash_size < PSA_HASH_SIZE(PSA_ALG_SHA_512)) {
+                return_value = PSA_ERROR_BUFFER_TOO_SMALL;
+                goto Done;
+            }
+            ossl_result = SHA512_Final(hash, &g_s512_ctx);
+            *hash_length = PSA_HASH_SIZE(PSA_ALG_SHA_512);
+            break;
+    }
+
+    s_status = IDLE;
+
+    return_value = ossl_result ? PSA_SUCCESS : PSA_ERROR_GENERIC_ERROR;
+  Done:
+    return return_value;
 }
 
 

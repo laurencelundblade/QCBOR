@@ -145,7 +145,18 @@
  *
  * \brief Indicates ECDSA with SHA-256.
  *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA w/SHA-256
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA w/SHA-256.
+ *
+ * Technically, this indicates any type of ECDSA with any curve compatible
+ * with ECDSA. Technically, RFC 8152 section 8.1 require implementations
+ * supporting this algorithm to work only with the following curves:
+ *   P-256 by NIST, NID_X9_62_prime256v1 in OpenSSL/ANSI and as secp256r1 in ANSI X9.62
+ *   P-384 by NIST naming and secp384r1 by ANSI X9.62
+ *   P-521 by NIST naming and secp521r1 by ANSI X9.62
+ * It suggests, but does not require, that this algorithm identifier
+ * only be used with keys based on the P-256 curve.
+ *
+ * See https://tools.ietf.org/search/rfc4492 and COSE RFC.
  */
 #define COSE_ALGORITHM_ES256 -7
 
@@ -154,7 +165,10 @@
  *
  * \brief Indicates ECDSA with SHA-384.
  *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA w/SHA-384
+ * See discussion on \ref COSE_ALGORITHM_ES256.
+ *
+ * RFC 8152 suggests, but does not require, that this algorithm identifier
+ * be used only with keys based on the P-384 curve.
  */
 #define COSE_ALGORITHM_ES384 -35
 
@@ -163,7 +177,10 @@
  *
  * \brief Indicates ECDSA with SHA-512.
  *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA w/SHA-512
+ * See discussion on \ref COSE_ALGORITHM_ES256.
+ *
+ * RFC 8152 suggests, but does not require, that this algorithm identifier
+ * be used only with keys based on the P-384 curve.
  */
 #define COSE_ALGORITHM_ES512 -36
 

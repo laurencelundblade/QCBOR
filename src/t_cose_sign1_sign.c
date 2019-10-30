@@ -22,7 +22,8 @@
  *
  * Stack usage to sign is dependent on the signing alg and key size and type
  * of hash implementation. t_cose_sign1_finish() is the main user of stack
- * It is 384 for \ref COSE_ALGORITHM_ES256 and 778 for \ref COSE_ALGORITHM_ES512.
+ * It is 384 for \ref COSE_ALGORITHM_ES256 and 778 for
+ * \ref COSE_ALGORITHM_ES512.
  */
 
 
@@ -79,8 +80,13 @@ short_circuit_sign(int32_t               cose_algorithm_id,
     size_t            amount_to_copy;
     size_t            sig_size;
 
-    /* Check the signature length against buffer size*/
-    sig_size = t_cose_signature_size(cose_algorithm_id);
+    sig_size =
+       cose_algorithm_id == COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
+       cose_algorithm_id == COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
+       cose_algorithm_id == COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
+       0;
+
+    /* Check the signature length against buffer size */
     if(sig_size == 0) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
@@ -273,7 +279,7 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *me,
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         kid = get_short_circuit_kid();
 #else
-        return_value = T_COSE_SHORT_CIRCUIT_SIG_DISABLED;
+        return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG_DISABLED;
         goto Done;
 #endif
     } else {
@@ -320,7 +326,7 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
     struct q_useful_buf_c        signature;
     /* Buffer for the actual signature */
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_signature,
-                                     T_COSE_MAX_EC_SIG_SIZE);
+                                     T_COSE_MAX_SIG_SIZE);
     /* Buffer for the tbs hash. */
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash,
                                      T_COSE_CRYPTO_MAX_HASH_SIZE);
