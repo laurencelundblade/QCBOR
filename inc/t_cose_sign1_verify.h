@@ -25,7 +25,7 @@ extern "C" {
  *
  * \brief Verify a COSE_Sign1 Message
  *
- * This verifies a \c COSE_Sign1 in compliance with [COSE (RFC 8152)]
+ * This verifies a \c COSE_Sign1 message in compliance with [COSE (RFC 8152)]
  * (https://tools.ietf.org/html/rfc8152). A \c COSE_Sign1 message is a CBOR
  * encoded binary blob that contains headers, a payload and a
  * signature. Usually the signature is made with an EC signing
@@ -33,16 +33,18 @@ extern "C" {
  *
  * This implementation is intended to be small and portable to
  * different OS's and platforms. Its dependencies are:
- * - QCBOR
+ * - [QCBOR](https://github.com/laurencelundblade/QCBOR)
  * - <stdint.h>, <string.h>, <stddef.h>
  * - Hash functions like SHA-256
- * - Signature verifications functions like ECDSA
+ * - Signing functions like ECDSA
  *
  * There is a cryptographic adaptation layer defined in
  * t_cose_crypto.h.  An implementation can be made of the functions in
- * it for different platforms or OS's. This means that different
- * platforms and OS's may support only verification with a particular set
- * of algorithms.
+ * it for different cryptographic libraries. This means that different
+ * integrations with different cryptographic libraries may support
+ * only signing with a particular set of algorithms. Integration with
+ * [OpenSSL](https://www.openssl.org) is supported.  Key ID look up
+ * also varies by different cryptographic library integrations.
  *
  * See t_cose_common.h for preprocessor defines to reduce object code
  * and stack use by disabling features.
@@ -50,10 +52,11 @@ extern "C" {
 
 
 /**
- The result of parsing a set of COSE headers.
-
- Size on 64-bit machine: 4 + (4 * 16) + 4pad = 72
- Size on 32-bit machine: 4 + (4 * 8) = 36
+ * The result of parsing a set of COSE headers. The pointers
+ * are all back into the \c COSE_Sign1 blob passed in.
+ *
+ * Approximate size on a 64-bit machine is 80 bytes and on
+ * a 32-bit machine is 40.
  */
 struct t_cose_headers {
     /** The algorithm ID. \ref T_COSE_UNSET_ALGORITHM_ID if the algorithm ID
@@ -64,26 +67,29 @@ struct t_cose_headers {
      */
     int32_t               cose_algorithm_id;
     /** The COSE key ID. \c NULL_Q_USEFUL_BUF_C if header is not
-     *present */
+     * present */
     struct q_useful_buf_c kid;
-    /** The COSE initialization vector. \c NULL_Q_USEFUL_BUF_C if header
+    /** The initialization vector. \c NULL_Q_USEFUL_BUF_C if header
      * is not present */
     struct q_useful_buf_c iv;
-    /** The COSE partial initialization vector. \c NULL_Q_USEFUL_BUF_C if
+    /** The partial initialization vector. \c NULL_Q_USEFUL_BUF_C if
      * header is not present */
     struct q_useful_buf_c partial_iv;
     /** The content type as a MIME type like
      * "text/plain". \c NULL_Q_USEFUL_BUF_C if header is not present */
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
     struct q_useful_buf_c content_type_tstr;
     /** The content type as a CoAP Content-Format
      * integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if header is not
      * present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
     uint32_t              content_type_uint;
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
 };
 
 
 /**
- * Indicates no COSE algorithm ID or an unset COSE algorithm ID.
+ * A special COSE algorithm ID that indicates no COSE algorithm ID or an unset
+ * COSE algorithm ID.
  */
 #define T_COSE_UNSET_ALGORITHM_ID 0
 
@@ -94,6 +100,8 @@ struct t_cose_headers {
  * Pass this as \c option_flags to allow verification of
  * short-circuit signatures. This should only be used as
  * a test mode as short-circuit signatures are not secure.
+ *
+ * See also \ref T_COSE_OPT_SHORT_CIRCUIT_SIG.
  */
 #define T_COSE_OPT_ALLOW_SHORT_CIRCUIT 0x00000001
 
@@ -109,35 +117,36 @@ struct t_cose_headers {
 
 
 /**
- * Normally this will decode the CBOR presented as a
- * COSE_Sign1 whether it is tagged as such or not.
- * This this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
- * returned if
- * it is not tagged.
+ * Normally this will decode the CBOR presented as a \c COSE_Sign1
+ * message whether it is tagged using QCBOR taggging as such or not.
+ * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
+ * returned if it is not tagged.
  */
 #define T_COSE_OPT_TAG_REQUIRED  0x00000004
 
 
 /**
- * Option that disables signature verification.
- * With this option the \c verification_key is not needed.
- * This is useful to parse the COSE_Sign1 to get the kid (key ID)
- * so the key can be found and t_cose_sign1_verify() can
- * be called again, this time with the key.
+ * See t_cose_sign1_set_verification_key().
+ *
+ * This option disables cryptographic signature verification.  With
+ * this option the \c verification_key is not needed.  This is useful
+ * to parse the \c COSE_Sign1 message to get the kid (key ID).  The
+ * verification key can be looked up or otherwise obtained by the
+ * caller. Once the key in in hand, t_cose_sign1_verify() can be
+ * called again to perform the full verification.
  *
  * The payload will always be returned whether this is
- * option is given or not.
+ * option is given or not, but it should not be considered secure
+ * when this option is given.
  *
- * (Note that key ID look up can be part of the crypto adaptation layer
- * so it is not always necessary to use this option.)
  */
 #define T_COSE_OPT_PARSE_ONLY  0x00000008
 
 
 
 /**
- * Context for signature verification
- * About 20 bytes.
+ * Context for signature verification.
+ * It is about 24 bytes on a 64-bit machine and 12 bytes on a 32-bit machine.
  */
 struct t_cose_sign1_verify_ctx {
     /* Private data structure */
@@ -149,9 +158,10 @@ struct t_cose_sign1_verify_ctx {
 /**
  * \brief Initialize for \c COSE_Sign1 message verification.
  *
- * \param[in] option_flags      Options controlling the verification.
+ * \param[in,out]  context       The context to initialize.
+ * \param[in]      option_flags  Options controlling the verification.
  *
- * This must be called before using the context.
+ * This must be called before using the verification context.
  */
 static void
 t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
@@ -163,24 +173,47 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
  *
  * \param[in] verification_key  The verification key to use.
  *
- * The source of the verification key depends on the how the how the
- * underlying cryptographic layer works. Simpler layers have no key
- * store or database in which case the verification key must be passed in
- * the \c verification_key parameter.
- * The OpenSSL cryptographic layer is simple like this.
+ * There are four main ways that the verification key is found and
+ * supplied to t_cose so that t_cose_sign1_verify() succeeds.
  *
- * Usually the kid (key ID) header parameter identifies the verification
- * key needed to verify the signature. With a simple cryptographic adaption
- * layer, the caller wishing to use the key ID should call t_cose_sign1_verify()
- * first with the \ref T_COSE_OPT_PARSE_ONLY option. The kid will be returned in \c headers.
- * The caller must then find the key on their own. Then call this
- * to set the key. Last call t_cose_sign1_verify(),
- * again without the \ref T_COSE_OPT_PARSE_ONLY option.
+ * -# Look up by kid header and set by t_cose_sign1_set_verification_key()
+ * -# Look up by other and set by t_cose_sign1_set_verification_key()
+ * -# Determination by kid that short circuit signing is used (test only)
+ * -# Look up by kid header in cryptographic adaptation  layer
  *
- * When the cryptographic adaptation layer supports key lookup,
- * then calling this is not necessary. Also, if the key is
- * somehow know without examining the \c COSE_Sign1, calling this
- * is not necessary.
+ * Note that there is no means where certificates, like X.509
+ * certificates, are provided in the COSE headers. Perhaps there will
+ * be in the future but that is not in common use or supported by this
+ * implementation.
+ *
+ * To use 1 it is necessary to call t_cose_sign1_verify_init() and
+ * t_cose_sign1_verify() twice.  The first time
+ * t_cose_sign1_verify_init() is called, give the \ref
+ * T_COSE_OPT_PARSE_ONLY option.  Then call t_cose_sign1_verify() and
+ * the kid will be returned in \c headers. The caller finds the kid on
+ * their own. Then call this to set the key. Last call
+ * t_cose_sign1_verify(), again without the \ref T_COSE_OPT_PARSE_ONLY
+ * option.
+ *
+ * To use 2 the key is somehow determined without the kid and
+ * t_cose_sign1_set_verification_key() is called with it. Then
+ * t_cose_sign1_verify() is called. Note that this implementation
+ * cannot return non-standard headers, at least not yet.
+ *
+ * To use 3, initialize with \ref T_COSE_OPT_ALLOW_SHORT_CIRCUIT.  No
+ * call to t_cose_sign1_set_verification_key() is necessary. If you do
+ * call t_cose_sign1_set_verification_key(), the kid for short circuit
+ * signing will be recognized and the set key will be ignored.
+ *
+ * To use 4, first be sure that the cryptographic adapter supports
+ * look up by kid.  There's no API to determine this, so it is
+ * probably determined by other system documentation (aka source
+ * code).  In this mode, all that is necessary is to call
+ * t_cose_sign1_verify().
+ *
+ * 3 always works no matter what is done in the cryptographic
+ * adaptation layer because it never calls out to it. The OpenSSL
+ * adaptor supports 1 and 2.
  */
 static void
 t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
@@ -197,36 +230,43 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
+ * See t_cose_sign1_set_verification_key() for discussion on where
+ * the verification key comes from.
+ *
  * Verification involves the following steps.
  *
- * The CBOR-format COSE_Sign1 structure is parsed. It makes sure \c sign1
+ * - The CBOR-format COSE_Sign1 structure is parsed. It makes sure \c sign1
  * is valid CBOR and follows the required structure for \c COSE_Sign1.
  *
- * The protected headers are parsed, particular the algorithm id.
+ * - The protected headers are parsed, particular the algorithm id.
  *
- * The unprotected headers are parsed, particularly the kid.
+ * - The unprotected headers are parsed, particularly the kid.
  *
- * The payload is identified. The internals of the payboad are not parsed.
+ * - The payload is identified. The internals of the payload are not parsed.
  *
- * The expected hash, the "to-be-signed" bytes are computed. The hash
+ * - The expected hash, the "to-be-signed" bytes are computed. The hash
  * algorithm to use comes from the signing algorithm in the protected
  * headers. If the algorithm is not known or not supported this will
  * error out.
  *
- * Finally, the signature verification is performed.
+ * - Finally, the signature verification is performed.
  *
- * If it is successful, the pointer of the CBOR-encoded payload is
- * returned. The headers are returned if requested.
+ * If it is successful, the pointer to the CBOR-encoded payload is
+ * returned. The headers are returned if requested. All pointers
+ * returned are to memory in the \c sign1 passed in.
  *
  * Note that this only handles standard COSE headers. There are no
- * facilities for custom headers, even though they are allowed.
+ * facilities for custom headers, even though they are allowed by
+ * the COSE standard.
  *
  * This will recognize the special key ID for short-circuit signing
  * and verify it if the \ref T_COSE_OPT_ALLOW_SHORT_CIRCUIT is set.
  *
- * Indefinite lengths strings are not supported. \ref T_COSE_ERR_SIGN1_FORMAT
+ * Indefinite length CBOR strings are not supported by this implementation.
+ *  \ref T_COSE_ERR_SIGN1_FORMAT
  * will be returned if they are in the input \c COSE_Sign1 messages. For
- * example, if the payload is an indefinite length byte string.
+ * example, if the payload is an indefinite length byte string, this error
+ * will be returned.
  */
 enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
                                       struct q_useful_buf_c           sign1,

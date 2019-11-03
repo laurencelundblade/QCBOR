@@ -369,17 +369,7 @@ struct t_cose_crypto_hash {
  * \param[in] cose_hash_alg_id  Algorithm ID that identifies the
  *                              hash to use. This is from the
  *                              [IANA COSE Registry]
- *                          (https://www.iana.org/assignments/cose/cose.xhtml).
- *                              As of the creation of this interface
- *                              no identifiers of only a hash
- *                              functions have been registered.
- *                              Signature algorithms that include
- *                              specification of the hash have been
- *                              registered, but they are not to be
- *                              used here. Until hash functions only
- *                              have been officially registered, some
- *                              IDs are defined in the proprietary
- *                              space in t_cose_common.h.
+ *                          (https://www.iana.org/assignments/cose/cose.xhtml)
  *
  * \retval T_COSE_ERR_UNSUPPORTED_HASH
  *         The requested algorithm is unknown or unsupported.
@@ -393,6 +383,9 @@ struct t_cose_crypto_hash {
  * This initializes the hash context for the particular algorithm. It
  * must be called first. A \c hash_ctx can be reused if it is
  * reinitialized.
+ *
+ * \ref T_COSE_INVALID_ALGORITHM_ID may be passed to this function, in which
+ * case \ref T_COSE_ERR_UNSUPPORTED_HASH must be returned.
  *
  * Other errors can be returned and will usually be propagated up, but hashes
  * generally don't fail so it is suggested not to bother (and to reduce

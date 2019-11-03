@@ -110,11 +110,11 @@ static inline struct q_useful_buf_c q_useful_buf_set(struct q_useful_buf dest,
 }
 
 
-static inline struct q_useful_buf_c q_useful_buf_copy_ptr(struct q_useful_buf dest,
+static inline struct q_useful_buf_c q_useful_buf_copy_ptr(struct q_useful_buf d,
                                                           const void *ptr,
                                                           size_t len)
 {
-    return UsefulBuf_CopyPtr(dest, ptr, len);
+    return UsefulBuf_CopyPtr(d, ptr, len);
 }
 
 

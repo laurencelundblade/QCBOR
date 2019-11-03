@@ -253,6 +253,7 @@ static void PrintSize(const char *szWhat, uint32_t uSize, OutputStringCB pfOutpu
  */
 
 #include "t_cose_sign1_sign.h" /* For size printing */
+#include "t_cose_sign1_verify.h" /* For size printing */
 #include "t_cose_crypto.h"
 
 void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
@@ -267,5 +268,11 @@ void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
     PrintSize("sizeof(struct t_cose_crypto_hash)",
               (uint32_t)sizeof(struct t_cose_crypto_hash),
               pfOutput, pOutCtx);
-   (*pfOutput)("", pOutCtx, 1);
+    PrintSize("sizeof(struct t_cose_headers)",
+              (uint32_t)sizeof(struct t_cose_headers),
+              pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_sign1_verify_ctx)",
+              (uint32_t)sizeof(struct t_cose_sign1_verify_ctx),
+              pfOutput, pOutCtx);
+    (*pfOutput)("", pOutCtx, 1);
 }

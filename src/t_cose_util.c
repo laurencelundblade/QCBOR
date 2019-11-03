@@ -47,13 +47,13 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_ES512
         cose_algorithm_id == COSE_ALGORITHM_ES512 ? COSE_ALGORITHM_SHA_512 :
 #endif
-                                                    INT32_MAX;
+                                                    T_COSE_INVALID_ALGORITHM_ID;
 }
 
 
 /*
  * Format of to-be-signed bytes used by create_tbs_hash().
- * This is defined in COSE (RFC 8152). It is the input
+ * This is defined in COSE (RFC 8152) section 4.4. It is the input
  * to the hash.
  *
  * Sig_structure = [
@@ -155,7 +155,7 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
     if(qcbor_result) {
         /* Mainly means that the protected_headers were too big
          * (which should never happen) */
-        return_value = T_COSE_ERR_SIG_STRUCT;
+        return_value = T_COSE_ERR_SIG_STRUCT; // TODO: right error?
         goto Done;
     }
 

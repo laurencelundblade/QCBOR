@@ -104,10 +104,11 @@ In addition to the above memory usage, the crypto library will use some stack an
 heap memory. This will vary quite a bit by crypto library. Some may use malloc. Some may
 not. 
 
-If only ECDSA is used, not RSA, in theory it is possible for the crypto library memory usage to be small
-because the keys and signatures are relatively small, but this depends on the crypto library.
+So far no support for RSA is available, but since the keys and signatures are much bigger,
+it will up the memory usage a lot and may require use of malloc. 
 
-The standard OpenSSL library does use malloc.
+The OpenSSL library does use malloc, even with ECDSA. Another implementation of ECDSA
+might not use malloc, as the keys are small enough.
 
 ### Mixed code style
 QCBOR uses camelCase and t_cose follows 
@@ -121,7 +122,8 @@ just have different names.
 contiguous memory.
 * Doesn't handle COSE string algorithm IDs. Only COSE integer algorithm IDs are handled. 
 Thus far no string algorithm IDs have been assigned by IANA.
-* No way to add custom headers with creating signed messages.
+* No way to add custom headers when creating signed messages or process them during 
+verification.
 * Only ECDSA is supported so far (facilities are available to add others).
 * Does not handle CBOR indefinite length strings (indefinite length maps and arrays are handled).
 

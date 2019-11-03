@@ -12,14 +12,14 @@
 #define __T_COSE_STANDARD_CONSTANTS_H__
 
 /**
- * \file t_cose_defines.h
+ * \file t_cose_standard_constants.h
  *
  * \brief Constants from COSE standard and IANA registry.
  *
- * This file contains constants identifiers defined in [COSE (RFC
- * 8152)] (https://tools.ietf.org/html/rfc8152) and [IANA COSE
- * Registry] (https://www.iana.org/assignments/cose/cose.xhtml). They
- * include algorithm IDs and other constants.
+ * This file contains constants identifiers defined in
+ * [COSE (RFC 8152)] (https://tools.ietf.org/html/rfc8152) and
+ * [IANA COSE Registry] (https://www.iana.org/assignments/cose/cose.xhtml).
+ * They include algorithm IDs and other constants.
  *
  * Many constants in the IANA registry are not included here yet as
  * they are not needed by t_cose. They can be added if they become
@@ -150,9 +150,9 @@
  * Technically, this indicates any type of ECDSA with any curve compatible
  * with ECDSA. Technically, RFC 8152 section 8.1 require implementations
  * supporting this algorithm to work only with the following curves:
- *   P-256 by NIST, NID_X9_62_prime256v1 in OpenSSL/ANSI and as secp256r1 in ANSI X9.62
- *   P-384 by NIST naming and secp384r1 by ANSI X9.62
- *   P-521 by NIST naming and secp521r1 by ANSI X9.62
+ * - P-256 by NIST, NID_X9_62_prime256v1 in OpenSSL & secp256r1 in ANSI X9.62
+ * - P-384 by NIST naming and secp384r1 by ANSI X9.62
+ * - P-521 by NIST naming and secp521r1 by ANSI X9.62
  * It suggests, but does not require, that this algorithm identifier
  * only be used with keys based on the P-256 curve.
  *

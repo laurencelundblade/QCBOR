@@ -24,17 +24,17 @@ extern "C" {
 /**
  * \file t_cose_sign1_sign.h
  *
- * \brief Create a \c COSE_Sign1, usually for EAT or CWT Token.
+ * \brief Create a \c COSE_Sign1 message, usually for EAT or CWT Token.
  *
- * This creates a \c COSE_Sign1 in compliance with [COSE (RFC 8152)]
- * (https://tools.ietf.org/html/rfc8152). A \c COSE_Sign1 is a CBOR
- * encoded binary blob that contains headers, a payload and a
- * signature. Usually the signature is made with an EC signing
- * algorithm like ECDSA.
+ * This creates a \c COSE_Sign1 message in compliance with
+ * [COSE (RFC 8152)](https://tools.ietf.org/html/rfc8152).
+ * A \c COSE_Sign1 message is a CBOR encoded binary blob that contains
+ * headers, a payload and a signature. Usually the signature is made
+ * with an EC signing algorithm like ECDSA.
  *
  * This implementation is intended to be small and portable to
  * different OS's and platforms. Its dependencies are:
- * - QCBOR
+ * - [QCBOR](https://github.com/laurencelundblade/QCBOR)
  * - <stdint.h>, <string.h>, <stddef.h>
  * - Hash functions like SHA-256
  * - Signing functions like ECDSA
@@ -42,19 +42,17 @@ extern "C" {
  * There is a cryptographic adaptation layer defined in
  * t_cose_crypto.h.  An implementation can be made of the functions in
  * it for different cryptographic libraries. This means that different
- * integrations with different cryptographic libraries may support only
- * signing with a particular set
- * of algorithms. Key ID look up also varies by different cryptographic
- * library integrations.
+ * integrations with different cryptographic libraries may support
+ * only signing with a particular set of algorithms. Integration with
+ * [OpenSSL](https://www.openssl.org) is supported.  Key ID look up
+ * also varies by different cryptographic library integrations.
  *
- * This \c COSE_Sign1 implementations is optimized for creating EAT
- * and CWT tokens.
- *
- * It should work for CWT and others use cases too. The main point of
- * the optimization is that only one output buffer is needed. There is
- * no need for one buffer to hold the payload and another to hold the
- * end result \c COSE_Sign1. The payload is encoded right into its final
- * place in the end result \c COSE_Sign1.
+ * This implementation has a mode where a CBOR-format payload can be
+ * output directly into the output buffer. This saves having two
+ * copies of the payload in memory. For this mode use
+ * t_cose_sign1_encode_headers() and
+ * t_cose_sign1_encode_signature(). For a simpler API that just takes
+ * the payload as an input buffer use t_cose_sign1_sign().
  *
  * See t_cose_common.h for preprocessor defines to reduce object code
  * and stack use by disabling features.
@@ -62,13 +60,13 @@ extern "C" {
 
 
 /**
- * This is the context for creating a \c COSE_Sign1 structure. The caller
- * should allocate it and pass it to the functions here.  This is
- * about 100 bytes so it fits easily on the stack.
+ * This is the context for creating a \c COSE_Sign1 structure. The
+ * caller should allocate it and pass it to the functions here.  This
+ * is about 100 bytes so it fits easily on the stack.
  */
 struct t_cose_sign1_sign_ctx {
     /* Private data structure */
-    uint8_t               protected_headers_buffer[T_COSE_SIGN1_MAX_PROT_HEADER];
+    uint8_t              protected_headers_buffer[T_COSE_SIGN1_MAX_PROT_HEADER];
     struct q_useful_buf_c protected_headers;
     int32_t               cose_algorithm_id;
     struct t_cose_key     signing_key;
@@ -82,38 +80,39 @@ struct t_cose_sign1_sign_ctx {
 
 
 /**
- * This selects a signing test mode called _short_
- * _circuit_ _signing_. This mode is useful when there is no signing
- * key available, perhaps because it has not been provisioned or
+ * This selects a signing test mode called _short_ _circuit_
+ * _signing_. This mode is useful when there is no signing key
+ * available, perhaps because it has not been provisioned or
  * configured for the particular device. It may also be because the
  * public key cryptographic functions have not been connected up in
  * the cryptographic adaptation layer.
  *
- * It has no value for security at all. Data signed this way MUST
- * NOT be trusted as anyone can sign like this.
+ * It has no value for security at all. Data signed this way MUST NOT
+ * be trusted as anyone can sign like this.
  *
- * In this mode, the signature is the hash of that which would normally be
- * signed by the public key algorithm. To make the signature the
- * correct size for the particular algorithm, instances of the hash are
- * concatenated to pad it out.
+ * In this mode, the signature is the hash of that which would
+ * normally be signed by the public key algorithm. To make the
+ * signature the correct size for the particular algorithm, instances
+ * of the hash are concatenated to pad it out.
  *
  * This mode is very useful for testing because all the code except
  * the actual signing algorithm is run exactly as it would if a proper
- * signing algorithm was run. This can be used for end-end system testing all
- * the way to a server or relying party, not just for testing device code.
+ * signing algorithm was run. This can be used for end-end system
+ * testing all the way to a server or relying party, not just for
+ * testing device code as t_cose_sign1_verify() supports it too.
  */
 #define T_COSE_OPT_SHORT_CIRCUIT_SIG 0x00000001
 
 
 /**
- * An option_flag for t_cose_sign1_init() to not add the CBOR type 6 tag
- * for COSE_Sign1 whose value is 18. Some uses of COSE may require
- * this flag be absent because it is know that it is a COSE_Sign1 from
- * surrounding context.
+ * An \c option_flag for t_cose_sign1_sign_init() to not add the CBOR
+ * type 6 tag for \c COSE_Sign1 whose value is 18. Some uses of COSE
+ * may require this tag be absent because it is known that it is a \c
+ * COSE_Sign1 from surrounding context.
  *
- * Or said another way, per the COSE RFC, this code produces a
- * \c COSE_Sign1_Tagged by default and a \c COSE_Sign1 when this flag is set.
- * The only difference between these two is the CBOR tag.
+ * Or said another way, per the COSE RFC, this code produces a \c
+ * COSE_Sign1_Tagged by default and a \c COSE_Sign1 when this flag is
+ * set.  The only difference between these two is the CBOR tag.
  */
 #define T_COSE_OPT_OMIT_CBOR_TAG 0x00000002
 
@@ -128,22 +127,21 @@ struct t_cose_sign1_sign_ctx {
  * \param[in] cose_algorithm_id  The algorithm to sign with, for example
  *                               \ref T_COSE_ALGORITHM_ES256.
  *
- * Initialize the \c t_cose_sign1_ctx context. Typically,
- * no \c option_flags are needed and 0 is passed. A
- * \c cose_algorithm_id must always be given. See
- * \ref T_COSE_OPT_SHORT_CIRCUIT_SIG and related for possible option
- * flags.
+ * Initialize the \ref t_cose_sign1_ctx context. Typically, no
+ * \c option_flags are needed and 0 is passed. A \c cose_algorithm_id
+ * must always be given. See \ref T_COSE_OPT_SHORT_CIRCUIT_SIG and
+ * related for possible option flags.
  *
  * The algorithm ID space is from
- * [COSE (RFC 8152)](https://tools.ietf.org/html/rfc8152) and
- * the [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- * \ref T_COSE_ALGORITHM_ES256 and a few others are defined here
- * for convenience. The signing algorithms supported depends on the
+ * [COSE (RFC8152)](https://tools.ietf.org/html/rfc8152) and the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
+ * \ref T_COSE_ALGORITHM_ES256 and a few others are defined here for
+ * convenience. The signing algorithms supported depends on the
  * cryptographic library that t_cose is integrated with.
  *
  * Errors such as the passing of an unsupported \c cose_algorithm_id
- * are reported when t_cose_sign1_sign() or t_cose_sign1_encode_headers()
- * is called.
+ * are reported when t_cose_sign1_sign() or
+ * t_cose_sign1_encode_headers() is called.
  */
 static void
 t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
@@ -156,14 +154,15 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
  *
  * \param[in] context      The t_cose signing context.
  * \param[in] signing_key  The signing key to use or \ref T_COSE_NULL_KEY.
- * \param[in] kid          COSE kid (key ID) header or \ref NULL_Q_USEFUL_BUF_C.
+ * \param[in] kid          COSE kid (key ID) header or \c NULL_Q_USEFUL_BUF_C.
  *
- * This needs to be called to set the signing key to use. The
- * \c kid may be omitted.
+ * This needs to be called to set the signing key to use. The \c kid
+ * may be omitted by giving \c NULL_Q_USEFUL_BUF_C.
  *
- * If short-circuit signing is used (\ref T_COSE_OPT_SHORT_CIRCUIT_SIG), then this does not need to be
- * called. If it is called the \c kid will be used, but the
- * \c signing_key is never used.
+ * If short-circuit signing is used,
+ * \ref T_COSE_OPT_SHORT_CIRCUIT_SIG, then this does not need to be
+ * called. If it is called the \c kid will be used, but the \c
+ * signing_key is never used.
  */
 static void
 t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
@@ -179,12 +178,14 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
  * \param[in] context      The t_cose signing context.
  * \param[in] content_type The content type of the payload as defined
  *                         in the IANA CoAP Content-Formats registry.
- * (https://www.iana.org/assignments/core-parameters/core-parameters.xhtml#content-formats)
  *
  * It is not allowed to have both a CoAP and MIME content type. This
- * error will show up when t_cose_sign1_sign() or t_cose_sign1_encode_headers"()
- * is called.
+ * error will show up when t_cose_sign1_sign() or
+ * t_cose_sign1_encode_headers() is called as no error is returned by
+ * this function.
  *
+ * The IANA CoAP Content-Formats registry is found
+ * [here](https://www.iana.org/assignments/core-parameters/core-parameters.xhtml#content-formats).
  */
 static inline void
 t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
@@ -196,57 +197,62 @@ t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
  * \param[in] context      The t_cose signing context.
  * \param[in] content_type The content type of the payload as defined
  *                         in the IANA Media Types registry.
- * (https://www.iana.org/assignments/media-types/media-types.xhtml) These
- * have been known as MIME types in the past.
+
  *
  * It is not allowed to have both a CoAP and MIME content type. This
- * error will show up when t_cose_sign1_sign() or t_cose_sign1_encode_headers"()
- * is called.
+ * error will show up when t_cose_sign1_sign() or
+ * t_cose_sign1_encode_headers() is called.
+ *
+ * The IANA Media Types registry can be found
+ * [here](https://www.iana.org/assignments/media-types/media-types.xhtml). These
+ * have been known as MIME types in the past.
  */
 static inline void
 t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
                                    const char                   *content_type);
-#endif
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
+
 
 
 /**
- * \brief  Create and sign a \c COSE_Sign1 with a payload.
+ * \brief  Create and sign a \c COSE_Sign1 message with a payload.
  *
  * \param[in] context  The t_cose signing context.
  * \param[in] payload  Pointer and length of payload to sign.
  * \param[in] out_buf  Pointer and length of buffer to output to.
  * \param[out] result  Pointer and length of the resulting \c COSE_Sign1.
  *
- * The \c context must have been initialized with t_cose_sign1_sign_init()
- * and the key set with t_cose_sign1_set_key() before this is called.
+ * The \c context must have been initialized with
+ * t_cose_sign1_sign_init() and the key set with
+ * t_cose_sign1_set_signing_key() before this is called.
  *
- * This creates the COSE headers, hashes and signs the payload
- * and creates the signature. \c out_buf gives the pointer and
- * length memory into which the output is written. The pointer
- * and length of the actual \c COSE_Sign1 is returned in \c result.
+ * This creates the COSE headers, hashes and signs the payload and
+ * creates the signature. \c out_buf gives the pointer and length
+ * memory into which the output is written. The pointer and length of
+ * the actual \c COSE_Sign1 is returned in \c result.
  *
- * Typically the required size of \c out_buf is about 30 bytes plus the size of the
- * signature and the size of the key ID. This is about 150 bytes
- * for ECDSA 256 with a 32-byte key ID.
+ * Typically, the required size of \c out_buf is about 30 bytes plus
+ * the size of the signature and the size of the key ID. This is about
+ * 150 bytes for ECDSA 256 with a 32-byte key ID.
  *
  * To compute the size of the buffer needed before it is allocated
- * call this with \c out_buf containg a \c NULL pointer and large length like \c UINT32_MAX.
- * The algorithm and key, kid and such should be set up just as if
- * the real \c COSE_Sign1 were to be created as these values are needed
- * to compute the size correctly.
+ * call this with \c out_buf containing a \c NULL pointer and large
+ * length like \c UINT32_MAX.  The algorithm and key, kid and such
+ * should be set up just as if the real \c COSE_Sign1 were to be
+ * created as these values are needed to compute the size correctly.
  * The contents of \c result will be a \c NULL pointer and the length
- * of the \c COSE_Sign1. When this is run
- * like this, the cryptographic functions will not actually run, but
- * the size of their output will be taken into account.
+ * of the \c COSE_Sign1. When this is run like this, the cryptographic
+ * functions will not actually run, but the size of their output will
+ * be taken into account to give an exact size.
  *
- * This function requires the payload be completed formatted
- * in a contiguous buffer. The resulting \C COSE_Sign1 also
- * contains the payload preceeded by the headers and followed
- * by the signature, all CBOR formatted. This function
- * thus requires two copies of the payload to be in memory.
- * Alternatively t_cose_sign1_encode_headers"() and t_cose_sign1_encode_signature"()
- * can be used. They are more complex to use, but  avoid
- * the two copies of the payload.
+ * This function requires the payload be complete and formatted in a
+ * contiguous buffer. The resulting \c COSE_Sign1 also contains the
+ * payload preceded by the headers and followed by the signature, all
+ * CBOR formatted. This function thus requires two copies of the
+ * payload to be in memory.  Alternatively
+ * t_cose_sign1_encode_headers() and t_cose_sign1_encode_signature()
+ * can be used. They are more complex to use, but avoid the two copies
+ * of the payload.
  */
 enum t_cose_err_t
 t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *context,
@@ -256,40 +262,40 @@ t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *context,
 
 
 /**
- * \brief  Output the \c COSE_Sign1 start and headers.
+ * \brief  Output first part and headers for a \c COSE_Sign1 message.
  *
- * \param[in] context  The t_cose signing context.
+ * \param[in] context          The t_cose signing context.
  * \param[in] cbor_encode_ctx  Encoding context to output to.
  *
- * This is the more complex and more memory efficient
- * alternative to t_cose_sign1_sign(). Like t_cose_sign1_sign()
- * t_cose_sign1_init() and t_cose_sign1_set_key() much be called
- * before calling this.
+ * This is the more complex and more memory efficient alternative to
+ * t_cose_sign1_sign(). Like t_cose_sign1_sign()
+ * t_cose_sign1_sign_init() and t_cose_sign1_set_signing_key() much be
+ * called before calling this.
  *
- * When this is called the opening parts of the \c COSE_Sign1
+ * When this is called the opening parts of the \c COSE_Sign1 message
  * are output to the \c cbor_encode_ctx.
  *
- * After this is called, the CBOR-formatted payload
- * is written to the \c cbor_encode_ctx by calling all the
- * various \c QCBOREncode_AddXxx calls. It can be as simple
- * or complex as needed.
+ * After this is called, the CBOR-formatted payload must be written to
+ * the \c cbor_encode_ctx by calling all the various
+ * \c QCBOREncode_AddXxx calls. It can be as simple or complex as
+ *  needed.
  *
- * To complete the \c COSE_Sign1 call t_cose_sign1_encode_signature"().
+ * To complete the \c COSE_Sign1 call t_cose_sign1_encode_signature().
  *
- * The \c cbor_encode_ctx must have been initialized with an
- * output buffer to hold the \c COSE_Sign1 headers, the payload
- * and the signature.
+ * The \c cbor_encode_ctx must have been initialized with an output
+ * buffer to hold the \c COSE_Sign1 headers, the payload and the
+ * signature.
  *
- * This and t_cose_sign1_encode_signature"() can be used to
- * calculate the size of the \c COSE_Sign1 in the way
- * QCBOREncode is usually used to calculate sizes. In this
- * case the \c t_cose_sign1_ctx should be initialized with the
- * options, algorithm, key and kid just as normal as these are
- * needed to calculate the size. Then set up the QCBOR encoder
- * context with a \c NULL pointer and large length like \c UINT32_MAX.
- * Call t_cose_sign1_encode_headers"(), then format the payload into
- * the encoder context, then call t_cose_sign1_encode_signature"().
- * Finally call QCBOREncode_FinishGetSize() to get the length.
+ * This and t_cose_sign1_encode_signature() can be used to calculate
+ * the size of the \c COSE_Sign1 in the way \c QCBOREncode is usually
+ * used to calculate sizes. In this case the \c t_cose_sign1_ctx
+ * should be initialized with the options, algorithm, key and kid just
+ * as normal as these are needed to calculate the size. Then set up
+ * the QCBOR encoder context with a \c NULL pointer and large length
+ * like \c UINT32_MAX.  Call t_cose_sign1_encode_headers(), then
+ * format the payload into the encoder context, then call
+ * t_cose_sign1_encode_signature().  Finally call \c
+ * QCBOREncode_FinishGetSize() to get the length.
  */
 enum t_cose_err_t
 t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *context,
@@ -297,20 +303,20 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *context,
 
 
 /**
- * \brief Finish creation of the \c COSE_Sign1.
+ * \brief Finish creation of a \c COSE_Sign1 message by outputing the signature.
  *
  * \param[in] context          The t_cose signing context.
  * \param[in] cbor_encode_ctx  Encoding context to output to.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * Call this to complete creation of a signed \c COSE_Sign1 started with
- * t_cose_sign1_encode_headers"().
+ * Call this to complete creation of a signed \c COSE_Sign1 started
+ * with t_cose_sign1_encode_headers().
  *
  * This is when the cryptographic signature algorithm is run.
  *
- * The completed \c COSE_Sign1 is retrieved from the \c
- * cbor_encode_ctx by calling \c QCBOREncode_Finish().
+ * The completed \c COSE_Sign1 is retrieved from the
+ * \c cbor_encode_ctx by calling \c QCBOREncode_Finish().
  */
 enum t_cose_err_t
 t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *context,

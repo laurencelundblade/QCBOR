@@ -383,7 +383,7 @@ t_cose_sign1_test_message_output_headers(struct t_cose_sign1_sign_ctx *me,
      * error check even though it is not used until later.
      */
     hash_alg_id = hash_alg_id_from_sig_alg_id(me->cose_algorithm_id);
-    if(hash_alg_id == INT32_MAX) {
+    if(hash_alg_id == T_COSE_INVALID_ALGORITHM_ID) {
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
 

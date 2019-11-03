@@ -46,20 +46,32 @@ enum t_cose_tbs_hash_mode_t {
 };
 
 
+
+/**
+ * This value represents an invalid or in-error algorithm ID.
+ * The valud selected is 0 as this is reserved in the IANA
+ * COSE algorithm registry and is very unlikely to ever be used.
+ * (It would take am IETF standards-action to put it to use).
+ */
+#define T_COSE_INVALID_ALGORITHM_ID COSE_ALGORITHM_RESERVED
+
+
 /**
  * \brief Return hash algorithm ID from a signature algorithm ID
  *
  * \param[in] cose_algorithm_id  A COSE signature algorithm identifier.
  *
- * \return \c INT32_MAX when the signature algorithm ID is not known.
+ * \return \c T_COSE_INVALID_ALGORITHM_ID when the signature algorithm ID
+              is not known.
  *
- * This works off of algorithm identifiers defined in the [IANA COSE
- * Registry] (https://www.iana.org/assignments/cose/cose.xhtml).
+ * This works off of algorithm identifiers defined in the
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
  * Corresponding local integer constants are defined in
- * t_cose_defines.h.
+ * t_cose_standard_constants.h.
  *
  * COSE signing algorithms are the combination of public key
- * algorithm, curve, key size, hash algorithm and hash size. They are
+ * algorithm, hash algorithm and hash size and imply an appropriate key size.
+ * They are
  * simple integers making them convenient for direct use in code.
  *
  * This function returns an identifier for only the hash algorithm
@@ -77,7 +89,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  *
  * \param[in] cose_algorithm_id The COSE signing algorithm ID. Used to
  *                              determine which hash function to use.
- * \param[in] protected_headers The CBOR encoded protected headers.
+ * \param[in] protected_headers The full, CBOR encoded, protected headers.
  * \param[in] payload_mode      See \ref t_cose_tbs_hash_mode_t.
  * \param[in] payload           The CBOR encoded payload. It may or may
  *                              not have a wrapping bstr per
@@ -101,7 +113,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * of a CBOR encoded structure containing the protected headers
  * algorithm ID and a few other things. This formats that structure
  * and computes the hash of it. These are known as the to-be-signed or
- * "TBS" bytes.
+ * "TBS" bytes. The exact specification is in RFC 8152 section 4.4.
  */
 enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
                                   struct q_useful_buf_c       protected_headers,
@@ -110,6 +122,10 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
                                   struct q_useful_buf         buffer_for_hash,
                                   struct q_useful_buf_c      *hash);
 
+
+
+
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 
 /**
  * Size of the key returned by get_short_circuit_kid(). It is always
@@ -124,11 +140,11 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
  * \returns Buffer with the kid.
  *
  * This always returns the same kid. It always indicates
- * short-circuit signing. It is OK to hard code this as the
+ * short-circuit signing. It is OK to hard code this kid value as the
  * probability of collision with this ID is extremely low and the same
  * as for collision between any two key IDs (kids) of any sort.
  *
- * This always returns pointers to the same memory as the
+ * This always returns a pointer to the same memory as the
  * result returned by this never changes.
  *
  * This is the value of the kid.
@@ -140,7 +156,7 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
  *
  */
 struct q_useful_buf_c get_short_circuit_kid(void);
-
+#endif
 
 #ifdef __cplusplus
 }

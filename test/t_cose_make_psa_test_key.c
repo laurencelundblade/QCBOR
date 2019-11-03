@@ -121,7 +121,7 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t cose_algorithm_id,
     }
 
     key_pair->k.key_handle = key_handle;
-    key_pair->crypto_lib   = T_COSE_CRYPTO_LIB_TF_M;
+    key_pair->crypto_lib   = T_COSE_CRYPTO_LIB_PSA;
 
     return T_COSE_SUCCESS;
 }
