@@ -26,14 +26,34 @@ struct degenerate_key_pair {
     void *key_pair;
 };
 
-static struct degenerate_key_pair key_store[10];
+static struct degenerate_key_pair key_store[1];
 
+static EC_KEY *key_lookup(psa_key_handle_t handle)
+{
+    return (EC_KEY *)key_store[handle].key_pair;
+}
+
+
+/*
+ * The rest of this is very minimal implementations
+ * of PSA crypto APIs. This is for off-target testing
+ * that uses OpenSSL to perform the necessary crypto
+ */
+
+
+/*
+ * Public finction. See documentation in psa/crypto.h
+ */
 psa_status_t psa_allocate_key(psa_key_handle_t *handle)
 {
     *handle = 0;
     return PSA_SUCCESS;
 }
 
+
+/*
+ * Public finction. See documentation in psa/crypto.h
+ */
 psa_status_t psa_destroy_key(psa_key_handle_t handle)
 {
     EC_KEY_free(key_store[handle].key_pair);
@@ -42,11 +62,10 @@ psa_status_t psa_destroy_key(psa_key_handle_t handle)
     return PSA_SUCCESS;
 }
 
-static EC_KEY *lookup(psa_key_handle_t handle)
-{
-    return (EC_KEY *)key_store[handle].key_pair;
-}
 
+/*
+ * Public finction. See documentation in psa/crypto.h
+ */
 psa_status_t psa_set_key_policy(psa_key_handle_t handle,
                                 const psa_key_policy_t *policy)
 {
@@ -58,6 +77,9 @@ psa_status_t psa_set_key_policy(psa_key_handle_t handle,
 }
 
 
+/*
+ * Public finction. See documentation in psa/crypto.h
+ */
 void psa_key_policy_set_usage(psa_key_policy_t *policy,
                               psa_key_usage_t usage,
                               psa_algorithm_t alg)
@@ -68,8 +90,9 @@ void psa_key_policy_set_usage(psa_key_policy_t *policy,
 }
 
 
-
-
+/*
+ * Public finction. See documentation in psa/crypto.h
+ */
 psa_status_t psa_import_key(psa_key_handle_t handle,
                             psa_key_type_t   type,
                             const uint8_t   *data,
@@ -374,6 +397,49 @@ Done:
 }
 
 
+/*
+ * Public finction. See documentation in psa/crypto.h
+ */
+psa_status_t  psa_get_key_information(psa_key_handle_t psa_key_handle,
+                                      psa_key_type_t *type,
+                                      size_t *key_size_bits)
+{
+    EC_KEY         *ossl_ec_key;
+    psa_status_t    return_value;
+    int             ossl_result; /* type int is conscious choice */
+    const EC_GROUP *key_group;
+
+    (void)type;
+
+    ossl_ec_key = key_lookup(psa_key_handle);
+    if(ossl_ec_key == NULL) {
+        /* Maybe there is a better error code for a bad key handle */
+        return_value = PSA_ERROR_INVALID_HANDLE;
+        goto Done;
+    }
+
+    /* Check the key to be sure it is OK */
+    ossl_result = EC_KEY_check_key(ossl_ec_key);
+    if(ossl_result == 0) {
+        return_value = PSA_ERROR_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    /* Get the key size, which depends on the group */
+    key_group = EC_KEY_get0_group(ossl_ec_key);
+    if(key_group == NULL) {
+        return_value = PSA_ERROR_INVALID_ARGUMENT;
+        goto Done;
+    }
+    *key_size_bits = EC_GROUP_get_degree(key_group);
+
+    return_value = PSA_SUCCESS;
+
+Done:
+    return 0;
+
+}
+
 
 /*
  * Public finction. See documentation in psa/crypto.h
@@ -397,7 +463,7 @@ psa_status_t psa_asymmetric_sign(psa_key_handle_t psa_key_handle,
         goto Done;
     }
 
-    ossl_ec_key = lookup(psa_key_handle);
+    ossl_ec_key = key_lookup(psa_key_handle);
     if(ossl_ec_key == NULL) {
         /* Maybe there is a better error code for a bad key handle */
         return_value = PSA_ERROR_INVALID_HANDLE;
@@ -438,12 +504,9 @@ Done:
 }
 
 
-
-
-
-
-
-
+/*
+ * Public finction. See documentation in psa/crypto.h
+ */
 psa_status_t psa_asymmetric_verify(psa_key_handle_t psa_key_handle,
                                    psa_algorithm_t psa_algorithm_id,
                                    const uint8_t *hash_to_verify,
@@ -464,7 +527,7 @@ psa_status_t psa_asymmetric_verify(psa_key_handle_t psa_key_handle,
         goto Done;
     }
 
-    ossl_ec_key = lookup(psa_key_handle);
+    ossl_ec_key = key_lookup(psa_key_handle);
     if(ossl_ec_key == NULL) {
         /* Maybe there is a better error code for a bad key handle */
         return_value = PSA_ERROR_INVALID_HANDLE;

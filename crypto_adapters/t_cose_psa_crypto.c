@@ -117,6 +117,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
     psa_status_t      psa_result;
     psa_algorithm_t   psa_alg_id;
     psa_key_handle_t  signing_key_psa;
+    size_t            signature_len;
 
     psa_alg_id = cose_alg_id_to_psa_alg_id(cose_algorithm_id);
 
@@ -135,22 +136,79 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
 
     signing_key_psa = (psa_key_handle_t)signing_key.k.key_handle;
 
+    /* It is assumed that psa_asymmetric_sign() is checking signature_buffer
+     * length and won't write off the end of it.
+     */
     psa_result = psa_asymmetric_sign(signing_key_psa,
                                      psa_alg_id,
                                      hash_to_sign.ptr,
                                      hash_to_sign.len,
                                      signature_buffer.ptr, /* Sig buf */
                                      signature_buffer.len, /* Sig buf size */
-                                   &(signature->len));     /* Sig length */
+                                    &signature_len);       /* Sig length */
 
     return_value = psa_status_to_t_cose_error_signing(psa_result);
 
     if(return_value == T_COSE_SUCCESS) {
+        /* Success, fill in the return useful_buf */
         signature->ptr = signature_buffer.ptr;
+        signature->len = signature_len;
     }
 
   Done:
      return return_value;
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
+                                         struct t_cose_key signing_key,
+                                         size_t           *sig_size)
+{
+    enum t_cose_err_t return_value;
+    psa_key_handle_t  signing_key_psa;
+    psa_key_type_t    key_type;
+    size_t            key_len_bits;
+    size_t            key_len_bytes;
+
+    /* If desparate to save code, this can return the constant
+     * T_COSE_MAX_SIG_SIZE instead of doing an exact calculation.
+     * The buffer size calculation will return too large of a value
+     * and waste a little heap / stack, but everything will still
+     * work (except the tests that test for exact values will
+     * fail). This will save 100 bytes or so of obejct code.
+     */
+
+    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done;
+    }
+
+    signing_key_psa = (psa_key_handle_t)signing_key.k.key_handle;
+
+    psa_status_t status = psa_get_key_information(signing_key_psa,
+                                                  &key_type,
+                                                  &key_len_bits);
+
+    (void)key_type; /* Avoid unused parameter error */
+
+    return_value = psa_status_to_t_cose_error_signing(status);
+    if(return_value == T_COSE_SUCCESS) {
+        /* Calculation of size per RFC 8152 section 8.1 -- round up to
+         * number of bytes. */
+        key_len_bytes = key_len_bits / 8;
+        if(key_len_bits % 8) {
+            key_len_bytes++;
+        }
+        /* double because signature is made of up r and s values */
+        *sig_size = key_len_bytes * 2;
+    }
+
+    return_value = T_COSE_SUCCESS;
+Done:
+    return return_value;
 }
 
 

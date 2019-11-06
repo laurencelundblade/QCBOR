@@ -82,7 +82,7 @@ extern "C" {
  * - Support for a new COSE_ALGORITHM_XXX signature algorithm is added
  *    - See T_COSE_CRYPTO_MAX_HASH_SIZE for additional hashes
  * - Support larger key sizes (and thus signature sizes)
- *    - See T_COSE_MAX_SIG_SIZE
+ *    - See T_COSE_MAX_ECDSA_SIG_SIZE
  * - Support another hash implementation that is not a service
  *    - See struct t_cose_crypto_hash
  *
@@ -130,6 +130,29 @@ extern "C" {
 #endif
 
 
+
+
+/**
+ * \brief returns the (approximate) size of a signature.
+ *
+ * \param[in] cose_algorithm_id  The algorithm ID
+ * \param[in] signing_key        Key to compute size of
+ * \param[out] sig_size          The returned size in bytes.
+ *
+ * \return An error code or \ref T_COSE_SUCCESS.
+ *
+ * This is used the caller wishes to compute the size of a
+ * token in order to allocate memory for it.
+ *
+ * The size of a signature depends primarily on the key size
+ * but it is usually necessary to know the algorithm too.
+ *
+ * This always returns the exact size of the signature.
+ */
+enum t_cose_err_t
+t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
+                       struct t_cose_key  signing_key,
+                       size_t            *sig_size);
 
 
 /**

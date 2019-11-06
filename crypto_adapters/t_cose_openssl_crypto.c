@@ -261,6 +261,36 @@ Done:
 }
 
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
+                                         struct t_cose_key signing_key,
+                                         size_t           *sig_size)
+{
+    enum t_cose_err_t return_value;
+    EC_KEY            *ossl_ec_key;
+    int                key_size;
+
+
+    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done;
+    }
+
+    return_value = ecdsa_key_checks(signing_key,
+                                    &ossl_ec_key,
+                                    &key_size);
+
+    /* ECDSA signatures for COSE are twice the key size */
+    *sig_size = 2*key_size;
+
+Done:
+    return return_value;
+}
+
+
 /*
  * See documentation in t_cose_crypto.h
  */

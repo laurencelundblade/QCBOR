@@ -238,7 +238,7 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
  * To compute the size of the buffer needed before it is allocated
  * call this with \c out_buf containing a \c NULL pointer and large
  * length like \c UINT32_MAX.  The algorithm and key, kid and such
- * should be set up just as if the real \c COSE_Sign1 were to be
+ * must be set up just as if the real \c COSE_Sign1 were to be
  * created as these values are needed to compute the size correctly.
  * The contents of \c result will be a \c NULL pointer and the length
  * of the \c COSE_Sign1. When this is run like this, the cryptographic
@@ -289,7 +289,7 @@ t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *context,
  * This and t_cose_sign1_encode_signature() can be used to calculate
  * the size of the \c COSE_Sign1 in the way \c QCBOREncode is usually
  * used to calculate sizes. In this case the \c t_cose_sign1_ctx
- * should be initialized with the options, algorithm, key and kid just
+ * must be initialized with the options, algorithm, key and kid just
  * as normal as these are needed to calculate the size. Then set up
  * the QCBOR encoder context with a \c NULL pointer and large length
  * like \c UINT32_MAX.  Call t_cose_sign1_encode_headers(), then

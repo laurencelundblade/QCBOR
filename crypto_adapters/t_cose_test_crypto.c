@@ -34,6 +34,22 @@ int hash_test_mode = 0;
 /*
  * See documentation in t_cose_crypto.h
  */
+enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
+                                         struct t_cose_key signing_key,
+                                         size_t           *sig_size)
+{
+    (void)cose_algorithm_id;
+    (void)signing_key;
+
+    *sig_size = T_COSE_MAX_SIG_SIZE;
+
+    return T_COSE_SUCCESS;
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
 t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
                            struct t_cose_key      signing_key,

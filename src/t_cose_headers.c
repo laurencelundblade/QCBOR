@@ -324,9 +324,11 @@ static inline void clear_cose_headers(struct t_cose_headers *headers)
      */
     memset(headers, 0, sizeof(struct t_cose_headers));
 
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
     /* The only non-zero clear-state value. (0 is plain text in CoAP
      * content format) */
     headers->content_type_uint =  T_COSE_EMPTY_UINT_CONTENT_TYPE;
+#endif
 }
 
 
@@ -512,6 +514,7 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
                 }
                 break;
 
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
             case COSE_HEADER_PARAM_CONTENT_TYPE:
                 if(item.uDataType == QCBOR_TYPE_TEXT_STRING) {
                     if(!q_useful_buf_c_is_null_or_empty(returned_headers->content_type_tstr)) {
@@ -535,6 +538,7 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
                     goto Done;
                 }
                 break;
+#endif
 
             default:
                 /* The header is not recognized. It has to be
@@ -668,6 +672,7 @@ check_and_copy_headers(const struct t_cose_headers  *protected,
         }
     }
 
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
     if(!q_useful_buf_c_is_null_or_empty(protected->content_type_tstr)) {
         if( !q_useful_buf_c_is_null_or_empty(unprotected->content_type_tstr)) {
             return_value = T_COSE_ERR_DUPLICATE_HEADER;
@@ -687,7 +692,8 @@ check_and_copy_headers(const struct t_cose_headers  *protected,
             returned_headers->content_type_uint = protected->content_type_uint;
         }
     }
-
+#endif
+    
     return_value = T_COSE_SUCCESS;
 
 Done:

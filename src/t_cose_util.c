@@ -155,7 +155,7 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
     if(qcbor_result) {
         /* Mainly means that the protected_headers were too big
          * (which should never happen) */
-        return_value = T_COSE_ERR_SIG_STRUCT; // TODO: right error?
+        return_value = T_COSE_ERR_SIG_STRUCT;
         goto Done;
     }
 

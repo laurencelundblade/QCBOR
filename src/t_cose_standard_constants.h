@@ -17,8 +17,8 @@
  * \brief Constants from COSE standard and IANA registry.
  *
  * This file contains constants identifiers defined in
- * [COSE (RFC 8152)] (https://tools.ietf.org/html/rfc8152) and
- * [IANA COSE Registry] (https://www.iana.org/assignments/cose/cose.xhtml).
+ * [COSE (RFC 8152)](https://tools.ietf.org/html/rfc8152) and
+ * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
  * They include algorithm IDs and other constants.
  *
  * Many constants in the IANA registry are not included here yet as

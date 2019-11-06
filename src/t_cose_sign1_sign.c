@@ -349,52 +349,62 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
         goto Done;
     }
 
-    /* Create the hash of the to-be-signed bytes. Inputs to the hash
-     * are the protected headers, the payload that is getting signed, the
-     * cose signature alg from which the hash alg is determined. The
-     * cose_algorithm_id was checked in t_cose_sign1_init() so it
-     * doesn't need to be checked here.
-     */
-    return_value = create_tbs_hash(me->cose_algorithm_id,
+    if (QCBOREncode_IsBufferNULL(cbor_encode_ctx)) {
+        /* Just calculating sizes. All that is needed is the
+         * signature size.
+         */
+        signature.ptr = NULL;
+        return_value  = t_cose_crypto_sig_size(me->cose_algorithm_id,
+                                               me->signing_key,
+                                              &signature.len);
+     } else {
 
-                                   me->protected_headers,
-                                   T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED,
-                                   signed_payload,
-                                   buffer_for_tbs_hash,
-                                   &tbs_hash);
-    if(return_value) {
-        goto Done;
-    }
+        /* Create the hash of the to-be-signed bytes. Inputs to the hash
+         * are the protected headers, the payload that is getting signed, the
+         * cose signature alg from which the hash alg is determined. The
+         * cose_algorithm_id was checked in t_cose_sign1_init() so it
+         * doesn't need to be checked here.
+         */
+        return_value = create_tbs_hash(me->cose_algorithm_id,
+                                       me->protected_headers,
+                                       T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED,
+                                       signed_payload,
+                                       buffer_for_tbs_hash,
+                                       &tbs_hash);
+        if(return_value) {
+            goto Done;
+        }
 
-    /* Compute the signature using public key crypto. The key
-     * and algorithm ID are passed in to know how and what to sign
-     * with. The hash of the TBS bytes is what is signed. A buffer in
-     * which to place the signature is passed in and the signature is
-     * returned.
-     *
-     * Short-circuit signing is invoked if requested. It does no
-     * public key operation and requires no key. It is just a test
-     * mode that works even if no public key algorithm is integrated.
-     */
-    if(!(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG)) {
-        /* Normal, non-short-circuit signing */
-        return_value = t_cose_crypto_pub_key_sign(me->cose_algorithm_id,
-                                                  me->signing_key,
-                                                  tbs_hash,
-                                                  buffer_for_signature,
-                                                  &signature);
-    } else {
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-        /* Short-circuit signing */
-        return_value = short_circuit_sign(me->cose_algorithm_id,
-                                          tbs_hash,
-                                          buffer_for_signature,
-                                          &signature);
-#endif
-    }
+        /* Compute the signature using public key crypto. The key
+         * and algorithm ID are passed in to know how and what to sign
+         * with. The hash of the TBS bytes is what is signed. A buffer in
+         * which to place the signature is passed in and the signature is
+         * returned.
+         *
+         * Short-circuit signing is invoked if requested. It does no
+         * public key operation and requires no key. It is just a test
+         * mode that works even if no public key algorithm is integrated.
+         */
+        if(!(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG)) {
+            /* Normal, non-short-circuit signing */
+            return_value = t_cose_crypto_pub_key_sign(me->cose_algorithm_id,
+                                                      me->signing_key,
+                                                      tbs_hash,
+                                                      buffer_for_signature,
+                                                      &signature);
+        } else {
+    #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+            /* Short-circuit signing */
+            return_value = short_circuit_sign(me->cose_algorithm_id,
+                                              tbs_hash,
+                                              buffer_for_signature,
+                                              &signature);
+    #endif
+        }
 
-    if(return_value) {
-        goto Done;
+        if(return_value) {
+            goto Done;
+        }
     }
 
     /* Add signature to CBOR and close out the array */

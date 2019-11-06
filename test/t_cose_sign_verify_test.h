@@ -31,4 +31,9 @@ int_fast32_t sign_verify_sig_fail_test(void);
  */
 int_fast32_t sign_verify_make_cwt_test(void);
 
+/*
+ * Test the ability to calculate size of a COSE_Sign1
+ */
+int_fast32_t sign_verify_get_size_test(void);
+
 #endif /* t_cose_sign_verify_test_h */

@@ -1,5 +1,5 @@
 /*
- *  t_cose_openssl_test.c
+ *  t_cose_sign_verify_test.c
  *
  * Copyright 2019, Laurence Lundblade
  *
@@ -13,6 +13,8 @@
 #include "t_cose_sign1_verify.h"
 #include "q_useful_buf.h"
 #include "t_cose_make_test_pub_key.h"
+
+#include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
 
 
 int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
@@ -290,6 +292,152 @@ int_fast32_t sign_verify_make_cwt_test()
         return 5000;
     }
     /* --- Done verifying the COSE Sign1 object  --- */
+
+    return 0;
+}
+
+
+
+
+static int size_test(int32_t               cose_algorithm_id,
+                     struct q_useful_buf_c kid,
+                     struct t_cose_key     key_pair)
+{
+    struct t_cose_sign1_sign_ctx   sign_ctx;
+    QCBOREncodeContext             cbor_encode;
+    enum t_cose_err_t              return_value;
+    struct q_useful_buf            nil_buf;
+    size_t                         calculated_size;
+    QCBORError                     cbor_error;
+    struct q_useful_buf_c          actual_signed_cose;
+    Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
+    struct q_useful_buf_c          payload;
+    size_t                         sig_size;
+
+    /* ---- Common Set up ---- */
+    payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
+    return_value = t_cose_crypto_sig_size(cose_algorithm_id, key_pair, &sig_size);
+
+    /* ---- First calculate the size ----- */
+    nil_buf = (struct q_useful_buf) {NULL, INT32_MAX};
+    QCBOREncode_Init(&cbor_encode, nil_buf);
+
+    t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
+
+    return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
+    if(return_value) {
+        return 2000 + return_value;
+    }
+
+    QCBOREncode_AddEncoded(&cbor_encode, payload);
+
+    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(return_value) {
+        return 3000 + return_value;
+    }
+
+    cbor_error = QCBOREncode_FinishGetSize(&cbor_encode, &calculated_size);
+    if(cbor_error) {
+        return 4000 + cbor_error;
+    }
+
+    /* ---- General sanity check ---- */
+    size_t expected_min = sig_size + payload.len + kid.len;
+
+    if(calculated_size < expected_min || calculated_size > expected_min + 30) {
+        return -1;
+    }
+
+
+
+    /* ---- Now make a real COSE_Sign1 and compare the size ---- */
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
+
+    return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
+    if(return_value) {
+        return 2000 + return_value;
+    }
+
+    QCBOREncode_AddEncoded(&cbor_encode, payload);
+
+    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(return_value) {
+        return 3000 + return_value;
+    }
+
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &actual_signed_cose);
+    if(actual_signed_cose.len != calculated_size) {
+        return -2;
+    }
+
+    /* ---- Again with one-call API to make COSE_Sign1 ---- */\
+    t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     payload,
+                                     signed_cose_buffer,
+                                     &actual_signed_cose);
+    if(return_value) {
+        return 7000 + return_value;
+    }
+
+    if(actual_signed_cose.len != calculated_size) {
+        return -3;
+    }
+
+    return 0;
+}
+
+
+
+int_fast32_t sign_verify_get_size_test()
+{
+    enum t_cose_err_t   return_value;
+    struct t_cose_key   key_pair;
+    int32_t             result;
+
+    return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+    if(return_value) {
+        return 1000 + return_value;
+    }
+
+    result = size_test(T_COSE_ALGORITHM_ES256, NULL_Q_USEFUL_BUF_C, key_pair);
+    if(result) {
+        return result;
+    }
+
+    return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
+    if(return_value) {
+        return 1000 + return_value;
+    }
+
+    result = size_test(T_COSE_ALGORITHM_ES384, NULL_Q_USEFUL_BUF_C, key_pair);
+    if(result) {
+        return result;
+    }
+
+
+    return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES512, &key_pair);
+    if(return_value) {
+        return 1000 + return_value;
+    }
+
+    result = size_test(T_COSE_ALGORITHM_ES512, NULL_Q_USEFUL_BUF_C, key_pair);
+    if(result) {
+        return result;
+    }
+
+
+    result = size_test(T_COSE_ALGORITHM_ES512,
+                       Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"),
+                       key_pair);
+    if(result) {
+        return result;
+    }
 
     return 0;
 }
