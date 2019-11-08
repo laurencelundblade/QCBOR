@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 11/07/19           llundblade      Fix long long conversion to double compiler warning
  09/07/19           llundblade      Fix bug decoding empty arrays and maps
  07/31/19           llundblade      Decode error fixes for some not-well-formed CBOR
  07/31/19           llundblade      New error code for better end of data handling
@@ -681,13 +682,33 @@ static int DecodeDateEpoch(QCBORItem *pDecodedItem)
 
       case QCBOR_TYPE_DOUBLE:
          {
+            // This comparison needs to be done as a float before
+            // conversion to an int64_t to be able to detect doubles
+            // that are too large to fit into an int64_t.  A double
+            // has 52 bits of preceision. An int64_t has 63. Casting
+            // INT64_MAX to a double actually causes a round up which
+            // is bad and wrong for the comparison because it will
+            // allow conversion of doubles that can't fit into a
+            // uint64_t.  To remedy this INT64_MAX - 0x7ff is used as
+            // the cutoff point as if that rounds up in conversion to
+            // double it will still be less than INT64_MAX. 0x7ff is
+            // picked because it has 11 bits set.
+            //
+            // INT64_MAX seconds is on the order of 10 billion years,
+            // and the earth is less than 5 billion years old, so for
+            // most uses this conversion error won't occur even though
+            // doubles can go much larger.
+            //
+            // Without the 0x7ff there is a ~30 minute range of time
+            // values 10 billion years in the past and in the future
+            // where this this code would go wrong.
             const double d = pDecodedItem->val.dfnum;
-            if(d > INT64_MAX) {
+            if(d > (double)(INT64_MAX - 0x7ff)) {
                nReturn = QCBOR_ERR_DATE_OVERFLOW;
                goto Done;
             }
-            pDecodedItem->val.epochDate.nSeconds = d; // Float to integer conversion happening here.
-            pDecodedItem->val.epochDate.fSecondsFraction = d - pDecodedItem->val.epochDate.nSeconds;
+            pDecodedItem->val.epochDate.nSeconds = (int64_t)d;
+            pDecodedItem->val.epochDate.fSecondsFraction = d - (double)pDecodedItem->val.epochDate.nSeconds;
          }
          break;
 

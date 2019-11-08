@@ -1976,8 +1976,14 @@ static uint8_t spDateTestInput[] = {
    0xfa, 0x3f, 0x8c, 0xcc, 0xcd, // double with value 1.1
 
    0xc1, // tag for epoch date
-   0xfa, 0x7f, 0x7f, 0xff, 0xff // 3.4028234663852886e+38 too large
+   0xfa, 0x7f, 0x7f, 0xff, 0xff, // 3.4028234663852886e+38 too large
 
+   0xc1, // tag for epoch date
+   0xfb, 0x43, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 9223372036854775808.000000 just barely too large
+   //0xfa, 0x7f, 0x7f, 0xff, 0xff // 3.4028234663852886e+38 too large
+
+   0xc1, // tag for epoch date
+   0xfb, 0x43, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe // 9223372036854773760 largest supported
 };
 
 
@@ -2052,6 +2058,18 @@ int DateParseTest()
       return -10;
    }
 
+   // Epoch date double that is just slightly too large
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
+      return -11;
+   }
+
+   // Largest double epoch date supported
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
+      Item.val.epochDate.nSeconds != 9223372036854773760 ||
+      Item.val.epochDate.nSeconds == 0) {
+      return -12;
+   }
    // TODO: could use a few more tests with float, double, and half precsion and negative (but coverage is still pretty good)
 
    return 0;
