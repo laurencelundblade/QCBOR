@@ -19,15 +19,14 @@
 
 static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 {
-    return
-        cose_alg_id == COSE_ALGORITHM_ES256 ? PSA_ALG_ECDSA(PSA_ALG_SHA_256) :
+    return cose_alg_id == COSE_ALGORITHM_ES256 ? PSA_ALG_ECDSA(PSA_ALG_SHA_256) :
 #ifndef T_COSE_DISABLE_ES384
-        cose_alg_id == COSE_ALGORITHM_ES384 ? PSA_ALG_ECDSA(PSA_ALG_SHA_384) :
+           cose_alg_id == COSE_ALGORITHM_ES384 ? PSA_ALG_ECDSA(PSA_ALG_SHA_384) :
 #endif
 #ifndef T_COSE_DISABLE_ES512
-        cose_alg_id == COSE_ALGORITHM_ES512 ? PSA_ALG_ECDSA(PSA_ALG_SHA_512) :
+           cose_alg_id == COSE_ALGORITHM_ES512 ? PSA_ALG_ECDSA(PSA_ALG_SHA_512) :
 #endif
-                                              0;
+                                                 0;
     /* psa/crypto_values.h doesn't seem to define a "no alg" value, but
      * zero seems OK for that use in the ECDSA context. */
 }
@@ -43,13 +42,12 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 static enum t_cose_err_t psa_status_to_t_cose_error_signing(psa_status_t err)
 {
     /* Intentionally keeping to fewer mapped errors to save object code */
-    return
-        err == PSA_SUCCESS                   ? T_COSE_SUCCESS :
-        err == PSA_ERROR_INVALID_SIGNATURE   ? T_COSE_ERR_SIG_VERIFY :
-        err == PSA_ERROR_NOT_SUPPORTED     ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
-        err == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
-        err == PSA_ERROR_TAMPERING_DETECTED  ? T_COSE_ERR_TAMPERING_DETECTED :
-                                               T_COSE_ERR_FAIL;
+    return err == PSA_SUCCESS                   ? T_COSE_SUCCESS :
+           err == PSA_ERROR_INVALID_SIGNATURE   ? T_COSE_ERR_SIG_VERIFY :
+           err == PSA_ERROR_NOT_SUPPORTED       ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
+           err == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
+           err == PSA_ERROR_TAMPERING_DETECTED  ? T_COSE_ERR_TAMPERING_DETECTED :
+                                                  T_COSE_ERR_FAIL;
 }
 
 
@@ -225,15 +223,14 @@ Done:
 static inline psa_algorithm_t
 cose_hash_alg_id_to_psa(int32_t cose_hash_alg_id)
 {
-    return
-        cose_hash_alg_id == COSE_ALGORITHM_SHA_256 ? PSA_ALG_SHA_256 :
+    return cose_hash_alg_id == COSE_ALGORITHM_SHA_256 ? PSA_ALG_SHA_256 :
 #ifndef T_COSE_DISABLE_ES384
-        cose_hash_alg_id == COSE_ALGORITHM_SHA_384 ? PSA_ALG_SHA_384 :
+           cose_hash_alg_id == COSE_ALGORITHM_SHA_384 ? PSA_ALG_SHA_384 :
 #endif
 #ifndef T_COSE_DISABLE_ES512
-        cose_hash_alg_id == COSE_ALGORITHM_SHA_512 ? PSA_ALG_SHA_512 :
+           cose_hash_alg_id == COSE_ALGORITHM_SHA_512 ? PSA_ALG_SHA_512 :
 #endif
-                                                     UINT16_MAX;
+                                                        UINT16_MAX;
 }
 
 
@@ -250,11 +247,10 @@ psa_status_to_t_cose_error_hash(psa_status_t status)
     /* Intentionally limited to just this minimum set of errors to
      * save object code as hashes don't really fail much
      */
-    return
-       status == PSA_SUCCESS                ? T_COSE_SUCCESS :
-       status == PSA_ERROR_NOT_SUPPORTED    ? T_COSE_ERR_UNSUPPORTED_HASH :
-       status == PSA_ERROR_BUFFER_TOO_SMALL ? T_COSE_ERR_HASH_BUFFER_SIZE :
-                                              T_COSE_ERR_HASH_GENERAL_FAIL;
+    return status == PSA_SUCCESS                ? T_COSE_SUCCESS :
+           status == PSA_ERROR_NOT_SUPPORTED    ? T_COSE_ERR_UNSUPPORTED_HASH :
+           status == PSA_ERROR_BUFFER_TOO_SMALL ? T_COSE_ERR_HASH_BUFFER_SIZE :
+                                                  T_COSE_ERR_HASH_GENERAL_FAIL;
 }
 
 

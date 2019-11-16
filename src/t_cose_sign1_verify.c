@@ -83,8 +83,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     QCBORItem                     item;
     struct q_useful_buf_c         protected_headers;
     enum t_cose_err_t             return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_tbs_hash,
-                                      T_COSE_CRYPTO_MAX_HASH_SIZE);
+    Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c         tbs_hash;
     struct q_useful_buf_c         signature;
     struct t_cose_headers         unprotected_headers;
@@ -144,8 +143,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    if((me->option_flags & T_COSE_OPT_REQUIRE_KID) &&
-        q_useful_buf_c_is_null(unprotected_headers.kid)) {
+    if((me->option_flags & T_COSE_OPT_REQUIRE_KID) && q_useful_buf_c_is_null(unprotected_headers.kid)) {
         return_value = T_COSE_ERR_NO_KID;
         goto Done;
     }
@@ -153,7 +151,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
 
     /* -- Check critical headers -- */
     return_value = check_critical_header_labels(&unknown_header_labels,
-                                               &critical_header_labels);
+                                                &critical_header_labels);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -223,8 +221,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
             goto Done;
         }
 
-        return_value = t_cose_crypto_short_circuit_verify(tbs_hash,
-                                                          signature);
+        return_value = t_cose_crypto_short_circuit_verify(tbs_hash, signature);
         goto Done;
     }
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */

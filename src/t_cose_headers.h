@@ -166,8 +166,7 @@ inline static void clear_header_list(struct t_cose_label_list *list)
 inline static bool
 is_header_list_clear(const struct t_cose_label_list *list)
 {
-    return list->int_labels[0] == 0 &&
-                q_useful_buf_c_is_null_or_empty(list->tstr_labels[0]);
+    return list->int_labels[0] == 0 && q_useful_buf_c_is_null_or_empty(list->tstr_labels[0]);
 }
 
 #endif /* t_cose_headers_h */

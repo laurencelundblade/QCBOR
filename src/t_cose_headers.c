@@ -36,8 +36,7 @@ consume_item(QCBORDecodeContext *decode_context,
     QCBORError return_value;
     QCBORItem  item;
 
-    if(item_to_consume->uDataType == QCBOR_TYPE_MAP ||
-       item_to_consume->uDataType == QCBOR_TYPE_ARRAY) {
+    if(item_to_consume->uDataType == QCBOR_TYPE_MAP || item_to_consume->uDataType == QCBOR_TYPE_ARRAY) {
         /* There is only real work to do for maps and arrays */
 
         /* This works for definite and indefinite length
@@ -224,13 +223,12 @@ check_critical_header_labels(const struct t_cose_label_list *critical_labels,
     return_value = T_COSE_SUCCESS;
 
     /* Iterate over unknown integer headers */
-    for(num_unknown =0; unknown_labels->int_labels[num_unknown]; num_unknown++){
+    for(num_unknown = 0; unknown_labels->int_labels[num_unknown]; num_unknown++) {
         /* Iterate over critical int headers looking for the unknown header */
         for(num_critical = 0;
             critical_labels->int_labels[num_critical];
             num_critical++) {
-            if(critical_labels->int_labels[num_critical] ==
-               unknown_labels->int_labels[num_unknown]) {
+            if(critical_labels->int_labels[num_critical] == unknown_labels->int_labels[num_unknown]) {
                 /* Found a critical header that is unknown to us */
                 return_value = T_COSE_ERR_UNKNOWN_CRITICAL_HEADER;
                 goto Done;
@@ -240,13 +238,9 @@ check_critical_header_labels(const struct t_cose_label_list *critical_labels,
     }
 
     /* Iterate over unknown string headers */
-    for(num_unknown = 0;
-        !q_useful_buf_c_is_null(unknown_labels->tstr_labels[num_unknown]);
-        num_unknown++) {
+    for(num_unknown = 0; !q_useful_buf_c_is_null(unknown_labels->tstr_labels[num_unknown]); num_unknown++) {
         /* iterate over critical string headers looking for the unknown header*/
-        for(num_critical = 0;
-            !q_useful_buf_c_is_null(critical_labels->tstr_labels[num_critical]);
-            num_critical++) {
+        for(num_critical = 0; !q_useful_buf_c_is_null(critical_labels->tstr_labels[num_critical]); num_critical++) {
             if(!q_useful_buf_compare(critical_labels->tstr_labels[num_critical],
                                      unknown_labels->tstr_labels[num_unknown])){
                 /* Found a critical header that is unknown to us */
@@ -441,8 +435,7 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
                     return_value = T_COSE_ERR_NON_INTEGER_ALG_ID;
                     goto Done;
                 }
-                if(item.val.int64 == COSE_ALGORITHM_RESERVED ||
-                   item.val.int64 > INT32_MAX) {
+                if(item.val.int64 == COSE_ALGORITHM_RESERVED || item.val.int64 > INT32_MAX) {
                     return_value = T_COSE_ERR_NON_INTEGER_ALG_ID;
                     goto Done;
                 }
@@ -693,7 +686,7 @@ check_and_copy_headers(const struct t_cose_headers  *protected,
         }
     }
 #endif
-    
+
     return_value = T_COSE_SUCCESS;
 
 Done:

@@ -86,8 +86,9 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
 /*
  * See documentation in t_cose_crypto.h
  */
-enum t_cose_err_t t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
-                                           int32_t cose_hash_alg_id)
+enum t_cose_err_t
+t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
+                         int32_t cose_hash_alg_id)
 {
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     if(hash_test_mode == 1) {

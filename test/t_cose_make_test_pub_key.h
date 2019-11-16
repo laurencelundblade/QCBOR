@@ -16,7 +16,7 @@
  * \brief make an ECDSA key pair for testing suited to algorim
  *
  */
-enum t_cose_err_t make_ecdsa_key_pair(int32_t cose_algorithm_id,
+enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
                                       struct t_cose_key *key_pair);
 
 

@@ -66,7 +66,7 @@ extern "C" {
  */
 struct t_cose_sign1_sign_ctx {
     /* Private data structure */
-    uint8_t              protected_headers_buffer[T_COSE_SIGN1_MAX_PROT_HEADER];
+    uint8_t               protected_headers_buffer[T_COSE_SIGN1_MAX_PROT_HEADER];
     struct q_useful_buf_c protected_headers;
     int32_t               cose_algorithm_id;
     struct t_cose_key     signing_key;

@@ -145,8 +145,7 @@ int_fast32_t sign_verify_sig_fail_test()
     }
 
     /* tamper with the pay load to see that the signature verification fails */
-    size_t xx = q_useful_buf_find_bytes(signed_cose,
-                                        Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
+    size_t xx = q_useful_buf_find_bytes(signed_cose, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
     if(xx == SIZE_MAX) {
         return 99;
     }
@@ -201,8 +200,8 @@ int_fast32_t sign_verify_make_cwt_test()
         return 1000 + return_value;
     }
     t_cose_sign1_set_signing_key(&sign_ctx,
-                         key_pair,
-                         Q_USEFUL_BUF_FROM_SZ_LITERAL("AsymmetricECDSA256"));
+                                  key_pair,
+                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("AsymmetricECDSA256"));
 
 
     /* -- Encoding context and output of headers -- */

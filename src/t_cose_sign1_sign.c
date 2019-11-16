@@ -80,11 +80,10 @@ short_circuit_sign(int32_t               cose_algorithm_id,
     size_t            amount_to_copy;
     size_t            sig_size;
 
-    sig_size =
-       cose_algorithm_id == COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
-       cose_algorithm_id == COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
-       cose_algorithm_id == COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
-       0;
+    sig_size = cose_algorithm_id == COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
+               cose_algorithm_id == COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
+               cose_algorithm_id == COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
+                                                           0;
 
     /* Check the signature length against buffer size */
     if(sig_size == 0) {
@@ -261,8 +260,7 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *me,
     /* The protected headers, which are added as a wrapped bstr  */
     buffer_for_protected_header =
         Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->protected_headers_buffer);
-    me->protected_headers = make_protected_header(me->cose_algorithm_id,
-                                                  buffer_for_protected_header);
+    me->protected_headers = make_protected_header(me->cose_algorithm_id, buffer_for_protected_header);
     if(q_useful_buf_c_is_null(me->protected_headers)) {
         /* The sizing of storage for protected headers is
          off (should never happen in tested, released code) */
@@ -325,11 +323,9 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
     /* Pointer and length of the completed signature */
     struct q_useful_buf_c        signature;
     /* Buffer for the actual signature */
-    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_signature,
-                                     T_COSE_MAX_SIG_SIZE);
+    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_signature, T_COSE_MAX_SIG_SIZE);
     /* Buffer for the tbs hash. */
-    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash,
-                                     T_COSE_CRYPTO_MAX_HASH_SIZE);
+    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        signed_payload;
 
     QCBOREncode_CloseBstrWrap(cbor_encode_ctx, &signed_payload);

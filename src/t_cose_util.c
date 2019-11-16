@@ -39,15 +39,14 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
     /* ? : operator precedence is correct here. This makes smaller
      * code than a switch statement and is easier to read.
      */
-    return
-        cose_algorithm_id == COSE_ALGORITHM_ES256 ? COSE_ALGORITHM_SHA_256 :
+    return cose_algorithm_id == COSE_ALGORITHM_ES256 ? COSE_ALGORITHM_SHA_256 :
 #ifndef T_COSE_DISABLE_ES384
-        cose_algorithm_id == COSE_ALGORITHM_ES384 ? COSE_ALGORITHM_SHA_384 :
+           cose_algorithm_id == COSE_ALGORITHM_ES384 ? COSE_ALGORITHM_SHA_384 :
 #endif
 #ifndef T_COSE_DISABLE_ES512
-        cose_algorithm_id == COSE_ALGORITHM_ES512 ? COSE_ALGORITHM_SHA_512 :
+           cose_algorithm_id == COSE_ALGORITHM_ES512 ? COSE_ALGORITHM_SHA_512 :
 #endif
-                                                    T_COSE_INVALID_ALGORITHM_ID;
+                                                       T_COSE_INVALID_ALGORITHM_ID;
 }
 
 
@@ -118,11 +117,9 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
     QCBOREncode_OpenArray(&cbor_encode_ctx);
 
     /* context */
-    QCBOREncode_AddSZString(&cbor_encode_ctx,
-                            COSE_SIG_CONTEXT_STRING_SIGNATURE1);
+    QCBOREncode_AddSZString(&cbor_encode_ctx, COSE_SIG_CONTEXT_STRING_SIGNATURE1);
     /* body_protected */
-    QCBOREncode_AddBytes(&cbor_encode_ctx,
-                         protected_headers);
+    QCBOREncode_AddBytes(&cbor_encode_ctx, protected_headers);
 
     /* sign_protected is not used for COSE_Sign1 */
 
@@ -188,7 +185,7 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
      */
     t_cose_crypto_hash_update(&hash_ctx,
                               q_useful_buf_head(tbs_first_part,
-                                        tbs_first_part.len - bytes_to_omit));
+                                                tbs_first_part.len - bytes_to_omit));
 
     /* Hash the payload, the second part. This may or may not
      * have the bstr wrapping. If not, it was hashed above.

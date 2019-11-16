@@ -217,7 +217,7 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
  */
 static void
 t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
-                            struct t_cose_key               verification_key);
+                                  struct t_cose_key               verification_key);
 
 
 /**
@@ -290,7 +290,7 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
 
 static inline void
 t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
-                            struct t_cose_key               verification_key)
+                                  struct t_cose_key               verification_key)
 {
     me->verification_key = verification_key;
 }

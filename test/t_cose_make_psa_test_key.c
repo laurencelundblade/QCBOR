@@ -45,7 +45,7 @@
 /*
  * Public function, see t_cose_make_test_pub_key.h
  */
-enum t_cose_err_t make_ecdsa_key_pair(int32_t cose_algorithm_id,
+enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
                                       struct t_cose_key *key_pair)
 {
     psa_key_type_t      key_type;

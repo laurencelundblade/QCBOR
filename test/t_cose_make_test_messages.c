@@ -48,15 +48,14 @@ short_circuit_sign(int32_t               cose_algorithm_id,
     /* approximate stack use on 32-bit machine: local use: 16 bytes
      */
     enum t_cose_err_t return_value;
-    size_t            array_indx;
+    size_t            array_index;
     size_t            amount_to_copy;
     size_t            sig_size;
 
-    sig_size =
-       cose_algorithm_id == COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
-       cose_algorithm_id == COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
-       cose_algorithm_id == COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
-       0;
+    sig_size = cose_algorithm_id == COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
+               cose_algorithm_id == COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
+               cose_algorithm_id == COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
+                                                           0;
 
     /* Check the signature length against buffer size*/
     if(sig_size == 0) {
@@ -71,12 +70,12 @@ short_circuit_sign(int32_t               cose_algorithm_id,
     }
 
     /* Loop concatening copies of the hash to fill out to signature size */
-    for(array_indx = 0; array_indx < sig_size; array_indx += hash_to_sign.len) {
-        amount_to_copy = sig_size - array_indx;
+    for(array_index = 0; array_index < sig_size; array_index += hash_to_sign.len) {
+        amount_to_copy = sig_size - array_index;
         if(amount_to_copy > hash_to_sign.len) {
             amount_to_copy = hash_to_sign.len;
         }
-        memcpy((uint8_t *)signature_buffer.ptr + array_indx,
+        memcpy((uint8_t *)signature_buffer.ptr + array_index,
                hash_to_sign.ptr,
                amount_to_copy);
     }
@@ -111,8 +110,8 @@ Done:
  * small. See also definition of \ref T_COSE_SIGN1_MAX_PROT_HEADER
  */
 static inline struct q_useful_buf_c
-make_protected_header(int32_t test_mess_options,
-                      int32_t cose_algorithm_id,
+make_protected_header(int32_t             test_mess_options,
+                      int32_t             cose_algorithm_id,
                       struct q_useful_buf buffer_for_header)
 {
     /* approximate stack use on 32-bit machine:
@@ -256,7 +255,7 @@ Finish:
  * The unprotected headers added by this are the key ID plus
  * lots of different test headers.
  */
-static inline void add_unprotected_headers(int32_t test_mess_options,
+static inline void add_unprotected_headers(int32_t              test_mess_options,
                                            QCBOREncodeContext  *cbor_encode_ctx,
                                            struct q_useful_buf_c kid)
 {
@@ -371,8 +370,8 @@ static inline void add_unprotected_headers(int32_t test_mess_options,
  */
 static enum t_cose_err_t
 t_cose_sign1_test_message_output_headers(struct t_cose_sign1_sign_ctx *me,
-                                         int32_t test_mess_options,
-                                         QCBOREncodeContext *cbor_encode_ctx)
+                                         int32_t                       test_mess_options,
+                                         QCBOREncodeContext           *cbor_encode_ctx)
 {
     enum t_cose_err_t      return_value;
     struct q_useful_buf    buffer_for_protected_header;
@@ -467,11 +466,9 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
     /* Pointer and length of the completed signature */
     struct q_useful_buf_c        signature;
     /* Buffer for the actual signature */
-    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_signature,
-                                     T_COSE_MAX_SIG_SIZE);
+    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_signature, T_COSE_MAX_SIG_SIZE);
     /* Buffer for the tbs hash. */
-    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash,
-                                     T_COSE_CRYPTO_MAX_HASH_SIZE);
+    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        signed_payload;
 
     QCBOREncode_CloseBstrWrap(cbor_encode_ctx, &signed_payload);
@@ -583,8 +580,7 @@ t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_AddEncoded(&encode_context, payload);
 
     /* -- Sign and put signature in the encoder context -- */
-    return_value = t_cose_sign1_test_message_output_signature(me,
-                                                              &encode_context);
+    return_value = t_cose_sign1_test_message_output_signature(me, &encode_context);
     if(return_value) {
         goto Done;
     }

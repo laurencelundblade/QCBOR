@@ -26,7 +26,7 @@ typedef enum {IDLE, S256, S384, S512} off_target_hash_status_t;
 static off_target_hash_status_t s_status = IDLE;
 
 psa_status_t psa_hash_setup(psa_hash_operation_t *operation,
-                            psa_algorithm_t alg)
+                            psa_algorithm_t       alg)
 {
     int                      ossl_result;
     off_target_hash_status_t new_status;
@@ -75,8 +75,8 @@ psa_status_t psa_hash_setup(psa_hash_operation_t *operation,
 
 
 psa_status_t psa_hash_update(psa_hash_operation_t *operation,
-                             const uint8_t *input,
-                             size_t input_length)
+                             const uint8_t        *input,
+                             size_t                input_length)
 {
     int ossl_result;
 
@@ -107,9 +107,9 @@ psa_status_t psa_hash_update(psa_hash_operation_t *operation,
 }
 
 psa_status_t psa_hash_finish(psa_hash_operation_t *operation,
-                             uint8_t *hash,
-                             size_t hash_size,
-                             size_t *hash_length)
+                             uint8_t              *hash,
+                             size_t                hash_size,
+                             size_t               *hash_length)
 {
     int            ossl_result;
     psa_status_t   return_value;

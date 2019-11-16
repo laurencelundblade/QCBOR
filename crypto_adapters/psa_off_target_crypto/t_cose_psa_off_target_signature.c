@@ -66,7 +66,7 @@ psa_status_t psa_destroy_key(psa_key_handle_t handle)
 /*
  * Public finction. See documentation in psa/crypto.h
  */
-psa_status_t psa_set_key_policy(psa_key_handle_t handle,
+psa_status_t psa_set_key_policy(psa_key_handle_t        handle,
                                 const psa_key_policy_t *policy)
 {
     /* just a stub. Don't need policy for our tests here */
@@ -81,8 +81,8 @@ psa_status_t psa_set_key_policy(psa_key_handle_t handle,
  * Public finction. See documentation in psa/crypto.h
  */
 void psa_key_policy_set_usage(psa_key_policy_t *policy,
-                              psa_key_usage_t usage,
-                              psa_algorithm_t alg)
+                              psa_key_usage_t   usage,
+                              psa_algorithm_t   alg)
 {
     (void)policy;
     (void)usage;
@@ -107,11 +107,10 @@ psa_status_t psa_import_key(psa_key_handle_t handle,
     int           nid;
 
     /* Map PSA key type / curve to OpenSSL nid for the cure */
-    nid =
-        type == PSA_KEY_TYPE_ECC_KEYPAIR(PSA_ECC_CURVE_SECP256R1) ? NID_X9_62_prime256v1:
-        type == PSA_KEY_TYPE_ECC_KEYPAIR(PSA_ECC_CURVE_SECP384R1) ? NID_secp384r1 :
-        type == PSA_KEY_TYPE_ECC_KEYPAIR(PSA_ECC_CURVE_SECP521R1) ? NID_secp521r1 :
-                                                                    0;
+    nid = type == PSA_KEY_TYPE_ECC_KEYPAIR(PSA_ECC_CURVE_SECP256R1) ? NID_X9_62_prime256v1:
+          type == PSA_KEY_TYPE_ECC_KEYPAIR(PSA_ECC_CURVE_SECP384R1) ? NID_secp384r1 :
+          type == PSA_KEY_TYPE_ECC_KEYPAIR(PSA_ECC_CURVE_SECP521R1) ? NID_secp521r1 :
+                                                                      0;
 
     if(nid == 0) {
         return_value = PSA_ERROR_NOT_SUPPORTED;
@@ -508,11 +507,11 @@ Done:
  * Public finction. See documentation in psa/crypto.h
  */
 psa_status_t psa_asymmetric_verify(psa_key_handle_t psa_key_handle,
-                                   psa_algorithm_t psa_algorithm_id,
-                                   const uint8_t *hash_to_verify,
-                                   size_t hash_to_verify_len,
-                                   const uint8_t *signature_to_verify,
-                                   size_t signature_to_verify_len)
+                                   psa_algorithm_t  psa_algorithm_id,
+                                   const uint8_t   *hash_to_verify,
+                                   size_t           hash_to_verify_len,
+                                   const uint8_t   *signature_to_verify,
+                                   size_t           signature_to_verify_len)
 {
     int               ossl_result;
     psa_status_t      return_value;
