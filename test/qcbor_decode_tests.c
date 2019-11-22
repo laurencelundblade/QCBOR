@@ -1331,8 +1331,36 @@ int ParseSimpleTest()
 
 struct FailInput {
    UsefulBufC Input;
-   int nError;
+   int        nError;
 };
+
+
+static int ProcessFailures(struct FailInput *pFailInputs, size_t nNumFails)
+{
+   int nResult = 0;
+
+   for(struct FailInput *pF = pFailInputs; pF < pFailInputs + nNumFails; pF++) {
+      QCBORDecodeContext DCtx;
+      QCBORItem          Item;
+      int                nCBORError;
+
+      QCBORDecode_Init(&DCtx, pF->Input, QCBOR_DECODE_MODE_NORMAL);
+
+      while(1) {
+         nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+         if(QCBOR_ERR_HIT_END == nCBORError) {
+            break;
+         }
+         if(nCBORError != pF->nError) {
+            // 100 times the test index plus the actual error
+            nResult = (int)(pF -  pFailInputs) * 100 + nCBORError;
+            break;
+         }
+      }
+   }
+
+   return nResult;
+}
 
 
 struct FailInput  Failures[] = {
@@ -1364,49 +1392,30 @@ struct FailInput  Failures[] = {
 
 int FailureTests()
 {
-   int nResult = 0;
+   int nResult;
 
-   struct FailInput *pFEnd = &Failures[0] + sizeof(Failures)/sizeof(struct FailInput);
-
-   for(struct FailInput *pF = &Failures[0]; pF < pFEnd ;pF++) {
-      QCBORDecodeContext DCtx;
-      QCBORItem Item;
-      int nCBORError;
-
-      QCBORDecode_Init(&DCtx, pF->Input, QCBOR_DECODE_MODE_NORMAL);
-
-      while(1) {
-         nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
-         if(QCBOR_ERR_HIT_END == nCBORError) {
-            break;
-         }
-         if(nCBORError != pF->nError) {
-            nResult = 1;
-            break;
-         }
-      }
+   nResult = ProcessFailures(Failures, sizeof(Failures)/sizeof(struct FailInput));
+   if(nResult) {
+      return nResult;
    }
 
-   {
-      QCBORDecodeContext DCtx;
-      QCBORItem Item;
-      int nCBORError;
+   QCBORDecodeContext DCtx;
+   QCBORItem Item;
+   int nCBORError;
 
-      QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleValues), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleValues), QCBOR_DECODE_MODE_NORMAL);
 
-      if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-         return nCBORError;
-      if(Item.uDataType != QCBOR_TYPE_ARRAY ||
-         Item.val.uCount != 10)
-         return -1;
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+      return nCBORError;
+   if(Item.uDataType != QCBOR_TYPE_ARRAY ||
+      Item.val.uCount != 10)
+      return -1;
 
-      DCtx.InBuf.magic = 0; // Corrupt the UsefulInputBuf
+   DCtx.InBuf.magic = 0; // Corrupt the UsefulInputBuf
 
-      nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
-      if(nCBORError != QCBOR_ERR_HIT_END)
-         return -1;
-   }
-
+   nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(nCBORError != QCBOR_ERR_HIT_END)
+      return -1;
 
    return nResult;
 }
@@ -1587,15 +1596,25 @@ static uint8_t spOptTestInput[] = {
    0xd8, 0x04, // non-preferred serialization of tag 4
    0x82, 0x01, 0x03}; // fraction 1/3
 
+/*
+ DB 9192939495969798 # tag(10489608748473423768)
+   80               # array(0)
+ */
 static uint8_t spEncodedLargeTag[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x80};
 
-// 0x9192939495969798, 0x88, 0x01, 0x04
-static uint8_t spLotsOfTags[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0xd8, 0x88, 0xc5, 0xc4, 0x80};
+/*
+DB 9192939495969798 # tag(10489608748473423768)
+   D8 88            # tag(136)
+      C6            # tag(6)
+         C7         # tag(7)
+            80      # array(0)
+*/
+static uint8_t spLotsOfTags[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0xd8, 0x88, 0xc6, 0xc7, 0x80};
 
 /*
  The cbor.me parse of this.
  55799(55799(55799({6(7(-23)): 5859837686836516696(7({7(-20): 11({17(-18): 17(17(17("Organization"))),
- 9(-17): 773("SSG"), -15: 4(5(6(7(8(9(10(11(12(13(14(15("Confusion")))))))))))), 17(-16): 17("San Diego"),
+ 9(-17): 773("SSG"), -15: 16(17(6(7(8(9(10(11(12(13(14(15("Confusion")))))))))))), 17(-16): 17("San Diego"),
  17(-14): 17("US")}), 23(-19): 19({-11: 9({-9: -7}),
  90599561(90599561(90599561(-10))): 12(h'0102030405060708090A')})})),
  16(-22): 23({11(8(7(-5))): 8(-3)})})))
@@ -1613,7 +1632,7 @@ static uint8_t spCSRWithTags[] = {
             0xd9, 0x03, 0x05, 0x63,
                0x53, 0x53, 0x47,
             0x2e,
-            0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf, 0x69,
+            0xd0, 0xd1, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf, 0x69,
                0x43, 0x6f, 0x6e, 0x66, 0x75, 0x73, 0x69, 0x6f, 0x6e,
             0xd1, 0x2f,
             0xd1, 0x69,
@@ -1658,11 +1677,17 @@ int OptTagParseTest()
    if(QCBORDecode_GetNext(&DCtx, &Item)) {
       return -4;
    }
+#ifdef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
    if(Item.uDataType != QCBOR_TYPE_ARRAY ||
       !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_DECIMAL_FRACTION) ||
       Item.val.uCount != 2) {
       return -5;
    }
+#else
+   if(Item.uDataType != 0x0e) { // TODO: fix the return code, part of decimal fraction decoding
+      return -5;
+   }
+#endif
 
    // --------------------------------
    // This test decodes the very large tag, but it is not in
@@ -1713,8 +1738,8 @@ int OptTagParseTest()
    }
    if(puTags[0] != 0x9192939495969798 ||
       puTags[1] != 0x88 ||
-      puTags[2] != 0x05 ||
-      puTags[3] != 0x04) {
+      puTags[2] != 0x06 ||
+      puTags[3] != 0x07) {
       return -13;
    }
 
@@ -1734,7 +1759,7 @@ int OptTagParseTest()
       return n-2000;
    }
 
-   Out = (QCBORTagListOut){0,16, puTags};
+   Out = (QCBORTagListOut){0, 16, puTags};
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags), QCBOR_DECODE_MODE_NORMAL);
 
    const uint64_t puTagList[] = {773, 1, 90599561};
@@ -1810,9 +1835,9 @@ int OptTagParseTest()
       return -109;
    }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 4) ||
+      !QCBORDecode_IsTagged(&DCtx, &Item, 16) ||
       Item.val.string.len != 9 ||
-      puTags[0] != 4 ||
+      puTags[0] != 16 ||
       puTags[11] != 0x0f ||
       Out.uNumUsed != 12) {
       return -110;
@@ -2891,9 +2916,30 @@ int SetUpAllocatorTest(void)
 }
 
 
+/*
+  [
+    4([3, -1]),
+    4([4759477275222530853136, -20]),
+    4([-4759477275222530853137, 9223372036854775807]),
+    5([100, 300]),
+    5([4759477275222530853136, -20]),
+    5([-4759477275222530853137, -9223372036854775808])
+  ]
+ */
 
 static const uint8_t spExpected4And5Array[] = {
-   0x86, 0xC4, 0x82, 0x03, 0x20, 0xC4, 0x82, 0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x33, 0xC4, 0x82, 0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC5, 0x82, 0x18, 0x64, 0x19, 0x01, 0x2C, 0xC5, 0x82, 0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x33, 0xC5, 0x82, 0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x3B, 0x09, 0x16, 0xE5};
+   0x86, 0xC4, 0x82, 0x03, 0x20, 0xC4, 0x82, 0xC2,
+   0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+   0x08, 0x09, 0x10, 0x33, 0xC4, 0x82, 0xC3, 0x4A,
+   0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+   0x09, 0x10, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF,
+   0xFF, 0xFF, 0xFF, 0xC5, 0x82, 0x18, 0x64, 0x19,
+   0x01, 0x2C, 0xC5, 0x82, 0xC2, 0x4A, 0x01, 0x02,
+   0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
+   0x33, 0xC5, 0x82, 0xC3, 0x4A, 0x01, 0x02, 0x03,
+   0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x3B,
+   0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE
+};
 
 int Type4And5DecodeTests(void)
 {
@@ -2901,16 +2947,103 @@ int Type4And5DecodeTests(void)
    QCBORError nCBORError;
    QCBORItem item;
 
+   static const uint8_t spBigNum[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x010};
+   UsefulBufC BN = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum);
+
+
    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpected4And5Array), QCBOR_DECODE_MODE_NORMAL);
 
    nCBORError = QCBORDecode_GetNext(&DC, &item);
    if(nCBORError != QCBOR_SUCCESS) {
-      return -1;
+      return 1;
    }
 
+   if(item.uDataType != QCBOR_TYPE_ARRAY) {
+      return 2;
+   }
 
+   nCBORError = QCBORDecode_GetNext(&DC, &item);
+   if(nCBORError != QCBOR_SUCCESS) {
+      return 3;
+   }
 
-Done:
+   if(item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION ||
+      item.val.expAndMantissa.Mantissa.nInt != 3 ||
+      item.val.expAndMantissa.nExponent != -1) {
+      return 4;
+   }
+
+   nCBORError = QCBORDecode_GetNext(&DC, &item);
+   if(nCBORError != QCBOR_SUCCESS) {
+      return 5;
+   }
+
+   if(item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM ||
+      item.val.expAndMantissa.nExponent != -20 ||
+      UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
+      return 6;
+   }
+
+   nCBORError = QCBORDecode_GetNext(&DC, &item);
+   if(nCBORError != QCBOR_SUCCESS) {
+      return 7;
+   }
+
+   if(item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM ||
+      item.val.expAndMantissa.nExponent != 9223372036854775807 ||
+      UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
+      return 8;
+   }
+
+   nCBORError = QCBORDecode_GetNext(&DC, &item);
+   if(nCBORError != QCBOR_SUCCESS) {
+      return 9;
+   }
+
+   if(item.uDataType != QCBOR_TYPE_BIGFLOAT ||
+      item.val.expAndMantissa.Mantissa.nInt != 100 ||
+      item.val.expAndMantissa.nExponent != 300) {
+      return 10;
+   }
+
+   nCBORError = QCBORDecode_GetNext(&DC, &item);
+   if(nCBORError != QCBOR_SUCCESS) {
+      return 11;
+   }
+
+   if(item.uDataType != QCBOR_TYPE_BIGFLOAT_POS_BIGNUM ||
+      item.val.expAndMantissa.nExponent != -20 ||
+      UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
+      return 12;
+   }
+
+   nCBORError = QCBORDecode_GetNext(&DC, &item);
+   if(nCBORError != QCBOR_SUCCESS) {
+      return 13;
+   }
+
+   if(item.uDataType != QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM ||
+      item.val.expAndMantissa.nExponent != -9223372036854775807 ||
+      UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
+      return 14;
+   }
+
    return 0;
+}
+
+
+static struct FailInput F45Failures[] = {
+   { {(uint8_t[]){0xC4, 0x80}, 2}, QCBOR_ERR_BAD_TAG_4_OR_5 },  // Not an array
+   // { {(uint8_t[]){0xC4, 0x9f, 0x03, 0x01, 0x02}, 5}, QCBOR_ERR_BAD_TAG_4_OR_5 },  // ????
+   { {(uint8_t[]){0xC4, 0x83, 0x03, 0x01, 02}, 5}, QCBOR_ERR_BAD_TAG_4_OR_5 },  // 3 items in array
+   { {(uint8_t[]){0xC4, 0x82, 0x03, 0x40}, 4}, QCBOR_ERR_BAD_TAG_4_OR_5 },  // Second is not an integer
+   { {(uint8_t[]){0xC4, 0x82, 0x40}, 3}, QCBOR_ERR_BAD_TAG_4_OR_5 },  // First is not an integer
+   { {(uint8_t[]){0xC4, 0xa2}, 2}, QCBOR_ERR_BAD_TAG_4_OR_5 }  // Not an array
+};
+
+
+int Type4And5DecodeFailTests()
+{
+   return ProcessFailures(F45Failures, sizeof(F45Failures)/sizeof(struct FailInput));
 }
 

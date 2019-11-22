@@ -235,4 +235,8 @@ int SetUpAllocatorTest(void);
 int Type4And5DecodeTests(void);
 
 
+
+int Type4And5DecodeFailTests(void);
+
+
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

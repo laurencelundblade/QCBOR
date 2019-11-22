@@ -481,7 +481,7 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 }
 
 
-#ifndef QCBOR_CONFIG_DISABLE_TAG_4_AND_5
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 /*
  Semi-public function. It is exposed to user of the interface,
  but they will usually call one of the inline wrappers rather than this.
@@ -495,6 +495,7 @@ void QCBOREncode_AddTag4or5(QCBOREncodeContext *pMe,
                             int64_t             nMantissa,
                             int64_t             nExponent)
 {
+   // TODO: this needs to be optional
    QCBOREncode_AddTag(pMe, uTag);
    QCBOREncode_OpenArray(pMe);
    if(!UsefulBuf_IsNULLC(BigNumMantissa)) {

@@ -143,6 +143,8 @@ test_entry s_tests[] = {
     TEST_ENTRY(EncodeErrorTests),
     TEST_ENTRY(SetUpAllocatorTest),
     TEST_ENTRY(Type4And5EncodeTests),
+    TEST_ENTRY(Type4And5DecodeTests),
+    TEST_ENTRY(Type4And5DecodeFailTests),
     //TEST_ENTRY(fail_test),
 };
 
