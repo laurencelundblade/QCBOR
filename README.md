@@ -4,9 +4,10 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
 ## Characteristics
 
-**Implemented in C with minimal dependency** – Only dependencies are
-  C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making it
-  highly portable. There are no #ifdefs to be configured at all.
+**Implemented in C with minimal dependency** – The only dependencies
+  are C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making it
+  highly portable. No #ifdefs or compiler options need to be set for it
+  to run correctly.
 
 **Focused on C / native data representation** – Simpler code because
   there is no support for encoding/decoding to/from JSON, pretty
@@ -25,14 +26,14 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
   RFC 7049 are not directly supported (canonicalization, decimal
   fractions, big floats). Decoding indefinite length strings is supported,
   but requires a string allocator (see documentation). Encoding indefinite
-  length strings is not supported, but is also not necessary or
+  length strings is not supported, but is not necessary or
   preferred.
 
 **Extensible and general** – Provides a way to handle data types that
   are not directly supported.
 
 **Secure coding style** – Uses a construct called UsefulBuf as a
-  discipline for very safe coding the handling of binary data.
+  discipline for very safe coding and handling of binary data.
 
 **Small code size** – When optimized for size using the compiler -Os
   option, x86 code is about 4KB (~1.1KB encode, ~2.5KB decode,
@@ -58,7 +59,8 @@ permissive Linux license, September 2018 (thanks Qualcomm!).
 
 This code in [Laurence's
 GitHub](https://github.com/laurencelundblade/QCBOR) has diverged from
-the CAF source with some small simplifications and tidying up.
+the CAF source with some simplifications, tidying up and feature
+additions.
 
 From Nov 3, 2018, the interface and code are fairly stable. Large
 changes are not planned or expected, particularly in the
@@ -103,6 +105,24 @@ the main implementation.  If your development environment doesn't
 support UNIX style command line and make, you should be able to make a
 simple project and add the test files to it.  Then just call
 RunTests() to invoke them all.
+
+While this code will run fine without configuration, there are several
+C pre processor macros that can be #defined in order to:
+
+* use a more efficient implementation
+  * to reduce code size
+  * to improve performance (a little)
+* remove features to reduce code size
+
+See the comment sections on "Configuration" in inc/UsefulBuf.h.
+
+## Other Software Using QCBOR
+
+* [t_cose](https://github.com/laurencelundblade/t_cose) implements enough of
+[COSE, RFC 8152](https://tools.ietf.org/html/rfc8152) to support
+[CBOR Web Token (CWT)](https://tools.ietf.org/html/rfc8392) and
+[Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01). 
+Specifically it supports signing and verification of the COSE_Sign1 message.
 
 
 ## Changes from CAF Version

@@ -42,6 +42,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 11/07/19           llundblade      Fix long long conversion to double compiler warning
+ 09/07/19           llundblade      Fix bug decoding empty arrays and maps
+ 07/31/19           llundblade      Decode error fixes for some not-well-formed CBOR
+ 07/31/19           llundblade      New error code for better end of data handling
  02/17/19           llundblade      Fixed: QCBORItem.u{Data|Label}Alloc when bAllStrings set
  02/16/19           llundblade      Redesign MemPool to fix memory access alignment bug
  01/10/19           llundblade      Clever type and argument decoder is 250 bytes smaller
@@ -127,27 +131,26 @@ inline static QCBORError DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
 // Called on every single item except breaks including the opening of a map/array
 inline static void DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
 {
-   if(!DecodeNesting_IsNested(pNesting)) {
-      // at top level where there is no tracking
-      return;
-   }
+   while(DecodeNesting_IsNested(pNesting)) {
+      // Not at the top level, so there is decrementing to be done.
 
-   if(DecodeNesting_IsIndefiniteLength(pNesting)) {
-      // There is no count for indefinite length arrays/maps
-      return;
-   }
-
-   // Decrement the count of items in this array/map
-   pNesting->pCurrent->uCount--;
-
-   // Pop up nesting levels if the counts at the levels are zero
-   while(DecodeNesting_IsNested(pNesting) && 0 == pNesting->pCurrent->uCount) {
-      pNesting->pCurrent--;
       if(!DecodeNesting_IsIndefiniteLength(pNesting)) {
+         // Decrement the current nesting level if it is not indefinite.
          pNesting->pCurrent->uCount--;
       }
+
+      if(pNesting->pCurrent->uCount != 0) {
+         // Did not close out an array or map, so nothing further
+         break;
+      }
+
+      // Closed out an array or map so level up
+      pNesting->pCurrent--;
+
+      // Continue with loop to see if closing out this doesn't close out more
    }
 }
+
 
 // Called on every map/array
 inline static QCBORError DecodeNesting_Descend(QCBORDecodeNesting *pNesting, QCBORItem *pItem)
@@ -485,7 +488,7 @@ inline static QCBORError DecodeInteger(int nMajorType, uint64_t uNumber, QCBORIt
 
       } else {
          // C can't represent a negative integer in this range
-         // so it is an error.  todo -- test this condition
+         // so it is an error.
          nReturn = QCBOR_ERR_INT_OVERFLOW;
       }
    }
@@ -536,11 +539,7 @@ inline static QCBORError DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber,
    pDecodedItem->uDataType = uAdditionalInfo;
 
    switch(uAdditionalInfo) {
-      case ADDINFO_RESERVED1:  // 28
-      case ADDINFO_RESERVED2:  // 29
-      case ADDINFO_RESERVED3:  // 30
-         nReturn = QCBOR_ERR_UNSUPPORTED;
-         break;
+      // No check for ADDINFO_RESERVED1 - ADDINFO_RESERVED3 as it is caught before this is called.
 
       case HALF_PREC_FLOAT:
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
@@ -683,13 +682,33 @@ static int DecodeDateEpoch(QCBORItem *pDecodedItem)
 
       case QCBOR_TYPE_DOUBLE:
          {
+            // This comparison needs to be done as a float before
+            // conversion to an int64_t to be able to detect doubles
+            // that are too large to fit into an int64_t.  A double
+            // has 52 bits of preceision. An int64_t has 63. Casting
+            // INT64_MAX to a double actually causes a round up which
+            // is bad and wrong for the comparison because it will
+            // allow conversion of doubles that can't fit into a
+            // uint64_t.  To remedy this INT64_MAX - 0x7ff is used as
+            // the cutoff point as if that rounds up in conversion to
+            // double it will still be less than INT64_MAX. 0x7ff is
+            // picked because it has 11 bits set.
+            //
+            // INT64_MAX seconds is on the order of 10 billion years,
+            // and the earth is less than 5 billion years old, so for
+            // most uses this conversion error won't occur even though
+            // doubles can go much larger.
+            //
+            // Without the 0x7ff there is a ~30 minute range of time
+            // values 10 billion years in the past and in the future
+            // where this this code would go wrong.
             const double d = pDecodedItem->val.dfnum;
-            if(d > INT64_MAX) {
+            if(d > (double)(INT64_MAX - 0x7ff)) {
                nReturn = QCBOR_ERR_DATE_OVERFLOW;
                goto Done;
             }
-            pDecodedItem->val.epochDate.nSeconds = d; // Float to integer conversion happening here.
-            pDecodedItem->val.epochDate.fSecondsFraction = d - pDecodedItem->val.epochDate.nSeconds;
+            pDecodedItem->val.epochDate.nSeconds = (int64_t)d;
+            pDecodedItem->val.epochDate.fSecondsFraction = d - (double)pDecodedItem->val.epochDate.nSeconds;
          }
          break;
 
@@ -735,21 +754,26 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
    uint64_t uNumber;
    uint8_t  uAdditionalInfo;
 
+   memset(pDecodedItem, 0, sizeof(QCBORItem));
+
    nReturn = DecodeTypeAndNumber(pUInBuf, &uMajorType, &uNumber, &uAdditionalInfo);
 
    // Error out here if we got into trouble on the type and number.
    // The code after this will not work if the type and number is not good.
-   if(nReturn)
+   if(nReturn) {
       goto Done;
-
-   memset(pDecodedItem, 0, sizeof(QCBORItem));
+   }
 
    // At this point the major type and the value are valid. We've got the type and the number that
    // starts every CBOR data item.
    switch (uMajorType) {
       case CBOR_MAJOR_TYPE_POSITIVE_INT: // Major type 0
       case CBOR_MAJOR_TYPE_NEGATIVE_INT: // Major type 1
-         nReturn = DecodeInteger(uMajorType, uNumber, pDecodedItem);
+         if(uAdditionalInfo == LEN_IS_INDEFINITE) {
+            nReturn = QCBOR_ERR_BAD_INT;
+         } else {
+            nReturn = DecodeInteger(uMajorType, uNumber, pDecodedItem);
+         }
          break;
 
       case CBOR_MAJOR_TYPE_BYTE_STRING: // Major type 2
@@ -778,8 +802,12 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
          break;
 
       case CBOR_MAJOR_TYPE_OPTIONAL: // Major type 6, optional prepended tags
-         pDecodedItem->val.uTagV = uNumber;
-         pDecodedItem->uDataType = QCBOR_TYPE_OPTTAG;
+         if(uAdditionalInfo == LEN_IS_INDEFINITE) {
+            nReturn = QCBOR_ERR_BAD_INT;
+         } else {
+            pDecodedItem->val.uTagV = uNumber;
+            pDecodedItem->uDataType = QCBOR_TYPE_OPTTAG;
+         }
          break;
 
       case CBOR_MAJOR_TYPE_SIMPLE: // Major type 7, float, double, true, false, null...
@@ -864,7 +892,8 @@ static inline QCBORError GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDe
 
       // Match data type of chunk to type at beginning.
       // Also catches error of other non-string types that don't belong.
-      if(StringChunkItem.uDataType != uStringType) {
+      // Also catches indefinite length strings inside indefinite length strings
+      if(StringChunkItem.uDataType != uStringType || StringChunkItem.val.string.len == SIZE_MAX) {
          nReturn = QCBOR_ERR_INDEFINITE_STRING_CHUNK;
          break;
       }
@@ -1060,6 +1089,12 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDec
    // All the CBOR parsing work is here and in subordinate calls.
    QCBORError nReturn;
 
+   // Check if there are an
+   if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf)) == 0 && !DecodeNesting_IsNested(&(me->nesting))) {
+      nReturn = QCBOR_ERR_NO_MORE_ITEMS;
+      goto Done;
+   }
+
    nReturn = GetNext_MapEntry(me, pDecodedItem, pTags);
    if(nReturn) {
       goto Done;
@@ -1084,7 +1119,10 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDec
       // Maps and arrays do count in as items in the map/array that encloses
       // them so a decrement needs to be done for them too, but that is done
       // only when all the items in them have been processed, not when they
-      // are opened.
+      // are opened with the exception of an empty map or array.
+       if(pDecodedItem->val.uCount == 0) {
+           DecodeNesting_DecrementCount(&(me->nesting));
+       }
    } else {
       // Decrement the count of items in the enclosing map/array
       // If the count in the enclosing map/array goes to zero, that
@@ -1130,6 +1168,10 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDec
    pDecodedItem->uNextNestLevel = DecodeNesting_GetLevel(&(me->nesting));
 
 Done:
+   if(nReturn != QCBOR_SUCCESS) {
+      // Make sure uDataType and uLabelType are QCBOR_TYPE_NONE
+      memset(pDecodedItem, 0, sizeof(QCBORItem));
+   }
    return nReturn;
 }
 
@@ -1218,6 +1260,10 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
    }
 
 Done:
+   if(nReturn != QCBOR_SUCCESS) {
+      pDecodedItem->uDataType = QCBOR_TYPE_NONE;
+      pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
+   }
    return nReturn;
 }
 

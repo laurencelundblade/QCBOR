@@ -41,6 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 11/08/2019         llundblade      Re check pointer math and update comments
  3/6/2019           llundblade      Add UsefulBuf_IsValue()
  09/07/17           llundbla        Fix critical bug in UsefulBuf_Find() -- a read off
                                     the end of memory when the bytes to find is longer
@@ -222,7 +223,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
    }
 
    /* 1. Will it fit? */
-   // WillItFit() is the same as: NewData.len <= (me->size - me->data_len)
+   // WillItFit() is the same as: NewData.len <= (me->UB.len - me->data_len)
    // Check #1 makes sure subtraction in RoomLeft will not wrap around
    if(! UsefulOutBuf_WillItFit(pMe, NewData.len)) { // Check #2
       // The new data will not fit into the the buffer.
@@ -231,7 +232,9 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
    }
 
    /* 2. Check the Insertion Position */
-   // This, with Check #1, also confirms that uInsertionPos <= me->data_len
+   // This, with Check #1, also confirms that uInsertionPos <= me->data_len and
+   // that uInsertionPos + pMe->UB.ptr will not wrap around the end of the
+   // address space.
    if(uInsertionPos > pMe->data_len) { // Check #3
       // Off the end of the valid data in the buffer.
       pMe->err = 1;
@@ -245,6 +248,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
 
    if(uNumBytesToMove && pMe->UB.ptr) {
       // To know memmove won't go off end of destination, see PtrMath #4
+      // Use memove because it handles overlapping buffers
       memmove(pDestinationOfMove, pSourceOfMove, uNumBytesToMove);
    }
 
@@ -254,7 +258,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
       // To know memmove won't go off end of destination, see PtrMath #6
       memmove(pInsertionPoint, NewData.ptr, NewData.len);
    }
-   pMe->data_len += NewData.len ;
+   pMe->data_len += NewData.len;
 }
 
 
@@ -269,9 +273,9 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
  PtrMath #2 will never wrap around under because
     Check #3 makes sure uInsertionPos is less than me->data_len
 
- PtrMath #3 will never wrap around over because   todo
-    PtrMath #1 is checked resulting in pSourceOfMove being between me->UB.ptr and a maximum valid ptr
-    Check #2 that NewData.len will fit
+ PtrMath #3 will never wrap around over because
+    PtrMath #1 is checked resulting in pSourceOfMove being between me->UB.ptr and me->UB.ptr + me->data_len
+    Check #2 that NewData.len will fit in the unused space left in me->UB
 
  PtrMath #4 will never wrap under because
     Calculation for extent or memmove is uRoomInDestination  = me->UB.len - (uInsertionPos + NewData.len)

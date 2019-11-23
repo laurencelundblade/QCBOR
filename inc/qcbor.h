@@ -43,6 +43,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
+ 6/xx/19    llundblade      Add support for decimal fractions and bigfloats.
+ 08/7/19    llundblade      Better handling of not well-formed encode and decode.
+ 07/31/19   llundblade      New error code for better end of data handling.
+ 7/25/19    janjongboom     Add indefinite length encoding for maps and arrays.
  05/26/19   llundblade      Add QCBOREncode_GetErrorState() and _IsBufferNULL().
  04/26/19   llundblade      Big documentation & style update. No interface change.
  02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug.
@@ -217,6 +221,8 @@ struct _QCBORDecodeContext {
 #define CBOR_MAJOR_NONE_TYPE_RAW  9
 #define CBOR_MAJOR_NONE_TAG_LABEL_REORDER 10
 #define CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY 11
+#define CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN 12
+#define CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN 13
 
 
 /* ===========================================================================
@@ -391,6 +397,8 @@ struct _QCBORDecodeContext {
 #define SINGLE_PREC_FLOAT    26
 #define DOUBLE_PREC_FLOAT    27
 #define CBOR_SIMPLE_BREAK    31
+#define CBOR_SIMPLEV_RESERVED_START  CBOR_SIMPLEV_ONEBYTE
+#define CBOR_SIMPLEV_RESERVED_END    CBOR_SIMPLE_BREAK
 
 
 
@@ -528,10 +536,12 @@ struct _QCBORDecodeContext {
  The encoding error handling is simple. The only possible errors are
  trying to encode structures that are too large or too complex. There
  are no internal malloc calls so there will be no failures for out of
- memory.  Only the final call, QCBOREncode_Finish(), returns an error
- code.  Once an error happens, the encoder goes into an error state
- and calls to it will do nothing so the encoding can just go on. An
- error check is not needed after every data item is added.
+ memory.  The error state is tracked internally, so there is no need
+ to check for errors when encoding. Only the return code from
+ QCBOREncode_Finish() need be checked as once an error happens, the
+ encoder goes into an error state and calls to it to add more data
+ will do nothing. An error check is not needed after every data item
+ is added.
 
  Encoding generally proceeds by calling QCBOREncode_Init(), calling
  lots of @c QCBOREncode_AddXxx() functions and calling
@@ -604,7 +614,6 @@ struct _QCBORDecodeContext {
    @ref QCBOR_MAX_ARRAY_NESTING (this is typically 15).
  - Max items in an array or map when encoding / decoding is
    @ref QCBOR_MAX_ITEMS_IN_ARRAY (typically 65,536).
- - Does not support encoding indefinite lengths (decoding is supported).
  - Does not directly support some tagged types: decimal fractions, big floats
  - Does not directly support labels in maps other than text strings and integers.
  - Does not directly support integer labels greater than @c INT64_MAX.
@@ -678,13 +687,16 @@ typedef enum {
 
    /** During decoding, some CBOR construct was encountered that this
        decoder doesn't support, primarily this is the reserved
-       additional info values, 28 through 30. */
+       additional info values, 28 through 30. During encoding,
+       an attempt to create simple value between 24 and 31. */
    QCBOR_ERR_UNSUPPORTED = 5,
 
    /** During decoding, hit the end of the given data to decode. For
        example, a byte string of 100 bytes was expected, but the end
        of the input was hit before finding those 100 bytes.  Corrupted
-       CBOR input will often result in this error. */
+       CBOR input will often result in this error. See also @ref
+       QCBOR_ERR_NO_MORE_ITEMS.
+     */
    QCBOR_ERR_HIT_END = 6,
 
    /** During encoding, the length of the encoded CBOR exceeded @c
@@ -745,10 +757,19 @@ typedef enum {
        list, or not enough space in @ref QCBORTagListOut. */
    QCBOR_ERR_TOO_MANY_TAGS = 20,
 
-   /** Something is wrong with a decimal fraction or big float such as
-       it not consisting of an array with two integers */
-   QCBOR_ERR_BAD_EXP_AND_MANTISSA = 21
+   /** An integer type is encoded with a bad length (an indefinite length) */
+   QCBOR_ERR_BAD_INT = 21,
 
+   /** All well-formed data items have been consumed and there are no
+       more. If parsing a CBOR stream this indicates the non-error
+       end of the stream. If parsing a CBOR stream / sequence, this
+       probably indicates that some data items expected are not present.
+       See also @ref QCBOR_ERR_HIT_END. */
+   QCBOR_ERR_NO_MORE_ITEMS = 22,
+
+   /** Something is wrong with a decimal fraction or big float such as
+    it not consisting of an array with two integers */
+   QCBOR_ERR_BAD_EXP_AND_MANTISSA = 23
 } QCBORError;
 
 
@@ -1948,8 +1969,8 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
  was computed. If a buffer was passed, then the encoded CBOR is in the
  buffer.
 
- All encoding errors manifest here as no other encoding function
- returns any errors. They just set the error state in the encode
+ Encoding errors primarily manifest here as most other encoding function
+ do no return an error. They just set the error state in the encode
  context after which no encoding function does anything.
 
  Three types of errors manifest here. The first type are nesting
@@ -1976,6 +1997,10 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
 
  This may be called multiple times. It will always return the same. It
  can also be interleaved with calls to QCBOREncode_FinishGetSize().
+
+ QCBOREncode_GetErrorState() can be called to get the current
+ error state and abort encoding early as an optimization, but is
+ is never required.
  */
 QCBORError QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
 
@@ -2020,7 +2045,7 @@ static int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
  Normally encoding errors need only be handled at the end of encoding
  when QCBOREncode_Finish() is called. This can be called to get the
  error result before finish should there be a need to halt encoding
- before QCBOREncode_Finish().  is called.
+ before QCBOREncode_Finish() is called.
 */
 static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
 
@@ -2206,7 +2231,7 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  @retval QCBOR_ERR_UNSUPPORTED     Not well-formed, input contains
                                    unsupported CBOR.
 
- @retval QCBOR_ERR_HIT_END         Not well-formed, unexpected ran out
+ @retval QCBOR_ERR_HIT_END         Not well-formed, unexpectedly ran out
                                    of bytes.
 
  @retval QCBOR_ERR_BAD_TYPE_7      Not well-formed, bad simple type value.
@@ -2216,6 +2241,9 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
 
  @retval QCBOR_ERR_EXTRA_BYTES     Not well-formed, unprocessed bytes at
                                    the end.
+
+ @retval QCBOR_ERR_BAD_INT         Not well-formed, length of integer is
+                                   bad.
 
  @retval QCBOR_ERR_BAD_OPT_TAG     Invalid CBOR, tag on wrong type.
 
@@ -2241,6 +2269,10 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  @retval QCBOR_ERR_NO_STRING_ALLOCATOR  Configuration error, encountered
                                         indefinite-length string with no
                                         allocator configured.
+ @retval QCBOR_ERR_NO_MORE_ITEMS   No more bytes to decode. The previous
+                                   item was successfully decoded. This
+                                   is usually how the non-error end of
+                                   a CBOR stream / sequence is detected.
 
  @c pDecodedItem is filled in with the value parsed. Generally, the
  following data is returned in the structure:
@@ -2360,6 +2392,11 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  This tag decoding design is to be open-ended and flexible to be able
  to handle newly defined tags, while using very little memory, in
  particular keeping @ref QCBORItem as small as possible.
+
+ If any error occurs, \c uDataType and \c uLabelType will be set
+ to \ref QCBOR_TYPE_NONE. If there is no need to know the specific
+ error, \ref QCBOR_TYPE_NONE can be checked for and the return value
+ ignored.
 
  Errors fall in several categories as noted in list above:
 
@@ -2622,6 +2659,18 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType);
 
 
 /**
+ @brief Semi-private method to open a map, array or bstr wrapped CBOR with indefinite length
+
+ @param[in] pCtx        The context to add to.
+ @param[in] uMajorType  The major CBOR type to close
+
+ Call QCBOREncode_OpenArrayIndefiniteLength() or QCBOREncode_OpenMapIndefiniteLength()
+ instead of this.
+ */
+void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx, uint8_t uMajorType);
+
+
+/**
  @brief Semi-private method to close a map, array or bstr wrapped CBOR
 
  @param[in] pCtx           The context to add to.
@@ -2633,6 +2682,17 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType);
  */
 void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC *pWrappedCBOR);
 
+/**
+ @brief Semi-private method to close a map, array or bstr wrapped CBOR with indefinite length
+
+ @param[in] pCtx           The context to add to.
+ @param[in] uMajorType     The major CBOR type to close.
+ @param[out] pWrappedCBOR  Pointer to @ref UsefulBufC containing wrapped bytes.
+
+ Call QCBOREncode_CloseArrayIndefiniteLength() or QCBOREncode_CloseMapIndefiniteLength()
+ instead of this.
+ */
+void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC *pWrappedCBOR);
 
 /**
  @brief  Semi-private method to add simple types.
@@ -3257,6 +3317,50 @@ static inline void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx)
    QCBOREncode_CloseMapOrArray(pCtx, CBOR_MAJOR_TYPE_MAP, NULL);
 }
 
+static inline void QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pCtx)
+{
+   QCBOREncode_OpenMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
+}
+
+static inline void QCBOREncode_OpenArrayIndefiniteLengthInMap(QCBOREncodeContext *pCtx, const char *szLabel)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_OpenArrayIndefiniteLength(pCtx);
+}
+
+static inline void QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_OpenArrayIndefiniteLength(pCtx);
+}
+
+static inline void QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pCtx)
+{
+   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN, NULL);
+}
+
+
+static inline void QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pCtx)
+{
+   QCBOREncode_OpenMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+}
+
+static inline void QCBOREncode_OpenMapIndefiniteLengthInMap(QCBOREncodeContext *pCtx, const char *szLabel)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_OpenMapIndefiniteLength(pCtx);
+}
+
+static inline void QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_OpenMapIndefiniteLength(pCtx);
+}
+
+static inline void QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx)
+{
+   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN, NULL);
+}
 
 static inline void QCBOREncode_BstrWrap(QCBOREncodeContext *pCtx)
 {
@@ -3306,7 +3410,19 @@ static inline int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx)
 
 static inline QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx)
 {
-   return pCtx->uError;
+   if(UsefulOutBuf_GetError(&(pCtx->OutBuf))) {
+      // Items didn't fit in the buffer.
+      // This check catches this condition for all the appends and inserts
+      // so checks aren't needed when the appends and inserts are performed.
+      // And of course UsefulBuf will never overrun the input buffer given
+      // to it. No complex analysis of the error handling in this file is
+      // needed to know that is true. Just read the UsefulBuf code.
+      pCtx->uError = QCBOR_ERR_BUFFER_TOO_SMALL;
+      // QCBOR_ERR_BUFFER_TOO_SMALL masks other errors, but that is
+      // OK. Once the caller fixes this, they'll be unmasked.
+   }
+
+   return (QCBORError)pCtx->uError;
 }
 
 
@@ -3320,4 +3436,3 @@ static inline QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx)
 #endif
 
 #endif /* defined(__QCBOR__qcbor__) */
-

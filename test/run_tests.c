@@ -20,54 +20,9 @@
 #include "UsefulBuf_Tests.h"
 
 
-
-// Used to test RunTests
-int fail_test()
-{
-    return -44;
-}
-
-
-
-
 /*
- Convert a number up to 999999999 to a string. This is so sprintf doesn't
- have to be linked in so as to minimized dependencies even in test code.
-  */
-const char *NumToString(int32_t nNum, UsefulBuf StringMem)
-{
-    const int32_t nMax = 1000000000;
-
-    UsefulOutBuf OutBuf;
-    UsefulOutBuf_Init(&OutBuf, StringMem);
-
-    if(nNum < 0) {
-        UsefulOutBuf_AppendByte(&OutBuf, '-');
-        nNum = -nNum;
-    }
-    if(nNum > nMax-1) {
-        return "XXX";
-    }
-
-    bool bDidSomeOutput = false;
-    for(int n = nMax; n > 0; n/=10) {
-        int x = nNum/n;
-        if(x || bDidSomeOutput){
-            bDidSomeOutput = true;
-            UsefulOutBuf_AppendByte(&OutBuf, '0' + x);
-            nNum -= x * n;
-        }
-    }
-    if(!bDidSomeOutput){
-        UsefulOutBuf_AppendByte(&OutBuf, '0');
-    }
-    UsefulOutBuf_AppendByte(&OutBuf, '\0');
-
-    return UsefulOutBuf_GetError(&OutBuf) ? "" : StringMem.ptr;
-}
-
-
-
+ Test configuration
+ */
 
 typedef int (test_fun_t)(void);
 typedef const char * (test_fun2_t)(void);
@@ -88,7 +43,8 @@ typedef struct {
     bool         bEnabled;
 } test_entry2;
 
-test_entry2 s_tests2[] = {
+
+static test_entry2 s_tests2[] = {
     TEST_ENTRY(UBUTest_CopyUtil),
     TEST_ENTRY(UOBTest_NonAdversarial),
     TEST_ENTRY(TestBasicSanity),
@@ -99,12 +55,15 @@ test_entry2 s_tests2[] = {
 };
 
 
-test_entry s_tests[] = {
+static test_entry s_tests[] = {
+    TEST_ENTRY(EmptyMapsAndArraysTest),
+    TEST_ENTRY(NotWellFormedTests),
     TEST_ENTRY(ParseMapAsArrayTest),
     TEST_ENTRY(AllocAllStringsTest),
     TEST_ENTRY(IndefiniteLengthNestTest),
     TEST_ENTRY(NestedMapTestIndefLen),
     TEST_ENTRY(ParseSimpleTest),
+    TEST_ENTRY(DecodeFailureTests),
     TEST_ENTRY(EncodeRawTest),
     TEST_ENTRY(RTICResultsTest),
     TEST_ENTRY(MapEncodeTest),
@@ -142,19 +101,66 @@ test_entry s_tests[] = {
     TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
     TEST_ENTRY(EncodeErrorTests),
     TEST_ENTRY(SetUpAllocatorTest),
-    TEST_ENTRY(FailureTests),
+   // TODO: TEST_ENTRY(FailureTests),
     TEST_ENTRY(Type4And5EncodeTests),
     TEST_ENTRY(Type4And5DecodeTests),
     TEST_ENTRY(Type4And5DecodeFailTests),
-    //TEST_ENTRY(fail_test),
+    TEST_ENTRY(SimpleValuesIndefiniteLengthTest1),
+    TEST_ENTRY(EncodeLengthThirtyoneTest),
 };
 
 
+
+
+/*
+ Convert a number up to 999999999 to a string. This is so sprintf doesn't
+ have to be linked in so as to minimized dependencies even in test code.
+
+ StringMem should be 12 bytes long, 9 for digits, 1 for minus and
+ 1 for \0 termination.
+ */
+static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
+{
+   const int32_t nMax = 1000000000;
+
+   UsefulOutBuf OutBuf;
+   UsefulOutBuf_Init(&OutBuf, StringMem);
+
+   if(nNum < 0) {
+      UsefulOutBuf_AppendByte(&OutBuf, '-');
+      nNum = -nNum;
+   }
+   if(nNum > nMax-1) {
+      return "XXX";
+   }
+
+   bool bDidSomeOutput = false;
+   for(int n = nMax; n > 0; n/=10) {
+      int x = nNum/n;
+      if(x || bDidSomeOutput){
+         bDidSomeOutput = true;
+         UsefulOutBuf_AppendByte(&OutBuf, '0' + x);
+         nNum -= x * n;
+      }
+   }
+   if(!bDidSomeOutput){
+      UsefulOutBuf_AppendByte(&OutBuf, '0');
+   }
+   UsefulOutBuf_AppendByte(&OutBuf, '\0');
+
+   return UsefulOutBuf_GetError(&OutBuf) ? "" : StringMem.ptr;
+}
+
+
+/*
+ Public function. See run_test.h.
+ */
 int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *poutCtx, int *pNumTestsRun)
 {
     int nTestsFailed = 0;
     int nTestsRun = 0;
-    UsefulBuf_MAKE_STACK_UB(StringStorage, 10);
+
+    UsefulBuf_MAKE_STACK_UB(StringStorage, 12);
 
     test_entry2 *t2;
     const test_entry2 *s_tests2_end = s_tests2 + sizeof(s_tests2)/sizeof(test_entry2);
@@ -263,8 +269,11 @@ int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *poutCtx, 
 }
 
 
+#include "qcbor.h" // For size printing
 
-
+/*
+ Public function. See run_test.h.
+ */
 static void PrintSize(const char *szWhat, uint32_t uSize, OutputStringCB pfOutput, void *pOutCtx)
 {
    UsefulBuf_MAKE_STACK_UB(buffer, 20);
@@ -275,6 +284,10 @@ static void PrintSize(const char *szWhat, uint32_t uSize, OutputStringCB pfOutpu
    (*pfOutput)("", pOutCtx, 1);
 }
 
+
+/*
+ Public function. See run_test.h.
+ */
 void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
 {
    // Type and size of return from sizeof() varies. These will never be large so cast is safe
