@@ -1346,16 +1346,20 @@ static int ProcessFailures(struct FailInput *pFailInputs, size_t nNumFails)
 
       QCBORDecode_Init(&DCtx, pF->Input, QCBOR_DECODE_MODE_NORMAL);
 
+      // This flag allows test cases to expect a QCBOR_ERR_HIT_END error.
+      bool bGotAnError = false;
+
       while(1) {
          nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
-         if(QCBOR_ERR_HIT_END == nCBORError) {
+         if(QCBOR_ERR_HIT_END == nCBORError) {//} && bGotAnError) {
             break;
          }
          if(nCBORError != pF->nError) {
-            // 100 times the test index plus the actual error
+            // return 100 times the test index plus the actual error
             nResult = (int)(pF -  pFailInputs) * 100 + nCBORError;
             break;
          }
+         bGotAnError = true;
       }
    }
 
@@ -3033,12 +3037,12 @@ int Type4And5DecodeTests(void)
 
 
 static struct FailInput F45Failures[] = {
-   { {(uint8_t[]){0xC4, 0x80}, 2}, QCBOR_ERR_BAD_TAG_4_OR_5 },  // Not an array
+   { {(uint8_t[]){0xC4, 0x80}, 2}, QCBOR_ERR_HIT_END },  // Not an array
    // { {(uint8_t[]){0xC4, 0x9f, 0x03, 0x01, 0x02}, 5}, QCBOR_ERR_BAD_TAG_4_OR_5 },  // ????
-   { {(uint8_t[]){0xC4, 0x83, 0x03, 0x01, 02}, 5}, QCBOR_ERR_BAD_TAG_4_OR_5 },  // 3 items in array
-   { {(uint8_t[]){0xC4, 0x82, 0x03, 0x40}, 4}, QCBOR_ERR_BAD_TAG_4_OR_5 },  // Second is not an integer
-   { {(uint8_t[]){0xC4, 0x82, 0x40}, 3}, QCBOR_ERR_BAD_TAG_4_OR_5 },  // First is not an integer
-   { {(uint8_t[]){0xC4, 0xa2}, 2}, QCBOR_ERR_BAD_TAG_4_OR_5 }  // Not an array
+   //{ {(uint8_t[]){0xC4, 0x83, 0x03, 0x01, 02}, 5}, QCBOR_ERR_BAD_EXP_AND_MANTISSA },  // 3 items in array
+   { {(uint8_t[]){0xC4, 0x82, 0x03, 0x40}, 4}, QCBOR_ERR_BAD_EXP_AND_MANTISSA },  // Second is not an integer
+   { {(uint8_t[]){0xC4, 0x82, 0x40}, 3}, QCBOR_ERR_BAD_EXP_AND_MANTISSA },  // First is not an integer
+   { {(uint8_t[]){0xC4, 0xa2}, 2}, QCBOR_ERR_BAD_EXP_AND_MANTISSA }  // Not an array
 };
 
 

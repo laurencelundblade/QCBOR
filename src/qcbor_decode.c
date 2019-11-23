@@ -1156,7 +1156,7 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
 
       // Make sure it is an array
       if(pDecodedItem->uDataType != QCBOR_TYPE_ARRAY) {
-         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
+         nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
 
@@ -1174,17 +1174,12 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
       // TODO: What to do with pTags here?
       QCBORItem intItem;
       nReturn = QCBORDecode_GetNextMapOrArray(me, &intItem, pTags);
-      if(nReturn == QCBOR_ERR_HIT_END) {
-         // TODO what are the right errors here?
-         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
-         goto Done;
-      }
       if(nReturn != QCBOR_SUCCESS) {
          goto Done;
       }
       if(intItem.uNestingLevel != nNestLevel) {
          // Array is empty
-         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
+         nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
       if(intItem.uDataType == QCBOR_TYPE_INT64) {
@@ -1194,7 +1189,7 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
          // Depends on numbering of QCBOR_TYPE_XXX
          pDecodedItem->uDataType += 1 + intItem.uDataType - QCBOR_TYPE_POSBIGNUM;
       } else {
-         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
+         nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
 
@@ -1206,17 +1201,17 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
          goto Done;
       }
       if(intItem.uDataType != QCBOR_TYPE_INT64) {
-         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
+         nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
       if(intItem.uNestingLevel != nNestLevel) {
          // The second integer is not present
-         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
+         nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
       if(intItem.uNextNestLevel == nNestLevel) {
          // There's other stuff in the array besides the two integers
-         nReturn = QCBOR_ERR_BAD_TAG_4_OR_5;
+         nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
       pDecodedItem->val.expAndMantissa.nExponent = intItem.val.int64;

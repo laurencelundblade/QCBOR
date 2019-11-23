@@ -142,6 +142,7 @@ test_entry s_tests[] = {
     TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
     TEST_ENTRY(EncodeErrorTests),
     TEST_ENTRY(SetUpAllocatorTest),
+    TEST_ENTRY(FailureTests),
     TEST_ENTRY(Type4And5EncodeTests),
     TEST_ENTRY(Type4And5DecodeTests),
     TEST_ENTRY(Type4And5DecodeFailTests),

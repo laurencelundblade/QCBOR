@@ -747,7 +747,7 @@ typedef enum {
 
    /** Something is wrong with a decimal fraction or big float such as
        it not consisting of an array with two integers */
-   QCBOR_ERR_BAD_TAG_4_OR_5 = 21
+   QCBOR_ERR_BAD_EXP_AND_MANTISSA = 21
 
 } QCBORError;
 
