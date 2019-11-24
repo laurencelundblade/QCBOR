@@ -20,7 +20,9 @@
 
 
 /**
- * A list of COSE headers labels, both integer and string.
+ * \file t_cose_headers.h
+ *
+ * \brief A list of COSE headers labels, both integer and string.
  *
  * It is fixed size to avoid the complexity of memory management and
  * because the number of headers is assumed to be small.
@@ -72,8 +74,8 @@ clear_header_list(struct t_cose_label_list *list);
  *
  * \retval T_COSE_SUCCESS                  None of the unknown headers are
  *                                         critical.
- * \retval T_COSE_UNKNOWN_CRITICAL_HEADER  At least one of the unknown headers is
- *                                         critical.
+ * \retval T_COSE_UNKNOWN_CRITICAL_HEADER  At least one of the unknown headers
+ *                                         is critical.
  *
  * Both lists are of header labels (CBOR keys). Check to see none of
  * the header labels in the unknown list occur in the critical list.

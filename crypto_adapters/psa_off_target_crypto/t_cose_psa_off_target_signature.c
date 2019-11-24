@@ -28,6 +28,17 @@ struct degenerate_key_pair {
 
 static struct degenerate_key_pair key_store[1];
 
+/**
+ * \brief Look up key in degenerate test-only key store
+ *
+ * \param[in] handle  The PSA key handle to look up
+ *
+ * \return An OpenSSSL \c EC_KEY
+ *
+ * This is so degenerate there is only one key
+ * and that is all that is ever returned. It is good enough for the tests
+ * needed.
+ */
 static EC_KEY *key_lookup(psa_key_handle_t handle)
 {
     return (EC_KEY *)key_store[handle].key_pair;
@@ -42,7 +53,7 @@ static EC_KEY *key_lookup(psa_key_handle_t handle)
 
 
 /*
- * Public finction. See documentation in psa/crypto.h
+ * Public function. See documentation in psa/crypto.h
  */
 psa_status_t psa_allocate_key(psa_key_handle_t *handle)
 {
@@ -52,7 +63,7 @@ psa_status_t psa_allocate_key(psa_key_handle_t *handle)
 
 
 /*
- * Public finction. See documentation in psa/crypto.h
+ * Public function. See documentation in psa/crypto.h
  */
 psa_status_t psa_destroy_key(psa_key_handle_t handle)
 {
@@ -64,7 +75,7 @@ psa_status_t psa_destroy_key(psa_key_handle_t handle)
 
 
 /*
- * Public finction. See documentation in psa/crypto.h
+ * Public function. See documentation in psa/crypto.h
  */
 psa_status_t psa_set_key_policy(psa_key_handle_t        handle,
                                 const psa_key_policy_t *policy)
@@ -78,7 +89,7 @@ psa_status_t psa_set_key_policy(psa_key_handle_t        handle,
 
 
 /*
- * Public finction. See documentation in psa/crypto.h
+ * Public function. See documentation in psa/crypto.h
  */
 void psa_key_policy_set_usage(psa_key_policy_t *policy,
                               psa_key_usage_t   usage,
@@ -91,7 +102,7 @@ void psa_key_policy_set_usage(psa_key_policy_t *policy,
 
 
 /*
- * Public finction. See documentation in psa/crypto.h
+ * Public function. See documentation in psa/crypto.h
  */
 psa_status_t psa_import_key(psa_key_handle_t handle,
                             psa_key_type_t   type,
@@ -171,7 +182,7 @@ psa_status_t psa_import_key(psa_key_handle_t handle,
 
     ossl_result = EC_POINT_mul(ossl_ec_group,
                                ossl_pub_key_point, /* Output of mul goes here */
-                               ossl_private_key_bn, /* The private key big num */
+                               ossl_private_key_bn, /* The private key big num*/
                                NULL, /* const EC_POINT *q */
                                NULL, /* const BIGNUM *m */
                                NULL /* BN_CTX *ctx */
@@ -397,7 +408,7 @@ Done:
 
 
 /*
- * Public finction. See documentation in psa/crypto.h
+ * Public function. See documentation in psa/crypto.h
  */
 psa_status_t  psa_get_key_information(psa_key_handle_t psa_key_handle,
                                       psa_key_type_t *type,
@@ -441,7 +452,7 @@ Done:
 
 
 /*
- * Public finction. See documentation in psa/crypto.h
+ * Public function. See documentation in psa/crypto.h
  */
 psa_status_t psa_asymmetric_sign(psa_key_handle_t psa_key_handle,
                                  psa_algorithm_t  psa_algorithm_id,
@@ -504,7 +515,7 @@ Done:
 
 
 /*
- * Public finction. See documentation in psa/crypto.h
+ * Public function. See documentation in psa/crypto.h
  */
 psa_status_t psa_asymmetric_verify(psa_key_handle_t psa_key_handle,
                                    psa_algorithm_t  psa_algorithm_id,

@@ -29,9 +29,9 @@ extern "C" {
 
 
 /**
- * The modes in which the payload is passed to create_tbs_hash().  This
- * exists so the TBS bytes can be hashed in two separate chunks and
- * avoids needing a second buffer the size of the payload in the
+ * The modes in which the payload is passed to create_tbs_hash().
+ * This exists so the TBS bytes can be hashed in two separate chunks
+ * and avoids needing a second buffer the size of the payload in the
  * t_cose implementation.
  */
 enum t_cose_tbs_hash_mode_t {
@@ -48,10 +48,10 @@ enum t_cose_tbs_hash_mode_t {
 
 
 /**
- * This value represents an invalid or in-error algorithm ID.
- * The valud selected is 0 as this is reserved in the IANA
- * COSE algorithm registry and is very unlikely to ever be used.
- * (It would take am IETF standards-action to put it to use).
+ * This value represents an invalid or in-error algorithm ID.  The
+ * value selected is 0 as this is reserved in the IANA COSE algorithm
+ * registry and is very unlikely to ever be used.  (It would take am
+ * IETF standards-action to put it to use).
  */
 #define T_COSE_INVALID_ALGORITHM_ID COSE_ALGORITHM_RESERVED
 
@@ -70,9 +70,9 @@ enum t_cose_tbs_hash_mode_t {
  * t_cose_standard_constants.h.
  *
  * COSE signing algorithms are the combination of public key
- * algorithm, hash algorithm and hash size and imply an appropriate key size.
- * They are
- * simple integers making them convenient for direct use in code.
+ * algorithm, hash algorithm and hash size and imply an appropriate
+ * key size.  They are simple integers making them convenient for
+ * direct use in code.
  *
  * This function returns an identifier for only the hash algorithm
  * from the combined identifier.
@@ -103,7 +103,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  *
  * \retval T_COSE_ERR_SIG_STRUCT
  *         Most likely this is because the protected_headers passed in
- *         is larger than \ref T_COSE_SIGN1_MAX_PROT_HEADER.
+ *         is larger than \c T_COSE_SIGN1_MAX_PROT_HEADER.
  * \retval T_COSE_ERR_UNSUPPORTED_HASH
  *         If the hash algorithm is not known.
  * \retval T_COSE_ERR_HASH_GENERAL_FAIL
@@ -113,7 +113,8 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * of a CBOR encoded structure containing the protected headers
  * algorithm ID and a few other things. This formats that structure
  * and computes the hash of it. These are known as the to-be-signed or
- * "TBS" bytes. The exact specification is in RFC 8152 section 4.4.
+ * "TBS" bytes. The exact specification is in
+ * [RFC 8152 section 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).
  */
 enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
                                   struct q_useful_buf_c       protected_headers,
@@ -139,13 +140,13 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
  *
  * \returns Buffer with the kid.
  *
- * This always returns the same kid. It always indicates
- * short-circuit signing. It is OK to hard code this kid value as the
- * probability of collision with this ID is extremely low and the same
- * as for collision between any two key IDs (kids) of any sort.
+ * This always returns the same kid. It always indicates short-circuit
+ * signing. It is OK to hard code this kid value as the probability of
+ * collision with this ID is extremely low and the same as for
+ * collision between any two key IDs (kids) of any sort.
  *
- * This always returns a pointer to the same memory as the
- * result returned by this never changes.
+ * This always returns a pointer to the same memory as the result
+ * returned by this never changes.
  *
  * This is the value of the kid.
  *

@@ -28,19 +28,20 @@ extern "C" {
 /**
  * \file t_cose_crypto.h
  *
- * \brief This defines the adaptation layer for cryptographic functions used by
- * t_cose.
+ * \brief This defines the adaptation layer for cryptographic
+ * functions needed by t_cose.
  *
  * This is  small wrapper around the cryptographic functions to:
  * - Map COSE algorithm IDs to cryptographic library IDs
- * - Map cryptograpic library errors to \ref t_cose_err_t errors
+ * - Map cryptographic library errors to \ref t_cose_err_t errors
  * - Have inputs and outputs be \c struct \c q_useful_buf_c and
  *   \c struct \c q_useful_buf
  * - Handle key selection
  *
- * An implementations must be made of these functions
+ * An implementation must be made of these functions
  * for the various cryptographic libraries that are used on
  * various platforms and OSs. The functions are:
+ *   - t_cose_t_crypto_sig_size()
  *   - t_cose_crypto_pub_key_sign()
  *   - t_cose_crypto_pub_key_verify()
  *   - t_cose_crypto_hash_start()
@@ -56,6 +57,7 @@ extern "C" {
  * ones can also be defined (\c \#define) if what is needed is not in
  * the IANA registry.
  *
+ * \anchor useful_buf_use
  * Binary data is returned to the caller using a \c struct \c
  * q_useful_buf to pass the buffer to receive the data and its length in
  * and a \c q_useful_buf_c to return the pointer and length of the
@@ -64,9 +66,9 @@ extern "C" {
  * q_useful_buf_c returned is const. The lengths of buffers are
  * handled in a clear, consistent and enforced manner.
  *
- * The pointer in the \c q_useful_buf_c will always point to the buffer
- * passed in via the \c q_useful_buf so the lifetime of the data is
- * under control of the caller.
+ * The pointer in the \c q_useful_buf_c will always point to the
+ * buffer passed in via the \c q_useful_buf so the lifetime of the
+ * data is under control of the caller.
  *
  * This is not intended as any sort of general cryptographic API. It
  * is just the functions needed by t_cose in the form that is most
@@ -97,28 +99,26 @@ extern "C" {
 
 
 
-/*
- * There is a stack variable to hold the output of the signing opertaion.
- * This sets the maximum signature size this code can handle based
- * on the COSE algorithms configured. The size of the signature goes
- * with the size of the key, not the algorithm, so a key could be
- * given for signing or verification that is larger than this. However
- * it is not typical to do so. If the key or signature is too large
- * the failure will be graceful with an error.
- * Theoretically a key could used to sign or to verify that has
- * size of the largest signature of any of the algorithm types
- * supported.
- *
- * For ECDSA the signature format used is defined in RFC 8152
- * section 8.1. It is the concatenaion of r and s, each of
- * which is the key size in bits rounded up to the nearest byte.
- * That is twice the key size in bytes.
- */
 
 #define T_COSE_EC_P256_SIG_SIZE 64  /* size for secp256r1 */
 #define T_COSE_EC_P384_SIG_SIZE 96  /* size for secp384r1 */
 #define T_COSE_EC_P512_SIG_SIZE 132 /* size for secp521r1 */
 
+
+/**
+ * There is a stack variable to hold the output of the signing
+ * operation.  This sets the maximum signature size this code can
+ * handle based on the COSE algorithms configured. The size of the
+ * signature goes with the size of the key, not the algorithm, so a
+ * key could be given for signing or verification that is larger than
+ * this. However, it is not typical to do so. If the key or signature
+ * is too large the failure will be graceful with an error.
+ *
+ * For ECDSA the signature format used is defined in RFC 8152 section
+ * 8.1. It is the concatenation of r and s, each of which is the key
+ * size in bits rounded up to the nearest byte.  That is twice the key
+ * size in bytes.
+ */
 #ifndef T_COSE_DISABLE_ES512
     #define T_COSE_MAX_SIG_SIZE T_COSE_EC_P512_SIG_SIZE
 #else
@@ -133,7 +133,7 @@ extern "C" {
 
 
 /**
- * \brief returns the (approximate) size of a signature.
+ * \brief Returns the size of a signature given the key and algorithm.
  *
  * \param[in] cose_algorithm_id  The algorithm ID
  * \param[in] signing_key        Key to compute size of
@@ -141,11 +141,11 @@ extern "C" {
  *
  * \return An error code or \ref T_COSE_SUCCESS.
  *
- * This is used the caller wishes to compute the size of a
- * token in order to allocate memory for it.
+ * This is used the caller wishes to compute the size of a token in
+ * order to allocate memory for it.
  *
- * The size of a signature depends primarily on the key size
- * but it is usually necessary to know the algorithm too.
+ * The size of a signature depends primarily on the key size but it is
+ * usually necessary to know the algorithm too.
  *
  * This always returns the exact size of the signature.
  */
@@ -163,7 +163,7 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  *                              defined in [COSE (RFC 8152)]
  *                              (https://tools.ietf.org/html/rfc8152) or
  *                              in the [IANA COSE Registry]
- *                          (https://www.iana.org/assignments/cose/cose.xhtml).
+ *                              (https://www.iana.org/assignments/cose/cose.xhtml).
  *                              A proprietary ID can also be defined
  *                              locally (\c \#define) if the needed
  *                              one hasn't been registered.
@@ -199,11 +199,12 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  * vary from one platform / OS to another but should conform to the
  * description here.
  *
- * The key selection depends on the platform / OS.
+ * The contents of signing_key is usually the type that holds
+ * a key for the cryptographic library.
  *
  * See the note in the Detailed Description (the \\file comment block)
- * for details on how \c q_useful_buf and \c q_useful_buf_c are used to
- * return the signature.
+ * for details on how \c q_useful_buf and \c q_useful_buf_c are used
+ * to return the signature.
  *
  * To find out the size of the signature buffer needed, call this with
  * \c signature_buffer->ptr \c NULL and \c signature_buffer->len a
@@ -219,7 +220,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
 
 
 /**
- * \brief perform public key signature verification. Part of the
+ * \brief Perform public key signature verification. Part of the
  * t_cose crypto adaptation layer.
  *
  * \param[in] cose_algorithm_id The algorithm to use for verification.
@@ -357,14 +358,22 @@ struct t_cose_crypto_hash {
 
 
 /**
- * The size of the output of SHA-256, 384 & 512 in bytes.
+ * The size of the output of SHA-256.
  *
  * (It is safe to define these independently here as they are
  * well-known and fixed. There is no need to reference
  * platform-specific headers and incur messy dependence.)
  */
 #define T_COSE_CRYPTO_SHA256_SIZE 32
+
+/**
+ * The size of the output of SHA-384 in bytes.
+ */
 #define T_COSE_CRYPTO_SHA384_SIZE 48
+
+/**
+ * The size of the output of SHA-512 in bytes.
+ */
 #define T_COSE_CRYPTO_SHA512_SIZE 64
 
 
@@ -436,7 +445,7 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
  *
  * This function can be called with \c data_to_hash.ptr NULL and it
  * will pretend to hash. This allows the same code that is used to
- * produce the real hash to be used to return a length of the would be
+ * produce the real hash to be used to return a length of the would-be
  * hash for encoded data structure size calculations.
  */
 void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
@@ -466,13 +475,12 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
  * errors that occurred during t_cose_crypto_hash_update() are
  * returned here.
  *
- * See the note in the Detailed Description (the \\file comment block)
- * for details on how \c q_useful_buf and \c q_useful_buf_c are used
- * to return the hash.
+ * See \ref useful_buf_use for details on how \c q_useful_buf and
+ * \c q_useful_buf_c are used to return the hash.
  *
- * Other errors can be returned and will usually be propagated up, but hashes
- * generally don't fail so it is suggested not to bother (and to reduce
- * object code size for mapping errors).
+ * Other errors can be returned and will usually be propagated up, but
+ * hashes generally don't fail so it is suggested not to bother (and
+ * to reduce object code size for mapping errors).
  */
 enum t_cose_err_t
 t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
@@ -486,14 +494,14 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
  *
  * \param[in] cose_algorithm_id    The algorithm ID to check.
  *
- * \returns true if the algorithm ID is ECDSA and false if not.
+ * \returns This returns \c true if the algorithm is ECDSA and \c false if not.
  *
  * This is a convenience function to check whether a given
  * integer COSE algorithm ID uses the ECDSA signing algorithm
  * or not.
  *
  * (As other types of signing algorithms are added, RSA for example,
- * a similar function can be added for them.
+ * a similar function can be added for them.)
  */
 static bool t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id);
 
@@ -505,19 +513,19 @@ static bool t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id);
  */
 
 /**
- * \brief Look for a integer in a zero-terminated list of integers.
+ * \brief Look for an integer in a zero-terminated list of integers.
  *
  * \param[in] cose_algorithm_id    The algorithm ID to check.
  * \param[in] list                 zero-terminated list of algorithm IDs.
  *
- * \returns true if the algorithm ID is ECDSA and false if not.
+ * \returns This returns \c true if an integer is in the list, \c false if not.
  *
  * Used to implement t_cose_algorithm_is_ecdsa() and in the future
  * _is_rsa() and such.
  *
- * Typically used once in the crypto adaptation layer, so defining it inline
- * rather than in a .c file is OK and saves creating a whole new .c file just
- * for this.
+ * Typically used once in the crypto adaptation layer, so defining it
+ * inline rather than in a .c file is OK and saves creating a whole
+ * new .c file just for this.
  */
 static inline bool
 t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list)

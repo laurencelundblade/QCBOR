@@ -92,7 +92,7 @@ extern "C" {
  */
 enum t_cose_err_t
 t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
-                               int32_t                       test_mess_options,
+                               int32_t                       test_msg_options,
                                struct q_useful_buf_c         payload,
                                struct q_useful_buf           out_buf,
                                struct q_useful_buf_c        *result);

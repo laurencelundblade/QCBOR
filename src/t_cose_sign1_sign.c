@@ -20,9 +20,9 @@
  *
  * \brief This implements t_cose signing
  *
- * Stack usage to sign is dependent on the signing alg and key size and type
- * of hash implementation. t_cose_sign1_finish() is the main user of stack
- * It is 384 for \ref COSE_ALGORITHM_ES256 and 778 for
+ * The stack usage to sign is dependent on the signing algorithm and key size
+ * and type of hash implementation. t_cose_sign1_encode_signature() is the main
+ * user of stack. It uses 384 bytes for \ref COSE_ALGORITHM_ES256 and 778 bytes for
  * \ref COSE_ALGORITHM_ES512.
  */
 
@@ -135,7 +135,7 @@ Done:
  * way.
  *
  * This returns \c NULL_Q_USEFUL_BUF_C if buffer_for_header was too
- * small. See also definition of \ref T_COSE_SIGN1_MAX_PROT_HEADER
+ * small. See also definition of \c T_COSE_SIGN1_MAX_PROT_HEADER
  */
 static inline struct q_useful_buf_c
 make_protected_header(int32_t             cose_algorithm_id,
@@ -179,7 +179,8 @@ make_protected_header(int32_t             cose_algorithm_id,
  * No error is returned. If an error occurred it will be returned when
  * \c QCBOR_Finish() is called on \c cbor_encode_ctx.
  *
- * The unprotected headers added by this are just the \c kid.
+ * The unprotected headers added by this are the \c kid and the
+ * content type.
  */
 static inline enum t_cose_err_t
 add_unprotected_headers(const struct t_cose_sign1_sign_ctx *me,
@@ -240,8 +241,8 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *me,
     struct q_useful_buf_c  kid;
     int32_t                hash_alg_id;
 
-    /* Check the cose_algorithm_id now by getting the hash alg as an early
-     * error check even though it is not used until later.
+    /* Check the cose_algorithm_id now by getting the hash alg as an
+     * early error check even though it is not used until later.
      */
     hash_alg_id = hash_alg_id_from_sig_alg_id(me->cose_algorithm_id);
     if(hash_alg_id == T_COSE_INVALID_ALGORITHM_ID) {
@@ -254,7 +255,7 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *me,
     }
 
     /* Get started with the tagged array that holds the four parts of
-     a cose single signed message */
+     * a cose single signed message */
     QCBOREncode_OpenArray(cbor_encode_ctx);
 
     /* The protected headers, which are added as a wrapped bstr  */
@@ -262,8 +263,8 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *me,
         Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->protected_headers_buffer);
     me->protected_headers = make_protected_header(me->cose_algorithm_id, buffer_for_protected_header);
     if(q_useful_buf_c_is_null(me->protected_headers)) {
-        /* The sizing of storage for protected headers is
-         off (should never happen in tested, released code) */
+        /* The sizing of storage for protected headers is off (should
+         * never happen in tested, released code) */
         return_value = T_COSE_ERR_MAKING_PROTECTED;
         goto Done;
     }
@@ -271,8 +272,8 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_headers);
 
     /* The Unprotected headers */
-    /* Get the kid because it goes into the headers that are about
-     to be made. */
+    /* Get the kid because it goes into the headers that are about to
+     * be made. */
     if(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         kid = get_short_circuit_kid();
@@ -291,9 +292,9 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *me,
 
     QCBOREncode_BstrWrap(cbor_encode_ctx);
 
-    /* Any failures in CBOR encoding will be caught in finish
-     * when the CBOR encoding is closed off. No need to track
-     * here as the CBOR encoder tracks it internally.
+    /* Any failures in CBOR encoding will be caught in finish when the
+     * CBOR encoding is closed off. No need to track here as the CBOR
+     * encoder tracks it internally.
      */
 
 Done:
@@ -330,11 +331,10 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
 
     QCBOREncode_CloseBstrWrap(cbor_encode_ctx, &signed_payload);
 
-    /* Check that there are no CBOR encoding errors before
-     * proceeding with hashing and signing. This is
-     * not actually necessary as the errors will be caught
-     * correctly later, but it does make it a bit easier
-     * for the caller to debug problems.
+    /* Check that there are no CBOR encoding errors before proceeding
+     * with hashing and signing. This is not actually necessary as the
+     * errors will be caught correctly later, but it does make it a
+     * bit easier for the caller to debug problems.
      */
     cbor_err = QCBOREncode_GetErrorState(cbor_encode_ctx);
     if(cbor_err == QCBOR_ERR_BUFFER_TOO_SMALL) {
@@ -346,8 +346,8 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
     }
 
     if (QCBOREncode_IsBufferNULL(cbor_encode_ctx)) {
-        /* Just calculating sizes. All that is needed is the
-         * signature size.
+        /* Just calculating sizes. All that is needed is the signature
+         * size.
          */
         signature.ptr = NULL;
         return_value  = t_cose_crypto_sig_size(me->cose_algorithm_id,
@@ -355,11 +355,11 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
                                               &signature.len);
      } else {
 
-        /* Create the hash of the to-be-signed bytes. Inputs to the hash
-         * are the protected headers, the payload that is getting signed, the
-         * cose signature alg from which the hash alg is determined. The
-         * cose_algorithm_id was checked in t_cose_sign1_init() so it
-         * doesn't need to be checked here.
+        /* Create the hash of the to-be-signed bytes. Inputs to the
+         * hash are the protected headers, the payload that is getting
+         * signed, the cose signature alg from which the hash alg is
+         * determined. The cose_algorithm_id was checked in
+         * t_cose_sign1_sign_init() so it doesn't need to be checked here.
          */
         return_value = create_tbs_hash(me->cose_algorithm_id,
                                        me->protected_headers,
@@ -371,15 +371,16 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
             goto Done;
         }
 
-        /* Compute the signature using public key crypto. The key
-         * and algorithm ID are passed in to know how and what to sign
-         * with. The hash of the TBS bytes is what is signed. A buffer in
-         * which to place the signature is passed in and the signature is
-         * returned.
+        /* Compute the signature using public key crypto. The key and
+         * algorithm ID are passed in to know how and what to sign
+         * with. The hash of the TBS bytes is what is signed. A buffer
+         * in which to place the signature is passed in and the
+         * signature is returned.
          *
          * Short-circuit signing is invoked if requested. It does no
          * public key operation and requires no key. It is just a test
-         * mode that works even if no public key algorithm is integrated.
+         * mode that works even if no public key algorithm is
+         * integrated.
          */
         if(!(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG)) {
             /* Normal, non-short-circuit signing */
@@ -407,10 +408,9 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_AddBytes(cbor_encode_ctx, signature);
     QCBOREncode_CloseArray(cbor_encode_ctx);
 
-    /* The layer above this must check for and handle CBOR
-     * encoding errors CBOR encoding errors.  Some are
-     * detected at the start of this function, but they
-     * cannot all be deteced there.
+    /* The layer above this must check for and handle CBOR encoding
+     * errors.  Some are detected at the start of this function, but
+     * they cannot all be deteced there.
      */
 Done:
     return return_value;
@@ -439,9 +439,9 @@ t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *me,
     }
 
     /* -- Output the payload into the encoder context -- */
-    /* Payload may or may not actually be CBOR format here. This function
-     * does the job just fine because it just adds bytes to the
-     * encoded output without anything extra.
+    /* Payload may or may not actually be CBOR format here. This
+     * function does the job just fine because it just adds bytes to
+     * the encoded output without anything extra.
      */
     QCBOREncode_AddEncoded(&encode_context, payload);
 

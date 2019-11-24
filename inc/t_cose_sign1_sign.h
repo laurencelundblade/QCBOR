@@ -204,8 +204,8 @@ t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
  * t_cose_sign1_encode_headers() is called.
  *
  * The IANA Media Types registry can be found
- * [here](https://www.iana.org/assignments/media-types/media-types.xhtml). These
- * have been known as MIME types in the past.
+ * [here](https://www.iana.org/assignments/media-types/media-types.xhtml).
+ * These have been known as MIME types in the past.
  */
 static inline void
 t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
@@ -229,7 +229,7 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
  * This creates the COSE headers, hashes and signs the payload and
  * creates the signature. \c out_buf gives the pointer and length
  * memory into which the output is written. The pointer and length of
- * the actual \c COSE_Sign1 is returned in \c result.
+ * the actual \c COSE_Sign1 message is returned in \c result.
  *
  * Typically, the required size of \c out_buf is about 30 bytes plus
  * the size of the signature and the size of the key ID. This is about
@@ -246,10 +246,10 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
  * be taken into account to give an exact size.
  *
  * This function requires the payload be complete and formatted in a
- * contiguous buffer. The resulting \c COSE_Sign1 also contains the
- * payload preceded by the headers and followed by the signature, all
- * CBOR formatted. This function thus requires two copies of the
- * payload to be in memory.  Alternatively
+ * contiguous buffer. The resulting \c COSE_Sign1 message also
+ * contains the payload preceded by the headers and followed by the
+ * signature, all CBOR formatted. This function thus requires two
+ * copies of the payload to be in memory.  Alternatively
  * t_cose_sign1_encode_headers() and t_cose_sign1_encode_signature()
  * can be used. They are more complex to use, but avoid the two copies
  * of the payload.
@@ -268,23 +268,21 @@ t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *context,
  * \param[in] cbor_encode_ctx  Encoding context to output to.
  *
  * This is the more complex and more memory efficient alternative to
- * t_cose_sign1_sign(). Like t_cose_sign1_sign()
- * t_cose_sign1_sign_init() and t_cose_sign1_set_signing_key() much be
+ * t_cose_sign1_sign(). Like t_cose_sign1_sign(),
+ * t_cose_sign1_sign_init() and t_cose_sign1_set_signing_key() must be
  * called before calling this.
  *
- * When this is called the opening parts of the \c COSE_Sign1 message
+ * When this is called, the opening parts of the \c COSE_Sign1 message
  * are output to the \c cbor_encode_ctx.
  *
  * After this is called, the CBOR-formatted payload must be written to
  * the \c cbor_encode_ctx by calling all the various
- * \c QCBOREncode_AddXxx calls. It can be as simple or complex as
- *  needed.
+ * \c QCBOREncode_AddXxx calls. It can be as simple or complex as needed.
  *
  * To complete the \c COSE_Sign1 call t_cose_sign1_encode_signature().
  *
  * The \c cbor_encode_ctx must have been initialized with an output
- * buffer to hold the \c COSE_Sign1 headers, the payload and the
- * signature.
+ * buffer to hold the \c COSE_Sign1 message.
  *
  * This and t_cose_sign1_encode_signature() can be used to calculate
  * the size of the \c COSE_Sign1 in the way \c QCBOREncode is usually
@@ -303,7 +301,7 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *context,
 
 
 /**
- * \brief Finish creation of a \c COSE_Sign1 message by outputing the signature.
+ * \brief Finish a \c COSE_Sign1 message by outputting the signature.
  *
  * \param[in] context          The t_cose signing context.
  * \param[in] cbor_encode_ctx  Encoding context to output to.
@@ -315,7 +313,7 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *context,
  *
  * This is when the cryptographic signature algorithm is run.
  *
- * The completed \c COSE_Sign1 is retrieved from the
+ * The completed \c COSE_Sign1 message is retrieved from the
  * \c cbor_encode_ctx by calling \c QCBOREncode_Finish().
  */
 enum t_cose_err_t

@@ -21,7 +21,8 @@ extern "C" {
 /**
  * \file t_cose_common.h
  *
- * \brief This file contains definitions common to all public t_cose interfaces.
+ * \brief This file contains definitions common to all public t_cose
+ * interfaces.
  *
  * t_cose_common.h contains the definitions common to all public
  * t_cose interfaces, particularly the error codes, algorithm
@@ -42,7 +43,7 @@ extern "C" {
  * also defined.
  *
  * \c T_COSE_DISABLE_CONTENT_TYPE -- Disables the content type headers
- * for both signing an verifying.
+ * for both signing and verifying.
  */
 
 
@@ -235,13 +236,15 @@ enum t_cose_err_t {
     /** Equivalent to \c PSA_ERROR_TAMPERING_DETECTED. */
     T_COSE_ERR_TAMPERING_DETECTED = 18,
 
-    /** The key identified by a \ref t_cose_key or a key ID was not found. */
+    /** The key identified by a \ref t_cose_key or a key ID was not
+     * found. */
     T_COSE_ERR_UNKNOWN_KEY = 19,
 
     /** The key was found, but it was the wrong type for the operation. */
     T_COSE_ERR_WRONG_TYPE_OF_KEY = 20,
 
-    /** Error constructing the COSE \c Sig_structure when signing or verify. */
+    /** Error constructing the COSE \c Sig_structure when signing or
+     *  verify. */
     T_COSE_ERR_SIG_STRUCT = 21,
 
     /** Signature was short-circuit. The option \ref
@@ -249,14 +252,15 @@ enum t_cose_err_t {
      * short-circuit signatures was not set.  */
     T_COSE_ERR_SHORT_CIRCUIT_SIG = 22,
 
-    /** Something generally went wrong in the crypto adaptor when signing or
-      * verifying. */
+    /** Something generally went wrong in the crypto adaptor when
+      * signing or verifying. */
     T_COSE_ERR_SIG_FAIL = 23,
 
     /** Something went wrong formatting the CBOR.  Possibly the
      * payload has maps or arrays that are not closed when using
      * t_cose_sign1_encode_headers() and
-     * t_cose_sign1_encode_signature() to sign a \c COSE_Sign1. */
+     * t_cose_sign1_encode_signature() to sign a \c COSE_Sign1
+     * message. */
     T_COSE_ERR_CBOR_FORMATTING = 24,
 
      /** The buffer passed in to receive the output is too small. */
@@ -284,9 +288,9 @@ enum t_cose_err_t {
      * values less than \c INT32_MAX. */
 
     T_COSE_ERR_NON_INTEGER_ALG_ID = 30,
-    /** The content type header contains a content type that neither integer
-     * or text string or it is an integer not in the range of 0
-     * to \c UINT16_MAX. */
+    /** The content type header contains a content type that neither
+     * integer or text string or it is an integer not in the range of
+     * 0 to \c UINT16_MAX. */
     T_COSE_ERR_BAD_CONTENT_TYPE = 31,
 
     /** If the option \ref T_COSE_OPT_TAG_REQUIRED is set for
@@ -296,8 +300,9 @@ enum t_cose_err_t {
     /** The signing or verification key given is empty. */
     T_COSE_ERR_EMPTY_KEY = 33,
 
-    /** A header parameter occurs twice, perhaps once in protected and once
-     * in unprotected. Duplicate header parameters are not allowed in COSE.
+    /** A header parameter occurs twice, perhaps once in protected and
+     * once in unprotected. Duplicate header parameters are not
+     * allowed in COSE.
      */
     T_COSE_ERR_DUPLICATE_HEADER = 34,
 

@@ -35,7 +35,7 @@
  * \return This returns one of the error codes defined by \ref
  *         t_cose_err_t.
  *
- * See t_cose_sign1_init() for description of the short-circuit
+ * See t_cose_sign1_sign_init() for description of the short-circuit
  * signature.
  */
 static inline enum t_cose_err_t

@@ -14,7 +14,15 @@
 
 
 /**
- * \brief Consume a CBOR map or array.
+ * \file t_cose_headers.c
+ *
+ * \brief Implementation of the header parsing functions.
+ *
+ */
+
+
+/**
+ * \brief Consume a CBOR item, particularly a map or array.
  *
  * \param[in] decode_context   Context to read data items from.
  * \param[in] item_to_consume  The already-read item that is being consumed.
@@ -39,8 +47,8 @@ consume_item(QCBORDecodeContext *decode_context,
     if(item_to_consume->uDataType == QCBOR_TYPE_MAP || item_to_consume->uDataType == QCBOR_TYPE_ARRAY) {
         /* There is only real work to do for maps and arrays */
 
-        /* This works for definite and indefinite length
-         * maps and arrays by using the nesting level
+        /* This works for definite and indefinite length maps and
+         * arrays by using the nesting level
          */
         do {
             return_value = QCBORDecode_GetNext(decode_context, &item);
@@ -53,8 +61,8 @@ consume_item(QCBORDecodeContext *decode_context,
         return_value = QCBOR_SUCCESS;
 
     } else {
-        /* item_to_consume is not a map or array */
-        /* Just pass the nesting level through */
+        /* item_to_consume is not a map or array.  Just pass the
+         * nesting level through */
         *next_nest_level = item_to_consume->uNextNestLevel;
         return_value = QCBOR_SUCCESS;
     }
@@ -75,7 +83,7 @@ Done:
  * \retval T_COSE_SUCCESS               If added correctly.
  * \retval T_COSE_ERR_TOO_MANY_HEADERS  Header list is full.
  * \retval T_COSE_ERR_HEADER_CBOR       The item to add doesn't have a label
- *                                      type that is understood
+ *                                      type that is understood.
  *
  * The label / key from \c item is added to \c header_list.
  */
@@ -110,9 +118,9 @@ add_header_label_to_list(const QCBORItem          *item,
         header_list->tstr_labels[n] = item->label.string;
     } else {
         /* error because header is neither integer or string */
-        /* SHould never occur because this is caught earlier, but
-         leave it to be safe and because inlining and optimization
-         should take out any unneeded code
+        /* Should never occur because this is caught earlier, but
+         * leave it to be safe and because inlining and optimization
+         * should take out any unneeded code
          */
         return_value = T_COSE_ERR_HEADER_CBOR;
     }
@@ -125,7 +133,7 @@ Done:
 
 
 /**
- * \brief Decode the header containing the labels of headers considered critical.
+ * \brief Decode header containing the labels of headers considered critical.
  *
  * \param[in,out]  decode_context          Decode context to read critical
  *                                         header list from.
@@ -133,7 +141,7 @@ Done:
  *                                         labels.
  * \param[out]     critical_labels         List of labels of critical headers.
  * \param[out]     return_next_nest_level  Place to return nesting level of
- *                                         next data item
+ *                                         next data item.
  *
  * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED Undecodable CBOR.
  * \retval T_COSE_ERR_TOO_MANY_HEADERS     More critical headers than this
@@ -285,8 +293,8 @@ process_unknown_header(QCBORDecodeContext        *decode_context,
         goto Done;
     }
 
-    /* The full unknown header must be consumed. It could be
-     complex deeply-nested CBOR */
+    /* The full unknown header must be consumed. It could be complex
+     * deeply-nested CBOR */
     if(consume_item(decode_context, unknown_header, next_nest_level)) {
         return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
     }
@@ -313,8 +321,8 @@ static inline void clear_cose_headers(struct t_cose_headers *headers)
 #error Constant for unset algorithm ID not aligned with COSE_ALGORITHM_RESERVED
 #endif
 
-    /* This clears all the useful bufs to NULL_Q_USEFUL_BUF_C
-     * and the cose_algorithm_id to COSE_ALGORITHM_RESERVED
+    /* This clears all the useful bufs to NULL_Q_USEFUL_BUF_C and the
+     * cose_algorithm_id to COSE_ALGORITHM_RESERVED
      */
     memset(headers, 0, sizeof(struct t_cose_headers));
 
@@ -496,8 +504,8 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
                     return_value = T_COSE_ERR_DUPLICATE_HEADER;
                     goto Done;
                 }
-                /* parse_critical_headers() consumes all the items in the
-                 * critical headers array */
+                /* parse_critical_headers() consumes all the items in
+                 * the critical headers array */
                 return_value = decode_critical_headers(decode_context,
                                                        &item,
                                                        critical_labels,
@@ -534,10 +542,9 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
 #endif
 
             default:
-                /* The header is not recognized. It has to be
-                 * added to the the list of unknown headers so it
-                 * can be checked against the list of critical
-                 * headers
+                /* The header is not recognized. It has to be added to
+                 * the the list of unknown headers so it can be
+                 * checked against the list of critical headers
                  */
                 return_value = process_unknown_header(decode_context,
                                                       &item,
@@ -557,7 +564,7 @@ Done:
 }
 
 
-/**
+/*
  * Public function. See t_cose_headers.h
  */
 enum t_cose_err_t
@@ -606,7 +613,7 @@ parse_unprotected_headers(QCBORDecodeContext *decode_context,
 }
 
 
-/**
+/*
  * Public function. See t_cose_headers.h
  */
 enum t_cose_err_t

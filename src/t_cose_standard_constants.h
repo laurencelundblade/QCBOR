@@ -25,10 +25,12 @@
  * they are not needed by t_cose. They can be added if they become
  * needed.
  *
- * This file is not part of the public interface as it contains lots
- * of stuff not needed in the public interface. The parts that are
- * needed in the public interface are defined as \ref T_COSE_ALGORITHM_ES256
- * and cross checked in t_cose_sign1_sign.c
+ * This file is not part of the t_cose public interface as it contains
+ * lots of stuff not needed in the public interface. The parts that
+ * are needed in the public interface are also defined as \ref
+ * T_COSE_ALGORITHM_ES256 and related (there is a pre processor cross
+ * check to make sure they don't get defined differently in
+ * t_cose_sign1_sign.c).
  */
 
 // TODO: are the headers, parameters or header parameters?
@@ -79,10 +81,11 @@
 /**
  * \def COSE_HEADER_PARAM_KID
  *
- * \brief Label of COSE parameter that contains a kid (key ID).
+ * \brief CBOR map label of COSE parameter that contains a kid (key ID).
  *
- * The kid is a byte string identifying the key. It is optional and there
- * is no required format. They are not even required to be unique.
+ * The kid is a byte string identifying the key. It is optional and
+ * there is no required format. They are not even required to be
+ * unique.
  */
 #define COSE_HEADER_PARAM_KID 4
 
@@ -90,9 +93,12 @@
 /**
  * \def COSE_HEADER_PARAM_IV
  *
- * \brief Label of COSE parameter that contains an initialization vector.
+ * \brief CBOR map label of parameter that contains an initialization
+ * vector.
  *
  * A binary string initialization vector.
+ *
+ * This implementation only parses this.
  */
 #define COSE_HEADER_PARAM_IV 5
 
@@ -100,9 +106,12 @@
 /**
  * \def COSE_HEADER_PARAM_PARTIAL_IV
  *
- * \brief Label of COSE parameter that contains a partial initialization vector.
+ * \brief CBOR map label of parameter containing partial
+ * initialization vector.
  *
  * A binary string partial initialization vector.
+ *
+ * This implementation only parses this.
  */
 #define COSE_HEADER_PARAM_PARTIAL_IV 6
 
@@ -110,9 +119,10 @@
 /**
  * \def COSE_HEADER_PARAM_COUNTER_SIGNATURE
  *
- * \brief Label of COSE parameter that holds one or more counter signature.
+ * \brief CBOR map label of parameter that holds one or more counter signature.
  *
- * Counter signatures can be full COSE_Sign1, COSE_Signature and such messages.
+ * Counter signatures can be full \c COSE_Sign1, \c COSE_Signature and
+ * such messages.  This implementation doesn't support them.
  */
 #define COSE_HEADER_PARAM_COUNTER_SIGNATURE 6
 
@@ -133,9 +143,9 @@
  * https://www.iana.org/assignments/cose/cose.xhtml#algorithms
  */
 
-/*
- This is defined as reserved by IANA. This implementation uses
- it to mean the end of a list of algorithm IDs.
+/**
+ * This is defined as reserved by IANA. This implementation uses it to
+ * mean the end of a list of algorithm IDs or an unset algorithm ID.
  */
 #define COSE_ALGORITHM_RESERVED 0
 
@@ -145,18 +155,13 @@
  *
  * \brief Indicates ECDSA with SHA-256.
  *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA w/SHA-256.
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate ECDSA with SHA-256.
  *
- * Technically, this indicates any type of ECDSA with any curve compatible
- * with ECDSA. Technically, RFC 8152 section 8.1 require implementations
- * supporting this algorithm to work only with the following curves:
- * - P-256 by NIST, NID_X9_62_prime256v1 in OpenSSL & secp256r1 in ANSI X9.62
- * - P-384 by NIST naming and secp384r1 by ANSI X9.62
- * - P-521 by NIST naming and secp521r1 by ANSI X9.62
- * It suggests, but does not require, that this algorithm identifier
- * only be used with keys based on the P-256 curve.
+ * RFC 8152 section 8.1 suggests, but does not require, that this
+ * algorithm identifier only be used with keys based on the P-256
+ * curve (also known as prime256v1 or secp256r1).
  *
- * See https://tools.ietf.org/search/rfc4492 and COSE RFC.
+ * See https://tools.ietf.org/search/rfc4492 and https://tools.ietf.org/html/rfc8152
  */
 #define COSE_ALGORITHM_ES256 -7
 
@@ -167,8 +172,9 @@
  *
  * See discussion on \ref COSE_ALGORITHM_ES256.
  *
- * RFC 8152 suggests, but does not require, that this algorithm identifier
- * be used only with keys based on the P-384 curve.
+ * RFC 8152 section 8.1 suggests, but does not require, that this
+ * algorithm identifier be used only with keys based on the P-384
+ * curve (also known as secp384r1).
  */
 #define COSE_ALGORITHM_ES384 -35
 
@@ -179,8 +185,9 @@
  *
  * See discussion on \ref COSE_ALGORITHM_ES256.
  *
- * RFC 8152 suggests, but does not require, that this algorithm identifier
- * be used only with keys based on the P-384 curve.
+ * RFC 8152 section 8.1 suggests, but does not require, that this
+ * algorithm identifier be used only with keys based on the P-521
+ * curve (also known as secp521r1)
  */
 #define COSE_ALGORITHM_ES512 -36
 
@@ -190,7 +197,7 @@
  *
  * \brief Indicates simple SHA-256 hash.
  *
- * This is not used in the t_cose interface. It is just used internally.
+ * This is not used in the t_cose interface, just used internally.
  */
 #define COSE_ALGORITHM_SHA_256 -16
 
@@ -199,7 +206,7 @@
  *
  * \brief Indicates simple SHA-384 hash.
  *
- * This is not used in the t_cose interface. It is just used internally.
+ * This is not used in the t_cose interface, just used internally.
  */
 #define COSE_ALGORITHM_SHA_384 -43
 
@@ -208,7 +215,7 @@
  *
  * \brief Indicates simple SHA-512 hash.
  *
- * This is not used in the t_cose interface. It is just used internally.
+ * This is not used in the t_cose interface, just used internally.
  */
 #define COSE_ALGORITHM_SHA_512 -44
 
@@ -244,6 +251,8 @@
 
 /* ---------- COSE Key Type Parameters --------------------
  * https://www.iana.org/assignments/cose/cose.xhtml#key-type-parameters
+ *
+ * These are not used by this implementation.
  */
 
 /**
@@ -389,8 +398,8 @@
 /**
  * \def COSE_SIG_CONTEXT_STRING_SIGNATURE1
  *
- * \brief This is a string constant used by COSE to label \c COSE_Sign1
- * structures. See RFC 8152, section 4.4.
+ * \brief This is a string constant used by COSE to label \c
+ * COSE_Sign1 structures. See RFC 8152, section 4.4.
  */
 #define COSE_SIG_CONTEXT_STRING_SIGNATURE1 "Signature1"
 

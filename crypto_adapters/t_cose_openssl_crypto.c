@@ -198,10 +198,9 @@ Done:
  *
  * \return Error or \ref T_COSE_SUCCESS.
  *
- * It pulls the OpenSSL in-memory key out of \c t_cose_key
- * and checks it and figures out the number of bytes
- * in the key rounded up. This is also the size of r and s
- * in the signature.
+ * It pulls the OpenSSL in-memory key out of \c t_cose_key and checks
+ * it and figures out the number of bytes in the key rounded up. This
+ * is also the size of r and s in the signature.
  */
 static enum t_cose_err_t
 ecdsa_key_checks(struct t_cose_key  t_cose_key,
@@ -241,10 +240,10 @@ ecdsa_key_checks(struct t_cose_key  t_cose_key,
     }
     key_len_bits = EC_GROUP_get_degree(key_group);
 
-    /* Convert group size in bits to key size in bytes per
-     * RFC 8152 section 8.1. This is also the size of
-     * r and s in the signature. This is by rounding up
-     * to the number of bytes to hold the give number of bits.
+    /* Convert group size in bits to key size in bytes per RFC 8152
+     * section 8.1. This is also the size of r and s in the
+     * signature. This is by rounding up to the number of bytes to
+     * hold the give number of bits.
      */
     key_len_bytes = key_len_bits / 8;
     if(key_len_bits % 8) {
@@ -311,20 +310,21 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
     /* This implementation supports ECDSA and only ECDSA. The
      * interface allows it to support other, but none are implemented.
      * This implementation works for different keys lengths and
-     * curves. That is, the curve and key length as associated
-     * with the \c signing_key passed in, not the \c cose_algorithm_id
-     * This check looks for ECDSA signing as indicated by COSE and rejects what
-     * is not since it only supports ECDSA.
+     * curves. That is, the curve and key length as associated with
+     * the \c signing_key passed in, not the \c cose_algorithm_id This
+     * check looks for ECDSA signing as indicated by COSE and rejects
+     * what is not since it only supports ECDSA.
      *
-     * If RSA or such is to be added, it would be added here and switch
-     * based on the cose_algorithm_id would select it.
+     * If RSA or such is to be added, it would be added here and
+     * switch based on the cose_algorithm_id would select it.
      */
     if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }
 
-    /* Check out a few things that are common between signing and verification*/
+    /* Check out a few things that are common between signing and
+     * verification */
     return_value = ecdsa_key_checks(signing_key,
                                    &ossl_ec_key,
                                    &key_len);
@@ -358,8 +358,8 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
     return_value = T_COSE_SUCCESS;
 
 Done:
-    /* This (is assumed to) checks for NULL before free, so
-     * it is not necessary to check for NULL here.
+    /* This (is assumed to) checks for NULL before free, so it is not
+     * necessary to check for NULL here.
      */
     ECDSA_SIG_free(ossl_signature);
 

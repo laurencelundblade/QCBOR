@@ -52,11 +52,11 @@ extern "C" {
 
 
 /**
- * The result of parsing a set of COSE headers. The pointers
- * are all back into the \c COSE_Sign1 blob passed in.
+ * The result of parsing a set of COSE headers. The pointers are all
+ * back into the \c COSE_Sign1 blob passed in.
  *
- * Approximate size on a 64-bit machine is 80 bytes and on
- * a 32-bit machine is 40.
+ * Approximate size on a 64-bit machine is 80 bytes and on a 32-bit
+ * machine is 40.
  */
 struct t_cose_headers {
     /** The algorithm ID. \ref T_COSE_UNSET_ALGORITHM_ID if the algorithm ID
@@ -97,9 +97,9 @@ struct t_cose_headers {
 
 
 /**
- * Pass this as \c option_flags to allow verification of
- * short-circuit signatures. This should only be used as
- * a test mode as short-circuit signatures are not secure.
+ * Pass this as \c option_flags to allow verification of short-circuit
+ * signatures. This should only be used as a test mode as
+ * short-circuit signatures are not secure.
  *
  * See also \ref T_COSE_OPT_SHORT_CIRCUIT_SIG.
  */
@@ -107,18 +107,18 @@ struct t_cose_headers {
 
 
 /**
- * The error \ref T_COSE_ERR_NO_KID is returned if the header kid header
- * is missing. Note that the kid header is primarily passed
- * on to the crypto layer so the crypto layer can look up the
- * key. If the verification key is determined by other than
- * the kid, then it is fine if there is no kid.
+ * The error \ref T_COSE_ERR_NO_KID is returned if the header kid
+ * header is missing. Note that the kid header is primarily passed on
+ * to the crypto layer so the crypto layer can look up the key. If the
+ * verification key is determined by other than the kid, then it is
+ * fine if there is no kid.
  */
 #define T_COSE_OPT_REQUIRE_KID 0x00000002
 
 
 /**
  * Normally this will decode the CBOR presented as a \c COSE_Sign1
- * message whether it is tagged using QCBOR taggging as such or not.
+ * message whether it is tagged using QCBOR tagging as such or not.
  * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
  * returned if it is not tagged.
  */
@@ -135,9 +135,9 @@ struct t_cose_headers {
  * caller. Once the key in in hand, t_cose_sign1_verify() can be
  * called again to perform the full verification.
  *
- * The payload will always be returned whether this is
- * option is given or not, but it should not be considered secure
- * when this option is given.
+ * The payload will always be returned whether this is option is given
+ * or not, but it should not be considered secure when this option is
+ * given.
  *
  */
 #define T_COSE_OPT_PARSE_ONLY  0x00000008
@@ -145,8 +145,8 @@ struct t_cose_headers {
 
 
 /**
- * Context for signature verification.
- * It is about 24 bytes on a 64-bit machine and 12 bytes on a 32-bit machine.
+ * Context for signature verification.  It is about 24 bytes on a
+ * 64-bit machine and 12 bytes on a 32-bit machine.
  */
 struct t_cose_sign1_verify_ctx {
     /* Private data structure */
@@ -223,10 +223,10 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
 /**
  * \brief Verify a COSE_Sign1
  *
- * \param[in] sign1             Pointer and length of CBOR encoded \c COSE_Sign1
- *                              that is to be verified.
- * \param[out] payload          Pointer and length of the payload.
- * \param[out] headers          Place to return parsed headers. Maybe be NULL.
+ * \param[in] sign1     Pointer and length of CBOR encoded \c COSE_Sign1
+ *                      that is to be verified.
+ * \param[out] payload  Pointer and length of the payload.
+ * \param[out] headers  Place to return parsed headers. Maybe be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -262,11 +262,11 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * This will recognize the special key ID for short-circuit signing
  * and verify it if the \ref T_COSE_OPT_ALLOW_SHORT_CIRCUIT is set.
  *
- * Indefinite length CBOR strings are not supported by this implementation.
- *  \ref T_COSE_ERR_SIGN1_FORMAT
- * will be returned if they are in the input \c COSE_Sign1 messages. For
- * example, if the payload is an indefinite length byte string, this error
- * will be returned.
+ * Indefinite length CBOR strings are not supported by this
+ * implementation.  \ref T_COSE_ERR_SIGN1_FORMAT will be returned if
+ * they are in the input \c COSE_Sign1 messages. For example, if the
+ * payload is an indefinite length byte string, this error will be
+ * returned.
  */
 enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
                                       struct q_useful_buf_c           sign1,

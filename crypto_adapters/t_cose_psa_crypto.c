@@ -9,16 +9,50 @@
  */
 
 
+/**
+ * \file t_cose_psa_crypto.c
+ *
+ * \brief Crypto Adaptation for t_cose to use ARM's PSA ECDSA and hashes.
+ *
+ * This connects up the abstract interface in t_cose_crypto.h to the
+ * implementations of ECDSA signing and hashing in ARM's PSA crypto
+ * library.
+ *
+ * This adapter layer doesn't bloat the implementation as everything
+ * here had to be done anyway -- the mapping of algorithm IDs, the
+ * data format rearranging, the error code translation.
+ *
+ * This code should just work out of the box if compiled and linked
+ * against ARM's PSA crypto. No preprocessor #defines are needed.
+ *
+ * You can disable SHA-384 and SHA-512 to save code and space by
+ * defining T_COSE_DISABLE_ES384 or T_COSE_DISABLE_ES512. This saving
+ * is most in stack space in the main t_cose implementation. (It seems
+ * likely that changes to PSA itself would be needed to remove the
+ * SHA-384 and SHA-512 implementations to save that code. Lack of
+ * reference and dead stripping the executable won't do it).
+ */
+
+
 #include "t_cose_crypto.h"  /* The interface this implements */
-#include "crypto.h"         /* PSA / TF_M stuff */
+#include "crypto.h"         /* PSA / TF_M crypto */
 
 
 /* Avoid compiler warning due to unused argument */
 #define ARG_UNUSED(arg) (void)(arg)
 
 
+/**
+ * \brief Map a COSE signing algorithm ID to a PSA signing algorithm ID
+ *
+ * \param[in] cose_alg_id  The COSE algorithm ID.
+ *
+ * \return The PSA algorithm ID or 0 if this doesn't map the COSE ID.
+ */
 static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 {
+    /* The #ifdefs save a little code when algorithms are disabled */
+
     return cose_alg_id == COSE_ALGORITHM_ES256 ? PSA_ALG_ECDSA(PSA_ALG_SHA_256) :
 #ifndef T_COSE_DISABLE_ES384
            cose_alg_id == COSE_ALGORITHM_ES384 ? PSA_ALG_ECDSA(PSA_ALG_SHA_384) :
@@ -27,8 +61,8 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
            cose_alg_id == COSE_ALGORITHM_ES512 ? PSA_ALG_ECDSA(PSA_ALG_SHA_512) :
 #endif
                                                  0;
-    /* psa/crypto_values.h doesn't seem to define a "no alg" value, but
-     * zero seems OK for that use in the ECDSA context. */
+    /* psa/crypto_values.h doesn't seem to define a "no alg" value,
+     * but zero seems OK for that use in the ECDSA context. */
 }
 
 
@@ -37,7 +71,7 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
  *
  * \param[in] err   The PSA status.
  *
- * \return The t_cose error.
+ * \return The \ref t_cose_err_t.
  */
 static enum t_cose_err_t psa_status_to_t_cose_error_signing(psa_status_t err)
 {
@@ -66,7 +100,8 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
     enum t_cose_err_t return_value;
     psa_key_handle_t  verification_key_psa;
 
-    /* This implementation does no look up keys by kid in the key store */
+    /* This implementation does no look up keys by kid in the key
+     * store */
     ARG_UNUSED(kid);
 
     /* Convert to PSA algorithm ID scheme */
@@ -75,10 +110,12 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
     /* This implementation supports ECDSA and only ECDSA. The
      * interface allows it to support other, but none are implemented.
      * This implementation works for different keys lengths and
-     * curves. That is the curve and key length as associated
-     * with the signing_key passed in, not the cose_algorithm_id
-     * This check looks for ECDSA signing as indicated by COSE and rejects what
-     * is not.
+     * curves. That is the curve and key length as associated with the
+     * signing_key passed in, not the cose_algorithm_id This check
+     * looks for ECDSA signing as indicated by COSE and rejects what
+     * is not. (Perhaps this check can be removed to save object code
+     * if it is the case that psa_asymmetric_verify() does the right
+     * checks).
      */
     if(!PSA_ALG_IS_ECDSA(psa_alg_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
@@ -122,10 +159,12 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
     /* This implementation supports ECDSA and only ECDSA. The
      * interface allows it to support other, but none are implemented.
      * This implementation works for different keys lengths and
-     * curves. That is the curve and key length as associated
-     * with the signing_key passed in, not the cose_algorithm_id
-     * This check looks for ECDSA signing as indicated by COSE and rejects what
-     * is not.
+     * curves. That is the curve and key length as associated with the
+     * signing_key passed in, not the cose_algorithm_id This check
+     * looks for ECDSA signing as indicated by COSE and rejects what
+     * is not. (Perhaps this check can be removed to save object code
+     * if it is the case that psa_asymmetric_verify() does the right
+     * checks).
      */
     if(!PSA_ALG_IS_ECDSA(psa_alg_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
@@ -134,8 +173,8 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
 
     signing_key_psa = (psa_key_handle_t)signing_key.k.key_handle;
 
-    /* It is assumed that psa_asymmetric_sign() is checking signature_buffer
-     * length and won't write off the end of it.
+    /* It is assumed that psa_asymmetric_sign() is checking
+     * signature_buffer length and won't write off the end of it.
      */
     psa_result = psa_asymmetric_sign(signing_key_psa,
                                      psa_alg_id,
@@ -171,12 +210,12 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
     size_t            key_len_bits;
     size_t            key_len_bytes;
 
-    /* If desparate to save code, this can return the constant
-     * T_COSE_MAX_SIG_SIZE instead of doing an exact calculation.
-     * The buffer size calculation will return too large of a value
-     * and waste a little heap / stack, but everything will still
-     * work (except the tests that test for exact values will
-     * fail). This will save 100 bytes or so of obejct code.
+    /* If desperate to save code, this can return the constant
+     * T_COSE_MAX_SIG_SIZE instead of doing an exact calculation.  The
+     * buffer size calculation will return too large of a value and
+     * waste a little heap / stack, but everything will still work
+     * (except the tests that test for exact values will fail). This
+     * will save 100 bytes or so of obejct code.
      */
 
     if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
@@ -200,7 +239,7 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
         if(key_len_bits % 8) {
             key_len_bytes++;
         }
-        /* double because signature is made of up r and s values */
+        /* Double because signature is made of up r and s values */
         *sig_size = key_len_bytes * 2;
     }
 
@@ -213,7 +252,7 @@ Done:
 
 
 /**
- * \brief Convert COSE algorithm ID to a PSA algorithm ID
+ * \brief Convert COSE hash algorithm ID to a PSA hash algorithm ID
  *
  * \param[in] cose_hash_alg_id   The COSE-based ID for the
  *
@@ -239,7 +278,7 @@ cose_hash_alg_id_to_psa(int32_t cose_hash_alg_id)
  *
  * \param[in] status   The PSA status.
  *
- * \return The t_cose error.
+ * \return The \ref t_cose_err_t.
  */
 static enum t_cose_err_t
 psa_status_to_t_cose_error_hash(psa_status_t status)
@@ -330,7 +369,10 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
                                        data_to_hash.ptr,
                                        data_to_hash.len);
 
-    /* Copy the PSA handle back into the context. */
+    /* Copy the PSA handle back into the context because a non const
+     * reference is passed to psa_hash_update(). If it was const, this
+     * line of code could be deleted.
+     */
     hash_ctx->context.handle = psa_hash.handle;
 }
 
@@ -358,13 +400,16 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
 
     /* Actually finish up the hash */
     status = psa_hash_finish(&psa_hash,
-                                       buffer_to_hold_result.ptr,
-                                       buffer_to_hold_result.len,
-                                       &(hash_result->len));
+                              buffer_to_hold_result.ptr,
+                              buffer_to_hold_result.len,
+                            &(hash_result->len));
 
     hash_result->ptr = buffer_to_hold_result.ptr;
 
-    /* Copy the PSA handle back into the context. */
+    /* Copy the PSA handle back into the context because a non const
+     * reference is passed to psa_hash_finish(). If it was const, this
+     * line of code could be deleted.
+     */
     hash_ctx->context.handle = psa_hash.handle;
 
 Done:

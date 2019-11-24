@@ -25,6 +25,10 @@ static SHA512_CTX g_s512_ctx;
 typedef enum {IDLE, S256, S384, S512} off_target_hash_status_t;
 static off_target_hash_status_t s_status = IDLE;
 
+
+/*
+ * This implements the PSA public hash interface defined in PSA crypto.h
+ */
 psa_status_t psa_hash_setup(psa_hash_operation_t *operation,
                             psa_algorithm_t       alg)
 {
@@ -74,6 +78,9 @@ psa_status_t psa_hash_setup(psa_hash_operation_t *operation,
 }
 
 
+/*
+ * This implements the PSA public hash interface defined in PSA crypto.h
+ */
 psa_status_t psa_hash_update(psa_hash_operation_t *operation,
                              const uint8_t        *input,
                              size_t                input_length)
@@ -106,6 +113,10 @@ psa_status_t psa_hash_update(psa_hash_operation_t *operation,
     return ossl_result ? PSA_SUCCESS : PSA_ERROR_GENERIC_ERROR;
 }
 
+
+/*
+ * This implements the PSA public hash interface defined in PSA crypto.h
+ */
 psa_status_t psa_hash_finish(psa_hash_operation_t *operation,
                              uint8_t              *hash,
                              size_t                hash_size,

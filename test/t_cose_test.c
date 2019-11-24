@@ -102,8 +102,7 @@ int_fast32_t short_circuit_verify_fail_test()
 
     /* --- Start Tamper with payload  --- */
     /* Find the offset of the payload in COSE_Sign1 */
-    payload_offset = q_useful_buf_find_bytes(signed_cose,
-                                             Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
+    payload_offset = q_useful_buf_find_bytes(signed_cose, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
     if(payload_offset == SIZE_MAX) {
         return 6000;
     }
@@ -161,9 +160,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 
 
     /* -- Test bad algorithm ID -4444444 -- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                      -4444444); /* Unknown alg ID 0 to cause error. */
+    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, -4444444);
 
     return_value = t_cose_sign1_sign(&sign_ctx,
                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
@@ -188,8 +185,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     /* Force a CBOR encoding error by closing a map that is not open */
     QCBOREncode_CloseMap(&cbor_encode);
 
-    return_value = t_cose_sign1_encode_signature(&sign_ctx,
-                                                 &cbor_encode);
+    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
 
     if(return_value != T_COSE_ERR_CBOR_FORMATTING) {
         return -3;
@@ -449,18 +445,16 @@ int cose_example_test()
     struct q_useful_buf_c         output;
     struct t_cose_sign1_sign_ctx  sign_ctx;
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                      T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_signing_key(&sign_ctx, T_COSE_NULL_KEY, Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
     /* Make example C.2.1 from RFC 8152 */
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                               Q_USEFUL_BUF_FROM_SZ_LITERAL("This is the content."),
-                               signed_cose_buffer,
-                               &output);
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("This is the content."),
+                                     signed_cose_buffer,
+                                     &output);
 
     return return_value;
 }
@@ -481,9 +475,7 @@ static enum t_cose_err_t run_test_sign_and_verify(int32_t test_mess_options)
     /* The CBOR encoder instance that the COSE_Sign1 is output into */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                      T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                      T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, T_COSE_ALGORITHM_ES256);
 
     return_value =
         t_cose_test_message_sign1_sign(&sign_ctx,
@@ -555,13 +547,9 @@ int_fast32_t all_headers_test()
     struct t_cose_sign1_verify_ctx  verify_ctx;
 
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                       T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                       T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, T_COSE_ALGORITHM_ES256);
 
-    t_cose_sign1_set_signing_key(&sign_ctx,
-                         T_COSE_NULL_KEY,
-                         Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
+    t_cose_sign1_set_signing_key(&sign_ctx, T_COSE_NULL_KEY, Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
     return_value =
         t_cose_test_message_sign1_sign(&sign_ctx,
@@ -648,7 +636,6 @@ int_fast32_t bad_headers_test()
         return -8;
     }
 
-
     if(run_test_sign_and_verify(T_COSE_TEST_BAD_CRIT_HEADER) != T_COSE_ERR_HEADER_NOT_PROTECTED) {
         return -9;
     }
@@ -692,38 +679,33 @@ int_fast32_t critical_headers_test()
     }
 
     /* Exceed the max number of labels by one and get an error */
-    if(run_test_sign_and_verify(T_COSE_TEST_TOO_MANY_CRIT_HEADER_EXIST) !=
-       T_COSE_ERR_CRIT_HEADER_PARAM) {
+    if(run_test_sign_and_verify(T_COSE_TEST_TOO_MANY_CRIT_HEADER_EXIST) != T_COSE_ERR_CRIT_HEADER_PARAM) {
         return -2;
     }
 
     /* A critical header exists in the protected section, but the
      * format of the internals of this header is not the expected CBOR
      */
-    if(run_test_sign_and_verify(T_COSE_TEST_BAD_CRIT_LABEL) !=
-       T_COSE_ERR_CRIT_HEADER_PARAM) {
+    if(run_test_sign_and_verify(T_COSE_TEST_BAD_CRIT_LABEL) != T_COSE_ERR_CRIT_HEADER_PARAM) {
         return -3;
     }
 
     /* A critical header is listed in the protected section, but
      * the header doesn't exist. This works for integer-labeled header params.
      */
-    if(run_test_sign_and_verify(T_COSE_TEST_UNKNOWN_CRIT_UINT_HEADER) !=
-       T_COSE_ERR_UNKNOWN_CRITICAL_HEADER) {
+    if(run_test_sign_and_verify(T_COSE_TEST_UNKNOWN_CRIT_UINT_HEADER) !=   T_COSE_ERR_UNKNOWN_CRITICAL_HEADER) {
         return -4;
     }
 
     /* A critical header is listed in the protected section, but
      * the header doesn't exist. This works for string-labeled header params.
      */
-    if(run_test_sign_and_verify(T_COSE_TEST_UNKNOWN_CRIT_TSTR_HEADER) !=
-       T_COSE_ERR_UNKNOWN_CRITICAL_HEADER) {
+    if(run_test_sign_and_verify(T_COSE_TEST_UNKNOWN_CRIT_TSTR_HEADER) != T_COSE_ERR_UNKNOWN_CRITICAL_HEADER) {
         return -5;
     }
 
     /* The critical headers list is not a protected header */
-    if(run_test_sign_and_verify(T_COSE_TEST_CRIT_NOT_PROTECTED) !=
-       T_COSE_ERR_HEADER_NOT_PROTECTED) {
+    if(run_test_sign_and_verify(T_COSE_TEST_CRIT_NOT_PROTECTED) !=  T_COSE_ERR_HEADER_NOT_PROTECTED) {
         return -6;
     }
 
@@ -732,8 +714,7 @@ int_fast32_t critical_headers_test()
         return -7;
     }
 
-    if(run_test_sign_and_verify(T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS) !=
-       T_COSE_ERR_CRIT_HEADER_PARAM) {
+    if(run_test_sign_and_verify(T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS) !=  T_COSE_ERR_CRIT_HEADER_PARAM) {
         return -8;
     }
 
@@ -755,16 +736,14 @@ int_fast32_t content_type_test()
 
 
     /* -- integer content type -- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                      T_COSE_OPT_SHORT_CIRCUIT_SIG ,
-                      T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                          Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
-                          signed_cose_buffer,
-                          &output);
+                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                      signed_cose_buffer,
+                                     &output);
     if(return_value) {
         return 1;
     }
@@ -785,9 +764,7 @@ int_fast32_t content_type_test()
 
 
     /* -- string content type -- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                      T_COSE_OPT_SHORT_CIRCUIT_SIG ,
-                      T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
 
@@ -809,16 +786,13 @@ int_fast32_t content_type_test()
         return 2;
     }
 
-    if(q_useful_buf_compare(headers.content_type_tstr,
-                            Q_USEFUL_BUF_FROM_SZ_LITERAL("text/plain"))) {
+    if(q_useful_buf_compare(headers.content_type_tstr, Q_USEFUL_BUF_FROM_SZ_LITERAL("text/plain"))) {
         return 6;
     }
 
 
     /* -- content type in error -- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                      T_COSE_OPT_SHORT_CIRCUIT_SIG ,
-                      T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx,  T_COSE_OPT_SHORT_CIRCUIT_SIG, T_COSE_ALGORITHM_ES256);
 
     t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
     t_cose_sign1_set_content_type_uint(&sign_ctx, 42);

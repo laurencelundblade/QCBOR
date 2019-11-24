@@ -126,6 +126,7 @@ Thus far no string algorithm IDs have been assigned by IANA.
 verification.
 * Only ECDSA is supported so far (facilities are available to add others).
 * Does not handle CBOR indefinite length strings (indefinite length maps and arrays are handled).
+* Counter signatures are not supported.
 
 ## Credit
 
