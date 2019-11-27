@@ -15,7 +15,6 @@
 #include <stdbool.h>
 
 #include "t_cose_test.h"
-#include "t_cose_openssl_test.h"
 #include "t_cose_sign_verify_test.h"
 
 
@@ -60,11 +59,11 @@ static test_entry s_tests[] = {
 #endif
     TEST_ENTRY(sign1_structure_decode_test),
     TEST_ENTRY(content_type_test),
-    TEST_ENTRY(all_headers_test),
+    TEST_ENTRY(all_header_parameters_test),
     TEST_ENTRY(cose_example_test),
-    TEST_ENTRY(critical_headers_test),
-    TEST_ENTRY(bad_headers_test),
-    TEST_ENTRY(short_circuit_no_parse_test),
+    TEST_ENTRY(crit_parameters_test),
+    TEST_ENTRY(bad_parameters_test),
+    TEST_ENTRY(short_circuit_decode_only_test),
     TEST_ENTRY(short_circuit_make_cwt_test),
     TEST_ENTRY(short_circuit_signing_error_conditions_test),
     TEST_ENTRY(short_circuit_verify_fail_test),
@@ -285,8 +284,8 @@ void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
     PrintSize("sizeof(struct t_cose_crypto_hash)",
               (uint32_t)sizeof(struct t_cose_crypto_hash),
               pfOutput, pOutCtx);
-    PrintSize("sizeof(struct t_cose_headers)",
-              (uint32_t)sizeof(struct t_cose_headers),
+    PrintSize("sizeof(struct t_cose_parameters)",
+              (uint32_t)sizeof(struct t_cose_parameters),
               pfOutput, pOutCtx);
     PrintSize("sizeof(struct t_cose_sign1_verify_ctx)",
               (uint32_t)sizeof(struct t_cose_sign1_verify_ctx),

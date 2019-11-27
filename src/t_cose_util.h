@@ -87,37 +87,37 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
 /**
  * \brief Create the hash of the to-be-signed (TBS) bytes for COSE.
  *
- * \param[in] cose_algorithm_id The COSE signing algorithm ID. Used to
- *                              determine which hash function to use.
- * \param[in] protected_headers The full, CBOR encoded, protected headers.
- * \param[in] payload_mode      See \ref t_cose_tbs_hash_mode_t.
- * \param[in] payload           The CBOR encoded payload. It may or may
- *                              not have a wrapping bstr per
- *                              \c payload_mode.
- * \param[in] buffer_for_hash   Pointer and length of buffer into which
- *                              the resulting hash is put.
- * \param[out] hash             Pointer and length of the
- *                              resulting hash.
+ * \param[in] cose_algorithm_id     The COSE signing algorithm ID. Used to
+ *                                  determine which hash function to use.
+ * \param[in] protected_parameters  Full, CBOR encoded, protected parameters.
+ * \param[in] payload_mode          See \ref t_cose_tbs_hash_mode_t.
+ * \param[in] payload               The CBOR encoded payload. It may or may
+ *                                  not have a wrapping bstr per
+ *                                  \c payload_mode.
+ * \param[in] buffer_for_hash       Pointer and length of buffer into which
+ *                                  the resulting hash is put.
+ * \param[out] hash                 Pointer and length of the
+ *                                  resulting hash.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
  * \retval T_COSE_ERR_SIG_STRUCT
- *         Most likely this is because the protected_headers passed in
- *         is larger than \c T_COSE_SIGN1_MAX_PROT_HEADER.
+ *         Most likely this is because the protected_parameters passed in
+ *         is larger than \c T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS.
  * \retval T_COSE_ERR_UNSUPPORTED_HASH
  *         If the hash algorithm is not known.
  * \retval T_COSE_ERR_HASH_GENERAL_FAIL
  *         In case of some general hash failure.
  *
  * The input to the public key signature algorithm in COSE is the hash
- * of a CBOR encoded structure containing the protected headers
+ * of a CBOR encoded structure containing the protected parameters
  * algorithm ID and a few other things. This formats that structure
  * and computes the hash of it. These are known as the to-be-signed or
  * "TBS" bytes. The exact specification is in
  * [RFC 8152 section 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).
  */
 enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
-                                  struct q_useful_buf_c       protected_headers,
+                                  struct q_useful_buf_c       protected_parameters,
                                   enum t_cose_tbs_hash_mode_t payload_mode,
                                   struct q_useful_buf_c       payload,
                                   struct q_useful_buf         buffer_for_hash,

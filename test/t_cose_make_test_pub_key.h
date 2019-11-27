@@ -11,6 +11,13 @@
 #include "t_cose_common.h"
 #include <stdint.h>
 
+/**
+ * \file t_cose_make_test_pub_key.h
+ *
+ * \brief This defines a simple interface to make keys for tests cases.
+ *
+ */
+
 
 /**
  * \brief make an ECDSA key pair for testing suited to algorim

@@ -8,8 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		0F8B2FEF2345A33A00A22349 /* t_cose_make_test_messages.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F8B2FE8233C3DD600A22349 /* t_cose_make_test_messages.c */; };
-		0F91057A2321878F00008572 /* t_cose_headers.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F9105792321878F00008572 /* t_cose_headers.c */; };
-		E71D9EC82330138C00A21F7F /* t_cose_headers.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F9105792321878F00008572 /* t_cose_headers.c */; };
+		0F91057A2321878F00008572 /* t_cose_parameters.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F9105792321878F00008572 /* t_cose_parameters.c */; };
+		E71D9EC82330138C00A21F7F /* t_cose_parameters.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F9105792321878F00008572 /* t_cose_parameters.c */; };
 		E71D9EC9233013AD00A21F7F /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
 		E721CB8F236274CB00C7FD56 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = E730E60723612D2B00175CE0 /* sha256.c */; };
 		E721CB902362750E00C7FD56 /* t_cose_make_test_messages.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F8B2FE8233C3DD600A22349 /* t_cose_make_test_messages.c */; };
@@ -24,7 +24,7 @@
 		E730E60C23612DAB00175CE0 /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
 		E730E60D23612DAB00175CE0 /* qcbor_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E9D226CBA1A0040613B /* qcbor_decode.c */; };
 		E730E61023612DAB00175CE0 /* ieee754.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E99226CBA1A0040613B /* ieee754.c */; };
-		E730E61123612DAB00175CE0 /* t_cose_headers.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F9105792321878F00008572 /* t_cose_headers.c */; };
+		E730E61123612DAB00175CE0 /* t_cose_parameters.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F9105792321878F00008572 /* t_cose_parameters.c */; };
 		E730E61223612DAB00175CE0 /* t_cose_make_test_messages.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F8B2FE8233C3DD600A22349 /* t_cose_make_test_messages.c */; };
 		E730E61323612DAB00175CE0 /* t_cose_util.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E89226CB9460040613B /* t_cose_util.c */; };
 		E730E61423612DAB00175CE0 /* qcbor_encode.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E9A226CBA1A0040613B /* qcbor_encode.c */; };
@@ -103,8 +103,8 @@
 /* Begin PBXFileReference section */
 		0F8B2FE8233C3DD600A22349 /* t_cose_make_test_messages.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_make_test_messages.c; sourceTree = "<group>"; };
 		0F8B2FE9233C3DD600A22349 /* t_cose_make_test_messages.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_make_test_messages.h; sourceTree = "<group>"; };
-		0F9105782321878F00008572 /* t_cose_headers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_headers.h; sourceTree = "<group>"; };
-		0F9105792321878F00008572 /* t_cose_headers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_headers.c; sourceTree = "<group>"; };
+		0F9105782321878F00008572 /* t_cose_parameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_parameters.h; sourceTree = "<group>"; };
+		0F9105792321878F00008572 /* t_cose_parameters.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_parameters.c; sourceTree = "<group>"; };
 		E71D9E8E231C930B00A21F7F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		E71D9ECA23341D8200A21F7F /* t_cose_standard_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_standard_constants.h; sourceTree = "<group>"; };
 		E721CB8823626D3200C7FD56 /* crypto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = crypto.h; path = "../../../TF-M/trusted-firmware-m/interface/include/psa/crypto.h"; sourceTree = "<group>"; };
@@ -254,8 +254,8 @@
 				E71D9ECA23341D8200A21F7F /* t_cose_standard_constants.h */,
 				E7E36E89226CB9460040613B /* t_cose_util.c */,
 				E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */,
-				0F9105782321878F00008572 /* t_cose_headers.h */,
-				0F9105792321878F00008572 /* t_cose_headers.c */,
+				0F9105782321878F00008572 /* t_cose_parameters.h */,
+				0F9105792321878F00008572 /* t_cose_parameters.c */,
 				E7E36E8C226CB9460040613B /* t_cose_util.h */,
 				E7E36E8D226CB9460040613B /* t_cose_crypto.h */,
 				E7E36E8E226CB9460040613B /* t_cose_sign1_sign.c */,
@@ -477,7 +477,7 @@
 				E730E60D23612DAB00175CE0 /* qcbor_decode.c in Sources */,
 				E730E62123612E3900175CE0 /* t_cose_test_crypto.c in Sources */,
 				E730E61023612DAB00175CE0 /* ieee754.c in Sources */,
-				E730E61123612DAB00175CE0 /* t_cose_headers.c in Sources */,
+				E730E61123612DAB00175CE0 /* t_cose_parameters.c in Sources */,
 				E730E61223612DAB00175CE0 /* t_cose_make_test_messages.c in Sources */,
 				E730E61323612DAB00175CE0 /* t_cose_util.c in Sources */,
 				E730E61423612DAB00175CE0 /* qcbor_encode.c in Sources */,
@@ -509,7 +509,7 @@
 				E721CB9A2362ABA400C7FD56 /* t_cose_make_openssl_test_key.c in Sources */,
 				E7E36EA5226CBB570040613B /* t_cose_openssl_crypto.c in Sources */,
 				E7E36E9E226CBA1A0040613B /* ieee754.c in Sources */,
-				0F91057A2321878F00008572 /* t_cose_headers.c in Sources */,
+				0F91057A2321878F00008572 /* t_cose_parameters.c in Sources */,
 				0F8B2FEF2345A33A00A22349 /* t_cose_make_test_messages.c in Sources */,
 				E7E36E90226CB9460040613B /* t_cose_util.c in Sources */,
 				E7E36E9F226CBA1A0040613B /* qcbor_encode.c in Sources */,
@@ -533,7 +533,7 @@
 				E7E36EB6226CF9CC0040613B /* qcbor_encode.c in Sources */,
 				E7F70AC82270DFD3007CE07F /* t_cose_psa_off_target_hashes.c in Sources */,
 				E7E36EB8226CF9CC0040613B /* t_cose_psa_crypto.c in Sources */,
-				E71D9EC82330138C00A21F7F /* t_cose_headers.c in Sources */,
+				E71D9EC82330138C00A21F7F /* t_cose_parameters.c in Sources */,
 				E7E36EB9226CF9CC0040613B /* UsefulBuf.c in Sources */,
 				E721CB9623628D2700C7FD56 /* t_cose_sign_verify_test.c in Sources */,
 				E721CB9323628B5F00C7FD56 /* t_cose_make_psa_test_key.c in Sources */,

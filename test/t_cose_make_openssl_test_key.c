@@ -70,8 +70,8 @@
  */
 /*
  * The key object returned by this is malloced and has to be freed by
- * by calling free_ecdsa_key_pair(). This
- * heap use is a part of OpenSSL and not t_cose which does not use the heap
+ * by calling free_ecdsa_key_pair(). This heap use is a part of
+ * OpenSSL and not t_cose which does not use the heap
  */
 enum t_cose_err_t make_ecdsa_key_pair(int32_t           cose_algorithm_id,
                                       struct t_cose_key *key_pair)

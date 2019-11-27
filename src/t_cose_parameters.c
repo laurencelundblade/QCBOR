@@ -1,5 +1,5 @@
 /*
- * t_cose_headers.c
+ * t_cose_parameters.c
  *
  * Copyright 2019, Laurence Lundblade
  *
@@ -9,7 +9,7 @@
  */
 
 
-#include "t_cose_headers.h"
+#include "t_cose_parameters.h"
 #include "t_cose_standard_constants.h"
 
 
@@ -75,21 +75,21 @@ Done:
 
 
 /**
- * \brief Add a new header to the end of the header list.
+ * \brief Add a new label to the end of the label list.
  *
- * \param[in] item             Data item to add to the header list.
- * \param[in,out] header_list  The list to add to.
+ * \param[in] item             Data item to add to the label list.
+ * \param[in,out] label_list   The list to add to.
  *
- * \retval T_COSE_SUCCESS               If added correctly.
- * \retval T_COSE_ERR_TOO_MANY_HEADERS  Header list is full.
- * \retval T_COSE_ERR_HEADER_CBOR       The item to add doesn't have a label
- *                                      type that is understood.
+ * \retval T_COSE_SUCCESS                  If added correctly.
+ * \retval T_COSE_ERR_TOO_MANY_PARAMETERS  Label list is full.
+ * \retval T_COSE_ERR_PARAMETER_CBOR       The item to add doesn't have a label
+ *                                         type that is understood
  *
- * The label / key from \c item is added to \c header_list.
+ * The label / key from \c item is added to \c label_list.
  */
 static inline enum t_cose_err_t
-add_header_label_to_list(const QCBORItem          *item,
-                         struct t_cose_label_list *header_list)
+add_label_to_list(const QCBORItem          *item,
+                  struct t_cose_label_list *label_list)
 {
     enum t_cose_err_t return_value;
     uint_fast8_t      n;
@@ -98,31 +98,31 @@ add_header_label_to_list(const QCBORItem          *item,
     return_value = T_COSE_SUCCESS;
 
     if(item->uLabelType == QCBOR_TYPE_INT64) {
-        /* Add an integer-labeled header to the end of the list */
-        for(n = 0; header_list->int_labels[n] != LABEL_LIST_TERMINATOR; n++);
-        if(n == T_COSE_HEADER_LIST_MAX) {
+        /* Add an integer-labeled parameter to the end of the list */
+        for(n = 0; label_list->int_labels[n] != LABEL_LIST_TERMINATOR; n++);
+        if(n == T_COSE_PARAMETER_LIST_MAX) {
             /* List is full -- error out */
-            return_value = T_COSE_ERR_TOO_MANY_HEADERS;
+            return_value = T_COSE_ERR_TOO_MANY_PARAMETERS;
             goto Done;
         }
-        header_list->int_labels[n] = item->label.int64;
+        label_list->int_labels[n] = item->label.int64;
 
     } else if(item->uLabelType == QCBOR_TYPE_TEXT_STRING) {
-        /* Add a string-labeled header to the end of the list */
-        for(n = 0; !q_useful_buf_c_is_null(header_list->tstr_labels[n]); n++);
-        if(n == T_COSE_HEADER_LIST_MAX) {
+        /* Add a string-labeled parameter to the end of the list */
+        for(n = 0; !q_useful_buf_c_is_null(label_list->tstr_labels[n]); n++);
+        if(n == T_COSE_PARAMETER_LIST_MAX) {
             /* List is full -- error out */
-            return_value = T_COSE_ERR_TOO_MANY_HEADERS;
+            return_value = T_COSE_ERR_TOO_MANY_PARAMETERS;
             goto Done;
         }
-        header_list->tstr_labels[n] = item->label.string;
+        label_list->tstr_labels[n] = item->label.string;
     } else {
-        /* error because header is neither integer or string */
+        /* error because label is neither integer or string */
         /* Should never occur because this is caught earlier, but
          * leave it to be safe and because inlining and optimization
          * should take out any unneeded code
          */
-        return_value = T_COSE_ERR_HEADER_CBOR;
+        return_value = T_COSE_ERR_PARAMETER_CBOR;
     }
 
 Done:
@@ -133,26 +133,28 @@ Done:
 
 
 /**
- * \brief Decode header containing the labels of headers considered critical.
+ * \brief Decode the parameter containing the labels of parameters considered
+ *        critical.
  *
  * \param[in,out]  decode_context          Decode context to read critical
- *                                         header list from.
- * \param[in]      crit_header_item        Data item of array holding critical
+ *                                         parameter list from.
+ * \param[in]      crit_parameter_item     Data item of array holding critical
  *                                         labels.
- * \param[out]     critical_labels         List of labels of critical headers.
+ * \param[out]     critical_labels         List of labels of critical
+ *                                         parameters.
  * \param[out]     return_next_nest_level  Place to return nesting level of
  *                                         next data item.
  *
- * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED Undecodable CBOR.
- * \retval T_COSE_ERR_TOO_MANY_HEADERS     More critical headers than this
- *                                         implementation can handle.
- * \retval T_COSE_ERR_HEADER_CBOR          Unexpected CBOR data type.
+ * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED  Undecodable CBOR.
+ * \retval T_COSE_ERR_TOO_MANY_PARAMETERS   More critical labels than this
+ *                                          implementation can handle.
+ * \retval T_COSE_ERR_PARAMETER_CBOR        Unexpected CBOR data type.
  */
 static inline enum t_cose_err_t
-decode_critical_headers(QCBORDecodeContext       *decode_context,
-                       const QCBORItem           *crit_header_item,
-                       struct t_cose_label_list  *critical_labels,
-                       uint_fast8_t              *return_next_nest_level)
+decode_critical_parameter(QCBORDecodeContext       *decode_context,
+                          const QCBORItem          *crit_parameter_item,
+                          struct t_cose_label_list *critical_labels,
+                          uint_fast8_t             *return_next_nest_level)
 {
     /* Stack use 64-bit: 56 + 40 = 96
      *           32-bit: 52 + 20 = 72
@@ -168,11 +170,11 @@ decode_critical_headers(QCBORDecodeContext       *decode_context,
     num_int_labels  = 0;
     num_tstr_labels = 0;
 
-    array_nest_level = crit_header_item->uNestingLevel;
-    next_nest_level  = crit_header_item->uNextNestLevel;
+    array_nest_level = crit_parameter_item->uNestingLevel;
+    next_nest_level  = crit_parameter_item->uNextNestLevel;
 
-    if(crit_header_item->uDataType != QCBOR_TYPE_ARRAY) {
-        return_value = T_COSE_ERR_CRIT_HEADER_PARAM;
+    if(crit_parameter_item->uDataType != QCBOR_TYPE_ARRAY) {
+        return_value = T_COSE_ERR_CRIT_PARAMETER;
         goto Done;
     }
 
@@ -184,27 +186,27 @@ decode_critical_headers(QCBORDecodeContext       *decode_context,
         }
 
         if(item.uDataType == QCBOR_TYPE_INT64) {
-            if(num_int_labels >= T_COSE_HEADER_LIST_MAX) {
-                return_value = T_COSE_ERR_CRIT_HEADER_PARAM;
+            if(num_int_labels >= T_COSE_PARAMETER_LIST_MAX) {
+                return_value = T_COSE_ERR_CRIT_PARAMETER;
                 goto Done;
             }
             critical_labels->int_labels[num_int_labels++] = item.val.int64;
         } else if(item.uDataType == QCBOR_TYPE_TEXT_STRING) {
-            if(num_tstr_labels >= T_COSE_HEADER_LIST_MAX) {
-                return_value = T_COSE_ERR_CRIT_HEADER_PARAM;
+            if(num_tstr_labels >= T_COSE_PARAMETER_LIST_MAX) {
+                return_value = T_COSE_ERR_CRIT_PARAMETER;
                 goto Done;
             }
             critical_labels->tstr_labels[num_tstr_labels++] = item.val.string;
         } else {
-            return_value = T_COSE_ERR_CRIT_HEADER_PARAM;
+            return_value = T_COSE_ERR_CRIT_PARAMETER;
             goto Done;
         }
         next_nest_level = item.uNextNestLevel;
     }
 
-    if(is_header_list_clear(critical_labels)) {
-        /* Per RFC 8152 critical headers can't be empty */
-        return_value = T_COSE_ERR_CRIT_HEADER_PARAM;
+    if(is_label_list_clear(critical_labels)) {
+        /* Per RFC 8152 crit parameter can't be empty */
+        return_value = T_COSE_ERR_CRIT_PARAMETER;
         goto Done;
     }
 
@@ -217,46 +219,46 @@ Done:
 
 
 /**
- * Public function. See t_cose_headers.h
+ * Public function. See t_cose_parameters.h
  */
 enum t_cose_err_t
-check_critical_header_labels(const struct t_cose_label_list *critical_labels,
-                             const struct t_cose_label_list *unknown_labels)
+check_critical_labels(const struct t_cose_label_list *critical_labels,
+                      const struct t_cose_label_list *unknown_labels)
 {
     enum t_cose_err_t return_value;
     uint_fast8_t      num_unknown;
     uint_fast8_t      num_critical;
 
-    /* Assume success until an unhandled critical headers is found */
+    /* Assume success until an unhandled critical label is found */
     return_value = T_COSE_SUCCESS;
 
-    /* Iterate over unknown integer headers */
+    /* Iterate over unknown integer parameters */
     for(num_unknown = 0; unknown_labels->int_labels[num_unknown]; num_unknown++) {
-        /* Iterate over critical int headers looking for the unknown header */
+        /* Iterate over critical int labels looking for the unknown label */
         for(num_critical = 0;
             critical_labels->int_labels[num_critical];
             num_critical++) {
             if(critical_labels->int_labels[num_critical] == unknown_labels->int_labels[num_unknown]) {
-                /* Found a critical header that is unknown to us */
-                return_value = T_COSE_ERR_UNKNOWN_CRITICAL_HEADER;
+                /* Found a critical label that is unknown to us */
+                return_value = T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
                 goto Done;
             }
         }
-        /* Exit from loop here means all no unknown header was critical */
+        /* Exit from loop here means all no unknown label was critical */
     }
 
-    /* Iterate over unknown string headers */
+    /* Iterate over unknown string labels */
     for(num_unknown = 0; !q_useful_buf_c_is_null(unknown_labels->tstr_labels[num_unknown]); num_unknown++) {
-        /* iterate over critical string headers looking for the unknown header*/
+        /* iterate over critical string labels looking for the unknown param */
         for(num_critical = 0; !q_useful_buf_c_is_null(critical_labels->tstr_labels[num_critical]); num_critical++) {
             if(!q_useful_buf_compare(critical_labels->tstr_labels[num_critical],
                                      unknown_labels->tstr_labels[num_unknown])){
-                /* Found a critical header that is unknown to us */
-                return_value = T_COSE_ERR_UNKNOWN_CRITICAL_HEADER;
+                /* Found a critical label that is unknown to us */
+                return_value = T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
                 goto Done;
             }
         }
-        /* Exit from loop here means all no unknown header was critical */
+        /* Exit from loop here means all no unknown label was critical */
     }
 
 Done:
@@ -267,35 +269,35 @@ Done:
 
 
 /**
- * \brief Add unknown header to unknown header list and fully consume it
+ * \brief Add unknown parameter to unknown labels list and fully consume it
  *
  * \param[in] decode_context       CBOR decode context to read from.
- * \param[in] unknown_header       The data item for the unknown header.
- * \param[in,out] unknown_headers  The list of unknown headers to which to add
- *                                 this new unknown header to.
+ * \param[in] unknown_parameter    The data item for the unknown parameter.
+ * \param[in,out] unknown_labels   The list of unknown labels to which to add
+ *                                 this new unknown label to.
  * \param[out] next_nest_level     The nest level of the next item that will be
  *                                 fetched. Helps to know if at end of list.
  *
  * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED  The CBOR is not well-formed.
- * \retval T_COSE_ERR_TOO_MANY_HEADERS      The unknown header list is full.
+ * \retval T_COSE_ERR_TOO_MANY_PARAMETERS   The unknown labels list is full.
  * \retval T_COSE_ERR_CBOR_STRUCTURE        The CBOR structure not as expected.
  */
 static enum t_cose_err_t
-process_unknown_header(QCBORDecodeContext        *decode_context,
-                       const QCBORItem           *unknown_header,
-                       struct t_cose_label_list *unknown_headers,
-                       uint_fast8_t              *next_nest_level)
+process_unknown_parameter(QCBORDecodeContext        *decode_context,
+                          const QCBORItem           *unknown_parameter,
+                          struct t_cose_label_list *unknown_labels,
+                          uint_fast8_t              *next_nest_level)
 {
     enum t_cose_err_t return_value;
 
-    return_value = add_header_label_to_list(unknown_header, unknown_headers);
+    return_value = add_label_to_list(unknown_parameter, unknown_labels);
     if(return_value) {
         goto Done;
     }
 
-    /* The full unknown header must be consumed. It could be complex
-     * deeply-nested CBOR */
-    if(consume_item(decode_context, unknown_header, next_nest_level)) {
+    /* The full unknown parameter must be consumed. It could be
+     complex deeply-nested CBOR */
+    if(consume_item(decode_context, unknown_parameter, next_nest_level)) {
         return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
     }
 
@@ -307,66 +309,68 @@ Done:
 
 
 /**
- * \brief Clear a struct t_cose_headers to empty
+ * \brief Clear a struct t_cose_parameters to empty
  *
- * \param[in,out] headers  Header list to clear.
+ * \param[in,out] parameters   Parameter list to clear.
  */
-static inline void clear_cose_headers(struct t_cose_headers *headers)
+static inline void clear_cose_parameters(struct t_cose_parameters *parameters)
 {
 #if COSE_ALGORITHM_RESERVED != 0
-#error Invalid algorithm designator not 0. Header list initialization fails.
+#error Invalid algorithm designator not 0. Parameter list initialization fails.
 #endif
 
 #if T_COSE_UNSET_ALGORITHM_ID != COSE_ALGORITHM_RESERVED
 #error Constant for unset algorithm ID not aligned with COSE_ALGORITHM_RESERVED
 #endif
 
-    /* This clears all the useful bufs to NULL_Q_USEFUL_BUF_C and the
-     * cose_algorithm_id to COSE_ALGORITHM_RESERVED
+    /* This clears all the useful_bufs to NULL_Q_USEFUL_BUF_C
+     * and the cose_algorithm_id to COSE_ALGORITHM_RESERVED
      */
-    memset(headers, 0, sizeof(struct t_cose_headers));
+    memset(parameters, 0, sizeof(struct t_cose_parameters));
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     /* The only non-zero clear-state value. (0 is plain text in CoAP
      * content format) */
-    headers->content_type_uint =  T_COSE_EMPTY_UINT_CONTENT_TYPE;
+    parameters->content_type_uint =  T_COSE_EMPTY_UINT_CONTENT_TYPE;
 #endif
 }
 
 
 /**
- * \brief Parse some COSE headers.
+ * \brief Parse some COSE header parameters.
  *
- * \param[in] decode_context     The QCBOR decode context to read from.
- * \param[out] returned_headers  The parsed headers being returned.
+ * \param[in] decode_context        The QCBOR decode context to read from.
+ * \param[out] returned_parameters  The parsed parameters being returned.
  *
- *
- * \retval T_COSE_SUCCESS              The headers were parsed correctly.
- * \retval T_COSE_ERR_HEADER_CBOR      CBOR is parsable, but not the right
- *                                     structure (e.g. array instead of a map)
- * \retval T_COSE_ERR_TOO_MANY_HEADERS More than \ref T_COSE_HEADER_LIST_MAX
- *                                     headers.
+ * \retval T_COSE_SUCCESS                     The parameters were decoded
+ *                                            correctly.
+ * \retval T_COSE_ERR_PARAMETER_CBOR          CBOR is parsable, but not the
+ *                                            right structure (e.g. array
+ *                                            instead of a map)
+ * \retval T_COSE_ERR_TOO_MANY_PARAMETERS     More than
+ *                                            \ref T_COSE_PARAMETER_LIST_MAX
+ *                                            parameters.
  * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED    The CBOR is not parsable.
  * \retval T_COSE_ERR_NON_INTEGER_ALG_ID      The algorithm ID is not an
  *                                            integer. This implementation
  *                                            doesn't support string algorithm
  *                                            IDs.
- * \retval T_COSE_ERR_BAD_CONTENT_TYPE        Error in content type header.
- * \retval T_COSE_ERR_UNKNOWN_CRITICAL_HEADER A header marked critical is
- *                                            present and not understood.
+ * \retval T_COSE_ERR_BAD_CONTENT_TYPE        Error in content type parameter.
+ * \retval T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER   A label marked critical is
+ *                                                 present and not understood.
  *
- * No headers are mandatory. Which headers were present or not is
- * indicated in \c returned_headers.  It is OK for there to be no
- * headers at all.
+ * No parameters are mandatory. Which parameters were present or not
+ * is indicated in \c returned_parameters.  It is OK for there to be
+ * no parameters at all.
  *
  * The first item to be read from the decode_context must be the map
- * data item that contains the headers.
+ * data item that contains the parameters.
  */
 static enum t_cose_err_t
-parse_cose_headers(QCBORDecodeContext        *decode_context,
-                   struct t_cose_headers     *returned_headers,
-                   struct t_cose_label_list  *critical_labels,
-                   struct t_cose_label_list  *unknown_labels)
+parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
+                             struct t_cose_parameters  *returned_parameters,
+                             struct t_cose_label_list  *critical_labels,
+                             struct t_cose_label_list  *unknown_labels)
 {
     /* Local stack use 64-bit: 56 + 24 + 488 = 568
      * Local stack use 32-bit: 52 + 12 + 352 = 414
@@ -379,10 +383,10 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
     uint_fast8_t       next_nest_level;
     QCBORError         qcbor_result;
 
-    clear_cose_headers(returned_headers);
+    clear_cose_parameters(returned_parameters);
 
     if(critical_labels != NULL) {
-        clear_header_list(critical_labels);
+        clear_label_list(critical_labels);
     }
 
     /* Get the data item that is the map that is being searched */
@@ -396,7 +400,7 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
         goto Done;
     }
     if(item.uDataType != QCBOR_TYPE_MAP) {
-        return_value = T_COSE_ERR_HEADER_CBOR;
+        return_value = T_COSE_ERR_PARAMETER_CBOR;
         goto Done;
     }
 
@@ -422,7 +426,7 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
 
         if(item.uLabelType != QCBOR_TYPE_INT64) {
             /* Non integer label. We don't handle those. */
-            return_value = process_unknown_header(decode_context,
+            return_value = process_unknown_parameter(decode_context,
                                                   &item,
                                                   unknown_labels,
                                                   &next_nest_level);
@@ -436,7 +440,7 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
 
             case COSE_HEADER_PARAM_ALG:
                 if(critical_labels == NULL) {
-                    return_value = T_COSE_ERR_HEADER_NOT_PROTECTED;
+                    return_value = T_COSE_ERR_PARAMETER_NOT_PROTECTED;
                     goto Done;
                 }
                 if(item.uDataType != QCBOR_TYPE_INT64) {
@@ -447,69 +451,68 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
                     return_value = T_COSE_ERR_NON_INTEGER_ALG_ID;
                     goto Done;
                 }
-                if(returned_headers->cose_algorithm_id != COSE_ALGORITHM_RESERVED) {
-                    return_value = T_COSE_ERR_DUPLICATE_HEADER;
+                if(returned_parameters->cose_algorithm_id != COSE_ALGORITHM_RESERVED) {
+                    return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
                     goto Done;
                 }
-                returned_headers->cose_algorithm_id = (int32_t)item.val.int64;
+                returned_parameters->cose_algorithm_id = (int32_t)item.val.int64;
                 break;
 
             case COSE_HEADER_PARAM_KID:
                 if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-                    return_value = T_COSE_ERR_HEADER_CBOR;
+                    return_value = T_COSE_ERR_PARAMETER_CBOR;
                     goto Done;
                 }
-                if(!q_useful_buf_c_is_null_or_empty(returned_headers->kid)) {
-                    return_value = T_COSE_ERR_DUPLICATE_HEADER;
+                if(!q_useful_buf_c_is_null_or_empty(returned_parameters->kid)) {
+                    return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
                     goto Done;
                 }
-                returned_headers->kid = item.val.string;
+                returned_parameters->kid = item.val.string;
                 break;
 
             case COSE_HEADER_PARAM_IV:
                 if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-                    return_value = T_COSE_ERR_HEADER_CBOR;
+                    return_value = T_COSE_ERR_PARAMETER_CBOR;
                     goto Done;
                 }
-                if(!q_useful_buf_c_is_null_or_empty(returned_headers->iv)) {
-                    return_value = T_COSE_ERR_DUPLICATE_HEADER;
+                if(!q_useful_buf_c_is_null_or_empty(returned_parameters->iv)) {
+                    return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
                     goto Done;
                 }
-                returned_headers->iv = item.val.string;
+                returned_parameters->iv = item.val.string;
                 break;
 
             case COSE_HEADER_PARAM_PARTIAL_IV:
                 if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-                    return_value = T_COSE_ERR_HEADER_CBOR;
+                    return_value = T_COSE_ERR_PARAMETER_CBOR;
                     goto Done;
                 }
-                if(!q_useful_buf_c_is_null_or_empty(returned_headers->partial_iv)) {
-                    return_value = T_COSE_ERR_DUPLICATE_HEADER;
+                if(!q_useful_buf_c_is_null_or_empty(returned_parameters->partial_iv)) {
+                    return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
                     goto Done;
                 }
-                returned_headers->partial_iv = item.val.string;
+                returned_parameters->partial_iv = item.val.string;
                 break;
 
             case COSE_HEADER_PARAM_CRIT:
                 if(critical_labels == NULL) {
-                    /* critical header labels occuring in non-protected
-                     * headers */
-                    return_value = T_COSE_ERR_HEADER_NOT_PROTECTED;
+                    /* crit parameter occuring in non-protected bucket */
+                    return_value = T_COSE_ERR_PARAMETER_NOT_PROTECTED;
                     goto Done;
                 }
-                if(!is_header_list_clear(critical_labels)) {
+                if(!is_label_list_clear(critical_labels)) {
                     /* Duplicate detection must be here because it is not
-                     * done in check_and_copy_headers()
+                     * done in check_and_copy_parameters()
                      */
-                    return_value = T_COSE_ERR_DUPLICATE_HEADER;
+                    return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
                     goto Done;
                 }
-                /* parse_critical_headers() consumes all the items in
-                 * the critical headers array */
-                return_value = decode_critical_headers(decode_context,
-                                                       &item,
-                                                       critical_labels,
-                                                       &next_nest_level);
+                /* decode_critical_parameter() consumes all the items in the
+                 * crit parameter array */
+                return_value = decode_critical_parameter(decode_context,
+                                                        &item,
+                                                         critical_labels,
+                                                        &next_nest_level);
                 if(return_value) {
                     goto Done;
                 }
@@ -518,22 +521,21 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
             case COSE_HEADER_PARAM_CONTENT_TYPE:
                 if(item.uDataType == QCBOR_TYPE_TEXT_STRING) {
-                    if(!q_useful_buf_c_is_null_or_empty(returned_headers->content_type_tstr)) {
-                        return_value = T_COSE_ERR_DUPLICATE_HEADER;
+                    if(!q_useful_buf_c_is_null_or_empty(returned_parameters->content_type_tstr)) {
+                        return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
                         goto Done;
                     }
-                    returned_headers->content_type_tstr = item.val.string;
+                    returned_parameters->content_type_tstr = item.val.string;
                 } else if(item.uDataType == QCBOR_TYPE_INT64) {
                     if(item.val.int64 < 0 || item.val.int64 > UINT16_MAX) {
                         return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
                         goto Done;
                     }
-                    if(returned_headers->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
-                        return_value = T_COSE_ERR_DUPLICATE_HEADER;
+                    if(returned_parameters->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
+                        return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
                         goto Done;
                     }
-                    returned_headers->content_type_uint =
-                        (uint32_t)item.val.int64;
+                    returned_parameters->content_type_uint = (uint32_t)item.val.int64;
                 } else {
                     return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
                     goto Done;
@@ -542,14 +544,14 @@ parse_cose_headers(QCBORDecodeContext        *decode_context,
 #endif
 
             default:
-                /* The header is not recognized. It has to be added to
-                 * the the list of unknown headers so it can be
-                 * checked against the list of critical headers
+                /* The parameter is not recognized. Its label has to
+                 * be added to the the list of unknown labels so it
+                 * can be checked against the list of critical labels.
                  */
-                return_value = process_unknown_header(decode_context,
-                                                      &item,
-                                                      unknown_labels,
-                                                      &next_nest_level);
+                return_value = process_unknown_parameter(decode_context,
+                                                        &item,
+                                                         unknown_labels,
+                                                        &next_nest_level);
                 if(return_value) {
                     goto Done;
                 }
@@ -564,14 +566,14 @@ Done:
 }
 
 
-/*
- * Public function. See t_cose_headers.h
+/**
+ * Public function. See t_cose_parameters.h
  */
 enum t_cose_err_t
-parse_protected_headers(const struct q_useful_buf_c protected_headers,
-                        struct t_cose_headers      *parsed_protected_headers,
-                        struct t_cose_label_list   *critical_headers,
-                        struct t_cose_label_list   *unknown)
+parse_protected_header_parameters(const struct q_useful_buf_c encoded_protected_parameters,
+                                  struct t_cose_parameters   *returned_params,
+                                  struct t_cose_label_list   *critical_labels,
+                                  struct t_cose_label_list   *unknown)
 {
     /* Local stack use 64-bit: 144 + 8 = 152
      * Local stack use 32-bit: 108 + 4 = 112
@@ -581,12 +583,12 @@ parse_protected_headers(const struct q_useful_buf_c protected_headers,
     QCBORDecodeContext decode_context;
     enum t_cose_err_t  return_value;
 
-    QCBORDecode_Init(&decode_context, protected_headers, 0);
+    QCBORDecode_Init(&decode_context, encoded_protected_parameters, 0);
 
-    return_value = parse_cose_headers(&decode_context,
-                                      parsed_protected_headers,
-                                      critical_headers,
-                                      unknown);
+    return_value = parse_cose_header_parameters(&decode_context,
+                                                 returned_params,
+                                                 critical_labels,
+                                                 unknown);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -605,91 +607,94 @@ Done:
  * Static inline implementation. See documentation above.
  */
 enum t_cose_err_t
-parse_unprotected_headers(QCBORDecodeContext *decode_context,
-                          struct t_cose_headers *returned_headers,
-                          struct t_cose_label_list *unknown)
+parse_unprotected_header_parameters(QCBORDecodeContext *decode_context,
+                                    struct t_cose_parameters *returned_params,
+                                    struct t_cose_label_list *unknown_labels)
 {
-    return parse_cose_headers(decode_context, returned_headers, NULL, unknown);
+    return parse_cose_header_parameters(decode_context,
+                                        returned_params,
+                                        NULL,
+                                        unknown_labels);
 }
 
 
-/*
- * Public function. See t_cose_headers.h
+/**
+ * Public function. See t_cose_parameters.h
  */
 enum t_cose_err_t
-check_and_copy_headers(const struct t_cose_headers  *protected,
-                       const struct t_cose_headers  *unprotected,
-                       struct t_cose_headers        *returned_headers)
+check_and_copy_parameters(const struct t_cose_parameters  *protected,
+                          const struct t_cose_parameters  *unprotected,
+                          struct t_cose_parameters        *returned_params)
 {
     enum t_cose_err_t return_value;
 
-    /* -- Copy all the unprotected headers -- */
-    if(returned_headers) {
-        *returned_headers = *unprotected;
+    /* -- Copy all the unprotected parameters -- */
+    if(returned_params) {
+        *returned_params = *unprotected;
     }
 
-    /* Go one at at time and check the protected headers. If the
-     * header is not NULL and there is the same un protected header
-     * error out. If it is not NULL and there is no unprotected
-     * header, copy it */
+    /* Go one at at time and check the protected parameters. If the
+     * parameter is not NULL and there is the same un protected
+     * parameter error out. If it is not NULL and there is no
+     * unprotected parameter, copy it */
     if(protected->cose_algorithm_id != COSE_ALGORITHM_RESERVED) {
         if(unprotected->cose_algorithm_id != COSE_ALGORITHM_RESERVED) {
-            return_value = T_COSE_ERR_DUPLICATE_HEADER;
+            return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
             goto Done;
         }
-        if(returned_headers) {
-            returned_headers->cose_algorithm_id = protected->cose_algorithm_id;
+        if(returned_params) {
+            returned_params->cose_algorithm_id = protected->cose_algorithm_id;
         }
     }
 
     if(!q_useful_buf_c_is_null_or_empty(protected->kid)) {
         if(!q_useful_buf_c_is_null_or_empty(unprotected->kid)) {
-            return_value = T_COSE_ERR_DUPLICATE_HEADER;
+            return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
             goto Done;
         }
-        if(returned_headers) {
-            returned_headers->kid = protected->kid;
+        if(returned_params) {
+            returned_params->kid = protected->kid;
         }
     }
 
     if(!q_useful_buf_c_is_null_or_empty(protected->iv)) {
         if( !q_useful_buf_c_is_null_or_empty(unprotected->iv)) {
-            return_value = T_COSE_ERR_DUPLICATE_HEADER;
+            return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
             goto Done;
         }
-        if(returned_headers) {
-            returned_headers->iv = protected->iv;
+        if(returned_params) {
+            returned_params->iv = protected->iv;
         }
     }
 
     if(!q_useful_buf_c_is_null_or_empty(protected->partial_iv)) {
         if( !q_useful_buf_c_is_null_or_empty(unprotected->partial_iv)) {
-            return_value = T_COSE_ERR_DUPLICATE_HEADER;
+            return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
             goto Done;
         }
-        if(returned_headers) {
-            returned_headers->partial_iv = protected->partial_iv;
+        if(returned_params) {
+            returned_params->partial_iv = protected->partial_iv;
         }
     }
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     if(!q_useful_buf_c_is_null_or_empty(protected->content_type_tstr)) {
         if( !q_useful_buf_c_is_null_or_empty(unprotected->content_type_tstr)) {
-            return_value = T_COSE_ERR_DUPLICATE_HEADER;
+            return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
             goto Done;
         }
-        if(returned_headers) {
-            returned_headers->content_type_tstr = protected->content_type_tstr;
+        if(returned_params) {
+            returned_params->content_type_tstr = protected->content_type_tstr;
         }
     }
 
     if(protected->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
         if(unprotected->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
-            return_value = T_COSE_ERR_DUPLICATE_HEADER;
+            return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
             goto Done;
         }
-        if(returned_headers) {
-            returned_headers->content_type_uint = protected->content_type_uint;
+        if(returned_params) {
+            returned_params->content_type_uint = protected->content_type_uint;
         }
     }
 #endif

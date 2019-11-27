@@ -43,7 +43,7 @@ int main(int argc, const char * argv[])
 
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair,  NULL_Q_USEFUL_BUF_C);
 
-    return_value = t_cose_sign1_encode_headers(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + return_value;
     }

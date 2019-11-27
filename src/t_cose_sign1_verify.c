@@ -14,7 +14,7 @@
 #include "t_cose_crypto.h"
 #include "q_useful_buf.h"
 #include "t_cose_util.h"
-#include "t_cose_headers.h"
+#include "t_cose_parameters.h"
 
 
 /**
@@ -70,7 +70,7 @@ enum t_cose_err_t
 t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
                     struct q_useful_buf_c           cose_sign1,
                     struct q_useful_buf_c          *payload,
-                    struct t_cose_headers          *headers)
+                    struct t_cose_parameters       *parameters)
 {
     /* Stack use for 32-bit CPUs:
      *   268 for local except hash output
@@ -81,15 +81,15 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
      */
     QCBORDecodeContext            decode_context;
     QCBORItem                     item;
-    struct q_useful_buf_c         protected_headers;
+    struct q_useful_buf_c         protected_parameters;
     enum t_cose_err_t             return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(   buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c         tbs_hash;
     struct q_useful_buf_c         signature;
-    struct t_cose_headers         unprotected_headers;
-    struct t_cose_headers         parsed_protected_headers;
-    struct t_cose_label_list      critical_header_labels;
-    struct t_cose_label_list      unknown_header_labels;
+    struct t_cose_parameters      unprotected_parameters;
+    struct t_cose_parameters      parsed_protected_parameters;
+    struct t_cose_label_list      critical_labels;
+    struct t_cose_label_list      unknown_labels;
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     struct q_useful_buf_c         short_circuit_kid;
 #endif
@@ -114,52 +114,52 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
         goto Done;
     }
 
-    /* -- Clear list where uknown headers are accumulated -- */
-    clear_header_list(&unknown_header_labels);
+    /* -- Clear list where uknown labels are accumulated -- */
+    clear_label_list(&unknown_labels);
 
 
-    /* --  Get the protected headers -- */
+    /* --  Get the protected header parameters -- */
     (void)QCBORDecode_GetNext(&decode_context, &item);
     if(item.uDataType != QCBOR_TYPE_BYTE_STRING) {
         return_value = T_COSE_ERR_SIGN1_FORMAT;
         goto Done;
     }
 
-    protected_headers = item.val.string;
+    protected_parameters = item.val.string;
 
-    return_value = parse_protected_headers(protected_headers,
-                                           &parsed_protected_headers,
-                                           &critical_header_labels,
-                                           &unknown_header_labels);
+    return_value = parse_protected_header_parameters(protected_parameters,
+                                                    &parsed_protected_parameters,
+                                                    &critical_labels,
+                                                    &unknown_labels);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
 
-    /* --  Get the unprotected headers -- */
-    return_value = parse_unprotected_headers(&decode_context,
-                                             &unprotected_headers,
-                                             &unknown_header_labels);
+    /* --  Get the unprotected parameters -- */
+    return_value = parse_unprotected_header_parameters(&decode_context,
+                                                       &unprotected_parameters,
+                                                       &unknown_labels);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    if((me->option_flags & T_COSE_OPT_REQUIRE_KID) && q_useful_buf_c_is_null(unprotected_headers.kid)) {
+    if((me->option_flags & T_COSE_OPT_REQUIRE_KID) &&
+       q_useful_buf_c_is_null(unprotected_parameters.kid)) {
         return_value = T_COSE_ERR_NO_KID;
         goto Done;
     }
 
 
-    /* -- Check critical headers -- */
-    return_value = check_critical_header_labels(&unknown_header_labels,
-                                                &critical_header_labels);
+    /* -- Check critical parameter labels -- */
+    return_value = check_critical_labels(&unknown_labels, &critical_labels);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
-    /* -- Check for duplicate headers and copy to returned headers -- */
-    return_value = check_and_copy_headers(&parsed_protected_headers,
-                                          &unprotected_headers,
-                                          headers);
+    /* -- Check for duplicate parameters and copy to returned parameters -- */
+    return_value = check_and_copy_parameters(&parsed_protected_parameters,
+                                             &unprotected_parameters,
+                                              parameters);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -185,8 +185,8 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
 
     /* -- Finish up the CBOR decode -- */
     /* This check make sure the array only had the expected four
-     items. Works for definite and indefinte length arrays. Also
-     make sure there were no extra bytes. */
+     * items. Works for definite and indefinte length arrays. Also
+     * make sure there were no extra bytes. */
     if(QCBORDecode_Finish(&decode_context) != QCBOR_SUCCESS) {
         return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
         goto Done;
@@ -194,15 +194,15 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
 
 
     /* -- Skip signature verification if such is requested --*/
-    if(me->option_flags & T_COSE_OPT_PARSE_ONLY) {
+    if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
         return_value = T_COSE_SUCCESS;
         goto Done;
     }
 
 
     /* -- Compute the TBS bytes -- */
-    return_value = create_tbs_hash(parsed_protected_headers.cose_algorithm_id,
-                                   protected_headers,
+    return_value = create_tbs_hash(parsed_protected_parameters.cose_algorithm_id,
+                                   protected_parameters,
                                    T_COSE_TBS_BARE_PAYLOAD,
                                    *payload,
                                    buffer_for_tbs_hash,
@@ -215,7 +215,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     /* -- Check for short-circuit signature and verify if it exists -- */
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
     short_circuit_kid = get_short_circuit_kid();
-    if(!q_useful_buf_compare(unprotected_headers.kid, short_circuit_kid)) {
+    if(!q_useful_buf_compare(unprotected_parameters.kid, short_circuit_kid)) {
         if(!(me->option_flags & T_COSE_OPT_ALLOW_SHORT_CIRCUIT)) {
             return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG;
             goto Done;
@@ -228,12 +228,11 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
 
 
     /* -- Verify the signature (if it wasn't short-circuit) -- */
-    return_value =
-       t_cose_crypto_pub_key_verify(parsed_protected_headers.cose_algorithm_id,
-                                    me->verification_key,
-                                    unprotected_headers.kid,
-                                    tbs_hash,
-                                    signature);
+    return_value = t_cose_crypto_pub_key_verify(parsed_protected_parameters.cose_algorithm_id,
+                                                me->verification_key,
+                                                unprotected_parameters.kid,
+                                                tbs_hash,
+                                                signature);
 
 Done:
     return return_value;

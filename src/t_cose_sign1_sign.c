@@ -20,9 +20,9 @@
  *
  * \brief This implements t_cose signing
  *
- * The stack usage to sign is dependent on the signing algorithm and key size
- * and type of hash implementation. t_cose_sign1_encode_signature() is the main
- * user of stack. It uses 384 bytes for \ref COSE_ALGORITHM_ES256 and 778 bytes for
+ * Stack usage to sign is dependent on the signing alg and key size
+ * and type of hash implementation. t_cose_sign1_finish() is the main
+ * user of stack It is 384 for \ref COSE_ALGORITHM_ES256 and 778 for
  * \ref COSE_ALGORITHM_ES512.
  */
 
@@ -118,49 +118,52 @@ Done:
 
 
 /**
- * \brief  Makes the protected headers for COSE.
+ * \brief  Makes the protected header parameters for COSE.
  *
- * \param[in] cose_algorithm_id  The COSE algorithm ID to put in the headers.
+ * \param[in] cose_algorithm_id      The COSE algorithm ID to put in the
+ *                                   header parameters.
+ * \param[in] buffer_for_parameters  Pointer and length of buffer into which
+ *                                   the resulting encoded protected
+ *                                   parameters is put. See return value.
  *
- * \param[in] buffer_for_header  Pointer and length into which
- *                               the resulting encoded protected
- *                               headers is put.
+ * \return   The pointer and length of the encoded protected
+ *           parameters is returned, or \c NULL_Q_USEFUL_BUF_C if this fails.
+ *           This will have the same pointer as \c buffer_for_parameters,
+ *           but the pointer is conts and the length is that of the valid
+ *           data, not of the size of the buffer.
  *
- * \return The pointer and length of the protected headers is
- * returned, or \c NULL_Q_USEFUL_BUF_C if this fails.
- *
- * The protected headers are returned in fully encoded CBOR format as
- * they are added to the \c COSE_Sign1 as a binary string. This is
- * different from the unprotected headers which are not handled this
+ * The protected parameters are returned in fully encoded CBOR format as
+ * they are added to the \c COSE_Sign1 message as a binary string. This is
+ * different from the unprotected parameters which are not handled this
  * way.
  *
- * This returns \c NULL_Q_USEFUL_BUF_C if buffer_for_header was too
- * small. See also definition of \c T_COSE_SIGN1_MAX_PROT_HEADER
+ * This returns \c NULL_Q_USEFUL_BUF_C if buffer_for_parameters was too
+ * small. See also definition of \c T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS
  */
 static inline struct q_useful_buf_c
-make_protected_header(int32_t             cose_algorithm_id,
-                      struct q_useful_buf buffer_for_header)
+encode_protected_parameters(int32_t             cose_algorithm_id,
+                            struct q_useful_buf buffer_for_parameters)
 {
     /* approximate stack use on 32-bit machine:
      *   CBOR encode context 148
      *   local use: 20
      *   total: 168
      */
-    struct q_useful_buf_c protected_headers;
+    struct q_useful_buf_c protected_parameters;
     QCBORError            qcbor_result;
     QCBOREncodeContext    cbor_encode_ctx;
     struct q_useful_buf_c return_value;
 
-    QCBOREncode_Init(&cbor_encode_ctx, buffer_for_header);
+    QCBOREncode_Init(&cbor_encode_ctx, buffer_for_parameters);
     QCBOREncode_OpenMap(&cbor_encode_ctx);
     QCBOREncode_AddInt64ToMapN(&cbor_encode_ctx,
                                COSE_HEADER_PARAM_ALG,
                                cose_algorithm_id);
     QCBOREncode_CloseMap(&cbor_encode_ctx);
-    qcbor_result = QCBOREncode_Finish(&cbor_encode_ctx, &protected_headers);
+    qcbor_result = QCBOREncode_Finish(&cbor_encode_ctx, &protected_parameters);
 
     if(qcbor_result == QCBOR_SUCCESS) {
-        return_value = protected_headers;
+        return_value = protected_parameters;
     } else {
         return_value = NULL_Q_USEFUL_BUF_C;
     }
@@ -170,7 +173,7 @@ make_protected_header(int32_t             cose_algorithm_id,
 
 
 /**
- * \brief Add the unprotected headers to a CBOR encoding context
+ * \brief Add the unprotected parameters to a CBOR encoding context
  *
  * \param[in] me               The t_cose signing context.
  * \param[in] kid              The key ID.
@@ -179,13 +182,12 @@ make_protected_header(int32_t             cose_algorithm_id,
  * No error is returned. If an error occurred it will be returned when
  * \c QCBOR_Finish() is called on \c cbor_encode_ctx.
  *
- * The unprotected headers added by this are the \c kid and the
- * content type.
+ * The unprotected parameters added by this are the kid and content type.
  */
 static inline enum t_cose_err_t
-add_unprotected_headers(const struct t_cose_sign1_sign_ctx *me,
-                        const struct q_useful_buf_c         kid,
-                        QCBOREncodeContext                 *cbor_encode_ctx)
+add_unprotected_parameters(const struct t_cose_sign1_sign_ctx *me,
+                           const struct q_useful_buf_c         kid,
+                           QCBOREncodeContext                 *cbor_encode_ctx)
 {
     QCBOREncode_OpenMap(cbor_encode_ctx);
 
@@ -199,7 +201,7 @@ add_unprotected_headers(const struct t_cose_sign1_sign_ctx *me,
     if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE &&
        me->content_type_tstr != NULL) {
         /* Both the string and int content types are not allowed */
-        return T_COSE_ERR_DUPLICATE_HEADER;
+        return T_COSE_ERR_DUPLICATE_PARAMETER;
     }
 
 
@@ -228,8 +230,8 @@ add_unprotected_headers(const struct t_cose_sign1_sign_ctx *me,
  * Public function. See t_cose_sign1_sign.h
  */
 enum t_cose_err_t
-t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *me,
-                            QCBOREncodeContext           *cbor_encode_ctx)
+t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *me,
+                               QCBOREncodeContext           *cbor_encode_ctx)
 {
     /* approximate stack use on 32-bit machine:
      *    48 bytes local use
@@ -237,7 +239,7 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *me,
      *   216 total
      */
     enum t_cose_err_t      return_value;
-    struct q_useful_buf    buffer_for_protected_header;
+    struct q_useful_buf    buffer_for_protected_parameters;
     struct q_useful_buf_c  kid;
     int32_t                hash_alg_id;
 
@@ -258,22 +260,21 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *me,
      * a cose single signed message */
     QCBOREncode_OpenArray(cbor_encode_ctx);
 
-    /* The protected headers, which are added as a wrapped bstr  */
-    buffer_for_protected_header =
-        Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->protected_headers_buffer);
-    me->protected_headers = make_protected_header(me->cose_algorithm_id, buffer_for_protected_header);
-    if(q_useful_buf_c_is_null(me->protected_headers)) {
-        /* The sizing of storage for protected headers is off (should
-         * never happen in tested, released code) */
+    /* The protected parameters, which are added as a wrapped bstr  */
+    buffer_for_protected_parameters = Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->protected_parameters_buffer);
+    me->protected_parameters = encode_protected_parameters(me->cose_algorithm_id, buffer_for_protected_parameters);
+    if(q_useful_buf_c_is_null(me->protected_parameters)) {
+        /* The sizing of storage for protected parameters is
+         * off (should never happen in tested, released code) */
         return_value = T_COSE_ERR_MAKING_PROTECTED;
         goto Done;
     }
     /* The use of _AddBytes here achieves the bstr wrapping */
-    QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_headers);
+    QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_parameters);
 
-    /* The Unprotected headers */
-    /* Get the kid because it goes into the headers that are about to
-     * be made. */
+    /* The Unprotected parameters */
+    /* Get the kid because it goes into the parameters that are about
+     * to be made. */
     if(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         kid = get_short_circuit_kid();
@@ -285,7 +286,7 @@ t_cose_sign1_encode_headers(struct t_cose_sign1_sign_ctx *me,
         kid = me->kid;
     }
 
-    return_value = add_unprotected_headers(me, kid, cbor_encode_ctx);
+    return_value = add_unprotected_parameters(me, kid, cbor_encode_ctx);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -356,13 +357,13 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
      } else {
 
         /* Create the hash of the to-be-signed bytes. Inputs to the
-         * hash are the protected headers, the payload that is getting
-         * signed, the cose signature alg from which the hash alg is
-         * determined. The cose_algorithm_id was checked in
-         * t_cose_sign1_sign_init() so it doesn't need to be checked here.
+         * hash are the protected parameters, the payload that is
+         * getting signed, the cose signature alg from which the hash
+         * alg is determined. The cose_algorithm_id was checked in
+         * t_cose_sign1_init() so it doesn't need to be checked here.
          */
         return_value = create_tbs_hash(me->cose_algorithm_id,
-                                       me->protected_headers,
+                                       me->protected_parameters,
                                        T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED,
                                        signed_payload,
                                        buffer_for_tbs_hash,
@@ -409,8 +410,8 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_CloseArray(cbor_encode_ctx);
 
     /* The layer above this must check for and handle CBOR encoding
-     * errors.  Some are detected at the start of this function, but
-     * they cannot all be deteced there.
+     * errors CBOR encoding errors.  Some are detected at the start of
+     * this function, but they cannot all be deteced there.
      */
 Done:
     return return_value;
@@ -432,8 +433,8 @@ t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *me,
     /* -- Initialize CBOR encoder context with output buffer -- */
     QCBOREncode_Init(&encode_context, out_buf);
 
-    /* -- Output the headers into the encoder context -- */
-    return_value = t_cose_sign1_encode_headers(me, &encode_context);
+    /* -- Output the header parameters into the encoder context -- */
+    return_value = t_cose_sign1_encode_parameters(me, &encode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }

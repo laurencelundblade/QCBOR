@@ -13,15 +13,21 @@
 
 #include <stdint.h>
 
+/**
+ * \file t_cose_test.h
+ *
+ * \brief Entry points for the basic t_cose_tests.
+ */
+
 
 /**
  * \brief Minimal message creation test using a short-circuit signature.
  *
  * \return non-zero on failure.
  *
- * This test makes a simple COSE_Sign1 and verify it.
- * It uses short-circuit signatures so no keys or even
- * integration with public key crypto is necessary.
+ * This test makes a simple COSE_Sign1 and verify it.  It uses
+ * short-circuit signatures so no keys or even integration with public
+ * key crypto is necessary.
  */
 int_fast32_t short_circuit_self_test(void);
 
@@ -32,9 +38,8 @@ int_fast32_t short_circuit_self_test(void);
  * \return non-zero on failure.
  *
  * This test makes a simple COSE_Sign1 modify the payload and see that
- * verification fails.
- * It uses short-circuit signatures so no keys or even
- * integration with public key crypto is necessary.
+ * verification fails.  It uses short-circuit signatures so no keys or
+ * even integration with public key crypto is necessary.
  */
 int_fast32_t short_circuit_verify_fail_test(void);
 
@@ -44,8 +49,8 @@ int_fast32_t short_circuit_verify_fail_test(void);
  *
  * \return non-zero on failure.
  *
- * It uses short-circuit signatures so no keys or even
- * integration with public key crypto is necessary.
+ * It uses short-circuit signatures so no keys or even integration
+ * with public key crypto is necessary.
  */
 int_fast32_t short_circuit_signing_error_conditions_test(void);
 
@@ -56,19 +61,19 @@ int_fast32_t short_circuit_make_cwt_test(void);
 
 
 /*
- *
+ * Test the decode only mode.
  */
-int_fast32_t short_circuit_no_parse_test(void);
+int_fast32_t short_circuit_decode_only_test(void);
 
 
 /*
-- protected header not well formed CBOR
-- unprotected header not well formed CBOR
+- protected header parameters not well formed CBOR
+- unprotected header parameters not well formed CBOR
 - unknown algorithm ID
-- No algorithm ID header
+- No algorithm ID parameter
 
  */
-int_fast32_t bad_headers_test(void);
+int_fast32_t bad_parameters_test(void);
 
 
 /* Test that makes a CWT (CBOR Web Token)
@@ -77,15 +82,15 @@ int_fast32_t cose_example_test(void);
 
 
 /*
- Various tests involving critical headers
+ Various tests involving the crit parameter.
  */
-int_fast32_t critical_headers_test(void);
+int_fast32_t crit_parameters_test(void);
 
 
 /*
  Check that all types of headers are correctly returned.
  */
-int_fast32_t all_headers_test(void);
+int_fast32_t all_header_parameters_test(void);
 
 /*
  * Check that setting the content type works
@@ -99,6 +104,9 @@ int_fast32_t content_type_test(void);
 int_fast32_t sign1_structure_decode_test(void);
 
 
+/*
+ * Use the short-circuit signing to test hash algorithm failures
+ */
 int_fast32_t short_circuit_hash_fail_test(void);
 
 

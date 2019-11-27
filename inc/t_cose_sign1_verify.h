@@ -27,7 +27,7 @@ extern "C" {
  *
  * This verifies a \c COSE_Sign1 message in compliance with [COSE (RFC 8152)]
  * (https://tools.ietf.org/html/rfc8152). A \c COSE_Sign1 message is a CBOR
- * encoded binary blob that contains headers, a payload and a
+ * encoded binary blob that contains header parameters, a payload and a
  * signature. Usually the signature is made with an EC signing
  * algorithm like ECDSA.
  *
@@ -52,35 +52,35 @@ extern "C" {
 
 
 /**
- * The result of parsing a set of COSE headers. The pointers are all
- * back into the \c COSE_Sign1 blob passed in.
+ * The result of parsing a set of COSE header parameters. The pointers
+ * are all back into the \c COSE_Sign1 blob passed in.
  *
  * Approximate size on a 64-bit machine is 80 bytes and on a 32-bit
  * machine is 40.
  */
-struct t_cose_headers {
+struct t_cose_parameters {
     /** The algorithm ID. \ref T_COSE_UNSET_ALGORITHM_ID if the algorithm ID
-     * header is not present. String type algorithm IDs are not
+     * parameter is not present. String type algorithm IDs are not
      * supported.  See the
      * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml)
      * for the algorithms corresponding to the integer values.
      */
     int32_t               cose_algorithm_id;
-    /** The COSE key ID. \c NULL_Q_USEFUL_BUF_C if header is not
+    /** The COSE key ID. \c NULL_Q_USEFUL_BUF_C if parameter is not
      * present */
     struct q_useful_buf_c kid;
-    /** The initialization vector. \c NULL_Q_USEFUL_BUF_C if header
+    /** The initialization vector. \c NULL_Q_USEFUL_BUF_C if parameter
      * is not present */
     struct q_useful_buf_c iv;
     /** The partial initialization vector. \c NULL_Q_USEFUL_BUF_C if
-     * header is not present */
+     * parameter is not present */
     struct q_useful_buf_c partial_iv;
     /** The content type as a MIME type like
-     * "text/plain". \c NULL_Q_USEFUL_BUF_C if header is not present */
+     * "text/plain". \c NULL_Q_USEFUL_BUF_C if parameter is not present */
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     struct q_useful_buf_c content_type_tstr;
     /** The content type as a CoAP Content-Format
-     * integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if header is not
+     * integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if parameter is not
      * present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
     uint32_t              content_type_uint;
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
@@ -107,9 +107,9 @@ struct t_cose_headers {
 
 
 /**
- * The error \ref T_COSE_ERR_NO_KID is returned if the header kid
- * header is missing. Note that the kid header is primarily passed on
- * to the crypto layer so the crypto layer can look up the key. If the
+ * The error \ref T_COSE_ERR_NO_KID is returned if the kid parameter
+ * is missing. Note that the kid parameter is primarily passed on to
+ * the crypto layer so the crypto layer can look up the key. If the
  * verification key is determined by other than the kid, then it is
  * fine if there is no kid.
  */
@@ -130,7 +130,7 @@ struct t_cose_headers {
  *
  * This option disables cryptographic signature verification.  With
  * this option the \c verification_key is not needed.  This is useful
- * to parse the \c COSE_Sign1 message to get the kid (key ID).  The
+ * to decode the \c COSE_Sign1 message to get the kid (key ID).  The
  * verification key can be looked up or otherwise obtained by the
  * caller. Once the key in in hand, t_cose_sign1_verify() can be
  * called again to perform the full verification.
@@ -140,7 +140,7 @@ struct t_cose_headers {
  * given.
  *
  */
-#define T_COSE_OPT_PARSE_ONLY  0x00000008
+#define T_COSE_OPT_DECODE_ONLY  0x00000008
 
 
 
@@ -176,29 +176,29 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
  * There are four main ways that the verification key is found and
  * supplied to t_cose so that t_cose_sign1_verify() succeeds.
  *
- * -# Look up by kid header and set by t_cose_sign1_set_verification_key()
+ * -# Look up by kid parameter and set by t_cose_sign1_set_verification_key()
  * -# Look up by other and set by t_cose_sign1_set_verification_key()
  * -# Determination by kid that short circuit signing is used (test only)
- * -# Look up by kid header in cryptographic adaptation  layer
+ * -# Look up by kid parameter in cryptographic adaptation  layer
  *
  * Note that there is no means where certificates, like X.509
- * certificates, are provided in the COSE headers. Perhaps there will
- * be in the future but that is not in common use or supported by this
- * implementation.
+ * certificates, are provided in the COSE parameters. Perhaps there
+ * will be in the future but that is not in common use or supported by
+ * this implementation.
  *
  * To use 1 it is necessary to call t_cose_sign1_verify_init() and
  * t_cose_sign1_verify() twice.  The first time
  * t_cose_sign1_verify_init() is called, give the \ref
- * T_COSE_OPT_PARSE_ONLY option.  Then call t_cose_sign1_verify() and
- * the kid will be returned in \c headers. The caller finds the kid on
+ * T_COSE_OPT_DECODE_ONLY option.  Then call t_cose_sign1_verify() and
+ * the kid will be returned in \c parameters. The caller finds the kid on
  * their own. Then call this to set the key. Last call
- * t_cose_sign1_verify(), again without the \ref T_COSE_OPT_PARSE_ONLY
+ * t_cose_sign1_verify(), again without the \ref T_COSE_OPT_DECODE_ONLY
  * option.
  *
  * To use 2 the key is somehow determined without the kid and
  * t_cose_sign1_set_verification_key() is called with it. Then
  * t_cose_sign1_verify() is called. Note that this implementation
- * cannot return non-standard headers, at least not yet.
+ * cannot return non-standard header parameters, at least not yet.
  *
  * To use 3, initialize with \ref T_COSE_OPT_ALLOW_SHORT_CIRCUIT.  No
  * call to t_cose_sign1_set_verification_key() is necessary. If you do
@@ -223,10 +223,10 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
 /**
  * \brief Verify a COSE_Sign1
  *
- * \param[in] sign1     Pointer and length of CBOR encoded \c COSE_Sign1
- *                      that is to be verified.
- * \param[out] payload  Pointer and length of the payload.
- * \param[out] headers  Place to return parsed headers. Maybe be \c NULL.
+ * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
+ *                          message that is to be verified.
+ * \param[out] payload      Pointer and length of the payload.
+ * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -238,25 +238,24 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  * - The CBOR-format COSE_Sign1 structure is parsed. It makes sure \c sign1
  * is valid CBOR and follows the required structure for \c COSE_Sign1.
  *
- * - The protected headers are parsed, particular the algorithm id.
+ * - The protected header parameters are parsed, particular the algorithm id.
  *
- * - The unprotected headers are parsed, particularly the kid.
+ * - The unprotected headers parameters are parsed, particularly the kid.
  *
  * - The payload is identified. The internals of the payload are not parsed.
  *
  * - The expected hash, the "to-be-signed" bytes are computed. The hash
- * algorithm to use comes from the signing algorithm in the protected
- * headers. If the algorithm is not known or not supported this will
- * error out.
+ * algorithm to use comes from the signing algorithm. If the algorithm is
+ * not known or not supported this will error out.
  *
  * - Finally, the signature verification is performed.
  *
  * If it is successful, the pointer to the CBOR-encoded payload is
- * returned. The headers are returned if requested. All pointers
+ * returned. The parameters are returned if requested. All pointers
  * returned are to memory in the \c sign1 passed in.
  *
- * Note that this only handles standard COSE headers. There are no
- * facilities for custom headers, even though they are allowed by
+ * Note that this only handles standard COSE header parameters. There are no
+ * facilities for custom header parameters, even though they are allowed by
  * the COSE standard.
  *
  * This will recognize the special key ID for short-circuit signing
@@ -271,7 +270,7 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
 enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
                                       struct q_useful_buf_c           sign1,
                                       struct q_useful_buf_c          *payload,
-                                      struct t_cose_headers          *headers);
+                                      struct t_cose_parameters       *parameters);
 
 
 

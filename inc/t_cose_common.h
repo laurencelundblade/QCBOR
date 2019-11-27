@@ -42,8 +42,8 @@ extern "C" {
  * of stack. No stack will be saved if \c T_COSE_DISABLE_ES512 is not
  * also defined.
  *
- * \c T_COSE_DISABLE_CONTENT_TYPE -- Disables the content type headers
- * for both signing and verifying.
+ * \c T_COSE_DISABLE_CONTENT_TYPE -- Disables the content type
+ * parameters for both signing and verifying.
  */
 
 
@@ -140,30 +140,30 @@ struct t_cose_key {
 
 
 /* Private value. Intentionally not documented for Doxygen.  This is
- * the size allocated for the encoded protected headers.  It needs to
- * be big enough for make_protected_header() to succeed. It currently
- * sized for one header with an algorithm ID up to 32 bits long -- one
- * byte for the wrapping map, one byte for the label, 5 bytes for the
- * ID. If this is made accidentially too small, QCBOR will only return
- * an error, and not overrun any buffers.
+ * the size allocated for the encoded protected header parameters.  It
+ * needs to be big enough for encode_protected_parameters() to
+ * succeed. It currently sized for one parameter with an algorithm ID
+ * up to 32 bits long -- one byte for the wrapping map, one byte for
+ * the label, 5 bytes for the ID. If this is made accidentially too
+ * small, QCBOR will only return an error, and not overrun any
+ * buffers.
  *
  * 17 extra bytes are added, rounding it up to 24 total, in case some
- * other protected header is to be added and so the test using
- * T_COSE_TEST_CRIT_HEADER_EXIST can work.
+ * other protected header parameter is to be added and so the test
+ * using T_COSE_TEST_CRIT_PARAMETER_EXIST can work.
  */
-#define T_COSE_SIGN1_MAX_PROT_HEADER (1+1+5+17)
+#define T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS (1+1+5+17)
 
 
 /**
  * Error codes return by t_cose.
  */
 /*
- * Do not reorder these. It is OK to add
- * new ones at the end.
+ * Do not reorder these. It is OK to add new ones at the end.
  *
- * Explicit values are included because some tools like debuggers
- * show only the value, not the symbol, and it is hard to count
- * up through 35 lines to figure out the actual value.
+ * Explicit values are included because some tools like debuggers show
+ * only the value, not the symbol, and it is hard to count up through
+ * 35 lines to figure out the actual value.
  */
 enum t_cose_err_t {
     /** Operation completed successfully. */
@@ -172,12 +172,13 @@ enum t_cose_err_t {
     /** The requested signing algorithm is not supported.  */
     T_COSE_ERR_UNSUPPORTED_SIGNING_ALG = 1,
 
-    /** Error constructing the protected headers. */
-    T_COSE_ERR_PROTECTED_HEADERS = 2,
+    /** Internal error when encoding protected parameters, usually
+     * because they are too big. It is internal because the caller
+     * can't really affect the size of the protected parameters. */
+    T_COSE_ERR_MAKING_PROTECTED = 2,
 
     /** The hash algorithm needed is not supported. Note that the
-     * signing algorithm identifier identifies the hash
-     * algorithm. */
+     * signing algorithm identifier identifies the hash algorithm. */
     T_COSE_ERR_UNSUPPORTED_HASH = 3,
 
     /** Some system failure when running the hash algorithm. */
@@ -192,8 +193,8 @@ enum t_cose_err_t {
 
     /** When verifying a \c COSE_Sign1, the CBOR is "well-formed", but
      * something is wrong with the format of the CBOR outside of the
-     * headers. For example, it is missing something like the payload
-     * or something is of an unexpected type. */
+     * header parameters. For example, it is missing something like
+     * the payload or something is of an unexpected type. */
     T_COSE_ERR_SIGN1_FORMAT = 8,
 
     /** When decoding some CBOR like a \c COSE_Sign1, the CBOR was not
@@ -202,10 +203,10 @@ enum t_cose_err_t {
     T_COSE_ERR_CBOR_NOT_WELL_FORMED = 9,
 
     /** The CBOR is "well-formed", but something is wrong with format
-     * in the header parameters.  For example, a header is labeled
+     * in the header parameters.  For example, a parameter is labeled
      * with other than an integer or string or the value is an integer
      * when a byte string is expected. */
-    T_COSE_ERR_HEADER_CBOR = 10,
+    T_COSE_ERR_PARAMETER_CBOR = 10,
 
     /** No algorithm ID was found when one is needed. For example,
      * when verifying a \c COSE_Sign1. */
@@ -240,7 +241,8 @@ enum t_cose_err_t {
      * found. */
     T_COSE_ERR_UNKNOWN_KEY = 19,
 
-    /** The key was found, but it was the wrong type for the operation. */
+    /** The key was found, but it was the wrong type for the
+      * operation. */
     T_COSE_ERR_WRONG_TYPE_OF_KEY = 20,
 
     /** Error constructing the COSE \c Sig_structure when signing or
@@ -258,22 +260,22 @@ enum t_cose_err_t {
 
     /** Something went wrong formatting the CBOR.  Possibly the
      * payload has maps or arrays that are not closed when using
-     * t_cose_sign1_encode_headers() and
-     * t_cose_sign1_encode_signature() to sign a \c COSE_Sign1
-     * message. */
+     * t_cose_sign1_encode_parameters() and
+     * t_cose_sign1_encode_signature() to sign a \c COSE_Sign1. */
     T_COSE_ERR_CBOR_FORMATTING = 24,
 
      /** The buffer passed in to receive the output is too small. */
     T_COSE_ERR_TOO_SMALL = 25,
 
-    /** More headers (more than \ref T_COSE_HEADER_LIST_MAX) than this
-     * implementation can handle. Note that all headers need to be
-     * checked for criticality so all headers need to be examined. */
-    T_COSE_ERR_TOO_MANY_HEADERS= 26,
+    /** More parameters (more than \ref T_COSE_PARAMETER_LIST_MAX)
+     * than this implementation can handle. Note that all parameters
+     * need to be checked for criticality so all parameters need to be
+     * examined. */
+    T_COSE_ERR_TOO_MANY_PARAMETERS = 26,
 
-    /** A header was encountered that was unknown and also listed in
-      * the critical headers header. */
-    T_COSE_ERR_UNKNOWN_CRITICAL_HEADER = 27,
+    /** A parameter was encountered that was unknown and also listed in
+      * the crit labels parameter. */
+    T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER = 27,
 
     /** A request was made to signed with a short-circuit sig, \ref
      * T_COSE_OPT_SHORT_CIRCUIT_SIG, but short circuit signature are
@@ -288,13 +290,14 @@ enum t_cose_err_t {
      * values less than \c INT32_MAX. */
 
     T_COSE_ERR_NON_INTEGER_ALG_ID = 30,
-    /** The content type header contains a content type that neither
-     * integer or text string or it is an integer not in the range of
-     * 0 to \c UINT16_MAX. */
+    /** The content type parameter contains a content type that is
+     * neither integer or text string or it is an integer not in the
+     * range of 0 to \c UINT16_MAX. */
     T_COSE_ERR_BAD_CONTENT_TYPE = 31,
 
     /** If the option \ref T_COSE_OPT_TAG_REQUIRED is set for
-     * t_cose_sign1_verify() and the tag is absent, this error is returned. */
+     * t_cose_sign1_verify() and the tag is absent, this error is
+     * returned. */
     T_COSE_ERR_INCORRECTLY_TAGGED = 32,
 
     /** The signing or verification key given is empty. */
@@ -304,20 +307,15 @@ enum t_cose_err_t {
      * once in unprotected. Duplicate header parameters are not
      * allowed in COSE.
      */
-    T_COSE_ERR_DUPLICATE_HEADER = 34,
+    T_COSE_ERR_DUPLICATE_PARAMETER = 34,
 
-    /** A header that should be protected (alg id or crit) is
-     * not. This occurs when verifying a \c COSE_Sign1 that is
+    /** A header parameter that should be protected (alg id or crit)
+     * is not. This occurs when verifying a \c COSE_Sign1 that is
      * improperly constructed. */
-    T_COSE_ERR_HEADER_NOT_PROTECTED = 35,
+    T_COSE_ERR_PARAMETER_NOT_PROTECTED = 35,
 
-    /** Internal error when making protected headers, usually because
-     * they are too big. It is internal because the caller can't
-     * really affect the size of protected headers. */
-    T_COSE_ERR_MAKING_PROTECTED = 36,
-
-    /** Something is wrong with the critical headers parameter. */
-    T_COSE_ERR_CRIT_HEADER_PARAM = 37,
+    /** Something is wrong with the crit parameter. */
+    T_COSE_ERR_CRIT_PARAMETER = 36,
 
 };
 
@@ -327,23 +325,24 @@ enum t_cose_err_t {
 /**
  * The maximum number of header parameters that can be handled during
  * verification of a \c COSE_Sign1 message. \ref
- * T_COSE_ERR_TOO_MANY_HEADERS will be returned by
+ * T_COSE_ERR_TOO_MANY_PARAMETERS will be returned by
  * t_cose_sign1_verify() if the input message has more.
  *
- * There can be both \ref T_COSE_HEADER_LIST_MAX integer-labeled
- * headers and \ref T_COSE_HEADER_LIST_MAX string-labeled headers.
+ * There can be both \ref T_COSE_PARAMETER_LIST_MAX integer-labeled
+ * parameters and \ref T_COSE_PARAMETER_LIST_MAX string-labeled
+ * parameters.
  *
  * This is a hard maximum so the implementation doesn't need
  * malloc. This constant can be increased if needed. Doing so will
  * increase stack usage.
  */
-#define T_COSE_HEADER_LIST_MAX 10
+#define T_COSE_PARAMETER_LIST_MAX 10
 
 
 
 /**
  * The value of an unsigned integer content type indicating no content
- * type.  See \ref t_cose_headers.
+ * type.  See \ref t_cose_parameters.
  */
 #define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
 

@@ -82,11 +82,11 @@ extern "C" {
  *    - See t_cose_algorithm_is_ecdsa()
  *    - If not ECDSA add another function like t_cose_algorithm_is_ecdsa()
  * - Support for a new COSE_ALGORITHM_XXX signature algorithm is added
- *    - See T_COSE_CRYPTO_MAX_HASH_SIZE for additional hashes
+ *    - See \ref T_COSE_CRYPTO_MAX_HASH_SIZE for additional hashes
  * - Support larger key sizes (and thus signature sizes)
- *    - See T_COSE_MAX_ECDSA_SIG_SIZE
+ *    - See \ref T_COSE_MAX_SIG_SIZE
  * - Support another hash implementation that is not a service
- *    - See struct t_cose_crypto_hash
+ *    - See struct \ref t_cose_crypto_hash
  *
  * To reduce stack usage and save a little code these can be defined.
  *    - T_COSE_DISABLE_ES384
@@ -328,8 +328,8 @@ struct t_cose_crypto_hash {
     union {
         SHA256_CTX sha_256;
 #if !defined T_COSE_DISABLE_ES512 || !defined T_COSE_DISABLE_ES384
-        // SHA 384 uses the sha_512 context
-        // This uses about 100 bytes above SHA-256
+        /* SHA 384 uses the sha_512 context
+         * This uses about 100 bytes above SHA-256  */
         SHA512_CTX sha_512;
 #endif
     } ctx;
