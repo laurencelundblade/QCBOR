@@ -35,7 +35,7 @@
 
 
 #include "t_cose_crypto.h"  /* The interface this implements */
-#include "crypto.h"         /* PSA / TF_M crypto */
+#include "psa/crypto.h"         /* PSA / TF_M crypto */
 
 
 /* Avoid compiler warning due to unused argument */

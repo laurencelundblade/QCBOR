@@ -13,10 +13,8 @@
 
 #include "t_cose_standard_constants.h"
 
-#include "platform/include/tfm_plat_defs.h"
-#include "platform/include/tfm_plat_crypto_keys.h"
-#include "interface/include/psa/crypto_types.h"
-#include "interface/include/psa/crypto.h"
+#include "psa/crypto_types.h"
+#include "psa/crypto.h"
 
 
 /*

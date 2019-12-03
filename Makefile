@@ -55,7 +55,7 @@ t_cose_test: main.o  libt_cose.a $(TEST_OBJ)
 
 
 clean:
-	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) libt_cose.a t_cose_test
+	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) libt_cose.a t_cose_test main.o
 
 
 # ---- source dependecies -----

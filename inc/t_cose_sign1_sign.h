@@ -161,8 +161,11 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
  *
  * If short-circuit signing is used,
  * \ref T_COSE_OPT_SHORT_CIRCUIT_SIG, then this does not need to be
- * called. If it is called the \c kid will be used, but the \c
- * signing_key is never used.
+ * called. If it is called the \c kid given will be used, but the \c
+ * signing_key is never used. When the \c kid is given with a
+ * short-circuit signature, the internally fixed kid for short circuit
+ * will not be used and this \c COSE_Sign1 message can not be verified
+ * by t_cose_sign1_verify().
  */
 static void
 t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,

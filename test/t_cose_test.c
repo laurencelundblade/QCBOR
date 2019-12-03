@@ -435,15 +435,33 @@ int_fast32_t short_circuit_decode_only_test()
    d25a91aef0b0117e2af9a291aa32e14ab834dc56ed2a223444547e01f11d3b0916e5
    a4c345cacb36’
 ] )
+
  */
+
+/* This comes from Appendix_C_2_1.json from COSE_C by Jim Schaad */
+static const uint8_t rfc8152_example_2_1[] = {
+    0xD2, 0x84, 0x43, 0xA1, 0x01, 0x26, 0xA1, 0x04,
+    0x42, 0x31, 0x31, 0x54, 0x54, 0x68, 0x69, 0x73,
+    0x20, 0x69, 0x73, 0x20, 0x74, 0x68, 0x65, 0x20,
+    0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2E, /* end of hdrs and payload*/
+    0x58, 0x40, 0x8E, 0xB3, 0x3E, 0x4C, 0xA3, 0x1D, /* Sig starts with 0x58 */
+    0x1C, 0x46, 0x5A, 0xB0, 0x5A, 0xAC, 0x34, 0xCC,
+    0x6B, 0x23, 0xD5, 0x8F, 0xEF, 0x5C, 0x08, 0x31,
+    0x06, 0xC4, 0xD2, 0x5A, 0x91, 0xAE, 0xF0, 0xB0,
+    0x11, 0x7E, 0x2A, 0xF9, 0xA2, 0x91, 0xAA, 0x32,
+    0xE1, 0x4A, 0xB8, 0x34, 0xDC, 0x56, 0xED, 0x2A,
+    0x22, 0x34, 0x44, 0x54, 0x7E, 0x01, 0xF1, 0x1D,
+    0x3B, 0x09, 0x16, 0xE5, 0xA4, 0xC3, 0x45, 0xCA,
+    0xCB, 0x36};
 
 int cose_example_test()
 {
-    // TODO finish this test with comparison to expected
     enum t_cose_err_t             return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(   signed_cose_buffer, 200);
     struct q_useful_buf_c         output;
     struct t_cose_sign1_sign_ctx  sign_ctx;
+    struct q_useful_buf_c         head_actual;
+    struct q_useful_buf_c         head_exp;
 
     t_cose_sign1_sign_init(&sign_ctx,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
@@ -459,6 +477,20 @@ int cose_example_test()
                                       Q_USEFUL_BUF_FROM_SZ_LITERAL("This is the content."),
                                       signed_cose_buffer,
                                      &output);
+
+    if(return_value != T_COSE_SUCCESS) {
+        return return_value;
+    }
+
+    /* Compare only the headers and payload as this was not signed
+     * with the same key as the example. The first 32 bytes contain
+     * the header parameters and payload. */
+    head_actual = q_useful_buf_head(output, 32);
+    head_exp = q_useful_buf_head(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8152_example_2_1), 32);
+
+    if(q_useful_buf_compare(head_actual, head_exp)) {
+        return -1000;
+    }
 
     return return_value;
 }

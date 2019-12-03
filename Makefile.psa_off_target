@@ -20,7 +20,7 @@ QCBOR_LIB=../../QCBOR/master/libqcbor.a
 
 # ---- crypto configuration -----
 # Set up for PSA + OpenSSL. This may have to be adjusted for your build environment.
-CRYPTO_INC=-I ../../TF-M/trusted-firmware-m -I ../../TF-M/trusted-firmware-m/interface/include/psa/ -I ../../openssl/openssl-1.1.1b/include/openssl -I ../../openssl/openssl-1.1.1b/include 
+CRYPTO_INC= -I ../../TF-M/trusted-firmware-m/interface/include/ -I ../../openssl/openssl-1.1.1b/include/openssl -I ../../openssl/openssl-1.1.1b/include 
 CRYPTO_OBJ=crypto_adapters/t_cose_psa_crypto.o crypto_adapters/psa_off_target_crypto/t_cose_psa_off_target_signature.o crypto_adapters/psa_off_target_crypto/t_cose_psa_off_target_hashes.o
 CRYPTO_LIB=../../openssl/openssl-1.1.1b/libcrypto.a
 
@@ -54,7 +54,7 @@ t_cose_test: main.o $(SRC_OBJ) $(CRYPTO_OBJ) $(TEST_OBJ)
 
 
 clean:
-	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) t_cose_test libt_cose.a
+	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) t_cose_test libt_cose.a main.o
 
 
 # ---- source dependecies -----

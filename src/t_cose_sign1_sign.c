@@ -275,15 +275,18 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *me,
     /* The Unprotected parameters */
     /* Get the kid because it goes into the parameters that are about
      * to be made. */
+    kid = me->kid;
+
     if(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-        kid = get_short_circuit_kid();
+        if(q_useful_buf_c_is_null_or_empty(kid)) {
+            /* No kid passed in, Use the short-circuit kid */
+            kid = get_short_circuit_kid();
+        }
 #else
         return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG_DISABLED;
         goto Done;
 #endif
-    } else {
-        kid = me->kid;
     }
 
     return_value = add_unprotected_parameters(me, kid, cbor_encode_ctx);
