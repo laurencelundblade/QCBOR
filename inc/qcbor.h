@@ -43,10 +43,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
- 6/xx/19    llundblade      Add support for decimal fractions and bigfloats.
  08/7/19    llundblade      Better handling of not well-formed encode and decode.
  07/31/19   llundblade      New error code for better end of data handling.
  7/25/19    janjongboom     Add indefinite length encoding for maps and arrays.
+            llundblade      Support for decimal fractions and big floats.
  05/26/19   llundblade      Add QCBOREncode_GetErrorState() and _IsBufferNULL().
  04/26/19   llundblade      Big documentation & style update. No interface change.
  02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug.
@@ -614,7 +614,6 @@ struct _QCBORDecodeContext {
    @ref QCBOR_MAX_ARRAY_NESTING (this is typically 15).
  - Max items in an array or map when encoding / decoding is
    @ref QCBOR_MAX_ITEMS_IN_ARRAY (typically 65,536).
- - Does not directly support some tagged types: decimal fractions, big floats
  - Does not directly support labels in maps other than text strings and integers.
  - Does not directly support integer labels greater than @c INT64_MAX.
  - Epoch dates limited to @c INT64_MAX (+/- 292 billion years).
@@ -1427,8 +1426,21 @@ static void QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx, int64_
  This is good for exact representation of decimal fraction that
  can't be represented exactly with floating point numbers.
 
- For example 1.1, would be represented by a mantissa of 11
- and an exponent of -1.
+ The decimal fraction is conveyed as two integers, a mantissa and a base-10
+ scaling factor. It is possible to represent exact decimal fractions that
+ cannot be represented exactly with floating point.
+
+ For example, 273.15 is represented by the two integers 27315 and -2.
+
+ Much larger and much smaller numbers can also be represetned than floating
+ point because of the larger number of bits in the exponent.
+
+ There is no representation of positive or negative infinity or NaN (not a
+ number). Use QCBOREncode_AddDouble() for that.
+
+ See also QCBOREncode_AddDecimalFractionBigNum() for a decimal fraction with
+ aribtrarily large precision.
+
  */
 static void QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pCtx,
                                            int64_t             nMantissa,
@@ -1453,7 +1465,7 @@ static void QCBOREncode_AddDecimalFractionToMapN(QCBOREncodeContext *pCtx,
  @param[in] nBase10Exponent  The exponent.
 
  This is the same as QCBOREncode_AddDecimalFraction() except the
- mantissa is a big number allowing for arbitrary precision.
+ mantissa is a big number allowing for arbitrarily large precision.
  */
 static void QCBOREncode_AddDecimalFractionBigNum(QCBOREncodeContext *pCtx,
                                                  UsefulBufC          Mantissa,
@@ -1481,15 +1493,22 @@ static void QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
 
  The value is nMantissa * 2 ^ nBase2Exponent.
 
- This can represent floating point numbers that have
- a larger range and/or a higher precision than standard IEEE
- 754 floating point numbers.
-
- This can also be used to represent floating point numbers
- in environments that don't support IEEE 754.
+ Bigfloats, as CBOR terms them, are similar to IEEE floating point numbers in
+ having a mantissa and base-2 exponent, but they are not supported by hardware
+ or encoded the same. They explicitly use two CBOR-encoded integers for the
+ mantissa and exponent, each of which can be 8, 16, 32 or 64 bits. With
+ both the mantissa and exponent 64-bits they can express more precision and
+ a larger range than an IEEE double floating-point number. See
+ QCBOREncode_AddBigFloatBigNum() for even more precision.
 
  For example 1.5 would be represented by a mantissa of 3
  and an exponent of -1.
+
+ The exponent and mantissa are passed in as int64_t, but CBOR preferred
+ encoding is used and they will be encoded smaller if no precision is lost.
+
+ This can also be used to represent floating point numbers
+ in environments that don't support IEEE 754.
  */
 static void QCBOREncode_AddBigFloat(QCBOREncodeContext *pCtx,
                                     int64_t             nMantissa,

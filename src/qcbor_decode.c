@@ -1194,7 +1194,7 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
 
    if(QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION) ||
       QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_BIGFLOAT)) {
-      // Process Decimal Fraction of Bigfloat
+      // Process Decimal Fraction or Bigfloat
 
       // Make sure it is an array
       if(pDecodedItem->uDataType != QCBOR_TYPE_ARRAY) {
@@ -1209,14 +1209,19 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
       // A check for pDecodedItem->val.uCount == 2 would work
       // for definite length arrays, but not for indefnite.
       // Instead remember the nesting level the two integers
-      // must be add, which is one deeper than that of the array.
+      // must be at, which is one deeper than that of the array.
       const int nNestLevel = pDecodedItem->uNestingLevel + 1;
 
       // Get the mantissa
       // TODO: What to do with pTags here?
       QCBORItem intItem;
+
       nReturn = QCBORDecode_GetNextMapOrArray(me, &intItem, pTags);
       if(nReturn != QCBOR_SUCCESS) {
+         goto Done;
+      }
+      if(intItem.uDataType != QCBOR_TYPE_INT64) {
+         nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
       if(intItem.uNestingLevel != nNestLevel) {
@@ -1234,7 +1239,6 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
          nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
-
       pDecodedItem->val.expAndMantissa.Mantissa.nInt = intItem.val.int64;
 
       // Get the exponent

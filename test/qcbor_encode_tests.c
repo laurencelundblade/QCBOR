@@ -101,6 +101,7 @@ static int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
 struct UBCompareDiagnostic {
    uint8_t uActual;
    uint8_t uExpected;
+   size_t  uOffset;
 };
 
 static int32_t UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual, UsefulBufC Expected, struct UBCompareDiagnostic *pDiag) {
@@ -110,6 +111,7 @@ static int32_t UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual, UsefulBufC Exp
          if(pDiag) {
             pDiag->uActual   = ((uint8_t *)Actual.ptr)[i];
             pDiag->uExpected = ((uint8_t *)Expected.ptr)[i];
+            pDiag->uOffset   = i;
          }
          return (int32_t)i + 1000000; // Cast to int is OK as this is only a diagnostic and the sizes here are never over a few KB.
       }
@@ -2447,10 +2449,10 @@ static const uint8_t spExpected4And5Map[] = {
    0x10, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
    0xFF, 0xFF};
 
-int Type4And5EncodeTests()
+int Tag4And5EncodeTests()
 {
    QCBOREncodeContext EC;
-   UsefulBufC Encoded4And5;
+   UsefulBufC         Encoded4And5;
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenArray(&EC);
@@ -2532,9 +2534,12 @@ int Type4And5EncodeTests()
       return -2;
    }
 
+
+   struct UBCompareDiagnostic Diag;
+
    nReturn = UsefulBuf_CompareWithDiagnostic(Encoded4And5,
                                              UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpected4And5Map),
-                                             NULL);
+                                             &Diag);
    if(nReturn) {
       return nReturn + 1000000; // Add 1000000 to distinguish from first test above
    }

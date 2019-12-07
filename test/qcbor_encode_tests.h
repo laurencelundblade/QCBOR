@@ -161,7 +161,7 @@ int CoseSign1TBSTest(void);
 
 
 
-int Type4And5EncodeTests(void);
+int Tag4And5EncodeTests(void);
 
 
 /*

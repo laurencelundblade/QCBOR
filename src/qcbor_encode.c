@@ -516,16 +516,13 @@ void QCBOREncode_AddTag4or5(QCBOREncodeContext *pMe,
    // TODO: this needs to be optional
    QCBOREncode_AddTag(pMe, uTag);
    QCBOREncode_OpenArray(pMe);
+   QCBOREncode_AddInt64(pMe, nExponent);
    if(!UsefulBuf_IsNULLC(BigNumMantissa)) {
-      if(bBigNumIsNegative) {
-         QCBOREncode_AddNegativeBignum(pMe, BigNumMantissa);
-      } else {
-         QCBOREncode_AddPositiveBignum(pMe, BigNumMantissa);
-      }
+      QCBOREncode_AddTag(pMe, bBigNumIsNegative ? CBOR_TAG_NEG_BIGNUM : CBOR_TAG_POS_BIGNUM);
+      QCBOREncode_AddBytes(pMe, BigNumMantissa);
    } else {
       QCBOREncode_AddInt64(pMe, nMantissa);
    }
-   QCBOREncode_AddInt64(pMe, nExponent);
    QCBOREncode_CloseArray(pMe);
 }
 #endif
