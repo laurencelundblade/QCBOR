@@ -158,7 +158,7 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
     /* Start the hashing */
     hash_alg_id = hash_alg_id_from_sig_alg_id(cose_algorithm_id);
     /* Don't check hash_alg_id for failure. t_cose_crypto_hash_start()
-     * will handle error properly.
+     * will handle error properly. It was also checked earlier.
      */
     return_value = t_cose_crypto_hash_start(&hash_ctx, hash_alg_id);
     if(return_value) {

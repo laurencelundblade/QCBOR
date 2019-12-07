@@ -8,7 +8,7 @@
  * See BSD-3-Clause license in README.mdE.
  */
 
-#include "crypto.h" /* PSA crypto services */
+#include "psa/crypto.h" /* PSA crypto services */
 #include "openssl/sha.h" /* OpenSSL hash functions */
 
 

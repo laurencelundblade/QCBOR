@@ -9,7 +9,7 @@
  */
 
 
-#include "crypto.h" /* Interfaces implemented here */
+#include "psa/crypto.h" /* Interfaces implemented here */
 
 #include <string.h> /* for memset */
 
