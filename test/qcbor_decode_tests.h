@@ -235,10 +235,10 @@ int MemPoolTest(void);
 int SetUpAllocatorTest(void);
 
 
-int Type4And5DecodeTests(void);
+int ExponentAndMantissaDecodeTests(void);
 
 
 
-int Type4And5DecodeFailTests(void);
+int ExponentAndMantissaDecodeFailTests(void);
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

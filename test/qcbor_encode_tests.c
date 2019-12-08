@@ -2373,7 +2373,7 @@ int EncodeErrorTests()
     5([-4759477275222530853137, -9223372036854775808])
  ]
  */
-static const uint8_t spExpected4And5Array[] = {
+static const uint8_t spExpectedExponentAndMantissaArray[] = {
    0x86, 0xC4, 0x82, 0x03, 0x20, 0xC4, 0x82, 0xC2,
    0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
    0x08, 0x09, 0x10, 0x33, 0xC4, 0x82, 0xC3, 0x4A,
@@ -2403,7 +2403,7 @@ static const uint8_t spExpected4And5Array[] = {
     800: 5([-4759477275222530853137, -9223372036854775808])
  }
  */
-static const uint8_t spExpected4And5Map[] = {
+static const uint8_t spExpectedExponentAndMantissaMap[] = {
    0xAC, 0x70, 0x64, 0x65, 0x63, 0x69, 0x6D, 0x61,
    0x6C, 0x20, 0x66, 0x72, 0x61, 0x63, 0x74, 0x69,
    0x6F, 0x6E, 0xC4, 0x82, 0x03, 0x20, 0x19, 0x01,
@@ -2449,10 +2449,10 @@ static const uint8_t spExpected4And5Map[] = {
    0x10, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
    0xFF, 0xFF};
 
-int Tag4And5EncodeTests()
+int ExponentAndMantissaEncodeTests()
 {
    QCBOREncodeContext EC;
-   UsefulBufC         Encoded4And5;
+   UsefulBufC         EncodedExponentAndMantissa;
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenArray(&EC);
@@ -2466,12 +2466,12 @@ int Tag4And5EncodeTests()
    QCBOREncode_AddBigFloatBigNum(&EC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum), true, INT64_MIN);
    QCBOREncode_CloseArray(&EC);
 
-   if(QCBOREncode_Finish(&EC, &Encoded4And5)) {
+   if(QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa)) {
       return -2;
    }
 
-   int nReturn = UsefulBuf_CompareWithDiagnostic(Encoded4And5,
-                                                 UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpected4And5Array),
+   int nReturn = UsefulBuf_CompareWithDiagnostic(EncodedExponentAndMantissa,
+                                                 UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentAndMantissaArray),
                                                  NULL);
    if(nReturn) {
       return nReturn;
@@ -2530,15 +2530,15 @@ int Tag4And5EncodeTests()
 
    QCBOREncode_CloseMap(&EC);
 
-   if(QCBOREncode_Finish(&EC, &Encoded4And5)) {
+   if(QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa)) {
       return -2;
    }
 
 
    struct UBCompareDiagnostic Diag;
 
-   nReturn = UsefulBuf_CompareWithDiagnostic(Encoded4And5,
-                                             UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpected4And5Map),
+   nReturn = UsefulBuf_CompareWithDiagnostic(EncodedExponentAndMantissa,
+                                             UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentAndMantissaMap),
                                              &Diag);
    if(nReturn) {
       return nReturn + 1000000; // Add 1000000 to distinguish from first test above

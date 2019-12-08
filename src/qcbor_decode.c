@@ -1194,17 +1194,13 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
 
    if(QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION) ||
       QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_BIGFLOAT)) {
-      // Process Decimal Fraction or Bigfloat
+      // TODO, put this in a separate function
 
-      // Make sure it is an array
+      // --- Make sure it is an array; track nesting level of members ---
       if(pDecodedItem->uDataType != QCBOR_TYPE_ARRAY) {
          nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
-
-      // Is it a decimal fraction or a bigfloat?
-      bool bIsTaggedDecimalFraction = QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION);
-      pDecodedItem->uDataType = bIsTaggedDecimalFraction ? QCBOR_TYPE_DECIMAL_FRACTION : QCBOR_TYPE_BIGFLOAT;
 
       // A check for pDecodedItem->val.uCount == 2 would work
       // for definite length arrays, but not for indefnite.
@@ -1212,60 +1208,68 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
       // must be at, which is one deeper than that of the array.
       const int nNestLevel = pDecodedItem->uNestingLevel + 1;
 
-      // Get the mantissa
+      // --- Is it a decimal fraction or a bigfloat? ---
+      const bool bIsTaggedDecimalFraction = QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION);
+      pDecodedItem->uDataType = bIsTaggedDecimalFraction ? QCBOR_TYPE_DECIMAL_FRACTION : QCBOR_TYPE_BIGFLOAT;
+
       // TODO: What to do with pTags here?
-      QCBORItem intItem;
 
-      nReturn = QCBORDecode_GetNextMapOrArray(me, &intItem, pTags);
+      // --- Get the exponent ---
+      QCBORItem exponentItem;
+      nReturn = QCBORDecode_GetNextMapOrArray(me, &exponentItem, pTags);
       if(nReturn != QCBOR_SUCCESS) {
          goto Done;
       }
-      if(intItem.uDataType != QCBOR_TYPE_INT64) {
+      if(exponentItem.uNestingLevel != nNestLevel) {
+         // Array is empty or a map/array encountered when expecting an int
          nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
-      if(intItem.uNestingLevel != nNestLevel) {
-         // Array is empty
+      if(exponentItem.uDataType != QCBOR_TYPE_INT64) {
+         // Exponent is not of the right type
          nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
-      if(intItem.uDataType == QCBOR_TYPE_INT64) {
-         pDecodedItem->val.expAndMantissa.Mantissa.nInt = intItem.val.int64;
-      } else if(intItem.uDataType == QCBOR_TYPE_POSBIGNUM || intItem.uDataType == QCBOR_TYPE_NEGBIGNUM) {
-         pDecodedItem->val.expAndMantissa.Mantissa.bigNum = intItem.val.bigNum;
+      // Correctly got the exponent
+      pDecodedItem->val.expAndMantissa.nExponent = exponentItem.val.int64;
+
+
+      // --- Get the mantissa ---
+      QCBORItem mantissaItem;
+      nReturn = QCBORDecode_GetNextMapOrArray(me, &mantissaItem, pTags);
+      if(nReturn != QCBOR_SUCCESS) {
+         goto Done;
+      }
+      if(mantissaItem.uNestingLevel != nNestLevel) {
+         // Mantissa missing or map/array encountered when expecting number
+         nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+         goto Done;
+      }
+      if(mantissaItem.uDataType == QCBOR_TYPE_INT64) {
+         // Got an good int64 mantissa
+         pDecodedItem->val.expAndMantissa.Mantissa.nInt = mantissaItem.val.int64;
+      } else if(mantissaItem.uDataType == QCBOR_TYPE_POSBIGNUM || mantissaItem.uDataType == QCBOR_TYPE_NEGBIGNUM) {
+         // Got a good big num mantissa
+         pDecodedItem->val.expAndMantissa.Mantissa.bigNum = mantissaItem.val.bigNum;
          // Depends on numbering of QCBOR_TYPE_XXX
-         pDecodedItem->uDataType += 1 + intItem.uDataType - QCBOR_TYPE_POSBIGNUM;
+         pDecodedItem->uDataType += 1 + mantissaItem.uDataType - QCBOR_TYPE_POSBIGNUM;
       } else {
+         // Wrong type of mantissa
          nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
-      pDecodedItem->val.expAndMantissa.Mantissa.nInt = intItem.val.int64;
 
-      // Get the exponent
-      nReturn = QCBORDecode_GetNextMapOrArray(me, &intItem, pTags);
-      if(nReturn != QCBOR_SUCCESS) {
-         goto Done;
-      }
-      if(intItem.uDataType != QCBOR_TYPE_INT64) {
+      // --- Check that array only has the two numbers ---
+      if(mantissaItem.uNextNestLevel == nNestLevel) {
+         // Extra items in the decimal fraction / big num
          nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
          goto Done;
       }
-      if(intItem.uNestingLevel != nNestLevel) {
-         // The second integer is not present
-         nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
-         goto Done;
-      }
-      if(intItem.uNextNestLevel == nNestLevel) {
-         // There's other stuff in the array besides the two integers
-         nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
-         goto Done;
-      }
-      pDecodedItem->val.expAndMantissa.nExponent = intItem.val.int64;
    }
 
 Done:
    if(nReturn != QCBOR_SUCCESS) {
-      pDecodedItem->uDataType = QCBOR_TYPE_NONE;
+      pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
       pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
    }
    return nReturn;

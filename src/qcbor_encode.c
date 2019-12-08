@@ -506,14 +506,13 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 
  See header qcbor.h
  */
-void QCBOREncode_AddTag4or5(QCBOREncodeContext *pMe,
+void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
                             uint64_t            uTag,
                             UsefulBufC          BigNumMantissa,
                             bool                bBigNumIsNegative,
                             int64_t             nMantissa,
                             int64_t             nExponent)
 {
-   // TODO: this needs to be optional
    QCBOREncode_AddTag(pMe, uTag);
    QCBOREncode_OpenArray(pMe);
    QCBOREncode_AddInt64(pMe, nExponent);
