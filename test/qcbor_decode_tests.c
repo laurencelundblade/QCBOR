@@ -3527,11 +3527,20 @@ int ExponentAndMantissaDecodeTests(void)
    return 0;
 }
 
+// TODO: add more of these failure errors
 
-static struct FailInput F45Failures[] = {
+// TODO: merge with master
+
+static struct FailInput ExponentAndMantissaFailures[] = {
+   { {(uint8_t[]){0xC4, 0x82}, 2}, QCBOR_ERR_HIT_END },  // End of input
+   { {(uint8_t[]){0xC4, 0x82, 0x01}, 3}, QCBOR_ERR_HIT_END },  // End of input
+   { {(uint8_t[]){0xC4, 0x82, 0x01, 0xc3, 0x01}, 5}, QCBOR_ERR_BAD_OPT_TAG },  // bad content for big num
+   { {(uint8_t[]){0xC4, 0x82, 0xc2, 0x01, 0x1f}, 5}, QCBOR_ERR_BAD_OPT_TAG },  // bad content for big num
+   { {(uint8_t[]){0xC4, 0x82, 0x01, 0x1f}, 4}, QCBOR_ERR_BAD_INT },  // Bad integer for exponent
+   { {(uint8_t[]){0xC4, 0x82, 0x1f, 0x01}, 4}, QCBOR_ERR_BAD_INT },  // Bad integer for mantissa
+   { {(uint8_t[]){0xC4, 0x83, 0x03, 0x01, 02}, 5}, QCBOR_ERR_BAD_EXP_AND_MANTISSA },  // 3 items in array
+   { {(uint8_t[]){0xC4, 0x9f, 0x03, 0x01, 0x02}, 5}, QCBOR_ERR_BAD_EXP_AND_MANTISSA },  // unterminated indefinite length array
    { {(uint8_t[]){0xC4, 0x80}, 2}, QCBOR_ERR_NO_MORE_ITEMS },  // Empty array
-   // { {(uint8_t[]){0xC4, 0x9f, 0x03, 0x01, 0x02}, 5}, QCBOR_ERR_BAD_TAG_4_OR_5 },  // ????
-   //{ {(uint8_t[]){0xC4, 0x83, 0x03, 0x01, 02}, 5}, QCBOR_ERR_BAD_EXP_AND_MANTISSA },  // 3 items in array
    { {(uint8_t[]){0xC4, 0x82, 0x03, 0x40}, 4}, QCBOR_ERR_BAD_EXP_AND_MANTISSA },  // Second is not an integer
    { {(uint8_t[]){0xC4, 0x82, 0x40}, 3}, QCBOR_ERR_BAD_EXP_AND_MANTISSA },  // First is not an integer
    { {(uint8_t[]){0xC4, 0xa2}, 2}, QCBOR_ERR_BAD_EXP_AND_MANTISSA }  // Not an array
@@ -3540,6 +3549,6 @@ static struct FailInput F45Failures[] = {
 
 int ExponentAndMantissaDecodeFailTests()
 {
-   return ProcessFailures(F45Failures, sizeof(F45Failures)/sizeof(struct FailInput));
+   return ProcessFailures(ExponentAndMantissaFailures, sizeof(ExponentAndMantissaFailures)/sizeof(struct FailInput));
 }
 

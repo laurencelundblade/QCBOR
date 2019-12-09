@@ -507,11 +507,11 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
  See header qcbor.h
  */
 void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
-                            uint64_t            uTag,
-                            UsefulBufC          BigNumMantissa,
-                            bool                bBigNumIsNegative,
-                            int64_t             nMantissa,
-                            int64_t             nExponent)
+                                        uint64_t            uTag,
+                                        UsefulBufC          BigNumMantissa,
+                                        bool                bBigNumIsNegative,
+                                        int64_t             nMantissa,
+                                        int64_t             nExponent)
 {
    QCBOREncode_AddTag(pMe, uTag);
    QCBOREncode_OpenArray(pMe);
@@ -561,6 +561,7 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
       }
    }
 }
+
 
 /*
  Semi-public function. It is exposed to user of the interface,
