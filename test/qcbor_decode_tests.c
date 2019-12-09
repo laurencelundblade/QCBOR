@@ -3524,10 +3524,61 @@ int ExponentAndMantissaDecodeTests(void)
       return 14;
    }
 
+   /* Now encode some stuff and then decode it */
+   uint8_t pBuf[40];
+   QCBOREncodeContext EC;
+   UsefulBufC Encoded;
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(pBuf));
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddDecimalFraction(&EC, 999, 1000); // 999 * (10 ^ 1000)
+   QCBOREncode_AddBigFloat(&EC, 100, INT32_MIN);
+   QCBOREncode_AddDecimalFractionBigNum(&EC, BN, false, INT32_MAX);
+   QCBOREncode_CloseArray(&EC);
+   QCBOREncode_Finish(&EC, &Encoded);
+
+   
+   QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
+   nCBORError = QCBORDecode_GetNext(&DC, &item);
+   if(nCBORError != QCBOR_SUCCESS) {
+      return 13;
+   }
+
+   nCBORError = QCBORDecode_GetNext(&DC, &item);
+   if(nCBORError != QCBOR_SUCCESS) {
+      return 13;
+   }
+
+   if(item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION ||
+      item.val.expAndMantissa.nExponent != 1000 ||
+      item.val.expAndMantissa.Mantissa.nInt != 999) {
+      return 15;
+   }
+
+   nCBORError = QCBORDecode_GetNext(&DC, &item);
+   if(nCBORError != QCBOR_SUCCESS) {
+      return 13;
+   }
+
+   if(item.uDataType != QCBOR_TYPE_BIGFLOAT ||
+      item.val.expAndMantissa.nExponent != INT32_MIN ||
+      item.val.expAndMantissa.Mantissa.nInt != 100) {
+      return 15;
+   }
+
+   nCBORError = QCBORDecode_GetNext(&DC, &item);
+   if(nCBORError != QCBOR_SUCCESS) {
+      return 13;
+   }
+
+   if(item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM ||
+      item.val.expAndMantissa.nExponent != INT32_MAX ||
+      UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
+      return 12;
+   }
+
    return 0;
 }
-
-// TODO: add more of these failure errors
 
 // TODO: merge with master
 
