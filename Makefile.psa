@@ -1,4 +1,4 @@
-# Makefile -- UNIX-style make for t_cose simulating PSA crypto with OpenSSL
+# Makefile -- UNIX-style make for t_cose using crypto with a PSA interface
 #
 # Copyright (c) 2019, Laurence Lundblade. All rights reserved.
 #
@@ -8,8 +8,6 @@
 #
 
 # ---- comment ----
-# This is for OpenSSL Crypto. Adjust CRYPTO_INC and CRYPTO_LIB for the location of
-# the openssl libraries on your build machine.
 
 
 # ---- QCBOR location ----
@@ -19,10 +17,10 @@ QCBOR_LIB=../../QCBOR/master/libqcbor.a
 
 
 # ---- crypto configuration -----
-# Set up for PSA + OpenSSL. This may have to be adjusted for your build environment.
-CRYPTO_INC= -I ../../TF-M/trusted-firmware-m/interface/include/ -I ../../openssl/openssl-1.1.1b/include/openssl -I ../../openssl/openssl-1.1.1b/include 
-CRYPTO_OBJ=crypto_adapters/t_cose_psa_crypto.o crypto_adapters/psa_off_target_crypto/t_cose_psa_off_target_signature.o crypto_adapters/psa_off_target_crypto/t_cose_psa_off_target_hashes.o
-CRYPTO_LIB=../../openssl/openssl-1.1.1b/libcrypto.a
+# Set up for PSA This may have to be adjusted for your build environment.
+CRYPTO_INC= -I ../../TF-M/trusted-firmware-m/interface/include/ 
+CRYPTO_OBJ=crypto_adapters/t_cose_psa_crypto.o 
+CRYPTO_LIB=
 
 
 # ---- compiler configuration -----
