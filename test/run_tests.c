@@ -13,6 +13,7 @@
 #include "run_tests.h"
 #include "UsefulBuf.h"
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "t_cose_test.h"
 #include "t_cose_sign_verify_test.h"
@@ -22,7 +23,7 @@
  Test configuration
  */
 
-typedef int (test_fun_t)(void);
+typedef int_fast32_t (test_fun_t)(void);
 typedef const char * (test_fun2_t)(void);
 
 
@@ -106,8 +107,8 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
    }
 
    bool bDidSomeOutput = false;
-   for(int n = nMax; n > 0; n/=10) {
-      int x = nNum/n;
+   for(int32_t n = nMax; n > 0; n/=10) {
+      int32_t x = nNum/n;
       if(x || bDidSomeOutput){
          bDidSomeOutput = true;
          UsefulOutBuf_AppendByte(&OutBuf, '0' + x);
@@ -131,6 +132,7 @@ int RunTests(const char    *szTestNames[],
              void          *poutCtx,
              int           *pNumTestsRun)
 {
+    // int (-32767 to 32767 according to C standard) used by conscious choice
     int nTestsFailed = 0;
     int nTestsRun = 0;
     UsefulBuf_MAKE_STACK_UB(StringStorage, 12);

@@ -659,7 +659,7 @@ int_fast32_t all_header_parameters_test()
 
 struct test_case {
     int32_t test_option;
-    int   result;
+    enum t_cose_err_t   result;
 };
 
 static struct test_case bad_parameters_tests_table[] = {
@@ -712,7 +712,7 @@ int_fast32_t bad_parameters_test()
 
     for(test = bad_parameters_tests_table; test->test_option; test++) {
         if(run_test_sign_and_verify(test->test_option) != test->result) {
-            return (int)(test - bad_parameters_tests_table);
+            return (int_fast32_t)(test - bad_parameters_tests_table);
         }
     }
 
@@ -766,7 +766,7 @@ int_fast32_t crit_parameters_test()
 
     for(test = crit_tests_table; test->test_option; test++) {
         if(run_test_sign_and_verify(test->test_option) != test->result) {
-            return (int)(test - crit_tests_table);
+            return (int_fast32_t)(test - crit_tests_table);
         }
     }
 
