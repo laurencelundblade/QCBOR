@@ -40,35 +40,105 @@ fairly stable. There is a crypto adaptaion layer for [OpenSSL](https://www.opens
 
 ## Building and Dependencies
 
-There is a simple makefile.
+Except for the crypto library set up, t_cose is very portable and
+should largely just work in any environment. It needs a few standard
+libraries and [QCBOR](https://github.com/laurencelundblade/QCBOR)
+(which is also very portable). Hence the rest of this section is about
+crypto library set up.
 
-[QCBOR](https://github.com/laurencelundblade/QCBOR) is required
+### Currently Supported Libraries
 
-### Crypto Library
-Some cryptographic library that supports ECDSA and at least SHA-256 is required.
+Here's three crypto library configurations that are supported. Others
+can be added with relative ease over time.
 
-#### Test Crypto
-Out of the box, this compiles, links and runs with no additional crypto library, but only in
-a test mode. This allows for quickly geting started. This mode allows more than half the tests to run.
-It is however not good for real commercial use as it doesn't do real public key signing and
-verification.
+#### Test Crypto -- Makefile.test
 
-For this test mode a bundled SHA-256 hash implementation is used, the ECDSA signing
-is stubbed to do nothing and the test short-circuit signing is used.
+This configuration should work instantly on any device and is useful
+to do quite a large amount of testing with, but can't be put to full
+commercial use. What it lacks is any integration with an ECDSA
+implementation so it can't produce real ECDSA signatures. It does
+however produce some fake signatures called "short-circuit
+signatures" that are very useful for testing. See header
+documentation for details on short-circuit sigs.
 
-#### OpenSSL Crypto
-This OpenSSL integration supports SHA-256, SHA-384 and SHA-512 with ECDSA to support
-the COSE algorithms ES256, ES384 and ES512. 
+This configuration (and only this configuration) uses an bundled
+SHA-256 implementation (SHA-256 is simple and easy to bundle, ECDSA is
+not).
 
-To enable this:
-* #define T_COSE_USE_OPENSSL_CRYPTO 
-* Make with crypto_adapters/t_cose_openssl_crypto.c
-* Define the include path to OpenSSL headers in your build environment
-* Link with the OpenSSL libary
+To use this, edit the makefile for the location of QCBOR and then just
+do
 
-#### PSA Crypto
+    make -f Makefile.test
 
+#### OpenSSL Crypto -- Makefile.ossl
 
+This OpenSSL integration supports SHA-256, SHA-384 and SHA-512 with
+ECDSA to support the COSE algorithms ES256, ES384 and ES512. It is a
+full and tested integration with OpenSSL crypto.
+
+To use this, edit the makefile for the location of QCBOR and OpenSSL
+and do:
+
+    make -f Makefile.ossl
+
+The specific things that Makefile.ossl does is:
+* #defines T_COSE_USE_OPENSSL_CRYPTO 
+* Links the crypto_adapters/t_cose_openssl_crypto.o into libt_cose.a
+* Links test/test/t_cose_make_openssl_test_key.o into the test binary
+
+Note that the internally supplied b_con_hash is not used in this case
+by virtue of the Makefile not linking to it.
+
+#### PSA Crypto -- Makefile.psa
+
+This makes use of crypto libraries supporting the PSA cryptographic
+interface found in psa/crypto.h as a part of Arm's TF-M and perhaps
+others.
+
+This integration supports SHA-256, SHA-384 and SHA-512 with ECDSA to support
+the COSE algorithms ES256, ES384 and ES512. It is a full implementation but
+needs on-target testing.
+
+To use this, edit the makefile for the location of CBOR and your
+PSA-compatible cryptographic library and do:
+
+    make -f Makefile.psa
+    
+The specific things that Makefile.ossl does is:
+    * Links the crypto_adapters/t_cose_psa_crypto.o into libt_cose.a
+    * Links test/test/t_cose_make_psa_test_key.o into the test binary
+    * (No #defines needed, all adaptation is through the above object files)   
+
+Note that the internally supplied b_con_hash is not used in this case
+by virtue of the Makefile not linking to it.
+
+### General Crypto Library Strategy
+
+The functions that t_cose needs from the crypto library are all
+defined in src/t_cose_crypto.h.  This is a porting or adaption
+layer. There are no #ifdefs in the main t_cose code for different
+crypto libraries. When it needs a crypto function it just calls the
+interface defined in t_cose_crypto.h.
+
+When integrating t_cose with a new cryptographic library, what is
+necessary is to write some code, an "adaptor", that implements
+t_cose_crypto.h using the new target cryptographic library. This can
+be done without changes to any t_cose code for many cryptographic
+libraries. See the interface documentation in t_cose_crypto.h for what
+needs to be implemented.
+
+That said, there is one case where t_cose source code needs to be
+modified. This is for hash algorithm implementations that are linked
+into and run inline with t_cose and that have a context structure. In
+this case t_cose_crypto.h should be modified to use that context
+structure. Use the OpenSSL configuration as an example.
+
+To complete the set up for a new cryptographic library and test it, a
+new test adaptation file is also needed. This file makes public key
+pairs of the correct type for use with testing.  This file is usually
+named test/t_cose_make_xxxx_test_key.c and is linked in with the test
+app. The keys it makes are passed through t_cose untouched, through
+the t_cose_crypto.h interface into the underlying crypto.
 
 ## Memory Usage
 
