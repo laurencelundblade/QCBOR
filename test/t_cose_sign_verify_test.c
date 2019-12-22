@@ -41,7 +41,7 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
     }
     t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
-    t_cose_sign1_sign(&sign_ctx,
+    return_value = t_cose_sign1_sign(&sign_ctx,
                       Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
                       signed_cose_buffer,
                       &signed_cose);
@@ -82,10 +82,10 @@ int_fast32_t sign_verify_basic_test()
 {
     int_fast32_t return_value;
 
-    return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES256);
-    if(return_value) {
-        return 20000 + return_value;
-    }
+   // return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES256);
+   // if(return_value) {
+   //     return 20000 + return_value;
+   // }
 
 #ifndef T_COSE_DISABLE_ES384
     return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES384);

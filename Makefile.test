@@ -1,4 +1,4 @@
-# Makefile -- UNIX-style make for t_cose
+# Makefile -- UNIX-style make for no-crypto test config for t_cose
 #
 # Copyright (c) 2019, Laurence Lundblade. All rights reserved.
 #
@@ -22,8 +22,10 @@ QCBOR_LIB=../../QCBOR/master/libqcbor.a
 # ---- crypto configuration -----
 # Uses only the internal Brad Conte hash implementation that is bundled with t_cose
 CRYPTO_INC=-I crypto_adapters/b_con_hash
-CRYPTO_OBJ=crypto_adapters/t_cose_test_crypto.o crypto_adapters/b_con_hash/sha256.o
 CRYPTO_LIB=
+CRYPTO_CONFIG_OPTS=-DT_COSE_USE_B_CON_SHA256 
+CRYPTO_OBJ=crypto_adapters/t_cose_test_crypto.o crypto_adapters/b_con_hash/sha256.o
+CRYPTO_TEST_OBJ=
 
 
 # ---- compiler configuration -----
@@ -31,26 +33,25 @@ C_OPTS=-Os -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
 
 
 # ---- T_COSE Config and test options ----
-CONFIG_OPTS=-DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_USE_B_CON_SHA256 -DT_COSE_DISABLE_SIGN_VERIFY_TESTS
-CRYPTO_TEST_OBJ=
+TEST_CONFIG_OPTS=-DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS
 TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_make_test_messages.o $(CRYPTO_TEST_OBJ)
 
 
 # ---- the main body that is invariant ----
 INC=-I inc -I Test  -I src
 ALL_INC=$(CRYPTO_INC) $(QCBOR_INC) $(INC) 
-CFLAGS=$(ALL_INC) $(C_OPTS) $(CONFIG_OPTS)
+CFLAGS=$(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
 
 SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o
 
-all:	t_cose_test libt_cose.a
+all:	libt_cose.a t_cose_test
 
 
 libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
 	ar -r $@ $^
 
 
-t_cose_test: main.o  libt_cose.a $(TEST_OBJ)
+t_cose_test: main.o $(TEST_OBJ) libt_cose.a 
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB) libt_cose.a
 
 

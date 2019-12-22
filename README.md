@@ -31,8 +31,9 @@ have to run in small fixed memory.
 
 ## Code Status
 
-As of October 2019, the code is in reasonable working order and the public interface is 
-fairly stable. There is a crypto adaptaion layer for [OpenSSL](https://www.openssl.org).
+As of December 2019, the code is in reasonable working order and the public interface is 
+fairly stable. There is a crypto adaptaion layer for [OpenSSL](https://www.openssl.org) 
+and for [Arm MBed Crypto](https://github.com/ARMmbed/mbed-crypto).
 
 ### The to-do list:
 * Add some more tests, particular test vectors from C_COSE or such
@@ -82,18 +83,17 @@ and do:
     make -f Makefile.ossl
 
 The specific things that Makefile.ossl does is:
-* #defines T_COSE_USE_OPENSSL_CRYPTO 
 * Links the crypto_adapters/t_cose_openssl_crypto.o into libt_cose.a
 * Links test/test/t_cose_make_openssl_test_key.o into the test binary
+* `#define T_COSE_USE_OPENSSL_CRYPTO` 
 
 Note that the internally supplied b_con_hash is not used in this case
 by virtue of the Makefile not linking to it.
 
 #### PSA Crypto -- Makefile.psa
 
-This makes use of crypto libraries supporting the PSA cryptographic
-interface found in psa/crypto.h as a part of Arm's TF-M and perhaps
-others.
+This build configuration works for Arm PSA Crypto compatible libraries
+like the MBed Crypto Library. 
 
 This integration supports SHA-256, SHA-384 and SHA-512 with ECDSA to support
 the COSE algorithms ES256, ES384 and ES512. It is a full implementation but
@@ -104,13 +104,45 @@ PSA-compatible cryptographic library and do:
 
     make -f Makefile.psa
     
-The specific things that Makefile.ossl does is:
+The specific things that Makefile.psa does is:
     * Links the crypto_adapters/t_cose_psa_crypto.o into libt_cose.a
     * Links test/test/t_cose_make_psa_test_key.o into the test binary
-    * (No #defines needed, all adaptation is through the above object files)   
+    * `#define T_COSE_USE_PSA_CRYPTO`   
 
 Note that the internally supplied b_con_hash is not used in this case
 by virtue of the Makefile not linking to it.
+
+Following are some notes on things discovered doing this integration.
+
+PSA Crypto is an API that Arm is standardizing. As of December 2019
+it is close to complete after some years of development. It seems
+the 1.0 version is soon to be released. The API has
+evolved over these years and some of the earlier versions are not
+compatible with the current ones. There are commercial implementations
+using earlier APIs so this variation must be handled by the crypto 
+adpatation layer here. There are no official mechanisms, like a 
+#define to help handle variations in these older versions.
+
+The MBed Crypto Library is an implementation of the PSA Crypto API and
+is versions separately. Presumably there are or will be implementations of
+the PSA Crypto API that are not the MBed Crypto Library.
+
+t_cose has been made to work against the released 1.1.0 version of
+MBed released in June 2019 and the 2.0.0 version released in September
+2019. Also, it works against the 1.1 version that is in TF-M which has
+different internals than the 1.1.0 version on the public GitHub. 
+
+The PSA Crypto API in MBed 1.1.0 is different from that in MBed 2.0.0.
+t_cose has one configuration that covers both which hinges off a 
+#define that happens to occur in 1.1.0 and not in 2.0.0. It can auto-detect
+which is which so you shouldn't have to worry about it. To overide
+the auto-detect `#define T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11`
+or `#define T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO20`.
+
+Presumably, this will soon become less messy with the release of 
+PSA Crypto 1.0. Presumably the older implementations like MBed
+Crypto 1.1 will stop being used. Also, PSA Crypto 1.0 has 
+official #defines to manage API versions.
 
 ### General Crypto Library Strategy
 

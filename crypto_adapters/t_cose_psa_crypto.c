@@ -5,7 +5,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * See BSD-3-Clause license in README.mdE.
+ * See BSD-3-Clause license in README.md
  */
 
 
@@ -35,7 +35,26 @@
 
 
 #include "t_cose_crypto.h"  /* The interface this implements */
-#include "psa/crypto.h"         /* PSA / TF_M crypto */
+#include "psa/crypto.h"     /* PSA Crypto Interface to mbed crypto or such */
+
+
+/* Here's the auto-detect and manual override logic for managing PSA
+ * Crypto API compatibility.
+ *
+ * PSA_GENERATOR_UNBRIDLED_CAPACITY happens to be defined in MBed
+ * Crypto 1.1 and not in MBed Crypto 2.0 so it is what auto-detect
+ * hinges off of.
+ *
+ * T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO20 can be defined to force
+ * setting to MBed Crypto 2.0
+ *
+ * T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11 can be defined to force
+ * setting to MBed Crypt 1.1. It is also what the code below hinges
+ * on.
+ */
+#if defined(PSA_GENERATOR_UNBRIDLED_CAPACITY) && !defined(T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO20)
+#define T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11
+#endif
 
 
 /* Avoid compiler warning due to unused argument */
@@ -81,7 +100,7 @@ static enum t_cose_err_t psa_status_to_t_cose_error_signing(psa_status_t err)
            err == PSA_ERROR_NOT_SUPPORTED       ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
            err == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
            err == PSA_ERROR_TAMPERING_DETECTED  ? T_COSE_ERR_TAMPERING_DETECTED :
-                                                  T_COSE_ERR_FAIL;
+                                                  T_COSE_ERR_SIG_FAIL;
 }
 
 
@@ -124,6 +143,15 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
 
     verification_key_psa = (psa_key_handle_t)verification_key.k.key_handle;
 
+
+    /* The official PSA Crypto API expected to be formally set in 2020
+     * uses psa_verify_hash() instead of psa_asymmetric_verify().
+     * This older API is used because Mbed Crypto 2.0 provides
+     * backwards compatibility to this with crypto_compat.h and there
+     * is no forward compatibility in the other direction. If Mbed
+     * Crypto ceases providing backwards compatibility then this code
+     * has to be changed to use psa_verify_hash().
+     */
     psa_result = psa_asymmetric_verify(verification_key_psa,
                                        psa_alg_id,
                                        hash_to_verify.ptr,
@@ -173,8 +201,16 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
 
     signing_key_psa = (psa_key_handle_t)signing_key.k.key_handle;
 
-    /* It is assumed that psa_asymmetric_sign() is checking
-     * signature_buffer length and won't write off the end of it.
+    /* It is assumed that this call is checking the signature_buffer
+     * length and won't write off the end of it.
+     */
+    /* The official PSA Crypto API expected to be formally set in 2020
+     * uses psa_sign_hash() instead of psa_asymmetric_sign().  This
+     * older API is used because Mbed Crypto 2.0 provides backwards
+     * compatibility to this crypto_compat.h and there is no forward
+     * compatibility in the other direction. If Mbed Crypto ceases
+     * providing backwards compatibility then this code has to be
+     * changed to use psa_sign_hash().
      */
     psa_result = psa_asymmetric_sign(signing_key_psa,
                                      psa_alg_id,
@@ -206,7 +242,6 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
 {
     enum t_cose_err_t return_value;
     psa_key_handle_t  signing_key_psa;
-    psa_key_type_t    key_type;
     size_t            key_len_bits;
     size_t            key_len_bytes;
 
@@ -225,11 +260,35 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
 
     signing_key_psa = (psa_key_handle_t)signing_key.k.key_handle;
 
+#ifdef T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11
+    /* This code is for MBed Crypto 1.1. It uses an older version of
+     * the PSA Crypto API that is not compatible with the new
+     * versions. When all environments (particularly TF-M) are on the
+     * latest API, this code will no longer be necessary.
+     */
+
+    psa_key_type_t    key_type;
+
     psa_status_t status = psa_get_key_information(signing_key_psa,
                                                   &key_type,
                                                   &key_len_bits);
 
     (void)key_type; /* Avoid unused parameter error */
+
+#else /* T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11 */
+    /* This code is for Mbed Crypto 2.0 circa 2019. The PSA Crypto API
+     * is supposed to be offically locked down in 2020 and should be
+     * very close to this, so this is likely the code to use with MBed
+     * Crypto going forward.
+     */
+
+    psa_key_attributes_t key_attributes = psa_key_attributes_init();
+
+    psa_status_t status = psa_get_key_attributes(signing_key_psa, &key_attributes);
+
+    key_len_bits = psa_get_key_bits(&key_attributes);
+
+#endif /* T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11 */
 
     return_value = psa_status_to_t_cose_error_signing(status);
     if(return_value == T_COSE_SUCCESS) {
@@ -299,40 +358,16 @@ psa_status_to_t_cose_error_hash(psa_status_t status)
 enum t_cose_err_t t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
                                            int32_t cose_hash_alg_id)
 {
-    /* Here's how t_cose_crypto_hash is used with PSA hashes.
-     *
-     * If you look inside psa_hash.handle is just a uint32_t that is
-     * used as a handle. To avoid modifying t_cose_crypto.h in a
-     * PSA-specific way, this implementation just copies the PSA
-     * handle from the generic t_cose_crypto_hash on entry to a hash
-     * function, and back on exit.
-     *
-     * This could have been implemented by modifying t_cose_crypto.h
-     * so that psa_hash_operation_t is a member of t_cose_crypto_hash.
-     * It's nice to not have to modify t_cose_crypto.h.
-     *
-     * This would have been cleaner if psa_hash_operation_t didn't
-     * exist and the PSA crypto just used a plain pointer or integer
-     * handle.  If psa_hash_operation_t is changed to be different
-     * than just the single uint32_t, then this code has to change.
-     *
-     * The status member of t_cose_crypto_hash is used to hold a
-     * psa_status_t error code.
-     */
-    psa_hash_operation_t psa_hash;
     psa_algorithm_t      psa_alg;
 
     /* Map the algorithm ID */
     psa_alg = cose_hash_alg_id_to_psa(cose_hash_alg_id);
 
     /* initialize PSA hash context */
-    psa_hash = (psa_hash_operation_t){0};
+    hash_ctx->ctx = psa_hash_operation_init();
 
     /* Actually do the hash set up */
-    hash_ctx->status = psa_hash_setup(&psa_hash, psa_alg);
-
-    /* Copy the PSA handle back into the context */
-    hash_ctx->context.handle = psa_hash.handle;
+    hash_ctx->status = psa_hash_setup(&(hash_ctx->ctx), psa_alg);
 
     /* Map errors and return */
     return psa_status_to_t_cose_error_hash((psa_status_t)hash_ctx->status);
@@ -345,12 +380,6 @@ enum t_cose_err_t t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
 void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
                                struct q_useful_buf_c      data_to_hash)
 {
-    /* See t_cose_crypto_hash_start() for context handling details */
-    psa_hash_operation_t psa_hash;
-
-    /* Copy the PSA handle out of the generic context */
-    psa_hash.handle = (uint32_t)hash_ctx->context.handle;
-
     if(hash_ctx->status != PSA_SUCCESS) {
         /* In error state. Nothing to do. */
         return;
@@ -365,15 +394,9 @@ void t_cose_crypto_hash_update(struct t_cose_crypto_hash *hash_ctx,
     }
 
     /* Actually hash the data */
-    hash_ctx->status = psa_hash_update(&psa_hash,
+    hash_ctx->status = psa_hash_update(&(hash_ctx->ctx),
                                        data_to_hash.ptr,
                                        data_to_hash.len);
-
-    /* Copy the PSA handle back into the context because a non const
-     * reference is passed to psa_hash_update(). If it was const, this
-     * line of code could be deleted.
-     */
-    hash_ctx->context.handle = psa_hash.handle;
 }
 
 
@@ -385,33 +408,19 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
                           struct q_useful_buf        buffer_to_hold_result,
                           struct q_useful_buf_c     *hash_result)
 {
-    /* See t_cose_crypto_hash_start() for context handling details */
-    psa_hash_operation_t psa_hash;
-    psa_status_t         status;
-
-    /* Copy the PSA handle out of the generic context */
-    psa_hash.handle = (uint32_t)hash_ctx->context.handle;
-    status = (psa_status_t)hash_ctx->status;
-
-    if(status != PSA_SUCCESS) {
+    if(hash_ctx->status != PSA_SUCCESS) {
         /* Error state. Nothing to do */
         goto Done;
     }
 
     /* Actually finish up the hash */
-    status = psa_hash_finish(&psa_hash,
-                              buffer_to_hold_result.ptr,
-                              buffer_to_hold_result.len,
-                            &(hash_result->len));
+    hash_ctx->status = psa_hash_finish(&(hash_ctx->ctx),
+                                         buffer_to_hold_result.ptr,
+                                         buffer_to_hold_result.len,
+                                       &(hash_result->len));
 
     hash_result->ptr = buffer_to_hold_result.ptr;
 
-    /* Copy the PSA handle back into the context because a non const
-     * reference is passed to psa_hash_finish(). If it was const, this
-     * line of code could be deleted.
-     */
-    hash_ctx->context.handle = psa_hash.handle;
-
 Done:
-    return psa_status_to_t_cose_error_hash(status);
+    return psa_status_to_t_cose_error_hash(hash_ctx->status);
 }
