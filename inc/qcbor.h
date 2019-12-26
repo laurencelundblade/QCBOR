@@ -1432,7 +1432,13 @@ static void QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx, int64_
 
  For example, 273.15 is represented by the two integers 27315 and -2.
 
- Much larger and much smaller numbers can also be represetned than floating
+ The exponent and mantissa are passed in as int64_t, but CBOR preferred
+ encoding is used and they will be encoded smaller if no precision is lost.
+ An exponent or mantissa as a uint64_t is not supported by this implementation
+ even though it is allowed by CBOR (this saves some code and reduces
+ interface complexity). Decoding uint64_t is supported.
+ 
+ Much larger and much smaller numbers can also be represented than floating
  point because of the larger number of bits in the exponent.
 
  There is no representation of positive or negative infinity or NaN (not a
@@ -1506,6 +1512,9 @@ static void QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
 
  The exponent and mantissa are passed in as int64_t, but CBOR preferred
  encoding is used and they will be encoded smaller if no precision is lost.
+ An exponent or mantissa as a uint64_t is not supported by this implementation
+ even though it is allowed by CBOR (this saves some code and reduces
+ interface complexity). Decoding uint64_t is supported.
 
  This can also be used to represent floating point numbers
  in environments that don't support IEEE 754.

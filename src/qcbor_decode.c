@@ -926,8 +926,8 @@ Done:
 
 
 /*
- Returns an error if there was something wrong with the optional item or it couldn't
- be handled.
+ Gets all optional tag data items preceding a data item that is not an
+ optional tag and records them as bits in the tag map.
  */
 static QCBORError GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
 {
@@ -938,6 +938,7 @@ static QCBORError GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecoded
       pTags->uNumUsed = 0;
    }
 
+   // Loop fetching items until the item fetched is not a tag
    for(;;) {
       nReturn = GetNext_FullItem(me, pDecodedItem);
       if(nReturn) {
@@ -977,32 +978,6 @@ static QCBORError GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecoded
          pTags->puTags[pTags->uNumUsed] = pDecodedItem->val.uTagV;
          pTags->uNumUsed++;
       }
-   }
-
-   switch(pDecodedItem->uTagBits & TAG_MAPPER_FIRST_FOUR) {
-      case 0:
-         // No tags at all or none we know about. Nothing to do.
-         // This is part of the pass-through path of this function
-         // that will mostly be taken when decoding any item.
-         break;
-
-      case QCBOR_TAGFLAG_DATE_STRING:
-         nReturn = DecodeDateString(pDecodedItem);
-         break;
-
-      case QCBOR_TAGFLAG_DATE_EPOCH:
-         nReturn = DecodeDateEpoch(pDecodedItem);
-         break;
-
-      case QCBOR_TAGFLAG_POS_BIGNUM:
-      case QCBOR_TAGFLAG_NEG_BIGNUM:
-         nReturn = DecodeBigNum(pDecodedItem);
-         break;
-
-      default:
-         // Encountering some mixed up CBOR like something that
-         // is tagged as both a string and integer date.
-         nReturn = QCBOR_ERR_BAD_OPT_TAG;
    }
 
 Done:
@@ -1210,18 +1185,22 @@ QCBORError QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pD
       nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
-   if(exponentItem.uDataType != QCBOR_TYPE_INT64) {
+   if(exponentItem.uDataType == QCBOR_TYPE_INT64) {
+      // Data arriving as an unsigned in < INT64_MAX will be converted
+      // to QCBOR_TYPE_INT64 and thus handled here. This is also means
+      // that QCBOR_TYPE_UINT64 unsigned data will be too large for this to handle
+      // and thus an error that will get handled in the next else.
+      pDecodedItem->val.expAndMantissa.nExponent = exponentItem.val.int64;
+   } else {
       // Exponent is not of the right type
       nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
-   // Correctly got the exponent
-   pDecodedItem->val.expAndMantissa.nExponent = exponentItem.val.int64;
 
 
    // --- Get the mantissa ---
    QCBORItem mantissaItem;
-   nReturn = QCBORDecode_GetNextMapOrArray(me, &mantissaItem, pTags);
+   nReturn = QCBORDecode_GetNextWithTags(me, &mantissaItem, pTags);
    if(nReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -1231,9 +1210,12 @@ QCBORError QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pD
       goto Done;
    }
    if(mantissaItem.uDataType == QCBOR_TYPE_INT64) {
-      // Got an good int64 mantissa
+      // Data arriving as an unsigned in < INT64_MAX will be converted
+      // to QCBOR_TYPE_INT64 and thus handled here. This is also means
+      // that QCBOR_TYPE_UINT64 data will be too large for this to handle
+      // and thus an error that will get handled in the next error else.
       pDecodedItem->val.expAndMantissa.Mantissa.nInt = mantissaItem.val.int64;
-   } else if(mantissaItem.uDataType == QCBOR_TYPE_POSBIGNUM || mantissaItem.uDataType == QCBOR_TYPE_NEGBIGNUM) {
+   }  else if(mantissaItem.uDataType == QCBOR_TYPE_POSBIGNUM || mantissaItem.uDataType == QCBOR_TYPE_NEGBIGNUM) {
       // Got a good big num mantissa
       pDecodedItem->val.expAndMantissa.Mantissa.bigNum = mantissaItem.val.bigNum;
       // Depends on numbering of QCBOR_TYPE_XXX
@@ -1252,10 +1234,7 @@ QCBORError QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pD
    }
 
 Done:
-   if(nReturn != QCBOR_SUCCESS) {
-      pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
-      pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
-   }
+
   return nReturn;
 }
 
@@ -1276,13 +1255,31 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
       goto Done;
    }
 
+   // TODO: use fast flag-based check instead of IsTagged
    if(QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION) ||
       QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_BIGFLOAT)) {
 
       nReturn = QCBORDecode_MantissaAndExponent(me, pDecodedItem, pTags);
+
+   } else if(QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_DATE_STRING)) {
+
+      nReturn = DecodeDateString(pDecodedItem);
+
+   } else if(QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_DATE_EPOCH)) {
+
+      nReturn = DecodeDateEpoch(pDecodedItem);
+
+   } else if(QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_POS_BIGNUM) ||
+             QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_NEG_BIGNUM)) {
+
+      nReturn = DecodeBigNum(pDecodedItem);
    }
 
 Done:
+   if(nReturn != QCBOR_SUCCESS) {
+      pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
+      pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
+   }
    return nReturn;
 }
 
