@@ -14,6 +14,17 @@
 		E73B575E2161CA7C0080D658 /* float_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B575A2161CA7C0080D658 /* float_tests.c */; };
 		E73B575F2161CA7C0080D658 /* half_to_double_from_rfc7049.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B575D2161CA7C0080D658 /* half_to_double_from_rfc7049.c */; };
 		E73B57652161F8F80080D658 /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B57632161F8F70080D658 /* run_tests.c */; };
+		E772021723B52C02006E966E /* qcbor_encode.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E08C214AE07400E67947 /* qcbor_encode.c */; };
+		E772021823B52C02006E966E /* ieee754.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B57582161CA690080D658 /* ieee754.c */; };
+		E772021923B52C02006E966E /* half_to_double_from_rfc7049.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B575D2161CA7C0080D658 /* half_to_double_from_rfc7049.c */; };
+		E772021A23B52C02006E966E /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B57632161F8F70080D658 /* run_tests.c */; };
+		E772021B23B52C02006E966E /* qcbor_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E08E214AE07500E67947 /* qcbor_decode.c */; };
+		E772021C23B52C02006E966E /* float_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E73B575A2161CA7C0080D658 /* float_tests.c */; };
+		E772021D23B52C02006E966E /* qcbor_decode_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEB5216CE6CA00BA646B /* qcbor_decode_tests.c */; };
+		E772021E23B52C02006E966E /* UsefulBuf.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E08D214AE07500E67947 /* UsefulBuf.c */; };
+		E772021F23B52C02006E966E /* qcbor_encode_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEB8216DC7AD00BA646B /* qcbor_encode_tests.c */; };
+		E772022023B52C02006E966E /* cmd_line_main.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E096214AE0C700E67947 /* cmd_line_main.c */; };
+		E772022123B52C02006E966E /* UsefulBuf_Tests.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FA9BEBC216DE31700BA646B /* UsefulBuf_Tests.c */; };
 		E776E08F214AE07500E67947 /* qcbor_encode.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E08C214AE07400E67947 /* qcbor_encode.c */; };
 		E776E090214AE07500E67947 /* UsefulBuf.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E08D214AE07500E67947 /* UsefulBuf.c */; };
 		E776E091214AE07500E67947 /* qcbor_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = E776E08E214AE07500E67947 /* qcbor_decode.c */; };
@@ -21,6 +32,15 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		E772022323B52C02006E966E /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		E776E07A214ADF7F00E67947 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -48,6 +68,7 @@
 		E73B575D2161CA7C0080D658 /* half_to_double_from_rfc7049.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = half_to_double_from_rfc7049.c; path = test/half_to_double_from_rfc7049.c; sourceTree = "<group>"; };
 		E73B57632161F8F70080D658 /* run_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = run_tests.c; path = test/run_tests.c; sourceTree = "<group>"; tabWidth = 3; };
 		E73B57642161F8F80080D658 /* run_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = run_tests.h; path = test/run_tests.h; sourceTree = "<group>"; };
+		E772022723B52C02006E966E /* QCBOR_Disable_Exp_Mantissa */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = QCBOR_Disable_Exp_Mantissa; sourceTree = BUILT_PRODUCTS_DIR; };
 		E776E07C214ADF7F00E67947 /* QCBOR */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = QCBOR; sourceTree = BUILT_PRODUCTS_DIR; };
 		E776E08C214AE07400E67947 /* qcbor_encode.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_encode.c; path = src/qcbor_encode.c; sourceTree = "<group>"; tabWidth = 3; };
 		E776E08D214AE07500E67947 /* UsefulBuf.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = UsefulBuf.c; path = src/UsefulBuf.c; sourceTree = "<group>"; tabWidth = 3; };
@@ -59,6 +80,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		E772022223B52C02006E966E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E776E079214ADF7F00E67947 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -85,6 +113,7 @@
 			isa = PBXGroup;
 			children = (
 				E776E07C214ADF7F00E67947 /* QCBOR */,
+				E772022723B52C02006E966E /* QCBOR_Disable_Exp_Mantissa */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -133,6 +162,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		E772021523B52C02006E966E /* QCBOR_Disable_Exp_Mantissa */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E772022423B52C02006E966E /* Build configuration list for PBXNativeTarget "QCBOR_Disable_Exp_Mantissa" */;
+			buildPhases = (
+				E772021623B52C02006E966E /* Sources */,
+				E772022223B52C02006E966E /* Frameworks */,
+				E772022323B52C02006E966E /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = QCBOR_Disable_Exp_Mantissa;
+			productName = QCBOR;
+			productReference = E772022723B52C02006E966E /* QCBOR_Disable_Exp_Mantissa */;
+			productType = "com.apple.product-type.tool";
+		};
 		E776E07B214ADF7F00E67947 /* QCBOR */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E776E083214ADF7F00E67947 /* Build configuration list for PBXNativeTarget "QCBOR" */;
@@ -177,11 +223,30 @@
 			projectRoot = "";
 			targets = (
 				E776E07B214ADF7F00E67947 /* QCBOR */,
+				E772021523B52C02006E966E /* QCBOR_Disable_Exp_Mantissa */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		E772021623B52C02006E966E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E772021723B52C02006E966E /* qcbor_encode.c in Sources */,
+				E772021823B52C02006E966E /* ieee754.c in Sources */,
+				E772021923B52C02006E966E /* half_to_double_from_rfc7049.c in Sources */,
+				E772021A23B52C02006E966E /* run_tests.c in Sources */,
+				E772021B23B52C02006E966E /* qcbor_decode.c in Sources */,
+				E772021C23B52C02006E966E /* float_tests.c in Sources */,
+				E772021D23B52C02006E966E /* qcbor_decode_tests.c in Sources */,
+				E772021E23B52C02006E966E /* UsefulBuf.c in Sources */,
+				E772021F23B52C02006E966E /* qcbor_encode_tests.c in Sources */,
+				E772022023B52C02006E966E /* cmd_line_main.c in Sources */,
+				E772022123B52C02006E966E /* UsefulBuf_Tests.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E776E078214ADF7F00E67947 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -203,6 +268,33 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		E772022523B52C02006E966E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_UNDEFINED_BEHAVIOR_SANITIZER_INTEGER = YES;
+				CLANG_UNDEFINED_BEHAVIOR_SANITIZER_NULLABILITY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GCC_WARN_PEDANTIC = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		E772022623B52C02006E966E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_UNDEFINED_BEHAVIOR_SANITIZER_INTEGER = YES;
+				CLANG_UNDEFINED_BEHAVIOR_SANITIZER_NULLABILITY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GCC_WARN_PEDANTIC = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		E776E081214ADF7F00E67947 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -342,6 +434,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		E772022423B52C02006E966E /* Build configuration list for PBXNativeTarget "QCBOR_Disable_Exp_Mantissa" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E772022523B52C02006E966E /* Debug */,
+				E772022623B52C02006E966E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		E776E077214ADF7F00E67947 /* Build configuration list for PBXProject "QCBOR" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

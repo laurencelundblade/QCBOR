@@ -502,9 +502,9 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 /*
  Semi-public function. It is exposed to user of the interface,
- but they will usually call one of the inline wrappers rather than this.
+ but one of the inline wrappers will usually be called rather than this.
 
- See header qcbor.h
+ See qcbor.h
  */
 void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
                                         uint64_t            uTag,
@@ -513,18 +513,26 @@ void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
                                         int64_t             nMantissa,
                                         int64_t             nExponent)
 {
+   // This is for encoding either a big float or a decimal fraction,
+   // both of which are an array of two items, an exponent and a mantissa.
+   // The difference between the two is that the exponent is base-2 for
+   // big floats and base-10 for decimal fractions, but that has no
+   // effect on the code here.
    QCBOREncode_AddTag(pMe, uTag);
    QCBOREncode_OpenArray(pMe);
    QCBOREncode_AddInt64(pMe, nExponent);
    if(!UsefulBuf_IsNULLC(BigNumMantissa)) {
-      QCBOREncode_AddTag(pMe, bBigNumIsNegative ? CBOR_TAG_NEG_BIGNUM : CBOR_TAG_POS_BIGNUM);
-      QCBOREncode_AddBytes(pMe, BigNumMantissa);
+      if(bBigNumIsNegative) {
+         QCBOREncode_AddNegativeBignum(pMe, BigNumMantissa);
+      } else {
+         QCBOREncode_AddPositiveBignum(pMe, BigNumMantissa);
+      }
    } else {
       QCBOREncode_AddInt64(pMe, nMantissa);
    }
    QCBOREncode_CloseArray(pMe);
 }
-#endif
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
 /*

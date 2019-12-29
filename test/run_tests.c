@@ -101,11 +101,14 @@ static test_entry s_tests[] = {
     TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
     TEST_ENTRY(EncodeErrorTests),
     TEST_ENTRY(SetUpAllocatorTest),
-    TEST_ENTRY(ExponentAndMantissaDecodeTests),
-    TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
     TEST_ENTRY(SimpleValuesIndefiniteLengthTest1),
     TEST_ENTRY(EncodeLengthThirtyoneTest),
+#ifndef     QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+   TEST_ENTRY(EncodeLengthThirtyoneTest),
+    TEST_ENTRY(ExponentAndMantissaDecodeTests),
+    TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
     TEST_ENTRY(ExponentAndMantissaEncodeTests),
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 };
 
 

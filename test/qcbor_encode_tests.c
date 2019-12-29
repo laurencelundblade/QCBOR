@@ -90,7 +90,7 @@ static int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
 #endif
 
 
-
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 /*
  Returns 0 if UsefulBufs are equal
  Returns 1000000 + offeset if they are not equal.
@@ -119,7 +119,7 @@ static int32_t UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual, UsefulBufC Exp
    return 0;
 
 }
-
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
 // One big buffer that is used by all the tests to encode into
@@ -2364,7 +2364,7 @@ int EncodeErrorTests()
 }
 
 
-
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 /*
    [
       4([-1, 3]),
@@ -2375,8 +2375,6 @@ int EncodeErrorTests()
       5([-9223372036854775808, -4759477275222530853137])
  ]
  */
-
-
 static const uint8_t spExpectedExponentAndMantissaArray[] = {
    0x86, 0xC4, 0x82, 0x20, 0x03, 0xC4, 0x82, 0x33,
    0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
@@ -2392,7 +2390,7 @@ static const uint8_t spExpectedExponentAndMantissaArray[] = {
 
 
 /*
-{
+  {
     "decimal fraction": 4([-1, 3]),
     300: 4([-1, 3]),
     "decimal fraction bignum postive": 4([-200, 4759477275222530853136]),
@@ -2404,10 +2402,9 @@ static const uint8_t spExpectedExponentAndMantissaArray[] = {
     "big float bignum positive": 5([-20, 4759477275222530853136]),
     700: 5([-20, 4759477275222530853136]),
     "big float bignum negative": 5([-9223372036854775808, -4759477275222530853137]),
-    800: 5([-9223372036854775808, -4759477275222530853137])}
-
+    800: 5([-9223372036854775808, -4759477275222530853137])
+  }
  */
-
 static const uint8_t spExpectedExponentAndMantissaMap[] = {
    0xAC, 0x70, 0x64, 0x65, 0x63, 0x69, 0x6D, 0x61,
    0x6C, 0x20, 0x66, 0x72, 0x61, 0x63, 0x74, 0x69,
@@ -2461,16 +2458,19 @@ int ExponentAndMantissaEncodeTests()
    QCBOREncodeContext EC;
    UsefulBufC         EncodedExponentAndMantissa;
 
+   // Constant for the big number used in all the tests.
+   static const uint8_t spBigNum[] = {0x01, 0x02, 0x03, 0x04, 0x05,
+                                      0x06, 0x07, 0x08, 0x09, 0x010};
+   const UsefulBufC   BigNum = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum);
+
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenArray(&EC);
    QCBOREncode_AddDecimalFraction(&EC, 3, -1); // 3 * (10 ^ -1)
-   static const uint8_t spBigNum[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x010};
-   QCBOREncode_AddDecimalFractionBigNum(&EC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum), false, -20);
-   QCBOREncode_AddDecimalFractionBigNum(&EC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum), true, INT64_MAX);
-
+   QCBOREncode_AddDecimalFractionBigNum(&EC, BigNum , false, -20);
+   QCBOREncode_AddDecimalFractionBigNum(&EC, BigNum, true, INT64_MAX);
    QCBOREncode_AddBigFloat(&EC, 100, 300);
-   QCBOREncode_AddBigFloatBigNum(&EC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum), false, -20);
-   QCBOREncode_AddBigFloatBigNum(&EC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum), true, INT64_MIN);
+   QCBOREncode_AddBigFloatBigNum(&EC, BigNum, false, -20);
+   QCBOREncode_AddBigFloatBigNum(&EC, BigNum, true, INT64_MIN);
    QCBOREncode_CloseArray(&EC);
 
    if(QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa)) {
@@ -2486,59 +2486,67 @@ int ExponentAndMantissaEncodeTests()
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenMap(&EC);
-   QCBOREncode_AddDecimalFractionToMap(&EC, "decimal fraction", 3, -1); // 3 * (10 ^ -1)
-   QCBOREncode_AddDecimalFractionToMapN(&EC, 300, 3, -1); // 3 * (10 ^ -1)
+
+   QCBOREncode_AddDecimalFractionToMap(&EC, "decimal fraction", 3, -1);
+
+   QCBOREncode_AddDecimalFractionToMapN(&EC, 300, 3, -1);
 
    QCBOREncode_AddDecimalFractionBigNumToMap(&EC,
                                              "decimal fraction bignum postive",
-                                             UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                             BigNum,
                                              false,
                                              -200);
+
    QCBOREncode_AddDecimalFractionBigNumToMapN(&EC,
                                               400,
-                                              UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                              BigNum,
                                               false,
                                               INT32_MAX);
+
    QCBOREncode_AddDecimalFractionBigNumToMap(&EC,
                                              "decimal fraction bignum negative",
-                                             UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                             BigNum,
                                              true,
                                              INT64_MAX);
+
    QCBOREncode_AddDecimalFractionBigNumToMapN(&EC,
                                               500,
-                                              UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                              BigNum,
                                               true,
                                               INT64_MAX);
 
    QCBOREncode_AddBigFloatToMap(&EC, "big float", 100, 300);
+
    QCBOREncode_AddBigFloatToMapN(&EC, 600, 100, 300);
 
    QCBOREncode_AddBigFloatBigNumToMap(&EC,
                                       "big float bignum positive",
-                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                      BigNum,
                                       false,
                                       -20);
+
    QCBOREncode_AddBigFloatBigNumToMapN(&EC,
                                        700,
-                                       UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                       BigNum,
                                        false,
                                        -20);
 
    QCBOREncode_AddBigFloatBigNumToMap(&EC,
                                       "big float bignum negative",
-                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                      BigNum,
                                       true,
                                       INT64_MIN);
+
    QCBOREncode_AddBigFloatBigNumToMapN(&EC,
                                        800,
-                                       UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum),
+                                       BigNum,
                                        true,
                                        INT64_MIN);
 
    QCBOREncode_CloseMap(&EC);
 
    if(QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa)) {
-      return -2;
+      return -3;
    }
 
 
@@ -2548,9 +2556,10 @@ int ExponentAndMantissaEncodeTests()
                                              UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentAndMantissaMap),
                                              &Diag);
    if(nReturn) {
-      return nReturn + 1000000; // Add 1000000 to distinguish from first test above
+      return nReturn + 1000000; // +1000000 to distinguish from first test above
    }
 
    return 0;
 }
 
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */

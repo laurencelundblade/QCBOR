@@ -2171,7 +2171,7 @@ int OptTagParseTest()
    }
 
    if(QCBORDecode_GetNext(&DCtx, &Item)) {
-      return -4;
+      return -4; // TODO: fix this failure when QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA is defined
    }
 #ifdef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
    if(Item.uDataType != QCBOR_TYPE_ARRAY ||
@@ -3412,6 +3412,7 @@ int SetUpAllocatorTest(void)
 }
 
 
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 /*
   [
     4([-1, 3]),
@@ -3449,7 +3450,8 @@ int ExponentAndMantissaDecodeTests(void)
    QCBORError         nCBORError;
    QCBORItem          item;
 
-   static const uint8_t spBigNum[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x010};
+   static const uint8_t spBigNum[] = {0x01, 0x02, 0x03, 0x04, 0x05,
+                                      0x06, 0x07, 0x08, 0x09, 0x010};
    UsefulBufC BN = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum);
 
 
@@ -3554,7 +3556,7 @@ int ExponentAndMantissaDecodeTests(void)
    QCBOREncode_CloseArray(&EC);
    QCBOREncode_Finish(&EC, &Encoded);
 
-   
+
    QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
    nCBORError = QCBORDecode_GetNext(&DC, &item);
    if(nCBORError != QCBOR_SUCCESS) {
@@ -3597,7 +3599,6 @@ int ExponentAndMantissaDecodeTests(void)
    return 0;
 }
 
-// TODO: merge with master
 
 static struct FailInput ExponentAndMantissaFailures[] = {
    // Exponent > INT64_MAX
@@ -3641,3 +3642,4 @@ int ExponentAndMantissaDecodeFailTests()
                           sizeof(ExponentAndMantissaFailures)/sizeof(struct FailInput));
 }
 
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */

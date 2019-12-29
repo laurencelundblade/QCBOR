@@ -22,12 +22,12 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
   of memory usage making it good for embedded implementations that
   have to run in small fixed memory.
 
-**Supports nearly all of RFC 7049** – Only minor, corner-case parts of
-  RFC 7049 are not directly supported (canonicalization, decimal
-  fractions, big floats). Decoding indefinite length strings is supported,
-  but requires a string allocator (see documentation). Encoding indefinite
-  length strings is not supported, but is not necessary or
-  preferred.
+**Supports all of RFC 7049 except strict mode** – With some size limits,
+  all data types and formats specified are supported.  Decoding indefinite length
+  strings is supported, but requires a string allocator (see documentation). The most
+  notable part of RFC 7049 not supported is detection of duplicate keys in maps,
+  however, the duplicates are passed up to the caller so they can do 
+  duplicate detection.
 
 **Extensible and general** – Provides a way to handle data types that
   are not directly supported.
