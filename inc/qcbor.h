@@ -43,7 +43,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
-            llundblade      Add support for decimal fractions and big floats.
+            llundblade      Add support for decimal fractions and bigfloats.
  08/7/19    llundblade      Better handling of not well-formed encode and decode.
  07/31/19   llundblade      New error code for better end of data handling.
  7/25/19    janjongboom     Add indefinite length encoding for maps and arrays.
@@ -766,7 +766,7 @@ typedef enum {
        See also @ref QCBOR_ERR_HIT_END. */
    QCBOR_ERR_NO_MORE_ITEMS = 22,
 
-   /** Something is wrong with a decimal fraction or big float such as
+   /** Something is wrong with a decimal fraction or bigfloat such as
     it not consisting of an array with two integers */
    QCBOR_ERR_BAD_EXP_AND_MANTISSA = 23
 } QCBORError;
@@ -836,15 +836,15 @@ typedef enum {
     See QCBOREncode_AddDecimalFractionBigNum(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM 16
 
-/** A floating point number made of base-2 exponent and integer mantissa.
+/** A floating-point number made of base-2 exponent and integer mantissa.
     See QCBOREncode_AddBigFloat(). */
 #define QCBOR_TYPE_BIGFLOAT      17
 
-/** A floating point number made of base-2 exponent and positive big number mantissa.
+/** A floating-point number made of base-2 exponent and positive big number mantissa.
     See QCBOREncode_AddBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_POS_BIGNUM      18
 
-/** A floating point number made of base-2 exponent and negative big number mantissa.
+/** A floating-point number made of base-2 exponent and negative big number mantissa.
     See QCBOREncode_AddBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM      19
 
@@ -935,8 +935,8 @@ typedef struct _QCBORItem {
       /** The value for @c uDataType \ref QCBOR_TYPE_DECIMAL_FRACTION,
           \ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
           \ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,
-          \ref QCBOR_TYPE_BIG_FLOAT, \ref QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
-          \ref and QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM
+          \ref QCBOR_TYPE_BIGFLOAT, \ref QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+          and \ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM
        */
       struct {
          /** Base-10 for QCBOR_TYPE_DECIMAL_FRACTION_XXX,
@@ -1424,9 +1424,10 @@ static void QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx, int64_
  The value is nMantissa * 10 ^ nBase10Exponent.
 
  A decimal fraction is good for exact representation of some values
- that can't be represented exactly with floating point numbers.  Much
- larger and much smaller numbers can also be represented than floating
- point because of the larger number of bits in the exponent.
+ that can't be represented exactly with standard C (IEEE 754)
+ floating-point numbers.  Much larger and much smaller numbers can
+ also be represented than floating point because of the larger number
+ of bits in the exponent.
 
  The decimal fraction is conveyed as two integers, a mantissa and a
  base-10 scaling factor.
@@ -1435,17 +1436,17 @@ static void QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx, int64_
 
  The exponent and mantissa have the range from \c INT64_MIN to
  \c INT64_MAX for both encoding and decoding (CBOR allows \c -UINT64_MAX
- to \c UINT64_MAX, but this implementation does't support this range to
+ to \c UINT64_MAX, but this implementation doesn't support this range to
  reduce code size and interface complexity a little).
 
  Preferred encoding of the integers is used, thus they will be encoded
  in the smallest number of bytes possible.
 
  See also QCBOREncode_AddDecimalFractionBigNum() for a decimal
- fraction with aribtrarily large precision.
+ fraction with arbitrarily large precision.
 
  There is no representation of positive or negative infinity or NaN
- (not a number). Use QCBOREncode_AddDouble() to encode them.
+ (Not a Number). Use QCBOREncode_AddDouble() to encode them.
  */
 static void QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pCtx,
                                            int64_t             nMantissa,
@@ -1470,7 +1471,7 @@ static void QCBOREncode_AddDecimalFractionToMapN(QCBOREncodeContext *pCtx,
  @param[in] nBase10Exponent The exponent.
 
  This is the same as QCBOREncode_AddDecimalFraction() except the
- mantissa is a big number allowing for arbitrarily large precision.
+ mantissa is a big number (See QCBOREncode_AddPositiveBignum()) allowing for arbitrarily large precision.
  */
 static void QCBOREncode_AddDecimalFractionBigNum(QCBOREncodeContext *pCtx,
                                                  UsefulBufC          Mantissa,
@@ -1490,7 +1491,7 @@ static void QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
                                                        int64_t             nBase10Exponent);
 
 /**
- @brief Add a big floating point number to the encoded output.
+ @brief Add a big floating-point number to the encoded output.
 
  @param[in] pCtx            The encoding context to add the decimal fraction to.
  @param[in] nMantissa       The mantissa.
@@ -1498,7 +1499,7 @@ static void QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
 
  The value is nMantissa * 2 ^ nBase2Exponent.
 
- Bigfloats, as CBOR terms them, are similar to IEEE floating point
+ "Bigfloats", as CBOR terms them, are similar to IEEE floating-point
  numbers in having a mantissa and base-2 exponent, but they are not
  supported by hardware or encoded the same. They explicitly use two
  CBOR-encoded integers for the mantissa and exponent, each of which
@@ -1507,18 +1508,18 @@ static void QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
  IEEE double floating-point number. See
  QCBOREncode_AddBigFloatBigNum() for even more precision.
 
- For example 1.5 would be represented by a mantissa of 3 and an
+ For example, 1.5 would be represented by a mantissa of 3 and an
  exponent of -1.
 
- The exponent and mantissa have the range from \c INT64_MIN to 
+ The exponent and mantissa have the range from \c INT64_MIN to
  \c INT64_MAX for both encoding and decoding (CBOR allows \c -UINT64_MAX
- to \c UINT64_MAX, but this implementation does't support this range to
+ to \c UINT64_MAX, but this implementation doesn't support this range to
  reduce code size and interface complexity a little).
 
  Preferred encoding of the integers is used, thus they will be encoded
  in the smallest number of bytes possible.
 
- This can also be used to represent floating point numbers in
+ This can also be used to represent floating-point numbers in
  environments that don't support IEEE 754.
  */
 static void QCBOREncode_AddBigFloat(QCBOREncodeContext *pCtx,
@@ -1537,7 +1538,7 @@ static void QCBOREncode_AddBigFloatToMapN(QCBOREncodeContext *pCtx,
 
 
 /**
- @brief Add a big floating point number with a big number mantissa to the encoded output.
+ @brief Add a big floating-point number with a big number mantissa to the encoded output.
 
  @param[in] pCtx            The encoding context to add the decimal fraction to.
  @param[in] Mantissa        The mantissa.
@@ -1545,7 +1546,7 @@ static void QCBOREncode_AddBigFloatToMapN(QCBOREncodeContext *pCtx,
  @param[in] nBase2Exponent  The exponent.
 
  This is the same as QCBOREncode_AddBigFloat() except the mantissa is
- a big number allowing for arbitrary precision.
+ a big number (See QCBOREncode_AddPositiveBignum()) allowing for arbitrary precision.
  */
 static void QCBOREncode_AddBigFloatBigNum(QCBOREncodeContext *pCtx,
                                           UsefulBufC          Mantissa,
@@ -2746,7 +2747,7 @@ void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, size_t uSize, uint64_t uNum
 
 
 /**
- @brief  Semi-private method to add big floats and decimal fractions.
+ @brief  Semi-private method to add bigfloats and decimal fractions.
 
  @param[in] pCtx             The encoding context to add the value to.
  @param[in] uTag             The type 6 tag indicating what this is to be
