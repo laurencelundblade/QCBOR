@@ -247,6 +247,11 @@ static const uint16_t spBuiltInTagMap[] = {
                                QCBOR_TAGFLAG_DECIMAL_FRACTION |\
                                QCBOR_TAGFLAG_BIGFLOAT)
 
+#define TAG_MAPPER_FIRST_FOUR (QCBOR_TAGFLAG_DATE_STRING      |\
+                               QCBOR_TAGFLAG_DATE_EPOCH       |\
+                               QCBOR_TAGFLAG_POS_BIGNUM       |\
+                               QCBOR_TAGFLAG_NEG_BIGNUM)
+
 #define TAG_MAPPER_TOTAL_TAG_BITS 64 // Number of bits in a uint64_t
 #define TAG_MAPPER_CUSTOM_TAGS_BASE_INDEX (TAG_MAPPER_TOTAL_TAG_BITS - QCBOR_MAX_CUSTOM_TAGS) // 48
 #define TAG_MAPPER_MAX_SIZE_BUILT_IN_TAGS (TAG_MAPPER_TOTAL_TAG_BITS - QCBOR_MAX_CUSTOM_TAGS ) // 48
@@ -1159,7 +1164,18 @@ Done:
 
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
-static inline QCBORError QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+/*
+ Decode decimal fractions and big floats.
+
+ When called pDecodedItem must be the array that is tagged as a big
+ float or decimal fraction, the array that has the two members, the
+ exponent and mantissa.
+
+ This will fetch and decode the exponent and mantissa and put the
+ result back into pDecodedItem.
+ */
+inline static QCBORError
+QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    QCBORError nReturn;
 
@@ -1169,10 +1185,10 @@ static inline QCBORError QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me,
       goto Done;
    }
 
-   // A check for pDecodedItem->val.uCount == 2 would work
-   // for definite length arrays, but not for indefnite.
-   // Instead remember the nesting level the two integers
-   // must be at, which is one deeper than that of the array.
+   // A check for pDecodedItem->val.uCount == 2 would work for
+   //   definite length arrays, but not for indefnite.  Instead remember
+   //   the nesting level the two integers must be at, which is one
+   //   deeper than that of the array.
    const int nNestLevel = pDecodedItem->uNestingLevel + 1;
 
    // --- Is it a decimal fraction or a bigfloat? ---
@@ -1191,11 +1207,11 @@ static inline QCBORError QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me,
       goto Done;
    }
    if(exponentItem.uDataType == QCBOR_TYPE_INT64) {
-     // Data arriving as an unsigned int < INT64_MAX has been
-     // converted to QCBOR_TYPE_INT64 and thus handled here. This is
-     // also means that the only data arriving here of type
-     // QCBOR_TYPE_UINT64 data will be too large for this to handle and
-     // thus an error that will get handled in the next else.
+     // Data arriving as an unsigned int < INT64_MAX has been converted
+     // to QCBOR_TYPE_INT64 and thus handled here. This is also means
+     // that the only data arriving here of type QCBOR_TYPE_UINT64 data
+     // will be too large for this to handle and thus an error that will
+     // get handled in the next else.
      pDecodedItem->val.expAndMantissa.nExponent = exponentItem.val.int64;
    } else {
       // Wrong type of exponent or a QCBOR_TYPE_UINT64 > INT64_MAX
@@ -1215,11 +1231,11 @@ static inline QCBORError QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me,
       goto Done;
    }
    if(mantissaItem.uDataType == QCBOR_TYPE_INT64) {
-      // Data arriving as an unsigned int < INT64_MAX has been
-      // converted to QCBOR_TYPE_INT64 and thus handled here. This is
-      // also means that the only data arriving here of type
-      // QCBOR_TYPE_UINT64 data will be too large for this to handle and
-      // thus an error that will get handled in an else below.
+      // Data arriving as an unsigned int < INT64_MAX has been converted
+      // to QCBOR_TYPE_INT64 and thus handled here. This is also means
+      // that the only data arriving here of type QCBOR_TYPE_UINT64 data
+      // will be too large for this to handle and thus an error that
+      // will get handled in an else below.
       pDecodedItem->val.expAndMantissa.Mantissa.nInt = mantissaItem.val.int64;
    }  else if(mantissaItem.uDataType == QCBOR_TYPE_POSBIGNUM || mantissaItem.uDataType == QCBOR_TYPE_NEGBIGNUM) {
       // Got a good big num mantissa
@@ -1258,8 +1274,14 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecod
       goto Done;
    }
 
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#define TAG_MAPPER_FIRST_XXX TAG_MAPPER_FIRST_SIX
+#else
+#define TAG_MAPPER_FIRST_XXX TAG_MAPPER_FIRST_FOUR
+#endif
+
    // Only pay attention to tags this code knows how to decode.
-   switch(pDecodedItem->uTagBits & TAG_MAPPER_FIRST_SIX) {
+   switch(pDecodedItem->uTagBits & TAG_MAPPER_FIRST_XXX) {
       case 0:
          // No tags at all or none we know about. Nothing to do.
          // This is the pass-through path of this function

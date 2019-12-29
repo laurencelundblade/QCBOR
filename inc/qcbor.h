@@ -43,10 +43,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
+            llundblade      Add support for decimal fractions and big floats.
  08/7/19    llundblade      Better handling of not well-formed encode and decode.
  07/31/19   llundblade      New error code for better end of data handling.
  7/25/19    janjongboom     Add indefinite length encoding for maps and arrays.
-            llundblade      Support for decimal fractions and big floats.
  05/26/19   llundblade      Add QCBOREncode_GetErrorState() and _IsBufferNULL().
  04/26/19   llundblade      Big documentation & style update. No interface change.
  02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug.
@@ -836,15 +836,15 @@ typedef enum {
     See QCBOREncode_AddDecimalFractionBigNum(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM 16
 
-/** A floating point number made of base 2 exponent and integer mantissa.
+/** A floating point number made of base-2 exponent and integer mantissa.
     See QCBOREncode_AddBigFloat(). */
 #define QCBOR_TYPE_BIGFLOAT      17
 
-/** A floating point number made of base 2 exponent and positive big number mantissa.
+/** A floating point number made of base-2 exponent and positive big number mantissa.
     See QCBOREncode_AddBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_POS_BIGNUM      18
 
-/** A floating point number made of base 2 exponent and negative big number mantissa.
+/** A floating point number made of base-2 exponent and negative big number mantissa.
     See QCBOREncode_AddBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM      19
 
@@ -939,8 +939,8 @@ typedef struct _QCBORItem {
           \ref and QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM
        */
       struct {
-         /** Base 10 for QCBOR_TYPE_DECIMAL_FRACTION_XXX,
-             Base 2 for QCBOR_TYPE_BIG_FLOAT_XXX
+         /** Base-10 for QCBOR_TYPE_DECIMAL_FRACTION_XXX,
+             Base-2 for QCBOR_TYPE_BIG_FLOAT_XXX
           */
          int64_t nExponent;
          union {
@@ -2759,11 +2759,11 @@ void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, size_t uSize, uint64_t uNum
  mantissa can be either a big number or an int64_t.
  */
 void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pCtx,
-                            uint64_t            uTag,
-                            UsefulBufC          BigNumMantissa,
-                            bool                bBigNumIsNegative,
-                            int64_t             nMantissa,
-                            int64_t             nExponent);
+                                        uint64_t            uTag,
+                                        UsefulBufC          BigNumMantissa,
+                                        bool                bBigNumIsNegative,
+                                        int64_t             nMantissa,
+                                        int64_t             nExponent);
 
 /**
  @brief Semi-private method to add only the type and length of a byte string.

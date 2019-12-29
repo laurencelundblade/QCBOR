@@ -2171,8 +2171,9 @@ int OptTagParseTest()
    }
 
    if(QCBORDecode_GetNext(&DCtx, &Item)) {
-      return -4; // TODO: fix this failure when QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA is defined
+      return -4;
    }
+
 #ifdef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
    if(Item.uDataType != QCBOR_TYPE_ARRAY ||
       !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_DECIMAL_FRACTION) ||
@@ -2180,8 +2181,8 @@ int OptTagParseTest()
       return -5;
    }
 #else
-   if(Item.uDataType != 0x0e) { // TODO: fix the return code, part of decimal fraction decoding
-      return -5;
+   if(Item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION) {
+      return -6;
    }
 #endif
 
