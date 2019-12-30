@@ -42,7 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
- 6/xx/19            llundblade      Add support for decimal fractions and bigfloats.
+ 12/30/19           llundblade      Add support for decimal fractions and bigfloats.
  11/07/19           llundblade      Fix long long conversion to double compiler warning
  09/07/19           llundblade      Fix bug decoding empty arrays and maps
  07/31/19           llundblade      Decode error fixes for some not-well-formed CBOR

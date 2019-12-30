@@ -43,7 +43,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
-            llundblade      Add support for decimal fractions and bigfloats.
+ 12/30/19   llundblade      Add support for decimal fractions and bigfloats.
  08/7/19    llundblade      Better handling of not well-formed encode and decode.
  07/31/19   llundblade      New error code for better end of data handling.
  7/25/19    janjongboom     Add indefinite length encoding for maps and arrays.
@@ -616,10 +616,12 @@ struct _QCBORDecodeContext {
    @ref QCBOR_MAX_ARRAY_NESTING (this is typically 15).
  - Max items in an array or map when encoding / decoding is
    @ref QCBOR_MAX_ITEMS_IN_ARRAY (typically 65,536).
- - Does not directly support labels in maps other than text strings and integers.
+ - Does not directly support labels in maps other than text strings & integers.
  - Does not directly support integer labels greater than @c INT64_MAX.
  - Epoch dates limited to @c INT64_MAX (+/- 292 billion years).
+ - Exponents for bigfloats and decimal integers are limited to @c INT64_MAX.
  - Tags on labels are ignored during decoding.
+ - There is no duplicate detection of map labels (but duplicates are passed on).
  - Works only on 32- and 64-bit CPUs (modifications could make it work
    on 16-bit CPUs).
 
@@ -941,8 +943,8 @@ typedef struct _QCBORItem {
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
       /** @anchor expAndMantissa
 
-          The value for bigfloats and decimal fractions.  The fields
-          in the structure depend on @c uDataType.
+          The value for bigfloats and decimal fractions.  The use of the
+          fields in this structure depend on @c uDataType.
 
           When @c uDataType is a @c DECIMAL_FRACTION, the exponent is
           base-10. When it is a @c BIG_FLOAT it is base-2.
@@ -1459,16 +1461,16 @@ static void QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx, int64_
  to @c UINT64_MAX, but this implementation doesn't support this range to
  reduce code size and interface complexity a little).
 
- Preferred encoding of the integers is used, thus they will be encoded
+ CBOR Preferred encoding of the integers is used, thus they will be encoded
  in the smallest number of bytes possible.
 
  See also QCBOREncode_AddDecimalFractionBigNum() for a decimal
- fraction with arbitrarily large precision.
+ fraction with arbitrarily large precision and QCBOREncode_AddBigFloat().
 
  There is no representation of positive or negative infinity or NaN
  (Not a Number). Use QCBOREncode_AddDouble() to encode them.
 
- See @ref expAndMantissa for representation when decoded.
+ See @ref expAndMantissa for decoded representation.
  */
 static void QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pCtx,
                                            int64_t             nMantissa,
@@ -1496,7 +1498,7 @@ static void QCBOREncode_AddDecimalFractionToMapN(QCBOREncodeContext *pCtx,
  mantissa is a big number (See QCBOREncode_AddPositiveBignum())
  allowing for arbitrarily large precision.
 
- See @ref expAndMantissa for representation when decoded.
+ See @ref expAndMantissa for decoded representation.
  */
 static void QCBOREncode_AddDecimalFractionBigNum(QCBOREncodeContext *pCtx,
                                                  UsefulBufC          Mantissa,
@@ -1527,7 +1529,7 @@ static void QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
  "Bigfloats", as CBOR terms them, are similar to IEEE floating-point
  numbers in having a mantissa and base-2 exponent, but they are not
  supported by hardware or encoded the same. They explicitly use two
- CBOR-encoded integers for the mantissa and exponent, each of which
+ CBOR-encoded integers to convey the mantissa and exponent, each of which
  can be 8, 16, 32 or 64 bits. With both the mantissa and exponent
  64 bits they can express more precision and a larger range than an
  IEEE double floating-point number. See
@@ -1541,13 +1543,13 @@ static void QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
  to @c UINT64_MAX, but this implementation doesn't support this range to
  reduce code size and interface complexity a little).
 
- Preferred encoding of the integers is used, thus they will be encoded
+ CBOR Preferred encoding of the integers is used, thus they will be encoded
  in the smallest number of bytes possible.
 
  This can also be used to represent floating-point numbers in
  environments that don't support IEEE 754.
 
- See @ref expAndMantissa for representation when decoded.
+ See @ref expAndMantissa for decoded representation.
  */
 static void QCBOREncode_AddBigFloat(QCBOREncodeContext *pCtx,
                                     int64_t             nMantissa,
@@ -1577,7 +1579,7 @@ static void QCBOREncode_AddBigFloatToMapN(QCBOREncodeContext *pCtx,
  a big number (See QCBOREncode_AddPositiveBignum()) allowing for
  arbitrary precision.
 
- See @ref expAndMantissa for representation when decoded.
+ See @ref expAndMantissa for decoded representation.
  */
 static void QCBOREncode_AddBigFloatBigNum(QCBOREncodeContext *pCtx,
                                           UsefulBufC          Mantissa,
@@ -2782,13 +2784,18 @@ void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, size_t uSize, uint64_t uNum
 
  @param[in] pCtx             The encoding context to add the value to.
  @param[in] uTag             The type 6 tag indicating what this is to be
- @param[in] BigNumMantissa   Is @ref NULLUsefulBufC if mantissa is an int64_t or
-                             the actual big number mantissa if not.
+ @param[in] BigNumMantissa   Is @ref NULLUsefulBufC if mantissa is an
+                             @c int64_t or the actual big number mantissa
+                             if not.
  @param[in] nMantissa        The @c int64_t mantissa if it is not a big number.
  @param[in] nExponent        The exponent.
 
  This adds a tagged array with two members, the mantissa and exponent. The
- mantissa can be either a big number or an int64_t.
+ mantissa can be either a big number or an @c int64_t.
+
+ Typically, QCBOREncode_AddDecimalFraction(), QCBOREncode_AddBigFloat(),
+ QCBOREncode_AddDecimalFractionBigNum() or QCBOREncode_AddBigFloatBigNum()
+ is called instead of this.
  */
 void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pCtx,
                                         uint64_t            uTag,

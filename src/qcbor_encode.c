@@ -42,7 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
- 6/xx/19            llundblade      Add support for decimal fractions and bigfloats.
+ 12/30/19           llundblade      Add support for decimal fractions and bigfloats.
  8/7/19             llundblade      Prevent encoding simple type reserved values 24..31
  7/25/19            janjongboom     Add indefinite length encoding for maps and arrays
  4/6/19             llundblade      Wrapped bstr returned now includes the wrapping bstr

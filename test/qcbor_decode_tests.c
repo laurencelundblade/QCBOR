@@ -1546,7 +1546,7 @@ int NotWellFormedTests()
 
 struct FailInput {
    UsefulBufC Input;
-   int        nError;
+   QCBORError nError;
 };
 
 
