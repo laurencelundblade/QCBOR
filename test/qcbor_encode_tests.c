@@ -90,6 +90,37 @@ static int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
 #endif
 
 
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+/*
+ Returns 0 if UsefulBufs are equal
+ Returns 1000000 + offeset if they are not equal.
+
+
+
+*/
+struct UBCompareDiagnostic {
+   uint8_t uActual;
+   uint8_t uExpected;
+   size_t  uOffset;
+};
+
+static int32_t UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual, UsefulBufC Expected, struct UBCompareDiagnostic *pDiag) {
+   size_t i;
+   for(i = 0; i < Actual.len; i++) {
+      if(((uint8_t *)Actual.ptr)[i] != ((uint8_t *)Expected.ptr)[i]) {
+         if(pDiag) {
+            pDiag->uActual   = ((uint8_t *)Actual.ptr)[i];
+            pDiag->uExpected = ((uint8_t *)Expected.ptr)[i];
+            pDiag->uOffset   = i;
+         }
+         return (int32_t)i + 1000000; // Cast to int is OK as this is only a diagnostic and the sizes here are never over a few KB.
+      }
+   }
+   return 0;
+
+}
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
 
 // One big buffer that is used by all the tests to encode into
 // Putting it in uninitialized data is better than using a lot
@@ -2331,3 +2362,204 @@ int EncodeErrorTests()
 
    return 0;
 }
+
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+/*
+   [
+      4([-1, 3]),
+      4([-20, 4759477275222530853136]),
+      4([9223372036854775807, -4759477275222530853137]),
+      5([300, 100]),
+      5([-20, 4759477275222530853136]),
+      5([-9223372036854775808, -4759477275222530853137])
+ ]
+ */
+static const uint8_t spExpectedExponentAndMantissaArray[] = {
+   0x86, 0xC4, 0x82, 0x20, 0x03, 0xC4, 0x82, 0x33,
+   0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+   0x07, 0x08, 0x09, 0x10, 0xC4, 0x82, 0x1B, 0x7F,
+   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC3,
+   0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+   0x08, 0x09, 0x10, 0xC5, 0x82, 0x19, 0x01, 0x2C,
+   0x18, 0x64, 0xC5, 0x82, 0x33, 0xC2, 0x4A, 0x01,
+   0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+   0x10, 0xC5, 0x82, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF,
+   0xFF, 0xFF, 0xFF, 0xFF, 0xC3, 0x4A, 0x01, 0x02,
+   0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10};
+
+
+/*
+  {
+    "decimal fraction": 4([-1, 3]),
+    300: 4([-1, 3]),
+    "decimal fraction bignum postive": 4([-200, 4759477275222530853136]),
+    400: 4([2147483647, 4759477275222530853136]),
+    "decimal fraction bignum negative": 4([9223372036854775807, -4759477275222530853137]),
+    500: 4([9223372036854775807, -4759477275222530853137]),
+    "big float": 5([300, 100]),
+    600: 5([300, 100]),
+    "big float bignum positive": 5([-20, 4759477275222530853136]),
+    700: 5([-20, 4759477275222530853136]),
+    "big float bignum negative": 5([-9223372036854775808, -4759477275222530853137]),
+    800: 5([-9223372036854775808, -4759477275222530853137])
+  }
+ */
+static const uint8_t spExpectedExponentAndMantissaMap[] = {
+   0xAC, 0x70, 0x64, 0x65, 0x63, 0x69, 0x6D, 0x61,
+   0x6C, 0x20, 0x66, 0x72, 0x61, 0x63, 0x74, 0x69,
+   0x6F, 0x6E, 0xC4, 0x82, 0x20, 0x03, 0x19, 0x01,
+   0x2C, 0xC4, 0x82, 0x20, 0x03, 0x78, 0x1F, 0x64,
+   0x65, 0x63, 0x69, 0x6D, 0x61, 0x6C, 0x20, 0x66,
+   0x72, 0x61, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x20,
+   0x62, 0x69, 0x67, 0x6E, 0x75, 0x6D, 0x20, 0x70,
+   0x6F, 0x73, 0x74, 0x69, 0x76, 0x65, 0xC4, 0x82,
+   0x38, 0xC7, 0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04,
+   0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x19, 0x01,
+   0x90, 0xC4, 0x82, 0x1A, 0x7F, 0xFF, 0xFF, 0xFF,
+   0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+   0x07, 0x08, 0x09, 0x10, 0x78, 0x20, 0x64, 0x65,
+   0x63, 0x69, 0x6D, 0x61, 0x6C, 0x20, 0x66, 0x72,
+   0x61, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x20, 0x62,
+   0x69, 0x67, 0x6E, 0x75, 0x6D, 0x20, 0x6E, 0x65,
+   0x67, 0x61, 0x74, 0x69, 0x76, 0x65, 0xC4, 0x82,
+   0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+   0xFF, 0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05,
+   0x06, 0x07, 0x08, 0x09, 0x10, 0x19, 0x01, 0xF4,
+   0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF,
+   0xFF, 0xFF, 0xFF, 0xC3, 0x4A, 0x01, 0x02, 0x03,
+   0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x69,
+   0x62, 0x69, 0x67, 0x20, 0x66, 0x6C, 0x6F, 0x61,
+   0x74, 0xC5, 0x82, 0x19, 0x01, 0x2C, 0x18, 0x64,
+   0x19, 0x02, 0x58, 0xC5, 0x82, 0x19, 0x01, 0x2C,
+   0x18, 0x64, 0x78, 0x19, 0x62, 0x69, 0x67, 0x20,
+   0x66, 0x6C, 0x6F, 0x61, 0x74, 0x20, 0x62, 0x69,
+   0x67, 0x6E, 0x75, 0x6D, 0x20, 0x70, 0x6F, 0x73,
+   0x69, 0x74, 0x69, 0x76, 0x65, 0xC5, 0x82, 0x33,
+   0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+   0x07, 0x08, 0x09, 0x10, 0x19, 0x02, 0xBC, 0xC5,
+   0x82, 0x33, 0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04,
+   0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x78, 0x19,
+   0x62, 0x69, 0x67, 0x20, 0x66, 0x6C, 0x6F, 0x61,
+   0x74, 0x20, 0x62, 0x69, 0x67, 0x6E, 0x75, 0x6D,
+   0x20, 0x6E, 0x65, 0x67, 0x61, 0x74, 0x69, 0x76,
+   0x65, 0xC5, 0x82, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF,
+   0xFF, 0xFF, 0xFF, 0xFF, 0xC3, 0x4A, 0x01, 0x02,
+   0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
+   0x19, 0x03, 0x20, 0xC5, 0x82, 0x3B, 0x7F, 0xFF,
+   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC3, 0x4A,
+   0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+   0x09, 0x10
+};
+
+
+int ExponentAndMantissaEncodeTests()
+{
+   QCBOREncodeContext EC;
+   UsefulBufC         EncodedExponentAndMantissa;
+
+   // Constant for the big number used in all the tests.
+   static const uint8_t spBigNum[] = {0x01, 0x02, 0x03, 0x04, 0x05,
+                                      0x06, 0x07, 0x08, 0x09, 0x010};
+   const UsefulBufC   BigNum = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum);
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddDecimalFraction(&EC, 3, -1); // 3 * (10 ^ -1)
+   QCBOREncode_AddDecimalFractionBigNum(&EC, BigNum , false, -20);
+   QCBOREncode_AddDecimalFractionBigNum(&EC, BigNum, true, INT64_MAX);
+   QCBOREncode_AddBigFloat(&EC, 100, 300);
+   QCBOREncode_AddBigFloatBigNum(&EC, BigNum, false, -20);
+   QCBOREncode_AddBigFloatBigNum(&EC, BigNum, true, INT64_MIN);
+   QCBOREncode_CloseArray(&EC);
+
+   if(QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa)) {
+      return -2;
+   }
+
+   int nReturn = UsefulBuf_CompareWithDiagnostic(EncodedExponentAndMantissa,
+                                                 UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentAndMantissaArray),
+                                                 NULL);
+   if(nReturn) {
+      return nReturn;
+   }
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenMap(&EC);
+
+   QCBOREncode_AddDecimalFractionToMap(&EC, "decimal fraction", 3, -1);
+
+   QCBOREncode_AddDecimalFractionToMapN(&EC, 300, 3, -1);
+
+   QCBOREncode_AddDecimalFractionBigNumToMap(&EC,
+                                             "decimal fraction bignum postive",
+                                             BigNum,
+                                             false,
+                                             -200);
+
+   QCBOREncode_AddDecimalFractionBigNumToMapN(&EC,
+                                              400,
+                                              BigNum,
+                                              false,
+                                              INT32_MAX);
+
+   QCBOREncode_AddDecimalFractionBigNumToMap(&EC,
+                                             "decimal fraction bignum negative",
+                                             BigNum,
+                                             true,
+                                             INT64_MAX);
+
+   QCBOREncode_AddDecimalFractionBigNumToMapN(&EC,
+                                              500,
+                                              BigNum,
+                                              true,
+                                              INT64_MAX);
+
+   QCBOREncode_AddBigFloatToMap(&EC, "big float", 100, 300);
+
+   QCBOREncode_AddBigFloatToMapN(&EC, 600, 100, 300);
+
+   QCBOREncode_AddBigFloatBigNumToMap(&EC,
+                                      "big float bignum positive",
+                                      BigNum,
+                                      false,
+                                      -20);
+
+   QCBOREncode_AddBigFloatBigNumToMapN(&EC,
+                                       700,
+                                       BigNum,
+                                       false,
+                                       -20);
+
+   QCBOREncode_AddBigFloatBigNumToMap(&EC,
+                                      "big float bignum negative",
+                                      BigNum,
+                                      true,
+                                      INT64_MIN);
+
+   QCBOREncode_AddBigFloatBigNumToMapN(&EC,
+                                       800,
+                                       BigNum,
+                                       true,
+                                       INT64_MIN);
+
+   QCBOREncode_CloseMap(&EC);
+
+   if(QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa)) {
+      return -3;
+   }
+
+
+   struct UBCompareDiagnostic Diag;
+
+   nReturn = UsefulBuf_CompareWithDiagnostic(EncodedExponentAndMantissa,
+                                             UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentAndMantissaMap),
+                                             &Diag);
+   if(nReturn) {
+      return nReturn + 1000000; // +1000000 to distinguish from first test above
+   }
+
+   return 0;
+}
+
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */

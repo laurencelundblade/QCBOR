@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 12/30/19           llundblade      Add support for decimal fractions and bigfloats.
  8/7/19             llundblade      Prevent encoding simple type reserved values 24..31
  7/25/19            janjongboom     Add indefinite length encoding for maps and arrays
  4/6/19             llundblade      Wrapped bstr returned now includes the wrapping bstr
@@ -498,6 +499,43 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 }
 
 
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+/*
+ Semi-public function. It is exposed to the user of the interface, but
+ one of the inline wrappers will usually be called rather than this.
+
+ See qcbor.h
+ */
+void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
+                                        uint64_t            uTag,
+                                        UsefulBufC          BigNumMantissa,
+                                        bool                bBigNumIsNegative,
+                                        int64_t             nMantissa,
+                                        int64_t             nExponent)
+{
+
+   // This is for encoding either a big float or a decimal fraction,
+   // both of which are an array of two items, an exponent and a
+   // mantissa.  The difference between the two is that the exponent is
+   // base-2 for big floats and base-10 for decimal fractions, but that
+   // has no effect on the code here.
+   QCBOREncode_AddTag(pMe, uTag);
+   QCBOREncode_OpenArray(pMe);
+   QCBOREncode_AddInt64(pMe, nExponent);
+   if(!UsefulBuf_IsNULLC(BigNumMantissa)) {
+      if(bBigNumIsNegative) {
+         QCBOREncode_AddNegativeBignum(pMe, BigNumMantissa);
+      } else {
+         QCBOREncode_AddPositiveBignum(pMe, BigNumMantissa);
+      }
+   } else {
+      QCBOREncode_AddInt64(pMe, nMantissa);
+   }
+   QCBOREncode_CloseArray(pMe);
+}
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
+
 /*
  Semi-public function. It is exposed to user of the interface,
  but they will usually call one of the inline wrappers rather than this.
@@ -532,6 +570,7 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
       }
    }
 }
+
 
 /*
  Semi-public function. It is exposed to user of the interface,

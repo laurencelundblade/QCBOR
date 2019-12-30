@@ -235,4 +235,19 @@ int MemPoolTest(void);
 int SetUpAllocatorTest(void);
 
 
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+/*
+ Test decoding of decimal fractions and big floats, both of which are
+ made up of an exponent and mantissa.
+ */
+int ExponentAndMantissaDecodeTests(void);
+
+
+/*
+ Hostile input tests for decimal fractions and big floats.
+ */
+int ExponentAndMantissaDecodeFailTests(void);
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
+
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

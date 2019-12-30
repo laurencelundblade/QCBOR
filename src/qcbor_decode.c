@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when               who             what, where, why
  --------           ----            ---------------------------------------------------
+ 12/30/19           llundblade      Add support for decimal fractions and bigfloats.
  11/07/19           llundblade      Fix long long conversion to double compiler warning
  09/07/19           llundblade      Fix bug decoding empty arrays and maps
  07/31/19           llundblade      Decode error fixes for some not-well-formed CBOR
@@ -201,12 +202,12 @@ inline static void DecodeNesting_Init(QCBORDecodeNesting *pNesting)
  There are only 48 slots available forever.
  */
 static const uint16_t spBuiltInTagMap[] = {
-   CBOR_TAG_DATE_STRING, // See TAG_MAPPER_FIRST_FOUR
-   CBOR_TAG_DATE_EPOCH, // See TAG_MAPPER_FIRST_FOUR
-   CBOR_TAG_POS_BIGNUM, // See TAG_MAPPER_FIRST_FOUR
-   CBOR_TAG_NEG_BIGNUM, // See TAG_MAPPER_FIRST_FOUR
-   CBOR_TAG_FRACTION,
-   CBOR_TAG_BIGFLOAT,
+   CBOR_TAG_DATE_STRING, // See TAG_MAPPER_FIRST_SIX
+   CBOR_TAG_DATE_EPOCH, // See TAG_MAPPER_FIRST_SIX
+   CBOR_TAG_POS_BIGNUM, // See TAG_MAPPER_FIRST_SIX
+   CBOR_TAG_NEG_BIGNUM, // See TAG_MAPPER_FIRST_SIX
+   CBOR_TAG_DECIMAL_FRACTION, // See TAG_MAPPER_FIRST_SIX
+   CBOR_TAG_BIGFLOAT, // See TAG_MAPPER_FIRST_SIX
    CBOR_TAG_COSE_ENCRYPTO,
    CBOR_TAG_COSE_MAC0,
    CBOR_TAG_COSE_SIGN1,
@@ -230,17 +231,26 @@ static const uint16_t spBuiltInTagMap[] = {
 
 // This is used in a bit of cleverness in GetNext_TaggedItem() to
 // keep code size down and switch for the internal processing of
-// these types. This will break if the first four items in
-// spBuiltInTagMap don't have values 0,1,2,3. That is the
-// mapping is 0 to 0, 1 to 1, 2 to 2 and 3 to 3.
-#define QCBOR_TAGFLAG_DATE_STRING    (0x01LL << CBOR_TAG_DATE_STRING)
-#define QCBOR_TAGFLAG_DATE_EPOCH     (0x01LL << CBOR_TAG_DATE_EPOCH)
-#define QCBOR_TAGFLAG_POS_BIGNUM     (0x01LL << CBOR_TAG_POS_BIGNUM)
-#define QCBOR_TAGFLAG_NEG_BIGNUM     (0x01LL << CBOR_TAG_NEG_BIGNUM)
+// these types. This will break if the first six items in
+// spBuiltInTagMap don't have values 0,1,2,3,4,5. That is the
+// mapping is 0 to 0, 1 to 1, 2 to 2 and 3 to 3....
+#define QCBOR_TAGFLAG_DATE_STRING      (0x01LL << CBOR_TAG_DATE_STRING)
+#define QCBOR_TAGFLAG_DATE_EPOCH       (0x01LL << CBOR_TAG_DATE_EPOCH)
+#define QCBOR_TAGFLAG_POS_BIGNUM       (0x01LL << CBOR_TAG_POS_BIGNUM)
+#define QCBOR_TAGFLAG_NEG_BIGNUM       (0x01LL << CBOR_TAG_NEG_BIGNUM)
+#define QCBOR_TAGFLAG_DECIMAL_FRACTION (0x01LL << CBOR_TAG_DECIMAL_FRACTION)
+#define QCBOR_TAGFLAG_BIGFLOAT         (0x01LL << CBOR_TAG_BIGFLOAT)
 
-#define TAG_MAPPER_FIRST_FOUR (QCBOR_TAGFLAG_DATE_STRING |\
-                               QCBOR_TAGFLAG_DATE_EPOCH  |\
-                               QCBOR_TAGFLAG_POS_BIGNUM  |\
+#define TAG_MAPPER_FIRST_SIX (QCBOR_TAGFLAG_DATE_STRING       |\
+                               QCBOR_TAGFLAG_DATE_EPOCH       |\
+                               QCBOR_TAGFLAG_POS_BIGNUM       |\
+                               QCBOR_TAGFLAG_NEG_BIGNUM       |\
+                               QCBOR_TAGFLAG_DECIMAL_FRACTION |\
+                               QCBOR_TAGFLAG_BIGFLOAT)
+
+#define TAG_MAPPER_FIRST_FOUR (QCBOR_TAGFLAG_DATE_STRING      |\
+                               QCBOR_TAGFLAG_DATE_EPOCH       |\
+                               QCBOR_TAGFLAG_POS_BIGNUM       |\
                                QCBOR_TAGFLAG_NEG_BIGNUM)
 
 #define TAG_MAPPER_TOTAL_TAG_BITS 64 // Number of bits in a uint64_t
@@ -623,104 +633,7 @@ Done:
 }
 
 
-/*
- Mostly just assign the right data type for the date string.
- */
-inline static QCBORError DecodeDateString(QCBORItem *pDecodedItem)
-{
-   // Stack Use: UsefulBuf 1 16
-   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
 
-   const UsefulBufC Temp        = pDecodedItem->val.string;
-   pDecodedItem->val.dateString = Temp;
-   pDecodedItem->uDataType      = QCBOR_TYPE_DATE_STRING;
-   return QCBOR_SUCCESS;
-}
-
-
-/*
- Mostly just assign the right data type for the bignum.
- */
-inline static QCBORError DecodeBigNum(QCBORItem *pDecodedItem)
-{
-   // Stack Use: UsefulBuf 1  -- 16
-   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   const UsefulBufC Temp    = pDecodedItem->val.string;
-   pDecodedItem->val.bigNum = Temp;
-   pDecodedItem->uDataType  = pDecodedItem->uTagBits & QCBOR_TAGFLAG_POS_BIGNUM ? QCBOR_TYPE_POSBIGNUM : QCBOR_TYPE_NEGBIGNUM;
-   return QCBOR_SUCCESS;
-}
-
-
-/*
- The epoch formatted date. Turns lots of different forms of encoding date into uniform one
- */
-static int DecodeDateEpoch(QCBORItem *pDecodedItem)
-{
-   // Stack usage: 1
-   QCBORError nReturn = QCBOR_SUCCESS;
-
-   pDecodedItem->val.epochDate.fSecondsFraction = 0;
-
-   switch (pDecodedItem->uDataType) {
-
-      case QCBOR_TYPE_INT64:
-         pDecodedItem->val.epochDate.nSeconds = pDecodedItem->val.int64;
-         break;
-
-      case QCBOR_TYPE_UINT64:
-         if(pDecodedItem->val.uint64 > INT64_MAX) {
-            nReturn = QCBOR_ERR_DATE_OVERFLOW;
-            goto Done;
-         }
-         pDecodedItem->val.epochDate.nSeconds = pDecodedItem->val.uint64;
-         break;
-
-      case QCBOR_TYPE_DOUBLE:
-         {
-            // This comparison needs to be done as a float before
-            // conversion to an int64_t to be able to detect doubles
-            // that are too large to fit into an int64_t.  A double
-            // has 52 bits of preceision. An int64_t has 63. Casting
-            // INT64_MAX to a double actually causes a round up which
-            // is bad and wrong for the comparison because it will
-            // allow conversion of doubles that can't fit into a
-            // uint64_t.  To remedy this INT64_MAX - 0x7ff is used as
-            // the cutoff point as if that rounds up in conversion to
-            // double it will still be less than INT64_MAX. 0x7ff is
-            // picked because it has 11 bits set.
-            //
-            // INT64_MAX seconds is on the order of 10 billion years,
-            // and the earth is less than 5 billion years old, so for
-            // most uses this conversion error won't occur even though
-            // doubles can go much larger.
-            //
-            // Without the 0x7ff there is a ~30 minute range of time
-            // values 10 billion years in the past and in the future
-            // where this this code would go wrong.
-            const double d = pDecodedItem->val.dfnum;
-            if(d > (double)(INT64_MAX - 0x7ff)) {
-               nReturn = QCBOR_ERR_DATE_OVERFLOW;
-               goto Done;
-            }
-            pDecodedItem->val.epochDate.nSeconds = (int64_t)d;
-            pDecodedItem->val.epochDate.fSecondsFraction = d - (double)pDecodedItem->val.epochDate.nSeconds;
-         }
-         break;
-
-      default:
-         nReturn = QCBOR_ERR_BAD_OPT_TAG;
-         goto Done;
-   }
-   pDecodedItem->uDataType = QCBOR_TYPE_DATE_EPOCH;
-
-Done:
-   return nReturn;
-}
 
 
 
@@ -926,8 +839,8 @@ Done:
 
 
 /*
- Returns an error if there was something wrong with the optional item or it couldn't
- be handled.
+ Gets all optional tag data items preceding a data item that is not an
+ optional tag and records them as bits in the tag map.
  */
 static QCBORError GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
 {
@@ -938,6 +851,7 @@ static QCBORError GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecoded
       pTags->uNumUsed = 0;
    }
 
+   // Loop fetching items until the item fetched is not a tag
    for(;;) {
       nReturn = GetNext_FullItem(me, pDecodedItem);
       if(nReturn) {
@@ -977,32 +891,6 @@ static QCBORError GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecoded
          pTags->puTags[pTags->uNumUsed] = pDecodedItem->val.uTagV;
          pTags->uNumUsed++;
       }
-   }
-
-   switch(pDecodedItem->uTagBits & TAG_MAPPER_FIRST_FOUR) {
-      case 0:
-         // No tags at all or none we know about. Nothing to do.
-         // This is part of the pass-through path of this function
-         // that will mostly be taken when decoding any item.
-         break;
-
-      case QCBOR_TAGFLAG_DATE_STRING:
-         nReturn = DecodeDateString(pDecodedItem);
-         break;
-
-      case QCBOR_TAGFLAG_DATE_EPOCH:
-         nReturn = DecodeDateEpoch(pDecodedItem);
-         break;
-
-      case QCBOR_TAGFLAG_POS_BIGNUM:
-      case QCBOR_TAGFLAG_NEG_BIGNUM:
-         nReturn = DecodeBigNum(pDecodedItem);
-         break;
-
-      default:
-         // Encountering some mixed up CBOR like something that
-         // is tagged as both a string and integer date.
-         nReturn = QCBOR_ERR_BAD_OPT_TAG;
    }
 
 Done:
@@ -1081,7 +969,7 @@ Done:
 /*
  Public function, see header qcbor.h file
  */
-QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
+QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
 {
    // Stack ptr/int: 2, QCBORItem : 64
 
@@ -1176,6 +1064,273 @@ Done:
 }
 
 
+/*
+ Mostly just assign the right data type for the date string.
+ */
+inline static QCBORError DecodeDateString(QCBORItem *pDecodedItem)
+{
+   // Stack Use: UsefulBuf 1 16
+   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
+      return QCBOR_ERR_BAD_OPT_TAG;
+   }
+
+   const UsefulBufC Temp        = pDecodedItem->val.string;
+   pDecodedItem->val.dateString = Temp;
+   pDecodedItem->uDataType      = QCBOR_TYPE_DATE_STRING;
+   return QCBOR_SUCCESS;
+}
+
+
+/*
+ Mostly just assign the right data type for the bignum.
+ */
+inline static QCBORError DecodeBigNum(QCBORItem *pDecodedItem)
+{
+   // Stack Use: UsefulBuf 1  -- 16
+   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
+      return QCBOR_ERR_BAD_OPT_TAG;
+   }
+   const UsefulBufC Temp    = pDecodedItem->val.string;
+   pDecodedItem->val.bigNum = Temp;
+   pDecodedItem->uDataType  = pDecodedItem->uTagBits & QCBOR_TAGFLAG_POS_BIGNUM ? QCBOR_TYPE_POSBIGNUM : QCBOR_TYPE_NEGBIGNUM;
+   return QCBOR_SUCCESS;
+}
+
+
+/*
+ The epoch formatted date. Turns lots of different forms of encoding date into uniform one
+ */
+static int DecodeDateEpoch(QCBORItem *pDecodedItem)
+{
+   // Stack usage: 1
+   QCBORError nReturn = QCBOR_SUCCESS;
+
+   pDecodedItem->val.epochDate.fSecondsFraction = 0;
+
+   switch (pDecodedItem->uDataType) {
+
+      case QCBOR_TYPE_INT64:
+         pDecodedItem->val.epochDate.nSeconds = pDecodedItem->val.int64;
+         break;
+
+      case QCBOR_TYPE_UINT64:
+         if(pDecodedItem->val.uint64 > INT64_MAX) {
+            nReturn = QCBOR_ERR_DATE_OVERFLOW;
+            goto Done;
+         }
+         pDecodedItem->val.epochDate.nSeconds = pDecodedItem->val.uint64;
+         break;
+
+      case QCBOR_TYPE_DOUBLE:
+      {
+         // This comparison needs to be done as a float before
+         // conversion to an int64_t to be able to detect doubles
+         // that are too large to fit into an int64_t.  A double
+         // has 52 bits of preceision. An int64_t has 63. Casting
+         // INT64_MAX to a double actually causes a round up which
+         // is bad and wrong for the comparison because it will
+         // allow conversion of doubles that can't fit into a
+         // uint64_t.  To remedy this INT64_MAX - 0x7ff is used as
+         // the cutoff point as if that rounds up in conversion to
+         // double it will still be less than INT64_MAX. 0x7ff is
+         // picked because it has 11 bits set.
+         //
+         // INT64_MAX seconds is on the order of 10 billion years,
+         // and the earth is less than 5 billion years old, so for
+         // most uses this conversion error won't occur even though
+         // doubles can go much larger.
+         //
+         // Without the 0x7ff there is a ~30 minute range of time
+         // values 10 billion years in the past and in the future
+         // where this this code would go wrong.
+         const double d = pDecodedItem->val.dfnum;
+         if(d > (double)(INT64_MAX - 0x7ff)) {
+            nReturn = QCBOR_ERR_DATE_OVERFLOW;
+            goto Done;
+         }
+         pDecodedItem->val.epochDate.nSeconds = (int64_t)d;
+         pDecodedItem->val.epochDate.fSecondsFraction = d - (double)pDecodedItem->val.epochDate.nSeconds;
+      }
+         break;
+
+      default:
+         nReturn = QCBOR_ERR_BAD_OPT_TAG;
+         goto Done;
+   }
+   pDecodedItem->uDataType = QCBOR_TYPE_DATE_EPOCH;
+
+Done:
+   return nReturn;
+}
+
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+/*
+ Decode decimal fractions and big floats.
+
+ When called pDecodedItem must be the array that is tagged as a big
+ float or decimal fraction, the array that has the two members, the
+ exponent and mantissa.
+
+ This will fetch and decode the exponent and mantissa and put the
+ result back into pDecodedItem.
+ */
+inline static QCBORError
+QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+{
+   QCBORError nReturn;
+
+   // --- Make sure it is an array; track nesting level of members ---
+   if(pDecodedItem->uDataType != QCBOR_TYPE_ARRAY) {
+      nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+      goto Done;
+   }
+
+   // A check for pDecodedItem->val.uCount == 2 would work for
+   //   definite length arrays, but not for indefnite.  Instead remember
+   //   the nesting level the two integers must be at, which is one
+   //   deeper than that of the array.
+   const int nNestLevel = pDecodedItem->uNestingLevel + 1;
+
+   // --- Is it a decimal fraction or a bigfloat? ---
+   const bool bIsTaggedDecimalFraction = QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION);
+   pDecodedItem->uDataType = bIsTaggedDecimalFraction ? QCBOR_TYPE_DECIMAL_FRACTION : QCBOR_TYPE_BIGFLOAT;
+
+   // --- Get the exponent ---
+   QCBORItem exponentItem;
+   nReturn = QCBORDecode_GetNextMapOrArray(me, &exponentItem, NULL);
+   if(nReturn != QCBOR_SUCCESS) {
+      goto Done;
+   }
+   if(exponentItem.uNestingLevel != nNestLevel) {
+      // Array is empty or a map/array encountered when expecting an int
+      nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+      goto Done;
+   }
+   if(exponentItem.uDataType == QCBOR_TYPE_INT64) {
+     // Data arriving as an unsigned int < INT64_MAX has been converted
+     // to QCBOR_TYPE_INT64 and thus handled here. This is also means
+     // that the only data arriving here of type QCBOR_TYPE_UINT64 data
+     // will be too large for this to handle and thus an error that will
+     // get handled in the next else.
+     pDecodedItem->val.expAndMantissa.nExponent = exponentItem.val.int64;
+   } else {
+      // Wrong type of exponent or a QCBOR_TYPE_UINT64 > INT64_MAX
+      nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+      goto Done;
+   }
+
+   // --- Get the mantissa ---
+   QCBORItem mantissaItem;
+   nReturn = QCBORDecode_GetNextWithTags(me, &mantissaItem, NULL);
+   if(nReturn != QCBOR_SUCCESS) {
+      goto Done;
+   }
+   if(mantissaItem.uNestingLevel != nNestLevel) {
+      // Mantissa missing or map/array encountered when expecting number
+      nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+      goto Done;
+   }
+   if(mantissaItem.uDataType == QCBOR_TYPE_INT64) {
+      // Data arriving as an unsigned int < INT64_MAX has been converted
+      // to QCBOR_TYPE_INT64 and thus handled here. This is also means
+      // that the only data arriving here of type QCBOR_TYPE_UINT64 data
+      // will be too large for this to handle and thus an error that
+      // will get handled in an else below.
+      pDecodedItem->val.expAndMantissa.Mantissa.nInt = mantissaItem.val.int64;
+   }  else if(mantissaItem.uDataType == QCBOR_TYPE_POSBIGNUM || mantissaItem.uDataType == QCBOR_TYPE_NEGBIGNUM) {
+      // Got a good big num mantissa
+      pDecodedItem->val.expAndMantissa.Mantissa.bigNum = mantissaItem.val.bigNum;
+      // Depends on numbering of QCBOR_TYPE_XXX
+      pDecodedItem->uDataType += 1 + mantissaItem.uDataType - QCBOR_TYPE_POSBIGNUM;
+   } else {
+      // Wrong type of mantissa or a QCBOR_TYPE_UINT64 > INT64_MAX
+      nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+      goto Done;
+   }
+
+   // --- Check that array only has the two numbers ---
+   if(mantissaItem.uNextNestLevel == nNestLevel) {
+      // Extra items in the decimal fraction / big num
+      nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+      goto Done;
+   }
+
+Done:
+
+  return nReturn;
+}
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
+
+/*
+ Public function, see header qcbor.h file
+ */
+QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
+{
+   QCBORError nReturn;
+
+   nReturn = QCBORDecode_GetNextMapOrArray(me, pDecodedItem, pTags);
+   if(nReturn != QCBOR_SUCCESS) {
+      goto Done;
+   }
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#define TAG_MAPPER_FIRST_XXX TAG_MAPPER_FIRST_SIX
+#else
+#define TAG_MAPPER_FIRST_XXX TAG_MAPPER_FIRST_FOUR
+#endif
+
+   // Only pay attention to tags this code knows how to decode.
+   switch(pDecodedItem->uTagBits & TAG_MAPPER_FIRST_XXX) {
+      case 0:
+         // No tags at all or none we know about. Nothing to do.
+         // This is the pass-through path of this function
+         // that will mostly be taken when decoding any item.
+         break;
+
+      case QCBOR_TAGFLAG_DATE_STRING:
+         nReturn = DecodeDateString(pDecodedItem);
+         break;
+
+      case QCBOR_TAGFLAG_DATE_EPOCH:
+         nReturn = DecodeDateEpoch(pDecodedItem);
+         break;
+
+      case QCBOR_TAGFLAG_POS_BIGNUM:
+      case QCBOR_TAGFLAG_NEG_BIGNUM:
+         nReturn = DecodeBigNum(pDecodedItem);
+         break;
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+      case QCBOR_TAGFLAG_DECIMAL_FRACTION:
+      case QCBOR_TAGFLAG_BIGFLOAT:
+         // For aggregate tagged types, what goes into pTags is only collected
+         // from the surrounding data item, not the contents, so pTags is not
+         // passed on here.
+
+         nReturn = QCBORDecode_MantissaAndExponent(me, pDecodedItem);
+         break;
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
+      default:
+         // Encountering some mixed-up CBOR like something that
+         // is tagged as both a string and integer date.
+         nReturn = QCBOR_ERR_BAD_OPT_TAG;
+   }
+
+Done:
+   if(nReturn != QCBOR_SUCCESS) {
+      pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
+      pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
+   }
+   return nReturn;
+}
+
+
+/*
+ Public function, see header qcbor.h file
+ */
 QCBORError QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    return QCBORDecode_GetNextWithTags(me, pDecodedItem, NULL);
@@ -1187,7 +1342,13 @@ QCBORError QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
  next one down. If a layer has no work to do for a particular item
  it returns quickly.
 
- - QCBORDecode_GetNext -- The top layer manages the beginnings and
+ - QCBORDecode_GetNext, GetNextWithTags -- The top layer processes
+ tagged data items, turning them into the local C representation.
+ For the most simple it is just associating a QCBOR_TYPE with the data. For
+ the complex ones that an aggregate of data items, there is some further
+ decoding and a little bit of recursion.
+
+ - QCBORDecode_GetNextMapOrArray - This manages the beginnings and
  ends of maps and arrays. It tracks descending into and ascending
  out of maps/arrays. It processes all breaks that terminate
  maps and arrays.
@@ -1197,19 +1358,21 @@ QCBORError QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
  It only does work on maps. It combines the label and data
  items into one labeled item.
 
- - GetNext_TaggedItem -- This handles the type 6 tagged items.
- It accumulates all the tags and combines them with the following
- non-tagged item. If the tagged item is something that is understood
- like a date, the decoding of that item is invoked.
+ - GetNext_TaggedItem -- This decodes type 6 tagging. It turns the
+ tags into bit flags associated with the data item. No actual decoding
+ of the contents of the tagged item is performed here.
 
- - GetNext_FullItem -- This assembles the sub items that make up
+ - GetNext_FullItem -- This assembles the sub-items that make up
  an indefinte length string into one string item. It uses the
  string allocater to create contiguous space for the item. It
  processes all breaks that are part of indefinite length strings.
 
- - GetNext_Item -- This gets and decodes the most atomic
- item in CBOR, the thing with an initial byte containing
- the major type.
+ - GetNext_Item -- This decodes the atomic data items in CBOR. Each
+ atomic data item has a "major type", an integer "argument" and optionally
+ some content. For text and byte strings, the content is the bytes
+ that make up the string. These are the smallest data items that are
+ considered to be well-formed.  The content may also be other data items in
+ the case of aggregate types. They are not handled in this layer.
 
  Roughly this takes 300 bytes of stack for vars. Need to
  evaluate this more carefully and correctly.
