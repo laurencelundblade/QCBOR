@@ -8,7 +8,7 @@
  See BSD-3-Clause license in README.md
 
  Created 9/30/18
- ==============================================================================*/
+ =============================================================================*/
 
 /**
  @file run_tests.h
@@ -53,7 +53,10 @@ typedef void (*OutputStringCB)(const char *szString, void *pOutCtx, int bNewline
 
  @return The number of tests that failed. Zero means overall success.
  */
-int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *pOutCtx, int *pNumTestsRun);
+int RunTests(const char *szTestNames[],
+             OutputStringCB pfOutput,
+             void *pOutCtx,
+             int *pNumTestsRun);
 
 
 /**

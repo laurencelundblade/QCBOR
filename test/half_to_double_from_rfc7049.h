@@ -8,7 +8,7 @@
  See BSD-3-Clause license in README.md
 
  Created on 9/23/18
-  ==============================================================================*/
+  ============================================================================*/
 
 #ifndef half_to_double_from_rfc7049_h
 #define half_to_double_from_rfc7049_h

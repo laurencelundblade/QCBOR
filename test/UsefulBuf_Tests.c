@@ -28,7 +28,7 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ==============================================================================*/
+ =============================================================================*/
 
 #include "UsefulBuf.h"
 
@@ -79,7 +79,8 @@ const char * UOBTest_NonAdversarial()
    UsefulBufC UBC2 = {"unbounce ", 9};
    UsefulOutBuf_InsertUsefulBuf(&UOB, UBC2, 10);
 
-   // Make it a null terminated string (because all the appends and inserts above not strcpy !)
+   // Make it a null terminated string (because all the appends and
+   // inserts above not strcpy !)
    UsefulOutBuf_AppendByte(&UOB, '\0');
 
 
@@ -160,7 +161,8 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
    - around MAX size_t
 
 
- Test these for the buffer size and the cursor, the insert amount, the append amount and the insert position
+ Test these for the buffer size and the cursor, the insert amount, the
+ append amount and the insert position
 
  */
 

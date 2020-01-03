@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2019, Laurence Lundblade.
+ Copyright (c) 2018-2020, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,9 +28,9 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ==============================================================================*/
+ =============================================================================*/
 
-/*===================================================================================
+/*=============================================================================
  FILE:  qcbor_encode.c
 
  DESCRIPTION:  This file contains the implementation of QCBOR.
@@ -40,27 +40,28 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  This section contains comments describing changes made to the module.
  Notice that changes are listed in reverse chronological order.
 
- when               who             what, where, why
- --------           ----            ---------------------------------------------------
- 12/30/19           llundblade      Add support for decimal fractions and bigfloats.
- 8/7/19             llundblade      Prevent encoding simple type reserved values 24..31
- 7/25/19            janjongboom     Add indefinite length encoding for maps and arrays
- 4/6/19             llundblade      Wrapped bstr returned now includes the wrapping bstr
- 12/30/18           llundblade      Small efficient clever encode of type & argument.
- 11/29/18           llundblade      Rework to simpler handling of tags and labels.
- 11/9/18            llundblade      Error codes are now enums.
- 11/1/18            llundblade      Floating support.
- 10/31/18           llundblade      Switch to one license that is almost BSD-3.
- 09/28/18           llundblade      Added bstr wrapping feature for COSE implementation.
- 02/05/18           llundbla        Works on CPUs which require integer alignment.
-                                    Requires new version of UsefulBuf.
- 07/05/17           llundbla        Add bstr wrapping of maps/arrays for COSE
- 03/01/17           llundbla        More data types
- 11/13/16           llundbla        Integrate most TZ changes back into github version.
- 09/30/16           gkanike         Porting to TZ.
- 03/15/16           llundbla        Initial Version.
+ when       who             what, where, why
+ --------   ----            ---------------------------------------------------
+ 1/x/20     llundblade        Code formatting to reduce numnber of long lines.
+ 12/30/19   llundblade      Add support for decimal fractions and bigfloats.
+ 8/7/19     llundblade      Prevent encoding simple type reserved values 24..31
+ 7/25/19    janjongboom     Add indefinite length encoding for maps and arrays
+ 4/6/19     llundblade      Wrapped bstr returned now includes the wrapping bstr
+ 12/30/18   llundblade      Small efficient clever encode of type & argument.
+ 11/29/18   llundblade      Rework to simpler handling of tags and labels.
+ 11/9/18    llundblade      Error codes are now enums.
+ 11/1/18    llundblade      Floating support.
+ 10/31/18   llundblade      Switch to one license that is almost BSD-3.
+ 09/28/18   llundblade      Added bstr wrapping feature for COSE implementation.
+ 02/05/18   llundbla        Works on CPUs which require integer alignment.
+                            Requires new version of UsefulBuf.
+ 07/05/17   llundbla        Add bstr wrapping of maps/arrays for COSE
+ 03/01/17   llundbla        More data types
+ 11/13/16   llundbla        Integrate most TZ changes back into github version.
+ 09/30/16   gkanike         Porting to TZ.
+ 03/15/16   llundbla        Initial Version.
 
- =====================================================================================*/
+ =============================================================================*/
 
 #include "qcbor.h"
 #include "ieee754.h"
@@ -471,13 +472,14 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, size_t uSize, uint64_t uNum)
       if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
          me->uError = QCBOR_ERR_UNSUPPORTED;
       } else {
-         // This function call takes care of endian swapping for the float / double
+         // This call takes care of endian swapping for the float / double
          InsertEncodedTypeAndNumber(me,
                                     // The major type for floats and doubles
                                     CBOR_MAJOR_TYPE_SIMPLE,
-                                    // size makes sure floats with zeros encode correctly
+                                    // Must pass size to ensure floats
+                                    // with zero bytes encode correctly
                                     (int)uSize,
-                                    // Bytes of the floating point number as a uint
+                                    // The floating point number as a uint
                                     uNum,
                                     // end position because this is append
                                     UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
@@ -547,25 +549,32 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
    // Add one item to the nesting level we are in for the new map or array
    me->uError = Nesting_Increment(&(me->nesting));
    if(me->uError == QCBOR_SUCCESS) {
-      // The offset where the length of an array or map will get written
-      // is stored in a uint32_t, not a size_t to keep stack usage smaller. This
-      // checks to be sure there is no wrap around when recording the offset.
-      // Note that on 64-bit machines CBOR larger than 4GB can be encoded as long as no
-      // array / map offsets occur past the 4GB mark, but the public interface
-      // says that the maximum is 4GB to keep the discussion simpler.
+      /*
+       The offset where the length of an array or map will get written
+       is stored in a uint32_t, not a size_t to keep stack usage
+       smaller. This checks to be sure there is no wrap around when
+       recording the offset.  Note that on 64-bit machines CBOR larger
+       than 4GB can be encoded as long as no array / map offsets occur
+       past the 4GB mark, but the public interface says that the
+       maximum is 4GB to keep the discussion simpler.
+      */
       size_t uEndPosition = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
 
-      // QCBOR_MAX_ARRAY_OFFSET is slightly less than UINT32_MAX so this
-      // code can run on a 32-bit machine and tests can pass on a 32-bit
-      // machine. If it was exactly UINT32_MAX, then this code would
-      // not compile or run on a 32-bit machine and an #ifdef or some
-      // machine size detection would be needed reducing portability.
+      /*
+       QCBOR_MAX_ARRAY_OFFSET is slightly less than UINT32_MAX so this
+       code can run on a 32-bit machine and tests can pass on a 32-bit
+       machine. If it was exactly UINT32_MAX, then this code would not
+       compile or run on a 32-bit machine and an #ifdef or some
+       machine size detection would be needed reducing portability.
+      */
       if(uEndPosition >= QCBOR_MAX_ARRAY_OFFSET) {
          me->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
 
       } else {
-         // Increase nesting level because this is a map or array.
-         // Cast from size_t to uin32_t is safe because of check above
+         /*
+          Increase nesting level because this is a map or array.  Cast
+          from size_t to uin32_t is safe because of check above
+          */
          me->uError = Nesting_Increase(&(me->nesting), uMajorType, (uint32_t)uEndPosition);
       }
    }
@@ -599,36 +608,46 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me,
       } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
          me->uError = QCBOR_ERR_CLOSE_MISMATCH;
       } else {
-         // When the array, map or bstr wrap was started, nothing was done
-         // except note the position of the start of it. This code goes back
-         // and inserts the actual CBOR array, map or bstr and its length.
-         // That means all the data that is in the array, map or wrapped
-         // needs to be slid to the right. This is done by UsefulOutBuf's
-         // insert function that is called from inside
-         // InsertEncodedTypeAndNumber()
-         const size_t uInsertPosition         = Nesting_GetStartPos(&(me->nesting));
-         const size_t uEndPosition            = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
-         // This can't go negative because the UsefulOutBuf always only grows
-         // and never shrinks. UsefulOutBut itself also has defenses such that
-         // it won't write were it should not even if given hostile input lengths
+         /*
+          When the array, map or bstr wrap was started, nothing was
+          gone except note the position of the start of it. This code
+          goes back and inserts the actual CBOR array, map or bstr and
+          its length.  That means all the data that is in the array,
+          map or wrapped needs to be slid to the right. This is done
+          by UsefulOutBuf's insert function that is called from inside
+          InsertEncodedTypeAndNumber()
+          */
+         const size_t uInsertPosition = Nesting_GetStartPos(&(me->nesting));
+         const size_t uEndPosition    = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
+         /*
+          This can't go negative because the UsefulOutBuf always only
+          grows and never shrinks. UsefulOutBut itself also has
+          defenses such that it won't write were it should not even if
+          given hostile input lengths
+          */
          const size_t uLenOfEncodedMapOrArray = uEndPosition - uInsertPosition;
 
-         // Length is number of bytes for a bstr and number of items a for map & array
-         const size_t uLength = uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING ?
-                                    uLenOfEncodedMapOrArray : Nesting_GetCount(&(me->nesting));
+         // Number of bytes for a bstr or number of items a for map & array
+         const bool bIsBstr = uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING;
+         const size_t uLength =  bIsBstr ? uLenOfEncodedMapOrArray
+                                         : Nesting_GetCount(&(me->nesting));
 
          // Actually insert
          InsertEncodedTypeAndNumber(me,
-                                    uMajorType,       // major type bstr, array or map
-                                    0,                // no minimum length for encoding
-                                    uLength,          // either len of bstr or num map / array items
+                                    uMajorType,       // bstr, array or map
+                                    0,                // no minimum length
+                                    uLength,          // either len of bstr or
+                                                      // num map / array items
                                     uInsertPosition); // position in out buffer
 
-         // Return pointer and length to the enclosed encoded CBOR. The intended
-         // use is for it to be hashed (e.g., SHA-256) in a COSE implementation.
-         // This must be used right away, as the pointer and length go invalid
-         // on any subsequent calls to this function because there might be calls to
-         // InsertEncodedTypeAndNumber() that slides data to the right.
+         /*
+          Return pointer and length to the enclosed encoded CBOR. The
+          intended use is for it to be hashed (e.g., SHA-256) in a
+          COSE implementation.  This must be used right away, as the
+          pointer and length go invalid on any subsequent calls to
+          this function because there might be calls to
+          InsertEncodedTypeAndNumber() that slides data to the right.
+          */
          if(pWrappedCBOR) {
             const UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
             *pWrappedCBOR = UsefulBuf_Tail(PartialResult, uInsertPosition);
@@ -641,7 +660,9 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me,
 /*
  Public functions for closing arrays and maps. See header qcbor.h
  */
-void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC *pWrappedCBOR)
+void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me,
+                                                 uint8_t uMajorType,
+                                                 UsefulBufC *pWrappedCBOR)
 {
    if(me->uError == QCBOR_SUCCESS) {
       if(!Nesting_IsInNest(&(me->nesting))) {
@@ -650,13 +671,20 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t
          me->uError = QCBOR_ERR_CLOSE_MISMATCH;
       } else {
          // insert the break marker (0xff for both arrays and maps)
-         InsertEncodedTypeAndNumber(me, CBOR_MAJOR_TYPE_SIMPLE, 0, CBOR_SIMPLE_BREAK, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+         InsertEncodedTypeAndNumber(me,
+                                    CBOR_MAJOR_TYPE_SIMPLE,
+                                    0,
+                                    CBOR_SIMPLE_BREAK,
+                                    UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
 
-         // Return pointer and length to the enclosed encoded CBOR. The intended
-         // use is for it to be hashed (e.g., SHA-256) in a COSE implementation.
-         // This must be used right away, as the pointer and length go invalid
-         // on any subsequent calls to this function because there might be calls to
-         // InsertEncodedTypeAndNumber() that slides data to the right.
+         /*
+          Return pointer and length to the enclosed encoded CBOR. The
+          intended use is for it to be hashed (e.g., SHA-256) in a
+          COSE implementation.  This must be used right away, as the
+          pointer and length go invalid on any subsequent calls to
+          this function because there might be calls to
+          InsertEncodedTypeAndNumber() that slides data to the right.
+          */
          if(pWrappedCBOR) {
             const UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
             *pWrappedCBOR = UsefulBuf_Tail(PartialResult, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
