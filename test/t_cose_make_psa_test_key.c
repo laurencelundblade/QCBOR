@@ -1,7 +1,7 @@
 /*
  *  t_cose_make_psa_test_key.c
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -109,8 +109,13 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
     }
 
 
-    psa_crypto_init(); /* OK to call this multiple times */
+    /* OK to call this multiple times */
+    crypto_result = psa_crypto_init();
+    if(crypto_result != PSA_SUCCESS) {
+        return T_COSE_ERR_FAIL;
+    }
 
+    
     /* When importing a key with the PSA API there are two main
      * things to do.
      *
@@ -197,5 +202,29 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
 void free_ecdsa_key_pair(struct t_cose_key key_pair)
 {
    psa_close_key(key_pair.k.key_handle);
+}
+
+
+/*
+ * Public function, see t_cose_make_test_pub_key.h
+ */
+int check_for_key_pair_leaks()
+{
+#if defined(T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11)
+    /* No way to check for leaks with MBED Crypto 1.1 */
+    return 0;
+
+#else
+    mbedtls_psa_stats_t stats;
+
+    mbedtls_psa_get_stats(&stats);
+
+    return (int)(stats.volatile_slots +
+           stats.persistent_slots +
+           stats.external_slots +
+           stats.half_filled_slots +
+           stats.cache_slots);
+    
+#endif /* T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11 */
 }
 

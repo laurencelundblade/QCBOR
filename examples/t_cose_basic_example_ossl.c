@@ -1,7 +1,7 @@
 /*
  *  t_cose_basic_example_ossl.c
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -629,8 +629,7 @@ int two_step_sign_example()
 
     /* ------   Free key pair   ------
      *
-     * Some implementations of PSA allocate slots for the keys in
-     * use. This call indicates that the key slot can be de allocated.
+     * OpenSSL uses memory allocation for keys, so they must be freed.
      */
     printf("Freeing key pair\n\n\n");
     free_ossl_ecdsa_key_pair(key_pair);

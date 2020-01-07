@@ -1,7 +1,7 @@
 /*
  *  t_cose_sign_verify_test.c
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -46,7 +46,8 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
                       signed_cose_buffer,
                       &signed_cose);
     if(return_value) {
-        return 2000 + return_value;
+        return_value += 2000;
+        goto Done;
     }
 
     /* Verification */
@@ -59,19 +60,22 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
                                        &payload,  /* Payload from signed_cose */
                                        NULL);      /* Don't return parameters */
     if(return_value) {
-        return 5000 + return_value;
+        return_value += 5000;
+        goto Done;
     }
 
-    /* OpenSSL uses malloc to allocate buffers for keys, so they have to
-     * be freed */
-    free_ecdsa_key_pair(key_pair);
 
     /* compare payload output to the one expected */
     if(q_useful_buf_compare(payload, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"))) {
-        return 6000;
+        return_value += 6000;
+        goto Done;
     }
 
-    return 0;
+Done:
+    /* Many crypto libraries allocate memory, slots, etc for keys */
+    free_ecdsa_key_pair(key_pair);
+
+    return return_value;
 }
 
 
@@ -82,10 +86,10 @@ int_fast32_t sign_verify_basic_test()
 {
     int_fast32_t return_value;
 
-   // return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES256);
-   // if(return_value) {
-   //     return 20000 + return_value;
-   // }
+   return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES256);
+   if(return_value) {
+        return 20000 + return_value;
+   }
 
 #ifndef T_COSE_DISABLE_ES384
     return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES384);
@@ -138,7 +142,8 @@ int_fast32_t sign_verify_sig_fail_test()
 
     return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
-        return 2000 + return_value;
+        return_value += 2000;
+        goto Done;
     }
 
     QCBOREncode_AddSZString(&cbor_encode, "payload");
@@ -146,18 +151,21 @@ int_fast32_t sign_verify_sig_fail_test()
 
     return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
     if(return_value) {
-        return 3000 + return_value;
+        return_value += 3000;
+        goto Done;
     }
 
     cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
     if(cbor_error) {
-        return 4000 + cbor_error;
+        return_value = 4000 + cbor_error;
+        goto Done;
     }
 
     /* tamper with the pay load to see that the signature verification fails */
     tamper_offset = q_useful_buf_find_bytes(signed_cose, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
     if(tamper_offset == SIZE_MAX) {
-        return 99;
+        return_value = 99;
+        goto Done;
     }
     ((char *)signed_cose.ptr)[tamper_offset] = 'h';
 
@@ -172,12 +180,15 @@ int_fast32_t sign_verify_sig_fail_test()
                                        NULL);      /* Don't return parameters */
 
     if(return_value != T_COSE_ERR_SIG_VERIFY) {
-        return 5000 + return_value;
+        return_value += 5000;
     }
 
+    return_value = 0; /* This was supposed to fail, so it needs to be reset */
+
+Done:
     free_ecdsa_key_pair(key_pair);
 
-    return 0;
+    return return_value;
 }
 
 
@@ -222,7 +233,8 @@ int_fast32_t sign_verify_make_cwt_test()
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
     return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
-        return 2000 + return_value;
+        return_value += 2000;
+        goto Done;
     }
 
 
@@ -243,7 +255,8 @@ int_fast32_t sign_verify_make_cwt_test()
     /* -- Finish up the COSE_Sign1. This is where the signing happens -- */
     return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
     if(return_value) {
-        return 2000 + return_value;
+        return_value += 3000;
+        goto Done;
     }
 
     /* Finally close off the CBOR formatting and get the pointer and length
@@ -251,7 +264,8 @@ int_fast32_t sign_verify_make_cwt_test()
      */
     cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
     if(cbor_error) {
-        return 3000 + cbor_error;
+        return_value = cbor_error + 4000;
+        goto Done;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -272,7 +286,8 @@ int_fast32_t sign_verify_make_cwt_test()
     expected_rfc8392_first_part = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_first_part_bytes);
     actual_rfc8392_first_part = q_useful_buf_head(signed_cose, sizeof(rfc8392_first_part_bytes));
     if(q_useful_buf_compare(actual_rfc8392_first_part, expected_rfc8392_first_part)) {
-        return -1;
+        return_value = -1;
+        goto Done;
     }
 
     /* --- Start verifying the COSE Sign1 object  --- */
@@ -287,7 +302,8 @@ int_fast32_t sign_verify_make_cwt_test()
                                         NULL);  /* Don't return parameters */
 
     if(return_value) {
-        return 4000 + return_value;
+        return_value += 5000;
+        goto Done;
     }
 
     /* Format the expected payload CBOR fragment */
@@ -303,11 +319,15 @@ int_fast32_t sign_verify_make_cwt_test()
     /* compare payload output to the one expected */
     expected_payload = q_useful_buf_tail(expected_rfc8392_first_part, kid_encoded_len + 8);
     if(q_useful_buf_compare(payload, expected_payload)) {
-        return 5000;
+        return_value = 6000;
     }
     /* --- Done verifying the COSE Sign1 object  --- */
 
-    return 0;
+Done:
+    /* Many crypto libraries allocate memory, slots, etc for keys */
+    free_ecdsa_key_pair(key_pair);
+
+    return return_value;
 }
 
 
@@ -423,37 +443,44 @@ int_fast32_t sign_verify_get_size_test()
     }
 
     result = size_test(T_COSE_ALGORITHM_ES256, NULL_Q_USEFUL_BUF_C, key_pair);
+    free_ecdsa_key_pair(key_pair);
     if(result) {
-        return result;
+        return 2000 + result;
     }
+
+
 
     return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
     if(return_value) {
-        return 1000 + return_value;
+        return 3000 + return_value;
     }
 
     result = size_test(T_COSE_ALGORITHM_ES384, NULL_Q_USEFUL_BUF_C, key_pair);
+    free_ecdsa_key_pair(key_pair);
     if(result) {
-        return result;
+        return 4000 + result;
     }
+
+
 
 
     return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES512, &key_pair);
     if(return_value) {
-        return 1000 + return_value;
+        return 5000 + return_value;
     }
 
     result = size_test(T_COSE_ALGORITHM_ES512, NULL_Q_USEFUL_BUF_C, key_pair);
     if(result) {
-        return result;
+        free_ecdsa_key_pair(key_pair);
+        return 6000 + result;
     }
-
 
     result = size_test(T_COSE_ALGORITHM_ES512,
                        Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"),
                        key_pair);
+    free_ecdsa_key_pair(key_pair);
     if(result) {
-        return result;
+        return 7000 + result;
     }
 
     return 0;

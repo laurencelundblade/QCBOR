@@ -1,7 +1,7 @@
 /*
  *  t_cose_basic_example_psa.c
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -135,8 +135,13 @@ enum t_cose_err_t make_psa_ecdsa_key_pair(int32_t            cose_algorithm_id,
     }
 
 
-    psa_crypto_init(); /* OK to call this multiple times */
+    /* OK to call this multiple times */
+    crypto_result = psa_crypto_init();
+    if(crypto_result != PSA_SUCCESS) {
+        return T_COSE_ERR_FAIL;
+    }
 
+    
     /* When importing a key with the PSA API there are two main things
      * to do.
      *

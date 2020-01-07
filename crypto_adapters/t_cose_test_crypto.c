@@ -1,7 +1,7 @@
 /*
  *  t_cose_test_crypto.c
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -100,6 +100,18 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 
+
+/*
+ * Public function, see t_cose_make_test_pub_key.h
+ */
+int check_for_key_pair_leaks()
+{
+    /* No check for leaks with this stubbed out crypto. With this test
+     crypto there is no file with code to make keys so there is no place
+     but here for this function to live.
+     */
+    return 0;
+}
 
 
 

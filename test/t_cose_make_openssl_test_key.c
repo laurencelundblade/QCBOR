@@ -1,7 +1,7 @@
 /*
  *  t_cose_make_openssl_test_key.c
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -196,6 +196,18 @@ void free_ecdsa_key_pair(struct t_cose_key key_pair)
     EC_KEY_free(key_pair.k.key_ptr);
 }
 
+
+/*
+ * Public function, see t_cose_make_test_pub_key.h
+ */
+int check_for_key_pair_leaks()
+{
+    /* So far no good way to do this for OpenSSL or malloc() in general
+       in a nice portable way. The PSA version does check so there is
+       some coverage of the code even though there is no check here.
+     */
+    return 0;
+}
 
 
 
