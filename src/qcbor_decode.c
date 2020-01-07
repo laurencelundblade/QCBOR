@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2019, Laurence Lundblade.
+ Copyright (c) 2018-2020, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,12 +42,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
+ 1/x/20     llundblade      Code formatting to reduce numnber of long lines.
  12/30/19   llundblade      Add support for decimal fractions and bigfloats.
  11/07/19   llundblade      Fix long long conversion to double compiler warning
  09/07/19   llundblade      Fix bug decoding empty arrays and maps
  07/31/19   llundblade      Decode error fixes for some not-well-formed CBOR
  07/31/19   llundblade      New error code for better end of data handling
- 02/17/19   llundblade      Fixed: QCBORItem.u{Data|Label}Alloc when bAllStrings set
+ 02/17/19   llundblade      Fixed: QCBORItem.u{Data|Label}Alloc when
+                            bAllStrings set
  02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug
  01/10/19   llundblade      Clever type and argument decoder; 250 bytes smaller
  11/9/18    llundblade      Error codes are now enums.
@@ -77,9 +79,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UNCONST_POINTER(ptr)    ((void *)(ptr))
 
 
-/*
- Collection of functions to track the map/array nesting for decoding
- */
+
+/*===========================================================================
+ DecodeNesting -- Functions for tracking array/map nesting when decoding
+
+ See qcbor.h for definition of the object used here: QCBORDecodeNesting
+  ===========================================================================*/
 
 inline static int
 IsMapOrArray(uint8_t uDataType)
@@ -158,7 +163,6 @@ DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
       // Continue with loop to see if closing out this doesn't close out more
    }
 }
-
 
 // Called on every map/array
 inline static QCBORError
@@ -269,10 +273,12 @@ static const uint16_t spBuiltInTagMap[] = {
 static inline int TagMapper_LookupBuiltIn(uint64_t uTag)
 {
    if(sizeof(spBuiltInTagMap)/sizeof(uint16_t) > TAG_MAPPER_MAX_SIZE_BUILT_IN_TAGS) {
-      // This is a cross-check to make sure the above array doesn't
-      // accidentally get made too big.
-      // In normal conditions the above test should optimize out
-      // as all the values are known at compile time.
+      /*
+       This is a cross-check to make sure the above array doesn't
+       accidentally get made too big.  In normal conditions the above
+       test should optimize out as all the values are known at compile
+       time.
+       */
       return -1;
    }
 
@@ -336,13 +342,13 @@ TagMapper_Lookup(const QCBORTagListIn *pCallerConfiguredTagMap,
 
 
 
-/* ===========================================================================
+/*===========================================================================
    QCBORStringAllocate -- STRING ALLOCATOR INVOCATION
 
    The following four functions are pretty wrappers for invocation of
    the string allocator supplied by the caller.
 
- =============================================================================*/
+  ===========================================================================*/
 
 static inline void
 StringAllocator_Free(const QCORInternalAllocator *pMe, void *pMem)
@@ -376,7 +382,11 @@ StringAllocator_Destruct(const QCORInternalAllocator *pMe)
 
 
 
+/*===========================================================================
+ QCBORDecode -- The main implementation of CBOR decoding
 
+ See qcbor.h for definition of the object used here: QCBORDecodeContext
+  ===========================================================================*/
 /*
  Public function, see header file
  */
@@ -386,11 +396,8 @@ void QCBORDecode_Init(QCBORDecodeContext *me,
 {
    memset(me, 0, sizeof(QCBORDecodeContext));
    UsefulInputBuf_Init(&(me->InBuf), EncodedCBOR);
-   /*
-    Don't bother with error check on decode mode. If a bad value is
-    passed it will just act as if the default normal mode of 0 was
-    set.
-    */
+   // Don't bother with error check on decode mode. If a bad value is
+   // passed it will just act as if the default normal mode of 0 was set.
    me->uDecodeMode = nDecodeMode;
    DecodeNesting_Init(&(me->nesting));
 }
@@ -569,18 +576,14 @@ DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDecodedItem)
 /*
  Decode true, false, floats, break...
  */
-
 inline static QCBORError
 DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
 {
    // Stack usage: 0
    QCBORError nReturn = QCBOR_SUCCESS;
 
-   /*
-     uAdditionalInfo is 5 bits from the initial byte compile time
-     checks above make sure uAdditionalInfo values line up with
-     uDataType values
-    */
+   // uAdditionalInfo is 5 bits from the initial byte compile time checks
+   // above make sure uAdditionalInfo values line up with uDataType values
    pDecodedItem->uDataType = uAdditionalInfo;
 
    switch(uAdditionalInfo) {
@@ -1254,9 +1257,9 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    }
 
    // A check for pDecodedItem->val.uCount == 2 would work for
-   //   definite length arrays, but not for indefnite.  Instead remember
-   //   the nesting level the two integers must be at, which is one
-   //   deeper than that of the array.
+   // definite length arrays, but not for indefnite.  Instead remember
+   // the nesting level the two integers must be at, which is one
+   // deeper than that of the array.
    const int nNestLevel = pDecodedItem->uNestingLevel + 1;
 
    // --- Is it a decimal fraction or a bigfloat? ---

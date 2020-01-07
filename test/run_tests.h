@@ -1,7 +1,7 @@
 /*==============================================================================
  run_tests.h -- test aggregator and results reporting
 
- Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 

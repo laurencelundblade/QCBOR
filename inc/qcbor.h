@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2019, Laurence Lundblade.
+ Copyright (c) 2018-2020, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,10 +28,10 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ==============================================================================*/
+ =============================================================================*/
 
 
-/*===================================================================================
+/*=============================================================================
  FILE:  qcbor.h
 
  DESCRIPTION:  This is the full public API and data structures for QCBOR
@@ -41,31 +41,32 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  This section contains comments describing changes made to the module.
  Notice that changes are listed in reverse chronological order.
 
- when       who             what, where, why
- --------   ----            ---------------------------------------------------
- 12/30/19   llundblade      Add support for decimal fractions and bigfloats.
- 08/7/19    llundblade      Better handling of not well-formed encode and decode.
- 07/31/19   llundblade      New error code for better end of data handling.
- 7/25/19    janjongboom     Add indefinite length encoding for maps and arrays.
- 05/26/19   llundblade      Add QCBOREncode_GetErrorState() and _IsBufferNULL().
- 04/26/19   llundblade      Big documentation & style update. No interface change.
- 02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug.
- 12/18/18   llundblade      Move decode malloc optional code to separate repository.
- 12/13/18   llundblade      Documentatation improvements.
- 11/29/18   llundblade      Rework to simpler handling of tags and labels.
- 11/9/18    llundblade      Error codes are now enums.
- 11/1/18    llundblade      Floating support.
- 10/31/18   llundblade      Switch to one license that is almost BSD-3.
- 10/15/18   llundblade      indefinite-length maps and arrays supported
- 10/8/18    llundblade      indefinite-length strings supported
- 09/28/18   llundblade      Added bstr wrapping feature for COSE implementation.
- 07/05/17   llundbla        Add bstr wrapping of maps/arrays for COSE.
- 03/01/17   llundbla        More data types; decoding improvements and fixes.
- 11/13/16   llundbla        Integrate most TZ changes back into github version.
- 09/30/16   gkanike         Porting to TZ.
- 03/15/16   llundbla        Initial Version.
+ when       who           what, where, why
+ --------   ----          ---------------------------------------------------
+ 1/x/20     llundblade    Code formatting to reduce numnber of long lines.
+ 12/30/19   llundblade    Add support for decimal fractions and bigfloats.
+ 08/7/19    llundblade    Better handling of not well-formed encode and decode.
+ 07/31/19   llundblade    New error code for better end of data handling.
+ 7/25/19    janjongboom   Add indefinite length encoding for maps and arrays.
+ 05/26/19   llundblade    Add QCBOREncode_GetErrorState() and _IsBufferNULL().
+ 04/26/19   llundblade    Big documentation & style update. No interface change.
+ 02/16/19   llundblade    Redesign MemPool to fix memory access alignment bug.
+ 12/18/18   llundblade    Move decode malloc optional code to separate repo.
+ 12/13/18   llundblade    Documentatation improvements.
+ 11/29/18   llundblade    Rework to simpler handling of tags and labels.
+ 11/9/18    llundblade    Error codes are now enums.
+ 11/1/18    llundblade    Floating support.
+ 10/31/18   llundblade    Switch to one license that is almost BSD-3.
+ 10/15/18   llundblade    indefinite-length maps and arrays supported
+ 10/8/18    llundblade    indefinite-length strings supported
+ 09/28/18   llundblade    Added bstr wrapping feature for COSE implementation.
+ 07/05/17   llundbla      Add bstr wrapping of maps/arrays for COSE.
+ 03/01/17   llundbla      More data types; decoding improvements and fixes.
+ 11/13/16   llundbla      Integrate most TZ changes back into github version.
+ 09/30/16   gkanike       Porting to TZ.
+ 03/15/16   llundbla      Initial Version.
 
- =====================================================================================*/
+ =============================================================================*/
 
 #ifndef __QCBOR__qcbor__
 #define __QCBOR__qcbor__
@@ -76,7 +77,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
    Caller of QCBOR should not reference any of the details below up until
    the start of the public part.
-   =========================================================================== */
+   ========================================================================== */
 
 /*
  Standard integer types are used in the interface to be precise about
@@ -110,8 +111,8 @@ extern "C" {
 /*
  PRIVATE DATA STRUCTURE
 
- Holds the data for tracking array and map nesting during encoding. Pairs up with
- the Nesting_xxx functions to make an "object" to handle nesting encoding.
+ Holds the data for tracking array and map nesting during encoding. Pairs up
+ with the Nesting_xxx functions to make an "object" to handle nesting encoding.
 
  uStart is a uint32_t instead of a size_t to keep the size of this
  struct down so it can be on the stack without any concern.  It would be about
@@ -124,10 +125,10 @@ extern "C" {
 typedef struct __QCBORTrackNesting {
    // PRIVATE DATA STRUCTURE
    struct {
-      // See function OpenArrayInternal() for detailed comments on how this works
-      uint32_t  uStart;     // uStart is the byte position where the array starts
-      uint16_t  uCount;     // Number of items in the arrary or map; counts items
-                            // in a map, not pairs of items
+      // See function QCBOREncode_OpenMapOrArray() for details on how this works
+      uint32_t  uStart;   // uStart is the byte position where the array starts
+      uint16_t  uCount;   // Number of items in the arrary or map; counts items
+                          // in a map, not pairs of items
       uint8_t   uMajorType; // Indicates if item is a map or an array
    } pArrays[QCBOR_MAX_ARRAY_NESTING1+1], // stored state for the nesting levels
    *pCurrentNesting; // the current nesting level
@@ -225,20 +226,20 @@ struct _QCBORDecodeContext {
 #define CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN 13
 
 
-/* ===========================================================================
+/* ==========================================================================
    END OF PRIVATE PART OF THIS FILE
 
    BEGINNING OF PUBLIC PART OF THIS FILE
-   =========================================================================== */
+   ========================================================================== */
 
 
 
-/* ===========================================================================
+/* ==========================================================================
    BEGINNING OF CONSTANTS THAT COME FROM THE CBOR STANDARD, RFC 7049
 
    It is not necessary to use these directly when encoding or decoding
    CBOR with this implementation.
-   =========================================================================== */
+   ========================================================================== */
 
 /* Standard CBOR Major type for positive integers of various lengths */
 #define CBOR_MAJOR_TYPE_POSITIVE_INT 0
@@ -1731,7 +1732,7 @@ static void QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx, int64_t nL
  @brief  Add a standard Boolean.
 
  @param[in] pCtx   The encoding context to add the simple value to.
- @param[in] b      true or false from @c <stdbool.h>. Anything will result in an error.
+ @param[in] b      true or false from @c <stdbool.h>.
 
  Adds a Boolean value as CBOR major type 7.
 
@@ -2711,7 +2712,7 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulB
 
 
 /**
- @brief Semi-private method to open a map, array or bstr wrapped CBOR
+ @brief Semi-private method to open a map, array or bstr-wrapped CBOR
 
  @param[in] pCtx        The context to add to.
  @param[in] uMajorType  The major CBOR type to close
@@ -2723,13 +2724,13 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType);
 
 
 /**
- @brief Semi-private method to open a map, array or bstr wrapped CBOR with indefinite length
+ @brief Semi-private method to open a map, array with indefinite length
 
  @param[in] pCtx        The context to add to.
  @param[in] uMajorType  The major CBOR type to close
 
- Call QCBOREncode_OpenArrayIndefiniteLength() or QCBOREncode_OpenMapIndefiniteLength()
- instead of this.
+ Call QCBOREncode_OpenArrayIndefiniteLength() or
+ QCBOREncode_OpenMapIndefiniteLength() instead of this.
  */
 void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx, uint8_t uMajorType);
 
@@ -2744,19 +2745,23 @@ void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx, uint8_
  Call QCBOREncode_CloseArray(), QCBOREncode_CloseMap() or
  QCBOREncode_CloseBstrWrap() instead of this.
  */
-void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC *pWrappedCBOR);
+void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *pCtx,
+                                 uint8_t uMajorType,
+                                 UsefulBufC *pWrappedCBOR);
 
 /**
- @brief Semi-private method to close a map, array or bstr wrapped CBOR with indefinite length
+ @brief Semi-private method to close a map, array with indefinite length
 
  @param[in] pCtx           The context to add to.
  @param[in] uMajorType     The major CBOR type to close.
  @param[out] pWrappedCBOR  Pointer to @ref UsefulBufC containing wrapped bytes.
 
- Call QCBOREncode_CloseArrayIndefiniteLength() or QCBOREncode_CloseMapIndefiniteLength()
- instead of this.
+ Call QCBOREncode_CloseArrayIndefiniteLength() or
+ QCBOREncode_CloseMapIndefiniteLength() instead of this.
  */
-void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC *pWrappedCBOR);
+void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
+                                                 uint8_t uMajorType,
+                                                 UsefulBufC *pWrappedCBOR);
 
 /**
  @brief  Semi-private method to add simple types.
@@ -3036,7 +3041,12 @@ static inline void QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pCtx,
                                                   int64_t             nMantissa,
                                                   int64_t             nBase10Exponent)
 {
-   QCBOREncode_AddExponentAndMantissa(pCtx, CBOR_TAG_DECIMAL_FRACTION, NULLUsefulBufC, false, nMantissa, nBase10Exponent);
+   QCBOREncode_AddExponentAndMantissa(pCtx,
+                                      CBOR_TAG_DECIMAL_FRACTION,
+                                      NULLUsefulBufC,
+                                      false,
+                                      nMantissa,
+                                      nBase10Exponent);
 }
 
 static inline void QCBOREncode_AddDecimalFractionToMap(QCBOREncodeContext *pCtx,
@@ -3062,7 +3072,11 @@ static inline void QCBOREncode_AddDecimalFractionBigNum(QCBOREncodeContext *pCtx
                                                         bool                bIsNegative,
                                                         int64_t             nBase10Exponent)
 {
-   QCBOREncode_AddExponentAndMantissa(pCtx, CBOR_TAG_DECIMAL_FRACTION, Mantissa, bIsNegative, 0, nBase10Exponent);
+   QCBOREncode_AddExponentAndMantissa(pCtx,
+                                      CBOR_TAG_DECIMAL_FRACTION,
+                                      Mantissa, bIsNegative,
+                                      0,
+                                      nBase10Exponent);
 }
 
 static inline void QCBOREncode_AddDecimalFractionBigNumToMap(QCBOREncodeContext *pCtx,

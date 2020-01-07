@@ -1,35 +1,37 @@
 /*==============================================================================
- ieee754.c -- floating point conversion between half, double and single precision
+ ieee754.c -- floating point conversion between half, double & single precision
 
- Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
  See BSD-3-Clause license in README.md
 
  Created on 7/23/18
- ==============================================================================*/
+ =============================================================================*/
 
 #include "ieee754.h"
 #include <string.h> // For memcpy()
 
 
 /*
- This code is written for clarity and verifiability, not for size, on the assumption
- that the optimizer will do a good job. The LLVM optimizer, -Os, does seem to do the
- job and the resulting object code is smaller from combining code for the many different
- cases (normal, subnormal, infinity, zero...) for the conversions.
+ This code is written for clarity and verifiability, not for size, on
+ the assumption that the optimizer will do a good job. The LLVM
+ optimizer, -Os, does seem to do the job and the resulting object code
+ is smaller from combining code for the many different cases (normal,
+ subnormal, infinity, zero...) for the conversions.
 
- Dead stripping is also really helpful to get code size down when floating point
- encoding is not needed.
+ Dead stripping is also really helpful to get code size down when
+ floating point encoding is not needed.
 
- This code works solely using shifts and masks and thus has no dependency on
- any math libraries. It can even work if the CPU doesn't have any floating
- point support, though that isn't the most useful thing to do.
+ This code works solely using shifts and masks and thus has no
+ dependency on any math libraries. It can even work if the CPU doesn't
+ have any floating point support, though that isn't the most useful
+ thing to do.
 
- The memcpy() dependency is only for CopyFloatToUint32() and friends which only
- is needed to avoid type punning when converting the actual float bits to
- an unsigned value so the bit shifts and masks can work.
+ The memcpy() dependency is only for CopyFloatToUint32() and friends
+ which only is needed to avoid type punning when converting the actual
+ float bits to an unsigned value so the bit shifts and masks can work.
  */
 
 /*

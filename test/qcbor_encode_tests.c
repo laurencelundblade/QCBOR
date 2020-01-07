@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2019, Laurence Lundblade.
+ Copyright (c) 2018-2020, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -47,11 +47,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  */
 
-//#define PRINT_FUNCTIONS_FOR_DEBUGGINGXX
+#define PRINT_FUNCTIONS_FOR_DEBUGGING
 
-#ifdef  PRINT_FUNCTIONS_FOR_DEBUGGINGXX
+#ifdef  PRINT_FUNCTIONS_FOR_DEBUGGING
 #include <stdio.h>
 
+#if 0
 // ifdef these out to not have compiler warnings
 static void printencoded(const uint8_t *pEncoded, size_t nLen)
 {
@@ -64,6 +65,7 @@ static void printencoded(const uint8_t *pEncoded, size_t nLen)
 
    fflush(stdout);
 }
+#endif
 
 
 // Do the comparison and print out where it fails
@@ -71,7 +73,10 @@ static int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
    size_t i;
    for(i = 0; i < U1.len; i++) {
       if(((uint8_t *)U1.ptr)[i] != ((uint8_t *)U2.ptr)[i]) {
-         printf("Position: %d  Actual: 0x%x   Expected: 0x%x\n", i, ((uint8_t *)U1.ptr)[i], ((uint8_t *)U2.ptr)[i]);
+         printf("Position: %d  Actual: 0x%x   Expected: 0x%x\n",
+                (uint32_t)i,
+                ((uint8_t *)U1.ptr)[i],
+                ((uint8_t *)U2.ptr)[i]);
          return 1;
       }
    }
@@ -563,7 +568,7 @@ int AllAddMethodsTest()
    QCBOREncode_AddSZString(&ECtx, "oof\n");
    const char *szURL =
       "http://stackoverflow.com/questions/28059697/how-do-i-toggle-between-debug-and-release-builds-in-xcode-6-7-8";
-   QCBOREncode_AddURI(&ECtx, UsefulBuf_FROM_SZ_LITERAL(szURL));
+   QCBOREncode_AddURI(&ECtx, UsefulBuf_FromSZ(szURL));
    QCBOREncode_AddB64Text(&ECtx, UsefulBuf_FROM_SZ_LITERAL("YW55IGNhcm5hbCBwbGVhc3VyZQ=="));
    QCBOREncode_AddRegex(&ECtx, UsefulBuf_FROM_SZ_LITERAL("[^abc]+"));
    QCBOREncode_AddMIMEData(&ECtx, UsefulBuf_FromSZ(szMIME));
