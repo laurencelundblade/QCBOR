@@ -41,7 +41,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
- 01/08/2020   llundblade      Documentation corrections & improved code formatting.
  5/21/2019    llundblade      #define configs for efficient endianness handling.
  5/16/2019    llundblade      Add UsefulOutBuf_IsBufferNULL().
  3/23/2019    llundblade      Big documentation & style update. No interface
