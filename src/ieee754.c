@@ -21,6 +21,11 @@
  is smaller from combining code for the many different cases (normal,
  subnormal, infinity, zero...) for the conversions.
 
+ This code has really long lines and is much easier to read because of
+ them. Some coding guidelines prefer 80 column lines (can they not afford
+ big displays?). It would make this code much worse even to wrap at 120
+ columns.
+
  Dead stripping is also really helpful to get code size down when
  floating point encoding is not needed.
 
