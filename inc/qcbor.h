@@ -845,7 +845,7 @@ typedef enum {
 
 /** A floating-point number made of base-2 exponent and integer
     mantissa.  See @ref expAndMantissa and
-    CBOREncode_AddBigFloat(). */
+    QCBOREncode_AddBigFloat(). */
 #define QCBOR_TYPE_BIGFLOAT      17
 
 /** A floating-point number made of base-2 exponent and positive big
@@ -1213,7 +1213,7 @@ static void QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel
 /**
  @brief  Add a UTF-8 text string to the encoded output.
 
- @param[in] pCtx   The context to initialize.
+ @param[in] pCtx   The encoding context to add the text to.
  @param[in] Text   Pointer and length of text to add.
 
  The text passed in must be unencoded UTF-8 according to [RFC 3629]
@@ -1240,7 +1240,7 @@ static void QCBOREncode_AddTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
 /**
  @brief  Add a UTF-8 text string to the encoded output.
 
- @param[in] pCtx      The context to initialize.
+ @param[in] pCtx      The encoding context to add the text to.
  @param[in] szString  Null-terminated text to add.
 
  This works the same as QCBOREncode_AddText().
@@ -1255,7 +1255,7 @@ static void QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLab
 /**
  @brief  Add a floating-point number to the encoded output.
 
- @param[in] pCtx  The encoding context to add the float to.
+ @param[in] pCtx  The encoding context to add the double to.
  @param[in] dNum  The double precision number to add.
 
  This outputs a floating-point number with CBOR major type 7.
@@ -1289,7 +1289,7 @@ static void QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel
 /**
  @brief Add an optional tag.
 
- @param[in] pCtx  The encoding context to add the integer to.
+ @param[in] pCtx  The encoding context to add the tag to.
  @param[in] uTag  The tag to add
 
  This outputs a CBOR major type 6 item that tags the next data item
@@ -1315,7 +1315,7 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx,uint64_t uTag);
 /**
  @brief  Add an epoch-based date.
 
- @param[in] pCtx  The encoding context to add the simple value to.
+ @param[in] pCtx  The encoding context to add the date to.
  @param[in] date  Number of seconds since 1970-01-01T00:00Z in UTC time.
 
  As per RFC 7049 this is similar to UNIX/Linux/POSIX dates. This is
@@ -1351,7 +1351,7 @@ static  void QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx, int64_t nL
 /**
  @brief Add a byte string to the encoded output.
 
- @param[in] pCtx   The context to initialize.
+ @param[in] pCtx   The encoding context to add the bytes to.
  @param[in] Bytes  Pointer and length of the input data.
 
  Simply adds the bytes to the encoded output as CBOR major type 2.
@@ -1372,7 +1372,7 @@ static void QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
 /**
  @brief Add a binary UUID to the encoded output.
 
- @param[in] pCtx   The context to initialize.
+ @param[in] pCtx   The encoding context to add the UUID to.
  @param[in] Bytes  Pointer and length of the binary UUID.
 
  A binary UUID as defined in [RFC 4122]
@@ -1391,7 +1391,7 @@ static void QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nL
 /**
  @brief Add a positive big number to the encoded output.
 
- @param[in] pCtx   The context to initialize.
+ @param[in] pCtx   The encoding context to add the big number to.
  @param[in] Bytes  Pointer and length of the big number.
 
  Big numbers are integers larger than 64-bits. Their format is
@@ -1415,7 +1415,7 @@ static void QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx, int64_
 /**
  @brief Add a negative big number to the encoded output.
 
- @param[in] pCtx   The context to initialize.
+ @param[in] pCtx   The encoding context to add the big number to.
  @param[in] Bytes  Pointer and length of the big number.
 
  Big numbers are integers larger than 64-bits. Their format is
@@ -1521,7 +1521,7 @@ static void QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
 /**
  @brief Add a big floating-point number to the encoded output.
 
- @param[in] pCtx            The encoding context to add the decimal fraction to.
+ @param[in] pCtx            The encoding context to add the bigfloat to.
  @param[in] nMantissa       The mantissa.
  @param[in] nBase2Exponent  The exponent.
 
@@ -1571,7 +1571,7 @@ static void QCBOREncode_AddBigFloatToMapN(QCBOREncodeContext *pCtx,
  @brief Add a big floating-point number with a big number mantissa to
         the encoded output.
 
- @param[in] pCtx            The encoding context to add the decimal fraction to.
+ @param[in] pCtx            The encoding context to add the bigfloat to.
  @param[in] Mantissa        The mantissa.
  @param[in] bIsNegative     false if mantissa is positive, true if negative.
  @param[in] nBase2Exponent  The exponent.
@@ -1604,7 +1604,7 @@ static void QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
 /**
  @brief Add a text URI to the encoded output.
 
- @param[in] pCtx  The context to initialize.
+ @param[in] pCtx  The encoding context to add the URI to.
  @param[in] URI   Pointer and length of the URI.
 
  The format of URI must be per [RFC 3986]
@@ -1628,7 +1628,7 @@ static void QCBOREncode_AddURIToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, U
 /**
  @brief Add Base64-encoded text to encoded output.
 
- @param[in] pCtx     The context to initialize.
+ @param[in] pCtx     The encoding context to add the base-64 text to.
  @param[in] B64Text  Pointer and length of the base-64 encoded text.
 
  The text content is Base64 encoded data per [RFC 4648]
@@ -1647,7 +1647,7 @@ static void QCBOREncode_AddB64TextToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
 /**
  @brief Add base64url encoded data to encoded output.
 
- @param[in] pCtx     The context to initialize.
+ @param[in] pCtx     The encoding context to add the base64url to.
  @param[in] B64Text  Pointer and length of the base64url encoded text.
 
  The text content is base64URL encoded text as per [RFC 4648]
@@ -1666,7 +1666,7 @@ static void QCBOREncode_AddB64URLTextToMapN(QCBOREncodeContext *pCtx, int64_t nL
 /**
  @brief Add Perl Compatible Regular Expression.
 
- @param[in] pCtx    The context to initialize.
+ @param[in] pCtx    The encoding context to add the regular expression to.
  @param[in] Regex   Pointer and length of the regular expression.
 
  The text content is Perl Compatible Regular
@@ -1685,7 +1685,7 @@ static void QCBOREncode_AddRegexToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
 /**
  @brief MIME encoded text to the encoded output.
 
- @param[in] pCtx      The context to initialize.
+ @param[in] pCtx      The encoding context to add the MIME data to.
  @param[in] MIMEData  Pointer and length of the regular expression.
 
  The text content is in MIME format per [RFC 2045]
@@ -1706,7 +1706,7 @@ static void QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pCtx, int64_t nLab
 /**
  @brief  Add an RFC 3339 date string
 
- @param[in] pCtx    The encoding context to add the simple value to.
+ @param[in] pCtx    The encoding context to add the date to.
  @param[in] szDate  Null-terminated string with date to add.
 
  The string szDate should be in the form of [RFC 3339]
@@ -1731,7 +1731,7 @@ static void QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx, int64_t nL
 /**
  @brief  Add a standard Boolean.
 
- @param[in] pCtx   The encoding context to add the simple value to.
+ @param[in] pCtx   The encoding context to add the Boolean to.
  @param[in] b      true or false from @c <stdbool.h>.
 
  Adds a Boolean value as CBOR major type 7.
@@ -1749,7 +1749,7 @@ static void QCBOREncode_AddBoolToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
 /**
  @brief  Add a NULL to the encoded output.
 
- @param[in] pCtx  The encoding context to add the simple value to.
+ @param[in] pCtx  The encoding context to add the NULL to.
 
  Adds the NULL value as CBOR major type 7.
 
@@ -1768,7 +1768,7 @@ static void QCBOREncode_AddNULLToMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 /**
  @brief  Add an "undef" to the encoded output.
 
- @param[in] pCtx  The encoding context to add the simple value to.
+ @param[in] pCtx  The encoding context to add the "undef" to.
 
  Adds the undef value as CBOR major type 7.
 
@@ -1827,7 +1827,7 @@ static void QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabe
 /**
  @brief Close an open array.
 
- @param[in] pCtx The context to add to.
+ @param[in] pCtx The encoding context to close the array in.
 
  The closes an array opened by QCBOREncode_OpenArray(). It reduces
  nesting level by one. All arrays (and maps) must be closed before
@@ -1851,7 +1851,7 @@ static void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
 /**
  @brief  Indicates that the next items added are in a map.
 
- @param[in] pCtx The context to add to.
+ @param[in] pCtx The encoding context to open the map in.
 
  See QCBOREncode_OpenArray() for more information, particularly error
  handling.
@@ -1889,7 +1889,7 @@ static void QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 /**
  @brief Close an open map.
 
- @param[in] pCtx The context to add to.
+ @param[in] pCtx The encoding context to close the map in .
 
  This closes a map opened by QCBOREncode_OpenMap(). It reduces nesting
  level by one.
@@ -1912,7 +1912,7 @@ static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
 /**
  @brief Indicate start of encoded CBOR to be wrapped in a bstr.
 
- @param[in] pCtx The context to add to.
+ @param[in] pCtx The encoding context to open the bstr-wrapped CBOR in.
 
  All added encoded items between this call and a call to
  QCBOREncode_CloseBstrWrap() will be wrapped in a bstr. They will
@@ -1951,7 +1951,7 @@ static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
 /**
  @brief Close a wrapping bstr.
 
- @param[in] pCtx           The context to add to.
+ @param[in] pCtx           The encoding context to close of bstr wrapping in.
  @param[out] pWrappedCBOR  A @ref UsefulBufC containing wrapped bytes.
 
  The closes a wrapping bstr opened by QCBOREncode_CloseBstrWrap(). It reduces
@@ -1984,7 +1984,7 @@ static void QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWra
 /**
  @brief Add some already-encoded CBOR bytes.
 
- @param[in] pCtx     The context to add to.
+ @param[in] pCtx     The encoding context to add the already-encode CBOR to.
  @param[in] Encoded  The already-encoded CBOR to add to the context.
 
  The encoded CBOR being added must be fully conforming CBOR. It must
@@ -2088,7 +2088,7 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedL
 /**
  @brief Indicate whether output buffer is NULL or not.
 
- @param[in] pCtx  The encoding ontext.
+ @param[in] pCtx  The encoding context.
 
  @return 1 if the output buffer is @c NULL.
 
@@ -2102,7 +2102,7 @@ static int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
  /**
  @brief Get the encoding error state.
 
- @param[in] pCtx  The encoding ontext.
+ @param[in] pCtx  The encoding context.
 
  @return One of \ref QCBORError. See return values from
          QCBOREncode_Finish()
