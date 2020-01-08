@@ -3451,9 +3451,9 @@ int ExponentAndMantissaDecodeTests(void)
    QCBORError         nCBORError;
    QCBORItem          item;
 
-   static const uint8_t spBigNum[] = {0x01, 0x02, 0x03, 0x04, 0x05,
-                                      0x06, 0x07, 0x08, 0x09, 0x010};
-   UsefulBufC BN = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum);
+   static const uint8_t spBigNumMantissa[] = {0x01, 0x02, 0x03, 0x04, 0x05,
+                                              0x06, 0x07, 0x08, 0x09, 0x010};
+   UsefulBufC BN = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNumMantissa);
 
 
    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentsAndMantissas), QCBOR_DECODE_MODE_NORMAL);
