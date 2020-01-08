@@ -22,7 +22,7 @@
    b) the license may be an issue
 
  QCBOR does support half-precision, but rather than using
- floating point math like this, it does it with bit shifting
+ floating-point math like this, it does it with bit shifting
  and masking.
 
  This code is here to test that code.

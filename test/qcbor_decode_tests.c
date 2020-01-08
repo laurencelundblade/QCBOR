@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2019, Laurence Lundblade.
+ Copyright (c) 2018-2020, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ==============================================================================*/
+ =============================================================================*/
 
 #include "qcbor_decode_tests.h"
 #include "qcbor.h"
@@ -55,11 +55,6 @@ static void PrintUsefulBufC(const char *szLabel, UsefulBufC Buf)
 
    fflush(stdout);
 }
-
-/*static void printencoded(const char *szLabel, const uint8_t *pEncoded, size_t nLen)
-{
-   PrintUsefulBufC(szLabel, (UsefulBufC){pEncoded, nLen});
-}*/
 #endif
 
 
@@ -104,7 +99,7 @@ static int IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return nCBORError;
-   if(Item.uDataType != QCBOR_TYPE_INT64 || // Todo; fix this for 32-bit machines
+   if(Item.uDataType != QCBOR_TYPE_INT64 || // Todo; fix for 32-bit machines
       Item.val.int64 != -9223372036854775807LL - 1)
       return -1;
 
@@ -460,8 +455,8 @@ int IntegerValuesParseTest()
 
 
 /*
-   Creates a simple CBOR array and returns it in *pEncoded. The array is malloced
-   and needs to be freed. This is used by several tests.
+   Creates a simple CBOR array and returns it in *pEncoded. The array is
+   malloced and needs to be freed. This is used by several tests.
 
    Two of the inputs can be set. Two other items in the array are fixed.
 
@@ -542,13 +537,22 @@ static uint8_t pValidMapEncoded[] = {
    0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63,
    0x73 } ;
 
-static int ParseOrderedArray(const uint8_t *pEncoded, size_t nLen, int64_t *pInt1, int64_t *pInt2,  const uint8_t **pBuf3, size_t *pBuf3Len,  const uint8_t **pBuf4, size_t *pBuf4Len)
+static int ParseOrderedArray(const uint8_t *pEncoded,
+                             size_t nLen,
+                             int64_t *pInt1,
+                             int64_t *pInt2,
+                             const uint8_t **pBuf3,
+                             size_t *pBuf3Len,
+                             const uint8_t **pBuf4,
+                             size_t *pBuf4Len)
 {
    QCBORDecodeContext DCtx;
    QCBORItem          Item;
    int                nReturn = -1; // assume error until success
 
-   QCBORDecode_Init(&DCtx, (UsefulBufC){pEncoded, nLen}, QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    (UsefulBufC){pEncoded, nLen},
+                    QCBOR_DECODE_MODE_NORMAL);
 
    // Make sure the first thing is a map
    if(QCBORDecode_GetNext(&DCtx, &Item) != 0 || Item.uDataType != QCBOR_TYPE_ARRAY)
@@ -641,7 +645,9 @@ int EmptyMapsAndArraysTest()
    QCBORDecodeContext DCtx;
    QCBORItem Item;
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmpties), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmpties),
+                    QCBOR_DECODE_MODE_NORMAL);
 
    // Array with 3 items
    if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
@@ -759,7 +765,8 @@ int EmptyMapsAndArraysTest()
 }
 
 
-static uint8_t spDeepArrays[] = {0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x80};
+static uint8_t spDeepArrays[] = {0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
+                                 0x81, 0x81, 0x81, 0x80};
 
 int ParseDeepArrayTest()
 {
@@ -767,7 +774,9 @@ int ParseDeepArrayTest()
    int nReturn = 0;
    int i;
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDeepArrays), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDeepArrays),
+                    QCBOR_DECODE_MODE_NORMAL);
 
    for(i = 0; i < 10; i++) {
       QCBORItem Item;
@@ -784,10 +793,10 @@ int ParseDeepArrayTest()
 }
 
 // Big enough to test nesting to the depth of 24
-static uint8_t spTooDeepArrays[] = {0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
-                                    0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
-                                    0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
-                                    0x80};
+static uint8_t spTooDeepArrays[] = {0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
+                                    0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
+                                    0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
+                                    0x81, 0x81, 0x81, 0x80};
 
 int ParseTooDeepArrayTest()
 {
@@ -797,7 +806,9 @@ int ParseTooDeepArrayTest()
    QCBORItem Item;
 
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooDeepArrays), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooDeepArrays),
+                    QCBOR_DECODE_MODE_NORMAL);
 
    for(i = 0; i < QCBOR_MAX_ARRAY_NESTING1; i++) {
 
@@ -825,7 +836,9 @@ int ShortBufferParseTest()
    for(int nNum = sizeof(spExpectedEncodedInts)-1; nNum; nNum--) {
       QCBORDecodeContext DCtx;
 
-      QCBORDecode_Init(&DCtx, (UsefulBufC){spExpectedEncodedInts, nNum}, QCBOR_DECODE_MODE_NORMAL);
+      QCBORDecode_Init(&DCtx,
+                       (UsefulBufC){spExpectedEncodedInts, nNum},
+                       QCBOR_DECODE_MODE_NORMAL);
 
       const QCBORError nErr = IntegerValuesParseTestInternal(&DCtx);
 
@@ -876,7 +889,9 @@ static int ParseMapTest1(QCBORDecodeMode nMode)
    QCBORItem Item;
    int nCBORError;
 
-   QCBORDecode_Init(&DCtx, (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)}, nMode);
+   QCBORDecode_Init(&DCtx,
+                    (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)},
+                    nMode);
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
@@ -1001,7 +1016,9 @@ int ParseMapAsArrayTest()
    QCBORItem Item;
    int nCBORError;
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), QCBOR_DECODE_MODE_MAP_AS_ARRAY);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    QCBOR_DECODE_MODE_MAP_AS_ARRAY);
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return nCBORError;
@@ -1208,7 +1225,9 @@ static int ExtraBytesTest(int nLevel)
    QCBORItem Item;
    int nCBORError;
 
-   QCBORDecode_Init(&DCtx, (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)}, QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)},
+                    QCBOR_DECODE_MODE_NORMAL);
 
    if(nLevel < 1) {
       if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_EXTRA_BYTES) {
@@ -1415,7 +1434,9 @@ int ParseMapTest()
 }
 
 
-static uint8_t spSimpleValues[] = {0x8a, 0xf4, 0xf5, 0xf6, 0xf7, 0xff, 0xe0, 0xf3, 0xf8, 0x00, 0xf8, 0x13, 0xf8, 0x1f, 0xf8, 0x20, 0xf8, 0xff};
+static uint8_t spSimpleValues[] = {0x8a, 0xf4, 0xf5, 0xf6, 0xf7, 0xff,
+                                   0xe0, 0xf3, 0xf8, 0x00, 0xf8, 0x13,
+                                   0xf8, 0x1f, 0xf8, 0x20, 0xf8, 0xff};
 
 int ParseSimpleTest()
 {
@@ -1424,7 +1445,9 @@ int ParseSimpleTest()
    int nCBORError;
 
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleValues), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleValues),
+                    QCBOR_DECODE_MODE_NORMAL);
 
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -1518,7 +1541,8 @@ int NotWellFormedTests()
       const struct someBinaryBytes *pBytes = &paNotWellFormedCBOR[nIterate];
       const UsefulBufC Input = (UsefulBufC){pBytes->p, pBytes->n};
 
-      // Set up decoder context. String allocator needed for indefinite string test cases
+      // Set up decoder context. String allocator needed for indefinite
+      // string test cases
       QCBORDecodeContext DCtx;
       QCBORDecode_Init(&DCtx, Input, QCBOR_DECODE_MODE_NORMAL);
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
@@ -1653,9 +1677,11 @@ struct FailInput  Failures[] = {
    // Deeply nested indefinite length arrays with deepest one unclosed
    { {(uint8_t[]){0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_HIT_END },
    // Mixed nesting with indefinite unclosed
-   { {(uint8_t[]){0x9f, 0x81, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_BAD_BREAK }, // TODO: think through this one
+   // TODO: think through this one
+   { {(uint8_t[]){0x9f, 0x81, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_BAD_BREAK },
    // Mixed nesting with definite unclosed
-   { {(uint8_t[]){0x9f, 0x82, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 10}, QCBOR_ERR_BAD_BREAK }, // TODO: think through this one
+   // TODO: think through this one
+   { {(uint8_t[]){0x9f, 0x82, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 10}, QCBOR_ERR_BAD_BREAK },
 
 
    // The "argument" for the data item is incomplete
@@ -1852,10 +1878,14 @@ struct FailInput  Failures[] = {
 
 
    // In addition to not-well-formed, some invalid CBOR
-   { {(uint8_t[]){0xc0, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },  // Text-based date, with an integer
-   { {(uint8_t[]){0xc1, 0x41, 0x33}, 3}, QCBOR_ERR_BAD_OPT_TAG },   // Epoch date, with an byte string
-   { {(uint8_t[]){0xc1, 0xc0, 0x00}, 3}, QCBOR_ERR_BAD_OPT_TAG },   // tagged as both epoch and string dates
-   { {(uint8_t[]){0xc2, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },  // big num tagged an int, not a byte string
+   // Text-based date, with an integer
+   { {(uint8_t[]){0xc0, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },
+   // Epoch date, with an byte string
+   { {(uint8_t[]){0xc1, 0x41, 0x33}, 3}, QCBOR_ERR_BAD_OPT_TAG },
+   // tagged as both epoch and string dates
+   { {(uint8_t[]){0xc1, 0xc0, 0x00}, 3}, QCBOR_ERR_BAD_OPT_TAG },
+   // big num tagged an int, not a byte string
+   { {(uint8_t[]){0xc2, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },
 };
 
 int DecodeFailureTests()
@@ -2014,7 +2044,9 @@ int DateParseTest()
    QCBORItem Item;
    int nCBORError;
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput),
+                    QCBOR_DECODE_MODE_NORMAL);
 
    const uint64_t uTags[] = {15};
    QCBORTagListIn TagList = {1, uTags};
@@ -2080,7 +2112,8 @@ int DateParseTest()
       Item.val.epochDate.nSeconds == 0) {
       return -12;
    }
-   // TODO: could use a few more tests with float, double, and half precsion and negative (but coverage is still pretty good)
+   // TODO: could use a few more tests with float, double, and half precsion
+   // and negative (but coverage is still pretty good)
 
    return 0;
 }
@@ -2096,7 +2129,8 @@ static uint8_t spOptTestInput[] = {
  DB 9192939495969798 # tag(10489608748473423768)
    80               # array(0)
  */
-static uint8_t spEncodedLargeTag[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x80};
+static uint8_t spEncodedLargeTag[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95,
+                                      0x96, 0x97, 0x98, 0x80};
 
 /*
 DB 9192939495969798 # tag(10489608748473423768)
@@ -2105,7 +2139,8 @@ DB 9192939495969798 # tag(10489608748473423768)
          C7         # tag(7)
             80      # array(0)
 */
-static uint8_t spLotsOfTags[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0xd8, 0x88, 0xc6, 0xc7, 0x80};
+static uint8_t spLotsOfTags[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96,
+                                 0x97, 0x98, 0xd8, 0x88, 0xc6, 0xc7, 0x80};
 
 /*
  The cbor.me parse of this.
@@ -2158,7 +2193,9 @@ int OptTagParseTest()
    QCBORDecodeContext DCtx;
    QCBORItem Item;
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spOptTestInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spOptTestInput),
+                    QCBOR_DECODE_MODE_NORMAL);
 
    //-------------------------
    // This text matches the magic number tag and the fraction tag
@@ -2189,7 +2226,9 @@ int OptTagParseTest()
    // --------------------------------
    // This test decodes the very large tag, but it is not in
    // any list so it is ignored.
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEncodedLargeTag), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEncodedLargeTag),
+                    QCBOR_DECODE_MODE_NORMAL);
    if(QCBORDecode_GetNext(&DCtx, &Item)) {
       return -6;
    }
@@ -2198,8 +2237,11 @@ int OptTagParseTest()
    }
 
    // ----------------------------------
-   // This test sets up a caller-config list that includes the very large tage and then matches it.
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEncodedLargeTag), QCBOR_DECODE_MODE_NORMAL);
+   // This test sets up a caller-config list that includes the very large
+   // tage and then matches it.
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEncodedLargeTag),
+                    QCBOR_DECODE_MODE_NORMAL);
    const uint64_t puList[] = {0x9192939495969798, 257};
    const QCBORTagListIn TL = {2, puList};
    QCBORDecode_SetCallerConfiguredTagList(&DCtx, &TL);
@@ -2216,10 +2258,12 @@ int OptTagParseTest()
    }
 
    //------------------------
-   // This test sets up a caller-configured list, and looks up something not in it
+   // Sets up a caller-configured list and look up something not in it
    const uint64_t puLongList[17] = {1,2,1};
    const QCBORTagListIn TLLong = {17, puLongList};
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEncodedLargeTag), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEncodedLargeTag),
+                    QCBOR_DECODE_MODE_NORMAL);
    QCBORDecode_SetCallerConfiguredTagList(&DCtx, &TLLong);
    if(QCBORDecode_GetNext(&DCtx, &Item)) {
       return -11;
@@ -2227,7 +2271,9 @@ int OptTagParseTest()
 
    // -----------------------
    // This tests retrievel of the full tag list
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spLotsOfTags), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spLotsOfTags),
+                    QCBOR_DECODE_MODE_NORMAL);
    uint64_t puTags[16];
    QCBORTagListOut Out = {0, 4, puTags};
    if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
@@ -2242,7 +2288,9 @@ int OptTagParseTest()
 
    // ----------------------
    // This text if too small of an out list
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spLotsOfTags), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spLotsOfTags),
+                    QCBOR_DECODE_MODE_NORMAL);
    QCBORTagListOut OutSmall = {0, 3, puTags};
    if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &OutSmall) != QCBOR_ERR_TOO_MANY_TAGS) {
       return -14;
@@ -2250,14 +2298,18 @@ int OptTagParseTest()
 
    // ---------------
    // Parse a version of the "CSR" that has had a ton of tags randomly inserted
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                    QCBOR_DECODE_MODE_NORMAL);
    int n = CheckCSRMaps(&DCtx);
    if(n) {
       return n-2000;
    }
 
    Out = (QCBORTagListOut){0, 16, puTags};
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                    QCBOR_DECODE_MODE_NORMAL);
 
    const uint64_t puTagList[] = {773, 1, 90599561};
    const QCBORTagListIn TagList = {3, puTagList};
@@ -2462,7 +2514,9 @@ int BignumParseTest()
    QCBORItem Item;
    int nCBORError;
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNumInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNumInput),
+                    QCBOR_DECODE_MODE_NORMAL);
 
 
    //
@@ -2534,7 +2588,12 @@ int BignumParseTest()
 
 
 
-static int CheckItemWithIntLabel(QCBORDecodeContext *pCtx, uint8_t uDataType, uint8_t uNestingLevel, uint8_t uNextNest, int64_t nLabel, QCBORItem *pItem)
+static int CheckItemWithIntLabel(QCBORDecodeContext *pCtx,
+                                 uint8_t uDataType,
+                                 uint8_t uNestingLevel,
+                                 uint8_t uNextNest,
+                                 int64_t nLabel,
+                                 QCBORItem *pItem)
 {
    QCBORItem Item;
    int nCBORError;
@@ -2542,7 +2601,10 @@ static int CheckItemWithIntLabel(QCBORDecodeContext *pCtx, uint8_t uDataType, ui
    if((nCBORError = QCBORDecode_GetNext(pCtx, &Item))) return -1;
    if(Item.uDataType != uDataType) return -1;
    if(uNestingLevel > 0) {
-      if(Item.uLabelType != QCBOR_TYPE_INT64 &&  Item.uLabelType != QCBOR_TYPE_UINT64) return -1;
+      if(Item.uLabelType != QCBOR_TYPE_INT64 &&
+         Item.uLabelType != QCBOR_TYPE_UINT64) {
+         return -1;
+      }
       if(Item.uLabelType == QCBOR_TYPE_INT64) {
          if(Item.label.int64 != nLabel) return -1;
       } else  {
@@ -2629,7 +2691,9 @@ int NestedMapTest()
 {
    QCBORDecodeContext DCtx;
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRInput),
+                    QCBOR_DECODE_MODE_NORMAL);
 
    return CheckCSRMaps(&DCtx);
 }
@@ -2640,7 +2704,9 @@ int StringDecoderModeFailTest()
 {
    QCBORDecodeContext DCtx;
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRInput), QCBOR_DECODE_MODE_MAP_STRINGS_ONLY);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRInput),
+                    QCBOR_DECODE_MODE_MAP_STRINGS_ONLY);
 
    QCBORItem Item;
    QCBORError nCBORError;
@@ -2678,7 +2744,9 @@ int NestedMapTestIndefLen()
 {
    QCBORDecodeContext DCtx;
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRInputIndefLen), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRInputIndefLen),
+                    QCBOR_DECODE_MODE_NORMAL);
 
    return CheckCSRMaps(&DCtx);
 }
@@ -2751,13 +2819,18 @@ int IndefiniteLengthNestTest()
 }
 
 
-
-static const uint8_t spIndefiniteArray[]     = {0x9f, 0x01, 0x82, 0x02, 0x03, 0xff}; // [1, [2, 3]]
-static const uint8_t spIndefiniteArrayBad1[] = {0x9f}; // No closing break
-static const uint8_t spIndefiniteArrayBad2[] = {0x9f, 0x9f, 0x02, 0xff}; // Not enough closing breaks
-static const uint8_t spIndefiniteArrayBad3[] = {0x9f, 0x02, 0xff, 0xff}; // Too many closing breaks
-static const uint8_t spIndefiniteArrayBad4[] = {0x81, 0x9f}; // Unclosed indeflen inside def len
-static const uint8_t spIndefiniteArrayBad5[] = {0x9f, 0xd1, 0xff}; // confused tag
+// [1, [2, 3]]
+static const uint8_t spIndefiniteArray[]     = {0x9f, 0x01, 0x82, 0x02, 0x03, 0xff};
+// No closing break
+static const uint8_t spIndefiniteArrayBad1[] = {0x9f};
+// Not enough closing breaks
+static const uint8_t spIndefiniteArrayBad2[] = {0x9f, 0x9f, 0x02, 0xff};
+// Too many closing breaks
+static const uint8_t spIndefiniteArrayBad3[] = {0x9f, 0x02, 0xff, 0xff};
+// Unclosed indeflen inside def len
+static const uint8_t spIndefiniteArrayBad4[] = {0x81, 0x9f};
+// confused tag
+static const uint8_t spIndefiniteArrayBad5[] = {0x9f, 0xd1, 0xff};
 
 int IndefiniteLengthArrayMapTest()
 {
@@ -3030,7 +3103,9 @@ int IndefiniteLengthStringTest()
    }
 
    // ----- types mismatch ---
-   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefiniteLenStringBad2), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefiniteLenStringBad2),
+                    QCBOR_DECODE_MODE_NORMAL);
 
    if(QCBORDecode_SetMemPool(&DC,  MemPool, false)) {
       return -7;
@@ -3048,7 +3123,9 @@ int IndefiniteLengthStringTest()
    }
 
    // ----- not a string ---
-   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefiniteLenStringBad3), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefiniteLenStringBad3),
+                    QCBOR_DECODE_MODE_NORMAL);
 
    if(QCBORDecode_SetMemPool(&DC,  MemPool, false)) {
       return -11;
@@ -3066,7 +3143,9 @@ int IndefiniteLengthStringTest()
    }
 
    // ----- no end -----
-   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefiniteLenStringBad4), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefiniteLenStringBad4),
+                    QCBOR_DECODE_MODE_NORMAL);
 
    if(QCBORDecode_SetMemPool(&DC,  MemPool, false)) {
       return -15;
@@ -3107,7 +3186,8 @@ int IndefiniteLengthStringTest()
    UsefulBuf_MAKE_STACK_UB(BigIndefBStrStorage, 290);
    const UsefulBufC BigIndefBStr = MakeIndefiniteBigBstr(BigIndefBStrStorage);
 
-   UsefulBuf_MAKE_STACK_UB(MemPoolSmall, 80); // 80 is big enough for MemPool overhead, but not BigIndefBStr
+   // 80 is big enough for MemPool overhead, but not BigIndefBStr
+   UsefulBuf_MAKE_STACK_UB(MemPoolSmall, 80);
 
    QCBORDecode_Init(&DC, BigIndefBStr, QCBOR_DECODE_MODE_NORMAL);
    if(QCBORDecode_SetMemPool(&DC,  MemPoolSmall, false)) {
@@ -3164,7 +3244,8 @@ int IndefiniteLengthStringTest()
    if(QCBORDecode_GetNext(&DC, &Item)){
       return -32;
    }
-   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING || Item.uDataType != QCBOR_TYPE_INT64 ||
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.uDataAlloc || !Item.uLabelAlloc ||
       UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("struuming"))) {
       return -33;
@@ -3185,7 +3266,9 @@ int AllocAllStringsTest()
 
 
    // First test, use the "CSRMap" as easy input and checking
-   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRInput), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRInput),
+                    QCBOR_DECODE_MODE_NORMAL);
 
    UsefulBuf_MAKE_STACK_UB(Pool, sizeof(spCSRInput) + QCBOR_DECODE_MIN_MEM_POOL_SIZE);
 
@@ -3257,7 +3340,9 @@ int AllocAllStringsTest()
 
    // Next parse with a pool that is too small
    UsefulBuf_MAKE_STACK_UB(SmallPool, QCBOR_DECODE_MIN_MEM_POOL_SIZE + 1);
-   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    QCBOR_DECODE_MODE_NORMAL);
    QCBORDecode_SetMemPool(&DC, SmallPool, 1); // Turn on copying.
    if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
       return -8;

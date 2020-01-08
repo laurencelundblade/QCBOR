@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2019, Laurence Lundblade.
+ Copyright (c) 2018-2020, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,9 +28,9 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ==============================================================================*/
+ =============================================================================*/
 
-/*===================================================================================
+/*==============================================================================
  FILE:  qcbor_decode.c
 
  DESCRIPTION:  This file contains the implementation of QCBOR.
@@ -40,31 +40,33 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  This section contains comments describing changes made to the module.
  Notice that changes are listed in reverse chronological order.
 
- when               who             what, where, why
- --------           ----            ---------------------------------------------------
- 12/30/19           llundblade      Add support for decimal fractions and bigfloats.
- 11/07/19           llundblade      Fix long long conversion to double compiler warning
- 09/07/19           llundblade      Fix bug decoding empty arrays and maps
- 07/31/19           llundblade      Decode error fixes for some not-well-formed CBOR
- 07/31/19           llundblade      New error code for better end of data handling
- 02/17/19           llundblade      Fixed: QCBORItem.u{Data|Label}Alloc when bAllStrings set
- 02/16/19           llundblade      Redesign MemPool to fix memory access alignment bug
- 01/10/19           llundblade      Clever type and argument decoder is 250 bytes smaller
- 11/9/18            llundblade      Error codes are now enums.
- 11/2/18            llundblade      Simplify float decoding and align with preferred
-                                    float encoding
- 10/31/18           llundblade      Switch to one license that is almost BSD-3.
- 10/28/18           llundblade      Reworked tag decoding
- 10/15/18           llundblade      Indefinite length maps and arrays supported
- 10/8/18            llundblade      Indefinite length strings supported
- 02/04/17           llundbla        Work on CPUs that don's require pointer alignment
-                                    by making use of changes in UsefulBuf
- 03/01/17           llundbla        More data types; decoding improvements and fixes
- 11/13/16           llundbla        Integrate most TZ changes back into github version.
- 09/30/16           gkanike         Porting to TZ.
- 03/15/16           llundbla        Initial Version.
+ when       who             what, where, why
+ --------   ----            ---------------------------------------------------
+ 01/08/2020 llundblade      Documentation corrections & improved code formatting.
+ 12/30/19   llundblade      Add support for decimal fractions and bigfloats.
+ 11/07/19   llundblade      Fix long long conversion to double compiler warning
+ 09/07/19   llundblade      Fix bug decoding empty arrays and maps
+ 07/31/19   llundblade      Decode error fixes for some not-well-formed CBOR
+ 07/31/19   llundblade      New error code for better end of data handling
+ 02/17/19   llundblade      Fixed: QCBORItem.u{Data|Label}Alloc when
+                            bAllStrings set
+ 02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug
+ 01/10/19   llundblade      Clever type and argument decoder; 250 bytes smaller
+ 11/9/18    llundblade      Error codes are now enums.
+ 11/2/18    llundblade      Simplify float decoding and align with preferred
+                            float encoding
+ 10/31/18   llundblade      Switch to one license that is almost BSD-3.
+ 10/28/18   llundblade      Reworked tag decoding
+ 10/15/18   llundblade      Indefinite length maps and arrays supported
+ 10/8/18    llundblade      Indefinite length strings supported
+ 02/04/17   llundbla        Work on CPUs that don's require pointer alignment
+                            by making use of changes in UsefulBuf
+ 03/01/17   llundbla        More data types; decoding improvements and fixes
+ 11/13/16   llundbla        Integrate most TZ changes back into github version.
+ 09/30/16   gkanike         Porting to TZ.
+ 03/15/16   llundbla        Initial Version.
 
- =====================================================================================*/
+ =============================================================================*/
 
 #include "qcbor.h"
 #include "ieee754.h"
@@ -77,31 +79,39 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UNCONST_POINTER(ptr)    ((void *)(ptr))
 
 
-/*
- Collection of functions to track the map/array nesting for decoding
- */
 
-inline static int IsMapOrArray(uint8_t uDataType)
+/*===========================================================================
+ DecodeNesting -- Functions for tracking array/map nesting when decoding
+
+ See qcbor.h for definition of the object used here: QCBORDecodeNesting
+  ===========================================================================*/
+
+inline static int
+IsMapOrArray(uint8_t uDataType)
 {
    return uDataType == QCBOR_TYPE_MAP || uDataType == QCBOR_TYPE_ARRAY;
 }
 
-inline static int DecodeNesting_IsNested(const QCBORDecodeNesting *pNesting)
+inline static int
+DecodeNesting_IsNested(const QCBORDecodeNesting *pNesting)
 {
    return pNesting->pCurrent != &(pNesting->pMapsAndArrays[0]);
 }
 
-inline static int DecodeNesting_IsIndefiniteLength(const QCBORDecodeNesting *pNesting)
+inline static int
+DecodeNesting_IsIndefiniteLength(const QCBORDecodeNesting *pNesting)
 {
    return pNesting->pCurrent->uCount == UINT16_MAX;
 }
 
-inline static uint8_t DecodeNesting_GetLevel(QCBORDecodeNesting *pNesting)
+inline static uint8_t
+DecodeNesting_GetLevel(QCBORDecodeNesting *pNesting)
 {
    return pNesting->pCurrent - &(pNesting->pMapsAndArrays[0]);
 }
 
-inline static int DecodeNesting_TypeIsMap(const QCBORDecodeNesting *pNesting)
+inline static int
+DecodeNesting_TypeIsMap(const QCBORDecodeNesting *pNesting)
 {
    if(!DecodeNesting_IsNested(pNesting)) {
       return 0;
@@ -111,7 +121,8 @@ inline static int DecodeNesting_TypeIsMap(const QCBORDecodeNesting *pNesting)
 }
 
 // Process a break. This will either ascend the nesting or error out
-inline static QCBORError DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
+inline static QCBORError
+DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
 {
    // breaks must always occur when there is nesting
    if(!DecodeNesting_IsNested(pNesting)) {
@@ -129,8 +140,9 @@ inline static QCBORError DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
    return QCBOR_SUCCESS;
 }
 
-// Called on every single item except breaks including the opening of a map/array
-inline static void DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
+// Called on every single item except breaks including open of a map/array
+inline static void
+DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
 {
    while(DecodeNesting_IsNested(pNesting)) {
       // Not at the top level, so there is decrementing to be done.
@@ -152,9 +164,9 @@ inline static void DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
    }
 }
 
-
 // Called on every map/array
-inline static QCBORError DecodeNesting_Descend(QCBORDecodeNesting *pNesting, QCBORItem *pItem)
+inline static QCBORError
+DecodeNesting_Descend(QCBORDecodeNesting *pNesting, QCBORItem *pItem)
 {
    QCBORError nReturn = QCBOR_SUCCESS;
 
@@ -188,7 +200,8 @@ Done:
    return nReturn;;
 }
 
-inline static void DecodeNesting_Init(QCBORDecodeNesting *pNesting)
+inline static void
+DecodeNesting_Init(QCBORDecodeNesting *pNesting)
 {
    pNesting->pCurrent = &(pNesting->pMapsAndArrays[0]);
 }
@@ -260,10 +273,12 @@ static const uint16_t spBuiltInTagMap[] = {
 static inline int TagMapper_LookupBuiltIn(uint64_t uTag)
 {
    if(sizeof(spBuiltInTagMap)/sizeof(uint16_t) > TAG_MAPPER_MAX_SIZE_BUILT_IN_TAGS) {
-      // This is a cross-check to make sure the above array doesn't
-      // accidentally get made too big.
-      // In normal conditions the above test should optimize out
-      // as all the values are known at compile time.
+      /*
+       This is a cross-check to make sure the above array doesn't
+       accidentally get made too big.  In normal conditions the above
+       test should optimize out as all the values are known at compile
+       time.
+       */
       return -1;
    }
 
@@ -297,7 +312,10 @@ static inline int TagMapper_LookupCallerConfigured(const QCBORTagListIn *pCaller
  This and the above functions could probably be optimized and made
  clearer and neater.
  */
-static QCBORError TagMapper_Lookup(const QCBORTagListIn *pCallerConfiguredTagMap, uint64_t uTag, uint8_t *puTagBitIndex)
+static QCBORError
+TagMapper_Lookup(const QCBORTagListIn *pCallerConfiguredTagMap,
+                 uint64_t uTag,
+                 uint8_t *puTagBitIndex)
 {
    int nTagBitIndex = TagMapper_LookupBuiltIn(uTag);
    if(nTagBitIndex >= 0) {
@@ -324,31 +342,38 @@ static QCBORError TagMapper_Lookup(const QCBORTagListIn *pCallerConfiguredTagMap
 
 
 
-/* ===========================================================================
+/*===========================================================================
    QCBORStringAllocate -- STRING ALLOCATOR INVOCATION
 
    The following four functions are pretty wrappers for invocation of
    the string allocator supplied by the caller.
 
- ==============================================================================*/
+  ===========================================================================*/
 
-static inline void StringAllocator_Free(const QCORInternalAllocator *pMe, void *pMem)
+static inline void
+StringAllocator_Free(const QCORInternalAllocator *pMe, void *pMem)
 {
    (pMe->pfAllocator)(pMe->pAllocateCxt, pMem, 0);
 }
 
-// StringAllocator_Reallocate called with pMem NULL is equal to StringAllocator_Allocate()
-static inline UsefulBuf StringAllocator_Reallocate(const QCORInternalAllocator *pMe, void *pMem, size_t uSize)
+// StringAllocator_Reallocate called with pMem NULL is
+// equal to StringAllocator_Allocate()
+static inline UsefulBuf
+StringAllocator_Reallocate(const QCORInternalAllocator *pMe,
+                           void *pMem,
+                           size_t uSize)
 {
    return (pMe->pfAllocator)(pMe->pAllocateCxt, pMem, uSize);
 }
 
-static inline UsefulBuf StringAllocator_Allocate(const QCORInternalAllocator *pMe, size_t uSize)
+static inline UsefulBuf
+StringAllocator_Allocate(const QCORInternalAllocator *pMe, size_t uSize)
 {
    return (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, uSize);
 }
 
-static inline void StringAllocator_Destruct(const QCORInternalAllocator *pMe)
+static inline void
+StringAllocator_Destruct(const QCORInternalAllocator *pMe)
 {
    if(pMe->pfAllocator) {
       (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, 0);
@@ -357,16 +382,22 @@ static inline void StringAllocator_Destruct(const QCORInternalAllocator *pMe)
 
 
 
+/*===========================================================================
+ QCBORDecode -- The main implementation of CBOR decoding
 
+ See qcbor.h for definition of the object used here: QCBORDecodeContext
+  ===========================================================================*/
 /*
  Public function, see header file
  */
-void QCBORDecode_Init(QCBORDecodeContext *me, UsefulBufC EncodedCBOR, QCBORDecodeMode nDecodeMode)
+void QCBORDecode_Init(QCBORDecodeContext *me,
+                      UsefulBufC EncodedCBOR,
+                      QCBORDecodeMode nDecodeMode)
 {
    memset(me, 0, sizeof(QCBORDecodeContext));
    UsefulInputBuf_Init(&(me->InBuf), EncodedCBOR);
-   // Don't bother with error check on decode mode. If a bad value is passed it will just act as
-   // if the default normal mode of 0 was set.
+   // Don't bother with error check on decode mode. If a bad value is
+   // passed it will just act as if the default normal mode of 0 was set.
    me->uDecodeMode = nDecodeMode;
    DecodeNesting_Init(&(me->nesting));
 }
@@ -389,25 +420,31 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pMe,
 /*
  Public function, see header file
  */
-void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *me, const QCBORTagListIn *pTagList)
+void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *me,
+                                            const QCBORTagListIn *pTagList)
 {
    me->pCallerConfiguredTagList = pTagList;
 }
 
 
 /*
- This decodes the fundamental part of a CBOR data item, the type and number
+ This decodes the fundamental part of a CBOR data item, the type and
+ number
 
  This is the Counterpart to InsertEncodedTypeAndNumber().
 
- This does the network->host byte order conversion. The conversion here
- also results in the conversion for floats in addition to that for
- lengths, tags and integer values.
+ This does the network->host byte order conversion. The conversion
+ here also results in the conversion for floats in addition to that
+ for lengths, tags and integer values.
 
  This returns:
    pnMajorType -- the major type for the item
-   puNumber -- the "number" which is used a the value for integers, tags and floats and length for strings and arrays
-   puAdditionalInfo -- Pass this along to know what kind of float or if length is indefinite
+
+   puNumber -- the "number" which is used a the value for integers,
+               tags and floats and length for strings and arrays
+
+   puAdditionalInfo -- Pass this along to know what kind of float or
+                       if length is indefinite
 
  */
 inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
@@ -428,8 +465,8 @@ inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
    uint64_t uArgument;
 
    if(uAdditionalInfo >= LEN_IS_ONE_BYTE && uAdditionalInfo <= LEN_IS_EIGHT_BYTES) {
-      // Need to get 1,2,4 or 8 additional argument bytes
-      // Map LEN_IS_ONE_BYTE.. LEN_IS_EIGHT_BYTES to actual length
+      // Need to get 1,2,4 or 8 additional argument bytes Map
+      // LEN_IS_ONE_BYTE.. LEN_IS_EIGHT_BYTES to actual length
       static const uint8_t aIterate[] = {1,2,4,8};
 
       // Loop getting all the bytes in the argument
@@ -464,19 +501,20 @@ Done:
 }
 
 /*
- CBOR doesn't explicitly specify two's compliment for integers but all CPUs
- use it these days and the test vectors in the RFC are so. All integers in the CBOR
- structure are positive and the major type indicates positive or negative.
- CBOR can express positive integers up to 2^x - 1 where x is the number of bits
- and negative integers down to 2^x.  Note that negative numbers can be one
- more away from zero than positive.
- Stdint, as far as I can tell, uses two's compliment to represent
- negative integers.
+ CBOR doesn't explicitly specify two's compliment for integers but all
+ CPUs use it these days and the test vectors in the RFC are so. All
+ integers in the CBOR structure are positive and the major type
+ indicates positive or negative.  CBOR can express positive integers
+ up to 2^x - 1 where x is the number of bits and negative integers
+ down to 2^x.  Note that negative numbers can be one more away from
+ zero than positive.  Stdint, as far as I can tell, uses two's
+ compliment to represent negative integers.
 
  See http://www.unix.org/whitepapers/64bit.html for reasons int isn't
  used here in any way including in the interface
  */
-inline static QCBORError DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDecodedItem)
+inline static QCBORError
+DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDecodedItem)
 {
    // Stack usage: int/ptr 1 -- 8
    QCBORError nReturn = QCBOR_SUCCESS;
@@ -538,18 +576,19 @@ inline static QCBORError DecodeInteger(int nMajorType, uint64_t uNumber, QCBORIt
 /*
  Decode true, false, floats, break...
  */
-
-inline static QCBORError DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
+inline static QCBORError
+DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
 {
    // Stack usage: 0
    QCBORError nReturn = QCBOR_SUCCESS;
 
-   // uAdditionalInfo is 5 bits from the initial byte
-   // compile time checks above make sure uAdditionalInfo values line up with uDataType values
+   // uAdditionalInfo is 5 bits from the initial byte compile time checks
+   // above make sure uAdditionalInfo values line up with uDataType values
    pDecodedItem->uDataType = uAdditionalInfo;
 
    switch(uAdditionalInfo) {
-      // No check for ADDINFO_RESERVED1 - ADDINFO_RESERVED3 as it is caught before this is called.
+      // No check for ADDINFO_RESERVED1 - ADDINFO_RESERVED3 as they are
+      // caught before this is called.
 
       case HALF_PREC_FLOAT:
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
@@ -582,8 +621,12 @@ inline static QCBORError DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber,
 
       default: // 0-19
          pDecodedItem->uDataType   = QCBOR_TYPE_UKNOWN_SIMPLE;
-         // DecodeTypeAndNumber will make uNumber equal to uAdditionalInfo when uAdditionalInfo is < 24
-         // This cast is safe because the 2, 4 and 8 byte lengths of uNumber are in the double/float cases above
+         /*
+          DecodeTypeAndNumber will make uNumber equal to
+          uAdditionalInfo when uAdditionalInfo is < 24 This cast is
+          safe because the 2, 4 and 8 byte lengths of uNumber are in
+          the double/float cases above
+          */
          pDecodedItem->val.uSimple = (uint8_t)uNumber;
          break;
    }
@@ -626,7 +669,9 @@ inline static QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
       // Normal case with no string allocator
       pDecodedItem->val.string = Bytes;
    }
-   pDecodedItem->uDataType  = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING) ? QCBOR_TYPE_BYTE_STRING : QCBOR_TYPE_TEXT_STRING;
+   const bool bIsBstr = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING);
+   pDecodedItem->uDataType  = bIsBstr ? QCBOR_TYPE_BYTE_STRING
+                                      : QCBOR_TYPE_TEXT_STRING;
 
 Done:
    return nReturn;
@@ -638,7 +683,8 @@ Done:
 
 
 
-// Make sure the constants align as this is assumed by the GetAnItem() implementation
+// Make sure the constants align as this is assumed by
+// the GetAnItem() implementation
 #if QCBOR_TYPE_ARRAY != CBOR_MAJOR_TYPE_ARRAY
 #error QCBOR_TYPE_ARRAY value not lined up with major type
 #endif
@@ -647,12 +693,13 @@ Done:
 #endif
 
 /*
- This gets a single data item and decodes it including preceding optional tagging. This does not
- deal with arrays and maps and nesting except to decode the data item introducing them. Arrays and
- maps are handled at the next level up in GetNext().
+ This gets a single data item and decodes it including preceding
+ optional tagging. This does not deal with arrays and maps and nesting
+ except to decode the data item introducing them. Arrays and maps are
+ handled at the next level up in GetNext().
 
- Errors detected here include: an array that is too long to decode, hit end of buffer unexpectedly,
-    a few forms of invalid encoded CBOR
+ Errors detected here include: an array that is too long to decode,
+ hit end of buffer unexpectedly, a few forms of invalid encoded CBOR
  */
 static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
                                QCBORItem *pDecodedItem,
@@ -661,8 +708,12 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
    // Stack usage: int/ptr 3 -- 24
    QCBORError nReturn;
 
-   // Get the major type and the number. Number could be length of more bytes or the value depending on the major type
-   // nAdditionalInfo is an encoding of the length of the uNumber and is needed to decode floats and doubles
+   /*
+    Get the major type and the number. Number could be length of more
+    bytes or the value depending on the major type nAdditionalInfo is
+    an encoding of the length of the uNumber and is needed to decode
+    floats and doubles
+   */
    int      uMajorType;
    uint64_t uNumber;
    uint8_t  uAdditionalInfo;
@@ -671,14 +722,14 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
 
    nReturn = DecodeTypeAndNumber(pUInBuf, &uMajorType, &uNumber, &uAdditionalInfo);
 
-   // Error out here if we got into trouble on the type and number.
-   // The code after this will not work if the type and number is not good.
+   // Error out here if we got into trouble on the type and number.  The
+   // code after this will not work if the type and number is not good.
    if(nReturn) {
       goto Done;
    }
 
-   // At this point the major type and the value are valid. We've got the type and the number that
-   // starts every CBOR data item.
+   // At this point the major type and the value are valid. We've got
+   // the type and the number that starts every CBOR data item.
    switch (uMajorType) {
       case CBOR_MAJOR_TYPE_POSITIVE_INT: // Major type 0
       case CBOR_MAJOR_TYPE_NEGATIVE_INT: // Major type 1
@@ -692,7 +743,9 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
       case CBOR_MAJOR_TYPE_BYTE_STRING: // Major type 2
       case CBOR_MAJOR_TYPE_TEXT_STRING: // Major type 3
          if(uAdditionalInfo == LEN_IS_INDEFINITE) {
-            pDecodedItem->uDataType  = (uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING) ? QCBOR_TYPE_BYTE_STRING : QCBOR_TYPE_TEXT_STRING;
+            const bool bIsBstr = (uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING);
+            pDecodedItem->uDataType = bIsBstr ? QCBOR_TYPE_BYTE_STRING
+                                              : QCBOR_TYPE_TEXT_STRING;
             pDecodedItem->val.string = (UsefulBufC){NULL, SIZE_MAX};
          } else {
             nReturn = DecodeBytes(pAllocator, uMajorType, uNumber, pUInBuf, pDecodedItem);
@@ -709,9 +762,11 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
          if(uAdditionalInfo == LEN_IS_INDEFINITE) {
             pDecodedItem->val.uCount = UINT16_MAX; // Indicate indefinite length
          } else {
-            pDecodedItem->val.uCount = (uint16_t)uNumber; // type conversion OK because of check above
+            // type conversion OK because of check above
+            pDecodedItem->val.uCount = (uint16_t)uNumber;
          }
-         pDecodedItem->uDataType  = uMajorType; // C preproc #if above makes sure constants align
+         // C preproc #if above makes sure constants for major types align
+         pDecodedItem->uDataType  = uMajorType;
          break;
 
       case CBOR_MAJOR_TYPE_OPTIONAL: // Major type 6, optional prepended tags
@@ -723,11 +778,13 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
          }
          break;
 
-      case CBOR_MAJOR_TYPE_SIMPLE: // Major type 7, float, double, true, false, null...
+      case CBOR_MAJOR_TYPE_SIMPLE:
+         // Major type 7, float, double, true, false, null...
          nReturn = DecodeSimple(uAdditionalInfo, uNumber, pDecodedItem);
          break;
 
-      default: // Should never happen because DecodeTypeAndNumber() should never return > 7
+      default:
+         // Never happens because DecodeTypeAndNumber() should never return > 7
          nReturn = QCBOR_ERR_UNSUPPORTED;
          break;
    }
@@ -740,12 +797,13 @@ Done:
 
 /*
  This layer deals with indefinite length strings. It pulls all the
- individual chunk items together into one QCBORItem using the
- string allocator.
+ individual chunk items together into one QCBORItem using the string
+ allocator.
 
  Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
  */
-static inline QCBORError GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+static inline QCBORError
+GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    // Stack usage; int/ptr 2 UsefulBuf 2 QCBORItem  -- 96
    QCBORError nReturn;
@@ -842,7 +900,10 @@ Done:
  Gets all optional tag data items preceding a data item that is not an
  optional tag and records them as bits in the tag map.
  */
-static QCBORError GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
+static QCBORError
+GetNext_TaggedItem(QCBORDecodeContext *me,
+                   QCBORItem *pDecodedItem,
+                   QCBORTagListOut *pTags)
 {
    // Stack usage: int/ptr: 3 -- 24
    QCBORError nReturn;
@@ -899,9 +960,13 @@ Done:
 
 
 /*
- This layer takes care of map entries. It combines the label and data items into one QCBORItem.
+ This layer takes care of map entries. It combines the label and data
+ items into one QCBORItem.
  */
-static inline QCBORError GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
+static inline QCBORError
+GetNext_MapEntry(QCBORDecodeContext *me,
+                 QCBORItem *pDecodedItem,
+                 QCBORTagListOut *pTags)
 {
    // Stack use: int/ptr 1, QCBORItem  -- 56
    QCBORError nReturn = GetNext_TaggedItem(me, pDecodedItem, pTags);
@@ -919,7 +984,8 @@ static inline QCBORError GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDe
       if(DecodeNesting_TypeIsMap(&(me->nesting))) {
          // If in a map and the right decoding mode, get the label
 
-         // Get the next item which will be the real data; Item will be the label
+         // Save label in pDecodedItem and get the next which will
+         // be the real data
          QCBORItem LabelItem = *pDecodedItem;
          nReturn = GetNext_TaggedItem(me, pDecodedItem, pTags);
          if(nReturn)
@@ -932,7 +998,7 @@ static inline QCBORError GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDe
             pDecodedItem->label.string = LabelItem.val.string;
             pDecodedItem->uLabelType = QCBOR_TYPE_TEXT_STRING;
          } else if (QCBOR_DECODE_MODE_MAP_STRINGS_ONLY == me->uDecodeMode) {
-            // It's not a string and we only want strings, probably for easy translation to JSON
+            // It's not a string and we only want strings
             nReturn = QCBOR_ERR_MAP_LABEL_TYPE;
             goto Done;
          } else if(LabelItem.uDataType == QCBOR_TYPE_INT64) {
@@ -969,7 +1035,9 @@ Done:
 /*
  Public function, see header qcbor.h file
  */
-QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
+QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
+                                         QCBORItem *pDecodedItem,
+                                         QCBORTagListOut *pTags)
 {
    // Stack ptr/int: 2, QCBORItem : 64
 
@@ -1092,13 +1160,15 @@ inline static QCBORError DecodeBigNum(QCBORItem *pDecodedItem)
    }
    const UsefulBufC Temp    = pDecodedItem->val.string;
    pDecodedItem->val.bigNum = Temp;
-   pDecodedItem->uDataType  = pDecodedItem->uTagBits & QCBOR_TAGFLAG_POS_BIGNUM ? QCBOR_TYPE_POSBIGNUM : QCBOR_TYPE_NEGBIGNUM;
+   const bool bIsPosBigNum = (bool)(pDecodedItem->uTagBits & QCBOR_TAGFLAG_POS_BIGNUM);
+   pDecodedItem->uDataType  = bIsPosBigNum ? QCBOR_TYPE_POSBIGNUM : QCBOR_TYPE_NEGBIGNUM;
    return QCBOR_SUCCESS;
 }
 
 
 /*
- The epoch formatted date. Turns lots of different forms of encoding date into uniform one
+ The epoch formatted date. Turns lots of different forms of encoding
+ date into uniform one
  */
 static int DecodeDateEpoch(QCBORItem *pDecodedItem)
 {
@@ -1187,9 +1257,9 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    }
 
    // A check for pDecodedItem->val.uCount == 2 would work for
-   //   definite length arrays, but not for indefnite.  Instead remember
-   //   the nesting level the two integers must be at, which is one
-   //   deeper than that of the array.
+   // definite length arrays, but not for indefnite.  Instead remember
+   // the nesting level the two integers must be at, which is one
+   // deeper than that of the array.
    const int nNestLevel = pDecodedItem->uNestingLevel + 1;
 
    // --- Is it a decimal fraction or a bigfloat? ---
@@ -1266,7 +1336,10 @@ Done:
 /*
  Public function, see header qcbor.h file
  */
-QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *me, QCBORItem *pDecodedItem, QCBORTagListOut *pTags)
+QCBORError
+QCBORDecode_GetNextWithTags(QCBORDecodeContext *me,
+                            QCBORItem *pDecodedItem,
+                            QCBORTagListOut *pTags)
 {
    QCBORError nReturn;
 
@@ -1383,7 +1456,9 @@ QCBORError QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 /*
  Public function, see header qcbor.h file
  */
-int QCBORDecode_IsTagged(QCBORDecodeContext *me, const QCBORItem *pItem, uint64_t uTag)
+int QCBORDecode_IsTagged(QCBORDecodeContext *me,
+                         const QCBORItem *pItem,
+                         uint64_t uTag)
 {
    const QCBORTagListIn *pCallerConfiguredTagMap = me->pCallerConfiguredTagList;
 
@@ -1431,21 +1506,28 @@ Done:
 
 Decoder errors handled in this file
 
- - Hit end of input before it was expected while decoding type and number QCBOR_ERR_HIT_END
+ - Hit end of input before it was expected while decoding type and
+   number QCBOR_ERR_HIT_END
 
  - negative integer that is too large for C QCBOR_ERR_INT_OVERFLOW
 
- - Hit end of input while decoding a text or byte string QCBOR_ERR_HIT_END
+ - Hit end of input while decoding a text or byte string
+   QCBOR_ERR_HIT_END
 
- - Encountered conflicting tags -- e.g., an item is tagged both a date string and an epoch date QCBOR_ERR_UNSUPPORTED
+ - Encountered conflicting tags -- e.g., an item is tagged both a date
+   string and an epoch date QCBOR_ERR_UNSUPPORTED
 
- - Encontered an array or mapp that has too many items QCBOR_ERR_ARRAY_TOO_LONG
+ - Encontered an array or mapp that has too many items
+   QCBOR_ERR_ARRAY_TOO_LONG
 
- - Encountered array/map nesting that is too deep QCBOR_ERR_ARRAY_NESTING_TOO_DEEP
+ - Encountered array/map nesting that is too deep
+   QCBOR_ERR_ARRAY_NESTING_TOO_DEEP
 
- - An epoch date > INT64_MAX or < INT64_MIN was encountered QCBOR_ERR_DATE_OVERFLOW
+ - An epoch date > INT64_MAX or < INT64_MIN was encountered
+   QCBOR_ERR_DATE_OVERFLOW
 
- - The type of a map label is not a string or int QCBOR_ERR_MAP_LABEL_TYPE
+ - The type of a map label is not a string or int
+   QCBOR_ERR_MAP_LABEL_TYPE
 
  - Hit end with arrays or maps still open -- QCBOR_ERR_EXTRA_BYTES
 
@@ -1478,15 +1560,17 @@ Decoder errors handled in this file
 
    The sizes packed in are uint32_t to be the same on all CPU types
    and simplify the code.
-   =========================================================================== */
+   ========================================================================== */
 
 
-static inline int MemPool_Unpack(const void *pMem, uint32_t *puPoolSize, uint32_t *puFreeOffset)
+static inline int
+MemPool_Unpack(const void *pMem, uint32_t *puPoolSize, uint32_t *puFreeOffset)
 {
    // Use of UsefulInputBuf is overkill, but it is convenient.
    UsefulInputBuf UIB;
 
-   // Just assume the size here. It was checked during SetUp so the assumption is safe.
+   // Just assume the size here. It was checked during SetUp so
+   // the assumption is safe.
    UsefulInputBuf_Init(&UIB, (UsefulBufC){pMem, QCBOR_DECODE_MIN_MEM_POOL_SIZE});
    *puPoolSize     = UsefulInputBuf_GetUint32(&UIB);
    *puFreeOffset   = UsefulInputBuf_GetUint32(&UIB);
@@ -1494,7 +1578,8 @@ static inline int MemPool_Unpack(const void *pMem, uint32_t *puPoolSize, uint32_
 }
 
 
-static inline int MemPool_Pack(UsefulBuf Pool, uint32_t uFreeOffset)
+static inline int
+MemPool_Pack(UsefulBuf Pool, uint32_t uFreeOffset)
 {
    // Use of UsefulOutBuf is overkill, but convenient. The
    // length check performed here is useful.
@@ -1515,7 +1600,8 @@ static inline int MemPool_Pack(UsefulBuf Pool, uint32_t uFreeOffset)
 
  Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
-static UsefulBuf MemPool_Function(void *pPool, void *pMem, size_t uNewSize)
+static UsefulBuf
+MemPool_Function(void *pPool, void *pMem, size_t uNewSize)
 {
    UsefulBuf ReturnValue = NULLUsefulBuf;
 
@@ -1599,7 +1685,9 @@ Done:
 /*
  Public function, see header qcbor.h file
  */
-QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe, UsefulBuf Pool, bool bAllStrings)
+QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
+                                  UsefulBuf Pool,
+                                  bool bAllStrings)
 {
    // The pool size and free mem offset are packed into the beginning
    // of the pool memory. This compile time check make sure the

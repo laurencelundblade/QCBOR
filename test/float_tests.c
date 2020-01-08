@@ -1,14 +1,14 @@
 /*==============================================================================
  float_tests.c -- tests for float and conversion to/from half-precision
 
- Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
  See BSD-3-Clause license in README.md
 
  Created on 9/19/18
- ==============================================================================*/
+ =============================================================================*/
 
 #include "float_tests.h"
 #include "qcbor.h"
@@ -26,7 +26,8 @@ static const uint8_t spExpectedHalf[] = {
             0x69, 0x6E, 0x66, 0x69, 0x6E, 0x69, 0x74, 0x69, 0x74, 0x79,
         0xF9, 0x7C, 0x00,   // Infinity
         0x73,
-            0x6E, 0x65, 0x67, 0x61, 0x74, 0x69, 0x76, 0x65, 0x20, 0x69, 0x6E, 0x66, 0x69, 0x6E, 0x69, 0x74, 0x69, 0x74, 0x79,
+            0x6E, 0x65, 0x67, 0x61, 0x74, 0x69, 0x76, 0x65, 0x20, 0x69, 0x6E,
+            0x66, 0x69, 0x6E, 0x69, 0x74, 0x69, 0x74, 0x79,
         0xF9, 0xFC, 0x00,   // -Inifinity
         0x63,
             0x4E, 0x61, 0x4E,
@@ -38,21 +39,29 @@ static const uint8_t spExpectedHalf[] = {
             0x6F, 0x6E, 0x65, 0x20, 0x74, 0x68, 0x69, 0x72, 0x64,
         0xF9, 0x35, 0x55,   // 0.333251953125
         0x76,
-            0x6C, 0x61, 0x72, 0x67, 0x65, 0x73, 0x74, 0x20, 0x68, 0x61, 0x6C, 0x66, 0x2D, 0x70, 0x72, 0x65, 0x63, 0x69, 0x73, 0x69, 0x6F, 0x6E,
+            0x6C, 0x61, 0x72, 0x67, 0x65, 0x73, 0x74, 0x20, 0x68, 0x61, 0x6C,
+            0x66, 0x2D, 0x70, 0x72, 0x65, 0x63, 0x69, 0x73, 0x69, 0x6F, 0x6E,
         0xF9, 0x7B, 0xFF,   // 65504.0
-        0x78, 0x18, 0x74, 0x6F, 0x6F, 0x2D, 0x6C, 0x61, 0x72, 0x67, 0x65, 0x20, 0x68, 0x61, 0x6C, 0x66, 0x2D, 0x70, 0x72, 0x65, 0x63, 0x69, 0x73, 0x69, 0x6F, 0x6E,
+        0x78, 0x18,
+            0x74, 0x6F, 0x6F, 0x2D, 0x6C, 0x61, 0x72, 0x67, 0x65, 0x20, 0x68,
+            0x61, 0x6C, 0x66, 0x2D, 0x70, 0x72, 0x65, 0x63, 0x69, 0x73, 0x69,
+            0x6F, 0x6E,
         0xF9, 0x7C, 0x00,   // Infinity
         0x72,
-            0x73, 0x6D, 0x61, 0x6C, 0x6C, 0x65, 0x73, 0x74, 0x20, 0x73, 0x75, 0x62, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C,
+            0x73, 0x6D, 0x61, 0x6C, 0x6C, 0x65, 0x73, 0x74, 0x20, 0x73, 0x75,
+            0x62, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C,
         0xF9, 0x00, 0x01,   // 0.000000059604
         0x6F,
-            0x73, 0x6D, 0x61, 0x6C, 0x6C, 0x65, 0x73, 0x74, 0x20, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C,
+            0x73, 0x6D, 0x61, 0x6C, 0x6C, 0x65, 0x73, 0x74, 0x20, 0x6E, 0x6F,
+            0x72, 0x6D, 0x61, 0x6C,
         0xF9, 0x03, 0xFF,   // 0.0000609755516
         0x71,
-            0x62, 0x69, 0x67, 0x67, 0x65, 0x73, 0x74, 0x20, 0x73, 0x75, 0x62, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C,
+            0x62, 0x69, 0x67, 0x67, 0x65, 0x73, 0x74, 0x20, 0x73, 0x75, 0x62,
+            0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C,
         0xF9, 0x04, 0x00,   // 0.000061988
         0x70,
-            0x73, 0x75, 0x62, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C, 0x20, 0x73, 0x69, 0x6E, 0x67, 0x6C, 0x65,
+            0x73, 0x75, 0x62, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C, 0x20, 0x73,
+            0x69, 0x6E, 0x67, 0x6C, 0x65,
         0xF9, 0x00, 0x00,
         0x03,
         0xF9, 0xC0, 0x00,    // -2
@@ -97,7 +106,9 @@ int HalfPrecisionDecodeBasicTests()
         return -4;
     }
 
-    QCBORDecode_GetNext(&DC, &Item); // TODO, is this really converting right? It is carrying payload, but this confuses things.
+    // TODO, is this really converting right? It is carrying payload, but
+    // this confuses things.
+    QCBORDecode_GetNext(&DC, &Item);
     if(Item.uDataType != QCBOR_TYPE_DOUBLE || !isnan(Item.val.dfnum)) {
         return -5;
     }
@@ -149,19 +160,23 @@ int HalfPrecisionDecodeBasicTests()
 
     // TODO: double check these four tests
     QCBORDecode_GetNext(&DC, &Item); // qNaN
-    if(Item.uDataType != QCBOR_TYPE_DOUBLE || UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff8000000000000ULL) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE ||
+       UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff8000000000000ULL) {
         return -15;
     }
     QCBORDecode_GetNext(&DC, &Item); // sNaN
-    if(Item.uDataType != QCBOR_TYPE_DOUBLE || UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff0000000000001ULL) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE ||
+       UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff0000000000001ULL) {
         return -16;
     }
     QCBORDecode_GetNext(&DC, &Item); // qNaN with payload 0x0f
-    if(Item.uDataType != QCBOR_TYPE_DOUBLE || UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff800000000000fULL) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE ||
+       UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff800000000000fULL) {
         return -17;
     }
     QCBORDecode_GetNext(&DC, &Item); // sNaN with payload 0x0f
-    if(Item.uDataType != QCBOR_TYPE_DOUBLE || UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff000000000000fULL) {
+    if(Item.uDataType != QCBOR_TYPE_DOUBLE ||
+       UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum) != 0x7ff000000000000fULL) {
         return -18;
     }
 
@@ -192,7 +207,8 @@ int HalfPrecisionAgainstRFCCodeTest()
         UsefulOutBuf_AppendByte(&UOB, uHalfPrecInitialByte); // The initial byte for a half-precision float
         UsefulOutBuf_AppendUint16(&UOB, (uint16_t)uHalfP);
 
-        // Now parse the hand-constructed CBOR. This will invoke the conversion to a float
+        // Now parse the hand-constructed CBOR. This will invoke the
+        // conversion to a float
         QCBORDecodeContext DC;
         QCBORDecode_Init(&DC, UsefulOutBuf_OutUBuf(&UOB), 0);
 
@@ -203,7 +219,8 @@ int HalfPrecisionAgainstRFCCodeTest()
             return -1;
         }
 
-        //printf("%04x  QCBOR:%15.15f  RFC: %15.15f (%8x)\n", uHalfP,Item.val.fnum, d , UsefulBufUtil_CopyFloatToUint32(d));
+        //printf("%04x  QCBOR:%15.15f  RFC: %15.15f (%8x)\n",
+        //       uHalfP, Item.val.fnum, d , UsefulBufUtil_CopyFloatToUint32(d));
 
         if(isnan(d)) {
             // The RFC code uses the native instructions which may or may not
@@ -340,16 +357,17 @@ int DoubleAsSmallestTest()
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "one third", 0.333251953125);
 
     // 76                                   # text(22)
-    //    6C6172676573742068616C662D707265636973696F6E # "largest half-precision"
+    //   6C6172676573742068616C662D707265636973696F6E # "largest half-precision"
     // F9 7BFF                              # primitive(31743)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "largest half-precision",65504.0);
 
     // 76                                   # text(22)
-    //    6C6172676573742068616C662D707265636973696F6E # "largest half-precision"
+    //   6C6172676573742068616C662D707265636973696F6E # "largest half-precision"
     // F9 7BFF                              # primitive(31743)
     QCBOREncode_AddDoubleAsSmallestToMap(&EC, "largest half-precision point one",65504.1);
 
-    // Float 65536.0F is 0x47800000 in hex. It has an exponent of 16, which is larger than 15, the largest half-precision exponent
+    // Float 65536.0F is 0x47800000 in hex. It has an exponent of 16, which
+    // is larger than 15, the largest half-precision exponent
     // 78 18                                # text(24)
     //    746F6F2D6C617267652068616C662D707265636973696F6E # "too-large half-precision"
     // FA 47800000                          # primitive(31743)
@@ -395,17 +413,20 @@ int DoubleAsSmallestTest()
     //    746F6F2D6C617267652073696E676C6520657870 # "too-large single exp"
     // FB 47F8000000000000                  # primitive(5185894970917126144)
     // (0x01LL << (DOUBLE_NUM_SIGNIFICAND_BITS-1)) | ((128LL + DOUBLE_EXPONENT_BIAS) << DOUBLE_EXPONENT_SHIFT);
-    QCBOREncode_AddDoubleAsSmallestToMap(&EC, "too-large single exp", 5.104235503814077E+38); // Exponent too large for single
+    // Exponent too large for single
+    QCBOREncode_AddDoubleAsSmallestToMap(&EC, "too-large single exp", 5.104235503814077E+38);
 
     // 66                                   # text(6)
     //    646664666465                      # "dfdfde"
     // FA 4B800000                          # primitive(1266679808)
-    QCBOREncode_AddDoubleAsSmallestToMap(&EC, "biggest single with prec",16777216); // Single with no precision loss
+    // Single with no precision loss
+    QCBOREncode_AddDoubleAsSmallestToMap(&EC, "biggest single with prec", 16777216);
 
     // 78 18                                # text(24)
     //    626967676573742073696E676C6520776974682070726563 # "biggest single with prec"
     // FA 4B800000                          # primitive(1266679808)
-    QCBOREncode_AddDoubleAsSmallestToMap(&EC, "first single with prec loss",16777217); // Double becuase of precision loss
+    // Double becuase of precision loss
+    QCBOREncode_AddDoubleAsSmallestToMap(&EC, "first single with prec loss", 16777217);
 
     // Just a convenient marker when cutting and pasting encoded CBOR
     QCBOREncode_AddSZStringToMapN(&EC, 1, "fin");

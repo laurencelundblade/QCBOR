@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2019, Laurence Lundblade.
+ Copyright (c) 2018-2020, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ==============================================================================*/
+ =============================================================================*/
 
 #include "qcbor.h"
 #include "qcbor_encode_tests.h"
@@ -47,11 +47,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  */
 
-//#define PRINT_FUNCTIONS_FOR_DEBUGGINGXX
+//#define PRINT_FUNCTIONS_FOR_DEBUGGING
 
-#ifdef  PRINT_FUNCTIONS_FOR_DEBUGGINGXX
+#ifdef  PRINT_FUNCTIONS_FOR_DEBUGGING
 #include <stdio.h>
 
+#if 0
 // ifdef these out to not have compiler warnings
 static void printencoded(const uint8_t *pEncoded, size_t nLen)
 {
@@ -64,6 +65,7 @@ static void printencoded(const uint8_t *pEncoded, size_t nLen)
 
    fflush(stdout);
 }
+#endif
 
 
 // Do the comparison and print out where it fails
@@ -71,7 +73,10 @@ static int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
    size_t i;
    for(i = 0; i < U1.len; i++) {
       if(((uint8_t *)U1.ptr)[i] != ((uint8_t *)U2.ptr)[i]) {
-         printf("Position: %d  Actual: 0x%x   Expected: 0x%x\n", i, ((uint8_t *)U1.ptr)[i], ((uint8_t *)U2.ptr)[i]);
+         printf("Position: %d  Actual: 0x%x   Expected: 0x%x\n",
+                (uint32_t)i,
+                ((uint8_t *)U1.ptr)[i],
+                ((uint8_t *)U2.ptr)[i]);
          return 1;
       }
    }
@@ -104,7 +109,10 @@ struct UBCompareDiagnostic {
    size_t  uOffset;
 };
 
-static int32_t UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual, UsefulBufC Expected, struct UBCompareDiagnostic *pDiag) {
+static int32_t
+UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual,
+                                UsefulBufC Expected,
+                                struct UBCompareDiagnostic *pDiag) {
    size_t i;
    for(i = 0; i < Actual.len; i++) {
       if(((uint8_t *)Actual.ptr)[i] != ((uint8_t *)Expected.ptr)[i]) {
@@ -113,7 +121,9 @@ static int32_t UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual, UsefulBufC Exp
             pDiag->uExpected = ((uint8_t *)Expected.ptr)[i];
             pDiag->uOffset   = i;
          }
-         return (int32_t)i + 1000000; // Cast to int is OK as this is only a diagnostic and the sizes here are never over a few KB.
+         // Cast to int is OK as this is only a diagnostic and the sizes
+         // here are never over a few KB.
+         return (int32_t)i + 1000000;
       }
    }
    return 0;
@@ -169,7 +179,8 @@ int BasicEncodeTest()
    }
 
 
-   // Make another encoded message with the CBOR from the previous put into this one
+   // Make another encoded message with the CBOR from the previous
+   // put into this one
    UsefulBuf_MAKE_STACK_UB(MemoryForEncoded2, 20);
    QCBOREncode_Init(&EC, MemoryForEncoded2);
    QCBOREncode_OpenArray(&EC);
@@ -246,7 +257,10 @@ int BasicEncodeTest()
 
    // 2    1:1   2:1   3:1
    QCBORDecode_GetNext(&DC, &Item);
-   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1 || Item.uLabelType != QCBOR_TYPE_INT64 || Item.label.int64 != -70000) {
+   if(Item.uDataType != QCBOR_TYPE_MAP ||
+      Item.val.uCount != 1 ||
+      Item.uLabelType != QCBOR_TYPE_INT64 ||
+      Item.label.int64 != -70000) {
       return -11;
    }
 
@@ -499,7 +513,8 @@ this is the attachment text\n\
 
 int AllAddMethodsTest()
 {
-   // TODO: this test should be broken down into several so it is more managable. Tags and labels could be more sensible
+   // TODO: this test should be broken down into several so it is more
+   // managable. Tags and labels could be more sensible
    QCBOREncodeContext ECtx;
    int nReturn = 0;
 
@@ -507,7 +522,8 @@ int AllAddMethodsTest()
 
    QCBOREncode_OpenArray(&ECtx);
 
-   // Some ints that are tagged and have strings preceeding them (not labels becase it is not a map)
+   // Some ints that are tagged and have strings preceeding them
+   // (not labels becase it is not a map)
    QCBOREncode_AddSZString(&ECtx, "UINT62");
    QCBOREncode_AddTag(&ECtx, 100);
    QCBOREncode_AddUInt64(&ECtx, 89989909);
@@ -550,7 +566,9 @@ int AllAddMethodsTest()
    // text blobs
    QCBOREncode_AddText(&ECtx, UsefulBuf_FROM_SZ_LITERAL("bar bar foo bar"));
    QCBOREncode_AddSZString(&ECtx, "oof\n");
-   QCBOREncode_AddURI(&ECtx, UsefulBuf_FROM_SZ_LITERAL("http://stackoverflow.com/questions/28059697/how-do-i-toggle-between-debug-and-release-builds-in-xcode-6-7-8"));
+   const char *szURL =
+      "http://stackoverflow.com/questions/28059697/how-do-i-toggle-between-debug-and-release-builds-in-xcode-6-7-8";
+   QCBOREncode_AddURI(&ECtx, UsefulBuf_FromSZ(szURL));
    QCBOREncode_AddB64Text(&ECtx, UsefulBuf_FROM_SZ_LITERAL("YW55IGNhcm5hbCBwbGVhc3VyZQ=="));
    QCBOREncode_AddRegex(&ECtx, UsefulBuf_FROM_SZ_LITERAL("[^abc]+"));
    QCBOREncode_AddMIMEData(&ECtx, UsefulBuf_FromSZ(szMIME));
@@ -565,7 +583,9 @@ int AllAddMethodsTest()
    QCBOREncode_AddTextToMapN(&ECtx,22, UsefulBuf_FROM_SZ_LITERAL("foo foo foo foo"));
    QCBOREncode_AddSZStringToMap(&ECtx, "^^", "oooooooof");
    QCBOREncode_AddSZStringToMapN(&ECtx, 99, "ffffoooooooof");
-   QCBOREncode_AddURIToMap(&ECtx, "RFC", UsefulBuf_FROM_SZ_LITERAL("https://tools.ietf.org/html/rfc7049#section-2.4.5"));
+   QCBOREncode_AddURIToMap(&ECtx,
+                           "RFC",
+                           UsefulBuf_FROM_SZ_LITERAL("https://tools.ietf.org/html/rfc7049#section-2.4.5"));
    QCBOREncode_AddURIToMapN(&ECtx, 0x89, UsefulBuf_FROM_SZ_LITERAL("http://cbor.me/"));
    QCBOREncode_AddB64TextToMap(&ECtx, "whenim64", UsefulBuf_FROM_SZ_LITERAL("cGxlYXN1cmUu"));
    QCBOREncode_AddB64TextToMapN(&ECtx, 64, UsefulBuf_FROM_SZ_LITERAL("c3VyZS4="));
@@ -639,7 +659,9 @@ int AllAddMethodsTest()
    QCBOREncode_CloseMap(&ECtx);
 
    // UUIDs
-   static const uint8_t ppppUUID[] = {0x53, 0x4D, 0x41, 0x52, 0x54, 0x43, 0x53, 0x4C, 0x54, 0x54, 0x43, 0x46, 0x49, 0x43, 0x41, 0x32};
+   static const uint8_t ppppUUID[] = {0x53, 0x4D, 0x41, 0x52, 0x54, 0x43,
+                                      0x53, 0x4C, 0x54, 0x54, 0x43, 0x46,
+                                      0x49, 0x43, 0x41, 0x32};
    const UsefulBufC XXUUID = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(ppppUUID);
    QCBOREncode_AddBinaryUUID(&ECtx, XXUUID);
    QCBOREncode_OpenMap(&ECtx);
@@ -1520,11 +1542,13 @@ int MapEncodeTest()
 /*
  @brief  Encode the RTIC results
 
- @param[in]     nRResult        CBOR_SIMPLEV_TRUE, CBOR_SIMPLEV_FALSE or CBOR_SIMPLEV_NULL
- @param[in]     time            Time stamp in UNIX epoch time or 0 for no time stamp
+ @param[in]     nRResult        CBOR_SIMPLEV_TRUE, CBOR_SIMPLEV_FALSE or
+                                CBOR_SIMPLEV_NULL
+ @param[in]     time            Time stamp in UNIX epoch time or 0 for none
  @param[in]     szAlexString    Diagnostic code.
  @param[in[     pOut            Buffer to put the result in
- @param[in/out] pnLen           Size of pOut buffer when called; length of data output in buffer on return
+ @param[in/out] pnLen           Size of pOut buffer when called; length of data
+                                output in buffer on return
 
  @return
  One of the CBOR encoder errors. QCBOR_SUCCESS, which is has value 0, if no error.
@@ -1538,11 +1562,17 @@ int MapEncodeTest()
 
  */
 
-static UsefulBufC FormatRTICResults(int nRResult, uint64_t time, const char *szType, const char *szAlexString, UsefulBuf Storage)
+static UsefulBufC
+FormatRTICResults(int nRResult,
+                  uint64_t time,
+                  const char *szType,
+                  const char *szAlexString,
+                  UsefulBuf Storage)
 {
    // Buffer that the result will be written in to
    // It is fixed size and small that a stack variable will be fine
-   // QCBOREncode will never write off the end of this buffer. If it won't fit QCBOREncode_Finish will return an error.
+   // QCBOREncode will never write off the end of this buffer. If it won't
+   // fit QCBOREncode_Finish will return an error.
 
    // Context for the encoder
    QCBOREncodeContext ECtx;
@@ -1554,7 +1584,8 @@ static UsefulBufC FormatRTICResults(int nRResult, uint64_t time, const char *szT
 
    { // Brace / indention just to show CBOR encoding nesting
 
-      // The result: 0 if scan happened and found nothing; 1 if it happened and found something wrong; 2 if it didn't happen
+      // The result: 0 if scan happened and found nothing; 1 if it happened and
+      // found something wrong; 2 if it didn't happen
       QCBOREncode_AddSimpleToMap(&ECtx, "integrity", nRResult);
 
       // Add the diagnostic code
@@ -1721,7 +1752,8 @@ int BstrWrapTest()
    QCBOREncode_CloseArray(&EC);
    UsefulBufC BStr;
    QCBOREncode_CloseBstrWrap(&EC, &BStr);
-   // 3 is one byte for the wrapping bstr, 1 for an array of length 1, and 1 byte for a NULL
+   // 3 is one byte for the wrapping bstr, 1 for an array of length 1,
+   // and 1 byte for a NULL
    if(BStr.ptr != NULL || BStr.len != 3) {
       return -5;
    }
@@ -1747,7 +1779,7 @@ int BstrWrapTest()
 
 int BstrWrapErrorTest()
 {
-   // -------------- Test closing a bstrwrap when it is an array that is open -----------
+   // ---- Test closing a bstrwrap when it is an array that is open ---------
    QCBOREncodeContext EC;
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
@@ -1769,7 +1801,7 @@ int BstrWrapErrorTest()
       return -1;
    }
 
-   // ----------- test closing a bstrwrap when nothing is open ---------------------
+   // -------- test closing a bstrwrap when nothing is open ----------------
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
    if(QCBOREncode_Finish(&EC, &Encoded2) != QCBOR_ERR_TOO_MANY_CLOSES) {
@@ -2204,7 +2236,8 @@ int EncodeErrorTests()
 
 
    // ------ Test for QCBOR_ERR_BUFFER_TOO_LARGE ------
-   // Do all of these tests with NULL buffers so no actual large allocations are neccesary
+   // Do all of these tests with NULL buffers so no actual
+   // large allocations are neccesary
    const UsefulBuf Buffer = (UsefulBuf){NULL, UINT32_MAX};
 
    // First verify no error from a big buffer
