@@ -357,7 +357,7 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me,
        depending on outer loop counter. This works backwards taking 8
        bits off the argument being encoded at a time until all bits
        from uNumber have been encoded and the minimum encoding size is
-       reached.  Minimum encoding size is for floating point numbers
+       reached.  Minimum encoding size is for floating-point numbers
        with zero bytes.
        */
       static const uint8_t aIterate[] = {1,1,2,4};
@@ -507,7 +507,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, size_t uSize, uint64_t uNum)
                                     // Must pass size to ensure floats
                                     // with zero bytes encode correctly
                                     (int)uSize,
-                                    // The floating point number as a uint
+                                    // The floating-point number as a uint
                                     uNum,
                                     // end position because this is append
                                     UsefulOutBuf_GetEndPosition(&(me->OutBuf)));

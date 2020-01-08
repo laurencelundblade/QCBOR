@@ -48,7 +48,7 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
 **Comprehensive test suite** – Easy to verify on a new platform
   or OS with the test suite. The test suite dependencies are also
-  minimal, only additionally requiring <math.h> for floating point
+  minimal, only additionally requiring <math.h> for floating-point
   tests.
 
 ## Code Status
@@ -93,8 +93,8 @@ project. Hopefully the easy portability of this implementation makes
 this work straight away, whatever your development environment is.
 
 The files ieee754.c and ieee754.h are support for half-precision
-floating point. The encoding side of the floating point functionality
-is about 500 bytes. If it is never called because no floating point
+floating-point. The encoding side of the floating-point functionality
+is about 500 bytes. If it is never called because no floating-point
 numbers are ever encoded, all 500 bytes will be dead stripped and not
 impact code size. The decoding side is about 150 bytes of object
 code. It is never dead stripped because it directly referenced by the

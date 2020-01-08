@@ -1,5 +1,5 @@
 /*==============================================================================
- ieee754.c -- floating point conversion between half, double & single precision
+ ieee754.c -- floating-point conversion between half, double & single-precision
 
  Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
 
@@ -27,11 +27,11 @@
  columns.
 
  Dead stripping is also really helpful to get code size down when
- floating point encoding is not needed.
+ floating-point encoding is not needed.
 
  This code works solely using shifts and masks and thus has no
  dependency on any math libraries. It can even work if the CPU doesn't
- have any floating point support, though that isn't the most useful
+ have any floating-point support, though that isn't the most useful
  thing to do.
 
  The memcpy() dependency is only for CopyFloatToUint32() and friends
@@ -76,7 +76,7 @@
 #define HALF_EXPONENT_INF_OR_NAN  (HALF_EXPONENT_BIAS+1)  //  16 Unbiased
 
 
-// ------ Single Precision --------
+// ------ Single-Precision --------
 #define SINGLE_NUM_SIGNIFICAND_BITS (23)
 #define SINGLE_NUM_EXPONENT_BITS    (8)
 #define SINGLE_NUM_SIGN_BITS        (1)
@@ -103,7 +103,7 @@
 #define SINGLE_EXPONENT_INF_OR_NAN  (SINGLE_EXPONENT_BIAS+1)  // 128  unbiased
 
 
-// --------- Double Precision ----------
+// --------- Double-Precision ----------
 #define DOUBLE_NUM_SIGNIFICAND_BITS (52)
 #define DOUBLE_NUM_EXPONENT_BITS    (11)
 #define DOUBLE_NUM_SIGN_BITS        (1)
@@ -356,7 +356,7 @@ float IEEE754_HalfToFloat(uint16_t uHalfPrecision)
     uSingleSign = uHalfSign;
 
 
-    // Shift the three parts of the single precision into place
+    // Shift the three parts of the single-precision into place
     const uint32_t uSinglePrecision = uSingleSignificand |
                                      (uSingleBiasedExponent << SINGLE_EXPONENT_SHIFT) |
                                      (uSingleSign << SINGLE_SIGN_SHIFT);

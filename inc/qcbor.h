@@ -822,7 +822,7 @@ typedef enum {
 /** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
     string, possibly with time zone. Data is in @c val.dateString */
 #define QCBOR_TYPE_DATE_STRING   11
-/** Type for integer seconds since Jan 1970 + floating point
+/** Type for integer seconds since Jan 1970 + floating-point
     fraction. Data is in @c val.epochDate */
 #define QCBOR_TYPE_DATE_EPOCH    12
 /** A simple type that this CBOR implementation doesn't know about;
@@ -1256,7 +1256,7 @@ static void QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLab
  @brief  Add a floating-point number to the encoded output.
 
  @param[in] pCtx  The encoding context to add the double to.
- @param[in] dNum  The double precision number to add.
+ @param[in] dNum  The double-precision number to add.
 
  This outputs a floating-point number with CBOR major type 7.
 
@@ -1449,7 +1449,7 @@ static void QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx, int64_
  A decimal fraction is good for exact representation of some values
  that can't be represented exactly with standard C (IEEE 754)
  floating-point numbers.  Much larger and much smaller numbers can
- also be represented than floating point because of the larger number
+ also be represented than floating-point because of the larger number
  of bits in the exponent.
 
  The decimal fraction is conveyed as two integers, a mantissa and a

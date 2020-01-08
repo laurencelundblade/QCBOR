@@ -1,5 +1,5 @@
 /*==============================================================================
- ieee754.c -- floating point conversion between half, double & single precision
+ ieee754.c -- floating-point conversion between half, double & single-precision
 
  Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
 
@@ -42,7 +42,7 @@
  Most simply just explicilty encode the type you want, single or
  double.  This works easily everywhere since standard C supports both
  these types and so does qcbor.  This encoder also supports half
- precision and there's a few ways to use it to encode floating point
+ precision and there's a few ways to use it to encode floating-point
  numbers in less space.
 
  Without losing precision, you can encode a single or double such that
@@ -53,7 +53,7 @@
  One way to do this is to set up your environment to use
  ___fp_16. Some compilers and CPUs support it even though it is not
  standard C. What is nice about this is that your program will use
- less memory and floating point operations like multiplying, adding
+ less memory and floating-point operations like multiplying, adding
  and such will be faster.
 
  Another way to make use of half-precision is to represent the values
@@ -67,7 +67,7 @@
 
 
 /*
- Convert single precision float to half-precision float.  Precision
+ Convert single-precision float to half-precision float.  Precision
  and NaN payload bits will be lost. Too-large values will round up to
  infinity and too small to zero.
  */
@@ -75,14 +75,14 @@ uint16_t IEEE754_FloatToHalf(float f);
 
 
 /*
- Convert half precision float to single precision float.  This is a
+ Convert half-precision float to single-precision float.  This is a
  loss-less conversion.
  */
 float IEEE754_HalfToFloat(uint16_t uHalfPrecision);
 
 
 /*
- Convert double precision float to half-precision float.  Precision
+ Convert double-precision float to half-precision float.  Precision
  and NaN payload bits will be lost. Too-large values will round up to
  infinity and too small to zero.
  */
@@ -90,7 +90,7 @@ uint16_t IEEE754_DoubleToHalf(double d);
 
 
 /*
- Convert half precision float to double precision float.
+ Convert half-precision float to double-precision float.
  This is a loss-less conversion.
  */
 double IEEE754_HalfToDouble(uint16_t uHalfPrecision);
