@@ -43,7 +43,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who           what, where, why
  --------   ----          ---------------------------------------------------
- 1/x/20     llundblade    Code formatting to reduce numnber of long lines.
+ 01/08/2020 llundblade    Documentation corrections & improved code formatting.
  12/30/19   llundblade    Add support for decimal fractions and bigfloats.
  08/7/19    llundblade    Better handling of not well-formed encode and decode.
  07/31/19   llundblade    New error code for better end of data handling.

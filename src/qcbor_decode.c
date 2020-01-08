@@ -42,7 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
- 1/x/20     llundblade      Code formatting to reduce numnber of long lines.
+ 01/08/2020 llundblade      Documentation corrections & improved code formatting.
  12/30/19   llundblade      Add support for decimal fractions and bigfloats.
  11/07/19   llundblade      Fix long long conversion to double compiler warning
  09/07/19   llundblade      Fix bug decoding empty arrays and maps

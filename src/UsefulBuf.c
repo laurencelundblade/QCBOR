@@ -41,7 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
- 1/x/20     llundblade    Code formatting to reduce numnber of long lines.
+ 01/08/2020 llundblade    Documentation corrections & improved code formatting.
  11/08/2019  llundblade   Re check pointer math and update comments
  3/6/2019    llundblade   Add UsefulBuf_IsValue()
  09/07/17    llundbla     Fix critical bug in UsefulBuf_Find() -- a read off
