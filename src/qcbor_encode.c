@@ -268,85 +268,91 @@ void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
  if all the digits of a half, float or double are 0 it is still
  correctly encoded in 2, 4 or 8 bytes.
  */
-
-static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me,
-                                       uint8_t uMajorType,
-                                       int nMinLen,
-                                       uint64_t uNumber,
-                                       size_t uPos)
+struct q_useful_buf_c QCBOREncode_Head(UsefulBuf buffer,
+                                      uint8_t   uMajorType,
+                                      int       nMinLen,
+                                      uint64_t  uNumber)
 {
-   /*
-    This code does endian conversion without hton or knowing the
-    endianness of the machine using masks and shifts. This avoids the
-    dependency on hton and the mess of figuring out how to find the
-    machine's endianness.
+    /*
+     This code does endian conversion without hton or knowing the
+     endianness of the machine using masks and shifts. This avoids the
+     dependency on hton and the mess of figuring out how to find the
+     machine's endianness.
 
-    This is a good efficient implementation on little-endian machines.
-    A faster and small implementation is possible on big-endian
-    machines because CBOR/network byte order is big endian. However
-    big endian machines are uncommon.
+     This is a good efficient implementation on little-endian machines.
+     A faster and small implementation is possible on big-endian
+     machines because CBOR/network byte order is big endian. However
+     big endian machines are uncommon.
 
-    On x86, it is about 200 bytes instead of 500 bytes for the more
-    formal unoptimized code.
+     On x86, it is about 200 bytes instead of 500 bytes for the more
+     formal unoptimized code.
 
-    This also does the CBOR preferred shortest encoding for integers
-    and is called to do endian conversion for floats.
+     This also does the CBOR preferred shortest encoding for integers
+     and is called to do endian conversion for floats.
 
-    It works backwards from the LSB to the MSB as needed.
+     It works backwards from the LSB to the MSB as needed.
 
-    Code Reviewers: THIS FUNCTION DOES POINTER MATH
-    */
-   // Holds up to 9 bytes of type and argument
-   // plus one extra so pointer always points to
-   // valid bytes.
-   uint8_t bytes[sizeof(uint64_t)+2];
-   // Point to the last bytes and work backwards
-   uint8_t *pByte = &bytes[sizeof(bytes)-1];
-   // This is the 5 bits in the initial byte that is not the major type
-   uint8_t uAdditionalInfo;
+     Code Reviewers: THIS FUNCTION DOES POINTER MATH
+     */
+    // Holds up to 9 bytes of type and argument
+    // plus one extra so pointer always points to
+    // valid bytes.
+    //uint8_t bytes[sizeof(uint64_t)+2];
+    // Point to the last bytes and work backwards
+    const size_t max_encoded = sizeof(uint64_t)+2; // TODO: make this a public constant
+    if(buffer.len < max_encoded) {
+        return NULLUsefulBufC;
+    }
 
-   if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN) {
-      uMajorType = CBOR_MAJOR_TYPE_ARRAY;
-      uAdditionalInfo = LEN_IS_INDEFINITE;
-   } else if (uMajorType == CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN) {
-      uMajorType = CBOR_MAJOR_TYPE_MAP;
-      uAdditionalInfo = LEN_IS_INDEFINITE;
-   } else if (uNumber < CBOR_TWENTY_FOUR && nMinLen == 0) {
-      // Simple case where argument is < 24
-      uAdditionalInfo = uNumber;
-   } else if (uMajorType == CBOR_MAJOR_TYPE_SIMPLE && uNumber == CBOR_SIMPLE_BREAK) {
-      // Break statement can be encoded in single byte too (0xff)
-      uAdditionalInfo = uNumber;
-   } else  {
-      /*
-       Encode argument in 1,2,4 or 8 bytes. Outer loop
-       runs once for 1 byte and 4 times for 8 bytes.
-       Inner loop runs 1, 2 or 4 times depending on
-       outer loop counter. This works backwards taking
-       8 bits off the argument being encoded at a time
-       until all bits from uNumber have been encoded
-       and the minimum encoding size is reached.
-       Minimum encoding size is for floating point
-       numbers with zero bytes.
-       */
-      static const uint8_t aIterate[] = {1,1,2,4};
-      uint8_t i;
-      for(i = 0; uNumber || nMinLen > 0; i++) {
-         const uint8_t uIterations = aIterate[i];
-         for(int j = 0; j < uIterations; j++) {
-            *--pByte = uNumber & 0xff;
-            uNumber = uNumber >> 8;
-         }
-         nMinLen -= uIterations;
-      }
-      // Additional info is the encoding of the
-      // number of additional bytes to encode
-      // argument.
-      uAdditionalInfo = LEN_IS_ONE_BYTE-1 + i;
-   }
-   *--pByte = (uMajorType << 5) + uAdditionalInfo;
+    uint8_t * const pBuffer = (uint8_t *)buffer.ptr;
 
-   UsefulOutBuf_InsertData(&(me->OutBuf), pByte, &bytes[sizeof(bytes)-1] - pByte, uPos);
+    uint8_t *pByte = &pBuffer[max_encoded];
+    // This is the 5 bits in the initial byte that is not the major type
+    uint8_t uAdditionalInfo;
+
+    if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN) {
+        uMajorType = CBOR_MAJOR_TYPE_ARRAY;
+        uAdditionalInfo = LEN_IS_INDEFINITE;
+    } else if (uMajorType == CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN) {
+        uMajorType = CBOR_MAJOR_TYPE_MAP;
+        uAdditionalInfo = LEN_IS_INDEFINITE;
+    } else if (uNumber < CBOR_TWENTY_FOUR && nMinLen == 0) {
+        // Simple case where argument is < 24
+        uAdditionalInfo = uNumber;
+    } else if (uMajorType == CBOR_MAJOR_TYPE_SIMPLE && uNumber == CBOR_SIMPLE_BREAK) {
+        // Break statement can be encoded in single byte too (0xff)
+        uAdditionalInfo = uNumber;
+    } else  {
+        /*
+         Encode argument in 1,2,4 or 8 bytes. Outer loop
+         runs once for 1 byte and 4 times for 8 bytes.
+         Inner loop runs 1, 2 or 4 times depending on
+         outer loop counter. This works backwards taking
+         8 bits off the argument being encoded at a time
+         until all bits from uNumber have been encoded
+         and the minimum encoding size is reached.
+         Minimum encoding size is for floating point
+         numbers with zero bytes.
+         */
+        static const uint8_t aIterate[] = {1,1,2,4};
+        uint8_t i;
+        for(i = 0; uNumber || nMinLen > 0; i++) {
+            const uint8_t uIterations = aIterate[i];
+            for(int j = 0; j < uIterations; j++) {
+                *--pByte = uNumber & 0xff;
+                uNumber = uNumber >> 8;
+            }
+            nMinLen -= uIterations;
+        }
+        // Additional info is the encoding of the
+        // number of additional bytes to encode
+        // argument.
+        uAdditionalInfo = LEN_IS_ONE_BYTE-1 + i;
+    }
+    *--pByte = (uMajorType << 5) + uAdditionalInfo;
+
+    // TODO: check the pointer math
+    return (struct q_useful_buf_c){pByte, &pBuffer[max_encoded] - pByte};
 }
 
 
@@ -359,12 +365,15 @@ inline static void AppendEncodedTypeAndNumber(QCBOREncodeContext *me,
                                               uint8_t uMajorType,
                                               uint64_t uNumber)
 {
-   // An append is an insert at the end.
-   InsertEncodedTypeAndNumber(me,
-                              uMajorType,
-                              0,
-                              uNumber,
-                              UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+    UsefulBuf_MAKE_STACK_UB  (buffer_for_encoded_len, 10);
+
+    UsefulBufC EncodedHead = QCBOREncode_Head(buffer_for_encoded_len,
+                                             uMajorType,
+                                             0,
+                                             uNumber);
+
+    // TODO: error check?
+    UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), EncodedHead);
 }
 
 
@@ -470,16 +479,14 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, size_t uSize, uint64_t uNum)
       if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
          me->uError = QCBOR_ERR_UNSUPPORTED;
       } else {
-         // This function call takes care of endian swapping for the float / double
-         InsertEncodedTypeAndNumber(me,
-                                    // The major type for floats and doubles
-                                    CBOR_MAJOR_TYPE_SIMPLE,
-                                    // size makes sure floats with zeros encode correctly
-                                    (int)uSize,
-                                    // Bytes of the floating point number as a uint
-                                    uNum,
-                                    // end position because this is append
-                                    UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+         UsefulBuf_MAKE_STACK_UB  (buffer_for_encoded_len, 10);
+
+         // QCBOREncode_Head takes care of endian swapping for the float / double
+         UsefulBufC EncodedHead = QCBOREncode_Head(buffer_for_encoded_len,
+                                                   CBOR_MAJOR_TYPE_SIMPLE,
+                                                   (int)uSize,
+                                                   uNum);
+         UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), EncodedHead);
 
          me->uError = Nesting_Increment(&(me->nesting));
       }
@@ -542,7 +549,8 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
    // insert the indefinite length marker (0x9f for arrays, 0xbf for maps)
-   InsertEncodedTypeAndNumber(me, uMajorType, 0, 0, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+    // TODO: debug this
+   AppendEncodedTypeAndNumber(me, uMajorType, 0);
 
    QCBOREncode_OpenMapOrArray(me, uMajorType);
 }
@@ -557,7 +565,7 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me,
    if(me->uError == QCBOR_SUCCESS) {
       if(!Nesting_IsInNest(&(me->nesting))) {
          me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
-      } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
+      } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType && Nesting_GetMajorType(&(me->nesting)) != uMajorType+10) {
          me->uError = QCBOR_ERR_CLOSE_MISMATCH;
       } else {
          // When the array, map or bstr wrap was started, nothing was done
@@ -575,24 +583,34 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me,
          const size_t uLenOfEncodedMapOrArray = uEndPosition - uInsertPosition;
 
          // Length is number of bytes for a bstr and number of items a for map & array
-         const size_t uLength = uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING ?
-                                    uLenOfEncodedMapOrArray : Nesting_GetCount(&(me->nesting));
+         size_t uLength;
+         if(uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING || uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING+10) {
+            uLength = uLenOfEncodedMapOrArray;
+         } else {
+            uLength = Nesting_GetCount(&(me->nesting));
+         }
 
-         // Actually insert
-         InsertEncodedTypeAndNumber(me,
-                                    uMajorType,       // major type bstr, array or map
-                                    0,                // no minimum length for encoding
-                                    uLength,          // either len of bstr or num map / array items
-                                    uInsertPosition); // position in out buffer
+          UsefulBuf_MAKE_STACK_UB  (buffer_for_encoded_head, 10);
 
-         // Return pointer and length to the enclosed encoded CBOR. The intended
-         // use is for it to be hashed (e.g., SHA-256) in a COSE implementation.
-         // This must be used right away, as the pointer and length go invalid
-         // on any subsequent calls to this function because there might be calls to
-         // InsertEncodedTypeAndNumber() that slides data to the right.
+          UsefulBufC EncodedHead = QCBOREncode_Head(buffer_for_encoded_head, uMajorType, 0, uLength);
+
+          UsefulOutBuf_InsertUsefulBuf(&(me->OutBuf), EncodedHead, uInsertPosition);
+
+
          if(pWrappedCBOR) {
+             // Return pointer and length to the enclosed encoded CBOR. The intended
+             // use is for it to be hashed (e.g., SHA-256) in a COSE implementation.
+             // This must be used right away, as the pointer and length go invalid
+             // on any subsequent calls to this function because there might be calls to
+             // InsertEncodedTypeAndNumber() that slides data to the right.
+            size_t uStartOfNew = uInsertPosition;
+            if(Nesting_GetMajorType(&(me->nesting)) == CBOR_MAJOR_TYPE_BYTE_STRING+10) {
+               // Skip over the CBOR initial byte and length to just get the inserted bstr
+               const size_t uNewEndPosition = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
+               uStartOfNew += uNewEndPosition - uEndPosition;
+            }
             const UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
-            *pWrappedCBOR = UsefulBuf_Tail(PartialResult, uInsertPosition);
+            *pWrappedCBOR = UsefulBuf_Tail(PartialResult, uStartOfNew);
          }
          Nesting_Decrease(&(me->nesting));
       }
@@ -610,8 +628,8 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t
       } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
          me->uError = QCBOR_ERR_CLOSE_MISMATCH;
       } else {
-         // insert the break marker (0xff for both arrays and maps)
-         InsertEncodedTypeAndNumber(me, CBOR_MAJOR_TYPE_SIMPLE, 0, CBOR_SIMPLE_BREAK, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
+         // Insert the break marker (0xff for both arrays and maps)
+          AppendEncodedTypeAndNumber(me, CBOR_MAJOR_TYPE_SIMPLE, CBOR_SIMPLE_BREAK);
 
          // Return pointer and length to the enclosed encoded CBOR. The intended
          // use is for it to be hashed (e.g., SHA-256) in a COSE implementation.
@@ -619,6 +637,7 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t
          // on any subsequent calls to this function because there might be calls to
          // InsertEncodedTypeAndNumber() that slides data to the right.
          if(pWrappedCBOR) {
+             // TODO: this may need fixing
             const UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
             *pWrappedCBOR = UsefulBuf_Tail(PartialResult, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
          }

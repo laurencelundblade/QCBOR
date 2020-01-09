@@ -1715,6 +1715,12 @@ static void QCBOREncode_BstrWrapInMap(QCBOREncodeContext *pCtx, const char *szLa
 
 static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 
+   static void QCBOREncode_OpenBstrWrap(QCBOREncodeContext *pCtx);
+
+   static void QCBOREncode_OpenBstrWrapInMap(QCBOREncodeContext *pCtx, const char *szLabel);
+
+   static void QCBOREncode_OpenBstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
+
 
 /**
  @brief Close a wrapping bstr.
@@ -1882,6 +1888,10 @@ static int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
 */
 static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
 
+UsefulBufC QCBOREncode_Head(UsefulBuf buffer,
+                           uint8_t   uMajorType,
+                           int       nMinLen,
+                           uint64_t  uNumber);
 
 
 /**
@@ -3082,6 +3092,24 @@ static inline void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t 
    QCBOREncode_AddInt64(pCtx, nLabel);
    QCBOREncode_BstrWrap(pCtx);
 }
+
+static inline void QCBOREncode_OpenBstrWrap(QCBOREncodeContext *pCtx)
+{
+   QCBOREncode_OpenMapOrArray(pCtx, CBOR_MAJOR_TYPE_BYTE_STRING+10);
+}
+
+static inline void QCBOREncode_OpenBstrWrapInMap(QCBOREncodeContext *pCtx, const char *szLabel)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_BstrWrap(pCtx);
+}
+
+static inline void QCBOREncode_OpenBstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_BstrWrap(pCtx);
+}
+
 
 static inline void QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWrappedCBOR)
 {
