@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2019, Laurence Lundblade.
+ Copyright (c) 2018-2020, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ==============================================================================*/
+ ============================================================================*/
 
 #ifndef __QCBOR__qcbort_decode_tests__
 #define __QCBOR__qcbort_decode_tests__
@@ -233,6 +233,21 @@ int MemPoolTest(void);
  Test the setting up of an external string allocator.
  */
 int SetUpAllocatorTest(void);
+
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+/*
+ Test decoding of decimal fractions and big floats, both of which are
+ made up of an exponent and mantissa.
+ */
+int ExponentAndMantissaDecodeTests(void);
+
+
+/*
+ Hostile input tests for decimal fractions and big floats.
+ */
+int ExponentAndMantissaDecodeFailTests(void);
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

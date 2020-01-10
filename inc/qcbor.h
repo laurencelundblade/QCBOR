@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2019, Laurence Lundblade.
+ Copyright (c) 2018-2020, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,10 +28,10 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ==============================================================================*/
+ =============================================================================*/
 
 
-/*===================================================================================
+/*=============================================================================
  FILE:  qcbor.h
 
  DESCRIPTION:  This is the full public API and data structures for QCBOR
@@ -41,30 +41,32 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  This section contains comments describing changes made to the module.
  Notice that changes are listed in reverse chronological order.
 
- when       who             what, where, why
- --------   ----            ---------------------------------------------------
- 08/7/19    llundblade      Better handling of not well-formed encode and decode.
- 07/31/19   llundblade      New error code for better end of data handling.
- 7/25/19    janjongboom     Add indefinite length encoding for maps and arrays.
- 05/26/19   llundblade      Add QCBOREncode_GetErrorState() and _IsBufferNULL().
- 04/26/19   llundblade      Big documentation & style update. No interface change.
- 02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug.
- 12/18/18   llundblade      Move decode malloc optional code to separate repository.
- 12/13/18   llundblade      Documentatation improvements.
- 11/29/18   llundblade      Rework to simpler handling of tags and labels.
- 11/9/18    llundblade      Error codes are now enums.
- 11/1/18    llundblade      Floating support.
- 10/31/18   llundblade      Switch to one license that is almost BSD-3.
- 10/15/18   llundblade      indefinite-length maps and arrays supported
- 10/8/18    llundblade      indefinite-length strings supported
- 09/28/18   llundblade      Added bstr wrapping feature for COSE implementation.
- 07/05/17   llundbla        Add bstr wrapping of maps/arrays for COSE.
- 03/01/17   llundbla        More data types; decoding improvements and fixes.
- 11/13/16   llundbla        Integrate most TZ changes back into github version.
- 09/30/16   gkanike         Porting to TZ.
- 03/15/16   llundbla        Initial Version.
+ when       who           what, where, why
+ --------   ----          ---------------------------------------------------
+ 01/08/2020 llundblade    Documentation corrections & improved code formatting.
+ 12/30/19   llundblade    Add support for decimal fractions and bigfloats.
+ 08/7/19    llundblade    Better handling of not well-formed encode and decode.
+ 07/31/19   llundblade    New error code for better end of data handling.
+ 7/25/19    janjongboom   Add indefinite length encoding for maps and arrays.
+ 05/26/19   llundblade    Add QCBOREncode_GetErrorState() and _IsBufferNULL().
+ 04/26/19   llundblade    Big documentation & style update. No interface change.
+ 02/16/19   llundblade    Redesign MemPool to fix memory access alignment bug.
+ 12/18/18   llundblade    Move decode malloc optional code to separate repo.
+ 12/13/18   llundblade    Documentatation improvements.
+ 11/29/18   llundblade    Rework to simpler handling of tags and labels.
+ 11/9/18    llundblade    Error codes are now enums.
+ 11/1/18    llundblade    Floating support.
+ 10/31/18   llundblade    Switch to one license that is almost BSD-3.
+ 10/15/18   llundblade    indefinite-length maps and arrays supported
+ 10/8/18    llundblade    indefinite-length strings supported
+ 09/28/18   llundblade    Added bstr wrapping feature for COSE implementation.
+ 07/05/17   llundbla      Add bstr wrapping of maps/arrays for COSE.
+ 03/01/17   llundbla      More data types; decoding improvements and fixes.
+ 11/13/16   llundbla      Integrate most TZ changes back into github version.
+ 09/30/16   gkanike       Porting to TZ.
+ 03/15/16   llundbla      Initial Version.
 
- =====================================================================================*/
+ =============================================================================*/
 
 #ifndef __QCBOR__qcbor__
 #define __QCBOR__qcbor__
@@ -75,7 +77,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
    Caller of QCBOR should not reference any of the details below up until
    the start of the public part.
-   =========================================================================== */
+   ========================================================================== */
 
 /*
  Standard integer types are used in the interface to be precise about
@@ -87,6 +89,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef __cplusplus
 extern "C" {
+#ifdef 0
+{ // Keep editor indention formatting happy
+#endif
 #endif
 
 /*
@@ -109,8 +114,8 @@ extern "C" {
 /*
  PRIVATE DATA STRUCTURE
 
- Holds the data for tracking array and map nesting during encoding. Pairs up with
- the Nesting_xxx functions to make an "object" to handle nesting encoding.
+ Holds the data for tracking array and map nesting during encoding. Pairs up
+ with the Nesting_xxx functions to make an "object" to handle nesting encoding.
 
  uStart is a uint32_t instead of a size_t to keep the size of this
  struct down so it can be on the stack without any concern.  It would be about
@@ -123,10 +128,10 @@ extern "C" {
 typedef struct __QCBORTrackNesting {
    // PRIVATE DATA STRUCTURE
    struct {
-      // See function OpenArrayInternal() for detailed comments on how this works
-      uint32_t  uStart;     // uStart is the byte position where the array starts
-      uint16_t  uCount;     // Number of items in the arrary or map; counts items
-                            // in a map, not pairs of items
+      // See function QCBOREncode_OpenMapOrArray() for details on how this works
+      uint32_t  uStart;   // uStart is the byte position where the array starts
+      uint16_t  uCount;   // Number of items in the arrary or map; counts items
+                          // in a map, not pairs of items
       uint8_t   uMajorType; // Indicates if item is a map or an array
    } pArrays[QCBOR_MAX_ARRAY_NESTING1+1], // stored state for the nesting levels
    *pCurrentNesting; // the current nesting level
@@ -224,20 +229,20 @@ struct _QCBORDecodeContext {
 #define CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN 13
 
 
-/* ===========================================================================
+/* ==========================================================================
    END OF PRIVATE PART OF THIS FILE
 
    BEGINNING OF PUBLIC PART OF THIS FILE
-   =========================================================================== */
+   ========================================================================== */
 
 
 
-/* ===========================================================================
+/* ==========================================================================
    BEGINNING OF CONSTANTS THAT COME FROM THE CBOR STANDARD, RFC 7049
 
    It is not necessary to use these directly when encoding or decoding
    CBOR with this implementation.
-   =========================================================================== */
+   ========================================================================== */
 
 /* Standard CBOR Major type for positive integers of various lengths */
 #define CBOR_MAJOR_TYPE_POSITIVE_INT 0
@@ -289,6 +294,15 @@ struct _QCBORDecodeContext {
 
 
 /*
+ The size of the buffer to be passed to QCBOREncode_EncodeHead(). It is one
+ byte larger than sizeof(uint64_t) + 1, the actual maximum size of the
+ head of a CBOR data item. because QCBOREncode_EncodeHead() needs
+ one extra byte to work.
+ */
+#define CBOR_MAX_HEAD_SIZE 8+2
+
+
+/*
  Tags that are used with CBOR_MAJOR_TYPE_OPTIONAL. These
  are types defined in RFC 7049 and some additional ones
  in the IANA CBOR tags registry.
@@ -302,12 +316,13 @@ struct _QCBORDecodeContext {
 /** See QCBOREncode_AddNegativeBignum(). */
 #define CBOR_TAG_NEG_BIGNUM     3
 /** CBOR tag for a two-element array representing a fraction with a
-    mantissa and base-10 scaling factor. No API is provided for this
-    tag. */
-#define CBOR_TAG_FRACTION       4
+    mantissa and base-10 scaling factor. See QCBOREncode_AddDecimalFraction()
+    and @ref expAndMantissa.
+  */
+#define CBOR_TAG_DECIMAL_FRACTION  4
 /** CBOR tag for a two-element array representing a fraction with a
-    mantissa and base-2 scaling factor. No API is provided for this
-    tag. */
+    mantissa and base-2 scaling factor. See QCBOREncode_AddBigFloat()
+    and @ref expAndMantissa. */
 #define CBOR_TAG_BIGFLOAT       5
 /** Tag for COSE format encryption with no recipient
     identification. See [RFC 8152, COSE]
@@ -614,11 +629,12 @@ struct _QCBORDecodeContext {
    @ref QCBOR_MAX_ARRAY_NESTING (this is typically 15).
  - Max items in an array or map when encoding / decoding is
    @ref QCBOR_MAX_ITEMS_IN_ARRAY (typically 65,536).
- - Does not directly support some tagged types: decimal fractions, big floats
- - Does not directly support labels in maps other than text strings and integers.
+ - Does not directly support labels in maps other than text strings & integers.
  - Does not directly support integer labels greater than @c INT64_MAX.
  - Epoch dates limited to @c INT64_MAX (+/- 292 billion years).
+ - Exponents for bigfloats and decimal integers are limited to @c INT64_MAX.
  - Tags on labels are ignored during decoding.
+ - There is no duplicate detection of map labels (but duplicates are passed on).
  - Works only on 32- and 64-bit CPUs (modifications could make it work
    on 16-bit CPUs).
 
@@ -765,8 +781,11 @@ typedef enum {
        end of the stream. If parsing a CBOR stream / sequence, this
        probably indicates that some data items expected are not present.
        See also @ref QCBOR_ERR_HIT_END. */
-   QCBOR_ERR_NO_MORE_ITEMS = 22
+   QCBOR_ERR_NO_MORE_ITEMS = 22,
 
+   /** Something is wrong with a decimal fraction or bigfloat such as
+    it not consisting of an array with two integers */
+   QCBOR_ERR_BAD_EXP_AND_MANTISSA = 23
 } QCBORError;
 
 
@@ -815,12 +834,42 @@ typedef enum {
 /** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
     string, possibly with time zone. Data is in @c val.dateString */
 #define QCBOR_TYPE_DATE_STRING   11
-/** Type for integer seconds since Jan 1970 + floating point
+/** Type for integer seconds since Jan 1970 + floating-point
     fraction. Data is in @c val.epochDate */
 #define QCBOR_TYPE_DATE_EPOCH    12
 /** A simple type that this CBOR implementation doesn't know about;
     Type is in @c val.uSimple. */
 #define QCBOR_TYPE_UKNOWN_SIMPLE 13
+
+/** A decimal fraction made of decimal exponent and integer mantissa.
+    See @ref expAndMantissa and QCBOREncode_AddDecimalFraction(). */
+#define QCBOR_TYPE_DECIMAL_FRACTION            14
+
+/** A decimal fraction made of decimal exponent and positive big
+    number mantissa. See @ref expAndMantissa and
+    QCBOREncode_AddDecimalFractionBigNum(). */
+#define QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM 15
+
+/** A decimal fraction made of decimal exponent and negative big
+    number mantissa. See @ref expAndMantissa and
+    QCBOREncode_AddDecimalFractionBigNum(). */
+#define QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM 16
+
+/** A floating-point number made of base-2 exponent and integer
+    mantissa.  See @ref expAndMantissa and
+    QCBOREncode_AddBigFloat(). */
+#define QCBOR_TYPE_BIGFLOAT      17
+
+/** A floating-point number made of base-2 exponent and positive big
+    number mantissa.  See @ref expAndMantissa and
+    QCBOREncode_AddBigFloatBigNum(). */
+#define QCBOR_TYPE_BIGFLOAT_POS_BIGNUM      18
+
+/** A floating-point number made of base-2 exponent and negative big
+    number mantissa.  See @ref expAndMantissa and
+    QCBOREncode_AddBigFloatBigNum(). */
+#define QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM      19
+
 /** Type for the value false. */
 #define QCBOR_TYPE_FALSE         20
 /** Type for the value true. */
@@ -904,8 +953,38 @@ typedef struct _QCBORItem {
       UsefulBufC  bigNum;
       /** The integer value for unknown simple types. */
       uint8_t     uSimple;
-      uint64_t    uTagV;  // Used internally during decoding
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+      /** @anchor expAndMantissa
 
+          The value for bigfloats and decimal fractions.  The use of the
+          fields in this structure depend on @c uDataType.
+
+          When @c uDataType is a @c DECIMAL_FRACTION, the exponent is
+          base-10. When it is a @c BIG_FLOAT it is base-2.
+
+          When @c uDataType is a @c POS_BIGNUM or a @c NEG_BIGNUM then the
+          @c bigNum part of @c Mantissa is valid. Otherwise the
+          @c nInt part of @c Mantissa is valid.
+
+          See @ref QCBOR_TYPE_DECIMAL_FRACTION,
+          @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+          @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,
+          @ref QCBOR_TYPE_BIGFLOAT, @ref QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+          and @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM.
+
+          Also see QCBOREncode_AddDecimalFraction(), QCBOREncode_AddBigFloat(),
+          QCBOREncode_AddDecimalFractionBigNum() and
+          QCBOREncode_AddBigFloatBigNum().
+       */
+      struct {
+         int64_t nExponent;
+         union {
+            int64_t    nInt;
+            UsefulBufC bigNum;
+         } Mantissa;
+      } expAndMantissa;
+#endif
+      uint64_t    uTagV;  // Used internally during decoding
    } val;
 
    /** Union holding the different label types selected based on @c
@@ -1146,7 +1225,7 @@ static void QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel
 /**
  @brief  Add a UTF-8 text string to the encoded output.
 
- @param[in] pCtx   The context to initialize.
+ @param[in] pCtx   The encoding context to add the text to.
  @param[in] Text   Pointer and length of text to add.
 
  The text passed in must be unencoded UTF-8 according to [RFC 3629]
@@ -1173,7 +1252,7 @@ static void QCBOREncode_AddTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
 /**
  @brief  Add a UTF-8 text string to the encoded output.
 
- @param[in] pCtx      The context to initialize.
+ @param[in] pCtx      The encoding context to add the text to.
  @param[in] szString  Null-terminated text to add.
 
  This works the same as QCBOREncode_AddText().
@@ -1188,8 +1267,8 @@ static void QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLab
 /**
  @brief  Add a floating-point number to the encoded output.
 
- @param[in] pCtx  The encoding context to add the float to.
- @param[in] dNum  The double precision number to add.
+ @param[in] pCtx  The encoding context to add the double to.
+ @param[in] dNum  The double-precision number to add.
 
  This outputs a floating-point number with CBOR major type 7.
 
@@ -1222,7 +1301,7 @@ static void QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel
 /**
  @brief Add an optional tag.
 
- @param[in] pCtx  The encoding context to add the integer to.
+ @param[in] pCtx  The encoding context to add the tag to.
  @param[in] uTag  The tag to add
 
  This outputs a CBOR major type 6 item that tags the next data item
@@ -1248,7 +1327,7 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx,uint64_t uTag);
 /**
  @brief  Add an epoch-based date.
 
- @param[in] pCtx  The encoding context to add the simple value to.
+ @param[in] pCtx  The encoding context to add the date to.
  @param[in] date  Number of seconds since 1970-01-01T00:00Z in UTC time.
 
  As per RFC 7049 this is similar to UNIX/Linux/POSIX dates. This is
@@ -1284,7 +1363,7 @@ static  void QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx, int64_t nL
 /**
  @brief Add a byte string to the encoded output.
 
- @param[in] pCtx   The context to initialize.
+ @param[in] pCtx   The encoding context to add the bytes to.
  @param[in] Bytes  Pointer and length of the input data.
 
  Simply adds the bytes to the encoded output as CBOR major type 2.
@@ -1305,7 +1384,7 @@ static void QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
 /**
  @brief Add a binary UUID to the encoded output.
 
- @param[in] pCtx   The context to initialize.
+ @param[in] pCtx   The encoding context to add the UUID to.
  @param[in] Bytes  Pointer and length of the binary UUID.
 
  A binary UUID as defined in [RFC 4122]
@@ -1324,7 +1403,7 @@ static void QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nL
 /**
  @brief Add a positive big number to the encoded output.
 
- @param[in] pCtx   The context to initialize.
+ @param[in] pCtx   The encoding context to add the big number to.
  @param[in] Bytes  Pointer and length of the big number.
 
  Big numbers are integers larger than 64-bits. Their format is
@@ -1348,7 +1427,7 @@ static void QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx, int64_
 /**
  @brief Add a negative big number to the encoded output.
 
- @param[in] pCtx   The context to initialize.
+ @param[in] pCtx   The encoding context to add the big number to.
  @param[in] Bytes  Pointer and length of the big number.
 
  Big numbers are integers larger than 64-bits. Their format is
@@ -1369,10 +1448,175 @@ static void QCBOREncode_AddNegativeBignumToMap(QCBOREncodeContext *pCtx, const c
 static void QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
 
 
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+/**
+ @brief Add a decimal fraction to the encoded output.
+
+ @param[in] pCtx            The encoding context to add the decimal fraction to.
+ @param[in] nMantissa       The mantissa.
+ @param[in] nBase10Exponent The exponent.
+
+ The value is nMantissa * 10 ^ nBase10Exponent.
+
+ A decimal fraction is good for exact representation of some values
+ that can't be represented exactly with standard C (IEEE 754)
+ floating-point numbers.  Much larger and much smaller numbers can
+ also be represented than floating-point because of the larger number
+ of bits in the exponent.
+
+ The decimal fraction is conveyed as two integers, a mantissa and a
+ base-10 scaling factor.
+
+ For example, 273.15 is represented by the two integers 27315 and -2.
+
+ The exponent and mantissa have the range from @c INT64_MIN to
+ @c INT64_MAX for both encoding and decoding (CBOR allows @c -UINT64_MAX
+ to @c UINT64_MAX, but this implementation doesn't support this range to
+ reduce code size and interface complexity a little).
+
+ CBOR Preferred encoding of the integers is used, thus they will be encoded
+ in the smallest number of bytes possible.
+
+ See also QCBOREncode_AddDecimalFractionBigNum() for a decimal
+ fraction with arbitrarily large precision and QCBOREncode_AddBigFloat().
+
+ There is no representation of positive or negative infinity or NaN
+ (Not a Number). Use QCBOREncode_AddDouble() to encode them.
+
+ See @ref expAndMantissa for decoded representation.
+ */
+static void QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pCtx,
+                                           int64_t             nMantissa,
+                                           int64_t             nBase10Exponent);
+
+static void QCBOREncode_AddDecimalFractionToMap(QCBOREncodeContext *pCtx,
+                                                const char         *szLabel,
+                                                int64_t             nMantissa,
+                                                int64_t             nBase10Exponent);
+
+static void QCBOREncode_AddDecimalFractionToMapN(QCBOREncodeContext *pCtx,
+                                                 int64_t             nLabel,
+                                                 int64_t             nMantissa,
+                                                 int64_t             nBase10Exponent);
+
+/**
+ @brief Add a decimal fraction with a big number mantissa to the encoded output.
+
+ @param[in] pCtx            The encoding context to add the decimal fraction to.
+ @param[in] Mantissa        The mantissa.
+ @param[in] bIsNegative     false if mantissa is positive, true if negative.
+ @param[in] nBase10Exponent The exponent.
+
+ This is the same as QCBOREncode_AddDecimalFraction() except the
+ mantissa is a big number (See QCBOREncode_AddPositiveBignum())
+ allowing for arbitrarily large precision.
+
+ See @ref expAndMantissa for decoded representation.
+ */
+static void QCBOREncode_AddDecimalFractionBigNum(QCBOREncodeContext *pCtx,
+                                                 UsefulBufC          Mantissa,
+                                                 bool                bIsNegative,
+                                                 int64_t             nBase10Exponent);
+
+static void QCBOREncode_AddDecimalFractionBigNumToMap(QCBOREncodeContext *pCtx,
+                                                      const char         *szLabel,
+                                                      UsefulBufC          Mantissa,
+                                                      bool                bIsNegative,
+                                                      int64_t             nBase10Exponent);
+
+static void QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
+                                                       int64_t             nLabel,
+                                                       UsefulBufC          Mantissa,
+                                                       bool                bIsNegative,
+                                                       int64_t             nBase10Exponent);
+
+/**
+ @brief Add a big floating-point number to the encoded output.
+
+ @param[in] pCtx            The encoding context to add the bigfloat to.
+ @param[in] nMantissa       The mantissa.
+ @param[in] nBase2Exponent  The exponent.
+
+ The value is nMantissa * 2 ^ nBase2Exponent.
+
+ "Bigfloats", as CBOR terms them, are similar to IEEE floating-point
+ numbers in having a mantissa and base-2 exponent, but they are not
+ supported by hardware or encoded the same. They explicitly use two
+ CBOR-encoded integers to convey the mantissa and exponent, each of which
+ can be 8, 16, 32 or 64 bits. With both the mantissa and exponent
+ 64 bits they can express more precision and a larger range than an
+ IEEE double floating-point number. See
+ QCBOREncode_AddBigFloatBigNum() for even more precision.
+
+ For example, 1.5 would be represented by a mantissa of 3 and an
+ exponent of -1.
+
+ The exponent and mantissa have the range from @c INT64_MIN to
+ @c INT64_MAX for both encoding and decoding (CBOR allows @c -UINT64_MAX
+ to @c UINT64_MAX, but this implementation doesn't support this range to
+ reduce code size and interface complexity a little).
+
+ CBOR Preferred encoding of the integers is used, thus they will be encoded
+ in the smallest number of bytes possible.
+
+ This can also be used to represent floating-point numbers in
+ environments that don't support IEEE 754.
+
+ See @ref expAndMantissa for decoded representation.
+ */
+static void QCBOREncode_AddBigFloat(QCBOREncodeContext *pCtx,
+                                    int64_t             nMantissa,
+                                    int64_t             nBase2Exponent);
+
+static void QCBOREncode_AddBigFloatToMap(QCBOREncodeContext *pCtx,
+                                         const char         *szLabel,
+                                         int64_t             nMantissa,
+                                         int64_t             nBase2Exponent);
+
+static void QCBOREncode_AddBigFloatToMapN(QCBOREncodeContext *pCtx,
+                                          int64_t             nLabel,
+                                          int64_t             nMantissa,
+                                          int64_t             nBase2Exponent);
+
+
+/**
+ @brief Add a big floating-point number with a big number mantissa to
+        the encoded output.
+
+ @param[in] pCtx            The encoding context to add the bigfloat to.
+ @param[in] Mantissa        The mantissa.
+ @param[in] bIsNegative     false if mantissa is positive, true if negative.
+ @param[in] nBase2Exponent  The exponent.
+
+ This is the same as QCBOREncode_AddBigFloat() except the mantissa is
+ a big number (See QCBOREncode_AddPositiveBignum()) allowing for
+ arbitrary precision.
+
+ See @ref expAndMantissa for decoded representation.
+ */
+static void QCBOREncode_AddBigFloatBigNum(QCBOREncodeContext *pCtx,
+                                          UsefulBufC          Mantissa,
+                                          bool                bIsNegative,
+                                          int64_t             nBase2Exponent);
+
+static void QCBOREncode_AddBigFloatBigNumToMap(QCBOREncodeContext *pCtx,
+                                               const char         *szLabel,
+                                               UsefulBufC          Mantissa,
+                                               bool                bIsNegative,
+                                               int64_t             nBase2Exponent);
+
+static void QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
+                                                int64_t             nLabel,
+                                                UsefulBufC          Mantissa,
+                                                bool                bIsNegative,
+                                                int64_t             nBase2Exponent);
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
+
 /**
  @brief Add a text URI to the encoded output.
 
- @param[in] pCtx  The context to initialize.
+ @param[in] pCtx  The encoding context to add the URI to.
  @param[in] URI   Pointer and length of the URI.
 
  The format of URI must be per [RFC 3986]
@@ -1396,7 +1640,7 @@ static void QCBOREncode_AddURIToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, U
 /**
  @brief Add Base64-encoded text to encoded output.
 
- @param[in] pCtx     The context to initialize.
+ @param[in] pCtx     The encoding context to add the base-64 text to.
  @param[in] B64Text  Pointer and length of the base-64 encoded text.
 
  The text content is Base64 encoded data per [RFC 4648]
@@ -1415,7 +1659,7 @@ static void QCBOREncode_AddB64TextToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
 /**
  @brief Add base64url encoded data to encoded output.
 
- @param[in] pCtx     The context to initialize.
+ @param[in] pCtx     The encoding context to add the base64url to.
  @param[in] B64Text  Pointer and length of the base64url encoded text.
 
  The text content is base64URL encoded text as per [RFC 4648]
@@ -1434,7 +1678,7 @@ static void QCBOREncode_AddB64URLTextToMapN(QCBOREncodeContext *pCtx, int64_t nL
 /**
  @brief Add Perl Compatible Regular Expression.
 
- @param[in] pCtx    The context to initialize.
+ @param[in] pCtx    The encoding context to add the regular expression to.
  @param[in] Regex   Pointer and length of the regular expression.
 
  The text content is Perl Compatible Regular
@@ -1453,7 +1697,7 @@ static void QCBOREncode_AddRegexToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
 /**
  @brief MIME encoded text to the encoded output.
 
- @param[in] pCtx      The context to initialize.
+ @param[in] pCtx      The encoding context to add the MIME data to.
  @param[in] MIMEData  Pointer and length of the regular expression.
 
  The text content is in MIME format per [RFC 2045]
@@ -1474,7 +1718,7 @@ static void QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pCtx, int64_t nLab
 /**
  @brief  Add an RFC 3339 date string
 
- @param[in] pCtx    The encoding context to add the simple value to.
+ @param[in] pCtx    The encoding context to add the date to.
  @param[in] szDate  Null-terminated string with date to add.
 
  The string szDate should be in the form of [RFC 3339]
@@ -1499,8 +1743,8 @@ static void QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx, int64_t nL
 /**
  @brief  Add a standard Boolean.
 
- @param[in] pCtx   The encoding context to add the simple value to.
- @param[in] b      true or false from @c <stdbool.h>. Anything will result in an error.
+ @param[in] pCtx   The encoding context to add the Boolean to.
+ @param[in] b      true or false from @c <stdbool.h>.
 
  Adds a Boolean value as CBOR major type 7.
 
@@ -1517,7 +1761,7 @@ static void QCBOREncode_AddBoolToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
 /**
  @brief  Add a NULL to the encoded output.
 
- @param[in] pCtx  The encoding context to add the simple value to.
+ @param[in] pCtx  The encoding context to add the NULL to.
 
  Adds the NULL value as CBOR major type 7.
 
@@ -1536,7 +1780,7 @@ static void QCBOREncode_AddNULLToMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 /**
  @brief  Add an "undef" to the encoded output.
 
- @param[in] pCtx  The encoding context to add the simple value to.
+ @param[in] pCtx  The encoding context to add the "undef" to.
 
  Adds the undef value as CBOR major type 7.
 
@@ -1595,7 +1839,7 @@ static void QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabe
 /**
  @brief Close an open array.
 
- @param[in] pCtx The context to add to.
+ @param[in] pCtx The encoding context to close the array in.
 
  The closes an array opened by QCBOREncode_OpenArray(). It reduces
  nesting level by one. All arrays (and maps) must be closed before
@@ -1619,7 +1863,7 @@ static void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
 /**
  @brief  Indicates that the next items added are in a map.
 
- @param[in] pCtx The context to add to.
+ @param[in] pCtx The encoding context to open the map in.
 
  See QCBOREncode_OpenArray() for more information, particularly error
  handling.
@@ -1657,7 +1901,7 @@ static void QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 /**
  @brief Close an open map.
 
- @param[in] pCtx The context to add to.
+ @param[in] pCtx The encoding context to close the map in .
 
  This closes a map opened by QCBOREncode_OpenMap(). It reduces nesting
  level by one.
@@ -1680,7 +1924,7 @@ static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
 /**
  @brief Indicate start of encoded CBOR to be wrapped in a bstr.
 
- @param[in] pCtx The context to add to.
+ @param[in] pCtx The encoding context to open the bstr-wrapped CBOR in.
 
  All added encoded items between this call and a call to
  QCBOREncode_CloseBstrWrap() will be wrapped in a bstr. They will
@@ -1725,7 +1969,7 @@ static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
 /**
  @brief Close a wrapping bstr.
 
- @param[in] pCtx           The context to add to.
+ @param[in] pCtx           The encoding context to close of bstr wrapping in.
  @param[out] pWrappedCBOR  A @ref UsefulBufC containing wrapped bytes.
 
  The closes a wrapping bstr opened by QCBOREncode_CloseBstrWrap(). It reduces
@@ -1758,7 +2002,7 @@ static void QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWra
 /**
  @brief Add some already-encoded CBOR bytes.
 
- @param[in] pCtx     The context to add to.
+ @param[in] pCtx     The encoding context to add the already-encode CBOR to.
  @param[in] Encoded  The already-encoded CBOR to add to the context.
 
  The encoded CBOR being added must be fully conforming CBOR. It must
@@ -1862,7 +2106,7 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedL
 /**
  @brief Indicate whether output buffer is NULL or not.
 
- @param[in] pCtx  The encoding ontext.
+ @param[in] pCtx  The encoding context.
 
  @return 1 if the output buffer is @c NULL.
 
@@ -1876,7 +2120,7 @@ static int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
  /**
  @brief Get the encoding error state.
 
- @param[in] pCtx  The encoding ontext.
+ @param[in] pCtx  The encoding context.
 
  @return One of \ref QCBORError. See return values from
          QCBOREncode_Finish()
@@ -1888,10 +2132,28 @@ static int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
 */
 static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
 
-UsefulBufC QCBOREncode_Head(UsefulBuf buffer,
-                           uint8_t   uMajorType,
-                           int       nMinLen,
-                           uint64_t  uNumber);
+  
+/**
+ Encode the "head" of a CBOR data item.
+
+ @param buffer       Buffer to output the encoded head to; must be
+                     CBOR_MAX_HEAD_SIZE.
+ @param uMajorType   One of CBOR_MAJOR_TYPE_XX.
+ @param nMinLen      Include zero bytes up to this length. If 0 include
+                     no zero bytes. Non-zero to encode floats and doubles.
+ @param uNumber      The numeric argument part of the head.
+ @return             Pointer and length of the encoded head or
+                     @NULLUsefulBufC if the output buffer is too small.
+
+ This is not used for normal CBOR encoding. Note that it doesn't even
+ take a @ref QCBOREncodeContext argument.
+
+ It is useful for hashing bstr-wrapped data as follows. TODO:...
+ */
+UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
+                                  uint8_t   uMajorType,
+                                  int       nMinLen,
+                                  uint64_t  uNumber);
 
 
 /**
@@ -2490,7 +2752,7 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulB
 
 
 /**
- @brief Semi-private method to open a map, array or bstr wrapped CBOR
+ @brief Semi-private method to open a map, array or bstr-wrapped CBOR
 
  @param[in] pCtx        The context to add to.
  @param[in] uMajorType  The major CBOR type to close
@@ -2502,13 +2764,13 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType);
 
 
 /**
- @brief Semi-private method to open a map, array or bstr wrapped CBOR with indefinite length
+ @brief Semi-private method to open a map, array with indefinite length
 
  @param[in] pCtx        The context to add to.
  @param[in] uMajorType  The major CBOR type to close
 
- Call QCBOREncode_OpenArrayIndefiniteLength() or QCBOREncode_OpenMapIndefiniteLength()
- instead of this.
+ Call QCBOREncode_OpenArrayIndefiniteLength() or
+ QCBOREncode_OpenMapIndefiniteLength() instead of this.
  */
 void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx, uint8_t uMajorType);
 
@@ -2523,19 +2785,23 @@ void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx, uint8_
  Call QCBOREncode_CloseArray(), QCBOREncode_CloseMap() or
  QCBOREncode_CloseBstrWrap() instead of this.
  */
-void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC *pWrappedCBOR);
+void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *pCtx,
+                                 uint8_t uMajorType,
+                                 UsefulBufC *pWrappedCBOR);
 
 /**
- @brief Semi-private method to close a map, array or bstr wrapped CBOR with indefinite length
+ @brief Semi-private method to close a map, array with indefinite length
 
  @param[in] pCtx           The context to add to.
  @param[in] uMajorType     The major CBOR type to close.
  @param[out] pWrappedCBOR  Pointer to @ref UsefulBufC containing wrapped bytes.
 
- Call QCBOREncode_CloseArrayIndefiniteLength() or QCBOREncode_CloseMapIndefiniteLength()
- instead of this.
+ Call QCBOREncode_CloseArrayIndefiniteLength() or
+ QCBOREncode_CloseMapIndefiniteLength() instead of this.
  */
-void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx, uint8_t uMajorType, UsefulBufC *pWrappedCBOR);
+void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
+                                                 uint8_t uMajorType,
+                                                 UsefulBufC *pWrappedCBOR);
 
 /**
  @brief  Semi-private method to add simple types.
@@ -2557,6 +2823,31 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx, uint8
  */
 void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, size_t uSize, uint64_t uNum);
 
+
+/**
+ @brief  Semi-private method to add bigfloats and decimal fractions.
+
+ @param[in] pCtx             The encoding context to add the value to.
+ @param[in] uTag             The type 6 tag indicating what this is to be
+ @param[in] BigNumMantissa   Is @ref NULLUsefulBufC if mantissa is an
+                             @c int64_t or the actual big number mantissa
+                             if not.
+ @param[in] nMantissa        The @c int64_t mantissa if it is not a big number.
+ @param[in] nExponent        The exponent.
+
+ This adds a tagged array with two members, the mantissa and exponent. The
+ mantissa can be either a big number or an @c int64_t.
+
+ Typically, QCBOREncode_AddDecimalFraction(), QCBOREncode_AddBigFloat(),
+ QCBOREncode_AddDecimalFractionBigNum() or QCBOREncode_AddBigFloatBigNum()
+ is called instead of this.
+ */
+void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pCtx,
+                                        uint64_t            uTag,
+                                        UsefulBufC          BigNumMantissa,
+                                        bool                bBigNumIsNegative,
+                                        int64_t             nMantissa,
+                                        int64_t             nExponent);
 
 /**
  @brief Semi-private method to add only the type and length of a byte string.
@@ -2583,6 +2874,7 @@ static inline void QCBOREncode_AddBytesLenOnly(QCBOREncodeContext *pCtx, UsefulB
 static inline void QCBOREncode_AddBytesLenOnlyToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Bytes);
 
 static inline void QCBOREncode_AddBytesLenOnlyToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
+
 
 
 
@@ -2781,6 +3073,125 @@ static inline void QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
    QCBOREncode_AddTag(pCtx, CBOR_TAG_NEG_BIGNUM);
    QCBOREncode_AddBytes(pCtx, Bytes);
 }
+
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+
+static inline void QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pCtx,
+                                                  int64_t             nMantissa,
+                                                  int64_t             nBase10Exponent)
+{
+   QCBOREncode_AddExponentAndMantissa(pCtx,
+                                      CBOR_TAG_DECIMAL_FRACTION,
+                                      NULLUsefulBufC,
+                                      false,
+                                      nMantissa,
+                                      nBase10Exponent);
+}
+
+static inline void QCBOREncode_AddDecimalFractionToMap(QCBOREncodeContext *pCtx,
+                                                       const char         *szLabel,
+                                                       int64_t             nMantissa,
+                                                       int64_t             nBase10Exponent)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_AddDecimalFraction(pCtx, nMantissa, nBase10Exponent);
+}
+
+static inline void QCBOREncode_AddDecimalFractionToMapN(QCBOREncodeContext *pCtx,
+                                                        int64_t             nLabel,
+                                                        int64_t             nMantissa,
+                                                        int64_t             nBase10Exponent)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_AddDecimalFraction(pCtx, nMantissa, nBase10Exponent);
+}
+
+static inline void QCBOREncode_AddDecimalFractionBigNum(QCBOREncodeContext *pCtx,
+                                                        UsefulBufC          Mantissa,
+                                                        bool                bIsNegative,
+                                                        int64_t             nBase10Exponent)
+{
+   QCBOREncode_AddExponentAndMantissa(pCtx,
+                                      CBOR_TAG_DECIMAL_FRACTION,
+                                      Mantissa, bIsNegative,
+                                      0,
+                                      nBase10Exponent);
+}
+
+static inline void QCBOREncode_AddDecimalFractionBigNumToMap(QCBOREncodeContext *pCtx,
+                                                             const char         *szLabel,
+                                                             UsefulBufC          Mantissa,
+                                                             bool                bIsNegative,
+                                                             int64_t             nBase10Exponent)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_AddDecimalFractionBigNum(pCtx, Mantissa, bIsNegative, nBase10Exponent);
+}
+
+static inline void QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
+                                                              int64_t             nLabel,
+                                                              UsefulBufC          Mantissa,
+                                                              bool                bIsNegative,
+                                                              int64_t             nBase2Exponent)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_AddDecimalFractionBigNum(pCtx, Mantissa, bIsNegative, nBase2Exponent);
+}
+
+static inline void QCBOREncode_AddBigFloat(QCBOREncodeContext *pCtx,
+                                           int64_t             nMantissa,
+                                           int64_t             nBase2Exponent)
+{
+   QCBOREncode_AddExponentAndMantissa(pCtx, CBOR_TAG_BIGFLOAT, NULLUsefulBufC, false, nMantissa, nBase2Exponent);
+}
+
+static inline void QCBOREncode_AddBigFloatToMap(QCBOREncodeContext *pCtx,
+                                                const char         *szLabel,
+                                                int64_t             nMantissa,
+                                                int64_t             nBase2Exponent)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_AddBigFloat(pCtx, nMantissa, nBase2Exponent);
+}
+
+static inline void QCBOREncode_AddBigFloatToMapN(QCBOREncodeContext *pCtx,
+                                                 int64_t             nLabel,
+                                                 int64_t             nMantissa,
+                                                 int64_t             nBase2Exponent)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_AddBigFloat(pCtx, nMantissa, nBase2Exponent);
+}
+
+static inline void QCBOREncode_AddBigFloatBigNum(QCBOREncodeContext *pCtx,
+                                                 UsefulBufC          Mantissa,
+                                                 bool                bIsNegative,
+                                                 int64_t             nBase2Exponent)
+{
+   QCBOREncode_AddExponentAndMantissa(pCtx, CBOR_TAG_BIGFLOAT, Mantissa, bIsNegative, 0, nBase2Exponent);
+}
+
+static inline void QCBOREncode_AddBigFloatBigNumToMap(QCBOREncodeContext *pCtx,
+                                                      const char         *szLabel,
+                                                      UsefulBufC          Mantissa,
+                                                      bool                bIsNegative,
+                                                      int64_t             nBase2Exponent)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_AddBigFloatBigNum(pCtx, Mantissa, bIsNegative, nBase2Exponent);
+}
+
+static inline void QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
+                                                       int64_t             nLabel,
+                                                       UsefulBufC          Mantissa,
+                                                       bool                bIsNegative,
+                                                       int64_t             nBase2Exponent)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_AddBigFloatBigNum(pCtx, Mantissa, bIsNegative, nBase2Exponent);
+}
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
 static inline void QCBOREncode_AddURI(QCBOREncodeContext *pCtx, UsefulBufC URI)

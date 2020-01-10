@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2019, Laurence Lundblade.
+ Copyright (c) 2018-2020, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ==============================================================================*/
+ =============================================================================*/
 
 #ifndef __QCBOR__qcbor_encode_tests__
 #define __QCBOR__qcbor_encode_tests__
@@ -37,7 +37,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*
  Notes:
 
- - All the functions in qcbor.h are called once in the aggregation of all the tests below.
+ - All the functions in qcbor.h are called once in the aggregation of all
+   the tests below.
 
  - All the types that are supported are given as input and parsed by these tests
 
@@ -54,43 +55,45 @@ int BasicEncodeTest(void);
 
 
 /*
- Encode lots of integer values, particularly around the boundary and make sure they
- Match the expected binary output. Primarily an encoding test.
+ Encode lots of integer values, particularly around the boundary and
+ make sure they Match the expected binary output. Primarily an
+ encoding test.
  */
 int IntegerValuesTest1(void);
 
 
 /*
- Create nested arrays to the max depth allowed and make sure it succeeds.
- This is an encoding test.
+ Create nested arrays to the max depth allowed and make sure it
+ succeeds.  This is an encoding test.
  */
 int ArrayNestingTest1(void);
 
 
 /*
- Create nested arrays to one more than the meax depth and make sure it fails.
- This is an encoding test.
+ Create nested arrays to one more than the meax depth and make sure it
+ fails.  This is an encoding test.
  */
 int ArrayNestingTest2(void);
 
 
 /*
- Encoding test.
- Create arrays to max depth and close one extra time and look for correct error code
+ Encoding test.  Create arrays to max depth and close one extra time
+ and look for correct error code
  */
 int ArrayNestingTest3(void);
 
 
 /*
- This tests the QCBOREncode_AddRaw() function by adding two chunks or RAWCBOR to an
- array and comparing with expected values. This is an encoding test.
+ This tests the QCBOREncode_AddRaw() function by adding two chunks or
+ RAWCBOR to an array and comparing with expected values. This is an
+ encoding test.
  */
 int EncodeRawTest(void);
 
 
 /*
- This creates a somewhat complicated CBOR MAP and verifies it against expected
- data. This is an encoding test.
+ This creates a somewhat complicated CBOR MAP and verifies it against
+ expected data. This is an encoding test.
  */
 int MapEncodeTest(void);
 
@@ -112,9 +115,10 @@ int SimpleValuesTest1(void);
  */
 int SimpleValuesIndefiniteLengthTest1(void);
 
+
 /*
- Indefinite length arrays and maps use the 'magic' number 31, verify that
- everything with length 31 still works properly
+ Indefinite length arrays and maps use the 'magic' number 31, verify
+ that everything with length 31 still works properly
  */
 int EncodeLengthThirtyoneTest(void);
 
@@ -159,6 +163,14 @@ int BstrWrapNestTest(void);
  */
 int CoseSign1TBSTest(void);
 
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+/*
+ Test encoding of decimal fractions and big floats, both of which are
+ made up of an exponent and mantissa
+ */
+int ExponentAndMantissaEncodeTests(void);
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 /*
  Test the error cases when encoding CBOR such as buffer too large,

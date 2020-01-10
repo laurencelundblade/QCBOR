@@ -22,12 +22,12 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
   of memory usage making it good for embedded implementations that
   have to run in small fixed memory.
 
-**Supports nearly all of RFC 7049** – Only minor, corner-case parts of
-  RFC 7049 are not directly supported (canonicalization, decimal
-  fractions, big floats). Decoding indefinite length strings is supported,
-  but requires a string allocator (see documentation). Encoding indefinite
-  length strings is not supported, but is not necessary or
-  preferred.
+**Supports all of RFC 7049 except strict mode** – With some size
+  limits, all data types and formats specified are supported.
+  Decoding indefinite length strings requires a string allocator (see
+  documentation). The most notable part of RFC 7049 not supported is
+  detection of duplicate keys in maps, however, the duplicates are
+  passed up to the caller so it can do duplicate detection.
 
 **Extensible and general** – Provides a way to handle data types that
   are not directly supported.
@@ -48,7 +48,7 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
 **Comprehensive test suite** – Easy to verify on a new platform
   or OS with the test suite. The test suite dependencies are also
-  minimal, only additionally requiring <math.h> for floating point
+  minimal, only additionally requiring <math.h> for floating-point
   tests.
 
 ## Code Status
@@ -93,8 +93,8 @@ project. Hopefully the easy portability of this implementation makes
 this work straight away, whatever your development environment is.
 
 The files ieee754.c and ieee754.h are support for half-precision
-floating point. The encoding side of the floating point functionality
-is about 500 bytes. If it is never called because no floating point
+floating-point. The encoding side of the floating-point functionality
+is about 500 bytes. If it is never called because no floating-point
 numbers are ever encoded, all 500 bytes will be dead stripped and not
 impact code size. The decoding side is about 150 bytes of object
 code. It is never dead stripped because it directly referenced by the

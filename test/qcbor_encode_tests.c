@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2019, Laurence Lundblade.
+ Copyright (c) 2018-2020, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ==============================================================================*/
+ =============================================================================*/
 
 #include "qcbor.h"
 #include "qcbor_encode_tests.h"
@@ -47,11 +47,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  */
 
-//#define PRINT_FUNCTIONS_FOR_DEBUGGINGXX
+//#define PRINT_FUNCTIONS_FOR_DEBUGGING
 
-#ifdef  PRINT_FUNCTIONS_FOR_DEBUGGINGXX
+#ifdef  PRINT_FUNCTIONS_FOR_DEBUGGING
 #include <stdio.h>
 
+#if 0
 // ifdef these out to not have compiler warnings
 static void printencoded(const uint8_t *pEncoded, size_t nLen)
 {
@@ -64,6 +65,7 @@ static void printencoded(const uint8_t *pEncoded, size_t nLen)
 
    fflush(stdout);
 }
+#endif
 
 
 // Do the comparison and print out where it fails
@@ -71,7 +73,10 @@ static int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
    size_t i;
    for(i = 0; i < U1.len; i++) {
       if(((uint8_t *)U1.ptr)[i] != ((uint8_t *)U2.ptr)[i]) {
-         printf("Position: %d  Actual: 0x%x   Expected: 0x%x\n", i, ((uint8_t *)U1.ptr)[i], ((uint8_t *)U2.ptr)[i]);
+         printf("Position: %d  Actual: 0x%x   Expected: 0x%x\n",
+                (uint32_t)i,
+                ((uint8_t *)U1.ptr)[i],
+                ((uint8_t *)U2.ptr)[i]);
          return 1;
       }
    }
@@ -89,6 +94,42 @@ static int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
 
 #endif
 
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+/*
+ Returns 0 if UsefulBufs are equal
+ Returns 1000000 + offeset if they are not equal.
+
+
+
+*/
+struct UBCompareDiagnostic {
+   uint8_t uActual;
+   uint8_t uExpected;
+   size_t  uOffset;
+};
+
+static int32_t
+UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual,
+                                UsefulBufC Expected,
+                                struct UBCompareDiagnostic *pDiag) {
+   size_t i;
+   for(i = 0; i < Actual.len; i++) {
+      if(((uint8_t *)Actual.ptr)[i] != ((uint8_t *)Expected.ptr)[i]) {
+         if(pDiag) {
+            pDiag->uActual   = ((uint8_t *)Actual.ptr)[i];
+            pDiag->uExpected = ((uint8_t *)Expected.ptr)[i];
+            pDiag->uOffset   = i;
+         }
+         // Cast to int is OK as this is only a diagnostic and the sizes
+         // here are never over a few KB.
+         return (int32_t)i + 1000000;
+      }
+   }
+   return 0;
+
+}
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
 // One big buffer that is used by all the tests to encode into
@@ -138,7 +179,8 @@ int BasicEncodeTest()
    }
 
 
-   // Make another encoded message with the CBOR from the previous put into this one
+   // Make another encoded message with the CBOR from the previous
+   // put into this one
    UsefulBuf_MAKE_STACK_UB(MemoryForEncoded2, 20);
    QCBOREncode_Init(&EC, MemoryForEncoded2);
    QCBOREncode_OpenArray(&EC);
@@ -215,7 +257,10 @@ int BasicEncodeTest()
 
    // 2    1:1   2:1   3:1
    QCBORDecode_GetNext(&DC, &Item);
-   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 1 || Item.uLabelType != QCBOR_TYPE_INT64 || Item.label.int64 != -70000) {
+   if(Item.uDataType != QCBOR_TYPE_MAP ||
+      Item.val.uCount != 1 ||
+      Item.uLabelType != QCBOR_TYPE_INT64 ||
+      Item.label.int64 != -70000) {
       return -11;
    }
 
@@ -468,7 +513,8 @@ this is the attachment text\n\
 
 int AllAddMethodsTest()
 {
-   // TODO: this test should be broken down into several so it is more managable. Tags and labels could be more sensible
+   // TODO: this test should be broken down into several so it is more
+   // managable. Tags and labels could be more sensible
    QCBOREncodeContext ECtx;
    int nReturn = 0;
 
@@ -476,7 +522,8 @@ int AllAddMethodsTest()
 
    QCBOREncode_OpenArray(&ECtx);
 
-   // Some ints that are tagged and have strings preceeding them (not labels becase it is not a map)
+   // Some ints that are tagged and have strings preceeding them
+   // (not labels becase it is not a map)
    QCBOREncode_AddSZString(&ECtx, "UINT62");
    QCBOREncode_AddTag(&ECtx, 100);
    QCBOREncode_AddUInt64(&ECtx, 89989909);
@@ -519,7 +566,9 @@ int AllAddMethodsTest()
    // text blobs
    QCBOREncode_AddText(&ECtx, UsefulBuf_FROM_SZ_LITERAL("bar bar foo bar"));
    QCBOREncode_AddSZString(&ECtx, "oof\n");
-   QCBOREncode_AddURI(&ECtx, UsefulBuf_FROM_SZ_LITERAL("http://stackoverflow.com/questions/28059697/how-do-i-toggle-between-debug-and-release-builds-in-xcode-6-7-8"));
+   const char *szURL =
+      "http://stackoverflow.com/questions/28059697/how-do-i-toggle-between-debug-and-release-builds-in-xcode-6-7-8";
+   QCBOREncode_AddURI(&ECtx, UsefulBuf_FromSZ(szURL));
    QCBOREncode_AddB64Text(&ECtx, UsefulBuf_FROM_SZ_LITERAL("YW55IGNhcm5hbCBwbGVhc3VyZQ=="));
    QCBOREncode_AddRegex(&ECtx, UsefulBuf_FROM_SZ_LITERAL("[^abc]+"));
    QCBOREncode_AddMIMEData(&ECtx, UsefulBuf_FromSZ(szMIME));
@@ -534,7 +583,9 @@ int AllAddMethodsTest()
    QCBOREncode_AddTextToMapN(&ECtx,22, UsefulBuf_FROM_SZ_LITERAL("foo foo foo foo"));
    QCBOREncode_AddSZStringToMap(&ECtx, "^^", "oooooooof");
    QCBOREncode_AddSZStringToMapN(&ECtx, 99, "ffffoooooooof");
-   QCBOREncode_AddURIToMap(&ECtx, "RFC", UsefulBuf_FROM_SZ_LITERAL("https://tools.ietf.org/html/rfc7049#section-2.4.5"));
+   QCBOREncode_AddURIToMap(&ECtx,
+                           "RFC",
+                           UsefulBuf_FROM_SZ_LITERAL("https://tools.ietf.org/html/rfc7049#section-2.4.5"));
    QCBOREncode_AddURIToMapN(&ECtx, 0x89, UsefulBuf_FROM_SZ_LITERAL("http://cbor.me/"));
    QCBOREncode_AddB64TextToMap(&ECtx, "whenim64", UsefulBuf_FROM_SZ_LITERAL("cGxlYXN1cmUu"));
    QCBOREncode_AddB64TextToMapN(&ECtx, 64, UsefulBuf_FROM_SZ_LITERAL("c3VyZS4="));
@@ -608,7 +659,9 @@ int AllAddMethodsTest()
    QCBOREncode_CloseMap(&ECtx);
 
    // UUIDs
-   static const uint8_t ppppUUID[] = {0x53, 0x4D, 0x41, 0x52, 0x54, 0x43, 0x53, 0x4C, 0x54, 0x54, 0x43, 0x46, 0x49, 0x43, 0x41, 0x32};
+   static const uint8_t ppppUUID[] = {0x53, 0x4D, 0x41, 0x52, 0x54, 0x43,
+                                      0x53, 0x4C, 0x54, 0x54, 0x43, 0x46,
+                                      0x49, 0x43, 0x41, 0x32};
    const UsefulBufC XXUUID = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(ppppUUID);
    QCBOREncode_AddBinaryUUID(&ECtx, XXUUID);
    QCBOREncode_OpenMap(&ECtx);
@@ -1489,11 +1542,13 @@ int MapEncodeTest()
 /*
  @brief  Encode the RTIC results
 
- @param[in]     nRResult        CBOR_SIMPLEV_TRUE, CBOR_SIMPLEV_FALSE or CBOR_SIMPLEV_NULL
- @param[in]     time            Time stamp in UNIX epoch time or 0 for no time stamp
+ @param[in]     nRResult        CBOR_SIMPLEV_TRUE, CBOR_SIMPLEV_FALSE or
+                                CBOR_SIMPLEV_NULL
+ @param[in]     time            Time stamp in UNIX epoch time or 0 for none
  @param[in]     szAlexString    Diagnostic code.
  @param[in[     pOut            Buffer to put the result in
- @param[in/out] pnLen           Size of pOut buffer when called; length of data output in buffer on return
+ @param[in/out] pnLen           Size of pOut buffer when called; length of data
+                                output in buffer on return
 
  @return
  One of the CBOR encoder errors. QCBOR_SUCCESS, which is has value 0, if no error.
@@ -1507,11 +1562,17 @@ int MapEncodeTest()
 
  */
 
-static UsefulBufC FormatRTICResults(int nRResult, uint64_t time, const char *szType, const char *szAlexString, UsefulBuf Storage)
+static UsefulBufC
+FormatRTICResults(int nRResult,
+                  uint64_t time,
+                  const char *szType,
+                  const char *szAlexString,
+                  UsefulBuf Storage)
 {
    // Buffer that the result will be written in to
    // It is fixed size and small that a stack variable will be fine
-   // QCBOREncode will never write off the end of this buffer. If it won't fit QCBOREncode_Finish will return an error.
+   // QCBOREncode will never write off the end of this buffer. If it won't
+   // fit QCBOREncode_Finish will return an error.
 
    // Context for the encoder
    QCBOREncodeContext ECtx;
@@ -1523,7 +1584,8 @@ static UsefulBufC FormatRTICResults(int nRResult, uint64_t time, const char *szT
 
    { // Brace / indention just to show CBOR encoding nesting
 
-      // The result: 0 if scan happened and found nothing; 1 if it happened and found something wrong; 2 if it didn't happen
+      // The result: 0 if scan happened and found nothing; 1 if it happened and
+      // found something wrong; 2 if it didn't happen
       QCBOREncode_AddSimpleToMap(&ECtx, "integrity", nRResult);
 
       // Add the diagnostic code
@@ -1690,7 +1752,8 @@ int BstrWrapTest()
    QCBOREncode_CloseArray(&EC);
    UsefulBufC BStr;
    QCBOREncode_CloseBstrWrap(&EC, &BStr);
-   // 3 is one byte for the wrapping bstr, 1 for an array of length 1, and 1 byte for a NULL
+   // 3 is one byte for the wrapping bstr, 1 for an array of length 1,
+   // and 1 byte for a NULL
    if(BStr.ptr != NULL || BStr.len != 3) {
       return -5;
    }
@@ -1716,7 +1779,7 @@ int BstrWrapTest()
 
 int BstrWrapErrorTest()
 {
-   // -------------- Test closing a bstrwrap when it is an array that is open -----------
+   // ---- Test closing a bstrwrap when it is an array that is open ---------
    QCBOREncodeContext EC;
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
@@ -1738,7 +1801,7 @@ int BstrWrapErrorTest()
       return -1;
    }
 
-   // ----------- test closing a bstrwrap when nothing is open ---------------------
+   // -------- test closing a bstrwrap when nothing is open ----------------
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
    if(QCBOREncode_Finish(&EC, &Encoded2) != QCBOR_ERR_TOO_MANY_CLOSES) {
@@ -2173,7 +2236,8 @@ int EncodeErrorTests()
 
 
    // ------ Test for QCBOR_ERR_BUFFER_TOO_LARGE ------
-   // Do all of these tests with NULL buffers so no actual large allocations are neccesary
+   // Do all of these tests with NULL buffers so no actual
+   // large allocations are neccesary
    const UsefulBuf Buffer = (UsefulBuf){NULL, UINT32_MAX};
 
    // First verify no error from a big buffer
@@ -2331,3 +2395,204 @@ int EncodeErrorTests()
 
    return 0;
 }
+
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+/*
+   [
+      4([-1, 3]),
+      4([-20, 4759477275222530853136]),
+      4([9223372036854775807, -4759477275222530853137]),
+      5([300, 100]),
+      5([-20, 4759477275222530853136]),
+      5([-9223372036854775808, -4759477275222530853137])
+ ]
+ */
+static const uint8_t spExpectedExponentAndMantissaArray[] = {
+   0x86, 0xC4, 0x82, 0x20, 0x03, 0xC4, 0x82, 0x33,
+   0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+   0x07, 0x08, 0x09, 0x10, 0xC4, 0x82, 0x1B, 0x7F,
+   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC3,
+   0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+   0x08, 0x09, 0x10, 0xC5, 0x82, 0x19, 0x01, 0x2C,
+   0x18, 0x64, 0xC5, 0x82, 0x33, 0xC2, 0x4A, 0x01,
+   0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+   0x10, 0xC5, 0x82, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF,
+   0xFF, 0xFF, 0xFF, 0xFF, 0xC3, 0x4A, 0x01, 0x02,
+   0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10};
+
+
+/*
+  {
+    "decimal fraction": 4([-1, 3]),
+    300: 4([-1, 3]),
+    "decimal fraction bignum postive": 4([-200, 4759477275222530853136]),
+    400: 4([2147483647, 4759477275222530853136]),
+    "decimal fraction bignum negative": 4([9223372036854775807, -4759477275222530853137]),
+    500: 4([9223372036854775807, -4759477275222530853137]),
+    "big float": 5([300, 100]),
+    600: 5([300, 100]),
+    "big float bignum positive": 5([-20, 4759477275222530853136]),
+    700: 5([-20, 4759477275222530853136]),
+    "big float bignum negative": 5([-9223372036854775808, -4759477275222530853137]),
+    800: 5([-9223372036854775808, -4759477275222530853137])
+  }
+ */
+static const uint8_t spExpectedExponentAndMantissaMap[] = {
+   0xAC, 0x70, 0x64, 0x65, 0x63, 0x69, 0x6D, 0x61,
+   0x6C, 0x20, 0x66, 0x72, 0x61, 0x63, 0x74, 0x69,
+   0x6F, 0x6E, 0xC4, 0x82, 0x20, 0x03, 0x19, 0x01,
+   0x2C, 0xC4, 0x82, 0x20, 0x03, 0x78, 0x1F, 0x64,
+   0x65, 0x63, 0x69, 0x6D, 0x61, 0x6C, 0x20, 0x66,
+   0x72, 0x61, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x20,
+   0x62, 0x69, 0x67, 0x6E, 0x75, 0x6D, 0x20, 0x70,
+   0x6F, 0x73, 0x74, 0x69, 0x76, 0x65, 0xC4, 0x82,
+   0x38, 0xC7, 0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04,
+   0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x19, 0x01,
+   0x90, 0xC4, 0x82, 0x1A, 0x7F, 0xFF, 0xFF, 0xFF,
+   0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+   0x07, 0x08, 0x09, 0x10, 0x78, 0x20, 0x64, 0x65,
+   0x63, 0x69, 0x6D, 0x61, 0x6C, 0x20, 0x66, 0x72,
+   0x61, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x20, 0x62,
+   0x69, 0x67, 0x6E, 0x75, 0x6D, 0x20, 0x6E, 0x65,
+   0x67, 0x61, 0x74, 0x69, 0x76, 0x65, 0xC4, 0x82,
+   0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+   0xFF, 0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05,
+   0x06, 0x07, 0x08, 0x09, 0x10, 0x19, 0x01, 0xF4,
+   0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF,
+   0xFF, 0xFF, 0xFF, 0xC3, 0x4A, 0x01, 0x02, 0x03,
+   0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x69,
+   0x62, 0x69, 0x67, 0x20, 0x66, 0x6C, 0x6F, 0x61,
+   0x74, 0xC5, 0x82, 0x19, 0x01, 0x2C, 0x18, 0x64,
+   0x19, 0x02, 0x58, 0xC5, 0x82, 0x19, 0x01, 0x2C,
+   0x18, 0x64, 0x78, 0x19, 0x62, 0x69, 0x67, 0x20,
+   0x66, 0x6C, 0x6F, 0x61, 0x74, 0x20, 0x62, 0x69,
+   0x67, 0x6E, 0x75, 0x6D, 0x20, 0x70, 0x6F, 0x73,
+   0x69, 0x74, 0x69, 0x76, 0x65, 0xC5, 0x82, 0x33,
+   0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+   0x07, 0x08, 0x09, 0x10, 0x19, 0x02, 0xBC, 0xC5,
+   0x82, 0x33, 0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04,
+   0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x78, 0x19,
+   0x62, 0x69, 0x67, 0x20, 0x66, 0x6C, 0x6F, 0x61,
+   0x74, 0x20, 0x62, 0x69, 0x67, 0x6E, 0x75, 0x6D,
+   0x20, 0x6E, 0x65, 0x67, 0x61, 0x74, 0x69, 0x76,
+   0x65, 0xC5, 0x82, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF,
+   0xFF, 0xFF, 0xFF, 0xFF, 0xC3, 0x4A, 0x01, 0x02,
+   0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
+   0x19, 0x03, 0x20, 0xC5, 0x82, 0x3B, 0x7F, 0xFF,
+   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC3, 0x4A,
+   0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+   0x09, 0x10
+};
+
+
+int ExponentAndMantissaEncodeTests()
+{
+   QCBOREncodeContext EC;
+   UsefulBufC         EncodedExponentAndMantissa;
+
+   // Constant for the big number used in all the tests.
+   static const uint8_t spBigNum[] = {0x01, 0x02, 0x03, 0x04, 0x05,
+                                      0x06, 0x07, 0x08, 0x09, 0x010};
+   const UsefulBufC   BigNum = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum);
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddDecimalFraction(&EC, 3, -1); // 3 * (10 ^ -1)
+   QCBOREncode_AddDecimalFractionBigNum(&EC, BigNum , false, -20);
+   QCBOREncode_AddDecimalFractionBigNum(&EC, BigNum, true, INT64_MAX);
+   QCBOREncode_AddBigFloat(&EC, 100, 300);
+   QCBOREncode_AddBigFloatBigNum(&EC, BigNum, false, -20);
+   QCBOREncode_AddBigFloatBigNum(&EC, BigNum, true, INT64_MIN);
+   QCBOREncode_CloseArray(&EC);
+
+   if(QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa)) {
+      return -2;
+   }
+
+   int nReturn = UsefulBuf_CompareWithDiagnostic(EncodedExponentAndMantissa,
+                                                 UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentAndMantissaArray),
+                                                 NULL);
+   if(nReturn) {
+      return nReturn;
+   }
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenMap(&EC);
+
+   QCBOREncode_AddDecimalFractionToMap(&EC, "decimal fraction", 3, -1);
+
+   QCBOREncode_AddDecimalFractionToMapN(&EC, 300, 3, -1);
+
+   QCBOREncode_AddDecimalFractionBigNumToMap(&EC,
+                                             "decimal fraction bignum postive",
+                                             BigNum,
+                                             false,
+                                             -200);
+
+   QCBOREncode_AddDecimalFractionBigNumToMapN(&EC,
+                                              400,
+                                              BigNum,
+                                              false,
+                                              INT32_MAX);
+
+   QCBOREncode_AddDecimalFractionBigNumToMap(&EC,
+                                             "decimal fraction bignum negative",
+                                             BigNum,
+                                             true,
+                                             INT64_MAX);
+
+   QCBOREncode_AddDecimalFractionBigNumToMapN(&EC,
+                                              500,
+                                              BigNum,
+                                              true,
+                                              INT64_MAX);
+
+   QCBOREncode_AddBigFloatToMap(&EC, "big float", 100, 300);
+
+   QCBOREncode_AddBigFloatToMapN(&EC, 600, 100, 300);
+
+   QCBOREncode_AddBigFloatBigNumToMap(&EC,
+                                      "big float bignum positive",
+                                      BigNum,
+                                      false,
+                                      -20);
+
+   QCBOREncode_AddBigFloatBigNumToMapN(&EC,
+                                       700,
+                                       BigNum,
+                                       false,
+                                       -20);
+
+   QCBOREncode_AddBigFloatBigNumToMap(&EC,
+                                      "big float bignum negative",
+                                      BigNum,
+                                      true,
+                                      INT64_MIN);
+
+   QCBOREncode_AddBigFloatBigNumToMapN(&EC,
+                                       800,
+                                       BigNum,
+                                       true,
+                                       INT64_MIN);
+
+   QCBOREncode_CloseMap(&EC);
+
+   if(QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa)) {
+      return -3;
+   }
+
+
+   struct UBCompareDiagnostic Diag;
+
+   nReturn = UsefulBuf_CompareWithDiagnostic(EncodedExponentAndMantissa,
+                                             UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentAndMantissaMap),
+                                             &Diag);
+   if(nReturn) {
+      return nReturn + 1000000; // +1000000 to distinguish from first test above
+   }
+
+   return 0;
+}
+
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
