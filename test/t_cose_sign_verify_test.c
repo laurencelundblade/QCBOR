@@ -485,7 +485,7 @@ int_fast32_t sign_verify_get_size_test()
     if(result) {
         return 7000 + result;
     }
-    
+
 #endif /* T_COSE_DISABLE_ES512 */
 
 

@@ -82,7 +82,7 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
     #define PSA_KEY_TYPE_ECC_KEY_PAIR PSA_KEY_TYPE_ECC_KEYPAIR
     #endif /* T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11 */
 
-    switch(cose_algorithm_id) {  
+    switch(cose_algorithm_id) {
     case COSE_ALGORITHM_ES256:
         private_key     = private_key_256;
         private_key_len = sizeof(private_key_256);
@@ -115,7 +115,7 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
         return T_COSE_ERR_FAIL;
     }
 
-    
+
     /* When importing a key with the PSA API there are two main
      * things to do.
      *
@@ -224,7 +224,7 @@ int check_for_key_pair_leaks()
            stats.external_slots +
            stats.half_filled_slots +
            stats.cache_slots);
-    
+
 #endif /* T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11 */
 }
 

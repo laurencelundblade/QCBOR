@@ -141,7 +141,7 @@ enum t_cose_err_t make_psa_ecdsa_key_pair(int32_t            cose_algorithm_id,
         return T_COSE_ERR_FAIL;
     }
 
-    
+
     /* When importing a key with the PSA API there are two main things
      * to do.
      *
