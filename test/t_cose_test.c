@@ -1,7 +1,7 @@
 /*
  *  t_cose_test.c
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -14,6 +14,7 @@
 #include "t_cose_make_test_messages.h"
 #include "q_useful_buf.h"
 #include "t_cose_crypto.h" /* For signature size constant */
+#include "t_cose_util.h" /* for get_short_circuit_kid */
 
 
 /*
@@ -470,7 +471,7 @@ static const uint8_t rfc8152_example_2_1[] = {
 /*
  * Public function, see t_cose_test.h
  */
-int cose_example_test()
+int_fast32_t cose_example_test()
 {
     enum t_cose_err_t             return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(   signed_cose_buffer, 200);
@@ -562,8 +563,12 @@ static enum t_cose_err_t run_test_sign_and_verify(int32_t test_mess_options)
 }
 
 
-/* copied from t_cose_util.c */
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+
+#ifdef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+/* copied from t_cose_util.c so these tests that depend on
+ * short circuit signatures can run even when it is
+ * is disabled.  TODO: is this dependency real?*/
+
 /* This is a random hard coded key ID that is used to indicate
  * short-circuit signing. It is OK to hard code this as the
  * probability of collision with this ID is very low and the same
@@ -589,7 +594,7 @@ static struct q_useful_buf_c get_short_circuit_kid(void)
 
     return ss_kid;
 }
-#endif
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 int_fast32_t all_header_parameters_test()
 {
@@ -642,9 +647,11 @@ int_fast32_t all_header_parameters_test()
         return 3;
     }
 
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
     if(parameters.content_type_uint != 1) {
         return 4;
     }
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
     if(q_useful_buf_compare(parameters.iv, Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"))) {
         return 5;

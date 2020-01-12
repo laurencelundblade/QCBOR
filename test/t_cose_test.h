@@ -1,7 +1,7 @@
 /*
  *  t_cose_test.h
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -40,7 +40,7 @@ int_fast32_t short_circuit_self_test(void);
  *
  * \return non-zero on failure.
  *
- * This test makes a simple COSE_Sign1 modify the payload and see that
+ * This test makes a simple COSE_Sign1 modifies the payload and sees that
  * verification fails.  It uses short-circuit signatures so no keys or
  * even integration with public key crypto is necessary.
  */
@@ -64,7 +64,9 @@ int_fast32_t short_circuit_make_cwt_test(void);
 
 
 /*
- * Test the decode only mode.
+ * Test the decode only mode, the mode where the
+ * headers are returned, but the signature is no
+ * verified.
  */
 int_fast32_t short_circuit_decode_only_test(void);
 

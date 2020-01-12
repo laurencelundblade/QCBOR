@@ -1,7 +1,7 @@
 /*==============================================================================
  run_tests.c -- test aggregator and results reporting
 
- Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -49,26 +49,38 @@ static test_entry2 s_tests2[] = {
 #endif
 
 static test_entry s_tests[] = {
+    TEST_ENTRY(sign1_structure_decode_test),
+    TEST_ENTRY(crit_parameters_test),
+    TEST_ENTRY(bad_parameters_test),
+
 #ifndef T_COSE_DISABLE_SIGN_VERIFY_TESTS
-    /* Many tests can be run without a crypto library integration and provide
-     * good test coverage of everything but the signing and verification. These
-     * tests can't be run with signing and verification short circuited */
+    /* Many tests can be run without a crypto library integration and
+     * provide good test coverage of everything but the signing and
+     * verification. These tests can't be run with signing and
+     * verification short circuited.  They must have a real crypto
+     * library integrated. */
     TEST_ENTRY(sign_verify_basic_test),
     TEST_ENTRY(sign_verify_make_cwt_test),
     TEST_ENTRY(sign_verify_sig_fail_test),
     TEST_ENTRY(sign_verify_get_size_test),
-#endif
-    TEST_ENTRY(sign1_structure_decode_test),
+#endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
+
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+    /* These tests can't run if short-circuit signatures are disabled.
+     * The most critical ones are replicated in the group of tests
+     * that require a real crypto library. Typically short-circuit
+     * signing is only disabled for extreme code size savings so these
+     * tests are typically always run.
+     */
     TEST_ENTRY(content_type_test),
     TEST_ENTRY(all_header_parameters_test),
     TEST_ENTRY(cose_example_test),
-    TEST_ENTRY(crit_parameters_test),
-    TEST_ENTRY(bad_parameters_test),
+    TEST_ENTRY(short_circuit_signing_error_conditions_test),
+    TEST_ENTRY(short_circuit_self_test),
     TEST_ENTRY(short_circuit_decode_only_test),
     TEST_ENTRY(short_circuit_make_cwt_test),
-    TEST_ENTRY(short_circuit_signing_error_conditions_test),
     TEST_ENTRY(short_circuit_verify_fail_test),
-    TEST_ENTRY(short_circuit_self_test),
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     TEST_ENTRY(short_circuit_hash_fail_test),

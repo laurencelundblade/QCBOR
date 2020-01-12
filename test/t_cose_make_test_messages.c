@@ -1,7 +1,7 @@
 /*
  * t_cose_make_test_messages.c
  *
- * Copyright (c) 2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2019-2020, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -433,7 +433,7 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         kid = get_short_circuit_kid();
 #else
-        return_value = T_COSE_SHORT_CIRCUIT_SIG_DISABLED;
+        return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG_DISABLED;
         goto Done;
 #endif
     } else {

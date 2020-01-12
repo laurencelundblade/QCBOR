@@ -449,6 +449,7 @@ int_fast32_t sign_verify_get_size_test()
     }
 
 
+#ifndef T_COSE_DISABLE_ES384
 
     return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
     if(return_value) {
@@ -461,8 +462,10 @@ int_fast32_t sign_verify_get_size_test()
         return 4000 + result;
     }
 
+#endif /* T_COSE_DISABLE_ES384 */
 
 
+#ifndef T_COSE_DISABLE_ES512
 
     return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES512, &key_pair);
     if(return_value) {
@@ -482,6 +485,9 @@ int_fast32_t sign_verify_get_size_test()
     if(result) {
         return 7000 + result;
     }
+    
+#endif /* T_COSE_DISABLE_ES512 */
+
 
     return 0;
 }
