@@ -214,7 +214,7 @@ might not use malloc, as the keys are small enough.
 
 ### Mixed code style
 QCBOR uses camelCase and t_cose follows 
-[Arm's coding guidelines](https://git.trustedfirmware.org/trusted-firmware-m.git/tree/docs/coding_guide.rst)
+[Arm's coding guidelines](https://git.trustedfirmware.org/trusted-firmware-m.git/tree/docs/about/coding_guide.rst)
 resulting in code with mixed styles. For better or worse, an Arm-style version of UsefulBuf
 is created and used and so there is a duplicate of UsefulBuf. The two are identical. They
 just have different names.
