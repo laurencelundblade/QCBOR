@@ -2138,9 +2138,9 @@ static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  Encode the "head" of a CBOR data item.
 
  @param buffer       Buffer to output the encoded head to; must be
-                     CBOR_MAX_HEAD_SIZE.
+                     @ref QCBOR_HEAD_BUFFER_SIZE.
  @param uMajorType   One of CBOR_MAJOR_TYPE_XX.
- @param nMinLen      Include zero bytes up to this length. If 0 include
+ @param uMinLen      Include zero bytes up to this length. If 0 include
                      no zero bytes. Non-zero to encode floats and doubles.
  @param uNumber      The numeric argument part of the head.
  @return             Pointer and length of the encoded head or
@@ -2149,13 +2149,25 @@ static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  This is not used for normal CBOR encoding. Note that it doesn't even
  take a @ref QCBOREncodeContext argument.
 
- It is useful for hashing bstr-wrapped data as follows. TODO:...
+ This encodes the major type and argument part of a data item. The
+ argument is an integer that is usually either the value or the length
+ of the data item.
+
+ This is exposed in the public interface to allow hashing of some CBOR
+ data types, bstr in particular, a chunk at a time so the full
+ CBOR doesn't have to be encoded in a contiguous buffer.
+
+ For example, if you have a 100,000 byte binary blob in a buffer that needs to
+ be a bstr encoded and then hashed. You could allocate a 100,010 byte
+ buffer and use the encoding functions here. Alternatively you can
+ encode the head in a ten byte buffer with this function, hash that and
+ then hash the 100,000 bytes.
 
  See also QCBOREncode_AddBytesLenOnly();
  */
 UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
                                   uint8_t   uMajorType,
-                                  int       nMinLen,
+                                  uint8_t   uMinLen,
                                   uint64_t  uNumber);
 
 
@@ -2805,9 +2817,9 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
 /**
  @brief  Semi-private method to add simple types.
 
- @param[in] pCtx   The encoding context to add the simple value to.
- @param[in] uSize  Minimum encoding size for uNum. Usually 0.
- @param[in] uNum   One of CBOR_SIMPLEV_FALSE through _UNDEF or other.
+ @param[in] pCtx     The encoding context to add the simple value to.
+ @param[in] uMinLen  Minimum encoding size for uNum. Usually 0.
+ @param[in] uNum     One of CBOR_SIMPLEV_FALSE through _UNDEF or other.
 
  This is used to add simple types like true and false.
 
@@ -2820,7 +2832,7 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
 
  Error handling is the same as QCBOREncode_AddInt64().
  */
-void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, size_t uSize, uint64_t uNum);
+void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, uint8_t uMinLen, uint64_t uNum);
 
 
 /**
