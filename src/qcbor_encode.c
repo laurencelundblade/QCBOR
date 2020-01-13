@@ -42,7 +42,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
- 01/08/2020 llundblade      Documentation corrections & improved code formatting.
+ 01/xx/2020 llundblade      Add QCBOREncode_EncodeHead() for bstr hashing.
+ 01/08/2020 llundblade      Documentation corrections & improved code formatting
  12/30/19   llundblade      Add support for decimal fractions and bigfloats.
  8/7/19     llundblade      Prevent encoding simple type reserved values 24..31
  7/25/19    janjongboom     Add indefinite length encoding for maps and arrays
@@ -110,7 +111,7 @@ inline static QCBORError Nesting_Increase(QCBORTrackNesting *pNesting,
 {
    QCBORError nReturn = QCBOR_SUCCESS;
 
-   if(pNesting->pCurrentNesting == &pNesting->pArrays[QCBOR_MAX_ARRAY_NESTING]) {
+   if(pNesting->pCurrentNesting == &pNesting->pArrays[QCBOR_MAX_ARRAY_NESTING]){
       // Trying to open one too many
       nReturn = QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
    } else {
@@ -247,15 +248,15 @@ void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
    Nesting_Init(&(me->nesting));
 }
 
+#include <stdio.h>
 
 /*
  Public function for initialization. See header qcbor.h
  */
-
-struct q_useful_buf_c QCBOREncode_EncodeHead(UsefulBuf buffer,
-                                             uint8_t   uMajorType,
-                                             int       nMinLen,
-                                             uint64_t  uNumber)
+UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
+                                  uint8_t   uMajorType,
+                                  int       nMinLen,
+                                  uint64_t  uNumber)
 {
    /**
     All CBOR data items have a type and an "argument". The argument is
@@ -322,17 +323,18 @@ struct q_useful_buf_c QCBOREncode_EncodeHead(UsefulBuf buffer,
      Code Reviewers: THIS FUNCTION DOES POINTER MATH
      */
 
-     // Buffer must have room for the largest CBOR HEAD + one extra
-   // TODO: ditch the one extra?
-    if(buffer.len < CBOR_MAX_HEAD_SIZE) {
+     // Buffer must have room for the largest CBOR HEAD + one extra as the
+   // one extra is needed for this code to work as it does a pre-decrement.
+    if(buffer.len < QCBOR_HEAD_BUFFER_SIZE) {
         return NULLUsefulBufC;
     }
 
-    uint8_t * const pBuffer = (uint8_t *)buffer.ptr;
+   // Pointer to last valid byte in the buffer
+   uint8_t *pBufferEnd = &((uint8_t *)buffer.ptr)[QCBOR_HEAD_BUFFER_SIZE-1];
 
    // Point to the last byte and work backwards
-    uint8_t *pByte = &pBuffer[CBOR_MAX_HEAD_SIZE];
-    // This is the 5 bits in the initial byte that is not the major type
+    uint8_t *pByte = pBufferEnd;
+    // The 5 bits in the initial byte that are not the major type
     uint8_t uAdditionalInfo;
 
     if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN) {
@@ -376,8 +378,17 @@ struct q_useful_buf_c QCBOREncode_EncodeHead(UsefulBuf buffer,
     }
     *--pByte = (uMajorType << 5) + uAdditionalInfo;
 
-    // TODO: check the pointer math
-    return (struct q_useful_buf_c){pByte, &pBuffer[CBOR_MAX_HEAD_SIZE] - pByte};
+#ifndef EXTRA_ENCODE_HEAD_CHECK
+   /* This is a sanity check that can be turned on to verify the pointer
+    * math in this function is not going wrong. Turn it on and run the
+    * whole test suite to perform the check.
+    */
+   if(pBufferEnd - pByte > 9 || pBufferEnd - pByte < 1 || pByte < (uint8_t *)buffer.ptr) {
+      return NULLUsefulBufC;
+   }
+#endif
+
+   return (UsefulBufC){pByte, pBufferEnd - pByte};
 }
 
 
@@ -386,22 +397,64 @@ struct q_useful_buf_c QCBOREncode_EncodeHead(UsefulBuf buffer,
 
  See InsertEncodedTypeAndNumber() function above for details.
 */
-inline static void AppendEncodedTypeAndNumber(QCBOREncodeContext *me,
-                                              uint8_t uMajorType,
-                                              uint64_t uNumber)
+static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t uNumber, int nMinSize)
 {
-    UsefulBuf_MAKE_STACK_UB  (buffer_for_encoded_len, 10);
+    UsefulBuf_MAKE_STACK_UB  (pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
 
-    UsefulBufC EncodedHead = QCBOREncode_EncodeHead(buffer_for_encoded_len,
-                                             uMajorType,
-                                             0,
-                                             uNumber);
+    UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
+                                                    uMajorType,
+                                                    nMinSize,
+                                                    uNumber);
 
-    // TODO: error check?
+   /* No check for EncodedHead == NULLUsefulBufC is performed here to
+    * save object code. It is very clear that pBufferForEncodedHead
+    * is the correct size. If EncodedHead == NULLUsefulBufC then
+    * UsefulOutBuf_AppendUsefulBuf() will do nothing so there is
+    * no security whole introduced.
+    */
     UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), EncodedHead);
 }
 
 
+/**
+ \brief Insert the head for a map, array or wrapped bstr
+
+ @param me QCBOR encoding context
+ @param uMajorType One of CBOR_MAJOR_TYPE_XXXX
+ @param uLen The length of the data item
+
+ When an array, map or bstr was opened, nothing was done but note
+ the position. This function goes back to that position and inserts
+ the CBOR Head with the major type and length.
+ */
+static void InsertCBORHead(QCBOREncodeContext *me, uint8_t uMajorType, size_t uLen)
+{
+   if(me->uError == QCBOR_SUCCESS) {
+      if(!Nesting_IsInNest(&(me->nesting))) {
+         me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+      } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
+         me->uError = QCBOR_ERR_CLOSE_MISMATCH;
+      } else {
+         // A stack buffer large enough for a CBOR head
+         UsefulBuf_MAKE_STACK_UB (pBufferForEncodedHead,QCBOR_HEAD_BUFFER_SIZE);
+
+         UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
+                                                         uMajorType,
+                                                         0,
+                                                         uLen);
+
+         /* No check for EncodedHead == NULLUsefulBufC is performed here to
+          * save object code. It is very clear that pBufferForEncodedHead
+          * is the correct size. If EncodedHead == NULLUsefulBufC then
+          * UsefulOutBuf_InsertUsefulBuf() will do nothing so there is
+          * no security whole introduced.
+          */
+         UsefulOutBuf_InsertUsefulBuf(&(me->OutBuf), EncodedHead, Nesting_GetStartPos(&(me->nesting)) );
+
+         Nesting_Decrease(&(me->nesting));
+      }
+   }
+}
 
 
 /*
@@ -410,7 +463,7 @@ inline static void AppendEncodedTypeAndNumber(QCBOREncodeContext *me,
 void QCBOREncode_AddUInt64(QCBOREncodeContext *me, uint64_t uValue)
 {
    if(me->uError == QCBOR_SUCCESS) {
-      AppendEncodedTypeAndNumber(me, CBOR_MAJOR_TYPE_POSITIVE_INT, uValue);
+      AppendCBORHead(me, CBOR_MAJOR_TYPE_POSITIVE_INT, uValue, 0);
       me->uError = Nesting_Increment(&(me->nesting));
    }
 }
@@ -433,8 +486,8 @@ void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
          uValue = (uint64_t)nNum;
          uMajorType = CBOR_MAJOR_TYPE_POSITIVE_INT;
       }
+      AppendCBORHead(me, uMajorType, uValue, 0);
 
-      AppendEncodedTypeAndNumber(me, uMajorType, uValue);
       me->uError = Nesting_Increment(&(me->nesting));
    }
 }
@@ -469,7 +522,7 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBuf
          if(uRealMajorType == CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
             uRealMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
          }
-         AppendEncodedTypeAndNumber(me, uRealMajorType, Bytes.len);
+         AppendCBORHead(me, uRealMajorType, Bytes.len, 0);
       }
 
       if(uMajorType != CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
@@ -488,7 +541,7 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBuf
  */
 void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
 {
-   AppendEncodedTypeAndNumber(me, CBOR_MAJOR_TYPE_OPTIONAL, uTag);
+   AppendCBORHead(me, CBOR_MAJOR_TYPE_OPTIONAL, uTag, 0);
 }
 
 
@@ -504,16 +557,8 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, size_t uSize, uint64_t uNum)
       if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
          me->uError = QCBOR_ERR_UNSUPPORTED;
       } else {
-         // A stack buffer large enough for a CBOR head
-         UsefulBuf_MAKE_STACK_UB  (buffer_for_encoded_head, CBOR_MAX_HEAD_SIZE);
-
-         // QCBOREncode_EncodeHead does endian swapping for the float / double
-         UsefulBufC EncodedHead = QCBOREncode_EncodeHead(buffer_for_encoded_head,
-                                                         CBOR_MAJOR_TYPE_SIMPLE,
-                                                         (int)uSize,
-                                                         uNum);
-         UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), EncodedHead);
-
+         // AppendHead() does endian swapping for the float / double
+         AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, uNum, (int)uSize);
          me->uError = Nesting_Increment(&(me->nesting));
       }
    }
@@ -620,8 +665,7 @@ void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t 
 {
    // insert the indefinite length marker (0x9f for arrays, 0xbf for maps)
     // TODO: debug this
-   AppendEncodedTypeAndNumber(me, uMajorType, 0);
-
+   AppendCBORHead(me, uMajorType, 0, 0);
    QCBOREncode_OpenMapOrArray(me, uMajorType);
 }
 
@@ -629,73 +673,39 @@ void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t 
 /*
  Public functions for closing arrays and maps. See qcbor.h
  */
-void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me,
-                                 uint8_t uMajorType,
-                                 UsefulBufC *pWrappedCBOR)
+void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 {
-   if(me->uError == QCBOR_SUCCESS) {
-      if(!Nesting_IsInNest(&(me->nesting))) {
-         me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
-      } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType && Nesting_GetMajorType(&(me->nesting)) != uMajorType+10) {
-         me->uError = QCBOR_ERR_CLOSE_MISMATCH;
-      } else {
-         /*
-          When the array, map or bstr wrap was started, nothing was
-          gone except note the position of the start of it. This code
-          goes back and inserts the actual CBOR array, map or bstr and
-          its length.  That means all the data that is in the array,
-          map or wrapped needs to be slid to the right. This is done
-          by UsefulOutBuf's insert function that is called from inside
-          InsertEncodedTypeAndNumber()
-          */
-         const size_t uInsertPosition = Nesting_GetStartPos(&(me->nesting));
-         const size_t uEndPosition    = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
-         /*
-          This can't go negative because the UsefulOutBuf always only
-          grows and never shrinks. UsefulOutBut itself also has
-          defenses such that it won't write were it should not even if
-          given hostile input lengths
-          */
-         const size_t uLenOfEncodedMapOrArray = uEndPosition - uInsertPosition;
+   InsertCBORHead(me, uMajorType, Nesting_GetCount(&(me->nesting)));
+}
 
-         // Length is number of bytes for a bstr and number of items a for map & array
-         size_t uLength;
-         if(uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING || uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING+10) {
-            uLength = uLenOfEncodedMapOrArray;
-         } else {
-            uLength = Nesting_GetCount(&(me->nesting));
-         }
 
-         UsefulBuf_MAKE_STACK_UB  (buffer_for_encoded_head, CBOR_MAX_HEAD_SIZE);
+/*
+ Public functions for closing bstr wrappaing. See qcbor.h
+ */
+void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, UsefulBufC *pWrappedCBOR)
+{
+   const size_t uInsertPosition = Nesting_GetStartPos(&(me->nesting));
+   const size_t uEndPosition    = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
 
-         UsefulBufC EncodedHead = QCBOREncode_EncodeHead(buffer_for_encoded_head,
-                                                          uMajorType,
-                                                          0,
-                                                          uLength);
+   InsertCBORHead(me, CBOR_MAJOR_TYPE_BYTE_STRING, uEndPosition - uInsertPosition);
 
-         // Insert it at the start of the map / array
-         UsefulOutBuf_InsertUsefulBuf(&(me->OutBuf), EncodedHead, uInsertPosition);
-
-         if(pWrappedCBOR) {
-            /*
-             Return pointer and length to the enclosed encoded CBOR. The
-             intended use is for it to be hashed (e.g., SHA-256) in a
-             COSE implementation.  This must be used right away, as the
-             pointer and length go invalid on any subsequent calls to
-             this function because there might be calls to
-             InsertEncodedTypeAndNumber() that slides data to the right.
-             */
-            size_t uStartOfNew = uInsertPosition;
-            if(Nesting_GetMajorType(&(me->nesting)) == CBOR_MAJOR_TYPE_BYTE_STRING+10) {
-               // Skip over the CBOR initial byte and length to just get the inserted bstr
-               const size_t uNewEndPosition = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
-               uStartOfNew += uNewEndPosition - uEndPosition;
-            }
-            const UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
-            *pWrappedCBOR = UsefulBuf_Tail(PartialResult, uStartOfNew);
-         }
-         Nesting_Decrease(&(me->nesting));
+   if(pWrappedCBOR) {
+      /*
+       Return pointer and length to the enclosed encoded CBOR. The
+       intended use is for it to be hashed (e.g., SHA-256) in a
+       COSE implementation.  This must be used right away, as the
+       pointer and length go invalid on any subsequent calls to
+       this function because there might be calls to
+       InsertEncodedTypeAndNumber() that slides data to the right.
+       */
+      size_t uStartOfNew = uInsertPosition;
+      if(!bIncludeCBORHead) {
+         // Skip over the CBOR initial byte and length to just get the inserted bstr
+         const size_t uNewEndPosition = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
+         uStartOfNew += uNewEndPosition - uEndPosition;
       }
+      const UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
+      *pWrappedCBOR = UsefulBuf_Tail(PartialResult, uStartOfNew);
    }
 }
 
@@ -703,9 +713,7 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me,
 /*
  Public functions for closing arrays and maps. See qcbor.h
  */
-void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me,
-                                                 uint8_t uMajorType,
-                                                 UsefulBufC *pWrappedCBOR)
+void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
    if(me->uError == QCBOR_SUCCESS) {
       if(!Nesting_IsInNest(&(me->nesting))) {
@@ -714,21 +722,7 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me,
          me->uError = QCBOR_ERR_CLOSE_MISMATCH;
       } else {
          // Insert the break marker (0xff for both arrays and maps)
-          AppendEncodedTypeAndNumber(me, CBOR_MAJOR_TYPE_SIMPLE, CBOR_SIMPLE_BREAK);
-
-         /*
-          Return pointer and length to the enclosed encoded CBOR. The
-          intended use is for it to be hashed (e.g., SHA-256) in a
-          COSE implementation.  This must be used right away, as the
-          pointer and length go invalid on any subsequent calls to
-          this function because there might be calls to
-          InsertEncodedTypeAndNumber() that slides data to the right.
-          */
-         if(pWrappedCBOR) {
-             // TODO: this may need fixing
-            const UsefulBufC PartialResult = UsefulOutBuf_OutUBuf(&(me->OutBuf));
-            *pWrappedCBOR = UsefulBuf_Tail(PartialResult, UsefulOutBuf_GetEndPosition(&(me->OutBuf)));
-         }
+          AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, CBOR_SIMPLE_BREAK, 0);
 
          // Decrease nesting level
          Nesting_Decrease(&(me->nesting));
