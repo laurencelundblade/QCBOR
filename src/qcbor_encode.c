@@ -111,7 +111,7 @@ inline static QCBORError Nesting_Increase(QCBORTrackNesting *pNesting,
 {
    QCBORError nReturn = QCBOR_SUCCESS;
 
-   if(pNesting->pCurrentNesting == &pNesting->pArrays[QCBOR_MAX_ARRAY_NESTING]){
+   if(pNesting->pCurrentNesting == &pNesting->pArrays[QCBOR_MAX_ARRAY_NESTING]) {
       // Trying to open one too many
       nReturn = QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
    } else {
@@ -255,7 +255,7 @@ void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
 UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
                                   uint8_t   uMajorType,
                                   uint8_t   uMinLen,
-                                  uint64_t  uNumber)
+                                  uint64_t  uArgument)
 {
    /**
     All CBOR data items have a type and an "argument". The argument is
@@ -338,17 +338,17 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
    uint8_t uAdditionalInfo;
 
    if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN) {
-       uMajorType = CBOR_MAJOR_TYPE_ARRAY;
-       uAdditionalInfo = LEN_IS_INDEFINITE;
+      uMajorType = CBOR_MAJOR_TYPE_ARRAY;
+      uAdditionalInfo = LEN_IS_INDEFINITE;
    } else if (uMajorType == CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN) {
-       uMajorType = CBOR_MAJOR_TYPE_MAP;
-       uAdditionalInfo = LEN_IS_INDEFINITE;
-   } else if (uNumber < CBOR_TWENTY_FOUR && uMinLen == 0) {
-       // Simple case where argument is < 24
-       uAdditionalInfo = uNumber;
-   } else if (uMajorType == CBOR_MAJOR_TYPE_SIMPLE && uNumber == CBOR_SIMPLE_BREAK) {
-       // Break statement can be encoded in single byte too (0xff)
-       uAdditionalInfo = uNumber;
+      uMajorType = CBOR_MAJOR_TYPE_MAP;
+      uAdditionalInfo = LEN_IS_INDEFINITE;
+   } else if (uArgument < CBOR_TWENTY_FOUR && uMinLen == 0) {
+      // Simple case where argument is < 24
+      uAdditionalInfo = uArgument;
+   } else if (uMajorType == CBOR_MAJOR_TYPE_SIMPLE && uArgument == CBOR_SIMPLE_BREAK) {
+      // Break statement can be encoded in single byte too (0xff)
+      uAdditionalInfo = uArgument;
    } else  {
       /*
        Encode argument in 1,2,4 or 8 bytes. Outer loop
@@ -367,18 +367,17 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
       // Cast is save because this value is never > 8
       int8_t nMinLen = (int8_t)uMinLen;
 
-       for(i = 0; uNumber || nMinLen > 0; i++) {
-           const uint8_t uIterations = aIterate[i];
-           for(int j = 0; j < uIterations; j++) {
-               *--pByte = uNumber & 0xff;
-               uNumber = uNumber >> 8;
-           }
-           nMinLen -= uIterations;
-       }
-       // Additional info is the encoding of the
-       // number of additional bytes to encode
-       // argument.
-       uAdditionalInfo = LEN_IS_ONE_BYTE-1 + i;
+      for(i = 0; uArgument || nMinLen > 0; i++) {
+         const uint8_t uIterations = aIterate[i];
+         for(int j = 0; j < uIterations; j++) {
+            *--pByte = uArgument & 0xff;
+            uArgument = uArgument >> 8;
+         }
+         nMinLen -= uIterations;
+      }
+      // Additional info is the encoding of the number of additional
+      // bytes to encode argument.
+      uAdditionalInfo = LEN_IS_ONE_BYTE-1 + i;
    }
    *--pByte = (uMajorType << 5) + uAdditionalInfo;
 
@@ -396,19 +395,24 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
 }
 
 
-/*
- Append the type and number info to the end of the buffer.
+/**
+ @brief Append the CBOR head, the major type and argument
 
- See InsertEncodedTypeAndNumber() function above for details.
-*/
-static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t uNumber, uint8_t uMinLen)
+ @param me          Encoder context
+ @param uMajorType  Major type to insert
+ @param uArgument   The argument (an integer value or a length)
+ @param uMinLen     The minimum number of bytes for the argument
+
+ This formats the CBOR "head" and appends it to the output.
+ */
+static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t uArgument, uint8_t uMinLen)
 {
     UsefulBuf_MAKE_STACK_UB  (pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
 
     UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
                                                     uMajorType,
                                                     uMinLen,
-                                                    uNumber);
+                                                    uArgument);
 
    /* No check for EncodedHead == NULLUsefulBufC is performed here to
     * save object code. It is very clear that pBufferForEncodedHead
@@ -416,6 +420,7 @@ static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t
     * UsefulOutBuf_AppendUsefulBuf() will do nothing so there is
     * no security whole introduced.
     */
+
     UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), EncodedHead);
 }
 
@@ -423,9 +428,9 @@ static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t
 /**
  @brief Insert the CBOR head for a map, array or wrapped bstr
 
- @param me QCBOR encoding context
- @param uMajorType One of CBOR_MAJOR_TYPE_XXXX
- @param uLen The length of the data item
+ @param me          QCBOR encoding context
+ @param uMajorType  One of CBOR_MAJOR_TYPE_XXXX
+ @param uLen        The length of the data item
 
  When an array, map or bstr was opened, nothing was done but note
  the position. This function goes back to that position and inserts
@@ -691,7 +696,13 @@ void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, U
    const size_t uInsertPosition = Nesting_GetStartPos(&(me->nesting));
    const size_t uEndPosition    = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
 
-   InsertCBORHead(me, CBOR_MAJOR_TYPE_BYTE_STRING, uEndPosition - uInsertPosition);
+   // This can't go negative because the UsefulOutBuf always only grows
+   // and never shrinks. UsefulOutBut itself also has defenses such that
+   // it won't write where it should not even if given hostile input lengths.
+   const size_t uBstrLen = uEndPosition - uInsertPosition;
+
+   // Actually insert
+   InsertCBORHead(me, CBOR_MAJOR_TYPE_BYTE_STRING, uBstrLen);
 
    if(pWrappedCBOR) {
       /*
@@ -704,7 +715,7 @@ void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, U
        */
       size_t uStartOfNew = uInsertPosition;
       if(!bIncludeCBORHead) {
-         // Skip over the CBOR initial byte and length to just get the inserted bstr
+         // Skip over the CBOR head to just get the inserted bstr
          const size_t uNewEndPosition = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
          uStartOfNew += uNewEndPosition - uEndPosition;
       }
