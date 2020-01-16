@@ -157,7 +157,7 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 /*
  Public function. See run_test.h.
  */
-int RunTests(const char *szTestNames[],
+int RunTestsQCBOR(const char *szTestNames[],
              OutputStringCB pfOutput,
              void *poutCtx,
              int *pNumTestsRun)
@@ -296,7 +296,7 @@ static void PrintSize(const char *szWhat,
 /*
  Public function. See run_test.h.
  */
-void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
+void PrintSizesQCBOR(OutputStringCB pfOutput, void *pOutCtx)
 {
    // These will never be large so cast is safe
    PrintSize("sizeof(QCBORTrackNesting)",   (uint32_t)sizeof(QCBORTrackNesting),  pfOutput, pOutCtx);

@@ -33,8 +33,8 @@ int main(int argc, const char * argv[])
 
    // This call prints out sizes of data structures to remind us
    // to keep them small.
-   PrintSizes(&fputs_wrapper, stdout);
+   PrintSizesQCBOR(&fputs_wrapper, stdout);
 
    // This runs all the tests
-   return RunTests(argv+1, &fputs_wrapper, stdout, NULL);
+   return RunTestsQCBOR(argv+1, &fputs_wrapper, stdout, NULL);
 }
