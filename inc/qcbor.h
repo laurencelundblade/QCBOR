@@ -294,7 +294,6 @@ struct _QCBORDecodeContext {
 #define CBOR_TWENTY_FOUR   24
 
 
-
 /*
  Tags that are used with CBOR_MAJOR_TYPE_OPTIONAL. These
  are types defined in RFC 7049 and some additional ones
@@ -1939,16 +1938,15 @@ static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
  (e.g. the COSE to-be-signed bytes, the @c Sig_structure) potentially
  halving the memory needed.
 
- RFC 7049 stateds the purpose of this wrapping is to prevent code relaying the
- signed data but not verifying it from tampering with the signed data
- thus making the signature unverifiable. It is also quite beneficial
- for the signature verification code. Standard CBOR parsers usually do
- not give access to partially parsed CBOR as would be need to check
- the signature of some CBOR. With this wrapping, standard CBOR parsers
- can be used to get to all the data needed for a signature
- verification.
+ RFC 7049 states the purpose of this wrapping is to prevent code
+ relaying the signed data but not verifying it from tampering with the
+ signed data thus making the signature unverifiable. It is also quite
+ beneficial for the signature verification code. Standard CBOR
+ decoders usually do not give access to partially decoded CBOR as
+ would be needed to check the signature of some CBOR. With this
+ wrapping, standard CBOR decoders can be used to get to all the data
+ needed for a signature verification.
  */
-// TODO: add new name
 static void QCBOREncode_BstrWrap(QCBOREncodeContext *pCtx);
 
 static void QCBOREncode_BstrWrapInMap(QCBOREncodeContext *pCtx, const char *szLabel);
@@ -1956,16 +1954,13 @@ static void QCBOREncode_BstrWrapInMap(QCBOREncodeContext *pCtx, const char *szLa
 static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 
 
-
-
-
 /**
  @brief Close a wrapping bstr.
 
- @param[in] pCtx             The encoding context to close of bstr wrapping in.
- @param[in] bIncludeCBORHead Include the encoded CBOR head of the bstr
-                             as well as the bytes.
- @param[out] pWrappedCBOR    A @ref UsefulBufC containing wrapped bytes.
+ @param[in] pCtx              The encoding context to close of bstr wrapping in.
+ @param[in] bIncludeCBORHead  Include the encoded CBOR head of the bstr
+                              as well as the bytes in @ cpWrappedCBOR.
+ @param[out] pWrappedCBOR     A @ref UsefulBufC containing wrapped bytes.
 
  The closes a wrapping bstr opened by QCBOREncode_BstrWrap(). It reduces
  nesting level by one.
@@ -1975,7 +1970,7 @@ static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
  this data can be hashed (e.g., with SHA-256) as part of a [RFC 8152,
  COSE] (https://tools.ietf.org/html/rfc8152)
  implementation. **WARNING**, this pointer and length should be used
- right away before any other calls to @c QCBOREncode_Xxx() as they
+ right away before any other calls to @c QCBOREncode_CloseXxx() as they
  will move data around and the pointer and length will no longer be to
  the correct encoded CBOR.
 
@@ -1983,8 +1978,8 @@ static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
  the error and enters the error state. The error will be returned when
  QCBOREncode_Finish() is called.
 
- If this has been called more times than QCBOREncode_BstrWrap(),
- then @ref QCBOR_ERR_TOO_MANY_CLOSES will be returned when
+ If this has been called more times than QCBOREncode_BstrWrap(), then
+ @ref QCBOR_ERR_TOO_MANY_CLOSES will be returned when
  QCBOREncode_Finish() is called.
 
  If this is called and it is not a wrapping bstr that is currently
@@ -1997,7 +1992,6 @@ static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
 void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *pCtx, bool bIncludeCBORHead, UsefulBufC *pWrappedCBOR);
 
 static void QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWrappedCBOR);
-
 
 
 /**
@@ -2138,15 +2132,15 @@ static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  Encode the "head" of a CBOR data item.
 
  @param buffer       Buffer to output the encoded head to; must be
-                     @ref QCBOR_HEAD_BUFFER_SIZE.
+                     @ref QCBOR_HEAD_BUFFER_SIZE bytes in size.
  @param uMajorType   One of CBOR_MAJOR_TYPE_XX.
  @param uMinLen      Include zero bytes up to this length. If 0 include
                      no zero bytes. Non-zero to encode floats and doubles.
- @param uNumber      The numeric argument part of the head.
+ @param uNumber      The numeric argument part of the CBOR head.
  @return             Pointer and length of the encoded head or
                      @NULLUsefulBufC if the output buffer is too small.
 
- This is not used for normal CBOR encoding. Note that it doesn't even
+ Callers to need to call this for normal CBOR encoding. Note that it doesn't even
  take a @ref QCBOREncodeContext argument.
 
  This encodes the major type and argument part of a data item. The
@@ -2154,14 +2148,14 @@ static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  of the data item.
 
  This is exposed in the public interface to allow hashing of some CBOR
- data types, bstr in particular, a chunk at a time so the full
- CBOR doesn't have to be encoded in a contiguous buffer.
+ data types, bstr in particular, a chunk at a time so the full CBOR
+ doesn't have to be encoded in a contiguous buffer.
 
- For example, if you have a 100,000 byte binary blob in a buffer that needs to
- be a bstr encoded and then hashed. You could allocate a 100,010 byte
- buffer and use the encoding functions here. Alternatively you can
- encode the head in a ten byte buffer with this function, hash that and
- then hash the 100,000 bytes.
+ For example, if you have a 100,000 byte binary blob in a buffer that
+ needs to be a bstr encoded and then hashed. You could allocate a
+ 100,010 byte buffer and encode it normally. Alternatively, you can
+ encode the head in a 10 byte buffer with this function, hash that and
+ then hash the 100,000 bytes using the same hash context.
 
  See also QCBOREncode_AddBytesLenOnly();
  */
