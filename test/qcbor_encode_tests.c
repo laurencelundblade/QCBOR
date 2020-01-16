@@ -2160,9 +2160,8 @@ static const uint8_t pProtectedHeaders[] = {0xa1, 0x01, 0x26};
 
 /*
  This corresponds exactly to the example in RFC 8152 section
- C.2.1. This doesn't actually verify the signature though that would
- be nice as it would make the test really good. That would require
- bring in ECDSA crypto to this test.
+ C.2.1. This doesn't actually verify the signature (however
+ the t_cose implementation does).
  */
 int CoseSign1TBSTest()
 {
@@ -2175,6 +2174,8 @@ int CoseSign1TBSTest()
    const UsefulBufC     Signature        = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCoseSign1Signature);
 
    QCBOREncodeContext EC;
+
+   // --------QCBOREncode_CloseBstrWrap2(&EC, **false** ----------------------
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
    // top level array for cose sign1, 18 is the tag for COSE sign
@@ -2195,14 +2196,19 @@ int CoseSign1TBSTest()
    // Payload is not actually CBOR in example C.2.1 like it would be
    // for a CWT or EAT. It is just a text string.
    QCBOREncode_AddEncoded(&EC, Payload);
-   QCBOREncode_CloseBstrWrap(&EC, &WrappedPayload);
+   QCBOREncode_CloseBstrWrap2(&EC, false, &WrappedPayload);
 
    // Check we got back the actual payload expected
    // The extra "T" is 0x54, which is the initial byte a bstr of length 20.
    if(UsefulBuf_Compare(WrappedPayload,
-                        UsefulBuf_FROM_SZ_LITERAL("TThis is the content."))) {
+                        UsefulBuf_FROM_SZ_LITERAL("This is the content."))) {
       return -1;
    }
+
+/*   if(UsefulBuf_Compare(WrappedPayload,
+                        UsefulBuf_FROM_SZ_LITERAL("TThis is the content."))) {
+      return -1;
+   } */
 
    // The signature
    QCBOREncode_AddBytes(&EC, Signature);
@@ -2224,6 +2230,57 @@ int CoseSign1TBSTest()
    // CBOR playground.
    if(CheckResults(COSE_Sign1, spCoseSign1TBSExpected)) {
       return -4;
+   }
+
+
+   // --------QCBOREncode_CloseBstrWrap2(&EC, **true** ------------------------
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   // top level array for cose sign1, 18 is the tag for COSE sign
+   QCBOREncode_AddTag(&EC, CBOR_TAG_COSE_SIGN1);
+   QCBOREncode_OpenArray(&EC);
+
+   // Add protected headers
+   QCBOREncode_AddBytes(&EC, ProtectedHeaders);
+
+   // Empty map with unprotected headers
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddBytesToMapN(&EC, 4, Kid);
+   QCBOREncode_CloseMap(&EC);
+
+   // The payload
+   QCBOREncode_BstrWrap(&EC);
+   // Payload is not actually CBOR in example C.2.1 like it would be
+   // for a CWT or EAT. It is just a text string.
+   QCBOREncode_AddEncoded(&EC, Payload);
+   QCBOREncode_CloseBstrWrap2(&EC, true, &WrappedPayload);
+
+   // Check we got back the actual payload expected
+   // The extra "T" is 0x54, which is the initial byte a bstr of length 20.
+   if(UsefulBuf_Compare(WrappedPayload,
+                        UsefulBuf_FROM_SZ_LITERAL("TThis is the content."))) {
+      return -11;
+   }
+
+   // The signature
+   QCBOREncode_AddBytes(&EC, Signature);
+   QCBOREncode_CloseArray(&EC);
+
+   // Finish and check the results
+   if(QCBOREncode_Finish(&EC, &COSE_Sign1)) {
+      return -12;
+   }
+
+   // 98 is the size from RFC 8152 C.2.1
+   if(COSE_Sign1.len != 98) {
+      return -13;
+   }
+
+   // It would be good to compare this to the output from a COSE
+   // implementation like COSE-C. This has been checked against the
+   // CBOR playground.
+   if(CheckResults(COSE_Sign1, spCoseSign1TBSExpected)) {
+      return -14;
    }
 
    return 0;
@@ -2596,3 +2653,52 @@ int ExponentAndMantissaEncodeTests()
 }
 
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
+
+int32_t QCBORHeadTest()
+{
+   /* This test doesn't have to be extensive, because just about every
+    * other test exercises QCBOREncode_EncodeHead().
+    */
+   // ---- basic test to encode a zero ----
+   MakeUsefulBufOnStack(RightSize, QCBOR_HEAD_BUFFER_SIZE);
+
+   UsefulBufC encoded = QCBOREncode_EncodeHead(RightSize,
+                                               CBOR_MAJOR_TYPE_POSITIVE_INT,
+                                               0,
+                                               0);
+
+   static const uint8_t expectedZero[] = {0x00};
+
+   if(UsefulBuf_Compare(encoded, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(expectedZero))) {
+      return -1;
+   }
+
+   // ---- Encode a zero padded out to an 8 byte integer ----
+   encoded = QCBOREncode_EncodeHead(RightSize,
+                                    CBOR_MAJOR_TYPE_POSITIVE_INT,
+                                    8, // uMinSize is 8 bytes
+                                    0);
+
+   static const uint8_t expected9bytes[] = {0x1b, 0x00, 0x00, 0x00, 0x00,
+                                                  0x00, 0x00, 0x00, 0x00};
+
+   if(UsefulBuf_Compare(encoded, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(expected9bytes))) {
+      return -2;
+   }
+
+
+   // ---- Try to encode into too-small a buffer ----
+   MakeUsefulBufOnStack(TooSmall, QCBOR_HEAD_BUFFER_SIZE-1);
+
+   encoded = QCBOREncode_EncodeHead(TooSmall,
+                                    CBOR_MAJOR_TYPE_POSITIVE_INT,
+                                    0,
+                                    0);
+
+   if(!UsefulBuf_IsNULLC(encoded)) {
+      return -3;
+   }
+
+   return 0;
+}
