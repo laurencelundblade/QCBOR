@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
+ 01/xx/2020 llundblade      Explicit casting of types to quiet static analysis.
  01/08/2020 llundblade      Documentation corrections & improved code formatting.
  12/30/19   llundblade      Add support for decimal fractions and bigfloats.
  11/07/19   llundblade      Fix long long conversion to double compiler warning
@@ -531,7 +532,11 @@ DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDecodedItem)
       }
    } else {
       if(uNumber <= INT64_MAX) {
-         pDecodedItem->val.int64 = -uNumber-1;
+         // CBOR's representation of negative numbers lines up with the
+         // two-compliment representation. A negative integer has one
+         // more in range than a positive integer. INT64_MIN is
+         // equal to (-INT64_MAX) - 1.
+         pDecodedItem->val.int64 = (-(int64_t)uNumber) - 1;
          pDecodedItem->uDataType = QCBOR_TYPE_INT64;
 
       } else {

@@ -99,7 +99,7 @@ static int IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return nCBORError;
-   if(Item.uDataType != QCBOR_TYPE_INT64 || // Todo; fix for 32-bit machines
+   if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -9223372036854775807LL - 1)
       return -1;
 
@@ -414,10 +414,10 @@ static int IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
 }
 
 
-// The largest negative int possible in CBOR.
-// Not possible in C.
-static const uint8_t spTooBigNegative[] = {
-   0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+// One less than the smallest negative integer allowed in C. Decoding
+// this should fail.
+static const uint8_t spTooSmallNegative[] = {
+   0x3b, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
 
@@ -442,7 +442,7 @@ int IntegerValuesParseTest()
 
    // The one large negative integer that can be parsed
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooBigNegative),
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooSmallNegative),
                     QCBOR_DECODE_MODE_NORMAL);
 
    QCBORItem item;

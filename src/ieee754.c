@@ -51,25 +51,34 @@
 
 
 // ----- Half Precsion -----------
-#define HALF_NUM_SIGNIFICAND_BITS (10)
-#define HALF_NUM_EXPONENT_BITS    (5)
-#define HALF_NUM_SIGN_BITS        (1)
+/*
+ Integer literals in C are int, long int or long long int, whichever the
+ value fits into first. They are never short. A lot of the literals below
+ are less than UINT16_MAX which means they are of type int, usually 32 bits.
+ They are used in bitwise operations with uint16_t. Some static analyzers
+ don't like this, hence many of the constants are cast to uint16_t. There
+ is no way to express a short literal in C, thus the cast to (uint16_t) is
+ used.
+ */
+#define HALF_NUM_SIGNIFICAND_BITS ((uint16_t)10)
+#define HALF_NUM_EXPONENT_BITS    ((uint16_t)5)
+#define HALF_NUM_SIGN_BITS        ((uint16_t)1)
 
 #define HALF_SIGNIFICAND_SHIFT    (0)
 #define HALF_EXPONENT_SHIFT       (HALF_NUM_SIGNIFICAND_BITS)
 #define HALF_SIGN_SHIFT           (HALF_NUM_SIGNIFICAND_BITS + HALF_NUM_EXPONENT_BITS)
 
-#define HALF_SIGNIFICAND_MASK     (0x3ff) // The lower 10 bits  // 0x03ff
-#define HALF_EXPONENT_MASK        (0x1f << HALF_EXPONENT_SHIFT) // 0x7c00 5 bits of exponent
-#define HALF_SIGN_MASK            (0x01 << HALF_SIGN_SHIFT) //  // 0x80001 bit of sign
-#define HALF_QUIET_NAN_BIT        (0x01 << (HALF_NUM_SIGNIFICAND_BITS-1)) // 0x0200
+#define HALF_SIGNIFICAND_MASK     ((uint16_t)0x3ff) // The lower 10 bits  // 0x03ff
+#define HALF_EXPONENT_MASK        ((uint16_t)(0x1f << HALF_EXPONENT_SHIFT)) // 0x7c00 5 bits of exponent
+#define HALF_SIGN_MASK            ((uint16_t)(0x01 << HALF_SIGN_SHIFT)) //  // 0x80001 bit of sign
+#define HALF_QUIET_NAN_BIT        ((uint16_t)(0x01 << (HALF_NUM_SIGNIFICAND_BITS-1))) // 0x0200
 
 /* Biased    Biased    Unbiased   Use
     0x00       0        -15       0 and subnormal
     0x01       1        -14       Smallest normal exponent
     0x1e      30         15       Largest normal exponent
     0x1F      31         16       NaN and Infinity  */
-#define HALF_EXPONENT_BIAS        (15)
+#define HALF_EXPONENT_BIAS        ((uint16_t)15)
 #define HALF_EXPONENT_MAX         (HALF_EXPONENT_BIAS)    //  15 Unbiased
 #define HALF_EXPONENT_MIN         (-HALF_EXPONENT_BIAS+1) // -14 Unbiased
 #define HALF_EXPONENT_ZERO        (-HALF_EXPONENT_BIAS)   // -15 Unbiased
@@ -190,7 +199,8 @@ uint16_t IEEE754_FloatToHalf(float f)
             uHalfSignificand = 0;
         } else {
             // Copy the LBSs of the NaN payload that will fit from the single to the half
-            uHalfSignificand = uSingleSignificand & (HALF_SIGNIFICAND_MASK & ~HALF_QUIET_NAN_BIT);
+            // Cast makes sure operands of bitwise operation are the same
+            uHalfSignificand = (uSingleSignificand & (uint32_t)(HALF_SIGNIFICAND_MASK & ~HALF_QUIET_NAN_BIT));
             if(uSingleSignificand & SINGLE_QUIET_NAN_BIT) {
                 // It's a qNaN; copy the qNaN bit
                 uHalfSignificand |= HALF_QUIET_NAN_BIT;
@@ -256,7 +266,8 @@ uint16_t IEEE754_DoubleToHalf(double d)
             uHalfSignificand = 0;
         } else {
             // Copy the LBSs of the NaN payload that will fit from the double to the half
-            uHalfSignificand = uDoubleSignificand & (HALF_SIGNIFICAND_MASK & ~HALF_QUIET_NAN_BIT);
+            // Cast makes sure operands of bitwise operation are the same
+            uHalfSignificand = uDoubleSignificand & (uint64_t)(HALF_SIGNIFICAND_MASK & ~HALF_QUIET_NAN_BIT);
             if(uDoubleSignificand & DOUBLE_QUIET_NAN_BIT) {
                 // It's a qNaN; copy the qNaN bit
                 uHalfSignificand |= HALF_QUIET_NAN_BIT;
