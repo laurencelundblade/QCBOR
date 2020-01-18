@@ -376,7 +376,12 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me,
    }
    *--pByte = (uMajorType << 5) + uAdditionalInfo;
 
-   UsefulOutBuf_InsertData(&(me->OutBuf), pByte, &bytes[sizeof(bytes)-1] - pByte, uPos);
+   // Will not go negative because the loops run for at most 8 decrements
+   // of pByte, only one other decrement is made and the array is sized
+   // for this.
+   const size_t uHeadLen = (size_t)(&bytes[sizeof(bytes)-1] - pByte);
+
+   UsefulOutBuf_InsertData(&(me->OutBuf), pByte, uHeadLen, uPos);
 }
 
 
