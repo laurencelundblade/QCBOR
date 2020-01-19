@@ -77,7 +77,7 @@ static const uint8_t spExpectedHalf[] = {
 };
 
 
-int HalfPrecisionDecodeBasicTests()
+int32_t HalfPrecisionDecodeBasicTests()
 {
     UsefulBufC HalfPrecision = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedHalf);
 
@@ -190,7 +190,7 @@ int HalfPrecisionDecodeBasicTests()
 
 
 
-int HalfPrecisionAgainstRFCCodeTest()
+int32_t HalfPrecisionAgainstRFCCodeTest()
 {
     for(uint32_t uHalfP = 0; uHalfP < 0xffff; uHalfP += 60) {
         unsigned char x[2];
@@ -307,7 +307,7 @@ static const uint8_t spExpectedSmallest[] = {
 };
 
 
-int DoubleAsSmallestTest()
+int32_t DoubleAsSmallestTest()
 {
     UsefulBuf_MAKE_STACK_UB(EncodedHalfsMem, 420);
 

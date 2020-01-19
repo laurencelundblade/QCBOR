@@ -24,7 +24,7 @@
  Test configuration
  */
 
-typedef int (test_fun_t)(void);
+typedef int32_t (test_fun_t)(void);
 typedef const char * (test_fun2_t)(void);
 
 
@@ -238,7 +238,7 @@ int RunTestsQCBOR(const char *szTestNames[],
             }
         }
 
-        int nTestResult = (t->test_fun)();
+        int32_t nTestResult = (t->test_fun)();
         nTestsRun++;
         if(pfOutput) {
             (*pfOutput)(t->szTestName, poutCtx, 0);

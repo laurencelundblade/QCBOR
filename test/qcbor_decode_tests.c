@@ -87,7 +87,7 @@ static const uint8_t spExpectedEncodedInts[] = {
 
 // return CBOR error or -1 if type of value doesn't match
 
-static int IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
+static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
 {
    QCBORItem          Item;
    int nCBORError;
@@ -425,7 +425,7 @@ static const uint8_t spTooSmallNegative[] = {
    Tests the decoding of lots of different integers sizes
    and values.
  */
-int IntegerValuesParseTest()
+int32_t IntegerValuesParseTest()
 {
    int nReturn;
    QCBORDecodeContext DCtx;
@@ -464,7 +464,7 @@ int IntegerValuesParseTest()
 
 static uint8_t spSimpleArrayBuffer[50];
 
-static int CreateSimpleArray(int nInt1, int nInt2, uint8_t **pEncoded, size_t *pEncodedLen)
+static int32_t CreateSimpleArray(int nInt1, int nInt2, uint8_t **pEncoded, size_t *pEncodedLen)
 {
    QCBOREncodeContext ECtx;
    int nReturn = -1;
@@ -539,7 +539,7 @@ static const uint8_t pValidMapEncoded[] = {
    0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63,
    0x73 } ;
 
-static int ParseOrderedArray(const uint8_t *pEncoded,
+static int32_t ParseOrderedArray(const uint8_t *pEncoded,
                              size_t nLen,
                              int64_t *pInt1,
                              int64_t *pInt2,
@@ -591,7 +591,7 @@ Done:
 
 
 
-int SimpleArrayTest()
+int32_t SimpleArrayTest()
 {
    uint8_t *pEncoded;
    size_t  nEncodedLen;
@@ -642,7 +642,7 @@ int SimpleArrayTest()
 static uint8_t sEmpties[] = {0x83, 0x00, 0x80, 0x84, 0x80, 0x81, 0x00, 0xa0,
                              0xa3, 0x01, 0xa0, 0x02, 0xa0, 0x03, 0x80};
 
-int EmptyMapsAndArraysTest()
+int32_t EmptyMapsAndArraysTest()
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -770,7 +770,7 @@ int EmptyMapsAndArraysTest()
 static uint8_t spDeepArrays[] = {0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
                                  0x81, 0x81, 0x81, 0x80};
 
-int ParseDeepArrayTest()
+int32_t ParseDeepArrayTest()
 {
    QCBORDecodeContext DCtx;
    int nReturn = 0;
@@ -800,7 +800,7 @@ static uint8_t spTooDeepArrays[] = {0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
                                     0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
                                     0x81, 0x81, 0x81, 0x80};
 
-int ParseTooDeepArrayTest()
+int32_t ParseTooDeepArrayTest()
 {
    QCBORDecodeContext DCtx;
    int nReturn = 0;
@@ -831,7 +831,7 @@ int ParseTooDeepArrayTest()
 
 
 
-int ShortBufferParseTest()
+int32_t ShortBufferParseTest()
 {
    int nResult = 0;
 
@@ -855,7 +855,7 @@ Done:
 
 
 
-int ShortBufferParseTest2()
+int32_t ShortBufferParseTest2()
 {
    uint8_t *pEncoded;
    int      nReturn;
@@ -1013,7 +1013,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
  Decode and thoroughly check a moderately complex
  set of maps
  */
-int ParseMapAsArrayTest()
+int32_t ParseMapAsArrayTest()
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -1452,7 +1452,7 @@ static uint8_t spSimpleValues[] = {0x8a, 0xf4, 0xf5, 0xf6, 0xf7, 0xff,
                                    0xe0, 0xf3, 0xf8, 0x00, 0xf8, 0x13,
                                    0xf8, 0x1f, 0xf8, 0x20, 0xf8, 0xff};
 
-int ParseSimpleTest()
+int32_t ParseSimpleTest()
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -1546,7 +1546,7 @@ static int IsNotWellFormedError(QCBORError nErr)
 }
 
 
-int NotWellFormedTests()
+int32_t NotWellFormedTests()
 {
    // Loop over all the not-well-formed instance of CBOR
    // that are test vectors in not_well_formed_cbor.h
@@ -1588,7 +1588,7 @@ struct FailInput {
 };
 
 
-static int ProcessFailures(struct FailInput *pFailInputs, size_t nNumFails)
+static int32_t ProcessFailures(struct FailInput *pFailInputs, size_t nNumFails)
 {
    for(struct FailInput *pF = pFailInputs; pF < pFailInputs + nNumFails; pF++) {
       // Set up the decoding context including a memory pool so that
@@ -1902,9 +1902,9 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0xc2, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },
 };
 
-int DecodeFailureTests()
+int32_t DecodeFailureTests()
 {
-   int nResult;
+   int32_t nResult;
 
    nResult = ProcessFailures(Failures, sizeof(Failures)/sizeof(struct FailInput));
    if(nResult) {
@@ -2005,7 +2005,7 @@ static void ComprehensiveInputRecurser(uint8_t *pBuf, int nLen, int nLenMax)
 /*
  Public function for initialization. See header qcbor.h
  */
-int ComprehensiveInputTest()
+int32_t ComprehensiveInputTest()
 {
    // Size 2 tests 64K inputs and runs quickly
    uint8_t pBuf[2];
@@ -2019,7 +2019,7 @@ int ComprehensiveInputTest()
 /*
  Public function for initialization. See header qcbor.h
  */
-int BigComprehensiveInputTest()
+int32_t BigComprehensiveInputTest()
 {
    // size 3 tests 16 million inputs and runs OK
    // in seconds on fast machines. Size 4 takes
@@ -2075,7 +2075,7 @@ int CHECK_EXPECTED_DOUBLE(double val, double expected) {
 }
 
 
-int DateParseTest()
+int32_t DateParseTest()
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -2222,10 +2222,10 @@ static uint8_t spCSRWithTags[] = {
       0xcb, 0xc8, 0xc7, 0x24,
       0xc8, 0x22};
 
-static int CheckCSRMaps(QCBORDecodeContext *pDC);
+static int32_t CheckCSRMaps(QCBORDecodeContext *pDC);
 
 
-int OptTagParseTest()
+int32_t OptTagParseTest()
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -2545,7 +2545,7 @@ static uint8_t spBigNumInput[] = {
 static uint8_t spBigNum[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 
-int BignumParseTest()
+int32_t BignumParseTest()
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -2625,7 +2625,7 @@ int BignumParseTest()
 
 
 
-static int CheckItemWithIntLabel(QCBORDecodeContext *pCtx,
+static int32_t CheckItemWithIntLabel(QCBORDecodeContext *pCtx,
                                  uint8_t uDataType,
                                  uint8_t uNestingLevel,
                                  uint8_t uNextNest,
@@ -2659,7 +2659,7 @@ static int CheckItemWithIntLabel(QCBORDecodeContext *pCtx,
 
 
 // Same code checks definite and indefinite length versions of the map
-static int CheckCSRMaps(QCBORDecodeContext *pDC)
+static int32_t CheckCSRMaps(QCBORDecodeContext *pDC)
 {
    if(CheckItemWithIntLabel(pDC, QCBOR_TYPE_MAP, 0, 1, 0, NULL)) return -1;
 
@@ -2724,7 +2724,7 @@ static uint8_t spCSRInput[] = {
    0x29, 0x4a, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
    0x07, 0x08, 0x09, 0x0a, 0x35, 0xa1, 0x24, 0x22};
 
-int NestedMapTest()
+int32_t NestedMapTest()
 {
    QCBORDecodeContext DCtx;
 
@@ -2737,7 +2737,7 @@ int NestedMapTest()
 
 
 
-int StringDecoderModeFailTest()
+int32_t StringDecoderModeFailTest()
 {
    QCBORDecodeContext DCtx;
 
@@ -2777,7 +2777,7 @@ static uint8_t spCSRInputIndefLen[] = {
    0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0xff, 0xff,
    0x35, 0xbf, 0x24, 0x22, 0xff, 0xff};
 
-int NestedMapTestIndefLen()
+int32_t NestedMapTestIndefLen()
 {
    QCBORDecodeContext DCtx;
 
@@ -2807,7 +2807,7 @@ static UsefulBufC make_nested_indefinite_arrays(int n, UsefulBuf Storage)
 }
 
 
-static int parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
+static int32_t parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
 {
    QCBORDecodeContext DC;
    QCBORDecode_Init(&DC, Nested, 0);
@@ -2841,7 +2841,7 @@ static int parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
 }
 
 
-int IndefiniteLengthNestTest()
+int32_t IndefiniteLengthNestTest()
 {
    UsefulBuf_MAKE_STACK_UB(Storage, 50);
    int i;
@@ -2869,7 +2869,7 @@ static const uint8_t spIndefiniteArrayBad4[] = {0x81, 0x9f};
 // confused tag
 static const uint8_t spIndefiniteArrayBad5[] = {0x9f, 0xd1, 0xff};
 
-int IndefiniteLengthArrayMapTest()
+int32_t IndefiniteLengthArrayMapTest()
 {
    int nResult;
    // --- first test -----
@@ -3118,7 +3118,7 @@ static int CheckBigString(UsefulBufC BigString)
 }
 
 
-int IndefiniteLengthStringTest()
+int32_t IndefiniteLengthStringTest()
 {
    QCBORDecodeContext DC;
    QCBORItem Item;
@@ -3307,7 +3307,7 @@ int IndefiniteLengthStringTest()
 }
 
 
-int AllocAllStringsTest()
+int32_t AllocAllStringsTest()
 {
    QCBORDecodeContext DC;
    QCBORError nCBORError;
@@ -3414,7 +3414,7 @@ int AllocAllStringsTest()
 
 
 
-int MemPoolTest(void)
+int32_t MemPoolTest(void)
 {
    // Set up the decoder with a tiny bit of CBOR to parse because
    // nothing can be done with it unless that is set up.
@@ -3512,7 +3512,7 @@ static UsefulBuf AllocateTestFunction(void *pCtx, void *pOldMem, size_t uNewSize
 }
 
 
-int SetUpAllocatorTest(void)
+int32_t SetUpAllocatorTest(void)
 {
    // Set up the decoder with a tiny bit of CBOR to parse because
    // nothing can be done with it unless that is set up.
@@ -3578,7 +3578,7 @@ static const uint8_t spExpectedExponentsAndMantissas[] = {
                0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE
 };
 
-int ExponentAndMantissaDecodeTests(void)
+int32_t ExponentAndMantissaDecodeTests(void)
 {
    QCBORDecodeContext DC;
    QCBORError         nCBORError;
@@ -3770,7 +3770,7 @@ static struct FailInput ExponentAndMantissaFailures[] = {
 };
 
 
-int ExponentAndMantissaDecodeFailTests()
+int32_t ExponentAndMantissaDecodeFailTests()
 {
    return ProcessFailures(ExponentAndMantissaFailures,
                           sizeof(ExponentAndMantissaFailures)/sizeof(struct FailInput));
