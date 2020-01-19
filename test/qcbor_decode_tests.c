@@ -506,6 +506,9 @@ Done:
 
 
 /*
+ Some basic CBOR with map and array used in a lot of tests.
+ The map labels are all strings
+
  {"first integer": 42,
   "an array of two strings": [
       "string1", "string2"
@@ -518,8 +521,7 @@ Done:
    }
   }
  */
-
-static uint8_t pValidMapEncoded[] = {
+static const uint8_t pValidMapEncoded[] = {
    0xa3, 0x6d, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20, 0x69, 0x6e,
    0x74, 0x65, 0x67, 0x65, 0x72, 0x18, 0x2a, 0x77, 0x61, 0x6e,
    0x20, 0x61, 0x72, 0x72, 0x61, 0x79, 0x20, 0x6f, 0x66, 0x20,
@@ -881,9 +883,10 @@ int ShortBufferParseTest2()
 
 /*
  Decode and thoroughly check a moderately complex
- set of maps
+ set of maps. Can be run in QCBOR_DECODE_MODE_NORMAL or in
+ QCBOR_DECODE_MODE_MAP_STRINGS_ONLY.
  */
-static int ParseMapTest1(QCBORDecodeMode nMode)
+static int32_t ParseMapTest1(QCBORDecodeMode nMode)
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -1219,7 +1222,7 @@ int ParseMapAsArrayTest()
  and made prettier and maybe a little more
  thorough.
  */
-static int ExtraBytesTest(int nLevel)
+static int32_t ExtraBytesTest(int nLevel)
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -1413,24 +1416,35 @@ static int ExtraBytesTest(int nLevel)
 
 
 
-
-int ParseMapTest()
+/*
+ Public function for initialization. See header qcbor.h
+ */
+int32_t ParseMapTest()
 {
-   // Parse a moderatly complex map structure very thoroughl
-   int n = ParseMapTest1(QCBOR_DECODE_MODE_NORMAL);
+   // Parse a moderatly complex map structure very thoroughly
+   int32_t nResult = ParseMapTest1(QCBOR_DECODE_MODE_NORMAL);
+   if(nResult) {
+      return nResult;
+   }
 
-   n = ParseMapTest1(QCBOR_DECODE_MODE_MAP_STRINGS_ONLY);
+   // Again, but in strings-only mode. It should succeed since the input
+   // map has only string labels.
+   nResult = ParseMapTest1(QCBOR_DECODE_MODE_MAP_STRINGS_ONLY);
+   if(nResult) {
+      return nResult;
+   }
 
-   if(!n) {
-      for(int i = 0; i < 10; i++) {
-         n = ExtraBytesTest(i);
-         if(n) {
-            break;
-         }
+   // Again, but try to finish the decoding before the end of the
+   // input at 10 different place and see that the right error code
+   // is returned.
+   for(int i = 0; i < 10; i++) {
+      nResult = ExtraBytesTest(i);
+      if(nResult) {
+         break;
       }
    }
 
-   return(n);
+   return nResult;
 }
 
 
