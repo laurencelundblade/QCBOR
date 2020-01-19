@@ -654,7 +654,17 @@ inline static QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
    // Stack usage: UsefulBuf 2, int/ptr 1  40
    QCBORError nReturn = QCBOR_SUCCESS;
 
-   const UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, uStrLen);
+   // CBOR lengths can be 64-bits, but size_t is not 64-bits on all CPUs.
+   // This check makes the cast below safe.
+   // 4 bytes less than the largest sizeof() so this can be tested by
+   // putting a SIZE_MAX length in the CBOR test input (no one will
+   // care the limit on strings is 4 bytes shorter).
+   if(uStrLen > SIZE_MAX-4) {
+      nReturn = QCBOR_ERR_STRING_TOO_LONG;
+      goto Done;
+   }
+
+   const UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, (size_t)uStrLen);
    if(UsefulBuf_IsNULLC(Bytes)) {
       // Failed to get the bytes for this string item
       nReturn = QCBOR_ERR_HIT_END;

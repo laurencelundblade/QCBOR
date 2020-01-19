@@ -1925,6 +1925,29 @@ int DecodeFailureTests()
       }
    }
 
+/*
+   This test is disabled until QCBOREncode_EncodeHead() is brought in so
+ the size encoded can be tied to SIZE_MAX and work for all size CPUs.
+
+ This relies on the largest string allowed being SIZE_MAX -4 rather than
+ SIZE_MAX. That way the test can be performed.
+   {
+      QCBORDecodeContext DCtx;
+      QCBORItem          Item;
+
+      static uint8_t foo[] = {0x5b, 0xff, 0xff, 0xff, 0xff,
+                                    0xff, 0xff, 0xff, 0xff};
+
+      QCBORDecode_Init(&DCtx,
+                       UsefulBuf_FROM_BYTE_ARRAY_LITERAL(foo),
+                       QCBOR_DECODE_MODE_NORMAL);
+
+      if(QCBOR_ERR_STRING_TOO_LONG != QCBORDecode_GetNext(&DCtx, &Item)) {
+         return -4;
+      }
+   }
+*/
+
    return 0;
 }
 
@@ -3033,7 +3056,16 @@ static const uint8_t spIndefiniteLenStringLabel[] = {
    0x01 // integer being labeled.
 };
 
-static UsefulBufC MakeIndefiniteBigBstr(UsefulBuf Storage) // TODO: size this
+/**
+ Make an indefinite length string
+
+ @param Storage Storage for string, must be 144 bytes in size
+ @return The indefinite length string
+
+ This makes an array with one indefinite length string that has 7 chunks
+ from size of 1 byte up to 64 bytes.
+ */
+static UsefulBufC MakeIndefiniteBigBstr(UsefulBuf Storage)
 {
    UsefulOutBuf UOB;
 
@@ -3041,13 +3073,15 @@ static UsefulBufC MakeIndefiniteBigBstr(UsefulBuf Storage) // TODO: size this
    UsefulOutBuf_AppendByte(&UOB, 0x81);
    UsefulOutBuf_AppendByte(&UOB, 0x5f);
 
-   int i = 0;
-   for(int nChunkSize = 1; nChunkSize <= 128; nChunkSize *= 2) {
+   uint8_t uStringByte = 0;
+   // Use of type int is intentional
+   for(int uChunkSize = 1; uChunkSize <= 128; uChunkSize *= 2) {
+      // Not using preferred encoding here, but that is OK.
       UsefulOutBuf_AppendByte(&UOB, 0x58);
-      UsefulOutBuf_AppendByte(&UOB, (uint8_t)nChunkSize);
-      for(int j = 0; j < nChunkSize; j++ ) {
-         UsefulOutBuf_AppendByte(&UOB, i);
-         i++;
+      UsefulOutBuf_AppendByte(&UOB, (uint8_t)uChunkSize);
+      for(int j = 0; j < uChunkSize; j++) {
+         UsefulOutBuf_AppendByte(&UOB, uStringByte);
+         uStringByte++;
       }
    }
    UsefulOutBuf_AppendByte(&UOB, 0xff);
