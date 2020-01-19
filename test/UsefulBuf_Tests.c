@@ -310,10 +310,9 @@ const char *UBMacroConversionsTest()
    if(Boo.len != 3 || strncmp(Boo.ptr, "Boo", 3))
      return "UsefulBuf_FROM_BYTE_ARRAY_LITERAL failed";
 
-   char *sz = "not const"; // some data for the test
-   UsefulBuf B = (UsefulBuf){sz, sizeof(sz)};
+   UsefulBuf B = (UsefulBuf){(void *)Too.ptr, Too.len};
    UsefulBufC BC = UsefulBuf_Const(B);
-   if(BC.len != sizeof(sz) || BC.ptr != sz)
+   if(BC.len != Too.len || BC.ptr != Too.ptr)
       return "UsefulBufConst failed";
 
    return NULL;
