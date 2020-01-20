@@ -194,8 +194,8 @@ int32_t HalfPrecisionAgainstRFCCodeTest()
 {
     for(uint32_t uHalfP = 0; uHalfP < 0xffff; uHalfP += 60) {
         unsigned char x[2];
-        x[1] = uHalfP & 0xff;
-        x[0] = uHalfP >> 8;
+        x[1] = (uint8_t)(uHalfP & 0xff);
+        x[0] = (uint8_t)(uHalfP >> 8); // uHalfP is always less than 0xffff
         double d = decode_half(x);
 
         // Contruct the CBOR for the half-precision float by hand
@@ -203,7 +203,7 @@ int32_t HalfPrecisionAgainstRFCCodeTest()
         UsefulOutBuf UOB;
         UsefulOutBuf_Init(&UOB, __xx);
 
-        const uint8_t uHalfPrecInitialByte = HALF_PREC_FLOAT + (CBOR_MAJOR_TYPE_SIMPLE << 5); // 0xf9
+        const uint8_t uHalfPrecInitialByte = (uint8_t)(HALF_PREC_FLOAT + (CBOR_MAJOR_TYPE_SIMPLE << 5)); // 0xf9
         UsefulOutBuf_AppendByte(&UOB, uHalfPrecInitialByte); // The initial byte for a half-precision float
         UsefulOutBuf_AppendUint16(&UOB, (uint16_t)uHalfP);
 
