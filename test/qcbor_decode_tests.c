@@ -1977,7 +1977,7 @@ static void ComprehensiveInputRecurser(uint8_t *pBuf, int nLen, int nLenMax)
 
    for(int inputByte = 0; inputByte < 256; inputByte++) {
       // Set up the input
-      pBuf[nLen] = inputByte;
+      pBuf[nLen] = (uint8_t)inputByte;
       const UsefulBufC Input = {pBuf, nLen+1};
 
       // Get ready to parse

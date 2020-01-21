@@ -1563,7 +1563,7 @@ int32_t MapEncodeTest()
  */
 
 static UsefulBufC
-FormatRTICResults(int nRResult,
+FormatRTICResults(uint64_t uRResult,
                   uint64_t time,
                   const char *szType,
                   const char *szAlexString,
@@ -1586,7 +1586,7 @@ FormatRTICResults(int nRResult,
 
       // The result: 0 if scan happened and found nothing; 1 if it happened and
       // found something wrong; 2 if it didn't happen
-      QCBOREncode_AddSimpleToMap(&ECtx, "integrity", nRResult);
+      QCBOREncode_AddSimpleToMap(&ECtx, "integrity", uRResult);
 
       // Add the diagnostic code
       QCBOREncode_AddSZStringToMap(&ECtx, "type", szType);

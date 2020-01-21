@@ -141,7 +141,7 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
       uint8_t uDigitValue = nNum/n;
       if(uDigitValue || bDidSomeOutput){
          bDidSomeOutput = true;
-         UsefulOutBuf_AppendByte(&OutBuf, '0' + uDigitValue);
+         UsefulOutBuf_AppendByte(&OutBuf, (uint8_t)('0' + uDigitValue));
          nNum -= uDigitValue * n;
       }
    }

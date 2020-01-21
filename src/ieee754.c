@@ -190,7 +190,9 @@ uint16_t IEEE754_FloatToHalf(float f)
 
 
     // Now convert the three parts to half-precision.
-    uint16_t uHalfSign, uHalfSignificand, uHalfBiasedExponent;
+    // All works is done on uint32_t with conversion to uint16_t at the end.
+    // This avoids integer promotions that static analyzers complain about
+    uint32_t uHalfSign, uHalfSignificand, uHalfBiasedExponent;
     if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN) {
         // +/- Infinity and NaNs -- single biased exponent is 0xff
         uHalfBiasedExponent = HALF_EXPONENT_INF_OR_NAN + HALF_EXPONENT_BIAS;
@@ -239,10 +241,12 @@ uint16_t IEEE754_FloatToHalf(float f)
     uHalfSign = uSingleSign;
 
     // Put the 3 values in the right place for a half precision
-    const uint16_t uHalfPrecision =  uHalfSignificand |
+    const uint32_t uHalfPrecision =  uHalfSignificand |
                                     (uHalfBiasedExponent << HALF_EXPONENT_SHIFT) |
                                     (uHalfSign << HALF_SIGN_SHIFT);
-    return uHalfPrecision;
+    // Cast is safe because all the masks and shifts above work to make
+    // a half precision value which is only 16 bits.
+    return (uint16_t)uHalfPrecision;
 }
 
 
@@ -257,7 +261,9 @@ uint16_t IEEE754_DoubleToHalf(double d)
 
 
     // Now convert the three parts to half-precision.
-    uint16_t uHalfSign, uHalfSignificand, uHalfBiasedExponent;
+    // All works is done on uint64_t with conversion to uint16_t at the end.
+    // This avoids integer promotions that static analyzers complain about
+    uint64_t uHalfSign, uHalfSignificand, uHalfBiasedExponent;
     if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
         // +/- Infinity and NaNs -- single biased exponent is 0xff
         uHalfBiasedExponent = HALF_EXPONENT_INF_OR_NAN + HALF_EXPONENT_BIAS;
@@ -307,10 +313,12 @@ uint16_t IEEE754_DoubleToHalf(double d)
 
 
     // Put the 3 values in the right place for a half precision
-    const uint16_t uHalfPrecision =  uHalfSignificand |
+    const uint64_t uHalfPrecision =  uHalfSignificand |
                                     (uHalfBiasedExponent << HALF_EXPONENT_SHIFT) |
                                     (uHalfSign << HALF_SIGN_SHIFT);
-    return uHalfPrecision;
+    // Cast is safe because all the masks and shifts above work to make
+    // a half precision value which is only 16 bits.
+    return (uint16_t)uHalfPrecision;
 }
 
 
@@ -318,9 +326,11 @@ uint16_t IEEE754_DoubleToHalf(double d)
 float IEEE754_HalfToFloat(uint16_t uHalfPrecision)
 {
     // Pull out the three parts of the half-precision float
-    const uint16_t uHalfSignificand      =   uHalfPrecision & HALF_SIGNIFICAND_MASK;
-    const int16_t  nHalfUnBiasedExponent = ((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
-    const uint16_t uHalfSign             =  (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
+    // Do all the work in 32-bits because that is what the end result is
+    // and will keep static analyzers happier.
+    const uint32_t uHalfSignificand      =   uHalfPrecision & HALF_SIGNIFICAND_MASK;
+    const int32_t  nHalfUnBiasedExponent = ((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
+    const uint32_t uHalfSign             =  (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
 
 
     // Make the three parts of the single-precision number
@@ -380,9 +390,11 @@ float IEEE754_HalfToFloat(uint16_t uHalfPrecision)
 double IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 {
     // Pull out the three parts of the half-precision float
-    const uint16_t uHalfSignificand      =   uHalfPrecision & HALF_SIGNIFICAND_MASK;
-    const int16_t  nHalfUnBiasedExponent = ((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
-    const uint16_t uHalfSign             =  (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
+    // Do all the work in 32-bits because that is what the end result is
+    // and will keep static analyzers happier.
+    const uint64_t uHalfSignificand      =   uHalfPrecision & HALF_SIGNIFICAND_MASK;
+    const int64_t  nHalfUnBiasedExponent = ((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
+    const uint64_t uHalfSign             =  (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
 
 
     // Make the three parts of hte single-precision number
