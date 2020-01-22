@@ -139,7 +139,7 @@
 
 /*
  Convenient functions to avoid type punning, compiler warnings and
- such The optimizer reduces them to a simple assignment.  This is a
+ such. The optimizer reduces them to a simple assignment.  This is a
  crusty corner of C. It shouldn't be this hard.
 
  These are also in UsefulBuf.h under a different name. They are copied
@@ -199,8 +199,8 @@ uint16_t IEEE754_FloatToHalf(float f)
             // Infinity
             uHalfSignificand = 0;
         } else {
-            // Copy the LBSs of the NaN payload that will fit from the single to the half
-            uHalfSignificand = (uSingleSignificand & (HALF_SIGNIFICAND_MASK & ~HALF_QUIET_NAN_BIT));
+            // Copy the LSBs of the NaN payload that will fit from the single to the half
+            uHalfSignificand = uSingleSignificand & (HALF_SIGNIFICAND_MASK & ~HALF_QUIET_NAN_BIT);
             if(uSingleSignificand & SINGLE_QUIET_NAN_BIT) {
                 // It's a qNaN; copy the qNaN bit
                 uHalfSignificand |= HALF_QUIET_NAN_BIT;
@@ -264,7 +264,7 @@ uint16_t IEEE754_DoubleToHalf(double d)
     // This avoids integer promotions that static analyzers complain about and
     // reduces code size.
     uint64_t uHalfSign, uHalfSignificand, uHalfBiasedExponent;
-    
+
     if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
         // +/- Infinity and NaNs -- single biased exponent is 0xff
         uHalfBiasedExponent = HALF_EXPONENT_INF_OR_NAN + HALF_EXPONENT_BIAS;
