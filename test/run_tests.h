@@ -53,10 +53,10 @@ typedef void (*OutputStringCB)(const char *szString, void *pOutCtx, int bNewline
 
  @return The number of tests that failed. Zero means overall success.
  */
-int RunTests(const char    *szTestNames[],
-             OutputStringCB pfOutput,
-             void          *pOutCtx,
-             int           *pNumTestsRun);
+int RunTestsTCose(const char    *szTestNames[],
+                  OutputStringCB pfOutput,
+                  void          *pOutCtx,
+                  int           *pNumTestsRun);
 
 
 /**
@@ -65,5 +65,5 @@ int RunTests(const char    *szTestNames[],
  @param[in] pfOutput     Function that is called to output text strings.
  @param[in] pOutCtx      Context pointer passed to output function.
  */
-void PrintSizes(OutputStringCB pfOutput, void *pOutCtx);
+void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx);
 

@@ -36,10 +36,10 @@ int main(int argc, const char * argv[])
 
     // This call prints out sizes of data structures to remind us
     // to keep them small.
-    PrintSizes(&fputs_wrapper, stdout);
+    PrintSizesTCose(&fputs_wrapper, stdout);
 
     // This runs all the tests
-    return_value = RunTests(argv+1, &fputs_wrapper, stdout, NULL);
+    return_value = RunTestsTCose(argv+1, &fputs_wrapper, stdout, NULL);
 
     if(return_value) {
         return return_value;

@@ -139,10 +139,10 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 /*
  Public function. See run_test.h.
  */
-int RunTests(const char    *szTestNames[],
-             OutputStringCB pfOutput,
-             void          *poutCtx,
-             int           *pNumTestsRun)
+int RunTestsTCose(const char    *szTestNames[],
+                  OutputStringCB pfOutput,
+                  void          *poutCtx,
+                  int           *pNumTestsRun)
 {
     // int (-32767 to 32767 according to C standard) used by conscious choice
     int nTestsFailed = 0;
@@ -285,7 +285,7 @@ static void PrintSize(const char *szWhat,
 /*
  Public function. See run_test.h.
  */
-void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
+void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx)
 {
    // Type and size of return from sizeof() varies. These will never be large
    // so cast is safe.
