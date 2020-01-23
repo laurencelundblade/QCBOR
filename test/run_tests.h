@@ -1,7 +1,7 @@
 /*==============================================================================
  run_tests.h -- test aggregator and results reporting
 
- Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -43,7 +43,7 @@ typedef void (*OutputStringCB)(const char *szString, void *pOutCtx, int bNewline
 
 
 /**
- @brief Runs the QCBOR tests.
+ @brief Runs the T_COSE tests.
 
  @param[in]  szTestNames    An argv-style list of test names to run. If
                             empty, all are run.
