@@ -443,12 +443,15 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *me,
  This returns:
    pnMajorType -- the major type for the item
 
-   puNumber -- the "number" which is used a the value for integers,
+   puArgument -- the "number" which is used a the value for integers,
                tags and floats and length for strings and arrays
 
-   puAdditionalInfo -- Pass this along to know what kind of float or
+   pnAdditionalInfo -- Pass this along to know what kind of float or
                        if length is indefinite
 
+ The int type is preferred to uint8_t for some variables as this
+ avoids integer promotions which can reduce code size and makes
+ static analyzers happier.
  */
 inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
                                               int *pnMajorType,
@@ -458,11 +461,11 @@ inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
    QCBORError nReturn;
 
    // Get the initial byte that every CBOR data item has
-   const uint8_t uInitialByte = UsefulInputBuf_GetByte(pUInBuf);
+   const int nInitialByte = UsefulInputBuf_GetByte(pUInBuf);
 
    // Break down the initial byte
-   const int nTmpMajorType   = uInitialByte >> 5;
-   const int nAdditionalInfo = uInitialByte & 0x1f;
+   const int nTmpMajorType   = nInitialByte >> 5;
+   const int nAdditionalInfo = nInitialByte & 0x1f;
 
    // Where the number or argument accumulates
    uint64_t uArgument;
@@ -503,6 +506,7 @@ Done:
    return nReturn;
 }
 
+
 /*
  CBOR doesn't explicitly specify two's compliment for integers but all
  CPUs use it these days and the test vectors in the RFC are so. All
@@ -514,12 +518,16 @@ Done:
  compliment to represent negative integers.
 
  See http://www.unix.org/whitepapers/64bit.html for reasons int isn't
- used here in any way including in the interface
+ used carefully here, and in particular why it isn't used in the interface.
+ Also see
+ https://stackoverflow.com/questions/17489857/why-is-int-typically-32-bit-on-64-bit-compilers
+
+ Int is used for values that need less than 16-bits and would be subject
+ to integer promotion and complaining by static analyzers.
  */
 inline static QCBORError
 DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDecodedItem)
 {
-   // Stack usage: int/ptr 1 -- 8
    QCBORError nReturn = QCBOR_SUCCESS;
 
    if(nMajorType == CBOR_MAJOR_TYPE_POSITIVE_INT) {
@@ -586,7 +594,6 @@ DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDecodedItem)
 inline static QCBORError
 DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
 {
-   // Stack usage: 0
    QCBORError nReturn = QCBOR_SUCCESS;
 
    // uAdditionalInfo is 5 bits from the initial byte compile time checks
@@ -644,7 +651,6 @@ Done:
 }
 
 
-
 /*
  Decode text and byte strings. Call the string allocator if asked to.
  */
@@ -654,7 +660,6 @@ inline static QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
                                      UsefulInputBuf *pUInBuf,
                                      QCBORItem *pDecodedItem)
 {
-   // Stack usage: UsefulBuf 2, int/ptr 1  40
    QCBORError nReturn = QCBOR_SUCCESS;
 
    // CBOR lengths can be 64 bits, but size_t is not 64 bits on all CPUs.
@@ -725,7 +730,6 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
                                QCBORItem *pDecodedItem,
                                const QCORInternalAllocator *pAllocator)
 {
-   // Stack usage: int/ptr 3 -- 24
    QCBORError nReturn;
 
    /*
