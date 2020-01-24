@@ -343,8 +343,9 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me,
     to unsigned int if the value won't fit into an int even if the
     promotion is for an unsigned like uint8_t.
 
-    By declaring the int, there are few implicit conversions and fewer
-    casts needed. It also makes static analyzers happier.
+    By declaring them int, there are few implicit conversions and fewer
+    casts needed. Code size is reduced a little It also makes static
+    analyzers happier.
 
     Note also that declaring them uint8_t won't stop integer wrap
     around if the code is wrong. It won't make the code more correct.

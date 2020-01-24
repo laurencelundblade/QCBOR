@@ -180,9 +180,9 @@ uint16_t IEEE754_FloatToHalf(float f)
 {
     // Pull the three parts out of the single-precision float
     const uint32_t uSingle = CopyFloatToUint32(f);
-    const int32_t  nSingleUnbiasedExponent = ((uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT) - SINGLE_EXPONENT_BIAS;
-    const uint32_t uSingleSign             =  (uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
-    const uint32_t uSingleSignificand      =   uSingle & SINGLE_SIGNIFICAND_MASK;
+    const int32_t  nSingleUnbiasedExponent = (int32_t)((uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT) - SINGLE_EXPONENT_BIAS;
+    const uint32_t uSingleSign             = (uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
+    const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
 
 
     // Now convert the three parts to half-precision.
@@ -225,12 +225,12 @@ uint16_t IEEE754_FloatToHalf(float f)
         // Exponent is too small to express in half-precision normal; make it a half-precision subnormal
         uHalfBiasedExponent = HALF_EXPONENT_ZERO + HALF_EXPONENT_BIAS;
         // Difference between single normal exponent and the base exponent of a half subnormal
-        const uint32_t nExpDiff = -(nSingleUnbiasedExponent - HALF_EXPONENT_MIN);
+        const uint32_t uExpDiff = (uint32_t)-(nSingleUnbiasedExponent - HALF_EXPONENT_MIN);
         // Also have to shift the significand by the difference in number of bits between a single and a half significand
-        const int32_t nSignificandBitsDiff = SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS;
+        const uint32_t uSignificandBitsDiff = SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS;
         // Add in the 1 that is implied in the significand of a normal number; it needs to be present in a subnormal
-        const uint32_t uSingleSignificandSubnormal = uSingleSignificand + (0x01L << SINGLE_NUM_SIGNIFICAND_BITS);
-        uHalfSignificand = uSingleSignificandSubnormal >> (nExpDiff + nSignificandBitsDiff);
+        const uint32_t uSingleSignificandSubnormal = uSingleSignificand + (0x01UL << SINGLE_NUM_SIGNIFICAND_BITS);
+        uHalfSignificand = uSingleSignificandSubnormal >> (uExpDiff + uSignificandBitsDiff);
     } else {
         // The normal case, exponent is in range for half-precision
         uHalfBiasedExponent = nSingleUnbiasedExponent + HALF_EXPONENT_BIAS;
@@ -253,16 +253,17 @@ uint16_t IEEE754_DoubleToHalf(double d)
 {
     // Pull the three parts out of the double-precision float
     const uint64_t uDouble = CopyDoubleToUint64(d);
-    const int64_t  nDoubleUnbiasedExponent = ((uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT) - DOUBLE_EXPONENT_BIAS;
-    const uint64_t uDoubleSign             =  (uDouble & DOUBLE_SIGN_MASK) >> DOUBLE_SIGN_SHIFT;
-    const uint64_t uDoubleSignificand      =   uDouble & DOUBLE_SIGNIFICAND_MASK;
-
+    const int64_t  nDoubleUnbiasedExponent = (int64_t)((uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT) - DOUBLE_EXPONENT_BIAS;
+    const uint64_t uDoubleSign             = (uDouble & DOUBLE_SIGN_MASK) >> DOUBLE_SIGN_SHIFT;
+    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
 
     // Now convert the three parts to half-precision.
 
     // All works is done on uint64_t with conversion to uint16_t at the end.
-    // This avoids integer promotions that static analyzers complain about and
-    // reduces code size.
+    // This avoids integer promotions that static analyzers complain about.
+    // Other options are for these to be unsigned int or fast_int16_t. Code
+    // size doesn't vary much between all these options for 64-bit LLVM,
+    // 64-bit GCC and 32-bit Armv7 LLVM.
     uint64_t uHalfSign, uHalfSignificand, uHalfBiasedExponent;
 
     if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
@@ -298,12 +299,12 @@ uint16_t IEEE754_DoubleToHalf(double d)
         // Exponent is too small to express in half-precision; round down to zero
         uHalfBiasedExponent = HALF_EXPONENT_ZERO + HALF_EXPONENT_BIAS;
         // Difference between double normal exponent and the base exponent of a half subnormal
-        const uint64_t nExpDiff = -(nDoubleUnbiasedExponent - HALF_EXPONENT_MIN);
+        const uint64_t uExpDiff = (uint64_t)-(nDoubleUnbiasedExponent - HALF_EXPONENT_MIN);
         // Also have to shift the significand by the difference in number of bits between a double and a half significand
-        const int64_t nSignificandBitsDiff = DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS;
+        const uint64_t uSignificandBitsDiff = DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS;
         // Add in the 1 that is implied in the significand of a normal number; it needs to be present in a subnormal
         const uint64_t uDoubleSignificandSubnormal = uDoubleSignificand + (0x01ULL << DOUBLE_NUM_SIGNIFICAND_BITS);
-        uHalfSignificand = uDoubleSignificandSubnormal >> (nExpDiff + nSignificandBitsDiff);
+        uHalfSignificand = uDoubleSignificandSubnormal >> (uExpDiff + uSignificandBitsDiff);
     } else {
         // The normal case, exponent is in range for half-precision
         uHalfBiasedExponent = nDoubleUnbiasedExponent + HALF_EXPONENT_BIAS;
@@ -322,15 +323,16 @@ uint16_t IEEE754_DoubleToHalf(double d)
 }
 
 
+
 // Public function; see ieee754.h
 float IEEE754_HalfToFloat(uint16_t uHalfPrecision)
 {
     // Pull out the three parts of the half-precision float
     // Do all the work in 32 bits because that is what the end result is
     // may give smaller code size and will keep static analyzers happier.
-    const uint32_t uHalfSignificand      =   uHalfPrecision & HALF_SIGNIFICAND_MASK;
-    const int32_t  nHalfUnBiasedExponent = ((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
-    const uint32_t uHalfSign             =  (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
+    const uint32_t uHalfSignificand      = uHalfPrecision & HALF_SIGNIFICAND_MASK;
+    const int32_t  nHalfUnBiasedExponent = (int32_t)((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
+    const uint32_t uHalfSign             = (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
 
 
     // Make the three parts of the single-precision number
@@ -371,11 +373,10 @@ float IEEE754_HalfToFloat(uint16_t uHalfPrecision)
         }
     } else {
         // Normal number
-        uSingleBiasedExponent = nHalfUnBiasedExponent + SINGLE_EXPONENT_BIAS;
+        uSingleBiasedExponent = (uint32_t)(nHalfUnBiasedExponent + SINGLE_EXPONENT_BIAS);
         uSingleSignificand = uHalfSignificand << (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
     }
     uSingleSign = uHalfSign;
-
 
     // Shift the three parts of the single-precision into place
     const uint32_t uSinglePrecision = uSingleSignificand |
@@ -392,9 +393,9 @@ double IEEE754_HalfToDouble(uint16_t uHalfPrecision)
     // Pull out the three parts of the half-precision float
     // Do all the work in 64 bits because that is what the end result is
     // may give smaller code size and will keep static analyzers happier.
-    const uint64_t uHalfSignificand      =   uHalfPrecision & HALF_SIGNIFICAND_MASK;
-    const int64_t  nHalfUnBiasedExponent = ((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
-    const uint64_t uHalfSign             =  (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
+    const uint64_t uHalfSignificand      = uHalfPrecision & HALF_SIGNIFICAND_MASK;
+    const int64_t  nHalfUnBiasedExponent = (int64_t)((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
+    const uint64_t uHalfSign             = (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
 
 
     // Make the three parts of hte single-precision number
@@ -435,8 +436,8 @@ double IEEE754_HalfToDouble(uint16_t uHalfPrecision)
         }
     } else {
         // Normal number
-        uDoubleBiasedExponent = nHalfUnBiasedExponent + DOUBLE_EXPONENT_BIAS;
-        uDoubleSignificand    = (uint64_t)uHalfSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
+        uDoubleBiasedExponent = (uint64_t)(nHalfUnBiasedExponent + DOUBLE_EXPONENT_BIAS);
+        uDoubleSignificand    = uHalfSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
     }
     uDoubleSign = uHalfSign;
 
@@ -456,7 +457,7 @@ IEEE754_union IEEE754_FloatToSmallest(float f)
 
     // Pull the neeed two parts out of the single-precision float
     const uint32_t uSingle = CopyFloatToUint32(f);
-    const int32_t  nSingleExponent    = ((uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT) - SINGLE_EXPONENT_BIAS;
+    const int32_t  nSingleExponent    = (int32_t)((uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT) - SINGLE_EXPONENT_BIAS;
     const uint32_t uSingleSignificand =   uSingle & SINGLE_SIGNIFICAND_MASK;
 
     // Bit mask that is the significand bits that would be lost when converting
@@ -492,7 +493,7 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
 
     // Pull the needed two parts out of the double-precision float
     const uint64_t uDouble = CopyDoubleToUint64(d);
-    const int64_t  nDoubleExponent     = ((uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT) - DOUBLE_EXPONENT_BIAS;
+    const int64_t  nDoubleExponent     = (int64_t)((uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT) - DOUBLE_EXPONENT_BIAS;
     const uint64_t uDoubleSignificand  =   uDouble & DOUBLE_SIGNIFICAND_MASK;
 
     // Masks to check whether dropped significand bits are zero or not
