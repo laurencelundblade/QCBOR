@@ -103,10 +103,10 @@
     0xfe     254      127      Largest normal exponent
     0xff     255      128      NaN and Infinity  */
 #define SINGLE_EXPONENT_BIAS        (127)
-#define SINGLE_EXPONENT_MAX         (SINGLE_EXPONENT_BIAS)    // 127  unbiased
+#define SINGLE_EXPONENT_MAX         (SINGLE_EXPONENT_BIAS)    //  127 unbiased
 #define SINGLE_EXPONENT_MIN         (-SINGLE_EXPONENT_BIAS+1) // -126 unbiased
 #define SINGLE_EXPONENT_ZERO        (-SINGLE_EXPONENT_BIAS)   // -127 unbiased
-#define SINGLE_EXPONENT_INF_OR_NAN  (SINGLE_EXPONENT_BIAS+1)  // 128  unbiased
+#define SINGLE_EXPONENT_INF_OR_NAN  (SINGLE_EXPONENT_BIAS+1)  //  128 unbiased
 
 
 // --------- Double-Precision ----------
@@ -233,7 +233,7 @@ uint16_t IEEE754_FloatToHalf(float f)
         uHalfSignificand = uSingleSignificandSubnormal >> (uExpDiff + uSignificandBitsDiff);
     } else {
         // The normal case, exponent is in range for half-precision
-        uHalfBiasedExponent = nSingleUnbiasedExponent + HALF_EXPONENT_BIAS;
+        uHalfBiasedExponent = (uint32_t)(nSingleUnbiasedExponent + HALF_EXPONENT_BIAS);
         uHalfSignificand    = uSingleSignificand >> (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
     }
     uHalfSign = uSingleSign;
@@ -307,7 +307,7 @@ uint16_t IEEE754_DoubleToHalf(double d)
         uHalfSignificand = uDoubleSignificandSubnormal >> (uExpDiff + uSignificandBitsDiff);
     } else {
         // The normal case, exponent is in range for half-precision
-        uHalfBiasedExponent = nDoubleUnbiasedExponent + HALF_EXPONENT_BIAS;
+        uHalfBiasedExponent = (uint32_t)(nDoubleUnbiasedExponent + HALF_EXPONENT_BIAS);
         uHalfSignificand    = uDoubleSignificand >> (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
     }
     uHalfSign = uDoubleSign;
