@@ -42,8 +42,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
+ 01/XX/2020 llundblade      Cleaner handling of too-long encoded string input.
  01/xx/2020 llundblade      Explicit casting of types to quiet static analysis.
- 01/08/2020 llundblade      Documentation corrections & improved code formatting.
+ 01/08/2020 llundblade      Documentation corrections & improved code formatting
  12/30/19   llundblade      Add support for decimal fractions and bigfloats.
  11/07/19   llundblade      Fix long long conversion to double compiler warning
  09/07/19   llundblade      Fix bug decoding empty arrays and maps
@@ -450,7 +451,7 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *me,
                        if length is indefinite
 
  The int type is preferred to uint8_t for some variables as this
- avoids integer promotions which can reduce code size and makes
+ avoids integer promotions, can reduce code size and makes
  static analyzers happier.
  */
 inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
@@ -461,7 +462,7 @@ inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
    QCBORError nReturn;
 
    // Get the initial byte that every CBOR data item has
-   const int nInitialByte = UsefulInputBuf_GetByte(pUInBuf);
+   const int nInitialByte = (int)UsefulInputBuf_GetByte(pUInBuf);
 
    // Break down the initial byte
    const int nTmpMajorType   = nInitialByte >> 5;
@@ -488,7 +489,7 @@ inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
    } else {
       // Less than 24, additional info is argument or 31, an indefinite length
       // No more bytes to get
-      uArgument = nAdditionalInfo;
+      uArgument = (uint64_t)nAdditionalInfo;
    }
 
    if(UsefulInputBuf_GetError(pUInBuf)) {
@@ -849,7 +850,8 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    // indefinite length string tests, to be sure all is OK if this is removed.
 
    // Only do indefinite length processing on strings
-   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING && pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
+   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING &&
+      pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
       goto Done; // no need to do any work here on non-string types
    }
 
@@ -889,7 +891,8 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       // Match data type of chunk to type at beginning.
       // Also catches error of other non-string types that don't belong.
       // Also catches indefinite length strings inside indefinite length strings
-      if(StringChunkItem.uDataType != uStringType || StringChunkItem.val.string.len == SIZE_MAX) {
+      if(StringChunkItem.uDataType != uStringType ||
+         StringChunkItem.val.string.len == SIZE_MAX) {
          nReturn = QCBOR_ERR_INDEFINITE_STRING_CHUNK;
          break;
       }
