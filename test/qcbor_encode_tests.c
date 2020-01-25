@@ -2018,26 +2018,26 @@ int32_t BstrWrapNestTest()
 
    QCBOREncode_OpenArray(&EC);
 
-   for(uint64_t i = 0; i < BSTR_TEST_DEPTH-2; i++) {
+   for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
       QCBOREncode_BstrWrap(&EC);
-      QCBOREncode_AddUInt64(&EC, i);
+      QCBOREncode_AddInt64(&EC, i);
    }
 
    for(uint64_t i = 0; i < BSTR_TEST_DEPTH-2; i++) {
       QCBOREncode_CloseBstrWrap(&EC, NULL);
-      QCBOREncode_AddUInt64(&EC, i);
+      QCBOREncode_AddInt64(&EC, i);
    }
 
-   for(uint64_t i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
+   for(int i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
       QCBOREncode_OpenMap(&EC);
       QCBOREncode_BstrWrapInMapN(&EC, i+0x20);
       QCBOREncode_OpenArray(&EC);
-      QCBOREncode_AddUInt64(&EC, i+0x10);
+      QCBOREncode_AddInt64(&EC, i+0x10);
    }
 
-   for(uint64_t i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
+   for(int i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
       QCBOREncode_CloseArray(&EC);
-      QCBOREncode_AddUInt64(&EC, i+0x30);
+      QCBOREncode_AddInt64(&EC, i+0x30);
       QCBOREncode_CloseBstrWrap(&EC, NULL);
       QCBOREncode_AddSZStringToMapN(&EC, i+0x40, "hello");
       QCBOREncode_CloseMap(&EC);
