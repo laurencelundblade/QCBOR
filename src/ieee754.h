@@ -24,7 +24,7 @@
  +/- infinity, +/- zero, subnormal numbers, qNaN, sNaN and NaN
  payloads.
 
- This confirms to IEEE 754-2008, but note that this doesn't specify
+ This conforms to IEEE 754-2008, but note that this doesn't specify
  conversions, just the encodings.
 
  NaN payloads are preserved with alignment on the LSB. The qNaN bit is

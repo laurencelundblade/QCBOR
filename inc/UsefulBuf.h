@@ -1,6 +1,6 @@
 /*============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2019, Laurence Lundblade.
+ Copyright (c) 2018-2020, Laurence Lundblade.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,6 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 1/25/2020    llundblade      Add some casts so static anlyzers don't complain.
  5/21/2019    llundblade      #define configs for efficient endianness handling.
  5/16/2019    llundblade      Add UsefulOutBuf_IsBufferNULL().
  3/23/2019    llundblade      Big documentation & style update. No interface
@@ -1692,8 +1693,8 @@ static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *me,
 #else
    uint8_t aTmp[2];
 
-   aTmp[0] = (uInteger16 & 0xff00) >> 8;
-   aTmp[1] = (uInteger16 & 0xff);
+   aTmp[0] = (uint8_t)((uInteger16 & 0xff00) >> 8);
+   aTmp[1] = (uint8_t)(uInteger16 & 0xff);
 
    pBytes = aTmp;
 #endif
@@ -1725,10 +1726,10 @@ static inline void UsefulOutBuf_InsertUint32(UsefulOutBuf *pMe,
 #else
    uint8_t aTmp[4];
 
-   aTmp[0] = (uInteger32 & 0xff000000) >> 24;
-   aTmp[1] = (uInteger32 & 0xff0000) >> 16;
-   aTmp[2] = (uInteger32 & 0xff00) >> 8;
-   aTmp[3] = (uInteger32 & 0xff);
+   aTmp[0] = (uint8_t)((uInteger32 & 0xff000000) >> 24);
+   aTmp[1] = (uint8_t)((uInteger32 & 0xff0000) >> 16);
+   aTmp[2] = (uint8_t)((uInteger32 & 0xff00) >> 8);
+   aTmp[3] = (uint8_t)(uInteger32 & 0xff);
 
    pBytes = aTmp;
 #endif
@@ -1775,14 +1776,14 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pMe,
    // it is usually a little larger and slower than hton().
    uint8_t aTmp[8];
 
-   aTmp[0] = (uInteger64 & 0xff00000000000000) >> 56;
-   aTmp[1] = (uInteger64 & 0xff000000000000) >> 48;
-   aTmp[2] = (uInteger64 & 0xff0000000000) >> 40;
-   aTmp[3] = (uInteger64 & 0xff00000000) >> 32;
-   aTmp[4] = (uInteger64 & 0xff000000) >> 24;
-   aTmp[5] = (uInteger64 & 0xff0000) >> 16;
-   aTmp[6] = (uInteger64 & 0xff00) >> 8;
-   aTmp[7] = (uInteger64 & 0xff);
+   aTmp[0] = (uint8_t)((uInteger64 & 0xff00000000000000) >> 56);
+   aTmp[1] = (uint8_t)((uInteger64 & 0xff000000000000) >> 48);
+   aTmp[2] = (uint8_t)((uInteger64 & 0xff0000000000) >> 40);
+   aTmp[3] = (uint8_t)((uInteger64 & 0xff00000000) >> 32);
+   aTmp[4] = (uint8_t)((uInteger64 & 0xff000000) >> 24);
+   aTmp[5] = (uint8_t)((uInteger64 & 0xff0000) >> 16);
+   aTmp[6] = (uint8_t)((uInteger64 & 0xff00) >> 8);
+   aTmp[7] = (uint8_t)(uInteger64 & 0xff);
 
    pBytes = aTmp;
 #endif
@@ -1967,7 +1968,10 @@ static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *pMe)
 {
    const void *pResult = UsefulInputBuf_GetBytes(pMe, sizeof(uint8_t));
 
-   return pResult ? *(uint8_t *)pResult : 0;
+   // The ternery operator is subject to integer promotion, because the
+   // operands are smaller than int, so cast back to uint8_t is needed
+   // to be completely explicit about types (for static analyzers)
+   return (uint8_t)(pResult ? *(uint8_t *)pResult : 0);
 }
 
 static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pMe)
@@ -1995,7 +1999,12 @@ static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pMe)
 #endif
 
 #else
-   return  ((uint16_t)pResult[0] << 8) + (uint16_t)pResult[1];
+
+   // The operations here are subject to integer promotion because the
+   // operands are smaller than int. They will be promoted to unsigned
+   // int for the shift and addition. The cast back to uint16_t is  is needed
+   // to be completely explicit about types (for static analyzers)
+   return (uint16_t)((pResult[0] << 8) + pResult[1]);
 
 #endif
 }

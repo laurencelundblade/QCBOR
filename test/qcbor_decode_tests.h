@@ -33,6 +33,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __QCBOR__qcbort_decode_tests__
 #define __QCBOR__qcbort_decode_tests__
 
+#include <stdint.h>
 
 /*
  Notes:
@@ -51,20 +52,20 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  Parse a well-known set of integers including those around the boundaries and
  make sure the expected values come out
  */
-int IntegerValuesParseTest(void);
+int32_t IntegerValuesParseTest(void);
 
 
 /*
  Decode a simple CBOR encoded array and make sure it returns all the correct values.
  This is a decode test.
  */
-int SimpleArrayTest(void);
+int32_t SimpleArrayTest(void);
 
 
 /*
  Tests with empty maps and arrays
  */
-int EmptyMapsAndArraysTest(void);
+int32_t EmptyMapsAndArraysTest(void);
 
 
 /*
@@ -72,21 +73,21 @@ int EmptyMapsAndArraysTest(void);
  reported nesting level is correct.  This uses test vector
  of CBOR encoded data with a depth of 10.  This a parse test.
  */
-int ParseDeepArrayTest(void);
+int32_t ParseDeepArrayTest(void);
 
 
 /*
  See that the correct error is reported when parsing
  an array of depth 11, one too large.
  */
-int ParseTooDeepArrayTest(void);
+int32_t ParseTooDeepArrayTest(void);
 
 
 /*
   Try to parse some legit CBOR types that this parsers
   doesn't support.
  */
-int UnsupportedCBORDecodeTest(void);
+int32_t UnsupportedCBORDecodeTest(void);
 
 
 /*
@@ -94,33 +95,33 @@ int UnsupportedCBORDecodeTest(void);
   it over and over with one more byte less each time. It should fail
   every time on incorrect CBOR input. This is a hostile input decode test.
  */
-int ShortBufferParseTest(void);
+int32_t ShortBufferParseTest(void);
 
 
 /*
    Same as ShortBufferParseTest, but with a different encoded CBOR input.
    It is another hostile input test
  */
-int ShortBufferParseTest2(void);
+int32_t ShortBufferParseTest2(void);
 
 
 /*
   Parses the somewhat complicated CBOR MAP and makes sure all the correct
   values parse out.  About 15 values are tested. This is a decode test.
  */
-int ParseMapTest(void);
+int32_t ParseMapTest(void);
 
 
 /*
 Test the decoder mode where maps are treated as arrays.
  */
-int ParseMapAsArrayTest(void);
+int32_t ParseMapAsArrayTest(void);
 
 
 /*
  Test parsing of some simple values like true, false, null...
  */
-int ParseSimpleTest(void);
+int32_t ParseSimpleTest(void);
 
 
 /*
@@ -128,13 +129,13 @@ int ParseSimpleTest(void);
  (This is the CBORbis RFC which is not yet published at the
  time this test was added).
  */
-int NotWellFormedTests(void);
+int32_t NotWellFormedTests(void);
 
 
 /*
  Tests a number of failure cases on bad CBOR to get the right error code
  */
-int DecodeFailureTests(void);
+int32_t DecodeFailureTests(void);
 
 
 /*
@@ -145,7 +146,7 @@ int DecodeFailureTests(void);
  (Parsing all possible 3 byte strings takes too long on all but
   very fast machines).
  */
-int ComprehensiveInputTest(void);
+int32_t ComprehensiveInputTest(void);
 
 
 /*
@@ -155,64 +156,64 @@ int ComprehensiveInputTest(void);
  is only practical as a once-in-a-while regression test on
  fast machines.
  */
-int BigComprehensiveInputTest(void);
+int32_t BigComprehensiveInputTest(void);
 
 
 /*
  Thest the date types -- epoch and strings
  */
-int DateParseTest(void);
+int32_t DateParseTest(void);
 
 
 /*
   Test optional tags like the CBOR magic number.
  */
-int OptTagParseTest(void);
+int32_t OptTagParseTest(void);
 
 
 /*
  Parse some big numbers, positive and negative
  */
-int BignumParseTest(void);
+int32_t BignumParseTest(void);
 
 
 /*
  Test of mode where only string labels are allowed
  */
-int StringDecoderModeFailTest(void);
+int32_t StringDecoderModeFailTest(void);
 
 
 /*
  Parse some nested maps
  */
-int NestedMapTest(void);
+int32_t NestedMapTest(void);
 
 
 /*
  Parse maps with indefinite lengths
  */
-int NestedMapTestIndefLen(void);
+int32_t NestedMapTestIndefLen(void);
 
 
 /*
  Parse some maps and arrays with indefinite lengths.
  Includes some error cases.
  */
-int IndefiniteLengthArrayMapTest(void);
+int32_t IndefiniteLengthArrayMapTest(void);
 
 
 /*
  Parse indefinite length strings. Uses
  MemPool. Includes error cases.
  */
-int IndefiniteLengthStringTest(void);
+int32_t IndefiniteLengthStringTest(void);
 
 
 /*
  Test deep nesting of indefinite length
  maps and arrays including too deep.
  */
-int IndefiniteLengthNestTest(void);
+int32_t IndefiniteLengthNestTest(void);
 
 
 /*
@@ -220,19 +221,19 @@ int IndefiniteLengthNestTest(void);
  just indefinite length strings, are
  allocated. Includes error test cases.
  */
-int AllocAllStringsTest(void);
+int32_t AllocAllStringsTest(void);
 
 
 /*
  Direct test of MemPool string allocator
  */
-int MemPoolTest(void);
+int32_t MemPoolTest(void);
 
 
 /*
  Test the setting up of an external string allocator.
  */
-int SetUpAllocatorTest(void);
+int32_t SetUpAllocatorTest(void);
 
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
@@ -240,13 +241,13 @@ int SetUpAllocatorTest(void);
  Test decoding of decimal fractions and big floats, both of which are
  made up of an exponent and mantissa.
  */
-int ExponentAndMantissaDecodeTests(void);
+int32_t ExponentAndMantissaDecodeTests(void);
 
 
 /*
  Hostile input tests for decimal fractions and big floats.
  */
-int ExponentAndMantissaDecodeFailTests(void);
+int32_t ExponentAndMantissaDecodeFailTests(void);
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 

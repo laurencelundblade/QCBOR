@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
+ 01/25/2020 llundblade      Refine use of integer types to quiet static analysis.
  01/08/2020 llundblade      Documentation corrections & improved code formatting.
  12/30/19   llundblade      Add support for decimal fractions and bigfloats.
  8/7/19     llundblade      Prevent encoding simple type reserved values 24..31
@@ -147,9 +148,13 @@ inline static uint16_t Nesting_GetCount(QCBORTrackNesting *pNesting)
    // items by two for maps to get the number of pairs.  This implementation
    // takes advantage of the map major type being one larger the array major
    // type, hence uDivisor is either 1 or 2.
-   const uint16_t uDivisor = pNesting->pCurrentNesting->uMajorType - CBOR_MAJOR_TYPE_ARRAY+1;
 
-   return pNesting->pCurrentNesting->uCount / uDivisor;
+   if(pNesting->pCurrentNesting->uMajorType == CBOR_MAJOR_TYPE_MAP) {
+      // Cast back to uint16_t after integer promotion for bit shift
+      return (uint16_t)(pNesting->pCurrentNesting->uCount >> 1);
+   } else {
+      return pNesting->pCurrentNesting->uCount;
+   }
 }
 
 inline static uint32_t Nesting_GetStartPos(QCBORTrackNesting *pNesting)
@@ -329,6 +334,26 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me,
 
     Code Reviewers: THIS FUNCTION DOES POINTER MATH
     */
+   /*
+    The type int is used here for several variables because of the way
+    integer promotion works in C for integer variables that are
+    uint8_t or uint16_t. The basic rule is that they will always be
+    promoted to int if they will fit. All of these integer variables
+    need only hold values less than 255 or are promoted from uint8_t,
+    so they will always fit into an int. Note that promotion is only
+    to unsigned int if the value won't fit into an int even if the
+    promotion is for an unsigned like uint8_t.
+
+    By declaring them int, there are few implicit conversions and fewer
+    casts needed. Code size is reduced a little. It also makes static
+    analyzers happier.
+
+    Note also that declaring them uint8_t won't stop integer wrap
+    around if the code is wrong. It won't make the code more correct.
+
+    https://stackoverflow.com/questions/46073295/implicit-type-promotion-rules
+    https://stackoverflow.com/questions/589575/what-does-the-c-standard-state-the-size-of-int-long-type-to-be
+    */
 
    // Holds up to 9 bytes of type and argument plus one extra so pointer
    // always points to valid bytes.
@@ -336,20 +361,20 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me,
    // Point to the last bytes and work backwards
    uint8_t *pByte = &bytes[sizeof(bytes)-1];
    // This is the 5 bits in the initial byte that is not the major type
-   uint8_t uAdditionalInfo;
+   int nAdditionalInfo;
 
    if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN) {
       uMajorType = CBOR_MAJOR_TYPE_ARRAY;
-      uAdditionalInfo = LEN_IS_INDEFINITE;
+      nAdditionalInfo = LEN_IS_INDEFINITE;
    } else if (uMajorType == CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN) {
       uMajorType = CBOR_MAJOR_TYPE_MAP;
-      uAdditionalInfo = LEN_IS_INDEFINITE;
+      nAdditionalInfo = LEN_IS_INDEFINITE;
    } else if (uNumber < CBOR_TWENTY_FOUR && nMinLen == 0) {
       // Simple case where argument is < 24
-      uAdditionalInfo = uNumber;
+      nAdditionalInfo = (int)uNumber;
    } else if (uMajorType == CBOR_MAJOR_TYPE_SIMPLE && uNumber == CBOR_SIMPLE_BREAK) {
       // Break statement can be encoded in single byte too (0xff)
-      uAdditionalInfo = uNumber;
+      nAdditionalInfo = (int)uNumber;
    } else  {
       /*
        Encode argument in 1,2,4 or 8 bytes. Outer loop runs once for 1
@@ -361,22 +386,38 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me,
        with zero bytes.
        */
       static const uint8_t aIterate[] = {1,1,2,4};
-      uint8_t i;
+      int i;
       for(i = 0; uNumber || nMinLen > 0; i++) {
-         const uint8_t uIterations = aIterate[i];
-         for(int j = 0; j < uIterations; j++) {
-            *--pByte = uNumber & 0xff;
+         const int nIterations = aIterate[i];
+         for(int j = 0; j < nIterations; j++) {
+            *--pByte = (uint8_t)(uNumber & 0xff);
             uNumber = uNumber >> 8;
          }
-         nMinLen -= uIterations;
+         nMinLen -= nIterations;
       }
       // Additional info is the encoding of the number of additional
       // bytes to encode argument.
-      uAdditionalInfo = LEN_IS_ONE_BYTE-1 + i;
+      nAdditionalInfo = LEN_IS_ONE_BYTE-1 + i;
    }
-   *--pByte = (uMajorType << 5) + uAdditionalInfo;
 
-   UsefulOutBuf_InsertData(&(me->OutBuf), pByte, &bytes[sizeof(bytes)-1] - pByte, uPos);
+   /*
+    Expression integer-promotes to type int. The code above in
+    function gaurantees that uAdditionalInfo will never be larger than
+    0x1f. The caller may pass in a too-large uMajor type. The
+    conversion to unint8_t will cause an integer wrap around and
+    incorrect CBOR will be generated, but no security issue will
+    incur.
+    */
+   *--pByte = (uint8_t)((uMajorType << 5) + nAdditionalInfo);
+
+   /*
+    Will not go negative because the loops run for at most 8
+    decrements of pByte, only one other decrement is made and the
+    array is sized for this.
+    */
+   const size_t uHeadLen = (size_t)(&bytes[sizeof(bytes)-1] - pByte);
+
+   UsefulOutBuf_InsertData(&(me->OutBuf), pByte, uHeadLen, uPos);
 }
 
 

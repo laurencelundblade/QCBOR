@@ -42,7 +42,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
- 01/08/2020 llundblade      Documentation corrections & improved code formatting.
+ 01/25/2020 llundblade      Cleaner handling of too-long encoded string input.
+ 01/25/2020 llundblade      Refine use of integer types to quiet static analysis
+ 01/08/2020 llundblade      Documentation corrections & improved code formatting
  12/30/19   llundblade      Add support for decimal fractions and bigfloats.
  11/07/19   llundblade      Fix long long conversion to double compiler warning
  09/07/19   llundblade      Fix bug decoding empty arrays and maps
@@ -107,7 +109,9 @@ DecodeNesting_IsIndefiniteLength(const QCBORDecodeNesting *pNesting)
 inline static uint8_t
 DecodeNesting_GetLevel(QCBORDecodeNesting *pNesting)
 {
-   return pNesting->pCurrent - &(pNesting->pMapsAndArrays[0]);
+   // Check in DecodeNesting_Descend and never having
+   // QCBOR_MAX_ARRAY_NESTING > 255 gaurantee cast is safe
+   return (uint8_t)(pNesting->pCurrent - &(pNesting->pMapsAndArrays[0]));
 }
 
 inline static int
@@ -440,49 +444,52 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *me,
  This returns:
    pnMajorType -- the major type for the item
 
-   puNumber -- the "number" which is used a the value for integers,
+   puArgument -- the "number" which is used a the value for integers,
                tags and floats and length for strings and arrays
 
-   puAdditionalInfo -- Pass this along to know what kind of float or
+   pnAdditionalInfo -- Pass this along to know what kind of float or
                        if length is indefinite
 
+ The int type is preferred to uint8_t for some variables as this
+ avoids integer promotions, can reduce code size and makes
+ static analyzers happier.
  */
 inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
                                               int *pnMajorType,
                                               uint64_t *puArgument,
-                                              uint8_t *puAdditionalInfo)
+                                              int *pnAdditionalInfo)
 {
    QCBORError nReturn;
 
    // Get the initial byte that every CBOR data item has
-   const uint8_t uInitialByte = UsefulInputBuf_GetByte(pUInBuf);
+   const int nInitialByte = (int)UsefulInputBuf_GetByte(pUInBuf);
 
    // Break down the initial byte
-   const uint8_t uTmpMajorType   = uInitialByte >> 5;
-   const uint8_t uAdditionalInfo = uInitialByte & 0x1f;
+   const int nTmpMajorType   = nInitialByte >> 5;
+   const int nAdditionalInfo = nInitialByte & 0x1f;
 
    // Where the number or argument accumulates
    uint64_t uArgument;
 
-   if(uAdditionalInfo >= LEN_IS_ONE_BYTE && uAdditionalInfo <= LEN_IS_EIGHT_BYTES) {
+   if(nAdditionalInfo >= LEN_IS_ONE_BYTE && nAdditionalInfo <= LEN_IS_EIGHT_BYTES) {
       // Need to get 1,2,4 or 8 additional argument bytes Map
       // LEN_IS_ONE_BYTE.. LEN_IS_EIGHT_BYTES to actual length
       static const uint8_t aIterate[] = {1,2,4,8};
 
       // Loop getting all the bytes in the argument
       uArgument = 0;
-      for(int i = aIterate[uAdditionalInfo - LEN_IS_ONE_BYTE]; i; i--) {
+      for(int i = aIterate[nAdditionalInfo - LEN_IS_ONE_BYTE]; i; i--) {
          // This shift and add gives the endian conversion
          uArgument = (uArgument << 8) + UsefulInputBuf_GetByte(pUInBuf);
       }
-   } else if(uAdditionalInfo >= ADDINFO_RESERVED1 && uAdditionalInfo <= ADDINFO_RESERVED3) {
+   } else if(nAdditionalInfo >= ADDINFO_RESERVED1 && nAdditionalInfo <= ADDINFO_RESERVED3) {
       // The reserved and thus-far unused additional info values
       nReturn = QCBOR_ERR_UNSUPPORTED;
       goto Done;
    } else {
       // Less than 24, additional info is argument or 31, an indefinite length
       // No more bytes to get
-      uArgument = uAdditionalInfo;
+      uArgument = (uint64_t)nAdditionalInfo;
    }
 
    if(UsefulInputBuf_GetError(pUInBuf)) {
@@ -492,13 +499,14 @@ inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
 
    // All successful if we got here.
    nReturn           = QCBOR_SUCCESS;
-   *pnMajorType      = uTmpMajorType;
+   *pnMajorType      = nTmpMajorType;
    *puArgument       = uArgument;
-   *puAdditionalInfo = uAdditionalInfo;
+   *pnAdditionalInfo = nAdditionalInfo;
 
 Done:
    return nReturn;
 }
+
 
 /*
  CBOR doesn't explicitly specify two's compliment for integers but all
@@ -511,12 +519,16 @@ Done:
  compliment to represent negative integers.
 
  See http://www.unix.org/whitepapers/64bit.html for reasons int isn't
- used here in any way including in the interface
+ used carefully here, and in particular why it isn't used in the interface.
+ Also see
+ https://stackoverflow.com/questions/17489857/why-is-int-typically-32-bit-on-64-bit-compilers
+
+ Int is used for values that need less than 16-bits and would be subject
+ to integer promotion and complaining by static analyzers.
  */
 inline static QCBORError
 DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDecodedItem)
 {
-   // Stack usage: int/ptr 1 -- 8
    QCBORError nReturn = QCBOR_SUCCESS;
 
    if(nMajorType == CBOR_MAJOR_TYPE_POSITIVE_INT) {
@@ -531,7 +543,11 @@ DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDecodedItem)
       }
    } else {
       if(uNumber <= INT64_MAX) {
-         pDecodedItem->val.int64 = -uNumber-1;
+         // CBOR's representation of negative numbers lines up with the
+         // two-compliment representation. A negative integer has one
+         // more in range than a positive integer. INT64_MIN is
+         // equal to (-INT64_MAX) - 1.
+         pDecodedItem->val.int64 = (-(int64_t)uNumber) - 1;
          pDecodedItem->uDataType = QCBOR_TYPE_INT64;
 
       } else {
@@ -577,16 +593,16 @@ DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDecodedItem)
  Decode true, false, floats, break...
  */
 inline static QCBORError
-DecodeSimple(uint8_t uAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
+DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
 {
-   // Stack usage: 0
    QCBORError nReturn = QCBOR_SUCCESS;
 
    // uAdditionalInfo is 5 bits from the initial byte compile time checks
-   // above make sure uAdditionalInfo values line up with uDataType values
-   pDecodedItem->uDataType = uAdditionalInfo;
+   // above make sure uAdditionalInfo values line up with uDataType values.
+   // DecodeTypeAndNumber never returns a major type > 1f so cast is safe
+   pDecodedItem->uDataType = (uint8_t)nAdditionalInfo;
 
-   switch(uAdditionalInfo) {
+   switch(nAdditionalInfo) {
       // No check for ADDINFO_RESERVED1 - ADDINFO_RESERVED3 as they are
       // caught before this is called.
 
@@ -636,7 +652,6 @@ Done:
 }
 
 
-
 /*
  Decode text and byte strings. Call the string allocator if asked to.
  */
@@ -646,10 +661,20 @@ inline static QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
                                      UsefulInputBuf *pUInBuf,
                                      QCBORItem *pDecodedItem)
 {
-   // Stack usage: UsefulBuf 2, int/ptr 1  40
    QCBORError nReturn = QCBOR_SUCCESS;
 
-   const UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, uStrLen);
+   // CBOR lengths can be 64 bits, but size_t is not 64 bits on all CPUs.
+   // This check makes the casts to size_t below safe.
+
+   // 4 bytes less than the largest sizeof() so this can be tested by
+   // putting a SIZE_MAX length in the CBOR test input (no one will
+   // care the limit on strings is 4 bytes shorter).
+   if(uStrLen > SIZE_MAX-4) {
+      nReturn = QCBOR_ERR_STRING_TOO_LONG;
+      goto Done;
+   }
+
+   const UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, (size_t)uStrLen);
    if(UsefulBuf_IsNULLC(Bytes)) {
       // Failed to get the bytes for this string item
       nReturn = QCBOR_ERR_HIT_END;
@@ -658,7 +683,7 @@ inline static QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
 
    if(pAllocator) {
       // We are asked to use string allocator to make a copy
-      UsefulBuf NewMem = StringAllocator_Allocate(pAllocator, uStrLen);
+      UsefulBuf NewMem = StringAllocator_Allocate(pAllocator, (size_t)uStrLen);
       if(UsefulBuf_IsNULL(NewMem)) {
          nReturn = QCBOR_ERR_STRING_ALLOCATE;
          goto Done;
@@ -670,8 +695,9 @@ inline static QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
       pDecodedItem->val.string = Bytes;
    }
    const bool bIsBstr = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING);
-   pDecodedItem->uDataType  = bIsBstr ? QCBOR_TYPE_BYTE_STRING
-                                      : QCBOR_TYPE_TEXT_STRING;
+   // Cast because ternary operator causes promotion to integer
+   pDecodedItem->uDataType = (uint8_t)(bIsBstr ? QCBOR_TYPE_BYTE_STRING
+                                               : QCBOR_TYPE_TEXT_STRING);
 
 Done:
    return nReturn;
@@ -705,7 +731,6 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
                                QCBORItem *pDecodedItem,
                                const QCORInternalAllocator *pAllocator)
 {
-   // Stack usage: int/ptr 3 -- 24
    QCBORError nReturn;
 
    /*
@@ -714,13 +739,13 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
     an encoding of the length of the uNumber and is needed to decode
     floats and doubles
    */
-   int      uMajorType;
+   int      nMajorType;
    uint64_t uNumber;
-   uint8_t  uAdditionalInfo;
+   int      nAdditionalInfo;
 
    memset(pDecodedItem, 0, sizeof(QCBORItem));
 
-   nReturn = DecodeTypeAndNumber(pUInBuf, &uMajorType, &uNumber, &uAdditionalInfo);
+   nReturn = DecodeTypeAndNumber(pUInBuf, &nMajorType, &uNumber, &nAdditionalInfo);
 
    // Error out here if we got into trouble on the type and number.  The
    // code after this will not work if the type and number is not good.
@@ -730,25 +755,25 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
 
    // At this point the major type and the value are valid. We've got
    // the type and the number that starts every CBOR data item.
-   switch (uMajorType) {
+   switch (nMajorType) {
       case CBOR_MAJOR_TYPE_POSITIVE_INT: // Major type 0
       case CBOR_MAJOR_TYPE_NEGATIVE_INT: // Major type 1
-         if(uAdditionalInfo == LEN_IS_INDEFINITE) {
+         if(nAdditionalInfo == LEN_IS_INDEFINITE) {
             nReturn = QCBOR_ERR_BAD_INT;
          } else {
-            nReturn = DecodeInteger(uMajorType, uNumber, pDecodedItem);
+            nReturn = DecodeInteger(nMajorType, uNumber, pDecodedItem);
          }
          break;
 
       case CBOR_MAJOR_TYPE_BYTE_STRING: // Major type 2
       case CBOR_MAJOR_TYPE_TEXT_STRING: // Major type 3
-         if(uAdditionalInfo == LEN_IS_INDEFINITE) {
-            const bool bIsBstr = (uMajorType == CBOR_MAJOR_TYPE_BYTE_STRING);
-            pDecodedItem->uDataType = bIsBstr ? QCBOR_TYPE_BYTE_STRING
-                                              : QCBOR_TYPE_TEXT_STRING;
+         if(nAdditionalInfo == LEN_IS_INDEFINITE) {
+            const bool bIsBstr = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING);
+            pDecodedItem->uDataType = (uint8_t)(bIsBstr ? QCBOR_TYPE_BYTE_STRING
+                                                        : QCBOR_TYPE_TEXT_STRING);
             pDecodedItem->val.string = (UsefulBufC){NULL, SIZE_MAX};
          } else {
-            nReturn = DecodeBytes(pAllocator, uMajorType, uNumber, pUInBuf, pDecodedItem);
+            nReturn = DecodeBytes(pAllocator, nMajorType, uNumber, pUInBuf, pDecodedItem);
          }
          break;
 
@@ -759,18 +784,19 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
             nReturn = QCBOR_ERR_ARRAY_TOO_LONG;
             goto Done;
          }
-         if(uAdditionalInfo == LEN_IS_INDEFINITE) {
+         if(nAdditionalInfo == LEN_IS_INDEFINITE) {
             pDecodedItem->val.uCount = UINT16_MAX; // Indicate indefinite length
          } else {
             // type conversion OK because of check above
             pDecodedItem->val.uCount = (uint16_t)uNumber;
          }
          // C preproc #if above makes sure constants for major types align
-         pDecodedItem->uDataType  = uMajorType;
+         // DecodeTypeAndNumber never returns a major type > 7 so cast is safe
+         pDecodedItem->uDataType  = (uint8_t)nMajorType;
          break;
 
       case CBOR_MAJOR_TYPE_OPTIONAL: // Major type 6, optional prepended tags
-         if(uAdditionalInfo == LEN_IS_INDEFINITE) {
+         if(nAdditionalInfo == LEN_IS_INDEFINITE) {
             nReturn = QCBOR_ERR_BAD_INT;
          } else {
             pDecodedItem->val.uTagV = uNumber;
@@ -780,7 +806,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
 
       case CBOR_MAJOR_TYPE_SIMPLE:
          // Major type 7, float, double, true, false, null...
-         nReturn = DecodeSimple(uAdditionalInfo, uNumber, pDecodedItem);
+         nReturn = DecodeSimple(nAdditionalInfo, uNumber, pDecodedItem);
          break;
 
       default:
@@ -824,7 +850,8 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    // indefinite length string tests, to be sure all is OK if this is removed.
 
    // Only do indefinite length processing on strings
-   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING && pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
+   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING &&
+      pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
       goto Done; // no need to do any work here on non-string types
    }
 
@@ -864,7 +891,8 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       // Match data type of chunk to type at beginning.
       // Also catches error of other non-string types that don't belong.
       // Also catches indefinite length strings inside indefinite length strings
-      if(StringChunkItem.uDataType != uStringType || StringChunkItem.val.string.len == SIZE_MAX) {
+      if(StringChunkItem.uDataType != uStringType ||
+         StringChunkItem.val.string.len == SIZE_MAX) {
          nReturn = QCBOR_ERR_INDEFINITE_STRING_CHUNK;
          break;
       }
@@ -1161,7 +1189,8 @@ inline static QCBORError DecodeBigNum(QCBORItem *pDecodedItem)
    const UsefulBufC Temp    = pDecodedItem->val.string;
    pDecodedItem->val.bigNum = Temp;
    const bool bIsPosBigNum = (bool)(pDecodedItem->uTagBits & QCBOR_TAGFLAG_POS_BIGNUM);
-   pDecodedItem->uDataType  = bIsPosBigNum ? QCBOR_TYPE_POSBIGNUM : QCBOR_TYPE_NEGBIGNUM;
+   pDecodedItem->uDataType  = (uint8_t)(bIsPosBigNum ? QCBOR_TYPE_POSBIGNUM
+                                                     : QCBOR_TYPE_NEGBIGNUM);
    return QCBOR_SUCCESS;
 }
 

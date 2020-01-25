@@ -24,7 +24,7 @@
  Test configuration
  */
 
-typedef int (test_fun_t)(void);
+typedef int32_t (test_fun_t)(void);
 typedef const char * (test_fun2_t)(void);
 
 
@@ -137,12 +137,12 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
    }
 
    bool bDidSomeOutput = false;
-   for(int n = nMax; n > 0; n/=10) {
-      int x = nNum/n;
-      if(x || bDidSomeOutput){
+   for(int32_t n = nMax; n > 0; n/=10) {
+      int nDigitValue = nNum/n;
+      if(nDigitValue || bDidSomeOutput){
          bDidSomeOutput = true;
-         UsefulOutBuf_AppendByte(&OutBuf, '0' + x);
-         nNum -= x * n;
+         UsefulOutBuf_AppendByte(&OutBuf, (uint8_t)('0' + nDigitValue));
+         nNum -= nDigitValue * n;
       }
    }
    if(!bDidSomeOutput){
@@ -238,7 +238,7 @@ int RunTestsQCBOR(const char *szTestNames[],
             }
         }
 
-        int nTestResult = (t->test_fun)();
+        int32_t nTestResult = (t->test_fun)();
         nTestsRun++;
         if(pfOutput) {
             (*pfOutput)(t->szTestName, poutCtx, 0);
