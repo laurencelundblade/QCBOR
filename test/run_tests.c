@@ -138,11 +138,11 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 
    bool bDidSomeOutput = false;
    for(int32_t n = nMax; n > 0; n/=10) {
-      uint8_t uDigitValue = nNum/n;
-      if(uDigitValue || bDidSomeOutput){
+      int nDigitValue = nNum/n;
+      if(nDigitValue || bDidSomeOutput){
          bDidSomeOutput = true;
-         UsefulOutBuf_AppendByte(&OutBuf, (uint8_t)('0' + uDigitValue));
-         nNum -= uDigitValue * n;
+         UsefulOutBuf_AppendByte(&OutBuf, (uint8_t)('0' + nDigitValue));
+         nNum -= nDigitValue * n;
       }
    }
    if(!bDidSomeOutput){
