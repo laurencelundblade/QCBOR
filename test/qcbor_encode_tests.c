@@ -2023,7 +2023,7 @@ int32_t BstrWrapNestTest()
       QCBOREncode_AddInt64(&EC, i);
    }
 
-   for(uint64_t i = 0; i < BSTR_TEST_DEPTH-2; i++) {
+   for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
       QCBOREncode_CloseBstrWrap(&EC, NULL);
       QCBOREncode_AddInt64(&EC, i);
    }
