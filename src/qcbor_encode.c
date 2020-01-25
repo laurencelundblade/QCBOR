@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
+ 01/25/2020 llundblade      Refine use of integer types to quiet static analysis.
  01/08/2020 llundblade      Documentation corrections & improved code formatting.
  12/30/19   llundblade      Add support for decimal fractions and bigfloats.
  8/7/19     llundblade      Prevent encoding simple type reserved values 24..31

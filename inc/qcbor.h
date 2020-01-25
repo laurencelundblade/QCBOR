@@ -43,7 +43,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who           what, where, why
  --------   ----          ---------------------------------------------------
- 01/XX/2020 llundblade    Cleaner handling of too-long encoded string input.
+ 01/25/2020 llundblade    Cleaner handling of too-long encoded string input.
  01/08/2020 llundblade    Documentation corrections & improved code formatting.
  12/30/19   llundblade    Add support for decimal fractions and bigfloats.
  08/7/19    llundblade    Better handling of not well-formed encode and decode.

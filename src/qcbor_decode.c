@@ -42,8 +42,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
- 01/XX/2020 llundblade      Cleaner handling of too-long encoded string input.
- 01/xx/2020 llundblade      Explicit casting of types to quiet static analysis.
+ 01/25/2020 llundblade      Cleaner handling of too-long encoded string input.
+ 01/25/2020 llundblade      Refine use of integer types to quiet static analysis
  01/08/2020 llundblade      Documentation corrections & improved code formatting
  12/30/19   llundblade      Add support for decimal fractions and bigfloats.
  11/07/19   llundblade      Fix long long conversion to double compiler warning
