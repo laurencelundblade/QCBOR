@@ -109,7 +109,8 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue)
    for(const uint8_t *p = UB.ptr; p < pEnd; p++) {
       if(*p != uValue) {
          /* Byte didn't match */
-         return p - (uint8_t *)UB.ptr;
+         /* Cast from signed  to unsigned . Safe because the loop increments.*/
+         return (size_t)(p - (uint8_t *)UB.ptr);
       }
    }
 

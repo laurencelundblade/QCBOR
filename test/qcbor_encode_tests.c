@@ -1129,18 +1129,18 @@ int32_t EncodeLengthThirtyoneTest()
    // add array with 31 items
    QCBOREncode_OpenArrayInMap(&ECtx, "arr");
    for (size_t ix = 0; ix < 31; ix++) {
-      QCBOREncode_AddInt64(&ECtx, ix);
+      QCBOREncode_AddInt64(&ECtx, (int64_t)ix);
    }
    QCBOREncode_CloseArray(&ECtx);
 
    // add map with 31 items
    QCBOREncode_OpenMapInMap(&ECtx, "map");
-   for (size_t ix = 0; ix < 31; ix++) {
+   for (int ix = 0; ix < 31; ix++) {
       // make sure we have unique keys in the map (a-z then follow by A-Z)
-      char c = 'a';
+      int c = 'a';
       if (ix < 26) c = c + ix;
       else c = 'A' + (ix - 26);
-      char buffer[2] = { c, 0 };
+      char buffer[2] = { (char)c, 0 };
       QCBOREncode_AddInt64ToMap(&ECtx, buffer, ix);
    }
    QCBOREncode_CloseMap(&ECtx);
@@ -1563,8 +1563,8 @@ int32_t MapEncodeTest()
  */
 
 static UsefulBufC
-FormatRTICResults(uint64_t uRResult,
-                  uint64_t time,
+FormatRTICResults(uint8_t uRResult,
+                  int64_t time,
                   const char *szType,
                   const char *szAlexString,
                   UsefulBuf Storage)

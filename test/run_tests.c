@@ -288,7 +288,7 @@ static void PrintSize(const char *szWhat,
 
    (*pfOutput)(szWhat, pOutCtx, 0);
    (*pfOutput)(" ", pOutCtx, 0);
-   (*pfOutput)(NumToString(uSize, buffer), pOutCtx, 0);
+   (*pfOutput)(NumToString((int32_t)uSize, buffer), pOutCtx, 0);
    (*pfOutput)("", pOutCtx, 1);
 }
 
