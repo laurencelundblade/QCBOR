@@ -22,7 +22,7 @@
 int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
-    enum t_cose_err_t              return_value;
+    int32_t                        return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          signed_cose;
     struct t_cose_key              key_pair;
@@ -117,7 +117,7 @@ int_fast32_t sign_verify_sig_fail_test()
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
-    enum t_cose_err_t              return_value;
+    int32_t                        return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          signed_cose;
     struct t_cose_key              key_pair;
@@ -199,7 +199,7 @@ int_fast32_t sign_verify_make_cwt_test()
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
-    enum t_cose_err_t              return_value;
+    int32_t                        return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          signed_cose;
     struct t_cose_key              key_pair;
