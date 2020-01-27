@@ -67,7 +67,7 @@ int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
 
     /* compare payload output to the one expected */
     if(q_useful_buf_compare(payload, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"))) {
-        return_value += 6000;
+        return_value = 6000;
         goto Done;
     }
 
