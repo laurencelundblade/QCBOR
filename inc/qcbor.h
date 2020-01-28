@@ -2143,8 +2143,12 @@ static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  @param buffer       Buffer to output the encoded head to; must be
                      @ref QCBOR_HEAD_BUFFER_SIZE bytes in size.
  @param uMajorType   One of CBOR_MAJOR_TYPE_XX.
- @param uMinLen      Include zero bytes up to this length. If 0 include
-                     no zero bytes. Non-zero to encode floats and doubles.
+ @param uMinLen      The minimum number of bytes to encode uNumber. Almost always
+                     this is 0 to use preferred minimal encoding. If this is 4,
+                     then even the values 0xffff and smaller will be encoded
+                     as in 4 bytes. This is used primarily when encoding a
+                     float or double put into uNumber as the leading zero bytes
+                     for them must be encoded.
  @param uNumber      The numeric argument part of the CBOR head.
  @return             Pointer and length of the encoded head or
                      @NULLUsefulBufC if the output buffer is too small.

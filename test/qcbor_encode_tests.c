@@ -2008,6 +2008,7 @@ static int32_t DecodeNextNested2(UsefulBufC Wrapped)
 }
 
 
+// TODO: this test needs work, it is using too much stack
 int32_t BstrWrapNestTest()
 {
    QCBOREncodeContext EC;

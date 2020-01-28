@@ -349,7 +349,6 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
 
    // Buffer must have room for the largest CBOR HEAD + one extra as the
    // one extra is needed for this code to work as it does a pre-decrement.
-   // TODO: comment uMinLen
     if(buffer.len < QCBOR_HEAD_BUFFER_SIZE) {
         return NULLUsefulBufC;
     }
@@ -388,9 +387,9 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
        */
       static const uint8_t aIterate[] = {1,1,2,4};
 
-      // The parameter passed in is unsigned, but must go negative in loop
-      // Cast is safe because this value is never > 8
-      int8_t nMinLen = (int8_t)uMinLen;
+      // The parameter passed in is unsigned, but goes negative in the loop
+      // so it must be converted to a signed value.
+      int nMinLen = (int)uMinLen;
       int i;
       for(i = 0; uArgument || nMinLen > 0; i++) {
          const int nIterations = (int)aIterate[i];
@@ -415,7 +414,7 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
     */
    *--pByte = (uint8_t)((uMajorType << 5) + nAdditionalInfo);
 
-#ifndef EXTRA_ENCODE_HEAD_CHECK
+#ifdef EXTRA_ENCODE_HEAD_CHECK
    /* This is a sanity check that can be turned on to verify the pointer
     * math in this function is not going wrong. Turn it on and run the
     * whole test suite to perform the check.
@@ -806,7 +805,6 @@ Done:
 }
 
 
-
 /*
  Public functions to finish and get the encoded result. See qcbor.h
  */
@@ -827,6 +825,34 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
 
 
 /*
+Object code sizes on 64-bit x86 with GCC -Os Jan 2020. GCC compiles smaller
+than LLVM and optimizations have been made to decrease code size. Bigfloat,
+Decimal fractions and indefinite length encoding were added to increase code
+size. Bstr wrapping is now separate which means if you don't use it, it gets
+dead stripped.
+
+_QCBOREncode_EncodeHead           187
+_QCBOREncode_CloseBstrWrap2:      154
+_QCBOREncode_AddExponentAndMantissa: 144
+_QCBOREncode_AddBuffer            105
+_QCBOREncode_OpenMapOrArray       101
+_QCBOREncode_CloseMapOrArrayIndefiniteLength: 72
+_QCBOREncode_Finish                71
+_InsertCBORHead.part.0             66
+_QCBOREncode_CloseMapOrArray       64
+_QCBOREncode_AddType7              58
+_QCBOREncode_AddInt64              57
+_AppendCBORHead                    54
+_QCBOREncode_AddUInt64             40
+_QCBOREncode_Init                  38
+_Nesting_Increment.isra.0          36
+_QCBOREncode_FinishGetSize:        34
+_QCBOREncode_AddDouble:            26
+_QCBOREncode_AddTag:               15
+Total                            1322
+Min_encode use case               776
+
+
  Object code sizes on X86 with LLVM compiler and -Os (Dec 30, 2018)
 
  _QCBOREncode_Init   69
