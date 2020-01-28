@@ -391,7 +391,10 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
    }
 #endif
 
-   return (UsefulBufC){pByte, pBufferEnd - pByte};
+   // Will not go negative because the loops run for at most 8 decrements
+   // of pByte, only one other decrement is made and the array is sized
+   // for this.
+   return (UsefulBufC){pByte, (size_t)(pBufferEnd - pByte)};
 }
 
 
