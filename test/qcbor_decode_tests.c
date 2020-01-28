@@ -835,14 +835,14 @@ int32_t ShortBufferParseTest()
 {
    int nResult = 0;
 
-   for(int nNum = sizeof(spExpectedEncodedInts)-1; nNum; nNum--) {
+   for(size_t nNum = sizeof(spExpectedEncodedInts)-1; nNum; nNum--) {
       QCBORDecodeContext DCtx;
 
       QCBORDecode_Init(&DCtx,
                        (UsefulBufC){spExpectedEncodedInts, nNum},
                        QCBOR_DECODE_MODE_NORMAL);
 
-      const QCBORError nErr = IntegerValuesParseTestInternal(&DCtx);
+      const int nErr = IntegerValuesParseTestInternal(&DCtx);
 
       if(nErr != QCBOR_ERR_HIT_END && nErr != QCBOR_ERR_NO_MORE_ITEMS) {
          nResult = -1;
@@ -1615,8 +1615,9 @@ static int32_t ProcessFailures(struct FailInput *pFailInputs, size_t nNumFails)
       if(nCBORError != pF->nError ||
          Item.uDataType != QCBOR_TYPE_NONE ||
          Item.uLabelType != QCBOR_TYPE_NONE) {
-         // return index of CBOR + 1000
-         return (int)(pF -  pFailInputs) * 100 + nCBORError;
+         // return index of CBOR + 100
+         const size_t nIndex = (size_t)(pF - pFailInputs)/sizeof(struct FailInput);
+         return (int32_t)(nIndex * 100 + nCBORError);
       }
    }
 
@@ -1969,7 +1970,7 @@ int32_t DecodeFailureTests()
 /* Try all 256 values of the byte at nLen including recursing for
  each of the values to try values at nLen+1 ... up to nLenMax
  */
-static void ComprehensiveInputRecurser(uint8_t *pBuf, int nLen, int nLenMax)
+static void ComprehensiveInputRecurser(uint8_t *pBuf, size_t nLen, size_t nLenMax)
 {
    if(nLen >= nLenMax) {
       return;

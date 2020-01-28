@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
+ 01/28/2020 llundblade      Refine integer signedness to quiet static analysis.
  01/25/2020 llundblade      Cleaner handling of too-long encoded string input.
  01/25/2020 llundblade      Refine use of integer types to quiet static analysis
  01/08/2020 llundblade      Documentation corrections & improved code formatting
@@ -1199,7 +1200,7 @@ inline static QCBORError DecodeBigNum(QCBORItem *pDecodedItem)
  The epoch formatted date. Turns lots of different forms of encoding
  date into uniform one
  */
-static int DecodeDateEpoch(QCBORItem *pDecodedItem)
+static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
 {
    // Stack usage: 1
    QCBORError nReturn = QCBOR_SUCCESS;
@@ -1217,7 +1218,7 @@ static int DecodeDateEpoch(QCBORItem *pDecodedItem)
             nReturn = QCBOR_ERR_DATE_OVERFLOW;
             goto Done;
          }
-         pDecodedItem->val.epochDate.nSeconds = pDecodedItem->val.uint64;
+         pDecodedItem->val.epochDate.nSeconds = (int64_t)pDecodedItem->val.uint64;
          break;
 
       case QCBOR_TYPE_DOUBLE:
@@ -1341,7 +1342,9 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       // Got a good big num mantissa
       pDecodedItem->val.expAndMantissa.Mantissa.bigNum = mantissaItem.val.bigNum;
       // Depends on numbering of QCBOR_TYPE_XXX
-      pDecodedItem->uDataType += 1 + mantissaItem.uDataType - QCBOR_TYPE_POSBIGNUM;
+      pDecodedItem->uDataType = (uint8_t)(pDecodedItem->uDataType +
+                                          mantissaItem.uDataType - QCBOR_TYPE_POSBIGNUM +
+                                          1);
    } else {
       // Wrong type of mantissa or a QCBOR_TYPE_UINT64 > INT64_MAX
       nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
@@ -1508,7 +1511,7 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *me,
  */
 QCBORError QCBORDecode_Finish(QCBORDecodeContext *me)
 {
-   int nReturn = QCBOR_SUCCESS;
+   QCBORError nReturn = QCBOR_SUCCESS;
 
    // Error out if all the maps/arrays are not closed out
    if(DecodeNesting_IsNested(&(me->nesting))) {
@@ -1688,7 +1691,7 @@ MemPool_Function(void *pPool, void *pMem, size_t uNewSize)
          if(uNewSize <= uPoolSize - uFreeOffset) {
             ReturnValue.len = uNewSize;
             ReturnValue.ptr = (uint8_t *)pPool + uFreeOffset;
-            uFreeOffset    += uNewSize;
+            uFreeOffset    += (uint32_t)uNewSize;
          }
       }
    } else {

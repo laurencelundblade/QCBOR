@@ -65,10 +65,10 @@
 #define HALF_EXPONENT_SHIFT       (HALF_NUM_SIGNIFICAND_BITS)
 #define HALF_SIGN_SHIFT           (HALF_NUM_SIGNIFICAND_BITS + HALF_NUM_EXPONENT_BITS)
 
-#define HALF_SIGNIFICAND_MASK     (0x3ff) // The lower 10 bits  // 0x03ff
-#define HALF_EXPONENT_MASK        (0x1f << HALF_EXPONENT_SHIFT) // 0x7c00 5 bits of exponent
-#define HALF_SIGN_MASK            (0x01 << HALF_SIGN_SHIFT) //  // 0x80001 bit of sign
-#define HALF_QUIET_NAN_BIT        (0x01 << (HALF_NUM_SIGNIFICAND_BITS-1)) // 0x0200
+#define HALF_SIGNIFICAND_MASK     (0x3ffU) // The lower 10 bits  // 0x03ff
+#define HALF_EXPONENT_MASK        (0x1fU << HALF_EXPONENT_SHIFT) // 0x7c00 5 bits of exponent
+#define HALF_SIGN_MASK            (0x01U << HALF_SIGN_SHIFT) //  // 0x8000 1 bit of sign
+#define HALF_QUIET_NAN_BIT        (0x01U << (HALF_NUM_SIGNIFICAND_BITS-1)) // 0x0200
 
 /* Biased    Biased    Unbiased   Use
     0x00       0        -15       0 and subnormal
@@ -91,10 +91,10 @@
 #define SINGLE_EXPONENT_SHIFT       (SINGLE_NUM_SIGNIFICAND_BITS)
 #define SINGLE_SIGN_SHIFT           (SINGLE_NUM_SIGNIFICAND_BITS + SINGLE_NUM_EXPONENT_BITS)
 
-#define SINGLE_SIGNIFICAND_MASK     (0x7fffffUL) // The lower 23 bits
-#define SINGLE_EXPONENT_MASK        (0xffUL << SINGLE_EXPONENT_SHIFT) // 8 bits of exponent
-#define SINGLE_SIGN_MASK            (0x01UL << SINGLE_SIGN_SHIFT) // 1 bit of sign
-#define SINGLE_QUIET_NAN_BIT        (0x01UL << (SINGLE_NUM_SIGNIFICAND_BITS-1))
+#define SINGLE_SIGNIFICAND_MASK     (0x7fffffU) // The lower 23 bits
+#define SINGLE_EXPONENT_MASK        (0xffU << SINGLE_EXPONENT_SHIFT) // 8 bits of exponent
+#define SINGLE_SIGN_MASK            (0x01U << SINGLE_SIGN_SHIFT) // 1 bit of sign
+#define SINGLE_QUIET_NAN_BIT        (0x01U << (SINGLE_NUM_SIGNIFICAND_BITS-1))
 
 /* Biased  Biased   Unbiased  Use
     0x0000     0     -127      0 and subnormal
@@ -229,7 +229,7 @@ uint16_t IEEE754_FloatToHalf(float f)
         // Also have to shift the significand by the difference in number of bits between a single and a half significand
         const uint32_t uSignificandBitsDiff = SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS;
         // Add in the 1 that is implied in the significand of a normal number; it needs to be present in a subnormal
-        const uint32_t uSingleSignificandSubnormal = uSingleSignificand + (0x01UL << SINGLE_NUM_SIGNIFICAND_BITS);
+        const uint32_t uSingleSignificandSubnormal = uSingleSignificand + (0x01U << SINGLE_NUM_SIGNIFICAND_BITS);
         uHalfSignificand = uSingleSignificandSubnormal >> (uExpDiff + uSignificandBitsDiff);
     } else {
         // The normal case, exponent is in range for half-precision
