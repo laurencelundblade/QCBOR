@@ -24,7 +24,7 @@
  Test configuration
  */
 
-typedef int (test_fun_t)(void);
+typedef int32_t (test_fun_t)(void);
 typedef const char * (test_fun2_t)(void);
 
 
@@ -138,12 +138,12 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
    }
 
    bool bDidSomeOutput = false;
-   for(int n = nMax; n > 0; n/=10) {
-      int x = nNum/n;
-      if(x || bDidSomeOutput){
+   for(int32_t n = nMax; n > 0; n/=10) {
+      int nDigitValue = nNum/n;
+      if(nDigitValue || bDidSomeOutput){
          bDidSomeOutput = true;
-         UsefulOutBuf_AppendByte(&OutBuf, '0' + x);
-         nNum -= x * n;
+         UsefulOutBuf_AppendByte(&OutBuf, (uint8_t)('0' + nDigitValue));
+         nNum -= nDigitValue * n;
       }
    }
    if(!bDidSomeOutput){
@@ -158,7 +158,7 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 /*
  Public function. See run_test.h.
  */
-int RunTests(const char *szTestNames[],
+int RunTestsQCBOR(const char *szTestNames[],
              OutputStringCB pfOutput,
              void *poutCtx,
              int *pNumTestsRun)
@@ -239,7 +239,7 @@ int RunTests(const char *szTestNames[],
             }
         }
 
-        int nTestResult = (t->test_fun)();
+        int32_t nTestResult = (t->test_fun)();
         nTestsRun++;
         if(pfOutput) {
             (*pfOutput)(t->szTestName, poutCtx, 0);
@@ -289,7 +289,7 @@ static void PrintSize(const char *szWhat,
 
    (*pfOutput)(szWhat, pOutCtx, 0);
    (*pfOutput)(" ", pOutCtx, 0);
-   (*pfOutput)(NumToString(uSize, buffer), pOutCtx, 0);
+   (*pfOutput)(NumToString((int32_t)uSize, buffer), pOutCtx, 0);
    (*pfOutput)("", pOutCtx, 1);
 }
 
@@ -297,7 +297,7 @@ static void PrintSize(const char *szWhat,
 /*
  Public function. See run_test.h.
  */
-void PrintSizes(OutputStringCB pfOutput, void *pOutCtx)
+void PrintSizesQCBOR(OutputStringCB pfOutput, void *pOutCtx)
 {
    // These will never be large so cast is safe
    PrintSize("sizeof(QCBORTrackNesting)",   (uint32_t)sizeof(QCBORTrackNesting),  pfOutput, pOutCtx);

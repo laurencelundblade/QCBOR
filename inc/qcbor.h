@@ -44,6 +44,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  when       who           what, where, why
  --------   ----          ---------------------------------------------------
  01/xx/2020 llundblade    Add QCBOREncode_EncodeHead() for bstr hashing.
+ 01/25/2020 llundblade    Cleaner handling of too-long encoded string input.
  01/08/2020 llundblade    Documentation corrections & improved code formatting.
  12/30/19   llundblade    Add support for decimal fractions and bigfloats.
  08/7/19    llundblade    Better handling of not well-formed encode and decode.
@@ -784,7 +785,15 @@ typedef enum {
 
    /** Something is wrong with a decimal fraction or bigfloat such as
     it not consisting of an array with two integers */
-   QCBOR_ERR_BAD_EXP_AND_MANTISSA = 23
+   QCBOR_ERR_BAD_EXP_AND_MANTISSA = 23,
+
+   /** When decoding, a string's size is greater than size_t. In all but some
+    very strange situations this is because of corrupt input CBOR and
+    should be treated as such. The strange situation is a CPU with a very
+    small size_t (e.g., a 16-bit CPU) and a large string (e.g., > 65KB).
+    */
+    QCBOR_ERR_STRING_TOO_LONG = 24
+
 } QCBORError;
 
 

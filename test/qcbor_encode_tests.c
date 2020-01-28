@@ -142,7 +142,7 @@ static uint8_t spBigBuf[2200];
 /*
  Some very minimal tests.
  */
-int BasicEncodeTest()
+int32_t BasicEncodeTest()
 {
    // Very simple CBOR, a map with one boolean that is true in it
    QCBOREncodeContext EC;
@@ -511,7 +511,7 @@ this is the attachment text\n\
 --XXXXboundary text--";
 
 
-int AllAddMethodsTest()
+int32_t AllAddMethodsTest()
 {
    // TODO: this test should be broken down into several so it is more
    // managable. Tags and labels could be more sensible
@@ -791,7 +791,7 @@ static const uint8_t spExpectedEncodedInts[] = {
   to expected values generated from http://cbor.me.
 
  */
-int IntegerValuesTest1()
+int32_t IntegerValuesTest1()
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
@@ -876,7 +876,7 @@ int IntegerValuesTest1()
 static const uint8_t spExpectedEncodedSimple[] = {
    0x85, 0xf5, 0xf4, 0xf6, 0xf7, 0xa1, 0x65, 0x55, 0x4e, 0x44, 0x65, 0x66, 0xf7};
 
-int SimpleValuesTest1()
+int32_t SimpleValuesTest1()
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
@@ -923,7 +923,7 @@ int SimpleValuesTest1()
 static const uint8_t spExpectedEncodedSimpleIndefiniteLength[] = {
    0x9f, 0xf5, 0xf4, 0xf6, 0xf7, 0xbf, 0x65, 0x55, 0x4e, 0x44, 0x65, 0x66, 0xf7, 0xff, 0xff};
 
-int SimpleValuesIndefiniteLengthTest1()
+int32_t SimpleValuesIndefiniteLengthTest1()
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
@@ -1118,7 +1118,7 @@ static const uint8_t EncodeLengthThirtyone[] = {
    0x31
 };
 
-int EncodeLengthThirtyoneTest()
+int32_t EncodeLengthThirtyoneTest()
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
@@ -1129,18 +1129,18 @@ int EncodeLengthThirtyoneTest()
    // add array with 31 items
    QCBOREncode_OpenArrayInMap(&ECtx, "arr");
    for (size_t ix = 0; ix < 31; ix++) {
-      QCBOREncode_AddInt64(&ECtx, ix);
+      QCBOREncode_AddInt64(&ECtx, (int64_t)ix);
    }
    QCBOREncode_CloseArray(&ECtx);
 
    // add map with 31 items
    QCBOREncode_OpenMapInMap(&ECtx, "map");
-   for (size_t ix = 0; ix < 31; ix++) {
+   for (int ix = 0; ix < 31; ix++) {
       // make sure we have unique keys in the map (a-z then follow by A-Z)
-      char c = 'a';
+      int c = 'a';
       if (ix < 26) c = c + ix;
       else c = 'A' + (ix - 26);
-      char buffer[2] = { c, 0 };
+      char buffer[2] = { (char)c, 0 };
       QCBOREncode_AddInt64ToMap(&ECtx, buffer, ix);
    }
    QCBOREncode_CloseMap(&ECtx);
@@ -1198,7 +1198,7 @@ static const uint8_t spExpectedEncodedDates[] = {
    0x32, 0x5a, 0x62, 0x53, 0x44, 0xc1, 0x19, 0x03, 0xe7
 };
 
-int EncodeDateTest()
+int32_t EncodeDateTest()
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
@@ -1235,7 +1235,7 @@ int EncodeDateTest()
 }
 
 
-int ArrayNestingTest1()
+int32_t ArrayNestingTest1()
 {
    QCBOREncodeContext ECtx;
    int i;
@@ -1258,7 +1258,7 @@ int ArrayNestingTest1()
 
 
 
-int ArrayNestingTest2()
+int32_t ArrayNestingTest2()
 {
    QCBOREncodeContext ECtx;
    int i;
@@ -1282,7 +1282,7 @@ int ArrayNestingTest2()
 
 
 
-int ArrayNestingTest3()
+int32_t ArrayNestingTest3()
 {
    QCBOREncodeContext ECtx;
    int i;
@@ -1399,7 +1399,7 @@ static const uint8_t spEncodeRawExpected[] = {
    0xff, 0xff};
 
 
-int EncodeRawTest()
+int32_t EncodeRawTest()
 {
    QCBOREncodeContext ECtx;
 
@@ -1425,7 +1425,7 @@ int EncodeRawTest()
 /*
  This returns a pointer to spBigBuf
  */
-static int CreateMap(uint8_t **pEncoded, size_t *pEncodedLen)
+static int32_t CreateMap(uint8_t **pEncoded, size_t *pEncodedLen)
 {
    QCBOREncodeContext ECtx;
    int nReturn = -1;
@@ -1522,7 +1522,7 @@ static const uint8_t spValidMapEncoded[] = {
    0x73 } ;
 
 
-int MapEncodeTest()
+int32_t MapEncodeTest()
 {
    uint8_t *pEncodedMaps;
    size_t nEncodedMapLen;
@@ -1563,8 +1563,8 @@ int MapEncodeTest()
  */
 
 static UsefulBufC
-FormatRTICResults(int nRResult,
-                  uint64_t time,
+FormatRTICResults(uint8_t uRResult,
+                  int64_t time,
                   const char *szType,
                   const char *szAlexString,
                   UsefulBuf Storage)
@@ -1586,7 +1586,7 @@ FormatRTICResults(int nRResult,
 
       // The result: 0 if scan happened and found nothing; 1 if it happened and
       // found something wrong; 2 if it didn't happen
-      QCBOREncode_AddSimpleToMap(&ECtx, "integrity", nRResult);
+      QCBOREncode_AddSimpleToMap(&ECtx, "integrity", uRResult);
 
       // Add the diagnostic code
       QCBOREncode_AddSZStringToMap(&ECtx, "type", szType);
@@ -1678,7 +1678,7 @@ static const uint8_t spExpectedRTIC[] = {
    0xaa, 0xbb, 0x01, 0x01};
 
 
-int RTICResultsTest()
+int32_t RTICResultsTest()
 {
    const UsefulBufC Encoded = FormatRTICResults(CBOR_SIMPLEV_FALSE, 1477263730,
                                           "recent", "0xA1eC5001",
@@ -1777,7 +1777,7 @@ int BstrWrapTest()
 
 
 
-int BstrWrapErrorTest()
+int32_t BstrWrapErrorTest()
 {
    // ---- Test closing a bstrwrap when it is an array that is open ---------
    QCBOREncodeContext EC;
@@ -1942,7 +1942,7 @@ static int DecodeNextNested(UsefulBufC Wrapped)
 }
 
 // Part of bstr_wrap_nest_test
-static int DecodeNextNested2(UsefulBufC Wrapped)
+static int32_t DecodeNextNested2(UsefulBufC Wrapped)
 {
    int nReturn;
    QCBORDecodeContext DC;
@@ -2008,7 +2008,7 @@ static int DecodeNextNested2(UsefulBufC Wrapped)
 }
 
 
-int BstrWrapNestTest()
+int32_t BstrWrapNestTest()
 {
    QCBOREncodeContext EC;
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
@@ -2020,24 +2020,24 @@ int BstrWrapNestTest()
 
    for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
       QCBOREncode_BstrWrap(&EC);
-      QCBOREncode_AddUInt64(&EC, i);
+      QCBOREncode_AddInt64(&EC, i);
    }
 
    for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
       QCBOREncode_CloseBstrWrap(&EC, NULL);
-      QCBOREncode_AddUInt64(&EC, i);
+      QCBOREncode_AddInt64(&EC, i);
    }
 
    for(int i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
       QCBOREncode_OpenMap(&EC);
       QCBOREncode_BstrWrapInMapN(&EC, i+0x20);
       QCBOREncode_OpenArray(&EC);
-      QCBOREncode_AddUInt64(&EC, i+0x10);
+      QCBOREncode_AddInt64(&EC, i+0x10);
    }
 
    for(int i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
       QCBOREncode_CloseArray(&EC);
-      QCBOREncode_AddUInt64(&EC, i+0x30);
+      QCBOREncode_AddInt64(&EC, i+0x30);
       QCBOREncode_CloseBstrWrap(&EC, NULL);
       QCBOREncode_AddSZStringToMapN(&EC, i+0x40, "hello");
       QCBOREncode_CloseMap(&EC);
@@ -2163,7 +2163,7 @@ static const uint8_t pProtectedHeaders[] = {0xa1, 0x01, 0x26};
  C.2.1. This doesn't actually verify the signature (however
  the t_cose implementation does).
  */
-int CoseSign1TBSTest()
+int32_t CoseSign1TBSTest()
 {
    // All of this is from RFC 8152 C.2.1
    const char          *szKid     = "11";
@@ -2287,7 +2287,7 @@ int CoseSign1TBSTest()
 }
 
 
-int EncodeErrorTests()
+int32_t EncodeErrorTests()
 {
    QCBOREncodeContext EC;
 
@@ -2543,7 +2543,7 @@ static const uint8_t spExpectedExponentAndMantissaMap[] = {
 };
 
 
-int ExponentAndMantissaEncodeTests()
+int32_t ExponentAndMantissaEncodeTests()
 {
    QCBOREncodeContext EC;
    UsefulBufC         EncodedExponentAndMantissa;

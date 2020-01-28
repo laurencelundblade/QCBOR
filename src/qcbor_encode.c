@@ -43,7 +43,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  when       who             what, where, why
  --------   ----            ---------------------------------------------------
  01/xx/2020 llundblade      Add QCBOREncode_EncodeHead() for bstr hashing.
- 01/08/2020 llundblade      Documentation corrections & improved code formatting
+ 01/25/2020 llundblade      Refine use of integer types to quiet static analysis.
+ 01/08/2020 llundblade      Documentation corrections & improved code formatting.
  12/30/19   llundblade      Add support for decimal fractions and bigfloats.
  8/7/19     llundblade      Prevent encoding simple type reserved values 24..31
  7/25/19    janjongboom     Add indefinite length encoding for maps and arrays
@@ -148,9 +149,13 @@ inline static uint16_t Nesting_GetCount(QCBORTrackNesting *pNesting)
    // items by two for maps to get the number of pairs.  This implementation
    // takes advantage of the map major type being one larger the array major
    // type, hence uDivisor is either 1 or 2.
-   const uint16_t uDivisor = pNesting->pCurrentNesting->uMajorType - CBOR_MAJOR_TYPE_ARRAY+1;
 
-   return pNesting->pCurrentNesting->uCount / uDivisor;
+   if(pNesting->pCurrentNesting->uMajorType == CBOR_MAJOR_TYPE_MAP) {
+      // Cast back to uint16_t after integer promotion for bit shift
+      return (uint16_t)(pNesting->pCurrentNesting->uCount >> 1);
+   } else {
+      return pNesting->pCurrentNesting->uCount;
+   }
 }
 
 inline static uint32_t Nesting_GetStartPos(QCBORTrackNesting *pNesting)
@@ -321,34 +326,54 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
 
     Code Reviewers: THIS FUNCTION DOES POINTER MATH
     */
+   /*
+    The type int is used here for several variables because of the way
+    integer promotion works in C for integer variables that are
+    uint8_t or uint16_t. The basic rule is that they will always be
+    promoted to int if they will fit. All of these integer variables
+    need only hold values less than 255 or are promoted from uint8_t,
+    so they will always fit into an int. Note that promotion is only
+    to unsigned int if the value won't fit into an int even if the
+    promotion is for an unsigned like uint8_t.
+
+    By declaring them int, there are few implicit conversions and fewer
+    casts needed. Code size is reduced a little. It also makes static
+    analyzers happier.
+
+    Note also that declaring them uint8_t won't stop integer wrap
+    around if the code is wrong. It won't make the code more correct.
+
+    https://stackoverflow.com/questions/46073295/implicit-type-promotion-rules
+    https://stackoverflow.com/questions/589575/what-does-the-c-standard-state-the-size-of-int-long-type-to-be
+    */
 
    // Buffer must have room for the largest CBOR HEAD + one extra as the
    // one extra is needed for this code to work as it does a pre-decrement.
    // TODO: comment uMinLen
-    if(buffer.len < QCBOR_HEAD_BUFFER_SIZE || uMinLen > 8) {
+    if(buffer.len < QCBOR_HEAD_BUFFER_SIZE) {
         return NULLUsefulBufC;
     }
 
    // Pointer to last valid byte in the buffer
-   uint8_t *pBufferEnd = &((uint8_t *)buffer.ptr)[QCBOR_HEAD_BUFFER_SIZE-1];
+   uint8_t * const pBufferEnd = &((uint8_t *)buffer.ptr)[QCBOR_HEAD_BUFFER_SIZE-1];
 
    // Point to the last byte and work backwards
    uint8_t *pByte = pBufferEnd;
    // The 5 bits in the initial byte that are not the major type
-   uint8_t uAdditionalInfo;
+   int nAdditionalInfo;
 
    if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN) {
       uMajorType = CBOR_MAJOR_TYPE_ARRAY;
-      uAdditionalInfo = LEN_IS_INDEFINITE;
+      nAdditionalInfo = LEN_IS_INDEFINITE;
    } else if (uMajorType == CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN) {
       uMajorType = CBOR_MAJOR_TYPE_MAP;
-      uAdditionalInfo = LEN_IS_INDEFINITE;
+      nAdditionalInfo = LEN_IS_INDEFINITE;
    } else if (uArgument < CBOR_TWENTY_FOUR && uMinLen == 0) {
       // Simple case where argument is < 24
-      uAdditionalInfo = uArgument;
+      nAdditionalInfo = (int)uArgument;
    } else if (uMajorType == CBOR_MAJOR_TYPE_SIMPLE && uArgument == CBOR_SIMPLE_BREAK) {
       // Break statement can be encoded in single byte too (0xff)
-      uAdditionalInfo = uArgument;
+      nAdditionalInfo = (int)uArgument;
    } else  {
       /*
        Encode argument in 1,2,4 or 8 bytes. Outer loop
@@ -362,24 +387,33 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
        numbers with zero bytes.
        */
       static const uint8_t aIterate[] = {1,1,2,4};
-      uint8_t i;
-      // The parameter passed in is unsigned, but must go negative in loop
-      // Cast is save because this value is never > 8
-      int8_t nMinLen = (int8_t)uMinLen;
 
+      // The parameter passed in is unsigned, but must go negative in loop
+      // Cast is safe because this value is never > 8
+      int8_t nMinLen = (int8_t)uMinLen;
+      int i;
       for(i = 0; uArgument || nMinLen > 0; i++) {
-         const uint8_t uIterations = aIterate[i];
-         for(int j = 0; j < uIterations; j++) {
-            *--pByte = uArgument & 0xff;
+         const int nIterations = (int)aIterate[i];
+         for(int j = 0; j < nIterations; j++) {
+            *--pByte = (uint8_t)(uArgument & 0xff);
             uArgument = uArgument >> 8;
          }
-         nMinLen -= uIterations;
+         nMinLen -= nIterations;
       }
       // Additional info is the encoding of the number of additional
       // bytes to encode argument.
-      uAdditionalInfo = LEN_IS_ONE_BYTE-1 + i;
+      nAdditionalInfo = LEN_IS_ONE_BYTE-1 + i;
    }
-   *--pByte = (uMajorType << 5) + uAdditionalInfo;
+
+   /*
+    Expression integer-promotes to type int. The code above in
+    function gaurantees that nAdditionalInfo will never be larger than
+    0x1f. The caller may pass in a too-large uMajor type. The
+    conversion to unint8_t will cause an integer wrap around and
+    incorrect CBOR will be generated, but no security issue will
+    incur.
+    */
+   *--pByte = (uint8_t)((uMajorType << 5) + nAdditionalInfo);
 
 #ifndef EXTRA_ENCODE_HEAD_CHECK
    /* This is a sanity check that can be turned on to verify the pointer
@@ -391,8 +425,8 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
    }
 #endif
 
-   // Will not go negative because the loops run for at most 8 decrements
-   // of pByte, only one other decrement is made and the array is sized
+   // Length will not go negative because the loops run for at most 8 decrements
+   // of pByte, only one other decrement is made, and the array is sized
    // for this.
    return (UsefulBufC){pByte, (size_t)(pBufferEnd - pByte)};
 }

@@ -13,11 +13,13 @@
 #ifndef float_tests_h
 #define float_tests_h
 
-int HalfPrecisionDecodeBasicTests(void);
+#include <stdint.h>
 
-int DoubleAsSmallestTest(void);
+int32_t HalfPrecisionDecodeBasicTests(void);
 
-int HalfPrecisionAgainstRFCCodeTest(void);
+int32_t DoubleAsSmallestTest(void);
+
+int32_t HalfPrecisionAgainstRFCCodeTest(void);
 
 
 #endif /* float_tests_h */
