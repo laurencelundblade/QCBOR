@@ -2015,34 +2015,34 @@ int32_t BstrWrapNestTest()
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
    // ---- Make a complicated nested CBOR structure ---
-#define BSTR_TEST_DEPTH 10
+#define BSTR_TEST_DEPTH 6
 
    QCBOREncode_OpenArray(&EC);
 
    for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
       QCBOREncode_BstrWrap(&EC);
-      QCBOREncode_AddInt64(&EC, i);
-   }
-
-   for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
-      QCBOREncode_CloseBstrWrap(&EC, NULL);
-      QCBOREncode_AddInt64(&EC, i);
-   }
-
-   for(int i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
-      QCBOREncode_OpenMap(&EC);
-      QCBOREncode_BstrWrapInMapN(&EC, i+0x20);
       QCBOREncode_OpenArray(&EC);
-      QCBOREncode_AddInt64(&EC, i+0x10);
+      QCBOREncode_AddInt64(&EC, i);
+   }
+   for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
+      QCBOREncode_CloseArray(&EC);
+      QCBOREncode_CloseBstrWrap(&EC, NULL);
    }
 
-   for(int i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
-      QCBOREncode_CloseArray(&EC);
-      QCBOREncode_AddInt64(&EC, i+0x30);
-      QCBOREncode_CloseBstrWrap(&EC, NULL);
+   QCBOREncode_OpenMap(&EC);
+   for(int i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
+      QCBOREncode_BstrWrapInMapN(&EC, i+0x20);
+      QCBOREncode_OpenMap(&EC);
+      QCBOREncode_AddInt64ToMapN(&EC, i+0x10, i+0x10);
+   }
+
+   for(int i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
       QCBOREncode_AddSZStringToMapN(&EC, i+0x40, "hello");
       QCBOREncode_CloseMap(&EC);
+      QCBOREncode_CloseBstrWrap(&EC, NULL);
    }
+   QCBOREncode_CloseMap(&EC);
+
    QCBOREncode_CloseArray(&EC);
 
    UsefulBufC Encoded;
