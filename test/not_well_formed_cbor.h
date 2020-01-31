@@ -251,10 +251,10 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     {(uint8_t[]){0x41}, 1},
     // A text string is of length 1 without the 1 byte
     {(uint8_t[]){0x61}, 1},
-    // Byte string should have 2^32-1 bytes, but has one
-    {(uint8_t[]){0x5a, 0xff, 0xff, 0xff, 0xff, 0x00}, 6},
-    // Byte string should have 2^32-1 bytes, but has one
-    {(uint8_t[]){0x7a, 0xff, 0xff, 0xff, 0xff, 0x00}, 6},
+    // Byte string should have 2^32-15 bytes, but has one
+    {(uint8_t[]){0x5a, 0xff, 0xff, 0xff, 0xf0, 0x00}, 6},
+    // Byte string should have 2^32-15 bytes, but has one
+    {(uint8_t[]){0x7a, 0xff, 0xff, 0xff, 0xf0, 0x00}, 6},
 
 
     // Use of unassigned additional information values
