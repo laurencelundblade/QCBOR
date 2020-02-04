@@ -1827,78 +1827,27 @@ int32_t BstrWrapErrorTest()
 }
 
 
-
-// Part of bstr_wrap_nest_test
 /*
- 83 array with three
- 53  byte string with 19 bytes
- 01  #1
- 50 byte string with 16 bytes
- 02
- 4D byte string with 13 bytes
- 03
- 4A byte string with 10 bytes
- 04
- 47 byte string with 7 bytes
- 05
- 44 byte string with 4 bytes
- 06
- 41 byte string with 1 byte
- 07
- 01
- 02
- 03
- 04
- 05
- 06
- 07
- A2 map with two items
- 18 20  label for byte string
- 54 byte string of length 20
- 82 Array with two items
- 10  The integer value 10
- A2 map with two items
- 18 21 label for byte string
- 44 byte string with 4 bytes
- 81 array with 1 item
- 11 integer value 11
- 18 30 integer value 30
- 18 40 integer label 40
- 65 68 65 6C 6C 6F text string hello
- 18 31 integer value 31
- 18 41 integer label 41
- 65 68 65 6C 6C 6F text string hello
+ This is bstr wrapped CBOR in 6 levels.
 
-
- */
-
-
-/*
- 83                                      # array(3)
-   56                                   # bytes(22)
-      00530150024D034A0447054406410700010203040506 # "\x00S\x01P\x02M\x03J\x04G\x05D\x06A\a\x00\x01\x02\x03\x04\x05\x06"
-   07                                   # unsigned(7)
-   A2                                   # map(2)
-      18 20                             # unsigned(32)
-      54                                # bytes(20)
-         8210A21821448111183018406568656C6C6F1831 # "\x82\x10\xA2\x18!D\x81\x11\x180\x18@ehello\x181"
-      18 41                             # unsigned(65)
-      65                                # text(5)
-         68656C6C6F                     # "hello"
+ TODO: decscribe it
  */
 static const uint8_t spExpectedDeepBstr[] =
 {
-   0x83, 0x56, 0x00, 0x53, 0x01, 0x50, 0x02, 0x4D,
-   0x03, 0x4A, 0x04, 0x47, 0x05, 0x44, 0x06, 0x41,
-   0x07, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
-   0x07, 0xA2, 0x18, 0x20, 0x54, 0x82, 0x10, 0xA2,
-   0x18, 0x21, 0x44, 0x81, 0x11, 0x18, 0x30, 0x18,
-   0x40, 0x65, 0x68, 0x65, 0x6C, 0x6C, 0x6F, 0x18,
-   0x31, 0x18, 0x41, 0x65, 0x68, 0x65, 0x6C, 0x6C,
-   0x6F
+   0x82, 0x51, 0x82, 0x00, 0x4E, 0x82, 0x01, 0x4B,
+   0x82, 0x02, 0x48, 0x82, 0x03, 0x45, 0x82, 0x04,
+   0x42, 0x81, 0x05, 0xA1, 0x18, 0x20, 0x58, 0x37,
+   0xA3, 0x10, 0x10, 0x18, 0x40, 0x65, 0x68, 0x65,
+   0x6C, 0x6C, 0x6F, 0x18, 0x21, 0x58, 0x28, 0xA3,
+   0x11, 0x11, 0x18, 0x41, 0x65, 0x68, 0x65, 0x6C,
+   0x6C, 0x6F, 0x18, 0x22, 0x58, 0x19, 0xA3, 0x12,
+   0x12, 0x18, 0x42, 0x65, 0x68, 0x65, 0x6C, 0x6C,
+   0x6F, 0x18, 0x23, 0x4B, 0xA2, 0x13, 0x13, 0x18,
+   0x43, 0x65, 0x68, 0x65, 0x6C, 0x6C, 0x6F
 };
 
 
+// TODO: return codes for these functions
 static int GetInt64(QCBORDecodeContext *pDC, int64_t *pInt)
 {
    QCBORItem Item;
@@ -1934,7 +1883,42 @@ static int GetArray(QCBORDecodeContext *pDC, uint16_t *pInt)
 }
 
 
-static int GetByteString(QCBORDecodeContext *pDC, UsefulBufC *pBstr)
+static int GetMap(QCBORDecodeContext *pDC, uint16_t *pInt)
+{
+   QCBORItem Item;
+   int nReturn;
+
+   nReturn = QCBORDecode_GetNext(pDC, &Item);
+   if(nReturn) {
+      return -11;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP) {
+      return -12;
+   }
+
+   *pInt = Item.val.uCount;
+   return 0;
+}
+
+
+static QCBORError GetByteString(QCBORDecodeContext *pDC, UsefulBufC *pBstr)
+{
+   QCBORItem Item;
+   QCBORError nReturn;
+
+   nReturn = QCBORDecode_GetNext(pDC, &Item);
+   if(nReturn) {
+      return nReturn;
+   }
+   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
+      return QCBOR_ERR_UNSUPPORTED; // TODO: better type?
+   }
+
+   *pBstr = Item.val.string;
+   return 0;
+}
+
+static int GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
 {
    QCBORItem Item;
    int nReturn;
@@ -1943,40 +1927,44 @@ static int GetByteString(QCBORDecodeContext *pDC, UsefulBufC *pBstr)
    if(nReturn) {
       return nReturn;
    }
-   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING) {
       return -12;
    }
 
-   *pBstr = Item.val.string;
+   *pTstr = Item.val.string;
    return 0;
 }
 
 
 // Part of bstr_wrap_nest_test
-static int DecodeNextNested(UsefulBufC Wrapped)
+static int32_t DecodeNextNested(UsefulBufC Wrapped)
 {
-   int nReturn;
+   int64_t            nInt;
+   UsefulBufC         Bstr;
+   uint16_t           nArrayCount;
    QCBORDecodeContext DC;
+   QCBORError         nResult;
+
    QCBORDecode_Init(&DC, Wrapped, QCBOR_DECODE_MODE_NORMAL);
 
-   int64_t nInt;
-   UsefulBufC Bstr;
-   uint16_t nArrayCount;
-
-   if(GetArray(&DC, &nArrayCount) || nArrayCount != 2) {
-      return -3;
+   if(GetArray(&DC, &nArrayCount) || nArrayCount < 1 || nArrayCount > 2) {
+      return -10;
    }
 
    if(GetInt64(&DC, &nInt)) {
       return -11;
    }
 
-   nReturn = GetByteString(&DC, &Bstr);
-   if(nReturn == QCBOR_ERR_HIT_END || nReturn == QCBOR_ERR_NO_MORE_ITEMS) {
-      // successful exit
-      return 0;
+   nResult = GetByteString(&DC, &Bstr);
+   if(nResult == QCBOR_ERR_HIT_END || nResult == QCBOR_ERR_NO_MORE_ITEMS) {
+      if(nArrayCount != 1) {
+         return -12;
+      } else {
+         // successful exit
+         return 0;
+      }
    }
-   if(nReturn) {
+   if(nResult) {
       return -13;
    }
 
@@ -1988,71 +1976,46 @@ static int DecodeNextNested(UsefulBufC Wrapped)
 // Part of bstr_wrap_nest_test
 static int32_t DecodeNextNested2(UsefulBufC Wrapped)
 {
-   int nReturn;
+   QCBORError         nResult;
+   uint16_t           nMapCount;
+   int64_t            nInt;
+   UsefulBufC         Bstr;
    QCBORDecodeContext DC;
+
    QCBORDecode_Init(&DC, Wrapped, QCBOR_DECODE_MODE_NORMAL);
 
-   QCBORItem Item;
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return -12;
+   if(GetMap(&DC, &nMapCount) || nMapCount < 2 || nMapCount > 3) {
+      return -20;
    }
 
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_INT64) {
-      return -12;
+   if(GetInt64(&DC, &nInt)) {
+      return -21;
    }
 
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_MAP) {
-      return 0;
+   // The "hello"
+   if(GetTextString(&DC, &Bstr)) {
+      return -22;
    }
 
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return -13;
-   }
-   nReturn =  DecodeNextNested2(Item.val.string);
-   if(nReturn) {
-      return nReturn;
+   nResult = GetByteString(&DC, &Bstr);
+   if(nResult == QCBOR_ERR_HIT_END || nResult == QCBOR_ERR_NO_MORE_ITEMS) {
+      if(nMapCount == 2) {
+         // successful exit
+         return 0;
+      } else {
+         return -23;
+      }
    }
 
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return -12;
-   }
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_INT64) {
-      return -12;
+   if(nResult) {
+      return -24;
    }
 
-   if(QCBORDecode_Finish(&DC)) {
-      return -16;
-   }
-
-   return 0;
+   // tail recursion; good compilers will reuse the stack frame
+   return DecodeNextNested2(Bstr);
 }
 
 
-// TODO: this test needs work, it is using too much stack
 int32_t BstrWrapNestTest()
 {
    QCBOREncodeContext EC;
@@ -2063,12 +2026,12 @@ int32_t BstrWrapNestTest()
 
    QCBOREncode_OpenArray(&EC);
 
-   for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
+   for(int i = 0; i < BSTR_TEST_DEPTH; i++) {
       QCBOREncode_BstrWrap(&EC);
       QCBOREncode_OpenArray(&EC);
       QCBOREncode_AddInt64(&EC, i);
    }
-   for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
+   for(int i = 0; i < BSTR_TEST_DEPTH; i++) {
       QCBOREncode_CloseArray(&EC);
       QCBOREncode_CloseBstrWrap(&EC, NULL);
    }
@@ -2078,10 +2041,10 @@ int32_t BstrWrapNestTest()
       QCBOREncode_BstrWrapInMapN(&EC, i+0x20);
       QCBOREncode_OpenMap(&EC);
       QCBOREncode_AddInt64ToMapN(&EC, i+0x10, i+0x10);
+      QCBOREncode_AddSZStringToMapN(&EC, i+0x40, "hello");
    }
 
    for(int i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
-      QCBOREncode_AddSZStringToMapN(&EC, i+0x40, "hello");
       QCBOREncode_CloseMap(&EC);
       QCBOREncode_CloseBstrWrap(&EC, NULL);
    }
@@ -2095,67 +2058,51 @@ int32_t BstrWrapNestTest()
    }
 
    // ---Compare it to expected. Expected was hand checked with use of CBOR playground ----
-   //if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedDeepBstr), Encoded)) {
-   //   return -25;
-  // }
-   (void)spExpectedDeepBstr;
-
+   if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedDeepBstr), Encoded)) {
+      return -2;
+   }
 
    // ---- Decode it and see if it is OK ------
    QCBORDecodeContext DC;
    QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
 
-   QCBORItem Item;
-   //int64_t nInt;
    UsefulBufC Bstr;
    uint16_t nArrayCount;
 
+   // Array surrounding the the whole thing
    if(GetArray(&DC, &nArrayCount) || nArrayCount != 2) {
       return -3;
    }
 
+   // Get the byte string wrapping some array stuff
    if(GetByteString(&DC, &Bstr)) {
-      return -5;
+      return -4;
    }
 
+   // Decode the wrapped nested structure
    int nReturn = DecodeNextNested(Bstr);
    if(nReturn) {
       return nReturn;
    }
 
-
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_INT64) {
-      return -12;
+   // A map enclosing some map-oriented bstr wraps
+   if(GetMap(&DC, &nArrayCount)) {
+      return -5;
    }
 
-   QCBORDecode_GetNext(&DC, &Item);
-   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 2) {
-      return -2;
+   // Get the byte string wrapping some array stuff
+   if(GetByteString(&DC, &Bstr)) {
+      return -6;
    }
 
-   QCBORDecode_GetNext(&DC, &Item);
-   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return -3;
-   }
-   nReturn = DecodeNextNested2(Item.val.string);
+   // Decode the wrapped nested structure
+   nReturn = DecodeNextNested2(Bstr);
    if(nReturn) {
       return nReturn;
    }
 
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return -12;
-   }
-
    if(QCBORDecode_Finish(&DC)) {
-      return -16;
+      return -7;
    }
 
    return 0;
