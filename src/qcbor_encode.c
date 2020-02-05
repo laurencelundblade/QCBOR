@@ -405,12 +405,12 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
    }
 
    /*
-    Expression integer-promotes to type int. The code above in
-    function gaurantees that nAdditionalInfo will never be larger than
+    This expression integer-promotes to type int. The code above in
+    function guarantees that nAdditionalInfo will never be larger than
     0x1f. The caller may pass in a too-large uMajor type. The
     conversion to unint8_t will cause an integer wrap around and
     incorrect CBOR will be generated, but no security issue will
-    incur.
+    occur.
     */
    *--pByte = (uint8_t)((uMajorType << 5) + nAdditionalInfo);
 
@@ -454,7 +454,7 @@ static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t
     * save object code. It is very clear that pBufferForEncodedHead
     * is the correct size. If EncodedHead == NULLUsefulBufC then
     * UsefulOutBuf_AppendUsefulBuf() will do nothing so there is
-    * no security whole introduced.
+    * no security hole introduced.
     */
 
     UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), EncodedHead);
@@ -708,9 +708,11 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 */
 void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
-   // insert the indefinite length marker (0x9f for arrays, 0xbf for maps)
-    // TODO: debug this
+   // Insert the indefinite length marker (0x9f for arrays, 0xbf for maps)
    AppendCBORHead(me, uMajorType, 0, 0);
+   // Call the definite-length opener just to do the bookkeeping for
+   // nesting.  It will record the position of the opening item in
+   // the encoded output but this is not used when closing this open.
    QCBOREncode_OpenMapOrArray(me, uMajorType);
 }
 
