@@ -1830,7 +1830,36 @@ int32_t BstrWrapErrorTest()
 /*
  This is bstr wrapped CBOR in 6 levels.
 
- TODO: decscribe it
+ [
+   h'82004E82014B8202488203458204428105',
+   {
+     32:h'A3101018406568656C6C6F18215828A3111118416568656C6C6F18225819A312121
+     8426568656C6C6F18234BA2131318436568656C6C6F'
+   }
+ ]
+
+ Unwrapping the first byte string in the above gives
+   [0, h'82014B8202488203458204428105']
+
+ Unwrapping again, the byte string immediately above gives
+   [1, h'8202488203458204428105']
+
+ ...
+
+ Unrapping the second byte string in the top-level CBOR above gives
+   {16: 16,
+    64: "hello",
+    33: h'A3111118416568656C6C6F18225819A3121218426568656C6C6F18234BA2....
+ }
+
+ Unwrapping again, the byte string immediately above gives
+   {17: 17,
+    65: "hello",
+    34: h'A3121218426568656C6C6F18234BA2131318436568656C6C6F'
+ }
+
+ ...
+
  */
 static const uint8_t spExpectedDeepBstr[] =
 {
@@ -1847,88 +1876,100 @@ static const uint8_t spExpectedDeepBstr[] =
 };
 
 
-// TODO: return codes for these functions
-static int GetInt64(QCBORDecodeContext *pDC, int64_t *pInt)
+/*
+ Get an int64 out of the decoder or fail.
+ */
+static int32_t GetInt64(QCBORDecodeContext *pDC, int64_t *pInt)
 {
    QCBORItem Item;
-   int nReturn;
+   int32_t nReturn;
 
-   nReturn = QCBORDecode_GetNext(pDC, &Item);
+   nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
-      return -11;
+      return nReturn;
    }
    if(Item.uDataType != QCBOR_TYPE_INT64) {
-      return -12;
+      return -1;
    }
 
    *pInt = Item.val.int64;
    return 0;
 }
 
-static int GetArray(QCBORDecodeContext *pDC, uint16_t *pInt)
+/*
+ Get an array out of the decoder or fail.
+ */
+static int32_t GetArray(QCBORDecodeContext *pDC, uint16_t *pInt)
 {
    QCBORItem Item;
-   int nReturn;
+   int32_t nReturn;
 
-   nReturn = QCBORDecode_GetNext(pDC, &Item);
+   nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
-      return -11;
+      return nReturn;
    }
    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return -12;
+      return -1;
    }
 
    *pInt = Item.val.uCount;
    return 0;
 }
 
-
-static int GetMap(QCBORDecodeContext *pDC, uint16_t *pInt)
+/*
+ Get a map out of the decoder or fail.
+ */
+static int32_t GetMap(QCBORDecodeContext *pDC, uint16_t *pInt)
 {
    QCBORItem Item;
-   int nReturn;
+   int32_t nReturn;
 
-   nReturn = QCBORDecode_GetNext(pDC, &Item);
+   nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
-      return -11;
+      return nReturn;
    }
    if(Item.uDataType != QCBOR_TYPE_MAP) {
-      return -12;
+      return -1;
    }
 
    *pInt = Item.val.uCount;
    return 0;
 }
 
-
-static QCBORError GetByteString(QCBORDecodeContext *pDC, UsefulBufC *pBstr)
+/*
+ Get a byte string out of the decoder or fail.
+ */
+static int32_t GetByteString(QCBORDecodeContext *pDC, UsefulBufC *pBstr)
 {
    QCBORItem Item;
-   QCBORError nReturn;
+   int32_t nReturn;
 
-   nReturn = QCBORDecode_GetNext(pDC, &Item);
+   nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
       return nReturn;
    }
    if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return QCBOR_ERR_UNSUPPORTED; // TODO: better type?
+      return -1; // TODO: better type?
    }
 
    *pBstr = Item.val.string;
    return 0;
 }
 
-static int GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
+/*
+ Get a byte string out of the decoder or fail.
+ */
+static int32_t GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
 {
    QCBORItem Item;
    int nReturn;
 
-   nReturn = QCBORDecode_GetNext(pDC, &Item);
+   nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
       return nReturn;
    }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return -12;
+      return -1;
    }
 
    *pTstr = Item.val.string;
@@ -1936,14 +1977,18 @@ static int GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
 }
 
 
-// Part of bstr_wrap_nest_test
-static int32_t DecodeNextNested(UsefulBufC Wrapped)
+/*
+ Recursively decode array containing a little CBOR and a bstr wrapped array
+ with a little CBOR and a bstr wrapped array...
+
+ Part of bstr_wrap_nest_test.
+ */static int32_t DecodeNextNested(UsefulBufC Wrapped)
 {
    int64_t            nInt;
    UsefulBufC         Bstr;
    uint16_t           nArrayCount;
    QCBORDecodeContext DC;
-   QCBORError         nResult;
+   int32_t            nResult;
 
    QCBORDecode_Init(&DC, Wrapped, QCBOR_DECODE_MODE_NORMAL);
 
@@ -1973,10 +2018,15 @@ static int32_t DecodeNextNested(UsefulBufC Wrapped)
 }
 
 
-// Part of bstr_wrap_nest_test
+/*
+ Recursively decode map containing a little CBOR and a bstr wrapped map
+ with a little CBOR and a bstr wrapped map...
+
+ Part of bstr_wrap_nest_test.
+ */
 static int32_t DecodeNextNested2(UsefulBufC Wrapped)
 {
-   QCBORError         nResult;
+   int32_t            nResult;
    uint16_t           nMapCount;
    int64_t            nInt;
    UsefulBufC         Bstr;
@@ -2022,7 +2072,7 @@ int32_t BstrWrapNestTest()
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
    // ---- Make a complicated nested CBOR structure ---
-#define BSTR_TEST_DEPTH 6
+   #define BSTR_TEST_DEPTH 6
 
    QCBOREncode_OpenArray(&EC);
 
