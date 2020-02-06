@@ -434,18 +434,19 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
 /**
  @brief Append the CBOR head, the major type and argument
 
- @param me          Encoder context
- @param uMajorType  Major type to insert
- @param uArgument   The argument (an integer value or a length)
- @param uMinLen     The minimum number of bytes for the argument
+ @param me          Encoder context.
+ @param uMajorType  Major type to insert.
+ @param uArgument   The argument (an integer value or a length).
+ @param uMinLen     The minimum number of bytes for encoding the CBOR argument.
 
  This formats the CBOR "head" and appends it to the output.
  */
 static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t uArgument, uint8_t uMinLen)
 {
-    UsefulBuf_MAKE_STACK_UB  (pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
+   // A stack buffer large enough for a CBOR head
+   UsefulBuf_MAKE_STACK_UB  (pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
 
-    UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
+   UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
                                                     uMajorType,
                                                     uMinLen,
                                                     uArgument);
@@ -457,16 +458,16 @@ static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t
     * no security hole introduced.
     */
 
-    UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), EncodedHead);
+   UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), EncodedHead);
 }
 
 
 /**
  @brief Insert the CBOR head for a map, array or wrapped bstr
 
- @param me          QCBOR encoding context
- @param uMajorType  One of CBOR_MAJOR_TYPE_XXXX
- @param uLen        The length of the data item
+ @param me          QCBOR encoding context.
+ @param uMajorType  One of CBOR_MAJOR_TYPE_XXXX.
+ @param uLen        The length of the data item.
 
  When an array, map or bstr was opened, nothing was done but note
  the position. This function goes back to that position and inserts
