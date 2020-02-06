@@ -40,28 +40,28 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  This section contains comments describing changes made to the module.
  Notice that changes are listed in reverse chronological order.
 
- when       who             what, where, why
- --------   ----            ---------------------------------------------------
- 01/xx/2020 llundblade      QCBOREncode_EncodeHead() and other for bstr hashing.
- 01/25/2020 llundblade      Refine use of integer types to quiet static analysis.
- 01/08/2020 llundblade      Documentation corrections & improved code formatting.
- 12/30/19   llundblade      Add support for decimal fractions and bigfloats.
- 8/7/19     llundblade      Prevent encoding simple type reserved values 24..31
- 7/25/19    janjongboom     Add indefinite length encoding for maps and arrays
- 4/6/19     llundblade      Wrapped bstr returned now includes the wrapping bstr
- 12/30/18   llundblade      Small efficient clever encode of type & argument.
- 11/29/18   llundblade      Rework to simpler handling of tags and labels.
- 11/9/18    llundblade      Error codes are now enums.
- 11/1/18    llundblade      Floating support.
- 10/31/18   llundblade      Switch to one license that is almost BSD-3.
- 09/28/18   llundblade      Added bstr wrapping feature for COSE implementation.
- 02/05/18   llundbla        Works on CPUs which require integer alignment.
-                            Requires new version of UsefulBuf.
- 07/05/17   llundbla        Add bstr wrapping of maps/arrays for COSE
- 03/01/17   llundbla        More data types
- 11/13/16   llundbla        Integrate most TZ changes back into github version.
- 09/30/16   gkanike         Porting to TZ.
- 03/15/16   llundbla        Initial Version.
+ when       who            what, where, why
+ --------   ----           ---------------------------------------------------
+ 01/xx/2020 llundblade     QCBOREncode_EncodeHead() and other for bstr hashing.
+ 01/25/2020 llundblade     Refine use of integer types to quiet static analysis.
+ 01/08/2020 llundblade     Documentation corrections & improved code formatting.
+ 12/30/19   llundblade     Add support for decimal fractions and bigfloats.
+ 8/7/19     llundblade     Prevent encoding simple type reserved values 24..31
+ 7/25/19    janjongboom    Add indefinite length encoding for maps and arrays
+ 4/6/19     llundblade     Wrapped bstr returned now includes the wrapping bstr.
+ 12/30/18   llundblade     Small efficient clever encode of type & argument.
+ 11/29/18   llundblade     Rework to simpler handling of tags and labels.
+ 11/9/18    llundblade     Error codes are now enums.
+ 11/1/18    llundblade     Floating support.
+ 10/31/18   llundblade     Switch to one license that is almost BSD-3.
+ 09/28/18   llundblade     Added bstr wrapping feature for COSE implementation.
+ 02/05/18   llundbla       Works on CPUs which require integer alignment.
+                           Requires new version of UsefulBuf.
+ 07/05/17   llundbla       Add bstr wrapping of maps/arrays for COSE
+ 03/01/17   llundbla       More data types
+ 11/13/16   llundbla       Integrate most TZ changes back into github version.
+ 09/30/16   gkanike        Porting to TZ.
+ 03/15/16   llundbla       Initial Version.
 
  =============================================================================*/
 
@@ -727,7 +727,7 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 
 
 /*
- Public functions for closing bstr wrappaing. See qcbor.h
+ Public functions for closing bstr wrapping. See qcbor.h
  */
 void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, UsefulBufC *pWrappedCBOR)
 {
@@ -745,11 +745,11 @@ void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, U
    if(pWrappedCBOR) {
       /*
        Return pointer and length to the enclosed encoded CBOR. The
-       intended use is for it to be hashed (e.g., SHA-256) in a
-       COSE implementation.  This must be used right away, as the
-       pointer and length go invalid on any subsequent calls to
-       this function because there might be calls to
-       InsertEncodedTypeAndNumber() that slides data to the right.
+       intended use is for it to be hashed (e.g., SHA-256) in a COSE
+       implementation.  This must be used right away, as the pointer
+       and length go invalid on any subsequent calls to this function
+       because there might be calls to InsertEncodedTypeAndNumber()
+       that slides data to the right.
        */
       size_t uStartOfNew = uInsertPosition;
       if(!bIncludeCBORHead) {
@@ -774,10 +774,9 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t
       } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
          me->uError = QCBOR_ERR_CLOSE_MISMATCH;
       } else {
-         // Insert the break marker (0xff for both arrays and maps)
-          AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, CBOR_SIMPLE_BREAK, 0);
+         // Append the break marker (0xff for both arrays and maps)
+         AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, CBOR_SIMPLE_BREAK, 0);
 
-         // Decrease nesting level
          Nesting_Decrease(&(me->nesting));
       }
    }

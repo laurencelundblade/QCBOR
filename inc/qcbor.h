@@ -1937,11 +1937,13 @@ static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
  All added encoded items between this call and a call to
  QCBOREncode_CloseBstrWrap2() will be wrapped in a bstr. They will
  appear in the final output as a byte string.  That byte string will
- contain encoded CBOR.
+ contain encoded CBOR. This increases nesting level by one.
 
  The typical use case is for encoded CBOR that is to be
  cryptographically hashed, as part of a [RFC 8152, COSE]
- (https://tools.ietf.org/html/rfc8152) implementation. This avoids
+ (https://tools.ietf.org/html/rfc8152) implementation.
+
+ Using QCBOREncode_BstrWrap() and QCBOREncode_CloseBstrWrap2() avoids
  having to encode the items first in one buffer (e.g., the COSE
  payload) and then add that buffer as a bstr to another encoding
  (e.g. the COSE to-be-signed bytes, the @c Sig_structure) potentially
@@ -1968,7 +1970,7 @@ static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
 
  @param[in] pCtx              The encoding context to close of bstr wrapping in.
  @param[in] bIncludeCBORHead  Include the encoded CBOR head of the bstr
-                              as well as the bytes in @ cpWrappedCBOR.
+                              as well as the bytes in @c pWrappedCBOR.
  @param[out] pWrappedCBOR     A @ref UsefulBufC containing wrapped bytes.
 
  The closes a wrapping bstr opened by QCBOREncode_BstrWrap(). It reduces
@@ -1979,9 +1981,9 @@ static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
  this data can be hashed (e.g., with SHA-256) as part of a [RFC 8152,
  COSE] (https://tools.ietf.org/html/rfc8152)
  implementation. **WARNING**, this pointer and length should be used
- right away before any other calls to @c QCBOREncode_CloseXxx() as they
- will move data around and the pointer and length will no longer be to
- the correct encoded CBOR.
+ right away before any other calls to @c QCBOREncode_CloseXxx() as
+ they will move data around and the pointer and length will no longer
+ be to the correct encoded CBOR.
 
  When an error occurs as a result of this call, the encoder records
  the error and enters the error state. The error will be returned when
@@ -2136,7 +2138,7 @@ static int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
 */
 static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
 
-  
+
 /**
  Encode the "head" of a CBOR data item.
 
@@ -3507,23 +3509,6 @@ static inline void QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx
    QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
 
-
-static inline void QCBOREncode_OpenBstrWrap(QCBOREncodeContext *pCtx)
-{
-   QCBOREncode_OpenMapOrArray(pCtx, CBOR_MAJOR_TYPE_BYTE_STRING);
-}
-
-static inline void QCBOREncode_OpenBstrWrapInMap(QCBOREncodeContext *pCtx, const char *szLabel)
-{
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_BstrWrap(pCtx);
-}
-
-static inline void QCBOREncode_OpenBstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
-{
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_BstrWrap(pCtx);
-}
 
 static inline void QCBOREncode_BstrWrap(QCBOREncodeContext *pCtx)
 {
