@@ -1827,184 +1827,242 @@ int32_t BstrWrapErrorTest()
 }
 
 
-
-// Part of bstr_wrap_nest_test
 /*
- 83 array with three
- 53  byte string with 19 bytes
- 01  #1
- 50 byte string with 16 bytes
- 02
- 4D byte string with 13 bytes
- 03
- 4A byte string with 10 bytes
- 04
- 47 byte string with 7 bytes
- 05
- 44 byte string with 4 bytes
- 06
- 41 byte string with 1 byte
- 07
- 01
- 02
- 03
- 04
- 05
- 06
- 07
- A2 map with two items
- 18 20  label for byte string
- 54 byte string of length 20
- 82 Array with two items
- 10  The integer value 10
- A2 map with two items
- 18 21 label for byte string
- 44 byte string with 4 bytes
- 81 array with 1 item
- 11 integer value 11
- 18 30 integer value 30
- 18 40 integer label 40
- 65 68 65 6C 6C 6F text string hello
- 18 31 integer value 31
- 18 41 integer label 41
- 65 68 65 6C 6C 6F text string hello
+ This is bstr wrapped CBOR in 6 levels.
 
+ [
+   h'82004E82014B8202488203458204428105',
+   {
+     32:h'A3101018406568656C6C6F18215828A3111118416568656C6C6F18225819A312121
+     8426568656C6C6F18234BA2131318436568656C6C6F'
+   }
+ ]
 
- */
+ Unwrapping the first byte string in the above gives
+   [0, h'82014B8202488203458204428105']
 
+ Unwrapping again, the byte string immediately above gives
+   [1, h'8202488203458204428105']
 
-/*
- 83                                      # array(3)
-   56                                   # bytes(22)
-      00530150024D034A0447054406410700010203040506 # "\x00S\x01P\x02M\x03J\x04G\x05D\x06A\a\x00\x01\x02\x03\x04\x05\x06"
-   07                                   # unsigned(7)
-   A2                                   # map(2)
-      18 20                             # unsigned(32)
-      54                                # bytes(20)
-         8210A21821448111183018406568656C6C6F1831 # "\x82\x10\xA2\x18!D\x81\x11\x180\x18@ehello\x181"
-      18 41                             # unsigned(65)
-      65                                # text(5)
-         68656C6C6F                     # "hello"
+ ...
+
+ Unrapping the second byte string in the top-level CBOR above gives
+   {16: 16,
+    64: "hello",
+    33: h'A3111118416568656C6C6F18225819A3121218426568656C6C6F18234BA2....
+ }
+
+ Unwrapping again, the byte string immediately above gives
+   {17: 17,
+    65: "hello",
+    34: h'A3121218426568656C6C6F18234BA2131318436568656C6C6F'
+ }
+
+ ...
+
  */
 static const uint8_t spExpectedDeepBstr[] =
 {
-   0x83, 0x56, 0x00, 0x53, 0x01, 0x50, 0x02, 0x4D,
-   0x03, 0x4A, 0x04, 0x47, 0x05, 0x44, 0x06, 0x41,
-   0x07, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
-   0x07, 0xA2, 0x18, 0x20, 0x54, 0x82, 0x10, 0xA2,
-   0x18, 0x21, 0x44, 0x81, 0x11, 0x18, 0x30, 0x18,
-   0x40, 0x65, 0x68, 0x65, 0x6C, 0x6C, 0x6F, 0x18,
-   0x31, 0x18, 0x41, 0x65, 0x68, 0x65, 0x6C, 0x6C,
-   0x6F
+   0x82, 0x51, 0x82, 0x00, 0x4E, 0x82, 0x01, 0x4B,
+   0x82, 0x02, 0x48, 0x82, 0x03, 0x45, 0x82, 0x04,
+   0x42, 0x81, 0x05, 0xA1, 0x18, 0x20, 0x58, 0x37,
+   0xA3, 0x10, 0x10, 0x18, 0x40, 0x65, 0x68, 0x65,
+   0x6C, 0x6C, 0x6F, 0x18, 0x21, 0x58, 0x28, 0xA3,
+   0x11, 0x11, 0x18, 0x41, 0x65, 0x68, 0x65, 0x6C,
+   0x6C, 0x6F, 0x18, 0x22, 0x58, 0x19, 0xA3, 0x12,
+   0x12, 0x18, 0x42, 0x65, 0x68, 0x65, 0x6C, 0x6C,
+   0x6F, 0x18, 0x23, 0x4B, 0xA2, 0x13, 0x13, 0x18,
+   0x43, 0x65, 0x68, 0x65, 0x6C, 0x6C, 0x6F
 };
 
-// Part of bstr_wrap_nest_test
-static int DecodeNextNested(UsefulBufC Wrapped)
+
+/*
+ Get an int64 out of the decoder or fail.
+ */
+static int32_t GetInt64(QCBORDecodeContext *pDC, int64_t *pInt)
 {
-   int nReturn;
-   QCBORDecodeContext DC;
-   QCBORDecode_Init(&DC, Wrapped, QCBOR_DECODE_MODE_NORMAL);
-
    QCBORItem Item;
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_INT64) {
-      return -12;
-   }
+   int32_t nReturn;
 
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn == QCBOR_ERR_HIT_END || nReturn == QCBOR_ERR_NO_MORE_ITEMS) {
-      return 0;
-   }
-   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return -13;
-   }
-   nReturn =  DecodeNextNested(Item.val.string);
+   nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
       return nReturn;
    }
-
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -14;
-   }
    if(Item.uDataType != QCBOR_TYPE_INT64) {
-      return -15;
+      return -1;
    }
 
-   if(QCBORDecode_Finish(&DC)) {
-      return -16;
-   }
-
+   *pInt = Item.val.int64;
    return 0;
 }
 
-// Part of bstr_wrap_nest_test
-static int32_t DecodeNextNested2(UsefulBufC Wrapped)
+/*
+ Get an array out of the decoder or fail.
+ */
+static int32_t GetArray(QCBORDecodeContext *pDC, uint16_t *pInt)
 {
-   int nReturn;
-   QCBORDecodeContext DC;
-   QCBORDecode_Init(&DC, Wrapped, QCBOR_DECODE_MODE_NORMAL);
-
    QCBORItem Item;
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return -12;
-   }
+   int32_t nReturn;
 
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_INT64) {
-      return -12;
-   }
-
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_MAP) {
-      return 0;
-   }
-
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return -13;
-   }
-   nReturn =  DecodeNextNested2(Item.val.string);
+   nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
       return nReturn;
    }
+   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return -1;
+   }
 
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
+   *pInt = Item.val.uCount;
+   return 0;
+}
+
+/*
+ Get a map out of the decoder or fail.
+ */
+static int32_t GetMap(QCBORDecodeContext *pDC, uint16_t *pInt)
+{
+   QCBORItem Item;
+   int32_t nReturn;
+
+   nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
-      return -11;
+      return nReturn;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP) {
+      return -1;
+   }
+
+   *pInt = Item.val.uCount;
+   return 0;
+}
+
+/*
+ Get a byte string out of the decoder or fail.
+ */
+static int32_t GetByteString(QCBORDecodeContext *pDC, UsefulBufC *pBstr)
+{
+   QCBORItem Item;
+   int32_t nReturn;
+
+   nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
+   if(nReturn) {
+      return nReturn;
+   }
+   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
+      return -1; // TODO: better type?
+   }
+
+   *pBstr = Item.val.string;
+   return 0;
+}
+
+/*
+ Get a byte string out of the decoder or fail.
+ */
+static int32_t GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
+{
+   QCBORItem Item;
+   int nReturn;
+
+   nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
+   if(nReturn) {
+      return nReturn;
    }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return -12;
+      return -1;
    }
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
+
+   *pTstr = Item.val.string;
+   return 0;
+}
+
+
+/*
+ Recursively decode array containing a little CBOR and a bstr wrapped array
+ with a little CBOR and a bstr wrapped array...
+
+ Part of bstr_wrap_nest_test.
+ */static int32_t DecodeNextNested(UsefulBufC Wrapped)
+{
+   int64_t            nInt;
+   UsefulBufC         Bstr;
+   uint16_t           nArrayCount;
+   QCBORDecodeContext DC;
+   int32_t            nResult;
+
+   QCBORDecode_Init(&DC, Wrapped, QCBOR_DECODE_MODE_NORMAL);
+
+   if(GetArray(&DC, &nArrayCount) || nArrayCount < 1 || nArrayCount > 2) {
+      return -10;
+   }
+
+   if(GetInt64(&DC, &nInt)) {
       return -11;
    }
-   if(Item.uDataType != QCBOR_TYPE_INT64) {
-      return -12;
+
+   nResult = GetByteString(&DC, &Bstr);
+   if(nResult == QCBOR_ERR_HIT_END || nResult == QCBOR_ERR_NO_MORE_ITEMS) {
+      if(nArrayCount != 1) {
+         return -12;
+      } else {
+         // successful exit
+         return 0;
+      }
+   }
+   if(nResult) {
+      return -13;
    }
 
-   if(QCBORDecode_Finish(&DC)) {
-      return -16;
+   // tail recursion; good compilers will reuse the stack frame
+   return DecodeNextNested(Bstr);
+}
+
+
+/*
+ Recursively decode map containing a little CBOR and a bstr wrapped map
+ with a little CBOR and a bstr wrapped map...
+
+ Part of bstr_wrap_nest_test.
+ */
+static int32_t DecodeNextNested2(UsefulBufC Wrapped)
+{
+   int32_t            nResult;
+   uint16_t           nMapCount;
+   int64_t            nInt;
+   UsefulBufC         Bstr;
+   QCBORDecodeContext DC;
+
+   QCBORDecode_Init(&DC, Wrapped, QCBOR_DECODE_MODE_NORMAL);
+
+   if(GetMap(&DC, &nMapCount) || nMapCount < 2 || nMapCount > 3) {
+      return -20;
    }
 
-   return 0;
+   if(GetInt64(&DC, &nInt)) {
+      return -21;
+   }
+
+   // The "hello"
+   if(GetTextString(&DC, &Bstr)) {
+      return -22;
+   }
+
+   nResult = GetByteString(&DC, &Bstr);
+   if(nResult == QCBOR_ERR_HIT_END || nResult == QCBOR_ERR_NO_MORE_ITEMS) {
+      if(nMapCount == 2) {
+         // successful exit
+         return 0;
+      } else {
+         return -23;
+      }
+   }
+
+   if(nResult) {
+      return -24;
+   }
+
+   // tail recursion; good compilers will reuse the stack frame
+   return DecodeNextNested2(Bstr);
 }
 
 
@@ -2014,34 +2072,34 @@ int32_t BstrWrapNestTest()
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
    // ---- Make a complicated nested CBOR structure ---
-#define BSTR_TEST_DEPTH 10
+   #define BSTR_TEST_DEPTH 6
 
    QCBOREncode_OpenArray(&EC);
 
-   for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
+   for(int i = 0; i < BSTR_TEST_DEPTH; i++) {
       QCBOREncode_BstrWrap(&EC);
-      QCBOREncode_AddInt64(&EC, i);
-   }
-
-   for(int i = 0; i < BSTR_TEST_DEPTH-2; i++) {
-      QCBOREncode_CloseBstrWrap(&EC, NULL);
-      QCBOREncode_AddInt64(&EC, i);
-   }
-
-   for(int i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
-      QCBOREncode_OpenMap(&EC);
-      QCBOREncode_BstrWrapInMapN(&EC, i+0x20);
       QCBOREncode_OpenArray(&EC);
-      QCBOREncode_AddInt64(&EC, i+0x10);
+      QCBOREncode_AddInt64(&EC, i);
+   }
+   for(int i = 0; i < BSTR_TEST_DEPTH; i++) {
+      QCBOREncode_CloseArray(&EC);
+      QCBOREncode_CloseBstrWrap(&EC, NULL);
    }
 
-   for(int i = 0; i < (BSTR_TEST_DEPTH-2)/3; i++) {
-      QCBOREncode_CloseArray(&EC);
-      QCBOREncode_AddInt64(&EC, i+0x30);
-      QCBOREncode_CloseBstrWrap(&EC, NULL);
+   QCBOREncode_OpenMap(&EC);
+   for(int i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
+      QCBOREncode_BstrWrapInMapN(&EC, i+0x20);
+      QCBOREncode_OpenMap(&EC);
+      QCBOREncode_AddInt64ToMapN(&EC, i+0x10, i+0x10);
       QCBOREncode_AddSZStringToMapN(&EC, i+0x40, "hello");
-      QCBOREncode_CloseMap(&EC);
    }
+
+   for(int i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
+      QCBOREncode_CloseMap(&EC);
+      QCBOREncode_CloseBstrWrap(&EC, NULL);
+   }
+   QCBOREncode_CloseMap(&EC);
+
    QCBOREncode_CloseArray(&EC);
 
    UsefulBufC Encoded;
@@ -2051,62 +2109,50 @@ int32_t BstrWrapNestTest()
 
    // ---Compare it to expected. Expected was hand checked with use of CBOR playground ----
    if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedDeepBstr), Encoded)) {
-      return -25;
+      return -2;
    }
-
 
    // ---- Decode it and see if it is OK ------
    QCBORDecodeContext DC;
    QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
 
-   QCBORItem Item;
-   QCBORDecode_GetNext(&DC, &Item);
-   if(Item.uDataType != QCBOR_TYPE_ARRAY || Item.val.uCount != 3) {
-      return -2;
-   }
+   UsefulBufC Bstr;
+   uint16_t nArrayCount;
 
-   QCBORDecode_GetNext(&DC, &Item);
-   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
+   // Array surrounding the the whole thing
+   if(GetArray(&DC, &nArrayCount) || nArrayCount != 2) {
       return -3;
    }
 
-   int nReturn = DecodeNextNested(Item.val.string);
+   // Get the byte string wrapping some array stuff
+   if(GetByteString(&DC, &Bstr)) {
+      return -4;
+   }
+
+   // Decode the wrapped nested structure
+   int nReturn = DecodeNextNested(Bstr);
    if(nReturn) {
       return nReturn;
    }
 
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_INT64) {
-      return -12;
+   // A map enclosing some map-oriented bstr wraps
+   if(GetMap(&DC, &nArrayCount)) {
+      return -5;
    }
 
-   QCBORDecode_GetNext(&DC, &Item);
-   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 2) {
-      return -2;
+   // Get the byte string wrapping some array stuff
+   if(GetByteString(&DC, &Bstr)) {
+      return -6;
    }
 
-   QCBORDecode_GetNext(&DC, &Item);
-   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return -3;
-   }
-   nReturn = DecodeNextNested2(Item.val.string);
+   // Decode the wrapped nested structure
+   nReturn = DecodeNextNested2(Bstr);
    if(nReturn) {
       return nReturn;
-   }
-
-   nReturn = QCBORDecode_GetNext(&DC, &Item);
-   if(nReturn) {
-      return -11;
-   }
-   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return -12;
    }
 
    if(QCBORDecode_Finish(&DC)) {
-      return -16;
+      return -7;
    }
 
    return 0;
@@ -2160,9 +2206,8 @@ static const uint8_t pProtectedHeaders[] = {0xa1, 0x01, 0x26};
 
 /*
  This corresponds exactly to the example in RFC 8152 section
- C.2.1. This doesn't actually verify the signature though that would
- be nice as it would make the test really good. That would require
- bring in ECDSA crypto to this test.
+ C.2.1. This doesn't actually verify the signature (however
+ the t_cose implementation does).
  */
 int32_t CoseSign1TBSTest()
 {
@@ -2175,6 +2220,8 @@ int32_t CoseSign1TBSTest()
    const UsefulBufC     Signature        = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCoseSign1Signature);
 
    QCBOREncodeContext EC;
+
+   // --------QCBOREncode_CloseBstrWrap2(&EC, **false** ----------------------
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
    // top level array for cose sign1, 18 is the tag for COSE sign
@@ -2195,14 +2242,19 @@ int32_t CoseSign1TBSTest()
    // Payload is not actually CBOR in example C.2.1 like it would be
    // for a CWT or EAT. It is just a text string.
    QCBOREncode_AddEncoded(&EC, Payload);
-   QCBOREncode_CloseBstrWrap(&EC, &WrappedPayload);
+   QCBOREncode_CloseBstrWrap2(&EC, false, &WrappedPayload);
 
    // Check we got back the actual payload expected
    // The extra "T" is 0x54, which is the initial byte a bstr of length 20.
    if(UsefulBuf_Compare(WrappedPayload,
-                        UsefulBuf_FROM_SZ_LITERAL("TThis is the content."))) {
+                        UsefulBuf_FROM_SZ_LITERAL("This is the content."))) {
       return -1;
    }
+
+/*   if(UsefulBuf_Compare(WrappedPayload,
+                        UsefulBuf_FROM_SZ_LITERAL("TThis is the content."))) {
+      return -1;
+   } */
 
    // The signature
    QCBOREncode_AddBytes(&EC, Signature);
@@ -2224,6 +2276,57 @@ int32_t CoseSign1TBSTest()
    // CBOR playground.
    if(CheckResults(COSE_Sign1, spCoseSign1TBSExpected)) {
       return -4;
+   }
+
+
+   // --------QCBOREncode_CloseBstrWrap2(&EC, **true** ------------------------
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   // top level array for cose sign1, 18 is the tag for COSE sign
+   QCBOREncode_AddTag(&EC, CBOR_TAG_COSE_SIGN1);
+   QCBOREncode_OpenArray(&EC);
+
+   // Add protected headers
+   QCBOREncode_AddBytes(&EC, ProtectedHeaders);
+
+   // Empty map with unprotected headers
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddBytesToMapN(&EC, 4, Kid);
+   QCBOREncode_CloseMap(&EC);
+
+   // The payload
+   QCBOREncode_BstrWrap(&EC);
+   // Payload is not actually CBOR in example C.2.1 like it would be
+   // for a CWT or EAT. It is just a text string.
+   QCBOREncode_AddEncoded(&EC, Payload);
+   QCBOREncode_CloseBstrWrap2(&EC, true, &WrappedPayload);
+
+   // Check we got back the actual payload expected
+   // The extra "T" is 0x54, which is the initial byte a bstr of length 20.
+   if(UsefulBuf_Compare(WrappedPayload,
+                        UsefulBuf_FROM_SZ_LITERAL("TThis is the content."))) {
+      return -11;
+   }
+
+   // The signature
+   QCBOREncode_AddBytes(&EC, Signature);
+   QCBOREncode_CloseArray(&EC);
+
+   // Finish and check the results
+   if(QCBOREncode_Finish(&EC, &COSE_Sign1)) {
+      return -12;
+   }
+
+   // 98 is the size from RFC 8152 C.2.1
+   if(COSE_Sign1.len != 98) {
+      return -13;
+   }
+
+   // It would be good to compare this to the output from a COSE
+   // implementation like COSE-C. This has been checked against the
+   // CBOR playground.
+   if(CheckResults(COSE_Sign1, spCoseSign1TBSExpected)) {
+      return -14;
    }
 
    return 0;
@@ -2596,3 +2699,52 @@ int32_t ExponentAndMantissaEncodeTests()
 }
 
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
+
+int32_t QCBORHeadTest()
+{
+   /* This test doesn't have to be extensive, because just about every
+    * other test exercises QCBOREncode_EncodeHead().
+    */
+   // ---- basic test to encode a zero ----
+   MakeUsefulBufOnStack(RightSize, QCBOR_HEAD_BUFFER_SIZE);
+
+   UsefulBufC encoded = QCBOREncode_EncodeHead(RightSize,
+                                               CBOR_MAJOR_TYPE_POSITIVE_INT,
+                                               0,
+                                               0);
+
+   static const uint8_t expectedZero[] = {0x00};
+
+   if(UsefulBuf_Compare(encoded, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(expectedZero))) {
+      return -1;
+   }
+
+   // ---- Encode a zero padded out to an 8 byte integer ----
+   encoded = QCBOREncode_EncodeHead(RightSize,
+                                    CBOR_MAJOR_TYPE_POSITIVE_INT,
+                                    8, // uMinSize is 8 bytes
+                                    0);
+
+   static const uint8_t expected9bytes[] = {0x1b, 0x00, 0x00, 0x00, 0x00,
+                                                  0x00, 0x00, 0x00, 0x00};
+
+   if(UsefulBuf_Compare(encoded, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(expected9bytes))) {
+      return -2;
+   }
+
+
+   // ---- Try to encode into too-small a buffer ----
+   MakeUsefulBufOnStack(TooSmall, QCBOR_HEAD_BUFFER_SIZE-1);
+
+   encoded = QCBOREncode_EncodeHead(TooSmall,
+                                    CBOR_MAJOR_TYPE_POSITIVE_INT,
+                                    0,
+                                    0);
+
+   if(!UsefulBuf_IsNULLC(encoded)) {
+      return -3;
+   }
+
+   return 0;
+}

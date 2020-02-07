@@ -43,6 +43,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when       who           what, where, why
  --------   ----          ---------------------------------------------------
+ 02/07/2020 llundblade    QCBOREncode_EncodeHead() and other for bstr hashing.
  01/25/2020 llundblade    Cleaner handling of too-long encoded string input.
  01/08/2020 llundblade    Documentation corrections & improved code formatting.
  12/30/19   llundblade    Add support for decimal fractions and bigfloats.
@@ -90,6 +91,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef __cplusplus
 extern "C" {
+#ifdef 0
+} // Keep editor indention formatting happy
+#endif
 #endif
 
 /*
@@ -660,6 +664,13 @@ struct _QCBORDecodeContext {
  */
 #define QCBOR_MAX_CUSTOM_TAGS    16
 
+/*
+ The size of the buffer to be passed to QCBOREncode_EncodeHead(). It is one
+ byte larger than sizeof(uint64_t) + 1, the actual maximum size of the
+ head of a CBOR data item. because QCBOREncode_EncodeHead() needs
+ one extra byte to work.
+ */
+#define QCBOR_HEAD_BUFFER_SIZE  (sizeof(uint64_t) + 2)
 
 /**
  Error codes returned by QCBOR Encoder and Decoder.
@@ -1924,31 +1935,28 @@ static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
  @param[in] pCtx The encoding context to open the bstr-wrapped CBOR in.
 
  All added encoded items between this call and a call to
- QCBOREncode_CloseBstrWrap() will be wrapped in a bstr. They will
+ QCBOREncode_CloseBstrWrap2() will be wrapped in a bstr. They will
  appear in the final output as a byte string.  That byte string will
- contain encoded CBOR.
+ contain encoded CBOR. This increases nesting level by one.
 
  The typical use case is for encoded CBOR that is to be
  cryptographically hashed, as part of a [RFC 8152, COSE]
- (https://tools.ietf.org/html/rfc8152) implementation. This avoids
+ (https://tools.ietf.org/html/rfc8152) implementation.
+
+ Using QCBOREncode_BstrWrap() and QCBOREncode_CloseBstrWrap2() avoids
  having to encode the items first in one buffer (e.g., the COSE
  payload) and then add that buffer as a bstr to another encoding
  (e.g. the COSE to-be-signed bytes, the @c Sig_structure) potentially
- saving a lot of memory.
+ halving the memory needed.
 
- When constructing cryptographically signed CBOR objects, maps or
- arrays, they typically are encoded normally and then wrapped as a
- byte string. The COSE standard for example does this. The wrapping is
- simply treating the encoded CBOR map as a byte string.
-
- The stated purpose of this wrapping is to prevent code relaying the
- signed data but not verifying it from tampering with the signed data
- thus making the signature unverifiable. It is also quite beneficial
- for the signature verification code. Standard CBOR parsers usually do
- not give access to partially parsed CBOR as would be need to check
- the signature of some CBOR. With this wrapping, standard CBOR parsers
- can be used to get to all the data needed for a signature
- verification.
+ RFC 7049 states the purpose of this wrapping is to prevent code
+ relaying the signed data but not verifying it from tampering with the
+ signed data thus making the signature unverifiable. It is also quite
+ beneficial for the signature verification code. Standard CBOR
+ decoders usually do not give access to partially decoded CBOR as
+ would be needed to check the signature of some CBOR. With this
+ wrapping, standard CBOR decoders can be used to get to all the data
+ needed for a signature verification.
  */
 static void QCBOREncode_BstrWrap(QCBOREncodeContext *pCtx);
 
@@ -1960,10 +1968,12 @@ static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
 /**
  @brief Close a wrapping bstr.
 
- @param[in] pCtx           The encoding context to close of bstr wrapping in.
- @param[out] pWrappedCBOR  A @ref UsefulBufC containing wrapped bytes.
+ @param[in] pCtx              The encoding context to close of bstr wrapping in.
+ @param[in] bIncludeCBORHead  Include the encoded CBOR head of the bstr
+                              as well as the bytes in @c pWrappedCBOR.
+ @param[out] pWrappedCBOR     A @ref UsefulBufC containing wrapped bytes.
 
- The closes a wrapping bstr opened by QCBOREncode_CloseBstrWrap(). It reduces
+ The closes a wrapping bstr opened by QCBOREncode_BstrWrap(). It reduces
  nesting level by one.
 
  A pointer and length of the enclosed encoded CBOR is returned in @c
@@ -1971,22 +1981,27 @@ static void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
  this data can be hashed (e.g., with SHA-256) as part of a [RFC 8152,
  COSE] (https://tools.ietf.org/html/rfc8152)
  implementation. **WARNING**, this pointer and length should be used
- right away before any other calls to @c QCBOREncode_Xxx() as they
- will move data around and the pointer and length will no longer be to
- the correct encoded CBOR.
+ right away before any other calls to @c QCBOREncode_CloseXxx() as
+ they will move data around and the pointer and length will no longer
+ be to the correct encoded CBOR.
 
  When an error occurs as a result of this call, the encoder records
  the error and enters the error state. The error will be returned when
  QCBOREncode_Finish() is called.
 
- If this has been called more times than QCBOREncode_BstrWrap(),
- then @ref QCBOR_ERR_TOO_MANY_CLOSES will be returned when
+ If this has been called more times than QCBOREncode_BstrWrap(), then
+ @ref QCBOR_ERR_TOO_MANY_CLOSES will be returned when
  QCBOREncode_Finish() is called.
 
  If this is called and it is not a wrapping bstr that is currently
  open, @ref QCBOR_ERR_CLOSE_MISMATCH will be returned when
  QCBOREncode_Finish() is called.
+
+ QCBOREncode_CloseBstrWrap() is a deprecated version of this function
+ that is equivalent to the call with @c bIncludeCBORHead @c true.
  */
+void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *pCtx, bool bIncludeCBORHead, UsefulBufC *pWrappedCBOR);
+
 static void QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWrappedCBOR);
 
 
@@ -2123,6 +2138,46 @@ static int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
 */
 static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
 
+
+/**
+ Encode the "head" of a CBOR data item.
+
+ @param buffer       Buffer to output the encoded head to; must be
+                     @ref QCBOR_HEAD_BUFFER_SIZE bytes in size.
+ @param uMajorType   One of CBOR_MAJOR_TYPE_XX.
+ @param uMinLen      The minimum number of bytes to encode uNumber. Almost always
+                     this is 0 to use preferred minimal encoding. If this is 4,
+                     then even the values 0xffff and smaller will be encoded
+                     as in 4 bytes. This is used primarily when encoding a
+                     float or double put into uNumber as the leading zero bytes
+                     for them must be encoded.
+ @param uNumber      The numeric argument part of the CBOR head.
+ @return             Pointer and length of the encoded head or
+                     @NULLUsefulBufC if the output buffer is too small.
+
+ Callers to need to call this for normal CBOR encoding. Note that it doesn't even
+ take a @ref QCBOREncodeContext argument.
+
+ This encodes the major type and argument part of a data item. The
+ argument is an integer that is usually either the value or the length
+ of the data item.
+
+ This is exposed in the public interface to allow hashing of some CBOR
+ data types, bstr in particular, a chunk at a time so the full CBOR
+ doesn't have to be encoded in a contiguous buffer.
+
+ For example, if you have a 100,000 byte binary blob in a buffer that
+ needs to be a bstr encoded and then hashed. You could allocate a
+ 100,010 byte buffer and encode it normally. Alternatively, you can
+ encode the head in a 10 byte buffer with this function, hash that and
+ then hash the 100,000 bytes using the same hash context.
+
+ See also QCBOREncode_AddBytesLenOnly();
+ */
+UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
+                                  uint8_t   uMajorType,
+                                  uint8_t   uMinLen,
+                                  uint64_t  uNumber);
 
 
 /**
@@ -2749,35 +2804,31 @@ void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx, uint8_
 
  @param[in] pCtx           The context to add to.
  @param[in] uMajorType     The major CBOR type to close.
- @param[out] pWrappedCBOR  Pointer to @ref UsefulBufC containing wrapped bytes.
 
- Call QCBOREncode_CloseArray(), QCBOREncode_CloseMap() or
- QCBOREncode_CloseBstrWrap() instead of this.
+ Call QCBOREncode_CloseArray() or QCBOREncode_CloseMap() instead of this.
  */
-void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *pCtx,
-                                 uint8_t uMajorType,
-                                 UsefulBufC *pWrappedCBOR);
+void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *pCtx, uint8_t uMajorType);
+
 
 /**
  @brief Semi-private method to close a map, array with indefinite length
 
  @param[in] pCtx           The context to add to.
  @param[in] uMajorType     The major CBOR type to close.
- @param[out] pWrappedCBOR  Pointer to @ref UsefulBufC containing wrapped bytes.
 
  Call QCBOREncode_CloseArrayIndefiniteLength() or
  QCBOREncode_CloseMapIndefiniteLength() instead of this.
  */
 void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
-                                                 uint8_t uMajorType,
-                                                 UsefulBufC *pWrappedCBOR);
+                                                 uint8_t uMajorType);
+
 
 /**
  @brief  Semi-private method to add simple types.
 
- @param[in] pCtx   The encoding context to add the simple value to.
- @param[in] uSize  Minimum encoding size for uNum. Usually 0.
- @param[in] uNum   One of CBOR_SIMPLEV_FALSE through _UNDEF or other.
+ @param[in] pCtx     The encoding context to add the simple value to.
+ @param[in] uMinLen  Minimum encoding size for uNum. Usually 0.
+ @param[in] uNum     One of CBOR_SIMPLEV_FALSE through _UNDEF or other.
 
  This is used to add simple types like true and false.
 
@@ -2790,7 +2841,7 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
 
  Error handling is the same as QCBOREncode_AddInt64().
  */
-void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, size_t uSize, uint64_t uNum);
+void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, uint8_t uMinLen, uint64_t uNum);
 
 
 /**
@@ -2837,6 +2888,8 @@ void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pCtx,
 
  This is only used for this odd case, but this is a supported
  tested function.
+
+ See also QCBOREncode_EncodeHead().
 */
 static inline void QCBOREncode_AddBytesLenOnly(QCBOREncodeContext *pCtx, UsefulBufC Bytes);
 
@@ -3385,7 +3438,7 @@ static inline void QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pCtx,  int64_
 
 static inline void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx)
 {
-   QCBOREncode_CloseMapOrArray(pCtx, CBOR_MAJOR_TYPE_ARRAY, NULL);
+   QCBOREncode_CloseMapOrArray(pCtx, CBOR_MAJOR_TYPE_ARRAY);
 }
 
 
@@ -3408,7 +3461,7 @@ static inline void QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pCtx, int64_t n
 
 static inline void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx)
 {
-   QCBOREncode_CloseMapOrArray(pCtx, CBOR_MAJOR_TYPE_MAP, NULL);
+   QCBOREncode_CloseMapOrArray(pCtx, CBOR_MAJOR_TYPE_MAP);
 }
 
 static inline void QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pCtx)
@@ -3430,7 +3483,7 @@ static inline void QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContex
 
 static inline void QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pCtx)
 {
-   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN, NULL);
+   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
 }
 
 
@@ -3453,8 +3506,9 @@ static inline void QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext 
 
 static inline void QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx)
 {
-   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN, NULL);
+   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
+
 
 static inline void QCBOREncode_BstrWrap(QCBOREncodeContext *pCtx)
 {
@@ -3475,7 +3529,7 @@ static inline void QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t 
 
 static inline void QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWrappedCBOR)
 {
-   QCBOREncode_CloseMapOrArray(pCtx, CBOR_MAJOR_TYPE_BYTE_STRING, pWrappedCBOR);
+   QCBOREncode_CloseBstrWrap2(pCtx, true, pWrappedCBOR);
 }
 
 

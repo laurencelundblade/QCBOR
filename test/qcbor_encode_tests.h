@@ -173,12 +173,21 @@ int32_t CoseSign1TBSTest(void);
 int32_t ExponentAndMantissaEncodeTests(void);
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
+
 /*
  Test the error cases when encoding CBOR such as buffer too large,
  buffer too small, array nesting too deep. Aims to cover the error
  codes returned when encoding CBOR
  */
 int32_t EncodeErrorTests(void);
+
+
+/*
+ Test QCBOREncode_EncodeHead(). This is a minimal test because every other
+ test here exercises it in some way.
+ */
+int32_t QCBORHeadTest(void);
+
 
 
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */
