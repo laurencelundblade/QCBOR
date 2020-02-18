@@ -293,4 +293,9 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
 {
     me->verification_key = verification_key;
 }
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* __T_COSE_SIGN1_VERIFY_H__ */
