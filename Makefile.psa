@@ -37,7 +37,7 @@ TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_sign_verify_test.o test
 
 
 # ---- the main body that is invariant ----
-INC=-I inc -I Test  -I src
+INC=-I inc -I test  -I src
 ALL_INC=$(CRYPTO_INC) $(QCBOR_INC) $(INC) 
 CFLAGS=$(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
 
