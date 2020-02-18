@@ -361,13 +361,20 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
    // The 5 bits in the initial byte that are not the major type
    int nAdditionalInfo;
 
+#ifndef QCBOR_CONFIG_DISABLE_ENCODE_INDEFINITE_LENGTH_MAP_ARRAY
    if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN) {
       uMajorType = CBOR_MAJOR_TYPE_ARRAY;
       nAdditionalInfo = LEN_IS_INDEFINITE;
    } else if (uMajorType == CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN) {
       uMajorType = CBOR_MAJOR_TYPE_MAP;
       nAdditionalInfo = LEN_IS_INDEFINITE;
-   } else if (uArgument < CBOR_TWENTY_FOUR && uMinLen == 0) {
+   }
+#elif
+   if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN ||
+       uMajorType == CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN)
+       return NULLUsefulBufC;
+#endif
+   else if (uArgument < CBOR_TWENTY_FOUR && uMinLen == 0) {
       // Simple case where argument is < 24
       nAdditionalInfo = (int)uArgument;
    } else if (uMajorType == CBOR_MAJOR_TYPE_SIMPLE && uArgument == CBOR_SIMPLE_BREAK) {
@@ -707,6 +714,7 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 
  See qcbor.h
 */
+#ifndef QCBOR_CONFIG_DISABLE_ENCODE_INDEFINITE_LENGTH_MAP_ARRAY
 void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
    // Insert the indefinite length marker (0x9f for arrays, 0xbf for maps)
@@ -716,6 +724,7 @@ void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t 
    // the encoded output but this is not used when closing this open.
    QCBOREncode_OpenMapOrArray(me, uMajorType);
 }
+#endif
 
 
 /*
@@ -767,6 +776,7 @@ void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, U
 /*
  Public functions for closing arrays and maps. See qcbor.h
  */
+#ifndef QCBOR_CONFIG_DISABLE_ENCODE_INDEFINITE_LENGTH_MAP_ARRAY
 void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
    if(me->uError == QCBOR_SUCCESS) {
@@ -782,6 +792,7 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t
       }
    }
 }
+#endif
 
 
 /*
