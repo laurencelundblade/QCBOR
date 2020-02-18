@@ -39,7 +39,7 @@ extern "C" {
 
 /** Make test message with a bstr label, which is not allowed by
   * COSE */
-#define T_COSE_TEST_PARAMETER_LABEL 0x80000000
+#define T_COSE_TEST_PARAMETER_LABEL 0x80000000U
 
 /** Format of the crit parameter is made invalid */
 #define T_COSE_TEST_BAD_CRIT_PARAMETER   0x40000000
@@ -135,7 +135,7 @@ extern "C" {
  */
 enum t_cose_err_t
 t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
-                               int32_t                       test_message_options,
+                               uint32_t                      test_message_options,
                                struct q_useful_buf_c         payload,
                                struct q_useful_buf           out_buf,
                                struct q_useful_buf_c        *result);

@@ -201,7 +201,7 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
  */
 void free_ecdsa_key_pair(struct t_cose_key key_pair)
 {
-   psa_close_key(key_pair.k.key_handle);
+   psa_close_key((psa_key_handle_t)key_pair.k.key_handle);
 }
 
 

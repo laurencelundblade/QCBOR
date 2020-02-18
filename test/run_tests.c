@@ -120,11 +120,11 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 
    bool bDidSomeOutput = false;
    for(int32_t n = nMax; n > 0; n/=10) {
-      int32_t x = nNum/n;
-      if(x || bDidSomeOutput){
+      int32_t nDigitValue = nNum/n;
+      if(nDigitValue || bDidSomeOutput){
          bDidSomeOutput = true;
-         UsefulOutBuf_AppendByte(&OutBuf, '0' + x);
-         nNum -= x * n;
+         UsefulOutBuf_AppendByte(&OutBuf, (uint8_t)('0' + nDigitValue));
+         nNum -= nDigitValue * n;
       }
    }
    if(!bDidSomeOutput){
@@ -270,7 +270,7 @@ static void PrintSize(const char *szWhat,
 
    (*pfOutput)(szWhat, pOutCtx, 0);
    (*pfOutput)(" ", pOutCtx, 0);
-   (*pfOutput)(NumToString(uSize, buffer), pOutCtx, 0);
+   (*pfOutput)(NumToString((int32_t)uSize, buffer), pOutCtx, 0);
    (*pfOutput)("", pOutCtx, 1);
 }
 

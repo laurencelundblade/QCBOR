@@ -120,7 +120,7 @@ Done:
  * \c T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS.
  */
 static inline struct q_useful_buf_c
-encode_protected_parameters(int32_t             test_message_options,
+encode_protected_parameters(uint32_t             test_message_options,
                             int32_t             cose_algorithm_id,
                             struct q_useful_buf buffer_for_protected_parameters)
 {
@@ -267,7 +267,7 @@ Finish:
  * lots of different test parameters.
  */
 static inline void
-add_unprotected_parameters(int32_t              test_message_options,
+add_unprotected_parameters(uint32_t              test_message_options,
                            QCBOREncodeContext   *cbor_encode_ctx,
                            struct q_useful_buf_c kid)
 {
@@ -385,7 +385,7 @@ add_unprotected_parameters(int32_t              test_message_options,
  */
 static enum t_cose_err_t
 t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
-                                            int32_t                       test_mess_options,
+                                            uint32_t                       test_mess_options,
                                             QCBOREncodeContext           *cbor_encode_ctx)
 {
     enum t_cose_err_t      return_value;
@@ -565,7 +565,7 @@ Done:
  */
 enum t_cose_err_t
 t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
-                               int32_t                     test_message_options,
+                               uint32_t                      test_message_options,
                                struct q_useful_buf_c         payload,
                                struct q_useful_buf           out_buf,
                                struct q_useful_buf_c        *result)

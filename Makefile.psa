@@ -28,7 +28,7 @@ CRYPTO_TEST_OBJ=test/t_cose_make_psa_test_key.o
 
 
 # ---- compiler configuration -----
-C_OPTS=-Os -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
+C_OPTS=-Os -Wall -Wconversion -Wconstant-conversion -Werror -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
 
 
 # ---- T_COSE Config and test options ----

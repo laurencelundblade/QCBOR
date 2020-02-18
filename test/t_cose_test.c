@@ -513,7 +513,7 @@ int_fast32_t cose_example_test()
 }
 
 
-static enum t_cose_err_t run_test_sign_and_verify(int32_t test_mess_options)
+static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -665,7 +665,7 @@ int_fast32_t all_header_parameters_test()
 }
 
 struct test_case {
-    int32_t test_option;
+    uint32_t test_option;
     enum t_cose_err_t   result;
 };
 
@@ -930,8 +930,9 @@ int_fast32_t sign1_structure_decode_test(void)
                                      &payload,
                                       NULL);
         if(result != sample->expected_error) {
-            /* Returns 100 * index of the input + error code not expected */
-            return (int32_t)(sample - sign1_sample_inputs+1)*100 + result;
+            /* Returns 100 * index of the input + the unexpected error code */
+            const size_t sample_index = (size_t)(sample - sign1_sample_inputs) / sizeof(struct sign1_sample);
+            return (int32_t)((sample_index+1)*100 + result);
         }
     }
 

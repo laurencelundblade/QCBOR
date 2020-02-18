@@ -858,8 +858,12 @@
 		E73CDAC423A7316700D262E0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_WARN_ASSIGN_ENUM = YES;
+				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = YES;
 				CODE_SIGN_STYLE = Automatic;
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = T_COSE_USE_PSA_CRYPTO;
+				GCC_WARN_SHADOW = YES;
+				GCC_WARN_SIGN_COMPARE = YES;
 				"HEADER_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/include";
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/library";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -869,7 +873,11 @@
 		E73CDAC523A7316700D262E0 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_WARN_ASSIGN_ENUM = YES;
+				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = YES;
 				CODE_SIGN_STYLE = Automatic;
+				GCC_WARN_SHADOW = YES;
+				GCC_WARN_SIGN_COMPARE = YES;
 				"HEADER_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/include";
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/library/";
 				PRODUCT_NAME = "$(TARGET_NAME)";
