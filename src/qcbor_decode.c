@@ -129,7 +129,7 @@ DecodeNesting_TypeIsMap(const QCBORDecodeNesting *pNesting)
 inline static QCBORError
 DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
 {
-#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
    // breaks must always occur when there is nesting
    if(!DecodeNesting_IsNested(pNesting)) {
       return QCBOR_ERR_BAD_BREAK;
@@ -773,7 +773,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
       case CBOR_MAJOR_TYPE_BYTE_STRING: // Major type 2
       case CBOR_MAJOR_TYPE_TEXT_STRING: // Major type 3
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
             const bool bIsBstr = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING);
             pDecodedItem->uDataType = (uint8_t)(bIsBstr ? QCBOR_TYPE_BYTE_STRING
                                                         : QCBOR_TYPE_TEXT_STRING);
@@ -794,7 +794,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
             goto Done;
          }
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
             pDecodedItem->val.uCount = UINT16_MAX; // Indicate indefinite length
 #elif
             nReturn = QCBOR_ERR_UNSUPPORTED;
@@ -841,7 +841,7 @@ Done:
 
  Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
  */
-#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
 static inline QCBORError
 GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
@@ -957,7 +957,7 @@ GetNext_TaggedItem(QCBORDecodeContext *me,
 
    // Loop fetching items until the item fetched is not a tag
    for(;;) {
-#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
       nReturn = GetNext_FullItem(me, pDecodedItem);
 #elif
       nReturn = GetNext_Item(&(me->InBuf), pDecodedItem, NULL);
@@ -1142,7 +1142,7 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
    // for definite length maps/arrays happens in
    // DecodeNesting_DecrementCount().
    if(DecodeNesting_IsNested(&(me->nesting)) && DecodeNesting_IsIndefiniteLength(&(me->nesting))) {
-#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
       while(UsefulInputBuf_BytesUnconsumed(&(me->InBuf))) {
          // Peek forward one item to see if it is a break.
          QCBORItem Peek;
@@ -1616,7 +1616,7 @@ Decoder errors handled in this file
    and simplify the code.
    ========================================================================== */
 
-#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
 static inline int
 MemPool_Unpack(const void *pMem, uint32_t *puPoolSize, uint32_t *puFreeOffset)
 {
