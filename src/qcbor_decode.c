@@ -129,6 +129,7 @@ DecodeNesting_TypeIsMap(const QCBORDecodeNesting *pNesting)
 inline static QCBORError
 DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
 {
+#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
    // breaks must always occur when there is nesting
    if(!DecodeNesting_IsNested(pNesting)) {
       return QCBOR_ERR_BAD_BREAK;
@@ -143,6 +144,9 @@ DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
    pNesting->pCurrent--;
 
    return QCBOR_SUCCESS;
+#elif
+   return QCBOR_ERR_UNSUPPORTED;
+#endif
 }
 
 // Called on every single item except breaks including open of a map/array
@@ -769,10 +773,14 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
       case CBOR_MAJOR_TYPE_BYTE_STRING: // Major type 2
       case CBOR_MAJOR_TYPE_TEXT_STRING: // Major type 3
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
+#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
             const bool bIsBstr = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING);
             pDecodedItem->uDataType = (uint8_t)(bIsBstr ? QCBOR_TYPE_BYTE_STRING
                                                         : QCBOR_TYPE_TEXT_STRING);
             pDecodedItem->val.string = (UsefulBufC){NULL, SIZE_MAX};
+#elif
+            nReturn = QCBOR_ERR_UNSUPPORTED;
+#endif
          } else {
             nReturn = DecodeBytes(pAllocator, nMajorType, uNumber, pUInBuf, pDecodedItem);
          }
@@ -786,7 +794,11 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
             goto Done;
          }
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
+#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
             pDecodedItem->val.uCount = UINT16_MAX; // Indicate indefinite length
+#elif
+            nReturn = QCBOR_ERR_UNSUPPORTED;
+#endif
          } else {
             // type conversion OK because of check above
             pDecodedItem->val.uCount = (uint16_t)uNumber;
@@ -829,6 +841,7 @@ Done:
 
  Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
  */
+#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
 static inline QCBORError
 GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
@@ -923,6 +936,7 @@ Done:
 
    return nReturn;
 }
+#endif
 
 
 /*
@@ -943,7 +957,11 @@ GetNext_TaggedItem(QCBORDecodeContext *me,
 
    // Loop fetching items until the item fetched is not a tag
    for(;;) {
+#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
       nReturn = GetNext_FullItem(me, pDecodedItem);
+#elif
+      nReturn = GetNext_Item(&(me->InBuf), pDecodedItem, NULL);
+#endif
       if(nReturn) {
          goto Done; // Error out of the loop
       }
@@ -1124,6 +1142,7 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
    // for definite length maps/arrays happens in
    // DecodeNesting_DecrementCount().
    if(DecodeNesting_IsNested(&(me->nesting)) && DecodeNesting_IsIndefiniteLength(&(me->nesting))) {
+#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
       while(UsefulInputBuf_BytesUnconsumed(&(me->InBuf))) {
          // Peek forward one item to see if it is a break.
          QCBORItem Peek;
@@ -1145,6 +1164,9 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
             goto Done;
          }
       }
+#elif
+      nReturn = QCBOR_ERR_UNSUPPORTED;
+#endif
    }
 
    // Tell the caller what level is next. This tells them what maps/arrays
@@ -1571,7 +1593,7 @@ Decoder errors handled in this file
 /* ===========================================================================
    MemPool -- BUILT-IN SIMPLE STRING ALLOCATOR
 
-   This implements a simple sting allocator for indefinite length
+   This implements a simple string allocator for indefinite length
    strings that can be enabled by calling QCBORDecode_SetMemPool(). It
    implements the function type QCBORStringAllocate and allows easy
    use of it.
@@ -1594,7 +1616,7 @@ Decoder errors handled in this file
    and simplify the code.
    ========================================================================== */
 
-
+#ifndef QCBOR_CONFIG_DISABLE_INDEFINITE_LENGTH
 static inline int
 MemPool_Unpack(const void *pMem, uint32_t *puPoolSize, uint32_t *puFreeOffset)
 {
@@ -1622,7 +1644,7 @@ MemPool_Pack(UsefulBuf Pool, uint32_t uFreeOffset)
    UsefulOutBuf_AppendUint32(&UOB, uFreeOffset); // first free position
    return UsefulOutBuf_GetError(&UOB);
 }
-
+#endif
 
 /*
  Internal function for an allocation, reallocation free and destuct.
