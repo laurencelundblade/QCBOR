@@ -8,7 +8,7 @@
 #
 
 
-CFLAGS=-I inc -I test -Os -Wcast-align -Wall -Werror -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
+CFLAGS=-I inc -I test -Os -Wcast-align -Wall -Werror -pedantic-errors -Wextra -Wshadow -Wparentheses -Wno-conversion -xc -std=c99
 
 QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o
 
@@ -40,6 +40,17 @@ test/half_to_double_from_rfc7049.o:	test/half_to_double_from_rfc7049.h
 cmd_line_main.o:	test/run_tests.h inc/qcbor.h
 
 min_use_main.o:		inc/qcbor.h inc/UsefulBuf.h
+
+ifeq ($(PREFIX),)
+    PREFIX := /usr/local
+endif
+
+install: libqcbor.a
+	install -d $(DESTDIR)$(PREFIX)/lib/
+	install -m 644 libqcbor.a $(DESTDIR)$(PREFIX)/lib/
+	install -d $(DESTDIR)$(PREFIX)/include/qcbor
+	install -m 644 inc/qcbor/qcbor.h $(DESTDIR)$(PREFIX)/include/qcbor
+	install -m 644 inc/qcbor/UsefulBuf.h $(DESTDIR)$(PREFIX)/include/qcbor
 
 clean:
 	rm -f $(QCBOR_OBJ) $(TEST_OBJ) libqcbor.a min_use_main.o cmd_line_main.o
