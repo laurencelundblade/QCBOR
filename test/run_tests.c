@@ -54,7 +54,6 @@ static test_entry2 s_tests2[] = {
     TEST_ENTRY(UIBTest_IntegerFormat)
 };
 
-
 static test_entry s_tests[] = {
     TEST_ENTRY(QCBORHeadTest),
     TEST_ENTRY(EmptyMapsAndArraysTest),
@@ -102,7 +101,9 @@ static test_entry s_tests[] = {
     TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
     TEST_ENTRY(EncodeErrorTests),
     TEST_ENTRY(SetUpAllocatorTest),
+#ifndef QCBOR_CONFIG_DISABLE_ENCODE_INDEFINITE_LENGTH_MAP_ARRAY
     TEST_ENTRY(SimpleValuesIndefiniteLengthTest1),
+#endif
     TEST_ENTRY(EncodeLengthThirtyoneTest),
 #ifndef     QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
     TEST_ENTRY(EncodeLengthThirtyoneTest),

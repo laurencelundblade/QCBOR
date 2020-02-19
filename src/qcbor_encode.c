@@ -369,7 +369,7 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
       uMajorType = CBOR_MAJOR_TYPE_MAP;
       nAdditionalInfo = LEN_IS_INDEFINITE;
    }
-#elif
+#else
    if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN ||
        uMajorType == CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN)
        return NULLUsefulBufC;

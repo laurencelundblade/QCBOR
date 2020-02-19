@@ -920,6 +920,7 @@ int32_t SimpleValuesTest1()
       FF            # break
    FF               # break
  */
+#ifndef QCBOR_CONFIG_DISABLE_ENCODE_INDEFINITE_LENGTH_MAP_ARRAY
 static const uint8_t spExpectedEncodedSimpleIndefiniteLength[] = {
    0x9f, 0xf5, 0xf4, 0xf6, 0xf7, 0xbf, 0x65, 0x55, 0x4e, 0x44, 0x65, 0x66, 0xf7, 0xff, 0xff};
 
@@ -953,6 +954,7 @@ int32_t SimpleValuesIndefiniteLengthTest1()
 
    return(nReturn);
 }
+#endif
 
 /*
 A5                                      # map(5)
