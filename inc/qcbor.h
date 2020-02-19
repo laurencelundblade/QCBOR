@@ -921,7 +921,7 @@ typedef struct _QCBORItem {
    /** How deep the nesting from arrays and maps are. 0 is the top
        level with no arrays or maps entered. */
    uint8_t  uNestingLevel;
-    /** Tells what element of the label union to use. */
+   /** Tells what element of the label union to use. */
    uint8_t  uLabelType;
    /** 1 if allocated with string allocator, 0 if not. See
        QCBORDecode_SetMemPool() or QCBORDecode_SetUpAllocator() */
