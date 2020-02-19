@@ -360,7 +360,7 @@ TagMapper_Lookup(const QCBORTagListIn *pCallerConfiguredTagMap,
   ===========================================================================*/
 
 static inline void
-StringAllocator_Free(const QCORInternalAllocator *pMe, void *pMem)
+StringAllocator_Free(const QCBORInternalAllocator *pMe, void *pMem)
 {
    (pMe->pfAllocator)(pMe->pAllocateCxt, pMem, 0);
 }
@@ -368,7 +368,7 @@ StringAllocator_Free(const QCORInternalAllocator *pMe, void *pMem)
 // StringAllocator_Reallocate called with pMem NULL is
 // equal to StringAllocator_Allocate()
 static inline UsefulBuf
-StringAllocator_Reallocate(const QCORInternalAllocator *pMe,
+StringAllocator_Reallocate(const QCBORInternalAllocator *pMe,
                            void *pMem,
                            size_t uSize)
 {
@@ -376,13 +376,13 @@ StringAllocator_Reallocate(const QCORInternalAllocator *pMe,
 }
 
 static inline UsefulBuf
-StringAllocator_Allocate(const QCORInternalAllocator *pMe, size_t uSize)
+StringAllocator_Allocate(const QCBORInternalAllocator *pMe, size_t uSize)
 {
    return (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, uSize);
 }
 
 static inline void
-StringAllocator_Destruct(const QCORInternalAllocator *pMe)
+StringAllocator_Destruct(const QCBORInternalAllocator *pMe)
 {
    if(pMe->pfAllocator) {
       (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, 0);
@@ -660,7 +660,7 @@ Done:
 /*
  Decode text and byte strings. Call the string allocator if asked to.
  */
-inline static QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
+inline static QCBORError DecodeBytes(const QCBORInternalAllocator *pAllocator,
                                      int nMajorType,
                                      uint64_t uStrLen,
                                      UsefulInputBuf *pUInBuf,
@@ -734,7 +734,7 @@ Done:
  */
 static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
                                QCBORItem *pDecodedItem,
-                               const QCORInternalAllocator *pAllocator)
+                               const QCBORInternalAllocator *pAllocator)
 {
    QCBORError nReturn;
 
@@ -847,7 +847,7 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    // Stack usage; int/ptr 2 UsefulBuf 2 QCBORItem  -- 96
    QCBORError nReturn;
-   const QCORInternalAllocator *pAllocator = me->StringAllocator.pfAllocator ?
+   const QCBORInternalAllocator *pAllocator = me->StringAllocator.pfAllocator ?
                                                       &(me->StringAllocator) :
                                                       NULL;
    UsefulBufC FullString = NULLUsefulBufC;
