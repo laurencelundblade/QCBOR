@@ -54,13 +54,16 @@ static test_entry2 s_tests2[] = {
     TEST_ENTRY(UIBTest_IntegerFormat)
 };
 
-
 static test_entry s_tests[] = {
     TEST_ENTRY(QCBORHeadTest),
     TEST_ENTRY(EmptyMapsAndArraysTest),
     TEST_ENTRY(NotWellFormedTests),
     TEST_ENTRY(ParseMapAsArrayTest),
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_STR
     TEST_ENTRY(AllocAllStringsTest),
+    TEST_ENTRY(MemPoolTest),
+    TEST_ENTRY(IndefiniteLengthStringTest),
+#endif
     TEST_ENTRY(IndefiniteLengthNestTest),
     TEST_ENTRY(NestedMapTestIndefLen),
     TEST_ENTRY(ParseSimpleTest),
@@ -78,7 +81,9 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ParseTooDeepArrayTest),
     TEST_ENTRY(ComprehensiveInputTest),
     TEST_ENTRY(ParseMapTest),
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
     TEST_ENTRY(IndefiniteLengthArrayMapTest),
+#endif
     TEST_ENTRY(BasicEncodeTest),
     TEST_ENTRY(NestedMapTest),
     TEST_ENTRY(BignumParseTest),
@@ -89,8 +94,6 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ParseDeepArrayTest),
     TEST_ENTRY(SimpleArrayTest),
     TEST_ENTRY(IntegerValuesParseTest),
-    TEST_ENTRY(MemPoolTest),
-    TEST_ENTRY(IndefiniteLengthStringTest),
     TEST_ENTRY(HalfPrecisionDecodeBasicTests),
     TEST_ENTRY(DoubleAsSmallestTest),
     TEST_ENTRY(HalfPrecisionAgainstRFCCodeTest),

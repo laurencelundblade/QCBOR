@@ -145,6 +145,7 @@ DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
 
    return QCBOR_SUCCESS;
 #else
+   (void)pNesting;
    return QCBOR_ERR_UNSUPPORTED;
 #endif
 }
@@ -773,7 +774,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
       case CBOR_MAJOR_TYPE_BYTE_STRING: // Major type 2
       case CBOR_MAJOR_TYPE_TEXT_STRING: // Major type 3
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_STR
             const bool bIsBstr = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING);
             pDecodedItem->uDataType = (uint8_t)(bIsBstr ? QCBOR_TYPE_BYTE_STRING
                                                         : QCBOR_TYPE_TEXT_STRING);
@@ -841,7 +842,7 @@ Done:
 
  Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
  */
-#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_STR
 static inline QCBORError
 GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
@@ -957,7 +958,7 @@ GetNext_TaggedItem(QCBORDecodeContext *me,
 
    // Loop fetching items until the item fetched is not a tag
    for(;;) {
-#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_STR
       nReturn = GetNext_FullItem(me, pDecodedItem);
 #else
       nReturn = GetNext_Item(&(me->InBuf), pDecodedItem, NULL);
@@ -1616,7 +1617,7 @@ Decoder errors handled in this file
    and simplify the code.
    ========================================================================== */
 
-#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_STR
 static inline int
 MemPool_Unpack(const void *pMem, uint32_t *puPoolSize, uint32_t *puFreeOffset)
 {
@@ -1644,7 +1645,6 @@ MemPool_Pack(UsefulBuf Pool, uint32_t uFreeOffset)
    UsefulOutBuf_AppendUint32(&UOB, uFreeOffset); // first free position
    return UsefulOutBuf_GetError(&UOB);
 }
-#endif
 
 /*
  Internal function for an allocation, reallocation free and destuct.
@@ -1769,3 +1769,4 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
 
    return QCBOR_SUCCESS;
 }
+#endif

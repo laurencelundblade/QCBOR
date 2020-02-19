@@ -1559,8 +1559,11 @@ int32_t NotWellFormedTests()
       // string test cases
       QCBORDecodeContext DCtx;
       QCBORDecode_Init(&DCtx, Input, QCBOR_DECODE_MODE_NORMAL);
+
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
       QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+#endif
 
       // Loop getting items until no more to get
       QCBORError nCBORError;
@@ -1591,15 +1594,21 @@ struct FailInput {
 static int32_t ProcessFailures(struct FailInput *pFailInputs, size_t nNumFails)
 {
    for(struct FailInput *pF = pFailInputs; pF < pFailInputs + nNumFails; pF++) {
+
       // Set up the decoding context including a memory pool so that
       // indefinite length items can be checked
       QCBORDecodeContext DCtx;
       QCBORDecode_Init(&DCtx, pF->Input, QCBOR_DECODE_MODE_NORMAL);
+
+      QCBORError nCBORError;
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
-      QCBORError nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+
+      nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
       if(nCBORError) {
          return -9;
       }
+#endif
 
       // Iterate until there is an error of some sort error
       QCBORItem Item;
@@ -2857,6 +2866,7 @@ int32_t IndefiniteLengthNestTest()
 }
 
 
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
 // [1, [2, 3]]
 static const uint8_t spIndefiniteArray[]     = {0x9f, 0x01, 0x82, 0x02, 0x03, 0xff};
 // No closing break
@@ -3029,8 +3039,10 @@ int32_t IndefiniteLengthArrayMapTest()
 
     return 0;
 }
+#endif
 
 
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_STR
 static const uint8_t spIndefiniteLenString[] = {
    0x81, // Array of length one
    0x7f, // text string marked with indefinite length
@@ -3414,7 +3426,6 @@ int32_t AllocAllStringsTest()
 }
 
 
-
 int32_t MemPoolTest(void)
 {
    // Set up the decoder with a tiny bit of CBOR to parse because
@@ -3495,6 +3506,7 @@ int32_t MemPoolTest(void)
 
    return 0;
 }
+#endif
 
 
 /* Just enough of an allocator to test configuration of one */
