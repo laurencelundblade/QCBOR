@@ -608,8 +608,12 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
       // caught before this is called.
 
       case HALF_PREC_FLOAT:
+#ifndef QCBOR_CONFIG_DISABLE_DECODE_IEEE754
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
+#else
+         nReturn = QCBOR_ERR_UNSUPPORTED;
+#endif
          break;
       case SINGLE_PREC_FLOAT:
          pDecodedItem->val.dfnum = (double)UsefulBufUtil_CopyUint32ToFloat((uint32_t)uNumber);

@@ -614,12 +614,14 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
 /*
  Public functions for closing arrays and maps. See qcbor.h
  */
+#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
 void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 {
    const IEEE754_union uNum = IEEE754_DoubleToSmallest(dNum);
 
    QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
 }
+#endif
 
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
