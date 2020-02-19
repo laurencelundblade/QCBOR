@@ -144,7 +144,7 @@ DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
    pNesting->pCurrent--;
 
    return QCBOR_SUCCESS;
-#elif
+#else
    return QCBOR_ERR_UNSUPPORTED;
 #endif
 }
@@ -778,7 +778,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
             pDecodedItem->uDataType = (uint8_t)(bIsBstr ? QCBOR_TYPE_BYTE_STRING
                                                         : QCBOR_TYPE_TEXT_STRING);
             pDecodedItem->val.string = (UsefulBufC){NULL, SIZE_MAX};
-#elif
+#else
             nReturn = QCBOR_ERR_UNSUPPORTED;
 #endif
          } else {
@@ -796,7 +796,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
 #ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
             pDecodedItem->val.uCount = UINT16_MAX; // Indicate indefinite length
-#elif
+#else
             nReturn = QCBOR_ERR_UNSUPPORTED;
 #endif
          } else {
@@ -959,7 +959,7 @@ GetNext_TaggedItem(QCBORDecodeContext *me,
    for(;;) {
 #ifndef QCBOR_CONFIG_DISABLE_DECODE_INDEFINITE_LENGTH_MAP_ARRAY
       nReturn = GetNext_FullItem(me, pDecodedItem);
-#elif
+#else
       nReturn = GetNext_Item(&(me->InBuf), pDecodedItem, NULL);
 #endif
       if(nReturn) {
@@ -1164,7 +1164,7 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
             goto Done;
          }
       }
-#elif
+#else
       nReturn = QCBOR_ERR_UNSUPPORTED;
 #endif
    }
