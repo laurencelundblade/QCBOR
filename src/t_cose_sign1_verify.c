@@ -203,7 +203,6 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     /* -- Compute the TBS bytes -- */
     return_value = create_tbs_hash(parsed_protected_parameters.cose_algorithm_id,
                                    protected_parameters,
-                                   T_COSE_TBS_BARE_PAYLOAD,
                                    *payload,
                                    buffer_for_tbs_hash,
                                    &tbs_hash);

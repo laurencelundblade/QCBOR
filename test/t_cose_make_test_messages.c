@@ -102,10 +102,10 @@ Done:
  * \brief  Makes various protected parameters for various tests
  *
  * \param[in] test_message_options  Flags to select test modes.
- * \param[in] cose_algorithm_id  The COSE algorithm ID to put in the parameters.
+ * \param[in] cose_algorithm_id     The algorithm ID to put in the parameters.
  * \param[in] buffer_for_protected_parameters  Pointer and length into which
- *                               the resulting encoded protected
- *                               parameters is put.
+ *                                             the resulting encoded protected
+ *                                             parameters is put.
  *
  * \return The pointer and length of the protected parameters is
  * returned, or \c NULL_Q_USEFUL_BUF_C if this fails.
@@ -120,7 +120,7 @@ Done:
  * \c T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS.
  */
 static inline struct q_useful_buf_c
-encode_protected_parameters(uint32_t             test_message_options,
+encode_protected_parameters(uint32_t            test_message_options,
                             int32_t             cose_algorithm_id,
                             struct q_useful_buf buffer_for_protected_parameters)
 {
@@ -281,7 +281,8 @@ add_unprotected_parameters(uint32_t              test_message_options,
     QCBOREncode_OpenMap(cbor_encode_ctx);
 
     if(test_message_options & T_COSE_TEST_NOT_WELL_FORMED_1) {
-        QCBOREncode_AddEncoded(cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("xxxxxx"));
+        QCBOREncode_AddEncoded(cbor_encode_ctx,
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("xxxxxx"));
     }
 
     /* Put in a byte string (not a text string) for the parameter label */
@@ -379,6 +380,15 @@ add_unprotected_parameters(uint32_t              test_message_options,
 }
 
 
+/*
+ * Buffer for the protected parameters. There used to be a buffer in
+ * t_cose_sign1_sign_ctx but it was removed when code was improved.
+ * This needs to be carried between encoding the header and doing
+ * the signatured, so a buffer is needed. The size is that of the
+ * largest test protected header and some padding.
+ */
+static uint8_t s_protected_params[40];
+
 /**
  * Replica of t_cose_sign1_encode_parameters() with modifications to
  * output various good and bad messages for testing verification.
@@ -389,9 +399,10 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
                                             QCBOREncodeContext           *cbor_encode_ctx)
 {
     enum t_cose_err_t      return_value;
-    struct q_useful_buf    buffer_for_protected_parameters;
     struct q_useful_buf_c  kid;
     int32_t                hash_alg_id;
+    struct q_useful_buf    buffer_for_protected_parameters;
+
 
     /* Check the cose_algorithm_id now by getting the hash alg as an early
      * error check even though it is not used until later.
@@ -411,18 +422,12 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_OpenArray(cbor_encode_ctx);
 
     /* The protected parameters, which are added as a wrapped bstr  */
-    buffer_for_protected_parameters = Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->protected_parameters_buffer);
-    me->protected_parameters = encode_protected_parameters(test_mess_options,
-                                                           me->cose_algorithm_id,
-                                                           buffer_for_protected_parameters);
-    if(q_useful_buf_c_is_null(me->protected_parameters)) {
-        /* The sizing of storage for protected parameters is
-         off (should never happen in tested, released code) */
-        return_value = T_COSE_ERR_MAKING_PROTECTED;
-        goto Done;
-    }
     if( ! (test_mess_options & T_COSE_TEST_NO_PROTECTED_PARAMETERS)) {
-        /* The use of _AddBytes here achieves the bstr wrapping */
+        buffer_for_protected_parameters = Q_USEFUL_BUF_FROM_BYTE_ARRAY(s_protected_params);
+
+        me->protected_parameters = encode_protected_parameters(test_mess_options,
+                                                               me->cose_algorithm_id,
+                                                               buffer_for_protected_parameters);
         QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_parameters);
     }
 
@@ -433,8 +438,7 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         kid = get_short_circuit_kid();
 #else
-        return_value = T_COSE_ERR_SHORT_CIRCUIT_SIG_DISABLED;
-        goto Done;
+        return T_COSE_ERR_SHORT_CIRCUIT_SIG_DISABLED;
 #endif
     } else {
         kid = me->kid;
@@ -452,7 +456,6 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
 
     return_value = T_COSE_SUCCESS;
 
-Done:
     return return_value;
 }
 
@@ -485,7 +488,7 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        signed_payload;
 
-    QCBOREncode_CloseBstrWrap(cbor_encode_ctx, &signed_payload);
+    QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
 
     /* Check there are no CBOR encoding errors before proceeding with
      * hashing and signing. This is not actually necessary as the
@@ -509,7 +512,6 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
      */
     return_value = create_tbs_hash(me->cose_algorithm_id,
                                    me->protected_parameters,
-                                   T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED,
                                    signed_payload,
                                    buffer_for_tbs_hash,
                                    &tbs_hash);
@@ -565,7 +567,7 @@ Done:
  */
 enum t_cose_err_t
 t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
-                               uint32_t                      test_message_options,
+                               uint32_t                    test_message_options,
                                struct q_useful_buf_c         payload,
                                struct q_useful_buf           out_buf,
                                struct q_useful_buf_c        *result)

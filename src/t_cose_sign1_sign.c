@@ -122,9 +122,7 @@ Done:
  *
  * \param[in] cose_algorithm_id      The COSE algorithm ID to put in the
  *                                   header parameters.
- * \param[in] buffer_for_parameters  Pointer and length of buffer into which
- *                                   the resulting encoded protected
- *                                   parameters is put. See return value.
+ * \param[in,out] cbor_encode_ctx    Encoding context to output to.
  *
  * \return   The pointer and length of the encoded protected
  *           parameters is returned, or \c NULL_Q_USEFUL_BUF_C if this fails.
@@ -136,39 +134,23 @@ Done:
  * they are added to the \c COSE_Sign1 message as a binary string. This is
  * different from the unprotected parameters which are not handled this
  * way.
- *
- * This returns \c NULL_Q_USEFUL_BUF_C if buffer_for_parameters was too
- * small. See also definition of \c T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS
  */
 static inline struct q_useful_buf_c
 encode_protected_parameters(int32_t             cose_algorithm_id,
-                            struct q_useful_buf buffer_for_parameters)
+                            QCBOREncodeContext *cbor_encode_ctx)
 {
     /* approximate stack use on 32-bit machine:
-     *   CBOR encode context 148
-     *   local use: 20
-     *   total: 168
+     *   local use: 16
      */
     struct q_useful_buf_c protected_parameters;
-    QCBORError            qcbor_result;
-    QCBOREncodeContext    cbor_encode_ctx;
-    struct q_useful_buf_c return_value;
 
-    QCBOREncode_Init(&cbor_encode_ctx, buffer_for_parameters);
-    QCBOREncode_OpenMap(&cbor_encode_ctx);
-    QCBOREncode_AddInt64ToMapN(&cbor_encode_ctx,
-                               COSE_HEADER_PARAM_ALG,
-                               cose_algorithm_id);
-    QCBOREncode_CloseMap(&cbor_encode_ctx);
-    qcbor_result = QCBOREncode_Finish(&cbor_encode_ctx, &protected_parameters);
+    QCBOREncode_BstrWrap(cbor_encode_ctx);
+    QCBOREncode_OpenMap(cbor_encode_ctx);
+    QCBOREncode_AddInt64ToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_ALG, cose_algorithm_id);
+    QCBOREncode_CloseMap(cbor_encode_ctx);
+    QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &protected_parameters);
 
-    if(qcbor_result == QCBOR_SUCCESS) {
-        return_value = protected_parameters;
-    } else {
-        return_value = NULL_Q_USEFUL_BUF_C;
-    }
-
-    return return_value;
+    return protected_parameters;
 }
 
 
@@ -239,7 +221,6 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *me,
      *   216 total
      */
     enum t_cose_err_t      return_value;
-    struct q_useful_buf    buffer_for_protected_parameters;
     struct q_useful_buf_c  kid;
     int32_t                hash_alg_id;
 
@@ -261,16 +242,7 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *me,
     QCBOREncode_OpenArray(cbor_encode_ctx);
 
     /* The protected parameters, which are added as a wrapped bstr  */
-    buffer_for_protected_parameters = Q_USEFUL_BUF_FROM_BYTE_ARRAY(me->protected_parameters_buffer);
-    me->protected_parameters = encode_protected_parameters(me->cose_algorithm_id, buffer_for_protected_parameters);
-    if(q_useful_buf_c_is_null(me->protected_parameters)) {
-        /* The sizing of storage for protected parameters is
-         * off (should never happen in tested, released code) */
-        return_value = T_COSE_ERR_MAKING_PROTECTED;
-        goto Done;
-    }
-    /* The use of _AddBytes here achieves the bstr wrapping */
-    QCBOREncode_AddBytes(cbor_encode_ctx, me->protected_parameters);
+    me->protected_parameters = encode_protected_parameters(me->cose_algorithm_id, cbor_encode_ctx);
 
     /* The Unprotected parameters */
     /* Get the kid because it goes into the parameters that are about
@@ -333,7 +305,7 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        signed_payload;
 
-    QCBOREncode_CloseBstrWrap(cbor_encode_ctx, &signed_payload);
+    QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
 
     /* Check that there are no CBOR encoding errors before proceeding
      * with hashing and signing. This is not actually necessary as the
@@ -367,7 +339,6 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
          */
         return_value = create_tbs_hash(me->cose_algorithm_id,
                                        me->protected_parameters,
-                                       T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED,
                                        signed_payload,
                                        buffer_for_tbs_hash,
                                        &tbs_hash);

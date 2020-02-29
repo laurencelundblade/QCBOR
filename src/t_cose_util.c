@@ -49,6 +49,35 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 }
 
 
+
+
+/**
+ * \brief Hash an encoded bstr without actually encoding it in memory
+ *
+ * @param hash_ctx  Hash context to hash it into
+ * @param bstr      Bytes of the bstr
+ */
+static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
+                      struct q_useful_buf_c      bstr)
+{
+    /* make a struct q_useful_buf on the stack of size QCBOR_HEAD_BUFFER_SIZE */
+    Q_USEFUL_BUF_MAKE_STACK_UB (buffer_for_encoded_head, QCBOR_HEAD_BUFFER_SIZE);
+    struct q_useful_buf_c       encoded_head;
+
+    encoded_head = QCBOREncode_EncodeHead(buffer_for_encoded_head,
+                                          CBOR_MAJOR_TYPE_BYTE_STRING,
+                                          0,
+                                          bstr.len);
+
+    /* An encoded bstr is the CBOR head with its length followed by the bytes */
+    t_cose_crypto_hash_update(hash_ctx, encoded_head);
+    t_cose_crypto_hash_update(hash_ctx, bstr);
+}
+
+
+/*
+ * Public function. See t_cose_util.h
+ */
 /*
  * Format of to-be-signed bytes used by create_tbs_hash().  This is
  * defined in COSE (RFC 8152) section 4.4. It is the input to the
@@ -66,36 +95,15 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
  * main COSE_Sign1 structure. This is a little hard to
  * to understand in the spec.
  *
- * sign_protected is not used with COSE_Sign1 since there is no signer
- * chunk.
+
  *
- * external_aad allows external data to be covered by the hash, but is
- * not supported by this implementation.
+
  */
-
-
-/**
- * This is the size of the first part of the CBOR encoded TBS
- * bytes. It is around 30 bytes. See create_tbs_hash().
- */
-#define T_COSE_SIZE_OF_TBS \
-    1 + /* For opening the array */ \
-    sizeof(COSE_SIG_CONTEXT_STRING_SIGNATURE1) + /* "Signature1" */ \
-    2 + /* Overhead for encoding string */ \
-    T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS + /* entire protected params */ \
-    1 + /* Empty bstr for absent external_aad */ \
-    9 /* The max CBOR length encoding for start of payload */
-
-
-/*
- * Public function. See t_cose_util.h
- */
-enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
-                                  struct q_useful_buf_c       protected_parameters,
-                                  enum t_cose_tbs_hash_mode_t payload_mode,
-                                  struct q_useful_buf_c       payload,
-                                  struct q_useful_buf         buffer_for_hash,
-                                  struct q_useful_buf_c      *hash)
+enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
+                                  struct q_useful_buf_c  protected_parameters,
+                                  struct q_useful_buf_c  payload,
+                                  struct q_useful_buf    buffer_for_hash,
+                                  struct q_useful_buf_c *hash)
 {
     /* approximate stack use on 32-bit machine:
      *    210 bytes for all but hash context
@@ -103,57 +111,8 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
      *    220 to 434 bytes total
      */
     enum t_cose_err_t           return_value;
-    QCBOREncodeContext          cbor_encode_ctx;
-    UsefulBuf_MAKE_STACK_UB(    buffer_for_TBS_first_part, T_COSE_SIZE_OF_TBS);
-    struct q_useful_buf_c       tbs_first_part;
-    QCBORError                  qcbor_result;
     struct t_cose_crypto_hash   hash_ctx;
     int32_t                     hash_alg_id;
-    size_t                      bytes_to_omit;
-
-    /* This builds the CBOR-format to-be-signed bytes */
-    QCBOREncode_Init(&cbor_encode_ctx, buffer_for_TBS_first_part);
-    QCBOREncode_OpenArray(&cbor_encode_ctx);
-
-    /* context */
-    QCBOREncode_AddSZString(&cbor_encode_ctx, COSE_SIG_CONTEXT_STRING_SIGNATURE1);
-    /* body_protected */
-    QCBOREncode_AddBytes(&cbor_encode_ctx, protected_parameters);
-
-    /* sign_protected is not used for COSE_Sign1 */
-
-    /* external_aad. There is none so an empty bstr */
-    QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
-
-    /* The short fake payload */
-    if(payload_mode == T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED) {
-        /* Fake payload is just an empty bstr. It is here only
-         * to make the array count right. It must be ommitted
-         * in the actual hashing below.
-         */
-        bytes_to_omit = 1;
-        QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
-    } else {
-        /* Fake payload is the type and length of the wrapping
-         * bstr. It gets hashed with the first part, so no bytes to
-         * omit.
-         */
-        bytes_to_omit = 0;
-        QCBOREncode_AddBytesLenOnly(&cbor_encode_ctx, payload);
-    }
-    /* Cleverness only works because the payload is last in the array */
-
-    /* Close off the array */
-    QCBOREncode_CloseArray(&cbor_encode_ctx);
-
-    /* get the encoded results, except for payload */
-    qcbor_result = QCBOREncode_Finish(&cbor_encode_ctx, &tbs_first_part);
-    if(qcbor_result) {
-        /* Mainly means that the protected_parameters were too big
-         * (which should never happen) */
-        return_value = T_COSE_ERR_SIG_STRUCT;
-        goto Done;
-    }
 
     /* Start the hashing */
     hash_alg_id = hash_alg_id_from_sig_alg_id(cose_algorithm_id);
@@ -165,31 +124,43 @@ enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
         goto Done;
     }
 
-    /* This structure is hashed in two parts. The first part is
-     * the CBOR-formatted array with protected parameters and such.
-     * The last part is the actual bytes of the payload. Doing it
-     * this way avoids having to allocate a big buffer to hold
-     * these two parts together.  It avoids having two copies of
-     * the payload in the implementaiton as the payload as formatted
-     * in the output buffer can be what is hashed. They payload
-     * is the largest memory use, so this saves a lot.
+    /*
+     * Format of to-be-signed bytes.  This is
+     * defined in COSE (RFC 8152) section 4.4. It is the input to the
+     * hash.
      *
-     * This is further complicated because the the payload does have
-     * to be wrapped in a bstr. It is done one way when signing and
-     * another when verifying.
+     * Sig_structure = [
+     *    context : "Signature" / "Signature1" / "CounterSignature",
+     *    body_protected : empty_or_serialized_map,
+     *    ? sign_protected : empty_or_serialized_map,
+     *    external_aad : bstr,
+     *    payload : bstr
+     * ]
+     *
+     * sign_protected is not used with COSE_Sign1 since there is no signer
+     * chunk.
+     *
+     * external_aad allows external data to be covered by the hash, but is
+     * not supported by this implementation.
+     *
+     * Instead of formatting the TBS bytes in one buffer, they are formatted
+     * in chunks and fed into the hash. If actually formatted, the TBS
+     * bytes are slightly larger than the payload, so this saves a lot of
+     * memory.
      */
 
-    /* This is the hashing of the first part, all the CBOR except the
-     * payload.
-     */
-    t_cose_crypto_hash_update(&hash_ctx,
-                              q_useful_buf_head(tbs_first_part,
-                                                tbs_first_part.len - bytes_to_omit));
+    /* Hand-constructed CBOR for the array of 4 and the context string.
+     * \x84 is an array of 4. \x6A is a text string of 10 bytes. */
+    t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
 
-    /* Hash the payload, the second part. This may or may not have the
-     * bstr wrapping. If not, it was hashed above.
-     */
-    t_cose_crypto_hash_update(&hash_ctx, payload);
+    /* body_protected */
+    hash_bstr(&hash_ctx, protected_parameters);
+
+    /* external_aad which is an empty string since it is not supported here */
+    hash_bstr(&hash_ctx, NULL_Q_USEFUL_BUF_C);
+
+    /* payload */
+    hash_bstr(&hash_ctx, payload);
 
     /* Finish the hash and set up to return it */
     return_value = t_cose_crypto_hash_finish(&hash_ctx,

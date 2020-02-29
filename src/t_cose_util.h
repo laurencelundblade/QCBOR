@@ -29,25 +29,6 @@ extern "C" {
 
 
 /**
- * The modes in which the payload is passed to create_tbs_hash().
- * This exists so the TBS bytes can be hashed in two separate chunks
- * and avoids needing a second buffer the size of the payload in the
- * t_cose implementation.
- */
-enum t_cose_tbs_hash_mode_t {
-    /** The bytes passed for the payload include a wrapping bstr so
-     * one does not need to be added.
-     */
-    T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED,
-    /** The bytes passed for the payload do NOT have a wrapping bstr
-     * so one must be added.
-     */
-    T_COSE_TBS_BARE_PAYLOAD
-};
-
-
-
-/**
  * This value represents an invalid or in-error algorithm ID.  The
  * value selected is 0 as this is reserved in the IANA COSE algorithm
  * registry and is very unlikely to ever be used.  (It would take am
@@ -90,7 +71,6 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * \param[in] cose_algorithm_id     The COSE signing algorithm ID. Used to
  *                                  determine which hash function to use.
  * \param[in] protected_parameters  Full, CBOR encoded, protected parameters.
- * \param[in] payload_mode          See \ref t_cose_tbs_hash_mode_t.
  * \param[in] payload               The CBOR encoded payload. It may or may
  *                                  not have a wrapping bstr per
  *                                  \c payload_mode.
@@ -118,7 +98,6 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  */
 enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
                                   struct q_useful_buf_c       protected_parameters,
-                                  enum t_cose_tbs_hash_mode_t payload_mode,
                                   struct q_useful_buf_c       payload,
                                   struct q_useful_buf         buffer_for_hash,
                                   struct q_useful_buf_c      *hash);

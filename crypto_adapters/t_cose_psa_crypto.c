@@ -347,6 +347,7 @@ psa_status_to_t_cose_error_hash(psa_status_t status)
      */
     return status == PSA_SUCCESS                ? T_COSE_SUCCESS :
            status == PSA_ERROR_NOT_SUPPORTED    ? T_COSE_ERR_UNSUPPORTED_HASH :
+           status == PSA_ERROR_INVALID_ARGUMENT ? T_COSE_ERR_UNSUPPORTED_HASH :
            status == PSA_ERROR_BUFFER_TOO_SMALL ? T_COSE_ERR_HASH_BUFFER_SIZE :
                                                   T_COSE_ERR_HASH_GENERAL_FAIL;
 }

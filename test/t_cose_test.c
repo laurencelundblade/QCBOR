@@ -17,6 +17,10 @@
 #include "t_cose_util.h" /* for get_short_circuit_kid */
 
 
+/* String used by RFC 8152 and C-COSE tests and examples for payload */
+#define SZ_CONTENT "This is the content."
+static const struct q_useful_buf_c s_input_payload = {SZ_CONTENT, sizeof(SZ_CONTENT)-1};
+
 /*
  * Public function, see t_cose_test.h
  */
@@ -38,7 +42,7 @@ int_fast32_t short_circuit_self_test()
     /* No key necessary because short-circuit test mode is used */
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     s_input_payload,
                                      signed_cose_buffer,
                                      &signed_cose);
     if(return_value) {
@@ -66,9 +70,33 @@ int_fast32_t short_circuit_self_test()
     }
 
     /* compare payload output to the one expected */
-    if(q_useful_buf_compare(payload, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"))) {
+    if(q_useful_buf_compare(payload, s_input_payload)) {
         return 3000;
     }
+
+    /* This value comes from C-COSE test case sign-pass-03.json. The test
+     * case JSON gives the expected TBS bytes. These were then run through
+     * openssl dgst -sha256 -binary | hexdump -e '"\n" 8/1 "0x%01x,  "'.
+     *
+     * Short-circuit signature are just the hash of the TBS bytes. They are
+     * twice to fake the length of a real signature. In the COSE format the
+     * signature is last, so this hash occurs as the last 32 bytes of a
+     * the encoded COSE.
+     *
+     * This is a useful test because it confirms the TBS byte calculation is
+     * right in comparison to C-COSE.
+     */
+    static const uint8_t hash_of_tbs[] = {
+        0x4c,  0x33,  0x63,  0xb4,  0x99,  0xe1,  0xda,  0xc4,
+        0xaa,  0xfc,  0x8d,  0x69,  0x23,  0xf1,  0xca,  0x65,
+        0x77,  0xdf,  0xda,  0x80,  0xda,  0x24,  0xe5,  0x4f,
+        0xb9,  0x24,  0x24,  0x90,  0x64,  0x82,  0x7c,  0x88};
+
+    if(q_useful_buf_compare(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(hash_of_tbs),
+                            q_useful_buf_tail(signed_cose, signed_cose.len - 32))) {
+        return 4000;
+    }
+
     /* --- Done verifying the COSE Sign1 object  --- */
 
     return 0;
@@ -96,7 +124,7 @@ int_fast32_t short_circuit_verify_fail_test()
     /* No key necessary because short-circuit test mode is used */
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     s_input_payload,
                                      signed_cose_buffer,
                                      &signed_cose);
     if(return_value) {
@@ -107,7 +135,7 @@ int_fast32_t short_circuit_verify_fail_test()
 
     /* --- Start Tamper with payload  --- */
     /* Find the offset of the payload in COSE_Sign1 */
-    payload_offset = q_useful_buf_find_bytes(signed_cose, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
+    payload_offset = q_useful_buf_find_bytes(signed_cose, s_input_payload);
     if(payload_offset == SIZE_MAX) {
         return 6000;
     }
@@ -158,7 +186,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, 0);
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     s_input_payload,
                                      signed_cose_buffer,
                                      &signed_cose);
     if(return_value != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
@@ -171,7 +199,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, -4444444);
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     s_input_payload,
                                      signed_cose_buffer,
                                      &signed_cose);
     if(return_value != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
@@ -206,7 +234,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
                            T_COSE_ALGORITHM_ES256);
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     s_input_payload,
                                      small_signed_cose_buffer,
                                      &signed_cose);
 
@@ -491,7 +519,7 @@ int_fast32_t cose_example_test()
     /* Make example C.2.1 from RFC 8152 */
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("This is the content."),
+                                      s_input_payload,
                                       signed_cose_buffer,
                                      &output);
 
@@ -618,7 +646,7 @@ int_fast32_t all_header_parameters_test()
     return_value =
         t_cose_test_message_sign1_sign(&sign_ctx,
                                        T_COSE_TEST_ALL_PARAMETERS,
-                                       Q_USEFUL_BUF_FROM_SZ_LITERAL("This is the content."),
+                                       s_input_payload,
                                        signed_cose_buffer,
                                       &output);
     if(return_value) {
@@ -670,9 +698,7 @@ struct test_case {
 };
 
 static struct test_case bad_parameters_tests_table[] = {
-    /* Test existance of the critical header. Also makes sure that
-     * it works with the max number of labels allowed in it.
-     */
+
     {T_COSE_TEST_EMPTY_PROTECTED_PARAMETERS, T_COSE_ERR_UNSUPPORTED_HASH},
 
     {T_COSE_TEST_DUP_CONTENT_ID, T_COSE_ERR_DUPLICATE_PARAMETER},
@@ -719,7 +745,7 @@ int_fast32_t bad_parameters_test()
 
     for(test = bad_parameters_tests_table; test->test_option; test++) {
         if(run_test_sign_and_verify(test->test_option) != test->result) {
-            return (int_fast32_t)(test - bad_parameters_tests_table);
+            return (int_fast32_t)(test - bad_parameters_tests_table + 1);
         }
     }
 
@@ -805,7 +831,7 @@ int_fast32_t content_type_test()
     t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                      s_input_payload,
                                       signed_cose_buffer,
                                      &output);
     if(return_value) {
@@ -835,7 +861,7 @@ int_fast32_t content_type_test()
     t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     s_input_payload,
                                      signed_cose_buffer,
                                      &output);
     if(return_value) {
@@ -975,7 +1001,7 @@ int_fast32_t short_circuit_hash_fail_test()
                            T_COSE_ALGORITHM_ES256);
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     s_input_payload,
                                      signed_cose_buffer,
                                      &wrapped_payload);
 
@@ -996,7 +1022,7 @@ int_fast32_t short_circuit_hash_fail_test()
                            T_COSE_ALGORITHM_ES256);
 
     return_value = t_cose_sign1_sign(&sign_ctx,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
+                                     s_input_payload,
                                      signed_cose_buffer,
                                      &wrapped_payload);
 
