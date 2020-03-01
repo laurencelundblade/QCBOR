@@ -29,7 +29,13 @@ CRYPTO_TEST_OBJ=
 
 
 # ---- compiler configuration -----
-C_OPTS=-Os -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
+# Optimize for size
+C_OPTS=-Os
+
+# The following are used before a release of t_cose help make sure the code
+# compiles and runs in the most strict environments, but not all compilers
+# support them so they are not turned on
+#C_OPTS=-Os -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
 
 
 # ---- T_COSE Config and test options ----
