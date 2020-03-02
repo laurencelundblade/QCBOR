@@ -30,48 +30,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  =============================================================================*/
 
-/*==============================================================================
- FILE:  qcbor_decode.c
 
- DESCRIPTION:  This file contains the implementation of QCBOR.
-
- EDIT HISTORY FOR FILE:
-
- This section contains comments describing changes made to the module.
- Notice that changes are listed in reverse chronological order.
-
- when       who             what, where, why
- --------   ----            ---------------------------------------------------
- 01/28/2020 llundblade      Refine integer signedness to quiet static analysis.
- 01/25/2020 llundblade      Cleaner handling of too-long encoded string input.
- 01/25/2020 llundblade      Refine use of integer types to quiet static analysis
- 01/08/2020 llundblade      Documentation corrections & improved code formatting
- 12/30/19   llundblade      Add support for decimal fractions and bigfloats.
- 11/07/19   llundblade      Fix long long conversion to double compiler warning
- 09/07/19   llundblade      Fix bug decoding empty arrays and maps
- 07/31/19   llundblade      Decode error fixes for some not-well-formed CBOR
- 07/31/19   llundblade      New error code for better end of data handling
- 02/17/19   llundblade      Fixed: QCBORItem.u{Data|Label}Alloc when
-                            bAllStrings set
- 02/16/19   llundblade      Redesign MemPool to fix memory access alignment bug
- 01/10/19   llundblade      Clever type and argument decoder; 250 bytes smaller
- 11/9/18    llundblade      Error codes are now enums.
- 11/2/18    llundblade      Simplify float decoding and align with preferred
-                            float encoding
- 10/31/18   llundblade      Switch to one license that is almost BSD-3.
- 10/28/18   llundblade      Reworked tag decoding
- 10/15/18   llundblade      Indefinite length maps and arrays supported
- 10/8/18    llundblade      Indefinite length strings supported
- 02/04/17   llundbla        Work on CPUs that don's require pointer alignment
-                            by making use of changes in UsefulBuf
- 03/01/17   llundbla        More data types; decoding improvements and fixes
- 11/13/16   llundbla        Integrate most TZ changes back into github version.
- 09/30/16   gkanike         Porting to TZ.
- 03/15/16   llundbla        Initial Version.
-
- =============================================================================*/
-
-#include "qcbor.h"
+#include "qcbor/qcbor_decode.h"
 #include "ieee754.h"
 
 
@@ -86,7 +46,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*===========================================================================
  DecodeNesting -- Functions for tracking array/map nesting when decoding
 
- See qcbor.h for definition of the object used here: QCBORDecodeNesting
+ See qcbor/qcbor_decode.h for definition of the object
+  used here: QCBORDecodeNesting
   ===========================================================================*/
 
 inline static int
@@ -390,7 +351,8 @@ StringAllocator_Destruct(const QCORInternalAllocator *pMe)
 /*===========================================================================
  QCBORDecode -- The main implementation of CBOR decoding
 
- See qcbor.h for definition of the object used here: QCBORDecodeContext
+ See qcbor/qcbor_decode.h for definition of the object
+ used here: QCBORDecodeContext
   ===========================================================================*/
 /*
  Public function, see header file
@@ -1062,7 +1024,7 @@ Done:
 
 
 /*
- Public function, see header qcbor.h file
+ Public function, see header qcbor/qcbor_decode.h file
  */
 QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
                                          QCBORItem *pDecodedItem,
@@ -1366,7 +1328,7 @@ Done:
 
 
 /*
- Public function, see header qcbor.h file
+ Public function, see header qcbor/qcbor_decode.h file
  */
 QCBORError
 QCBORDecode_GetNextWithTags(QCBORDecodeContext *me,
@@ -1434,7 +1396,7 @@ Done:
 
 
 /*
- Public function, see header qcbor.h file
+ Public function, see header qcbor/qcbor_decode.h file
  */
 QCBORError QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
@@ -1486,7 +1448,7 @@ QCBORError QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 
 
 /*
- Public function, see header qcbor.h file
+ Public function, see header qcbor/qcbor_decode.h file
  */
 int QCBORDecode_IsTagged(QCBORDecodeContext *me,
                          const QCBORItem *pItem,
@@ -1507,7 +1469,7 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *me,
 
 
 /*
- Public function, see header qcbor.h file
+ Public function, see header qcbor/qcbor_decode.h file
  */
 QCBORError QCBORDecode_Finish(QCBORDecodeContext *me)
 {
@@ -1715,7 +1677,7 @@ Done:
 
 
 /*
- Public function, see header qcbor.h file
+ Public function, see header qcbor/qcbor_decode.h file
  */
 QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
                                   UsefulBuf Pool,

@@ -75,12 +75,15 @@ memory access alignment fix and code simplification.
 There is a simple makefile for the UNIX style command line binary that
 compiles everything to run the tests.
 
-These seven files, the contents of the src and inc directories, make
+These ten files, the contents of the src and inc directories, make
 up the entire implementation.
 
 * inc
    * UsefulBuf.h
-   * qcbor.h
+   * qcbor_private.h
+   * qcbor_common.h
+   * qcbor_encode.h
+   * qcbor_decode.h
 * src
    * UsefulBuf.c
    * qcbor_encode.c

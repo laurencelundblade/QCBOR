@@ -275,7 +275,10 @@ int RunTestsQCBOR(const char *szTestNames[],
 }
 
 
-#include "qcbor.h" // For size printing
+// For size printing
+#include "qcbor/qcbor_encode.h"
+#include "qcbor/qcbor_decode.h"
+
 
 /*
  Public function. See run_test.h.
