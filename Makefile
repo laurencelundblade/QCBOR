@@ -10,7 +10,7 @@
 
 CC=cc
 
-CFLAGS=-I inc -I test -Os -Wcast-align -Wall -Werror -pedantic-errors -Wextra -Wshadow -Wparentheses -Wno-conversion -xc -std=c99
+CFLAGS=-I inc -I test -Os 
 
 
 QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o
