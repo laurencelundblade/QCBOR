@@ -176,15 +176,20 @@ the t_cose_crypto.h interface into the underlying crypto.
 
 ### Code 
 
-These are approximate numbers for 64-bit x86 code optimized for size
+Here are code sizes on 64-bit x86 optimized for size
 
-* Common to signing and verifying:  515
-* Signing: 920 (742)
-* Verify: 1596
-* OpenSSL adaptor layer: 609
-* Total: 3710
-* Signing only total: 1813
-* Verify only total: 2509
+     |                   | smallest | largest |  
+     |-------------------|----------|---------|
+     | signing only      |     1400 |    2500 |
+     | verification only |     2700 |    3300 |
+     | combined          |     3600 |    5600 |
+     
+Things that make the code smaller:
+* PSA / Mbed takes less code to interface with than OpenSSL
+* gcc is usually smaller than llvm because stack guards are off by default
+* Use only 256-bit crypto with the T_COSE_DISABLE_ESXXX options
+* Disable short-circut sig debug faclity T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+* Disable the content type header T_COSE_DISABLE_CONTENT_TYPE
 
 ### Heap and stack
 Malloc is not used.
