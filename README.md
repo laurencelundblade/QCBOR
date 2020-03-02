@@ -185,7 +185,7 @@ Here are code sizes on 64-bit x86 optimized for size
      | combined          |     3600 |    5600 |
      
 Things that make the code smaller:
-* PSA / Mbed takes less code to interface with than OpenSSL
+* PSA / Mbed crypto takes less code to interface with than OpenSSL
 * gcc is usually smaller than llvm because stack guards are off by default
 * Use only 256-bit crypto with the T_COSE_DISABLE_ESXXX options
 * Disable short-circut sig debug faclity T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
