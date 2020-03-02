@@ -13,6 +13,7 @@ CC=cc
 CFLAGS=-I inc -I test -Os 
 
 
+
 QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o
 
 TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o test/qcbor_decode_tests.o test/run_tests.o \
