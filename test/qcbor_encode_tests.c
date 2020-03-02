@@ -30,7 +30,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  =============================================================================*/
 
-#include "qcbor.h"
+#include "qcbor/qcbor_encode.h"
+#include "qcbor/qcbor_decode.h"
 #include "qcbor_encode_tests.h"
 
 

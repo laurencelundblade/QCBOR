@@ -31,7 +31,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  =============================================================================*/
 
 #include "qcbor_decode_tests.h"
-#include "qcbor.h"
+#include "qcbor/qcbor_encode.h"
+#include "qcbor/qcbor_decode.h"
 #include <string.h>
 #include <math.h> // for fabs()
 #include "not_well_formed_cbor.h"
@@ -1416,9 +1417,7 @@ static int32_t ExtraBytesTest(int nLevel)
 
 
 
-/*
- Public function for initialization. See header qcbor.h
- */
+
 int32_t ParseMapTest()
 {
    // Parse a moderatly complex map structure very thoroughly
@@ -2003,9 +2002,6 @@ static void ComprehensiveInputRecurser(uint8_t *pBuf, size_t nLen, size_t nLenMa
 }
 
 
-/*
- Public function for initialization. See header qcbor.h
- */
 int32_t ComprehensiveInputTest()
 {
    // Size 2 tests 64K inputs and runs quickly
@@ -2017,9 +2013,6 @@ int32_t ComprehensiveInputTest()
 }
 
 
-/*
- Public function for initialization. See header qcbor.h
- */
 int32_t BigComprehensiveInputTest()
 {
    // size 3 tests 16 million inputs and runs OK

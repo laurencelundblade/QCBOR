@@ -38,7 +38,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*
  Notes:
 
- - All the functions in qcbor.h are called once in the aggregation of all
+ - All the functions in qcbor_encode.h are called once in the aggregation of all
    the tests below.
 
  - All the types that are supported are given as input and parsed by these tests
@@ -136,7 +136,7 @@ int32_t RTICResultsTest(void);
 
 
 /*
- Calls all public encode methods in qcbor.h once.
+ Calls all public encode methods in qcbor_encode.h once.
  */
 int32_t AllAddMethodsTest(void);
 

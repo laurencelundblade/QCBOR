@@ -30,42 +30,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  =============================================================================*/
 
-/*=============================================================================
- FILE:  qcbor_encode.c
 
- DESCRIPTION:  This file contains the implementation of QCBOR.
-
- EDIT HISTORY FOR FILE:
-
- This section contains comments describing changes made to the module.
- Notice that changes are listed in reverse chronological order.
-
- when       who            what, where, why
- --------   ----           ---------------------------------------------------
- 02/07/2020 llundblade     QCBOREncode_EncodeHead() and other for bstr hashing.
- 01/25/2020 llundblade     Refine use of integer types to quiet static analysis.
- 01/08/2020 llundblade     Documentation corrections & improved code formatting.
- 12/30/19   llundblade     Add support for decimal fractions and bigfloats.
- 8/7/19     llundblade     Prevent encoding simple type reserved values 24..31
- 7/25/19    janjongboom    Add indefinite length encoding for maps and arrays
- 4/6/19     llundblade     Wrapped bstr returned now includes the wrapping bstr.
- 12/30/18   llundblade     Small efficient clever encode of type & argument.
- 11/29/18   llundblade     Rework to simpler handling of tags and labels.
- 11/9/18    llundblade     Error codes are now enums.
- 11/1/18    llundblade     Floating support.
- 10/31/18   llundblade     Switch to one license that is almost BSD-3.
- 09/28/18   llundblade     Added bstr wrapping feature for COSE implementation.
- 02/05/18   llundbla       Works on CPUs which require integer alignment.
-                           Requires new version of UsefulBuf.
- 07/05/17   llundbla       Add bstr wrapping of maps/arrays for COSE
- 03/01/17   llundbla       More data types
- 11/13/16   llundbla       Integrate most TZ changes back into github version.
- 09/30/16   gkanike        Porting to TZ.
- 03/15/16   llundbla       Initial Version.
-
- =============================================================================*/
-
-#include "qcbor.h"
+#include "qcbor/qcbor_encode.h"
 #include "ieee754.h"
 
 
@@ -244,7 +210,7 @@ inline static bool Nesting_IsInNest(QCBORTrackNesting *pNesting)
 
 
 /*
- Public function for initialization. See header qcbor.h
+ Public function for initialization. See qcbor/qcbor_encode.h
  */
 void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
 {
@@ -255,7 +221,7 @@ void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
 
 
 /*
- Public function for initialization. See header qcbor.h
+ Public function to encode a CBOR head. See qcbor/qcbor_encode.h
  */
 UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
                                   uint8_t   uMajorType,
@@ -277,7 +243,7 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
 
     The top three bits of the initial byte are the major type for the
     CBOR data item.  The eight major types defined by the standard are
-    defined as CBOR_MAJOR_TYPE_xxxx in qcbor.h.
+    defined as CBOR_MAJOR_TYPE_xxxx in qcbor/qcbor_common.h.
 
     The remaining five bits, known as "additional information", and
     possibly more bytes encode the argument. If the argument is less than
@@ -504,7 +470,7 @@ static void InsertCBORHead(QCBOREncodeContext *me, uint8_t uMajorType, size_t uL
 
 
 /*
- Public functions for closing arrays and maps. See qcbor.h
+ Public functions for adding integers. See qcbor/qcbor_encode.h
  */
 void QCBOREncode_AddUInt64(QCBOREncodeContext *me, uint64_t uValue)
 {
@@ -516,7 +482,7 @@ void QCBOREncode_AddUInt64(QCBOREncodeContext *me, uint64_t uValue)
 
 
 /*
- Public functions for closing arrays and maps. See qcbor.h
+ Public functions for adding unsigned. See qcbor/qcbor_encode.h
  */
 void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
 {
@@ -543,7 +509,7 @@ void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
  Semi-private function. It is exposed to user of the interface, but
  they will usually call one of the inline wrappers rather than this.
 
- See qcbor.h
+ See qcbor/qcbor_encode.h
 
  Does the work of adding actual strings bytes to the CBOR output (as
  opposed to numbers and opening / closing aggregate types).
@@ -583,7 +549,7 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBuf
 
 
 /*
- Public functions for closing arrays and maps. See qcbor.h
+ Public functions for adding a tag. See qcbor/qcbor_encode.h
  */
 void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
 {
@@ -595,7 +561,7 @@ void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
  Semi-private function. It is exposed to user of the interface,
  but they will usually call one of the inline wrappers rather than this.
 
- See header qcbor.h
+ See header qcbor/qcbor_encode.h
  */
 void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum)
 {
@@ -612,7 +578,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
 
 
 /*
- Public functions for closing arrays and maps. See qcbor.h
+ Public functions for adding a double. See qcbor/qcbor_encode.h
  */
 void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 {
@@ -627,7 +593,7 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
  Semi-public function. It is exposed to the user of the interface, but
  one of the inline wrappers will usually be called rather than this.
 
- See qcbor.h
+ See qcbor/qcbor_encode.h
  */
 void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
                                         uint64_t            uTag,
@@ -664,7 +630,7 @@ void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
  Semi-public function. It is exposed to user of the interface,
  but they will usually call one of the inline wrappers rather than this.
 
- See header qcbor.h
+ See qcbor/qcbor_encode.h
 */
 void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 {
@@ -705,7 +671,7 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
  Semi-public function. It is exposed to user of the interface,
  but they will usually call one of the inline wrappers rather than this.
 
- See qcbor.h
+ See qcbor/qcbor_encode.h
 */
 void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
@@ -719,7 +685,7 @@ void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t 
 
 
 /*
- Public functions for closing arrays and maps. See qcbor.h
+ Public functions for closing arrays and maps. See qcbor/qcbor_encode.h
  */
 void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 {
@@ -728,7 +694,7 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 
 
 /*
- Public functions for closing bstr wrapping. See qcbor.h
+ Public functions for closing bstr wrapping. See qcbor/qcbor_encode.h
  */
 void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, UsefulBufC *pWrappedCBOR)
 {
@@ -765,7 +731,7 @@ void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, U
 
 
 /*
- Public functions for closing arrays and maps. See qcbor.h
+ Public functions for closing arrays and maps. See qcbor/qcbor_encode.h
  */
 void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
@@ -785,7 +751,7 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t
 
 
 /*
- Public functions to finish and get the encoded result. See qcbor.h
+ Public functions to finish and get the encoded result. See qcbor/qcbor_encode.h
  */
 QCBORError QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
 {
@@ -808,7 +774,7 @@ Done:
 
 
 /*
- Public functions to finish and get the encoded result. See qcbor.h
+ Public functions to finish and get the encoded result. See qcbor/qcbor_encode.h
  */
 QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLen)
 {
