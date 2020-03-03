@@ -161,10 +161,13 @@ encode_protected_parameters(int32_t             cose_algorithm_id,
  * \param[in] kid              The key ID.
  * \param[in] cbor_encode_ctx  CBOR encoding context to output to
  *
- * No error is returned. If an error occurred it will be returned when
- * \c QCBOR_Finish() is called on \c cbor_encode_ctx.
+ * \returns An error of type \ref t_cose_err_t.
  *
  * The unprotected parameters added by this are the kid and content type.
+ *
+ * In the case of a QCBOR encoding error, T_COSE_SUCCESS will be returned
+ * and the error will be caught when \c QCBOR_Finish() is called on \c
+ * cbor_encode_ctx.
  */
 static inline enum t_cose_err_t
 add_unprotected_parameters(const struct t_cose_sign1_sign_ctx *me,
