@@ -31,7 +31,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //  Created by Laurence Lundblade on 10/26/18.
 
 #include <stdio.h>
-#include "qcbor.h"
+#include "qcbor/qcbor.h"
 
 
 
