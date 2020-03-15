@@ -203,6 +203,7 @@ struct _QCBORDecodeContext {
 
    uint8_t        uDecodeMode;
    uint8_t        bStringAllocateAll;
+   uint8_t        nLastError; // TODO: n or u? enum?
 
    QCBORDecodeNesting nesting;
 
@@ -2613,6 +2614,21 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDec
  this function.
  */
 int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint64_t uTag);
+
+
+typedef struct {
+   uint8_t  uLabelType;
+   union {
+      int64_t  xx;
+      uint64_t yy;
+      UsefulBufC zz;
+   } label;
+} QCBORLabel;
+
+void QCBORDecode_GetInt64(QCBORDecodeContext *pCtx, int64_t *pValue);
+
+void QCBORDecode_GetInt64X(QCBORDecodeContext *pCtx, uint32_t uOptions, QCBORLabel *pLabel, int64_t *pValue);
+
 
 
 /**

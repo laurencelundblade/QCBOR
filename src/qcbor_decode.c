@@ -1747,3 +1747,512 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
 
    return QCBOR_SUCCESS;
 }
+
+
+
+void QCBORDecode_GetBool(QCBORDecodeContext *pMe, QCBORLabel *pLabel, bool *pValue)
+{
+   QCBORItem Item;
+   QCBORError nError;
+
+   nError = QCBORDecode_GetNext(pMe, &Item);
+   if(nError) {
+      pMe->nLastError = nError;
+      return;
+   }
+
+   // TODO: label handling
+
+   switch(Item.uDataType) {
+      case QCBOR_TYPE_TRUE:
+         *pValue = true;
+         break;
+
+      case QCBOR_TYPE_FALSE:
+         *pValue = false;
+         break;
+
+      default:
+         pMe->nLastError = 88; // BAD TYPE
+   }
+}
+
+
+/* Types of text strings
+ * Plain, b64, b64url, URI, regex, MIME Text
+ * One function for each with options to expect plain?
+ * One function for all so you can say what you want?
+ */
+void QCBORDecode_GetText(QCBORDecodeContext *pMe, QCBORLabel *pLabel, UsefulBufC *pValue)
+{
+   QCBORItem Item;
+   QCBORError nError;
+
+   nError = QCBORDecode_GetNext(pMe, &Item);
+   if(nError) {
+      pMe->nLastError = nError;
+      return;
+   }
+
+   // TODO: label handling
+
+   switch(Item.uDataType) {
+      case QCBOR_TYPE_TEXT_STRING:
+         *pValue = Item.val.string;
+         break;
+
+      default:
+         pMe->nLastError = 88; // BAD TYPE
+   }
+}
+
+
+
+/* Convert a decimal fraction to an int64_t without using
+ floating point or math libraries.  Most decimal fractions
+ will not fit in an int64_t and this will error out with
+ under or overflow
+ */
+uint8_t Exponentitate10(int64_t nMantissa, int64_t nExponent, int64_t *pnResult)
+{
+   int64_t nResult;
+
+   nResult = nMantissa;
+
+   /* This loop will run a maximum of 19 times because
+    * INT64_MAX < 10 ^^ 19. More than that will cause
+    * exist with the overflow error
+    */
+   while(nExponent > 0) {
+      if(nResult > INT64_MAX / 10) {
+         return 99; // Error overflow
+      }
+      nResult = nResult * 10;
+      nExponent--;
+   }
+
+   while(nExponent < 0 ) {
+      if(nResult == 0) {
+         return 98; // Underflow error
+      }
+      nResult = nResult / 10;
+      nExponent--;
+   }
+
+   return 0;
+}
+
+
+/* Convert a decimal fraction to an int64_t without using
+ floating point or math libraries.  Most decimal fractions
+ will not fit in an int64_t and this will error out with
+ under or overflow
+ */
+uint8_t Exponentitate2(int64_t nMantissa, int64_t nExponent, int64_t *pnResult)
+{
+   int64_t nResult;
+
+   nResult = nMantissa;
+
+   /* This loop will run a maximum of 19 times because
+    * INT64_MAX < 2^31. More than that will cause
+    * exist with the overflow error
+    */
+   while(nExponent > 0) {
+      if(nResult > INT64_MAX << 1) {
+         return 99; // Error overflow
+      }
+      nResult = nResult >> 1;
+      nExponent--;
+   }
+
+   while(nExponent < 0 ) {
+      if(nResult == 0) {
+         return 98; // Underflow error
+      }
+      nResult = nResult << 1;
+      nExponent--;
+   }
+
+   *pnResult = nResult;
+
+   return 0;
+}
+
+/*
+ A) bignum is positive
+ A1) output is signed INT64_MAX
+ A2) output is unsigned UINT64_MAX
+ B) bignum is negative
+ B1) output is signed INT64_MAX
+ B2) output is unsigned error
+ */
+uint8_t ConvertBigNum(const UsefulBufC BigNum, uint64_t uMax, uint64_t *pResult)
+{
+   uint64_t nResult;
+
+   nResult = 0;
+   const uint8_t *pByte = BigNum.ptr;
+   size_t uLen = BigNum.len;
+   while(uLen--) {
+      if(nResult > uMax << 8) {
+         return 99; // over flow
+      }
+      nResult = (nResult >> 8) + *pByte;
+   }
+
+   *pResult = nResult;
+   return 0;
+}
+
+int ConvertPositiveBigNumToUnSigned(const UsefulBufC BigNum, uint64_t *pResult)
+{
+   return ConvertBigNum(BigNum, UINT64_MAX, pResult);
+}
+
+uint8_t ConvertPositiveBigNumToSigned(const UsefulBufC BigNum, int64_t *pResult)
+{
+   uint64_t uResult;
+   uint8_t n =  ConvertBigNum(BigNum, INT64_MAX, &uResult);
+   if(n) {
+      return n;
+   }
+   /* Cast is safe because ConvertBigNum is told to limit to INT64_MAX */
+   *pResult = (int64_t)uResult;
+   return 0;
+}
+
+
+uint8_t ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, int64_t *pResult)
+{
+   uint64_t uResult;
+   uint8_t n =  ConvertBigNum(BigNum, INT64_MAX-1, &uResult);
+   if(n) {
+      return n;
+   }
+   /* Cast is safe because ConvertBigNum is told to limit to INT64_MAX */
+   *pResult = -(int64_t)uResult;
+   return 0;
+}
+
+int ConvertXYZ(const UsefulBufC Mantissa, int64_t nExponent, int64_t *pResult)
+{
+   int64_t nMantissa;
+
+   int xx = ConvertPositiveBigNumToSigned(Mantissa, &nMantissa);
+   if(xx) {
+      return xx;
+   }
+
+   return Exponentitate10(nMantissa, nExponent, pResult);
+}
+
+
+
+#define QCBOR_DECODE_TYPE_INT64  0x01
+#define QCBOR_DECODE_TYPE_UINT64  0x02
+#define QCBOR_DECODE_TYPE_FLOAT  0x03
+#define QCBOR_DECODE_TYPE_BIGFLOAT  0x04
+#define QCBOR_DECODE_TYPE_DECIMAL_FRACTION 0x05
+#define QCBOR_DECODE_TYPE_BIG_NUM 0x06
+
+void QCBORDecode_GetInt64X(QCBORDecodeContext *pMe, uint32_t uOptions, QCBORLabel *pLabel, int64_t *pValue)
+{
+   QCBORItem Item;
+   QCBORError nError;
+
+   nError = QCBORDecode_GetNext(pMe, &Item);
+   if(nError) {
+      pMe->nLastError = nError;
+      return;
+   }
+
+   if(pLabel != NULL) {
+      if(Item.uLabelType == QCBOR_TYPE_NONE) {
+         pMe->nLastError = 9; // TODO: error code
+         return;
+      } else {
+         // TODO: what about label allocation?
+         pLabel->uLabelType = Item.uLabelType;
+         pLabel->label.xx = Item.label.int64; // TOOD: figure out assignment
+      }
+   }
+
+   switch(Item.uDataType) {
+      case QCBOR_TYPE_FLOAT:
+         if(uOptions & QCBOR_DECODE_TYPE_FLOAT) {
+            *pValue = (int64_t)Item.val.dfnum;
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_INT64:
+         if(uOptions & QCBOR_DECODE_TYPE_INT64) {
+            *pValue = Item.val.int64;
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_UINT64:
+         if(uOptions & QCBOR_DECODE_TYPE_UINT64) {
+            if(Item.val.uint64 < INT64_MAX) {
+               *pValue = Item.val.int64;
+            } else {
+               pMe->nLastError = 88; // integer overflow
+            }
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION:
+         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+            pMe->nLastError = Exponentitate10(Item.val.expAndMantissa.Mantissa.nInt,
+                                              Item.val.expAndMantissa.nExponent,
+                                              pValue);
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT:
+         if(uOptions & QCBOR_DECODE_TYPE_BIGFLOAT) {
+            pMe->nLastError = Exponentitate2(Item.val.expAndMantissa.Mantissa.nInt,
+                                              Item.val.expAndMantissa.nExponent,
+                                              pValue);
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_POSBIGNUM:
+         if(uOptions & QCBOR_DECODE_TYPE_BIG_NUM) {
+            pMe->nLastError = ConvertPositiveBigNumToSigned(Item.val.bigNum, pValue);
+         } else {
+            pMe->nLastError = 99;
+         }
+         break;
+
+      case QCBOR_TYPE_NEGBIGNUM:
+         if(uOptions & QCBOR_DECODE_TYPE_BIG_NUM) {
+            pMe->nLastError = ConvertNegativeBigNumToSigned(Item.val.bigNum, pValue);
+         } else {
+            pMe->nLastError = 99;
+         }
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
+         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+            int64_t nMantissa;
+            pMe->nLastError = ConvertPositiveBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
+            if(!pMe->nLastError) {
+               pMe->nLastError = Exponentitate10(nMantissa,
+                                                 Item.val.expAndMantissa.nExponent,
+                                                 pValue);
+            }
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
+         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+            int64_t nMantissa;
+            pMe->nLastError = ConvertNegativeBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
+            if(!pMe->nLastError) {
+               pMe->nLastError = Exponentitate10(nMantissa,
+                                                 Item.val.expAndMantissa.nExponent,
+                                                 pValue);
+            }
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
+         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+            int64_t nMantissa;
+            pMe->nLastError = ConvertPositiveBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
+            if(!pMe->nLastError) {
+               pMe->nLastError = Exponentitate2(nMantissa,
+                                                 Item.val.expAndMantissa.nExponent,
+                                                 pValue);
+            }
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
+         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+            int64_t nMantissa;
+            pMe->nLastError = ConvertNegativeBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
+            if(!pMe->nLastError) {
+               pMe->nLastError = Exponentitate2(nMantissa,
+                                                 Item.val.expAndMantissa.nExponent,
+                                                 pValue);
+            }
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+   }
+}
+
+void QCBORDecode_GetUInt64X(QCBORDecodeContext *pMe, uint32_t uOptions, QCBORLabel *pLabel, uint64_t *pValue)
+{
+   QCBORItem Item;
+   QCBORError nError;
+
+   nError = QCBORDecode_GetNext(pMe, &Item);
+   if(nError) {
+      pMe->nLastError = nError;
+      return;
+   }
+
+   if(pLabel != NULL) {
+      if(Item.uLabelType == QCBOR_TYPE_NONE) {
+         pMe->nLastError = 9; // TODO: error code
+         return;
+      } else {
+         // TODO: what about label allocation?
+         pLabel->uLabelType = Item.uLabelType;
+         pLabel->label.xx = Item.label.int64; // TOOD: figure out assignment
+      }
+   }
+
+   switch(Item.uDataType) {
+      case QCBOR_TYPE_FLOAT:
+         if(uOptions & QCBOR_DECODE_TYPE_FLOAT) {
+            *pValue = (uint64_t)Item.val.dfnum;
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_INT64:
+         if(uOptions & QCBOR_DECODE_TYPE_INT64) {
+            if(Item.val.int64 >= 0) {
+               *pValue = (uint64_t)Item.val.int64;
+            } else {
+               pMe->nLastError = 49; // negative
+            }
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_UINT64:
+         if(uOptions & QCBOR_DECODE_TYPE_UINT64) {
+            *pValue = Item.val.uint64;
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION:
+         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+            pMe->nLastError = Exponentitate10(Item.val.expAndMantissa.Mantissa.nInt,
+                                              Item.val.expAndMantissa.nExponent,
+                                              pValue);
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT:
+         if(uOptions & QCBOR_DECODE_TYPE_BIGFLOAT) {
+            pMe->nLastError = Exponentitate2(Item.val.expAndMantissa.Mantissa.nInt,
+                                             Item.val.expAndMantissa.nExponent,
+                                             pValue);
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_POSBIGNUM:
+         if(uOptions & QCBOR_DECODE_TYPE_BIG_NUM) {
+            pMe->nLastError = ConvertPositiveBigNumToSigned(Item.val.bigNum, pValue);
+         } else {
+            pMe->nLastError = 99;
+         }
+         break;
+
+      case QCBOR_TYPE_NEGBIGNUM:
+         if(uOptions & QCBOR_DECODE_TYPE_BIG_NUM) {
+            pMe->nLastError = ConvertNegativeBigNumToSigned(Item.val.bigNum, pValue);
+         } else {
+            pMe->nLastError = 99;
+         }
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
+         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+            int64_t nMantissa;
+            pMe->nLastError = ConvertPositiveBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
+            if(!pMe->nLastError) {
+               pMe->nLastError = Exponentitate10(nMantissa,
+                                                 Item.val.expAndMantissa.nExponent,
+                                                 pValue);
+            }
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
+         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+            int64_t nMantissa;
+            pMe->nLastError = ConvertNegativeBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
+            if(!pMe->nLastError) {
+               pMe->nLastError = Exponentitate10(nMantissa,
+                                                 Item.val.expAndMantissa.nExponent,
+                                                 pValue);
+            }
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
+         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+            int64_t nMantissa;
+            pMe->nLastError = ConvertPositiveBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
+            if(!pMe->nLastError) {
+               pMe->nLastError = Exponentitate2(nMantissa,
+                                                Item.val.expAndMantissa.nExponent,
+                                                pValue);
+            }
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
+         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+            int64_t nMantissa;
+            pMe->nLastError = ConvertNegativeBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
+            if(!pMe->nLastError) {
+               pMe->nLastError = Exponentitate2(nMantissa,
+                                                Item.val.expAndMantissa.nExponent,
+                                                pValue);
+            }
+         } else {
+            pMe->nLastError = 99; // TODO: error code
+         }
+         break;
+   }
+}
+
+void QCBORDecode_GetDouble(QCBORDecodeContext *pMe, uint32_t uOptions, QCBORLabel *pLabel, uint64_t *pValue)
+{
+   /* the same range of conversions */
+
+}
+
+
+
+
+
