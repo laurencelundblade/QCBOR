@@ -34,7 +34,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
-
 /* Standard CBOR Major type for positive integers of various lengths */
 #define CBOR_MAJOR_TYPE_POSITIVE_INT 0
 
@@ -324,6 +323,9 @@ typedef enum {
 
 } QCBORError;
 
+
+/* Function for getting an error string from an error code */
+const char *qcbor_err_to_str(QCBORError err);
 
 
 
