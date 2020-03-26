@@ -1,7 +1,7 @@
 # Makefile -- UNIX-style make for t_cose using crypto with MBed Crypto
 # MBed Crypto uses the PSA Crypto interface
 #
-# Copyright (c) 2019, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2019-2020, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -11,22 +11,37 @@
 
 # ---- comment ----
 # This is for PSA Crypto / MBed Crypto. See longer explanation in README.md
+# Adjust CRYPTO_INC and CRYPTO_LIB for the
+# location of the openssl libraries on your build machine.
 
 
 # ---- QCBOR location ----
-# Adjust this to the location of QCBOR in your build environment
+
+# This is for direct reference to QCBOR that is not installed in
+# /usr/local or some system location. The path names may need to be
+# adjusted for your location of QCBOR.
 #QCBOR_INC= -I ../../QCBOR/master/inc
 #QCBOR_LIB=../../QCBOR/master/libqcbor.a
-QCBOR_INC= -I/usr/include -I/usr/local/include
+
+# This is for reference to QCBOR that has been installed in
+# /usr/local/ or in some system location.
+QCBOR_INC= -I /usr/local/include
 QCBOR_LIB= -l qcbor
 
 
 # ---- crypto configuration -----
-# The lib and inc directories may have to be adjusted for your build environment.
+
+# These two are for direct reference to MBed Crypto that is not installed
+# in /usr/local/ /usr/local or some system location. The path names
+# may need to be adjusted for your location of MBed Crypto
 #CRYPTO_INC=-I ../../mbed-crypto/include/
 #CRYPTO_LIB=../../mbed-crypto/library/libmbedcrypto.a
+
+# These two are for reference to MBed Crypto that has been installed in
+# /usr/local/ or in some system location.
 CRYPTO_LIB=-l mbedcrypto
-CRYPTO_INC=
+CRYPTO_INC=-I /usr/local/include
+
 CRYPTO_CONFIG_OPTS=-DT_COSE_USE_PSA_CRYPTO
 CRYPTO_OBJ=crypto_adapters/t_cose_psa_crypto.o 
 CRYPTO_TEST_OBJ=test/t_cose_make_psa_test_key.o
@@ -36,10 +51,11 @@ CRYPTO_TEST_OBJ=test/t_cose_make_psa_test_key.o
 # Optimize for size
 C_OPTS=-Os -fPIC
 
-# The following are used before a release of t_cose help make sure the code
-# compiles and runs in the most strict environments, but not all compilers
-# support them so they are not turned on
-#C_OPTS=-Os -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
+# The following are used before a release of t_cose help to make sure
+# the code compiles and runs in the most strict environments, but not
+# all compilers support them so they are not turned on.
+#C_OPTS=-Os -fpic -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
+
 
 # ---- T_COSE Config and test options ----
 TEST_CONFIG_OPTS=
@@ -55,14 +71,16 @@ SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/
 
 .PHONY: all install uninstall clean
 
-all: libt_cose.a libt_cose.so t_cose_test t_cose_basic_example_psa
-
+all: libt_cose.a t_cose_test t_cose_basic_example_psa
 
 libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
 	ar -r $@ $^
 
+# The shared library is not made by default because of platform
+# variability For example MacOS and Linux behave differently and some
+# IoT OS's don't support them at all.
 libt_cose.so: $(SRC_OBJ) $(CRYPTO_OBJ)
-	cc $^ $(CFLAGS) -dead_strip -o $@ -shared $(QCBOR_LIB) $(CRYPTO_LIB)
+	cc -shared $^ -o $@ $(CRYPTO_LIB) $(QCBOR_LIB)
 
 t_cose_test: main.o $(TEST_OBJ) libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
@@ -71,6 +89,8 @@ t_cose_test: main.o $(TEST_OBJ) libt_cose.a
 t_cose_basic_example_psa: examples/t_cose_basic_example_psa.o libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
+
+# ---- Installation ----
 ifeq ($(PREFIX),)
     PREFIX := /usr/local
 endif
@@ -78,14 +98,17 @@ endif
 install: all
 	install -d $(DESTDIR)$(PREFIX)/lib/
 	install -m 644 libt_cose.a $(DESTDIR)$(PREFIX)/lib/
-	install -m 755 libt_cose.so $(DESTDIR)$(PREFIX)/lib/libt_cose.so.1.0.0
-	ln -sf libt_cose.so.1 $(DESTDIR)$(PREFIX)/lib/libt_cose.so
-	ln -sf libt_cose.so.1.0.0 $(DESTDIR)$(PREFIX)/lib/libt_cose.so.1
 	install -d $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_common.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/q_useful_buf.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_sign1_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_sign1_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
+
+# The shared library is not installed by default because of platform variability.
+install_so: all
+	install -m 755 libt_cose.so $(DESTDIR)$(PREFIX)/lib/libt_cose.so.1.0.0
+	ln -sf libt_cose.so.1 $(DESTDIR)$(PREFIX)/lib/libt_cose.so
+	ln -sf libt_cose.so.1.0.0 $(DESTDIR)$(PREFIX)/lib/libt_cose.so.1
 
 uninstall: libt_cose.a $(PUBLIC_INTERFACE)
 	$(RM) -d $(DESTDIR)$(PREFIX)/include/t_cose/*
