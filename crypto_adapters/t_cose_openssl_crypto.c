@@ -13,10 +13,10 @@
 
 #include "t_cose_crypto.h" /* The interface this code implements */
 
-#include "openssl/ecdsa.h"
-#include "openssl/err.h"
+#include <openssl/ecdsa.h>
+#include <openssl/err.h>
 
-#include "openssl/sha.h"
+#include <openssl/sha.h>
 
 
 /**

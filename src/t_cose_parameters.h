@@ -12,11 +12,11 @@
 #ifndef t_cose_parameters_h
 #define t_cose_parameters_h
 
-#include "t_cose_sign1_verify.h"
-#include "q_useful_buf.h"
-#include "t_cose_common.h"
 #include <stdint.h>
-#include "qcbor.h"
+#include "t_cose/t_cose_sign1_verify.h"
+#include "t_cose/q_useful_buf.h"
+#include "t_cose/t_cose_common.h"
+#include "qcbor/qcbor.h"
 
 
 /**

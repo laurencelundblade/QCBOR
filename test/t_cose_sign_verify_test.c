@@ -8,9 +8,9 @@
  * See BSD-3-Clause license in README.md
  */
 
-#include "t_cose_sign1_sign.h"
-#include "t_cose_sign1_verify.h"
-#include "q_useful_buf.h"
+#include <t_cose/t_cose_sign1_sign.h>
+#include <t_cose/t_cose_sign1_verify.h>
+#include <t_cose/q_useful_buf.h>
 #include "t_cose_make_test_pub_key.h"
 
 #include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */

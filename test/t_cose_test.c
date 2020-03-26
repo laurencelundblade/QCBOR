@@ -9,10 +9,10 @@
  */
 
 #include "t_cose_test.h"
-#include "t_cose_sign1_sign.h"
-#include "t_cose_sign1_verify.h"
+#include <t_cose/t_cose_sign1_sign.h>
+#include <t_cose/t_cose_sign1_verify.h>
 #include "t_cose_make_test_messages.h"
-#include "q_useful_buf.h"
+#include <t_cose/q_useful_buf.h>
 #include "t_cose_crypto.h" /* For signature size constant */
 #include "t_cose_util.h" /* for get_short_circuit_kid */
 

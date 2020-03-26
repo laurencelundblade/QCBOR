@@ -8,8 +8,8 @@
  * See BSD-3-Clause license in README.md
  */
 
-#include "t_cose_sign1_sign.h"
-#include "qcbor.h"
+#include "t_cose/t_cose_sign1_sign.h"
+#include "qcbor/qcbor.h"
 #include "t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
 #include "t_cose_util.h"

@@ -35,7 +35,7 @@
 
 
 #include "t_cose_crypto.h"  /* The interface this implements */
-#include "psa/crypto.h"     /* PSA Crypto Interface to mbed crypto or such */
+#include <psa/crypto.h>     /* PSA Crypto Interface to mbed crypto or such */
 
 
 /* Here's the auto-detect and manual override logic for managing PSA

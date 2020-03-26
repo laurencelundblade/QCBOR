@@ -13,8 +13,8 @@
 #define __T_COSE_UTIL_H__
 
 #include <stdint.h>
-#include "q_useful_buf.h"
-#include "t_cose_common.h"
+#include "t_cose/q_useful_buf.h"
+#include "t_cose/t_cose_common.h"
 
 #ifdef __cplusplus
 extern "C" {
