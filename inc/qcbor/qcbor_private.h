@@ -41,7 +41,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#ifdef 0
+#if 0
 } // Keep editor indention formatting happy
 #endif
 #endif
@@ -181,5 +181,8 @@ struct _QCBORDecodeContext {
 #define CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN 12
 #define CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN 13
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* qcbor_private_h */
