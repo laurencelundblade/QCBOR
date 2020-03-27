@@ -11,7 +11,7 @@
  =============================================================================*/
 
 #include "run_tests.h"
-#include <qcbor/UsefulBuf.h>
+#include "qcbor/UsefulBuf.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -277,8 +277,8 @@ static void PrintSize(const char *szWhat,
 
 
 
-#include <t_cose/t_cose_sign1_sign.h> /* For struct size printing */
-#include <t_cose/t_cose_sign1_verify.h> /* For struct size printing */
+#include "t_cose/t_cose_sign1_sign.h" /* For struct size printing */
+#include "t_cose/t_cose_sign1_verify.h" /* For struct size printing */
 #include "t_cose_crypto.h" /* For struct size printing */
 
 

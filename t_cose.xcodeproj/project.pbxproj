@@ -192,6 +192,10 @@
 		E721CB9723628E0B00C7FD56 /* t_cose_make_test_pub_key.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_make_test_pub_key.h; sourceTree = "<group>"; };
 		E721CB9823628E9E00C7FD56 /* t_cose_make_openssl_test_key.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_make_openssl_test_key.c; sourceTree = "<group>"; };
 		E721CB9F23634C0400C7FD56 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = "../../openssl/openssl-1.1.1b/libcrypto.a"; sourceTree = "<group>"; };
+		E72EC9EC242E74EE006D3DD3 /* t_cose_sign1_sign.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_sign1_sign.h; path = t_cose/t_cose_sign1_sign.h; sourceTree = "<group>"; };
+		E72EC9ED242E74EE006D3DD3 /* t_cose_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_common.h; path = t_cose/t_cose_common.h; sourceTree = "<group>"; };
+		E72EC9EE242E74EE006D3DD3 /* t_cose_sign1_verify.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_sign1_verify.h; path = t_cose/t_cose_sign1_verify.h; sourceTree = "<group>"; };
+		E72EC9EF242E74EE006D3DD3 /* q_useful_buf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = q_useful_buf.h; path = t_cose/q_useful_buf.h; sourceTree = "<group>"; };
 		E72FB01B231ADAA8000970FE /* run_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = run_tests.h; sourceTree = "<group>"; };
 		E72FB01C231ADAA8000970FE /* run_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = run_tests.c; sourceTree = "<group>"; };
 		E730E60623612D2B00175CE0 /* sha256.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sha256.h; path = b_con_hash/sha256.h; sourceTree = "<group>"; };
@@ -213,9 +217,6 @@
 		E78C91E5240DF0E800F4CECE /* qcbor_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_private.h; path = ../../QCBOR/master/inc/qcbor/qcbor_private.h; sourceTree = "<group>"; };
 		E7E36E78226CB8400040613B /* t_cose_openssl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_openssl; sourceTree = BUILT_PRODUCTS_DIR; };
 		E7E36E7B226CB8400040613B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		E7E36E83226CB9460040613B /* t_cose_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_common.h; sourceTree = "<group>"; };
-		E7E36E84226CB9460040613B /* t_cose_sign1_sign.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_sign1_sign.h; sourceTree = "<group>"; };
-		E7E36E85226CB9460040613B /* t_cose_sign1_verify.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_sign1_verify.h; sourceTree = "<group>"; };
 		E7E36E89226CB9460040613B /* t_cose_util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_util.c; sourceTree = "<group>"; };
 		E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_sign1_verify.c; sourceTree = "<group>"; };
 		E7E36E8C226CB9460040613B /* t_cose_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_util.h; sourceTree = "<group>"; };
@@ -230,7 +231,6 @@
 		E7E36E9D226CBA1A0040613B /* qcbor_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qcbor_decode.c; path = ../../QCBOR/master/src/qcbor_decode.c; sourceTree = "<group>"; };
 		E7E36EA3226CBB570040613B /* t_cose_openssl_crypto.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_openssl_crypto.c; sourceTree = "<group>"; };
 		E7E36EA4226CBB570040613B /* t_cose_test_crypto.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_test_crypto.c; sourceTree = "<group>"; };
-		E7E36EAB226CBEF00040613B /* q_useful_buf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = q_useful_buf.h; sourceTree = "<group>"; };
 		E7F70ABE2270DF21007CE07F /* t_cose_psa_off_target_hashes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_psa_off_target_hashes.c; sourceTree = "<group>"; };
 		E7F70ABF2270DF21007CE07F /* t_cose_psa_off_target_signature.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_psa_off_target_signature.c; sourceTree = "<group>"; };
 		E7F70AC42270DFAE007CE07F /* t_cose_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_test.h; sourceTree = "<group>"; };
@@ -347,10 +347,10 @@
 		E7E36E82226CB9460040613B /* inc */ = {
 			isa = PBXGroup;
 			children = (
-				E7E36EAB226CBEF00040613B /* q_useful_buf.h */,
-				E7E36E83226CB9460040613B /* t_cose_common.h */,
-				E7E36E84226CB9460040613B /* t_cose_sign1_sign.h */,
-				E7E36E85226CB9460040613B /* t_cose_sign1_verify.h */,
+				E72EC9EF242E74EE006D3DD3 /* q_useful_buf.h */,
+				E72EC9ED242E74EE006D3DD3 /* t_cose_common.h */,
+				E72EC9EC242E74EE006D3DD3 /* t_cose_sign1_sign.h */,
+				E72EC9EE242E74EE006D3DD3 /* t_cose_sign1_verify.h */,
 			);
 			path = inc;
 			sourceTree = "<group>";
@@ -799,9 +799,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = T_COSE_USE_PSA_CRYPTO;
-				"HEADER_SEARCH_PATHS[arch=*]" = (
-					"../../mbed-crypto-mbedcrypto-1.1.0/include",
+				HEADER_SEARCH_PATHS = (
 					../../QCBOR/master/inc,
+					inc,
+					"../../mbed-crypto-mbedcrypto-1.1.0/include",
 				);
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../mbed-crypto-mbedcrypto-1.1.0/library";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -812,7 +813,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				"HEADER_SEARCH_PATHS[arch=*]" = "../../mbed-crypto-mbedcrypto-1.1.0/include";
+				HEADER_SEARCH_PATHS = (
+					../../QCBOR/master/inc,
+					inc,
+					"../../mbed-crypto-mbedcrypto-1.1.0/include",
+				);
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../mbed-crypto-mbedcrypto-1.1.0/library/";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -823,9 +828,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = T_COSE_USE_PSA_CRYPTO;
-				"HEADER_SEARCH_PATHS[arch=*]" = (
-					"../../mbed-crypto/include",
+				HEADER_SEARCH_PATHS = (
 					../../QCBOR/master/inc,
+					inc,
+					"../../mbed-crypto/include",
 				);
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/library";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -836,7 +842,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				"HEADER_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/include";
+				HEADER_SEARCH_PATHS = (
+					../../QCBOR/master/inc,
+					inc,
+					"../../mbed-crypto/include",
+				);
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/library/";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -850,9 +860,10 @@
 					T_COSE_USE_OPENSSL_CRYPTO,
 					"DEBUG=1",
 				);
-				"HEADER_SEARCH_PATHS[arch=*]" = (
-					"../../openssl/openssl-1.1.1b/include",
+				HEADER_SEARCH_PATHS = (
 					../../QCBOR/master/inc,
+					inc,
+					"../../openssl/openssl-1.1.1b/include",
 				);
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1b";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -864,7 +875,11 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = T_COSE_USE_OPENSSL_CRYPTO;
-				"HEADER_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1b/include";
+				HEADER_SEARCH_PATHS = (
+					../../QCBOR/master/inc,
+					inc,
+					"../../openssl/openssl-1.1.1b/include",
+				);
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1b";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -879,7 +894,11 @@
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = T_COSE_USE_PSA_CRYPTO;
 				GCC_WARN_SHADOW = YES;
 				GCC_WARN_SIGN_COMPARE = YES;
-				"HEADER_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/include";
+				HEADER_SEARCH_PATHS = (
+					../../QCBOR/master/inc,
+					inc,
+					"../../mbed-crypto/include",
+				);
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/library";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -893,7 +912,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				GCC_WARN_SHADOW = YES;
 				GCC_WARN_SIGN_COMPARE = YES;
-				"HEADER_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/include";
+				HEADER_SEARCH_PATHS = (
+					../../QCBOR/master/inc,
+					inc,
+					"../../mbed-crypto/include",
+				);
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../mbed-crypto/library/";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -977,8 +1000,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = ../../QCBOR/master/inc;
-				"HEADER_SEARCH_PATHS[arch=*]" = ../../QCBOR/master/inc;
+				HEADER_SEARCH_PATHS = (
+					../../QCBOR/master/inc,
+					inc,
+				);
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_ENABLE_DEBUG_INFO = YES;
@@ -1032,8 +1057,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = ../../QCBOR/master/inc;
-				"HEADER_SEARCH_PATHS[arch=*]" = ../../QCBOR/master/inc;
+				HEADER_SEARCH_PATHS = (
+					../../QCBOR/master/inc,
+					inc,
+				);
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -1052,10 +1079,7 @@
 				HEADER_SEARCH_PATHS = (
 					../../QCBOR/master/inc,
 					"../../openssl/openssl-1.1.1b/include",
-				);
-				"HEADER_SEARCH_PATHS[arch=*]" = (
-					../../QCBOR/master/inc,
-					"../../openssl/openssl-1.1.1b/include",
+					inc,
 				);
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1b";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1071,6 +1095,7 @@
 				HEADER_SEARCH_PATHS = (
 					../../QCBOR/master/inc,
 					"../../openssl/openssl-1.1.1b/include",
+					inc,
 				);
 				"LIBRARY_SEARCH_PATHS[arch=*]" = "../../openssl/openssl-1.1.1b";
 				PRODUCT_NAME = "$(TARGET_NAME)";

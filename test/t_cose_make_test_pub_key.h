@@ -8,7 +8,7 @@
  * See BSD-3-Clause license in README.md
  */
 
-#include <t_cose/t_cose_common.h>
+#include "t_cose/t_cose_common.h"
 #include <stdint.h>
 
 /**
