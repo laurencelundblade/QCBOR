@@ -14,13 +14,13 @@ CFLAGS=-I inc -I test -Os -fPIC
 
 
 
-QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o
+QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o src/qcbor_err_to_str.o
 
 TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o \
     test/qcbor_decode_tests.o test/run_tests.o \
     test/float_tests.o test/half_to_double_from_rfc7049.o
 
-.PHONY: all install clean
+.PHONY: all install uninstall clean
 
 all: qcbortest qcbormin libqcbor.a libqcbor.so
 
@@ -42,6 +42,7 @@ src/UsefulBuf.o: inc/qcbor/UsefulBuf.h
 src/qcbor_decode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor_common.h inc/qcbor/qcbor_encode.h src/ieee754.h
 src/qcbor_encode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor_common.h inc/qcbor/qcbor_decode.h src/ieee754.h
 src/iee754.o: src/ieee754.h
+src/qcbor_err_to_str.o: src/qcbor_err_to_str.c
 
 test/run_tests.o: test/UsefulBuf_Tests.h test/float_tests.h test/run_tests.h test/qcbor_encode_tests.h test/qcbor_decode_tests.h
 test/UsefulBuf_Tests.o: test/UsefulBuf_Tests.h inc/qcbor/UsefulBuf.h
