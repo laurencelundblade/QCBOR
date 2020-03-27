@@ -500,14 +500,18 @@ DecodeNesting_GetPreviousBoundedEnd(const QCBORDecodeNesting *pMe)
 static inline void
 StringAllocator_Free(const QCBORInternalAllocator *pMe, const void *pMem)
 {
+#ifdef __GNUC__
    /* These pragmas allow the "-Wcast-qual" warnings flag to be set for
     * gcc and clang. This is the one place where the const needs to be
     * cast away so const can be use in the rest of the code.
     */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-   (pMe->pfAllocator)(pMe->pAllocateCxt, (void *)pMem, 0);
+#endif
+    (pMe->pfAllocator)(pMe->pAllocateCxt, (void *)pMem, 0);
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 }
 
 // StringAllocator_Reallocate called with pMem NULL is
@@ -517,11 +521,15 @@ StringAllocator_Reallocate(const QCBORInternalAllocator *pMe,
                            const void *pMem,
                            size_t uSize)
 {
+#ifdef __GNUC__
    /* See comment in StringAllocator_Free() */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-   return (pMe->pfAllocator)(pMe->pAllocateCxt, (void *)pMem, uSize);
+#endif
+    return (pMe->pfAllocator)(pMe->pAllocateCxt, (void *)pMem, uSize);
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 }
 
 static inline UsefulBuf
@@ -533,13 +541,17 @@ StringAllocator_Allocate(const QCBORInternalAllocator *pMe, size_t uSize)
 static inline void
 StringAllocator_Destruct(const QCBORInternalAllocator *pMe)
 {
+#ifdef __GNUC__
    /* See comment in StringAllocator_Free() */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-   if(pMe->pfAllocator) {
+#endif
+    if(pMe->pfAllocator) {
       (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, 0);
    }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 

@@ -154,10 +154,13 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef __cplusplus
+#define UsefulBuf_INITTYPE(x) x
 extern "C" {
 #if 0
 } /* Keep editor indention formatting happy */
 #endif
+#else
+#define UsefulBuf_INITTYPE(x) (x)
 #endif
 
 /**
@@ -276,7 +279,7 @@ typedef struct q_useful_buf {
  * the @c ptr field is @c NULL. It doesn't matter what @c len is.  See
  * UsefulBuf_IsEmpty() for the distinction between null and empty.
  */
-#define NULLUsefulBufC  ((UsefulBufC) {NULL, 0})
+#define NULLUsefulBufC  (UsefulBuf_INITTYPE(UsefulBufC) {NULL, 0})
 
 
 /**
@@ -396,7 +399,7 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
  * The terminating \0 (NULL) is NOT included in the length!
  */
 #define UsefulBuf_FROM_SZ_LITERAL(szString) \
-    ((UsefulBufC) {(szString), sizeof(szString)-1})
+    (UsefulBuf_INITTYPE(UsefulBufC) {(szString), sizeof(szString)-1})
 
 
 /**
@@ -424,7 +427,7 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
  * UsefulBuf_MAKE_STACK_UB.
  */
 #define UsefulBuf_FROM_BYTE_ARRAY(pBytes) \
-    ((UsefulBuf) {(pBytes), sizeof(pBytes)})
+    (UsefulBuf_INITTYPE(UsefulBuf) {(pBytes), sizeof(pBytes)})
 
 
 /**
@@ -629,11 +632,15 @@ static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p);
 /** Deprecated function; use UsefulBuf_Unconst() instead */
 static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
 {
+#ifdef __GNUC__
    // See UsefulBuf_Unconst() implementation for comment on pragmas
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-    return (UsefulBuf){(void *)UBC.ptr, UBC.len};
+#endif
+    return UsefulBuf_INITTYPE(UsefulBuf){(void *)UBC.ptr, UBC.len};
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 }
 #endif /* USEFULBUF_DISABLE_DEPRECATED */
 
@@ -1623,24 +1630,28 @@ static inline int UsefulBuf_IsNULLOrEmptyC(UsefulBufC UB)
 
 static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB)
 {
-   return (UsefulBufC){UB.ptr, UB.len};
+   return UsefulBuf_INITTYPE(UsefulBufC){UB.ptr, UB.len};
 }
 
 static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
 {
+#ifdef __GNUC__
    /* -Wcast-qual is a good warning flag to use in general. This is
     * the one place in UsefulBuf where it needs to be quieted. Since
     * clang supports GCC pragmas, this works for clang too. */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-   return (UsefulBuf){(void *)UBC.ptr, UBC.len};
+#endif
+    return UsefulBuf_INITTYPE(UsefulBuf){(void *)UBC.ptr, UBC.len};
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 }
 
 
 static inline UsefulBufC UsefulBuf_FromSZ(const char *szString)
 {
-   return ((UsefulBufC) {szString, strlen(szString)});
+   return (UsefulBuf_INITTYPE(UsefulBufC) {szString, strlen(szString)});
 }
 
 
@@ -1653,13 +1664,13 @@ static inline UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src)
 static inline UsefulBufC UsefulBuf_Set(UsefulBuf pDest, uint8_t value)
 {
    memset(pDest.ptr, value, pDest.len);
-   return (UsefulBufC){pDest.ptr, pDest.len};
+   return UsefulBuf_INITTYPE(UsefulBufC){pDest.ptr, pDest.len};
 }
 
 
 static inline UsefulBufC UsefulBuf_CopyPtr(UsefulBuf Dest, const void *ptr, size_t len)
 {
-   return UsefulBuf_Copy(Dest, (UsefulBufC){ptr, len});
+   return UsefulBuf_Copy(Dest, UsefulBuf_INITTYPE(UsefulBufC){ptr, len});
 }
 
 
@@ -1668,7 +1679,7 @@ static inline UsefulBufC UsefulBuf_Head(UsefulBufC UB, size_t uAmount)
    if(uAmount > UB.len) {
       return NULLUsefulBufC;
    }
-   return (UsefulBufC){UB.ptr, uAmount};
+   return UsefulBuf_INITTYPE(UsefulBufC){UB.ptr, uAmount};
 }
 
 
@@ -1679,9 +1690,9 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
    if(uAmount > UB.len) {
       ReturnValue = NULLUsefulBufC;
    } else if(UB.ptr == NULL) {
-      ReturnValue = (UsefulBufC){NULL, UB.len - uAmount};
+      ReturnValue = UsefulBuf_INITTYPE(UsefulBufC){NULL, UB.len - uAmount};
    } else {
-      ReturnValue = (UsefulBufC){(const uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
+      ReturnValue = UsefulBuf_INITTYPE(UsefulBufC){(const uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
    }
 
    return ReturnValue;
@@ -1776,7 +1787,7 @@ static inline void UsefulOutBuf_InsertString(UsefulOutBuf *pMe,
                                              size_t uPos)
 {
    UsefulOutBuf_InsertUsefulBuf(pMe,
-                                (UsefulBufC){szString, strlen(szString)},
+                                UsefulBuf_INITTYPE(UsefulBufC){szString, strlen(szString)},
                                 uPos);
 }
 
@@ -1951,7 +1962,7 @@ static inline void UsefulOutBuf_AppendData(UsefulOutBuf *pMe,
 static inline void UsefulOutBuf_AppendString(UsefulOutBuf *pMe,
                                              const char *szString)
 {
-   UsefulOutBuf_AppendUsefulBuf(pMe, (UsefulBufC){szString, strlen(szString)});
+   UsefulOutBuf_AppendUsefulBuf(pMe, UsefulBuf_INITTYPE(UsefulBufC){szString, strlen(szString)});
 }
 
 
@@ -2095,7 +2106,7 @@ static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *pMe, size_t
    if(!pResult) {
       return NULLUsefulBufC;
    } else {
-      return (UsefulBufC){pResult, uNum};
+      return UsefulBuf_INITTYPE(UsefulBufC){pResult, uNum};
    }
 }
 
