@@ -42,7 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef __cplusplus
 extern "C" {
-#ifdef 0
+#if 0
 } // Keep editor indention formatting happy
 #endif
 #endif
