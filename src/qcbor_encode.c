@@ -476,7 +476,7 @@ void QCBOREncode_AddUInt64(QCBOREncodeContext *me, uint64_t uValue)
 {
    if(me->uError == QCBOR_SUCCESS) {
       AppendCBORHead(me, CBOR_MAJOR_TYPE_POSITIVE_INT, uValue, 0);
-      me->uError = Nesting_Increment(&(me->nesting));
+      me->uError = (uint8_t)Nesting_Increment(&(me->nesting));
    }
 }
 
@@ -500,7 +500,7 @@ void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
       }
       AppendCBORHead(me, uMajorType, uValue, 0);
 
-      me->uError = Nesting_Increment(&(me->nesting));
+      me->uError = (uint8_t)Nesting_Increment(&(me->nesting));
    }
 }
 
@@ -543,7 +543,7 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBuf
       }
 
       // Update the array counting if there is any nesting at all
-      me->uError = Nesting_Increment(&(me->nesting));
+      me->uError = (uint8_t)Nesting_Increment(&(me->nesting));
    }
 }
 
@@ -571,7 +571,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
       } else {
          // AppendHead() does endian swapping for the float / double
          AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, uNum, uMinLen);
-         me->uError = Nesting_Increment(&(me->nesting));
+         me->uError = (uint8_t)Nesting_Increment(&(me->nesting));
       }
    }
 }
@@ -635,7 +635,7 @@ void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
 void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 {
    // Add one item to the nesting level we are in for the new map or array
-   me->uError = Nesting_Increment(&(me->nesting));
+   me->uError = (uint8_t)Nesting_Increment(&(me->nesting));
    if(me->uError == QCBOR_SUCCESS) {
       /*
        The offset where the length of an array or map will get written
@@ -661,7 +661,7 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
       } else {
          // Increase nesting level because this is a map or array.  Cast
          // from size_t to uin32_t is safe because of check above
-         me->uError = Nesting_Increase(&(me->nesting), uMajorType, (uint32_t)uEndPosition);
+         me->uError = (uint8_t)Nesting_Increase(&(me->nesting), uMajorType, (uint32_t)uEndPosition);
       }
    }
 }

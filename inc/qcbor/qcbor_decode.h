@@ -58,6 +58,7 @@ typedef enum {
    QCBOR_DECODE_MODE_MAP_STRINGS_ONLY = 1,
    /** See QCBORDecode_Init() */
    QCBOR_DECODE_MODE_MAP_AS_ARRAY = 2
+   /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORDecodeMode;
 
 
