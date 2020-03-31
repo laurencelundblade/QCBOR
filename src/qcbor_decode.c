@@ -1012,9 +1012,16 @@ GetNext_MapEntry(QCBORDecodeContext *me,
       }
    } else {
       if(pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
+         if(pDecodedItem->val.uCount > QCBOR_MAX_ITEMS_IN_ARRAY/2) {
+            // TODO: test this error condition
+            nReturn = QCBOR_ERR_ARRAY_TOO_LONG;
+            goto Done;
+         }
          // Decoding a map as an array
          pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
-         pDecodedItem->val.uCount *= 2;
+         // Cast is safe because of check against QCBOR_MAX_ITEMS_IN_ARRAY/2
+         // Cast is needed because of integer promotion
+         pDecodedItem->val.uCount = (uint16_t)(pDecodedItem->val.uCount * 2);
       }
    }
 
