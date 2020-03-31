@@ -42,7 +42,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#ifdef 0
+#if 0
 } // Keep editor indention formatting happy
 #endif
 #endif
@@ -937,5 +937,8 @@ static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
    return 0;
 }
 
+#ifdef __cplusplus
+}
+#endif 
 
 #endif /* qcbor_decode_h */
