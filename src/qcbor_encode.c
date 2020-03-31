@@ -72,22 +72,20 @@ inline static void Nesting_Init(QCBORTrackNesting *pNesting)
    pNesting->pCurrentNesting->uMajorType = CBOR_MAJOR_TYPE_ARRAY;
 }
 
-inline static QCBORError Nesting_Increase(QCBORTrackNesting *pNesting,
+inline static uint8_t Nesting_Increase(QCBORTrackNesting *pNesting,
                                           uint8_t uMajorType,
                                           uint32_t uPos)
 {
-   QCBORError nReturn = QCBOR_SUCCESS;
-
    if(pNesting->pCurrentNesting == &pNesting->pArrays[QCBOR_MAX_ARRAY_NESTING]) {
       // Trying to open one too many
-      nReturn = QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
+      return QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
    } else {
       pNesting->pCurrentNesting++;
       pNesting->pCurrentNesting->uCount     = 0;
       pNesting->pCurrentNesting->uStart     = uPos;
       pNesting->pCurrentNesting->uMajorType = uMajorType;
+      return QCBOR_SUCCESS;
    }
-   return nReturn;
 }
 
 inline static void Nesting_Decrease(QCBORTrackNesting *pNesting)
@@ -95,13 +93,13 @@ inline static void Nesting_Decrease(QCBORTrackNesting *pNesting)
    pNesting->pCurrentNesting--;
 }
 
-inline static QCBORError Nesting_Increment(QCBORTrackNesting *pNesting)
+inline static uint8_t Nesting_Increment(QCBORTrackNesting *pNesting)
 {
    if(1 >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
       return QCBOR_ERR_ARRAY_TOO_LONG;
    }
 
-   pNesting->pCurrentNesting->uCount += 1;
+   pNesting->pCurrentNesting->uCount++;
 
    return QCBOR_SUCCESS;
 }
@@ -476,7 +474,7 @@ void QCBOREncode_AddUInt64(QCBOREncodeContext *me, uint64_t uValue)
 {
    if(me->uError == QCBOR_SUCCESS) {
       AppendCBORHead(me, CBOR_MAJOR_TYPE_POSITIVE_INT, uValue, 0);
-      me->uError = (uint8_t)Nesting_Increment(&(me->nesting));
+      me->uError = Nesting_Increment(&(me->nesting));
    }
 }
 
@@ -500,7 +498,7 @@ void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
       }
       AppendCBORHead(me, uMajorType, uValue, 0);
 
-      me->uError = (uint8_t)Nesting_Increment(&(me->nesting));
+      me->uError = Nesting_Increment(&(me->nesting));
    }
 }
 
@@ -543,7 +541,7 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBuf
       }
 
       // Update the array counting if there is any nesting at all
-      me->uError = (uint8_t)Nesting_Increment(&(me->nesting));
+      me->uError = Nesting_Increment(&(me->nesting));
    }
 }
 
@@ -571,7 +569,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
       } else {
          // AppendHead() does endian swapping for the float / double
          AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, uNum, uMinLen);
-         me->uError = (uint8_t)Nesting_Increment(&(me->nesting));
+         me->uError = Nesting_Increment(&(me->nesting));
       }
    }
 }
@@ -635,7 +633,7 @@ void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
 void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 {
    // Add one item to the nesting level we are in for the new map or array
-   me->uError = (uint8_t)Nesting_Increment(&(me->nesting));
+   me->uError = Nesting_Increment(&(me->nesting));
    if(me->uError == QCBOR_SUCCESS) {
       /*
        The offset where the length of an array or map will get written
@@ -661,7 +659,7 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
       } else {
          // Increase nesting level because this is a map or array.  Cast
          // from size_t to uin32_t is safe because of check above
-         me->uError = (uint8_t)Nesting_Increase(&(me->nesting), uMajorType, (uint32_t)uEndPosition);
+         me->uError = Nesting_Increase(&(me->nesting), uMajorType, (uint32_t)uEndPosition);
       }
    }
 }
