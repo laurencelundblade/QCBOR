@@ -1013,7 +1013,6 @@ GetNext_MapEntry(QCBORDecodeContext *me,
    } else {
       if(pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
          if(pDecodedItem->val.uCount > QCBOR_MAX_ITEMS_IN_ARRAY/2) {
-            // TODO: test this error condition
             nReturn = QCBOR_ERR_ARRAY_TOO_LONG;
             goto Done;
          }
