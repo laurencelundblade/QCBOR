@@ -1206,6 +1206,22 @@ int32_t ParseMapAsArrayTest()
       UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("lies, damn lies and statistics"))) {
       return -17;
    }
+   
+   
+   /*
+    Test with map that nearly QCBOR_MAX_ITEMS_IN_ARRAY items in a
+    map that when interpreted as an array will be too many. Test
+    data just has the start of the map, not all the items in the map.
+    */
+   static const uint8_t pTooLargeMap[] = {0xb9, 0xff, 0xfd};
+   
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pTooLargeMap),
+                    QCBOR_DECODE_MODE_MAP_AS_ARRAY);
+   
+   if((QCBOR_ERR_ARRAY_TOO_LONG != QCBORDecode_GetNext(&DCtx, &Item))) {
+      return -50;
+   }
 
    return 0;
 }
