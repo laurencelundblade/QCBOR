@@ -90,303 +90,303 @@ static const uint8_t spExpectedEncodedInts[] = {
 
 static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
 {
-   QCBORItem          Item;
-   int nCBORError;
+   QCBORItem  Item;
+   QCBORError nCBORError;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_ARRAY)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -9223372036854775807LL - 1)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -4294967297)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -4294967296)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -4294967295)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -4294967294)
       return -1;
 
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -2147483648)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -2147483647)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -65538)
       return  -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -65537)
       return  -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -65536)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -65535)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -65534)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -257)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -256)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -255)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -254)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -25)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -24)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -23)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != -1)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 0)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 0)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 1)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 22)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 23)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 24)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 25)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 26)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 254)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 255)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 256)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 257)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 65534)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 65535)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 65536)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 65537)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 65538)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 2147483647)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 2147483647)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 2147483648)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 2147483649)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 4294967294)
       return  -1;
 
 
-   if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+   if((  nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 4294967295)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 4294967296)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 4294967297)
       return  -1;
@@ -394,14 +394,14 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 9223372036854775807LL)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_UINT64 ||
       Item.val.uint64 != 18446744073709551615ULL)
       return  -1;
@@ -891,21 +891,21 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
-   int nCBORError;
+   QCBORError nCBORError;
 
    QCBORDecode_Init(&DCtx,
                     (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)},
                     nMode);
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_MAP ||
       Item.val.uCount != 3)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       Item.uDataType != QCBOR_TYPE_INT64 ||
@@ -917,7 +917,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       Item.uDataAlloc ||
@@ -928,7 +928,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
       Item.uDataAlloc ||
@@ -938,7 +938,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
       Item.uDataAlloc ||
@@ -948,7 +948,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       Item.uDataAlloc ||
@@ -960,7 +960,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("bytes 1"))||
@@ -972,7 +972,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("bytes 2")) ||
@@ -984,7 +984,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       Item.uDataAlloc ||
@@ -995,7 +995,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("text 2"))||
@@ -1018,14 +1018,14 @@ int32_t ParseMapAsArrayTest()
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
-   int nCBORError;
+   QCBORError nCBORError;
 
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
                     QCBOR_DECODE_MODE_MAP_AS_ARRAY);
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_MAP_AS_ARRAY ||
       Item.val.uCount != 6) {
@@ -1033,7 +1033,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
       Item.uDataAlloc ||
@@ -1044,7 +1044,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataType != QCBOR_TYPE_INT64 ||
@@ -1055,7 +1055,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataAlloc ||
@@ -1066,7 +1066,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataAlloc ||
@@ -1077,7 +1077,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
       Item.val.string.len != 7 ||
@@ -1088,7 +1088,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
       Item.uDataAlloc ||
@@ -1099,7 +1099,7 @@ int32_t ParseMapAsArrayTest()
 
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataAlloc ||
@@ -1109,7 +1109,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataAlloc ||
@@ -1120,7 +1120,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("bytes 1"))||
@@ -1131,7 +1131,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
@@ -1142,7 +1142,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("bytes 2")) ||
@@ -1153,7 +1153,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
@@ -1164,7 +1164,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataAlloc ||
@@ -1175,7 +1175,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataAlloc ||
@@ -1186,7 +1186,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("text 2"))||
@@ -1197,7 +1197,7 @@ int32_t ParseMapAsArrayTest()
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
@@ -1205,6 +1205,22 @@ int32_t ParseMapAsArrayTest()
       Item.uLabelAlloc ||
       UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("lies, damn lies and statistics"))) {
       return -17;
+   }
+   
+   
+   /*
+    Test with map that nearly QCBOR_MAX_ITEMS_IN_ARRAY items in a
+    map that when interpreted as an array will be too many. Test
+    data just has the start of the map, not all the items in the map.
+    */
+   static const uint8_t pTooLargeMap[] = {0xb9, 0xff, 0xfd};
+   
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pTooLargeMap),
+                    QCBOR_DECODE_MODE_MAP_AS_ARRAY);
+   
+   if((QCBOR_ERR_ARRAY_TOO_LONG != QCBORDecode_GetNext(&DCtx, &Item))) {
+      return -50;
    }
 
    return 0;
@@ -1227,7 +1243,7 @@ static int32_t ExtraBytesTest(int nLevel)
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
-   int nCBORError;
+   QCBORError nCBORError;
 
    QCBORDecode_Init(&DCtx,
                     (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)},
@@ -1243,7 +1259,7 @@ static int32_t ExtraBytesTest(int nLevel)
 
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_MAP ||
       Item.val.uCount != 3)
@@ -1259,7 +1275,7 @@ static int32_t ExtraBytesTest(int nLevel)
 
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       Item.uDataType != QCBOR_TYPE_INT64 ||
@@ -1277,7 +1293,7 @@ static int32_t ExtraBytesTest(int nLevel)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("an array of two strings")) ||
@@ -1297,7 +1313,7 @@ static int32_t ExtraBytesTest(int nLevel)
 
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("string1"))) {
@@ -1313,7 +1329,7 @@ static int32_t ExtraBytesTest(int nLevel)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("string2"))) {
@@ -1329,7 +1345,7 @@ static int32_t ExtraBytesTest(int nLevel)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("map in a map")) ||
@@ -1346,7 +1362,7 @@ static int32_t ExtraBytesTest(int nLevel)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("bytes 1")) ||
@@ -1364,7 +1380,7 @@ static int32_t ExtraBytesTest(int nLevel)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("bytes 2")) ||
@@ -1382,7 +1398,7 @@ static int32_t ExtraBytesTest(int nLevel)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("another int")) ||
@@ -1399,7 +1415,7 @@ static int32_t ExtraBytesTest(int nLevel)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      return nCBORError;
+      return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("text 2"))||
@@ -1455,7 +1471,7 @@ int32_t ParseSimpleTest()
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
-   int nCBORError;
+   QCBORError nCBORError;
 
 
    QCBORDecode_Init(&DCtx,
@@ -1464,28 +1480,28 @@ int32_t ParseSimpleTest()
 
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_ARRAY ||
       Item.val.uCount != 10)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_FALSE)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_TRUE)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_NULL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_UNDEF)
       return -1;
 
@@ -1494,12 +1510,12 @@ int32_t ParseSimpleTest()
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_UKNOWN_SIMPLE || Item.val.uSimple != 0)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_UKNOWN_SIMPLE || Item.val.uSimple != 19)
       return -1;
 
@@ -1513,12 +1529,12 @@ int32_t ParseSimpleTest()
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_UKNOWN_SIMPLE || Item.val.uSimple != 32)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_UKNOWN_SIMPLE || Item.val.uSimple != 255)
       return -1;
 
@@ -1923,7 +1939,7 @@ int32_t DecodeFailureTests()
                        QCBOR_DECODE_MODE_NORMAL);
 
       if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-         return nCBORError;
+         return (int32_t)nCBORError;
       if(Item.uDataType != QCBOR_TYPE_ARRAY ||
          Item.val.uCount != 10) {
          // This wasn't supposed to happen
@@ -2073,7 +2089,7 @@ int32_t DateParseTest()
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
-   int nCBORError;
+   QCBORError nCBORError;
 
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput),
@@ -2543,7 +2559,7 @@ int32_t BignumParseTest()
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
-   int nCBORError;
+   QCBORError nCBORError;
 
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNumInput),
@@ -2627,7 +2643,7 @@ static int32_t CheckItemWithIntLabel(QCBORDecodeContext *pCtx,
                                  QCBORItem *pItem)
 {
    QCBORItem Item;
-   int nCBORError;
+   QCBORError nCBORError;
 
    if((nCBORError = QCBORDecode_GetNext(pCtx, &Item))) return -1;
    if(Item.uDataType != uDataType) return -1;
@@ -2809,7 +2825,7 @@ static int32_t parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
    int j;
    for(j = 0; j < nNestLevel; j++) {
       QCBORItem Item;
-      int nReturn = QCBORDecode_GetNext(&DC, &Item);
+      QCBORError nReturn = QCBORDecode_GetNext(&DC, &Item);
       if(j >= QCBOR_MAX_ARRAY_NESTING) {
          // Should be in error
          if(nReturn != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
@@ -2827,7 +2843,7 @@ static int32_t parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
          return -7;
       }
    }
-   int nReturn = QCBORDecode_Finish(&DC);
+   QCBORError nReturn = QCBORDecode_Finish(&DC);
    if(nReturn) {
       return -3;
    }
@@ -2865,7 +2881,7 @@ static const uint8_t spIndefiniteArrayBad5[] = {0x9f, 0xd1, 0xff};
 
 int32_t IndefiniteLengthArrayMapTest()
 {
-   int nResult;
+   QCBORError nResult;
    // --- first test -----
     UsefulBufC IndefLen = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefiniteArray);
 
@@ -3333,18 +3349,18 @@ int32_t AllocAllStringsTest()
 
    QCBORItem Item1, Item2, Item3, Item4;
    if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if(Item1.uDataType != QCBOR_TYPE_MAP ||
       Item1.val.uCount != 3)
       return -3;
    if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if((nCBORError = QCBORDecode_GetNext(&DC, &Item2)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if((nCBORError = QCBORDecode_GetNext(&DC, &Item3)))
-      return nCBORError;
+      return (int32_t)nCBORError;
    if((nCBORError = QCBORDecode_GetNext(&DC, &Item4)))
-      return nCBORError;
+      return (int32_t)nCBORError;
 
    UsefulBuf_Set(CopyOfStorage, '_');
 

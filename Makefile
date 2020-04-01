@@ -15,7 +15,7 @@ CFLAGS=-I inc -I test -Os -fPIC
 # The following are used before a release of QCBOR help to make sure
 # the code compiles and runs in the most strict environments, but not
 # all compilers support them so they are not turned on.
-#CFLAGS=-I inc -I test -Os -fpic -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
+#CFLAGS=-I inc -I test -Os -fpic -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -Wconversion -xc -std=c99
 
 
 QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o src/qcbor_err_to_str.o

@@ -321,6 +321,7 @@ typedef enum {
     */
     QCBOR_ERR_STRING_TOO_LONG = 24
 
+    /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORError;
 
 
