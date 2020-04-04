@@ -63,7 +63,7 @@
  * internals are NULL.
  */
 static inline struct q_useful_buf_c
-convert_ecdsa_signature_from_ossl(int                 key_len,
+convert_ecdsa_signature_from_ossl(unsigned            key_len,
                                   const ECDSA_SIG    *ossl_signature,
                                   struct q_useful_buf signature_buffer)
 {
@@ -127,7 +127,7 @@ Done:
  * concatenated.
  */
 static enum t_cose_err_t
-convert_ecdsa_signature_to_ossl(int                    key_len,
+convert_ecdsa_signature_to_ossl(unsigned               key_len,
                                 struct q_useful_buf_c  signature,
                                 ECDSA_SIG            **ossl_sig_to_verify)
 {
@@ -137,20 +137,20 @@ convert_ecdsa_signature_to_ossl(int                    key_len,
     int               ossl_result;
 
     /* Check the signature length against expected */
-    if(signature.len != (size_t)key_len * 2) {
+    if(signature.len != key_len * 2) {
         return_value = T_COSE_ERR_SIG_VERIFY;
         goto Done;
     }
 
     /* Put the r and the s from the signature into big numbers */
-    ossl_signature_r_bn = BN_bin2bn(signature.ptr, key_len, NULL);
+    ossl_signature_r_bn = BN_bin2bn(signature.ptr, (int)key_len, NULL);
     if(ossl_signature_r_bn == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
         goto Done;
     }
 
     ossl_signature_s_bn = BN_bin2bn(((uint8_t *)signature.ptr)+key_len,
-                                    key_len,
+                                    (int)key_len,
                                     NULL);
     if(ossl_signature_s_bn == NULL) {
         BN_free(ossl_signature_r_bn);
@@ -205,12 +205,12 @@ Done:
 static enum t_cose_err_t
 ecdsa_key_checks(struct t_cose_key  t_cose_key,
                  EC_KEY           **return_ossl_ec_key,
-                 int               *return_key_size_in_bytes)
+                 unsigned          *return_key_size_in_bytes)
 {
     enum t_cose_err_t  return_value;
     const EC_GROUP    *key_group;
-    int                key_len_bits; /* type int is conscious choice */
-    int                key_len_bytes; /* type int is conscious choice */
+    int                key_len_bits; /* type unsigned is conscious choice */
+    unsigned           key_len_bytes; /* type unsigned is conscious choice */
     int                ossl_result; /* type int is conscious choice */
     EC_KEY            *ossl_ec_key;
 
@@ -239,13 +239,19 @@ ecdsa_key_checks(struct t_cose_key  t_cose_key,
         goto Done;
     }
     key_len_bits = EC_GROUP_get_degree(key_group);
+    if(key_len_bits <= 0) {
+        /* This is not expected to ever happen */
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
 
     /* Convert group size in bits to key size in bytes per RFC 8152
      * section 8.1. This is also the size of r and s in the
      * signature. This is by rounding up to the number of bytes to
-     * hold the give number of bits.
+     * hold the give number of bits. Cast is safe because of
+     * check above.
      */
-    key_len_bytes = key_len_bits / 8;
+    key_len_bytes = (unsigned)key_len_bits / 8;
     if(key_len_bits % 8) {
         key_len_bytes++;
     }
@@ -270,7 +276,7 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
 {
     enum t_cose_err_t return_value;
     EC_KEY            *ossl_ec_key;
-    int                key_size;
+    unsigned           key_size;
 
 
     if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
@@ -303,7 +309,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
     enum t_cose_err_t  return_value;
     EC_KEY            *ossl_ec_key;
     ECDSA_SIG         *ossl_signature;
-    int                key_len; /* in bytes; type int is conscious choice */
+    unsigned           key_len; /* in bytes; type unsigned is conscious choice */
 
     ossl_signature = NULL;
 
@@ -382,7 +388,7 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
     enum t_cose_err_t return_value;
     EC_KEY           *ossl_pub_key;
     ECDSA_SIG        *ossl_sig_to_verify;
-    int               key_len; /* in bytes; type int is conscious choice */
+    unsigned          key_len; /* in bytes; type unsigned is conscious choice */
 
     /* This implementation doesn't use any key store with the ability
      * to look up a key based on kid. */
@@ -408,7 +414,7 @@ t_cose_crypto_pub_key_verify(int32_t                cose_algorithm_id,
      */
     return_value =
        convert_ecdsa_signature_to_ossl(key_len,
-                                        serialized_sig_to_verify,
+                                       serialized_sig_to_verify,
                                        &ossl_sig_to_verify);
     if(return_value) {
         goto Done;

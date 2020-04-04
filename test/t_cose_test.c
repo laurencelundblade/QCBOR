@@ -28,7 +28,7 @@ int_fast32_t short_circuit_self_test()
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
-    enum t_cose_err_t               return_value;
+    enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
@@ -41,12 +41,12 @@ int_fast32_t short_circuit_self_test()
 
     /* No key necessary because short-circuit test mode is used */
 
-    return_value = t_cose_sign1_sign(&sign_ctx,
+    result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &signed_cose);
-    if(return_value) {
-        return 1000 + return_value;
+    if(result) {
+        return 1000 + (int32_t)result;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -58,15 +58,15 @@ int_fast32_t short_circuit_self_test()
     /* No key necessary with short circuit */
 
     /* Run the signature verification */
-    return_value = t_cose_sign1_verify(&verify_ctx,
+    result = t_cose_sign1_verify(&verify_ctx,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
                                        &payload,
                                        /* Don't return parameters */
                                        NULL);
-    if(return_value) {
-        return 2000 + return_value;
+    if(result) {
+        return 2000 + (int32_t)result;
     }
 
     /* compare payload output to the one expected */
@@ -110,7 +110,7 @@ int_fast32_t short_circuit_verify_fail_test()
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
-    enum t_cose_err_t               return_value;
+    enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
@@ -123,12 +123,12 @@ int_fast32_t short_circuit_verify_fail_test()
 
     /* No key necessary because short-circuit test mode is used */
 
-    return_value = t_cose_sign1_sign(&sign_ctx,
+    result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &signed_cose);
-    if(return_value) {
-        return 1000 + return_value;
+    if(result) {
+        return 1000 + (int32_t)result;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -152,15 +152,15 @@ int_fast32_t short_circuit_verify_fail_test()
     /* No key necessary with short circuit */
 
     /* Run the signature verification */
-    return_value = t_cose_sign1_verify(&verify_ctx,
+    result = t_cose_sign1_verify(&verify_ctx,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
                                        &payload,
                                        /* Don't return parameters */
                                        NULL);
-    if(return_value != T_COSE_ERR_SIG_VERIFY) {
-        return 4000 + return_value;
+    if(result != T_COSE_ERR_SIG_VERIFY) {
+        return 4000 + (int32_t)result;
     }
     /* --- Done verifying the COSE Sign1 object  --- */
 
@@ -175,7 +175,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 {
     struct t_cose_sign1_sign_ctx sign_ctx;
     QCBOREncodeContext           cbor_encode;
-    enum t_cose_err_t            return_value;
+    enum t_cose_err_t            result;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
     Q_USEFUL_BUF_MAKE_STACK_UB(  small_signed_cose_buffer, 15);
     struct q_useful_buf_c        signed_cose;
@@ -185,11 +185,11 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     /* Use reserved alg ID 0 to cause error. */
     t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, 0);
 
-    return_value = t_cose_sign1_sign(&sign_ctx,
+    result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &signed_cose);
-    if(return_value != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
+    if(result != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
         return -1;
     }
 
@@ -198,11 +198,11 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     /* Use unassigned alg ID -4444444 to cause error. */
     t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, -4444444);
 
-    return_value = t_cose_sign1_sign(&sign_ctx,
+    result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &signed_cose);
-    if(return_value != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
+    if(result != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
         return -2;
     }
 
@@ -214,16 +214,16 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     t_cose_sign1_sign_init(&sign_ctx,
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
-    return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
 
 
     QCBOREncode_AddSZString(&cbor_encode, "payload");
     /* Force a CBOR encoding error by closing a map that is not open */
     QCBOREncode_CloseMap(&cbor_encode);
 
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
 
-    if(return_value != T_COSE_ERR_CBOR_FORMATTING) {
+    if(result != T_COSE_ERR_CBOR_FORMATTING) {
         return -3;
     }
 
@@ -233,12 +233,12 @@ int_fast32_t short_circuit_signing_error_conditions_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
-    return_value = t_cose_sign1_sign(&sign_ctx,
+    result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      small_signed_cose_buffer,
                                      &signed_cose);
 
-    if(return_value != T_COSE_ERR_TOO_SMALL) {
+    if(result != T_COSE_ERR_TOO_SMALL) {
         return -4;
     }
 
@@ -254,7 +254,7 @@ int_fast32_t short_circuit_make_cwt_test()
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     QCBOREncodeContext              cbor_encode;
-    enum t_cose_err_t               return_value;
+    enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
@@ -270,9 +270,9 @@ int_fast32_t short_circuit_make_cwt_test()
                            T_COSE_ALGORITHM_ES256);
 
     /* Do the first part of the the COSE_Sign1, the parameters */
-    return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
-    if(return_value) {
-        return 1000 + return_value;
+    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 1000 + (int32_t)result;
     }
 
     QCBOREncode_OpenMap(&cbor_encode);
@@ -287,9 +287,9 @@ int_fast32_t short_circuit_make_cwt_test()
     QCBOREncode_CloseMap(&cbor_encode);
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
-    if(return_value) {
-        return 2000 + return_value;
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 2000 + (int32_t)result;
     }
 
     /* Finally close off the CBOR formatting and get the pointer and length
@@ -297,7 +297,7 @@ int_fast32_t short_circuit_make_cwt_test()
      */
     cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
     if(cbor_error) {
-        return 3000 + cbor_error;
+        return 3000 + (int32_t)cbor_error;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -349,15 +349,15 @@ int_fast32_t short_circuit_make_cwt_test()
     /* No key necessary with short circuit */
 
     /* Run the signature verification */
-    return_value = t_cose_sign1_verify(&verify_ctx,
+    result = t_cose_sign1_verify(&verify_ctx,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
                                        &payload,
                                        /* Don't return parameters */
                                        NULL);
-    if(return_value) {
-        return 4000 + return_value;
+    if(result) {
+        return 4000 + (int32_t)result;
     }
 
     /* Format the expected payload CBOR fragment */
@@ -380,7 +380,7 @@ int_fast32_t short_circuit_decode_only_test()
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     QCBOREncodeContext              cbor_encode;
-    enum t_cose_err_t               return_value;
+    enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
@@ -398,18 +398,18 @@ int_fast32_t short_circuit_decode_only_test()
                            T_COSE_ALGORITHM_ES256);
 
     /* Do the first part of the the COSE_Sign1, the parameters */
-    return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
-    if(return_value) {
-        return 1000 + return_value;
+    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 1000 + (int32_t)result;
     }
 
 
     QCBOREncode_AddSZString(&cbor_encode, "payload");
 
     /* Finish up the COSE_Sign1. This is where the signing happens */
-    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
-    if(return_value) {
-        return 2000 + return_value;
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 2000 + (int32_t)result;
     }
 
     /* Finally close of the CBOR formatting and get the pointer and length
@@ -417,7 +417,7 @@ int_fast32_t short_circuit_decode_only_test()
      */
     cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
     if(cbor_error) {
-        return 3000 + cbor_error;
+        return 3000 + (int32_t)cbor_error;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -425,7 +425,7 @@ int_fast32_t short_circuit_decode_only_test()
     /* The signature is the last thing so reach back that many bytes and tweak
        so if signature verification were attempted, it would fail */
     const size_t last_byte_offset = signed_cose.len - T_COSE_EC_P256_SIG_SIZE;
-    ((uint8_t *)signed_cose.ptr)[last_byte_offset] += 1;
+    ((uint8_t *)signed_cose.ptr)[last_byte_offset]++;
 
 
     /* --- Start verifying the COSE Sign1 object  --- */
@@ -434,7 +434,7 @@ int_fast32_t short_circuit_decode_only_test()
     /* No key necessary with short circuit */
 
     /* Run the signature verification */
-    return_value = t_cose_sign1_verify(&verify_ctx,
+    result = t_cose_sign1_verify(&verify_ctx,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
@@ -443,8 +443,8 @@ int_fast32_t short_circuit_decode_only_test()
                                        NULL);
 
 
-    if(return_value) {
-        return 4000 + return_value;
+    if(result) {
+        return 4000 + (int32_t)result;
     }
 
     /* Format the expected payload CBOR fragment */
@@ -501,7 +501,7 @@ static const uint8_t rfc8152_example_2_1[] = {
  */
 int_fast32_t cose_example_test()
 {
-    enum t_cose_err_t             return_value;
+    enum t_cose_err_t             result;
     Q_USEFUL_BUF_MAKE_STACK_UB(   signed_cose_buffer, 200);
     struct q_useful_buf_c         output;
     struct t_cose_sign1_sign_ctx  sign_ctx;
@@ -518,13 +518,13 @@ int_fast32_t cose_example_test()
 
     /* Make example C.2.1 from RFC 8152 */
 
-    return_value = t_cose_sign1_sign(&sign_ctx,
+    result = t_cose_sign1_sign(&sign_ctx,
                                       s_input_payload,
                                       signed_cose_buffer,
                                      &output);
 
-    if(return_value != T_COSE_SUCCESS) {
-        return return_value;
+    if(result != T_COSE_SUCCESS) {
+        return (int32_t)result;
     }
 
     /* Compare only the headers and payload as this was not signed
@@ -537,7 +537,7 @@ int_fast32_t cose_example_test()
         return -1000;
     }
 
-    return return_value;
+    return result;
 }
 
 
@@ -546,7 +546,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
     QCBOREncodeContext              cbor_encode;
-    enum t_cose_err_t               return_value;
+    enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
@@ -560,14 +560,14 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
-    return_value =
+    result =
         t_cose_test_message_sign1_sign(&sign_ctx,
                                        test_mess_options,
                                        Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
                                        signed_cose_buffer,
                                        &signed_cose);
-    if(return_value) {
-        return 2000 + return_value;
+    if(result) {
+        return 2000 + (int32_t)result;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -579,7 +579,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
 
 
     /* Run the signature verification */
-    return_value = t_cose_sign1_verify(&verify_ctx,
+    result = t_cose_sign1_verify(&verify_ctx,
                                        /* COSE to verify */
                                        signed_cose,
                                        /* The returned payload */
@@ -587,7 +587,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
                                        /* Don't return parameters */
                                        NULL);
 
-    return return_value;
+    return (int32_t)result;
 }
 
 
@@ -626,7 +626,7 @@ static struct q_useful_buf_c get_short_circuit_kid(void)
 
 int_fast32_t all_header_parameters_test()
 {
-    enum t_cose_err_t               return_value;
+    enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 300);
     struct q_useful_buf_c           output;
     struct q_useful_buf_c           payload;
@@ -643,13 +643,13 @@ int_fast32_t all_header_parameters_test()
                                  T_COSE_NULL_KEY,
                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
-    return_value =
+    result =
         t_cose_test_message_sign1_sign(&sign_ctx,
                                        T_COSE_TEST_ALL_PARAMETERS,
                                        s_input_payload,
                                        signed_cose_buffer,
                                       &output);
-    if(return_value) {
+    if(result) {
         return 1;
     }
 
@@ -658,7 +658,7 @@ int_fast32_t all_header_parameters_test()
     /* No key necessary with short circuit */
 
 
-    return_value = t_cose_sign1_verify(&verify_ctx,
+    result = t_cose_sign1_verify(&verify_ctx,
                                        /* COSE to verify */
                                        output,
                                        /* The returned payload */
@@ -819,7 +819,7 @@ int_fast32_t content_type_test()
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           output;
     struct q_useful_buf_c           payload;
-    enum t_cose_err_t               return_value;
+    enum t_cose_err_t               result;
     struct t_cose_sign1_verify_ctx  verify_ctx;
 
 
@@ -830,21 +830,21 @@ int_fast32_t content_type_test()
 
     t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
 
-    return_value = t_cose_sign1_sign(&sign_ctx,
+    result = t_cose_sign1_sign(&sign_ctx,
                                       s_input_payload,
                                       signed_cose_buffer,
                                      &output);
-    if(return_value) {
+    if(result) {
         return 1;
     }
 
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
-    return_value = t_cose_sign1_verify(&verify_ctx,
+    result = t_cose_sign1_verify(&verify_ctx,
                                         output,
                                        &payload,
                                        &parameters);
-    if(return_value) {
+    if(result) {
         return 2;
     }
 
@@ -860,21 +860,21 @@ int_fast32_t content_type_test()
 
     t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
 
-    return_value = t_cose_sign1_sign(&sign_ctx,
+    result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &output);
-    if(return_value) {
+    if(result) {
         return 1;
     }
 
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
 
-    return_value = t_cose_sign1_verify(&verify_ctx,
+    result = t_cose_sign1_verify(&verify_ctx,
                                        output,
                                        &payload,
                                        &parameters);
-    if(return_value) {
+    if(result) {
         return 2;
     }
 
@@ -892,11 +892,11 @@ int_fast32_t content_type_test()
     t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
 
 
-    return_value = t_cose_sign1_sign(&sign_ctx,
+    result = t_cose_sign1_sign(&sign_ctx,
                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
                                      signed_cose_buffer,
                                      &output);
-    if(return_value != T_COSE_ERR_DUPLICATE_PARAMETER) {
+    if(result != T_COSE_ERR_DUPLICATE_PARAMETER) {
         return 1;
     }
 #endif
@@ -982,7 +982,7 @@ extern int hash_test_mode;
 int_fast32_t short_circuit_hash_fail_test()
 {
     struct t_cose_sign1_sign_ctx sign_ctx;
-    enum t_cose_err_t            return_value;
+    enum t_cose_err_t            result;
     struct q_useful_buf_c        wrapped_payload;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 200);
 
@@ -1000,15 +1000,15 @@ int_fast32_t short_circuit_hash_fail_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
-    return_value = t_cose_sign1_sign(&sign_ctx,
+    result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &wrapped_payload);
 
     hash_test_mode = 0;
 
-    if(return_value != T_COSE_ERR_HASH_GENERAL_FAIL) {
-        return 2000 + return_value;
+    if(result != T_COSE_ERR_HASH_GENERAL_FAIL) {
+        return 2000 + (int32_t)result;
     }
 
 
@@ -1021,15 +1021,15 @@ int_fast32_t short_circuit_hash_fail_test()
                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
-    return_value = t_cose_sign1_sign(&sign_ctx,
+    result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
                                      signed_cose_buffer,
                                      &wrapped_payload);
 
     hash_test_mode = 0;
 
-    if(return_value != T_COSE_ERR_HASH_GENERAL_FAIL) {
-        return 2000 + return_value;
+    if(result != T_COSE_ERR_HASH_GENERAL_FAIL) {
+        return 2000 + (int32_t)result;
     }
 
     return 0;
