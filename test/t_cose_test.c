@@ -537,7 +537,7 @@ int_fast32_t cose_example_test()
         return -1000;
     }
 
-    return result;
+    return (int32_t)result;
 }
 
 
@@ -567,7 +567,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
                                        signed_cose_buffer,
                                        &signed_cose);
     if(result) {
-        return 2000 + (int32_t)result;
+        return result;
     }
     /* --- Done making COSE Sign1 object  --- */
 
@@ -587,7 +587,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
                                        /* Don't return parameters */
                                        NULL);
 
-    return (int32_t)result;
+    return result;
 }
 
 
@@ -693,8 +693,8 @@ int_fast32_t all_header_parameters_test()
 }
 
 struct test_case {
-    uint32_t test_option;
-    enum t_cose_err_t   result;
+    uint32_t           test_option;
+    enum t_cose_err_t  result;
 };
 
 static struct test_case bad_parameters_tests_table[] = {

@@ -151,7 +151,7 @@ struct t_cose_parameters {
 struct t_cose_sign1_verify_ctx {
     /* Private data structure */
     struct t_cose_key     verification_key;
-    int32_t               option_flags;
+    uint32_t              option_flags;
 };
 
 
@@ -165,7 +165,7 @@ struct t_cose_sign1_verify_ctx {
  */
 static void
 t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
-                         int32_t                         option_flags);
+                         uint32_t                        option_flags);
 
 
 /**
@@ -280,7 +280,7 @@ enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
  */
 static inline void
 t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
-                         int32_t                option_flags)
+                         uint32_t                        option_flags)
 {
     me->option_flags = option_flags;
     me->verification_key = T_COSE_NULL_KEY;

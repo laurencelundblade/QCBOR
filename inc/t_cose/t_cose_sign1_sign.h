@@ -70,7 +70,7 @@ struct t_cose_sign1_sign_ctx {
     struct q_useful_buf_c protected_parameters; /* The encoded protected parameters */
     int32_t               cose_algorithm_id;
     struct t_cose_key     signing_key;
-    int32_t               option_flags;
+    uint32_t              option_flags;
     struct q_useful_buf_c kid;
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     uint32_t              content_type_uint;
@@ -145,7 +145,7 @@ struct t_cose_sign1_sign_ctx {
  */
 static void
 t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
-                       int32_t                       option_flags,
+                       uint32_t                      option_flags,
                        int32_t                       cose_algorithm_id);
 
 
@@ -334,7 +334,7 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *context,
  */
 static inline void
 t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
-                       int32_t                       option_flags,
+                       uint32_t                      option_flags,
                        int32_t                       cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
