@@ -151,7 +151,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
 
 
     /* -- Check critical parameter labels -- */
-    return_value = check_critical_labels(&unknown_labels, &critical_labels);
+    return_value = check_critical_labels(&critical_labels, &unknown_labels);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }

@@ -88,8 +88,10 @@ is_label_list_clear(const struct t_cose_label_list *list);
  * \retval T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER  At least one of the unknown
  *                                                labels is critical.
  *
- * Both lists are of parameter labels (CBOR keys). Check to see none of
+ * Both lists are of parameter labels (CBOR keys). Check to see that none of
  * the parameter labels in the unknown list occur in the critical list.
+ * If there is an intersection between the two lists this returns
+ * \ref T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER.
  */
 enum t_cose_err_t
 check_critical_labels(const struct t_cose_label_list *critical_labels,
