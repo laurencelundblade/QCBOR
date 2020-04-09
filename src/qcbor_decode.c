@@ -795,12 +795,16 @@ static inline QCBORError
 GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    // Stack usage; int/ptr 2 UsefulBuf 2 QCBORItem  -- 96
-   QCBORError nReturn;
+
+   // Get pointer to string allocator. First use is to pass it to
+   // GetNext_Item() when option is set to allocate for *every* string.
+   // Second use here is to allocate space to coallese indefinite
+   // length string items into one.
    const QCORInternalAllocator *pAllocator = me->StringAllocator.pfAllocator ?
                                                       &(me->StringAllocator) :
                                                       NULL;
-   UsefulBufC FullString = NULLUsefulBufC;
 
+   QCBORError nReturn;
    nReturn = GetNext_Item(&(me->InBuf),
                           pDecodedItem,
                           me->bStringAllocateAll ? pAllocator: NULL);
@@ -813,8 +817,8 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    // indefinite length string tests, to be sure all is OK if this is removed.
 
    // Only do indefinite length processing on strings
-   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING &&
-      pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
+   const uint8_t uStringType = pDecodedItem->uDataType;
+   if(uStringType!= QCBOR_TYPE_BYTE_STRING && uStringType != QCBOR_TYPE_TEXT_STRING) {
       goto Done; // no need to do any work here on non-string types
    }
 
@@ -829,15 +833,14 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       goto Done;
    }
 
-   // There is an indefinite length string to work on...
-   // Track which type of string it is
-   const uint8_t uStringType = pDecodedItem->uDataType;
-
    // Loop getting chunk of indefinite string
+   UsefulBufC FullString = NULLUsefulBufC;
+
    for(;;) {
       // Get item for next chunk
       QCBORItem StringChunkItem;
-      // NULL passed to never string alloc chunk of indefinite length strings
+      // NULL string allocator passed here. Do not need to allocate
+      // chunks even if bStringAllocateAll is set.
       nReturn = GetNext_Item(&(me->InBuf), &StringChunkItem, NULL);
       if(nReturn) {
          break;  // Error getting the next chunk
@@ -877,12 +880,12 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       FullString = UsefulBuf_CopyOffset(NewMem, FullString.len, StringChunkItem.val.string);
    }
 
-Done:
    if(nReturn != QCBOR_SUCCESS && !UsefulBuf_IsNULLC(FullString)) {
       // Getting the item failed, clean up the allocated memory
       StringAllocator_Free(pAllocator, UNCONST_POINTER(FullString.ptr));
    }
 
+Done:
    return nReturn;
 }
 
