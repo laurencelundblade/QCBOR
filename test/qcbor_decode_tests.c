@@ -3787,3 +3787,62 @@ int32_t ExponentAndMantissaDecodeFailTests()
 }
 
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
+
+
+/*
+ Some basic CBOR with map and array used in a lot of tests.
+ The map labels are all strings
+
+ {"first integer": 42,
+  "an array of two strings": [
+      "string1", "string2"
+  ],
+  "map in a map": {
+      "bytes 1": h'78787878',
+      "bytes 2": h'79797979',
+      "another int": 98,
+      "text 2": "lies, damn lies and statistics"
+   }
+  }
+ */
+   
+#include "qcbor_decode_map.h"
+
+int32_t EnterMapTest()
+{
+   QCBORDecodeContext DCtx;
+   QCBORError nCBORError;
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+   
+   QCBORDecode_EnterMap(&DCtx);
+   
+   int64_t nDecodedInt1, nDecodedInt2;
+   QCBORDecode_GetIntInMapSZ(&DCtx,  "first integer",  &nDecodedInt1);
+   
+   QCBORDecode_EnterMapFromMapSZ(&DCtx, "map in a map");
+      
+   QCBORDecode_GetIntInMapSZ(&DCtx,  "another int",  &nDecodedInt2);
+   
+   QCBORDecode_ExitMap(&DCtx);
+   QCBORDecode_ExitMap(&DCtx);
+   
+   nCBORError = QCBORDecode_Finish(&DCtx);
+   
+   if(nCBORError) {
+      return (int32_t)nCBORError;
+   }
+   
+   if(nDecodedInt1 != 42) {
+      return 1000;
+   }
+
+   if(nDecodedInt1 != 98) {
+      return 2000;
+   }
+
+   
+   return 0;
+   
+}

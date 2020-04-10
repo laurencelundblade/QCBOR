@@ -123,9 +123,11 @@ struct _QCBOREncodeContext {
  */
 typedef struct __QCBORDecodeNesting  {
   // PRIVATE DATA STRUCTURE
-   struct {
+   struct nesting_decode_level {
+      uint32_t uOffset;
       uint16_t uCount;
       uint8_t  uMajorType;
+      uint8_t  uMapMode;
    } pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING1+1],
    *pCurrent;
 } QCBORDecodeNesting;
@@ -154,8 +156,13 @@ struct _QCBORDecodeContext {
 
    uint8_t        uDecodeMode;
    uint8_t        bStringAllocateAll;
+   uint8_t        uLastError;  // QCBORError stuffed into a uint8_t
 
    QCBORDecodeNesting nesting;
+   
+   // A cached offset to the end of the current map
+   // 0 if no value is cached.
+   uint32_t uMapEndOffset;
 
    // If a string allocator is configured for indefinite-length
    // strings, it is configured here.

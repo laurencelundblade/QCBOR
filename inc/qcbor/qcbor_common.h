@@ -319,7 +319,16 @@ typedef enum {
     should be treated as such. The strange situation is a CPU with a very
     small size_t (e.g., a 16-bit CPU) and a large string (e.g., > 65KB).
     */
-    QCBOR_ERR_STRING_TOO_LONG = 24
+    QCBOR_ERR_STRING_TOO_LONG = 24,
+    
+    /** The type decoded was not was  expected */
+    QCBOR_ERR_UNEXPECTED_TYPE = 25,
+    
+    /** Duplicate label in map detected */
+    QCBOR_ERR_DUPLICATE_LABEL = 26,
+    
+    /** Item with requested label is not found */
+    QCBOR_ERR_NOT_FOUND = 27
 
     /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORError;
