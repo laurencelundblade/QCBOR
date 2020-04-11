@@ -126,8 +126,9 @@ typedef struct __QCBORDecodeNesting  {
    struct nesting_decode_level {
       uint32_t uOffset;
       uint16_t uCount;
-      uint8_t  uMajorType;
-      uint8_t  uMapMode;
+      uint8_t  uMajorType; // TODO: one bit?
+      uint8_t  uMapMode; // Used by map mode TODO: one bit?
+      uint16_t uSaveCount; // Used by map mode
    } pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING1+1],
    *pCurrent;
 } QCBORDecodeNesting;

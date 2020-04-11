@@ -16,6 +16,8 @@
 
 
 /* Next item must be map or this generates an error.
+ 
+ 
 This puts the decoder in map mode which narrows
 decoding to the map entered and enables use of
 getting items by label.
@@ -60,6 +62,14 @@ bool QCBORDecode_InMapMode(QCBORDecodeContext *pCtxt);
  GetByLabel (which always searches from the start).
  */
 void QCBORDecode_RewindMap(QCBORDecodeContext *pCtxt);
+
+
+QCBORError QCBORDecode_EnterArray(QCBORDecodeContext *pCtx);
+
+
+void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
+
+QCBORError QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel);
 
 
 //QCBORError QCBORDecode_EnterMapX(QCBORDecodeContext *pCtx,  MapDecode *pMap);
@@ -124,6 +134,11 @@ QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemL
 QCBORError QCBORDecode_GetIntInMap(QCBORDecodeContext *pCtx, int64_t nLabel, int64_t *pInt);
 
 QCBORError QCBORDecode_GetIntInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, int64_t *pInt);
+
+
+void QCBORDecode_GetBstrInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, UsefulBufC *pBstr);
+
+void QCBORDecode_GetTextInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, UsefulBufC *pBstr);
 
 
 /*

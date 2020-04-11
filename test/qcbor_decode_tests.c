@@ -3808,6 +3808,7 @@ int32_t ExponentAndMantissaDecodeFailTests()
  */
    
 #include "qcbor_decode_map.h"
+#include <stdio.h>
 
 int32_t EnterMapTest()
 {
@@ -3815,17 +3816,40 @@ int32_t EnterMapTest()
    QCBORError nCBORError;
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+ 
+   /*
+   do {
+      QCBORItem Item;
+      
+      nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+      
+      printf("type: %d, nest %d, next: %d\n", Item.uDataType, Item.uNestingLevel, Item.uNextNestLevel);
+   } while(nCBORError == 0);
+   */
+   
+   
    
    QCBORDecode_EnterMap(&DCtx);
    
    int64_t nDecodedInt1, nDecodedInt2;
+   UsefulBufC B1, B2, S1;
+   
    QCBORDecode_GetIntInMapSZ(&DCtx,  "first integer",  &nDecodedInt1);
    
    QCBORDecode_EnterMapFromMapSZ(&DCtx, "map in a map");
       
    QCBORDecode_GetIntInMapSZ(&DCtx,  "another int",  &nDecodedInt2);
-   
+   QCBORDecode_GetBstrInMapSZ(&DCtx,  "bytes 1",  &B1);
+   QCBORDecode_GetBstrInMapSZ(&DCtx,  "bytes 2",  &B2);
+   QCBORDecode_GetTextInMapSZ(&DCtx,  "text 2",  &S1);
+
    QCBORDecode_ExitMap(&DCtx);
+   
+   QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
+   
+   QCBORDecode_ExitArray(&DCtx);
+
+   
    QCBORDecode_ExitMap(&DCtx);
    
    nCBORError = QCBORDecode_Finish(&DCtx);
@@ -3838,7 +3862,7 @@ int32_t EnterMapTest()
       return 1000;
    }
 
-   if(nDecodedInt1 != 98) {
+   if(nDecodedInt2 != 98) {
       return 2000;
    }
 
