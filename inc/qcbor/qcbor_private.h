@@ -125,7 +125,7 @@ typedef struct __QCBORDecodeNesting  {
   // PRIVATE DATA STRUCTURE
    struct nesting_decode_level {
       uint32_t uOffset;
-      uint16_t uCount;
+      uint16_t uCount; // Cursor
       uint8_t  uMajorType; // TODO: one bit?
       uint8_t  uMapMode; // Used by map mode TODO: one bit?
       uint16_t uSaveCount; // Used by map mode

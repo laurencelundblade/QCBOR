@@ -49,6 +49,91 @@ extern "C" {
 
 
 /**
+@file qcbor_decode.h
+
+Q C B O R    D e c o d e
+
+ This section just discusses decoding assuming familiarity with the general
+ description of this encoder / decoder in section XXX.
+ 
+ Encoded CBOR can be viewed to have a tree structure
+ where the lead nodes are non-aggregate types like
+ integers and strings and the intermediate nodes are
+ either arrays or maps. Fundamentally, all decoding
+ is a pre-order traversal of the tree. Calling
+ GetNext() repeatedly will perform this.
+ 
+ This pre-order traversal gives natural decoding of
+ arrays where the array members are taken
+ in order, but does not give natural decoding of
+ maps where access by label is usually preferred.
+ Using the EnterMap and GetByLabel methods,
+ map items can be accessed by label. EnterMap
+narrows decoding to a particular map. GetByLabel
+ allows decoding the item of a particular label in
+ the particular map. This can be used with nested
+ maps by calling EnterMapByLabel.
+ 
+ When EnterMap is called, pre-order traversal
+ continues to work. There is a cursor that is run
+ over the tree with calls to GetNext. This can be
+ intermixed with calls to GetByLabel. The pre-order
+ traversal is limited just to the map entered. Attempts
+ to GetNext beyond the end of the map will give
+ the HIT END error.
+ 
+  There is also EnterArray to decode arrays. It will
+ narrow the traversal to the extent of the array
+ entered.
+ 
+ GetByLabel supports duplicate label detection
+ and will result in an error if the map has
+ duplicate labels.
+ 
+ GetByLabel is implemented by performing the
+ pre-order traversal of the map to find the labeled
+ item everytime it is called. It doesn't build up
+ a hash table, a binary search tree or some other
+ efficiently searchable structure internally. For simple
+ trees this is fine and for high-speed CPUs this is
+ fine, but for complex trees on slow CPUs,
+ it may have performance issues (these have
+ not be quantified yet). One way ease this is
+ to use GetItems which allows decoding of
+ a list of items expected in an map in one
+ traveral.
+ 
+ Like encoding, decoding maintains an
+ internal error state. Once a call to the
+ decoder returns an error, this error state
+ is entered and subsequent decoder calls
+ do nothing. This allows for prettier and cleaner
+ decoding code. The only error check needed
+ is in the Finish call. 
+ 
+ An easy and clean way to use this decoder
+ is to always use EnterMap and EnterArray
+ for each array or map. They will error
+ if the input CBOR is not the expected
+ array or map.  Then use GetInt, GetString
+ to get the individual items of of the
+ maps and arrays making use of the
+ internal error tracking provided by this
+ decoder. The only error check needed
+ is the call to Finish.
+  
+ In some CBOR protocols, the type of
+ a data item may be variable. Maybe even
+ the type of one data item is dependent
+ on another. In such designs, GetNext has
+ to be used and the internal error checking
+ can't be relied upon.
+ 
+ 
+
+*/
+
+/**
  The decode mode options.
  */
 typedef enum {
@@ -820,6 +905,220 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint6
  returned.
  */
 QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
+
+
+
+
+
+
+
+//
+//  qcbor_decode_map.h
+//  QCBOR
+//
+//  Created by Laurence Lundblade on 4/6/20.
+//  Copyright © 2020 Laurence Lundblade. All rights reserved.
+//
+
+#ifndef qcbor_decode_map_h
+#define qcbor_decode_map_h
+
+
+#include "qcbor_decode.h"
+
+
+
+
+/* Next item must be map or this generates an error.
+ 
+ 
+This puts the decoder in map mode which narrows
+decoding to the map entered and enables use of
+getting items by label.
+ 
+ Nested maps can be decoded like this by entering
+ each map in turn.
+
+  Call QCBORDecode_ExitMap() to exit the current map
+ decoding level. When all map decoding layers are exited
+ then map mode is fully exited.
+ 
+ While in map mode, GetNext works as usual on the
+ map and the standard in-order traversal cursor
+ is maintained. Attempts to get items off the end of the
+ map will give error XXX (rather going to the next
+ item after the map as it would when not in map
+ mode).
+ 
+ You can rewind the inorder traversal cursor to the
+ beginning of the map with RewindMap().
+ 
+ Exiting leaves the cursor at the
+ data item following the last entry in the map.
+ 
+ Entering and Exiting map mode consumes the whole
+ map and its contents as a GetNext after exiting
+ will return the item after the map. */
+QCBORError QCBORDecode_EnterMap(QCBORDecodeContext *pCtx);
+
+
+void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
+
+/*
+ Indicate if decoding is in map mode more not.
+ */
+bool QCBORDecode_InMapMode(QCBORDecodeContext *pCtxt);
+
+
+/*
+ Restarts fetching of items in a map to the start of the
+ map. This is for GetNext. It has no effect on
+ GetByLabel (which always searches from the start).
+ */
+void QCBORDecode_RewindMap(QCBORDecodeContext *pCtxt);
+
+
+QCBORError QCBORDecode_EnterArray(QCBORDecodeContext *pCtx);
+
+
+void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
+
+QCBORError QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel);
+
+
+//QCBORError QCBORDecode_EnterMapX(QCBORDecodeContext *pCtx,  MapDecode *pMap);
+
+                     
+
+
+/*
+ Get an item out of a map.
+ 
+ Decoding must be in map mode for this to work.
+ 
+ 
+ 
+Seek to the beginning of the map.
+Consume items looking for the nLabel.
+Always go through the whole map and always look for duplicates.
+Return the item found, if no errors.
+
+Allow specification of type required.
+
+
+
+*/
+QCBORError QCBORDecode_GetItemInMap(QCBORDecodeContext *pCtx,
+                         int64_t nLabel,
+                         uint8_t qcbor_type,
+                         QCBORItem *pItem);
+
+
+QCBORError QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
+const char *szLabel,
+uint8_t qcbor_type,
+QCBORItem *pItem);
+
+/*
+ This gets several labeled items out of a map.
+ 
+ pItemArray is an array of items terminated by an item
+ with uLabelType QCBOR_TYPE_NONE.
+ 
+ On input the the array of items is the list of labels to fetch
+ items for.
+ 
+ On output the array is the data items found. If the label
+ wasn't found, uDataType is QCBOR_TYPE_NONE.
+ 
+ This is a CPU-efficient way to decode a bunch of items in a map. It
+ is more efficient than scanning each individually because the map
+ only needs to be traversed once.
+ 
+ If any duplicate labels are detected, this returns an error.
+ 
+ This will return maps and arrays that are in the map, but
+ provides no way to descend into and decode them.
+ 
+ */
+QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList);
+
+
+
+QCBORError QCBORDecode_GetIntInMap(QCBORDecodeContext *pCtx, int64_t nLabel, int64_t *pInt);
+
+void QCBORDecode_GetIntInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, int64_t *pInt);
+
+
+void QCBORDecode_GetBstrInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, UsefulBufC *pBstr);
+
+void QCBORDecode_GetTextInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, UsefulBufC *pBstr);
+
+
+/*
+  Find a map in a map by integer label and enter it.
+ 
+ This will do duplicate detection on the particular label.
+ 
+ Call QCBORDecode_ExitMap() to return to the mode / level
+ from before this was called.
+ 
+ Seek to to the beginning of the map.
+ Consume items looking for nLabel
+ */
+QCBORError QCBORDecode_EnterMapFromMap(QCBORDecodeContext *pCtx, int64_t nLabel);
+
+QCBORError QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char  *szLabel);
+
+
+
+
+/*
+ Normally decoding is just in-order traversal. You can get next
+ of any type, get next of a particular type including conversions.
+ 
+ If the cursor is at a map and you enter it, then you can use
+ methods that Get things by label, either numeric or string.
+ 
+ These methods work only at the particular level in the map.
+ To go into a map nested in a map call the special method
+ to enter a map by label.
+ 
+ When in a map, the GetNext methods work too, but only
+ to the end of the map. You can't traverse off the end of the
+ map.
+ 
+ You can rewind to the start of the map and traverse it again
+ with the MapRestart method.
+ 
+ The exit map method will leave the traversal cursor at the first itme after
+ the map.
+ 
+ 
+  The beginning of each map must be recorded so the scan can be done
+ through the whole map.
+ 
+  A bit per level to indicate in map mode for that level so
+  it is clear what GetNext at end does and what happens on MapExit
+ and where to set the cursor.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ */
+
+
+
+
+
+#endif /* qcbor_decode_map_h */
 
 
 

@@ -3834,7 +3834,7 @@ int32_t EnterMapTest()
    int64_t nDecodedInt1, nDecodedInt2;
    UsefulBufC B1, B2, S1;
    
-   QCBORDecode_GetIntInMapSZ(&DCtx,  "first integer",  &nDecodedInt1);
+   QCBORDecode_GetIntInMapSZ(&DCtx, "first integer",  &nDecodedInt1);
    
    QCBORDecode_EnterMapFromMapSZ(&DCtx, "map in a map");
       
@@ -3847,6 +3847,14 @@ int32_t EnterMapTest()
    
    QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
    
+   QCBORItem Item1, Item2, Item3;
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   QCBORDecode_GetNext(&DCtx, &Item2);
+   if(QCBORDecode_GetNext(&DCtx, &Item3) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return -400;
+   }
+
+
    QCBORDecode_ExitArray(&DCtx);
 
    

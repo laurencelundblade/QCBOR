@@ -1,3 +1,4 @@
+#if 0
 //
 //  qcbor_decode_map.h
 //  QCBOR
@@ -205,3 +206,4 @@ QCBORError QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char  *
 
 
 #endif /* qcbor_decode_map_h */
+#endif
