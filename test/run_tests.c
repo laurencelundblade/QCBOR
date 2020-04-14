@@ -56,6 +56,7 @@ static test_entry2 s_tests2[] = {
 
 
 static test_entry s_tests[] = {
+    TEST_ENTRY(EnterMapTest),
     TEST_ENTRY(QCBORHeadTest),
     TEST_ENTRY(EmptyMapsAndArraysTest),
     TEST_ENTRY(NotWellFormedTests),
