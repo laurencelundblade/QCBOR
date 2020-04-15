@@ -793,7 +793,24 @@ typedef enum {
     should be treated as such. The strange situation is a CPU with a very
     small size_t (e.g., a 16-bit CPU) and a large string (e.g., > 65KB).
     */
-    QCBOR_ERR_STRING_TOO_LONG = 24
+    QCBOR_ERR_STRING_TOO_LONG = 24,
+
+    /** Number conversion failed because of sign. For example a negative
+     int64_t can't be converted to a uint64_t */
+    QCBOR_ERR_NUMBER_SIGN_CONVERSION = 25,
+
+   /** A conversion is possible, but the option for it was not set. For
+    example conversion from a float to an int64_t without the XXX option. TODO: */
+   QCBOR_ERR_CONVERSION_NOT_REQUESTED = 26,
+
+   /** When converting a decoded number, the value is too large or to small
+      for the conversion target */
+   QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW = 27,
+
+   /** When decodeing for a specific type, the type was not was expected.
+    See also \ref QCBOR_ERR_CONVERSION_NOT_REQUESTED which in many cases
+    is effectively the same error */
+   QCBOR_ERR_NOT_EXPECTED_TYPE = 28,
 
 } QCBORError;
 
@@ -2627,8 +2644,16 @@ typedef struct {
 
 void QCBORDecode_GetInt64(QCBORDecodeContext *pCtx, int64_t *pValue);
 
-void QCBORDecode_GetInt64X(QCBORDecodeContext *pCtx, uint32_t uOptions, QCBORLabel *pLabel, int64_t *pValue);
+void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOptions, int64_t *pValue);
 
+void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, int64_t *pValue);
+
+
+void QCBORDecode_GetUInt64(QCBORDecodeContext *pCtx, uint64_t *pValue);
+
+void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOptions, QCBORLabel *pLabel, uint64_t *pValue);
+
+void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, QCBORLabel *pLabel, uint64_t *pValue);
 
 
 /**
