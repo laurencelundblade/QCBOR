@@ -321,14 +321,28 @@ typedef enum {
     */
     QCBOR_ERR_STRING_TOO_LONG = 24,
     
-    /** The type decoded was not was  expected */
+    /** When decodeing for a specific type, the type was not was expected.
+     See also \ref QCBOR_ERR_CONVERSION_NOT_REQUESTED which in many cases
+     is effectively the same error */
     QCBOR_ERR_UNEXPECTED_TYPE = 25,
     
     /** Duplicate label in map detected */
     QCBOR_ERR_DUPLICATE_LABEL = 26,
     
     /** Item with requested label is not found */
-    QCBOR_ERR_NOT_FOUND = 27
+    QCBOR_ERR_NOT_FOUND = 27,
+
+    /** Number conversion failed because of sign. For example a negative
+     int64_t can't be converted to a uint64_t */
+    QCBOR_ERR_NUMBER_SIGN_CONVERSION = 28,
+
+    /** A conversion is possible, but the option for it was not set. For
+     example conversion from a float to an int64_t without the XXX option. TODO: */
+    QCBOR_ERR_CONVERSION_NOT_REQUESTED = 29,
+
+    /** When converting a decoded number, the value is too large or to small
+     for the conversion target */
+    QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW = 30,
 
     /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORError;
