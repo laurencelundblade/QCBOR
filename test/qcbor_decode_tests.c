@@ -3807,7 +3807,7 @@ int32_t ExponentAndMantissaDecodeFailTests()
   }
  */
    
-#include "qcbor_decode_map.h"
+#include "qcbor/qcbor_decode_map.h"
 #include <stdio.h>
 
 int32_t EnterMapTest()
