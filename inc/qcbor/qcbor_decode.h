@@ -255,8 +255,8 @@ typedef struct _QCBORItem {
    /** Tells what element of the @c val union to use. One of @c
        QCBOR_TYPE_XXXX */
    uint8_t  uDataType;
-   /** How deep the nesting from arrays and maps are. 0 is the top
-       level with no arrays or maps entered. */
+   /** How deep the nesting from arrays and maps is. 0 is the top
+    level with no arrays or maps entered. TODO: udpate this comment*/
    uint8_t  uNestingLevel;
     /** Tells what element of the label union to use. */
    uint8_t  uLabelType;
@@ -265,8 +265,9 @@ typedef struct _QCBORItem {
    uint8_t  uDataAlloc;
    /** Like @c uDataAlloc, but for label. */
    uint8_t  uLabelAlloc;
-   /** If not equal to @c uNestingLevel, this item closed out at least
-       one map/array */
+   /** If less than @c uNestingLevel, this item was the last one
+       in an arry or map and closed out at least
+       one nesting level */
    uint8_t  uNextNestLevel;
 
    /** The union holding the item's value. Select union member based
@@ -350,6 +351,14 @@ typedef struct _QCBORItem {
 
 } QCBORItem;
 
+
+
+#define QCBOR_CONVERT_TYPE_INT64     0x01
+#define QCBOR_CONVERT_TYPE_UINT64    0x02
+#define QCBOR_CONVERT_TYPE_FLOAT     0x04
+#define QCBOR_CONVERT_TYPE_BIGFLOAT  0x08
+#define QCBOR_CONVERT_TYPE_DECIMAL_FRACTION 0x10
+#define QCBOR_CONVERT_TYPE_BIG_NUM  0x20
 
 
 /**
@@ -907,24 +916,30 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint6
 QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 
 
+static QCBORError QCBORDecode_GetLastError(QCBORDecodeContext *pCtx);
+
+
+void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pValue);
 
 
 
 
-
-//
-//  qcbor_decode_map.h
-//  QCBOR
-//
-//  Created by Laurence Lundblade on 4/6/20.
-//  Copyright © 2020 Laurence Lundblade. All rights reserved.
-//
-
-#ifndef qcbor_decode_map_h
-#define qcbor_decode_map_h
+/*
+ Get the next item as an int64_t. The CBOR type can be unsigned, negative, float
+ a big float, a decimal fraction or a big num. Conversion will be dones as
+ expected. Some cases will error out with under or over flow.
+ */
+void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pValue);
 
 
-#include "qcbor_decode.h"
+
+void QCBORDecode_GetBytes(QCBORDecodeContext *pCtx,  UsefulBufC *pValue);
+
+void QCBORDecode_GetText(QCBORDecodeContext *pCtx,  UsefulBufC *pValue);
+
+void QCBORDecode_GetPosBignum(QCBORDecodeContext *pCtx,  UsefulBufC *pValue);
+
+void QCBORDecode_GetNegBignum(QCBORDecodeContext *pCtx,  UsefulBufC *pValue);
 
 
 
@@ -982,6 +997,9 @@ QCBORError QCBORDecode_EnterArray(QCBORDecodeContext *pCtx);
 
 
 void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
+
+QCBORError QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t uLabel);
+
 
 QCBORError QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel);
 
@@ -1118,11 +1136,6 @@ QCBORError QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char  *
 
 
 
-#endif /* qcbor_decode_map_h */
-
-
-
-
 /**
  @brief Convert int64_t to smaller integers safely.
 
@@ -1235,6 +1248,16 @@ static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
    }
    return 0;
 }
+
+
+
+static inline QCBORError QCBORDecode_GetLastError(QCBORDecodeContext *pMe)
+{
+    return pMe->uLastError;
+}
+
+
+
 
 #ifdef __cplusplus
 }

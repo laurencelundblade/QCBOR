@@ -254,6 +254,6 @@ int32_t ExponentAndMantissaDecodeFailTests(void);
 
 int32_t EnterMapTest(void);
 
-
+int32_t IntegerConvertTest(void);
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

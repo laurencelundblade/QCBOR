@@ -50,36 +50,109 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   used here: QCBORDecodeNesting
   ===========================================================================*/
 
+
+
+/*
+The main mode of decoding is a pre-order travesal of the tree of leaves (numbers, strings...)
+formed by intermediate nodes (arrays and maps).  The cursor for the traversal
+ is the byte offset in the encoded input and a leaf counter for definite
+ length maps and arrays. Indefinite length maps and arrays are handled
+ by look ahead for the break.
+
+ The view presented to the caller has tags, labels and the chunks of
+ indefinite length strings aggregated into one decorated data item.
+
+The caller understands the nesting level in pre-order traversal by
+ the fact that a data item that is a map or array is presented to
+ the caller when it is first encountered in the pre-order traversal and that all data items are presented with its nesting level
+ and the nesting level of the next item.
+
+ The caller traverse maps and arrays in a special mode that often more convenient
+ that tracking by nesting level. When an array or map is expected or encountered
+ the EnterMap or EnteryArray can be called.
+
+ When entering a map or array like this, the cursor points to the first
+ item in the map or array. When exiting, it points to the item after
+ the map or array, regardless of whether the items in the map or array were
+ all traversed.
+
+ When in a map or array, the cursor functions as normal, but traversal
+ cannot go past the end of the map or array that was entered. If this
+ is attempted the QCBOR_ERR_NO_MORE_ITEMS error is returned. To
+ go past the end of the map or array ExitMap() or ExitArray() must
+ be called. It can be called any time regardless of the position
+ of the cursor.
+
+ When a map is entered, a special function allows fetching data items
+ by label. This call will traversal the whole map looking for the
+ labeled item. The whole map is traversed so as to detect duplicates.
+ This type of fetching items does not affect the normal traversal
+ cursor.
+
+ 
+
+
+
+
+
+
+
+
+When a data item is presented to the caller, the nesting level of the data
+ item is presented along with the nesting level of the item that would be
+ next consumed.
+
+
+
+
+
+
+
+
+
+ */
+
 inline static int
+// TODO: make this bool
+// TODO: add Map as array?
 IsMapOrArray(uint8_t uDataType)
 {
    return uDataType == QCBOR_TYPE_MAP || uDataType == QCBOR_TYPE_ARRAY;
 }
 
-inline static int
-DecodeNesting_IsNested(const QCBORDecodeNesting *pNesting)
+inline static bool
+DecodeNesting_IsAtTop(const QCBORDecodeNesting *pNesting)
 {
-   return pNesting->pCurrent != &(pNesting->pMapsAndArrays[0]);
+   if(pNesting->pCurrent == &(pNesting->pMapsAndArrays[0])) {
+      return true;
+   } else {
+      return false;
+   }
 }
 
+// Determine if at the end of a map or array, taking into
+// account map mode. If this returns true, it is OK
+// to get another item.
 inline static bool
 DecodeNesting_AtEnd(const QCBORDecodeNesting *pNesting)
 {
-   if(!DecodeNesting_IsNested(pNesting)){
+   if(DecodeNesting_IsAtTop(pNesting)){
       // Always at end if at the top level of nesting
       return true;
    }
-   
-   if(!pNesting->pCurrent->uMapMode) {
-      // If not in map mode then it is as IsNested says
+
+   if(pNesting->pCurrent->uMapMode) {
+      if(pNesting->pCurrent->uCount == 0) {
+         // In map mode and consumed all items, so it is the end
+         return true;
+      } else {
+         // In map mode, all items not consumed, so it is NOT the end
+         return false;
+      }
+   } else {
+      // Not in map mode, and not at top level so it NOT the end.
       return false;
    }
-   
-   // In map mode at the current nesting level. In this
-   // mode we are at the end of a pre-order traversal
-   // if the count is zero
-   // TODO: what about indefinite length maps & arrays?
-   return pNesting->pCurrent->uCount == 0;
 }
 
 
@@ -100,7 +173,7 @@ DecodeNesting_GetLevel(QCBORDecodeNesting *pNesting)
 inline static int
 DecodeNesting_TypeIsMap(const QCBORDecodeNesting *pNesting)
 {
-   if(!DecodeNesting_IsNested(pNesting)) {
+   if(DecodeNesting_IsAtTop(pNesting)) {
       return 0;
    }
 
@@ -112,7 +185,7 @@ inline static QCBORError
 DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
 {
    // breaks must always occur when there is nesting
-   if(!DecodeNesting_IsNested(pNesting)) {
+   if(DecodeNesting_IsAtTop(pNesting)) {
       return QCBOR_ERR_BAD_BREAK;
    }
 
@@ -128,10 +201,14 @@ DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
 }
 
 // Called on every single item except breaks including decode of a map/array
+/* Decrements the map/array counter if possible. If decrement
+ closed out a map or array, then level up in nesting and decrement
+ again, until, the top is reached or the end of a map mode is reached
+ */
 inline static void
-DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
+DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting, bool bExitingMapMode)
 {
-   while(!DecodeNesting_AtEnd(pNesting)) {
+   while(!DecodeNesting_IsAtTop(pNesting)) {
       // Not at the top level, so there is decrementing to be done.
 
       if(!DecodeNesting_IsIndefiniteLength(pNesting)) {
@@ -144,7 +221,7 @@ DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
          break;
       }
       
-      if(pNesting->pCurrent->uMapMode) {
+      if(pNesting->pCurrent->uMapMode && !bExitingMapMode) {
          // In map mode the level-up must be done explicitly
          break;
       }
@@ -187,6 +264,7 @@ DecodeNesting_Descend(QCBORDecodeNesting *pNesting, QCBORItem *pItem)
    // Record a few details for this nesting level
    pNesting->pCurrent->uMajorType = pItem->uDataType;
    pNesting->pCurrent->uCount     = pItem->val.uCount;
+   pNesting->pCurrent->uMapMode   = 0;
 
 Done:
    return nReturn;;
@@ -1071,7 +1149,7 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
    QCBORError nReturn;
 
    // Check if there are an TODO: incomplete comment
-   if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf)) == 0 && !DecodeNesting_IsNested(&(me->nesting))) {
+   if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf)) == 0 && DecodeNesting_IsAtTop(&(me->nesting))) {
       nReturn = QCBOR_ERR_NO_MORE_ITEMS;
       goto Done;
    }
@@ -1108,14 +1186,14 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
       // only when all the items in them have been processed, not when they
       // are opened with the exception of an empty map or array.
        if(pDecodedItem->val.uCount == 0) {
-           DecodeNesting_DecrementCount(&(me->nesting));
+           DecodeNesting_DecrementCount(&(me->nesting), false);
        }
    } else {
       // Decrement the count of items in the enclosing map/array
       // If the count in the enclosing map/array goes to zero, that
       // triggers a decrement in the map/array above that and
       // an ascend in nesting level.
-      DecodeNesting_DecrementCount(&(me->nesting));
+      DecodeNesting_DecrementCount(&(me->nesting), false);
    }
    if(nReturn) {
       goto Done;
@@ -1125,7 +1203,7 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
    // all breaks that might terminate them. The equivalent
    // for definite length maps/arrays happens in
    // DecodeNesting_DecrementCount().
-   if(DecodeNesting_IsNested(&(me->nesting)) && DecodeNesting_IsIndefiniteLength(&(me->nesting))) {
+   if(!DecodeNesting_IsAtTop(&(me->nesting)) && DecodeNesting_IsIndefiniteLength(&(me->nesting))) {
       while(UsefulInputBuf_BytesUnconsumed(&(me->InBuf))) {
          // Peek forward one item to see if it is a break.
          QCBORItem Peek;
@@ -1152,7 +1230,13 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
    // Tell the caller what level is next. This tells them what maps/arrays
    // were closed out and makes it possible for them to reconstruct
    // the tree with just the information returned by GetNext
-   pDecodedItem->uNextNestLevel = DecodeNesting_GetLevel(&(me->nesting));
+   if(me->nesting.pCurrent->uMapMode && me->nesting.pCurrent->uCount == 0) {
+      // At end of a map / array in map mode, so next nest is 0 to
+      // indicate this end.
+      pDecodedItem->uNextNestLevel = 0;
+   } else {
+      pDecodedItem->uNextNestLevel = DecodeNesting_GetLevel(&(me->nesting));
+   }
 
 Done:
    if(nReturn != QCBOR_SUCCESS) {
@@ -1516,7 +1600,7 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *me)
    QCBORError nReturn = QCBOR_SUCCESS;
 
    // Error out if all the maps/arrays are not closed out
-   if(DecodeNesting_IsNested(&(me->nesting))) {
+   if(!DecodeNesting_IsAtTop(&(me->nesting))) {
       nReturn = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
       goto Done;
    }
@@ -1753,26 +1837,34 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
 #include <stdio.h>
 void printdecode(QCBORDecodeContext *pMe, const char *szName)
 {
-   printf("---%s---\nLevel   Count   Type   Offset  SaveCount\n", szName);
-   for(int i = 0; i < 4 /*QCBOR_MAX_ARRAY_NESTING*/; i++) {
-      const char *szX = (i == DecodeNesting_GetLevel(&(pMe->nesting))) ? "->" : "  ";
-      printf("%s %2d   %5d     %2d   %6u         %2d\n",
-             szX,
+   printf("---%s--%d--%d--\nLevel   Count   Type   Offset  SaveCount  MapMode\n",
+          szName,
+          (uint32_t)pMe->InBuf.cursor,
+          (uint32_t)pMe->InBuf.UB.len);
+/*   for(int i = 0; i < QCBOR_MAX_ARRAY_NESTING; i++) {
+      if(&(pMe->nesting.pMapsAndArrays[i]) > pMe->nesting.pCurrent) {
+         break;
+      }
+      printf("   %2d   %5d %s   %6u         %2d      %d\n",
              i,
              pMe->nesting.pMapsAndArrays[i].uCount,
-             pMe->nesting.pMapsAndArrays[i].uMajorType,
+             pMe->nesting.pMapsAndArrays[i].uMajorType == QCBOR_TYPE_MAP ? "  map" :
+               (pMe->nesting.pMapsAndArrays[i].uMajorType == QCBOR_TYPE_ARRAY ? "array" :
+                 (pMe->nesting.pMapsAndArrays[i].uMajorType == QCBOR_TYPE_NONE ? " none" : "?????")),
              pMe->nesting.pMapsAndArrays[i].uOffset,
-             pMe->nesting.pMapsAndArrays[i].uSaveCount
+             pMe->nesting.pMapsAndArrays[i].uSaveCount,
+             pMe->nesting.pMapsAndArrays[i].uMapMode
              );
+
    }
-   printf("\n");
+   printf("\n"); */
 }
 
 
 /*
- * Public function. See qcbor_util.h
+ *
  */
-static QCBORError
+static inline QCBORError
 ConsumeItem(QCBORDecodeContext *pMe,
             const QCBORItem    *pItemToConsume,
             uint_fast8_t       *puNextNestLevel)
@@ -1782,8 +1874,7 @@ ConsumeItem(QCBORDecodeContext *pMe,
    
    printdecode(pMe, "ConsumeItem");
 
-   if(pItemToConsume->uDataType == QCBOR_TYPE_MAP ||
-      pItemToConsume->uDataType == QCBOR_TYPE_ARRAY) {
+   if(IsMapOrArray(pItemToConsume->uDataType)) {
       /* There is only real work to do for maps and arrays */
 
       /* This works for definite and indefinite length
@@ -1838,7 +1929,7 @@ MatchLabel(QCBORItem Item1, QCBORItem Item2)
  * Public function. qcbor_util.h
  */
 QCBORError
-GetItemsInMap(QCBORDecodeContext *pMe, QCBORItem *pItemArray, size_t *puOffset)
+GetItemsInMap(QCBORDecodeContext *pMe, QCBORItem *pItemArray, size_t *puOffset, size_t *puEndOffset)
 {
    QCBORItem  *pIterator;
    QCBORError  nReturn;
@@ -1922,8 +2013,13 @@ GetItemsInMap(QCBORDecodeContext *pMe, QCBORItem *pItemArray, size_t *puOffset)
             /* Got all the items in the map. This is the non-error exit
              * from the loop. */
             // Cast OK because encoded CBOR is limited to UINT32_MAX
-         pMe->uMapEndOffset = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
-            // record the offset here for exit to save CPU time
+         const size_t uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
+         pMe->uMapEndOffset = (uint32_t)uEndOffset;
+         // TODO: is zero *puOffset OK?
+         if(puEndOffset) {
+            *puEndOffset = uEndOffset;
+         }
+         // TODO: record the offset here for exit to save CPU time
          break;
       }
    }
@@ -1949,19 +2045,20 @@ void QCBORDecode_ExitMap(QCBORDecodeContext *pMe)
 {
    size_t uEndOffset;
 
+/*
    if(pMe->uMapEndOffset) {
       uEndOffset = pMe->uMapEndOffset;
       // It is only valid once.
       pMe->uMapEndOffset = 0;
-   } else {
+   } else { */
       QCBORItem Dummy;
 
       Dummy.uLabelType = QCBOR_TYPE_NONE;
 
-      QCBORError nReturn = GetItemsInMap(pMe, &Dummy, &uEndOffset);
+      QCBORError nReturn = GetItemsInMap(pMe, &Dummy, NULL, &uEndOffset);
 
       (void)nReturn; // TODO:
-   }
+//   }
    
    printdecode(pMe, "start exit");
    UsefulInputBuf_Seek(&(pMe->InBuf), uEndOffset);
@@ -1969,7 +2066,9 @@ void QCBORDecode_ExitMap(QCBORDecodeContext *pMe)
    if(pMe->nesting.pCurrent->uCount != UINT16_MAX) {
       pMe->nesting.pCurrent->uCount = 1;
    }
-   DecodeNesting_DecrementCount(&(pMe->nesting));
+   pMe->nesting.pCurrent->uMapMode = 0;
+
+   DecodeNesting_DecrementCount(&(pMe->nesting), true);
    printdecode(pMe, "end exit");
 
 }
@@ -1986,7 +2085,7 @@ QCBORError QCBORDecode_GetItemInMap(QCBORDecodeContext *pMe,
    One[0].label.int64 = nLabel;
    One[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORError nReturn = GetItemsInMap(pMe, One, NULL);
+   QCBORError nReturn = GetItemsInMap(pMe, One, NULL, NULL);
    if(nReturn) {
      return nReturn;
    }
@@ -2016,7 +2115,7 @@ QCBORError QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
    One[0].label.string = UsefulBuf_FromSZ(szLabel);
    One[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORError nReturn = GetItemsInMap(pMe, One, NULL);
+   QCBORError nReturn = GetItemsInMap(pMe, One, NULL, NULL);
    if(nReturn) {
      return nReturn;
    }
@@ -2070,7 +2169,7 @@ QCBORError QCBORDecode_EnterMapInMap(QCBORDecodeContext *pMe, int64_t nLabel)
 
    size_t uOffset;
 
-   QCBORError nReturn = GetItemsInMap(pMe, One, &uOffset);
+   QCBORError nReturn = GetItemsInMap(pMe, One, &uOffset, NULL);
 
    if(nReturn) {
      return nReturn;
@@ -2101,7 +2200,7 @@ QCBORError QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *s
 
    size_t uOffset;
 
-   QCBORError nReturn = GetItemsInMap(pMe, One, &uOffset);
+   QCBORError nReturn = GetItemsInMap(pMe, One, &uOffset, NULL);
 
    if(nReturn) {
       return nReturn;
@@ -2129,6 +2228,11 @@ QCBORError QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *s
 }
 
 
+QCBORError QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t uLabel)
+{
+    (void)pMe; (void)uLabel;
+    return 0;
+}
 
 
 QCBORError QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
@@ -2141,7 +2245,7 @@ QCBORError QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  
 
    size_t uOffset;
 
-   QCBORError nReturn = GetItemsInMap(pMe, One, &uOffset);
+   QCBORError nReturn = GetItemsInMap(pMe, One, &uOffset, NULL);
 
    if(nReturn != QCBOR_SUCCESS) {
       return nReturn;
@@ -2186,13 +2290,13 @@ QCBORError QCBORDecode_EnterMap(QCBORDecodeContext *pMe)
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
-   printdecode(pMe, "EnterMap");
 
    // Cast to uint32_t is safe because QCBOR onl works on data < UINT32_MAX
    pMe->nesting.pCurrent->uOffset  = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
    pMe->nesting.pCurrent->uMapMode = 1;
    pMe->nesting.pCurrent->uSaveCount = pMe->nesting.pCurrent->uCount;
 
+   printdecode(pMe, "EnterMapDone");
 
    return QCBOR_SUCCESS;
 }
@@ -2201,7 +2305,7 @@ QCBORError QCBORDecode_EnterMap(QCBORDecodeContext *pMe)
 
 QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList)
 {
-   return GetItemsInMap(pCtx, pItemList, NULL);
+   return GetItemsInMap(pCtx, pItemList, NULL, NULL);
 }
 
 
@@ -2254,19 +2358,19 @@ void QCBORDecode_ExitArray(QCBORDecodeContext *pMe)
    // TODO: combine with code for map? It is the same so far.
    size_t uEndOffset;
 
-   if(pMe->uMapEndOffset) {
+ /*  if(pMe->uMapEndOffset) {
       uEndOffset = pMe->uMapEndOffset;
       // It is only valid once.
       pMe->uMapEndOffset = 0;
-   } else {
+   } else {*/
       QCBORItem Dummy;
 
       Dummy.uLabelType = QCBOR_TYPE_NONE;
 
-      QCBORError nReturn = GetItemsInMap(pMe, &Dummy, &uEndOffset);
+      QCBORError nReturn = GetItemsInMap(pMe, &Dummy, NULL, &uEndOffset);
 
       (void)nReturn; // TODO:
-   }
+   //}
    
    printdecode(pMe, "start exit");
    UsefulInputBuf_Seek(&(pMe->InBuf), uEndOffset);
@@ -2274,7 +2378,8 @@ void QCBORDecode_ExitArray(QCBORDecodeContext *pMe)
    if(pMe->nesting.pCurrent->uCount != UINT16_MAX) {
       pMe->nesting.pCurrent->uCount = 1;
    }
-   DecodeNesting_DecrementCount(&(pMe->nesting));
+   pMe->nesting.pCurrent->uMapMode = 0;
+   DecodeNesting_DecrementCount(&(pMe->nesting), true);
    printdecode(pMe, "end exit");
 }
 
@@ -2407,44 +2512,11 @@ void QCBORDecode_GetNegBignum(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 
 
 
-/* Convert a decimal fraction to an int64_t without using
- floating point or math libraries.  Most decimal fractions
- will not fit in an int64_t and this will error out with
- under or overflow
- */
-uint8_t Exponentitate10(int64_t nMantissa, int64_t nExponent, int64_t *pnResult)
-{
-   int64_t nResult;
-
-   nResult = nMantissa;
-
-   /* This loop will run a maximum of 19 times because
-    * INT64_MAX < 10 ^^ 19. More than that will cause
-    * exit with the overflow error
-    */
-   while(nExponent > 0) {
-      if(nResult > INT64_MAX / 10) {
-         return 99; // Error overflow
-      }
-      nResult = nResult * 10;
-      nExponent--;
-   }
-
-   while(nExponent < 0 ) {
-      if(nResult == 0) {
-         return 98; // Underflow error
-      }
-      nResult = nResult / 10;
-      nExponent--;
-   }
-
-   return 0;
-}
+typedef QCBORError (*fExponentiator)(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult);
 
 
-
-
-uint8_t Exponentitate10U(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult)
+// The main exponentiator that works on only positive numbers
+static QCBORError Exponentitate10UU(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult)
 {
    uint64_t uResult;
 
@@ -2456,7 +2528,7 @@ uint8_t Exponentitate10U(uint64_t uMantissa, int64_t nExponent, uint64_t *puResu
     */
    while(nExponent > 0) {
       if(uResult > UINT64_MAX / 10) {
-         return 99; // Error overflow
+         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW; // Error overflow
       }
       uResult = uResult * 10;
       nExponent--;
@@ -2464,7 +2536,7 @@ uint8_t Exponentitate10U(uint64_t uMantissa, int64_t nExponent, uint64_t *puResu
 
    while(nExponent < 0 ) {
       if(uResult == 0) {
-         return 98; // Underflow error
+         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW; // Underflow error
       }
       uResult = uResult / 10;
       nExponent--;
@@ -2472,70 +2544,7 @@ uint8_t Exponentitate10U(uint64_t uMantissa, int64_t nExponent, uint64_t *puResu
 
    *puResult = uResult;
 
-   return 0;
-}
-
-uint8_t Exponentitate10S(int64_t nMantissa, int64_t nExponent, int64_t *pnResult)
-{
-   // TODO: is this less code than duplicating the above function?
-   uint64_t uResult;
-
-   uint64_t uMantissa = nMantissa > 0 ? (uint64_t)nMantissa : (uint64_t)-nMantissa;
-
-   Exponentitate10U(uMantissa, nExponent, &uResult);
-
-   if(uResult > INT64_MAX) {
-      return 99; // Result is too large
-   } else if(uResult < (uint64_t)-INT64_MIN) {
-      return 98; // results is too small (large negative number)
-   }
-
-   // TODO: these casts might not work.
-   *pnResult = nMantissa > 0 ? (int64_t)uResult :  (int64_t) -uResult;
-
-   return 0;
-}
-
-
-uint8_t Exponentitate10SS(int64_t nMantissa, int64_t nExponent, uint64_t *puResult)
-{
-   if(nMantissa < 0) {
-      return 77; // can't return a negative result in an unsigned.
-   }
-
-   return Exponentitate10U((uint64_t)nMantissa, nExponent, puResult);
-}
-
-
-uint8_t Exponentitate10US(uint64_t uMantissa, int64_t nExponent, int64_t *pnResult)
-{
-   // TODO: is this less code than duplicating the above function?
-   uint64_t uResult;
-
-   uint8_t uR;
-
-   uR = Exponentitate10U(uMantissa, nExponent, &uResult);
-   if(uR) {
-      return uR;
-   }
-
-   if(uResult > INT64_MAX) {
-      return 88;
-   }
-   *pnResult = (int64_t)uResult;
-
-   return 0;
-}
-
-#include <math.h>
-
-uint8_t Exponentitate10F(uint64_t uMantissa, int64_t nExponent, double *pfResult)
-{
-   // TODO: checkout exceptions; what is HUGE_VAL?
-   *pfResult = pow((double)10, (double)nExponent) * (double)uMantissa;
-
-   //if(*pfResult == HUGE_VAL)
-   return 0;
+   return QCBOR_SUCCESS;
 }
 
 
@@ -2544,36 +2553,129 @@ uint8_t Exponentitate10F(uint64_t uMantissa, int64_t nExponent, double *pfResult
  will not fit in an int64_t and this will error out with
  under or overflow
  */
-uint8_t Exponentitate2(int64_t nMantissa, int64_t nExponent, int64_t *pnResult)
+static QCBORError Exponentitate2UU(uint64_t nMantissa, int64_t nExponent, uint64_t *pnResult)
 {
-   int64_t nResult;
+   uint64_t nResult;
 
    nResult = nMantissa;
 
-   /* This loop will run a maximum of 19 times because
+   /* This loop will run a maximum of 64 times because
     * INT64_MAX < 2^31. More than that will cause
     * exist with the overflow error
     */
    while(nExponent > 0) {
-      if(nResult > INT64_MAX << 1) {
-         return 99; // Error overflow
-      }
-      nResult = nResult >> 1;
-      nExponent--;
-   }
-
-   while(nExponent < 0 ) {
-      if(nResult == 0) {
-         return 98; // Underflow error
+      if(nResult > UINT64_MAX >> 1) {
+         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW; // Error overflow
       }
       nResult = nResult << 1;
       nExponent--;
    }
 
+   while(nExponent < 0 ) {
+      if(nResult == 0) {
+         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW; // Underflow error
+      }
+      nResult = nResult >> 1;
+      nExponent--;
+   }
+
    *pnResult = nResult;
 
+   return QCBOR_SUCCESS;
+}
+
+
+static inline QCBORError ExponentiateNN(int64_t nMantissa, int64_t nExponent, int64_t *pnResult, fExponentiator pfExp)
+{
+   uint64_t uResult;
+
+   // Take the absolute value of the mantissa
+   uint64_t uMantissa = nMantissa > 0 ? (uint64_t)nMantissa : (uint64_t)-nMantissa;
+
+   // Do the exponentiation of the positive mantissa
+   QCBORError uReturn = (*pfExp)(uMantissa, nExponent, &uResult);
+   if(uReturn) {
+      return uReturn;
+   }
+
+   // Error out if too large on the plus side for an int64_t
+   if(uResult > INT64_MAX) {
+      return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+   }
+
+   // Error out if too large on the negative side for an int64_t
+   if(uResult < (uint64_t)INT64_MAX+1) {
+      /* (uint64_t)INT64_MAX+1 is used to represent the absolute value
+       of INT64_MIN. This assumes two's compliment representation where
+       INT64_MIN is one increment farther from 0 than INT64_MAX.
+       Trying to write -INT64_MIN doesn't work to get this because the
+       compiler tries to work with an int64_t which can't represent
+       -INT64_MIN.
+       */
+      return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+   }
+
+   // Casts are safe because of checks above
+   *pnResult = nMantissa > 0 ? (int64_t)uResult : -(int64_t)uResult;
+
+   return QCBOR_SUCCESS;
+}
+
+
+static inline QCBORError ExponentitateNU(int64_t nMantissa, int64_t nExponent, uint64_t *puResult, fExponentiator pfExp)
+{
+   if(nMantissa < 0) {
+      return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
+   }
+
+   // Cast to unsigned is OK because of check for negative
+   // Cast to unsigned is OK because UINT64_MAX > INT64_MAX
+   // Exponentiation is straight forward
+   return (*pfExp)((uint64_t)nMantissa, nExponent, puResult);
+}
+
+
+// TODO: use this or get rid of it
+QCBORError ExponentitateUN(uint64_t uMantissa, int64_t nExponent, int64_t *pnResult, fExponentiator pfExp)
+{
+   uint64_t uResult;
+
+   QCBORError uR;
+
+   uR = (*pfExp)(uMantissa, nExponent, &uResult);
+   if(uR) {
+      return uR;
+   }
+
+   if(uResult > INT64_MAX) {
+      return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+   }
+
+   // Cast is OK because of check above
+   *pnResult = (int64_t)uResult;
+
+   return QCBOR_SUCCESS;
+}
+
+
+
+
+#include <math.h>
+/*
+static inline uint8_t Exponentitate10F(uint64_t uMantissa, int64_t nExponent, double *pfResult)
+{
+   // TODO: checkout exceptions; what is HUGE_VAL?
+   *pfResult = pow((double)10, (double)nExponent) * (double)uMantissa;
+
+   //if(*pfResult == HUGE_VAL)
    return 0;
 }
+*/
+
+
+
+
+
 
 /*
  A) bignum is positive
@@ -2583,27 +2685,27 @@ uint8_t Exponentitate2(int64_t nMantissa, int64_t nExponent, int64_t *pnResult)
  B1) output is signed INT64_MAX
  B2) output is unsigned error
  */
-QCBORError ConvertBigNum(const UsefulBufC BigNum, uint64_t uMax, uint64_t *pResult)
+static inline QCBORError ConvertBigNum(const UsefulBufC BigNum, uint64_t uMax, uint64_t *pResult)
 {
-   uint64_t nResult;
+   uint64_t uResult;
 
-   nResult = 0;
+   uResult = 0;
    const uint8_t *pByte = BigNum.ptr;
    size_t uLen = BigNum.len;
    while(uLen--) {
-      if(nResult > uMax << 8) {
+      if(uResult > uMax >> 8) {
          return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
       }
-      nResult = (nResult >> 8) + *pByte;
+      uResult = (uResult << 8) + *pByte;
    }
 
-   *pResult = nResult;
-   return 0;
+   *pResult = uResult;
+   return QCBOR_SUCCESS;
 }
 
 
-
-QCBORError ConvertBigNumToDouble(const UsefulBufC BigNum, uint64_t uMax, double *pResult)
+#if 0
+static inline QCBORError ConvertBigNumToDouble(const UsefulBufC BigNum, uint64_t uMax, double *pResult)
 {
    double nResult;
 
@@ -2620,30 +2722,30 @@ QCBORError ConvertBigNumToDouble(const UsefulBufC BigNum, uint64_t uMax, double 
    *pResult = nResult;
    return 0;
 }
+#endif
 
-
-QCBORError ConvertPositiveBigNumToUnSigned(const UsefulBufC BigNum, uint64_t *pResult)
+static inline QCBORError ConvertPositiveBigNumToUnSigned(const UsefulBufC BigNum, uint64_t *pResult)
 {
    return ConvertBigNum(BigNum, UINT64_MAX, pResult);
 }
 
-QCBORError ConvertPositiveBigNumToSigned(const UsefulBufC BigNum, int64_t *pResult)
+static inline QCBORError ConvertPositiveBigNumToSigned(const UsefulBufC BigNum, int64_t *pResult)
 {
    uint64_t uResult;
-   uint8_t n =  ConvertBigNum(BigNum, INT64_MAX, &uResult);
+   QCBORError n =  ConvertBigNum(BigNum, INT64_MAX, &uResult);
    if(n) {
       return n;
    }
    /* Cast is safe because ConvertBigNum is told to limit to INT64_MAX */
    *pResult = (int64_t)uResult;
-   return 0;
+   return QCBOR_SUCCESS;
 }
 
 
-QCBORError ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, int64_t *pResult)
+static inline QCBORError ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, int64_t *pResult)
 {
    uint64_t uResult;
-   uint8_t n =  ConvertBigNum(BigNum, INT64_MAX-1, &uResult);
+   QCBORError n =  ConvertBigNum(BigNum, INT64_MAX-1, &uResult);
    if(n) {
       return n;
    }
@@ -2655,8 +2757,8 @@ QCBORError ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, int64_t *pResu
 // No function to convert a negative bignum to unsigned; it is an error
 
 
-
-int ConvertXYZ(const UsefulBufC Mantissa, int64_t nExponent, int64_t *pResult)
+#if 0
+static inline int ConvertXYZ(const UsefulBufC Mantissa, int64_t nExponent, int64_t *pResult)
 {
    int64_t nMantissa;
 
@@ -2665,17 +2767,12 @@ int ConvertXYZ(const UsefulBufC Mantissa, int64_t nExponent, int64_t *pResult)
       return xx;
    }
 
-   return Exponentitate10(nMantissa, nExponent, pResult);
+   return ExponentiateNN(nMantissa, nExponent, pResult, &Exponentitate10UU);
 }
 
+#endif
 
 
-#define QCBOR_DECODE_TYPE_INT64  0x01
-#define QCBOR_DECODE_TYPE_UINT64  0x02
-#define QCBOR_DECODE_TYPE_FLOAT  0x03
-#define QCBOR_DECODE_TYPE_BIGFLOAT  0x04
-#define QCBOR_DECODE_TYPE_DECIMAL_FRACTION 0x05
-#define QCBOR_DECODE_TYPE_BIG_NUM 0x06
 
 
 /*
@@ -2698,10 +2795,15 @@ void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOpti
       return;
    }
 
+   if(pItem) {
+      *pItem = Item;
+   }
+
    switch(Item.uDataType) {
       case QCBOR_TYPE_FLOAT:
-         if(uOptions & QCBOR_DECODE_TYPE_FLOAT) {
+         if(uOptions & QCBOR_CONVERT_TYPE_FLOAT) {
             // TODO: what about under/overflow here?
+            // Invokes the floating-point HW and/or compiler-added libraries
             *pValue = (int64_t)Item.val.dfnum;
          } else {
             pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
@@ -2709,7 +2811,7 @@ void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOpti
          break;
 
       case QCBOR_TYPE_INT64:
-         if(uOptions & QCBOR_DECODE_TYPE_INT64) {
+         if(uOptions & QCBOR_CONVERT_TYPE_INT64) {
             *pValue = Item.val.int64;
          } else {
             pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
@@ -2717,7 +2819,7 @@ void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOpti
          break;
 
       case QCBOR_TYPE_UINT64:
-         if(uOptions & QCBOR_DECODE_TYPE_UINT64) {
+         if(uOptions & QCBOR_CONVERT_TYPE_UINT64) {
             if(Item.val.uint64 < INT64_MAX) {
                *pValue = Item.val.int64;
             } else {
@@ -2729,7 +2831,7 @@ void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOpti
          break;
 
       default:
-         pMe->uLastError = 99; // TODO: fix error code after merge
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
    }
 }
 
@@ -2738,6 +2840,13 @@ void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pMe, uint32_t uOptions, int
 {
    QCBORItem Item;
    QCBORDecode_GetInt64ConvertInternal(pMe, uOptions, pValue, &Item);
+}
+
+
+// TODO make this inline
+void QCBORDecode_GetInt64(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pValue)
+{
+   QCBORDecode_GetInt64Convert(pMe, QCBOR_TYPE_INT64, pValue);
 }
 
 
@@ -2753,102 +2862,121 @@ void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, 
 
    QCBORDecode_GetInt64ConvertInternal(pMe, uOptions, pValue, &Item);
 
-   if(pMe->uLastError != QCBOR_SUCCESS) {
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      // The above conversion succeeded
+      return;
+   }
+
+   if(pMe->uLastError != QCBOR_SUCCESS && pMe->uLastError != QCBOR_ERR_UNEXPECTED_TYPE) {
+      // The above conversion failed in a way that code below can't correct
       return;
    }
 
    switch(Item.uDataType) {
-      case QCBOR_TYPE_DECIMAL_FRACTION:
-         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
-            pMe->uLastError = Exponentitate10(Item.val.expAndMantissa.Mantissa.nInt,
-                                              Item.val.expAndMantissa.nExponent,
-                                              pValue);
-         } else {
-            pMe->uLastError = 99; // TODO: error code
-         }
-         break;
-
-      case QCBOR_TYPE_BIGFLOAT:
-         if(uOptions & QCBOR_DECODE_TYPE_BIGFLOAT) {
-            pMe->uLastError = Exponentitate2(Item.val.expAndMantissa.Mantissa.nInt,
-                                              Item.val.expAndMantissa.nExponent,
-                                              pValue);
-         } else {
-            pMe->uLastError = 99; // TODO: error code
-         }
-         break;
 
       case QCBOR_TYPE_POSBIGNUM:
-         if(uOptions & QCBOR_DECODE_TYPE_BIG_NUM) {
+         if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
             pMe->uLastError = ConvertPositiveBigNumToSigned(Item.val.bigNum, pValue);
          } else {
-            pMe->uLastError = 99;
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
 
       case QCBOR_TYPE_NEGBIGNUM:
-         if(uOptions & QCBOR_DECODE_TYPE_BIG_NUM) {
+         if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
             pMe->uLastError = ConvertNegativeBigNumToSigned(Item.val.bigNum, pValue);
          } else {
-            pMe->uLastError = 99;
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
 
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+      case QCBOR_TYPE_DECIMAL_FRACTION:
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+            pMe->uLastError = ExponentiateNN(Item.val.expAndMantissa.Mantissa.nInt,
+                                              Item.val.expAndMantissa.nExponent,
+                                              pValue,
+                                             &Exponentitate10UU);
+         } else {
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT:
+         if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT) {
+            pMe->uLastError = ExponentiateNN(Item.val.expAndMantissa.Mantissa.nInt,
+                                              Item.val.expAndMantissa.nExponent,
+                                              pValue,
+                                             &Exponentitate2UU);
+         } else {
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
-         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             int64_t nMantissa;
             pMe->uLastError = ConvertPositiveBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(!pMe->uLastError) {
-               pMe->uLastError = Exponentitate10(nMantissa,
+               pMe->uLastError = ExponentiateNN(nMantissa,
                                                  Item.val.expAndMantissa.nExponent,
-                                                 pValue);
+                                                 pValue,
+                                                &Exponentitate10UU);
             }
          } else {
-            pMe->uLastError = 99; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
-         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             int64_t nMantissa;
             pMe->uLastError = ConvertNegativeBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(!pMe->uLastError) {
-               pMe->uLastError = Exponentitate10(nMantissa,
+               pMe->uLastError = ExponentiateNN(nMantissa,
                                                  Item.val.expAndMantissa.nExponent,
-                                                 pValue);
+                                                 pValue,
+                                                  Exponentitate10UU);
             }
          } else {
-            pMe->uLastError = 99; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
 
       case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
-         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             int64_t nMantissa;
             pMe->uLastError = ConvertPositiveBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(!pMe->uLastError) {
-               pMe->uLastError = Exponentitate2(nMantissa,
+               pMe->uLastError = ExponentiateNN(nMantissa,
                                                  Item.val.expAndMantissa.nExponent,
-                                                 pValue);
+                                                 pValue,
+                                                  Exponentitate2UU);
             }
          } else {
-            pMe->uLastError = 99; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
 
       case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
-         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             int64_t nMantissa;
             pMe->uLastError = ConvertNegativeBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(!pMe->uLastError) {
-               pMe->uLastError = Exponentitate2(nMantissa,
+               pMe->uLastError = ExponentiateNN(nMantissa,
                                                  Item.val.expAndMantissa.nExponent,
-                                                 pValue);
+                                                 pValue,
+                                                Exponentitate2UU);
             }
          } else {
-            pMe->uLastError = 99; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
+
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+#endif
    }
 }
 
@@ -2856,6 +2984,10 @@ void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, 
 
 void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue, QCBORItem *pItem)
 {
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
    QCBORItem Item;
    QCBORError nError;
 
@@ -2867,8 +2999,9 @@ void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOpt
 
    switch(Item.uDataType) {
       case QCBOR_TYPE_FLOAT:
-         if(uOptions & QCBOR_DECODE_TYPE_FLOAT) {
+         if(uOptions & QCBOR_CONVERT_TYPE_FLOAT) {
             if(Item.val.dfnum >= 0) {
+               // TODO: over/underflow
                 *pValue = (uint64_t)Item.val.dfnum;
             } else {
                pMe->uLastError = QCBOR_ERR_NUMBER_SIGN_CONVERSION;
@@ -2879,7 +3012,7 @@ void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOpt
          break;
 
       case QCBOR_TYPE_INT64:
-         if(uOptions & QCBOR_DECODE_TYPE_INT64) {
+         if(uOptions & QCBOR_CONVERT_TYPE_INT64) {
             if(Item.val.int64 >= 0) {
                *pValue = (uint64_t)Item.val.int64;
             } else {
@@ -2891,157 +3024,164 @@ void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOpt
          break;
 
       case QCBOR_TYPE_UINT64:
-         if(uOptions & QCBOR_DECODE_TYPE_UINT64) {
+         if(uOptions & QCBOR_CONVERT_TYPE_UINT64) {
             *pValue = Item.val.uint64;
          } else {
             pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
+
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
    }
 }
 
-#if 0
-void QCBORDecode_GetUInt64X(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue)
+
+/* This works for signed, unsigned and float */
+void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue)
 {
    QCBORItem Item;
-   QCBORError nError;
+   QCBORDecode_GetUInt64ConvertInternal(pMe, uOptions, pValue, &Item);
+}
 
-   nError = QCBORDecode_GetNext(pMe, &Item);
-   if(nError) {
-      pMe->uLastError = nError;
+
+// TODO make this inline
+void QCBORDecode_GetUInt64(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue)
+{
+   QCBORDecode_GetUInt64Convert(pMe, QCBOR_TYPE_UINT64, pValue);
+}
+
+
+
+
+void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue)
+{
+   QCBORItem Item;
+
+   QCBORDecode_GetUInt64ConvertInternal(pMe, uOptions, pValue, &Item);
+
+   if(pMe->uLastError != QCBOR_SUCCESS && pMe->uLastError != QCBOR_ERR_UNEXPECTED_TYPE) {
       return;
    }
 
    switch(Item.uDataType) {
-      case QCBOR_TYPE_FLOAT:
-         if(uOptions & QCBOR_DECODE_TYPE_FLOAT) {
-            *pValue = (uint64_t)Item.val.dfnum;
-         } else {
-            pMe->uLastError = 99; // TODO: error code
-         }
-         break;
-
-      case QCBOR_TYPE_INT64:
-         if(uOptions & QCBOR_DECODE_TYPE_INT64) {
-            if(Item.val.int64 >= 0) {
-               *pValue = (uint64_t)Item.val.int64;
-            } else {
-               pMe->uLastError = 49; // negative
-            }
-         } else {
-            pMe->uLastError = 99; // TODO: error code
-         }
-         break;
-
-      case QCBOR_TYPE_UINT64:
-         if(uOptions & QCBOR_DECODE_TYPE_UINT64) {
-            *pValue = Item.val.uint64;
-         } else {
-            pMe->uLastError = 99; // TODO: error code
-         }
-         break;
-
-      case QCBOR_TYPE_DECIMAL_FRACTION:
-         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
-            pMe->uLastError = Exponentitate10(Item.val.expAndMantissa.Mantissa.nInt,
-                                              Item.val.expAndMantissa.nExponent,
-                                              pValue);
-         } else {
-            pMe->uLastError = 99; // TODO: error code
-         }
-         break;
-
-      case QCBOR_TYPE_BIGFLOAT:
-         if(uOptions & QCBOR_DECODE_TYPE_BIGFLOAT) {
-            pMe->uLastError = Exponentitate2(Item.val.expAndMantissa.Mantissa.nInt,
-                                             Item.val.expAndMantissa.nExponent,
-                                             pValue);
-         } else {
-            pMe->uLastError = 99; // TODO: error code
-         }
-         break;
 
       case QCBOR_TYPE_POSBIGNUM:
-         if(uOptions & QCBOR_DECODE_TYPE_BIG_NUM) {
-            pMe->uLastError = ConvertPositiveBigNumToSigned(Item.val.bigNum, pValue);
+         if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
+            pMe->uLastError = ConvertPositiveBigNumToUnSigned(Item.val.bigNum, pValue);
          } else {
-            pMe->uLastError = 99;
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
 
       case QCBOR_TYPE_NEGBIGNUM:
-         if(uOptions & QCBOR_DECODE_TYPE_BIG_NUM) {
-            pMe->uLastError = ConvertNegativeBigNumToSigned(Item.val.bigNum, pValue);
+         if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
+            pMe->uLastError = ConvertPositiveBigNumToUnSigned(Item.val.bigNum, pValue);
          } else {
-            pMe->uLastError = 99;
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
 
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+
+      case QCBOR_TYPE_DECIMAL_FRACTION:
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+            pMe->uLastError = ExponentitateNU(Item.val.expAndMantissa.Mantissa.nInt,
+                                              Item.val.expAndMantissa.nExponent,
+                                              pValue,
+                                              Exponentitate10UU);
+         } else {
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED; // TODO: error code
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT:
+         if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT) {
+            pMe->uLastError = ExponentitateNU(Item.val.expAndMantissa.Mantissa.nInt,
+                                             Item.val.expAndMantissa.nExponent,
+                                             pValue,
+                                               Exponentitate2UU);
+         } else {
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED; // TODO: error code
+         }
+         break;
+
+
+
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
-         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             int64_t nMantissa;
             pMe->uLastError = ConvertPositiveBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(!pMe->uLastError) {
-               pMe->uLastError = Exponentitate10(nMantissa,
+               pMe->uLastError = ExponentitateNU(nMantissa,
                                                  Item.val.expAndMantissa.nExponent,
-                                                 pValue);
+                                                   pValue,
+                                                   Exponentitate10UU);
             }
          } else {
-            pMe->uLastError = 99; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED; // TODO: error code
          }
          break;
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
-         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             int64_t nMantissa;
             pMe->uLastError = ConvertNegativeBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(!pMe->uLastError) {
-               pMe->uLastError = Exponentitate10(nMantissa,
+               pMe->uLastError = ExponentitateNU(nMantissa,
                                                  Item.val.expAndMantissa.nExponent,
-                                                 pValue);
+                                                   pValue,
+                                                   Exponentitate10UU);
             }
          } else {
-            pMe->uLastError = 99; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED; // TODO: error code
          }
          break;
 
       case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
-         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             int64_t nMantissa;
             pMe->uLastError = ConvertPositiveBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(!pMe->uLastError) {
-               pMe->uLastError = Exponentitate2(nMantissa,
+               pMe->uLastError = ExponentitateNU(nMantissa,
                                                 Item.val.expAndMantissa.nExponent,
-                                                pValue);
+                                                pValue,
+                                                 Exponentitate2UU);
             }
          } else {
-            pMe->uLastError = 99; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED; // TODO: error code
          }
          break;
 
       case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
-         if(uOptions & QCBOR_DECODE_TYPE_DECIMAL_FRACTION) {
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             int64_t nMantissa;
             pMe->uLastError = ConvertNegativeBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(!pMe->uLastError) {
-               pMe->uLastError = Exponentitate2(nMantissa,
+               pMe->uLastError = ExponentitateNU(nMantissa,
                                                 Item.val.expAndMantissa.nExponent,
-                                                pValue);
+                                                pValue,
+                                                  Exponentitate2UU);
             }
          } else {
-            pMe->uLastError = 99; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
+#endif
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
    }
 }
 
 
+
+#if 0
 /*
 
    Convert from bignums,
 
  */
-void QCBORDecode_GetDouble(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue)
+void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue)
 {
    /* the same range of conversions */
 

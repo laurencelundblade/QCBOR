@@ -10,7 +10,7 @@
  Created on 3/21/20
  =============================================================================*/
 
-#include "qcbor.h"
+#include "qcbor/qcbor_common.h"
 
 #define _ERR_TO_STR(errpart) case QCBOR_##errpart: return "QCBOR_" #errpart;
 
