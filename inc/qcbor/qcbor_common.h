@@ -343,7 +343,10 @@ typedef enum {
     /** When converting a decoded number, the value is too large or to small
      for the conversion target */
     QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW = 30,
-
+    
+    /** Trying to get an item by label when a map has not been entered. */
+    QCBOR_ERR_NOT_ENTERED = 31,
+    
     /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORError;
 

@@ -153,6 +153,9 @@ typedef enum {
 /* Do not renumber these. Code depends on some of these values. */
 /** The data type is unknown, unset or invalid. */
 #define QCBOR_TYPE_NONE           0
+// TODO: comment
+#define QCBOR_TYPE_ANY            1
+
 /** Type for an integer that decoded either between @c INT64_MIN and
     @c INT32_MIN or @c INT32_MAX and @c INT64_MAX. Data is in member
     @c val.int64. */
