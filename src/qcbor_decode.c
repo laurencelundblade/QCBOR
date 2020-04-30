@@ -112,12 +112,13 @@ When a data item is presented to the caller, the nesting level of the data
 
  */
 
-inline static int
-// TODO: make this bool
-// TODO: add Map as array?
+inline static bool
+// TODO: test  Map as array better?
 IsMapOrArray(uint8_t uDataType)
 {
-   return uDataType == QCBOR_TYPE_MAP || uDataType == QCBOR_TYPE_ARRAY;
+   return uDataType == QCBOR_TYPE_MAP ||
+          uDataType == QCBOR_TYPE_ARRAY ||
+          uDataType == QCBOR_TYPE_MAP_AS_ARRAY;
 }
 
 inline static bool
