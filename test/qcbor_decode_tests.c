@@ -3787,3 +3787,52 @@ int32_t ExponentAndMantissaDecodeFailTests()
 }
 
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
+
+int32_t CBORSequenceDecodeTests(void)
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem Item;
+   QCBORError uCBORError;
+
+   // The input for the date test happens to be a sequence so it
+   // is reused. It is a sequence because it doesn't start as
+   // an array or map.
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput),
+                    QCBOR_DECODE_MODE_NORMAL);
+   
+   // Get the first item
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 1;
+   }
+   if(Item.uDataType != QCBOR_TYPE_DATE_STRING) {
+      return 2;
+   }
+   
+   // Get a second item
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 1;
+   }
+   if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH) {
+      return 2;
+   }
+   
+   // A sequence can have stuff at the end that may
+   // or may not be valid CBOR. The protocol decoder knows
+   // when to stop by definition of the protocol, not
+   // when the top-level map or array is ended.
+   // Finish still has to be called to know that
+   // maps and arrays (if there were any) were closed
+   // off correctly. When called like this it
+   // must return the error QCBOR_ERR_EXTRA_BYTES.
+   uCBORError = QCBORDecode_Finish(&DCtx);
+   if(uCBORError != QCBOR_ERR_EXTRA_BYTES) {
+      return 3;
+   }
+
+   return 0;
+}
+

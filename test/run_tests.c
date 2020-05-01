@@ -104,6 +104,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(SetUpAllocatorTest),
     TEST_ENTRY(SimpleValuesIndefiniteLengthTest1),
     TEST_ENTRY(EncodeLengthThirtyoneTest),
+    TEST_ENTRY(CBORSequenceDecodeTests),
 #ifndef     QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
     TEST_ENTRY(EncodeLengthThirtyoneTest),
     TEST_ENTRY(ExponentAndMantissaDecodeTests),

@@ -812,12 +812,33 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint6
 
  @param[in]  pCtx  The context to check.
 
- @return An error or @ref QCBOR_SUCCESS.
-
- This tells you if all the bytes given to QCBORDecode_Init() have been
- consumed and whether all maps and arrays were closed.  The decode is
- considered to be incorrect or incomplete if not and an error will be
- returned.
+ @retval  QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN   The CBOR is not well-formed
+ as some map or array was not closed off. This should always be treated as an
+ unrecoverable error.
+ 
+ @retval QCBOR_ERR_EXTRA_BYTES The CBOR was decoded correctly and
+ all maps and arrays are closed, but some of the bytes in the input were not consumed.
+ This may or may not be considered an error.
+ 
+ @retval QCBOR_SUCCES There were no errors and all bytes were
+ consumed.
+ 
+ This should always be called to determined if all maps and arrays where
+ correctly closed and that the CBOR was well-formed.
+ 
+ This calls the destructor for the string allocator, if one is in use.
+ 
+ Some CBOR protocols use a CBOR sequence [RFC 8742] (https://tools.ietf.org/html/rfc8742) .
+ A CBOR sequence typically
+ doesn't start out with a map or an array. The end of the CBOR is determined
+ in some other way, perhaps by external framing, or by the occurance of
+ some particular CBOR data item or such. The buffer given to decode
+ must start out with valid CBOR, but it can have extra bytes at the end
+ that are not CBOR or CBOR that is to be ignored.
+ 
+ QCBORDecode_Finish() should still be called when decoding CBOR Sequences to check that
+ the input decoded was well-formed. If the input was well-formed and there are extra bytes at the end @ref QCBOR_ERR_EXTRA_BYTES will be returned.  This can be considered
+  a successful decode. 
  */
 QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 
