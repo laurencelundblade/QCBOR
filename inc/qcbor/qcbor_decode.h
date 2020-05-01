@@ -49,6 +49,12 @@ extern "C" {
 
 
 /**
+ @file qcbor_decode.h
+
+ This describes CBOR decoding.
+*/
+
+/**
  The decode mode options.
  */
 typedef enum {
@@ -823,22 +829,24 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint6
  @retval QCBOR_SUCCES There were no errors and all bytes were
  consumed.
  
- This should always be called to determined if all maps and arrays where
- correctly closed and that the CBOR was well-formed.
+ This should always be called to determine if all maps and arrays
+ where correctly closed and that the CBOR was well-formed.
  
  This calls the destructor for the string allocator, if one is in use.
  
- Some CBOR protocols use a CBOR sequence [RFC 8742] (https://tools.ietf.org/html/rfc8742) .
- A CBOR sequence typically
- doesn't start out with a map or an array. The end of the CBOR is determined
- in some other way, perhaps by external framing, or by the occurance of
- some particular CBOR data item or such. The buffer given to decode
- must start out with valid CBOR, but it can have extra bytes at the end
- that are not CBOR or CBOR that is to be ignored.
+ Some CBOR protocols use a CBOR sequence [RFC 8742]
+ (https://tools.ietf.org/html/rfc8742) .  A CBOR sequence typically
+ doesn't start out with a map or an array. The end of the CBOR is
+ determined in some other way, perhaps by external framing, or by the
+ occurrence of some particular CBOR data item or such. The buffer given
+ to decode must start out with valid CBOR, but it can have extra bytes
+ at the end that are not CBOR or CBOR that is to be ignored.
  
- QCBORDecode_Finish() should still be called when decoding CBOR Sequences to check that
- the input decoded was well-formed. If the input was well-formed and there are extra bytes at the end @ref QCBOR_ERR_EXTRA_BYTES will be returned.  This can be considered
-  a successful decode. 
+ QCBORDecode_Finish() should still be called when decoding CBOR
+ Sequences to check that the input decoded was well-formed. If the
+ input was well-formed and there are extra bytes at the end @ref
+ QCBOR_ERR_EXTRA_BYTES will be returned.  This can be considered a
+ successful decode.
  */
 QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 
