@@ -68,6 +68,7 @@
 		E73B575D2161CA7C0080D658 /* half_to_double_from_rfc7049.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = half_to_double_from_rfc7049.c; path = test/half_to_double_from_rfc7049.c; sourceTree = "<group>"; };
 		E73B57632161F8F70080D658 /* run_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = run_tests.c; path = test/run_tests.c; sourceTree = "<group>"; tabWidth = 3; };
 		E73B57642161F8F80080D658 /* run_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = run_tests.h; path = test/run_tests.h; sourceTree = "<group>"; };
+		E74BF411245D6713002CE8E8 /* UsefulBuf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UsefulBuf.h; path = inc/qcbor/UsefulBuf.h; sourceTree = "<group>"; };
 		E772022723B52C02006E966E /* QCBOR_Disable_Exp_Mantissa */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = QCBOR_Disable_Exp_Mantissa; sourceTree = BUILT_PRODUCTS_DIR; };
 		E776E07C214ADF7F00E67947 /* QCBOR */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = QCBOR; sourceTree = BUILT_PRODUCTS_DIR; };
 		E776E08C214AE07400E67947 /* qcbor_encode.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_encode.c; path = src/qcbor_encode.c; sourceTree = "<group>"; tabWidth = 3; };
@@ -137,6 +138,7 @@
 		E776E092214AE07C00E67947 /* inc */ = {
 			isa = PBXGroup;
 			children = (
+				E74BF411245D6713002CE8E8 /* UsefulBuf.h */,
 				E78C91DF240C90C100F4CECE /* qcbor_common.h */,
 				E78C91DE240C90C100F4CECE /* qcbor_decode.h */,
 				E78C91E1240C90C100F4CECE /* qcbor_encode.h */,

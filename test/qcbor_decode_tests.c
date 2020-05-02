@@ -3795,6 +3795,8 @@ int32_t CBORSequenceDecodeTests(void)
    QCBORItem Item;
    QCBORError uCBORError;
 
+   // --- Test a sequence with extra bytes ---
+   
    // The input for the date test happens to be a sequence so it
    // is reused. It is a sequence because it doesn't start as
    // an array or map.
@@ -3814,10 +3816,10 @@ int32_t CBORSequenceDecodeTests(void)
    // Get a second item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
-      return 1;
+      return 2;
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH) {
-      return 2;
+      return 3;
    }
    
    // A sequence can have stuff at the end that may
@@ -3830,9 +3832,89 @@ int32_t CBORSequenceDecodeTests(void)
    // must return the error QCBOR_ERR_EXTRA_BYTES.
    uCBORError = QCBORDecode_Finish(&DCtx);
    if(uCBORError != QCBOR_ERR_EXTRA_BYTES) {
-      return 3;
+      return 4;
+   }
+   
+   
+   // --- Test an empty input ----
+   uint8_t empty[1];
+   UsefulBufC Empty = {empty, 0};
+   QCBORDecode_Init(&DCtx,
+                    Empty,
+                    QCBOR_DECODE_MODE_NORMAL);
+   
+   uCBORError = QCBORDecode_Finish(&DCtx);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 5;
+   }
+   
+   
+   // --- Sequence with unclosed indefinite length array ---
+   static const uint8_t xx[] = {0x01, 0x9f, 0x02};
+   
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(xx),
+                    QCBOR_DECODE_MODE_NORMAL);
+   
+   // Get the first item
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 7;
+   }
+   if(Item.uDataType != QCBOR_TYPE_INT64) {
+      return 8;
+   }
+   
+   // Get a second item
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 9;
+   }
+   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return 10;
    }
 
+   // Try to finish before consuming all bytes to confirm
+   // that the still-open error is returned.
+   uCBORError = QCBORDecode_Finish(&DCtx);
+   if(uCBORError != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return 11;
+   }
+
+   
+   // --- Sequence with a closed indefinite length array ---
+   static const uint8_t yy[] = {0x01, 0x9f, 0xff};
+   
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(yy),
+                    QCBOR_DECODE_MODE_NORMAL);
+   
+   // Get the first item
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 12;
+   }
+   if(Item.uDataType != QCBOR_TYPE_INT64) {
+      return 13;
+   }
+   
+   // Get a second item
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 14;
+   }
+   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return 15;
+   }
+
+   // Try to finish before consuming all bytes to confirm
+   // that the still-open error is returned.
+   uCBORError = QCBORDecode_Finish(&DCtx);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 16;
+   }
+
+   
    return 0;
 }
 
