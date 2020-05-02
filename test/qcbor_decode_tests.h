@@ -252,4 +252,10 @@ int32_t ExponentAndMantissaDecodeFailTests(void);
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
+/*
+ Tests decoding of CBOR Sequences defined in RFC 8742
+ */
+int32_t CBORSequenceDecodeTests(void);
+
+
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */
