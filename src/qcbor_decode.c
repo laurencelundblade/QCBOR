@@ -1946,14 +1946,14 @@ MatchLabel(QCBORItem Item1, QCBORItem Item2)
          return true;
       }
    } else if(Item1.uLabelType == QCBOR_TYPE_BYTE_STRING) {
-     if(Item2.uLabelType == QCBOR_TYPE_BYTE_STRING && !UsefulBuf_Compare(Item1.label.string, Item2.label.string)) {
-        return true;
-     }
-  } else if(Item1.uLabelType == QCBOR_TYPE_UINT64) {
-     if(Item2.uLabelType == QCBOR_TYPE_UINT64 && Item1.label.uint64 == Item2.label.uint64) {
-        return true;
-     }
-  }
+      if(Item2.uLabelType == QCBOR_TYPE_BYTE_STRING && !UsefulBuf_Compare(Item1.label.string, Item2.label.string)) {
+         return true;
+      }
+   } else if(Item1.uLabelType == QCBOR_TYPE_UINT64) {
+      if(Item2.uLabelType == QCBOR_TYPE_UINT64 && Item1.label.uint64 == Item2.label.uint64) {
+         return true;
+      }
+   }
    
    /* Other label types are never matched */
    return false;
@@ -1969,8 +1969,6 @@ MatchType(QCBORItem Item1, QCBORItem Item2)
    } else if(Item2.uLabelType == QCBOR_TYPE_ANY) {
       return true;
    }
-
-   /* Other label types are never matched */
    return false;
 }
 
@@ -1984,13 +1982,13 @@ MatchType(QCBORItem Item1, QCBORItem Item2)
  
  If an item was not found, its data type is set to none.
  
- TODO: type in and out is not right.
  */
 QCBORError
 GetItemsInMap(QCBORDecodeContext *pMe, QCBORItem *pItemArray, size_t *puOffset, size_t *puEndOffset)
 {
    QCBORError  nReturn;
-   
+
+   // TODO: what if pre-order cursor is not at the same level as map? This should be OK.
    if(!DecodeNesting_InMapMode(&(pMe->nesting))) {
       return QCBOR_ERR_NOT_ENTERED;
    }
@@ -2072,7 +2070,7 @@ GetItemsInMap(QCBORDecodeContext *pMe, QCBORItem *pItemArray, size_t *puOffset, 
       *puEndOffset = uEndOffset;
    }
    
-   /* Mark all the ones not found */
+   /* For all items not found, set the data type to QCBOR_TYPE_NONE */
    int        i;
    QCBORItem *pIterator;
    for(pIterator = pItemArray, i = 0; pIterator->uLabelType != 0; pIterator++, i++) {
