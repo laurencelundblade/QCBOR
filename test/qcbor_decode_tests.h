@@ -255,5 +255,10 @@ int32_t ExponentAndMantissaDecodeFailTests(void);
 int32_t EnterMapTest(void);
 
 int32_t IntegerConvertTest(void);
+/*
+ Tests decoding of CBOR Sequences defined in RFC 8742
+ */
+int32_t CBORSequenceDecodeTests(void);
+
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */
