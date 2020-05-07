@@ -210,6 +210,13 @@ extern "C" {
 
  Note that when you nest arrays or maps in a map, the nested array or
  map has a label.
+ 
+ Many CBOR-based protocols start with an array or map. This makes them
+ self-delimiting. No external length or end marker is needed to know
+ the end. It is also possible not start this way, in which case this
+ it is usually called a CBOR sequence which is described in [RFC 8742] (https://tools.ietf.org/html/rfc8742 ).
+ This encoder supports either just by whether the first item added is an
+ array, map or other.
 
  @anchor Tags-Overview
  Any CBOR data item can be tagged to add semantics, define a new data

@@ -134,7 +134,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  These #define config options affect the inline implementation of
  UsefulOutBuf_InsertUint64() and UsefulInputBuf_GetUint64().  They
  also affect the 16-, 32-bit, float and double versions of these
- instructions. Since they are inline, they size effect is not in the
+ instructions. Since they are inline, the size effect is not in the
  UsefulBuf object code, but in the calling code.
 
  Summary:
