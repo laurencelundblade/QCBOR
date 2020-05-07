@@ -2403,6 +2403,14 @@ void QCBORDecode_GetBstrInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, Us
    *pBstr = Item.val.string;
 }
 
+void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, UsefulBufC *pBstr)
+{
+   // TODO: error handling
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_DATE_STRING, &Item);
+   *pBstr = Item.val.string;
+}
+
 void QCBORDecode_GetTextInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, UsefulBufC *pBstr)
 {
    // TODO: error handling
