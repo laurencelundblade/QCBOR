@@ -131,19 +131,13 @@ DecodeNesting_IsAtTop(const QCBORDecodeNesting *pNesting)
    }
 }
 
-// Determine if at the end of a map or array, taking into
-// account map mode. If this returns true, it is OK
-// to get another item.
+// Determine if at the end of a map or array while in map mode
 inline static bool
 DecodeNesting_AtEnd(const QCBORDecodeNesting *pNesting)
 {
-   //if(DecodeNesting_IsAtTop(pNesting)){
-      // Always at end if at the top level of nesting
-   //   return true;
-   //}
-
    if(pNesting->pCurrent->uMapMode) {
       if(pNesting->pCurrent->uCount == 0) {
+         // TODO: won't work for indefinite length
          // In map mode and consumed all items, so it is the end
          return true;
       } else {
@@ -151,7 +145,7 @@ DecodeNesting_AtEnd(const QCBORDecodeNesting *pNesting)
          return false;
       }
    } else {
-      // Not in map mode, and not at top level so it NOT the end.
+      // Not in map mode. The end is determined in other ways.
       return false;
    }
 }
@@ -1173,14 +1167,24 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
 
    QCBORError nReturn;
 
-   // Check if there are an TODO: incomplete comment
+   /* For a pre-order traversal a non-error end occurs when there
+    are no more bytes to consume and the nesting level is at the top.
+    If it's not at the top, then the CBOR is not well formed. This error
+    is caught elsewhere.
+
+    This handles the end of CBOR sequences as well as non-sequences. */
    if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf)) == 0 && DecodeNesting_IsAtTop(&(me->nesting))) {
       nReturn = QCBOR_ERR_NO_MORE_ITEMS;
       goto Done;
    }
-   
+
+   /* It is also and end of the input when in map mode and the cursor
+    is at the end of the map */
+
+
    // This is to handle map and array mode
-   if(UsefulInputBuf_Tell(&(me->InBuf)) != 0 && DecodeNesting_AtEnd(&(me->nesting))) {
+   if(DecodeNesting_AtEnd(&(me->nesting))) {
+//   if(UsefulInputBuf_Tell(&(me->InBuf)) != 0 && DecodeNesting_AtEnd(&(me->nesting))) {
       nReturn = QCBOR_ERR_NO_MORE_ITEMS;
       goto Done;
    }
@@ -2400,6 +2404,14 @@ void QCBORDecode_GetBstrInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, Us
    // TODO: error handling
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_BYTE_STRING, &Item);
+   *pBstr = Item.val.string;
+}
+
+void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, UsefulBufC *pBstr)
+{
+   // TODO: error handling
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_DATE_STRING, &Item);
    *pBstr = Item.val.string;
 }
 

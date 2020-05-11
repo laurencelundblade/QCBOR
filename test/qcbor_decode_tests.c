@@ -3937,7 +3937,54 @@ int32_t EnterMapTest()
    if(UsefulBuf_Compare(S3, UsefulBuf_FromSZ("string2"))){
       return 1009;
    }
-   
+
+   // These tests confirm the cursor is at the right place after entering a map or array
+
+   // Confirm cursor is at right place
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_INT64) {
+      return 2001;
+   }
+
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_TEXT_STRING) {
+      return 2002;
+   }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+   QCBORDecode_EnterMap(&DCtx);
+   //QCBORDecode_GetNext(&DCtx, &Item1);
+   //QCBORDecode_GetNext(&DCtx, &Item1);
+   //QCBORDecode_GetNext(&DCtx, &Item1);
+   QCBORDecode_EnterMapFromMapSZ(&DCtx, "map in a map");
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_BYTE_STRING) {
+      return 2003;
+   }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_TEXT_STRING) {
+      return 2003;
+   }
+
+
    return 0;   
 }
 
