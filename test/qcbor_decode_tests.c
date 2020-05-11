@@ -3557,16 +3557,16 @@ int32_t SetUpAllocatorTest(void)
 
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
-/*
+/*  exponent, mantissa
   [
     4([-1, 3]),
-    4([-20, 4759477275222530853136]),
-    4([9223372036854775807, -4759477275222530853137]),
+    4([-20,                   4759477275222530853136]),
+    4([9223372036854775807,  -4759477275222530853137]),
     5([300, 100]),
-    5([-20, 4759477275222530853136]),
+    5([-20,                   4759477275222530853136]),
     5([-9223372036854775807, -4759477275222530853137])
-    5([9223372036854775806, -4759477275222530853137])
-    5([9223372036854775806, 9223372036854775806])]
+    5([ 9223372036854775806, -4759477275222530853137])
+    5([ 9223372036854775806,  9223372036854775806])]
  ]
  */
 
@@ -3583,6 +3583,8 @@ static const uint8_t spExpectedExponentsAndMantissas[] = {
    0xC5, 0x82, 0x33,
                0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
    0xC5, 0x82, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
+               0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
+   0xC5, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
                0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
    0xC5, 0x82, 0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
                0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE
@@ -3654,33 +3656,45 @@ int32_t ExponentAndMantissaDecodeTests(void)
       return 10;
    }
 
+   // 5([-20, 4759477275222530853136]),
    nCBORError = QCBORDecode_GetNext(&DC, &item);
    if(nCBORError != QCBOR_SUCCESS) {
       return 11;
    }
-
    if(item.uDataType != QCBOR_TYPE_BIGFLOAT_POS_BIGNUM ||
       item.val.expAndMantissa.nExponent != -20 ||
       UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
       return 12;
    }
 
+   // 5([-9223372036854775807, -4759477275222530853137])
    nCBORError = QCBORDecode_GetNext(&DC, &item);
    if(nCBORError != QCBOR_SUCCESS) {
       return 13;
    }
-
    if(item.uDataType != QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM ||
       item.val.expAndMantissa.nExponent != -9223372036854775807 ||
       UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
       return 14;
    }
 
+   // 5([ 9223372036854775806, -4759477275222530853137])
+   nCBORError = QCBORDecode_GetNext(&DC, &item);
+   if(nCBORError != QCBOR_SUCCESS) {
+      return 13;
+   }
+   if(item.uDataType != QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM ||
+      item.val.expAndMantissa.nExponent != 9223372036854775806 ||
+      UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
+      return 14;
+   }
+
+
+   // 5([ 9223372036854775806,  9223372036854775806])]
    nCBORError = QCBORDecode_GetNext(&DC, &item);
    if(nCBORError != QCBOR_SUCCESS) {
       return 15;
    }
-
    if(item.uDataType != QCBOR_TYPE_BIGFLOAT ||
       item.val.expAndMantissa.nExponent != 9223372036854775806 ||
       item.val.expAndMantissa.Mantissa.nInt!= 9223372036854775806 ) {
@@ -3937,7 +3951,7 @@ int32_t IntegerConvertTest()
    QCBORDecodeContext DCtx;
    QCBORError nCBORError;
 
-   /*
+   /* exponent, mantissa
     [
     4([-1, 3]),
     4([-20, 4759477275222530853136]),
@@ -3945,8 +3959,8 @@ int32_t IntegerConvertTest()
     5([300, 100]),
     5([-20, 4759477275222530853136]),
     5([-9223372036854775807, -4759477275222530853137])
-    5([9223372036854775806, -4759477275222530853137])
-    5([9223372036854775806, 9223372036854775806])]
+    5([ 9223372036854775806, -4759477275222530853137])
+    5([ 9223372036854775806,  9223372036854775806])]
     ]
     */
 
@@ -3959,36 +3973,185 @@ int32_t IntegerConvertTest()
    }
 
    int64_t integer;
-   QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &integer);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
-      return -2;
-   }
-
-   DCtx.uLastError = 0; // TODO: a method for this
-
+   //  4([-1, 3]),
    QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &integer);
    if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
+   // 4([-20, 4759477275222530853136]),
    QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &integer);
    if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
+   // 4([9223372036854775807, -4759477275222530853137]),
+   QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &integer);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+      return -2;
+   }
+   DCtx.uLastError = 0; // TODO: a method for this
+
+   // 5([300, 100]),
    QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &integer);
    if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
+   // 5([-20, 4759477275222530853136]),
    QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &integer);
    if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
+
+   //  5([-9223372036854775807, -4759477275222530853137])
+   QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &integer);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+      return -2;
+   }
+   DCtx.uLastError = 0; // TODO: a method for this
+
+   //  5([ 9223372036854775806, -4759477275222530853137])
+   QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &integer);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+      return -2;
+   }
+   DCtx.uLastError = 0; // TODO: a method for this
+
+   //  5([ 9223372036854775806,  9223372036854775806])]
+   QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &integer);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+      return -2;
+   }
+   DCtx.uLastError = 0; // TODO: a method for this
+   
+   
+   
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentsAndMantissas), 0);
+
+   nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(nCBORError) {
+      return -1;
+   }
+
+   uint64_t uinteger;
+   // 4([-1, 3]),
+   QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &uinteger);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+      return -2;
+   }
+   DCtx.uLastError = 0; // TODO: a method for this
+
+   // 4([-20, 4759477275222530853136]),
+   QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &uinteger);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+      return -2;
+   }
+   DCtx.uLastError = 0; // TODO: a method for this
+
+   // 4([9223372036854775807, -4759477275222530853137]),
+   QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &uinteger);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+      return -2;
+   }
+   DCtx.uLastError = 0; // TODO: a method for this
+
+   // 5([300, 100]),
+   QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &uinteger);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+      return -2;
+   }
+   DCtx.uLastError = 0; // TODO: a method for this
+
+   // 5([-20, 4759477275222530853136]),
+   QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &uinteger);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+      return -2;
+   }
+   DCtx.uLastError = 0; // TODO: a method for this
+   
+   // 5([-9223372036854775807, -4759477275222530853137])
+   QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &uinteger);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+      return -2;
+   }
+   DCtx.uLastError = 0; // TODO: a method for this
+
+   // 5([ 9223372036854775806, -4759477275222530853137])
+   QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &uinteger);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+      return -2;
+   }
+   DCtx.uLastError = 0; // TODO: a method for this
+   
+   // 5([ 9223372036854775806,  9223372036854775806])]
+   QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &uinteger);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+      return -2;
+   }
+   DCtx.uLastError = 0; // TODO: a method for this
+
+
+   
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentsAndMantissas), 0);
+   nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+    if(nCBORError) {
+       return -1;
+    }
+   
+   double dResult;
+   //  4([-1, 3]),
+    QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &dResult);
+    if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+       dResult != 0.3) {
+       return -2;
+    }
+
+   // 4([-20, 4759477275222530853136]),
+   QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &dResult);
+    if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+       dResult != 47.408855671161923) {
+       return -2;
+    }
+
+   // 4([9223372036854775807, -4759477275222530853137]),
+   QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &dResult);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+      dResult != -INFINITY) {
+      return -2;
+   }
+
+   // 5([300, 100]),
+   QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_BIGFLOAT, &dResult);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+      dResult != -INFINITY) {
+      return -2;
+   }
+
+   // 5([-20, 4759477275222530853136]),
+   QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_BIGFLOAT, &dResult);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+      dResult != 4521260802379792.0) {
+      return -2;
+   }
+
+   // 5([-9223372036854775807, -4759477275222530853137])
+   QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_BIGFLOAT, &dResult);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+      dResult != -0.0) {
+      return -2;
+   }
+
+   // 5([9223372036854775806, 9223372036854775806])]
+   QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_BIGFLOAT, &dResult);
+   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+      dResult != INFINITY) {
+      return -2;
+   }
 
    return 0;
 }

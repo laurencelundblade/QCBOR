@@ -956,6 +956,8 @@ void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pMe, uint32_t uOptions, int
  */
 void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pValue);
 
+void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue);
+
 
 
 void QCBORDecode_GetBytes(QCBORDecodeContext *pCtx,  UsefulBufC *pValue);
@@ -966,6 +968,7 @@ void QCBORDecode_GetPosBignum(QCBORDecodeContext *pCtx,  UsefulBufC *pValue);
 
 void QCBORDecode_GetNegBignum(QCBORDecodeContext *pCtx,  UsefulBufC *pValue);
 
+void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue);
 
 
 
