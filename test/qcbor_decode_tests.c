@@ -3989,11 +3989,156 @@ int32_t EnterMapTest()
 }
 
 
+struct NumberConversion {
+   char       *szDescription;
+   UsefulBufC  CBOR;
+   int64_t     nConvertedToInt64;
+   QCBORError  uErrorInt64;
+   uint64_t    uConvertToUInt64;
+   QCBORError  uErrorUint64;
+   double      dConvertToDouble;
+   QCBORError  uErrorDouble;
+};
+
+static struct NumberConversion NumberConversions[] = {
+   {
+      "Postive integer 0",
+      {(uint8_t[]){0x0}, 1},
+      0LL,
+      QCBOR_SUCCESS,
+      0ULL,
+      QCBOR_SUCCESS,
+      0.0,
+      QCBOR_SUCCESS
+   },
+   {
+      "-18446744073709551616",
+      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, 9},
+      -9223372036854775807-1, // INT64_MIN
+      QCBOR_SUCCESS,
+      0ULL,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      -9223372036854775808.0,
+      QCBOR_SUCCESS
+   },
+   {
+      "Floating point value 100.3",
+      {(uint8_t[]){0xfb, 0x40, 0x59, 0x13, 0x33, 0x33, 0x33, 0x33, 0x33}, 9},
+      100L,
+      QCBOR_SUCCESS,
+      100ULL,
+      QCBOR_SUCCESS,
+      100.3,
+      QCBOR_SUCCESS
+   },
+   {
+      "Floating point value NaN 0xfa7fc00000",
+      {(uint8_t[]){0xfa, 0x7f, 0xc0, 0x00, 0x00}, 5},
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      NAN,
+      QCBOR_SUCCESS
+   },
+   {
+      "Floating point value -4",
+      {(uint8_t[]){0xf9, 0xc4, 0x00}, 3},
+      -4,
+      QCBOR_SUCCESS,
+      0,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      -4.0,
+      QCBOR_SUCCESS
+   },
+   {
+      "Decimal fraction 3/10",
+      {(uint8_t[]){0xC4, 0x82, 0x20, 0x03}, 4},
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0.30000000000000004,
+      QCBOR_SUCCESS
+   }
+};
 
 
+
+
+int32_t IntegerConvertTest2()
+{
+   const size_t nNumTests = sizeof(NumberConversions)/sizeof(struct NumberConversion);
+
+   for(struct NumberConversion *pF = NumberConversions; pF < NumberConversions + nNumTests; pF++) {
+      // Set up the decoding context including a memory pool so that
+      // indefinite length items can be checked
+      QCBORDecodeContext DCtx;
+      QCBORDecode_Init(&DCtx, pF->CBOR, QCBOR_DECODE_MODE_NORMAL);
+      UsefulBuf_MAKE_STACK_UB(Pool, 100);
+      QCBORError nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+      if(nCBORError) {
+         return -9;
+      }
+
+      int64_t nInt;
+      DCtx.uLastError = 0;
+      QCBORDecode_GetInt64ConvertAll(&DCtx, 0xffff, &nInt);
+      if(QCBORDecode_GetLastError(&DCtx) != pF->uErrorInt64) {
+         return -99;
+      }
+      if(pF->uErrorInt64 == QCBOR_SUCCESS && pF->nConvertedToInt64 != nInt) {
+         return -888;
+      }
+
+      
+      QCBORDecode_Init(&DCtx, pF->CBOR, QCBOR_DECODE_MODE_NORMAL);
+      nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+      if(nCBORError) {
+         return -9;
+      }
+      uint64_t uInt;
+      DCtx.uLastError = 0;
+      QCBORDecode_GetUInt64ConvertAll(&DCtx, 0xffff, &uInt);
+      if(QCBORDecode_GetLastError(&DCtx) != pF->uErrorUint64) {
+         return -99;
+      }
+      if(pF->uErrorUint64 == QCBOR_SUCCESS && pF->uConvertToUInt64 != uInt) {
+         return -888;
+      }
+
+
+      QCBORDecode_Init(&DCtx, pF->CBOR, QCBOR_DECODE_MODE_NORMAL);
+      nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+      if(nCBORError) {
+         return -9;
+      }
+      double d;
+      DCtx.uLastError = 0;
+      QCBORDecode_GetDoubleConvertAll(&DCtx, 0xffff, &d);
+      if(QCBORDecode_GetLastError(&DCtx) != pF->uErrorDouble) {
+         return -99;
+      }
+      if(pF->uErrorDouble == QCBOR_SUCCESS) {
+         if(isnan(pF->dConvertToDouble)) {
+            if(!isnan(d)) {
+               return -4;
+            }
+         } else {
+            // TODO: this comparison may need a margin of error
+            if(pF->dConvertToDouble != d) {
+               return -5;
+            }
+         }
+      }
+   }
+
+   return 0;
+}
 
 int32_t IntegerConvertTest()
 {
+   (void)IntegerConvertTest2();
 
    QCBORDecodeContext DCtx;
    QCBORError nCBORError;
