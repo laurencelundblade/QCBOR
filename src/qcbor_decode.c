@@ -135,8 +135,8 @@ DecodeNesting_IsAtTop(const QCBORDecodeNesting *pNesting)
 inline static bool
 DecodeNesting_AtEnd(const QCBORDecodeNesting *pNesting)
 {
-   if(pNesting->pCurrent->uMapMode) {
-      if(pNesting->pCurrent->uCount == 0) {
+   if(pNesting->pCurrentMap && pNesting->pCurrentMap->uMapMode) {
+      if(pNesting->pCurrentMap->uCount == 0) {
          // TODO: won't work for indefinite length
          // In map mode and consumed all items, so it is the end
          return true;
@@ -160,7 +160,7 @@ DecodeNesting_IsIndefiniteLength(const QCBORDecodeNesting *pNesting)
 inline static int
 DecodeNesting_InMapMode(const QCBORDecodeNesting *pNesting)
 {
-   return (bool)pNesting->pCurrent->uMapMode;
+   return (bool)pNesting->pCurrentMap->uMapMode;
 }
 
 inline static uint8_t
@@ -169,6 +169,14 @@ DecodeNesting_GetLevel(QCBORDecodeNesting *pNesting)
    // Check in DecodeNesting_Descend and never having
    // QCBOR_MAX_ARRAY_NESTING > 255 gaurantees cast is safe
    return (uint8_t)(pNesting->pCurrent - &(pNesting->pMapsAndArrays[0]));
+}
+
+inline static uint8_t
+DecodeNesting_GetMapModeLevel(QCBORDecodeNesting *pNesting)
+{
+   // Check in DecodeNesting_Descend and never having
+   // QCBOR_MAX_ARRAY_NESTING > 255 gaurantees cast is safe
+   return (uint8_t)(pNesting->pCurrentMap - &(pNesting->pMapsAndArrays[0]));
 }
 
 inline static int
@@ -229,6 +237,11 @@ DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
 
       // Closed out an array or map so level up
       pNesting->pCurrent--;
+      /*if(pNesting->pCurrent->uMapMode) {
+         // Bring the current map level along if new level is a map
+         // TODO: must search up until a mapmode level is found.
+         pNesting->pCurrentMap = pNesting->pCurrent;
+      } */
 
       // Continue with loop to see if closing out this doesn't close out more
    }
@@ -237,18 +250,29 @@ DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
 inline static void
 DecodeNesting_EnterMapMode(QCBORDecodeNesting *pNesting, size_t uOffset)
 {
-   pNesting->pCurrent->uMapMode = 1;
+   pNesting->pCurrentMap = pNesting->pCurrent;
+   pNesting->pCurrentMap->uMapMode = 1;
    // Cast to uint32_t is safe because QCBOR onl works on data < UINT32_MAX
-   pNesting->pCurrent->uOffset  = (uint32_t)uOffset;
+   pNesting->pCurrentMap->uOffset  = (uint32_t)uOffset;
 }
 
 inline static void
 DecodeNesting_Exit(QCBORDecodeNesting *pNesting)
 {
-   pNesting->pCurrent->uMapMode = 0;
-   pNesting->pCurrent--;
+   pNesting->pCurrentMap->uMapMode = 0;
+   pNesting->pCurrent = pNesting->pCurrentMap - 1; // TODO error check
    
    DecodeNesting_DecrementCount(pNesting);
+
+   while(1) {
+      pNesting->pCurrentMap--;
+      if(pNesting->pCurrentMap->uMapMode) {
+         break;
+      }
+      if(pNesting->pCurrentMap == &(pNesting->pMapsAndArrays[0])) {
+         break;
+      }
+   }
 }
 
 // Called on every map/array
@@ -1178,7 +1202,7 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
       goto Done;
    }
 
-   /* It is also and end of the input when in map mode and the cursor
+   /* It is also an end of the input when in map mode and the cursor
     is at the end of the map */
 
 
@@ -1194,7 +1218,7 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
       goto Done;
    }
 
-   // Break ending arrays/maps are always processed at the end of this function.
+   // Breaks ending arrays/maps are always processed at the end of this function.
    // They should never show up here.
    if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
       nReturn = QCBOR_ERR_BAD_BREAK;
@@ -1206,7 +1230,7 @@ QCBORError QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me,
    pDecodedItem->uNestingLevel = DecodeNesting_GetLevel(&(me->nesting));
 
    // Process the item just received for descent or decrement, and
-   // ascent if decrements are enough to close out a definite length array/map
+   // ascend if decrements are enough to close out a definite length array/map
    if(IsMapOrArray(pDecodedItem->uDataType)) {
       // If the new item is array or map, the nesting level descends
       nReturn = DecodeNesting_Descend(&(me->nesting), pDecodedItem);
@@ -1870,11 +1894,12 @@ void printdecode(QCBORDecodeContext *pMe, const char *szName)
           szName,
           (uint32_t)pMe->InBuf.cursor,
           (uint32_t)pMe->InBuf.UB.len);
-/*   for(int i = 0; i < QCBOR_MAX_ARRAY_NESTING; i++) {
+   for(int i = 0; i < QCBOR_MAX_ARRAY_NESTING; i++) {
       if(&(pMe->nesting.pMapsAndArrays[i]) > pMe->nesting.pCurrent) {
          break;
       }
-      printf("   %2d   %5d %s   %6u         %2d      %d\n",
+      printf("%2s %2d   %5d %s   %6u         %2d      %d\n",
+             pMe->nesting.pCurrentMap == &(pMe->nesting.pMapsAndArrays[i]) ? "->": "  ",
              i,
              pMe->nesting.pMapsAndArrays[i].uCount,
              pMe->nesting.pMapsAndArrays[i].uMajorType == QCBOR_TYPE_MAP ? "  map" :
@@ -1886,7 +1911,7 @@ void printdecode(QCBORDecodeContext *pMe, const char *szName)
              );
 
    }
-   printf("\n"); */
+   printf("\n");
 }
 
 
@@ -1998,6 +2023,7 @@ GetItemsInMap(QCBORDecodeContext *pMe, QCBORItem *pItemArray, size_t *puOffset, 
    }
 
    QCBORDecodeNesting N = pMe->nesting;
+   pMe->nesting.pCurrent = pMe->nesting.pCurrentMap;
    
    if(pMe->nesting.pCurrent->uCount != UINT16_MAX) {
       pMe->nesting.pCurrent->uCount = pMe->nesting.pCurrent->uSaveCount;
@@ -2009,7 +2035,7 @@ GetItemsInMap(QCBORDecodeContext *pMe, QCBORItem *pItemArray, size_t *puOffset, 
    * deeply nested and this should handle both definite
    * and indefinite length maps and arrays, so this
    * adds some complexity. */
-   const uint8_t uMapNestLevel = DecodeNesting_GetLevel(&(pMe->nesting));
+   const uint8_t uMapNestLevel = DecodeNesting_GetMapModeLevel(&(pMe->nesting));
 
    uint_fast8_t uNextNestLevel;
    
@@ -2178,6 +2204,7 @@ static int FinishEnter(QCBORDecodeContext *pMe, size_t uOffset)
 {
    /* Seek to the data item that is the map or array */
    UsefulInputBuf_Seek(&(pMe->InBuf), uOffset);
+   pMe->nesting.pCurrent = pMe->nesting.pCurrentMap;
 
    /* Skip the data item that is the map or array */
    QCBORItem MapToEnter;

@@ -130,7 +130,8 @@ typedef struct __QCBORDecodeNesting  {
       uint8_t  uMapMode; // Used by map mode TODO: one bit?
       uint16_t uSaveCount; // Used by map mode
    } pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING1+1],
-   *pCurrent;
+   *pCurrent,
+   *pCurrentMap;
 } QCBORDecodeNesting;
 
 
