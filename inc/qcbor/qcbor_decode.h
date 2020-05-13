@@ -904,7 +904,7 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint6
 
 
 /**
- Check whether all the bytes have been decoded and maps and arrays closed.
+ @brief Check whether all the bytes have been decoded and maps and arrays closed.
 
  @param[in]  pCtx  The context to check.
 
@@ -944,17 +944,58 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 static QCBORError QCBORDecode_GetLastError(QCBORDecodeContext *pCtx);
 
 
-void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pValue);
+/**
+ @brief Decode next item as a 64-bit integer
 
+ @param[in] pCtx   The decode context
+ @param[in] uOptions The integer conversion options.
+ @param[out] pnValue  64-bit integer with item
 
+ The CBOR data item must be either a positive integer, negative integer or floating-point number.
+ \c uOptions is one of XXX and controls which conversions will be performed.
 
+ See also QCBORDecode_GetInt64ConvertAll() which will perform the same conversions
+ as this and a lot more at the cost of adding more object code to your executable.
 
-/*
- Get the next item as an int64_t. The CBOR type can be unsigned, negative, float
- a big float, a decimal fraction or a big num. Conversion will be dones as
- expected. Some cases will error out with under or over flow.
+ On error, this sets the decoder last error.  If the data item is of a type that
+ can't be decoded by this function, QCBOR_ERR_UNEXPECTED_TYPE is set. If
+ the data item can be decode, but the option requesting it is not set, then
+ QCBOR_ERR_UNEXPECTED_TYPE will be set. If the data item is too large
+ or small to be represented as a 64-bit signed integer, QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
+ us set.
+
+ When converting floating-point values, the integer is rounded to the nearest integer using
+ llround(). By default, floating-point suport is enabled for QCBOR. If it is turned off,
+ then floating-point conversion is not available.
+ 
  */
-void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pValue);
+void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOptions, int64_t *pnValue);
+
+
+/**
+ @brief Decode next item as a 64-bit integer
+
+ @param[in] pCtx   The decode context
+ @param[in] uOptions The integer conversion options.
+ @param[out] pnValue  64-bit integer with item
+
+ This is the same as QCBORDecode_GetInt64Convert() but supports many more conversions at
+ the cost of adding more object code to your executable.
+
+ The additiona data item types that are suported are positive and negative bignums,
+ decimal fractions and big floats, including decimal fractions and big floats that use bignums.
+ Not that all these types can support numbers much larger that can be represented by
+ in a 64-bit integer, so QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
+ often be encountered.
+ */
+void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, int64_t *pnValue);
+
+
+
+void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue);
+
+
+void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue);
 
 
 
@@ -966,6 +1007,7 @@ void QCBORDecode_GetPosBignum(QCBORDecodeContext *pCtx,  UsefulBufC *pValue);
 
 void QCBORDecode_GetNegBignum(QCBORDecodeContext *pCtx,  UsefulBufC *pValue);
 
+void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue);
 
 
 
