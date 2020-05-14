@@ -2637,20 +2637,18 @@ static inline QCBORError ExponentiateNN(int64_t nMantissa, int64_t nExponent, in
       return uReturn;
    }
 
-   // Error out if too large on the plus side for an int64_t
-   if(uResult > INT64_MAX) {
-      return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
-   }
 
-   // Error out if too large on the negative side for an int64_t
-   if(uResult < (uint64_t)INT64_MAX+1) {
-      /* (uint64_t)INT64_MAX+1 is used to represent the absolute value
-       of INT64_MIN. This assumes two's compliment representation where
-       INT64_MIN is one increment farther from 0 than INT64_MAX.
-       Trying to write -INT64_MIN doesn't work to get this because the
-       compiler tries to work with an int64_t which can't represent
-       -INT64_MIN.
-       */
+   /* (uint64_t)INT64_MAX+1 is used to represent the absolute value
+    of INT64_MIN. This assumes two's compliment representation where
+    INT64_MIN is one increment farther from 0 than INT64_MAX.
+    Trying to write -INT64_MIN doesn't work to get this because the
+    compiler tries to work with an int64_t which can't represent
+    -INT64_MIN.
+    */
+   uint64_t uMax = nMantissa > 0 ? INT64_MAX : (uint64_t)INT64_MAX+1;
+
+   // Error out if too large
+   if(uResult > uMax) {
       return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
    }
 
@@ -2751,11 +2749,11 @@ static double ConvertBigNumToDouble(const UsefulBufC BigNum)
    dResult = 0.0;
    const uint8_t *pByte = BigNum.ptr;
    size_t uLen = BigNum.len;
-   /* This will overflow and become the float value INFINITY  if the number
+   /* This will overflow and become the float value INFINITY if the number
     is too large to fit. No error will be logged.
     TODO: should an error be logged? */
    while(uLen--) {
-      dResult = (dResult * 256.0) + *pByte;
+      dResult = (dResult * 256.0) + (double)*pByte;
    }
 
    return dResult;
@@ -3140,7 +3138,7 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
 
       case QCBOR_TYPE_NEGBIGNUM:
          if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
-            pMe->uLastError = (uint8_t)ConvertPositiveBigNumToUnSigned(Item.val.bigNum, pValue);
+            pMe->uLastError = QCBOR_ERR_NUMBER_SIGN_CONVERSION;
          } else {
             pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
@@ -3189,14 +3187,7 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
          if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            int64_t nMantissa;
-            pMe->uLastError = (uint8_t)ConvertNegativeBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
-            if(!pMe->uLastError) {
-               pMe->uLastError = (uint8_t)ExponentitateNU(nMantissa,
-                                                 Item.val.expAndMantissa.nExponent,
-                                                   pValue,
-                                                   Exponentitate10UU);
-            }
+            pMe->uLastError = QCBOR_ERR_NUMBER_SIGN_CONVERSION;
          } else {
             pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED; // TODO: error code
          }
@@ -3219,14 +3210,7 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
 
       case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
          if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            int64_t nMantissa;
-            pMe->uLastError = (uint8_t)ConvertNegativeBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
-            if(!pMe->uLastError) {
-               pMe->uLastError = (uint8_t)ExponentitateNU(nMantissa,
-                                                Item.val.expAndMantissa.nExponent,
-                                                pValue,
-                                                  Exponentitate2UU);
-            }
+            pMe->uLastError = QCBOR_ERR_NUMBER_SIGN_CONVERSION;
          } else {
             pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
@@ -3286,7 +3270,7 @@ void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
          } else {
             pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
-
+         break;
 
       case QCBOR_TYPE_DECIMAL_FRACTION:
          if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
@@ -3336,28 +3320,28 @@ void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
          double dMantissa = -ConvertBigNumToDouble(Item.val.expAndMantissa.Mantissa.bigNum);
          *pValue = dMantissa * pow(10, (double)Item.val.expAndMantissa.nExponent);
-      } else {
-         pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-      }
-      break;
+         } else {
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
 
       case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
         if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT) {
          double dMantissa = ConvertBigNumToDouble(Item.val.expAndMantissa.Mantissa.bigNum);
          *pValue = dMantissa * exp2((double)Item.val.expAndMantissa.nExponent);
-      } else {
-         pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-      }
-      break;
+         } else {
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
 
       case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
         if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT) {
          double dMantissa = -ConvertBigNumToDouble(Item.val.expAndMantissa.Mantissa.bigNum);
          *pValue = dMantissa * exp2((double)Item.val.expAndMantissa.nExponent);
-      } else {
-         pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-      }
-      break;
+         } else {
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
    }
 }
 

@@ -4002,6 +4002,48 @@ struct NumberConversion {
 
 static struct NumberConversion NumberConversions[] = {
    {
+      "Big float 3 * 2^^2",
+      {(uint8_t[]){0xC5, 0x82, 0x02, 0x03}, 4},
+      12,
+      QCBOR_SUCCESS,
+      12,
+      QCBOR_SUCCESS,
+      12.0,
+      QCBOR_SUCCESS
+   },
+   // | 18446744073709551615         | 0x1bffffffffffffffff
+   {
+      "18446744073709551615",
+      {(uint8_t[]){0x1b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      18446744073709551615ULL,
+      QCBOR_SUCCESS,
+      18446744073709551615.0,
+      QCBOR_SUCCESS
+   },
+
+ /*  {
+      "negative bignum 0xc349010000000000000000",
+      {(uint8_t[]){0xc3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 11},
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      -18446744073709551617.0,
+      QCBOR_SUCCESS
+   }, */
+   {
+      "positive bignum 0xffff",
+      {(uint8_t[]){0xC2, 0x42, 0xff, 0xff}, 4},
+      65536-1,
+      QCBOR_SUCCESS,
+      0xffff,
+      QCBOR_SUCCESS,
+      65535.0,
+      QCBOR_SUCCESS
+   },
+   {
       "Postive integer 0",
       {(uint8_t[]){0x0}, 1},
       0LL,
@@ -4121,6 +4163,8 @@ int32_t IntegerConvertTest2()
       }
       if(pF->uErrorDouble == QCBOR_SUCCESS) {
          if(isnan(pF->dConvertToDouble)) {
+            // NaN's can't be compared for equality. A NaN is
+            // never equal to anything including another NaN
             if(!isnan(d)) {
                return -4;
             }
