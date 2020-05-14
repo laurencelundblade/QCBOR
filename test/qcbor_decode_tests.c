@@ -4084,7 +4084,7 @@ int32_t IntegerConvertTest2()
       int64_t nInt;
       DCtx.uLastError = 0;
       QCBORDecode_GetInt64ConvertAll(&DCtx, 0xffff, &nInt);
-      if(QCBORDecode_GetLastError(&DCtx) != pF->uErrorInt64) {
+      if(QCBORDecode_GetError(&DCtx) != pF->uErrorInt64) {
          return -99;
       }
       if(pF->uErrorInt64 == QCBOR_SUCCESS && pF->nConvertedToInt64 != nInt) {
@@ -4100,7 +4100,7 @@ int32_t IntegerConvertTest2()
       uint64_t uInt;
       DCtx.uLastError = 0;
       QCBORDecode_GetUInt64ConvertAll(&DCtx, 0xffff, &uInt);
-      if(QCBORDecode_GetLastError(&DCtx) != pF->uErrorUint64) {
+      if(QCBORDecode_GetError(&DCtx) != pF->uErrorUint64) {
          return -99;
       }
       if(pF->uErrorUint64 == QCBOR_SUCCESS && pF->uConvertToUInt64 != uInt) {
@@ -4116,7 +4116,7 @@ int32_t IntegerConvertTest2()
       double d;
       DCtx.uLastError = 0;
       QCBORDecode_GetDoubleConvertAll(&DCtx, 0xffff, &d);
-      if(QCBORDecode_GetLastError(&DCtx) != pF->uErrorDouble) {
+      if(QCBORDecode_GetError(&DCtx) != pF->uErrorDouble) {
          return -99;
       }
       if(pF->uErrorDouble == QCBOR_SUCCESS) {
@@ -4167,56 +4167,56 @@ int32_t IntegerConvertTest()
    int64_t integer;
    //  4([-1, 3]),
    QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &integer);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    // 4([-20, 4759477275222530853136]),
    QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &integer);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    // 4([9223372036854775807, -4759477275222530853137]),
    QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &integer);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    // 5([300, 100]),
    QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &integer);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    // 5([-20, 4759477275222530853136]),
    QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &integer);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    //  5([-9223372036854775807, -4759477275222530853137])
    QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &integer);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    //  5([ 9223372036854775806, -4759477275222530853137])
    QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &integer);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    //  5([ 9223372036854775806,  9223372036854775806])]
    QCBORDecode_GetInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &integer);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
@@ -4233,56 +4233,56 @@ int32_t IntegerConvertTest()
    uint64_t uinteger;
    // 4([-1, 3]),
    QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &uinteger);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    // 4([-20, 4759477275222530853136]),
    QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &uinteger);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    // 4([9223372036854775807, -4759477275222530853137]),
    QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &uinteger);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    // 5([300, 100]),
    QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &uinteger);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    // 5([-20, 4759477275222530853136]),
    QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &uinteger);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
    
    // 5([-9223372036854775807, -4759477275222530853137])
    QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &uinteger);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    // 5([ 9223372036854775806, -4759477275222530853137])
    QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &uinteger);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
    
    // 5([ 9223372036854775806,  9223372036854775806])]
    QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &uinteger);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
@@ -4298,49 +4298,49 @@ int32_t IntegerConvertTest()
    double dResult;
    //  4([-1, 3]),
     QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &dResult);
-    if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS &&
        dResult != 0.3) {
        return -2;
     }
 
    // 4([-20, 4759477275222530853136]),
    QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &dResult);
-    if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS &&
        dResult != 47.408855671161923) {
        return -2;
     }
 
    // 4([9223372036854775807, -4759477275222530853137]),
    QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &dResult);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS &&
       dResult != -INFINITY) {
       return -2;
    }
 
    // 5([300, 100]),
    QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_BIGFLOAT, &dResult);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS &&
       dResult != -INFINITY) {
       return -2;
    }
 
    // 5([-20, 4759477275222530853136]),
    QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_BIGFLOAT, &dResult);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS &&
       dResult != 4521260802379792.0) {
       return -2;
    }
 
    // 5([-9223372036854775807, -4759477275222530853137])
    QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_BIGFLOAT, &dResult);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS &&
       dResult != -0.0) {
       return -2;
    }
 
    // 5([9223372036854775806, 9223372036854775806])]
    QCBORDecode_GetDoubleConvertAll(&DCtx, QCBOR_CONVERT_TYPE_BIGFLOAT, &dResult);
-   if(QCBORDecode_GetLastError(&DCtx) != QCBOR_SUCCESS &&
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS &&
       dResult != INFINITY) {
       return -2;
    }

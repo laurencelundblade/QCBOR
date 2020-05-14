@@ -358,6 +358,7 @@ typedef struct _QCBORItem {
 #define QCBOR_CONVERT_TYPE_INT64     0x01
 #define QCBOR_CONVERT_TYPE_UINT64    0x02
 #define QCBOR_CONVERT_TYPE_FLOAT     0x04
+#define QCBOR_CONVERT_TYPE_DOUBLE    0x40
 #define QCBOR_CONVERT_TYPE_BIGFLOAT  0x08
 #define QCBOR_CONVERT_TYPE_DECIMAL_FRACTION 0x10
 #define QCBOR_CONVERT_TYPE_BIG_NUM  0x20
@@ -941,7 +942,42 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint6
 QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 
 
-static QCBORError QCBORDecode_GetLastError(QCBORDecodeContext *pCtx);
+
+/**
+
+ All decoding functions except GetNext() do not return an error.
+ Instead they set an internal error state. Once an error has
+ occured, no further decoding will be performed even if further
+ decoding functions are called.
+
+ The error will be returned when QCBORDecode_Finish() finish is
+ called. This can make call sequence for decoding a given
+ CBOR protocol very clean and simple in many cases.
+
+ Note that no reference to the decoded data should be made until
+ after QCBORDecode_Finish() is called as it will not be valid
+ after a decoding error has occured.
+
+ This will not work for protocols where the expected data items
+ depend on preceding data items existence, type, label or value.
+ In that case call this function to see there is no error
+ before examining data items before QCBORDecode_Finish() is
+ called.
+
+ Some errors, like integer conversion overflow, date string
+ format may not affect the flow of a protocol. The protocol
+ decoder may wish to proceed even if they occur. In that case
+ QCBORDecode_GetAndResetError() may be called after these
+ data items are fetched.
+ */
+static QCBORError QCBORDecode_GetError(QCBORDecodeContext *pCtx);
+
+
+static QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
+
+
+
+static void QCBORDecode_GetInt64(QCBORDecodeContext *pMe, int64_t *pValue);
 
 
 /**
@@ -969,7 +1005,7 @@ static QCBORError QCBORDecode_GetLastError(QCBORDecodeContext *pCtx);
  then floating-point conversion is not available.
  
  */
-void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOptions, int64_t *pnValue);
+static void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOptions, int64_t *pnValue);
 
 
 /**
@@ -991,11 +1027,18 @@ void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOptions, in
 void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, int64_t *pnValue);
 
 
+static void QCBORDecode_GetUInt64(QCBORDecodeContext *pCtx, uint64_t *pValue);
 
-void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue);
+static void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOptions, uint64_t *pValue);
+
+void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, uint64_t *pValue);
 
 
-void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue);
+static void QCBORDecode_GetDouble(QCBORDecodeContext *pCtx, uint32_t uOptions, double *pValue);
+
+static void QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pCtx, uint32_t uOptions, double *pValue);
+
+void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, double *pValue);
 
 
 
@@ -1041,7 +1084,7 @@ getting items by label.
  Entering and Exiting map mode consumes the whole
  map and its contents as a GetNext after exiting
  will return the item after the map. */
-QCBORError QCBORDecode_EnterMap(QCBORDecodeContext *pCtx);
+static QCBORError QCBORDecode_EnterMap(QCBORDecodeContext *pCtx);
 
 
 void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
@@ -1318,13 +1361,74 @@ static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 
 
 
-static inline QCBORError QCBORDecode_GetLastError(QCBORDecodeContext *pMe)
+static inline QCBORError QCBORDecode_GetError(QCBORDecodeContext *pMe)
 {
     return pMe->uLastError;
 }
 
+static inline QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pMe)
+{
+    const QCBORError uReturn = pMe->uLastError;
+    pMe->uLastError = QCBOR_SUCCESS;
+    return uReturn;
+}
 
 
+
+QCBORError QCBORDecode_EnterMapMode(QCBORDecodeContext *pMe, uint8_t uType);
+
+
+inline static QCBORError QCBORDecode_EnterMap(QCBORDecodeContext *pMe) {
+    return QCBORDecode_EnterMapMode(pMe, QCBOR_TYPE_MAP);
+}
+
+
+
+// Semi-private
+void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pValue, QCBORItem *pItem);
+
+
+inline static void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pValue)
+{
+    QCBORItem Item;
+    QCBORDecode_GetInt64ConvertInternal(pMe, uOptions, pValue, &Item);
+}
+
+
+inline static void QCBORDecode_GetInt64(QCBORDecodeContext *pMe, int64_t *pValue)
+{
+    QCBORDecode_GetInt64Convert(pMe, QCBOR_CONVERT_TYPE_INT64, pValue);
+}
+
+
+// Semi-private
+void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue, QCBORItem *pItem);
+
+void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue)
+{
+    QCBORItem Item;
+    QCBORDecode_GetUInt64ConvertInternal(pMe, uOptions, pValue, &Item);
+}
+
+static inline void QCBORDecode_GetUInt64(QCBORDecodeContext *pMe, uint64_t *pValue)
+{
+    QCBORDecode_GetUInt64Convert(pMe, QCBOR_CONVERT_TYPE_UINT64, pValue);
+}
+
+void QCBORDecode_GetDoubleConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue, QCBORItem *pItem);
+
+
+inline static void QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue)
+{
+    QCBORItem Item;
+    QCBORDecode_GetDoubleConvertInternal(pMe, uOptions, pValue, &Item);
+}
+
+
+inline static void QCBORDecode_GetDouble(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue)
+{
+    QCBORDecode_GetDoubleConvert(pMe, QCBOR_CONVERT_TYPE_FLOAT, pValue);
+}
 
 #ifdef __cplusplus
 }
