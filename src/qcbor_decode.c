@@ -2582,8 +2582,81 @@ void QCBORDecode_GetText(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 }
 
 
+/**
+ @param[in] bMustBeTagged  If \c true, then the data item must be tagged as either
+ a positive or negative bignum. If \c false, then it only must be a byte string and bIsNegative
+ will always be false on the asumption that it is positive, but it can be interpretted as
+ negative if the the sign is know from other context.
+ @param[out] pValue   The bytes that make up the big num
+ @param[out] pbIsNegative  \c true if tagged as a negative big num. \c false otherwise.
+
+ if bMustBeTagged is false, then this will succeed if the data item is a plain byte string,
+ a positive big num or a negative big num.
+
+ */
+void QCBORDecode_GetBignum(QCBORDecodeContext *pMe, bool bMustBeTagged, UsefulBufC *pValue, bool *pbIsNegative)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      // Already in error state, do nothing
+      return;
+   }
+
+   QCBORError nError;
+   QCBORItem  Item;
+
+   nError = QCBORDecode_GetNext(pMe, &Item);
+   if(nError != QCBOR_SUCCESS) {
+      pMe->uLastError = (uint8_t)nError;
+      return;
+   }
+
+   *pbIsNegative = false;
+
+   switch(Item.uDataType) {
+      case QCBOR_TYPE_BYTE_STRING:
+         // TODO: check that there is no tag here?
+         if(bMustBeTagged) {
+            pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+         } else {
+            *pValue = Item.val.string;
+         }
+         break;
+
+      case QCBOR_TYPE_POSBIGNUM:
+         *pValue = Item.val.string;
+         break;
+
+      case QCBOR_TYPE_NEGBIGNUM:
+         *pbIsNegative = true;
+         *pValue = Item.val.string;
+         break;
+
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+         break;
+   }
+}
+
 void QCBORDecode_GetPosBignum(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 {
+   // Has to be either a positive big num or a byte string
+   /*
+    an array of bytestrings and bignums. Tagging is necessary
+    to tell them apart
+
+    A labeled item where the label tells you it is a big
+    num and there be no tagging
+
+    An array where you expect a big num is the next thing
+    and it must be tagged so.
+
+
+    Some protocols will require it to be tagged because
+    it will be ambigous if not.
+
+
+
+    */
    // TODO: do these have to be tagged?
    // Probably should allow tagged or untagged, but not wrong-tagged
    QCBORDecode_GetStringInternal(pMe, pValue, QCBOR_TYPE_POSBIGNUM);
@@ -2638,33 +2711,33 @@ static QCBORError Exponentitate10UU(uint64_t uMantissa, int64_t nExponent, uint6
  will not fit in an int64_t and this will error out with
  under or overflow
  */
-static QCBORError Exponentitate2UU(uint64_t nMantissa, int64_t nExponent, uint64_t *pnResult)
+static QCBORError Exponentitate2UU(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult)
 {
-   uint64_t nResult;
+   uint64_t uResult;
 
-   nResult = nMantissa;
+   uResult = uMantissa;
 
    /* This loop will run a maximum of 64 times because
     * INT64_MAX < 2^31. More than that will cause
     * exist with the overflow error
     */
    while(nExponent > 0) {
-      if(nResult > UINT64_MAX >> 1) {
+      if(uResult > UINT64_MAX >> 1) {
          return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW; // Error overflow
       }
-      nResult = nResult << 1;
+      uResult = uResult << 1;
       nExponent--;
    }
 
    while(nExponent < 0 ) {
-      if(nResult == 0) {
+      if(uResult == 0) {
          return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW; // Underflow error
       }
-      nResult = nResult >> 1;
+      uResult = uResult >> 1;
       nExponent--;
    }
 
-   *pnResult = nResult;
+   *puResult = uResult;
 
    return QCBOR_SUCCESS;
 }
@@ -2718,31 +2791,6 @@ static inline QCBORError ExponentitateNU(int64_t nMantissa, int64_t nExponent, u
 }
 
 
-// TODO: use this or get rid of it
-QCBORError ExponentitateUN(uint64_t uMantissa, int64_t nExponent, int64_t *pnResult, fExponentiator pfExp)
-{
-   uint64_t uResult;
-
-   QCBORError uR;
-
-   uR = (*pfExp)(uMantissa, nExponent, &uResult);
-   if(uR) {
-      return uR;
-   }
-
-   if(uResult > INT64_MAX) {
-      return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
-   }
-
-   // Cast is OK because of check above
-   *pnResult = (int64_t)uResult;
-
-   return QCBOR_SUCCESS;
-}
-
-
-
-
 #include <math.h>
 /*
 static inline uint8_t Exponentitate10F(uint64_t uMantissa, int64_t nExponent, double *pfResult)
@@ -2756,10 +2804,6 @@ static inline uint8_t Exponentitate10F(uint64_t uMantissa, int64_t nExponent, do
 */
 
 
-
-
-
-
 /*
  A) bignum is positive
  A1) output is signed INT64_MAX
@@ -2768,7 +2812,7 @@ static inline uint8_t Exponentitate10F(uint64_t uMantissa, int64_t nExponent, do
  B1) output is signed INT64_MAX
  B2) output is unsigned error
  */
-static inline QCBORError ConvertBigNum(const UsefulBufC BigNum, uint64_t uMax, uint64_t *pResult)
+static inline QCBORError ConvertBigNumToUnsigned(const UsefulBufC BigNum, uint64_t uMax, uint64_t *pResult)
 {
    uint64_t uResult;
 
@@ -2809,15 +2853,15 @@ static double ConvertBigNumToDouble(const UsefulBufC BigNum)
 
 static inline QCBORError ConvertPositiveBigNumToUnSigned(const UsefulBufC BigNum, uint64_t *pResult)
 {
-   return ConvertBigNum(BigNum, UINT64_MAX, pResult);
+   return ConvertBigNumToUnsigned(BigNum, UINT64_MAX, pResult);
 }
 
 static inline QCBORError ConvertPositiveBigNumToSigned(const UsefulBufC BigNum, int64_t *pResult)
 {
    uint64_t uResult;
-   QCBORError n =  ConvertBigNum(BigNum, INT64_MAX, &uResult);
-   if(n) {
-      return n;
+   QCBORError uError =  ConvertBigNumToUnsigned(BigNum, INT64_MAX, &uResult);
+   if(uError) {
+      return uError;
    }
    /* Cast is safe because ConvertBigNum is told to limit to INT64_MAX */
    *pResult = (int64_t)uResult;
@@ -2828,53 +2872,34 @@ static inline QCBORError ConvertPositiveBigNumToSigned(const UsefulBufC BigNum, 
 static inline QCBORError ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, int64_t *pResult)
 {
    uint64_t uResult;
-   QCBORError n =  ConvertBigNum(BigNum, INT64_MAX-1, &uResult);
-   if(n) {
-      return n;
+   QCBORError uError = ConvertBigNumToUnsigned(BigNum, INT64_MAX-1, &uResult);
+   if(uError) {
+      return uError;
    }
    /* Cast is safe because ConvertBigNum is told to limit to INT64_MAX */
    *pResult = -(int64_t)uResult;
-   return 0;
+   return QCBOR_SUCCESS;
 }
 
-// No function to convert a negative bignum to unsigned; it is an error
-
-
-#if 0
-static inline int ConvertXYZ(const UsefulBufC Mantissa, int64_t nExponent, int64_t *pResult)
-{
-   int64_t nMantissa;
-
-   int xx = ConvertPositiveBigNumToSigned(Mantissa, &nMantissa);
-   if(xx) {
-      return xx;
-   }
-
-   return ExponentiateNN(nMantissa, nExponent, pResult, &Exponentitate10UU);
-}
-
-#endif
 
 
 #include "fenv.h"
 
-/*
- Get the next item as an int64_t. The CBOR type can be unsigned, negative, float
- a big float, a decimal fraction or a big num. Conversion will be dones as
- expected. Some cases will error out with under or over flow.
- */
-void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pValue, QCBORItem *pItem)
+
+void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe,
+                                         uint32_t            uOptions,
+                                         int64_t            *pValue,
+                                         QCBORItem          *pItem)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
    QCBORItem Item;
-   QCBORError nError;
 
-   nError = QCBORDecode_GetNext(pMe, &Item);
-   if(nError) {
-      pMe->uLastError = (uint8_t)nError;
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError) {
+      pMe->uLastError = (uint8_t)uError;
       return;
    }
 
@@ -2925,12 +2950,9 @@ void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOpti
 }
 
 
-
 /*
- Get the next item as an int64_t. The CBOR type can be unsigned, negative, float
- a big float, a decimal fraction or a big num. Conversion will be dones as
- expected. Some cases will error out with under or over flow.
- */
+ Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pValue)
 {
    QCBORItem Item;
@@ -3057,18 +3079,20 @@ void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, 
 
 
 
-void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue, QCBORItem *pItem)
+void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe,
+                                          uint32_t uOptions,
+                                          uint64_t *pValue,
+                                          QCBORItem *pItem)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
    QCBORItem Item;
-   QCBORError nError;
 
-   nError = QCBORDecode_GetNext(pMe, &Item);
-   if(nError) {
-      pMe->uLastError = (uint8_t)nError;
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError) {
+      pMe->uLastError = (uint8_t)uError;
       return;
    }
 
@@ -3125,7 +3149,9 @@ void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOpt
 }
 
 
-
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue)
 {
    QCBORItem Item;
@@ -3169,7 +3195,7 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
                                               pValue,
                                               Exponentitate10UU);
          } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
 
@@ -3180,7 +3206,7 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
                                              pValue,
                                                Exponentitate2UU);
          } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
 
@@ -3197,7 +3223,7 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
                                                    Exponentitate10UU);
             }
          } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
 
@@ -3205,7 +3231,7 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
          if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             pMe->uLastError = QCBOR_ERR_NUMBER_SIGN_CONVERSION;
          } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
 
@@ -3220,7 +3246,7 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
                                                  Exponentitate2UU);
             }
          } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED; // TODO: error code
+            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
 
@@ -3238,16 +3264,18 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
 }
 
 
-void QCBORDecode_GetDoubleConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue, QCBORItem *pItem)
+void QCBORDecode_GetDoubleConvertInternal(QCBORDecodeContext *pMe,
+                                          uint32_t            uOptions,
+                                          double             *pValue,
+                                          QCBORItem          *pItem)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
    QCBORItem Item;
-   QCBORError uError;
 
-   uError = QCBORDecode_GetNext(pMe, &Item);
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
    if(uError) {
       pMe->uLastError = (uint8_t)uError;
       return;
@@ -3293,13 +3321,16 @@ void QCBORDecode_GetDoubleConvertInternal(QCBORDecodeContext *pMe, uint32_t uOpt
 
 
 /*
-
-
- https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
- 
- */
+ Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue)
 {
+   /*
+
+
+   https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
+
+   */
    QCBORItem Item;
 
    QCBORDecode_GetDoubleConvertInternal(pMe, uOptions, pValue, &Item);
@@ -3313,6 +3344,8 @@ void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
       // The above conversion failed in a way that code below can't correct
       return;
    }
+
+   pMe->uLastError = QCBOR_SUCCESS;
 
    switch(Item.uDataType) {
          // TODO: type float
@@ -3386,6 +3419,9 @@ void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
             pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
+
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
    }
 }
 

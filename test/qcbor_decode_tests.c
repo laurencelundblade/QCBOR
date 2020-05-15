@@ -4000,7 +4000,7 @@ struct NumberConversion {
    QCBORError  uErrorDouble;
 };
 
-static struct NumberConversion NumberConversions[] = {
+static const struct NumberConversion NumberConversions[] = {
    {
       "Big float 3 * 2^^2",
       {(uint8_t[]){0xC5, 0x82, 0x02, 0x03}, 4},
@@ -4107,71 +4107,71 @@ static struct NumberConversion NumberConversions[] = {
 
 
 
-
 int32_t IntegerConvertTest2()
 {
    const size_t nNumTests = sizeof(NumberConversions)/sizeof(struct NumberConversion);
 
-   for(struct NumberConversion *pF = NumberConversions; pF < NumberConversions + nNumTests; pF++) {
+   for(const struct NumberConversion *pF = NumberConversions; pF < NumberConversions + nNumTests; pF++) {
+      const size_t nIndex = (size_t)(pF - NumberConversions)/sizeof(struct NumberConversion);
+
       // Set up the decoding context including a memory pool so that
       // indefinite length items can be checked
       QCBORDecodeContext DCtx;
-      QCBORDecode_Init(&DCtx, pF->CBOR, QCBOR_DECODE_MODE_NORMAL);
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
+
+      /* ----- test conversion to int64_t ------ */
+      QCBORDecode_Init(&DCtx, pF->CBOR, QCBOR_DECODE_MODE_NORMAL);
       QCBORError nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
       if(nCBORError) {
-         return -9;
+         return (int32_t)(1000+nIndex);
       }
 
       int64_t nInt;
-      DCtx.uLastError = 0;
       QCBORDecode_GetInt64ConvertAll(&DCtx, 0xffff, &nInt);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorInt64) {
-         return -99;
+         return (int32_t)(2000+nIndex);
       }
       if(pF->uErrorInt64 == QCBOR_SUCCESS && pF->nConvertedToInt64 != nInt) {
-         return -888;
+         return (int32_t)(3000+nIndex);
       }
 
-      
+      /* ----- test conversion to uint64_t ------ */
       QCBORDecode_Init(&DCtx, pF->CBOR, QCBOR_DECODE_MODE_NORMAL);
       nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
       if(nCBORError) {
-         return -9;
+         return (int32_t)(1000+nIndex);
       }
       uint64_t uInt;
-      DCtx.uLastError = 0;
       QCBORDecode_GetUInt64ConvertAll(&DCtx, 0xffff, &uInt);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorUint64) {
-         return -99;
+         return (int32_t)(4000+nIndex);
       }
       if(pF->uErrorUint64 == QCBOR_SUCCESS && pF->uConvertToUInt64 != uInt) {
-         return -888;
+         return (int32_t)(5000+nIndex);
       }
 
-
+      /* ----- test conversion to double ------ */
       QCBORDecode_Init(&DCtx, pF->CBOR, QCBOR_DECODE_MODE_NORMAL);
       nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
       if(nCBORError) {
-         return -9;
+         return (int32_t)(1000+nIndex);
       }
       double d;
-      DCtx.uLastError = 0;
       QCBORDecode_GetDoubleConvertAll(&DCtx, 0xffff, &d);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorDouble) {
-         return -99;
+         return (int32_t)(6000+nIndex);
       }
       if(pF->uErrorDouble == QCBOR_SUCCESS) {
          if(isnan(pF->dConvertToDouble)) {
             // NaN's can't be compared for equality. A NaN is
             // never equal to anything including another NaN
             if(!isnan(d)) {
-               return -4;
+               return (int32_t)(7000+nIndex);
             }
          } else {
             // TODO: this comparison may need a margin of error
             if(pF->dConvertToDouble != d) {
-               return -5;
+               return (int32_t)(8000+nIndex);
             }
          }
       }
@@ -4182,7 +4182,10 @@ int32_t IntegerConvertTest2()
 
 int32_t IntegerConvertTest()
 {
-   (void)IntegerConvertTest2();
+   int32_t nReturn = IntegerConvertTest2();
+   if(nReturn) {
+      return nReturn;
+   }
 
    QCBORDecodeContext DCtx;
    QCBORError nCBORError;
@@ -4291,7 +4294,7 @@ int32_t IntegerConvertTest()
 
    // 4([9223372036854775807, -4759477275222530853137]),
    QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION, &uinteger);
-   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_NUMBER_SIGN_CONVERSION) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
@@ -4312,14 +4315,14 @@ int32_t IntegerConvertTest()
    
    // 5([-9223372036854775807, -4759477275222530853137])
    QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &uinteger);
-   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_NUMBER_SIGN_CONVERSION) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
 
    // 5([ 9223372036854775806, -4759477275222530853137])
    QCBORDecode_GetUInt64ConvertAll(&DCtx, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION|QCBOR_CONVERT_TYPE_BIGFLOAT, &uinteger);
-   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_NUMBER_SIGN_CONVERSION) {
       return -2;
    }
    DCtx.uLastError = 0; // TODO: a method for this
