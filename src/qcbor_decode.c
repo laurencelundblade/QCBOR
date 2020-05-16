@@ -2820,10 +2820,10 @@ static inline QCBORError ConvertBigNumToUnsigned(const UsefulBufC BigNum, uint64
    const uint8_t *pByte = BigNum.ptr;
    size_t uLen = BigNum.len;
    while(uLen--) {
-      if(uResult > uMax >> 8) {
+      if(uResult > (uMax >> 8)) {
          return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
       }
-      uResult = (uResult << 8) + *pByte;
+      uResult = (uResult << 8) + *pByte++;
    }
 
    *pResult = uResult;
@@ -2843,7 +2843,7 @@ static double ConvertBigNumToDouble(const UsefulBufC BigNum)
     is too large to fit. No error will be logged.
     TODO: should an error be logged? */
    while(uLen--) {
-      dResult = (dResult * 256.0) + (double)*pByte;
+      dResult = (dResult * 256.0) + (double)*pByte++;
    }
 
    return dResult;
