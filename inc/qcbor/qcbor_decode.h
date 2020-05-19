@@ -1084,10 +1084,25 @@ getting items by label.
  Entering and Exiting map mode consumes the whole
  map and its contents as a GetNext after exiting
  will return the item after the map. */
-static QCBORError QCBORDecode_EnterMap(QCBORDecodeContext *pCtx);
+static void QCBORDecode_EnterMap(QCBORDecodeContext *pCtx);
 
 
-void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
+/*
+ Find a map in a map by integer label and enter it.
+
+ This will do duplicate detection on the particular label.
+
+ Call QCBORDecode_ExitMap() to return to the mode / level
+ from before this was called.
+
+ Seek to to the beginning of the map.
+ Consume items looking for nLabel
+ */
+void QCBORDecode_EnterMapFromMap(QCBORDecodeContext *pCtx, int64_t nLabel);
+
+void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char  *szLabel);
+
+static void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
 
 /*
  Indicate if decoding is in map mode more not.
@@ -1103,18 +1118,15 @@ bool QCBORDecode_InMapMode(QCBORDecodeContext *pCtxt);
 void QCBORDecode_RewindMap(QCBORDecodeContext *pCtxt);
 
 
-QCBORError QCBORDecode_EnterArray(QCBORDecodeContext *pCtx);
+static void QCBORDecode_EnterArray(QCBORDecodeContext *pCtx);
+
+void QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t uLabel);
+
+void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel);
+
+static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
 
-void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
-
-QCBORError QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t uLabel);
-
-
-QCBORError QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel);
-
-
-//QCBORError QCBORDecode_EnterMapX(QCBORDecodeContext *pCtx,  MapDecode *pMap);
 
                      
 
@@ -1183,20 +1195,7 @@ void QCBORDecode_GetBstrInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, U
 void QCBORDecode_GetTextInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, UsefulBufC *pBstr);
 
 
-/*
-  Find a map in a map by integer label and enter it.
- 
- This will do duplicate detection on the particular label.
- 
- Call QCBORDecode_ExitMap() to return to the mode / level
- from before this was called.
- 
- Seek to to the beginning of the map.
- Consume items looking for nLabel
- */
-QCBORError QCBORDecode_EnterMapFromMap(QCBORDecodeContext *pCtx, int64_t nLabel);
 
-QCBORError QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char  *szLabel);
 
 
 
@@ -1374,14 +1373,32 @@ static inline QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pMe)
 }
 
 
+// Semi-private
+void QCBORDecode_EnterMapMode(QCBORDecodeContext *pMe, uint8_t uType);
 
-QCBORError QCBORDecode_EnterMapMode(QCBORDecodeContext *pMe, uint8_t uType);
 
-
-inline static QCBORError QCBORDecode_EnterMap(QCBORDecodeContext *pMe) {
-    return QCBORDecode_EnterMapMode(pMe, QCBOR_TYPE_MAP);
+inline static void QCBORDecode_EnterMap(QCBORDecodeContext *pMe) {
+   QCBORDecode_EnterMapMode(pMe, QCBOR_TYPE_MAP);
 }
 
+
+inline static void QCBORDecode_EnterArray(QCBORDecodeContext *pMe) {
+   QCBORDecode_EnterMapMode(pMe, QCBOR_TYPE_ARRAY);
+}
+
+// Semi-private
+void QCBORDecode_ExitMapMode(QCBORDecodeContext *pMe, uint8_t uType);
+
+
+static inline void QCBORDecode_ExitArray(QCBORDecodeContext *pMe)
+{
+   QCBORDecode_ExitMapMode(pMe, QCBOR_TYPE_ARRAY);
+}
+
+static inline void QCBORDecode_ExitMap(QCBORDecodeContext *pMe)
+{
+   QCBORDecode_ExitMapMode(pMe, QCBOR_TYPE_MAP);
+}
 
 
 // Semi-private

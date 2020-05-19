@@ -2129,9 +2129,11 @@ Done:
 }
 
 
-void QCBORDecode_ExitMap(QCBORDecodeContext *pMe)
+void QCBORDecode_ExitMapMode(QCBORDecodeContext *pMe, uint8_t uType)
 {
    size_t uEndOffset;
+
+   (void)uType; // TODO: error check
 
 /*
    if(pMe->uMapEndOffset) {
@@ -2213,8 +2215,19 @@ QCBORError QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
 
 
 
-static int FinishEnter(QCBORDecodeContext *pMe, size_t uOffset)
+static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
 {
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      // Already in error state; do nothing.
+      return;
+   }
+
+   size_t uOffset;
+   pMe->uLastError = MapSearch(pMe, pSearch, &uOffset, NULL);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
    /* Need to get the current pre-order nesting level and cursor to be
       at the first item in the map/array just entered.
 
@@ -2234,104 +2247,58 @@ static int FinishEnter(QCBORDecodeContext *pMe, size_t uOffset)
    pMe->nesting.pCurrent = pMe->nesting.pCurrentMap; // TODO: part of DecodeNesting
 
    // TODO: check error?
-   QCBORDecode_EnterMapMode(pMe, QCBOR_TYPE_MAP);
+   QCBORDecode_EnterMapMode(pMe, pSearch->uDataType);
 
-   printdecode(pMe, "Entered Map in Map");
-
-   return 0;
+   printdecode(pMe, "FinishEnter");
 }
 
 
-QCBORError QCBORDecode_EnterMapInMapN(QCBORDecodeContext *pMe, int64_t nLabel)
+void QCBORDecode_EnterMapInMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
-   /* Use GetItemsInMap to find the map by label, including the
-      byte offset of it. */
    QCBORItem One[2];
    One[0].uLabelType  = QCBOR_TYPE_INT64;
    One[0].label.int64 = nLabel;
    One[0].uDataType   = QCBOR_TYPE_MAP;
    One[1].uLabelType  = QCBOR_TYPE_NONE;
 
-   size_t uOffset;
-   QCBORError nReturn = MapSearch(pMe, One, &uOffset, NULL);
-   if(nReturn) {
-      return nReturn;
-   }
-
    /* The map to enter was found, now finish of entering it. */
-   FinishEnter(pMe, uOffset);
-
-   // TODO: error code?
-   return 0;
+   SearchAndEnter(pMe, One);
 }
 
 
-QCBORError QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
+void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 {
    QCBORItem One[2];
-
    One[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
    One[0].label.string = UsefulBuf_FromSZ(szLabel);
    One[0].uDataType    = QCBOR_TYPE_MAP;
    One[1].uLabelType   = QCBOR_TYPE_NONE;
-
-   size_t uOffset;
-
-   QCBORError nReturn = MapSearch(pMe, One, &uOffset, NULL);
-
-   if(nReturn) {
-      return nReturn;
-   }
    
-   FinishEnter(pMe, uOffset);
-
-   return 0;
+   SearchAndEnter(pMe, One);
 }
 
 
-QCBORError QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
-{
-    QCBORItem One[2];
-
-    One[0].uLabelType  = QCBOR_TYPE_INT64;
-    One[0].label.int64 = nLabel;
-    One[0].uDataType   = QCBOR_TYPE_ARRAY;
-    One[1].uLabelType  = QCBOR_TYPE_NONE;
-
-    size_t uOffset;
-
-    QCBORError nReturn = MapSearch(pMe, One, &uOffset, NULL);
-
-    if(nReturn != QCBOR_SUCCESS) {
-       return nReturn;
-    }
-    
-    FinishEnter(pMe, uOffset);
-
-    return 0;
-}
-
-
-QCBORError QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
+void QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
    QCBORItem One[2];
+   One[0].uLabelType  = QCBOR_TYPE_INT64;
+   One[0].label.int64 = nLabel;
+   One[0].uDataType   = QCBOR_TYPE_ARRAY;
+   One[1].uLabelType  = QCBOR_TYPE_NONE;
 
+   SearchAndEnter(pMe, One);
+}
+
+
+void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
+{
+   QCBORItem One[2];
    One[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
    One[0].label.string = UsefulBuf_FromSZ(szLabel);
    One[0].uDataType    = QCBOR_TYPE_ARRAY;
    One[1].uLabelType   = QCBOR_TYPE_NONE;
 
-   size_t uOffset;
-
-   QCBORError nReturn = MapSearch(pMe, One, &uOffset, NULL);
-
-   if(nReturn != QCBOR_SUCCESS) {
-      return nReturn;
-   }
-   
-   FinishEnter(pMe, uOffset);
-
-   return 0;
+   SearchAndEnter(pMe, One);
 }
 
 
@@ -2339,25 +2306,27 @@ QCBORError QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  
 
 
 /* Next item must be map or this generates an error */
-QCBORError QCBORDecode_EnterMapMode(QCBORDecodeContext *pMe, uint8_t uType)
+void QCBORDecode_EnterMapMode(QCBORDecodeContext *pMe, uint8_t uType)
 {
-   QCBORItem  Item;
-   QCBORError nReturn;
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      // Already in error state; do nothing.
+      return;
+   }
 
    /* Get the data item that is the map that is being searched */
-   nReturn = QCBORDecode_GetNext(pMe, &Item);
-   if(nReturn != QCBOR_SUCCESS) {
-      return nReturn;
+   QCBORItem  Item;
+   pMe->uLastError = QCBORDecode_GetNext(pMe, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
    }
    if(Item.uDataType != uType) {
-      return QCBOR_ERR_UNEXPECTED_TYPE;
+      pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+      return;
    }
 
    DecodeNesting_EnterMapMode(&(pMe->nesting), UsefulInputBuf_Tell(&(pMe->InBuf)));
 
-   printdecode(pMe, "EnterMapDone");
-
-   return QCBOR_SUCCESS;
+   printdecode(pMe, "EnterMapModeDone");
 }
 
 
@@ -2379,54 +2348,7 @@ void QCBORDecode_RewindMap(QCBORDecodeContext *pMe)
 }
 
 
-QCBORError QCBORDecode_EnterArray(QCBORDecodeContext *pMe)
-{
-   QCBORItem  Item;
-   QCBORError nReturn;
 
-   /* Get the data item that is the map that is being searched */
-   nReturn = QCBORDecode_GetNext(pMe, &Item);
-   if(nReturn != QCBOR_SUCCESS) {
-      return nReturn;
-   }
-   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return QCBOR_ERR_UNEXPECTED_TYPE;
-   }
-
-   printdecode(pMe, "EnterArray");
-   
-   DecodeNesting_EnterMapMode(&(pMe->nesting), UsefulInputBuf_Tell(&(pMe->InBuf)));
-
-   return QCBOR_SUCCESS;
-}
-
-
-void QCBORDecode_ExitArray(QCBORDecodeContext *pMe)
-{
-   // TODO: make sure we have entered an array
-   // TODO: combine with code for map? It is the same so far.
-   size_t uEndOffset;
-
- /*  if(pMe->uMapEndOffset) {
-      uEndOffset = pMe->uMapEndOffset;
-      // It is only valid once.
-      pMe->uMapEndOffset = 0;
-   } else {*/
-      QCBORItem Dummy;
-
-      Dummy.uLabelType = QCBOR_TYPE_NONE;
-
-      QCBORError nReturn = MapSearch(pMe, &Dummy, NULL, &uEndOffset);
-
-      (void)nReturn; // TODO:
-   //}
-   
-   printdecode(pMe, "start exit");
-   UsefulInputBuf_Seek(&(pMe->InBuf), uEndOffset);
-
-   DecodeNesting_Exit(&(pMe->nesting));
-   printdecode(pMe, "end exit");
-}
 
 
 void QCBORDecode_GetIntInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, int64_t *pInt)
