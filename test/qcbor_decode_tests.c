@@ -4002,6 +4002,81 @@ struct NumberConversion {
 
 static const struct NumberConversion NumberConversions[] = {
    {
+      "Decimal Fraction with negative bignum [3, 257]",
+      {(uint8_t[]){0xC4, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+                               0xC2, 0x42, 0x01, 0x01}, 15},
+      257000,
+      QCBOR_SUCCESS,
+      257000,
+      QCBOR_SUCCESS,
+      257000.0,
+      QCBOR_SUCCESS
+   },
+   {
+      "bigfloat with negative bignum [3, 257]",
+      {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+                               0xC3, 0x42, 0x01, 0x01}, 15},
+      -2056,
+      QCBOR_SUCCESS,
+      0,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      -2056.0,
+      QCBOR_SUCCESS
+   },
+   {
+      "bigfloat with positive bignum [3, 257]",
+      {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+                               0xC2, 0x42, 0x01, 0x01}, 15},
+      2056,
+      QCBOR_SUCCESS,
+      2056,
+      QCBOR_SUCCESS,
+      2056.0,
+      QCBOR_SUCCESS
+   },
+   {
+      "negative bignum 0xc349010000000000000000",
+      {(uint8_t[]){0xc3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 11},
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      -18446744073709551617.0,
+      QCBOR_SUCCESS
+   },
+   {
+      "Positive bignum 0x01020304 indefinite length string",
+      {(uint8_t[]){0xC2, 0x5f, 0x42, 0x01, 0x02, 0x41, 0x03, 0x41, 0x04, 0xff}, 10},
+      0x01020304,
+      QCBOR_SUCCESS,
+      0x01020304,
+      QCBOR_SUCCESS,
+      16909060.0,
+      QCBOR_SUCCESS
+   },
+   {
+      "Decimal Fraction with neg bignum [9223372036854775807, -4759477275222530853137]",
+      {(uint8_t[]){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                               0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,}, 23},
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      -INFINITY,
+      QCBOR_SUCCESS
+   },
+   {
+      "big float [9223372036854775806,  9223372036854775806]",
+      {(uint8_t[]){0xC5, 0x82, 0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
+                               0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}, 20},
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      INFINITY,
+      QCBOR_SUCCESS
+   },
+   {
       "Big float 3 * 2^^2",
       {(uint8_t[]){0xC5, 0x82, 0x02, 0x03}, 4},
       12,
@@ -4011,9 +4086,8 @@ static const struct NumberConversion NumberConversions[] = {
       12.0,
       QCBOR_SUCCESS
    },
-   // | 18446744073709551615         | 0x1bffffffffffffffff
    {
-      "18446744073709551615",
+      "Positive integer 18446744073709551615",
       {(uint8_t[]){0x1b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
@@ -4022,19 +4096,8 @@ static const struct NumberConversion NumberConversions[] = {
       18446744073709551615.0,
       QCBOR_SUCCESS
    },
-
- /*  {
-      "negative bignum 0xc349010000000000000000",
-      {(uint8_t[]){0xc3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 11},
-      0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
-      0,
-      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
-      -18446744073709551617.0,
-      QCBOR_SUCCESS
-   }, */
    {
-      "positive bignum 0xffff",
+      "Positive bignum 0xffff",
       {(uint8_t[]){0xC2, 0x42, 0xff, 0xff}, 4},
       65536-1,
       QCBOR_SUCCESS,
@@ -4054,7 +4117,7 @@ static const struct NumberConversion NumberConversions[] = {
       QCBOR_SUCCESS
    },
    {
-      "-18446744073709551616",
+      "Negative integer -18446744073709551616",
       {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, 9},
       -9223372036854775807-1, // INT64_MIN
       QCBOR_SUCCESS,
@@ -4064,7 +4127,7 @@ static const struct NumberConversion NumberConversions[] = {
       QCBOR_SUCCESS
    },
    {
-      "Floating point value 100.3",
+      "Double Floating point value 100.3",
       {(uint8_t[]){0xfb, 0x40, 0x59, 0x13, 0x33, 0x33, 0x33, 0x33, 0x33}, 9},
       100L,
       QCBOR_SUCCESS,
@@ -4084,7 +4147,7 @@ static const struct NumberConversion NumberConversions[] = {
       QCBOR_SUCCESS
    },
    {
-      "Floating point value -4",
+      "half-precision Floating point value -4",
       {(uint8_t[]){0xf9, 0xc4, 0x00}, 3},
       -4,
       QCBOR_SUCCESS,
@@ -4107,7 +4170,7 @@ static const struct NumberConversion NumberConversions[] = {
 
 
 
-int32_t IntegerConvertTest2()
+int32_t IntegerConvertTest()
 {
    const size_t nNumTests = sizeof(NumberConversions)/sizeof(struct NumberConversion);
 
@@ -4180,13 +4243,8 @@ int32_t IntegerConvertTest2()
    return 0;
 }
 
-int32_t IntegerConvertTest()
+int32_t IntegerConvertTestOld()
 {
-   int32_t nReturn = IntegerConvertTest2();
-   if(nReturn) {
-      return nReturn;
-   }
-
    QCBORDecodeContext DCtx;
    QCBORError nCBORError;
 

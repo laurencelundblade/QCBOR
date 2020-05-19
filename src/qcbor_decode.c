@@ -2606,7 +2606,7 @@ static QCBORError Exponentitate10UU(uint64_t uMantissa, int64_t nExponent, uint6
     * UINT64_MAX < 10 ^^ 19. More than that will cause
     * exit with the overflow error
     */
-   while(nExponent > 0) {
+   while(nExponent > 1) {
       if(uResult > UINT64_MAX / 10) {
          return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW; // Error overflow
       }
@@ -2742,10 +2742,10 @@ static inline QCBORError ConvertBigNumToUnsigned(const UsefulBufC BigNum, uint64
    const uint8_t *pByte = BigNum.ptr;
    size_t uLen = BigNum.len;
    while(uLen--) {
-      if(uResult > uMax >> 8) {
+      if(uResult > (uMax >> 8)) {
          return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
       }
-      uResult = (uResult << 8) + *pByte;
+      uResult = (uResult << 8) + *pByte++;
    }
 
    *pResult = uResult;
@@ -2765,7 +2765,7 @@ static double ConvertBigNumToDouble(const UsefulBufC BigNum)
     is too large to fit. No error will be logged.
     TODO: should an error be logged? */
    while(uLen--) {
-      dResult = (dResult * 256.0) + (double)*pByte;
+      dResult = (dResult * 256.0) + (double)*pByte++;
    }
 
    return dResult;
@@ -2773,7 +2773,7 @@ static double ConvertBigNumToDouble(const UsefulBufC BigNum)
 
 
 
-static inline QCBORError ConvertPositiveBigNumToUnSigned(const UsefulBufC BigNum, uint64_t *pResult)
+static inline QCBORError ConvertPositiveBigNumToUnsigned(const UsefulBufC BigNum, uint64_t *pResult)
 {
    return ConvertBigNumToUnsigned(BigNum, UINT64_MAX, pResult);
 }
@@ -2799,6 +2799,7 @@ static inline QCBORError ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, 
       return uError;
    }
    /* Cast is safe because ConvertBigNum is told to limit to INT64_MAX */
+   // TODO: this code is incorrect. See RFC 7049
    *pResult = -(int64_t)uResult;
    return QCBOR_SUCCESS;
 }
@@ -2938,10 +2939,15 @@ void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, 
             int64_t nMantissa;
             pMe->uLastError = (uint8_t)ConvertPositiveBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(!pMe->uLastError) {
-               pMe->uLastError = (uint8_t)ExponentiateNN(nMantissa,
-                                                 Item.val.expAndMantissa.nExponent,
-                                                 pValue,
-                                                &Exponentitate10UU);
+               int64_t nMultiplier;
+               pMe->uLastError = (uint8_t)ExponentiateNN(10,
+                                                         Item.val.expAndMantissa.nExponent,
+                                                        &nMultiplier,
+                                                        &Exponentitate10UU);
+               if(!pMe->uLastError) {
+                  // TODO: overflow
+                  *pValue = nMantissa * nMultiplier;
+               }
             }
          } else {
             pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
@@ -3094,7 +3100,7 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
 
       case QCBOR_TYPE_POSBIGNUM:
          if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
-            pMe->uLastError = (uint8_t)ConvertPositiveBigNumToUnSigned(Item.val.bigNum, pValue);
+            pMe->uLastError = (uint8_t)ConvertPositiveBigNumToUnsigned(Item.val.bigNum, pValue);
          } else {
             pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
@@ -3136,13 +3142,17 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
 
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
          if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            int64_t nMantissa;
-            pMe->uLastError = (uint8_t)ConvertPositiveBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
+            uint64_t uMantissa;
+            pMe->uLastError = (uint8_t)ConvertPositiveBigNumToUnsigned(Item.val.expAndMantissa.Mantissa.bigNum, &uMantissa);
             if(!pMe->uLastError) {
-               pMe->uLastError = (uint8_t)ExponentitateNU(nMantissa,
+               uint64_t uMultiplier;
+               pMe->uLastError = (uint8_t)ExponentitateNU(10,
                                                  Item.val.expAndMantissa.nExponent,
-                                                   pValue,
+                                                   &uMultiplier,
                                                    Exponentitate10UU);
+               if(!pMe->uLastError) {
+                  *pValue = uMantissa * uMultiplier;
+               }
             }
          } else {
             pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
