@@ -944,6 +944,10 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 
 
 /**
+ @brief Get the decoding error.
+
+ @param[in] pCtx    The decoder context.
+ @returns The decoding error.
 
  All decoding functions except GetNext() do not return an error.
  Instead they set an internal error state. Once an error has
@@ -972,16 +976,41 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
  */
 static QCBORError QCBORDecode_GetError(QCBORDecodeContext *pCtx);
 
+/**
+ @brief Get and reset the decoding error.
+
+ @param[in] pCtx    The decoder context.
+ @returns The decoding error.
+
+ This returns the same as QCBORDecode_GetError() and also
+ resets the error state to \ref QCBOR_SUCCESS.
+ */
 
 static QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
 
 
 
-static void QCBORDecode_GetInt64(QCBORDecodeContext *pMe, int64_t *pValue);
+/**
+ @brief Decode next item as a signed 64-bit integer.
+
+ @param[in] pCtx   The decode context
+ @param[out] pnValue  64-bit integer with item
+
+ On error, the decoder internal error state is set.
+
+ The CBOR data item to decode must be a positive or negative integer. If not
+ \ref QCBOR_ERR_UNEXPECTED_TYPE is set.
+
+ CBOR can represent negative integers smaller than can be represetned in
+ an int64_t. \ref QCBOR_ERR_INT_OVERFLOW is returned in this case.
+
+ See also QCBORDecode_GetInt64Convert() and QCBORDecode_GetInt64ConvertAll().
+ */
+static void QCBORDecode_GetInt64(QCBORDecodeContext *pCtx, int64_t *pnValue);
 
 
 /**
- @brief Decode next item as a 64-bit integer
+ @brief Decode next item as a signed 64-bit integer with basic conversions
 
  @param[in] pCtx   The decode context
  @param[in] uOptions The integer conversion options.
@@ -994,10 +1023,10 @@ static void QCBORDecode_GetInt64(QCBORDecodeContext *pMe, int64_t *pValue);
  as this and a lot more at the cost of adding more object code to your executable.
 
  On error, this sets the decoder last error.  If the data item is of a type that
- can't be decoded by this function, QCBOR_ERR_UNEXPECTED_TYPE is set. If
+ can't be decoded by this function, \ref QCBOR_ERR_UNEXPECTED_TYPE is set. If
  the data item can be decode, but the option requesting it is not set, then
- QCBOR_ERR_UNEXPECTED_TYPE will be set. If the data item is too large
- or small to be represented as a 64-bit signed integer, QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
+ \ref QCBOR_ERR_UNEXPECTED_TYPE will be set. If the data item is too large
+ or small to be represented as a 64-bit signed integer, \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
  us set.
 
  When converting floating-point values, the integer is rounded to the nearest integer using
@@ -1009,35 +1038,124 @@ static void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOpti
 
 
 /**
- @brief Decode next item as a 64-bit integer
+ @brief Decode next item as a signed 64-bit integer with conversions
 
  @param[in] pCtx   The decode context
  @param[in] uOptions The integer conversion options.
  @param[out] pnValue  64-bit integer with item
 
  This is the same as QCBORDecode_GetInt64Convert() but supports many more conversions at
- the cost of adding more object code to your executable.
+ the cost of adding more object code to the executable.
 
  The additiona data item types that are suported are positive and negative bignums,
  decimal fractions and big floats, including decimal fractions and big floats that use bignums.
  Not that all these types can support numbers much larger that can be represented by
- in a 64-bit integer, so QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
+ in a 64-bit integer, so \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
  often be encountered.
  */
 void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, int64_t *pnValue);
 
+/**
+ @brief Decode next item as an unsigned 64-bit integer.
 
-static void QCBORDecode_GetUInt64(QCBORDecodeContext *pCtx, uint64_t *pValue);
+ @param[in] pCtx   The decode context
+ @param[out] puValue  64-bit integer with item
 
-static void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOptions, uint64_t *pValue);
+ The sames as QCBORDecode_GetInt64(), but returns an unsigned integer and thus
+ can only decode CBOR positive integers. \ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
+ is set if the input is a negative integer.
 
-void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, uint64_t *pValue);
+ See also QCBORDecode_GetUint64Convert() and QCBORDecode_GetUint64ConvertAll().
+*/
+static void QCBORDecode_GetUInt64(QCBORDecodeContext *pCtx, uint64_t *puValue);
+
+/**
+ @brief Decode next item as an unsigned 64-bit integer with basic conversions.
+
+ @param[in] pCtx   The decode context
+ @param[out] puValue  64-bit integer with item
+
+ The sames as QCBORDecode_GetInt64Convert(), but returns an unsigned integer and thus
+ sets \ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
+ is set if the value to be decoded is negatve.
+
+ See also QCBORDecode_GetUint64Convert() and QCBORDecode_GetUint64ConvertAll().
+*/
+static void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOptions, uint64_t *puValue);
+
+/**
+ @brief Decode next item as an unsigned 64-bit integer with conversions
+
+ @param[in] pCtx   The decode context
+ @param[out] puValue  64-bit integer with item
+
+ The sames as QCBORDecode_GetInt64ConvertAll(), but returns an unsigned integer and thus
+ sets \ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
+ is set if the value to be decoded is negatve.
+
+ See also QCBORDecode_GetUint64Convert() and QCBORDecode_GetUint64ConvertAll().
+*/
+void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, uint64_t *puValue);
 
 
+/**
+ @brief Decode next item as a floating-point value.
+
+ @param[in] pCtx   The decode context
+ @param[out] pValue  The returned floating-point value.
+
+ On error, the decoder internal error state is set.
+
+ The CBOR data item to decode must be a hafl-precision, single-precision
+ or double-precision floating-point value.  If not
+ \ref QCBOR_ERR_UNEXPECTED_TYPE is set.
+
+ See also QCBORDecode_GetDoubleConvert() and QCBORDecode_GetDoubleConvertAll().
+*/
 static void QCBORDecode_GetDouble(QCBORDecodeContext *pCtx, uint32_t uOptions, double *pValue);
 
+
+/**
+ @brief Decode next item as a floating-point value with basic conversion.
+
+ @param[in] pCtx   The decode context
+ @param[out] pValue  The returned floating-point value.
+
+ On error, the decoder internal error state is set.
+
+ The CBOR data item to decode must be a hafl-precision, single-precision
+ or double-precision floating-point value or a positive or negative integer.  If not
+ \ref QCBOR_ERR_UNEXPECTED_TYPE is set.
+
+ Positive and negative integers can always be converted to floating-point,
+ so this always succeeds.
+
+ Note that a large 64-bit integer can have more precision than even a
+ double floating-point value, so there is loss of precision in some conversions.
+
+ See also QCBORDecode_GetDouble() and QCBORDecode_GetDoubleConvertAll().
+*/
 static void QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pCtx, uint32_t uOptions, double *pValue);
 
+
+/**
+ @brief Decode next item as a floating-point value with conversion.
+
+ @param[in] pCtx   The decode context
+ @param[out] pValue  The returned floating-point value.
+
+ On error, the decoder internal error state is set.
+
+ In addition to conversions supported by QCBORDecode_GetDoubleConvert(),
+ conversion from positive and negative bignums, decimal fractions and big floats
+ are supported.
+
+ Big numbers, decimal fractions and big floats that are too small or too large
+ to be reprented as a floating-point number will be returned as plus or minus
+ zero or infinity. There is also often loss of precision in the conversion.
+
+ See also QCBORDecode_GetDoubleConvert() and QCBORDecode_GetDoubleConvert().
+*/
 void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, double *pValue);
 
 
@@ -1050,7 +1168,6 @@ void QCBORDecode_GetPosBignum(QCBORDecodeContext *pCtx,  UsefulBufC *pValue);
 
 void QCBORDecode_GetNegBignum(QCBORDecodeContext *pCtx,  UsefulBufC *pValue);
 
-void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue);
 
 
 
@@ -1385,34 +1502,34 @@ inline static QCBORError QCBORDecode_EnterMap(QCBORDecodeContext *pMe) {
 
 
 // Semi-private
-void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pValue, QCBORItem *pItem);
+void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pnValue, QCBORItem *pItem);
 
 
-inline static void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pValue)
+inline static void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pMe, uint32_t uOptions, int64_t *pnValue)
 {
     QCBORItem Item;
-    QCBORDecode_GetInt64ConvertInternal(pMe, uOptions, pValue, &Item);
+    QCBORDecode_GetInt64ConvertInternal(pMe, uOptions, pnValue, &Item);
 }
 
 
-inline static void QCBORDecode_GetInt64(QCBORDecodeContext *pMe, int64_t *pValue)
+inline static void QCBORDecode_GetInt64(QCBORDecodeContext *pMe, int64_t *pnValue)
 {
-    QCBORDecode_GetInt64Convert(pMe, QCBOR_CONVERT_TYPE_INT64, pValue);
+    QCBORDecode_GetInt64Convert(pMe, QCBOR_CONVERT_TYPE_INT64, pnValue);
 }
 
 
 // Semi-private
-void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue, QCBORItem *pItem);
+void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *puValue, QCBORItem *pItem);
 
-void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue)
+void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *puValue)
 {
     QCBORItem Item;
-    QCBORDecode_GetUInt64ConvertInternal(pMe, uOptions, pValue, &Item);
+    QCBORDecode_GetUInt64ConvertInternal(pMe, uOptions, puValue, &Item);
 }
 
-static inline void QCBORDecode_GetUInt64(QCBORDecodeContext *pMe, uint64_t *pValue)
+static inline void QCBORDecode_GetUInt64(QCBORDecodeContext *pMe, uint64_t *puValue)
 {
-    QCBORDecode_GetUInt64Convert(pMe, QCBOR_CONVERT_TYPE_UINT64, pValue);
+    QCBORDecode_GetUInt64Convert(pMe, QCBOR_CONVERT_TYPE_UINT64, puValue);
 }
 
 void QCBORDecode_GetDoubleConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue, QCBORItem *pItem);
