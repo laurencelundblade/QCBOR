@@ -1052,6 +1052,10 @@ static void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOpti
  Not that all these types can support numbers much larger that can be represented by
  in a 64-bit integer, so \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
  often be encountered.
+
+ When converting bignums and decimal fractions \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
+ will be set if the result is below 1, unless the mantissa is zero, in which
+ case the coversion is successful and the value of 0 is returned.
  */
 void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, int64_t *pnValue);
 
@@ -1091,7 +1095,7 @@ static void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOpt
 
  The sames as QCBORDecode_GetInt64ConvertAll(), but returns an unsigned integer and thus
  sets \ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
- is set if the value to be decoded is negatve.
+ if the value to be decoded is negatve.
 
  See also QCBORDecode_GetUint64Convert() and QCBORDecode_GetUint64ConvertAll().
 */

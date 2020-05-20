@@ -4002,7 +4002,7 @@ struct NumberConversion {
 
 static const struct NumberConversion NumberConversions[] = {
    {
-      "Decimal Fraction with negative bignum [3, 257]",
+      "Decimal Fraction with positive bignum 257 * 10e3",
       {(uint8_t[]){0xC4, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                                0xC2, 0x42, 0x01, 0x01}, 15},
       257000,
@@ -4013,7 +4013,7 @@ static const struct NumberConversion NumberConversions[] = {
       QCBOR_SUCCESS
    },
    {
-      "bigfloat with negative bignum [3, 257]",
+      "bigfloat with negative bignum -257 * 2e3",
       {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                                0xC3, 0x42, 0x01, 0x01}, 15},
       -2056,
@@ -4024,7 +4024,7 @@ static const struct NumberConversion NumberConversions[] = {
       QCBOR_SUCCESS
    },
    {
-      "bigfloat with positive bignum [3, 257]",
+      "bigfloat with positive bignum 257 * 2e3",
       {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                                0xC2, 0x42, 0x01, 0x01}, 15},
       2056,
@@ -4172,10 +4172,10 @@ static const struct NumberConversion NumberConversions[] = {
 
 int32_t IntegerConvertTest()
 {
-   const size_t nNumTests = sizeof(NumberConversions)/sizeof(struct NumberConversion);
+   const int nNumTests = sizeof(NumberConversions)/sizeof(struct NumberConversion);
 
-   for(const struct NumberConversion *pF = NumberConversions; pF < NumberConversions + nNumTests; pF++) {
-      const size_t nIndex = (size_t)(pF - NumberConversions)/sizeof(struct NumberConversion);
+   for(int nIndex = 0; nIndex < nNumTests; nIndex++) {
+      const struct NumberConversion *pF = &NumberConversions[nIndex];
 
       // Set up the decoding context including a memory pool so that
       // indefinite length items can be checked
