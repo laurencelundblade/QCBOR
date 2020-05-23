@@ -3868,12 +3868,12 @@ int32_t EnterMapTest()
  
    QCBORDecode_EnterMap(&DCtx);
 
-      QCBORDecode_GetIntInMapSZ(&DCtx, "first integer",  &nDecodedInt1);
+      QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer",  &nDecodedInt1);
    
       QCBORDecode_EnterMapFromMapSZ(&DCtx, "map in a map");
-         QCBORDecode_GetIntInMapSZ(&DCtx,  "another int",  &nDecodedInt2);
-         QCBORDecode_GetBstrInMapSZ(&DCtx, "bytes 1",  &B1);
-         QCBORDecode_GetBstrInMapSZ(&DCtx, "bytes 2",  &B2);
+         QCBORDecode_GetInt64InMapSZ(&DCtx,  "another int",  &nDecodedInt2);
+         QCBORDecode_GetBytesInMapSZ(&DCtx, "bytes 1",  &B1);
+         QCBORDecode_GetBytesInMapSZ(&DCtx, "bytes 2",  &B2);
          QCBORDecode_GetTextInMapSZ(&DCtx, "text 2",  &S1);
       QCBORDecode_ExitMap(&DCtx);
    
