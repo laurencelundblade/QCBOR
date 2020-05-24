@@ -2223,7 +2223,7 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
    }
 
    size_t uOffset;
-   pMe->uLastError = MapSearch(pMe, pSearch, &uOffset, NULL);
+   pMe->uLastError = (uint8_t)MapSearch(pMe, pSearch, &uOffset, NULL);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
@@ -2315,7 +2315,7 @@ void QCBORDecode_EnterMapMode(QCBORDecodeContext *pMe, uint8_t uType)
 
    /* Get the data item that is the map that is being searched */
    QCBORItem  Item;
-   pMe->uLastError = QCBORDecode_GetNext(pMe, &Item);
+   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
