@@ -1037,7 +1037,7 @@ static void QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pCtx, const char *sz
 
  When converting floating-point values, the integer is rounded to the nearest integer using
  llround(). By default, floating-point suport is enabled for QCBOR. If it is turned off,
- then floating-point conversion is not available.
+ then floating-point conversion is not available and TODO: error will be set.
  
  */
 static void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOptions, int64_t *pnValue);
@@ -1060,7 +1060,7 @@ static void QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx, const c
  The additiona data item types that are suported are positive and negative bignums,
  decimal fractions and big floats, including decimal fractions and big floats that use bignums.
  Not that all these types can support numbers much larger that can be represented by
- in a 64-bit integer, so \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
+ in a 64-bit integer, so \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW may
  often be encountered.
 
  When converting bignums and decimal fractions \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
@@ -1203,6 +1203,15 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx, const char
 
 
 
+/**
+ @brief Decode the next item as a byte string
+
+ @param[in] pCtx   The decode context
+ @param[out] pBytes  The decoded byte string
+
+ On error, the decoder internal error state is set. If the next item
+ is not a byte string, the \ref QCBOR_ERR_UNEXPECTED_TYPE error is set.
+ */
 static void QCBORDecode_GetBytes(QCBORDecodeContext *pCtx, UsefulBufC *pBytes);
 
 static void QCBORDecode_GetBytesInMapN(QCBORDecodeContext *pCtx, int64_t nLabel, UsefulBufC *pBytes);
@@ -1710,7 +1719,9 @@ inline static void QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pMe, const c
 
 // Semi private
 
-
+#define QCBOR_TAGSPEC_MATCH_TAG 0
+#define QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE 1 // When the tag type is known from the context of the protocol
+#define QCBOR_TAGSPEC_MATCH_EITHER 2 // CBOR protocols that need this are designed against recommended tag use !!
 typedef struct {
    uint8_t uTagRequirement;
    uint8_t uTaggedType;
@@ -1749,21 +1760,21 @@ void QCBORDecode_GetTaggedStringInMapSZ(QCBORDecodeContext *pMe,
 static inline void QCBORDecode_GetBytes(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 {
    // Complier should make this just 64-bit integer parameter
-   const TagSpecification TagSpec = {0, QCBOR_TYPE_BYTE_STRING, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
+   const TagSpecification TagSpec = {QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, QCBOR_TYPE_BYTE_STRING, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
 
    QCBORDecode_GetTaggedStringInternal(pMe, TagSpec, pValue);
 }
 
 inline static void QCBORDecode_GetBytesInMapN(QCBORDecodeContext *pMe, int64_t nLabel, UsefulBufC *pBstr)
 {
-   const TagSpecification TagSpec = {0, QCBOR_TYPE_BYTE_STRING, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
+   const TagSpecification TagSpec = {QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, QCBOR_TYPE_BYTE_STRING, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
 
    QCBORDecode_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pBstr);
 }
 
 inline static void QCBORDecode_GetBytesInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, UsefulBufC *pBstr)
 {
-   const TagSpecification TagSpec = {0, QCBOR_TYPE_BYTE_STRING, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
+   const TagSpecification TagSpec = {QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, QCBOR_TYPE_BYTE_STRING, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
 
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pBstr);
 }
@@ -1785,7 +1796,7 @@ static inline void QCBORDecode_GetText(QCBORDecodeContext *pMe,  UsefulBufC *pVa
 inline static void QCBORDecode_GetTextInMapN(QCBORDecodeContext *pMe, int64_t nLabel, UsefulBufC *pText)
 {
    // This TagSpec only matches text strings; it also should optimize down to passing a 64-bit integer
-   const TagSpecification TagSpec = {0, QCBOR_TYPE_TEXT_STRING, {QCBOR_TYPE_TEXT_STRING, 0,0,0,0,0}};
+   const TagSpecification TagSpec = {QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, QCBOR_TYPE_TEXT_STRING, {QCBOR_TYPE_TEXT_STRING, 0,0,0,0,0}};
 
    QCBORDecode_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pText);
 }
@@ -1793,7 +1804,7 @@ inline static void QCBORDecode_GetTextInMapN(QCBORDecodeContext *pMe, int64_t nL
 
 inline static void QCBORDecode_GetTextInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, UsefulBufC *pText)
 {
-   const TagSpecification TagSpec = {0, QCBOR_TYPE_TEXT_STRING, {QCBOR_TYPE_TEXT_STRING, 0,0,0,0,0}};
+   const TagSpecification TagSpec = {QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, QCBOR_TYPE_TEXT_STRING, {QCBOR_TYPE_TEXT_STRING, 0,0,0,0,0}};
 
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pText);
 }

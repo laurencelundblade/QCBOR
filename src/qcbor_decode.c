@@ -2192,45 +2192,55 @@ QCBORError QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
                                       uint8_t            uQcborType,
                                       QCBORItem         *pItem)
 {
-   QCBORItem One[2];
+   QCBORItem OneItemSeach[2];
 
-   One[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
-   One[0].label.string = UsefulBuf_FromSZ(szLabel);
-   One[0].uDataType    = uQcborType;
-   One[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
+   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSeach[0].uDataType    = uQcborType;
+   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORError nReturn = MapSearch(pMe, One, NULL, NULL);
+   QCBORError nReturn = MapSearch(pMe, OneItemSeach, NULL, NULL);
    if(nReturn) {
      return nReturn;
    }
 
-   if(One[0].uDataType == QCBOR_TYPE_NONE) {
+   if(OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
       return QCBOR_ERR_NOT_FOUND;
    }
 
-   *pItem = One[0];
+   *pItem = OneItemSeach[0];
 
    return QCBOR_SUCCESS;
 }
 
 
-static QCBORError CheckTagRequirement(TagSpecification TagSpec, uint8_t uDataType)
+static QCBORError CheckTagRequirement(const TagSpecification TagSpec, uint8_t uDataType)
 {
-   // This gets called a lot, so it needs to be fast, especially for simple cases.
-   // TODO: this isn't working right yet
-   if((TagSpec.uTagRequirement == 1 || TagSpec.uTagRequirement == 2) && uDataType == TagSpec.uTaggedType) {
-      return QCBOR_SUCCESS;
+   if(TagSpec.uTagRequirement == QCBOR_TAGSPEC_MATCH_TAG) {
+      /* Must match the tag */
+      if(uDataType == TagSpec.uTaggedType) {
+         return QCBOR_SUCCESS;
+      }
    } else {
-      for(int i = 0; i < 6; i++) {
+      /* QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE or QCBOR_TAGSPEC_MATCH_EITHER */
+      /* Must check all the possible types for the tag content */
+      for(size_t i = 0; i < sizeof(TagSpec.uAllowedContentTypes); i++) {
          if(uDataType == TagSpec.uAllowedContentTypes[i]) {
+            return QCBOR_SUCCESS;
+         }
+      }
+      /* Didn't match any of the tag content types */
+      /* Check the tag for the either case */
+      if(TagSpec.uTagRequirement == QCBOR_TAGSPEC_MATCH_EITHER) {
+         if(uDataType == TagSpec.uTaggedType) {
             return QCBOR_SUCCESS;
          }
       }
    }
 
    return QCBOR_ERR_UNEXPECTED_TYPE;
-
 }
+
 
 void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext *pMe,
                                      int64_t             nLabel,
@@ -2323,50 +2333,50 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
 
 void QCBORDecode_EnterMapInMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
-   QCBORItem One[2];
-   One[0].uLabelType  = QCBOR_TYPE_INT64;
-   One[0].label.int64 = nLabel;
-   One[0].uDataType   = QCBOR_TYPE_MAP;
-   One[1].uLabelType  = QCBOR_TYPE_NONE;
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
+   OneItemSeach[0].label.int64 = nLabel;
+   OneItemSeach[0].uDataType   = QCBOR_TYPE_MAP;
+   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE;
 
    /* The map to enter was found, now finish of entering it. */
-   SearchAndEnter(pMe, One);
+   SearchAndEnter(pMe, OneItemSeach);
 }
 
 
 void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 {
-   QCBORItem One[2];
-   One[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
-   One[0].label.string = UsefulBuf_FromSZ(szLabel);
-   One[0].uDataType    = QCBOR_TYPE_MAP;
-   One[1].uLabelType   = QCBOR_TYPE_NONE;
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSeach[0].uDataType    = QCBOR_TYPE_MAP;
+   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
    
-   SearchAndEnter(pMe, One);
+   SearchAndEnter(pMe, OneItemSeach);
 }
 
 
 void QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
-   QCBORItem One[2];
-   One[0].uLabelType  = QCBOR_TYPE_INT64;
-   One[0].label.int64 = nLabel;
-   One[0].uDataType   = QCBOR_TYPE_ARRAY;
-   One[1].uLabelType  = QCBOR_TYPE_NONE;
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
+   OneItemSeach[0].label.int64 = nLabel;
+   OneItemSeach[0].uDataType   = QCBOR_TYPE_ARRAY;
+   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE;
 
-   SearchAndEnter(pMe, One);
+   SearchAndEnter(pMe, OneItemSeach);
 }
 
 
 void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 {
-   QCBORItem One[2];
-   One[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
-   One[0].label.string = UsefulBuf_FromSZ(szLabel);
-   One[0].uDataType    = QCBOR_TYPE_ARRAY;
-   One[1].uLabelType   = QCBOR_TYPE_NONE;
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSeach[0].uDataType    = QCBOR_TYPE_ARRAY;
+   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
 
-   SearchAndEnter(pMe, One);
+   SearchAndEnter(pMe, OneItemSeach);
 }
 
 
