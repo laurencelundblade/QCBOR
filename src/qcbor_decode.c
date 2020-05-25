@@ -2242,7 +2242,7 @@ void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = CheckTagRequirement(TagSpec, pItem->uDataType);
+   pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, pItem->uDataType);
 }
 
 void QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext *pMe,
@@ -2255,7 +2255,7 @@ void QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = CheckTagRequirement(TagSpec, pItem->uDataType);
+   pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, pItem->uDataType);
 }
 
 void QCBORDecode_GetTaggedStringInMapN(QCBORDecodeContext *pMe,
@@ -2575,7 +2575,7 @@ void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe, int64_t nLabel, bool b
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = ConvertBigNum(&Item, pValue, pbIsNegative);
+   pMe->uLastError = (uint8_t)ConvertBigNum(&Item, pValue, pbIsNegative);
 }
 
 
@@ -2762,6 +2762,18 @@ static inline QCBORError ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, 
 #include "fenv.h"
 
 
+/*
+Convert a integers and floats to an int64_t.
+
+\param[in] uOptions  Bit mask list of conversion options.
+
+\retval QCBOR_ERR_CONVERSION_NOT_REQUESTED  Conversion, possible, but not requested in uOptions.
+
+\retval QCBOR_ERR_UNEXPECTED_TYPE  Of a type that can't be converted
+
+\retval QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW Conversion result is too large or too small.
+
+*/
 static QCBORError ConvertInt64(const QCBORItem *pItem, uint32_t uOptions, int64_t *pnValue)
 {
    switch(pItem->uDataType) {
@@ -2807,6 +2819,7 @@ static QCBORError ConvertInt64(const QCBORItem *pItem, uint32_t uOptions, int64_
    return QCBOR_SUCCESS;
 }
 
+
 void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe,
                                          uint32_t            uOptions,
                                          int64_t            *pnValue,
@@ -2827,8 +2840,9 @@ void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe,
       *pItem = Item;
    }
 
-   pMe->uLastError = ConvertInt64(&Item, uOptions, pnValue);
+   pMe->uLastError = (uint8_t)ConvertInt64(&Item, uOptions, pnValue);
 }
+
 
 void QCBORDecode_GetInt64ConvertInternalInMapN(QCBORDecodeContext *pMe,
                                                int64_t             nLabel,
@@ -2839,8 +2853,9 @@ void QCBORDecode_GetInt64ConvertInternalInMapN(QCBORDecodeContext *pMe,
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = ConvertInt64(&Item, uOptions, pnValue);
+   pMe->uLastError = (uint8_t)ConvertInt64(&Item, uOptions, pnValue);
 }
+
 
 void QCBORDecode_GetInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
                                                const char *         szLabel,
@@ -2855,12 +2870,23 @@ void QCBORDecode_GetInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = ConvertInt64(&Item, uOptions, pnValue);
+   pMe->uLastError = (uint8_t)ConvertInt64(&Item, uOptions, pnValue);
 }
 
 
 
+/*
+ Convert a large variety of integer types to an int64_t.
 
+ \param[in] uOptions  Bit mask list of conversion options.
+
+ \retval QCBOR_ERR_CONVERSION_NOT_REQUESTED  Conversion, possible, but not requested in uOptions.
+
+ \retval QCBOR_ERR_UNEXPECTED_TYPE  Of a type that can't be converted
+
+ \retval QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW Conversion result is too large or too small.
+
+ */
 static QCBORError Int64ConvertAll(const QCBORItem *pItem, uint32_t uOptions, int64_t *pnValue)
 {
    QCBORError uErr;
@@ -2905,7 +2931,6 @@ static QCBORError Int64ConvertAll(const QCBORItem *pItem, uint32_t uOptions, int
             return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
-
 
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
          if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
@@ -2976,6 +3001,8 @@ static QCBORError Int64ConvertAll(const QCBORItem *pItem, uint32_t uOptions, int
 #endif
    }
 }
+
+
 /*
  Public function, see header qcbor/qcbor_decode.h file
  */
@@ -2998,6 +3025,10 @@ void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, 
    pMe->uLastError = (uint8_t)Int64ConvertAll(&Item, uOptions, pnValue);
 }
 
+
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetInt64ConvertAllInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uOptions, int64_t *pnValue)
 {
    QCBORItem Item;
@@ -3018,11 +3049,12 @@ void QCBORDecode_GetInt64ConvertAllInMapN(QCBORDecodeContext *pMe, int64_t nLabe
 }
 
 
-
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, int64_t *pnValue)
 {
    QCBORItem Item;
-
    QCBORDecode_GetInt64ConvertInternalInMapSZ(pMe, szLabel, uOptions, pnValue, &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
@@ -3039,12 +3071,61 @@ void QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe, const char *
 }
 
 
+static QCBORError ConvertUint64(const QCBORItem *pItem, uint32_t uOptions, uint64_t *puValue)
+{
+   switch(pItem->uDataType) {
+           // TODO: type flaot
+        case QCBOR_TYPE_DOUBLE:
+           if(uOptions & QCBOR_CONVERT_TYPE_FLOAT) {
+              feclearexcept(FE_ALL_EXCEPT);
+              double dRounded = round(pItem->val.dfnum);
+              // TODO: over/underflow
+              if(fetestexcept(FE_INVALID)) {
+                 // TODO: better error code
+                 return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+              } else if(isnan(dRounded)) {
+                 // TODO: better error code
+                 return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+              } else if(dRounded >= 0) {
+                 *puValue = (uint64_t)dRounded;
+              } else {
+                 return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
+              }
+           } else {
+              return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+           }
+           break;
 
+        case QCBOR_TYPE_INT64:
+           if(uOptions & QCBOR_CONVERT_TYPE_INT64) {
+              if(pItem->val.int64 >= 0) {
+                 *puValue = (uint64_t)pItem->val.int64;
+              } else {
+                 return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
+              }
+           } else {
+              return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+           }
+           break;
+
+        case QCBOR_TYPE_UINT64:
+           if(uOptions & QCBOR_CONVERT_TYPE_UINT64) {
+              *puValue =  pItem->val.uint64;
+           } else {
+              return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+           }
+           break;
+
+        default:
+           return QCBOR_ERR_UNEXPECTED_TYPE;
+     }
+   return QCBOR_SUCCESS;
+}
 
 
 void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe,
                                           uint32_t uOptions,
-                                          uint64_t *pValue,
+                                          uint64_t *puValue,
                                           QCBORItem *pItem)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
@@ -3063,63 +3144,149 @@ void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe,
       *pItem = Item;
    }
 
-   switch(Item.uDataType) {
-         // TODO: type flaot
-      case QCBOR_TYPE_DOUBLE:
-         if(uOptions & QCBOR_CONVERT_TYPE_FLOAT) {
-            feclearexcept(FE_ALL_EXCEPT);
-            double dRounded = round(Item.val.dfnum);
-            // TODO: over/underflow
-            if(fetestexcept(FE_INVALID)) {
-               // TODO: better error code
-               pMe->uLastError = QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
-            } else if(isnan(dRounded)) {
-               // TODO: better error code
-               pMe->uLastError = QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
-            } else if(dRounded >= 0) {
-               *pValue = (uint64_t)dRounded;
-            } else {
-               pMe->uLastError = QCBOR_ERR_NUMBER_SIGN_CONVERSION;
-            }
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_INT64:
-         if(uOptions & QCBOR_CONVERT_TYPE_INT64) {
-            if(Item.val.int64 >= 0) {
-               *pValue = (uint64_t)Item.val.int64;
-            } else {
-               pMe->uLastError = QCBOR_ERR_NUMBER_SIGN_CONVERSION;
-            }
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_UINT64:
-         if(uOptions & QCBOR_CONVERT_TYPE_UINT64) {
-            *pValue = Item.val.uint64;
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      default:
-         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
-   }
+   pMe->uLastError = (uint8_t)ConvertUint64(&Item, uOptions, puValue);
 }
 
+
+void QCBORDecode_GetUint64ConvertInternalInMapN(QCBORDecodeContext *pMe,
+                                               int64_t             nLabel,
+                                               uint32_t            uOptions,
+                                               uint64_t            *puValue,
+                                               QCBORItem          *pItem)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+
+   pMe->uLastError = (uint8_t)ConvertUint64(&Item, uOptions, puValue);
+}
+
+
+void QCBORDecode_GetUint64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
+                                               const char *         szLabel,
+                                               uint32_t             uOptions,
+                                               uint64_t             *puValue,
+                                               QCBORItem           *pItem)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+
+   pMe->uLastError = (uint8_t)ConvertUint64(&Item, uOptions, puValue);
+}
 
 /*
  Public function, see header qcbor/qcbor_decode.h file
 */
-void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *pValue)
+static QCBORError Uint64ConvertAll(const QCBORItem *pItem, uint32_t uOptions, uint64_t *puValue)
+{
+   QCBORError uErr;
+
+   switch(pItem->uDataType) {
+
+      case QCBOR_TYPE_POSBIGNUM:
+         if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
+            return ConvertPositiveBigNumToUnsigned(pItem->val.bigNum, puValue);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_NEGBIGNUM:
+         if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
+            return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+
+      case QCBOR_TYPE_DECIMAL_FRACTION:
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+            return ExponentitateNU(pItem->val.expAndMantissa.Mantissa.nInt,
+                                                       pItem->val.expAndMantissa.nExponent,
+                                                       puValue,
+                                                       Exponentitate10);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT:
+         if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT) {
+            return ExponentitateNU(pItem->val.expAndMantissa.Mantissa.nInt,
+                                   pItem->val.expAndMantissa.nExponent,
+                                   puValue,
+                                   Exponentitate2);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+            // TODO: Would be better to convert to unsigned
+            int64_t nMantissa;
+            uErr = ConvertPositiveBigNumToSigned(pItem->val.expAndMantissa.Mantissa.bigNum, &nMantissa);
+            if(uErr != QCBOR_SUCCESS) {
+               return uErr;
+            }
+            return ExponentitateNU(nMantissa,
+                                   pItem->val.expAndMantissa.nExponent,
+                                   puValue,
+                                   Exponentitate10);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+            return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+            // TODO: Would be better to convert to unsigned
+            int64_t nMantissa;
+            uErr =  ConvertPositiveBigNumToSigned(pItem->val.expAndMantissa.Mantissa.bigNum, &nMantissa);
+            if(uErr != QCBOR_SUCCESS) {
+               return uErr;
+            }
+            return ExponentitateNU(nMantissa,
+                                   pItem->val.expAndMantissa.nExponent,
+                                   puValue,
+                                   Exponentitate2);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+            return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+#endif
+      default:
+         return QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+}
+
+
+void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *puValue)
 {
    QCBORItem Item;
 
-   QCBORDecode_GetUInt64ConvertInternal(pMe, uOptions, pValue, &Item);
+   QCBORDecode_GetUInt64ConvertInternal(pMe, uOptions, puValue, &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
       // The above conversion succeeded
@@ -3131,108 +3298,99 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
       return;
    }
 
-   switch(Item.uDataType) {
-
-      case QCBOR_TYPE_POSBIGNUM:
-         if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
-            pMe->uLastError = (uint8_t)ConvertPositiveBigNumToUnsigned(Item.val.bigNum, pValue);
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_NEGBIGNUM:
-         if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
-            pMe->uLastError = QCBOR_ERR_NUMBER_SIGN_CONVERSION;
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
-
-      case QCBOR_TYPE_DECIMAL_FRACTION:
-         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            pMe->uLastError = (uint8_t)ExponentitateNU(Item.val.expAndMantissa.Mantissa.nInt,
-                                                       Item.val.expAndMantissa.nExponent,
-                                                       pValue,
-                                                       Exponentitate10);
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_BIGFLOAT:
-         if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT) {
-            pMe->uLastError = (uint8_t)ExponentitateNU(Item.val.expAndMantissa.Mantissa.nInt,
-                                                       Item.val.expAndMantissa.nExponent,
-                                                       pValue,
-                                                       Exponentitate2);
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-
-
-      case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
-         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            // TODO: Would be better to convert to unsigned
-            int64_t nMantissa;
-            pMe->uLastError = (uint8_t)ConvertPositiveBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
-            if(!pMe->uLastError) {
-               pMe->uLastError = (uint8_t)ExponentitateNU(nMantissa,
-                                                          Item.val.expAndMantissa.nExponent,
-                                                          pValue,
-                                                          Exponentitate10);
-
-            }
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
-         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            pMe->uLastError = QCBOR_ERR_NUMBER_SIGN_CONVERSION;
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
-         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            // TODO: Would be better to convert to unsigned
-            int64_t nMantissa;
-            pMe->uLastError = (uint8_t)ConvertPositiveBigNumToSigned(Item.val.expAndMantissa.Mantissa.bigNum, &nMantissa);
-            if(!pMe->uLastError) {
-               pMe->uLastError = (uint8_t)ExponentitateNU(nMantissa,
-                                                          Item.val.expAndMantissa.nExponent,
-                                                          pValue,
-                                                          Exponentitate2);
-            }
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
-         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            pMe->uLastError = QCBOR_ERR_NUMBER_SIGN_CONVERSION;
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-#endif
-      default:
-         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
-   }
+   pMe->uLastError = (uint8_t)Uint64ConvertAll(&Item, uOptions, puValue);
 }
+
+
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetUint64ConvertAllInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uOptions, uint64_t *puValue)
+{
+   QCBORItem Item;
+
+   QCBORDecode_GetUint64ConvertInternalInMapN(pMe, nLabel, uOptions, puValue, &Item);
+
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      // The above conversion succeeded
+      return;
+   }
+
+   if(pMe->uLastError != QCBOR_ERR_UNEXPECTED_TYPE) {
+      // The above conversion failed in a way that code below can't correct
+      return;
+   }
+
+   pMe->uLastError = (uint8_t)Uint64ConvertAll(&Item, uOptions, puValue);
+}
+
+
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetUint64ConvertAllInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, uint64_t *puValue)
+{
+   QCBORItem Item;
+   QCBORDecode_GetUint64ConvertInternalInMapSZ(pMe, szLabel, uOptions, puValue, &Item);
+
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      // The above conversion succeeded
+      return;
+   }
+
+   if(pMe->uLastError != QCBOR_ERR_UNEXPECTED_TYPE) {
+      // The above conversion failed in a way that code below can't correct
+      return;
+   }
+
+   pMe->uLastError = (uint8_t)Uint64ConvertAll(&Item, uOptions, puValue);
+}
+
+
+static QCBORError ConvertDouble(const QCBORItem *pItem, uint32_t uOptions, double *pdValue)
+{
+   switch(pItem->uDataType) {
+      // TODO: float when ifdefs are set
+      case QCBOR_TYPE_DOUBLE:
+         if(uOptions & QCBOR_CONVERT_TYPE_FLOAT) {
+            if(uOptions & QCBOR_CONVERT_TYPE_FLOAT) {
+               *pdValue = pItem->val.dfnum;
+            } else {
+               return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+            }
+         }
+         break;
+
+      case QCBOR_TYPE_INT64:
+         if(uOptions & QCBOR_CONVERT_TYPE_INT64) {
+            // TODO: how does this work?
+            *pdValue = (double)pItem->val.int64;
+
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_UINT64:
+         if(uOptions & QCBOR_CONVERT_TYPE_UINT64) {
+             *pdValue = (double)pItem->val.uint64;
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      default:
+         return QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+
+   return QCBOR_SUCCESS;
+}
+
 
 
 void QCBORDecode_GetDoubleConvertInternal(QCBORDecodeContext *pMe,
                                           uint32_t            uOptions,
-                                          double             *pValue,
+                                          double             *pdValue,
                                           QCBORItem          *pItem)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
@@ -3251,39 +3409,38 @@ void QCBORDecode_GetDoubleConvertInternal(QCBORDecodeContext *pMe,
       *pItem = Item;
    }
 
-   switch(Item.uDataType) {
-      // TODO: float when ifdefs are set
-      case QCBOR_TYPE_DOUBLE:
-         if(uOptions & QCBOR_CONVERT_TYPE_FLOAT) {
-            if(uOptions & QCBOR_CONVERT_TYPE_FLOAT) {
-               *pValue = Item.val.dfnum;
-            } else {
-               pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-            }
-         }
-         break;
-
-      case QCBOR_TYPE_INT64:
-         if(uOptions & QCBOR_CONVERT_TYPE_INT64) {
-            // TODO: how does this work?
-            *pValue = (double)Item.val.int64;
-
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_UINT64:
-         if(uOptions & QCBOR_CONVERT_TYPE_UINT64) {
-             *pValue = (double)Item.val.uint64;
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-      default:
-         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
-   }
+   pMe->uLastError = (uint8_t)ConvertDouble(&Item, uOptions, pdValue);
 }
+
+
+void QCBORDecode_GetDoubleConvertInternalInMapN(QCBORDecodeContext *pMe,
+                                               int64_t             nLabel,
+                                               uint32_t            uOptions,
+                                               double             *pdValue,
+                                               QCBORItem          *pItem)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+
+   pMe->uLastError = (uint8_t)ConvertDouble(&Item, uOptions, pdValue);
+}
+
+void QCBORDecode_GetDoubleConvertInternalInMapSZ(QCBORDecodeContext *pMe,
+                                               const char *          szLabel,
+                                               uint32_t              uOptions,
+                                               double               *pdValue,
+                                               QCBORItem            *pItem)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+
+   pMe->uLastError = (uint8_t)ConvertDouble(&Item, uOptions, pdValue);
+}
+
 
 
 static double ConvertBigNumToDouble(const UsefulBufC BigNum)
@@ -3303,20 +3460,102 @@ static double ConvertBigNumToDouble(const UsefulBufC BigNum)
    return dResult;
 }
 
-/*
- Public function, see header qcbor/qcbor_decode.h file
-*/
-void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue)
+static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uOptions, double *pdValue)
 {
    /*
-
-
    https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
 
    */
+   switch(pItem->uDataType) {
+         // TODO: type float
+      case QCBOR_TYPE_DECIMAL_FRACTION:
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+            // TODO: rounding and overflow errors
+            *pdValue = (double)pItem->val.expAndMantissa.Mantissa.nInt *
+                        pow(10.0, (double)pItem->val.expAndMantissa.nExponent);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT:
+         if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT ) {
+           *pdValue = (double)pItem->val.expAndMantissa.Mantissa.nInt *
+                                exp2((double)pItem->val.expAndMantissa.nExponent);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_POSBIGNUM:
+         if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
+            *pdValue = ConvertBigNumToDouble(pItem->val.bigNum);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_NEGBIGNUM:
+         if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
+            *pdValue = -ConvertBigNumToDouble(pItem->val.bigNum);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
+         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+            double dMantissa = ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+            *pdValue = dMantissa * pow(10, (double)pItem->val.expAndMantissa.nExponent);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
+        if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+         double dMantissa = -ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+         *pdValue = dMantissa * pow(10, (double)pItem->val.expAndMantissa.nExponent);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
+        if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT) {
+         double dMantissa = ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+         *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
+        if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT) {
+         double dMantissa = -ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+         *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
+         } else {
+            return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
+         }
+         break;
+
+      default:
+         return QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+
+   return QCBOR_SUCCESS;
+}
+
+
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, double *pdValue)
+{
+
    QCBORItem Item;
 
-   QCBORDecode_GetDoubleConvertInternal(pMe, uOptions, pValue, &Item);
+   QCBORDecode_GetDoubleConvertInternal(pMe, uOptions, pdValue, &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
       // The above conversion succeeded
@@ -3328,83 +3567,50 @@ void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
       return;
    }
 
-   pMe->uLastError = QCBOR_SUCCESS;
-
-   switch(Item.uDataType) {
-         // TODO: type float
-      case QCBOR_TYPE_DECIMAL_FRACTION:
-         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            // TODO: rounding and overflow errors
-            *pValue = (double)Item.val.expAndMantissa.Mantissa.nInt *
-                        pow(10.0, (double)Item.val.expAndMantissa.nExponent);
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_BIGFLOAT:
-         if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT ) {
-           *pValue = (double)Item.val.expAndMantissa.Mantissa.nInt *
-                                exp2((double)Item.val.expAndMantissa.nExponent);
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_POSBIGNUM:
-         if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
-            *pValue = ConvertBigNumToDouble(Item.val.bigNum);
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_NEGBIGNUM:
-         if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
-            *pValue = -ConvertBigNumToDouble(Item.val.bigNum);
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
-         if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            double dMantissa = ConvertBigNumToDouble(Item.val.expAndMantissa.Mantissa.bigNum);
-            *pValue = dMantissa * pow(10, (double)Item.val.expAndMantissa.nExponent);
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
-        if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-         double dMantissa = -ConvertBigNumToDouble(Item.val.expAndMantissa.Mantissa.bigNum);
-         *pValue = dMantissa * pow(10, (double)Item.val.expAndMantissa.nExponent);
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
-        if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT) {
-         double dMantissa = ConvertBigNumToDouble(Item.val.expAndMantissa.Mantissa.bigNum);
-         *pValue = dMantissa * exp2((double)Item.val.expAndMantissa.nExponent);
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
-        if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT) {
-         double dMantissa = -ConvertBigNumToDouble(Item.val.expAndMantissa.Mantissa.bigNum);
-         *pValue = dMantissa * exp2((double)Item.val.expAndMantissa.nExponent);
-         } else {
-            pMe->uLastError = QCBOR_ERR_CONVERSION_NOT_REQUESTED;
-         }
-         break;
-
-      default:
-         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
-   }
+   pMe->uLastError = (uint8_t)DoubleConvertAll(&Item, uOptions, pdValue);
 }
 
+
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uOptions, double *pdValue)
+{
+   QCBORItem Item;
+
+   QCBORDecode_GetDoubleConvertInternalInMapN(pMe, nLabel, uOptions, pdValue, &Item);
+
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      // The above conversion succeeded
+      return;
+   }
+
+   if(pMe->uLastError != QCBOR_ERR_UNEXPECTED_TYPE) {
+      // The above conversion failed in a way that code below can't correct
+      return;
+   }
+
+   pMe->uLastError = (uint8_t)DoubleConvertAll(&Item, uOptions, pdValue);
+}
+
+
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, double *pdValue)
+{
+   QCBORItem Item;
+   QCBORDecode_GetDoubleConvertInternalInMapSZ(pMe, szLabel, uOptions, pdValue, &Item);
+
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      // The above conversion succeeded
+      return;
+   }
+
+   if(pMe->uLastError != QCBOR_ERR_UNEXPECTED_TYPE) {
+      // The above conversion failed in a way that code below can't correct
+      return;
+   }
+
+   pMe->uLastError = (uint8_t)DoubleConvertAll(&Item, uOptions, pdValue);
+}

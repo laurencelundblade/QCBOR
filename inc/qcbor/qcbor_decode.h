@@ -1088,6 +1088,11 @@ void QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx, const char 
 */
 static void QCBORDecode_GetUInt64(QCBORDecodeContext *pCtx, uint64_t *puValue);
 
+
+static void QCBORDecode_GetUInt64InMapN(QCBORDecodeContext *pCtx, int64_t nLabel, uint64_t *puValue);
+
+static void QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, uint64_t *puValue);
+
 /**
  @brief Decode next item as an unsigned 64-bit integer with basic conversions.
 
@@ -1102,6 +1107,10 @@ static void QCBORDecode_GetUInt64(QCBORDecodeContext *pCtx, uint64_t *puValue);
 */
 static void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOptions, uint64_t *puValue);
 
+static void QCBORDecode_GetUInt64ConvertInMapN(QCBORDecodeContext *pCtx, int64_t nLabel, uint32_t uOptions, uint64_t *puValue);
+
+static void QCBORDecode_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, uint32_t uOptions, uint64_t *puValue);
+
 /**
  @brief Decode next item as an unsigned 64-bit integer with conversions
 
@@ -1115,6 +1124,10 @@ static void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOpt
  See also QCBORDecode_GetUint64Convert() and QCBORDecode_GetUint64ConvertAll().
 */
 void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, uint64_t *puValue);
+
+void QCBORDecode_GetUInt64ConvertAllInMapN(QCBORDecodeContext *pCtx, int64_t nLabel, uint32_t uOptions, uint64_t *puValue);
+
+void QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, uint32_t uOptions, uint64_t *puValue);
 
 
 /**
@@ -1133,6 +1146,9 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions
 */
 static void QCBORDecode_GetDouble(QCBORDecodeContext *pCtx, uint32_t uOptions, double *pValue);
 
+static void QCBORDecode_GetDoubleInMapN(QCBORDecodeContext *pCtx, int64_t nLabel, double *pdValue);
+
+static void QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, double *pdValue);
 
 /**
  @brief Decode next item as a floating-point value with basic conversion.
@@ -1156,6 +1172,10 @@ static void QCBORDecode_GetDouble(QCBORDecodeContext *pCtx, uint32_t uOptions, d
 */
 static void QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pCtx, uint32_t uOptions, double *pValue);
 
+static void QCBORDecode_GetDoubleConvertInMapN(QCBORDecodeContext *pCtx, int64_t nLabel, uint32_t uOptions, double *pdValue);
+
+static void QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, uint32_t uOptions, double *pdValue);
+
 
 /**
  @brief Decode next item as a floating-point value with conversion.
@@ -1176,6 +1196,10 @@ static void QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pCtx, uint32_t uOpt
  See also QCBORDecode_GetDoubleConvert() and QCBORDecode_GetDoubleConvert().
 */
 void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pCtx, uint32_t uOptions, double *pValue);
+
+void QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext *pCtx, int64_t nLabel, uint32_t uOptions, double *puValue);
+
+void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, uint32_t uOptions, double *puValue);
 
 
 
@@ -1260,36 +1284,15 @@ getting items by label.
  will return the item after the map. */
 static void QCBORDecode_EnterMap(QCBORDecodeContext *pCtx);
 
-
-/*
- Find a map in a map by integer label and enter it.
-
- This will do duplicate detection on the particular label.
-
- Call QCBORDecode_ExitMap() to return to the mode / level
- from before this was called.
-
- Seek to to the beginning of the map.
- Consume items looking for nLabel
- */
 void QCBORDecode_EnterMapInMapN(QCBORDecodeContext *pCtx, int64_t nLabel);
 
 void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char  *szLabel);
 
 static void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
 
-/*
- Indicate if decoding is in map mode more not.
- */
-bool QCBORDecode_InMapMode(QCBORDecodeContext *pCtxt);
 
 
-/*
- Restarts fetching of items in a map to the start of the
- map. This is for GetNext. It has no effect on
- GetByLabel (which always searches from the start).
- */
-void QCBORDecode_RewindMap(QCBORDecodeContext *pCtxt);
+
 
 
 static void QCBORDecode_EnterArray(QCBORDecodeContext *pCtx);
@@ -1302,7 +1305,18 @@ static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
 
 
-                     
+/*
+ Restarts fetching of items in a map to the start of the
+ map. This is for GetNext. It has no effect on
+ GetByLabel (which always searches from the start).
+ */
+void QCBORDecode_RewindMap(QCBORDecodeContext *pCtxt);
+
+/*
+ Indicate if decoding is in map mode more not.
+ */
+bool QCBORDecode_InMapMode(QCBORDecodeContext *pCtxt);
+
 
 
 /*
@@ -1614,10 +1628,28 @@ inline static void QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pMe, const ch
 // Semi-private
 void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *puValue, QCBORItem *pItem);
 
+void QCBORDecode_GetUInt64ConvertInternalInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uOptions, uint64_t *puValue, QCBORItem *pItem);
+
+void QCBORDecode_GetUInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, uint64_t *puValue, QCBORItem *pItem);
+
+
+
 void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *puValue)
 {
     QCBORItem Item;
     QCBORDecode_GetUInt64ConvertInternal(pMe, uOptions, puValue, &Item);
+}
+
+inline static void QCBORDecode_GetUInt64ConvertInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uOptions, uint64_t *puValue)
+{
+   QCBORItem Item;
+   QCBORDecode_GetUInt64ConvertInternalInMapN(pMe, nLabel, uOptions, puValue, &Item);
+}
+
+inline static void QCBORDecode_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, uint64_t *puValue)
+{
+   QCBORItem Item;
+   QCBORDecode_GetUInt64ConvertInternalInMapSZ(pMe, szLabel, uOptions, puValue, &Item);
 }
 
 static inline void QCBORDecode_GetUInt64(QCBORDecodeContext *pMe, uint64_t *puValue)
@@ -1625,7 +1657,22 @@ static inline void QCBORDecode_GetUInt64(QCBORDecodeContext *pMe, uint64_t *puVa
     QCBORDecode_GetUInt64Convert(pMe, QCBOR_CONVERT_TYPE_UINT64, puValue);
 }
 
+
+inline static void QCBORDecode_GetUInt64InMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint64_t *puValue)
+{
+   QCBORDecode_GetUInt64ConvertInMapN(pMe, nLabel, QCBOR_CONVERT_TYPE_UINT64, puValue);
+}
+
+inline static void QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint64_t *puValue)
+{
+   QCBORDecode_GetUInt64ConvertInMapSZ(pMe, szLabel, QCBOR_CONVERT_TYPE_UINT64, puValue);
+}
+
 void QCBORDecode_GetDoubleConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue, QCBORItem *pItem);
+
+void QCBORDecode_GetDoubleConvertInternalInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uOptions, double *pdValue, QCBORItem *pItem);
+
+void QCBORDecode_GetDoubleConvertInternalInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, double *pdValue, QCBORItem *pItem);
 
 
 inline static void QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue)
@@ -1634,12 +1681,32 @@ inline static void QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pMe, uint32_
     QCBORDecode_GetDoubleConvertInternal(pMe, uOptions, pValue, &Item);
 }
 
+inline static void QCBORDecode_GetDoubleConvertInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uOptions, double *pdValue)
+{
+   QCBORItem Item;
+   QCBORDecode_GetDoubleConvertInternalInMapN(pMe, nLabel, uOptions, pdValue, &Item);
+}
+
+inline static void QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, double *pdValue)
+{
+   QCBORItem Item;
+   QCBORDecode_GetDoubleConvertInternalInMapSZ(pMe, szLabel, uOptions, pdValue, &Item);
+}
 
 inline static void QCBORDecode_GetDouble(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue)
 {
     QCBORDecode_GetDoubleConvert(pMe, QCBOR_CONVERT_TYPE_FLOAT, pValue);
 }
 
+inline static void QCBORDecode_GetDoubleInMapN(QCBORDecodeContext *pMe, int64_t nLabel, double *pdValue)
+{
+   QCBORDecode_GetDoubleConvertInMapN(pMe, nLabel, QCBOR_CONVERT_TYPE_FLOAT, pdValue);
+}
+
+inline static void QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, double *pdValue)
+{
+   QCBORDecode_GetDoubleConvertInMapSZ(pMe, szLabel, QCBOR_CONVERT_TYPE_FLOAT, pdValue);
+}
 
 // Semi private
 
