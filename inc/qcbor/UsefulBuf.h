@@ -162,6 +162,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef __cplusplus
 extern "C" {
+#if 0
+} // Keep editor indention formatting happy
+#endif
 #endif
 
 /**
@@ -1489,6 +1492,24 @@ static double UsefulInputBuf_GetDouble(UsefulInputBuf *pUInBuf);
 static int UsefulInputBuf_GetError(UsefulInputBuf *pUInBuf);
 
 
+/**
+ @brief Sets the input buffer length (use with caution)
+
+ @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+
+ This changes the internal remembered length of the input buffer
+ set when UsefulInputBuf_Init() was called. It is used by QCBOR
+ to handle CBOR that is wrapped and embedded in CBOR.
+
+ Since this allows setting the length beyond the length of the
+ original input buffer it allows the overall safety to
+ be undermined.
+
+ The new length given here should always be equal to or less than
+ the length given when UsefulInputBuf_Init() was called.
+
+ */
+static void UsefulInputBuf_SetBufferLen(UsefulInputBuf *pUInBuf, size_t uNewLen);
 
 
 /*----------------------------------------------------------
@@ -2124,6 +2145,13 @@ static inline int UsefulInputBuf_GetError(UsefulInputBuf *pMe)
 {
    return pMe->err;
 }
+
+
+static inline void UsefulInputBuf_SetBufferLen(UsefulInputBuf *pMe, size_t uNewLen)
+{
+    pMe->UB.len = uNewLen;
+}
+
 
 #ifdef __cplusplus
 }

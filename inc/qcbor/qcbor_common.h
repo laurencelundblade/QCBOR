@@ -346,6 +346,9 @@ typedef enum {
     
     /** Trying to get an item by label when a map has not been entered. */
     QCBOR_ERR_NOT_ENTERED = 31,
+
+    /** A callback indicates processing should not continue for some non-CBOR reason */
+    QCBOR_ERR_CALLBACK_FAIL = 32,
     
     /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORError;

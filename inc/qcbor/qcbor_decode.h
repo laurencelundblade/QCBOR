@@ -1287,6 +1287,17 @@ static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
 
 
+void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pCtx, UsefulBufC *pBstr);
+
+void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pCtx, int64_t uLabel, UsefulBufC *pBstr);
+
+void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx, const char  *szLabel, UsefulBufC *pBstr);
+
+void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
+
+
+
+
 /*
  Restarts fetching of items in a map to the start of the
  map. This is for GetNext. It has no effect on
@@ -1353,11 +1364,19 @@ QCBORError QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  */
 QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList);
 
+/*
 
-typedef int (*pfItemCallback)(void *pCallbackCtx, const QCBORItem *pItem);
+ The return value is intended for QCBOR errors, not general protocol decoding
+ errors. If this returns other than QCBOR_SUCCESS, the search will stop and
+ the value it returns will be return by QCBORDecode_GetItemsInMapWithCallback().
+ Protocol and other non-CBOR errors can be put in the call back context.
+
+ TODO: make QCBOR_ERR_CB_FAIL?
+ */
+typedef QCBORError (*QCBORItemCallback)(void *pCallbackCtx, const QCBORItem *pItem);
 
 
-QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx, QCBORItem *pItemList, void *pCallbackCtx, pfItemCallback pfCB);
+QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx, QCBORItem *pItemList, void *pCallbackCtx, QCBORItemCallback pfCB);
 
 
 
@@ -1602,16 +1621,16 @@ static inline QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pMe)
 
 
 // Semi-private
-void QCBORDecode_EnterMapMode(QCBORDecodeContext *pMe, uint8_t uType);
+void QCBORDecode_EnterBoundedMode(QCBORDecodeContext *pMe, uint8_t uType);
 
 
 inline static void QCBORDecode_EnterMap(QCBORDecodeContext *pMe) {
-   QCBORDecode_EnterMapMode(pMe, QCBOR_TYPE_MAP);
+   QCBORDecode_EnterBoundedMode(pMe, QCBOR_TYPE_MAP);
 }
 
 
 inline static void QCBORDecode_EnterArray(QCBORDecodeContext *pMe) {
-   QCBORDecode_EnterMapMode(pMe, QCBOR_TYPE_ARRAY);
+   QCBORDecode_EnterBoundedMode(pMe, QCBOR_TYPE_ARRAY);
 }
 
 // Semi-private

@@ -116,6 +116,23 @@ struct _QCBOREncodeContext {
 };
 
 
+
+#define QCBOR_NEST_TYPE_SEQUENCE 0x01
+#define QCBOR_NEST_TYPE_ARRAY 0x02
+#define QCBOR_NEST_TYPE_MAP 0x03
+#define QCBOR_NEST_TYPE_IS_INDEFINITE 0x40
+#define QCBOR_NEST_TYPE_IS_BOUND 0x80
+
+/*
+#define QCBOR_NEST_TYPE_BSTR 0x00
+#define QCBOR_NEST_TYPE_DEFINITE_ARRAY
+#define QCBOR_NEST_TYPE_INDEFINITE_ARRAY
+#define QCBOR_NEST_TYPE_DEFINITE_MAP
+#define QCBOR_NEST_TYPE_INDEFINITE_MAP
+#define QCBOR_NEST_TYPE_
+*/
+
+
 /*
  PRIVATE DATA STRUCTURE
 
@@ -130,6 +147,19 @@ struct _QCBOREncodeContext {
 typedef struct __QCBORDecodeNesting  {
   // PRIVATE DATA STRUCTURE
    struct nesting_decode_level {
+      union {
+         struct {
+            uint16_t uCountTotal;
+            uint16_t uCountCursor;
+            uint32_t uStartOffset;
+         } mm;
+         struct {
+            uint16_t uCountCursor;
+            uint32_t uEndOffset;
+         } bs;
+      } u;
+      uint32_t uEndOffset;
+      uint8_t uType;
       uint32_t uOffset;
       uint16_t uCount; // Cursor
       uint8_t  uMajorType; // TODO: one bit?
@@ -138,6 +168,7 @@ typedef struct __QCBORDecodeNesting  {
    } pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING1+1],
    *pCurrent,
    *pCurrentMap;
+   uint8_t uNestType[QCBOR_MAX_ARRAY_NESTING1+1];
 } QCBORDecodeNesting;
 
 
