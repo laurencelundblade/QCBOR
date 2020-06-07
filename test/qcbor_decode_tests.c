@@ -724,7 +724,7 @@ int32_t EmptyMapsAndArraysTest()
       return -8;
    }
 
-   // An map with 3 items
+   // A map with 3 items
    if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
       Item.uDataType != QCBOR_TYPE_MAP ||
       Item.uNestingLevel != 2 ||

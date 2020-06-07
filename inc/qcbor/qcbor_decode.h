@@ -1321,19 +1321,22 @@ void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLab
 static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
 
-void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pCtx, uint8_t uTagRequirement);
-void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pCtx, uint8_t uTagRequirement, int64_t uLabel);
-void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx, uint8_t uTagRequirement, const char  *szLabel);
+void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pCtx,
+                                  uint8_t uTagRequirement,
+                                  UsefulBufC *pBstr);
+
+void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pCtx,
+                                          uint8_t uTagRequirement,
+                                          int64_t uLabel,
+                                          UsefulBufC *pBstr);
+
+void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx,
+                                           uint8_t uTagRequirement,
+                                           const char  *szLabel,
+                                           UsefulBufC *pBstr);
+
 void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
 
-
-void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pCtx, UsefulBufC *pBstr);
-
-void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pCtx, int64_t uLabel, UsefulBufC *pBstr);
-
-void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx, const char  *szLabel, UsefulBufC *pBstr);
-
-void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
 
 
 
