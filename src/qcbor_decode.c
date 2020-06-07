@@ -2187,30 +2187,32 @@ void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
 }
 
 
-QCBORError QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
-                                      const char         *szLabel,
-                                      uint8_t            uQcborType,
-                                      QCBORItem         *pItem)
+void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
+                                const char         *szLabel,
+                                uint8_t            uQcborType,
+                                QCBORItem         *pItem)
 {
-   QCBORItem One[2];
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
-   One[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
-   One[0].label.string = UsefulBuf_FromSZ(szLabel);
-   One[0].uDataType    = uQcborType;
-   One[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSeach[0].uDataType    = uQcborType;
+   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORError nReturn = MapSearch(pMe, One, NULL, NULL);
+   QCBORError nReturn = MapSearch(pMe, OneItemSeach, NULL, NULL);
    if(nReturn) {
-     return nReturn;
+      pMe->uLastError = (uint8_t)nReturn;
    }
 
-   if(One[0].uDataType == QCBOR_TYPE_NONE) {
-      return QCBOR_ERR_NOT_FOUND;
+
+   if(OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
+      pMe->uLastError = QCBOR_ERR_NOT_FOUND;
    }
 
-   *pItem = One[0];
-
-   return QCBOR_SUCCESS;
+   *pItem = OneItemSeach[0];
 }
 
 
@@ -2749,12 +2751,22 @@ static inline QCBORError ConvertPositiveBigNumToSigned(const UsefulBufC BigNum, 
 static inline QCBORError ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, int64_t *pResult)
 {
    uint64_t uResult;
-   QCBORError uError = ConvertBigNumToUnsigned(BigNum, INT64_MAX-1, &uResult);
+   /* negaative int furthest from zero is INT64_MIN
+      which is expressed as -INT64_MAX-1. The value of
+    a negative bignum is -n-1, one further from zero
+    than the positive bignum */
+
+   /* say INT64_MIN is -2; then INT64_MAX is 1.
+    Then -n-1 <= INT64_MIN.
+    Then -n -1 <= -INT64_MAX - 1
+    THen n <= INT64_MAX. */
+   QCBORError uError = ConvertBigNumToUnsigned(BigNum, INT64_MAX, &uResult);
    if(uError) {
       return uError;
    }
    /* Cast is safe because ConvertBigNum is told to limit to INT64_MAX */
    // TODO: this code is incorrect. See RFC 7049
+   uResult++; // this is the -1 in -n-1
    *pResult = -(int64_t)uResult;
    return QCBOR_SUCCESS;
 }
@@ -3497,7 +3509,7 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uOptions, do
 
       case QCBOR_TYPE_NEGBIGNUM:
          if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
-            *pdValue = -ConvertBigNumToDouble(pItem->val.bigNum);
+            *pdValue = -1-ConvertBigNumToDouble(pItem->val.bigNum);
          } else {
             return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
@@ -3532,7 +3544,7 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uOptions, do
 
       case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
         if(uOptions & QCBOR_CONVERT_TYPE_BIGFLOAT) {
-         double dMantissa = -ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+         double dMantissa = -1-ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
          *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
          } else {
             return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
