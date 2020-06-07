@@ -146,6 +146,11 @@ typedef enum {
 } QCBORDecodeMode;
 
 
+/*
+ The maximum number of tags that may occur on an individual nested
+ item.
+ */
+#define QCBOR_MAX_TAGS_PER_ITEM 4
 
 
 
@@ -335,6 +340,7 @@ typedef struct _QCBORItem {
       } expAndMantissa;
 #endif
       uint64_t    uTagV;  // Used internally during decoding
+
    } val;
 
    /** Union holding the different label types selected based on @c
@@ -349,9 +355,7 @@ typedef struct _QCBORItem {
       uint64_t    uint64;
    } label;
 
-   /** Bit indicating which tags (major type 6) on this item. See
-       QCBORDecode_IsTagged().  */
-   uint64_t uTagBits;
+   uint16_t uTags[QCBOR_MAX_TAGS_PER_ITEM];
 
    /*
 
@@ -877,42 +881,11 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  */
 QCBORError QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
+QCBORError QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
-/**
- @brief Gets the next item including full list of tags for item.
 
- @param[in]  pCtx          The decoder context.
- @param[out] pDecodedItem  Holds the CBOR item just decoded.
- @param[in,out] pTagList   On input array to put tags in; on output
-                           the tags on this item. See
-                           @ref QCBORTagListOut.
 
- @return See return values for QCBORDecode_GetNext().
 
- @retval QCBOR_ERR_TOO_MANY_TAGS  The size of @c pTagList is too small.
-
- This works the same as QCBORDecode_GetNext() except that it also
- returns the full list of tags for the data item. This function should
- only be needed when parsing CBOR to print it out or convert it to
- some other format. It should not be needed to implement a CBOR-based
- protocol.  See QCBORDecode_GetNext() for the main description of tag
- decoding.
-
- Tags will be returned here whether or not they are in the built-in or
- caller-configured tag lists.
-
- CBOR has no upper bound of limit on the number of tags that can be
- associated with a data item though in practice the number of tags on
- an item will usually be small, perhaps less than five. This will
- return @ref QCBOR_ERR_TOO_MANY_TAGS if the array in @c pTagList is
- too small to hold all the tags for the item.
-
- (This function is separate from QCBORDecode_GetNext() so as to not
- have to make @ref QCBORItem large enough to be able to hold a full
- list of tags. Even a list of five tags would nearly double its size
- because tags can be a @c uint64_t ).
- */
-QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
 
 
 /**
@@ -1072,7 +1045,7 @@ static void QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pCtx, const char *sz
 
  When converting floating-point values, the integer is rounded to the nearest integer using
  llround(). By default, floating-point suport is enabled for QCBOR. If it is turned off,
- then floating-point conversion is not available.
+ then floating-point conversion is not available and TODO: error will be set.
  
  */
 static void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pCtx, uint32_t uOptions, int64_t *pnValue);
@@ -1095,7 +1068,7 @@ static void QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx, const c
  The additiona data item types that are suported are positive and negative bignums,
  decimal fractions and big floats, including decimal fractions and big floats that use bignums.
  Not that all these types can support numbers much larger that can be represented by
- in a 64-bit integer, so \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
+ in a 64-bit integer, so \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW may
  often be encountered.
 
  When converting bignums and decimal fractions \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
@@ -1238,6 +1211,15 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx, const char
 
 
 
+/**
+ @brief Decode the next item as a byte string
+
+ @param[in] pCtx   The decode context
+ @param[out] pBytes  The decoded byte string
+
+ On error, the decoder internal error state is set. If the next item
+ is not a byte string, the \ref QCBOR_ERR_UNEXPECTED_TYPE error is set.
+ */
 static void QCBORDecode_GetBytes(QCBORDecodeContext *pCtx, UsefulBufC *pBytes);
 
 static void QCBORDecode_GetBytesInMapN(QCBORDecodeContext *pCtx, int64_t nLabel, UsefulBufC *pBytes);
@@ -1440,6 +1422,12 @@ void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
 QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList);
 
 
+typedef int (*pfItemCallback)(void *pCallbackCtx, const QCBORItem *pItem);
+
+
+QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx, QCBORItem *pItemList, void *pCallbackCtx, pfItemCallback pfCB);
+
+
 
 
 
@@ -1489,6 +1477,42 @@ QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemL
  */
 
 
+
+/**
+ @brief Gets the next item including full list of tags for item.
+
+ @param[in]  pCtx          The decoder context.
+ @param[out] pDecodedItem  Holds the CBOR item just decoded.
+ @param[in,out] pTagList   On input array to put tags in; on output
+ the tags on this item. See
+ @ref QCBORTagListOut.
+
+ @return See return values for QCBORDecode_GetNext().
+
+ @retval QCBOR_ERR_TOO_MANY_TAGS  The size of @c pTagList is too small.
+
+ This works the same as QCBORDecode_GetNext() except that it also
+ returns the full list of tags for the data item. This function should
+ only be needed when parsing CBOR to print it out or convert it to
+ some other format. It should not be needed to implement a CBOR-based
+ protocol.  See QCBORDecode_GetNext() for the main description of tag
+ decoding.
+
+ Tags will be returned here whether or not they are in the built-in or
+ caller-configured tag lists.
+
+ CBOR has no upper bound of limit on the number of tags that can be
+ associated with a data item though in practice the number of tags on
+ an item will usually be small, perhaps less than five. This will
+ return @ref QCBOR_ERR_TOO_MANY_TAGS if the array in @c pTagList is
+ too small to hold all the tags for the item.
+
+ (This function is separate from QCBORDecode_GetNext() so as to not
+ have to make @ref QCBORItem large enough to be able to hold a full
+ list of tags. Even a list of five tags would nearly double its size
+ because tags can be a @c uint64_t ).
+ */
+QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
 
 
 
@@ -1605,7 +1629,32 @@ static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
    return 0;
 }
 
+#define FOFOO (0xffff - 1024)
 
+/*
+ Returns the tag values for an item.
+
+ The 0th tag is the one that occurs closest to the data item.
+ Tags nest, so the nth tag applies to what ever type
+ is a result of applying the (n-1) tag.
+
+ This returns 0xffff on all errors or if the nth tag is requested and
+ there is no nth tag. If there are no tags on the item, then
+ requesting the 0th tag will return 0xffff.
+
+ */
+static inline uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe, const QCBORItem *pItem, unsigned int uIndex)
+{
+   if(uIndex > QCBOR_MAX_TAGS_PER_ITEM) {
+      return 0xffff; // TODO constant for standard bad tag value
+   }
+
+   if(pItem->uTags[uIndex] > FOFOO) {
+      return pItem->uTags[uIndex];
+   } else {
+      return pMe->auMappedTags[pItem->uTags[uIndex] - FOFOO];
+   }
+}
 
 static inline QCBORError QCBORDecode_GetError(QCBORDecodeContext *pMe)
 {
@@ -1778,7 +1827,9 @@ inline static void QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pMe, const c
 
 // Semi private
 
-
+#define QCBOR_TAGSPEC_MATCH_TAG 0
+#define QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE 1 // When the tag type is known from the context of the protocol
+#define QCBOR_TAGSPEC_MATCH_EITHER 2 // CBOR protocols that need this are designed against recommended tag use !!
 typedef struct {
    uint8_t uTagRequirement;
    uint8_t uTaggedType;
@@ -1817,21 +1868,21 @@ void QCBORDecode_GetTaggedStringInMapSZ(QCBORDecodeContext *pMe,
 static inline void QCBORDecode_GetBytes(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 {
    // Complier should make this just 64-bit integer parameter
-   const TagSpecification TagSpec = {0, QCBOR_TYPE_BYTE_STRING, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
+   const TagSpecification TagSpec = {QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, QCBOR_TYPE_BYTE_STRING, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
 
    QCBORDecode_GetTaggedStringInternal(pMe, TagSpec, pValue);
 }
 
 inline static void QCBORDecode_GetBytesInMapN(QCBORDecodeContext *pMe, int64_t nLabel, UsefulBufC *pBstr)
 {
-   const TagSpecification TagSpec = {0, QCBOR_TYPE_BYTE_STRING, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
+   const TagSpecification TagSpec = {QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, QCBOR_TYPE_BYTE_STRING, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
 
    QCBORDecode_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pBstr);
 }
 
 inline static void QCBORDecode_GetBytesInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, UsefulBufC *pBstr)
 {
-   const TagSpecification TagSpec = {0, QCBOR_TYPE_BYTE_STRING, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
+   const TagSpecification TagSpec = {QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, QCBOR_TYPE_BYTE_STRING, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
 
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pBstr);
 }
@@ -1853,7 +1904,7 @@ static inline void QCBORDecode_GetText(QCBORDecodeContext *pMe,  UsefulBufC *pVa
 inline static void QCBORDecode_GetTextInMapN(QCBORDecodeContext *pMe, int64_t nLabel, UsefulBufC *pText)
 {
    // This TagSpec only matches text strings; it also should optimize down to passing a 64-bit integer
-   const TagSpecification TagSpec = {0, QCBOR_TYPE_TEXT_STRING, {QCBOR_TYPE_TEXT_STRING, 0,0,0,0,0}};
+   const TagSpecification TagSpec = {QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, QCBOR_TYPE_TEXT_STRING, {QCBOR_TYPE_TEXT_STRING, 0,0,0,0,0}};
 
    QCBORDecode_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pText);
 }
@@ -1861,7 +1912,7 @@ inline static void QCBORDecode_GetTextInMapN(QCBORDecodeContext *pMe, int64_t nL
 
 inline static void QCBORDecode_GetTextInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, UsefulBufC *pText)
 {
-   const TagSpecification TagSpec = {0, QCBOR_TYPE_TEXT_STRING, {QCBOR_TYPE_TEXT_STRING, 0,0,0,0,0}};
+   const TagSpecification TagSpec = {QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, QCBOR_TYPE_TEXT_STRING, {QCBOR_TYPE_TEXT_STRING, 0,0,0,0,0}};
 
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pText);
 }

@@ -64,6 +64,12 @@ extern "C" {
  */
 #define QCBOR_MAX_ARRAY_OFFSET  (UINT32_MAX - 100)
 
+
+/* The number of tags that are 16-bit or larger that can be handled
+ in a decode.
+ */
+#define QCBOR_NUM_MAPPED_TAGS 4
+
 /*
  PRIVATE DATA STRUCTURE
 
@@ -156,15 +162,11 @@ struct _QCBORDecodeContext {
    // PRIVATE DATA STRUCTURE
    UsefulInputBuf InBuf;
 
-   uint8_t        uDecodeMode;
-   uint8_t        bStringAllocateAll;
-   uint8_t        uLastError;  // QCBORError stuffed into a uint8_t
+
 
    QCBORDecodeNesting nesting;
    
-   // A cached offset to the end of the current map
-   // 0 if no value is cached.
-   uint32_t uMapEndOffset;
+
 
    // If a string allocator is configured for indefinite-length
    // strings, it is configured here.
@@ -177,9 +179,20 @@ struct _QCBORDecodeContext {
    uint32_t uMemPoolSize;
    uint32_t uMemPoolFreeOffset;
 
+   // A cached offset to the end of the current map
+   // 0 if no value is cached.
+   uint32_t uMapEndOffset;
+
+   uint8_t        uDecodeMode;
+   uint8_t        bStringAllocateAll;
+   uint8_t        uLastError;  // QCBORError stuffed into a uint8_t
+
    // This is NULL or points to QCBORTagList.
    // It is type void for the same reason as above.
-   const void *pCallerConfiguredTagList;
+   // TODO: remove this?
+   //const void *pCallerConfiguredTagList;
+
+   uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
 };
 
 // Used internally in the impementation here
