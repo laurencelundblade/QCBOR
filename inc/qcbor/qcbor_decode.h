@@ -357,6 +357,41 @@ typedef struct _QCBORItem {
 
    uint16_t uTags[QCBOR_MAX_TAGS_PER_ITEM];
 
+   /*
+
+    0-127, the tag value itself
+    128-255, index into tag map
+
+    The decode context stores 4 tags (32 bytes)
+
+    Could
+    - allocate space in decode context for new tags encountered, say 32 bytes worth for
+      four extra tags.
+    - require caller to pass in list of tags they are interested in, up to 128 even
+      This already exists. It is an error when an unknown tag is enountered.
+    - allow caller to give space to store tags if using tags > 128 in value
+      It is only an error if more distinct tag values are encountered
+      than there is space to remember them.
+    - Use storage alloator to expand space needed. 
+
+
+    */
+   uint8_t  auTags[4]; // 4 bytes
+
+   /*
+    Or use the existing tag mapping strategy, and
+    store the offset in 4-bits accommomdating use
+    of 64 tag values in a decode session and using
+    only 2 bytes to store the tag list.
+
+    Can elimiate getNextWithTags.
+
+    Add new function to get the tag value.
+
+    Is annoying to find tag value on error with
+    existing scheme.
+    */
+
 } QCBORItem;
 
 
@@ -1286,6 +1321,11 @@ void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLab
 static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
 
+void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pCtx, uint8_t uTagRequirement);
+void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pCtx, uint8_t uTagRequirement, int64_t uLabel);
+void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx, uint8_t uTagRequirement, const char  *szLabel);
+void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
+
 
 void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pCtx, UsefulBufC *pBstr);
 
@@ -1313,6 +1353,28 @@ bool QCBORDecode_InMapMode(QCBORDecodeContext *pCtxt);
 
 
 /*
+ @brief Get an item in map by label.
+
+ @param[in] pCtx   The decode context.
+ @param[in] nLabel The integer label.
+ @param[in] uQcborType  The QCBOR type. One of QCBOR_TYPE_XXX.
+ @param[out] pItem  The returned item
+
+ A map must have been entered to use this. If not \ref xxx is set.
+
+ The map is searched for an item of the requested label and type.
+ QCBOR_TYPE_ANY can be given to search for the label without
+ matching the type.
+
+ This will always search the entire map. This will always perform
+  duplicate label detection, setting \ref QCBOR_ERR_DUPLICATE_LABEL if there is more than
+ one occurance of the label being searched for.
+
+ This performs a full decode of every item in the map
+ being searched, which involves a full pre-order traversal
+ of every item. For  maps with little nesting, this
+ is of little consequence, but 
+
  Get an item out of a map.
  
  Decoding must be in map mode for this to work.
@@ -1331,35 +1393,41 @@ Allow specification of type required.
 */
 void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pCtx,
                                int64_t nLabel,
-                               uint8_t qcbor_type,
+                               uint8_t uQcborType,
                                QCBORItem *pItem);
 
-
-QCBORError QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
-                                      const char *szLabel,
-                                      uint8_t qcbor_type,
-                                      QCBORItem *pItem);
+void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
+                                const char *szLabel,
+                                uint8_t qcbor_type,
+                                QCBORItem *pItem);
 
 /*
+
+ @param[in] pCtx   The decode context.
+ @param[in,out] pItemList  On input the items to search for. On output the returned items.
+ 
  This gets several labeled items out of a map.
  
- pItemArray is an array of items terminated by an item
+ pItemList is an array of items terminated by an item
  with uLabelType QCBOR_TYPE_NONE.
- 
- On input the the array of items is the list of labels to fetch
- items for.
- 
- On output the array is the data items found. If the label
- wasn't found, uDataType is QCBOR_TYPE_NONE.
- 
+
+ On input the labels to search for are in the uLabelType and
+ label fields in the items in pItemList.
+
+ Also on input are the requested QCBOR types in the field uDataType.
+ To match any type, searching just by lable, uDataType
+ can be QCBOR_TYPE_ANY.
+
  This is a CPU-efficient way to decode a bunch of items in a map. It
  is more efficient than scanning each individually because the map
  only needs to be traversed once.
  
- If any duplicate labels are detected, this returns an error.
+ If any duplicate labels are detected, this returns \ref QCBOR_ERR_DUPLICATE_LABEL.
  
  This will return maps and arrays that are in the map, but
- provides no way to descend into and decode them.
+ provides no way to descend into and decode them. Use
+ QCBORDecode_EnterMapinMapN(), QCBORDecode_EnterArrayInMapN()
+ and such to decsend into and process maps and arrays.
  
  */
 QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList);

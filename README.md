@@ -121,7 +121,7 @@ See the comment sections on "Configuration" in inc/UsefulBuf.h.
 
 ## Code Size
 
-These are approximate sizes on 64-bit x86 with the -Os optimization.
+These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
 
     |               | smallest | largest |  
     |---------------|----------|---------|
