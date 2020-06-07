@@ -10,6 +10,8 @@
  Created on 9/19/18
  =============================================================================*/
 
+#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
+
 #include "float_tests.h"
 #include "qcbor.h"
 #include "half_to_double_from_rfc7049.h"
@@ -491,5 +493,6 @@ static int NaNExperiments() {
 }
 #endif
 
+#endif /* QCBOR_CONFIG_DISABLE_ENCODE_IEEE754 */
 
 

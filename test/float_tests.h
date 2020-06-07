@@ -15,11 +15,15 @@
 
 #include <stdint.h>
 
+#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
+
 int32_t HalfPrecisionDecodeBasicTests(void);
 
 int32_t DoubleAsSmallestTest(void);
 
 int32_t HalfPrecisionAgainstRFCCodeTest(void);
+
+#endif /* QCBOR_CONFIG_DISABLE_ENCODE_IEEE754 */
 
 
 #endif /* float_tests_h */

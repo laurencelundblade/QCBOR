@@ -10,6 +10,8 @@
  Created on 7/23/18
  =============================================================================*/
 
+#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
+
 #include "ieee754.h"
 #include <string.h> // For memcpy()
 
@@ -391,8 +393,8 @@ float IEEE754_HalfToFloat(uint16_t uHalfPrecision)
 double IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 {
     // Pull out the three parts of the half-precision float
-    // Do all the work in 64 bits because that is what the end result is
-    // may give smaller code size and will keep static analyzers happier.
+    // Do all the work in 64 bits because that is what the end result is.
+    // It may give smaller code size and will keep static analyzers happier.
     const uint64_t uHalfSignificand      = uHalfPrecision & HALF_SIGNIFICAND_MASK;
     const int64_t  nHalfUnBiasedExponent = (int64_t)((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
     const uint64_t uHalfSign             = (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
@@ -448,6 +450,74 @@ double IEEE754_HalfToDouble(uint16_t uHalfPrecision)
                             (uDoubleSign << DOUBLE_SIGN_SHIFT);
     return CopyUint64ToDouble(uDouble);
 }
+
+
+// Public function; see ieee754.h
+double IEEE754_FloatToDouble(float f)
+{
+    const uint32_t uFloat = CopyFloatToUint32(f);
+    // Pull out the three parts of the single-precision float
+    // Do all the work in 64 bits because that is what the end result is.
+    // It may give smaller code size and will keep static analyzers happier.
+    const uint64_t uSingleSignificand      = uFloat & SINGLE_SIGNIFICAND_MASK;
+    const int64_t  nSingleUnBiasedExponent = (int64_t)((uFloat & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT) - SINGLE_EXPONENT_BIAS;
+    const uint64_t uSingleSign             = (uFloat & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
+
+
+    // Make the three parts of hte single-precision number
+    uint64_t uDoubleSignificand, uDoubleSign, uDoubleBiasedExponent;
+    if(nSingleUnBiasedExponent == SINGLE_EXPONENT_ZERO) {
+        // 0 or subnormal
+        uDoubleBiasedExponent = DOUBLE_EXPONENT_ZERO + DOUBLE_EXPONENT_BIAS;
+        if(uSingleSignificand) {
+            // Subnormal case
+            uDoubleBiasedExponent = -SINGLE_EXPONENT_BIAS + DOUBLE_EXPONENT_BIAS + 1;
+            // A single-precision subnormal can always be converted to a normal double-precision float because the ranges line up
+            uDoubleSignificand = uSingleSignificand;
+            // Shift bits from right of the decimal to left, reducing the exponent by 1 each time
+            do {
+                uDoubleSignificand <<= 1;
+                uDoubleBiasedExponent--;
+                // TODO: is this right? Where does 0x400 come from?
+            } while ((uDoubleSignificand & 0x400) == 0);
+            uDoubleSignificand &= SINGLE_SIGNIFICAND_MASK;
+            uDoubleSignificand <<= (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+        } else {
+            // Just zero
+            uDoubleSignificand = 0;
+        }
+    } else if(nSingleUnBiasedExponent == SINGLE_EXPONENT_INF_OR_NAN) {
+        // NaN or Inifinity
+        uDoubleBiasedExponent = DOUBLE_EXPONENT_INF_OR_NAN + DOUBLE_EXPONENT_BIAS;
+        if(uSingleSignificand) {
+            // NaN
+            // First preserve the NaN payload from half to single
+            // TODO: check this
+            uDoubleSignificand = uSingleSignificand & ~SINGLE_QUIET_NAN_BIT;
+            if(uSingleSignificand & SINGLE_QUIET_NAN_BIT) {
+                // Next, set qNaN if needed since half qNaN bit is not copied above
+                uDoubleSignificand |= DOUBLE_QUIET_NAN_BIT;
+            }
+        } else {
+            // Infinity
+            uDoubleSignificand = 0;
+        }
+    } else {
+        // Normal number
+        uDoubleBiasedExponent = (uint64_t)(nSingleUnBiasedExponent + DOUBLE_EXPONENT_BIAS);
+        uDoubleSignificand    = uSingleSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+    }
+    uDoubleSign = uSingleSign;
+
+
+    // Shift the 3 parts into place as a double-precision
+    const uint64_t uDouble = uDoubleSignificand |
+                            (uDoubleBiasedExponent << DOUBLE_EXPONENT_SHIFT) |
+                            (uDoubleSign << DOUBLE_SIGN_SHIFT);
+    return CopyUint64ToDouble(uDouble);
+}
+
+
 
 
 // Public function; see ieee754.h
@@ -526,3 +596,4 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
     return result;
 }
 
+#endif /* QCBOR_CONFIG_DISABLE_ENCODE_IEEE754 */

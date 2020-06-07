@@ -616,9 +616,29 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
  */
 void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 {
+#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
    const IEEE754_union uNum = IEEE754_DoubleToSmallest(dNum);
-
+   
    QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
+#else
+   QCBOREncode_AddType7(me, sizeof(uint64_t), UsefulBufUtil_CopyDoubleToUint64(dNum));
+#endif
+
+}
+
+
+/*
+ Public functions for closing arrays and maps. See qcbor.h
+ */
+void QCBOREncode_AddFloat(QCBOREncodeContext *me, float fNum)
+{
+#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
+   const IEEE754_union uNum = IEEE754_FloatToSmallest(fNum);
+   
+   QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
+#else
+   QCBOREncode_AddType7(me, sizeof(uint32_t), UsefulBufUtil_CopyFloatToUint32(fNum));
+#endif
 }
 
 

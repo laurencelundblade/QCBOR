@@ -10,6 +10,8 @@
  Created on 7/23/18
  =============================================================================*/
 
+#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
+
 #ifndef ieee754_h
 #define ieee754_h
 
@@ -96,6 +98,13 @@ uint16_t IEEE754_DoubleToHalf(double d);
 double IEEE754_HalfToDouble(uint16_t uHalfPrecision);
 
 
+/*
+ Convert float to double-precision without using any
+ floating-point HW or compiler-supplied SW.
+ This is a loss-less conversion.
+ */
+double IEEE754_FloatToDouble(float f);
+
 
 // Both tags the value and gives the size
 #define IEEE754_UNION_IS_HALF   2
@@ -146,7 +155,7 @@ IEEE754_union IEEE754_FloatToSmallest(float f);
 #endif /* ieee754_h */
 
 
-
+#endif /* QCBOR_CONFIG_DISABLE_ENCODE_IEEE754 */
 
 
 

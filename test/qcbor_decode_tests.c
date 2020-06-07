@@ -2125,6 +2125,7 @@ int32_t DateParseTest()
    }
 
    // Epoch date in float format with fractional seconds
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return -8;
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
@@ -2132,6 +2133,10 @@ int32_t DateParseTest()
       CHECK_EXPECTED_DOUBLE(Item.val.epochDate.fSecondsFraction, 0.1 )) {
       return -9;
    }
+#else
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_UNSUPPORTED)
+      return -80;
+#endif
 
    // Epoch date float that is too large for our representation
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
