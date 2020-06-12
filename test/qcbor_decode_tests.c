@@ -1616,9 +1616,7 @@ static int32_t ProcessFailures(struct FailInput *pFailInputs, size_t nNumFails)
       if(nCBORError) {
          return -9;
       }
-      if((pF - pFailInputs) == 113) {
-         nCBORError = 0;
-      }
+
       // Iterate until there is an error of some sort error
       QCBORItem Item;
       do {
@@ -1710,11 +1708,10 @@ struct FailInput  Failures[] = {
    // Deeply nested indefinite length arrays with deepest one unclosed
    { {(uint8_t[]){0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_HIT_END },
    // Mixed nesting with indefinite unclosed
-   // TODO: think through this one
-   { {(uint8_t[]){0x9f, 0x81, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_BAD_BREAK },
+   { {(uint8_t[]){0x9f, 0x81, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_HIT_END },
    // Mixed nesting with definite unclosed
-   // TODO: think through this one
    { {(uint8_t[]){0x9f, 0x82, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 10}, QCBOR_ERR_BAD_BREAK },
+   // TODO: a few more definite indefinite length combos and check with CBORbis.
 
 
    // The "argument" for the data item is incomplete
@@ -2860,6 +2857,7 @@ static int32_t parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
 }
 
 
+// TODO: investigate why this doesn't fail in master and does here. It seems like a broken test.
 int32_t IndefiniteLengthNestTest()
 {
    UsefulBuf_MAKE_STACK_UB(Storage, 50);

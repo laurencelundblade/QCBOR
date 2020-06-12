@@ -242,6 +242,17 @@ typedef enum {
 
 #define QCBOR_TYPE_UUID          32 // TODO: implement this
 
+#define QCBOR_TYPE_URI           33 // TODO: implement this
+
+#define QCBOR_TYPE_MIME          34 // TODO: implement this
+
+#define QCBOR_TYPE_REGEX         35
+
+#define QCBOR_TYPE_BASE64URL     36
+
+#define QCBOR_TYPE_BASE64        37
+
+
 #define QCBOR_TYPE_OPTTAG       254 // Used internally; never returned
 
 
