@@ -366,6 +366,7 @@ typedef struct _QCBORItem {
       uint64_t    uint64;
    } label;
 
+   // Values below XXX are exact; values above XXX must be mapped
    uint16_t uTags[QCBOR_MAX_TAGS_PER_ITEM];
 
    /*
@@ -387,7 +388,6 @@ typedef struct _QCBORItem {
 
 
     */
-   uint8_t  auTags[4]; // 4 bytes
 
    /*
     Or use the existing tag mapping strategy, and
@@ -1362,7 +1362,7 @@ void QCBORDecode_RewindMap(QCBORDecodeContext *pCtxt);
 /*
  Indicate if decoding is in map mode more not.
  */
-bool QCBORDecode_InMapMode(QCBORDecodeContext *pCtxt);
+bool QCBORDecode_InBoundedMode(QCBORDecodeContext *pCtxt);
 
 
 
@@ -1716,17 +1716,17 @@ inline static void QCBORDecode_EnterArray(QCBORDecodeContext *pMe) {
 }
 
 // Semi-private
-void QCBORDecode_ExitMapMode(QCBORDecodeContext *pMe, uint8_t uType);
+void QCBORDecode_ExitBoundedMode(QCBORDecodeContext *pMe, uint8_t uType);
 
 
 static inline void QCBORDecode_ExitArray(QCBORDecodeContext *pMe)
 {
-   QCBORDecode_ExitMapMode(pMe, QCBOR_TYPE_ARRAY);
+   QCBORDecode_ExitBoundedMode(pMe, QCBOR_TYPE_ARRAY);
 }
 
 static inline void QCBORDecode_ExitMap(QCBORDecodeContext *pMe)
 {
-   QCBORDecode_ExitMapMode(pMe, QCBOR_TYPE_MAP);
+   QCBORDecode_ExitBoundedMode(pMe, QCBOR_TYPE_MAP);
 }
 
 
