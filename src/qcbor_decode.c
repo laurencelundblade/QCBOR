@@ -2307,6 +2307,9 @@ Done:
 }
 
 
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
                                int64_t             nLabel,
                                uint8_t             uQcborType,
@@ -2335,6 +2338,9 @@ void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
 }
 
 
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
                                 const char         *szLabel,
                                 uint8_t            uQcborType,
@@ -2344,9 +2350,7 @@ void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-
    QCBORItem OneItemSeach[2];
-
    OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
    OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
    OneItemSeach[0].uDataType    = uQcborType;
@@ -2357,7 +2361,6 @@ void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
       pMe->uLastError = (uint8_t)nReturn;
    }
 
-
    if(OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
       pMe->uLastError = QCBOR_ERR_NOT_FOUND;
    }
@@ -2366,6 +2369,15 @@ void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
+/**
+ @param[in] TagSpec  Specification for matching tags.
+ @param[in] uDataType  A QCBOR data type
+ 
+ @retval QCBOR_SUCCESS   \c uDataType is allowed by @c TagSpec
+ @retval QCBOR_ERR_UNEXPECTED_TYPE \c uDataType is not allowed by @c TagSpec
+ 
+ The data type must be one of the QCBOR_TYPEs, not the IETF CBOR Registered tag value.
+ */
 static QCBORError CheckTagRequirement(const TagSpecification TagSpec, uint8_t uDataType)
 {
    if(TagSpec.uTagRequirement == QCBOR_TAGSPEC_MATCH_TAG) {
@@ -2394,6 +2406,8 @@ static QCBORError CheckTagRequirement(const TagSpecification TagSpec, uint8_t uD
 }
 
 
+// Semi-private
+// TODO: inline or collapse with QCBORDecode_GetTaggedStringInMapN?
 void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext *pMe,
                                      int64_t             nLabel,
                                      TagSpecification    TagSpec,
@@ -2407,6 +2421,7 @@ void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext *pMe,
    pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, pItem->uDataType);
 }
 
+// Semi-private
 void QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext *pMe,
                                      const char          *szLabel,
                                      TagSpecification    TagSpec,
@@ -2420,6 +2435,7 @@ void QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext *pMe,
    pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, pItem->uDataType);
 }
 
+// Semi-private
 void QCBORDecode_GetTaggedStringInMapN(QCBORDecodeContext *pMe,
                                        int64_t             nLabel,
                                        TagSpecification    TagSpec,
@@ -2432,6 +2448,7 @@ void QCBORDecode_GetTaggedStringInMapN(QCBORDecodeContext *pMe,
    }
 }
 
+// Semi-private
 void QCBORDecode_GetTaggedStringInMapSZ(QCBORDecodeContext *pMe,
                                         const char *        szLabel,
                                         TagSpecification    TagSpec,
@@ -2444,14 +2461,21 @@ void QCBORDecode_GetTaggedStringInMapSZ(QCBORDecodeContext *pMe,
    }
 }
 
-
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList)
 {
    return MapSearch(pCtx, pItemList, NULL, NULL, NULL, NULL);
 }
 
-
-QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx, QCBORItem *pItemList, void *pCallbackCtx, QCBORItemCallback pfCB)
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
+QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
+                                                 QCBORItem          *pItemList,
+                                                 void               *pCallbackCtx,
+                                                 QCBORItemCallback   pfCB)
 {
    return MapSearch(pCtx, pItemList, NULL, NULL, pCallbackCtx, pfCB);
 }
@@ -2495,6 +2519,9 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
 }
 
 
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_EnterMapInMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
    QCBORItem OneItemSeach[2];
@@ -2508,6 +2535,9 @@ void QCBORDecode_EnterMapInMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 }
 
 
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 {
    QCBORItem OneItemSeach[2];
@@ -2519,7 +2549,9 @@ void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel
    SearchAndEnter(pMe, OneItemSeach);
 }
 
-
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
    QCBORItem OneItemSeach[2];
@@ -2531,7 +2563,9 @@ void QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
    SearchAndEnter(pMe, OneItemSeach);
 }
 
-
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 {
    QCBORItem OneItemSeach[2];
@@ -2572,7 +2606,7 @@ void QCBORDecode_EnterBoundedMode(QCBORDecodeContext *pMe, uint8_t uType)
 void QCBORDecode_ExitBoundedMode(QCBORDecodeContext *pMe, uint8_t uType)
 {
    QCBORError uErr;
-   size_t uEndOffset;
+   size_t     uEndOffset;
 
    (void)uType; // TODO: error check
 
@@ -2716,6 +2750,9 @@ static QCBORError InterpretBool(const QCBORItem *pItem, bool *pBool)
    }
 }
 
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetBool(QCBORDecodeContext *pMe, bool *pValue)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
@@ -2734,6 +2771,9 @@ void QCBORDecode_GetBool(QCBORDecodeContext *pMe, bool *pValue)
    pMe->uLastError = (uint8_t)InterpretBool(&Item, pValue);
 }
 
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetBoolInMapN(QCBORDecodeContext *pMe, int64_t nLabel, bool *pValue)
 {
    QCBORItem Item;
@@ -2742,7 +2782,9 @@ void QCBORDecode_GetBoolInMapN(QCBORDecodeContext *pMe, int64_t nLabel, bool *pV
    pMe->uLastError = (uint8_t)InterpretBool(&Item, pValue);
 }
 
-
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, bool *pValue)
 {
    QCBORItem Item;
@@ -2843,6 +2885,9 @@ void QCBORDecode_GetBignum(QCBORDecodeContext *pMe, bool bMustBeTagged, UsefulBu
    pMe->uLastError = (uint8_t)ConvertBigNum(&Item, pValue, pbIsNegative);
 }
 
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe, int64_t nLabel, bool bMustBeTagged, UsefulBufC *pValue, bool *pbIsNegative)
 {
    QCBORItem Item;
@@ -3564,7 +3609,9 @@ static QCBORError Uint64ConvertAll(const QCBORItem *pItem, uint32_t uOptions, ui
    }
 }
 
-
+/*
+  Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, uint64_t *puValue)
 {
    QCBORItem Item;
@@ -3586,7 +3633,7 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
 
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+  Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetUint64ConvertAllInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uOptions, uint64_t *puValue)
 {
@@ -3609,7 +3656,7 @@ void QCBORDecode_GetUint64ConvertAllInMapN(QCBORDecodeContext *pMe, int64_t nLab
 
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+  Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetUint64ConvertAllInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, uint64_t *puValue)
 {
@@ -3831,7 +3878,7 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uOptions, do
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h file
+   Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions, double *pdValue)
 {
@@ -3855,7 +3902,7 @@ void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe, uint32_t uOptions,
 
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+   Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uOptions, double *pdValue)
 {
@@ -3878,7 +3925,7 @@ void QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext *pMe, int64_t nLab
 
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+   Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, double *pdValue)
 {
