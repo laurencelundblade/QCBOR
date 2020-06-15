@@ -3918,3 +3918,194 @@ int32_t CBORSequenceDecodeTests(void)
    return 0;
 }
 
+
+int32_t IntToTests()
+{
+   int nErrCode;
+   int32_t n32;
+   int16_t n16;
+   int8_t n8;
+   uint32_t u32;
+   uint16_t u16;
+   uint8_t u8;
+   uint64_t u64;
+
+   nErrCode = QCBOR_Int64ToInt32(1, &n32);
+   if(nErrCode == -1 || n32 != 1) {
+      return 1;
+   }
+
+   nErrCode = QCBOR_Int64ToInt32((int64_t)INT32_MAX, &n32);
+   if(nErrCode == -1 || n32 != INT32_MAX) {
+      return 2;
+   }
+
+   nErrCode = QCBOR_Int64ToInt32((int64_t)INT32_MIN, &n32);
+   if(nErrCode == -1 || n32 != INT32_MIN) {
+      return 3;
+   }
+
+   nErrCode = QCBOR_Int64ToInt32(((int64_t)INT32_MAX)+1, &n32);
+   if(nErrCode != -1) {
+      return 4;
+   }
+
+   nErrCode = QCBOR_Int64ToInt32(((int64_t)INT32_MIN)-1, &n32);
+   if(nErrCode != -1) {
+      return 5;
+   }
+
+
+   nErrCode = QCBOR_Int64ToInt16((int64_t)INT16_MAX, &n16);
+   if(nErrCode == -1 || n16 != INT16_MAX) {
+      return 6;
+   }
+
+   nErrCode = QCBOR_Int64ToInt16((int64_t)INT16_MIN, &n16);
+   if(nErrCode == -1 || n16 != INT16_MIN) {
+      return 7;
+   }
+
+   nErrCode = QCBOR_Int64ToInt16(1, &n16);
+   if(nErrCode == -1 || n16 != 1) {
+      return 8;
+   }
+
+   nErrCode = QCBOR_Int64ToInt16(((int64_t)INT16_MAX)+1, &n16);
+   if(nErrCode != -1) {
+      return 9;
+   }
+
+   nErrCode = QCBOR_Int64ToInt16(((int64_t)INT16_MIN)-1, &n16);
+   if(nErrCode != -1) {
+      return 10;
+   }
+
+
+   nErrCode = QCBOR_Int64ToInt8(1, &n8);
+   if(nErrCode == -1 || n8 != 1) {
+      return 11;
+   }
+
+   nErrCode = QCBOR_Int64ToInt8((int64_t)INT8_MAX, &n8);
+   if(nErrCode == -1 || n8 != INT8_MAX) {
+      return 12;
+   }
+
+   nErrCode = QCBOR_Int64ToInt8((int64_t)INT8_MIN, &n8);
+   if(nErrCode == -1 || n8 != INT8_MIN) {
+      return 13;
+   }
+
+   nErrCode = QCBOR_Int64ToInt8(((int64_t)INT8_MAX)+1, &n8);
+   if(nErrCode != -1) {
+      return 14;
+   }
+
+   nErrCode = QCBOR_Int64ToInt8(((int64_t)INT8_MIN)-1, &n8);
+   if(nErrCode != -1) {
+      return 15;
+   }
+
+
+   nErrCode = QCBOR_Int64ToUInt32(1, &u32);
+   if(nErrCode == -1 || u32 != 1) {
+      return 16;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt32((int64_t)UINT32_MAX, &u32);
+   if(nErrCode == -1 || u32 != UINT32_MAX) {
+      return 17;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt32((int64_t)0, &u32);
+   if(nErrCode == -1 || u32 != 0) {
+      return 18;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt32(((int64_t)UINT32_MAX)+1, &u32);
+   if(nErrCode != -1) {
+      return 19;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt32((int64_t)-1, &u32);
+   if(nErrCode != -1) {
+      return 20;
+   }
+
+
+   nErrCode = QCBOR_Int64UToInt16((int64_t)UINT16_MAX, &u16);
+   if(nErrCode == -1 || u16 != UINT16_MAX) {
+      return 21;
+   }
+
+   nErrCode = QCBOR_Int64UToInt16((int64_t)0, &u16);
+   if(nErrCode == -1 || u16 != 0) {
+      return 22;
+   }
+
+   nErrCode = QCBOR_Int64UToInt16(1, &u16);
+   if(nErrCode == -1 || u16 != 1) {
+      return 23;
+   }
+
+   nErrCode = QCBOR_Int64UToInt16(((int64_t)UINT16_MAX)+1, &u16);
+   if(nErrCode != -1) {
+      return 24;
+   }
+
+   nErrCode = QCBOR_Int64UToInt16((int64_t)-1, &u16);
+   if(nErrCode != -1) {
+      return 25;
+   }
+
+
+   nErrCode = QCBOR_Int64ToUInt8((int64_t)UINT8_MAX, &u8);
+   if(nErrCode == -1 || u8 != UINT8_MAX) {
+      return 26;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt8((int64_t)0, &u8);
+   if(nErrCode == -1 || u8 != 0) {
+      return 27;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt8(1, &u8);
+   if(nErrCode == -1 || u8 != 1) {
+      return 28;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt8(((int64_t)UINT16_MAX)+1, &u8);
+   if(nErrCode != -1) {
+      return 29;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt8((int64_t)-1, &u8);
+   if(nErrCode != -1) {
+      return 30;
+   }
+
+
+   nErrCode = QCBOR_Int64ToUInt64(1, &u64);
+   if(nErrCode == -1 || u64 != 1) {
+      return 31;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt64(INT64_MAX, &u64);
+   if(nErrCode == -1 || u64 != INT64_MAX) {
+      return 32;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt64((int64_t)0, &u64);
+   if(nErrCode == -1 || u64 != 0) {
+      return 33;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt64((int64_t)-1, &u64);
+   if(nErrCode != -1) {
+      return 34;
+   }
+
+   return 0;
+}
+
