@@ -1359,88 +1359,6 @@ inline static QCBORError DecodeDateString(QCBORItem *pDecodedItem)
 
 
 /*
- Mostly just assign the right data type for the bignum.
- */
-inline static QCBORError DecodeBigNum(QCBORItem *pDecodedItem)
-{
-   // Stack Use: UsefulBuf 1  -- 16
-   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   const UsefulBufC Temp    = pDecodedItem->val.string;
-   pDecodedItem->val.bigNum = Temp;
-   const bool bIsPosBigNum = (bool)(pDecodedItem->uTags[0] == CBOR_TAG_POS_BIGNUM);
-   pDecodedItem->uDataType  = (uint8_t)(bIsPosBigNum ? QCBOR_TYPE_POSBIGNUM
-                                                     : QCBOR_TYPE_NEGBIGNUM);
-   return QCBOR_SUCCESS;
-}
-
-
-/*
- */
-inline static QCBORError DecodeUUID(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   pDecodedItem->uDataType = QCBOR_TYPE_UUID;
-   return QCBOR_SUCCESS;
-}
-
-
-/*
- */
-inline static QCBORError DecodeURI(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   pDecodedItem->uDataType = QCBOR_TYPE_URI;
-   return QCBOR_SUCCESS;
-}
-
-
-inline static QCBORError DecodeRegex(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   pDecodedItem->uDataType = QCBOR_TYPE_REGEX;
-   return QCBOR_SUCCESS;
-}
-
-
-inline static QCBORError DecodeB64URL(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   pDecodedItem->uDataType = QCBOR_TYPE_BASE64URL;
-   return QCBOR_SUCCESS;
-}
-
-
-inline static QCBORError DecodeB64(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   pDecodedItem->uDataType = QCBOR_TYPE_BASE64;
-   return QCBOR_SUCCESS;
-}
-
-
-inline static QCBORError DecodeMIME(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING &&
-      pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   pDecodedItem->uDataType = QCBOR_TYPE_MIME;
-   return QCBOR_SUCCESS;
-}
-
-/*
  The epoch formatted date. Turns lots of different forms of encoding
  date into uniform one
  */
@@ -1505,6 +1423,24 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
 
 Done:
    return nReturn;
+}
+
+
+/*
+ Mostly just assign the right data type for the bignum.
+ */
+inline static QCBORError DecodeBigNum(QCBORItem *pDecodedItem)
+{
+   // Stack Use: UsefulBuf 1  -- 16
+   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
+      return QCBOR_ERR_BAD_OPT_TAG;
+   }
+   const UsefulBufC Temp    = pDecodedItem->val.string;
+   pDecodedItem->val.bigNum = Temp;
+   const bool bIsPosBigNum = (bool)(pDecodedItem->uTags[0] == CBOR_TAG_POS_BIGNUM);
+   pDecodedItem->uDataType  = (uint8_t)(bIsPosBigNum ? QCBOR_TYPE_POSBIGNUM
+                                                     : QCBOR_TYPE_NEGBIGNUM);
+   return QCBOR_SUCCESS;
 }
 
 
@@ -1609,6 +1545,74 @@ Done:
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
+
+/*
+ */
+inline static QCBORError DecodeURI(QCBORItem *pDecodedItem)
+{
+   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
+      return QCBOR_ERR_BAD_OPT_TAG;
+   }
+   pDecodedItem->uDataType = QCBOR_TYPE_URI;
+   return QCBOR_SUCCESS;
+}
+
+
+inline static QCBORError DecodeB64URL(QCBORItem *pDecodedItem)
+{
+   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
+      return QCBOR_ERR_BAD_OPT_TAG;
+   }
+   pDecodedItem->uDataType = QCBOR_TYPE_BASE64URL;
+   return QCBOR_SUCCESS;
+}
+
+
+inline static QCBORError DecodeB64(QCBORItem *pDecodedItem)
+{
+   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
+      return QCBOR_ERR_BAD_OPT_TAG;
+   }
+   pDecodedItem->uDataType = QCBOR_TYPE_BASE64;
+   return QCBOR_SUCCESS;
+}
+
+
+inline static QCBORError DecodeRegex(QCBORItem *pDecodedItem)
+{
+   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
+      return QCBOR_ERR_BAD_OPT_TAG;
+   }
+   pDecodedItem->uDataType = QCBOR_TYPE_REGEX;
+   return QCBOR_SUCCESS;
+}
+
+
+inline static QCBORError DecodeMIME(QCBORItem *pDecodedItem)
+{
+   if(pDecodedItem->uDataType == QCBOR_TYPE_TEXT_STRING) {
+      pDecodedItem->uDataType = QCBOR_TYPE_MIME;
+   } else if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
+      pDecodedItem->uDataType = QCBOR_TYPE_BINARY_MIME;
+   } else {
+      return QCBOR_ERR_BAD_OPT_TAG;
+   }
+   return QCBOR_SUCCESS;
+}
+
+
+/*
+ */
+inline static QCBORError DecodeUUID(QCBORItem *pDecodedItem)
+{
+   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
+      return QCBOR_ERR_BAD_OPT_TAG;
+   }
+   pDecodedItem->uDataType = QCBOR_TYPE_UUID;
+   return QCBOR_SUCCESS;
+}
+
+
 /*
  Public function, see header qcbor/qcbor_decode.h file
  */
@@ -1624,10 +1628,6 @@ QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 
    for(int i = 0; i < QCBOR_MAX_TAGS_PER_ITEM; i++) {
       switch(pDecodedItem->uTags[i] ) {
-         case 0xffff:
-         // The end of the tag list or no tags
-         // Successful exit from the loop.
-         goto Done;
 
          case CBOR_TAG_DATE_STRING:
          nReturn = DecodeDateString(pDecodedItem);
@@ -1653,34 +1653,35 @@ QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
          break;
    #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
-         case CBOR_TAG_BIN_UUID:
-         nReturn = DecodeUUID(pDecodedItem);
-         break;
-            
          case CBOR_TAG_URI:
          nReturn = DecodeURI(pDecodedItem);
+         break;
+
+         case CBOR_TAG_B64URL:
+         nReturn = DecodeB64URL(pDecodedItem);
+         break;
+            
+         case CBOR_TAG_B64:
+         nReturn = DecodeB64(pDecodedItem);
+         break;
+
+         case CBOR_TAG_MIME:
+         case CBOR_TAG_BINARY_MIME:
+         nReturn = DecodeMIME(pDecodedItem);
          break;
 
          case CBOR_TAG_REGEX:
          nReturn = DecodeRegex(pDecodedItem);
          break;
 
-
-         case CBOR_TAG_B64:
-         nReturn = DecodeB64(pDecodedItem);
-         break;
-
-
-         case CBOR_TAG_B64URL:
-         nReturn = DecodeB64URL(pDecodedItem);
+         case CBOR_TAG_BIN_UUID:
+         nReturn = DecodeUUID(pDecodedItem);
          break;
             
-         case CBOR_TAG_MIME:
-         case CBOR_TAG_BINARY_MIME:
-// TODO: should binary and text MIME be distinguished?
-         nReturn = DecodeMIME(pDecodedItem);
-         break;
-
+         case 0xffff:
+         // The end of the tag list or no tags
+         // Successful exit from the loop.
+         goto Done;
             
          default:
          // A tag that is not understood
@@ -1794,8 +1795,8 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *me,
  Public function, see header qcbor/qcbor_decode.h file
  */
 int QCBORDecode_IsTagged(QCBORDecodeContext *me,
-                         const QCBORItem *pItem,
-                         uint64_t uTag)
+                         const QCBORItem   *pItem,
+                         uint64_t           uTag)
 {
    for(int i = 0; i < QCBOR_MAX_TAGS_PER_ITEM; i++ ) {
       if(pItem->uTags[i] == 0xffff) {
@@ -2821,11 +2822,11 @@ void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe, TagSpecificati
 
 
 
-static QCBORError ConvertBigNum(const QCBORItem *pItem, UsefulBufC *pValue, bool *pbIsNegative)
+static QCBORError ConvertBigNum(uint8_t uTagRequirement, const QCBORItem *pItem, UsefulBufC *pValue, bool *pbIsNegative)
 {
    *pbIsNegative = false;
 
-   bool bMustBeTagged = true; // TODO: fix this
+   bool bMustBeTagged = true; // TODO: fix this --- they have to tell us if they are expecting positive or negative
 
    switch(pItem->uDataType) {
       case QCBOR_TYPE_BYTE_STRING:
@@ -2856,7 +2857,7 @@ static QCBORError ConvertBigNum(const QCBORItem *pItem, UsefulBufC *pValue, bool
 }
 
 
-/**
+/*
  @param[in] bMustBeTagged  If \c true, then the data item must be tagged as either
  a positive or negative bignum. If \c false, then it only must be a byte string and bIsNegative
  will always be false on the asumption that it is positive, but it can be interpretted as
@@ -2868,7 +2869,7 @@ static QCBORError ConvertBigNum(const QCBORItem *pItem, UsefulBufC *pValue, bool
  a positive big num or a negative big num.
 
  */
-void QCBORDecode_GetBignum(QCBORDecodeContext *pMe, bool bMustBeTagged, UsefulBufC *pValue, bool *pbIsNegative)
+void QCBORDecode_GetBignum(QCBORDecodeContext *pMe, uint8_t uTagRequirement, UsefulBufC *pValue, bool *pbIsNegative)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       // Already in error state, do nothing
@@ -2882,19 +2883,64 @@ void QCBORDecode_GetBignum(QCBORDecodeContext *pMe, bool bMustBeTagged, UsefulBu
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertBigNum(&Item, pValue, pbIsNegative);
+   pMe->uLastError = (uint8_t)ConvertBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
 }
 
 /*
 Public function, see header qcbor/qcbor_decode.h file
 */
-void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe, int64_t nLabel, bool bMustBeTagged, UsefulBufC *pValue, bool *pbIsNegative)
+void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint8_t uTagRequirement, UsefulBufC *pValue, bool *pbIsNegative)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)ConvertBigNum(&Item, pValue, pbIsNegative);
+   pMe->uLastError = (uint8_t)ConvertBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
 }
+
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint8_t uTagRequirement, UsefulBufC *pValue, bool *pbIsNegative)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+
+   pMe->uLastError = (uint8_t)ConvertBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
+}
+
+
+
+// Semi private
+QCBORError FarfMIME(uint8_t uTagRequirement, const QCBORItem *pItem, UsefulBufC *pMessage, bool *pbIsNot7Bit)
+{
+   const TagSpecification TagSpecText = {uTagRequirement, QCBOR_TYPE_MIME, {QCBOR_TYPE_TEXT_STRING, 0,0,0,0,0}};
+   const TagSpecification TagSpecBinary = {uTagRequirement, QCBOR_TYPE_BINARY_MIME, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
+   
+   QCBORError uReturn;
+   
+   if(CheckTagRequirement(TagSpecText, pItem->uDataType)) {
+      *pMessage = pItem->val.string;
+      if(pbIsNot7Bit != NULL) {
+         *pbIsNot7Bit = false;
+      }
+      uReturn = QCBOR_SUCCESS;
+   } else if(CheckTagRequirement(TagSpecBinary, pItem->uDataType)) {
+      *pMessage = pItem->val.string;
+      if(pbIsNot7Bit != NULL) {
+         *pbIsNot7Bit = true;
+      }
+      uReturn = QCBOR_SUCCESS;
+
+   } else {
+      uReturn = QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+   
+   return uReturn;
+}
+
+
+
+
 
 
 
@@ -3476,6 +3522,48 @@ void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe,
 }
 
 
+void QCBORDecode_GetInt8ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, int8_t *pnValue, QCBORItem *pItem)
+{
+   int64_t uValue;
+   QCBORDecode_GetInt64ConvertInternal(pMe, uOptions, &uValue, pItem);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   if(QCBOR_Int64ToInt8(uValue, pnValue)) {
+      pMe->uLastError = QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+   }
+}
+
+void QCBORDecode_GetInt8ConvertInternalInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uOptions, int8_t *pnValue, QCBORItem *pItem)
+{
+   int64_t uValue;
+   QCBORDecode_GetInt64ConvertInternalInMapN(pMe, nLabel, uOptions, &uValue, pItem);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   if(QCBOR_Int64ToInt8(uValue, pnValue)) {
+      pMe->uLastError = QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+   }
+}
+
+void QCBORDecode_GetInt8ConvertInternalInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, int8_t *pnValue, QCBORItem *pItem)
+{
+   int64_t uValue;
+   QCBORDecode_GetInt64ConvertInternalInMapSZ(pMe, szLabel, uOptions, &uValue, pItem);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   if(QCBOR_Int64ToInt8(uValue, pnValue)) {
+      pMe->uLastError = QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+   }
+}
+
+
+
+
 void QCBORDecode_GetUint64ConvertInternalInMapN(QCBORDecodeContext *pMe,
                                                int64_t             nLabel,
                                                uint32_t            uOptions,
@@ -3943,4 +4031,161 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe, const char 
    }
 
    pMe->uLastError = (uint8_t)DoubleConvertAll(&Item, uOptions, pdValue);
+}
+
+
+void FarfDecimalFraction(QCBORDecodeContext *pMe,
+                         uint8_t             uTagRequirement,
+                         QCBORItem          *pItem,
+                         int64_t             *pnMantissa,
+                         int64_t             *pnExponent)
+{
+   QCBORError uErr;
+   
+   if(pItem->uDataType == QCBOR_TYPE_ARRAY) {
+      if(uTagRequirement == QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE) {
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+         return;
+      }
+      uErr = QCBORDecode_MantissaAndExponent(pMe, pItem);
+       if(uErr != QCBOR_SUCCESS) {
+          pMe->uLastError = (uint8_t)uErr;
+          return;
+       }
+    }
+   
+   if(uTagRequirement == QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE) {
+      pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+      return;
+   }
+    
+    switch (pItem->uDataType) {
+          
+       case QCBOR_TYPE_DECIMAL_FRACTION:
+          *pnMantissa = pItem->val.expAndMantissa.Mantissa.nInt;
+          *pnExponent = pItem->val.expAndMantissa.nExponent;
+          break;
+          
+       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
+          *pnExponent = pItem->val.expAndMantissa.nExponent;
+          
+          uErr = ConvertPositiveBigNumToSigned(pItem->val.expAndMantissa.Mantissa.bigNum, pnMantissa);
+          if(uErr != QCBOR_SUCCESS) {
+             pMe->uLastError = (uint8_t)uErr;
+          }
+          break;
+
+       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
+          *pnExponent = pItem->val.expAndMantissa.nExponent;
+          
+          uErr = ConvertNegativeBigNumToSigned(pItem->val.expAndMantissa.Mantissa.bigNum, pnMantissa);
+          if(uErr != QCBOR_SUCCESS) {
+             pMe->uLastError = (uint8_t)uErr;
+          }
+          break;
+          
+       default:
+          pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+    }
+}
+
+void QCBORDecode_GetDecimalFractionN(QCBORDecodeContext *pMe,
+                                     uint8_t             uTagRequirement,
+                                     int64_t             nLabel,
+                                     int64_t             *pnMantissa,
+                                     int64_t             *pnExponent)
+{
+   QCBORItem Item;
+   
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   FarfDecimalFraction(pMe, uTagRequirement, &Item, pnMantissa, pnExponent);
+}
+
+
+
+void QCBORDecode_GetDecimalFractionSZ(QCBORDecodeContext *pMe,
+                                     uint8_t             uTagRequirement,
+                                     const char         *szLabel,
+                                     int64_t             *pnMantissa,
+                                     int64_t             *pnExponent)
+{
+   QCBORItem Item;
+   
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   
+   FarfDecimalFraction(pMe, uTagRequirement, &Item, pnMantissa, pnExponent);
+}
+
+
+UsefulBufC ConvertIntToBigNum(uint64_t uInt, UsefulBuf Buffer)
+{
+   while(uInt & 0xff0000000000UL) {
+      uInt = uInt << 8;
+   };
+   
+   UsefulOutBuf UOB;
+   
+   UsefulOutBuf_Init(&UOB, Buffer);
+   
+   while(uInt) {
+      UsefulOutBuf_AppendByte(&UOB, (uint8_t)((uInt & 0xff0000000000UL) >> 56));
+      uInt = uInt << 8;
+   }
+   
+   return UsefulOutBuf_OutUBuf(&UOB);
+}
+
+
+void QCBORDecode_GetDecimalFractionBigN(QCBORDecodeContext *pMe,
+                                        uint8_t             uTagRequirement,
+                                        int64_t             nLabel,
+                                        UsefulBuf           pBufferForMantissa,
+                                        UsefulBufC         *pMantissa,
+                                        bool               *pbIsNegative,
+                                        int64_t            *pnExponent)
+{
+   QCBORItem Item;
+   QCBORError uErr;
+   
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   
+   if(Item.uDataType == QCBOR_TYPE_ARRAY) {
+      uErr = QCBORDecode_MantissaAndExponent(pMe, &Item);
+      if(uErr != QCBOR_SUCCESS) {
+         pMe->uLastError = (uint8_t)uErr;
+         return;
+      }
+   }
+   
+   uint64_t uMantissa;
+   
+   switch (Item.uDataType) {
+         
+      case QCBOR_TYPE_DECIMAL_FRACTION:
+         if(Item.val.expAndMantissa.Mantissa.nInt >= 0) {
+            uMantissa = (uint64_t)Item.val.expAndMantissa.Mantissa.nInt;
+            *pbIsNegative = false;
+         } else {
+            uMantissa = (uint64_t)-Item.val.expAndMantissa.Mantissa.nInt;
+            *pbIsNegative = true;
+         }
+         *pMantissa = ConvertIntToBigNum(uMantissa, pBufferForMantissa);
+         *pnExponent = Item.val.expAndMantissa.nExponent;
+         break;
+         
+      case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
+         *pnExponent = Item.val.expAndMantissa.nExponent;
+         *pMantissa = Item.val.expAndMantissa.Mantissa.bigNum;
+         *pbIsNegative = false;
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
+         *pnExponent = Item.val.expAndMantissa.nExponent;
+         *pMantissa = Item.val.expAndMantissa.Mantissa.bigNum;
+         *pbIsNegative = true;
+         break;
+         
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+   }
 }

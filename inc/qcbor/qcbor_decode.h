@@ -245,12 +245,14 @@ typedef enum {
 #define QCBOR_TYPE_URI           33 // TODO: implement this
 
 #define QCBOR_TYPE_MIME          34 // TODO: implement this
+#define QCBOR_TYPE_BINARY_MIME          35 // TODO: implement this
 
-#define QCBOR_TYPE_REGEX         35
 
-#define QCBOR_TYPE_BASE64URL     36
+#define QCBOR_TYPE_REGEX         36
 
-#define QCBOR_TYPE_BASE64        37
+#define QCBOR_TYPE_BASE64URL     37
+
+#define QCBOR_TYPE_BASE64        38
 
 
 #define QCBOR_TYPE_OPTTAG       254 // Used internally; never returned
@@ -1262,45 +1264,94 @@ void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, b
 
 
 
+/*
+@brief Decode the next item as a date string
 
+@param[in] pCtx             The decode context.
+@param[in] uTagRequirement  One of @c QCBOR_TAGSPEC_MATCH_XXX.
+@param[out] pURI            The decoded URI.
 
+Error handling is like QCBORDecode_GetBytes().
 
-
-void QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,  bool bMustBeTagged, UsefulBufC *pValue, bool *pbIsNegative);
-
-void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pCtx, int64_t nLabel, bool bMustBeTagged, UsefulBufC *pValue, bool *pbIsNegative);
-
-void QCBORDecode_GetBignumInMapSz(QCBORDecodeContext *pCtx, const char *szLabel, bool bMustBeTagged, UsefulBufC *pValue, bool *pbIsNegative);
-
-
-
-
+See XYZ for discussion on tag requirements.
+*/
 static void QCBORDecode_GetDateString(QCBORDecodeContext *pCtx, uint8_t uTagRequired, UsefulBufC *pValue);
 
 static void QCBORDecode_GetDateStringInMapN(QCBORDecodeContext *pCtx, uint8_t uTagRequired, int64_t nLabel, UsefulBufC *pValue);
 
-void QCBORDecode_GetDateStringInMapSZXX(QCBORDecodeContext *pCtx, uint8_t uTagRequired, const char *szLabel, UsefulBufC *pValue);
-
- void QCBORDecode_GetEpocDate(QCBORDecodeContext *pCtx, uint8_t uTagRequired, int64_t *puTime);
-
- static void QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pCtx, uint8_t uTagRequired, int64_t nLabel, int64_t *puTime);
-
- void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx, uint8_t uTagRequired, const char *szLabel, int64_t *puTime);
+void QCBORDecode_GetDateStringInMapSZXX(QCBORDecodeContext *pCtx,
+                                        uint8_t uTagRequired,
+                                        const char *szLabel,
+                                        UsefulBufC *pValue);
 
 
-static inline void QCBORDecode_GetURI(QCBORDecodeContext *pCtx,
-                                      uint8_t             uTagRequirement,
-                                      UsefulBufC         *pUUID);
 
-inline static void QCBORDecode_GetURIInMapN(QCBORDecodeContext *pCtx,
-                                            uint8_t             uTagRequirement,
-                                            int64_t             nLabel,
-                                            UsefulBufC         *pUUID);
+/*
+@brief Decode the next item as an epoch date.
 
-inline static void QCBORDecode_GetURIInMapSZ(QCBORDecodeContext *pCtx,
-                                             uint8_t             uTagRequirement,
-                                             const char *        szLabel,
-                                             UsefulBufC         *pUUID);
+@param[in] pCtx             The decode context.
+@param[in] uTagRequirement  One of @c QCBOR_TAGSPEC_MATCH_XXX.
+@param[out] pURI            The decoded URI.
+
+Error handling is like QCBORDecode_GetBytes().
+
+See XYZ for discussion on tag requirements.
+*/
+void QCBORDecode_GetEpocDate(QCBORDecodeContext *pCtx, uint8_t uTagRequired, int64_t *puTime);
+
+static void QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pCtx, uint8_t uTagRequired, int64_t nLabel, int64_t *puTime);
+
+void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx, uint8_t uTagRequired, const char *szLabel, int64_t *puTime);
+
+
+/*
+@brief Decode the next item as a big number.
+
+@param[in] pCtx             The decode context.
+@param[in] uTagRequirement  One of @c QCBOR_TAGSPEC_MATCH_XXX.
+@param[out] pURI            The decoded URI.
+
+Error handling is like QCBORDecode_GetBytes().
+
+See XYZ for discussion on tag requirements.
+*/
+void QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,
+                           uint8_t             uTagRequirement,
+                           UsefulBufC         *pValue,
+                           bool               *pbIsNegative);
+
+void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pCtx,
+                                 int64_t             nLabel,
+                                 uint8_t             uTagRequirement,
+                                 UsefulBufC         *pValue,
+                                 bool               *pbIsNegative);
+
+void QCBORDecode_GetBignumInMapSz(QCBORDecodeContext *pCtx,
+                                  const char         *szLabel,
+                                  uint8_t             uTagRequirement,
+                                  UsefulBufC         *pValue,
+                                  bool               *pbIsNegative);
+
+
+void QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pCtx,
+                                    uint8_t             uTagRequirement,
+                                    int64_t             *pnMantissa,
+                                    int64_t             *pnExponent);
+
+void QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pCtx,
+                                       uint8_t             uTagRequirement,
+                                       UsefulBufC         *pMantissa,
+                                       int64_t            *pnExponent);
+
+void QCBORDecode_GetBigFloat(QCBORDecodeContext *pCtx,
+                             uint8_t             uTagRequirement,
+                             int64_t             *pnMantissa,
+                             int64_t             *pnExponent);
+
+void QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pCtx,
+                                uint8_t             uTagRequirement,
+                                UsefulBufC          *pMantissa,
+                                int64_t             *pnExponent);
 
 /*
  @brief Decode the next item as a URI.
@@ -1379,6 +1430,73 @@ static void QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pCtx,
                                         uint8_t             uTagRequirement,
                                         const char *        szLabel,
                                         UsefulBufC         *pRegex);
+
+
+/*
+ @brief Decode the next item as a MIME message
+
+ @param[in] pCtx             The decode context.
+ @param[in] uTagRequirement  One of @c QCBOR_TAGSPEC_MATCH_XXX.
+ @param[out] pMessage        The decoded regular expression.
+ @param[out] pbIsNot7Bit     @c true if MIME is binary or 8-bit.
+
+ Error handling is like QCBORDecode_GetBytes().
+
+ See XYZ for discussion on tag requirements.
+ 
+ The MIME message itself is not parsed.
+ 
+ This decodes both tag 36 and 257. If it is tag 257, pbIsNot7Bit
+ is @c true. While it is clear that tag 36 can't contain,
+ binary or 8-bit MIME, it is probably legal for tag 257
+ to contain 7-bit MIME. Hopefully in most uses the
+ Content-Transfer-Encoding header is present and the
+ contents of pbIsNot7Bit can be ignored. It may be NULL.
+*/
+static void QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
+                                uint8_t uTagRequirement,
+                                UsefulBufC *pMessage,
+                                bool *pbIsNot7Bit);
+
+static void QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
+                                      int64_t             nLabel,
+                                      uint8_t             uTagRequirement,
+                                      UsefulBufC         *pMessage,
+                                      bool               *pbIsNot7Bit);
+
+
+static void QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pMe,
+                                       const char         *szLabel,
+                                       uint8_t             uTagRequirement,
+                                       UsefulBufC         *pMessage,
+                                       bool               *pbIsNot7Bit);
+
+/*
+ @brief Decode the next item as a UUID
+ 
+ @param[in] pCtx             The decode context.
+ @param[in] uTagRequirement  One of @c QCBOR_TAGSPEC_MATCH_XXX.
+ @param[out] pUUID            The decoded UUID
+ 
+ Error handling is like QCBORDecode_GetBytes().
+ 
+ See XYZ for discussion on tag requirements.
+ */
+
+static inline void QCBORDecode_GetBinaryUUID(QCBORDecodeContext *pMe,
+                                             uint8_t             uTagRequirement,
+                                             UsefulBufC         *pUUID);
+
+inline static void QCBORDecode_GetBinaryUUIDInMapN(QCBORDecodeContext *pMe,
+                                                   uint8_t             uTagRequirement,
+                                                   int64_t             nLabel,
+                                                   UsefulBufC         *pUUID);
+
+inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
+                                                    uint8_t             uTagRequirement,
+                                                    const char         *szLabel,
+                                                    UsefulBufC         *pUUID);
+
 
 
 /**
@@ -1862,7 +1980,6 @@ inline static void QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pMe, c
    QCBORDecode_GetInt64ConvertInternalInMapSZ(pMe, szLabel, uOptions, pnValue, &Item);
 }
 
-
 inline static void QCBORDecode_GetInt64(QCBORDecodeContext *pMe, int64_t *pnValue)
 {
     QCBORDecode_GetInt64Convert(pMe, QCBOR_CONVERT_TYPE_INT64, pnValue);
@@ -1877,6 +1994,9 @@ inline static void QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pMe, const ch
 {
    QCBORDecode_GetInt64ConvertInMapSZ(pMe, szLabel, QCBOR_CONVERT_TYPE_INT64, pnValue);
 }
+
+
+
 
 
 
@@ -1922,6 +2042,51 @@ inline static void QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pMe, const c
 {
    QCBORDecode_GetUInt64ConvertInMapSZ(pMe, szLabel, QCBOR_CONVERT_TYPE_UINT64, puValue);
 }
+
+
+
+
+void QCBORDecode_GetInt8ConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, int8_t *pnValue, QCBORItem *pItem);
+
+void QCBORDecode_GetInt8ConvertInternalInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uOptions, int8_t *pnValue, QCBORItem *pItem);
+
+void QCBORDecode_GetInt8ConvertInternalInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, int8_t *pnValue, QCBORItem *pItem);
+
+
+inline static void QCBORDecode_GetInt8Convert(QCBORDecodeContext *pMe, uint32_t uOptions, int8_t *pnValue)
+{
+    QCBORItem Item;
+    QCBORDecode_GetInt8ConvertInternal(pMe, uOptions, pnValue, &Item);
+}
+
+inline static void QCBORDecode_GetInt8ConvertInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uOptions, int8_t *pnValue)
+{
+   QCBORItem Item;
+   QCBORDecode_GetInt8ConvertInternalInMapN(pMe, nLabel, uOptions, pnValue, &Item);
+}
+
+inline static void QCBORDecode_GetInt8ConvertInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, int8_t *pnValue)
+{
+   QCBORItem Item;
+   QCBORDecode_GetInt8ConvertInternalInMapSZ(pMe, szLabel, uOptions, pnValue, &Item);
+}
+
+inline static void QCBORDecode_GetInt8(QCBORDecodeContext *pMe, int8_t *pnValue)
+{
+    QCBORDecode_GetInt8Convert(pMe, QCBOR_CONVERT_TYPE_INT64, pnValue);
+}
+
+inline static void QCBORDecode_GetInt8InMapN(QCBORDecodeContext *pMe, int64_t nLabel, int8_t *pnValue)
+{
+   QCBORDecode_GetInt8ConvertInMapN(pMe, nLabel, QCBOR_CONVERT_TYPE_INT64, pnValue);
+}
+
+inline static void QCBORDecode_GetInt8InMapSZ(QCBORDecodeContext *pMe, const char *szLabel, int8_t *pnValue)
+{
+   QCBORDecode_GetInt8ConvertInMapSZ(pMe, szLabel, QCBOR_CONVERT_TYPE_INT64, pnValue);
+}
+
+
 
 void QCBORDecode_GetDoubleConvertInternal(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue, QCBORItem *pItem);
 
@@ -2004,6 +2169,9 @@ void QCBORDecode_GetTaggedStringInMapSZ(QCBORDecodeContext *pMe,
                                         const char *        szLabel,
                                         TagSpecification    TagSpec,
                                         UsefulBufC          *pString);
+
+QCBORError FarfMIME(uint8_t uTagRequirement, const QCBORItem *pItem, UsefulBufC *pMessage, bool *pbIsNot7Bit);
+
 
 
 static inline void QCBORDecode_GetBytes(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
@@ -2177,6 +2345,50 @@ static inline void QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pMe,
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pRegex);
 }
 
+
+static inline void QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
+                                              uint8_t uTagRequirement,
+                                              UsefulBufC *pMessage,
+                                              bool *pbIsNot7Bit)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      // Already in error state, do nothing
+      return;
+   }
+
+   QCBORItem  Item;
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError != QCBOR_SUCCESS) {
+      pMe->uLastError = (uint8_t)uError;
+      return;
+   }
+
+   pMe->uLastError = (uint8_t)FarfMIME(uTagRequirement, &Item, pMessage, pbIsNot7Bit);
+}
+
+static inline void QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
+                                      int64_t             nLabel,
+                                      uint8_t             uTagRequirement,
+                                      UsefulBufC         *pMessage,
+                                      bool               *pbIsNot7Bit)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+
+   pMe->uLastError = (uint8_t)FarfMIME(uTagRequirement, &Item, pMessage, pbIsNot7Bit);
+}
+
+static inline void QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pMe,
+                                       const char         *szLabel,
+                                       uint8_t             uTagRequirement,
+                                       UsefulBufC         *pMessage,
+                                       bool               *pbIsNot7Bit)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+
+   pMe->uLastError = (uint8_t)FarfMIME(uTagRequirement, &Item, pMessage, pbIsNot7Bit);
+}
 
 
 
