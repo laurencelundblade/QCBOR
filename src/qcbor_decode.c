@@ -397,7 +397,7 @@ void QCBORDecode_Init(QCBORDecodeContext *me,
    me->uDecodeMode = (uint8_t)nDecodeMode;
    DecodeNesting_Init(&(me->nesting));
    for(int i = 0; i < QCBOR_NUM_MAPPED_TAGS; i++) {
-      me->auMappedTags[i] = 0xffff;
+      me->auMappedTags[i] = CBOR_TAG_INVALID16;
    }
 }
 
@@ -942,7 +942,10 @@ GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    // Stack usage: int/ptr: 3 -- 24
    QCBORError nReturn;
 
-   uint16_t auTags[QCBOR_MAX_TAGS_PER_ITEM] = {0xffff, 0xffff, 0xffff, 0xffff};
+   uint16_t auTags[QCBOR_MAX_TAGS_PER_ITEM] = {CBOR_TAG_INVALID16,
+                                               CBOR_TAG_INVALID16,
+                                               CBOR_TAG_INVALID16,
+                                               CBOR_TAG_INVALID16};
 
    // Loop fetching items until the item fetched is not a tag
    for(;;) {
@@ -960,20 +963,20 @@ GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       // Is there room for the tag in the tags list?
       size_t uTagIndex;
       for(uTagIndex = 0; uTagIndex < QCBOR_MAX_TAGS_PER_ITEM; uTagIndex++) {
-         if(auTags[uTagIndex] == 0xffff) {
+         if(auTags[uTagIndex] == CBOR_TAG_INVALID16) {
             break;
          }
       }
       if(uTagIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
-         return 99; // TODO error code
+         return QCBOR_ERR_TOO_MANY_TAGS;
       }
 
       // Is the tag > 16 bits?
-      if(pDecodedItem->val.uTagV > 0xffff) {
+      if(pDecodedItem->val.uTagV > CBOR_TAG_INVALID16) {
          size_t uTagMapIndex;
          // Is there room in the tag map?
          for(uTagMapIndex = 0; uTagMapIndex < QCBOR_NUM_MAPPED_TAGS; uTagMapIndex++) {
-            if(me->auMappedTags[uTagMapIndex] == 0xffff) {
+            if(me->auMappedTags[uTagMapIndex] == CBOR_TAG_INVALID16) {
                break;
             }
             if(me->auMappedTags[uTagMapIndex] == pDecodedItem->val.uTagV) {
@@ -1678,7 +1681,7 @@ QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
          nReturn = DecodeUUID(pDecodedItem);
          break;
             
-         case 0xffff:
+         case CBOR_TAG_INVALID16:
          // The end of the tag list or no tags
          // Successful exit from the loop.
          goto Done;
@@ -1733,7 +1736,7 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *me,
    if(pTags != NULL) {
       pTags->uNumUsed = 0;
       for(int i = 0; i < QCBOR_MAX_TAGS_PER_ITEM; i++) {
-         if(pDecodedItem->uTags[i] == 0xffff) {
+         if(pDecodedItem->uTags[i] == CBOR_TAG_INVALID16) {
             break;
          }
          if(pTags->uNumUsed >= pTags->uNumAllocated) {
@@ -1799,7 +1802,7 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *me,
                          uint64_t           uTag)
 {
    for(int i = 0; i < QCBOR_MAX_TAGS_PER_ITEM; i++ ) {
-      if(pItem->uTags[i] == 0xffff) {
+      if(pItem->uTags[i] == CBOR_TAG_INVALID16) {
          break;
       }
       if(ConvertTag(me, pItem->uTags[i]) == uTag) {
@@ -1837,6 +1840,22 @@ Done:
    return nReturn;
 }
 
+
+/*
+Public function, see header qcbor/qcbor_decode.h file
+*/
+uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe, const QCBORItem *pItem, unsigned int uIndex)
+{
+   if(uIndex > QCBOR_MAX_TAGS_PER_ITEM) {
+      return CBOR_TAG_INVALID16;
+   } else if(pItem->uTags[uIndex] <= QCBOR_LAST_UNMAPPED_TAG) {
+      return pItem->uTags[uIndex];
+   } else if(pItem->uTags[uIndex] < QCBOR_NUM_MAPPED_TAGS + QCBOR_LAST_UNMAPPED_TAG) {
+      return pMe->auMappedTags[pItem->uTags[uIndex] - QCBOR_LAST_UNMAPPED_TAG];
+   } else {
+      return CBOR_TAG_INVALID16;
+   }
+}
 
 
 /*

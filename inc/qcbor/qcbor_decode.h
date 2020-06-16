@@ -936,6 +936,34 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint6
 
 
 /**
+ @brief Returns the tag values for an item.
+
+ @param[in] pCtx    The decoder context.
+ @param[in] pItem The CBOR item to get the tag for.
+ @param[in] uIndex The index of the tag to get.
+
+ @returns The actual nth tag value.
+
+ Up to \ref QCBOR_MAX_TAGS_PER_ITEM are recorded for a decoded CBOR item. If there
+ are more than this, the \ref QCBOR_ERR_TOO_MANY_TAGS error is returned
+ by QCBORDecode_GetNext() and other. This is a limit of this implementation,
+ not of CBOR.
+
+ The 0th tag (@c uIndex 0) is the one that occurs closest to the data item.
+ Tags nest, so the nth tag applies to what ever type
+ is a result of applying the (n-1) tag.
+
+ To reduce memory used by a QCBORItem, this implementation maps
+ all tags larger than UINT16_MAX. This function does the unmapping.
+
+ This returns \ref CBOR_TAG_INVALID16 on all errors or if the nth tag is requested and
+ there is no nth tag. If there are no tags on the item, then
+ requesting the 0th tag will return \ref CBOR_TAG_INVALID16.
+ */
+uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, unsigned int uIndex);
+
+
+/**
  @brief Check whether all the bytes have been decoded and maps and arrays closed.
 
  @param[in]  pCtx  The context to check.
@@ -1885,32 +1913,8 @@ static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
    return 0;
 }
 
-#define FOFOO (0xffff - 1024)
 
-/*
- Returns the tag values for an item.
 
- The 0th tag is the one that occurs closest to the data item.
- Tags nest, so the nth tag applies to what ever type
- is a result of applying the (n-1) tag.
-
- This returns 0xffff on all errors or if the nth tag is requested and
- there is no nth tag. If there are no tags on the item, then
- requesting the 0th tag will return 0xffff.
-
- */
-static inline uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe, const QCBORItem *pItem, unsigned int uIndex)
-{
-   if(uIndex > QCBOR_MAX_TAGS_PER_ITEM) {
-      return 0xffff; // TODO constant for standard bad tag value
-   }
-
-   if(pItem->uTags[uIndex] > FOFOO) {
-      return pItem->uTags[uIndex];
-   } else {
-      return pMe->auMappedTags[pItem->uTags[uIndex] - FOFOO];
-   }
-}
 
 static inline QCBORError QCBORDecode_GetError(QCBORDecodeContext *pMe)
 {

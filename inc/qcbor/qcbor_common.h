@@ -174,15 +174,17 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     (https://tools.ietf.org/html/rfc5870) and WGS-84. No API is
     provided for this tag. */
 #define CBOR_TAG_GEO_COORD    103
-
-/** Binary MIME */
+/** Binary MIME.*/
 #define CBOR_TAG_BINARY_MIME 257
-
 /** The magic number, self-described CBOR. No API is provided for this
     tag. */
 #define CBOR_TAG_CBOR_MAGIC 55799
 
-#define CBOR_TAG_NONE  UINT64_MAX
+/** Three different values for invalid tag from the CBOR tags registry */
+#define CBOR_TAG_INVALID16 0xffff
+#define CBOR_TAG_INVALID32 0xffffffff
+#define CBOR_TAG_INVALID64 0xffffffffffffffff
+
 
 
 /*
@@ -300,7 +302,9 @@ typedef enum {
        item. */
    QCBOR_ERR_BAD_BREAK = 19,
 
-   /** During decoding, too many tags in the caller-configured tag
+   /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tags encounterd for a CBOR ITEM.
+      @ref QCBOR_MAX_TAGS_PER_ITEM is a limit of this implementation.
+      During decoding, too many tags in the caller-configured tag
        list, or not enough space in @ref QCBORTagListOut. */
    QCBOR_ERR_TOO_MANY_TAGS = 20,
 
@@ -352,9 +356,9 @@ typedef enum {
     QCBOR_ERR_NOT_ENTERED = 31,
 
     /** A callback indicates processing should not continue for some non-CBOR reason */
-    QCBOR_ERR_CALLBACK_FAIL = 32,
-    
-    /* This is stored in uint8_t in places; never add values > 255 */
+    QCBOR_ERR_CALLBACK_FAIL = 32
+
+    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
 
 
