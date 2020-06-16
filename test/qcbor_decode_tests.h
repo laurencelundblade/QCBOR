@@ -261,4 +261,9 @@ int32_t IntegerConvertTest(void);
 int32_t CBORSequenceDecodeTests(void);
 
 
+/*
+Tests for functions to safely convert integer types.
+*/
+int32_t IntToTests(void);
+
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

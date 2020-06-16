@@ -1877,7 +1877,7 @@ static inline int QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
 
 static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 {
-   if(src > 0) {
+   if(src < 0) {
       return -1;
    } else {
       *dest = (uint64_t) src;
