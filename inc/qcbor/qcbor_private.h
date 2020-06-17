@@ -57,7 +57,7 @@ extern "C" {
 
 
 /* The largest offset to the start of an array or map. It is slightly
- less than UINT32_MAX so the error condition can be tests on 32-bit machines.
+ less than UINT32_MAX so the error condition can be tested on 32-bit machines.
  UINT32_MAX comes from uStart in QCBORTrackNesting being a uin32_t.
 
  This will cause trouble on a machine where size_t is less than 32-bits.

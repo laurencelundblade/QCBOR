@@ -282,7 +282,9 @@ typedef enum {
    QCBOR_ERR_EXTRA_BYTES = 14,
 
    /** During encoding, @c QCBOREncode_CloseXxx() called with a
-       different type than is currently open. */
+       different type than is currently open. Also during decoding,
+       @c QCBORDecode_ExitXxx() was called for a different
+       type than @c QCBORDecode_EnterXxx(). */
    QCBOR_ERR_CLOSE_MISMATCH = 15,
 
    /** Unable to decode an indefinite-length string because no string

@@ -3991,6 +3991,19 @@ int32_t EnterMapTest()
       return 2004;
    }
 
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_MAP && Item1.uLabelAlloc != QCBOR_TYPE_TEXT_STRING) {
+      return 2006;
+   }
+   QCBORDecode_ExitMap(&DCtx);
+   if(QCBORDecode_GetNext(&DCtx, &Item1) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 2007;
+   }
+
 
    return 0;   
 }

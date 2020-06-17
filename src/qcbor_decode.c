@@ -207,6 +207,16 @@ DecodeNesting_TypeIsMap(const QCBORDecodeNesting *pNesting)
    return CBOR_MAJOR_TYPE_MAP == pNesting->pCurrent->uMajorType;
 }
 
+inline static bool
+DecodeNesting_BoundedIsType(const QCBORDecodeNesting *pNesting, uint8_t uType)
+{
+   if(pNesting->pCurrentMap->uMajorType == uType) {
+      return true;
+   } else {
+      return false;
+   }
+}
+
 
 // return 1 if closed out an array or map
 inline static void
@@ -1844,7 +1854,9 @@ Done:
 /*
 Public function, see header qcbor/qcbor_decode.h file
 */
-uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe, const QCBORItem *pItem, unsigned int uIndex)
+uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
+                               const QCBORItem    *pItem,
+                               unsigned int        uIndex)
 {
    if(uIndex > QCBOR_MAX_TAGS_PER_ITEM) {
       return CBOR_TAG_INVALID16;
@@ -2072,6 +2084,8 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
    return QCBOR_SUCCESS;
 }
 
+
+
 #include <stdio.h>
 void printdecode(QCBORDecodeContext *pMe, const char *szName)
 {
@@ -2101,7 +2115,8 @@ void printdecode(QCBORDecodeContext *pMe, const char *szName)
 
 
 /*
- *
+ Consume an entire map or array (and do next to
+ nothing for non-aggregate types).
  */
 static inline QCBORError
 ConsumeItem(QCBORDecodeContext *pMe,
@@ -2173,6 +2188,11 @@ MatchLabel(QCBORItem Item1, QCBORItem Item2)
    return false;
 }
 
+
+/*
+ Returns true if Item1 and Item2 are the same type
+ or if either are of QCBOR_TYPE_ANY.
+ */
 static inline bool
 MatchType(QCBORItem Item1, QCBORItem Item2)
 {
@@ -2188,7 +2208,7 @@ MatchType(QCBORItem Item1, QCBORItem Item2)
 
 
 /**
- \brief Search a map for a set of items
+ \brief Search a map for a set of items.
 
  @param[in]  pMe   The decode context to search.
  @param[in,out] pItemArray  The items to search for and the items found.
@@ -2216,7 +2236,6 @@ static QCBORError
 MapSearch(QCBORDecodeContext *pMe,
           QCBORItem          *pItemArray,
           size_t             *puOffset,
-          size_t             *puEndOffset,
           void               *pCBContext,
           QCBORItemCallback   pfCallback)
 {
@@ -2306,10 +2325,6 @@ MapSearch(QCBORDecodeContext *pMe,
    const size_t uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
    // Cast OK because encoded CBOR is limited to UINT32_MAX
    pMe->uMapEndOffset = (uint32_t)uEndOffset;
-   // TODO: is zero *puOffset OK?
-   if(puEndOffset) {
-      *puEndOffset = uEndOffset;
-   }
    
    /* For all items not found, set the data type to QCBOR_TYPE_NONE */
    int        i;
@@ -2345,7 +2360,7 @@ void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
    OneItemSeach[0].uDataType   = uQcborType;
    OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORError nReturn = MapSearch(pMe, OneItemSeach, NULL, NULL, NULL, NULL);
+   QCBORError nReturn = MapSearch(pMe, OneItemSeach, NULL, NULL, NULL);
    if(nReturn) {
       pMe->uLastError = (uint8_t)nReturn;
    }
@@ -2376,7 +2391,7 @@ void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
    OneItemSeach[0].uDataType    = uQcborType;
    OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORError nReturn = MapSearch(pMe, OneItemSeach, NULL, NULL, NULL, NULL);
+   QCBORError nReturn = MapSearch(pMe, OneItemSeach, NULL, NULL, NULL);
    if(nReturn) {
       pMe->uLastError = (uint8_t)nReturn;
    }
@@ -2486,7 +2501,7 @@ Public function, see header qcbor/qcbor_decode.h file
 */
 QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList)
 {
-   return MapSearch(pCtx, pItemList, NULL, NULL, NULL, NULL);
+   return MapSearch(pCtx, pItemList, NULL, NULL, NULL);
 }
 
 /*
@@ -2497,7 +2512,7 @@ QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
                                                  void               *pCallbackCtx,
                                                  QCBORItemCallback   pfCB)
 {
-   return MapSearch(pCtx, pItemList, NULL, NULL, pCallbackCtx, pfCB);
+   return MapSearch(pCtx, pItemList, NULL, pCallbackCtx, pfCB);
 }
 
 
@@ -2509,7 +2524,7 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
    }
 
    size_t uOffset;
-   pMe->uLastError = (uint8_t)MapSearch(pMe, pSearch, &uOffset, NULL, NULL, NULL);
+   pMe->uLastError = (uint8_t)MapSearch(pMe, pSearch, &uOffset, NULL, NULL);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
@@ -2620,47 +2635,55 @@ void QCBORDecode_EnterBoundedMode(QCBORDecodeContext *pMe, uint8_t uType)
 
    DecodeNesting_EnterBoundedMode(&(pMe->nesting), UsefulInputBuf_Tell(&(pMe->InBuf)));
 
+   // TODO: restrict input to less than this or some other invalidation strategy.
+   pMe->uMapEndOffset = 0xffffffff; // Invalidate the cached map end.
+
    printdecode(pMe, "EnterMapModeDone");
 }
 
+
+// Semi-private function
 void QCBORDecode_ExitBoundedMode(QCBORDecodeContext *pMe, uint8_t uType)
 {
-   QCBORError uErr;
-   size_t     uEndOffset;
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      // Already in error state; do nothing.
+      return;
+   }
 
-   (void)uType; // TODO: error check
-
-/*
-   if(pMe->uMapEndOffset) {
-      uEndOffset = pMe->uMapEndOffset;
-      // It is only valid once.
-      pMe->uMapEndOffset = 0;
-   } else { */
-   // Find offset of the end the bounded array / map
-      QCBORItem Dummy;
-
-      Dummy.uLabelType = QCBOR_TYPE_NONE;
-
-      QCBORError nReturn = MapSearch(pMe, &Dummy, NULL, &uEndOffset, NULL, NULL);
-
-      (void)nReturn; // TODO:
-//   }
-   
    printdecode(pMe, "start exit");
-   
-   /* Before acending mark this level as no longer in bound mode. */
+
+   QCBORError uErr = QCBOR_SUCCESS;
+
+   if(!DecodeNesting_BoundedIsType(&(pMe->nesting), uType)){
+      uErr = QCBOR_ERR_CLOSE_MISMATCH;
+      goto Done;
+   }
+
+   /* Have to set the offset to the end of the map/array
+    that is being exited. If there is no cached value,
+    from previous map search, then do a dummy search. */
+   if(pMe->uMapEndOffset == 0xffffffff) {
+      QCBORItem Dummy;
+      Dummy.uLabelType = QCBOR_TYPE_NONE;
+      uErr = MapSearch(pMe, &Dummy, NULL, NULL, NULL);
+      if(uErr != QCBOR_SUCCESS) {
+         goto Done;
+      }
+   }
+   UsefulInputBuf_Seek(&(pMe->InBuf), pMe->uMapEndOffset);
+   pMe->uMapEndOffset = 0xffffffff; // Invalidate the cached map end.
+
+   /* Before acending, mark this level as no longer in bound mode. */
    pMe->nesting.pCurrentMap->uType &= ~QCBOR_NEST_TYPE_IS_BOUND;
 
-
-   /* Set the pre-order traversal state to just after
-      the map or array that was exited.  */
-   UsefulInputBuf_Seek(&(pMe->InBuf), uEndOffset);
-   
    // Always go up one level
    // Need error check to know level is bounded mode and not at top level
    pMe->nesting.pCurrent = pMe->nesting.pCurrentMap - 1; // TODO error check
    
    uErr = Ascender(pMe);
+   if(uErr != QCBOR_SUCCESS) {
+      goto Done;
+   }
    
    /* Also ascend to the next higest bounded mode level if
     there is one. */
@@ -2675,7 +2698,9 @@ void QCBORDecode_ExitBoundedMode(QCBORDecodeContext *pMe, uint8_t uType)
       }
    }
 
+Done:
    printdecode(pMe, "end exit");
+   pMe->uLastError = (uint8_t)uErr;
 }
 
 
