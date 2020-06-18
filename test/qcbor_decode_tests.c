@@ -2857,7 +2857,6 @@ static int32_t parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
 }
 
 
-// TODO: investigate why this doesn't fail in master and does here. It seems like a broken test.
 int32_t IndefiniteLengthNestTest()
 {
    UsefulBuf_MAKE_STACK_UB(Storage, 50);

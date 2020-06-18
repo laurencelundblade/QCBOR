@@ -1600,6 +1600,14 @@ inline static QCBORError DecodeRegex(QCBORItem *pDecodedItem)
    return QCBOR_SUCCESS;
 }
 
+inline static QCBORError DecodeWrappedCBOR(QCBORItem *pDecodedItem)
+{
+   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
+      return QCBOR_ERR_BAD_OPT_TAG;
+   }
+   pDecodedItem->uDataType = QBCOR_TYPE_WRAPPED_CBOR;
+   return QCBOR_SUCCESS;
+}
 
 inline static QCBORError DecodeMIME(QCBORItem *pDecodedItem)
 {
@@ -1665,6 +1673,10 @@ QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
          nReturn = QCBORDecode_MantissaAndExponent(me, pDecodedItem);
          break;
    #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
+         case CBOR_TAG_CBOR:
+         nReturn = DecodeWrappedCBOR(pDecodedItem);
+         break;
 
          case CBOR_TAG_URI:
          nReturn = DecodeURI(pDecodedItem);
@@ -2713,7 +2725,50 @@ void QCBORDecode_RewindMap(QCBORDecodeContext *pMe)
 
 
 
-void QCBORDecode_EnterBstr(QCBORDecodeContext *pMe)
+static QCBORError FarfWrappedBstr(QCBORDecodeContext *pMe, const QCBORItem *pItem, uint8_t uTagRequirement, UsefulBufC *pBstr)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      // Already in error state; do nothing.
+      return pMe->uLastError;
+   }
+
+   QCBORError uError = QCBOR_SUCCESS;
+
+   if(pItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
+      uError = QCBOR_ERR_UNEXPECTED_TYPE;
+      goto Done;;
+   }
+
+   // TODO: check for the other wrapped CBOR
+   const TagSpecification TagSpec = {uTagRequirement, QBCOR_TYPE_WRAPPED_CBOR, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
+
+   uError = CheckTagRequirement(TagSpec, pItem->uDataType);
+   if(uError != QCBOR_SUCCESS) {
+      goto Done;
+   }
+
+   *pBstr = pItem->val.string;
+
+   // Need to move UIB input cursor to the right place
+
+   // Really this is a subtraction and an assignment; not much code
+   // There is a range check in the seek.
+   const size_t uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
+
+   UsefulInputBuf_Seek(&(pMe->InBuf), uEndOffset - pItem->val.string.len);
+
+   UsefulInputBuf_SetBufferLen(&(pMe->InBuf), uEndOffset);
+
+   // TODO: comment on cast
+   uError = DecodeNesting_Descend(&(pMe->nesting), QCBOR_TYPE_BYTE_STRING, UINT16_MAX, (uint32_t)uEndOffset);
+
+Done:
+   return uError;
+
+}
+
+
+void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe, uint8_t uTagRequirement, UsefulBufC *pBstr)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       // Already in error state; do nothing.
@@ -2726,44 +2781,32 @@ void QCBORDecode_EnterBstr(QCBORDecodeContext *pMe)
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
-   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-      pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
-      return;
-   }
 
-   // TODO: check for tag 24
-
-   // Need to move UIB input cursor to the right place
-
-   // Really this is a subtraction and an assignment; not much code
-   // There is a range check in the seek.
-   const size_t uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
-
-   UsefulInputBuf_Seek(&(pMe->InBuf), uEndOffset - Item.val.string.len);
-
-   UsefulInputBuf_SetBufferLen(&(pMe->InBuf), uEndOffset);
-
-   // TODO: comment on cast
-   pMe->uLastError = (uint8_t)DecodeNesting_Descend(&(pMe->nesting), QCBOR_TYPE_BYTE_STRING, UINT16_MAX, (uint32_t)uEndOffset);
+   pMe->uLastError = (uint8_t)FarfWrappedBstr(pMe, &Item, uTagRequirement, pBstr);
 }
 
 
-void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe, uint8_t uTagRequirement, UsefulBufC *pBstr)
+void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pMe, uint8_t uTagRequirement, int64_t nLabel,  UsefulBufC *pBstr)
 {
    QCBORItem Item;
-   QCBORDecode_GetNext(pMe, &Item);
-   // Need to set UIB cursor to start of bstr and UIB length to end of bstr
-   
-   // TODO: combine with above
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
+   pMe->uLastError = (uint8_t)FarfWrappedBstr(pMe, &Item, uTagRequirement, pBstr);
 }
 
-//void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pCtx, int64_t uLabel, UsefulBufC *pBstr);
 
-//void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx, const char  *szLabel, UsefulBufC *pBstr);
+void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pMe, uint8_t uTagRequirement, const char *szLabel, UsefulBufC *pBstr)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+
+   pMe->uLastError = (uint8_t)FarfWrappedBstr(pMe, &Item, uTagRequirement, pBstr);
+
+}
 
 void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx)
 {
+   // TODO: write this code
    // Need to set the cursor to end of the bstr and length to the next length
    // above in the nesting tree (or the top level length).
    

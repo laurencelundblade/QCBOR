@@ -254,6 +254,8 @@ typedef enum {
 
 #define QCBOR_TYPE_BASE64        38
 
+#define QBCOR_TYPE_WRAPPED_CBOR          39
+
 
 #define QCBOR_TYPE_OPTTAG       254 // Used internally; never returned
 
@@ -1145,7 +1147,6 @@ void QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx, const char 
 */
 static void QCBORDecode_GetUInt64(QCBORDecodeContext *pCtx, uint64_t *puValue);
 
-
 static void QCBORDecode_GetUInt64InMapN(QCBORDecodeContext *pCtx, int64_t nLabel, uint64_t *puValue);
 
 static void QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, uint64_t *puValue);
@@ -1583,13 +1584,53 @@ void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLab
 static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
 
+
+/*
+
+
+
+ This is for use on some CBOR that has been wrapped in a
+ byte string. There are several ways that this can occur.
+
+ First is tag 24 and tax XXX (soon to be defined). Tag 24
+ wraps a single CBOR data item and XXX a CBOR sequence.
+ This implementation doesn't distinguish between the two
+ (it would be more code and doesn't seem important).
+
+ The XYZ discussion on the tag requirement applies here
+ just the same as any other tag.
+
+ In other cases, CBOR is wrapped in a byte string, but
+ it is identified as CBOR by other means. The contents
+ of a COSE payload are one example of that. They can
+ be identified by the COSE content type, or they can
+ be identified as CBOR indirectly by the protocol that
+ uses COSE. In particular if a blob of CBOR is identified
+ as a CWT, then the COSE payload is CBOR.
+
+ To enter into CBOR of this type use the
+ \ref QCBOR_WRAP as the \c uTagRequirement argument.
+
+ Note that byte string wrapped CBOR can also be
+ decoded by getting the byte string with QCBORDecode_GetItem() or
+ QCBORDecode_GetByteString() and feeding it into another
+ instance of QCBORDecode. Doing it with this function
+ has the advantage of using less memory as another
+ instance of QCBORDecode is not necessary.
+
+ When the wrapped CBOR is entered with this function,
+ the pre-order traversal and such are bounded to
+ the wrapped CBOR. QCBORDecode_ExitBstrWrapped()
+ must be called resume processing CBOR outside
+ the wrapped CBOR.
+ */
 void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pCtx,
                                   uint8_t uTagRequirement,
                                   UsefulBufC *pBstr);
 
 void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pCtx,
                                           uint8_t uTagRequirement,
-                                          int64_t uLabel,
+                                          int64_t nLabel,
                                           UsefulBufC *pBstr);
 
 void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx,
@@ -1604,6 +1645,7 @@ void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
 
 
 /*
+ TODO: fix this
  Restarts fetching of items in a map to the start of the
  map. This is for GetNext. It has no effect on
  GetByLabel (which always searches from the start).

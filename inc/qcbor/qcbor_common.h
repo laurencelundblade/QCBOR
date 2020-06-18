@@ -139,8 +139,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     "hex". Call @c QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B16) before
     the call to QCBOREncode_AddBytes(). */
 #define CBOR_TAG_ENC_AS_B16    23
-/** Tag to indicate a byte string contains encoded CBOR. No API is
-    provided for this tag. */
+/** See QCBORDecode_EnterWrappedBstr(). */
 #define CBOR_TAG_CBOR          24
 /** See QCBOREncode_AddURI(). */
 #define CBOR_TAG_URI           32
