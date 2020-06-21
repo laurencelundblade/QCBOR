@@ -1051,6 +1051,30 @@ static QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
 
 
 
+/*
+ TODO: get rid of this
+
+ int64_t
+ uint64_t
+ int32_t
+ uint32_t
+ int16_t
+ uint16_t
+ int8_t
+ uint8_t
+
+ 8 types. 12 functions for each --> 96 functions
+
+ 7 converter functions
+
+ foreach type
+   for each conversion option
+      for each fetch option
+
+
+
+ */
+
 /**
  @brief Decode next item as a signed 64-bit integer.
 
@@ -1535,7 +1559,7 @@ inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
 
  Next item must be map or this generates an error.
 
-This puts the decoder in map mode which narrows
+This puts the decoder in bounded mode which narrows
 decoding to the map entered and enables use of
 getting items by label.
  
@@ -1544,24 +1568,31 @@ getting items by label.
 
   Call QCBORDecode_ExitMap() to exit the current map
  decoding level. When all map decoding layers are exited
- then map mode is fully exited.
+ then bounded mode is fully exited.
  
- While in map mode, GetNext works as usual on the
+ While in bounded mode, GetNext works as usual on the
  map and the standard in-order traversal cursor
  is maintained. Attempts to get items off the end of the
- map will give error XXX (rather going to the next
- item after the map as it would when not in map
+ map will give error QCBOR_ERR_NO_MORE_ITEMS (rather going to the next
+ item after the map as it would when not in bounded
  mode).
  
- You can rewind the inorder traversal cursor to the
+ TODO: You can rewind the inorder traversal cursor to the
  beginning of the map with RewindMap().
  
  Exiting leaves the cursor at the
  data item following the last entry in the map.
  
- Entering and Exiting map mode consumes the whole
- map and its contents as a GetNext after exiting
- will return the item after the map. */
+ Entering and Exiting a map is a way to skip over
+ an entire map and its contents. After the Exit,
+ the pre-order traversal cursor will be at the
+ first item after the map.
+
+ Bounded mode also works for arrays and bstr wrapped CBOR.
+ Bounded mode levels nest with each entry into a bounded
+ map, array or wrapped bstr increasing narrowing the
+ traversal and each Exit broading it until the top is reached.
+ */
 static void QCBORDecode_EnterMap(QCBORDecodeContext *pCtx);
 
 void QCBORDecode_EnterMapInMapN(QCBORDecodeContext *pCtx, int64_t nLabel);
@@ -1587,8 +1618,6 @@ static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
 /*
 
-
-
  This is for use on some CBOR that has been wrapped in a
  byte string. There are several ways that this can occur.
 
@@ -1609,7 +1638,7 @@ static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  as a CWT, then the COSE payload is CBOR.
 
  To enter into CBOR of this type use the
- \ref QCBOR_WRAP as the \c uTagRequirement argument.
+ \ref QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE as the \c uTagRequirement argument.
 
  Note that byte string wrapped CBOR can also be
  decoded by getting the byte string with QCBORDecode_GetItem() or

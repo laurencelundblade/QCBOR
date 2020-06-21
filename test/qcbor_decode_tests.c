@@ -4804,3 +4804,94 @@ int32_t IntToTests()
    return 0;
 }
 
+
+/*
+A sequence with
+  A wrapping bstr
+    containing a map
+      1
+      2
+    A wrapping bstr
+       containing an array
+          3
+          wrapping bstr
+             4
+          5
+    6
+  array
+     7
+     8
+
+ */
+
+static UsefulBufC foo(UsefulBuf ffo)
+{
+   UsefulBufC Encoded;
+   QCBOREncodeContext EC;
+   QCBORError uErr;
+
+   QCBOREncode_Init(&EC, ffo);
+
+   QCBOREncode_BstrWrap(&EC);
+     QCBOREncode_OpenMap(&EC);
+       QCBOREncode_AddInt64ToMapN(&EC, 100, 1);
+       QCBOREncode_AddInt64ToMapN(&EC, 200, 2);
+     QCBOREncode_CloseMap(&EC);
+     QCBOREncode_BstrWrap(&EC);
+       QCBOREncode_OpenArray(&EC);
+         QCBOREncode_AddInt64(&EC, 3);
+         QCBOREncode_BstrWrap(&EC);
+           QCBOREncode_AddInt64(&EC, 4);
+         QCBOREncode_CloseBstrWrap(&EC, NULL);
+         QCBOREncode_AddInt64(&EC, 5);
+       QCBOREncode_CloseArray(&EC);
+     QCBOREncode_CloseBstrWrap(&EC, NULL);
+     QCBOREncode_AddInt64(&EC, 6);
+   QCBOREncode_CloseBstrWrap(&EC, NULL);
+   QCBOREncode_OpenArray(&EC);
+     QCBOREncode_AddInt64(&EC, 7);
+     QCBOREncode_AddInt64(&EC, 8);
+   QCBOREncode_CloseArray(&EC);
+
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+
+   return Encoded;
+}
+
+
+int32_t EnterBstrTest()
+{
+   MakeUsefulBufOnStack(ffo, 100);
+
+   QCBORDecodeContext DC;
+
+   QCBORDecode_Init(&DC, foo(ffo), 0);
+
+   int64_t i1, i2, i3, i4, i5, i6, i7, i8;
+
+
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, NULL);
+     QCBORDecode_EnterMap(&DC);
+       QCBORDecode_GetInt64InMapN(&DC, 100, &i1);
+       QCBORDecode_GetInt64InMapN(&DC, 200, &i2);
+     QCBORDecode_ExitMap(&DC);
+     QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, NULL);
+       QCBORDecode_EnterArray(&DC);
+         QCBORDecode_GetInt64(&DC, &i3);
+         QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, NULL);
+           QCBORDecode_GetInt64(&DC, &i4);
+         QCBORDecode_ExitBstrWrapped(&DC);
+         QCBORDecode_GetInt64(&DC, &i5);
+       QCBORDecode_ExitArray(&DC);
+     QCBORDecode_ExitBstrWrapped(&DC);
+     QCBORDecode_GetInt64(&DC, &i6);
+   QCBORDecode_ExitBstrWrapped(&DC);
+   QCBORDecode_EnterArray(&DC);
+     QCBORDecode_GetInt64(&DC, &i7);
+     QCBORDecode_GetInt64(&DC, &i8);
+   QCBORDecode_ExitArray(&DC);
+
+   QCBORError uErr = QCBORDecode_Finish(&DC);
+
+   return (int32_t)uErr;
+}

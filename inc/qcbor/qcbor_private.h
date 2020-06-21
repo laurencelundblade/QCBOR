@@ -125,7 +125,7 @@ struct _QCBOREncodeContext {
 #define QCBOR_NEST_TYPE_ARRAY 0x02
 #define QCBOR_NEST_TYPE_MAP 0x03
 #define QCBOR_NEST_TYPE_IS_INDEFINITE 0x40
-#define QCBOR_NEST_TYPE_IS_BOUND 0x80
+#define QCBOR_NEST_TYPE_IS_BOUNDED 0x80
 
 /*
 #define QCBOR_NEST_TYPE_BSTR 0x00
@@ -159,19 +159,21 @@ typedef struct __QCBORDecodeNesting  {
          } mm;
          struct {
             uint16_t uCountCursor;
-            uint32_t uEndOffset;
+            //uint32_t uEndOffset;
          } bs;
       } u;
-      uint32_t uEndOffset;
+      uint32_t uPreviousEndOffset;
+      uint32_t uEndOfBstr;
       uint8_t uType;
       uint32_t uOffset;
       uint16_t uCount; // Cursor
       uint8_t  uMajorType; // TODO: one bit?
-      uint8_t  uMapMode; // Used by map mode TODO: one bit?
+      uint8_t  bBoundedMode; // Used by map mode TODO: one bit?
       uint16_t uSaveCount; // Used by map mode
    } pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING1+1],
    *pCurrent,
-   *pCurrentMap;
+   *pCurrentBounded,
+   *tmp; // TODO: fix this
    uint8_t uNestType[QCBOR_MAX_ARRAY_NESTING1+1];
 } QCBORDecodeNesting;
 
