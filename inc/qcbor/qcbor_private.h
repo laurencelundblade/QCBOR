@@ -144,37 +144,97 @@ struct _QCBOREncodeContext {
  and the DecodeNesting_xxx functions form an "object" that does the work
  for arrays and maps.
 
- Size approximation (varies with CPU/compiler):
-   64-bit machine: 4 * 16 + 8 = 72
-   32-bit machine: 4 * 16 + 4 = 68
+ 64-bit machine size
+   16  = 16 bytes for two pointers
+   128 = 16 * 8 for the two unions
+   64  = 16 * 4 for the uLevelType, 1 byte padded to 4 bytes for alignment
+   208 TOTAL
+
+ 32-bit machine size is 8 bytes smaller because of the smaller pointers.
+
  */
 typedef struct __QCBORDecodeNesting  {
-  // PRIVATE DATA STRUCTURE
+   // PRIVATE DATA STRUCTURE
    struct nesting_decode_level {
+      /*
+       This keeps tracking info at each nesting level.
+
+       There are two main types of levels
+         1) Byte count tracking. This is for the top level
+       input CBOR which might be a single item or a CBOR sequence
+       and byte string wrapped encoded CBOR.
+
+         2) Item tracking. This is for maps and arrays.
+
+       uLevelType has value QCBOR_TYPE_BYTE_STRING
+       for the first and QCBOR_TYPE_MAP or QCBOR_TYPE_ARRAY
+       or QCBOR_TYPE_MAP_AS_ARRAY for the second.
+
+       Item tracking can either be for definite or indefinite
+       length maps / arrays. For definite lengths, the
+       total count and current position is tracked. For
+       indefinite length, uTotalCount is 0xffff and there
+       is no actual tracking.
+
+       This also records whether a level is bounded or not.
+       All byte-count tracked levels are bounded. Maps and
+       arrays may or may not be bounded. They are bounded if
+       uStartOffset is not 0xffffffff.
+
+       */
+      uint8_t  uLevelType;
       union {
          struct {
             uint16_t uCountTotal;
-            uint16_t uCountCursor;
+            uint16_t uCountCursor; // TODO: review all uses of this
             uint32_t uStartOffset;
-         } mm;
+         } ma; /* for maps and arrays */
          struct {
-            uint16_t uCountCursor;
-            //uint32_t uEndOffset;
-         } bs;
+            uint32_t uEndOfBstr;
+            uint32_t uPreviousEndOffset;
+         } bs; /* for top-level sequence and bstr wrapped CBOR */
       } u;
-      uint32_t uPreviousEndOffset;
-      uint32_t uEndOfBstr;
-      uint8_t uType;
-      uint32_t uOffset;
-      uint16_t uCount; // Cursor
-      uint8_t  uMajorType; // TODO: one bit?
-      uint8_t  bBoundedMode; // Used by map mode TODO: one bit?
-      uint16_t uSaveCount; // Used by map mode
    } pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING1+1],
-   *pCurrent,
-   *pCurrentBounded,
-   *tmp; // TODO: fix this
-   uint8_t uNestType[QCBOR_MAX_ARRAY_NESTING1+1];
+    *pCurrent,
+    *pCurrentBounded;
+   /*
+    bounded or not with one bit in a uint16_t
+
+    bIsBounded = bits & (0x01 << index)
+    bits = bits | (0x01 << index)
+    bits = bits & ~(0x01 << index)
+
+    byte[index] = type;
+    type = bytes[index]
+
+    or...
+
+    bIsBounded = 0x80 & bytes[index] // check
+    bytes[index] = bytes[index] | 0x80; // set
+    bytes[index] = bytes[index] & ~0x80; // clear
+
+    type = byte[index] & ~0x80;
+    byte[index] = (byte[index] & 0x80) + type
+
+
+
+    */
+
+   /*
+    b = xxx & (0x01 << index)
+
+    xxx = xxx | (0x01 << index)
+
+    xxx = xxx & ~(0x01 << index)
+
+
+    t = (ttt[index] & 0x3) + 4;
+    b = ttt[index] & 0x04;
+
+    ttt[index] = (t - 4) + (b * 4);
+
+    */
+   //uint8_t uNestType[QCBOR_MAX_ARRAY_NESTING1+1];
 } QCBORDecodeNesting;
 
 
@@ -218,7 +278,7 @@ struct _QCBORDecodeContext {
 
    // A cached offset to the end of the current map
    // 0 if no value is cached.
-   uint32_t uMapEndOffset;
+   uint32_t uMapEndOffsetCache;
 
    uint8_t        uDecodeMode;
    uint8_t        bStringAllocateAll;
