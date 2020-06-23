@@ -1699,9 +1699,9 @@ struct FailInput  Failures[] = {
 
 
    // Nested maps and arrays must be closed off (some extra nested test vectors)
-   // Unclosed indefinite array containing a close definite array
+   // Unclosed indefinite array containing a closed definite length array
    { {(uint8_t[]){0x9f, 0x80, 0x00}, 3}, QCBOR_ERR_HIT_END },
-   // Definite length array containing an unclosed indefinite array
+   // Definite length array containing an unclosed indefinite length array
    { {(uint8_t[]){0x81, 0x9f}, 2}, QCBOR_ERR_HIT_END },
    // Deeply nested definite length arrays with deepest one unclosed
    { {(uint8_t[]){0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}, 9}, QCBOR_ERR_HIT_END },
@@ -2998,9 +2998,14 @@ int32_t IndefiniteLengthArrayMapTest()
    }
 
    nResult = QCBORDecode_GetNext(&DC, &Item);
-   if(nResult != QCBOR_ERR_BAD_BREAK) {
+   if(nResult != QCBOR_SUCCESS) {
       return -14;
    }
+
+   nResult = QCBORDecode_GetNext(&DC, &Item);
+    if(nResult != QCBOR_ERR_BAD_BREAK) {
+       return -140;
+    }
 
 
    // --- next test -----

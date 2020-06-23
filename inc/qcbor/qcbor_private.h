@@ -140,14 +140,14 @@ struct _QCBOREncodeContext {
 /*
  PRIVATE DATA STRUCTURE
 
- Holds the data for array and map nesting for decoding work. This structure
- and the DecodeNesting_xxx functions form an "object" that does the work
- for arrays and maps.
+ Holds the data for array and map nesting for decoding work. This
+ structure and the DecodeNesting_xxx functions form an "object" that
+ does the work for arrays and maps.
 
  64-bit machine size
-   16  = 16 bytes for two pointers
    128 = 16 * 8 for the two unions
    64  = 16 * 4 for the uLevelType, 1 byte padded to 4 bytes for alignment
+   16  = 16 bytes for two pointers
    208 TOTAL
 
  32-bit machine size is 8 bytes smaller because of the smaller pointers.
@@ -157,36 +157,35 @@ typedef struct __QCBORDecodeNesting  {
    // PRIVATE DATA STRUCTURE
    struct nesting_decode_level {
       /*
-       This keeps tracking info at each nesting level.
+       This keeps tracking info for each nesting level. There are two
+       main types of levels:
 
-       There are two main types of levels
-         1) Byte count tracking. This is for the top level
-       input CBOR which might be a single item or a CBOR sequence
-       and byte string wrapped encoded CBOR.
+         1) Byte count tracking. This is for the top level input CBOR
+         which might be a single item or a CBOR sequence and byte
+         string wrapped encoded CBOR.
 
          2) Item tracking. This is for maps and arrays.
 
-       uLevelType has value QCBOR_TYPE_BYTE_STRING
-       for the first and QCBOR_TYPE_MAP or QCBOR_TYPE_ARRAY
-       or QCBOR_TYPE_MAP_AS_ARRAY for the second.
+       uLevelType has value QCBOR_TYPE_BYTE_STRING for 1) and
+       QCBOR_TYPE_MAP or QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP_AS_ARRAY
+       for 2).
 
-       Item tracking can either be for definite or indefinite
-       length maps / arrays. For definite lengths, the
-       total count and current position is tracked. For
-       indefinite length, uTotalCount is 0xffff and there
-       is no actual tracking.
+       Item tracking can either be for definite or indefinite length
+       maps / arrays. For definite lengths, the total count and
+       current position is tracked. For indefinite length, uTotalCount
+       is 0xffff and there is no tracking in this data structure.
 
-       This also records whether a level is bounded or not.
-       All byte-count tracked levels (the top-level sequence
-       and bstr-wrapped CBOR) are bounded. Maps and
-       arrays may or may not be bounded. They are bounded if
-       they were Entered() and not if they were traversed with
-       GetNext(). They are recoded as bounded if uStartOffset is not UINT32_MAX.
+       This also records whether a level is bounded or not.  All
+       byte-count tracked levels (the top-level sequence and
+       bstr-wrapped CBOR) are bounded. Maps and arrays may or may not
+       be bounded. They are bounded if they were Entered() and not if
+       they were traversed with GetNext(). They are marked as bounded
+       by uStartOffset not being UINT32_MAX.
        */
       /*
-       If uLevelType can put in a separatly indexed array,
-       the unnion / struct will be 8 bytes and a lot of wasted
-       padding for alignment can be saved.
+       If uLevelType can put in a separatly indexed array, the union /
+       struct will be 8 bytes rather than 9 and a lot of wasted
+       padding for alignment will be saved.
        */
       uint8_t  uLevelType;
       union {
@@ -206,19 +205,17 @@ typedef struct __QCBORDecodeNesting  {
    /*
     pCurrent is for item-by-item pre-order traversal.
 
-    pCurrentBounded points to the current bounding level
-    or is NULL if there isn't one.
+    pCurrentBounded points to the current bounding level or is NULL if
+    there isn't one.
 
-    pCurrent must always be below pCurrentBounded as the
-    pre-order traversal is always bounded by the bounding
-    level.
+    pCurrent must always be below pCurrentBounded as the pre-order
+    traversal is always bounded by the bounding level.
 
-    When a bounded level is entered, the pre-order traversal
-    is set to the first item in the bounded level. When
-    a bounded level is exited, the pre-order traversl is set
-    to the next item after the map, array or bstr. This may
-    be more than one level up, or even the end of the
-    input CBOR.
+    When a bounded level is entered, the pre-order traversal is set to
+    the first item in the bounded level. When a bounded level is
+    exited, the pre-order traversl is set to the next item after the
+    map, array or bstr. This may be more than one level up, or even
+    the end of the input CBOR.
     */
 
 } QCBORDecodeNesting;
