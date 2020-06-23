@@ -181,7 +181,7 @@ DecodeNesting_IsDefiniteLength(const QCBORDecodeNesting *pNesting)
    return true;
 }
 
-inline static bool DecodeNesting_InBoundedMode(const QCBORDecodeNesting *pNesting)
+inline static bool DecodeNesting_IsCurrentBounded(const QCBORDecodeNesting *pNesting)
 {
    if(pNesting->pCurrent->uLevelType == QCBOR_TYPE_BYTE_STRING) {
       return true;
@@ -215,7 +215,7 @@ DecodeNesting_IsAtEndOfBoundedMapOrArray(const QCBORDecodeNesting *pNesting)
       /* Not a map or array */
       return false;
    }
-   if(!DecodeNesting_InBoundedMode(pNesting)) { // TODO: pCurrent vs pCurrentBounded
+   if(!DecodeNesting_IsCurrentBounded(pNesting)) { // TODO: pCurrent vs pCurrentBounded
       /* Not in bounded mode. */
       return false;
    }
@@ -265,15 +265,12 @@ DecodeNesting_CheckBoundedType(const QCBORDecodeNesting *pNesting, uint8_t uType
    }
 }
 
-
-// return 1 if closed out an array or map
 inline static void
-DecodeNesting_DecrementX(QCBORDecodeNesting *pNesting)
+DecodeNesting_DecrementDefiniteLengthMapOrArrayCount(QCBORDecodeNesting *pNesting)
 {
    /* Only call on array / map; TODO: add check?*/
    pNesting->pCurrent->u.ma.uCountCursor--;
 }
-
 
 
 inline static void
@@ -281,9 +278,6 @@ DecodeNesting_Ascend(QCBORDecodeNesting *pNesting)
 {
    pNesting->pCurrent--;
 }
-
-
-
 
 inline static void
 DecodeNesting_EnterBoundedMode(QCBORDecodeNesting *pNesting, size_t uOffset)
@@ -326,9 +320,9 @@ DecodeNesting_DescendMapOrArray(QCBORDecodeNesting *pNesting,
    pNesting->pCurrent++;
 
    // Fill in the new level fully
-   pNesting->pCurrent->uLevelType = uQCBORType;
-   pNesting->pCurrent->u.ma.uCountCursor     = (uint16_t)uCount;
-   pNesting->pCurrent->u.ma.uCountTotal = (uint16_t)uCount;
+   pNesting->pCurrent->uLevelType         = uQCBORType;
+   pNesting->pCurrent->u.ma.uCountCursor  = (uint16_t)uCount;
+   pNesting->pCurrent->u.ma.uCountTotal   = (uint16_t)uCount;
 
    DecodeNesting_ClearBoundedMode(pNesting);
 
@@ -1212,7 +1206,7 @@ static QCBORError Ascender(QCBORDecodeContext *pMe)
           // TODO: check this.
           */
          if(DecodeNesting_IsDefiniteLength(&(pMe->nesting))) {
-            DecodeNesting_DecrementX(&(pMe->nesting));
+            DecodeNesting_DecrementDefiniteLengthMapOrArrayCount(&(pMe->nesting));
             if(!DecodeNesting_IsEndOfDefiniteLengthMapOrArray(&(pMe->nesting))) {
                /* Didn't close out map or array; all work here is done */
                break;
@@ -1251,7 +1245,7 @@ static QCBORError Ascender(QCBORDecodeContext *pMe)
       /* All items in the level have been consumed. */
       
       /* But ascent in bounded mode is only by explicit call to QCBORDecode_ExitBoundedMode() */
-      if(DecodeNesting_InBoundedMode(&(pMe->nesting))) {
+      if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
          /* Set the count to zero for indefinite length arrays to indicate cursor is at end of bounded map / array */
          pMe->nesting.pCurrent->u.ma.uCountCursor = 0;
          break;
@@ -1420,7 +1414,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    // were closed out and makes it possible for them to reconstruct
    // the tree with just the information returned by GetNext
    // TODO: pull this into DecodeNesting_GetLevel
-   if(DecodeNesting_InBoundedMode(&(me->nesting)) && me->nesting.pCurrent->u.ma.uCountCursor == 0) {
+   if(DecodeNesting_IsCurrentBounded(&(me->nesting)) && me->nesting.pCurrent->u.ma.uCountCursor == 0) {
       // At end of a map / array in map mode, so next nest is 0 to
       // indicate this end.
       pDecodedItem->uNextNestLevel = 0;
@@ -2794,7 +2788,7 @@ ExitExit(QCBORDecodeContext *pMe, uint32_t uEndOffset)
     there is one. */
    while(pMe->nesting.pCurrentBounded != &(pMe->nesting.pMapsAndArrays[0])) {
        pMe->nesting.pCurrentBounded--;
-      if(DecodeNesting_InBoundedMode(&(pMe->nesting))) {
+      if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
          break;
       }
    }
@@ -2873,9 +2867,11 @@ static QCBORError InternalEnterWrappedBstr(QCBORDecodeContext *pMe, const QCBORI
       goto Done;
    }
 
-   //if(pMe->nesting.pCurrent)
-   // TODO: will this work for indefinite lengths?
-   pMe->nesting.pCurrent->u.ma.uCountCursor++; // Don't count the bstr yet
+   if(DecodeNesting_IsDefiniteLength(&(pMe->nesting))) {
+      /* Reverse the decrement done by GetNext() for the bstr as
+       so the increment in ExitExit()->Ascender() will work right. */
+      pMe->nesting.pCurrent->u.ma.uCountCursor++;
+   }
 
    if(pBstr) {
       *pBstr = pItem->val.string;
@@ -2896,11 +2892,9 @@ static QCBORError InternalEnterWrappedBstr(QCBORDecodeContext *pMe, const QCBORI
 
    UsefulInputBuf_SetBufferLen(&(pMe->InBuf), uEndOfBstr);
 
-   // TODO: comment on cast
    uError = DecodeNesting_DescendWrappedBstr(&(pMe->nesting),
                                              uPreviousLength,
                                              uEndOfBstr);
-
 Done:
    printdecode(pMe, "Entered Bstr");
 

@@ -177,10 +177,16 @@ typedef struct __QCBORDecodeNesting  {
        is no actual tracking.
 
        This also records whether a level is bounded or not.
-       All byte-count tracked levels are bounded. Maps and
+       All byte-count tracked levels (the top-level sequence
+       and bstr-wrapped CBOR) are bounded. Maps and
        arrays may or may not be bounded. They are bounded if
-       uStartOffset is not 0xffffffff.
-
+       they were Entered() and not if they were traversed with
+       GetNext(). They are recoded as bounded if uStartOffset is not UINT32_MAX.
+       */
+      /*
+       If uLevelType can put in a separatly indexed array,
+       the unnion / struct will be 8 bytes and a lot of wasted
+       padding for alignment can be saved.
        */
       uint8_t  uLevelType;
       union {
@@ -198,43 +204,23 @@ typedef struct __QCBORDecodeNesting  {
     *pCurrent,
     *pCurrentBounded;
    /*
-    bounded or not with one bit in a uint16_t
+    pCurrent is for item-by-item pre-order traversal.
 
-    bIsBounded = bits & (0x01 << index)
-    bits = bits | (0x01 << index)
-    bits = bits & ~(0x01 << index)
+    pCurrentBounded points to the current bounding level
+    or is NULL if there isn't one.
 
-    byte[index] = type;
-    type = bytes[index]
+    pCurrent must always be below pCurrentBounded as the
+    pre-order traversal is always bounded by the bounding
+    level.
 
-    or...
-
-    bIsBounded = 0x80 & bytes[index] // check
-    bytes[index] = bytes[index] | 0x80; // set
-    bytes[index] = bytes[index] & ~0x80; // clear
-
-    type = byte[index] & ~0x80;
-    byte[index] = (byte[index] & 0x80) + type
-
-
-
+    When a bounded level is entered, the pre-order traversal
+    is set to the first item in the bounded level. When
+    a bounded level is exited, the pre-order traversl is set
+    to the next item after the map, array or bstr. This may
+    be more than one level up, or even the end of the
+    input CBOR.
     */
 
-   /*
-    b = xxx & (0x01 << index)
-
-    xxx = xxx | (0x01 << index)
-
-    xxx = xxx & ~(0x01 << index)
-
-
-    t = (ttt[index] & 0x3) + 4;
-    b = ttt[index] & 0x04;
-
-    ttt[index] = (t - 4) + (b * 4);
-
-    */
-   //uint8_t uNestType[QCBOR_MAX_ARRAY_NESTING1+1];
 } QCBORDecodeNesting;
 
 
