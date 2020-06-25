@@ -159,13 +159,11 @@ typedef struct __QCBORDecodeNesting  {
       /*
        This keeps tracking info for each nesting level. There are two
        main types of levels:
-
          1) Byte count tracking. This is for the top level input CBOR
          which might be a single item or a CBOR sequence and byte
          string wrapped encoded CBOR.
-
          2) Item tracking. This is for maps and arrays.
-
+       
        uLevelType has value QCBOR_TYPE_BYTE_STRING for 1) and
        QCBOR_TYPE_MAP or QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP_AS_ARRAY
        for 2).
@@ -190,8 +188,10 @@ typedef struct __QCBORDecodeNesting  {
       uint8_t  uLevelType;
       union {
          struct {
+#define QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH UINT16_MAX
             uint16_t uCountTotal;
             uint16_t uCountCursor; // TODO: review all uses of this
+#define QCBOR_NON_BOUNDED_OFFSET UINT32_MAX
             uint32_t uStartOffset;
          } ma; /* for maps and arrays */
          struct {
@@ -261,6 +261,7 @@ struct _QCBORDecodeContext {
 
    // A cached offset to the end of the current map
    // 0 if no value is cached.
+#define MAP_OFFSET_CACHE_INVALID UINT32_MAX // TODO: exclude this value from input length
    uint32_t uMapEndOffsetCache;
 
    uint8_t        uDecodeMode;

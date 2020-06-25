@@ -538,16 +538,16 @@ static const uint8_t pValidMapEncoded[] = {
    0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x64, 0x61, 0x6d,
    0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73, 0x20, 0x61, 0x6e, 0x64,
    0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63,
-   0x73 } ;
+   0x73 };
 
 static int32_t ParseOrderedArray(const uint8_t *pEncoded,
-                             size_t nLen,
-                             int64_t *pInt1,
-                             int64_t *pInt2,
-                             const uint8_t **pBuf3,
-                             size_t *pBuf3Len,
-                             const uint8_t **pBuf4,
-                             size_t *pBuf4Len)
+                                 size_t nLen,
+                                 int64_t *pInt1,
+                                 int64_t *pInt2,
+                                 const uint8_t **pBuf3,
+                                 size_t *pBuf3Len,
+                                 const uint8_t **pBuf4,
+                                 size_t *pBuf4Len)
 {
    QCBORDecodeContext DCtx;
    QCBORItem          Item;
@@ -643,13 +643,43 @@ int32_t SimpleArrayTest()
 static uint8_t sEmpties[] = {0x83, 0x00, 0x80, 0x84, 0x80, 0x81, 0x00, 0xa0,
                              0xa3, 0x01, 0xa0, 0x02, 0xa0, 0x03, 0x80};
 
-int32_t EmptyMapsAndArraysTest()
+/* Same as above, but with indefinte lengths */
+static uint8_t sEmptiesIndef[] = {
+0x9F,
+0x00,
+0x9F,
+0xFF,
+0x9F,
+0x9F,
+0xFF,
+0x9F,
+0x00,
+0xFF,
+0xBF,
+0xFF,
+0xBF,
+0x01,
+0xBF,
+0xFF,
+0x02,
+0xBF,
+0xFF,
+0x03,
+0x9F,
+0xFF,
+0xFF,
+0xFF,
+   0xFF};
+
+
+
+static int32_t CheckEmpties(UsefulBufC input, bool bCheckCounts)
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
 
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmpties),
+                    input,
                     QCBOR_DECODE_MODE_NORMAL);
 
    // Array with 3 items
@@ -657,7 +687,7 @@ int32_t EmptyMapsAndArraysTest()
       Item.uDataType != QCBOR_TYPE_ARRAY ||
       Item.uNestingLevel != 0 ||
       Item.uNextNestLevel != 1 ||
-      Item.val.uCount != 3) {
+      (bCheckCounts && Item.val.uCount != 3)) {
       return -1;
    }
 
@@ -675,7 +705,7 @@ int32_t EmptyMapsAndArraysTest()
       Item.uDataType != QCBOR_TYPE_ARRAY ||
       Item.uNestingLevel != 1 ||
       Item.uNextNestLevel != 1 ||
-      Item.val.uCount != 0) {
+      (bCheckCounts && Item.val.uCount != 0)) {
       return -3;
    }
 
@@ -684,7 +714,7 @@ int32_t EmptyMapsAndArraysTest()
       Item.uDataType != QCBOR_TYPE_ARRAY ||
       Item.uNestingLevel != 1 ||
       Item.uNextNestLevel != 2 ||
-      Item.val.uCount != 4) {
+      (bCheckCounts && Item.val.uCount != 4)) {
       return -4;
    }
 
@@ -693,7 +723,7 @@ int32_t EmptyMapsAndArraysTest()
       Item.uDataType != QCBOR_TYPE_ARRAY ||
       Item.uNestingLevel != 2 ||
       Item.uNextNestLevel != 2 ||
-      Item.val.uCount != 0) {
+      (bCheckCounts && Item.val.uCount != 0)) {
       return -5;
    }
 
@@ -702,7 +732,7 @@ int32_t EmptyMapsAndArraysTest()
       Item.uDataType != QCBOR_TYPE_ARRAY ||
       Item.uNestingLevel != 2 ||
       Item.uNextNestLevel != 3 ||
-      Item.val.uCount != 1) {
+      (bCheckCounts && Item.val.uCount != 1)) {
       return -6;
    }
 
@@ -720,7 +750,7 @@ int32_t EmptyMapsAndArraysTest()
       Item.uDataType != QCBOR_TYPE_MAP ||
       Item.uNestingLevel != 2 ||
       Item.uNextNestLevel != 2 ||
-      Item.val.uCount != 0) {
+      (bCheckCounts && Item.val.uCount != 0)) {
       return -8;
    }
 
@@ -729,7 +759,7 @@ int32_t EmptyMapsAndArraysTest()
       Item.uDataType != QCBOR_TYPE_MAP ||
       Item.uNestingLevel != 2 ||
       Item.uNextNestLevel != 3 ||
-      Item.val.uCount != 3) {
+      (bCheckCounts && Item.val.uCount != 3)) {
       return -9;
    }
 
@@ -738,7 +768,7 @@ int32_t EmptyMapsAndArraysTest()
       Item.uDataType != QCBOR_TYPE_MAP ||
       Item.uNestingLevel != 3 ||
       Item.uNextNestLevel != 3 ||
-      Item.val.uCount != 0) {
+      (bCheckCounts && Item.val.uCount != 0)) {
       return -10;
    }
 
@@ -747,7 +777,7 @@ int32_t EmptyMapsAndArraysTest()
       Item.uDataType != QCBOR_TYPE_MAP ||
       Item.uNestingLevel != 3 ||
       Item.uNextNestLevel != 3 ||
-      Item.val.uCount != 0) {
+      (bCheckCounts && Item.val.uCount != 0)) {
       return -11;
    }
 
@@ -756,12 +786,31 @@ int32_t EmptyMapsAndArraysTest()
       Item.uDataType != QCBOR_TYPE_ARRAY ||
       Item.uNestingLevel != 3 ||
       Item.uNextNestLevel != 0 ||
-      Item.val.uCount != 0) {
+      (bCheckCounts && Item.val.uCount != 0)) {
       return -12;
    }
 
    if(QCBORDecode_Finish(&DCtx) != QCBOR_SUCCESS) {
       return -13;
+   }
+   return 0;
+}
+
+
+int32_t EmptyMapsAndArraysTest()
+{
+   int nResult;
+   nResult = CheckEmpties(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmpties),
+                     true);
+   if(nResult) {
+      return nResult;
+   }
+
+   nResult = CheckEmpties(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmptiesIndef),
+                     false);
+
+   if(nResult) {
+      return nResult -100;
    }
 
    return 0;
@@ -1620,7 +1669,7 @@ static int32_t ProcessFailures(struct FailInput *pFailInputs, size_t nNumFails)
       // Iterate until there is an error of some sort error
       QCBORItem Item;
       do {
-         // Set to something none-zero other than QCBOR_TYPE_NONE
+         // Set to something none-zero, something other than QCBOR_TYPE_NONE
          memset(&Item, 0x33, sizeof(Item));
 
          nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
@@ -3900,7 +3949,14 @@ int32_t EnterMapTest()
       QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
          QCBORDecode_GetText(&DCtx, &S2);
          QCBORDecode_GetText(&DCtx, &S3);
-         // TODO, check for end of array?
+         if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+            return 5000;
+         }
+         QCBORDecode_GetText(&DCtx, &S3);
+         if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+             return 5001;
+         }
+
       QCBORDecode_ExitArray(&DCtx);
    
    QCBORDecode_ExitMap(&DCtx);

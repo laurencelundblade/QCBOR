@@ -409,6 +409,11 @@ typedef struct _QCBORItem {
 
 } QCBORItem;
 
+/**
+   An array or map's length is indefinite when it has this value.
+ */
+#define QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH UINT16_MAX
+
 
 
 #define QCBOR_CONVERT_TYPE_INT64     0x01
@@ -2014,17 +2019,17 @@ inline static void QCBORDecode_EnterArray(QCBORDecodeContext *pMe) {
 }
 
 // Semi-private
-void QCBORDecode_ExitBoundedMode(QCBORDecodeContext *pMe, uint8_t uType);
+void QCBORDecode_ExitBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType);
 
 
 static inline void QCBORDecode_ExitArray(QCBORDecodeContext *pMe)
 {
-   QCBORDecode_ExitBoundedMode(pMe, QCBOR_TYPE_ARRAY);
+   QCBORDecode_ExitBoundedMapOrArray(pMe, QCBOR_TYPE_ARRAY);
 }
 
 static inline void QCBORDecode_ExitMap(QCBORDecodeContext *pMe)
 {
-   QCBORDecode_ExitBoundedMode(pMe, QCBOR_TYPE_MAP);
+   QCBORDecode_ExitBoundedMapOrArray(pMe, QCBOR_TYPE_MAP);
 }
 
 

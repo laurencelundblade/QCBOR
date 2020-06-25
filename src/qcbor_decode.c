@@ -43,14 +43,49 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
+inline static bool
+// TODO: add more tests for QCBOR_TYPE_MAP_AS_ARRAY mode in qcbor_decode_tests.c
+QCBORItem_IsMapOrArray(const QCBORItem *pMe)
+{
+   const uint8_t uDataType = pMe->uDataType;
+   return uDataType == QCBOR_TYPE_MAP ||
+          uDataType == QCBOR_TYPE_ARRAY ||
+          uDataType == QCBOR_TYPE_MAP_AS_ARRAY;
+}
+
+inline static bool
+QCBORItem_IsEmptyDefiniteLengthMapOrArray(const QCBORItem *pMe)
+{
+   if(!QCBORItem_IsMapOrArray(pMe)){
+      return false;
+   }
+
+   if(pMe->val.uCount != 0) {
+      return false;
+   }
+   return true;
+}
+
+inline static bool
+QCBORItem_IsIndefiniteLengthMapOrArray(const QCBORItem *pMe)
+{
+   if(!QCBORItem_IsMapOrArray(pMe)){
+      return false;
+   }
+
+   if(pMe->val.uCount != QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
+      return false;
+   }
+   return true;
+}
+
+
 /*===========================================================================
- DecodeNesting -- Functions for tracking array/map nesting when decoding
+ DecodeNesting -- Tracking array/map/sequence/bstr-wrapped nesting
 
- See qcbor/qcbor_decode.h for definition of the object
-  used here: QCBORDecodeNesting
+ See qcbor/qcbor_private.h for definition of the object
+ described here: QCBORDecodeNesting
   ===========================================================================*/
-
-
 
 /*
 The main mode of decoding is a pre-order travesal of the tree of leaves (numbers, strings...)
@@ -89,45 +124,22 @@ The caller understands the nesting level in pre-order traversal by
  This type of fetching items does not affect the normal traversal
  cursor.
 
- 
-
-
-
-
-
-
-
 
 When a data item is presented to the caller, the nesting level of the data
  item is presented along with the nesting level of the item that would be
  next consumed.
 
-
-
-
-
-
-
-
-
  */
-
-inline static bool
-// TODO: add more tests for QCBOR_TYPE_MAP_AS_ARRAY mode in qcbor_decode_tests.c
-IsMapOrArray(uint8_t uDataType)
-{
-   return uDataType == QCBOR_TYPE_MAP ||
-          uDataType == QCBOR_TYPE_ARRAY ||
-          uDataType == QCBOR_TYPE_MAP_AS_ARRAY;
-}
 
 
 inline static uint8_t
 DecodeNesting_GetCurrentLevel(const QCBORDecodeNesting *pNesting)
 {
    const ptrdiff_t nLevel = pNesting->pCurrent - &(pNesting->pMapsAndArrays[0]);
-   // Check in DecodeNesting_Descend and never having
-   // QCBOR_MAX_ARRAY_NESTING > 255 gaurantees cast is safe
+   /*
+    Limit in DecodeNesting_Descend against more than
+    QCBOR_MAX_ARRAY_NESTING gaurantees cast is safe
+    */
    return (uint8_t)nLevel;
 }
 
@@ -135,10 +147,17 @@ inline static uint8_t
 DecodeNesting_GetBoundedModeLevel(QCBORDecodeNesting *pNesting)
 {
    const ptrdiff_t nLevel = pNesting->pCurrentBounded - &(pNesting->pMapsAndArrays[0]);
-
-   // Check in DecodeNesting_Descend and never having
-   // QCBOR_MAX_ARRAY_NESTING > 255 gaurantees cast is safe
+   /*
+    Limit in DecodeNesting_Descend against more than
+    QCBOR_MAX_ARRAY_NESTING gaurantees cast is safe
+    */
    return (uint8_t)nLevel;
+}
+
+static inline size_t
+DecodeNesting_GetMapOrArrayStart(QCBORDecodeNesting *pNesting)
+{
+   return pNesting->pCurrentBounded->u.ma.uStartOffset;
 }
 
 inline static bool
@@ -158,7 +177,7 @@ DecodeNesting_IsIndefiniteLength(const QCBORDecodeNesting *pNesting)
       /* Not a map or array */
       return false;
    }
-   if(pNesting->pCurrent->u.ma.uCountCursor != UINT16_MAX) {
+   if(pNesting->pCurrent->u.ma.uCountCursor != QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
       /* Not indefinte length */
       return false;
    }
@@ -173,7 +192,7 @@ DecodeNesting_IsDefiniteLength(const QCBORDecodeNesting *pNesting)
       /* Not a map or array */
       return false;
    }
-   if(pNesting->pCurrent->u.ma.uCountCursor == UINT16_MAX) {
+   if(pNesting->pCurrent->u.ma.uCountCursor == QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
       /* Is indefinite */
       return false;
    }
@@ -196,13 +215,13 @@ inline static bool DecodeNesting_IsCurrentBounded(const QCBORDecodeNesting *pNes
    if(pNesting->pCurrent->uLevelType == QCBOR_TYPE_BYTE_STRING) {
       return true;
    }
-   if(pNesting->pCurrent->u.ma.uStartOffset != UINT32_MAX) {
+   if(pNesting->pCurrent->u.ma.uStartOffset != QCBOR_NON_BOUNDED_OFFSET) {
       return true;
    }
    return false;
 }
 
-inline static void DecodeNesting_SetBoundedMode(const QCBORDecodeNesting *pNesting, size_t uStart)
+inline static void DecodeNesting_SetMapOrArrayBoundedMode(const QCBORDecodeNesting *pNesting, size_t uStart)
 {
    // Should be only called on maps and arrays
    // TODO: check this cast, maybe give an error?
@@ -211,7 +230,7 @@ inline static void DecodeNesting_SetBoundedMode(const QCBORDecodeNesting *pNesti
 
 inline static void DecodeNesting_ClearBoundedMode(const QCBORDecodeNesting *pNesting)
 {
-   pNesting->pCurrent->u.ma.uStartOffset = UINT32_MAX;
+   pNesting->pCurrent->u.ma.uStartOffset = QCBOR_NON_BOUNDED_OFFSET;
 }
 
 inline static bool
@@ -229,7 +248,7 @@ DecodeNesting_IsAtEndOfBoundedDefiniteLenMapOrArray(const QCBORDecodeNesting *pN
       /* Not in bounded mode. */
       return false;
    }
-   if(pNesting->pCurrentBounded->u.ma.uCountCursor == UINT16_MAX) {
+   if(pNesting->pCurrentBounded->u.ma.uCountCursor == QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
       /* An indefinite length map or array */
       return false;
    }
@@ -268,12 +287,17 @@ DecodeNesting_IsCurrentTypeMap(const QCBORDecodeNesting *pNesting)
 inline static bool
 DecodeNesting_CheckBoundedType(const QCBORDecodeNesting *pNesting, uint8_t uType)
 {
-   if(pNesting->pCurrentBounded->uLevelType == uType) {
-      return true;
-   } else {
+   if(pNesting->pCurrentBounded == NULL) {
       return false;
    }
+
+   if(pNesting->pCurrentBounded->uLevelType != uType) {
+      return false;
+   }
+
+   return true;
 }
+
 
 inline static void
 DecodeNesting_DecrementDefiniteLengthMapOrArrayCount(QCBORDecodeNesting *pNesting)
@@ -289,23 +313,39 @@ DecodeNesting_Ascend(QCBORDecodeNesting *pNesting)
    pNesting->pCurrent--;
 }
 
+
+static QCBORError
+DecodeNesting_Decsend(QCBORDecodeNesting *pNesting, uint8_t uType)
+{
+   // Error out if nesting is too deep
+   if(pNesting->pCurrent >= &(pNesting->pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING])) {
+      return QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
+   }
+
+   // The actual descend
+   pNesting->pCurrent++;
+
+   pNesting->pCurrent->uLevelType = uType;
+
+   return QCBOR_SUCCESS;
+}
+
+
 inline static void
 DecodeNesting_EnterBoundedMode(QCBORDecodeNesting *pNesting, size_t uOffset)
 {
    /* Have descended into this before this is called. The job here is just to mark it in bounded mode */
    pNesting->pCurrentBounded = pNesting->pCurrent;
-   DecodeNesting_SetBoundedMode(pNesting, uOffset);
+   DecodeNesting_SetMapOrArrayBoundedMode(pNesting, uOffset);
 }
-
-
 
 
 inline static QCBORError
 DecodeNesting_DescendMapOrArray(QCBORDecodeNesting *pNesting,
-                                uint8_t uQCBORType,
-                                uint64_t uCount)
+                                uint8_t             uQCBORType,
+                                uint64_t            uCount)
 {
-   QCBORError nReturn = QCBOR_SUCCESS;
+   QCBORError uError = QCBOR_SUCCESS;
 
    if(uCount == 0) {
       // Nothing to do for empty definite lenth arrays. They are just are
@@ -315,69 +355,90 @@ DecodeNesting_DescendMapOrArray(QCBORDecodeNesting *pNesting,
    }
 
    // Error out if arrays is too long to handle
-   if(uCount != UINT16_MAX && uCount > QCBOR_MAX_ITEMS_IN_ARRAY) {
-      nReturn = QCBOR_ERR_ARRAY_TOO_LONG;
+   if(uCount != QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH &&
+      uCount > QCBOR_MAX_ITEMS_IN_ARRAY) {
+      uError = QCBOR_ERR_ARRAY_TOO_LONG;
       goto Done;
    }
 
-   // Error out if nesting is too deep
-   if(pNesting->pCurrent >= &(pNesting->pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING])) {
-      nReturn = QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
+   uError = DecodeNesting_Decsend(pNesting, uQCBORType);
+   if(uError != QCBOR_SUCCESS) {
       goto Done;
    }
 
-   // The actual descend
-   pNesting->pCurrent++;
-
-   // Fill in the new level fully
-   pNesting->pCurrent->uLevelType         = uQCBORType;
+   // Fill in the new map/array level. Check above makes cast OK.
    pNesting->pCurrent->u.ma.uCountCursor  = (uint16_t)uCount;
    pNesting->pCurrent->u.ma.uCountTotal   = (uint16_t)uCount;
 
    DecodeNesting_ClearBoundedMode(pNesting);
 
 Done:
-   return nReturn;;
+   return uError;;
+}
+
+
+static inline void
+DecodeNesting_LevelUpCurrent(QCBORDecodeNesting *pNesting)
+{
+   pNesting->pCurrent = pNesting->pCurrentBounded - 1;
+}
+
+
+static inline void
+DecodeNesting_LevelUpBounded(QCBORDecodeNesting *pNesting)
+{
+   while(pNesting->pCurrentBounded != &(pNesting->pMapsAndArrays[0])) {
+      pNesting->pCurrentBounded--;
+      if(DecodeNesting_IsCurrentBounded(pNesting)) {
+         break;
+      }
+   }
 }
 
 
 inline static QCBORError
-DecodeNesting_DescendWrappedBstr(QCBORDecodeNesting *pNesting,
-                                 size_t uEndOffset,
-                                 size_t uEndOfBstr)
+DecodeNesting_DescendIntoBstrWrapped(QCBORDecodeNesting *pNesting,
+                                     size_t uEndOffset,
+                                     size_t uEndOfBstr)
 {
-   QCBORError nReturn = QCBOR_SUCCESS;
+   QCBORError uError = QCBOR_SUCCESS;
 
-   // Error out if nesting is too deep
-   if(pNesting->pCurrent >= &(pNesting->pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING])) {
-      nReturn = QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
+   uError = DecodeNesting_Decsend(pNesting, QCBOR_TYPE_BYTE_STRING);
+   if(uError != QCBOR_SUCCESS) {
       goto Done;
    }
 
-   // The actual descend
-   pNesting->pCurrent++;
-
-   // Fill in the new level fully
-   pNesting->pCurrent->uLevelType = QCBOR_TYPE_BYTE_STRING;
+   // Fill in the new byte string level
+   // TODO: justify cast
    pNesting->pCurrent->u.bs.uPreviousEndOffset = (uint32_t)uEndOffset;
-   pNesting->pCurrent->u.bs.uEndOfBstr = (uint32_t)uEndOfBstr;
+   pNesting->pCurrent->u.bs.uEndOfBstr         = (uint32_t)uEndOfBstr;
 
+   // Bstr wrapped levels are always bounded
    pNesting->pCurrentBounded = pNesting->pCurrent;
 
 Done:
-   return nReturn;;
+   return uError;;
+}
+
+
+static inline void
+DecodeNesting_ZeroDefiniteLengthCount(QCBORDecodeNesting *pNesting)
+{
+   pNesting->pCurrent->u.ma.uCountCursor = 0;
 }
 
 
 inline static void
 DecodeNesting_Init(QCBORDecodeNesting *pNesting)
 {
+   /* Assumes that *pNesting has been zero'd before this call. */
    pNesting->pMapsAndArrays[0].uLevelType = QCBOR_TYPE_BYTE_STRING;
    pNesting->pCurrent = &(pNesting->pMapsAndArrays[0]);
 }
 
 
-static void DecodeNesting_PrepareForMapSearch(QCBORDecodeNesting *pNesting, QCBORDecodeNesting *pSave)
+static void
+DecodeNesting_PrepareForMapSearch(QCBORDecodeNesting *pNesting, QCBORDecodeNesting *pSave)
 {
    *pSave = *pNesting;
    pNesting->pCurrent = pNesting->pCurrentBounded;
@@ -387,46 +448,57 @@ static void DecodeNesting_PrepareForMapSearch(QCBORDecodeNesting *pNesting, QCBO
    }
 }
 
-static inline void DecodeNesting_RestoreFromMapSearch(QCBORDecodeNesting *pNesting, QCBORDecodeNesting *pSave)
+static inline void
+DecodeNesting_RestoreFromMapSearch(QCBORDecodeNesting *pNesting, QCBORDecodeNesting *pSave)
 {
    *pNesting = *pSave;
 }
 
 
-static inline uint32_t DecodeNesting_GetEndOfBstr(QCBORDecodeNesting *pMe)
+static inline uint32_t
+DecodeNesting_GetEndOfBstr(QCBORDecodeNesting *pMe)
 {
    return pMe->pCurrentBounded->u.bs.uEndOfBstr;
 }
 
 
-static inline uint32_t DecodeNesting_GetPreviousBoundedEnd(QCBORDecodeNesting *pMe)
+static inline uint32_t
+DecodeNesting_GetPreviousBoundedEnd(QCBORDecodeNesting *pMe)
 {
    return pMe->pCurrentBounded->u.bs.uPreviousEndOffset;
 }
 
 
-QCBORError DecodeNesting_EnterBstr(QCBORDecodeNesting *pNesting, uint32_t uEndOffset)
+#include <stdio.h>
+void DecodeNesting_Print(QCBORDecodeNesting *pNesting, UsefulInputBuf *pBuf, const char *szName)
 {
-   QCBORError uReturn ;
+   printf("---%s--%d--%d--\narrow is current bounded level\nLevel   Count   Type S-Offset  SaveCount  Bounded E-Offset\n",
+          szName,
+          (uint32_t)pBuf->cursor,
+          (uint32_t)pBuf->UB.len);
+   for(int i = 0; i < QCBOR_MAX_ARRAY_NESTING; i++) {
+      if(&(pNesting->pMapsAndArrays[i]) > pNesting->pCurrent) {
+         break;
+      }
 
-   // Error out if nesting is too deep
-   if(pNesting->pCurrent >= &(pNesting->pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING])) {
-      uReturn = QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
-      goto Done;
+      // TODO: print different for BS and MA
+      printf("%2s %2d   %5d  %s   %6u      %5d        %d    %5d\n",
+             pNesting->pCurrentBounded == &(pNesting->pMapsAndArrays[i]) ? "->": "  ",
+             i,
+             pNesting->pMapsAndArrays[i].u.ma.uCountCursor,
+             pNesting->pMapsAndArrays[i].uLevelType == QCBOR_TYPE_MAP ? "map  " :
+               (pNesting->pMapsAndArrays[i].uLevelType == QCBOR_TYPE_ARRAY ? "array" :
+                 (pNesting->pMapsAndArrays[i].uLevelType == QCBOR_TYPE_BYTE_STRING ? "bstr " :
+                   (pNesting->pMapsAndArrays[i].uLevelType == QCBOR_TYPE_NONE ? "none " : "?????"))),
+             pNesting->pMapsAndArrays[i].u.ma.uStartOffset,
+             pNesting->pMapsAndArrays[i].u.ma.uCountTotal,
+             0, // TODO: fix this
+             pNesting->pMapsAndArrays[i].u.bs.uPreviousEndOffset
+             );
+
    }
-
-   // The actual descend
-   pNesting->pCurrent++;
-
-   // Record a few details for this nesting level
-   pNesting->pCurrent->uLevelType = QCBOR_TYPE_BYTE_STRING; // TODO the right value for a bstr
-
-   uReturn = QCBOR_SUCCESS;
-
-Done:
-   return uReturn;
+   printf("\n");
 }
-
 
 
 
@@ -873,7 +945,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
             goto Done;
          }
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-            pDecodedItem->val.uCount = UINT16_MAX; // Indicate indefinite length
+            pDecodedItem->val.uCount = QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH;
          } else {
             // type conversion OK because of check above
             pDecodedItem->val.uCount = (uint16_t)uNumber;
@@ -1078,12 +1150,12 @@ GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
          }
          if(uTagMapIndex >= QCBOR_NUM_MAPPED_TAGS) {
             // No room for the tag
-            return 97; // TODO error code
+            return 97; // TODO: error code
          }
 
          // Cover the case where tag is new and were it is already in the map
          me->auMappedTags[uTagMapIndex] = pDecodedItem->val.uTagV;
-         auTags[uTagIndex] = (uint16_t)(uTagMapIndex + 0xfff0); // TODO proper constant and cast
+         auTags[uTagIndex] = (uint16_t)(uTagMapIndex + 0xfff0); // TODO: proper constant and cast
 
       } else {
          auTags[uTagIndex] = (uint16_t)pDecodedItem->val.uTagV;
@@ -1172,12 +1244,15 @@ Done:
 }
 
 
+/*
+ See if next item is a CBOR break. If it is, it is consumed,
+ if not it is not consumed.
+*/
 static inline QCBORError
 NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
 {
    *pbNextIsBreak = false;
    if(UsefulInputBuf_BytesUnconsumed(pUIB) != 0) {
-      // TODO: use the Peek method?
       QCBORItem Peek;
       size_t uPeek = UsefulInputBuf_Tell(pUIB);
       QCBORError uReturn = GetNext_Item(pUIB, &Peek, NULL);
@@ -1185,8 +1260,8 @@ NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
          return uReturn;
       }
       if(Peek.uDataType != QCBOR_TYPE_BREAK) {
-        // It is not a break, rewind so it can be processed normally.
-        UsefulInputBuf_Seek(pUIB, uPeek);
+         // It is not a break, rewind so it can be processed normally.
+         UsefulInputBuf_Seek(pUIB, uPeek);
       } else {
          *pbNextIsBreak = true;
       }
@@ -1201,7 +1276,7 @@ NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
  end of an array or map that can be closed out. That
  may in turn close out another map or array.
 */
-static QCBORError Ascender(QCBORDecodeContext *pMe)
+static QCBORError NestLevelAscender(QCBORDecodeContext *pMe)
 {
    QCBORError uReturn;
 
@@ -1209,16 +1284,16 @@ static QCBORError Ascender(QCBORDecodeContext *pMe)
    while(!DecodeNesting_IsCurrentAtTop(&(pMe->nesting))) {
 
       if(DecodeNesting_IsDefiniteLength(&(pMe->nesting))) {
-         /* Definite Length Maps and Arrays */
+         /* Decrement count for definite length maps / arrays */
          DecodeNesting_DecrementDefiniteLengthMapOrArrayCount(&(pMe->nesting));
          if(!DecodeNesting_IsEndOfDefiniteLengthMapOrArray(&(pMe->nesting))) {
-             /* Didn't close out map or array; all work here is done */
+             /* Didn't close out map or array, so all work here is done */
              break;
           }
-         /* fall through to an actual ascend at the end of loop */
+          /* All of a definite length array was consumed; fall through to ascend */
 
       } else {
-         /* If not definite length, have to check for a CBOR break. */
+         /* If not definite length, have to check for a CBOR break */
          bool bIsBreak = false;
          uReturn = NextIsBreak(&(pMe->InBuf), &bIsBreak);
          if(uReturn != QCBOR_SUCCESS) {
@@ -1226,26 +1301,29 @@ static QCBORError Ascender(QCBORDecodeContext *pMe)
          }
 
          if(!bIsBreak) {
-            /* It's not a break; nothing closes out; all work is done */
+            /* It's not a break so nothing closes out and all work is done */
             break;
          }
 
          if(DecodeNesting_IsBstrWrapped(&(pMe->nesting))) {
-            /* Break occurred inside a wrapped bstr or
-             at the top level sequence. This is always an
-             error because it is not in an indefinte length. */
+            /*
+             Break occurred inside a bstr-wrapped CBOR or
+             in the top level sequence. This is always an
+             error because neither are an indefinte length
+             map/array.
+             */
             uReturn = QCBOR_ERR_BAD_BREAK;
             goto Done;
          }
-         /* fall through to an actual ascend at the end of loop */
+         /* It was a break in an indefinite length map / array */
       }
 
-      /* All items in the level have been consumed. */
+      /* All items in the map/array level have been consumed. */
 
       /* But ascent in bounded mode is only by explicit call to QCBORDecode_ExitBoundedMode() */
       if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
          /* Set the count to zero for definite length arrays to indicate cursor is at end of bounded map / array */
-         pMe->nesting.pCurrent->u.ma.uCountCursor = 0;
+         DecodeNesting_ZeroDefiniteLengthCount(&(pMe->nesting));
          break;
       }
 
@@ -1296,8 +1374,8 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 
    /*
     Check to see if at the end of a bounded definite length map or
-    array. The check for the end of an indefnite length array is
-    later. (TODO: test that).
+    array. The check for the end of an indefinite length array is
+    later.
     */
    if(DecodeNesting_IsAtEndOfBoundedDefiniteLenMapOrArray(&(me->nesting))) {
       uReturn = QCBOR_ERR_NO_MORE_ITEMS;
@@ -1327,14 +1405,14 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 
 
    /* ==== Next, Process the item for descent, ascent, decrement... ==== */
-   if(IsMapOrArray(pDecodedItem->uDataType) && pDecodedItem->val.uCount != 0) {
+   if(QCBORItem_IsMapOrArray(pDecodedItem)) {
       /*
-       If the new item is a map or array descend. Empty definite
-       length maps and arrays are not handled here as they can be
-       treated as a non-aggreate type. Empty indefinite length maps
-       and arrays are handled here.
+       If the new item is a map or array descend.
 
-       Maps and arrays do count in as items in the map/array that
+       Empty maps and arrays descended into, but then ascended out
+       of in the next chunk of code.
+
+       Maps and arrays do count as items in the map/array that
        encloses them so a decrement needs to be done for them too, but
        that is done only when all the items in them have been
        processed, not when they are opened with the exception of an
@@ -1348,10 +1426,9 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       }
    }
 
-   // TODO: not sure the if-then-else logic is right here
-   if(!IsMapOrArray(pDecodedItem->uDataType) ||
-      pDecodedItem->val.uCount == 0 ||
-      pDecodedItem->val.uCount == UINT16_MAX) {
+   if(!QCBORItem_IsMapOrArray(pDecodedItem) ||
+       QCBORItem_IsEmptyDefiniteLengthMapOrArray(pDecodedItem) ||
+       QCBORItem_IsIndefiniteLengthMapOrArray(pDecodedItem)) {
       /*
        The following cases are handled here:
          - A non-aggregate like an integer or string
@@ -1359,25 +1436,25 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
          - An indefinite length map or array that might be empty or might not.
 
        The Ascender does the work of decrementing the count for an
-       definite length array and break detection for an indefinite
-       length array. If the end of the map or array was reached, then
-       it ascends nesting levels, possibly all the way to the top.
+       definite length map/array and break detection for an indefinite
+       length map/array. If the end of the map/array was reached, then
+       it ascends nesting levels, possibly all the way to the top level.
        */
-      uReturn = Ascender(me);
+      uReturn = NestLevelAscender(me);
       if(uReturn) {
          goto Done;
       }
    }
 
-   /* ==== Last, Tell the caller the nest level of the next item ==== */
+   /* ==== Last, tell the caller the nest level of the next item ==== */
    /*
-     Tell the caller what level is next. This tells them what
-     maps/arrays were closed out and makes it possible for them to
-     reconstruct the tree with just the information returned by
-     GetNext
+    Tell the caller what level is next. This tells them what
+    maps/arrays were closed out and makes it possible for them to
+    reconstruct the tree with just the information returned in
+    a QCBORItem.
    */
    if(DecodeNesting_IsAtEndOfBoundedDefiniteLenMapOrArray(&(me->nesting))) {
-     /* At end of a bounded map / array; next nest is 0 to indicate this */
+      /* At end of a bounded map/array; uNextNestLevel 0 to indicate this */
       pDecodedItem->uNextNestLevel = 0;
    } else {
       pDecodedItem->uNextNestLevel = DecodeNesting_GetCurrentLevel(&(me->nesting));
@@ -2136,36 +2213,7 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
 
 
 
-#include <stdio.h>
-void printdecode(QCBORDecodeContext *pMe, const char *szName)
-{
-   printf("---%s--%d--%d--\narrow is current bounded level\nLevel   Count   Type S-Offset  SaveCount  Bounded E-Offset\n",
-          szName,
-          (uint32_t)pMe->InBuf.cursor,
-          (uint32_t)pMe->InBuf.UB.len);
-   for(int i = 0; i < QCBOR_MAX_ARRAY_NESTING; i++) {
-      if(&(pMe->nesting.pMapsAndArrays[i]) > pMe->nesting.pCurrent) {
-         break;
-      }
 
-      // TODO: print different for BS and MA
-      printf("%2s %2d   %5d  %s   %6u      %5d        %d    %5d\n",
-             pMe->nesting.pCurrentBounded == &(pMe->nesting.pMapsAndArrays[i]) ? "->": "  ",
-             i,
-             pMe->nesting.pMapsAndArrays[i].u.ma.uCountCursor,
-             pMe->nesting.pMapsAndArrays[i].uLevelType == QCBOR_TYPE_MAP ? "map  " :
-               (pMe->nesting.pMapsAndArrays[i].uLevelType == QCBOR_TYPE_ARRAY ? "array" :
-                 (pMe->nesting.pMapsAndArrays[i].uLevelType == QCBOR_TYPE_BYTE_STRING ? "bstr " :
-                   (pMe->nesting.pMapsAndArrays[i].uLevelType == QCBOR_TYPE_NONE ? "none " : "?????"))),
-             pMe->nesting.pMapsAndArrays[i].u.ma.uStartOffset,
-             pMe->nesting.pMapsAndArrays[i].u.ma.uCountTotal,
-             0, // TODO: fix this
-             pMe->nesting.pMapsAndArrays[i].u.bs.uPreviousEndOffset
-             );
-
-   }
-   printf("\n");
-}
 
 
 /*
@@ -2180,9 +2228,9 @@ ConsumeItem(QCBORDecodeContext *pMe,
    QCBORError uReturn;
    QCBORItem  Item;
    
-   printdecode(pMe, "ConsumeItem");
+   DecodeNesting_Print(&(pMe->nesting), &(pMe->InBuf), "ConsumeItem");
 
-   if(IsMapOrArray(pItemToConsume->uDataType)) {
+   if(QCBORItem_IsMapOrArray(pItemToConsume)) {
       /* There is only real work to do for maps and arrays */
 
       /* This works for definite and indefinite length
@@ -2299,7 +2347,8 @@ MapSearch(QCBORDecodeContext *pMe,
    DecodeNesting_PrepareForMapSearch(&(pMe->nesting), &SaveNesting);
 
    /* Reposition to search from the start of the map / array */
-   UsefulInputBuf_Seek(&(pMe->InBuf), pMe->nesting.pCurrentBounded->u.ma.uStartOffset);
+   UsefulInputBuf_Seek(&(pMe->InBuf),
+                       DecodeNesting_GetMapOrArrayStart(&(pMe->nesting)));
 
    /*
     Loop over all the items in the map. They could be
@@ -2605,10 +2654,7 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
    UsefulInputBuf_Seek(&(pMe->InBuf), uOffset);
    pMe->nesting.pCurrent = pMe->nesting.pCurrentBounded; // TODO: part of DecodeNesting
 
-   // TODO: check error?
    QCBORDecode_EnterBoundedMode(pMe, pSearch->uDataType);
-
-   printdecode(pMe, "FinishEnter");
 }
 
 
@@ -2671,7 +2717,7 @@ void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLab
 }
 
 
-
+// Semi-private function
 /* Next item must be map or this generates an error */
 void QCBORDecode_EnterBoundedMode(QCBORDecodeContext *pMe, uint8_t uType)
 {
@@ -2694,94 +2740,90 @@ void QCBORDecode_EnterBoundedMode(QCBORDecodeContext *pMe, uint8_t uType)
    DecodeNesting_EnterBoundedMode(&(pMe->nesting), UsefulInputBuf_Tell(&(pMe->InBuf)));
 
    // TODO: restrict input to less than this or some other invalidation strategy.
-   pMe->uMapEndOffsetCache = 0xffffffff; // Invalidate the cached map end.
+   pMe->uMapEndOffsetCache = MAP_OFFSET_CACHE_INVALID;
 
-   printdecode(pMe, "EnterMapModeDone");
+   DecodeNesting_Print(&(pMe->nesting), &(pMe->InBuf),  "EnterMapModeDone");
 }
 
+
+/*
+ This is for exiting a level that is a bounded map, array or bstr
+ wrapped CBOR. It is the work common to these.
+
+ One chunk of work is to set up the pre-order traversal so it is at
+ the item just after the bounded map, array or bstr that is being
+ exited. This is somewhat complex.
+
+ The other work is to level-up the bounded mode to next higest bounded
+ mode or the top level if there isn't one.
+ */
 static QCBORError
-ExitExit(QCBORDecodeContext *pMe, uint32_t uEndOffset)
+ExitBoundedLevel(QCBORDecodeContext *pMe, uint32_t uEndOffset)
 {
-   // TODO: is this necessary? Pretty sure it is not
-   //pMe->nesting.pCurrentBounded->bBoundedMode = false;
-
    QCBORError uErr;
-   /*  Exiting a bounded mode level. Bounded mode could be
-    either an array, map or wrapped bstr.
 
-    The following have to be set when exiting a bounded mode level
-     - The byte offset of the useful input buffer set to the item after the map, array or bstr just consumed.
-     - The length of the useful input buf has to be adjusted if exiting bstr wrapped CBOR
-     - The pre-order traversal nesting level, which could be just one level up, or all the way to the top.
-     - The count of items in the pre-order nesting level if it is a definite length map or array.
-     - The bounded nesting level, which could be one bounded level up, or all the way to the top
-
-    That means that the pre-order traversal must be set up
-    to the position just after the array, map or wrapped
-    bstr that was consumed.
-
-
-*/
-   /* First work is to set up the pre-order traversal
-      so that it is positioned just after the array, map
-    or wrapped bstr that was just consumed.  The
-    useful input buf cursor, nesting level and item
-    count needs to be adjusted. The exit of the array
-    map or wrapped bstr might be the last in the
-    above nesting map or array and so on. Ascender()
-    does lots of work to unwind all the way to the top
-    through maps and arrays of definite or indefinte
-    lengths. */
+   /*
+    First the pre-order-traversal byte offset is positioned to the
+    item just after the bounded mode item that was just consumed.
+    */
    UsefulInputBuf_Seek(&(pMe->InBuf), uEndOffset);
 
-   pMe->nesting.pCurrent = pMe->nesting.pCurrentBounded - 1; // TODO error check
+   /*
+    Next, set the current nesting level to one above the bounded level
+    that was just exited.
 
-   uErr = Ascender(pMe);
+    DecodeNesting_CheckBoundedType() is always called before this and
+    makes sure pCurrentBounded is valid.
+    */
+   DecodeNesting_LevelUpCurrent(&(pMe->nesting));
+
+   /*
+    This does the complex work of leveling up the pre-order traversal
+    when the end of a map or array or another bounded level is
+    reached.  It may do nothing, or ascend all the way to the top
+    level.
+    */
+   uErr = NestLevelAscender(pMe);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
 
-/*
-    It also means that the next highest bounded mode
-    must be put into effect. That, or the top-level sequence
-    is reached (which is the primordial bounded bstr in a sense. */
-   /* Also ascend to the next higest bounded mode level if
-    there is one. */
-   while(pMe->nesting.pCurrentBounded != &(pMe->nesting.pMapsAndArrays[0])) {
-       pMe->nesting.pCurrentBounded--;
-      if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
-         break;
-      }
-   }
+   /*
+    This makes the next highest bounded level the current bounded
+    level. If there is no next highest level, then no bounded mode is
+    in effect.
+    */
+   DecodeNesting_LevelUpBounded(&(pMe->nesting));
 
-   pMe->uMapEndOffsetCache = 0xffffffff; // Invalidate the cached map end.
+   pMe->uMapEndOffsetCache = MAP_OFFSET_CACHE_INVALID;
 
 Done:
-   printdecode(pMe, "exit exit");
+   DecodeNesting_Print(&(pMe->nesting), &(pMe->InBuf),  "ExitBoundedLevel");
    return uErr;
 }
 
+
 // Semi-private function
-void QCBORDecode_ExitBoundedMode(QCBORDecodeContext *pMe, uint8_t uType)
+void QCBORDecode_ExitBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state; do nothing.
+      /* Already in error state; do nothing. */
       return;
    }
 
-   printdecode(pMe, "start exit");
+   QCBORError uErr;
 
-   QCBORError uErr = QCBOR_SUCCESS;
-
-   if(!DecodeNesting_CheckBoundedType(&(pMe->nesting), uType)){
+   if(!DecodeNesting_CheckBoundedType(&(pMe->nesting), uType)) {
       uErr = QCBOR_ERR_CLOSE_MISMATCH;
       goto Done;
    }
 
-   /* Have to set the offset to the end of the map/array
+   /*
+    Have to set the offset to the end of the map/array
     that is being exited. If there is no cached value,
-    from previous map search, then do a dummy search. */
-   if(pMe->uMapEndOffsetCache == 0xffffffff) {
+    from previous map search, then do a dummy search.
+    */
+   if(pMe->uMapEndOffsetCache == MAP_OFFSET_CACHE_INVALID) {
       QCBORItem Dummy;
       Dummy.uLabelType = QCBOR_TYPE_NONE;
       uErr = MapSearch(pMe, &Dummy, NULL, NULL, NULL);
@@ -2790,7 +2832,7 @@ void QCBORDecode_ExitBoundedMode(QCBORDecodeContext *pMe, uint8_t uType)
       }
    }
 
-   uErr = ExitExit(pMe, pMe->uMapEndOffsetCache);
+   uErr = ExitBoundedLevel(pMe, pMe->uMapEndOffsetCache);
 
 Done:
    pMe->uLastError = (uint8_t)uErr;
@@ -2806,7 +2848,10 @@ void QCBORDecode_RewindMap(QCBORDecodeContext *pMe)
 
 
 
-static QCBORError InternalEnterWrappedBstr(QCBORDecodeContext *pMe, const QCBORItem *pItem, uint8_t uTagRequirement, UsefulBufC *pBstr)
+static QCBORError InternalEnterWrappedBstr(QCBORDecodeContext *pMe,
+                                           const QCBORItem    *pItem,
+                                           uint8_t             uTagRequirement,
+                                           UsefulBufC         *pBstr)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       // Already in error state; do nothing.
@@ -2831,6 +2876,7 @@ static QCBORError InternalEnterWrappedBstr(QCBORDecodeContext *pMe, const QCBORI
    if(DecodeNesting_IsDefiniteLength(&(pMe->nesting))) {
       /* Reverse the decrement done by GetNext() for the bstr as
        so the increment in ExitExit()->Ascender() will work right. */
+      // TODO: method for this
       pMe->nesting.pCurrent->u.ma.uCountCursor++;
    }
 
@@ -2853,18 +2899,22 @@ static QCBORError InternalEnterWrappedBstr(QCBORDecodeContext *pMe, const QCBORI
 
    UsefulInputBuf_SetBufferLen(&(pMe->InBuf), uEndOfBstr);
 
-   uError = DecodeNesting_DescendWrappedBstr(&(pMe->nesting),
-                                             uPreviousLength,
-                                             uEndOfBstr);
+   uError = DecodeNesting_DescendIntoBstrWrapped(&(pMe->nesting),
+                                                   uPreviousLength,
+                                                   uEndOfBstr);
 Done:
-   printdecode(pMe, "Entered Bstr");
+   DecodeNesting_Print(&(pMe->nesting), &(pMe->InBuf),  "Entered Bstr");
 
    return uError;
-
 }
 
 
-void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe, uint8_t uTagRequirement, UsefulBufC *pBstr)
+/*
+  Public function, see header qcbor/qcbor_decode.h file
+ */
+void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe,
+                                  uint8_t uTagRequirement,
+                                  UsefulBufC *pBstr)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       // Already in error state; do nothing.
@@ -2878,11 +2928,20 @@ void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe, uint8_t uTagRequireme
       return;
    }
 
-   pMe->uLastError = (uint8_t)InternalEnterWrappedBstr(pMe, &Item, uTagRequirement, pBstr);
+   pMe->uLastError = (uint8_t)InternalEnterWrappedBstr(pMe,
+                                                       &Item,
+                                                       uTagRequirement,
+                                                       pBstr);
 }
 
 
-void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pMe, uint8_t uTagRequirement, int64_t nLabel,  UsefulBufC *pBstr)
+/*
+  Public function, see header qcbor/qcbor_decode.h file
+ */
+void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pMe,
+                                          uint8_t             uTagRequirement,
+                                          int64_t             nLabel,
+                                          UsefulBufC         *pBstr)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
@@ -2891,7 +2950,13 @@ void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pMe, uint8_t uTagR
 }
 
 
-void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pMe, uint8_t uTagRequirement, const char *szLabel, UsefulBufC *pBstr)
+/*
+  Public function, see header qcbor/qcbor_decode.h file
+ */
+void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pMe,
+                                           uint8_t             uTagRequirement,
+                                           const char         *szLabel,
+                                           UsefulBufC         *pBstr)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
@@ -2900,18 +2965,30 @@ void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pMe, uint8_t uTag
 }
 
 
+/*
+  Public function, see header qcbor/qcbor_decode.h file
+ */
 void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pMe)
 {
-   // TODO: test for right mode?
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      // Already in error state; do nothing.
+      return;
+   }
 
-   /* Reset the length of the Useful\InputBuf to what it was before
-      the bstr wrapped CBOR was entered.
+   if(!DecodeNesting_CheckBoundedType(&(pMe->nesting), QCBOR_TYPE_BYTE_STRING)) {
+      pMe->uLastError = QCBOR_ERR_CLOSE_MISMATCH;
+      return;
+   }
+
+   /*
+    Reset the length of the UsefulInputBuf to what it was before
+    the bstr wrapped CBOR was entered.
     */
    UsefulInputBuf_SetBufferLen(&(pMe->InBuf),
                                DecodeNesting_GetPreviousBoundedEnd(&(pMe->nesting)));
 
 
-   QCBORError uErr = ExitExit(pMe, DecodeNesting_GetEndOfBstr(&(pMe->nesting)));
+   QCBORError uErr = ExitBoundedLevel(pMe, DecodeNesting_GetEndOfBstr(&(pMe->nesting)));
    pMe->uLastError = (uint8_t)uErr;
 }
 
