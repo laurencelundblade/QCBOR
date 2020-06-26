@@ -143,6 +143,7 @@ DecodeNesting_GetCurrentLevel(const QCBORDecodeNesting *pNesting)
    return (uint8_t)nLevel;
 }
 
+
 inline static uint8_t
 DecodeNesting_GetBoundedModeLevel(QCBORDecodeNesting *pNesting)
 {
@@ -154,11 +155,13 @@ DecodeNesting_GetBoundedModeLevel(QCBORDecodeNesting *pNesting)
    return (uint8_t)nLevel;
 }
 
+
 static inline size_t
 DecodeNesting_GetMapOrArrayStart(QCBORDecodeNesting *pNesting)
 {
    return pNesting->pCurrentBounded->u.ma.uStartOffset;
 }
+
 
 inline static bool
 DecodeNesting_IsCurrentAtTop(const QCBORDecodeNesting *pNesting)
@@ -169,6 +172,7 @@ DecodeNesting_IsCurrentAtTop(const QCBORDecodeNesting *pNesting)
       return false;
    }
 }
+
 
 inline static bool
 DecodeNesting_IsIndefiniteLength(const QCBORDecodeNesting *pNesting)
@@ -185,6 +189,7 @@ DecodeNesting_IsIndefiniteLength(const QCBORDecodeNesting *pNesting)
    return true;
 }
 
+
 inline static bool
 DecodeNesting_IsDefiniteLength(const QCBORDecodeNesting *pNesting)
 {
@@ -200,6 +205,7 @@ DecodeNesting_IsDefiniteLength(const QCBORDecodeNesting *pNesting)
    return true;
 }
 
+
 inline static bool
 DecodeNesting_IsBstrWrapped(const QCBORDecodeNesting *pNesting)
 {
@@ -209,6 +215,7 @@ DecodeNesting_IsBstrWrapped(const QCBORDecodeNesting *pNesting)
    }
    return false;
 }
+
 
 inline static bool DecodeNesting_IsCurrentBounded(const QCBORDecodeNesting *pNesting)
 {
@@ -221,6 +228,7 @@ inline static bool DecodeNesting_IsCurrentBounded(const QCBORDecodeNesting *pNes
    return false;
 }
 
+
 inline static void DecodeNesting_SetMapOrArrayBoundedMode(const QCBORDecodeNesting *pNesting, size_t uStart)
 {
    // Should be only called on maps and arrays
@@ -228,10 +236,12 @@ inline static void DecodeNesting_SetMapOrArrayBoundedMode(const QCBORDecodeNesti
    pNesting->pCurrent->u.ma.uStartOffset = (uint32_t)uStart;
 }
 
+
 inline static void DecodeNesting_ClearBoundedMode(const QCBORDecodeNesting *pNesting)
 {
    pNesting->pCurrent->u.ma.uStartOffset = QCBOR_NON_BOUNDED_OFFSET;
 }
+
 
 inline static bool
 DecodeNesting_IsAtEndOfBoundedDefiniteLenMapOrArray(const QCBORDecodeNesting *pNesting)
@@ -260,6 +270,7 @@ DecodeNesting_IsAtEndOfBoundedDefiniteLenMapOrArray(const QCBORDecodeNesting *pN
    return true;
 }
 
+
 inline static bool
 DecodeNesting_IsEndOfDefiniteLengthMapOrArray(QCBORDecodeNesting *pNesting)
 {
@@ -271,6 +282,7 @@ DecodeNesting_IsEndOfDefiniteLengthMapOrArray(QCBORDecodeNesting *pNesting)
    }
 }
 
+
 inline static bool
 DecodeNesting_IsCurrentTypeMap(const QCBORDecodeNesting *pNesting)
 {
@@ -279,10 +291,8 @@ DecodeNesting_IsCurrentTypeMap(const QCBORDecodeNesting *pNesting)
    } else {
       return false;
    }
-  /* Seems to be unnecessary  TODO: if(DecodeNesting_IsAtTop(pNesting)) {
-      return false;
-   } */
 }
+
 
 inline static bool
 DecodeNesting_CheckBoundedType(const QCBORDecodeNesting *pNesting, uint8_t uType)
@@ -437,7 +447,7 @@ DecodeNesting_Init(QCBORDecodeNesting *pNesting)
 }
 
 
-static void
+inline static void
 DecodeNesting_PrepareForMapSearch(QCBORDecodeNesting *pNesting, QCBORDecodeNesting *pSave)
 {
    *pSave = *pNesting;
@@ -1087,12 +1097,11 @@ Done:
 }
 
 
-uint64_t ConvertTag(QCBORDecodeContext *me, uint16_t uTagVal) {
-   if(uTagVal < 0xfff0) {
+static uint64_t ConvertTag(QCBORDecodeContext *me, uint16_t uTagVal) {
+   if(uTagVal <= QCBOR_LAST_UNMAPPED_TAG) {
       return uTagVal;
    } else {
-      // TODO constant and error check
-      int x = uTagVal - 0xfff0;
+      int x = uTagVal - (QCBOR_LAST_UNMAPPED_TAG + 1);
       return me->auMappedTags[x];
    }
 }
@@ -1104,7 +1113,6 @@ uint64_t ConvertTag(QCBORDecodeContext *me, uint16_t uTagVal) {
 static QCBORError
 GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
-   // Stack usage: int/ptr: 3 -- 24
    QCBORError nReturn;
 
    uint16_t auTags[QCBOR_MAX_TAGS_PER_ITEM] = {CBOR_TAG_INVALID16,
@@ -1137,25 +1145,27 @@ GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       }
 
       // Is the tag > 16 bits?
-      if(pDecodedItem->val.uTagV > CBOR_TAG_INVALID16) {
+      if(pDecodedItem->val.uTagV > QCBOR_LAST_UNMAPPED_TAG) {
          size_t uTagMapIndex;
-         // Is there room in the tag map?
+         // Is there room in the tag map, or is it in it already?
          for(uTagMapIndex = 0; uTagMapIndex < QCBOR_NUM_MAPPED_TAGS; uTagMapIndex++) {
             if(me->auMappedTags[uTagMapIndex] == CBOR_TAG_INVALID16) {
                break;
             }
             if(me->auMappedTags[uTagMapIndex] == pDecodedItem->val.uTagV) {
+               // TODO: test this
                break;
             }
          }
          if(uTagMapIndex >= QCBOR_NUM_MAPPED_TAGS) {
             // No room for the tag
-            return 97; // TODO: error code
+            // Should never happen as long as QCBOR_MAX_TAGS_PER_ITEM <= QCBOR_NUM_MAPPED_TAGS
+            return QCBOR_ERR_TOO_MANY_TAGS;
          }
 
-         // Cover the case where tag is new and were it is already in the map
+         // Covers the cases where tag is new and were it is already in the map
          me->auMappedTags[uTagMapIndex] = pDecodedItem->val.uTagV;
-         auTags[uTagIndex] = (uint16_t)(uTagMapIndex + 0xfff0); // TODO: proper constant and cast
+         auTags[uTagIndex] = (uint16_t)(uTagMapIndex + QCBOR_LAST_UNMAPPED_TAG + 1);
 
       } else {
          auTags[uTagIndex] = (uint16_t)pDecodedItem->val.uTagV;
@@ -1987,12 +1997,8 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
 {
    if(uIndex > QCBOR_MAX_TAGS_PER_ITEM) {
       return CBOR_TAG_INVALID16;
-   } else if(pItem->uTags[uIndex] <= QCBOR_LAST_UNMAPPED_TAG) {
-      return pItem->uTags[uIndex];
-   } else if(pItem->uTags[uIndex] < QCBOR_NUM_MAPPED_TAGS + QCBOR_LAST_UNMAPPED_TAG) {
-      return pMe->auMappedTags[pItem->uTags[uIndex] - QCBOR_LAST_UNMAPPED_TAG];
    } else {
-      return CBOR_TAG_INVALID16;
+      return ConvertTag(pMe, pItem->uTags[uIndex]);
    }
 }
 
@@ -2875,7 +2881,8 @@ static QCBORError InternalEnterWrappedBstr(QCBORDecodeContext *pMe,
 
    if(DecodeNesting_IsDefiniteLength(&(pMe->nesting))) {
       /* Reverse the decrement done by GetNext() for the bstr as
-       so the increment in ExitExit()->Ascender() will work right. */
+       so the increment in NestLevelAscender called by ExitBoundedLevel()
+       will work right. */
       // TODO: method for this
       pMe->nesting.pCurrent->u.ma.uCountCursor++;
    }
@@ -4153,6 +4160,8 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uOptions, do
    */
    switch(pItem->uDataType) {
          // TODO: type float
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
       case QCBOR_TYPE_DECIMAL_FRACTION:
          if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             // TODO: rounding and overflow errors
@@ -4171,6 +4180,7 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uOptions, do
             return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
+#endif /* ndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
       case QCBOR_TYPE_POSBIGNUM:
          if(uOptions & QCBOR_CONVERT_TYPE_BIG_NUM) {
@@ -4188,6 +4198,7 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uOptions, do
          }
          break;
 
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
          if(uOptions & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             double dMantissa = ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
@@ -4223,6 +4234,8 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uOptions, do
             return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
          }
          break;
+#endif /* ndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -4301,6 +4314,7 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe, const char 
 }
 
 
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 void FarfDecimalFraction(QCBORDecodeContext *pMe,
                          uint8_t             uTagRequirement,
                          QCBORItem          *pItem,
@@ -4382,6 +4396,7 @@ void QCBORDecode_GetDecimalFractionSZ(QCBORDecodeContext *pMe,
    
    FarfDecimalFraction(pMe, uTagRequirement, &Item, pnMantissa, pnExponent);
 }
+#endif /* ndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
 UsefulBufC ConvertIntToBigNum(uint64_t uInt, UsefulBuf Buffer)
@@ -4402,6 +4417,8 @@ UsefulBufC ConvertIntToBigNum(uint64_t uInt, UsefulBuf Buffer)
    return UsefulOutBuf_OutUBuf(&UOB);
 }
 
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 
 void QCBORDecode_GetDecimalFractionBigN(QCBORDecodeContext *pMe,
                                         uint8_t             uTagRequirement,
@@ -4456,3 +4473,4 @@ void QCBORDecode_GetDecimalFractionBigN(QCBORDecodeContext *pMe,
          pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
    }
 }
+#endif /* ndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */

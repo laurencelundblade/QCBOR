@@ -70,9 +70,7 @@ extern "C" {
  */
 #define QCBOR_NUM_MAPPED_TAGS 4
 
-#define QCBOR_MAX_NUM_MAPPED_TAGS 1024
-
-#define QCBOR_LAST_UNMAPPED_TAG (CBOR_TAG_INVALID16 - QCBOR_MAX_NUM_MAPPED_TAGS)
+#define QCBOR_LAST_UNMAPPED_TAG (CBOR_TAG_INVALID16 - QCBOR_NUM_MAPPED_TAGS)
 
 /*
  PRIVATE DATA STRUCTURE
@@ -120,23 +118,6 @@ struct _QCBOREncodeContext {
 };
 
 
-
-#define QCBOR_NEST_TYPE_SEQUENCE 0x01
-#define QCBOR_NEST_TYPE_ARRAY 0x02
-#define QCBOR_NEST_TYPE_MAP 0x03
-#define QCBOR_NEST_TYPE_IS_INDEFINITE 0x40
-#define QCBOR_NEST_TYPE_IS_BOUNDED 0x80
-
-/*
-#define QCBOR_NEST_TYPE_BSTR 0x00
-#define QCBOR_NEST_TYPE_DEFINITE_ARRAY
-#define QCBOR_NEST_TYPE_INDEFINITE_ARRAY
-#define QCBOR_NEST_TYPE_DEFINITE_MAP
-#define QCBOR_NEST_TYPE_INDEFINITE_MAP
-#define QCBOR_NEST_TYPE_
-*/
-
-
 /*
  PRIVATE DATA STRUCTURE
 
@@ -171,7 +152,7 @@ typedef struct __QCBORDecodeNesting  {
        Item tracking can either be for definite or indefinite length
        maps / arrays. For definite lengths, the total count and
        current position is tracked. For indefinite length, uTotalCount
-       is 0xffff and there is no tracking in this data structure.
+       is UINT16_MAX and there is no tracking in this data structure.
 
        This also records whether a level is bounded or not.  All
        byte-count tracked levels (the top-level sequence and
@@ -217,7 +198,6 @@ typedef struct __QCBORDecodeNesting  {
     map, array or bstr. This may be more than one level up, or even
     the end of the input CBOR.
     */
-
 } QCBORDecodeNesting;
 
 
@@ -243,10 +223,8 @@ struct _QCBORDecodeContext {
    UsefulInputBuf InBuf;
 
 
-
    QCBORDecodeNesting nesting;
    
-
 
    // If a string allocator is configured for indefinite-length
    // strings, it is configured here.
@@ -264,14 +242,9 @@ struct _QCBORDecodeContext {
 #define MAP_OFFSET_CACHE_INVALID UINT32_MAX // TODO: exclude this value from input length
    uint32_t uMapEndOffsetCache;
 
-   uint8_t        uDecodeMode;
-   uint8_t        bStringAllocateAll;
-   uint8_t        uLastError;  // QCBORError stuffed into a uint8_t
-
-   // This is NULL or points to QCBORTagList.
-   // It is type void for the same reason as above.
-   // TODO: remove this?
-   //const void *pCallerConfiguredTagList;
+   uint8_t  uDecodeMode;
+   uint8_t  bStringAllocateAll;
+   uint8_t  uLastError;  // QCBORError stuffed into a uint8_t
 
    uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
 };
