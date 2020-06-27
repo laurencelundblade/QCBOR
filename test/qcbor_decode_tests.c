@@ -540,6 +540,26 @@ static const uint8_t pValidMapEncoded[] = {
    0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63,
    0x73 };
 
+// Same as above, but with indefinite lengths.
+static const uint8_t pValidMapIndefEncoded[] = {
+0xbf, 0x6d, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20, 0x69, 0x6e,
+0x74, 0x65, 0x67, 0x65, 0x72, 0x18, 0x2a, 0x77, 0x61, 0x6e,
+0x20, 0x61, 0x72, 0x72, 0x61, 0x79, 0x20, 0x6f, 0x66, 0x20,
+0x74, 0x77, 0x6f, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67,
+0x73, 0x9f, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x31,
+0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x32, 0xff, 0x6c, 0x6d,
+0x61, 0x70, 0x20, 0x69, 0x6e, 0x20, 0x61, 0x20, 0x6d, 0x61,
+0x70, 0xbf, 0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x31,
+0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62, 0x79, 0x74, 0x65,
+0x73, 0x20, 0x32, 0x44, 0x79, 0x79, 0x79, 0x79, 0x6b, 0x61,
+0x6e, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x20, 0x69, 0x6e, 0x74,
+0x18, 0x62, 0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32, 0x78,
+0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x64, 0x61, 0x6d,
+0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73, 0x20, 0x61, 0x6e, 0x64,
+0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63,
+0x73, 0xff, 0xff};
+
+
 static int32_t ParseOrderedArray(const uint8_t *pEncoded,
                                  size_t nLen,
                                  int64_t *pInt1,
@@ -646,29 +666,29 @@ static uint8_t sEmpties[] = {0x83, 0x00, 0x80, 0x84, 0x80, 0x81, 0x00, 0xa0,
 /* Same as above, but with indefinte lengths */
 static uint8_t sEmptiesIndef[] = {
 0x9F,
-0x00,
-0x9F,
-0xFF,
-0x9F,
-0x9F,
-0xFF,
-0x9F,
-0x00,
-0xFF,
-0xBF,
-0xFF,
-0xBF,
-0x01,
-0xBF,
-0xFF,
-0x02,
-0xBF,
-0xFF,
-0x03,
-0x9F,
-0xFF,
-0xFF,
-0xFF,
+   0x00,
+   0x9F,
+      0xFF,
+   0x9F,
+      0x9F,
+         0xFF,
+      0x9F,
+         0x00,
+         0xFF,
+      0xBF,
+         0xFF,
+      0xBF,
+         0x01,
+         0xBF,
+            0xFF,
+         0x02,
+         0xBF,
+            0xFF,
+         0x03,
+         0x9F,
+            0xFF,
+         0xFF,
+      0xFF,
    0xFF};
 
 
@@ -3915,95 +3935,118 @@ void PrintItem(QCBORItem Item)
 }
 
 
+int32_t EMap(UsefulBufC input)
+{
+     QCBORItem Item1, Item2, Item3;
+     int64_t nDecodedInt1, nDecodedInt2;
+     UsefulBufC B1, B2, S1, S2, S3;
+
+     QCBORDecodeContext DCtx;
+     QCBORError nCBORError;
+
+     QCBORDecode_Init(&DCtx, input, 0);
+
+     QCBORDecode_EnterMap(&DCtx);
+
+        QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer",  &nDecodedInt1);
+
+        QCBORDecode_EnterMapFromMapSZ(&DCtx, "map in a map");
+           QCBORDecode_GetInt64InMapSZ(&DCtx,  "another int",  &nDecodedInt2);
+           QCBORDecode_GetBytesInMapSZ(&DCtx, "bytes 1",  &B1);
+           QCBORDecode_GetBytesInMapSZ(&DCtx, "bytes 2",  &B2);
+           QCBORDecode_GetTextInMapSZ(&DCtx, "text 2",  &S1);
+        QCBORDecode_ExitMap(&DCtx);
+
+        QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
+           QCBORDecode_GetNext(&DCtx, &Item1);
+           QCBORDecode_GetNext(&DCtx, &Item2);
+           if(QCBORDecode_GetNext(&DCtx, &Item3) != QCBOR_ERR_NO_MORE_ITEMS) {
+              return -400;
+           }
+        QCBORDecode_ExitArray(&DCtx);
+
+        // Parse the same array again using GetText() instead of GetItem()
+        QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
+           QCBORDecode_GetText(&DCtx, &S2);
+           QCBORDecode_GetText(&DCtx, &S3);
+           if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+              return 5000;
+           }
+      /*     QCBORDecode_GetText(&DCtx, &S3);
+           if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+               return 5001;
+           } */
+
+        QCBORDecode_ExitArray(&DCtx);
+
+     QCBORDecode_ExitMap(&DCtx);
+
+     nCBORError = QCBORDecode_Finish(&DCtx);
+
+     if(nCBORError) {
+        return (int32_t)nCBORError;
+     }
+
+     if(nDecodedInt1 != 42) {
+        return 1001;
+     }
+
+     if(nDecodedInt2 != 98) {
+        return 1002;
+     }
+
+     if(Item1.uDataType != QCBOR_TYPE_TEXT_STRING ||
+        UsefulBuf_Compare(Item1.val.string, UsefulBuf_FromSZ("string1"))){
+        return 1003;
+     }
+
+     if(Item1.uDataType != QCBOR_TYPE_TEXT_STRING ||
+        UsefulBuf_Compare(Item2.val.string, UsefulBuf_FromSZ("string2"))){
+        return 1004;
+     }
+
+     if(UsefulBuf_Compare(S1, UsefulBuf_FromSZ("lies, damn lies and statistics"))){
+        return 1005;
+     }
+
+     if(UsefulBuf_Compare(B1, UsefulBuf_FromSZ("xxxx"))){
+        return 1006;
+     }
+
+     if(UsefulBuf_Compare(B2, UsefulBuf_FromSZ("yyyy"))){
+        return 1007;
+     }
+
+     if(UsefulBuf_Compare(S2, UsefulBuf_FromSZ("string1"))){
+        return 1008;
+     }
+
+     if(UsefulBuf_Compare(S3, UsefulBuf_FromSZ("string2"))){
+        return 1009;
+     }
+
+   return 0;
+}
+
 int32_t EnterMapTest()
 {
-   QCBORItem Item1, Item2, Item3;
-   int64_t nDecodedInt1, nDecodedInt2;
-   UsefulBufC B1, B2, S1, S2, S3;
-
+   QCBORItem Item1;
    QCBORDecodeContext DCtx;
-   QCBORError nCBORError;
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
- 
-   QCBORDecode_EnterMap(&DCtx);
+   int32_t nReturn;
 
-      QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer",  &nDecodedInt1);
-   
-      QCBORDecode_EnterMapFromMapSZ(&DCtx, "map in a map");
-         QCBORDecode_GetInt64InMapSZ(&DCtx,  "another int",  &nDecodedInt2);
-         QCBORDecode_GetBytesInMapSZ(&DCtx, "bytes 1",  &B1);
-         QCBORDecode_GetBytesInMapSZ(&DCtx, "bytes 2",  &B2);
-         QCBORDecode_GetTextInMapSZ(&DCtx, "text 2",  &S1);
-      QCBORDecode_ExitMap(&DCtx);
-   
-      QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
-         QCBORDecode_GetNext(&DCtx, &Item1);
-         QCBORDecode_GetNext(&DCtx, &Item2);
-         if(QCBORDecode_GetNext(&DCtx, &Item3) != QCBOR_ERR_NO_MORE_ITEMS) {
-            return -400;
-         }
-      QCBORDecode_ExitArray(&DCtx);
-
-      // Parse the same array again using GetText() instead of GetItem()
-      QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
-         QCBORDecode_GetText(&DCtx, &S2);
-         QCBORDecode_GetText(&DCtx, &S3);
-         if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
-            return 5000;
-         }
-         QCBORDecode_GetText(&DCtx, &S3);
-         if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
-             return 5001;
-         }
-
-      QCBORDecode_ExitArray(&DCtx);
-   
-   QCBORDecode_ExitMap(&DCtx);
-   
-   nCBORError = QCBORDecode_Finish(&DCtx);
-   
-   if(nCBORError) {
-      return (int32_t)nCBORError;
-   }
-   
-   if(nDecodedInt1 != 42) {
-      return 1001;
+   (void)pValidMapIndefEncoded;
+   nReturn = EMap( UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapIndefEncoded));
+   if(nReturn) {
+      return nReturn + 20000;
    }
 
-   if(nDecodedInt2 != 98) {
-      return 1002;
-   }
-   
-   if(Item1.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      UsefulBuf_Compare(Item1.val.string, UsefulBuf_FromSZ("string1"))){
-      return 1003;
-   }
-   
-   if(Item1.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      UsefulBuf_Compare(Item2.val.string, UsefulBuf_FromSZ("string2"))){
-      return 1004;
-   }
-      
-   if(UsefulBuf_Compare(S1, UsefulBuf_FromSZ("lies, damn lies and statistics"))){
-      return 1005;
-   }
+   nReturn = EMap( UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
+    if(nReturn) {
+       return nReturn;
+    }
 
-   if(UsefulBuf_Compare(B1, UsefulBuf_FromSZ("xxxx"))){
-      return 1006;
-   }
 
-   if(UsefulBuf_Compare(B2, UsefulBuf_FromSZ("yyyy"))){
-      return 1007;
-   }
-   
-   if(UsefulBuf_Compare(S2, UsefulBuf_FromSZ("string1"))){
-      return 1008;
-   }
-   
-   if(UsefulBuf_Compare(S3, UsefulBuf_FromSZ("string2"))){
-      return 1009;
-   }
 
    // These tests confirm the cursor is at the right place after entering a map or array
 

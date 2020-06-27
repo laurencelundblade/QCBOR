@@ -9,7 +9,11 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
   highly portable. No #ifdefs or compiler options need to be set for it
   to run correctly.
 
-**Focused on C / native data representation** – Simpler code because
+**Focused on C / native data representation** – Careful conversion
+  of CBOR data types in to C data types, carefully handling
+  over and underflow, strict typing and such to so the caller
+  doesn't have to worry so much about this and so code
+  using QCBOR passes static analyzers easier.  Simpler code because
   there is no support for encoding/decoding to/from JSON, pretty
   printing, diagnostic notation... Only encoding from native C
   representations and decoding to native C representations is supported.

@@ -152,7 +152,8 @@ typedef struct __QCBORDecodeNesting  {
        Item tracking can either be for definite or indefinite length
        maps / arrays. For definite lengths, the total count and
        current position is tracked. For indefinite length, uTotalCount
-       is UINT16_MAX and there is no tracking in this data structure.
+       is QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH (UINT16_MAX) and
+       there is no tracking in this data structure.
 
        This also records whether a level is bounded or not.  All
        byte-count tracked levels (the top-level sequence and
@@ -162,7 +163,7 @@ typedef struct __QCBORDecodeNesting  {
        by uStartOffset not being UINT32_MAX.
        */
       /*
-       If uLevelType can put in a separatly indexed array, the union /
+       If uLevelType can put in a separately indexed array, the union /
        struct will be 8 bytes rather than 9 and a lot of wasted
        padding for alignment will be saved.
        */
