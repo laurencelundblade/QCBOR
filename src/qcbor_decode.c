@@ -175,22 +175,6 @@ DecodeNesting_IsCurrentAtTop(const QCBORDecodeNesting *pNesting)
 
 
 inline static bool
-DecodeNesting_IsIndefiniteLength(const QCBORDecodeNesting *pNesting)
-{
-   if(pNesting->pCurrent->uLevelType == QCBOR_TYPE_BYTE_STRING) {
-      /* Not a map or array */
-      return false;
-   }
-   if(pNesting->pCurrent->u.ma.uCountTotal != QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
-      /* Not indefinte length */
-      return false;
-   }
-   /* All checks passed; is an indefinte length map or array */
-   return true;
-}
-
-
-inline static bool
 DecodeNesting_IsDefiniteLength(const QCBORDecodeNesting *pNesting)
 {
    if(pNesting->pCurrent->uLevelType == QCBOR_TYPE_BYTE_STRING) {
@@ -244,33 +228,6 @@ inline static void DecodeNesting_ClearBoundedMode(const QCBORDecodeNesting *pNes
 
 
 inline static bool
-DecodeNesting_IsAtEndOfBoundedDefiniteLenMapOrArray(const QCBORDecodeNesting *pNesting)
-{
-   if(pNesting->pCurrentBounded == NULL) {
-      /* No bounded map or array or... set up. */
-      return false;
-   }
-   if(pNesting->pCurrentBounded->uLevelType == QCBOR_TYPE_BYTE_STRING) {
-      /* Not a map or array */
-      return false;
-   }
-   if(!DecodeNesting_IsCurrentBounded(pNesting)) { // TODO: pCurrent vs pCurrentBounded
-      /* Not in bounded mode. */
-      return false;
-   }
-   if(pNesting->pCurrentBounded->u.ma.uCountTotal == QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
-      /* An indefinite length map or array */
-      return false;
-   }
-   if(pNesting->pCurrentBounded->u.ma.uCountCursor != 0) {
-      /* Count is not zero, still unconsumed items. */
-      return false;
-   }
-   /* All checks passed, got to the end of a definite length map or array */
-   return true;
-}
-
-inline static bool
 DecodeNesting_IsAtEndOfBoundedFarf(const QCBORDecodeNesting *pNesting)
 {
    if(pNesting->pCurrentBounded == NULL) {
@@ -285,16 +242,13 @@ DecodeNesting_IsAtEndOfBoundedFarf(const QCBORDecodeNesting *pNesting)
       /* Not in bounded mode. */
       return false;
    }
-#if 0
-   if(pNesting->pCurrentBounded->u.ma.uCountTotal == QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
-      /* An indefinite length map or array */
-      return false;
-   }
+
+   // Works for both definite and indefinite length maps/arrays
    if(pNesting->pCurrentBounded->u.ma.uCountCursor != 0) {
       /* Count is not zero, still unconsumed items. */
       return false;
    }
-#endif
+
    /* All checks passed, got to the end of a definite length map or array */
    return true;
 }
@@ -458,9 +412,8 @@ Done:
    return uError;;
 }
 
-#include <stdlib.h>
-// TODO: use or get rid of
-void
+
+static inline void
 DecodeNesting_ZeroDefiniteLengthCount(QCBORDecodeNesting *pNesting)
 {
    pNesting->pCurrent->u.ma.uCountCursor = 0;
@@ -482,9 +435,9 @@ DecodeNesting_PrepareForMapSearch(QCBORDecodeNesting *pNesting, QCBORDecodeNesti
    *pSave = *pNesting;
    pNesting->pCurrent = pNesting->pCurrentBounded;
 
-   if(!DecodeNesting_IsIndefiniteLength(pNesting)) {
+   //if(!DecodeNesting_IsIndefiniteLength(pNesting)) {
       pNesting->pCurrent->u.ma.uCountCursor = pNesting->pCurrent->u.ma.uCountTotal;
-   }
+   //}
 }
 
 static inline void
@@ -1364,7 +1317,7 @@ NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
  end of an array or map that can be closed out. That
  may in turn close out another map or array.
 */
-static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool *pbHitBound)
+static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
 {
    QCBORError uReturn;
 
@@ -1411,11 +1364,11 @@ static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool *pbHitBound)
       /* But ascent in bounded mode is only by explicit call to QCBORDecode_ExitBoundedMode() */
       if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
          /* Set the count to zero for definite length arrays to indicate cursor is at end of bounded map / array */
-         if(pbHitBound) {
-            *pbHitBound = true;
+         if(bMarkEnd) {
+            // Used for definite and indefinite to signal end
+            DecodeNesting_ZeroDefiniteLengthCount(&(pMe->nesting));
+
          }
-         // Used for definite and indefinite to signal end
-         DecodeNesting_ZeroDefiniteLengthCount(&(pMe->nesting));
          break;
       }
 
@@ -1469,8 +1422,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
     array. The check for the end of an indefinite length array is
     later.
     */
-   // TODO: this doesn't work for bounded indefinite length maps and arrays
-   if(DecodeNesting_IsAtEndOfBoundedDefiniteLenMapOrArray(&(me->nesting))) {
+   if(DecodeNesting_IsAtEndOfBoundedFarf(&(me->nesting))) {
       uReturn = QCBOR_ERR_NO_MORE_ITEMS;
       goto Done;
    }
@@ -1519,8 +1471,6 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       }
    }
 
-   bool bHitBounded = false;
-
    if(!QCBORItem_IsMapOrArray(pDecodedItem) ||
        QCBORItem_IsEmptyDefiniteLengthMapOrArray(pDecodedItem) ||
        QCBORItem_IsIndefiniteLengthMapOrArray(pDecodedItem)) {
@@ -1535,7 +1485,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
        length map/array. If the end of the map/array was reached, then
        it ascends nesting levels, possibly all the way to the top level.
        */
-      uReturn = NestLevelAscender(me, &bHitBounded);
+      uReturn = NestLevelAscender(me, true);
       if(uReturn) {
          goto Done;
       }
@@ -1548,7 +1498,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
     reconstruct the tree with just the information returned in
     a QCBORItem.
    */
-   if(DecodeNesting_IsAtEndOfBoundedFarf(&(me->nesting)) && bHitBounded) {
+   if(DecodeNesting_IsAtEndOfBoundedFarf(&(me->nesting))) {
       /* At end of a bounded map/array; uNextNestLevel 0 to indicate this */
       pDecodedItem->uNextNestLevel = 0;
    } else {
@@ -2872,7 +2822,7 @@ ExitBoundedLevel(QCBORDecodeContext *pMe, uint32_t uEndOffset)
     reached.  It may do nothing, or ascend all the way to the top
     level.
     */
-   uErr = NestLevelAscender(pMe, NULL);
+   uErr = NestLevelAscender(pMe, false);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
