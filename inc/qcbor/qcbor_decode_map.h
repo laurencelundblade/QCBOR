@@ -19,7 +19,7 @@
 /* Next item must be map or this generates an error.
  
  
-This puts the decoder in map mode which narrows
+This puts the decoder in bounded mode which narrows
 decoding to the map entered and enables use of
 getting items by label.
  
@@ -28,9 +28,9 @@ getting items by label.
 
   Call QCBORDecode_ExitMap() to exit the current map
  decoding level. When all map decoding layers are exited
- then map mode is fully exited.
+ then bounded mode is fully exited.
  
- While in map mode, GetNext works as usual on the
+ While in bounded mode, GetNext works as usual on the
  map and the standard in-order traversal cursor
  is maintained. Attempts to get items off the end of the
  map will give error XXX (rather going to the next
@@ -43,7 +43,7 @@ getting items by label.
  Exiting leaves the cursor at the
  data item following the last entry in the map.
  
- Entering and Exiting map mode consumes the whole
+ Entering and Exiting bounded mode consumes the whole
  map and its contents as a GetNext after exiting
  will return the item after the map. */
 QCBORError QCBORDecode_EnterMap(QCBORDecodeContext *pCtx);
@@ -81,7 +81,7 @@ QCBORError QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  
 /*
  Get an item out of a map.
  
- Decoding must be in map mode for this to work.
+ Decoding must be in bounded mode for this to work.
  
  
  
@@ -185,7 +185,7 @@ QCBORError QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char  *
   The beginning of each map must be recorded so the scan can be done
  through the whole map.
  
-  A bit per level to indicate in map mode for that level so
+  A bit per level to indicate in bounded mode for that level so
   it is clear what GetNext at end does and what happens on MapExit
  and where to set the cursor.
  

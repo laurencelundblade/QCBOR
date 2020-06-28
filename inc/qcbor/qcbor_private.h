@@ -122,8 +122,9 @@ struct _QCBOREncodeContext {
  PRIVATE DATA STRUCTURE
 
  Holds the data for array and map nesting for decoding work. This
- structure and the DecodeNesting_xxx functions form an "object" that
- does the work for arrays and maps.
+ structure and the DecodeNesting_Xxx() functions in qcbor_decode.c
+ form an "object" that does the work for arrays and maps. All access
+ to this structure is through DecodeNesting_Xxx() functions.
 
  64-bit machine size
    128 = 16 * 8 for the two unions
@@ -131,8 +132,7 @@ struct _QCBOREncodeContext {
    16  = 16 bytes for two pointers
    208 TOTAL
 
- 32-bit machine size is 8 bytes smaller because of the smaller pointers.
-
+ 32-bit machine size is 200 bytes
  */
 typedef struct __QCBORDecodeNesting  {
    // PRIVATE DATA STRUCTURE
@@ -150,10 +150,11 @@ typedef struct __QCBORDecodeNesting  {
        for 2).
 
        Item tracking can either be for definite or indefinite length
-       maps / arrays. For definite lengths, the total count and
-       current position is tracked. For indefinite length, uTotalCount
-       is QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH (UINT16_MAX) and
-       there is no tracking in this data structure.
+       maps/arrays. For definite lengths, the total count and items
+       unconsumed is tracked. For indefinite length, uTotalCount is
+       QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH (UINT16_MAX) and
+       uCountCursor is UINT16_MAX if the map/array is not consumed and
+       zero if it is consumed in the pre-order traversal.
 
        This also records whether a level is bounded or not.  All
        byte-count tracked levels (the top-level sequence and
@@ -163,7 +164,7 @@ typedef struct __QCBORDecodeNesting  {
        by uStartOffset not being UINT32_MAX.
        */
       /*
-       If uLevelType can put in a separately indexed array, the union /
+       If uLevelType can put in a separately indexed array, the union/
        struct will be 8 bytes rather than 9 and a lot of wasted
        padding for alignment will be saved.
        */
@@ -181,7 +182,7 @@ typedef struct __QCBORDecodeNesting  {
             uint32_t uPreviousEndOffset;
          } bs; /* for top-level sequence and bstr wrapped CBOR */
       } u;
-   } pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING1+1],
+   } pLevels[QCBOR_MAX_ARRAY_NESTING1+1],
     *pCurrent,
     *pCurrentBounded;
    /*

@@ -1687,7 +1687,7 @@ void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
 void QCBORDecode_RewindMap(QCBORDecodeContext *pCtxt);
 
 /*
- Indicate if decoding is in map mode more not.
+ Indicate if decoding is in bounded mord not.
  */
 bool QCBORDecode_InBoundedMode(QCBORDecodeContext *pCtxt);
 
@@ -1718,7 +1718,7 @@ bool QCBORDecode_InBoundedMode(QCBORDecodeContext *pCtxt);
 
  Get an item out of a map.
  
- Decoding must be in map mode for this to work.
+ Decoding must be in bounded for this to work.
  
  
  
@@ -1819,10 +1819,6 @@ QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx, QCBOR
  
   The beginning of each map must be recorded so the scan can be done
  through the whole map.
- 
-  A bit per level to indicate in map mode for that level so
-  it is clear what GetNext at end does and what happens on MapExit
- and where to set the cursor.
  
  
  
