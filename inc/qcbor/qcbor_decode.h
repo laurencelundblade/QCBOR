@@ -1231,7 +1231,7 @@ void QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx, const char
 
  See also QCBORDecode_GetDoubleConvert() and QCBORDecode_GetDoubleConvertAll().
 */
-static void QCBORDecode_GetDouble(QCBORDecodeContext *pCtx, uint32_t uOptions, double *pValue);
+static void QCBORDecode_GetDouble(QCBORDecodeContext *pCtx, double *pValue);
 
 static void QCBORDecode_GetDoubleInMapN(QCBORDecodeContext *pCtx, int64_t nLabel, double *pdValue);
 
@@ -2189,7 +2189,7 @@ inline static void QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pMe, 
    QCBORDecode_GetDoubleConvertInternalInMapSZ(pMe, szLabel, uOptions, pdValue, &Item);
 }
 
-inline static void QCBORDecode_GetDouble(QCBORDecodeContext *pMe, uint32_t uOptions, double *pValue)
+inline static void QCBORDecode_GetDouble(QCBORDecodeContext *pMe, double *pValue)
 {
     QCBORDecode_GetDoubleConvert(pMe, QCBOR_CONVERT_TYPE_FLOAT, pValue);
 }

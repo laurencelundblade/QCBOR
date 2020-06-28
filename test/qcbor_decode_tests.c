@@ -3929,7 +3929,8 @@ void PrintItem(QCBORItem Item)
       if(Item.uLabelType == QCBOR_TYPE_INT64) {
          printf("%lld\n", Item.label.int64);
       } else if(Item.uLabelType == QCBOR_TYPE_TEXT_STRING) {
-         printf("\"%4.4s\"\n", Item.label.string.ptr);
+         // TODO: proper conversion to null-terminated string
+         printf("\"%4.4s\"\n", (const char *)Item.label.string.ptr);
       }
    }
 }
@@ -4958,6 +4959,9 @@ static UsefulBufC foo(UsefulBuf ffo)
    QCBOREncode_CloseArray(&EC);
 
    uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr) {
+      Encoded = NULLUsefulBufC;
+   }
 
    return Encoded;
 }
