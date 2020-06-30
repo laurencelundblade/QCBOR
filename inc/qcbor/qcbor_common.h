@@ -160,6 +160,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Tag for COSE format encryption. See [RFC 8152, COSE]
     (https://tools.ietf.org/html/rfc8152). No API is provided for this
     tag. */
+
+#define CBOR_TAG_CBOR_SEQUENCE  63
+
+
 #define CBOR_TAG_ENCRYPT       96
 /** Tag for COSE format MAC. See [RFC 8152, COSE]
     (https://tools.ietf.org/html/rfc8152). No API is provided for this

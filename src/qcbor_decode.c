@@ -1737,6 +1737,16 @@ inline static QCBORError DecodeWrappedCBOR(QCBORItem *pDecodedItem)
    return QCBOR_SUCCESS;
 }
 
+
+inline static QCBORError DecodeWrappedCBORSequence(QCBORItem *pDecodedItem)
+{
+   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
+      return QCBOR_ERR_BAD_OPT_TAG;
+   }
+   pDecodedItem->uDataType = QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE;
+   return QCBOR_SUCCESS;
+}
+
 inline static QCBORError DecodeMIME(QCBORItem *pDecodedItem)
 {
    if(pDecodedItem->uDataType == QCBOR_TYPE_TEXT_STRING) {
@@ -1804,6 +1814,10 @@ QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 
          case CBOR_TAG_CBOR:
          nReturn = DecodeWrappedCBOR(pDecodedItem);
+         break;
+
+         case CBOR_TAG_CBOR_SEQUENCE:
+         nReturn = DecodeWrappedCBORSequence(pDecodedItem);
          break;
 
          case CBOR_TAG_URI:
@@ -2535,6 +2549,17 @@ Done:
 }
 
 
+
+static QCBORError CheckTypeList(uint8_t uDataType, const uint8_t puTypeList[QCBOR_TAGSPEC_NUM_TYPES])
+{
+   for(size_t i = 0; i < QCBOR_TAGSPEC_NUM_TYPES; i++) {
+      if(uDataType == puTypeList[i]) {
+         return QCBOR_SUCCESS;
+      }
+   }
+   return QCBOR_ERR_UNEXPECTED_TYPE;
+}
+
 /**
  @param[in] TagSpec  Specification for matching tags.
  @param[in] uDataType  A QCBOR data type
@@ -2547,28 +2572,27 @@ Done:
 static QCBORError CheckTagRequirement(const TagSpecification TagSpec, uint8_t uDataType)
 {
    if(TagSpec.uTagRequirement == QCBOR_TAGSPEC_MATCH_TAG) {
-      /* Must match the tag */
-      if(uDataType == TagSpec.uTaggedType) {
-         return QCBOR_SUCCESS;
-      }
-   } else {
-      /* QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE or QCBOR_TAGSPEC_MATCH_EITHER */
-      /* Must check all the possible types for the tag content */
-      for(size_t i = 0; i < sizeof(TagSpec.uAllowedContentTypes); i++) {
-         if(uDataType == TagSpec.uAllowedContentTypes[i]) {
-            return QCBOR_SUCCESS;
-         }
-      }
-      /* Didn't match any of the tag content types */
-      /* Check the tag for the either case */
-      if(TagSpec.uTagRequirement == QCBOR_TAGSPEC_MATCH_EITHER) {
-         if(uDataType == TagSpec.uTaggedType) {
-            return QCBOR_SUCCESS;
-         }
-      }
+      // Must match the tag and only the tag
+      return CheckTypeList(uDataType, TagSpec.uTaggedTypes);
    }
 
-   return QCBOR_ERR_UNEXPECTED_TYPE;
+   QCBORError uReturn = CheckTypeList(uDataType, TagSpec.uAllowedContentTypes);
+   if(uReturn == QCBOR_SUCCESS) {
+      return QCBOR_SUCCESS;
+   }
+
+   if(TagSpec.uTagRequirement == QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE) {
+      /* Must match the content type and only the content type.
+       There was no match just above so it is a fail. */
+      return QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+
+   /* If here it can match either the tag or the content
+    and it hasn't matched the content, so the end
+    result is whether it matches the tag. This is
+    also the case that the CBOR standard discourages. */
+
+   return CheckTypeList(uDataType, TagSpec.uTaggedTypes);
 }
 
 
@@ -2892,8 +2916,10 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
       goto Done;;
    }
 
-   // TODO: check for the other wrapped CBOR tag
-   const TagSpecification TagSpec = {uTagRequirement, QBCOR_TYPE_WRAPPED_CBOR, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
+   const TagSpecification TagSpec = {uTagRequirement,
+                                     {QBCOR_TYPE_WRAPPED_CBOR, QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE, QCBOR_TYPE_NONE},
+                                     {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+                                    };
 
    uError = CheckTagRequirement(TagSpec, pItem->uDataType);
    if(uError != QCBOR_SUCCESS) {
@@ -3115,52 +3141,35 @@ void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe, TagSpecificati
 
 
 
-static QCBORError ConvertBigNum(uint8_t uTagRequirement, const QCBORItem *pItem, UsefulBufC *pValue, bool *pbIsNegative)
+static QCBORError ConvertBigNum(uint8_t uTagRequirement,
+                                const QCBORItem *pItem,
+                                UsefulBufC *pValue,
+                                bool *pbIsNegative)
 {
-   *pbIsNegative = false;
+   const TagSpecification TagSpec = {uTagRequirement,
+                                     {QCBOR_TYPE_POSBIGNUM, QCBOR_TYPE_NEGBIGNUM, QCBOR_TYPE_NONE},
+                                     {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+                                    };
 
-   bool bMustBeTagged = true; // TODO: fix this --- they have to tell us if they are expecting positive or negative
-
-   switch(pItem->uDataType) {
-      case QCBOR_TYPE_BYTE_STRING:
-         // TODO: check that there is no tag here?
-         if(bMustBeTagged) {
-            return QCBOR_ERR_UNEXPECTED_TYPE;
-         } else {
-            *pValue = pItem->val.string;
-            return QCBOR_SUCCESS;
-         }
-         break;
-
-      case QCBOR_TYPE_POSBIGNUM:
-         *pValue = pItem->val.string;
-         return QCBOR_SUCCESS;
-         break;
-
-      case QCBOR_TYPE_NEGBIGNUM:
-         *pbIsNegative = true;
-         *pValue = pItem->val.string;
-         return QCBOR_SUCCESS;
-         break;
-
-      default:
-         return QCBOR_ERR_UNEXPECTED_TYPE;
-         break;
+   QCBORError uErr = CheckTagRequirement(TagSpec, pItem->uDataType);
+   if(uErr != QCBOR_SUCCESS) {
+      return uErr;
    }
+
+   *pValue = pItem->val.string;
+
+   if(pItem->uDataType == QCBOR_TYPE_POSBIGNUM) {
+      *pbIsNegative = false;
+   } else if(pItem->uDataType == QCBOR_TYPE_NEGBIGNUM) {
+      *pbIsNegative = true;
+   }
+
+   return QCBOR_SUCCESS;
 }
 
 
-/*
- @param[in] bMustBeTagged  If \c true, then the data item must be tagged as either
- a positive or negative bignum. If \c false, then it only must be a byte string and bIsNegative
- will always be false on the asumption that it is positive, but it can be interpretted as
- negative if the the sign is know from other context.
- @param[out] pValue   The bytes that make up the big num
- @param[out] pbIsNegative  \c true if tagged as a negative big num. \c false otherwise.
-
- if bMustBeTagged is false, then this will succeed if the data item is a plain byte string,
- a positive big num or a negative big num.
-
+/**
+ Public function, see header qcbor/qcbor_decode.h
  */
 void QCBORDecode_GetBignum(QCBORDecodeContext *pMe, uint8_t uTagRequirement, UsefulBufC *pValue, bool *pbIsNegative)
 {
@@ -3180,7 +3189,7 @@ void QCBORDecode_GetBignum(QCBORDecodeContext *pMe, uint8_t uTagRequirement, Use
 }
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+Public function, see header qcbor/qcbor_decode.h
 */
 void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint8_t uTagRequirement, UsefulBufC *pValue, bool *pbIsNegative)
 {
@@ -3191,7 +3200,7 @@ void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint8_
 }
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+Public function, see header qcbor/qcbor_decode.h
 */
 void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint8_t uTagRequirement, UsefulBufC *pValue, bool *pbIsNegative)
 {
@@ -3206,9 +3215,18 @@ void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, 
 // Semi private
 QCBORError FarfMIME(uint8_t uTagRequirement, const QCBORItem *pItem, UsefulBufC *pMessage, bool *pbIsNot7Bit)
 {
-   const TagSpecification TagSpecText = {uTagRequirement, QCBOR_TYPE_MIME, {QCBOR_TYPE_TEXT_STRING, 0,0,0,0,0}};
-   const TagSpecification TagSpecBinary = {uTagRequirement, QCBOR_TYPE_BINARY_MIME, {QCBOR_TYPE_BYTE_STRING, 0,0,0,0,0}};
-   
+
+
+   const TagSpecification TagSpecText = {uTagRequirement,
+                                     {QCBOR_TYPE_MIME, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+                                     {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+                                    };
+   const TagSpecification TagSpecBinary = {uTagRequirement,
+                                     {QCBOR_TYPE_BINARY_MIME, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+                                     {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+                                    };
+
+
    QCBORError uReturn;
    
    if(CheckTagRequirement(TagSpecText, pItem->uDataType)) {
@@ -3517,13 +3535,12 @@ void QCBORDecode_GetInt64ConvertInternalInMapN(QCBORDecodeContext *pMe,
                                                int64_t            *pnValue,
                                                QCBORItem          *pItem)
 {
-   QCBORItem Item;
-   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, pItem);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertInt64(&Item, uOptions, pnValue);
+   pMe->uLastError = (uint8_t)ConvertInt64(pItem, uOptions, pnValue);
 }
 
 
@@ -3537,13 +3554,12 @@ void QCBORDecode_GetInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   QCBORItem Item;
-   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, pItem);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertInt64(&Item, uOptions, pnValue);
+   pMe->uLastError = (uint8_t)ConvertInt64(pItem, uOptions, pnValue);
 }
 
 
@@ -3869,13 +3885,12 @@ void QCBORDecode_GetUint64ConvertInternalInMapN(QCBORDecodeContext *pMe,
                                                uint64_t            *puValue,
                                                QCBORItem          *pItem)
 {
-   QCBORItem Item;
-   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, pItem);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertUint64(&Item, uOptions, puValue);
+   pMe->uLastError = (uint8_t)ConvertUint64(pItem, uOptions, puValue);
 }
 
 
@@ -3889,13 +3904,12 @@ void QCBORDecode_GetUint64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   QCBORItem Item;
-   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, pItem);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertUint64(&Item, uOptions, puValue);
+   pMe->uLastError = (uint8_t)ConvertUint64(pItem, uOptions, puValue);
 }
 
 /*
@@ -4142,13 +4156,12 @@ void QCBORDecode_GetDoubleConvertInternalInMapN(QCBORDecodeContext *pMe,
                                                double             *pdValue,
                                                QCBORItem          *pItem)
 {
-   QCBORItem Item;
-   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, pItem);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertDouble(&Item, uOptions, pdValue);
+   pMe->uLastError = (uint8_t)ConvertDouble(pItem, uOptions, pdValue);
 }
 
 void QCBORDecode_GetDoubleConvertInternalInMapSZ(QCBORDecodeContext *pMe,
@@ -4161,13 +4174,12 @@ void QCBORDecode_GetDoubleConvertInternalInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   QCBORItem Item;
-   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, pItem);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertDouble(&Item, uOptions, pdValue);
+   pMe->uLastError = (uint8_t)ConvertDouble(pItem, uOptions, pdValue);
 }
 
 
@@ -4467,8 +4479,22 @@ void QCBORDecode_GetDecimalFractionBigN(QCBORDecodeContext *pMe,
 {
    QCBORItem Item;
    QCBORError uErr;
-   
+
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   const TagSpecification TagSpec = {uTagRequirement,
+                                     {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
+                                     {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+                                    };
+
+   uErr = CheckTagRequirement(TagSpec, Item.uDataType);
+   if(uErr != QCBOR_SUCCESS) {
+      pMe->uLastError = (uint8_t)uErr;
+      return;
+   }
    
    if(Item.uDataType == QCBOR_TYPE_ARRAY) {
       uErr = QCBORDecode_MantissaAndExponent(pMe, &Item);
