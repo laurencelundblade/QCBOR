@@ -881,8 +881,8 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  particular keeping @ref QCBORItem as small as possible.
 
  If any error occurs, \c uDataType and \c uLabelType will be set
- to \ref QCBOR_TYPE_NONE. If there is no need to know the specific
- error, \ref QCBOR_TYPE_NONE can be checked for and the return value
+ to @ref QCBOR_TYPE_NONE. If there is no need to know the specific
+ error, @ref QCBOR_TYPE_NONE can be checked for and the return value
  ignored.
 
  Errors fall in several categories as noted in list above:
@@ -951,8 +951,8 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint6
 
  @returns The actual nth tag value.
 
- Up to \ref QCBOR_MAX_TAGS_PER_ITEM are recorded for a decoded CBOR item. If there
- are more than this, the \ref QCBOR_ERR_TOO_MANY_TAGS error is returned
+ Up to @ref QCBOR_MAX_TAGS_PER_ITEM are recorded for a decoded CBOR item. If there
+ are more than this, the @ref QCBOR_ERR_TOO_MANY_TAGS error is returned
  by QCBORDecode_GetNext() and other. This is a limit of this implementation,
  not of CBOR.
 
@@ -963,9 +963,9 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint6
  To reduce memory used by a QCBORItem, this implementation maps
  all tags larger than UINT16_MAX. This function does the unmapping.
 
- This returns \ref CBOR_TAG_INVALID16 on all errors or if the nth tag is requested and
+ This returns @ref CBOR_TAG_INVALID16 on all errors or if the nth tag is requested and
  there is no nth tag. If there are no tags on the item, then
- requesting the 0th tag will return \ref CBOR_TAG_INVALID16.
+ requesting the 0th tag will return @ref CBOR_TAG_INVALID16.
  */
 uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, unsigned int uIndex);
 
@@ -1049,7 +1049,7 @@ static QCBORError QCBORDecode_GetError(QCBORDecodeContext *pCtx);
  @returns The decoding error.
 
  This returns the same as QCBORDecode_GetError() and also
- resets the error state to \ref QCBOR_SUCCESS.
+ resets the error state to @ref QCBOR_SUCCESS.
  */
 
 static QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
@@ -1089,10 +1089,10 @@ static QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
  On error, the decoder internal error state is set.
 
  The CBOR data item to decode must be a positive or negative integer. If not
- \ref QCBOR_ERR_UNEXPECTED_TYPE is set.
+ @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
 
  CBOR can represent negative integers further from zero than can be represetned in
- an int64_t. \ref QCBOR_ERR_INT_OVERFLOW is set if such input is encountered.
+ an int64_t. @ref QCBOR_ERR_INT_OVERFLOW is set if such input is encountered.
 
  See also QCBORDecode_GetInt64Convert() and QCBORDecode_GetInt64ConvertAll().
  */
@@ -1117,10 +1117,10 @@ static void QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pCtx, const char *sz
  as this and a lot more at the cost of adding more object code to your executable.
 
  On error, this sets the decoder last error.  If the data item is of a type that
- can't be decoded by this function, \ref QCBOR_ERR_UNEXPECTED_TYPE is set. If
+ can't be decoded by this function, @ref QCBOR_ERR_UNEXPECTED_TYPE is set. If
  the data item can be decode, but the option requesting it is not set, then
- \ref QCBOR_ERR_UNEXPECTED_TYPE will be set. If the data item is too large
- or small to be represented as a 64-bit signed integer, \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
+ @ref QCBOR_ERR_UNEXPECTED_TYPE will be set. If the data item is too large
+ or small to be represented as a 64-bit signed integer, @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
  us set.
 
  When converting floating-point values, the integer is rounded to the nearest integer using
@@ -1148,10 +1148,10 @@ static void QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx, const c
  The additiona data item types that are suported are positive and negative bignums,
  decimal fractions and big floats, including decimal fractions and big floats that use bignums.
  Not that all these types can support numbers much larger that can be represented by
- in a 64-bit integer, so \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW may
+ in a 64-bit integer, so @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW may
  often be encountered.
 
- When converting bignums and decimal fractions \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
+ When converting bignums and decimal fractions @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
  will be set if the result is below 1, unless the mantissa is zero, in which
  case the coversion is successful and the value of 0 is returned.
  */
@@ -1169,7 +1169,7 @@ void QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx, const char 
  @param[out] puValue  64-bit integer with item
 
  The sames as QCBORDecode_GetInt64(), but returns an unsigned integer and thus
- can only decode CBOR positive integers. \ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
+ can only decode CBOR positive integers. @ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
  is set if the input is a negative integer.
 
  See also QCBORDecode_GetUint64Convert() and QCBORDecode_GetUint64ConvertAll().
@@ -1187,7 +1187,7 @@ static void QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pCtx, const char *s
  @param[out] puValue  64-bit integer with item
 
  The sames as QCBORDecode_GetInt64Convert(), but returns an unsigned integer and thus
- sets \ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
+ sets @ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
  is set if the value to be decoded is negatve.
 
  See also QCBORDecode_GetUint64Convert() and QCBORDecode_GetUint64ConvertAll().
@@ -1205,7 +1205,7 @@ static void QCBORDecode_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pCtx, const 
  @param[out] puValue  64-bit integer with item
 
  The sames as QCBORDecode_GetInt64ConvertAll(), but returns an unsigned integer and thus
- sets \ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
+ sets @ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
  if the value to be decoded is negatve.
 
  See also QCBORDecode_GetUint64Convert() and QCBORDecode_GetUint64ConvertAll().
@@ -1227,7 +1227,7 @@ void QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx, const char
 
  The CBOR data item to decode must be a hafl-precision, single-precision
  or double-precision floating-point value.  If not
- \ref QCBOR_ERR_UNEXPECTED_TYPE is set.
+ @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
 
  See also QCBORDecode_GetDoubleConvert() and QCBORDecode_GetDoubleConvertAll().
 */
@@ -1247,7 +1247,7 @@ static void QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx, const char *s
 
  The CBOR data item to decode must be a hafl-precision, single-precision
  or double-precision floating-point value or a positive or negative integer.  If not
- \ref QCBOR_ERR_UNEXPECTED_TYPE is set.
+ @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
 
  Positive and negative integers can always be converted to floating-point,
  so this always succeeds.
@@ -1297,7 +1297,7 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx, const char
  @param[out] pBytes  The decoded byte string
 
  On error, the decoder internal error state is set. If the next item
- is not a byte string, the \ref QCBOR_ERR_UNEXPECTED_TYPE error is set.
+ is not a byte string, the @ref QCBOR_ERR_UNEXPECTED_TYPE error is set.
  */
 static void QCBORDecode_GetBytes(QCBORDecodeContext *pCtx, UsefulBufC *pBytes);
 
@@ -1562,10 +1562,10 @@ inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
 
  @param[in] pCtx   The decode context
 
- Next item must be map or this generates an error.
+ Next item in the CBOR input must be map or this generates an error.
 
 This puts the decoder in bounded mode which narrows
-decoding to the map entered and enables use of
+decoding to the map entered and enables
 getting items by label.
  
  Nested maps can be decoded like this by entering
@@ -1575,59 +1575,64 @@ getting items by label.
  decoding level. When all map decoding layers are exited
  then bounded mode is fully exited.
  
- While in bounded mode, GetNext works as usual on the
- map and the standard in-order traversal cursor
- is maintained. Attempts to get items off the end of the
- map will give error QCBOR_ERR_NO_MORE_ITEMS (rather going to the next
+ While in bounded mode, QCBORDecode_GetNext() works as usual on the
+ map and the in-order traversal cursor
+ is maintained. It starts out at the first item in the map just entered. Attempts to get items off the end of the
+ map will give error @ref QCBOR_ERR_NO_MORE_ITEMS rather going to the next
  item after the map as it would when not in bounded
- mode).
+ mode.
  
  TODO: You can rewind the inorder traversal cursor to the
  beginning of the map with RewindMap().
  
- Exiting leaves the cursor at the
- data item following the last entry in the map.
+ Exiting leaves the pre-order cursor at the
+ data item following the last entry in the map or at the end of the input CBOR if there nothing after the map.
  
  Entering and Exiting a map is a way to skip over
- an entire map and its contents. After the Exit,
+ an entire map and its contents. After QCBORDecode_ExitMap(),
  the pre-order traversal cursor will be at the
  first item after the map.
 
- Bounded mode also works for arrays and bstr wrapped CBOR.
- Bounded mode levels nest with each entry into a bounded
- map, array or wrapped bstr increasing narrowing the
- traversal and each Exit broading it until the top is reached.
+ See also QCBORDecode_EnterArray() and QCBORDecode_EnterBstrWrapped().
+ Entering and exiting any nested combination of maps, arrays and bstr-wrapped
+ CBOR is supported up to the maximum of @ref QCBOR_MAX_ARRAY_NESTING.
  */
 static void QCBORDecode_EnterMap(QCBORDecodeContext *pCtx);
 
-void QCBORDecode_EnterMapInMapN(QCBORDecodeContext *pCtx, int64_t nLabel);
+void QCBORDecode_EnterMapFromMapN(QCBORDecodeContext *pCtx, int64_t nLabel);
 
-void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char  *szLabel);
+void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char *szLabel);
 
 static void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
 
 
+/**
+@brief Enter an array for decoding.
 
-
-
-
+@param[in] pCtx   The decode context
+*/
 static void QCBORDecode_EnterArray(QCBORDecodeContext *pCtx);
 
 void QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t uLabel);
 
-void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel);
+void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char *szLabel);
 
 static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
 
 
-/*
+/**
+ @brief Decode some byte-string wrapped CBOR
+
+ @param[in] pCtx   The decode context.
+ @param[in] uTagRequirement Whether or not the byte string must be tagged.
+ @param[out] pBstr  Pointer and length of byte-string wrapped CBOR (optional).
 
  This is for use on some CBOR that has been wrapped in a
  byte string. There are several ways that this can occur.
 
- First is tag 24 and tax XXX (soon to be defined). Tag 24
- wraps a single CBOR data item and XXX a CBOR sequence.
+ First is tag 24 and tag 63. Tag 24
+ wraps a single CBOR data item and 63 a CBOR sequence.
  This implementation doesn't distinguish between the two
  (it would be more code and doesn't seem important).
 
@@ -1639,11 +1644,10 @@ static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  of a COSE payload are one example of that. They can
  be identified by the COSE content type, or they can
  be identified as CBOR indirectly by the protocol that
- uses COSE. In particular if a blob of CBOR is identified
+ uses COSE. for example, if a blob of CBOR is identified
  as a CWT, then the COSE payload is CBOR.
-
  To enter into CBOR of this type use the
- \ref QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE as the \c uTagRequirement argument.
+ @ref QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE as the \c uTagRequirement argument.
 
  Note that byte string wrapped CBOR can also be
  decoded by getting the byte string with QCBORDecode_GetItem() or
@@ -1657,58 +1661,67 @@ static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  the wrapped CBOR. QCBORDecode_ExitBstrWrapped()
  must be called resume processing CBOR outside
  the wrapped CBOR.
+
+ If @c pBstr is not @c NULL the pointer and length of the wrapped
+ CBOR will be returned. This is usually not needed, but sometimes
+ useful, particularly in the case of verifying signed data like the
+ COSE payload. This is usually the pointer and length of the
+ data is that is hashed or MACed.
  */
 void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pCtx,
-                                  uint8_t uTagRequirement,
-                                  UsefulBufC *pBstr);
+                                  uint8_t             uTagRequirement,
+                                  UsefulBufC         *pBstr);
 
 void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pCtx,
-                                          uint8_t uTagRequirement,
-                                          int64_t nLabel,
-                                          UsefulBufC *pBstr);
+                                          uint8_t             uTagRequirement,
+                                          int64_t             nLabel,
+                                          UsefulBufC         *pBstr);
 
 void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx,
-                                           uint8_t uTagRequirement,
-                                           const char  *szLabel,
-                                           UsefulBufC *pBstr);
+                                           uint8_t             uTagRequirement,
+                                           const char         *szLabel,
+                                           UsefulBufC         *pBstr);
 
 void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
 
 
-
-
-
 /*
- TODO: fix this
+ TODO: fix this; make it rewind bounded
  Restarts fetching of items in a map to the start of the
  map. This is for GetNext. It has no effect on
  GetByLabel (which always searches from the start).
  */
 void QCBORDecode_RewindMap(QCBORDecodeContext *pCtxt);
 
-/*
- Indicate if decoding is in bounded mord not.
+
+/**
+ @brief Indicate if decoder is in bound mode.
+ @param[in] pCtx   The decode context.
+
+ @return true is returned if a map, array or bstr wrapped
+ CBOR has been entered. This only returns false
+ if all maps, arrays and bst wrapped CBOR levels
+ have been exited.
  */
-bool QCBORDecode_InBoundedMode(QCBORDecodeContext *pCtxt);
+bool QCBORDecode_InBoundedMode(QCBORDecodeContext *pCtx);
 
 
-
-/*
- @brief Get an item in map by label.
+/**
+ @brief Get an item in map by label and type.
 
  @param[in] pCtx   The decode context.
  @param[in] nLabel The integer label.
  @param[in] uQcborType  The QCBOR type. One of QCBOR_TYPE_XXX.
- @param[out] pItem  The returned item
+ @param[out] pItem  The returned item.
 
- A map must have been entered to use this. If not \ref xxx is set.
+ A map must have been entered to use this. If not @ref xxx is set.
 
  The map is searched for an item of the requested label and type.
- QCBOR_TYPE_ANY can be given to search for the label without
+ @ref QCBOR_TYPE_ANY can be given to search for the label without
  matching the type.
 
  This will always search the entire map. This will always perform
-  duplicate label detection, setting \ref QCBOR_ERR_DUPLICATE_LABEL if there is more than
+  duplicate label detection, setting @ref QCBOR_ERR_DUPLICATE_LABEL if there is more than
  one occurance of the label being searched for.
 
  This performs a full decode of every item in the map
@@ -1719,73 +1732,90 @@ bool QCBORDecode_InBoundedMode(QCBORDecodeContext *pCtxt);
  Get an item out of a map.
  
  Decoding must be in bounded for this to work.
- 
- 
- 
-Seek to the beginning of the map.
-Consume items looking for the nLabel.
-Always go through the whole map and always look for duplicates.
-Return the item found, if no errors.
-
-Allow specification of type required.
-
-
-
 */
 void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pCtx,
-                               int64_t nLabel,
-                               uint8_t uQcborType,
-                               QCBORItem *pItem);
+                               int64_t             nLabel,
+                               uint8_t             uQcborType,
+                               QCBORItem          *pItem);
 
 void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
-                                const char *szLabel,
-                                uint8_t qcbor_type,
-                                QCBORItem *pItem);
+                                const char         *szLabel,
+                                uint8_t             uQcborType,
+                                QCBORItem          *pItem);
 
-/*
+
+/**
+ @brief Get a group of labeled items all at once from a map
 
  @param[in] pCtx   The decode context.
  @param[in,out] pItemList  On input the items to search for. On output the returned items.
  
  This gets several labeled items out of a map.
  
- pItemList is an array of items terminated by an item
- with uLabelType QCBOR_TYPE_NONE.
+ @c pItemList is an array of items terminated by an item
+ with @c uLabelType @ref QCBOR_TYPE_NONE.
 
- On input the labels to search for are in the uLabelType and
- label fields in the items in pItemList.
+ On input the labels to search for are in the @c uLabelType and
+ label fields in the items in @c pItemList.
 
- Also on input are the requested QCBOR types in the field uDataType.
- To match any type, searching just by lable, uDataType
- can be QCBOR_TYPE_ANY.
+ Also on input are the requested QCBOR types in the field @c uDataType.
+ To match any type, searching just by label, @c uDataType
+ can be @ref QCBOR_TYPE_ANY.
 
  This is a CPU-efficient way to decode a bunch of items in a map. It
  is more efficient than scanning each individually because the map
  only needs to be traversed once.
  
- If any duplicate labels are detected, this returns \ref QCBOR_ERR_DUPLICATE_LABEL.
+ If any duplicate labels are detected, this returns @ref QCBOR_ERR_DUPLICATE_LABEL.
  
  This will return maps and arrays that are in the map, but
  provides no way to descend into and decode them. Use
  QCBORDecode_EnterMapinMapN(), QCBORDecode_EnterArrayInMapN()
  and such to decsend into and process maps and arrays.
- 
+
+ TODO: what does this do on arrays?
  */
 QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList);
 
-/*
 
- The return value is intended for QCBOR errors, not general protocol decoding
- errors. If this returns other than QCBOR_SUCCESS, the search will stop and
- the value it returns will be return by QCBORDecode_GetItemsInMapWithCallback().
- Protocol and other non-CBOR errors can be put in the call back context.
+/**
+ @brief Per-item callback for map searching.
 
- TODO: make QCBOR_ERR_CB_FAIL?
+ @param[in] pCallbackCtx  Pointer to the caller-defined context for the callback
+ @param[in] pItem  The item from the map.
+
+ @return  The return value is intended for QCBOR errors, not general protocol decoding
+ errors. If this returns other than @ref QCBOR_SUCCESS, the search will stop and
+ the value it returns will be set in QCBORDecode_GetItemsInMapWithCallback(). The
+ special error, @ref QCBOR_ERR_CALLBACK_FAIL, can be returned to indicate some
+ protocol processing error that is not a CBOR error. The specific details of the protocol
+  processing error can be returned the call back context.
  */
 typedef QCBORError (*QCBORItemCallback)(void *pCallbackCtx, const QCBORItem *pItem);
 
 
-QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx, QCBORItem *pItemList, void *pCallbackCtx, QCBORItemCallback pfCB);
+/**
+ @brief Get a group of labeled items all at once from a map with a callback
+
+ @param[in] pCtx   The decode context.
+ @param[in,out] pItemList  On input the items to search for. On output the returned items.
+ @param[in,out] pCallbackCtx Pointer to a context structure for @ref QCBORItemCallback
+ @param[in] pfCB pointer to function of type @ref QCBORItemCallback that is called on unmatched items.
+
+ This searchs a map like QCBORDecode_GetItemsInMap(), but calls a callback on items not
+ matched rather than ignoring them. If @c pItemList is empty, the call back will be called
+ on every item in the map.
+
+ LIke QCBORDecode_GetItemsInMap(), this only matches and calls back on the items at the
+ top level of the map entered. Items in nested maps/arrays skipped over and not candidate for
+ matching or the callback.
+
+ See QCBORItemCallback() for error handling.
+ */
+QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
+                                                 QCBORItem          *pItemList,
+                                                 void               *pCallbackCtx,
+                                                 QCBORItemCallback   pfCB);
 
 
 
@@ -2002,16 +2032,16 @@ static inline QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pMe)
 
 
 // Semi-private
-void QCBORDecode_EnterBoundedMode(QCBORDecodeContext *pMe, uint8_t uType);
+void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType);
 
 
 inline static void QCBORDecode_EnterMap(QCBORDecodeContext *pMe) {
-   QCBORDecode_EnterBoundedMode(pMe, QCBOR_TYPE_MAP);
+   QCBORDecode_EnterBoundedMapOrArray(pMe, QCBOR_TYPE_MAP);
 }
 
 
 inline static void QCBORDecode_EnterArray(QCBORDecodeContext *pMe) {
-   QCBORDecode_EnterBoundedMode(pMe, QCBOR_TYPE_ARRAY);
+   QCBORDecode_EnterBoundedMapOrArray(pMe, QCBOR_TYPE_ARRAY);
 }
 
 // Semi-private

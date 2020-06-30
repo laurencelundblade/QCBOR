@@ -139,7 +139,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     "hex". Call @c QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B16) before
     the call to QCBOREncode_AddBytes(). */
 #define CBOR_TAG_ENC_AS_B16    23
-/** See QCBORDecode_EnterWrappedBstr(). */
+/** See QCBORDecode_EnterBstrWrapped()). */
 #define CBOR_TAG_CBOR          24
 /** See QCBOREncode_AddURI(). */
 #define CBOR_TAG_URI           32
@@ -331,7 +331,7 @@ typedef enum {
     QCBOR_ERR_STRING_TOO_LONG = 24,
     
     /** When decodeing for a specific type, the type was not was expected.
-     See also \ref QCBOR_ERR_CONVERSION_NOT_REQUESTED which in many cases
+     See also @ref QCBOR_ERR_CONVERSION_NOT_REQUESTED which in many cases
      is effectively the same error */
     QCBOR_ERR_UNEXPECTED_TYPE = 25,
     
@@ -357,7 +357,10 @@ typedef enum {
     QCBOR_ERR_NOT_ENTERED = 31,
 
     /** A callback indicates processing should not continue for some non-CBOR reason */
-    QCBOR_ERR_CALLBACK_FAIL = 32
+    QCBOR_ERR_CALLBACK_FAIL = 32,
+
+    /** Trying to get something by label when not entered into a map.  */
+    QCBOR_ERR_NOT_A_MAP = 33
 
     /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;

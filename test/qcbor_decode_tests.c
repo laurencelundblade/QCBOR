@@ -4029,6 +4029,19 @@ int32_t EMap(UsefulBufC input)
    return 0;
 }
 
+
+/*
+ [23,
+  6000,
+  h'67616C6163746963',
+  h'686176656E20746F6B656E'
+ ]
+ */
+static const uint8_t spSimpleArray[] = {
+0x84, 0x17, 0x19, 0x17, 0x70, 0x48, 0x67, 0x61, 0x6C, 0x61, 0x63, 0x74, 0x69, 0x63, 0x4B, 0x68, 0x61, 0x76, 0x65, 0x6E, 0x20, 0x74, 0x6F, 0x6B, 0x65, 0x6E};
+
+
+
 int32_t EnterMapTest()
 {
    QCBORItem Item1;
@@ -4108,6 +4121,19 @@ int32_t EnterMapTest()
       return 2007;
    }
 
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleArray), 0);
+   QCBORDecode_EnterArray(&DCtx);
+   int64_t nDecodedInt2;
+   QCBORDecode_GetInt64InMapSZ(&DCtx,  "another int",  &nDecodedInt2);
+   QCBORError uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_NOT_A_MAP){
+      return 2008;
+   }
+   UsefulBufC String;
+   QCBORDecode_GetTextInMapN(&DCtx, 88, &String);
+   if(uErr != QCBOR_ERR_NOT_A_MAP){
+      return 2009;
+   }
 
    return 0;   
 }

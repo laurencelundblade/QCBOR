@@ -177,7 +177,11 @@ inline static bool DecodeNesting_IsCurrentBounded(const QCBORDecodeNesting *pNes
 inline static void DecodeNesting_SetMapOrArrayBoundedMode(QCBORDecodeNesting *pNesting, size_t uStart)
 {
    // Should be only called on maps and arrays
-   // TODO: check this cast, maybe give an error?
+   /*
+    DecodeNesting_EnterBoundedMode() checks to be sure uStart is not
+    larger than DecodeNesting_EnterBoundedMode which keeps it less than
+    uin32_t so the cast is safe.
+    */
    pNesting->pCurrent->u.ma.uStartOffset = (uint32_t)uStart;
 }
 
@@ -291,8 +295,8 @@ DecodeNesting_Decsend(QCBORDecodeNesting *pNesting, uint8_t uType)
 }
 
 
-inline static void
-DecodeNesting_EnterBoundedMode(QCBORDecodeNesting *pNesting, size_t uOffset)
+inline static QCBORError
+DecodeNesting_EnterBoundedMapOrArray(QCBORDecodeNesting *pNesting, size_t uOffset)
 {
    /*
     Should only be called on map/array.
@@ -300,8 +304,14 @@ DecodeNesting_EnterBoundedMode(QCBORDecodeNesting *pNesting, size_t uOffset)
     Have descended into this before this is called. The job here is
     just to mark it in bounded mode.
     */
+   if(uOffset >= QCBOR_NON_BOUNDED_OFFSET) {
+      return QCBOR_ERR_BUFFER_TOO_LARGE;
+   }
+
    pNesting->pCurrentBounded = pNesting->pCurrent;
    DecodeNesting_SetMapOrArrayBoundedMode(pNesting, uOffset);
+
+   return QCBOR_SUCCESS;
 }
 
 
@@ -2313,6 +2323,7 @@ MatchType(QCBORItem Item1, QCBORItem Item2)
 
  @param[in]  pMe   The decode context to search.
  @param[in,out] pItemArray  The items to search for and the items found.
+ @param[out] puOffset Byte offset of last item matched.
  @param[in] pCBContext  Context for the not-found item call back
  @param[in] pfCallback  Function to call on items not matched in pItemArray
 
@@ -2344,6 +2355,14 @@ MapSearch(QCBORDecodeContext *pMe,
 
    QCBORDecodeNesting SaveNesting;
    DecodeNesting_PrepareForMapSearch(&(pMe->nesting), &SaveNesting);
+
+   if(!DecodeNesting_CheckBoundedType(&(pMe->nesting), QCBOR_TYPE_MAP) &&
+      pItemArray->uLabelType != QCBOR_TYPE_NONE) {
+      /* QCBOR_TYPE_NONE as first item indicates just looking
+         for the end of an array, so don't give error. */
+      uReturn = QCBOR_ERR_NOT_A_MAP;
+      goto Done;
+   }
 
    /* Reposition to search from the start of the map / array */
    UsefulInputBuf_Seek(&(pMe->InBuf),
@@ -2449,7 +2468,7 @@ Done:
 
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+ Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
                                int64_t             nLabel,
@@ -2466,21 +2485,24 @@ void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
    OneItemSeach[0].uDataType   = uQcborType;
    OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORError nReturn = MapSearch(pMe, OneItemSeach, NULL, NULL, NULL);
-   if(nReturn) {
-      pMe->uLastError = (uint8_t)nReturn;
+   QCBORError uReturn = MapSearch(pMe, OneItemSeach, NULL, NULL, NULL);
+   if(uReturn != QCBOR_SUCCESS) {
+      goto Done;
    }
-
    if(OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
-      pMe->uLastError = QCBOR_ERR_NOT_FOUND;
+      uReturn = QCBOR_ERR_NOT_FOUND;
+      goto Done;
    }
 
    *pItem = OneItemSeach[0];
+
+ Done:
+   pMe->uLastError = (uint8_t)uReturn;
 }
 
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+ Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
                                 const char         *szLabel,
@@ -2497,16 +2519,19 @@ void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
    OneItemSeach[0].uDataType    = uQcborType;
    OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORError nReturn = MapSearch(pMe, OneItemSeach, NULL, NULL, NULL);
-   if(nReturn) {
-      pMe->uLastError = (uint8_t)nReturn;
+   QCBORError uReturn = MapSearch(pMe, OneItemSeach, NULL, NULL, NULL);
+   if(uReturn != QCBOR_SUCCESS) {
+      goto Done;
    }
-
    if(OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
-      pMe->uLastError = QCBOR_ERR_NOT_FOUND;
+      uReturn = QCBOR_ERR_NOT_FOUND;
+      goto Done;
    }
 
    *pItem = OneItemSeach[0];
+
+Done:
+   pMe->uLastError = (uint8_t)uReturn;
 }
 
 
@@ -2603,7 +2628,7 @@ void QCBORDecode_GetTaggedStringInMapSZ(QCBORDecodeContext *pMe,
 }
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+ Public function, see header qcbor/qcbor_decode.h file
 */
 QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList)
 {
@@ -2611,7 +2636,7 @@ QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemL
 }
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+ Public function, see header qcbor/qcbor_decode.h file
 */
 QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
                                                  QCBORItem          *pItemList,
@@ -2654,14 +2679,14 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
 
    DecodeNesting_SetCurrentToBoundedLevel(&(pMe->nesting));
 
-   QCBORDecode_EnterBoundedMode(pMe, pSearch->uDataType);
+   QCBORDecode_EnterBoundedMapOrArray(pMe, pSearch->uDataType);
 }
 
 
 /*
 Public function, see header qcbor/qcbor_decode.h file
 */
-void QCBORDecode_EnterMapInMapN(QCBORDecodeContext *pMe, int64_t nLabel)
+void QCBORDecode_EnterMapFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
    QCBORItem OneItemSeach[2];
    OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
@@ -2718,7 +2743,7 @@ void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLab
 
 
 // Semi-private function
-void QCBORDecode_EnterBoundedMode(QCBORDecodeContext *pMe, uint8_t uType)
+void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
 {
    /* Must only be called on maps and arrays. */
    if(pMe->uLastError != QCBOR_SUCCESS) {
@@ -2737,10 +2762,12 @@ void QCBORDecode_EnterBoundedMode(QCBORDecodeContext *pMe, uint8_t uType)
       return;
    }
 
-   DecodeNesting_EnterBoundedMode(&(pMe->nesting), UsefulInputBuf_Tell(&(pMe->InBuf)));
-
-   // TODO: restrict input to less than this or some other invalidation strategy.
    pMe->uMapEndOffsetCache = MAP_OFFSET_CACHE_INVALID;
+
+   QCBORError uErr = DecodeNesting_EnterBoundedMapOrArray(&(pMe->nesting),
+                                                    UsefulInputBuf_Tell(&(pMe->InBuf)));
+
+   pMe->uLastError = (uint8_t)uErr;
 
    DecodeNesting_Print(&(pMe->nesting), &(pMe->InBuf),  "EnterMapModeDone");
 }
@@ -2848,7 +2875,7 @@ void QCBORDecode_RewindMap(QCBORDecodeContext *pMe)
 
 
 
-static QCBORError InternalEnterWrappedBstr(QCBORDecodeContext *pMe,
+static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
                                            const QCBORItem    *pItem,
                                            uint8_t             uTagRequirement,
                                            UsefulBufC         *pBstr)
@@ -2912,7 +2939,7 @@ Done:
   Public function, see header qcbor/qcbor_decode.h file
  */
 void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe,
-                                  uint8_t uTagRequirement,
+                                  uint8_t              uTagRequirement,
                                   UsefulBufC *pBstr)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
@@ -2927,7 +2954,7 @@ void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)InternalEnterWrappedBstr(pMe,
+   pMe->uLastError = (uint8_t)InternalEnterBstrWrapped(pMe,
                                                        &Item,
                                                        uTagRequirement,
                                                        pBstr);
@@ -2945,7 +2972,7 @@ void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pMe,
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)InternalEnterWrappedBstr(pMe, &Item, uTagRequirement, pBstr);
+   pMe->uLastError = (uint8_t)InternalEnterBstrWrapped(pMe, &Item, uTagRequirement, pBstr);
 }
 
 
@@ -2960,7 +2987,7 @@ void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pMe,
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)InternalEnterWrappedBstr(pMe, &Item, uTagRequirement, pBstr);
+   pMe->uLastError = (uint8_t)InternalEnterBstrWrapped(pMe, &Item, uTagRequirement, pBstr);
 }
 
 
@@ -3492,6 +3519,9 @@ void QCBORDecode_GetInt64ConvertInternalInMapN(QCBORDecodeContext *pMe,
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
    pMe->uLastError = (uint8_t)ConvertInt64(&Item, uOptions, pnValue);
 }
@@ -3509,6 +3539,9 @@ void QCBORDecode_GetInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
 
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
    pMe->uLastError = (uint8_t)ConvertInt64(&Item, uOptions, pnValue);
 }
@@ -3838,6 +3871,9 @@ void QCBORDecode_GetUint64ConvertInternalInMapN(QCBORDecodeContext *pMe,
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
    pMe->uLastError = (uint8_t)ConvertUint64(&Item, uOptions, puValue);
 }
@@ -3855,6 +3891,9 @@ void QCBORDecode_GetUint64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
 
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
    pMe->uLastError = (uint8_t)ConvertUint64(&Item, uOptions, puValue);
 }
@@ -4105,6 +4144,9 @@ void QCBORDecode_GetDoubleConvertInternalInMapN(QCBORDecodeContext *pMe,
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
    pMe->uLastError = (uint8_t)ConvertDouble(&Item, uOptions, pdValue);
 }
@@ -4121,6 +4163,9 @@ void QCBORDecode_GetDoubleConvertInternalInMapSZ(QCBORDecodeContext *pMe,
 
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
    pMe->uLastError = (uint8_t)ConvertDouble(&Item, uOptions, pdValue);
 }

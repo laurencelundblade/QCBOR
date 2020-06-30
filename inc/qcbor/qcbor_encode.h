@@ -1298,7 +1298,7 @@ static int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
 
  @param[in] pCtx  The encoding context.
 
- @return One of \ref QCBORError. See return values from
+ @return One of @ref QCBORError. See return values from
          QCBOREncode_Finish()
 
  Normally encoding errors need only be handled at the end of encoding
