@@ -3479,7 +3479,7 @@ static QCBORError ConvertInt64(const QCBORItem *pItem, uint32_t uOptions, int64_
          break;
 
       case QCBOR_TYPE_INT64:
-         if(uOptions & QCBOR_CONVERT_TYPE_INT64) {
+         if(uOptions & QCBOR_CONVERT_TYPE_XINT64) {
             *pnValue = pItem->val.int64;
          } else {
             return  QCBOR_ERR_CONVERSION_NOT_REQUESTED;
@@ -3487,7 +3487,7 @@ static QCBORError ConvertInt64(const QCBORItem *pItem, uint32_t uOptions, int64_
          break;
 
       case QCBOR_TYPE_UINT64:
-         if(uOptions & QCBOR_CONVERT_TYPE_UINT64) {
+         if(uOptions & QCBOR_CONVERT_TYPE_XINT64) {
             if(pItem->val.uint64 < INT64_MAX) {
                *pnValue = pItem->val.int64;
             } else {
@@ -3764,7 +3764,7 @@ static QCBORError ConvertUint64(const QCBORItem *pItem, uint32_t uOptions, uint6
 {
    switch(pItem->uDataType) {
            // TODO: type flaot
-        case QCBOR_TYPE_DOUBLE:
+        case QCBOR_CONVERT_TYPE_DOUBLE:
            if(uOptions & QCBOR_CONVERT_TYPE_FLOAT) {
               feclearexcept(FE_ALL_EXCEPT);
               double dRounded = round(pItem->val.dfnum);
@@ -3786,7 +3786,7 @@ static QCBORError ConvertUint64(const QCBORItem *pItem, uint32_t uOptions, uint6
            break;
 
         case QCBOR_TYPE_INT64:
-           if(uOptions & QCBOR_CONVERT_TYPE_INT64) {
+           if(uOptions & QCBOR_CONVERT_TYPE_XINT64) {
               if(pItem->val.int64 >= 0) {
                  *puValue = (uint64_t)pItem->val.int64;
               } else {
@@ -3798,7 +3798,7 @@ static QCBORError ConvertUint64(const QCBORItem *pItem, uint32_t uOptions, uint6
            break;
 
         case QCBOR_TYPE_UINT64:
-           if(uOptions & QCBOR_CONVERT_TYPE_UINT64) {
+           if(uOptions & QCBOR_CONVERT_TYPE_XINT64) {
               *puValue =  pItem->val.uint64;
            } else {
               return QCBOR_ERR_CONVERSION_NOT_REQUESTED;
@@ -3894,7 +3894,7 @@ void QCBORDecode_GetUint64ConvertInternalInMapN(QCBORDecodeContext *pMe,
 }
 
 
-void QCBORDecode_GetUint64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
+void QCBORDecode_GetUInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
                                                const char *         szLabel,
                                                uint32_t             uOptions,
                                                uint64_t             *puValue,
@@ -4068,7 +4068,7 @@ void QCBORDecode_GetUint64ConvertAllInMapN(QCBORDecodeContext *pMe, int64_t nLab
 void QCBORDecode_GetUint64ConvertAllInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uOptions, uint64_t *puValue)
 {
    QCBORItem Item;
-   QCBORDecode_GetUint64ConvertInternalInMapSZ(pMe, szLabel, uOptions, puValue, &Item);
+   QCBORDecode_GetUInt64ConvertInternalInMapSZ(pMe, szLabel, uOptions, puValue, &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
       // The above conversion succeeded
@@ -4364,19 +4364,25 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe, const char 
 
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
-void FarfDecimalFraction(QCBORDecodeContext *pMe,
-                         uint8_t             uTagRequirement,
-                         QCBORItem          *pItem,
-                         int64_t             *pnMantissa,
-                         int64_t             *pnExponent)
+static void ProcessDecimalFraction(QCBORDecodeContext *pMe,
+                                   uint8_t             uTagRequirement,
+                                   QCBORItem          *pItem,
+                                   int64_t            *pnMantissa,
+                                   int64_t            *pnExponent)
 {
    QCBORError uErr;
    
    if(pItem->uDataType == QCBOR_TYPE_ARRAY) {
+
       if(uTagRequirement == QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE) {
          pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
          return;
       }
+      /* The decimal fraction was untagged so it shows up as an
+       array at this point. We are called to interpret it
+       as a decimal fraction, so do protocol decoding. If
+       it was tagged, iw would shouw up here with the
+       QCBOR_TYPE_DECIMAL_FRACTION or such. */
       uErr = QCBORDecode_MantissaAndExponent(pMe, pItem);
        if(uErr != QCBOR_SUCCESS) {
           pMe->uLastError = (uint8_t)uErr;
@@ -4419,7 +4425,28 @@ void FarfDecimalFraction(QCBORDecodeContext *pMe,
     }
 }
 
-void QCBORDecode_GetDecimalFractionN(QCBORDecodeContext *pMe,
+
+void QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pMe,
+                                    uint8_t             uTagRequirement,
+                                    int64_t             *pnMantissa,
+                                    int64_t             *pnExponent)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError) {
+      pMe->uLastError = (uint8_t)uError;
+      return;
+   }
+
+   ProcessDecimalFraction(pMe, uTagRequirement, &Item, pnMantissa, pnExponent);
+}
+
+
+void QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pMe,
                                      uint8_t             uTagRequirement,
                                      int64_t             nLabel,
                                      int64_t             *pnMantissa,
@@ -4428,22 +4455,21 @@ void QCBORDecode_GetDecimalFractionN(QCBORDecodeContext *pMe,
    QCBORItem Item;
    
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
-   FarfDecimalFraction(pMe, uTagRequirement, &Item, pnMantissa, pnExponent);
+   ProcessDecimalFraction(pMe, uTagRequirement, &Item, pnMantissa, pnExponent);
 }
 
 
-
-void QCBORDecode_GetDecimalFractionSZ(QCBORDecodeContext *pMe,
-                                     uint8_t             uTagRequirement,
-                                     const char         *szLabel,
-                                     int64_t             *pnMantissa,
-                                     int64_t             *pnExponent)
+void QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
+                                      uint8_t             uTagRequirement,
+                                      const char         *szLabel,
+                                      int64_t             *pnMantissa,
+                                      int64_t             *pnExponent)
 {
    QCBORItem Item;
    
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
    
-   FarfDecimalFraction(pMe, uTagRequirement, &Item, pnMantissa, pnExponent);
+   ProcessDecimalFraction(pMe, uTagRequirement, &Item, pnMantissa, pnExponent);
 }
 #endif /* ndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
@@ -4469,73 +4495,128 @@ UsefulBufC ConvertIntToBigNum(uint64_t uInt, UsefulBuf Buffer)
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 
-void QCBORDecode_GetDecimalFractionBigN(QCBORDecodeContext *pMe,
-                                        uint8_t             uTagRequirement,
-                                        int64_t             nLabel,
-                                        UsefulBuf           pBufferForMantissa,
-                                        UsefulBufC         *pMantissa,
-                                        bool               *pbIsNegative,
-                                        int64_t            *pnExponent)
+static void ProcessDecimalFractionBig(QCBORDecodeContext *pMe,
+                                      uint8_t uTagRequirement,
+                                      QCBORItem *pItem,
+                                      UsefulBuf BufferForMantissa,
+                                      UsefulBufC *pMantissa,
+                                      bool *pbIsNegative,
+                                      int64_t *pnExponent)
+{
+
+   const TagSpecification TagSpec = {uTagRequirement,
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
+
+   QCBORError uErr = CheckTagRequirement(TagSpec, pItem->uDataType);
+   if(uErr != QCBOR_SUCCESS) {
+      pMe->uLastError = (uint8_t)uErr;
+      return;
+   }
+
+   if(pItem->uDataType == QCBOR_TYPE_ARRAY) {
+      uErr = QCBORDecode_MantissaAndExponent(pMe, pItem);
+      if(uErr != QCBOR_SUCCESS) {
+         pMe->uLastError = (uint8_t)uErr;
+         return;
+      }
+   }
+
+   uint64_t uMantissa;
+
+   switch (pItem->uDataType) {
+
+      case QCBOR_TYPE_DECIMAL_FRACTION:
+         if(pItem->val.expAndMantissa.Mantissa.nInt >= 0) {
+            uMantissa = (uint64_t)pItem->val.expAndMantissa.Mantissa.nInt;
+            *pbIsNegative = false;
+         } else {
+            uMantissa = (uint64_t)-pItem->val.expAndMantissa.Mantissa.nInt;
+            *pbIsNegative = true;
+         }
+         *pMantissa = ConvertIntToBigNum(uMantissa, BufferForMantissa);
+         *pnExponent = pItem->val.expAndMantissa.nExponent;
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
+         *pnExponent = pItem->val.expAndMantissa.nExponent;
+         *pMantissa = pItem->val.expAndMantissa.Mantissa.bigNum;
+         *pbIsNegative = false;
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
+         *pnExponent = pItem->val.expAndMantissa.nExponent;
+         *pMantissa = pItem->val.expAndMantissa.Mantissa.bigNum;
+         *pbIsNegative = true;
+         break;
+
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+}
+
+
+void QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pMe,
+                                       uint8_t             uTagRequirement,
+                                       UsefulBuf          MantissaBuffer,
+                                       UsefulBufC         *pMantissa,
+                                       bool               *pbMantissaIsNegative,
+                                       int64_t            *pnExponent)
+{
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError) {
+      pMe->uLastError = (uint8_t)uError;
+      return;
+   }
+
+   ProcessDecimalFractionBig(pMe, uTagRequirement, &Item, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
+
+}
+
+void QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pMe,
+                                             uint8_t             uTagRequirement,
+                                             int64_t             nLabel,
+                                             UsefulBuf           BufferForMantissa,
+                                             UsefulBufC         *pMantissa,
+                                             bool               *pbIsNegative,
+                                             int64_t            *pnExponent)
 {
    QCBORItem Item;
-   QCBORError uErr;
 
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   const TagSpecification TagSpec = {uTagRequirement,
-                                     {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-                                     {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-                                    };
+   ProcessDecimalFractionBig(pMe, uTagRequirement, &Item, BufferForMantissa, pMantissa, pbIsNegative, pnExponent);
+}
 
-   uErr = CheckTagRequirement(TagSpec, Item.uDataType);
-   if(uErr != QCBOR_SUCCESS) {
-      pMe->uLastError = (uint8_t)uErr;
+
+void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
+                                             uint8_t             uTagRequirement,
+                                             const char         *szLabel,
+                                             UsefulBuf           BufferForMantissa,
+                                             UsefulBufC         *pMantissa,
+                                             bool               *pbIsNegative,
+                                             int64_t            *pnExponent)
+{
+   QCBORItem Item;
+
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
-   
-   if(Item.uDataType == QCBOR_TYPE_ARRAY) {
-      uErr = QCBORDecode_MantissaAndExponent(pMe, &Item);
-      if(uErr != QCBOR_SUCCESS) {
-         pMe->uLastError = (uint8_t)uErr;
-         return;
-      }
-   }
-   
-   uint64_t uMantissa;
-   
-   switch (Item.uDataType) {
-         
-      case QCBOR_TYPE_DECIMAL_FRACTION:
-         if(Item.val.expAndMantissa.Mantissa.nInt >= 0) {
-            uMantissa = (uint64_t)Item.val.expAndMantissa.Mantissa.nInt;
-            *pbIsNegative = false;
-         } else {
-            uMantissa = (uint64_t)-Item.val.expAndMantissa.Mantissa.nInt;
-            *pbIsNegative = true;
-         }
-         *pMantissa = ConvertIntToBigNum(uMantissa, pBufferForMantissa);
-         *pnExponent = Item.val.expAndMantissa.nExponent;
-         break;
-         
-      case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
-         *pnExponent = Item.val.expAndMantissa.nExponent;
-         *pMantissa = Item.val.expAndMantissa.Mantissa.bigNum;
-         *pbIsNegative = false;
-         break;
 
-      case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
-         *pnExponent = Item.val.expAndMantissa.nExponent;
-         *pMantissa = Item.val.expAndMantissa.Mantissa.bigNum;
-         *pbIsNegative = true;
-         break;
-         
-      default:
-         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
-   }
+   ProcessDecimalFractionBig(pMe, uTagRequirement, &Item, BufferForMantissa, pMantissa, pbIsNegative, pnExponent);
 }
+
 #endif /* ndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 /*
