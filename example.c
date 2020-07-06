@@ -24,7 +24,7 @@ typedef struct
     int64_t uNumCylinders;
     int64_t uDisplacement;
     int64_t uHorsePower;
-    double uDesignedCompresion;
+    double dDesignedCompresion;
     struct {
         double uMeasuredCompression;
     } cylinders[MAX_CYLINDERS];
@@ -39,13 +39,45 @@ void EngineInit(Engine *pE)
     pE->Manufacturer = UsefulBuf_FROM_SZ_LITERAL("Porsche");
     pE->uDisplacement = 3296;
     pE->uHorsePower = 210;
-    pE->uDesignedCompresion = 9.1;
+    pE->dDesignedCompresion = 9.1;
     pE->cylinders[0].uMeasuredCompression = 9.0;
     pE->cylinders[1].uMeasuredCompression = 9.2;
     pE->cylinders[2].uMeasuredCompression = 8.9;
     pE->cylinders[3].uMeasuredCompression = 8.9;
     pE->cylinders[4].uMeasuredCompression = 9.1;
     pE->cylinders[5].uMeasuredCompression = 9.0;
+}
+
+
+bool EngineCompare(Engine *pE1, Engine *pE2)
+{
+    if(pE1->uNumCylinders != pE2->uNumCylinders) {
+        return false;
+    }
+    if(pE1->bTurboCharged != pE2->bTurboCharged) {
+        return false;
+    }
+    if(pE1->uDisplacement != pE2->uDisplacement) {
+        return false;
+    }
+    if(pE1->uHorsePower != pE2->uHorsePower) {
+        return false;
+    }
+    if(pE1->dDesignedCompresion != pE2->dDesignedCompresion) {
+        return false;
+    }
+    for(int64_t i = 0; i < pE2->uNumCylinders; i++) {
+        if(pE1->cylinders[i].uMeasuredCompression !=
+           pE2->cylinders[i].uMeasuredCompression) {
+            return false;
+        }
+    }
+
+    if(UsefulBuf_Compare(pE1->Manufacturer, pE2->Manufacturer)) {
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -63,7 +95,7 @@ UsefulBufC EncodeEngine(const Engine *pEngine, UsefulBuf Buffer)
     QCBOREncode_AddInt64ToMap(&EncodeCtx, "NumCylinders", pEngine->uNumCylinders);
     QCBOREncode_AddInt64ToMap(&EncodeCtx, "Displacement", pEngine->uDisplacement);
     QCBOREncode_AddInt64ToMap(&EncodeCtx, "Horsepower", pEngine->uHorsePower);
-    QCBOREncode_AddDoubleToMap(&EncodeCtx, "DesignedCompression", pEngine->uDesignedCompresion);
+    QCBOREncode_AddDoubleToMap(&EncodeCtx, "DesignedCompression", pEngine->dDesignedCompresion);
     QCBOREncode_OpenArrayInMap(&EncodeCtx, "Cylinders");
     for(int64_t i = 0 ; i < pEngine->uNumCylinders; i++) {
         QCBOREncode_AddDouble(&EncodeCtx, pEngine->cylinders[i].uMeasuredCompression);
@@ -94,7 +126,7 @@ UsefulBufC EncodeEngineIndefinteLen(const Engine *pEngine, UsefulBuf Buffer)
     QCBOREncode_AddTextToMap(&EncodeCtx, "Manufacturer", pEngine->Manufacturer);
     QCBOREncode_AddInt64ToMap(&EncodeCtx, "Displacement", pEngine->uDisplacement);
     QCBOREncode_AddInt64ToMap(&EncodeCtx, "Horsepower", pEngine->uHorsePower);
-    QCBOREncode_AddDoubleToMap(&EncodeCtx, "DesignedCompression", pEngine->uDesignedCompresion);
+    QCBOREncode_AddDoubleToMap(&EncodeCtx, "DesignedCompression", pEngine->dDesignedCompresion);
     QCBOREncode_AddInt64ToMap(&EncodeCtx, "NumCylinders", pEngine->uNumCylinders);
     QCBOREncode_OpenArrayIndefiniteLengthInMap(&EncodeCtx, "Cylinders");
     for(int64_t i = 0 ; i < pEngine->uNumCylinders; i++) {
@@ -163,7 +195,7 @@ EngineDecodeErrors DecodeEngine(UsefulBufC EncodedEngine, Engine *pE)
     QCBORDecode_GetTextInMapSZ(&DecodeCtx, "Manufacturer", &(pE->Manufacturer));
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Displacement", &(pE->uDisplacement));
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Horsepower", &(pE->uHorsePower));
-    QCBORDecode_GetDoubleInMapSZ(&DecodeCtx, "DesignedCompression", &(pE->uDesignedCompresion));
+    QCBORDecode_GetDoubleInMapSZ(&DecodeCtx, "DesignedCompression", &(pE->dDesignedCompresion));
     QCBORDecode_GetBoolInMapSZ(&DecodeCtx, "turbo", &(pE->bTurboCharged));
 
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "NumCylinders", &(pE->uNumCylinders));
@@ -180,13 +212,8 @@ EngineDecodeErrors DecodeEngine(UsefulBufC EncodedEngine, Engine *pE)
     }
 
     QCBORDecode_EnterArrayFromMapSZ(&DecodeCtx, "Cylinders");
-    int64_t i = 0;
-    while(1) {
+    for(int64_t i = 0; i < pE->uNumCylinders; i++) {
         QCBORDecode_GetDouble(&DecodeCtx, &(pE->cylinders[i].uMeasuredCompression));
-        i++;
-        if(i >= pE->uNumCylinders ) {
-            break;
-        }
     }
     QCBORDecode_ExitArray(&DecodeCtx);
     QCBORDecode_ExitMap(&DecodeCtx);
@@ -197,6 +224,89 @@ EngineDecodeErrors DecodeEngine(UsefulBufC EncodedEngine, Engine *pE)
 Done:
     return ConvertError(uErr);
 }
+
+
+
+EngineDecodeErrors DecodeEngineXX(UsefulBufC EncodedEngine, Engine *pE)
+{
+    QCBORError uErr;
+    QCBORDecodeContext DecodeCtx;
+
+    QCBORDecode_Init(&DecodeCtx, EncodedEngine, QCBOR_DECODE_MODE_NORMAL);
+    QCBORDecode_EnterMap(&DecodeCtx);
+
+    QCBORItem XX[7];
+    XX[0].uLabelType = QCBOR_TYPE_TEXT_STRING;
+    XX[0].label.string = UsefulBuf_FROM_SZ_LITERAL("Manufacturer");
+    XX[0].uDataType = QCBOR_TYPE_TEXT_STRING;
+
+    XX[1].uLabelType = QCBOR_TYPE_TEXT_STRING;
+    XX[1].label.string = UsefulBuf_FROM_SZ_LITERAL("Displacement");
+    XX[1].uDataType = QCBOR_TYPE_INT64;
+
+    XX[2].uLabelType = QCBOR_TYPE_TEXT_STRING;
+    XX[2].label.string = UsefulBuf_FROM_SZ_LITERAL("Horsepower");
+    XX[2].uDataType = QCBOR_TYPE_INT64;
+
+    XX[3].uLabelType = QCBOR_TYPE_TEXT_STRING;
+    XX[3].label.string = UsefulBuf_FROM_SZ_LITERAL("DesignedCompression");
+    XX[3].uDataType = QCBOR_TYPE_DOUBLE;
+
+    XX[4].uLabelType = QCBOR_TYPE_TEXT_STRING;
+    XX[4].label.string = UsefulBuf_FROM_SZ_LITERAL("turbo");
+    XX[4].uDataType = QCBOR_TYPE_ANY;
+
+    XX[5].uLabelType = QCBOR_TYPE_TEXT_STRING;
+    XX[5].label.string = UsefulBuf_FROM_SZ_LITERAL("NumCylinders");
+    XX[5].uDataType = QCBOR_TYPE_INT64;
+
+    XX[6].uLabelType = QCBOR_TYPE_NONE;
+
+    uErr = QCBORDecode_GetItemsInMap(&DecodeCtx, XX);
+    if(uErr != QCBOR_SUCCESS) {
+        goto Done;
+    }
+
+    pE->Manufacturer = XX[0].val.string;
+    pE->uDisplacement = XX[1].val.int64;
+    pE->uHorsePower = XX[2].val.int64;
+    pE->dDesignedCompresion = XX[3].val.dfnum;
+    pE->uNumCylinders = XX[5].val.int64;
+
+    if(XX[4].uDataType == QCBOR_TYPE_TRUE) {
+        pE->bTurboCharged = true;
+    } else if(XX[4].uDataType == QCBOR_TYPE_FALSE) {
+        pE->bTurboCharged = false;
+    } else {
+        return EngineProtocolerror;
+    }
+
+
+    /* Must check error before referencing pE->uNumCylinders to be sure it
+     is valid. If any of the above errored, it won't be valid. */
+    uErr = QCBORDecode_GetError(&DecodeCtx);
+    if(uErr != QCBOR_SUCCESS) {
+        goto Done;
+    }
+
+    if(pE->uNumCylinders > MAX_CYLINDERS) {
+        return TooManyCylinders;
+    }
+
+    QCBORDecode_EnterArrayFromMapSZ(&DecodeCtx, "Cylinders");
+    for(int64_t i = 0; i < pE->uNumCylinders; i++) {
+        QCBORDecode_GetDouble(&DecodeCtx, &(pE->cylinders[i].uMeasuredCompression));
+    }
+    QCBORDecode_ExitArray(&DecodeCtx);
+    QCBORDecode_ExitMap(&DecodeCtx);
+
+    /* Catch the remainder of errors here */
+    uErr = QCBORDecode_Finish(&DecodeCtx);
+
+Done:
+    return ConvertError(uErr);
+}
+
 
 
 
@@ -346,7 +456,7 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, Engine *pE)
 
         uErr = CheckLabelAndType("DesignedCompression", QCBOR_TYPE_DOUBLE, &Item);
         if(uErr == QCBOR_SUCCESS) {
-            pE->uDisplacement = Item.val.int64;
+            pE->dDesignedCompresion = Item.val.dfnum;
             continue;
         } else if(uErr != QCBOR_ERR_NOT_FOUND){
             return EngineProtocolerror;
@@ -408,7 +518,30 @@ void RunQCborExample()
     x = (int)DecodeEngine(InDefEncodedEngine, &DecodedEngine);
     printf("Indef Engine Decode Result: %d\n", x);
 
+    if(!EngineCompare(&E, &DecodedEngine)) {
+        printf("decode comparison fail\n");
+    }
+
 
     x = (int)DecodeEngineBasic(EncodedEngine, &DecodedEngine);
     printf("Engine Basic Decode Result: %d\n", x);
+
+    if(!EngineCompare(&E, &DecodedEngine)) {
+        printf("decode comparison fail\n");
+    }
+
+
+    x = (int)DecodeEngineBasic(InDefEncodedEngine, &DecodedEngine);
+    printf("Indef Engine Basic Decode Result: %d\n", x);
+
+    if(!EngineCompare(&E, &DecodedEngine)) {
+        printf("indef decode comparison fail\n");
+    }
+
+    x = (int)DecodeEngineXX(EncodedEngine, &DecodedEngine);
+    printf("Efficient Engine Basic Decode Result: %d\n", x);
+
+    if(!EngineCompare(&E, &DecodedEngine)) {
+        printf("effcieit decode comparison fail\n");
+    }
 }
