@@ -18,38 +18,48 @@
 
 #define MAX_CYLINDERS 16
 
+
+/**
+ The data structure representing a car engine that is encoded and decoded in this examples.
+ */
 typedef struct
 {
     UsefulBufC Manufacturer;
-    int64_t uNumCylinders;
     int64_t uDisplacement;
     int64_t uHorsePower;
     double dDesignedCompresion;
+    int64_t uNumCylinders;
     struct {
         double uMeasuredCompression;
     } cylinders[MAX_CYLINDERS];
     bool bTurboCharged;
-} Engine;
+} CarEngine;
 
 
-void EngineInit(Engine *pE)
+/**
+ Initialize the Engine data structure with some values to encode/decode.
+ */
+void EngineInit(CarEngine *pE)
 {
-    pE->uNumCylinders = 6;
-    pE->bTurboCharged = false;
     pE->Manufacturer = UsefulBuf_FROM_SZ_LITERAL("Porsche");
     pE->uDisplacement = 3296;
     pE->uHorsePower = 210;
     pE->dDesignedCompresion = 9.1;
+    pE->uNumCylinders = 6;
     pE->cylinders[0].uMeasuredCompression = 9.0;
     pE->cylinders[1].uMeasuredCompression = 9.2;
     pE->cylinders[2].uMeasuredCompression = 8.9;
     pE->cylinders[3].uMeasuredCompression = 8.9;
     pE->cylinders[4].uMeasuredCompression = 9.1;
     pE->cylinders[5].uMeasuredCompression = 9.0;
+    pE->bTurboCharged = false;
 }
 
 
-bool EngineCompare(Engine *pE1, Engine *pE2)
+/**
+ Return @c true if the two Engined data structures are exactly the same.
+ */
+bool EngineCompare(CarEngine *pE1, CarEngine *pE2)
 {
     if(pE1->uNumCylinders != pE2->uNumCylinders) {
         return false;
@@ -81,7 +91,21 @@ bool EngineCompare(Engine *pE1, Engine *pE2)
 }
 
 
-UsefulBufC EncodeEngine(const Engine *pEngine, UsefulBuf Buffer)
+/**
+ @brief Encode an initialized Engine data structure in CBOR.
+
+ @param[in] pEngine  The data structure to encode.
+ @param[in] Buffer    Pointer and length of buffer to output to.
+
+ @return The pointer and length of the encoded CBOR or @ref NULLUsefulBufC on error.
+
+ @c Buffer must be big enough to hold the output. If it is not @ref NULLUsefulBufC
+ will be returned. @ref @ref NULLUsefulBufC will be returned for any other encoding
+ errors.
+
+ This encoding will use definite CBOR lengths.
+ */
+UsefulBufC EncodeEngine(const CarEngine *pEngine, UsefulBuf Buffer)
 {
     /* Initialize th encoder with the buffer big enough to hold the expected output.
      If it is too small, QCBOREncode_Finish() will return an error. */
@@ -101,7 +125,7 @@ UsefulBufC EncodeEngine(const Engine *pEngine, UsefulBuf Buffer)
         QCBOREncode_AddDouble(&EncodeCtx, pEngine->cylinders[i].uMeasuredCompression);
     }
     QCBOREncode_CloseArray(&EncodeCtx);
-    QCBOREncode_AddBoolToMap(&EncodeCtx, "turbo", pEngine->bTurboCharged);
+    QCBOREncode_AddBoolToMap(&EncodeCtx, "Turbo", pEngine->bTurboCharged);
     QCBOREncode_CloseMap(&EncodeCtx);
 
     /* Get the pointer and length of the encoded output. If there was
@@ -117,7 +141,22 @@ UsefulBufC EncodeEngine(const Engine *pEngine, UsefulBuf Buffer)
 }
 
 
-UsefulBufC EncodeEngineIndefinteLen(const Engine *pEngine, UsefulBuf Buffer)
+/**
+ @brief Encode an initialized Engine data structure in CBOR using indefinite lengths..
+
+ @param[in] pEngine  The data structure to encode.
+ @param[in] Buffer    Pointer and length of buffer to output to.
+
+ @return The pointer and length of the encoded CBOR or @ref NULLUsefulBufC on error.
+
+ This is virtually the same as EncodeEngine(). The encoded CBOR is slightly different as the
+  map and array use indefinite lengths, rather than definite lengths.
+
+ There is little practical use for this function as definite lengths are generally preferred for
+ CBOR and QCBOR always easily encodes definite lengths. (The advantage of indefinite
+ lengths are that they are simpler to encode, but that doesn't come into effect here).
+ */
+UsefulBufC EncodeEngineIndefinteLen(const CarEngine *pEngine, UsefulBuf Buffer)
 {
     QCBOREncodeContext EncodeCtx;
 
@@ -133,7 +172,7 @@ UsefulBufC EncodeEngineIndefinteLen(const Engine *pEngine, UsefulBuf Buffer)
         QCBOREncode_AddDouble(&EncodeCtx, pEngine->cylinders[i].uMeasuredCompression);
     }
     QCBOREncode_CloseArrayIndefiniteLength(&EncodeCtx);
-    QCBOREncode_AddBoolToMap(&EncodeCtx, "turbo", pEngine->bTurboCharged);
+    QCBOREncode_AddBoolToMap(&EncodeCtx, "Turbo", pEngine->bTurboCharged);
     QCBOREncode_CloseMapIndefiniteLength(&EncodeCtx);
 
     UsefulBufC EncodedCBOR;
@@ -147,7 +186,9 @@ UsefulBufC EncodeEngineIndefinteLen(const Engine *pEngine, UsefulBuf Buffer)
 }
 
 
-
+/**
+ Error results when decoding an Engine data structure.
+ */
 typedef enum  {
     EngineSuccess,
     CBORNotWellFormed,
@@ -157,6 +198,9 @@ typedef enum  {
 } EngineDecodeErrors;
 
 
+/**
+ Convert \ref QCBORError to \ref EngineDecodeErrors.
+ */
 EngineDecodeErrors ConvertError(QCBORError uErr)
 {
     EngineDecodeErrors uReturn;
@@ -180,12 +224,31 @@ EngineDecodeErrors ConvertError(QCBORError uErr)
 }
 
 
-/*
- Decode using the advanced decode features. This pulls in more
- code from the QCBOR library, but is much simpler and
- roughly mirrors the encoding implementation.
+/**
+ @brief Simplest engine decode using advanced decoe features.
+
+ @param[in] EncodedEngine  Pointer and length of CBOR-encoded engine.
+ @param[out] pE  The structure filled in from the decoding.
+
+ @return The decode error or success.
+
+ This verssion of the decoder has the simplest implementation, but
+ pulls in more code from the QCBOR library.  This version uses
+ the most CPU because it scanns the all the CBOR each time
+ a data item is decoded. The CPU used for a data structure as small
+ as this is probably insignificant. CPU use for this style of decode is
+ probably only a factor on slow CPUs with big CBOR inputs.
+
+ Code size is yet to be measured, but this is probably the smallest total
+ code size if multiple protocols are being decoded in one application because
+ the complex parsing of a map and array is done be shared code from the
+ CBOR library rather than by individual protocol-specific chunks of code.
+ Similarly, this may be the smallest for  complex CBOR with multiple
+ maps that need to be processed..
+
+ See also DecodeEngineAdvancedFaster() and DecodeEngineBasic().
  */
-EngineDecodeErrors DecodeEngine(UsefulBufC EncodedEngine, Engine *pE)
+EngineDecodeErrors DecodeEngineAdvanced(UsefulBufC EncodedEngine, CarEngine *pE)
 {
     QCBORError uErr;
     QCBORDecodeContext DecodeCtx;
@@ -196,7 +259,7 @@ EngineDecodeErrors DecodeEngine(UsefulBufC EncodedEngine, Engine *pE)
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Displacement", &(pE->uDisplacement));
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Horsepower", &(pE->uHorsePower));
     QCBORDecode_GetDoubleInMapSZ(&DecodeCtx, "DesignedCompression", &(pE->dDesignedCompresion));
-    QCBORDecode_GetBoolInMapSZ(&DecodeCtx, "turbo", &(pE->bTurboCharged));
+    QCBORDecode_GetBoolInMapSZ(&DecodeCtx, "Turbo", &(pE->bTurboCharged));
 
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "NumCylinders", &(pE->uNumCylinders));
 
@@ -226,8 +289,23 @@ Done:
 }
 
 
+/**
+ @brief Simplest engine decode using advanced decoe features.
 
-EngineDecodeErrors DecodeEngineXX(UsefulBufC EncodedEngine, Engine *pE)
+ @param[in] EncodedEngine  Pointer and length of CBOR-encoded engine.
+ @param[out] pE  The structure filled in from the decoding.
+
+ @return The decode error or success.
+
+This verssion of the decoder is still fairly simple and uses the
+ advanced decode features like DecodeEngine(), but is faster
+ and pulls in less library code. It is faster because all the items
+ except the array are pulled out of the map in one pass, rather
+ than multiple passes.
+
+ See also DecodeEngineAdvanced() and DecodeEngineBasic().
+*/
+EngineDecodeErrors DecodeEngineAdvancedFaster(UsefulBufC EncodedEngine, CarEngine *pE)
 {
     QCBORError uErr;
     QCBORDecodeContext DecodeCtx;
@@ -235,47 +313,47 @@ EngineDecodeErrors DecodeEngineXX(UsefulBufC EncodedEngine, Engine *pE)
     QCBORDecode_Init(&DecodeCtx, EncodedEngine, QCBOR_DECODE_MODE_NORMAL);
     QCBORDecode_EnterMap(&DecodeCtx);
 
-    QCBORItem XX[7];
-    XX[0].uLabelType = QCBOR_TYPE_TEXT_STRING;
-    XX[0].label.string = UsefulBuf_FROM_SZ_LITERAL("Manufacturer");
-    XX[0].uDataType = QCBOR_TYPE_TEXT_STRING;
+    QCBORItem EngineItems[7];
+    EngineItems[0].uLabelType = QCBOR_TYPE_TEXT_STRING;
+    EngineItems[0].label.string = UsefulBuf_FROM_SZ_LITERAL("Manufacturer");
+    EngineItems[0].uDataType = QCBOR_TYPE_TEXT_STRING;
 
-    XX[1].uLabelType = QCBOR_TYPE_TEXT_STRING;
-    XX[1].label.string = UsefulBuf_FROM_SZ_LITERAL("Displacement");
-    XX[1].uDataType = QCBOR_TYPE_INT64;
+    EngineItems[1].uLabelType = QCBOR_TYPE_TEXT_STRING;
+    EngineItems[1].label.string = UsefulBuf_FROM_SZ_LITERAL("Displacement");
+    EngineItems[1].uDataType = QCBOR_TYPE_INT64;
 
-    XX[2].uLabelType = QCBOR_TYPE_TEXT_STRING;
-    XX[2].label.string = UsefulBuf_FROM_SZ_LITERAL("Horsepower");
-    XX[2].uDataType = QCBOR_TYPE_INT64;
+    EngineItems[2].uLabelType = QCBOR_TYPE_TEXT_STRING;
+    EngineItems[2].label.string = UsefulBuf_FROM_SZ_LITERAL("Horsepower");
+    EngineItems[2].uDataType = QCBOR_TYPE_INT64;
 
-    XX[3].uLabelType = QCBOR_TYPE_TEXT_STRING;
-    XX[3].label.string = UsefulBuf_FROM_SZ_LITERAL("DesignedCompression");
-    XX[3].uDataType = QCBOR_TYPE_DOUBLE;
+    EngineItems[3].uLabelType = QCBOR_TYPE_TEXT_STRING;
+    EngineItems[3].label.string = UsefulBuf_FROM_SZ_LITERAL("DesignedCompression");
+    EngineItems[3].uDataType = QCBOR_TYPE_DOUBLE;
 
-    XX[4].uLabelType = QCBOR_TYPE_TEXT_STRING;
-    XX[4].label.string = UsefulBuf_FROM_SZ_LITERAL("turbo");
-    XX[4].uDataType = QCBOR_TYPE_ANY;
+    EngineItems[4].uLabelType = QCBOR_TYPE_TEXT_STRING;
+    EngineItems[4].label.string = UsefulBuf_FROM_SZ_LITERAL("Turbo");
+    EngineItems[4].uDataType = QCBOR_TYPE_ANY;
 
-    XX[5].uLabelType = QCBOR_TYPE_TEXT_STRING;
-    XX[5].label.string = UsefulBuf_FROM_SZ_LITERAL("NumCylinders");
-    XX[5].uDataType = QCBOR_TYPE_INT64;
+    EngineItems[5].uLabelType = QCBOR_TYPE_TEXT_STRING;
+    EngineItems[5].label.string = UsefulBuf_FROM_SZ_LITERAL("NumCylinders");
+    EngineItems[5].uDataType = QCBOR_TYPE_INT64;
 
-    XX[6].uLabelType = QCBOR_TYPE_NONE;
+    EngineItems[6].uLabelType = QCBOR_TYPE_NONE;
 
-    uErr = QCBORDecode_GetItemsInMap(&DecodeCtx, XX);
+    uErr = QCBORDecode_GetItemsInMap(&DecodeCtx, EngineItems);
     if(uErr != QCBOR_SUCCESS) {
         goto Done;
     }
 
-    pE->Manufacturer = XX[0].val.string;
-    pE->uDisplacement = XX[1].val.int64;
-    pE->uHorsePower = XX[2].val.int64;
-    pE->dDesignedCompresion = XX[3].val.dfnum;
-    pE->uNumCylinders = XX[5].val.int64;
+    pE->Manufacturer = EngineItems[0].val.string;
+    pE->uDisplacement = EngineItems[1].val.int64;
+    pE->uHorsePower = EngineItems[2].val.int64;
+    pE->dDesignedCompresion = EngineItems[3].val.dfnum;
+    pE->uNumCylinders = EngineItems[5].val.int64;
 
-    if(XX[4].uDataType == QCBOR_TYPE_TRUE) {
+    if(EngineItems[4].uDataType == QCBOR_TYPE_TRUE) {
         pE->bTurboCharged = true;
-    } else if(XX[4].uDataType == QCBOR_TYPE_FALSE) {
+    } else if(EngineItems[4].uDataType == QCBOR_TYPE_FALSE) {
         pE->bTurboCharged = false;
     } else {
         return EngineProtocolerror;
@@ -340,7 +418,7 @@ QCBORError CheckLabelAndType(const char *szLabel, uint8_t uQCBORType, QCBORItem 
 
 
 EngineDecodeErrors DecodeCylinders(QCBORDecodeContext *pDecodeCtx,
-                                   Engine *pE,
+                                   CarEngine *pE,
                                    const QCBORItem *pItem)
 {
     int i = 0;
@@ -373,8 +451,26 @@ EngineDecodeErrors DecodeCylinders(QCBORDecodeContext *pDecodeCtx,
 }
 
 
+/**
+@brief Engine decode without advanced decode features.
 
-EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, Engine *pE)
+@param[in] EncodedEngine  Pointer and length of CBOR-encoded engine.
+@param[out] pE  The structure filled in from the decoding.
+
+@return The decode error or success.
+
+This version of the deocde is the most complex, but uses
+ significantly less code from the QCBOR library.  It is also
+ the most CPU-efficient since it does only one pass
+ through the CBOR.
+
+  Code size is yet to be measured, but this is probably the smallest total
+ code size of all three, if just one CBOR protocol is being decoded. If
+ multiple protocols are being decoded the other options.
+
+ See also DecodeEngineAdvanced() and DecodeEngineAdvancedFaster().
+*/
+EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
 {
     QCBORDecodeContext DecodeCtx;
 
@@ -414,7 +510,6 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, Engine *pE)
             /* Maunfacturer field missing or badly formed */
             return EngineProtocolerror;
         } /* continue on and try for another match */
-
 
 
         uErr = CheckLabelAndType("NumCylinders", QCBOR_TYPE_INT64, &Item);
@@ -462,7 +557,7 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, Engine *pE)
             return EngineProtocolerror;
         }
 
-        uErr = CheckLabelAndType("turbo", QCBOR_TYPE_ANY, &Item);
+        uErr = CheckLabelAndType("Turbo", QCBOR_TYPE_ANY, &Item);
            if(uErr == QCBOR_SUCCESS) {
                if(Item.uDataType == QCBOR_TYPE_TRUE) {
                    pE->bTurboCharged = true;
@@ -494,7 +589,7 @@ Done:
 
 void RunQCborExample()
 {
-    Engine                  E, DecodedEngine;
+    CarEngine                  E, DecodedEngine;
     MakeUsefulBufOnStack(   EngineBuffer, 300);
     UsefulBufC              EncodedEngine;
 
@@ -507,7 +602,7 @@ void RunQCborExample()
 
     printf("Engine Encoded in %zu bytes\n", EncodedEngine.len);
 
-    int x = (int)DecodeEngine(EncodedEngine, &DecodedEngine);
+    int x = (int)DecodeEngineAdvanced(EncodedEngine, &DecodedEngine);
     printf("Engine Decode Result: %d\n", x);
 
 
@@ -515,7 +610,7 @@ void RunQCborExample()
 
     printf("Indef Engine Encoded in %zu bytes\n", InDefEncodedEngine.len);
 
-    x = (int)DecodeEngine(InDefEncodedEngine, &DecodedEngine);
+    x = (int)DecodeEngineAdvanced(InDefEncodedEngine, &DecodedEngine);
     printf("Indef Engine Decode Result: %d\n", x);
 
     if(!EngineCompare(&E, &DecodedEngine)) {
@@ -538,7 +633,7 @@ void RunQCborExample()
         printf("indef decode comparison fail\n");
     }
 
-    x = (int)DecodeEngineXX(EncodedEngine, &DecodedEngine);
+    x = (int)DecodeEngineAdvancedFaster(EncodedEngine, &DecodedEngine);
     printf("Efficient Engine Basic Decode Result: %d\n", x);
 
     if(!EngineCompare(&E, &DecodedEngine)) {
