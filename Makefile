@@ -53,7 +53,7 @@ src/qcbor_encode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qc
 src/iee754.o: src/ieee754.h
 src/qcbor_err_to_str.o: inc/qcbor/qcbor_common.h
 
-test/run_tests.o: test/UsefulBuf_Tests.h test/float_tests.h test/run_tests.h test/qcbor_encode_tests.h test/qcbor_decode_tests.h
+test/run_tests.o: test/UsefulBuf_Tests.h test/float_tests.h test/run_tests.h test/qcbor_encode_tests.h test/qcbor_decode_tests.h inc/qcbor/qcbor_private.h
 test/UsefulBuf_Tests.o: test/UsefulBuf_Tests.h inc/qcbor/UsefulBuf.h
 test/qcbor_encode_tests.o: test/qcbor_encode_tests.h $(PUBLIC_INTERFACE)
 test/qcbor_decode_tests.o: test/qcbor_decode_tests.h $(PUBLIC_INTERFACE)

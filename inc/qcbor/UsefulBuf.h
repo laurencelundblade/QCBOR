@@ -1934,6 +1934,12 @@ static inline size_t UsefulInputBuf_Tell(UsefulInputBuf *pMe)
 }
 
 
+static inline size_t UsefulInputBuf_GetLength(UsefulInputBuf *pMe)
+{
+    return pMe->UB.len;
+}
+
+
 static inline void UsefulInputBuf_Seek(UsefulInputBuf *pMe, size_t uPos)
 {
    if(uPos > pMe->UB.len) {
