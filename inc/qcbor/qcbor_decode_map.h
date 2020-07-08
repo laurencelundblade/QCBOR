@@ -137,7 +137,7 @@ QCBORError QCBORDecode_GetIntInMap(QCBORDecodeContext *pCtx, int64_t nLabel, int
 QCBORError QCBORDecode_GetIntInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, int64_t *pInt);
 
 
-void QCBORDecode_GetBstrInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, UsefulBufC *pBstr);
+void QCBORDecode_GetBytesInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, UsefulBufC *pBstr);
 
 void QCBORDecode_GetTextInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, UsefulBufC *pBstr);
 
