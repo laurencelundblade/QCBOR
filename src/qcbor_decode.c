@@ -474,6 +474,7 @@ const char *CountString(uint16_t uCount, uint16_t uTotal)
 
 void DecodeNesting_Print(QCBORDecodeNesting *pNesting, UsefulInputBuf *pBuf, const char *szName)
 {
+#if 0
    printf("---%s--%d/%d--\narrow is current bounded level\n",
           szName,
           (uint32_t)pBuf->cursor,
@@ -507,6 +508,7 @@ void DecodeNesting_Print(QCBORDecodeNesting *pNesting, UsefulInputBuf *pBuf, con
       printf("\n");
    }
    printf("\n");
+#endif
 }
 
 
@@ -1364,7 +1366,7 @@ static QCBORError
 QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    QCBORError uReturn;
-   /* ==== First figure out if at the end of a traversal ==== */
+   /* ==== First: figure out if at the end of a traversal ==== */
 
    /*
     If out of bytes to consume, it is either the end of the top-level
@@ -1380,6 +1382,8 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
     errors when out of bytes to decode and not at the top level. Note
     that QCBORDecode_Finish() still needs to be called to be sure all
     nesting levels were closed out.
+
+    TODO: really check for top level here?
    */
    if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf)) == 0 &&
       DecodeNesting_IsCurrentAtTop(&(me->nesting))) {
@@ -1397,7 +1401,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       goto Done;
    }
 
-   /* ==== Next, not at the end so get another item ==== */
+   /* ==== Next: not at the end so get another item ==== */
    uReturn = GetNext_MapEntry(me, pDecodedItem);
    if(uReturn) {
       goto Done;
@@ -1419,7 +1423,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    pDecodedItem->uNestingLevel = DecodeNesting_GetCurrentLevel(&(me->nesting));
 
 
-   /* ==== Next, Process the item for descent, ascent, decrement... ==== */
+   /* ==== Next: Process the item for descent, ascent, decrement... ==== */
    if(QCBORItem_IsMapOrArray(pDecodedItem)) {
       /*
        If the new item is a map or array descend.
@@ -1461,7 +1465,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       }
    }
 
-   /* ==== Last, tell the caller the nest level of the next item ==== */
+   /* ==== Last: tell the caller the nest level of the next item ==== */
    /*
     Tell the caller what level is next. This tells them what
     maps/arrays were closed out and makes it possible for them to
@@ -3764,7 +3768,7 @@ static QCBORError ConvertUint64(const QCBORItem *pItem, uint32_t uOptions, uint6
 {
    switch(pItem->uDataType) {
            // TODO: type flaot
-        case QCBOR_CONVERT_TYPE_DOUBLE:
+        case QCBOR_TYPE_DOUBLE:
            if(uOptions & QCBOR_CONVERT_TYPE_FLOAT) {
               feclearexcept(FE_ALL_EXCEPT);
               double dRounded = round(pItem->val.dfnum);
