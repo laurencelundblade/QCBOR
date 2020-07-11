@@ -453,9 +453,8 @@ double IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 
 
 // Public function; see ieee754.h
-double IEEE754_FloatToDouble(float f)
+double IEEE754_FloatToDouble(uint32_t uFloat)
 {
-    const uint32_t uFloat = CopyFloatToUint32(f);
     // Pull out the three parts of the single-precision float
     // Do all the work in 64 bits because that is what the end result is.
     // It may give smaller code size and will keep static analyzers happier.

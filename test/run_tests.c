@@ -106,6 +106,8 @@ static test_entry s_tests[] = {
     TEST_ENTRY(SetUpAllocatorTest),
     TEST_ENTRY(SimpleValuesIndefiniteLengthTest1),
     TEST_ENTRY(EncodeLengthThirtyoneTest),
+    TEST_ENTRY(CBORSequenceDecodeTests),
+    TEST_ENTRY(IntToTests),
 #ifndef     QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
     TEST_ENTRY(EncodeLengthThirtyoneTest),
     TEST_ENTRY(ExponentAndMantissaDecodeTests),
@@ -277,7 +279,10 @@ int RunTestsQCBOR(const char *szTestNames[],
 }
 
 
-#include "qcbor.h" // For size printing
+// For size printing
+#include "qcbor/qcbor_encode.h"
+#include "qcbor/qcbor_decode.h"
+
 
 /*
  Public function. See run_test.h.

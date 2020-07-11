@@ -31,7 +31,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  =============================================================================*/
 
 #include "qcbor_decode_tests.h"
-#include "qcbor.h"
+#include "qcbor/qcbor_encode.h"
+#include "qcbor/qcbor_decode.h"
 #include <string.h>
 #include <math.h> // for fabs()
 #include "not_well_formed_cbor.h"
@@ -89,7 +90,7 @@ static const uint8_t spExpectedEncodedInts[] = {
 
 static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
 {
-   QCBORItem          Item;
+   QCBORItem  Item;
    QCBORError nCBORError;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
@@ -1205,6 +1206,22 @@ int32_t ParseMapAsArrayTest()
       UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("lies, damn lies and statistics"))) {
       return -17;
    }
+   
+   
+   /*
+    Test with map that nearly QCBOR_MAX_ITEMS_IN_ARRAY items in a
+    map that when interpreted as an array will be too many. Test
+    data just has the start of the map, not all the items in the map.
+    */
+   static const uint8_t pTooLargeMap[] = {0xb9, 0xff, 0xfd};
+   
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pTooLargeMap),
+                    QCBOR_DECODE_MODE_MAP_AS_ARRAY);
+   
+   if((QCBOR_ERR_ARRAY_TOO_LONG != QCBORDecode_GetNext(&DCtx, &Item))) {
+      return -50;
+   }
 
    return 0;
 }
@@ -1416,9 +1433,7 @@ static int32_t ExtraBytesTest(int nLevel)
 
 
 
-/*
- Public function for initialization. See header qcbor.h
- */
+
 int32_t ParseMapTest()
 {
    // Parse a moderatly complex map structure very thoroughly
@@ -2003,9 +2018,6 @@ static void ComprehensiveInputRecurser(uint8_t *pBuf, size_t nLen, size_t nLenMa
 }
 
 
-/*
- Public function for initialization. See header qcbor.h
- */
 int32_t ComprehensiveInputTest()
 {
    // Size 2 tests 64K inputs and runs quickly
@@ -2017,9 +2029,6 @@ int32_t ComprehensiveInputTest()
 }
 
 
-/*
- Public function for initialization. See header qcbor.h
- */
 int32_t BigComprehensiveInputTest()
 {
    // size 3 tests 16 million inputs and runs OK
@@ -2044,7 +2053,7 @@ static uint8_t spDateTestInput[] = {
    0x1a, 0x53, 0x72, 0x4E, 0x00, // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
 
    // CBOR_TAG_B64
-   0xc1, 0xcf, 0xd8, 0x22, // 0xee, // Epoch date with extra tags TODO: fix this test
+   0xc1, 0xcf, 0xd8, 0x22, // 0xee, // Epoch date with extra tags
    0x1a, 0x53, 0x72, 0x4E, 0x01,
 
    0xc1, // tag for epoch date
@@ -2099,7 +2108,7 @@ int32_t DateParseTest()
       return -2;
    }
 
-   // Epoch date
+   // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return -3;
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
@@ -3783,3 +3792,325 @@ int32_t ExponentAndMantissaDecodeFailTests()
 }
 
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
+
+int32_t CBORSequenceDecodeTests(void)
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem Item;
+   QCBORError uCBORError;
+
+   // --- Test a sequence with extra bytes ---
+   
+   // The input for the date test happens to be a sequence so it
+   // is reused. It is a sequence because it doesn't start as
+   // an array or map.
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput),
+                    QCBOR_DECODE_MODE_NORMAL);
+   
+   // Get the first item
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 1;
+   }
+   if(Item.uDataType != QCBOR_TYPE_DATE_STRING) {
+      return 2;
+   }
+   
+   // Get a second item
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 2;
+   }
+   if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH) {
+      return 3;
+   }
+   
+   // A sequence can have stuff at the end that may
+   // or may not be valid CBOR. The protocol decoder knows
+   // when to stop by definition of the protocol, not
+   // when the top-level map or array is ended.
+   // Finish still has to be called to know that
+   // maps and arrays (if there were any) were closed
+   // off correctly. When called like this it
+   // must return the error QCBOR_ERR_EXTRA_BYTES.
+   uCBORError = QCBORDecode_Finish(&DCtx);
+   if(uCBORError != QCBOR_ERR_EXTRA_BYTES) {
+      return 4;
+   }
+   
+   
+   // --- Test an empty input ----
+   uint8_t empty[1];
+   UsefulBufC Empty = {empty, 0};
+   QCBORDecode_Init(&DCtx,
+                    Empty,
+                    QCBOR_DECODE_MODE_NORMAL);
+   
+   uCBORError = QCBORDecode_Finish(&DCtx);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 5;
+   }
+   
+   
+   // --- Sequence with unclosed indefinite length array ---
+   static const uint8_t xx[] = {0x01, 0x9f, 0x02};
+   
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(xx),
+                    QCBOR_DECODE_MODE_NORMAL);
+   
+   // Get the first item
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 7;
+   }
+   if(Item.uDataType != QCBOR_TYPE_INT64) {
+      return 8;
+   }
+   
+   // Get a second item
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 9;
+   }
+   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return 10;
+   }
+
+   // Try to finish before consuming all bytes to confirm
+   // that the still-open error is returned.
+   uCBORError = QCBORDecode_Finish(&DCtx);
+   if(uCBORError != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return 11;
+   }
+
+   
+   // --- Sequence with a closed indefinite length array ---
+   static const uint8_t yy[] = {0x01, 0x9f, 0xff};
+   
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(yy),
+                    QCBOR_DECODE_MODE_NORMAL);
+   
+   // Get the first item
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 12;
+   }
+   if(Item.uDataType != QCBOR_TYPE_INT64) {
+      return 13;
+   }
+   
+   // Get a second item
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 14;
+   }
+   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return 15;
+   }
+
+   // Try to finish before consuming all bytes to confirm
+   // that the still-open error is returned.
+   uCBORError = QCBORDecode_Finish(&DCtx);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 16;
+   }
+
+   
+   return 0;
+}
+
+
+int32_t IntToTests()
+{
+   int nErrCode;
+   int32_t n32;
+   int16_t n16;
+   int8_t n8;
+   uint32_t u32;
+   uint16_t u16;
+   uint8_t u8;
+   uint64_t u64;
+
+   nErrCode = QCBOR_Int64ToInt32(1, &n32);
+   if(nErrCode == -1 || n32 != 1) {
+      return 1;
+   }
+
+   nErrCode = QCBOR_Int64ToInt32((int64_t)INT32_MAX, &n32);
+   if(nErrCode == -1 || n32 != INT32_MAX) {
+      return 2;
+   }
+
+   nErrCode = QCBOR_Int64ToInt32((int64_t)INT32_MIN, &n32);
+   if(nErrCode == -1 || n32 != INT32_MIN) {
+      return 3;
+   }
+
+   nErrCode = QCBOR_Int64ToInt32(((int64_t)INT32_MAX)+1, &n32);
+   if(nErrCode != -1) {
+      return 4;
+   }
+
+   nErrCode = QCBOR_Int64ToInt32(((int64_t)INT32_MIN)-1, &n32);
+   if(nErrCode != -1) {
+      return 5;
+   }
+
+
+   nErrCode = QCBOR_Int64ToInt16((int64_t)INT16_MAX, &n16);
+   if(nErrCode == -1 || n16 != INT16_MAX) {
+      return 6;
+   }
+
+   nErrCode = QCBOR_Int64ToInt16((int64_t)INT16_MIN, &n16);
+   if(nErrCode == -1 || n16 != INT16_MIN) {
+      return 7;
+   }
+
+   nErrCode = QCBOR_Int64ToInt16(1, &n16);
+   if(nErrCode == -1 || n16 != 1) {
+      return 8;
+   }
+
+   nErrCode = QCBOR_Int64ToInt16(((int64_t)INT16_MAX)+1, &n16);
+   if(nErrCode != -1) {
+      return 9;
+   }
+
+   nErrCode = QCBOR_Int64ToInt16(((int64_t)INT16_MIN)-1, &n16);
+   if(nErrCode != -1) {
+      return 10;
+   }
+
+
+   nErrCode = QCBOR_Int64ToInt8(1, &n8);
+   if(nErrCode == -1 || n8 != 1) {
+      return 11;
+   }
+
+   nErrCode = QCBOR_Int64ToInt8((int64_t)INT8_MAX, &n8);
+   if(nErrCode == -1 || n8 != INT8_MAX) {
+      return 12;
+   }
+
+   nErrCode = QCBOR_Int64ToInt8((int64_t)INT8_MIN, &n8);
+   if(nErrCode == -1 || n8 != INT8_MIN) {
+      return 13;
+   }
+
+   nErrCode = QCBOR_Int64ToInt8(((int64_t)INT8_MAX)+1, &n8);
+   if(nErrCode != -1) {
+      return 14;
+   }
+
+   nErrCode = QCBOR_Int64ToInt8(((int64_t)INT8_MIN)-1, &n8);
+   if(nErrCode != -1) {
+      return 15;
+   }
+
+
+   nErrCode = QCBOR_Int64ToUInt32(1, &u32);
+   if(nErrCode == -1 || u32 != 1) {
+      return 16;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt32((int64_t)UINT32_MAX, &u32);
+   if(nErrCode == -1 || u32 != UINT32_MAX) {
+      return 17;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt32((int64_t)0, &u32);
+   if(nErrCode == -1 || u32 != 0) {
+      return 18;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt32(((int64_t)UINT32_MAX)+1, &u32);
+   if(nErrCode != -1) {
+      return 19;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt32((int64_t)-1, &u32);
+   if(nErrCode != -1) {
+      return 20;
+   }
+
+
+   nErrCode = QCBOR_Int64UToInt16((int64_t)UINT16_MAX, &u16);
+   if(nErrCode == -1 || u16 != UINT16_MAX) {
+      return 21;
+   }
+
+   nErrCode = QCBOR_Int64UToInt16((int64_t)0, &u16);
+   if(nErrCode == -1 || u16 != 0) {
+      return 22;
+   }
+
+   nErrCode = QCBOR_Int64UToInt16(1, &u16);
+   if(nErrCode == -1 || u16 != 1) {
+      return 23;
+   }
+
+   nErrCode = QCBOR_Int64UToInt16(((int64_t)UINT16_MAX)+1, &u16);
+   if(nErrCode != -1) {
+      return 24;
+   }
+
+   nErrCode = QCBOR_Int64UToInt16((int64_t)-1, &u16);
+   if(nErrCode != -1) {
+      return 25;
+   }
+
+
+   nErrCode = QCBOR_Int64ToUInt8((int64_t)UINT8_MAX, &u8);
+   if(nErrCode == -1 || u8 != UINT8_MAX) {
+      return 26;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt8((int64_t)0, &u8);
+   if(nErrCode == -1 || u8 != 0) {
+      return 27;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt8(1, &u8);
+   if(nErrCode == -1 || u8 != 1) {
+      return 28;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt8(((int64_t)UINT16_MAX)+1, &u8);
+   if(nErrCode != -1) {
+      return 29;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt8((int64_t)-1, &u8);
+   if(nErrCode != -1) {
+      return 30;
+   }
+
+
+   nErrCode = QCBOR_Int64ToUInt64(1, &u64);
+   if(nErrCode == -1 || u64 != 1) {
+      return 31;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt64(INT64_MAX, &u64);
+   if(nErrCode == -1 || u64 != INT64_MAX) {
+      return 32;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt64((int64_t)0, &u64);
+   if(nErrCode == -1 || u64 != 0) {
+      return 33;
+   }
+
+   nErrCode = QCBOR_Int64ToUInt64((int64_t)-1, &u64);
+   if(nErrCode != -1) {
+      return 34;
+   }
+
+   return 0;
+}
+

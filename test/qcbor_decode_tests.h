@@ -38,7 +38,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*
  Notes:
 
- - All the functions in qcbor.h are called once in the aggregation of all the tests below.
+ - All the functions in qcbor_decode.h are called once in the aggregation
+   of all the tests below.
 
  - All the types that are supported are given as input and parsed by these tests
 
@@ -250,5 +251,16 @@ int32_t ExponentAndMantissaDecodeTests(void);
 int32_t ExponentAndMantissaDecodeFailTests(void);
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
+
+/*
+ Tests decoding of CBOR Sequences defined in RFC 8742
+ */
+int32_t CBORSequenceDecodeTests(void);
+
+
+/*
+Tests for functions to safely convert integer types.
+*/
+int32_t IntToTests(void);
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

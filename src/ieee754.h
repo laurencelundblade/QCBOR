@@ -103,7 +103,7 @@ double IEEE754_HalfToDouble(uint16_t uHalfPrecision);
  floating-point HW or compiler-supplied SW.
  This is a loss-less conversion.
  */
-double IEEE754_FloatToDouble(float f);
+double IEEE754_FloatToDouble(uint32_t ufloat);
 
 
 // Both tags the value and gives the size

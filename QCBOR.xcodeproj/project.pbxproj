@@ -68,6 +68,7 @@
 		E73B575D2161CA7C0080D658 /* half_to_double_from_rfc7049.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = half_to_double_from_rfc7049.c; path = test/half_to_double_from_rfc7049.c; sourceTree = "<group>"; };
 		E73B57632161F8F70080D658 /* run_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = run_tests.c; path = test/run_tests.c; sourceTree = "<group>"; tabWidth = 3; };
 		E73B57642161F8F80080D658 /* run_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = run_tests.h; path = test/run_tests.h; sourceTree = "<group>"; };
+		E74BF411245D6713002CE8E8 /* UsefulBuf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UsefulBuf.h; path = inc/qcbor/UsefulBuf.h; sourceTree = "<group>"; };
 		E772022723B52C02006E966E /* QCBOR_Disable_Exp_Mantissa */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = QCBOR_Disable_Exp_Mantissa; sourceTree = BUILT_PRODUCTS_DIR; };
 		E776E07C214ADF7F00E67947 /* QCBOR */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = QCBOR; sourceTree = BUILT_PRODUCTS_DIR; };
 		E776E08C214AE07400E67947 /* qcbor_encode.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_encode.c; path = src/qcbor_encode.c; sourceTree = "<group>"; tabWidth = 3; };
@@ -77,6 +78,10 @@
 		E776E094214AE09700E67947 /* UsefulBuf.h */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.h; name = UsefulBuf.h; path = inc/UsefulBuf.h; sourceTree = "<group>"; tabWidth = 3; };
 		E776E096214AE0C700E67947 /* cmd_line_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_line_main.c; sourceTree = "<group>"; };
 		E776E161214EE19C00E67947 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		E78C91DE240C90C100F4CECE /* qcbor_decode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_decode.h; path = inc/qcbor/qcbor_decode.h; sourceTree = "<group>"; };
+		E78C91DF240C90C100F4CECE /* qcbor_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_common.h; path = inc/qcbor/qcbor_common.h; sourceTree = "<group>"; };
+		E78C91E0240C90C100F4CECE /* qcbor_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_private.h; path = inc/qcbor/qcbor_private.h; sourceTree = "<group>"; };
+		E78C91E1240C90C100F4CECE /* qcbor_encode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_encode.h; path = inc/qcbor/qcbor_encode.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -133,6 +138,11 @@
 		E776E092214AE07C00E67947 /* inc */ = {
 			isa = PBXGroup;
 			children = (
+				E74BF411245D6713002CE8E8 /* UsefulBuf.h */,
+				E78C91DF240C90C100F4CECE /* qcbor_common.h */,
+				E78C91DE240C90C100F4CECE /* qcbor_decode.h */,
+				E78C91E1240C90C100F4CECE /* qcbor_encode.h */,
+				E78C91E0240C90C100F4CECE /* qcbor_private.h */,
 				E776E093214AE08B00E67947 /* qcbor.h */,
 				E776E094214AE09700E67947 /* UsefulBuf.h */,
 			);
@@ -202,7 +212,7 @@
 		E776E074214ADF7F00E67947 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0940;
+				LastUpgradeCheck = 1140;
 				ORGANIZATIONNAME = "Laurence Lundblade";
 				TargetAttributes = {
 					E776E07B214ADF7F00E67947 = {
@@ -353,6 +363,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_LABEL = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				"HEADER_SEARCH_PATHS[arch=*]" = inc;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -412,6 +423,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_LABEL = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				"HEADER_SEARCH_PATHS[arch=*]" = inc;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
@@ -427,6 +439,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_PEDANTIC = YES;
+				"HEADER_SEARCH_PATHS[arch=*]" = inc;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -440,6 +453,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_PEDANTIC = YES;
+				"HEADER_SEARCH_PATHS[arch=*]" = inc;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

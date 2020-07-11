@@ -75,12 +75,15 @@ memory access alignment fix and code simplification.
 There is a simple makefile for the UNIX style command line binary that
 compiles everything to run the tests.
 
-These seven files, the contents of the src and inc directories, make
+These ten files, the contents of the src and inc directories, make
 up the entire implementation.
 
 * inc
    * UsefulBuf.h
-   * qcbor.h
+   * qcbor_private.h
+   * qcbor_common.h
+   * qcbor_encode.h
+   * qcbor_decode.h
 * src
    * UsefulBuf.c
    * qcbor_encode.c
@@ -116,6 +119,32 @@ C pre processor macros that can be #defined in order to:
 
 See the comment sections on "Configuration" in inc/UsefulBuf.h.
 
+## Code Size
+
+These are approximate sizes on 64-bit x86 with the -Os optimization.
+
+    |               | smallest | largest |  
+    |---------------|----------|---------|
+    | encode only   |     1000 |    1800 |
+    | decode only   |     2600 |    4250 |
+    | combined      |     3600 |    6050 |
+    
+The following are some ways to make the code smaller.
+
+The gcc compiler output is usually smaller than llvm because stack guards are off by default.
+You can all turn of stack gaurds with llvm. It is safe to turn off stack guards with
+this code because Usefulbuf provides similar defenses and this code was carefully
+written to be defensive.
+
+Use fewer of the encode functions, particularly avoid floating point and bstr wrapping. This 
+combined with dead-stripping works very well to automatically omit functions
+that are not needed on the encode side.
+
+Disable features with defines like QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA. 
+This is the primary means of reducing code on the decode side.  More of these defines are 
+planned than are currently implemented, but they are a little complex to implement because
+all the configurations must be tested. 
+
 ## Other Software Using QCBOR
 
 * [t_cose](https://github.com/laurencelundblade/t_cose) implements enough of
@@ -124,6 +153,8 @@ See the comment sections on "Configuration" in inc/UsefulBuf.h.
 [Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01). 
 Specifically it supports signing and verification of the COSE_Sign1 message.
 
+* [ctoken](https://github.com/laurencelundblade/t_cose) is an implementation of
+EAT and CWT.
 
 ## Changes from CAF Version
 * Float support is restored

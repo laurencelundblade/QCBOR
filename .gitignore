@@ -53,3 +53,5 @@ dkms.conf
 
 # Compiled binaries
 qcbortest
+qcbormin
+
