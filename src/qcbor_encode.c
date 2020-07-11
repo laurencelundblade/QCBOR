@@ -106,22 +106,20 @@ inline static void Nesting_Init(QCBORTrackNesting *pNesting)
    pNesting->pCurrentNesting->uMajorType = CBOR_MAJOR_TYPE_ARRAY;
 }
 
-inline static QCBORError Nesting_Increase(QCBORTrackNesting *pNesting,
+inline static uint8_t Nesting_Increase(QCBORTrackNesting *pNesting,
                                           uint8_t uMajorType,
                                           uint32_t uPos)
 {
-   QCBORError nReturn = QCBOR_SUCCESS;
-
    if(pNesting->pCurrentNesting == &pNesting->pArrays[QCBOR_MAX_ARRAY_NESTING]) {
       // Trying to open one too many
-      nReturn = QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
+      return QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
    } else {
       pNesting->pCurrentNesting++;
       pNesting->pCurrentNesting->uCount     = 0;
       pNesting->pCurrentNesting->uStart     = uPos;
       pNesting->pCurrentNesting->uMajorType = uMajorType;
+      return QCBOR_SUCCESS;
    }
-   return nReturn;
 }
 
 inline static void Nesting_Decrease(QCBORTrackNesting *pNesting)
@@ -129,7 +127,7 @@ inline static void Nesting_Decrease(QCBORTrackNesting *pNesting)
    pNesting->pCurrentNesting--;
 }
 
-inline static QCBORError Nesting_Increment(QCBORTrackNesting *pNesting)
+inline static uint8_t Nesting_Increment(QCBORTrackNesting *pNesting)
 {
    if(1 >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
       return QCBOR_ERR_ARRAY_TOO_LONG;

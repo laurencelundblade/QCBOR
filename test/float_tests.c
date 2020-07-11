@@ -436,8 +436,8 @@ int32_t DoubleAsSmallestTest()
     QCBOREncode_CloseMap(&EC);
 
     UsefulBufC EncodedHalfs;
-    int nReturn = QCBOREncode_Finish(&EC, &EncodedHalfs);
-    if(nReturn) {
+    QCBORError uErr = QCBOREncode_Finish(&EC, &EncodedHalfs);
+    if(uErr) {
         return -1;
     }
 

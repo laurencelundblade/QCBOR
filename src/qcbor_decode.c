@@ -403,7 +403,7 @@ void QCBORDecode_Init(QCBORDecodeContext *me,
    UsefulInputBuf_Init(&(me->InBuf), EncodedCBOR);
    // Don't bother with error check on decode mode. If a bad value is
    // passed it will just act as if the default normal mode of 0 was set.
-   me->uDecodeMode = nDecodeMode;
+   me->uDecodeMode = (uint8_t)nDecodeMode;
    DecodeNesting_Init(&(me->nesting));
 }
 
