@@ -91,11 +91,11 @@ static test_entry s_tests[] = {
     TEST_ENTRY(IntegerValuesParseTest),
     TEST_ENTRY(MemPoolTest),
     TEST_ENTRY(IndefiniteLengthStringTest),
-#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
     TEST_ENTRY(HalfPrecisionDecodeBasicTests),
     TEST_ENTRY(DoubleAsSmallestTest),
     TEST_ENTRY(HalfPrecisionAgainstRFCCodeTest),
-#endif /* QCBOR_CONFIG_DISABLE_ENCODE_IEEE754 */
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
     TEST_ENTRY(BstrWrapTest),
     TEST_ENTRY(BstrWrapErrorTest),
     TEST_ENTRY(BstrWrapNestTest),

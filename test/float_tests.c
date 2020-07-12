@@ -10,7 +10,7 @@
  Created on 9/19/18
  =============================================================================*/
 
-#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 #include "float_tests.h"
 #include "qcbor/qcbor_encode.h"
@@ -494,6 +494,6 @@ static int NaNExperiments() {
 }
 #endif
 
-#endif /* QCBOR_CONFIG_DISABLE_ENCODE_IEEE754 */
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
 

@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 
-#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 int32_t HalfPrecisionDecodeBasicTests(void);
 
@@ -23,7 +23,7 @@ int32_t DoubleAsSmallestTest(void);
 
 int32_t HalfPrecisionAgainstRFCCodeTest(void);
 
-#endif /* QCBOR_CONFIG_DISABLE_ENCODE_IEEE754 */
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
 #endif /* float_tests_h */

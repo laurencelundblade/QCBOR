@@ -10,7 +10,7 @@
  Created on 7/23/18
  =============================================================================*/
 
-#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 #include "ieee754.h"
 #include <string.h> // For memcpy()
@@ -595,4 +595,4 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
     return result;
 }
 
-#endif /* QCBOR_CONFIG_DISABLE_ENCODE_IEEE754 */
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */

@@ -10,7 +10,7 @@
  Created on 7/23/18
  =============================================================================*/
 
-#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 #ifndef ieee754_h
 #define ieee754_h
@@ -155,7 +155,7 @@ IEEE754_union IEEE754_FloatToSmallest(float f);
 #endif /* ieee754_h */
 
 
-#endif /* QCBOR_CONFIG_DISABLE_ENCODE_IEEE754 */
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
 

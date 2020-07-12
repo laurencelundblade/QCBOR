@@ -570,7 +570,7 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
       // caught before this is called.
 
       case HALF_PREC_FLOAT:
-#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          // The caast to uint16_t is safe because the encoded value
          // was 16 bits. It was widened to 64 bits to be passed in here.
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
@@ -580,7 +580,7 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
 #endif
          break;
       case SINGLE_PREC_FLOAT:
-#ifndef QCBOR_CONFIG_DISABLE_ENCODE_IEEE754
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          // The caast to uint32_t is safe because the encoded value
          // was 32 bits. It was widened to 64 bits to be passed in here.
          pDecodedItem->val.dfnum = IEEE754_FloatToDouble((uint32_t)uNumber);

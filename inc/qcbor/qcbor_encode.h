@@ -251,6 +251,178 @@ extern "C" {
  structure of tagged data not built-in (if there is any) has to be
  implemented by the caller.
 
+
+TODO: -----
+ By default QCBOR fully supports IEEE 754 floating-point:
+  * Encode/decode of double, single and half-precision
+  * CBOR preferred serialization of floating-point
+  * Floating-point epoch dates
+
+ For the most part, the type double is used in the interface
+ for floating-point values. In the default configuration,
+ all decoded floating-point values are returned as a double.
+
+  With CBOR preferred
+  serialization, the encoder outputs the smallest representation
+  of the double or float that preserves precision. Zero,
+  NaN and infinity are always output as a half-precision, each taking
+  just 2 bytes. This reduces the number of bytes needed to
+  encode doubles and floats, especially if a zero, NaN and
+  infinity are frequently used.
+
+ To avoid use of preferred serialization when encoding, use
+  QCBOREncode_AddDoubleNoPreferred() or
+ QCBOREncode_AddFloatNoPreferred().
+
+ This implementation of preferred floating-point serialization
+ and half-precision does not depend on
+  the CPU having floating-point HW or the compiler
+  bringing a (sometimes large) library to compensate for
+  lack of CPU support. The implementation uses shifts
+ and masks rather than floating-point functions. It does however add object code.
+
+   To reduce object code #define QCBOR_DISABLE_PREFERRED_FLOAT.
+  This will elimante all support for preferred serialization and half-precision. An error will be
+ returned when attemping to decode half-precision. A float will
+ always be encoded and decoded as 32-bits and
+ a double will always be encoded and decoded as 64 bits.
+
+ On CPUs that have no floating-point hardware, QCBOR_DISABLE_FLOAT_HW_USE
+ should be defined in most cases. If it is not, then the compiler will
+ bring in possibly large software libraries to compensate or QCBOR will
+ not compile.
+
+ If QCBOR_DISABLE_FLOAT_HW_USE is defined and QCBOR_DISABLE_PREFERRED_FLOAT
+ is not defined, then the only functionality lost is the decoding of floating-point dates.
+ An error will be returned if they are encountered.
+
+ If both QCBOR_DISABLE_FLOAT_HW_USE and QCBOR_DISABLE_PREFERRED_FLOAT
+ are defined, then the only thing QCBOR can do is encode/decode a float as
+ 32-bits and a double as 64-bits. Floating-point epoch dates will not be
+ supported.
+
+
+
+
+TODO: get rid of this:
+  If preferred floating point serialization is disabled, then
+  floats and doubles may still be encoded, but they will
+  be encoded as their normal size and returned as a
+  float or double during decoding. There is no way to
+  encode half-precision and when
+  a half-precision data item is encountered during decoding, an
+  error will be returned.
+
+   QCBOR can always encode and decode floats and doubles
+  even if the CPU HW doesn't support them, even if
+  preferred serialization is disabled and doesn't need SW-based
+  floating-point to be brought in by the compiler.
+
+
+  In order to process floating-point epoch dates, QCBOR needs
+  floating point arithmetic. On CPUs that have no floating-point
+  hardware, QCBOR may be set up to not using floating-point
+  aritthmetic, in which case floating-point epoch date values
+  will be considered and error when encoding. QCBOR never
+  generates floating-point values when encoding dates.
+
+
+
+
+  . For environments with
+  no floating point HW, or to save some object code , some floating
+  point features may be disabled. In this limited mode  float and double values may still be encoded
+  and decoded, but there will be no preferred encoding of them.
+ When decoding half-precison values and floating-point format
+  dates will be treated as an error. In this limited mode no
+  floating point operations like conversion in size or to integers
+   are used so in environments with no floating point HW, the
+  compiler will not have to add in support with SW.
+
+  -----
+   Default full float support
+
+    Disable: preferred float encoding / decoding. Savs 300 bytes during
+  decoding and 300 bytes during encodeing. Can still encode / decode
+   float and double values.  This need not be disabled on devices
+  with no floating point HW because preferred encoding / decoding
+  is all done internally with shifts and masks.
+
+   QCBOR_DISABLE_FLOAT_HW_USE. Disable use of floating point HW. Saves a very small amount of
+  code on devices with no floating point HW and a lot of code on
+  devices without floating point HW. The compiler won't bring in
+   the floating point SW that emulates the HW. When this is done
+    floating point dates are not supported. When this is disabled,
+  the following is not available: handling of floating-point epoch dates.
+
+
+  QCBOR_DISABLE_FLOAT_PREFERRED_SERIALIZATION.  This disables
+  preferred serialization of floating-point values. It also
+  disables all support for half-precision floating-point. The main
+  reason to disable this is to reduce object code in the decoder
+   by a few hundred bytes. It is not as necessary to
+  disable this to reduce size of the encoder, because avoiding
+  calls to the floating-point encode functions has the same effect.
+
+  Even when this is disabled, QCBOR
+  can encode and decode float and double values. What is
+  unavailable is the reduction in size of encoded floats and
+  the ability to decode half-precision.
+
+  Preferred serialization encoding and decoding
+  does not use floating-point HW, so it is not necessary to
+  disable this on CPUs without floating-point support.  However,
+  if a CPU doesn't support floating point, then use of floating
+  point is usually very expensive and slow because the compiler
+  must bring in large SW libraries. For that reason some may
+  choose to disable floating-point preferred serialization because it is
+  unlikely to be needed.
+
+  QCBOR_DISABLE_FLOAT_HW_USE. This disables
+  all use of CPU floating-point HW and the
+  often large and slow SW libraries the compiler substitutes if
+  there is no floating-point HW.
+  The only effect on QCBOR features
+  is that floating-point epoch date formats will result in a decoding error. Disabling
+  this reduces QCBOR in size by very little, but reduces
+  the overall executable size a lot on CPUs with no floating-point
+  HW by avoiding the compiler-supplied SW libraries. Since
+  floaing-point dates are not a very necessary feature, it
+  is advisable to define this on CPUs with no floating-point HW.
+
+
+
+  If you are running on a CPU with no floating point HW and you
+  don't need floating point date support, definitely disable XXX. If
+  you don't the compiler is likely to bring in large SW libraries
+  to provide the functions the HW does not.
+
+  If you want to save object ocde by disabling preferred encoding
+  of floats turn off QCBOR_DISABLE_PREFERRED_FLOAT. Note that this doesn't use floating point
+  HW so it is OK to leave enabled on CPUs with no floating
+  point support if you don't mind the extra 300 bytes of object
+  code on the decode side. On the encode side the floating
+  point code will be dead-stripped if not used.
+
+  Float features
+   - preferred encoding, encode side
+  - preferred encoding, decode side
+  - floating-point dates
+
+
+  Two modes?
+
+  disable use of preferred encoding / decoding and half precision support? This still
+  needs no floating point HW or SW.
+  
+
+
+
+ TODO: -------
+
+
+ 
+
  Summary Limits of this implementation:
  - The entire encoded CBOR must fit into contiguous memory.
  - Max size of encoded / decoded CBOR data is @c UINT32_MAX (4GB).
@@ -474,6 +646,15 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *pCtx, double dNum);
 static void QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pCtx, const char *szLabel, double dNum);
 
 static void QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNum);
+
+void QCBOREncode_AddFloat(QCBOREncodeContext *pCtx, float dNum);
+
+
+
+void QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pCtx, double dNum);
+
+void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pCtx, float dNum);
+
 
 
 /**
@@ -1579,6 +1760,18 @@ static inline void QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t
 {
    QCBOREncode_AddInt64(pCtx, nLabel);
    QCBOREncode_AddDouble(pCtx, dNum);
+}
+
+static inline void QCBOREncode_AddFloatToMap(QCBOREncodeContext *pCtx, const char *szLabel, float dNum)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_AddFloat(pCtx, dNum);
+}
+
+static inline void QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float fNum)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_AddFloat(pCtx, fNum);
 }
 
 

@@ -315,11 +315,15 @@ typedef enum {
    QCBOR_ERR_BAD_EXP_AND_MANTISSA = 23,
 
    /** When decoding, a string's size is greater than size_t. In all but some
-    very strange situations this is because of corrupt input CBOR and
-    should be treated as such. The strange situation is a CPU with a very
-    small size_t (e.g., a 16-bit CPU) and a large string (e.g., > 65KB).
+       very strange situations this is because of corrupt input CBOR and
+       should be treated as such. The strange situation is a CPU with a very
+       small size_t (e.g., a 16-bit CPU) and a large string (e.g., > 65KB).
     */
-    QCBOR_ERR_STRING_TOO_LONG = 24
+    QCBOR_ERR_STRING_TOO_LONG = 24,
+
+    /** Decoding of floating-point epoch dates is unsupported and a
+        floating-point date was encountered by the decoder. */
+    QCBOR_ERR_FLOAT_DATE_UNSUPPORTED = 25,
 
     /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORError;
