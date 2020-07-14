@@ -575,10 +575,14 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
 }
 
 
+/*
+ Public functions for adding a double. See qcbor/qcbor_encode.h
+*/
 void QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *me, double dNum)
 {
    QCBOREncode_AddType7(me, sizeof(uint64_t), UsefulBufUtil_CopyDoubleToUint64(dNum));
 }
+
 
 /*
  Public functions for adding a double. See qcbor/qcbor_encode.h
@@ -595,6 +599,9 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 }
 
 
+/*
+ Public functions for adding a float. See qcbor/qcbor_encode.h
+*/
 void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *me, float fNum)
 {
    QCBOREncode_AddType7(me, sizeof(uint32_t), UsefulBufUtil_CopyFloatToUint32(fNum));
@@ -602,7 +609,7 @@ void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *me, float fNum)
 
 
 /*
- Public functions for closing arrays and maps. See qcbor.h
+ Public functions for adding a float. See qcbor/qcbor_encode.h
  */
 void QCBOREncode_AddFloat(QCBOREncodeContext *me, float fNum)
 {

@@ -207,6 +207,8 @@ typedef struct _QCBORItem {
       uint16_t    uCount;
       /** The value for @c uDataType @ref QCBOR_TYPE_DOUBLE. */
       double      dfnum;
+      /** The value for @c uDataType @ref QCBOR_TYPE_FLOAT. */
+      float       fnum;
       /** The value for @c uDataType @ref QCBOR_TYPE_DATE_EPOCH. */
       struct {
          int64_t  nSeconds;

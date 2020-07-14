@@ -23,6 +23,9 @@ int32_t DoubleAsSmallestTest(void);
 
 int32_t HalfPrecisionAgainstRFCCodeTest(void);
 
+int32_t GeneralFloatEncodeTests(void);
+
+
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
 

@@ -253,6 +253,7 @@ extern "C" {
 
 
 TODO: -----
+  @anchor Floating-Point
  By default QCBOR fully supports IEEE 754 floating-point:
   * Encode/decode of double, single and half-precision
   * CBOR preferred serialization of floating-point
@@ -615,7 +616,7 @@ static void QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLab
 
 
 /**
- @brief  Add a floating-point number to the encoded output.
+ @brief Add a double-precision floating-point number to the encoded output.
 
  @param[in] pCtx  The encoding context to add the double to.
  @param[in] dNum  The double-precision number to add.
@@ -637,9 +638,12 @@ static void QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLab
  This automatically reduces the size of encoded messages a lot, maybe
  even by four if most of values are 0, infinity or NaN.
 
- On decode, these will always be returned as a double.
+ QCBOR usually returns all decoded floats as a double.
 
  Error handling is the same as QCBOREncode_AddInt64().
+
+ See also QCBOREncode_AddDoubleNoPreferred(), QCBOREncode_AddFloat()
+ and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
  */
 void QCBOREncode_AddDouble(QCBOREncodeContext *pCtx, double dNum);
 
@@ -647,13 +651,66 @@ static void QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pCtx, const char *szL
 
 static void QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNum);
 
-void QCBOREncode_AddFloat(QCBOREncodeContext *pCtx, float dNum);
+
+/**
+ @brief Add a single-precision floating-point number to the encoded output.
+
+ @param[in] pCtx  The encoding context to add the double to.
+ @param[in] fNum  The single-precision number to add.
+
+ This is identical to QCBOREncode_AddDouble() execpt the input is
+ single-precision.
+
+ See also QCBOREncode_AddDouble(), QCBOREncode_AddDoubleNoPreferred(),
+ and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
+*/
+void QCBOREncode_AddFloat(QCBOREncodeContext *pCtx, float fNum);
+
+static void QCBOREncode_AddFloatToMap(QCBOREncodeContext *pCtx, const char *szLabel, float fNum);
+
+static void QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float dNum);
 
 
+/**
+ @brief Add a double-precision floating-point number without preferred encoding.
 
+ @param[in] pCtx  The encoding context to add the double to.
+ @param[in] dNum  The double-precision number to add.
+
+ This always outputs the value as a 64-bit double-precision.
+ Preffered encoding is not used.
+
+Error handling is the same as QCBOREncode_AddInt64().
+
+ See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(),
+ and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
+*/
 void QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pCtx, double dNum);
 
-void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pCtx, float dNum);
+static void QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, double dNum);
+
+static void QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNum);
+
+
+/**
+ @brief Add a single-precision floating-point number without preferred encoding.
+
+ @param[in] pCtx  The encoding context to add the double to.
+ @param[in] fNum  The single-precision number to add.
+
+ This always outputs the value as a 32-bit single-precision.
+ Preffered encoding is not used.
+
+ Error handling is the same as QCBOREncode_AddInt64().
+
+ See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(),
+ and  QCBOREncode_AddDoubleNoPreferred() and @ref Floating-Point.
+*/
+void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pCtx, float fNum);
+
+static void QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, float fNum);
+
+static void QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float fNum);
 
 
 
@@ -1772,6 +1829,30 @@ static inline void QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t 
 {
    QCBOREncode_AddInt64(pCtx, nLabel);
    QCBOREncode_AddFloat(pCtx, fNum);
+}
+
+static inline void QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, double dNum)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_AddDoubleNoPreferred(pCtx, dNum);
+}
+
+static inline void QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNum)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_AddDoubleNoPreferred(pCtx, dNum);
+}
+
+static inline void QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, float dNum)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_AddFloatNoPreferred(pCtx, dNum);
+}
+
+static inline void QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float dNum)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_AddFloatNoPreferred(pCtx, dNum);
 }
 
 

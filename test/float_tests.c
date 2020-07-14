@@ -450,6 +450,90 @@ int32_t DoubleAsSmallestTest()
 }
 
 
+/*
+[0.0, 3.14, 0.0, NaN, Infinity, 0.0, 3.140000104904175, 0.0, NaN, Infinity,
+ {100: 0.0, 101: 3.1415926, "euler": 2.718281828459045, 105: 0.0,
+  102: 0.0, 103: 3.141592502593994, "euler2": 2.7182817459106445, 106: 0.0}]
+ */
+static const uint8_t spExpectedFloats[] = {
+   0x8B,
+      0xF9, 0x00, 0x00,
+      0xFB, 0x40, 0x09, 0x1E, 0xB8, 0x51, 0xEB, 0x85, 0x1F,
+      0xFB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0xFB, 0x7F, 0xF8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0xFB, 0x7F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0xF9, 0x00, 0x00,
+      0xFA, 0x40, 0x48, 0xF5, 0xC3,
+      0xFA, 0x00, 0x00, 0x00, 0x00,
+      0xFA, 0x7F, 0xC0, 0x00, 0x00,
+      0xFA, 0x7F, 0x80, 0x00, 0x00,
+      0xA8,
+         0x18, 0x64,
+          0xF9, 0x00, 0x00,
+         0x18, 0x65,
+          0xFB, 0x40, 0x09, 0x21, 0xFB, 0x4D, 0x12, 0xD8, 0x4A,
+         0x65, 0x65, 0x75, 0x6C, 0x65, 0x72,
+          0xFB, 0x40, 0x05, 0xBF, 0x0A, 0x8B, 0x14, 0x57, 0x69,
+         0x18, 0x69,
+          0xFB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x18, 0x66,
+          0xF9, 0x00, 0x00,
+         0x18, 0x67,
+          0xFA, 0x40, 0x49, 0x0F, 0xDA,
+         0x66, 0x65, 0x75, 0x6C, 0x65, 0x72, 0x32,
+          0xFA, 0x40, 0x2D, 0xF8, 0x54,
+         0x18, 0x6A,
+          0xFA, 0x00, 0x00, 0x00, 0x00};
+
+int32_t GeneralFloatEncodeTests()
+{
+   UsefulBuf_MAKE_STACK_UB(OutBuffer, sizeof(spExpectedFloats));
+
+   QCBOREncodeContext EC;
+   QCBOREncode_Init(&EC, OutBuffer);
+   QCBOREncode_OpenArray(&EC);
+
+   QCBOREncode_AddDouble(&EC, 0.0);
+   QCBOREncode_AddDouble(&EC, 3.14);
+   QCBOREncode_AddDoubleNoPreferred(&EC, 0.0);
+   QCBOREncode_AddDoubleNoPreferred(&EC, NAN);
+   QCBOREncode_AddDoubleNoPreferred(&EC, INFINITY);
+
+   QCBOREncode_AddFloat(&EC, 0.0);
+   QCBOREncode_AddFloat(&EC, 3.14f);
+   QCBOREncode_AddFloatNoPreferred(&EC, 0.0f);
+   QCBOREncode_AddFloatNoPreferred(&EC, NAN);
+   QCBOREncode_AddFloatNoPreferred(&EC, INFINITY);
+
+   QCBOREncode_OpenMap(&EC);
+
+   QCBOREncode_AddDoubleToMapN(&EC, 100, 0.0);
+   QCBOREncode_AddDoubleToMapN(&EC, 101, 3.1415926);
+   QCBOREncode_AddDoubleToMap(&EC, "euler", 2.71828182845904523536);
+   QCBOREncode_AddDoubleNoPreferredToMapN(&EC, 105, 0.0);
+
+   QCBOREncode_AddFloatToMapN(&EC, 102, 0.0f);
+   QCBOREncode_AddFloatToMapN(&EC, 103, 3.1415926f);
+   QCBOREncode_AddFloatToMap(&EC, "euler2", 2.71828182845904523536f);
+   QCBOREncode_AddFloatNoPreferredToMapN(&EC, 106, 0.0f);
+
+   QCBOREncode_CloseMap(&EC);
+   QCBOREncode_CloseArray(&EC);
+
+   UsefulBufC Encoded;
+   QCBORError uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr) {
+       return -1;
+   }
+
+   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats))) {
+       return -3;
+   }
+
+   return 0;
+}
+
+
 
 #ifdef NAN_EXPERIMENT
 /*
