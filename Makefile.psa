@@ -2,7 +2,7 @@
 # MBed Crypto uses the PSA Crypto interface
 #
 # Copyright (c) 2019-2020, Laurence Lundblade. All rights reserved.
-# Copyright (c) 2020, Michael Eckel.
+# Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -69,7 +69,7 @@ CFLAGS=$(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
 
 SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o
 
-.PHONY: all install uninstall clean
+.PHONY: all install install_headers install_so uninstall clean
 
 all: libt_cose.a t_cose_test t_cose_basic_example_psa
 
@@ -95,9 +95,11 @@ ifeq ($(PREFIX),)
     PREFIX := /usr/local
 endif
 
-install: all
+install: libt_cose.a install_headers
 	install -d $(DESTDIR)$(PREFIX)/lib/
 	install -m 644 libt_cose.a $(DESTDIR)$(PREFIX)/lib/
+
+install_headers: $(PUBLIC_INTERFACE)
 	install -d $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/t_cose_common.h $(DESTDIR)$(PREFIX)/include/t_cose
 	install -m 644 inc/t_cose/q_useful_buf.h $(DESTDIR)$(PREFIX)/include/t_cose
@@ -105,7 +107,7 @@ install: all
 	install -m 644 inc/t_cose/t_cose_sign1_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
 
 # The shared library is not installed by default because of platform variability.
-install_so: all
+install_so: libt_cose.so install_headers
 	install -m 755 libt_cose.so $(DESTDIR)$(PREFIX)/lib/libt_cose.so.1.0.0
 	ln -sf libt_cose.so.1 $(DESTDIR)$(PREFIX)/lib/libt_cose.so
 	ln -sf libt_cose.so.1.0.0 $(DESTDIR)$(PREFIX)/lib/libt_cose.so.1
