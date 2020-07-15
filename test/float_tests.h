@@ -23,10 +23,12 @@ int32_t DoubleAsSmallestTest(void);
 
 int32_t HalfPrecisionAgainstRFCCodeTest(void);
 
-int32_t GeneralFloatEncodeTests(void);
-
-
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
+/*
+ This calls each and every method for encoding
+ floating-point numbers.
+ */
+int32_t GeneralFloatEncodeTests(void);
 
 #endif /* float_tests_h */
