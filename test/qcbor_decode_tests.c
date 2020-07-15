@@ -1206,19 +1206,19 @@ int32_t ParseMapAsArrayTest()
       UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("lies, damn lies and statistics"))) {
       return -17;
    }
-   
-   
+
+
    /*
     Test with map that nearly QCBOR_MAX_ITEMS_IN_ARRAY items in a
     map that when interpreted as an array will be too many. Test
     data just has the start of the map, not all the items in the map.
     */
    static const uint8_t pTooLargeMap[] = {0xb9, 0xff, 0xfd};
-   
+
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pTooLargeMap),
                     QCBOR_DECODE_MODE_MAP_AS_ARRAY);
-   
+
    if((QCBOR_ERR_ARRAY_TOO_LONG != QCBORDecode_GetNext(&DCtx, &Item))) {
       return -50;
    }
@@ -3813,14 +3813,14 @@ int32_t CBORSequenceDecodeTests(void)
    QCBORError uCBORError;
 
    // --- Test a sequence with extra bytes ---
-   
+
    // The input for the date test happens to be a sequence so it
    // is reused. It is a sequence because it doesn't start as
    // an array or map.
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
-   
+
    // Get the first item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
@@ -3829,7 +3829,7 @@ int32_t CBORSequenceDecodeTests(void)
    if(Item.uDataType != QCBOR_TYPE_DATE_STRING) {
       return 2;
    }
-   
+
    // Get a second item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
@@ -3838,7 +3838,7 @@ int32_t CBORSequenceDecodeTests(void)
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH) {
       return 3;
    }
-   
+
    // A sequence can have stuff at the end that may
    // or may not be valid CBOR. The protocol decoder knows
    // when to stop by definition of the protocol, not
@@ -3851,28 +3851,28 @@ int32_t CBORSequenceDecodeTests(void)
    if(uCBORError != QCBOR_ERR_EXTRA_BYTES) {
       return 4;
    }
-   
-   
+
+
    // --- Test an empty input ----
    uint8_t empty[1];
    UsefulBufC Empty = {empty, 0};
    QCBORDecode_Init(&DCtx,
                     Empty,
                     QCBOR_DECODE_MODE_NORMAL);
-   
+
    uCBORError = QCBORDecode_Finish(&DCtx);
    if(uCBORError != QCBOR_SUCCESS) {
       return 5;
    }
-   
-   
+
+
    // --- Sequence with unclosed indefinite length array ---
    static const uint8_t xx[] = {0x01, 0x9f, 0x02};
-   
+
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(xx),
                     QCBOR_DECODE_MODE_NORMAL);
-   
+
    // Get the first item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
@@ -3881,7 +3881,7 @@ int32_t CBORSequenceDecodeTests(void)
    if(Item.uDataType != QCBOR_TYPE_INT64) {
       return 8;
    }
-   
+
    // Get a second item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
@@ -3898,14 +3898,14 @@ int32_t CBORSequenceDecodeTests(void)
       return 11;
    }
 
-   
+
    // --- Sequence with a closed indefinite length array ---
    static const uint8_t yy[] = {0x01, 0x9f, 0xff};
-   
+
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(yy),
                     QCBOR_DECODE_MODE_NORMAL);
-   
+
    // Get the first item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
@@ -3914,7 +3914,7 @@ int32_t CBORSequenceDecodeTests(void)
    if(Item.uDataType != QCBOR_TYPE_INT64) {
       return 13;
    }
-   
+
    // Get a second item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
@@ -3931,7 +3931,7 @@ int32_t CBORSequenceDecodeTests(void)
       return 16;
    }
 
-   
+
    return 0;
 }
 

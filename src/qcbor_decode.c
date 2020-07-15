@@ -1239,7 +1239,8 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
             goto Done;
          }
          pDecodedItem->val.epochDate.nSeconds = (int64_t)d;
-         pDecodedItem->val.epochDate.fSecondsFraction = d - (double)pDecodedItem->val.epochDate.nSeconds;
+         pDecodedItem->val.epochDate.fSecondsFraction =
+                           d - (double)pDecodedItem->val.epochDate.nSeconds;
       }
 #else
          /* Disabling float support causes a floating point
@@ -1247,7 +1248,6 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
           requires floating point conversion to integers and
           comparison which requires either floating point HW
           or a SW library. */
-         
          nReturn = QCBOR_ERR_FLOAT_DATE_UNSUPPORTED;
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          break;

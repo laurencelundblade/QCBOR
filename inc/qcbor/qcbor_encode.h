@@ -210,7 +210,7 @@ extern "C" {
 
  Note that when you nest arrays or maps in a map, the nested array or
  map has a label.
- 
+
  Many CBOR-based protocols start with an array or map. This makes them
  self-delimiting. No external length or end marker is needed to know
  the end. It is also possible not start this way, in which case this
@@ -415,14 +415,14 @@ TODO: get rid of this:
 
   disable use of preferred encoding / decoding and half precision support? This still
   needs no floating point HW or SW.
-  
+
 
 
 
  TODO: -------
 
 
- 
+
 
  Summary Limits of this implementation:
  - The entire encoded CBOR must fit into contiguous memory.

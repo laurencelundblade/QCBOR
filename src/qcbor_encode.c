@@ -580,7 +580,9 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
 */
 void QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *me, double dNum)
 {
-   QCBOREncode_AddType7(me, sizeof(uint64_t), UsefulBufUtil_CopyDoubleToUint64(dNum));
+   QCBOREncode_AddType7(me,
+                        sizeof(uint64_t),
+                        UsefulBufUtil_CopyDoubleToUint64(dNum));
 }
 
 
@@ -591,7 +593,7 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    const IEEE754_union uNum = IEEE754_DoubleToSmallest(dNum);
-   
+
    QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
 #else
    QCBOREncode_AddDoubleNoPreferred(me, dNum);
@@ -604,7 +606,9 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 */
 void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *me, float fNum)
 {
-   QCBOREncode_AddType7(me, sizeof(uint32_t), UsefulBufUtil_CopyFloatToUint32(fNum));
+   QCBOREncode_AddType7(me,
+                        sizeof(uint32_t),
+                        UsefulBufUtil_CopyFloatToUint32(fNum));
 }
 
 
@@ -615,7 +619,7 @@ void QCBOREncode_AddFloat(QCBOREncodeContext *me, float fNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    const IEEE754_union uNum = IEEE754_FloatToSmallest(fNum);
-   
+
    QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
 #else
    QCBOREncode_AddFloatNoPreferred(me, fNum);
