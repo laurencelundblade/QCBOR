@@ -2060,7 +2060,7 @@ static uint8_t spDateTestInput[] = {
    0x1b, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, // Too large integer
 
    0xc1, // tag for epoch date
-   0xfa, 0x3f, 0x8c, 0xcc, 0xcd, // double with value 1.1
+   0xfa, 0x3f, 0x8c, 0xcc, 0xcd, // single with value 1.1
 
    0xc1, // tag for epoch date
    0xfa, 0x7f, 0x7f, 0xff, 0xff, // 3.4028234663852886e+38 too large
@@ -2142,10 +2142,6 @@ int32_t DateParseTest()
       CHECK_EXPECTED_DOUBLE(Item.val.epochDate.fSecondsFraction, 0.1 )) {
       return -9;
    }
-#else
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_UNSUPPORTED)
-      return -80;
-#endif
 
    // Epoch date float that is too large for our representation
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
@@ -2158,12 +2154,28 @@ int32_t DateParseTest()
    }
 
    // Largest double epoch date supported
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-      Item.val.epochDate.nSeconds != 9223372036854773760 ||
-      Item.val.epochDate.nSeconds == 0) {
-      return -12;
+    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_SUCCESS ||
+       Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
+       Item.val.epochDate.nSeconds != 9223372036854773760 ||
+       Item.val.epochDate.nSeconds == 0) {
+       return -12;
+    }
+#else
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_UNSUPPORTED) {
+      return -80;
    }
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_UNSUPPORTED) {
+      return -80;
+   }
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_UNSUPPORTED) {
+      return -80;
+   }
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_UNSUPPORTED) {
+      return -80;
+   }
+#endif
+
+
    // TODO: could use a few more tests with float, double, and half precsion
    // and negative (but coverage is still pretty good)
 

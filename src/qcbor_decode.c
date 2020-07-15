@@ -571,7 +571,7 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
 
       case HALF_PREC_FLOAT:
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         // The caast to uint16_t is safe because the encoded value
+         // The cast to uint16_t is safe because the encoded value
          // was 16 bits. It was widened to 64 bits to be passed in here.
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
@@ -581,9 +581,10 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
          break;
       case SINGLE_PREC_FLOAT:
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         // The caast to uint32_t is safe because the encoded value
+         // The cast to uint32_t is safe because the encoded value
          // was 32 bits. It was widened to 64 bits to be passed in here.
          pDecodedItem->val.dfnum = IEEE754_FloatToDouble((uint32_t)uNumber);
+         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 #else
          pDecodedItem->val.fnum = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uNumber);
          pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
@@ -1230,7 +1231,9 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
          // values 10 billion years in the past and in the future
          // where this this code would go wrong and some compilers
          // will generate warnings or errors.
-         const double d = pDecodedItem->val.dfnum;
+         const double d = pDecodedItem->uDataType == QCBOR_TYPE_DOUBLE ?
+                            pDecodedItem->val.dfnum :
+                            (double)pDecodedItem->val.fnum;
          if(d > (double)(INT64_MAX - 0x7ff)) {
             nReturn = QCBOR_ERR_DATE_OVERFLOW;
             goto Done;

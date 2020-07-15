@@ -621,24 +621,30 @@ static void QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLab
  @param[in] pCtx  The encoding context to add the double to.
  @param[in] dNum  The double-precision number to add.
 
- This outputs a floating-point number with CBOR major type 7.
+ This encodes and outputs a floating-point number. CBOR major type 7
+ is used.
 
- This will selectively encode the double-precision floating-point
- number as either double-precision, single-precision or
- half-precision. It will always encode infinity, NaN and 0 has half
- precision. If no precision will be lost in the conversion to
- half-precision, then it will be converted and encoded. If not and no
- precision will be lost in conversion to single-precision, then it
- will be converted and encoded. If not, then no conversion is
- performed, and it encoded as a double.
+ This implements preferred serialization, selectively encoding the
+ double-precision floating-point number as either double-precision,
+ single-precision or half-precision. Infinity, NaN and 0 are always
+ encoded as half-precision. If no precision will be lost in the
+ conversion to half-precision, then it will be converted and
+ encoded. If not and no precision will be lost in conversion to
+ single-precision, then it will be converted and encoded. If not, then
+ no conversion is performed, and it encoded as a double-precision.
 
  Half-precision floating-point numbers take up 2 bytes, half that of
  single-precision, one quarter of double-precision
 
- This automatically reduces the size of encoded messages a lot, maybe
- even by four if most of values are 0, infinity or NaN.
+ This automatically reduces the size of encoded CBOR, maybe even by
+ four if most of values are 0, infinity or NaN.
 
- QCBOR usually returns all decoded floats as a double.
+ When decoded, QCBOR will usually return these values as
+ double-precision.
+
+ It is possible to disable this preferred serialization when compiling
+ QCBOR. In that case, this functions the same as
+ QCBOREncode_AddDoubleNoPreferred().
 
  Error handling is the same as QCBOREncode_AddInt64().
 
@@ -658,7 +664,7 @@ static void QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel
  @param[in] pCtx  The encoding context to add the double to.
  @param[in] fNum  The single-precision number to add.
 
- This is identical to QCBOREncode_AddDouble() execpt the input is
+ This is identical to QCBOREncode_AddDouble() except the input is
  single-precision.
 
  See also QCBOREncode_AddDouble(), QCBOREncode_AddDoubleNoPreferred(),
@@ -677,13 +683,13 @@ static void QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
  @param[in] pCtx  The encoding context to add the double to.
  @param[in] dNum  The double-precision number to add.
 
- This always outputs the value as a 64-bit double-precision.
- Preffered encoding is not used.
+ This always outputs the number as a 64-bit double-precision.
+ Preferred serialization is not used.
 
-Error handling is the same as QCBOREncode_AddInt64().
+ Error handling is the same as QCBOREncode_AddInt64().
 
- See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(),
- and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
+ See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(), and
+ QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
 */
 void QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pCtx, double dNum);
 
@@ -698,13 +704,13 @@ static void QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pCtx, int
  @param[in] pCtx  The encoding context to add the double to.
  @param[in] fNum  The single-precision number to add.
 
- This always outputs the value as a 32-bit single-precision.
- Preffered encoding is not used.
+ This always outputs the number as a 32-bit single-precision.
+ Preferred serialization is not used.
 
  Error handling is the same as QCBOREncode_AddInt64().
 
- See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(),
- and  QCBOREncode_AddDoubleNoPreferred() and @ref Floating-Point.
+ See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(), and
+ QCBOREncode_AddDoubleNoPreferred() and @ref Floating-Point.
 */
 void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pCtx, float fNum);
 
