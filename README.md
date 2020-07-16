@@ -114,30 +114,29 @@ See the comment sections on "Configuration" in inc/UsefulBuf.h.
 ## Floating Point Support
 
 By default, all floating-point features are supported. This includes
-encoding and decoding of half-precision and CBOR preferred float-point
-encoding.
+encoding and decoding of half-precision, CBOR preferred serialization
+for float-point and floating-point epoch dates.
 
-If full floating-point is not needed the following #defines can be used
-to reduce object code size. 
+If full floating-point is not needed the following #defines can be
+used to reduce object code size.
 
 QCBOR_DISABLE_FLOAT_HW_USE -- Avoid all use of floating-point HW.
 
-QCBOR_DISABLE_PREFERRED_FLOAT -- Eliminates support
-for half-precision and CBOR preferred encoding.
+QCBOR_DISABLE_PREFERRED_FLOAT -- Eliminates support for half-precision
+and CBOR preferred encoding.
 
-Even are #defined, QCBOR can still encode and decode basic floating
-point.
+Even if these are #defined, QCBOR can still encode and decode basic
+floating point.
 
-See discussion in qcbor_encode.h for details
+Defining QCBOR_DISABLE_PREFERRED_FLOAT will reduce object code size by
+about 900 bytes, though 550 of these bytes can be avoided without the
+define by just not calling any of the functions that encode
+floating-point numbers.
 
+Defining QCBOR_DISABLE_FLOAT_HW_USE will save a small amount of object
+code. Its main use is on CPUs that have no floating-point hardware.
 
-TODO: update this... The files ieee754.c and ieee754.h are support for half-precision
-floating-point. The encoding side of the floating-point functionality
-is about 500 bytes. If it is never called because no floating-point
-numbers are ever encoded, all 500 bytes will be dead stripped and not
-impact code size. The decoding side is about 150 bytes of object
-code. It is never dead stripped because it directly referenced by the
-core decoder, however it doesn't add very much to the size.
+See discussion in qcbor_encode.h for details.
 
 ## Code Size
 
@@ -145,26 +144,31 @@ These are approximate sizes on 64-bit x86 with the -Os optimization.
 
     |               | smallest | largest |  
     |---------------|----------|---------|
-    | encode only   |     1000 |    1800 |
-    | decode only   |     2600 |    4250 |
-    | combined      |     3600 |    6050 |
+    | encode only   |     1000 |    2100 |
+    | decode only   |     2800 |    4400 |
+    | combined      |     3800 |    6300 |
     
 The following are some ways to make the code smaller.
 
-The gcc compiler output is usually smaller than llvm because stack guards are off by default.
-You can all turn of stack gaurds with llvm. It is safe to turn off stack guards with
-this code because Usefulbuf provides similar defenses and this code was carefully
-written to be defensive.
+The gcc compiler output is usually smaller than llvm because stack
+guards are off by default (be sure you actually have gcc and not llvm
+installed to be invoked by the gcc command). You can also turn of
+stack gaurds with llvm. It is safe to turn off stack guards with this
+code because Usefulbuf provides similar defenses and this code was
+carefully written to be defensive.
 
-Use fewer of the encode functions, particularly avoid floating-point and bstr wrapping. This 
-combined with dead-stripping works very well to automatically omit functions
-that are not needed on the encode side.
+Use fewer of the encode functions, particularly avoid floating-point
+and bstr wrapping. This combined with dead-stripping works very well
+to automatically omit functions that are not needed on the encode
+side.
 
-Disable features with defines like QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA 
-and QCBOR_DISABLE_PREFERRED_FLOAT. 
-This is the primary means of reducing code on the decode side.  More of these defines are 
-planned than are currently implemented, but they are a little complex to implement because
-all the configurations must be tested. 
+Disable features with defines like
+QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) and
+QCBOR_DISABLE_PREFERRED_FLOAT (saves about 900 bytes).  This is the
+primary means of reducing code on the decode side.  More of these
+defines are planned than are currently implemented, but they are a
+little complex to implement because all the configurations must be
+tested.
 
 ## Other Software Using QCBOR
 
