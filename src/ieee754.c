@@ -563,7 +563,7 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
     // Pull the needed two parts out of the double-precision float
     const uint64_t uDouble = CopyDoubleToUint64(d);
     const int64_t  nDoubleExponent     = (int64_t)((uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT) - DOUBLE_EXPONENT_BIAS;
-    const uint64_t uDoubleSignificand  =   uDouble & DOUBLE_SIGNIFICAND_MASK;
+    const uint64_t uDoubleSignificand  = uDouble & DOUBLE_SIGNIFICAND_MASK;
 
     // Masks to check whether dropped significand bits are zero or not
     const uint64_t uDroppedDoubleBits = DOUBLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS;
