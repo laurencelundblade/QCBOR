@@ -162,13 +162,6 @@ static inline uint64_t CopyDoubleToUint64(double d)
     return u64;
 }
 
-static inline float CopyUint32ToFloat(uint32_t u32)
-{
-    float f;
-    memcpy(&f, &u32, sizeof(uint32_t));
-    return f;
-}
-
 static inline double CopyUint64ToDouble(uint64_t u64)
 {
     double d;
@@ -325,68 +318,10 @@ uint16_t IEEE754_DoubleToHalf(double d)
 }
 
 
-
-// Public function; see ieee754.h
-float IEEE754_HalfToFloat(uint16_t uHalfPrecision)
-{
-    // Pull out the three parts of the half-precision float
-    // Do all the work in 32 bits because that is what the end result is
-    // may give smaller code size and will keep static analyzers happier.
-    const uint32_t uHalfSignificand      = uHalfPrecision & HALF_SIGNIFICAND_MASK;
-    const int32_t  nHalfUnBiasedExponent = (int32_t)((uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT) - HALF_EXPONENT_BIAS;
-    const uint32_t uHalfSign             = (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
-
-
-    // Make the three parts of the single-precision number
-    uint32_t uSingleSignificand, uSingleSign, uSingleBiasedExponent;
-    if(nHalfUnBiasedExponent == HALF_EXPONENT_ZERO) {
-        // 0 or subnormal
-        if(uHalfSignificand) {
-            // Subnormal case
-            uSingleBiasedExponent = -HALF_EXPONENT_BIAS + SINGLE_EXPONENT_BIAS +1;
-            // A half-precision subnormal can always be converted to a normal single-precision float because the ranges line up
-            uSingleSignificand = uHalfSignificand;
-            // Shift bits from right of the decimal to left, reducing the exponent by 1 each time
-            do {
-                uSingleSignificand <<= 1;
-                uSingleBiasedExponent--;
-            } while ((uSingleSignificand & 0x400) == 0);
-            uSingleSignificand &= HALF_SIGNIFICAND_MASK;
-            uSingleSignificand <<= (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
-        } else {
-            // Just zero
-            uSingleBiasedExponent = SINGLE_EXPONENT_ZERO + SINGLE_EXPONENT_BIAS;
-            uSingleSignificand = 0;
-        }
-    } else if(nHalfUnBiasedExponent == HALF_EXPONENT_INF_OR_NAN) {
-        // NaN or Inifinity
-        uSingleBiasedExponent = SINGLE_EXPONENT_INF_OR_NAN + SINGLE_EXPONENT_BIAS;
-        if(uHalfSignificand) {
-            // NaN
-            // First preserve the NaN payload from half to single
-            uSingleSignificand = uHalfSignificand & ~HALF_QUIET_NAN_BIT;
-            if(uHalfSignificand & HALF_QUIET_NAN_BIT) {
-                // Next, set qNaN if needed since half qNaN bit is not copied above
-                uSingleSignificand |= SINGLE_QUIET_NAN_BIT;
-            }
-        } else {
-            // Infinity
-            uSingleSignificand = 0;
-        }
-    } else {
-        // Normal number
-        uSingleBiasedExponent = (uint32_t)(nHalfUnBiasedExponent + SINGLE_EXPONENT_BIAS);
-        uSingleSignificand = uHalfSignificand << (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
-    }
-    uSingleSign = uHalfSign;
-
-    // Shift the three parts of the single-precision into place
-    const uint32_t uSinglePrecision = uSingleSignificand |
-                                     (uSingleBiasedExponent << SINGLE_EXPONENT_SHIFT) |
-                                     (uSingleSign << SINGLE_SIGN_SHIFT);
-
-    return CopyUint32ToFloat(uSinglePrecision);
-}
+/*
+  EEE754_HalfToFloat() was created but is not needed. It can be retrieved from
+  github history if needed.
+ */
 
 
 // Public function; see ieee754.h
@@ -594,5 +529,9 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
 
     return result;
 }
+
+#else
+
+int x;
 
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */

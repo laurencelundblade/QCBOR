@@ -283,11 +283,13 @@ extern "C" {
  will eliminate all support for preferred serialization and
  half-precision. An error will be returned when attempting to decode
  half-precision. A float will always be encoded and decoded as 32-bits
- and a double will always be encoded and decoded as 64 bits.
+ and a double will always be encoded and decoded as 64 bits. This
+ will reduce object code by about 900 bytes.
 
  Note that even if QCBOR_DISABLE_PREFERRED_FLOAT is not defined all
  the float-point encoding object code can be avoided by never calling
- any functions that encode double or float.
+ any functions that encode double or float. Just not calling
+ floating-point functions will reduce object code by about 500 bytes.
 
  On CPUs that have no floating-point hardware,
  QCBOR_DISABLE_FLOAT_HW_USE should be defined in most cases. If it is

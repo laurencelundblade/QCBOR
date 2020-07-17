@@ -77,13 +77,6 @@ uint16_t IEEE754_FloatToHalf(float f);
 
 
 /*
- Convert half-precision float to single-precision float.  This is a
- loss-less conversion.
- */
-float IEEE754_HalfToFloat(uint16_t uHalfPrecision);
-
-
-/*
  Convert double-precision float to half-precision float.  Precision
  and NaN payload bits will be lost. Too-large values will round up to
  infinity and too small to zero.
