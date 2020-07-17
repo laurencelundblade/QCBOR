@@ -145,8 +145,8 @@ These are approximate sizes on 64-bit x86 with the -Os optimization.
     |               | smallest | largest |  
     |---------------|----------|---------|
     | encode only   |     1000 |    2100 |
-    | decode only   |     2800 |    4400 |
-    | combined      |     3800 |    6300 |
+    | decode only   |     2500 |    4300 |
+    | combined      |     3500 |    6400 |
     
 The following are some ways to make the code smaller.
 
