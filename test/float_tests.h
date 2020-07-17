@@ -31,4 +31,10 @@ int32_t HalfPrecisionAgainstRFCCodeTest(void);
  */
 int32_t GeneralFloatEncodeTests(void);
 
+/*
+ Tests basic float decoding.
+ */
+int32_t GeneralFloatDecodeTests(void);
+
+
 #endif /* float_tests_h */

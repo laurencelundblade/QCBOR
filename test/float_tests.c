@@ -13,11 +13,11 @@
 
 #include "float_tests.h"
 #include "qcbor/qcbor_encode.h"
+#include "qcbor/qcbor_decode.h"
 #include <math.h> // For INFINITY and NAN and isnan()
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
-#include "qcbor/qcbor_decode.h"
 #include "half_to_double_from_rfc7049.h"
 
 
@@ -458,7 +458,6 @@ int32_t DoubleAsSmallestTest()
  {100: 0.0, 101: 3.1415926, "euler": 2.718281828459045, 105: 0.0,
   102: 0.0, 103: 3.141592502593994, "euler2": 2.7182817459106445, 106: 0.0}]
  */
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 static const uint8_t spExpectedFloats[] = {
    0x8B,
       0xF9, 0x00, 0x00,
@@ -488,8 +487,8 @@ static const uint8_t spExpectedFloats[] = {
           0xFA, 0x40, 0x2D, 0xF8, 0x54,
          0x18, 0x6A,
           0xFA, 0x00, 0x00, 0x00, 0x00};
-#else
-static const uint8_t spExpectedFloats[] = {
+
+static const uint8_t spExpectedFloatsNoHalf[] = {
    0x8B,
       0xFB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0xFB, 0x40, 0x09, 0x1E, 0xB8, 0x51, 0xEB, 0x85, 0x1F,
@@ -518,11 +517,18 @@ static const uint8_t spExpectedFloats[] = {
           0xFA, 0x40, 0x2D, 0xF8, 0x54,
          0x18, 0x6A,
           0xFA, 0x00, 0x00, 0x00, 0x00};
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
 int32_t GeneralFloatEncodeTests()
 {
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    UsefulBuf_MAKE_STACK_UB(OutBuffer, sizeof(spExpectedFloats));
+   UsefulBufC ExpectedFloats = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
+   (void)spExpectedFloatsNoHalf; // Avoid unused variable error
+#else
+   UsefulBuf_MAKE_STACK_UB(OutBuffer, sizeof(spExpectedFloatsNoHalf));
+   UsefulBufC ExpectedFloats = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloatsNoHalf);
+   (void)spExpectedFloats; // Avoid unused variable error
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
    QCBOREncodeContext EC;
    QCBOREncode_Init(&EC, OutBuffer);
@@ -561,9 +567,159 @@ int32_t GeneralFloatEncodeTests()
       return -1;
    }
 
-   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats))) {
+   if(UsefulBuf_Compare(Encoded, ExpectedFloats)) {
       return -3;
    }
+
+   return 0;
+}
+
+
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+/* returns 0 if equivalent, non-zero if not equivalent */
+static int CHECK_EXPECTED_DOUBLE(double val, double expected)
+{
+   double diff = val - expected;
+
+   diff = fabs(diff);
+
+   if(diff > 0.000001) {
+      return 1;
+   } else {
+      return 0;
+   }
+}
+#endif
+
+
+int32_t GeneralFloatDecodeTests()
+{
+   UsefulBufC TestData = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
+
+   QCBORDecodeContext DC;
+   QCBORDecode_Init(&DC, TestData, 0);
+
+   QCBORItem Item;
+   QCBORError uErr;
+
+   QCBORDecode_GetNext(&DC, &Item);
+   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return -1;
+   }
+
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_DOUBLE ||
+      Item.val.dfnum != 0.0) {
+      return -2;
+   }
+#else
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_HALF_PRECISION_UNSUPPORTED) {
+      return -3;
+   }
+#endif
+
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_DOUBLE ||
+      Item.val.dfnum != 3.14) {
+      return -4;
+   }
+
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_DOUBLE ||
+      Item.val.dfnum != 0.0) {
+      return -5;
+   }
+
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_DOUBLE ||
+      !isnan(Item.val.dfnum)) {
+      return -6;
+   }
+
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_DOUBLE ||
+      Item.val.dfnum != INFINITY) {
+      return -7;
+   }
+
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_DOUBLE ||
+      Item.val.dfnum != 0.0) {
+      return -8;
+   }
+
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_DOUBLE ||
+      CHECK_EXPECTED_DOUBLE(3.14, Item.val.dfnum)) {
+      return -9;
+   }
+
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_DOUBLE ||
+      Item.val.dfnum != 0.0) {
+      return -10;
+   }
+
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_DOUBLE ||
+      !isnan(Item.val.dfnum)) {
+      return -11;
+   }
+
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_DOUBLE ||
+      Item.val.dfnum != INFINITY) {
+      return -12;
+   }
+
+#else
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_HALF_PRECISION_UNSUPPORTED) {
+      return -13;
+   }
+
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_FLOAT ||
+      Item.val.fnum != 3.14f) {
+      return -14;
+   }
+
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_FLOAT ||
+      Item.val.fnum != 0.0f) {
+      return -15;
+   }
+
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_FLOAT ||
+      !isnan(Item.val.fnum)) {
+      return -16;
+   }
+
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_FLOAT ||
+      Item.val.fnum != INFINITY) {
+      return -17;
+   }
+#endif
+   /* Sufficent test coverage. Don't need to decode the rest */
 
    return 0;
 }

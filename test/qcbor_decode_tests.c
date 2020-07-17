@@ -2075,7 +2075,7 @@ static uint8_t spDateTestInput[] = {
 
 
 // have to check float expected only to within an epsilon
-int CHECK_EXPECTED_DOUBLE(double val, double expected) {
+static int CHECK_EXPECTED_DOUBLE(double val, double expected) {
 
    double diff = val - expected;
 

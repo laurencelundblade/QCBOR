@@ -325,6 +325,9 @@ typedef enum {
         floating-point date was encountered by the decoder. */
     QCBOR_ERR_FLOAT_DATE_UNSUPPORTED = 25,
 
+    /** Support for half-precision float decoding is disabled. */
+    QCBOR_ERR_HALF_PRECISION_UNSUPPORTED = 26,
+
     /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORError;
 

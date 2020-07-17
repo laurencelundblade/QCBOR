@@ -576,7 +576,7 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 #else
-         nReturn = QCBOR_ERR_UNSUPPORTED;
+         nReturn = QCBOR_ERR_HALF_PRECISION_UNSUPPORTED;
 #endif
          break;
       case SINGLE_PREC_FLOAT:
