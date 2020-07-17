@@ -30,6 +30,12 @@
  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  =============================================================================*/
 
+/**
+ * @file qcbor.h
+ *
+ * Backwards compatibility for includers of qcbor.h (which has been split
+ * into four include files).
+ */
 
 #include "qcbor/qcbor_encode.h"
 #include "qcbor/qcbor_decode.h"
