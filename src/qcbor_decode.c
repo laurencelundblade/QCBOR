@@ -1205,7 +1205,6 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
          pDecodedItem->val.epochDate.nSeconds = (int64_t)pDecodedItem->val.uint64;
          break;
 
-         // TODO: test this with float and half input
       case QCBOR_TYPE_DOUBLE:
       case QCBOR_TYPE_FLOAT:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
