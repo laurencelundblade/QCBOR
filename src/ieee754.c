@@ -501,8 +501,13 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
     const uint64_t uDoubleSignificand  = uDouble & DOUBLE_SIGNIFICAND_MASK;
 
     // Masks to check whether dropped significand bits are zero or not
-    const uint64_t uDroppedDoubleBits = DOUBLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS;
+    const uint64_t uDroppedHalfBits = DOUBLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS;
     const uint64_t uDroppedSingleBits = DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS;
+
+    const uint64_t xx = uDroppedSingleBits & uDoubleSignificand; // TODO: get rid of 
+    (void)xx;
+
+    // This will not convert to subnormals half-precion or single-precision
 
     // The various cases
     if(d == 0.0) { // Take care of positive and negative zero
@@ -513,7 +518,7 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
         // NaN, +/- infinity
         result.uSize  = IEEE754_UNION_IS_HALF;
         result.uValue = IEEE754_DoubleToHalf(d);
-    } else if(bAllowHalfPrecision && (nDoubleExponent >= HALF_EXPONENT_MIN) && nDoubleExponent <= HALF_EXPONENT_MAX && (!(uDoubleSignificand & uDroppedDoubleBits))) {
+    } else if(bAllowHalfPrecision && (nDoubleExponent >= HALF_EXPONENT_MIN) && nDoubleExponent <= HALF_EXPONENT_MAX && (!(uDoubleSignificand & uDroppedHalfBits))) {
         // Can convert to half without precision loss
         result.uSize  = IEEE754_UNION_IS_HALF;
         result.uValue = IEEE754_DoubleToHalf(d);
