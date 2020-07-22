@@ -115,15 +115,15 @@ See the comment sections on "Configuration" in inc/UsefulBuf.h.
 
 By default, all floating-point features are supported. This includes
 encoding and decoding of half-precision, CBOR preferred serialization
-for float-point and floating-point epoch dates.
+for floating-point and floating-point epoch dates.
 
 If full floating-point is not needed the following #defines can be
 used to reduce object code size.
 
-QCBOR_DISABLE_FLOAT_HW_USE -- Avoid all use of floating-point HW.
+QCBOR_DISABLE_FLOAT_HW_USE -- Avoid all use of floating-point hardware.
 
 QCBOR_DISABLE_PREFERRED_FLOAT -- Eliminates support for half-precision
-and CBOR preferred encoding.
+and CBOR preferred serialization.
 
 Even if these are #defined, QCBOR can still encode and decode basic
 floating point.
@@ -152,7 +152,7 @@ The following are some ways to make the code smaller.
 
 The gcc compiler output is usually smaller than llvm because stack
 guards are off by default (be sure you actually have gcc and not llvm
-installed to be invoked by the gcc command). You can also turn of
+installed to be invoked by the gcc command). You can also turn off
 stack gaurds with llvm. It is safe to turn off stack guards with this
 code because Usefulbuf provides similar defenses and this code was
 carefully written to be defensive.
@@ -167,8 +167,8 @@ QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) and
 QCBOR_DISABLE_PREFERRED_FLOAT (saves about 900 bytes).  This is the
 primary means of reducing code on the decode side.  More of these
 defines are planned than are currently implemented, but they are a
-little complex to implement because all the configurations must be
-tested.
+little complex to implement because all the combination configurations 
+must be tested.
 
 ## Other Software Using QCBOR
 
@@ -209,6 +209,10 @@ still exist and work the same)
 * Mark Bapst for sponsorship and release as open source by Qualcomm
 * Sachin Sharma for release through CAF
 * Tamas Ban for porting to TF-M and 32-bit ARM
+* Michael Eckel for Makefile improvements
+* Jan Jongboom for indefinite length encoding
+* Peter Uiterwijk for error strings and other
+
 
 ## Copyright and License
 
