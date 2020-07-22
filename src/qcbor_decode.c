@@ -1210,21 +1210,21 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
       {
          // This comparison needs to be done as a float before
-         // conversion to an int64_t to be able to detect doubles
-         // that are too large to fit into an int64_t.  A double
-         // has 52 bits of preceision. An int64_t has 63. Casting
-         // INT64_MAX to a double actually causes a round up which
-         // is bad and wrong for the comparison because it will
-         // allow conversion of doubles that can't fit into a
-         // uint64_t.  To remedy this INT64_MAX - 0x7ff is used as
-         // the cutoff point because if that value rounds up in conversion to
-         // double it will still be less than INT64_MAX. 0x7ff is
-         // picked because it has 11 bits set.
+         // conversion to an int64_t to be able to detect doubles that
+         // are too large to fit into an int64_t.  A double has 52
+         // bits of preceision. An int64_t has 63. Casting INT64_MAX
+         // to a double actually causes a round up which is bad and
+         // wrong for the comparison because it will allow conversion
+         // of doubles that can't fit into a uint64_t.  To remedy this
+         // INT64_MAX - 0x7ff is used as the cutoff point because if
+         // that value rounds up in conversion to double it will still
+         // be less than INT64_MAX. 0x7ff is picked because it has 11
+         // bits set.
          //
-         // INT64_MAX seconds is on the order of 10 billion years,
-         // and the earth is less than 5 billion years old, so for
-         // most uses this conversion error won't occur even though
-         // doubles can go much larger.
+         // INT64_MAX seconds is on the order of 10 billion years, and
+         // the earth is less than 5 billion years old, so for most
+         // uses this conversion error won't occur even though doubles
+         // can go much larger.
          //
          // Without the 0x7ff there is a ~30 minute range of time
          // values 10 billion years in the past and in the future
