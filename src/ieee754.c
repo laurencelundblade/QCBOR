@@ -504,10 +504,11 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
     const uint64_t uDroppedHalfBits = DOUBLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS;
     const uint64_t uDroppedSingleBits = DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS;
 
-    const uint64_t xx = uDroppedSingleBits & uDoubleSignificand; // TODO: get rid of 
-    (void)xx;
-
-    // This will not convert to subnormals half-precion or single-precision
+    // This will not convert to half-precion or single-precision
+    // subnormals.  Values that could be converted will be output as
+    // the double they are or occasionally to a normal single.  This
+    // could be implemented, but it is more code and would rarely be
+    // used and rarely reduce the output size.
 
     // The various cases
     if(d == 0.0) { // Take care of positive and negative zero
