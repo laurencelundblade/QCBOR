@@ -371,7 +371,7 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
       return  -1;
 
 
-   if((  nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
+   if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
       Item.val.int64 != 4294967295)
@@ -1206,19 +1206,19 @@ int32_t ParseMapAsArrayTest()
       UsefulBuf_Compare(Item.val.string, UsefulBuf_FromSZ("lies, damn lies and statistics"))) {
       return -17;
    }
-   
-   
+
+
    /*
     Test with map that nearly QCBOR_MAX_ITEMS_IN_ARRAY items in a
     map that when interpreted as an array will be too many. Test
     data just has the start of the map, not all the items in the map.
     */
    static const uint8_t pTooLargeMap[] = {0xb9, 0xff, 0xfd};
-   
+
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pTooLargeMap),
                     QCBOR_DECODE_MODE_MAP_AS_ARRAY);
-   
+
    if((QCBOR_ERR_ARRAY_TOO_LONG != QCBORDecode_GetNext(&DCtx, &Item))) {
       return -50;
    }
@@ -2053,14 +2053,14 @@ static uint8_t spDateTestInput[] = {
    0x1a, 0x53, 0x72, 0x4E, 0x00, // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
 
    // CBOR_TAG_B64
-   0xc1, 0xcf, 0xd8, 0x22, // 0xee, // Epoch date with extra tags TODO: fix this test
+   0xc1, 0xcf, 0xd8, 0x22, // 0xee, // Epoch date with extra tags
    0x1a, 0x53, 0x72, 0x4E, 0x01,
 
    0xc1, // tag for epoch date
    0x1b, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, // Too large integer
 
    0xc1, // tag for epoch date
-   0xfa, 0x3f, 0x8c, 0xcc, 0xcd, // double with value 1.1
+   0xfa, 0x3f, 0x8c, 0xcc, 0xcd, // single with value 1.1
 
    0xc1, // tag for epoch date
    0xfa, 0x7f, 0x7f, 0xff, 0xff, // 3.4028234663852886e+38 too large
@@ -2075,7 +2075,7 @@ static uint8_t spDateTestInput[] = {
 
 
 // have to check float expected only to within an epsilon
-int CHECK_EXPECTED_DOUBLE(double val, double expected) {
+static int CHECK_EXPECTED_DOUBLE(double val, double expected) {
 
    double diff = val - expected;
 
@@ -2108,7 +2108,7 @@ int32_t DateParseTest()
       return -2;
    }
 
-   // Epoch date
+   // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return -3;
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
@@ -2134,6 +2134,7 @@ int32_t DateParseTest()
    }
 
    // Epoch date in float format with fractional seconds
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return -8;
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
@@ -2153,12 +2154,28 @@ int32_t DateParseTest()
    }
 
    // Largest double epoch date supported
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-      Item.val.epochDate.nSeconds != 9223372036854773760 ||
-      Item.val.epochDate.nSeconds == 0) {
-      return -12;
+    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_SUCCESS ||
+       Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
+       Item.val.epochDate.nSeconds != 9223372036854773760 ||
+       Item.val.epochDate.nSeconds == 0) {
+       return -12;
+    }
+#else
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_UNSUPPORTED) {
+      return -80;
    }
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_UNSUPPORTED) {
+      return -80;
+   }
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_UNSUPPORTED) {
+      return -80;
+   }
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_UNSUPPORTED) {
+      return -80;
+   }
+#endif
+
+
    // TODO: could use a few more tests with float, double, and half precsion
    // and negative (but coverage is still pretty good)
 
@@ -3796,14 +3813,14 @@ int32_t CBORSequenceDecodeTests(void)
    QCBORError uCBORError;
 
    // --- Test a sequence with extra bytes ---
-   
+
    // The input for the date test happens to be a sequence so it
    // is reused. It is a sequence because it doesn't start as
    // an array or map.
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
-   
+
    // Get the first item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
@@ -3812,7 +3829,7 @@ int32_t CBORSequenceDecodeTests(void)
    if(Item.uDataType != QCBOR_TYPE_DATE_STRING) {
       return 2;
    }
-   
+
    // Get a second item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
@@ -3821,7 +3838,7 @@ int32_t CBORSequenceDecodeTests(void)
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH) {
       return 3;
    }
-   
+
    // A sequence can have stuff at the end that may
    // or may not be valid CBOR. The protocol decoder knows
    // when to stop by definition of the protocol, not
@@ -3834,28 +3851,28 @@ int32_t CBORSequenceDecodeTests(void)
    if(uCBORError != QCBOR_ERR_EXTRA_BYTES) {
       return 4;
    }
-   
-   
+
+
    // --- Test an empty input ----
    uint8_t empty[1];
    UsefulBufC Empty = {empty, 0};
    QCBORDecode_Init(&DCtx,
                     Empty,
                     QCBOR_DECODE_MODE_NORMAL);
-   
+
    uCBORError = QCBORDecode_Finish(&DCtx);
    if(uCBORError != QCBOR_SUCCESS) {
       return 5;
    }
-   
-   
+
+
    // --- Sequence with unclosed indefinite length array ---
    static const uint8_t xx[] = {0x01, 0x9f, 0x02};
-   
+
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(xx),
                     QCBOR_DECODE_MODE_NORMAL);
-   
+
    // Get the first item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
@@ -3864,7 +3881,7 @@ int32_t CBORSequenceDecodeTests(void)
    if(Item.uDataType != QCBOR_TYPE_INT64) {
       return 8;
    }
-   
+
    // Get a second item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
@@ -3881,14 +3898,14 @@ int32_t CBORSequenceDecodeTests(void)
       return 11;
    }
 
-   
+
    // --- Sequence with a closed indefinite length array ---
    static const uint8_t yy[] = {0x01, 0x9f, 0xff};
-   
+
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(yy),
                     QCBOR_DECODE_MODE_NORMAL);
-   
+
    // Get the first item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
@@ -3897,7 +3914,7 @@ int32_t CBORSequenceDecodeTests(void)
    if(Item.uDataType != QCBOR_TYPE_INT64) {
       return 13;
    }
-   
+
    // Get a second item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
@@ -3914,7 +3931,7 @@ int32_t CBORSequenceDecodeTests(void)
       return 16;
    }
 
-   
+
    return 0;
 }
 
