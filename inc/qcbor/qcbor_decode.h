@@ -1058,6 +1058,14 @@ static QCBORError QCBORDecode_GetError(QCBORDecodeContext *pCtx);
 static QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
 
 
+/**
+ @brief Whether an error indicates non-well-formed CBOR.
+
+ @param[in] uErr    The decoder context.
+ @return @c true if the error code indicates non-well-formed CBOR.
+ */
+static bool QCBORDecode_IsNotWellFormed(QCBORError uErr);
+
 
 /*
  TODO: get rid of this
@@ -1099,9 +1107,6 @@ static QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
 
  See also QCBORDecode_GetInt64Convert() and QCBORDecode_GetInt64ConvertAll().
 
-
- A) A separate API for positive than negative
- B)
  */
 static void QCBORDecode_GetInt64(QCBORDecodeContext *pCtx, int64_t *pnValue);
 
@@ -1940,7 +1945,7 @@ void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  This will return maps and arrays that are in the map, but
  provides no way to descend into and decode them. Use
  QCBORDecode_EnterMapinMapN(), QCBORDecode_EnterArrayInMapN()
- and such to decsend into and process maps and arrays.
+ and such to descend into and process maps and arrays.
  */
 QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList);
 
@@ -2196,6 +2201,17 @@ static inline QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pMe)
     pMe->uLastError = QCBOR_SUCCESS;
     return uReturn;
 }
+
+// TODO: test this
+static inline bool QCBORDecode_IsNotWellFormed(QCBORError uErr)
+{
+   if(uErr >= QCBOR_ERR_FIRST_NOT_WELL_FORMED && uErr <= QCBOR_ERR_LAST_NOT_WELL_FORMED) {
+      return true;
+   } else {
+      return false;
+   }
+}
+
 
 
 // Semi-private

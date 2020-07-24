@@ -137,7 +137,7 @@ handle the CBOR tagged data types thoroughly and properly.
 
 In line with all the new Get functions for non-aggregate types
 there are new Enter functions for aggregate types. When
-an array or map is expected, Enter is called to decsend
+an array or map is expected, Enter is called to descend
 into them. When a map is Entered it can be searched
 by label. Duplicate detection of map items is performed.
 

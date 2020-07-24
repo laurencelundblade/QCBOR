@@ -1612,7 +1612,7 @@ int32_t ParseSimpleTest()
 }
 
 
-static int IsNotWellFormedError(QCBORError nErr)
+static bool IsNotWellFormedError(QCBORError nErr)
 {
    switch(nErr){
       case QCBOR_ERR_INDEFINITE_STRING_CHUNK:
@@ -1623,9 +1623,10 @@ static int IsNotWellFormedError(QCBORError nErr)
       case QCBOR_ERR_BAD_BREAK:
       case QCBOR_ERR_EXTRA_BYTES:
       case QCBOR_ERR_BAD_INT:
-         return 1;
+      case QCBOR_ERR_NO_MORE_ITEMS: // TODO: really keep this?
+         return true;
       default:
-         return 0;
+         return false;
    }
 }
 
@@ -1745,39 +1746,39 @@ struct FailInput  Failures[] = {
 
    // Definte length maps and arrays must be closed by having the right number of items
    // A definte length array that is supposed to have 1 item, but has none
-   { {(uint8_t[]){0x81}, 1}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0x81}, 1}, QCBOR_ERR_NO_MORE_ITEMS },
    // A definte length array that is supposed to have 2 items, but has only 1
-   { {(uint8_t[]){0x82, 0x00}, 2}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0x82, 0x00}, 2}, QCBOR_ERR_NO_MORE_ITEMS },
    // A definte length array that is supposed to have 511 items, but has only 1
    { {(uint8_t[]){0x9a, 0x01, 0xff, 0x00}, 4}, QCBOR_ERR_HIT_END },
    // A definte length map that is supposed to have 1 item, but has none
-   { {(uint8_t[]){0xa1}, 1}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0xa1}, 1}, QCBOR_ERR_NO_MORE_ITEMS },
    // A definte length map that is supposed to have s item, but has only 1
-   { {(uint8_t[]){0xa2, 0x01, 0x02}, 3}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0xa2, 0x01, 0x02}, 3}, QCBOR_ERR_NO_MORE_ITEMS },
 
 
    // Indefinte length maps and arrays must be ended by a break
    // Indefinite length array with zero items and no break
-   { {(uint8_t[]){0x9f}, 1}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0x9f}, 1}, QCBOR_ERR_NO_MORE_ITEMS },
    // Indefinite length array with two items and no break
-   { {(uint8_t[]){0x9f, 0x01, 0x02}, 3}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0x9f, 0x01, 0x02}, 3}, QCBOR_ERR_NO_MORE_ITEMS },
    // Indefinite length map with zero items and no break
-   { {(uint8_t[]){0xbf}, 1}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0xbf}, 1}, QCBOR_ERR_NO_MORE_ITEMS },
    // Indefinite length map with two items and no break
-   { {(uint8_t[]){0xbf, 0x01, 0x02, 0x01, 0x02}, 5}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0xbf, 0x01, 0x02, 0x01, 0x02}, 5}, QCBOR_ERR_NO_MORE_ITEMS },
 
 
    // Nested maps and arrays must be closed off (some extra nested test vectors)
    // Unclosed indefinite array containing a closed definite length array
-   { {(uint8_t[]){0x9f, 0x80, 0x00}, 3}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0x9f, 0x80, 0x00}, 3}, QCBOR_ERR_NO_MORE_ITEMS },
    // Definite length array containing an unclosed indefinite length array
-   { {(uint8_t[]){0x81, 0x9f}, 2}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0x81, 0x9f}, 2}, QCBOR_ERR_NO_MORE_ITEMS },
    // Deeply nested definite length arrays with deepest one unclosed
-   { {(uint8_t[]){0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}, 9}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}, 9}, QCBOR_ERR_NO_MORE_ITEMS }, // TODO: 23
    // Deeply nested indefinite length arrays with deepest one unclosed
-   { {(uint8_t[]){0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_NO_MORE_ITEMS },
    // Mixed nesting with indefinite unclosed
-   { {(uint8_t[]){0x9f, 0x81, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_HIT_END },
+   { {(uint8_t[]){0x9f, 0x81, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_NO_MORE_ITEMS },
    // Mixed nesting with definite unclosed
    { {(uint8_t[]){0x9f, 0x82, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 10}, QCBOR_ERR_BAD_BREAK },
    // TODO: a few more definite indefinite length combos and check with CBORbis.
@@ -1998,33 +1999,32 @@ int32_t DecodeFailureTests()
 
    // Corrupt the UsefulInputBuf and see that
    // it reflected correctly for CBOR decoding
-   {
-      QCBORDecodeContext DCtx;
-      QCBORItem          Item;
-      QCBORError         nCBORError;
+   QCBORDecodeContext DCtx;
+   QCBORItem          Item;
+   QCBORError         uQCBORError;
 
-      QCBORDecode_Init(&DCtx,
-                       UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleValues),
-                       QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleValues),
+                    QCBOR_DECODE_MODE_NORMAL);
 
-      if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-         return (int32_t)nCBORError;
-      if(Item.uDataType != QCBOR_TYPE_ARRAY ||
-         Item.val.uCount != 10) {
-         // This wasn't supposed to happen
-         return -1;
-      }
+   if((uQCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return (int32_t)uQCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_ARRAY || Item.val.uCount != 10) {
+      // This wasn't supposed to happen
+      return -1;
+   }
 
-      DCtx.InBuf.magic = 0; // Reach in and corrupt the UsefulInputBuf
+   DCtx.InBuf.magic = 0; // Reach in and corrupt the UsefulInputBuf
 
-      nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
-      if(nCBORError != QCBOR_ERR_HIT_END) {
-         // Did not get back the error expected
-         return -2;
-      }
+   uQCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uQCBORError != QCBOR_ERR_NO_MORE_ITEMS) {
+      // Did not get back the error expected
+      return -2;
    }
 
 /*
+ TODO: fix this
    This test is disabled until QCBOREncode_EncodeHead() is brought in so
  the size encoded can be tied to SIZE_MAX and work for all size CPUs.
 
@@ -3848,9 +3848,9 @@ static struct FailInput ExponentAndMantissaFailures[] = {
                   0xFF, 0xFF, 0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05,
                   0x06, 0x07, 0x08, 0x09, 0x10}, 23}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
    // End of input
-   { {(uint8_t[]){0xC4, 0x82}, 2}, QCBOR_ERR_HIT_END},
+   { {(uint8_t[]){0xC4, 0x82}, 2}, QCBOR_ERR_NO_MORE_ITEMS},
    // End of input
-   { {(uint8_t[]){0xC4, 0x82, 0x01}, 3}, QCBOR_ERR_HIT_END},
+   { {(uint8_t[]){0xC4, 0x82, 0x01}, 3}, QCBOR_ERR_NO_MORE_ITEMS},
    // bad content for big num
    { {(uint8_t[]){0xC4, 0x82, 0x01, 0xc3, 0x01}, 5}, QCBOR_ERR_BAD_OPT_TAG},
    // bad content for big num
@@ -4041,6 +4041,9 @@ static const uint8_t spSimpleArray[] = {
 0x84, 0x17, 0x19, 0x17, 0x70, 0x48, 0x67, 0x61, 0x6C, 0x61, 0x63, 0x74, 0x69, 0x63, 0x4B, 0x68, 0x61, 0x76, 0x65, 0x6E, 0x20, 0x74, 0x6F, 0x6B, 0x65, 0x6E};
 
 
+static const uint8_t spEmptyMap[] = {0xa0};
+
+static const uint8_t spEmptyInDefinteLengthMap[] = {0xbf, 0xff};
 
 int32_t EnterMapTest()
 {
@@ -4050,12 +4053,12 @@ int32_t EnterMapTest()
    int32_t nReturn;
 
    (void)pValidMapIndefEncoded;
-   nReturn = EMap( UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapIndefEncoded));
+   nReturn = EMap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapIndefEncoded));
    if(nReturn) {
       return nReturn + 20000;
    }
 
-   nReturn = EMap( UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
+   nReturn = EMap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
     if(nReturn) {
        return nReturn;
     }
@@ -4135,7 +4138,38 @@ int32_t EnterMapTest()
       return 2009;
    }
 
-   return 0;   
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap), 0);
+   QCBORDecode_EnterMap(&DCtx);
+   // This will fail because the map is empty.
+   QCBORDecode_GetInt64InMapSZ(&DCtx, "another int",  &nDecodedInt2);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_NOT_FOUND){
+      return 2010;
+   }
+   QCBORDecode_ExitMap(&DCtx);
+   uErr = QCBORDecode_Finish(&DCtx);
+   if(uErr != QCBOR_SUCCESS){
+      return 2011;
+   }
+
+
+   // TODO: more testing of nested zero length maps; also test zero-length arrays
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyInDefinteLengthMap), 0);
+   QCBORDecode_EnterMap(&DCtx);
+   // This will fail because the map is empty.
+   QCBORDecode_GetInt64InMapSZ(&DCtx, "another int",  &nDecodedInt2);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_NOT_FOUND){
+      return 2010;
+   }
+   QCBORDecode_ExitMap(&DCtx);
+   uErr = QCBORDecode_Finish(&DCtx);
+   if(uErr != QCBOR_SUCCESS){
+      return 2011;
+   }
+
+   return 0;
 }
 
 
