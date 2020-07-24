@@ -4161,12 +4161,12 @@ int32_t EnterMapTest()
    QCBORDecode_GetInt64InMapSZ(&DCtx, "another int",  &nDecodedInt2);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
    if(uErr != QCBOR_ERR_NOT_FOUND){
-      return 2010;
+      return 2012;
    }
    QCBORDecode_ExitMap(&DCtx);
    uErr = QCBORDecode_Finish(&DCtx);
    if(uErr != QCBOR_SUCCESS){
-      return 2011;
+      return 2013;
    }
 
    return 0;

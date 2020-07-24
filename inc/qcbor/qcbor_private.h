@@ -151,7 +151,7 @@ typedef struct __QCBORDecodeNesting  {
 
        Item tracking can either be for definite or indefinite length
        maps/arrays. For definite lengths, the total count and items
-       unconsumed is tracked. For indefinite length, uTotalCount is
+       unconsumed are tracked. For indefinite length, uTotalCount is
        QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH (UINT16_MAX) and
        uCountCursor is UINT16_MAX if the map/array is not consumed and
        zero if it is consumed in the pre-order traversal.
@@ -172,9 +172,11 @@ typedef struct __QCBORDecodeNesting  {
       union {
          struct {
 #define QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH UINT16_MAX
+#define QCBOR_COUNT_INDICATES_ZERO_LENGTH UINT16_MAX-1
             uint16_t uCountTotal;
             uint16_t uCountCursor; // TODO: review all uses of this
 #define QCBOR_NON_BOUNDED_OFFSET UINT32_MAX
+//#define QCBOR_BOUNDED_EMPTY UINT32_MAX-1
             uint32_t uStartOffset;
          } ma; /* for maps and arrays */
          struct {
