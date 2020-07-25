@@ -4045,6 +4045,8 @@ static const uint8_t spEmptyMap[] = {0xa0};
 
 static const uint8_t spEmptyInDefinteLengthMap[] = {0xbf, 0xff};
 
+static const uint8_t spArrayOfEmpty[] = {0x84, 0x40, 0xa0, 0x80, 0x00};
+
 int32_t EnterMapTest()
 {
    QCBORItem Item1;
@@ -4167,6 +4169,21 @@ int32_t EnterMapTest()
    uErr = QCBORDecode_Finish(&DCtx);
    if(uErr != QCBOR_SUCCESS){
       return 2013;
+   }
+
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spArrayOfEmpty), 0);
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_GetBytes(&DCtx, &String);
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_ExitMap(&DCtx);
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_GetInt64(&DCtx, &nDecodedInt2);
+   QCBORDecode_ExitArray(&DCtx);
+   uErr = QCBORDecode_Finish(&DCtx);
+   if(uErr != QCBOR_SUCCESS){
+      return 2014;
    }
 
    return 0;
