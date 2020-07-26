@@ -22,7 +22,7 @@ QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o sr
 
 TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o \
     test/qcbor_decode_tests.o test/run_tests.o \
-    test/float_tests.o test/half_to_double_from_rfc7049.o
+    test/float_tests.o test/half_to_double_from_rfc7049.o example.o
 
 .PHONY: all so install uninstall clean
 

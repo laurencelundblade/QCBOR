@@ -25,14 +25,14 @@
 typedef struct
 {
     UsefulBufC Manufacturer;
-    int64_t uDisplacement;
-    int64_t uHorsePower;
-    double dDesignedCompresion;
-    int64_t uNumCylinders;
+    int64_t    uDisplacement;
+    int64_t    uHorsePower;
+    double     dDesignedCompresion;
+    int64_t    uNumCylinders;
     struct {
         double uMeasuredCompression;
-    } cylinders[MAX_CYLINDERS];
-    bool bTurboCharged;
+    }          cylinders[MAX_CYLINDERS];
+    bool       bTurboCharged;
 } CarEngine;
 
 
@@ -297,7 +297,7 @@ Done:
 
  @return The decode error or success.
 
-This verssion of the decoder is still fairly simple and uses the
+ This verssion of the decoder is still fairly simple and uses the
  advanced decode features like DecodeEngine(), but is faster
  and pulls in less library code. It is faster because all the items
  except the array are pulled out of the map in one pass, rather
@@ -389,15 +389,18 @@ Done:
 
 
 
-/*
+/**
+ @brief Check the type and lable of an item.
 
- - Match
- - Error
- - No match
+ @param[in] szLabel  The expected string label.
+ @param[in] uQCBORType The expected type or @c QCBOR_TYPE_ANY
+ @param[in] pItem  The item to check.
 
+ @retval QCBOR_ERR_NOT_FOUND  The label doesn't match.
+ @retval QCBOR_ERR_UNEXPECTED_TYPE The label matches, but the type is not as expected.
+ @retval QCBOR_SUCCESS Both label and type match.
  */
-
-QCBORError CheckLabelAndType(const char *szLabel, uint8_t uQCBORType, QCBORItem *pItem)
+QCBORError CheckLabelAndType(const char *szLabel, uint8_t uQCBORType, const QCBORItem *pItem)
 {
     if(pItem->uLabelType != QCBOR_TYPE_TEXT_STRING) {
         return QCBOR_ERR_NOT_FOUND;
@@ -417,6 +420,18 @@ QCBORError CheckLabelAndType(const char *szLabel, uint8_t uQCBORType, QCBORItem 
 }
 
 
+/**
+ @brief Decode the array of engine cylinders.
+
+ @param[in] pDecodeCtx  The decode context from which to get items.
+ @param[out] pE  The structure filled in from the decoding.
+ @param[in] pItem The data item that is the start of the array.
+
+ @return Either @ref EngineSuccess or an error.
+
+ This always consumes the whole array. If it has the wrong number of
+ items in it, an error is returned.
+ */
 EngineDecodeErrors DecodeCylinders(QCBORDecodeContext *pDecodeCtx,
                                    CarEngine *pE,
                                    const QCBORItem *pItem)
@@ -424,7 +439,9 @@ EngineDecodeErrors DecodeCylinders(QCBORDecodeContext *pDecodeCtx,
     int i = 0;
     QCBORItem Item;
 
-    /* Loop getting all the items in the array */
+    /* Loop getting all the items in the array. This uses
+     nesting level to detect the end so it works for both
+     definite and indefinite length arrays. */
     do {
         QCBORError uErr;
 
@@ -452,19 +469,19 @@ EngineDecodeErrors DecodeCylinders(QCBORDecodeContext *pDecodeCtx,
 
 
 /**
-@brief Engine decode without advanced decode features.
+ @brief Engine decode without advanced decode features.
 
-@param[in] EncodedEngine  Pointer and length of CBOR-encoded engine.
-@param[out] pE  The structure filled in from the decoding.
+ @param[in] EncodedEngine  Pointer and length of CBOR-encoded engine.
+ @param[out] pE  The structure filled in from the decoding.
 
-@return The decode error or success.
+ @return The decode error or success.
 
-This version of the deocde is the most complex, but uses
+ This version of the deocde is the most complex, but uses
  significantly less code from the QCBOR library.  It is also
  the most CPU-efficient since it does only one pass
  through the CBOR.
 
-  Code size is yet to be measured, but this is probably the smallest total
+ Code size is yet to be measured, but this is probably the smallest total
  code size of all three, if just one CBOR protocol is being decoded. If
  multiple protocols are being decoded the other options.
 
@@ -511,7 +528,6 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
             return EngineProtocolerror;
         } /* continue on and try for another match */
 
-
         uErr = CheckLabelAndType("NumCylinders", QCBOR_TYPE_INT64, &Item);
         if(uErr == QCBOR_SUCCESS) {
             if(Item.val.int64 > MAX_CYLINDERS) {
@@ -521,9 +537,9 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
                 continue;
             }
         } else if(uErr != QCBOR_ERR_NOT_FOUND){
-            /* Maunfacturer field missing or badly formed */
+            /* NumCylinders field missing or badly formed */
             return EngineProtocolerror;
-        }
+        } /* continue on and try for another match */
 
         uErr = CheckLabelAndType("Cylinders", QCBOR_TYPE_ARRAY, &Item);
         if(uErr == QCBOR_SUCCESS) {
@@ -558,26 +574,24 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
         }
 
         uErr = CheckLabelAndType("Turbo", QCBOR_TYPE_ANY, &Item);
-           if(uErr == QCBOR_SUCCESS) {
-               if(Item.uDataType == QCBOR_TYPE_TRUE) {
-                   pE->bTurboCharged = true;
-               } else if(Item.uDataType == QCBOR_TYPE_FALSE) {
-                   pE->bTurboCharged = false;
-               } else {
-                   return EngineProtocolerror;
-               }
-               continue;
-           } else if(uErr != QCBOR_ERR_NOT_FOUND){
-               return EngineProtocolerror;
-           }
-
+        if(uErr == QCBOR_SUCCESS) {
+            if(Item.uDataType == QCBOR_TYPE_TRUE) {
+                pE->bTurboCharged = true;
+            } else if(Item.uDataType == QCBOR_TYPE_FALSE) {
+                pE->bTurboCharged = false;
+            } else {
+                return EngineProtocolerror;
+            }
+            continue;
+        } else if(uErr != QCBOR_ERR_NOT_FOUND){
+            return EngineProtocolerror;
+        }
 
         /* Some label data item that is not known
          (could just ignore extras data items) */
         return EngineProtocolerror;
     }
     uReturn = EngineSuccess;
-
 
 Done:
     return uReturn;
@@ -587,7 +601,7 @@ Done:
 
 
 
-void RunQCborExample()
+int32_t RunQCborExample()
 {
     CarEngine                  E, DecodedEngine;
     MakeUsefulBufOnStack(   EngineBuffer, 300);
@@ -595,6 +609,8 @@ void RunQCborExample()
 
     MakeUsefulBufOnStack(   InDefEngineBuffer, 300);
     UsefulBufC              InDefEncodedEngine;
+
+    // TODO: error codes and other clean up
 
     EngineInit(&E);
 
@@ -639,4 +655,6 @@ void RunQCborExample()
     if(!EngineCompare(&E, &DecodedEngine)) {
         printf("effcieit decode comparison fail\n");
     }
+   
+    return 0;
 }

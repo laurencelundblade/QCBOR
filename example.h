@@ -1,15 +1,18 @@
-//
-//  Header.h
-//  Example
-//
-//  Created by Laurence Lundblade on 6/30/20.
-//  Copyright © 2020 Laurence Lundblade. All rights reserved.
-//
+/*==============================================================================
+ example.h -- QCBOR encode and decode example
 
-#ifndef Header_h
-#define Header_h
+ Copyright (c) 2020, Laurence Lundblade. All rights reserved.
 
-void RunQCborExample(void);
+ SPDX-License-Identifier: BSD-3-Clause
 
+ See BSD-3-Clause license in README.md
 
-#endif /* Header_h */
+ Created on 6/30/20
+ =============================================================================*/
+
+#ifndef qcborExample_h
+#define qcborExample_h
+
+int32_t RunQCborExample(void);
+
+#endif /* qcborExample_h */
