@@ -26,15 +26,12 @@ TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o \
 
 .PHONY: all so install uninstall clean
 
-all: qcbortest qcbormin libqcbor.a
+all: qcbortest libqcbor.a
 
 so:	libqcbor.so
 
 qcbortest: libqcbor.a $(TEST_OBJ) cmd_line_main.o
 	$(CC) -o $@ $^  libqcbor.a
-
-qcbormin: libqcbor.a min_use_main.o
-	$(CC) -dead_strip -o $@ $^ libqcbor.a
 
 libqcbor.a: $(QCBOR_OBJ)
 	ar -r $@ $^
@@ -53,6 +50,8 @@ src/qcbor_encode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qc
 src/iee754.o: src/ieee754.h
 src/qcbor_err_to_str.o: inc/qcbor/qcbor_common.h
 
+example.o:	$(PUBLIC_INTERFACE)
+
 test/run_tests.o: test/UsefulBuf_Tests.h test/float_tests.h test/run_tests.h test/qcbor_encode_tests.h test/qcbor_decode_tests.h inc/qcbor/qcbor_private.h
 test/UsefulBuf_Tests.o: test/UsefulBuf_Tests.h inc/qcbor/UsefulBuf.h
 test/qcbor_encode_tests.o: test/qcbor_encode_tests.h $(PUBLIC_INTERFACE)
@@ -62,7 +61,6 @@ test/half_to_double_from_rfc7049.o: test/half_to_double_from_rfc7049.h
 
 cmd_line_main.o: test/run_tests.h $(PUBLIC_INTERFACE)
 
-min_use_main.o: $(PUBLIC_INTERFACE)
 
 ifeq ($(PREFIX),)
     PREFIX := /usr/local
@@ -91,4 +89,4 @@ uninstall: libqcbor.a $(PUBLIC_INTERFACE)
 		libqcbor.a libqcbor.so libqcbor.so.1 libqcbor.so.1.0.0)
 
 clean:
-	rm -f $(QCBOR_OBJ) $(TEST_OBJ) libqcbor.a min_use_main.o cmd_line_main.o libqcbor.a libqcbor.so qcbormin qcbortest
+	rm -f $(QCBOR_OBJ) $(TEST_OBJ) libqcbor.a cmd_line_main.o libqcbor.a libqcbor.so qcbormin qcbortest
