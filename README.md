@@ -11,7 +11,7 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
 **Focused on C / native data representation** – Careful conversion
   of CBOR data types in to C data types, carefully handling
-  over and underflow, strict typing and such to so the caller
+  over and underflow, strict typing and such so the caller
   doesn't have to worry so much about this and so code
   using QCBOR passes static analyzers easier.  Simpler code because
   there is no support for encoding/decoding to/from JSON, pretty
@@ -79,7 +79,7 @@ memory access alignment fix and code simplification.
 There is a simple makefile for the UNIX style command line binary that
 compiles everything to run the tests.
 
-These ten files, the contents of the src and inc directories, make
+These eleven files, the contents of the src and inc directories, make
 up the entire implementation.
 
 * inc
@@ -88,6 +88,7 @@ up the entire implementation.
    * qcbor_common.h
    * qcbor_encode.h
    * qcbor_decode.h
+   * qcbor_spiffy_decode.h
 * src
    * UsefulBuf.c
    * qcbor_encode.c
@@ -123,7 +124,7 @@ C pre processor macros that can be #defined in order to:
 
 See the comment sections on "Configuration" in inc/UsefulBuf.h.
 
-## Advanced Decode
+## Spiffy Decode
 
 In mid-2020 a large addition makes the decoder more powerful and easy
 to use. Backwards compatibility with the previous API is retained as the
@@ -131,7 +132,7 @@ new decoding features layer on top of it.
 
 The first noticable addition are functions to Get particular data types. 
 These are an alternative built on top of GetNext that does the type
-checking an in some cases sophisticated type conversion. They 
+checking and in some cases sophisticated type conversion. They 
 track an error state internally so the caller doesn't need.  They also
 handle the CBOR tagged data types thoroughly and properly.
 
@@ -141,24 +142,19 @@ an array or map is expected, Enter is called to descend
 into them. When a map is Entered it can be searched
 by label. Duplicate detection of map items is performed.
 
-An outcome of all this is that now the decoding of a some data
-can look very similar to the encoding of some data.
+An outcome of all this is that now the decoding implementation of 
+some data can look very similar to the encoding of some data
+and is generally easier to implement.
 
      Example...
 
 The handling of byte-string wrapped CBOR like the COSE payload
 and tag 24 is improved.
 
-
-Another outcome is that it is much easier to implement decoding
-of a CBOR protocol. 
-
 If decoding of more than one protocol is
 implemented then more of the CBOR-related code is reused. 
 For example map searching and duplicate detection is reused.
 This may reduce object code size.
-
-
 
 
 ## Code Size
@@ -266,7 +262,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Copyright for this README
 
-Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
 
 
 

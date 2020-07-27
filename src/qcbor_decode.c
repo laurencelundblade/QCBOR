@@ -32,6 +32,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 #include "ieee754.h"
 
 
@@ -2594,6 +2595,7 @@ static QCBORError CheckTypeList(uint8_t uDataType, const uint8_t puTypeList[QCBO
    }
    return QCBOR_ERR_UNEXPECTED_TYPE;
 }
+
 
 /**
  @param[in] TagSpec  Specification for matching tags.
