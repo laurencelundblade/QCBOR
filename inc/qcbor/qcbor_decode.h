@@ -899,6 +899,41 @@ QCBORError QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedIte
 
 
 
+/**
+ @brief Gets the next item including full list of tags for item.
+
+ @param[in]  pCtx          The decoder context.
+ @param[out] pDecodedItem  Holds the CBOR item just decoded.
+ @param[in,out] pTagList   On input array to put tags in; on output
+ the tags on this item. See
+ @ref QCBORTagListOut.
+
+ @return See return values for QCBORDecode_GetNext().
+
+ @retval QCBOR_ERR_TOO_MANY_TAGS  The size of @c pTagList is too small.
+
+ This works the same as QCBORDecode_GetNext() except that it also
+ returns the full list of tags for the data item. This function should
+ only be needed when parsing CBOR to print it out or convert it to
+ some other format. It should not be needed to implement a CBOR-based
+ protocol.  See QCBORDecode_GetNext() for the main description of tag
+ decoding.
+
+ Tags will be returned here whether or not they are in the built-in or
+ caller-configured tag lists.
+
+ CBOR has no upper bound of limit on the number of tags that can be
+ associated with a data item though in practice the number of tags on
+ an item will usually be small, perhaps less than five. This will
+ return @ref QCBOR_ERR_TOO_MANY_TAGS if the array in @c pTagList is
+ too small to hold all the tags for the item.
+
+ (This function is separate from QCBORDecode_GetNext() so as to not
+ have to make @ref QCBORItem large enough to be able to hold a full
+ list of tags. Even a list of five tags would nearly double its size
+ because tags can be a @c uint64_t ).
+ */
+QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
 
 
 
