@@ -256,7 +256,7 @@ DecodeNesting_IsCurrentTypeMap(const QCBORDecodeNesting *pNesting)
 
 
 inline static bool
-DecodeNesting_CheckBoundedType(const QCBORDecodeNesting *pNesting, uint8_t uType)
+DecodeNesting_IsBoundedType(const QCBORDecodeNesting *pNesting, uint8_t uType)
 {
    if(pNesting->pCurrentBounded == NULL) {
       return false;
@@ -437,7 +437,7 @@ DecodeNesting_Init(QCBORDecodeNesting *pNesting)
 inline static void
 DecodeNesting_PrepareForMapSearch(QCBORDecodeNesting *pNesting, QCBORDecodeNesting *pSave)
 {
-   //*pSave = *pNesting;
+   *pSave = *pNesting;
    pNesting->pCurrent = pNesting->pCurrentBounded;
    pNesting->pCurrent->u.ma.uCountCursor = pNesting->pCurrent->u.ma.uCountTotal;
 }
@@ -2351,11 +2351,11 @@ MatchType(QCBORItem Item1, QCBORItem Item2)
 /**
  \brief Search a map for a set of items.
 
- @param[in]  pMe   The decode context to search.
- @param[in,out] pItemArray  The items to search for and the items found.
- @param[out] puOffset Byte offset of last item matched.
- @param[in] pCBContext  Context for the not-found item call back
- @param[in] pfCallback  Function to call on items not matched in pItemArray
+ @param[in]  pMe           The decode context to search.
+ @param[in,out] pItemArray The items to search for and the items found.
+ @param[out] puOffset      Byte offset of last item matched.
+ @param[in] pCBContext     Context for the not-found item call back.
+ @param[in] pfCallback     Function to call on items not matched in pItemArray.
 
  @retval QCBOR_ERR_NOT_ENTERED Trying to search without having entered a map
 
@@ -2371,8 +2371,7 @@ MatchType(QCBORItem Item1, QCBORItem Item2)
  On output the fully retrieved items are filled in with
  values and such. The label was matched, so it never changes.
  
- If an item was not found, its data type is set to none.
- 
+ If an item was not found, its data type is set to QCBOR_TYPE_NONE.
  */
 static QCBORError
 MapSearch(QCBORDecodeContext *pMe,
@@ -2382,21 +2381,19 @@ MapSearch(QCBORDecodeContext *pMe,
           QCBORItemCallback   pfCallback)
 {
    QCBORError uReturn;
+   uint64_t   uFoundItemBitMap = 0;
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      return pMe->uLastError;
+      uReturn = pMe->uLastError;
+      goto Done2;
    }
 
-   QCBORDecodeNesting SaveNesting = pMe->nesting; // TODO: refactor?
-
-   uint64_t uFoundItemBitMap = 0;
-
-   if(!DecodeNesting_CheckBoundedType(&(pMe->nesting), QCBOR_TYPE_MAP) &&
+   if(!DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_MAP) &&
       pItemArray->uLabelType != QCBOR_TYPE_NONE) {
       /* QCBOR_TYPE_NONE as first item indicates just looking
          for the end of an array, so don't give error. */
-      uReturn = QCBOR_ERR_NOT_A_MAP;
-      goto Done;
+      uReturn = QCBOR_ERR_MAP_NOT_ENTERED;
+      goto Done2;
    }
 
    if(DecodeNesting_IsBoundedEmpty(&(pMe->nesting))) {
@@ -2410,9 +2407,10 @@ MapSearch(QCBORDecodeContext *pMe,
          // are marked as not found below.
          uReturn = QCBOR_SUCCESS;
       }
-      goto Done;
+      goto Done2;
    }
 
+   QCBORDecodeNesting SaveNesting;
    DecodeNesting_PrepareForMapSearch(&(pMe->nesting), &SaveNesting);
 
    /* Reposition to search from the start of the map / array */
@@ -2426,11 +2424,7 @@ MapSearch(QCBORDecodeContext *pMe,
     adds some complexity.
     */
    const uint8_t uMapNestLevel = DecodeNesting_GetBoundedModeLevel(&(pMe->nesting));
-
-   uint_fast8_t uNextNestLevel;
-   
-
-   /* Iterate over items in the map / array */
+   uint_fast8_t  uNextNestLevel;
    do {
       /* Remember offset of the item because sometimes it has to be returned */
       const size_t uOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
@@ -2444,24 +2438,22 @@ MapSearch(QCBORDecodeContext *pMe,
       }
        
       /* See if item has one of the labels that are of interest */
-      int         nIndex;
-      QCBORItem  *pIterator;
-      bool        bMatched = false;
-      for(pIterator = pItemArray, nIndex = 0; pIterator->uLabelType != 0; pIterator++, nIndex++) {
-         if(MatchLabel(Item, *pIterator)) {
+      bool bMatched = false;
+      for(int nIndex = 0; pItemArray[nIndex].uLabelType != QCBOR_TYPE_NONE; nIndex++) {
+         if(MatchLabel(Item, pItemArray[nIndex])) {
             /* A label match has been found */
             if(uFoundItemBitMap & (0x01ULL << nIndex)) {
                uReturn = QCBOR_ERR_DUPLICATE_LABEL;
                goto Done;
             }
             /* Also try to match its type */
-            if(!MatchType(Item, *pIterator)) {
+            if(!MatchType(Item, pItemArray[nIndex])) {
                uReturn = QCBOR_ERR_UNEXPECTED_TYPE;
                goto Done;
             }
-            
+
             /* Successful match. Return the item. */
-            *pIterator = Item;
+            pItemArray[nIndex] = Item;
             uFoundItemBitMap |= 0x01ULL << nIndex;
             if(puOffset) {
                *puOffset = uOffset;
@@ -2469,6 +2461,8 @@ MapSearch(QCBORDecodeContext *pMe,
             bMatched = true;
          }
       }
+
+
       if(!bMatched && pfCallback != NULL) {
          /*
           Call the callback on unmatched labels.
@@ -2501,8 +2495,11 @@ MapSearch(QCBORDecodeContext *pMe,
    const size_t uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
    /* Cast OK because encoded CBOR is limited to UINT32_MAX */
    pMe->uMapEndOffsetCache = (uint32_t)uEndOffset;
-   
+
  Done:
+   DecodeNesting_RestoreFromMapSearch(&(pMe->nesting), &SaveNesting);
+
+ Done2:
     /* For all items not found, set the data type to QCBOR_TYPE_NONE */
     for(int i = 0; pItemArray[i].uLabelType != 0; i++) {
       if(!(uFoundItemBitMap & (0x01ULL << i))) {
@@ -2510,8 +2507,6 @@ MapSearch(QCBORDecodeContext *pMe,
       }
    }
 
-   DecodeNesting_RestoreFromMapSearch(&(pMe->nesting), &SaveNesting);
-    
    return uReturn;
 }
 
@@ -2917,7 +2912,7 @@ void QCBORDecode_ExitBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
 
    QCBORError uErr;
 
-   if(!DecodeNesting_CheckBoundedType(&(pMe->nesting), uType)) {
+   if(!DecodeNesting_IsBoundedType(&(pMe->nesting), uType)) {
       uErr = QCBOR_ERR_CLOSE_MISMATCH;
       goto Done;
    }
@@ -3084,7 +3079,7 @@ void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pMe)
       return;
    }
 
-   if(!DecodeNesting_CheckBoundedType(&(pMe->nesting), QCBOR_TYPE_BYTE_STRING)) {
+   if(!DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_BYTE_STRING)) {
       pMe->uLastError = QCBOR_ERR_CLOSE_MISMATCH;
       return;
    }

@@ -4047,12 +4047,64 @@ static const uint8_t spEmptyInDefinteLengthMap[] = {0xbf, 0xff};
 
 static const uint8_t spArrayOfEmpty[] = {0x84, 0x40, 0xa0, 0x80, 0x00};
 
+// {0: [], 9: [[], []], 8: {1: [], 2: {}, 3: []}, 4: {}, 5: [], 6: [[], []]}
+static const uint8_t spMapOfEmpty[] = {0xa6, 0x00, 0x80, 0x09, 0x82, 0x80, 0x80, 0x08, 0xa3, 0x01, 0x80, 0x02, 0xa0, 0x03, 0x80, 0x04, 0xa0, 0x05, 0x9f, 0xff, 0x06, 0x9f, 0x80, 0x9f, 0xff, 0xff};
+
+
+
+
 int32_t EnterMapTest()
 {
    QCBORItem Item1;
    QCBORDecodeContext DCtx;
 
    int32_t nReturn;
+
+   QCBORError uErr;
+
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapOfEmpty), 0);
+   QCBORDecode_EnterMap(&DCtx);
+
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_ExitArray(&DCtx);
+
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_ExitArray(&DCtx);
+
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_ExitMap(&DCtx);
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_ExitMap(&DCtx);
+
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_ExitMap(&DCtx);
+
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_ExitArray(&DCtx);
+
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_ExitArray(&DCtx);
+
+   QCBORDecode_ExitMap(&DCtx);
+
+   uErr = QCBORDecode_Finish(&DCtx);
+   if(uErr != QCBOR_SUCCESS){
+      return 3011;
+   }
+
 
    (void)pValidMapIndefEncoded;
    nReturn = EMap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapIndefEncoded));
@@ -4129,14 +4181,14 @@ int32_t EnterMapTest()
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleArray), 0);
    QCBORDecode_EnterArray(&DCtx);
    int64_t nDecodedInt2;
-   QCBORDecode_GetInt64InMapSZ(&DCtx,  "another int",  &nDecodedInt2);
-   QCBORError uErr = QCBORDecode_GetAndResetError(&DCtx);
-   if(uErr != QCBOR_ERR_NOT_A_MAP){
+   QCBORDecode_GetInt64InMapSZ(&DCtx, "another int",  &nDecodedInt2);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_MAP_NOT_ENTERED){
       return 2008;
    }
    UsefulBufC String;
    QCBORDecode_GetTextInMapN(&DCtx, 88, &String);
-   if(uErr != QCBOR_ERR_NOT_A_MAP){
+   if(uErr != QCBOR_ERR_MAP_NOT_ENTERED){
       return 2009;
    }
 

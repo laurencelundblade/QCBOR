@@ -365,7 +365,7 @@ typedef enum {
    QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW = 30,
     
    /** Trying to get an item by label when a map has not been entered. */
-   QCBOR_ERR_NOT_ENTERED = 31,
+   QCBOR_ERR_MAP_NOT_ENTERED = 31,
 
    /** A callback indicates processing should not continue for some
        non-CBOR reason */
