@@ -15,6 +15,7 @@
 #include "example.h"
 #include "qcbor/qcbor_encode.h"
 #include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 
 #define MAX_CYLINDERS 16
 
@@ -248,7 +249,7 @@ EngineDecodeErrors ConvertError(QCBORError uErr)
 
  See also DecodeEngineAdvancedFaster() and DecodeEngineBasic().
  */
-EngineDecodeErrors DecodeEngineAdvanced(UsefulBufC EncodedEngine, CarEngine *pE)
+EngineDecodeErrors DecodeEngineSpiffy(UsefulBufC EncodedEngine, CarEngine *pE)
 {
     QCBORError uErr;
     QCBORDecodeContext DecodeCtx;
@@ -305,7 +306,7 @@ Done:
 
  See also DecodeEngineAdvanced() and DecodeEngineBasic().
 */
-EngineDecodeErrors DecodeEngineAdvancedFaster(UsefulBufC EncodedEngine, CarEngine *pE)
+EngineDecodeErrors DecodeEngineSpiffyFaster(UsefulBufC EncodedEngine, CarEngine *pE)
 {
     QCBORError uErr;
     QCBORDecodeContext DecodeCtx;
@@ -618,7 +619,7 @@ int32_t RunQCborExample()
 
     printf("Engine Encoded in %zu bytes\n", EncodedEngine.len);
 
-    int x = (int)DecodeEngineAdvanced(EncodedEngine, &DecodedEngine);
+    int x = (int)DecodeEngineSpiffy(EncodedEngine, &DecodedEngine);
     printf("Engine Decode Result: %d\n", x);
 
 
@@ -626,7 +627,7 @@ int32_t RunQCborExample()
 
     printf("Indef Engine Encoded in %zu bytes\n", InDefEncodedEngine.len);
 
-    x = (int)DecodeEngineAdvanced(InDefEncodedEngine, &DecodedEngine);
+    x = (int)DecodeEngineSpiffy(InDefEncodedEngine, &DecodedEngine);
     printf("Indef Engine Decode Result: %d\n", x);
 
     if(!EngineCompare(&E, &DecodedEngine)) {
@@ -649,7 +650,7 @@ int32_t RunQCborExample()
         printf("indef decode comparison fail\n");
     }
 
-    x = (int)DecodeEngineAdvancedFaster(EncodedEngine, &DecodedEngine);
+    x = (int)DecodeEngineSpiffyFaster(EncodedEngine, &DecodedEngine);
     printf("Efficient Engine Basic Decode Result: %d\n", x);
 
     if(!EngineCompare(&E, &DecodedEngine)) {

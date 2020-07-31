@@ -33,6 +33,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcbor_decode_tests.h"
 #include "qcbor/qcbor_encode.h"
 #include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 #include <string.h>
 #include <math.h> // for fabs()
 #include "not_well_formed_cbor.h"
@@ -5107,15 +5108,15 @@ int32_t EnterBstrTest()
    int64_t i1, i2, i3, i4, i5, i6, i7, i8;
 
 
-   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, NULL);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NO_TAG, NULL);
      QCBORDecode_EnterMap(&DC);
        QCBORDecode_GetInt64InMapN(&DC, 100, &i1);
        QCBORDecode_GetInt64InMapN(&DC, 200, &i2);
      QCBORDecode_ExitMap(&DC);
-     QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, NULL);
+     QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NO_TAG, NULL);
        QCBORDecode_EnterArray(&DC);
          QCBORDecode_GetInt64(&DC, &i3);
-         QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE, NULL);
+         QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NO_TAG, NULL);
            QCBORDecode_GetInt64(&DC, &i4);
          QCBORDecode_ExitBstrWrapped(&DC);
          QCBORDecode_GetInt64(&DC, &i5);

@@ -341,7 +341,7 @@ typedef enum {
    QCBOR_ERR_STRING_TOO_LONG = 24,
     
    /** When decodeing for a specific type, the type was not was
-       expected.  See also @ref QCBOR_ERR_CONVERSION_NOT_REQUESTED
+       expected.  See also @ref QCBOR_ERR_UNEXPECTED_TYPE
        which in many cases is effectively the same error */
    QCBOR_ERR_UNEXPECTED_TYPE = 25,
     
@@ -354,11 +354,6 @@ typedef enum {
    /** Number conversion failed because of sign. For example a
        negative int64_t can't be converted to a uint64_t */
    QCBOR_ERR_NUMBER_SIGN_CONVERSION = 28,
-
-   /** A conversion is possible, but the option for it was not
-       set. For example conversion from a float to an int64_t without
-       the XXX option. TODO: */
-   QCBOR_ERR_CONVERSION_NOT_REQUESTED = 29,
 
    /** When converting a decoded number, the value is too large or to
        small for the conversion target */
