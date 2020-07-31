@@ -2609,7 +2609,7 @@ static QCBORError CheckTypeList(uint8_t uDataType, const uint8_t puTypeList[QCBO
  */
 static QCBORError CheckTagRequirement(const TagSpecification TagSpec, uint8_t uDataType)
 {
-   if(TagSpec.uTagRequirement == QCBOR_TAGSPEC_MATCH_TAG) {
+   if(TagSpec.uTagRequirement == QCBOR_TAG_REQUIREMENT_MATCH_TAG) {
       // Must match the tag and only the tag
       return CheckTypeList(uDataType, TagSpec.uTaggedTypes);
    }
@@ -2619,7 +2619,7 @@ static QCBORError CheckTagRequirement(const TagSpecification TagSpec, uint8_t uD
       return QCBOR_SUCCESS;
    }
 
-   if(TagSpec.uTagRequirement == QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE) {
+   if(TagSpec.uTagRequirement == QCBOR_TAG_REQUIREMENT_NO_TAG) {
       /* Must match the content type and only the content type.
        There was no match just above so it is a fail. */
       return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -3273,10 +3273,8 @@ void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, 
 
 
 // Semi private
-QCBORError FarfMIME(uint8_t uTagRequirement, const QCBORItem *pItem, UsefulBufC *pMessage, bool *pbIsNot7Bit)
+QCBORError QCBORDecode_GetMIMEInternal(uint8_t uTagRequirement, const QCBORItem *pItem, UsefulBufC *pMessage, bool *pbIsNot7Bit)
 {
-
-
    const TagSpecification TagSpecText = {uTagRequirement,
                                      {QCBOR_TYPE_MIME, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
                                      {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
@@ -3285,7 +3283,6 @@ QCBORError FarfMIME(uint8_t uTagRequirement, const QCBORItem *pItem, UsefulBufC 
                                      {QCBOR_TYPE_BINARY_MIME, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
                                      {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
                                     };
-
 
    QCBORError uReturn;
    
@@ -4434,7 +4431,7 @@ static void ProcessDecimalFraction(QCBORDecodeContext *pMe,
    
    if(pItem->uDataType == QCBOR_TYPE_ARRAY) {
 
-      if(uTagRequirement == QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE) {
+      if(uTagRequirement == QCBOR_TAG_REQUIREMENT_NO_TAG) {
          pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
          return;
       }
@@ -4450,7 +4447,7 @@ static void ProcessDecimalFraction(QCBORDecodeContext *pMe,
        }
     }
    
-   if(uTagRequirement == QCBOR_TAGSPEC_MATCH_TAG_CONTENT_TYPE) {
+   if(uTagRequirement == QCBOR_TAG_REQUIREMENT_NO_TAG) {
       pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
       return;
    }
