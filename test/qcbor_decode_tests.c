@@ -4048,51 +4048,69 @@ static const uint8_t spEmptyInDefinteLengthMap[] = {0xbf, 0xff};
 
 static const uint8_t spArrayOfEmpty[] = {0x84, 0x40, 0xa0, 0x80, 0x00};
 
-// {0: [], 9: [[], []], 8: {1: [], 2: {}, 3: []}, 4: {}, 5: [], 6: [[], []]}
-static const uint8_t spMapOfEmpty[] = {0xa6, 0x00, 0x80, 0x09, 0x82, 0x80, 0x80, 0x08, 0xa3, 0x01, 0x80, 0x02, 0xa0, 0x03, 0x80, 0x04, 0xa0, 0x05, 0x9f, 0xff, 0x06, 0x9f, 0x80, 0x9f, 0xff, 0xff};
-
-
-
+/*
+   {
+      0: [],
+      9: [
+         [],
+         []
+      ],
+      8: {
+         1: [],
+         2: {},
+         3: []
+      },
+      4: {},
+      5: [],
+      6: [
+         [],
+         []
+      ]
+   }
+ */
+static const uint8_t spMapOfEmpty[] = {
+   0xa6, 0x00, 0x80, 0x09, 0x82, 0x80, 0x80, 0x08, 0xa3, 0x01,
+   0x80, 0x02, 0xa0, 0x03, 0x80, 0x04, 0xa0, 0x05, 0x9f, 0xff,
+   0x06, 0x9f, 0x80, 0x9f, 0xff, 0xff};
 
 int32_t EnterMapTest()
 {
-   QCBORItem Item1;
+   QCBORItem          Item1;
    QCBORDecodeContext DCtx;
-
-   int32_t nReturn;
-
-   QCBORError uErr;
+   int32_t            nReturn;
+   QCBORError         uErr;
 
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapOfEmpty), 0);
    QCBORDecode_EnterMap(&DCtx);
 
-   QCBORDecode_EnterArray(&DCtx);
+
+   QCBORDecode_EnterArray(&DCtx); // Label 0
    QCBORDecode_ExitArray(&DCtx);
 
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx); // Label 9
    QCBORDecode_EnterArray(&DCtx);
    QCBORDecode_ExitArray(&DCtx);
    QCBORDecode_EnterArray(&DCtx);
    QCBORDecode_ExitArray(&DCtx);
    QCBORDecode_ExitArray(&DCtx);
 
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx);  // Label 8
    QCBORDecode_EnterArray(&DCtx);
    QCBORDecode_ExitArray(&DCtx);
-   QCBORDecode_EnterMap(&DCtx);
-   QCBORDecode_ExitMap(&DCtx);
-   QCBORDecode_EnterArray(&DCtx);
-   QCBORDecode_ExitArray(&DCtx);
-   QCBORDecode_ExitMap(&DCtx);
-
    QCBORDecode_EnterMap(&DCtx);
    QCBORDecode_ExitMap(&DCtx);
-
    QCBORDecode_EnterArray(&DCtx);
    QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_ExitMap(&DCtx);
 
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterMap(&DCtx);  // Label4
+   QCBORDecode_ExitMap(&DCtx);
+
+   QCBORDecode_EnterArray(&DCtx); // Label 5
+   QCBORDecode_ExitArray(&DCtx);
+
+   QCBORDecode_EnterArray(&DCtx); // Label 6
    QCBORDecode_EnterArray(&DCtx);
    QCBORDecode_ExitArray(&DCtx);
    QCBORDecode_EnterArray(&DCtx);

@@ -2827,7 +2827,7 @@ void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
       goto Done;
    }
 
-   const bool bIsEmpty = (Item.uNestingLevel == Item.uNextNestLevel);
+   const bool bIsEmpty = (Item.uNextNestLevel <= Item.uNestingLevel);
    if(bIsEmpty) {
       if(DecodeNesting_IsCurrentDefiniteLength(&(pMe->nesting))) {
          // Undo decrement done by QCBORDecode_GetNext() so the the
@@ -2938,14 +2938,6 @@ void QCBORDecode_ExitBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
 
 Done:
    pMe->uLastError = (uint8_t)uErr;
-}
-
-
-void QCBORDecode_RewindMap(QCBORDecodeContext *pMe)
-{
-   // TODO: check for map mode; test this
-   //pMe->nesting.pCurrent->uCount = pMe->nesting.pCurrent->u.ma.uCountTotal;
-   UsefulInputBuf_Seek(&(pMe->InBuf), pMe->nesting.pCurrent->u.ma.uStartOffset);
 }
 
 
@@ -4548,12 +4540,12 @@ UsefulBufC ConvertIntToBigNum(uint64_t uInt, UsefulBuf Buffer)
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 
 static void ProcessDecimalFractionBig(QCBORDecodeContext *pMe,
-                                      uint8_t uTagRequirement,
-                                      QCBORItem *pItem,
-                                      UsefulBuf BufferForMantissa,
-                                      UsefulBufC *pMantissa,
-                                      bool *pbIsNegative,
-                                      int64_t *pnExponent)
+                                      uint8_t             uTagRequirement,
+                                      QCBORItem          *pItem,
+                                      UsefulBuf           BufferForMantissa,
+                                      UsefulBufC         *pMantissa,
+                                      bool               *pbIsNegative,
+                                      int64_t            *pnExponent)
 {
 
    const TagSpecification TagSpec = {uTagRequirement,
@@ -4671,47 +4663,4 @@ void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
 
 #endif /* ndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
-/*
 
- TODO: do something with this text
- The main mode of decoding is a pre-order travesal of the tree of leaves (numbers, strings...)
-  formed by intermediate nodes (arrays and maps).  The cursor for the traversal
-  is the byte offset in the encoded input and a leaf counter for definite
-  length maps and arrays. Indefinite length maps and arrays are handled
-  by look ahead for the break.
-
-  The view presented to the caller has tags, labels and the chunks of
-  indefinite length strings aggregated into one decorated data item.
-
- The caller understands the nesting level in pre-order traversal by
-  the fact that a data item that is a map or array is presented to
-  the caller when it is first encountered in the pre-order traversal and that all data items are presented with its nesting level
-  and the nesting level of the next item.
-
-  The caller traverse maps and arrays in a special mode that often more convenient
-  that tracking by nesting level. When an array or map is expected or encountered
-  the EnterMap or EnteryArray can be called.
-
-  When entering a map or array like this, the cursor points to the first
-  item in the map or array. When exiting, it points to the item after
-  the map or array, regardless of whether the items in the map or array were
-  all traversed.
-
-  When in a map or array, the cursor functions as normal, but traversal
-  cannot go past the end of the map or array that was entered. If this
-  is attempted the QCBOR_ERR_NO_MORE_ITEMS error is returned. To
-  go past the end of the map or array ExitMap() or ExitArray() must
-  be called. It can be called any time regardless of the position
-  of the cursor.
-
-  When a map is entered, a special function allows fetching data items
-  by label. This call will traversal the whole map looking for the
-  labeled item. The whole map is traversed so as to detect duplicates.
-  This type of fetching items does not affect the normal traversal
-  cursor.
-
-
- When a data item is presented to the caller, the nesting level of the data
-  item is presented along with the nesting level of the item that would be
-  next consumed.
- */

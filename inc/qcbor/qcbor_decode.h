@@ -157,7 +157,7 @@ typedef enum {
 /* Do not renumber these. Code depends on some of these values. */
 /** The data type is unknown, unset or invalid. */
 #define QCBOR_TYPE_NONE           0
-// TODO: comment
+/** Never used in QCBORItem. Used by functions that match QCBOR types. */
 #define QCBOR_TYPE_ANY            1
 
 /** Type for an integer that decoded either between @c INT64_MIN and
@@ -167,10 +167,9 @@ typedef enum {
 /** Type for an integer that decoded to a more than @c INT64_MAX and
      @c UINT64_MAX.  Data is in member @c val.uint64. */
 #define QCBOR_TYPE_UINT64         3
-/** Type for an array. The number of items in the array is in @c
-    val.uCount. */
+/** Type for an array. See comments on @c val.uCount. */
 #define QCBOR_TYPE_ARRAY          4
-/** Type for a map; number of items in map is in @c val.uCount. */
+/** Type for a map. See comments on @c val.uCount. */
 #define QCBOR_TYPE_MAP            5
 /** Type for a buffer full of bytes. Data is in @c val.string. */
 #define QCBOR_TYPE_BYTE_STRING    6
@@ -309,6 +308,9 @@ typedef struct _QCBORItem {
       /** The "value" for @c uDataType @ref QCBOR_TYPE_ARRAY or @ref
           QCBOR_TYPE_MAP -- the number of items in the array or map.
           It is @c UINT16_MAX when decoding indefinite-lengths maps
+          and arrays. Detection of the end of a map or array is
+          best done with uNextLevel and uNextNestLevel so as to
+          work for both definite and indefinite length maps
           and arrays. */
       uint16_t    uCount;
       /** The value for @c uDataType @ref QCBOR_TYPE_DOUBLE. */

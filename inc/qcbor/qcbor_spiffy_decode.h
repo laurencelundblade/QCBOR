@@ -758,6 +758,43 @@ void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pCtx,
 
 
 
+/**
+ @brief Decode the next item as a big float.
+
+ @param[in] pCtx             The decode context.
+ @param[in] uTagRequirement  One of @c QCBOR_TAGSPEC_MATCH_XXX.
+ @param[out] pnMantissa      The mantissa.
+ @param[out] pnExponent      The base 2 exponent.
+
+ See @ref Decode-Errors for discussion on how error handling works.
+
+ You can compute the value of this by:
+
+ mantissa * ( 2 ** exponent )
+
+ In the encoded CBOR, the mantissa may be a type 0 (unsigned),
+ type 1 (signed integer), type 2 tag xx (positive big number) or
+ type 2 tag xx (negative big number). This implementation will attempt
+ to convert all of these to an int64_t. If the value won't fit,
+ @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
+ or QCBOR_ERR_BAD_EXP_AND_MANTISSA will be
+ set.
+
+ The encoded CBOR exponent may be a type 0 (unsigned integer)
+ or type 1 (signed integer). This implementation will attempt
+ to convert all of these to an int64_t. If the value won't fit,
+ @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
+ or QCBOR_ERR_BAD_EXP_AND_MANTISSA will be
+ set.
+
+ Various format and type issues will result in
+ @ref QCBOR_ERR_BAD_EXP_AND_MANTISSA being set.
+
+ See @ref Tag-Matcing for discussion on tag requirements.
+
+ See also QCBORDecode_GetInt64ConvertAll(), QCBORDecode_GetUInt64ConvertAll()
+ and QCBORDecode_GetDoubleConvertAll() which can convert big floats.
+ */
 // TODO: actually implement these
 void QCBORDecode_GetBigFloat(QCBORDecodeContext *pCtx,
                              uint8_t             uTagRequirement,
@@ -777,6 +814,35 @@ void QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pCtx,
                                     int64_t            *pnExponent);
 
 
+/**
+ @brief Decode the next item as a big float with a big number mantissa.
+
+ @param[in] pCtx             The decode context.
+ @param[in] uTagRequirement  One of @c QCBOR_TAGSPEC_MATCH_XXX.
+ @param[in] MantissaBuffer The buffer in which to put the mantissa.
+ @param[out] pMantissa      The big num mantissa.
+ @param[out] pbMantissaIsNegative  Is @c true if @c pMantissa is negative.
+ @param[out] pnExponent      The base 2 exponent.
+
+ See @ref Decode-Errors for discussion on how error handling works.
+
+ You can compute the  value of this by:
+
+ mantissa * ( 2 ** exponent )
+
+ In the encoded CBOR, the mantissa may be a type 0 (unsigned),
+ type 1 (signed integer), type 2 tag xx (positive big number) or
+ type 2 tag xx (negative big number). This implementation will
+ all these to a big number. The limit to this conversion is the
+ size of @c MantissaBuffer.
+
+ The exponent is handled the same as for QCBORDecode_GetDecimalFraction().
+
+ See @ref Tag-Matcing for discussion on tag requirements.
+
+ See also QCBORDecode_GetInt64ConvertAll(), QCBORDecode_GetUInt64ConvertAll()
+ and QCBORDecode_GetDoubleConvertAll() which can convert big floats.
+ */
 // TODO: actually implement these
 void QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pCtx,
                                 uint8_t             uTagRequirement,
@@ -998,10 +1064,7 @@ inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
  map will give error @ref QCBOR_ERR_NO_MORE_ITEMS rather going to the next
  item after the map as it would when not in bounded
  mode.
- 
- TODO: You can rewind the inorder traversal cursor to the
- beginning of the map with RewindMap().
- 
+
  Exiting leaves the pre-order cursor at the
  data item following the last entry in the map or at the end of the input CBOR if there nothing after the map.
  
@@ -1170,15 +1233,6 @@ void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx,
 void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
 
 
-/*
- TODO: fix this; make it rewind bounded
- Restarts fetching of items in a map to the start of the
- map. This is for GetNext. It has no effect on
- GetByLabel (which always searches from the start).
- */
-void QCBORDecode_RewindMap(QCBORDecodeContext *pCtxt);
-
-
 /**
  @brief Indicate if decoder is in bound mode.
  @param[in] pCtx   The decode context.
@@ -1312,50 +1366,6 @@ QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
 
 
 
-
-
-
-
-/*
- Normally decoding is just in-order traversal. You can get next
- of any type, get next of a particular type including conversions.
- 
- If the cursor is at a map and you enter it, then you can use
- methods that Get things by label, either numeric or string.
- 
- These methods work only at the particular level in the map.
- To go into a map nested in a map call the special method
- to enter a map by label.
- 
- When in a map, the GetNext methods work too, but only
- to the end of the map. You can't traverse off the end of the
- map.
- 
- You can rewind to the start of the map and traverse it again
- with the MapRestart method.
- 
- The exit map method will leave the traversal cursor at the first itme after
- the map.
- 
- 
-  The beginning of each map must be recorded so the scan can be done
- through the whole map.
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- */
-
-
-
-
 /* ===========================================================================
    BEGINNING OF PRIVATE INLINE IMPLEMENTATION
    ========================================================================== */
@@ -1364,12 +1374,12 @@ QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
 // Semi-private
 void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType);
 
-
+// Semi-private
 inline static void QCBORDecode_EnterMap(QCBORDecodeContext *pMe) {
    QCBORDecode_EnterBoundedMapOrArray(pMe, QCBOR_TYPE_MAP);
 }
 
-
+// Semi-private
 inline static void QCBORDecode_EnterArray(QCBORDecodeContext *pMe) {
    QCBORDecode_EnterBoundedMapOrArray(pMe, QCBOR_TYPE_ARRAY);
 }
