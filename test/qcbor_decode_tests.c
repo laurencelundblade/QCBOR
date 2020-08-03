@@ -3637,7 +3637,6 @@ int32_t SetUpAllocatorTest(void)
 }
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 /*  exponent, mantissa
   [
     4([-1, 3]),
@@ -3670,6 +3669,8 @@ static const uint8_t spExpectedExponentsAndMantissas[] = {
    0xC5, 0x82, 0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
                0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE
 };
+
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 
 int32_t ExponentAndMantissaDecodeTests(void)
 {

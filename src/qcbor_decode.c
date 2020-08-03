@@ -1687,7 +1687,7 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 
    // --- Check that array only has the two numbers ---
    if(mantissaItem.uNextNestLevel == nNestLevel) {
-      // Extra items in the decimal fraction / big num
+      // Extra items in the decimal fraction / big float
       nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
@@ -3297,10 +3297,7 @@ QCBORError QCBORDecode_GetMIMEInternal(uint8_t uTagRequirement, const QCBORItem 
 
 
 
-
-
-
-
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 
 typedef QCBORError (*fExponentiator)(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult);
 
@@ -3425,6 +3422,9 @@ static inline QCBORError ExponentitateNU(int64_t nMantissa, int64_t nExponent, u
    // Exponentiation is straight forward
    return (*pfExp)((uint64_t)nMantissa, nExponent, puResult);
 }
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
+
 
 
 #include <math.h>
@@ -3487,6 +3487,27 @@ static inline QCBORError ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, 
    uResult++; // this is the -1 in -n-1
    *pResult = -(int64_t)uResult;
    return QCBOR_SUCCESS;
+}
+
+
+static inline UsefulBufC ConvertIntToBigNum(uint64_t uInt, UsefulBuf Buffer)
+{
+   while((uInt & 0xff00000000000000UL) == 0) {
+      uInt = uInt << 8;
+   };
+
+   UsefulOutBuf UOB;
+
+   UsefulOutBuf_Init(&UOB, Buffer);
+
+   while(uInt) {
+      const uint64_t xx = uInt & 0xff00000000000000UL;
+      UsefulOutBuf_AppendByte(&UOB, (uint8_t)((uInt & 0xff00000000000000UL) >> 56));
+      uInt = uInt << 8;
+      (void)xx;
+   }
+
+   return UsefulOutBuf_OutUBuf(&UOB);
 }
 
 #include "fenv.h"
@@ -3729,11 +3750,11 @@ static QCBORError Int64ConvertAll(const QCBORItem *pItem, uint32_t uConvertTypes
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+
 
       default:
-         return QCBOR_ERR_UNEXPECTED_TYPE;
-#endif
-   }
+         return QCBOR_ERR_UNEXPECTED_TYPE;   }
 }
 
 
@@ -4408,12 +4429,15 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe, const char 
 }
 
 
+
+
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
-static QCBORError FooCheck(QCBORDecodeContext *pMe, TagSpecification TagSpec, QCBORItem *pItem)
+static QCBORError MantissaAndExponentTypeHandler(QCBORDecodeContext *pMe,
+                                                 TagSpecification    TagSpec,
+                                                 QCBORItem          *pItem)
 {
    QCBORError uErr;
    // Loops runs at most 1.5 times. Making it a loop saves object code.
-
    while(1) {
       uErr = CheckTagRequirement(TagSpec, pItem->uDataType);
       if(uErr != QCBOR_SUCCESS) {
@@ -4439,15 +4463,16 @@ Done:
    return uErr;
 }
 
+
 static void ProcessMantissaAndExponent(QCBORDecodeContext *pMe,
-                                   TagSpecification             TagSpec,
-                                   QCBORItem          *pItem,
-                                   int64_t            *pnMantissa,
-                                   int64_t            *pnExponent)
+                                       TagSpecification    TagSpec,
+                                       QCBORItem          *pItem,
+                                       int64_t            *pnMantissa,
+                                       int64_t            *pnExponent)
 {
    QCBORError uErr;
 
-   uErr = FooCheck(pMe, TagSpec, pItem);
+   uErr = MantissaAndExponentTypeHandler(pMe, TagSpec, pItem);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -4481,130 +4506,17 @@ static void ProcessMantissaAndExponent(QCBORDecodeContext *pMe,
 }
 
 
-void QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pMe,
-                                    uint8_t             uTagRequirement,
-                                    int64_t             *pnMantissa,
-                                    int64_t             *pnExponent)
-{
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   QCBORItem Item;
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError) {
-      pMe->uLastError = (uint8_t)uError;
-      return;
-   }
-
-   const TagSpecification TagSpec = {uTagRequirement,
-        {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-        {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-     };
-
-   ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
-}
-
-
-void QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pMe,
-                                     uint8_t             uTagRequirement,
-                                     int64_t             nLabel,
-                                     int64_t             *pnMantissa,
-                                     int64_t             *pnExponent)
-{
-   QCBORItem Item;
-   
-   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
-
-   const TagSpecification TagSpec = {uTagRequirement,
-        {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-        {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-     };
-
-   ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
-}
-
-
-void QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
-                                      uint8_t             uTagRequirement,
-                                      const char         *szLabel,
-                                      int64_t             *pnMantissa,
-                                      int64_t             *pnExponent)
-{
-   QCBORItem Item;
-   
-   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
-
-   const TagSpecification TagSpec = {uTagRequirement,
-        {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-        {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-     };
-
-   
-   ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
-}
-
-
-void QCBORDecode_GetBigFloat(QCBORDecodeContext *pMe,
-                             uint8_t             uTagRequirement,
-                             int64_t             *pnMantissa,
-                             int64_t             *pnExponent)
-{
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   QCBORItem Item;
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError) {
-      pMe->uLastError = (uint8_t)uError;
-      return;
-   }
-   const TagSpecification TagSpec = {uTagRequirement,
-        {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
-        {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-     };
-
-   ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
-}
-
-#endif /* ndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
-
-
-UsefulBufC ConvertIntToBigNum(uint64_t uInt, UsefulBuf Buffer)
-{
-   while((uInt & 0xff00000000000000UL) == 0) {
-      uInt = uInt << 8;
-   };
-   
-   UsefulOutBuf UOB;
-   
-   UsefulOutBuf_Init(&UOB, Buffer);
-   
-   while(uInt) {
-      const uint64_t xx = uInt & 0xff00000000000000UL;
-      UsefulOutBuf_AppendByte(&UOB, (uint8_t)((uInt & 0xff00000000000000UL) >> 56));
-      uInt = uInt << 8;
-      (void)xx;
-   }
-   
-   return UsefulOutBuf_OutUBuf(&UOB);
-}
-
-
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
-
 static void ProcessMantissaAndExponentBig(QCBORDecodeContext *pMe,
-                                     TagSpecification    TagSpec,
-                                     QCBORItem          *pItem,
-                                     UsefulBuf           BufferForMantissa,
-                                     UsefulBufC         *pMantissa,
-                                     bool               *pbIsNegative,
-                                     int64_t            *pnExponent)
+                                          TagSpecification    TagSpec,
+                                          QCBORItem          *pItem,
+                                          UsefulBuf           BufferForMantissa,
+                                          UsefulBufC         *pMantissa,
+                                          bool               *pbIsNegative,
+                                          int64_t            *pnExponent)
 {
    QCBORError uErr;
 
-   uErr = FooCheck(pMe, TagSpec, pItem);
+   uErr = MantissaAndExponentTypeHandler(pMe, TagSpec, pItem);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -4649,14 +4561,14 @@ Done:
 }
 
 
-void QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pMe,
-                                       uint8_t             uTagRequirement,
-                                       UsefulBuf          MantissaBuffer,
-                                       UsefulBufC         *pMantissa,
-                                       bool               *pbMantissaIsNegative,
-                                       int64_t            *pnExponent)
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pMe,
+                                    uint8_t             uTagRequirement,
+                                    int64_t             *pnMantissa,
+                                    int64_t             *pnExponent)
 {
-
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
@@ -4668,15 +4580,106 @@ void QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pMe,
       return;
    }
 
-   const TagSpecification TagSpec = {uTagRequirement,
-        {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-        {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-     };
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
 
-   ProcessMantissaAndExponentBig(pMe, TagSpec, &Item, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
-
+   ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
 }
 
+
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pMe,
+                                          uint8_t             uTagRequirement,
+                                          int64_t             nLabel,
+                                          int64_t             *pnMantissa,
+                                          int64_t             *pnExponent)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
+
+   ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
+}
+
+
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
+                                           uint8_t             uTagRequirement,
+                                           const char         *szLabel,
+                                           int64_t             *pnMantissa,
+                                           int64_t             *pnExponent)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
+   
+   ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
+}
+
+
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pMe,
+                                       uint8_t             uTagRequirement,
+                                       UsefulBuf          MantissaBuffer,
+                                       UsefulBufC         *pMantissa,
+                                       bool               *pbMantissaIsNegative,
+                                       int64_t            *pnExponent)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError) {
+      pMe->uLastError = (uint8_t)uError;
+      return;
+   }
+
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
+
+   ProcessMantissaAndExponentBig(pMe, TagSpec, &Item, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
+}
+
+
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pMe,
                                              uint8_t             uTagRequirement,
                                              int64_t             nLabel,
@@ -4685,22 +4688,30 @@ void QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pMe,
                                              bool               *pbIsNegative,
                                              int64_t            *pnExponent)
 {
-   QCBORItem Item;
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
+   QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   const TagSpecification TagSpec = {uTagRequirement,
-        {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-        {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-     };
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
 
    ProcessMantissaAndExponentBig(pMe, TagSpec, &Item, BufferForMantissa, pMantissa, pbIsNegative, pnExponent);
 }
 
 
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
                                               uint8_t             uTagRequirement,
                                               const char         *szLabel,
@@ -4709,22 +4720,119 @@ void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
                                               bool               *pbIsNegative,
                                               int64_t            *pnExponent)
 {
-   QCBORItem Item;
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
+   QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   const TagSpecification TagSpec = {uTagRequirement,
-        {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-        {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-     };
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
 
    ProcessMantissaAndExponentBig(pMe, TagSpec, &Item, BufferForMantissa, pMantissa, pbIsNegative, pnExponent);
 }
 
 
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetBigFloat(QCBORDecodeContext *pMe,
+                             uint8_t             uTagRequirement,
+                             int64_t             *pnMantissa,
+                             int64_t             *pnExponent)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError) {
+      pMe->uLastError = (uint8_t)uError;
+      return;
+   }
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
+
+   ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
+}
+
+
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetBigFloatInMapN(QCBORDecodeContext *pMe,
+                                   uint8_t             uTagRequirement,
+                                   int64_t             nLabel,
+                                   int64_t            *pnMantissa,
+                                   int64_t            *pnExponent)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
+
+   ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
+}
+
+
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pMe,
+                                    uint8_t             uTagRequirement,
+                                    const char         *szLabel,
+                                    int64_t            *pnMantissa,
+                                    int64_t            *pnExponent)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
+
+   ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
+}
+
+
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pMe,
                                 uint8_t             uTagRequirement,
                                 UsefulBuf          MantissaBuffer,
@@ -4732,7 +4840,6 @@ void QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pMe,
                                 bool               *pbMantissaIsNegative,
                                 int64_t            *pnExponent)
 {
-
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
@@ -4744,62 +4851,78 @@ void QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pMe,
       return;
    }
 
-   const TagSpecification TagSpec = {uTagRequirement,
-        {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM  , QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
-        {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-     };
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
 
    ProcessMantissaAndExponentBig(pMe, TagSpec, &Item, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
-
 }
 
-void QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pMe,
-                                             uint8_t             uTagRequirement,
-                                             int64_t             nLabel,
-                                             UsefulBuf           BufferForMantissa,
-                                             UsefulBufC         *pMantissa,
-                                             bool               *pbIsNegative,
-                                             int64_t            *pnExponent)
-{
-   QCBORItem Item;
 
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
+void QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pMe,
+                                      uint8_t             uTagRequirement,
+                                      int64_t             nLabel,
+                                      UsefulBuf           BufferForMantissa,
+                                      UsefulBufC         *pMantissa,
+                                      bool               *pbIsNegative,
+                                      int64_t            *pnExponent)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   const TagSpecification TagSpec = {uTagRequirement,
-        {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM  , QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
-        {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-     };
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
 
    ProcessMantissaAndExponentBig(pMe, TagSpec, &Item, BufferForMantissa, pMantissa, pbIsNegative, pnExponent);
 }
 
 
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+*/
 void QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
-                                             uint8_t             uTagRequirement,
-                                             const char         *szLabel,
-                                             UsefulBuf           BufferForMantissa,
-                                             UsefulBufC         *pMantissa,
-                                             bool               *pbIsNegative,
-                                             int64_t            *pnExponent)
+                                       uint8_t             uTagRequirement,
+                                       const char         *szLabel,
+                                       UsefulBuf           BufferForMantissa,
+                                       UsefulBufC         *pMantissa,
+                                       bool               *pbIsNegative,
+                                       int64_t            *pnExponent)
 {
-   QCBORItem Item;
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
+   QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   const TagSpecification TagSpec = {uTagRequirement,
-        {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM  , QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
-        {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-     };
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
 
    ProcessMantissaAndExponentBig(pMe, TagSpec, &Item, BufferForMantissa, pMantissa, pbIsNegative, pnExponent);
 }
 
-#endif /* ndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
-
-
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
