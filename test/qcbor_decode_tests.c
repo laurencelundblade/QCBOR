@@ -3652,7 +3652,7 @@ int32_t SetUpAllocatorTest(void)
  */
 
 static const uint8_t spExpectedExponentsAndMantissas[] = {
-   0x87,
+   0x88,
    0xC4, 0x82, 0x20,
                0x03,
    0xC4, 0x82, 0x33,
@@ -3674,7 +3674,7 @@ static const uint8_t spExpectedExponentsAndMantissas[] = {
 int32_t ExponentAndMantissaDecodeTests(void)
 {
    QCBORDecodeContext DC;
-   QCBORError         nCBORError;
+   QCBORError         uErr;
    QCBORItem          item;
 
    static const uint8_t spBigNumMantissa[] = {0x01, 0x02, 0x03, 0x04, 0x05,
@@ -3682,10 +3682,12 @@ int32_t ExponentAndMantissaDecodeTests(void)
    UsefulBufC BN = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNumMantissa);
 
 
-   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentsAndMantissas), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentsAndMantissas),
+                    QCBOR_DECODE_MODE_NORMAL);
 
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
       return 1;
    }
 
@@ -3693,8 +3695,8 @@ int32_t ExponentAndMantissaDecodeTests(void)
       return 2;
    }
 
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
       return 3;
    }
 
@@ -3704,8 +3706,8 @@ int32_t ExponentAndMantissaDecodeTests(void)
       return 4;
    }
 
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
       return 5;
    }
 
@@ -3715,8 +3717,8 @@ int32_t ExponentAndMantissaDecodeTests(void)
       return 6;
    }
 
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
       return 7;
    }
 
@@ -3726,8 +3728,8 @@ int32_t ExponentAndMantissaDecodeTests(void)
       return 8;
    }
 
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
       return 9;
    }
 
@@ -3738,8 +3740,8 @@ int32_t ExponentAndMantissaDecodeTests(void)
    }
 
    // 5([-20, 4759477275222530853136]),
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
       return 11;
    }
    if(item.uDataType != QCBOR_TYPE_BIGFLOAT_POS_BIGNUM ||
@@ -3749,8 +3751,8 @@ int32_t ExponentAndMantissaDecodeTests(void)
    }
 
    // 5([-9223372036854775807, -4759477275222530853137])
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
       return 13;
    }
    if(item.uDataType != QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM ||
@@ -3760,26 +3762,30 @@ int32_t ExponentAndMantissaDecodeTests(void)
    }
 
    // 5([ 9223372036854775806, -4759477275222530853137])
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
-      return 13;
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
+      return 15;
    }
    if(item.uDataType != QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM ||
       item.val.expAndMantissa.nExponent != 9223372036854775806 ||
       UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
-      return 14;
+      return 16;
    }
 
-
    // 5([ 9223372036854775806,  9223372036854775806])]
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
-      return 15;
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
+      return 17;
    }
    if(item.uDataType != QCBOR_TYPE_BIGFLOAT ||
       item.val.expAndMantissa.nExponent != 9223372036854775806 ||
       item.val.expAndMantissa.Mantissa.nInt!= 9223372036854775806 ) {
-      return 16;
+      return 18;
+   }
+
+   uErr = QCBORDecode_Finish(&DC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 18;
    }
 
    /* Now encode some stuff and then decode it */
@@ -3797,42 +3803,84 @@ int32_t ExponentAndMantissaDecodeTests(void)
 
 
    QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
-      return 13;
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
+      return 100;
    }
 
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
-      return 13;
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
+      return 101;
    }
 
    if(item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION ||
       item.val.expAndMantissa.nExponent != 1000 ||
       item.val.expAndMantissa.Mantissa.nInt != 999) {
-      return 15;
+      return 102;
    }
 
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
-      return 13;
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
+      return 103;
    }
 
    if(item.uDataType != QCBOR_TYPE_BIGFLOAT ||
       item.val.expAndMantissa.nExponent != INT32_MIN ||
       item.val.expAndMantissa.Mantissa.nInt != 100) {
-      return 15;
+      return 104;
    }
 
-   nCBORError = QCBORDecode_GetNext(&DC, &item);
-   if(nCBORError != QCBOR_SUCCESS) {
-      return 13;
+   uErr = QCBORDecode_GetNext(&DC, &item);
+   if(uErr != QCBOR_SUCCESS) {
+      return 105;
    }
 
    if(item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM ||
       item.val.expAndMantissa.nExponent != INT32_MAX ||
       UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
-      return 12;
+      return 106;
+   }
+
+
+   int64_t                   nExp, nMant;
+   UsefulBuf_MAKE_STACK_UB(  MantBuf, 20);
+   UsefulBufC                Mant;
+   bool                      bIsNeg;
+
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentsAndMantissas),
+                    QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_EnterArray(&DC);
+
+   // 4([-1, 3]),
+   QCBORDecode_GetDecimalFraction(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &nExp, &nMant);
+
+   // 4([-20,                   4759477275222530853136]),
+   QCBORDecode_GetDecimalFractionBig(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, MantBuf, &Mant, &bIsNeg, &nExp);
+
+   // 4([9223372036854775807,  -4759477275222530853137]),
+   QCBORDecode_GetDecimalFractionBig(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, MantBuf, &Mant, &bIsNeg, &nExp);
+
+   // 5([300, 100]),
+   QCBORDecode_GetBigFloat(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &nExp, &nMant);
+
+   // 5([-20,                   4759477275222530853136]),
+   QCBORDecode_GetBigFloatBig(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, MantBuf, &Mant, &bIsNeg, &nExp);
+
+   // 5([-9223372036854775807, -4759477275222530853137])
+   QCBORDecode_GetBigFloatBig(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, MantBuf, &Mant, &bIsNeg, &nExp);
+
+   // 5([ 9223372036854775806, -4759477275222530853137])
+   QCBORDecode_GetBigFloatBig(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, MantBuf, &Mant, &bIsNeg, &nExp);
+
+   // 5([ 9223372036854775806,  9223372036854775806])]
+   QCBORDecode_GetBigFloatBig(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, MantBuf, &Mant, &bIsNeg, &nExp);
+
+   QCBORDecode_ExitArray(&DC);
+
+   uErr = QCBORDecode_Finish(&DC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 200;
    }
 
    return 0;
