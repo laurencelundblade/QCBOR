@@ -5200,3 +5200,72 @@ int32_t EnterBstrTest()
 
    return (int32_t)uErr;
 }
+
+
+
+
+static const uint8_t spTaggedTypes[] = {
+   0xa2,
+   0x00, 0xc0, 0x61, 0x50,
+   0x01, 0x61, 0x50,
+
+
+
+
+};
+
+int32_t DecodeTaggedTypeTests()
+{
+   QCBORDecodeContext DC;
+   QCBORError         uErr;
+
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTaggedTypes), 0);
+
+   UsefulBufC String;
+   //bool       bNeg;
+
+   QCBORDecode_EnterMap(&DC);
+   QCBORDecode_GetDateStringInMapN(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, 0, &String);
+   QCBORDecode_GetDateStringInMapN(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, 0, &String);
+   if(QCBORDecode_GetError(&DC) != QCBOR_SUCCESS) {
+      return 1;
+   }
+   QCBORDecode_GetDateStringInMapN(&DC, QCBOR_TAG_REQUIREMENT_NO_TAG, 0, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 2;
+   }
+   QCBORDecode_GetDateStringInMapN(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, 1, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 3;
+   }
+   QCBORDecode_GetDateStringInMapN(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, 1, &String);
+   QCBORDecode_GetDateStringInMapN(&DC, QCBOR_TAG_REQUIREMENT_NO_TAG, 1, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
+      return 4;
+   }
+
+   /*
+   QCBORDecode_GetBignumInMapN(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, 10, &String, &bNeg);
+
+   QCBORDecode_GetURIInMapN(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, 20, &String);
+
+   QCBORDecode_GetB64InMapN(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, 30, &String);
+
+   QCBORDecode_GetB64URLInMapN(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, 40, &String);
+
+   QCBORDecode_GetRegexInMapN(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, 50, &String);
+
+   QCBORDecode_GetMIMEMessageInMapN(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, 60, &String, &bNeg);
+
+   QCBORDecode_GetBinaryUUIDInMapN(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, 70, &String);
+
+    */
+   QCBORDecode_ExitMap(&DC);
+
+   uErr = QCBORDecode_Finish(&DC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 100;
+   }
+
+   return 0;
+}

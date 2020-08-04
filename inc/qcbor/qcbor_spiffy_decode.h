@@ -571,6 +571,7 @@ static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
 
 
 
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 /**
  @brief Decode the next item as an epoch date.
 
@@ -609,12 +610,11 @@ void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
 
  See @ref Decode-Errors for discussion on how error handling works.
 
- The big number is in network byte order. The first byte in
- @c pValue is the most significant byte. There may be leading
- zeros.
+ The big number is in network byte order. The first byte in @c pValue
+ is the most significant byte. There may be leading zeros.
 
- The negative value is computed as -1 - n, where n is the
- postive big number in @C pValue.
+ The negative value is computed as -1 - n, where n is the postive big
+ number in @C pValue.
 
  See @ref Tag-Matcing for discussion on tag requirements.
 
@@ -626,26 +626,27 @@ void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
  QCBOR_TAG_REQUIREMENT_NO_TAG, then the protocol design must have some
  way of indicating the sign.
 
- See also QCBORDecode_GetInt64ConvertAll(), QCBORDecode_GetUInt64ConvertAll()
- and QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
+ See also QCBORDecode_GetInt64ConvertAll(),
+ QCBORDecode_GetUInt64ConvertAll() and
+ QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
 */
+// TODO: should this convert integers?
 void QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,
                            uint8_t             uTagRequirement,
                            UsefulBufC         *pValue,
                            bool               *pbIsNegative);
 
 void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pCtx,
-                                 int64_t             nLabel,
                                  uint8_t             uTagRequirement,
+                                 int64_t             nLabel,
                                  UsefulBufC         *pValue,
                                  bool               *pbIsNegative);
 
 void QCBORDecode_GetBignumInMapSz(QCBORDecodeContext *pCtx,
-                                  const char         *szLabel,
                                   uint8_t             uTagRequirement,
+                                  const char         *szLabel,
                                   UsefulBufC         *pValue,
                                   bool               *pbIsNegative);
-
 
 
 /**
@@ -658,32 +659,30 @@ void QCBORDecode_GetBignumInMapSz(QCBORDecodeContext *pCtx,
 
  See @ref Decode-Errors for discussion on how error handling works.
 
- You can compute the  value of this by:
+ The  value of this is computed by:
 
      mantissa * ( 10 ** exponent )
 
- In the encoded CBOR, the mantissa may be a type 0 (unsigned),
- type 1 (signed integer), type 2 tag xx (positive big number) or
- type 2 tag xx (negative big number). This implementation will attempt
- to convert all of these to an int64_t. If the value won't fit,
- @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
- or QCBOR_ERR_BAD_EXP_AND_MANTISSA will be
- set.
+ In the encoded CBOR, the mantissa and exponent may be of CBOR type 0
+ (positive integer), type 1 (negative integer), type 2 tag 2 (positive
+ big number) or type 2 tag 3 (negative big number). This
+ implementation will attempt to convert all of these to an @c
+ int64_t. If the value won't fit, @ref
+ QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW or
+ QCBOR_ERR_BAD_EXP_AND_MANTISSA will be set.
 
- The encoded CBOR exponent may be a type 0 (unsigned integer)
- or type 1 (signed integer). This implementation will attempt
- to convert all of these to an int64_t. If the value won't fit,
- @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
- or QCBOR_ERR_BAD_EXP_AND_MANTISSA will be
- set.
+ This implementation limits the exponent to between @c INT64_MIN and
+ @c INT64_MAX while CBOR allows the range of @c -UINT64_MAX to
+ @c UINT64_MAX.
 
- Various format and type issues will result in
- @ref QCBOR_ERR_BAD_EXP_AND_MANTISSA being set.
+ Various format and type issues will result in @ref
+ QCBOR_ERR_BAD_EXP_AND_MANTISSA being set.
 
  See @ref Tag-Matcing for discussion on tag requirements.
 
- See also QCBORDecode_GetInt64ConvertAll(), QCBORDecode_GetUInt64ConvertAll()
- and QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
+ See also QCBORDecode_GetInt64ConvertAll(),
+ QCBORDecode_GetUInt64ConvertAll() and
+ QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
 */
 void QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pCtx,
                                     uint8_t             uTagRequirement,
@@ -703,7 +702,6 @@ void QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
                                            int64_t            *pnExponent);
 
 
-
 /**
  @brief Decode the next item as a decimal fraction with a big number mantissa.
 
@@ -714,24 +712,19 @@ void QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
  @param[out] pbMantissaIsNegative  Is @c true if @c pMantissa is negative.
  @param[out] pnExponent      The base 10 exponent.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ This is the same as QCBORDecode_GetDecimalFraction() except the
+ mantissa is returned as a big number.
 
- You can compute the  value of this by:
+ In the encoded CBOR, the mantissa may be a type 0 (positive integer),
+ type 1 (negative integer), type 2 tag 2 (positive big number) or type
+ 2 tag 3 (negative big number). This implementation will convert all
+ these to a big number. The limit to this conversion is the size of @c
+ MantissaBuffer.
 
-     mantissa * ( 10 ** exponent )
-
- In the encoded CBOR, the mantissa may be a type 0 (unsigned),
- type 1 (signed integer), type 2 tag xx (positive big number) or
- type 2 tag xx (negative big number). This implementation will
- all these to a big number. The limit to this conversion is the
- size of @c MantissaBuffer.
-
- The exponent is handled the same as for QCBORDecode_GetDecimalFraction().
-
- See @ref Tag-Matcing for discussion on tag requirements.
-
- See also QCBORDecode_GetInt64ConvertAll(), QCBORDecode_GetUInt64ConvertAll()
- and QCBORDecode_GetDoubleConvertAll() which can convert decimal fractions.
+ See also QCBORDecode_GetInt64ConvertAll(),
+ QCBORDecode_GetUInt64ConvertAll() and
+ QCBORDecode_GetDoubleConvertAll() which can convert decimal
+ fractions.
 */
 void QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pCtx,
                                        uint8_t             uTagRequirement,
@@ -757,7 +750,6 @@ void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pCtx,
                                               int64_t            *pnExponent);
 
 
-
 /**
  @brief Decode the next item as a big float.
 
@@ -766,36 +758,15 @@ void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pCtx,
  @param[out] pnMantissa      The mantissa.
  @param[out] pnExponent      The base 2 exponent.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ This is the same as QCBORDecode_GetDecimalFraction() with the
+ important distinction that the value is computed by:
 
- You can compute the value of this by:
+     mantissa * ( 2 ** exponent )
 
- mantissa * ( 2 ** exponent )
-
- In the encoded CBOR, the mantissa may be a type 0 (unsigned),
- type 1 (signed integer), type 2 tag xx (positive big number) or
- type 2 tag xx (negative big number). This implementation will attempt
- to convert all of these to an int64_t. If the value won't fit,
- @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
- or QCBOR_ERR_BAD_EXP_AND_MANTISSA will be
- set.
-
- The encoded CBOR exponent may be a type 0 (unsigned integer)
- or type 1 (signed integer). This implementation will attempt
- to convert all of these to an int64_t. If the value won't fit,
- @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
- or QCBOR_ERR_BAD_EXP_AND_MANTISSA will be
- set.
-
- Various format and type issues will result in
- @ref QCBOR_ERR_BAD_EXP_AND_MANTISSA being set.
-
- See @ref Tag-Matcing for discussion on tag requirements.
-
- See also QCBORDecode_GetInt64ConvertAll(), QCBORDecode_GetUInt64ConvertAll()
- and QCBORDecode_GetDoubleConvertAll() which can convert big floats.
+ See also QCBORDecode_GetInt64ConvertAll(),
+ QCBORDecode_GetUInt64ConvertAll() and
+ QCBORDecode_GetDoubleConvertAll() which can convert big floats.
  */
-// TODO: actually implement these
 void QCBORDecode_GetBigFloat(QCBORDecodeContext *pCtx,
                              uint8_t             uTagRequirement,
                              int64_t            *pnMantissa,
@@ -824,26 +795,15 @@ void QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pCtx,
  @param[out] pbMantissaIsNegative  Is @c true if @c pMantissa is negative.
  @param[out] pnExponent      The base 2 exponent.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ This is the same as QCBORDecode_GetDecimalFractionBig() with the
+ important distinction that the value is computed by:
 
- You can compute the  value of this by:
+     mantissa * ( 2 ** exponent )
 
- mantissa * ( 2 ** exponent )
-
- In the encoded CBOR, the mantissa may be a type 0 (unsigned),
- type 1 (signed integer), type 2 tag xx (positive big number) or
- type 2 tag xx (negative big number). This implementation will
- all these to a big number. The limit to this conversion is the
- size of @c MantissaBuffer.
-
- The exponent is handled the same as for QCBORDecode_GetDecimalFraction().
-
- See @ref Tag-Matcing for discussion on tag requirements.
-
- See also QCBORDecode_GetInt64ConvertAll(), QCBORDecode_GetUInt64ConvertAll()
- and QCBORDecode_GetDoubleConvertAll() which can convert big floats.
+ See also QCBORDecode_GetInt64ConvertAll(),
+ QCBORDecode_GetUInt64ConvertAll() and
+ QCBORDecode_GetDoubleConvertAll() which can convert big floats.
  */
-// TODO: actually implement these
 void QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pCtx,
                                 uint8_t             uTagRequirement,
                                 UsefulBuf           MantissaBuffer,
@@ -866,6 +826,7 @@ void QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
                                        UsefulBufC         *pMantissa,
                                        bool               *pbMantissaIsNegative,
                                        int64_t            *pnExponent);
+#endif /* #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
 /**
@@ -1001,15 +962,15 @@ static void QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pCtx,
                                        bool               *pbIsNot7Bit);
 
 static void QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pCtx,
-                                            int64_t              nLabel,
                                             uint8_t              uTagRequirement,
+                                            int64_t              nLabel,
                                             UsefulBufC          *pMessage,
                                             bool                *pbIsNot7Bit);
 
 
 static void QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pCtx,
-                                              const char         *szLabel,
                                               uint8_t             uTagRequirement,
+                                              const char         *szLabel,
                                               UsefulBufC         *pMessage,
                                               bool               *pbIsNot7Bit);
 
@@ -1929,10 +1890,10 @@ static inline void QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
 
 
 static inline void QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
-                                      int64_t             nLabel,
-                                      uint8_t             uTagRequirement,
-                                      UsefulBufC         *pMessage,
-                                      bool               *pbIsNot7Bit)
+                                                    uint8_t             uTagRequirement,
+                                                    int64_t             nLabel,
+                                                    UsefulBufC         *pMessage,
+                                                    bool               *pbIsNot7Bit)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
@@ -1942,8 +1903,8 @@ static inline void QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
 
 
 static inline void QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pMe,
-                                                     const char         *szLabel,
                                                      uint8_t             uTagRequirement,
+                                                     const char         *szLabel,
                                                      UsefulBufC         *pMessage,
                                                      bool               *pbIsNot7Bit)
 {

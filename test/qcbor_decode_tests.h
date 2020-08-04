@@ -273,4 +273,9 @@ int32_t IntToTests(void);
 int32_t EnterBstrTest(void);
 
 
+/*
+ Test decoding of tagged types like UUID
+ */
+int32_t DecodeTaggedTypeTests(void);
+
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

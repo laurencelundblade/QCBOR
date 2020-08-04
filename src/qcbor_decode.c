@@ -3239,7 +3239,7 @@ void QCBORDecode_GetBignum(QCBORDecodeContext *pMe, uint8_t uTagRequirement, Use
 /*
 Public function, see header qcbor/qcbor_decode.h
 */
-void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint8_t uTagRequirement, UsefulBufC *pValue, bool *pbIsNegative)
+void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe, uint8_t uTagRequirement, int64_t nLabel, UsefulBufC *pValue, bool *pbIsNegative)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
@@ -3250,7 +3250,7 @@ void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint8_
 /*
 Public function, see header qcbor/qcbor_decode.h
 */
-void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint8_t uTagRequirement, UsefulBufC *pValue, bool *pbIsNegative)
+void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe, uint8_t uTagRequirement, const char *szLabel, UsefulBufC *pValue, bool *pbIsNegative)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
