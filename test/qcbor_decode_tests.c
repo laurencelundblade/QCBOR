@@ -3952,7 +3952,6 @@ int32_t ExponentAndMantissaDecodeFailTests()
   }
  */
    
-#include "qcbor/qcbor_decode_map.h"
 #include <stdio.h>
 
 static char strbuf[10];
@@ -4276,7 +4275,6 @@ int32_t EnterMapTest()
    }
 
 
-   // TODO: more testing of nested zero length maps; also test zero-length arrays
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyInDefinteLengthMap), 0);
    QCBORDecode_EnterMap(&DCtx);
    // This will fail because the map is empty.
@@ -4305,6 +4303,9 @@ int32_t EnterMapTest()
    if(uErr != QCBOR_SUCCESS){
       return 2014;
    }
+
+   // TODO: more testing of entered mapps and arrays with problems
+   // TODO: document error handling better (maybe improve error handling)
 
    return 0;
 }
@@ -5107,6 +5108,8 @@ int32_t IntToTests()
 }
 
 
+
+
 /*
 A sequence with
   A wrapping bstr
@@ -5199,4 +5202,279 @@ int32_t EnterBstrTest()
    QCBORError uErr = QCBORDecode_Finish(&DC);
 
    return (int32_t)uErr;
+}
+
+
+
+
+static const uint8_t spTaggedTypes[] = {
+   0xb2,
+
+      // Date string
+      0x00,
+      0xc0, 0x74, 0x32, 0x30, 0x30, 0x33, 0x2D, 0x31, 0x32, 0x2D,
+      0x31, 0x33, 0x54, 0x31, 0x38, 0x3A, 0x33, 0x30, 0x3A, 0x30,
+      0x32, 0x5A,
+
+      0x01,
+      0x74, 0x32, 0x30, 0x30, 0x33, 0x2D, 0x31, 0x32, 0x2D, 0x31,
+      0x33, 0x54, 0x31, 0x38, 0x3A, 0x33, 0x30, 0x3A, 0x30, 0x32,
+      0x5A,
+
+      // Bignum
+      10,
+      0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+      0x09, 0x10,
+
+      11,
+      0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+      0x09, 0x10,
+
+      // URL
+      20,
+      0xd8, 0x20, 0x6f, 0x68, 0x74, 0x74, 0x70, 0x3A, 0x2F, 0x2F,
+      0x63, 0x62, 0x6F, 0x72, 0x2E, 0x6D, 0x65, 0x2F,
+
+      21,
+      0x6f, 0x68, 0x74, 0x74, 0x70, 0x3A, 0x2F, 0x2F, 0x63, 0x62,
+      0x6F, 0x72, 0x2E, 0x6D, 0x65, 0x2F,
+
+      // B64
+      0x18, 0x1e,
+      0xd8, 0x22, 0x6c, 0x63, 0x47, 0x78, 0x6C, 0x59, 0x58, 0x4E,
+      0x31, 0x63, 0x6D, 0x55, 0x75,
+
+      0x18, 0x1f,
+      0x6c, 0x63, 0x47, 0x78, 0x6C, 0x59, 0x58, 0x4E, 0x31, 0x63,
+      0x6D, 0x55, 0x75,
+
+      // B64URL
+      0x18, 0x28,
+      0xd8, 0x21, 0x6c, 0x63, 0x47, 0x78, 0x6C, 0x59, 0x58, 0x4E,
+      0x31, 0x63, 0x6D, 0x55, 0x75,
+
+      0x18, 0x29,
+      0x6c, 0x63, 0x47, 0x78, 0x6C, 0x59, 0x58, 0x4E, 0x31, 0x63,
+      0x6D, 0x55, 0x75,
+
+      // Regex
+      0x18, 0x32,
+      0xd8, 0x23, 0x68, 0x31, 0x30, 0x30, 0x5C, 0x73, 0x2A, 0x6D,
+      0x6B,
+
+      0x18, 0x33,
+      0x68, 0x31, 0x30, 0x30, 0x5C, 0x73, 0x2A, 0x6D, 0x6B,
+
+      // MIME
+      0x18, 0x3c,
+      0xd8, 0x24, 0x72, 0x4D, 0x49, 0x4D, 0x45, 0x2D, 0x56, 0x65,
+      0x72, 0x73, 0x69, 0x6F, 0x6E, 0x3A, 0x20, 0x31, 0x2E, 0x30,
+      0x0A,
+
+      0x18, 0x3d,
+      0x72, 0x4D, 0x49, 0x4D, 0x45, 0x2D, 0x56, 0x65, 0x72, 0x73,
+      0x69, 0x6F, 0x6E, 0x3A, 0x20, 0x31, 0x2E, 0x30, 0x0A,
+
+      0x18, 0x3e,
+      0xd9, 0x01, 0x01, 0x52, 0x4D, 0x49, 0x4D, 0x45, 0x2D, 0x56,
+      0x65, 0x72, 0x73, 0x69, 0x6F, 0x6E, 0x3A, 0x20, 0x31, 0x2E,
+      0x30, 0x0A,
+
+      0x18, 0x3f,
+      0x52, 0x4D, 0x49, 0x4D, 0x45, 0x2D, 0x56, 0x65, 0x72, 0x73,
+      0x69, 0x6F, 0x6E, 0x3A, 0x20, 0x31, 0x2E, 0x30, 0x0A,
+
+      // UUID
+      0x18, 0x46,
+      0xd8, 0x25, 0x50, 0x53, 0x4D, 0x41, 0x52, 0x54, 0x43, 0x53,
+      0x4C, 0x54, 0x54, 0x43, 0x46, 0x49, 0x43, 0x41, 0x32,
+
+      0x18, 0x47,
+      0x50, 0x53, 0x4D, 0x41, 0x52, 0x54, 0x43, 0x53, 0x4C, 0x54,
+      0x54, 0x43, 0x46, 0x49, 0x43, 0x41, 0x32
+};
+
+int32_t DecodeTaggedTypeTests()
+{
+   QCBORDecodeContext DC;
+   QCBORError         uErr;
+
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTaggedTypes), 0);
+
+   UsefulBufC String;
+   bool       bNeg;
+
+   QCBORDecode_EnterMap(&DC);
+   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &String);
+   if(QCBORDecode_GetError(&DC) != QCBOR_SUCCESS) {
+      return 1;
+   }
+   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_NO_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 2;
+   }
+   QCBORDecode_GetDateStringInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 3;
+   }
+   QCBORDecode_GetDateStringInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &String);
+   QCBORDecode_GetDateStringInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_NO_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
+      return 4;
+   }
+   QCBORDecode_GetDateStringInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 5;
+   }
+
+   QCBORDecode_GetBignumInMapN(&DC, 10, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String, &bNeg);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS ||
+      bNeg != false) {
+      return 10;
+   }
+   QCBORDecode_GetBignumInMapN(&DC, 11, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String, &bNeg);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS ||
+      bNeg != true) {
+      return 11;
+   }
+   QCBORDecode_GetBignumInMapN(&DC, 11, QCBOR_TAG_REQUIREMENT_NO_TAG, &String, &bNeg);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 12;
+   }
+   QCBORDecode_GetBignumInMapN(&DC, 14, QCBOR_TAG_REQUIREMENT_NO_TAG, &String, &bNeg);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 13;
+   }
+   QCBORDecode_GetBignumInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_NO_TAG, &String, &bNeg);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 14;
+   }
+
+   QCBORDecode_GetURIInMapN(&DC, 20, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
+      return 20;
+   }
+   QCBORDecode_GetURIInMapN(&DC, 21, QCBOR_TAG_REQUIREMENT_NO_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
+      return 21;
+   }
+   QCBORDecode_GetURIInMapN(&DC, 22, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 22;
+   }
+   QCBORDecode_GetURIInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 23;
+   }
+
+   QCBORDecode_GetB64InMapN(&DC, 30, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
+      return 30;
+   }
+   QCBORDecode_GetB64InMapN(&DC, 31, QCBOR_TAG_REQUIREMENT_NO_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
+      return 31;
+   }
+   QCBORDecode_GetB64InMapN(&DC, 32, QCBOR_TAG_REQUIREMENT_NO_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 32;
+   }
+   QCBORDecode_GetB64InMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_NO_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 33;
+   }
+
+   QCBORDecode_GetB64URLInMapN(&DC, 40, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
+      return 40;
+   }
+   QCBORDecode_GetB64URLInMapN(&DC, 41, QCBOR_TAG_REQUIREMENT_NO_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
+      return 41;
+   }
+   QCBORDecode_GetB64URLInMapN(&DC, 42, QCBOR_TAG_REQUIREMENT_NO_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 42;
+   }
+   QCBORDecode_GetB64URLInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_NO_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 43;
+   }
+
+   QCBORDecode_GetRegexInMapN(&DC, 50, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
+      return 50;
+   }
+   QCBORDecode_GetRegexInMapN(&DC, 51, QCBOR_TAG_REQUIREMENT_NO_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
+      return 51;
+   }
+   QCBORDecode_GetRegexInMapN(&DC, 52, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 52;
+   }
+   QCBORDecode_GetRegexInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 53;
+   }
+
+   // MIME
+   bool bIsNot7Bit;
+   QCBORDecode_GetMIMEMessageInMapN(&DC, 60, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String, &bIsNot7Bit);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS ||
+      bIsNot7Bit == true) {
+      return 60;
+   }
+   QCBORDecode_GetMIMEMessageInMapN(&DC, 61, QCBOR_TAG_REQUIREMENT_NO_TAG, &String, &bIsNot7Bit);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS ||
+      bIsNot7Bit == true) {
+      return 61;
+   }
+   QCBORDecode_GetMIMEMessageInMapN(&DC, 62, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String, &bIsNot7Bit);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS ||
+      bIsNot7Bit == false) {
+      return 62;
+   }
+   QCBORDecode_GetMIMEMessageInMapN(&DC, 63, QCBOR_TAG_REQUIREMENT_NO_TAG, &String, &bIsNot7Bit);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS ||
+      bIsNot7Bit == false) {
+      return 63;
+   }
+   QCBORDecode_GetMIMEMessageInMapN(&DC, 64, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String, &bNeg);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 64;
+   }
+   QCBORDecode_GetMIMEMessageInMapSZ(&DC, "zzz", QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String, &bNeg);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 65;
+   }
+
+   QCBORDecode_GetBinaryUUIDInMapN(&DC, 70, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
+      return 70;
+   }
+   QCBORDecode_GetBinaryUUIDInMapN(&DC, 71, QCBOR_TAG_REQUIREMENT_NO_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
+      return 71;
+   }
+   QCBORDecode_GetBinaryUUIDInMapN(&DC, 72, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 72;
+   }
+   QCBORDecode_GetBinaryUUIDInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_MATCH_TAG, &String);
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_NOT_FOUND) {
+      return 73;
+   }
+
+   // Improvement: add some more error test cases
+
+   QCBORDecode_ExitMap(&DC);
+
+   uErr = QCBORDecode_Finish(&DC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 100;
+   }
+
+   return 0;
 }

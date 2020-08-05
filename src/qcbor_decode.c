@@ -1763,7 +1763,7 @@ inline static QCBORError DecodeMIME(QCBORItem *pDecodedItem)
 {
    if(pDecodedItem->uDataType == QCBOR_TYPE_TEXT_STRING) {
       pDecodedItem->uDataType = QCBOR_TYPE_MIME;
-   } else if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
+   } else if(pDecodedItem->uDataType == QCBOR_TYPE_BYTE_STRING) {
       pDecodedItem->uDataType = QCBOR_TYPE_BINARY_MIME;
    } else {
       return QCBOR_ERR_BAD_OPT_TAG;
@@ -2749,7 +2749,7 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
 
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+ Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_EnterMapFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
@@ -2765,7 +2765,7 @@ void QCBORDecode_EnterMapFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+ Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 {
@@ -2779,7 +2779,7 @@ void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel
 }
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+ Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
@@ -2793,7 +2793,7 @@ void QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 }
 
 /*
-Public function, see header qcbor/qcbor_decode.h file
+ Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 {
@@ -2965,10 +2965,12 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
       goto Done;;
    }
 
-   const TagSpecification TagSpec = {uTagRequirement,
-                                     {QBCOR_TYPE_WRAPPED_CBOR, QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE, QCBOR_TYPE_NONE},
-                                     {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-                                    };
+   const TagSpecification TagSpec =
+      {
+         uTagRequirement,
+         {QBCOR_TYPE_WRAPPED_CBOR, QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      };
 
    uError = CheckTagRequirement(TagSpec, pItem->uDataType);
    if(uError != QCBOR_SUCCESS) {
@@ -3040,8 +3042,8 @@ void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe,
   Public function, see header qcbor/qcbor_decode.h file
  */
 void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pMe,
-                                          uint8_t             uTagRequirement,
                                           int64_t             nLabel,
+                                          uint8_t             uTagRequirement,
                                           UsefulBufC         *pBstr)
 {
    QCBORItem Item;
@@ -3055,8 +3057,8 @@ void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pMe,
   Public function, see header qcbor/qcbor_decode.h file
  */
 void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pMe,
-                                           uint8_t             uTagRequirement,
                                            const char         *szLabel,
+                                           uint8_t             uTagRequirement,
                                            UsefulBufC         *pBstr)
 {
    QCBORItem Item;
@@ -3119,8 +3121,9 @@ static QCBORError InterpretBool(const QCBORItem *pItem, bool *pBool)
    }
 }
 
+
 /*
-Public function, see header qcbor/qcbor_decode.h file
+ Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetBool(QCBORDecodeContext *pMe, bool *pValue)
 {
@@ -3140,8 +3143,9 @@ void QCBORDecode_GetBool(QCBORDecodeContext *pMe, bool *pValue)
    pMe->uLastError = (uint8_t)InterpretBool(&Item, pValue);
 }
 
+
 /*
-Public function, see header qcbor/qcbor_decode.h file
+ Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetBoolInMapN(QCBORDecodeContext *pMe, int64_t nLabel, bool *pValue)
 {
@@ -3151,8 +3155,9 @@ void QCBORDecode_GetBoolInMapN(QCBORDecodeContext *pMe, int64_t nLabel, bool *pV
    pMe->uLastError = (uint8_t)InterpretBool(&Item, pValue);
 }
 
+
 /*
-Public function, see header qcbor/qcbor_decode.h file
+ Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, bool *pValue)
 {
@@ -3164,7 +3169,9 @@ void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, bo
 
 
 
-void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe, TagSpecification TagSpec, UsefulBufC *pBstr)
+void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe,
+                                         TagSpecification    TagSpec,
+                                         UsefulBufC         *pBstr)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       // Already in error state, do nothing
@@ -3190,15 +3197,17 @@ void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe, TagSpecificati
 
 
 
-static QCBORError ConvertBigNum(uint8_t uTagRequirement,
+static QCBORError ProcessBigNum(uint8_t          uTagRequirement,
                                 const QCBORItem *pItem,
-                                UsefulBufC *pValue,
-                                bool *pbIsNegative)
+                                UsefulBufC      *pValue,
+                                bool            *pbIsNegative)
 {
-   const TagSpecification TagSpec = {uTagRequirement,
-                                     {QCBOR_TYPE_POSBIGNUM, QCBOR_TYPE_NEGBIGNUM, QCBOR_TYPE_NONE},
-                                     {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-                                    };
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_POSBIGNUM, QCBOR_TYPE_NEGBIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
 
    QCBORError uErr = CheckTagRequirement(TagSpec, pItem->uDataType);
    if(uErr != QCBOR_SUCCESS) {
@@ -3217,10 +3226,13 @@ static QCBORError ConvertBigNum(uint8_t uTagRequirement,
 }
 
 
-/**
+/*
  Public function, see header qcbor/qcbor_decode.h
  */
-void QCBORDecode_GetBignum(QCBORDecodeContext *pMe, uint8_t uTagRequirement, UsefulBufC *pValue, bool *pbIsNegative)
+void QCBORDecode_GetBignum(QCBORDecodeContext *pMe,
+                           uint8_t             uTagRequirement,
+                           UsefulBufC         *pValue,
+                           bool               *pbIsNegative)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       // Already in error state, do nothing
@@ -3234,54 +3246,78 @@ void QCBORDecode_GetBignum(QCBORDecodeContext *pMe, uint8_t uTagRequirement, Use
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
+   pMe->uLastError = (uint8_t)ProcessBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
 }
 
+
 /*
-Public function, see header qcbor/qcbor_decode.h
+ Public function, see header qcbor/qcbor_decode.h
 */
-void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint8_t uTagRequirement, UsefulBufC *pValue, bool *pbIsNegative)
+void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe,
+                                 int64_t             nLabel,
+                                 uint8_t             uTagRequirement,
+                                 UsefulBufC         *pValue,
+                                 bool               *pbIsNegative)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
-   pMe->uLastError = (uint8_t)ConvertBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
+   pMe->uLastError = (uint8_t)ProcessBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
 }
 
+
 /*
-Public function, see header qcbor/qcbor_decode.h
+ Public function, see header qcbor/qcbor_decode.h
 */
-void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint8_t uTagRequirement, UsefulBufC *pValue, bool *pbIsNegative)
+void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe,
+                                  const char         *szLabel,
+                                  uint8_t             uTagRequirement,
+                                  UsefulBufC         *pValue,
+                                  bool               *pbIsNegative)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
-   pMe->uLastError = (uint8_t)ConvertBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
+   pMe->uLastError = (uint8_t)ProcessBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
 }
+
 
 
 
 // Semi private
-QCBORError QCBORDecode_GetMIMEInternal(uint8_t uTagRequirement, const QCBORItem *pItem, UsefulBufC *pMessage, bool *pbIsNot7Bit)
+QCBORError QCBORDecode_GetMIMEInternal(uint8_t     uTagRequirement,
+                                       const       QCBORItem *pItem,
+                                       UsefulBufC *pMessage,
+                                       bool       *pbIsNot7Bit)
 {
-   const TagSpecification TagSpecText = {uTagRequirement,
-                                     {QCBOR_TYPE_MIME, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-                                     {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-                                    };
-   const TagSpecification TagSpecBinary = {uTagRequirement,
-                                     {QCBOR_TYPE_BINARY_MIME, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-                                     {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-                                    };
+   const TagSpecification TagSpecText =
+      {
+         uTagRequirement,
+         {QCBOR_TYPE_MIME, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      };
+   const TagSpecification TagSpecBinary =
+      {
+         uTagRequirement,
+         {QCBOR_TYPE_BINARY_MIME, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      };
 
    QCBORError uReturn;
    
-   if(CheckTagRequirement(TagSpecText, pItem->uDataType)) {
+   if(CheckTagRequirement(TagSpecText, pItem->uDataType) == QCBOR_SUCCESS) {
       *pMessage = pItem->val.string;
       if(pbIsNot7Bit != NULL) {
          *pbIsNot7Bit = false;
       }
       uReturn = QCBOR_SUCCESS;
-   } else if(CheckTagRequirement(TagSpecBinary, pItem->uDataType)) {
+   } else if(CheckTagRequirement(TagSpecBinary, pItem->uDataType) == QCBOR_SUCCESS) {
       *pMessage = pItem->val.string;
       if(pbIsNot7Bit != NULL) {
          *pbIsNot7Bit = true;
@@ -3294,6 +3330,8 @@ QCBORError QCBORDecode_GetMIMEInternal(uint8_t uTagRequirement, const QCBORItem 
    
    return uReturn;
 }
+
+// Improvement: add methods for wrapped CBOR, a simple alternate to EnterBstrWrapped
 
 
 
@@ -4596,8 +4634,8 @@ void QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pMe,
  Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pMe,
-                                          uint8_t             uTagRequirement,
                                           int64_t             nLabel,
+                                          uint8_t             uTagRequirement,
                                           int64_t             *pnMantissa,
                                           int64_t             *pnExponent)
 {
@@ -4623,8 +4661,8 @@ void QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pMe,
  Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
-                                           uint8_t             uTagRequirement,
                                            const char         *szLabel,
+                                           uint8_t             uTagRequirement,
                                            int64_t             *pnMantissa,
                                            int64_t             *pnExponent)
 {
@@ -4682,8 +4720,8 @@ void QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pMe,
  Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pMe,
-                                             uint8_t             uTagRequirement,
                                              int64_t             nLabel,
+                                             uint8_t             uTagRequirement,
                                              UsefulBuf           BufferForMantissa,
                                              UsefulBufC         *pMantissa,
                                              bool               *pbIsNegative,
@@ -4714,8 +4752,8 @@ void QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pMe,
  Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
-                                              uint8_t             uTagRequirement,
                                               const char         *szLabel,
+                                              uint8_t             uTagRequirement,
                                               UsefulBuf           BufferForMantissa,
                                               UsefulBufC         *pMantissa,
                                               bool               *pbIsNegative,
@@ -4775,8 +4813,8 @@ void QCBORDecode_GetBigFloat(QCBORDecodeContext *pMe,
  Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetBigFloatInMapN(QCBORDecodeContext *pMe,
-                                   uint8_t             uTagRequirement,
                                    int64_t             nLabel,
+                                   uint8_t             uTagRequirement,
                                    int64_t            *pnMantissa,
                                    int64_t            *pnExponent)
 {
@@ -4805,8 +4843,8 @@ void QCBORDecode_GetBigFloatInMapN(QCBORDecodeContext *pMe,
  Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pMe,
-                                    uint8_t             uTagRequirement,
                                     const char         *szLabel,
+                                    uint8_t             uTagRequirement,
                                     int64_t            *pnMantissa,
                                     int64_t            *pnExponent)
 {
@@ -4867,8 +4905,8 @@ void QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pMe,
  Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pMe,
-                                      uint8_t             uTagRequirement,
                                       int64_t             nLabel,
+                                      uint8_t             uTagRequirement,
                                       UsefulBuf           BufferForMantissa,
                                       UsefulBufC         *pMantissa,
                                       bool               *pbIsNegative,
@@ -4899,8 +4937,8 @@ void QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pMe,
  Public function, see header qcbor/qcbor_decode.h file
 */
 void QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
-                                       uint8_t             uTagRequirement,
                                        const char         *szLabel,
+                                       uint8_t             uTagRequirement,
                                        UsefulBuf           BufferForMantissa,
                                        UsefulBufC         *pMantissa,
                                        bool               *pbIsNegative,
