@@ -161,7 +161,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     (https://tools.ietf.org/html/rfc8152). No API is provided for this
     tag. */
 
-#define CBOR_TAG_CBOR_SEQUENCE  63
+#define CBOR_TAG_CBOR_SEQUENCE 63
 
 
 #define CBOR_TAG_ENCRYPT       96
@@ -176,12 +176,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** World geographic coordinates. See ISO 6709, [RFC 5870]
     (https://tools.ietf.org/html/rfc5870) and WGS-84. No API is
     provided for this tag. */
-#define CBOR_TAG_GEO_COORD    103
+#define CBOR_TAG_GEO_COORD     103
 /** Binary MIME.*/
-#define CBOR_TAG_BINARY_MIME 257
+#define CBOR_TAG_BINARY_MIME   257
 /** The magic number, self-described CBOR. No API is provided for this
     tag. */
-#define CBOR_TAG_CBOR_MAGIC 55799
+#define CBOR_TAG_CBOR_MAGIC    55799
 
 /** Three different values for invalid tag from the CBOR tags registry */
 #define CBOR_TAG_INVALID16 0xffff
@@ -339,15 +339,15 @@ typedef enum {
        large string (e.g., > 65KB).
     */
    QCBOR_ERR_STRING_TOO_LONG = 24,
-    
+
    /** When decodeing for a specific type, the type was not was
        expected.  See also @ref QCBOR_ERR_UNEXPECTED_TYPE
        which in many cases is effectively the same error */
    QCBOR_ERR_UNEXPECTED_TYPE = 25,
-    
+
    /** Duplicate label in map detected */
    QCBOR_ERR_DUPLICATE_LABEL = 26,
-    
+
    /** Item with requested label is not found */
    QCBOR_ERR_NOT_FOUND = 27,
 
@@ -358,7 +358,7 @@ typedef enum {
    /** When converting a decoded number, the value is too large or to
        small for the conversion target */
    QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW = 30,
-    
+
    /** Trying to get an item by label when a map has not been entered. */
    QCBOR_ERR_MAP_NOT_ENTERED = 31,
 

@@ -144,7 +144,7 @@ typedef struct __QCBORDecodeNesting  {
          which might be a single item or a CBOR sequence and byte
          string wrapped encoded CBOR.
          2) Item tracking. This is for maps and arrays.
-       
+
        uLevelType has value QCBOR_TYPE_BYTE_STRING for 1) and
        QCBOR_TYPE_MAP or QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP_AS_ARRAY
        for 2).
@@ -230,7 +230,7 @@ struct _QCBORDecodeContext {
 
 
    QCBORDecodeNesting nesting;
-   
+
 
    // If a string allocator is configured for indefinite-length
    // strings, it is configured here.
