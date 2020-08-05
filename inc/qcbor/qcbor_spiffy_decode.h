@@ -1609,7 +1609,6 @@ void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe,
                                          UsefulBufC         *pBstr);
 
 
-
 // Semi private
 void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext *pMe,
                                      int64_t             nLabel,

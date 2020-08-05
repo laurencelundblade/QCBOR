@@ -1694,15 +1694,11 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    pDecodedItem->uNextNestLevel = mantissaItem.uNextNestLevel; // TODO: make sure this is right
 
 Done:
-
   return nReturn;
 }
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
-
-/*
- */
 inline static QCBORError DecodeURI(QCBORItem *pDecodedItem)
 {
    if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
@@ -1742,6 +1738,7 @@ inline static QCBORError DecodeRegex(QCBORItem *pDecodedItem)
    return QCBOR_SUCCESS;
 }
 
+
 inline static QCBORError DecodeWrappedCBOR(QCBORItem *pDecodedItem)
 {
    if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
@@ -1761,6 +1758,7 @@ inline static QCBORError DecodeWrappedCBORSequence(QCBORItem *pDecodedItem)
    return QCBOR_SUCCESS;
 }
 
+
 inline static QCBORError DecodeMIME(QCBORItem *pDecodedItem)
 {
    if(pDecodedItem->uDataType == QCBOR_TYPE_TEXT_STRING) {
@@ -1774,8 +1772,6 @@ inline static QCBORError DecodeMIME(QCBORItem *pDecodedItem)
 }
 
 
-/*
- */
 inline static QCBORError DecodeUUID(QCBORItem *pDecodedItem)
 {
    if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
@@ -1802,6 +1798,11 @@ QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    for(int i = 0; i < QCBOR_MAX_TAGS_PER_ITEM; i++) {
       switch(pDecodedItem->uTags[i] ) {
 
+         // Many of the functions here only just map a CBOR tag to
+         // a QCBOR_TYPE for a string and could probably be
+         // implemented with less object code. This implementation
+         // of string types takes about 120 bytes of object code
+         // (that is always linked and not removed by dead stripping).
          case CBOR_TAG_DATE_STRING:
          nReturn = DecodeDateString(pDecodedItem);
          break;
