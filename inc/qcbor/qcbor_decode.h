@@ -235,11 +235,13 @@ typedef enum {
 #define QCBOR_TYPE_DOUBLE        27
 /** For @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY decode mode, a map that is
      being traversed as an array. See QCBORDecode_Init() */
-#define QCBOR_TYPE_MAP_AS_ARRAY  32
 
 #define QCBOR_TYPE_BREAK         31 // Used internally; never returned
 
-#define QCBOR_TYPE_UUID          32 // TODO: implement this
+#define QCBOR_TYPE_MAP_AS_ARRAY  32
+
+
+#define QCBOR_TYPE_UUID          41 // TODO: implement this and clean up the rest of this mess
 
 #define QCBOR_TYPE_URI           33 // TODO: implement this
 
@@ -253,7 +255,7 @@ typedef enum {
 
 #define QCBOR_TYPE_BASE64        38
 
-#define QBCOR_TYPE_WRAPPED_CBOR          39
+#define QBCOR_TYPE_WRAPPED_CBOR          39 // TODO: implement this
 
 #define QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE          40 // TODO: implement this
 

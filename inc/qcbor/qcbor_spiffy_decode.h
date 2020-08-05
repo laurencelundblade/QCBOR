@@ -560,14 +560,14 @@ static void QCBORDecode_GetDateString(QCBORDecodeContext *pCtx,
                                       UsefulBufC         *pDateString);
 
 static void QCBORDecode_GetDateStringInMapN(QCBORDecodeContext *pCtx,
-                                            uint8_t             uTagRequired,
                                             int64_t             nLabel,
+                                            uint8_t             uTagRequired,
                                             UsefulBufC         *pDateString);
 
 static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
-                                        uint8_t uTagRequired,
-                                        const char *szLabel,
-                                        UsefulBufC *pDateString);
+                                             const char         *szLabel,
+                                             uint8_t             uTagRequired,
+                                             UsefulBufC         *pDateString);
 
 
 
@@ -588,13 +588,13 @@ void QCBORDecode_GetEpocDate(QCBORDecodeContext *pCtx,
                              int64_t            *pnTime);
 
 static void QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pCtx,
-                                           uint8_t             uTagRequirement,
                                            int64_t             nLabel,
+                                           uint8_t             uTagRequirement,
                                            int64_t            *pnTime);
 
 void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
-                                     uint8_t             uTagRequirement,
                                      const char         *szLabel,
+                                     uint8_t             uTagRequirement,
                                      int64_t            *pnTime);
 
 
@@ -637,14 +637,14 @@ void QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,
                            bool               *pbIsNegative);
 
 void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pCtx,
-                                 uint8_t             uTagRequirement,
                                  int64_t             nLabel,
+                                 uint8_t             uTagRequirement,
                                  UsefulBufC         *pValue,
                                  bool               *pbIsNegative);
 
-void QCBORDecode_GetBignumInMapSz(QCBORDecodeContext *pCtx,
-                                  uint8_t             uTagRequirement,
+void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
                                   const char         *szLabel,
+                                  uint8_t             uTagRequirement,
                                   UsefulBufC         *pValue,
                                   bool               *pbIsNegative);
 
@@ -690,14 +690,14 @@ void QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pCtx,
                                     int64_t            *pnExponent);
 
 void QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pCtx,
-                                          uint8_t             uTagRequirement,
                                           int64_t             nLabel,
+                                          uint8_t             uTagRequirement,
                                           int64_t            *pnMantissa,
                                           int64_t            *pnExponent);
 
 void QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
-                                           uint8_t             uTagRequirement,
                                            const char         *szLabel,
+                                           uint8_t             uTagRequirement,
                                            int64_t            *pnMantissa,
                                            int64_t            *pnExponent);
 
@@ -734,16 +734,16 @@ void QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pCtx,
                                        int64_t            *pnExponent);
 
 void QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pCtx,
-                                             uint8_t             uTagRequirement,
                                              int64_t             nLabel,
+                                             uint8_t             uTagRequirement,
                                              UsefulBuf           MantissaBuffer,
                                              UsefulBufC         *pbMantissaIsNegative,
                                              bool               *pbIsNegative,
                                              int64_t            *pnExponent);
 
 void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pCtx,
-                                              uint8_t             uTagRequirement,
                                               const char         *szLabel,
+                                              uint8_t             uTagRequirement,
                                               UsefulBuf           MantissaBuffer,
                                               UsefulBufC         *pMantissa,
                                               bool               *pbMantissaIsNegative,
@@ -773,14 +773,14 @@ void QCBORDecode_GetBigFloat(QCBORDecodeContext *pCtx,
                              int64_t            *pnExponent);
 
 void QCBORDecode_GetBigFloatInMapN(QCBORDecodeContext *pCtx,
-                                   uint8_t             uTagRequirement,
                                    int64_t             nLabel,
+                                   uint8_t             uTagRequirement,
                                    int64_t            *pnMantissa,
                                    int64_t            *pnExponent);
 
 void QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pCtx,
-                                    uint8_t             uTagRequirement,
                                     const char         *szLabel,
+                                    uint8_t             uTagRequirement,
                                     int64_t            *pnMantissa,
                                     int64_t            *pnExponent);
 
@@ -812,16 +812,16 @@ void QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pCtx,
                                 int64_t            *pnExponent);
 
 void QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pCtx,
-                                      uint8_t             uTagRequirement,
                                       int64_t             nLabel,
+                                      uint8_t             uTagRequirement,
                                       UsefulBuf           MantissaBuffer,
                                       UsefulBufC         *pMantissa,
                                       bool               *pbMantissaIsNegative,
                                       int64_t            *pnExponent);
 
 void QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
-                                       uint8_t             uTagRequirement,
                                        const char         *szLabel,
+                                       uint8_t             uTagRequirement,
                                        UsefulBuf           MantissaBuffer,
                                        UsefulBufC         *pMantissa,
                                        bool               *pbMantissaIsNegative,
@@ -845,13 +845,13 @@ static void QCBORDecode_GetURI(QCBORDecodeContext *pCtx,
                                UsefulBufC         *pURI);
 
 static void QCBORDecode_GetURIInMapN(QCBORDecodeContext *pCtx,
-                                     uint8_t             uTagRequirement,
                                      int64_t             nLabel,
+                                     uint8_t             uTagRequirement,
                                      UsefulBufC         *pURI);
 
 static void QCBORDecode_GetURIInMapSZ(QCBORDecodeContext *pCtx,
-                                      uint8_t             uTagRequirement,
                                       const char *        szLabel,
+                                      uint8_t             uTagRequirement,
                                       UsefulBufC         *pURI);
 
 
@@ -873,13 +873,13 @@ static void QCBORDecode_GetB64(QCBORDecodeContext *pCtx,
                                UsefulBufC         *pB64Text);
 
 static void QCBORDecode_GetB64InMapN(QCBORDecodeContext *pCtx,
-                                     uint8_t             uTagRequirement,
                                      int64_t             nLabel,
+                                     uint8_t             uTagRequirement,
                                      UsefulBufC         *pB64Text);
 
 static void QCBORDecode_GetB64InMapSZ(QCBORDecodeContext *pCtx,
-                                      uint8_t             uTagRequirement,
                                       const char         *szLabel,
+                                      uint8_t             uTagRequirement,
                                       UsefulBufC         *pB64Text);
 
 /**
@@ -900,13 +900,13 @@ static void QCBORDecode_GetB64URL(QCBORDecodeContext *pCtx,
                                     UsefulBufC         *pB64Text);
 
 static void QCBORDecode_GetB64URLInMapN(QCBORDecodeContext *pCtx,
-                                        uint8_t             uTagRequirement,
                                         int64_t             nLabel,
+                                        uint8_t             uTagRequirement,
                                         UsefulBufC         *pB64Text);
 
 static void QCBORDecode_GetB64URLInMapSZ(QCBORDecodeContext *pCtx,
-                                         uint8_t             uTagRequirement,
                                          const char         *szLabel,
+                                         uint8_t             uTagRequirement,
                                          UsefulBufC         *pB64Text);
 
 /**
@@ -925,13 +925,13 @@ static void QCBORDecode_GetRegex(QCBORDecodeContext *pCtx,
                                  UsefulBufC         *pRegex);
 
 static void QCBORDecode_GetRegexInMapN(QCBORDecodeContext *pCtx,
-                                       uint8_t             uTagRequirement,
                                        int64_t             nLabel,
+                                       uint8_t             uTagRequirement,
                                        UsefulBufC         *pRegex);
 
 static void QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pCtx,
-                                        uint8_t             uTagRequirement,
                                         const char *        szLabel,
+                                        uint8_t             uTagRequirement,
                                         UsefulBufC         *pRegex);
 
 
@@ -962,15 +962,15 @@ static void QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pCtx,
                                        bool               *pbIsNot7Bit);
 
 static void QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pCtx,
-                                            uint8_t              uTagRequirement,
                                             int64_t              nLabel,
+                                            uint8_t              uTagRequirement,
                                             UsefulBufC          *pMessage,
                                             bool                *pbIsNot7Bit);
 
 
 static void QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pCtx,
-                                              uint8_t             uTagRequirement,
                                               const char         *szLabel,
+                                              uint8_t             uTagRequirement,
                                               UsefulBufC         *pMessage,
                                               bool               *pbIsNot7Bit);
 
@@ -990,13 +990,13 @@ static inline void QCBORDecode_GetBinaryUUID(QCBORDecodeContext *pCtx,
                                              UsefulBufC         *pUUID);
 
 inline static void QCBORDecode_GetBinaryUUIDInMapN(QCBORDecodeContext *pCtx,
-                                                   uint8_t             uTagRequirement,
                                                    int64_t             nLabel,
+                                                   uint8_t             uTagRequirement,
                                                    UsefulBufC         *pUUID);
 
 inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
-                                                    uint8_t             uTagRequirement,
                                                     const char         *szLabel,
+                                                    uint8_t             uTagRequirement,
                                                     UsefulBufC         *pUUID);
 
 
@@ -1168,13 +1168,13 @@ void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pCtx,
                                   UsefulBufC         *pBstr);
 
 void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pCtx,
-                                          uint8_t             uTagRequirement,
                                           int64_t             nLabel,
+                                          uint8_t             uTagRequirement,
                                           UsefulBufC         *pBstr);
 
 void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx,
-                                           uint8_t             uTagRequirement,
                                            const char         *szLabel,
+                                           uint8_t             uTagRequirement,
                                            UsefulBufC         *pBstr);
 
 
@@ -1670,37 +1670,43 @@ inline static void QCBORDecode_GetTextInMapSZ(QCBORDecodeContext *pMe, const cha
 
 static inline void QCBORDecode_GetDateString(QCBORDecodeContext *pMe, uint8_t uTagRequirement, UsefulBufC *pValue)
 {
-   const TagSpecification TagSpec = {uTagRequirement,
-                                     {QCBOR_TYPE_DATE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-                                     {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-                                    };
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_DATE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
 
    QCBORDecode_GetTaggedStringInternal(pMe, TagSpec, pValue);
 }
 
 
 inline static void QCBORDecode_GetDateStringInMapN(QCBORDecodeContext *pMe,
-                                                   uint8_t uTagRequirement,
-                                                   int64_t nLabel,
-                                                   UsefulBufC *pText)
+                                                   int64_t             nLabel,
+                                                   uint8_t             uTagRequirement,
+                                                   UsefulBufC         *pText)
 {
-   const TagSpecification TagSpec = {uTagRequirement,
-                                     {QCBOR_TYPE_DATE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-                                     {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-                                    };
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_DATE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
 
    QCBORDecode_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pText);
 }
 
 inline static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pMe,
-                                                    uint8_t             uTagRequirement,
                                                     const char         *szLabel,
+                                                    uint8_t             uTagRequirement,
                                                     UsefulBufC         *pText)
 {
-   const TagSpecification TagSpec = {uTagRequirement,
-                                     {QCBOR_TYPE_DATE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-                                     {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-                                    };
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_DATE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
 
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pText);
 }
@@ -1710,32 +1716,35 @@ static inline void QCBORDecode_GetURI(QCBORDecodeContext *pMe,
                                       uint8_t             uTagRequirement,
                                       UsefulBufC         *pUUID)
 {
-   const TagSpecification TagSpec = {uTagRequirement,
-                                     {QCBOR_TYPE_URI, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-                                     {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-                                    };
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_URI, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
 
    QCBORDecode_GetTaggedStringInternal(pMe, TagSpec, pUUID);
 }
 
 
 inline static void QCBORDecode_GetURIInMapN(QCBORDecodeContext *pMe,
-                                            uint8_t             uTagRequirement,
                                             int64_t             nLabel,
+                                            uint8_t             uTagRequirement,
                                             UsefulBufC         *pUUID)
 {
-   const TagSpecification TagSpec = {uTagRequirement,
-                                     {QCBOR_TYPE_URI, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-                                     {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-                                    };
+   const TagSpecification TagSpec =
+    {uTagRequirement,
+     {QCBOR_TYPE_URI, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+     {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+    };
 
    QCBORDecode_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pUUID);
 }
 
 
 inline static void QCBORDecode_GetURIInMapSZ(QCBORDecodeContext *pMe,
-                                             uint8_t             uTagRequirement,
                                              const char         *szLabel,
+                                             uint8_t             uTagRequirement,
                                              UsefulBufC         *pUUID)
 {
    const TagSpecification TagSpec = {uTagRequirement,
@@ -1762,8 +1771,8 @@ static inline void QCBORDecode_GetB64(QCBORDecodeContext *pMe,
 
 
 inline static void QCBORDecode_GetB64InMapN(QCBORDecodeContext *pMe,
-                                            uint8_t             uTagRequirement,
                                             int64_t             nLabel,
+                                            uint8_t             uTagRequirement,
                                             UsefulBufC         *pB64Text)
 {
    const TagSpecification TagSpec = {uTagRequirement,
@@ -1775,8 +1784,8 @@ inline static void QCBORDecode_GetB64InMapN(QCBORDecodeContext *pMe,
 }
 
 inline static void QCBORDecode_GetB64InMapSZ(QCBORDecodeContext *pMe,
-                                             uint8_t             uTagRequirement,
                                              const char         *szLabel,
+                                             uint8_t             uTagRequirement,
                                              UsefulBufC         *pB64Text)
 {
    const TagSpecification TagSpec = {uTagRequirement,
@@ -1801,8 +1810,8 @@ static inline void QCBORDecode_GetB64URL(QCBORDecodeContext *pMe,
 
 
 inline static void QCBORDecode_GetB64URLInMapN(QCBORDecodeContext *pMe,
-                                               uint8_t             uTagRequirement,
                                                int64_t             nLabel,
+                                               uint8_t             uTagRequirement,
                                                UsefulBufC         *pB64Text)
 {
    const TagSpecification TagSpec = {uTagRequirement,
@@ -1815,8 +1824,8 @@ inline static void QCBORDecode_GetB64URLInMapN(QCBORDecodeContext *pMe,
 
 
 inline static void QCBORDecode_GetB64URLInMapSZ(QCBORDecodeContext *pMe,
-                                                uint8_t             uTagRequirement,
                                                 const char         *szLabel,
+                                                uint8_t             uTagRequirement,
                                                 UsefulBufC         *pB64Text)
 {
    const TagSpecification TagSpec = {uTagRequirement,
@@ -1841,8 +1850,8 @@ static inline void QCBORDecode_GetRegex(QCBORDecodeContext *pMe,
 
 
 static inline void QCBORDecode_GetRegexInMapN(QCBORDecodeContext *pMe,
-                                              uint8_t             uTagRequirement,
                                               int64_t             nLabel,
+                                              uint8_t             uTagRequirement,
                                               UsefulBufC         *pRegex)
 {
    const TagSpecification TagSpec = {uTagRequirement,
@@ -1855,8 +1864,8 @@ static inline void QCBORDecode_GetRegexInMapN(QCBORDecodeContext *pMe,
 
 
 static inline void QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pMe,
-                                               uint8_t             uTagRequirement,
                                                const char *        szLabel,
+                                               uint8_t             uTagRequirement,
                                                UsefulBufC         *pRegex)
 {
    const TagSpecification TagSpec = {uTagRequirement,
@@ -1890,28 +1899,32 @@ static inline void QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
 
 
 static inline void QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
-                                                    uint8_t             uTagRequirement,
                                                     int64_t             nLabel,
+                                                    uint8_t             uTagRequirement,
                                                     UsefulBufC         *pMessage,
                                                     bool               *pbIsNot7Bit)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)QCBORDecode_GetMIMEInternal(uTagRequirement, &Item, pMessage, pbIsNot7Bit);
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      pMe->uLastError = (uint8_t)QCBORDecode_GetMIMEInternal(uTagRequirement, &Item, pMessage, pbIsNot7Bit);
+   }
 }
 
 
 static inline void QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pMe,
-                                                     uint8_t             uTagRequirement,
                                                      const char         *szLabel,
+                                                     uint8_t             uTagRequirement,
                                                      UsefulBufC         *pMessage,
                                                      bool               *pbIsNot7Bit)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)QCBORDecode_GetMIMEInternal(uTagRequirement, &Item, pMessage, pbIsNot7Bit);
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      pMe->uLastError = (uint8_t)QCBORDecode_GetMIMEInternal(uTagRequirement, &Item, pMessage, pbIsNot7Bit);
+   }
 }
 
 
@@ -1930,8 +1943,8 @@ static inline void QCBORDecode_GetBinaryUUID(QCBORDecodeContext *pMe,
 
 
 inline static void QCBORDecode_GetBinaryUUIDInMapN(QCBORDecodeContext *pMe,
-                                                   uint8_t             uTagRequirement,
                                                    int64_t             nLabel,
+                                                   uint8_t             uTagRequirement,
                                                    UsefulBufC         *pUUID)
 {
    const TagSpecification TagSpec = {uTagRequirement,
@@ -1943,8 +1956,8 @@ inline static void QCBORDecode_GetBinaryUUIDInMapN(QCBORDecodeContext *pMe,
 }
 
 inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
-                                                    uint8_t             uTagRequirement,
                                                     const char         *szLabel,
+                                                    uint8_t             uTagRequirement,
                                                     UsefulBufC         *pUUID)
 {
    const TagSpecification TagSpec = {uTagRequirement,
@@ -1957,8 +1970,8 @@ inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
 
 
 inline static void QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pMe,
-                                                  uint8_t             uTagRequirement,
                                                   int64_t             nLabel,
+                                                  uint8_t             uTagRequirement,
                                                   int64_t            *puTime)
 {
    const TagSpecification TagSpec = {uTagRequirement,
