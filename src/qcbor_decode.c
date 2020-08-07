@@ -1977,7 +1977,7 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *me,
 /*
  Public function, see header qcbor/qcbor_decode.h file
  */
-int QCBORDecode_IsTagged(QCBORDecodeContext *me,
+bool QCBORDecode_IsTagged(QCBORDecodeContext *me,
                          const QCBORItem   *pItem,
                          uint64_t           uTag)
 {
@@ -1986,11 +1986,11 @@ int QCBORDecode_IsTagged(QCBORDecodeContext *me,
          break;
       }
       if(ConvertTag(me, pItem->uTags[i]) == uTag) {
-         return 1;
+         return true;
       }
    }
 
-   return 0;
+   return false;
 }
 
 
@@ -3655,10 +3655,6 @@ void QCBORDecode_GetInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
                                                int64_t             *pnValue,
                                                QCBORItem           *pItem)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, pItem);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -3939,46 +3935,6 @@ void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe,
    }
 
    pMe->uLastError = (uint8_t)ConvertUint64(&Item, uConvertTypes, puValue);
-}
-
-
-void QCBORDecode_GetInt8ConvertInternal(QCBORDecodeContext *pMe, uint32_t uConvertTypes, int8_t *pnValue, QCBORItem *pItem)
-{
-   int64_t uValue;
-   QCBORDecode_GetInt64ConvertInternal(pMe, uConvertTypes, &uValue, pItem);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   if(QCBOR_Int64ToInt8(uValue, pnValue)) {
-      pMe->uLastError = QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
-   }
-}
-
-void QCBORDecode_GetInt8ConvertInternalInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint32_t uConvertTypes, int8_t *pnValue, QCBORItem *pItem)
-{
-   int64_t uValue;
-   QCBORDecode_GetInt64ConvertInternalInMapN(pMe, nLabel, uConvertTypes, &uValue, pItem);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   if(QCBOR_Int64ToInt8(uValue, pnValue)) {
-      pMe->uLastError = QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
-   }
-}
-
-void QCBORDecode_GetInt8ConvertInternalInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint32_t uConvertTypes, int8_t *pnValue, QCBORItem *pItem)
-{
-   int64_t uValue;
-   QCBORDecode_GetInt64ConvertInternalInMapSZ(pMe, szLabel, uConvertTypes, &uValue, pItem);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   if(QCBOR_Int64ToInt8(uValue, pnValue)) {
-      pMe->uLastError = QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
-   }
 }
 
 

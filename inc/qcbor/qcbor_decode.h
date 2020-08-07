@@ -282,20 +282,20 @@ typedef enum {
 
 
 
-
-/*
- Approx Size of this:
-   8 + 8 + 1 + 1 + 1 + (1 padding) + (4 padding) = 24 for first part
-                                                  (20 on a 32-bit machine)
-   16 bytes for the val union
-   16 bytes for label union
-   total = 56 bytes (52 bytes on 32-bit machine)
+/**
+ The largest value in @c utags that is unmapped and can be used without
+ mapping it through QCBORDecode_GetNthTag().
  */
+#define QCBOR_LAST_UNMAPPED_TAG (CBOR_TAG_INVALID16 - QCBOR_NUM_MAPPED_TAGS)
+
 
 /**
  The main data structure that holds the type, value and other info for
  a decoded item returned by QCBORDecode_GetNext() and
  QCBORDecode_GetNextWithTags().
+
+ This size of this may vary by compiler but is roughly 56 bytes on
+ a 64-bit CPU and 52 bytes on a 32-bit CPU.
  */
 typedef struct _QCBORItem {
    /** Tells what element of the @c val union to use. One of @c
@@ -395,42 +395,25 @@ typedef struct _QCBORItem {
       uint64_t    uint64;
    } label;
 
-   // Values below XXX are exact; values above XXX must be mapped
+   /** The tags on the item.  Tags nest, so index 0 in the array is
+       the tag on the data item itself, index 1 is the tag that
+       applies to the tag in index 0. The end of the list is indicated
+       by @ref CBOR_TAG_INVALID16
+
+       Tag nesting is uncommon and rarely deep. This implementation
+       only allows nesting to a depth of @ref QCBOR_MAX_TAGS_PER_ITEM,
+       usually 4.
+
+       Tags in the array below and equal to @ref
+       QCBOR_LAST_UNMAPPED_TAG are unmapped and can be used
+       directly. Tags above this must be be translated through
+       QCBORDecode_GetNthTag().
+
+       See also the large number of QCBORDecode_GetXxxx() functions in
+       qcbor_spiffy_decode.h for a way to decode tagged types without
+       having to reference this array.
+    */
    uint16_t uTags[QCBOR_MAX_TAGS_PER_ITEM];
-
-   /*
-
-    0-127, the tag value itself
-    128-255, index into tag map
-
-    The decode context stores 4 tags (32 bytes)
-
-    Could
-    - allocate space in decode context for new tags encountered, say 32 bytes worth for
-      four extra tags.
-    - require caller to pass in list of tags they are interested in, up to 128 even
-      This already exists. It is an error when an unknown tag is enountered.
-    - allow caller to give space to store tags if using tags > 128 in value
-      It is only an error if more distinct tag values are encountered
-      than there is space to remember them.
-    - Use storage alloator to expand space needed.
-
-
-    */
-
-   /*
-    Or use the existing tag mapping strategy, and
-    store the offset in 4-bits accommomdating use
-    of 64 tag values in a decode session and using
-    only 2 bytes to store the tag list.
-
-    Can elimiate getNextWithTags.
-
-    Add new function to get the tag value.
-
-    Is annoying to find tag value on error with
-    existing scheme.
-    */
 
 } QCBORItem;
 
@@ -688,24 +671,13 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
                                 bool bAllStrings);
 
 /**
- @brief Configure list of caller-selected tags to be recognized.
+ @brief Deprecated -- Configure list of caller-selected tags to be recognized.
 
  @param[in] pCtx       The decode context.
  @param[out] pTagList  Structure holding the list of tags to configure.
 
- This is used to tell the decoder about tags beyond those that are
- built-in that should be recognized. The built-in tags are those with
- macros of the form @c CBOR_TAG_XXX.
-
- The list pointed to by @c pTagList must persist during decoding.  No
- copy of it is made.
-
- The maximum number of tags that can be added is @ref
- QCBOR_MAX_CUSTOM_TAGS.  If a list larger than this is given, the
- error will be returned when QCBORDecode_GetNext() is called, not
- here.
-
- See description of @ref QCBORTagListIn.
+ Tag handling has been revised and it is no longer ncessary to use this.
+ See QCBORDecode_GetNthTag().
  */
 void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBORTagListIn *pTagList);
 
@@ -851,6 +823,7 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  map or array has been encountered. This works the same for both
  definite and indefinite-length arrays.
 
+ TODO: revise this documentation
  This decoder support CBOR type 6 tagging. The decoding of particular
  given tag value may be supported in one of three different ways.
 
@@ -914,10 +887,10 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  - There are a few CBOR constructs that are not handled without some
  extra configuration. These are indefinite length strings and maps
  with labels that are not strings or integers. See QCBORDecode_Init().
-
  */
 QCBORError QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
+// TODO: finish this
 QCBORError QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
@@ -934,6 +907,8 @@ QCBORError QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedIte
  @return See return values for QCBORDecode_GetNext().
 
  @retval QCBOR_ERR_TOO_MANY_TAGS  The size of @c pTagList is too small.
+
+ TODO: revise his documentation
 
  This works the same as QCBORDecode_GetNext() except that it also
  returns the full list of tags for the data item. This function should
@@ -959,15 +934,15 @@ QCBORError QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedIte
 QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
 
 
-
 /**
- @brief Determine if a CBOR item was tagged with a particular tag
+ @brief Determine if a CBOR item was tagged with a particular tag.
 
  @param[in] pCtx    The decoder context.
  @param[in] pItem   The CBOR item to check.
- @param[in] uTag    The tag to check, one of @c CBOR_TAG_XXX.
+ @param[in] uTag    The tag to check, one of @c CBOR_TAG_XXX,
+                   for example, @ref CBOR_TAG_DATE_STRING.
 
- @return 1 if it was tagged, 0 if not
+ @return true if it was tagged, false if not
 
  See QCBORDecode_GetNext() for the main description of tag
  handling. For tags that are not fully decoded a bit corresponding to
@@ -983,7 +958,7 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDec
  add new tags to the internal list so they can be checked for with
  this function.
  */
-int QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint64_t uTag);
+bool QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint64_t uTag);
 
 
 /**
@@ -1095,7 +1070,6 @@ static QCBORError QCBORDecode_GetError(QCBORDecodeContext *pCtx);
  This returns the same as QCBORDecode_GetError() and also
  resets the error state to @ref QCBOR_SUCCESS.
  */
-
 static QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
 
 
@@ -1236,16 +1210,15 @@ static inline QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pMe)
     return uReturn;
 }
 
-// TODO: test this
 static inline bool QCBORDecode_IsNotWellFormed(QCBORError uErr)
 {
-   if(uErr >= QCBOR_ERR_FIRST_NOT_WELL_FORMED && uErr <= QCBOR_ERR_LAST_NOT_WELL_FORMED) {
+   if(uErr >= QCBOR_ERR_FIRST_NOT_WELL_FORMED &&
+      uErr <= QCBOR_ERR_LAST_NOT_WELL_FORMED) {
       return true;
    } else {
       return false;
    }
 }
-
 
 
 #ifdef __cplusplus

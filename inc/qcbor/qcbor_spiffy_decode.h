@@ -108,6 +108,20 @@ extern "C" {
  another. In such designs, GetNext has to be used and the internal
  error checking can't be relied upon.
 
+
+ ----
+  GetNext will always try to get something. The other Get functions
+ will not try if there is an error.
+
+ Make it a decode option for GetNext to not try? That way it is
+ the same as all Get functions and can be used in the mix
+ with them?
+
+ GetNext is how you get things in an array you don't
+ know the type of.
+
+ ----
+
  @anchor Tag-Matcing
 
  Data types beyond the basic CBOR types of numbers, strings, maps and

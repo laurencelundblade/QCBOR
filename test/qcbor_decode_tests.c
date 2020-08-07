@@ -1613,25 +1613,6 @@ int32_t ParseSimpleTest()
 }
 
 
-static bool IsNotWellFormedError(QCBORError nErr)
-{
-   switch(nErr){
-      case QCBOR_ERR_INDEFINITE_STRING_CHUNK:
-      case QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN:
-      case QCBOR_ERR_UNSUPPORTED:
-      case QCBOR_ERR_HIT_END:
-      case QCBOR_ERR_BAD_TYPE_7:
-      case QCBOR_ERR_BAD_BREAK:
-      case QCBOR_ERR_EXTRA_BYTES:
-      case QCBOR_ERR_BAD_INT:
-      case QCBOR_ERR_NO_MORE_ITEMS: // TODO: really keep this?
-         return true;
-      default:
-         return false;
-   }
-}
-
-
 int32_t NotWellFormedTests()
 {
    // Loop over all the not-well-formed instance of CBOR
@@ -1649,17 +1630,18 @@ int32_t NotWellFormedTests()
       QCBORDecode_SetMemPool(&DCtx, Pool, 0);
 
       // Loop getting items until no more to get
-      QCBORError nCBORError;
+      QCBORError uCBORError;
       do {
          QCBORItem Item;
 
-         nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
-      } while(nCBORError == QCBOR_SUCCESS);
+         uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+      } while(uCBORError == QCBOR_SUCCESS);
 
       // Every test vector must fail with
       // a not-well-formed error. If not
       // this test fails.
-      if(!IsNotWellFormedError(nCBORError)) {
+      if(!QCBORDecode_IsNotWellFormed(uCBORError) &&
+         uCBORError != QCBOR_ERR_NO_MORE_ITEMS) {
          // Return index of failure in the error code
          return 2000 + nIterate;
       }
