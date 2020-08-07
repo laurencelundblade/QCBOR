@@ -396,8 +396,8 @@ DecodeNesting_SetCurrentToBoundedLevel(QCBORDecodeNesting *pNesting)
 
 inline static QCBORError
 DecodeNesting_DescendIntoBstrWrapped(QCBORDecodeNesting *pNesting,
-                                     size_t uEndOffset,
-                                     size_t uEndOfBstr)
+                                     uint32_t uEndOffset,
+                                     uint32_t uEndOfBstr)
 {
    QCBORError uError = QCBOR_SUCCESS;
 
@@ -407,9 +407,8 @@ DecodeNesting_DescendIntoBstrWrapped(QCBORDecodeNesting *pNesting,
    }
 
    // Fill in the new byte string level
-   // TODO: justify cast
-   pNesting->pCurrent->u.bs.uPreviousEndOffset = (uint32_t)uEndOffset;
-   pNesting->pCurrent->u.bs.uEndOfBstr         = (uint32_t)uEndOfBstr;
+   pNesting->pCurrent->u.bs.uPreviousEndOffset = uEndOffset;
+   pNesting->pCurrent->u.bs.uEndOfBstr         = uEndOfBstr;
 
    // Bstr wrapped levels are always bounded
    pNesting->pCurrentBounded = pNesting->pCurrent;
@@ -2991,20 +2990,21 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
    const size_t uPreviousLength = UsefulInputBuf_GetLength(&(pMe->InBuf));
 
    // Need to move UIB input cursor to the right place
-
-   // Really this is a subtraction and an assignment; not much code
-   // There is a range check in the seek.
-   // The bstr was just consumed so the cursor is at the next item after it
-
+   // Most of these calls are simple inline accessors so this doesn't
+   // amount to much code. There is a range check in the seek.
    const size_t uEndOfBstr = UsefulInputBuf_Tell(&(pMe->InBuf));
-
+   if(uEndOfBstr >= UINT32_MAX || uPreviousLength >= UINT32_MAX) {
+      // TODO: test this error condition
+      uError = QCBOR_ERR_BUFFER_TOO_LARGE;
+      goto Done;
+   }
    UsefulInputBuf_Seek(&(pMe->InBuf), uEndOfBstr - pItem->val.string.len);
-
    UsefulInputBuf_SetBufferLen(&(pMe->InBuf), uEndOfBstr);
 
+   // Casts are OK because of the checks above.
    uError = DecodeNesting_DescendIntoBstrWrapped(&(pMe->nesting),
-                                                   uPreviousLength,
-                                                   uEndOfBstr);
+                                                   (uint32_t)uPreviousLength,
+                                                   (uint32_t)uEndOfBstr);
 Done:
    DecodeNesting_Print(&(pMe->nesting), &(pMe->InBuf),  "Entered Bstr");
 
