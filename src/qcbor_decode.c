@@ -320,7 +320,7 @@ DecodeNesting_EnterBoundedMapOrArray(QCBORDecodeNesting *pNesting, bool bIsEmpty
     Have descended into this before this is called. The job here is
     just to mark it in bounded mode.
     */
-   if(uOffset >= QCBOR_NON_BOUNDED_OFFSET) { //TODO: fix this bounds check
+   if(uOffset >= QCBOR_NON_BOUNDED_OFFSET) {
       return QCBOR_ERR_BUFFER_TOO_LARGE;
    }
 
