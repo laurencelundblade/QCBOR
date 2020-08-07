@@ -10,6 +10,8 @@
  Created on 7/23/18
  =============================================================================*/
 
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+
 #ifndef ieee754_h
 #define ieee754_h
 
@@ -75,13 +77,6 @@ uint16_t IEEE754_FloatToHalf(float f);
 
 
 /*
- Convert half-precision float to single-precision float.  This is a
- loss-less conversion.
- */
-float IEEE754_HalfToFloat(uint16_t uHalfPrecision);
-
-
-/*
  Convert double-precision float to half-precision float.  Precision
  and NaN payload bits will be lost. Too-large values will round up to
  infinity and too small to zero.
@@ -95,6 +90,13 @@ uint16_t IEEE754_DoubleToHalf(double d);
  */
 double IEEE754_HalfToDouble(uint16_t uHalfPrecision);
 
+
+/*
+ Convert float to double-precision without using any
+ floating-point HW or compiler-supplied SW.
+ This is a loss-less conversion.
+ */
+double IEEE754_FloatToDouble(uint32_t ufloat);
 
 
 // Both tags the value and gives the size
@@ -146,7 +148,7 @@ IEEE754_union IEEE754_FloatToSmallest(float f);
 #endif /* ieee754_h */
 
 
-
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
 

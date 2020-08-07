@@ -368,7 +368,14 @@ typedef enum {
 
    /** Trying to get something by label when not entered into a
        map.  */
-   QCBOR_ERR_NOT_A_MAP = 33
+   QCBOR_ERR_NOT_A_MAP = 33,
+
+   /** Decoding of floating-point epoch dates is unsupported and a
+        floating-point date was encountered by the decoder. */
+   QCBOR_ERR_FLOAT_DATE_UNSUPPORTED = 34,
+
+   /** Support for half-precision float decoding is disabled. */
+   QCBOR_ERR_HALF_PRECISION_UNSUPPORTED = 35
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;

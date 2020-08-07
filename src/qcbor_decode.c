@@ -796,12 +796,25 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
       // caught before this is called.
 
       case HALF_PREC_FLOAT:
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+         // The cast to uint16_t is safe because the encoded value
+         // was 16 bits. It was widened to 64 bits to be passed in here.
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
+#else
+         nReturn = QCBOR_ERR_HALF_PRECISION_UNSUPPORTED;
+#endif
          break;
       case SINGLE_PREC_FLOAT:
-         pDecodedItem->val.dfnum = (double)UsefulBufUtil_CopyUint32ToFloat((uint32_t)uNumber);
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+         // The cast to uint32_t is safe because the encoded value
+         // was 32 bits. It was widened to 64 bits to be passed in here.
+         pDecodedItem->val.dfnum = IEEE754_FloatToDouble((uint32_t)uNumber);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
+#else
+         pDecodedItem->val.fnum = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uNumber);
+         pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
+#endif
          break;
       case DOUBLE_PREC_FLOAT:
          pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uNumber);
@@ -1537,36 +1550,51 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
          break;
 
       case QCBOR_TYPE_DOUBLE:
+      case QCBOR_TYPE_FLOAT:
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
       {
          // This comparison needs to be done as a float before
-         // conversion to an int64_t to be able to detect doubles
-         // that are too large to fit into an int64_t.  A double
-         // has 52 bits of preceision. An int64_t has 63. Casting
-         // INT64_MAX to a double actually causes a round up which
-         // is bad and wrong for the comparison because it will
-         // allow conversion of doubles that can't fit into a
-         // uint64_t.  To remedy this INT64_MAX - 0x7ff is used as
-         // the cutoff point as if that rounds up in conversion to
-         // double it will still be less than INT64_MAX. 0x7ff is
-         // picked because it has 11 bits set.
+         // conversion to an int64_t to be able to detect doubles that
+         // are too large to fit into an int64_t.  A double has 52
+         // bits of preceision. An int64_t has 63. Casting INT64_MAX
+         // to a double actually causes a round up which is bad and
+         // wrong for the comparison because it will allow conversion
+         // of doubles that can't fit into a uint64_t.  To remedy this
+         // INT64_MAX - 0x7ff is used as the cutoff point because if
+         // that value rounds up in conversion to double it will still
+         // be less than INT64_MAX. 0x7ff is picked because it has 11
+         // bits set.
          //
-         // INT64_MAX seconds is on the order of 10 billion years,
-         // and the earth is less than 5 billion years old, so for
-         // most uses this conversion error won't occur even though
-         // doubles can go much larger.
+         // INT64_MAX seconds is on the order of 10 billion years, and
+         // the earth is less than 5 billion years old, so for most
+         // uses this conversion error won't occur even though doubles
+         // can go much larger.
          //
          // Without the 0x7ff there is a ~30 minute range of time
          // values 10 billion years in the past and in the future
-         // where this this code would go wrong.
-         const double d = pDecodedItem->val.dfnum;
+         // where this this code would go wrong and some compilers
+         // will generate warnings or errors.
+         const double d = pDecodedItem->uDataType == QCBOR_TYPE_DOUBLE ?
+                            pDecodedItem->val.dfnum :
+                            (double)pDecodedItem->val.fnum;
          if(d > (double)(INT64_MAX - 0x7ff)) {
             nReturn = QCBOR_ERR_DATE_OVERFLOW;
             goto Done;
          }
          pDecodedItem->val.epochDate.nSeconds = (int64_t)d;
-         pDecodedItem->val.epochDate.fSecondsFraction = d - (double)pDecodedItem->val.epochDate.nSeconds;
+         pDecodedItem->val.epochDate.fSecondsFraction =
+                           d - (double)pDecodedItem->val.epochDate.nSeconds;
       }
+#else
+         /* Disabling float support causes a floating point
+          data to error in the default below. The above code
+          requires floating point conversion to integers and
+          comparison which requires either floating point HW
+          or a SW library. */
+         nReturn = QCBOR_ERR_FLOAT_DATE_UNSUPPORTED;
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          break;
+
 
       default:
          nReturn = QCBOR_ERR_BAD_OPT_TAG;

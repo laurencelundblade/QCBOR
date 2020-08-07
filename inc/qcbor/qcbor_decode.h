@@ -336,6 +336,8 @@ typedef struct _QCBORItem {
       uint16_t    uCount;
       /** The value for @c uDataType @ref QCBOR_TYPE_DOUBLE. */
       double      dfnum;
+      /** The value for @c uDataType @ref QCBOR_TYPE_FLOAT. */
+      float       fnum;
       /** The value for @c uDataType @ref QCBOR_TYPE_DATE_EPOCH. */
       struct {
          int64_t  nSeconds;
@@ -994,16 +996,17 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem,
 
  @param[in]  pCtx  The context to check.
 
- @retval  QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN   The CBOR is not well-formed
- as some map or array was not closed off. This should always be treated as an
- unrecoverable error.
+ @retval QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN The CBOR is not well-formed
+          as some map or array was not closed off. This should always
+          be treated as an unrecoverable error.
 
- @retval QCBOR_ERR_EXTRA_BYTES The CBOR was decoded correctly and
- all maps and arrays are closed, but some of the bytes in the input were not consumed.
- This may or may not be considered an error.
+ @retval QCBOR_ERR_EXTRA_BYTES The CBOR was decoded correctly and all
+         maps and arrays are closed, but some of the bytes in the
+         input were not consumed.  This may or may not be considered
+         an error.
 
  @retval QCBOR_SUCCES There were no errors and all bytes were
- consumed.
+         consumed.
 
  This should always be called to determine if all maps and arrays
  where correctly closed and that the CBOR was well-formed.
