@@ -797,25 +797,43 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
 
       case HALF_PREC_FLOAT:
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+         // Half-precision is returned as a double.
          // The cast to uint16_t is safe because the encoded value
          // was 16 bits. It was widened to 64 bits to be passed in here.
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 #else
-         nReturn = QCBOR_ERR_HALF_PRECISION_UNSUPPORTED;
+         nReturn = QCBOR_ERR_HALF_PRECISION_DISABLED;
 #endif
          break;
       case SINGLE_PREC_FLOAT:
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+         // Single precision is normally returned as a double
+         // since double is widely supported, there is no loss of
+         // precision, it makes it easy for the caller in
+         // most cases and it can be converted back to single
+         // with no loss of precision
+         //
          // The cast to uint32_t is safe because the encoded value
          // was 32 bits. It was widened to 64 bits to be passed in here.
-         pDecodedItem->val.dfnum = IEEE754_FloatToDouble((uint32_t)uNumber);
-         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
+         {
+            const float f = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uNumber);
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+            // In the normal case, use HW to convert float to double.
+            pDecodedItem->val.dfnum = (double)f;
+            pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 #else
-         pDecodedItem->val.fnum = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uNumber);
-         pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
+            // Use of float HW is disabled, return as a float.
+            pDecodedItem->val.fnum = f;
+            pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
+
+            // IEEE754_FloatToDouble() could be used here to return
+            // as a double, but it adds object code and most likely
+            // anyone disabling FLOAT HW use doesn't care about
+            // floats and wants to save object code.
 #endif
+         }
          break;
+
       case DOUBLE_PREC_FLOAT:
          pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uNumber);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
@@ -1591,7 +1609,7 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
           requires floating point conversion to integers and
           comparison which requires either floating point HW
           or a SW library. */
-         nReturn = QCBOR_ERR_FLOAT_DATE_UNSUPPORTED;
+         nReturn = QCBOR_ERR_FLOAT_DATE_DISABLED;
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
@@ -3445,7 +3463,7 @@ static inline QCBORError ExponentiateNN(int64_t nMantissa, int64_t nExponent, in
    uint64_t uResult;
 
    // Take the absolute value of the mantissa and convert to unsigned.
-   // TODO: this should be possible in one intruction
+   // Improvement: this should be possible in one instruction
    uint64_t uMantissa = nMantissa > 0 ? (uint64_t)nMantissa : (uint64_t)-nMantissa;
 
    // Do the exponentiation of the positive mantissa
@@ -3557,25 +3575,7 @@ static inline QCBORError ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, 
 }
 
 
-static inline UsefulBufC ConvertIntToBigNum(uint64_t uInt, UsefulBuf Buffer)
-{
-   while((uInt & 0xff00000000000000UL) == 0) {
-      uInt = uInt << 8;
-   };
 
-   UsefulOutBuf UOB;
-
-   UsefulOutBuf_Init(&UOB, Buffer);
-
-   while(uInt) {
-      const uint64_t xx = uInt & 0xff00000000000000UL;
-      UsefulOutBuf_AppendByte(&UOB, (uint8_t)((uInt & 0xff00000000000000UL) >> 56));
-      uInt = uInt << 8;
-      (void)xx;
-   }
-
-   return UsefulOutBuf_OutUBuf(&UOB);
-}
 
 #include "fenv.h"
 
@@ -3595,13 +3595,18 @@ Convert a integers and floats to an int64_t.
 static QCBORError ConvertInt64(const QCBORItem *pItem, uint32_t uConvertTypes, int64_t *pnValue)
 {
    switch(pItem->uDataType) {
-      // TODO: float when ifdefs are set
+      case QCBOR_TYPE_FLOAT:
       case QCBOR_TYPE_DOUBLE:
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
             // TODO: what about under/overflow here?
             // Invokes the floating-point HW and/or compiler-added libraries
             feclearexcept(FE_ALL_EXCEPT);
-            *pnValue = llround(pItem->val.dfnum);
+            if(pItem->uDataType == QCBOR_TYPE_DOUBLE) {
+               *pnValue = llround(pItem->val.dfnum);
+            } else {
+               *pnValue = lroundf(pItem->val.fnum);
+            }
             if(fetestexcept(FE_INVALID)) {
                // TODO: better error code
                return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
@@ -3609,6 +3614,9 @@ static QCBORError ConvertInt64(const QCBORItem *pItem, uint32_t uConvertTypes, i
          } else {
             return  QCBOR_ERR_UNEXPECTED_TYPE;
          }
+#else
+         return QCBOR_ERR_HW_FLOAT_DISABLED;
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
       case QCBOR_TYPE_INT64:
@@ -3707,8 +3715,6 @@ void QCBORDecode_GetInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
  */
 static QCBORError Int64ConvertAll(const QCBORItem *pItem, uint32_t uConvertTypes, int64_t *pnValue)
 {
-   QCBORError uErr;
-
    switch(pItem->uDataType) {
 
       case QCBOR_TYPE_POSBIGNUM:
@@ -3752,7 +3758,8 @@ static QCBORError Int64ConvertAll(const QCBORItem *pItem, uint32_t uConvertTypes
 
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            int64_t nMantissa;
+            int64_t    nMantissa;
+            QCBORError uErr;
             uErr = ConvertPositiveBigNumToSigned(pItem->val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(uErr) {
                return uErr;
@@ -3768,7 +3775,8 @@ static QCBORError Int64ConvertAll(const QCBORItem *pItem, uint32_t uConvertTypes
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            int64_t nMantissa;
+            int64_t    nMantissa;
+            QCBORError uErr;
             uErr = ConvertNegativeBigNumToSigned(pItem->val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(uErr) {
                return uErr;
@@ -3784,7 +3792,8 @@ static QCBORError Int64ConvertAll(const QCBORItem *pItem, uint32_t uConvertTypes
 
       case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            int64_t nMantissa;
+            int64_t    nMantissa;
+            QCBORError uErr;
             uErr = ConvertPositiveBigNumToSigned(pItem->val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(uErr) {
                return uErr;
@@ -3800,7 +3809,8 @@ static QCBORError Int64ConvertAll(const QCBORItem *pItem, uint32_t uConvertTypes
 
       case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            int64_t nMantissa;
+            int64_t    nMantissa;
+            QCBORError uErr;
             uErr = ConvertNegativeBigNumToSigned(pItem->val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(uErr) {
                return uErr;
@@ -3892,9 +3902,11 @@ void QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe, const char *
 static QCBORError ConvertUint64(const QCBORItem *pItem, uint32_t uConvertTypes, uint64_t *puValue)
 {
    switch(pItem->uDataType) {
-           // TODO: type flaot
         case QCBOR_TYPE_DOUBLE:
+        case QCBOR_TYPE_FLOAT:
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
            if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
+              // TODO: this code needs work
               feclearexcept(FE_ALL_EXCEPT);
               double dRounded = round(pItem->val.dfnum);
               // TODO: over/underflow
@@ -3912,6 +3924,9 @@ static QCBORError ConvertUint64(const QCBORItem *pItem, uint32_t uConvertTypes, 
            } else {
               return QCBOR_ERR_UNEXPECTED_TYPE;
            }
+#else
+         return QCBOR_ERR_HW_FLOAT_DISABLED;
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
            break;
 
         case QCBOR_TYPE_INT64:
@@ -4006,8 +4021,6 @@ void QCBORDecode_GetUInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
 */
 static QCBORError Uint64ConvertAll(const QCBORItem *pItem, uint32_t uConvertTypes, uint64_t *puValue)
 {
-   QCBORError uErr;
-
    switch(pItem->uDataType) {
 
       case QCBOR_TYPE_POSBIGNUM:
@@ -4053,7 +4066,8 @@ static QCBORError Uint64ConvertAll(const QCBORItem *pItem, uint32_t uConvertType
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             // TODO: Would be better to convert to unsigned
-            int64_t nMantissa;
+            int64_t    nMantissa;
+            QCBORError uErr;
             uErr = ConvertPositiveBigNumToSigned(pItem->val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(uErr != QCBOR_SUCCESS) {
                return uErr;
@@ -4078,7 +4092,8 @@ static QCBORError Uint64ConvertAll(const QCBORItem *pItem, uint32_t uConvertType
       case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             // TODO: Would be better to convert to unsigned
-            int64_t nMantissa;
+            int64_t    nMantissa;
+            QCBORError uErr;
             uErr =  ConvertPositiveBigNumToSigned(pItem->val.expAndMantissa.Mantissa.bigNum, &nMantissa);
             if(uErr != QCBOR_SUCCESS) {
                return uErr;
@@ -4176,7 +4191,20 @@ void QCBORDecode_GetUint64ConvertAllInMapSZ(QCBORDecodeContext *pMe, const char 
 static QCBORError ConvertDouble(const QCBORItem *pItem, uint32_t uConvertTypes, double *pdValue)
 {
    switch(pItem->uDataType) {
-      // TODO: float when ifdefs are set
+      case QCBOR_TYPE_FLOAT:
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+         if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
+            if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
+               *pdValue = (double)pItem->val.fnum;
+            } else {
+               return QCBOR_ERR_UNEXPECTED_TYPE;
+            }
+         }
+#else
+         return QCBOR_ERR_HW_FLOAT_DISABLED;
+#endif
+         break;
+
       case QCBOR_TYPE_DOUBLE:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
             if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
@@ -4188,6 +4216,7 @@ static QCBORError ConvertDouble(const QCBORItem *pItem, uint32_t uConvertTypes, 
          break;
 
       case QCBOR_TYPE_INT64:
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
          if(uConvertTypes & QCBOR_CONVERT_TYPE_XINT64) {
             // TODO: how does this work?
             *pdValue = (double)pItem->val.int64;
@@ -4195,15 +4224,22 @@ static QCBORError ConvertDouble(const QCBORItem *pItem, uint32_t uConvertTypes, 
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
+#else
+         return QCBOR_ERR_HW_FLOAT_DISABLED;
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
       case QCBOR_TYPE_UINT64:
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
          if(uConvertTypes & QCBOR_CONVERT_TYPE_XINT64) {
              *pdValue = (double)pItem->val.uint64;
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
+#else
+         return QCBOR_ERR_HW_FLOAT_DISABLED;
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -4272,7 +4308,7 @@ void QCBORDecode_GetDoubleConvertInternalInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
 static double ConvertBigNumToDouble(const UsefulBufC BigNum)
 {
    double dResult;
@@ -4289,15 +4325,17 @@ static double ConvertBigNumToDouble(const UsefulBufC BigNum)
 
    return dResult;
 }
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
 
 static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uConvertTypes, double *pdValue)
 {
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
    /*
    https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
 
    */
    switch(pItem->uDataType) {
-         // TODO: type float
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
       case QCBOR_TYPE_DECIMAL_FRACTION:
@@ -4380,6 +4418,14 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uConvertType
    }
 
    return QCBOR_SUCCESS;
+
+#else
+   (void)pItem;
+   (void)uConvertTypes;
+   (void)pdValue;
+   return QCBOR_ERR_HW_FLOAT_DISABLED;
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
 }
 
 
@@ -4455,6 +4501,27 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe, const char 
 
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+static inline UsefulBufC ConvertIntToBigNum(uint64_t uInt, UsefulBuf Buffer)
+{
+   while((uInt & 0xff00000000000000UL) == 0) {
+      uInt = uInt << 8;
+   };
+
+   UsefulOutBuf UOB;
+
+   UsefulOutBuf_Init(&UOB, Buffer);
+
+   while(uInt) {
+      const uint64_t xx = uInt & 0xff00000000000000UL;
+      UsefulOutBuf_AppendByte(&UOB, (uint8_t)((uInt & 0xff00000000000000UL) >> 56));
+      uInt = uInt << 8;
+      (void)xx;
+   }
+
+   return UsefulOutBuf_OutUBuf(&UOB);
+}
+
+
 static QCBORError MantissaAndExponentTypeHandler(QCBORDecodeContext *pMe,
                                                  TagSpecification    TagSpec,
                                                  QCBORItem          *pItem)

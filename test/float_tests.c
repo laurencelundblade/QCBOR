@@ -14,6 +14,7 @@
 #include "float_tests.h"
 #include "qcbor/qcbor_encode.h"
 #include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 #include <math.h> // For INFINITY and NAN and isnan()
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
@@ -604,7 +605,16 @@ int32_t DoubleAsSmallestTest()
 
 
 /*
-[0.0, 3.14, 0.0, NaN, Infinity, 0.0, 3.140000104904175, 0.0, NaN, Infinity,
+[0.0,  // Half
+ 3.14, // Double
+ 0.0,  // Double
+ NaN,  // Double
+ Infinity, // Double
+ 0.0,  // Half
+ 3.140000104904175, // Single
+ 0.0,  // Single
+ NaN,  // Single
+ Infinity, // Single
  {100: 0.0, 101: 3.1415926, "euler": 2.718281828459045, 105: 0.0,
   102: 0.0, 103: 3.141592502593994, "euler2": 2.7182817459106445, 106: 0.0}]
  */
@@ -726,7 +736,6 @@ int32_t GeneralFloatEncodeTests()
 }
 
 
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 /* returns 0 if equivalent, non-zero if not equivalent */
 static int CHECK_EXPECTED_DOUBLE(double val, double expected)
 {
@@ -740,7 +749,6 @@ static int CHECK_EXPECTED_DOUBLE(double val, double expected)
       return 0;
    }
 }
-#endif
 
 
 int32_t GeneralFloatDecodeTests()
@@ -765,12 +773,12 @@ int32_t GeneralFloatDecodeTests()
       Item.val.dfnum != 0.0) {
       return -2;
    }
-#else
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_ERR_HALF_PRECISION_UNSUPPORTED) {
+   if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
       return -3;
    }
-#endif
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != QCBOR_SUCCESS ||
@@ -801,13 +809,22 @@ int32_t GeneralFloatDecodeTests()
    }
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+   // Tests for normal config
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_DOUBLE ||
       Item.val.dfnum != 0.0) {
       return -8;
    }
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
+      // Tests for preferred serialization turned off
+      uErr = QCBORDecode_GetNext(&DC, &Item);
+      if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
+         return -13;
+      }
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_DOUBLE ||
@@ -836,41 +853,258 @@ int32_t GeneralFloatDecodeTests()
       return -12;
    }
 
-#else
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+   // Tests for floating point HW use disabled
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_ERR_HALF_PRECISION_UNSUPPORTED) {
-      return -13;
+   if(uErr != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_FLOAT ||
+      CHECK_EXPECTED_DOUBLE(3.14, Item.val.fnum)) {
+      return -9;
    }
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_FLOAT ||
-      Item.val.fnum != 3.14f) {
-      return -14;
-   }
-
-   uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_FLOAT ||
-      Item.val.fnum != 0.0f) {
-      return -15;
+      Item.val.fnum != 0.0) {
+      return -10;
    }
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_FLOAT ||
       !isnan(Item.val.fnum)) {
-      return -16;
+      return -11;
    }
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_FLOAT ||
       Item.val.fnum != INFINITY) {
-      return -17;
+      return -12;
    }
-#endif
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
    /* Sufficent test coverage. Don't need to decode the rest */
+
+
+   // Now tests for spiffy decode
+   TestData = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
+   double d;
+   QCBORDecode_Init(&DC, TestData, 0);
+   QCBORDecode_EnterArray(&DC);
+
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+   // Spiffy decode tests for normal full float support
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != 0.0) {
+      return -100;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != 3.14) {
+      return -101;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != 0.0) {
+      return -102;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      !isnan(d)) {
+      return -103;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != INFINITY) {
+      return -104;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != 0.0) {
+      return -105;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != 3.140000104904175) {
+      return -106;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != 0.0) {
+      return -107;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      !isnan(d)) {
+      return -108;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != INFINITY) {
+      return -109;
+   }
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+   // Spiffy decode tests for float HW disabled
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != 0.0) {
+      return -200;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != 3.14) {
+      return -201;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != 0.0) {
+      return -202;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      !isnan(d)) {
+      return -203;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != INFINITY) {
+      return -204;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS ||
+      d != 0.0) {
+      return -205;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_ERR_HW_FLOAT_DISABLED) {
+      return -206;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_ERR_HW_FLOAT_DISABLED) {
+      return -207;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_ERR_HW_FLOAT_DISABLED ) {
+      return -208;
+   }
+
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_ERR_HW_FLOAT_DISABLED ) {
+      return -209;
+   }
+
+
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
+   // Spiffy decode tests for half-precision disabled
+   QCBORDecode_GetDouble(&DC, &d);
+    uErr = QCBORDecode_GetAndResetError(&DC);
+    if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
+       return -300;
+    }
+
+    QCBORDecode_GetDouble(&DC, &d);
+    uErr = QCBORDecode_GetAndResetError(&DC);
+    if(uErr != QCBOR_SUCCESS ||
+       d != 3.14) {
+       return -301;
+    }
+
+    QCBORDecode_GetDouble(&DC, &d);
+    uErr = QCBORDecode_GetAndResetError(&DC);
+    if(uErr != QCBOR_SUCCESS ||
+       d != 0.0) {
+       return -302;
+    }
+
+    QCBORDecode_GetDouble(&DC, &d);
+    uErr = QCBORDecode_GetAndResetError(&DC);
+    if(uErr != QCBOR_SUCCESS ||
+       !isnan(d)) {
+       return -303;
+    }
+
+    QCBORDecode_GetDouble(&DC, &d);
+    uErr = QCBORDecode_GetAndResetError(&DC);
+    if(uErr != QCBOR_SUCCESS ||
+       d != INFINITY) {
+       return -304;
+    }
+
+    QCBORDecode_GetDouble(&DC, &d);
+    uErr = QCBORDecode_GetAndResetError(&DC);
+    if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
+       return -305;
+    }
+
+    QCBORDecode_GetDouble(&DC, &d);
+    uErr = QCBORDecode_GetAndResetError(&DC);
+    if(uErr != QCBOR_SUCCESS ||
+       d != 3.140000104904175) {
+       return -306;
+    }
+
+    QCBORDecode_GetDouble(&DC, &d);
+    uErr = QCBORDecode_GetAndResetError(&DC);
+    if(uErr != QCBOR_SUCCESS ||
+       d != 0.0) {
+       return -307;
+    }
+
+    QCBORDecode_GetDouble(&DC, &d);
+    uErr = QCBORDecode_GetAndResetError(&DC);
+    if(uErr != QCBOR_SUCCESS ||
+       !isnan(d)) {
+       return -308;
+    }
+
+    QCBORDecode_GetDouble(&DC, &d);
+    uErr = QCBORDecode_GetAndResetError(&DC);
+    if(uErr != QCBOR_SUCCESS ||
+       d != INFINITY) {
+       return -309;
+    }
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
    return 0;
 }

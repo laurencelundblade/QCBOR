@@ -372,10 +372,14 @@ typedef enum {
 
    /** Decoding of floating-point epoch dates is unsupported and a
         floating-point date was encountered by the decoder. */
-   QCBOR_ERR_FLOAT_DATE_UNSUPPORTED = 34,
+   QCBOR_ERR_FLOAT_DATE_DISABLED = 34,
 
    /** Support for half-precision float decoding is disabled. */
-   QCBOR_ERR_HALF_PRECISION_UNSUPPORTED = 35
+   QCBOR_ERR_HALF_PRECISION_DISABLED = 35,
+
+   /** Use of floating-point HW is disabled. This affects all type conversions
+        to and from double and float types. */
+   QCBOR_ERR_HW_FLOAT_DISABLED = 36,
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;

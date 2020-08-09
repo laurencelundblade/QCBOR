@@ -254,8 +254,13 @@ static void QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pCtx,
 
  When converting floating-point values, the integer is rounded to the
  nearest integer using llround(). By default, floating-point suport is
- enabled for QCBOR. If it is turned off, then floating-point
- conversion is not available and TODO: error will be set.
+ enabled for QCBOR.
+
+ If floating-point HW use is disabled this will set
+ @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision
+ number is encountered. If half-precision support is disabled,
+ this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
+ a half-precision number is encountered.
 
  See also QCBORDecode_GetInt64ConvertAll() which will perform the same
  conversions as this and a lot more at the cost of adding more object
@@ -359,6 +364,12 @@ static void QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pCtx,
  unsigned integer and thus sets @ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
  is set if the value to be decoded is negatve.
 
+ If floating-point HW use is disabled this will set
+ @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision
+ number is encountered. If half-precision support is disabled,
+ this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
+ a half-precision number is encountered.
+
  See also QCBORDecode_GetUInt64Convert() and
  QCBORDecode_GetUInt64ConvertAll().
 */
@@ -416,6 +427,12 @@ void QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  single-precision or double-precision floating-point value.  If not
  @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
 
+ If floating-point HW use is disabled this will set
+ @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision
+ number is encountered. If half-precision support is disabled,
+ this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
+ a half-precision number is encountered.
+
  See @ref Decode-Errors for discussion on how error handling works.
 
  See also QCBORDecode_GetDoubleConvert() and
@@ -441,13 +458,19 @@ static void QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx,
  @param[out] pdValue  The returned floating-point value.
 
  This will decode CBOR integer and floating-point numbers, returning
- them as a floating-point number. This function supports @ref
+ them as a double floating-point number. This function supports @ref
  QCBOR_CONVERT_TYPE_XINT64 and @ref QCBOR_CONVERT_TYPE_FLOAT
  conversions. If the CBOR is not one of the requested types or a type
  not supported by this function, @ref QCBOR_ERR_UNEXPECTED_TYPE is
  set.
 
  See @ref Decode-Errors for discussion on how error handling works.
+
+ If floating-point HW use is disabled this will set
+ @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision
+ number is encountered. If half-precision support is disabled,
+ this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
+ a half-precision number is encountered.
 
  Positive and negative integers can always be converted to
  floating-point, so this will never error on type 0 or 1 CBOR.

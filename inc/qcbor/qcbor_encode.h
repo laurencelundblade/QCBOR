@@ -268,7 +268,7 @@ extern "C" {
  doubles and floats, especially if the zero, NaN and infinity are
  frequently used.
 
- To avoid use of preferred serialization when encoding, use
+ To avoid use of preferred serialization in the standard configuration when encoding, use
  QCBOREncode_AddDoubleNoPreferred() or
  QCBOREncode_AddFloatNoPreferred().
 
@@ -298,14 +298,16 @@ extern "C" {
  QCBOR_DISABLE_FLOAT_HW_USE reduces object code size on CPUs with
  floating-point hardware by a tiny amount.
 
- If QCBOR_DISABLE_FLOAT_HW_USE is defined and
- QCBOR_DISABLE_PREFERRED_FLOAT is not defined, then the only
- functionality lost is the decoding of floating-point dates.  An error
- will be returned if they are encountered.
+ When QCBOR_DISABLE_FLOAT_HW_USE is defined, trying to
+ decoding floating point dates will give error @ref QCBOR_ERR_FLOAT_DATE_DISABLED and decoded
+ single-precision
+ numbers will be returned as @ref QCBOR_TYPE_FLOAT instead of converting them to
+ double as usual.
+
 
  If both QCBOR_DISABLE_FLOAT_HW_USE and QCBOR_DISABLE_PREFERRED_FLOAT
  are defined, then the only thing QCBOR can do is encode/decode a
- float as 32-bits and a double as 64-bits. Floating-point epoch dates
+ C float type as 32-bits and a C double type as 64-bits. Floating-point epoch dates
  will be unsupported.
 
  Summary Limits of this implementation:

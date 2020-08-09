@@ -91,14 +91,6 @@ uint16_t IEEE754_DoubleToHalf(double d);
 double IEEE754_HalfToDouble(uint16_t uHalfPrecision);
 
 
-/*
- Convert float to double-precision without using any
- floating-point HW or compiler-supplied SW.
- This is a loss-less conversion.
- */
-double IEEE754_FloatToDouble(uint32_t ufloat);
-
-
 // Both tags the value and gives the size
 #define IEEE754_UNION_IS_HALF   2
 #define IEEE754_UNION_IS_SINGLE 4
