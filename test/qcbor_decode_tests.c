@@ -4327,6 +4327,26 @@ struct NumberConversion {
 
 static const struct NumberConversion NumberConversions[] = {
    {
+      "too large to fit into int64_t",
+      {(uint8_t[]){0xc3, 0x48, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 10},
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      ((double)INT64_MIN) + 1 ,
+      QCBOR_SUCCESS
+   },
+   {
+      "largest negative int that fits in int64_t",
+      {(uint8_t[]){0xc3, 0x48, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 10},
+      INT64_MIN,
+      QCBOR_SUCCESS,
+      0,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      (double)INT64_MIN,
+      QCBOR_SUCCESS
+   },
+   {
       "negative bignum -1",
       {(uint8_t[]){0xc3, 0x41, 0x00}, 3},
       -1,
