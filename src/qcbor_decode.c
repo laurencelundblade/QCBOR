@@ -33,7 +33,11 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
-#include "ieee754.h"
+#include "ieee754.h" // Does not use math.h
+
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#include <math.h> // For isnan(). TODO: list
+#endif
 
 
 /*
@@ -1549,7 +1553,7 @@ inline static QCBORError DecodeDateString(QCBORItem *pDecodedItem)
  */
 static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
 {
-   QCBORError nReturn = QCBOR_SUCCESS;
+   QCBORError uReturn = QCBOR_SUCCESS;
 
    pDecodedItem->val.epochDate.fSecondsFraction = 0;
 
@@ -1560,11 +1564,10 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
          break;
 
       case QCBOR_TYPE_UINT64:
-         if(pDecodedItem->val.uint64 > INT64_MAX) {
-            nReturn = QCBOR_ERR_DATE_OVERFLOW;
-            goto Done;
-         }
-         pDecodedItem->val.epochDate.nSeconds = (int64_t)pDecodedItem->val.uint64;
+         // This only happens for CBOR type 0 > INT64_MAX so it is
+         // always an overflow.
+         uReturn = QCBOR_ERR_DATE_OVERFLOW;
+         goto Done;
          break;
 
       case QCBOR_TYPE_DOUBLE:
@@ -1590,13 +1593,16 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
          //
          // Without the 0x7ff there is a ~30 minute range of time
          // values 10 billion years in the past and in the future
-         // where this this code would go wrong and some compilers
-         // will generate warnings or errors.
+         // where this code would go wrong. Some compilers
+         // will generate warnings or errors without the 0x7ff
+         // because of the precision issue.
          const double d = pDecodedItem->uDataType == QCBOR_TYPE_DOUBLE ?
                             pDecodedItem->val.dfnum :
                             (double)pDecodedItem->val.fnum;
-         if(d > (double)(INT64_MAX - 0x7ff)) {
-            nReturn = QCBOR_ERR_DATE_OVERFLOW;
+         if(isnan(d) ||
+            d > (double)(INT64_MAX - 0x7ff) ||
+            d < (double)(INT64_MIN + 0x7ff)) {
+            uReturn = QCBOR_ERR_DATE_OVERFLOW;
             goto Done;
          }
          pDecodedItem->val.epochDate.nSeconds = (int64_t)d;
@@ -1604,24 +1610,23 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
                            d - (double)pDecodedItem->val.epochDate.nSeconds;
       }
 #else
-         /* Disabling float support causes a floating point
-          data to error in the default below. The above code
-          requires floating point conversion to integers and
-          comparison which requires either floating point HW
+         /* Disabling float support causes a floating-point
+          date to error in the default below. The above code
+          requires floating-point conversion to integers and
+          comparison which requires either floating-point HW
           or a SW library. */
-         nReturn = QCBOR_ERR_FLOAT_DATE_DISABLED;
+         uReturn = QCBOR_ERR_FLOAT_DATE_DISABLED;
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
-
       default:
-         nReturn = QCBOR_ERR_BAD_OPT_TAG;
+         uReturn = QCBOR_ERR_BAD_OPT_TAG;
          goto Done;
    }
    pDecodedItem->uDataType = QCBOR_TYPE_DATE_EPOCH;
 
 Done:
-   return nReturn;
+   return uReturn;
 }
 
 
@@ -2481,8 +2486,8 @@ MapSearch(QCBORDecodeContext *pMe,
       /* Get the item */
       QCBORItem Item;
       uReturn = QCBORDecode_GetNext(pMe, &Item);
-      if(uReturn != QCBOR_SUCCESS) {
-         /* Got non-well-formed CBOR */
+      if(QCBORDecode_IsNotWellFormed(uReturn)) {
+         /* Got non-well-formed CBOR so map can't even be decoded. */
          goto Done;
       }
        
@@ -2533,7 +2538,7 @@ MapSearch(QCBORDecodeContext *pMe,
        to match the labels.
        */
       uReturn = ConsumeItem(pMe, &Item, &uNextNestLevel);
-      if(uReturn) {
+      if(uReturn != QCBOR_SUCCESS) {
          goto Done;
       }
       
@@ -2549,8 +2554,8 @@ MapSearch(QCBORDecodeContext *pMe,
    DecodeNesting_RestoreFromMapSearch(&(pMe->nesting), &SaveNesting);
 
  Done2:
-    /* For all items not found, set the data type to QCBOR_TYPE_NONE */
-    for(int i = 0; pItemArray[i].uLabelType != 0; i++) {
+   /* For all items not found, set the data type to QCBOR_TYPE_NONE */
+   for(int i = 0; pItemArray[i].uLabelType != 0; i++) {
       if(!(uFoundItemBitMap & (0x01ULL << i))) {
          pItemArray[i].uDataType = QCBOR_TYPE_NONE;
       }
@@ -3215,6 +3220,91 @@ void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, bo
 
 
 
+
+
+static void ProcessEpochDate(QCBORDecodeContext *pMe,
+                             QCBORItem           *pItem,
+                             uint8_t              uTagRequirement,
+                             int64_t             *pnTime)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      // Already in error state, do nothing
+      return;
+   }
+
+   QCBORError uErr;
+
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_DATE_EPOCH, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_INT64, QCBOR_TYPE_DOUBLE, QCBOR_TYPE_FLOAT}
+   };
+
+   // TODO: this will give a unexpected type error instead of
+   // overflow error for QCBOR_TYPE_UINT64 because TagSpec
+   // only has three target types.
+   uErr = CheckTagRequirement(TagSpec, pItem->uDataType);
+   if(uErr != QCBOR_SUCCESS) {
+      goto Done;
+   }
+
+   if(pItem->uDataType != QCBOR_TYPE_DATE_EPOCH) {
+      uErr = DecodeDateEpoch(pItem);
+      if(uErr != QCBOR_SUCCESS) {
+         goto Done;
+      }
+   }
+
+   *pnTime = pItem->val.epochDate.nSeconds;
+
+Done:
+   pMe->uLastError = (uint8_t)uErr;
+}
+
+
+void QCBORDecode_GetEpochDate(QCBORDecodeContext *pMe,
+                             uint8_t             uTagRequirement,
+                             int64_t            *pnTime)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      // Already in error state, do nothing
+      return;
+   }
+
+   QCBORItem  Item;
+   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
+
+   ProcessEpochDate(pMe, &Item, uTagRequirement, pnTime);
+}
+
+
+void
+QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pMe,
+                               int64_t             nLabel,
+                               uint8_t             uTagRequirement,
+                               int64_t            *pnTime)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   ProcessEpochDate(pMe, &Item, uTagRequirement, pnTime);
+}
+
+
+void
+QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pMe,
+                                const char         *szLabel,
+                                uint8_t             uTagRequirement,
+                                int64_t            *pnTime)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   ProcessEpochDate(pMe, &Item, uTagRequirement, pnTime);
+}
+
+
+
+
 void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe,
                                          TagSpecification    TagSpec,
                                          UsefulBufC         *pBstr)
@@ -3528,8 +3618,6 @@ static inline QCBORError ExponentitateUU(uint64_t       uMantissa,
 
 
 
-
-#include <math.h>
 
 
 static QCBORError ConvertBigNumToUnsigned(const UsefulBufC BigNum, uint64_t uMax, uint64_t *pResult)

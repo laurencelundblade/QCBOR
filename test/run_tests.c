@@ -87,6 +87,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(BignumParseTest),
     TEST_ENTRY(OptTagParseTest),
     TEST_ENTRY(DateParseTest),
+    TEST_ENTRY(SpiffyDateDecodeTest),
     TEST_ENTRY(ShortBufferParseTest2),
     TEST_ENTRY(ShortBufferParseTest),
     TEST_ENTRY(ParseDeepArrayTest),

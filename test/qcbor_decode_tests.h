@@ -161,9 +161,15 @@ int32_t BigComprehensiveInputTest(void);
 
 
 /*
- Thest the date types -- epoch and strings
+ Test the date types -- epoch and strings
  */
 int32_t DateParseTest(void);
+
+
+/*
+ Test spiffy date decoding functions
+ */
+int32_t SpiffyDateDecodeTest(void);
 
 
 /*

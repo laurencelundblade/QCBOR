@@ -640,21 +640,25 @@ static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
  @brief Decode the next item as an epoch date.
 
  @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAGSPEC_MATCH_XXX.
- @param[out] pnTime            The decoded URI.
+ @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ @param[out] pnTime            The decoded epoch date.
+
+ This will handle floating-point dates, but always returns them as an int64_t
+ discarding the fractional part. Use QCBORDecode_GetNext() instead of this to get the
+ fractional part.
 
  See @ref Decode-Errors for discussion on how error handling works.
 
  See @ref Tag-Matcing for discussion on tag requirements.
 */
-void QCBORDecode_GetEpocDate(QCBORDecodeContext *pCtx,
+void QCBORDecode_GetEpochDate(QCBORDecodeContext *pCtx,
                              uint8_t             uTagRequirement,
                              int64_t            *pnTime);
 
-static void QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pCtx,
-                                           int64_t             nLabel,
-                                           uint8_t             uTagRequirement,
-                                           int64_t            *pnTime);
+void QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pCtx,
+                                    int64_t             nLabel,
+                                    uint8_t             uTagRequirement,
+                                    int64_t            *pnTime);
 
 void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
                                      const char         *szLabel,
@@ -694,7 +698,7 @@ void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
  QCBORDecode_GetUInt64ConvertAll() and
  QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
 */
-// Improveent: Add function that at least convert integers
+// Improvement: Add function that at least convert integers to big nums
 void QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,
                            uint8_t             uTagRequirement,
                            UsefulBufC         *pValue,
@@ -961,8 +965,8 @@ static void QCBORDecode_GetB64InMapSZ(QCBORDecodeContext *pCtx,
  Note that this doesn not actually remove the base64 encoding.
 */
 static void QCBORDecode_GetB64URL(QCBORDecodeContext *pCtx,
-                                    uint8_t             uTagRequirement,
-                                    UsefulBufC         *pB64Text);
+                                  uint8_t             uTagRequirement,
+                                  UsefulBufC         *pB64Text);
 
 static void QCBORDecode_GetB64URLInMapN(QCBORDecodeContext *pCtx,
                                         int64_t             nLabel,
@@ -1075,7 +1079,13 @@ inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
 
  This puts the decoder in bounded mode which narrows
  decoding to the map entered and enables
- getting items by label.
+ getting items by label.  Note that all items
+ in the map must be well-formed and valid to be
+ able to search it by label because a full traversal
+ is done for each search. If not, the search will
+ retun an error for the item that is not well-formed
+ and valid. This may not be the item with the label
+ that is the subject of the search.
 
  Nested maps can be decoded like this by entering
  each map in turn.
@@ -1697,6 +1707,7 @@ QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pMe,
 
 // Semi private
 #define QCBOR_TAGSPEC_NUM_TYPES 3
+// TODO: make content types 4 to help out epoch dates?
 /* TODO: This structure can probably be rearranged so the initialization
  of it takes much less code. */
 typedef struct {
@@ -2193,27 +2204,6 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
       };
 
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pUUID);
-}
-
-
-inline static void
-QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pMe,
-                               int64_t             nLabel,
-                               uint8_t             uTagRequirement,
-                               int64_t            *puTime)
-{
-   const TagSpecification TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_DATE_EPOCH, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_INT64, QCBOR_TYPE_DOUBLE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORItem Item;
-   QCBORDecode_GetTaggedItemInMapN(pMe, nLabel, TagSpec, &Item);
-   *puTime = Item.val.int64; // TODO: lots of work to do here to
-   // handle the variety of date types
-   // This can't stay as an inline function. May have to rewrite date handling
 }
 
 

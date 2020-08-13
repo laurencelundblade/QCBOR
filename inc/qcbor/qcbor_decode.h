@@ -338,7 +338,9 @@ typedef struct _QCBORItem {
       double      dfnum;
       /** The value for @c uDataType @ref QCBOR_TYPE_FLOAT. */
       float       fnum;
-      /** The value for @c uDataType @ref QCBOR_TYPE_DATE_EPOCH. */
+      /** The value for @c uDataType @ref QCBOR_TYPE_DATE_EPOCH.
+          Floating-point dates that are NaN, +Inifinity or -Inifinity
+          decode with the @ref QCBOR_ERR_DATE_OVERFLOW error. */
       struct {
          int64_t  nSeconds;
          double   fSecondsFraction;
