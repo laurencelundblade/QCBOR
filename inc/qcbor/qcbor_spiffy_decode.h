@@ -85,9 +85,7 @@ extern "C" {
  cleaner decoding code. In some cases the only error check that may be
  necessary is the return code from QCBORDecode_Finish().
 
- The only error check needed is in the Finish call.
-
- On error, a decoder internal error state is set. The error can be
+ The internal error can be
  retrived with QCBORDecode_GetError(). Any further attempts to get
  specific data types will do nothing so it is safe for code to get
  many items without checking the error on each one as long as there is
@@ -107,6 +105,10 @@ extern "C" {
  variable. Maybe even the type of one data item is dependent on
  another. In such designs, GetNext has to be used and the internal
  error checking can't be relied upon.
+
+ Error reporting when searching maps is not accurate for
+ some errors. They are report as not found rather
+ than overflow and such.
 
 
  ----
@@ -643,17 +645,25 @@ static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
  @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
  @param[out] pnTime            The decoded epoch date.
 
- This will handle floating-point dates, but always returns them as an int64_t
+ This will handle floating-point dates, but always returns them as an @c int64_t
  discarding the fractional part. Use QCBORDecode_GetNext() instead of this to get the
  fractional part.
+
+ Floating-point dates that are plus infinity, minus infinity or NaN (not-a-number) will
+ result in the @ref QCBOR_ERR_DATE_OVERFLOW error. If the QCBOR library
+ is compiled with floating-point disabled, @ref QCBOR_ERR_HW_FLOAT_DISABLED
+ is set. If compiled with preferred float disabled, half-precision dates will result
+ in the @ref QCBOR_ERR_HALF_PRECISION_DISABLED error.
 
  See @ref Decode-Errors for discussion on how error handling works.
 
  See @ref Tag-Matcing for discussion on tag requirements.
+
+ See also QCBOREncode_AddDateEpoch() and @ref QCBORItem.
 */
 void QCBORDecode_GetEpochDate(QCBORDecodeContext *pCtx,
-                             uint8_t             uTagRequirement,
-                             int64_t            *pnTime);
+                             uint8_t              uTagRequirement,
+                             int64_t             *pnTime);
 
 void QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pCtx,
                                     int64_t             nLabel,
@@ -1077,43 +1087,42 @@ inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
 
  The next item in the CBOR input must be map or this sets an error.
 
- This puts the decoder in bounded mode which narrows
- decoding to the map entered and enables
- getting items by label.  Note that all items
- in the map must be well-formed and valid to be
- able to search it by label because a full traversal
- is done for each search. If not, the search will
- retun an error for the item that is not well-formed
- and valid. This may not be the item with the label
- that is the subject of the search.
+ This puts the decoder in bounded mode which narrows decoding to the
+ map entered and enables getting items by label.
 
- Nested maps can be decoded like this by entering
- each map in turn.
+ All items in the map must be well-formed to be able to search it by
+ label because a full traversal is done for each search. If not, the
+ search will retun an error for the item that is not well-formed.
+ This will be the first non-well-formed item which may not be the item
+ with the label that is the target of the search.
 
- Call QCBORDecode_ExitMap() to exit the current map
- decoding level. When all map decoding layers are exited
- then bounded mode is fully exited.
+ Nested maps can be decoded like this by entering each map in turn.
+
+ Call QCBORDecode_ExitMap() to exit the current map decoding
+ level. When all map decoding layers are exited then bounded mode is
+ fully exited.
 
  While in bounded mode, QCBORDecode_GetNext() works as usual on the
- map and the in-order traversal cursor
- is maintained. It starts out at the first item in the map just entered. Attempts to get items off the end of the
- map will give error @ref QCBOR_ERR_NO_MORE_ITEMS rather going to the next
- item after the map as it would when not in bounded
+ map and the in-order traversal cursor is maintained. It starts out at
+ the first item in the map just entered. Attempts to get items off the
+ end of the map will give error @ref QCBOR_ERR_NO_MORE_ITEMS rather
+ going to the next item after the map as it would when not in bounded
  mode.
 
- Exiting leaves the pre-order cursor at the
- data item following the last entry in the map or at the end of the input CBOR if there nothing after the map.
+ Exiting leaves the pre-order cursor at the data item following the
+ last entry in the map or at the end of the input CBOR if there
+ nothing after the map.
 
- Entering and Exiting a map is a way to skip over
- an entire map and its contents. After QCBORDecode_ExitMap(),
- the pre-order traversal cursor will be at the
- first item after the map.
+ Entering and Exiting a map is a way to skip over an entire map and
+ its contents. After QCBORDecode_ExitMap(), the pre-order traversal
+ cursor will be at the first item after the map.
 
  See @ref Decode-Errors for discussion on how error handling works.
 
  See also QCBORDecode_EnterArray() and QCBORDecode_EnterBstrWrapped().
- Entering and exiting any nested combination of maps, arrays and bstr-wrapped
- CBOR is supported up to the maximum of @ref QCBOR_MAX_ARRAY_NESTING.
+ Entering and exiting any nested combination of maps, arrays and
+ bstr-wrapped CBOR is supported up to the maximum of @ref
+ QCBOR_MAX_ARRAY_NESTING.
  */
 static void QCBORDecode_EnterMap(QCBORDecodeContext *pCtx);
 

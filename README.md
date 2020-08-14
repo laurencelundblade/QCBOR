@@ -5,9 +5,10 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 ## Characteristics
 
 **Implemented in C with minimal dependency** – The only dependencies
-  are C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making it
-  highly portable. No #ifdefs or compiler options need to be set for it
-  to run correctly.
+  are C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making
+  it highly portable. <math.h> is used too, but it's use can
+  disabled. No #ifdefs or compiler options need to be set for it to
+  run correctly.
 
 **Focused on C / native data representation** – Careful conversion
   of CBOR data types in to C data types, carefully handling
@@ -50,10 +51,9 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
   separated from the implementation. It can be put to use without
   reading the source.
 
-**Comprehensive test suite** – Easy to verify on a new platform
-  or OS with the test suite. The test suite dependencies are also
-  minimal, only additionally requiring <math.h> for floating-point
-  tests.
+**Comprehensive test suite** – Easy to verify on a new platform or OS
+  with the test suite. The test suite dependencies are minimal and the
+  same as the library's.
 
 ## Code Status
 

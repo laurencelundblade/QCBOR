@@ -1094,7 +1094,7 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       goto Done;
    }
 
-   // Loop getting chunk of indefinite string
+   // Loop getting chunks of the indefinite length string
    UsefulBufC FullString = NULLUsefulBufC;
 
    for(;;) {
@@ -1610,12 +1610,10 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
                            d - (double)pDecodedItem->val.epochDate.nSeconds;
       }
 #else
-         /* Disabling float support causes a floating-point
-          date to error in the default below. The above code
-          requires floating-point conversion to integers and
-          comparison which requires either floating-point HW
-          or a SW library. */
+
          uReturn = QCBOR_ERR_FLOAT_DATE_DISABLED;
+         goto Done;
+
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
@@ -2331,7 +2329,8 @@ ConsumeItem(QCBORDecodeContext *pMe,
        */
       do {
          uReturn = QCBORDecode_GetNext(pMe, &Item);
-         if(uReturn != QCBOR_SUCCESS) {
+         if( QCBORDecode_IsNotWellFormed(uReturn)) {
+            // TODO: also resource limit errors
             goto Done;
          }
       } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
@@ -2488,12 +2487,15 @@ MapSearch(QCBORDecodeContext *pMe,
       uReturn = QCBORDecode_GetNext(pMe, &Item);
       if(QCBORDecode_IsNotWellFormed(uReturn)) {
          /* Got non-well-formed CBOR so map can't even be decoded. */
+         // TODO: also bail out on implementation limits like array too big
          goto Done;
       }
        
       /* See if item has one of the labels that are of interest */
       bool bMatched = false;
       for(int nIndex = 0; pItemArray[nIndex].uLabelType != QCBOR_TYPE_NONE; nIndex++) {
+         // TODO: have label filled in on invalid CBOR so error reporting
+         // can work a lot better. 
          if(MatchLabel(Item, pItemArray[nIndex])) {
             /* A label match has been found */
             if(uFoundItemBitMap & (0x01ULL << nIndex)) {
@@ -3241,7 +3243,7 @@ static void ProcessEpochDate(QCBORDecodeContext *pMe,
       {QCBOR_TYPE_INT64, QCBOR_TYPE_DOUBLE, QCBOR_TYPE_FLOAT}
    };
 
-   // TODO: this will give a unexpected type error instead of
+   // TODO: this will give an unexpected type error instead of
    // overflow error for QCBOR_TYPE_UINT64 because TagSpec
    // only has three target types.
    uErr = CheckTagRequirement(TagSpec, pItem->uDataType);

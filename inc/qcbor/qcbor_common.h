@@ -215,11 +215,12 @@ typedef enum {
    /** The encode or decode completely correctly. */
    QCBOR_SUCCESS = 0,
 
+#define QCBOR_ERR_FIRST_NOT_WELL_FORMED  1 /* QCBOR_ERR_BAD_TYPE_7 */
+
    /** During decoding, the CBOR is not valid, primarily a simple type
        is encoded in a prohibited way. */
    QCBOR_ERR_BAD_TYPE_7 = 1,
 
-#define QCBOR_ERR_FIRST_NOT_WELL_FORMED QCBOR_ERR_BAD_TYPE_7
 
    /** Returned by QCBORDecode_Finish() if all the inputs bytes have
        not been consumed. */

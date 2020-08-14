@@ -265,26 +265,25 @@ extern "C" {
  representation of the double or float that preserves precision. Zero,
  NaN and infinity are always output as a half-precision, each taking
  just 2 bytes. This reduces the number of bytes needed to encode
- doubles and floats, especially if the zero, NaN and infinity are
+ double and single-precision, especially if zero, NaN and infinity are
  frequently used.
 
- To avoid use of preferred serialization in the standard configuration when encoding, use
- QCBOREncode_AddDoubleNoPreferred() or
+ To avoid use of preferred serialization in the standard configuration
+ when encoding, use QCBOREncode_AddDoubleNoPreferred() or
  QCBOREncode_AddFloatNoPreferred().
 
  This implementation of preferred floating-point serialization and
  half-precision does not depend on the CPU having floating-point HW or
  the compiler bringing in a (sometimes large) library to compensate
- for lack of CPU support. The implementation uses shifts and masks
- rather than floating-point functions. It does however add object
- code.
+ for lack of CPU support. This implementation uses shifts and masks
+ rather than floating-point functions.
 
- To reduce object code, define QCBOR_DISABLE_PREFERRED_FLOAT. This
- will eliminate all support for preferred serialization and
- half-precision. An error will be returned when attempting to decode
- half-precision. A float will always be encoded and decoded as 32-bits
- and a double will always be encoded and decoded as 64 bits. This
- will reduce object code by about 900 bytes.
+ To reduce overall object code by about 900 bytes, define
+ QCBOR_DISABLE_PREFERRED_FLOAT. This will eliminate all support for
+ preferred serialization and half-precision. An error will be returned
+ when attempting to decode half-precision. A float will always be
+ encoded and decoded as 32-bits and a double will always be encoded
+ and decoded as 64 bits.
 
  Note that even if QCBOR_DISABLE_PREFERRED_FLOAT is not defined all
  the float-point encoding object code can be avoided by never calling
@@ -294,21 +293,20 @@ extern "C" {
  On CPUs that have no floating-point hardware,
  QCBOR_DISABLE_FLOAT_HW_USE should be defined in most cases. If it is
  not, then the compiler will bring in possibly large software
- libraries to compensate or QCBOR will not compile. Defining
+ libraries to compensate. Defining
  QCBOR_DISABLE_FLOAT_HW_USE reduces object code size on CPUs with
- floating-point hardware by a tiny amount.
+ floating-point hardware by a tiny amount and eliminates the need for <math.h>
 
- When QCBOR_DISABLE_FLOAT_HW_USE is defined, trying to
- decoding floating point dates will give error @ref QCBOR_ERR_FLOAT_DATE_DISABLED and decoded
- single-precision
- numbers will be returned as @ref QCBOR_TYPE_FLOAT instead of converting them to
- double as usual.
-
+ When QCBOR_DISABLE_FLOAT_HW_USE is defined, trying to decoding
+ floating-point dates will give error @ref
+ QCBOR_ERR_FLOAT_DATE_DISABLED and decoded single-precision numbers
+ will be returned as @ref QCBOR_TYPE_FLOAT instead of converting them
+ to double as usual.
 
  If both QCBOR_DISABLE_FLOAT_HW_USE and QCBOR_DISABLE_PREFERRED_FLOAT
- are defined, then the only thing QCBOR can do is encode/decode a
- C float type as 32-bits and a C double type as 64-bits. Floating-point epoch dates
- will be unsupported.
+ are defined, then the only thing QCBOR can do is encode/decode a C
+ float type as 32-bits and a C double type as 64-bits. Floating-point
+ epoch dates will be unsupported.
 
  Summary Limits of this implementation:
  - The entire encoded CBOR must fit into contiguous memory.

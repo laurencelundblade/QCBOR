@@ -2296,17 +2296,57 @@ int32_t DateParseTest()
    return 0;
 }
 
+/*
+ Test cases covered here. Some items cover more than one of these.
+   positive integer (zero counts as a positive integer)
+   negative integer
+   half-precision float
+   single-precision float
+   double-precision float
 
-static uint8_t spDateTestInput2[] = {
-   0xbf,
+   float Overflow error
+   Wrong type error for epoch
+   Wrong type error for date string
+   float disabled error
+   half-precision disabled error
+   -Infinity
+   Slightly too large integer
+   Slightly too far from zero
 
-   0x05,
+   Get epoch by int
+   Get string by int
+   Get epoch by string
+   Get string by string
+   Fail to get epoch by wrong int label
+   Fail to get string by wrong string label
+   Fail to get epoch by string because it is invalid
+   Fail to get epoch by int because it is invalid
+
+   Untagged values
+ */
+static uint8_t spSpiffyDateTestInput[] = {
+   0x86,
+
+   0xc1,
+   0xfb, 0xc3, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // -9.2233720368547748E+18, too negative
+
    0xc1, // tag for epoch date
-   0x1b, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, // Too large integer
+   0x1b, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, // Too-large integer
+
+   0xc1, // tag for epoch date
+   0xf9, 0xfc, 0x00, // Half-precision -Infinity
+
+   0xc1, // tag for epoch date
+   0x9f, 0xff, // Erroneous empty array as content for date
+
+   0xc0, // tag for string date
+   0xbf, 0xff, // Erroneous empty map as content for date
+
+   0xbf, // Open a map for tests involving labels.
 
    0x00,
    0xc0, // tag for string date
-   0x6a, '1','9','8','5','-','0','4','-','1','2', // Date string
+   0x6a, '1','9','8','5','-','0','4','-','1','2', // Tagged date string
 
    0x01,
    0xc1, // tag for epoch date
@@ -2318,27 +2358,27 @@ static uint8_t spDateTestInput2[] = {
 
    // Utagged date string with string label y
    0x61, 0x79,
-   0x6a, '2','0','8','5','-','0','4','-','1','2', // Date string
+   0x6a, '2','0','8','5','-','0','4','-','1','2', // Untagged date string
 
    // Untagged -1000 with label z
    0x61, 0x7a,
    0x39, 0x03, 0xe7,
 
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
    0x07,
    0xc1, // tag for epoch date
    0xfb, 0x43, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // 9223372036854773760 largest supported
+
+   0x05,
+   0xc1,
+   0xfb, 0xc3, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // -9223372036854773760 largest negative
 
    // Untagged single-precision float with value 3.14 with string label x
    0x61, 0x78,
    0xFA, 0x40, 0x48, 0xF5, 0xC3,
 
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    // Untagged half-precision float with value -2
    0x09,
    0xF9, 0xC0, 0x00,
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
    0xff,
 };
@@ -2346,74 +2386,180 @@ static uint8_t spDateTestInput2[] = {
 int32_t SpiffyDateDecodeTest()
 {
    QCBORDecodeContext DC;
-   //QCBORItem Item;
-   QCBORError uError;
-   int64_t nEpochDate1, nEpochDate3, nEpochDate6;
-   UsefulBufC StringDate1, StringDate2;
+   QCBORError         uError;
+   int64_t            nEpochDate1, nEpochDate2, nEpochDate3, nEpochDate5,
+                      nEpochDate4, nEpochDate6;
+   UsefulBufC         StringDate1, StringDate2;
 
    QCBORDecode_Init(&DC,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput2),
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyDateTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
-   QCBORDecode_EnterMap(&DC);
-   QCBORDecode_GetEpochDateInMapN(&DC, 5, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &nEpochDate1);
-   uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError == QCBOR_SUCCESS) {
-      return -999;
-   }
-   QCBORDecode_GetEpochDateInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &nEpochDate1);
-   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &StringDate1);
-   QCBORDecode_GetEpochDateInMapN(&DC, 8, QCBOR_TAG_REQUIREMENT_NO_TAG, &nEpochDate3);
-   QCBORDecode_GetDateStringInMapSZ(&DC, "y", QCBOR_TAG_REQUIREMENT_NO_TAG, &StringDate2);
-   QCBORDecode_GetEpochDateInMapSZ(&DC, "z", QCBOR_TAG_REQUIREMENT_NO_TAG, &nEpochDate6);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   int64_t nEpochDate5, nEpochDate2;
-   QCBORDecode_GetEpochDateInMapN(&DC, 7, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &nEpochDate2);
-   QCBORDecode_GetEpochDateInMapSZ(&DC, "x", QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &nEpochDate5);
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   int64_t nEpochDate4;
-   QCBORDecode_GetEpochDateInMapN(&DC, 9, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &nEpochDate4);
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+   QCBORDecode_EnterArray(&DC);
 
-   QCBORDecode_ExitMap(&DC);
-   uError = QCBORDecode_Finish(&DC);
-   if(uError) {
+   // Too-negative integer, -9.2233720368547748E+18
+   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &nEpochDate1);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_DATE_OVERFLOW) {
+      return 1111;
+   }
+
+   // Too-large integer
+   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &nEpochDate1);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_DATE_OVERFLOW) {
       return 1;
    }
 
-   if(nEpochDate1 != 1400000000) {
-      return 100;
+   // Half-precision minus infinity
+   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &nEpochDate1);
+   uError = QCBORDecode_GetAndResetError(&DC);
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+   const QCBORError uExpectedforHalfMinusInfinity = QCBOR_ERR_DATE_OVERFLOW;
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+   const QCBORError uExpectedforHalfMinusInfinity = QCBOR_ERR_FLOAT_DATE_DISABLED;
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
+   const QCBORError uExpectedforHalfMinusInfinity = QCBOR_ERR_HALF_PRECISION_DISABLED;
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+   if(uError != uExpectedforHalfMinusInfinity) {
+      return 2;
    }
 
-   if(nEpochDate3 != 0) {
+   // Bad content for epoch date
+   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &nEpochDate1);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_BAD_OPT_TAG) {
+      return 3;
+   }
+
+   // Bad content for string date
+   QCBORDecode_GetDateString(&DC, QCBOR_TAG_REQUIREMENT_MATCH_TAG, &StringDate1);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_BAD_OPT_TAG) {
+      return 4;
+   }
+
+   QCBORDecode_EnterMap(&DC);
+
+   // Get largest negative double precision epoch date allowed
+   QCBORDecode_GetEpochDateInMapN(&DC, 5, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &nEpochDate2);
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+   if(nEpochDate2 != -9223372036854773760LL) {
+      return 101;
+   }
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_NOT_FOUND) {
       return 102;
    }
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
-   if(nEpochDate6 != -1000) {
-      return 105;
-   }
-
-   if(UsefulBuf_Compare(StringDate1, UsefulBuf_FromSZ("1985-04-12"))) {
-      return 106;
-   }
-
-   if(UsefulBuf_Compare(StringDate2, UsefulBuf_FromSZ("2085-04-12"))) {
-      return 107;
-   }
-
+   // Get largest double precision epoch date allowed
+   QCBORDecode_GetEpochDateInMapN(&DC, 7, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &nEpochDate2);
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
    if(nEpochDate2 != 9223372036854773760ULL) {
       return 101;
    }
-   if(nEpochDate5 != 3) {
-      return 104;
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_NOT_FOUND) {
+      return 102;
    }
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   if(nEpochDate4 != -2) {
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
+   // A single-precision date
+   QCBORDecode_GetEpochDateInMapSZ(&DC, "x", QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &nEpochDate5);
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+   if(nEpochDate5 != 3) {
       return 103;
    }
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_FLOAT_DATE_DISABLED) {
+      return 104;
+   }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
+   // A half-precision date with value -2
+   QCBORDecode_GetEpochDateInMapN(&DC, 9, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &nEpochDate4);
+#if !defined(QCBOR_DISABLE_FLOAT_HW_USE) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+   if(nEpochDate4 != -2) {
+      return 105;
+   }
+#else
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError == QCBOR_SUCCESS) {
+      return 106;
+   }
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
+   // Fail to get an epoch date by string label
+   QCBORDecode_GetEpochDateInMapSZ(&DC, "no-label", QCBOR_TAG_REQUIREMENT_NO_TAG, &nEpochDate6);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_NOT_FOUND) {
+      return 107;
+   }
+
+   // Fail to get an epoch date by integer label
+   QCBORDecode_GetEpochDateInMapN(&DC, 99999, QCBOR_TAG_REQUIREMENT_NO_TAG, &nEpochDate6);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_NOT_FOUND) {
+      return 108;
+   }
+
+   // Fail to get a string date by string label
+   QCBORDecode_GetDateStringInMapSZ(&DC, "no-label", QCBOR_TAG_REQUIREMENT_NO_TAG, &StringDate1);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_NOT_FOUND) {
+      return 109;
+   }
+
+   // Fail to get a string date by integer label
+   QCBORDecode_GetDateStringInMapN(&DC, 99999, QCBOR_TAG_REQUIREMENT_NO_TAG, &StringDate1);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_NOT_FOUND) {
+      return 110;
+   }
+
+   // The rest of these succeed even if float features are disabled
+   // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
+   QCBORDecode_GetEpochDateInMapN( &DC, 1,    QCBOR_TAG_REQUIREMENT_MATCH_TAG,    &nEpochDate1);
+   // Tagged date string
+   QCBORDecode_GetDateStringInMapN(&DC, 0,    QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &StringDate1);
+   // Untagged integer 0
+   QCBORDecode_GetEpochDateInMapN( &DC, 8,    QCBOR_TAG_REQUIREMENT_NO_TAG,       &nEpochDate3);
+   // Untagged date string
+   QCBORDecode_GetDateStringInMapSZ(&DC, "y", QCBOR_TAG_REQUIREMENT_NO_TAG,       &StringDate2);
+   // Untagged -1000 with label z
+   QCBORDecode_GetEpochDateInMapSZ( &DC, "z", QCBOR_TAG_REQUIREMENT_NO_TAG,       &nEpochDate6);
+
+   QCBORDecode_ExitMap(&DC);
+   QCBORDecode_ExitArray(&DC);
+   uError = QCBORDecode_Finish(&DC);
+   if(uError) {
+      return 1000;
+   }
+
+   if(nEpochDate1 != 1400000000) {
+      return 200;
+   }
+
+   if(nEpochDate3 != 0) {
+      return 201;
+   }
+
+   if(nEpochDate6 != -1000) {
+      return 202;
+   }
+
+   if(UsefulBuf_Compare(StringDate1, UsefulBuf_FromSZ("1985-04-12"))) {
+      return 203;
+   }
+
+   if(UsefulBuf_Compare(StringDate2, UsefulBuf_FromSZ("2085-04-12"))) {
+      return 204;
+   }
 
    return 0;
 }
