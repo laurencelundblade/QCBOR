@@ -148,9 +148,9 @@ typedef enum {
 
 /*
  The maximum number of tags that may occur on an individual nested
- item.
+ item. Typically 4.
  */
-#define QCBOR_MAX_TAGS_PER_ITEM 4
+#define QCBOR_MAX_TAGS_PER_ITEM QCBOR_MAX_TAGS_PER_ITEM1
 
 
 
@@ -278,7 +278,9 @@ typedef enum {
     in @c val.string. */
 #define QCBOR_TYPE_BINARY_MIME   76
 
-#define QCBOR_TYPE_OPTTAG        254 // Used internally; never returned
+#define QCBOR_TYPE_TAG        254 // Used internally; never returned
+
+#define QCBOR_TYPE_OPTTAG   QCBOR_TYPE_TAG // Depricated in favor of QCBOR_TYPE_TAG
 
 
 
@@ -286,7 +288,7 @@ typedef enum {
  The largest value in @c utags that is unmapped and can be used without
  mapping it through QCBORDecode_GetNthTag().
  */
-#define QCBOR_LAST_UNMAPPED_TAG (CBOR_TAG_INVALID16 - QCBOR_NUM_MAPPED_TAGS)
+#define QCBOR_LAST_UNMAPPED_TAG (CBOR_TAG_INVALID16 - QCBOR_NUM_MAPPED_TAGS - 1)
 
 
 /**
@@ -912,28 +914,26 @@ QCBORError QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedIte
 
  @retval QCBOR_ERR_TOO_MANY_TAGS  The size of @c pTagList is too small.
 
- TODO: revise his documentation
+ This is retained for backwards compatibility. It is replaced by
+ QCBORDecode_GetNthTag() which can also return all the
+ tags that have been decoded.
+
+ This is not backwards compatibile in two ways. First, it is limited to
+ \ref QCBOR_MAX_TAGS_PER_ITEM items whereas previously
+ it was unlimited. Second, it will not inlucde the tags that QCBOR
+ decodes internally.
 
  This works the same as QCBORDecode_GetNext() except that it also
- returns the full list of tags for the data item. This function should
- only be needed when parsing CBOR to print it out or convert it to
- some other format. It should not be needed to implement a CBOR-based
- protocol.  See QCBORDecode_GetNext() for the main description of tag
- decoding.
+ returns the list of tags for the data item in \c pTagList.
 
- Tags will be returned here whether or not they are in the built-in or
- caller-configured tag lists.
+ The 0th tag returned here is the one furthest from the data item. This
+ is opposite the order for QCBORDecode_GetNthTag().
 
- CBOR has no upper bound of limit on the number of tags that can be
- associated with a data item though in practice the number of tags on
- an item will usually be small, perhaps less than five. This will
+ CBOR has no upper bound or limit on the number of tags that can be
+ associated with a data item but in practice the number of tags on
+ an item will usually be small. This will
  return @ref QCBOR_ERR_TOO_MANY_TAGS if the array in @c pTagList is
  too small to hold all the tags for the item.
-
- (This function is separate from QCBORDecode_GetNext() so as to not
- have to make @ref QCBORItem large enough to be able to hold a full
- list of tags. Even a list of five tags would nearly double its size
- because tags can be a @c uint64_t ).
  */
 QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
 
@@ -986,12 +986,14 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint
  To reduce memory used by a QCBORItem, this implementation maps
  all tags larger than UINT16_MAX. This function does the unmapping.
 
- This returns @ref CBOR_TAG_INVALID16 on all errors or if the nth tag is requested and
+ This returns @ref CBOR_TAG_INVALID64 on all errors or if the nth tag is requested and
  there is no nth tag. If there are no tags on the item, then
- requesting the 0th tag will return @ref CBOR_TAG_INVALID16.
+ requesting the 0th tag will return @ref CBOR_TAG_INVALID64.
  */
-uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, unsigned int uIndex);
+uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t uIndex);
 
+
+uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
 
 /**
  @brief Check whether all the bytes have been decoded and maps and arrays closed.

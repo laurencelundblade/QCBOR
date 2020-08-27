@@ -219,6 +219,11 @@ extern "C" {
  array, map or other.
 
  @anchor Tags-Overview
+
+
+
+
+
  Any CBOR data item can be tagged to add semantics, define a new data
  type or such. Some tags are fully standardized and some are just
  registered. Others are not registered and used in a proprietary way.
@@ -345,6 +350,16 @@ extern "C" {
  */
 #define QCBOR_HEAD_BUFFER_SIZE  (sizeof(uint64_t) + 2)
 
+
+/**
+ Output the full CBOR tag. See @Tags-Overview.
+ */
+#define QCBOR_ENCODE_AS_TAG      0
+
+/**
+  Output only the 'borrowed' content format for the relevant tag. See @Tags-Overview.
+ */
+#define QCBOR_ENCODE_AS_BORROWED 1
 
 
 /**
@@ -634,6 +649,7 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx,uint64_t uTag);
  @brief  Add an epoch-based date.
 
  @param[in] pCtx  The encoding context to add the date to.
+ @param[in] uTag  Either @ref QCBOR_ENCODE_AS_TAG or @ref QCBOR_ENCODE_AS_BORROWED.
  @param[in] date  Number of seconds since 1970-01-01T00:00Z in UTC time.
 
  As per RFC 7049 this is similar to UNIX/Linux/POSIX dates. This is
@@ -659,6 +675,13 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx,uint64_t uTag);
 
  Error handling is the same as QCBOREncode_AddInt64().
  */
+static void QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pCtx, uint8_t uTag, int64_t date);
+
+static void QCBOREncode_AddTDateEpochToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint8_t uTag, int64_t date);
+
+static  void QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint8_t uTag, int64_t date);
+
+
 static void QCBOREncode_AddDateEpoch(QCBOREncodeContext *pCtx, int64_t date);
 
 static void QCBOREncode_AddDateEpochToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t date);
@@ -1746,25 +1769,44 @@ static inline void QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCt
 }
 
 
+
+static inline void QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pCtx, uint8_t uTag, int64_t date)
+{
+   if(uTag == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pCtx, CBOR_TAG_DATE_EPOCH);
+   }
+   QCBOREncode_AddInt64(pCtx, date);
+}
+
+static inline void QCBOREncode_AddTDateEpochToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint8_t uTag, int64_t date)
+{
+   QCBOREncode_AddSZString(pCtx, szLabel);
+   QCBOREncode_AddTDateEpoch(pCtx, uTag, date);
+}
+
+static inline void QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint8_t uTag, int64_t date)
+{
+   QCBOREncode_AddInt64(pCtx, nLabel);
+   QCBOREncode_AddTDateEpoch(pCtx, uTag, date);
+}
+
 static inline void QCBOREncode_AddDateEpoch(QCBOREncodeContext *pCtx, int64_t date)
 {
-   QCBOREncode_AddTag(pCtx, CBOR_TAG_DATE_EPOCH);
-   QCBOREncode_AddInt64(pCtx, date);
+   QCBOREncode_AddTDateEpoch(pCtx, QCBOR_ENCODE_AS_TAG, date);
 }
 
 static inline void QCBOREncode_AddDateEpochToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t date)
 {
    QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_AddTag(pCtx, CBOR_TAG_DATE_EPOCH);
-   QCBOREncode_AddInt64(pCtx, date);
+   QCBOREncode_AddDateEpoch(pCtx, date);
 }
 
 static inline void QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t date)
 {
    QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_AddTag(pCtx, CBOR_TAG_DATE_EPOCH);
-   QCBOREncode_AddInt64(pCtx, date);
+   QCBOREncode_AddDateEpoch(pCtx, date);
 }
+
 
 
 static inline void QCBOREncode_AddBytes(QCBOREncodeContext *pCtx, UsefulBufC Bytes)

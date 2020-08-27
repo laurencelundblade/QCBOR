@@ -70,6 +70,9 @@ extern "C" {
  */
 #define QCBOR_NUM_MAPPED_TAGS 4
 
+/* The number of tags (of any size) recorded for an individual item. */
+#define QCBOR_MAX_TAGS_PER_ITEM1 4
+
 
 
 /*
@@ -253,6 +256,9 @@ struct _QCBORDecodeContext {
    uint8_t  uLastError;  // QCBORError stuffed into a uint8_t
 
    uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
+
+   uint16_t uLastTags[QCBOR_MAX_TAGS_PER_ITEM1];
+
 };
 
 // Used internally in the impementation here
