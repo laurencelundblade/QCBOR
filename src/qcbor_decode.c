@@ -3752,6 +3752,8 @@ void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe,
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
       *pBstr = Item.val.string;
+   } else {
+      *pBstr = NULLUsefulBufC;
    }
 }
 
