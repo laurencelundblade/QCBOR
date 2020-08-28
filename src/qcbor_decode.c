@@ -2475,15 +2475,6 @@ static inline void CopyTags(QCBORDecodeContext *pMe, const QCBORItem *pItem)
    memcpy(pMe->uLastTags, pItem->uTags, sizeof(pItem->uTags));
 }
 
-/*
-static inline void CopyAllButOneTags(QCBORDecodeContext *pMe, const QCBORItem *pItem)
-{
-   const size_t uSizeLessOne = (QCBOR_MAX_TAGS_PER_ITEM - 1) * sizeof(pItem->uTags[0]);
-
-   memcpy(pMe->uLastTags, &(pItem->uTags[1]), uSizeLessOne);
-   pMe->uLastTags[QCBOR_MAX_TAGS_PER_ITEM - 1] = CBOR_TAG_INVALID16;
-} */
-
 
 /*
  Consume an entire map or array (and do next to
@@ -2499,8 +2490,11 @@ ConsumeItem(QCBORDecodeContext *pMe,
 
    DecodeNesting_Print(&(pMe->nesting), &(pMe->InBuf), "ConsumeItem");
 
-   if(QCBORItem_IsMapOrArray(pItemToConsume)) {
-      /* There is only real work to do for maps and arrays */
+   // If it is a map or array, this will tell if it is empty.
+   const bool bIsEmpty = (pItemToConsume->uNextNestLevel <= pItemToConsume->uNestingLevel);
+
+   if(QCBORItem_IsMapOrArray(pItemToConsume) && !bIsEmpty) {
+      /* There is only real work to do for non-empty maps and arrays */
 
       /* This works for definite and indefinite length
        * maps and arrays by using the nesting level
@@ -2670,6 +2664,10 @@ MapSearch(QCBORDecodeContext *pMe,
          // TODO: also bail out on implementation limits like array too big
          goto Done;
       }
+       if(uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
+           // Unexpected end of map or array.
+           goto Done;
+       }
 
       /* See if item has one of the labels that are of interest */
       bool bMatched = false;
@@ -3124,8 +3122,6 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
       return;
    }
 
-   CopyTags(pMe, pSearch);
-
    /* Need to get the current pre-order nesting level and cursor to be
       at the map/array about to be entered.
 
@@ -3219,7 +3215,7 @@ void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
       return;
    }
 
-   /* Get the data item that is the map that is being searched */
+   /* Get the data item that is the map or array being entered. */
    QCBORItem Item;
    uErr = QCBORDecode_GetNext(pMe, &Item);
    if(uErr != QCBOR_SUCCESS) {
@@ -3229,6 +3225,9 @@ void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
       uErr = QCBOR_ERR_UNEXPECTED_TYPE;
       goto Done;
    }
+
+    CopyTags(pMe, &Item);
+
 
    const bool bIsEmpty = (Item.uNextNestLevel <= Item.uNestingLevel);
    if(bIsEmpty) {

@@ -6,8 +6,8 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
 **Implemented in C with minimal dependency** – The only dependencies
   are C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making
-  it highly portable. <math.h> is used too, but it's use can
-  disabled. No #ifdefs or compiler options need to be set for it to
+  it highly portable. <math.h> is used too, but its use can
+  disabled. No #ifdefs or compiler options need to be set for QCBOR to
   run correctly.
 
 **Focused on C / native data representation** – Careful conversion
