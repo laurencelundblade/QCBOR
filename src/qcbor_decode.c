@@ -4527,7 +4527,7 @@ void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe,
 }
 
 
-void QCBORDecode_GetUint64ConvertInternalInMapN(QCBORDecodeContext *pMe,
+void QCBORDecode_GetUInt64ConvertInternalInMapN(QCBORDecodeContext *pMe,
                                                int64_t             nLabel,
                                                uint32_t            uConvertTypes,
                                                uint64_t            *puValue,
@@ -4690,14 +4690,14 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uConvertT
 /*
   Public function, see header qcbor/qcbor_decode.h file
 */
-void QCBORDecode_GetUint64ConvertAllInMapN(QCBORDecodeContext *pMe,
+void QCBORDecode_GetUInt64ConvertAllInMapN(QCBORDecodeContext *pMe,
                                            int64_t             nLabel,
                                            uint32_t            uConvertTypes,
                                            uint64_t           *puValue)
 {
    QCBORItem Item;
 
-   QCBORDecode_GetUint64ConvertInternalInMapN(pMe, nLabel, uConvertTypes, puValue, &Item);
+   QCBORDecode_GetUInt64ConvertInternalInMapN(pMe, nLabel, uConvertTypes, puValue, &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
       // The above conversion succeeded
@@ -4716,7 +4716,7 @@ void QCBORDecode_GetUint64ConvertAllInMapN(QCBORDecodeContext *pMe,
 /*
   Public function, see header qcbor/qcbor_decode.h file
 */
-void QCBORDecode_GetUint64ConvertAllInMapSZ(QCBORDecodeContext *pMe,
+void QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe,
                                             const char         *szLabel,
                                             uint32_t            uConvertTypes,
                                             uint64_t           *puValue)
