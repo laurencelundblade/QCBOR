@@ -34,6 +34,21 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
+
+/**
+ This define indicates a version of QCBOR that supports spiffy decode,
+ the decode functions found in qcbor_spiffy_decode.h.
+
+ Versions of QCBOR that support spiffy decode are backwards compatible
+ with previous versions, but there are a few minor exceptions such as
+ some aspects of tag handling that are different. This define can be
+ used handle these variances.
+*/
+#define QCBOR_SPIFFY_DECODE
+
+
+
+
 /* Standard CBOR Major type for positive integers of various lengths */
 #define CBOR_MAJOR_TYPE_POSITIVE_INT 0
 
@@ -408,6 +423,9 @@ const char *qcbor_err_to_str(QCBORError err);
 
 
 /**
+ This is deprecated. See QCBORDecode_GetNthTag() and QCBORDecode_GetNthTagOfLast()
+ for tag handling.
+
  The maximum number of tags that can be in @ref QCBORTagListIn and passed to
  QCBORDecode_SetCallerConfiguredTagList()
  */

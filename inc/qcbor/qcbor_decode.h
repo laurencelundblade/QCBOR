@@ -829,7 +829,7 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  map or array has been encountered. This works the same for both
  definite and indefinite-length arrays.
 
- TODO: revise this documentation
+ TODO: revise this documentation on tags. It is wrong.
  This decoder support CBOR type 6 tagging. The decoding of particular
  given tag value may be supported in one of three different ways.
 
@@ -893,10 +893,26 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  - There are a few CBOR constructs that are not handled without some
  extra configuration. These are indefinite length strings and maps
  with labels that are not strings or integers. See QCBORDecode_Init().
+
+ This does not set the internal error code or cease to function when
+ it is set. The error returned must always be checked. See also
+ QCBORDecode_VGetNext().
  */
 QCBORError QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
+/**
+ @brief QCBORDecode_GetNext() using internal error state error handling.
+
+ @param[in]  pCtx          The decoder context.
+ @param[out] pDecodedItem  Holds the CBOR item just decoded.
+
+ This is the same as QCBORDecode_GetNext() but uses the error handling
+ method of spiffy decode where an internal error is set instead
+ of returning an error. If the internal error is set, this doesn't
+ do anything.
+*/
+void QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
@@ -1037,16 +1053,24 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
  @brief Get the decoding error.
 
  @param[in] pCtx    The decoder context.
- @returns The decoding error.
+ @return            The decoding error.
 
- All decoding functions except GetNext() do not return an error.
- Instead they set an internal error state. Once an error has
- occured, no further decoding will be performed even if further
- decoding functions are called.
+ All decoding functions set a saved internal error when they fail.
+ Most decoding functions do not return an error. To know the error,
+ this function must be called.
 
- The error will be returned when QCBORDecode_Finish() finish is
- called. This can make call sequence for decoding a given
- CBOR protocol very clean and simple in many cases.
+ The intended use is that decoding functions can be called one
+ after another with no regard to error until either the whole
+ decode is finished or some data returned from the decode must
+ be referenced. This makes implementations of protocols much
+ cleaner and prettier. For simple protocols the only error check
+ may be the return code from QCBORDecode_Finish().
+
+ Once a decoding error has occured most decode functions will do
+ nothing if called. QCBORDecode_GetNext() is an exception.
+
+ The implementation of this is just an inline accessor function
+ so its use adds very little object code.
 
  Note that no reference to the decoded data should be made until
  after QCBORDecode_Finish() is called as it will not be valid
@@ -1065,6 +1089,7 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
  data items are fetched.
  */
 static QCBORError QCBORDecode_GetError(QCBORDecodeContext *pCtx);
+
 
 /**
  @brief Get and reset the decoding error.

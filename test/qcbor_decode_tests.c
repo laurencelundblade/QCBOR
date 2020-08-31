@@ -4864,8 +4864,8 @@ int32_t EnterMapTest()
 
 
    QCBORDecode_Init(&DCtx, ValidEncodedMap, 0);
-   QCBORDecode_GetNext(&DCtx, &Item1);
-   QCBORDecode_GetNext(&DCtx, &Item1);
+   QCBORDecode_VGetNext(&DCtx, &Item1);
+   QCBORDecode_VGetNext(&DCtx, &Item1);
    QCBORDecode_EnterArray(&DCtx);
    QCBORDecode_GetNext(&DCtx, &Item1);
    if(Item1.uDataType != QCBOR_TYPE_TEXT_STRING) {

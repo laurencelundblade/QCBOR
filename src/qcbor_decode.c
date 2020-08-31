@@ -1879,7 +1879,7 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
-   pDecodedItem->uNextNestLevel = mantissaItem.uNextNestLevel; // TODO: make sure this is right
+   pDecodedItem->uNextNestLevel = mantissaItem.uNextNestLevel;
 
 Done:
   return nReturn;
@@ -2081,6 +2081,19 @@ Done:
       pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
    }
    return nReturn;
+}
+
+
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+ */
+void QCBORDecode_VGetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, pDecodedItem);
 }
 
 
@@ -2814,40 +2827,14 @@ static QCBORError CheckTypeList(int uDataType, const uint8_t puTypeList[QCBOR_TA
 
 /**
  @param[in] TagSpec  Specification for matching tags.
- @param[in] uDataType  A QCBOR data type
+ @param[in] pItem    The item to check.
 
  @retval QCBOR_SUCCESS   \c uDataType is allowed by @c TagSpec
  @retval QCBOR_ERR_UNEXPECTED_TYPE \c uDataType is not allowed by @c TagSpec
 
  The data type must be one of the QCBOR_TYPEs, not the IETF CBOR Registered tag value.
  */
-static QCBORError CheckTagRequirement(const TagSpecification TagSpec, uint8_t uDataType)
-{
-   if((TagSpec.uTagRequirement & (~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS)) == QCBOR_TAG_REQUIREMENT_TAG) {
-      // Must match the tag and only the tag
-      return CheckTypeList(uDataType, TagSpec.uTaggedTypes);
-   }
-
-   QCBORError uReturn = CheckTypeList(uDataType, TagSpec.uAllowedContentTypes);
-   if(uReturn == QCBOR_SUCCESS) {
-      return QCBOR_SUCCESS;
-   }
-
-   if((TagSpec.uTagRequirement & (~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS)) == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
-      /* Must match the content type and only the content type.
-       There was no match just above so it is a fail. */
-      return QCBOR_ERR_UNEXPECTED_TYPE;
-   }
-
-   /* If here it can match either the tag or the content
-    and it hasn't matched the content, so the end
-    result is whether it matches the tag. This is
-    also the case that the CBOR standard discourages. */
-
-   return CheckTypeList(uDataType, TagSpec.uTaggedTypes);
-}
-
-static QCBORError CheckTagRequirement2(const TagSpecification TagSpec, const QCBORItem *pItem)
+static QCBORError CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
 {
    if(!(TagSpec.uTagRequirement & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS) &&
       pItem->uTags[0] != CBOR_TAG_INVALID16) {
@@ -2883,136 +2870,7 @@ static QCBORError CheckTagRequirement2(const TagSpecification TagSpec, const QCB
    return CheckTypeList(nItemType, TagSpec.uTaggedTypes);
 }
 
-#if 0
-/**
- @param[in] TagSpec  Specification for matching tags.
- @param[in] uDataType  A QCBOR data type
 
- @retval QCBOR_SUCCESS   \c uDataType is allowed by @c TagSpec
- @retval QCBOR_ERR_UNEXPECTED_TYPE \c uDataType is not allowed by @c TagSpec
-
- The data type must be one of the QCBOR_TYPEs, not the IETF CBOR Registered tag value.
- */
-static QCBORError CheckTagRequirement2(const TagSpecification TagSpec, uint8_t uDataType)
-{
-   const uint16_t *pTags;
-/*
-For all the tag-specific accessor methods supported, GetNext will
- process then automatically when encountered during decoding.
- The will have a QCBOR_TYPE and a representation in QCBORItem.
- There are no expections to this (so far).
-
- That means the tag list in the QCBORItem will never have
- these tags in it. The tags in that list never need to
- be examined here.
-
-
-
-1 Tag list must be empty
-
-2 and 5, first tag must be in expected list
-
-4
-
-3 tag list must be empty or one in the expected list
-
-6, if first tag is expected, consume it, pass the rest on
-
-
- */
-
-   /*
-    First thing to understand is that GetNext will have processed
-    the tags this code knows about. They will not be in the unprocessed
-    tags list and the dataType will be of the processed CBOR.
-    */
-
-   const bool bUnprocessedTagsEmpty = pTags[0] != CBOR_TAG_INVALID16;
-
-   const bool bDataTypeMatchesRequestedTaggedType = !CheckTypeList(uDataType, TagSpec.uTaggedTypes);
-
-   const bool bDataTypeMatchesRequestedContentType = !CheckTypeList(uDataType, TagSpec.uAllowedContentTypes);
-
-
-   if(TagSpec.uTagRequirement == 1) {
-      /* There should be no tags at all, so the unprocessed tag
-       list should be empty.
-
-       The content has to match the expected content. If
-       there was a tag that was interpreted, the content
-       wouldn't match.
-
-       */
-      if(!bUnprocessedTagsEmpty) {
-         return QCBOR_ERR_UNEXPECTED_TYPE;
-      } else {
-         if(!bDataTypeMatchesRequestedContentType) {
-            return QCBOR_ERR_UNEXPECTED_TYPE;
-         } else {
-            return QCBOR_SUCCESS;
-         }
-
-      }
-
-
-
-   } else if(TagSpec.uTagRequirement == 2) {
-      /* The tag was present so GetNext will have interpreted it by now.
-       The data type should be one of the requested types
-       and there should be no other tags. */
-
-      if(!bUnprocessedTagsEmpty) {
-          return QCBOR_ERR_UNEXPECTED_TYPE;
-      } else {
-         if(!bDataTypeMatchesRequestedTaggedType) {
-            return QCBOR_ERR_UNEXPECTED_TYPE;
-         } else {
-            return QCBOR_SUCCESS;
-         }
-      }
-   } else if(TagSpec.uTagRequirement == 3) {
-      if(!bUnprocessedTagsEmpty) {
-         return QCBOR_ERR_UNEXPECTED_TYPE;
-      } else {
-         if(bDataTypeMatchesRequestedTaggedType || bDataTypeMatchesRequestedContentType) {
-            return true;
-         } else {
-            return false;
-         }
-      }
-   } else if(TagSpec.uTagRequirement == 4) {
-
-
-
-
-
-
-
-   if(TagSpec.uTagRequirement == QCBOR_TAG_REQUIREMENT_TAG) {
-      // Must match the tag and only the tag
-      return CheckTypeList(uDataType, TagSpec.uTaggedTypes);
-   }
-
-   QCBORError uReturn = CheckTypeList(uDataType, TagSpec.uAllowedContentTypes);
-   if(uReturn == QCBOR_SUCCESS) {
-      return QCBOR_SUCCESS;
-   }
-
-   if(TagSpec.uTagRequirement == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
-      /* Must match the content type and only the content type.
-       There was no match just above so it is a fail. */
-      return QCBOR_ERR_UNEXPECTED_TYPE;
-   }
-
-   /* If here it can match either the tag or the content
-    and it hasn't matched the content, so the end
-    result is whether it matches the tag. This is
-    also the case that the CBOR standard discourages. */
-
-   return CheckTypeList(uDataType, TagSpec.uTaggedTypes);
-}
-
-#endif
 
 
 // Semi-private
@@ -3027,7 +2885,7 @@ void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)CheckTagRequirement2(TagSpec, pItem);
+   pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, pItem);
 }
 
 // Semi-private
@@ -3041,7 +2899,7 @@ void QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, pItem->uDataType);
+   pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, pItem);
 }
 
 // Semi-private
@@ -3359,7 +3217,7 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
          {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
       };
 
-   uError = CheckTagRequirement(TagSpec, pItem->uDataType);
+   uError = CheckTagRequirement(TagSpec, pItem);
    if(uError != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -3652,7 +3510,7 @@ static void ProcessEpochDate(QCBORDecodeContext *pMe,
    // TODO: this will give an unexpected type error instead of
    // overflow error for QCBOR_TYPE_UINT64 because TagSpec
    // only has three target types.
-   uErr = CheckTagRequirement2(TagSpec, pItem);
+   uErr = CheckTagRequirement(TagSpec, pItem);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -3735,7 +3593,7 @@ void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, Item.uDataType);
+   pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
       *pBstr = Item.val.string;
@@ -3759,7 +3617,7 @@ static QCBORError ProcessBigNum(uint8_t          uTagRequirement,
       {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
-   QCBORError uErr = CheckTagRequirement(TagSpec, pItem->uDataType);
+   QCBORError uErr = CheckTagRequirement(TagSpec, pItem);
    if(uErr != QCBOR_SUCCESS) {
       return uErr;
    }
@@ -3861,13 +3719,13 @@ QCBORError QCBORDecode_GetMIMEInternal(uint8_t     uTagRequirement,
 
    QCBORError uReturn;
 
-   if(CheckTagRequirement(TagSpecText, pItem->uDataType) == QCBOR_SUCCESS) {
+   if(CheckTagRequirement(TagSpecText, pItem) == QCBOR_SUCCESS) {
       *pMessage = pItem->val.string;
       if(pbIsNot7Bit != NULL) {
          *pbIsNot7Bit = false;
       }
       uReturn = QCBOR_SUCCESS;
-   } else if(CheckTagRequirement(TagSpecBinary, pItem->uDataType) == QCBOR_SUCCESS) {
+   } else if(CheckTagRequirement(TagSpecBinary, pItem) == QCBOR_SUCCESS) {
       *pMessage = pItem->val.string;
       if(pbIsNot7Bit != NULL) {
          *pbIsNot7Bit = true;
@@ -5076,7 +4934,7 @@ static QCBORError MantissaAndExponentTypeHandler(QCBORDecodeContext *pMe,
    QCBORError uErr;
    // Loops runs at most 1.5 times. Making it a loop saves object code.
    while(1) {
-      uErr = CheckTagRequirement(TagSpec, pItem->uDataType);
+      uErr = CheckTagRequirement(TagSpec, pItem);
       if(uErr != QCBOR_SUCCESS) {
          goto Done;
       }
