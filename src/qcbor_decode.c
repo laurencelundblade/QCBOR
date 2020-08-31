@@ -2084,19 +2084,6 @@ Done:
 }
 
 
-QCBORError QCBORDecode_PeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
-{
-   const size_t uOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
-
-   QCBORError uErr = QCBORDecode_GetNext(pMe, pDecodedItem);
-
-   UsefulInputBuf_Seek(&(pMe->InBuf), uOffset);
-   // TODO: undo the level tracking (or don't do it)
-
-   return uErr;
-}
-
-
 /*
  Public function, see header qcbor/qcbor_decode.h file
  */

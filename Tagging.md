@@ -92,11 +92,6 @@ has a tag requirements flag. If true it requires the tag
 to be present and sets an error if it is absent. If false
 an error is set if it is present.
 
-During decoding, it will sometimes be necessary to 
-peek-decode the data item with the generic PeekNext()
-first to know its type, then call the appropriate GetXxxx(0
-to actually dcode and consume it. When this is necessary
-depends on the design and flow of the protocol.
 
 
 
