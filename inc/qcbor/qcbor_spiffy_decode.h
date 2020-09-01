@@ -1830,17 +1830,8 @@ void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe,
                                          UsefulBufC         *pBstr);
 
 
-// Semi private
-void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext *pMe,
-                                     int64_t             nLabel,
-                                     TagSpecification    TagSpec,
-                                     QCBORItem          *pItem);
 
-// Semi private
-void QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext *pMe,
-                                      const char *        szLabel,
-                                      TagSpecification    TagSpec,
-                                      QCBORItem          *pItem);
+
 
 // Semi private
 void QCBORDecode_GetTaggedStringInMapN(QCBORDecodeContext *pMe,

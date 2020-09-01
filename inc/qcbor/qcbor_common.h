@@ -397,6 +397,12 @@ typedef enum {
         to and from double and float types. */
    QCBOR_ERR_HW_FLOAT_DISABLED = 36,
 
+    /** Unable to complete operation because a floating-point value that
+     is a NaN (not a number), that is too large, too small,
+     infinity or -infinity was encountered in encoded CBOR. Usually
+     this because conversion of the float-point value was being attempted. */
+    QCBOR_ERR_FLOAT_EXCEPTION = 37,
+
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
 

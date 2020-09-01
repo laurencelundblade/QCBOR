@@ -36,7 +36,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ieee754.h" // Does not use math.h
 
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
-#include <math.h> // For isnan(). TODO: list
+#include <math.h> // For isnan(), llround(), llroudf(), round(), roundf() TODO: list
+#include <fenv.h> // feclearexcept(), fetestexcept()
 #endif
 
 
@@ -2872,9 +2873,8 @@ static QCBORError CheckTagRequirement(const TagSpecification TagSpec, const QCBO
 
 
 
-
-// Semi-private
-// TODO: inline or collapse with QCBORDecode_GetTaggedStringInMapN?
+// This could be semi-private if need be
+static inline
 void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext *pMe,
                                      int64_t             nLabel,
                                      TagSpecification    TagSpec,
@@ -2888,7 +2888,9 @@ void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext *pMe,
    pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, pItem);
 }
 
-// Semi-private
+
+// This could be semi-private if need be
+static inline
 void QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext *pMe,
                                      const char          *szLabel,
                                      TagSpecification    TagSpec,
@@ -3962,8 +3964,6 @@ static inline QCBORError ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, 
 
 
 
-#include "fenv.h"
-
 
 /*
 Convert a integers and floats to an int64_t.
@@ -3984,17 +3984,22 @@ static QCBORError ConvertInt64(const QCBORItem *pItem, uint32_t uConvertTypes, i
       case QCBOR_TYPE_DOUBLE:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-            // TODO: what about under/overflow here?
-            // Invokes the floating-point HW and/or compiler-added libraries
-            feclearexcept(FE_ALL_EXCEPT);
+            /* https://pubs.opengroup.org/onlinepubs/009695399/functions/llround.html
+             http://www.cplusplus.com/reference/cmath/llround/
+             */
+            // Not interested in FE_INEXACT
+            feclearexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO);
             if(pItem->uDataType == QCBOR_TYPE_DOUBLE) {
                *pnValue = llround(pItem->val.dfnum);
             } else {
                *pnValue = lroundf(pItem->val.fnum);
             }
-            if(fetestexcept(FE_INVALID)) {
-               // TODO: better error code
-               return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+            if(fetestexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO)) {
+               // llround() shouldn't result in divide by zero, but catch
+               // it here in case it unexpectedly does.  Don't try to
+               // distinguish between the various exceptions because it seems
+               // they vary by CPU, compiler and OS.
+               return QCBOR_ERR_FLOAT_EXCEPTION;
             }
          } else {
             return  QCBOR_ERR_UNEXPECTED_TYPE;
@@ -4296,21 +4301,47 @@ static QCBORError ConvertUint64(const QCBORItem *pItem, uint32_t uConvertTypes, 
       case QCBOR_TYPE_FLOAT:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-            // TODO: this code needs work
-            feclearexcept(FE_ALL_EXCEPT);
-            double dRounded = round(pItem->val.dfnum);
-            // TODO: over/underflow
-            if(fetestexcept(FE_INVALID)) {
-               // TODO: better error code
-               return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
-            } else if(isnan(dRounded)) {
-               // TODO: better error code
-               return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
-            } else if(dRounded >= 0) {
-               *puValue = (uint64_t)dRounded;
+            // Can't use llround here because it will not convert values
+            // greater than INT64_MAX and less than UINT64_MAX that
+            // need to be converted so it is more complicated.
+            feclearexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO);
+            if(pItem->uDataType == QCBOR_TYPE_DOUBLE) {
+               if(isnan(pItem->val.dfnum)) {
+                  return QCBOR_ERR_FLOAT_EXCEPTION;
+               } else if(pItem->val.dfnum < 0) {
+                  return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
+               } else {
+                  double dRounded = round(pItem->val.dfnum);
+                  // See discussion in DecodeDateEpoch() for
+                  // explanation of - 0x7ff
+                  if(dRounded > (double)(UINT64_MAX- 0x7ff)) {
+                     return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+                  }
+                  *puValue = (uint64_t)dRounded;
+               }
             } else {
-               return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
+               if(isnan(pItem->val.fnum)) {
+                  return QCBOR_ERR_FLOAT_EXCEPTION;
+               } else if(pItem->val.fnum < 0) {
+                  return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
+               } else {
+                  float fRounded = roundf(pItem->val.fnum);
+                  // See discussion in DecodeDateEpoch() for
+                  // explanation of - 0x7ff
+                  if(fRounded > (float)(UINT64_MAX- 0x7ff)) {
+                     return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+                  }
+                  *puValue = (uint64_t)fRounded;
+               }
             }
+            if(fetestexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO)) {
+               // round() and roundf() shouldn't result in exceptions here, but
+               // catch them to be robust and thorough. Don't try to
+               // distinguish between the various exceptions because it seems
+               // they vary by CPU, compiler and OS.
+               return QCBOR_ERR_FLOAT_EXCEPTION;
+            }
+
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
@@ -4592,6 +4623,7 @@ static QCBORError ConvertDouble(const QCBORItem *pItem,
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
             if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
+               // Simple cast does the job.
                *pdValue = (double)pItem->val.fnum;
             } else {
                return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -4615,7 +4647,8 @@ static QCBORError ConvertDouble(const QCBORItem *pItem,
       case QCBOR_TYPE_INT64:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
          if(uConvertTypes & QCBOR_CONVERT_TYPE_XINT64) {
-            // TODO: how does this work?
+            // A simple cast seems to do the job with no worry of exceptions.
+            // There will be precision loss for some values.
             *pdValue = (double)pItem->val.int64;
 
          } else {
@@ -4629,7 +4662,9 @@ static QCBORError ConvertDouble(const QCBORItem *pItem,
       case QCBOR_TYPE_UINT64:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
          if(uConvertTypes & QCBOR_CONVERT_TYPE_XINT64) {
-             *pdValue = (double)pItem->val.uint64;
+            // A simple cast seems to do the job with no worry of exceptions.
+            // There will be precision loss for some values.
+            *pdValue = (double)pItem->val.uint64;
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }

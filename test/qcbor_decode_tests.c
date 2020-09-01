@@ -5220,9 +5220,9 @@ static const struct NumberConversion NumberConversions[] = {
       {(uint8_t[]){0xfa, 0x7f, 0xc0, 0x00, 0x00}, 5},
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      QCBOR_ERR_FLOAT_EXCEPTION,
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      QCBOR_ERR_FLOAT_EXCEPTION,
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
       0,
       QCBOR_ERR_HW_FLOAT_DISABLED,
@@ -5281,7 +5281,24 @@ static const struct NumberConversion NumberConversions[] = {
       0.0,
       QCBOR_ERR_UNEXPECTED_TYPE
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
-   }
+   },
+   {
+      "+inifinity",
+      {(uint8_t[]){0xfa, 0x7f, 0x80, 0x00, 0x00}, 5},
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+      0,
+      QCBOR_ERR_FLOAT_EXCEPTION,
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+      0,
+      QCBOR_ERR_HW_FLOAT_DISABLED,
+      0,
+      QCBOR_ERR_HW_FLOAT_DISABLED,
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      INFINITY,
+      QCBOR_SUCCESS
+   },
 };
 
 
@@ -5349,7 +5366,6 @@ int32_t IntegerConvertTest()
                return (int32_t)(7000+nIndex);
             }
          } else {
-            // TODO: this comparison may need a margin of error
             if(pF->dConvertToDouble != d) {
                return (int32_t)(8000+nIndex);
             }
