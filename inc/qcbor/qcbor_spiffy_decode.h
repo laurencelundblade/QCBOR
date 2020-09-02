@@ -171,6 +171,33 @@ extern "C" {
 */
 
 
+
+
+/** The data item must be a tag of the expected type. It is an error
+ if it is not. For example when calling QCBORDecode_GetEpochDate(),
+ the data item must be an @ref CBOR_TAG_DATE_EPOCH tag.
+ See @ref Tag-Usage. */
+#define QCBOR_TAG_REQUIREMENT_TAG 0
+
+/** The data item must be of the type expected for content data type
+ being fetched. It is an error if it is not. For example, when
+ calling QCBORDecode_GetEpochDate() and it must not be an @ref
+ CBOR_TAG_DATE_EPOCH tag. See @ref Tag-Usage. */
+#define QCBOR_TAG_REQUIREMENT_NOT_A_TAG  1
+
+/** Either of the above two are allowed. This allows implementation of
+ being liberal in what you receive, but it is better if CBOR-based
+ protocols pick one and stick to and not required the reciever to
+ take either. See @ref Tag-Usage. */
+#define QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG 2
+
+/** Add this into the above value if other tags not processed by QCBOR
+ are to be allowed to surround the data item. See @ref Tag-Usage. */
+#define QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS 0x80
+
+
+
+
 /** Conversion will proceed if the CBOR item to be decoded is an
     integer or either type 0 (unsigned) or type 1 (negative). */
 #define QCBOR_CONVERT_TYPE_XINT64           0x01
@@ -188,34 +215,11 @@ extern "C" {
 #define QCBOR_CONVERT_TYPE_BIGFLOAT         0x10
 
 
-/** The data item must be a tag of the expected type. It is an error
-    if it is not. For example when calling QCBORDecode_GetEpochDate(),
-    the data item must be an @ref CBOR_TAG_DATE_EPOCH tag.
-    See @ref Tag-Usage. */
-#define QCBOR_TAG_REQUIREMENT_TAG 0
-
-/** The data item must be of the type expected for content data type
-    being fetched. It is an error if it is not. For example, when
-    calling QCBORDecode_GetEpochDate() and it must not be an @ref
-    CBOR_TAG_DATE_EPOCH tag. See @ref Tag-Usage. */
-#define QCBOR_TAG_REQUIREMENT_NOT_A_TAG  1
-
-/** Either of the above two are allowed. This allows implementation of
-    being liberal in what you receive, but it is better if CBOR-based
-    protocols pick one and stick to and not required the reciever to
-    take either. See @ref Tag-Usage. */
-#define QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG 2
-
-/** Add this into the above value if other tags not processed by QCBOR
-    are to be allowed to surround the data item. See @ref Tag-Usage. */
-#define QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS 0x80
-
-
 
 /**
  @brief Decode next item into a signed 64-bit integer.
 
- @param[in] pCtx   The decode context.
+ @param[in] pCtx      The decode context.
  @param[out] pnValue  The returned 64-bit signed integer.
 
  The CBOR data item to decode must be a positive or negative integer
@@ -310,13 +314,13 @@ static void QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  See @ref Decode-Errors for discussion on how error handling works.
 
  Note that most these types can support numbers much larger that can
- be represented by in a 64-bit integer, so @ref @ref
+ be represented by in a 64-bit integer, so @ref
  QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW may often be encountered.
 
  When converting bignums and decimal fractions @ref
  QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will be set if the result is
  below 1, unless the mantissa is zero, in which case the coversion is
- successful and the value of 0 is returned. TODO: is this right?
+ successful and the value of 0 is returned.
 
  See also QCBORDecode_GetInt64ConvertAll() which does some of these
  conversions, but links in much less object code. See also
@@ -402,9 +406,9 @@ static void QCBORDecode_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
 /**
  @brief Decode next item into an unsigned 64-bit integer with conversions
 
- @param[in] pCtx   The decode context.
- @param[in] uConvertTypes The integer conversion options.
- @param[out] puValue  The returned 64-bit unsigned integer.
+ @param[in] pCtx           The decode context.
+ @param[in] uConvertTypes  The integer conversion options.
+ @param[out] puValue       The returned 64-bit unsigned integer.
 
  This is the same as QCBORDecode_GetInt64ConvertAll(), but returns an
  unsigned integer and thus sets @ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
@@ -471,7 +475,7 @@ static void QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx,
  This will decode CBOR integer and floating-point numbers, returning
  them as a double floating-point number. This function supports @ref
  QCBOR_CONVERT_TYPE_XINT64 and @ref QCBOR_CONVERT_TYPE_FLOAT
- conversions. If the CBOR is not one of the requested types or a type
+ conversions. If the encoded CBOR is not one of the requested types or a type
  not supported by this function, @ref QCBOR_ERR_UNEXPECTED_TYPE is
  set.
 
@@ -484,7 +488,7 @@ static void QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx,
  a half-precision number is encountered.
 
  Positive and negative integers can always be converted to
- floating-point, so this will never error on type 0 or 1 CBOR.
+ floating-point, so this will never error on CBOR major type 0 or 1.
 
  Note that a large 64-bit integer can have more precision (64 bits)
  than even a double floating-point (52 bits) value, so there is loss
@@ -510,9 +514,9 @@ static void QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
 /**
  @brief Decode next item as a double floating-point value with conversion.
 
- @param[in] pCtx   The decode context.
- @param[in] uConvertTypes The integer conversion options.
- @param[out] pdValue  The returned floating-point value.
+ @param[in] pCtx           The decode context.
+ @param[in] uConvertTypes  The integer conversion options.
+ @param[out] pdValue       The returned floating-point value.
 
  This is the same as QCBORDecode_GetDoubleConvert() but supports many
  more conversions at the cost of linking in more object code. The
@@ -523,8 +527,10 @@ static void QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
 
  Big numbers, decimal fractions and big floats that are too small or
  too large to be reprented as a double floating-point number will be
- returned as plus or minus zero or infinity. There is also often loss
- of precision in the conversion.
+ returned as plus or minus zero or infinity rather than setting an
+ under or overflow error.
+
+ There is often loss of precision in the conversion.
 
  See also QCBORDecode_GetDoubleConvert() and QCBORDecode_GetDoubleConvert().
 */

@@ -4771,7 +4771,7 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uConvertType
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
       case QCBOR_TYPE_DECIMAL_FRACTION:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            // TODO: rounding and overflow errors
+            // Underflow gives 0, overflow gives infinity
             *pdValue = (double)pItem->val.expAndMantissa.Mantissa.nInt *
                         pow(10.0, (double)pItem->val.expAndMantissa.nExponent);
          } else {
@@ -4781,8 +4781,9 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uConvertType
 
       case QCBOR_TYPE_BIGFLOAT:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT ) {
-           *pdValue = (double)pItem->val.expAndMantissa.Mantissa.nInt *
-                                exp2((double)pItem->val.expAndMantissa.nExponent);
+            // Underflow gives 0, overflow gives infinity
+            *pdValue = (double)pItem->val.expAndMantissa.Mantissa.nInt *
+                              exp2((double)pItem->val.expAndMantissa.nExponent);
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
@@ -4817,7 +4818,6 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uConvertType
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
         if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-           // TODO: -infinity
          double dMantissa = -ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
          *pdValue = dMantissa * pow(10, (double)pItem->val.expAndMantissa.nExponent);
          } else {
@@ -4836,7 +4836,6 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uConvertType
 
       case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
         if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
-           // TODO: -infinity
          double dMantissa = -1-ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
          *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
          } else {
@@ -4844,7 +4843,6 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uConvertType
          }
          break;
 #endif /* ndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
-
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;

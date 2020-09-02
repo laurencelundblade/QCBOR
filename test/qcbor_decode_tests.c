@@ -5435,6 +5435,52 @@ static const struct NumberConversion NumberConversions[] = {
       QCBOR_ERR_HW_FLOAT_DISABLED,
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
    },
+
+   {
+      "big float underflow [9223372036854775806, -9223372036854775806]",
+      {(uint8_t[]){
+         0xC5, 0x82,
+            0x3B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
+            0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}, 20},
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0,
+      QCBOR_SUCCESS
+#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      0.0,
+      QCBOR_ERR_UNEXPECTED_TYPE
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+   },
+
+   {
+      "bigfloat that evaluates to -INFINITY",
+      {(uint8_t[]){
+         0xC5, 0x82,
+            0x1B, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+            0xC3, 0x42, 0x01, 0x01}, 15},
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      -INFINITY,
+      QCBOR_SUCCESS
+#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      0.0,
+      QCBOR_ERR_UNEXPECTED_TYPE
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA*/
+   },
 };
 
 
