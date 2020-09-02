@@ -434,7 +434,7 @@ void QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  @param[in] pCtx   The decode context
  @param[out] pValue  The returned floating-point value.
 
- The CBOR data item to decode must be a hafl-precision,
+ The CBOR data item to decode must be a half-precision,
  single-precision or double-precision floating-point value.  If not
  @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
 
@@ -522,7 +522,7 @@ static void QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
  QCBOR_CONVERT_TYPE_BIGFLOAT.
 
  Big numbers, decimal fractions and big floats that are too small or
- too large to be reprented as a souble floating-point number will be
+ too large to be reprented as a double floating-point number will be
  returned as plus or minus zero or infinity. There is also often loss
  of precision in the conversion.
 

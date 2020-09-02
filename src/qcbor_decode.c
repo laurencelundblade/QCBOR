@@ -4749,8 +4749,7 @@ static double ConvertBigNumToDouble(const UsefulBufC BigNum)
    const uint8_t *pByte = BigNum.ptr;
    size_t uLen = BigNum.len;
    /* This will overflow and become the float value INFINITY if the number
-    is too large to fit. No error will be logged.
-    TODO: should an error be logged? */
+    is too large to fit. */
    while(uLen--) {
       dResult = (dResult * 256.0) + (double)*pByte++;
    }
@@ -4818,6 +4817,7 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uConvertType
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
         if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+           // TODO: -infinity
          double dMantissa = -ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
          *pdValue = dMantissa * pow(10, (double)pItem->val.expAndMantissa.nExponent);
          } else {
@@ -4836,6 +4836,7 @@ static QCBORError DoubleConvertAll(const QCBORItem *pItem, uint32_t uConvertType
 
       case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
         if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
+           // TODO: -infinity
          double dMantissa = -1-ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
          *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
          } else {
