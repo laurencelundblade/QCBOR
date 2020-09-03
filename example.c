@@ -341,7 +341,8 @@ EngineDecodeErrors DecodeEngineSpiffyFaster(UsefulBufC EncodedEngine, CarEngine 
 
     EngineItems[6].uLabelType = QCBOR_TYPE_NONE;
 
-    uErr = QCBORDecode_GetItemsInMap(&DecodeCtx, EngineItems);
+    QCBORDecode_GetItemsInMap(&DecodeCtx, EngineItems);
+    uErr = QCBORDecode_GetError(&DecodeCtx);
     if(uErr != QCBOR_SUCCESS) {
         goto Done;
     }

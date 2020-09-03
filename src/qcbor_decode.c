@@ -2575,7 +2575,7 @@ MatchType(QCBORItem Item1, QCBORItem Item2)
 
 
 /**
- \brief Search a map for a set of items.
+ @brief Search a map for a set of items.
 
  @param[in]  pMe           The decode context to search.
  @param[in,out] pItemArray The items to search for and the items found.
@@ -2933,20 +2933,22 @@ void QCBORDecode_GetTaggedStringInMapSZ(QCBORDecodeContext *pMe,
 /*
  Public function, see header qcbor/qcbor_decode.h file
 */
-QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList)
+void QCBORDecode_GetItemsInMap(QCBORDecodeContext *pMe, QCBORItem *pItemList)
 {
-   return MapSearch(pCtx, pItemList, NULL, NULL, NULL);
+   QCBORError uErr = MapSearch(pMe, pItemList, NULL, NULL, NULL);
+   pMe->uLastError = (uint8_t)uErr;
 }
 
 /*
  Public function, see header qcbor/qcbor_decode.h file
 */
-QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
-                                                 QCBORItem          *pItemList,
-                                                 void               *pCallbackCtx,
-                                                 QCBORItemCallback   pfCB)
+void QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pMe,
+                                           QCBORItem          *pItemList,
+                                           void               *pCallbackCtx,
+                                           QCBORItemCallback   pfCB)
 {
-   return MapSearch(pCtx, pItemList, NULL, pCallbackCtx, pfCB);
+   QCBORError uErr = MapSearch(pMe, pItemList, NULL, pCallbackCtx, pfCB);
+   pMe->uLastError = (uint8_t)uErr;
 }
 
 

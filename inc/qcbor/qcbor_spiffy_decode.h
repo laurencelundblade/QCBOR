@@ -63,34 +63,33 @@ extern "C" {
  There is also QCBORDecode_EnterArray() to decode arrays. It will narrow the
  traversal to the extent of the array entered.
 
- GetXxxInMapX supports duplicate label detection and will result in an
- error if the map has duplicate labels.
+ All the QCBORDecode_GetXxxInMapX methods support duplicate label
+ detection and will result in an error if the map has duplicate
+ labels.
 
- GetXxxInMap is implemented by performing the pre-order traversal of
- the map to find the labeled item everytime it is called. It doesn't
- build up a hash table, a binary search tree or some other efficiently
- searchable structure internally. For simple trees this is fine and
- for high-speed CPUs this is fine, but for complex trees on slow CPUs,
- it may have performance issues (these have not be quantified
- yet). One way ease this is to use QCBORDecode_GetItemsInMap() which
- allows decoding of a list of items expected in an map in one
- traveral.
+ All the QCBORDecode_GetXxxInMapX() methods are implemented by
+ performing the pre-order traversal of the map to find the labeled
+ item everytime it is called. It doesn't build up a hash table, a
+ binary search tree or some other efficiently searchable structure
+ internally. For simple trees this is fine and for high-speed CPUs
+ this is fine, but for complex trees on slow CPUs, it may have
+ performance issues (these have not be quantified yet). One way ease
+ this is to use QCBORDecode_GetItemsInMap() which allows decoding of a
+ list of items expected in an map in one traveral.
 
  @anchor Decode-Errors
-  TODO: internal error for GetNext()?
 
- Like encoding, decoding maintains an internal error state. Once a call
- to the decoder returns an error, this error state is entered and
+ Like encoding, decoding maintains an internal error state. Once a
+ call to the decoder returns an error, this error state is entered and
  subsequent decoder calls do nothing. This allows for prettier and
  cleaner decoding code. In some cases the only error check that may be
  necessary is the return code from QCBORDecode_Finish().
 
- The internal error can be
- retrived with QCBORDecode_GetError(). Any further attempts to get
- specific data types will do nothing so it is safe for code to get
- many items without checking the error on each one as long as there is
- an error check before any data is used.  The error state is reset
- only by re initializing the decoder or
+ The internal error can be retrived with QCBORDecode_GetError(). Any
+ further attempts to get specific data types will do nothing so it is
+ safe for code to get many items without checking the error on each
+ one as long as there is an error check before any data is used.  The
+ error state is reset only by re initializing the decoder or
  QCBORDecode_GetErrorAndReset().  QCBORDecode_GetErrorAndReset() is
  mainly useful after a failure to get an item in a map by label.
 
@@ -101,28 +100,23 @@ extern "C" {
  internal error tracking provided by this decoder. The only error
  check needed is the call to Finish.
 
- In some CBOR protocols, the type of a data item may be
- variable. Maybe even the type of one data item is dependent on
- another. In such designs, GetNext has to be used and the internal
- error checking can't be relied upon.
+ QCBORDecode_GetNext() is the exception to this. It returns an
+ error. It doesn't set the internal error state. It will attempt to
+ decode evening when in the error state.
 
- Error reporting when searching maps is not accurate for
- some errors. They are report as not found rather
- than overflow and such.
+ In some CBOR protocols, the type of a data item may be variable and
+ the type of one data item may be dependent on another. To get items
+ of unknown type use QCBORDecode_GetNext(), QCBORDecode_VGetNext(),
+ QCBORDecode_GetItemInMapN() QCBORDecode_GetItemInMapSZ() or
+ QCBORDecode_GetItemsInMap().  This can be used to determine the
+ type. Then for use one of the type-specific methods to get the item
+ again to take advantage of the type conversion provided.
 
-
- ----
-  GetNext will always try to get something. The other Get functions
- will not try if there is an error.
-
- Make it a decode option for GetNext to not try? That way it is
- the same as all Get functions and can be used in the mix
- with them?
-
- GetNext is how you get things in an array you don't
- know the type of.
-
- ----
+ Error reporting when get items by label in a map is not accurate for
+ some errors. They are reported as not found rather than overflow and
+ such. The error may be for other than the labeled item being searched
+ for. Non-well formed maps cannot be searched at all. (This may be
+ improved).
 
  @anchor Tag-Usage
 
@@ -1162,7 +1156,7 @@ static void QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pCtx,
 
  See @ref Tag-Usage for discussion on tag requirements.
 
- See also @ref CBOR_TAG_BIN_UUID, QCBOREncode_AddBinaryUUID() and 
+ See also @ref CBOR_TAG_BIN_UUID, QCBOREncode_AddBinaryUUID() and
  @ref QCBOR_TYPE_UUID.
  */
 static inline void QCBORDecode_GetBinaryUUID(QCBORDecodeContext *pCtx,
@@ -1398,8 +1392,8 @@ bool QCBORDecode_InBoundedMode(QCBORDecodeContext *pCtx);
  @param[in] uQcborType  The QCBOR type. One of @c QCBOR_TYPE_XXX.
  @param[out] pItem  The returned item.
 
- A map must have been entered to use this. If not @ref xxx is
- set. TODO: which error?
+ A map must have been entered to use this. If not @ref QCBOR_ERR_MAP_NOT_ENTERED is
+ set.
 
  The map is searched for an item of the requested label and type.
  @ref QCBOR_TYPE_ANY can be given to search for the label without
@@ -1419,7 +1413,7 @@ bool QCBORDecode_InBoundedMode(QCBORDecodeContext *pCtx);
 
  See @ref Decode-Errors for discussion on how error handling works.
 
- See also QCBORDecode_GetItemsInMap().
+ See also QCBORDecode_GetItemsInMap() for error discussion.
 */
 void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pCtx,
                                int64_t             nLabel,
@@ -1454,19 +1448,40 @@ void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  is more efficient than scanning each individually because the map
  only needs to be traversed once.
 
- If any duplicate labels are detected, this returns @ref
- QCBOR_ERR_DUPLICATE_LABEL.
-
- See @ref Decode-Errors for discussion on how error handling works.
-
  This will return maps and arrays that are in the map, but provides no
  way to descend into and decode them. Use
  QCBORDecode_EnterMapinMapN(), QCBORDecode_EnterArrayInMapN() and such
  to descend into and process maps and arrays.
 
+ See @ref Decode-Errors for discussion on how error handling works.
+
+ The following errors are set:
+
+ @ref QCBOR_ERR_MAP_NOT_ENTERED when calling this without previousl
+ calling QCBORDecode_EnterMap() or other methods to enter a map.
+
+ @ref QCBOR_ERR_DUPLICATE_LABEL when one of the labels being searched
+ for is duplicate.
+
+ @ref QCBOR_ERR_HIT_END or other errors classifed as not-well-formed
+ by QCBORDecode_IsNotWellFormed() as it is not possible to traverse
+ maps that have any non-well formed items.
+
+ @ref QCBOR_ERR_UNEXPECTED_TYPE when the type of an item found by
+ matching a label is not the type requested.
+
+ @ref QCBOR_ERR_ARRAY_NESTING_TOO_DEEP and other implementation limit
+  errors as it is not possible to travere a map beyond the limits of
+  the implementation.
+
+ The error may occur on items that are not being searched for.  For
+ example, it is impossible to traverse over a map that has an array in
+ it that is not closed or over array and map nesting deeper than this
+ implementation can track.
+
  See also QCBORDecode_GetItemInMapN().
  */
-QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList);
+void QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList);
 
 
 /**
@@ -1475,12 +1490,13 @@ QCBORError QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemL
  @param[in] pCallbackCtx  Pointer to the caller-defined context for the callback
  @param[in] pItem  The item from the map.
 
- @return  The return value is intended for QCBOR errors, not general protocol decoding
- errors. If this returns other than @ref QCBOR_SUCCESS, the search will stop and
- the value it returns will be set in QCBORDecode_GetItemsInMapWithCallback(). The
- special error, @ref QCBOR_ERR_CALLBACK_FAIL, can be returned to indicate some
- protocol processing error that is not a CBOR error. The specific details of the protocol
-  processing error can be returned the call back context.
+ The error set is intended for QCBOR errors, not general protocol
+ decoding errors. If this sets other than @ref QCBOR_SUCCESS, the
+ search will stop and the value it returns will be set in
+ QCBORDecode_GetItemsInMapWithCallback(). The special error, @ref
+ QCBOR_ERR_CALLBACK_FAIL, can be returned to indicate some protocol
+ processing error that is not a CBOR error. The specific details of
+ the protocol processing error can be returned the call back context.
  */
 typedef QCBORError (*QCBORItemCallback)(void *pCallbackCtx, const QCBORItem *pItem);
 
@@ -1493,20 +1509,22 @@ typedef QCBORError (*QCBORItemCallback)(void *pCallbackCtx, const QCBORItem *pIt
  @param[in,out] pCallbackCtx Pointer to a context structure for @ref QCBORItemCallback
  @param[in] pfCB pointer to function of type @ref QCBORItemCallback that is called on unmatched items.
 
- This searchs a map like QCBORDecode_GetItemsInMap(), but calls a callback on items not
- matched rather than ignoring them. If @c pItemList is empty, the call back will be called
- on every item in the map.
+ This searchs a map like QCBORDecode_GetItemsInMap(), but calls a
+ callback on items not matched rather than ignoring them. If @c
+ pItemList is empty, the call back will be called on every item in the
+ map.
 
- LIke QCBORDecode_GetItemsInMap(), this only matches and calls back on the items at the
- top level of the map entered. Items in nested maps/arrays are skipped over and not candidate for
- matching or the callback.
+ Like QCBORDecode_GetItemsInMap(), this only matches and calls back on
+ the items at the top level of the map entered. Items in nested
+ maps/arrays are skipped over and not candidate for matching or the
+ callback.
 
  See QCBORItemCallback() for error handling. TODO: does this set last error?
  */
-QCBORError QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
-                                                 QCBORItem          *pItemList,
-                                                 void               *pCallbackCtx,
-                                                 QCBORItemCallback   pfCB);
+void QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
+                                           QCBORItem          *pItemList,
+                                           void               *pCallbackCtx,
+                                           QCBORItemCallback   pfCB);
 
 
 
