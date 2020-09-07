@@ -120,12 +120,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     mantissa and base-2 scaling factor. See QCBOREncode_AddBigFloat()
     and @ref expAndMantissa. */
 #define CBOR_TAG_BIGFLOAT       5
-/** Tag for COSE format encryption with no recipient
+/** Not Decoded by QCBOR. Tag for COSE format encryption with no recipient
     identification. See [RFC 8152, COSE]
     (https://tools.ietf.org/html/rfc8152). No API is provided for this
     tag. */
 #define CBOR_TAG_COSE_ENCRYPTO 16
-/** Tag for COSE format MAC'd data with no recipient
+/** Not Decoded by QCBOR. Tag for COSE format MAC'd data with no recipient
     identification. See [RFC 8152, COSE]
     (https://tools.ietf.org/html/rfc8152). No API is provided for this
     tag.*/
@@ -175,20 +175,19 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Tag for COSE format encryption. See [RFC 8152, COSE]
     (https://tools.ietf.org/html/rfc8152). No API is provided for this
     tag. */
-
 #define CBOR_TAG_CBOR_SEQUENCE 63
 
 
 #define CBOR_TAG_ENCRYPT       96
-/** Tag for COSE format MAC. See [RFC 8152, COSE]
+/** Not Decoded by QCBOR. Tag for COSE format MAC. See [RFC 8152, COSE]
     (https://tools.ietf.org/html/rfc8152). No API is provided for this
     tag. */
 #define CBOR_TAG_MAC           97
-/** Tag for COSE format signed data. See [RFC 8152, COSE]
+/** Not Decoded by QCBOR. Tag for COSE format signed data. See [RFC 8152, COSE]
     (https://tools.ietf.org/html/rfc8152). No API is provided for this
     tag. */
 #define CBOR_TAG_SIGN          98
-/** World geographic coordinates. See ISO 6709, [RFC 5870]
+/** Not Decoded by QCBOR. World geographic coordinates. See ISO 6709, [RFC 5870]
     (https://tools.ietf.org/html/rfc5870) and WGS-84. No API is
     provided for this tag. */
 #define CBOR_TAG_GEO_COORD     103

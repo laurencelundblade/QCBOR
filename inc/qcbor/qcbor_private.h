@@ -180,7 +180,7 @@ typedef struct __QCBORDecodeNesting  {
 #define QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH UINT16_MAX
 #define QCBOR_COUNT_INDICATES_ZERO_LENGTH UINT16_MAX-1
             uint16_t uCountTotal;
-            uint16_t uCountCursor; // TODO: review all uses of this
+            uint16_t uCountCursor;
 #define QCBOR_NON_BOUNDED_OFFSET UINT32_MAX
             uint32_t uStartOffset;
          } ma; /* for maps and arrays */

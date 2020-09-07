@@ -32,7 +32,7 @@ int main(int argc, const char * argv[])
 {
    (void)argc; // Avoid unused parameter error
 
-   RunQCborExample(); // TODO: organize this better
+   RunQCborExample();
 
 
    // This call prints out sizes of data structures to remind us

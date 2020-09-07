@@ -558,13 +558,13 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  If the CBOR tem to decode is not a byte string, the @ref
  QCBOR_ERR_UNEXPECTED_TYPE error is set.
  */
-static void QCBORDecode_GetBytes(QCBORDecodeContext *pCtx, UsefulBufC *pBytes);
+static void QCBORDecode_GetByteString(QCBORDecodeContext *pCtx, UsefulBufC *pBytes);
 
-static void QCBORDecode_GetBytesInMapN(QCBORDecodeContext *pCtx,
+static void QCBORDecode_GetByteStringInMapN(QCBORDecodeContext *pCtx,
                                        int64_t             nLabel,
                                        UsefulBufC         *pBytes);
 
-static void QCBORDecode_GetBytesInMapSZ(QCBORDecodeContext *pCtx,
+static void QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pCtx,
                                         const char         *szLabel,
                                         UsefulBufC         *pBytes);
 
@@ -581,13 +581,13 @@ static void QCBORDecode_GetBytesInMapSZ(QCBORDecodeContext *pCtx,
  to decode is not a text string, the @ref QCBOR_ERR_UNEXPECTED_TYPE
  error is set.
 */
-static void QCBORDecode_GetText(QCBORDecodeContext *pCtx, UsefulBufC *pText);
+static void QCBORDecode_GetTextString(QCBORDecodeContext *pCtx, UsefulBufC *pText);
 
-static void QCBORDecode_GetTextInMapN(QCBORDecodeContext *pCtx,
+static void QCBORDecode_GetTextStringInMapN(QCBORDecodeContext *pCtx,
                                       int64_t             nLabel,
                                       UsefulBufC         *pText);
 
-static void QCBORDecode_GetTextInMapSZ(QCBORDecodeContext *pCtx,
+static void QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pCtx,
                                        const char         *szLabel,
                                        UsefulBufC         *pText);
 
@@ -1498,7 +1498,8 @@ void QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList);
  processing error that is not a CBOR error. The specific details of
  the protocol processing error can be returned the call back context.
  */
-typedef QCBORError (*QCBORItemCallback)(void *pCallbackCtx, const QCBORItem *pItem);
+typedef QCBORError (*QCBORItemCallback)(void *pCallbackCtx,
+                                        const QCBORItem *pItem);
 
 
 /**
@@ -1516,10 +1517,10 @@ typedef QCBORError (*QCBORItemCallback)(void *pCallbackCtx, const QCBORItem *pIt
 
  Like QCBORDecode_GetItemsInMap(), this only matches and calls back on
  the items at the top level of the map entered. Items in nested
- maps/arrays are skipped over and not candidate for matching or the
+ maps and arrays are skipped over and not candidate for matching or the
  callback.
 
- See QCBORItemCallback() for error handling. TODO: does this set last error?
+ See QCBORItemCallback() for error handling.
  */
 void QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
                                            QCBORItem          *pItemList,
@@ -1835,8 +1836,8 @@ QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pMe,
 
 // Semi private
 #define QCBOR_TAGSPEC_NUM_TYPES 3
-// TODO: make content types 4 to help out epoch dates?
-/* TODO: This structure can probably be rearranged so the initialization
+// Improvement: make content types 4 to help out epoch dates?
+/* Improvement: This structure can probably be rearranged so the initialization
  of it takes much less code. */
 typedef struct {
    /* One of QCBOR_TAGSPEC_MATCH_xxx */
@@ -1879,7 +1880,7 @@ QCBORError QCBORDecode_GetMIMEInternal(uint8_t     uTagRequirement,
 
 
 static inline void
-QCBORDecode_GetBytes(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
+QCBORDecode_GetByteString(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 {
    // Complier should make this just 64-bit integer parameter
    const TagSpecification TagSpec =
@@ -1893,7 +1894,7 @@ QCBORDecode_GetBytes(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 }
 
 inline static void
-QCBORDecode_GetBytesInMapN(QCBORDecodeContext *pMe,
+QCBORDecode_GetByteStringInMapN(QCBORDecodeContext *pMe,
                            int64_t             nLabel,
                            UsefulBufC         *pBstr)
 {
@@ -1907,7 +1908,7 @@ QCBORDecode_GetBytesInMapN(QCBORDecodeContext *pMe,
 }
 
 inline static void
-QCBORDecode_GetBytesInMapSZ(QCBORDecodeContext *pMe,
+QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pMe,
                             const char         *szLabel,
                             UsefulBufC         *pBstr)
 {
@@ -1923,7 +1924,7 @@ QCBORDecode_GetBytesInMapSZ(QCBORDecodeContext *pMe,
 
 
 static inline void
-QCBORDecode_GetText(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
+QCBORDecode_GetTextString(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 {
    // Complier should make this just 64-bit integer parameter
    const TagSpecification TagSpec =
@@ -1937,7 +1938,7 @@ QCBORDecode_GetText(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 }
 
 inline static void
-QCBORDecode_GetTextInMapN(QCBORDecodeContext *pMe,
+QCBORDecode_GetTextStringInMapN(QCBORDecodeContext *pMe,
                           int64_t             nLabel,
                           UsefulBufC         *pText)
 {
@@ -1954,7 +1955,7 @@ QCBORDecode_GetTextInMapN(QCBORDecodeContext *pMe,
 }
 
 inline static void
-QCBORDecode_GetTextInMapSZ(QCBORDecodeContext *pMe,
+QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pMe,
                            const               char *szLabel,
                            UsefulBufC         *pText)
 {

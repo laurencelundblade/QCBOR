@@ -36,7 +36,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ieee754.h" // Does not use math.h
 
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
-#include <math.h> // For isnan(), llround(), llroudf(), round(), roundf() TODO: list
+#include <math.h> // For isnan(), llround(), llroudf(), round(), roundf(),
+                  // pow(), exp2()
 #include <fenv.h> // feclearexcept(), fetestexcept()
 #endif
 
@@ -2502,7 +2503,7 @@ ConsumeItem(QCBORDecodeContext *pMe,
        */
       do {
          uReturn = QCBORDecode_GetNext(pMe, &Item);
-         if( QCBORDecode_IsNotWellFormed(uReturn)) {
+         if(QCBORDecode_IsNotWellFormed(uReturn)) {
             // TODO: also resource limit errors
             goto Done;
          }
@@ -2785,8 +2786,8 @@ void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
 */
 void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
                                 const char         *szLabel,
-                                uint8_t            uQcborType,
-                                QCBORItem         *pItem)
+                                uint8_t             uQcborType,
+                                QCBORItem          *pItem)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -2954,7 +2955,9 @@ void QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pMe,
 
 static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
 {
-    // TODO: check that only one item is in pSearch?
+   // The first item in pSearch is the one that is to be
+   // entered. It should be the only one filled in. Any other
+   // will be ignored unless it causes an error.
    if(pMe->uLastError != QCBOR_SUCCESS) {
       // Already in error state; do nothing.
       return;

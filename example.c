@@ -256,7 +256,7 @@ EngineDecodeErrors DecodeEngineSpiffy(UsefulBufC EncodedEngine, CarEngine *pE)
 
     QCBORDecode_Init(&DecodeCtx, EncodedEngine, QCBOR_DECODE_MODE_NORMAL);
     QCBORDecode_EnterMap(&DecodeCtx);
-    QCBORDecode_GetTextInMapSZ(&DecodeCtx, "Manufacturer", &(pE->Manufacturer));
+    QCBORDecode_GetTextStringInMapSZ(&DecodeCtx, "Manufacturer", &(pE->Manufacturer));
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Displacement", &(pE->uDisplacement));
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Horsepower", &(pE->uHorsePower));
     QCBORDecode_GetDoubleInMapSZ(&DecodeCtx, "DesignedCompression", &(pE->dDesignedCompresion));
@@ -493,7 +493,7 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
 {
     QCBORDecodeContext DecodeCtx;
 
-    QCBORDecode_Init(&DecodeCtx, EncodedEngine, 0);// TODO: fill in mode;
+    QCBORDecode_Init(&DecodeCtx, EncodedEngine, QCBOR_DECODE_MODE_NORMAL);
 
     QCBORItem Item;
     QCBORError uErr;

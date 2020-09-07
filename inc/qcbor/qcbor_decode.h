@@ -304,7 +304,7 @@ typedef struct _QCBORItem {
        QCBOR_TYPE_XXXX */
    uint8_t  uDataType;
    /** How deep the nesting from arrays and maps is. 0 is the top
-    level with no arrays or maps entered. TODO: udpate this comment*/
+       level with no arrays or maps entered. */
    uint8_t  uNestingLevel;
     /** Tells what element of the label union to use. */
    uint8_t  uLabelType;
@@ -313,9 +313,9 @@ typedef struct _QCBORItem {
    uint8_t  uDataAlloc;
    /** Like @c uDataAlloc, but for label. */
    uint8_t  uLabelAlloc;
-   /** If less than @c uNestingLevel, this item was the last one
-       in an arry or map and closed out at least
-       one nesting level */
+   /** The nesting level of the next item after this one.  If less
+       than @c uNestingLevel, this item was the last one in an arry or
+       map and closed out at least one nesting level */
    uint8_t  uNextNestLevel;
 
    /** The union holding the item's value. Select union member based
@@ -829,37 +829,23 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  map or array has been encountered. This works the same for both
  definite and indefinite-length arrays.
 
- TODO: revise this documentation on tags. It is wrong.
- This decoder support CBOR type 6 tagging. The decoding of particular
- given tag value may be supported in one of three different ways.
+ QCBOR will automatically decode all the tags defined in RFC 7049
+ plus a few more. They will show up in a QCBORItem as QCBOR types
+ like QCBOR_TYPE_POS_BIGNUM.
 
- First, some common tags are fully and transparently supported by
- automatically decoding them and returning them in a @ref QCBORItem.
- These tags have a @c QCBOR_TYPE_XXX associated with them and manifest
- pretty much the same as a standard CBOR type. @ref
- QCBOR_TYPE_DATE_EPOCH and the @c epochDate member of @ref QCBORItem
- is an example.
+ Most tags with a CBOR_TAG_XXX define in qcbor_common.h like @ref
+ CBOR_TAG_DATE_STRING are automaticlly decoded by QCBOR. Those that
+ are defined but not decoded are so noted.
 
- Second are tags that are automatically recognized, but not decoded.
- These are tags that have a @c \#define of the form @c CBOR_TAG_XXX.
- These are recorded in the @c uTagBits member of @ref QCBORItem. There
- is an internal table that maps each bit to a particular tag value
- allowing up to 64 tags on an individual item to be reported (it is
- rare to have more than one or two). To find out if a particular tag
- value is set call QCBORDecode_IsTagged() on the @ref QCBORItem.  See
- also QCBORDecode_GetNextWithTags().
+ Tags that are not decoded by QCBOR will be identified and recorded in
+ a QCBORItem. Use QCBORDecode_GetNthTag() to get them. Only @ref
+ QCBOR_MAX_TAGS_PER_ITEM tags are recorded per item and an error is
+ returned if there are more than that.
 
- Third are tags that are not automatically recognized, because they
- are proprietary, custom or more recently registered with [IANA]
- (https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml). The
- internal mapping table has to be configured to recognize these. Call
- QCBORDecode_SetCallerConfiguredTagList() to do that. Then
- QCBORDecode_IsTagged() will work with them.
-
- The actual decoding of tags supported in the second and third way
- must be handled by the caller. Often this is simply verifying that
- the expected tag is present on a map, byte string or such.  In other
- cases, there might a complicated map structure to decode.
+ Previous versions of QCBOR handled tags in a more complex way using
+ QCBORDecode_SetCallerConfiguredTagList() and
+ QCBORDecode_GetNextWithTags().  This is largely compatible, but
+ imposes the limit of @ref QCBOR_MAX_TAGS_PER_ITEM tags per item
 
  See @ref Tags-Overview for a description of how to go about creating
  custom tags.

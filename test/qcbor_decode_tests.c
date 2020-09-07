@@ -4661,9 +4661,9 @@ int32_t EMap(UsefulBufC input)
 
         QCBORDecode_EnterMapFromMapSZ(&DCtx, "map in a map");
            QCBORDecode_GetInt64InMapSZ(&DCtx,  "another int",  &nDecodedInt2);
-           QCBORDecode_GetBytesInMapSZ(&DCtx, "bytes 1",  &B1);
-           QCBORDecode_GetBytesInMapSZ(&DCtx, "bytes 2",  &B2);
-           QCBORDecode_GetTextInMapSZ(&DCtx, "text 2",  &S1);
+           QCBORDecode_GetByteStringInMapSZ(&DCtx, "bytes 1",  &B1);
+           QCBORDecode_GetByteStringInMapSZ(&DCtx, "bytes 2",  &B2);
+           QCBORDecode_GetTextStringInMapSZ(&DCtx, "text 2",  &S1);
         QCBORDecode_ExitMap(&DCtx);
 
         QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
@@ -4676,8 +4676,8 @@ int32_t EMap(UsefulBufC input)
 
         // Parse the same array again using GetText() instead of GetItem()
         QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
-           QCBORDecode_GetText(&DCtx, &S2);
-           QCBORDecode_GetText(&DCtx, &S3);
+           QCBORDecode_GetTextString(&DCtx, &S2);
+           QCBORDecode_GetTextString(&DCtx, &S3);
            if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
               return 5000;
            }
@@ -4920,7 +4920,7 @@ int32_t EnterMapTest()
       return 2008;
    }
    UsefulBufC String;
-   QCBORDecode_GetTextInMapN(&DCtx, 88, &String);
+   QCBORDecode_GetTextStringInMapN(&DCtx, 88, &String);
    if(uErr != QCBOR_ERR_MAP_NOT_ENTERED){
       return 2009;
    }
@@ -4958,7 +4958,7 @@ int32_t EnterMapTest()
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spArrayOfEmpty), 0);
    QCBORDecode_EnterArray(&DCtx);
-   QCBORDecode_GetBytes(&DCtx, &String);
+   QCBORDecode_GetByteString(&DCtx, &String);
    QCBORDecode_EnterMap(&DCtx);
    QCBORDecode_ExitMap(&DCtx);
    QCBORDecode_EnterArray(&DCtx);

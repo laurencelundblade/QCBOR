@@ -514,7 +514,7 @@ this is the attachment text\n\
 
 int32_t AllAddMethodsTest()
 {
-   // TODO: this test should be broken down into several so it is more
+   // Improvement: this test should be broken down into several so it is more
    // managable. Tags and labels could be more sensible
    QCBOREncodeContext ECtx;
    int nReturn = 0;
@@ -1950,7 +1950,7 @@ static int32_t GetByteString(QCBORDecodeContext *pDC, UsefulBufC *pBstr)
       return nReturn;
    }
    if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return -1; // TODO: better type?
+      return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
    *pBstr = Item.val.string;
