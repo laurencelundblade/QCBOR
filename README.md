@@ -2,7 +2,20 @@
 
 QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
-## Characteristics
+## New Version Supporting Spiffy Decode
+
+This new version of QCBOR adds a more powerful decoding API
+called Spiffy Decode. 
+
+* Much easier implementation of decoding of CBOR protocols
+* Decoding implementations parallels encoding implementation
+* Overall smaller code size for implementations decoding multiple and
+  / or complex maps
+* Backwards compatible with previous versions of QCBOR
+
+See section below for more details.
+
+## QCBOR Characteristics
 
 **Implemented in C with minimal dependency** – The only dependencies
   are C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making
@@ -20,19 +33,17 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
   representations and decoding to native C representations is supported.
 
 **Small simple memory model** – Malloc is not needed. The encode
-  context is 136 bytes, decode context is 144 bytes and the
-  description of decoded data item is 48 bytes. Stack use is light and
+  context is 174 bytes, decode context is 312 bytes and the
+  description of decoded data item is 56 bytes. Stack use is light and
   there is no recursion. The caller supplies the memory to hold the
   encoded CBOR and encode/decode contexts so caller has full control
   of memory usage making it good for embedded implementations that
   have to run in small fixed memory.
 
-**Supports all of RFC 7049 except strict mode** – With some size
+**Supports all of RFC 7049 except strict mode and sorting** – With some size
   limits, all data types and formats specified are supported.
   Decoding indefinite length strings requires a string allocator (see
-  documentation). The most notable part of RFC 7049 not supported is
-  detection of duplicate keys in maps, however, the duplicates are
-  passed up to the caller so it can do duplicate detection.
+  documentation).
 
 **Extensible and general** – Provides a way to handle data types that
   are not directly supported.
@@ -57,6 +68,10 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
 ## Code Status
 
+This version with Spiffy Decode in fall of 2020 is stable, but not quite 
+to the commercial quality level of the previous code. A little more
+testing is necessary for it to be at the previous commercial quality level.
+
 QCBOR was originally developed by Qualcomm. It was [open sourced
 through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a
 permissive Linux license, September 2018 (thanks Qualcomm!).
@@ -66,13 +81,6 @@ GitHub](https://github.com/laurencelundblade/QCBOR) has diverged from
 the CAF source with some simplifications, tidying up and feature
 additions.
 
-From Nov 3, 2018, the interface and code are fairly stable. Large
-changes are not planned or expected, particularly in the
-interface. The test coverage is pretty good.
-
-On Feb 18 2019, there was an interface change to QCBORDecode_SetUpAllocator
-for external string allocator set up. The change was part of a
-memory access alignment fix and code simplification.
 
 ## Building
 
@@ -119,34 +127,52 @@ See the comment sections on "Configuration" in inc/UsefulBuf.h.
 ## Spiffy Decode
 
 In mid-2020 a large addition makes the decoder more powerful and easy
-to use. Backwards compatibility with the previous API is retained as the
-new decoding features layer on top of it.
+to use. Backwards compatibility with the previous API is retained as
+the new decoding features layer on top of it.
 
-The first noticable addition are functions to Get particular data types. 
-These are an alternative built on top of GetNext that does the type
-checking and in some cases sophisticated type conversion. They 
-track an error state internally so the caller doesn't need.  They also
-handle the CBOR tagged data types thoroughly and properly.
+The first noticable addition are functions to get particular data
+types.  These are an alternative to and built on top of GetNext that
+does the type checking and in some cases sophisticated type
+conversion. They track an error state internally so the caller doesn't
+need.  They also handle the CBOR tagged data types thoroughly and
+properly.
 
-In line with all the new Get functions for non-aggregate types
-there are new Enter functions for aggregate types. When
-an array or map is expected, Enter is called to descend
-into them. When a map is Entered it can be searched
-by label. Duplicate detection of map items is performed.
+In line with all the new get functions for non-aggregate types there
+are new functions for aggregate types. When a map is expected,
+QCBORDecode_EnterMap() can be called to descend into it. When a map is
+entered it can be searched by label. Duplicate detection of map items
+is performed. There is a similar facility for arrays and byte-string
+wrapped CBOR.
 
-An outcome of all this is that now the decoding implementation of 
-some data can look very similar to the encoding of some data
-and is generally easier to implement.
+An outcome of all this is that now the decoding implementation of some
+data can look very similar to the encoding of some data and is
+generally easier to implement. Following is an example of first
+encoding a map with three items and then decoding it.
 
-     Example...
+     /* Encode */
+     QCBOREncode_Init(&EncodeCtx, Buffer);
+     QCBOREncode_OpenMap(&EncodeCtx);
+     QCBOREncode_AddTextToMap(&EncodeCtx, "Manufacturer", pE->Manufacturer);
+     QCBOREncode_AddInt64ToMap(&EncodeCtx, "Displacement", pE->uDisplacement);
+     QCBOREncode_AddInt64ToMap(&EncodeCtx, "Horsepower", pE->uHorsePower);
+     QCBOREncode_CloseMap(&EncodeCtx);
+     uErr = QCBOREncode_Finish(&EncodeCtx, &EncodedEngine);
+  
+     /* Decode */
+     QCBORDecode_Init(&DecodeCtx, EncodedEngine, QCBOR_DECODE_MODE_NORMAL);
+     QCBORDecode_EnterMap(&DecodeCtx);
+     QCBORDecode_GetTextStringInMapSZ(&DecodeCtx, "Manufacturer", &(pE->Manufacturer));
+     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Displacement", &(pE->uDisplacement));
+     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Horsepower", &(pE->uHorsePower));
+     QCBORDecode_ExitMap(&DecodeCtx);
+     uErr = QCBORDecode_Finish(&DecodeCtx);
 
-The handling of byte-string wrapped CBOR like the COSE payload
-and tag 24 is improved.
+The Spiffy Decode version of QCBOR also handles CBOR tags in a simpler 
+and more thorough way.
 
-If decoding of more than one protocol is
-implemented then more of the CBOR-related code is reused. 
-For example map searching and duplicate detection is reused.
-This may reduce object code size.
+The spiffy decode functions will handle definite and indefinite length
+maps and arrays without the caller having to do anything. This includes 
+mixed definite and indefinte maps and arrays.
 
 ## Floating Point Support
 
@@ -157,13 +183,14 @@ for floating-point and floating-point epoch dates.
 If full floating-point is not needed the following #defines can be
 used to reduce object code size.
 
-QCBOR_DISABLE_FLOAT_HW_USE -- Avoid all use of floating-point hardware.
+QCBOR_DISABLE_FLOAT_HW_USE -- Avoid all use of floating-point hardware
+and inclusion of <math.h> and <fenv.h>
 
 QCBOR_DISABLE_PREFERRED_FLOAT -- Eliminates support for half-precision
 and CBOR preferred serialization.
 
 Even if these are #defined, QCBOR can still encode and decode basic
-floating point.
+floating point numbers.
 
 Defining QCBOR_DISABLE_PREFERRED_FLOAT will reduce object code size by
 about 900 bytes, though 550 of these bytes can be avoided without the
@@ -182,10 +209,36 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
     |               | smallest | largest |  
     |---------------|----------|---------|
     | encode only   |     1000 |    2100 |
-    | decode only   |     2500 |    4300 |
-    | combined      |     3500 |    6400 |
+    | decode only   |     2900 |   12900 |
+    | combined      |     3900 |   14000 |
     
-The following are some ways to make the code smaller.
+ The code sizes varies primarily based on which QCBOR functions are
+ called. QCBOR's internal dependencies are such that for the most part
+ only code needed to support was is called is linked.
+ 
+ The amount of QCBOR code linked in for decoding varies widely
+ depending on which decoding functions are called. Spiffy decode adds
+ a lot more decoding functionality. The amount of code linked will
+ more or less scale with the functionality used.
+ 
+ The number conversion functions like QCBORDecode_GetInt64ConvertAll()
+ bring in the most object code. This can convert floats, big numbers,
+ decimal fractions and the like to an integer. QCBORDecode_GetInt64()
+ will bring in much less.
+ 
+ Using any of the functions that search maps by a label will bring in
+ about 1KB of code. This is usually wothwhile though because it
+ handles does a complex job which includes duplicate label detection,
+ item type checking and both definite and indefinite length maps. This
+ code is also shared for each map that is searched.
+ 
+ If QCBOR is set up as a shared library across apps on the system
+ there may be a substantial overall code size reduction from using
+ spiffy decode because the individual apps will be smaller. For
+ example, t_cose shrank by 800 bytes by using spiffy map decoding.
+ 
+ In addition to using fewer QCBOR functions, the following are some
+ ways to make the code smaller.
 
 The gcc compiler output is usually smaller than llvm because stack
 guards are off by default (be sure you actually have gcc and not llvm
@@ -194,17 +247,12 @@ stack gaurds with llvm. It is safe to turn off stack guards with this
 code because Usefulbuf provides similar defenses and this code was
 carefully written to be defensive.
 
-Use fewer of the encode functions, particularly avoid floating-point
-and bstr wrapping. This combined with dead-stripping works very well
-to automatically omit functions that are not needed on the encode
-side.
-
 Disable features with defines like
 QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) and
 QCBOR_DISABLE_PREFERRED_FLOAT (saves about 900 bytes).  This is the
 primary means of reducing code on the decode side.  More of these
 defines are planned than are currently implemented, but they are a
-little complex to implement because all the combination configurations 
+little complex to implement because all the combination configurations
 must be tested.
 
 ## Other Software Using QCBOR
