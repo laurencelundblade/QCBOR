@@ -2,7 +2,7 @@
 
 QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
-## New Version Supporting Spiffy Decode
+## New Version With Spiffy Decode
 
 This new version of QCBOR adds a more powerful decoding API
 called Spiffy Decode. 
@@ -40,9 +40,10 @@ See section below for more details.
   of memory usage making it good for embedded implementations that
   have to run in small fixed memory.
 
-**Supports all of RFC 7049 except strict mode and sorting** – With some size
-  limits, all data types and formats specified are supported.
-  Decoding indefinite length strings requires a string allocator (see
+**Supports all of RFC 7049 except strict mode and map sorting** – With some size
+  limits, all data types and formats specified are supported. The same
+  decoding API supports both definite and indefinite-length map and
+  array decoding. Decoding indefinite length strings is supported but requires a string allocator (see
   documentation).
 
 **Extensible and general** – Provides a way to handle data types that
@@ -52,11 +53,7 @@ See section below for more details.
   discipline for very safe coding and handling of binary data.
 
 **Small code size** – When optimized for size using the compiler -Os
-  option, x86 code is about 4KB (~1.1KB encode, ~2.5KB decode,
-  ~0.4KB common). Other decoders may be smaller, but they may
-  also do less for you, so overall size of the implementation may
-  be larger. For example, QCBOR internally tracks error status
-  so you don't have to check a return code on every operation.
+  option, 64-bit x86 code is about 4KB in its smallest configuration. 
 
 **Clear documented public interface** – The public interface is
   separated from the implementation. It can be put to use without
@@ -68,9 +65,11 @@ See section below for more details.
 
 ## Code Status
 
-This version with Spiffy Decode in fall of 2020 is stable, but not quite 
+This version with spiffy decode in fall of 2020 is stable, but not quite 
 to the commercial quality level of the previous code. A little more
 testing is necessary for it to be at the previous commercial quality level.
+
+Encoding features are generally mature, well tested and commercial quality.
 
 QCBOR was originally developed by Qualcomm. It was [open sourced
 through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a
@@ -122,7 +121,8 @@ C pre processor macros that can be #defined in order to:
  * to improve performance (a little)
  * remove features to reduce code size
 
-See the comment sections on "Configuration" in inc/UsefulBuf.h.
+See the comment sections on "Configuration" in inc/UsefulBuf.h and 
+the pre processor defines that start with QCBOR_DISABLE_XXX.
 
 ## Spiffy Decode
 
@@ -131,7 +131,7 @@ to use. Backwards compatibility with the previous API is retained as
 the new decoding features layer on top of it.
 
 The first noticable addition are functions to get particular data
-types.  These are an alternative to and built on top of GetNext that
+types.  These are an alternative to and built on top of QCBORDecode_GetNext() that
 does the type checking and in some cases sophisticated type
 conversion. They track an error state internally so the caller doesn't
 need.  They also handle the CBOR tagged data types thoroughly and
@@ -176,7 +176,7 @@ mixed definite and indefinte maps and arrays.
 
 ## Floating Point Support
 
-By default, all floating-point features are supported. This includes
+By default, all QCBOR floating-point features are enabled. This includes
 encoding and decoding of half-precision, CBOR preferred serialization
 for floating-point and floating-point epoch dates.
 
@@ -194,7 +194,7 @@ floating point numbers.
 
 Defining QCBOR_DISABLE_PREFERRED_FLOAT will reduce object code size by
 about 900 bytes, though 550 of these bytes can be avoided without the
-define by just not calling any of the functions that encode
+#define by just not calling any of the functions that encode
 floating-point numbers.
 
 Defining QCBOR_DISABLE_FLOAT_HW_USE will save a small amount of object
@@ -210,7 +210,7 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
     |---------------|----------|---------|
     | encode only   |     1000 |    2100 |
     | decode only   |     2900 |   12900 |
-    | combined      |     3900 |   14000 |
+    | combined      |     3900 |   15000 |
     
  The code sizes varies primarily based on which QCBOR functions are
  called. QCBOR's internal dependencies are such that for the most part
@@ -229,7 +229,7 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
  Using any of the functions that search maps by a label will bring in
  about 1KB of code. This is usually wothwhile though because it
  handles does a complex job which includes duplicate label detection,
- item type checking and both definite and indefinite length maps. This
+ item type checking and decoding both definite and indefinite length maps. This
  code is also shared for each map that is searched.
  
  If QCBOR is set up as a shared library across apps on the system
@@ -339,6 +339,3 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ### Copyright for this README
 
 Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
-
-
-

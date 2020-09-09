@@ -558,15 +558,16 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  If the CBOR tem to decode is not a byte string, the @ref
  QCBOR_ERR_UNEXPECTED_TYPE error is set.
  */
-static void QCBORDecode_GetByteString(QCBORDecodeContext *pCtx, UsefulBufC *pBytes);
+static void QCBORDecode_GetByteString(QCBORDecodeContext *pCtx,
+                                      UsefulBufC *pBytes);
 
 static void QCBORDecode_GetByteStringInMapN(QCBORDecodeContext *pCtx,
-                                       int64_t             nLabel,
-                                       UsefulBufC         *pBytes);
+                                            int64_t             nLabel,
+                                            UsefulBufC         *pBytes);
 
 static void QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pCtx,
-                                        const char         *szLabel,
-                                        UsefulBufC         *pBytes);
+                                             const char         *szLabel,
+                                             UsefulBufC         *pBytes);
 
 
 /**
@@ -581,15 +582,16 @@ static void QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pCtx,
  to decode is not a text string, the @ref QCBOR_ERR_UNEXPECTED_TYPE
  error is set.
 */
-static void QCBORDecode_GetTextString(QCBORDecodeContext *pCtx, UsefulBufC *pText);
+static void QCBORDecode_GetTextString(QCBORDecodeContext *pCtx,
+                                      UsefulBufC *pText);
 
 static void QCBORDecode_GetTextStringInMapN(QCBORDecodeContext *pCtx,
-                                      int64_t             nLabel,
-                                      UsefulBufC         *pText);
+                                            int64_t             nLabel,
+                                            UsefulBufC         *pText);
 
 static void QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pCtx,
-                                       const char         *szLabel,
-                                       UsefulBufC         *pText);
+                                             const char         *szLabel,
+                                             UsefulBufC         *pText);
 
 
 
@@ -684,8 +686,8 @@ static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
  @ref QCBOR_TYPE_DATE_EPOCH.
 */
 void QCBORDecode_GetEpochDate(QCBORDecodeContext *pCtx,
-                             uint8_t              uTagRequirement,
-                             int64_t             *pnTime);
+                              uint8_t              uTagRequirement,
+                              int64_t             *pnTime);
 
 void QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pCtx,
                                     int64_t             nLabel,
@@ -1855,9 +1857,6 @@ void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe,
                                          UsefulBufC         *pBstr);
 
 
-
-
-
 // Semi private
 void QCBORDecode_GetTaggedStringInMapN(QCBORDecodeContext *pMe,
                                        int64_t             nLabel,
@@ -2063,7 +2062,6 @@ QCBORDecode_GetURIInMapSZ(QCBORDecodeContext *pMe,
 
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pUUID);
 }
-
 
 
 static inline void QCBORDecode_GetB64(QCBORDecodeContext *pMe,
@@ -2313,7 +2311,6 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
 
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pUUID);
 }
-
 
 
 #ifdef __cplusplus
