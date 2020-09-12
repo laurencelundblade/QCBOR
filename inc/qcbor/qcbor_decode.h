@@ -721,7 +721,7 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
 
  @retval QCBOR_ERR_BAD_OPT_TAG     Invalid CBOR, tag on wrong type.
 
- @retval QCBOR_ERR_ARRAY_TOO_LONG  Implementation limit, array or map
+ @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG  Implementation limit, array or map
                                    too long.
 
  @retval QCBOR_ERR_INT_OVERFLOW    Implementation limit, negative
@@ -730,7 +730,7 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  @retval QCBOR_ERR_DATE_OVERFLOW   Implementation limit, date larger
                                    than can be handled.
 
- @retval QCBOR_ERR_ARRAY_NESTING_TOO_DEEP  Implementation limit, nesting
+ @retval QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP  Implementation limit, nesting
                                            too deep.
 
  @retval QCBOR_ERR_STRING_ALLOCATE Resource exhaustion, string allocator
@@ -1095,7 +1095,24 @@ static QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
  @param[in] uErr    The decoder context.
  @return @c true if the error code indicates non-well-formed CBOR.
  */
-static bool QCBORDecode_IsNotWellFormed(QCBORError uErr);
+static bool QCBORDecode_IsNotWellFormedError(QCBORError uErr);
+
+
+/**
+ @brief Whether a decoding error is recoverable.
+
+ @param[in] uErr    The decoder context.
+ @return @c true if the error code indicates and uncrecoverable error.
+
+ When an error is unrecoverable, no further decoding of the input is possible.
+ CBOR is a compact format with almost no redundancy so errors like
+ incorrect lengths or array counts are unrecoverable. Unrecoverable
+ errors also occur when certain implementation limits such as the
+ limit on array and map nesting occur.
+ */
+static bool QCBORDecode_IsUnrecoverableError(QCBORError uErr);
+
+
 
 
 /**
@@ -1226,16 +1243,25 @@ static inline QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pMe)
     return uReturn;
 }
 
-static inline bool QCBORDecode_IsNotWellFormed(QCBORError uErr)
+static inline bool QCBORDecode_IsNotWellFormedError(QCBORError uErr)
 {
-   if(uErr >= QCBOR_ERR_FIRST_NOT_WELL_FORMED &&
-      uErr <= QCBOR_ERR_LAST_NOT_WELL_FORMED) {
+   if(uErr >= QCBOR_START_OF_NOT_WELL_FORMED_ERRORS &&
+      uErr <= QCBOR_END_OF_NOT_WELL_FORMED_ERRORS) {
       return true;
    } else {
       return false;
    }
 }
 
+static inline bool QCBORDecode_IsUnrecoverableError(QCBORError uErr)
+{
+   if(uErr >= QCBOR_START_OF_UNRECOVERABLE_DECODE_ERRORS &&
+      uErr <= QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS) {
+      return true;
+   } else {
+      return false;
+   }
+}
 
 #ifdef __cplusplus
 }

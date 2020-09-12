@@ -48,6 +48,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define UNCONST_POINTER(ptr)    ((void *)(ptr))
 
+#define SIZEOF_C_ARRAY(array,type) (sizeof(array)/sizeof(type))
 
 
 inline static bool
@@ -305,7 +306,7 @@ DecodeNesting_Descend(QCBORDecodeNesting *pNesting, uint8_t uType)
 {
    // Error out if nesting is too deep
    if(pNesting->pCurrent >= &(pNesting->pLevels[QCBOR_MAX_ARRAY_NESTING])) {
-      return QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
+      return QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP;
    }
 
    // The actual descend
@@ -327,7 +328,7 @@ DecodeNesting_EnterBoundedMapOrArray(QCBORDecodeNesting *pNesting, bool bIsEmpty
     just to mark it in bounded mode.
     */
    if(uOffset >= QCBOR_NON_BOUNDED_OFFSET) {
-      return QCBOR_ERR_BUFFER_TOO_LARGE;
+      return QCBOR_ERR_INPUT_TOO_LARGE;
    }
 
    pNesting->pCurrentBounded = pNesting->pCurrent;
@@ -355,7 +356,7 @@ DecodeNesting_DescendMapOrArray(QCBORDecodeNesting *pNesting,
    // Error out if arrays is too long to handle
    if(uCount != QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH &&
       uCount > QCBOR_MAX_ITEMS_IN_ARRAY) {
-      uError = QCBOR_ERR_ARRAY_TOO_LONG;
+      uError = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
       goto Done;
    }
 
@@ -630,7 +631,7 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pMe,
  This decodes the fundamental part of a CBOR data item, the type and
  number
 
- This is the Counterpart to InsertEncodedTypeAndNumber().
+ This is the counterpart to QCBOREncode_EncodeHead().
 
  This does the network->host byte order conversion. The conversion
  here also results in the conversion for floats in addition to that
@@ -802,16 +803,16 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
 {
    QCBORError nReturn = QCBOR_SUCCESS;
 
-   // uAdditionalInfo is 5 bits from the initial byte compile time checks
+   // uAdditionalInfo is 5 bits from the initial byte. Compile time checks
    // above make sure uAdditionalInfo values line up with uDataType values.
-   // DecodeTypeAndNumber never returns a major type > 1f so cast is safe
+   // DecodeTypeAndNumber() never returns an AdditionalInfo > 0x1f so cast is safe
    pDecodedItem->uDataType = (uint8_t)nAdditionalInfo;
 
    switch(nAdditionalInfo) {
       // No check for ADDINFO_RESERVED1 - ADDINFO_RESERVED3 as they are
       // caught before this is called.
 
-      case HALF_PREC_FLOAT:
+      case HALF_PREC_FLOAT: // 25
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          // Half-precision is returned as a double.
          // The cast to uint16_t is safe because the encoded value
@@ -822,7 +823,7 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
          nReturn = QCBOR_ERR_HALF_PRECISION_DISABLED;
 #endif
          break;
-      case SINGLE_PREC_FLOAT:
+      case SINGLE_PREC_FLOAT: // 26
          // Single precision is normally returned as a double
          // since double is widely supported, there is no loss of
          // precision, it makes it easy for the caller in
@@ -850,7 +851,7 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
          }
          break;
 
-      case DOUBLE_PREC_FLOAT:
+      case DOUBLE_PREC_FLOAT: // 27
          pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uNumber);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
          break;
@@ -1038,7 +1039,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
       case CBOR_MAJOR_TYPE_MAP:   // Major type 5
          // Record the number of items in the array or map
          if(uNumber > QCBOR_MAX_ITEMS_IN_ARRAY) {
-            nReturn = QCBOR_ERR_ARRAY_TOO_LONG;
+            nReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
             goto Done;
          }
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
@@ -1335,7 +1336,7 @@ Done:
 
  @retval QCBOR_ERR_MAP_LABEL_TYPE
 
- @retval QCBOR_ERR_ARRAY_TOO_LONG
+ @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG
  */
 static inline QCBORError
 GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
@@ -1394,7 +1395,7 @@ GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    } else {
       if(pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
          if(pDecodedItem->val.uCount > QCBOR_MAX_ITEMS_IN_ARRAY/2) {
-            nReturn = QCBOR_ERR_ARRAY_TOO_LONG;
+            nReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
             goto Done;
          }
          // Decoding a map as an array
@@ -1538,7 +1539,7 @@ Done:
 
  @retval QCBOR_ERR_MAP_LABEL_TYPE X
 
- @retval QCBOR_ERR_ARRAY_TOO_LONG
+ @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG
 
  @retval QCBOR_ERR_NO_MORE_ITEMS
 
@@ -1577,7 +1578,8 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 
    /* ==== Next: not at the end so get another item ==== */
    uReturn = GetNext_MapEntry(me, pDecodedItem);
-   if(uReturn) {
+   if(QCBORDecode_IsUnrecoverableError(uReturn)) {
+      /* Error is so bad that traversal is not possible. */
       goto Done;
    }
 
@@ -1611,10 +1613,14 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
        processed, not when they are opened with the exception of an
        empty map or array.
        */
-      uReturn = DecodeNesting_DescendMapOrArray(&(me->nesting),
+      QCBORError uDescendErr;
+      uDescendErr = DecodeNesting_DescendMapOrArray(&(me->nesting),
                                                 pDecodedItem->uDataType,
                                                 pDecodedItem->val.uCount);
-      if(uReturn != QCBOR_SUCCESS) {
+      if(uDescendErr != QCBOR_SUCCESS) {
+         /* This error is probably a traversal error and it
+          overrides the non-traversal error. */
+         uReturn = uDescendErr;
          goto Done;
       }
    }
@@ -1633,8 +1639,12 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
        length map/array. If the end of the map/array was reached, then
        it ascends nesting levels, possibly all the way to the top level.
        */
-      uReturn = NestLevelAscender(me, true);
-      if(uReturn) {
+      QCBORError uAscendErr;
+      uAscendErr = NestLevelAscender(me, true);
+      if(uAscendErr != QCBOR_SUCCESS) {
+         /* This error is probably a traversal error and it
+          overrides the non-traversal error. */
+         uReturn = uAscendErr;
          goto Done;
       }
    }
@@ -1656,7 +1666,9 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 Done:
    if(uReturn != QCBOR_SUCCESS) {
       /* This sets uDataType and uLabelType to QCBOR_TYPE_NONE */
-      memset(pDecodedItem, 0, sizeof(QCBORItem));
+      pDecodedItem->uDataType = QCBOR_TYPE_NONE;
+      pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
+      // memset(pDecodedItem, 0, sizeof(QCBORItem));
    }
    return uReturn;
 }
@@ -2210,7 +2222,7 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *me)
 
    // Error out if all the maps/arrays are not closed out
    if(!DecodeNesting_IsCurrentAtTop(&(me->nesting))) {
-      uReturn = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
+      uReturn = QCBOR_ERR_ARRAY_OR_MAP_UNCONSUMED;
       goto Done;
    }
 
@@ -2272,10 +2284,10 @@ Decoder errors handled in this file
    string and an epoch date QCBOR_ERR_UNSUPPORTED
 
  - Encontered an array or mapp that has too many items
-   QCBOR_ERR_ARRAY_TOO_LONG
+   QCBOR_ERR_ARRAY_DECODE_TOO_LONG
 
  - Encountered array/map nesting that is too deep
-   QCBOR_ERR_ARRAY_NESTING_TOO_DEEP
+   QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP
 
  - An epoch date > INT64_MAX or < INT64_MIN was encountered
    QCBOR_ERR_DATE_OVERFLOW
@@ -2448,19 +2460,19 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
    // constant in the header is correct.  This check should optimize
    // down to nothing.
    if(QCBOR_DECODE_MIN_MEM_POOL_SIZE < 2 * sizeof(uint32_t)) {
-      return QCBOR_ERR_BUFFER_TOO_SMALL;
+      return QCBOR_ERR_MEM_POOL_SIZE;
    }
 
    // The pool size and free offset packed in to the beginning of pool
    // memory are only 32-bits. This check will optimize out on 32-bit
    // machines.
    if(Pool.len > UINT32_MAX) {
-      return QCBOR_ERR_BUFFER_TOO_LARGE;
+      return QCBOR_ERR_MEM_POOL_SIZE;
    }
 
    // This checks that the pool buffer given is big enough.
    if(MemPool_Pack(Pool, QCBOR_DECODE_MIN_MEM_POOL_SIZE)) {
-      return QCBOR_ERR_BUFFER_TOO_SMALL;
+      return QCBOR_ERR_MEM_POOL_SIZE;
    }
 
    pMe->StringAllocator.pfAllocator    = MemPool_Function;
@@ -2503,8 +2515,7 @@ ConsumeItem(QCBORDecodeContext *pMe,
        */
       do {
          uReturn = QCBORDecode_GetNext(pMe, &Item);
-         if(QCBORDecode_IsNotWellFormed(uReturn)) {
-            // TODO: also resource limit errors
+         if(QCBORDecode_IsUnrecoverableError(uReturn)) {
             goto Done;
          }
       } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
@@ -2602,6 +2613,8 @@ MatchType(QCBORItem Item1, QCBORItem Item2)
 
  If an item was not found, its data type is set to QCBOR_TYPE_NONE.
  */
+// TODO: make this handle indefinite length strings, possibly with
+// allocation only when returning the string.
 static QCBORError
 MapSearch(QCBORDecodeContext *pMe,
           QCBORItem          *pItemArray,
@@ -2661,15 +2674,14 @@ MapSearch(QCBORDecodeContext *pMe,
       /* Get the item */
       QCBORItem Item;
       uReturn = QCBORDecode_GetNext(pMe, &Item);
-      if(QCBORDecode_IsNotWellFormed(uReturn)) {
+      if(QCBORDecode_IsUnrecoverableError(uReturn)) {
          /* Got non-well-formed CBOR so map can't even be decoded. */
-         // TODO: also bail out on implementation limits like array too big
          goto Done;
       }
-       if(uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
-           // Unexpected end of map or array.
-           goto Done;
-       }
+      if(uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
+         // Unexpected end of map or array.
+         goto Done;
+      }
 
       /* See if item has one of the labels that are of interest */
       bool bMatched = false;
@@ -2770,7 +2782,7 @@ void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
       goto Done;
    }
    if(OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
-      uReturn = QCBOR_ERR_NOT_FOUND;
+      uReturn = QCBOR_ERR_LABEL_NOT_FOUND;
       goto Done;
    }
 
@@ -2804,7 +2816,7 @@ void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
       goto Done;
    }
    if(OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
-      uReturn = QCBOR_ERR_NOT_FOUND;
+      uReturn = QCBOR_ERR_LABEL_NOT_FOUND;
       goto Done;
    }
 
@@ -2970,7 +2982,7 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
    }
 
    if(pSearch->uDataType == QCBOR_TYPE_NONE) {
-      pMe->uLastError = QCBOR_ERR_NOT_FOUND;
+      pMe->uLastError = QCBOR_ERR_LABEL_NOT_FOUND;
       return;
    }
 
@@ -3170,7 +3182,7 @@ void QCBORDecode_ExitBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
    QCBORError uErr;
 
    if(!DecodeNesting_IsBoundedType(&(pMe->nesting), uType)) {
-      uErr = QCBOR_ERR_CLOSE_MISMATCH;
+      uErr = QCBOR_ERR_EXIT_MISMATCH;
       goto Done;
    }
 
@@ -3248,7 +3260,7 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
    const size_t uEndOfBstr = UsefulInputBuf_Tell(&(pMe->InBuf));
    if(uEndOfBstr >= UINT32_MAX || uPreviousLength >= UINT32_MAX) {
       // TODO: test this error condition
-      uError = QCBOR_ERR_BUFFER_TOO_LARGE;
+      uError = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
    UsefulInputBuf_Seek(&(pMe->InBuf), uEndOfBstr - pItem->val.string.len);
@@ -3332,7 +3344,7 @@ void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pMe)
    }
 
    if(!DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_BYTE_STRING)) {
-      pMe->uLastError = QCBOR_ERR_CLOSE_MISMATCH;
+      pMe->uLastError = QCBOR_ERR_EXIT_MISMATCH;
       return;
    }
 

@@ -398,20 +398,20 @@ Done:
  @param[in] uQCBORType The expected type or @c QCBOR_TYPE_ANY
  @param[in] pItem  The item to check.
 
- @retval QCBOR_ERR_NOT_FOUND  The label doesn't match.
+ @retval QCBOR_ERR_LABEL_NOT_FOUND  The label doesn't match.
  @retval QCBOR_ERR_UNEXPECTED_TYPE The label matches, but the type is not as expected.
  @retval QCBOR_SUCCESS Both label and type match.
  */
 QCBORError CheckLabelAndType(const char *szLabel, uint8_t uQCBORType, const QCBORItem *pItem)
 {
     if(pItem->uLabelType != QCBOR_TYPE_TEXT_STRING) {
-        return QCBOR_ERR_NOT_FOUND;
+        return QCBOR_ERR_LABEL_NOT_FOUND;
     }
 
     UsefulBufC Label = UsefulBuf_FromSZ(szLabel);
 
     if(UsefulBuf_Compare(Label, pItem->label.string)) {
-        return QCBOR_ERR_NOT_FOUND;
+        return QCBOR_ERR_LABEL_NOT_FOUND;
     }
 
     if(pItem->uDataType != uQCBORType && uQCBORType != QCBOR_TYPE_ANY) {
@@ -525,7 +525,7 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
         if(uErr == QCBOR_SUCCESS) {
             pE->Manufacturer = Item.val.string;
             continue;
-        } else if(uErr != QCBOR_ERR_NOT_FOUND){
+        } else if(uErr != QCBOR_ERR_LABEL_NOT_FOUND){
             /* Maunfacturer field missing or badly formed */
             return EngineProtocolerror;
         } /* continue on and try for another match */
@@ -538,7 +538,7 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
                 pE->uNumCylinders = (uint8_t)Item.val.int64;
                 continue;
             }
-        } else if(uErr != QCBOR_ERR_NOT_FOUND){
+        } else if(uErr != QCBOR_ERR_LABEL_NOT_FOUND){
             /* NumCylinders field missing or badly formed */
             return EngineProtocolerror;
         } /* continue on and try for another match */
@@ -547,7 +547,7 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
         if(uErr == QCBOR_SUCCESS) {
             DecodeCylinders(&DecodeCtx, pE, &Item);
             continue;
-        } else if(uErr != QCBOR_ERR_NOT_FOUND){
+        } else if(uErr != QCBOR_ERR_LABEL_NOT_FOUND){
             return EngineProtocolerror;
         }
 
@@ -555,7 +555,7 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
         if(uErr == QCBOR_SUCCESS) {
             pE->uDisplacement = Item.val.int64;
             continue;
-        } else if(uErr != QCBOR_ERR_NOT_FOUND){
+        } else if(uErr != QCBOR_ERR_LABEL_NOT_FOUND){
             return EngineProtocolerror;
         }
 
@@ -563,7 +563,7 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
         if(uErr == QCBOR_SUCCESS) {
             pE->uHorsePower = Item.val.int64;
             continue;
-        } else if(uErr != QCBOR_ERR_NOT_FOUND){
+        } else if(uErr != QCBOR_ERR_LABEL_NOT_FOUND){
             return EngineProtocolerror;
         }
 
@@ -571,7 +571,7 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
         if(uErr == QCBOR_SUCCESS) {
             pE->dDesignedCompresion = Item.val.dfnum;
             continue;
-        } else if(uErr != QCBOR_ERR_NOT_FOUND){
+        } else if(uErr != QCBOR_ERR_LABEL_NOT_FOUND){
             return EngineProtocolerror;
         }
 
@@ -585,7 +585,7 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
                 return EngineProtocolerror;
             }
             continue;
-        } else if(uErr != QCBOR_ERR_NOT_FOUND){
+        } else if(uErr != QCBOR_ERR_LABEL_NOT_FOUND){
             return EngineProtocolerror;
         }
 

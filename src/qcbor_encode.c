@@ -203,7 +203,7 @@ inline static bool Nesting_IsInNest(QCBORTrackNesting *pNesting)
    QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN -- Finish called without enough closes
 
  Would generate not-well-formed CBOR
-   QCBOR_ERR_UNSUPPORTED             -- Simple type between 24 and 31
+   QCBOR_ERR_ENCODE_UNSUPPORTED      -- Simple type between 24 and 31
  */
 
 
@@ -565,7 +565,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
 {
    if(me->uError == QCBOR_SUCCESS) {
       if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
-         me->uError = QCBOR_ERR_UNSUPPORTED;
+         me->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
       } else {
          // AppendHead() does endian swapping for the float / double
          AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, uNum, uMinLen);
