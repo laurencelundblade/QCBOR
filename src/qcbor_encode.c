@@ -648,7 +648,9 @@ void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
     base-2 for big floats and base-10 for decimal fractions, but that
     has no effect on the code here.
     */
-   QCBOREncode_AddTag(pMe, uTag);
+   if(uTag != CBOR_TAG_INVALID64) {
+      QCBOREncode_AddTag(pMe, uTag);
+   }
    QCBOREncode_OpenArray(pMe);
    QCBOREncode_AddInt64(pMe, nExponent);
    if(!UsefulBuf_IsNULLC(BigNumMantissa)) {

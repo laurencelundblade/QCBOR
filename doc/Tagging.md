@@ -1,5 +1,7 @@
 #  Types and Tagging in CBOR
 
+@anchor CBORTags
+
 ## New Types
 
 CBOR provides a means for defining new data types beyond the primitive
@@ -223,7 +225,9 @@ in a CBOR protocol without the explicit tag, so in a way the registry
 is a registry of data types.
 
 
+## See Also
 
+See @ref Tags-Overview and @ref Tag-Usage.
 
 
 

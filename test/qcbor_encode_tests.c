@@ -2628,7 +2628,7 @@ int32_t ExponentAndMantissaEncodeTests()
 
    QCBOREncode_AddDecimalFractionToMapN(&EC, 300, 3, -1);
 
-   QCBOREncode_AddDecimalFractionBigNumToMap(&EC,
+   QCBOREncode_AddDecimalFractionBigNumToMapSZ(&EC,
                                              "decimal fraction bignum postive",
                                              BigNum,
                                              false,
@@ -2640,7 +2640,7 @@ int32_t ExponentAndMantissaEncodeTests()
                                               false,
                                               INT32_MAX);
 
-   QCBOREncode_AddDecimalFractionBigNumToMap(&EC,
+   QCBOREncode_AddDecimalFractionBigNumToMapSZ(&EC,
                                              "decimal fraction bignum negative",
                                              BigNum,
                                              true,
