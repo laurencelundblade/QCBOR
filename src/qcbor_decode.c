@@ -471,70 +471,6 @@ DecodeNesting_GetPreviousBoundedEnd(const QCBORDecodeNesting *pMe)
 }
 
 
-#include <stdio.h>
-
-const char *TypeStr(uint8_t type)
-{
-   switch(type) {
-      case QCBOR_TYPE_MAP: return "  map";
-      case QCBOR_TYPE_ARRAY: return "array";
-      case QCBOR_TYPE_BYTE_STRING: return " bstr";
-      default: return " --- ";
-   }
-}
-
-static char buf[20]; // Not thread safe, but that is OK
-const char *CountString(uint16_t uCount, uint16_t uTotal)
-{
-   if(uTotal == QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
-      strcpy(buf, "indefinite");
-   } else {
-      sprintf(buf, "%d/%d", uCount, uTotal);
-   }
-   return buf;
-}
-
-
-void DecodeNesting_Print(QCBORDecodeNesting *pNesting, UsefulInputBuf *pBuf, const char *szName)
-{
-#if 0
-   printf("---%s--%d/%d--\narrow is current bounded level\n",
-          szName,
-          (uint32_t)pBuf->cursor,
-          (uint32_t)pBuf->UB.len);
-
-   printf("Level   Type       Count  Offsets \n");
-   for(int i = 0; i < QCBOR_MAX_ARRAY_NESTING; i++) {
-      if(&(pNesting->pLevels[i]) > pNesting->pCurrent) {
-         break;
-      }
-
-      printf("%2s %2d  %s  ",
-             pNesting->pCurrentBounded == &(pNesting->pLevels[i]) ? "->": "  ",
-             i,
-             TypeStr(pNesting->pLevels[i].uLevelType));
-
-      if(pNesting->pLevels[i].uLevelType == QCBOR_TYPE_BYTE_STRING) {
-         printf("               %5d   %5d",
-                pNesting->pLevels[i].u.bs.uEndOfBstr,
-                pNesting->pLevels[i].u.bs.uPreviousEndOffset);
-
-      } else {
-         printf("%10.10s  ",
-                CountString(pNesting->pLevels[i].u.ma.uCountCursor,
-                            pNesting->pLevels[i].u.ma.uCountTotal));
-         if(pNesting->pLevels[i].u.ma.uStartOffset != UINT32_MAX) {
-            printf("Bounded start: %u",pNesting->pLevels[i].u.ma.uStartOffset);
-         }
-      }
-
-      printf("\n");
-   }
-   printf("\n");
-#endif
-}
-
-
 
 /*===========================================================================
    QCBORStringAllocate -- STRING ALLOCATOR INVOCATION
@@ -2502,8 +2438,6 @@ ConsumeItem(QCBORDecodeContext *pMe,
    QCBORError uReturn;
    QCBORItem  Item;
 
-   DecodeNesting_Print(&(pMe->nesting), &(pMe->InBuf), "ConsumeItem");
-
    // If it is a map or array, this will tell if it is empty.
    const bool bIsEmpty = (pItemToConsume->uNextNestLevel <= pItemToConsume->uNestingLevel);
 
@@ -3166,7 +3100,6 @@ ExitBoundedLevel(QCBORDecodeContext *pMe, uint32_t uEndOffset)
    pMe->uMapEndOffsetCache = MAP_OFFSET_CACHE_INVALID;
 
 Done:
-   DecodeNesting_Print(&(pMe->nesting), &(pMe->InBuf),  "ExitBoundedLevel");
    return uErr;
 }
 
@@ -3271,8 +3204,6 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
                                                    (uint32_t)uPreviousLength,
                                                    (uint32_t)uEndOfBstr);
 Done:
-   DecodeNesting_Print(&(pMe->nesting), &(pMe->InBuf),  "Entered Bstr");
-
    return uError;
 }
 
