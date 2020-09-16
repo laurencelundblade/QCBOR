@@ -648,7 +648,7 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx,uint64_t uTag);
 
  @param[in] pCtx  The encoding context to add the date to.
  @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or @ref QCBOR_ENCODE_AS_BORROWED.
- @param[in] date  Number of seconds since 1970-01-01T00:00Z in UTC time.
+ @param[in] nDate  Number of seconds since 1970-01-01T00:00Z in UTC time.
 
  As per RFC 7049 this is similar to UNIX/Linux/POSIX dates. This is
  the most compact way to specify a date and time in CBOR. Note that
@@ -675,24 +675,29 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx,uint64_t uTag);
  */
 static void QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pCtx,
                                       uint8_t             uTagRequirement,
-                                      int64_t             date);
+                                      int64_t             nDate);
 
 static void QCBOREncode_AddTDateEpochToMapSZ(QCBOREncodeContext *pCtx,
                                              const char         *szLabel,
                                              uint8_t             uTagRequirement,
-                                             int64_t             date);
+                                             int64_t             nDate);
 
 static void QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext *pCtx,
                                             int64_t             nLabel,
                                             uint8_t             uTagRequirement,
-                                            int64_t             date);
+                                            int64_t             nDate);
 
 
-static void QCBOREncode_AddDateEpoch(QCBOREncodeContext *pCtx, int64_t date);
+static void QCBOREncode_AddDateEpoch(QCBOREncodeContext *pCtx,
+                                     int64_t             nDate);
 
-static void QCBOREncode_AddDateEpochToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t date);
+static void QCBOREncode_AddDateEpochToMap(QCBOREncodeContext *pCtx,
+                                          const char         *szLabel,
+                                          int64_t             nDate);
 
-static void QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t date);
+static void QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx,
+                                           int64_t             nLabel,
+                                           int64_t             nDate);
 
 
 /**
@@ -784,11 +789,16 @@ static void QCBOREncode_AddTPositiveBignumToMapN(QCBOREncodeContext *pCtx,
                                                  UsefulBufC          Bytes);
 
 
-static void QCBOREncode_AddPositiveBignum(QCBOREncodeContext *pCtx, UsefulBufC Bytes);
+static void QCBOREncode_AddPositiveBignum(QCBOREncodeContext *pCtx,
+                                          UsefulBufC          Bytes);
 
-static void QCBOREncode_AddPositiveBignumToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Bytes);
+static void QCBOREncode_AddPositiveBignumToMap(QCBOREncodeContext *pCtx,
+                                               const char         *szLabel,
+                                               UsefulBufC          Bytes);
 
-static void QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
+static void QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx,
+                                                int64_t             nLabel,
+                                                UsefulBufC          Bytes);
 
 
 /**
@@ -824,11 +834,16 @@ static void QCBOREncode_AddTNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                                  UsefulBufC          Bytes);
 
 
-static void QCBOREncode_AddNegativeBignum(QCBOREncodeContext *pCtx, UsefulBufC Bytes);
+static void QCBOREncode_AddNegativeBignum(QCBOREncodeContext *pCtx,
+                                          UsefulBufC          Bytes);
 
-static void QCBOREncode_AddNegativeBignumToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Bytes);
+static void QCBOREncode_AddNegativeBignumToMap(QCBOREncodeContext *pCtx,
+                                               const char         *szLabel,
+                                               UsefulBufC          Bytes);
 
-static void QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
+static void QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
+                                                int64_t             nLabel,
+                                                UsefulBufC          Bytes);
 
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
@@ -1109,11 +1124,16 @@ static void QCBOREncode_AddTURIToMapN(QCBOREncodeContext *pCtx,
                                       UsefulBufC          URI);
 
 
-static void QCBOREncode_AddURI(QCBOREncodeContext *pCtx, UsefulBufC URI);
+static void QCBOREncode_AddURI(QCBOREncodeContext *pCtx,
+                               UsefulBufC          URI);
 
-static void QCBOREncode_AddURIToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC URI);
+static void QCBOREncode_AddURIToMap(QCBOREncodeContext *pCtx,
+                                    const char         *szLabel,
+                                    UsefulBufC          URI);
 
-static void QCBOREncode_AddURIToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC URI);
+static void QCBOREncode_AddURIToMapN(QCBOREncodeContext *pCtx,
+                                     int64_t             nLabel,
+                                     UsefulBufC          URI);
 
 
 /**
@@ -1144,11 +1164,16 @@ static void QCBOREncode_AddTB64TextToMapN(QCBOREncodeContext *pCtx,
                                           UsefulBufC B64Text);
 
 
-static void QCBOREncode_AddB64Text(QCBOREncodeContext *pCtx, UsefulBufC B64Text);
+static void QCBOREncode_AddB64Text(QCBOREncodeContext *pCtx,
+                                   UsefulBufC          B64Text);
 
-static void QCBOREncode_AddB64TextToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC B64Text);
+static void QCBOREncode_AddB64TextToMap(QCBOREncodeContext *pCtx,
+                                        const char         *szLabel,
+                                        UsefulBufC          B64Text);
 
-static void QCBOREncode_AddB64TextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC B64Text);
+static void QCBOREncode_AddB64TextToMapN(QCBOREncodeContext *pCtx,
+                                         int64_t             nLabel,
+                                         UsefulBufC          B64Text);
 
 
 
@@ -1180,11 +1205,16 @@ static void QCBOREncode_AddTB64URLTextToMapN(QCBOREncodeContext *pCtx,
                                              UsefulBufC          B64Text);
 
 
-static void QCBOREncode_AddB64URLText(QCBOREncodeContext *pCtx, UsefulBufC B64Text);
+static void QCBOREncode_AddB64URLText(QCBOREncodeContext *pCtx,
+                                      UsefulBufC          B64Text);
 
-static void QCBOREncode_AddB64URLTextToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC B64Text);
+static void QCBOREncode_AddB64URLTextToMap(QCBOREncodeContext *pCtx,
+                                           const char         *szLabel,
+                                           UsefulBufC          B64Text);
 
-static void QCBOREncode_AddB64URLTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC B64Text);
+static void QCBOREncode_AddB64URLTextToMapN(QCBOREncodeContext *pCtx,
+                                            int64_t             nLabel,
+                                            UsefulBufC          B64Text);
 
 
 /**
@@ -1215,11 +1245,16 @@ static void QCBOREncode_AddTRegexToMapN(QCBOREncodeContext *pCtx,
                                         UsefulBufC          Regex);
 
 
-static void QCBOREncode_AddRegex(QCBOREncodeContext *pCtx, UsefulBufC Regex);
+static void QCBOREncode_AddRegex(QCBOREncodeContext *pCtx,
+                                 UsefulBufC          Regex);
 
-static void QCBOREncode_AddRegexToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Regex);
+static void QCBOREncode_AddRegexToMap(QCBOREncodeContext *pCtx,
+                                      const char         *szLabel,
+                                      UsefulBufC          Regex);
 
-static void QCBOREncode_AddRegexToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Regex);
+static void QCBOREncode_AddRegexToMapN(QCBOREncodeContext *pCtx,
+                                       int64_t             nLabel,
+                                       UsefulBufC          Regex);
 
 
 /**
@@ -1227,7 +1262,7 @@ static void QCBOREncode_AddRegexToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
 
  @param[in] pCtx      The encoding context to add the MIME data to.
  @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or @ref QCBOR_ENCODE_AS_BORROWED.
- @param[in] MIMEData  Pointer and length of the regular expression.
+ @param[in] MIMEData  Pointer and length of the MIME Data.
 
  The text content is in MIME format per [RFC 2045]
  (https://tools.ietf.org/html/rfc2045) including the headers. Note
@@ -1252,11 +1287,16 @@ static void QCBOREncode_AddTMIMEDataToMapN(QCBOREncodeContext *pCtx,
                                            UsefulBufC          MIMEData);
 
 
-static void QCBOREncode_AddMIMEData(QCBOREncodeContext *pCtx, UsefulBufC MIMEData);
+static void QCBOREncode_AddMIMEData(QCBOREncodeContext *pCtx,
+                                    UsefulBufC          MIMEData);
 
-static void QCBOREncode_AddMIMEDataToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC MIMEData);
+static void QCBOREncode_AddMIMEDataToMap(QCBOREncodeContext *pCtx,
+                                         const char         *szLabel,
+                                         UsefulBufC          MIMEData);
 
-static void QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC MIMEData);
+static void QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pCtx,
+                                          int64_t             nLabel,
+                                          UsefulBufC          MIMEData);
 
 
 /**
@@ -1293,11 +1333,16 @@ static void QCBOREncode_AddTDateStringToMapN(QCBOREncodeContext *pCtx,
                                              const char         *szDate);
 
 
-static void QCBOREncode_AddDateString(QCBOREncodeContext *pCtx, const char *szDate);
+static void QCBOREncode_AddDateString(QCBOREncodeContext *pCtx,
+                                      const char         *szDate);
 
-static void QCBOREncode_AddDateStringToMap(QCBOREncodeContext *pCtx, const char *szLabel, const char *szDate);
+static void QCBOREncode_AddDateStringToMap(QCBOREncodeContext *pCtx,
+                                           const char         *szLabel,
+                                           const char         *szDate);
 
-static void QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const char *szDate);
+static void QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
+                                            int64_t             nLabel,
+                                            const char         *szDate);
 
 /**
  @brief  Add a standard Boolean.
@@ -1733,10 +1778,9 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
 
 
 
-/* ===========================================================================
- BEGINNING OF PRIVATE INLINE IMPLEMENTATION
-
- =========================================================================== */
+/* =========================================================================
+     BEGINNING OF PRIVATE INLINE IMPLEMENTATION
+   ========================================================================= */
 
 /**
  @brief Semi-private method to add a buffer full of bytes to encoded output
@@ -1839,11 +1883,19 @@ void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, uint8_t uMinLen, uint64_t u
  @param[in] nMantissa        The @c int64_t mantissa if it is not a big number.
  @param[in] nExponent        The exponent.
 
- This adds a tagged array with two members, the mantissa and exponent. The
- mantissa can be either a big number or an @c int64_t.
+ This outputs either the @ref CBOR_TAG_DECIMAL_FRACTION or @ref
+ CBOR_TAG_BIGFLOAT tag. if @c uTag is @ref CBOR_TAG_INVALID64, then
+ this outputs the "borrowed" content format.
 
- If @c uTag is @ref CBOR_INVALID_TAG64, then only the mantissa and exponent
- content will be encoded. See  TODO: finish this.
+ The tag content output by this is an array with two members, the
+ exponent and then the mantissa. The mantissa can be either a big
+ number or an @c int64_t.
+
+ This implementation cannot output an exponent further from 0 than
+ INT64_MAX.
+
+ To output a mantissa that is bewteen INT64_MAX and UINT64_MAX from 0,
+ it must be as a big number.
 
  Typically, QCBOREncode_AddDecimalFraction(), QCBOREncode_AddBigFloat(),
  QCBOREncode_AddDecimalFractionBigNum() or QCBOREncode_AddBigFloatBigNum()
@@ -2022,46 +2074,46 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
 
 
 static inline void
-QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pMe, uint8_t uTag, int64_t date)
+QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pMe, uint8_t uTag, int64_t nDate)
 {
    if(uTag == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTag(pMe, CBOR_TAG_DATE_EPOCH);
    }
-   QCBOREncode_AddInt64(pMe, date);
+   QCBOREncode_AddInt64(pMe, nDate);
 }
 
 static inline void
-QCBOREncode_AddTDateEpochToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, uint8_t uTag, int64_t date)
+QCBOREncode_AddTDateEpochToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, uint8_t uTag, int64_t nDate)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTDateEpoch(pMe, uTag, date);
+   QCBOREncode_AddTDateEpoch(pMe, uTag, nDate);
 }
 
 static inline void
-QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint8_t uTag, int64_t date)
+QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint8_t uTag, int64_t nDate)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTDateEpoch(pMe, uTag, date);
+   QCBOREncode_AddTDateEpoch(pMe, uTag, nDate);
 }
 
 static inline void
-QCBOREncode_AddDateEpoch(QCBOREncodeContext *pMe, int64_t date)
+QCBOREncode_AddDateEpoch(QCBOREncodeContext *pMe, int64_t nDate)
 {
-   QCBOREncode_AddTDateEpoch(pMe, QCBOR_ENCODE_AS_TAG, date);
+   QCBOREncode_AddTDateEpoch(pMe, QCBOR_ENCODE_AS_TAG, nDate);
 }
 
 static inline void
-QCBOREncode_AddDateEpochToMap(QCBOREncodeContext *pMe, const char *szLabel, int64_t date)
+QCBOREncode_AddDateEpochToMap(QCBOREncodeContext *pMe, const char *szLabel, int64_t nDate)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddDateEpoch(pMe, date);
+   QCBOREncode_AddDateEpoch(pMe, nDate);
 }
 
 static inline void
-QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pMe, int64_t nLabel, int64_t date)
+QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pMe, int64_t nLabel, int64_t nDate)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddDateEpoch(pMe, date);
+   QCBOREncode_AddDateEpoch(pMe, nDate);
 }
 
 
@@ -2245,10 +2297,11 @@ QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pMe, int64_t nLabel, Use
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 
-static inline void QCBOREncode_AddTDecimalFraction(QCBOREncodeContext *pMe,
-                                                   uint8_t             uTagRequirement,
-                                                   int64_t             nMantissa,
-                                                   int64_t             nBase10Exponent)
+static inline void
+QCBOREncode_AddTDecimalFraction(QCBOREncodeContext *pMe,
+                                uint8_t             uTagRequirement,
+                                int64_t             nMantissa,
+                                int64_t             nBase10Exponent)
 {
    uint64_t uTag;
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
@@ -2264,59 +2317,62 @@ static inline void QCBOREncode_AddTDecimalFraction(QCBOREncodeContext *pMe,
                                       nBase10Exponent);
 }
 
-static inline void QCBOREncode_AddTDecimalFractionToMapSZ(QCBOREncodeContext *pMe,
-                                                        const char         *szLabel,
-                                                        uint8_t             uTagRequirement,
-                                                        int64_t             nMantissa,
-                                                        int64_t             nBase10Exponent)
+static inline void
+QCBOREncode_AddTDecimalFractionToMapSZ(QCBOREncodeContext *pMe,
+                                       const char         *szLabel,
+                                       uint8_t             uTagRequirement,
+                                       int64_t             nMantissa,
+                                       int64_t             nBase10Exponent)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTDecimalFraction(pMe, uTagRequirement, nMantissa, nBase10Exponent);
 }
 
-static inline void QCBOREncode_AddTDecimalFractionToMapN(QCBOREncodeContext *pMe,
-                                                         int64_t             nLabel,
-                                                         uint8_t             uTagRequirement,
-                                                         int64_t             nMantissa,
-                                                         int64_t             nBase10Exponent)
+static inline void
+QCBOREncode_AddTDecimalFractionToMapN(QCBOREncodeContext *pMe,
+                                      int64_t             nLabel,
+                                      uint8_t             uTagRequirement,
+                                      int64_t             nMantissa,
+                                      int64_t             nBase10Exponent)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddTDecimalFraction(pMe, uTagRequirement, nMantissa, nBase10Exponent);
 }
 
-static inline void QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pMe,
-                                                  int64_t             nMantissa,
-                                                  int64_t             nBase10Exponent)
+static inline void
+QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pMe,
+                               int64_t             nMantissa,
+                               int64_t             nBase10Exponent)
 {
    QCBOREncode_AddTDecimalFraction(pMe, QCBOR_ENCODE_AS_TAG, nMantissa, nBase10Exponent);
 }
 
-static inline void QCBOREncode_AddDecimalFractionToMap(QCBOREncodeContext *pMe,
-                                                       const char         *szLabel,
-                                                       int64_t             nMantissa,
-                                                       int64_t             nBase10Exponent)
+static inline void
+QCBOREncode_AddDecimalFractionToMap(QCBOREncodeContext *pMe,
+                                    const char         *szLabel,
+                                    int64_t             nMantissa,
+                                    int64_t             nBase10Exponent)
 {
    QCBOREncode_AddTDecimalFractionToMapSZ(pMe, szLabel, QCBOR_ENCODE_AS_TAG, nMantissa, nBase10Exponent);
 }
 
-static inline void QCBOREncode_AddDecimalFractionToMapN(QCBOREncodeContext *pMe,
-                                                        int64_t             nLabel,
-                                                        int64_t             nMantissa,
-                                                        int64_t             nBase10Exponent)
+static inline void
+QCBOREncode_AddDecimalFractionToMapN(QCBOREncodeContext *pMe,
+                                     int64_t             nLabel,
+                                     int64_t             nMantissa,
+                                     int64_t             nBase10Exponent)
 {
    QCBOREncode_AddTDecimalFractionToMapN(pMe, nLabel, QCBOR_ENCODE_AS_TAG, nMantissa, nBase10Exponent);
 }
 
 
 
-
-
-
-static inline void QCBOREncode_AddTDecimalFractionBigNum(QCBOREncodeContext *pMe,
-                                                         uint8_t             uTagRequirement,
-                                                         UsefulBufC          Mantissa,
-                                                         bool                bIsNegative,
-                                                         int64_t             nBase10Exponent)
+static inline void
+QCBOREncode_AddTDecimalFractionBigNum(QCBOREncodeContext *pMe,
+                                      uint8_t             uTagRequirement,
+                                      UsefulBufC          Mantissa,
+                                      bool                bIsNegative,
+                                      int64_t             nBase10Exponent)
 {
    uint64_t uTag;
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
@@ -2331,41 +2387,45 @@ static inline void QCBOREncode_AddTDecimalFractionBigNum(QCBOREncodeContext *pMe
                                       nBase10Exponent);
 }
 
-static inline void QCBOREncode_AddTDecimalFractionBigNumToMapSZ(QCBOREncodeContext *pMe,
-                                                              const char         *szLabel,
-                                                              uint8_t             uTagRequirement,
-                                                              UsefulBufC          Mantissa,
-                                                              bool                bIsNegative,
-                                                              int64_t             nBase10Exponent)
+static inline void
+QCBOREncode_AddTDecimalFractionBigNumToMapSZ(QCBOREncodeContext *pMe,
+                                             const char         *szLabel,
+                                             uint8_t             uTagRequirement,
+                                             UsefulBufC          Mantissa,
+                                             bool                bIsNegative,
+                                             int64_t             nBase10Exponent)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTDecimalFractionBigNum(pMe, uTagRequirement, Mantissa, bIsNegative, nBase10Exponent);
 }
 
-static inline void QCBOREncode_AddTDecimalFractionBigNumToMapN(QCBOREncodeContext *pMe,
-                                                               int64_t             nLabel,
-                                                               uint8_t             uTagRequirement,
-                                                               UsefulBufC          Mantissa,
-                                                               bool                bIsNegative,
-                                                               int64_t             nBase10Exponent)
+static inline void
+QCBOREncode_AddTDecimalFractionBigNumToMapN(QCBOREncodeContext *pMe,
+                                            int64_t             nLabel,
+                                            uint8_t             uTagRequirement,
+                                            UsefulBufC          Mantissa,
+                                            bool                bIsNegative,
+                                            int64_t             nBase10Exponent)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddTDecimalFractionBigNum(pMe, uTagRequirement, Mantissa, bIsNegative, nBase10Exponent);
 }
 
-static inline void QCBOREncode_AddDecimalFractionBigNum(QCBOREncodeContext *pMe,
-                                                        UsefulBufC          Mantissa,
-                                                        bool                bIsNegative,
-                                                        int64_t             nBase10Exponent)
+static inline void
+QCBOREncode_AddDecimalFractionBigNum(QCBOREncodeContext *pMe,
+                                     UsefulBufC          Mantissa,
+                                     bool                bIsNegative,
+                                     int64_t             nBase10Exponent)
 {
    QCBOREncode_AddTDecimalFractionBigNum(pMe, QCBOR_ENCODE_AS_TAG, Mantissa, bIsNegative, nBase10Exponent);
 }
 
-static inline void QCBOREncode_AddDecimalFractionBigNumToMapSZ(QCBOREncodeContext *pMe,
-                                                             const char         *szLabel,
-                                                             UsefulBufC          Mantissa,
-                                                             bool                bIsNegative,
-                                                             int64_t             nBase10Exponent)
+static inline void
+QCBOREncode_AddDecimalFractionBigNumToMapSZ(QCBOREncodeContext *pMe,
+                                            const char         *szLabel,
+                                            UsefulBufC          Mantissa,
+                                            bool                bIsNegative,
+                                            int64_t             nBase10Exponent)
 {
    QCBOREncode_AddTDecimalFractionBigNumToMapSZ(pMe,
                                                 szLabel,
@@ -2375,23 +2435,30 @@ static inline void QCBOREncode_AddDecimalFractionBigNumToMapSZ(QCBOREncodeContex
                                                 nBase10Exponent);
 }
 
-static inline void QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pMe,
-                                                              int64_t             nLabel,
-                                                              UsefulBufC          Mantissa,
-                                                              bool                bIsNegative,
-                                                              int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pMe,
+                                           int64_t             nLabel,
+                                           UsefulBufC          Mantissa,
+                                           bool                bIsNegative,
+                                           int64_t             nBase2Exponent)
 {
-   QCBOREncode_AddTDecimalFractionBigNumToMapN(pMe, nLabel, QCBOR_ENCODE_AS_TAG, Mantissa, bIsNegative, nBase2Exponent);
+   QCBOREncode_AddTDecimalFractionBigNumToMapN(pMe,
+                                               nLabel,
+                                               QCBOR_ENCODE_AS_TAG,
+                                               Mantissa,
+                                               bIsNegative,
+                                               nBase2Exponent);
 }
 
 
 
 
 
-static inline void QCBOREncode_AddTBigFloat(QCBOREncodeContext *pMe,
-                                            uint8_t             uTagRequirement,
-                                            int64_t             nMantissa,
-                                            int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddTBigFloat(QCBOREncodeContext *pMe,
+                         uint8_t             uTagRequirement,
+                         int64_t             nMantissa,
+                         int64_t             nBase2Exponent)
 {
    uint64_t uTag;
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
@@ -2402,56 +2469,62 @@ static inline void QCBOREncode_AddTBigFloat(QCBOREncodeContext *pMe,
    QCBOREncode_AddExponentAndMantissa(pMe, uTag, NULLUsefulBufC, false, nMantissa, nBase2Exponent);
 }
 
-static inline void QCBOREncode_AddTBigFloatToMapSZ(QCBOREncodeContext *pMe,
-                                                 const char         *szLabel,
-                                                 uint8_t             uTagRequirement,
-                                                 int64_t             nMantissa,
-                                                 int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddTBigFloatToMapSZ(QCBOREncodeContext *pMe,
+                                const char         *szLabel,
+                                uint8_t             uTagRequirement,
+                                int64_t             nMantissa,
+                                int64_t             nBase2Exponent)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTBigFloat(pMe, uTagRequirement, nMantissa, nBase2Exponent);
 }
 
-static inline void QCBOREncode_AddTBigFloatToMapN(QCBOREncodeContext *pMe,
-                                                  int64_t             nLabel,
-                                                  uint8_t             uTagRequirement,
-                                                  int64_t             nMantissa,
-                                                  int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddTBigFloatToMapN(QCBOREncodeContext *pMe,
+                               int64_t             nLabel,
+                               uint8_t             uTagRequirement,
+                               int64_t             nMantissa,
+                               int64_t             nBase2Exponent)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddTBigFloat(pMe, uTagRequirement, nMantissa, nBase2Exponent);
 }
 
-static inline void QCBOREncode_AddBigFloat(QCBOREncodeContext *pMe,
-                                           int64_t             nMantissa,
-                                           int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddBigFloat(QCBOREncodeContext *pMe,
+                        int64_t             nMantissa,
+                        int64_t             nBase2Exponent)
 {
    QCBOREncode_AddTBigFloat(pMe, QCBOR_ENCODE_AS_TAG, nMantissa, nBase2Exponent);
 }
 
-static inline void QCBOREncode_AddBigFloatToMap(QCBOREncodeContext *pMe,
-                                                const char         *szLabel,
-                                                int64_t             nMantissa,
-                                                int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddBigFloatToMap(QCBOREncodeContext *pMe,
+                             const char         *szLabel,
+                             int64_t             nMantissa,
+                             int64_t             nBase2Exponent)
 {
    QCBOREncode_AddTBigFloatToMapSZ(pMe, szLabel, QCBOR_ENCODE_AS_TAG, nMantissa, nBase2Exponent);
 }
 
-static inline void QCBOREncode_AddBigFloatToMapN(QCBOREncodeContext *pMe,
-                                                 int64_t             nLabel,
-                                                 int64_t             nMantissa,
-                                                 int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddBigFloatToMapN(QCBOREncodeContext *pMe,
+                              int64_t             nLabel,
+                              int64_t             nMantissa,
+                              int64_t             nBase2Exponent)
 {
    QCBOREncode_AddTBigFloatToMapN(pMe, nLabel, QCBOR_ENCODE_AS_TAG, nMantissa, nBase2Exponent);
 }
 
 
 
-static inline void QCBOREncode_AddTBigFloatBigNum(QCBOREncodeContext *pMe,
-                                                  uint8_t             uTagRequirement,
-                                                  UsefulBufC          Mantissa,
-                                                  bool                bIsNegative,
-                                                  int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddTBigFloatBigNum(QCBOREncodeContext *pMe,
+                               uint8_t             uTagRequirement,
+                               UsefulBufC          Mantissa,
+                               bool                bIsNegative,
+                               int64_t             nBase2Exponent)
 {
    uint64_t uTag;
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
@@ -2462,51 +2535,56 @@ static inline void QCBOREncode_AddTBigFloatBigNum(QCBOREncodeContext *pMe,
    QCBOREncode_AddExponentAndMantissa(pMe, uTag, Mantissa, bIsNegative, 0, nBase2Exponent);
 }
 
-static inline void QCBOREncode_AddTBigFloatBigNumToMapSZ(QCBOREncodeContext *pMe,
-                                                       const char         *szLabel,
-                                                       uint8_t             uTagRequirement,
-                                                       UsefulBufC          Mantissa,
-                                                       bool                bIsNegative,
-                                                       int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddTBigFloatBigNumToMapSZ(QCBOREncodeContext *pMe,
+                                      const char         *szLabel,
+                                      uint8_t             uTagRequirement,
+                                      UsefulBufC          Mantissa,
+                                      bool                bIsNegative,
+                                      int64_t             nBase2Exponent)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTBigFloatBigNum(pMe, uTagRequirement, Mantissa, bIsNegative, nBase2Exponent);
 }
 
-static inline void QCBOREncode_AddTBigFloatBigNumToMapN(QCBOREncodeContext *pMe,
-                                                        int64_t             nLabel,
-                                                        uint8_t             uTagRequirement,
-                                                        UsefulBufC          Mantissa,
-                                                        bool                bIsNegative,
-                                                        int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddTBigFloatBigNumToMapN(QCBOREncodeContext *pMe,
+                                     int64_t             nLabel,
+                                     uint8_t             uTagRequirement,
+                                     UsefulBufC          Mantissa,
+                                     bool                bIsNegative,
+                                     int64_t             nBase2Exponent)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddTBigFloatBigNum(pMe, uTagRequirement, Mantissa, bIsNegative, nBase2Exponent);
 }
 
 
-static inline void QCBOREncode_AddBigFloatBigNum(QCBOREncodeContext *pMe,
-                                                 UsefulBufC          Mantissa,
-                                                 bool                bIsNegative,
-                                                 int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddBigFloatBigNum(QCBOREncodeContext *pMe,
+                              UsefulBufC          Mantissa,
+                              bool                bIsNegative,
+                              int64_t             nBase2Exponent)
 {
    QCBOREncode_AddTBigFloatBigNum(pMe, QCBOR_ENCODE_AS_TAG, Mantissa, bIsNegative, nBase2Exponent);
 }
 
-static inline void QCBOREncode_AddBigFloatBigNumToMap(QCBOREncodeContext *pMe,
-                                                      const char         *szLabel,
-                                                      UsefulBufC          Mantissa,
-                                                      bool                bIsNegative,
-                                                      int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddBigFloatBigNumToMap(QCBOREncodeContext *pMe,
+                                   const char         *szLabel,
+                                   UsefulBufC          Mantissa,
+                                   bool                bIsNegative,
+                                   int64_t             nBase2Exponent)
 {
    QCBOREncode_AddTBigFloatBigNumToMapSZ(pMe, szLabel, QCBOR_ENCODE_AS_TAG, Mantissa, bIsNegative, nBase2Exponent);
 }
 
-static inline void QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pMe,
-                                                       int64_t             nLabel,
-                                                       UsefulBufC          Mantissa,
-                                                       bool                bIsNegative,
-                                                       int64_t             nBase2Exponent)
+static inline void
+QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pMe,
+                                    int64_t             nLabel,
+                                    UsefulBufC          Mantissa,
+                                    bool                bIsNegative,
+                                    int64_t             nBase2Exponent)
 {
    QCBOREncode_AddTBigFloatBigNumToMapN(pMe, nLabel, QCBOR_ENCODE_AS_TAG, Mantissa, bIsNegative, nBase2Exponent);
 }
@@ -3050,10 +3128,9 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx)
 }
 
 
-/* ===========================================================================
- END OF PRIVATE INLINE IMPLEMENTATION
-
- =========================================================================== */
+/* ========================================================================
+     END OF PRIVATE INLINE IMPLEMENTATION
+   ======================================================================== */
 
 #ifdef __cplusplus
 }

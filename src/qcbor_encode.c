@@ -633,6 +633,10 @@ void QCBOREncode_AddFloat(QCBOREncodeContext *me, float fNum)
  one of the inline wrappers will usually be called rather than this.
 
  See qcbor/qcbor_encode.h
+
+ Improvement: create another version of this that only
+ takes a big number mantissa and converts the output to
+ a type 0 or 1 integer when mantissa is small enough.
  */
 void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
                                         uint64_t            uTag,

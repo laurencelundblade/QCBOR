@@ -246,7 +246,7 @@ typedef enum {
     /** The buffer provided for the encoded output when doing encoding
         was too small and the encoded output will not fit. */
     QCBOR_ERR_BUFFER_TOO_SMALL = 1,
-   
+
     /** During encoding, an attempt to create simple value between 24
         and 31. */
     QCBOR_ERR_ENCODE_UNSUPPORTED = 2,
