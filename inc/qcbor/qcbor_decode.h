@@ -145,8 +145,14 @@ typedef enum {
    /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORDecodeMode;
 
+/**
+ The maximum size of input to the decoder. Slightly less than UINT32_MAX
+ to make room for some special indicator values.
+ */
+// TODO: test all the cases were this limit is checked
+#define QCBOR_MAX_DECODE_INPUT_SIZE (UINT32_MAX - 2)
 
-/*
+/**
  The maximum number of tags that may occur on an individual nested
  item. Typically 4.
  */
@@ -1262,6 +1268,15 @@ static inline bool QCBORDecode_IsUnrecoverableError(QCBORError uErr)
       return false;
    }
 }
+
+// A few sanity checks on size constants and special value lenghts
+#if  QCBOR_MAP_OFFSET_CACHE_INVALID < QCBOR_MAX_DECODE_INPUT_SIZE
+#error QCBOR_MAP_OFFSET_CACHE_INVALID is too large
+#endif
+
+#if QCBOR_NON_BOUNDED_OFFSET < QCBOR_MAX_DECODE_INPUT_SIZE
+#error QCBOR_NON_BOUNDED_OFFSET is too large
+#endif
 
 #ifdef __cplusplus
 }

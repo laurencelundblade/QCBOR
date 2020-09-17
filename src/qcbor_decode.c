@@ -326,8 +326,11 @@ DecodeNesting_EnterBoundedMapOrArray(QCBORDecodeNesting *pNesting, bool bIsEmpty
 
     Have descended into this before this is called. The job here is
     just to mark it in bounded mode.
+
+    Check against QCBOR_MAX_DECODE_INPUT_SIZE make sure that
+    uOffset doesn't collide with QCBOR_NON_BOUNDED_OFFSET
     */
-   if(uOffset >= QCBOR_NON_BOUNDED_OFFSET) {
+   if(uOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
       return QCBOR_ERR_INPUT_TOO_LARGE;
    }
 
@@ -1203,7 +1206,7 @@ GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
          uReturn = QCBOR_ERR_TOO_MANY_TAGS;
          // Continue on to get all tags on this item even though
          // it is erroring out in the end. This is a resource limit
-         // error, not an problem with being well-formed CBOR.
+         // error, not a problem with being well-formed CBOR.
          continue;
       }
       // Slide tags over one in the array to make room at index 0
@@ -1228,7 +1231,7 @@ GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
             uReturn = QCBOR_ERR_TOO_MANY_TAGS;
             // Continue on to get all tags on this item even though
             // it is erroring out in the end. This is a resource limit
-            // error, not an problem with being well-formed CBOR.
+            // error, not a problem with being well-formed CBOR.
             continue;
          }
 
@@ -2675,6 +2678,14 @@ MapSearch(QCBORDecodeContext *pMe,
    uReturn = QCBOR_SUCCESS;
 
    const size_t uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
+
+   // Check here makes that this won't accidentally be
+   // QCBOR_MAP_OFFSET_CACHE_INVALID. It is larger than
+   // QCBOR_MAX_DECODE_INPUT_SIZE.
+   if(uEndOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
+      uReturn = QCBOR_ERR_INPUT_TOO_LARGE;
+      goto Done;
+   }
    /* Cast OK because encoded CBOR is limited to UINT32_MAX */
    pMe->uMapEndOffsetCache = (uint32_t)uEndOffset;
 
@@ -3038,7 +3049,7 @@ void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
       DecodeNesting_Descend(&(pMe->nesting), uType);
    }
 
-   pMe->uMapEndOffsetCache = MAP_OFFSET_CACHE_INVALID;
+   pMe->uMapEndOffsetCache = QCBOR_MAP_OFFSET_CACHE_INVALID;
 
    uErr = DecodeNesting_EnterBoundedMapOrArray(&(pMe->nesting), bIsEmpty,
                                                UsefulInputBuf_Tell(&(pMe->InBuf)));
@@ -3097,7 +3108,7 @@ ExitBoundedLevel(QCBORDecodeContext *pMe, uint32_t uEndOffset)
     */
    DecodeNesting_LevelUpBounded(&(pMe->nesting));
 
-   pMe->uMapEndOffsetCache = MAP_OFFSET_CACHE_INVALID;
+   pMe->uMapEndOffsetCache = QCBOR_MAP_OFFSET_CACHE_INVALID;
 
 Done:
    return uErr;
@@ -3124,7 +3135,7 @@ void QCBORDecode_ExitBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
     that is being exited. If there is no cached value,
     from previous map search, then do a dummy search.
     */
-   if(pMe->uMapEndOffsetCache == MAP_OFFSET_CACHE_INVALID) {
+   if(pMe->uMapEndOffsetCache == QCBOR_MAP_OFFSET_CACHE_INVALID) {
       QCBORItem Dummy;
       Dummy.uLabelType = QCBOR_TYPE_NONE;
       uErr = MapSearch(pMe, &Dummy, NULL, NULL, NULL);
@@ -3187,19 +3198,18 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
 
    const size_t uPreviousLength = UsefulInputBuf_GetLength(&(pMe->InBuf));
 
-   // Need to move UIB input cursor to the right place
+   // Need to move UIB input cursor to the right place.
    // Most of these calls are simple inline accessors so this doesn't
    // amount to much code. There is a range check in the seek.
    const size_t uEndOfBstr = UsefulInputBuf_Tell(&(pMe->InBuf));
-   if(uEndOfBstr >= UINT32_MAX || uPreviousLength >= UINT32_MAX) {
-      // TODO: test this error condition
+   if(uEndOfBstr >= QCBOR_MAX_DECODE_INPUT_SIZE || uPreviousLength >= QCBOR_MAX_DECODE_INPUT_SIZE) {
       uError = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
    UsefulInputBuf_Seek(&(pMe->InBuf), uEndOfBstr - pItem->val.string.len);
    UsefulInputBuf_SetBufferLen(&(pMe->InBuf), uEndOfBstr);
 
-   // Casts are OK because of the checks above.
+   // Casts are OK because of checks against QCBOR_MAX_DECODE_INPUT_SIZE above.
    uError = DecodeNesting_DescendIntoBstrWrapped(&(pMe->nesting),
                                                    (uint32_t)uPreviousLength,
                                                    (uint32_t)uEndOfBstr);

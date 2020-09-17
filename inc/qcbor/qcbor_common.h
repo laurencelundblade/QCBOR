@@ -243,42 +243,41 @@ typedef enum {
    /** The encode or decode completely correctly. */
    QCBOR_SUCCESS = 0,
 
-    /** The buffer provided for the encoded output when doing encoding
-        was too small and the encoded output will not fit. */
-    QCBOR_ERR_BUFFER_TOO_SMALL = 1,
+   /** The buffer provided for the encoded output when doing encoding
+       was too small and the encoded output will not fit. */
+   QCBOR_ERR_BUFFER_TOO_SMALL = 1,
 
-    /** During encoding, an attempt to create simple value between 24
-        and 31. */
-    QCBOR_ERR_ENCODE_UNSUPPORTED = 2,
+   /** During encoding, an attempt to create simple value between 24
+       and 31. */
+   QCBOR_ERR_ENCODE_UNSUPPORTED = 2,
 
-    /** During encoding, the length of the encoded CBOR exceeded @c
-        UINT32_MAX.
-     */
-    QCBOR_ERR_BUFFER_TOO_LARGE = 3,
+   /** During encoding, the length of the encoded CBOR exceeded @c
+       UINT32_MAX. */
+   QCBOR_ERR_BUFFER_TOO_LARGE = 3,
 
-    /** During encoding, the array or map nesting was deeper than this
-        implementation can handle. Note that in the interest of code
-        size and memory use, this implementation has a hard limit on
-        array nesting. The limit is defined as the constant @ref
-        QCBOR_MAX_ARRAY_NESTING. */
-    QCBOR_ERR_ARRAY_NESTING_TOO_DEEP = 4,
+   /** During encoding, the array or map nesting was deeper than this
+       implementation can handle. Note that in the interest of code
+       size and memory use, this implementation has a hard limit on
+       array nesting. The limit is defined as the constant @ref
+       QCBOR_MAX_ARRAY_NESTING. */
+   QCBOR_ERR_ARRAY_NESTING_TOO_DEEP = 4,
 
-    /** During encoding, @c QCBOREncode_CloseXxx() called with a
-        different type than is currently open.  */
-    QCBOR_ERR_CLOSE_MISMATCH = 5,
+   /** During encoding, @c QCBOREncode_CloseXxx() called with a
+       different type than is currently open.  */
+   QCBOR_ERR_CLOSE_MISMATCH = 5,
 
-    /** During encoding, the array or map had too many items in it.
-        This limit @ref QCBOR_MAX_ITEMS_IN_ARRAY, typically 65,535. */
-    QCBOR_ERR_ARRAY_TOO_LONG = 6,
+   /** During encoding, the array or map had too many items in it.
+       This limit @ref QCBOR_MAX_ITEMS_IN_ARRAY, typically 65,535. */
+   QCBOR_ERR_ARRAY_TOO_LONG = 6,
 
-    /** During encoding, more arrays or maps were closed than
-        opened. This is a coding error on the part of the caller of
-        the encoder. */
-    QCBOR_ERR_TOO_MANY_CLOSES = 7,
+   /** During encoding, more arrays or maps were closed than
+       opened. This is a coding error on the part of the caller of the
+       encoder. */
+   QCBOR_ERR_TOO_MANY_CLOSES = 7,
 
-    /** During encoding the number of array or map opens was not
-        matched by the number of closes. */
-    QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN = 8,
+   /** During encoding the number of array or map opens was not
+       matched by the number of closes. */
+   QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN = 8,
 
 #define QCBOR_START_OF_NOT_WELL_FORMED_ERRORS 9
 
@@ -298,137 +297,135 @@ typedef enum {
        well-formed.*/
    QCBOR_ERR_UNSUPPORTED = 11,
 
-    /** During decoding, the an array or map was not fully consumed.
-        Returned by QCBORDecode_Finish(). The CBOR is not
-        well-formed. */
-    QCBOR_ERR_ARRAY_OR_MAP_UNCONSUMED = 12,
+   /** During decoding, the an array or map was not fully consumed.
+       Returned by QCBORDecode_Finish(). The CBOR is not
+       well-formed. */
+   QCBOR_ERR_ARRAY_OR_MAP_UNCONSUMED = 12,
 
    /** During decoding, an integer type is encoded with a bad length (
        that of an indefinite length string). The CBOR is not-well
        formed. */
    QCBOR_ERR_BAD_INT = 13,
 
-    /** During decoding, one of the chunks in an indefinite-length
-        string is not of the type of the start of the string.  The
-        CBOR is not well-formed.  This error makes no further decoding
-        possible. */
-    QCBOR_ERR_INDEFINITE_STRING_CHUNK = 14,
+   /** During decoding, one of the chunks in an indefinite-length
+       string is not of the type of the start of the string.  The CBOR
+       is not well-formed.  This error makes no further decoding
+       possible. */
+   QCBOR_ERR_INDEFINITE_STRING_CHUNK = 14,
 
 #define QCBOR_START_OF_UNRECOVERABLE_DECODE_ERRORS 15
-    /** During decoding, hit the end of the given data to decode. For
-        example, a byte string of 100 bytes was expected, but the end
-        of the input was hit before finding those 100 bytes.
-        Corrupted CBOR input will often result in this error. See also
-        @ref QCBOR_ERR_NO_MORE_ITEMS. The CBOR is not well-formed.
-        This error makes no further decoding possible.
-      */
-    QCBOR_ERR_HIT_END = 15,
+   /** During decoding, hit the end of the given data to decode. For
+       example, a byte string of 100 bytes was expected, but the end
+       of the input was hit before finding those 100 bytes.  Corrupted
+       CBOR input will often result in this error. See also @ref
+       QCBOR_ERR_NO_MORE_ITEMS. The CBOR is not well-formed.  This
+       error makes no further decoding possible. */
+   QCBOR_ERR_HIT_END = 15,
 
-    /** During decoding, a break occurred outside an indefinite-length
-        item. The CBOR is not well-formed. This error makes no further
-        decoding possible. */
-    QCBOR_ERR_BAD_BREAK = 16,
+   /** During decoding, a break occurred outside an indefinite-length
+       item. The CBOR is not well-formed. This error makes no further
+       decoding possible. */
+   QCBOR_ERR_BAD_BREAK = 16,
 
 #define QCBOR_END_OF_NOT_WELL_FORMED_ERRORS 16
 
-    /**
-        During decoding, the input is too large. It is greater than
-     UINT32_MAX - 1. This is an implementation limit. This error makes no further decoding possible.
-     */
-    QCBOR_ERR_INPUT_TOO_LARGE = 17,
+   /** During decoding, the input is too large. It is greater than
+       QCBOR_MAX_DECODE_INPUT_SIZE. This is an implementation limit.
+       This error makes no further decoding possible. */
+   QCBOR_ERR_INPUT_TOO_LARGE = 17,
 
-    /** During decoding, the array or map nesting was deeper than this
-        implementation can handle. Note that in the interest of code
-        size and memory use, this implementation has a hard limit on
-        array nesting. The limit is defined as the constant @ref
-        QCBOR_MAX_ARRAY_NESTING. This error makes no further decoding
-        possible. */
-    QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP = 18,
+   /** During decoding, the array or map nesting was deeper than this
+       implementation can handle. Note that in the interest of code
+       size and memory use, this implementation has a hard limit on
+       array nesting. The limit is defined as the constant @ref
+       QCBOR_MAX_ARRAY_NESTING. This error makes no further decoding
+       possible. */
+   QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP = 18,
 
-    /** During decoding, the array or map had too many items in it.
-        This limit @ref QCBOR_MAX_ITEMS_IN_ARRAY, typically 65,534,
-        UINT16_MAX - 1. This error makes no further decoding
-        possible. */
-    QCBOR_ERR_ARRAY_DECODE_TOO_LONG = 19,
+   /** During decoding, the array or map had too many items in it.
+       This limit @ref QCBOR_MAX_ITEMS_IN_ARRAY, typically 65,534,
+       UINT16_MAX - 1. This error makes no further decoding
+       possible. */
+   QCBOR_ERR_ARRAY_DECODE_TOO_LONG = 19,
 
-    /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tags encounterd for a
-        CBOR ITEM.  @ref QCBOR_MAX_TAGS_PER_ITEM is a limit of this
-        implementation.  During decoding, too many tags in the
-        caller-configured tag list, or not enough space in @ref
-        QCBORTagListOut. This error makes no further decoding
-        possible.  */
-    QCBOR_ERR_TOO_MANY_TAGS = 20,
+   /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tags encounterd for a
+       CBOR ITEM.  @ref QCBOR_MAX_TAGS_PER_ITEM is a limit of this
+       implementation.  During decoding, too many tags in the
+       caller-configured tag list, or not enough space in @ref
+       QCBORTagListOut. This error makes no further decoding
+       possible.  */
+    // TODO: probably can remove this from unrecoverable
+   QCBOR_ERR_TOO_MANY_TAGS = 20,
 
-    /** When decoding, a string's size is greater than what a size_t
-        can hold less 4. In all but some very strange situations this
-        is because of corrupt input CBOR and should be treated as
-        such. The strange situation is a CPU with a very small size_t
-        (e.g., a 16-bit CPU) and a large string (e.g., > 65KB). This
-        error makes no further decoding possible.
-     */
-    QCBOR_ERR_STRING_TOO_LONG = 21,
+   /** When decoding, a string's size is greater than what a size_t
+       can hold less 4. In all but some very strange situations this
+       is because of corrupt input CBOR and should be treated as
+       such. The strange situation is a CPU with a very small size_t
+       (e.g., a 16-bit CPU) and a large string (e.g., > 65KB). This
+       error makes no further decoding possible. */
+   QCBOR_ERR_STRING_TOO_LONG = 21,
 
-    /** Something is wrong with a decimal fraction or bigfloat such as
-        it not consisting of an array with two integers. This error
-        makes no further decoding possible. */
-    QCBOR_ERR_BAD_EXP_AND_MANTISSA = 22,
+   /** Something is wrong with a decimal fraction or bigfloat such as
+       it not consisting of an array with two integers. This error
+       makes no further decoding possible. */
+   QCBOR_ERR_BAD_EXP_AND_MANTISSA = 22,
 
-    /** Unable to decode an indefinite-length string because no string
-        allocator was configured. See QCBORDecode_SetMemPool() or
-        QCBORDecode_SetUpAllocator().  This error makes no further
-        decoding possible.*/
-    QCBOR_ERR_NO_STRING_ALLOCATOR = 23,
+   /** Unable to decode an indefinite-length string because no string
+       allocator was configured. See QCBORDecode_SetMemPool() or
+       QCBORDecode_SetUpAllocator().  This error makes no further
+       decoding possible.*/
+   QCBOR_ERR_NO_STRING_ALLOCATOR = 23,
 
-    /** Error allocating space for a string, usually for an
-        indefinite-length string. This error makes no further decoding
-        possible. */
-    QCBOR_ERR_STRING_ALLOCATE = 24,
+   /** Error allocating space for a string, usually for an
+       indefinite-length string. This error makes no further decoding
+       possible. */
+   QCBOR_ERR_STRING_ALLOCATE = 24,
 
 #define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 24
 
-    /** During decoding, the type of the label for a map entry is not
-        one that can be handled in the current decoding
-        mode. Typically this is because a label is not an intger or a
-        string. This is an implemation limit. */
-    QCBOR_ERR_MAP_LABEL_TYPE = 25,
+   /** During decoding, the type of the label for a map entry is not
+       one that can be handled in the current decoding mode. Typically
+       this is because a label is not an intger or a string. This is
+       an implemation limit. */
+   QCBOR_ERR_MAP_LABEL_TYPE = 25,
 
-    /** When decodeing for a specific type, the type was not was
-        expected.  */
-    QCBOR_ERR_UNEXPECTED_TYPE = 26,
+   /** When decodeing for a specific type, the type was not was
+       expected.  */
+   QCBOR_ERR_UNEXPECTED_TYPE = 26,
 
-    /** This occurs when decoding one of the tags that QCBOR
-        processed internally.  The content of a tag was of the wrong
-        type. (They were known as "Optional Tags" in RFC 7049. */
-     QCBOR_ERR_BAD_OPT_TAG = 27,
+   /** This occurs when decoding one of the tags that QCBOR processed
+       internally.  The content of a tag was of the wrong type. (They
+       were known as "Optional Tags" in RFC 7049. */
+   QCBOR_ERR_BAD_OPT_TAG = 27,
 
-    /** Duplicate label in map detected */
-    QCBOR_ERR_DUPLICATE_LABEL = 28,
+   /** Duplicate label in map detected */
+   QCBOR_ERR_DUPLICATE_LABEL = 28,
 
-    /** During decoding, the buffer given to QCBORDecode_SetMemPool()
-        is either too small, smaller than
-        QCBOR_DECODE_MIN_MEM_POOL_SIZE or too large, larger than
-        UINT32_MAX.
-        */
-    QCBOR_ERR_MEM_POOL_SIZE = 29,
+   /** During decoding, the buffer given to QCBORDecode_SetMemPool()
+       is either too small, smaller than
+       QCBOR_DECODE_MIN_MEM_POOL_SIZE or too large, larger than
+       UINT32_MAX. */
+   QCBOR_ERR_MEM_POOL_SIZE = 29,
 
-    /** During decoding, an integer smaller than INT64_MIN was
-        received (CBOR can represent integers smaller than INT64_MIN,
-        but C cannot). */
-    QCBOR_ERR_INT_OVERFLOW = 30,
+   /** During decoding, an integer smaller than INT64_MIN was received
+       (CBOR can represent integers smaller than INT64_MIN, but C
+       cannot). */
+   QCBOR_ERR_INT_OVERFLOW = 30,
 
-    /** During decoding, a date greater than +- 292 billion years from
-        Jan 1 1970 encountered during parsing. This is an implementation limit. */
-    QCBOR_ERR_DATE_OVERFLOW = 31,
+   /** During decoding, a date greater than +- 292 billion years from
+       Jan 1 1970 encountered during parsing. This is an
+       implementation limit. */
+   QCBOR_ERR_DATE_OVERFLOW = 31,
 
-    /** During decoding, @c QCBORDecode_ExitXxx() was called for a
-        different type than @c QCBORDecode_EnterXxx(). */
-    QCBOR_ERR_EXIT_MISMATCH = 32,
+   /** During decoding, @c QCBORDecode_ExitXxx() was called for a
+       different type than @c QCBORDecode_EnterXxx(). */
+   QCBOR_ERR_EXIT_MISMATCH = 32,
 
-    /** All well-formed data items have been consumed and there are no
-        more. If parsing a CBOR stream this indicates the non-error end
-        of the stream. If parsing a CBOR stream / sequence, this
-        probably indicates that some data items expected are not
-        present.  See also @ref QCBOR_ERR_HIT_END. */
+   /** All well-formed data items have been consumed and there are no
+       more. If parsing a CBOR stream this indicates the non-error end
+       of the stream. If parsing a CBOR stream / sequence, this
+       probably indicates that some data items expected are not
+       present.  See also @ref QCBOR_ERR_HIT_END. */
    QCBOR_ERR_NO_MORE_ITEMS = 33,
 
    /** When finding an item by lable, an item with the requested label
@@ -443,7 +440,8 @@ typedef enum {
        small for the conversion target */
    QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW = 36,
 
-   /** Trying to get an item by label when a map has not been entered. */
+   /** Trying to get an item by label when a map has not been
+       entered. */
    QCBOR_ERR_MAP_NOT_ENTERED = 37,
 
    /** A callback indicates processing should not continue for some

@@ -1969,7 +1969,7 @@ static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pMe)
       return 0;
    }
 
-   // subtraction can't go neative because of check above
+   // subtraction can't go negative because of check above
    return pMe->UB.len - pMe->cursor;
 }
 
