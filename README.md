@@ -2,6 +2,11 @@
 
 QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 
+**A major new version of QCBOR that makes decoding implementations much**
+**easier is available in the SpiffyDecode branch of this repository.**
+**Your CBOR decoding implementation may be four times less code!**
+**It needs a little more test to be high enough quality for the master branch.** 
+
 ## Characteristics
 
 **Implemented in C with minimal dependency** – The only dependencies
