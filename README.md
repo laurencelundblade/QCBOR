@@ -19,18 +19,18 @@ See section below for more details.
 
 **Implemented in C with minimal dependency** – The only dependencies
   are C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making
-  it highly portable. <math.h> and <fenv.h> are used too, but their use can
-  disabled. No #ifdefs or compiler options need to be set for QCBOR to
-  run correctly.
+  it highly portable. <math.h> and <fenv.h> are used too, but their
+  use can disabled. No #ifdefs or compiler options need to be set for
+  QCBOR to run correctly.
 
-**Focused on C / native data representation** – Careful conversion
-  of CBOR data types in to C data types, carefully handling
-  over and underflow, strict typing and such so the caller
-  doesn't have to worry so much about this and so code
-  using QCBOR passes static analyzers easier.  Simpler code because
-  there is no support for encoding/decoding to/from JSON, pretty
-  printing, diagnostic notation... Only encoding from native C
-  representations and decoding to native C representations is supported.
+**Focused on C / native data representation** – Careful conversion of
+  CBOR data types in to C data types, carefully handling over and
+  underflow, strict typing and such so the caller doesn't have to
+  worry so much about this and so code using QCBOR passes static
+  analyzers easier.  Simpler code because there is no support for
+  encoding/decoding to/from JSON, pretty printing, diagnostic
+  notation... Only encoding from native C representations and decoding
+  to native C representations is supported.
 
 **Small simple memory model** – Malloc is not needed. The encode
   context is 174 bytes, decode context is 312 bytes and the
@@ -40,10 +40,11 @@ See section below for more details.
   of memory usage making it good for embedded implementations that
   have to run in small fixed memory.
 
-**Supports all of RFC 7049 except strict mode and map sorting** – With some size
-  limits, all data types and formats specified are supported. The same
-  decoding API supports both definite and indefinite-length map and
-  array decoding. Decoding indefinite length strings is supported but requires a string allocator (see
+**Supports all of RFC 7049 except strict mode and map sorting** – With
+  some size limits, all data types and formats specified are
+  supported. The same decoding API supports both definite and
+  indefinite-length map and array decoding. Decoding indefinite length
+  strings is supported but requires a string allocator (see
   documentation).
 
 **Extensible and general** – Provides a way to handle data types that
@@ -65,9 +66,10 @@ See section below for more details.
 
 ## Code Status
 
-This version with spiffy decode in fall of 2020 is stable, but not quite 
-to the commercial quality level of the previous code. A little more
-testing is necessary for it to be at the previous commercial quality level.
+This version with spiffy decode in fall of 2020 is stable, but not
+quite to the commercial quality level of the previous code. A little
+more testing is necessary for it to be at the previous commercial
+quality level.
 
 Encoding features are generally mature, well tested and commercial quality.
 
@@ -126,16 +128,16 @@ the pre processor defines that start with QCBOR_DISABLE_XXX.
 
 ## Spiffy Decode
 
-In mid-2020 a large addition makes the decoder more powerful and easy
+In Fall 2020 a large addition makes the decoder more powerful and easy
 to use. Backwards compatibility with the previous API is retained as
 the new decoding features layer on top of it.
 
 The first noticable addition are functions to get particular data
-types.  These are an alternative to and built on top of QCBORDecode_GetNext() that
-does the type checking and in some cases sophisticated type
-conversion. They track an error state internally so the caller doesn't
-need.  They also handle the CBOR tagged data types thoroughly and
-properly.
+types.  These are an alternative to and built on top of
+QCBORDecode_GetNext() that does the type checking and in some cases
+sophisticated type conversion. They track an error state internally so
+the caller doesn't need.  They also handle the CBOR tagged data types
+thoroughly and properly.
 
 In line with all the new get functions for non-aggregate types there
 are new functions for aggregate types. When a map is expected,
@@ -229,8 +231,8 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
  Using any of the functions that search maps by a label will bring in
  about 1KB of code. This is usually wothwhile though because it
  handles does a complex job which includes duplicate label detection,
- item type checking and decoding both definite and indefinite length maps. This
- code is also shared for each map that is searched.
+ item type checking and decoding both definite and indefinite length
+ maps. This code is also shared for each map that is searched.
  
  If QCBOR is set up as a shared library across apps on the system
  there may be a substantial overall code size reduction from using
