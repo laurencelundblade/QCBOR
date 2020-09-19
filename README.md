@@ -176,6 +176,17 @@ The spiffy decode functions will handle definite and indefinite length
 maps and arrays without the caller having to do anything. This includes 
 mixed definite and indefinte maps and arrays.
 
+### Uncompatible Changes
+
+Encoding of MIME tags now uses tag 257 instead of 36. Tag 257 accommodates
+binary and text-based MIME messages where tag 36 does not. Decoding
+supports either.
+
+The number of nested tags on a data item is limited to four. Previously it was
+unlimited.
+
+Some of the error codes have changed.
+
 ## Floating Point Support
 
 By default, all QCBOR floating-point features are enabled. This includes

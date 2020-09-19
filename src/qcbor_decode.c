@@ -3662,7 +3662,7 @@ void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe,
 QCBORError QCBORDecode_GetMIMEInternal(uint8_t     uTagRequirement,
                                        const       QCBORItem *pItem,
                                        UsefulBufC *pMessage,
-                                       bool       *pbIsNot7Bit)
+                                       bool       *pbIsTag257)
 {
    const TagSpecification TagSpecText =
       {
@@ -3681,14 +3681,14 @@ QCBORError QCBORDecode_GetMIMEInternal(uint8_t     uTagRequirement,
 
    if(CheckTagRequirement(TagSpecText, pItem) == QCBOR_SUCCESS) {
       *pMessage = pItem->val.string;
-      if(pbIsNot7Bit != NULL) {
-         *pbIsNot7Bit = false;
+      if(pbIsTag257 != NULL) {
+         *pbIsTag257 = false;
       }
       uReturn = QCBOR_SUCCESS;
    } else if(CheckTagRequirement(TagSpecBinary, pItem) == QCBOR_SUCCESS) {
       *pMessage = pItem->val.string;
-      if(pbIsNot7Bit != NULL) {
-         *pbIsNot7Bit = true;
+      if(pbIsTag257 != NULL) {
+         *pbIsTag257 = true;
       }
       uReturn = QCBOR_SUCCESS;
 

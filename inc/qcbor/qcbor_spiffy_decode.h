@@ -1386,8 +1386,7 @@ static void QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pCtx,
  @param[in] pCtx             The decode context.
  @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
  @param[out] pMessage        The decoded regular expression.
- @param[out] pbIsNot7Bit     @c true if MIME is binary or 8-bit.
-
+ @param[out] pbIsTag257     @c true if tag was 257. May be @c NULL.
 
  This decodes the standard CBOR MIME and binary MIME tags, integer tag
  numbers of 36 or 257, or encoded CBOR that is not a tag, that is a
@@ -1399,34 +1398,34 @@ static void QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pCtx,
 
  The MIME message itself is not parsed.
 
- This decodes both tag 36 and 257. If it is tag 257, pbIsNot7Bit
- is @c true. While it is clear that tag 36 can't contain,
- binary or 8-bit MIME, it is probably legal for tag 257
- to contain 7-bit MIME. Hopefully in most uses the
- Content-Transfer-Encoding header is present and the
- contents of pbIsNot7Bit can be ignored. It may be NULL.
+ This decodes both tag 36 and 257. If it is tag 257, pbIsTag257
+ is @c true. The difference between the two is that
+ tag 36 is utf8 and tag 257 is a byte string that can
+ carry binary MIME. QCBOR processes them exactly
+ the same. Possibly the difference can be ignored.
+ NULL can be passed to have no value returned.
 
  See also @ref CBOR_TAG_MIME, @ref CBOR_TAG_BINARY_MIME,
- QCBOREncode_AddMIMEData(), @ref QCBOR_TYPE_MIME and
+ QCBOREncode_AddTMIMEData(), @ref QCBOR_TYPE_MIME and
  @ref QCBOR_TYPE_BINARY_MIME.
 */
 static void QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pCtx,
                                        uint8_t             uTagRequirement,
                                        UsefulBufC         *pMessage,
-                                       bool               *pbIsNot7Bit);
+                                       bool               *pbIsTag257);
 
 static void QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pCtx,
                                             int64_t              nLabel,
                                             uint8_t              uTagRequirement,
                                             UsefulBufC          *pMessage,
-                                            bool                *pbIsNot7Bit);
+                                            bool                *pbIsTag257);
 
 
 static void QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pCtx,
                                               const char         *szLabel,
                                               uint8_t             uTagRequirement,
                                               UsefulBufC         *pMessage,
-                                              bool               *pbIsNot7Bit);
+                                              bool               *pbIsTag257);
 
 /**
  @brief Decode the next item as a UUID
@@ -1885,7 +1884,7 @@ void QCBORDecode_GetTaggedStringInMapSZ(QCBORDecodeContext *pMe,
 QCBORError QCBORDecode_GetMIMEInternal(uint8_t     uTagRequirement,
                                        const       QCBORItem *pItem,
                                        UsefulBufC *pMessage,
-                                       bool       *pbIsNot7Bit);
+                                       bool       *pbIsTag257);
 
 
 
@@ -2219,7 +2218,7 @@ static inline void
 QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
                            uint8_t             uTagRequirement,
                            UsefulBufC         *pMessage,
-                           bool               *pbIsNot7Bit)
+                           bool               *pbIsTag257)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       // Already in error state, do nothing
@@ -2236,7 +2235,7 @@ QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
    pMe->uLastError = (uint8_t)QCBORDecode_GetMIMEInternal(uTagRequirement,
                                                           &Item,
                                                           pMessage,
-                                                          pbIsNot7Bit);
+                                                          pbIsTag257);
 }
 
 static inline void
@@ -2244,7 +2243,7 @@ QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
                                  int64_t             nLabel,
                                  uint8_t             uTagRequirement,
                                  UsefulBufC         *pMessage,
-                                 bool               *pbIsNot7Bit)
+                                 bool               *pbIsTag257)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
@@ -2253,7 +2252,7 @@ QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
       pMe->uLastError = (uint8_t)QCBORDecode_GetMIMEInternal(uTagRequirement,
                                                              &Item,
                                                              pMessage,
-                                                             pbIsNot7Bit);
+                                                             pbIsTag257);
    }
 }
 
@@ -2262,7 +2261,7 @@ QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pMe,
                                   const char         *szLabel,
                                   uint8_t             uTagRequirement,
                                   UsefulBufC         *pMessage,
-                                  bool               *pbIsNot7Bit)
+                                  bool               *pbIsTag257)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
@@ -2271,7 +2270,7 @@ QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pMe,
       pMe->uLastError = (uint8_t)QCBORDecode_GetMIMEInternal(uTagRequirement,
                                                              &Item,
                                                              pMessage,
-                                                             pbIsNot7Bit);
+                                                             pbIsTag257);
    }
 }
 

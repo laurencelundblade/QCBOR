@@ -1258,19 +1258,28 @@ static void QCBOREncode_AddRegexToMapN(QCBOREncodeContext *pCtx,
 
 
 /**
- @brief MIME encoded text to the encoded output.
+ @brief MIME encoded data to the encoded output.
 
- @param[in] pCtx      The encoding context to add the MIME data to.
- @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or @ref QCBOR_ENCODE_AS_BORROWED.
- @param[in] MIMEData  Pointer and length of the MIME Data.
+ @param[in] pCtx             The encoding context to add the MIME data to.
+ @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
+                             @ref QCBOR_ENCODE_AS_BORROWED.
+ @param[in] MIMEData         Pointer and length of the MIME data.
 
  The text content is in MIME format per [RFC 2045]
- (https://tools.ietf.org/html/rfc2045) including the headers. Note
- that this only supports text-format MIME. Binary MIME is not
- supported.
+ (https://tools.ietf.org/html/rfc2045) including the headers.
 
- It is output as CBOR major type 3, a text string, with tag
- @ref CBOR_TAG_MIME indicating the text string is MIME data.
+ It is output as CBOR major type 2, a binary string, with tag @ref
+ CBOR_TAG_BINARY_MIME indicating the string is MIME data.  This
+ outputs tag 257, not tag 36, as it can carry any type of MIME binary,
+ 7-bit, 8-bit, quoted-printable and base64 where tag 36 cannot.
+
+ Previous versions of QCBOR, those before spiffy decode, output tag
+ 36. Decoding supports both tag 36 and 257.  (if the old behavior with
+ tag 36 is needed, copy the inline functions below and change the tag
+ number).
+
+ See also QCBORDecode_GetMIMEMessage() and
+ @ref QCBOR_TYPE_BINARY_MIME.
  */
 static void QCBOREncode_AddTMIMEData(QCBOREncodeContext *pCtx,
                                      uint8_t             uTagRequirement,
@@ -2772,11 +2781,10 @@ QCBOREncode_AddRegexToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC B
 static inline void
 QCBOREncode_AddTMIMEData(QCBOREncodeContext *pMe, uint8_t uTagRequirement, UsefulBufC MIMEData)
 {
-   // TODO: add support for binary MIME.
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_MIME);
+      QCBOREncode_AddTag(pMe, CBOR_TAG_BINARY_MIME);
    }
-   QCBOREncode_AddText(pMe, MIMEData);
+   QCBOREncode_AddBytes(pMe, MIMEData);
 }
 
 static inline void
