@@ -640,7 +640,7 @@ static void QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int6
  tags. See QCBORDecode_GetNext() for discussion of decoding custom
  tags.
 */
-void QCBOREncode_AddTag(QCBOREncodeContext *pCtx,uint64_t uTag);
+void QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
 
 
 /**
@@ -890,10 +890,10 @@ static void QCBOREncode_AddTDecimalFraction(QCBOREncodeContext *pCtx,
                                             int64_t             nBase10Exponent);
 
 static void QCBOREncode_AddTDecimalFractionToMapSZ(QCBOREncodeContext *pCtx,
-                                                 const char         *szLabel,
-                                                 uint8_t             uTagRequirement,
-                                                 int64_t             nMantissa,
-                                                 int64_t             nBase10Exponent);
+                                                   const char         *szLabel,
+                                                   uint8_t             uTagRequirement,
+                                                   int64_t             nMantissa,
+                                                   int64_t             nBase10Exponent);
 
 static void QCBOREncode_AddTDecimalFractionToMapN(QCBOREncodeContext *pCtx,
                                                   int64_t             nLabel,
@@ -937,11 +937,11 @@ static void QCBOREncode_AddTDecimalFractionBigNum(QCBOREncodeContext *pCtx,
                                                   int64_t             nBase10Exponent);
 
 static void QCBOREncode_AddTDecimalFractionBigNumToMapSZ(QCBOREncodeContext *pCtx,
-                                                       const char         *szLabel,
-                                                       uint8_t             uTagRequirement,
-                                                       UsefulBufC          Mantissa,
-                                                       bool                bIsNegative,
-                                                       int64_t             nBase10Exponent);
+                                                         const char         *szLabel,
+                                                         uint8_t             uTagRequirement,
+                                                         UsefulBufC          Mantissa,
+                                                         bool                bIsNegative,
+                                                         int64_t             nBase10Exponent);
 
 static void QCBOREncode_AddTDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
                                                         int64_t             nLabel,
@@ -957,10 +957,10 @@ static void QCBOREncode_AddDecimalFractionBigNum(QCBOREncodeContext *pCtx,
                                                  int64_t             nBase10Exponent);
 
 static void QCBOREncode_AddDecimalFractionBigNumToMapSZ(QCBOREncodeContext *pCtx,
-                                                      const char         *szLabel,
-                                                      UsefulBufC          Mantissa,
-                                                      bool                bIsNegative,
-                                                      int64_t             nBase10Exponent);
+                                                        const char         *szLabel,
+                                                        UsefulBufC          Mantissa,
+                                                        bool                bIsNegative,
+                                                        int64_t             nBase10Exponent);
 
 static void QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
                                                        int64_t             nLabel,
@@ -1009,10 +1009,10 @@ static void QCBOREncode_AddTBigFloat(QCBOREncodeContext *pCtx,
                                      int64_t             nBase2Exponent);
 
 static void QCBOREncode_AddTBigFloatToMapSZ(QCBOREncodeContext *pCtx,
-                                          const char         *szLabel,
-                                          uint8_t             uTagRequirement,
-                                          int64_t             nMantissa,
-                                          int64_t             nBase2Exponent);
+                                            const char         *szLabel,
+                                            uint8_t             uTagRequirement,
+                                            int64_t             nMantissa,
+                                            int64_t             nBase2Exponent);
 
 static void QCBOREncode_AddTBigFloatToMapN(QCBOREncodeContext *pCtx,
                                            int64_t             nLabel,
@@ -1058,11 +1058,11 @@ static void QCBOREncode_AddTBigFloatBigNum(QCBOREncodeContext *pCtx,
                                            int64_t             nBase2Exponent);
 
 static void QCBOREncode_AddTBigFloatBigNumToMapSZ(QCBOREncodeContext *pCtx,
-                                                const char         *szLabel,
-                                                uint8_t             uTagRequirement,
-                                                UsefulBufC          Mantissa,
-                                                bool                bIsNegative,
-                                                int64_t             nBase2Exponent);
+                                                  const char         *szLabel,
+                                                  uint8_t             uTagRequirement,
+                                                  UsefulBufC          Mantissa,
+                                                  bool                bIsNegative,
+                                                  int64_t             nBase2Exponent);
 
 static void QCBOREncode_AddTBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
                                                  int64_t             nLabel,
@@ -1950,134 +1950,134 @@ static inline void QCBOREncode_AddBytesLenOnlyToMapN(QCBOREncodeContext *pCtx, i
 
 
 static inline void
-QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum)
+QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe, const char *szLabel, int64_t uNum)
 {
    // Use _AddBuffer() because _AddSZString() is defined below, not above
-   QCBOREncode_AddBuffer(pCtx, CBOR_MAJOR_TYPE_TEXT_STRING, UsefulBuf_FromSZ(szLabel));
-   QCBOREncode_AddInt64(pCtx, uNum);
+   QCBOREncode_AddBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, UsefulBuf_FromSZ(szLabel));
+   QCBOREncode_AddInt64(pMe, uNum);
 }
 
 static inline void
-QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t uNum)
+QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pMe, int64_t nLabel, int64_t uNum)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_AddInt64(pCtx, uNum);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddInt64(pMe, uNum);
 }
 
 
 static inline void
-QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t uNum)
-{
-   // Use _AddBuffer() because _AddSZString() is defined below, not above
-   QCBOREncode_AddBuffer(pCtx, CBOR_MAJOR_TYPE_TEXT_STRING, UsefulBuf_FromSZ(szLabel));
-   QCBOREncode_AddUInt64(pCtx, uNum);
-}
-
-static inline void
-QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t uNum)
-{
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_AddUInt64(pCtx, uNum);
-}
-
-
-static inline void
-QCBOREncode_AddText(QCBOREncodeContext *pCtx, UsefulBufC Text)
-{
-   QCBOREncode_AddBuffer(pCtx, CBOR_MAJOR_TYPE_TEXT_STRING, Text);
-}
-
-static inline void
-QCBOREncode_AddTextToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Text)
+QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pMe, const char *szLabel, uint64_t uNum)
 {
    // Use _AddBuffer() because _AddSZString() is defined below, not above
-   QCBOREncode_AddText(pCtx, UsefulBuf_FromSZ(szLabel));
-   QCBOREncode_AddText(pCtx, Text);
+   QCBOREncode_AddBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, UsefulBuf_FromSZ(szLabel));
+   QCBOREncode_AddUInt64(pMe, uNum);
 }
 
 static inline void
-QCBOREncode_AddTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Text)
+QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint64_t uNum)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_AddText(pCtx, Text);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddUInt64(pMe, uNum);
+}
+
+
+static inline void
+QCBOREncode_AddText(QCBOREncodeContext *pMe, UsefulBufC Text)
+{
+   QCBOREncode_AddBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, Text);
+}
+
+static inline void
+QCBOREncode_AddTextToMap(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Text)
+{
+   // Use _AddBuffer() because _AddSZString() is defined below, not above
+   QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szLabel));
+   QCBOREncode_AddText(pMe, Text);
+}
+
+static inline void
+QCBOREncode_AddTextToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC Text)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddText(pMe, Text);
 }
 
 
 inline static void
-QCBOREncode_AddSZString(QCBOREncodeContext *pCtx, const char *szString)
+QCBOREncode_AddSZString(QCBOREncodeContext *pMe, const char *szString)
 {
-   QCBOREncode_AddText(pCtx, UsefulBuf_FromSZ(szString));
+   QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szString));
 }
 
 static inline void
-QCBOREncode_AddSZStringToMap(QCBOREncodeContext *pCtx, const char *szLabel, const char *szString)
+QCBOREncode_AddSZStringToMap(QCBOREncodeContext *pMe, const char *szLabel, const char *szString)
 {
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_AddSZString(pCtx, szString);
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddSZString(pMe, szString);
 }
 
 static inline void
-QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const char *szString)
+QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pMe, int64_t nLabel, const char *szString)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_AddSZString(pCtx, szString);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddSZString(pMe, szString);
 }
 
 
 static inline void
-QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pCtx, const char *szLabel, double dNum)
+QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pMe, const char *szLabel, double dNum)
 {
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_AddDouble(pCtx, dNum);
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddDouble(pMe, dNum);
 }
 
 static inline void
-QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNum)
+QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pMe, int64_t nLabel, double dNum)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_AddDouble(pCtx, dNum);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddDouble(pMe, dNum);
 }
 
 static inline void
-QCBOREncode_AddFloatToMap(QCBOREncodeContext *pCtx, const char *szLabel, float dNum)
+QCBOREncode_AddFloatToMap(QCBOREncodeContext *pMe, const char *szLabel, float dNum)
 {
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_AddFloat(pCtx, dNum);
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddFloat(pMe, dNum);
 }
 
 static inline void
-QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float fNum)
+QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pMe, int64_t nLabel, float fNum)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_AddFloat(pCtx, fNum);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddFloat(pMe, fNum);
 }
 
 static inline void
-QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, double dNum)
+QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pMe, const char *szLabel, double dNum)
 {
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_AddDoubleNoPreferred(pCtx, dNum);
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddDoubleNoPreferred(pMe, dNum);
 }
 
 static inline void
-QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNum)
+QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pMe, int64_t nLabel, double dNum)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_AddDoubleNoPreferred(pCtx, dNum);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddDoubleNoPreferred(pMe, dNum);
 }
 
 static inline void
-QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, float dNum)
+QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pMe, const char *szLabel, float dNum)
 {
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_AddFloatNoPreferred(pCtx, dNum);
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddFloatNoPreferred(pMe, dNum);
 }
 
 static inline void
-QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float dNum)
+QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe, int64_t nLabel, float dNum)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_AddFloatNoPreferred(pCtx, dNum);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddFloatNoPreferred(pMe, dNum);
 }
 
 
@@ -2921,218 +2921,218 @@ QCBOREncode_AddNULL(QCBOREncodeContext *pMe)
 }
 
 static inline void
-QCBOREncode_AddNULLToMap(QCBOREncodeContext *pCtx, const char *szLabel)
+QCBOREncode_AddNULLToMap(QCBOREncodeContext *pMe, const char *szLabel)
 {
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_AddNULL(pCtx);
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddNULL(pMe);
 }
 
 static inline void
-QCBOREncode_AddNULLToMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
+QCBOREncode_AddNULLToMapN(QCBOREncodeContext *pMe, int64_t nLabel)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_AddNULL(pCtx);
-}
-
-
-static inline void
-QCBOREncode_AddUndef(QCBOREncodeContext *pCtx)
-{
-   QCBOREncode_AddSimple(pCtx, CBOR_SIMPLEV_UNDEF);
-}
-
-static inline void
-QCBOREncode_AddUndefToMap(QCBOREncodeContext *pCtx, const char *szLabel)
-{
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_AddUndef(pCtx);
-}
-
-static inline void
-QCBOREncode_AddUndefToMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
-{
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_AddUndef(pCtx);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddNULL(pMe);
 }
 
 
 static inline void
-QCBOREncode_OpenArray(QCBOREncodeContext *pCtx)
+QCBOREncode_AddUndef(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_OpenMapOrArray(pCtx, CBOR_MAJOR_TYPE_ARRAY);
+   QCBOREncode_AddSimple(pMe, CBOR_SIMPLEV_UNDEF);
 }
 
 static inline void
-QCBOREncode_OpenArrayInMap(QCBOREncodeContext *pCtx, const char *szLabel)
+QCBOREncode_AddUndefToMap(QCBOREncodeContext *pMe, const char *szLabel)
 {
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_OpenArray(pCtx);
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddUndef(pMe);
 }
 
 static inline void
-QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel)
+QCBOREncode_AddUndefToMapN(QCBOREncodeContext *pMe, int64_t nLabel)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_OpenArray(pCtx);
-}
-
-static inline void
-QCBOREncode_CloseArray(QCBOREncodeContext *pCtx)
-{
-   QCBOREncode_CloseMapOrArray(pCtx, CBOR_MAJOR_TYPE_ARRAY);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddUndef(pMe);
 }
 
 
 static inline void
-QCBOREncode_OpenMap(QCBOREncodeContext *pCtx)
+QCBOREncode_OpenArray(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_OpenMapOrArray(pCtx, CBOR_MAJOR_TYPE_MAP);
+   QCBOREncode_OpenMapOrArray(pMe, CBOR_MAJOR_TYPE_ARRAY);
 }
 
 static inline void
-QCBOREncode_OpenMapInMap(QCBOREncodeContext *pCtx, const char *szLabel)
+QCBOREncode_OpenArrayInMap(QCBOREncodeContext *pMe, const char *szLabel)
 {
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_OpenMap(pCtx);
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_OpenArray(pMe);
 }
 
 static inline void
-QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
+QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pMe,  int64_t nLabel)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_OpenMap(pCtx);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_OpenArray(pMe);
 }
 
 static inline void
-QCBOREncode_CloseMap(QCBOREncodeContext *pCtx)
+QCBOREncode_CloseArray(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_CloseMapOrArray(pCtx, CBOR_MAJOR_TYPE_MAP);
-}
-
-static inline void
-QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pCtx)
-{
-   QCBOREncode_OpenMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
-}
-
-static inline void
-QCBOREncode_OpenArrayIndefiniteLengthInMap(QCBOREncodeContext *pCtx, const char *szLabel)
-{
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_OpenArrayIndefiniteLength(pCtx);
-}
-
-static inline void
-QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel)
-{
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_OpenArrayIndefiniteLength(pCtx);
-}
-
-static inline void
-QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pCtx)
-{
-   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
+   QCBOREncode_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_ARRAY);
 }
 
 
 static inline void
-QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pCtx)
+QCBOREncode_OpenMap(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_OpenMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+   QCBOREncode_OpenMapOrArray(pMe, CBOR_MAJOR_TYPE_MAP);
 }
 
 static inline void
-QCBOREncode_OpenMapIndefiniteLengthInMap(QCBOREncodeContext *pCtx, const char *szLabel)
+QCBOREncode_OpenMapInMap(QCBOREncodeContext *pMe, const char *szLabel)
 {
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_OpenMapIndefiniteLength(pCtx);
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_OpenMap(pMe);
 }
 
 static inline void
-QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
+QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pMe, int64_t nLabel)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_OpenMapIndefiniteLength(pCtx);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_OpenMap(pMe);
 }
 
 static inline void
-QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx)
+QCBOREncode_CloseMap(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_CloseMapOrArrayIndefiniteLength(pCtx, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+   QCBOREncode_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_MAP);
+}
+
+static inline void
+QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pMe)
+{
+   QCBOREncode_OpenMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
+}
+
+static inline void
+QCBOREncode_OpenArrayIndefiniteLengthInMap(QCBOREncodeContext *pMe, const char *szLabel)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_OpenArrayIndefiniteLength(pMe);
+}
+
+static inline void
+QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pMe,  int64_t nLabel)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_OpenArrayIndefiniteLength(pMe);
+}
+
+static inline void
+QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pMe)
+{
+   QCBOREncode_CloseMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
 }
 
 
 static inline void
-QCBOREncode_BstrWrap(QCBOREncodeContext *pCtx)
+QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_OpenMapOrArray(pCtx, CBOR_MAJOR_TYPE_BYTE_STRING);
+   QCBOREncode_OpenMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
 
 static inline void
-QCBOREncode_BstrWrapInMap(QCBOREncodeContext *pCtx, const char *szLabel)
+QCBOREncode_OpenMapIndefiniteLengthInMap(QCBOREncodeContext *pMe, const char *szLabel)
 {
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_BstrWrap(pCtx);
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_OpenMapIndefiniteLength(pMe);
 }
 
 static inline void
-QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel)
+QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pMe, int64_t nLabel)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_BstrWrap(pCtx);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_OpenMapIndefiniteLength(pMe);
 }
 
 static inline void
-QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWrappedCBOR)
+QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_CloseBstrWrap2(pCtx, true, pWrappedCBOR);
+   QCBOREncode_CloseMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
 
 
 static inline void
-QCBOREncode_AddEncoded(QCBOREncodeContext *pCtx, UsefulBufC Encoded)
+QCBOREncode_BstrWrap(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_AddBuffer(pCtx, CBOR_MAJOR_NONE_TYPE_RAW, Encoded);
+   QCBOREncode_OpenMapOrArray(pMe, CBOR_MAJOR_TYPE_BYTE_STRING);
 }
 
 static inline void
-QCBOREncode_AddEncodedToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Encoded)
+QCBOREncode_BstrWrapInMap(QCBOREncodeContext *pMe, const char *szLabel)
 {
-   QCBOREncode_AddSZString(pCtx, szLabel);
-   QCBOREncode_AddEncoded(pCtx, Encoded);
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_BstrWrap(pMe);
 }
 
 static inline void
-QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Encoded)
+QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pMe, int64_t nLabel)
 {
-   QCBOREncode_AddInt64(pCtx, nLabel);
-   QCBOREncode_AddEncoded(pCtx, Encoded);
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_BstrWrap(pMe);
+}
+
+static inline void
+QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pMe, UsefulBufC *pWrappedCBOR)
+{
+   QCBOREncode_CloseBstrWrap2(pMe, true, pWrappedCBOR);
+}
+
+
+static inline void
+QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, UsefulBufC Encoded)
+{
+   QCBOREncode_AddBuffer(pMe, CBOR_MAJOR_NONE_TYPE_RAW, Encoded);
+}
+
+static inline void
+QCBOREncode_AddEncodedToMap(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Encoded)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddEncoded(pMe, Encoded);
+}
+
+static inline void
+QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC Encoded)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddEncoded(pMe, Encoded);
 }
 
 
 static inline int
-QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx)
+QCBOREncode_IsBufferNULL(QCBOREncodeContext *pMe)
 {
-   return UsefulOutBuf_IsBufferNULL(&(pCtx->OutBuf));
+   return UsefulOutBuf_IsBufferNULL(&(pMe->OutBuf));
 }
 
 static inline QCBORError
-QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx)
+QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
 {
-   if(UsefulOutBuf_GetError(&(pCtx->OutBuf))) {
+   if(UsefulOutBuf_GetError(&(pMe->OutBuf))) {
       // Items didn't fit in the buffer.
       // This check catches this condition for all the appends and inserts
       // so checks aren't needed when the appends and inserts are performed.
       // And of course UsefulBuf will never overrun the input buffer given
       // to it. No complex analysis of the error handling in this file is
       // needed to know that is true. Just read the UsefulBuf code.
-      pCtx->uError = QCBOR_ERR_BUFFER_TOO_SMALL;
+      pMe->uError = QCBOR_ERR_BUFFER_TOO_SMALL;
       // QCBOR_ERR_BUFFER_TOO_SMALL masks other errors, but that is
       // OK. Once the caller fixes this, they'll be unmasked.
    }
 
-   return (QCBORError)pCtx->uError;
+   return (QCBORError)pMe->uError;
 }
 
 
