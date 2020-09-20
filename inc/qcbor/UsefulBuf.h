@@ -1493,6 +1493,19 @@ static int UsefulInputBuf_GetError(UsefulInputBuf *pUInBuf);
 
 
 /**
+ @brief Gets the input buffer length.
+
+ @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+
+ @return The length of the input buffer.
+
+ This returns the length of th input buffer from UsefulInputBuf_Init()
+ of from UsefulInputBuf_SetBufferLength().
+ */
+static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pUInBuf);
+
+
+/**
  @brief Sets the input buffer length (use with caution)
 
  @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
@@ -1502,14 +1515,14 @@ static int UsefulInputBuf_GetError(UsefulInputBuf *pUInBuf);
  to handle CBOR that is wrapped and embedded in CBOR.
 
  Since this allows setting the length beyond the length of the
- original input buffer it allows the overall safety to
- be undermined.
+ original input buffer it allows the overall safety of UsefulInputBug to
+ be undermined. Use it carefully.
 
  The new length given here should always be equal to or less than
  the length given when UsefulInputBuf_Init() was called.
 
  */
-static void UsefulInputBuf_SetBufferLen(UsefulInputBuf *pUInBuf, size_t uNewLen);
+static void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pUInBuf, size_t uNewLen);
 
 
 /*----------------------------------------------------------
@@ -1934,7 +1947,7 @@ static inline size_t UsefulInputBuf_Tell(UsefulInputBuf *pMe)
 }
 
 
-static inline size_t UsefulInputBuf_GetLength(UsefulInputBuf *pMe)
+static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pMe)
 {
     return pMe->UB.len;
 }
@@ -2153,7 +2166,7 @@ static inline int UsefulInputBuf_GetError(UsefulInputBuf *pMe)
 }
 
 
-static inline void UsefulInputBuf_SetBufferLen(UsefulInputBuf *pMe, size_t uNewLen)
+static inline void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pMe, size_t uNewLen)
 {
     pMe->UB.len = uNewLen;
 }

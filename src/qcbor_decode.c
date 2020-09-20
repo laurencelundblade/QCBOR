@@ -3196,7 +3196,7 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
       *pBstr = pItem->val.string;
    }
 
-   const size_t uPreviousLength = UsefulInputBuf_GetLength(&(pMe->InBuf));
+   const size_t uPreviousLength = UsefulInputBuf_GetBufferLength(&(pMe->InBuf));
 
    // Need to move UIB input cursor to the right place.
    // Most of these calls are simple inline accessors so this doesn't
@@ -3207,7 +3207,7 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
       goto Done;
    }
    UsefulInputBuf_Seek(&(pMe->InBuf), uEndOfBstr - pItem->val.string.len);
-   UsefulInputBuf_SetBufferLen(&(pMe->InBuf), uEndOfBstr);
+   UsefulInputBuf_SetBufferLength(&(pMe->InBuf), uEndOfBstr);
 
    // Casts are OK because of checks against QCBOR_MAX_DECODE_INPUT_SIZE above.
    uError = DecodeNesting_DescendIntoBstrWrapped(&(pMe->nesting),
@@ -3293,7 +3293,7 @@ void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pMe)
     Reset the length of the UsefulInputBuf to what it was before
     the bstr wrapped CBOR was entered.
     */
-   UsefulInputBuf_SetBufferLen(&(pMe->InBuf),
+   UsefulInputBuf_SetBufferLength(&(pMe->InBuf),
                                DecodeNesting_GetPreviousBoundedEnd(&(pMe->nesting)));
 
 
