@@ -428,7 +428,7 @@ typedef enum {
        present.  See also @ref QCBOR_ERR_HIT_END. */
    QCBOR_ERR_NO_MORE_ITEMS = 33,
 
-   /** When finding an item by lable, an item with the requested label
+   /** When finding an item by lablel, an item with the requested label
        was not found. */
    QCBOR_ERR_LABEL_NOT_FOUND = 34,
 
@@ -448,27 +448,23 @@ typedef enum {
        non-CBOR reason */
    QCBOR_ERR_CALLBACK_FAIL = 38,
 
-   /** Trying to get something by label when not entered into a
-       map.  */
-   QCBOR_ERR_NOT_A_MAP = 39,
-
    /** Decoding of floating-point epoch dates is unsupported and a
        floating-point date was encountered by the decoder. */
-   QCBOR_ERR_FLOAT_DATE_DISABLED = 40,
+   QCBOR_ERR_FLOAT_DATE_DISABLED = 39,
 
    /** Support for half-precision float decoding is disabled. */
-   QCBOR_ERR_HALF_PRECISION_DISABLED = 41,
+   QCBOR_ERR_HALF_PRECISION_DISABLED = 40,
 
    /** Use of floating-point HW is disabled. This affects all type
        conversions to and from double and float types. */
-   QCBOR_ERR_HW_FLOAT_DISABLED = 42,
+   QCBOR_ERR_HW_FLOAT_DISABLED = 41,
 
    /** Unable to complete operation because a floating-point value
        that is a NaN (not a number), that is too large, too small,
        infinity or -infinity was encountered in encoded CBOR. Usually
        this because conversion of the float-point value was being
        attempted. */
-    QCBOR_ERR_FLOAT_EXCEPTION = 43,
+    QCBOR_ERR_FLOAT_EXCEPTION = 42,
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
