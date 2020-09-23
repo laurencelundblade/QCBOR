@@ -413,8 +413,8 @@ static void QCBORDecode_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  QCBORDecode_GetUInt64Convert().
 */
 void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pCtx,
-                                     uint32_t           uConvertTypes,
-                                     uint64_t          *puValue);
+                                     uint32_t            uConvertTypes,
+                                     uint64_t           *puValue);
 
 void QCBORDecode_GetUInt64ConvertAllInMapN(QCBORDecodeContext *pCtx,
                                            int64_t             nLabel,
@@ -443,7 +443,7 @@ void QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  QCBOR_ERR_UNEXPECTED_TYPE error is set.
  */
 static void QCBORDecode_GetByteString(QCBORDecodeContext *pCtx,
-                                      UsefulBufC *pBytes);
+                                      UsefulBufC         *pBytes);
 
 static void QCBORDecode_GetByteStringInMapN(QCBORDecodeContext *pCtx,
                                             int64_t             nLabel,
@@ -467,7 +467,7 @@ static void QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pCtx,
  error is set.
 */
 static void QCBORDecode_GetTextString(QCBORDecodeContext *pCtx,
-                                      UsefulBufC *pText);
+                                      UsefulBufC         *pText);
 
 static void QCBORDecode_GetTextStringInMapN(QCBORDecodeContext *pCtx,
                                             int64_t             nLabel,
@@ -758,7 +758,7 @@ void QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList);
  processing error that is not a CBOR error. The specific details of
  the protocol processing error can be returned the call back context.
  */
-typedef QCBORError (*QCBORItemCallback)(void *pCallbackCtx,
+typedef QCBORError (*QCBORItemCallback)(void            *pCallbackCtx,
                                         const QCBORItem *pItem);
 
 
@@ -852,9 +852,9 @@ static void QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pCtx,
                                          double             *pdValue);
 
 static void QCBORDecode_GetDoubleConvertInMapN(QCBORDecodeContext *pCtx,
-                                               int64_t            nLabel,
-                                               uint32_t           uConvertTypes,
-                                               double            *pdValue);
+                                               int64_t             nLabel,
+                                               uint32_t            uConvertTypes,
+                                               double             *pdValue);
 
 static void QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
                                                 const char         *szLabel,
@@ -965,8 +965,8 @@ static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
  @ref QCBOR_TYPE_DATE_EPOCH.
 */
 void QCBORDecode_GetEpochDate(QCBORDecodeContext *pCtx,
-                              uint8_t              uTagRequirement,
-                              int64_t             *pnTime);
+                              uint8_t             uTagRequirement,
+                              int64_t            *pnTime);
 
 void QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pCtx,
                                     int64_t             nLabel,
@@ -1573,8 +1573,8 @@ QCBORDecode_GetUInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
 
 
 void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pMe,
-                                  uint32_t uConvertTypes,
-                                  uint64_t *puValue)
+                                  uint32_t            uConvertTypes,
+                                  uint64_t           *puValue)
 {
     QCBORItem Item;
     QCBORDecode_GetUInt64ConvertInternal(pMe, uConvertTypes, puValue, &Item);
@@ -1582,9 +1582,9 @@ void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pMe,
 
 inline static void
 QCBORDecode_GetUInt64ConvertInMapN(QCBORDecodeContext *pMe,
-                                   int64_t            nLabel,
-                                   uint32_t           uConvertTypes,
-                                   uint64_t          *puValue)
+                                   int64_t             nLabel,
+                                   uint32_t            uConvertTypes,
+                                   uint64_t           *puValue)
 {
    QCBORItem Item;
    QCBORDecode_GetUInt64ConvertInternalInMapN(pMe,
@@ -1699,9 +1699,9 @@ QCBORDecode_GetInt64Convert(QCBORDecodeContext *pMe,
 
 inline static void
 QCBORDecode_GetInt64ConvertInMapN(QCBORDecodeContext *pMe,
-                                  int64_t            nLabel,
-                                  uint32_t           uConvertTypes,
-                                  int64_t           *pnValue)
+                                  int64_t             nLabel,
+                                  uint32_t            uConvertTypes,
+                                  int64_t            *pnValue)
 {
    QCBORItem Item;
    QCBORDecode_GetInt64ConvertInternalInMapN(pMe,
@@ -1765,10 +1765,10 @@ QCBORDecode_GetDoubleConvertInternal(QCBORDecodeContext *pMe,
 // Semi-private
 void
 QCBORDecode_GetDoubleConvertInternalInMapN(QCBORDecodeContext *pMe,
-                                           int64_t            nLabel,
-                                           uint32_t           uConvertTypes,
-                                           double            *pdValue,
-                                           QCBORItem         *pItem);
+                                           int64_t             nLabel,
+                                           uint32_t            uConvertTypes,
+                                           double             *pdValue,
+                                           QCBORItem          *pItem);
 
 // Semi-private
 void
@@ -1881,10 +1881,10 @@ void QCBORDecode_GetTaggedStringInMapSZ(QCBORDecodeContext *pMe,
 
 
 // Semi private
-QCBORError QCBORDecode_GetMIMEInternal(uint8_t     uTagRequirement,
-                                       const       QCBORItem *pItem,
-                                       UsefulBufC *pMessage,
-                                       bool       *pbIsTag257);
+QCBORError QCBORDecode_GetMIMEInternal(uint8_t           uTagRequirement,
+                                       const  QCBORItem *pItem,
+                                       UsefulBufC       *pMessage,
+                                       bool             *pbIsTag257);
 
 
 
@@ -1904,8 +1904,8 @@ QCBORDecode_GetByteString(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 
 inline static void
 QCBORDecode_GetByteStringInMapN(QCBORDecodeContext *pMe,
-                           int64_t             nLabel,
-                           UsefulBufC         *pBstr)
+                                int64_t             nLabel,
+                                UsefulBufC         *pBstr)
 {
    const TagSpecification TagSpec =
       {
@@ -1918,8 +1918,8 @@ QCBORDecode_GetByteStringInMapN(QCBORDecodeContext *pMe,
 
 inline static void
 QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pMe,
-                            const char         *szLabel,
-                            UsefulBufC         *pBstr)
+                                 const char         *szLabel,
+                                 UsefulBufC         *pBstr)
 {
    const TagSpecification TagSpec =
       {
@@ -1948,8 +1948,8 @@ QCBORDecode_GetTextString(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 
 inline static void
 QCBORDecode_GetTextStringInMapN(QCBORDecodeContext *pMe,
-                          int64_t             nLabel,
-                          UsefulBufC         *pText)
+                                int64_t             nLabel,
+                                UsefulBufC         *pText)
 {
    // This TagSpec only matches text strings; it also should optimize down
    // to passing a 64-bit integer
@@ -1965,8 +1965,8 @@ QCBORDecode_GetTextStringInMapN(QCBORDecodeContext *pMe,
 
 inline static void
 QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pMe,
-                           const               char *szLabel,
-                           UsefulBufC         *pText)
+                                 const               char *szLabel,
+                                 UsefulBufC         *pText)
 {
    const TagSpecification TagSpec =
       {

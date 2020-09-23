@@ -1990,7 +1990,6 @@ QCBOREncode_AddText(QCBOREncodeContext *pMe, UsefulBufC Text)
 static inline void
 QCBOREncode_AddTextToMap(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Text)
 {
-   // Use _AddBuffer() because _AddSZString() is defined below, not above
    QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szLabel));
    QCBOREncode_AddText(pMe, Text);
 }
