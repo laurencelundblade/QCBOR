@@ -488,6 +488,23 @@ static void QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel
  lengths greater. This limit to 4GB for a text string should not be a
  problem.
 
+ Text lines in Internet protocols (on the wire) are delimited by
+ either a CRLF or just an LF. Officially many protocols specify CRLF,
+ but implementations often work with either. CBOR type 3 text can be
+ either line ending, even a mixture of both.
+
+ Operating systems usually have a line end convention. Windows uses
+ CRLF. Linux and MacOS use LF. Some applications on a given OS may
+ work with either and some may not.
+
+ The majority of use cases and CBOR protocols using type 3 text will
+ work with either line ending. However, some use cases or protocols
+ may not work with either in which case translation to and/or from the
+ local line end convention, typically that of the OS, is necessary.
+
+ QCBOR does no line ending translation for type 3 text when encoding
+ and decoding.
+
  Error handling is the same as QCBOREncode_AddInt64().
  */
 static void QCBOREncode_AddText(QCBOREncodeContext *pCtx, UsefulBufC Text);
@@ -1280,6 +1297,9 @@ static void QCBOREncode_AddRegexToMapN(QCBOREncodeContext *pCtx,
 
  See also QCBORDecode_GetMIMEMessage() and
  @ref QCBOR_TYPE_BINARY_MIME.
+
+ This does no translation of line endings. See QCBOREncode_AddText()
+ for a discussion of line endings in CBOR.
  */
 static void QCBOREncode_AddTMIMEData(QCBOREncodeContext *pCtx,
                                      uint8_t             uTagRequirement,

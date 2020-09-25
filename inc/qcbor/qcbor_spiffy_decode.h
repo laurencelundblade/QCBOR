@@ -465,6 +465,9 @@ static void QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pCtx,
  See @ref Decode-Errors for discussion on how error handling works.  It the CBOR item
  to decode is not a text string, the @ref QCBOR_ERR_UNEXPECTED_TYPE
  error is set.
+
+ This does no translation of line endings. See QCBOREncode_AddText()
+ for a discussion of line endings in CBOR.
 */
 static void QCBORDecode_GetTextString(QCBORDecodeContext *pCtx,
                                       UsefulBufC         *pText);
@@ -1408,6 +1411,9 @@ static void QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pCtx,
  See also @ref CBOR_TAG_MIME, @ref CBOR_TAG_BINARY_MIME,
  QCBOREncode_AddTMIMEData(), @ref QCBOR_TYPE_MIME and
  @ref QCBOR_TYPE_BINARY_MIME.
+
+ This does no translation of line endings. See QCBOREncode_AddText()
+ for a discussion of line endings in CBOR.
 */
 static void QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pCtx,
                                        uint8_t             uTagRequirement,
