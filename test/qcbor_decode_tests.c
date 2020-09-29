@@ -2023,29 +2023,30 @@ int32_t DecodeFailureTests()
       return -2;
    }
 
-/*
- TODO: fix this
-   This test is disabled until QCBOREncode_EncodeHead() is brought in so
- the size encoded can be tied to SIZE_MAX and work for all size CPUs.
 
- This relies on the largest string allowed being SIZE_MAX -4 rather than
- SIZE_MAX. That way the test can be performed.
-   {
-      QCBORDecodeContext DCtx;
-      QCBORItem          Item;
+   /*
+    The max size of a string for QCBOR is SIZE_MAX - 4 so this
+    tests here can be performed to see that the max length
+    error check works correctly. See DecodeBytes(). If the max
+    size was SIZE_MAX, it wouldn't be possible to test this.
 
-      static uint8_t foo[] = {0x5b, 0xff, 0xff, 0xff, 0xff,
-                                    0xff, 0xff, 0xff, 0xff};
+    This test will automatocally adapt the all CPU sizes
+    through the use of SIZE_MAX.
+   */
 
-      QCBORDecode_Init(&DCtx,
-                       UsefulBuf_FROM_BYTE_ARRAY_LITERAL(foo),
-                       QCBOR_DECODE_MODE_NORMAL);
+   MakeUsefulBufOnStack(  HeadBuf, QCBOR_HEAD_BUFFER_SIZE);
+   UsefulBufC             EncodedHead;
 
-      if(QCBOR_ERR_STRING_TOO_LONG != QCBORDecode_GetNext(&DCtx, &Item)) {
-         return -4;
-      }
+   // This makes a CBOR head with a text string that is very long
+   // but doesn't fill in the bytes of the text string as that is
+   // not needed to test this part of QCBOR.
+   EncodedHead = QCBOREncode_EncodeHead(HeadBuf, CBOR_MAJOR_TYPE_TEXT_STRING, 0, SIZE_MAX);
+
+   QCBORDecode_Init(&DCtx, EncodedHead, QCBOR_DECODE_MODE_NORMAL);
+
+   if(QCBOR_ERR_STRING_TOO_LONG != QCBORDecode_GetNext(&DCtx, &Item)) {
+      return -4;
    }
-*/
 
    return 0;
 }

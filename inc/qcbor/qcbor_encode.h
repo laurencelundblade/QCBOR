@@ -1773,14 +1773,14 @@ static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  @param uMinLen      The minimum number of bytes to encode uNumber. Almost always
                      this is 0 to use preferred minimal encoding. If this is 4,
                      then even the values 0xffff and smaller will be encoded
-                     as in 4 bytes. This is used primarily when encoding a
+                     in 4 bytes. This is used primarily when encoding a
                      float or double put into uNumber as the leading zero bytes
                      for them must be encoded.
  @param uNumber      The numeric argument part of the CBOR head.
  @return             Pointer and length of the encoded head or
                      @NULLUsefulBufC if the output buffer is too small.
 
- Callers to need to call this for normal CBOR encoding. Note that it doesn't even
+ Callers do not to need to call this for normal CBOR encoding. Note that it doesn't even
  take a @ref QCBOREncodeContext argument.
 
  This encodes the major type and argument part of a data item. The
