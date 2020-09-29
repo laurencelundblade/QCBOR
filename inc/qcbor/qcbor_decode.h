@@ -179,8 +179,9 @@ typedef enum {
 #define QCBOR_TYPE_MAP            5
 /** Type for a buffer full of bytes. Data is in @c val.string. */
 #define QCBOR_TYPE_BYTE_STRING    6
-/** Type for a UTF-8 string. It is not NULL-terminated. Data is in @c
-    val.string.  */
+/** Type for a UTF-8 string. It is not NULL-terminated. See
+    QCBOREncode_AddText() for a discussion of line endings in CBOR. Data
+    is in @c val.string.  */
 #define QCBOR_TYPE_TEXT_STRING    7
 /** Type for a positive big number. Data is in @c val.bignum, a
     pointer and a length. */
