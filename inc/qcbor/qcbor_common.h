@@ -302,10 +302,12 @@ typedef enum {
        well-formed. */
    QCBOR_ERR_ARRAY_OR_MAP_UNCONSUMED = 12,
 
-   /** During decoding, an integer type is encoded with a bad length (
-       that of an indefinite length string). The CBOR is not-well
+   /** During decoding, an integer type is encoded with a bad length
+       (that of an indefinite length string). The CBOR is not-well
        formed. */
    QCBOR_ERR_BAD_INT = 13,
+
+#define QCBOR_START_OF_UNRECOVERABLE_DECODE_ERRORS 14
 
    /** During decoding, one of the chunks in an indefinite-length
        string is not of the type of the start of the string.  The CBOR
@@ -313,7 +315,6 @@ typedef enum {
        possible. */
    QCBOR_ERR_INDEFINITE_STRING_CHUNK = 14,
 
-#define QCBOR_START_OF_UNRECOVERABLE_DECODE_ERRORS 15
    /** During decoding, hit the end of the given data to decode. For
        example, a byte string of 100 bytes was expected, but the end
        of the input was hit before finding those 100 bytes.  Corrupted
@@ -348,40 +349,39 @@ typedef enum {
        possible. */
    QCBOR_ERR_ARRAY_DECODE_TOO_LONG = 19,
 
-   /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tags encounterd for a
-       CBOR ITEM.  @ref QCBOR_MAX_TAGS_PER_ITEM is a limit of this
-       implementation.  During decoding, too many tags in the
-       caller-configured tag list, or not enough space in @ref
-       QCBORTagListOut. This error makes no further decoding
-       possible.  */
-    // TODO: probably can remove this from unrecoverable
-   QCBOR_ERR_TOO_MANY_TAGS = 20,
-
    /** When decoding, a string's size is greater than what a size_t
        can hold less 4. In all but some very strange situations this
        is because of corrupt input CBOR and should be treated as
        such. The strange situation is a CPU with a very small size_t
        (e.g., a 16-bit CPU) and a large string (e.g., > 65KB). This
        error makes no further decoding possible. */
-   QCBOR_ERR_STRING_TOO_LONG = 21,
+   QCBOR_ERR_STRING_TOO_LONG = 20,
 
    /** Something is wrong with a decimal fraction or bigfloat such as
        it not consisting of an array with two integers. This error
        makes no further decoding possible. */
-   QCBOR_ERR_BAD_EXP_AND_MANTISSA = 22,
+   QCBOR_ERR_BAD_EXP_AND_MANTISSA = 21,
 
    /** Unable to decode an indefinite-length string because no string
        allocator was configured. See QCBORDecode_SetMemPool() or
        QCBORDecode_SetUpAllocator().  This error makes no further
        decoding possible.*/
-   QCBOR_ERR_NO_STRING_ALLOCATOR = 23,
+   QCBOR_ERR_NO_STRING_ALLOCATOR = 22,
 
    /** Error allocating space for a string, usually for an
        indefinite-length string. This error makes no further decoding
        possible. */
-   QCBOR_ERR_STRING_ALLOCATE = 24,
+   QCBOR_ERR_STRING_ALLOCATE = 23,
 
-#define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 24
+#define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 23
+
+   /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tags encounterd for a
+       CBOR ITEM.  @ref QCBOR_MAX_TAGS_PER_ITEM is a limit of this
+       implementation.  During decoding, too many tags in the
+       caller-configured tag list, or not enough space in @ref
+       QCBORTagListOut. This error makes no further decoding
+       possible.  */
+   QCBOR_ERR_TOO_MANY_TAGS = 24,
 
    /** During decoding, the type of the label for a map entry is not
        one that can be handled in the current decoding mode. Typically

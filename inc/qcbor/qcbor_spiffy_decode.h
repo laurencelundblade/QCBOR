@@ -112,11 +112,16 @@ extern "C" {
  type. Then for use one of the type-specific methods to get the item
  again to take advantage of the type conversion provided.
 
- Error reporting when get items by label in a map is not accurate for
- some errors. They are reported as not found rather than overflow and
- such. The error may be for other than the labeled item being searched
- for. Non-well formed maps cannot be searched at all. (This may be
- improved).
+ When getting an item by label from a map the whole map is
+ traversed including traversal of nested arrays and maps. If
+ there is any unrecoverable error anywhere in the that traversal
+ the retrieval by label will fail and the unrecoverable error
+ will be returned even if it is not due to the labeled item
+ being sought. Recoverable errors will be ignored unless
+ they are on the item being sought, in which case the
+ unrecoverable error will be returned. Unrecoverable
+ errors are those indicated by QCBORDecode_IsUnrecoverableError().
+ 
 
  @anchor Tag-Usage
 
@@ -1707,7 +1712,8 @@ QCBORDecode_GetInt64ConvertInMapN(QCBORDecodeContext *pMe,
    QCBORDecode_GetInt64ConvertInternalInMapN(pMe,
                                              nLabel,
                                              uConvertTypes,
-                                             pnValue, &Item);
+                                             pnValue,
+                                             &Item);
 }
 
 inline static void
@@ -1720,7 +1726,8 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pMe,
    QCBORDecode_GetInt64ConvertInternalInMapSZ(pMe,
                                               szLabel,
                                               uConvertTypes,
-                                              pnValue, &Item);
+                                              pnValue,
+                                              &Item);
 }
 
 inline static void
@@ -1731,8 +1738,8 @@ QCBORDecode_GetInt64(QCBORDecodeContext *pMe, int64_t *pnValue)
 
 inline static void
 QCBORDecode_GetInt64InMapN(QCBORDecodeContext *pMe,
-                           int64_t nLabel,
-                           int64_t *pnValue)
+                           int64_t             nLabel,
+                           int64_t            *pnValue)
 {
    QCBORDecode_GetInt64ConvertInMapN(pMe,
                                      nLabel,
@@ -1742,8 +1749,8 @@ QCBORDecode_GetInt64InMapN(QCBORDecodeContext *pMe,
 
 inline static void
 QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pMe,
-                            const char *szLabel,
-                            int64_t *pnValue)
+                            const char         *szLabel,
+                            int64_t            *pnValue)
 {
    QCBORDecode_GetInt64ConvertInMapSZ(pMe,
                                       szLabel,

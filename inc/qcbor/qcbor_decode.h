@@ -300,7 +300,7 @@ typedef enum {
 /**
  The main data structure that holds the type, value and other info for
  a decoded item returned by QCBORDecode_GetNext() and
- QCBORDecode_GetNextWithTags().
+ and methods.
 
  This size of this may vary by compiler but is roughly 56 bytes on
  a 64-bit CPU and 52 bytes on a 32-bit CPU.
@@ -1115,6 +1115,8 @@ static bool QCBORDecode_IsNotWellFormedError(QCBORError uErr);
  incorrect lengths or array counts are unrecoverable. Unrecoverable
  errors also occur when certain implementation limits such as the
  limit on array and map nesting occur.
+
+ The specific errors are a range of the errors in @ref QCBORError.
  */
 static bool QCBORDecode_IsUnrecoverableError(QCBORError uErr);
 

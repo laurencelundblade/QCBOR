@@ -1300,8 +1300,9 @@ GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
          // be the real data
          QCBORItem LabelItem = *pDecodedItem;
          nReturn = GetNext_TaggedItem(me, pDecodedItem);
-         if(nReturn)
+         if(QCBORDecode_IsUnrecoverableError(nReturn)) {
             goto Done;
+         }
 
          pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
 
@@ -1603,12 +1604,6 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    }
 
 Done:
-   if(uReturn != QCBOR_SUCCESS) {
-      /* This sets uDataType and uLabelType to QCBOR_TYPE_NONE */
-      pDecodedItem->uDataType = QCBOR_TYPE_NONE;
-      pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
-      // memset(pDecodedItem, 0, sizeof(QCBORItem));
-   }
    return uReturn;
 }
 
@@ -1934,8 +1929,8 @@ inline static QCBORError DecodeUUID(QCBORItem *pDecodedItem)
 /*
  Public function, see header qcbor/qcbor_decode.h file
  */
-QCBORError
-QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+static QCBORError
+QCBORDecode_GetNextTag(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
    QCBORError nReturn;
 
@@ -2029,11 +2024,20 @@ QCBORDecode_GetNext(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    }
 
 Done:
-   if(nReturn != QCBOR_SUCCESS) {
+   return nReturn;
+}
+
+
+QCBORError
+QCBORDecode_GetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
+{
+   QCBORError uErr;
+   uErr = QCBORDecode_GetNextTag(pMe, pDecodedItem);
+   if(uErr != QCBOR_SUCCESS) {
       pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
       pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
    }
-   return nReturn;
+   return uErr;
 }
 
 
@@ -2538,7 +2542,7 @@ MatchType(QCBORItem Item1, QCBORItem Item2)
  for one of the labels being search for. This duplicate detection is only performed for items in pItemArray,
  not every item in the map.
 
- @retval QCBOR_ERR_UNEXPECTED_TYPE The label was matched, but not the type.
+ @retval QCBOR_ERR_UNEXPECTED_TYPE A label was matched, but the type was wrong for the matchd label.
 
  @retval Also errors returned by QCBORDecode_GetNext().
 
@@ -2597,10 +2601,21 @@ MapSearch(QCBORDecodeContext *pMe,
                        DecodeNesting_GetMapOrArrayStart(&(pMe->nesting)));
 
    /*
-    Loop over all the items in the map. They could be
-    deeply nested and this should handle both definite
-    and indefinite length maps and arrays, so this
-    adds some complexity.
+    Loop over all the items in the map or array. Each item
+    could be a map or array, but label matching is only at
+    the main level. This handles definite and indefinite
+    length maps and arrays. The only reason this is ever
+    called on arrays is to find their end position.
+
+    This will always run over all items in order to do
+    duplicate detection.
+
+    This will exit with failure if it encounters an
+    unrecoverable error, but continue on for recoverable
+    errors.
+
+    If a recoverable error occurs on a matched item, then
+    that error code is returned.
     */
    const uint8_t uMapNestLevel = DecodeNesting_GetBoundedModeLevel(&(pMe->nesting));
    uint_fast8_t  uNextNestLevel;
@@ -2610,21 +2625,21 @@ MapSearch(QCBORDecodeContext *pMe,
 
       /* Get the item */
       QCBORItem Item;
-      uReturn = QCBORDecode_GetNext(pMe, &Item);
-      if(QCBORDecode_IsUnrecoverableError(uReturn)) {
+      QCBORError uResult = QCBORDecode_GetNextTag(pMe, &Item);
+      if(QCBORDecode_IsUnrecoverableError(uResult)) {
          /* Got non-well-formed CBOR so map can't even be decoded. */
+         uReturn = uResult;
          goto Done;
       }
-      if(uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
+      if(uResult == QCBOR_ERR_NO_MORE_ITEMS) {
          // Unexpected end of map or array.
+         uReturn = uResult;
          goto Done;
       }
 
       /* See if item has one of the labels that are of interest */
       bool bMatched = false;
       for(int nIndex = 0; pItemArray[nIndex].uLabelType != QCBOR_TYPE_NONE; nIndex++) {
-         // TODO: have label filled in on invalid CBOR so error reporting
-         // can work a lot better.
          if(MatchLabel(Item, pItemArray[nIndex])) {
             /* A label match has been found */
             if(uFoundItemBitMap & (0x01ULL << nIndex)) {
@@ -2634,6 +2649,11 @@ MapSearch(QCBORDecodeContext *pMe,
             /* Also try to match its type */
             if(!MatchType(Item, pItemArray[nIndex])) {
                uReturn = QCBOR_ERR_UNEXPECTED_TYPE;
+               goto Done;
+            }
+
+            if(uResult != QCBOR_SUCCESS) {
+               uReturn = uResult;
                goto Done;
             }
 
@@ -2679,8 +2699,8 @@ MapSearch(QCBORDecodeContext *pMe,
 
    const size_t uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
 
-   // Check here makes that this won't accidentally be
-   // QCBOR_MAP_OFFSET_CACHE_INVALID. It is larger than
+   // Check here makes sure that this won't accidentally be
+   // QCBOR_MAP_OFFSET_CACHE_INVALID which is larger than
    // QCBOR_MAX_DECODE_INPUT_SIZE.
    if(uEndOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
       uReturn = QCBOR_ERR_INPUT_TOO_LARGE;
@@ -2693,10 +2713,11 @@ MapSearch(QCBORDecodeContext *pMe,
    DecodeNesting_RestoreFromMapSearch(&(pMe->nesting), &SaveNesting);
 
  Done2:
-   /* For all items not found, set the data type to QCBOR_TYPE_NONE */
+   /* For all items not found, set the data and label type to QCBOR_TYPE_NONE */
    for(int i = 0; pItemArray[i].uLabelType != 0; i++) {
       if(!(uFoundItemBitMap & (0x01ULL << i))) {
-         pItemArray[i].uDataType = QCBOR_TYPE_NONE;
+         pItemArray[i].uDataType  = QCBOR_TYPE_NONE;
+         pItemArray[i].uLabelType = QCBOR_TYPE_NONE;
       }
    }
 
@@ -2723,15 +2744,15 @@ void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
    OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
 
    QCBORError uReturn = MapSearch(pMe, OneItemSeach, NULL, NULL, NULL);
+
+   *pItem = OneItemSeach[0];
+
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
    if(OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
       uReturn = QCBOR_ERR_LABEL_NOT_FOUND;
-      goto Done;
    }
-
-   *pItem = OneItemSeach[0];
 
  Done:
    pMe->uLastError = (uint8_t)uReturn;

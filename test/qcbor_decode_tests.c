@@ -2481,7 +2481,7 @@ int32_t SpiffyDateDecodeTest()
    }
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_LABEL_NOT_FOUND) {
+   if(uError != QCBOR_ERR_FLOAT_DATE_DISABLED) {
       return 102;
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
@@ -2495,7 +2495,7 @@ int32_t SpiffyDateDecodeTest()
    }
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_LABEL_NOT_FOUND) {
+   if(uError != QCBOR_ERR_FLOAT_DATE_DISABLED) {
       return 112;
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
@@ -4778,11 +4778,61 @@ static const uint8_t spArrayOfEmpty[] = {0x84, 0x40, 0xa0, 0x80, 0x00};
  }
  */
 
-
 static const uint8_t spMapOfEmpty[] = {
    0xa6, 0x00, 0x80, 0x09, 0x82, 0x80, 0x80, 0x08, 0xa3, 0x01,
    0x80, 0x02, 0xa0, 0x03, 0x80, 0x04, 0xa0, 0x05, 0x9f, 0xff,
    0x06, 0x9f, 0x80, 0x9f, 0xff, 0xff};
+
+/*
+ Too many tags
+ Invalid tag content
+ Duplicate label
+ Integer overflow
+ Date overflow
+
+ {1: 224(225(226(227(4(0))))),
+  2: 1(h''),
+  3: -18446744073709551616,
+  4: 1(1.0e+300),
+  5: 0, 8: 8}
+ */
+static const uint8_t spRecoverableMapErrors[] = {
+   0xbf,
+   0x01, 0xd8, 0xe0, 0xd8, 0xe1, 0xd8, 0xe2, 0xd8, 0xe3, 0xd8, 0x04, 0x00,
+   0x02, 0xc1, 0x40,
+   0x03, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+   0x04, 0xc1, 0xfb, 0x7e, 0x37, 0xe4, 0x3c, 0x88, 0x00, 0x75, 0x9c,
+   0x05, 0x00,
+   0x05, 0x00,
+   0x08, 0x08,
+   0xff
+};
+
+// Bad break
+static const uint8_t spUnRecoverableMapError1[] = {
+   0xa2, 0xff, 0x01, 0x00, 0x02, 0x00
+};
+
+// No more items
+static const uint8_t spUnRecoverableMapError2[] = {
+   0xbf, 0x02, 0xbf, 0xff, 0x01, 0x00, 0x02, 0x00
+};
+
+// Hit end because string is too long
+static const uint8_t spUnRecoverableMapError3[] = {
+   0xbf, 0x02, 0x69, 0x64, 0x64, 0xff
+};
+
+// Hit end because string is too long
+static const uint8_t spUnRecoverableMapError4[] = {
+   0xbf,
+      0x02, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f,
+            0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f,
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+   0xff
+};
+
 
 int32_t EnterMapTest()
 {
@@ -4964,12 +5014,88 @@ int32_t EnterMapTest()
    QCBORDecode_GetInt64(&DCtx, &nDecodedInt2);
    QCBORDecode_ExitArray(&DCtx);
    uErr = QCBORDecode_Finish(&DCtx);
-   if(uErr != QCBOR_SUCCESS){
+   if(uErr != QCBOR_SUCCESS) {
       return 2014;
    }
 
-   // TODO: more testing of entered mapps and arrays with problems
-   // TODO: document error handling better (maybe improve error handling)
+   int64_t nInt;
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spRecoverableMapErrors), 0);
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_TOO_MANY_TAGS) {
+      return 2021;
+   }
+
+   QCBORDecode_GetEpochDateInMapN(&DCtx, 0x02, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_BAD_OPT_TAG) {
+      return 2022;
+   }
+
+   QCBORDecode_GetInt64InMapN(&DCtx, 0x03, &nInt);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_INT_OVERFLOW) {
+      return 2023;
+   }
+
+   QCBORDecode_GetEpochDateInMapN(&DCtx, 0x04, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+   if(uErr != QCBOR_ERR_DATE_OVERFLOW) {
+      return 2024;
+   }
+#else
+   if(uErr != QCBOR_ERR_FLOAT_DATE_DISABLED) {
+      return 2027;
+   }
+#endif
+
+   QCBORDecode_GetInt64InMapN(&DCtx, 0x05, &nInt);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+      return 2025;
+   }
+
+   QCBORDecode_GetInt64InMapN(&DCtx, 0x08, &nInt);
+
+   QCBORDecode_ExitMap(&DCtx);
+   uErr = QCBORDecode_Finish(&DCtx);
+   if(uErr != QCBOR_SUCCESS) {
+      return 2026;
+   }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spUnRecoverableMapError1), 0);
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_BAD_BREAK) {
+      return 2030;
+   }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spUnRecoverableMapError2), 0);
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 2031;
+   }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spUnRecoverableMapError3), 0);
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_HIT_END) {
+      return 2032;
+   }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spUnRecoverableMapError4), 0);
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP) {
+      return 2033;
+   }
 
    return 0;
 }
