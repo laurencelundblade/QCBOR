@@ -1,15 +1,14 @@
-/*==============================================================================
- example.c -- Example code for QCBOR
+/* =========================================================================
+   example.c -- Example code for QCBOR
 
- Copyright (c) 2020, Laurence Lundblade. All rights reserved.
+   Copyright (c) 2020, Laurence Lundblade. All rights reserved.
 
- SPDX-License-Identifier: BSD-3-Clause
+   SPDX-License-Identifier: BSD-3-Clause
 
- See BSD-3-Clause license in README.md
+   See BSD-3-Clause license in README.md
 
- Created on 6/30/2020
-=============================================================================*/
-
+   Created on 6/30/2020
+  ========================================================================== */
 
 #include <stdio.h>
 #include "example.h"
@@ -17,48 +16,58 @@
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
 
+
 #define MAX_CYLINDERS 16
 
-
 /**
- The data structure representing a car engine that is encoded and decoded in this examples.
+ The data structure representing a car engine that is encoded and
+ decoded in this example.
  */
 typedef struct
 {
-    UsefulBufC Manufacturer;
-    int64_t    uDisplacement;
-    int64_t    uHorsePower;
-    double     dDesignedCompresion;
-    int64_t    uNumCylinders;
-    struct {
-        double uMeasuredCompression;
-    }          cylinders[MAX_CYLINDERS];
-    bool       bTurboCharged;
+   UsefulBufC Manufacturer;
+   int64_t    uDisplacement;
+   int64_t    uHorsePower;
+   double     dDesignedCompresion;
+   int64_t    uNumCylinders;
+   bool       bTurboCharged;
+   struct {
+      double uMeasuredCompression;
+   } cylinders[MAX_CYLINDERS];
 } CarEngine;
 
 
 /**
- Initialize the Engine data structure with some values to encode/decode.
+ @brief Initialize the Engine data structure with values to encode/decode.
+
+ @param[out] pE   The Engine structure to fill in
  */
 void EngineInit(CarEngine *pE)
 {
-    pE->Manufacturer = UsefulBuf_FROM_SZ_LITERAL("Porsche");
-    pE->uDisplacement = 3296;
-    pE->uHorsePower = 210;
-    pE->dDesignedCompresion = 9.1;
-    pE->uNumCylinders = 6;
-    pE->cylinders[0].uMeasuredCompression = 9.0;
-    pE->cylinders[1].uMeasuredCompression = 9.2;
-    pE->cylinders[2].uMeasuredCompression = 8.9;
-    pE->cylinders[3].uMeasuredCompression = 8.9;
-    pE->cylinders[4].uMeasuredCompression = 9.1;
-    pE->cylinders[5].uMeasuredCompression = 9.0;
-    pE->bTurboCharged = false;
+   pE->Manufacturer        = UsefulBuf_FROM_SZ_LITERAL("Porsche");
+   pE->uDisplacement       = 3296;
+   pE->uHorsePower         = 210;
+   pE->dDesignedCompresion = 9.1;
+   pE->uNumCylinders       = 6;
+   pE->bTurboCharged       = false;
+
+   pE->cylinders[0].uMeasuredCompression = 9.0;
+   pE->cylinders[1].uMeasuredCompression = 9.2;
+   pE->cylinders[2].uMeasuredCompression = 8.9;
+   pE->cylinders[3].uMeasuredCompression = 8.9;
+   pE->cylinders[4].uMeasuredCompression = 9.1;
+   pE->cylinders[5].uMeasuredCompression = 9.0;
 }
 
 
 /**
- Return @c true if the two Engined data structures are exactly the same.
+ @brief Compare two Engine structure for equality.
+
+ @param[in] pE1  First Engine to compare.
+ @param[in] pE2  Second Engine to compare.
+
+ @retval Return @c true if the two Engine data structures are exactly the
+ same.
  */
 bool EngineCompare(CarEngine *pE1, CarEngine *pE2)
 {
@@ -92,28 +101,37 @@ bool EngineCompare(CarEngine *pE1, CarEngine *pE2)
 }
 
 
+#ifndef EXAMPLE_DISABLE_DEFINITE_LENGTH_ENCODE
 /**
  @brief Encode an initialized Engine data structure in CBOR.
 
  @param[in] pEngine  The data structure to encode.
- @param[in] Buffer    Pointer and length of buffer to output to.
+ @param[in] Buffer   Pointer and length of buffer to output to.
 
- @return The pointer and length of the encoded CBOR or @ref NULLUsefulBufC on error.
+ @return  The pointer and length of the encoded CBOR or
+          @ref NULLUsefulBufC on error.
 
- @c Buffer must be big enough to hold the output. If it is not @ref NULLUsefulBufC
- will be returned. @ref @ref NULLUsefulBufC will be returned for any other encoding
- errors.
+ This is a simple CBOR encoding example. It outputs the Engine data
+ structure as a map of label-value pairs as well as an array of
+ floating point values.
 
- This encoding will use definite CBOR lengths.
+ @c Buffer must be big enough to hold the output. If it is not @ref
+ NULLUsefulBufC will be returned. @ref @ref NULLUsefulBufC will be
+ returned for any other encoding errors.
+
+ This encoding will use definite CBOR lengths. Definite lengths are
+ preferred in CBOR. See EncodeEngineIndefinteLen() that encodes using
+ indefinite lengths.
  */
-UsefulBufC EncodeEngine(const CarEngine *pEngine, UsefulBuf Buffer)
+UsefulBufC EncodeEngineDefiniteLength(const CarEngine *pEngine, UsefulBuf Buffer)
 {
-    /* Initialize th encoder with the buffer big enough to hold the expected output.
-     If it is too small, QCBOREncode_Finish() will return an error. */
+    /* Initialize the encoder with the buffer big enough to hold the
+       expected output.  If it is too small, QCBOREncode_Finish() will
+       return an error. */
     QCBOREncodeContext EncodeCtx;
     QCBOREncode_Init(&EncodeCtx, Buffer);
 
-    /* Proceed output all the items, letting the internal error
+    /* Proceed to output all the items, letting the internal error
      tracking do its work. */
     QCBOREncode_OpenMap(&EncodeCtx);
     QCBOREncode_AddTextToMap(&EncodeCtx, "Manufacturer", pEngine->Manufacturer);
@@ -130,32 +148,48 @@ UsefulBufC EncodeEngine(const CarEngine *pEngine, UsefulBuf Buffer)
     QCBOREncode_CloseMap(&EncodeCtx);
 
     /* Get the pointer and length of the encoded output. If there was
-     anny error it will be returned here. */
+       any error it will be returned here. */
     UsefulBufC EncodedCBOR;
     QCBORError uErr;
     uErr = QCBOREncode_Finish(&EncodeCtx, &EncodedCBOR);
     if(uErr != QCBOR_SUCCESS) {
-        return NULLUsefulBufC;
+       return NULLUsefulBufC;
     } else {
        return EncodedCBOR;
     }
 }
+#endif /* EXAMPLE_DISABLE_DEFINITE_LENGTH_ENCODE */
 
 
+
+
+#ifndef EXAMPLE_DISABLE_INDEFINITE_LENGTH_ENCODE_ENCODE
 /**
- @brief Encode an initialized Engine data structure in CBOR using indefinite lengths..
+ @brief Encode an initialized Engine data structure using indefinite lengths.
 
  @param[in] pEngine  The data structure to encode.
- @param[in] Buffer    Pointer and length of buffer to output to.
+ @param[in] Buffer   Pointer and length of buffer to output to.
 
- @return The pointer and length of the encoded CBOR or @ref NULLUsefulBufC on error.
+ @return The pointer and length of the encoded CBOR or
+         @ref NULLUsefulBufC on error.
 
- This is virtually the same as EncodeEngine(). The encoded CBOR is slightly different as the
-  map and array use indefinite lengths, rather than definite lengths.
+ This is virtually the same as EncodeEngineDefiniteLength(). The
+ encoded CBOR is slightly different as the map and array use
+ indefinite lengths, rather than definite lengths.
 
- There is little practical use for this function as definite lengths are generally preferred for
- CBOR and QCBOR always easily encodes definite lengths. (The advantage of indefinite
- lengths are that they are simpler to encode, but that doesn't come into effect here).
+ A definite length array is encoded as an integer indicating the
+ number of items in it. An indefinite length array is encoded as an
+ opening byte, the items in it and a "break" byte to end
+ it. Indefinite length arrays and maps are easier to encode, but
+ harder to decode.
+
+ The advantage of this implementation is that the encoding side will
+ be a little less object code. (Eventually QCBOR will an ifdef to
+ disable definite length encoding and the object code will be even
+ smaller).  However, note that the encoding implementation for a
+ protocol is just about always much smaller than the decoding
+ implementation and that code savings for use of indefinite lengths is
+ relatively small.
  */
 UsefulBufC EncodeEngineIndefinteLen(const CarEngine *pEngine, UsefulBuf Buffer)
 {
@@ -185,6 +219,7 @@ UsefulBufC EncodeEngineIndefinteLen(const CarEngine *pEngine, UsefulBuf Buffer)
        return EncodedCBOR;
     }
 }
+#endif /* EXAMPLE_DISABLE_INDEFINITE_LENGTH_ENCODE */
 
 
 /**
@@ -200,7 +235,7 @@ typedef enum  {
 
 
 /**
- Convert \ref QCBORError to \ref EngineDecodeErrors.
+ Convert @ref QCBORError to @ref EngineDecodeErrors.
  */
 EngineDecodeErrors ConvertError(QCBORError uErr)
 {
@@ -225,29 +260,33 @@ EngineDecodeErrors ConvertError(QCBORError uErr)
 }
 
 
+#ifndef EXAMPLE_DISABLE_SPIFFY_DECODE
 /**
- @brief Simplest engine decode using advanced decoe features.
+ @brief Simplest engine decode using spiffy decode features.
 
  @param[in] EncodedEngine  Pointer and length of CBOR-encoded engine.
- @param[out] pE  The structure filled in from the decoding.
+ @param[out] pE            The structure filled in from the decoding.
 
  @return The decode error or success.
 
- This verssion of the decoder has the simplest implementation, but
- pulls in more code from the QCBOR library.  This version uses
- the most CPU because it scanns the all the CBOR each time
- a data item is decoded. The CPU used for a data structure as small
- as this is probably insignificant. CPU use for this style of decode is
+ This decodes the CBOR into the engine structure.
+
+ As QCBOR automatically supports both definite and indefinite maps and
+ arrays, this will decode either.
+
+ This uses QCBOR's spiffy decode, so the implementation is simplest
+ and closely parallels the encode implementation in
+ EncodeEngineDefiniteLength().
+
+ See two other ways to implement decoding in
+ DecodeEngineSpiffyFaster() and DecodeEngineBasic().
+
+ This version of the decoder has the simplest implementation, but
+ pulls in more code from the QCBOR library.  This version uses the
+ most CPU cycles because it scans the all the CBOR each time a data
+ item is decoded. The CPU cycles used for a data structure as small as
+ this is probably insignificant. CPU use for this style of decode is
  probably only a factor on slow CPUs with big CBOR inputs.
-
- Code size is yet to be measured, but this is probably the smallest total
- code size if multiple protocols are being decoded in one application because
- the complex parsing of a map and array is done be shared code from the
- CBOR library rather than by individual protocol-specific chunks of code.
- Similarly, this may be the smallest for  complex CBOR with multiple
- maps that need to be processed..
-
- See also DecodeEngineAdvancedFaster() and DecodeEngineBasic().
  */
 EngineDecodeErrors DecodeEngineSpiffy(UsefulBufC EncodedEngine, CarEngine *pE)
 {
@@ -264,8 +303,9 @@ EngineDecodeErrors DecodeEngineSpiffy(UsefulBufC EncodedEngine, CarEngine *pE)
 
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "NumCylinders", &(pE->uNumCylinders));
 
-    /* Must check error before referencing pE->uNumCylinders to be sure it
-     is valid. If any of the above errored, it won't be valid. */
+    /* Must check error before referencing pE->uNumCylinders to be
+       sure it is valid. If any of the above errored, it won't be
+       valid. */
     uErr = QCBORDecode_GetError(&DecodeCtx);
     if(uErr != QCBOR_SUCCESS) {
         goto Done;
@@ -289,20 +329,27 @@ Done:
     return ConvertError(uErr);
 }
 
+#endif /* EXAMPLE_DISABLE_SPIFFY_DECODE */
 
+
+
+#ifndef EXAMPLE_DISABLE_SPIFFY_DECODE_FAST
 /**
- @brief Simplest engine decode using advanced decoe features.
+ @brief Decode an Engine structure with the faster spiffy decode features.
 
  @param[in] EncodedEngine  Pointer and length of CBOR-encoded engine.
- @param[out] pE  The structure filled in from the decoding.
+ @param[out] pE            The structure filled in from the decoding.
 
  @return The decode error or success.
 
- This verssion of the decoder is still fairly simple and uses the
- advanced decode features like DecodeEngine(), but is faster
- and pulls in less library code. It is faster because all the items
- except the array are pulled out of the map in one pass, rather
- than multiple passes.
+ This decodes the same as DecodeEngineSpiffy(), but uses different
+ spiffy decode features.
+
+ This version uses QCBORDecode_GetItemsInMap() which uses less CPU
+ cycles because all the items except the array are pulled out of the
+ map in one pass, rather than having to decode the whole map for each
+ decoded item. This also pulls in less object code from the QCBOR
+ library.
 
  See also DecodeEngineAdvanced() and DecodeEngineBasic().
 */
@@ -362,8 +409,9 @@ EngineDecodeErrors DecodeEngineSpiffyFaster(UsefulBufC EncodedEngine, CarEngine 
     }
 
 
-    /* Must check error before referencing pE->uNumCylinders to be sure it
-     is valid. If any of the above errored, it won't be valid. */
+    /* Must check error before referencing pE->uNumCylinders to be
+       sure it is valid. If any of the above errored, it won't be
+       valid. */
     uErr = QCBORDecode_GetError(&DecodeCtx);
     if(uErr != QCBOR_SUCCESS) {
         goto Done;
@@ -387,20 +435,21 @@ Done:
     return ConvertError(uErr);
 }
 
+#endif /* EXAMPLE_DISABLE_SPIFFY_DECODE_FAST */
 
 
-
-
+#ifndef EXAMPLE_DISABLE_BASIC_DECODE
 /**
  @brief Check the type and lable of an item.
 
- @param[in] szLabel  The expected string label.
- @param[in] uQCBORType The expected type or @c QCBOR_TYPE_ANY
- @param[in] pItem  The item to check.
+ @param[in] szLabel     The expected string label.
+ @param[in] uQCBORType  The expected type or @c QCBOR_TYPE_ANY.
+ @param[in] pItem       The item to check.
 
  @retval QCBOR_ERR_LABEL_NOT_FOUND  The label doesn't match.
- @retval QCBOR_ERR_UNEXPECTED_TYPE The label matches, but the type is not as expected.
- @retval QCBOR_SUCCESS Both label and type match.
+ @retval QCBOR_ERR_UNEXPECTED_TYPE  The label matches, but the type is
+                                    not as expected.
+ @retval QCBOR_SUCCESS              Both label and type match.
  */
 QCBORError CheckLabelAndType(const char *szLabel, uint8_t uQCBORType, const QCBORItem *pItem)
 {
@@ -426,8 +475,8 @@ QCBORError CheckLabelAndType(const char *szLabel, uint8_t uQCBORType, const QCBO
  @brief Decode the array of engine cylinders.
 
  @param[in] pDecodeCtx  The decode context from which to get items.
- @param[out] pE  The structure filled in from the decoding.
- @param[in] pItem The data item that is the start of the array.
+ @param[out] pE         The structure filled in from the decoding.
+ @param[in] pItem       The data item that is the start of the array.
 
  @return Either @ref EngineSuccess or an error.
 
@@ -435,15 +484,15 @@ QCBORError CheckLabelAndType(const char *szLabel, uint8_t uQCBORType, const QCBO
  items in it, an error is returned.
  */
 EngineDecodeErrors DecodeCylinders(QCBORDecodeContext *pDecodeCtx,
-                                   CarEngine *pE,
-                                   const QCBORItem *pItem)
+                                   CarEngine          *pE,
+                                   const QCBORItem    *pItem)
 {
     int i = 0;
     QCBORItem Item;
 
-    /* Loop getting all the items in the array. This uses
-     nesting level to detect the end so it works for both
-     definite and indefinite length arrays. */
+    /* Loop getting all the items in the array. This uses nesting
+       level to detect the end so it works for both definite and
+       indefinite length arrays. */
     do {
         QCBORError uErr;
 
@@ -471,23 +520,21 @@ EngineDecodeErrors DecodeCylinders(QCBORDecodeContext *pDecodeCtx,
 
 
 /**
- @brief Engine decode without advanced decode features.
+ @brief Engine decode without spiffy decode.
 
  @param[in] EncodedEngine  Pointer and length of CBOR-encoded engine.
- @param[out] pE  The structure filled in from the decoding.
+ @param[out] pE            The structure filled in from the decoding.
 
  @return The decode error or success.
 
+ This is the third implementation of engine decoding, again
+ implementing the same functionality as DecodeEngineSpiffy() and
+ DecodeEngineSpiffyFaster().
+
  This version of the deocde is the most complex, but uses
- significantly less code from the QCBOR library.  It is also
- the most CPU-efficient since it does only one pass
- through the CBOR.
-
- Code size is yet to be measured, but this is probably the smallest total
- code size of all three, if just one CBOR protocol is being decoded. If
- multiple protocols are being decoded the other options.
-
- See also DecodeEngineAdvanced() and DecodeEngineAdvancedFaster().
+ significantly less code (2-3KB less on 64-bit Intel) from the QCBOR
+ library.  It is also the most CPU-efficient since it does only one
+ pass through the CBOR.
 */
 EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
 {
@@ -589,74 +636,80 @@ EngineDecodeErrors DecodeEngineBasic(UsefulBufC EncodedEngine, CarEngine *pE)
             return EngineProtocolerror;
         }
 
-        /* Some label data item that is not known
-         (could just ignore extras data items) */
+        /* Some label data item that is not known (could just ignore
+           extras data items) */
         return EngineProtocolerror;
     }
     uReturn = EngineSuccess;
+
+    /* Catch the remainder of errors here */
+    uErr = QCBORDecode_Finish(&DecodeCtx);
+    if(uErr) {
+        uReturn = ConvertError(uErr);
+    }
+
+
 
 Done:
     return uReturn;
 }
 
-
-
+#endif /* EXAMPLE_DISABLE_BASIC_DECODE */
 
 
 int32_t RunQCborExample()
 {
-    CarEngine                  E, DecodedEngine;
-    MakeUsefulBufOnStack(   EngineBuffer, 300);
-    UsefulBufC              EncodedEngine;
+   CarEngine               E, DecodedEngine;
+   MakeUsefulBufOnStack(   EngineBuffer, 300);
+   UsefulBufC              EncodedEngine;
 
-    MakeUsefulBufOnStack(   InDefEngineBuffer, 300);
-    UsefulBufC              InDefEncodedEngine;
+   MakeUsefulBufOnStack(   InDefEngineBuffer, 300);
+   UsefulBufC              InDefEncodedEngine;
 
-    // TODO: error codes and other clean up
+   EngineDecodeErrors      uErr;
 
-    EngineInit(&E);
+   EngineInit(&E);
 
-    EncodedEngine = EncodeEngine(&E, EngineBuffer);
-
-    printf("Engine Encoded in %zu bytes\n", EncodedEngine.len);
-
-    int x = (int)DecodeEngineSpiffy(EncodedEngine, &DecodedEngine);
-    printf("Engine Decode Result: %d\n", x);
+#ifndef EXAMPLE_DISABLE_DEFINITE_LENGTH_ENCODE
+   EncodedEngine = EncodeEngineDefiniteLength(&E, EngineBuffer);
+   printf("Definite Length Engine Encoded in %zu bytes\n", EncodedEngine.len);
+#endif /* EXAMPLE_DISABLE_DEFINITE_LENGTH_ENCODE */
 
 
-    InDefEncodedEngine = EncodeEngineIndefinteLen(&E, InDefEngineBuffer);
-
-    printf("Indef Engine Encoded in %zu bytes\n", InDefEncodedEngine.len);
-
-    x = (int)DecodeEngineSpiffy(InDefEncodedEngine, &DecodedEngine);
-    printf("Indef Engine Decode Result: %d\n", x);
-
-    if(!EngineCompare(&E, &DecodedEngine)) {
-        printf("decode comparison fail\n");
-    }
+#ifndef EXAMPLE_DISABLE_INDEFINITE_LENGTH_ENCODE_ENCODE
+   InDefEncodedEngine = EncodeEngineIndefinteLen(&E, InDefEngineBuffer);
+   printf("Indef Engine Encoded in %zu bytes\n", InDefEncodedEngine.len);
+#endif /* EXAMPLE_DISABLE_INDEFINITE_LENGTH_ENCODE_ENCODE */
 
 
-    x = (int)DecodeEngineBasic(EncodedEngine, &DecodedEngine);
-    printf("Engine Basic Decode Result: %d\n", x);
+#ifndef EXAMPLE_DISABLE_SPIFFY_DECODE
+   uErr = DecodeEngineSpiffy(EncodedEngine, &DecodedEngine);
+   printf("Spiffy Engine Decode Result: %d\n", uErr);
 
-    if(!EngineCompare(&E, &DecodedEngine)) {
-        printf("decode comparison fail\n");
-    }
+   if(!EngineCompare(&E, &DecodedEngine)) {
+      printf("Spiffy Engine Decode comparison fail\n");
+   }
+#endif /* EXAMPLE_DISABLE_SPIFFY_DECODE */
 
+#ifndef EXAMPLE_DISABLE_SPIFFY_DECODE_FAST
+   uErr = DecodeEngineSpiffyFaster(EncodedEngine, &DecodedEngine);
+   printf("Faster Spiffy Engine Decode Result: %d\n", uErr);
 
-    x = (int)DecodeEngineBasic(InDefEncodedEngine, &DecodedEngine);
-    printf("Indef Engine Basic Decode Result: %d\n", x);
+   if(!EngineCompare(&E, &DecodedEngine)) {
+      printf("Faster Spiffy Engine Decode comparison fail\n");
+   }
+#endif /* EXAMPLE_DISABLE_SPIFFY_DECODE_FAST */
 
-    if(!EngineCompare(&E, &DecodedEngine)) {
-        printf("indef decode comparison fail\n");
-    }
+#ifndef EXAMPLE_DISABLE_BASIC_DECODE
+   uErr = DecodeEngineBasic(EncodedEngine, &DecodedEngine);
+   printf("Engine Basic Decode Result: %d\n", uErr);
 
-    x = (int)DecodeEngineSpiffyFaster(EncodedEngine, &DecodedEngine);
-    printf("Efficient Engine Basic Decode Result: %d\n", x);
+   if(!EngineCompare(&E, &DecodedEngine)) {
+      printf("Engine Basic Decode comparison fail\n");
+   }
+#endif /* EXAMPLE_DISABLE_BASIC_DECODE */
 
-    if(!EngineCompare(&E, &DecodedEngine)) {
-        printf("effcieit decode comparison fail\n");
-    }
-   
-    return 0;
+   printf("\n");
+
+   return 0;
 }
