@@ -219,15 +219,15 @@ inline static bool
 DecodeNesting_IsAtEndOfBoundedLevel(const QCBORDecodeNesting *pNesting)
 {
    if(pNesting->pCurrentBounded == NULL) {
-      // No bounded map or array or... set up
+      // No bounded map or array set up
       return false;
    }
    if(pNesting->pCurrent->uLevelType == QCBOR_TYPE_BYTE_STRING) {
-      // Not a map or array; end of those is by byte count */
+      // Not a map or array; end of those is by byte count
       return false;
    }
-   if(!DecodeNesting_IsCurrentBounded(pNesting)) { // TODO: pCurrent vs pCurrentBounded
-      // Not at a bounded level
+   if(!DecodeNesting_IsCurrentBounded(pNesting)) {
+      // In a traveral at a level deeper than the bounded level
       return false;
    }
    // Works for both definite and indefinite length maps/arrays
@@ -235,7 +235,7 @@ DecodeNesting_IsAtEndOfBoundedLevel(const QCBORDecodeNesting *pNesting)
       // Count is not zero, still unconsumed item
       return false;
    }
-   // All checks passed, got to the end of a map/array
+   // All checks passed, got to the end of an array or map
    return true;
 }
 
