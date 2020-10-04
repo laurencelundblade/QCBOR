@@ -149,7 +149,6 @@ typedef enum {
  The maximum size of input to the decoder. Slightly less than UINT32_MAX
  to make room for some special indicator values.
  */
-// TODO: test all the cases were this limit is checked
 #define QCBOR_MAX_DECODE_INPUT_SIZE (UINT32_MAX - 2)
 
 /**

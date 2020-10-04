@@ -6384,3 +6384,105 @@ int32_t DecodeTaggedTypeTests()
 
    return 0;
 }
+
+
+
+
+/*
+ [
+    "aaaaaaaaaa",
+    {}
+ ]
+ */
+static const uint8_t spTooLarge1[] = {
+   0x9f,
+   0x6a, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61,
+   0xa0,
+   0xff
+};
+
+/*
+ [
+   {
+      0: "aaaaaaaaaa"
+    }
+ ]
+ */
+static const uint8_t spTooLarge2[] = {
+   0x9f,
+   0xa1,
+   0x00,
+   0x6a, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61,
+   0xff
+};
+
+/*
+ h'A1006A61616161616161616161'
+
+ {
+    0: "aaaaaaaaaa"
+ }
+ */
+static const uint8_t spTooLarge3[] = {
+   0x4d,
+   0xa1,
+   0x00,
+   0x6a, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61,
+};
+
+int32_t TooLargeInputTest(void)
+{
+   QCBORDecodeContext DC;
+   QCBORError         uErr;
+   UsefulBufC         String;
+
+   // These tests require a build with QCBOR_MAX_DECODE_INPUT_SIZE set
+   // to 10 There's not really any way to test this error
+   // condition. The error condition is not complex, so setting
+   // QCBOR_MAX_DECODE_INPUT_SIZE gives an OK test.
+
+   // The input CBOR is only too large because the
+   // QCBOR_MAX_DECODE_INPUT_SIZE is 10.
+   //
+   // This test is disabled for the normal test runs because of the
+   // special build requirement.
+
+
+   // Tests the start of a map being too large
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooLarge1), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_EnterArray(&DC);
+   QCBORDecode_GetTextString(&DC, &String);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 1;
+   }
+   QCBORDecode_EnterMap(&DC);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_ERR_INPUT_TOO_LARGE) {
+      return 2;
+   }
+
+   // Tests the end of a map being too large
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooLarge2), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_EnterArray(&DC);
+   QCBORDecode_EnterMap(&DC);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 3;
+   }
+   QCBORDecode_ExitMap(&DC);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_ERR_INPUT_TOO_LARGE) {
+      return 4;
+   }
+
+   // Tests the entire input CBOR being too large when processing bstr wrapping
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooLarge3), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_ERR_INPUT_TOO_LARGE) {
+      return 5;
+   }
+
+   return 0;
+}
