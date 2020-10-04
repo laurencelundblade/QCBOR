@@ -63,8 +63,6 @@ static void PrintUsefulBufC(const char *szLabel, UsefulBufC Buf)
 #endif
 
 
-// TODO: error handling for well-formed CBOR that is invalid or hits an implementation limit
-
 static const uint8_t spExpectedEncodedInts[] = {
    0x98, 0x2f, 0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff,
    0xff, 0xff, 0xff, 0x3b, 0x00, 0x00, 0x00, 0x01,
