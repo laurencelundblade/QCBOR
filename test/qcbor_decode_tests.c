@@ -1772,7 +1772,7 @@ struct FailInput  Failures[] = {
    // Definite length array containing an unclosed indefinite length array
    { {(uint8_t[]){0x81, 0x9f}, 2}, QCBOR_ERR_NO_MORE_ITEMS },
    // Deeply nested definite length arrays with deepest one unclosed
-   { {(uint8_t[]){0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}, 9}, QCBOR_ERR_NO_MORE_ITEMS }, // TODO: 23
+   { {(uint8_t[]){0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}, 9}, QCBOR_ERR_NO_MORE_ITEMS },
    // Deeply nested indefinite length arrays with deepest one unclosed
    { {(uint8_t[]){0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_NO_MORE_ITEMS },
    // Mixed nesting with indefinite unclosed
@@ -4603,43 +4603,6 @@ int32_t ExponentAndMantissaDecodeFailTests()
    }
   }
  */
-
-#include <stdio.h>
-
-static char strbuf[10];
-const char *PrintType(uint8_t type) {
-   switch(type) {
-   case QCBOR_TYPE_INT64: return "INT64";
-      case QCBOR_TYPE_UINT64: return "UINT64";
-      case QCBOR_TYPE_ARRAY: return "ARRAY";
-      case QCBOR_TYPE_MAP: return "MAP";
-      case QCBOR_TYPE_BYTE_STRING: return "BYTE_STRING";
-      case QCBOR_TYPE_TEXT_STRING: return "TEXT_STRING";
-      default:
-      sprintf(strbuf, "%d", type);
-      return strbuf;
-   }
-}
-
-
-void PrintItem(QCBORItem Item)
-{
-   printf("\nData: %s nest: %d,%d %s\n",
-          PrintType(Item.uDataType),
-          Item.uNestingLevel,
-          Item.uNextNestLevel,
-          Item.uDataAlloc ? "Allocated":"");
-   if(Item.uLabelType) {
-      printf("Label: %s ", PrintType(Item.uLabelType));
-      if(Item.uLabelType == QCBOR_TYPE_INT64) {
-         printf("%lld\n", Item.label.int64);
-      } else if(Item.uLabelType == QCBOR_TYPE_TEXT_STRING) {
-         // TODO: proper conversion to null-terminated string
-         printf("\"%4.4s\"\n", (const char *)Item.label.string.ptr);
-      }
-   }
-}
-
 
 int32_t EMap(UsefulBufC input)
 {
