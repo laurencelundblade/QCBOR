@@ -997,9 +997,9 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
     an encoding of the length of the uNumber and is needed to decode
     floats and doubles
    */
-   int      nMajorType;
-   uint64_t uNumber;
-   int      nAdditionalInfo;
+   int      nMajorType = 0;
+   uint64_t uNumber = 0;
+   int      nAdditionalInfo = 0;
 
    memset(pDecodedItem, 0, sizeof(QCBORItem));
 
