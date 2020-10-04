@@ -248,7 +248,7 @@ struct _QCBORDecodeContext {
 
    // A cached offset to the end of the current map
    // 0 if no value is cached.
-#define MAP_OFFSET_CACHE_INVALID UINT32_MAX // TODO: exclude this value from input length
+#define QCBOR_MAP_OFFSET_CACHE_INVALID UINT32_MAX
    uint32_t uMapEndOffsetCache;
 
    uint8_t  uDecodeMode;

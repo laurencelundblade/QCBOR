@@ -145,8 +145,13 @@ typedef enum {
    /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORDecodeMode;
 
+/**
+ The maximum size of input to the decoder. Slightly less than UINT32_MAX
+ to make room for some special indicator values.
+ */
+#define QCBOR_MAX_DECODE_INPUT_SIZE (UINT32_MAX - 2)
 
-/*
+/**
  The maximum number of tags that may occur on an individual nested
  item. Typically 4.
  */
@@ -173,8 +178,9 @@ typedef enum {
 #define QCBOR_TYPE_MAP            5
 /** Type for a buffer full of bytes. Data is in @c val.string. */
 #define QCBOR_TYPE_BYTE_STRING    6
-/** Type for a UTF-8 string. It is not NULL-terminated. Data is in @c
-    val.string.  */
+/** Type for a UTF-8 string. It is not NULL-terminated. See
+    QCBOREncode_AddText() for a discussion of line endings in CBOR. Data
+    is in @c val.string.  */
 #define QCBOR_TYPE_TEXT_STRING    7
 /** Type for a positive big number. Data is in @c val.bignum, a
     pointer and a length. */
@@ -294,7 +300,7 @@ typedef enum {
 /**
  The main data structure that holds the type, value and other info for
  a decoded item returned by QCBORDecode_GetNext() and
- QCBORDecode_GetNextWithTags().
+ and methods.
 
  This size of this may vary by compiler but is roughly 56 bytes on
  a 64-bit CPU and 52 bytes on a 32-bit CPU.
@@ -1109,6 +1115,8 @@ static bool QCBORDecode_IsNotWellFormedError(QCBORError uErr);
  incorrect lengths or array counts are unrecoverable. Unrecoverable
  errors also occur when certain implementation limits such as the
  limit on array and map nesting occur.
+
+ The specific errors are a range of the errors in @ref QCBORError.
  */
 static bool QCBORDecode_IsUnrecoverableError(QCBORError uErr);
 
@@ -1262,6 +1270,15 @@ static inline bool QCBORDecode_IsUnrecoverableError(QCBORError uErr)
       return false;
    }
 }
+
+// A few sanity checks on size constants and special value lenghts
+#if  QCBOR_MAP_OFFSET_CACHE_INVALID < QCBOR_MAX_DECODE_INPUT_SIZE
+#error QCBOR_MAP_OFFSET_CACHE_INVALID is too large
+#endif
+
+#if QCBOR_NON_BOUNDED_OFFSET < QCBOR_MAX_DECODE_INPUT_SIZE
+#error QCBOR_NON_BOUNDED_OFFSET is too large
+#endif
 
 #ifdef __cplusplus
 }
