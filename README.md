@@ -8,8 +8,6 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 **Your CBOR decoding implementation may be four times less code!**
 **It needs a little more test to be high enough quality for the master branch.** 
 
-## Characteristics
-
 This new version of QCBOR adds a more powerful decoding API
 called Spiffy Decode. 
 
@@ -142,13 +140,13 @@ The first noticable addition are functions to get particular data
 types.  These are an alternative to and built on top of
 QCBORDecode_GetNext() that does the type checking and in some cases
 sophisticated type conversion. They track an error state internally so
-the caller doesn't need.  They also handle the CBOR tagged data types
+the caller doesn't need to.  They also handle the CBOR tagged data types
 thoroughly and properly.
 
 In line with all the new get functions for non-aggregate types there
 are new functions for aggregate types. When a map is expected,
-QCBORDecode_EnterMap() can be called to descend into it. When a map is
-entered it can be searched by label. Duplicate detection of map items
+QCBORDecode_EnterMap() can be called to descend into and searched by label. 
+Duplicate detection of map items
 is performed. There is a similar facility for arrays and byte-string
 wrapped CBOR.
 
@@ -175,12 +173,13 @@ encoding a map with three items and then decoding it.
      QCBORDecode_ExitMap(&DecodeCtx);
      uErr = QCBORDecode_Finish(&DecodeCtx);
 
-The Spiffy Decode version of QCBOR also handles CBOR tags in a simpler 
+The spiffy decode version of QCBOR also handles CBOR tags in a simpler 
 and more thorough way.
 
 The spiffy decode functions will handle definite and indefinite length
 maps and arrays without the caller having to do anything. This includes 
-mixed definite and indefinte maps and arrays.
+mixed definite and indefinte maps and arrays. (Some work remains to
+support map searching with indefinite length strings.)
 
 ### Uncompatible Changes
 
@@ -231,49 +230,76 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
     | decode only   |     2900 |   12900 |
     | combined      |     3900 |   15000 |
     
- The code sizes varies primarily based on which QCBOR functions are
- called. QCBOR's internal dependencies are such that for the most part
- only code needed to support was is called is linked.
+ From the table above, one can see that the amount of code pulled in
+ from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
+ main factor is in this is the number of QCBOR functions called and
+ which ones they are. QCBOR is constructed with less internal
+ interdependency so only code necessary for the called functions is
+ brought in.
  
- The amount of QCBOR code linked in for decoding varies widely
- depending on which decoding functions are called. Spiffy decode adds
- a lot more decoding functionality. The amount of code linked will
- more or less scale with the functionality used.
+ Encoding is simpler and smaller. An encode-only implementation may
+ bring in only 1KB of code.
  
- The number conversion functions like QCBORDecode_GetInt64ConvertAll()
- bring in the most object code. This can convert floats, big numbers,
- decimal fractions and the like to an integer. QCBORDecode_GetInt64()
- will bring in much less.
+ Encoding of floating-point brings in a little more code as does
+ encoding of tagged types and encoding of bstr wrapping.
  
- Using any of the functions that search maps by a label will bring in
- about 1KB of code. This is usually wothwhile though because it
- handles does a complex job which includes duplicate label detection,
- item type checking and decoding both definite and indefinite length
- maps. This code is also shared for each map that is searched.
+ Basic decoding using QCBORDecode_GetNext() brings in 3KB.
  
- If QCBOR is set up as a shared library across apps on the system
- there may be a substantial overall code size reduction from using
- spiffy decode because the individual apps will be smaller. For
- example, t_cose shrank by 800 bytes by using spiffy map decoding.
+ Use of the supplied MemPool by calling _QCBORDecode_SetMemPool() to
+ setup to decode indefinite length strings adds 0.5KB.
+ 
+ Basic use of spiffy decode to brings in about 3KB. Using more spiffy
+ decode functions, such as those for tagged types bstr wrapping brings
+ in more code.
+ 
+ Finally, use of all of the integer conversion functions will bring in
+ about 5KB, though you can use the simpler ones like
+ QCBORDecode_GetInt64() without bringing in very much code.
  
  In addition to using fewer QCBOR functions, the following are some
  ways to make the code smaller.
 
-The gcc compiler output is usually smaller than llvm because stack
-guards are off by default (be sure you actually have gcc and not llvm
-installed to be invoked by the gcc command). You can also turn off
-stack gaurds with llvm. It is safe to turn off stack guards with this
-code because Usefulbuf provides similar defenses and this code was
-carefully written to be defensive.
+ The gcc compiler output is usually smaller than llvm because stack
+ guards are off by default (be sure you actually have gcc and not llvm
+ installed to be invoked by the gcc command). You can also turn off
+ stack gaurds with llvm. It is safe to turn off stack gaurds with this
+ code because Usefulbuf provides similar defenses and this code was
+ carefully written to be defensive.
 
-Disable features with defines like
-QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) and
-QCBOR_DISABLE_PREFERRED_FLOAT (saves about 900 bytes).  This is the
-primary means of reducing code on the decode side.  More of these
-defines are planned than are currently implemented, but they are a
-little complex to implement because all the combination configurations
-must be tested.
+ Disable features with defines like
+ QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) and
+ QCBOR_DISABLE_PREFERRED_FLOAT (saves about 900 bytes).  More of these
+ defines are planned than are currently implemented (they are a little
+ complex to implement because all the combination configurations must
+ be tested).
+ 
+ If QCBOR is installed as a shared library, then of course only one
+ copy of the code is in memory no matter how many applications use it.
+ 
+ ### Size of spiffy decode
+ 
+ When creating a decode implementation, there is a choice of whether
+ or not to use spiffy decode features or to just use
+ QCBORDecode_GetNext().
+ 
+ The implementation using spiffy decode will be simpler resulting in
+ the calling code being smaller, but the amount of code brought in
+ from the QCBOR library will be larger. Basic use of spiffy decode
+ brings in about 2KB of object code.  If object code size is not a
+ concern, then it is probably better to use spiffy decode because it
+ is less work, there is less complexity and less testing to worry
+ about.
+ 
+ If code size is a concern, then use of QCBORDecode_GetNext() will
+ probably result in smaller overall code size for simpler CBOR
+ protocols. However, if the CBOR protocol is complex then use of
+ spiffy decode may reduce overall code size.  An example of a complex
+ protocol is one that involves decoding a lot of maps or maps that
+ have many data items in them.  The overall code may be smaller
+ because the general purpose spiffy decode map processor is the one
+ used for all the maps.
 
+ 
 ## Other Software Using QCBOR
 
 * [t_cose](https://github.com/laurencelundblade/t_cose) implements enough of
