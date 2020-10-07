@@ -226,9 +226,9 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
 
     |               | smallest | largest |  
     |---------------|----------|---------|
-    | encode only   |     1000 |    2100 |
-    | decode only   |     2900 |   12900 |
-    | combined      |     3900 |   15000 |
+    | encode only   |      900 |    2100 |
+    | decode only   |     2800 |   13500 |
+    | combined      |     3700 |   15600 |
     
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The

@@ -13,6 +13,8 @@
 #ifndef qcborExample_h
 #define qcborExample_h
 
+#include <stdint.h>
+
 int32_t RunQCborExample(void);
 
 #endif /* qcborExample_h */

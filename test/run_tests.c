@@ -290,6 +290,7 @@ int RunTestsQCBOR(const char *szTestNames[],
 // For size printing
 #include "qcbor/qcbor_encode.h"
 #include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 
 
 /*
@@ -322,5 +323,6 @@ void PrintSizesQCBOR(OutputStringCB pfOutput, void *pOutCtx)
    PrintSize("sizeof(QCBORItem)",           (uint32_t)sizeof(QCBORItem),          pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORTagListIn)",      (uint32_t)sizeof(QCBORTagListIn),     pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORTagListOut)",     (uint32_t)sizeof(QCBORTagListOut),    pfOutput, pOutCtx);
+   PrintSize("sizeof(TagSpecification)",    (uint32_t)sizeof(TagSpecification),    pfOutput, pOutCtx);
    (*pfOutput)("", pOutCtx, 1);
 }

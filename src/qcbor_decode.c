@@ -3439,13 +3439,10 @@ static void ProcessEpochDate(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_DATE_EPOCH, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-      {QCBOR_TYPE_INT64, QCBOR_TYPE_DOUBLE, QCBOR_TYPE_FLOAT}
+      {QCBOR_TYPE_DATE_EPOCH, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_INT64, QCBOR_TYPE_DOUBLE, QCBOR_TYPE_FLOAT, QCBOR_TYPE_UINT64}
    };
 
-   // TODO: this will give an unexpected type error instead of
-   // overflow error for QCBOR_TYPE_UINT64 because TagSpec
-   // only has three target types.
    uErr = CheckTagRequirement(TagSpec, pItem);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
@@ -3549,8 +3546,8 @@ static QCBORError ProcessBigNum(uint8_t          uTagRequirement,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_POSBIGNUM, QCBOR_TYPE_NEGBIGNUM, QCBOR_TYPE_NONE},
-      {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_POSBIGNUM, QCBOR_TYPE_NEGBIGNUM, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    QCBORError uErr = CheckTagRequirement(TagSpec, pItem);
@@ -3643,14 +3640,14 @@ QCBORError QCBORDecode_GetMIMEInternal(uint8_t     uTagRequirement,
    const TagSpecification TagSpecText =
       {
          uTagRequirement,
-         {QCBOR_TYPE_MIME, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+         {QCBOR_TYPE_MIME, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
       };
    const TagSpecification TagSpecBinary =
       {
          uTagRequirement,
-         {QCBOR_TYPE_BINARY_MIME, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+         {QCBOR_TYPE_BINARY_MIME, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
       };
 
    QCBORError uReturn;
@@ -5074,8 +5071,9 @@ void QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+         QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
@@ -5101,8 +5099,9 @@ void QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+         QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
@@ -5128,8 +5127,9 @@ void QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+         QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
@@ -5160,8 +5160,9 @@ void QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+         QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    ProcessMantissaAndExponentBig(pMe,
@@ -5198,8 +5199,9 @@ void QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+         QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    ProcessMantissaAndExponentBig(pMe,
@@ -5236,8 +5238,9 @@ void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM},
-      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+         QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    ProcessMantissaAndExponentBig(pMe, TagSpec, &Item, BufferForMantissa, pMantissa, pbIsNegative, pnExponent);
@@ -5265,8 +5268,9 @@ void QCBORDecode_GetBigFloat(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
-      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+         QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
@@ -5295,8 +5299,9 @@ void QCBORDecode_GetBigFloatInMapN(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
-      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+         QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
@@ -5325,8 +5330,9 @@ void QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
-      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+         QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    ProcessMantissaAndExponent(pMe, TagSpec, &Item, pnMantissa, pnExponent);
@@ -5357,8 +5363,9 @@ void QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
-      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+         QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    ProcessMantissaAndExponentBig(pMe, TagSpec, &Item, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
@@ -5389,8 +5396,9 @@ void QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
-      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+         QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    ProcessMantissaAndExponentBig(pMe,
@@ -5427,8 +5435,9 @@ void QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
    const TagSpecification TagSpec =
    {
       uTagRequirement,
-      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM, QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM},
-      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      {QCBOR_TYPE_BIGFLOAT, QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+         QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
    ProcessMantissaAndExponentBig(pMe,
