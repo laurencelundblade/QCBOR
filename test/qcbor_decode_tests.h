@@ -291,4 +291,11 @@ int32_t DecodeTaggedTypeTests(void);
  */
 int32_t TooLargeInputTest(void);
 
+
+/*
+ Test spiffy decoding of indefinite length strings.
+ */
+int32_t SpiffyIndefiniteLengthStringsTests(void);
+
+
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

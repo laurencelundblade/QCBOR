@@ -2559,8 +2559,6 @@ MatchType(QCBORItem Item1, QCBORItem Item2)
 
  If an item was not found, its data type is set to QCBOR_TYPE_NONE.
  */
-// TODO: make this handle indefinite length strings, possibly with
-// allocation only when returning the string.
 static QCBORError
 MapSearch(QCBORDecodeContext *pMe,
           QCBORItem          *pItemArray,

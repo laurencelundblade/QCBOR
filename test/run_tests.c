@@ -121,6 +121,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ExponentAndMantissaDecodeTests),
     TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
     TEST_ENTRY(ExponentAndMantissaEncodeTests),
+    TEST_ENTRY(SpiffyIndefiniteLengthStringsTests),
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 };
 

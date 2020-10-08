@@ -6447,3 +6447,69 @@ int32_t TooLargeInputTest(void)
 
    return 0;
 }
+
+
+static const uint8_t spMapWithIndefLenStrings[] = {
+   0xbf,
+      0x7f, 0x61, 'l', 0x64, 'a', 'b', 'e', 'l' , 0x61, '1', 0xff,
+      0x5f, 0x42, 0x01, 0x02, 0x43, 0x03, 0x04, 0x05, 0xff,
+      0x7f, 0x62, 'd', 'y', 0x61, 'm', 0x61, 'o', 0xff,
+      0x03,
+      0x7f, 0x62, 'l', 'a', 0x63, 'b', 'e', 'l', 0x61, '2', 0xff,
+      0xc3,
+          0x5f, 0x42, 0x00, 0x01, 0x42, 0x00, 0x01, 0x41, 0x01, 0xff,
+   0xff
+};
+
+int32_t SpiffyIndefiniteLengthStringsTests()
+{
+   QCBORDecodeContext DCtx;
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapWithIndefLenStrings),
+                    QCBOR_DECODE_MODE_NORMAL);
+
+   MakeUsefulBufOnStack(StringBuf, 200);
+   QCBORDecode_SetMemPool(&DCtx, StringBuf, false);
+
+   UsefulBufC ByteString;
+   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_GetByteStringInMapSZ(&DCtx, "label1", &ByteString);
+   if(QCBORDecode_GetAndResetError(&DCtx)) {
+      return 1;
+   }
+
+   const uint8_t pExectedBytes[] = {0x01, 0x02, 0x03, 0x04, 0x05};
+   if(UsefulBuf_Compare(ByteString, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pExectedBytes))) {
+      return 2;
+   }
+
+   uint64_t uInt;
+   QCBORDecode_GetUInt64InMapSZ(&DCtx, "dymo", &uInt);
+   if(QCBORDecode_GetAndResetError(&DCtx)) {
+      return 3;
+   }
+   if(uInt != 3) {
+      return 4;
+   }
+
+   double uDouble;
+   QCBORDecode_GetDoubleConvertAllInMapSZ(&DCtx,
+                                          "label2",
+                                          0xff,
+                                          &uDouble);
+   if(QCBORDecode_GetAndResetError(&DCtx)) {
+      return 5;
+   }
+   if(uDouble != -16777474) {
+      return 6;
+   }
+
+   QCBORDecode_ExitMap(&DCtx);
+
+   if(QCBORDecode_Finish(&DCtx)) {
+      return 99;
+   }
+
+   return 0;
+}

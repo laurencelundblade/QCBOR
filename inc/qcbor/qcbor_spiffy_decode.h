@@ -121,7 +121,6 @@ extern "C" {
  they are on the item being sought, in which case the
  unrecoverable error will be returned. Unrecoverable
  errors are those indicated by QCBORDecode_IsUnrecoverableError().
- 
 
  @anchor Tag-Usage
 
@@ -167,6 +166,12 @@ extern "C" {
  accept", however these days that is less in favor. See
  https://tools.ietf.org/id/draft-thomson-postel-was-wrong-03.html.
 
+ Map searching works with indefinite length strings. A string allocator must
+ be set up the same as for any handling of indefinite length strings.
+ However,  It currently over-allocates memory from the string pool
+ and thus requires a much larger string pool than it should. The
+ over-allocation happens every time a map is searched by label.
+ (This may be corrected in the future).
 */
 
 
@@ -521,6 +526,90 @@ static void QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx,
                                          double             *pdValue);
 
 
+/**
+ @brief Decode next item into a double floating-point value with basic conversion.
+
+ @param[in] pCtx   The decode context.
+ @param[in] uConvertTypes The integer conversion options.
+ @param[out] pdValue  The returned floating-point value.
+
+ This will decode CBOR integer and floating-point numbers, returning
+ them as a double floating-point number. This function supports @ref
+ QCBOR_CONVERT_TYPE_XINT64 and @ref QCBOR_CONVERT_TYPE_FLOAT
+ conversions. If the encoded CBOR is not one of the requested types or a type
+ not supported by this function, @ref QCBOR_ERR_UNEXPECTED_TYPE is
+ set.
+
+ See @ref Decode-Errors for discussion on how error handling works.
+
+ If floating-point HW use is disabled this will set
+ @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision
+ number is encountered. If half-precision support is disabled,
+ this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
+ a half-precision number is encountered.
+
+ Positive and negative integers can always be converted to
+ floating-point, so this will never error on CBOR major type 0 or 1.
+
+ Note that a large 64-bit integer can have more precision (64 bits)
+ than even a double floating-point (52 bits) value, so there is loss
+ of precision in some conversions.
+
+ See also QCBORDecode_GetDouble() and QCBORDecode_GetDoubleConvertAll().
+*/
+static void QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pCtx,
+                                         uint32_t            uConvertTypes,
+                                         double             *pdValue);
+
+static void QCBORDecode_GetDoubleConvertInMapN(QCBORDecodeContext *pCtx,
+                                               int64_t             nLabel,
+                                               uint32_t            uConvertTypes,
+                                               double             *pdValue);
+
+static void QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
+                                                const char         *szLabel,
+                                                uint32_t            uConvertTypes,
+                                                double             *pdValue);
+
+
+/**
+ @brief Decode next item as a double floating-point value with conversion.
+
+ @param[in] pCtx           The decode context.
+ @param[in] uConvertTypes  The integer conversion options.
+ @param[out] pdValue       The returned floating-point value.
+
+ This is the same as QCBORDecode_GetDoubleConvert() but supports many
+ more conversions at the cost of linking in more object code. The
+ conversion types supported are @ref QCBOR_CONVERT_TYPE_XINT64, @ref
+ QCBOR_CONVERT_TYPE_FLOAT, @ref QCBOR_CONVERT_TYPE_BIG_NUM, @ref
+ QCBOR_CONVERT_TYPE_DECIMAL_FRACTION and @ref
+ QCBOR_CONVERT_TYPE_BIGFLOAT.
+
+ Big numbers, decimal fractions and big floats that are too small or
+ too large to be reprented as a double floating-point number will be
+ returned as plus or minus zero or infinity rather than setting an
+ under or overflow error.
+
+ There is often loss of precision in the conversion.
+
+ See also QCBORDecode_GetDoubleConvert() and QCBORDecode_GetDoubleConvert().
+*/
+void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pCtx,
+                                     uint32_t            uConvertTypes,
+                                     double             *pdValue);
+
+void QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext *pCtx,
+                                           int64_t             nLabel,
+                                           uint32_t            uConvertTypes,
+                                           double             *pdValue);
+
+void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
+                                            const char         *szLabel,
+                                            uint32_t            uConvertTypes,
+                                            double             *pdValue);
+
+
 
 
 /**
@@ -822,90 +911,6 @@ void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pCtx,
                                 bool               *pbBool);
 
 
-
-
-/**
- @brief Decode next item into a double floating-point value with basic conversion.
-
- @param[in] pCtx   The decode context.
- @param[in] uConvertTypes The integer conversion options.
- @param[out] pdValue  The returned floating-point value.
-
- This will decode CBOR integer and floating-point numbers, returning
- them as a double floating-point number. This function supports @ref
- QCBOR_CONVERT_TYPE_XINT64 and @ref QCBOR_CONVERT_TYPE_FLOAT
- conversions. If the encoded CBOR is not one of the requested types or a type
- not supported by this function, @ref QCBOR_ERR_UNEXPECTED_TYPE is
- set.
-
- See @ref Decode-Errors for discussion on how error handling works.
-
- If floating-point HW use is disabled this will set
- @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision
- number is encountered. If half-precision support is disabled,
- this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
- a half-precision number is encountered.
-
- Positive and negative integers can always be converted to
- floating-point, so this will never error on CBOR major type 0 or 1.
-
- Note that a large 64-bit integer can have more precision (64 bits)
- than even a double floating-point (52 bits) value, so there is loss
- of precision in some conversions.
-
- See also QCBORDecode_GetDouble() and QCBORDecode_GetDoubleConvertAll().
-*/
-static void QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pCtx,
-                                         uint32_t            uConvertTypes,
-                                         double             *pdValue);
-
-static void QCBORDecode_GetDoubleConvertInMapN(QCBORDecodeContext *pCtx,
-                                               int64_t             nLabel,
-                                               uint32_t            uConvertTypes,
-                                               double             *pdValue);
-
-static void QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
-                                                const char         *szLabel,
-                                                uint32_t            uConvertTypes,
-                                                double             *pdValue);
-
-
-/**
- @brief Decode next item as a double floating-point value with conversion.
-
- @param[in] pCtx           The decode context.
- @param[in] uConvertTypes  The integer conversion options.
- @param[out] pdValue       The returned floating-point value.
-
- This is the same as QCBORDecode_GetDoubleConvert() but supports many
- more conversions at the cost of linking in more object code. The
- conversion types supported are @ref QCBOR_CONVERT_TYPE_XINT64, @ref
- QCBOR_CONVERT_TYPE_FLOAT, @ref QCBOR_CONVERT_TYPE_BIG_NUM, @ref
- QCBOR_CONVERT_TYPE_DECIMAL_FRACTION and @ref
- QCBOR_CONVERT_TYPE_BIGFLOAT.
-
- Big numbers, decimal fractions and big floats that are too small or
- too large to be reprented as a double floating-point number will be
- returned as plus or minus zero or infinity rather than setting an
- under or overflow error.
-
- There is often loss of precision in the conversion.
-
- See also QCBORDecode_GetDoubleConvert() and QCBORDecode_GetDoubleConvert().
-*/
-void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pCtx,
-                                     uint32_t            uConvertTypes,
-                                     double             *pdValue);
-
-void QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext *pCtx,
-                                           int64_t             nLabel,
-                                           uint32_t            uConvertTypes,
-                                           double             *pdValue);
-
-void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
-                                            const char         *szLabel,
-                                            uint32_t            uConvertTypes,
-                                            double             *pdValue);
 
 
 
