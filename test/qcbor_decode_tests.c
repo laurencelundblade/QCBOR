@@ -6498,12 +6498,19 @@ int32_t SpiffyIndefiniteLengthStringsTests()
                                           "label2",
                                           0xff,
                                           &uDouble);
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
    if(QCBORDecode_GetAndResetError(&DCtx)) {
       return 5;
    }
    if(uDouble != -16777474) {
       return 6;
    }
+#else
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_HW_FLOAT_DISABLED) {
+      return 7;
+   }
+#endif
+
 
    QCBORDecode_ExitMap(&DCtx);
 

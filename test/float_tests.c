@@ -1079,31 +1079,61 @@ int32_t GeneralFloatDecodeTests()
 
     QCBORDecode_GetDouble(&DC, &d);
     uErr = QCBORDecode_GetAndResetError(&DC);
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
     if(uErr != QCBOR_SUCCESS ||
        d != 3.140000104904175) {
        return -306;
     }
+#else
+   // Disabled use of HW to convert from single to double
+   if(uErr != QCBOR_ERR_HW_FLOAT_DISABLED) {
+      return -316;
+   }
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
 
     QCBORDecode_GetDouble(&DC, &d);
     uErr = QCBORDecode_GetAndResetError(&DC);
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
     if(uErr != QCBOR_SUCCESS ||
        d != 0.0) {
        return -307;
     }
+#else
+   // Disabled use of HW to convert from single to double
+   if(uErr == QCBOR_SUCCESS) {
+      return -317;
+   }
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
 
     QCBORDecode_GetDouble(&DC, &d);
     uErr = QCBORDecode_GetAndResetError(&DC);
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
     if(uErr != QCBOR_SUCCESS ||
        !isnan(d)) {
        return -308;
     }
+#else
+   // Disabled use of HW to convert from single to double
+   if(uErr == QCBOR_SUCCESS) {
+      return -318;
+   }
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
     QCBORDecode_GetDouble(&DC, &d);
     uErr = QCBORDecode_GetAndResetError(&DC);
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
     if(uErr != QCBOR_SUCCESS ||
        d != INFINITY) {
        return -309;
     }
+#else
+   // Disabled use of HW to convert from single to double
+   if(uErr == QCBOR_SUCCESS) {
+      return -318;
+   }
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
    return 0;
