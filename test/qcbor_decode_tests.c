@@ -1720,7 +1720,8 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0x7f, 0x61, 0x00}, 3}, QCBOR_ERR_HIT_END },
 
 
-   // All the chunks in an indefinite length string must be of the type of indefinite length string
+   // All the chunks in an indefinite length string must be of the type of
+   // indefinite length string
    // indefinite length byte string with text string chunk
    { {(uint8_t[]){0x5f, 0x61, 0x00, 0xff}, 4}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
    // indefinite length text string with a byte string chunk
@@ -1771,6 +1772,10 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0x9f, 0x80, 0x00}, 3}, QCBOR_ERR_NO_MORE_ITEMS },
    // Definite length array containing an unclosed indefinite length array
    { {(uint8_t[]){0x81, 0x9f}, 2}, QCBOR_ERR_NO_MORE_ITEMS },
+   // Unclosed indefinite map containing a closed definite length array
+   { {(uint8_t[]){0xbf, 0x01, 0x80, 0x00, 0xa0}, 5}, QCBOR_ERR_NO_MORE_ITEMS },
+   // Definite length map containing an unclosed indefinite length array
+   { {(uint8_t[]){0xa1, 0x02, 0x9f}, 3}, QCBOR_ERR_NO_MORE_ITEMS },
    // Deeply nested definite length arrays with deepest one unclosed
    { {(uint8_t[]){0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}, 9}, QCBOR_ERR_NO_MORE_ITEMS },
    // Deeply nested indefinite length arrays with deepest one unclosed
@@ -1779,7 +1784,20 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0x9f, 0x81, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_NO_MORE_ITEMS },
    // Mixed nesting with definite unclosed
    { {(uint8_t[]){0x9f, 0x82, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 10}, QCBOR_ERR_BAD_BREAK },
-   // TODO: a few more definite indefinite length combos and check with CBORbis.
+   // Unclosed indefinite length map in definite length maps
+   { {(uint8_t[]){0xa1, 0x01, 0xa2, 0x02, 0xbf, 0xff, 0x02, 0xbf}, 8},
+      QCBOR_ERR_NO_MORE_ITEMS},
+   // Unclosed definite length map in indefinite length maps
+   { {(uint8_t[]){0xbf, 0x01, 0xbf, 0x02, 0xa1}, 5}, QCBOR_ERR_NO_MORE_ITEMS},
+   // Unclosed indefinite length array in definite length maps
+   { {(uint8_t[]){0xa1, 0x01, 0xa2, 0x02, 0x9f, 0xff, 0x02, 0x9f}, 8},
+      QCBOR_ERR_NO_MORE_ITEMS},
+   // Unclosed definite length array in indefinite length maps
+   { {(uint8_t[]){0xbf, 0x01, 0xbf, 0x02, 0x81}, 5}, QCBOR_ERR_NO_MORE_ITEMS},
+   // Unclosed indefinite length map in definite length arrays
+   { {(uint8_t[]){0x81, 0x82, 0xbf, 0xff, 0xbf}, 5}, QCBOR_ERR_NO_MORE_ITEMS},
+   // Unclosed definite length map in indefinite length arrays
+   { {(uint8_t[]){0x9f, 0x9f, 0xa1}, 3}, QCBOR_ERR_NO_MORE_ITEMS},
 
 
    // The "argument" for the data item is incomplete
@@ -1811,6 +1829,16 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0xd8}, 1}, QCBOR_ERR_HIT_END },
    // Simple missing 1 byte argument
    { {(uint8_t[]){0xf8}, 1}, QCBOR_ERR_HIT_END },
+   // half-precision with 1 byte argument
+   { {(uint8_t[]){0xf9, 0x00}, 2}, QCBOR_ERR_HIT_END },
+   // single-precision with 2 byte argument
+   { {(uint8_t[]){0xfa, 0x00, 0x00}, 3}, QCBOR_ERR_HIT_END },
+   // double-precision with 3 byte argument
+   { {(uint8_t[]){0xfb, 0x00, 0x00, 0x00}, 4}, QCBOR_ERR_HIT_END },
+
+
+   // Tag with no content
+   { {(uint8_t[]){0xc0}, 1}, QCBOR_ERR_HIT_END },
 
 
    // Breaks must not occur in definite length arrays and maps
@@ -1821,7 +1849,7 @@ struct FailInput  Failures[] = {
    // Map of length 1 with sole member label replaced by a break
    { {(uint8_t[]){0xa1, 0xff}, 2}, QCBOR_ERR_BAD_BREAK },
    // Map of length 1 with sole member label replaced by break
-   // Alternate representation that some decoders handle difference
+   // Alternate representation that some decoders handle differently
    { {(uint8_t[]){0xa1, 0xff, 0x00}, 3}, QCBOR_ERR_BAD_BREAK },
    // Array of length 1 with 2nd member value replaced by a break
    { {(uint8_t[]){0xa1, 0x00, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
@@ -1836,6 +1864,10 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0x80, 0xff}, 2}, QCBOR_ERR_BAD_BREAK },
    // A bare break after a zero length indefinite length map
    { {(uint8_t[]){0x9f, 0xff, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
+   // A break inside a definite length array inside an indefenite length array
+   { {(uint8_t[]){0x9f, 0x81, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
+   // Complicated mixed nesting with break outside indefinite length array
+   { {(uint8_t[]){0x9f, 0x82, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 10}, QCBOR_ERR_BAD_BREAK },
 
 
    // Forbidden two byte encodings of simple types
@@ -1889,7 +1921,8 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0xf8, 0x17}, 2}, QCBOR_ERR_BAD_TYPE_7 },
    // Must use 0xf8 instead
    { {(uint8_t[]){0xf8, 0x18}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-
+   // Reserved
+   { {(uint8_t[]){0xf8, 0x1f}, 2}, QCBOR_ERR_BAD_TYPE_7 },
 
    // Integers with additional info indefinite length
    // Positive integer with additional info indefinite length
@@ -1911,7 +1944,12 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0x5a, 0xff, 0xff, 0xff, 0xf0, 0x00}, 6}, QCBOR_ERR_HIT_END },
    // Byte string should have 2^32-15 bytes, but has one
    { {(uint8_t[]){0x7a, 0xff, 0xff, 0xff, 0xf0, 0x00}, 6}, QCBOR_ERR_HIT_END },
-
+   // Byte string should have 2^64 bytes, but has 3
+   { {(uint8_t[]){0x5b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                  0x01, 0x02, 0x03}, 6}, QCBOR_ERR_HIT_END },
+   // Text string should have 2^64 bytes, but has 3
+   { {(uint8_t[]){0x7b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                  0x01, 0x02, 0x03}, 6}, QCBOR_ERR_HIT_END },
 
    // Use of unassigned additional information values
    // Major type positive integer with reserved value 28
@@ -4066,7 +4104,8 @@ int32_t AllocAllStringsTest()
       return -2;
    }
 
-   // Next parse, save pointers to a few strings, destroy original and see all is OK.
+   // Next parse, save pointers to a few strings, destroy original and
+   // see all is OK.
    UsefulBuf_MAKE_STACK_UB(CopyOfStorage, sizeof(pValidMapEncoded) + QCBOR_DECODE_MIN_MEM_POOL_SIZE);
    const UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
 
@@ -4861,7 +4900,8 @@ int32_t EnterMapTest()
 
 
 
-   // These tests confirm the cursor is at the right place after entering a map or array
+   // These tests confirm the cursor is at the right place after entering
+   // a map or array
    const UsefulBufC ValidEncodedMap = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded);
 
    // Confirm cursor is at right place
