@@ -52,7 +52,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 inline static bool
-// TODO: add more tests for QCBOR_TYPE_MAP_AS_ARRAY mode in qcbor_decode_tests.c
 QCBORItem_IsMapOrArray(const QCBORItem *pMe)
 {
    const uint8_t uDataType = pMe->uDataType;

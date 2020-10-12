@@ -1097,7 +1097,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
 
 /*
  Decode and thoroughly check a moderately complex
- set of maps
+ set of maps in the QCBOR_DECODE_MODE_MAP_AS_ARRAY mode.
  */
 int32_t ParseMapAsArrayTest()
 {
@@ -1307,6 +1307,9 @@ int32_t ParseMapAsArrayTest()
    if((QCBOR_ERR_ARRAY_DECODE_TOO_LONG != QCBORDecode_GetNext(&DCtx, &Item))) {
       return -50;
    }
+
+   // TODO: test decoding of labels that are arrays or such
+   // TODO: test spiffy decoding of QCBOR_DECODE_MODE_MAP_AS_ARRAY
 
    return 0;
 }
