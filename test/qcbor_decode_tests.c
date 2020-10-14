@@ -2455,7 +2455,7 @@ int32_t SpiffyDateDecodeTest()
    QCBORDecode_Init(&DC,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyDateTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
-   QCBORDecode_EnterArray(&DC);
+   QCBORDecode_EnterArray(&DC, NULL);
 
    // Too-negative float, -9.2233720368547748E+18
    QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
@@ -2507,7 +2507,7 @@ int32_t SpiffyDateDecodeTest()
       return 4;
    }
 
-   QCBORDecode_EnterMap(&DC);
+   QCBORDecode_EnterMap(&DC, NULL);
 
    // Get largest negative double precision epoch date allowed
    QCBORDecode_GetEpochDateInMapN(&DC,
@@ -3198,7 +3198,7 @@ int32_t OptTagParseTest()
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
    // tagged date string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
    // untagged date string
@@ -3231,7 +3231,7 @@ int32_t OptTagParseTest()
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
    // tagged date string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    // untagged date string
@@ -3263,7 +3263,7 @@ int32_t OptTagParseTest()
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
    // tagged date string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
@@ -4539,7 +4539,7 @@ int32_t ExponentAndMantissaDecodeTests(void)
    QCBORDecode_Init(&DC,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentsAndMantissas),
                     QCBOR_DECODE_MODE_NORMAL);
-   QCBORDecode_EnterArray(&DC);
+   QCBORDecode_EnterArray(&DC, NULL);
 
    // 4([-1, 3]),
    QCBORDecode_GetDecimalFraction(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nExp, &nMant);
@@ -4657,7 +4657,7 @@ int32_t EMap(UsefulBufC input)
 
      QCBORDecode_Init(&DCtx, input, 0);
 
-     QCBORDecode_EnterMap(&DCtx);
+     QCBORDecode_EnterMap(&DCtx, NULL);
 
         QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer",  &nDecodedInt1);
 
@@ -4841,44 +4841,45 @@ static const uint8_t spUnRecoverableMapError4[] = {
 int32_t EnterMapTest()
 {
    QCBORItem          Item1;
+   QCBORItem          ArrayItem;
    QCBORDecodeContext DCtx;
    int32_t            nReturn;
    QCBORError         uErr;
 
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapOfEmpty), 0);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
 
 
-   QCBORDecode_EnterArray(&DCtx); // Label 0
+   QCBORDecode_EnterArray(&DCtx, NULL); // Label 0
    QCBORDecode_ExitArray(&DCtx);
 
-   QCBORDecode_EnterArray(&DCtx); // Label 9
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL); // Label 9
+   QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_ExitArray(&DCtx);
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_ExitArray(&DCtx);
    QCBORDecode_ExitArray(&DCtx);
 
-   QCBORDecode_EnterMap(&DCtx);  // Label 8
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);  // Label 8
+   QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_ExitArray(&DCtx);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_ExitMap(&DCtx);
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_ExitArray(&DCtx);
-   QCBORDecode_ExitMap(&DCtx);
-
-   QCBORDecode_EnterMap(&DCtx);  // Label4
    QCBORDecode_ExitMap(&DCtx);
 
-   QCBORDecode_EnterArray(&DCtx); // Label 5
+   QCBORDecode_EnterMap(&DCtx, NULL);  // Label4
+   QCBORDecode_ExitMap(&DCtx);
+
+   QCBORDecode_EnterArray(&DCtx, NULL); // Label 5
    QCBORDecode_ExitArray(&DCtx);
 
-   QCBORDecode_EnterArray(&DCtx); // Label 6
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL); // Label 6
+   QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_ExitArray(&DCtx);
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_ExitArray(&DCtx);
    QCBORDecode_ExitArray(&DCtx);
 
@@ -4897,9 +4898,9 @@ int32_t EnterMapTest()
    }
 
    nReturn = EMap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
-    if(nReturn) {
-       return nReturn;
-    }
+   if(nReturn) {
+      return nReturn;
+   }
 
 
 
@@ -4909,7 +4910,7 @@ int32_t EnterMapTest()
 
    // Confirm cursor is at right place
    QCBORDecode_Init(&DCtx, ValidEncodedMap, 0);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetNext(&DCtx, &Item1);
    if(Item1.uDataType != QCBOR_TYPE_INT64) {
       return 2001;
@@ -4919,14 +4920,27 @@ int32_t EnterMapTest()
    QCBORDecode_Init(&DCtx, ValidEncodedMap, 0);
    QCBORDecode_VGetNext(&DCtx, &Item1);
    QCBORDecode_VGetNext(&DCtx, &Item1);
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, &ArrayItem);
+   if(ArrayItem.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      UsefulBuf_Compare(ArrayItem.label.string,
+                        UsefulBuf_FROM_SZ_LITERAL("an array of two strings"))) {
+      return 2051;
+   }
    QCBORDecode_GetNext(&DCtx, &Item1);
    if(Item1.uDataType != QCBOR_TYPE_TEXT_STRING) {
       return 2002;
    }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, &ArrayItem);
+   if(ArrayItem.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      UsefulBuf_Compare(ArrayItem.label.string,
+                        UsefulBuf_FROM_SZ_LITERAL("map in a map"))) {
+      return 2052;
+   }
+
 
    QCBORDecode_Init(&DCtx, ValidEncodedMap, 0);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetNext(&DCtx, &Item1);
    QCBORDecode_GetNext(&DCtx, &Item1);
    QCBORDecode_GetNext(&DCtx, &Item1);
@@ -4937,7 +4951,7 @@ int32_t EnterMapTest()
    }
 
    QCBORDecode_Init(&DCtx, ValidEncodedMap, 0);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetNext(&DCtx, &Item1);
    QCBORDecode_GetNext(&DCtx, &Item1);
    QCBORDecode_GetNext(&DCtx, &Item1);
@@ -4952,7 +4966,7 @@ int32_t EnterMapTest()
    }
 
    QCBORDecode_Init(&DCtx, ValidEncodedMap, 0);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
    QCBORDecode_ExitArray(&DCtx);
    QCBORDecode_GetNext(&DCtx, &Item1);
@@ -4965,7 +4979,7 @@ int32_t EnterMapTest()
    }
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleArray), 0);
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
    int64_t nDecodedInt2;
    QCBORDecode_GetInt64InMapSZ(&DCtx, "another int",  &nDecodedInt2);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
@@ -4980,7 +4994,7 @@ int32_t EnterMapTest()
 
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap), 0);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    // This will fail because the map is empty.
    QCBORDecode_GetInt64InMapSZ(&DCtx, "another int",  &nDecodedInt2);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
@@ -4995,7 +5009,7 @@ int32_t EnterMapTest()
 
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyInDefinteLengthMap), 0);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    // This will fail because the map is empty.
    QCBORDecode_GetInt64InMapSZ(&DCtx, "another int",  &nDecodedInt2);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
@@ -5010,11 +5024,11 @@ int32_t EnterMapTest()
 
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spArrayOfEmpty), 0);
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_GetByteString(&DCtx, &String);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_ExitMap(&DCtx);
-   QCBORDecode_EnterArray(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_ExitArray(&DCtx);
    QCBORDecode_GetInt64(&DCtx, &nDecodedInt2);
    QCBORDecode_ExitArray(&DCtx);
@@ -5025,7 +5039,7 @@ int32_t EnterMapTest()
 
    int64_t nInt;
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spRecoverableMapErrors), 0);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
    if(uErr != QCBOR_ERR_TOO_MANY_TAGS) {
@@ -5071,7 +5085,7 @@ int32_t EnterMapTest()
    }
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spUnRecoverableMapError1), 0);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
    if(uErr != QCBOR_ERR_BAD_BREAK) {
@@ -5079,7 +5093,7 @@ int32_t EnterMapTest()
    }
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spUnRecoverableMapError2), 0);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
    if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
@@ -5087,7 +5101,7 @@ int32_t EnterMapTest()
    }
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spUnRecoverableMapError3), 0);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
    if(uErr != QCBOR_ERR_HIT_END) {
@@ -5095,7 +5109,7 @@ int32_t EnterMapTest()
    }
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spUnRecoverableMapError4), 0);
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
    if(uErr != QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP) {
@@ -6089,12 +6103,12 @@ int32_t EnterBstrTest()
 
 
    QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
-     QCBORDecode_EnterMap(&DC);
+     QCBORDecode_EnterMap(&DC, NULL);
        QCBORDecode_GetInt64InMapN(&DC, 100, &n1);
        QCBORDecode_GetInt64InMapN(&DC, 200, &n2);
      QCBORDecode_ExitMap(&DC);
      QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
-       QCBORDecode_EnterArray(&DC);
+       QCBORDecode_EnterArray(&DC, NULL);
          QCBORDecode_GetInt64(&DC, &n3);
          QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
            QCBORDecode_GetInt64(&DC, &n4);
@@ -6104,7 +6118,7 @@ int32_t EnterBstrTest()
      QCBORDecode_ExitBstrWrapped(&DC);
      QCBORDecode_GetInt64(&DC, &n6);
    QCBORDecode_ExitBstrWrapped(&DC);
-   QCBORDecode_EnterArray(&DC);
+   QCBORDecode_EnterArray(&DC, NULL);
      QCBORDecode_GetInt64(&DC, &n7);
      QCBORDecode_GetInt64(&DC, &n8);
    QCBORDecode_ExitArray(&DC);
@@ -6214,7 +6228,7 @@ int32_t DecodeTaggedTypeTests()
    UsefulBufC String;
    bool       bNeg;
 
-   QCBORDecode_EnterMap(&DC);
+   QCBORDecode_EnterMap(&DC, NULL);
    QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_TAG, &String);
    QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &String);
    if(QCBORDecode_GetError(&DC) != QCBOR_SUCCESS) {
@@ -6454,13 +6468,13 @@ int32_t TooLargeInputTest(void)
 
    // Tests the start of a map being too large
    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooLarge1), QCBOR_DECODE_MODE_NORMAL);
-   QCBORDecode_EnterArray(&DC);
+   QCBORDecode_EnterArray(&DC, NULL);
    QCBORDecode_GetTextString(&DC, &String);
    uErr = QCBORDecode_GetError(&DC);
    if(uErr != QCBOR_SUCCESS) {
       return 1;
    }
-   QCBORDecode_EnterMap(&DC);
+   QCBORDecode_EnterMap(&DC, NULL);
    uErr = QCBORDecode_GetError(&DC);
    if(uErr != QCBOR_ERR_INPUT_TOO_LARGE) {
       return 2;
@@ -6468,8 +6482,8 @@ int32_t TooLargeInputTest(void)
 
    // Tests the end of a map being too large
    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooLarge2), QCBOR_DECODE_MODE_NORMAL);
-   QCBORDecode_EnterArray(&DC);
-   QCBORDecode_EnterMap(&DC);
+   QCBORDecode_EnterArray(&DC, NULL);
+   QCBORDecode_EnterMap(&DC, NULL);
    uErr = QCBORDecode_GetError(&DC);
    if(uErr != QCBOR_SUCCESS) {
       return 3;
@@ -6516,7 +6530,7 @@ int32_t SpiffyIndefiniteLengthStringsTests()
    QCBORDecode_SetMemPool(&DCtx, StringBuf, false);
 
    UsefulBufC ByteString;
-   QCBORDecode_EnterMap(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetByteStringInMapSZ(&DCtx, "label1", &ByteString);
    if(QCBORDecode_GetAndResetError(&DCtx)) {
       return 1;

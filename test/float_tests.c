@@ -891,7 +891,7 @@ int32_t GeneralFloatDecodeTests()
    TestData = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
    double d;
    QCBORDecode_Init(&DC, TestData, 0);
-   QCBORDecode_EnterArray(&DC);
+   QCBORDecode_EnterArray(&DC, NULL);
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE

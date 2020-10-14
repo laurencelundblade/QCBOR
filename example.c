@@ -294,7 +294,7 @@ EngineDecodeErrors DecodeEngineSpiffy(UsefulBufC EncodedEngine, CarEngine *pE)
     QCBORDecodeContext DecodeCtx;
 
     QCBORDecode_Init(&DecodeCtx, EncodedEngine, QCBOR_DECODE_MODE_NORMAL);
-    QCBORDecode_EnterMap(&DecodeCtx);
+    QCBORDecode_EnterMap(&DecodeCtx, NULL);
     QCBORDecode_GetTextStringInMapSZ(&DecodeCtx, "Manufacturer", &(pE->Manufacturer));
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Displacement", &(pE->uDisplacement));
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Horsepower", &(pE->uHorsePower));
@@ -359,7 +359,7 @@ EngineDecodeErrors DecodeEngineSpiffyFaster(UsefulBufC EncodedEngine, CarEngine 
     QCBORDecodeContext DecodeCtx;
 
     QCBORDecode_Init(&DecodeCtx, EncodedEngine, QCBOR_DECODE_MODE_NORMAL);
-    QCBORDecode_EnterMap(&DecodeCtx);
+    QCBORDecode_EnterMap(&DecodeCtx, NULL);
 
     QCBORItem EngineItems[7];
     EngineItems[0].uLabelType = QCBOR_TYPE_TEXT_STRING;

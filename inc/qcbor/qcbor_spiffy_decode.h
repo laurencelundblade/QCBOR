@@ -615,7 +615,10 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
 /**
  @brief Enter an array for decoding in bounded mode.
 
- @param[in] pCtx   The decode context.
+ @param[in] pCtx    The decode context.
+ @param[out] pItem  The optionally returned QCBORItem that has the
+                    label and tags for the array. May be @c NULL (and
+                    usually is).
 
  This enters an array for decoding in bounded mode. The items in array
  are decoded in order the same as when not in bounded mode, but the
@@ -638,7 +641,7 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  See also QCBORDecode_ExitArray(), QCBORDecode_EnterMap() and
  QCBORDecode_EnterBstrWrapped().
 */
-static void QCBORDecode_EnterArray(QCBORDecodeContext *pCtx);
+static void QCBORDecode_EnterArray(QCBORDecodeContext *pCtx, QCBORItem *pItem);
 
 void QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t uLabel);
 
@@ -666,7 +669,10 @@ static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 /**
  @brief Enter a map for decoding and searching.
 
- @param[in] pCtx   The decode context.
+ @param[in] pCtx    The decode context.
+ @param[out] pItem  The optionally returned QCBORItem that has the
+                    label and tags for the map. May be @c NULL (and
+                    usually is).
 
  The next item in the CBOR input must be map or this sets an error.
 
@@ -707,7 +713,7 @@ static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  bstr-wrapped CBOR is supported up to the maximum of @ref
  QCBOR_MAX_ARRAY_NESTING.
  */
-static void QCBORDecode_EnterMap(QCBORDecodeContext *pCtx);
+static void QCBORDecode_EnterMap(QCBORDecodeContext *pCtx, QCBORItem *pItem);
 
 void QCBORDecode_EnterMapFromMapN(QCBORDecodeContext *pCtx, int64_t nLabel);
 
@@ -1654,16 +1660,16 @@ QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pMe,
 
 
 // Semi-private
-void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType);
+void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType, QCBORItem *pItem);
 
 // Semi-private
-inline static void QCBORDecode_EnterMap(QCBORDecodeContext *pMe) {
-   QCBORDecode_EnterBoundedMapOrArray(pMe, QCBOR_TYPE_MAP);
+inline static void QCBORDecode_EnterMap(QCBORDecodeContext *pMe, QCBORItem *pItem) {
+   QCBORDecode_EnterBoundedMapOrArray(pMe, QCBOR_TYPE_MAP, pItem);
 }
 
 // Semi-private
-inline static void QCBORDecode_EnterArray(QCBORDecodeContext *pMe) {
-   QCBORDecode_EnterBoundedMapOrArray(pMe, QCBOR_TYPE_ARRAY);
+inline static void QCBORDecode_EnterArray(QCBORDecodeContext *pMe, QCBORItem *pItem) {
+   QCBORDecode_EnterBoundedMapOrArray(pMe, QCBOR_TYPE_ARRAY, pItem);
 }
 
 // Semi-private

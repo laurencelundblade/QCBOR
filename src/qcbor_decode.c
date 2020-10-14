@@ -2975,7 +2975,7 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
 
    DecodeNesting_SetCurrentToBoundedLevel(&(pMe->nesting));
 
-   QCBORDecode_EnterBoundedMapOrArray(pMe, pSearch->uDataType);
+   QCBORDecode_EnterBoundedMapOrArray(pMe, pSearch->uDataType, NULL);
 }
 
 
@@ -3039,7 +3039,7 @@ void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLab
 
 
 // Semi-private function
-void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
+void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType, QCBORItem *pItem)
 {
     QCBORError uErr;
 
@@ -3079,6 +3079,10 @@ void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
 
    uErr = DecodeNesting_EnterBoundedMapOrArray(&(pMe->nesting), bIsEmpty,
                                                UsefulInputBuf_Tell(&(pMe->InBuf)));
+
+   if(pItem != NULL) {
+      *pItem = Item;
+   }
 
 Done:
    pMe->uLastError = (uint8_t)uErr;
