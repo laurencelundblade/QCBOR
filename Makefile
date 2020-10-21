@@ -10,7 +10,7 @@
 CC=cc
 #CC=/usr/local/bin/gcc-9
 
-CFLAGS=-I inc -I test -Os -fPIC $(CMD_LINE)
+CFLAGS=$(CMD_LINE) -I inc -I test -Os -fPIC 
 
 # The following are used before a release of QCBOR help to make sure
 # the code compiles and runs in the most strict environments, but not

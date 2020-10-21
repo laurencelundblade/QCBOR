@@ -5,8 +5,8 @@ QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
 ## New Version With Spiffy Decode
 **A major new version of QCBOR that makes decoding implementations much**
 **easier is available in the SpiffyDecode branch of this repository.**
-**Your CBOR decoding implementation may be four times less code!**
-**It needs a little more test to be high enough quality for the master branch.** 
+**Your CBOR decoding implementation may be many times fewer lines of code!**
+**The old version is available in the BeforeSpiffyDecode branch.**
 
 This new version of QCBOR adds a more powerful decoding API
 called Spiffy Decode. 
@@ -58,7 +58,8 @@ See section below for more details.
   discipline for very safe coding and handling of binary data.
 
 **Small code size** – When optimized for size using the compiler -Os
-  option, 64-bit x86 code is about 4KB in its smallest configuration. 
+  option, 64-bit x86 code is about 4KB in its smallest configuration
+  and when only basic functionality is used. 
 
 **Clear documented public interface** – The public interface is
   separated from the implementation. It can be put to use without
@@ -180,6 +181,8 @@ The spiffy decode functions will handle definite and indefinite length
 maps and arrays without the caller having to do anything. This includes 
 mixed definite and indefinte maps and arrays. (Some work remains to
 support map searching with indefinite length strings.)
+
+See the PR in GitHub for a more detailed list of changes.
 
 ### Uncompatible Changes
 
