@@ -737,17 +737,6 @@ static void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
 
 
 /**
- @brief Indicate if decoder is in bound mode.
- @param[in] pCtx   The decode context.
-
- @return true is returned if a map, array or bstr wrapped CBOR has
- been entered. This only returns false if all maps, arrays and bstr
- wrapped CBOR levels have been exited.
- */
-bool QCBORDecode_InBoundedMode(QCBORDecodeContext *pCtx);
-
-
-/**
  @brief Get an item in map by label and type.
 
  @param[in] pCtx   The decode context.
