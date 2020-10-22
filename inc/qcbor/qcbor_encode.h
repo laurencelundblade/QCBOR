@@ -57,8 +57,9 @@ extern "C" {
 
  This implements CBOR -- Concise Binary Object Representation as
  defined in [RFC 7049] (https://tools.ietf.org/html/rfc7049). More
- info is at http://cbor.io.  This is a near-complete implementation of
- the specification. Limitations are listed further down.
+ information is at http://cbor.io.  This is a near-complete implementation of
+ the specification. [RFC 8742] (https://tools.ietf.org/html/rfc8742) CBOR
+ Sequences is also supported. Limitations are listed further down.
 
  See @ref Encoding for general discussion on encoding,
  @ref BasicDecode for general discussion on the basic decode features
