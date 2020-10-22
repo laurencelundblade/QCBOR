@@ -71,12 +71,13 @@ See section below for more details.
 
 ## Code Status
 
-This version with spiffy decode in fall of 2020 is stable, but not
-quite to the commercial quality level of the previous code. A little
-more testing is necessary for it to be at the previous commercial
-quality level.
+This version with spiffy decode in fall of 2020 is a big change
+from the previous versions but is thoroughly tested including
+regression for backwards compatibility with the previous version.
 
-Encoding features are generally mature, well tested and commercial quality.
+Should the previous version be necessary, it is available in 
+the branch BeforeSpiffyDecode. Please file an issue in GitHub
+to report any problems.
 
 QCBOR was originally developed by Qualcomm. It was [open sourced
 through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a
