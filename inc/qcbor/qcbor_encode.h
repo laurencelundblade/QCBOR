@@ -51,12 +51,19 @@ extern "C" {
 /**
  @file qcbor_encode.h
 
- Q C B O R   E n c o d e / D e c o d e
+ @anchor Overview
+
+ # QCBOR Overview
 
  This implements CBOR -- Concise Binary Object Representation as
  defined in [RFC 7049] (https://tools.ietf.org/html/rfc7049). More
  info is at http://cbor.io.  This is a near-complete implementation of
  the specification. Limitations are listed further down.
+
+ See @ref Encoding for general discussion on encoding,
+ @ref BasicDecode for general discussion on the basic decode features
+ and @ref SpiffyDecode for general discussion on the easier-to-use
+ decoder functions.
 
  CBOR is intentionally designed to be translatable to JSON, but not
  all CBOR can convert to JSON. See RFC 7049 for more info on how to
@@ -103,7 +110,7 @@ extern "C" {
 
  - "Tag": A data item that is an explicitly labeled new data
  type made up of the tagging integer and the tag content.
- See @Tags-Overview and @Tag-Usage.
+ See @ref Tags-Overview and @ref Tag-Usage.
 
  - "Initial Byte": The first byte of an encoded item. Encoding and
  decoding of this byte is taken care of by the implementation.
@@ -152,6 +159,10 @@ extern "C" {
  CBOR allows a label to be any type of data including an array or a
  map. It is possible to use this API to construct and parse such
  labels, but it is not explicitly supported.
+
+ @anchor Encoding
+
+ ## Encoding
 
  A common encoding usage mode is to invoke the encoding twice. First
  with no output buffer to compute the length of the needed output
@@ -213,15 +224,18 @@ extern "C" {
  Many CBOR-based protocols start with an array or map. This makes them
  self-delimiting. No external length or end marker is needed to know
  the end. It is also possible not start this way, in which case this
- it is usually called a CBOR sequence which is described in [RFC 8742] (https://tools.ietf.org/html/rfc8742 ).
- This encoder supports either just by whether the first item added is an
- array, map or other.
+ it is usually called a CBOR sequence which is described in
+ [RFC 8742] (https://tools.ietf.org/html/rfc8742). This encoder supports
+ either just by whether the first item added is an array, map or other.
 
  @anchor Tags-Overview
 
- Any CBOR data item can be made into a tag to add semantics, define a new data
- type or such. Some tags are fully standardized and some are just
- registered. Others are not registered and used in a proprietary way.
+ ## Tags Overview
+
+ Any CBOR data item can be made into a tag to add semantics, define a
+ new data type or such. Some tags are fully standardized and some are
+ just registered. Others are not registered and used in a proprietary
+ way.
 
  Encoding and decoding of many of the registered tags is fully
  implemented by QCBOR. It is also possible to encode and decode tags
@@ -254,6 +268,9 @@ extern "C" {
  implemented by the caller.
 
  @anchor Floating-Point
+
+ ## Floating-Point
+
  By default QCBOR fully supports IEEE 754 floating-point:
   - Encode/decode of double, single and half-precision
   - CBOR preferred serialization of floating-point
@@ -295,24 +312,26 @@ extern "C" {
  On CPUs that have no floating-point hardware,
  QCBOR_DISABLE_FLOAT_HW_USE should be defined in most cases. If it is
  not, then the compiler will bring in possibly large software
- libraries to compensate. Defining
- QCBOR_DISABLE_FLOAT_HW_USE reduces object code size on CPUs with
- floating-point hardware by a tiny amount and eliminates the need for <math.h>
+ libraries to compensate. Defining QCBOR_DISABLE_FLOAT_HW_USE reduces
+ object code size on CPUs with floating-point hardware by a tiny
+ amount and eliminates the need for <math.h>
 
  When QCBOR_DISABLE_FLOAT_HW_USE is defined, trying to decoding
- floating-point dates will give error @ref
- QCBOR_ERR_FLOAT_DATE_DISABLED and decoded single-precision numbers
- will be returned as @ref QCBOR_TYPE_FLOAT instead of converting them
- to double as usual.
+ floating-point dates will give error
+ @ref QCBOR_ERR_FLOAT_DATE_DISABLED and decoded single-precision
+ numbers will be returned as @ref QCBOR_TYPE_FLOAT instead of
+ converting them to double as usual.
 
  If both QCBOR_DISABLE_FLOAT_HW_USE and QCBOR_DISABLE_PREFERRED_FLOAT
  are defined, then the only thing QCBOR can do is encode/decode a C
  float type as 32-bits and a C double type as 64-bits. Floating-point
  epoch dates will be unsupported.
 
+ ## Limitations
+
  Summary Limits of this implementation:
  - The entire encoded CBOR must fit into contiguous memory.
- - Max size of encoded / decoded CBOR data is @c UINT32_MAX (4GB).
+ - Max size of encoded / decoded CBOR data is a few bytes less than @c UINT32_MAX (4GB).
  - Max array / map nesting level when encoding / decoding is
    @ref QCBOR_MAX_ARRAY_NESTING (this is typically 15).
  - Max items in an array or map when encoding / decoding is
@@ -322,7 +341,7 @@ extern "C" {
  - Epoch dates limited to @c INT64_MAX (+/- 292 billion years).
  - Exponents for bigfloats and decimal integers are limited to @c INT64_MAX.
  - Tags on labels are ignored during decoding.
- - There is no duplicate detection of map labels (but duplicates are passed on).
+ - The maximum tag nesting is @c QCBOR_MAX_TAGS_PER_ITEM (typically 4).
  - Works only on 32- and 64-bit CPUs (modifications could make it work
    on 16-bit CPUs).
 
@@ -335,7 +354,6 @@ extern "C" {
  <stdint.h> also requires this. It is possible to modify this
  implementation for another integer representation, but all modern
  machines seem to be two's compliment.
-
  */
 
 
@@ -1778,7 +1796,7 @@ static QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
                      for them must be encoded.
  @param uNumber      The numeric argument part of the CBOR head.
  @return             Pointer and length of the encoded head or
-                     @NULLUsefulBufC if the output buffer is too small.
+                     @ref NULLUsefulBufC if the output buffer is too small.
 
  Callers do not to need to call this for normal CBOR encoding. Note that it doesn't even
  take a @ref QCBOREncodeContext argument.
@@ -1921,7 +1939,7 @@ void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, uint8_t uMinLen, uint64_t u
  number or an @c int64_t.
 
  This implementation cannot output an exponent further from 0 than
- INT64_MAX.
+ @c INT64_MAX.
 
  To output a mantissa that is bewteen INT64_MAX and UINT64_MAX from 0,
  it must be as a big number.

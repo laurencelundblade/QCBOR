@@ -51,85 +51,43 @@ extern "C" {
 /**
 @file qcbor_decode.h
 
-Q C B O R    D e c o d e
+ @anchor BasicDecode
+ # QCBOR Basic Decode
 
- This section just discusses decoding assuming familiarity with the general
- description of this encoder / decoder in section XXX.
+ This section just discusses decoding assuming familiarity with the
+ general description of this encoder / decoder in section @ref
+ Overview.
 
- Encoded CBOR can be viewed to have a tree structure
- where the lead nodes are non-aggregate types like
- integers and strings and the intermediate nodes are
- either arrays or maps. Fundamentally, all decoding
- is a pre-order traversal of the tree. Calling
- GetNext() repeatedly will perform this.
+ Encoded CBOR can be viewed to have a tree structure where the leaf
+ nodes are non-aggregate types like integers and strings and the
+ intermediate nodes are either arrays or maps. Fundamentally, all CBOR
+ decoding is a pre-order traversal of the tree. Calling
+ QCBORDecode_GetNext() repeatedly will perform this. It is possible to
+ decode any CBOR by only calling QCBORDecode_GetNext().
 
- This pre-order traversal gives natural decoding of
- arrays where the array members are taken
- in order, but does not give natural decoding of
- maps where access by label is usually preferred.
- Using the EnterMap and GetByLabel methods,
- map items can be accessed by label. EnterMap
-narrows decoding to a particular map. GetByLabel
- allows decoding the item of a particular label in
- the particular map. This can be used with nested
- maps by calling EnterMapByLabel.
+ QCBORDecode_GetNext() returns a 56 byte structure called
+ @ref QCBORItem that describes the decoded item including
+ - The data itself, integer, string, floating-point number...
+ - The label if present
+ - Unprocessed tags
+ - Nesting level
+ - Allocation type (primarily of interest for indefinite length strings)
 
- When EnterMap is called, pre-order traversal
- continues to work. There is a cursor that is run
- over the tree with calls to GetNext. This can be
- intermixed with calls to GetByLabel. The pre-order
- traversal is limited just to the map entered. Attempts
- to GetNext beyond the end of the map will give
- the HIT END error.
+ For strings, this structure contains a pointer and length
+ back into the original data.
 
-  There is also EnterArray to decode arrays. It will
- narrow the traversal to the extent of the array
- entered.
+ All of the tags that QCBOR supports directly are decoded into a
+ representation in @ref QCBORItem.
 
- GetByLabel supports duplicate label detection
- and will result in an error if the map has
- duplicate labels.
+ A string allocator must be used when decoding indefinite length
+ strings. See QCBORDecode_SetMemPool() or
+ QCBORDecode_SetUpAllocator(). @ref QCBORItem indicates if a string
+ was allocated with the string allocator.
 
- GetByLabel is implemented by performing the
- pre-order traversal of the map to find the labeled
- item everytime it is called. It doesn't build up
- a hash table, a binary search tree or some other
- efficiently searchable structure internally. For simple
- trees this is fine and for high-speed CPUs this is
- fine, but for complex trees on slow CPUs,
- it may have performance issues (these have
- not be quantified yet). One way ease this is
- to use GetItems which allows decoding of
- a list of items expected in an map in one
- traveral.
-
- Like encoding, decoding maintains an
- internal error state. Once a call to the
- decoder returns an error, this error state
- is entered and subsequent decoder calls
- do nothing. This allows for prettier and cleaner
- decoding code. The only error check needed
- is in the Finish call.
-
- An easy and clean way to use this decoder
- is to always use EnterMap and EnterArray
- for each array or map. They will error
- if the input CBOR is not the expected
- array or map.  Then use GetInt, GetString
- to get the individual items of of the
- maps and arrays making use of the
- internal error tracking provided by this
- decoder. The only error check needed
- is the call to Finish.
-
- In some CBOR protocols, the type of
- a data item may be variable. Maybe even
- the type of one data item is dependent
- on another. In such designs, GetNext has
- to be used and the internal error checking
- can't be relied upon.
-
-
+ This pre-order traversal gives natural decoding of arrays where the
+ array members are taken in order, but does not give natural decoding
+ of maps where access by label is usually preferred.  See
+ @ref SpiffyDecode for APIs to search maps by label and much more.
 */
 
 /**

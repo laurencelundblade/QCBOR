@@ -1,6 +1,6 @@
-#  Types and Tagging in CBOR
-
 @anchor CBORTags
+
+#  Types and Tagging in CBOR
 
 ## New Types
 
@@ -28,7 +28,7 @@ one to think they are optional prefixes that can be ignored at
 times. This is not true.
 
 As stated above, a tag is exactly a tag number and a single data item
-that is the tag content. It's purpose in the encoded CBOR is to
+that is the tag content. Its purpose in the encoded CBOR is to
 indicate something is of a data type. Ignoring it would be like
 ignoring a typedef or struct in C.
 
@@ -76,7 +76,7 @@ tag optionality is a form of Postel's law, "be liberal in what you
 accept", current wisdom is somewhat the opposite.
 
 
-## Types and Tags in QCBOR 
+## Types and Tags in QCBOR
 
 QCBOR explicitly supports all the tags defined in RFC 7049. It has
 specific APIs and data structures for encoding and decoding them.
@@ -194,7 +194,7 @@ ignored. These are the following:
     22 Hint that content should be base64 encoded
     23 Hint that content should be base16 encoded
     57799 Tag that serves as a CBOR magic number
-    
+
 The content format for all these tags is that it can be any valid
 CBOR. Decoding of these tags doesn't have to check the content format.
 

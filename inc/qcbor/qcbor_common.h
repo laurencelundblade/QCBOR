@@ -199,9 +199,11 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     tag. */
 #define CBOR_TAG_CBOR_MAGIC    55799
 
-/** Three different values for invalid tag from the CBOR tags registry */
+/** The 16-bit invalid tag from the CBOR tags registry */
 #define CBOR_TAG_INVALID16 0xffff
+/** The 32-bit invalid tag from the CBOR tags registry */
 #define CBOR_TAG_INVALID32 0xffffffff
+/** The 64-bit invalid tag from the CBOR tags registry */
 #define CBOR_TAG_INVALID64 0xffffffffffffffff
 
 

@@ -27,12 +27,17 @@ extern "C" {
 /**
  @file qcbor_spiffy_decode.h
 
- Q C B O R   S p i f f y   D e c o d e
+ @anchor SpiffyDecode
+ # Spiffy Decode
 
- Spiffy decode is extra decode features over and above the basic
- decode features that generally are easier to use, mirror the encoding
- functions better and can result in smaller code size for larger and
- more complex CBOR protocols.  In particular, spiffy decode
+ This section just discusses spiff decoding assuming familiarity with
+ the general description of this encoder / decoder in section
+ @ref Overview and @ref BasicDecoding.
+
+ Spiffy decode is extra decode features over and above the @ref
+ BasicDecode features that generally are easier to use, mirror the
+ encoding functions better and can result in smaller code size for
+ larger and more complex CBOR protocols.  In particular, spiffy decode
  facilitates getting the next data item of a specific type, setting an
  error if it is not of that type. It facilitates explicitly entering
  and exiting arrays and maps. It facilates fetching items by label
@@ -41,33 +46,34 @@ extern "C" {
  Encoded CBOR can be viewed to have a tree structure where the leaf
  nodes are non-aggregate types like integers and strings and the
  intermediate nodes are either arrays or maps. Fundamentally, all
- decoding is a pre-order traversal of the tree. Calling QCBORDecode_GetNext()
- repeatedly will perform this.
+ decoding is a pre-order traversal of the tree. Calling
+ QCBORDecode_GetNext() repeatedly will perform this.
 
  This pre-order traversal gives natural decoding of arrays where the
  array members are taken in order, but does not give natural decoding
  of maps where access by label is usually preferred.  Using the
- QCBORDecode_EnterMap() and GetXxxInMapX methods, map items can be
- accessed by label. QCBORDecode_EnterMap() bounds decoding to a
- particular map. GetXxxInMap methods allows decoding the item of a
- particular label in the particular map. This can be used with nested
- maps by using QCBORDecode_EnterMapFromMapX().
+ QCBORDecode_EnterMap() and QCBORDecode_GetXxxxInMapX() methods like
+ QCBORDecode_GetInt64InMapN(), map items can be accessed by
+ label. QCBORDecode_EnterMap() bounds decoding to a particular
+ map. QCBORDecode_GetXxxxInMapX() methods allows decoding the item of
+ a particular label in the particular map. This can be used with
+ nested maps by using QCBORDecode_EnterMapFromMapX().
 
  When QCBORDecode_EnterMap() is called, pre-order traversal continues
  to work. There is a cursor that is run over the tree with calls to
  QCBORDecode_GetNext(). This can be intermixed with calls to
- GetXxxInMapX. The pre-order traversal is limited just to the map
- entered. Attempts to QCBORDecode_GetNext() beyond the end of the map
- will give the @ref QCBOR_ERR_NO_MORE_ITEMS error.
+ QCBORDecode_GetXxxxInMapX(). The pre-order traversal is limited just
+ to the map entered. Attempts to QCBORDecode_GetNext() beyond the end
+ of the map will give the @ref QCBOR_ERR_NO_MORE_ITEMS error.
 
- There is also QCBORDecode_EnterArray() to decode arrays. It will narrow the
- traversal to the extent of the array entered.
+ There is also QCBORDecode_EnterArray() to decode arrays. It will
+ narrow the traversal to the extent of the array entered.
 
- All the QCBORDecode_GetXxxInMapX methods support duplicate label
+ All the QCBORDecode_GetXxxxInMapX() methods support duplicate label
  detection and will result in an error if the map has duplicate
  labels.
 
- All the QCBORDecode_GetXxxInMapX() methods are implemented by
+ All the QCBORDecode_GetXxxxInMapX() methods are implemented by
  performing the pre-order traversal of the map to find the labeled
  item everytime it is called. It doesn't build up a hash table, a
  binary search tree or some other efficiently searchable structure
@@ -78,6 +84,7 @@ extern "C" {
  list of items expected in an map in one traveral.
 
  @anchor Decode-Errors
+ ## Spiffy Decode Errors
 
  Like encoding, decoding maintains an internal error state. Once a
  call to the decoder returns an error, this error state is entered and
@@ -104,25 +111,17 @@ extern "C" {
  error. It doesn't set the internal error state. It will attempt to
  decode evening when in the error state.
 
- In some CBOR protocols, the type of a data item may be variable and
- the type of one data item may be dependent on another. To get items
- of unknown type use QCBORDecode_GetNext(), QCBORDecode_VGetNext(),
- QCBORDecode_GetItemInMapN() QCBORDecode_GetItemInMapSZ() or
- QCBORDecode_GetItemsInMap().  This can be used to determine the
- type. Then for use one of the type-specific methods to get the item
- again to take advantage of the type conversion provided.
-
- When getting an item by label from a map the whole map is
- traversed including traversal of nested arrays and maps. If
- there is any unrecoverable error anywhere in the that traversal
- the retrieval by label will fail and the unrecoverable error
- will be returned even if it is not due to the labeled item
- being sought. Recoverable errors will be ignored unless
- they are on the item being sought, in which case the
- unrecoverable error will be returned. Unrecoverable
- errors are those indicated by QCBORDecode_IsUnrecoverableError().
+ When getting an item by label from a map the whole map is traversed
+ including traversal of nested arrays and maps. If there is any
+ unrecoverable error anywhere in the that traversal the retrieval by
+ label will fail and the unrecoverable error will be returned even if
+ it is not due to the labeled item being sought. Recoverable errors
+ will be ignored unless they are on the item being sought, in which
+ case the unrecoverable error will be returned. Unrecoverable errors
+ are those indicated by QCBORDecode_IsUnrecoverableError().
 
  @anchor Tag-Usage
+ ## Tag Usage
 
  Data types beyond the basic CBOR types of numbers, strings, maps and
  arrays are called tags. The main registry of these new types is in in
@@ -152,12 +151,12 @@ extern "C" {
  example, to decode an epoch date tag the content must be an integer
  or floating-point value.
 
- If the parameter indicates it should not be a tag(@ref
- QCBOR_TAG_REQUIREMENT_NOT_A_TAG), then @ref QCBOR_ERR_UNEXPECTED_TYPE
- set if it is a tag or the type of the encoded CBOR is not what is
- expected.  In the example of an epoch date, the data type must be an
- integer or floating-point value. This is the case where the content
- format of a tag is borrowed.
+ If the parameter indicates it should not be a tag 
+ (@ref  QCBOR_TAG_REQUIREMENT_NOT_A_TAG), then
+  @ref QCBOR_ERR_UNEXPECTED_TYPE set if it is a tag or the type of the
+ encoded CBOR is not what is expected.  In the example of an epoch
+ date, the data type must be an integer or floating-point value. This
+ is the case where the content format of a tag is borrowed.
 
  The parameter can also indicate that either a tag or no tag is
  allowed ( @ref QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG ).  A good protocol
@@ -166,12 +165,12 @@ extern "C" {
  accept", however these days that is less in favor. See
  https://tools.ietf.org/id/draft-thomson-postel-was-wrong-03.html.
 
- Map searching works with indefinite length strings. A string allocator must
- be set up the same as for any handling of indefinite length strings.
- However,  It currently over-allocates memory from the string pool
- and thus requires a much larger string pool than it should. The
- over-allocation happens every time a map is searched by label.
- (This may be corrected in the future).
+ Map searching works with indefinite length strings. A string
+ allocator must be set up the same as for any handling of indefinite
+ length strings.  However, It currently over-allocates memory from the
+ string pool and thus requires a much larger string pool than it
+ should. The over-allocation happens every time a map is searched by
+ label.  (This may be corrected in the future).
 */
 
 
@@ -1008,7 +1007,7 @@ void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
  is the most significant byte. There may be leading zeros.
 
  The negative value is computed as -1 - n, where n is the postive big
- number in @C pValue. There is no standard representation for
+ number in @c pValue. There is no standard representation for
  big numbers, positive or negative in C, so this implementation leaves
  it up to the caller to apply this computation for negative big numbers.
 
