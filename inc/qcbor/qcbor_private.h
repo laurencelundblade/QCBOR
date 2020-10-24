@@ -57,12 +57,23 @@ extern "C" {
 
 
 /* The largest offset to the start of an array or map. It is slightly
- less than UINT32_MAX so the error condition can be tests on 32-bit machines.
+ less than UINT32_MAX so the error condition can be tested on 32-bit machines.
  UINT32_MAX comes from uStart in QCBORTrackNesting being a uin32_t.
 
  This will cause trouble on a machine where size_t is less than 32-bits.
  */
 #define QCBOR_MAX_ARRAY_OFFSET  (UINT32_MAX - 100)
+
+
+/* The number of tags that are 16-bit or larger that can be handled
+ in a decode.
+ */
+#define QCBOR_NUM_MAPPED_TAGS 4
+
+/* The number of tags (of any size) recorded for an individual item. */
+#define QCBOR_MAX_TAGS_PER_ITEM1 4
+
+
 
 /*
  PRIVATE DATA STRUCTURE
@@ -113,21 +124,89 @@ struct _QCBOREncodeContext {
 /*
  PRIVATE DATA STRUCTURE
 
- Holds the data for array and map nesting for decoding work. This structure
- and the DecodeNesting_xxx functions form an "object" that does the work
- for arrays and maps.
+ Holds the data for array and map nesting for decoding work. This
+ structure and the DecodeNesting_Xxx() functions in qcbor_decode.c
+ form an "object" that does the work for arrays and maps. All access
+ to this structure is through DecodeNesting_Xxx() functions.
 
- Size approximation (varies with CPU/compiler):
-   64-bit machine: 4 * 16 + 8 = 72
-   32-bit machine: 4 * 16 + 4 = 68
+ 64-bit machine size
+   128 = 16 * 8 for the two unions
+   64  = 16 * 4 for the uLevelType, 1 byte padded to 4 bytes for alignment
+   16  = 16 bytes for two pointers
+   208 TOTAL
+
+ 32-bit machine size is 200 bytes
  */
 typedef struct __QCBORDecodeNesting  {
-  // PRIVATE DATA STRUCTURE
-   struct {
-      uint16_t uCount;
-      uint8_t  uMajorType;
-   } pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING1+1],
-   *pCurrent;
+   // PRIVATE DATA STRUCTURE
+   struct nesting_decode_level {
+      /*
+       This keeps tracking info for each nesting level. There are two
+       main types of levels:
+         1) Byte count tracking. This is for the top level input CBOR
+         which might be a single item or a CBOR sequence and byte
+         string wrapped encoded CBOR.
+         2) Item tracking. This is for maps and arrays.
+
+       uLevelType has value QCBOR_TYPE_BYTE_STRING for 1) and
+       QCBOR_TYPE_MAP or QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP_AS_ARRAY
+       for 2).
+
+       Item tracking is either be for definite or indefinite length
+       maps/arrays. For definite lengths, the total count and items
+       unconsumed are tracked. For indefinite length, uTotalCount is
+       QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH (UINT16_MAX) and there
+       is no per-item count of members. For indefinite length maps and
+       arrays, uCountCursor is UINT16_MAX if not consumed and zero if
+       it is consumed in the pre-order traversal. Additionally, if
+       entered in bounded mode, uCountCursor is
+       QCBOR_COUNT_INDICATES_ZERO_LENGTH to indicate it is empty.
+
+       This also records whether a level is bounded or not.  All
+       byte-count tracked levels (the top-level sequence and
+       bstr-wrapped CBOR) are bounded. Maps and arrays may or may not
+       be bounded. They are bounded if they were Entered() and not if
+       they were traversed with GetNext(). They are marked as bounded
+       by uStartOffset not being UINT32_MAX.
+       */
+      /*
+       If uLevelType can put in a separately indexed array, the union/
+       struct will be 8 bytes rather than 9 and a lot of wasted
+       padding for alignment will be saved.
+       */
+      uint8_t  uLevelType;
+      union {
+         struct {
+#define QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH UINT16_MAX
+#define QCBOR_COUNT_INDICATES_ZERO_LENGTH UINT16_MAX-1
+            uint16_t uCountTotal;
+            uint16_t uCountCursor;
+#define QCBOR_NON_BOUNDED_OFFSET UINT32_MAX
+            uint32_t uStartOffset;
+         } ma; /* for maps and arrays */
+         struct {
+            uint32_t uEndOfBstr;
+            uint32_t uPreviousEndOffset;
+         } bs; /* for top-level sequence and bstr wrapped CBOR */
+      } u;
+   } pLevels[QCBOR_MAX_ARRAY_NESTING1+1],
+    *pCurrent,
+    *pCurrentBounded;
+   /*
+    pCurrent is for item-by-item pre-order traversal.
+
+    pCurrentBounded points to the current bounding level or is NULL if
+    there isn't one.
+
+    pCurrent must always be below pCurrentBounded as the pre-order
+    traversal is always bounded by the bounding level.
+
+    When a bounded level is entered, the pre-order traversal is set to
+    the first item in the bounded level. When a bounded level is
+    exited, the pre-order traversl is set to the next item after the
+    map, array or bstr. This may be more than one level up, or even
+    the end of the input CBOR.
+    */
 } QCBORDecodeNesting;
 
 
@@ -152,10 +231,9 @@ struct _QCBORDecodeContext {
    // PRIVATE DATA STRUCTURE
    UsefulInputBuf InBuf;
 
-   uint8_t        uDecodeMode;
-   uint8_t        bStringAllocateAll;
 
    QCBORDecodeNesting nesting;
+
 
    // If a string allocator is configured for indefinite-length
    // strings, it is configured here.
@@ -168,9 +246,19 @@ struct _QCBORDecodeContext {
    uint32_t uMemPoolSize;
    uint32_t uMemPoolFreeOffset;
 
-   // This is NULL or points to QCBORTagList.
-   // It is type void for the same reason as above.
-   const void *pCallerConfiguredTagList;
+   // A cached offset to the end of the current map
+   // 0 if no value is cached.
+#define QCBOR_MAP_OFFSET_CACHE_INVALID UINT32_MAX
+   uint32_t uMapEndOffsetCache;
+
+   uint8_t  uDecodeMode;
+   uint8_t  bStringAllocateAll;
+   uint8_t  uLastError;  // QCBORError stuffed into a uint8_t
+
+   uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
+
+   uint16_t uLastTags[QCBOR_MAX_TAGS_PER_ITEM1];
+
 };
 
 // Used internally in the impementation here

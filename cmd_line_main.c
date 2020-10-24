@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include "run_tests.h"
+#include "example.h"
 
 
 /*
@@ -30,6 +31,9 @@ static void fputs_wrapper(const char *szString, void *pOutCtx, int bNewLine)
 int main(int argc, const char * argv[])
 {
    (void)argc; // Avoid unused parameter error
+
+   RunQCborExample();
+
 
    // This call prints out sizes of data structures to remind us
    // to keep them small.

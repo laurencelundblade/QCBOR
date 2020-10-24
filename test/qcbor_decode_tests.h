@@ -161,13 +161,19 @@ int32_t BigComprehensiveInputTest(void);
 
 
 /*
- Thest the date types -- epoch and strings
+ Test the date types -- epoch and strings
  */
 int32_t DateParseTest(void);
 
 
 /*
-  Test optional tags like the CBOR magic number.
+ Test spiffy date decoding functions
+ */
+int32_t SpiffyDateDecodeTest(void);
+
+
+/*
+  Test decode of CBOR tagging like the CBOR magic number and many others.
  */
 int32_t OptTagParseTest(void);
 
@@ -252,6 +258,9 @@ int32_t ExponentAndMantissaDecodeFailTests(void);
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
+int32_t EnterMapTest(void);
+
+int32_t IntegerConvertTest(void);
 /*
  Tests decoding of CBOR Sequences defined in RFC 8742
  */
@@ -262,5 +271,31 @@ int32_t CBORSequenceDecodeTests(void);
 Tests for functions to safely convert integer types.
 */
 int32_t IntToTests(void);
+
+
+/*
+ Test the decoding of bstr-wrapped CBOR.
+ */
+int32_t EnterBstrTest(void);
+
+
+/*
+ Test decoding of tagged types like UUID
+ */
+int32_t DecodeTaggedTypeTests(void);
+
+
+/*
+ Test the detection of input that is too large. Requires
+ a special build that makes QCBOR_MAX_DECODE_INPUT_SIZE small.
+ */
+int32_t TooLargeInputTest(void);
+
+
+/*
+ Test spiffy decoding of indefinite length strings.
+ */
+int32_t SpiffyIndefiniteLengthStringsTests(void);
+
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

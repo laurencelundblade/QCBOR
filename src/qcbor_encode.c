@@ -203,7 +203,7 @@ inline static bool Nesting_IsInNest(QCBORTrackNesting *pNesting)
    QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN -- Finish called without enough closes
 
  Would generate not-well-formed CBOR
-   QCBOR_ERR_UNSUPPORTED             -- Simple type between 24 and 31
+   QCBOR_ERR_ENCODE_UNSUPPORTED      -- Simple type between 24 and 31
  */
 
 
@@ -565,7 +565,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
 {
    if(me->uError == QCBOR_SUCCESS) {
       if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
-         me->uError = QCBOR_ERR_UNSUPPORTED;
+         me->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
       } else {
          // AppendHead() does endian swapping for the float / double
          AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, uNum, uMinLen);
@@ -633,6 +633,10 @@ void QCBOREncode_AddFloat(QCBOREncodeContext *me, float fNum)
  one of the inline wrappers will usually be called rather than this.
 
  See qcbor/qcbor_encode.h
+
+ Improvement: create another version of this that only
+ takes a big number mantissa and converts the output to
+ a type 0 or 1 integer when mantissa is small enough.
  */
 void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
                                         uint64_t            uTag,
@@ -648,7 +652,9 @@ void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
     base-2 for big floats and base-10 for decimal fractions, but that
     has no effect on the code here.
     */
-   QCBOREncode_AddTag(pMe, uTag);
+   if(uTag != CBOR_TAG_INVALID64) {
+      QCBOREncode_AddTag(pMe, uTag);
+   }
    QCBOREncode_OpenArray(pMe);
    QCBOREncode_AddInt64(pMe, nExponent);
    if(!UsefulBuf_IsNULLC(BigNumMantissa)) {

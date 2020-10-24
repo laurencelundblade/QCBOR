@@ -56,6 +56,9 @@ static test_entry2 s_tests2[] = {
 
 
 static test_entry s_tests[] = {
+    TEST_ENTRY(EnterBstrTest),
+    TEST_ENTRY(IntegerConvertTest),
+    TEST_ENTRY(EnterMapTest),
     TEST_ENTRY(QCBORHeadTest),
     TEST_ENTRY(EmptyMapsAndArraysTest),
     TEST_ENTRY(NotWellFormedTests),
@@ -84,6 +87,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(BignumParseTest),
     TEST_ENTRY(OptTagParseTest),
     TEST_ENTRY(DateParseTest),
+    TEST_ENTRY(SpiffyDateDecodeTest),
     TEST_ENTRY(ShortBufferParseTest2),
     TEST_ENTRY(ShortBufferParseTest),
     TEST_ENTRY(ParseDeepArrayTest),
@@ -104,17 +108,20 @@ static test_entry s_tests[] = {
     TEST_ENTRY(CoseSign1TBSTest),
     TEST_ENTRY(StringDecoderModeFailTest),
     TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
+    TEST_ENTRY_DISABLED(TooLargeInputTest),
     TEST_ENTRY(EncodeErrorTests),
     TEST_ENTRY(SetUpAllocatorTest),
     TEST_ENTRY(SimpleValuesIndefiniteLengthTest1),
     TEST_ENTRY(EncodeLengthThirtyoneTest),
     TEST_ENTRY(CBORSequenceDecodeTests),
     TEST_ENTRY(IntToTests),
+    TEST_ENTRY(DecodeTaggedTypeTests),
 #ifndef     QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
     TEST_ENTRY(EncodeLengthThirtyoneTest),
     TEST_ENTRY(ExponentAndMantissaDecodeTests),
     TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
     TEST_ENTRY(ExponentAndMantissaEncodeTests),
+    TEST_ENTRY(SpiffyIndefiniteLengthStringsTests),
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 };
 
@@ -284,6 +291,7 @@ int RunTestsQCBOR(const char *szTestNames[],
 // For size printing
 #include "qcbor/qcbor_encode.h"
 #include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 
 
 /*
@@ -316,5 +324,6 @@ void PrintSizesQCBOR(OutputStringCB pfOutput, void *pOutCtx)
    PrintSize("sizeof(QCBORItem)",           (uint32_t)sizeof(QCBORItem),          pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORTagListIn)",      (uint32_t)sizeof(QCBORTagListIn),     pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORTagListOut)",     (uint32_t)sizeof(QCBORTagListOut),    pfOutput, pOutCtx);
+   PrintSize("sizeof(TagSpecification)",    (uint32_t)sizeof(TagSpecification),    pfOutput, pOutCtx);
    (*pfOutput)("", pOutCtx, 1);
 }

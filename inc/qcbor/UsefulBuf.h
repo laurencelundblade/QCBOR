@@ -162,6 +162,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef __cplusplus
 extern "C" {
+#if 0
+} // Keep editor indention formatting happy
+#endif
 #endif
 
 /**
@@ -1489,6 +1492,37 @@ static double UsefulInputBuf_GetDouble(UsefulInputBuf *pUInBuf);
 static int UsefulInputBuf_GetError(UsefulInputBuf *pUInBuf);
 
 
+/**
+ @brief Gets the input buffer length.
+
+ @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+
+ @return The length of the input buffer.
+
+ This returns the length of th input buffer from UsefulInputBuf_Init()
+ of from UsefulInputBuf_SetBufferLength().
+ */
+static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pUInBuf);
+
+
+/**
+ @brief Sets the input buffer length (use with caution)
+
+ @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+
+ This changes the internal remembered length of the input buffer
+ set when UsefulInputBuf_Init() was called. It is used by QCBOR
+ to handle CBOR that is wrapped and embedded in CBOR.
+
+ Since this allows setting the length beyond the length of the
+ original input buffer it allows the overall safety of UsefulInputBug to
+ be undermined. Use it carefully.
+
+ The new length given here should always be equal to or less than
+ the length given when UsefulInputBuf_Init() was called.
+
+ */
+static void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pUInBuf, size_t uNewLen);
 
 
 /*----------------------------------------------------------
@@ -1913,6 +1947,12 @@ static inline size_t UsefulInputBuf_Tell(UsefulInputBuf *pMe)
 }
 
 
+static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pMe)
+{
+    return pMe->UB.len;
+}
+
+
 static inline void UsefulInputBuf_Seek(UsefulInputBuf *pMe, size_t uPos)
 {
    if(uPos > pMe->UB.len) {
@@ -1942,7 +1982,7 @@ static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pMe)
       return 0;
    }
 
-   // subtraction can't go neative because of check above
+   // subtraction can't go negative because of check above
    return pMe->UB.len - pMe->cursor;
 }
 
@@ -2124,6 +2164,13 @@ static inline int UsefulInputBuf_GetError(UsefulInputBuf *pMe)
 {
    return pMe->err;
 }
+
+
+static inline void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pMe, size_t uNewLen)
+{
+    pMe->UB.len = uNewLen;
+}
+
 
 #ifdef __cplusplus
 }
