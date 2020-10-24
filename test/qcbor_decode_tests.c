@@ -2971,7 +2971,7 @@ int32_t OptTagParseTest()
       return -11;
    }
 
-   uint64_t puTags[16];
+   uint64_t puTags[4];
    QCBORTagListOut Out = {0, 4, puTags};
 
 
@@ -3049,7 +3049,7 @@ int32_t OptTagParseTest()
    if(Item.uDataType != QCBOR_TYPE_MAP ||
       QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_CBOR_MAGIC) ||
       QCBORDecode_IsTagged(&DCtx, &Item, 6) ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 7) || // item is tagged 7, but 7 is not configured to be recognized
+      !QCBORDecode_IsTagged(&DCtx, &Item, 7) ||
       Item.val.uCount != 2 ||
       puTags[0] != 5859837686836516696 ||
       puTags[1] != 7 ||
@@ -3061,7 +3061,6 @@ int32_t OptTagParseTest()
       return -104;
    }
    if(Item.uDataType != QCBOR_TYPE_MAP ||
-      //Item.uTagBits ||
       Item.val.uCount != 5 ||
       puTags[0] != 0x0b ||
       Out.uNumUsed != 1) {
@@ -4646,7 +4645,7 @@ int32_t ExponentAndMantissaDecodeFailTests()
   }
  */
 
-int32_t EMap(UsefulBufC input)
+int32_t SpiffyDecodeBasicMap(UsefulBufC input)
 {
      QCBORItem Item1, Item2, Item3;
      int64_t nDecodedInt1, nDecodedInt2;
@@ -4892,12 +4891,12 @@ int32_t EnterMapTest()
 
 
    (void)pValidMapIndefEncoded;
-   nReturn = EMap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapIndefEncoded));
+   nReturn = SpiffyDecodeBasicMap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapIndefEncoded));
    if(nReturn) {
       return nReturn + 20000;
    }
 
-   nReturn = EMap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
+   nReturn = SpiffyDecodeBasicMap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
    if(nReturn) {
       return nReturn;
    }
