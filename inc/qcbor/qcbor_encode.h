@@ -57,8 +57,9 @@ extern "C" {
 
  This implements CBOR -- Concise Binary Object Representation as
  defined in [RFC 7049] (https://tools.ietf.org/html/rfc7049). More
- info is at http://cbor.io.  This is a near-complete implementation of
- the specification. Limitations are listed further down.
+ information is at http://cbor.io.  This is a near-complete implementation of
+ the specification. [RFC 8742] (https://tools.ietf.org/html/rfc8742) CBOR
+ Sequences is also supported. Limitations are listed further down.
 
  See @ref Encoding for general discussion on encoding,
  @ref BasicDecode for general discussion on the basic decode features
@@ -357,23 +358,24 @@ extern "C" {
  */
 
 
-/*
+/**
  The size of the buffer to be passed to QCBOREncode_EncodeHead(). It is one
  byte larger than sizeof(uint64_t) + 1, the actual maximum size of the
- head of a CBOR data item. because QCBOREncode_EncodeHead() needs
+ head of a CBOR data item because QCBOREncode_EncodeHead() needs
  one extra byte to work.
  */
 #define QCBOR_HEAD_BUFFER_SIZE  (sizeof(uint64_t) + 2)
 
 
 /**
- Output the full CBOR tag. See @ref CBORTags, @ref Tag-Usage and @ref Tags-Overview.
+ Output the full CBOR tag. See @ref CBORTags, @ref Tag-Usage and
+ @ref Tags-Overview.
  */
 #define QCBOR_ENCODE_AS_TAG      0
 
 /**
-  Output only the 'borrowed' content format for the relevant tag.
-  See @ref CBORTags, @ref Tag-Usage and @ref Tags-Overview.
+ Output only the 'borrowed' content format for the relevant tag.
+ See @ref CBORTags, @ref Tag-Usage and @ref Tags-Overview.
  */
 #define QCBOR_ENCODE_AS_BORROWED 1
 
@@ -651,7 +653,6 @@ static void QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pCtx, const
 static void QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float fNum);
 
 
-
 /**
  @brief Add an optional tag.
 
@@ -753,7 +754,6 @@ static void QCBOREncode_AddBytes(QCBOREncodeContext *pCtx, UsefulBufC Bytes);
 static void QCBOREncode_AddBytesToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Bytes);
 
 static void QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
-
 
 
 /**
@@ -1548,7 +1548,6 @@ static void QCBOREncode_OpenMapInMap(QCBOREncodeContext *pCtx, const char *szLab
 static void QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 
 
-
 /**
  @brief Close an open map.
 
@@ -1766,7 +1765,8 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedL
 */
 static int QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
 
- /**
+
+/**
  @brief Get the encoding error state.
 
  @param[in] pCtx  The encoding context.

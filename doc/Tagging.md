@@ -23,9 +23,10 @@ Registry. A very large range is available for proprietary tags.
 
 ## Are Tags "Optional"?
 
-The description of tags in RFC 7049 and in some other places can lead
-one to think they are optional prefixes that can be ignored at
-times. This is not true.
+The description of tags in
+[RFC 7049] (https://tools.ietf.org/html/rfc7049) and in some other
+places can lead one to think they are optional prefixes that can be
+ignored at times. This is not true.
 
 As stated above, a tag is exactly a tag number and a single data item
 that is the tag content. Its purpose in the encoded CBOR is to
@@ -37,11 +38,12 @@ semantics or definition of the tag content without it actually being a
 *tag*. One can think of this as *borrowing* the tag content or implied
 type information.
 
-For example, RFC 8392 which defines a CBOR Web Token, a CWT, says that
-the NumericDate field is represented as a CBOR numeric date described
-as tag 1 in the CBOR standard, but with the tag number 1 omitted from
-the encoding. A NumericDate is thus not a tag. It just borrows the
-content format and semantics from tag 1.
+For example, [RFC 8392] (https://tools.ietf.org/html/rfc8392) which
+defines a CBOR Web Token, a CWT, says that the NumericDate field is
+represented as a CBOR numeric date described as tag 1 in the CBOR
+standard, but with the tag number 1 omitted from the encoding. A
+NumericDate is thus not a tag. It just borrows the content format and
+semantics from tag 1.
 
 This borrowing of the content makes a lot of sense for data items that
 are labeled members of a map where the type of the data can be easily
@@ -78,8 +80,9 @@ accept", current wisdom is somewhat the opposite.
 
 ## Types and Tags in QCBOR
 
-QCBOR explicitly supports all the tags defined in RFC 7049. It has
-specific APIs and data structures for encoding and decoding them.
+QCBOR explicitly supports all the tags defined in
+[RFC 7049] (https://tools.ietf.org/html/rfc7049). It has specific APIs
+and data structures for encoding and decoding them.
 
 These APIs and structures can support either the full and proper tag
 form or the borrowed content form that is not a tag.
@@ -121,9 +124,9 @@ built-in tags that it knows how to process. It returns that processed
 item.
 
 If tags occur that QCBOR doesn't know how to process, it will return
-the tag content as a QCBORItem and list the tags that encapsulate. The
-caller then has the information it needs to process tag that QCBOR did
-not.
+the tag content as a @ref QCBORItem and list the tags that
+encapsulate. The caller then has the information it needs to process
+tag that QCBOR did not.
 
 Nesting of tags is certainly used in CBOR protocols, but deep nesting
 is less common so QCBOR has an implementation limit of 4 levels of tag
@@ -149,18 +152,19 @@ one data item. Said another way, with tag 24 you can have deeply
 nested complex structures, but the if you do the one data item must be
 either a map or an array or a tag that defined to be complex and
 nested. With tag 63, the content can be a sequence of integers not
-held together in a map or array.
+held together in a map or array. Tag 63 is defined in
+[RFC 8742] (https://tools.ietf.org/html/rfc8742).
 
-The point of encapdulating CBOR this way is often so it can be
+The point of encapsulating CBOR this way is often so it can be
 cryptographically signed. It works well with off-the-shelf encoders
-and decoers to sign and verify CBOR this way because the decoder can
+and decoders to sign and verify CBOR this way because the decoder can
 just get the byte string that it needs to hash in a normal way, then
 feed the content back into another instance of the CBOR decoder.
 
 It is also a way to break up complex CBOR structures so they can be
 decoded in layers. Usually, with CBOR one error will render the whole
-structure un decodable because there is little redundancy in the
-encoding. By nesting like this an error in the wrapped CBOR will not
+structure un-decodable because there is little redundancy in the
+encoding. By nesting like this, an error in the wrapped CBOR will not
 cause decoding error in the wrapping CBOR.
 
 QCBOR can be asked to treat these two tags as nesting like maps and
@@ -210,11 +214,11 @@ data type that a protocol decoder must understand.
 
 ## Standard Tags and the Tags Registry
 
-Tags used in CBOR protocols should at least be registered in the IANA
-CBOR Tags Registry. A small number of tags (0-23), are full IETF
-standards. Further, tags 24-255 require published documentation, but
-are not full IETF standards. Beyond tag 255, the tags are first come
-first served.
+Tags used in CBOR protocols should at least be registered in the
+[IANA CBOR Tags Registry] (https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml).
+A small number of tags (0-23), are full IETF standards. Further, tags
+24-255 require published documentation, but are not full IETF
+standards. Beyond tag 255, the tags are first come first served.
 
 There is no range for private use, so any tag used in a CBOR protocol
 should be registered. The range of tag values is very large to
