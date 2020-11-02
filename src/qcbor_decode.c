@@ -2193,6 +2193,9 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
                                const QCBORItem    *pItem,
                                uint32_t            uIndex)
 {
+   if(pItem->uDataType == QCBOR_TYPE_NONE) {
+      return CBOR_TAG_INVALID64;
+   }
    if(uIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
       return CBOR_TAG_INVALID64;
    } else {
@@ -2206,6 +2209,9 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
 uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe,
                                      uint32_t                  uIndex)
 {
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return CBOR_TAG_INVALID64;
+   }
    if(uIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
       return CBOR_TAG_INVALID64;
    } else {

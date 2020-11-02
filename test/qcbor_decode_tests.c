@@ -2890,6 +2890,11 @@ int32_t OptTagParseTest()
       return -6;
    }
 
+   if(QCBORDecode_GetNthTag(&DCtx, &Item, 0) != CBOR_TAG_INVALID64) {
+      return -106;
+   }
+
+
    /* tag 10489608748473423768(
              2442302356(
                 21590(
@@ -5040,10 +5045,15 @@ int32_t EnterMapTest()
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spRecoverableMapErrors), 0);
    QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
-   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   uErr = QCBORDecode_GetError(&DCtx);
    if(uErr != QCBOR_ERR_TOO_MANY_TAGS) {
       return 2021;
    }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != CBOR_TAG_INVALID64) {
+      return 2121;
+   }
+   (void)QCBORDecode_GetAndResetError(&DCtx);
+
 
    QCBORDecode_GetEpochDateInMapN(&DCtx, 0x02, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
