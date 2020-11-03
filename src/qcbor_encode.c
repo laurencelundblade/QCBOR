@@ -325,17 +325,18 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
    // The 5 bits in the initial byte that are not the major type
    int nAdditionalInfo;
 
-   if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN) {
-      uMajorType = CBOR_MAJOR_TYPE_ARRAY;
-      nAdditionalInfo = LEN_IS_INDEFINITE;
-   } else if (uMajorType == CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN) {
-      uMajorType = CBOR_MAJOR_TYPE_MAP;
-      nAdditionalInfo = LEN_IS_INDEFINITE;
+   if(uMajorType > QCBOR_INDEFINITE_LEN_TYPE_MODIFIER) {
+      // Special case for start & end of indefinite length
+      uMajorType  = uMajorType - QCBOR_INDEFINITE_LEN_TYPE_MODIFIER;
+      // Take advantage of design of CBOR where additional info
+      // is 31 for both opening and closing indefinite length
+      // maps and arrays.
+#if CBOR_SIMPLE_BREAK != LEN_IS_INDEFINITE
+#error additional info for opening array not the same as for closing
+#endif
+      nAdditionalInfo = CBOR_SIMPLE_BREAK;
    } else if (uArgument < CBOR_TWENTY_FOUR && uMinLen == 0) {
       // Simple case where argument is < 24
-      nAdditionalInfo = (int)uArgument;
-   } else if (uMajorType == CBOR_MAJOR_TYPE_SIMPLE && uArgument == CBOR_SIMPLE_BREAK) {
-      // Break statement can be encoded in single byte too (0xff)
       nAdditionalInfo = (int)uArgument;
    } else  {
       /*
@@ -787,7 +788,7 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t
          me->uError = QCBOR_ERR_CLOSE_MISMATCH;
       } else {
          // Append the break marker (0xff for both arrays and maps)
-         AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, CBOR_SIMPLE_BREAK, 0);
+         AppendCBORHead(me, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
 
          Nesting_Decrease(&(me->nesting));
       }
