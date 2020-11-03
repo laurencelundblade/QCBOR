@@ -95,9 +95,11 @@ inline static void Nesting_Decrease(QCBORTrackNesting *pNesting)
 
 inline static uint8_t Nesting_Increment(QCBORTrackNesting *pNesting)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(1 >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
       return QCBOR_ERR_ARRAY_TOO_LONG;
    }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    pNesting->pCurrentNesting->uCount++;
 
@@ -325,18 +327,29 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
    // The 5 bits in the initial byte that are not the major type
    int nAdditionalInfo;
 
+   if(uMajorType > 10) {
+      uMajorType = uMajorType & 0x07;
+      nAdditionalInfo = 31;
+   } else
+/*
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDSX
    if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN) {
       uMajorType = CBOR_MAJOR_TYPE_ARRAY;
       nAdditionalInfo = LEN_IS_INDEFINITE;
    } else if (uMajorType == CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN) {
       uMajorType = CBOR_MAJOR_TYPE_MAP;
       nAdditionalInfo = LEN_IS_INDEFINITE;
-   } else if (uArgument < CBOR_TWENTY_FOUR && uMinLen == 0) {
+   } else
+#endif
+ */
+   if (uArgument < CBOR_TWENTY_FOUR && uMinLen == 0) {
       // Simple case where argument is < 24
       nAdditionalInfo = (int)uArgument;
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    } else if (uMajorType == CBOR_MAJOR_TYPE_SIMPLE && uArgument == CBOR_SIMPLE_BREAK) {
       // Break statement can be encoded in single byte too (0xff)
-      nAdditionalInfo = (int)uArgument;
+      nAdditionalInfo = 31;
+#endif
    } else  {
       /*
        Encode argument in 1,2,4 or 8 bytes. Outer loop
@@ -439,31 +452,36 @@ static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t
  */
 static void InsertCBORHead(QCBOREncodeContext *me, uint8_t uMajorType, size_t uLen)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(me->uError == QCBOR_SUCCESS) {
       if(!Nesting_IsInNest(&(me->nesting))) {
          me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+         return;
       } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
          me->uError = QCBOR_ERR_CLOSE_MISMATCH;
-      } else {
-         // A stack buffer large enough for a CBOR head
-         UsefulBuf_MAKE_STACK_UB (pBufferForEncodedHead,QCBOR_HEAD_BUFFER_SIZE);
-
-         UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
-                                                         uMajorType,
-                                                         0,
-                                                         uLen);
-
-         /* No check for EncodedHead == NULLUsefulBufC is performed here to
-          * save object code. It is very clear that pBufferForEncodedHead
-          * is the correct size. If EncodedHead == NULLUsefulBufC then
-          * UsefulOutBuf_InsertUsefulBuf() will do nothing so there is
-          * no security whole introduced.
-          */
-         UsefulOutBuf_InsertUsefulBuf(&(me->OutBuf), EncodedHead, Nesting_GetStartPos(&(me->nesting)) );
-
-         Nesting_Decrease(&(me->nesting));
+         return;
       }
    }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+   // A stack buffer large enough for a CBOR head
+   UsefulBuf_MAKE_STACK_UB (pBufferForEncodedHead,QCBOR_HEAD_BUFFER_SIZE);
+
+   UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
+                                                   uMajorType,
+                                                   0,
+                                                   uLen);
+
+   /* No check for EncodedHead == NULLUsefulBufC is performed here to
+    * save object code. It is very clear that pBufferForEncodedHead
+    * is the correct size. If EncodedHead == NULLUsefulBufC then
+    * UsefulOutBuf_InsertUsefulBuf() will do nothing so there is
+    * no security whole introduced.
+    */
+   UsefulOutBuf_InsertUsefulBuf(&(me->OutBuf),
+                                EncodedHead,
+                                Nesting_GetStartPos(&(me->nesting)));
+
+   Nesting_Decrease(&(me->nesting));
 }
 
 
@@ -472,10 +490,15 @@ static void InsertCBORHead(QCBOREncodeContext *me, uint8_t uMajorType, size_t uL
  */
 void QCBOREncode_AddUInt64(QCBOREncodeContext *me, uint64_t uValue)
 {
+   AppendCBORHead(me, CBOR_MAJOR_TYPE_POSITIVE_INT, uValue, 0);
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(me->uError == QCBOR_SUCCESS) {
-      AppendCBORHead(me, CBOR_MAJOR_TYPE_POSITIVE_INT, uValue, 0);
       me->uError = Nesting_Increment(&(me->nesting));
    }
+#else
+      Nesting_Increment(&(me->nesting));
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
 
@@ -484,22 +507,27 @@ void QCBOREncode_AddUInt64(QCBOREncodeContext *me, uint64_t uValue)
  */
 void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
 {
+   uint8_t      uMajorType;
+   uint64_t     uValue;
+
+   if(nNum < 0) {
+      // In CBOR -1 encodes as 0x00 with major type negative int.
+      uValue = (uint64_t)(-nNum - 1);
+      uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
+   } else {
+      uValue = (uint64_t)nNum;
+      uMajorType = CBOR_MAJOR_TYPE_POSITIVE_INT;
+   }
+   AppendCBORHead(me, uMajorType, uValue, 0);
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(me->uError == QCBOR_SUCCESS) {
-      uint8_t      uMajorType;
-      uint64_t     uValue;
-
-      if(nNum < 0) {
-         // In CBOR -1 encodes as 0x00 with major type negative int.
-         uValue = (uint64_t)(-nNum - 1);
-         uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
-      } else {
-         uValue = (uint64_t)nNum;
-         uMajorType = CBOR_MAJOR_TYPE_POSITIVE_INT;
-      }
-      AppendCBORHead(me, uMajorType, uValue, 0);
-
       me->uError = Nesting_Increment(&(me->nesting));
    }
+#else
+      Nesting_Increment(&(me->nesting));
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
 }
 
 
@@ -525,24 +553,28 @@ void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
  */
 void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC Bytes)
 {
+   // If it is not Raw CBOR, add the type and the length
+   if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
+      uint8_t uRealMajorType = uMajorType;
+      if(uRealMajorType == CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
+         uRealMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
+      }
+      AppendCBORHead(me, uRealMajorType, Bytes.len, 0);
+   }
+
+   if(uMajorType != CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
+      // Actually add the bytes
+      UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), Bytes);
+   }
+
+   // Update the array counting if there is any nesting at all
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(me->uError == QCBOR_SUCCESS) {
-      // If it is not Raw CBOR, add the type and the length
-      if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
-         uint8_t uRealMajorType = uMajorType;
-         if(uRealMajorType == CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
-            uRealMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
-         }
-         AppendCBORHead(me, uRealMajorType, Bytes.len, 0);
-      }
-
-      if(uMajorType != CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
-         // Actually add the bytes
-         UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), Bytes);
-      }
-
-      // Update the array counting if there is any nesting at all
       me->uError = Nesting_Increment(&(me->nesting));
    }
+#else
+   Nesting_Increment(&(me->nesting));
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
 
@@ -563,15 +595,25 @@ void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
  */
 void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(me->uError == QCBOR_SUCCESS) {
       if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
          me->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
-      } else {
-         // AppendHead() does endian swapping for the float / double
-         AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, uNum, uMinLen);
-         me->uError = Nesting_Increment(&(me->nesting));
+         return;
       }
    }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   // AppendHead() does endian swapping for the float / double
+   AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, uNum, uMinLen);
+   
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(me->uError == QCBOR_SUCCESS) {
+      me->uError = Nesting_Increment(&(me->nesting));
+   }
+#else
+   Nesting_Increment(&(me->nesting));
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
 
@@ -780,18 +822,23 @@ void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, U
  */
 void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(me->uError == QCBOR_SUCCESS) {
       if(!Nesting_IsInNest(&(me->nesting))) {
          me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+         return;
       } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
          me->uError = QCBOR_ERR_CLOSE_MISMATCH;
-      } else {
-         // Append the break marker (0xff for both arrays and maps)
-         AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, CBOR_SIMPLE_BREAK, 0);
-
-         Nesting_Decrease(&(me->nesting));
+         return;
       }
    }
+#else
+   (void) uMajorType;
+#endif
+
+   // Append the break marker (0xff for both arrays and maps)
+   AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, CBOR_SIMPLE_BREAK, 0);
+   Nesting_Decrease(&(me->nesting));
 }
 
 
@@ -806,10 +853,12 @@ QCBORError QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
       goto Done;
    }
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if (Nesting_IsInNest(&(me->nesting))) {
       uReturn = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
       goto Done;
    }
+#endif
 
    *pEncodedCBOR = UsefulOutBuf_OutUBuf(&(me->OutBuf));
 
