@@ -936,7 +936,7 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint
  @param[in] pItem The CBOR item to get the tag for.
  @param[in] uIndex The index of the tag to get.
 
- @returns The actual nth tag value.
+ @returns The actual nth tag value or CBOR_TAG_INVALID64.
 
  Up to @ref QCBOR_MAX_TAGS_PER_ITEM are recorded for a decoded CBOR item. If there
  are more than this, the @ref QCBOR_ERR_TOO_MANY_TAGS error is returned
@@ -945,19 +945,34 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint
 
  The 0th tag (@c uIndex 0) is the one that occurs closest to the data item.
  Tags nest, so the nth tag applies to what ever type
- is a result of applying the (n-1) tag.
+ is a result of applying the (n-1) tag. See also @ref Tag-Usage.
 
  To reduce memory used by a QCBORItem, this implementation maps
  all tags larger than UINT16_MAX. This function does the unmapping.
 
- This returns @ref CBOR_TAG_INVALID64 on all errors or if the nth tag is requested and
- there is no nth tag. If there are no tags on the item, then
- requesting the 0th tag will return @ref CBOR_TAG_INVALID64.
+ This returns @ref CBOR_TAG_INVALID64 if any error occurred getting
+ the item. This is also returned if there are no tags on the item or
+ there is no nth tag.
  */
 uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t uIndex);
 
 
+/**
+@brief Returns the tag value for last-fetched item.
+
+@param[in] pCtx    The decoder context.
+@param[in] uIndex The index of the tag to get.
+
+@returns The actual nth tag value or CBOR_TAG_INVALID64.
+
+ This is similar to QCBORDecode_GetNthTag(), but works with spiffy decoding
+ functions. These generally do not return a QCBORItem with the tag set.
+ This gets the tags for the most recently decoded item.
+
+ If a decoding error set then this returns CBOR_TAG_INVALID64.
+*/
 uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
+
 
 /**
  @brief Check whether all the bytes have been decoded and maps and arrays closed.
