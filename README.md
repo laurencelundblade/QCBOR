@@ -230,9 +230,9 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
 
     |               | smallest | largest |  
     |---------------|----------|---------|
-    | encode only   |      900 |    2100 |
-    | decode only   |     2800 |   13500 |
-    | combined      |     3700 |   15600 |
+    | encode only   |      850 |    2100 |
+    | decode only   |     2900 |   13500 |
+    | combined      |     3750 |   15600 |
     
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
@@ -271,11 +271,10 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
  carefully written to be defensive.
 
  Disable features with defines like
- QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) and
+ QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) 
+ QCBOR_DISABLE_ENCODE_USAGE_GUARDS (saves about 150), and
  QCBOR_DISABLE_PREFERRED_FLOAT (saves about 900 bytes).  More of these
- defines are planned than are currently implemented (they are a little
- complex to implement because all the combination configurations must
- be tested).
+ defines are planned than are currently implemented.
  
  If QCBOR is installed as a shared library, then of course only one
  copy of the code is in memory no matter how many applications use it.

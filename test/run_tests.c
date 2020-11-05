@@ -73,7 +73,9 @@ static test_entry s_tests[] = {
     TEST_ENTRY(MapEncodeTest),
     TEST_ENTRY(ArrayNestingTest1),
     TEST_ENTRY(ArrayNestingTest2),
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
     TEST_ENTRY(ArrayNestingTest3),
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
     TEST_ENTRY(EncodeDateTest),
     TEST_ENTRY(SimpleValuesTest1),
     TEST_ENTRY(IntegerValuesTest1),

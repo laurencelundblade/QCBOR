@@ -95,9 +95,11 @@ inline static void Nesting_Decrease(QCBORTrackNesting *pNesting)
 
 inline static uint8_t Nesting_Increment(QCBORTrackNesting *pNesting)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(1 >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
       return QCBOR_ERR_ARRAY_TOO_LONG;
    }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    pNesting->pCurrentNesting->uCount++;
 
@@ -127,6 +129,7 @@ inline static uint32_t Nesting_GetStartPos(QCBORTrackNesting *pNesting)
    return pNesting->pCurrentNesting->uStart;
 }
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 inline static uint8_t Nesting_GetMajorType(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting->uMajorType;
@@ -136,6 +139,7 @@ inline static bool Nesting_IsInNest(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting == &pNesting->pArrays[0] ? false : true;
 }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
 
 
@@ -160,34 +164,34 @@ inline static bool Nesting_IsInNest(QCBORTrackNesting *pNesting)
 
 /*
  Error tracking plan -- Errors are tracked internally and not returned
- until QCBOREncode_Finish is called. The CBOR errors are in me->uError.
- UsefulOutBuf also tracks whether the buffer is full or not in its
- context.  Once either of these errors is set they are never
- cleared. Only QCBOREncode_Init() resets them. Or said another way, they must
- never be cleared or we'll tell the caller all is good when it is not.
+ until QCBOREncode_Finish() or QCBOREncode_GetErrorState() is
+ called. The CBOR errors are in me->uError.  UsefulOutBuf also tracks
+ whether the buffer is full or not in its context.  Once either of
+ these errors is set they are never cleared. Only QCBOREncode_Init()
+ resets them. Or said another way, they must never be cleared or we'll
+ tell the caller all is good when it is not.
 
- Only one error code is reported by QCBOREncode_Finish() even if there are
- multiple errors. The last one set wins. The caller might have to fix
- one error to reveal the next one they have to fix.  This is OK.
+ Only one error code is reported by QCBOREncode_Finish() even if there
+ are multiple errors. The last one set wins. The caller might have to
+ fix one error to reveal the next one they have to fix.  This is OK.
 
  The buffer full error tracked by UsefulBuf is only pulled out of
- UsefulBuf in Finish() so it is the one that usually wins.  UsefulBuf
- will never go off the end of the buffer even if it is called again
- and again when full.
+ UsefulBuf in QCBOREncode_Finish() so it is the one that usually wins.
+ UsefulBuf will never go off the end of the buffer even if it is
+ called again and again when full.
 
- It is really tempting to not check for overflow on the count in the
- number of items in an array. It would save a lot of code, it is
- extremely unlikely that any one will every put 65,000 items in an
- array, and the only bad thing that would happen is the CBOR would be
- bogus.
+ QCBOR_DISABLE_ENCODE_USAGE_GUARDS disables about half of the error
+ checks here to reduce code size by about 150 bytes leaving only the
+ checks for size to avoid buffer overflow. If the calling code is
+ completely correct, checks are completely unnecessary.  For example,
+ there is no need to check that all the opens are matched by a close.
 
- Since this does not parse any input, you could in theory remove all
- error checks in this code if you knew the caller called it
- correctly. Maybe someday CDDL or some such language will be able to
- generate the code to call this and the calling code would always be
- correct. This could also automatically size some of the data
- structures like array/map nesting resulting in some stack memory
- savings.
+ QCBOR_DISABLE_ENCODE_USAGE_GUARDS also disables the check for more
+ than QCBOR_MAX_ITEMS_IN_ARRAY in an array. Since
+ QCBOR_MAX_ITEMS_IN_ARRAY is very large (65,535) it is very unlikely
+ to be reached. If it is reached, the count will wrap around to zero
+ and CBOR that is not well formed will be produced, but there will be
+ no buffers overrun and new security issues in the code.
 
  The 8 errors returned here fall into three categories:
 
@@ -195,15 +199,17 @@ inline static bool Nesting_IsInNest(QCBORTrackNesting *pNesting)
    QCBOR_ERR_BUFFER_TOO_LARGE        -- Encoded output exceeded UINT32_MAX
    QCBOR_ERR_BUFFER_TOO_SMALL        -- Output buffer too small
    QCBOR_ERR_ARRAY_NESTING_TOO_DEEP  -- Nesting > QCBOR_MAX_ARRAY_NESTING1
-   QCBOR_ERR_ARRAY_TOO_LONG          -- Too many things added to an array/map
+   QCBOR_ERR_ARRAY_TOO_LONG          -- Too many items added to an array/map [1]
 
  Nesting constructed incorrectly
-   QCBOR_ERR_TOO_MANY_CLOSES         -- More close calls than opens
-   QCBOR_ERR_CLOSE_MISMATCH          -- Type of close does not match open
-   QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN -- Finish called without enough closes
+   QCBOR_ERR_TOO_MANY_CLOSES         -- More close calls than opens [1]
+   QCBOR_ERR_CLOSE_MISMATCH          -- Type of close does not match open [1]
+   QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN -- Finish called without enough closes [1]
 
  Would generate not-well-formed CBOR
-   QCBOR_ERR_ENCODE_UNSUPPORTED      -- Simple type between 24 and 31
+   QCBOR_ERR_ENCODE_UNSUPPORTED      -- Simple type between 24 and 31 [1]
+
+ [1] indicated disabled by QCBOR_DISABLE_ENCODE_USAGE_GUARDS
  */
 
 
@@ -440,31 +446,54 @@ static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t
  */
 static void InsertCBORHead(QCBOREncodeContext *me, uint8_t uMajorType, size_t uLen)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(me->uError == QCBOR_SUCCESS) {
       if(!Nesting_IsInNest(&(me->nesting))) {
          me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+         return;
       } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
          me->uError = QCBOR_ERR_CLOSE_MISMATCH;
-      } else {
-         // A stack buffer large enough for a CBOR head
-         UsefulBuf_MAKE_STACK_UB (pBufferForEncodedHead,QCBOR_HEAD_BUFFER_SIZE);
-
-         UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
-                                                         uMajorType,
-                                                         0,
-                                                         uLen);
-
-         /* No check for EncodedHead == NULLUsefulBufC is performed here to
-          * save object code. It is very clear that pBufferForEncodedHead
-          * is the correct size. If EncodedHead == NULLUsefulBufC then
-          * UsefulOutBuf_InsertUsefulBuf() will do nothing so there is
-          * no security whole introduced.
-          */
-         UsefulOutBuf_InsertUsefulBuf(&(me->OutBuf), EncodedHead, Nesting_GetStartPos(&(me->nesting)) );
-
-         Nesting_Decrease(&(me->nesting));
+         return;
       }
    }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   // A stack buffer large enough for a CBOR head
+   UsefulBuf_MAKE_STACK_UB(pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
+
+   UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
+                                                   uMajorType,
+                                                   0,
+                                                   uLen);
+
+   /* No check for EncodedHead == NULLUsefulBufC is performed here to
+    * save object code. It is very clear that pBufferForEncodedHead
+    * is the correct size. If EncodedHead == NULLUsefulBufC then
+    * UsefulOutBuf_InsertUsefulBuf() will do nothing so there is
+    * no security whole introduced.
+    */
+   UsefulOutBuf_InsertUsefulBuf(&(me->OutBuf),
+                                EncodedHead,
+                                Nesting_GetStartPos(&(me->nesting)));
+
+   Nesting_Decrease(&(me->nesting));
+}
+
+
+/*
+ Increment the count of items in a map or array. This is mostly
+ a separate function to have fewer occurance of
+ #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+ */
+static inline void IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uError == QCBOR_SUCCESS) {
+      pMe->uError = Nesting_Increment(&(pMe->nesting));
+   }
+#else
+   (void)Nesting_Increment(&(pMe->nesting));
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
 
@@ -473,10 +502,9 @@ static void InsertCBORHead(QCBOREncodeContext *me, uint8_t uMajorType, size_t uL
  */
 void QCBOREncode_AddUInt64(QCBOREncodeContext *me, uint64_t uValue)
 {
-   if(me->uError == QCBOR_SUCCESS) {
-      AppendCBORHead(me, CBOR_MAJOR_TYPE_POSITIVE_INT, uValue, 0);
-      me->uError = Nesting_Increment(&(me->nesting));
-   }
+   AppendCBORHead(me, CBOR_MAJOR_TYPE_POSITIVE_INT, uValue, 0);
+
+   IncrementMapOrArrayCount(me);
 }
 
 
@@ -485,22 +513,20 @@ void QCBOREncode_AddUInt64(QCBOREncodeContext *me, uint64_t uValue)
  */
 void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
 {
-   if(me->uError == QCBOR_SUCCESS) {
-      uint8_t      uMajorType;
-      uint64_t     uValue;
+   uint8_t      uMajorType;
+   uint64_t     uValue;
 
-      if(nNum < 0) {
-         // In CBOR -1 encodes as 0x00 with major type negative int.
-         uValue = (uint64_t)(-nNum - 1);
-         uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
-      } else {
-         uValue = (uint64_t)nNum;
-         uMajorType = CBOR_MAJOR_TYPE_POSITIVE_INT;
-      }
-      AppendCBORHead(me, uMajorType, uValue, 0);
-
-      me->uError = Nesting_Increment(&(me->nesting));
+   if(nNum < 0) {
+      // In CBOR -1 encodes as 0x00 with major type negative int.
+      uValue = (uint64_t)(-nNum - 1);
+      uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
+   } else {
+      uValue = (uint64_t)nNum;
+      uMajorType = CBOR_MAJOR_TYPE_POSITIVE_INT;
    }
+   AppendCBORHead(me, uMajorType, uValue, 0);
+
+   IncrementMapOrArrayCount(me);
 }
 
 
@@ -526,24 +552,21 @@ void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
  */
 void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBufC Bytes)
 {
-   if(me->uError == QCBOR_SUCCESS) {
-      // If it is not Raw CBOR, add the type and the length
-      if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
-         uint8_t uRealMajorType = uMajorType;
-         if(uRealMajorType == CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
-            uRealMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
-         }
-         AppendCBORHead(me, uRealMajorType, Bytes.len, 0);
+   // If it is not Raw CBOR, add the type and the length
+   if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
+      uint8_t uRealMajorType = uMajorType;
+      if(uRealMajorType == CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
+         uRealMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
       }
-
-      if(uMajorType != CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
-         // Actually add the bytes
-         UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), Bytes);
-      }
-
-      // Update the array counting if there is any nesting at all
-      me->uError = Nesting_Increment(&(me->nesting));
+      AppendCBORHead(me, uRealMajorType, Bytes.len, 0);
    }
+
+   if(uMajorType != CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
+      // Actually add the bytes
+      UsefulOutBuf_AppendUsefulBuf(&(me->OutBuf), Bytes);
+   }
+
+   IncrementMapOrArrayCount(me);
 }
 
 
@@ -564,15 +587,19 @@ void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
  */
 void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(me->uError == QCBOR_SUCCESS) {
       if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
          me->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
-      } else {
-         // AppendHead() does endian swapping for the float / double
-         AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, uNum, uMinLen);
-         me->uError = Nesting_Increment(&(me->nesting));
+         return;
       }
    }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   // AppendHead() does endian swapping for the float / double
+   AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, uNum, uMinLen);
+   
+   IncrementMapOrArrayCount(me);
 }
 
 
@@ -681,34 +708,33 @@ void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
 void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 {
    // Add one item to the nesting level we are in for the new map or array
-   me->uError = Nesting_Increment(&(me->nesting));
-   if(me->uError == QCBOR_SUCCESS) {
-      /*
-       The offset where the length of an array or map will get written
-       is stored in a uint32_t, not a size_t to keep stack usage
-       smaller. This checks to be sure there is no wrap around when
-       recording the offset.  Note that on 64-bit machines CBOR larger
-       than 4GB can be encoded as long as no array / map offsets occur
-       past the 4GB mark, but the public interface says that the
-       maximum is 4GB to keep the discussion simpler.
-      */
-      size_t uEndPosition = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
+   IncrementMapOrArrayCount(me);
 
-      /*
-       QCBOR_MAX_ARRAY_OFFSET is slightly less than UINT32_MAX so this
-       code can run on a 32-bit machine and tests can pass on a 32-bit
-       machine. If it was exactly UINT32_MAX, then this code would not
-       compile or run on a 32-bit machine and an #ifdef or some
-       machine size detection would be needed reducing portability.
-      */
-      if(uEndPosition >= QCBOR_MAX_ARRAY_OFFSET) {
-         me->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
+   /*
+    The offset where the length of an array or map will get written
+    is stored in a uint32_t, not a size_t to keep stack usage
+    smaller. This checks to be sure there is no wrap around when
+    recording the offset.  Note that on 64-bit machines CBOR larger
+    than 4GB can be encoded as long as no array / map offsets occur
+    past the 4GB mark, but the public interface says that the
+    maximum is 4GB to keep the discussion simpler.
+   */
+   size_t uEndPosition = UsefulOutBuf_GetEndPosition(&(me->OutBuf));
 
-      } else {
-         // Increase nesting level because this is a map or array.  Cast
-         // from size_t to uin32_t is safe because of check above
-         me->uError = Nesting_Increase(&(me->nesting), uMajorType, (uint32_t)uEndPosition);
-      }
+   /*
+    QCBOR_MAX_ARRAY_OFFSET is slightly less than UINT32_MAX so this
+    code can run on a 32-bit machine and tests can pass on a 32-bit
+    machine. If it was exactly UINT32_MAX, then this code would not
+    compile or run on a 32-bit machine and an #ifdef or some
+    machine size detection would be needed reducing portability.
+   */
+   if(uEndPosition >= QCBOR_MAX_ARRAY_OFFSET) {
+      me->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
+
+   } else {
+      // Increase nesting level because this is a map or array.  Cast
+      // from size_t to uin32_t is safe because of check above
+      me->uError = Nesting_Increase(&(me->nesting), uMajorType, (uint32_t)uEndPosition);
    }
 }
 
@@ -781,18 +807,23 @@ void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, U
  */
 void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(me->uError == QCBOR_SUCCESS) {
       if(!Nesting_IsInNest(&(me->nesting))) {
          me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+         return;
       } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
          me->uError = QCBOR_ERR_CLOSE_MISMATCH;
-      } else {
-         // Append the break marker (0xff for both arrays and maps)
-         AppendCBORHead(me, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
-
-         Nesting_Decrease(&(me->nesting));
+         return;
       }
    }
+#else
+   (void) uMajorType;
+#endif
+
+   // Append the break marker (0xff for both arrays and maps)
+   AppendCBORHead(me, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
+   Nesting_Decrease(&(me->nesting));
 }
 
 
@@ -807,10 +838,12 @@ QCBORError QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
       goto Done;
    }
 
-   if (Nesting_IsInNest(&(me->nesting))) {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(Nesting_IsInNest(&(me->nesting))) {
       uReturn = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
       goto Done;
    }
+#endif
 
    *pEncodedCBOR = UsefulOutBuf_OutUBuf(&(me->OutBuf));
 
@@ -834,63 +867,3 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
 
    return nReturn;
 }
-
-
-
-
-/*
-Object code sizes on 64-bit x86 with GCC -Os Jan 2020. GCC compiles smaller
-than LLVM and optimizations have been made to decrease code size. Bigfloat,
-Decimal fractions and indefinite length encoding were added to increase code
-size. Bstr wrapping is now separate which means if you don't use it, it gets
-dead stripped.
-
-_QCBOREncode_EncodeHead           187
-_QCBOREncode_CloseBstrWrap2:      154
-_QCBOREncode_AddExponentAndMantissa: 144
-_QCBOREncode_AddBuffer            105
-_QCBOREncode_OpenMapOrArray       101
-_QCBOREncode_CloseMapOrArrayIndefiniteLength: 72
-_QCBOREncode_Finish                71
-_InsertCBORHead.part.0             66
-_QCBOREncode_CloseMapOrArray       64
-_QCBOREncode_AddType7              58
-_QCBOREncode_AddInt64              57
-_AppendCBORHead                    54
-_QCBOREncode_AddUInt64             40
-_QCBOREncode_Init                  38
-_Nesting_Increment.isra.0          36
-_QCBOREncode_FinishGetSize:        34
-_QCBOREncode_AddDouble:            26
-_QCBOREncode_AddTag:               15
-Total                            1322
-Min_encode use case               776
-
-
- Object code sizes on X86 with LLVM compiler and -Os (Dec 30, 2018)
-
- _QCBOREncode_Init   69
- _QCBOREncode_AddUInt64   76
- _QCBOREncode_AddInt64   87
- _QCBOREncode_AddBuffer   113
- _QCBOREncode_AddTag 27
- _QCBOREncode_AddType7   87
- _QCBOREncode_AddDouble 36
- _QCBOREncode_OpenMapOrArray   103
- _QCBOREncode_CloseMapOrArray   181
- _InsertEncodedTypeAndNumber   190
- _QCBOREncode_Finish   72
- _QCBOREncode_FinishGetSize  70
-
- Total is about 1.1KB
-
- _QCBOREncode_CloseMapOrArray is larger because it has a lot
- of nesting tracking to do and much of Nesting_ inlines
- into it. It probably can't be reduced much.
-
- If the error returned by Nesting_Increment() can be ignored
- because the limit is so high and the consequence of exceeding
- is proved to be inconsequential, then a lot of if(me->uError)
- instance can be removed, saving some code.
-
- */
