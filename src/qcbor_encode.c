@@ -129,6 +129,7 @@ inline static uint32_t Nesting_GetStartPos(QCBORTrackNesting *pNesting)
    return pNesting->pCurrentNesting->uStart;
 }
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 inline static uint8_t Nesting_GetMajorType(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting->uMajorType;
@@ -138,6 +139,7 @@ inline static bool Nesting_IsInNest(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting == &pNesting->pArrays[0] ? false : true;
 }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
 
 
@@ -327,29 +329,19 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
    // The 5 bits in the initial byte that are not the major type
    int nAdditionalInfo;
 
-   if(uMajorType > 10) {
-      uMajorType = uMajorType & 0x07;
-      nAdditionalInfo = 31;
-   } else
-/*
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDSX
-   if (uMajorType == CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN) {
-      uMajorType = CBOR_MAJOR_TYPE_ARRAY;
-      nAdditionalInfo = LEN_IS_INDEFINITE;
-   } else if (uMajorType == CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN) {
-      uMajorType = CBOR_MAJOR_TYPE_MAP;
-      nAdditionalInfo = LEN_IS_INDEFINITE;
-   } else
+   if(uMajorType > QCBOR_INDEFINITE_LEN_TYPE_MODIFIER) {
+      // Special case for start & end of indefinite length
+      uMajorType  = uMajorType - QCBOR_INDEFINITE_LEN_TYPE_MODIFIER;
+      // Take advantage of design of CBOR where additional info
+      // is 31 for both opening and closing indefinite length
+      // maps and arrays.
+#if CBOR_SIMPLE_BREAK != LEN_IS_INDEFINITE
+#error additional info for opening array not the same as for closing
 #endif
- */
-   if (uArgument < CBOR_TWENTY_FOUR && uMinLen == 0) {
+      nAdditionalInfo = CBOR_SIMPLE_BREAK;
+   } else if (uArgument < CBOR_TWENTY_FOUR && uMinLen == 0) {
       // Simple case where argument is < 24
       nAdditionalInfo = (int)uArgument;
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   } else if (uMajorType == CBOR_MAJOR_TYPE_SIMPLE && uArgument == CBOR_SIMPLE_BREAK) {
-      // Break statement can be encoded in single byte too (0xff)
-      nAdditionalInfo = 31;
-#endif
    } else  {
       /*
        Encode argument in 1,2,4 or 8 bytes. Outer loop
@@ -463,8 +455,9 @@ static void InsertCBORHead(QCBOREncodeContext *me, uint8_t uMajorType, size_t uL
       }
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    // A stack buffer large enough for a CBOR head
-   UsefulBuf_MAKE_STACK_UB (pBufferForEncodedHead,QCBOR_HEAD_BUFFER_SIZE);
+   UsefulBuf_MAKE_STACK_UB(pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
 
    UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
                                                    uMajorType,
@@ -497,7 +490,7 @@ void QCBOREncode_AddUInt64(QCBOREncodeContext *me, uint64_t uValue)
       me->uError = Nesting_Increment(&(me->nesting));
    }
 #else
-      Nesting_Increment(&(me->nesting));
+   (void)Nesting_Increment(&(me->nesting));
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
@@ -525,9 +518,8 @@ void QCBOREncode_AddInt64(QCBOREncodeContext *me, int64_t nNum)
       me->uError = Nesting_Increment(&(me->nesting));
    }
 #else
-      Nesting_Increment(&(me->nesting));
+   (void)Nesting_Increment(&(me->nesting));
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-
 }
 
 
@@ -573,7 +565,7 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBuf
       me->uError = Nesting_Increment(&(me->nesting));
    }
 #else
-   Nesting_Increment(&(me->nesting));
+   (void)Nesting_Increment(&(me->nesting));
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
@@ -612,7 +604,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
       me->uError = Nesting_Increment(&(me->nesting));
    }
 #else
-   Nesting_Increment(&(me->nesting));
+   (void)Nesting_Increment(&(me->nesting));
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
@@ -837,7 +829,7 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t
 #endif
 
    // Append the break marker (0xff for both arrays and maps)
-   AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, CBOR_SIMPLE_BREAK, 0);
+   AppendCBORHead(me, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
    Nesting_Decrease(&(me->nesting));
 }
 
