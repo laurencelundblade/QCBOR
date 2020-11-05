@@ -16,10 +16,10 @@
 
 # ---- QCBOR location ----
 # Adjust this to the location of QCBOR in your build environment
-#QCBOR_INC= -I ../../QCBOR/master/inc
-#QCBOR_LIB=../../QCBOR/master/libqcbor.a
-QCBOR_INC= -I/usr/include -I/usr/local/include
-QCBOR_LIB= -l qcbor
+QCBOR_INC= -I ../../QCBOR/master/inc
+QCBOR_LIB=../../QCBOR/master/libqcbor.a
+#QCBOR_INC= -I/usr/include -I/usr/local/include
+#QCBOR_LIB= -l qcbor
 
 
 # ---- crypto configuration -----
@@ -35,11 +35,6 @@ CRYPTO_TEST_OBJ=
 # Optimize for size
 C_OPTS=-Os -fPIC
 
-# The following are used before a release of t_cose help make sure the code
-# compiles and runs in the most strict environments, but not all compilers
-# support them so they are not turned on
-#C_OPTS=-Os -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -xc -std=c99
-
 
 # ---- T_COSE Config and test options ----
 TEST_CONFIG_OPTS=-DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS
@@ -49,7 +44,7 @@ TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_make_test_messages.o $(
 # ---- the main body that is invariant ----
 INC=-I inc -I test -I src
 ALL_INC=$(CRYPTO_INC) $(QCBOR_INC) $(INC) 
-CFLAGS=$(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
+CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
 
 SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o
 

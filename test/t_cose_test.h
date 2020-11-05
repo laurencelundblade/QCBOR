@@ -125,4 +125,10 @@ int_fast32_t short_circuit_hash_fail_test(void);
 #endif /* T_COSE_ENABLE_HASH_FAIL_TEST*/
 
 
+
+/*
+ * Test tagging of COSE message
+ */
+int_fast32_t tags_test(void);
+
 #endif /* t_cose_test_h */

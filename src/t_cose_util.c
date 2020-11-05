@@ -60,6 +60,14 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
                       struct q_useful_buf_c      bstr)
 {
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   buffer_for_encoded                             9           9
+     *   useful_buf                                    16           8
+     *   hash function (a guess! variable!)        16-512      16-512
+     *   TOTAL                                     41-537      23-529
+     */
+
     /* make a struct q_useful_buf on the stack of size QCBOR_HEAD_BUFFER_SIZE */
     Q_USEFUL_BUF_MAKE_STACK_UB (buffer_for_encoded_head, QCBOR_HEAD_BUFFER_SIZE);
     struct q_useful_buf_c       encoded_head;
@@ -105,10 +113,12 @@ enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
                                   struct q_useful_buf    buffer_for_hash,
                                   struct q_useful_buf_c *hash)
 {
-    /* approximate stack use on 32-bit machine:
-     *    210 bytes for all but hash context
-     *    8 to 224 of hash context depending on hash implementation
-     *    220 to 434 bytes total
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                     8           6
+     *   hash_ctx                                   8-224       8-224
+     *   hash function (a guess! variable!)        16-512      16-512
+     *   TOTAL                                     32-748      30-746
      */
     enum t_cose_err_t           return_value;
     struct t_cose_crypto_hash   hash_ctx;

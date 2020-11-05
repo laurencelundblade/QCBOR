@@ -10,6 +10,9 @@
               Algorithm specification can be found here:
                * http://csrc.nist.gov/publications/fips/fips180-2/fips180-2withchangenotice.pdf
               This implementation uses little endian byte order.
+
+ * Copyright  Laurence Lundblade 2020 for addition of casts so it
+              compiles without warnings with pendantic compilers settings.
 *********************************************************************/
 
 /*************************** HEADER FILES ***************************/
@@ -46,7 +49,7 @@ void sha256_transform(SHA256_CTX *ctx, const BYTE data[])
 	WORD a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
 
 	for (i = 0, j = 0; i < 16; ++i, j += 4)
-		m[i] = (data[j] << 24) | (data[j + 1] << 16) | (data[j + 2] << 8) | (data[j + 3]);
+		m[i] = (WORD)((data[j] << 24) | (data[j + 1] << 16) | (data[j + 2] << 8) | (data[j + 3]));
 	for ( ; i < 64; ++i)
 		m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
 
@@ -133,14 +136,14 @@ void sha256_final(SHA256_CTX *ctx, BYTE hash[])
 
 	// Append to the padding the total message's length in bits and transform.
 	ctx->bitlen += ctx->datalen * 8;
-	ctx->data[63] = ctx->bitlen;
-	ctx->data[62] = ctx->bitlen >> 8;
-	ctx->data[61] = ctx->bitlen >> 16;
-	ctx->data[60] = ctx->bitlen >> 24;
-	ctx->data[59] = ctx->bitlen >> 32;
-	ctx->data[58] = ctx->bitlen >> 40;
-	ctx->data[57] = ctx->bitlen >> 48;
-	ctx->data[56] = ctx->bitlen >> 56;
+	ctx->data[63] = (BYTE)(ctx->bitlen);
+	ctx->data[62] = (BYTE)(ctx->bitlen >> 8);
+	ctx->data[61] = (BYTE)(ctx->bitlen >> 16);
+	ctx->data[60] = (BYTE)(ctx->bitlen >> 24);
+	ctx->data[59] = (BYTE)(ctx->bitlen >> 32);
+	ctx->data[58] = (BYTE)(ctx->bitlen >> 40);
+	ctx->data[57] = (BYTE)(ctx->bitlen >> 48);
+	ctx->data[56] = (BYTE)(ctx->bitlen >> 56);
 	sha256_transform(ctx, ctx->data);
 
 	// Since this implementation uses little endian byte ordering and SHA uses big endian,

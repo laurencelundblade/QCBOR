@@ -71,9 +71,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * \param[in] cose_algorithm_id     The COSE signing algorithm ID. Used to
  *                                  determine which hash function to use.
  * \param[in] protected_parameters  Full, CBOR encoded, protected parameters.
- * \param[in] payload               The CBOR encoded payload. It may or may
- *                                  not have a wrapping bstr per
- *                                  \c payload_mode.
+ * \param[in] payload               The CBOR-encoded payload.
  * \param[in] buffer_for_hash       Pointer and length of buffer into which
  *                                  the resulting hash is put.
  * \param[out] hash                 Pointer and length of the

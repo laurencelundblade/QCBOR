@@ -139,8 +139,11 @@ static inline struct q_useful_buf_c
 encode_protected_parameters(int32_t             cose_algorithm_id,
                             QCBOREncodeContext *cbor_encode_ctx)
 {
-    /* approximate stack use on 32-bit machine:
-     *   local use: 16
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    16           8
+     *   QCBOR   (guess)                               32          24
+     *   TOTAL                                         48          32
      */
     struct q_useful_buf_c protected_parameters;
 
@@ -174,6 +177,12 @@ add_unprotected_parameters(const struct t_cose_sign1_sign_ctx *me,
                            const struct q_useful_buf_c         kid,
                            QCBOREncodeContext                 *cbor_encode_ctx)
 {
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   QCBOR   (guess)                               32          24
+     *   TOTAL                                         32          24
+     */
+
     QCBOREncode_OpenMap(cbor_encode_ctx);
 
     if(!q_useful_buf_c_is_null_or_empty(kid)) {
@@ -218,10 +227,12 @@ enum t_cose_err_t
 t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *me,
                                QCBOREncodeContext           *cbor_encode_ctx)
 {
-    /* approximate stack use on 32-bit machine:
-     *    48 bytes local use
-     *   168 call to make_protected
-     *   216 total
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    28          16
+     *   QCBOR   (guess)                               32          24
+     *   max(encode_protected, add_unprotected)        48          32
+     *   TOTAL                                        108          72
      */
     enum t_cose_err_t      return_value;
     struct q_useful_buf_c  kid;
@@ -288,13 +299,16 @@ enum t_cose_err_t
 t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
                               QCBOREncodeContext           *cbor_encode_ctx)
 {
-    /* approximate stack use on 32-bit machine:
-     *   32 bytes local use
-     *   220 to 434 for calls depending on hash implementation
-     *   32 to 64 bytes depending on hash alg (SHA256, 384 or 512)
-     *   64 to 260 depending on EC alg
-     *   348 to 778 total depending on hash and EC alg
-     *   Also add stack use by EC and hash functions
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    64          32
+     *   hash buffer (varies by hashes enabled)     32-64       32-64
+     *   signature buffer (varies by EC key size)  64-132      64-132
+     *   QCBOR   (guess)                               32          24
+     *   max(create_tbs_hash, pub_key_sign)
+     *    32-748 ; 30-746
+     *    64-1024 (wild guess about crypto)       64-1024      64-1024
+     *   TOTAL                                   224-1316     216-1276
      */
     enum t_cose_err_t            return_value;
     QCBORError                   cbor_err;
@@ -354,8 +368,9 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
          * with. The hash of the TBS bytes is what is signed. A buffer
          * in which to place the signature is passed in and the
          * signature is returned.
-         *
-         * Short-circuit signing is invoked if requested. It does no
+         */
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+        /* Short-circuit signing is invoked if requested. It does no
          * public key operation and requires no key. It is just a test
          * mode that works even if no public key algorithm is
          * integrated.
@@ -368,14 +383,19 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
                                                       buffer_for_signature,
                                                       &signature);
         } else {
-    #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
             /* Short-circuit signing */
             return_value = short_circuit_sign(me->cose_algorithm_id,
                                               tbs_hash,
                                               buffer_for_signature,
                                               &signature);
-    #endif
         }
+#else /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
+        return_value = t_cose_crypto_pub_key_sign(me->cose_algorithm_id,
+                                                  me->signing_key,
+                                                  tbs_hash,
+                                                  buffer_for_signature,
+                                                  &signature);
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
         if(return_value) {
             goto Done;
@@ -404,6 +424,14 @@ t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *me,
                   struct q_useful_buf           out_buf,
                   struct q_useful_buf_c        *result)
 {
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                     8           4
+     *   encode context                               168         148
+     *   QCBOR   (guess)                               32          24
+     *   max(encode_param, encode_signature)     224-1316    216-1024
+     *   TOTAL                                   432-1524    392-1300
+     */
     QCBOREncodeContext  encode_context;
     enum t_cose_err_t   return_value;
 

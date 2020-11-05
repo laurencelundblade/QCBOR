@@ -591,39 +591,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
 }
 
 
-
-#ifdef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-/* copied from t_cose_util.c so these tests that depend on
- * short circuit signatures can run even when it is
- * is disabled.  TODO: is this dependency real?*/
-
-/* This is a random hard coded key ID that is used to indicate
- * short-circuit signing. It is OK to hard code this as the
- * probability of collision with this ID is very low and the same
- * as for collision between any two key IDs of any sort.
- */
-
-static const uint8_t defined_short_circuit_kid[] = {
-    0xef, 0x95, 0x4b, 0x4b, 0xd9, 0xbd, 0xf6, 0x70,
-    0xd0, 0x33, 0x60, 0x82, 0xf5, 0xef, 0x15, 0x2a,
-    0xf8, 0xf3, 0x5b, 0x6a, 0x6c, 0x00, 0xef, 0xa6,
-    0xa9, 0xa7, 0x1f, 0x49, 0x51, 0x7e, 0x18, 0xc6};
-
-static struct q_useful_buf_c ss_kid;
-
-
-/*
- * Public function. See t_cose_util.h
- */
-static struct q_useful_buf_c get_short_circuit_kid(void)
-{
-    ss_kid.len = sizeof(defined_short_circuit_kid);
-    ss_kid.ptr = defined_short_circuit_kid;
-
-    return ss_kid;
-}
-#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 int_fast32_t all_header_parameters_test()
 {
     enum t_cose_err_t               result;
@@ -681,16 +649,19 @@ int_fast32_t all_header_parameters_test()
     }
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
-    if(q_useful_buf_compare(parameters.iv, Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"))) {
+    if(q_useful_buf_compare(parameters.iv,
+                            Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"))) {
         return 5;
     }
 
-    if(q_useful_buf_compare(parameters.partial_iv, Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"))) {
+    if(q_useful_buf_compare(parameters.partial_iv,
+                            Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"))) {
         return 6;
     }
 
     return 0;
 }
+#endif
 
 struct test_case {
     uint32_t           test_option;
@@ -701,13 +672,14 @@ static struct test_case bad_parameters_tests_table[] = {
 
     {T_COSE_TEST_EMPTY_PROTECTED_PARAMETERS, T_COSE_ERR_UNSUPPORTED_HASH},
 
+    {T_COSE_TEST_UNCLOSED_PROTECTED, T_COSE_ERR_PARAMETER_CBOR},
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
     {T_COSE_TEST_DUP_CONTENT_ID, T_COSE_ERR_DUPLICATE_PARAMETER},
 
-    {T_COSE_TEST_UNCLOSED_PROTECTED, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
-
     {T_COSE_TEST_TOO_LARGE_CONTENT_TYPE, T_COSE_ERR_BAD_CONTENT_TYPE},
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
-    /* This makes consume_item() error out */
     {T_COSE_TEST_NOT_WELL_FORMED_2, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
 
     {T_COSE_TEST_KID_IN_PROTECTED, T_COSE_ERR_DUPLICATE_PARAMETER},
@@ -716,15 +688,13 @@ static struct test_case bad_parameters_tests_table[] = {
 
     {T_COSE_TEST_UNPROTECTED_NOT_MAP, T_COSE_ERR_PARAMETER_CBOR},
 
-    {T_COSE_TEST_BAD_CRIT_PARAMETER, T_COSE_ERR_PARAMETER_NOT_PROTECTED},
-
-    {T_COSE_TEST_BAD_CRIT_PARAMETER, T_COSE_ERR_PARAMETER_NOT_PROTECTED},
+    {T_COSE_TEST_BAD_CRIT_PARAMETER, T_COSE_ERR_CRIT_PARAMETER},
 
     {T_COSE_TEST_NOT_WELL_FORMED_1, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
 
     {T_COSE_TEST_NO_UNPROTECTED_PARAMETERS, T_COSE_ERR_PARAMETER_CBOR},
 
-    {T_COSE_TEST_NO_PROTECTED_PARAMETERS, T_COSE_ERR_SIGN1_FORMAT},
+    {T_COSE_TEST_NO_PROTECTED_PARAMETERS, T_COSE_ERR_PARAMETER_CBOR},
 
     {T_COSE_TEST_EXTRA_PARAMETER, T_COSE_SUCCESS},
 
@@ -807,13 +777,12 @@ int_fast32_t crit_parameters_test()
 }
 
 
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
 /*
  * Public function, see t_cose_test.h
  */
 int_fast32_t content_type_test()
 {
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-
     struct t_cose_parameters        parameters;
     struct t_cose_sign1_sign_ctx    sign_ctx;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
@@ -899,10 +868,9 @@ int_fast32_t content_type_test()
     if(result != T_COSE_ERR_DUPLICATE_PARAMETER) {
         return 1;
     }
-#endif
     return 0;
-
 }
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
 
 struct sign1_sample {
@@ -911,26 +879,26 @@ struct sign1_sample {
 };
 
 static struct sign1_sample sign1_sample_inputs[] = {
-    /* With an indefinite length string payload */
+    /* 0. With an indefinite length string payload */
     { {(uint8_t[]){0x84, 0x40, 0xa0, 0x5f, 0x00, 0xff, 0x40}, 7}, T_COSE_ERR_SIGN1_FORMAT},
-    /* Too few items in unprotected header parameters bucket */
+    /* 1. Too few items in unprotected header parameters bucket */
     { {(uint8_t[]){0x84, 0x40, 0xa3, 0x40, 0x40}, 5}, T_COSE_ERR_PARAMETER_CBOR},
-    /* Too few items in definite array */
+    /* 2. Too few items in definite array */
     { {(uint8_t[]){0x83, 0x40, 0xa0, 0x40}, 4}, T_COSE_ERR_SIGN1_FORMAT},
-    /* Too-long signature */
-    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x4f}, 5}, T_COSE_ERR_SIGN1_FORMAT},
-    /* Too-long payload */
-    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x4f, 0x40}, 5}, T_COSE_ERR_SIGN1_FORMAT},
-    /* Too-long protected parameters bucket */
-    { {(uint8_t[]){0x84, 0x4f, 0xa0, 0x40, 0x40}, 5}, T_COSE_ERR_SIGN1_FORMAT},
-    /* Unterminated indefinite length */
-    { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40}, 6}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
-    /* The smallest legal COSE_Sign1 using indefinite lengths */
+    /* 3. Too-long signature */
+    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x4f}, 5}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
+    /* 4. Too-long payload */
+    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x4f, 0x40}, 5}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
+    /* 5. Too-long protected parameters bucket */
+    { {(uint8_t[]){0x84, 0x4f, 0xa0, 0x40, 0x40}, 5}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
+    /* 6. Unterminated indefinite length */
+    { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40}, 6}, T_COSE_ERR_SIGN1_FORMAT},
+    /* 7. The smallest legal COSE_Sign1 using indefinite lengths */
     { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40, 0xff}, 7}, T_COSE_SUCCESS},
-    /* The smallest legal COSE_Sign1 using definite lengths */
+    /* 8. The smallest legal COSE_Sign1 using definite lengths */
     { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x40}, 5}, T_COSE_SUCCESS},
-    /* Just one not-well-formed byte -- a reserved value */
-    { {(uint8_t[]){0x3c}, 1}, T_COSE_ERR_SIGN1_FORMAT },
+    /* 9. Just one not-well-formed byte -- a reserved value */
+    { {(uint8_t[]){0x3c}, 1}, T_COSE_ERR_CBOR_NOT_WELL_FORMED },
     /* terminate the list */
     { {NULL, 0}, 0 },
 };
@@ -950,14 +918,14 @@ int_fast32_t sign1_structure_decode_test(void)
     for(sample = sign1_sample_inputs; !q_useful_buf_c_is_null(sample->CBOR); sample++) {
         t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
 
-
         result = t_cose_sign1_verify(&verify_ctx,
                                       sample->CBOR,
                                      &payload,
                                       NULL);
+
         if(result != sample->expected_error) {
             /* Returns 100 * index of the input + the unexpected error code */
-            const size_t sample_index = (size_t)(sample - sign1_sample_inputs) / sizeof(struct sign1_sample);
+            const size_t sample_index = (size_t)(sample - sign1_sample_inputs);
             return (int32_t)((sample_index+1)*100 + result);
         }
     }
@@ -1036,3 +1004,346 @@ int_fast32_t short_circuit_hash_fail_test()
 }
 
 #endif /* T_COSE_ENABLE_HASH_FAIL_TEST */
+
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t tags_test()
+{
+    struct t_cose_sign1_sign_ctx    sign_ctx;
+    struct t_cose_sign1_verify_ctx  verify_ctx;
+    QCBOREncodeContext              cbor_encode;
+    enum t_cose_err_t               result;
+    Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
+    struct q_useful_buf_c           signed_cose;
+    struct q_useful_buf_c           payload;
+    QCBORError                      cbor_error;
+    uint64_t                        tag;
+
+    /* --- Start making COSE Sign1 object tagged 900(901(18())) --- */
+
+    /* The CBOR encoder instance that the COSE_Sign1 is output into */
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    QCBOREncode_AddTag(&cbor_encode, 900);
+
+    QCBOREncode_AddTag(&cbor_encode, 901);
+
+    t_cose_sign1_sign_init(&sign_ctx,
+                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                           T_COSE_ALGORITHM_ES256);
+
+    /* Do the first part of the the COSE_Sign1, the parameters */
+    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 1000 + (int32_t)result;
+    }
+
+    QCBOREncode_OpenMap(&cbor_encode);
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 2, "erikw");
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 3, "coap://light.example.com");
+    QCBOREncode_AddInt64ToMapN(&cbor_encode, 4, 1444064944);
+    QCBOREncode_AddInt64ToMapN(&cbor_encode, 5, 1443944944);
+    QCBOREncode_AddInt64ToMapN(&cbor_encode, 6, 1443944944);
+    const uint8_t xx[] = {0x0b, 0x71};
+    QCBOREncode_AddBytesToMapN(&cbor_encode, 7, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xx));
+    QCBOREncode_CloseMap(&cbor_encode);
+
+    /* Finish up the COSE_Sign1. This is where the signing happens */
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 2000 + (int32_t)result;
+    }
+
+    /* Finally close off the CBOR formatting and get the pointer and length
+     * of the resulting COSE_Sign1
+     */
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
+    if(cbor_error) {
+        return 3000 + (int32_t)cbor_error;
+    }
+    /* --- Done making COSE Sign1 object tagged 900(901(18(0))) --- */
+
+
+    /* --- Compare to expected from CWT RFC --- */
+    /* The first part, the intro and protected pararameters must be the same */
+    const uint8_t cwt_first_part_bytes[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85, 0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26};
+    struct q_useful_buf_c fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cwt_first_part_bytes);
+    struct q_useful_buf_c head = q_useful_buf_head(signed_cose, sizeof(cwt_first_part_bytes));
+    if(q_useful_buf_compare(head, fp)) {
+        return -1;
+    }
+
+    /* Skip the key id, because this has the short-circuit key id */
+    const size_t kid_encoded_len =
+    1 +
+    1 +
+    2 +
+    32; // length of short-circuit key id
+
+    /* Compare the payload */
+    const uint8_t rfc8392_payload_bytes[] = {
+        0x58, 0x50, 0xa7, 0x01, 0x75, 0x63, 0x6f, 0x61, 0x70, 0x3a, 0x2f,
+        0x2f, 0x61, 0x73, 0x2e, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65,
+        0x2e, 0x63, 0x6f, 0x6d, 0x02, 0x65, 0x65, 0x72, 0x69, 0x6b, 0x77,
+        0x03, 0x78, 0x18, 0x63, 0x6f, 0x61, 0x70, 0x3a, 0x2f, 0x2f, 0x6c,
+        0x69, 0x67, 0x68, 0x74, 0x2e, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c,
+        0x65, 0x2e, 0x63, 0x6f, 0x6d, 0x04, 0x1a, 0x56, 0x12, 0xae, 0xb0,
+        0x05, 0x1a, 0x56, 0x10, 0xd9, 0xf0, 0x06, 0x1a, 0x56, 0x10, 0xd9,
+        0xf0, 0x07, 0x42, 0x0b, 0x71};
+
+    struct q_useful_buf_c fp2 = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_payload_bytes);
+
+    struct q_useful_buf_c payload2 = q_useful_buf_tail(signed_cose,
+                                                       sizeof(cwt_first_part_bytes)+kid_encoded_len);
+    struct q_useful_buf_c pl3 = q_useful_buf_head(payload2,
+                                                  sizeof(rfc8392_payload_bytes));
+    if(q_useful_buf_compare(pl3, fp2)) {
+        return -2;
+    }
+
+    /* Skip the signature because ECDSA signatures usually have a random
+     component */
+
+
+    /* --- Start verifying the COSE Sign1 object  --- */
+    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result) {
+        return 4000 + (int32_t)result;
+    }
+
+    tag = t_cose_sign1_get_nth_tag(&verify_ctx, 0);
+    if(tag != 901) {
+        return -3;
+    }
+
+    tag = t_cose_sign1_get_nth_tag(&verify_ctx, 1);
+    if(tag != 900) {
+        return -3;
+    }
+
+    tag = t_cose_sign1_get_nth_tag(&verify_ctx, 2);
+    if(tag != CBOR_TAG_INVALID64) {
+        return -4;
+    }
+
+    /* compare payload output to the one expected */
+    if(q_useful_buf_compare(payload, q_useful_buf_tail(fp2, 2))) {
+        return 5000;
+    }
+    /* --- Done verifying the COSE Sign1 object  --- */
+
+
+    /* --- Start verifying the COSE Sign1 object, requiring tag--- */
+    t_cose_sign1_verify_init(&verify_ctx,
+                             T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_REQUIRED);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result != T_COSE_SUCCESS) {
+        return 4000 + (int32_t)result;
+    }
+
+    /* --- Done verifying the COSE Sign1 object  --- */
+
+
+
+    /* --- Start verifying the COSE Sign1 object, prohibiting tag--- */
+    t_cose_sign1_verify_init(&verify_ctx,
+                             T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_PROHIBITED);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result != T_COSE_ERR_INCORRECTLY_TAGGED) {
+        return 4000 + (int32_t)result;
+    }
+
+    /* --- Done verifying the COSE Sign1 object  --- */
+
+
+
+    /* --- Start making COSE Sign1 object  --- */
+
+    /* The CBOR encoder instance that the COSE_Sign1 is output into */
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    QCBOREncode_AddTag(&cbor_encode, 900);
+    QCBOREncode_AddTag(&cbor_encode, 901);
+    QCBOREncode_AddTag(&cbor_encode, 902);
+    QCBOREncode_AddTag(&cbor_encode, 903);
+    QCBOREncode_AddTag(&cbor_encode, 904);
+
+    t_cose_sign1_sign_init(&sign_ctx,
+                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                           T_COSE_ALGORITHM_ES256);
+
+    /* Do the first part of the the COSE_Sign1, the parameters */
+    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 1000 + (int32_t)result;
+    }
+
+    QCBOREncode_OpenMap(&cbor_encode);
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
+    QCBOREncode_CloseMap(&cbor_encode);
+
+    /* Finish up the COSE_Sign1. This is where the signing happens */
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 2000 + (int32_t)result;
+    }
+
+    /* Finally close off the CBOR formatting and get the pointer and length
+     * of the resulting COSE_Sign1
+     */
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
+    if(cbor_error) {
+        return 3000 + (int32_t)cbor_error;
+    }
+    /* --- Done making COSE Sign1 object  --- */
+
+    /* --- Start verifying the COSE Sign1 object  --- */
+    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result != T_COSE_ERR_TOO_MANY_TAGS) {
+        return 4000 + (int32_t)result;
+    }
+
+
+
+    /* --- Start making COSE Sign1 object tagged 900(901()) --- */
+
+    /* The CBOR encoder instance that the COSE_Sign1 is output into */
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    QCBOREncode_AddTag(&cbor_encode, 900);
+
+    QCBOREncode_AddTag(&cbor_encode, 901);
+
+    t_cose_sign1_sign_init(&sign_ctx,
+                           T_COSE_OPT_SHORT_CIRCUIT_SIG | T_COSE_OPT_OMIT_CBOR_TAG,
+                           T_COSE_ALGORITHM_ES256);
+
+    /* Do the first part of the the COSE_Sign1, the parameters */
+    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 1000 + (int32_t)result;
+    }
+
+    QCBOREncode_OpenMap(&cbor_encode);
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 1, "coap://as.example.com");
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 2, "erikw");
+    QCBOREncode_AddSZStringToMapN(&cbor_encode, 3, "coap://light.example.com");
+    QCBOREncode_AddInt64ToMapN(&cbor_encode, 4, 1444064944);
+    QCBOREncode_AddInt64ToMapN(&cbor_encode, 5, 1443944944);
+    QCBOREncode_AddInt64ToMapN(&cbor_encode, 6, 1443944944);
+    const uint8_t xxy[] = {0x0b, 0x71};
+    QCBOREncode_AddBytesToMapN(&cbor_encode, 7, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xxy));
+    QCBOREncode_CloseMap(&cbor_encode);
+
+    /* Finish up the COSE_Sign1. This is where the signing happens */
+    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(result) {
+        return 2000 + (int32_t)result;
+    }
+
+    /* Finally close off the CBOR formatting and get the pointer and length
+     * of the resulting COSE_Sign1
+     */
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
+    if(cbor_error) {
+        return 3000 + (int32_t)cbor_error;
+    }
+    /* --- Done making COSE Sign1 object tagged 900(901(18(0))) --- */
+
+
+
+    /* --- Compare to expected from CWT RFC --- */
+    /* The first part, the intro and protected pararameters must be the same */
+    const uint8_t cwt_first_part_bytes1[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85, 0x84, 0x43, 0xa1, 0x01, 0x26};
+    struct q_useful_buf_c fp1 = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cwt_first_part_bytes1);
+    struct q_useful_buf_c head1 = q_useful_buf_head(signed_cose, sizeof(cwt_first_part_bytes1));
+    if(q_useful_buf_compare(head1, fp1)) {
+        return -1;
+    }
+
+    /* --- Start verifying the COSE Sign1 object, requiring tag--- */
+    t_cose_sign1_verify_init(&verify_ctx,
+                             T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_REQUIRED);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result != T_COSE_ERR_INCORRECTLY_TAGGED) {
+        return 4000 + (int32_t)result;
+    }
+
+
+    /* --- Start verifying the COSE Sign1 object, prohibiting tag--- */
+    t_cose_sign1_verify_init(&verify_ctx,
+                             T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_PROHIBITED);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result != T_COSE_SUCCESS) {
+        return 4000 + (int32_t)result;
+    }
+
+    /* --- Done verifying the COSE Sign1 object  --- */
+
+    return 0;
+}

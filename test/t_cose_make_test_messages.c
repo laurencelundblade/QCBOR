@@ -309,9 +309,15 @@ add_unprotected_parameters(uint32_t              test_message_options,
         QCBOREncode_OpenArrayInMapN(cbor_encode_ctx, 55);
         QCBOREncode_OpenMap(cbor_encode_ctx);
         QCBOREncode_AddSZStringToMapN(cbor_encode_ctx, 66, "hi");
-        /* '=' is 0x3d a reserved initial byte and thus not-well-formed */
+        /* 0xff is a break outside of anything indefinite and thus
+         * not-well-formed, This test used to use a 0x3d before
+         * spiffy decode, but spiffy decode can traverse that
+         * without error because it is not an
+         * QCBORDecode_IsUnrecoverableError().
+         * Improvement: add a test case for the 3d error back in
+         */
         QCBOREncode_AddEncoded(cbor_encode_ctx,
-                               Q_USEFUL_BUF_FROM_SZ_LITERAL("="));
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("\xff"));
         QCBOREncode_AddSZStringToMapN(cbor_encode_ctx, 67, "bye");
 
         QCBOREncode_CloseMap(cbor_encode_ctx);

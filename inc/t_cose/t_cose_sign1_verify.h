@@ -1,7 +1,7 @@
 /*
  *  t_cose_sign1_verify.h
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -15,9 +15,17 @@
 #include <stdint.h>
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
+#include "qcbor/qcbor_common.h"
 
 #ifdef __cplusplus
 extern "C" {
+#if 0
+} // Keep editor indention formatting happy
+#endif
+#endif
+
+#ifndef QCBOR_SPIFFY_DECODE
+#error This version of t_cose requires a version of QCBOR that supports spiffy decode
 #endif
 
 /**
@@ -53,7 +61,8 @@ extern "C" {
 
 /**
  * The result of parsing a set of COSE header parameters. The pointers
- * are all back into the \c COSE_Sign1 blob passed in.
+ * are all back into the \c COSE_Sign1 blob passed in to
+ * t_cose_sign1_verify() as the \c sign1 parameter.
  *
  * Approximate size on a 64-bit machine is 80 bytes and on a 32-bit
  * machine is 40.
@@ -66,19 +75,24 @@ struct t_cose_parameters {
      * for the algorithms corresponding to the integer values.
      */
     int32_t               cose_algorithm_id;
+
     /** The COSE key ID. \c NULL_Q_USEFUL_BUF_C if parameter is not
      * present */
     struct q_useful_buf_c kid;
+
     /** The initialization vector. \c NULL_Q_USEFUL_BUF_C if parameter
      * is not present */
     struct q_useful_buf_c iv;
+
     /** The partial initialization vector. \c NULL_Q_USEFUL_BUF_C if
      * parameter is not present */
     struct q_useful_buf_c partial_iv;
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
     /** The content type as a MIME type like
      * "text/plain". \c NULL_Q_USEFUL_BUF_C if parameter is not present */
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
     struct q_useful_buf_c content_type_tstr;
+    
     /** The content type as a CoAP Content-Format
      * integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if parameter is not
      * present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
@@ -120,9 +134,29 @@ struct t_cose_parameters {
  * Normally this will decode the CBOR presented as a \c COSE_Sign1
  * message whether it is tagged using QCBOR tagging as such or not.
  * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
- * returned if it is not tagged.
+ * returned if it is not a \ref CBOR_TAG_COSE_SIGN1 tag.
+ *
+ * See also \ref T_COSE_OPT_TAG_PROHIBITED. If neither this or
+ * \ref T_COSE_OPT_TAG_PROHIBITED is set then the content can
+ * either be COSE message (COSE_Sign1 CDDL from RFC 8152) or
+ * a COSESign1 tagg (COSE_Sign1_Tagged from RFC 8152).
+ *
+ * See t_cose_sign1_get_nth_tag() to get further tags that enclose
+ * the COSE message.
  */
 #define T_COSE_OPT_TAG_REQUIRED  0x00000004
+
+
+/**
+ * Normally this will decode the CBOR presented as a \c COSE_Sign1
+ * message whether it is tagged using QCBOR tagging as such or not.
+ * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
+ * returned if a \ref CBOR_TAG_COSE_SIGN1 tag. When this option is set the caller
+ * knows for certain that a COSE signed message is expected.
+ *
+ * See discussion on @ref T_COSE_OPT_TAG_REQUIRED.
+ */
+#define T_COSE_OPT_TAG_PROHIBITED  0x00000010
 
 
 /**
@@ -143,15 +177,24 @@ struct t_cose_parameters {
 #define T_COSE_OPT_DECODE_ONLY  0x00000008
 
 
+/**
+ * The maximum number of unprocessed tags that can be returned by
+ * t_cose_sign1_get_nth_tag(). The CWT
+ * tag is an example of the tags that might returned. The COSE tags
+ * that are processed, don't count here.
+ */
+#define T_COSE_MAX_TAGS_TO_RETURN 4
+
 
 /**
- * Context for signature verification.  It is about 24 bytes on a
- * 64-bit machine and 12 bytes on a 32-bit machine.
+ * Context for signature verification.  It is about 56 bytes on a
+ * 64-bit machine and 42 bytes on a 32-bit machine.
  */
 struct t_cose_sign1_verify_ctx {
     /* Private data structure */
     struct t_cose_key     verification_key;
     uint32_t              option_flags;
+    uint64_t              auTags[T_COSE_MAX_TAGS_TO_RETURN];
 };
 
 
@@ -171,6 +214,7 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
 /**
  * \brief Set key for \c COSE_Sign1 message verification.
  *
+ * \param[in,out] context   The t_cose signature verification context.
  * \param[in] verification_key  The verification key to use.
  *
  * There are four main ways that the verification key is found and
@@ -223,6 +267,7 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
 /**
  * \brief Verify a COSE_Sign1
  *
+ * \param[in,out] context   The t_cose signature verification context.
  * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          message that is to be verified.
  * \param[out] payload      Pointer and length of the payload.
@@ -274,6 +319,30 @@ enum t_cose_err_t t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
 
 
 
+/**
+ * \brief Return unprocessed tags from most recent signature verify.
+ *
+ * \param[in] context   The t_cose signature verification context.
+ * \param[in] n         Index of the tag to return.
+ *
+ * \return  The tag value or \ref CBOR_TAG_INVALID64 if there is no tag
+ *          at the index or the index is too large.
+ *
+ * The 0th tag is the one for which the COSE message is the content. Loop
+ * from 0 up until \ref CBOR_TAG_INVALID64 is returned. The maximum
+ * is \ref T_COSE_MAX_TAGS_TO_RETURN.
+ *
+ * It will be necessary to call this for a general implementation
+ * of a CWT since sometimes the CWT tag is required. This is also
+ * needed for recursive processing of nested COSE signing and/or
+ * encryption.
+ */
+static uint64_t
+t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
+                        size_t                                 n);
+
+
+
 
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
@@ -292,6 +361,17 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
                                   struct t_cose_key               verification_key)
 {
     me->verification_key = verification_key;
+}
+
+
+static inline uint64_t
+t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
+                         size_t n)
+{
+    if(n > T_COSE_MAX_TAGS_TO_RETURN) {
+        return CBOR_TAG_INVALID64;
+    }
+    return context->auTags[n];
 }
 
 

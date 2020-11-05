@@ -1,7 +1,7 @@
 /*
  * t_cose_parameters.h
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2020, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -17,6 +17,8 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 #include "qcbor/qcbor.h"
+
+
 
 
 /**
@@ -62,127 +64,52 @@ struct t_cose_label_list {
  *
  * \param[in,out] list The list to clear.
  */
-static void
-clear_label_list(struct t_cose_label_list *list);
-
-
-/**
- * \brief Indicate whether label list is clear or not.
- *
- * \param[in,out] list  The list to check.
- *
- * \return true if the list is clear.
- */
-static bool
-is_label_list_clear(const struct t_cose_label_list *list);
-
-
-/**
- * \brief Check the unknown parameters against the critical labels list.
- *
- * \param[in] critical_labels  The list of critical labels.
- * \param[in] unknown_labels   The parameter labels that occurred.
- *
- * \retval T_COSE_SUCCESS                         None of the unknown labels
- *                                                are critical.
- * \retval T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER  At least one of the unknown
- *                                                labels is critical.
- *
- * Both lists are of parameter labels (CBOR keys). Check to see that none of
- * the parameter labels in the unknown list occur in the critical list.
- * If there is an intersection between the two lists this returns
- * \ref T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER.
- */
-enum t_cose_err_t
-check_critical_labels(const struct t_cose_label_list *critical_labels,
-                      const struct t_cose_label_list *unknown_labels);
-
-
-
-/**
- * \brief Parse the unprotected COSE header parameters.
- *
- * \param[in] decode_context        Decode context to read the parameters from.
- * \param[out] returned_parameters  The parsed parameters.
- *
- * \returns The same as parse_cose_header_parameters().
- *
- * No parameters are mandatory. Which parameters were present or not is
- * indicated in \c returned_parameters.  It is OK for there to be no
- * parameters at all.
- *
- * The first item to be read from the decode_context must be the map
- * data item that contains the parameters.
- */
-enum t_cose_err_t
-parse_unprotected_header_parameters(QCBORDecodeContext       *decode_context,
-                                    struct t_cose_parameters *returned_parameters,
-                                    struct t_cose_label_list *unknown);
-
-
-/**
- * \brief Parse the protected header parameters.
- *
- * \param[in] protected_parameters  Pointer and length of CBOR-encoded
- *                                  protected parameters to parse.
- * \param[out] returned_parameters  The parsed parameters that are returned.
- *
- * \retval T_COSE_SUCCESS                  Protected parameters were parsed.
- * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED The CBOR formatting of the protected
- *                                         parameters is unparsable.
- *
- * This parses the contents of the protected header parameters after the bstr
- * wrapping is removed.
- *
- * This will error out if the CBOR is not well-formed, the protected
- * header parameters are not a map, the algorithm ID is not found, or the
- * algorithm ID is larger than \c INT32_MAX or smaller than \c
- * INT32_MIN.
- */
-enum t_cose_err_t
-parse_protected_header_parameters(const struct q_useful_buf_c protected_parameters,
-                                  struct t_cose_parameters   *returned_parameters,
-                                  struct t_cose_label_list   *critical,
-                                  struct t_cose_label_list   *unknown);
-
-
-/**
- * \brief Copy and combine protected and unprotected parameters.
- *
- * \param[in] protected             The protected header parameters to copy.
- * \param[in] unprotected           The unprotected header parameters to copy.
- * \param[out] returned_parameters  Destination for copy.
- *
- * \retval T_COSE_ERR_DUPLICATE_PARAMETER  If the same parameter occurs in both
- *                                         protected and unprotected.
- * \retval T_COSE_SUCCESS                  If there were no duplicates and the
- *                                         copy and combine succeeded.
- *
- * This merges the protected and unprotected parameters. The COSE standard
- * does not allow a parameter to be duplicated in protected and unprotected so
- * this checks and returns an error if so.
- */
-enum t_cose_err_t
-check_and_copy_parameters(const struct t_cose_parameters  *protected,
-                          const struct t_cose_parameters  *unprotected,
-                          struct t_cose_parameters        *returned_parameters);
-
-
-
-/* ------------------------------------------------------------------------
- * Inline implementations of public functions defined above.
- */
 inline static void clear_label_list(struct t_cose_label_list *list)
 {
     memset(list, 0, sizeof(struct t_cose_label_list));
 }
 
 
-inline static bool
-is_label_list_clear(const struct t_cose_label_list *list)
+
+
+enum t_cose_err_t
+check_critical_labels(const struct t_cose_label_list *critical_labels,
+                      const struct t_cose_label_list *unknown_labels);
+
+
+
+enum t_cose_err_t
+parse_cose_header_parameters(QCBORDecodeContext        *decode_context,
+                             struct t_cose_parameters  *returned_parameters,
+                             struct t_cose_label_list  *critical_labels,
+                             struct t_cose_label_list  *unknown_labels);
+
+
+/**
+ * \brief Clear a struct t_cose_parameters to empty
+ *
+ * \param[in,out] parameters   Parameter list to clear.
+ */
+static inline void clear_cose_parameters(struct t_cose_parameters *parameters)
 {
-    return list->int_labels[0] == 0 &&
-           q_useful_buf_c_is_null_or_empty(list->tstr_labels[0]);
+#if COSE_ALGORITHM_RESERVED != 0
+#error Invalid algorithm designator not 0. Parameter list initialization fails.
+#endif
+
+#if T_COSE_UNSET_ALGORITHM_ID != COSE_ALGORITHM_RESERVED
+#error Constant for unset algorithm ID not aligned with COSE_ALGORITHM_RESERVED
+#endif
+
+    /* This clears all the useful_bufs to NULL_Q_USEFUL_BUF_C
+     * and the cose_algorithm_id to COSE_ALGORITHM_RESERVED
+     */
+    memset(parameters, 0, sizeof(struct t_cose_parameters));
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+    /* The only non-zero clear-state value. (0 is plain text in CoAP
+     * content format) */
+    parameters->content_type_uint =  T_COSE_EMPTY_UINT_CONTENT_TYPE;
+#endif
 }
 
 #endif /* t_cose_parameters_h */

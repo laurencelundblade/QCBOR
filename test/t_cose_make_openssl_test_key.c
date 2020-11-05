@@ -106,7 +106,7 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t           cose_algorithm_id,
         break;
 
     default:
-        return -1;
+        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
 
     /* Make a group for the particular EC algorithm */
