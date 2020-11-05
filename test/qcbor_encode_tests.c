@@ -924,8 +924,6 @@ int32_t SimpleValuesTest1()
 static const uint8_t spExpectedEncodedSimpleIndefiniteLength[] = {
    0x9f, 0xf5, 0xf4, 0xf6, 0xf7, 0xbf, 0x65, 0x55, 0x4e, 0x44, 0x65, 0x66, 0xf7, 0xff, 0xff};
 
-// 9F F5 F4 F6 F7 BF 65 55 4E 44 65 66 F7 F8 1F F8 1F 69 73 20 74 68 65 20
-
 int32_t SimpleValuesIndefiniteLengthTest1()
 {
    QCBOREncodeContext ECtx;
