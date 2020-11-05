@@ -229,6 +229,19 @@ extern "C" {
  [RFC 8742] (https://tools.ietf.org/html/rfc8742). This encoder supports
  either just by whether the first item added is an array, map or other.
 
+ If QCBOR is compiled with QCBOR_DISABLE_ENCODE_USAGE_GUARDS defined,
+ the errors QCBOR_ERR_CLOSE_MISMATCH, QCBOR_ERR_ARRAY_TOO_LONG,
+ QCBOR_ERR_TOO_MANY_CLOSES, QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN, and
+ QCBOR_ERR_ENCODE_UNSUPPORTED will never be returned. It is up to the
+ caller to make sure that opened maps, arrays and byte-string wrapping
+ is closed correctly and that QCBOREncode_AddType7() is called
+ correctly.  With this defined, it is easier to make a mistake when
+ authoring the encoding of a protocol that will output not well formed
+ CBOR, but as long as the calling code is correct, it is safe to
+ disable these checks. Bounds checking that prevents security issues
+ in the code is still enforced. This define reduces the size of
+ encoding object code by about 150 bytes.
+
  @anchor Tags-Overview
 
  ## Tags Overview
