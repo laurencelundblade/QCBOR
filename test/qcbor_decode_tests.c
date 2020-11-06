@@ -6586,3 +6586,206 @@ int32_t SpiffyIndefiniteLengthStringsTests()
 
    return 0;
 }
+
+
+
+
+int32_t PeekTest()
+{
+   QCBORItem          Item;
+   QCBORError         nCBORError;
+   QCBORDecodeContext DCtx;
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+
+   if((nCBORError = QCBORDecode_PeekNext(&DCtx, &Item))) {
+      return 100+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 200;
+   }
+
+   if((nCBORError = QCBORDecode_PeekNext(&DCtx, &Item))) {
+      return (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 300;
+   }
+
+   if((nCBORError = QCBORDecode_PeekNext(&DCtx, &Item))) {
+      return 400 + (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 500;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 600;
+   }
+
+   if((nCBORError = QCBORDecode_PeekNext(&DCtx, &Item))) {
+      return 900 + (int32_t)nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataType != QCBOR_TYPE_INT64 ||
+      Item.val.int64 != 42 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+      return 1000;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 1100 + (int32_t)nCBORError;
+   }
+
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataType != QCBOR_TYPE_INT64 ||
+      Item.val.int64 != 42 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+      return 1200;
+   }
+
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 1300 + (int32_t)nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+      Item.uDataType != QCBOR_TYPE_ARRAY ||
+      Item.val.uCount != 2)
+      return 1400;
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 1500 + (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string1")) {
+      return 1600;
+   }
+
+   if((nCBORError = QCBORDecode_PeekNext(&DCtx, &Item))) {
+      return 1700 + (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string2")) {
+      return 1800;
+   }
+
+   if((nCBORError = QCBORDecode_PeekNext(&DCtx, &Item))) {
+      return (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string2")) {
+      return 1900;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string2")) {
+      return 2000;
+   }
+
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 2100 + (int32_t)nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.label.string, "map in a map") ||
+      Item.uDataType != QCBOR_TYPE_MAP ||
+      Item.val.uCount != 4) {
+      return 2100;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 2200 + (int32_t)nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("bytes 1"))||
+      Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "xxxx")) {
+      return 2300;
+   }
+
+   if((nCBORError = QCBORDecode_PeekNext(&DCtx, &Item))) {
+      return 2400 + (int32_t)nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      UsefulBufCompareToSZ(Item.label.string, "bytes 2") ||
+      Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "yyyy")) {
+      return 2500;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 2600 + (int32_t)nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      UsefulBufCompareToSZ(Item.label.string, "bytes 2") ||
+      Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "yyyy")) {
+      return 2700;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 2800 + (int32_t)nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.label.string, "another int") ||
+      Item.uDataType != QCBOR_TYPE_INT64 ||
+      Item.val.int64 != 98)
+      return 2900;
+
+   if((nCBORError = QCBORDecode_PeekNext(&DCtx, &Item))) {
+      return 3000 + (int32_t)nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("text 2"))||
+      Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "lies, damn lies and statistics")) {
+      return 3100;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 3200 + (int32_t)nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FromSZ("text 2"))||
+      Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "lies, damn lies and statistics")) {
+      return 3300;
+   }
+
+   return 0;
+}

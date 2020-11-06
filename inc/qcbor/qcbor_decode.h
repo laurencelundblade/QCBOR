@@ -866,6 +866,28 @@ void QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
+ @brief Get the next data item without consuming it.
+
+ @param[in]  pCtx          The decoder context.
+ @param[out] pDecodedItem  Holds the CBOR item just decoded.
+
+ This is the same as QCBORDecode_GetNext() but does not consume
+ the data item. This only looks ahead one item. Calling it
+ repeatedly will just return the same item over and over.
+
+ This uses a lot of stack, far more than anything else
+ here in qcbor_decode.h because it saves a copy of most of
+ the decode context temporarily.
+
+ This is useful for looking ahead to determine the type
+ of a data item to know which type-specific spiffy decode
+ function to call. 
+ */
+QCBORError
+QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
+
+
+/**
  @brief Gets the next item including full list of tags for item.
 
  @param[in]  pCtx          The decoder context.

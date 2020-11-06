@@ -298,4 +298,11 @@ int32_t TooLargeInputTest(void);
 int32_t SpiffyIndefiniteLengthStringsTests(void);
 
 
+/*
+ Test PeekNext().
+ */
+int32_t PeekTest(void);
+
+
+
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */
