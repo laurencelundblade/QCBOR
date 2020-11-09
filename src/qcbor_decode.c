@@ -2507,12 +2507,23 @@ Done:
 }
 
 
-
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+ */
 void QCBORDecode_Rewind(QCBORDecodeContext *pMe)
 {
-   /* Reposition to search from the start of the map / array */
-   UsefulInputBuf_Seek(&(pMe->InBuf),
-                       DecodeNesting_GetMapOrArrayStart(&(pMe->nesting)));
+   size_t uResetOffset;
+
+   if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
+      /* Reposition to traversal cursor to the start of the map / array */
+      uResetOffset = DecodeNesting_GetMapOrArrayStart(&(pMe->nesting));
+   } else {
+      /* Reposition to traversal cursor to the start of input CBOR */
+      uResetOffset = 0ULL;
+   }
+
+   UsefulInputBuf_Seek(&(pMe->InBuf), uResetOffset);
+   pMe->uLastError = QCBOR_SUCCESS;
 }
 
 
