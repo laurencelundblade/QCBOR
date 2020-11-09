@@ -2030,6 +2030,9 @@ Done:
 }
 
 
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+ */
 QCBORError
 QCBORDecode_GetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
@@ -2039,6 +2042,24 @@ QCBORDecode_GetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
       pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
       pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
    }
+   return uErr;
+}
+
+
+/*
+ Public function, see header qcbor/qcbor_decode.h file
+ */
+QCBORError
+QCBORDecode_PeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
+{
+   const QCBORDecodeNesting SaveNesting = pMe->nesting;
+   const UsefulInputBuf Save = pMe->InBuf;
+
+   QCBORError uErr = QCBORDecode_GetNext(pMe, pDecodedItem);
+
+   pMe->nesting = SaveNesting;
+   pMe->InBuf = Save;
+
    return uErr;
 }
 
