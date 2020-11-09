@@ -2507,6 +2507,15 @@ Done:
 }
 
 
+
+void QCBORDecode_Rewind(QCBORDecodeContext *pMe)
+{
+   /* Reposition to search from the start of the map / array */
+   UsefulInputBuf_Seek(&(pMe->InBuf),
+                       DecodeNesting_GetMapOrArrayStart(&(pMe->nesting)));
+}
+
+
 /* Return true if the labels in Item1 and Item2 are the same.
    Works only for integer and string labels. Returns false
    for any other type. */
