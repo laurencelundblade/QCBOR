@@ -6590,7 +6590,7 @@ int32_t SpiffyIndefiniteLengthStringsTests()
 
 
 
-int32_t PeekTest()
+int32_t PeekAndRewindTest()
 {
    QCBORItem          Item;
    QCBORError         nCBORError;
@@ -6660,8 +6660,9 @@ int32_t PeekTest()
       Item.uLabelAlloc ||
       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
       Item.uDataType != QCBOR_TYPE_ARRAY ||
-      Item.val.uCount != 2)
+      Item.val.uCount != 2) {
       return 1400;
+   }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return 1500 + (int32_t)nCBORError;
@@ -6760,8 +6761,9 @@ int32_t PeekTest()
       Item.uLabelAlloc ||
       UsefulBufCompareToSZ(Item.label.string, "another int") ||
       Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 98)
+      Item.val.int64 != 98) {
       return 2900;
+   }
 
    if((nCBORError = QCBORDecode_PeekNext(&DCtx, &Item))) {
       return 3000 + (int32_t)nCBORError;
@@ -6785,6 +6787,230 @@ int32_t PeekTest()
       Item.uLabelAlloc ||
       UsefulBufCompareToSZ(Item.val.string, "lies, damn lies and statistics")) {
       return 3300;
+   }
+
+
+
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_MAP ||
+       Item.val.uCount != 3) {
+       return -1;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataType != QCBOR_TYPE_INT64 ||
+       Item.val.int64 != 42 ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+       return -1;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+       Item.uDataType != QCBOR_TYPE_ARRAY ||
+       Item.val.uCount != 2) {
+       return -1;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.val.string, "string1")) {
+       return -1;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.val.string, "string2")) {
+       return -1;
+    }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_MAP ||
+       Item.val.uCount != 3) {
+       return -1;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataType != QCBOR_TYPE_INT64 ||
+       Item.val.int64 != 42 ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+       return -1;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+       Item.uDataType != QCBOR_TYPE_ARRAY ||
+       Item.val.uCount != 2) {
+       return -1;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.val.string, "string1")) {
+       return -1;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.val.string, "string2")) {
+       return -1;
+    }
+
+
+
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+   }
+
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataType != QCBOR_TYPE_INT64 ||
+       Item.val.int64 != 42 ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+       return -1;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+       Item.uDataType != QCBOR_TYPE_ARRAY ||
+       Item.val.uCount != 2) {
+       return -1;
+    }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataType != QCBOR_TYPE_INT64 ||
+       Item.val.int64 != 42 ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+       return -1;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+       Item.uDataType != QCBOR_TYPE_ARRAY ||
+       Item.val.uCount != 2) {
+       return -1;
+    }
+
+
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string1")) {
+      return -1;
+   }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string1")) {
+      return -1;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string2")) {
+      return -1;
+   }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string1")) {
+      return -1;
    }
 
    return 0;

@@ -2514,12 +2514,22 @@ void QCBORDecode_Rewind(QCBORDecodeContext *pMe)
 {
    size_t uResetOffset;
 
-   if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
-      /* Reposition to traversal cursor to the start of the map / array */
+   if(pMe->nesting.pCurrentBounded != NULL) {
+      /* Reposition traversal cursor to the start of the map/array */
       uResetOffset = DecodeNesting_GetMapOrArrayStart(&(pMe->nesting));
+
+      /* Reset nesting tracking to the deepest bounded level */
+      // TODO: combine this with code called by MapSearch?
+      QCBORDecodeNesting *pNesting = &(pMe->nesting);
+      pNesting->pCurrent = pNesting->pCurrentBounded;
+      pNesting->pCurrent->u.ma.uCountCursor = pNesting->pCurrent->u.ma.uCountTotal;
+
    } else {
-      /* Reposition to traversal cursor to the start of input CBOR */
+      /* Reposition traversal cursor to the start of input CBOR */
       uResetOffset = 0ULL;
+
+      /* Reset nesting tracking to beginning of input. */
+      DecodeNesting_Init(&(pMe->nesting));
    }
 
    UsefulInputBuf_Seek(&(pMe->InBuf), uResetOffset);
@@ -3319,7 +3329,7 @@ void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe,
       return;
    }
 
-   /* Get the data item that is the map that is being searched */
+   /* Get the data item that is the byte string being entered */
    QCBORItem Item;
    pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
    if(pMe->uLastError != QCBOR_SUCCESS) {

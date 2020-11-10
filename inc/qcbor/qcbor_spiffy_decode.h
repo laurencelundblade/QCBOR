@@ -720,21 +720,6 @@ void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char *szLabel
 
 
 /**
- @brief Reset traversal cursor to start of map, array or start of input CBOR.
-
- @param[in] pCtx   The decode context.
-
- If an array or map has been entered this sets the traversal cursor to
- its beginning. If no map or array has been entered, this resets the
- traversal cursor to the beginning of the input CBOR.
-
- This also resets the error state.
-
- */
-void QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
-
-
-/**
  @brief Exit a map that has been enetered.
 
  @param[in] pCtx   The decode context.
@@ -748,6 +733,26 @@ void QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
  the map that was exited.
 */
 static void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
+
+
+/**
+ @brief Reset traversal cursor to start of map, array or start of input.
+
+ @param[in] pCtx   The decode context.
+
+ If an array, map or byte string has been entered this sets the traversal cursor to
+ its beginning. If several arrays, maps or byte strings have been entered, this
+ sets the traversal cursor to the beginning of the one most recently
+ entered.
+
+ TODO: implement this for byte strings.
+
+ If no map or array has been entered, this resets the
+ traversal cursor to the beginning of the input CBOR.
+
+ This also resets the error state.
+ */
+void QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
 
 
 /**

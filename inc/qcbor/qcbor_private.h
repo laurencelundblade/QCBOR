@@ -152,7 +152,7 @@ typedef struct __QCBORDecodeNesting  {
        QCBOR_TYPE_MAP or QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP_AS_ARRAY
        for 2).
 
-       Item tracking is either be for definite or indefinite length
+       Item tracking is either for definite or indefinite length
        maps/arrays. For definite lengths, the total count and items
        unconsumed are tracked. For indefinite length, uTotalCount is
        QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH (UINT16_MAX) and there
