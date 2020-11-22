@@ -227,7 +227,8 @@ DecodeNesting_IsAtEndOfBoundedLevel(const QCBORDecodeNesting *pNesting)
       return false;
    }
    // Works for both definite and indefinite length maps/arrays
-   if(pNesting->pCurrentBounded->u.ma.uCountCursor != 0) {
+   if(pNesting->pCurrentBounded->u.ma.uCountCursor != 0 &&
+      pNesting->pCurrentBounded->u.ma.uCountCursor != QCBOR_COUNT_INDICATES_ZERO_LENGTH) {
       // Count is not zero, still unconsumed item
       return false;
    }
