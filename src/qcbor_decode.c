@@ -432,6 +432,13 @@ DecodeNesting_ZeroMapOrArrayCount(QCBORDecodeNesting *pNesting)
 
 
 static inline void
+DecodeNesting_ResetMapOrArrayCount(QCBORDecodeNesting *pNesting)
+{
+   pNesting->pCurrentBounded->u.ma.uCountCursor = pNesting->pCurrentBounded->u.ma.uCountTotal;
+}
+
+
+static inline void
 DecodeNesting_Init(QCBORDecodeNesting *pNesting)
 {
    /* Assumes that *pNesting has been zero'd before this call. */
@@ -445,7 +452,7 @@ DecodeNesting_PrepareForMapSearch(QCBORDecodeNesting *pNesting, QCBORDecodeNesti
 {
    *pSave = *pNesting;
    pNesting->pCurrent = pNesting->pCurrentBounded;
-   pNesting->pCurrent->u.ma.uCountCursor = pNesting->pCurrent->u.ma.uCountTotal;
+   DecodeNesting_ResetMapOrArrayCount(pNesting);
 }
 
 
@@ -2964,13 +2971,25 @@ void QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pMe,
 }
 
 
+/**
+ * @brief Search for a map/array by label and enter it
+ *
+ * @param[in] pMe  The decode context.
+ * @param[in] pSearch The map/array to search for.
+ *
+ * @c pSearch is expected to contain one item of type map or array
+ * with the label specified. The current bounded map will be searched for
+ * this and if found  will be entered.
+ *
+ * If the label is not found, or the item found is not a map or array,
+ * the error state is set.
+ */
 static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
 {
    // The first item in pSearch is the one that is to be
    // entered. It should be the only one filled in. Any other
    // will be ignored unless it causes an error.
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state; do nothing.
       return;
    }
 
@@ -2985,22 +3004,27 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
       return;
    }
 
-   /* Need to get the current pre-order nesting level and cursor to be
-      at the map/array about to be entered.
-
-    Also need the current map nesting level and start cursor to
-    be at the right place.
-
-    The UsefulInBuf offset could be anywhere, so no assumption is
-    made about it.
-
-    No assumption is made about the pre-order nesting level either.
-
-    However the bounded mode nesting level is assumed to be one above
-    the map level that is being entered.
+   /*
+    * QCBORDecode_EnterBoundedMapOrArray() used here, requires the
+    * next item for the pre-order traversal cursor to be the map/array
+    * found by MapSearch(). The next few lines of code force the
+    * cursor to that.
+    *
+    * There is no need to retain the old cursor because
+    * QCBORDecode_EnterBoundedMapOrArray() will set it to the
+    * beginning of the map/array being entered.
+    *
+    * The cursor is forced by: 1) setting the input buffer position to
+    * the item offset found by MapSearch(), 2) setting the map/array
+    * counter to the total in the map/array, 3) setting the nesting
+    * level. Setting the map/array counter to the total is not
+    * strictly correct, but this is OK because this cursor only needs
+    * to be used to get one item and MapSearch() has already found it
+    * confirming it exists.
     */
-   /* Seek to the data item that is the map or array */
    UsefulInputBuf_Seek(&(pMe->InBuf), uOffset);
+
+   DecodeNesting_ResetMapOrArrayCount(&(pMe->nesting));
 
    DecodeNesting_SetCurrentToBoundedLevel(&(pMe->nesting));
 

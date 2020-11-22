@@ -4647,7 +4647,7 @@ int32_t ExponentAndMantissaDecodeFailTests()
       "another int": 98,
       "text 2": "lies, damn lies and statistics"
    }
-  }
+ }
  */
 
 int32_t SpiffyDecodeBasicMap(UsefulBufC input)
