@@ -4774,7 +4774,8 @@ static const uint8_t spNestedCBOR[] = {
 0x86, 0xa2, 0x46, 0x14, 0x18, 0x13, 0x19, 0x10, 0x01
 };
 
-static int32_t GetSubSub(QCBORDecodeContext *pDCtx)
+/*  Get item in multi-level nesting in spNestedCBOR */
+static int32_t DecodeNestedGetSubSub(QCBORDecodeContext *pDCtx)
 {
    UsefulBufC String;
 
@@ -4800,14 +4801,14 @@ static int32_t GetSubSub(QCBORDecodeContext *pDCtx)
    return 0;
 }
 
-
-static int32_t GetEmpty(QCBORDecodeContext *pDCtx)
+/*  Iterations on the zero-length array in spNestedCBOR */
+static int32_t DecodeNestedGetEmpty(QCBORDecodeContext *pDCtx)
 {
    QCBORItem Item;
    QCBORError         uErr;
 
    QCBORDecode_EnterArrayFromMapN(pDCtx, 88);
-   for(int x = 0; x < 10; x++) {
+   for(int x = 0; x < 20; x++) {
       uErr = QCBORDecode_GetNext(pDCtx, &Item);
       if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
          return 4100;
@@ -4822,7 +4823,54 @@ static int32_t GetEmpty(QCBORDecodeContext *pDCtx)
    return 0;
 }
 
-static int32_t DecodeNested()
+/* Various iterations on the array that contains a zero in spNestedCBOR */
+static int32_t DecodeNestedGetZero(QCBORDecodeContext *pDCtx)
+{
+   QCBORError         uErr;
+
+   QCBORDecode_EnterMapFromMapN(pDCtx, 100100);
+   QCBORDecode_EnterMapFromMapSZ(pDCtx, "sub1");
+   QCBORDecode_EnterArrayFromMapN(pDCtx, 10);
+   int64_t nInt = 99;
+   QCBORDecode_GetInt64(pDCtx, &nInt);
+   if(nInt != 0) {
+      return 4200;
+   }
+   for(int x = 0; x < 20; x++) {
+      QCBORItem Item;
+      uErr = QCBORDecode_GetNext(pDCtx, &Item);
+      if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
+         return 4201;
+
+      }
+   }
+   QCBORDecode_ExitArray(pDCtx);
+   if(QCBORDecode_GetAndResetError(pDCtx)) {
+      return 4202;
+   }
+   QCBORDecode_EnterArrayFromMapN(pDCtx, 10);
+   UsefulBufC dD;
+   QCBORDecode_GetByteString(pDCtx, &dD);
+   if(QCBORDecode_GetAndResetError(pDCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 4203;
+   }
+   for(int x = 0; x < 20; x++) {
+      QCBORDecode_GetByteString(pDCtx, &dD);
+      uErr = QCBORDecode_GetAndResetError(pDCtx);
+      if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
+         return 4204;
+      }
+   }
+   QCBORDecode_ExitArray(pDCtx);
+   QCBORDecode_ExitMap(pDCtx);
+   QCBORDecode_ExitMap(pDCtx);
+
+   return 0;
+}
+
+/* Repeatedly enter and exit maps and arrays, go off the end of maps
+ and arrays and such. */
+static int32_t DecodeNestedIterate()
 {
    QCBORDecodeContext DCtx;
    int32_t            nReturn;
@@ -4830,16 +4878,28 @@ static int32_t DecodeNested()
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNestedCBOR), 0);
    QCBORDecode_EnterMap(&DCtx, NULL);
-   for(int i = 0; i < 100; i++) {
-      nReturn = GetSubSub(&DCtx);
-      if(nReturn) {
-         return nReturn;
-      }
-   }
 
-   nReturn = GetEmpty(&DCtx);
-   if(nReturn ) {
-      return nReturn;
+   for(int j = 0; j < 5; j++) {
+      for(int i = 0; i < 20; i++) {
+         nReturn = DecodeNestedGetSubSub(&DCtx);
+         if(nReturn) {
+            return nReturn;
+         }
+      }
+
+      for(int i = 0; i < 20; i++) {
+         nReturn = DecodeNestedGetEmpty(&DCtx);
+         if(nReturn ) {
+            return nReturn;
+         }
+      }
+
+      for(int i = 0; i < 20; i++) {
+         nReturn = DecodeNestedGetZero(&DCtx);
+         if(nReturn ) {
+            return nReturn;
+         }
+      }
    }
 
    QCBORDecode_ExitMap(&DCtx);
@@ -5233,7 +5293,7 @@ int32_t EnterMapTest()
       return 2033;
    }
 
-   nReturn = DecodeNested();
+   nReturn = DecodeNestedIterate();
 
    return nReturn;
 }
