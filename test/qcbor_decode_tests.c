@@ -4647,7 +4647,7 @@ int32_t ExponentAndMantissaDecodeFailTests()
       "another int": 98,
       "text 2": "lies, damn lies and statistics"
    }
-  }
+ }
  */
 
 int32_t SpiffyDecodeBasicMap(UsefulBufC input)
@@ -4739,6 +4739,174 @@ int32_t SpiffyDecodeBasicMap(UsefulBufC input)
      if(UsefulBuf_Compare(S3, UsefulBuf_FromSZ("string2"))){
         return 1009;
      }
+
+   return 0;
+}
+
+/*
+ {
+   -75008: h'05083399',
+   88: [
+     ],
+   100100: {
+     "sub1": {
+       10: [
+         0
+       ],
+       -75009: h'A46823990001',
+       100100: {
+         "json": "{ \"ueid\", \"xyz\"}",
+         "subsub": {
+           100002: h'141813191001'
+         }
+       }
+     }
+   }
+ }
+ */
+
+static const uint8_t spNestedCBOR[] = {
+0xa3, 0x3a, 0x00, 0x01, 0x24, 0xff, 0x44, 0x05, 0x08, 0x33, 0x99, 0x18, 0x58, 0x80, 0x1a, 0x00,
+0x01, 0x87, 0x04, 0xa1, 0x64, 0x73, 0x75, 0x62, 0x31, 0xa3, 0x0a, 0x81, 0x00, 0x3a, 0x00, 0x01,
+0x25, 0x00, 0x46, 0xa4, 0x68, 0x23, 0x99, 0x00, 0x01, 0x1a, 0x00, 0x01, 0x87, 0x04, 0xa2, 0x64,
+0x6a, 0x73, 0x6f, 0x6e, 0x70, 0x7b, 0x20, 0x22, 0x75, 0x65, 0x69, 0x64, 0x22, 0x2c, 0x20, 0x22,
+0x78, 0x79, 0x7a, 0x22, 0x7d, 0x66, 0x73, 0x75, 0x62, 0x73, 0x75, 0x62, 0xa1, 0x1a, 0x00, 0x01,
+0x86, 0xa2, 0x46, 0x14, 0x18, 0x13, 0x19, 0x10, 0x01
+};
+
+/*  Get item in multi-level nesting in spNestedCBOR */
+static int32_t DecodeNestedGetSubSub(QCBORDecodeContext *pDCtx)
+{
+   UsefulBufC String;
+
+   uint8_t test_oemid_bytes[] = {0x14, 0x18, 0x13, 0x19, 0x10, 0x01};
+   const struct q_useful_buf_c test_oemid = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(test_oemid_bytes);
+
+   QCBORDecode_EnterMapFromMapN(pDCtx, 100100);
+   QCBORDecode_EnterMap(pDCtx, NULL);
+   QCBORDecode_EnterMapFromMapN(pDCtx, 100100);
+   QCBORDecode_EnterMapFromMapSZ(pDCtx, "subsub");
+   QCBORDecode_GetByteStringInMapN(pDCtx, 100002, &String);
+   if(QCBORDecode_GetError(pDCtx)) {
+      return 4001;
+   }
+   if(UsefulBuf_Compare(String, test_oemid)) {
+      return 4002;
+   }
+   QCBORDecode_ExitMap(pDCtx);
+   QCBORDecode_ExitMap(pDCtx);
+   QCBORDecode_ExitMap(pDCtx);
+   QCBORDecode_ExitMap(pDCtx);
+
+   return 0;
+}
+
+/*  Iterations on the zero-length array in spNestedCBOR */
+static int32_t DecodeNestedGetEmpty(QCBORDecodeContext *pDCtx)
+{
+   QCBORItem Item;
+   QCBORError         uErr;
+
+   QCBORDecode_EnterArrayFromMapN(pDCtx, 88);
+   for(int x = 0; x < 20; x++) {
+      uErr = QCBORDecode_GetNext(pDCtx, &Item);
+      if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
+         return 4100;
+
+      }
+   }
+   QCBORDecode_ExitArray(pDCtx);
+   if(QCBORDecode_GetError(pDCtx)) {
+      return 4101;
+   }
+
+   return 0;
+}
+
+/* Various iterations on the array that contains a zero in spNestedCBOR */
+static int32_t DecodeNestedGetZero(QCBORDecodeContext *pDCtx)
+{
+   QCBORError         uErr;
+
+   QCBORDecode_EnterMapFromMapN(pDCtx, 100100);
+   QCBORDecode_EnterMapFromMapSZ(pDCtx, "sub1");
+   QCBORDecode_EnterArrayFromMapN(pDCtx, 10);
+   int64_t nInt = 99;
+   QCBORDecode_GetInt64(pDCtx, &nInt);
+   if(nInt != 0) {
+      return 4200;
+   }
+   for(int x = 0; x < 20; x++) {
+      QCBORItem Item;
+      uErr = QCBORDecode_GetNext(pDCtx, &Item);
+      if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
+         return 4201;
+
+      }
+   }
+   QCBORDecode_ExitArray(pDCtx);
+   if(QCBORDecode_GetAndResetError(pDCtx)) {
+      return 4202;
+   }
+   QCBORDecode_EnterArrayFromMapN(pDCtx, 10);
+   UsefulBufC dD;
+   QCBORDecode_GetByteString(pDCtx, &dD);
+   if(QCBORDecode_GetAndResetError(pDCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 4203;
+   }
+   for(int x = 0; x < 20; x++) {
+      QCBORDecode_GetByteString(pDCtx, &dD);
+      uErr = QCBORDecode_GetAndResetError(pDCtx);
+      if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
+         return 4204;
+      }
+   }
+   QCBORDecode_ExitArray(pDCtx);
+   QCBORDecode_ExitMap(pDCtx);
+   QCBORDecode_ExitMap(pDCtx);
+
+   return 0;
+}
+
+/* Repeatedly enter and exit maps and arrays, go off the end of maps
+ and arrays and such. */
+static int32_t DecodeNestedIterate()
+{
+   QCBORDecodeContext DCtx;
+   int32_t            nReturn;
+   QCBORError         uErr;
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNestedCBOR), 0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   for(int j = 0; j < 5; j++) {
+      for(int i = 0; i < 20; i++) {
+         nReturn = DecodeNestedGetSubSub(&DCtx);
+         if(nReturn) {
+            return nReturn;
+         }
+      }
+
+      for(int i = 0; i < 20; i++) {
+         nReturn = DecodeNestedGetEmpty(&DCtx);
+         if(nReturn ) {
+            return nReturn;
+         }
+      }
+
+      for(int i = 0; i < 20; i++) {
+         nReturn = DecodeNestedGetZero(&DCtx);
+         if(nReturn ) {
+            return nReturn;
+         }
+      }
+   }
+
+   QCBORDecode_ExitMap(&DCtx);
+   uErr = QCBORDecode_Finish(&DCtx);
+   if(uErr) {
+      return (int32_t)uErr + 4100;
+   }
 
    return 0;
 }
@@ -5125,7 +5293,9 @@ int32_t EnterMapTest()
       return 2033;
    }
 
-   return 0;
+   nReturn = DecodeNestedIterate();
+
+   return nReturn;
 }
 
 
