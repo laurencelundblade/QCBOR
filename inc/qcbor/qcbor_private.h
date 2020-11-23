@@ -185,8 +185,11 @@ typedef struct __QCBORDecodeNesting  {
             uint32_t uStartOffset;
          } ma; /* for maps and arrays */
          struct {
-            uint32_t uEndOfBstr;
-            uint32_t uPreviousEndOffset;
+            /* The end of the input before the bstr was entered so that
+             * it can be restored when the bstr is exited. */
+            uint32_t uSavedEndOffset;
+            /* The beginning of the bstr so that it can be rewound. */
+            uint32_t uBstrStartOffset;
          } bs; /* for top-level sequence and bstr wrapped CBOR */
       } u;
    } pLevels[QCBOR_MAX_ARRAY_NESTING1+1],

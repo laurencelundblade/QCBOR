@@ -403,7 +403,7 @@ DecodeNesting_SetCurrentToBoundedLevel(QCBORDecodeNesting *pNesting)
 static inline QCBORError
 DecodeNesting_DescendIntoBstrWrapped(QCBORDecodeNesting *pNesting,
                                      uint32_t uEndOffset,
-                                     uint32_t uEndOfBstr)
+                                     uint32_t uStartOffset)
 {
    QCBORError uError = QCBOR_SUCCESS;
 
@@ -413,8 +413,8 @@ DecodeNesting_DescendIntoBstrWrapped(QCBORDecodeNesting *pNesting,
    }
 
    // Fill in the new byte string level
-   pNesting->pCurrent->u.bs.uPreviousEndOffset = uEndOffset;
-   pNesting->pCurrent->u.bs.uEndOfBstr         = uEndOfBstr;
+   pNesting->pCurrent->u.bs.uSavedEndOffset = uEndOffset;
+   pNesting->pCurrent->u.bs.uBstrStartOffset   = uStartOffset;
 
    // Bstr wrapped levels are always bounded
    pNesting->pCurrentBounded = pNesting->pCurrent;
@@ -457,16 +457,9 @@ DecodeNesting_RestoreFromMapSearch(QCBORDecodeNesting *pNesting, const QCBORDeco
 
 
 static inline uint32_t
-DecodeNesting_GetEndOfBstr(const QCBORDecodeNesting *pMe)
-{
-   return pMe->pCurrentBounded->u.bs.uEndOfBstr;
-}
-
-
-static inline uint32_t
 DecodeNesting_GetPreviousBoundedEnd(const QCBORDecodeNesting *pMe)
 {
-   return pMe->pCurrentBounded->u.bs.uPreviousEndOffset;
+   return pMe->pCurrentBounded->u.bs.uSavedEndOffset;
 }
 
 
@@ -2515,14 +2508,22 @@ void QCBORDecode_Rewind(QCBORDecodeContext *pMe)
    size_t uResetOffset;
 
    if(pMe->nesting.pCurrentBounded != NULL) {
-      /* Reposition traversal cursor to the start of the map/array */
-      uResetOffset = DecodeNesting_GetMapOrArrayStart(&(pMe->nesting));
 
-      /* Reset nesting tracking to the deepest bounded level */
-      // TODO: combine this with code called by MapSearch?
-      QCBORDecodeNesting *pNesting = &(pMe->nesting);
-      pNesting->pCurrent = pNesting->pCurrentBounded;
-      pNesting->pCurrent->u.ma.uCountCursor = pNesting->pCurrent->u.ma.uCountTotal;
+      if(DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_BYTE_STRING)) {
+         uResetOffset = pMe->nesting.pCurrentBounded->u.bs.uBstrStartOffset;
+         QCBORDecodeNesting *pNesting = &(pMe->nesting);
+         pNesting->pCurrent = pNesting->pCurrentBounded;
+
+      } else {
+         /* Reposition traversal cursor to the start of the map/array */
+         uResetOffset = DecodeNesting_GetMapOrArrayStart(&(pMe->nesting));
+
+         /* Reset nesting tracking to the deepest bounded level */
+         // TODO: combine this with code called by MapSearch?
+         QCBORDecodeNesting *pNesting = &(pMe->nesting);
+         pNesting->pCurrent = pNesting->pCurrentBounded;
+         pNesting->pCurrent->u.ma.uCountCursor = pNesting->pCurrent->u.ma.uCountTotal;
+      }
 
    } else {
       /* Reposition traversal cursor to the start of input CBOR */
@@ -3032,6 +3033,9 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
    /* Seek to the data item that is the map or array */
    UsefulInputBuf_Seek(&(pMe->InBuf), uOffset);
 
+    // TODO: this is a quick fix; need a better one
+    pMe->nesting.pCurrentBounded->u.ma.uCountCursor = pMe->nesting.pCurrentBounded->u.ma.uCountTotal;
+
    DecodeNesting_SetCurrentToBoundedLevel(&(pMe->nesting));
 
    QCBORDecode_EnterBoundedMapOrArray(pMe, pSearch->uDataType, NULL);
@@ -3305,13 +3309,14 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
       uError = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
-   const size_t uEndOfBstr = UsefulInputBuf_Tell(&(pMe->InBuf));
-   UsefulInputBuf_Seek(&(pMe->InBuf), uEndOfBstr - pItem->val.string.len);
+   const size_t uEndOfBstr   = UsefulInputBuf_Tell(&(pMe->InBuf));
+   const size_t uStartOfBstr = uEndOfBstr - pItem->val.string.len;
+   UsefulInputBuf_Seek(&(pMe->InBuf), uStartOfBstr);
    UsefulInputBuf_SetBufferLength(&(pMe->InBuf), uEndOfBstr);
 
    uError = DecodeNesting_DescendIntoBstrWrapped(&(pMe->nesting),
                                                  (uint32_t)uPreviousLength,
-                                                 (uint32_t)uEndOfBstr);
+                                                 (uint32_t)uStartOfBstr);
 Done:
    return uError;
 }
@@ -3394,6 +3399,8 @@ void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pMe)
       return;
    }
 
+   const uint32_t uEndOfBstr = (uint32_t)UsefulInputBuf_GetBufferLength(&(pMe->InBuf));
+
    /*
     Reset the length of the UsefulInputBuf to what it was before
     the bstr wrapped CBOR was entered.
@@ -3402,7 +3409,7 @@ void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pMe)
                                DecodeNesting_GetPreviousBoundedEnd(&(pMe->nesting)));
 
 
-   QCBORError uErr = ExitBoundedLevel(pMe, DecodeNesting_GetEndOfBstr(&(pMe->nesting)));
+   QCBORError uErr = ExitBoundedLevel(pMe, uEndOfBstr);
    pMe->uLastError = (uint8_t)uErr;
 }
 
