@@ -10,6 +10,7 @@
 CC=cc
 #CC=/usr/local/bin/gcc-9
 
+LIBS=-lm
 CFLAGS=$(CMD_LINE) -I inc -I test -Os -fPIC 
 
 # The following are used before a release of QCBOR help to make sure
@@ -31,7 +32,7 @@ all: qcbortest libqcbor.a
 so:	libqcbor.so
 
 qcbortest: libqcbor.a $(TEST_OBJ) cmd_line_main.o
-	$(CC) -o $@ $^  libqcbor.a
+	$(CC) -o $@ $(LIBS) $^  libqcbor.a
 
 libqcbor.a: $(QCBOR_OBJ)
 	ar -r $@ $^
