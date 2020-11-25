@@ -28,6 +28,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
     // Indefinite length strings must be closed off
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
     // An indefinite length byte string not closed off
     {(uint8_t[]){0x5f, 0x41, 0x00}, 3},
     // An indefinite length text string not closed off
@@ -57,6 +58,8 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     {(uint8_t[]){0x5f, 0x5f, 0x41, 0x00, 0xff, 0xff}, 6},
     // indefinite length text string with indefinite string inside
     {(uint8_t[]){0x7f, 0x7f, 0x61, 0x00, 0xff, 0xff}, 6},
+
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
     // Definte length maps and arrays must be closed by having the
     // right number of items

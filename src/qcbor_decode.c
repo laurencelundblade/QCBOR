@@ -478,7 +478,7 @@ DecodeNesting_GetPreviousBoundedEnd(const QCBORDecodeNesting *pMe)
 }
 
 
-
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 /*===========================================================================
    QCBORStringAllocate -- STRING ALLOCATOR INVOCATION
 
@@ -516,7 +516,7 @@ StringAllocator_Destruct(const QCORInternalAllocator *pMe)
       (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, 0);
    }
 }
-
+#endif
 
 
 /*===========================================================================
@@ -544,6 +544,8 @@ void QCBORDecode_Init(QCBORDecodeContext *me,
 }
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+
 /*
  Public function, see header file
  */
@@ -556,6 +558,7 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pMe,
    pMe->StringAllocator.pAllocateCxt  = pAllocateContext;
    pMe->bStringAllocateAll            = bAllStrings;
 }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
 /*
@@ -843,7 +846,6 @@ Done:
  @retval QCBOR_ERR_STRING_TOO_LONG
  */
 static inline QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
-                                     int nMajorType,
                                      uint64_t uStrLen,
                                      UsefulInputBuf *pUInBuf,
                                      QCBORItem *pDecodedItem)
@@ -868,6 +870,7 @@ static inline QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
       goto Done;
    }
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
    if(pAllocator) {
       // We are asked to use string allocator to make a copy
       UsefulBuf NewMem = StringAllocator_Allocate(pAllocator, (size_t)uStrLen);
@@ -877,23 +880,33 @@ static inline QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
       }
       pDecodedItem->val.string = UsefulBuf_Copy(NewMem, Bytes);
       pDecodedItem->uDataAlloc = 1;
-   } else {
-      // Normal case with no string allocator
-      pDecodedItem->val.string = Bytes;
+      goto Done;
    }
-   const bool bIsBstr = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING);
-   // Cast because ternary operator causes promotion to integer
-   pDecodedItem->uDataType = (uint8_t)(bIsBstr ? QCBOR_TYPE_BYTE_STRING
-                                               : QCBOR_TYPE_TEXT_STRING);
+#else
+   (void)pAllocator;
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+   // Normal case with no string allocator
+   pDecodedItem->val.string = Bytes;
 
 Done:
    return nReturn;
 }
 
 
+/* Map the CBOR major types for strings to the QCBOR types for strngs */
+static inline uint8_t MapStringMajorTypes(int nCBORMajorType)
+{
+   #if CBOR_MAJOR_TYPE_BYTE_STRING + 4 != QCBOR_TYPE_BYTE_STRING
+   #error QCBOR_TYPE_BYTE_STRING no lined up with major type
+   #endif
 
+   #if CBOR_MAJOR_TYPE_TEXT_STRING + 4 != QCBOR_TYPE_TEXT_STRING
+   #error QCBOR_TYPE_TEXT_STRING no lined up with major type
+   #endif
 
-
+   return (uint8_t)(nCBORMajorType + 4);
+}
 
 
 // Make sure the constants align as this is assumed by
@@ -969,13 +982,11 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
 
       case CBOR_MAJOR_TYPE_BYTE_STRING: // Major type 2
       case CBOR_MAJOR_TYPE_TEXT_STRING: // Major type 3
+         pDecodedItem->uDataType = (uint8_t)MapStringMajorTypes(nMajorType);
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-            const bool bIsBstr = (nMajorType == CBOR_MAJOR_TYPE_BYTE_STRING);
-            pDecodedItem->uDataType = (uint8_t)(bIsBstr ? QCBOR_TYPE_BYTE_STRING
-                                                        : QCBOR_TYPE_TEXT_STRING);
             pDecodedItem->val.string = (UsefulBufC){NULL, SIZE_MAX};
          } else {
-            nReturn = DecodeBytes(pAllocator, nMajorType, uNumber, pUInBuf, pDecodedItem);
+            nReturn = DecodeBytes(pAllocator, uNumber, pUInBuf, pDecodedItem);
          }
          break;
 
@@ -994,7 +1005,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
          }
          // C preproc #if above makes sure constants for major types align
          // DecodeTypeAndNumber never returns a major type > 7 so cast is safe
-         pDecodedItem->uDataType  = (uint8_t)nMajorType;
+         pDecodedItem->uDataType = (uint8_t)nMajorType;
          break;
 
       case CBOR_MAJOR_TYPE_OPTIONAL: // Major type 6, optional prepended tags
@@ -1049,7 +1060,7 @@ Done:
  @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
  */
 static inline QCBORError
-GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+GetNext_FullItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    // Stack usage; int/ptr 2 UsefulBuf 2 QCBORItem  -- 96
 
@@ -1057,21 +1068,24 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    // GetNext_Item() when option is set to allocate for *every* string.
    // Second use here is to allocate space to coallese indefinite
    // length string items into one.
-   const QCORInternalAllocator *pAllocator = me->StringAllocator.pfAllocator ?
-                                                      &(me->StringAllocator) :
-                                                      NULL;
+   const QCORInternalAllocator *pAllocatorForGetNext = NULL;
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+   const QCORInternalAllocator *pAllocator = NULL;
+
+   if(pMe->StringAllocator.pfAllocator) {
+      pAllocator = &(pMe->StringAllocator);
+      if(pMe->bStringAllocateAll ) {
+         pAllocatorForGetNext = pAllocator;
+      }
+   }
+#endif
 
    QCBORError nReturn;
-   nReturn = GetNext_Item(&(me->InBuf),
-                          pDecodedItem,
-                          me->bStringAllocateAll ? pAllocator: NULL);
+   nReturn = GetNext_Item(&(pMe->InBuf), pDecodedItem, pAllocatorForGetNext);
    if(nReturn) {
       goto Done;
    }
-
-   // To reduce code size by removing support for indefinite length strings, the
-   // code in this function from here down can be eliminated. Run tests, except
-   // indefinite length string tests, to be sure all is OK if this is removed.
 
    // Only do indefinite length processing on strings
    const uint8_t uStringType = pDecodedItem->uDataType;
@@ -1084,6 +1098,7 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       goto Done; // length is not indefinite, so no work to do here
    }
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
    // Can't do indefinite length strings without a string allocator
    if(pAllocator == NULL) {
       nReturn = QCBOR_ERR_NO_STRING_ALLOCATOR;
@@ -1098,7 +1113,7 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       QCBORItem StringChunkItem;
       // NULL string allocator passed here. Do not need to allocate
       // chunks even if bStringAllocateAll is set.
-      nReturn = GetNext_Item(&(me->InBuf), &StringChunkItem, NULL);
+      nReturn = GetNext_Item(&(pMe->InBuf), &StringChunkItem, NULL);
       if(nReturn) {
          break;  // Error getting the next chunk
       }
@@ -1114,13 +1129,14 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       // Match data type of chunk to type at beginning.
       // Also catches error of other non-string types that don't belong.
       // Also catches indefinite length strings inside indefinite length strings
+      // TODO: what is SIZE_MAX here?
       if(StringChunkItem.uDataType != uStringType ||
          StringChunkItem.val.string.len == SIZE_MAX) {
          nReturn = QCBOR_ERR_INDEFINITE_STRING_CHUNK;
          break;
       }
 
-      // Alloc new buffer or expand previously allocated buffer so it can fit
+      // Alloc new buffer or expand previously allocated buffer so it can fit.
       // The first time throurgh FullString.ptr is NULL and this is
       // equivalent to StringAllocator_Allocate()
       UsefulBuf NewMem = StringAllocator_Reallocate(pAllocator,
@@ -1141,10 +1157,14 @@ GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       // Getting the item failed, clean up the allocated memory
       StringAllocator_Free(pAllocator, UNCONST_POINTER(FullString.ptr));
    }
+#else
+   nReturn = QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED;
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 Done:
    return nReturn;
 }
+
 
 static uint64_t ConvertTag(const QCBORDecodeContext *me, uint16_t uTagVal) {
    if(uTagVal <= QCBOR_LAST_UNMAPPED_TAG) {
@@ -2206,9 +2226,11 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *me)
    }
 
 Done:
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
    // Call the destructor for the string allocator if there is one.
    // Always called, even if there are errors; always have to clean up
    StringAllocator_Destruct(&(me->StringAllocator));
+#endif
 
    return uReturn;
 }
@@ -2281,6 +2303,7 @@ Decoder errors handled in this file
 
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 
 /* ===========================================================================
    MemPool -- BUILT-IN SIMPLE STRING ALLOCATOR
@@ -2461,6 +2484,7 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
 
    return QCBOR_SUCCESS;
 }
+#endif
 
 
 

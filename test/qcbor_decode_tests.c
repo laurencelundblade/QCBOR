@@ -1644,8 +1644,10 @@ int32_t NotWellFormedTests()
       // string test cases
       QCBORDecodeContext DCtx;
       QCBORDecode_Init(&DCtx, Input, QCBOR_DECODE_MODE_NORMAL);
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
       QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+#endif
 
       // Loop getting items until no more to get
       QCBORError uCBORError;
@@ -1680,13 +1682,19 @@ static int32_t ProcessFailures(struct FailInput *pFailInputs, size_t nNumFails)
       // Set up the decoding context including a memory pool so that
       // indefinite length items can be checked
       QCBORDecodeContext DCtx;
+      QCBORError nCBORError;
+
       QCBORDecode_Init(&DCtx, pF->Input, QCBOR_DECODE_MODE_NORMAL);
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
 
-      QCBORError nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+      nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
       if(nCBORError) {
          return -9;
       }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
 
       // Iterate until there is an error of some sort error
       QCBORItem Item;
@@ -1716,6 +1724,7 @@ struct FailInput  Failures[] = {
    // Most of this is copied from not_well_formed.h. Here the error code
    // returned is also checked.
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
    // Indefinite length strings must be closed off
    // An indefinite length byte string not closed off
    { {(uint8_t[]){0x5f, 0x41, 0x00}, 3}, QCBOR_ERR_HIT_END },
@@ -1744,6 +1753,36 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0x5f, 0x5f, 0x41, 0x00, 0xff, 0xff}, 6}, QCBOR_ERR_INDEFINITE_STRING_CHUNK},
    // indefinite length text string with indefinite string inside
    { {(uint8_t[]){0x7f, 0x7f, 0x61, 0x00, 0xff, 0xff}, 6}, QCBOR_ERR_INDEFINITE_STRING_CHUNK},
+
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+   { {(uint8_t[]){0x5f, 0x41, 0x00}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
+   // An indefinite length text string not closed off
+   { {(uint8_t[]){0x7f, 0x61, 0x00}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
+
+
+   // All the chunks in an indefinite length string must be of the type of
+   // indefinite length string
+   // indefinite length byte string with text string chunk
+   { {(uint8_t[]){0x5f, 0x61, 0x00, 0xff}, 4}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
+   // indefinite length text string with a byte string chunk
+   { {(uint8_t[]){0x7f, 0x41, 0x00, 0xff}, 4}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
+   // indefinite length byte string with an positive integer chunk
+   { {(uint8_t[]){0x5f, 0x00, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
+   // indefinite length byte string with an negative integer chunk
+   { {(uint8_t[]){0x5f, 0x21, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
+   // indefinite length byte string with an array chunk
+   { {(uint8_t[]){0x5f, 0x80, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
+   // indefinite length byte string with an map chunk
+   { {(uint8_t[]){0x5f, 0xa0, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
+   // indefinite length byte string with tagged integer chunk
+   { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
+   // indefinite length byte string with an simple type chunk
+   { {(uint8_t[]){0x5f, 0xe0, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
+   { {(uint8_t[]){0x5f, 0x5f, 0x41, 0x00, 0xff, 0xff}, 6}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED},
+   // indefinite length text string with indefinite string inside
+   { {(uint8_t[]){0x7f, 0x7f, 0x61, 0x00, 0xff, 0xff}, 6}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED},
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
    // Definte length maps and arrays must be closed by having the right number of items
@@ -3632,7 +3671,6 @@ int32_t IndefiniteLengthNestTest()
    return 0;
 }
 
-
 // [1, [2, 3]]
 static const uint8_t spIndefiniteArray[]     = {0x9f, 0x01, 0x82, 0x02, 0x03, 0xff};
 // No closing break
@@ -3653,12 +3691,9 @@ int32_t IndefiniteLengthArrayMapTest()
     UsefulBufC IndefLen = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefiniteArray);
 
     // Decode it and see if it is OK
-    UsefulBuf_MAKE_STACK_UB(MemPool, 150);
     QCBORDecodeContext DC;
     QCBORItem Item;
     QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
-
-    QCBORDecode_SetMemPool(&DC, MemPool, false);
 
     QCBORDecode_GetNext(&DC, &Item);
 
@@ -3705,8 +3740,6 @@ int32_t IndefiniteLengthArrayMapTest()
 
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
 
-   QCBORDecode_SetMemPool(&DC, MemPool, false);
-
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
       return -7;
@@ -3722,8 +3755,6 @@ int32_t IndefiniteLengthArrayMapTest()
    IndefLen = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefiniteArrayBad2);
 
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
-
-   QCBORDecode_SetMemPool(&DC, MemPool, false);
 
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
@@ -3751,8 +3782,6 @@ int32_t IndefiniteLengthArrayMapTest()
 
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
 
-   QCBORDecode_SetMemPool(&DC, MemPool, false);
-
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
       return -13;
@@ -3774,8 +3803,6 @@ int32_t IndefiniteLengthArrayMapTest()
 
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
 
-   QCBORDecode_SetMemPool(&DC, MemPool, false);
-
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
       return -15;
@@ -3796,8 +3823,6 @@ int32_t IndefiniteLengthArrayMapTest()
 
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
 
-   QCBORDecode_SetMemPool(&DC, MemPool, false);
-
    nResult = QCBORDecode_GetNext(&DC, &Item);
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
       return -18;
@@ -3811,6 +3836,8 @@ int32_t IndefiniteLengthArrayMapTest()
     return 0;
 }
 
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 
 static const uint8_t spIndefiniteLenString[] = {
    0x81, // Array of length one
@@ -4196,7 +4223,6 @@ int32_t AllocAllStringsTest()
 }
 
 
-
 int32_t MemPoolTest(void)
 {
    // Set up the decoder with a tiny bit of CBOR to parse because
@@ -4327,6 +4353,8 @@ int32_t SetUpAllocatorTest(void)
 
    return 0;
 }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 
@@ -5411,6 +5439,7 @@ static const struct NumberConversion NumberConversions[] = {
       -18446744073709551617.0,
       QCBOR_SUCCESS
    },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
    {
       "Positive bignum 0x01020304 indefinite length string",
       {(uint8_t[]){0xC2, 0x5f, 0x42, 0x01, 0x02, 0x41, 0x03, 0x41, 0x04, 0xff}, 10},
@@ -5421,6 +5450,7 @@ static const struct NumberConversion NumberConversions[] = {
       16909060.0,
       QCBOR_SUCCESS
    },
+#endif
    {
       "Decimal Fraction with neg bignum [9223372036854775807, -4759477275222530853137]",
       {(uint8_t[]){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -5807,6 +5837,21 @@ static const struct NumberConversion NumberConversions[] = {
 
 
 
+
+static int32_t SetUpDecoder(QCBORDecodeContext *DCtx, UsefulBufC CBOR, UsefulBuf Pool)
+{
+   QCBORDecode_Init(DCtx, CBOR, QCBOR_DECODE_MODE_NORMAL);
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+   if(QCBORDecode_SetMemPool(DCtx, Pool, 0)) {
+      return 1;
+   }
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+   (void)Pool;
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+   return 0;
+}
+
+
 int32_t IntegerConvertTest()
 {
    const int nNumTests = sizeof(NumberConversions)/sizeof(struct NumberConversion);
@@ -5820,10 +5865,8 @@ int32_t IntegerConvertTest()
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
 
       /* ----- test conversion to int64_t ------ */
-      QCBORDecode_Init(&DCtx, pF->CBOR, QCBOR_DECODE_MODE_NORMAL);
-      QCBORError nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
-      if(nCBORError) {
-         return (int32_t)(1000+nIndex);
+      if(SetUpDecoder(&DCtx, pF->CBOR, Pool)) {
+         return (int32_t)(3333+nIndex);
       }
 
       int64_t nInt;
@@ -5836,11 +5879,10 @@ int32_t IntegerConvertTest()
       }
 
       /* ----- test conversion to uint64_t ------ */
-      QCBORDecode_Init(&DCtx, pF->CBOR, QCBOR_DECODE_MODE_NORMAL);
-      nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
-      if(nCBORError) {
-         return (int32_t)(1000+nIndex);
+      if(SetUpDecoder(&DCtx, pF->CBOR, Pool)) {
+         return (int32_t)(3333+nIndex);
       }
+
       uint64_t uInt;
       QCBORDecode_GetUInt64ConvertAll(&DCtx, 0xffff, &uInt);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorUint64) {
@@ -5851,10 +5893,8 @@ int32_t IntegerConvertTest()
       }
 
       /* ----- test conversion to double ------ */
-      QCBORDecode_Init(&DCtx, pF->CBOR, QCBOR_DECODE_MODE_NORMAL);
-      nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
-      if(nCBORError) {
-         return (int32_t)(1000+nIndex);
+       if(SetUpDecoder(&DCtx, pF->CBOR, Pool)) {
+         return (int32_t)(3333+nIndex);
       }
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
       double d;
@@ -6685,6 +6725,8 @@ int32_t TooLargeInputTest(void)
 }
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+
 static const uint8_t spMapWithIndefLenStrings[] = {
    0xbf,
       0x7f, 0x61, 'l', 0x64, 'a', 'b', 'e', 'l' , 0x61, '1', 0xff,
@@ -6756,7 +6798,7 @@ int32_t SpiffyIndefiniteLengthStringsTests()
 
    return 0;
 }
-
+#endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
 
