@@ -1935,13 +1935,14 @@ void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, uint8_t uMinLen, uint64_t u
 /**
  @brief  Semi-private method to add bigfloats and decimal fractions.
 
- @param[in] pCtx             The encoding context to add the value to.
- @param[in] uTag             The type 6 tag indicating what this is to be.
- @param[in] BigNumMantissa   Is @ref NULLUsefulBufC if mantissa is an
-                             @c int64_t or the actual big number mantissa
-                             if not.
- @param[in] nMantissa        The @c int64_t mantissa if it is not a big number.
- @param[in] nExponent        The exponent.
+ @param[in] pCtx               The encoding context to add the value to.
+ @param[in] uTag               The type 6 tag indicating what this is to be.
+ @param[in] BigNumMantissa     Is @ref NULLUsefulBufC if mantissa is an
+                               @c int64_t or the actual big number mantissa
+                               if not.
+ @param[in] bBigNumIsNegative  This is @c true if the big number is negative.
+ @param[in] nMantissa          The @c int64_t mantissa if it is not a big number.
+ @param[in] nExponent          The exponent.
 
  This outputs either the @ref CBOR_TAG_DECIMAL_FRACTION or @ref
  CBOR_TAG_BIGFLOAT tag. if @c uTag is @ref CBOR_TAG_INVALID64, then
@@ -1954,7 +1955,7 @@ void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, uint8_t uMinLen, uint64_t u
  This implementation cannot output an exponent further from 0 than
  @c INT64_MAX.
 
- To output a mantissa that is bewteen INT64_MAX and UINT64_MAX from 0,
+ To output a mantissa that is between INT64_MAX and UINT64_MAX from 0,
  it must be as a big number.
 
  Typically, QCBOREncode_AddDecimalFraction(), QCBOREncode_AddBigFloat(),
