@@ -32,7 +32,7 @@ all: qcbortest libqcbor.a
 so:	libqcbor.so
 
 qcbortest: libqcbor.a $(TEST_OBJ) cmd_line_main.o
-	$(CC) -o $@ $(LIBS) $^  libqcbor.a
+	$(CC) -o $@ $^ libqcbor.a $(LIBS)
 
 libqcbor.a: $(QCBOR_OBJ)
 	ar -r $@ $^
