@@ -276,6 +276,14 @@ struct _QCBORDecodeContext {
 #define CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK \
             CBOR_MAJOR_TYPE_SIMPLE + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
 
+
+/* Value of QCBORItem.val.string.len when the string length is
+ * indefinite. Used temporarily in the implementation and never
+ * returned to caller.
+ */
+#define QCBOR_STRING_LENGTH_INDEFINITE SIZE_MAX
+
+
 #ifdef __cplusplus
 }
 #endif

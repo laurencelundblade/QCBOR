@@ -984,7 +984,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
       case CBOR_MAJOR_TYPE_TEXT_STRING: // Major type 3
          pDecodedItem->uDataType = (uint8_t)MapStringMajorTypes(nMajorType);
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-            pDecodedItem->val.string = (UsefulBufC){NULL, SIZE_MAX};
+            pDecodedItem->val.string = (UsefulBufC){NULL, QCBOR_STRING_LENGTH_INDEFINITE};
          } else {
             nReturn = DecodeBytes(pAllocator, uNumber, pUInBuf, pDecodedItem);
          }
@@ -1034,40 +1034,59 @@ Done:
 
 
 
-/*
- This layer deals with indefinite length strings. It pulls all the
- individual chunk items together into one QCBORItem using the string
- allocator.
+/**
+ @brief Process indefinite length strings
 
- Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
+ @param[in] pMe   Decoder context
+ @param[in,out] pDecodedItem  The decoded item that work is done on.
 
  @retval QCBOR_ERR_UNSUPPORTED
-
  @retval QCBOR_ERR_HIT_END
-
  @retval QCBOR_ERR_INT_OVERFLOW
-
  @retval QCBOR_ERR_STRING_ALLOCATE
-
  @retval QCBOR_ERR_STRING_TOO_LONG
-
  @retval QCBOR_ERR_HALF_PRECISION_DISABLED
-
  @retval QCBOR_ERR_BAD_TYPE_7
-
  @retval QCBOR_ERR_NO_STRING_ALLOCATOR
-
  @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
+
+ If @c pDecodedItem is not an indefinite length string, this does nothing.
+
+ If it is, this loops getting the subsequent chunks that make up the
+ string.  The string allocator is used to make a contiguous buffer for
+ the chunks.  When this completes @c pDecodedItem contains the
+ put-together string.
+
+ Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
  */
 static inline QCBORError
 GetNext_FullItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
-   // Stack usage; int/ptr 2 UsefulBuf 2 QCBORItem  -- 96
+   /* Aproximate stack usage
+    *                                             64-bit      32-bit
+    *   local vars                                    32          16
+    *   2 UsefulBufs                                  32          16
+    *   QCBORItem                                     56          52
+    *   TOTAL                                        120          74
+    */
 
-   // Get pointer to string allocator. First use is to pass it to
-   // GetNext_Item() when option is set to allocate for *every* string.
-   // Second use here is to allocate space to coallese indefinite
-   // length string items into one.
+   /* The string allocator is used here for two purposes: 1)
+    * coalescing the chunks of an indefinite length string, 2)
+    * allocating storage for every string returned.
+    *
+    * The first use is below in this function. Indefinite length
+    * strings cannot be processed at all without a string allocator.
+    *
+    * The second used is in DecodeBytes() which is called by
+    * GetNext_Item() below. This second use unneccessary for most use
+    * and only happens when requested in the call to
+    * QCBORDecode_SetMemPool(). If the second use not requested then
+    * NULL is passed for the string allocator to GetNext_Item().
+    *
+    * QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS disables the string
+    * allocator altogether and thus both of these uses. It reduced the
+    * decoder object code by about 400 bytes.
+    */
    const QCORInternalAllocator *pAllocatorForGetNext = NULL;
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
@@ -1075,94 +1094,98 @@ GetNext_FullItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 
    if(pMe->StringAllocator.pfAllocator) {
       pAllocator = &(pMe->StringAllocator);
-      if(pMe->bStringAllocateAll ) {
+      if(pMe->bStringAllocateAll) {
          pAllocatorForGetNext = pAllocator;
       }
    }
 #endif
 
-   QCBORError nReturn;
-   nReturn = GetNext_Item(&(pMe->InBuf), pDecodedItem, pAllocatorForGetNext);
-   if(nReturn) {
+   QCBORError uReturn;
+   uReturn = GetNext_Item(&(pMe->InBuf), pDecodedItem, pAllocatorForGetNext);
+   if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
 
-   // Only do indefinite length processing on strings
+   /* Only do indefinite length processing on strings */
    const uint8_t uStringType = pDecodedItem->uDataType;
    if(uStringType!= QCBOR_TYPE_BYTE_STRING && uStringType != QCBOR_TYPE_TEXT_STRING) {
-      goto Done; // no need to do any work here on non-string types
+      goto Done;
    }
 
-   // Is this a string with an indefinite length?
-   if(pDecodedItem->val.string.len != SIZE_MAX) {
-      goto Done; // length is not indefinite, so no work to do here
+   /* Is this a string with an indefinite length? */
+   if(pDecodedItem->val.string.len != QCBOR_STRING_LENGTH_INDEFINITE) {
+      goto Done;
    }
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-   // Can't do indefinite length strings without a string allocator
+   /* Can't do indefinite length strings without a string allocator */
    if(pAllocator == NULL) {
-      nReturn = QCBOR_ERR_NO_STRING_ALLOCATOR;
+      uReturn = QCBOR_ERR_NO_STRING_ALLOCATOR;
       goto Done;
    }
 
-   // Loop getting chunks of the indefinite length string
+   /* Loop getting chunks of the indefinite length string */
    UsefulBufC FullString = NULLUsefulBufC;
 
    for(;;) {
-      // Get item for next chunk
+      /* Get QCBORItem for next chunk */
       QCBORItem StringChunkItem;
-      // NULL string allocator passed here. Do not need to allocate
-      // chunks even if bStringAllocateAll is set.
-      nReturn = GetNext_Item(&(pMe->InBuf), &StringChunkItem, NULL);
-      if(nReturn) {
-         break;  // Error getting the next chunk
+      /* Pass a NULL string allocator to GetNext_Item() because the
+       * individual string chunks in an indefinite length should not
+       * be allocated. They are always copied in the the contiguous
+       * buffer allocated here.
+       */
+      uReturn = GetNext_Item(&(pMe->InBuf), &StringChunkItem, NULL);
+      if(uReturn) {
+         break;
       }
 
-      // See if it is a marker at end of indefinite length string
+      /* Is item is the marker for end of the indefinite length string? */
       if(StringChunkItem.uDataType == QCBOR_TYPE_BREAK) {
-         // String is complete
+         /* String is complete */
          pDecodedItem->val.string = FullString;
          pDecodedItem->uDataAlloc = 1;
          break;
       }
 
-      // Match data type of chunk to type at beginning.
-      // Also catches error of other non-string types that don't belong.
-      // Also catches indefinite length strings inside indefinite length strings
-      // TODO: what is SIZE_MAX here?
+      /* All chunks must be of the same type, the type of the item
+       * that introduces the indefinite length string. This also
+       * catches errors where the chunk is not a string at all and an
+       * indefinite length string inside an indefinite length string.
+       */
       if(StringChunkItem.uDataType != uStringType ||
-         StringChunkItem.val.string.len == SIZE_MAX) {
-         nReturn = QCBOR_ERR_INDEFINITE_STRING_CHUNK;
+         StringChunkItem.val.string.len == QCBOR_STRING_LENGTH_INDEFINITE) {
+         uReturn = QCBOR_ERR_INDEFINITE_STRING_CHUNK;
          break;
       }
 
-      // Alloc new buffer or expand previously allocated buffer so it can fit.
-      // The first time throurgh FullString.ptr is NULL and this is
-      // equivalent to StringAllocator_Allocate()
+      /* The first time throurgh FullString.ptr is NULL and this is
+       * equivalent to StringAllocator_Allocate(). Subsequently it is
+       * not NULL and a reallocation happens.
+       */
       UsefulBuf NewMem = StringAllocator_Reallocate(pAllocator,
                                                     UNCONST_POINTER(FullString.ptr),
                                                     FullString.len + StringChunkItem.val.string.len);
 
       if(UsefulBuf_IsNULL(NewMem)) {
-         // Allocation of memory for the string failed
-         nReturn = QCBOR_ERR_STRING_ALLOCATE;
+         uReturn = QCBOR_ERR_STRING_ALLOCATE;
          break;
       }
 
-      // Copy new string chunk at the end of string so far.
+      /* Copy new string chunk to the end of accumulated string */
       FullString = UsefulBuf_CopyOffset(NewMem, FullString.len, StringChunkItem.val.string);
    }
 
-   if(nReturn != QCBOR_SUCCESS && !UsefulBuf_IsNULLC(FullString)) {
-      // Getting the item failed, clean up the allocated memory
+   if(uReturn != QCBOR_SUCCESS && !UsefulBuf_IsNULLC(FullString)) {
+      /* Getting the item failed, clean up the allocated memory */
       StringAllocator_Free(pAllocator, UNCONST_POINTER(FullString.ptr));
    }
 #else
-   nReturn = QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED;
+   uReturn = QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED;
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 Done:
-   return nReturn;
+   return uReturn;
 }
 
 
