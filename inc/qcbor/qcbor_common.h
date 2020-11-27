@@ -466,7 +466,11 @@ typedef enum {
        infinity or -infinity was encountered in encoded CBOR. Usually
        this because conversion of the float-point value was being
        attempted. */
-    QCBOR_ERR_FLOAT_EXCEPTION = 42,
+   QCBOR_ERR_FLOAT_EXCEPTION = 42,
+
+   /** Indefinite length string handling is disabled and there is an
+       indefinite length string in the input CBOR. */
+   QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED = 43,
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;

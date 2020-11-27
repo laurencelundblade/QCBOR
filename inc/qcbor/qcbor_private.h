@@ -276,6 +276,18 @@ struct _QCBORDecodeContext {
 #define CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK \
             CBOR_MAJOR_TYPE_SIMPLE + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
 
+
+/* Value of QCBORItem.val.string.len when the string length is
+ * indefinite. Used temporarily in the implementation and never
+ * returned in the public interface.
+ */
+#define QCBOR_STRING_LENGTH_INDEFINITE SIZE_MAX
+
+
+/* The number of elements in a C array of a particular type */
+#define C_ARRAY_COUNT(array, type) (sizeof(array)/sizeof(type))
+
+
 #ifdef __cplusplus
 }
 #endif
