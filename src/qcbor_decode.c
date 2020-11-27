@@ -516,7 +516,7 @@ StringAllocator_Destruct(const QCORInternalAllocator *pMe)
       (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, 0);
    }
 }
-#endif
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
 /*===========================================================================
@@ -882,7 +882,7 @@ static inline QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
       pDecodedItem->uDataAlloc = 1;
       goto Done;
    }
-#else
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
    (void)pAllocator;
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
@@ -982,7 +982,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
 
       case CBOR_MAJOR_TYPE_BYTE_STRING: // Major type 2
       case CBOR_MAJOR_TYPE_TEXT_STRING: // Major type 3
-         pDecodedItem->uDataType = (uint8_t)MapStringMajorTypes(nMajorType);
+         pDecodedItem->uDataType = MapStringMajorTypes(nMajorType);
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
             pDecodedItem->val.string = (UsefulBufC){NULL, QCBOR_STRING_LENGTH_INDEFINITE};
          } else {
@@ -1033,31 +1033,30 @@ Done:
 }
 
 
-
 /**
- @brief Process indefinite length strings
-
- @param[in] pMe   Decoder context
- @param[in,out] pDecodedItem  The decoded item that work is done on.
-
- @retval QCBOR_ERR_UNSUPPORTED
- @retval QCBOR_ERR_HIT_END
- @retval QCBOR_ERR_INT_OVERFLOW
- @retval QCBOR_ERR_STRING_ALLOCATE
- @retval QCBOR_ERR_STRING_TOO_LONG
- @retval QCBOR_ERR_HALF_PRECISION_DISABLED
- @retval QCBOR_ERR_BAD_TYPE_7
- @retval QCBOR_ERR_NO_STRING_ALLOCATOR
- @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
-
- If @c pDecodedItem is not an indefinite length string, this does nothing.
-
- If it is, this loops getting the subsequent chunks that make up the
- string.  The string allocator is used to make a contiguous buffer for
- the chunks.  When this completes @c pDecodedItem contains the
- put-together string.
-
- Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
+ * @brief Process indefinite length strings
+ *
+ * @param[in] pMe   Decoder context
+ * @param[in,out] pDecodedItem  The decoded item that work is done on.
+ *
+ * @retval QCBOR_ERR_UNSUPPORTED
+ * @retval QCBOR_ERR_HIT_END
+ * @retval QCBOR_ERR_INT_OVERFLOW
+ * @retval QCBOR_ERR_STRING_ALLOCATE
+ * @retval QCBOR_ERR_STRING_TOO_LONG
+ * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
+ * @retval QCBOR_ERR_BAD_TYPE_7
+ * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
+ * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
+ *
+ * If @c pDecodedItem is not an indefinite length string, this does nothing.
+ *
+ * If it is, this loops getting the subsequent chunks that make up the
+ * string.  The string allocator is used to make a contiguous buffer for
+ * the chunks.  When this completes @c pDecodedItem contains the
+ * put-together string.
+ *
+ * Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
  */
 static inline QCBORError
 GetNext_FullItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
@@ -1098,7 +1097,7 @@ GetNext_FullItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
          pAllocatorForGetNext = pAllocator;
       }
    }
-#endif
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
    QCBORError uReturn;
    uReturn = GetNext_Item(&(pMe->InBuf), pDecodedItem, pAllocatorForGetNext);
@@ -1180,7 +1179,7 @@ GetNext_FullItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
       /* Getting the item failed, clean up the allocated memory */
       StringAllocator_Free(pAllocator, UNCONST_POINTER(FullString.ptr));
    }
-#else
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
    uReturn = QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED;
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
@@ -2253,7 +2252,7 @@ Done:
    // Call the destructor for the string allocator if there is one.
    // Always called, even if there are errors; always have to clean up
    StringAllocator_Destruct(&(me->StringAllocator));
-#endif
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
    return uReturn;
 }
@@ -2507,7 +2506,7 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
 
    return QCBOR_SUCCESS;
 }
-#endif
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
 

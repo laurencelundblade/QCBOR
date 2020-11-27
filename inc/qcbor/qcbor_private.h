@@ -279,9 +279,13 @@ struct _QCBORDecodeContext {
 
 /* Value of QCBORItem.val.string.len when the string length is
  * indefinite. Used temporarily in the implementation and never
- * returned to caller.
+ * returned in the public interface.
  */
 #define QCBOR_STRING_LENGTH_INDEFINITE SIZE_MAX
+
+
+/* The number of elements in a C array of a particular type */
+#define C_ARRAY_COUNT(array, type) (sizeof(array)/sizeof(type))
 
 
 #ifdef __cplusplus

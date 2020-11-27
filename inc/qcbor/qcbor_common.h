@@ -468,7 +468,6 @@ typedef enum {
        attempted. */
    QCBOR_ERR_FLOAT_EXCEPTION = 42,
 
-
    /** Indefinite length string handling is disabled and there is an
        indefinite length string in the input CBOR. */
    QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED = 43,

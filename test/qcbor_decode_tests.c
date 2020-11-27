@@ -1635,7 +1635,8 @@ int32_t NotWellFormedTests()
 {
    // Loop over all the not-well-formed instance of CBOR
    // that are test vectors in not_well_formed_cbor.h
-   const uint16_t nArraySize = sizeof(paNotWellFormedCBOR)/sizeof(struct someBinaryBytes);
+   const uint16_t nArraySize = C_ARRAY_COUNT(paNotWellFormedCBOR,
+                                             struct someBinaryBytes);
    for(uint16_t nIterate = 0; nIterate < nArraySize; nIterate++) {
       const struct someBinaryBytes *pBytes = &paNotWellFormedCBOR[nIterate];
       const UsefulBufC Input = (UsefulBufC){pBytes->p, pBytes->n};
@@ -1647,7 +1648,7 @@ int32_t NotWellFormedTests()
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
       QCBORDecode_SetMemPool(&DCtx, Pool, 0);
-#endif
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
       // Loop getting items until no more to get
       QCBORError uCBORError;
@@ -2070,7 +2071,7 @@ int32_t DecodeFailureTests()
 {
    int32_t nResult;
 
-   nResult = ProcessFailures(Failures, sizeof(Failures)/sizeof(struct FailInput));
+   nResult = ProcessFailures(Failures,C_ARRAY_COUNT(Failures,struct FailInput));
    if(nResult) {
       return nResult;
    }
@@ -4653,7 +4654,8 @@ static struct FailInput ExponentAndMantissaFailures[] = {
 int32_t ExponentAndMantissaDecodeFailTests()
 {
    return ProcessFailures(ExponentAndMantissaFailures,
-                          sizeof(ExponentAndMantissaFailures)/sizeof(struct FailInput));
+                          C_ARRAY_COUNT(ExponentAndMantissaFailures,
+                                        struct FailInput));
 }
 
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
@@ -5450,7 +5452,7 @@ static const struct NumberConversion NumberConversions[] = {
       16909060.0,
       QCBOR_SUCCESS
    },
-#endif
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
    {
       "Decimal Fraction with neg bignum [9223372036854775807, -4759477275222530853137]",
       {(uint8_t[]){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -5854,7 +5856,8 @@ static int32_t SetUpDecoder(QCBORDecodeContext *DCtx, UsefulBufC CBOR, UsefulBuf
 
 int32_t IntegerConvertTest()
 {
-   const int nNumTests = sizeof(NumberConversions)/sizeof(struct NumberConversion);
+   const int nNumTests = C_ARRAY_COUNT(NumberConversions,
+                                       struct NumberConversion);
 
    for(int nIndex = 0; nIndex < nNumTests; nIndex++) {
       const struct NumberConversion *pF = &NumberConversions[nIndex];
@@ -6798,7 +6801,7 @@ int32_t SpiffyIndefiniteLengthStringsTests()
 
    return 0;
 }
-#endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
 
