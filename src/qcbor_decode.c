@@ -1667,23 +1667,6 @@ static void ShiftTags(QCBORItem *pDecodedItem)
 }
 
 
-/*
- Mostly just assign the right data type for the date string.
- */
-static inline QCBORError DecodeDateString(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-
-   const UsefulBufC Temp        = pDecodedItem->val.string;
-   pDecodedItem->val.dateString = Temp;
-   pDecodedItem->uDataType      = QCBOR_TYPE_DATE_STRING;
-   ShiftTags(pDecodedItem);
-   return QCBOR_SUCCESS;
-}
-
-
 
 /*
  The epoch formatted date. Turns lots of different forms of encoding
@@ -1764,24 +1747,6 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
 
 Done:
    return uReturn;
-}
-
-
-/*
- Mostly just assign the right data type for the bignum.
- */
-static inline QCBORError DecodeBigNum(QCBORItem *pDecodedItem)
-{
-   // Stack Use: UsefulBuf 1  -- 16
-   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   const UsefulBufC Temp    = pDecodedItem->val.string;
-   pDecodedItem->val.bigNum = Temp;
-   const bool bIsPosBigNum = (bool)(pDecodedItem->uTags[0] == CBOR_TAG_POS_BIGNUM);
-   pDecodedItem->uDataType  = (uint8_t)(bIsPosBigNum ? QCBOR_TYPE_POSBIGNUM
-                                                     : QCBOR_TYPE_NEGBIGNUM);
-   return QCBOR_SUCCESS;
 }
 
 
@@ -1887,71 +1852,6 @@ Done:
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
-static inline QCBORError DecodeURI(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   pDecodedItem->uDataType = QCBOR_TYPE_URI;
-   return QCBOR_SUCCESS;
-}
-
-
-static inline QCBORError DecodeB64URL(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   pDecodedItem->uDataType = QCBOR_TYPE_BASE64URL;
-
-   return QCBOR_SUCCESS;
-}
-
-
-static inline QCBORError DecodeB64(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   pDecodedItem->uDataType = QCBOR_TYPE_BASE64;
-
-   return QCBOR_SUCCESS;
-}
-
-
-static inline QCBORError DecodeRegex(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_TEXT_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   pDecodedItem->uDataType = QCBOR_TYPE_REGEX;
-
-   return QCBOR_SUCCESS;
-}
-
-
-static inline QCBORError DecodeWrappedCBOR(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   pDecodedItem->uDataType = QBCOR_TYPE_WRAPPED_CBOR;
-
-   return QCBOR_SUCCESS;
-}
-
-
-static inline QCBORError DecodeWrappedCBORSequence(QCBORItem *pDecodedItem)
-{
-   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
-      return QCBOR_ERR_BAD_OPT_TAG;
-   }
-   pDecodedItem->uDataType = QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE;
-
-   return QCBOR_SUCCESS;
-}
-
-
 static inline QCBORError DecodeMIME(QCBORItem *pDecodedItem)
 {
    if(pDecodedItem->uDataType == QCBOR_TYPE_TEXT_STRING) {
@@ -1967,19 +1867,88 @@ static inline QCBORError DecodeMIME(QCBORItem *pDecodedItem)
 }
 
 
-static inline QCBORError DecodeUUID(QCBORItem *pDecodedItem)
+/*
+ * Table of CBOR tags whose content is either a text string or a byte
+ * string. The table maps the CBOR tag to the QCBOR type. The high-bit
+ * of uQCBORtype indicates the content should be a byte string rather
+ * than a text string
+ */
+struct StringTagMapEntry {
+   uint16_t uTagNumber;
+   uint8_t  uQCBORtype;
+};
+
+#define IS_BYTE_STRING_BIT 0x80
+#define QCBOR_TYPE_MASK   ~IS_BYTE_STRING_BIT
+
+static const struct StringTagMapEntry StringTagMap[] = {
+   {CBOR_TAG_DATE_STRING,   QCBOR_TYPE_DATE_STRING},
+   {CBOR_TAG_POS_BIGNUM,    QCBOR_TYPE_POSBIGNUM | IS_BYTE_STRING_BIT},
+   {CBOR_TAG_NEG_BIGNUM,    QCBOR_TYPE_NEGBIGNUM | IS_BYTE_STRING_BIT},
+   {CBOR_TAG_CBOR,          QBCOR_TYPE_WRAPPED_CBOR | IS_BYTE_STRING_BIT},
+   {CBOR_TAG_URI,           QCBOR_TYPE_URI},
+   {CBOR_TAG_B64URL,        QCBOR_TYPE_BASE64URL},
+   {CBOR_TAG_B64,           QCBOR_TYPE_BASE64},
+   {CBOR_TAG_REGEX,         QCBOR_TYPE_REGEX},
+   {CBOR_TAG_BIN_UUID,      QCBOR_TYPE_UUID | IS_BYTE_STRING_BIT},
+   {CBOR_TAG_CBOR_SEQUENCE, QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE | IS_BYTE_STRING_BIT},
+   {CBOR_TAG_INVALID16,     QCBOR_TYPE_NONE}
+};
+
+
+/*
+ * Process the CBOR tags that whose content is a byte string or a text
+ * string and for which the string is just passed on to the caller.
+ *
+ * This maps the CBOR tag to the QCBOR type and checks the content
+ * type.  Nothing more. It may not be the most important
+ * functionality, but it part of implementing as much of RFC 7049 as
+ * possible.
+ *
+ * This returns QCBOR_SUCCESS if the tag was procssed,
+ * QCBOR_ERR_UNSUPPORTED if the tag was not processed and
+ * QCBOR_ERR_BAD_OPT_TAG if the content type was wrong for the tag.
+ */
+static inline
+QCBORError ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
 {
-   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
+   /* This only works on tags that were not mapped; no need for other yet */
+   if(uTag > QCBOR_LAST_UNMAPPED_TAG) {
+      return QCBOR_ERR_UNSUPPORTED;
+   }
+
+   unsigned uIndex;
+   for(uIndex = 0; StringTagMap[uIndex].uTagNumber != CBOR_TAG_INVALID16; uIndex++) {
+      if(StringTagMap[uIndex].uTagNumber == uTag) {
+         break;
+      }
+   }
+
+   const uint8_t uQCBORType = StringTagMap[uIndex].uQCBORtype;
+   if(uQCBORType == QCBOR_TYPE_NONE) {
+      /* repurpose this error to mean, not handled here */
+      return QCBOR_ERR_UNSUPPORTED;
+   }
+
+   uint8_t uExpectedType = QCBOR_TYPE_TEXT_STRING;
+   if(uQCBORType & IS_BYTE_STRING_BIT) {
+      uExpectedType = QCBOR_TYPE_BYTE_STRING;
+   }
+
+   if(pDecodedItem->uDataType != uExpectedType) {
       return QCBOR_ERR_BAD_OPT_TAG;
    }
-   pDecodedItem->uDataType = QCBOR_TYPE_UUID;
 
+   pDecodedItem->uDataType = (uint8_t)(uQCBORType & QCBOR_TYPE_MASK);
    return QCBOR_SUCCESS;
 }
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h file
+ * CBOR tag numbers for the item were decoded in GetNext_TaggedItem(),
+ * but the whole tag was not decoded. Here, the whole tags (tag number
+ * and tag content) that are supported by QCBOR are decoded. This is a
+ * quick pass through for items that are not tags.
  */
 static QCBORError
 QCBORDecode_GetNextTag(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
@@ -1991,87 +1960,60 @@ QCBORDecode_GetNextTag(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       goto Done;
    }
 
-   for(unsigned uTagIndex = 0; uTagIndex < QCBOR_MAX_TAGS_PER_ITEM; uTagIndex++) {
-      switch(pDecodedItem->uTags[uTagIndex]) {
+   /* When there are no tag numbers for the item, this exits first
+    * thing and effectively does nothing.
+    *
+    * This loops over all the tag numbers accumulated for this item
+    * trying to decode and interpret them. This stops at the end of
+    * the list or at the first tag number that can't be interpreted by
+    * this code. This is effectively a recursive processing of the
+    * tags number list that handles nested tags.
+    */
+   while(1) {
+      /* Don't bother to unmap tags via QCBORITem.uTags since this
+       * code only works on tags less than QCBOR_LAST_UNMAPPED_TAG.
+       */
+      const uint16_t uTagToProcess = pDecodedItem->uTags[0];
 
-         // Many of the functions here only just map a CBOR tag to
-         // a QCBOR_TYPE for a string and could probably be
-         // implemented with less object code. This implementation
-         // of string types takes about 120 bytes of object code
-         // (that is always linked and not removed by dead stripping).
-         case CBOR_TAG_DATE_STRING:
-         uReturn = DecodeDateString(pDecodedItem);
+      if(uTagToProcess == CBOR_TAG_INVALID16) {
+         /* Hit the end of the tag list. A successful exit. */
          break;
 
-         case CBOR_TAG_DATE_EPOCH:
+      } else if(uTagToProcess == CBOR_TAG_DATE_EPOCH) {
          uReturn = DecodeDateEpoch(pDecodedItem);
-         break;
-
-         case CBOR_TAG_POS_BIGNUM:
-         case CBOR_TAG_NEG_BIGNUM:
-         uReturn = DecodeBigNum(pDecodedItem);
-         break;
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
-         case CBOR_TAG_DECIMAL_FRACTION:
-         case CBOR_TAG_BIGFLOAT:
-         // For aggregate tagged types, what goes into pTags is only collected
-         // from the surrounding data item, not the contents, so pTags is not
-         // passed on here.
-
+      } else if(uTagToProcess == CBOR_TAG_DECIMAL_FRACTION ||
+                uTagToProcess == CBOR_TAG_BIGFLOAT) {
          uReturn = QCBORDecode_MantissaAndExponent(me, pDecodedItem);
-         break;
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
-         case CBOR_TAG_CBOR:
-         uReturn = DecodeWrappedCBOR(pDecodedItem);
-         break;
-
-         case CBOR_TAG_CBOR_SEQUENCE:
-         uReturn = DecodeWrappedCBORSequence(pDecodedItem);
-         break;
-
-         case CBOR_TAG_URI:
-         uReturn = DecodeURI(pDecodedItem);
-         break;
-
-         case CBOR_TAG_B64URL:
-         uReturn = DecodeB64URL(pDecodedItem);
-         break;
-
-         case CBOR_TAG_B64:
-         uReturn = DecodeB64(pDecodedItem);
-         break;
-
-         case CBOR_TAG_MIME:
-         case CBOR_TAG_BINARY_MIME:
+      } else if(uTagToProcess == CBOR_TAG_MIME ||
+                uTagToProcess == CBOR_TAG_BINARY_MIME) {
          uReturn = DecodeMIME(pDecodedItem);
-         break;
 
-         case CBOR_TAG_REGEX:
-         uReturn = DecodeRegex(pDecodedItem);
-         break;
+      } else {
+         /* See if it is a pass-through byte/text string tag; process if so */
+         uReturn = ProcessTaggedString(pDecodedItem->uTags[0], pDecodedItem);
 
-         case CBOR_TAG_BIN_UUID:
-         uReturn = DecodeUUID(pDecodedItem);
-         break;
-
-         case CBOR_TAG_INVALID16:
-         // The end of the tag list or no tags
-         // Successful exit from the loop.
-         goto Done;
-
-         default:
-         // A tag that is not understood
-         // A successful exit from the loop
-         goto Done;
-
+         if(uReturn == QCBOR_ERR_UNSUPPORTED) {
+            /* It wasn't a pass-through byte/text string tag so it is
+             * an unknown tag. This is the exit from the loop on the
+             * first unknown tag.  It is a successful exit.
+             */
+            uReturn = QCBOR_SUCCESS;
+            break;
+         }
       }
+
       if(uReturn != QCBOR_SUCCESS) {
-         goto Done;
+         /* Error exit from the loop */
+         break;
       }
-      // A tag was successfully processed, shift it
-      // out of the list of tags returned.
+
+      /* A tag was successfully processed, shift it out of the list of
+       * tags returned. This is the loop increment.
+       */
       ShiftTags(pDecodedItem);
    }
 
