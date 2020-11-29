@@ -1875,6 +1875,7 @@ struct StringTagMapEntry {
 #define IS_BYTE_STRING_BIT 0x80
 #define QCBOR_TYPE_MASK   ~IS_BYTE_STRING_BIT
 
+
 static const struct StringTagMapEntry StringTagMap[] = {
    {CBOR_TAG_DATE_STRING,   QCBOR_TYPE_DATE_STRING},
    {CBOR_TAG_POS_BIGNUM,    QCBOR_TYPE_POSBIGNUM | IS_BYTE_STRING_BIT},
@@ -1899,7 +1900,7 @@ QCBORError ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
    }
 
    unsigned uIndex;
-   for(uIndex = 0; uIndex < (sizeof(StringTagMap)/sizeof(struct StringTagMapEntry)); uIndex++) {
+   for(uIndex = 0; StringTagMap[uIndex].uTag != CBOR_TAG_INVALID16; uIndex++) {
       if(StringTagMap[uIndex].uTag == uTag) {
          break;
       }
@@ -1917,13 +1918,12 @@ QCBORError ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
    }
 
    if(pDecodedItem->uDataType != uExpectedType) {
-      return QCBOR_ERR_BAD_OPT_TAG; // QCBOR_ERR_UNEXPECTED_TYPE;
+      return QCBOR_ERR_BAD_OPT_TAG;
    }
 
    pDecodedItem->uDataType = (uint8_t)(uQCBORType & QCBOR_TYPE_MASK);
    return QCBOR_SUCCESS;
 }
-
 
 
 static QCBORError
@@ -1949,7 +1949,7 @@ QCBORDecode_GetNextTag(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       /* Don't bother to map tags through QCBORITem.uTags since this code only
        * works on tags less than QCBOR_LAST_UNMAPPED_TAG.
        */
-      const uint16_t uTagToProcess = pDecodedItem->uTags[uTagIndex];
+      const uint16_t uTagToProcess = pDecodedItem->uTags[0];
 
       if(uTagToProcess == CBOR_TAG_INVALID16) {
          /* Hit the end of the tag list. A successful exit. */
@@ -1970,7 +1970,7 @@ QCBORDecode_GetNextTag(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 
       } else {
          /* See if it is a pass-through byte/text string tag; process if so */
-         uReturn = ProcessTaggedString(pDecodedItem->uTags[uTagIndex], pDecodedItem);
+         uReturn = ProcessTaggedString(pDecodedItem->uTags[0], pDecodedItem);
 
          if(uReturn == QCBOR_ERR_UNSUPPORTED) {
             /* It wasn't a pass-through byte/text string tag so it is an

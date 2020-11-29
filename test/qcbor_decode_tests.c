@@ -2207,8 +2207,8 @@ static uint8_t spDateTestInput[] = {
    0xc1,
    0x62, 'h', 'i', // wrong type tagged
 
-   // CBOR_TAG_B64
-   0xcf, 0xd8, 0x22, 0xc1, // 0xee, // Epoch date with extra tags
+   // CBOR_TAG_ENC_AS_B64
+   0xcf, 0xd8, 0x16, 0xc1, // 0xee, // Epoch date with extra tags
    0x1a, 0x53, 0x72, 0x4E, 0x01,
 
    0xc1, // tag for epoch date
@@ -2252,6 +2252,8 @@ static int CHECK_EXPECTED_DOUBLE(double val, double expected) {
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
 
+#include <stdio.h>
+
 int32_t DateParseTest()
 {
    QCBORDecodeContext DCtx;
@@ -2292,15 +2294,18 @@ int32_t DateParseTest()
       return -6;
    }
 
-   // Epoch date with extra CBOR_TAG_B64 tag that doesn't really mean anything
+   // Epoch date wrapped in an CBOR_TAG_ENC_AS_B64 and an unknown tag.
+   //   with extra CBOR_TAG_ENC_AS_B64 tag and an unknown tag that doesn't really mean anything
    // but want to be sure extra tag doesn't cause a problem
+   printf("xx\n");
    if((uError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      printf("uError %d\n", uError);
       return -7;
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
       Item.val.epochDate.nSeconds != 1400000001 ||
       Item.val.epochDate.fSecondsFraction != 0 ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_B64)) {
+      !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_ENC_AS_B64)) {
       return -8;
    }
 
