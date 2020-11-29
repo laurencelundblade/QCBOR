@@ -2252,7 +2252,6 @@ static int CHECK_EXPECTED_DOUBLE(double val, double expected) {
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
 
-#include <stdio.h>
 
 int32_t DateParseTest()
 {
@@ -2295,11 +2294,9 @@ int32_t DateParseTest()
    }
 
    // Epoch date wrapped in an CBOR_TAG_ENC_AS_B64 and an unknown tag.
-   //   with extra CBOR_TAG_ENC_AS_B64 tag and an unknown tag that doesn't really mean anything
-   // but want to be sure extra tag doesn't cause a problem
-   printf("xx\n");
+   // The date is decoded and the two tags are returned. This is to
+   // make sure the wrapping of epoch date in another tag works OK.
    if((uError = QCBORDecode_GetNext(&DCtx, &Item))) {
-      printf("uError %d\n", uError);
       return -7;
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||

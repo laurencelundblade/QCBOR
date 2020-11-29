@@ -1867,14 +1867,19 @@ static inline QCBORError DecodeMIME(QCBORItem *pDecodedItem)
 }
 
 
+/*
+ * Table of CBOR tags whose content is either a text string or a byte
+ * string. The table maps the CBOR tag to the QCBOR type. The high-bit
+ * of uQCBORtype indicates the content should be a byte string rather
+ * than a text string
+ */
 struct StringTagMapEntry {
-   uint16_t uTag;
+   uint16_t uTagNumber;
    uint8_t  uQCBORtype;
 };
 
 #define IS_BYTE_STRING_BIT 0x80
 #define QCBOR_TYPE_MASK   ~IS_BYTE_STRING_BIT
-
 
 static const struct StringTagMapEntry StringTagMap[] = {
    {CBOR_TAG_DATE_STRING,   QCBOR_TYPE_DATE_STRING},
@@ -1891,6 +1896,19 @@ static const struct StringTagMapEntry StringTagMap[] = {
 };
 
 
+/*
+ * Process the CBOR tags that whose content is a byte string or a text
+ * string and for which the string is just passed on to the caller.
+ *
+ * This maps the CBOR tag to the QCBOR type and checks the content
+ * type.  Nothing more. It may not be the most important
+ * functionality, but it part of implementing as much of RFC 7049 as
+ * possible.
+ *
+ * This returns QCBOR_SUCCESS if the tag was procssed,
+ * QCBOR_ERR_UNSUPPORTED if the tag was not processed and
+ * QCBOR_ERR_BAD_OPT_TAG if the content type was wrong for the tag.
+ */
 static inline
 QCBORError ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
 {
@@ -1900,15 +1918,15 @@ QCBORError ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
    }
 
    unsigned uIndex;
-   for(uIndex = 0; StringTagMap[uIndex].uTag != CBOR_TAG_INVALID16; uIndex++) {
-      if(StringTagMap[uIndex].uTag == uTag) {
+   for(uIndex = 0; StringTagMap[uIndex].uTagNumber != CBOR_TAG_INVALID16; uIndex++) {
+      if(StringTagMap[uIndex].uTagNumber == uTag) {
          break;
       }
    }
 
    const uint8_t uQCBORType = StringTagMap[uIndex].uQCBORtype;
    if(uQCBORType == QCBOR_TYPE_NONE) {
-      // repurpose this error.
+      /* repurpose this error to mean, not handled here */
       return QCBOR_ERR_UNSUPPORTED;
    }
 
@@ -1926,6 +1944,12 @@ QCBORError ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
 }
 
 
+/*
+ * CBOR tag numbers for the item were decoded in GetNext_TaggedItem(),
+ * but the whole tag was not decoded. Here, the whole tags (tag number
+ * and tag content) that are supported by QCBOR are decoded. This is a
+ * quick pass through for items that are not tags.
+ */
 static QCBORError
 QCBORDecode_GetNextTag(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
@@ -1936,18 +1960,18 @@ QCBORDecode_GetNextTag(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       goto Done;
    }
 
-   /* When there are no tag numbers for the item, this exits first thing
-    * and effectively does nothing.
+   /* When there are no tag numbers for the item, this exits first
+    * thing and effectively does nothing.
     *
-    * This loops over all the tag numbers accumulated for this item trying
-    * to decode and interpret them. This stops at the end of the list
-    * or at the first tag number that can't be interpreted by this code. This
-    * is effectively a recursive processing of the tags number list that
-    * handles nested tags.
+    * This loops over all the tag numbers accumulated for this item
+    * trying to decode and interpret them. This stops at the end of
+    * the list or at the first tag number that can't be interpreted by
+    * this code. This is effectively a recursive processing of the
+    * tags number list that handles nested tags.
     */
-   for(unsigned uTagIndex = 0; uTagIndex < QCBOR_MAX_TAGS_PER_ITEM; uTagIndex++) {
-      /* Don't bother to map tags through QCBORITem.uTags since this code only
-       * works on tags less than QCBOR_LAST_UNMAPPED_TAG.
+   while(1) {
+      /* Don't bother to unmap tags via QCBORITem.uTags since this
+       * code only works on tags less than QCBOR_LAST_UNMAPPED_TAG.
        */
       const uint16_t uTagToProcess = pDecodedItem->uTags[0];
 
@@ -1973,9 +1997,10 @@ QCBORDecode_GetNextTag(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
          uReturn = ProcessTaggedString(pDecodedItem->uTags[0], pDecodedItem);
 
          if(uReturn == QCBOR_ERR_UNSUPPORTED) {
-            /* It wasn't a pass-through byte/text string tag so it is an
-             * unknown tag. This is the exit from the loop on the first unknown tag.
-             * It is a successful exit. */
+            /* It wasn't a pass-through byte/text string tag so it is
+             * an unknown tag. This is the exit from the loop on the
+             * first unknown tag.  It is a successful exit.
+             */
             uReturn = QCBOR_SUCCESS;
             break;
          }
@@ -1986,8 +2011,8 @@ QCBORDecode_GetNextTag(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
          break;
       }
 
-      /* A tag was successfully processed, shift it
-       * out of the list of tags returned.
+      /* A tag was successfully processed, shift it out of the list of
+       * tags returned. This is the loop increment.
        */
       ShiftTags(pDecodedItem);
    }
