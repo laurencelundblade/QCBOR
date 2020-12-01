@@ -659,14 +659,14 @@ Done:
 
 int32_t RunQCborExample()
 {
-   CarEngine               E, DecodedEngine;
-   MakeUsefulBufOnStack(   EngineBuffer, 300);
-   UsefulBufC              EncodedEngine;
+   CarEngine                 E, DecodedEngine;
+   UsefulBuf_MAKE_STACK_UB(  EngineBuffer, 300);
+   UsefulBufC                EncodedEngine;
 
-   MakeUsefulBufOnStack(   InDefEngineBuffer, 300);
-   UsefulBufC              InDefEncodedEngine;
+   UsefulBuf_MAKE_STACK_UB(  InDefEngineBuffer, 300);
+   UsefulBufC                InDefEncodedEngine;
 
-   EngineDecodeErrors      uErr;
+   EngineDecodeErrors        uErr;
 
    EngineInit(&E);
 

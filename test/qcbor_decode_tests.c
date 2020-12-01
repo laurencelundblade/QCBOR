@@ -2113,7 +2113,7 @@ int32_t DecodeFailureTests()
     through the use of SIZE_MAX.
    */
 
-   MakeUsefulBufOnStack(  HeadBuf, QCBOR_HEAD_BUFFER_SIZE);
+   UsefulBuf_MAKE_STACK_UB(  HeadBuf, QCBOR_HEAD_BUFFER_SIZE);
    UsefulBufC             EncodedHead;
 
    // This makes a CBOR head with a text string that is very long
@@ -6317,7 +6317,7 @@ static UsefulBufC EncodeBstrWrapTestData(UsefulBuf OutputBuffer)
 
 int32_t EnterBstrTest()
 {
-   MakeUsefulBufOnStack(OutputBuffer, 100);
+   UsefulBuf_MAKE_STACK_UB(OutputBuffer, 100);
 
    QCBORDecodeContext DC;
 
@@ -6752,7 +6752,7 @@ int32_t SpiffyIndefiniteLengthStringsTests()
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapWithIndefLenStrings),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   MakeUsefulBufOnStack(StringBuf, 200);
+   UsefulBuf_MAKE_STACK_UB(StringBuf, 200);
    QCBORDecode_SetMemPool(&DCtx, StringBuf, false);
 
    UsefulBufC ByteString;
