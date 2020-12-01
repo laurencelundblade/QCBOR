@@ -659,14 +659,32 @@ Done:
 
 int32_t RunQCborExample()
 {
-   CarEngine               E, DecodedEngine;
-   MakeUsefulBufOnStack(   EngineBuffer, 300);
-   UsefulBufC              EncodedEngine;
+   CarEngine                 E, DecodedEngine;
 
-   MakeUsefulBufOnStack(   InDefEngineBuffer, 300);
-   UsefulBufC              InDefEncodedEngine;
+   /* For every buffer used by QCBOR a pointer and a length are always
+    * carried in a UsefulBuf. This is a secure coding and hygene
+    * practice to help make sure code never runs off the end of a buffer.
+    *
+    * UsefulBuf structures are passed as a stack parameter to make the
+    * code prettier. The object code generated isn't much different from
+    * passing a pointer parameter and a length parameter.
+    *
+    * This macro is equivalent to:
+    *    uint8_t    __pBufEngineBuffer[300];
+    *    UsefulBuf  EngineBuffer = {__pBufEngineBuffer, 300};
+    */
+   UsefulBuf_MAKE_STACK_UB(  EngineBuffer, 300);
 
-   EngineDecodeErrors      uErr;
+   /* The pointer in UsefulBuf is not const and used for representing
+    * a buffer to be written to. For UsefulbufC, the pointer is const
+    * and is used to represent a buffer that has been written to.
+    */
+   UsefulBufC                EncodedEngine;
+
+   UsefulBuf_MAKE_STACK_UB(  InDefEngineBuffer, 300);
+   UsefulBufC                InDefEncodedEngine;
+
+   EngineDecodeErrors        uErr;
 
    EngineInit(&E);
 

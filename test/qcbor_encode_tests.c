@@ -2716,7 +2716,7 @@ int32_t QCBORHeadTest()
     * other test exercises QCBOREncode_EncodeHead().
     */
    // ---- basic test to encode a zero ----
-   MakeUsefulBufOnStack(RightSize, QCBOR_HEAD_BUFFER_SIZE);
+   UsefulBuf_MAKE_STACK_UB(RightSize, QCBOR_HEAD_BUFFER_SIZE);
 
    UsefulBufC encoded = QCBOREncode_EncodeHead(RightSize,
                                                CBOR_MAJOR_TYPE_POSITIVE_INT,
@@ -2744,7 +2744,7 @@ int32_t QCBORHeadTest()
 
 
    // ---- Try to encode into too-small a buffer ----
-   MakeUsefulBufOnStack(TooSmall, QCBOR_HEAD_BUFFER_SIZE-1);
+   UsefulBuf_MAKE_STACK_UB(TooSmall, QCBOR_HEAD_BUFFER_SIZE-1);
 
    encoded = QCBOREncode_EncodeHead(TooSmall,
                                     CBOR_MAJOR_TYPE_POSITIVE_INT,

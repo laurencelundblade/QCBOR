@@ -407,30 +407,56 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
  Initialize the encoder to prepare to encode some CBOR.
 
  @param[in,out]  pCtx     The encoder context to initialize.
- @param[in]      Storage  The buffer into which this encoded result
-                          will be placed.
+ @param[in]      Storage  The buffer into which the encoded result
+                          will be written.
 
- Call this once at the start of an encoding of a CBOR structure. Then
- call the various @c QCBOREncode_AddXxx() functions to add the data
- items. Then call QCBOREncode_Finish().
+ Call this once at the start of an encoding of some CBOR. Then call
+ the many functions like QCBOREncode_AddInt64() and
+ QCBOREncode_AddText() to add the different data items. Finally, call
+ QCBOREncode_Finish() to get the pointer and length of the encoded
+ result.
 
- The maximum output buffer is @c UINT32_MAX (4GB). This is not a
- practical limit in any way and reduces the memory needed by the
- implementation.  The error @ref QCBOR_ERR_BUFFER_TOO_LARGE will be
- returned by QCBOREncode_Finish() if a larger buffer length is passed
- in.
+ The primary purpose of this function is to give the pointer and
+ length of the output buffer into which the encoded CBOR will be
+ written. This is done with a @ref UsefulBuf structure, which is just
+ a pointer and length (it is equivalent to two parameters, one a
+ pointer and one a length, but a little prettier).
 
- If this is called with @c Storage.ptr as @c NULL and @c Storage.len a
- large value like @c UINT32_MAX, all the QCBOREncode_AddXxx()
- functions and QCBOREncode_Finish() can still be called. No data will
- be encoded, but the length of what would be encoded will be
- calculated. The length of the encoded structure will be handed back
- in the call to QCBOREncode_Finish(). You can then allocate a buffer
- of that size and call all the encoding again, this time to fill in
- the buffer.
+ The output buffer can be allocated any way (malloc, stack,
+ static). It is just some memory that QCBOR writes to. The length must
+ be the length of the allocated buffer. QCBOR will never write past
+ that length, but might write up to that length. If the buffer is too
+ small, encoding will go into an error state and not write anything
+ further.
+
+ If allocating on the stack the convenience macro
+ UsefulBuf_MAKE_STACK_UB() can be used, but its use is not required.
+
+ Since there is no reallocation or such, the output buffer must be
+ correctly sized when passed in here. It is OK, but wasteful if it is
+ too large. One way to pick the size is to figure out the maximum size
+ that will ever be needed and hard code a buffer of that size.
+
+ Another way to do it is to have QCBOR calculate it for you. To do
+ this set @c Storage.ptr to @c NULL and @c Storage.len to @c
+ UINT32_MAX. Then call all the functions to add the CBOR exactly as if
+ encoding for real. Then call QCBOREncode_Finish(). The pointer
+ returned will be @c NULL, but the length returned is that of what would
+ be encoded. Once the length is obtained, allocate a buffer of that
+ size, call QCBOREncode_Init() again with the real buffer. Call all
+ the add functions again and finally, QCBOREncode_Finish() to obtain
+ the final result. This uses almost twice the CPU time, but that is
+ usually not an issue.
+
+ See QCBOREncode_Finish() for how the pointer and length for the
+ encoded CBOR is returned.
+
+ The maximum output buffer size allowed is @c UINT32_MAX (4GB). The
+ error @ref QCBOR_ERR_BUFFER_TOO_LARGE will be returned by
+ QCBOREncode_Finish() if a larger buffer length is passed in.
 
  A @ref QCBOREncodeContext can be reused over and over as long as
- QCBOREncode_Init() is called.
+ QCBOREncode_Init() is called before each use.
  */
 void QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
 
@@ -1690,7 +1716,8 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
  @brief Get the encoded result.
 
  @param[in] pCtx           The context to finish encoding with.
- @param[out] pEncodedCBOR  Pointer and length of encoded CBOR.
+ @param[out] pEncodedCBOR  Structure in which the pointer and length of the encoded
+                           CBOR is returned.
 
  @retval QCBOR_ERR_TOO_MANY_CLOSES         Nesting error
 
@@ -1706,12 +1733,17 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
 
  @retval QCBOR_ERR_ARRAY_TOO_LONG          Implementation limit
 
- If this returns success @ref QCBOR_SUCCESS the encoding was a success
- and the return length is correct and complete.
+ On success, the pointer and length of the encoded CBOR are returned
+ in @c *pEncodedCBOR. The pointer is the same pointer that was passed
+ in to QCBOREncode_Init(). Note that it is not const when passed to
+ QCBOREncode_Init(), but it is const when returned here.  The length
+ will be smaller than or equal to the length passed in when
+ QCBOREncode_Init() as this is the length of the actual result, not
+ the size of the buffer it was written to.
 
- If no buffer was passed to QCBOREncode_Init(), then only the length
- was computed. If a buffer was passed, then the encoded CBOR is in the
- buffer.
+ If a @c NULL was passed for @c Storage.ptr when QCBOREncode_Init()
+ was called, @c NULL will be returned here, but the length will be
+ that of the CBOR that would have been encoded.
 
  Encoding errors primarily manifest here as most other encoding function
  do no return an error. They just set the error state in the encode
@@ -1743,8 +1775,8 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
  can also be interleaved with calls to QCBOREncode_FinishGetSize().
 
  QCBOREncode_GetErrorState() can be called to get the current
- error state and abort encoding early as an optimization, but is
- is never required.
+ error state in order to abort encoding early as an optimization, but
+ calling it is is never required.
  */
 QCBORError QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
 
