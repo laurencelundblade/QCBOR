@@ -76,6 +76,7 @@ QCBORItem_IsEmptyDefiniteLengthMapOrArray(const QCBORItem *pMe)
 static inline bool
 QCBORItem_IsIndefiniteLengthMapOrArray(const QCBORItem *pMe)
 {
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    if(!QCBORItem_IsMapOrArray(pMe)){
       return false;
    }
@@ -84,6 +85,10 @@ QCBORItem_IsIndefiniteLengthMapOrArray(const QCBORItem *pMe)
       return false;
    }
    return true;
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+   (void)pMe;
+   return false;
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 }
 
 
@@ -157,15 +162,19 @@ DecodeNesting_IsCurrentDefiniteLength(const QCBORDecodeNesting *pNesting)
       // Not a map or array
       return false;
    }
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    if(pNesting->pCurrent->u.ma.uCountTotal == QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
       // Is indefinite
       return false;
    }
+#endif
+   
    // All checks passed; is a definte length map or array
    return true;
 }
 
-
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 static inline bool
 DecodeNesting_IsCurrentBstrWrapped(const QCBORDecodeNesting *pNesting)
 {
@@ -175,6 +184,7 @@ DecodeNesting_IsCurrentBstrWrapped(const QCBORDecodeNesting *pNesting)
    }
    return false;
 }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 static inline bool DecodeNesting_IsCurrentBounded(const QCBORDecodeNesting *pNesting)
@@ -998,7 +1008,12 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
             goto Done;
          }
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
             pDecodedItem->val.uCount = QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH;
+#else
+            nReturn = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
+            break;
+#endif
          } else {
             // type conversion OK because of check above
             pDecodedItem->val.uCount = (uint16_t)uNumber;
@@ -1399,6 +1414,7 @@ Done:
 }
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 /*
  See if next item is a CBOR break. If it is, it is consumed,
  if not it is not consumed.
@@ -1424,6 +1440,7 @@ NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
 
    return QCBOR_SUCCESS;
 }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 /*
@@ -1447,8 +1464,10 @@ static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
           }
           /* All of a definite length array was consumed; fall through to
              ascend */
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
       } else {
+
          /* If not definite length, have to check for a CBOR break */
          bool bIsBreak = false;
          uReturn = NextIsBreak(&(pMe->InBuf), &bIsBreak);
@@ -1471,9 +1490,11 @@ static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
             uReturn = QCBOR_ERR_BAD_BREAK;
             goto Done;
          }
-
          /* It was a break in an indefinite length map / array */
+
+#endif
       }
+
 
       /* All items in the map/array level have been consumed. */
 
@@ -1496,7 +1517,10 @@ static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
 
    uReturn = QCBOR_SUCCESS;
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 Done:
+#endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
    return uReturn;
 }
 
