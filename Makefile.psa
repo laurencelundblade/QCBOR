@@ -18,15 +18,17 @@
 # ---- QCBOR location ----
 
 # This is for direct reference to QCBOR that is not installed in
-# /usr/local or some system location. The path names may need to be
+# /usr/local or some system location. The path may need to be
 # adjusted for your location of QCBOR.
-#QCBOR_INC= -I ../../QCBOR/master/inc
-#QCBOR_LIB=../../QCBOR/master/libqcbor.a
+#QCBOR_DIR=../../QCBOR/master
+#QCBOR_INC=-I $(QCBOR_DIR)/inc
+#QCBOR_LIB=$(QCBOR_DIR)/libqcbor.a
 
 # This is for reference to QCBOR that has been installed in
-# /usr/local/ or in some system location.
-QCBOR_INC= -I /usr/local/include
-QCBOR_LIB= -l qcbor
+# /usr/local/ or in some system location. This will typically
+# use dynamic linking if there is a libqcbor.so
+QCBOR_INC=-I /usr/local/include
+QCBOR_LIB=-lqcbor
 
 
 # ---- crypto configuration -----
