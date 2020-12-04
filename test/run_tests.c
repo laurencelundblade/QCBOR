@@ -63,8 +63,11 @@ static test_entry s_tests[] = {
     TEST_ENTRY(EmptyMapsAndArraysTest),
     TEST_ENTRY(NotWellFormedTests),
     TEST_ENTRY(ParseMapAsArrayTest),
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
     TEST_ENTRY(IndefiniteLengthNestTest),
+    TEST_ENTRY(IndefiniteLengthArrayMapTest),
     TEST_ENTRY(NestedMapTestIndefLen),
+#endif
     TEST_ENTRY(ParseSimpleTest),
     TEST_ENTRY(DecodeFailureTests),
     TEST_ENTRY(EncodeRawTest),
@@ -82,7 +85,6 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ParseTooDeepArrayTest),
     TEST_ENTRY(ComprehensiveInputTest),
     TEST_ENTRY(ParseMapTest),
-    TEST_ENTRY(IndefiniteLengthArrayMapTest),
     TEST_ENTRY(BasicEncodeTest),
     TEST_ENTRY(NestedMapTest),
     TEST_ENTRY(BignumParseTest),

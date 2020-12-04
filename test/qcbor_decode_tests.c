@@ -4640,8 +4640,13 @@ static struct FailInput ExponentAndMantissaFailures[] = {
    { {(uint8_t[]){0xC4, 0x82, 0x1f, 0x01}, 4}, QCBOR_ERR_BAD_INT},
    // 3 items in array
    { {(uint8_t[]){0xC4, 0x83, 0x03, 0x01, 02}, 5}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    // unterminated indefinite length array
    { {(uint8_t[]){0xC4, 0x9f, 0x03, 0x01, 0x02}, 5}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+   // unterminated indefinite length array
+   { {(uint8_t[]){0xC4, 0x9f, 0x03, 0x01, 0x02}, 5}, QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED},
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
    // Empty array
    { {(uint8_t[]){0xC4, 0x80}, 2}, QCBOR_ERR_NO_MORE_ITEMS},
    // Second is not an integer
@@ -6013,6 +6018,7 @@ int32_t CBORSequenceDecodeTests(void)
 
    // Get a second item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    if(uCBORError != QCBOR_SUCCESS) {
       return 9;
    }
@@ -6026,6 +6032,11 @@ int32_t CBORSequenceDecodeTests(void)
    if(uCBORError != QCBOR_ERR_ARRAY_OR_MAP_UNCONSUMED) {
       return 11;
    }
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+   if(uCBORError != QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED) {
+      return 20;
+   }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
    // --- Sequence with a closed indefinite length array ---
@@ -6046,6 +6057,8 @@ int32_t CBORSequenceDecodeTests(void)
 
    // Get a second item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+
    if(uCBORError != QCBOR_SUCCESS) {
       return 14;
    }
@@ -6059,6 +6072,11 @@ int32_t CBORSequenceDecodeTests(void)
    if(uCBORError != QCBOR_SUCCESS) {
       return 16;
    }
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+   if(uCBORError != QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED) {
+      return 20;
+   }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
    return 0;
