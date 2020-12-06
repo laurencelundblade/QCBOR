@@ -56,7 +56,7 @@ extern "C" {
  # QCBOR Overview
 
  This implements CBOR -- Concise Binary Object Representation as
- defined in [RFC 7049] (https://tools.ietf.org/html/rfc7049). More
+ defined in [RFC 8949] (https://tools.ietf.org/html/rfc8949). More
  information is at http://cbor.io.  This is a near-complete implementation of
  the specification. [RFC 8742] (https://tools.ietf.org/html/rfc8742) CBOR
  Sequences is also supported. Limitations are listed further down.
@@ -67,7 +67,7 @@ extern "C" {
  decoder functions.
 
  CBOR is intentionally designed to be translatable to JSON, but not
- all CBOR can convert to JSON. See RFC 7049 for more info on how to
+ all CBOR can convert to JSON. See RFC 8949 for more info on how to
  construct CBOR that is the most JSON friendly.
 
  The memory model for encoding and decoding is that encoded CBOR must
@@ -484,9 +484,9 @@ void QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  represent the value.  For example, CBOR always encodes the value 0 as
  one byte, 0x00. The representation as 0x00 includes identification of
  the type as an integer too as the major type for an integer is 0. See
- [RFC 7049] (https://tools.ietf.org/html/rfc7049) Appendix A for more
- examples of CBOR encoding. This compact encoding is also canonical
- CBOR as per section 3.9 in RFC 7049.
+ [RFC 8949] (https://tools.ietf.org/html/rfc8949) Appendix A for more
+ examples of CBOR encoding. This compact encoding is also preferred
+ serialization CBOR as per section 34.1 in RFC 8949.
 
  There are no functions to add @c int16_t or @c int32_t because they
  are not necessary because this always encodes to the smallest number
@@ -725,7 +725,7 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
  @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or @ref QCBOR_ENCODE_AS_BORROWED.
  @param[in] nDate  Number of seconds since 1970-01-01T00:00Z in UTC time.
 
- As per RFC 7049 this is similar to UNIX/Linux/POSIX dates. This is
+ As per RFC 8949 this is similar to UNIX/Linux/POSIX dates. This is
  the most compact way to specify a date and time in CBOR. Note that
  this is always UTC and does not include the time zone.  Use
  QCBOREncode_AddDateString() if you want to include the time zone.
@@ -838,7 +838,7 @@ static void QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nL
  @param[in] Bytes  Pointer and length of the big number.
 
  Big numbers are integers larger than 64-bits. Their format is
- described in [RFC 7049] (https://tools.ietf.org/html/rfc7049).
+ described in [RFC 8949] (https://tools.ietf.org/html/rfc8949).
 
  It is output as CBOR major type 2, a binary string, with tag @ref
  CBOR_TAG_POS_BIGNUM indicating the binary string is a positive big
@@ -883,7 +883,7 @@ static void QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx,
  @param[in] Bytes  Pointer and length of the big number.
 
  Big numbers are integers larger than 64-bits. Their format is
- described in [RFC 7049] (https://tools.ietf.org/html/rfc7049).
+ described in [RFC 8949] (https://tools.ietf.org/html/rfc8949).
 
  It is output as CBOR major type 2, a binary string, with tag @ref
  CBOR_TAG_NEG_BIGNUM indicating the binary string is a negative big
@@ -1395,8 +1395,8 @@ static void QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pCtx,
  The string szDate should be in the form of [RFC 3339]
  (https://tools.ietf.org/html/rfc3339) as defined by section 3.3 in
  [RFC 4287] (https://tools.ietf.org/html/rfc4287). This is as
- described in section 2.4.1 in [RFC 7049]
- (https://tools.ietf.org/html/rfc7049).
+ described in section 3.4.1 in [RFC 8949]
+ (https://tools.ietf.org/html/rfc8949).
 
  Note that this function doesn't validate the format of the date string
  at all. If you add an incorrect format date string, the generated
@@ -1571,13 +1571,13 @@ static void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
  InMap for adding items to maps with string labels and one that ends
  with @c InMapN that is for adding with integer labels.
 
- RFC 7049 uses the term "key" instead of "label".
+ RFC 8949 uses the term "key" instead of "label".
 
  If you wish to use map labels that are neither integer labels nor
  text strings, then just call the QCBOREncode_AddXxx() function
  explicitly to add the label. Then call it again to add the value.
 
- See the [RFC 7049] (https://tools.ietf.org/html/rfc7049) for a lot
+ See the [RFC 8949] (https://tools.ietf.org/html/rfc8949) for a lot
  more information on creating maps.
  */
 static void QCBOREncode_OpenMap(QCBOREncodeContext *pCtx);
@@ -1622,7 +1622,11 @@ static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
 
  The typical use case is for encoded CBOR that is to be
  cryptographically hashed, as part of a [RFC 8152, COSE]
- (https://tools.ietf.org/html/rfc8152) implementation.
+ (https://tools.ietf.org/html/rfc8152) implementation. The
+ wrapping byte string is taken as input by the hash function
+ (which is why it is returned by QCBOREncode_CloseBstrWrap2()).
+ It is also easy to recover on decoding with standard CBOR
+ decoders.
 
  Using QCBOREncode_BstrWrap() and QCBOREncode_CloseBstrWrap2() avoids
  having to encode the items first in one buffer (e.g., the COSE
@@ -1630,14 +1634,13 @@ static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
  (e.g. the COSE to-be-signed bytes, the @c Sig_structure) potentially
  halving the memory needed.
 
- RFC 7049 states the purpose of this wrapping is to prevent code
- relaying the signed data but not verifying it from tampering with the
- signed data thus making the signature unverifiable. It is also quite
- beneficial for the signature verification code. Standard CBOR
- decoders usually do not give access to partially decoded CBOR as
- would be needed to check the signature of some CBOR. With this
- wrapping, standard CBOR decoders can be used to get to all the data
- needed for a signature verification.
+ CBOR by nature must be decoded item by item in order from the start.
+ By wrapping some CBOR in a byte string, the decoding of that wrapped
+ CBOR can be skipped. This is another use of wrapping, perhaps
+ because the CBOR is large and deeply nested. Perhaps APIs for
+ handling one defined CBOR message that is being embedded in another
+ only take input as a byte string. Perhaps the desire is to be able
+ to decode the out layer even in the wrapped has errors.
  */
 static void QCBOREncode_BstrWrap(QCBOREncodeContext *pCtx);
 

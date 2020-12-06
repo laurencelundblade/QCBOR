@@ -102,7 +102,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*
  Tags that are used with CBOR_MAJOR_TYPE_OPTIONAL. These
- are types defined in RFC 7049 and some additional ones
+ are types defined in RFC 8949 and some additional ones
  in the IANA CBOR tags registry.
  */
 /** See QCBOREncode_AddDateString(). */

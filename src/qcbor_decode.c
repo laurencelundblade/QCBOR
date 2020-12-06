@@ -1902,7 +1902,7 @@ static const struct StringTagMapEntry StringTagMap[] = {
  *
  * This maps the CBOR tag to the QCBOR type and checks the content
  * type.  Nothing more. It may not be the most important
- * functionality, but it part of implementing as much of RFC 7049 as
+ * functionality, but it part of implementing as much of RFC 8949 as
  * possible.
  *
  * This returns QCBOR_SUCCESS if the tag was procssed,
