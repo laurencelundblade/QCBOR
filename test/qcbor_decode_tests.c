@@ -60,7 +60,7 @@ static void PrintUsefulBufC(const char *szLabel, UsefulBufC Buf)
 
    fflush(stdout);
 }
-#endif
+#endif /* PRINT_FUNCTIONS_FOR_DEBUGGING */
 
 
 static const uint8_t spExpectedEncodedInts[] = {
@@ -2369,9 +2369,9 @@ int32_t DateParseTest()
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_HALF_PRECISION_DISABLED) {
       return -18;
    }
-#endif
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
-#else
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
       return -19;
    }
@@ -2398,9 +2398,9 @@ int32_t DateParseTest()
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_HALF_PRECISION_DISABLED) {
       return -26;
    }
-#endif
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
-#endif
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
    return 0;
 }
@@ -2518,7 +2518,7 @@ int32_t SpiffyDateDecodeTest()
    if(uError != QCBOR_ERR_FLOAT_DATE_DISABLED) {
       return 1112;
    }
-#endif
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
    // Too-large integer
    QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
@@ -2918,7 +2918,7 @@ int32_t OptTagParseTest()
    uError = QCBORDecode_GetNext(&DCtx, &Item);
    uError = QCBORDecode_GetNext(&DCtx, &Item);
 
-#else
+#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
    if(uError != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION ||
       QCBORDecode_GetNthTag(&DCtx, &Item, 0) != CBOR_TAG_INVALID64 ||
@@ -2928,7 +2928,7 @@ int32_t OptTagParseTest()
       QCBORDecode_GetNthTag(&DCtx, &Item, 4) != CBOR_TAG_INVALID64 ) {
       return -5;
    }
-#endif
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
    /*
     More than 4 tags on an item 225(226(227(228(229([])))))
@@ -5006,7 +5006,7 @@ static const uint8_t spMapOfEmpty[] = {
    0x80, 0x02, 0xa0, 0x03, 0x80, 0x04, 0xa0, 0x05, 0x9f, 0xff,
    0x06, 0x9f, 0x80, 0x9f, 0xff, 0xff};
 
-#endif
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 /*
@@ -5058,7 +5058,7 @@ static const uint8_t spUnRecoverableMapError4[] = {
             0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    0xff
 };
-#endif
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 int32_t EnterMapTest()
@@ -5299,7 +5299,7 @@ int32_t EnterMapTest()
    if(uErr != QCBOR_ERR_FLOAT_DATE_DISABLED) {
       return 2027;
    }
-#endif
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
    QCBORDecode_GetInt64InMapN(&DCtx, 0x05, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
@@ -5634,7 +5634,7 @@ static const struct NumberConversion NumberConversions[] = {
       -4.0,
       QCBOR_SUCCESS // Uses ieee754.h to conver, not HW
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-#else
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
       // Half-precision disabled
       -4,
       QCBOR_ERR_HALF_PRECISION_DISABLED,
@@ -5642,7 +5642,7 @@ static const struct NumberConversion NumberConversions[] = {
       QCBOR_ERR_HALF_PRECISION_DISABLED,
       -4.0,
       QCBOR_ERR_HALF_PRECISION_DISABLED
-#endif
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
    },
    {
       "Decimal fraction 3/10",
@@ -6825,11 +6825,11 @@ int32_t SpiffyIndefiniteLengthStringsTests()
    if(uDouble != -16777474) {
       return 6;
    }
-#else
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_HW_FLOAT_DISABLED) {
       return 7;
    }
-#endif
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
 
    QCBORDecode_ExitMap(&DCtx);

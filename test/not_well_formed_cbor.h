@@ -170,7 +170,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
     // A bare break after a zero length indefinite length map
     {(uint8_t[]){0x9f, 0xff, 0xff}, 3},
-#endif
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
     // Forbidden two-byte encodings of simple types

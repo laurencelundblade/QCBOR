@@ -39,7 +39,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h> // For isnan(), llround(), llroudf(), round(), roundf(),
                   // pow(), exp2()
 #include <fenv.h> // feclearexcept(), fetestexcept()
-#endif
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
 
 /*
@@ -168,8 +168,8 @@ DecodeNesting_IsCurrentDefiniteLength(const QCBORDecodeNesting *pNesting)
       // Is indefinite
       return false;
    }
-#endif
-   
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
    // All checks passed; is a definte length map or array
    return true;
 }
@@ -776,9 +776,9 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
          // was 16 bits. It was widened to 64 bits to be passed in here.
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#else
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
          nReturn = QCBOR_ERR_HALF_PRECISION_DISABLED;
-#endif
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
          break;
       case SINGLE_PREC_FLOAT: // 26
          // Single precision is normally returned as a double
@@ -795,7 +795,7 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
             // In the normal case, use HW to convert float to double.
             pDecodedItem->val.dfnum = (double)f;
             pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#else
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
             // Use of float HW is disabled, return as a float.
             pDecodedItem->val.fnum = f;
             pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
@@ -804,7 +804,7 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
             // as a double, but it adds object code and most likely
             // anyone disabling FLOAT HW use doesn't care about
             // floats and wants to save object code.
-#endif
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          }
          break;
 
@@ -1010,10 +1010,10 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
             pDecodedItem->val.uCount = QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH;
-#else
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
             nReturn = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
             break;
-#endif
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
          } else {
             // type conversion OK because of check above
             pDecodedItem->val.uCount = (uint16_t)uNumber;
@@ -1492,7 +1492,7 @@ static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
          }
          /* It was a break in an indefinite length map / array */
 
-#endif
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
       }
 
 
@@ -4548,7 +4548,7 @@ UInt64ConvertAll(const QCBORItem *pItem, uint32_t uConvertTypes, uint64_t *puVal
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
-#endif
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
    }
@@ -4654,9 +4654,9 @@ static QCBORError ConvertDouble(const QCBORItem *pItem,
                return QCBOR_ERR_UNEXPECTED_TYPE;
             }
          }
-#else
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
          return QCBOR_ERR_HW_FLOAT_DISABLED;
-#endif
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
       case QCBOR_TYPE_DOUBLE:
