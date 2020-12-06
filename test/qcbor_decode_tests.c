@@ -544,6 +544,8 @@ static const uint8_t pValidMapEncoded[] = {
    0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63,
    0x73 };
 
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 // Same as above, but with indefinite lengths.
 static const uint8_t pValidMapIndefEncoded[] = {
 0xbf, 0x6d, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20, 0x69, 0x6e,
@@ -562,6 +564,7 @@ static const uint8_t pValidMapIndefEncoded[] = {
 0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73, 0x20, 0x61, 0x6e, 0x64,
 0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63,
 0x73, 0xff, 0xff};
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 static int32_t ParseOrderedArray(const uint8_t *pEncoded,
@@ -677,6 +680,7 @@ int32_t SimpleArrayTest()
 static uint8_t sEmpties[] = {0x83, 0x00, 0x80, 0x84, 0x80, 0x81, 0x00, 0xa0,
                              0xa3, 0x01, 0xa0, 0x02, 0xa0, 0x03, 0x80};
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 /* Same as above, but with indefinte lengths */
 static uint8_t sEmptiesIndef[] = {
 0x9F,
@@ -704,7 +708,7 @@ static uint8_t sEmptiesIndef[] = {
          0xFF,
       0xFF,
    0xFF};
-
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 static int32_t CheckEmpties(UsefulBufC input, bool bCheckCounts)
@@ -840,12 +844,14 @@ int32_t EmptyMapsAndArraysTest()
       return nResult;
    }
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    nResult = CheckEmpties(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmptiesIndef),
                      false);
 
    if(nResult) {
       return nResult -100;
    }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    return 0;
 }
@@ -1798,7 +1804,7 @@ struct FailInput  Failures[] = {
    // A definte length map that is supposed to have s item, but has only 1
    { {(uint8_t[]){0xa2, 0x01, 0x02}, 3}, QCBOR_ERR_NO_MORE_ITEMS },
 
-
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    // Indefinte length maps and arrays must be ended by a break
    // Indefinite length array with zero items and no break
    { {(uint8_t[]){0x9f}, 1}, QCBOR_ERR_NO_MORE_ITEMS },
@@ -1841,7 +1847,7 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0x81, 0x82, 0xbf, 0xff, 0xbf}, 5}, QCBOR_ERR_NO_MORE_ITEMS},
    // Unclosed definite length map in indefinite length arrays
    { {(uint8_t[]){0x9f, 0x9f, 0xa1}, 3}, QCBOR_ERR_NO_MORE_ITEMS},
-
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    // The "argument" for the data item is incomplete
    // Positive integer missing 1 byte argument
@@ -1905,12 +1911,14 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0xff}, 1}, QCBOR_ERR_BAD_BREAK },
    // A bare break after a zero length definite length array
    { {(uint8_t[]){0x80, 0xff}, 2}, QCBOR_ERR_BAD_BREAK },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    // A bare break after a zero length indefinite length map
    { {(uint8_t[]){0x9f, 0xff, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
    // A break inside a definite length array inside an indefenite length array
    { {(uint8_t[]){0x9f, 0x81, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
    // Complicated mixed nesting with break outside indefinite length array
    { {(uint8_t[]){0x9f, 0x82, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 10}, QCBOR_ERR_BAD_BREAK },
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
    // Forbidden two byte encodings of simple types
@@ -2050,10 +2058,12 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0xa1, 0x00}, 2}, QCBOR_ERR_HIT_END },
    // Map with 3 item when it should have 4
    { {(uint8_t[]){0xa2, 0x00, 0x00, 0x00}, 2}, QCBOR_ERR_HIT_END },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    // Map with 1 item when it should have 2
    { {(uint8_t[]){0xbf, 0x00, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
    // Map with 3 item when it should have 4
    { {(uint8_t[]){0xbf, 0x00, 0x00, 0x00, 0xff}, 5}, QCBOR_ERR_BAD_BREAK },
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
    // In addition to not-well-formed, some invalid CBOR
@@ -2436,12 +2446,12 @@ static uint8_t spSpiffyDateTestInput[] = {
    0xf9, 0xfc, 0x00, // Half-precision -Infinity
 
    0xc1, // tag for epoch date
-   0x9f, 0xff, // Erroneous empty array as content for date
+   0x80, // Erroneous empty array as content for date
 
    0xc0, // tag for string date
-   0xbf, 0xff, // Erroneous empty map as content for date
+   0xa0, // Erroneous empty map as content for date
 
-   0xbf, // Open a map for tests involving labels.
+   0xa9, // Open a map for tests involving labels.
 
    0x00,
    0xc0, // tag for string date
@@ -2480,8 +2490,6 @@ static uint8_t spSpiffyDateTestInput[] = {
    // Untagged half-precision float with value -2
    0x09,
    0xF9, 0xC0, 0x00,
-
-   0xff,
 };
 
 int32_t SpiffyDateDecodeTest()
@@ -2847,7 +2855,7 @@ static uint8_t spCSRWithTags[] = {
 
 
 static uint8_t spSpiffyTagInput[] = {
-   0x9f, // Open indefinite array
+   0x85, // Open array
 
    0xc0, // tag for string date
    0x6a, '1','9','8','5','-','0','4','-','1','2', // Date string
@@ -2861,8 +2869,6 @@ static uint8_t spSpiffyTagInput[] = {
 
    0xc0, // tag for string date
    0x4a, '1','9','8','5','-','0','4','-','1','2', // Date string in byte string
-
-   0xff
 };
 
 
@@ -4963,12 +4969,16 @@ static const uint8_t spSimpleArray[] = {
    0x48, 0x67, 0x61, 0x6C, 0x61, 0x63, 0x74, 0x69, 0x63,
    0x4B, 0x68, 0x61, 0x76, 0x65, 0x6E, 0x20, 0x74, 0x6F, 0x6B, 0x65, 0x6E};
 
+static const uint8_t spArrayOfEmpty[] = {0x84, 0x40, 0xa0, 0x80, 0x00};
+
 
 static const uint8_t spEmptyMap[] = {0xa0};
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 static const uint8_t spEmptyInDefinteLengthMap[] = {0xbf, 0xff};
 
-static const uint8_t spArrayOfEmpty[] = {0x84, 0x40, 0xa0, 0x80, 0x00};
+
+
 
 /*
    {
@@ -4996,6 +5006,9 @@ static const uint8_t spMapOfEmpty[] = {
    0x80, 0x02, 0xa0, 0x03, 0x80, 0x04, 0xa0, 0x05, 0x9f, 0xff,
    0x06, 0x9f, 0x80, 0x9f, 0xff, 0xff};
 
+#endif
+
+
 /*
  Too many tags
  Invalid tag content
@@ -5010,7 +5023,7 @@ static const uint8_t spMapOfEmpty[] = {
   5: 0, 8: 8}
  */
 static const uint8_t spRecoverableMapErrors[] = {
-   0xbf,
+   0xa7,
    0x01, 0xd8, 0xe0, 0xd8, 0xe1, 0xd8, 0xe2, 0xd8, 0xe3, 0xd8, 0x04, 0x00,
    0x02, 0xc1, 0x40,
    0x03, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -5018,7 +5031,6 @@ static const uint8_t spRecoverableMapErrors[] = {
    0x05, 0x00,
    0x05, 0x00,
    0x08, 0x08,
-   0xff
 };
 
 // Bad break
@@ -5026,6 +5038,7 @@ static const uint8_t spUnRecoverableMapError1[] = {
    0xa2, 0xff, 0x01, 0x00, 0x02, 0x00
 };
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 // No more items
 static const uint8_t spUnRecoverableMapError2[] = {
    0xbf, 0x02, 0xbf, 0xff, 0x01, 0x00, 0x02, 0x00
@@ -5045,6 +5058,7 @@ static const uint8_t spUnRecoverableMapError4[] = {
             0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    0xff
 };
+#endif
 
 
 int32_t EnterMapTest()
@@ -5055,7 +5069,7 @@ int32_t EnterMapTest()
    int32_t            nReturn;
    QCBORError         uErr;
 
-
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapOfEmpty), 0);
    QCBORDecode_EnterMap(&DCtx, NULL);
 
@@ -5099,12 +5113,13 @@ int32_t EnterMapTest()
       return 3011;
    }
 
-
    (void)pValidMapIndefEncoded;
    nReturn = SpiffyDecodeBasicMap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapIndefEncoded));
    if(nReturn) {
       return nReturn + 20000;
    }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
 
    nReturn = SpiffyDecodeBasicMap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
    if(nReturn) {
@@ -5217,6 +5232,7 @@ int32_t EnterMapTest()
    }
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyInDefinteLengthMap), 0);
    QCBORDecode_EnterMap(&DCtx, NULL);
    // This will fail because the map is empty.
@@ -5230,6 +5246,7 @@ int32_t EnterMapTest()
    if(uErr != QCBOR_SUCCESS){
       return 2013;
    }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spArrayOfEmpty), 0);
@@ -5306,6 +5323,7 @@ int32_t EnterMapTest()
       return 2030;
    }
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spUnRecoverableMapError2), 0);
    QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
@@ -5329,6 +5347,8 @@ int32_t EnterMapTest()
    if(uErr != QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP) {
       return 2033;
    }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
 
    nReturn = DecodeNestedIterate();
 
@@ -6751,7 +6771,7 @@ int32_t TooLargeInputTest(void)
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 
 static const uint8_t spMapWithIndefLenStrings[] = {
-   0xbf,
+   0xa3,
       0x7f, 0x61, 'l', 0x64, 'a', 'b', 'e', 'l' , 0x61, '1', 0xff,
       0x5f, 0x42, 0x01, 0x02, 0x43, 0x03, 0x04, 0x05, 0xff,
       0x7f, 0x62, 'd', 'y', 0x61, 'm', 0x61, 'o', 0xff,
@@ -6759,7 +6779,6 @@ static const uint8_t spMapWithIndefLenStrings[] = {
       0x7f, 0x62, 'l', 'a', 0x63, 'b', 'e', 'l', 0x61, '2', 0xff,
       0xc3,
           0x5f, 0x42, 0x00, 0x01, 0x42, 0x00, 0x01, 0x41, 0x01, 0xff,
-   0xff
 };
 
 int32_t SpiffyIndefiniteLengthStringsTests()
