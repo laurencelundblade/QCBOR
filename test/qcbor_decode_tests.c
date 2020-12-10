@@ -1663,14 +1663,15 @@ int32_t NotWellFormedTests()
       // this test fails.
       if(!QCBORDecode_IsNotWellFormedError(uCBORError) &&
          uCBORError != QCBOR_ERR_NO_MORE_ITEMS) {
-         // Return index of failure in the error code
-         return 2000 + nIterate;
+         /* Return index of failure and QCBOR error in the result */
+         return (int32_t)(nIterate * 100 + uCBORError);
       }
    }
    return 0;
 }
 
 
+// TODO: add a test index and report it so it is eaier to figure out which test failed.
 struct FailInput {
    UsefulBufC Input;
    QCBORError nError;
@@ -1680,40 +1681,42 @@ struct FailInput {
 static int32_t ProcessFailures(struct FailInput *pFailInputs, size_t nNumFails)
 {
    for(struct FailInput *pF = pFailInputs; pF < pFailInputs + nNumFails; pF++) {
-      // Set up the decoding context including a memory pool so that
-      // indefinite length items can be checked
       QCBORDecodeContext DCtx;
-      QCBORError nCBORError;
+      QCBORError         uCBORError;
 
       QCBORDecode_Init(&DCtx, pF->Input, QCBOR_DECODE_MODE_NORMAL);
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+      // Set up the decoding context including a memory pool so that
+      // indefinite length items can be checked
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
 
-      nCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
-      if(nCBORError) {
+      uCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+      if(uCBORError) {
          return -9;
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-
+      
       // Iterate until there is an error of some sort error
       QCBORItem Item;
       do {
          // Set to something none-zero, something other than QCBOR_TYPE_NONE
          memset(&Item, 0x33, sizeof(Item));
 
-         nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
-      } while(nCBORError == QCBOR_SUCCESS);
+         uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+      } while(uCBORError == QCBOR_SUCCESS);
+
+
 
       // Must get the expected error or the this test fails
       // The data and label type must also be QCBOR_TYPE_NONE
-      if(nCBORError != pF->nError ||
+      if(uCBORError != pF->nError ||
          Item.uDataType != QCBOR_TYPE_NONE ||
          Item.uLabelType != QCBOR_TYPE_NONE) {
          // return index of CBOR + 100
          const size_t nIndex = (size_t)(pF - pFailInputs);
-         return (int32_t)(nIndex * 100 + nCBORError);
+         return (int32_t)(nIndex * 100 + uCBORError);
       }
    }
 
@@ -1983,6 +1986,8 @@ struct FailInput  Failures[] = {
    { {(uint8_t[]){0x41}, 1}, QCBOR_ERR_HIT_END },
    // A text string is of length 1 without the 1 byte
    { {(uint8_t[]){0x61}, 1}, QCBOR_ERR_HIT_END },
+
+#if SIZE_MAX > 2147483647
    // Byte string should have 2^32-15 bytes, but has one
    { {(uint8_t[]){0x5a, 0xff, 0xff, 0xff, 0xf0, 0x00}, 6}, QCBOR_ERR_HIT_END },
    // Byte string should have 2^32-15 bytes, but has one
@@ -1993,6 +1998,16 @@ struct FailInput  Failures[] = {
    // Text string should have 2^64 bytes, but has 3
    { {(uint8_t[]){0x7b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                   0x01, 0x02, 0x03}, 6}, QCBOR_ERR_HIT_END },
+#else
+   // Byte string should have 2^32-15 bytes, but has one
+   { {(uint8_t[]){0x5a, 0x00, 0x00, 0xff, 0xf0, 0x00}, 6}, QCBOR_ERR_HIT_END },
+   // Byte string should have 2^32-15 bytes, but has one
+   { {(uint8_t[]){0x7a, 0x00, 0x00, 0xff, 0xf0, 0x00}, 6}, QCBOR_ERR_HIT_END },
+   // Byte string should have 2^16 bytes, but has 3
+   { {(uint8_t[]){0x5b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x01, 0x02, 0x03}, 6}, QCBOR_ERR_HIT_END },
+   // Text string should have 2^64 bytes, but has 3
+   { {(uint8_t[]){0x7b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x01, 0x02, 0x03}, 6}, QCBOR_ERR_HIT_END },
+#endif
 
    // Use of unassigned additional information values
    // Major type positive integer with reserved value 28
