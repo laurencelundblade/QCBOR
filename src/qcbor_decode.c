@@ -326,8 +326,10 @@ DecodeNesting_EnterBoundedMapOrArray(QCBORDecodeNesting *pNesting, bool bIsEmpty
 
     Check against QCBOR_MAX_DECODE_INPUT_SIZE make sure that
     uOffset doesn't collide with QCBOR_NON_BOUNDED_OFFSET
+
+    Cast of uOffset to uint32_t for cases where SIZE_MAX < UINT32_MAX.
     */
-   if(uOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
+   if((uint32_t)uOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
       return QCBOR_ERR_INPUT_TOO_LARGE;
    }
 
@@ -2728,7 +2730,8 @@ MapSearch(QCBORDecodeContext *pMe,
    // Check here makes sure that this won't accidentally be
    // QCBOR_MAP_OFFSET_CACHE_INVALID which is larger than
    // QCBOR_MAX_DECODE_INPUT_SIZE.
-   if(uEndOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
+   // Cast to uint32_t to possibly address cases where SIZE_MAX < UINT32_MAX
+   if((uint32_t)uEndOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
       uReturn = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
@@ -3283,8 +3286,9 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
    //
    // Most of these calls are simple inline accessors so this doesn't
    // amount to much code.
+   // Cast of uPreviousLength to uint32_t for cases where SIZE_MAX < UINT32_MAX.
    const size_t uPreviousLength = UsefulInputBuf_GetBufferLength(&(pMe->InBuf));
-   if(uPreviousLength >= QCBOR_MAX_DECODE_INPUT_SIZE) {
+   if((uint32_t)uPreviousLength >= QCBOR_MAX_DECODE_INPUT_SIZE) {
       uError = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
