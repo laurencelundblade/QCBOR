@@ -1803,7 +1803,7 @@ int32_t BstrWrapErrorTest()
 
    uError = QCBOREncode_Finish(&EC, &Encoded2);
    if(uError != QCBOR_ERR_CLOSE_MISMATCH) {
-      return 100 + uError;
+      return (int32_t)(100 + uError);
    }
 
    // -------- test closing a bstrwrap when nothing is open ----------------
@@ -1811,7 +1811,7 @@ int32_t BstrWrapErrorTest()
    QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
    uError = QCBOREncode_Finish(&EC, &Encoded2);
    if(uError != QCBOR_ERR_TOO_MANY_CLOSES) {
-      return 200 + uError;
+      return (int32_t)(200 + uError);
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -1828,7 +1828,7 @@ int32_t BstrWrapErrorTest()
 
    uError = QCBOREncode_Finish(&EC, &Encoded2);
    if(uError != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
-      return 300 + uError;
+      return (int32_t)(300 + uError);
    }
 
    return 0;
