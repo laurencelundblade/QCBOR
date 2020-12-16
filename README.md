@@ -10,10 +10,6 @@ QCBOR also implements [RFC8742](https://tools.ietf.org/html/rfc8742)
 which defines a CBOR sequence.
 
 ## New Version With Spiffy Decode
-**A major new version of QCBOR that makes decoding implementations much**
-**easier is available in the SpiffyDecode branch of this repository.**
-**Your CBOR decoding implementation may be many times fewer lines of code!**
-**The old version is available in the BeforeSpiffyDecode branch.**
 
 This new version of QCBOR adds a more powerful decoding API
 called Spiffy Decode. 
