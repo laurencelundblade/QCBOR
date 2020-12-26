@@ -174,7 +174,6 @@ DecodeNesting_IsCurrentDefiniteLength(const QCBORDecodeNesting *pNesting)
    return true;
 }
 
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 static inline bool
 DecodeNesting_IsCurrentBstrWrapped(const QCBORDecodeNesting *pNesting)
 {
@@ -184,7 +183,6 @@ DecodeNesting_IsCurrentBstrWrapped(const QCBORDecodeNesting *pNesting)
    }
    return false;
 }
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 static inline bool DecodeNesting_IsCurrentBounded(const QCBORDecodeNesting *pNesting)
@@ -1444,31 +1442,43 @@ NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
 
 
 /*
- An item was just consumed, now figure out if it was the
- end of an array or map that can be closed out. That
- may in turn close out another map or array.
+ * An item was just consumed, now figure out if it was the
+ * end of an array/map map that can be closed out. That
+ * may in turn close out the above array/map...
 */
 static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
 {
    QCBORError uReturn;
 
-   /* This loops ascending nesting levels as long as there is ascending to do */
+   /* Loop ascending nesting levels as long as there is ascending to do */
    while(!DecodeNesting_IsCurrentAtTop(&(pMe->nesting))) {
 
-      if(DecodeNesting_IsCurrentDefiniteLength(&(pMe->nesting))) {
-         /* Decrement count for definite length maps / arrays */
+      if(DecodeNesting_IsCurrentBstrWrapped(&(pMe->nesting))) {
+         /* Nesting level is bstr-wrapped CBOR */
+
+         /* Ascent for bstr-wrapped CBOR is always by explicit call
+          * so no further ascending can happen.
+          */
+         break;
+
+      } else if(DecodeNesting_IsCurrentDefiniteLength(&(pMe->nesting))) {
+         /* Level is a definite-length array/map */
+
+         /* Decrement the item count the definite-length array/map */
          DecodeNesting_DecrementDefiniteLengthMapOrArrayCount(&(pMe->nesting));
          if(!DecodeNesting_IsEndOfDefiniteLengthMapOrArray(&(pMe->nesting))) {
-             /* Didn't close out map or array, so all work here is done */
+             /* Didn't close out array/map, so all work here is done */
              break;
           }
-          /* All of a definite length array was consumed; fall through to
-             ascend */
+          /* All items in a definite length array were consumed so it
+           * is time to ascend one level. This happens below.
+           */
+
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-
       } else {
+         /* Level is an indefinite-length array/map. */
 
-         /* If not definite length, have to check for a CBOR break */
+         /* Check for a break which is what ends indefinite-length arrays/maps */
          bool bIsBreak = false;
          uReturn = NextIsBreak(&(pMe->InBuf), &bIsBreak);
          if(uReturn != QCBOR_SUCCESS) {
@@ -1476,35 +1486,28 @@ static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
          }
 
          if(!bIsBreak) {
-            /* It's not a break so nothing closes out and all work is done */
+            /* Not a break so array/map does not close out. All work is done */
             break;
          }
 
-         if(DecodeNesting_IsCurrentBstrWrapped(&(pMe->nesting))) {
-            /*
-             Break occurred inside a bstr-wrapped CBOR or
-             in the top level sequence. This is always an
-             error because neither are an indefinte length
-             map/array.
-             */
-            uReturn = QCBOR_ERR_BAD_BREAK;
-            goto Done;
-         }
-         /* It was a break in an indefinite length map / array */
+         /* It was a break in an indefinite length map / array so
+          * it is time to ascend one level.
+          */
 
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
       }
 
 
-      /* All items in the map/array level have been consumed. */
+      /* All items in the array/map have been consumed. */
 
       /* But ascent in bounded mode is only by explicit call to
-         QCBORDecode_ExitBoundedMode() */
+       * QCBORDecode_ExitBoundedMode().
+       */
       if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
          /* Set the count to zero for definite length arrays to indicate
-            cursor is at end of bounded map / array */
+         * cursor is at end of bounded array/map */
          if(bMarkEnd) {
-            // Used for definite and indefinite to signal end
+            /* Used for definite and indefinite to signal end */
             DecodeNesting_ZeroMapOrArrayCount(&(pMe->nesting));
 
          }
@@ -1519,7 +1522,7 @@ static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 Done:
-#endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    return uReturn;
 }
@@ -1583,15 +1586,15 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 
    /*
     Check to see if at the end of a bounded definite length map or
-    array. The check for the end of an indefinite length array is
-    later.
+    array. The check for a break ending indefinite length array is
+    later in NestLevelAscender().
     */
    if(DecodeNesting_IsAtEndOfBoundedLevel(&(me->nesting))) {
       uReturn = QCBOR_ERR_NO_MORE_ITEMS;
       goto Done;
    }
 
-   /* ==== Next: not at the end so get another item ==== */
+   /* ==== Next: not at the end, so get another item ==== */
    uReturn = GetNext_MapEntry(me, pDecodedItem);
    if(QCBORDecode_IsUnrecoverableError(uReturn)) {
       /* Error is so bad that traversal is not possible. */
@@ -1599,8 +1602,8 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    }
 
    /*
-    Breaks ending arrays/maps are always processed at the end of this
-    function. They should never show up here.
+    Breaks ending arrays/maps are processed later in the call to
+    NestLevelAscender(). They should never show up here.
     */
    if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
       uReturn = QCBOR_ERR_BAD_BREAK;
@@ -1645,7 +1648,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
        QCBORItem_IsIndefiniteLengthMapOrArray(pDecodedItem)) {
       /*
        The following cases are handled here:
-         - A non-aggregate like an integer or string
+         - A non-aggregate item like an integer or string
          - An empty definite length map or array
          - An indefinite length map or array that might be empty or might not.
 

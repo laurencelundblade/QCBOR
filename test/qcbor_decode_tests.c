@@ -2433,7 +2433,7 @@ int32_t DateParseTest()
 
    Untagged values
  */
-static uint8_t spSpiffyDateTestInput[] = {
+static const uint8_t spSpiffyDateTestInput[] = {
    0x86,
 
    0xc1,
@@ -6352,6 +6352,10 @@ static UsefulBufC EncodeBstrWrapTestData(UsefulBuf OutputBuffer)
    return Encoded;
 }
 
+static const uint8_t spBreakInByteString[] = {
+   0x41, 0xff
+};
+
 
 int32_t EnterBstrTest()
 {
@@ -6386,8 +6390,43 @@ int32_t EnterBstrTest()
    QCBORDecode_ExitArray(&DC);
 
    QCBORError uErr = QCBORDecode_Finish(&DC);
+   if(uErr) {
+      return (int32_t)uErr;
+   }
 
-   return (int32_t)uErr;
+
+   /* Enter and exit byte string wrapped CBOR that is bad. It has just a break.
+    * Successful because no items are fetched from byte string.
+    */
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBreakInByteString),
+                    0);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr) {
+      return 100 + (int32_t)uErr;
+   }
+
+   QCBORDecode_ExitBstrWrapped(&DC);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr) {
+      return 200 + (int32_t)uErr;
+   }
+
+   /* Try to get item that is a break out of a byte string wrapped CBOR.
+    * It fails because there should be no break.
+    */
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBreakInByteString),
+                    0);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   QCBORItem Item;
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_BAD_BREAK) {
+      return 300 + (int32_t)uErr;
+   }
+
+   return 0;
 }
 
 
