@@ -601,140 +601,150 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
 }
 
 
-/*
- This decodes the fundamental part of a CBOR data item, the type and
- number
-
- This is the counterpart to QCBOREncode_EncodeHead().
-
- This does the network->host byte order conversion. The conversion
- here also results in the conversion for floats in addition to that
- for lengths, tags and integer values.
-
- This returns:
-   pnMajorType -- the major type for the item
-
-   puArgument -- the "number" which is used a the value for integers,
-               tags and floats and length for strings and arrays
-
-   pnAdditionalInfo -- Pass this along to know what kind of float or
-                       if length is indefinite
-
- The int type is preferred to uint8_t for some variables as this
- avoids integer promotions, can reduce code size and makes
- static analyzers happier.
-
- @retval QCBOR_ERR_UNSUPPORTED
-
- @retval QCBOR_ERR_HIT_END
+/**
+ * @brief Decode the CBOR head, the type and argument.
+ *
+ * @param[in] pUInBuf            The input buffer to read from.
+ * @param[out] pnMajorType       The decoded major type.
+ * @param[out] puArgument        The decoded argument.
+ * @param[out] pnAdditionalInfo  The decoded Lower 5 bits of initial byte.
+ *
+ *  @retval QCBOR_ERR_UNSUPPORTED
+ *  @retval QCBOR_ERR_HIT_END
+ *
+ * This decodes the CBOR "head" that every CBOR data item has. See
+ * longer explaination of the head in documentation for
+ * QCBOREncode_EncodeHead().
+ *
+ * This does the network->host byte order conversion. The conversion
+ * here also results in the conversion for floats in addition to that
+ * for lengths, tags and integer values.
+ *
+ * The int type is preferred to uint8_t for some variables as this
+ * avoids integer promotions, can reduce code size and makes static
+ * analyzers happier.
  */
-static inline QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
-                                              int *pnMajorType,
-                                              uint64_t *puArgument,
-                                              int *pnAdditionalInfo)
+static inline QCBORError
+DecodeHead(UsefulInputBuf *pUInBuf,
+           int            *pnMajorType,
+           uint64_t       *puArgument,
+           int            *pnAdditionalInfo)
 {
-   QCBORError nReturn;
+   QCBORError uReturn;
 
-   // Get the initial byte that every CBOR data item has
-   const int nInitialByte = (int)UsefulInputBuf_GetByte(pUInBuf);
-
-   // Break down the initial byte
+   /* Get the initial byte that every CBOR data item has and break it
+    * down. */
+   const int nInitialByte    = (int)UsefulInputBuf_GetByte(pUInBuf);
    const int nTmpMajorType   = nInitialByte >> 5;
    const int nAdditionalInfo = nInitialByte & 0x1f;
 
-   // Where the number or argument accumulates
+   /* Where the argument accumulates */
    uint64_t uArgument;
 
    if(nAdditionalInfo >= LEN_IS_ONE_BYTE && nAdditionalInfo <= LEN_IS_EIGHT_BYTES) {
-      // Need to get 1,2,4 or 8 additional argument bytes. Map
-      // LEN_IS_ONE_BYTE..LEN_IS_EIGHT_BYTES to actual length
+      /* Need to get 1,2,4 or 8 additional argument bytes. Map
+       * LEN_IS_ONE_BYTE..LEN_IS_EIGHT_BYTES to actual length.
+       */
       static const uint8_t aIterate[] = {1,2,4,8};
 
-      // Loop getting all the bytes in the argument
+      /* Loop getting all the bytes in the argument */
       uArgument = 0;
       for(int i = aIterate[nAdditionalInfo - LEN_IS_ONE_BYTE]; i; i--) {
-         // This shift and add gives the endian conversion
+         /* This shift and add gives the endian conversion. */
          uArgument = (uArgument << 8) + UsefulInputBuf_GetByte(pUInBuf);
       }
    } else if(nAdditionalInfo >= ADDINFO_RESERVED1 && nAdditionalInfo <= ADDINFO_RESERVED3) {
-      // The reserved and thus-far unused additional info values
-      nReturn = QCBOR_ERR_UNSUPPORTED;
+      /* The reserved and thus-far unused additional info values */
+      uReturn = QCBOR_ERR_UNSUPPORTED;
       goto Done;
    } else {
-      // Less than 24, additional info is argument or 31, an indefinite length
-      // No more bytes to get
+      /* Less than 24, additional info is argument or 31, an
+       * indefinite length.  No more bytes to get.
+       */
       uArgument = (uint64_t)nAdditionalInfo;
    }
 
    if(UsefulInputBuf_GetError(pUInBuf)) {
-      nReturn = QCBOR_ERR_HIT_END;
+      uReturn = QCBOR_ERR_HIT_END;
       goto Done;
    }
 
-   // All successful if we got here.
-   nReturn           = QCBOR_SUCCESS;
+   /* All successful if arrived here. */
+   uReturn           = QCBOR_SUCCESS;
    *pnMajorType      = nTmpMajorType;
    *puArgument       = uArgument;
    *pnAdditionalInfo = nAdditionalInfo;
 
 Done:
-   return nReturn;
+   return uReturn;
 }
 
 
-/*
- CBOR doesn't explicitly specify two's compliment for integers but all
- CPUs use it these days and the test vectors in the RFC are so. All
- integers in the CBOR structure are positive and the major type
- indicates positive or negative.  CBOR can express positive integers
- up to 2^x - 1 where x is the number of bits and negative integers
- down to 2^x.  Note that negative numbers can be one more away from
- zero than positive.  Stdint, as far as I can tell, uses two's
- compliment to represent negative integers.
-
- See http://www.unix.org/whitepapers/64bit.html for reasons int is
- used carefully here, and in particular why it isn't used in the interface.
- Also see
- https://stackoverflow.com/questions/17489857/why-is-int-typically-32-bit-on-64-bit-compilers
-
- Int is used for values that need less than 16-bits and would be subject
- to integer promotion and complaining by static analyzers.
-
- @retval QCBOR_ERR_INT_OVERFLOW
+/**
+ * @brief Decode integer types, major types 0 and 1.
+ *
+ * @param[in] nMajorType     The CBOR major type (0 or 1).
+ * @param[in] uArgument      The argument from the head.
+ * @param[out] pDecodedItem  The filled in decoded item.
+ *
+ * @retval QCBOR_ERR_INT_OVERFLOW
+ *
+ * Must only be called when major type is 0 or 1.
+ *
+ * CBOR doesn't explicitly specify two's compliment for integers but
+ * all CPUs use it these days and the test vectors in the RFC are
+ * so. All integers in the CBOR structure are positive and the major
+ * type indicates positive or negative.  CBOR can express positive
+ * integers up to 2^x - 1 where x is the number of bits and negative
+ * integers down to 2^x.  Note that negative numbers can be one more
+ * away from zero than positive.  Stdint, as far as I can tell, uses
+ * two's compliment to represent negative integers.
+ *
+ * See http://www.unix.org/whitepapers/64bit.html for reasons int is
+ * used carefully here, and in particular why it isn't used in the
+ * public interface.  Also see
+ * https://stackoverflow.com/questions/17489857/why-is-int-typically-32-bit-on-64-bit-compilers
+ *
+ * Int is used for values that need less than 16-bits and would be
+ * subject to integer promotion and result in complaining from static
+ * analyzers.
  */
 static inline QCBORError
-DecodeInteger(int nMajorType, uint64_t uNumber, QCBORItem *pDecodedItem)
+DecodeInteger(int nMajorType, uint64_t uArgument, QCBORItem *pDecodedItem)
 {
-   QCBORError nReturn = QCBOR_SUCCESS;
+   QCBORError uReturn = QCBOR_SUCCESS;
 
    if(nMajorType == CBOR_MAJOR_TYPE_POSITIVE_INT) {
-      if (uNumber <= INT64_MAX) {
-         pDecodedItem->val.int64 = (int64_t)uNumber;
+      if (uArgument <= INT64_MAX) {
+         pDecodedItem->val.int64 = (int64_t)uArgument;
          pDecodedItem->uDataType = QCBOR_TYPE_INT64;
 
       } else {
-         pDecodedItem->val.uint64 = uNumber;
+         pDecodedItem->val.uint64 = uArgument;
          pDecodedItem->uDataType  = QCBOR_TYPE_UINT64;
-
       }
+
    } else {
-      if(uNumber <= INT64_MAX) {
-         // CBOR's representation of negative numbers lines up with the
-         // two-compliment representation. A negative integer has one
-         // more in range than a positive integer. INT64_MIN is
-         // equal to (-INT64_MAX) - 1.
-         pDecodedItem->val.int64 = (-(int64_t)uNumber) - 1;
+      if(uArgument <= INT64_MAX) {
+         /* CBOR's representation of negative numbers lines up with
+          * the two-compliment representation. A negative integer has
+          * one more in range than a positive integer. INT64_MIN is
+          * equal to (-INT64_MAX) - 1.
+          */
+         pDecodedItem->val.int64 = (-(int64_t)uArgument) - 1;
          pDecodedItem->uDataType = QCBOR_TYPE_INT64;
 
       } else {
-         // C can't represent a negative integer in this range
-         // so it is an error.
-         nReturn = QCBOR_ERR_INT_OVERFLOW;
+         /* C can't represent a negative integer in this range so it
+          * is an error.
+          */
+         uReturn = QCBOR_ERR_INT_OVERFLOW;
       }
    }
 
-   return nReturn;
+   return uReturn;
 }
+
 
 // Make sure #define value line up as DecodeSimple counts on this.
 #if QCBOR_TYPE_FALSE != CBOR_SIMPLEV_FALSE
@@ -983,12 +993,12 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
     floats and doubles
    */
    int      nMajorType = 0;
-   uint64_t uNumber = 0;
+   uint64_t uArgument = 0;
    int      nAdditionalInfo = 0;
 
    memset(pDecodedItem, 0, sizeof(QCBORItem));
 
-   nReturn = DecodeTypeAndNumber(pUInBuf, &nMajorType, &uNumber, &nAdditionalInfo);
+   nReturn = DecodeHead(pUInBuf, &nMajorType, &uArgument, &nAdditionalInfo);
 
    // Error out here if we got into trouble on the type and number.  The
    // code after this will not work if the type and number is not good.
@@ -1004,7 +1014,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
             nReturn = QCBOR_ERR_BAD_INT;
          } else {
-            nReturn = DecodeInteger(nMajorType, uNumber, pDecodedItem);
+            nReturn = DecodeInteger(nMajorType, uArgument, pDecodedItem);
          }
          break;
 
@@ -1014,14 +1024,14 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
             pDecodedItem->val.string = (UsefulBufC){NULL, QCBOR_STRING_LENGTH_INDEFINITE};
          } else {
-            nReturn = DecodeBytes(pAllocator, uNumber, pUInBuf, pDecodedItem);
+            nReturn = DecodeBytes(pAllocator, uArgument, pUInBuf, pDecodedItem);
          }
          break;
 
       case CBOR_MAJOR_TYPE_ARRAY: // Major type 4
       case CBOR_MAJOR_TYPE_MAP:   // Major type 5
          // Record the number of items in the array or map
-         if(uNumber > QCBOR_MAX_ITEMS_IN_ARRAY) {
+         if(uArgument > QCBOR_MAX_ITEMS_IN_ARRAY) {
             nReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
             goto Done;
          }
@@ -1034,7 +1044,7 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
          } else {
             // type conversion OK because of check above
-            pDecodedItem->val.uCount = (uint16_t)uNumber;
+            pDecodedItem->val.uCount = (uint16_t)uArgument;
          }
          // C preproc #if above makes sure constants for major types align
          // DecodeTypeAndNumber never returns a major type > 7 so cast is safe
@@ -1045,14 +1055,14 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
             nReturn = QCBOR_ERR_BAD_INT;
          } else {
-            pDecodedItem->val.uTagV = uNumber;
+            pDecodedItem->val.uTagV = uArgument;
             pDecodedItem->uDataType = QCBOR_TYPE_TAG;
          }
          break;
 
       case CBOR_MAJOR_TYPE_SIMPLE:
          // Major type 7, float, double, true, false, null...
-         nReturn = DecodeSimple(nAdditionalInfo, uNumber, pDecodedItem);
+         nReturn = DecodeSimple(nAdditionalInfo, uArgument, pDecodedItem);
          break;
 
       default:
