@@ -467,7 +467,7 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
    if(pBufferEnd - pByte > 9 || pBufferEnd - pByte < 1 || pByte < (uint8_t *)buffer.ptr) {
       return NULLUsefulBufC;
    }
-#endif
+#endif /* EXTRA_ENCODE_HEAD_CHECK */
 
    /* Length will not go negative because the loops run for at most 8 decrements
     * of pByte, only one other decrement is made, and the array is sized
@@ -702,9 +702,9 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
    const IEEE754_union uNum = IEEE754_DoubleToSmallest(dNum);
 
    QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
-#else
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    QCBOREncode_AddDoubleNoPreferred(me, dNum);
-#endif
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 
 
@@ -728,9 +728,9 @@ void QCBOREncode_AddFloat(QCBOREncodeContext *me, float fNum)
    const IEEE754_union uNum = IEEE754_FloatToSmallest(fNum);
 
    QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
-#else
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    QCBOREncode_AddFloatNoPreferred(me, fNum);
-#endif
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 
 
@@ -900,9 +900,9 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t
          return;
       }
    }
-#else
+#else /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    (void) uMajorType;
-#endif
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    /* Append the break marker (0xff for both arrays and maps) */
    AppendCBORHead(me, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
@@ -926,7 +926,7 @@ QCBORError QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
       uReturn = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
       goto Done;
    }
-#endif
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    *pEncodedCBOR = UsefulOutBuf_OutUBuf(&(me->OutBuf));
 

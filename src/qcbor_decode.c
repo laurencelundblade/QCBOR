@@ -36,11 +36,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ieee754.h" /* Does not use math.h */
 
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
+
 #include <math.h> /* For isnan(), llround(), llroudf(), round(), roundf(),
                    * pow(), exp2()
                    */
 #include <fenv.h> /* feclearexcept(), fetestexcept() */
-#endif
+
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
 
 
 /*
@@ -79,6 +82,7 @@ QCBORItem_IsEmptyDefiniteLengthMapOrArray(const QCBORItem *pMe)
 static inline bool
 QCBORItem_IsIndefiniteLengthMapOrArray(const QCBORItem *pMe)
 {
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    if(!QCBORItem_IsMapOrArray(pMe)){
       return false;
    }
@@ -87,6 +91,10 @@ QCBORItem_IsIndefiniteLengthMapOrArray(const QCBORItem *pMe)
       return false;
    }
    return true;
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+   (void)pMe;
+   return false;
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 }
 
 
@@ -158,14 +166,18 @@ DecodeNesting_IsCurrentDefiniteLength(const QCBORDecodeNesting *pNesting)
       /* Not a map or array */
       return false;
    }
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    if(pNesting->pCurrent->u.ma.uCountTotal == QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
       /* Is indefinite */
       return false;
    }
+
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
    /* All checks passed; is a definte length map or array */
    return true;
 }
-
 
 static inline bool
 DecodeNesting_IsCurrentBstrWrapped(const QCBORDecodeNesting *pNesting)
@@ -328,9 +340,11 @@ DecodeNesting_EnterBoundedMapOrArray(QCBORDecodeNesting *pNesting,
     * just to mark it in bounded mode.
     *
     * Check against QCBOR_MAX_DECODE_INPUT_SIZE make sure that
-    * uOffset doesn't collide with QCBOR_NON_BOUNDED_OFFSET
+    * uOffset doesn't collide with QCBOR_NON_BOUNDED_OFFSET.
+    *
+    * Cast of uOffset to uint32_t for cases where SIZE_MAX < UINT32_MAX.
     */
-   if(uOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
+   if((uint32_t)uOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
       return QCBOR_ERR_INPUT_TOO_LARGE;
    }
 
@@ -780,9 +794,9 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
          // was 16 bits. It was widened to 64 bits to be passed in here.
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#else
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
          nReturn = QCBOR_ERR_HALF_PRECISION_DISABLED;
-#endif
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
          break;
       case SINGLE_PREC_FLOAT: // 26
          // Single precision is normally returned as a double
@@ -799,7 +813,7 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
             // In the normal case, use HW to convert float to double.
             pDecodedItem->val.dfnum = (double)f;
             pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#else
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
             // Use of float HW is disabled, return as a float.
             pDecodedItem->val.fnum = f;
             pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
@@ -808,7 +822,7 @@ DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
             // as a double, but it adds object code and most likely
             // anyone disabling FLOAT HW use doesn't care about
             // floats and wants to save object code.
-#endif
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          }
          break;
 
@@ -1012,7 +1026,12 @@ static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
             goto Done;
          }
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
             pDecodedItem->val.uCount = QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH;
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+            nReturn = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
+            break;
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
          } else {
             // type conversion OK because of check above
             pDecodedItem->val.uCount = (uint16_t)uNumber;
@@ -1413,6 +1432,7 @@ Done:
 }
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 /*
  See if next item is a CBOR break. If it is, it is consumed,
  if not it is not consumed.
@@ -1438,32 +1458,47 @@ NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
 
    return QCBOR_SUCCESS;
 }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 /*
- An item was just consumed, now figure out if it was the
- end of an array or map that can be closed out. That
- may in turn close out another map or array.
+ * An item was just consumed, now figure out if it was the
+ * end of an array/map map that can be closed out. That
+ * may in turn close out the above array/map...
 */
 static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
 {
    QCBORError uReturn;
 
-   /* This loops ascending nesting levels as long as there is ascending to do */
+   /* Loop ascending nesting levels as long as there is ascending to do */
    while(!DecodeNesting_IsCurrentAtTop(&(pMe->nesting))) {
 
-      if(DecodeNesting_IsCurrentDefiniteLength(&(pMe->nesting))) {
-         /* Decrement count for definite length maps / arrays */
+      if(DecodeNesting_IsCurrentBstrWrapped(&(pMe->nesting))) {
+         /* Nesting level is bstr-wrapped CBOR */
+
+         /* Ascent for bstr-wrapped CBOR is always by explicit call
+          * so no further ascending can happen.
+          */
+         break;
+
+      } else if(DecodeNesting_IsCurrentDefiniteLength(&(pMe->nesting))) {
+         /* Level is a definite-length array/map */
+
+         /* Decrement the item count the definite-length array/map */
          DecodeNesting_DecrementDefiniteLengthMapOrArrayCount(&(pMe->nesting));
          if(!DecodeNesting_IsEndOfDefiniteLengthMapOrArray(&(pMe->nesting))) {
-             /* Didn't close out map or array, so all work here is done */
+             /* Didn't close out array/map, so all work here is done */
              break;
           }
-          /* All of a definite length array was consumed; fall through to
-             ascend */
+          /* All items in a definite length array were consumed so it
+           * is time to ascend one level. This happens below.
+           */
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
       } else {
-         /* If not definite length, have to check for a CBOR break */
+         /* Level is an indefinite-length array/map. */
+
+         /* Check for a break which is what ends indefinite-length arrays/maps */
          bool bIsBreak = false;
          uReturn = NextIsBreak(&(pMe->InBuf), &bIsBreak);
          if(uReturn != QCBOR_SUCCESS) {
@@ -1471,33 +1506,28 @@ static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
          }
 
          if(!bIsBreak) {
-            /* It's not a break so nothing closes out and all work is done */
+            /* Not a break so array/map does not close out. All work is done */
             break;
          }
 
-         if(DecodeNesting_IsCurrentBstrWrapped(&(pMe->nesting))) {
-            /*
-             Break occurred inside a bstr-wrapped CBOR or
-             in the top level sequence. This is always an
-             error because neither are an indefinte length
-             map/array.
-             */
-            uReturn = QCBOR_ERR_BAD_BREAK;
-            goto Done;
-         }
+         /* It was a break in an indefinite length map / array so
+          * it is time to ascend one level.
+          */
 
-         /* It was a break in an indefinite length map / array */
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
       }
 
-      /* All items in the map/array level have been consumed. */
+
+      /* All items in the array/map have been consumed. */
 
       /* But ascent in bounded mode is only by explicit call to
-         QCBORDecode_ExitBoundedMode() */
+       * QCBORDecode_ExitBoundedMode().
+       */
       if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
          /* Set the count to zero for definite length arrays to indicate
-            cursor is at end of bounded map / array */
+         * cursor is at end of bounded array/map */
          if(bMarkEnd) {
-            // Used for definite and indefinite to signal end
+            /* Used for definite and indefinite to signal end */
             DecodeNesting_ZeroMapOrArrayCount(&(pMe->nesting));
 
          }
@@ -1510,7 +1540,10 @@ static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
 
    uReturn = QCBOR_SUCCESS;
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 Done:
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
    return uReturn;
 }
 
@@ -1573,15 +1606,15 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 
    /*
     Check to see if at the end of a bounded definite length map or
-    array. The check for the end of an indefinite length array is
-    later.
+    array. The check for a break ending indefinite length array is
+    later in NestLevelAscender().
     */
    if(DecodeNesting_IsAtEndOfBoundedLevel(&(me->nesting))) {
       uReturn = QCBOR_ERR_NO_MORE_ITEMS;
       goto Done;
    }
 
-   /* ==== Next: not at the end so get another item ==== */
+   /* ==== Next: not at the end, so get another item ==== */
    uReturn = GetNext_MapEntry(me, pDecodedItem);
    if(QCBORDecode_IsUnrecoverableError(uReturn)) {
       /* Error is so bad that traversal is not possible. */
@@ -1589,8 +1622,8 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    }
 
    /*
-    Breaks ending arrays/maps are always processed at the end of this
-    function. They should never show up here.
+    Breaks ending arrays/maps are processed later in the call to
+    NestLevelAscender(). They should never show up here.
     */
    if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
       uReturn = QCBOR_ERR_BAD_BREAK;
@@ -1635,7 +1668,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
        QCBORItem_IsIndefiniteLengthMapOrArray(pDecodedItem)) {
       /*
        The following cases are handled here:
-         - A non-aggregate like an integer or string
+         - A non-aggregate item like an integer or string
          - An empty definite length map or array
          - An indefinite length map or array that might be empty or might not.
 
@@ -2742,7 +2775,8 @@ MapSearch(QCBORDecodeContext *pMe,
    // Check here makes sure that this won't accidentally be
    // QCBOR_MAP_OFFSET_CACHE_INVALID which is larger than
    // QCBOR_MAX_DECODE_INPUT_SIZE.
-   if(uEndOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
+   // Cast to uint32_t to possibly address cases where SIZE_MAX < UINT32_MAX
+   if((uint32_t)uEndOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
       uReturn = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
@@ -3297,8 +3331,9 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
    //
    // Most of these calls are simple inline accessors so this doesn't
    // amount to much code.
+   // Cast of uPreviousLength to uint32_t for cases where SIZE_MAX < UINT32_MAX.
    const size_t uPreviousLength = UsefulInputBuf_GetBufferLength(&(pMe->InBuf));
-   if(uPreviousLength >= QCBOR_MAX_DECODE_INPUT_SIZE) {
+   if((uint32_t)uPreviousLength >= QCBOR_MAX_DECODE_INPUT_SIZE) {
       uError = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
@@ -4538,7 +4573,7 @@ UInt64ConvertAll(const QCBORItem *pItem, uint32_t uConvertTypes, uint64_t *puVal
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
-#endif
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
    }
@@ -4644,9 +4679,9 @@ static QCBORError ConvertDouble(const QCBORItem *pItem,
                return QCBOR_ERR_UNEXPECTED_TYPE;
             }
          }
-#else
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
          return QCBOR_ERR_HW_FLOAT_DISABLED;
-#endif
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
       case QCBOR_TYPE_DOUBLE:

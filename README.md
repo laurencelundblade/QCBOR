@@ -10,10 +10,6 @@ QCBOR also implements [RFC8742](https://tools.ietf.org/html/rfc8742)
 which defines a CBOR sequence.
 
 ## New Version With Spiffy Decode
-**A major new version of QCBOR that makes decoding implementations much**
-**easier is available in the SpiffyDecode branch of this repository.**
-**Your CBOR decoding implementation may be many times fewer lines of code!**
-**The old version is available in the BeforeSpiffyDecode branch.**
 
 This new version of QCBOR adds a more powerful decoding API
 called Spiffy Decode. 
@@ -239,8 +235,8 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
     |               | smallest | largest |  
     |---------------|----------|---------|
     | encode only   |      850 |    2100 |
-    | decode only   |     2350 |   13500 |
-    | combined      |     3200 |   15600 |
+    | decode only   |     2150 |   13500 |
+    | combined      |     3000 |   15600 |
     
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
