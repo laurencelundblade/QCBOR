@@ -472,6 +472,10 @@ typedef enum {
        indefinite length string in the input CBOR. */
    QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED = 43,
 
+   /** Indefinite length arrays and maps handling are disabled and there is an
+       indefinite length map or array in the input CBOR. */
+   QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED = 44,
+
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
 

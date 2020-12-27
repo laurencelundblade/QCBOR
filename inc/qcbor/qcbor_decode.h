@@ -348,7 +348,7 @@ typedef struct _QCBORItem {
             UsefulBufC bigNum;
          } Mantissa;
       } expAndMantissa;
-#endif
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
       uint64_t    uTagV;  // Used internally during decoding
 
    } val;
