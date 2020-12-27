@@ -214,7 +214,7 @@ typedef struct  {
    // PRIVATE DATA STRUCTURE
    void *pAllocateCxt;
    UsefulBuf (* pfAllocator)(void *pAllocateCxt, void *pOldMem, size_t uNewSize);
-} QCORInternalAllocator;
+} QCBORInternalAllocator;
 
 
 /*
@@ -237,7 +237,7 @@ struct _QCBORDecodeContext {
 
    // If a string allocator is configured for indefinite-length
    // strings, it is configured here.
-   QCORInternalAllocator StringAllocator;
+   QCBORInternalAllocator StringAllocator;
 
    // These are special for the internal MemPool allocator.
    // They are not used otherwise. We tried packing these
