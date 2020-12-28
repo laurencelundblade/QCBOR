@@ -746,7 +746,7 @@ DecodeInteger(int nMajorType, uint64_t uArgument, QCBORItem *pDecodedItem)
 }
 
 
-// Make sure #define value line up as DecodeSimple counts on this.
+/* Make sure #define value line up as DecodeSimple counts on this. */
 #if QCBOR_TYPE_FALSE != CBOR_SIMPLEV_FALSE
 #error QCBOR_TYPE_FALSE macro value wrong
 #endif
@@ -775,102 +775,112 @@ DecodeInteger(int nMajorType, uint64_t uArgument, QCBORItem *pDecodedItem)
 #error QCBOR_TYPE_FLOAT macro value wrong
 #endif
 
+
 /*
- Decode true, false, floats, break...
+* @brief Decode type 7 -- true, false, floating-point, break...
+*
+* @param[in] nAdditionalInfo   The lower five bits from the initial byte.
+* @param[in] uArgument         The argument from the head.
+* @param[out] pDecodedItem     The filled in decoded item.
+*
+* @retval QCBOR_ERR_HALF_PRECISION_DISABLED
+* @retval QCBOR_ERR_BAD_TYPE_7
+*/
 
- @retval QCBOR_ERR_HALF_PRECISION_DISABLED
-
- @retval QCBOR_ERR_BAD_TYPE_7
- */
 static inline QCBORError
-DecodeSimple(int nAdditionalInfo, uint64_t uNumber, QCBORItem *pDecodedItem)
+DecodeSimple(int nAdditionalInfo, uint64_t uArgument, QCBORItem *pDecodedItem)
 {
-   QCBORError nReturn = QCBOR_SUCCESS;
+   QCBORError uReturn = QCBOR_SUCCESS;
 
-   // uAdditionalInfo is 5 bits from the initial byte. Compile time checks
-   // above make sure uAdditionalInfo values line up with uDataType values.
-   // DecodeTypeAndNumber() never returns an AdditionalInfo > 0x1f so cast
-   // is safe
+   /* uAdditionalInfo is 5 bits from the initial byte. Compile time
+    * checks above make sure uAdditionalInfo values line up with
+    * uDataType values.  DecodeHead() never returns an AdditionalInfo
+    * > 0x1f so cast is safe.
+    */
    pDecodedItem->uDataType = (uint8_t)nAdditionalInfo;
 
    switch(nAdditionalInfo) {
-      // No check for ADDINFO_RESERVED1 - ADDINFO_RESERVED3 as they are
-      // caught before this is called.
+      /* No check for ADDINFO_RESERVED1 - ADDINFO_RESERVED3 as they
+       * are caught before this is called.
+       */
 
-      case HALF_PREC_FLOAT: // 25
+      case HALF_PREC_FLOAT: /* 25 */
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         // Half-precision is returned as a double.
-         // The cast to uint16_t is safe because the encoded value
-         // was 16 bits. It was widened to 64 bits to be passed in here.
-         pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uNumber);
+         /* Half-precision is returned as a double.  The cast to
+          * uint16_t is safe because the encoded value was 16 bits. It
+          * was widened to 64 bits to be passed in here.
+          */
+         pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uArgument);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-         nReturn = QCBOR_ERR_HALF_PRECISION_DISABLED;
+         uReturn = QCBOR_ERR_HALF_PRECISION_DISABLED;
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
          break;
-      case SINGLE_PREC_FLOAT: // 26
-         // Single precision is normally returned as a double
-         // since double is widely supported, there is no loss of
-         // precision, it makes it easy for the caller in
-         // most cases and it can be converted back to single
-         // with no loss of precision
-         //
-         // The cast to uint32_t is safe because the encoded value
-         // was 32 bits. It was widened to 64 bits to be passed in here.
+      case SINGLE_PREC_FLOAT: /* 26 */
+         /* Single precision is normally returned as a double since
+          * double is widely supported, there is no loss of precision,
+          * it makes it easy for the caller in most cases and it can
+          * be converted back to single with no loss of precision
+          *
+          * The cast to uint32_t is safe because the encoded value was
+          * 32 bits. It was widened to 64 bits to be passed in here.
+          */
          {
-            const float f = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uNumber);
+            const float f = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
-            // In the normal case, use HW to convert float to double.
+            /* In the normal case, use HW to convert float to
+	          * double. */
             pDecodedItem->val.dfnum = (double)f;
             pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
-            // Use of float HW is disabled, return as a float.
+            /* Use of float HW is disabled, return as a float. */
             pDecodedItem->val.fnum = f;
             pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
 
-            // IEEE754_FloatToDouble() could be used here to return
-            // as a double, but it adds object code and most likely
-            // anyone disabling FLOAT HW use doesn't care about
-            // floats and wants to save object code.
+            /* IEEE754_FloatToDouble() could be used here to return as
+             * a double, but it adds object code and most likely
+             * anyone disabling FLOAT HW use doesn't care about floats
+             * and wants to save object code.
+             */
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          }
          break;
 
-      case DOUBLE_PREC_FLOAT: // 27
-         pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uNumber);
+      case DOUBLE_PREC_FLOAT: /* 27 */
+         pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uArgument);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
          break;
 
-      case CBOR_SIMPLEV_FALSE: // 20
-      case CBOR_SIMPLEV_TRUE:  // 21
-      case CBOR_SIMPLEV_NULL:  // 22
-      case CBOR_SIMPLEV_UNDEF: // 23
-      case CBOR_SIMPLE_BREAK:  // 31
-         break; // nothing to do
+      case CBOR_SIMPLEV_FALSE: /* 20 */
+      case CBOR_SIMPLEV_TRUE:  /* 21 */
+      case CBOR_SIMPLEV_NULL:  /* 22 */
+      case CBOR_SIMPLEV_UNDEF: /* 23 */
+      case CBOR_SIMPLE_BREAK:  /* 31 */
+         break; /* nothing to do */
 
-      case CBOR_SIMPLEV_ONEBYTE: // 24
-         if(uNumber <= CBOR_SIMPLE_BREAK) {
-            // This takes out f8 00 ... f8 1f which should be encoded as e0 … f7
-            nReturn = QCBOR_ERR_BAD_TYPE_7;
+      case CBOR_SIMPLEV_ONEBYTE: /* 24 */
+         if(uArgument <= CBOR_SIMPLE_BREAK) {
+            /* This takes out f8 00 ... f8 1f which should be encoded
+             * as e0 … f7
+             */
+            uReturn = QCBOR_ERR_BAD_TYPE_7;
             goto Done;
          }
          /* FALLTHROUGH */
-         // fall through intentionally
 
-      default: // 0-19
+      default: /* 0-19 */
          pDecodedItem->uDataType   = QCBOR_TYPE_UKNOWN_SIMPLE;
-         /*
-          DecodeTypeAndNumber will make uNumber equal to
-          uAdditionalInfo when uAdditionalInfo is < 24 This cast is
-          safe because the 2, 4 and 8 byte lengths of uNumber are in
-          the double/float cases above
+         /* DecodeHead() will make uArgument equal to
+          * nAdditionalInfo when nAdditionalInfo is < 24. This cast is
+          * safe because the 2, 4 and 8 byte lengths of uNumber are in
+          * the double/float cases above
           */
-         pDecodedItem->val.uSimple = (uint8_t)uNumber;
+         pDecodedItem->val.uSimple = (uint8_t)uArgument;
          break;
    }
 
 Done:
-   return nReturn;
+   return uReturn;
 }
 
 
@@ -883,10 +893,11 @@ Done:
 
  @retval QCBOR_ERR_STRING_TOO_LONG
  */
-static inline QCBORError DecodeBytes(const QCORInternalAllocator *pAllocator,
-                                     uint64_t uStrLen,
-                                     UsefulInputBuf *pUInBuf,
-                                     QCBORItem *pDecodedItem)
+static inline QCBORError
+DecodeBytes(const QCORInternalAllocator *pAllocator,
+            uint64_t                     uStrLen,
+            UsefulInputBuf              *pUInBuf,
+            QCBORItem                   *pDecodedItem)
 {
    QCBORError nReturn = QCBOR_SUCCESS;
 
