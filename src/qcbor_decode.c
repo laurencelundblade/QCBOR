@@ -511,7 +511,7 @@ DecodeNesting_GetPreviousBoundedEnd(const QCBORDecodeNesting *pMe)
   ===========================================================================*/
 
 static inline void
-StringAllocator_Free(const QCORInternalAllocator *pMe, void *pMem)
+StringAllocator_Free(const QCBORInternalAllocator *pMe, void *pMem)
 {
    (pMe->pfAllocator)(pMe->pAllocateCxt, pMem, 0);
 }
@@ -519,7 +519,7 @@ StringAllocator_Free(const QCORInternalAllocator *pMe, void *pMem)
 // StringAllocator_Reallocate called with pMem NULL is
 // equal to StringAllocator_Allocate()
 static inline UsefulBuf
-StringAllocator_Reallocate(const QCORInternalAllocator *pMe,
+StringAllocator_Reallocate(const QCBORInternalAllocator *pMe,
                            void *pMem,
                            size_t uSize)
 {
@@ -527,13 +527,13 @@ StringAllocator_Reallocate(const QCORInternalAllocator *pMe,
 }
 
 static inline UsefulBuf
-StringAllocator_Allocate(const QCORInternalAllocator *pMe, size_t uSize)
+StringAllocator_Allocate(const QCBORInternalAllocator *pMe, size_t uSize)
 {
    return (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, uSize);
 }
 
 static inline void
-StringAllocator_Destruct(const QCORInternalAllocator *pMe)
+StringAllocator_Destruct(const QCBORInternalAllocator *pMe)
 {
    if(pMe->pfAllocator) {
       (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, 0);
@@ -894,10 +894,10 @@ Done:
  @retval QCBOR_ERR_STRING_TOO_LONG
  */
 static inline QCBORError
-DecodeBytes(const QCORInternalAllocator *pAllocator,
-            uint64_t                     uStrLen,
-            UsefulInputBuf              *pUInBuf,
-            QCBORItem                   *pDecodedItem)
+DecodeBytes(const QCBORInternalAllocator *pAllocator,
+            uint64_t                      uStrLen,
+            UsefulInputBuf               *pUInBuf,
+            QCBORItem                    *pDecodedItem)
 {
    QCBORError nReturn = QCBOR_SUCCESS;
 
@@ -993,7 +993,7 @@ static inline uint8_t MapStringMajorTypes(int nCBORMajorType)
  */
 static QCBORError GetNext_Item(UsefulInputBuf *pUInBuf,
                                QCBORItem *pDecodedItem,
-                               const QCORInternalAllocator *pAllocator)
+                               const QCBORInternalAllocator *pAllocator)
 {
    QCBORError nReturn;
 
@@ -1140,10 +1140,10 @@ GetNext_FullItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
     * allocator altogether and thus both of these uses. It reduced the
     * decoder object code by about 400 bytes.
     */
-   const QCORInternalAllocator *pAllocatorForGetNext = NULL;
+   const QCBORInternalAllocator *pAllocatorForGetNext = NULL;
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-   const QCORInternalAllocator *pAllocator = NULL;
+   const QCBORInternalAllocator *pAllocator = NULL;
 
    if(pMe->StringAllocator.pfAllocator) {
       pAllocator = &(pMe->StringAllocator);
