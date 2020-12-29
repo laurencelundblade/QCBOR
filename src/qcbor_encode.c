@@ -654,7 +654,7 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBuf
  */
 void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
 {
-   AppendCBORHead(me, CBOR_MAJOR_TYPE_OPTIONAL, uTag, 0);
+   AppendCBORHead(me, CBOR_MAJOR_TYPE_TAG, uTag, 0);
 }
 
 

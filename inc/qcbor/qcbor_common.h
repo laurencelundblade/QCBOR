@@ -72,7 +72,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  item is the value.  */
 #define CBOR_MAJOR_TYPE_MAP          5
 
-/* Standard CBOR optional tagging. This tags things like dates and URLs */
+/* Standard CBOR major type for a tag number. This creates a CBOR "tag" that
+ * is the tag number and a data item that follows as the tag content.
+ *
+ * Note that this was called an optional tag in RFC 7049, but there's
+ * not really anything optional about it. It was misleading. It is
+ * renamed in RFC 8949.
+ */
+#define CBOR_MAJOR_TYPE_TAG          6
 #define CBOR_MAJOR_TYPE_OPTIONAL     6
 
 /* Standard CBOR extra simple types like floats and the values true and false */
