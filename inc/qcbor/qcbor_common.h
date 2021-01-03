@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -404,7 +404,10 @@ typedef enum {
 
    /** This occurs when decoding one of the tags that QCBOR processed
        internally.  The content of a tag was of the wrong type. (They
-       were known as "Optional Tags" in RFC 7049. */
+       were known as "Optional Tags" in RFC 7049, but "optional" is
+       misleading. The old error name is retained for backwards
+       compatibility. */
+   QCBOR_ERR_BAD_TAG_CONTENT = 27,
    QCBOR_ERR_BAD_OPT_TAG = 27,
 
    /** Duplicate label in map detected */
