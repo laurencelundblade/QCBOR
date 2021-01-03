@@ -553,20 +553,21 @@ StringAllocator_Destruct(const QCBORInternalAllocator *pMe)
 /*
  * Public function, see header file
  */
-void QCBORDecode_Init(QCBORDecodeContext *me,
+void QCBORDecode_Init(QCBORDecodeContext *pMe,
                       UsefulBufC          EncodedCBOR,
                       QCBORDecodeMode     nDecodeMode)
 {
-   memset(me, 0, sizeof(QCBORDecodeContext));
-   UsefulInputBuf_Init(&(me->InBuf), EncodedCBOR);
+   memset(pMe, 0, sizeof(QCBORDecodeContext));
+   UsefulInputBuf_Init(&(pMe->InBuf), EncodedCBOR);
    /* Don't bother with error check on decode mode. If a bad value is
     * passed it will just act as if the default normal mode of 0 was set.
     */
-   me->uDecodeMode = (uint8_t)nDecodeMode;
-   DecodeNesting_Init(&(me->nesting));
-   for(int i = 0; i < QCBOR_NUM_MAPPED_TAGS; i++) {
-      me->auMappedTags[i] = CBOR_TAG_INVALID16;
-   }
+   pMe->uDecodeMode = (uint8_t)nDecodeMode;
+   DecodeNesting_Init(&(pMe->nesting));
+
+   /* Inialize me->auMappedTags to CBOR_TAG_INVALID16. See
+    * GetNext_TaggedItem() and MapTagNumber(). */
+   memset(pMe->auMappedTags, 0xff, sizeof(pMe->auMappedTags));
 }
 
 
@@ -599,6 +600,51 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
    (void)pMe;
    (void)pTagList;
 }
+
+
+
+
+/*
+ Decoding items is done in 5 layered functions, one calling the
+ next one down. If a layer has no work to do for a particular item
+ it returns quickly.
+
+ - QCBORDecode_GetNext, GetNextWithTags -- The top layer processes
+ tagged data items, turning them into the local C representation.
+ For the most simple it is just associating a QCBOR_TYPE with the data. For
+ the complex ones that an aggregate of data items, there is some further
+ decoding and a little bit of recursion.
+
+ - QCBORDecode_GetNextMapOrArray - This manages the beginnings and
+ ends of maps and arrays. It tracks descending into and ascending
+ out of maps/arrays. It processes all breaks that terminate
+ indefinite length maps and arrays.
+
+ - GetNext_MapEntry -- This handles the combining of two
+ items, the label and the data, that make up a map entry.
+ It only does work on maps. It combines the label and data
+ items into one labeled item.
+
+ - GetNext_TaggedItem -- This decodes type 6 tagging. It turns the
+ tags into bit flags associated with the data item. No actual decoding
+ of the contents of the tagged item is performed here.
+
+ - GetNext_FullItem -- This assembles the sub-items that make up
+ an indefinte length string into one string item. It uses the
+ string allocater to create contiguous space for the item. It
+ processes all breaks that are part of indefinite length strings.
+
+ - GetNext_Item -- This decodes the atomic data items in CBOR. Each
+ atomic data item has a "major type", an integer "argument" and optionally
+ some content. For text and byte strings, the content is the bytes
+ that make up the string. These are the smallest data items that are
+ considered to be well-formed.  The content may also be other data items in
+ the case of aggregate types. They are not handled in this layer.
+
+ Roughly this takes 300 bytes of stack for vars. Need to
+ evaluate this more carefully and correctly.
+
+ */
 
 
 /**
@@ -1000,11 +1046,11 @@ static inline uint8_t ConvertArrayOrMapType(int nCBORMajorType)
 }
 
 
-/*
+/**
  * @brief Decode a single primitive data item.
  *
  * @param[in] pUInBuf       Input buffer to read data item from.
- * @param[ou] pDecodedItem  The filled-in decoded item.
+ * @param[out] pDecodedItem  The filled-in decoded item.
  * @param[in] pAllocator    The allocator to use for strings or NULL.
  *
  * @retval QCBOR_ERR_UNSUPPORTED
@@ -1014,14 +1060,10 @@ static inline uint8_t ConvertArrayOrMapType(int nCBORMajorType)
  * @retval QCBOR_ERR_STRING_TOO_LONG
  * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
  * @retval QCBOR_ERR_BAD_TYPE_7
+ * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
  *
- * This gets a single data item and decodes it including preceding
- * optional tagging. This does not deal with arrays and maps and
- * nesting except to decode the data item introducing them. Arrays and
- * maps are handled at the next level up in GetNext().
- *
- * Errors detected here include: an array that is too long to decode,
- * hit end of buffer unexpectedly, a few forms of invalid encoded CBOR
+ * This decodes the most primitive / atomic data item. It does
+ * no combing of data items.
  */
 static QCBORError GetNext_Item(UsefulInputBuf               *pUInBuf,
                                QCBORItem                    *pDecodedItem,
@@ -1119,7 +1161,7 @@ Done:
  * @brief Process indefinite length strings
  *
  * @param[in] pMe   Decoder context
- * @param[in,out] pDecodedItem  The decoded item that work is done on.
+ * @param[out] pDecodedItem  The decoded item that work is done on.
  *
  * @retval QCBOR_ERR_UNSUPPORTED
  * @retval QCBOR_ERR_HIT_END
@@ -1128,15 +1170,17 @@ Done:
  * @retval QCBOR_ERR_STRING_TOO_LONG
  * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
  * @retval QCBOR_ERR_BAD_TYPE_7
+ * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
  * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
  * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
+ * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED
  *
- * If @c pDecodedItem is not an indefinite length string, this does nothing.
+ * If @c pDecodedItem is not an indefinite-length string, this does nothing.
  *
- * If it is, this loops getting the subsequent chunks that make up the
- * string.  The string allocator is used to make a contiguous buffer for
- * the chunks.  When this completes @c pDecodedItem contains the
- * put-together string.
+ * If it is, this loops getting the subsequent chunk data items that
+ * make up the string.  The string allocator is used to make a
+ * contiguous buffer for the chunks.  When this completes @c
+ * pDecodedItem contains the put-together string.
  *
  * Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
  */
@@ -1270,108 +1314,157 @@ Done:
 }
 
 
-static uint64_t ConvertTag(const QCBORDecodeContext *me, uint16_t uTagVal) {
-   if(uTagVal <= QCBOR_LAST_UNMAPPED_TAG) {
-      return uTagVal;
-   } else if(uTagVal == CBOR_TAG_INVALID16) {
+/**
+ * @brief This converts a tag number to a shorter mapped value for storage.
+ *
+ * @param[in] pMe                The decode context.
+ * @param[in] uUnMappedTag       The tag number to map
+ * @param[out] puMappedTagNumer  The stored tag number.
+ *
+ * @return error code.
+ *
+ * The main point of mapping tag numbers is make QCBORItem
+ * smaller. With this mapping storage of 4 tags takes up 8
+ * bytes. Without, it would take up 32 bytes.
+ *
+ * This maps tag numbers greater than QCBOR_LAST_UNMAPPED_TAG.
+ * QCBOR_LAST_UNMAPPED_TAG is a little smaller than MAX_UINT16.
+ *
+ * See also UnMapTagNumber() and @ref QCBORItem.
+ */
+static inline QCBORError
+MapTagNumber(QCBORDecodeContext *pMe, uint64_t uUnMappedTag, uint16_t *puMappedTagNumer)
+{
+   if(uUnMappedTag > QCBOR_LAST_UNMAPPED_TAG) {
+      int uTagMapIndex;
+      /* Is there room in the tag map, or is it in it already? */
+      for(uTagMapIndex = 0; uTagMapIndex < QCBOR_NUM_MAPPED_TAGS; uTagMapIndex++) {
+         if(pMe->auMappedTags[uTagMapIndex] == CBOR_TAG_INVALID64) {
+            break;
+         }
+         if(pMe->auMappedTags[uTagMapIndex] == uUnMappedTag) {
+            break;
+         }
+      }
+      if(uTagMapIndex >= QCBOR_NUM_MAPPED_TAGS) {
+         return QCBOR_ERR_TOO_MANY_TAGS;
+      }
+
+      /* Covers the cases where tag is new and were it is already in the map */
+      pMe->auMappedTags[uTagMapIndex] = uUnMappedTag;
+      *puMappedTagNumer = (uint16_t)(uTagMapIndex + QCBOR_LAST_UNMAPPED_TAG + 1);
+
+   } else {
+      *puMappedTagNumer = (uint16_t)uUnMappedTag;
+   }
+
+   return QCBOR_SUCCESS;
+}
+
+
+/**
+ * @brief This converts a mapped tag number to the actual tag number.
+ *
+ * @param[in] pMe               The decode context.
+ * @param[in] uMappedTagNumber  The stored tag number.
+ *
+ * @return The actual tag number is returned or
+ *         @ref CBOR_TAG_INVALID64 on error.
+ *
+ * This is the reverse of MapTagNumber()
+ */
+static uint64_t
+UnMapTagNumber(const QCBORDecodeContext *pMe, uint16_t uMappedTagNumber)
+{
+   if(uMappedTagNumber <= QCBOR_LAST_UNMAPPED_TAG) {
+      return uMappedTagNumber;
+   } else if(uMappedTagNumber == CBOR_TAG_INVALID16) {
       return CBOR_TAG_INVALID64;
    } else {
-      // This won't be negative because of code below in GetNext_TaggedItem()
-      const unsigned uIndex = uTagVal - (QCBOR_LAST_UNMAPPED_TAG + 1);
-      return me->auMappedTags[uIndex];
+      /* This won't be negative because of code below in
+	    * MapTagNumber()
+       */
+      const unsigned uIndex = uMappedTagNumber - (QCBOR_LAST_UNMAPPED_TAG + 1);
+      return pMe->auMappedTags[uIndex];
    }
 }
 
 
-/*
- Gets all optional tag data items preceding a data item that is not an
- optional tag and records them as bits in the tag map.
+/**
+ * @brief Aggregate all tags wrapping a data item.
+ *
+ * @param[in] pMe            Decoder context
+ * @param[out] pDecodedItem  The decoded item that work is done on.
 
- @retval QCBOR_ERR_UNSUPPORTED
-
- @retval QCBOR_ERR_HIT_END
-
- @retval QCBOR_ERR_INT_OVERFLOW
-
- @retval QCBOR_ERR_STRING_ALLOCATE
-
- @retval QCBOR_ERR_STRING_TOO_LONG
-
- @retval QCBOR_ERR_HALF_PRECISION_DISABLED
-
- @retval QCBOR_ERR_BAD_TYPE_7
-
- @retval QCBOR_ERR_NO_STRING_ALLOCATOR
-
- @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
-
- @retval QCBOR_ERR_TOO_MANY_TAGS
+ * @retval QCBOR_ERR_UNSUPPORTED
+ * @retval QCBOR_ERR_HIT_END
+ * @retval QCBOR_ERR_INT_OVERFLOW
+ * @retval QCBOR_ERR_STRING_ALLOCATE
+ * @retval QCBOR_ERR_STRING_TOO_LONG
+ * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
+ * @retval QCBOR_ERR_BAD_TYPE_7
+ * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
+ * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
+ * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
+ * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED
+ * @retval QCBOR_ERR_TOO_MANY_TAGS
+ *
+ * This loops getting atomic data items until one is not a tag
+ * number.  Usually this is largely pass-through because most
+ * item are not tag numbers.
  */
 static QCBORError
-GetNext_TaggedItem(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+GetNext_TaggedItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
-   uint16_t auTags[QCBOR_MAX_TAGS_PER_ITEM] = {CBOR_TAG_INVALID16,
-                                               CBOR_TAG_INVALID16,
-                                               CBOR_TAG_INVALID16,
-                                               CBOR_TAG_INVALID16};
+   uint16_t auItemsTags[QCBOR_MAX_TAGS_PER_ITEM];
+
+   /* Initialize to CBOR_TAG_INVALID16 */
+   #if CBOR_TAG_INVALID16 != 0xffff
+   /* Be sure the memset does the right thing. */
+   #err CBOR_TAG_INVALID16 tag not defined as expected
+   #endif
+   memset(auItemsTags, 0xff, sizeof(auItemsTags));
 
    QCBORError uReturn = QCBOR_SUCCESS;
 
-   // Loop fetching items until the item fetched is not a tag
+   /* Loop fetching data items until the item fetched is not a tag */
    for(;;) {
-      QCBORError uErr = GetNext_FullItem(me, pDecodedItem);
+      QCBORError uErr = GetNext_FullItem(pMe, pDecodedItem);
       if(uErr != QCBOR_SUCCESS) {
          uReturn = uErr;
-         goto Done; // Error out of the loop
+         goto Done;
       }
 
       if(pDecodedItem->uDataType != QCBOR_TYPE_TAG) {
-         // Successful exit from loop; maybe got some tags, maybe not
-         memcpy(pDecodedItem->uTags, auTags, sizeof(auTags));
+         /* Successful exit from loop; maybe got some tags, maybe not */
+         memcpy(pDecodedItem->uTags, auItemsTags, sizeof(auItemsTags));
          break;
       }
 
-      if(auTags[QCBOR_MAX_TAGS_PER_ITEM - 1] != CBOR_TAG_INVALID16) {
-         // No room in the tag list
+      if(auItemsTags[QCBOR_MAX_TAGS_PER_ITEM - 1] != CBOR_TAG_INVALID16) {
+         /* No room in the tag list */
          uReturn = QCBOR_ERR_TOO_MANY_TAGS;
-         // Continue on to get all tags on this item even though
-         // it is erroring out in the end. This is a resource limit
-         // error, not a problem with being well-formed CBOR.
+         /* Continue on to get all tags wrapping this item even though
+          * it is erroring out in the end. This allows decoding to
+          * continue. This is a resource limit error, not a problem
+          * with being well-formed CBOR.
+          */
          continue;
       }
-      // Slide tags over one in the array to make room at index 0
-      for(size_t uTagIndex = QCBOR_MAX_TAGS_PER_ITEM - 1; uTagIndex > 0; uTagIndex--) {
-         auTags[uTagIndex] = auTags[uTagIndex-1];
-      }
+      /* Slide tags over one in the array to make room at index 0.
+       * Must use memmove because the move source and destination
+       * overlap.
+       */
+      memmove(&auItemsTags[1], auItemsTags, sizeof(auItemsTags) - sizeof(auItemsTags[0]));
 
-      // Is the tag > 16 bits?
-      if(pDecodedItem->val.uTagV > QCBOR_LAST_UNMAPPED_TAG) {
-         size_t uTagMapIndex;
-         // Is there room in the tag map, or is it in it already?
-         for(uTagMapIndex = 0; uTagMapIndex < QCBOR_NUM_MAPPED_TAGS; uTagMapIndex++) {
-            if(me->auMappedTags[uTagMapIndex] == CBOR_TAG_INVALID16) {
-               break;
-            }
-            if(me->auMappedTags[uTagMapIndex] == pDecodedItem->val.uTagV) {
-               break;
-            }
-         }
-         if(uTagMapIndex >= QCBOR_NUM_MAPPED_TAGS) {
-            // No room for the tag
-            uReturn = QCBOR_ERR_TOO_MANY_TAGS;
-            // Continue on to get all tags on this item even though
-            // it is erroring out in the end. This is a resource limit
-            // error, not a problem with being well-formed CBOR.
-            continue;
-         }
-
-         // Covers the cases where tag is new and were it is already in the map
-         me->auMappedTags[uTagMapIndex] = pDecodedItem->val.uTagV;
-         auTags[0] = (uint16_t)(uTagMapIndex + QCBOR_LAST_UNMAPPED_TAG + 1);
-
-      } else {
-         auTags[0] = (uint16_t)pDecodedItem->val.uTagV;
-      }
+      /* Map the tag */
+      uint16_t uMappedTagNumer;
+      uReturn = MapTagNumber(pMe, pDecodedItem->val.uTagV, &uMappedTagNumer);
+      /* Continue even on error so as to consume all tags wrapping
+       * this data item so decoding can go on. If MapTagNumber()
+       * errors once it will continue to error.
+       */
+      auItemsTags[0] = uMappedTagNumer;
    }
 
 Done:
@@ -1380,69 +1473,72 @@ Done:
 
 
 /*
- This layer takes care of map entries. It combines the label and data
- items into one QCBORItem.
-
- @retval QCBOR_ERR_UNSUPPORTED
-
- @retval QCBOR_ERR_HIT_END
-
- @retval QCBOR_ERR_INT_OVERFLOW
-
- @retval QCBOR_ERR_STRING_ALLOCATE
-
- @retval QCBOR_ERR_STRING_TOO_LONG
-
- @retval QCBOR_ERR_HALF_PRECISION_DISABLED
-
- @retval QCBOR_ERR_BAD_TYPE_7
-
- @retval QCBOR_ERR_NO_STRING_ALLOCATOR
-
- @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
-
- @retval QCBOR_ERR_TOO_MANY_TAGS
-
- @retval QCBOR_ERR_MAP_LABEL_TYPE
-
- @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG
+ * @brief Combine a map entry label and value into one item.
+ *
+ * @param[in] pMe            Decoder context
+ * @param[out] pDecodedItem  The decoded item that work is done on.
+ *
+ * @retval QCBOR_ERR_UNSUPPORTED
+ * @retval QCBOR_ERR_HIT_END
+ * @retval QCBOR_ERR_INT_OVERFLOW
+ * @retval QCBOR_ERR_STRING_ALLOCATE
+ * @retval QCBOR_ERR_STRING_TOO_LONG
+ * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
+ * @retval QCBOR_ERR_BAD_TYPE_7
+ * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
+ * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
+ * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
+ * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED
+ * @retval QCBOR_ERR_TOO_MANY_TAGS
+ * @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG
+ * @retval QCBOR_ERR_MAP_LABEL_TYPE
+ *
+ * If a the current nesting level is a map, then this
+ * combines pairs of items into one data item with a label
+ * and value.
+ *
+ * This is pass-through if the current nesting leve is
+ * not a map.
+ *
+ * This also implements maps-as-array mode where a map
+ * is treated like an array to allow caller to do their
+ * own label processing.
  */
 static inline QCBORError
 GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
-   // Stack use: int/ptr 1, QCBORItem  -- 56
-   QCBORError nReturn = GetNext_TaggedItem(me, pDecodedItem);
-   if(nReturn)
+   QCBORError uReturn = GetNext_TaggedItem(me, pDecodedItem);
+   if(uReturn != QCBOR_SUCCESS) {
       goto Done;
+   }
 
    if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
-      // Break can't be a map entry
+      /* Break can't be a map entry */
       goto Done;
    }
 
    if(me->uDecodeMode != QCBOR_DECODE_MODE_MAP_AS_ARRAY) {
-      // In a map and caller wants maps decoded, not treated as arrays
+      /* Normal decoding of maps -- combine label and value into one item. */
 
       if(DecodeNesting_IsCurrentTypeMap(&(me->nesting))) {
-         // If in a map and the right decoding mode, get the label
-
-         // Save label in pDecodedItem and get the next which will
-         // be the real data
+         /* Save label in pDecodedItem and get the next which will
+          * be the real data item.
+          */
          QCBORItem LabelItem = *pDecodedItem;
-         nReturn = GetNext_TaggedItem(me, pDecodedItem);
-         if(QCBORDecode_IsUnrecoverableError(nReturn)) {
+         uReturn = GetNext_TaggedItem(me, pDecodedItem);
+         if(QCBORDecode_IsUnrecoverableError(uReturn)) {
             goto Done;
          }
 
          pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
 
          if(LabelItem.uDataType == QCBOR_TYPE_TEXT_STRING) {
-            // strings are always good labels
+            /* strings are always good labels */
             pDecodedItem->label.string = LabelItem.val.string;
             pDecodedItem->uLabelType = QCBOR_TYPE_TEXT_STRING;
          } else if (QCBOR_DECODE_MODE_MAP_STRINGS_ONLY == me->uDecodeMode) {
-            // It's not a string and we only want strings
-            nReturn = QCBOR_ERR_MAP_LABEL_TYPE;
+            /* It's not a string and we only want strings */
+            uReturn = QCBOR_ERR_MAP_LABEL_TYPE;
             goto Done;
          } else if(LabelItem.uDataType == QCBOR_TYPE_INT64) {
             pDecodedItem->label.int64 = LabelItem.val.int64;
@@ -1455,36 +1551,48 @@ GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
             pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
             pDecodedItem->uLabelType = QCBOR_TYPE_BYTE_STRING;
          } else {
-            // label is not an int or a string. It is an arrray
-            // or a float or such and this implementation doesn't handle that.
-            // Also, tags on labels are ignored.
-            nReturn = QCBOR_ERR_MAP_LABEL_TYPE;
+            /* label is not an int or a string. It is an arrray
+             * or a float or such and this implementation doesn't handle that.
+             * Also, tags on labels are ignored.
+             */
+            uReturn = QCBOR_ERR_MAP_LABEL_TYPE;
             goto Done;
          }
       }
    } else {
+      /* Decoding of maps as arrays to let the caller decide what to do
+       * about labels, particularly lables that are not integers or
+       * strings.
+       */
       if(pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
          if(pDecodedItem->val.uCount > QCBOR_MAX_ITEMS_IN_ARRAY/2) {
-            nReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
+            uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
             goto Done;
          }
-         // Decoding a map as an array
          pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
-         // Cast is safe because of check against QCBOR_MAX_ITEMS_IN_ARRAY/2
-         // Cast is needed because of integer promotion
+         /* Cast is safe because of check against QCBOR_MAX_ITEMS_IN_ARRAY/2.
+          * Cast is needed because of integer promotion.
+          */
          pDecodedItem->val.uCount = (uint16_t)(pDecodedItem->val.uCount * 2);
       }
    }
 
 Done:
-   return nReturn;
+   return uReturn;
 }
 
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-/*
- See if next item is a CBOR break. If it is, it is consumed,
- if not it is not consumed.
+/**
+ * @brief Peek and see if next data item is a break;
+ *
+ * @param[in]  pUIB            UsefulInputBuf to read from.
+ * @param[out] pbNextIsBreak   Indicate if next was a break or not.
+ *
+ * @return  Any decoding error.
+ *
+ * See if next item is a CBOR break. If it is, it is consumed,
+ * if not it is not consumed.
 */
 static inline QCBORError
 NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
@@ -1498,7 +1606,7 @@ NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
          return uReturn;
       }
       if(Peek.uDataType != QCBOR_TYPE_BREAK) {
-         // It is not a break, rewind so it can be processed normally.
+         /* It is not a break, rewind so it can be processed normally. */
          UsefulInputBuf_Seek(pUIB, uPeek);
       } else {
          *pbNextIsBreak = true;
@@ -1511,6 +1619,11 @@ NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
 
 
 /*
+ * @brief Ascend up nesting levels if all items in them have been consumed.
+ *
+ * @param[in] pMe       The decode context.
+ * @param[in] bMarkEnd  If true mark end of maps/arrays with count of zero.
+ *
  * An item was just consumed, now figure out if it was the
  * end of an array/map map that can be closed out. That
  * may in turn close out the above array/map...
@@ -1754,12 +1867,13 @@ Done:
    return uReturn;
 }
 
-static void ShiftTags(QCBORItem *pDecodedItem)
+
+static inline void ShiftTags(QCBORItem *pDecodedItem)
 {
-   pDecodedItem->uTags[0] = pDecodedItem->uTags[1];
-   pDecodedItem->uTags[1] = pDecodedItem->uTags[2];
-   pDecodedItem->uTags[2] = pDecodedItem->uTags[3];
-   pDecodedItem->uTags[2] = CBOR_TAG_INVALID16;
+   for(int i = 0; i < QCBOR_MAX_TAGS_PER_ITEM-1; i++) {
+      pDecodedItem->uTags[i] = pDecodedItem->uTags[i+1];
+   }
+   pDecodedItem->uTags[QCBOR_MAX_TAGS_PER_ITEM-1] = CBOR_TAG_INVALID16;
 }
 
 
@@ -2191,7 +2305,7 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *me,
          if(pTags->uNumUsed >= pTags->uNumAllocated) {
             return QCBOR_ERR_TOO_MANY_TAGS;
          }
-         pTags->puTags[pTags->uNumUsed] = ConvertTag(me,pDecodedItem->uTags[nTagIndex]);
+         pTags->puTags[pTags->uNumUsed] = UnMapTagNumber(me,pDecodedItem->uTags[nTagIndex]);
          pTags->uNumUsed++;
       }
    }
@@ -2199,48 +2313,6 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *me,
    return QCBOR_SUCCESS;
 }
 
-
-/*
- Decoding items is done in 5 layered functions, one calling the
- next one down. If a layer has no work to do for a particular item
- it returns quickly.
-
- - QCBORDecode_GetNext, GetNextWithTags -- The top layer processes
- tagged data items, turning them into the local C representation.
- For the most simple it is just associating a QCBOR_TYPE with the data. For
- the complex ones that an aggregate of data items, there is some further
- decoding and a little bit of recursion.
-
- - QCBORDecode_GetNextMapOrArray - This manages the beginnings and
- ends of maps and arrays. It tracks descending into and ascending
- out of maps/arrays. It processes all breaks that terminate
- indefinite length maps and arrays.
-
- - GetNext_MapEntry -- This handles the combining of two
- items, the label and the data, that make up a map entry.
- It only does work on maps. It combines the label and data
- items into one labeled item.
-
- - GetNext_TaggedItem -- This decodes type 6 tagging. It turns the
- tags into bit flags associated with the data item. No actual decoding
- of the contents of the tagged item is performed here.
-
- - GetNext_FullItem -- This assembles the sub-items that make up
- an indefinte length string into one string item. It uses the
- string allocater to create contiguous space for the item. It
- processes all breaks that are part of indefinite length strings.
-
- - GetNext_Item -- This decodes the atomic data items in CBOR. Each
- atomic data item has a "major type", an integer "argument" and optionally
- some content. For text and byte strings, the content is the bytes
- that make up the string. These are the smallest data items that are
- considered to be well-formed.  The content may also be other data items in
- the case of aggregate types. They are not handled in this layer.
-
- Roughly this takes 300 bytes of stack for vars. Need to
- evaluate this more carefully and correctly.
-
- */
 
 
 /*
@@ -2254,7 +2326,7 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *me,
       if(pItem->uTags[uTagIndex] == CBOR_TAG_INVALID16) {
          break;
       }
-      if(ConvertTag(me, pItem->uTags[uTagIndex]) == uTag) {
+      if(UnMapTagNumber(me, pItem->uTags[uTagIndex]) == uTag) {
          return true;
       }
    }
@@ -2310,7 +2382,7 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
    if(uIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
       return CBOR_TAG_INVALID64;
    } else {
-      return ConvertTag(pMe, pItem->uTags[uIndex]);
+      return UnMapTagNumber(pMe, pItem->uTags[uIndex]);
    }
 }
 
@@ -2326,7 +2398,7 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe,
    if(uIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
       return CBOR_TAG_INVALID64;
    } else {
-      return ConvertTag(pMe, pMe->uLastTags[uIndex]);
+      return UnMapTagNumber(pMe, pMe->uLastTags[uIndex]);
    }
 }
 

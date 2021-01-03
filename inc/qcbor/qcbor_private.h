@@ -255,6 +255,7 @@ struct _QCBORDecodeContext {
    uint8_t  bStringAllocateAll;
    uint8_t  uLastError;  // QCBORError stuffed into a uint8_t
 
+   /* See MapTagNumber() for description of how tags are mapped. */
    uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
 
    uint16_t uLastTags[QCBOR_MAX_TAGS_PER_ITEM1];
