@@ -97,6 +97,7 @@ int_fast32_t crit_parameters_test(void);
  */
 int_fast32_t all_header_parameters_test(void);
 
+
 /*
  * Check that setting the content type works
  */
@@ -130,5 +131,9 @@ int_fast32_t short_circuit_hash_fail_test(void);
  * Test tagging of COSE message
  */
 int_fast32_t tags_test(void);
+
+
+int32_t get_size_test(void);
+
 
 #endif /* t_cose_test_h */

@@ -1347,3 +1347,97 @@ int_fast32_t tags_test()
 
     return 0;
 }
+
+
+int32_t get_size_test()
+{
+    struct t_cose_sign1_sign_ctx   sign_ctx;
+    QCBOREncodeContext             cbor_encode;
+    enum t_cose_err_t              return_value;
+    struct q_useful_buf            nil_buf;
+    size_t                         calculated_size;
+    QCBORError                     cbor_error;
+    struct q_useful_buf_c          actual_signed_cose;
+    Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
+    struct q_useful_buf_c          payload;
+
+    /* ---- Common Set up ---- */
+    payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
+
+    /* ---- First calculate the size ----- */
+    nil_buf = (struct q_useful_buf) {NULL, SIZE_MAX};
+    QCBOREncode_Init(&cbor_encode, nil_buf);
+
+    t_cose_sign1_sign_init(&sign_ctx,
+                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                           T_COSE_ALGORITHM_ES256);
+
+    return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(return_value) {
+        return 2000 + (int32_t)return_value;
+    }
+
+    QCBOREncode_AddEncoded(&cbor_encode, payload);
+
+    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(return_value) {
+        return 3000 + (int32_t)return_value;
+    }
+
+    cbor_error = QCBOREncode_FinishGetSize(&cbor_encode, &calculated_size);
+    if(cbor_error) {
+        return 4000 + (int32_t)cbor_error;
+    }
+
+    /* ---- General sanity check ---- */
+    size_t expected_min = 32 + payload.len + 64;
+
+    if(calculated_size < expected_min || calculated_size > expected_min + 30) {
+        return -1;
+    }
+
+
+
+    /* ---- Now make a real COSE_Sign1 and compare the size ---- */
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    t_cose_sign1_sign_init(&sign_ctx,
+                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                           T_COSE_ALGORITHM_ES256);
+
+    return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    if(return_value) {
+        return 2000 + (int32_t)return_value;
+    }
+
+    QCBOREncode_AddEncoded(&cbor_encode, payload);
+
+    return_value = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    if(return_value) {
+        return 3000 + (int32_t)return_value;
+    }
+
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &actual_signed_cose);
+    if(actual_signed_cose.len != calculated_size) {
+        return -2;
+    }
+
+    /* ---- Again with one-call API to make COSE_Sign1 ---- */\
+    t_cose_sign1_sign_init(&sign_ctx,
+                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                           T_COSE_ALGORITHM_ES256);
+    return_value = t_cose_sign1_sign(&sign_ctx,
+                                     payload,
+                                     signed_cose_buffer,
+                                     &actual_signed_cose);
+    if(return_value) {
+        return 7000 + (int32_t)return_value;
+    }
+
+    if(actual_signed_cose.len != calculated_size) {
+        return -3;
+    }
+
+
+    return 0;
+}
