@@ -1711,41 +1711,33 @@ Done:
 
 /*
  * @brief Ascending & Descending out of nesting levels (decode layer 2).
-
- This handles the traversal descending into and asecnding out of maps,
- arrays and bstr-wrapped CBOR. It figures out the ends of definite and
- indefinte length maps and arrays by looking at the item count or
- finding CBOR breaks.  It detects the ends of the top-level sequence
- and of bstr-wrapped CBOR by byte count.
-
- @retval QCBOR_ERR_UNSUPPORTED X
-
- @retval QCBOR_ERR_HIT_END
-
- @retval QCBOR_ERR_INT_OVERFLOW X
-
- @retval QCBOR_ERR_STRING_ALLOCATE
-
- @retval QCBOR_ERR_STRING_TOO_LONG
-
- @retval QCBOR_ERR_HALF_PRECISION_DISABLED X
-
- @retval QCBOR_ERR_BAD_TYPE_7 X
-
- @retval QCBOR_ERR_NO_STRING_ALLOCATOR
-
- @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
-
- @retval QCBOR_ERR_TOO_MANY_TAGS
-
- @retval QCBOR_ERR_MAP_LABEL_TYPE X
-
- @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG
-
- @retval QCBOR_ERR_NO_MORE_ITEMS
-
- @retval QCBOR_ERR_BAD_BREAK
-
+ *
+ * @param[in] pMe            Decoder context
+ * @param[out] pDecodedItem  The decoded item that work is done on.
+ *
+ * @retval QCBOR_ERR_UNSUPPORTED
+ * @retval QCBOR_ERR_HIT_END
+ * @retval QCBOR_ERR_INT_OVERFLOW
+ * @retval QCBOR_ERR_STRING_ALLOCATE
+ * @retval QCBOR_ERR_STRING_TOO_LONG
+ * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
+ * @retval QCBOR_ERR_BAD_TYPE_7
+ * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
+ * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
+ * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
+ * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED
+ * @retval QCBOR_ERR_TOO_MANY_TAGS
+ * @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG
+ * @retval QCBOR_ERR_MAP_LABEL_TYPE
+ * @retval QCBOR_ERR_NO_MORE_ITEMS
+ * @retval QCBOR_ERR_BAD_BREAK
+ * @retval QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP
+ *
+ * This handles the traversal descending into and asecnding out of
+ * maps, arrays and bstr-wrapped CBOR. It figures out the ends of
+ * definite and indefinte-length maps and arrays by looking at the
+ * item count or finding CBOR breaks.  It detects the ends of the
+ * top-level sequence and of bstr-wrapped CBOR by byte count.
  */
 static QCBORError
 QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
@@ -1753,24 +1745,22 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    QCBORError uReturn;
    /* ==== First: figure out if at the end of a traversal ==== */
 
-   /*
-    If out of bytes to consume, it is either the end of the top-level
-    sequence of some bstr-wrapped CBOR that was entered.
-
-    In the case of bstr-wrapped CBOR, the length of the UsefulInputBuf
-    was set to that of the bstr-wrapped CBOR. When the bstr-wrapped
-    CBOR is exited, the length is set back to the top-level's length
-    or to the next highest bstr-wrapped CBOR.
+   /* If out of bytes to consume, it is either the end of the
+    * top-level sequence of some bstr-wrapped CBOR that was entered.
+    *
+    * In the case of bstr-wrapped CBOR, the length of the
+    * UsefulInputBuf was set to that of the bstr-wrapped CBOR. When
+    * the bstr-wrapped CBOR is exited, the length is set back to the
+    * top-level's length or to the next highest bstr-wrapped CBOR.
    */
    if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf)) == 0) {
       uReturn = QCBOR_ERR_NO_MORE_ITEMS;
       goto Done;
    }
 
-   /*
-    Check to see if at the end of a bounded definite length map or
-    array. The check for a break ending indefinite length array is
-    later in NestLevelAscender().
+   /* Check to see if at the end of a bounded definite length map or
+    * array. The check for a break ending indefinite length array is
+    * later in NestLevelAscender().
     */
    if(DecodeNesting_IsAtEndOfBoundedLevel(&(me->nesting))) {
       uReturn = QCBOR_ERR_NO_MORE_ITEMS;
@@ -1784,43 +1774,41 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       goto Done;
    }
 
-   /*
-    Breaks ending arrays/maps are processed later in the call to
-    NestLevelAscender(). They should never show up here.
+   /* Breaks ending arrays/maps are processed later in the call to
+    * NestLevelAscender(). They should never show up here.
     */
    if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
       uReturn = QCBOR_ERR_BAD_BREAK;
       goto Done;
    }
 
-   /*
-     Record the nesting level for this data item before processing any
-     of decrementing and descending.
+   /* Record the nesting level for this data item before processing
+    * any of decrementing and descending.
     */
    pDecodedItem->uNestingLevel = DecodeNesting_GetCurrentLevel(&(me->nesting));
 
 
    /* ==== Next: Process the item for descent, ascent, decrement... ==== */
    if(QCBORItem_IsMapOrArray(pDecodedItem)) {
-      /*
-       If the new item is a map or array, descend.
-
-       Empty indefinite length maps and arrays are descended into, but
-       then ascended out of in the next chunk of code.
-
-       Maps and arrays do count as items in the map/array that
-       encloses them so a decrement needs to be done for them too, but
-       that is done only when all the items in them have been
-       processed, not when they are opened with the exception of an
-       empty map or array.
+      /* If the new item is a map or array, descend.
+       *
+       * Empty indefinite length maps and arrays are descended into,
+       * but then ascended out of in the next chunk of code.
+       *
+       * Maps and arrays do count as items in the map/array that
+       * encloses them so a decrement needs to be done for them too,
+       * but that is done only when all the items in them have been
+       * processed, not when they are opened with the exception of an
+       * empty map or array.
        */
       QCBORError uDescendErr;
       uDescendErr = DecodeNesting_DescendMapOrArray(&(me->nesting),
                                                 pDecodedItem->uDataType,
                                                 pDecodedItem->val.uCount);
       if(uDescendErr != QCBOR_SUCCESS) {
-         /* This error is probably a traversal error and it
-          overrides the non-traversal error. */
+         /* This error is probably a traversal error and it overrides
+          * the non-traversal error.
+          */
          uReturn = uDescendErr;
          goto Done;
       }
@@ -1829,33 +1817,33 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    if(!QCBORItem_IsMapOrArray(pDecodedItem) ||
        QCBORItem_IsEmptyDefiniteLengthMapOrArray(pDecodedItem) ||
        QCBORItem_IsIndefiniteLengthMapOrArray(pDecodedItem)) {
-      /*
-       The following cases are handled here:
-         - A non-aggregate item like an integer or string
-         - An empty definite length map or array
-         - An indefinite length map or array that might be empty or might not.
-
-       NestLevelAscender() does the work of decrementing the count for an
-       definite length map/array and break detection for an indefinite
-       length map/array. If the end of the map/array was reached, then
-       it ascends nesting levels, possibly all the way to the top level.
+      /* The following cases are handled here:
+       *  - A non-aggregate item like an integer or string
+       *  - An empty definite length map or array
+       *  - An indefinite length map or array that might be empty or might not.
+       *
+       * NestLevelAscender() does the work of decrementing the count
+       * for an definite length map/array and break detection for an
+       * indefinite length map/array. If the end of the map/array was
+       * reached, then it ascends nesting levels, possibly all the way
+       * to the top level.
        */
       QCBORError uAscendErr;
       uAscendErr = NestLevelAscender(me, true);
       if(uAscendErr != QCBOR_SUCCESS) {
-         /* This error is probably a traversal error and it
-          overrides the non-traversal error. */
+         /* This error is probably a traversal error and it overrides
+          * the non-traversal error.
+          */
          uReturn = uAscendErr;
          goto Done;
       }
    }
 
    /* ==== Last: tell the caller the nest level of the next item ==== */
-   /*
-    Tell the caller what level is next. This tells them what
-    maps/arrays were closed out and makes it possible for them to
-    reconstruct the tree with just the information returned in
-    a QCBORItem.
+   /* Tell the caller what level is next. This tells them what
+    * maps/arrays were closed out and makes it possible for them to
+    * reconstruct the tree with just the information returned in a
+    * QCBORItem.
    */
    if(DecodeNesting_IsAtEndOfBoundedLevel(&(me->nesting))) {
       /* At end of a bounded map/array; uNextNestLevel 0 to indicate this */
@@ -1869,6 +1857,14 @@ Done:
 }
 
 
+/**
+ * @brief Shift 0th tag out of the tag list.
+ *
+ * pDecodedItem[in,out]  The data item to convert.
+ *
+ * The 0th tag is discarded. \ref CBOR_TAG_INVALID16 is
+ * shifted into empty slot at the end of the tag list.
+ */
 static inline void ShiftTags(QCBORItem *pDecodedItem)
 {
    for(int i = 0; i < QCBOR_MAX_TAGS_PER_ITEM-1; i++) {
@@ -1876,7 +1872,6 @@ static inline void ShiftTags(QCBORItem *pDecodedItem)
    }
    pDecodedItem->uTags[QCBOR_MAX_TAGS_PER_ITEM-1] = CBOR_TAG_INVALID16;
 }
-
 
 
 /**
