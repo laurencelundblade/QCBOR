@@ -605,45 +605,44 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
 
 
 /*
- Decoding items is done in 5 layered functions, one calling the
- next one down. If a layer has no work to do for a particular item
- it returns quickly.
-
- - QCBORDecode_GetNext, GetNextWithTags -- The top layer processes
- tagged data items, turning them into the local C representation.
- For the most simple it is just associating a QCBOR_TYPE with the data. For
- the complex ones that an aggregate of data items, there is some further
- decoding and a little bit of recursion.
-
- - QCBORDecode_GetNextMapOrArray - This manages the beginnings and
- ends of maps and arrays. It tracks descending into and ascending
- out of maps/arrays. It processes all breaks that terminate
- indefinite length maps and arrays.
-
- - GetNext_MapEntry -- This handles the combining of two
- items, the label and the data, that make up a map entry.
- It only does work on maps. It combines the label and data
- items into one labeled item.
-
- - GetNext_TaggedItem -- This decodes type 6 tagging. It turns the
- tags into bit flags associated with the data item. No actual decoding
- of the contents of the tagged item is performed here.
-
- - GetNext_FullItem -- This assembles the sub-items that make up
- an indefinte length string into one string item. It uses the
- string allocater to create contiguous space for the item. It
- processes all breaks that are part of indefinite length strings.
-
- - GetNext_Item -- This decodes the atomic data items in CBOR. Each
- atomic data item has a "major type", an integer "argument" and optionally
- some content. For text and byte strings, the content is the bytes
- that make up the string. These are the smallest data items that are
- considered to be well-formed.  The content may also be other data items in
- the case of aggregate types. They are not handled in this layer.
-
- Roughly this takes 300 bytes of stack for vars. Need to
- evaluate this more carefully and correctly.
-
+ * Decoding items is done in six layers, one calling the next one
+ * down. If a layer has no work to do for a particular item, it
+ * returns quickly.
+ *
+ * 1. QCBORDecode_GetNext, GetNextWithTags - The top layer processes
+ * tagged data items, turning them into the local C representation.
+ * For the most simple it is just associating a QCBOR_TYPE with the
+ * data. For the complex ones that an aggregate of data items, there
+ * is some further decoding and some limited recursion.
+ *
+ * 2. QCBORDecode_GetNextMapOrArray - This manages the beginnings and
+ * ends of maps and arrays. It tracks descending into and ascending
+ * out of maps/arrays. It processes breaks that terminate
+ * indefinite-length maps and arrays.
+ *
+ * 3. GetNext_MapEntry - This handles the combining of two items, the
+ * label and the data, that make up a map entry.  It only does work on
+ * maps. It combines the label and data items into one labeled item.
+ *
+ * 4. GetNext_TaggedItem - This decodes type 6 tag numbers. It turns
+ * the tag numbers into bit flags associated with the data item. No
+ * actual decoding of the contents of the tag is performed here.
+ *
+ * 5. GetNext_FullItem - This assembles the sub-items that make up an
+ * indefinite-length string into one string item. It uses the string
+ * allocator to create contiguous space for the item. It processes all
+ * breaks that are part of indefinite-length strings.
+ *
+ * 6. GetNext_Item - This decodes the atomic data items in CBOR. Each
+ * atomic data item has a "major type", an integer "argument" and
+ * optionally some content. For text and byte strings, the content is
+ * the bytes that make up the string. These are the smallest data
+ * items that are considered to be well-formed.  The content may also
+ * be other data items in the case of aggregate types. They are not
+ * handled in this layer.
+ *
+ * Roughly this takes 300 bytes of stack for vars. TODO: evaluate this
+ * more carefully and correctly.
  */
 
 
@@ -1047,7 +1046,7 @@ static inline uint8_t ConvertArrayOrMapType(int nCBORMajorType)
 
 
 /**
- * @brief Decode a single primitive data item.
+ * @brief Decode a single primitive data item (decode layer 6).
  *
  * @param[in] pUInBuf       Input buffer to read data item from.
  * @param[out] pDecodedItem  The filled-in decoded item.
@@ -1158,7 +1157,7 @@ Done:
 
 
 /**
- * @brief Process indefinite length strings
+ * @brief Process indefinite length strings (decode layer 5).
  *
  * @param[in] pMe   Decoder context
  * @param[out] pDecodedItem  The decoded item that work is done on.
@@ -1391,7 +1390,7 @@ UnMapTagNumber(const QCBORDecodeContext *pMe, uint16_t uMappedTagNumber)
 
 
 /**
- * @brief Aggregate all tags wrapping a data item.
+ * @brief Aggregate all tags wrapping a data item (decode layer 4).
  *
  * @param[in] pMe            Decoder context
  * @param[out] pDecodedItem  The decoded item that work is done on.
@@ -1473,7 +1472,7 @@ Done:
 
 
 /*
- * @brief Combine a map entry label and value into one item.
+ * @brief Combine a map entry label and value into one item (decode layer 3).
  *
  * @param[in] pMe            Decoder context
  * @param[out] pDecodedItem  The decoded item that work is done on.
@@ -1711,6 +1710,8 @@ Done:
 
 
 /*
+ * @brief Ascending & Descending out of nesting levels (decode layer 2).
+
  This handles the traversal descending into and asecnding out of maps,
  arrays and bstr-wrapped CBOR. It figures out the ends of definite and
  indefinte length maps and arrays by looking at the item count or
@@ -1980,10 +1981,10 @@ Done:
 
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
-/*
+/**
  * @brief Decode decimal fractions and big floats.
  *
- * @param[in]                   The decode context.
+ * @param[in] pMe               The decode context.
  * @param[in,out] pDecodedItem  On input the array data item that
  *                              holds the mantissa and exponent.  On
  *                              output the decoded mantissa and
@@ -2000,7 +2001,7 @@ Done:
  * result back into pDecodedItem.
  */
 static inline QCBORError
-QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+QCBORDecode_MantissaAndExponent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    QCBORError uReturn;
 
@@ -2018,12 +2019,12 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    const int nNestLevel = pDecodedItem->uNestingLevel + 1;
 
    /* --- Which is it, ecimal fraction or a bigfloat? --- */
-   const bool bIsTaggedDecimalFraction = QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION);
+   const bool bIsTaggedDecimalFraction = QCBORDecode_IsTagged(pMe, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION);
    pDecodedItem->uDataType = bIsTaggedDecimalFraction ? QCBOR_TYPE_DECIMAL_FRACTION : QCBOR_TYPE_BIGFLOAT;
 
    /* --- Get the exponent --- */
    QCBORItem exponentItem;
-   uReturn = QCBORDecode_GetNextMapOrArray(me, &exponentItem);
+   uReturn = QCBORDecode_GetNextMapOrArray(pMe, &exponentItem);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -2048,7 +2049,7 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 
    /* --- Get the mantissa --- */
    QCBORItem mantissaItem;
-   uReturn = QCBORDecode_GetNextWithTags(me, &mantissaItem, NULL);
+   uReturn = QCBORDecode_GetNextWithTags(pMe, &mantissaItem, NULL);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -2093,6 +2094,15 @@ Done:
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
+/**
+ * @brief Decode the MIME type tag
+ *
+ * @param[in,out] pDecodedItem   The item to decode.
+ *
+ *  Handle the text and binary MIME type tags. Slightly too complicated
+ *  f or ProcessTaggedString() because the RFC 7049 MIME type was
+ *  incorreclty text-only.
+ */
 static inline QCBORError DecodeMIME(QCBORItem *pDecodedItem)
 {
    if(pDecodedItem->uDataType == QCBOR_TYPE_TEXT_STRING) {
@@ -2108,7 +2118,7 @@ static inline QCBORError DecodeMIME(QCBORItem *pDecodedItem)
 }
 
 
-/*
+/**
  * Table of CBOR tags whose content is either a text string or a byte
  * string. The table maps the CBOR tag to the QCBOR type. The high-bit
  * of uQCBORtype indicates the content should be a byte string rather
@@ -2137,7 +2147,16 @@ static const struct StringTagMapEntry StringTagMap[] = {
 };
 
 
-/*
+/**
+ * @brief Process standard CBOR tags whose content is a string
+ *
+ * @param[in] uTag              The tag.
+ * @param[in,out] pDecodedItem  The data item.
+ *
+ * @returns  This returns QCBOR_SUCCESS if the tag was procssed,
+ *           \ref QCBOR_ERR_UNSUPPORTED if the tag was not processed and
+ *           \ref QCBOR_ERR_BAD_OPT_TAG if the content type was wrong for the tag.
+ *
  * Process the CBOR tags that whose content is a byte string or a text
  * string and for which the string is just passed on to the caller.
  *
@@ -2145,13 +2164,9 @@ static const struct StringTagMapEntry StringTagMap[] = {
  * type.  Nothing more. It may not be the most important
  * functionality, but it part of implementing as much of RFC 8949 as
  * possible.
- *
- * This returns QCBOR_SUCCESS if the tag was procssed,
- * QCBOR_ERR_UNSUPPORTED if the tag was not processed and
- * QCBOR_ERR_BAD_OPT_TAG if the content type was wrong for the tag.
  */
-static inline
-QCBORError ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
+static inline QCBORError
+ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
 {
    /* This only works on tags that were not mapped; no need for other yet */
    if(uTag > QCBOR_LAST_UNMAPPED_TAG) {
@@ -2185,18 +2200,25 @@ QCBORError ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
 }
 
 
-/*
+/**
+ * @brief Decode tag content for select tags (decoding layer 1).
+ *
+ * @param[in] pMe            The decode context.
+ * @param[out] pDecodedItem  The decoded item.
+ *
+ * @return Decoding error code.
+ *
  * CBOR tag numbers for the item were decoded in GetNext_TaggedItem(),
  * but the whole tag was not decoded. Here, the whole tags (tag number
  * and tag content) that are supported by QCBOR are decoded. This is a
  * quick pass through for items that are not tags.
  */
 static QCBORError
-QCBORDecode_GetNextTag(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+QCBORDecode_GetNextTag(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    QCBORError uReturn;
 
-   uReturn = QCBORDecode_GetNextMapOrArray(me, pDecodedItem);
+   uReturn = QCBORDecode_GetNextMapOrArray(pMe, pDecodedItem);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -2226,7 +2248,7 @@ QCBORDecode_GetNextTag(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
       } else if(uTagToProcess == CBOR_TAG_DECIMAL_FRACTION ||
                 uTagToProcess == CBOR_TAG_BIGFLOAT) {
-         uReturn = QCBORDecode_MantissaAndExponent(me, pDecodedItem);
+         uReturn = QCBORDecode_MantissaAndExponent(pMe, pDecodedItem);
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
       } else if(uTagToProcess == CBOR_TAG_MIME ||
@@ -2264,7 +2286,7 @@ Done:
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h file
+ * Public function, see header qcbor/qcbor_decode.h file
  */
 QCBORError
 QCBORDecode_GetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
@@ -2280,7 +2302,7 @@ QCBORDecode_GetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h file
+ * Public function, see header qcbor/qcbor_decode.h file
  */
 QCBORError
 QCBORDecode_PeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
@@ -2298,7 +2320,7 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h file
+ * Public function, see header qcbor/qcbor_decode.h file
  */
 void QCBORDecode_VGetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
@@ -2311,24 +2333,23 @@ void QCBORDecode_VGetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h file
+ * Public function, see header qcbor/qcbor_decode.h file
  */
 QCBORError
-QCBORDecode_GetNextWithTags(QCBORDecodeContext *me,
-                            QCBORItem *pDecodedItem,
-                            QCBORTagListOut *pTags)
+QCBORDecode_GetNextWithTags(QCBORDecodeContext *pMe,
+                            QCBORItem          *pDecodedItem,
+                            QCBORTagListOut    *pTags)
 {
-   QCBORError nReturn;
+   QCBORError uReturn;
 
-   nReturn = QCBORDecode_GetNext(me, pDecodedItem);
-   if(nReturn != QCBOR_SUCCESS) {
-      return nReturn;
+   uReturn = QCBORDecode_GetNext(pMe, pDecodedItem);
+   if(uReturn != QCBOR_SUCCESS) {
+      return uReturn;
    }
 
    if(pTags != NULL) {
       pTags->uNumUsed = 0;
-      // Reverse the order because pTags is reverse of
-      // QCBORItem.uTags.
+      /* Reverse the order because pTags is reverse of QCBORItem.uTags. */
       for(int nTagIndex = QCBOR_MAX_TAGS_PER_ITEM-1; nTagIndex >=0; nTagIndex--) {
          if(pDecodedItem->uTags[nTagIndex] == CBOR_TAG_INVALID16) {
             continue;
@@ -2336,7 +2357,7 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *me,
          if(pTags->uNumUsed >= pTags->uNumAllocated) {
             return QCBOR_ERR_TOO_MANY_TAGS;
          }
-         pTags->puTags[pTags->uNumUsed] = UnMapTagNumber(me,pDecodedItem->uTags[nTagIndex]);
+         pTags->puTags[pTags->uNumUsed] = UnMapTagNumber(pMe,pDecodedItem->uTags[nTagIndex]);
          pTags->uNumUsed++;
       }
    }
@@ -2345,19 +2366,18 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *me,
 }
 
 
-
 /*
  Public function, see header qcbor/qcbor_decode.h file
  */
-bool QCBORDecode_IsTagged(QCBORDecodeContext *me,
+bool QCBORDecode_IsTagged(QCBORDecodeContext *pMe,
                           const QCBORItem   *pItem,
                           uint64_t           uTag)
 {
-   for(unsigned uTagIndex = 0; uTagIndex < QCBOR_MAX_TAGS_PER_ITEM; uTagIndex++) {
+   for(int uTagIndex = 0; uTagIndex < QCBOR_MAX_TAGS_PER_ITEM; uTagIndex++) {
       if(pItem->uTags[uTagIndex] == CBOR_TAG_INVALID16) {
          break;
       }
-      if(UnMapTagNumber(me, pItem->uTags[uTagIndex]) == uTag) {
+      if(UnMapTagNumber(pMe, pItem->uTags[uTagIndex]) == uTag) {
          return true;
       }
    }
@@ -2367,32 +2387,33 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *me,
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h file
+ * Public function, see header qcbor/qcbor_decode.h file
  */
-QCBORError QCBORDecode_Finish(QCBORDecodeContext *me)
+QCBORError QCBORDecode_Finish(QCBORDecodeContext *pMe)
 {
-   QCBORError uReturn = me->uLastError;
+   QCBORError uReturn = pMe->uLastError;
 
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
 
-   // Error out if all the maps/arrays are not closed out
-   if(!DecodeNesting_IsCurrentAtTop(&(me->nesting))) {
+   /* Error out if all the maps/arrays are not closed out */
+   if(!DecodeNesting_IsCurrentAtTop(&(pMe->nesting))) {
       uReturn = QCBOR_ERR_ARRAY_OR_MAP_UNCONSUMED;
       goto Done;
    }
 
-   // Error out if not all the bytes are consumed
-   if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf))) {
+   /* Error out if not all the bytes are consumed */
+   if(UsefulInputBuf_BytesUnconsumed(&(pMe->InBuf))) {
       uReturn = QCBOR_ERR_EXTRA_BYTES;
    }
 
 Done:
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-   // Call the destructor for the string allocator if there is one.
-   // Always called, even if there are errors; always have to clean up
-   StringAllocator_Destruct(&(me->StringAllocator));
+   /* Call the destructor for the string allocator if there is one.
+    * Always called, even if there are errors; always have to clean up.
+    */
+   StringAllocator_Destruct(&(pMe->StringAllocator));
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
    return uReturn;
@@ -2400,8 +2421,8 @@ Done:
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h file
-*/
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
 // Improvement: make these inline?
 uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
                                const QCBORItem    *pItem,
@@ -2417,9 +2438,10 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
    }
 }
 
+
 /*
- Public function, see header qcbor/qcbor_decode.h file
-*/
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
 uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe,
                                      uint32_t                  uIndex)
 {
@@ -2433,36 +2455,6 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe,
    }
 }
 
-/*
-
-Decoder errors handled in this file
-
- - Hit end of input before it was expected while decoding type and
-   number QCBOR_ERR_HIT_END
-
- - negative integer that is too large for C QCBOR_ERR_INT_OVERFLOW
-
- - Hit end of input while decoding a text or byte string
-   QCBOR_ERR_HIT_END
-
- - Encountered conflicting tags -- e.g., an item is tagged both a date
-   string and an epoch date QCBOR_ERR_UNSUPPORTED
-
- - Encontered an array or mapp that has too many items
-   QCBOR_ERR_ARRAY_DECODE_TOO_LONG
-
- - Encountered array/map nesting that is too deep
-   QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP
-
- - An epoch date > INT64_MAX or < INT64_MIN was encountered
-   QCBOR_ERR_DATE_OVERFLOW
-
- - The type of a map label is not a string or int
-   QCBOR_ERR_MAP_LABEL_TYPE
-
- - Hit end with arrays or maps still open -- QCBOR_ERR_EXTRA_BYTES
-
- */
 
 
 
