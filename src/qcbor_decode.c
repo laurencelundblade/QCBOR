@@ -609,37 +609,40 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  * down. If a layer has no work to do for a particular item, it
  * returns quickly.
  *
- * 1. QCBORDecode_GetNext, GetNextWithTags - The top layer processes
- * tagged data items, turning them into the local C representation.
- * For the most simple it is just associating a QCBOR_TYPE with the
- * data. For the complex ones that an aggregate of data items, there
- * is some further decoding and some limited recursion.
+ * 1. QCBORDecode_GetNextTagContent - The top layer processes tagged
+ * data items, turning them into the local C representation.  For the
+ * most simple it is just associating a QCBOR_TYPE with the data. For
+ * the complex ones that an aggregate of data items, there is some
+ * further decoding and some limited recursion.
  *
  * 2. QCBORDecode_GetNextMapOrArray - This manages the beginnings and
  * ends of maps and arrays. It tracks descending into and ascending
  * out of maps/arrays. It processes breaks that terminate
  * indefinite-length maps and arrays.
  *
- * 3. GetNext_MapEntry - This handles the combining of two items, the
- * label and the data, that make up a map entry.  It only does work on
- * maps. It combines the label and data items into one labeled item.
+ * 3. QCBORDecode_GetNextMapEntry - This handles the combining of two
+ * items, the label and the data, that make up a map entry.  It only
+ * does work on maps. It combines the label and data items into one
+ * labeled item.
  *
- * 4. GetNext_TaggedItem - This decodes type 6 tag numbers. It turns
- * the tag numbers into bit flags associated with the data item. No
- * actual decoding of the contents of the tag is performed here.
+ * 4. QCBORDecode_GetNextTagNumber - This decodes type 6 tag
+ * numbers. It turns the tag numbers into bit flags associated with
+ * the data item. No actual decoding of the contents of the tag is
+ * performed here.
  *
- * 5. GetNext_FullItem - This assembles the sub-items that make up an
- * indefinite-length string into one string item. It uses the string
- * allocator to create contiguous space for the item. It processes all
- * breaks that are part of indefinite-length strings.
+ * 5. QCBORDecode_GetNextFullString - This assembles the sub-items
+ * that make up an indefinite-length string into one string item. It
+ * uses the string allocator to create contiguous space for the
+ * item. It processes all breaks that are part of indefinite-length
+ * strings.
  *
- * 6. GetNext_Item - This decodes the atomic data items in CBOR. Each
- * atomic data item has a "major type", an integer "argument" and
- * optionally some content. For text and byte strings, the content is
- * the bytes that make up the string. These are the smallest data
- * items that are considered to be well-formed.  The content may also
- * be other data items in the case of aggregate types. They are not
- * handled in this layer.
+ * 6. DecodeAtomicDataItem - This decodes the atomic data items in
+ * CBOR. Each atomic data item has a "major type", an integer
+ * "argument" and optionally some content. For text and byte strings,
+ * the content is the bytes that make up the string. These are the
+ * smallest data items that are considered to be well-formed.  The
+ * content may also be other data items in the case of aggregate
+ * types. They are not handled in this layer.
  *
  * Roughly this takes 300 bytes of stack for vars. TODO: evaluate this
  * more carefully and correctly.
@@ -654,8 +657,8 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  * @param[out] puArgument        The decoded argument.
  * @param[out] pnAdditionalInfo  The decoded Lower 5 bits of initial byte.
  *
- *  @retval QCBOR_ERR_UNSUPPORTED
- *  @retval QCBOR_ERR_HIT_END
+ * @retval QCBOR_ERR_UNSUPPORTED
+ * @retval QCBOR_ERR_HIT_END
  *
  * This decodes the CBOR "head" that every CBOR data item has. See
  * longer explaination of the head in documentation for
@@ -1064,9 +1067,10 @@ static inline uint8_t ConvertArrayOrMapType(int nCBORMajorType)
  * This decodes the most primitive / atomic data item. It does
  * no combing of data items.
  */
-static QCBORError GetNext_Item(UsefulInputBuf               *pUInBuf,
-                               QCBORItem                    *pDecodedItem,
-                               const QCBORInternalAllocator *pAllocator)
+static QCBORError
+DecodeAtomicDataItem(UsefulInputBuf               *pUInBuf,
+                     QCBORItem                    *pDecodedItem,
+                     const QCBORInternalAllocator *pAllocator)
 {
    QCBORError uReturn;
 
@@ -1184,7 +1188,7 @@ Done:
  * Code Reviewers: THIS FUNCTION DOES A LITTLE POINTER MATH
  */
 static inline QCBORError
-GetNext_FullItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
+QCBORDecode_GetNextFullString(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    /* Aproximate stack usage
     *                                             64-bit      32-bit
@@ -1196,7 +1200,7 @@ GetNext_FullItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 
    /* The string allocator is used here for two purposes: 1)
     * coalescing the chunks of an indefinite length string, 2)
-    * allocating storage for every string returned.
+    * allocating storage for every string returned when requested.
     *
     * The first use is below in this function. Indefinite length
     * strings cannot be processed at all without a string allocator.
@@ -1225,7 +1229,7 @@ GetNext_FullItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
    QCBORError uReturn;
-   uReturn = GetNext_Item(&(pMe->InBuf), pDecodedItem, pAllocatorForGetNext);
+   uReturn = DecodeAtomicDataItem(&(pMe->InBuf), pDecodedItem, pAllocatorForGetNext);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -1259,7 +1263,7 @@ GetNext_FullItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
        * be allocated. They are always copied in the the contiguous
        * buffer allocated here.
        */
-      uReturn = GetNext_Item(&(pMe->InBuf), &StringChunkItem, NULL);
+      uReturn = DecodeAtomicDataItem(&(pMe->InBuf), &StringChunkItem, NULL);
       if(uReturn) {
          break;
       }
@@ -1335,7 +1339,7 @@ static inline QCBORError
 MapTagNumber(QCBORDecodeContext *pMe, uint64_t uUnMappedTag, uint16_t *puMappedTagNumer)
 {
    if(uUnMappedTag > QCBOR_LAST_UNMAPPED_TAG) {
-      int uTagMapIndex;
+      unsigned uTagMapIndex;
       /* Is there room in the tag map, or is it in it already? */
       for(uTagMapIndex = 0; uTagMapIndex < QCBOR_NUM_MAPPED_TAGS; uTagMapIndex++) {
          if(pMe->auMappedTags[uTagMapIndex] == CBOR_TAG_INVALID64) {
@@ -1413,7 +1417,7 @@ UnMapTagNumber(const QCBORDecodeContext *pMe, uint16_t uMappedTagNumber)
  * item are not tag numbers.
  */
 static QCBORError
-GetNext_TaggedItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
+QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    uint16_t auItemsTags[QCBOR_MAX_TAGS_PER_ITEM];
 
@@ -1428,7 +1432,7 @@ GetNext_TaggedItem(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 
    /* Loop fetching data items until the item fetched is not a tag */
    for(;;) {
-      QCBORError uErr = GetNext_FullItem(pMe, pDecodedItem);
+      QCBORError uErr = QCBORDecode_GetNextFullString(pMe, pDecodedItem);
       if(uErr != QCBOR_SUCCESS) {
          uReturn = uErr;
          goto Done;
@@ -1471,7 +1475,7 @@ Done:
 }
 
 
-/*
+/**
  * @brief Combine a map entry label and value into one item (decode layer 3).
  *
  * @param[in] pMe            Decoder context
@@ -1504,9 +1508,9 @@ Done:
  * own label processing.
  */
 static inline QCBORError
-GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+QCBORDecode_GetNextMapEntry(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
-   QCBORError uReturn = GetNext_TaggedItem(me, pDecodedItem);
+   QCBORError uReturn = QCBORDecode_GetNextTagNumber(pMe, pDecodedItem);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -1516,15 +1520,15 @@ GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
       goto Done;
    }
 
-   if(me->uDecodeMode != QCBOR_DECODE_MODE_MAP_AS_ARRAY) {
+   if(pMe->uDecodeMode != QCBOR_DECODE_MODE_MAP_AS_ARRAY) {
       /* Normal decoding of maps -- combine label and value into one item. */
 
-      if(DecodeNesting_IsCurrentTypeMap(&(me->nesting))) {
+      if(DecodeNesting_IsCurrentTypeMap(&(pMe->nesting))) {
          /* Save label in pDecodedItem and get the next which will
           * be the real data item.
           */
          QCBORItem LabelItem = *pDecodedItem;
-         uReturn = GetNext_TaggedItem(me, pDecodedItem);
+         uReturn = QCBORDecode_GetNextTagNumber(pMe, pDecodedItem);
          if(QCBORDecode_IsUnrecoverableError(uReturn)) {
             goto Done;
          }
@@ -1535,7 +1539,7 @@ GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
             /* strings are always good labels */
             pDecodedItem->label.string = LabelItem.val.string;
             pDecodedItem->uLabelType = QCBOR_TYPE_TEXT_STRING;
-         } else if (QCBOR_DECODE_MODE_MAP_STRINGS_ONLY == me->uDecodeMode) {
+         } else if (QCBOR_DECODE_MODE_MAP_STRINGS_ONLY == pMe->uDecodeMode) {
             /* It's not a string and we only want strings */
             uReturn = QCBOR_ERR_MAP_LABEL_TYPE;
             goto Done;
@@ -1600,7 +1604,7 @@ NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
    if(UsefulInputBuf_BytesUnconsumed(pUIB) != 0) {
       QCBORItem Peek;
       size_t uPeek = UsefulInputBuf_Tell(pUIB);
-      QCBORError uReturn = GetNext_Item(pUIB, &Peek, NULL);
+      QCBORError uReturn = DecodeAtomicDataItem(pUIB, &Peek, NULL);
       if(uReturn != QCBOR_SUCCESS) {
          return uReturn;
       }
@@ -1617,7 +1621,7 @@ NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
-/*
+/**
  * @brief Ascend up nesting levels if all items in them have been consumed.
  *
  * @param[in] pMe       The decode context.
@@ -1627,7 +1631,8 @@ NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
  * end of an array/map map that can be closed out. That
  * may in turn close out the above array/map...
 */
-static QCBORError NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
+static QCBORError
+QCBORDecode_NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
 {
    QCBORError uReturn;
 
@@ -1709,7 +1714,7 @@ Done:
 }
 
 
-/*
+/**
  * @brief Ascending & Descending out of nesting levels (decode layer 2).
  *
  * @param[in] pMe            Decoder context
@@ -1740,7 +1745,7 @@ Done:
  * top-level sequence and of bstr-wrapped CBOR by byte count.
  */
 static QCBORError
-QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
+QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    QCBORError uReturn;
    /* ==== First: figure out if at the end of a traversal ==== */
@@ -1753,29 +1758,29 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
     * the bstr-wrapped CBOR is exited, the length is set back to the
     * top-level's length or to the next highest bstr-wrapped CBOR.
    */
-   if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf)) == 0) {
+   if(UsefulInputBuf_BytesUnconsumed(&(pMe->InBuf)) == 0) {
       uReturn = QCBOR_ERR_NO_MORE_ITEMS;
       goto Done;
    }
 
    /* Check to see if at the end of a bounded definite length map or
     * array. The check for a break ending indefinite length array is
-    * later in NestLevelAscender().
+    * later in QCBORDecode_NestLevelAscender().
     */
-   if(DecodeNesting_IsAtEndOfBoundedLevel(&(me->nesting))) {
+   if(DecodeNesting_IsAtEndOfBoundedLevel(&(pMe->nesting))) {
       uReturn = QCBOR_ERR_NO_MORE_ITEMS;
       goto Done;
    }
 
    /* ==== Next: not at the end, so get another item ==== */
-   uReturn = GetNext_MapEntry(me, pDecodedItem);
+   uReturn = QCBORDecode_GetNextMapEntry(pMe, pDecodedItem);
    if(QCBORDecode_IsUnrecoverableError(uReturn)) {
       /* Error is so bad that traversal is not possible. */
       goto Done;
    }
 
    /* Breaks ending arrays/maps are processed later in the call to
-    * NestLevelAscender(). They should never show up here.
+    * QCBORDecode_NestLevelAscender(). They should never show up here.
     */
    if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
       uReturn = QCBOR_ERR_BAD_BREAK;
@@ -1785,7 +1790,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
    /* Record the nesting level for this data item before processing
     * any of decrementing and descending.
     */
-   pDecodedItem->uNestingLevel = DecodeNesting_GetCurrentLevel(&(me->nesting));
+   pDecodedItem->uNestingLevel = DecodeNesting_GetCurrentLevel(&(pMe->nesting));
 
 
    /* ==== Next: Process the item for descent, ascent, decrement... ==== */
@@ -1802,7 +1807,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
        * empty map or array.
        */
       QCBORError uDescendErr;
-      uDescendErr = DecodeNesting_DescendMapOrArray(&(me->nesting),
+      uDescendErr = DecodeNesting_DescendMapOrArray(&(pMe->nesting),
                                                 pDecodedItem->uDataType,
                                                 pDecodedItem->val.uCount);
       if(uDescendErr != QCBOR_SUCCESS) {
@@ -1822,14 +1827,14 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
        *  - An empty definite length map or array
        *  - An indefinite length map or array that might be empty or might not.
        *
-       * NestLevelAscender() does the work of decrementing the count
+       * QCBORDecode_NestLevelAscender() does the work of decrementing the count
        * for an definite length map/array and break detection for an
        * indefinite length map/array. If the end of the map/array was
        * reached, then it ascends nesting levels, possibly all the way
        * to the top level.
        */
       QCBORError uAscendErr;
-      uAscendErr = NestLevelAscender(me, true);
+      uAscendErr = QCBORDecode_NestLevelAscender(pMe, true);
       if(uAscendErr != QCBOR_SUCCESS) {
          /* This error is probably a traversal error and it overrides
           * the non-traversal error.
@@ -1845,11 +1850,11 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
     * reconstruct the tree with just the information returned in a
     * QCBORItem.
    */
-   if(DecodeNesting_IsAtEndOfBoundedLevel(&(me->nesting))) {
+   if(DecodeNesting_IsAtEndOfBoundedLevel(&(pMe->nesting))) {
       /* At end of a bounded map/array; uNextNestLevel 0 to indicate this */
       pDecodedItem->uNextNestLevel = 0;
    } else {
-      pDecodedItem->uNextNestLevel = DecodeNesting_GetCurrentLevel(&(me->nesting));
+      pDecodedItem->uNextNestLevel = DecodeNesting_GetCurrentLevel(&(pMe->nesting));
    }
 
 Done:
@@ -2106,7 +2111,6 @@ static inline QCBORError DecodeMIME(QCBORItem *pDecodedItem)
       pDecodedItem->uDataType = QCBOR_TYPE_BINARY_MIME;
    } else {
       return QCBOR_ERR_BAD_OPT_TAG;
-
    }
 
    return QCBOR_SUCCESS;
@@ -2209,7 +2213,7 @@ ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
  * quick pass through for items that are not tags.
  */
 static QCBORError
-QCBORDecode_GetNextTag(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
+QCBORDecode_GetNextTagContent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    QCBORError uReturn;
 
@@ -2287,7 +2291,7 @@ QCBORError
 QCBORDecode_GetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    QCBORError uErr;
-   uErr = QCBORDecode_GetNextTag(pMe, pDecodedItem);
+   uErr = QCBORDecode_GetNextTagContent(pMe, pDecodedItem);
    if(uErr != QCBOR_SUCCESS) {
       pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
       pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
@@ -2362,13 +2366,13 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pMe,
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h file
+ * Public function, see header qcbor/qcbor_decode.h file
  */
 bool QCBORDecode_IsTagged(QCBORDecodeContext *pMe,
                           const QCBORItem   *pItem,
                           uint64_t           uTag)
 {
-   for(int uTagIndex = 0; uTagIndex < QCBOR_MAX_TAGS_PER_ITEM; uTagIndex++) {
+   for(unsigned uTagIndex = 0; uTagIndex < QCBOR_MAX_TAGS_PER_ITEM; uTagIndex++) {
       if(pItem->uTags[uTagIndex] == CBOR_TAG_INVALID16) {
          break;
       }
@@ -2837,7 +2841,7 @@ MapSearch(QCBORDecodeContext *pMe,
 
       /* Get the item */
       QCBORItem Item;
-      QCBORError uResult = QCBORDecode_GetNextTag(pMe, &Item);
+      QCBORError uResult = QCBORDecode_GetNextTagContent(pMe, &Item);
       if(QCBORDecode_IsUnrecoverableError(uResult)) {
          /* Unrecoverable error so map can't even be decoded. */
          uReturn = uResult;
@@ -3355,7 +3359,7 @@ ExitBoundedLevel(QCBORDecodeContext *pMe, uint32_t uEndOffset)
     reached.  It may do nothing, or ascend all the way to the top
     level.
     */
-   uErr = NestLevelAscender(pMe, false);
+   uErr = QCBORDecode_NestLevelAscender(pMe, false);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -3446,7 +3450,7 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
 
    if(DecodeNesting_IsCurrentDefiniteLength(&(pMe->nesting))) {
       // Reverse the decrement done by GetNext() for the bstr so the
-      // increment in NestLevelAscender() called by ExitBoundedLevel()
+      // increment in QCBORDecode_NestLevelAscender() called by ExitBoundedLevel()
       // will work right.
       DecodeNesting_ReverseDecrement(&(pMe->nesting));
    }
