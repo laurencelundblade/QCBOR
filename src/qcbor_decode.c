@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1878,9 +1878,22 @@ static inline void ShiftTags(QCBORItem *pDecodedItem)
 
 
 
-/*
- The epoch formatted date. Turns lots of different forms of encoding
- date into uniform one
+/**
+ * @brief Convert different epoch date formats in to the QCBOR epoch date format
+ *
+ * pDecodedItem[in,out]  The data item to convert.
+ *
+ * @retval QCBOR_ERR_DATE_OVERFLOW
+ * @retval QCBOR_ERR_FLOAT_DATE_DISABLED
+ * @retval QCBOR_ERR_BAD_TAG_CONTENT
+ *
+ * The epoch date tag defined in QCBOR allows for floating-point
+ * dates. It even allows a protocol to flop between date formats when
+ * ever it wants.  Floating-point dates aren't that useful as they are
+ * only needed for dates beyond the age of the earth.
+ *
+ * This converts all the date formats into one format of an unsigned
+ * integer plus a floating-point fraction.
  */
 static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
 {
@@ -1895,8 +1908,9 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
          break;
 
       case QCBOR_TYPE_UINT64:
-         // This only happens for CBOR type 0 > INT64_MAX so it is
-         // always an overflow.
+         /* This only happens for CBOR type 0 > INT64_MAX so it is
+          * always an overflow.
+          */
          uReturn = QCBOR_ERR_DATE_OVERFLOW;
          goto Done;
          break;
@@ -1905,42 +1919,47 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
       case QCBOR_TYPE_FLOAT:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
       {
-         // This comparison needs to be done as a float before
-         // conversion to an int64_t to be able to detect doubles that
-         // are too large to fit into an int64_t.  A double has 52
-         // bits of preceision. An int64_t has 63. Casting INT64_MAX
-         // to a double actually causes a round up which is bad and
-         // wrong for the comparison because it will allow conversion
-         // of doubles that can't fit into a uint64_t.  To remedy this
-         // INT64_MAX - 0x7ff is used as the cutoff point because if
-         // that value rounds up in conversion to double it will still
-         // be less than INT64_MAX. 0x7ff is picked because it has 11
-         // bits set.
-         //
-         // INT64_MAX seconds is on the order of 10 billion years, and
-         // the earth is less than 5 billion years old, so for most
-         // uses this conversion error won't occur even though doubles
-         // can go much larger.
-         //
-         // Without the 0x7ff there is a ~30 minute range of time
-         // values 10 billion years in the past and in the future
-         // where this code would go wrong. Some compilers
-         // will generate warnings or errors without the 0x7ff
-         // because of the precision issue.
+         /* Convert working value to double if input was a float */
          const double d = pDecodedItem->uDataType == QCBOR_TYPE_DOUBLE ?
-                            pDecodedItem->val.dfnum :
-                            (double)pDecodedItem->val.fnum;
-         if(isnan(d) ||
-            d > (double)(INT64_MAX - 0x7ff) ||
-            d < (double)(INT64_MIN + 0x7ff)) {
+                   pDecodedItem->val.dfnum :
+                   (double)pDecodedItem->val.fnum;
+
+         /* The conversion from float to integer requires overflow
+          * detection since floats can be much larger than integers.
+          * This implementation errors out on these large float values
+          * since they are beyond the age of the earth.
+          *
+          * These constants for the overflow check are computed by the
+          * compiler. They are not computed at run time.
+          *
+          * The factor of 0x7ff is added/subtracted to avoid a
+          * rounding error in the wrong direction when the compiler
+          * computes these constants. There is rounding because an
+          * 64-bit integer has 63 bits of precision where a double
+          * only has 53 bits. Without the 0x7ff factor, the compiler
+          * may round up and produce a double for the bounds check
+          * that is larger than can be stored in a 64-bit integer. The
+          * amoutn of 0x7ff is picked because it has 11 bits set.
+          *
+          * Without the 0x7ff there is a ~30 minute range of time
+          * values 10 billion years in the past and in the future
+          * where this code could go wrong. Some compilers correctly
+          * generate a warning or error without the 0x7ff.
+          */
+         const double dDateMax = (double)(INT64_MAX - 0x7ff);
+         const double dDateMin = (double)(INT64_MIN + 0x7ff);
+
+         if(isnan(d) || d > dDateMax || d < dDateMin) {
             uReturn = QCBOR_ERR_DATE_OVERFLOW;
             goto Done;
          }
+
+         /* The actual conversion */
          pDecodedItem->val.epochDate.nSeconds = (int64_t)d;
          pDecodedItem->val.epochDate.fSecondsFraction =
                            d - (double)pDecodedItem->val.epochDate.nSeconds;
       }
-#else
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
 
          uReturn = QCBOR_ERR_FLOAT_DATE_DISABLED;
          goto Done;
@@ -1949,7 +1968,7 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
          break;
 
       default:
-         uReturn = QCBOR_ERR_BAD_OPT_TAG;
+         uReturn = QCBOR_ERR_BAD_TAG_CONTENT;
          goto Done;
    }
 
