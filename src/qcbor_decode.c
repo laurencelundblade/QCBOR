@@ -1962,102 +1962,114 @@ Done:
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 /*
- Decode decimal fractions and big floats.
-
- When called pDecodedItem must be the array that is tagged as a big
- float or decimal fraction, the array that has the two members, the
- exponent and mantissa.
-
- This will fetch and decode the exponent and mantissa and put the
- result back into pDecodedItem.
+ * @brief Decode decimal fractions and big floats.
+ *
+ * @param[in]                   The decode context.
+ * @param[in,out] pDecodedItem  On input the array data item that
+ *                              holds the mantissa and exponent.  On
+ *                              output the decoded mantissa and
+ *                              exponent.
+ *
+ * @returns  Decoding errors from getting primitive data items or
+ *           \ref QCBOR_ERR_BAD_EXP_AND_MANTISSA.
+ *
+ * When called pDecodedItem must be the array that is tagged as a big
+ * float or decimal fraction, the array that has the two members, the
+ * exponent and mantissa.
+ *
+ * This will fetch and decode the exponent and mantissa and put the
+ * result back into pDecodedItem.
  */
 static inline QCBORError
 QCBORDecode_MantissaAndExponent(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
 {
-   QCBORError nReturn;
+   QCBORError uReturn;
 
-   // --- Make sure it is an array; track nesting level of members ---
+   /* --- Make sure it is an array; track nesting level of members --- */
    if(pDecodedItem->uDataType != QCBOR_TYPE_ARRAY) {
-      nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+      uReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
 
-   // A check for pDecodedItem->val.uCount == 2 would work for
-   // definite length arrays, but not for indefnite.  Instead remember
-   // the nesting level the two integers must be at, which is one
-   // deeper than that of the array.
+   /* A check for pDecodedItem->val.uCount == 2 would work for
+    * definite length arrays, but not for indefnite.  Instead remember
+    * the nesting level the two integers must be at, which is one
+    * deeper than that of the array.
+    */
    const int nNestLevel = pDecodedItem->uNestingLevel + 1;
 
-   // --- Is it a decimal fraction or a bigfloat? ---
+   /* --- Which is it, ecimal fraction or a bigfloat? --- */
    const bool bIsTaggedDecimalFraction = QCBORDecode_IsTagged(me, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION);
    pDecodedItem->uDataType = bIsTaggedDecimalFraction ? QCBOR_TYPE_DECIMAL_FRACTION : QCBOR_TYPE_BIGFLOAT;
 
-   // --- Get the exponent ---
+   /* --- Get the exponent --- */
    QCBORItem exponentItem;
-   nReturn = QCBORDecode_GetNextMapOrArray(me, &exponentItem);
-   if(nReturn != QCBOR_SUCCESS) {
+   uReturn = QCBORDecode_GetNextMapOrArray(me, &exponentItem);
+   if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
    if(exponentItem.uNestingLevel != nNestLevel) {
-      // Array is empty or a map/array encountered when expecting an int
-      nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+      /* Array is empty or a map/array encountered when expecting an int */
+      uReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
    if(exponentItem.uDataType == QCBOR_TYPE_INT64) {
-     // Data arriving as an unsigned int < INT64_MAX has been converted
-     // to QCBOR_TYPE_INT64 and thus handled here. This is also means
-     // that the only data arriving here of type QCBOR_TYPE_UINT64 data
-     // will be too large for this to handle and thus an error that will
-     // get handled in the next else.
+     /* Data arriving as an unsigned int < INT64_MAX has been
+      * converted to QCBOR_TYPE_INT64 and thus handled here. This is
+      * also means that the only data arriving here of type
+      * QCBOR_TYPE_UINT64 data will be too large for this to handle
+      * and thus an error that will get handled in the next else.
+      */
      pDecodedItem->val.expAndMantissa.nExponent = exponentItem.val.int64;
    } else {
-      // Wrong type of exponent or a QCBOR_TYPE_UINT64 > INT64_MAX
-      nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+      /* Wrong type of exponent or a QCBOR_TYPE_UINT64 > INT64_MAX */
+      uReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
 
-   // --- Get the mantissa ---
+   /* --- Get the mantissa --- */
    QCBORItem mantissaItem;
-   nReturn = QCBORDecode_GetNextWithTags(me, &mantissaItem, NULL);
-   if(nReturn != QCBOR_SUCCESS) {
+   uReturn = QCBORDecode_GetNextWithTags(me, &mantissaItem, NULL);
+   if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
    if(mantissaItem.uNestingLevel != nNestLevel) {
-      // Mantissa missing or map/array encountered when expecting number
-      nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+      /* Mantissa missing or map/array encountered when expecting number */
+      uReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
    if(mantissaItem.uDataType == QCBOR_TYPE_INT64) {
-      // Data arriving as an unsigned int < INT64_MAX has been converted
-      // to QCBOR_TYPE_INT64 and thus handled here. This is also means
-      // that the only data arriving here of type QCBOR_TYPE_UINT64 data
-      // will be too large for this to handle and thus an error that
-      // will get handled in an else below.
+      /* Data arriving as an unsigned int < INT64_MAX has been
+       * converted to QCBOR_TYPE_INT64 and thus handled here. This is
+       * also means that the only data arriving here of type
+       * QCBOR_TYPE_UINT64 data will be too large for this to handle
+       * and thus an error that will get handled in an else below.
+       */
       pDecodedItem->val.expAndMantissa.Mantissa.nInt = mantissaItem.val.int64;
    }  else if(mantissaItem.uDataType == QCBOR_TYPE_POSBIGNUM ||
               mantissaItem.uDataType == QCBOR_TYPE_NEGBIGNUM) {
-      // Got a good big num mantissa
+      /* Got a good big num mantissa */
       pDecodedItem->val.expAndMantissa.Mantissa.bigNum = mantissaItem.val.bigNum;
-      // Depends on numbering of QCBOR_TYPE_XXX
+      /* Depends on numbering of QCBOR_TYPE_XXX */
       pDecodedItem->uDataType = (uint8_t)(pDecodedItem->uDataType +
                                           mantissaItem.uDataType - QCBOR_TYPE_POSBIGNUM +
                                           1);
    } else {
-      // Wrong type of mantissa or a QCBOR_TYPE_UINT64 > INT64_MAX
-      nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+      /* Wrong type of mantissa or a QCBOR_TYPE_UINT64 > INT64_MAX */
+      uReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
 
-   // --- Check that array only has the two numbers ---
+   /* --- Check that array only has the two numbers --- */
    if(mantissaItem.uNextNestLevel == nNestLevel) {
-      // Extra items in the decimal fraction / big float
-      nReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+      /* Extra items in the decimal fraction / big float */
+      uReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
    pDecodedItem->uNextNestLevel = mantissaItem.uNextNestLevel;
 
 Done:
-  return nReturn;
+  return uReturn;
 }
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
