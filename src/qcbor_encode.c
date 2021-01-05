@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /**
  * @file qcbor_encode.c
- * 
+ *
  * The entire implementation of the QCBOR encoder.
  */
 
@@ -156,17 +156,17 @@ inline static bool Nesting_IsInNest(QCBORTrackNesting *pNesting)
  *
  * Encoding of the major CBOR types is by these functions:
  *
- * CBOR Major Type    Public Function
- * 0                  QCBOREncode_AddUInt64()
- * 0, 1               QCBOREncode_AddUInt64(), QCBOREncode_AddInt64()
- * 2, 3               QCBOREncode_AddBuffer()
- * 4, 5               QCBOREncode_OpenMapOrArray(), QCBOREncode_CloseMapOrArray(),
- *                    QCBOREncode_OpenMapOrArrayIndefiniteLength(),
- *                    QCBOREncode_CloseMapOrArrayIndefiniteLength()
- * 6                  QCBOREncode_AddTag()
- * 7                  QCBOREncode_AddDouble(), QCBOREncode_AddFloat(),
- *                    QCBOREncode_AddDoubleNoPreferred(),
- *                    QCBOREncode_AddFloatNoPreferred(), QCBOREncode_AddType7()
+ * CBOR Major Type  Public Function
+ * 0                QCBOREncode_AddUInt64()
+ * 0, 1             QCBOREncode_AddUInt64(), QCBOREncode_AddInt64()
+ * 2, 3             QCBOREncode_AddBuffer()
+ * 4, 5             QCBOREncode_OpenMapOrArray(), QCBOREncode_CloseMapOrArray(),
+ *                  QCBOREncode_OpenMapOrArrayIndefiniteLength(),
+ *                  QCBOREncode_CloseMapOrArrayIndefiniteLength()
+ * 6                QCBOREncode_AddTag()
+ * 7                QCBOREncode_AddDouble(), QCBOREncode_AddFloat(),
+ *                  QCBOREncode_AddDoubleNoPreferred(),
+ *                  QCBOREncode_AddFloatNoPreferred(), QCBOREncode_AddType7()
  *
  * Additionally, encoding of decimal fractions and bigfloats is by
  * QCBOREncode_AddExponentAndMantissa() and byte strings that wrap
@@ -654,7 +654,7 @@ void QCBOREncode_AddBuffer(QCBOREncodeContext *me, uint8_t uMajorType, UsefulBuf
  */
 void QCBOREncode_AddTag(QCBOREncodeContext *me, uint64_t uTag)
 {
-   AppendCBORHead(me, CBOR_MAJOR_TYPE_OPTIONAL, uTag, 0);
+   AppendCBORHead(me, CBOR_MAJOR_TYPE_TAG, uTag, 0);
 }
 
 
@@ -677,7 +677,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
 
    /* AppendCBORHead() does endian swapping for the float / double */
    AppendCBORHead(me, CBOR_MAJOR_TYPE_SIMPLE, uNum, uMinLen);
-   
+
    IncrementMapOrArrayCount(me);
 }
 
