@@ -235,8 +235,8 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
     |               | smallest | largest |  
     |---------------|----------|---------|
     | encode only   |      850 |    2100 |
-    | decode only   |     2150 |   13500 |
-    | combined      |     3000 |   15600 |
+    | decode only   |     2050 |   13400 |
+    | combined      |     2900 |   15500 |
     
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
@@ -253,8 +253,8 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
  
  Basic decoding using QCBORDecode_GetNext() brings in 3KB.
  
- Use of the supplied MemPool by calling _QCBORDecode_SetMemPool() to
- setup to decode indefinite length strings adds 0.5KB.
+ Use of the supplied MemPool by calling  QCBORDecode_SetMemPool() to
+ setup to decode indefinite-length strings adds 0.5KB.
  
  Basic use of spiffy decode to brings in about 3KB. Using more spiffy
  decode functions, such as those for tagged types bstr wrapping brings
@@ -391,4 +391,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Copyright for this README
 
-Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
+Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
