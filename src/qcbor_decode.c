@@ -1880,7 +1880,7 @@ Done:
 }
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
-
+#ifndef QCBOR_DISABLE_UNCOMMON_TAGS
 static inline QCBORError DecodeMIME(QCBORItem *pDecodedItem)
 {
    if(pDecodedItem->uDataType == QCBOR_TYPE_TEXT_STRING) {
@@ -1894,6 +1894,7 @@ static inline QCBORError DecodeMIME(QCBORItem *pDecodedItem)
 
    return QCBOR_SUCCESS;
 }
+#endif /* QCBOR_DISABLE_UNCOMMON_TAGS */
 
 
 /*
@@ -1916,10 +1917,12 @@ static const struct StringTagMapEntry StringTagMap[] = {
    {CBOR_TAG_NEG_BIGNUM,    QCBOR_TYPE_NEGBIGNUM | IS_BYTE_STRING_BIT},
    {CBOR_TAG_CBOR,          QBCOR_TYPE_WRAPPED_CBOR | IS_BYTE_STRING_BIT},
    {CBOR_TAG_URI,           QCBOR_TYPE_URI},
+#ifndef QCBOR_DISABLE_UNCOMMON_TAGS
    {CBOR_TAG_B64URL,        QCBOR_TYPE_BASE64URL},
    {CBOR_TAG_B64,           QCBOR_TYPE_BASE64},
    {CBOR_TAG_REGEX,         QCBOR_TYPE_REGEX},
    {CBOR_TAG_BIN_UUID,      QCBOR_TYPE_UUID | IS_BYTE_STRING_BIT},
+#endif /* QCBOR_DISABLE_UNCOMMON_TAGS */
    {CBOR_TAG_CBOR_SEQUENCE, QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE | IS_BYTE_STRING_BIT},
    {CBOR_TAG_INVALID16,     QCBOR_TYPE_NONE}
 };
@@ -2016,10 +2019,11 @@ QCBORDecode_GetNextTag(QCBORDecodeContext *me, QCBORItem *pDecodedItem)
                 uTagToProcess == CBOR_TAG_BIGFLOAT) {
          uReturn = QCBORDecode_MantissaAndExponent(me, pDecodedItem);
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
-
+#ifndef QCBOR_DISABLE_UNCOMMON_TAGS
       } else if(uTagToProcess == CBOR_TAG_MIME ||
                 uTagToProcess == CBOR_TAG_BINARY_MIME) {
          uReturn = DecodeMIME(pDecodedItem);
+#endif /* QCBOR_DISABLE_UNCOMMON_TAGS */
 
       } else {
          /* See if it is a pass-through byte/text string tag; process if so */
