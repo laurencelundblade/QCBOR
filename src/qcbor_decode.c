@@ -239,7 +239,7 @@ DecodeNesting_IsAtEndOfBoundedLevel(const QCBORDecodeNesting *pNesting)
       /* In a traveral at a level deeper than the bounded level */
       return false;
    }
-   /* Works for both definite and indefinite length maps/arrays */
+   /* Works for both definite- and indefinitelength maps/arrays */
    if(pNesting->pCurrentBounded->u.ma.uCountCursor != 0 &&
       pNesting->pCurrentBounded->u.ma.uCountCursor != QCBOR_COUNT_INDICATES_ZERO_LENGTH) {
       /* Count is not zero, still unconsumed item */
@@ -291,7 +291,7 @@ DecodeNesting_IsBoundedType(const QCBORDecodeNesting *pNesting, uint8_t uType)
 static inline void
 DecodeNesting_DecrementDefiniteLengthMapOrArrayCount(QCBORDecodeNesting *pNesting)
 {
-   /* Only call on a defnite length array / map */
+   /* Only call on a definite-length array / map */
    pNesting->pCurrent->u.ma.uCountCursor--;
 }
 
@@ -299,7 +299,7 @@ DecodeNesting_DecrementDefiniteLengthMapOrArrayCount(QCBORDecodeNesting *pNestin
 static inline void
 DecodeNesting_ReverseDecrement(QCBORDecodeNesting *pNesting)
 {
-   /* Only call on a defnite length array / map */
+   /* Only call on a definite-length array / map */
    pNesting->pCurrent->u.ma.uCountCursor++;
 }
 
@@ -364,11 +364,11 @@ DecodeNesting_DescendMapOrArray(QCBORDecodeNesting *pNesting,
    QCBORError uError = QCBOR_SUCCESS;
 
    if(uCount == 0) {
-      /* Nothing to do for empty definite lenth arrays. They are just are
+      /* Nothing to do for empty definite-length arrays. They are just are
        * effectively the same as an item that is not a map or array.
        */
       goto Done;
-      /* Empty indefinite length maps and arrays are handled elsewhere */
+      /* Empty indefinite-length maps and arrays are handled elsewhere */
    }
 
    /* Error out if arrays is too long to handle */
@@ -649,6 +649,20 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  */
 
 
+/*
+ * Note about use of int and unsigned variables.
+ *
+ * See http://www.unix.org/whitepapers/64bit.html for reasons int is
+ * used carefully here, and in particular why it isn't used in the
+ * public interface.  Also see
+ * https://stackoverflow.com/questions/17489857/why-is-int-typically-32-bit-on-64-bit-compilers
+ *
+ * Int is used for values that need less than 16-bits and would be
+ * subject to integer promotion and result in complaining from static
+ * analyzers.
+ */
+
+
 /**
  * @brief Decode the CBOR head, the type and argument.
  *
@@ -707,7 +721,7 @@ DecodeHead(UsefulInputBuf *pUInBuf,
       goto Done;
    } else {
       /* Less than 24, additional info is argument or 31, an
-       * indefinite length.  No more bytes to get.
+       * indefinite-length.  No more bytes to get.
        */
       uArgument = (uint64_t)nAdditionalInfo;
    }
@@ -747,15 +761,6 @@ Done:
  * integers down to 2^x.  Note that negative numbers can be one more
  * away from zero than positive.  Stdint, as far as I can tell, uses
  * two's compliment to represent negative integers.
- *
- * See http://www.unix.org/whitepapers/64bit.html for reasons int is
- * used carefully here, and in particular why it isn't used in the
- * public interface.  Also see
- * https://stackoverflow.com/questions/17489857/why-is-int-typically-32-bit-on-64-bit-compilers
- *
- * Int is used for values that need less than 16-bits and would be
- * subject to integer promotion and result in complaining from static
- * analyzers.
  */
 static inline QCBORError
 DecodeInteger(int nMajorType, uint64_t uArgument, QCBORItem *pDecodedItem)
@@ -825,7 +830,7 @@ DecodeInteger(int nMajorType, uint64_t uArgument, QCBORItem *pDecodedItem)
 
 
 /**
- * @brief Decode type 7 -- true, false, floating-point, break...
+ * @brief Decode major type 7 -- true, false, floating-point, break...
  *
  * @param[in] nAdditionalInfo   The lower five bits from the initial byte.
  * @param[in] uArgument         The argument from the head.
@@ -877,7 +882,7 @@ DecodeType7(int nAdditionalInfo, uint64_t uArgument, QCBORItem *pDecodedItem)
             const float f = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
             /* In the normal case, use HW to convert float to
-	          * double. */
+             * double. */
             pDecodedItem->val.dfnum = (double)f;
             pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
@@ -976,7 +981,7 @@ DecodeBytes(const QCBORInternalAllocator *pAllocator,
    }
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-   /* Note that this is not where allocation to coallsece
+   /* Note that this is not where allocation to coalesce
     * indefinite-length strings is done. This is for when the caller
     * has requested all strings be allocated. Disabling indefinite
     * length strings also disables this allocate-all option.
@@ -1161,7 +1166,7 @@ Done:
 
 
 /**
- * @brief Process indefinite length strings (decode layer 5).
+ * @brief Process indefinite-length strings (decode layer 5).
  *
  * @param[in] pMe   Decoder context
  * @param[out] pDecodedItem  The decoded item that work is done on.
@@ -1199,10 +1204,10 @@ QCBORDecode_GetNextFullString(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
     */
 
    /* The string allocator is used here for two purposes: 1)
-    * coalescing the chunks of an indefinite length string, 2)
+    * coalescing the chunks of an indefinite-length string, 2)
     * allocating storage for every string returned when requested.
     *
-    * The first use is below in this function. Indefinite length
+    * The first use is below in this function. Indefinite-length
     * strings cannot be processed at all without a string allocator.
     *
     * The second used is in DecodeBytes() which is called by
@@ -1234,7 +1239,7 @@ QCBORDecode_GetNextFullString(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
       goto Done;
    }
 
-   /* Only do indefinite length processing on strings */
+   /* Only do indefinite-length processing on strings */
    const uint8_t uStringType = pDecodedItem->uDataType;
    if(uStringType!= QCBOR_TYPE_BYTE_STRING && uStringType != QCBOR_TYPE_TEXT_STRING) {
       goto Done;
@@ -1246,20 +1251,20 @@ QCBORDecode_GetNextFullString(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
    }
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-   /* Can't do indefinite length strings without a string allocator */
+   /* Can't decode indefinite-length strings without a string allocator */
    if(pAllocator == NULL) {
       uReturn = QCBOR_ERR_NO_STRING_ALLOCATOR;
       goto Done;
    }
 
-   /* Loop getting chunks of the indefinite length string */
+   /* Loop getting chunks of the indefinite-length string */
    UsefulBufC FullString = NULLUsefulBufC;
 
    for(;;) {
       /* Get QCBORItem for next chunk */
       QCBORItem StringChunkItem;
       /* Pass a NULL string allocator to GetNext_Item() because the
-       * individual string chunks in an indefinite length should not
+       * individual string chunks in an indefinite-length should not
        * be allocated. They are always copied in the the contiguous
        * buffer allocated here.
        */
@@ -1268,7 +1273,7 @@ QCBORDecode_GetNextFullString(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
          break;
       }
 
-      /* Is item is the marker for end of the indefinite length string? */
+      /* Is item is the marker for end of the indefinite-length string? */
       if(StringChunkItem.uDataType == QCBOR_TYPE_BREAK) {
          /* String is complete */
          pDecodedItem->val.string = FullString;
@@ -1277,9 +1282,9 @@ QCBORDecode_GetNextFullString(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
       }
 
       /* All chunks must be of the same type, the type of the item
-       * that introduces the indefinite length string. This also
+       * that introduces the indefinite-length string. This also
        * catches errors where the chunk is not a string at all and an
-       * indefinite length string inside an indefinite length string.
+       * indefinite-length string inside an indefinite-length string.
        */
       if(StringChunkItem.uDataType != uStringType ||
          StringChunkItem.val.string.len == QCBOR_STRING_LENGTH_INDEFINITE) {
@@ -1385,7 +1390,7 @@ UnMapTagNumber(const QCBORDecodeContext *pMe, uint16_t uMappedTagNumber)
       return CBOR_TAG_INVALID64;
    } else {
       /* This won't be negative because of code below in
-	    * MapTagNumber()
+       * MapTagNumber()
        */
       const unsigned uIndex = uMappedTagNumber - (QCBOR_LAST_UNMAPPED_TAG + 1);
       return pMe->auMappedTags[uIndex];
@@ -1656,7 +1661,7 @@ QCBORDecode_NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
              /* Didn't close out array/map, so all work here is done */
              break;
           }
-          /* All items in a definite length array were consumed so it
+          /* All items in a definite-length array were consumed so it
            * is time to ascend one level. This happens below.
            */
 
@@ -1676,7 +1681,7 @@ QCBORDecode_NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
             break;
          }
 
-         /* It was a break in an indefinite length map / array so
+         /* It was a break in an indefinitelength map / array so
           * it is time to ascend one level.
           */
 
@@ -1690,7 +1695,7 @@ QCBORDecode_NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd)
        * QCBORDecode_ExitBoundedMode().
        */
       if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
-         /* Set the count to zero for definite length arrays to indicate
+         /* Set the count to zero for definite-length arrays to indicate
          * cursor is at end of bounded array/map */
          if(bMarkEnd) {
             /* Used for definite and indefinite to signal end */
@@ -1740,7 +1745,7 @@ Done:
  *
  * This handles the traversal descending into and asecnding out of
  * maps, arrays and bstr-wrapped CBOR. It figures out the ends of
- * definite and indefinte-length maps and arrays by looking at the
+ * definite- and indefinte-length maps and arrays by looking at the
  * item count or finding CBOR breaks.  It detects the ends of the
  * top-level sequence and of bstr-wrapped CBOR by byte count.
  */
@@ -1763,8 +1768,8 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
       goto Done;
    }
 
-   /* Check to see if at the end of a bounded definite length map or
-    * array. The check for a break ending indefinite length array is
+   /* Check to see if at the end of a bounded definite-length map or
+    * array. The check for a break ending indefinite-length array is
     * later in QCBORDecode_NestLevelAscender().
     */
    if(DecodeNesting_IsAtEndOfBoundedLevel(&(pMe->nesting))) {
@@ -1797,7 +1802,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
    if(QCBORItem_IsMapOrArray(pDecodedItem)) {
       /* If the new item is a map or array, descend.
        *
-       * Empty indefinite length maps and arrays are descended into,
+       * Empty indefinite-length maps and arrays are descended into,
        * but then ascended out of in the next chunk of code.
        *
        * Maps and arrays do count as items in the map/array that
@@ -1824,12 +1829,12 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
        QCBORItem_IsIndefiniteLengthMapOrArray(pDecodedItem)) {
       /* The following cases are handled here:
        *  - A non-aggregate item like an integer or string
-       *  - An empty definite length map or array
-       *  - An indefinite length map or array that might be empty or might not.
+       *  - An empty definite-length map or array
+       *  - An indefinite-length map or array that might be empty or might not.
        *
        * QCBORDecode_NestLevelAscender() does the work of decrementing the count
-       * for an definite length map/array and break detection for an
-       * indefinite length map/array. If the end of the map/array was
+       * for an definite-length map/array and break detection for an
+       * indefinite-0length map/array. If the end of the map/array was
        * reached, then it ascends nesting levels, possibly all the way
        * to the top level.
        */
@@ -1940,7 +1945,7 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
           * only has 53 bits. Without the 0x7ff factor, the compiler
           * may round up and produce a double for the bounds check
           * that is larger than can be stored in a 64-bit integer. The
-          * amoutn of 0x7ff is picked because it has 11 bits set.
+          * amount of 0x7ff is picked because it has 11 bits set.
           *
           * Without the 0x7ff there is a ~30 minute range of time
           * values 10 billion years in the past and in the future
@@ -2012,13 +2017,13 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem
    }
 
    /* A check for pDecodedItem->val.uCount == 2 would work for
-    * definite length arrays, but not for indefnite.  Instead remember
+    * definite-length arrays, but not for indefnite.  Instead remember
     * the nesting level the two integers must be at, which is one
     * deeper than that of the array.
     */
    const int nNestLevel = pDecodedItem->uNestingLevel + 1;
 
-   /* --- Which is it, ecimal fraction or a bigfloat? --- */
+   /* --- Which is it, decimal fraction or a bigfloat? --- */
    const bool bIsTaggedDecimalFraction = QCBORDecode_IsTagged(pMe, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION);
    pDecodedItem->uDataType = bIsTaggedDecimalFraction ? QCBOR_TYPE_DECIMAL_FRACTION : QCBOR_TYPE_BIGFLOAT;
 
@@ -2462,7 +2467,7 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe,
 /* ===========================================================================
    MemPool -- BUILT-IN SIMPLE STRING ALLOCATOR
 
-   This implements a simple sting allocator for indefinite length
+   This implements a simple sting allocator for indefinite-length
    strings that can be enabled by calling QCBORDecode_SetMemPool(). It
    implements the function type QCBORStringAllocate and allows easy
    use of it.
@@ -2666,7 +2671,7 @@ ConsumeItem(QCBORDecodeContext *pMe,
    if(QCBORItem_IsMapOrArray(pItemToConsume) && !bIsEmpty) {
       /* There is only real work to do for non-empty maps and arrays */
 
-      /* This works for definite and indefinite length
+      /* This works for definite- and indefinite- length
        * maps and arrays by using the nesting level
        */
       do {
@@ -2819,7 +2824,7 @@ MapSearch(QCBORDecodeContext *pMe,
    /*
     Loop over all the items in the map or array. Each item
     could be a map or array, but label matching is only at
-    the main level. This handles definite and indefinite
+    the main level. This handles definite- and indefinite-
     length maps and arrays. The only reason this is ever
     called on arrays is to find their end position.
 
