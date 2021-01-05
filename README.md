@@ -1,6 +1,6 @@
 # QCBOR
 
-QCBOR is a near-complete implementation of
+QCBOR is an implementation of nearly everything in
 [RFC8949](https://tools.ietf.org/html/rfc8949). This RFC defines the
 Concise Binary Object Representation (CBOR). Since RFC 8949 is fully
 compatible with RFC 7049, this is also a near-complete implementation
@@ -235,8 +235,8 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
     |               | smallest | largest |  
     |---------------|----------|---------|
     | encode only   |      850 |    2100 |
-    | decode only   |     2050 |   13400 |
-    | combined      |     2900 |   15500 |
+    | decode only   |     2000 |   13400 |
+    | combined      |     2850 |   15500 |
     
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
@@ -274,12 +274,13 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
  code because Usefulbuf provides similar defenses and this code was
  carefully written to be defensive.
 
- Disable features with defines like
- QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) 
- QCBOR_DISABLE_ENCODE_USAGE_GUARDS (saves about 150), and
- QCBOR_DISABLE_PREFERRED_FLOAT (saves about 900 bytes), and
- QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS (saves about 400 bytes).  More
-  of these defines are planned than are currently implemented.
+ Disable features with defines like:
+   QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) 
+   QCBOR_DISABLE_ENCODE_USAGE_GUARDS (saves about 150), and
+   QCBOR_DISABLE_PREFERRED_FLOAT (saves about 900 bytes), and
+   QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS (saves about 400 bytes).  
+   QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS (saves about 200 bytes).
+   QCBOR_DISABLE_UNCOMMON_TAGS (saves about 100 bytes).
  
  If QCBOR is installed as a shared library, then of course only one
  copy of the code is in memory no matter how many applications use it.
