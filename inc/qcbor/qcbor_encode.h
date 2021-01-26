@@ -1736,7 +1736,8 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
 
  @retval QCBOR_ERR_ARRAY_TOO_LONG          Implementation limit
 
- On success, the pointer and length of the encoded CBOR are returned
+ On success, this function returns QCBOR_SUCCESS, and
+ the pointer and length of the encoded CBOR are returned
  in @c *pEncodedCBOR. The pointer is the same pointer that was passed
  in to QCBOREncode_Init(). Note that it is not const when passed to
  QCBOREncode_Init(), but it is const when returned here.  The length
