@@ -2247,7 +2247,7 @@ QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)QCBORDecode_GetMIMEInternal(uTagRequirement,
+   pMe->uLastError = QCBORDecode_GetMIMEInternal(uTagRequirement,
                                                           &Item,
                                                           pMessage,
                                                           pbIsTag257);
@@ -2264,7 +2264,7 @@ QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
-      pMe->uLastError = (uint8_t)QCBORDecode_GetMIMEInternal(uTagRequirement,
+      pMe->uLastError =  QCBORDecode_GetMIMEInternal(uTagRequirement,
                                                              &Item,
                                                              pMessage,
                                                              pbIsTag257);
@@ -2282,7 +2282,7 @@ QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pMe,
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
-      pMe->uLastError = (uint8_t)QCBORDecode_GetMIMEInternal(uTagRequirement,
+      pMe->uLastError =  QCBORDecode_GetMIMEInternal(uTagRequirement,
                                                              &Item,
                                                              pMessage,
                                                              pbIsTag257);

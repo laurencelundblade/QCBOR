@@ -2337,7 +2337,7 @@ void QCBORDecode_VGetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
       return;
    }
 
-   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, pDecodedItem);
+   pMe->uLastError = QCBORDecode_GetNext(pMe, pDecodedItem);
 }
 
 
@@ -3094,7 +3094,7 @@ void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, pItem);
+   pMe->uLastError = CheckTagRequirement(TagSpec, pItem);
 }
 
 
@@ -3110,7 +3110,7 @@ void QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, pItem);
+   pMe->uLastError = CheckTagRequirement(TagSpec, pItem);
 }
 
 // Semi-private
@@ -3184,7 +3184,7 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
    }
 
    size_t uOffset;
-   pMe->uLastError = (uint8_t)MapSearch(pMe, pSearch, &uOffset, NULL, NULL);
+   pMe->uLastError = MapSearch(pMe, pSearch, &uOffset, NULL, NULL);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
@@ -3516,12 +3516,12 @@ void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe,
 
    /* Get the data item that is the map that is being searched */
    QCBORItem Item;
-   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
+   pMe->uLastError = QCBORDecode_GetNext(pMe, &Item);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   pMe->uLastError = (uint8_t)InternalEnterBstrWrapped(pMe,
+   pMe->uLastError = InternalEnterBstrWrapped(pMe,
                                                        &Item,
                                                        uTagRequirement,
                                                        pBstr);
@@ -3539,7 +3539,7 @@ void QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pMe,
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)InternalEnterBstrWrapped(pMe,
+   pMe->uLastError = InternalEnterBstrWrapped(pMe,
                                                        &Item,
                                                        uTagRequirement,
                                                        pBstr);
@@ -3555,9 +3555,10 @@ void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pMe,
                                            UsefulBufC         *pBstr)
 {
    QCBORItem Item;
+   memset(&Item, 0, sizeof(Item));
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)InternalEnterBstrWrapped(pMe,
+   pMe->uLastError = InternalEnterBstrWrapped(pMe,
                                                        &Item,
                                                        uTagRequirement,
                                                        pBstr);
@@ -3639,7 +3640,7 @@ void QCBORDecode_GetBool(QCBORDecodeContext *pMe, bool *pValue)
       pMe->uLastError = (uint8_t)nError;
       return;
    }
-   pMe->uLastError = (uint8_t)InterpretBool(pMe, &Item, pValue);
+   pMe->uLastError = InterpretBool(pMe, &Item, pValue);
 }
 
 
@@ -3651,7 +3652,7 @@ void QCBORDecode_GetBoolInMapN(QCBORDecodeContext *pMe, int64_t nLabel, bool *pV
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)InterpretBool(pMe, &Item, pValue);
+   pMe->uLastError = InterpretBool(pMe, &Item, pValue);
 }
 
 
@@ -3661,9 +3662,10 @@ void QCBORDecode_GetBoolInMapN(QCBORDecodeContext *pMe, int64_t nLabel, bool *pV
 void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, bool *pValue)
 {
    QCBORItem Item;
+   memset(&Item, 0, sizeof(Item));
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)InterpretBool(pMe, &Item, pValue);
+   pMe->uLastError = InterpretBool(pMe, &Item, pValue);
 }
 
 
@@ -3721,7 +3723,7 @@ void QCBORDecode_GetEpochDate(QCBORDecodeContext *pMe,
    }
 
    QCBORItem  Item;
-   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
+   pMe->uLastError = QCBORDecode_GetNext(pMe, &Item);
 
    ProcessEpochDate(pMe, &Item, uTagRequirement, pnTime);
 }
@@ -3771,7 +3773,7 @@ void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, &Item);
+   pMe->uLastError = CheckTagRequirement(TagSpec, &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
       *pBstr = Item.val.string;
@@ -3832,7 +3834,7 @@ void QCBORDecode_GetBignum(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)ProcessBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
+   pMe->uLastError = ProcessBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
 }
 
 
@@ -3851,7 +3853,7 @@ void QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)ProcessBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
+   pMe->uLastError = ProcessBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
 }
 
 
@@ -3870,7 +3872,7 @@ void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)ProcessBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
+   pMe->uLastError = ProcessBigNum(uTagRequirement, &Item, pValue, pbIsNegative);
 }
 
 
@@ -4240,7 +4242,7 @@ void QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe,
       *pItem = Item;
    }
 
-   pMe->uLastError = (uint8_t)ConvertInt64(&Item, uConvertTypes, pnValue);
+   pMe->uLastError = ConvertInt64(&Item, uConvertTypes, pnValue);
 }
 
 
@@ -4255,7 +4257,7 @@ void QCBORDecode_GetInt64ConvertInternalInMapN(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertInt64(pItem, uConvertTypes, pnValue);
+   pMe->uLastError = ConvertInt64(pItem, uConvertTypes, pnValue);
 }
 
 
@@ -4270,7 +4272,7 @@ void QCBORDecode_GetInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertInt64(pItem, uConvertTypes, pnValue);
+   pMe->uLastError = ConvertInt64(pItem, uConvertTypes, pnValue);
 }
 
 
@@ -4425,7 +4427,7 @@ void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uConvertTy
       return;
    }
 
-   pMe->uLastError = (uint8_t)Int64ConvertAll(&Item, uConvertTypes, pnValue);
+   pMe->uLastError = Int64ConvertAll(&Item, uConvertTypes, pnValue);
 }
 
 
@@ -4455,7 +4457,7 @@ void QCBORDecode_GetInt64ConvertAllInMapN(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)Int64ConvertAll(&Item, uConvertTypes, pnValue);
+   pMe->uLastError = Int64ConvertAll(&Item, uConvertTypes, pnValue);
 }
 
 
@@ -4484,7 +4486,7 @@ void QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)Int64ConvertAll(&Item, uConvertTypes, pnValue);
+   pMe->uLastError = Int64ConvertAll(&Item, uConvertTypes, pnValue);
 }
 
 
@@ -4593,7 +4595,7 @@ void QCBORDecode_GetUInt64ConvertInternal(QCBORDecodeContext *pMe,
       *pItem = Item;
    }
 
-   pMe->uLastError = (uint8_t)ConvertUInt64(&Item, uConvertTypes, puValue);
+   pMe->uLastError = ConvertUInt64(&Item, uConvertTypes, puValue);
 }
 
 
@@ -4608,7 +4610,7 @@ void QCBORDecode_GetUInt64ConvertInternalInMapN(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertUInt64(pItem, uConvertTypes, puValue);
+   pMe->uLastError = ConvertUInt64(pItem, uConvertTypes, puValue);
 }
 
 
@@ -4627,7 +4629,7 @@ void QCBORDecode_GetUInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertUInt64(pItem, uConvertTypes, puValue);
+   pMe->uLastError = ConvertUInt64(pItem, uConvertTypes, puValue);
 }
 
 
@@ -4752,7 +4754,7 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uConvertT
       return;
    }
 
-   pMe->uLastError = (uint8_t)UInt64ConvertAll(&Item, uConvertTypes, puValue);
+   pMe->uLastError = UInt64ConvertAll(&Item, uConvertTypes, puValue);
 }
 
 
@@ -4782,7 +4784,7 @@ void QCBORDecode_GetUInt64ConvertAllInMapN(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)UInt64ConvertAll(&Item, uConvertTypes, puValue);
+   pMe->uLastError = UInt64ConvertAll(&Item, uConvertTypes, puValue);
 }
 
 
@@ -4811,7 +4813,7 @@ void QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)UInt64ConvertAll(&Item, uConvertTypes, puValue);
+   pMe->uLastError = UInt64ConvertAll(&Item, uConvertTypes, puValue);
 }
 
 
@@ -4905,7 +4907,7 @@ void QCBORDecode_GetDoubleConvertInternal(QCBORDecodeContext *pMe,
       *pItem = Item;
    }
 
-   pMe->uLastError = (uint8_t)ConvertDouble(&Item, uConvertTypes, pdValue);
+   pMe->uLastError = ConvertDouble(&Item, uConvertTypes, pdValue);
 }
 
 
@@ -4920,7 +4922,7 @@ void QCBORDecode_GetDoubleConvertInternalInMapN(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertDouble(pItem, uConvertTypes, pdValue);
+   pMe->uLastError = ConvertDouble(pItem, uConvertTypes, pdValue);
 }
 
 
@@ -4939,7 +4941,7 @@ void QCBORDecode_GetDoubleConvertInternalInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)ConvertDouble(pItem, uConvertTypes, pdValue);
+   pMe->uLastError = ConvertDouble(pItem, uConvertTypes, pdValue);
 }
 
 
@@ -5086,7 +5088,7 @@ void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)DoubleConvertAll(&Item, uConvertTypes, pdValue);
+   pMe->uLastError = DoubleConvertAll(&Item, uConvertTypes, pdValue);
 }
 
 
@@ -5112,7 +5114,7 @@ void QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)DoubleConvertAll(&Item, uConvertTypes, pdValue);
+   pMe->uLastError = DoubleConvertAll(&Item, uConvertTypes, pdValue);
 }
 
 
@@ -5137,7 +5139,7 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe,
       return;
    }
 
-   pMe->uLastError = (uint8_t)DoubleConvertAll(&Item, uConvertTypes, pdValue);
+   pMe->uLastError = DoubleConvertAll(&Item, uConvertTypes, pdValue);
 }
 
 
