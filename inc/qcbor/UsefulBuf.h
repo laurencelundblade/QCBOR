@@ -589,7 +589,7 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue);
 size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
-#if 1 // NOT_DEPRECATED
+#ifdef DEPRECATED_FUNCTIONS
 /** Deprecated macro; use @ref UsefulBuf_FROM_SZ_LITERAL instead */
 #define SZLiteralToUsefulBufC(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
