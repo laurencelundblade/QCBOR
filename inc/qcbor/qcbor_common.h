@@ -248,7 +248,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  occur in the future when new error codes are added for new QCBOR
  features.
  */
-typedef enum {
+typedef enum QCBORError {
    /** The encode or decode completely correctly. */
    QCBOR_SUCCESS = 0,
 
