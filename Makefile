@@ -11,7 +11,13 @@ CC=cc
 #CC=/usr/local/bin/gcc-9
 
 LIBS=-lm
-CFLAGS=$(CMD_LINE) -I inc -I test -Os -fPIC 
+CFLAGS=$(CMD_LINE) -I inc -I test -Os -fPIC
+
+CFLAGS+= -Wall
+CFLAGS+= -Wpointer-arith
+CFLAGS+= -Wcast-qual
+CFLAGS+= -Wstrict-prototypes
+CFLAGS+= -Wbad-function-cast
 
 # The following are used before a release of QCBOR help to make sure
 # the code compiles and runs in the most strict environments, but not
