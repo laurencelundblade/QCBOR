@@ -1572,9 +1572,11 @@ static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB)
 
 static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
    return (UsefulBuf){(void *)UBC.ptr, UBC.len};
+#pragma GCC diagnostic pop
 }
-
 
 static inline UsefulBufC UsefulBuf_FromSZ(const char *szString)
 {
