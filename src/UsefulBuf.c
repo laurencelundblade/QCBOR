@@ -106,12 +106,12 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue)
       return 0;
    }
 
-   const uint8_t * const pEnd = (uint8_t *)UB.ptr + UB.len;
+   const uint8_t * const pEnd = (const uint8_t *)UB.ptr + UB.len;
    for(const uint8_t *p = UB.ptr; p < pEnd; p++) {
       if(*p != uValue) {
          /* Byte didn't match */
          /* Cast from signed  to unsigned . Safe because the loop increments.*/
-         return (size_t)(p - (uint8_t *)UB.ptr);
+         return (size_t)(p - (const uint8_t *)UB.ptr);
       }
    }
 
@@ -130,7 +130,7 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind)
    }
 
    for(size_t uPos = 0; uPos <= BytesToSearch.len - BytesToFind.len; uPos++) {
-      if(!UsefulBuf_Compare((UsefulBufC){((uint8_t *)BytesToSearch.ptr) + uPos, BytesToFind.len}, BytesToFind)) {
+      if(!UsefulBuf_Compare((UsefulBufC){((const uint8_t *)BytesToSearch.ptr) + uPos, BytesToFind.len}, BytesToFind)) {
          return uPos;
       }
    }
@@ -358,7 +358,7 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pMe, size_t uAmount)
    }
 
    // This is going to succeed
-   const void * const result = ((uint8_t *)pMe->UB.ptr) + pMe->cursor;
+   const void * const result = ((const uint8_t *)pMe->UB.ptr) + pMe->cursor;
    // Will not overflow because of check using UsefulInputBuf_BytesAvailable()
    pMe->cursor += uAmount;
    return result;

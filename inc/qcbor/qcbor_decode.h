@@ -448,7 +448,7 @@ typedef struct _QCBORItem {
  used. It has its own internal implementation of this function, so
  one does not need to be implemented.
  */
-typedef UsefulBuf (* QCBORStringAllocate)(void *pAllocateCxt, void *pOldMem, size_t uNewSize);
+typedef UsefulBuf (* QCBORStringAllocate)(void *pAllocateCxt, const void *pOldMem, size_t uNewSize);
 
 
 /**

@@ -1619,12 +1619,11 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
    } else if(UB.ptr == NULL) {
       ReturnValue = (UsefulBufC){NULL, UB.len - uAmount};
    } else {
-      ReturnValue = (UsefulBufC){(uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
+      ReturnValue = (UsefulBufC){(const uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
    }
 
    return ReturnValue;
 }
-
 
 
 static inline uint32_t UsefulBufUtil_CopyFloatToUint32(float f)
@@ -2011,7 +2010,7 @@ static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *pMe)
    // The ternery operator is subject to integer promotion, because the
    // operands are smaller than int, so cast back to uint8_t is needed
    // to be completely explicit about types (for static analyzers)
-   return (uint8_t)(pResult ? *(uint8_t *)pResult : 0);
+   return (uint8_t)(pResult ? *(const uint8_t *)pResult : 0);
 }
 
 static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pMe)
