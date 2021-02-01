@@ -41,7 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
    There is nothing adversarial in this test
  */
-const char * UOBTest_NonAdversarial()
+const char * UOBTest_NonAdversarial(void)
 {
    const char *szReturn = NULL;
 
@@ -160,7 +160,7 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
 
  */
 
-const char *UOBTest_BoundaryConditionsTest()
+const char *UOBTest_BoundaryConditionsTest(void)
 {
    UsefulBuf_MAKE_STACK_UB(outbuf,2);
 
@@ -248,7 +248,7 @@ const char *UOBTest_BoundaryConditionsTest()
 
 // Test function to get size and magic number check
 
-const char *TestBasicSanity()
+const char *TestBasicSanity(void)
 {
    UsefulBuf_MAKE_STACK_UB(outbuf,10);
 
@@ -293,7 +293,7 @@ const char *TestBasicSanity()
 
 
 
-const char *UBMacroConversionsTest()
+const char *UBMacroConversionsTest(void)
 {
    char *szFoo = "foo";
 
@@ -319,7 +319,7 @@ const char *UBMacroConversionsTest()
 }
 
 
-const char *UBUtilTests()
+const char *UBUtilTests(void)
 {
    UsefulBuf UB = NULLUsefulBuf;
 
