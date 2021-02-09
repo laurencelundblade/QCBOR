@@ -4423,6 +4423,7 @@ void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uConvertTy
 {
    QCBORItem Item;
 
+   memset(&Item, 0, sizeof(Item));
    QCBORDecode_GetInt64ConvertInternal(pMe, uConvertTypes, pnValue, &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
@@ -4448,7 +4449,7 @@ void QCBORDecode_GetInt64ConvertAllInMapN(QCBORDecodeContext *pMe,
                                           int64_t            *pnValue)
 {
    QCBORItem Item;
-
+   memset(&Item, 0, sizeof(Item));
    QCBORDecode_GetInt64ConvertInternalInMapN(pMe,
                                              nLabel,
                                              uConvertTypes,
@@ -4478,6 +4479,8 @@ void QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe,
                                            int64_t            *pnValue)
 {
    QCBORItem Item;
+
+   memset(&Item, 0, sizeof(Item));
    QCBORDecode_GetInt64ConvertInternalInMapSZ(pMe,
                                               szLabel,
                                               uConvertTypes,
@@ -4750,6 +4753,8 @@ void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe, uint32_t uConvertT
 {
    QCBORItem Item;
 
+   memset(&Item, 0, sizeof(Item));
+
    QCBORDecode_GetUInt64ConvertInternal(pMe, uConvertTypes, puValue, &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
@@ -4775,6 +4780,7 @@ void QCBORDecode_GetUInt64ConvertAllInMapN(QCBORDecodeContext *pMe,
                                            uint64_t           *puValue)
 {
    QCBORItem Item;
+   memset(&Item, 0, sizeof(Item));
 
    QCBORDecode_GetUInt64ConvertInternalInMapN(pMe,
                                               nLabel,
@@ -4805,6 +4811,7 @@ void QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe,
                                             uint64_t           *puValue)
 {
    QCBORItem Item;
+   memset(&Item, 0, sizeof(Item));
    QCBORDecode_GetUInt64ConvertInternalInMapSZ(pMe,
                                                szLabel,
                                                uConvertTypes,
