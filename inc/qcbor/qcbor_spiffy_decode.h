@@ -736,11 +736,11 @@ static void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
 
 
 /**
- @brief Reset traversal cursor to start of map, array or start of input.
+ @brief Reset traversal cursor to start of map, array, byte-string wrapped CBOR or start of input.
 
  @param[in] pCtx   The decode context.
 
- If an array, map or byte string has been entered this sets the traversal cursor to
+ If an array, map or wrapping byte string has been entered this sets the traversal cursor to
  its beginning. If several arrays, maps or byte strings have been entered, this
  sets the traversal cursor to the beginning of the one most recently
  entered.
@@ -1538,7 +1538,6 @@ inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
 
  See also QCBORDecode_ExitBstrWrapped(), QCBORDecode_EnterMap() and
  QCBORDecode_EnterArray().
-
  */
 void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pCtx,
                                   uint8_t             uTagRequirement,
