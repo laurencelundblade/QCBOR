@@ -3522,8 +3522,14 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
       uError = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
-   const size_t uEndOfBstr   = UsefulInputBuf_Tell(&(pMe->InBuf));
-   const size_t uStartOfBstr = uEndOfBstr - pItem->val.string.len;
+   const size_t uStartOfBstr = UsefulInputBuf_PointerToOffset(&(pMe->InBuf), pItem->val.string.ptr);
+
+   if(uStartOfBstr == SIZE_MAX) {
+      uError = QCBOR_ERR_INPUT_TOO_LARGE;
+      goto Done;
+   }
+
+   const size_t uEndOfBstr = uStartOfBstr + pItem->val.string.len;
    UsefulInputBuf_Seek(&(pMe->InBuf), uStartOfBstr);
    UsefulInputBuf_SetBufferLength(&(pMe->InBuf), uEndOfBstr);
 
