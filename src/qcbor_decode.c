@@ -402,10 +402,10 @@ DecodeNesting_SetCurrentToBoundedLevel(QCBORDecodeNesting *pNesting)
 
 static inline QCBORError
 DecodeNesting_DescendIntoBstrWrapped(QCBORDecodeNesting *pNesting,
-                                     uint32_t uEndOffset,
-                                     uint32_t uStartOffset)
+                                     uint32_t            uEndOffset,
+                                     uint32_t            uStartOffset)
 {
-   QCBORError uError = QCBOR_SUCCESS;
+   QCBORError uError;
 
    uError = DecodeNesting_Descend(pNesting, QCBOR_TYPE_BYTE_STRING);
    if(uError != QCBOR_SUCCESS) {
@@ -413,8 +413,8 @@ DecodeNesting_DescendIntoBstrWrapped(QCBORDecodeNesting *pNesting,
    }
 
    // Fill in the new byte string level
-   pNesting->pCurrent->u.bs.uSavedEndOffset = uEndOffset;
-   pNesting->pCurrent->u.bs.uBstrStartOffset   = uStartOffset;
+   pNesting->pCurrent->u.bs.uSavedEndOffset  = uEndOffset;
+   pNesting->pCurrent->u.bs.uBstrStartOffset = uStartOffset;
 
    // Bstr wrapped levels are always bounded
    pNesting->pCurrentBounded = pNesting->pCurrent;
@@ -2510,9 +2510,9 @@ void QCBORDecode_Rewind(QCBORDecodeContext *pMe)
    if(pMe->nesting.pCurrentBounded != NULL) {
 
       if(DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_BYTE_STRING)) {
+         /* Reposition traversal cursor to start of wrapping byte string */
          uResetOffset = pMe->nesting.pCurrentBounded->u.bs.uBstrStartOffset;
-         QCBORDecodeNesting *pNesting = &(pMe->nesting);
-         pNesting->pCurrent = pNesting->pCurrentBounded;
+         pMe->nesting.pCurrent = pMe->nesting.pCurrentBounded;
 
       } else {
          /* Reposition traversal cursor to the start of the map/array */
@@ -2520,9 +2520,8 @@ void QCBORDecode_Rewind(QCBORDecodeContext *pMe)
 
          /* Reset nesting tracking to the deepest bounded level */
          // TODO: combine this with code called by MapSearch?
-         QCBORDecodeNesting *pNesting = &(pMe->nesting);
-         pNesting->pCurrent = pNesting->pCurrentBounded;
-         pNesting->pCurrent->u.ma.uCountCursor = pNesting->pCurrent->u.ma.uCountTotal;
+         pMe->nesting.pCurrent = pMe->nesting.pCurrentBounded;
+         pMe->nesting.pCurrent->u.ma.uCountCursor = pMe->nesting.pCurrent->u.ma.uCountTotal;
       }
 
    } else {
@@ -2995,6 +2994,9 @@ void QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pMe,
 }
 
 
+/* This is to search for a map or array in the current bounded
+ * context and if found enter it as the new bounded context.
+ * This is only for maps and arrays. */
 static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
 {
    // The first item in pSearch is the one that is to be
@@ -3016,7 +3018,9 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
       return;
    }
 
-   /* Need to get the current pre-order nesting level and cursor to be
+   /* The map or array was found. Now enter it.
+
+    Need to get the current pre-order nesting level and cursor to be
       at the map/array about to be entered.
 
     Also need the current map nesting level and start cursor to
@@ -3030,6 +3034,7 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
     However the bounded mode nesting level is assumed to be one above
     the map level that is being entered.
     */
+
    /* Seek to the data item that is the map or array */
    UsefulInputBuf_Seek(&(pMe->InBuf), uOffset);
 
@@ -3294,13 +3299,13 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
    // CBOR that is being entered.
    //
    // This makes sure the length is less than
-   // QCBOR_MAX_DECODE_INPUT_SIZE which is slighly less than
+   // QCBOR_MAX_DECODE_INPUT_SIZE which is slightly less than
    // UINT32_MAX. The value UINT32_MAX is used as a special indicator
    // value. The checks against QCBOR_MAX_DECODE_INPUT_SIZE also make
-   // the casts safe.  uEndOfBstr will always be less than
+   // the casts from size_t to uint32_t safe.  uEndOfBstr will always be less than
    // uPreviousLength because of the way UsefulInputBuf works so there
-   // is no need to check it.  There is also a range check in the
-   // seek.
+   // is no need to check it.  There is also a range check in
+   // UsefulInputBuf_Seek().
    //
    // Most of these calls are simple inline accessors so this doesn't
    // amount to much code.
