@@ -56,7 +56,7 @@ extern "C" {
  # QCBOR Overview
 
  This implements CBOR -- Concise Binary Object Representation as
- defined in [RFC 7049] (https://tools.ietf.org/html/rfc7049). More
+ defined in [RFC 8949] (https://tools.ietf.org/html/rfc8949). More
  information is at http://cbor.io.  This is a near-complete implementation of
  the specification. [RFC 8742] (https://tools.ietf.org/html/rfc8742) CBOR
  Sequences is also supported. Limitations are listed further down.
@@ -67,7 +67,7 @@ extern "C" {
  decoder functions.
 
  CBOR is intentionally designed to be translatable to JSON, but not
- all CBOR can convert to JSON. See RFC 7049 for more info on how to
+ all CBOR can convert to JSON. See RFC 8949 for more info on how to
  construct CBOR that is the most JSON friendly.
 
  The memory model for encoding and decoding is that encoded CBOR must
@@ -407,30 +407,56 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
  Initialize the encoder to prepare to encode some CBOR.
 
  @param[in,out]  pCtx     The encoder context to initialize.
- @param[in]      Storage  The buffer into which this encoded result
-                          will be placed.
+ @param[in]      Storage  The buffer into which the encoded result
+                          will be written.
 
- Call this once at the start of an encoding of a CBOR structure. Then
- call the various @c QCBOREncode_AddXxx() functions to add the data
- items. Then call QCBOREncode_Finish().
+ Call this once at the start of an encoding of some CBOR. Then call
+ the many functions like QCBOREncode_AddInt64() and
+ QCBOREncode_AddText() to add the different data items. Finally, call
+ QCBOREncode_Finish() to get the pointer and length of the encoded
+ result.
 
- The maximum output buffer is @c UINT32_MAX (4GB). This is not a
- practical limit in any way and reduces the memory needed by the
- implementation.  The error @ref QCBOR_ERR_BUFFER_TOO_LARGE will be
- returned by QCBOREncode_Finish() if a larger buffer length is passed
- in.
+ The primary purpose of this function is to give the pointer and
+ length of the output buffer into which the encoded CBOR will be
+ written. This is done with a @ref UsefulBuf structure, which is just
+ a pointer and length (it is equivalent to two parameters, one a
+ pointer and one a length, but a little prettier).
 
- If this is called with @c Storage.ptr as @c NULL and @c Storage.len a
- large value like @c UINT32_MAX, all the QCBOREncode_AddXxx()
- functions and QCBOREncode_Finish() can still be called. No data will
- be encoded, but the length of what would be encoded will be
- calculated. The length of the encoded structure will be handed back
- in the call to QCBOREncode_Finish(). You can then allocate a buffer
- of that size and call all the encoding again, this time to fill in
- the buffer.
+ The output buffer can be allocated any way (malloc, stack,
+ static). It is just some memory that QCBOR writes to. The length must
+ be the length of the allocated buffer. QCBOR will never write past
+ that length, but might write up to that length. If the buffer is too
+ small, encoding will go into an error state and not write anything
+ further.
+
+ If allocating on the stack the convenience macro
+ UsefulBuf_MAKE_STACK_UB() can be used, but its use is not required.
+
+ Since there is no reallocation or such, the output buffer must be
+ correctly sized when passed in here. It is OK, but wasteful if it is
+ too large. One way to pick the size is to figure out the maximum size
+ that will ever be needed and hard code a buffer of that size.
+
+ Another way to do it is to have QCBOR calculate it for you. To do
+ this set @c Storage.ptr to @c NULL and @c Storage.len to @c
+ UINT32_MAX. Then call all the functions to add the CBOR exactly as if
+ encoding for real. Then call QCBOREncode_Finish(). The pointer
+ returned will be @c NULL, but the length returned is that of what would
+ be encoded. Once the length is obtained, allocate a buffer of that
+ size, call QCBOREncode_Init() again with the real buffer. Call all
+ the add functions again and finally, QCBOREncode_Finish() to obtain
+ the final result. This uses almost twice the CPU time, but that is
+ usually not an issue.
+
+ See QCBOREncode_Finish() for how the pointer and length for the
+ encoded CBOR is returned.
+
+ The maximum output buffer size allowed is @c UINT32_MAX (4GB). The
+ error @ref QCBOR_ERR_BUFFER_TOO_LARGE will be returned by
+ QCBOREncode_Finish() if a larger buffer length is passed in.
 
  A @ref QCBOREncodeContext can be reused over and over as long as
- QCBOREncode_Init() is called.
+ QCBOREncode_Init() is called before each use.
  */
 void QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
 
@@ -458,9 +484,9 @@ void QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  represent the value.  For example, CBOR always encodes the value 0 as
  one byte, 0x00. The representation as 0x00 includes identification of
  the type as an integer too as the major type for an integer is 0. See
- [RFC 7049] (https://tools.ietf.org/html/rfc7049) Appendix A for more
- examples of CBOR encoding. This compact encoding is also canonical
- CBOR as per section 3.9 in RFC 7049.
+ [RFC 8949] (https://tools.ietf.org/html/rfc8949) Appendix A for more
+ examples of CBOR encoding. This compact encoding is also preferred
+ serialization CBOR as per section 34.1 in RFC 8949.
 
  There are no functions to add @c int16_t or @c int32_t because they
  are not necessary because this always encodes to the smallest number
@@ -699,7 +725,7 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
  @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or @ref QCBOR_ENCODE_AS_BORROWED.
  @param[in] nDate  Number of seconds since 1970-01-01T00:00Z in UTC time.
 
- As per RFC 7049 this is similar to UNIX/Linux/POSIX dates. This is
+ As per RFC 8949 this is similar to UNIX/Linux/POSIX dates. This is
  the most compact way to specify a date and time in CBOR. Note that
  this is always UTC and does not include the time zone.  Use
  QCBOREncode_AddDateString() if you want to include the time zone.
@@ -812,7 +838,7 @@ static void QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nL
  @param[in] Bytes  Pointer and length of the big number.
 
  Big numbers are integers larger than 64-bits. Their format is
- described in [RFC 7049] (https://tools.ietf.org/html/rfc7049).
+ described in [RFC 8949] (https://tools.ietf.org/html/rfc8949).
 
  It is output as CBOR major type 2, a binary string, with tag @ref
  CBOR_TAG_POS_BIGNUM indicating the binary string is a positive big
@@ -857,7 +883,7 @@ static void QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx,
  @param[in] Bytes  Pointer and length of the big number.
 
  Big numbers are integers larger than 64-bits. Their format is
- described in [RFC 7049] (https://tools.ietf.org/html/rfc7049).
+ described in [RFC 8949] (https://tools.ietf.org/html/rfc8949).
 
  It is output as CBOR major type 2, a binary string, with tag @ref
  CBOR_TAG_NEG_BIGNUM indicating the binary string is a negative big
@@ -1369,8 +1395,8 @@ static void QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pCtx,
  The string szDate should be in the form of [RFC 3339]
  (https://tools.ietf.org/html/rfc3339) as defined by section 3.3 in
  [RFC 4287] (https://tools.ietf.org/html/rfc4287). This is as
- described in section 2.4.1 in [RFC 7049]
- (https://tools.ietf.org/html/rfc7049).
+ described in section 3.4.1 in [RFC 8949]
+ (https://tools.ietf.org/html/rfc8949).
 
  Note that this function doesn't validate the format of the date string
  at all. If you add an incorrect format date string, the generated
@@ -1545,13 +1571,13 @@ static void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
  InMap for adding items to maps with string labels and one that ends
  with @c InMapN that is for adding with integer labels.
 
- RFC 7049 uses the term "key" instead of "label".
+ RFC 8949 uses the term "key" instead of "label".
 
  If you wish to use map labels that are neither integer labels nor
  text strings, then just call the QCBOREncode_AddXxx() function
  explicitly to add the label. Then call it again to add the value.
 
- See the [RFC 7049] (https://tools.ietf.org/html/rfc7049) for a lot
+ See the [RFC 8949] (https://tools.ietf.org/html/rfc8949) for a lot
  more information on creating maps.
  */
 static void QCBOREncode_OpenMap(QCBOREncodeContext *pCtx);
@@ -1596,7 +1622,11 @@ static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
 
  The typical use case is for encoded CBOR that is to be
  cryptographically hashed, as part of a [RFC 8152, COSE]
- (https://tools.ietf.org/html/rfc8152) implementation.
+ (https://tools.ietf.org/html/rfc8152) implementation. The
+ wrapping byte string is taken as input by the hash function
+ (which is why it is returned by QCBOREncode_CloseBstrWrap2()).
+ It is also easy to recover on decoding with standard CBOR
+ decoders.
 
  Using QCBOREncode_BstrWrap() and QCBOREncode_CloseBstrWrap2() avoids
  having to encode the items first in one buffer (e.g., the COSE
@@ -1604,14 +1634,13 @@ static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
  (e.g. the COSE to-be-signed bytes, the @c Sig_structure) potentially
  halving the memory needed.
 
- RFC 7049 states the purpose of this wrapping is to prevent code
- relaying the signed data but not verifying it from tampering with the
- signed data thus making the signature unverifiable. It is also quite
- beneficial for the signature verification code. Standard CBOR
- decoders usually do not give access to partially decoded CBOR as
- would be needed to check the signature of some CBOR. With this
- wrapping, standard CBOR decoders can be used to get to all the data
- needed for a signature verification.
+ CBOR by nature must be decoded item by item in order from the start.
+ By wrapping some CBOR in a byte string, the decoding of that wrapped
+ CBOR can be skipped. This is another use of wrapping, perhaps
+ because the CBOR is large and deeply nested. Perhaps APIs for
+ handling one defined CBOR message that is being embedded in another
+ only take input as a byte string. Perhaps the desire is to be able
+ to decode the out layer even in the wrapped has errors.
  */
 static void QCBOREncode_BstrWrap(QCBOREncodeContext *pCtx);
 
@@ -1690,7 +1719,8 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
  @brief Get the encoded result.
 
  @param[in] pCtx           The context to finish encoding with.
- @param[out] pEncodedCBOR  Pointer and length of encoded CBOR.
+ @param[out] pEncodedCBOR  Structure in which the pointer and length of the encoded
+                           CBOR is returned.
 
  @retval QCBOR_ERR_TOO_MANY_CLOSES         Nesting error
 
@@ -1706,12 +1736,17 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
 
  @retval QCBOR_ERR_ARRAY_TOO_LONG          Implementation limit
 
- If this returns success @ref QCBOR_SUCCESS the encoding was a success
- and the return length is correct and complete.
+ On success, the pointer and length of the encoded CBOR are returned
+ in @c *pEncodedCBOR. The pointer is the same pointer that was passed
+ in to QCBOREncode_Init(). Note that it is not const when passed to
+ QCBOREncode_Init(), but it is const when returned here.  The length
+ will be smaller than or equal to the length passed in when
+ QCBOREncode_Init() as this is the length of the actual result, not
+ the size of the buffer it was written to.
 
- If no buffer was passed to QCBOREncode_Init(), then only the length
- was computed. If a buffer was passed, then the encoded CBOR is in the
- buffer.
+ If a @c NULL was passed for @c Storage.ptr when QCBOREncode_Init()
+ was called, @c NULL will be returned here, but the length will be
+ that of the CBOR that would have been encoded.
 
  Encoding errors primarily manifest here as most other encoding function
  do no return an error. They just set the error state in the encode
@@ -1743,8 +1778,8 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
  can also be interleaved with calls to QCBOREncode_FinishGetSize().
 
  QCBOREncode_GetErrorState() can be called to get the current
- error state and abort encoding early as an optimization, but is
- is never required.
+ error state in order to abort encoding early as an optimization, but
+ calling it is is never required.
  */
 QCBORError QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
 
@@ -1935,13 +1970,14 @@ void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, uint8_t uMinLen, uint64_t u
 /**
  @brief  Semi-private method to add bigfloats and decimal fractions.
 
- @param[in] pCtx             The encoding context to add the value to.
- @param[in] uTag             The type 6 tag indicating what this is to be.
- @param[in] BigNumMantissa   Is @ref NULLUsefulBufC if mantissa is an
-                             @c int64_t or the actual big number mantissa
-                             if not.
- @param[in] nMantissa        The @c int64_t mantissa if it is not a big number.
- @param[in] nExponent        The exponent.
+ @param[in] pCtx               The encoding context to add the value to.
+ @param[in] uTag               The type 6 tag indicating what this is to be.
+ @param[in] BigNumMantissa     Is @ref NULLUsefulBufC if mantissa is an
+                               @c int64_t or the actual big number mantissa
+                               if not.
+ @param[in] bBigNumIsNegative  This is @c true if the big number is negative.
+ @param[in] nMantissa          The @c int64_t mantissa if it is not a big number.
+ @param[in] nExponent          The exponent.
 
  This outputs either the @ref CBOR_TAG_DECIMAL_FRACTION or @ref
  CBOR_TAG_BIGFLOAT tag. if @c uTag is @ref CBOR_TAG_INVALID64, then
@@ -1954,7 +1990,7 @@ void  QCBOREncode_AddType7(QCBOREncodeContext *pCtx, uint8_t uMinLen, uint64_t u
  This implementation cannot output an exponent further from 0 than
  @c INT64_MAX.
 
- To output a mantissa that is bewteen INT64_MAX and UINT64_MAX from 0,
+ To output a mantissa that is between INT64_MAX and UINT64_MAX from 0,
  it must be as a big number.
 
  Typically, QCBOREncode_AddDecimalFraction(), QCBOREncode_AddBigFloat(),

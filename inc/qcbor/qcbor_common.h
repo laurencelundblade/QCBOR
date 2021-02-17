@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  item is the value.  */
 #define CBOR_MAJOR_TYPE_MAP          5
 
-/* Standard CBOR optional tagging. This tags things like dates and URLs */
+/* Standard CBOR major type for a tag number. This creates a CBOR "tag" that
+ * is the tag number and a data item that follows as the tag content.
+ *
+ * Note that this was called an optional tag in RFC 7049, but there's
+ * not really anything optional about it. It was misleading. It is
+ * renamed in RFC 8949.
+ */
+#define CBOR_MAJOR_TYPE_TAG          6
 #define CBOR_MAJOR_TYPE_OPTIONAL     6
 
 /* Standard CBOR extra simple types like floats and the values true and false */
@@ -102,7 +109,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*
  Tags that are used with CBOR_MAJOR_TYPE_OPTIONAL. These
- are types defined in RFC 7049 and some additional ones
+ are types defined in RFC 8949 and some additional ones
  in the IANA CBOR tags registry.
  */
 /** See QCBOREncode_AddDateString(). */
@@ -397,7 +404,10 @@ typedef enum {
 
    /** This occurs when decoding one of the tags that QCBOR processed
        internally.  The content of a tag was of the wrong type. (They
-       were known as "Optional Tags" in RFC 7049. */
+       were known as "Optional Tags" in RFC 7049, but "optional" is
+       misleading. The old error name is retained for backwards
+       compatibility. */
+   QCBOR_ERR_BAD_TAG_CONTENT = 27,
    QCBOR_ERR_BAD_OPT_TAG = 27,
 
    /** Duplicate label in map detected */
@@ -466,7 +476,15 @@ typedef enum {
        infinity or -infinity was encountered in encoded CBOR. Usually
        this because conversion of the float-point value was being
        attempted. */
-    QCBOR_ERR_FLOAT_EXCEPTION = 42,
+   QCBOR_ERR_FLOAT_EXCEPTION = 42,
+
+   /** Indefinite length string handling is disabled and there is an
+       indefinite length string in the input CBOR. */
+   QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED = 43,
+
+   /** Indefinite length arrays and maps handling are disabled and there is an
+       indefinite length map or array in the input CBOR. */
+   QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED = 44,
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;

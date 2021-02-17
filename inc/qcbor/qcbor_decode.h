@@ -348,7 +348,7 @@ typedef struct _QCBORItem {
             UsefulBufC bigNum;
          } Mantissa;
       } expAndMantissa;
-#endif
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
       uint64_t    uTagV;  // Used internally during decoding
 
    } val;
@@ -793,7 +793,7 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  map or array has been encountered. This works the same for both
  definite and indefinite-length arrays.
 
- QCBOR will automatically decode all the tags defined in RFC 7049
+ QCBOR will automatically decode all the tags defined in RFC 8949
  plus a few more. They will show up in a QCBORItem as QCBOR types
  like QCBOR_TYPE_POS_BIGNUM.
 

@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -217,7 +217,7 @@ typedef struct  {
    // PRIVATE DATA STRUCTURE
    void *pAllocateCxt;
    UsefulBuf (* pfAllocator)(void *pAllocateCxt, void *pOldMem, size_t uNewSize);
-} QCORInternalAllocator;
+} QCBORInternalAllocator;
 
 
 /*
@@ -240,7 +240,7 @@ struct _QCBORDecodeContext {
 
    // If a string allocator is configured for indefinite-length
    // strings, it is configured here.
-   QCORInternalAllocator StringAllocator;
+   QCBORInternalAllocator StringAllocator;
 
    // These are special for the internal MemPool allocator.
    // They are not used otherwise. We tried packing these
@@ -258,6 +258,7 @@ struct _QCBORDecodeContext {
    uint8_t  bStringAllocateAll;
    uint8_t  uLastError;  // QCBORError stuffed into a uint8_t
 
+   /* See MapTagNumber() for description of how tags are mapped. */
    uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
 
    uint16_t uLastTags[QCBOR_MAX_TAGS_PER_ITEM1];
@@ -278,6 +279,18 @@ struct _QCBORDecodeContext {
             CBOR_MAJOR_TYPE_MAP + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
 #define CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK \
             CBOR_MAJOR_TYPE_SIMPLE + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
+
+
+/* Value of QCBORItem.val.string.len when the string length is
+ * indefinite. Used temporarily in the implementation and never
+ * returned in the public interface.
+ */
+#define QCBOR_STRING_LENGTH_INDEFINITE SIZE_MAX
+
+
+/* The number of elements in a C array of a particular type */
+#define C_ARRAY_COUNT(array, type) (sizeof(array)/sizeof(type))
+
 
 #ifdef __cplusplus
 }

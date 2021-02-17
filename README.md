@@ -1,12 +1,15 @@
 # QCBOR
 
-QCBOR encodes and decodes [RFC 7049](https://tools.ietf.org/html/rfc7049) CBOR.
+QCBOR is an implementation of nearly everything in
+[RFC8949](https://tools.ietf.org/html/rfc8949). This RFC defines the
+Concise Binary Object Representation (CBOR). Since RFC 8949 is fully
+compatible with RFC 7049, this is also a near-complete implementation
+of it.
+
+QCBOR also implements [RFC8742](https://tools.ietf.org/html/rfc8742)
+which defines a CBOR sequence.
 
 ## New Version With Spiffy Decode
-**A major new version of QCBOR that makes decoding implementations much**
-**easier is available in the SpiffyDecode branch of this repository.**
-**Your CBOR decoding implementation may be many times fewer lines of code!**
-**The old version is available in the BeforeSpiffyDecode branch.**
 
 This new version of QCBOR adds a more powerful decoding API
 called Spiffy Decode. 
@@ -44,12 +47,13 @@ See section below for more details.
   of memory usage making it good for embedded implementations that
   have to run in small fixed memory.
 
-**Supports all of RFC 7049 except strict mode and map sorting** – With
-  some size limits, all data types and formats specified are
-  supported. The same decoding API supports both definite and
-  indefinite-length map and array decoding. Decoding indefinite length
-  strings is supported but requires a string allocator (see
-  documentation).
+**Supports most of RFC 8949** – With some size limits, all data types
+  and formats in the specification are supported. Map sorting is main
+  CBOR feature that is not supported.  The same decoding API supports
+  both definite and indefinite-length map and array decoding. Decoding
+  indefinite length strings is supported but requires a string
+  allocator be set up. Encoding of indefinite length strings is
+  planned, but not yet supported.
 
 **Extensible and general** – Provides a way to handle data types that
   are not directly supported.
@@ -57,9 +61,9 @@ See section below for more details.
 **Secure coding style** – Uses a construct called UsefulBuf as a
   discipline for very safe coding and handling of binary data.
 
-**Small code size** – When optimized for size using the compiler -Os
-  option, 64-bit x86 code is about 4KB in its smallest configuration
-  and when only basic functionality is used. 
+**Small code size** – In the smallest configuration the object
+  code is less than 4KB on 64-bit x86 CPUs. The design is such that
+  object code for QCBOR APIs not used is not referenced.
 
 **Clear documented public interface** – The public interface is
   separated from the implementation. It can be put to use without
@@ -231,8 +235,8 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
     |               | smallest | largest |  
     |---------------|----------|---------|
     | encode only   |      850 |    2100 |
-    | decode only   |     2900 |   13500 |
-    | combined      |     3750 |   15600 |
+    | decode only   |     2000 |   13400 |
+    | combined      |     2850 |   15500 |
     
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
@@ -249,8 +253,8 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
  
  Basic decoding using QCBORDecode_GetNext() brings in 3KB.
  
- Use of the supplied MemPool by calling _QCBORDecode_SetMemPool() to
- setup to decode indefinite length strings adds 0.5KB.
+ Use of the supplied MemPool by calling  QCBORDecode_SetMemPool() to
+ setup to decode indefinite-length strings adds 0.5KB.
  
  Basic use of spiffy decode to brings in about 3KB. Using more spiffy
  decode functions, such as those for tagged types bstr wrapping brings
@@ -270,11 +274,13 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
  code because Usefulbuf provides similar defenses and this code was
  carefully written to be defensive.
 
- Disable features with defines like
- QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) 
- QCBOR_DISABLE_ENCODE_USAGE_GUARDS (saves about 150), and
- QCBOR_DISABLE_PREFERRED_FLOAT (saves about 900 bytes).  More of these
- defines are planned than are currently implemented.
+ Disable features with defines like:
+   QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) 
+   QCBOR_DISABLE_ENCODE_USAGE_GUARDS (saves about 150), and
+   QCBOR_DISABLE_PREFERRED_FLOAT (saves about 900 bytes), and
+   QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS (saves about 400 bytes).  
+   QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS (saves about 200 bytes).
+   QCBOR_DISABLE_UNCOMMON_TAGS (saves about 100 bytes).
  
  If QCBOR is installed as a shared library, then of course only one
  copy of the code is in memory no matter how many applications use it.
@@ -308,10 +314,10 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
 * [t_cose](https://github.com/laurencelundblade/t_cose) implements enough of
 [COSE, RFC 8152](https://tools.ietf.org/html/rfc8152) to support
 [CBOR Web Token (CWT)](https://tools.ietf.org/html/rfc8392) and
-[Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01). 
+[Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-06). 
 Specifically it supports signing and verification of the COSE_Sign1 message.
 
-* [ctoken](https://github.com/laurencelundblade/t_cose) is an implementation of
+* [ctoken](https://github.com/laurencelundblade/ctoken) is an implementation of
 EAT and CWT.
 
 ## Changes from CAF Version
@@ -386,4 +392,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Copyright for this README
 
-Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
+Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.

@@ -16,7 +16,7 @@
  */
 
 /*
- This code is from RFC 7049. It is not used in the main implementation
+ This code is from RFC 7049/8949. It is not used in the main implementation
  because:
    a) it adds a dependency on <math.h> and ldexp().
    b) the license may be an issue

@@ -26,6 +26,7 @@ struct someBinaryBytes {
 
 static const struct someBinaryBytes paNotWellFormedCBOR[] = {
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
     // Indefinite length strings must be closed off
 
     // An indefinite length byte string not closed off
@@ -58,6 +59,8 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     // indefinite length text string with indefinite string inside
     {(uint8_t[]){0x7f, 0x7f, 0x61, 0x00, 0xff, 0xff}, 6},
 
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
     // Definte length maps and arrays must be closed by having the
     // right number of items
 
@@ -73,6 +76,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     {(uint8_t[]){0xa2, 0x01, 0x02}, 3},
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
     // Indefinte length maps and arrays must be ended by a break
 
     // Indefinite length array with zero items and no break
@@ -99,6 +103,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     {(uint8_t[]){0x9f, 0x81, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff}, 9},
     // Mixed nesting with definite unclosed
     {(uint8_t[]){0x9f, 0x82, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 10},
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
     // The "argument" for the data item is missing bytes
@@ -162,8 +167,10 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     {(uint8_t[]){0xff}, 1},
     // A bare break after a zero length definite length array
     {(uint8_t[]){0x80, 0xff}, 2},
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
     // A bare break after a zero length indefinite length map
     {(uint8_t[]){0x9f, 0xff, 0xff}, 3},
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
     // Forbidden two-byte encodings of simple types
@@ -251,10 +258,10 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     {(uint8_t[]){0x41}, 1},
     // A text string is of length 1 without the 1 byte
     {(uint8_t[]){0x61}, 1},
-    // Byte string should have 2^32-15 bytes, but has one
-    {(uint8_t[]){0x5a, 0xff, 0xff, 0xff, 0xf0, 0x00}, 6},
-    // Byte string should have 2^32-15 bytes, but has one
-    {(uint8_t[]){0x7a, 0xff, 0xff, 0xff, 0xf0, 0x00}, 6},
+    // Byte string should have 65520 bytes, but has one
+    {(uint8_t[]){0x59, 0xff, 0xf0, 0x00}, 6},
+    // Byte string should have 65520 bytes, but has one
+    {(uint8_t[]){0x79, 0xff, 0xf0, 0x00}, 6},
 
 
     // Use of unassigned additional information values
@@ -315,10 +322,12 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     {(uint8_t[]){0xa1, 0x00}, 2},
     // Map with 3 item when it should have 4
     {(uint8_t[]){0xa2, 0x00, 0x00, 0x00}, 2},
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
     // Map with 1 item when it should have 2
     {(uint8_t[]){0xbf, 0x00, 0xff}, 3},
     // Map with 3 item when it should have 4
     {(uint8_t[]){0xbf, 0x00, 0x00, 0x00, 0xff}, 5},
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 };
 

@@ -63,9 +63,11 @@ static test_entry s_tests[] = {
     TEST_ENTRY(EmptyMapsAndArraysTest),
     TEST_ENTRY(NotWellFormedTests),
     TEST_ENTRY(ParseMapAsArrayTest),
-    TEST_ENTRY(AllocAllStringsTest),
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
     TEST_ENTRY(IndefiniteLengthNestTest),
+    TEST_ENTRY(IndefiniteLengthArrayMapTest),
     TEST_ENTRY(NestedMapTestIndefLen),
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
     TEST_ENTRY(ParseSimpleTest),
     TEST_ENTRY(DecodeFailureTests),
     TEST_ENTRY(EncodeRawTest),
@@ -83,7 +85,6 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ParseTooDeepArrayTest),
     TEST_ENTRY(ComprehensiveInputTest),
     TEST_ENTRY(ParseMapTest),
-    TEST_ENTRY(IndefiniteLengthArrayMapTest),
     TEST_ENTRY(BasicEncodeTest),
     TEST_ENTRY(NestedMapTest),
     TEST_ENTRY(BignumParseTest),
@@ -95,8 +96,13 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ParseDeepArrayTest),
     TEST_ENTRY(SimpleArrayTest),
     TEST_ENTRY(IntegerValuesParseTest),
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+    TEST_ENTRY(AllocAllStringsTest),
     TEST_ENTRY(MemPoolTest),
     TEST_ENTRY(IndefiniteLengthStringTest),
+    TEST_ENTRY(SpiffyIndefiniteLengthStringsTests),
+    TEST_ENTRY(SetUpAllocatorTest),
+#endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
     TEST_ENTRY(HalfPrecisionDecodeBasicTests),
     TEST_ENTRY(DoubleAsSmallestTest),
@@ -112,7 +118,6 @@ static test_entry s_tests[] = {
     TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
     TEST_ENTRY_DISABLED(TooLargeInputTest),
     TEST_ENTRY(EncodeErrorTests),
-    TEST_ENTRY(SetUpAllocatorTest),
     TEST_ENTRY(SimpleValuesIndefiniteLengthTest1),
     TEST_ENTRY(EncodeLengthThirtyoneTest),
     TEST_ENTRY(CBORSequenceDecodeTests),
@@ -124,7 +129,6 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ExponentAndMantissaDecodeTests),
     TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
     TEST_ENTRY(ExponentAndMantissaEncodeTests),
-    TEST_ENTRY(SpiffyIndefiniteLengthStringsTests),
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 };
 

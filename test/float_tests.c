@@ -1182,4 +1182,4 @@ static int NaNExperiments() {
 
     return 0;
 }
-#endif
+#endif /* NAN_EXPERIMENT */

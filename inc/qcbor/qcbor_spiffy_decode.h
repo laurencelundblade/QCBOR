@@ -782,6 +782,8 @@ void QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
  nesting, this is of little consequence, but may be of consequence for
  large deeply nested CBOR structures on slow CPUs.
 
+ The position of the pre-order traversal cursor is not changed.
+
  See @ref Decode-Errors for discussion on how error handling works.
 
  See also QCBORDecode_GetItemsInMap() for error discussion.
@@ -823,6 +825,8 @@ void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  way to descend into and decode them. Use
  QCBORDecode_EnterMapinMapN(), QCBORDecode_EnterArrayInMapN() and such
  to descend into and process maps and arrays.
+
+ The position of the pre-order traversal cursor is not changed.
 
  See @ref Decode-Errors for discussion on how error handling works.
 
@@ -1525,7 +1529,7 @@ inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
 
  When the wrapped CBOR is entered with this function, the pre-order
  traversal and such are bounded to the wrapped
- CBOR. QCBORDecode_ExitBstrWrapped() must be called resume processing
+ CBOR. QCBORDecode_ExitBstrWrapped() must be called to resume processing
  CBOR outside the wrapped CBOR.
 
  If @c pBstr is not @c NULL the pointer and length of the wrapped
@@ -1564,7 +1568,7 @@ void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx,
  The items in the wrapped CBOR that was entered do not have to have been
  consumed for this to succeed.
 
- The this sets thepre-order traversal cursor to the item after
+ The this sets the pre-order traversal cursor to the item after
  the byte string that was exited.
 */
 void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
