@@ -3467,7 +3467,7 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
    }
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state; do nothing.
+      /* Already in error state; do nothing. */
       return pMe->uLastError;
    }
 
@@ -3491,9 +3491,10 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
    }
 
    if(DecodeNesting_IsCurrentDefiniteLength(&(pMe->nesting))) {
-      // Reverse the decrement done by GetNext() for the bstr so the
-      // increment in QCBORDecode_NestLevelAscender() called by ExitBoundedLevel()
-      // will work right.
+      /* Reverse the decrement done by GetNext() for the bstr so the
+       * increment in QCBORDecode_NestLevelAscender() called by
+       * ExitBoundedLevel() will work right.
+       */
       DecodeNesting_ReverseDecrement(&(pMe->nesting));
    }
 
@@ -3501,35 +3502,34 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
       *pBstr = pItem->val.string;
    }
 
-   // This saves the current length of the UsefulInputBuf and then
-   // narrows the UsefulInputBuf to start and length of the wrapped
-   // CBOR that is being entered.
-   //
-   // This makes sure the length is less than
-   // QCBOR_MAX_DECODE_INPUT_SIZE which is slightly less than
-   // UINT32_MAX. The value UINT32_MAX is used as a special indicator
-   // value. The checks against QCBOR_MAX_DECODE_INPUT_SIZE also make
-   // the casts from size_t to uint32_t safe.  uEndOfBstr will always be less than
-   // uPreviousLength because of the way UsefulInputBuf works so there
-   // is no need to check it.  There is also a range check in
-   // UsefulInputBuf_Seek().
-   //
-   // Most of these calls are simple inline accessors so this doesn't
-   // amount to much code.
-   // Cast of uPreviousLength to uint32_t for cases where SIZE_MAX < UINT32_MAX.
+   /* This saves the current length of the UsefulInputBuf and then
+    * narrows the UsefulInputBuf to start and length of the wrapped
+    * CBOR that is being entered.
+    *
+    * Most of these calls are simple inline accessors so this doesn't
+    * amount to much code.
+    */
+
    const size_t uPreviousLength = UsefulInputBuf_GetBufferLength(&(pMe->InBuf));
-   if((uint32_t)uPreviousLength >= QCBOR_MAX_DECODE_INPUT_SIZE) {
+   /* This check makes the cast of uPreviousLength to uint32_t below safe. */
+   if(uPreviousLength >= QCBOR_MAX_DECODE_INPUT_SIZE) {
       uError = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
-   const size_t uStartOfBstr = UsefulInputBuf_PointerToOffset(&(pMe->InBuf), pItem->val.string.ptr);
 
-   if(uStartOfBstr == SIZE_MAX) {
+   const size_t uStartOfBstr = UsefulInputBuf_PointerToOffset(&(pMe->InBuf),
+                                                              pItem->val.string.ptr);
+   /* This check makes the cast of uStartOfBstr to uint32_t below safe. */
+   if(uStartOfBstr == SIZE_MAX || uStartOfBstr > QCBOR_MAX_DECODE_INPUT_SIZE) {
+      /* This should never happen because pItem->val.string.ptr should
+       * always be valid since it was just returned.
+       */
       uError = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
 
    const size_t uEndOfBstr = uStartOfBstr + pItem->val.string.len;
+
    UsefulInputBuf_Seek(&(pMe->InBuf), uStartOfBstr);
    UsefulInputBuf_SetBufferLength(&(pMe->InBuf), uEndOfBstr);
 
