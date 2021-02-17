@@ -41,7 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
- 2/17/2021    llundblade      Method to go from a pointer to an offset.
+ 2/17/2021    llundblade      Add method to go from a pointer to an offset.
  1/25/2020    llundblade      Add some casts so static anlyzers don't complain.
  5/21/2019    llundblade      #define configs for efficient endianness handling.
  5/16/2019    llundblade      Add UsefulOutBuf_IsBufferNULL().
@@ -591,14 +591,13 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
 /**
-@brief Convert a pointer to an offset with bounds checking.
+ @brief Convert a pointer to an offset with bounds checking.
 
-@param[in] UB  Pointer to the UsefulInputBuf.
-@param[in] p     Pointer to convert to offet.
+ @param[in] UB  Pointer to the UsefulInputBuf.
+ @param[in] p   Pointer to convert to offset.
 
-@return SIZE_MAX if @c p is out of range, offset if not.
+ @return SIZE_MAX if @c p is out of range, the byte offset if not.
 */
-// TODO: test this
 static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p);
 
 
@@ -1345,12 +1344,12 @@ static int UsefulInputBuf_BytesAvailable(UsefulInputBuf *pUInBuf, size_t uLen);
 
 
 /**
-@brief Convert a pointer to an offset with bounds checking.
+ @brief Convert a pointer to an offset with bounds checking.
 
-@param[in] pUInBuf  Pointer to the UsefulInputBuf.
-@param[in] p     Pointer to convert to offet.
+ @param[in] pUInBuf  Pointer to the UsefulInputBuf.
+ @param[in] p        Pointer to convert to offset.
 
-@return SIZE_MAX if @c p is out of range.
+ @return SIZE_MAX if @c p is out of range, the byte offset if not.
 */
 static inline size_t UsefulInputBuf_PointerToOffset(UsefulInputBuf *pUInBuf, const void *p);
 
@@ -1652,19 +1651,24 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
 
 static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p)
 {
+   if(UB.ptr == NULL) {
+      return SIZE_MAX;
+   }
+
    if(p < UB.ptr) {
-       /* given pointer is before start of buffer */
-       return SIZE_MAX;
+      /* given pointer is before start of buffer */
+      return SIZE_MAX;
    }
 
-   ptrdiff_t nOffset = (uint8_t *)p - (uint8_t *)UB.ptr;
+   // Cast to size_t (from ptrdiff_t) is OK because of check above
+   const size_t uOffset = (size_t)((uint8_t *)p - (uint8_t *)UB.ptr);
 
-   if(nOffset < 0) {
-       /* given pointer is of the end of the buffer */
-       return SIZE_MAX;
+    if(uOffset >= UB.len) {
+      /* given pointer is off the end of the buffer */
+      return SIZE_MAX;
    }
 
-   return (size_t)nOffset;
+   return uOffset;
 }
 
 
