@@ -310,7 +310,10 @@ const char *UBMacroConversionsTest(void)
    if(Boo.len != 3 || strncmp(Boo.ptr, "Boo", 3))
      return "UsefulBuf_FROM_BYTE_ARRAY_LITERAL failed";
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
    UsefulBuf B = (UsefulBuf){(void *)Too.ptr, Too.len};
+#pragma GCC diagnostic pop
    UsefulBufC BC = UsefulBuf_Const(B);
    if(BC.len != Too.len || BC.ptr != Too.ptr)
       return "UsefulBufConst failed";
@@ -595,7 +598,7 @@ const char *UBUtilTests(void)
 }
 
 
-const char *  UIBTest_IntegerFormat()
+const char *  UIBTest_IntegerFormat(void)
 {
    UsefulOutBuf_MakeOnStack(UOB,100);
 
@@ -699,7 +702,7 @@ const char *  UIBTest_IntegerFormat()
 }
 
 
-const char *UBUTest_CopyUtil()
+const char *UBUTest_CopyUtil(void)
 {
    if(UsefulBufUtil_CopyFloatToUint32(65536.0F) != 0x47800000) {
       return "CopyFloatToUint32 failed";

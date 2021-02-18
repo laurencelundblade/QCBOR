@@ -5001,7 +5001,7 @@ static int32_t DecodeNestedGetZero(QCBORDecodeContext *pDCtx)
 
 /* Repeatedly enter and exit maps and arrays, go off the end of maps
  and arrays and such. */
-static int32_t DecodeNestedIterate()
+static int32_t DecodeNestedIterate(void)
 {
    QCBORDecodeContext DCtx;
    int32_t            nReturn;
