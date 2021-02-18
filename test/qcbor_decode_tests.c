@@ -935,13 +935,26 @@ int32_t ParseEmptyMapInMapTest(void)
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmptyMap),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
-      Item.uDataType != QCBOR_TYPE_ARRAY ||
+   /* now open the first Map */
+   nReturn = QCBORDecode_GetNext(&DCtx, &Item);
+    if(nReturn != QCBOR_SUCCESS ||
+       Item.uDataType != QCBOR_TYPE_MAP) {
+      nReturn = -3;
+      goto done;
+    }
+
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0) {
+     nReturn = -1;
+     goto done;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP ||
       Item.uNestingLevel != 1 ||
       Item.label.int64 != 2) {
-     nReturn = -1;
+     nReturn = -2;
+     goto done;
    }
 
+ done:
    return(nReturn);
 }
 
