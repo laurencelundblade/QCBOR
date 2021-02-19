@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -918,8 +918,8 @@ int32_t EmptyMapsAndArraysTest()
    return 0;
 }
 
-/* [[[[[[[[[[]]]]]]]]]] */
-static uint8_t sEmptyMap[] = {
+
+static const uint8_t sEmptyMap[] = {
                               0xA1,     //# map(1)
                               0x02,     //# unsigned(2)
                               0xA0,     //# map(0)
@@ -930,14 +930,15 @@ int32_t ParseEmptyMapInMapTest(void)
    QCBORDecodeContext DCtx;
    QCBORItem Item;
    int nReturn = 0;
+   QCBORError uErr;
 
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmptyMap),
                     QCBOR_DECODE_MODE_NORMAL);
 
    /* now open the first Map */
-   nReturn = QCBORDecode_GetNext(&DCtx, &Item);
-    if(nReturn != QCBOR_SUCCESS ||
+   uErr = QCBORDecode_GetNext(&DCtx, &Item);
+    if(uErr != QCBOR_SUCCESS ||
        Item.uDataType != QCBOR_TYPE_MAP) {
       nReturn = -3;
       goto done;
@@ -957,6 +958,7 @@ int32_t ParseEmptyMapInMapTest(void)
  done:
    return(nReturn);
 }
+
 
 /* [[[[[[[[[[]]]]]]]]]] */
 static const uint8_t spDeepArrays[] = {
