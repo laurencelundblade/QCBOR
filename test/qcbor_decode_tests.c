@@ -7040,6 +7040,8 @@ static const uint8_t pValidIndefWrappedMapEncoded[] = {
 
 static const uint8_t pWithEmptyMap[] = {0x82, 0x18, 0x64, 0xa0};
 
+static const uint8_t pWithEmptyMapInDef[] = {0x9f, 0x18, 0x64, 0xbf, 0xff, 0xff};
+
 
 static const uint8_t yy[] = {
    0x81,
@@ -7576,16 +7578,57 @@ int32_t PeekAndRewindTest()
       return 7030;
    }
 
+   // Rewind an empty indefinite length map
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pWithEmptyMapInDef), 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7810;
+   }
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   /* Do it 5 times to be sure multiple rewinds work */
+   for(int n = 0; n < 5; n++) {
+      nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+      if(nCBORError != QCBOR_ERR_NO_MORE_ITEMS) {
+         return 7800 + n;
+      }
+      QCBORDecode_Rewind(&DCtx);
+   }
+   QCBORDecode_ExitMap(&DCtx);
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7810;
+   }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   i = 9;
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7820;
+   }
+   if(QCBORDecode_GetError(&DCtx)){
+      return 7830;
+   }
+
 
    // Rewind an indefnite length byte-string wrapped sequence
-   (void)yy;
-#if 0
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(yy), 0);
    UsefulBuf_MAKE_STACK_UB(Pool, 100);
    QCBORDecode_SetMemPool(&DCtx, Pool, 0);
 
    QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_EnterBstrWrapped(&DCtx, 2, NULL);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_INPUT_TOO_LARGE) {
+      /* this is what happens when trying to enter byte string
+       wrapped CBOR.  Tolerate for now. Eventually it needs
+       to be fixed so this works, but that is not simple. */
+      return 7300;
+   }
+
+   /*
    QCBORDecode_GetUInt64(&DCtx, &i);
    if(i != 42) {
       return 7110;
@@ -7594,14 +7637,11 @@ int32_t PeekAndRewindTest()
    QCBORDecode_GetUInt64(&DCtx, &i);
    if(i != 42) {
       return 7220;
-   }
-#endif
-   // Rewind an empty array
+   }*/
 
-   // Rewind an empty indefinite length map
+
 
    // Rewind an indefnite length byte-string wrapped sequence
-   // [
 
    return 0;
 }
