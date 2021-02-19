@@ -7038,13 +7038,25 @@ static const uint8_t pValidIndefWrappedMapEncoded[] = {
 #endif
 
 
+static const uint8_t pWithEmptyMap[] = {0x82, 0x18, 0x64, 0xa0};
+
+
+static const uint8_t yy[] = {
+   0x81,
+   0xd8, 0x18,
+   0x5f,
+   0x41, 0x83,
+   0x41, 0x18,
+   0x43, 0x2A, 0x18, 0x2B,
+   0x42, 0x18, 0x2C,
+   0xff
+};
+
 int32_t PeekAndRewindTest()
 {
    QCBORItem          Item;
    QCBORError         nCBORError;
    QCBORDecodeContext DCtx;
-
-   (void)pValidWrappedMapEncoded;
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
 
@@ -7241,7 +7253,7 @@ int32_t PeekAndRewindTest()
 
 
 
-
+   // Rewind to top level after entering several maps
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
@@ -7353,6 +7365,7 @@ int32_t PeekAndRewindTest()
     }
 
 
+   // Rewind an entered map
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
 
    QCBORDecode_EnterMap(&DCtx, NULL);
@@ -7409,6 +7422,8 @@ int32_t PeekAndRewindTest()
       return 5500;
    }
 
+
+   // Rewind and entered array inside an entered map
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
 
    QCBORDecode_EnterMap(&DCtx, NULL);
@@ -7460,6 +7475,7 @@ int32_t PeekAndRewindTest()
    }
 
 
+   // Rewind a byte string inside an array inside an array
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidWrappedMapEncoded), 0);
 
    QCBORDecode_EnterArray(&DCtx, NULL);
@@ -7483,7 +7499,6 @@ int32_t PeekAndRewindTest()
 
    QCBORDecode_Rewind(&DCtx);
 
-
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return 6300+(int32_t)nCBORError;
    }
@@ -7492,6 +7507,8 @@ int32_t PeekAndRewindTest()
    }
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   // Rewind a byte string inside an indefinite-length array inside
+   // indefinite-length array
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidIndefWrappedMapEncoded), 0);
 
@@ -7522,6 +7539,69 @@ int32_t PeekAndRewindTest()
       return 6900;
    }
 #endif
+
+   // Rewind an empty map
+   // [100, {}]
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pWithEmptyMap), 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7010;
+   }
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   /* Do it 5 times to be sure multiple rewinds work */
+   for(int n = 0; n < 5; n++) {
+      nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+      if(nCBORError != QCBOR_ERR_NO_MORE_ITEMS) {
+         return 7000 + n;
+      }
+      QCBORDecode_Rewind(&DCtx);
+   }
+   QCBORDecode_ExitMap(&DCtx);
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7010;
+   }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   i = 9;
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7020;
+   }
+   if(QCBORDecode_GetError(&DCtx)){
+      return 7030;
+   }
+
+
+   // Rewind an indefnite length byte-string wrapped sequence
+   (void)yy;
+#if 0
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(yy), 0);
+   UsefulBuf_MAKE_STACK_UB(Pool, 100);
+   QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterBstrWrapped(&DCtx, 2, NULL);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 42) {
+      return 7110;
+   }
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 42) {
+      return 7220;
+   }
+#endif
+   // Rewind an empty array
+
+   // Rewind an empty indefinite length map
+
+   // Rewind an indefnite length byte-string wrapped sequence
+   // [
 
    return 0;
 }

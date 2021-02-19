@@ -2717,7 +2717,10 @@ void QCBORDecode_Rewind(QCBORDecodeContext *pMe)
          /* Reset nesting tracking to the deepest bounded level */
          // TODO: combine this with code called by MapSearch?
          pMe->nesting.pCurrent = pMe->nesting.pCurrentBounded;
-         pMe->nesting.pCurrent->u.ma.uCountCursor = pMe->nesting.pCurrent->u.ma.uCountTotal;
+         if(pMe->nesting.pCurrent->u.ma.uCountCursor != QCBOR_COUNT_INDICATES_ZERO_LENGTH) {
+            pMe->nesting.pCurrent->u.ma.uCountCursor =
+               pMe->nesting.pCurrent->u.ma.uCountTotal;
+         }
       }
 
    } else {
@@ -3471,12 +3474,7 @@ static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
       return pMe->uLastError;
    }
 
-   QCBORError uError = QCBOR_SUCCESS;
-
-   if(pItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
-      uError = QCBOR_ERR_UNEXPECTED_TYPE;
-      goto Done;;
-   }
+   QCBORError uError;
 
    const TagSpecification TagSpec =
       {
