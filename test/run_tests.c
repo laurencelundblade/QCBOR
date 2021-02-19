@@ -130,6 +130,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
     TEST_ENTRY(ExponentAndMantissaEncodeTests),
 #endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+    TEST_ENTRY(ParseEmptyMapInMapTest),
 };
 
 

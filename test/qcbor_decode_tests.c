@@ -919,6 +919,46 @@ int32_t EmptyMapsAndArraysTest()
 }
 
 /* [[[[[[[[[[]]]]]]]]]] */
+static uint8_t sEmptyMap[] = {
+                              0xA1,     //# map(1)
+                              0x02,     //# unsigned(2)
+                              0xA0,     //# map(0)
+};
+
+int32_t ParseEmptyMapInMapTest(void)
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem Item;
+   int nReturn = 0;
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmptyMap),
+                    QCBOR_DECODE_MODE_NORMAL);
+
+   /* now open the first Map */
+   nReturn = QCBORDecode_GetNext(&DCtx, &Item);
+    if(nReturn != QCBOR_SUCCESS ||
+       Item.uDataType != QCBOR_TYPE_MAP) {
+      nReturn = -3;
+      goto done;
+    }
+
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0) {
+     nReturn = -1;
+     goto done;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP ||
+      Item.uNestingLevel != 1 ||
+      Item.label.int64 != 2) {
+     nReturn = -2;
+     goto done;
+   }
+
+ done:
+   return(nReturn);
+}
+
+/* [[[[[[[[[[]]]]]]]]]] */
 static const uint8_t spDeepArrays[] = {
    0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
    0x81, 0x80};
