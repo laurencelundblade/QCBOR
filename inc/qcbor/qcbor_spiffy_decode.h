@@ -745,8 +745,6 @@ static void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
  sets the traversal cursor to the beginning of the one most recently
  entered.
 
- TODO: implement this for byte strings.
-
  If no map or array has been entered, this resets the
  traversal cursor to the beginning of the input CBOR.
 
@@ -1531,6 +1529,9 @@ inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
  traversal and such are bounded to the wrapped
  CBOR. QCBORDecode_ExitBstrWrapped() must be called to resume processing
  CBOR outside the wrapped CBOR.
+
+ This does not (currently) work on indefinite-length strings. The
+ (confusing) error @ref QCBOR_ERR_INPUT_TOO_LARGE will be set. 
 
  If @c pBstr is not @c NULL the pointer and length of the wrapped
  CBOR will be returned. This is usually not needed, but sometimes

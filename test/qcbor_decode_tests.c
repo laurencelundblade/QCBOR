@@ -1771,7 +1771,7 @@ static int32_t ProcessFailures(const struct FailInput *pFailInputs, size_t nNumF
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      
+
       // Iterate until there is an error of some sort error
       QCBORItem Item;
       do {
@@ -6985,11 +6985,20 @@ int32_t SpiffyIndefiniteLengthStringsTests()
 
 
 /*
-An array of an integer and an array. The second array contains a bstr-wrapped map.
-
- [7, [h'A36D666972737420696E7465676572182A77616E206172726179206F662074776F20737472696E67738267737472696E673167737472696E67326C6D617020696E2061206D6170A467627974657320314478787878676279746573203244797979796B616E6F7468657220696E74186266746578742032781E6C6965732C2064616D6E206C69657320616E642073746174697374696373']]
-
- {"first integer": 42, "an array of two strings": ["string1", "string2"], "map in a map": {"bytes 1": h'78787878', "bytes 2": h'79797979', "another int": 98, "text 2": "lies, damn lies and statistics"}}
+ * An array of an integer and an array. The second array contains
+ * a bstr-wrapped map.
+ *
+ * [7, [h'A36D6669... (see next lines) 73']]
+ *
+ * {"first integer": 42,
+ *   "an array of two strings": ["string1", "string2"],
+ *    "map in a map":
+ *      { "bytes 1": h'78787878',
+ *        "bytes 2": h'79797979',
+ *        "another int": 98,
+ *        "text 2": "lies, damn lies and statistics"
+ *      }
+ *   }
  */
 
 static const uint8_t pValidWrappedMapEncoded[] = {
@@ -7040,10 +7049,12 @@ static const uint8_t pValidIndefWrappedMapEncoded[] = {
 
 static const uint8_t pWithEmptyMap[] = {0x82, 0x18, 0x64, 0xa0};
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 static const uint8_t pWithEmptyMapInDef[] = {0x9f, 0x18, 0x64, 0xbf, 0xff, 0xff};
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
-
-static const uint8_t yy[] = {
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+static const uint8_t pWrappedByIndefiniteLength[] = {
    0x81,
    0xd8, 0x18,
    0x5f,
@@ -7053,6 +7064,8 @@ static const uint8_t yy[] = {
    0x42, 0x18, 0x2C,
    0xff
 };
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
 
 int32_t PeekAndRewindTest()
 {
@@ -7579,6 +7592,7 @@ int32_t PeekAndRewindTest()
    }
 
    // Rewind an empty indefinite length map
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pWithEmptyMapInDef), 0);
    QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_GetUInt64(&DCtx, &i);
@@ -7612,10 +7626,13 @@ int32_t PeekAndRewindTest()
    if(QCBORDecode_GetError(&DCtx)){
       return 7830;
    }
-
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    // Rewind an indefnite length byte-string wrapped sequence
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(yy), 0);
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pWrappedByIndefiniteLength),
+                    0);
    UsefulBuf_MAKE_STACK_UB(Pool, 100);
    QCBORDecode_SetMemPool(&DCtx, Pool, 0);
 
@@ -7638,7 +7655,7 @@ int32_t PeekAndRewindTest()
    if(i != 42) {
       return 7220;
    }*/
-
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
    // Rewind an indefnite length byte-string wrapped sequence
