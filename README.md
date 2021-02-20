@@ -235,7 +235,7 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
     |               | smallest | largest |  
     |---------------|----------|---------|
     | encode only   |      850 |    2100 |
-    | decode only   |     2000 |   13200 |
+    | decode only   |     2000 |   13300 |
     | combined      |     2850 |   15500 |
     
  From the table above, one can see that the amount of code pulled in

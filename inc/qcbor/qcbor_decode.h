@@ -881,7 +881,7 @@ void QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
  This is useful for looking ahead to determine the type
  of a data item to know which type-specific spiffy decode
- function to call. 
+ function to call.
  */
 QCBORError
 QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
