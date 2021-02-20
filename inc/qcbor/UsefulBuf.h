@@ -1,6 +1,6 @@
 /*============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,6 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 2/17/2021    llundblade      Add method to go from a pointer to an offset.
  1/25/2020    llundblade      Add some casts so static anlyzers don't complain.
  5/21/2019    llundblade      #define configs for efficient endianness handling.
  5/16/2019    llundblade      Add UsefulOutBuf_IsBufferNULL().
@@ -587,6 +588,17 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue);
  @return Position of found bytes or @c SIZE_MAX if not found.
  */
 size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
+
+
+/**
+ @brief Convert a pointer to an offset with bounds checking.
+
+ @param[in] UB  Pointer to the UsefulInputBuf.
+ @param[in] p   Pointer to convert to offset.
+
+ @return SIZE_MAX if @c p is out of range, the byte offset if not.
+*/
+static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p);
 
 
 #if 1 // NOT_DEPRECATED
@@ -1332,6 +1344,17 @@ static int UsefulInputBuf_BytesAvailable(UsefulInputBuf *pUInBuf, size_t uLen);
 
 
 /**
+ @brief Convert a pointer to an offset with bounds checking.
+
+ @param[in] pUInBuf  Pointer to the UsefulInputBuf.
+ @param[in] p        Pointer to convert to offset.
+
+ @return SIZE_MAX if @c p is out of range, the byte offset if not.
+*/
+static inline size_t UsefulInputBuf_PointerToOffset(UsefulInputBuf *pUInBuf, const void *p);
+
+
+/**
  @brief Get pointer to bytes out of the input buffer.
 
  @param[in] pUInBuf  Pointer to the UsefulInputBuf.
@@ -1625,6 +1648,28 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
    return ReturnValue;
 }
 
+
+static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p)
+{
+   if(UB.ptr == NULL) {
+      return SIZE_MAX;
+   }
+
+   if(p < UB.ptr) {
+      /* given pointer is before start of buffer */
+      return SIZE_MAX;
+   }
+
+   // Cast to size_t (from ptrdiff_t) is OK because of check above
+   const size_t uOffset = (size_t)((uint8_t *)p - (uint8_t *)UB.ptr);
+
+    if(uOffset >= UB.len) {
+      /* given pointer is off the end of the buffer */
+      return SIZE_MAX;
+   }
+
+   return uOffset;
+}
 
 
 static inline uint32_t UsefulBufUtil_CopyFloatToUint32(float f)
@@ -1990,6 +2035,12 @@ static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pMe)
 static inline int UsefulInputBuf_BytesAvailable(UsefulInputBuf *pMe, size_t uLen)
 {
    return UsefulInputBuf_BytesUnconsumed(pMe) >= uLen ? 1 : 0;
+}
+
+
+static inline size_t UsefulInputBuf_PointerToOffset(UsefulInputBuf *pUInBuf, const void *p)
+{
+   return UsefulBuf_PointerToOffset(pUInBuf->UB, p);
 }
 
 

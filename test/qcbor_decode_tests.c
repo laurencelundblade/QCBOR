@@ -1813,7 +1813,7 @@ static int32_t ProcessFailures(const struct FailInput *pFailInputs, size_t nNumF
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      
+
       // Iterate until there is an error of some sort error
       QCBORItem Item;
       do {
@@ -7026,8 +7026,90 @@ int32_t SpiffyIndefiniteLengthStringsTests()
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
+/*
+ * An array of an integer and an array. The second array contains
+ * a bstr-wrapped map.
+ *
+ * [7, [h'A36D6669... (see next lines) 73']]
+ *
+ * {"first integer": 42,
+ *   "an array of two strings": ["string1", "string2"],
+ *    "map in a map":
+ *      { "bytes 1": h'78787878',
+ *        "bytes 2": h'79797979',
+ *        "another int": 98,
+ *        "text 2": "lies, damn lies and statistics"
+ *      }
+ *   }
+ */
 
-int32_t PeekTest()
+static const uint8_t pValidWrappedMapEncoded[] = {
+   0x82, 0x07, 0x81, 0x58, 0x97,
+   0xa3, 0x6d, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20, 0x69, 0x6e,
+   0x74, 0x65, 0x67, 0x65, 0x72, 0x18, 0x2a, 0x77, 0x61, 0x6e,
+   0x20, 0x61, 0x72, 0x72, 0x61, 0x79, 0x20, 0x6f, 0x66, 0x20,
+   0x74, 0x77, 0x6f, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67,
+   0x73, 0x82, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x31,
+   0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x32, 0x6c, 0x6d,
+   0x61, 0x70, 0x20, 0x69, 0x6e, 0x20, 0x61, 0x20, 0x6d, 0x61,
+   0x70, 0xa4, 0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x31,
+   0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62, 0x79, 0x74, 0x65,
+   0x73, 0x20, 0x32, 0x44, 0x79, 0x79, 0x79, 0x79, 0x6b, 0x61,
+   0x6e, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x20, 0x69, 0x6e, 0x74,
+   0x18, 0x62, 0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32, 0x78,
+   0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x64, 0x61, 0x6d,
+   0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73, 0x20, 0x61, 0x6e, 0x64,
+   0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63,
+   0x73
+};
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+
+/* As above, but the arrays are indefinite length */
+static const uint8_t pValidIndefWrappedMapEncoded[] = {
+   0x9f, 0x07, 0x9f, 0x58, 0x97,
+   0xa3, 0x6d, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20, 0x69, 0x6e,
+   0x74, 0x65, 0x67, 0x65, 0x72, 0x18, 0x2a, 0x77, 0x61, 0x6e,
+   0x20, 0x61, 0x72, 0x72, 0x61, 0x79, 0x20, 0x6f, 0x66, 0x20,
+   0x74, 0x77, 0x6f, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67,
+   0x73, 0x82, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x31,
+   0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x32, 0x6c, 0x6d,
+   0x61, 0x70, 0x20, 0x69, 0x6e, 0x20, 0x61, 0x20, 0x6d, 0x61,
+   0x70, 0xa4, 0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x31,
+   0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62, 0x79, 0x74, 0x65,
+   0x73, 0x20, 0x32, 0x44, 0x79, 0x79, 0x79, 0x79, 0x6b, 0x61,
+   0x6e, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x20, 0x69, 0x6e, 0x74,
+   0x18, 0x62, 0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32, 0x78,
+   0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x64, 0x61, 0x6d,
+   0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73, 0x20, 0x61, 0x6e, 0x64,
+   0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63,
+   0x73,
+   0xff, 0xff
+};
+#endif
+
+
+static const uint8_t pWithEmptyMap[] = {0x82, 0x18, 0x64, 0xa0};
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+static const uint8_t pWithEmptyMapInDef[] = {0x9f, 0x18, 0x64, 0xbf, 0xff, 0xff};
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+static const uint8_t pWrappedByIndefiniteLength[] = {
+   0x81,
+   0xd8, 0x18,
+   0x5f,
+   0x41, 0x83,
+   0x41, 0x18,
+   0x43, 0x2A, 0x18, 0x2B,
+   0x42, 0x18, 0x2C,
+   0xff
+};
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+
+int32_t PeekAndRewindTest()
 {
    QCBORItem          Item;
    QCBORError         nCBORError;
@@ -7097,8 +7179,9 @@ int32_t PeekTest()
       Item.uLabelAlloc ||
       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
       Item.uDataType != QCBOR_TYPE_ARRAY ||
-      Item.val.uCount != 2)
+      Item.val.uCount != 2) {
       return 1400;
+   }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return 1500 + (int32_t)nCBORError;
@@ -7197,8 +7280,9 @@ int32_t PeekTest()
       Item.uLabelAlloc ||
       UsefulBufCompareToSZ(Item.label.string, "another int") ||
       Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 98)
+      Item.val.int64 != 98) {
       return 2900;
+   }
 
    if((nCBORError = QCBORDecode_PeekNext(&DCtx, &Item))) {
       return 3000 + (int32_t)nCBORError;
@@ -7223,6 +7307,400 @@ int32_t PeekTest()
       UsefulBufCompareToSZ(Item.val.string, "lies, damn lies and statistics")) {
       return 3300;
    }
+
+
+
+   // Rewind to top level after entering several maps
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_MAP ||
+       Item.val.uCount != 3) {
+       return 400;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 4000+(int32_t)nCBORError;
+    }
+
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataType != QCBOR_TYPE_INT64 ||
+       Item.val.int64 != 42 ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+       return 4100;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 4100+(int32_t)nCBORError;
+    }
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+       Item.uDataType != QCBOR_TYPE_ARRAY ||
+       Item.val.uCount != 2) {
+       return 4200;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 4200+(int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.val.string, "string1")) {
+       return 4300;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 4300+(int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.val.string, "string2")) {
+       return 4400;
+    }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 4400+(int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_MAP ||
+       Item.val.uCount != 3) {
+       return 4500;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataType != QCBOR_TYPE_INT64 ||
+       Item.val.int64 != 42 ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+       return 4600;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+       Item.uDataType != QCBOR_TYPE_ARRAY ||
+       Item.val.uCount != 2) {
+       return 4700;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.val.string, "string1")) {
+       return 4800;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 4900+(int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.val.string, "string2")) {
+       return 5000;
+    }
+
+
+   // Rewind an entered map
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 5100+(int32_t)nCBORError;
+   }
+
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataType != QCBOR_TYPE_INT64 ||
+       Item.val.int64 != 42 ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+       return 5200;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 5200+(int32_t)nCBORError;
+    }
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+       Item.uDataType != QCBOR_TYPE_ARRAY ||
+       Item.val.uCount != 2) {
+       return -5300;
+    }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 5300+(int32_t)nCBORError;
+   }
+
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataType != QCBOR_TYPE_INT64 ||
+      Item.val.int64 != 42 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+      return 5400;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 5400+(int32_t)nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+      Item.uDataType != QCBOR_TYPE_ARRAY ||
+      Item.val.uCount != 2) {
+      return 5500;
+   }
+
+
+   // Rewind and entered array inside an entered map
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 5600+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string1")) {
+      return 5700;
+   }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 5700+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string1")) {
+      return 5800;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string2")) {
+      return 5900;
+   }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 5900+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string1")) {
+      return 6000;
+   }
+
+
+   // Rewind a byte string inside an array inside an array
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidWrappedMapEncoded), 0);
+
+   QCBORDecode_EnterArray(&DCtx, NULL);
+
+   uint64_t i;
+   QCBORDecode_GetUInt64(&DCtx, &i);
+
+   QCBORDecode_EnterArray(&DCtx, NULL);
+
+   QCBORDecode_EnterBstrWrapped(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 6100;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 6200;
+   }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 6300+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 6400;
+   }
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   // Rewind a byte string inside an indefinite-length array inside
+   // indefinite-length array
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidIndefWrappedMapEncoded), 0);
+
+   QCBORDecode_EnterArray(&DCtx, NULL);
+
+   QCBORDecode_GetUInt64(&DCtx, &i);
+
+   QCBORDecode_EnterArray(&DCtx, NULL);
+
+   QCBORDecode_EnterBstrWrapped(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 6500;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 6600+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 6700;
+   }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 6800+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 6900;
+   }
+#endif
+
+   // Rewind an empty map
+   // [100, {}]
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pWithEmptyMap), 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7010;
+   }
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   /* Do it 5 times to be sure multiple rewinds work */
+   for(int n = 0; n < 5; n++) {
+      nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+      if(nCBORError != QCBOR_ERR_NO_MORE_ITEMS) {
+         return 7000 + n;
+      }
+      QCBORDecode_Rewind(&DCtx);
+   }
+   QCBORDecode_ExitMap(&DCtx);
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7010;
+   }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   i = 9;
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7020;
+   }
+   if(QCBORDecode_GetError(&DCtx)){
+      return 7030;
+   }
+
+   // Rewind an empty indefinite length map
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pWithEmptyMapInDef), 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7810;
+   }
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   /* Do it 5 times to be sure multiple rewinds work */
+   for(int n = 0; n < 5; n++) {
+      nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+      if(nCBORError != QCBOR_ERR_NO_MORE_ITEMS) {
+         return 7800 + n;
+      }
+      QCBORDecode_Rewind(&DCtx);
+   }
+   QCBORDecode_ExitMap(&DCtx);
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7810;
+   }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   i = 9;
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7820;
+   }
+   if(QCBORDecode_GetError(&DCtx)){
+      return 7830;
+   }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+   // Rewind an indefnite length byte-string wrapped sequence
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pWrappedByIndefiniteLength),
+                    0);
+   UsefulBuf_MAKE_STACK_UB(Pool, 100);
+   QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterBstrWrapped(&DCtx, 2, NULL);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_INPUT_TOO_LARGE) {
+      /* this is what happens when trying to enter byte string
+       wrapped CBOR.  Tolerate for now. Eventually it needs
+       to be fixed so this works, but that is not simple. */
+      return 7300;
+   }
+
+   /*
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 42) {
+      return 7110;
+   }
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 42) {
+      return 7220;
+   }*/
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+
+   // Rewind an indefnite length byte-string wrapped sequence
 
    return 0;
 }

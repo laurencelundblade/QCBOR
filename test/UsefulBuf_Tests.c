@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -591,13 +591,46 @@ const char *UBUtilTests()
       return "Failed to find 3";
    }
 
+
+   const uint8_t pB[] = {0x01, 0x02, 0x03};
+   UsefulBufC Boo = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pB);
+   // Try to map a pointer before
+   if(UsefulBuf_PointerToOffset(Boo, pB-1) != SIZE_MAX) {
+      return "Didn't error on pointer before";
+   }
+
+   // Try to map a pointer after
+   if(UsefulBuf_PointerToOffset(Boo, pB+sizeof(pB)) != SIZE_MAX) {
+      return "Didn't error on pointer after";
+   }
+
+   // Try to map a pointer inside
+   if(UsefulBuf_PointerToOffset(Boo, pB+1) != 1) {
+      return "Incorrect pointer offset";
+   }
+
+   // Try to map a pointer at the start
+   if(UsefulBuf_PointerToOffset(Boo, pB) != 0) {
+      return "Incorrect pointer offset for start";
+   }
+
+   // Try to map a pointer at the end
+   if(UsefulBuf_PointerToOffset(Boo, pB + sizeof(pB)-1) != 2) {
+      return "Incorrect pointer offset for end";
+   }
+
+   // Try to map a pointer on a NULL UB
+   if(UsefulBuf_PointerToOffset(NULLUsefulBufC, pB ) != SIZE_MAX) {
+      return "Incorrect pointer offset for start";
+   }
+
    return NULL;
 }
 
 
 const char *  UIBTest_IntegerFormat()
 {
-   UsefulOutBuf_MakeOnStack(UOB,100);
+   UsefulOutBuf_MakeOnStack(UOB, 100);
 
    const uint32_t u32 = 0x0A0B0C0D; // from https://en.wikipedia.org/wiki/Endianness
    const uint64_t u64 = 1984738472938472;
@@ -693,6 +726,10 @@ const char *  UIBTest_IntegerFormat()
 
    if(!UsefulInputBuf_GetError(&UIB)) {
       return "expected error after seek";
+   }
+
+   if(UsefulInputBuf_PointerToOffset(&UIB, O.ptr) != 0) {
+      return "PointerToOffset not working";
    }
 
    return NULL;

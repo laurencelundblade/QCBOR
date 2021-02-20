@@ -305,7 +305,7 @@ int32_t SpiffyIndefiniteLengthStringsTests(void);
 /*
  Test PeekNext().
  */
-int32_t PeekTest(void);
+int32_t PeekAndRewindTest(void);
 
 
 

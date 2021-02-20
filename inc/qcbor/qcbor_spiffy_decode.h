@@ -151,7 +151,7 @@ extern "C" {
  example, to decode an epoch date tag the content must be an integer
  or floating-point value.
 
- If the parameter indicates it should not be a tag 
+ If the parameter indicates it should not be a tag
  (@ref  QCBOR_TAG_REQUIREMENT_NOT_A_TAG), then
   @ref QCBOR_ERR_UNEXPECTED_TYPE set if it is a tag or the type of the
  encoded CBOR is not what is expected.  In the example of an epoch
@@ -736,6 +736,25 @@ static void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
 
 
 /**
+ @brief Reset traversal cursor to start of map, array, byte-string
+ wrapped CBOR or start of input.
+
+ @param[in] pCtx  The decode context.
+
+ If an array, map or wrapping byte string has been entered this sets
+ the traversal cursor to its beginning. If several arrays, maps or
+ byte strings have been entered, this sets the traversal cursor to the
+ beginning of the one most recently entered.
+
+ If no map or array has been entered, this resets the traversal cursor
+ to the beginning of the input CBOR.
+
+ This also resets the error state.
+ */
+void QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
+
+
+/**
  @brief Get an item in map by label and type.
 
  @param[in] pCtx   The decode context.
@@ -743,8 +762,8 @@ static void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
  @param[in] uQcborType  The QCBOR type. One of @c QCBOR_TYPE_XXX.
  @param[out] pItem  The returned item.
 
- A map must have been entered to use this. If not @ref QCBOR_ERR_MAP_NOT_ENTERED is
- set.
+ A map must have been entered to use this. If not @ref
+ QCBOR_ERR_MAP_NOT_ENTERED is set.
 
  The map is searched for an item of the requested label and type.
  @ref QCBOR_TYPE_ANY can be given to search for the label without
@@ -1511,6 +1530,9 @@ inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
  traversal and such are bounded to the wrapped
  CBOR. QCBORDecode_ExitBstrWrapped() must be called to resume processing
  CBOR outside the wrapped CBOR.
+
+ This does not (currently) work on indefinite-length strings. The
+ (confusing) error @ref QCBOR_ERR_INPUT_TOO_LARGE will be set.
 
  If @c pBstr is not @c NULL the pointer and length of the wrapped
  CBOR will be returned. This is usually not needed, but sometimes

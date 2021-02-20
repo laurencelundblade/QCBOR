@@ -1,6 +1,6 @@
 # QCBOR
 
-QCBOR is an implementation of nearly everything in
+QCBOR is a powerful, commercial quality implementation of nearly everything in
 [RFC8949](https://tools.ietf.org/html/rfc8949). This RFC defines the
 Concise Binary Object Representation (CBOR). Since RFC 8949 is fully
 compatible with RFC 7049, this is also a near-complete implementation
@@ -235,7 +235,7 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
     |               | smallest | largest |  
     |---------------|----------|---------|
     | encode only   |      850 |    2100 |
-    | decode only   |     2000 |   13400 |
+    | decode only   |     2000 |   13300 |
     | combined      |     2850 |   15500 |
     
  From the table above, one can see that the amount of code pulled in
