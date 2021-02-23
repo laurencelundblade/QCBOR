@@ -5482,6 +5482,54 @@ int32_t EnterMapTest()
    }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_MAP) {
+      return 2401;
+   }
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 2402;
+   }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+   QCBORDecode_VGetNext(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_MAP ||
+      Item1.val.uCount != 3 ||
+      Item1.uNextNestLevel != 1) {
+      return 2403;
+   }
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 2404;
+   }
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_INT64 ||
+      Item1.uNextNestLevel != 1 ||
+      Item1.val.int64 != 42) {
+      return 2405;
+   }
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 2406;
+   }
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_ARRAY ||
+      Item1.uNestingLevel != 1 ||
+      Item1.uNextNestLevel != 1 ||
+      Item1.val.uCount != 2) {
+      return 2407;
+   }
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 2408;
+   }
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_MAP ||
+      Item1.uNestingLevel != 1 ||
+      Item1.uNextNestLevel != 0 ||
+      Item1.val.uCount != 4) {
+      return 2409;
+   }
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 2410;
+   }
 
    nReturn = DecodeNestedIterate();
 
@@ -7681,7 +7729,8 @@ int32_t PeekAndRewindTest()
    QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_EnterBstrWrapped(&DCtx, 2, NULL);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_INPUT_TOO_LARGE) {
-      /* this is what happens when trying to enter byte string
+      /* this is what happens when trying to enter
+       indefinite-length byte string
        wrapped CBOR.  Tolerate for now. Eventually it needs
        to be fixed so this works, but that is not simple. */
       return 7300;

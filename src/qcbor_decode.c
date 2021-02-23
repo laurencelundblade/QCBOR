@@ -2695,6 +2695,21 @@ Done:
     return uReturn;
 }
 
+
+void QCBORDecode_VGetNextConsume(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
+{
+   uint8_t    uNextNestLevel;
+
+   QCBORDecode_VGetNext(pMe, pDecodedItem);
+
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      pMe->uLastError = (uint8_t)ConsumeItem(pMe, pDecodedItem, &uNextNestLevel);
+      pDecodedItem->uNextNestLevel = uNextNestLevel;
+   }
+}
+
+
+
 /* Call only on maps and arrays. Rewinds the cursor
  * to the start as if it was just entered.
  */
