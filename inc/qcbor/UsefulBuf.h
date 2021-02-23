@@ -223,9 +223,14 @@ extern "C" {
  The const @ref UsefulBufC is usually used to refer to some data that
  has been filled in. The length is amount of valid data pointed to.
 
- A common use is to pass a @ref UsefulBuf to a function, the function
- fills it in, the function returns a @ref UsefulBufC. The pointer is
- the same in both.
+ A standard use is to pass a @ref UsefulBuf to a function, the
+ function fills it in, the function returns a @ref UsefulBufC. The
+ UsefulBuf is a non-const "in" parameter and the UsefulBufC is a const
+ "out" parameter so the constness stays correct. There is no single
+ "in,out" parameter (if there was, it would have to be non-const).
+ Note that the pointer returned in the UsefulBufC usually ends up
+ being the same pointer passed in as a UsefulBuf, though this is not
+ striclty required.
 
  A @ref UsefulBuf is null, it has no value, when @c ptr in it is @c NULL.
 
