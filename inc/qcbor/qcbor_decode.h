@@ -866,6 +866,21 @@ void QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
+ @brief QCBORDecode_GetNext() and consume entire map or array.
+
+ @param[in]  pCtx          The decoder context.
+ @param[out] pDecodedItem  Holds the CBOR item just decoded.
+
+ This is the same as QCBORDecode_VGetNext() but the contents of the
+ entire map or array will be consumed if the next item is a map or array.
+
+ In order to go back to decode the contents of a map or array consumed
+ by this, the decoder must be rewound using QCBORDecode_Rewind().
+*/
+void QCBORDecode_VGetNextConsume(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
+
+
+/**
  @brief Get the next data item without consuming it.
 
  @param[in]  pCtx          The decoder context.
