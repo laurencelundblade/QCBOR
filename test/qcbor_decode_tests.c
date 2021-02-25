@@ -1771,7 +1771,7 @@ static int32_t ProcessFailures(const struct FailInput *pFailInputs, size_t nNumF
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      
+
       // Iterate until there is an error of some sort error
       QCBORItem Item;
       do {

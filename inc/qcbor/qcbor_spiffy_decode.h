@@ -151,7 +151,7 @@ extern "C" {
  example, to decode an epoch date tag the content must be an integer
  or floating-point value.
 
- If the parameter indicates it should not be a tag 
+ If the parameter indicates it should not be a tag
  (@ref  QCBOR_TAG_REQUIREMENT_NOT_A_TAG), then
   @ref QCBOR_ERR_UNEXPECTED_TYPE set if it is a tag or the type of the
  encoded CBOR is not what is expected.  In the example of an epoch
