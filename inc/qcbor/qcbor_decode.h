@@ -902,6 +902,7 @@ QCBORError
 QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
+
 /**
  @brief Gets the next item including full list of tags for item.
 
@@ -1046,9 +1047,38 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uI
  input was well-formed and there are extra bytes at the end @ref
  QCBOR_ERR_EXTRA_BYTES will be returned.  This can be considered a
  successful decode.
+
+ See also QCBORDecode_PartialFinish().
  */
 QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 
+
+/**
+ @brief Return number of bytes consumed so far.
+
+ @param[in]  pCtx        The context to check.
+ @param[out] puConsumed  The number of bytes consumed so far. May be @c NULL.
+
+ @returns The same as QCBORDecode_Finish();
+
+ This is primarily for partially decoding CBOR sequences. It is the
+ same as QCBORDecode_Finish() except it returns the number of bytes
+ consumed and doesn't call the destructor for the string allocator
+ (See @ref and QCBORDecode_SetMemPool()).
+
+ When this is called before all input bytes are consumed, @ref
+ QCBOR_ERR_EXTRA_BYTES will be returned as QCBORDecode_Finish()
+ does. For typical use of this, that particular error is disregarded.
+
+ Decoding with the same @ref QCBORDecodeContext can continue after
+ calling this and this may be called many times.
+
+ Another way to resume decoding is to call QCBORDecode_Init() on the
+ bytes not decoded, but this only works on CBOR sequences when the
+ decoding stopped with no open arrays, maps or byte strings.
+ */
+QCBORError
+QCBORDecode_PartialFinish(QCBORDecodeContext *pCtx, size_t *puConsumed);
 
 
 /**

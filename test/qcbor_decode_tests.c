@@ -6138,8 +6138,9 @@ int32_t IntegerConvertTest()
 int32_t CBORSequenceDecodeTests(void)
 {
    QCBORDecodeContext DCtx;
-   QCBORItem Item;
-   QCBORError uCBORError;
+   QCBORItem          Item;
+   QCBORError         uCBORError;
+   size_t             uConsumed;
 
    // --- Test a sequence with extra bytes ---
 
@@ -6159,10 +6160,22 @@ int32_t CBORSequenceDecodeTests(void)
       return 2;
    }
 
+   uCBORError = QCBORDecode_PartialFinish(&DCtx, &uConsumed);
+   if(uCBORError != QCBOR_ERR_EXTRA_BYTES ||
+      uConsumed != 12) {
+      return 102;
+   }
+
    // Get a second item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_ERR_BAD_OPT_TAG) {
       return 66;
+   }
+
+   uCBORError = QCBORDecode_PartialFinish(&DCtx, &uConsumed);
+   if(uCBORError != QCBOR_ERR_EXTRA_BYTES ||
+      uConsumed != 14) {
+      return 102;
    }
 
    // Get a third item

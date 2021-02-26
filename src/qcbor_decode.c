@@ -2391,8 +2391,12 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *pMe,
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
-QCBORError QCBORDecode_Finish(QCBORDecodeContext *pMe)
+QCBORError QCBORDecode_PartialFinish(QCBORDecodeContext *pMe, size_t *puConsumed)
 {
+   if(puConsumed != NULL) {
+      *puConsumed = pMe->InBuf.cursor;
+   }
+
    QCBORError uReturn = pMe->uLastError;
 
    if(uReturn != QCBOR_SUCCESS) {
@@ -2411,6 +2415,15 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *pMe)
    }
 
 Done:
+   return uReturn;
+}
+
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
+QCBORError QCBORDecode_Finish(QCBORDecodeContext *pMe)
+{
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
    /* Call the destructor for the string allocator if there is one.
     * Always called, even if there are errors; always have to clean up.
@@ -2418,7 +2431,7 @@ Done:
    StringAllocator_Destruct(&(pMe->StringAllocator));
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-   return uReturn;
+   return QCBORDecode_PartialFinish(pMe, NULL);
 }
 
 
