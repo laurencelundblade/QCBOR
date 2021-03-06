@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,6 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 3/6/2021     mcr/llundblade  Fix warnings related to --Wcast-qual
  01/28/2020  llundblade   Refine integer signedness to quiet static analysis.
  01/08/2020  llundblade   Documentation corrections & improved code formatting.
  11/08/2019  llundblade   Re check pointer math and update comments
@@ -106,12 +107,12 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue)
       return 0;
    }
 
-   const uint8_t * const pEnd = (uint8_t *)UB.ptr + UB.len;
+   const uint8_t * const pEnd = (const uint8_t *)UB.ptr + UB.len;
    for(const uint8_t *p = UB.ptr; p < pEnd; p++) {
       if(*p != uValue) {
          /* Byte didn't match */
          /* Cast from signed  to unsigned . Safe because the loop increments.*/
-         return (size_t)(p - (uint8_t *)UB.ptr);
+         return (size_t)(p - (const uint8_t *)UB.ptr);
       }
    }
 
@@ -130,7 +131,7 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind)
    }
 
    for(size_t uPos = 0; uPos <= BytesToSearch.len - BytesToFind.len; uPos++) {
-      if(!UsefulBuf_Compare((UsefulBufC){((uint8_t *)BytesToSearch.ptr) + uPos, BytesToFind.len}, BytesToFind)) {
+      if(!UsefulBuf_Compare((UsefulBufC){((const uint8_t *)BytesToSearch.ptr) + uPos, BytesToFind.len}, BytesToFind)) {
          return uPos;
       }
    }
@@ -358,7 +359,7 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pMe, size_t uAmount)
    }
 
    // This is going to succeed
-   const void * const result = ((uint8_t *)pMe->UB.ptr) + pMe->cursor;
+   const void * const result = ((const uint8_t *)pMe->UB.ptr) + pMe->cursor;
    // Will not overflow because of check using UsefulInputBuf_BytesAvailable()
    pMe->cursor += uAmount;
    return result;

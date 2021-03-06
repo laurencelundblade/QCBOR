@@ -46,12 +46,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-/*
- * This casts away the const-ness of a pointer, usually so it can be
- * freed or realloced.
- */
-#define UNCONST_POINTER(ptr)    ((void *)(ptr))
-
 #define SIZEOF_C_ARRAY(array,type) (sizeof(array)/sizeof(type))
 
 
@@ -504,19 +498,30 @@ DecodeNesting_GetPreviousBoundedEnd(const QCBORDecodeNesting *pMe)
   ===========================================================================*/
 
 static inline void
-StringAllocator_Free(const QCBORInternalAllocator *pMe, void *pMem)
+StringAllocator_Free(const QCBORInternalAllocator *pMe, const void *pMem)
 {
-   (pMe->pfAllocator)(pMe->pAllocateCxt, pMem, 0);
+   /* These pragmas allow the "-Wcast-qual" warnings flag to be set for
+    * gcc and clang. This is the one place where the const needs to be
+    * cast away so const can be use in the rest of the code.
+    */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+   (pMe->pfAllocator)(pMe->pAllocateCxt, (void *)pMem, 0);
+#pragma GCC diagnostic pop
 }
 
 // StringAllocator_Reallocate called with pMem NULL is
 // equal to StringAllocator_Allocate()
 static inline UsefulBuf
 StringAllocator_Reallocate(const QCBORInternalAllocator *pMe,
-                           void *pMem,
+                           const void *pMem,
                            size_t uSize)
 {
-   return (pMe->pfAllocator)(pMe->pAllocateCxt, pMem, uSize);
+   /* See comment in StringAllocator_Free() */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+   return (pMe->pfAllocator)(pMe->pAllocateCxt, (void *)pMem, uSize);
+#pragma GCC diagnostic pop
 }
 
 static inline UsefulBuf
@@ -528,9 +533,13 @@ StringAllocator_Allocate(const QCBORInternalAllocator *pMe, size_t uSize)
 static inline void
 StringAllocator_Destruct(const QCBORInternalAllocator *pMe)
 {
+   /* See comment in StringAllocator_Free() */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
    if(pMe->pfAllocator) {
       (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, 0);
    }
+#pragma GCC diagnostic pop
 }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
@@ -1290,7 +1299,7 @@ QCBORDecode_GetNextFullString(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
        * not NULL and a reallocation happens.
        */
       UsefulBuf NewMem = StringAllocator_Reallocate(pAllocator,
-                                                    UNCONST_POINTER(FullString.ptr),
+                                                    FullString.ptr,
                                                     FullString.len + StringChunkItem.val.string.len);
 
       if(UsefulBuf_IsNULL(NewMem)) {
@@ -1304,7 +1313,7 @@ QCBORDecode_GetNextFullString(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 
    if(uReturn != QCBOR_SUCCESS && !UsefulBuf_IsNULLC(FullString)) {
       /* Getting the item failed, clean up the allocated memory */
-      StringAllocator_Free(pAllocator, UNCONST_POINTER(FullString.ptr));
+      StringAllocator_Free(pAllocator, FullString.ptr);
    }
 #else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
    uReturn = QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED;
@@ -1459,7 +1468,7 @@ QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
       memmove(&auItemsTags[1], auItemsTags, sizeof(auItemsTags) - sizeof(auItemsTags[0]));
 
       /* Map the tag */
-      uint16_t uMappedTagNumer;
+      uint16_t uMappedTagNumer = 0;
       uReturn = MapTagNumber(pMe, pDecodedItem->val.uTagV, &uMappedTagNumer);
       /* Continue even on error so as to consume all tags wrapping
        * this data item so decoding can go on. If MapTagNumber()

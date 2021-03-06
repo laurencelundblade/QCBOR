@@ -41,7 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
    There is nothing adversarial in this test
  */
-const char * UOBTest_NonAdversarial()
+const char * UOBTest_NonAdversarial(void)
 {
    const char *szReturn = NULL;
 
@@ -160,7 +160,7 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
 
  */
 
-const char *UOBTest_BoundaryConditionsTest()
+const char *UOBTest_BoundaryConditionsTest(void)
 {
    UsefulBuf_MAKE_STACK_UB(outbuf,2);
 
@@ -248,7 +248,7 @@ const char *UOBTest_BoundaryConditionsTest()
 
 // Test function to get size and magic number check
 
-const char *TestBasicSanity()
+const char *TestBasicSanity(void)
 {
    UsefulBuf_MAKE_STACK_UB(outbuf,10);
 
@@ -293,7 +293,7 @@ const char *TestBasicSanity()
 
 
 
-const char *UBMacroConversionsTest()
+const char *UBMacroConversionsTest(void)
 {
    char *szFoo = "foo";
 
@@ -310,16 +310,17 @@ const char *UBMacroConversionsTest()
    if(Boo.len != 3 || strncmp(Boo.ptr, "Boo", 3))
      return "UsefulBuf_FROM_BYTE_ARRAY_LITERAL failed";
 
-   UsefulBuf B = (UsefulBuf){(void *)Too.ptr, Too.len};
+   char *String = "string"; // Intentionally not const
+   UsefulBuf B = (UsefulBuf){(void *)String, strlen(String)};
    UsefulBufC BC = UsefulBuf_Const(B);
-   if(BC.len != Too.len || BC.ptr != Too.ptr)
+   if(BC.len != strlen(String) || BC.ptr != String)
       return "UsefulBufConst failed";
 
    return NULL;
 }
 
 
-const char *UBUtilTests()
+const char *UBUtilTests(void)
 {
    UsefulBuf UB = NULLUsefulBuf;
 
@@ -628,7 +629,7 @@ const char *UBUtilTests()
 }
 
 
-const char *  UIBTest_IntegerFormat()
+const char *  UIBTest_IntegerFormat(void)
 {
    UsefulOutBuf_MakeOnStack(UOB, 100);
 
@@ -736,7 +737,7 @@ const char *  UIBTest_IntegerFormat()
 }
 
 
-const char *UBUTest_CopyUtil()
+const char *UBUTest_CopyUtil(void)
 {
    if(UsefulBufUtil_CopyFloatToUint32(65536.0F) != 0x47800000) {
       return "CopyFloatToUint32 failed";
