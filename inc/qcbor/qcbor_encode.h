@@ -1722,6 +1722,8 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
  @param[out] pEncodedCBOR  Structure in which the pointer and length of the encoded
                            CBOR is returned.
 
+ @retval QCBOR_SUCCESS                     Encoded CBOR is returned.
+
  @retval QCBOR_ERR_TOO_MANY_CLOSES         Nesting error
 
  @retval QCBOR_ERR_CLOSE_MISMATCH          Nesting error
