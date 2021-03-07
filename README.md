@@ -351,6 +351,7 @@ still exist and work the same)
 * Michael Eckel for Makefile improvements
 * Jan Jongboom for indefinite length encoding
 * Peter Uiterwijk for error strings and other
+* Michael Richarson for CI set up and additional compiler warnings
 
 
 ## Copyright and License
