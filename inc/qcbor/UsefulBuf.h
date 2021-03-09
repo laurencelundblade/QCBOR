@@ -41,6 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 3/6/2021     mcr/llundblade  Fix warnings related to --Wcast-qual
  2/17/2021    llundblade      Add method to go from a pointer to an offset.
  1/25/2020    llundblade      Add some casts so static anlyzers don't complain.
  5/21/2019    llundblade      #define configs for efficient endianness handling.
@@ -377,6 +378,14 @@ static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB);
  @param[in] UBC The @ref UsefulBuf to convert.
 
  @return A non-const @ref UsefulBuf struct.
+
+ It is better to avoid use of this. The intended convention for
+ UsefulBuf is to make an empty buffer, some memory, as a UsefulBuf,
+ fill it in, and then make it a UsefulBufC. In that convension this
+ function is not needed.
+
+ This is an explicit way to quiet compiler warnings from
+ -Wcast-qual.
  */
 static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 
@@ -606,7 +615,7 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p);
 
 
-#if 1 // NOT_DEPRECATED
+#ifndef USEFULBUF_DISABLE_DEPRECATED
 /** Deprecated macro; use @ref UsefulBuf_FROM_SZ_LITERAL instead */
 #define SZLiteralToUsefulBufC(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
@@ -623,9 +632,13 @@ static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p);
 /** Deprecated function; use UsefulBuf_Unconst() instead */
 static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
 {
+   // See UsefulBuf_Unconst() implementation for comment on pragmas
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
     return (UsefulBuf){(void *)UBC.ptr, UBC.len};
+#pragma GCC diagnostic pop
 }
-#endif
+#endif /* USEFULBUF_DISABLE_DEPRECATED */
 
 
 
@@ -1597,10 +1610,15 @@ static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB)
    return (UsefulBufC){UB.ptr, UB.len};
 }
 
-
 static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
 {
+   /* -Wcast-qual is a good warning flag to use in general. This is
+    * the one place in UsefulBuf where it needs to be quieted. Since
+    * clang supports GCC pragmas, this works for clang too. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
    return (UsefulBuf){(void *)UBC.ptr, UBC.len};
+#pragma GCC diagnostic pop
 }
 
 
@@ -1647,7 +1665,7 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
    } else if(UB.ptr == NULL) {
       ReturnValue = (UsefulBufC){NULL, UB.len - uAmount};
    } else {
-      ReturnValue = (UsefulBufC){(uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
+      ReturnValue = (UsefulBufC){(const uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
    }
 
    return ReturnValue;
@@ -1666,7 +1684,7 @@ static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p)
    }
 
    // Cast to size_t (from ptrdiff_t) is OK because of check above
-   const size_t uOffset = (size_t)((uint8_t *)p - (uint8_t *)UB.ptr);
+   const size_t uOffset = (size_t)((const uint8_t *)p - (const uint8_t *)UB.ptr);
 
     if(uOffset >= UB.len) {
       /* given pointer is off the end of the buffer */
@@ -2067,7 +2085,7 @@ static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *pMe)
    // The ternery operator is subject to integer promotion, because the
    // operands are smaller than int, so cast back to uint8_t is needed
    // to be completely explicit about types (for static analyzers)
-   return (uint8_t)(pResult ? *(uint8_t *)pResult : 0);
+   return (uint8_t)(pResult ? *(const uint8_t *)pResult : 0);
 }
 
 static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pMe)

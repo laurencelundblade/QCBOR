@@ -116,10 +116,10 @@ UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual,
                                 struct UBCompareDiagnostic *pDiag) {
    size_t i;
    for(i = 0; i < Actual.len; i++) {
-      if(((uint8_t *)Actual.ptr)[i] != ((uint8_t *)Expected.ptr)[i]) {
+      if(((const uint8_t *)Actual.ptr)[i] != ((const uint8_t *)Expected.ptr)[i]) {
          if(pDiag) {
-            pDiag->uActual   = ((uint8_t *)Actual.ptr)[i];
-            pDiag->uExpected = ((uint8_t *)Expected.ptr)[i];
+            pDiag->uActual   = ((const uint8_t *)Actual.ptr)[i];
+            pDiag->uExpected = ((const uint8_t *)Expected.ptr)[i];
             pDiag->uOffset   = i;
          }
          // Cast to int is OK as this is only a diagnostic and the sizes

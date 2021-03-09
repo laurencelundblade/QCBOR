@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1721,6 +1721,8 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
  @param[in] pCtx           The context to finish encoding with.
  @param[out] pEncodedCBOR  Structure in which the pointer and length of the encoded
                            CBOR is returned.
+
+ @retval QCBOR_SUCCESS                     Encoded CBOR is returned.
 
  @retval QCBOR_ERR_TOO_MANY_CLOSES         Nesting error
 
