@@ -379,10 +379,10 @@ static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB);
 
  @return A non-const @ref UsefulBuf struct.
 
- It is better to avoid use of this. The intended convention for UsefulBuf is to make an empty
- buffer, some memory, as a UsefulBuf, fill it in, and then
- make it a UsefulBufC. In that convension this function is
- not needed.
+ It is better to avoid use of this. The intended convention for
+ UsefulBuf is to make an empty buffer, some memory, as a UsefulBuf,
+ fill it in, and then make it a UsefulBufC. In that convension this
+ function is not needed.
 
  This is an explicit way to quiet compiler warnings from
  -Wcast-qual.
