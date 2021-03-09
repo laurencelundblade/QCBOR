@@ -734,7 +734,7 @@ void QCBOREncode_AddFloat(QCBOREncodeContext *me, float fNum)
 }
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /*
  * Semi-public function. It is exposed to the user of the interface,
  * but one of the inline wrappers will usually be called rather than
@@ -775,7 +775,7 @@ void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
    }
    QCBOREncode_CloseArray(pMe);
 }
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 /*

@@ -275,7 +275,7 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
  carefully written to be defensive.
 
  Disable features with defines like:
-   QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) 
+   QCBOR_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) 
    QCBOR_DISABLE_ENCODE_USAGE_GUARDS (saves about 150), and
    QCBOR_DISABLE_PREFERRED_FLOAT (saves about 900 bytes), and
    QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS (saves about 400 bytes).  

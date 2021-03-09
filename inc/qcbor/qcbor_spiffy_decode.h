@@ -1,7 +1,7 @@
 /*============================================================================
   qcbor_spiffy_decode.h -- higher-level easier-to-use CBOR decoding.
 
-  Copyright (c) 2020, Laurence Lundblade. All rights reserved.
+  Copyright (c) 2020-2021, Laurence Lundblade. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 
@@ -1074,7 +1074,7 @@ void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
 
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
  @brief Decode the next item as a decimal fraction.
 
@@ -1272,7 +1272,7 @@ void QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
                                        UsefulBufC         *pMantissa,
                                        bool               *pbMantissaIsNegative,
                                        int64_t            *pnExponent);
-#endif /* #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 

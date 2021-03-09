@@ -49,6 +49,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define QCBOR_SPIFFY_DECODE
 
 
+/* It was originally defined as QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
+ * but this is incosistent with all the other QCBOR_DISABLE_
+ * #defines, so the name was changed and this was added for backwards
+ * compatibility
+ */
+#ifdef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#define QCBOR_DISABLE_EXP_AND_MANTISSA
+#endif
 
 
 /* Standard CBOR Major type for positive integers of various lengths */
