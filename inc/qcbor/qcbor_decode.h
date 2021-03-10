@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -318,7 +318,7 @@ typedef struct _QCBORItem {
       UsefulBufC  bigNum;
       /** The integer value for unknown simple types. */
       uint8_t     uSimple;
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       /** @anchor expAndMantissa
 
           The value for bigfloats and decimal fractions.  The use of the
@@ -348,7 +348,7 @@ typedef struct _QCBORItem {
             UsefulBufC bigNum;
          } Mantissa;
       } expAndMantissa;
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       uint64_t    uTagV;  // Used internally during decoding
 
    } val;

@@ -1,7 +1,7 @@
 /*==============================================================================
  run_tests.c -- test aggregator and results reporting
 
- Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,6 +19,12 @@
 #include "qcbor_encode_tests.h"
 #include "UsefulBuf_Tests.h"
 
+
+
+// For size printing and some conditionals
+#include "qcbor/qcbor_encode.h"
+#include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 
 /*
  Test configuration
@@ -124,12 +130,12 @@ static test_entry s_tests[] = {
     TEST_ENTRY(IntToTests),
     TEST_ENTRY(DecodeTaggedTypeTests),
     TEST_ENTRY(PeekAndRewindTest),
-#ifndef     QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef     QCBOR_DISABLE_EXP_AND_MANTISSA
     TEST_ENTRY(EncodeLengthThirtyoneTest),
     TEST_ENTRY(ExponentAndMantissaDecodeTests),
     TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
     TEST_ENTRY(ExponentAndMantissaEncodeTests),
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
     TEST_ENTRY(ParseEmptyMapInMapTest),
 };
 
@@ -296,10 +302,6 @@ int RunTestsQCBOR(const char *szTestNames[],
 }
 
 
-// For size printing
-#include "qcbor/qcbor_encode.h"
-#include "qcbor/qcbor_decode.h"
-#include "qcbor/qcbor_spiffy_decode.h"
 
 
 /*
