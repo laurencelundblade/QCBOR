@@ -7766,3 +7766,28 @@ int32_t PeekAndRewindTest()
 
    return 0;
 }
+
+
+static const uint8_t spBooleansInMap[] =
+{
+   0xa3, 0x08, 0xf5
+};
+
+int32_t BoolTest(void)
+{
+   QCBORDecodeContext DCtx;
+   bool               b;
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMap), 0);
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetBool(&DCtx, &b);
+   if(QCBORDecode_GetError(&DCtx) || !b) {
+      return 1;
+   }
+
+   // TODO: add more tests
+
+
+   return 0;
+}
