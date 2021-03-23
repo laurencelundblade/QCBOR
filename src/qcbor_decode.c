@@ -3679,12 +3679,8 @@ void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pMe)
 
 
 
-
-
-
-
 static inline void
-InterpretBool(QCBORDecodeContext *pMe, const QCBORItem *pItem, bool *pBool)
+ProcessBool(QCBORDecodeContext *pMe, const QCBORItem *pItem, bool *pBool)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       /* Already in error state, do nothing */
@@ -3722,7 +3718,7 @@ void QCBORDecode_GetBool(QCBORDecodeContext *pMe, bool *pValue)
 
    pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
 
-   InterpretBool(pMe, &Item, pValue);
+   ProcessBool(pMe, &Item, pValue);
 }
 
 
@@ -3734,7 +3730,7 @@ void QCBORDecode_GetBoolInMapN(QCBORDecodeContext *pMe, int64_t nLabel, bool *pV
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
-   InterpretBool(pMe, &Item, pValue);
+   ProcessBool(pMe, &Item, pValue);
 }
 
 
@@ -3746,7 +3742,7 @@ void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, bo
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
 
-   InterpretBool(pMe, &Item, pValue);
+   ProcessBool(pMe, &Item, pValue);
 }
 
 
