@@ -308,5 +308,10 @@ int32_t SpiffyIndefiniteLengthStringsTests(void);
 int32_t PeekAndRewindTest(void);
 
 
+/*
+Test decoding of booleans
+*/
+int32_t BoolTest(void);
+
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

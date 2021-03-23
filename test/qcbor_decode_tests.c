@@ -7766,3 +7766,70 @@ int32_t PeekAndRewindTest()
 
    return 0;
 }
+
+
+
+
+static const uint8_t spBooleansInMap[] =
+{
+   0xa1, 0x08, 0xf5
+};
+
+static const uint8_t spBooleansInMapWrongType[] =
+{
+   0xa1, 0x08, 0xf6
+};
+
+static const uint8_t spBooleansInMapNWF[] =
+{
+   0xa1, 0x08, 0x1a
+};
+
+
+int32_t BoolTest(void)
+{
+   QCBORDecodeContext DCtx;
+   bool               b;
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMap), 0);
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetBool(&DCtx, &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) || !b) {
+      return 1;
+   }
+
+   QCBORDecode_GetBoolInMapN(&DCtx, 7, &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+       return 2;
+   }
+
+   QCBORDecode_GetBoolInMapN(&DCtx, 8, &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) || !b) {
+      return 3;
+   }
+
+
+   QCBORDecode_GetBoolInMapSZ(&DCtx, "xx", &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+       return 4;
+    }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMapWrongType), 0);
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetBool(&DCtx, &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 5;
+   }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMapNWF), 0);
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetBool(&DCtx, &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_HIT_END) {
+      return 6;
+   }
+
+   return 0;
+}

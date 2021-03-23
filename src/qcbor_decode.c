@@ -3679,76 +3679,70 @@ void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pMe)
 
 
 
-
-
-
-
-static QCBORError
-InterpretBool(QCBORDecodeContext *pMe, const QCBORItem *pItem, bool *pBool)
+static inline void
+ProcessBool(QCBORDecodeContext *pMe, const QCBORItem *pItem, bool *pBool)
 {
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      /* Already in error state, do nothing */
+      return;
+   }
+
    switch(pItem->uDataType) {
       case QCBOR_TYPE_TRUE:
          *pBool = true;
-         return QCBOR_SUCCESS;
          break;
 
       case QCBOR_TYPE_FALSE:
          *pBool = false;
-         return QCBOR_SUCCESS;
          break;
 
       default:
-         return QCBOR_ERR_UNEXPECTED_TYPE;
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
          break;
    }
    CopyTags(pMe, pItem);
 }
 
 
-
 /*
- Public function, see header qcbor/qcbor_decode.h file
-*/
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
 void QCBORDecode_GetBool(QCBORDecodeContext *pMe, bool *pValue)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state, do nothing
+      /* Already in error state, do nothing */
       return;
    }
 
-   QCBORError nError;
    QCBORItem  Item;
 
-   nError = QCBORDecode_GetNext(pMe, &Item);
-   if(nError != QCBOR_SUCCESS) {
-      pMe->uLastError = (uint8_t)nError;
-      return;
-   }
-   pMe->uLastError = (uint8_t)InterpretBool(pMe, &Item, pValue);
+   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
+
+   ProcessBool(pMe, &Item, pValue);
 }
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h file
-*/
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
 void QCBORDecode_GetBoolInMapN(QCBORDecodeContext *pMe, int64_t nLabel, bool *pValue)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)InterpretBool(pMe, &Item, pValue);
+   ProcessBool(pMe, &Item, pValue);
 }
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h file
-*/
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
 void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, bool *pValue)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)InterpretBool(pMe, &Item, pValue);
+   ProcessBool(pMe, &Item, pValue);
 }
 
 
