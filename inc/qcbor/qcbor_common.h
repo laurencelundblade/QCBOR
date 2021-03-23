@@ -443,7 +443,7 @@ typedef enum {
 
    /** All well-formed data items have been consumed and there are no
        more. If parsing a CBOR stream this indicates the non-error end
-       of the stream. If parsing a CBOR stream / sequence, this
+       of the stream. If not parsing a CBOR stream / sequence, this
        probably indicates that some data items expected are not
        present.  See also @ref QCBOR_ERR_HIT_END. */
    QCBOR_ERR_NO_MORE_ITEMS = 33,
