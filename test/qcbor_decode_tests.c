@@ -5193,6 +5193,9 @@ static const uint8_t spUnRecoverableMapError4[] = {
 };
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
+const unsigned char not_well_formed_submod_section[] = {
+   0xa1, 0x14, 0x1f,
+};
 
 int32_t EnterMapTest()
 {
@@ -5532,6 +5535,14 @@ int32_t EnterMapTest()
    }
 
    nReturn = DecodeNestedIterate();
+
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(not_well_formed_submod_section), 0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_EnterMapFromMapN(&DCtx, 20);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_BAD_INT) {
+      return 2500;
+   }
 
    return nReturn;
 }

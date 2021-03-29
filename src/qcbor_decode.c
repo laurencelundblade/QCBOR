@@ -2951,14 +2951,14 @@ MapSearch(QCBORDecodeContext *pMe,
                uReturn = QCBOR_ERR_DUPLICATE_LABEL;
                goto Done;
             }
-            /* Also try to match its type */
-            if(!MatchType(Item, pItemArray[nIndex])) {
-               uReturn = QCBOR_ERR_UNEXPECTED_TYPE;
+            if(uResult != QCBOR_SUCCESS) {
+               /* The label matches, but the data item is in error */
+               uReturn = uResult;
                goto Done;
             }
-
-            if(uResult != QCBOR_SUCCESS) {
-               uReturn = uResult;
+            if(!MatchType(Item, pItemArray[nIndex])) {
+               /* The data item is not of the type(s) requested */
+               uReturn = QCBOR_ERR_UNEXPECTED_TYPE;
                goto Done;
             }
 
