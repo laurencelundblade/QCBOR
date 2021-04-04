@@ -659,6 +659,10 @@ void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char *szLabe
 
  This sets the pre-order traversal cursor to the item after the array
  that was exited.
+
+ This will result in an error if any item in the array is not well
+ formed (since all items in the array must be decoded to find its
+ end), or there are not enough items in the array.
 */
 static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
@@ -729,8 +733,12 @@ void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char *szLabel
  The items in the map that was entered do not have to have been
  consumed for this to succeed.
 
- This sets the pre-order traversal cursor to the item after
- the map that was exited.
+ This sets the pre-order traversal cursor to the item after the map
+ that was exited.
+
+ This will result in an error if any item in the map is not well
+ formed (since all items in the map must be decoded to find its end),
+ or there are not enough items in the map.
 */
 static void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
 
