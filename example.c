@@ -19,8 +19,10 @@
 
 /**
  * This is a simple example of encoding and decoding some CBOR from
- * and to a C structure. The decoded CBOR is compared to the original
- * to confirm correctness.
+ * and to a C structure.
+ *
+ * This also includes a comparison between the original structure
+ * and the one decoded from the CBOR to confirm correctness.
  */
 
 
@@ -45,7 +47,7 @@ typedef struct
 
 
 /**
- * @brief Initialize the Engine data structure with values to encode/decode.
+ * @brief Initialize the Engine data structure with values to encode.
  *
  * @param[out] pE   The Engine structure to fill in
  */
@@ -109,13 +111,13 @@ static bool EngineCompare(const CarEngine *pE1, const CarEngine *pE2)
 
 
 /**
- * @brief Encode an initialized Engine data structure in CBOR.
+ * @brief Encode an initialized CarEngine data structure in CBOR.
  *
  * @param[in] pEngine  The data structure to encode.
  * @param[in] Buffer   Pointer and length of buffer to output to.
  *
  * @return  The pointer and length of the encoded CBOR or
- *         @ref NULLUsefulBufC on error.
+ *          @ref NULLUsefulBufC on error.
  *
  * This encodes the input structure \c pEngine as a CBOR map of
  * label-value pairs. An array of float is one of the items in the
@@ -159,7 +161,7 @@ UsefulBufC EncodeEngineDefiniteLength(const CarEngine *pEngine, UsefulBuf Buffer
     QCBOREncode_CloseMap(&EncodeCtx);
 
     /* Get the pointer and length of the encoded output. If there was
-     * any error it will be returned here */
+     * any encoding error, it will be returned here */
     UsefulBufC EncodedCBOR;
     QCBORError uErr;
     uErr = QCBOREncode_Finish(&EncodeCtx, &EncodedCBOR);
@@ -273,7 +275,7 @@ EngineDecodeErrors DecodeEngineSpiffy(UsefulBufC EncodedEngine, CarEngine *pE)
     QCBORDecode_ExitArray(&DecodeCtx);
     QCBORDecode_ExitMap(&DecodeCtx);
 
-    /* Catch the remainder of errors here */
+    /* Catch further decoding error here */
     uErr = QCBORDecode_Finish(&DecodeCtx);
 
 Done:
