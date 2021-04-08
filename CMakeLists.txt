@@ -4,13 +4,13 @@ project(qcbor
 	LANGUAGES C
 	VERSION 1.0.0)
 
-set(CMAKE_C_FLAGS "-pedantic -Wall -O3")
+set(CMAKE_C_FLAGS "-pedantic -Wall -O3 -ffunction-sections")
 
 include_directories(inc)
 
 set(SOURCE
-    src/ieee754.c
-    src/qcbor_decode.c	
+	src/ieee754.c
+	src/qcbor_decode.c
 	src/qcbor_encode.c
 	src/qcbor_err_to_str.c
 	src/UsefulBuf.c
