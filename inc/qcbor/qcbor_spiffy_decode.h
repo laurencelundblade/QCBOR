@@ -32,7 +32,7 @@ extern "C" {
 
  This section just discusses spiff decoding assuming familiarity with
  the general description of this encoder / decoder in section
- @ref Overview and @ref BasicDecoding.
+ @ref Overview and @ref BasicDecode.
 
  Spiffy decode is extra decode features over and above the @ref
  BasicDecode features that generally are easier to use, mirror the
@@ -102,23 +102,34 @@ extern "C" {
 
  An easy and clean way to use this decoder is to always use EnterMap
  and EnterArray for each array or map. They will error if the input
- CBOR is not the expected array or map.  Then use GetInt, GetString to
- get the individual items of of the maps and arrays making use of the
- internal error tracking provided by this decoder. The only error
- check needed is the call to Finish.
+ CBOR is not the expected array or map.  Then use GetInt, GetString
+ and such to get the individual items of the maps and arrays making
+ use of the internal error tracking provided by this decoder. The only
+ error check needed is the call to QCBORDecode_Finish().
 
  QCBORDecode_GetNext() is the exception to this. It returns an
  error. It doesn't set the internal error state. It will attempt to
- decode evening when in the error state.
+ decode even when in the error state.
 
- When getting an item by label from a map the whole map is traversed
- including traversal of nested arrays and maps. If there is any
- unrecoverable error anywhere in the that traversal the retrieval by
- label will fail and the unrecoverable error will be returned even if
- it is not due to the labeled item being sought. Recoverable errors
- will be ignored unless they are on the item being sought, in which
- case the unrecoverable error will be returned. Unrecoverable errors
- are those indicated by QCBORDecode_IsUnrecoverableError().
+ The effect of a decoding error on the traversal cursor position
+ varies by the type of decoding method called. The methods for getting
+ an item in a map by label don't affect the traversal cursor when
+ there is an error (nor when they succeed).
+ QCBORDecode_GetInt64InMapN() is an example of this. The other methods
+ like QCBORDecode_GetInt64() and QCBORDecode_GetNext() that normally
+ advance the traversal cursor will also advance it also when there is
+ an error unless the error is unrecoverable due to CBOR that is not
+ well formed or such. QCBORDecode_Rewind() can be used to reset the
+ cursor position after any error.
+
+ When getting an item by label from a map the whole map is internally
+ traversed including traversal of nested arrays and maps. If there is
+ any unrecoverable error anywhere in the that traversal the retrieval
+ by label will fail and the unrecoverable error will be returned even
+ if it is not because item being sought is in error. Recoverable
+ errors will be ignored unless they are on the item being sought, in
+ which case the unrecoverable error will be returned. Unrecoverable
+ errors are those indicated by QCBORDecode_IsUnrecoverableError().
 
  @anchor Tag-Usage
  ## Tag Usage
