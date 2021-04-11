@@ -243,11 +243,12 @@ QCBOR really does fully implement just about everything described in
 RFC 8949. The main part missing is sorting of maps when encoding.
 
 No detailed code size comparison has been made, but in a spot check
-encoding a single integer, the library code brought in from QCBOR was
-30% smaller than that of TinyCBOR. QCBOR's internal dependency is minimal
-so only necessary library code is brought it when only a minimum of
-QCBOR's functions are used. In total QCBOR has more functionality so
-if all of it is used, it is of course much larger.
+that encodes and decodes a single integer shows QCBOR about 25%
+larger.  QCBOR encoding is actually smaller, but QCBOR decoding is
+larger. This includes the code to call the library, which is about the
+same for both libraries, and the code linked from the libraries. QCBOR
+is a bit more powerful, so you get value for the extra code brought
+in, especially when decoding more complex protocols.
 
 QCBOR tracks encoding and decoding errors internally so the caller
 doesn't have to check the return code of every call to an encode or
