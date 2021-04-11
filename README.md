@@ -227,6 +227,61 @@ Defining QCBOR_DISABLE_FLOAT_HW_USE will save a small amount of object
 code. Its main use is on CPUs that have no floating-point hardware.
 
 See discussion in qcbor_encode.h for details.
+G
+## Comparison to TinyCBOR
+
+TinyCBOR is a popular widely used implementation. Like QCBOR,
+it is a solid, well-maintained commercial quality implementation. This
+section is for folks trying to understand the difference in
+the approach between QCBOR and TinyCBOR.
+
+TinyCBOR's API is a bit more minimalist and closer to the CBOR
+encoding mechanics than QCBOR's. QCBOR's API is at a somewhat higher
+level of abstraction.
+
+QCBOR really does fully implement just about everything described in
+RFC 8949. The main part missing is sorting of maps when encoding.
+
+No detailed code size comparison has been made, but in a spot check
+encoding a single integer, the library code brought in from QCBOR was
+30% smaller than that of TinyCBOR. QCBOR's internal dependency is minimal
+so only necessary library code is brought it when only a minimum of
+QCBOR's functions are used. In total QCBOR has more functionality so
+if all of it is used, it is of course much larger.
+
+QCBOR tracks encoding and decoding errors internally so the caller
+doesn't have to check the return code of every call to an encode or
+decode function. In many cases the error check is only needed as the
+last step or an encode or decode.
+
+QCBOR provides a substantial feature that allows searching for data
+items in a map by label. It works for integer and text string labels
+(and at some point byte-string labels). This includes detection of
+items with duplicate labels. This makes the code for decoding CBOR
+simpler, similar to the encoding code and easier to read.
+
+QCBOR provides explicit support many of the registered CBOR tags. For
+example, QCBOR supports big numbers and decimal fractions including
+their conversion to floats, uint64_t and such.
+
+Generally, QCBOR supports safe conversion of most CBOR number formats
+into number formats supported in C. For example, a data item can be
+fetched and converted to a C uint64_t whether the input CBOR is an
+unsigned 64-bit integer, signed 64-bit integer, floating-point number,
+big number, decimal fraction or a big float. The conversion is
+performed with full proper error detection of overflow and underflow.
+
+QCBOR has a special feature for decoding byte-string wrapped CBOR. It
+treats this similar to entering an array with one item. This is
+particularly use for CBOR protocols like COSE that make use of
+byte-string wrapping.  The implementation of these protocols is
+simpler and uses less memory.
+
+QCBOR's test suite is written in the same portable C that QCBOR is
+where TinyCBOR requires Qt for its test. QCBOR's test suite is
+designed to be able to run on small embedded devices the same as
+QCBOR.
+
 
 ## Code Size
 
