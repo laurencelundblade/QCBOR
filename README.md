@@ -239,8 +239,9 @@ TinyCBOR's API is a bit more minimalist and closer to the CBOR
 encoding mechanics than QCBOR's. QCBOR's API is at a somewhat higher
 level of abstraction.
 
-QCBOR really does fully implement just about everything described in
+QCBOR really does implement just about everything described in
 RFC 8949. The main part missing is sorting of maps when encoding.
+TinyCBOR implements a smaller part of the standard.
 
 No detailed code size comparison has been made, but in a spot check
 that encodes and decodes a single integer shows QCBOR about 25%
@@ -253,13 +254,15 @@ in, especially when decoding more complex protocols.
 QCBOR tracks encoding and decoding errors internally so the caller
 doesn't have to check the return code of every call to an encode or
 decode function. In many cases the error check is only needed as the
-last step or an encode or decode.
+last step or an encode or decode. TinyCBOR requires an error check on
+each call.
 
 QCBOR provides a substantial feature that allows searching for data
 items in a map by label. It works for integer and text string labels
 (and at some point byte-string labels). This includes detection of
 items with duplicate labels. This makes the code for decoding CBOR
-simpler, similar to the encoding code and easier to read.
+simpler, similar to the encoding code and easier to read. TinyCBOR
+supports search by string, but no integer, nor duplicate detection.
 
 QCBOR provides explicit support many of the registered CBOR tags. For
 example, QCBOR supports big numbers and decimal fractions including
