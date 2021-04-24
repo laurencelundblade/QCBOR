@@ -1281,12 +1281,12 @@ static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 
 static inline QCBORError QCBORDecode_GetError(QCBORDecodeContext *pMe)
 {
-    return pMe->uLastError;
+    return (QCBORError)pMe->uLastError;
 }
 
 static inline QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pMe)
 {
-    const QCBORError uReturn = pMe->uLastError;
+    const QCBORError uReturn = (QCBORError)pMe->uLastError;
     pMe->uLastError = QCBOR_SUCCESS;
     return uReturn;
 }
