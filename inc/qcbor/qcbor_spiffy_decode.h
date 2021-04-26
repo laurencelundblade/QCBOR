@@ -952,9 +952,9 @@ void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pCtx,
 
  @param[in] pCtx   The decode context.
 
- The CBOR item to decode must be either the CBOR simple value (CBOR
- type 7) @c null. The reason to call this is to see if an error is returned
- or not indicating whether the item is a CBOR null. If it is not then the
+ The CBOR item to decode must be the CBOR simple value (CBOR type 7)
+ @c null. The reason to call this is to see if an error is returned or
+ not indicating whether the item is a CBOR null. If it is not then the
  @ref QCBOR_ERR_UNEXPECTED_TYPE error is set.
 */
 static void QCBORDecode_GetNull(QCBORDecodeContext *pCtx);
@@ -966,6 +966,24 @@ static void QCBORDecode_GetNullInMapSZ(QCBORDecodeContext *pCtx,
                                        const char         *szLabel);
 
 
+/**
+ @brief Decode the next item as a CBOR "undefined" item.
+
+ @param[in] pCtx   The decode context.
+
+ The CBOR item to decode must be the CBOR simple value (CBOR type 7)
+ @c undefined. The reason to call this is to see if an error is
+ returned or not indicating whether the item is a CBOR undefed
+ item. If it is not then the @ref QCBOR_ERR_UNEXPECTED_TYPE error is
+ set.
+*/
+static void QCBORDecode_GetUndefined(QCBORDecodeContext *pCtx);
+
+static void QCBORDecode_GetUndefinedInMapN(QCBORDecodeContext *pCtx,
+                                           int64_t             nLabel);
+
+static void QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
+                                            const char         *szLabel);
 
 
 /**
@@ -2057,8 +2075,7 @@ QCBORDecode_GetNull(QCBORDecodeContext *pMe)
    QCBORItem item;
 
    QCBORDecode_VGetNext(pMe, &item);
-   if(pMe->uLastError == QCBOR_SUCCESS &&
-      item.uDataType != QCBOR_TYPE_NULL) {
+   if(pMe->uLastError == QCBOR_SUCCESS && item.uDataType != QCBOR_TYPE_NULL) {
       pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
    }
 }
@@ -2078,6 +2095,34 @@ QCBORDecode_GetNullInMapSZ(QCBORDecodeContext *pMe,
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_NULL, &Item);
 }
+
+static inline void
+QCBORDecode_GetUndefined(QCBORDecodeContext *pMe)
+{
+   QCBORItem item;
+
+   QCBORDecode_VGetNext(pMe, &item);
+   if(pMe->uLastError == QCBOR_SUCCESS && item.uDataType != QCBOR_TYPE_UNDEF) {
+      pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+}
+
+static inline void
+QCBORDecode_GetUndefinedInMapN(QCBORDecodeContext *pMe,
+                          int64_t             nLabel)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_UNDEF, &Item);
+}
+
+static inline void
+QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pMe,
+                                      const char * szLabel)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_UNDEF, &Item);
+}
+
 
 static inline void
 QCBORDecode_GetDateString(QCBORDecodeContext *pMe,
