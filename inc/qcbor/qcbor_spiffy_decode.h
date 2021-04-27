@@ -932,7 +932,7 @@ void QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
  The CBOR item to decode must be either the CBOR simple value (CBOR
  type 7) @c true or @c false.
 
- See @ref Decode-Errors for discussion on how error handling works.  It
+ See @ref Decode-Errors for discussion on how error handling works.  If
  the CBOR item to decode is not true or false the @ref
  QCBOR_ERR_UNEXPECTED_TYPE error is set.
 */
@@ -947,8 +947,43 @@ void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pCtx,
                                 bool               *pbBool);
 
 
+/**
+ @brief Decode the next item as a null.
+
+ @param[in] pCtx   The decode context.
+
+ The CBOR item to decode must be the CBOR simple value (CBOR type 7)
+ @c null. The reason to call this is to see if an error is returned or
+ not indicating whether the item is a CBOR null. If it is not then the
+ @ref QCBOR_ERR_UNEXPECTED_TYPE error is set.
+*/
+static void QCBORDecode_GetNull(QCBORDecodeContext *pCtx);
+
+static void QCBORDecode_GetNullInMapN(QCBORDecodeContext *pCtx,
+                                      int64_t             nLabel);
+
+static void QCBORDecode_GetNullInMapSZ(QCBORDecodeContext *pCtx,
+                                       const char         *szLabel);
 
 
+/**
+ @brief Decode the next item as a CBOR "undefined" item.
+
+ @param[in] pCtx   The decode context.
+
+ The CBOR item to decode must be the CBOR simple value (CBOR type 7)
+ @c undefined. The reason to call this is to see if an error is
+ returned or not indicating whether the item is a CBOR undefed
+ item. If it is not then the @ref QCBOR_ERR_UNEXPECTED_TYPE error is
+ set.
+*/
+static void QCBORDecode_GetUndefined(QCBORDecodeContext *pCtx);
+
+static void QCBORDecode_GetUndefinedInMapN(QCBORDecodeContext *pCtx,
+                                           int64_t             nLabel);
+
+static void QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
+                                            const char         *szLabel);
 
 
 /**
@@ -1947,7 +1982,7 @@ QCBORError QCBORDecode_GetMIMEInternal(uint8_t           uTagRequirement,
 static inline void
 QCBORDecode_GetByteString(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 {
-   // Complier should make this just 64-bit integer parameter
+   // Complier should make this just a 64-bit integer parameter
    const TagSpecification TagSpec =
       {
          QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
@@ -2032,6 +2067,60 @@ QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pMe,
       };
 
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pText);
+}
+
+static inline void
+QCBORDecode_GetNull(QCBORDecodeContext *pMe)
+{
+   QCBORItem item;
+
+   QCBORDecode_VGetNext(pMe, &item);
+   if(pMe->uLastError == QCBOR_SUCCESS && item.uDataType != QCBOR_TYPE_NULL) {
+      pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+}
+
+static inline void
+QCBORDecode_GetNullInMapN(QCBORDecodeContext *pMe,
+                          int64_t             nLabel)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_NULL, &Item);
+}
+
+static inline void
+QCBORDecode_GetNullInMapSZ(QCBORDecodeContext *pMe,
+                                      const char * szLabel)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_NULL, &Item);
+}
+
+static inline void
+QCBORDecode_GetUndefined(QCBORDecodeContext *pMe)
+{
+   QCBORItem item;
+
+   QCBORDecode_VGetNext(pMe, &item);
+   if(pMe->uLastError == QCBOR_SUCCESS && item.uDataType != QCBOR_TYPE_UNDEF) {
+      pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+}
+
+static inline void
+QCBORDecode_GetUndefinedInMapN(QCBORDecodeContext *pMe,
+                          int64_t             nLabel)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_UNDEF, &Item);
+}
+
+static inline void
+QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pMe,
+                                      const char * szLabel)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_UNDEF, &Item);
 }
 
 
