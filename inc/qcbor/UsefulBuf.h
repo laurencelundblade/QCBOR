@@ -1,6 +1,6 @@
 /*============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,6 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 1/25/2021    llundblade      Improve comments and comment formatting.
  1/25/2020    llundblade      Add some casts so static anlyzers don't complain.
  5/21/2019    llundblade      #define configs for efficient endianness handling.
  5/16/2019    llundblade      Add UsefulOutBuf_IsBufferNULL().
@@ -68,82 +69,72 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /*
- Configuration Options
-
- This code is designed so it will work correctly and completely by
- default. No configuration is necessary to make it work. None of the
- following #defines need to be enabled. The code works and is very
- portable with them all turned off.
-
- All configuration options (USEFULBUF_CONFIG_XXX)
-    1) Reduce code size
-    2) Improve efficiency
-    3) Both of the above
-
- The efficiency improvements are not large, so the main reason really
- is to reduce code size.
-
- */
-
-
-/*
- Endianness Configuration
-
- By default, UsefulBuf does not need to know what the endianness of
- the device is. All the code will run correctly on either big or
- little endian CPUs.
-
- Here's the recipe for configuring the endianness-related #defines
- to use more efficient CPU/OS/compiler dependent features to reduce
- code size. Note these only affect the integer arrays (tagged
- arrays) feature of QCBOR. All other endianness handling in
- QCBOR is integrated with code that also handles alignment and
- preferred encoding.
-
- The first option is to not define anything. This will work fine on
- with all CPU's, OS's and compilers. The code for encoding
- integers will be a little larger and slower.
-
- If your CPU is big-endian then define USEFULBUF_CONFIG_BIG_ENDIAN. This
- will give the most efficient code for big-endian CPUs. It will be small
- and efficient because there will be no byte swapping.
-
- Try defining USEFULBUF_CONFIG_HTON. This will work on most CPU's,
- OS's and compilers, but not all. On big-endian CPUs this should give
- the most efficient code, the same as USEFULBUF_CONFIG_BIG_ENDIAN
- does. On little-endian CPUs it should call the system-defined byte
- swapping method which is presumably implemented efficiently. In some
- cases, this will be a dedicated byte swap instruction like Intel's
- bswap.
-
- If USEFULBUF_CONFIG_HTON works and you know your CPU is
- little-endian, it is also good to define
- USEFULBUF_CONFIG_LITTLE_ENDIAN.
-
- if USEFULBUF_CONFIG_HTON doesn't work and you know your system is
- little-endian, try defining both USEFULBUF_CONFIG_LITTLE_ENDIAN and
- USEFULBUF_CONFIG_BSWAP. This should call the most efficient
- system-defined byte swap method. However, note
- https://hardwarebug.org/2010/01/14/beware-the-builtins/.  Perhaps
- this is fixed now. Often hton() and ntoh() will call the built-in
- __builtin_bswapXX()() function, so this size issue could affect
- USEFULBUF_CONFIG_HTON.
-
- Last, run the tests. They must all pass.
-
- These #define config options affect the inline implementation of
- UsefulOutBuf_InsertUint64() and UsefulInputBuf_GetUint64().  They
- also affect the 16-, 32-bit, float and double versions of these
- instructions. Since they are inline, the size effect is not in the
- UsefulBuf object code, but in the calling code.
-
- Summary:
-   USEFULBUF_CONFIG_BIG_ENDIAN -- Force configuration to big-endian.
-   USEFULBUF_CONFIG_LITTLE_ENDIAN -- Force to little-endian.
-   USEFULBUF_CONFIG_HTON -- Use hton(), htonl(), ntohl()... to
-     handle big and little-endian with system option.
-   USEFULBUF_CONFIG_BSWAP -- With USEFULBUF_CONFIG_LITTLE_ENDIAN,
-     use __builtin_bswapXX().
+ * Endianness Configuration
+ *
+ * This code is written so it will work correctly on big- and
+ * little-endian CPUs without configuration or any auto-detection of
+ * endianness. All code here will run correctly regardless of the
+ * endianness of the CPU it is running on.
+ *
+ * There are four C preprocessor macros that can be set with #define
+ * to explicitly configure endianness handling. Setting them can
+ * reduce code size a little and improve efficiency a little.
+ *
+ * Note that most of QCBOR is unaffected by this configuration.  Its
+ * endianness handling is integrated with the code that handles
+ * alignment and preferred serialization. This configuration does
+ * affect QCBOR's (planned) implementation of integer arrays (tagged
+ * arrays) and use of the functions here to serialize or deserialize
+ * integers and floating-point values.
+ *
+ * Following is the recipe for configuring the endianness-related
+ * #defines.
+ *
+ * The first option is to not define anything. This will work fine
+ * with all CPUs, OS's and compilers. The code for encoding integers
+ * may be a little larger and slower.
+ *
+ * If your CPU is big-endian then define
+ * USEFULBUF_CONFIG_BIG_ENDIAN. This will give the most efficient code
+ * for big-endian CPUs. It will be small and efficient because there
+ * will be no byte swapping.
+ *
+ * Try defining USEFULBUF_CONFIG_HTON. This will work on most CPUs,
+ * OS's and compilers, but not all. On big-endian CPUs this should
+ * give the most efficient code, the same as
+ * USEFULBUF_CONFIG_BIG_ENDIAN does. On little-endian CPUs it should
+ * call the system-defined byte swapping method which is presumably
+ * implemented efficiently. In some cases, this will be a dedicated
+ * byte swap instruction like Intel's bswap.
+ *
+ * If USEFULBUF_CONFIG_HTON works and you know your CPU is
+ * little-endian, it is also good to define
+ * USEFULBUF_CONFIG_LITTLE_ENDIAN.
+ *
+ * if USEFULBUF_CONFIG_HTON doesn't work and you know your system is
+ * little-endian, try defining both USEFULBUF_CONFIG_LITTLE_ENDIAN and
+ * USEFULBUF_CONFIG_BSWAP. This should call the most efficient
+ * system-defined byte swap method. However, note
+ * https://hardwarebug.org/2010/01/14/beware-the-builtins/.  Perhaps
+ * this is fixed now. Often hton() and ntoh() will call the built-in
+ * __builtin_bswapXX()() function, so this size issue could affect
+ * USEFULBUF_CONFIG_HTON.
+ *
+ * Last, run the tests. They must all pass.
+ *
+ * These #define config options affect the inline implementation of
+ * UsefulOutBuf_InsertUint64() and UsefulInputBuf_GetUint64().  They
+ * also affect the 16-, 32-bit, float and double versions of these
+ * functions. Since they are inline, the size effect is not in the
+ * UsefulBuf object code, but in the calling code.
+ *
+ * Summary:
+ *   USEFULBUF_CONFIG_BIG_ENDIAN -- Force configuration to big-endian.
+ *   USEFULBUF_CONFIG_LITTLE_ENDIAN -- Force to little-endian.
+ *   USEFULBUF_CONFIG_HTON -- Use hton(), htonl(), ntohl()... to
+ *     handle big and little-endian with system option.
+ *   USEFULBUF_CONFIG_BSWAP -- With USEFULBUF_CONFIG_LITTLE_ENDIAN,
+ *     use __builtin_bswapXX().
  */
 
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN) && defined(USEFULBUF_CONFIG_LITTLE_ENDIAN)
@@ -168,90 +159,92 @@ extern "C" {
 #endif
 
 /**
- @file UsefulBuf.h
-
- The goal of this code is to make buffer and pointer manipulation
- easier and safer when working with binary data.
-
- The @ref UsefulBuf, @ref UsefulOutBuf and @ref UsefulInputBuf
- structures are used to represent buffers rather than ad hoc pointers and
- lengths.
-
- With these it will often be possible to write code that does little
- or no direct pointer manipulation for copying and formatting
- data. For example, the QCBOR encoder was written using these and
- has no less pointer manipulation.
-
- While it is true that object code using these functions will be a
- little larger and slower than a white-knuckle clever use of pointers
- might be, but not by that much or enough to have an effect for most
- use cases. For security-oriented code this is highly
- worthwhile. Clarity, simplicity, reviewability and are more
- important.
-
- There are some extra sanity and double checks in this code to help
- catch coding errors and simple memory corruption. They are helpful,
- but not a substitute for proper code review, input validation and
- such.
-
- This code consists of a lot of inline functions and a few that are
- not.  It should not generate very much object code, especially with
- the optimizer turned up to @c -Os or @c -O3.
+ * @file UsefulBuf.h
+ *
+ * The goal of this code is to make buffer and pointer manipulation
+ * easier and safer when working with binary data.
+ *
+ * The @ref UsefulBuf, @ref UsefulOutBuf and @ref UsefulInputBuf
+ * structures are used to represent buffers rather than ad hoc
+ * pointers and lengths.
+ *
+ * With these it is possible to write code that does little or no
+ * direct pointer manipulation for copying and formatting data. For
+ * example, the QCBOR encoder was written using these and has no less
+ * pointer manipulation.
+ *
+ * While it is true that object code using these functions will be a
+ * little larger and slower than a white-knuckle clever use of
+ * pointers might be, but not by that much or enough to have an effect
+ * for most use cases. For security-oriented code this is highly
+ * worthwhile. Clarity, simplicity, reviewability and are more
+ * important.
+ *
+ * There are some extra sanity and double checks in this code to help
+ * catch coding errors and simple memory corruption. They are helpful,
+ * but not a substitute for proper code review, input validation and
+ * such.
+ *
+ * This code consists of a lot of inline functions and a few that are
+ * not.  It should not generate very much object code, especially with
+ * the optimizer turned up to @c -Os or @c -O3.
  */
 
 
 /**
- @ref UsefulBufC and @ref UsefulBuf are simple data structures to hold
- a pointer and length for binary data.  In C99 this data structure can
- be passed on the stack making a lot of code cleaner than carrying
- around a pointer and length as two parameters.
-
- This is also conducive to secure coding practice as the length is
- always carried with the pointer and the convention for handling a
- pointer and a length is clear.
-
- While it might be possible to write buffer and pointer code more
- efficiently in some use cases, the thought is that unless there is an
- extreme need for performance (e.g., you are building a
- gigabit-per-second IP router), it is probably better to have cleaner
- code you can be most certain about the security of.
-
- The non-const @ref UsefulBuf is usually used to refer a buffer to be
- filled in.  The length is the size of the buffer.
-
- The const @ref UsefulBufC is usually used to refer to some data that
- has been filled in. The length is amount of valid data pointed to.
-
- A common use is to pass a @ref UsefulBuf to a function, the function
- fills it in, the function returns a @ref UsefulBufC. The pointer is
- the same in both.
-
- A @ref UsefulBuf is null, it has no value, when @c ptr in it is @c NULL.
-
- There are utility functions for the following:
-  - Initializing
-  - Create initialized const @ref UsefulBufC from compiler literals
-  - Create initialized const @ref UsefulBufC from NULL-terminated string
-  - Make an empty @ref UsefulBuf on the stack
-  - Checking whether a @ref UsefulBuf is null, empty or both
-  - Copying, copying with offset, copying head or tail
-  - Comparing and finding substrings
-
- See also @ref UsefulOutBuf. It is a richer structure that has both
- the size of the valid data and the size of the buffer.
-
- @ref UsefulBuf is only 16 or 8 bytes on a 64- or 32-bit machine so it
- can go on the stack and be a function parameter or return value.
-
- Another way to look at it is this. C has the NULL-terminated string
- as a means for handling text strings, but no means or convention for
- binary strings. Other languages do have such means, Rust, an
- efficient compiled language, for example.
-
- @ref UsefulBuf is kind of like the Useful Pot Pooh gave Eeyore on his
- birthday.  Eeyore's balloon fits beautifully, "it goes in and out
- like anything".
-*/
+ * @ref UsefulBufC and @ref UsefulBuf are simple data structures to
+ * hold a pointer and length for binary data.  In C99 this data
+ * structure can be passed on the stack making a lot of code cleaner
+ * than carrying around a pointer and length as two parameters.
+ *
+ * This is also conducive to secure coding practice as the length is
+ * always carried with the pointer and the convention for handling a
+ * pointer and a length is clear.
+ *
+ * While it might be possible to write buffer and pointer code more
+ * efficiently in some use cases, the thought is that unless there is
+ * an extreme need for performance (e.g., you are building a
+ * gigabit-per-second IP router), it is probably better to have
+ * cleaner code you can be most certain about the security of.
+ *
+ * The non-const @ref UsefulBuf is usually used to refer an empty
+ * buffer to be filled in.  The length is the size of the buffer.
+ *
+ * The const @ref UsefulBufC is usually used to refer to some data
+ * that has been filled in. The length is amount of valid data pointed
+ * to.
+ *
+ * A common use is to pass a @ref UsefulBuf to a function, the
+ * function fills it in, the function returns a @ref UsefulBufC. The
+ * pointer is the same in both.
+ *
+ * A @ref UsefulBuf is null, it has no value, when @c ptr in it is @c
+ * NULL.
+ *
+ * There are functions and macros for the following:
+ *  - Initializing
+ *  - Create initialized const @ref UsefulBufC from compiler literals
+ *  - Create initialized const @ref UsefulBufC from NULL-terminated string
+ *  - Make an empty @ref UsefulBuf on the stack
+ *  - Checking whether a @ref UsefulBuf is null, empty or both
+ *  - Copying, copying with offset, copying head or tail
+ *  - Comparing and finding substrings
+ *
+ * See also @ref UsefulOutBuf. It is a richer structure that has both
+ * the size of the valid data and the size of the buffer.
+ *
+ * @ref UsefulBuf is only 16 or 8 bytes on a 64- or 32-bit machine so
+ * it can go on the stack and be a function parameter or return value.
+ *
+ * Another way to look at it is this. C has the NULL-terminated string
+ * as a means for handling text strings, but no means or convention
+ * for binary strings. Other languages do have such means, Rust, an
+ * efficient compiled language, for example.
+ *
+ * @ref UsefulBuf is kind of like the Useful Pot Pooh gave Eeyore on
+ * his birthday.  Eeyore's balloon fits beautifully, "it goes in and
+ * out like anything".
+ */
 typedef struct q_useful_buf_c {
     const void *ptr;
     size_t      len;
@@ -259,9 +252,9 @@ typedef struct q_useful_buf_c {
 
 
 /**
- This non-const @ref UsefulBuf is typically used for some allocated
- memory that is to be filled in. The @c len is the amount of memory,
- not the length of the valid data in the buffer.
+ * This non-const @ref UsefulBuf is typically used for some allocated
+ * memory that is to be filled in. The @c len is the amount of memory,
+ * not the length of the valid data in the buffer.
  */
 typedef struct q_useful_buf {
    void  *ptr;
@@ -270,137 +263,137 @@ typedef struct q_useful_buf {
 
 
 /**
- A null @ref UsefulBufC is one that has no value in the same way a @c
- NULL pointer has no value.  A @ref UsefulBufC is @c NULL when the @c
- ptr field is @c NULL. It doesn't matter what @c len is.  See
- UsefulBuf_IsEmpty() for the distinction between null and empty.
+ * A null @ref UsefulBufC is one that has no value in the same way a
+ * @c NULL pointer has no value.  A @ref UsefulBufC is @c NULL when
+ * the @c ptr field is @c NULL. It doesn't matter what @c len is.  See
+ * UsefulBuf_IsEmpty() for the distinction between null and empty.
  */
 #define NULLUsefulBufC  ((UsefulBufC) {NULL, 0})
 
 
 /**
- A null @ref UsefulBuf is one that has no memory associated the same
- way @c NULL points to nothing. It does not matter what @c len is.
- */
+ * A null @ref UsefulBuf is one that has no memory associated the same
+ * way @c NULL points to nothing. It does not matter what @c len is.
+ **/
 #define NULLUsefulBuf   ((UsefulBuf) {NULL, 0})
 
 
 /**
- @brief Check if a @ref UsefulBuf is @ref NULLUsefulBuf or not.
-
- @param[in] UB The UsefulBuf to check.
-
- @return 1 if it is @ref NULLUsefulBuf, 0 if not.
+ * @brief Check if a @ref UsefulBuf is @ref NULLUsefulBuf or not.
+ *
+ * @param[in] UB The UsefulBuf to check.
+ *
+ * @return 1 if it is @ref NULLUsefulBuf, 0 if not.
  */
 static inline int UsefulBuf_IsNULL(UsefulBuf UB);
 
 
 /**
- @brief Check if a @ref UsefulBufC is @ref NULLUsefulBufC or not.
-
- @param[in] UB The @ref UsefulBufC to check.
-
- @return 1 if it is @c NULLUsefulBufC, 0 if not.
+ * @brief Check if a @ref UsefulBufC is @ref NULLUsefulBufC or not.
+ *
+ * @param[in] UB The @ref UsefulBufC to check.
+ *
+ * @return 1 if it is @c NULLUsefulBufC, 0 if not.
  */
 static inline int UsefulBuf_IsNULLC(UsefulBufC UB);
 
 
 /**
- @brief Check if a @ref UsefulBuf is empty or not.
-
- @param[in] UB The @ref UsefulBuf to check.
-
- @return 1 if it is empty, 0 if not.
-
- An "empty" @ref UsefulBuf is one that has a value and can be
- considered to be set, but that value is of zero length.  It is empty
- when @c len is zero. It doesn't matter what the @c ptr is.
-
- A lot of uses will not need to clearly distinguish a @c NULL @ref
- UsefulBuf from an empty one and can have the @c ptr @c NULL and the
- @c len 0.  However if a use of @ref UsefulBuf needs to make a
- distinction then @c ptr should not be @c NULL when the @ref UsefulBuf
- is considered empty, but not @c NULL.
+ * @brief Check if a @ref UsefulBuf is empty or not.
+ *
+ * @param[in] UB The @ref UsefulBuf to check.
+ *
+ * @return 1 if it is empty, 0 if not.
+ *
+ * An "empty" @ref UsefulBuf is one that has a value and can be
+ * considered to be set, but that value is of zero length.  It is
+ * empty when @c len is zero. It doesn't matter what the @c ptr is.
+ *
+ * Many uses will not need to clearly distinguish a @c NULL @ref
+ * UsefulBuf from an empty one and can have the @c ptr @c NULL and the
+ * @c len 0.  However if a use of @ref UsefulBuf needs to make a
+ * distinction then @c ptr should not be @c NULL when the @ref
+ * UsefulBuf is considered empty, but not @c NULL.
  */
 static inline int UsefulBuf_IsEmpty(UsefulBuf UB);
 
 
 /**
- @brief Check if a @ref UsefulBufC is empty or not.
-
- @param[in] UB The @ref UsefulBufC to check.
-
- @return 1 if it is empty, 0 if not.
+ * @brief Check if a @ref UsefulBufC is empty or not.
+ *
+ * @param[in] UB The @ref UsefulBufC to check.
+ *
+ * @return 1 if it is empty, 0 if not.
  */
 static inline int UsefulBuf_IsEmptyC(UsefulBufC UB);
 
 
 /**
- @brief Check if a @ref UsefulBuf is @ref NULLUsefulBuf or empty.
-
- @param[in] UB The @ref UsefulBuf to check.
-
- @return 1 if it is either @ref NULLUsefulBuf or empty, 0 if not.
+ * @brief Check if a @ref UsefulBuf is @ref NULLUsefulBuf or empty.
+ *
+ * @param[in] UB The @ref UsefulBuf to check.
+ *
+ * @return 1 if it is either @ref NULLUsefulBuf or empty, 0 if not.
  */
 static inline int UsefulBuf_IsNULLOrEmpty(UsefulBuf UB);
 
 
 /**
- @brief Check if a @ref UsefulBufC is @ref NULLUsefulBufC or empty.
-
- @param[in] UB The @ref UsefulBufC to check.
-
- @return 1 if it is either @ref NULLUsefulBufC or empty, 0 if not.
+ * @brief Check if a @ref UsefulBufC is @ref NULLUsefulBufC or empty.
+ *
+ * @param[in] UB The @ref UsefulBufC to check.
+ *
+ * @return 1 if it is either @ref NULLUsefulBufC or empty, 0 if not.
  */
 static inline int UsefulBuf_IsNULLOrEmptyC(UsefulBufC UB);
 
 
 /**
- @brief Convert a non-const @ref UsefulBuf to a const @ref UsefulBufC.
-
- @param[in] UB The @ref UsefulBuf to convert.
-
- @return A @ref UsefulBufC struct.
+ * @brief Convert a non-const @ref UsefulBuf to a const @ref UsefulBufC.
+ *
+ * @param[in] UB The @ref UsefulBuf to convert.
+ *
+ * @return A @ref UsefulBufC struct.
  */
 static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB);
 
 
 /**
- @brief Convert a const @ref UsefulBufC to a non-const @ref UsefulBuf.
-
- @param[in] UBC The @ref UsefulBuf to convert.
-
- @return A non-const @ref UsefulBuf struct.
+ * @brief Convert a const @ref UsefulBufC to a non-const @ref UsefulBuf.
+ *
+ * @param[in] UBC The @ref UsefulBuf to convert.
+ *
+ * @return A non-const @ref UsefulBuf struct.
  */
 static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 
 
 /**
- Convert a literal string to a @ref UsefulBufC.
-
- @c szString must be a literal string that @c sizeof() works on.  This
- is better for literal strings than UsefulBuf_FromSZ() because it
- generates less code. It will not work on non-literal strings.
-
- The terminating \0 (NULL) is NOT included in the length!
+ * Convert a literal string to a @ref UsefulBufC.
+ *
+ * @c szString must be a literal string that @c sizeof() works on.
+ * This is better for literal strings than UsefulBuf_FromSZ() because
+ * it generates less code. It will not work on non-literal strings.
+ *
+ * The terminating \0 (NULL) is NOT included in the length!
  */
 #define UsefulBuf_FROM_SZ_LITERAL(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
 
 
 /**
- Convert a literal byte array to a @ref UsefulBufC.
-
- @c pBytes must be a literal string that @c sizeof() works on.  It
- will not work on non-literal arrays.
+ * Convert a literal byte array to a @ref UsefulBufC.
+ *
+ * @c pBytes must be a literal string that @c sizeof() works on.  It
+ * will not work on non-literal arrays.
  */
 #define UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBytes) \
     ((UsefulBufC) {(pBytes), sizeof(pBytes)})
 
 
 /**
- Make an automatic variable named @c name of type @ref UsefulBuf and
- point it to a stack variable of the given @c size.
+ * Make an automatic variable named @c name of type @ref UsefulBuf and
+ * point it to a stack variable of the given @c size.
  */
 #define  UsefulBuf_MAKE_STACK_UB(name, size) \
     uint8_t    __pBuf##name[(size)];\
@@ -408,69 +401,69 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 
 
 /**
- Make a byte array in to a @ref UsefulBuf. This is usually used on
- stack variables or static variables.  Also see @ref
- UsefulBuf_MAKE_STACK_UB.
+ * Make a byte array in to a @ref UsefulBuf. This is usually used on
+ * stack variables or static variables.  Also see @ref
+ * UsefulBuf_MAKE_STACK_UB.
  */
 #define UsefulBuf_FROM_BYTE_ARRAY(pBytes) \
     ((UsefulBuf) {(pBytes), sizeof(pBytes)})
 
 
 /**
- @brief Convert a NULL-terminated string to a @ref UsefulBufC.
-
- @param[in] szString The string to convert.
-
- @return A @ref UsefulBufC struct.
-
- @c UsefulBufC.ptr points to the string so its lifetime must be
- maintained.
-
- The terminating \0 (NULL) is NOT included in the length.
+ * @brief Convert a NULL-terminated string to a @ref UsefulBufC.
+ *
+ * @param[in] szString The string to convert.
+ *
+ * @return A @ref UsefulBufC struct.
+ *
+ * @c UsefulBufC.ptr points to the string so its lifetime must be
+ * maintained.
+ *
+ * The terminating \0 (NULL) is NOT included in the length.
  */
 static inline UsefulBufC UsefulBuf_FromSZ(const char *szString);
 
 
 /**
- @brief Copy one @ref UsefulBuf into another at an offset.
-
- @param[in] Dest     Destination buffer to copy into.
- @param[in] uOffset  The byte offset in @c Dest at which to copy to.
- @param[in] Src      The bytes to copy.
-
- @return Pointer and length of the copy or @ref NULLUsefulBufC.
-
- This fails and returns @ref NULLUsefulBufC if @c offset is beyond the
- size of @c Dest.
-
- This fails and returns @ref NULLUsefulBufC if the @c Src length plus
- @c uOffset is greater than the length of @c Dest.
-
- The results are undefined if @c Dest and @c Src overlap.
-
- This assumes that there is valid data in @c Dest up to @c
- uOffset. The @ref UsefulBufC returned starts at the beginning of @c
- Dest and goes to @c Src.len @c + @c uOffset.
+ * @brief Copy one @ref UsefulBuf into another at an offset.
+ *
+ * @param[in] Dest     Destination buffer to copy into.
+ * @param[in] uOffset  The byte offset in @c Dest at which to copy to.
+ * @param[in] Src      The bytes to copy.
+ *
+ * @return Pointer and length of the copy or @ref NULLUsefulBufC.
+ *
+ * This fails and returns @ref NULLUsefulBufC if @c offset is beyond the
+ * size of @c Dest.
+ *
+ * This fails and returns @ref NULLUsefulBufC if the @c Src length
+ * plus @c uOffset is greater than the length of @c Dest.
+ *
+ * The results are undefined if @c Dest and @c Src overlap.
+ *
+ * This assumes that there is valid data in @c Dest up to @c
+ * uOffset. The @ref UsefulBufC returned starts at the beginning of @c
+ * Dest and goes to @c Src.len @c + @c uOffset.
  */
 UsefulBufC UsefulBuf_CopyOffset(UsefulBuf Dest, size_t uOffset, const UsefulBufC Src);
 
 
 /**
- @brief Copy one @ref UsefulBuf into another.
-
- @param[in] Dest  The destination buffer to copy into.
- @param[out] Src  The source to copy from.
-
- @return Filled in @ref UsefulBufC on success, @ref NULLUsefulBufC
-         on failure.
-
- This fails if @c Src.len is greater than @c Dest.len.
-
- Note that like @c memcpy(), the pointers are not checked and this
- will crash rather than return @ref NULLUsefulBufC if they are @c
- NULL or invalid.
-
- The results are undefined if @c Dest and @c Src overlap.
+ * @brief Copy one @ref UsefulBuf into another.
+ *
+ * @param[in] Dest  The destination buffer to copy into.
+ * @param[out] Src  The source to copy from.
+ *
+ * @return Filled in @ref UsefulBufC on success, @ref NULLUsefulBufC
+ *         on failure.
+ *
+ * This fails if @c Src.len is greater than @c Dest.len.
+ *
+ * Note that like @c memcpy(), the pointers are not checked and this
+ * will crash rather than return @ref NULLUsefulBufC if they are @c
+ * NULL or invalid.
+ *
+ * The results are undefined if @c Dest and @c Src overlap.
  */
 static inline UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src);
 
