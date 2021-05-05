@@ -1,7 +1,7 @@
 /*
  *  t_cose_util.h
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2021, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -71,6 +71,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * \param[in] cose_algorithm_id     The COSE signing algorithm ID. Used to
  *                                  determine which hash function to use.
  * \param[in] protected_parameters  Full, CBOR encoded, protected parameters.
+ * \param[in] aad  Application Authenitcation Data to be included in TBS.
  * \param[in] payload               The CBOR-encoded payload.
  * \param[in] buffer_for_hash       Pointer and length of buffer into which
  *                                  the resulting hash is put.
@@ -96,6 +97,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  */
 enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
                                   struct q_useful_buf_c       protected_parameters,
+                                  struct q_useful_buf_c       aad,
                                   struct q_useful_buf_c       payload,
                                   struct q_useful_buf         buffer_for_hash,
                                   struct q_useful_buf_c      *hash);

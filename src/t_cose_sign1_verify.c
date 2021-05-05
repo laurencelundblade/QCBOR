@@ -1,7 +1,7 @@
 /*
  *  t_cose_sign1_verify.c
  *
- * Copyright 2019-2020, Laurence Lundblade
+ * Copyright 2019-2021, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -191,10 +191,11 @@ qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error)
  * Public function. See t_cose_sign1_verify.h
  */
 enum t_cose_err_t
-t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
-                    struct q_useful_buf_c           cose_sign1,
-                    struct q_useful_buf_c          *payload,
-                    struct t_cose_parameters       *returned_parameters)
+t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
+                        struct q_useful_buf_c           cose_sign1,
+                        struct q_useful_buf_c           aad,
+                        struct q_useful_buf_c          *payload,
+                        struct t_cose_parameters       *returned_parameters)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -308,6 +309,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     /* -- Compute the TBS bytes -- */
     return_value = create_tbs_hash(parameters.cose_algorithm_id,
                                    protected_parameters,
+                                   aad,
                                    *payload,
                                    buffer_for_tbs_hash,
                                    &tbs_hash);

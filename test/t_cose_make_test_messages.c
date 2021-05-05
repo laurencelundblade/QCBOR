@@ -1,7 +1,7 @@
 /*
  * t_cose_make_test_messages.c
  *
- * Copyright (c) 2019-2020, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2019-2021, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -518,6 +518,7 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
      */
     return_value = create_tbs_hash(me->cose_algorithm_id,
                                    me->protected_parameters,
+                                   NULL_Q_USEFUL_BUF_C,
                                    signed_payload,
                                    buffer_for_tbs_hash,
                                    &tbs_hash);

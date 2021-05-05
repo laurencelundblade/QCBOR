@@ -1,7 +1,7 @@
 /*
  *  t_cose_test.c
  *
- * Copyright 2019-2020, Laurence Lundblade
+ * Copyright 2019-2021, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -42,9 +42,9 @@ int_fast32_t short_circuit_self_test()
     /* No key necessary because short-circuit test mode is used */
 
     result = t_cose_sign1_sign(&sign_ctx,
-                                     s_input_payload,
-                                     signed_cose_buffer,
-                                     &signed_cose);
+                                s_input_payload,
+                                signed_cose_buffer,
+                                &signed_cose);
     if(result) {
         return 1000 + (int32_t)result;
     }
@@ -59,12 +59,12 @@ int_fast32_t short_circuit_self_test()
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
-                                       /* COSE to verify */
-                                       signed_cose,
-                                       /* The returned payload */
-                                       &payload,
-                                       /* Don't return parameters */
-                                       NULL);
+                                /* COSE to verify */
+                                signed_cose,
+                                /* The returned payload */
+                                &payload,
+                                /* Don't return parameters */
+                                NULL);
     if(result) {
         return 2000 + (int32_t)result;
     }
@@ -73,7 +73,6 @@ int_fast32_t short_circuit_self_test()
     if(q_useful_buf_compare(payload, s_input_payload)) {
         return 3000;
     }
-
     /* This value comes from C-COSE test case sign-pass-03.json. The test
      * case JSON gives the expected TBS bytes. These were then run through
      * openssl dgst -sha256 -binary | hexdump -e '"\n" 8/1 "0x%01x,  "'.
@@ -96,8 +95,50 @@ int_fast32_t short_circuit_self_test()
                             q_useful_buf_tail(signed_cose, signed_cose.len - 32))) {
         return 4000;
     }
-
     /* --- Done verifying the COSE Sign1 object  --- */
+
+
+   /* --- Make COSE Sign1 object --- */
+    t_cose_sign1_sign_init(&sign_ctx,
+                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                           T_COSE_ALGORITHM_ES256);
+
+    /* No key necessary because short-circuit test mode is used */
+
+    result = t_cose_sign1_sign_aad(&sign_ctx,
+                                    s_input_payload,
+                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("some aad"),
+                                    signed_cose_buffer,
+                                   &signed_cose);
+    if(result) {
+        return 1000 + (int32_t)result;
+    }
+    /* --- Done making COSE Sign1 object  --- */
+
+
+    /* --- Start verifying the COSE Sign1 object  --- */
+    /* Select short circuit signing */
+    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify_aad(&verify_ctx,
+                                     /* COSE to verify */
+                                     signed_cose,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("some aad"),
+                                     /* The returned payload */
+                                     &payload,
+                                     /* Don't return parameters */
+                                     NULL);
+    if(result) {
+        return 2000 + (int32_t)result;
+    }
+
+    /* compare payload output to the one expected */
+    if(q_useful_buf_compare(payload, s_input_payload)) {
+        return 3000;
+    }
 
     return 0;
 }
@@ -159,6 +200,47 @@ int_fast32_t short_circuit_verify_fail_test()
                                        &payload,
                                        /* Don't return parameters */
                                        NULL);
+    if(result != T_COSE_ERR_SIG_VERIFY) {
+        return 4000 + (int32_t)result;
+    }
+    /* --- Done verifying the COSE Sign1 object  --- */
+
+
+    /* === AAD Verification Failure Test === */
+    /* --- Start making COSE Sign1 object  --- */
+    t_cose_sign1_sign_init(&sign_ctx,
+                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
+                            T_COSE_ALGORITHM_ES256);
+
+    /* No key necessary because short-circuit test mode is used */
+
+    result = t_cose_sign1_sign_aad(&sign_ctx,
+                                    s_input_payload,
+                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("some aad"),
+                                    signed_cose_buffer,
+                                    &signed_cose);
+    if(result) {
+        return 1000 + (int32_t)result;
+    }
+    /* --- Done making COSE Sign1 object  --- */
+
+    /* --- Start verifying the COSE Sign1 object  --- */
+
+    /* Select short circuit signing */
+    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+
+    /* No key necessary with short circuit */
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify_aad(&verify_ctx,
+                                     /* COSE to verify */
+                                     signed_cose,
+                                     /* Slightly different AAD */
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("home aad"),
+                                     /* The returned payload */
+                                     &payload,
+                                     /* Don't return parameters */
+                                     NULL);
     if(result != T_COSE_ERR_SIG_VERIFY) {
         return 4000 + (int32_t)result;
     }

@@ -1,7 +1,7 @@
 /*
  * t_cose_sign1_sign.h
  *
- * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2020, Michael Eckel
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "qcbor/qcbor.h"
+#include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 
 #ifdef __cplusplus
@@ -257,11 +258,33 @@ t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
  * t_cose_sign1_encode_signature() can be used. They are more complex
  * to use, but avoid the two copies of the payload.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *context,
                   struct q_useful_buf_c         payload,
                   struct q_useful_buf           out_buf,
                   struct q_useful_buf_c        *result);
+
+
+/**
+ * \brief  Create and sign a \c COSE_Sign1 message with a payload.
+ *
+ * \param[in] context  The t_cose signing context.
+ * \param[in] aad      The Additional Authenticated Data.
+ * \param[in] payload  Pointer and length of payload to sign.
+ * \param[in] out_buf  Pointer and length of buffer to output to.
+ * \param[out] result  Pointer and length of the resulting \c COSE_Sign1.
+ *
+ * This is the same as t_cose_sign1_sign() and it allows passing in
+ * AAD (Additional Authenticated Data) to be covered by the
+ * signature. See t_cose_sign1_encode_signature_aad for more details
+ * about AAD.
+ */
+enum t_cose_err_t
+t_cose_sign1_sign_aad(struct t_cose_sign1_sign_ctx *context,
+                      struct q_useful_buf_c         aad,
+                      struct q_useful_buf_c         payload,
+                      struct q_useful_buf           out_buf,
+                      struct q_useful_buf_c        *result);
 
 
 /**
@@ -320,11 +343,34 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *context,
  * The completed \c COSE_Sign1 message is retrieved from the
  * \c cbor_encode_ctx by calling \c QCBOREncode_Finish().
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *context,
                               QCBOREncodeContext           *cbor_encode_ctx);
 
 
+/**
+ * \brief Finish a \c COSE_Sign1 message with AAD by outputting the signature.
+ *
+ * \param[in] context          The t_cose signing context.
+ * \param[in] aad              The Additional Authenticated Data.
+ * \param[in] cbor_encode_ctx  Encoding context to output to.
+ *
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ *
+ * This is the same as t_cose_sign1_encode_signature() and it allows
+ * passing in AAD (Additional Authenticated Data) to be covered by the
+ * signature.
+ *
+ * AAD is simply any data that should also be covered by the
+ * signature.  The verifier of the COSE_Sign1 must also have exactly
+ * this data to be able to successfully verify the signature. Often
+ * this data is some parameters or fields in the protocol carry the
+ * COSE message.
+ */
+enum t_cose_err_t
+t_cose_sign1_encode_signature_aad(struct t_cose_sign1_sign_ctx *context,
+                                  struct q_useful_buf_c         aad,
+                                  QCBOREncodeContext           *cbor_encode_ctx);
 
 
 
@@ -355,6 +401,24 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
 {
     me->kid         = kid;
     me->signing_key = signing_key;
+}
+
+
+static inline enum t_cose_err_t
+t_cose_sign1_sign(struct t_cose_sign1_sign_ctx *me,
+                  struct q_useful_buf_c         payload,
+                  struct q_useful_buf           out_buf,
+                  struct q_useful_buf_c        *result)
+{
+    return t_cose_sign1_sign_aad(me, payload, NULL_Q_USEFUL_BUF_C, out_buf, result);
+}
+
+
+static inline enum t_cose_err_t
+t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
+                              QCBOREncodeContext           *cbor_encode_ctx)
+{
+    return t_cose_sign1_encode_signature_aad(me, NULL_Q_USEFUL_BUF_C, cbor_encode_ctx);
 }
 
 

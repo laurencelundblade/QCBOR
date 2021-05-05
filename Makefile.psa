@@ -1,7 +1,7 @@
 # Makefile -- UNIX-style make for t_cose using crypto with MBed Crypto
 # MBed Crypto uses the PSA Crypto interface
 #
-# Copyright (c) 2019-2020, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2019-2021, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -116,7 +116,7 @@ uninstall: libt_cose.a $(PUBLIC_INTERFACE)
 		libt_cose.a libt_cose.so libt_cose.so.1 libt_cose.so.1.0.0)
 
 clean:
-	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) t_cose_basic_example_psa t_cose_test libt_cose.a libt_cose.so main.o
+	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) t_cose_basic_example_psa t_cose_test libt_cose.a libt_cose.so examples/*.o main.o
 
 
 # ---- public headers -----
@@ -140,4 +140,4 @@ test/t_cose_make_psa_test_key.o: test/t_cose_make_test_pub_key.h src/t_cose_stan
 crypto_adapters/t_cose_psa_crypto.o: src/t_cose_crypto.h inc/t_cose/t_cose_common.h src/t_cose_standard_constants.h inc/t_cose/q_useful_buf.h
 
 # ---- example dependencies ----
-t_cose_basic_example_psa.o: $(PUBLIC_INTERFACE)
+examples/t_cose_basic_example_psa.o: $(PUBLIC_INTERFACE)
