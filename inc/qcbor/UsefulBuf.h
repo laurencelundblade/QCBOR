@@ -469,31 +469,31 @@ static inline UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src);
 
 
 /**
- @brief Set all bytes in a @ref UsefulBuf to a value, for example to 0.
-
- @param[in] pDest  The destination buffer to copy into.
- @param[in] value  The value to set the bytes to.
-
- Note that like @c memset(), the pointer in @c pDest is not checked
- and this will crash if @c NULL or invalid.
+ * @brief Set all bytes in a @ref UsefulBuf to a value, for example to 0.
+ *
+ * @param[in] pDest  The destination buffer to copy into.
+ * @param[in] value  The value to set the bytes to.
+ *
+ * Note that like @c memset(), the pointer in @c pDest is not checked
+ * and this will crash if @c NULL or invalid.
  */
 static inline UsefulBufC UsefulBuf_Set(UsefulBuf pDest, uint8_t value);
 
 
 /**
- @brief Copy a pointer into a @ref UsefulBuf.
-
- @param[in,out] Dest  The destination buffer to copy into.
- @param[in] ptr       The source to copy from.
- @param[in] uLen      Length of the source; amount to copy.
-
- @return 0 on success, 1 on failure.
-
- This fails and returns @ref NULLUsefulBufC if @c uLen is greater than
- @c pDest->len.
-
- Note that like @c memcpy(), the pointers are not checked and this
- will crash, rather than return 1 if they are @c NULL or invalid.
+ * @brief Copy a pointer into a @ref UsefulBuf.
+ *
+ * @param[in,out] Dest  The destination buffer to copy into.
+ * @param[in] ptr       The source to copy from.
+ * @param[in] uLen      Length of the source; amount to copy.
+ *
+ * @return 0 on success, 1 on failure.
+ *
+ * This fails and returns @ref NULLUsefulBufC if @c uLen is greater
+ * than @c pDest->len.
+ *
+ * Note that like @c memcpy(), the pointers are not checked and this
+ * will crash, rather than return 1 if they are @c NULL or invalid.
  */
 static inline UsefulBufC UsefulBuf_CopyPtr(UsefulBuf Dest,
                                            const void *ptr,
@@ -501,83 +501,83 @@ static inline UsefulBufC UsefulBuf_CopyPtr(UsefulBuf Dest,
 
 
 /**
-  @brief Returns a truncation of a @ref UsefulBufC.
-
-  @param[in] UB       The buffer to get the head of.
-  @param[in] uAmount  The number of bytes in the head.
-
-  @return A @ref UsefulBufC that is the head of UB.
+ *  @brief Returns a truncation of a @ref UsefulBufC.
+ *
+ *  @param[in] UB       The buffer to get the head of.
+ *  @param[in] uAmount  The number of bytes in the head.
+ *
+ *  @return A @ref UsefulBufC that is the head of UB.
  */
 static inline UsefulBufC UsefulBuf_Head(UsefulBufC UB, size_t uAmount);
 
 
 /**
- @brief  Returns bytes from the end of a @ref UsefulBufC.
-
- @param[in] UB       The buffer to get the tail of.
- @param[in] uAmount  The offset from the start where the tail is to begin.
-
- @return A @ref UsefulBufC that is the tail of @c UB or @ref NULLUsefulBufC
-         if @c uAmount is greater than the length of the @ref UsefulBufC.
-
- If @c UB.ptr is @c NULL, but @c UB.len is not zero, then the result will
- be a @ref UsefulBufC with a @c NULL @c ptr and @c len with the length
- of the tail.
+ * @brief  Returns bytes from the end of a @ref UsefulBufC.
+ *
+ * @param[in] UB       The buffer to get the tail of.
+ * @param[in] uAmount  The offset from the start where the tail is to begin.
+ *
+ * @return A @ref UsefulBufC that is the tail of @c UB or @ref NULLUsefulBufC
+ *         if @c uAmount is greater than the length of the @ref UsefulBufC.
+ *
+ * If @c UB.ptr is @c NULL, but @c UB.len is not zero, then the result will
+ * be a @ref UsefulBufC with a @c NULL @c ptr and @c len with the length
+ * of the tail.
  */
 static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount);
 
 
 /**
- @brief Compare one @ref UsefulBufC to another.
-
- @param[in] UB1  The first buffer to compare.
- @param[in] UB2  The second buffer to compare.
-
- @return 0, positive or negative value.
-
- Returns a negative value if @c UB1 if is less than @c UB2. @c UB1 is
- less than @c UB2 if it is shorter or the first byte that is not the
- same is less.
-
- Returns 0 if the inputs are the same.
-
- Returns a positive value if @c UB2 is less than @c UB1.
-
- All that is of significance is that the result is positive, negative
- or 0. (This doesn't return the difference between the first
- non-matching byte like @c memcmp() ).
+ * @brief Compare one @ref UsefulBufC to another.
+ *
+ * @param[in] UB1  The first buffer to compare.
+ * @param[in] UB2  The second buffer to compare.
+ *
+ * @return 0, positive or negative value.
+ *
+ * Returns a negative value if @c UB1 if is less than @c UB2. @c UB1 is
+ * less than @c UB2 if it is shorter or the first byte that is not the
+ * same is less.
+ *
+ * Returns 0 if the inputs are the same.
+ *
+ * Returns a positive value if @c UB2 is less than @c UB1.
+ *
+ * All that is of significance is that the result is positive, negative
+ * or 0. (This doesn't return the difference between the first
+ * non-matching byte like @c memcmp() ).
  */
 int UsefulBuf_Compare(const UsefulBufC UB1, const UsefulBufC UB2);
 
 
 /**
- @brief Find first byte that is not a particular byte value.
-
- @param[in] UB     The destination buffer for byte comparison.
- @param[in] uValue The byte value to compare to.
-
- @return  Offset of first byte that isn't @c uValue or
-          @c SIZE_MAX if all bytes are @c uValue.
-
- Note that unlike most comparison functions, 0
- does not indicate a successful comparison, so the
- test for match is:
-
-      UsefulBuf_IsValue(...) == SIZE_MAX
-
- If @c UB is null or empty, there is no match
- and 0 is returned.
+ * @brief Find first byte that is not a particular byte value.
+ *
+ * @param[in] UB     The destination buffer for byte comparison.
+ * @param[in] uValue The byte value to compare to.
+ *
+ * @return  Offset of first byte that isn't @c uValue or
+ *          @c SIZE_MAX if all bytes are @c uValue.
+ *
+ * Note that unlike most comparison functions, 0
+ * does not indicate a successful comparison, so the
+ * test for match is:
+ *
+ *      UsefulBuf_IsValue(...) == SIZE_MAX
+ *
+ * If @c UB is null or empty, there is no match
+ * and 0 is returned.
  */
 size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue);
 
 
 /**
- @brief Find one @ref UsefulBufC in another.
-
- @param[in] BytesToSearch  Buffer to search through.
- @param[in] BytesToFind    Buffer with bytes to be found.
-
- @return Position of found bytes or @c SIZE_MAX if not found.
+ * @brief Find one @ref UsefulBufC in another.
+ *
+ * @param[in] BytesToSearch  Buffer to search through.
+ * @param[in] BytesToFind    Buffer with bytes to be found.
+ *
+ * @return Position of found bytes or @c SIZE_MAX if not found.
  */
 size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
@@ -607,57 +607,57 @@ static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
 
 
 /**
- @brief Copy a @c float to a @c uint32_t.
-
- @param[in] f  Float value to copy.
-
- @return  A @c uint32_t with the float bits.
-
- Convenience function to avoid type punning, compiler warnings and
- such. The optimizer usually reduces this to a simple assignment.  This
- is a crusty corner of C.
+ * @brief Copy a @c float to a @c uint32_t.
+ *
+ * @param[in] f  Float value to copy.
+ *
+ * @return  A @c uint32_t with the float bits.
+ *
+ * Convenience function to avoid type punning, compiler warnings and
+ * such. The optimizer usually reduces this to a simple assignment.  This
+ * is a crusty corner of C.
  */
 static inline uint32_t UsefulBufUtil_CopyFloatToUint32(float f);
 
 
 /**
- @brief Copy a @c double to a @c uint64_t.
-
- @param[in] d  Double value to copy.
-
- @return  A @c uint64_t with the double bits.
-
- Convenience function to avoid type punning, compiler warnings and
- such. The optimizer usually reduces this to a simple assignment.  This
- is a crusty corner of C.
+ * @brief Copy a @c double to a @c uint64_t.
+ *
+ * @param[in] d  Double value to copy.
+ *
+ * @return  A @c uint64_t with the double bits.
+ *
+ * Convenience function to avoid type punning, compiler warnings and
+ * such. The optimizer usually reduces this to a simple assignment.  This
+ * is a crusty corner of C.
  */
 static inline uint64_t UsefulBufUtil_CopyDoubleToUint64(double d);
 
 
 /**
- @brief Copy a @c uint32_t to a @c float.
-
- @param[in] u32  Integer value to copy.
-
- @return  The value as a @c float.
-
- Convenience function to avoid type punning, compiler warnings and
- such. The optimizer usually reduces this to a simple assignment.  This
- is a crusty corner of C.
+ * @brief Copy a @c uint32_t to a @c float.
+ *
+ * @param[in] u32  Integer value to copy.
+ *
+ * @return  The value as a @c float.
+ *
+ * Convenience function to avoid type punning, compiler warnings and
+ * such. The optimizer usually reduces this to a simple assignment.  This
+ * is a crusty corner of C.
  */
 static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32);
 
 
 /**
- @brief Copy a @c uint64_t to a @c double.
-
- @param[in] u64  Integer value to copy.
-
- @return  The value as a @c double.
-
- Convenience function to avoid type punning, compiler warnings and
- such. The optimizer usually reduces this to a simple assignment.  This
- is a crusty corner of C.
+ * @brief Copy a @c uint64_t to a @c double.
+ *
+ * @param[in] u64  Integer value to copy.
+ *
+ * @return  The value as a @c double.
+ *
+ * Convenience function to avoid type punning, compiler warnings and
+ * such. The optimizer usually reduces this to a simple assignment.  This
+ * is a crusty corner of C.
  */
 static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
 
@@ -665,86 +665,87 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
 
 
 /**
- UsefulOutBuf is a structure and functions (an object) for serializing
- data into a buffer when encoding a network protocol or writing data
- to file.
-
- The main idea is that all the pointer manipulation is performed by
- @ref UsefulOutBuf functions so the caller doesn't have to do any
- pointer manipulation.  The pointer manipulation is centralized.  This
- code will have been reviewed and written carefully so it spares the
- caller of much of this work and results in safer code with less work.
-
- The @ref UsefulOutBuf methods that add data to the output buffer
- always check the length and will never write off the end of the
- output buffer. If an attempt to add data that will not fit is made,
- an internal error flag will be set and further attempts to add data
- will not do anything.
-
- There is no way to ever write off the end of that buffer when calling
- the @c UsefulOutBuf_AddXxx() and @c UsefulOutBuf_InsertXxx()
- functions.
-
- The functions to add data do not return an error. The working model
- is that all calls to add data are made without an error check. Errors
- are just checked for once after all the data has been added before the
- and before serialized data is to be used. This makes the calling code
- cleaner.
-
- There is a utility function to get the error status anytime along the
- way for a special circumstance. There are functions to see how much
- room is left and see if some data will fit too, but their use is
- generally not necessary.
-
- The general call flow is:
-
-    - Initialize by calling @ref UsefulOutBuf_Init(). The output
-      buffer given to it can be from the heap, stack or
-      otherwise. @ref UsefulOutBuf_MakeOnStack is a convenience macro
-      that makes a buffer on the stack and initializes it.
-
-    - Call methods like UsefulOutBuf_InsertString(),
-      UsefulOutBuf_AppendUint32() and UsefulOutBuf_InsertUsefulBuf()
-      to output data. The append calls add data to the end of the
-      valid data. The insert calls take a position argument.
-
-    - Call UsefulOutBuf_OutUBuf() or UsefulOutBuf_CopyOut() to see
-      there were no errors and to get the serialized output bytes.
-
- @ref UsefulOutBuf can be used in a size calculation mode to calculate
- the size of output that would be generated. This is useful to
- calculate the size of a buffer that is to be allocated to hold the
- output. To use @ref UsefulOutBuf in this mode, call
- UsefulOutBuf_Init() with the @c Storage @ref UsefulBuf as
- @c (UsefulBuf){NULL,MAX_UINT32}. Then call all the Insert and Add
- functions. No attempt will made to actually copy data, so only the
- lengths have to be valid for these calls.
-
- Methods like UsefulOutBuf_InsertUint64() always output in network
- bytes order (big endian).
-
- The possible errors are:
-  - The @ref UsefulOutBuf was not initialized or was corrupted.
-
-  - An attempt was made to add data that will not fit.
-
-  - An attempt was made to insert data at a position beyond the end of
-    the buffer.
-
-  - An attempt was made to insert data at a position beyond the valid
-    data in the buffer.
-
- Some inexpensive simple sanity checks are performed before every data
- addition to guard against use of an uninitialized or corrupted
- UsefulOutBuf.
-
- This has been used to create a CBOR encoder. The CBOR encoder has
- almost no pointer manipulation in it, is easier to read, and easier
- to review.
-
- A @ref UsefulOutBuf is small and can go on the stack:
-   - 32 bytes (27 bytes plus alignment padding) on a 64-bit machine
-   - 16 bytes (15 bytes plus alignment padding) on a 32-bit machines
+ * UsefulOutBuf is a structure and functions (an object) for
+ * serializing data into a buffer to encode for a network protocol or
+ * write data to a file.
+ *
+ * The main idea is that all the pointer manipulation is performed by
+ * @ref UsefulOutBuf functions so the caller doesn't have to do any
+ * pointer manipulation.  The pointer manipulation is centralized.
+ * This code will have been reviewed and written carefully so it
+ * spares the caller of much of this work and results in safer code
+ * with less work.
+ *
+ * The @ref UsefulOutBuf methods that add data to the output buffer
+ * always check the length and will never write off the end of the
+ * output buffer. If an attempt to add data that will not fit is made,
+ * an internal error flag will be set and further attempts to add data
+ * will not do anything.
+ *
+ * There is no way to ever write off the end of that buffer when
+ * calling the @c UsefulOutBuf_AddXxx() and @c
+ * UsefulOutBuf_InsertXxx() functions.
+ *
+ * The functions to add data do not report success of failure. The
+ * caller only needs to check for an error in the final call, either
+ * UsefulOutBuf_OutUBuf( *) or UsefulOutBuf_CopyOut() to get the
+ * result. This makes the calling code cleaner.
+ *
+ * There is a utility function to get the error status anytime along
+ * the way for a special circumstance. There are functions to see how
+ * much room is left and see if some data will fit too, but their use
+ * is generally unnecessary.
+ *
+ * The general call flow is:
+ *
+ *    - Initialize by calling @ref UsefulOutBuf_Init(). The output
+ *      buffer given to it can be from the heap, stack or
+ *      otherwise. @ref UsefulOutBuf_MakeOnStack is a convenience
+ *      macro that makes a buffer on the stack and initializes it.
+ *
+ *    - Call methods like UsefulOutBuf_InsertString(),
+ *      UsefulOutBuf_AppendUint32() and UsefulOutBuf_InsertUsefulBuf()
+ *      to output data. The append calls add data to the end of the
+ *      valid data. The insert calls take a position argument.
+ *
+ *    - Call UsefulOutBuf_OutUBuf() or UsefulOutBuf_CopyOut() to see
+ *      there were no errors and to get the serialized output bytes.
+ *
+ * @ref UsefulOutBuf can be used in a size calculation mode to
+ * calculate the size of output that would be generated. This is
+ * useful to calculate the size of a buffer that is to be allocated to
+ * hold the output. To use @ref UsefulOutBuf in this mode, call
+ * UsefulOutBuf_Init() with the @c Storage @ref UsefulBuf as @c
+ * (UsefulBuf){NULL,MAX_UINT32}. Then call all the Insert and Add
+ * functions. No attempt will be made to actually copy data, so only
+ * the lengths have to be valid for these calls.
+ *
+ * Methods like UsefulOutBuf_InsertUint64() always output in network
+ * bytes order (big endian).
+ *
+ * The possible errors are:
+ *
+ *  - The @ref UsefulOutBuf was not initialized or was corrupted.
+ *
+ *  - An attempt was made to add data that will not fit.
+ *
+ *  - An attempt was made to insert data at a position beyond the end of
+ *    the buffer.
+ *
+ *  - An attempt was made to insert data at a position beyond the valid
+ *    data in the buffer.
+ *
+ * Some inexpensive simple sanity checks are performed before every
+ * data addition to guard against use of an uninitialized or corrupted
+ * UsefulOutBuf.
+ *
+ * UsefulOutBuf has been used to create a CBOR encoder. The CBOR
+ * encoder has almost no pointer manipulation in it, is easier to
+ * read, and easier to review.
+ *
+ * A @ref UsefulOutBuf is small and can go on the stack:
+ *   - 32 bytes (27 bytes plus alignment padding) on a 64-bit CPU
+ *   - 16 bytes (15 bytes plus alignment padding) on a 32-bit CPU
  */
 typedef struct useful_out_buf {
    // PRIVATE DATA STRUCTURE
