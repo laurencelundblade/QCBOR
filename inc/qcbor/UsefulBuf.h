@@ -758,23 +758,24 @@ typedef struct useful_out_buf {
 
 
 /**
- @brief Initialize and supply the actual output buffer.
-
- @param[out] pUOutBuf  The @ref UsefulOutBuf to initialize.
- @param[in] Storage    Buffer to output into.
-
- Initializes  the @ref UsefulOutBuf with storage. Sets the current
- position to the beginning of the buffer clears the error.
-
- This must be called before the @ref UsefulOutBuf is used.
+ * @brief Initialize and supply the actual output buffer.
+ *
+ * @param[out] pUOutBuf  The @ref UsefulOutBuf to initialize.
+ * @param[in] Storage    Buffer to output into.
+ *
+ * This initializes the @ref UsefulOutBuf with storage, sets the
+ * current position to the beginning of the buffer and clears the
+ * error state.
+ *
+ * This must be called before the @ref UsefulOutBuf is used.
  */
 void UsefulOutBuf_Init(UsefulOutBuf *pUOutBuf, UsefulBuf Storage);
 
 
 /**
- Convenience macro to make a @ref UsefulOutBuf on the stack and
- initialize it with a stack buffer of the given size. The variable
- will be named @c name.
+ * Convenience macro to make a @ref UsefulOutBuf on the stack and
+ * initialize it with a stack buffer of the given size. The variable
+ * will be named @c name.
  */
 #define  UsefulOutBuf_MakeOnStack(name, size) \
    uint8_t       __pBuf##name[(size)];\
@@ -783,79 +784,79 @@ void UsefulOutBuf_Init(UsefulOutBuf *pUOutBuf, UsefulBuf Storage);
 
 
 /**
- @brief Reset a @ref UsefulOutBuf for re use
-
- @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf
-
- This sets the amount of data in the output buffer to none and clears
- the error state.
-
- The output buffer is still the same one and size as from the
- UsefulOutBuf_Init() call.
-
- This doesn't zero the data, just resets to 0 bytes of valid data.
+ * @brief Reset a @ref UsefulOutBuf for re use.
+ *
+ * @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf
+ *
+ * This sets the amount of data in the output buffer to none and
+ * clears the error state.
+ *
+ * The output buffer is still the same one and size as from the
+ * UsefulOutBuf_Init() call.
+ *
+ * This doesn't zero the data, just resets to 0 bytes of valid data.
  */
 static inline void UsefulOutBuf_Reset(UsefulOutBuf *pUOutBuf);
 
 
 /**
- @brief Returns position of end of data in the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
-
- @return position of end of data.
-
- On a freshly initialized @ref UsefulOutBuf with no data added, this
- will return 0. After 10 bytes have been added, it will return 10 and
- so on.
-
- Generally callers will not need this function for most uses of @ref
- UsefulOutBuf.
+ * @brief Returns position of end of data in the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ *
+ * @return position of end of data.
+ *
+ * On a freshly initialized @ref UsefulOutBuf with no data added, this
+ * will return 0. After 10 bytes have been added, it will return 10
+ * and so on.
+ *
+ * Generally, there is no need to call this for most uses of @ref
+ * UsefulOutBuf.
  */
 static inline size_t UsefulOutBuf_GetEndPosition(UsefulOutBuf *pUOutBuf);
 
 
 /**
- @brief Returns whether any data has been added to the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
-
- @return 1 if output position is at start.
+ * @brief Returns whether any data has been added to the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ *
+ * @return 1 if output position is at start.
  */
 static inline int UsefulOutBuf_AtStart(UsefulOutBuf *pUOutBuf);
 
 
 /**
- @brief Inserts bytes into the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
- @param[in] NewData   The bytes to insert.
- @param[in] uPos      Index in output buffer at which to insert.
-
- @c NewData is the pointer and length for the bytes to be added to the
- output buffer. There must be room in the output buffer for all of @c
- NewData or an error will occur.
-
- The insertion point must be between 0 and the current valid data. If
- not, an error will occur. Appending data to the output buffer is
- achieved by inserting at the end of the valid data. This can be
- retrieved by calling UsefulOutBuf_GetEndPosition().
-
- When insertion is performed, the bytes between the insertion point
- and the end of data previously added to the output buffer are slid to
- the right to make room for the new data.
-
- Overlapping buffers are OK. @c NewData can point to data in the
- output buffer.
-
- If an error occurs an error state is set in the @ref UsefulOutBuf. No
- error is returned.  All subsequent attempts to add data will do
- nothing.
-
- The intended use is that all additions are made without checking for
- an error. The error will be taken into account when
- UsefulOutBuf_OutUBuf() returns @c NullUsefulBufC.
- UsefulOutBuf_GetError() can also be called to check for an error.
+ * @brief Inserts bytes into the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] NewData   The bytes to insert.
+ * @param[in] uPos      Index in output buffer at which to insert.
+ *
+ * @c NewData is the pointer and length for the bytes to be added to
+ * the output buffer. There must be room in the output buffer for all
+ * of @c NewData or an error will occur.
+ *
+ * The insertion point must be between 0 and the current valid
+ * data. If not, an error will occur. Appending data to the output
+ * buffer is achieved by inserting at the end of the valid data. This
+ * can be retrieved by calling UsefulOutBuf_GetEndPosition().
+ *
+ * When insertion is performed, the bytes between the insertion point
+ * and the end of data previously added to the output buffer are slid
+ * to the right to make room for the new data.
+ *
+ * Overlapping buffers are OK. @c NewData can point to data in the
+ * output buffer.
+ *
+ * If an error occurs, an error state is set in the @ref
+ * UsefulOutBuf. No error is returned.  All subsequent attempts to add
+ * data will do nothing.
+ *
+ * The intended use is that all additions are made without checking
+ * for an error. The error will be taken into account when
+ * UsefulOutBuf_OutUBuf() returns @c NullUsefulBufC.
+ * UsefulOutBuf_GetError() can also be called to check for an error.
  */
 void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pUOutBuf,
                                   UsefulBufC NewData,
@@ -863,16 +864,16 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a data buffer into the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
- @param[in] pBytes    Pointer to the bytes to insert
- @param[in] uLen      Length of the bytes to insert
- @param[in] uPos      Index in output buffer at which to insert
-
- See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a pointer and length is passed in rather than an
- @ref UsefulBufC.
+ * @brief Insert a data buffer into the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] pBytes    Pointer to the bytes to insert
+ * @param[in] uLen      Length of the bytes to insert
+ * @param[in] uPos      Index in output buffer at which to insert
+ *
+ * See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
+ * the difference being a pointer and length is passed in rather than an
+ * @ref UsefulBufC.
  */
 static inline void UsefulOutBuf_InsertData(UsefulOutBuf *pUOutBuf,
                                            const void *pBytes,
@@ -881,11 +882,11 @@ static inline void UsefulOutBuf_InsertData(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a NULL-terminated string into the UsefulOutBuf.
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
- @param[in] szString  NULL-terminated string to insert.
- @param[in] uPos      Index in output buffer at which to insert.
+ * @brief Insert a NULL-terminated string into the UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] szString  NULL-terminated string to insert.
+ * @param[in] uPos      Index in output buffer at which to insert.
  */
 static inline void UsefulOutBuf_InsertString(UsefulOutBuf *pUOutBuf,
                                              const char *szString,
@@ -893,14 +894,14 @@ static inline void UsefulOutBuf_InsertString(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a byte into the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf  Pointer to the UsefulOutBuf.
- @param[in] byte      Bytes to insert.
- @param[in] uPos      Index in output buffer at which to insert.
-
- See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a single byte is to be inserted.
+ * @brief Insert a byte into the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the UsefulOutBuf.
+ * @param[in] byte      Bytes to insert.
+ * @param[in] uPos      Index in output buffer at which to insert.
+ *
+ * See UsefulOutBuf_InsertUsefulBuf() for details. This is the same
+ * with the difference being a single byte is to be inserted.
  */
 static inline void UsefulOutBuf_InsertByte(UsefulOutBuf *pUOutBuf,
                                            uint8_t byte,
@@ -908,16 +909,16 @@ static inline void UsefulOutBuf_InsertByte(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a 16-bit integer into the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
- @param[in] uInteger16  Integer to insert.
- @param[in] uPos        Index in output buffer at which to insert.
-
- See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a two-byte integer is to be inserted.
-
- The integer will be inserted in network byte order (big endian).
+ * @brief Insert a 16-bit integer into the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
+ * @param[in] uInteger16  Integer to insert.
+ * @param[in] uPos        Index in output buffer at which to insert.
+ *
+ * See UsefulOutBuf_InsertUsefulBuf() for details. This is the same
+ * with the difference being a two-byte integer is to be inserted.
+ *
+ * The integer will be inserted in network byte order (big endian).
  */
 static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *pUOutBuf,
                                              uint16_t uInteger16,
@@ -925,16 +926,16 @@ static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a 32-bit integer into the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
- @param[in] uInteger32  Integer to insert.
- @param[in] uPos        Index in output buffer at which to insert.
-
- See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a four-byte integer is to be inserted.
-
- The integer will be inserted in network byte order (big endian).
+ * @brief Insert a 32-bit integer into the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
+ * @param[in] uInteger32  Integer to insert.
+ * @param[in] uPos        Index in output buffer at which to insert.
+ *
+ * See UsefulOutBuf_InsertUsefulBuf() for details. This is the same
+ * with the difference being a four-byte integer is to be inserted.
+ *
+ * The integer will be inserted in network byte order (big endian).
  */
 static inline void UsefulOutBuf_InsertUint32(UsefulOutBuf *pUOutBuf,
                                              uint32_t uInteger32,
@@ -942,16 +943,16 @@ static inline void UsefulOutBuf_InsertUint32(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a 64-bit integer into the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
- @param[in] uInteger64  Integer to insert.
- @param[in] uPos        Index in output buffer at which to insert.
-
- See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being an eight-byte integer is to be inserted.
-
- The integer will be inserted in network byte order (big endian).
+ * @brief Insert a 64-bit integer into the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
+ * @param[in] uInteger64  Integer to insert.
+ * @param[in] uPos        Index in output buffer at which to insert.
+ *
+ * See UsefulOutBuf_InsertUsefulBuf() for details. This is the same
+ * with the difference being an eight-byte integer is to be inserted.
+ *
+ * The integer will be inserted in network byte order (big endian).
  */
 static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pUOutBuf,
                                              uint64_t uInteger64,
@@ -959,16 +960,16 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a @c float into the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
- @param[in] f         @c float to insert.
- @param[in] uPos      Index in output buffer at which to insert.
-
- See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a @c float is to be inserted.
-
- The @c float will be inserted in network byte order (big endian).
+ * @brief Insert a @c float into the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] f         @c float to insert.
+ * @param[in] uPos      Index in output buffer at which to insert.
+ *
+ * See UsefulOutBuf_InsertUsefulBuf() for details. This is the same
+ * with the difference being a @c float is to be inserted.
+ *
+ * The @c float will be inserted in network byte order (big endian).
  */
 static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *pUOutBuf,
                                             float f,
@@ -976,16 +977,16 @@ static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Insert a @c double into the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
- @param[in] d         @c double  to insert.
- @param[in] uPos      Index in output buffer at which to insert.
-
- See UsefulOutBuf_InsertUsefulBuf() for details. This is the same with
- the difference being a @c double is to be inserted.
-
- The @c double will be inserted in network byte order (big endian).
+ * @brief Insert a @c double into the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] d         @c double  to insert.
+ * @param[in] uPos      Index in output buffer at which to insert.
+ *
+ * See UsefulOutBuf_InsertUsefulBuf() for details. This is the same
+ * with the difference being a @c double is to be inserted.
+ *
+ * The @c double will be inserted in network byte order (big endian).
  */
 static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pUOutBuf,
                                              double d,
@@ -993,27 +994,27 @@ static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Append a @ref UsefulBuf into the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
- @param[in] NewData   The @ref UsefulBuf with the bytes to append.
-
- See UsefulOutBuf_InsertUsefulBuf() for details. This does the same
- with the insertion point at the end of the valid data.
-*/
+ * @brief Append a @ref UsefulBuf into the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] NewData   The @ref UsefulBuf with the bytes to append.
+ *
+ * See UsefulOutBuf_InsertUsefulBuf() for details. This does the same
+ * with the insertion point at the end of the valid data.
+ */
 static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
                                                 UsefulBufC NewData);
 
 
 /**
- @brief Append bytes to the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
- @param[in] pBytes    Pointer to bytes to append.
- @param[in] uLen      Length of @c pBytes to append.
-
- See UsefulOutBuf_InsertData() for details. This does the same
- with the insertion point at the end of the valid data.
+ * @brief Append bytes to the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] pBytes    Pointer to bytes to append.
+ * @param[in] uLen      Length of @c pBytes to append.
+ *
+ * See UsefulOutBuf_InsertData() for details. This does the same with
+ * the insertion point at the end of the valid data.
  */
 static inline void UsefulOutBuf_AppendData(UsefulOutBuf *pUOutBuf,
                                            const void *pBytes,
@@ -1021,195 +1022,196 @@ static inline void UsefulOutBuf_AppendData(UsefulOutBuf *pUOutBuf,
 
 
 /**
- @brief Append a NULL-terminated string to the @ref UsefulOutBuf
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
- @param[in] szString  NULL-terminated string to append.
+ * @brief Append a NULL-terminated string to the @ref UsefulOutBuf
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] szString  NULL-terminated string to append.
  */
 static inline void UsefulOutBuf_AppendString(UsefulOutBuf *pUOutBuf,
                                              const char *szString);
 
 
 /**
- @brief Append a byte to the @ref UsefulOutBuf
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
- @param[in] byte      Bytes to append.
-
- See UsefulOutBuf_InsertByte() for details. This does the same
- with the insertion point at the end of the valid data.
+ * @brief Append a byte to the @ref UsefulOutBuf
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] byte      Bytes to append.
+ *
+ * See UsefulOutBuf_InsertByte() for details. This does the same
+ * with the insertion point at the end of the valid data.
  */
 static inline void UsefulOutBuf_AppendByte(UsefulOutBuf *pUOutBuf,
                                            uint8_t byte);
 
 
 /**
- @brief Append an integer to the @ref UsefulOutBuf
-
- @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
- @param[in] uInteger16  Integer to append.
-
- See UsefulOutBuf_InsertUint16() for details. This does the same
- with the insertion point at the end of the valid data.
-
- The integer will be appended in network byte order (big endian).
+ * @brief Append an integer to the @ref UsefulOutBuf
+ *
+ * @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
+ * @param[in] uInteger16  Integer to append.
+ *
+ * See UsefulOutBuf_InsertUint16() for details. This does the same
+ * with the insertion point at the end of the valid data.
+ *
+ * The integer will be appended in network byte order (big endian).
  */
 static inline void UsefulOutBuf_AppendUint16(UsefulOutBuf *pUOutBuf,
                                              uint16_t uInteger16);
 
 
 /**
- @brief Append an integer to the @ref UsefulOutBuf
-
- @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
- @param[in] uInteger32  Integer to append.
-
- See UsefulOutBuf_InsertUint32() for details. This does the same
- with the insertion point at the end of the valid data.
-
- The integer will be appended in network byte order (big endian).
+ * @brief Append an integer to the @ref UsefulOutBuf
+ *
+ * @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
+ * @param[in] uInteger32  Integer to append.
+ *
+ * See UsefulOutBuf_InsertUint32() for details. This does the same
+ * with the insertion point at the end of the valid data.
+ *
+ * The integer will be appended in network byte order (big endian).
  */
 static inline void UsefulOutBuf_AppendUint32(UsefulOutBuf *pUOutBuf,
                                              uint32_t uInteger32);
 
 
 /**
- @brief Append an integer to the @ref UsefulOutBuf
-
- @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
- @param[in] uInteger64  Integer to append.
-
- See UsefulOutBuf_InsertUint64() for details. This does the same
- with the insertion point at the end of the valid data.
-
- The integer will be appended in network byte order (big endian).
+ * @brief Append an integer to the @ref UsefulOutBuf
+ *
+ * @param[in] pUOutBuf    Pointer to the @ref UsefulOutBuf.
+ * @param[in] uInteger64  Integer to append.
+ *
+ * See UsefulOutBuf_InsertUint64() for details. This does the same
+ * with the insertion point at the end of the valid data.
+ *
+ * The integer will be appended in network byte order (big endian).
  */
 static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *pUOutBuf,
                                              uint64_t uInteger64);
 
 
 /**
- @brief Append a @c float to the @ref UsefulOutBuf
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
- @param[in] f         @c float to append.
-
- See UsefulOutBuf_InsertFloat() for details. This does the same
- with the insertion point at the end of the valid data.
-
- The float will be appended in network byte order (big endian).
+ * @brief Append a @c float to the @ref UsefulOutBuf
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] f         @c float to append.
+ *
+ * See UsefulOutBuf_InsertFloat() for details. This does the same with
+ * the insertion point at the end of the valid data.
+ *
+ * The float will be appended in network byte order (big endian).
  */
 static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *pUOutBuf,
                                             float f);
 
 
 /**
- @brief Append a @c double to the @ref UsefulOutBuf
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
- @param[in] d         @c double to append.
-
- See UsefulOutBuf_InsertDouble() for details. This does the same
- with the insertion point at the end of the valid data.
-
- The double will be appended in network byte order (big endian).
+ * @brief Append a @c double to the @ref UsefulOutBuf
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] d         @c double to append.
+ *
+ * See UsefulOutBuf_InsertDouble() for details. This does the same
+ * with the insertion point at the end of the valid data.
+ *
+ * The double will be appended in network byte order (big endian).
  */
 static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pUOutBuf,
                                              double d);
 
 
 /**
- @brief Returns the current error status.
-
- @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
-
- @return 0 if all OK, 1 on error.
-
- This is the error status since the call to either
- UsefulOutBuf_Reset() of UsefulOutBuf_Init().  Once it goes into error
- state it will stay until one of those functions is called.
-
- Possible error conditions are:
-   - bytes to be inserted will not fit
-   - insertion point is out of buffer or past valid data
-   - current position is off end of buffer (probably corrupted or uninitialized)
-   - detect corruption / uninitialized by bad magic number
+ * @brief Returns the current error status.
+ *
+ * @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
+ *
+ * @return 0 if all OK, 1 on error.
+ *
+ * This returns the error status since a call to either
+ * UsefulOutBuf_Reset() of UsefulOutBuf_Init().  Once a UsefulOutBuf
+ * goes into the * error state, it will stay until one of those
+ * functions is called.
+ *
+ * Possible error conditions are:
+ *   - bytes to be inserted will not fit
+ *   - insertion point is out of buffer or past valid data
+ *   - current position is off end of buffer (probably corrupted or uninitialized)
+ *   - detect corruption / uninitialized by bad magic number
  */
 static inline int UsefulOutBuf_GetError(UsefulOutBuf *pUOutBuf);
 
 
 /**
- @brief Returns number of bytes unused used in the output buffer.
-
- @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
-
- @return Number of unused bytes or zero.
-
- Because of the error handling strategy and checks in
- UsefulOutBuf_InsertUsefulBuf() it is usually not necessary to use
- this.
+ * @brief Returns number of bytes unused used in the output buffer.
+ *
+ * @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
+ *
+ * @return Number of unused bytes or zero.
+ *
+ * Because of the error handling strategy and checks in
+ * UsefulOutBuf_InsertUsefulBuf() it is usually not necessary to use
+ * this.
  */
 static inline size_t UsefulOutBuf_RoomLeft(UsefulOutBuf *pUOutBuf);
 
 
 /**
- @brief Returns 1 if some number of bytes will fit in the @ref UsefulOutBuf.
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf
- @param[in] uLen      Number of bytes for which to check
-
- @return 1 if @c uLen bytes will fit, 0 if not.
-
- Because of the error handling strategy and checks in
- UsefulOutBuf_InsertUsefulBuf() it is usually not necessary to use
- this.
+ *@brief Returns 1 if some number of bytes will fit in the @ref UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf
+ * @param[in] uLen      Number of bytes for which to check
+ *
+ * @return 1 if @c uLen bytes will fit, 0 if not.
+ *
+ * Because of the error handling strategy and checks in
+ * UsefulOutBuf_InsertUsefulBuf() it is usually not necessary to use
+ * this.
  */
 static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *pUOutBuf, size_t uLen);
 
 
  /**
- @brief Returns 1 if buffer given to UsefulOutBuf_Init() was @c NULL.
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf
-
- @return 1 if buffer given to UsefulOutBuf_Init() was @c NULL.
-
- Giving a @c NULL output buffer to UsefulOutBuf_Init() is used
- when just calculating the length of the encoded data.
- */
+  * @brief Returns 1 if buffer given to UsefulOutBuf_Init() was @c NULL.
+  *
+  * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf
+  *
+  * @return 1 if buffer given to UsefulOutBuf_Init() was @c NULL.
+  *
+  * Giving a @c NULL output buffer to UsefulOutBuf_Init() is used when
+  * just calculating the length of the encoded data.
+  */
 static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pUOutBuf);
 
 
 /**
-   @brief Returns the resulting valid data in a UsefulOutBuf
-
-   @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
-
-   @return The valid data in @ref UsefulOutBuf or
-           @ref NULLUsefulBufC if there was an error adding data.
-
-   The storage for the returned data is the @c Storage parameter passed
-   to UsefulOutBuf_Init(). See also UsefulOutBuf_CopyOut().
-
-   This can be called anytime and many times to get intermediate
-   results. It doesn't change the data or reset the current position
-   so you can keep adding data.
+ *  @brief Returns the resulting valid data in a UsefulOutBuf
+ *
+ *  @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
+ *
+ *  @return The valid data in @ref UsefulOutBuf or
+ *           @ref NULLUsefulBufC if there was an error adding data.
+ *
+ *  The storage for the returned data is the @c Storage parameter
+ *  passed to UsefulOutBuf_Init(). See also UsefulOutBuf_CopyOut().
+ *
+ *  This can be called anytime and many times to get intermediate
+ *  results. It doesn't change the data or reset the current position,
+ *  so further data can be added.
  */
 UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pUOutBuf);
 
 
 /**
- @brief Copies the valid data into a supplied buffer
-
- @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
- @param[out] Dest     The destination buffer to copy into.
-
- @return Pointer and length of copied data or @c NULLUsefulBufC
-         if it will not fit in the @c Dest buffer.
-
- This is the same as UsefulOutBuf_OutUBuf() except it copies the data
- to @c Dest.
-*/
+ * @brief Copies the valid data into a supplied buffer
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[out] Dest     The destination buffer to copy into.
+ *
+ * @return Pointer and length of copied data or @c NULLUsefulBufC
+ *         if it will not fit in the @c Dest buffer.
+ *
+ * This is the same as UsefulOutBuf_OutUBuf() except it copies the
+ * data to @c Dest.
+ */
 UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
 
 
