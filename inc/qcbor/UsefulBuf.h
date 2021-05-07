@@ -748,10 +748,11 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  *   - 16 bytes (15 bytes plus alignment padding) on a 32-bit CPU
  */
 typedef struct useful_out_buf {
-   // PRIVATE DATA STRUCTURE
-   UsefulBuf  UB;       // Memory that is being output to
-   size_t     data_len; // length of the data
-   uint16_t   magic;    // Used to detect corruption and lack of initialization
+   /* PRIVATE DATA STRUCTURE */
+   UsefulBuf  UB;       /* Memory that is being output to */
+   size_t     data_len; /* length of the data */
+   uint16_t   magic;    /* Used to detect corruption and lack
+                         * of initialization */
    uint8_t    err;
 } UsefulOutBuf;
 
@@ -1735,7 +1736,7 @@ static inline void UsefulOutBuf_InsertUint32(UsefulOutBuf *pMe,
                                              uint32_t uInteger32,
                                              size_t uPos)
 {
-   // See UsefulOutBuf_InsertUint64() for comments on this code
+   /* See UsefulOutBuf_InsertUint64() for comments on this code */
 
    const void *pBytes;
 
@@ -1766,42 +1767,46 @@ static inline void UsefulOutBuf_InsertUint32(UsefulOutBuf *pMe,
 }
 
 static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pMe,
-                                             uint64_t uInteger64,
-                                             size_t uPos)
+                                             uint64_t      uInteger64,
+                                             size_t        uPos)
 {
    const void *pBytes;
 
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN)
-   // We have been told explicitly we are running on a big-endian
-   // machine. Network byte order is big endian, so just copy.  There
-   // is no issue with alignment here because uInter64 is always
-   // aligned (and it doesn't matter if pBytes is aligned).
+   /* We have been told explicitly we are running on a big-endian
+    * machine. Network byte order is big endian, so just copy.  There
+    * is no issue with alignment here because uInteger64 is always
+    * aligned (and it doesn't matter if pBytes is aligned).
+    */
    pBytes = &uInteger64;
 
 #elif defined(USEFULBUF_CONFIG_HTON)
-   // Use system function to handle big- and little-endian. This works
-   // on both big- and little-endian machines, but hton() is not
-   // always available or in a standard place so it is not used by
-   // default. With some compilers and CPUs the code for this is very
-   // compact through use of a special swap instruction and on
-   // big-endian machines hton() will reduce to nothing.
+   /* Use system function to handle big- and little-endian. This works
+    * on both big- and little-endian machines, but hton() is not
+    * always available or in a standard place so it is not used by
+    * default. With some compilers and CPUs the code for this is very
+    * compact through use of a special swap instruction and on
+    * big-endian machines hton() will reduce to nothing.
+    */
    uint64_t uTmp = htonll(uInteger64);
 
    pBytes = &uTmp;
 
 #elif defined(USEFULBUF_CONFIG_LITTLE_ENDIAN) && defined(USEFULBUF_CONFIG_BSWAP)
-   // Use built-in function for byte swapping. This usually compiles
-   // to an efficient special byte swap instruction. Unlike hton() it
-   // does not do this conditionally on the CPU endianness, so this
-   // code is also conditional on USEFULBUF_CONFIG_LITTLE_ENDIAN
+   /* Use built-in function for byte swapping. This usually compiles
+    * to an efficient special byte swap instruction. Unlike hton() it
+    * does not do this conditionally on the CPU endianness, so this
+    * code is also conditional on USEFULBUF_CONFIG_LITTLE_ENDIAN
+    */
    uint64_t uTmp = __builtin_bswap64(uInteger64);
 
    pBytes = &uTmp;
 
 #else
-   // Default which works on every CPU with no dependency on anything
-   // from the CPU, compiler, libraries or OS.  This always works, but
-   // it is usually a little larger and slower than hton().
+   /* Default which works on every CPU with no dependency on anything
+    * from the CPU, compiler, libraries or OS.  This always works, but
+    * it is usually a little larger and slower than hton().
+    */
    uint8_t aTmp[8];
 
    aTmp[0] = (uint8_t)((uInteger64 & 0xff00000000000000) >> 56);
@@ -1816,7 +1821,7 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pMe,
    pBytes = aTmp;
 #endif
 
-   // Do the insert
+   /* Do the insert */
    UsefulOutBuf_InsertData(pMe, pBytes, sizeof(uint64_t), uPos);
 }
 
@@ -1840,7 +1845,7 @@ static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pMe,
 static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe,
                                                 UsefulBufC NewData)
 {
-   // An append is just a insert at the end
+   /* An append is just a insert at the end */
    UsefulOutBuf_InsertUsefulBuf(pMe, NewData, UsefulOutBuf_GetEndPosition(pMe));
 }
 
@@ -2002,9 +2007,11 @@ static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *pMe)
 {
    const void *pResult = UsefulInputBuf_GetBytes(pMe, sizeof(uint8_t));
 
-   // The ternery operator is subject to integer promotion, because the
-   // operands are smaller than int, so cast back to uint8_t is needed
-   // to be completely explicit about types (for static analyzers)
+   /* The ternary operator is subject to integer promotion, because
+    * the operands are smaller than int, so cast back to uint8_t is
+    * needed to be completely explicit about types (for static
+    * analyzers).
+    */
    return (uint8_t)(pResult ? *(uint8_t *)pResult : 0);
 }
 
