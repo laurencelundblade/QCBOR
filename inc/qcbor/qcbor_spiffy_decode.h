@@ -1018,6 +1018,20 @@ static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
                                              uint8_t             uTagRequirement,
                                              UsefulBufC         *pDateString);
 
+// TODO: document this
+static void QCBORDecode_GetDaysString(QCBORDecodeContext *pCtx,
+                                      uint8_t             uTagRequirement,
+                                      UsefulBufC         *pDateString);
+
+static void QCBORDecode_GetDaysStringInMapN(QCBORDecodeContext *pCtx,
+                                            int64_t             nLabel,
+                                            uint8_t             uTagRequirement,
+                                            UsefulBufC         *pDateString);
+
+static void QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pCtx,
+                                             const char         *szLabel,
+                                             uint8_t             uTagRequirement,
+                                             UsefulBufC         *pDateString);
 
 /**
  @brief Decode the next item as an epoch date.
@@ -1061,6 +1075,22 @@ void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
                                      const char         *szLabel,
                                      uint8_t             uTagRequirement,
                                      int64_t            *pnTime);
+
+// TODO: document this
+
+void QCBORDecode_GetEpochDays(QCBORDecodeContext *pCtx,
+                              uint8_t             uTagRequirement,
+                              int64_t            *pnDays);
+
+void QCBORDecode_GetEpochDaysInMapN(QCBORDecodeContext *pCtx,
+                                    int64_t             nLabel,
+                                    uint8_t             uTagRequirement,
+                                    int64_t            *pnDays);
+
+void QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
+                                     const char         *szLabel,
+                                     uint8_t             uTagRequirement,
+                                     int64_t            *pnDays);
 
 
 
@@ -2170,6 +2200,54 @@ QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pMe,
 
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pText);
 }
+
+static inline void
+QCBORDecode_GetDaysString(QCBORDecodeContext *pMe,
+                          uint8_t             uTagRequirement,
+                          UsefulBufC         *pValue)
+{
+   const TagSpecification TagSpec =
+      {
+         uTagRequirement,
+         {QCBOR_TYPE_DAYS_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      };
+
+   QCBORDecode_GetTaggedStringInternal(pMe, TagSpec, pValue);
+}
+
+inline static void
+QCBORDecode_GetDaysStringInMapN(QCBORDecodeContext *pMe,
+                                int64_t             nLabel,
+                                uint8_t             uTagRequirement,
+                                UsefulBufC         *pText)
+{
+   const TagSpecification TagSpec =
+      {
+         uTagRequirement,
+         {QCBOR_TYPE_DAYS_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      };
+
+   QCBORDecode_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pText);
+}
+
+inline static void
+QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pMe,
+                                 const char         *szLabel,
+                                 uint8_t             uTagRequirement,
+                                 UsefulBufC         *pText)
+{
+   const TagSpecification TagSpec =
+      {
+         uTagRequirement,
+         {QCBOR_TYPE_DAYS_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      };
+
+   QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pText);
+}
+
 
 
 static inline void QCBORDecode_GetURI(QCBORDecodeContext *pMe,

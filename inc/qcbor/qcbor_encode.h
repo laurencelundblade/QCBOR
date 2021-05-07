@@ -743,8 +743,7 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
 
  This implementation cannot encode fractional seconds using float or
  double even though that is allowed by CBOR, but you can encode them
- if you want to by calling QCBOREncode_AddDouble() and
- QCBOREncode_AddTag().
+ if you want to by calling QCBOREncode_AddTag() and QCBOREncode_AddDouble().
 
  Error handling is the same as QCBOREncode_AddInt64().
  */
@@ -773,6 +772,28 @@ static void QCBOREncode_AddDateEpochToMap(QCBOREncodeContext *pCtx,
 static void QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx,
                                            int64_t             nLabel,
                                            int64_t             nDate);
+
+
+
+
+
+static void QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pCtx,
+                                      uint8_t             uTagRequirement,
+                                      int64_t             nDays);
+
+static void QCBOREncode_AddTDaysEpochToMapSZ(QCBOREncodeContext *pCtx,
+                                             const char         *szLabel,
+                                             uint8_t             uTagRequirement,
+                                             int64_t             nDays);
+
+static void QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext *pCtx,
+                                            int64_t             nLabel,
+                                            uint8_t             uTagRequirement,
+                                            int64_t             nDays);
+
+
+
+
 
 
 /**
@@ -1429,6 +1450,25 @@ static void QCBOREncode_AddDateStringToMap(QCBOREncodeContext *pCtx,
 static void QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
                                             int64_t             nLabel,
                                             const char         *szDate);
+
+// TODO: document this
+static void
+QCBOREncode_AddTDaysString(QCBOREncodeContext *pCtx,
+                           uint8_t             uTagRequirement,
+                           const char         *szDate);
+
+static void
+QCBOREncode_AddTDaysStringToMapSZ(QCBOREncodeContext *pCtx,
+                                  const char         *szLabel,
+                                  uint8_t             uTagRequirement,
+                                  const char         *szDate);
+
+static void
+QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext *pCtx,
+                                 int64_t             nLabel,
+                                 uint8_t             uTagRequirement,
+                                 const char         *szDate);
+
 
 /**
  @brief  Add a standard Boolean.
@@ -2214,6 +2254,29 @@ QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pMe, int64_t nLabel, int64_t 
 }
 
 
+static inline void
+QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pMe, uint8_t uTag, int64_t nDate)
+{
+   if(uTag == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, CBOR_TAG_DAYS_EPOCH);
+   }
+   QCBOREncode_AddInt64(pMe, nDate);
+}
+
+static inline void
+QCBOREncode_AddTDaysEpochToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, uint8_t uTag, int64_t nDate)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddTDateEpoch(pMe, uTag, nDate);
+}
+
+static inline void
+QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint8_t uTag, int64_t nDate)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddTDateEpoch(pMe, uTag, nDate);
+}
+
 
 static inline void
 QCBOREncode_AddBytes(QCBOREncodeContext *pMe, UsefulBufC Bytes)
@@ -2954,6 +3017,34 @@ QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pMe, int64_t nLabel, const c
 {
    QCBOREncode_AddTDateStringToMapN(pMe, nLabel, QCBOR_ENCODE_AS_TAG, szDate);
 }
+
+
+static inline void
+QCBOREncode_AddTDaysString(QCBOREncodeContext *pMe, uint8_t uTagRequirement, const char *szDate)
+{
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, CBOR_TAG_DAYS_STRING);
+   }
+   QCBOREncode_AddSZString(pMe, szDate);
+}
+
+static inline void
+QCBOREncode_AddTDaysStringToMapSZ(QCBOREncodeContext *pMe,
+                                  const char         *szLabel,
+                                  uint8_t             uTagRequirement,
+                                  const char         *szDate)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddTDateString(pMe, uTagRequirement, szDate);
+}
+
+static inline void
+QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint8_t uTagRequirement, const char *szDate)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddTDateString(pMe, uTagRequirement, szDate);
+}
+
 
 
 static inline void

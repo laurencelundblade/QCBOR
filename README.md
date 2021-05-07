@@ -1,13 +1,14 @@
 # QCBOR
 
-QCBOR is a powerful, commercial quality implementation of nearly everything in
-[RFC8949](https://tools.ietf.org/html/rfc8949). This RFC defines the
-Concise Binary Object Representation (CBOR). Since RFC 8949 is fully
-compatible with RFC 7049, this is also a near-complete implementation
-of it.
+QCBOR is a powerful, commercial-quality CBOR encoder/decoder that
+completely implements these RFCs except as noted:
 
-QCBOR also implements [RFC8742](https://tools.ietf.org/html/rfc8742)
-which defines a CBOR sequence.
+* [RFC8949](https://tools.ietf.org/html/rfc8949) The CBOR Standard. _Everything_
+except sorting of encoded maps is implemented.
+* [RFC7049](https://tools.ietf.org/html/rfc7049) The previous CBOR standard.
+Replaced by RFC 8949.
+* [RFC8742](https://tools.ietf.org/html/rfc8742) CBOR Sequences
+* [RFC8943](https://tools.ietf.org/html/rfc8943) CBOR Dates
 
 ## New Version With Spiffy Decode
 

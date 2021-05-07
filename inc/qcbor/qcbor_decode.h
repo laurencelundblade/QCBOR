@@ -205,6 +205,7 @@ typedef enum {
 #define QCBOR_TYPE_MAP_AS_ARRAY  32
 
 /* Start of QCBOR types that are defined as the CBOR tag + 12 */
+// TODO: is the +12 used anymore?
 
 /** Encoded CBOR that is wrapped in a byte string. Often used when the
     CBOR is to be hashed for signing or HMAC. See also @ref
@@ -236,7 +237,15 @@ typedef enum {
     QBCOR_TYPE_WRAPPED_CBOR.  Data is in @c val.string. */
 #define QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE  75
 
+
+/** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
+    string, possibly with time zone. Data is in @c val.dateString */
+#define QCBOR_TYPE_DAYS_STRING   111 // TODO: fix this
+
 /* End of QCBOR types that are CBOR tag + 12 */
+
+/** Type for integer days since Jan 1970 . Data is in @c val.epochDays */
+#define QCBOR_TYPE_DAYS_EPOCH    100 // TODO: fix this
 
 /** Binary MIME per RFC 2045. See also @ref QCBOR_TYPE_MIME. Data is
     in @c val.string. */
@@ -311,8 +320,16 @@ typedef struct _QCBORItem {
          int64_t  nSeconds;
          double   fSecondsFraction;
       } epochDate;
+
+      // TODO: document this
+      int64_t     epochDays;
+
       /** The value for @c uDataType @ref QCBOR_TYPE_DATE_STRING. */
       UsefulBufC  dateString;
+
+      // TODO: document this
+      UsefulBufC  daysString;
+
       /** The value for @c uDataType @ref QCBOR_TYPE_POSBIGNUM and
            @ref QCBOR_TYPE_NEGBIGNUM. */
       UsefulBufC  bigNum;
