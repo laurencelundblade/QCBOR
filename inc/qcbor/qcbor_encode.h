@@ -2267,14 +2267,14 @@ static inline void
 QCBOREncode_AddTDaysEpochToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, uint8_t uTag, int64_t nDate)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTDateEpoch(pMe, uTag, nDate);
+   QCBOREncode_AddTDaysEpoch(pMe, uTag, nDate);
 }
 
 static inline void
 QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint8_t uTag, int64_t nDate)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTDateEpoch(pMe, uTag, nDate);
+   QCBOREncode_AddTDaysEpoch(pMe, uTag, nDate);
 }
 
 
@@ -3035,14 +3035,14 @@ QCBOREncode_AddTDaysStringToMapSZ(QCBOREncodeContext *pMe,
                                   const char         *szDate)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTDateString(pMe, uTagRequirement, szDate);
+   QCBOREncode_AddTDaysString(pMe, uTagRequirement, szDate);
 }
 
 static inline void
 QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint8_t uTagRequirement, const char *szDate)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTDateString(pMe, uTagRequirement, szDate);
+   QCBOREncode_AddTDaysString(pMe, uTagRequirement, szDate);
 }
 
 
