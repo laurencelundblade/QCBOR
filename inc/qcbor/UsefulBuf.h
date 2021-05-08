@@ -1218,48 +1218,47 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
 
 
 /**
- @ref UsefulInputBuf is the counterpart to @ref UsefulOutBuf and is
- for parsing data read or received.  Initialize it with the data from
- the network. Then use the functions here to get data chunks of
- various types. A position cursor is maintained internally.
-
- As long as the functions here are used, there will never be a
- reference off the end of the given buffer. This is true even if they
- care called incorrectly, an attempt is made to seek of the end of the
- buffer, etc. This makes it easier to write safe and correct code.
- For example, the QCBOR decoder implementation is safer and easier to
- review through its use of @ref UsefulInputBuf.
-
- @ref UsefulInputBuf maintains an internal error state.  The
- intended use is that data chunks can be fetched without error
- checking until the end.  Once data has been requested off the end of
- the buffer, the error state is entered. In the error state the
- @c UsefulInputBuf_GetXxxx() functions return 0, or @c NULL or
- @ref NULLUsefulBufC. As long as null are not dereferenced, the
- error check can be put off until the end, simplifying the calling
- code.
-
- The integer and float parsing expects network byte order (big
- endian).  Network byte order is what is used by TCP/IP, CBOR and most
- internet protocols.
-
- Lots of inline functions are used to keep code size down. The code
- optimizer, particularly with the @c -Os or @c -O3, also reduces code
- size a lot. The only non-inline code is UsefulInputBuf_GetBytes()
- which is less than 100 bytes so use of @ref UsefulInputBuf doesn't
- add much code for all the messy hard-to-get right issues with parsing
- in C that is solves.
-
- The parse context size is:
-   - 64-bit machine: 16 + 8 + 2 + 1 (5 bytes padding to align) = 32 bytes
-   - 32-bit machine: 8 + 4 + 2 + 1 (1 byte padding to align) = 16 bytes
+ * @ref UsefulInputBuf is the counterpart to @ref UsefulOutBuf and is
+ * for parsing data read or received.  Initialize it with the data
+ * from the network. Then use the functions here to get data chunks of
+ * various types. A position cursor is maintained internally.
+ *
+ * As long as the functions here are used, there will never be a
+ * reference off the end of the given buffer. This is true even if
+ * they are called incorrectly, an attempt is made to seek off the end
+ * of the buffer or such. This makes it easier to write safe and
+ * correct code.  For example, the QCBOR decoder implementation is
+ * safer and easier to review through its use of @ref UsefulInputBuf.
+ *
+ * @ref UsefulInputBuf maintains an internal error state.  The
+ * intended use fetching data chunks without any error checks until
+ * the end.  Once data has been requested off the end of the buffer,
+ * the error state is entered. In the error state the @c
+ * UsefulInputBuf_GetXxxx() functions return 0, or @c NULL or @ref
+ * NULLUsefulBufC. As long as null is not dereferenced, the error
+ * check can be put off until the end, simplifying the calling code.
+ *
+ * The integer and float parsing expects network byte order (big
+ * endian).  Network byte order is what is used by TCP/IP, CBOR and
+ * most internet protocols.
+ *
+ * Lots of inline functions are used to keep code size down. The
+ * optimizer, particularly with the @c -Os or @c -O3, also reduces
+ * code size a lot. The only non-inline code is
+ * UsefulInputBuf_GetBytes().  It is less than 100 bytes so use of
+ * @ref UsefulInputBuf doesn't add much code for all the messy
+ * hard-to-get right issues with parsing in C that it solves.
+ *
+ * The parse context size is:
+ *   - 64-bit machine: 16 + 8 + 2 + 1 (5 bytes padding to align) = 32 bytes
+ *   - 32-bit machine: 8 + 4 + 2 + 1 (1 byte padding to align) = 16 bytes
  */
 typedef struct useful_input_buf {
-   // PRIVATE DATA STRUCTURE
-   UsefulBufC UB;     // Data being parsed
-   size_t     cursor; // Current offset in data being parse
-   uint16_t   magic;  // Check for corrupted or uninitialized UsefulInputBuf
-   uint8_t    err;    // Set request goes off end or magic number is bad
+   /* PRIVATE DATA STRUCTURE */
+   UsefulBufC UB;     /* Data being parsed */
+   size_t     cursor; /* Current offset in data being parse */
+   uint16_t   magic;  /* Check for corrupted or uninitialized UsefulInputBuf */
+   uint8_t    err;    /* Set request goes off end or magic number is bad */
 } UsefulInputBuf;
 
 #define UIB_MAGIC (0xB00F)
