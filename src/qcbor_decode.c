@@ -3906,7 +3906,7 @@ static void ProcessEpochDays(QCBORDecodeContext *pMe,
       goto Done;
    }
 
-   if(pItem->uDataType != QCBOR_TYPE_DATE_EPOCH) {
+   if(pItem->uDataType != QCBOR_TYPE_DAYS_EPOCH) {
       uErr = DecodeDaysEpoch(pItem);
       if(uErr != QCBOR_SUCCESS) {
          goto Done;

@@ -2558,6 +2558,7 @@ int32_t DateParseTest()
 
    Untagged values
  */
+// {"SDS": 1004("1985-04-12"), 99: "1985-04-12", "SDE": 100(-10676), 8: 3994}
 static const uint8_t spSpiffyDateTestInput[] = {
    0x86,
 
@@ -2576,7 +2577,7 @@ static const uint8_t spSpiffyDateTestInput[] = {
    0xc0, // tag for string date
    0xa0, // Erroneous empty map as content for date
 
-   0xa9, // Open a map for tests involving labels.
+   0xad, // Open a map for tests involving labels.
 
    0x00,
    0xc0, // tag for string date
@@ -2615,6 +2616,27 @@ static const uint8_t spSpiffyDateTestInput[] = {
    // Untagged half-precision float with value -2
    0x09,
    0xF9, 0xC0, 0x00,
+
+
+   0x63,                  //       # text(3)
+      0x53, 0x44, 0x53, //                  # "SDS"
+   0xD9, 0x03, 0xEC, //                    # tag(1004)
+      0x6A, //                      # text(10)
+     0x31, 0x39, 0x38, 0x35, 0x2D, 0x30, 0x34, 0x2D, 0x31, 0x32, // # "1985-04-12"
+
+   0x18, 0x63,                      //# unsigned(99)
+   0x6A,                        // # text(10)
+     0x31, 0x39, 0x38, 0x35, 0x2D, 0x30, 0x34, 0x2D, 0x31, 0x32, //    # "1985-04-12"
+
+
+   0x63,                         //# text(3)
+      0x53, 0x44, 0x45,            //      # "SDE"
+   0xD8, 0x64,                     // # tag(100)
+      0x39, 0x29, 0xB3,              //   # negative(10675)
+
+   0x11,                        // # unsigned(8)
+   0x19, 0x0F, 0x9A               //     # unsigned(3994)
+
 };
 
 int32_t SpiffyDateDecodeTest()
@@ -2623,8 +2645,8 @@ int32_t SpiffyDateDecodeTest()
    QCBORError         uError;
    int64_t            nEpochDate2, nEpochDate3, nEpochDate5,
                       nEpochDate4, nEpochDate6, nEpochDateFail,
-                      nEpochDate1400000000;
-   UsefulBufC         StringDate1, StringDate2;
+                      nEpochDate1400000000, nEpochDays1, nEpochDays2;
+   UsefulBufC         StringDate1, StringDate2, StringDays1, StringDays2;
    uint64_t           uTag1, uTag2;
 
    QCBORDecode_Init(&DC,
@@ -2804,6 +2826,26 @@ int32_t SpiffyDateDecodeTest()
                                    &nEpochDate6);
    uTag2 = QCBORDecode_GetNthTagOfLast(&DC, 0);
 
+   /* The days format is much simpler than the date format
+    because it can't be a floating point value. The test
+    of the spiffy decode functions sufficiently covers
+    the test of the non-spiffy decode days date decoding.
+    There is no full fan out of the error conditions
+    and decode options as that is implemented by code
+    that is tested well by the date testing above.
+    */
+   QCBORDecode_GetDaysStringInMapSZ(&DC, "SDS", QCBOR_TAG_REQUIREMENT_TAG,
+                                    &StringDays1);
+
+   QCBORDecode_GetDaysStringInMapN(&DC, 99, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                   &StringDays2);
+
+   QCBORDecode_GetEpochDaysInMapSZ(&DC, "SDE", QCBOR_TAG_REQUIREMENT_TAG,
+                                   &nEpochDays1);
+
+   QCBORDecode_GetEpochDaysInMapN(&DC, 17, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                  &nEpochDays2);
+
    QCBORDecode_ExitMap(&DC);
    QCBORDecode_ExitArray(&DC);
    uError = QCBORDecode_Finish(&DC);
@@ -2831,12 +2873,28 @@ int32_t SpiffyDateDecodeTest()
       return 204;
    }
 
+   if(nEpochDays1 != -10676) {
+      return 205;
+   }
+
+   if(nEpochDays2 != 3994) {
+      return 206;
+   }
+
    if(UsefulBuf_Compare(StringDate1, UsefulBuf_FromSZ("1985-04-12"))) {
       return 205;
    }
 
    if(UsefulBuf_Compare(StringDate2, UsefulBuf_FromSZ("2085-04-12"))) {
       return 206;
+   }
+
+   if(UsefulBuf_Compare(StringDays1, UsefulBuf_FromSZ("1985-04-12"))) {
+      return 207;
+   }
+
+   if(UsefulBuf_Compare(StringDays2, UsefulBuf_FromSZ("1985-04-12"))) {
+      return 208;
    }
 
    return 0;
