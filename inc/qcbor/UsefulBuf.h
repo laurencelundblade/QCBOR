@@ -1218,22 +1218,22 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
 
 
 /**
- * @ref UsefulInputBuf is the counterpart to @ref UsefulOutBuf and is
- * for parsing data read or received.  Initialize it with the data
- * from the network. Then use the functions here to get data chunks of
+ * @ref UsefulInputBuf is the counterpart to @ref UsefulOutBuf. It is
+ * for parsing data received.  Initialize it with the data
+ * from the network. Then use the functions like UsefulInputBuf_GetBytes() to get data chunks of
  * various types. A position cursor is maintained internally.
  *
- * As long as the functions here are used, there will never be a
- * reference off the end of the given buffer. This is true even if
+ * As long as the functions here are used, there will never be any
+ * reference off the end of the given buffer (except UsefulInputBuf_SetBufferLength()). This is true even if
  * they are called incorrectly, an attempt is made to seek off the end
  * of the buffer or such. This makes it easier to write safe and
  * correct code.  For example, the QCBOR decoder implementation is
  * safer and easier to review through its use of @ref UsefulInputBuf.
  *
  * @ref UsefulInputBuf maintains an internal error state.  The
- * intended use fetching data chunks without any error checks until
- * the end.  Once data has been requested off the end of the buffer,
- * the error state is entered. In the error state the @c
+ * intended use is fetching data chunks without any error checks until
+ * the end.  If there was any error, such as an attempt to fetch data off the end,
+ * the error state is entered and no further data will be returned. In the error state the @c
  * UsefulInputBuf_GetXxxx() functions return 0, or @c NULL or @ref
  * NULLUsefulBufC. As long as null is not dereferenced, the error
  * check can be put off until the end, simplifying the calling code.
@@ -1247,11 +1247,11 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
  * code size a lot. The only non-inline code is
  * UsefulInputBuf_GetBytes().  It is less than 100 bytes so use of
  * @ref UsefulInputBuf doesn't add much code for all the messy
- * hard-to-get right issues with parsing in C that it solves.
+ * hard-to-get right issues with parsing binary protocols in C that it solves.
  *
  * The parse context size is:
- *   - 64-bit machine: 16 + 8 + 2 + 1 (5 bytes padding to align) = 32 bytes
- *   - 32-bit machine: 8 + 4 + 2 + 1 (1 byte padding to align) = 16 bytes
+ *   - 64-bit machine: 16 + 8 + 2 + 1 (+ 5 bytes padding to align) = 32 bytes
+ *   - 32-bit machine: 8 + 4 + 2 + 1 (+ 1 byte padding to align) = 16 bytes
  */
 typedef struct useful_input_buf {
    /* PRIVATE DATA STRUCTURE */
@@ -1265,260 +1265,270 @@ typedef struct useful_input_buf {
 
 
 /**
- @brief Initialize the UsefulInputBuf structure before use.
-
- @param[in] pUInBuf  Pointer to the UsefulInputBuf instance.
- @param[in] UB       The data to parse.
+ * @brief Initialize the @ref UsefulInputBuf structure before use.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ * @param[in] UB       The data to parse.
  */
 static inline void UsefulInputBuf_Init(UsefulInputBuf *pUInBuf, UsefulBufC UB);
 
 
 /**
- @brief Returns current position in input buffer.
-
- @param[in] pUInBuf  Pointer to the UsefulInputBuf.
-
- @return Integer position of the cursor.
-
- The position that the next bytes will be returned from.
+ * @brief Returns current position in input buffer.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * @return Integer position of the cursor.
+ *
+ * The position that the next bytes will be returned from.
  */
 static size_t UsefulInputBuf_Tell(UsefulInputBuf *pUInBuf);
 
 
 /**
- @brief Sets the current position in input buffer.
-
- @param[in] pUInBuf  Pointer to the UsefulInputBuf.
- @param[in] uPos     Position to set to.
-
- If the position is off the end of the input buffer, the error state
- is entered, and all functions will do nothing.
-
- Seeking to a valid position in the buffer will not reset the error
- state. Only re initialization will do that.
+ * @brief Sets the current position in input buffer.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ * @param[in] uPos     Position to set to.
+ *
+ * If the position is off the end of the input buffer, the error state
+ * is entered.
+ *
+ * Seeking to a valid position in the buffer will not reset the error
+ * state. Only re-initialization will do that.
  */
 static void UsefulInputBuf_Seek(UsefulInputBuf *pUInBuf, size_t uPos);
 
 
 /**
- @brief Returns the number of bytes from the cursor to the end of the buffer,
- the unconsumed bytes.
-
- @param[in] pUInBuf  Pointer to the UsefulInputBuf.
-
- @return Number of bytes unconsumed or 0 on error.
-
- This is a critical function for input length validation.
-
- Returns 0 if the cursor it invalid or corruption of the structure is
- detected.
+ * @brief Returns the number of bytes from the cursor to the end of the buffer,
+ * the unconsumed bytes.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * @return Number of bytes unconsumed or 0 on error.
+ *
+ * Returns 0 if the cursor is invalid or corruption of the
+ * UsefulInputBuf structure is detected.
  */
 static size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pUInBuf);
 
 
 /**
- @brief Check if there are any unconsumed bytes.
-
- @param[in] pUInBuf  Pointer to the UsefulInputBuf.
- @param[in] uLen     Number of bytes to check availability for.
-
- @return 1 if @c uLen bytes are available after the cursor, and 0 if not.
+ * @brief Check if there are unconsumed bytes.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ * @param[in] uLen     Number of bytes to check availability for.
+ *
+ * @return 1 if @c uLen bytes are available after the cursor, and 0 if not.
  */
 static int UsefulInputBuf_BytesAvailable(UsefulInputBuf *pUInBuf, size_t uLen);
 
 
 /**
- @brief Get pointer to bytes out of the input buffer.
-
- @param[in] pUInBuf  Pointer to the UsefulInputBuf.
- @param[in] uNum     Number of bytes to get.
-
- @return Pointer to bytes.
-
- This consumes @c uNum bytes from the input buffer. It returns a
- pointer to the start of the @c uNum bytes.
-
- If there are not @c uNum bytes in the input buffer, @c NULL will be
- returned and an error will be set.
-
- It advances the current position by @c uNum bytes.
+ * @brief Get pointer to bytes out of the input buffer.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ * @param[in] uNum     Number of bytes to get.
+ *
+ * @return Pointer to bytes.
+ *
+ * This consumes @c uNum bytes from the input buffer. This returns a
+ * pointer to the start of the @c uNum bytes.
+ *
+ * If there are not @c uNum bytes in the input buffer, @c NULL will be
+ * returned and the error state is entered.
+ *
+ * This advances the position cursor by @c uNum bytes.
  */
 const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pUInBuf, size_t uNum);
 
 
 /**
- @brief Get @ref UsefulBuf out of the input buffer.
-
- @param[in] pUInBuf  Pointer to the UsefulInputBuf.
- @param[in] uNum     Number of bytes to get.
-
- @return A @ref UsefulBufC with ptr and length of bytes consumed.
-
- This consumes @c uNum bytes from the input buffer and returns the
- pointer and length for them as a @ref UsefulBufC. The length returned
- will always be @c uNum.
-
- If there are not @c uNum bytes in the input buffer, @ref NULLUsefulBufC
- will be returned and the error state is set.
-
- It advances the current position by @c uNum bytes.
+ * @brief Get @ref UsefulBuf out of the input buffer.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ * @param[in] uNum     Number of bytes to get.
+ *
+ * @return A @ref UsefulBufC with ptr and length of bytes consumed.
+ *
+ * This consumes @c uNum bytes from the input buffer and returns the
+ * pointer and length for them as a @ref UsefulBufC. The length
+ * returned will always be @c uNum. The position cursor is advanced by
+ * @c uNum bytes.
+ *
+ * If there are not @c uNum bytes in the input buffer, @ref
+ * NULLUsefulBufC will be returned and the error state is entered.
  */
 static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *pUInBuf, size_t uNum);
 
 
 /**
- @brief Get a byte out of the input buffer.
-
- @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
-
- @return The byte.
-
- This consumes 1 byte from the input buffer. It returns the byte.
-
- If there is not 1 byte in the buffer, 0 will be returned for the byte
- and an error set internally.  You must check the error at some point
- to know whether the 0 was the real value or just returned in error,
- but you may not have to do that right away.  Check the error state
- with UsefulInputBuf_GetError().  You can also know you are in the
- error state if UsefulInputBuf_GetBytes() returns @c NULL or the @c
- ptr from UsefulInputBuf_GetUsefulBuf() is @c NULL.
-
- It advances the current position by 1 byte.
+ * @brief Get a byte out of the input buffer.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * @return The byte.
+ *
+ * This consumes 1 byte from the input buffer, returns it and advances
+ * the position cursor by 1.
+ *
+ * If there is not 1 byte in the buffer, 0 will be returned for the
+ * byte and the error state is entered. To know if the 0 returned was
+ * in error or the real value, the error state must be checked.  If
+ * possible, put this off until all values are retrieved to have
+ * smaller and simpler code, but if not possible
+ * UsefulInputBuf_GetError() can be called. Also, in the error state
+ * UsefulInputBuf_GetBytes() returns @c NULL *or the @c ptr from
+ * UsefulInputBuf_GetUsefulBuf() is @c NULL.
  */
 static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *pUInBuf);
 
 
 /**
- @brief Get a @c uint16_t out of the input buffer.
-
- @param[in] pUInBuf  Pointer to the UsefulInputBuf.
-
- @return The @c uint16_t.
-
- See UsefulInputBuf_GetByte(). This works the same, except it returns
- a @c uint16_t and two bytes are consumed.
-
- The input bytes must be in network order (big endian).
+ * @brief Get a @c uint16_t out of the input buffer.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * @return The @c uint16_t.
+ *
+ * See UsefulInputBuf_GetByte(). This works the same, except it returns
+ * a @c uint16_t and two bytes are consumed.
+ *
+ * The input bytes are interpreted in network order (big endian).
  */
 static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pUInBuf);
 
 
 /**
- @brief Get a uint32_t out of the input buffer.
-
- @param[in] pUInBuf  Pointer to the UsefulInputBuf.
-
- @return The @c uint32_t.
-
- See UsefulInputBuf_GetByte(). This works the same, except it returns
- a @c uint32_t and four bytes are consumed.
-
- The input bytes must be in network order (big endian).
+ * @brief Get a @c uint32_t out of the input buffer.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * @return The @c uint32_t.
+ *
+ * See UsefulInputBuf_GetByte(). This works the same, except it
+ * returns a @c uint32_t and four bytes are consumed.
+ *
+ * The input bytes are interpreted in network order (big endian).
  */
 static uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *pUInBuf);
 
 
 /**
- @brief Get a uint64_t out of the input buffer.
-
- @param[in] pUInBuf  Pointer to the UsefulInputBuf.
-
- @return The uint64_t.
-
- See UsefulInputBuf_GetByte(). This works the same, except it returns
- a @c uint64_t and eight bytes are consumed.
-
- The input bytes must be in network order (big endian).
+ * @brief Get a @c uint64_t out of the input buffer.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * @return The uint64_t.
+ *
+ * See UsefulInputBuf_GetByte(). This works the same, except it returns
+ * a @c uint64_t and eight bytes are consumed.
+ *
+ * The input bytes are interpreted in network order (big endian).
  */
 static uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pUInBuf);
 
 
 /**
- @brief Get a float out of the input buffer.
-
- @param[in] pUInBuf  Pointer to the UsefulInputBuf.
-
- @return The float.
-
- See UsefulInputBuf_GetByte(). This works the same, except it returns
- a float and four bytes are consumed.
-
- The input bytes must be in network order (big endian).
+ * @brief Get a float out of the input buffer.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * @return The float.
+ *
+ * See UsefulInputBuf_GetByte(). This works the same, except it
+ * returns a float and four bytes are consumed.
+ *
+ * The input bytes are interpreted in network order (big endian).
  */
 static float UsefulInputBuf_GetFloat(UsefulInputBuf *pUInBuf);
 
 
 /**
- @brief Get a double out of the input buffer.
-
- @param[in] pUInBuf  Pointer to the UsefulInputBuf.
-
- @return The double.
-
- See UsefulInputBuf_GetByte(). This works the same, except it returns
- a double and eight bytes are consumed.
-
- The input bytes must be in network order (big endian).
+ * @brief Get a double out of the input buffer.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * @return The double.
+ *
+ * See UsefulInputBuf_GetByte(). This works the same, except it
+ * returns a double and eight bytes are consumed.
+ *
+ * The input bytes are interpreted in network order (big endian).
  */
 static double UsefulInputBuf_GetDouble(UsefulInputBuf *pUInBuf);
 
 
 /**
- @brief Get the error status.
-
- @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
-
- @return 0 if there is no error, 1 if there is.
-
- The error state is entered for one of these reasons:
- - Attempt to fetch data past the end of the buffer
- - Attempt to seek to a position past the end of the buffer
- - Attempt to get data from an uninitialized  or corrupt instance
-   of @ref UsefulInputBuf
-
- Once in the error state, it can only be cleared by calling
- UsefulInputBuf_Init().
-
- You may be able to only check the error state at the end after all
- the UsefulInputBuf_GetXxxx() calls have been made, but if what you
- get later depends on what you get sooner you cannot. For example,
- if you get a length or count of following items you will have to
- check the error.
+ * @brief Get the error status.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * @return 0 if not in the error state, 1 if in the error state.
+ *
+ * This returns whether the @ref UsefulInputBuf is in the
+ * error state or not.
+ *
+ * The error state is entered for one of these reasons:
+ * - Attempt to fetch data past the end of the buffer
+ * - Attempt to seek to a position past the end of the buffer
+ * - Attempt to get data from an uninitialized  or corrupt instance
+ *   of @ref UsefulInputBuf
+ *
+ * Once in the error state, it can only be cleared by calling
+ * UsefulInputBuf_Init().
+ *
+ * For many use cases, it is possible to only call this once after all
+ * the UsefulInputBuf_GetXxxx() calls have been made.  This is
+ * possible if no reference to the data returned are needed before the
+ * error state is checked.
+ *
+ * In some cases UsefulInputBuf_GetUsefulBuf() or
+ * UsefulInputBuf_GetBytes() can stand in for this because they return
+ * NULL if the error state has been entered. (The others can't stand
+ * in because they don't return a clearly distinct error value.)
  */
 static int UsefulInputBuf_GetError(UsefulInputBuf *pUInBuf);
 
 
 /**
- @brief Gets the input buffer length.
-
- @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
-
- @return The length of the input buffer.
-
- This returns the length of th input buffer from UsefulInputBuf_Init()
- of from UsefulInputBuf_SetBufferLength().
+ * @brief Gets the input buffer length.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * @return The length of the input buffer.
+ *
+ * This returns the length of the input buffer set by
+ * UsefulInputBuf_Init() or UsefulInputBuf_SetBufferLength().
  */
 static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pUInBuf);
 
 
 /**
- @brief Sets the input buffer length (use with caution)
-
- @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
-
- This changes the internal remembered length of the input buffer
- set when UsefulInputBuf_Init() was called. It is used by QCBOR
- to handle CBOR that is wrapped and embedded in CBOR.
-
- Since this allows setting the length beyond the length of the
- original input buffer it allows the overall safety of UsefulInputBug to
- be undermined. Use it carefully.
-
- The new length given here should always be equal to or less than
- the length given when UsefulInputBuf_Init() was called.
-
+ * @brief Alters the input buffer length (use with caution).
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * This alters the internal remembered length of the input buffer set
+ * when UsefulInputBuf_Init() was called.
+ *
+ * The new length given here should always be equal to or less than
+ * the length given when UsefulInputBuf_Init() was called. Making it
+ * larger allows @ref UsefulInputBuf to run off the input buffer.
+ *
+ * The typical use is to set a length shorter than that when
+ * initialized to constrain parsing. If
+ * UsefulInputBuf_GetBufferLength() was called before this, then the
+ * original length can be restored with another call to this.
+ *
+ * This should be used with caution. It is the only @ref
+ * UsefulInputBuf method that can violate the safety of input buffer
+ * parsing.
  */
 static void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pUInBuf, size_t uNewLen);
+
+
 
 
 /*----------------------------------------------------------
