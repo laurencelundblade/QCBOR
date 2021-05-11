@@ -142,19 +142,19 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-#include <stdint.h> // for uint8_t, uint16_t....
-#include <string.h> // for strlen, memcpy, memmove, memset
-#include <stddef.h> // for size_t
+#include <stdint.h> /* for uint8_t, uint16_t.... */
+#include <string.h> /* for strlen, memcpy, memmove, memset */
+#include <stddef.h> /* for size_t */
 
 
 #ifdef USEFULBUF_CONFIG_HTON
-#include <arpa/inet.h> // for htons, htonl, htonll, ntohs...
+#include <arpa/inet.h> /* for htons, htonl, htonll, ntohs... */
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #if 0
-} // Keep editor indention formatting happy
+} /* Keep editor indention formatting happy */
 #endif
 #endif
 
@@ -218,8 +218,8 @@ extern "C" {
  * function fills it in, the function returns a @ref UsefulBufC. The
  * pointer is the same in both.
  *
- * A @ref UsefulBuf is null, it has no value, when @c ptr in it is @c
- * NULL.
+ * A @ref UsefulBuf is null, it has no value, when @c ptr in it is
+ * @c NULL.
  *
  * There are functions and macros for the following:
  *  - Initializing
@@ -672,9 +672,9 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  * The main idea is that all the pointer manipulation is performed by
  * @ref UsefulOutBuf functions so the caller doesn't have to do any
  * pointer manipulation.  The pointer manipulation is centralized.
- * This code will have been reviewed and written carefully so it
+ * This code has been reviewed and written carefully so it
  * spares the caller of much of this work and results in safer code
- * with less work.
+ * with less effort.
  *
  * The @ref UsefulOutBuf methods that add data to the output buffer
  * always check the length and will never write off the end of the
@@ -683,8 +683,8 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  * will not do anything.
  *
  * There is no way to ever write off the end of that buffer when
- * calling the @c UsefulOutBuf_AddXxx() and @c
- * UsefulOutBuf_InsertXxx() functions.
+ * calling the @c UsefulOutBuf_AddXxx() and
+ * @ UsefulOutBuf_InsertXxx() functions.
  *
  * The functions to add data do not report success of failure. The
  * caller only needs to check for an error in the final call, either
@@ -715,10 +715,10 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  * calculate the size of output that would be generated. This is
  * useful to calculate the size of a buffer that is to be allocated to
  * hold the output. To use @ref UsefulOutBuf in this mode, call
- * UsefulOutBuf_Init() with the @c Storage @ref UsefulBuf as @c
- * (UsefulBuf){NULL,MAX_UINT32}. Then call all the Insert and Add
+ * UsefulOutBuf_Init() with the @c Storage @ref UsefulBuf as
+ * @c (UsefulBuf){NULL, MAX_UINT32}. Then call all the Insert and Add
  * functions. No attempt will be made to actually copy data, so only
- * the lengths have to be valid for these calls.
+ * the lengths have to be valid for inputs to these calls.
  *
  * Methods like UsefulOutBuf_InsertUint64() always output in network
  * bytes order (big endian).
@@ -739,7 +739,7 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  * data addition to guard against use of an uninitialized or corrupted
  * UsefulOutBuf.
  *
- * UsefulOutBuf has been used to create a CBOR encoder. The CBOR
+ * @ref UsefulOutBuf has been used to create a CBOR encoder. The CBOR
  * encoder has almost no pointer manipulation in it, is easier to
  * read, and easier to review.
  *
@@ -750,7 +750,7 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
 typedef struct useful_out_buf {
    /* PRIVATE DATA STRUCTURE */
    UsefulBuf  UB;       /* Memory that is being output to */
-   size_t     data_len; /* length of the data */
+   size_t     data_len; /* length of the valid data, the insertion point */
    uint16_t   magic;    /* Used to detect corruption and lack
                          * of initialization */
    uint8_t    err;
@@ -1128,7 +1128,7 @@ static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pUOutBuf,
  *
  * This returns the error status since a call to either
  * UsefulOutBuf_Reset() of UsefulOutBuf_Init().  Once a UsefulOutBuf
- * goes into the * error state, it will stay until one of those
+ * goes into the error state, it will stay until one of those
  * functions is called.
  *
  * Possible error conditions are:
@@ -1715,7 +1715,7 @@ static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *me,
                                              uint16_t uInteger16,
                                              size_t uPos)
 {
-   // See UsefulOutBuf_InsertUint64() for comments on this code
+   /* See UsefulOutBuf_InsertUint64() for comments on this code */
 
    const void *pBytes;
 
@@ -1975,24 +1975,26 @@ static inline void UsefulInputBuf_Seek(UsefulInputBuf *pMe, size_t uPos)
 
 static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pMe)
 {
-   // Code Reviewers: THIS FUNCTION DOES POINTER MATH
+   /* Code Reviewers: THIS FUNCTION DOES POINTER MATH */
 
-   // Magic number is messed up. Either the structure got overwritten
-   // or was never initialized.
+   /* Magic number is messed up. Either the structure got overwritten
+    * or was never initialized.
+    */
    if(pMe->magic != UIB_MAGIC) {
       return 0;
    }
 
-   // The cursor is off the end of the input buffer given.
-   // Presuming there are no bugs in this code, this should never happen.
-   // If it so, the struct was corrupted. The check is retained as
-   // as a defense in case there is a bug in this code or the struct is
-   // corrupted.
+   /* The cursor is off the end of the input buffer given.
+    * Presuming there are no bugs in this code, this should never happen.
+    * If it so, the struct was corrupted. The check is retained as
+    * as a defense in case there is a bug in this code or the struct is
+    * corrupted.
+    */
    if(pMe->cursor > pMe->UB.len) {
       return 0;
    }
 
-   // subtraction can't go negative because of check above
+   /* subtraction can't go negative because of check above */
    return pMe->UB.len - pMe->cursor;
 }
 
@@ -2034,7 +2036,7 @@ static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pMe)
       return 0;
    }
 
-   // See UsefulInputBuf_GetUint64() for comments on this code
+   /* See UsefulInputBuf_GetUint64() for comments on this code */
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN) || defined(USEFULBUF_CONFIG_HTON) || defined(USEFULBUF_CONFIG_BSWAP)
    uint16_t uTmp;
    memcpy(&uTmp, pResult, sizeof(uint16_t));
@@ -2052,10 +2054,12 @@ static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pMe)
 
 #else
 
-   // The operations here are subject to integer promotion because the
-   // operands are smaller than int. They will be promoted to unsigned
-   // int for the shift and addition. The cast back to uint16_t is  is needed
-   // to be completely explicit about types (for static analyzers)
+   /* The operations here are subject to integer promotion because the
+    * operands are smaller than int. They will be promoted to unsigned
+    * int for the shift and addition. The cast back to uint16_t is is
+    * needed to be completely explicit about types (for static
+    * analyzers).
+    */
    return (uint16_t)((pResult[0] << 8) + pResult[1]);
 
 #endif
@@ -2070,7 +2074,7 @@ static inline uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *pMe)
       return 0;
    }
 
-   // See UsefulInputBuf_GetUint64() for comments on this code
+   /* See UsefulInputBuf_GetUint64() for comments on this code */
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN) || defined(USEFULBUF_CONFIG_HTON) || defined(USEFULBUF_CONFIG_BSWAP)
    uint32_t uTmp;
    memcpy(&uTmp, pResult, sizeof(uint32_t));
@@ -2104,34 +2108,38 @@ static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pMe)
    }
 
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN) || defined(USEFULBUF_CONFIG_HTON) || defined(USEFULBUF_CONFIG_BSWAP)
-   // pResult will probably not be aligned.  This memcpy() moves the
-   // bytes into a temp variable safely for CPUs that can or can't do
-   // unaligned memory access. Many compilers will optimize the
-   // memcpy() into a simple move instruction.
+   /* pResult will probably not be aligned.  This memcpy() moves the
+    * bytes into a temp variable safely for CPUs that can or can't do
+    * unaligned memory access. Many compilers will optimize the
+    * memcpy() into a simple move instruction.
+    */
    uint64_t uTmp;
    memcpy(&uTmp, pResult, sizeof(uint64_t));
 
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN)
-   // We have been told expliclity this is a big-endian CPU.  Since
-   // network byte order is big-endian, there is nothing to do.
+   /* We have been told expliclity this is a big-endian CPU.  Since
+    * network byte order is big-endian, there is nothing to do.
+    */
 
    return uTmp;
 
 #elif defined(USEFULBUF_CONFIG_HTON)
-   // We have been told to use ntoh(), the system function to handle
-   // big- and little-endian. This works on both big- and
-   // little-endian machines, but ntoh() is not always available or in
-   // a standard place so it is not used by default. On some CPUs the
-   // code for this is very compact through use of a special swap
-   // instruction.
+   /* We have been told to use ntoh(), the system function to handle
+    * big- and little-endian. This works on both big- and
+    * little-endian machines, but ntoh() is not always available or in
+    * a standard place so it is not used by default. On some CPUs the
+    * code for this is very compact through use of a special swap
+    * instruction.
+    */
 
    return ntohll(uTmp);
 
 #else
-   // Little-endian (since it is not USEFULBUF_CONFIG_BIG_ENDIAN) and
-   // USEFULBUF_CONFIG_BSWAP (since it is not USEFULBUF_CONFIG_HTON).
-   // __builtin_bswap64() and friends are not conditional on CPU
-   // endianness so this must only be used on little-endian machines.
+   /* Little-endian (since it is not USEFULBUF_CONFIG_BIG_ENDIAN) and
+    * USEFULBUF_CONFIG_BSWAP (since it is not USEFULBUF_CONFIG_HTON).
+    * __builtin_bswap64() and friends are not conditional on CPU
+    * endianness so this must only be used on little-endian machines.
+    */
 
    return __builtin_bswap64(uTmp);
 
@@ -2139,10 +2147,11 @@ static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pMe)
 #endif
 
 #else
-   // This is the default code that works on every CPU and every
-   // endianness with no dependency on ntoh().  This works on CPUs
-   // that either allow or do not allow unaligned access. It will
-   // always work, but usually is a little less efficient than ntoh().
+   /* This is the default code that works on every CPU and every
+    * endianness with no dependency on ntoh().  This works on CPUs
+    * that either allow or do not allow unaligned access. It will
+    * always work, but usually is a little less efficient than ntoh().
+    */
 
    return   ((uint64_t)pResult[0]<<56) +
             ((uint64_t)pResult[1]<<48) +
@@ -2188,6 +2197,6 @@ static inline void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pMe, size_t uN
 }
 #endif
 
-#endif  // _UsefulBuf_h
+#endif  /* _UsefulBuf_h */
 
 
