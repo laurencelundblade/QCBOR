@@ -172,7 +172,7 @@ extern "C" {
  *
  * With these it is possible to write code that does little or no
  * direct pointer manipulation for copying and formatting data. For
- * example, the QCBOR encoder was written using these and has no less
+ * example, the QCBOR encoder was written using these and has less
  * pointer manipulation.
  *
  * While it is true that object code using these functions will be a
@@ -216,7 +216,7 @@ extern "C" {
  * that has been filled in. The length is amount of valid data pointed
  * to.
  *
- * A commn use mode is to pass a @ref UsefulBuf to a function, the
+ * A common use mode is to pass a @ref UsefulBuf to a function, the
  * function puts some data in it, then the function returns a @ref
  * UsefulBufC refering to the data. The @ref UsefulBuf is a non-const
  * "in" parameter and the @ref UsefulBufC is a const "out" parameter
@@ -373,14 +373,15 @@ static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB);
  *
  * @return A non-const @ref UsefulBuf struct.
  *
- * TODO: REWRITE THIS
- * It is better to avoid use of this. The intended convention for
- * UsefulBuf is to make an empty buffer, some memory, as a UsefulBuf,
- * fill it in, and then make it a UsefulBufC. In that convension this
- * function is not needed.
+ * Use of this is not necessary for the intended use mode of @ref
+ * UsefulBufC and @ref UsefulBuf.  In that mode, the @ref UsefulBuf is
+ * created to describe a buffer that has not had any data put in
+ * it. Then the data is put in it.  Then a @ref UsefulBufC is create
+ * to describe the part with the data in it. This goes from non-const
+ * to const, so this function is not needed.
  *
- * This is an explicit way to quiet compiler warnings from
- * -Wcast-qual.
+ * If the -Wcast-qual warning is enabled, this function can be used to
+ * avoid that warning.
  */
 static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 
@@ -504,7 +505,8 @@ static inline UsefulBufC UsefulBuf_Set(UsefulBuf pDest, uint8_t value);
  * @param[in] ptr       The source to copy from.
  * @param[in] uLen      Length of the source; amount to copy.
  *
- * @return 0 on success, 1 on failure.
+ * @return Filled in @ref UsefulBufC on success, @ref NULLUsefulBufC
+ *         on failure.
  *
  * This fails and returns @ref NULLUsefulBufC if @c uLen is greater
  * than @c pDest->len.
@@ -716,11 +718,11 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  *
  * There is no way to ever write off the end of that buffer when
  * calling the @c UsefulOutBuf_AddXxx() and
- * @ UsefulOutBuf_InsertXxx() functions.
+ * @c UsefulOutBuf_InsertXxx() functions.
  *
  * The functions to add data do not report success of failure. The
  * caller only needs to check for an error in the final call, either
- * UsefulOutBuf_OutUBuf( *) or UsefulOutBuf_CopyOut() to get the
+ * UsefulOutBuf_OutUBuf() or UsefulOutBuf_CopyOut() to get the
  * result. This makes the calling code cleaner.
  *
  * There is a utility function to get the error status anytime along
@@ -853,7 +855,7 @@ static inline size_t UsefulOutBuf_GetEndPosition(UsefulOutBuf *pUOutBuf);
  *
  * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  *
- * @return 1 if output position is at start.
+ * @return 1 if output position is at start, 0 if not.
  */
 static inline int UsefulOutBuf_AtStart(UsefulOutBuf *pUOutBuf);
 
@@ -1159,7 +1161,7 @@ static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pUOutBuf,
  * @return 0 if all OK, 1 on error.
  *
  * This returns the error status since a call to either
- * UsefulOutBuf_Reset() of UsefulOutBuf_Init().  Once a UsefulOutBuf
+ * UsefulOutBuf_Reset() of UsefulOutBuf_Init().  Once a @ref UsefulOutBuf
  * goes into the error state, it will stay until one of those
  * functions is called.
  *
@@ -1239,7 +1241,8 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pUOutBuf);
  * @param[out] Dest     The destination buffer to copy into.
  *
  * @return Pointer and length of copied data or @c NULLUsefulBufC
- *         if it will not fit in the @c Dest buffer.
+ *         if it will not fit in the @c Dest buffer or the error
+ *         state was entered.
  *
  * This is the same as UsefulOutBuf_OutUBuf() except it copies the
  * data to @c Dest.
@@ -1251,24 +1254,27 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
 
 /**
  * @ref UsefulInputBuf is the counterpart to @ref UsefulOutBuf. It is
- * for parsing data received.  Initialize it with the data
- * from the network. Then use the functions like UsefulInputBuf_GetBytes() to get data chunks of
- * various types. A position cursor is maintained internally.
+ * for parsing data received.  Initialize it with the data from the
+ * network. Then use the functions like UsefulInputBuf_GetBytes() to
+ * get data chunks of various types. A position cursor is maintained
+ * internally.
  *
  * As long as the functions here are used, there will never be any
- * reference off the end of the given buffer (except UsefulInputBuf_SetBufferLength()). This is true even if
- * they are called incorrectly, an attempt is made to seek off the end
- * of the buffer or such. This makes it easier to write safe and
- * correct code.  For example, the QCBOR decoder implementation is
- * safer and easier to review through its use of @ref UsefulInputBuf.
+ * reference off the end of the given buffer (except
+ * UsefulInputBuf_SetBufferLength()). This is true even if they are
+ * called incorrectly, an attempt is made to seek off the end of the
+ * buffer or such. This makes it easier to write safe and correct
+ * code.  For example, the QCBOR decoder implementation is safer and
+ * easier to review through its use of @ref UsefulInputBuf.
  *
  * @ref UsefulInputBuf maintains an internal error state.  The
  * intended use is fetching data chunks without any error checks until
- * the end.  If there was any error, such as an attempt to fetch data off the end,
- * the error state is entered and no further data will be returned. In the error state the @c
- * UsefulInputBuf_GetXxxx() functions return 0, or @c NULL or @ref
- * NULLUsefulBufC. As long as null is not dereferenced, the error
- * check can be put off until the end, simplifying the calling code.
+ * the end.  If there was any error, such as an attempt to fetch data
+ * off the end, the error state is entered and no further data will be
+ * returned. In the error state the @c UsefulInputBuf_GetXxxx()
+ * functions return 0, or @c NULL or @ref NULLUsefulBufC. As long as
+ * null is not dereferenced, the error check can be put off until the
+ * end, simplifying the calling code.
  *
  * The integer and float parsing expects network byte order (big
  * endian).  Network byte order is what is used by TCP/IP, CBOR and
@@ -1279,7 +1285,8 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
  * code size a lot. The only non-inline code is
  * UsefulInputBuf_GetBytes().  It is less than 100 bytes so use of
  * @ref UsefulInputBuf doesn't add much code for all the messy
- * hard-to-get right issues with parsing binary protocols in C that it solves.
+ * hard-to-get right issues with parsing binary protocols in C that it
+ * solves.
  *
  * The parse context size is:
  *   - 64-bit machine: 16 + 8 + 2 + 1 (+ 5 bytes padding to align) = 32 bytes
@@ -1341,7 +1348,7 @@ static void UsefulInputBuf_Seek(UsefulInputBuf *pUInBuf, size_t uPos);
  * @return Number of bytes unconsumed or 0 on error.
  *
  * Returns 0 if the cursor is invalid or corruption of the
- * UsefulInputBuf structure is detected.
+ * @ref UsefulInputBuf structure is detected.
  */
 static size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pUInBuf);
 
@@ -1357,17 +1364,16 @@ static size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pUInBuf);
 static int UsefulInputBuf_BytesAvailable(UsefulInputBuf *pUInBuf, size_t uLen);
 
 
-
 /**
  * @brief Convert a pointer to an offset with bounds checking.
  *
- * @param[in] pUInBuf  Pointer to the UsefulInputBuf.
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
  * @param[in] p        Pointer to convert to offset.
  *
  * @return SIZE_MAX if @c p is out of range, the byte offset if not.
- * TODO: details for this?
-*/
+ */
 static inline size_t UsefulInputBuf_PointerToOffset(UsefulInputBuf *pUInBuf, const void *p);
+
 
 /**
  * @brief Get pointer to bytes out of the input buffer.
@@ -1524,13 +1530,13 @@ static double UsefulInputBuf_GetDouble(UsefulInputBuf *pUInBuf);
  * UsefulInputBuf_Init().
  *
  * For many use cases, it is possible to only call this once after all
- * the UsefulInputBuf_GetXxxx() calls have been made.  This is
+ * the @c UsefulInputBuf_GetXxxx() calls have been made.  This is
  * possible if no reference to the data returned are needed before the
  * error state is checked.
  *
  * In some cases UsefulInputBuf_GetUsefulBuf() or
  * UsefulInputBuf_GetBytes() can stand in for this because they return
- * NULL if the error state has been entered. (The others can't stand
+ * @c NULL if the error state has been entered. (The others can't stand
  * in because they don't return a clearly distinct error value.)
  */
 static int UsefulInputBuf_GetError(UsefulInputBuf *pUInBuf);
@@ -1553,6 +1559,7 @@ static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pUInBuf);
  * @brief Alters the input buffer length (use with caution).
  *
  * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ * @param[in] uNewLen  The new length of the input buffer.
  *
  * This alters the internal remembered length of the input buffer set
  * when UsefulInputBuf_Init() was called.
@@ -1566,9 +1573,9 @@ static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pUInBuf);
  * UsefulInputBuf_GetBufferLength() was called before this, then the
  * original length can be restored with another call to this.
  *
- * This should be used with caution. It is the only @ref
- * UsefulInputBuf method that can violate the safety of input buffer
- * parsing.
+ * This should be used with caution. It is the only
+ * @ref UsefulInputBuf method that can violate the safety of input
+ * buffer parsing.
  */
 static void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pUInBuf, size_t uNewLen);
 
