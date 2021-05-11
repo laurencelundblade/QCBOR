@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -918,6 +918,48 @@ int32_t EmptyMapsAndArraysTest()
    return 0;
 }
 
+
+static const uint8_t sEmptyMap[] = {
+                              0xA1,     //# map(1)
+                              0x02,     //# unsigned(2)
+                              0xA0,     //# map(0)
+};
+
+int32_t ParseEmptyMapInMapTest(void)
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem Item;
+   int nReturn = 0;
+   QCBORError uErr;
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmptyMap),
+                    QCBOR_DECODE_MODE_NORMAL);
+
+   /* now open the first Map */
+   uErr = QCBORDecode_GetNext(&DCtx, &Item);
+    if(uErr != QCBOR_SUCCESS ||
+       Item.uDataType != QCBOR_TYPE_MAP) {
+      nReturn = -3;
+      goto done;
+    }
+
+   if(QCBORDecode_GetNext(&DCtx, &Item) != 0) {
+     nReturn = -1;
+     goto done;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP ||
+      Item.uNestingLevel != 1 ||
+      Item.label.int64 != 2) {
+     nReturn = -2;
+     goto done;
+   }
+
+ done:
+   return(nReturn);
+}
+
+
 /* [[[[[[[[[[]]]]]]]]]] */
 static const uint8_t spDeepArrays[] = {
    0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
@@ -1771,7 +1813,7 @@ static int32_t ProcessFailures(const struct FailInput *pFailInputs, size_t nNumF
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      
+
       // Iterate until there is an error of some sort error
       QCBORItem Item;
       do {
@@ -2985,7 +3027,7 @@ int32_t OptTagParseTest()
     4([1,3])
     */
    uError = QCBORDecode_GetNext(&DCtx, &Item);
-#ifdef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifdef QCBOR_DISABLE_EXP_AND_MANTISSA
    if(uError != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_ARRAY ||
       !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_DECIMAL_FRACTION) ||
@@ -3001,7 +3043,7 @@ int32_t OptTagParseTest()
    uError = QCBORDecode_GetNext(&DCtx, &Item);
    uError = QCBORDecode_GetNext(&DCtx, &Item);
 
-#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
    if(uError != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION ||
       QCBORDecode_GetNthTag(&DCtx, &Item, 0) != CBOR_TAG_INVALID64 ||
@@ -3011,7 +3053,7 @@ int32_t OptTagParseTest()
       QCBORDecode_GetNthTag(&DCtx, &Item, 4) != CBOR_TAG_INVALID64 ) {
       return -5;
    }
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
    /*
     More than 4 tags on an item 225(226(227(228(229([])))))
@@ -4449,7 +4491,7 @@ int32_t SetUpAllocatorTest(void)
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 
 /*  exponent, mantissa
   [
@@ -4754,7 +4796,7 @@ int32_t ExponentAndMantissaDecodeFailTests()
                                         struct FailInput));
 }
 
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 
@@ -5001,7 +5043,7 @@ static int32_t DecodeNestedGetZero(QCBORDecodeContext *pDCtx)
 
 /* Repeatedly enter and exit maps and arrays, go off the end of maps
  and arrays and such. */
-static int32_t DecodeNestedIterate()
+static int32_t DecodeNestedIterate(void)
 {
    QCBORDecodeContext DCtx;
    int32_t            nReturn;
@@ -5151,6 +5193,9 @@ static const uint8_t spUnRecoverableMapError4[] = {
 };
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
+const unsigned char not_well_formed_submod_section[] = {
+   0xa1, 0x14, 0x1f,
+};
 
 int32_t EnterMapTest()
 {
@@ -5440,8 +5485,64 @@ int32_t EnterMapTest()
    }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_MAP) {
+      return 2401;
+   }
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 2402;
+   }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+   QCBORDecode_VGetNext(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_MAP ||
+      Item1.val.uCount != 3 ||
+      Item1.uNextNestLevel != 1) {
+      return 2403;
+   }
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 2404;
+   }
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_INT64 ||
+      Item1.uNextNestLevel != 1 ||
+      Item1.val.int64 != 42) {
+      return 2405;
+   }
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 2406;
+   }
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_ARRAY ||
+      Item1.uNestingLevel != 1 ||
+      Item1.uNextNestLevel != 1 ||
+      Item1.val.uCount != 2) {
+      return 2407;
+   }
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 2408;
+   }
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_MAP ||
+      Item1.uNestingLevel != 1 ||
+      Item1.uNextNestLevel != 0 ||
+      Item1.val.uCount != 4) {
+      return 2409;
+   }
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 2410;
+   }
 
    nReturn = DecodeNestedIterate();
+
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(not_well_formed_submod_section), 0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_EnterMapFromMapN(&DCtx, 20);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_BAD_INT) {
+      return 2500;
+   }
 
    return nReturn;
 }
@@ -5493,61 +5594,61 @@ static const struct NumberConversion NumberConversions[] = {
       "Decimal Fraction with positive bignum 257 * 10e3",
       {(uint8_t[]){0xC4, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                                0xC2, 0x42, 0x01, 0x01}, 15},
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       257000,
       QCBOR_SUCCESS,
       257000,
       QCBOR_SUCCESS,
       257000.0,
       QCBOR_SUCCESS
-#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0.0,
       QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA*/
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA*/
    },
    {
       "bigfloat with negative bignum -258 * 2e3",
       {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                                0xC3, 0x42, 0x01, 0x01}, 15},
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       -2064,
       QCBOR_SUCCESS,
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       -2064.0,
       QCBOR_SUCCESS
-#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0.0,
       QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA*/
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA*/
    },
    {
       "bigfloat with positive bignum 257 * 2e3",
       {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                                0xC2, 0x42, 0x01, 0x01}, 15},
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       2056,
       QCBOR_SUCCESS,
       2056,
       QCBOR_SUCCESS,
       2056.0,
       QCBOR_SUCCESS
-#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0.0,
       QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA*/
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA*/
    },
    {
       "negative bignum 0xc349010000000000000000 -18446744073709551617",
@@ -5575,60 +5676,60 @@ static const struct NumberConversion NumberConversions[] = {
       "Decimal Fraction with neg bignum [9223372036854775807, -4759477275222530853137]",
       {(uint8_t[]){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                                0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,}, 23},
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       -INFINITY,
       QCBOR_SUCCESS
-#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0.0,
       QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
    },
    {
       "big float [9223372036854775806,  9223372036854775806]",
       {(uint8_t[]){0xC5, 0x82, 0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
                                0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}, 20},
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
       INFINITY,
       QCBOR_SUCCESS
-#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0.0,
       QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
    },
    {
       "Big float 3 * 2^^2",
       {(uint8_t[]){0xC5, 0x82, 0x02, 0x03}, 4},
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       12,
       QCBOR_SUCCESS,
       12,
       QCBOR_SUCCESS,
       12.0,
       QCBOR_SUCCESS
-#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0.0,
       QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
    },
    {
       "Positive integer 18446744073709551615",
@@ -5738,21 +5839,21 @@ static const struct NumberConversion NumberConversions[] = {
    {
       "Decimal fraction 3/10",
       {(uint8_t[]){0xC4, 0x82, 0x20, 0x03}, 4},
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
       0.30000000000000004,
       QCBOR_SUCCESS
-#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0.0,
       QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
    },
    {
       "+inifinity",
@@ -5914,21 +6015,21 @@ static const struct NumberConversion NumberConversions[] = {
          0xC5, 0x82,
             0x3B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
             0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}, 20},
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
       0,
       QCBOR_SUCCESS
-#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0.0,
       QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
    },
 
    {
@@ -5937,21 +6038,21 @@ static const struct NumberConversion NumberConversions[] = {
          0xC5, 0x82,
             0x1B, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
             0xC3, 0x42, 0x01, 0x01}, 15},
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       -INFINITY,
       QCBOR_SUCCESS
-#else /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0,
       QCBOR_ERR_UNEXPECTED_TYPE,
       0.0,
       QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA*/
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA*/
    },
 };
 
@@ -6048,8 +6149,9 @@ int32_t IntegerConvertTest()
 int32_t CBORSequenceDecodeTests(void)
 {
    QCBORDecodeContext DCtx;
-   QCBORItem Item;
-   QCBORError uCBORError;
+   QCBORItem          Item;
+   QCBORError         uCBORError;
+   size_t             uConsumed;
 
    // --- Test a sequence with extra bytes ---
 
@@ -6069,10 +6171,22 @@ int32_t CBORSequenceDecodeTests(void)
       return 2;
    }
 
+   uCBORError = QCBORDecode_PartialFinish(&DCtx, &uConsumed);
+   if(uCBORError != QCBOR_ERR_EXTRA_BYTES ||
+      uConsumed != 12) {
+      return 102;
+   }
+
    // Get a second item
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_ERR_BAD_OPT_TAG) {
       return 66;
+   }
+
+   uCBORError = QCBORDecode_PartialFinish(&DCtx, &uConsumed);
+   if(uCBORError != QCBOR_ERR_EXTRA_BYTES ||
+      uConsumed != 14) {
+      return 102;
    }
 
    // Get a third item
@@ -6984,8 +7098,90 @@ int32_t SpiffyIndefiniteLengthStringsTests()
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
+/*
+ * An array of an integer and an array. The second array contains
+ * a bstr-wrapped map.
+ *
+ * [7, [h'A36D6669... (see next lines) 73']]
+ *
+ * {"first integer": 42,
+ *   "an array of two strings": ["string1", "string2"],
+ *    "map in a map":
+ *      { "bytes 1": h'78787878',
+ *        "bytes 2": h'79797979',
+ *        "another int": 98,
+ *        "text 2": "lies, damn lies and statistics"
+ *      }
+ *   }
+ */
 
-int32_t PeekTest()
+static const uint8_t pValidWrappedMapEncoded[] = {
+   0x82, 0x07, 0x81, 0x58, 0x97,
+   0xa3, 0x6d, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20, 0x69, 0x6e,
+   0x74, 0x65, 0x67, 0x65, 0x72, 0x18, 0x2a, 0x77, 0x61, 0x6e,
+   0x20, 0x61, 0x72, 0x72, 0x61, 0x79, 0x20, 0x6f, 0x66, 0x20,
+   0x74, 0x77, 0x6f, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67,
+   0x73, 0x82, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x31,
+   0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x32, 0x6c, 0x6d,
+   0x61, 0x70, 0x20, 0x69, 0x6e, 0x20, 0x61, 0x20, 0x6d, 0x61,
+   0x70, 0xa4, 0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x31,
+   0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62, 0x79, 0x74, 0x65,
+   0x73, 0x20, 0x32, 0x44, 0x79, 0x79, 0x79, 0x79, 0x6b, 0x61,
+   0x6e, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x20, 0x69, 0x6e, 0x74,
+   0x18, 0x62, 0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32, 0x78,
+   0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x64, 0x61, 0x6d,
+   0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73, 0x20, 0x61, 0x6e, 0x64,
+   0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63,
+   0x73
+};
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+
+/* As above, but the arrays are indefinite length */
+static const uint8_t pValidIndefWrappedMapEncoded[] = {
+   0x9f, 0x07, 0x9f, 0x58, 0x97,
+   0xa3, 0x6d, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20, 0x69, 0x6e,
+   0x74, 0x65, 0x67, 0x65, 0x72, 0x18, 0x2a, 0x77, 0x61, 0x6e,
+   0x20, 0x61, 0x72, 0x72, 0x61, 0x79, 0x20, 0x6f, 0x66, 0x20,
+   0x74, 0x77, 0x6f, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67,
+   0x73, 0x82, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x31,
+   0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x32, 0x6c, 0x6d,
+   0x61, 0x70, 0x20, 0x69, 0x6e, 0x20, 0x61, 0x20, 0x6d, 0x61,
+   0x70, 0xa4, 0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x31,
+   0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62, 0x79, 0x74, 0x65,
+   0x73, 0x20, 0x32, 0x44, 0x79, 0x79, 0x79, 0x79, 0x6b, 0x61,
+   0x6e, 0x6f, 0x74, 0x68, 0x65, 0x72, 0x20, 0x69, 0x6e, 0x74,
+   0x18, 0x62, 0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32, 0x78,
+   0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x64, 0x61, 0x6d,
+   0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73, 0x20, 0x61, 0x6e, 0x64,
+   0x20, 0x73, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63,
+   0x73,
+   0xff, 0xff
+};
+#endif
+
+
+static const uint8_t pWithEmptyMap[] = {0x82, 0x18, 0x64, 0xa0};
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+static const uint8_t pWithEmptyMapInDef[] = {0x9f, 0x18, 0x64, 0xbf, 0xff, 0xff};
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+static const uint8_t pWrappedByIndefiniteLength[] = {
+   0x81,
+   0xd8, 0x18,
+   0x5f,
+   0x41, 0x83,
+   0x41, 0x18,
+   0x43, 0x2A, 0x18, 0x2B,
+   0x42, 0x18, 0x2C,
+   0xff
+};
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+
+int32_t PeekAndRewindTest()
 {
    QCBORItem          Item;
    QCBORError         nCBORError;
@@ -7055,8 +7251,9 @@ int32_t PeekTest()
       Item.uLabelAlloc ||
       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
       Item.uDataType != QCBOR_TYPE_ARRAY ||
-      Item.val.uCount != 2)
+      Item.val.uCount != 2) {
       return 1400;
+   }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return 1500 + (int32_t)nCBORError;
@@ -7155,8 +7352,9 @@ int32_t PeekTest()
       Item.uLabelAlloc ||
       UsefulBufCompareToSZ(Item.label.string, "another int") ||
       Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 98)
+      Item.val.int64 != 98) {
       return 2900;
+   }
 
    if((nCBORError = QCBORDecode_PeekNext(&DCtx, &Item))) {
       return 3000 + (int32_t)nCBORError;
@@ -7180,6 +7378,572 @@ int32_t PeekTest()
       Item.uLabelAlloc ||
       UsefulBufCompareToSZ(Item.val.string, "lies, damn lies and statistics")) {
       return 3300;
+   }
+
+
+
+   // Rewind to top level after entering several maps
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_MAP ||
+       Item.val.uCount != 3) {
+       return 400;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 4000+(int32_t)nCBORError;
+    }
+
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataType != QCBOR_TYPE_INT64 ||
+       Item.val.int64 != 42 ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+       return 4100;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 4100+(int32_t)nCBORError;
+    }
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+       Item.uDataType != QCBOR_TYPE_ARRAY ||
+       Item.val.uCount != 2) {
+       return 4200;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 4200+(int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.val.string, "string1")) {
+       return 4300;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 4300+(int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.val.string, "string2")) {
+       return 4400;
+    }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 4400+(int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_MAP ||
+       Item.val.uCount != 3) {
+       return 4500;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataType != QCBOR_TYPE_INT64 ||
+       Item.val.int64 != 42 ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+       return 4600;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+       Item.uDataType != QCBOR_TYPE_ARRAY ||
+       Item.val.uCount != 2) {
+       return 4700;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return (int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.val.string, "string1")) {
+       return 4800;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 4900+(int32_t)nCBORError;
+    }
+    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.val.string, "string2")) {
+       return 5000;
+    }
+
+
+   // Rewind an entered map
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 5100+(int32_t)nCBORError;
+   }
+
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataType != QCBOR_TYPE_INT64 ||
+       Item.val.int64 != 42 ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+       return 5200;
+    }
+
+    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 5200+(int32_t)nCBORError;
+    }
+    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+       Item.uDataAlloc ||
+       Item.uLabelAlloc ||
+       UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+       Item.uDataType != QCBOR_TYPE_ARRAY ||
+       Item.val.uCount != 2) {
+       return -5300;
+    }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+       return 5300+(int32_t)nCBORError;
+   }
+
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataType != QCBOR_TYPE_INT64 ||
+      Item.val.int64 != 42 ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.label.string, "first integer")) {
+      return 5400;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 5400+(int32_t)nCBORError;
+   }
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.label.string, "an array of two strings") ||
+      Item.uDataType != QCBOR_TYPE_ARRAY ||
+      Item.val.uCount != 2) {
+      return 5500;
+   }
+
+
+   // Rewind and entered array inside an entered map
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   QCBORDecode_EnterArrayFromMapSZ(&DCtx, "an array of two strings");
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 5600+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string1")) {
+      return 5700;
+   }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 5700+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string1")) {
+      return 5800;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string2")) {
+      return 5900;
+   }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 5900+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
+      Item.uDataAlloc ||
+      Item.uLabelAlloc ||
+      UsefulBufCompareToSZ(Item.val.string, "string1")) {
+      return 6000;
+   }
+
+
+   // Rewind a byte string inside an array inside an array
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidWrappedMapEncoded), 0);
+
+   QCBORDecode_EnterArray(&DCtx, NULL);
+
+   uint64_t i;
+   QCBORDecode_GetUInt64(&DCtx, &i);
+
+   QCBORDecode_EnterArray(&DCtx, NULL);
+
+   QCBORDecode_EnterBstrWrapped(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 6100;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return (int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 6200;
+   }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 6300+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 6400;
+   }
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   // Rewind a byte string inside an indefinite-length array inside
+   // indefinite-length array
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidIndefWrappedMapEncoded), 0);
+
+   QCBORDecode_EnterArray(&DCtx, NULL);
+
+   QCBORDecode_GetUInt64(&DCtx, &i);
+
+   QCBORDecode_EnterArray(&DCtx, NULL);
+
+   QCBORDecode_EnterBstrWrapped(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 6500;
+   }
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 6600+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 6700;
+   }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+      return 6800+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 6900;
+   }
+#endif
+
+   // Rewind an empty map
+   // [100, {}]
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pWithEmptyMap), 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7010;
+   }
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   /* Do it 5 times to be sure multiple rewinds work */
+   for(int n = 0; n < 5; n++) {
+      nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+      if(nCBORError != QCBOR_ERR_NO_MORE_ITEMS) {
+         return 7000 + n;
+      }
+      QCBORDecode_Rewind(&DCtx);
+   }
+   QCBORDecode_ExitMap(&DCtx);
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7010;
+   }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   i = 9;
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7020;
+   }
+   if(QCBORDecode_GetError(&DCtx)){
+      return 7030;
+   }
+
+   // Rewind an empty indefinite length map
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pWithEmptyMapInDef), 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7810;
+   }
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   /* Do it 5 times to be sure multiple rewinds work */
+   for(int n = 0; n < 5; n++) {
+      nCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+      if(nCBORError != QCBOR_ERR_NO_MORE_ITEMS) {
+         return 7800 + n;
+      }
+      QCBORDecode_Rewind(&DCtx);
+   }
+   QCBORDecode_ExitMap(&DCtx);
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7810;
+   }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   i = 9;
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 100) {
+      return 7820;
+   }
+   if(QCBORDecode_GetError(&DCtx)){
+      return 7830;
+   }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+   // Rewind an indefnite length byte-string wrapped sequence
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pWrappedByIndefiniteLength),
+                    0);
+   UsefulBuf_MAKE_STACK_UB(Pool, 100);
+   QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterBstrWrapped(&DCtx, 2, NULL);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_INPUT_TOO_LARGE) {
+      /* this is what happens when trying to enter
+       indefinite-length byte string
+       wrapped CBOR.  Tolerate for now. Eventually it needs
+       to be fixed so this works, but that is not simple. */
+      return 7300;
+   }
+
+   /*
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 42) {
+      return 7110;
+   }
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_GetUInt64(&DCtx, &i);
+   if(i != 42) {
+      return 7220;
+   }*/
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+
+   // Rewind an indefnite length byte-string wrapped sequence
+
+   return 0;
+}
+
+
+
+
+static const uint8_t spBooleansInMap[] =
+{
+   0xa1, 0x08, 0xf5
+};
+
+static const uint8_t spBooleansInMapWrongType[] =
+{
+   0xa1, 0x08, 0xf6
+};
+
+static const uint8_t spBooleansInMapNWF[] =
+{
+   0xa1, 0x08, 0x1a
+};
+
+static const uint8_t spNullInMap[] =
+{
+   0xa1, 0x08, 0xf6
+};
+
+static const uint8_t spUndefinedInMap[] =
+{
+   0xa1, 0x08, 0xf7
+};
+
+
+int32_t BoolTest(void)
+{
+   QCBORDecodeContext DCtx;
+   bool               b;
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMap),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetBool(&DCtx, &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) || !b) {
+      return 1;
+   }
+
+   QCBORDecode_GetBoolInMapN(&DCtx, 7, &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+       return 2;
+   }
+
+   QCBORDecode_GetBoolInMapN(&DCtx, 8, &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) || !b) {
+      return 3;
+   }
+
+
+   QCBORDecode_GetBoolInMapSZ(&DCtx, "xx", &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+       return 4;
+    }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMapWrongType),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetBool(&DCtx, &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 5;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMapNWF),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetBool(&DCtx, &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_HIT_END) {
+      return 6;
+   }
+
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNullInMap),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetNull(&DCtx);
+   if(QCBORDecode_GetAndResetError(&DCtx)) {
+      return 7;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMap),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetNull(&DCtx);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 8;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNullInMap),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetNullInMapN(&DCtx, 8);
+   if(QCBORDecode_GetAndResetError(&DCtx)) {
+      return 9;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMap),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetNullInMapN(&DCtx, 8);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 10;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMapNWF),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetUndefined(&DCtx);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_HIT_END) {
+      return 11;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spUndefinedInMap),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetUndefined(&DCtx);
+   if(QCBORDecode_GetAndResetError(&DCtx)) {
+      return 12;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMap),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetUndefined(&DCtx);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 13;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spUndefinedInMap),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetUndefinedInMapN(&DCtx, 8);
+   if(QCBORDecode_GetAndResetError(&DCtx)) {
+      return 14;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMap),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetUndefinedInMapN(&DCtx, 8);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 15;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBooleansInMapNWF),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetUndefined(&DCtx);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_HIT_END) {
+      return 15;
    }
 
    return 0;

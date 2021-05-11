@@ -1,22 +1,27 @@
 # Makefile -- UNIX-style make for qcbor as a lib and command line test
 #
-# Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
 # See BSD-3-Clause license in README.md
 #
 
-CC=cc
-#CC=/usr/local/bin/gcc-9
 
+# The math library is needed for floating-point support. To
+# avoid need for it #define QCBOR_DISABLE_FLOAT_HW_USE
 LIBS=-lm
-CFLAGS=$(CMD_LINE) -I inc -I test -Os -fPIC 
 
-# The following are used before a release of QCBOR help to make sure
-# the code compiles and runs in the most strict environments, but not
-# all compilers support them so they are not turned on.
-#CFLAGS=-I inc -I test -Os -fpic -Wall -pedantic-errors -Wextra -Wshadow -Wparentheses -Wconversion -xc -std=c99
+
+# The QCBOR makefile uses a minimum of compiler flags so that it will
+# work out-of-the-box with a wide variety of compilers.  For example,
+# some compiler error out on some of the warnings flags available with
+# gcc. The $(CMD_LINE) variable allows passing in extra flags. This is
+# used on the stringent build script that is in
+# https://github.com/laurencelundblade/qdv.  This script is used
+# before pushes to master (though not yet through and automated build
+# process)
+CFLAGS=$(CMD_LINE) -I inc -I test -Os -fPIC
 
 
 QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o src/qcbor_err_to_str.o
@@ -36,6 +41,7 @@ qcbortest: libqcbor.a $(TEST_OBJ) cmd_line_main.o
 
 libqcbor.a: $(QCBOR_OBJ)
 	ar -r $@ $^
+
 
 # The shared library is not made by default because of platform
 # variability For example MacOS and Linux behave differently and some

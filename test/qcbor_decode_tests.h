@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -112,6 +112,10 @@ int32_t ShortBufferParseTest2(void);
  */
 int32_t ParseMapTest(void);
 
+/*
+  Parses a map that contains a zero-length map as value.
+*/
+int32_t ParseEmptyMapInMapTest(void);
 
 /*
 Test the decoder mode where maps are treated as arrays.
@@ -243,7 +247,7 @@ int32_t MemPoolTest(void);
 int32_t SetUpAllocatorTest(void);
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /*
  Test decoding of decimal fractions and big floats, both of which are
  made up of an exponent and mantissa.
@@ -255,7 +259,7 @@ int32_t ExponentAndMantissaDecodeTests(void);
  Hostile input tests for decimal fractions and big floats.
  */
 int32_t ExponentAndMantissaDecodeFailTests(void);
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 int32_t EnterMapTest(void);
@@ -301,8 +305,13 @@ int32_t SpiffyIndefiniteLengthStringsTests(void);
 /*
  Test PeekNext().
  */
-int32_t PeekTest(void);
+int32_t PeekAndRewindTest(void);
 
+
+/*
+Test decoding of booleans
+*/
+int32_t BoolTest(void);
 
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

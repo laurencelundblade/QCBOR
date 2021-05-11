@@ -49,6 +49,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define QCBOR_SPIFFY_DECODE
 
 
+/* It was originally defined as QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
+ * but this is incosistent with all the other QCBOR_DISABLE_
+ * #defines, so the name was changed and this was added for backwards
+ * compatibility
+ */
+#ifdef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#define QCBOR_DISABLE_EXP_AND_MANTISSA
+#endif
 
 
 /* Standard CBOR Major type for positive integers of various lengths */
@@ -435,7 +443,7 @@ typedef enum {
 
    /** All well-formed data items have been consumed and there are no
        more. If parsing a CBOR stream this indicates the non-error end
-       of the stream. If parsing a CBOR stream / sequence, this
+       of the stream. If not parsing a CBOR stream / sequence, this
        probably indicates that some data items expected are not
        present.  See also @ref QCBOR_ERR_HIT_END. */
    QCBOR_ERR_NO_MORE_ITEMS = 33,

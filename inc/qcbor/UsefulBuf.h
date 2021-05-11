@@ -41,7 +41,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
- 1/25/2021    llundblade      Improve comments and comment formatting.
+ 5/11/2021    llundblade      Improve comments and comment formatting.
+ 3/6/2021     mcr/llundblade  Fix warnings related to --Wcast-qual
+ 2/17/2021    llundblade      Add method to go from a pointer to an offset.
  1/25/2020    llundblade      Add some casts so static anlyzers don't complain.
  5/21/2019    llundblade      #define configs for efficient endianness handling.
  5/16/2019    llundblade      Add UsefulOutBuf_IsBufferNULL().
@@ -214,9 +216,15 @@ extern "C" {
  * that has been filled in. The length is amount of valid data pointed
  * to.
  *
- * A common use is to pass a @ref UsefulBuf to a function, the
- * function fills it in, the function returns a @ref UsefulBufC. The
- * pointer is the same in both.
+ * A commn use mode is to pass a @ref UsefulBuf to a function, the
+ * function puts some data in it, then the function returns a @ref
+ * UsefulBufC refering to the data. The @ref UsefulBuf is a non-const
+ * "in" parameter and the @ref UsefulBufC is a const "out" parameter
+ * so the constness stays correct. There is no single "in,out"
+ * parameter (if there was, it would have to be non-const).  Note that
+ * the pointer returned in the @ref UsefulBufC usually ends up being
+ * the same pointer passed in as a @ref UsefulBuf, though this is not
+ * striclty required.
  *
  * A @ref UsefulBuf is null, it has no value, when @c ptr in it is
  * @c NULL.
@@ -364,6 +372,15 @@ static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB);
  * @param[in] UBC The @ref UsefulBuf to convert.
  *
  * @return A non-const @ref UsefulBuf struct.
+ *
+ * TODO: REWRITE THIS
+ * It is better to avoid use of this. The intended convention for
+ * UsefulBuf is to make an empty buffer, some memory, as a UsefulBuf,
+ * fill it in, and then make it a UsefulBufC. In that convension this
+ * function is not needed.
+ *
+ * This is an explicit way to quiet compiler warnings from
+ * -Wcast-qual.
  */
 static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 
@@ -582,7 +599,18 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue);
 size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
-#if 1 // NOT_DEPRECATED
+/**
+ @brief Convert a pointer to an offset with bounds checking.
+
+ @param[in] UB  Pointer to the UsefulInputBuf.
+ @param[in] p   Pointer to convert to offset.
+
+ @return SIZE_MAX if @c p is out of range, the byte offset if not.
+*/
+static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p);
+
+
+#ifndef USEFULBUF_DISABLE_DEPRECATED
 /** Deprecated macro; use @ref UsefulBuf_FROM_SZ_LITERAL instead */
 #define SZLiteralToUsefulBufC(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
@@ -599,9 +627,13 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 /** Deprecated function; use UsefulBuf_Unconst() instead */
 static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
 {
+   // See UsefulBuf_Unconst() implementation for comment on pragmas
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
     return (UsefulBuf){(void *)UBC.ptr, UBC.len};
+#pragma GCC diagnostic pop
 }
-#endif
+#endif /* USEFULBUF_DISABLE_DEPRECATED */
 
 
 
@@ -1325,6 +1357,18 @@ static size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pUInBuf);
 static int UsefulInputBuf_BytesAvailable(UsefulInputBuf *pUInBuf, size_t uLen);
 
 
+
+/**
+ * @brief Convert a pointer to an offset with bounds checking.
+ *
+ * @param[in] pUInBuf  Pointer to the UsefulInputBuf.
+ * @param[in] p        Pointer to convert to offset.
+ *
+ * @return SIZE_MAX if @c p is out of range, the byte offset if not.
+ * TODO: details for this?
+*/
+static inline size_t UsefulInputBuf_PointerToOffset(UsefulInputBuf *pUInBuf, const void *p);
+
 /**
  * @brief Get pointer to bytes out of the input buffer.
  *
@@ -1575,10 +1619,15 @@ static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB)
    return (UsefulBufC){UB.ptr, UB.len};
 }
 
-
 static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
 {
+   /* -Wcast-qual is a good warning flag to use in general. This is
+    * the one place in UsefulBuf where it needs to be quieted. Since
+    * clang supports GCC pragmas, this works for clang too. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
    return (UsefulBuf){(void *)UBC.ptr, UBC.len};
+#pragma GCC diagnostic pop
 }
 
 
@@ -1625,12 +1674,34 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
    } else if(UB.ptr == NULL) {
       ReturnValue = (UsefulBufC){NULL, UB.len - uAmount};
    } else {
-      ReturnValue = (UsefulBufC){(uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
+      ReturnValue = (UsefulBufC){(const uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
    }
 
    return ReturnValue;
 }
 
+
+static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p)
+{
+   if(UB.ptr == NULL) {
+      return SIZE_MAX;
+   }
+
+   if(p < UB.ptr) {
+      /* given pointer is before start of buffer */
+      return SIZE_MAX;
+   }
+
+   // Cast to size_t (from ptrdiff_t) is OK because of check above
+   const size_t uOffset = (size_t)((const uint8_t *)p - (const uint8_t *)UB.ptr);
+
+    if(uOffset >= UB.len) {
+      /* given pointer is off the end of the buffer */
+      return SIZE_MAX;
+   }
+
+   return uOffset;
+}
 
 
 static inline uint32_t UsefulBufUtil_CopyFloatToUint32(float f)
@@ -2005,6 +2076,12 @@ static inline int UsefulInputBuf_BytesAvailable(UsefulInputBuf *pMe, size_t uLen
 }
 
 
+static inline size_t UsefulInputBuf_PointerToOffset(UsefulInputBuf *pUInBuf, const void *p)
+{
+   return UsefulBuf_PointerToOffset(pUInBuf->UB, p);
+}
+
+
 static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *pMe, size_t uNum)
 {
    const void *pResult = UsefulInputBuf_GetBytes(pMe, uNum);
@@ -2025,7 +2102,7 @@ static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *pMe)
     * needed to be completely explicit about types (for static
     * analyzers).
     */
-   return (uint8_t)(pResult ? *(uint8_t *)pResult : 0);
+   return (uint8_t)(pResult ? *(const uint8_t *)pResult : 0);
 }
 
 static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pMe)

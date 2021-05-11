@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -920,7 +920,7 @@ static void QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                                 UsefulBufC          Bytes);
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
  @brief Add a decimal fraction to the encoded output.
 
@@ -1162,7 +1162,7 @@ static void QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
                                                 UsefulBufC          Mantissa,
                                                 bool                bIsNegative,
                                                 int64_t             nBase2Exponent);
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 /**
@@ -1721,6 +1721,8 @@ static void QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabe
  @param[in] pCtx           The context to finish encoding with.
  @param[out] pEncodedCBOR  Structure in which the pointer and length of the encoded
                            CBOR is returned.
+
+ @retval QCBOR_SUCCESS                     Encoded CBOR is returned.
 
  @retval QCBOR_ERR_TOO_MANY_CLOSES         Nesting error
 
@@ -2390,7 +2392,7 @@ QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pMe, int64_t nLabel, Use
 
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 
 static inline void
 QCBOREncode_AddTDecimalFraction(QCBOREncodeContext *pMe,
@@ -2683,7 +2685,7 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddTBigFloatBigNumToMapN(pMe, nLabel, QCBOR_ENCODE_AS_TAG, Mantissa, bIsNegative, nBase2Exponent);
 }
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 static inline void

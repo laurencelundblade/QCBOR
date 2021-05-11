@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -96,7 +96,7 @@ static int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
 #endif
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /*
  Returns 0 if UsefulBufs are equal
  Returns 1000000 + offeset if they are not equal.
@@ -116,10 +116,10 @@ UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual,
                                 struct UBCompareDiagnostic *pDiag) {
    size_t i;
    for(i = 0; i < Actual.len; i++) {
-      if(((uint8_t *)Actual.ptr)[i] != ((uint8_t *)Expected.ptr)[i]) {
+      if(((const uint8_t *)Actual.ptr)[i] != ((const uint8_t *)Expected.ptr)[i]) {
          if(pDiag) {
-            pDiag->uActual   = ((uint8_t *)Actual.ptr)[i];
-            pDiag->uExpected = ((uint8_t *)Expected.ptr)[i];
+            pDiag->uActual   = ((const uint8_t *)Actual.ptr)[i];
+            pDiag->uExpected = ((const uint8_t *)Expected.ptr)[i];
             pDiag->uOffset   = i;
          }
          // Cast to int is OK as this is only a diagnostic and the sizes
@@ -130,7 +130,7 @@ UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual,
    return 0;
 
 }
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 // One big buffer that is used by all the tests to encode into
@@ -2513,7 +2513,7 @@ int32_t EncodeErrorTests()
 }
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /*
    [
       4([-1, 3]),
@@ -2711,7 +2711,7 @@ int32_t ExponentAndMantissaEncodeTests()
    return 0;
 }
 
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 int32_t QCBORHeadTest()

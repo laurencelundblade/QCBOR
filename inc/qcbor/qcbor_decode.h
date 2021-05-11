@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2021, Laurence Lundblade.
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -318,7 +318,7 @@ typedef struct _QCBORItem {
       UsefulBufC  bigNum;
       /** The integer value for unknown simple types. */
       uint8_t     uSimple;
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       /** @anchor expAndMantissa
 
           The value for bigfloats and decimal fractions.  The use of the
@@ -348,7 +348,7 @@ typedef struct _QCBORItem {
             UsefulBufC bigNum;
          } Mantissa;
       } expAndMantissa;
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       uint64_t    uTagV;  // Used internally during decoding
 
    } val;
@@ -866,6 +866,21 @@ void QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
+ @brief QCBORDecode_GetNext() and consume entire map or array.
+
+ @param[in]  pCtx          The decoder context.
+ @param[out] pDecodedItem  Holds the CBOR item just decoded.
+
+ This is the same as QCBORDecode_VGetNext() but the contents of the
+ entire map or array will be consumed if the next item is a map or array.
+
+ In order to go back to decode the contents of a map or array consumed
+ by this, the decoder must be rewound using QCBORDecode_Rewind().
+*/
+void QCBORDecode_VGetNextConsume(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
+
+
+/**
  @brief Get the next data item without consuming it.
 
  @param[in]  pCtx          The decoder context.
@@ -881,10 +896,11 @@ void QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
  This is useful for looking ahead to determine the type
  of a data item to know which type-specific spiffy decode
- function to call. 
+ function to call.
  */
 QCBORError
 QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
+
 
 
 /**
@@ -1031,9 +1047,38 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uI
  input was well-formed and there are extra bytes at the end @ref
  QCBOR_ERR_EXTRA_BYTES will be returned.  This can be considered a
  successful decode.
+
+ See also QCBORDecode_PartialFinish().
  */
 QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 
+
+/**
+ @brief Return number of bytes consumed so far.
+
+ @param[in]  pCtx        The context to check.
+ @param[out] puConsumed  The number of bytes consumed so far. May be @c NULL.
+
+ @returns The same as QCBORDecode_Finish();
+
+ This is primarily for partially decoding CBOR sequences. It is the
+ same as QCBORDecode_Finish() except it returns the number of bytes
+ consumed and doesn't call the destructor for the string allocator
+ (See @ref and QCBORDecode_SetMemPool()).
+
+ When this is called before all input bytes are consumed, @ref
+ QCBOR_ERR_EXTRA_BYTES will be returned as QCBORDecode_Finish()
+ does. For typical use of this, that particular error is disregarded.
+
+ Decoding with the same @ref QCBORDecodeContext can continue after
+ calling this and this may be called many times.
+
+ Another way to resume decoding is to call QCBORDecode_Init() on the
+ bytes not decoded, but this only works on CBOR sequences when the
+ decoding stopped with no open arrays, maps or byte strings.
+ */
+QCBORError
+QCBORDecode_PartialFinish(QCBORDecodeContext *pCtx, size_t *puConsumed);
 
 
 /**
@@ -1236,12 +1281,12 @@ static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 
 static inline QCBORError QCBORDecode_GetError(QCBORDecodeContext *pMe)
 {
-    return pMe->uLastError;
+    return (QCBORError)pMe->uLastError;
 }
 
 static inline QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pMe)
 {
-    const QCBORError uReturn = pMe->uLastError;
+    const QCBORError uReturn = (QCBORError)pMe->uLastError;
     pMe->uLastError = QCBOR_SUCCESS;
     return uReturn;
 }

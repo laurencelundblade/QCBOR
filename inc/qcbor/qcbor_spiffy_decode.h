@@ -1,7 +1,7 @@
 /*============================================================================
   qcbor_spiffy_decode.h -- higher-level easier-to-use CBOR decoding.
 
-  Copyright (c) 2020, Laurence Lundblade. All rights reserved.
+  Copyright (c) 2020-2021, Laurence Lundblade. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 
@@ -32,7 +32,7 @@ extern "C" {
 
  This section just discusses spiff decoding assuming familiarity with
  the general description of this encoder / decoder in section
- @ref Overview and @ref BasicDecoding.
+ @ref Overview and @ref BasicDecode.
 
  Spiffy decode is extra decode features over and above the @ref
  BasicDecode features that generally are easier to use, mirror the
@@ -102,23 +102,34 @@ extern "C" {
 
  An easy and clean way to use this decoder is to always use EnterMap
  and EnterArray for each array or map. They will error if the input
- CBOR is not the expected array or map.  Then use GetInt, GetString to
- get the individual items of of the maps and arrays making use of the
- internal error tracking provided by this decoder. The only error
- check needed is the call to Finish.
+ CBOR is not the expected array or map.  Then use GetInt, GetString
+ and such to get the individual items of the maps and arrays making
+ use of the internal error tracking provided by this decoder. The only
+ error check needed is the call to QCBORDecode_Finish().
 
  QCBORDecode_GetNext() is the exception to this. It returns an
  error. It doesn't set the internal error state. It will attempt to
- decode evening when in the error state.
+ decode even when in the error state.
 
- When getting an item by label from a map the whole map is traversed
- including traversal of nested arrays and maps. If there is any
- unrecoverable error anywhere in the that traversal the retrieval by
- label will fail and the unrecoverable error will be returned even if
- it is not due to the labeled item being sought. Recoverable errors
- will be ignored unless they are on the item being sought, in which
- case the unrecoverable error will be returned. Unrecoverable errors
- are those indicated by QCBORDecode_IsUnrecoverableError().
+ The effect of a decoding error on the traversal cursor position
+ varies by the type of decoding method called. The methods for getting
+ an item in a map by label don't affect the traversal cursor when
+ there is an error (nor when they succeed).
+ QCBORDecode_GetInt64InMapN() is an example of this. The other methods
+ like QCBORDecode_GetInt64() and QCBORDecode_GetNext() that normally
+ advance the traversal cursor will also advance it also when there is
+ an error unless the error is unrecoverable due to CBOR that is not
+ well formed or such. QCBORDecode_Rewind() can be used to reset the
+ cursor position after any error.
+
+ When getting an item by label from a map the whole map is internally
+ traversed including traversal of nested arrays and maps. If there is
+ any unrecoverable error anywhere in the that traversal the retrieval
+ by label will fail and the unrecoverable error will be returned even
+ if it is not because item being sought is in error. Recoverable
+ errors will be ignored unless they are on the item being sought, in
+ which case the unrecoverable error will be returned. Unrecoverable
+ errors are those indicated by QCBORDecode_IsUnrecoverableError().
 
  @anchor Tag-Usage
  ## Tag Usage
@@ -151,7 +162,7 @@ extern "C" {
  example, to decode an epoch date tag the content must be an integer
  or floating-point value.
 
- If the parameter indicates it should not be a tag 
+ If the parameter indicates it should not be a tag
  (@ref  QCBOR_TAG_REQUIREMENT_NOT_A_TAG), then
   @ref QCBOR_ERR_UNEXPECTED_TYPE set if it is a tag or the type of the
  encoded CBOR is not what is expected.  In the example of an epoch
@@ -659,6 +670,10 @@ void QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char *szLabe
 
  This sets the pre-order traversal cursor to the item after the array
  that was exited.
+
+ This will result in an error if any item in the array is not well
+ formed (since all items in the array must be decoded to find its
+ end), or there are not enough items in the array.
 */
 static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
@@ -729,10 +744,33 @@ void QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char *szLabel
  The items in the map that was entered do not have to have been
  consumed for this to succeed.
 
- This sets the pre-order traversal cursor to the item after
- the map that was exited.
+ This sets the pre-order traversal cursor to the item after the map
+ that was exited.
+
+ This will result in an error if any item in the map is not well
+ formed (since all items in the map must be decoded to find its end),
+ or there are not enough items in the map.
 */
 static void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
+
+
+/**
+ @brief Reset traversal cursor to start of map, array, byte-string
+ wrapped CBOR or start of input.
+
+ @param[in] pCtx  The decode context.
+
+ If an array, map or wrapping byte string has been entered this sets
+ the traversal cursor to its beginning. If several arrays, maps or
+ byte strings have been entered, this sets the traversal cursor to the
+ beginning of the one most recently entered.
+
+ If no map or array has been entered, this resets the traversal cursor
+ to the beginning of the input CBOR.
+
+ This also resets the error state.
+ */
+void QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
 
 
 /**
@@ -743,8 +781,8 @@ static void QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
  @param[in] uQcborType  The QCBOR type. One of @c QCBOR_TYPE_XXX.
  @param[out] pItem  The returned item.
 
- A map must have been entered to use this. If not @ref QCBOR_ERR_MAP_NOT_ENTERED is
- set.
+ A map must have been entered to use this. If not @ref
+ QCBOR_ERR_MAP_NOT_ENTERED is set.
 
  The map is searched for an item of the requested label and type.
  @ref QCBOR_TYPE_ANY can be given to search for the label without
@@ -894,7 +932,7 @@ void QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
  The CBOR item to decode must be either the CBOR simple value (CBOR
  type 7) @c true or @c false.
 
- See @ref Decode-Errors for discussion on how error handling works.  It
+ See @ref Decode-Errors for discussion on how error handling works.  If
  the CBOR item to decode is not true or false the @ref
  QCBOR_ERR_UNEXPECTED_TYPE error is set.
 */
@@ -909,8 +947,43 @@ void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pCtx,
                                 bool               *pbBool);
 
 
+/**
+ @brief Decode the next item as a null.
+
+ @param[in] pCtx   The decode context.
+
+ The CBOR item to decode must be the CBOR simple value (CBOR type 7)
+ @c null. The reason to call this is to see if an error is returned or
+ not indicating whether the item is a CBOR null. If it is not then the
+ @ref QCBOR_ERR_UNEXPECTED_TYPE error is set.
+*/
+static void QCBORDecode_GetNull(QCBORDecodeContext *pCtx);
+
+static void QCBORDecode_GetNullInMapN(QCBORDecodeContext *pCtx,
+                                      int64_t             nLabel);
+
+static void QCBORDecode_GetNullInMapSZ(QCBORDecodeContext *pCtx,
+                                       const char         *szLabel);
 
 
+/**
+ @brief Decode the next item as a CBOR "undefined" item.
+
+ @param[in] pCtx   The decode context.
+
+ The CBOR item to decode must be the CBOR simple value (CBOR type 7)
+ @c undefined. The reason to call this is to see if an error is
+ returned or not indicating whether the item is a CBOR undefed
+ item. If it is not then the @ref QCBOR_ERR_UNEXPECTED_TYPE error is
+ set.
+*/
+static void QCBORDecode_GetUndefined(QCBORDecodeContext *pCtx);
+
+static void QCBORDecode_GetUndefinedInMapN(QCBORDecodeContext *pCtx,
+                                           int64_t             nLabel);
+
+static void QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
+                                            const char         *szLabel);
 
 
 /**
@@ -1055,7 +1128,7 @@ void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
 
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
  @brief Decode the next item as a decimal fraction.
 
@@ -1253,7 +1326,7 @@ void QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
                                        UsefulBufC         *pMantissa,
                                        bool               *pbMantissaIsNegative,
                                        int64_t            *pnExponent);
-#endif /* #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 
@@ -1511,6 +1584,9 @@ inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
  traversal and such are bounded to the wrapped
  CBOR. QCBORDecode_ExitBstrWrapped() must be called to resume processing
  CBOR outside the wrapped CBOR.
+
+ This does not (currently) work on indefinite-length strings. The
+ (confusing) error @ref QCBOR_ERR_INPUT_TOO_LARGE will be set.
 
  If @c pBstr is not @c NULL the pointer and length of the wrapped
  CBOR will be returned. This is usually not needed, but sometimes
@@ -1906,7 +1982,7 @@ QCBORError QCBORDecode_GetMIMEInternal(uint8_t           uTagRequirement,
 static inline void
 QCBORDecode_GetByteString(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
 {
-   // Complier should make this just 64-bit integer parameter
+   // Complier should make this just a 64-bit integer parameter
    const TagSpecification TagSpec =
       {
          QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
@@ -1991,6 +2067,60 @@ QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pMe,
       };
 
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pText);
+}
+
+static inline void
+QCBORDecode_GetNull(QCBORDecodeContext *pMe)
+{
+   QCBORItem item;
+
+   QCBORDecode_VGetNext(pMe, &item);
+   if(pMe->uLastError == QCBOR_SUCCESS && item.uDataType != QCBOR_TYPE_NULL) {
+      pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+}
+
+static inline void
+QCBORDecode_GetNullInMapN(QCBORDecodeContext *pMe,
+                          int64_t             nLabel)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_NULL, &Item);
+}
+
+static inline void
+QCBORDecode_GetNullInMapSZ(QCBORDecodeContext *pMe,
+                                      const char * szLabel)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_NULL, &Item);
+}
+
+static inline void
+QCBORDecode_GetUndefined(QCBORDecodeContext *pMe)
+{
+   QCBORItem item;
+
+   QCBORDecode_VGetNext(pMe, &item);
+   if(pMe->uLastError == QCBOR_SUCCESS && item.uDataType != QCBOR_TYPE_UNDEF) {
+      pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+}
+
+static inline void
+QCBORDecode_GetUndefinedInMapN(QCBORDecodeContext *pMe,
+                          int64_t             nLabel)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_UNDEF, &Item);
+}
+
+static inline void
+QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pMe,
+                                      const char * szLabel)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_UNDEF, &Item);
 }
 
 

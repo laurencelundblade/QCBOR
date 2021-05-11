@@ -164,7 +164,7 @@
 		E743D13124DE05CC0017899F /* QCBOR_Disable_Preferred_Float */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = QCBOR_Disable_Preferred_Float; sourceTree = BUILT_PRODUCTS_DIR; };
 		E743D132251014E60017899F /* Tagging.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Tagging.md; path = doc/Tagging.md; sourceTree = "<group>"; };
 		E743D13325115A270017899F /* TRY SPIFFY DECODE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "TRY SPIFFY DECODE.md"; sourceTree = "<group>"; };
-		E74BF411245D6713002CE8E8 /* UsefulBuf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UsefulBuf.h; path = inc/qcbor/UsefulBuf.h; sourceTree = "<group>"; };
+		E74BF411245D6713002CE8E8 /* UsefulBuf.h */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.h; name = UsefulBuf.h; path = inc/qcbor/UsefulBuf.h; sourceTree = "<group>"; tabWidth = 3; };
 		E772022723B52C02006E966E /* QCBOR_Disable_Exp_Mantissa */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = QCBOR_Disable_Exp_Mantissa; sourceTree = BUILT_PRODUCTS_DIR; };
 		E776E07C214ADF7F00E67947 /* QCBOR */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = QCBOR; sourceTree = BUILT_PRODUCTS_DIR; };
 		E776E08C214AE07400E67947 /* qcbor_encode.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_encode.c; path = src/qcbor_encode.c; sourceTree = "<group>"; tabWidth = 3; };
