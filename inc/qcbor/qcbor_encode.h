@@ -730,7 +730,7 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
  this is always UTC and does not include the time zone.  Use
  QCBOREncode_AddDateString() if you want to include the time zone.
 
- The integer encoding rules apply here so the date will be encoded in
+ The preferred integer encoding rules apply here so the date will be encoded in
  a minimal number of bytes. Until about the year 2106 these dates will
  encode in 6 bytes -- one byte for the tag, one byte for the type and
  4 bytes for the integer. After that it will encode to 10 bytes.
@@ -775,8 +775,22 @@ static void QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx,
 
 
 
+/**
+  @brief  Add an epoch-based day-count date.
 
+  @param[in] pCtx             The encoding context to add the date to.
+  @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
+                              @ref QCBOR_ENCODE_AS_BORROWED.
+  @param[in] nDays            Number of days before or after 1970-01-0.
 
+ This date format is described in
+ [RFC 8943] (https://tools.ietf.org/html/rfc3339).
+
+ The integer encoding rules apply here so the date will be encoded in
+ a minimal number of bytes. Until about the year 2149 these dates will
+ encode in 4 bytes -- one byte for the tag, one byte for the type and
+ 2 bytes for the integer.
+*/
 static void QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pCtx,
                                       uint8_t             uTagRequirement,
                                       int64_t             nDays);
@@ -790,8 +804,6 @@ static void QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext *pCtx,
                                             int64_t             nLabel,
                                             uint8_t             uTagRequirement,
                                             int64_t             nDays);
-
-
 
 
 
@@ -1424,6 +1436,8 @@ static void QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pCtx,
  CBOR will be incorrect and the receiver may not be able to handle it.
 
  Error handling is the same as QCBOREncode_AddInt64().
+
+ See also QCBOREncode_AddTDayString().
  */
 static void QCBOREncode_AddTDateString(QCBOREncodeContext *pCtx,
                                        uint8_t             uTagRequirement,
@@ -1451,7 +1465,32 @@ static void QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
                                             int64_t             nLabel,
                                             const char         *szDate);
 
-// TODO: document this
+
+/**
+ @brief  Add a date-only string.
+
+ @param[in] pCtx             The encoding context to add the date to.
+ @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
+                             @ref QCBOR_ENCODE_AS_BORROWED.
+ @param[in] szDate           Null-terminated string with date to add.
+
+ This date format is described in 
+ [RFC 8943] (https://tools.ietf.org/html/rfc3339), but that mainly
+ references RFC 3339.  The string szDate must be in the forrm
+ specified the ABNF for a full-date in
+ [RFC 3339] (https://tools.ietf.org/html/rfc3339). Examples of this
+ are "1985-04-12" and "1937-01-01".  The time and the time zone are
+ never included.
+
+ Note that this function doesn't validate the format of the date
+ string at all. If you add an incorrect format date string, the
+ generated CBOR will be incorrect and the receiver may not be able to
+ handle it.
+
+ Error handling is the same as QCBOREncode_AddInt64().
+
+ See also QCBOREncode_AddTDateString().
+ */
 static void
 QCBOREncode_AddTDaysString(QCBOREncodeContext *pCtx,
                            uint8_t             uTagRequirement,

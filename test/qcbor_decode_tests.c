@@ -2827,12 +2827,12 @@ int32_t SpiffyDateDecodeTest()
    uTag2 = QCBORDecode_GetNthTagOfLast(&DC, 0);
 
    /* The days format is much simpler than the date format
-    because it can't be a floating point value. The test
-    of the spiffy decode functions sufficiently covers
-    the test of the non-spiffy decode days date decoding.
-    There is no full fan out of the error conditions
-    and decode options as that is implemented by code
-    that is tested well by the date testing above.
+    * because it can't be a floating point value. The test
+    * of the spiffy decode functions sufficiently covers
+    * the test of the non-spiffy decode days date decoding.
+    * There is no full fan out of the error conditions
+    * and decode options as that is implemented by code
+    * that is tested well by the date testing above.
     */
    QCBORDecode_GetDaysStringInMapSZ(&DC, "SDS", QCBOR_TAG_REQUIREMENT_TAG,
                                     &StringDays1);

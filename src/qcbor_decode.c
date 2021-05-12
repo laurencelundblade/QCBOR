@@ -3882,13 +3882,19 @@ QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
+
+/*
+ * Common processing for the RFC 8943 Day-count tag. Mostly
+ * make sure the tag content is correct and copy forward any
+ * further other tag numbers.
+ */
 static void ProcessEpochDays(QCBORDecodeContext *pMe,
-                             QCBORItem           *pItem,
-                             uint8_t              uTagRequirement,
-                             int64_t             *pnTime)
+                             QCBORItem          *pItem,
+                             uint8_t             uTagRequirement,
+                             int64_t            *pnDays)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state, do nothing
+      /* Already in error state, do nothing */
       return;
    }
 
@@ -3913,53 +3919,64 @@ static void ProcessEpochDays(QCBORDecodeContext *pMe,
       }
    }
 
-   // Save the tags in the last item's tags in the decode context
-   // for QCBORDecode_GetNthTagOfLast()
+   /* Save the tags in the last item's tags in the decode context
+    * for QCBORDecode_GetNthTagOfLast()
+    */
    CopyTags(pMe, pItem);
 
-   *pnTime = pItem->val.epochDate.nSeconds;
+   *pnDays = pItem->val.epochDays;
 
 Done:
    pMe->uLastError = (uint8_t)uErr;
 }
 
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h
+ */
 void QCBORDecode_GetEpochDays(QCBORDecodeContext *pMe,
                               uint8_t             uTagRequirement,
-                              int64_t            *pnTime)
+                              int64_t            *pnDays)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state, do nothing
+      /* Already in error state, do nothing */
       return;
    }
 
    QCBORItem  Item;
    pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
 
-   ProcessEpochDays(pMe, &Item, uTagRequirement, pnTime);
+   ProcessEpochDays(pMe, &Item, uTagRequirement, pnDays);
 }
 
 
+/*
+ * Public function, see header qcbor/qcbor_decode.h
+ */
 void
 QCBORDecode_GetEpochDaysInMapN(QCBORDecodeContext *pMe,
                                int64_t             nLabel,
                                uint8_t             uTagRequirement,
-                               int64_t            *pnTime)
+                               int64_t            *pnDays)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
-   ProcessEpochDays(pMe, &Item, uTagRequirement, pnTime);
+   ProcessEpochDays(pMe, &Item, uTagRequirement, pnDays);
 }
 
 
+/*
+ * Public function, see header qcbor/qcbor_decode.h
+ */
 void
 QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pMe,
                                 const char         *szLabel,
                                 uint8_t             uTagRequirement,
-                                int64_t            *pnTime)
+                                int64_t            *pnDays)
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
-   ProcessEpochDays(pMe, &Item, uTagRequirement, pnTime);
+   ProcessEpochDays(pMe, &Item, uTagRequirement, pnDays);
 }
 
 
