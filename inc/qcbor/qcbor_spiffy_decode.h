@@ -991,7 +991,7 @@ static void QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
 
  @param[in] pCtx             The decode context.
  @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pDateString            The decoded URI.
+ @param[out] pDateString     The decoded date.
 
  This decodes the standard CBOR date/time string tag, integer tag
  number of 0, or encoded CBOR that is not a tag, but borrows the
@@ -1014,6 +1014,40 @@ static void QCBORDecode_GetDateStringInMapN(QCBORDecodeContext *pCtx,
                                             UsefulBufC         *pDateString);
 
 static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
+                                             const char         *szLabel,
+                                             uint8_t             uTagRequirement,
+                                             UsefulBufC         *pDateString);
+
+
+/**
+ @brief Decode the next item as a date-only string.
+
+ @param[in] pCtx             The decode context.
+ @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ @param[out] pDateString     The decoded date.
+
+ This decodes the CBOR date-only string tag, integer tag
+ number of 1004, or encoded CBOR that is not a tag, but borrows the
+ date-only string content format. An example of the format
+ is "1985-04-12".
+
+ See @ref Decode-Errors for discussion on how error handling works.
+
+ See @ref Tag-Usage for discussion on tag requirements.
+
+ See also @ref CBOR_TAG_DAYS_STRING, QCBOREncode_AddDaysString() and
+ @ref QCBOR_TYPE_DAYS_STRING.
+*/
+static void QCBORDecode_GetDaysString(QCBORDecodeContext *pCtx,
+                                      uint8_t             uTagRequirement,
+                                      UsefulBufC         *pDateString);
+
+static void QCBORDecode_GetDaysStringInMapN(QCBORDecodeContext *pCtx,
+                                            int64_t             nLabel,
+                                            uint8_t             uTagRequirement,
+                                            UsefulBufC         *pDateString);
+
+static void QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pCtx,
                                              const char         *szLabel,
                                              uint8_t             uTagRequirement,
                                              UsefulBufC         *pDateString);
@@ -1061,6 +1095,40 @@ void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
                                      const char         *szLabel,
                                      uint8_t             uTagRequirement,
                                      int64_t            *pnTime);
+
+
+/**
+ @brief Decode the next item as an days-count epoch date.
+
+ @param[in] pCtx             The decode context.
+ @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ @param[out] pnDays          The decoded epoch date.
+
+ This decodes the CBOR epoch date tag, integer tag number of 100, or
+ encoded CBOR that is not a tag, but borrows the content format. The
+ date is the number of days (not number of seconds) before or after
+ Jan 1, 1970.
+
+ See @ref Decode-Errors for discussion on how error handling works.
+
+ See @ref Tag-Usage for discussion on tag requirements.
+
+ See also @ref CBOR_TAG_DAYS_EPOCH, QCBOREncode_AddTDaysEpoch() and
+ @ref QCBOR_TYPE_DAYS_EPOCH.
+*/
+void QCBORDecode_GetEpochDays(QCBORDecodeContext *pCtx,
+                              uint8_t             uTagRequirement,
+                              int64_t            *pnDays);
+
+void QCBORDecode_GetEpochDaysInMapN(QCBORDecodeContext *pCtx,
+                                    int64_t             nLabel,
+                                    uint8_t             uTagRequirement,
+                                    int64_t            *pnDays);
+
+void QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
+                                     const char         *szLabel,
+                                     uint8_t             uTagRequirement,
+                                     int64_t            *pnDays);
 
 
 
@@ -2170,6 +2238,54 @@ QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pMe,
 
    QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pText);
 }
+
+static inline void
+QCBORDecode_GetDaysString(QCBORDecodeContext *pMe,
+                          uint8_t             uTagRequirement,
+                          UsefulBufC         *pValue)
+{
+   const TagSpecification TagSpec =
+      {
+         uTagRequirement,
+         {QCBOR_TYPE_DAYS_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      };
+
+   QCBORDecode_GetTaggedStringInternal(pMe, TagSpec, pValue);
+}
+
+inline static void
+QCBORDecode_GetDaysStringInMapN(QCBORDecodeContext *pMe,
+                                int64_t             nLabel,
+                                uint8_t             uTagRequirement,
+                                UsefulBufC         *pText)
+{
+   const TagSpecification TagSpec =
+      {
+         uTagRequirement,
+         {QCBOR_TYPE_DAYS_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      };
+
+   QCBORDecode_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pText);
+}
+
+inline static void
+QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pMe,
+                                 const char         *szLabel,
+                                 uint8_t             uTagRequirement,
+                                 UsefulBufC         *pText)
+{
+   const TagSpecification TagSpec =
+      {
+         uTagRequirement,
+         {QCBOR_TYPE_DAYS_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      };
+
+   QCBORDecode_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pText);
+}
+
 
 
 static inline void QCBORDecode_GetURI(QCBORDecodeContext *pMe,

@@ -204,8 +204,6 @@ typedef enum {
     being traversed as an array. See QCBORDecode_Init() */
 #define QCBOR_TYPE_MAP_AS_ARRAY  32
 
-/* Start of QCBOR types that are defined as the CBOR tag + 12 */
-
 /** Encoded CBOR that is wrapped in a byte string. Often used when the
     CBOR is to be hashed for signing or HMAC. See also @ref
     QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE. Data is in @c val.string. */
@@ -236,11 +234,19 @@ typedef enum {
     QBCOR_TYPE_WRAPPED_CBOR.  Data is in @c val.string. */
 #define QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE  75
 
-/* End of QCBOR types that are CBOR tag + 12 */
-
 /** Binary MIME per RFC 2045. See also @ref QCBOR_TYPE_MIME. Data is
     in @c val.string. */
 #define QCBOR_TYPE_BINARY_MIME   76
+
+/** Type for [RFC 8943](https://tools.ietf.org/html/rfc8943) date
+    string, a date with no time or time zone info. Data is in
+    @c val.string */
+#define QCBOR_TYPE_DAYS_STRING   77
+
+/** Type for integer days since Jan 1 1970 described in
+    [RFC 8943](https://tools.ietf.org/html/rfc8943). Data is in
+    @c val.epochDays */
+#define QCBOR_TYPE_DAYS_EPOCH    78
 
 #define QCBOR_TYPE_TAG        254 // Used internally; never returned
 
@@ -290,7 +296,8 @@ typedef struct _QCBORItem {
       /** The value for uDataType @ref QCBOR_TYPE_UINT64. */
       uint64_t    uint64;
       /** The value for @c uDataType @ref QCBOR_TYPE_BYTE_STRING and
-          @ref QCBOR_TYPE_TEXT_STRING. */
+          @ref QCBOR_TYPE_TEXT_STRING. Also
+          @ref QCBOR_TYPE_DAYS_STRING. */
       UsefulBufC  string;
       /** The "value" for @c uDataType @ref QCBOR_TYPE_ARRAY or @ref
           QCBOR_TYPE_MAP -- the number of items in the array or map.
@@ -311,8 +318,14 @@ typedef struct _QCBORItem {
          int64_t  nSeconds;
          double   fSecondsFraction;
       } epochDate;
+
+      /** The value for @c uDataType @ref QCBOR_TYPE_DAYS_EPOCH -- the
+          number of days before or after Jan 1, 1970. */
+      int64_t     epochDays;
+
       /** The value for @c uDataType @ref QCBOR_TYPE_DATE_STRING. */
       UsefulBufC  dateString;
+
       /** The value for @c uDataType @ref QCBOR_TYPE_POSBIGNUM and
            @ref QCBOR_TYPE_NEGBIGNUM. */
       UsefulBufC  bigNum;

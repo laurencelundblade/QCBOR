@@ -1987,6 +1987,49 @@ Done:
 }
 
 
+/**
+ * @brief Convert the days epoch date.
+ *
+ * pDecodedItem[in,out]  The data item to convert.
+ *
+ * @retval QCBOR_ERR_DATE_OVERFLOW
+ * @retval QCBOR_ERR_FLOAT_DATE_DISABLED
+ * @retval QCBOR_ERR_BAD_TAG_CONTENT
+ *
+ * This is much simpler than the other epoch date format because
+ * floating-porint is not allowed. This is mostly a simple type check.
+ */
+static QCBORError DecodeDaysEpoch(QCBORItem *pDecodedItem)
+{
+   QCBORError uReturn = QCBOR_SUCCESS;
+
+   switch (pDecodedItem->uDataType) {
+
+      case QCBOR_TYPE_INT64:
+         pDecodedItem->val.epochDays = pDecodedItem->val.int64;
+         break;
+
+      case QCBOR_TYPE_UINT64:
+         /* This only happens for CBOR type 0 > INT64_MAX so it is
+          * always an overflow.
+          */
+         uReturn = QCBOR_ERR_DATE_OVERFLOW;
+         goto Done;
+         break;
+
+      default:
+         uReturn = QCBOR_ERR_BAD_TAG_CONTENT;
+         goto Done;
+         break;
+   }
+
+   pDecodedItem->uDataType = QCBOR_TYPE_DAYS_EPOCH;
+
+Done:
+   return uReturn;
+}
+
+
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
  * @brief Decode decimal fractions and big floats.
@@ -2142,6 +2185,7 @@ struct StringTagMapEntry {
 
 static const struct StringTagMapEntry StringTagMap[] = {
    {CBOR_TAG_DATE_STRING,   QCBOR_TYPE_DATE_STRING},
+   {CBOR_TAG_DAYS_STRING,   QCBOR_TYPE_DAYS_STRING},
    {CBOR_TAG_POS_BIGNUM,    QCBOR_TYPE_POSBIGNUM | IS_BYTE_STRING_BIT},
    {CBOR_TAG_NEG_BIGNUM,    QCBOR_TYPE_NEGBIGNUM | IS_BYTE_STRING_BIT},
    {CBOR_TAG_CBOR,          QBCOR_TYPE_WRAPPED_CBOR | IS_BYTE_STRING_BIT},
@@ -2254,6 +2298,9 @@ QCBORDecode_GetNextTagContent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 
       } else if(uTagToProcess == CBOR_TAG_DATE_EPOCH) {
          uReturn = DecodeDateEpoch(pDecodedItem);
+
+      } else if(uTagToProcess == CBOR_TAG_DAYS_EPOCH) {
+         uReturn = DecodeDaysEpoch(pDecodedItem);
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       } else if(uTagToProcess == CBOR_TAG_DECIMAL_FRACTION ||
@@ -3827,6 +3874,104 @@ QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pMe,
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
    ProcessEpochDate(pMe, &Item, uTagRequirement, pnTime);
+}
+
+
+
+/*
+ * Common processing for the RFC 8943 day-count tag. Mostly
+ * make sure the tag content is correct and copy forward any
+ * further other tag numbers.
+ */
+static void ProcessEpochDays(QCBORDecodeContext *pMe,
+                             QCBORItem          *pItem,
+                             uint8_t             uTagRequirement,
+                             int64_t            *pnDays)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      /* Already in error state, do nothing */
+      return;
+   }
+
+   QCBORError uErr;
+
+   const TagSpecification TagSpec =
+   {
+      uTagRequirement,
+      {QCBOR_TYPE_DAYS_EPOCH, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+      {QCBOR_TYPE_INT64, QCBOR_TYPE_UINT64, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+   };
+
+   uErr = CheckTagRequirement(TagSpec, pItem);
+   if(uErr != QCBOR_SUCCESS) {
+      goto Done;
+   }
+
+   if(pItem->uDataType != QCBOR_TYPE_DAYS_EPOCH) {
+      uErr = DecodeDaysEpoch(pItem);
+      if(uErr != QCBOR_SUCCESS) {
+         goto Done;
+      }
+   }
+
+   /* Save the tags in the last item's tags in the decode context
+    * for QCBORDecode_GetNthTagOfLast()
+    */
+   CopyTags(pMe, pItem);
+
+   *pnDays = pItem->val.epochDays;
+
+Done:
+   pMe->uLastError = (uint8_t)uErr;
+}
+
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h
+ */
+void QCBORDecode_GetEpochDays(QCBORDecodeContext *pMe,
+                              uint8_t             uTagRequirement,
+                              int64_t            *pnDays)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      /* Already in error state, do nothing */
+      return;
+   }
+
+   QCBORItem  Item;
+   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
+
+   ProcessEpochDays(pMe, &Item, uTagRequirement, pnDays);
+}
+
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h
+ */
+void
+QCBORDecode_GetEpochDaysInMapN(QCBORDecodeContext *pMe,
+                               int64_t             nLabel,
+                               uint8_t             uTagRequirement,
+                               int64_t            *pnDays)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   ProcessEpochDays(pMe, &Item, uTagRequirement, pnDays);
+}
+
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h
+ */
+void
+QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pMe,
+                                const char         *szLabel,
+                                uint8_t             uTagRequirement,
+                                int64_t            *pnDays)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   ProcessEpochDays(pMe, &Item, uTagRequirement, pnDays);
 }
 
 

@@ -125,7 +125,8 @@ int32_t EncodeLengthThirtyoneTest(void);
 
 
 /*
- Encodes most data formats that are supported */
+ * Tests Encoding most data formats that are supported.
+ */
 int32_t EncodeDateTest(void);
 
 
