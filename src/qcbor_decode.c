@@ -1988,7 +1988,7 @@ Done:
 
 
 /**
- * @brief Convert the days epoch date
+ * @brief Convert the days epoch date.
  *
  * pDecodedItem[in,out]  The data item to convert.
  *
@@ -1997,7 +1997,7 @@ Done:
  * @retval QCBOR_ERR_BAD_TAG_CONTENT
  *
  * This is much simpler than the other epoch date format because
- * floating-porint is not allowed. It is mostly a simple type check.
+ * floating-porint is not allowed. This is mostly a simple type check.
  */
 static QCBORError DecodeDaysEpoch(QCBORItem *pDecodedItem)
 {
@@ -2186,7 +2186,6 @@ struct StringTagMapEntry {
 static const struct StringTagMapEntry StringTagMap[] = {
    {CBOR_TAG_DATE_STRING,   QCBOR_TYPE_DATE_STRING},
    {CBOR_TAG_DAYS_STRING,   QCBOR_TYPE_DAYS_STRING},
-
    {CBOR_TAG_POS_BIGNUM,    QCBOR_TYPE_POSBIGNUM | IS_BYTE_STRING_BIT},
    {CBOR_TAG_NEG_BIGNUM,    QCBOR_TYPE_NEGBIGNUM | IS_BYTE_STRING_BIT},
    {CBOR_TAG_CBOR,          QBCOR_TYPE_WRAPPED_CBOR | IS_BYTE_STRING_BIT},

@@ -746,6 +746,8 @@ void QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
  if you want to by calling QCBOREncode_AddTag() and QCBOREncode_AddDouble().
 
  Error handling is the same as QCBOREncode_AddInt64().
+
+ See also QCBOREncode_AddTDaysEpoch().
  */
 static void QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pCtx,
                                       uint8_t             uTagRequirement,
@@ -790,6 +792,9 @@ static void QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx,
  a minimal number of bytes. Until about the year 2149 these dates will
  encode in 4 bytes -- one byte for the tag, one byte for the type and
  2 bytes for the integer.
+
+ See also QCBOREncode_AddTDateEpoch().
+
 */
 static void QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pCtx,
                                       uint8_t             uTagRequirement,
@@ -2294,26 +2299,26 @@ QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pMe, int64_t nLabel, int64_t 
 
 
 static inline void
-QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pMe, uint8_t uTag, int64_t nDate)
+QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pMe, uint8_t uTag, int64_t nDays)
 {
    if(uTag == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTag(pMe, CBOR_TAG_DAYS_EPOCH);
    }
-   QCBOREncode_AddInt64(pMe, nDate);
+   QCBOREncode_AddInt64(pMe, nDays);
 }
 
 static inline void
-QCBOREncode_AddTDaysEpochToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, uint8_t uTag, int64_t nDate)
+QCBOREncode_AddTDaysEpochToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, uint8_t uTag, int64_t nDays)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTDaysEpoch(pMe, uTag, nDate);
+   QCBOREncode_AddTDaysEpoch(pMe, uTag, nDays);
 }
 
 static inline void
-QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint8_t uTag, int64_t nDate)
+QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint8_t uTag, int64_t nDays)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTDaysEpoch(pMe, uTag, nDate);
+   QCBOREncode_AddTDaysEpoch(pMe, uTag, nDays);
 }
 
 

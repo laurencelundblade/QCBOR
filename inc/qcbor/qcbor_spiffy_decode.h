@@ -1026,9 +1026,10 @@ static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
  @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
  @param[out] pDateString     The decoded date.
 
- This decodes the  CBOR date-onlystring tag, integer tag
+ This decodes the CBOR date-only string tag, integer tag
  number of 1004, or encoded CBOR that is not a tag, but borrows the
- date-only string content format.
+ date-only string content format. An example of the format
+ is "1985-04-12".
 
  See @ref Decode-Errors for discussion on how error handling works.
 
