@@ -1474,7 +1474,7 @@ static void QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
                              @ref QCBOR_ENCODE_AS_BORROWED.
  @param[in] szDate           Null-terminated string with date to add.
 
- This date format is described in 
+ This date format is described in
  [RFC 8943] (https://tools.ietf.org/html/rfc3339), but that mainly
  references RFC 3339.  The string szDate must be in the forrm
  specified the ABNF for a full-date in

@@ -2558,7 +2558,6 @@ int32_t DateParseTest()
 
    Untagged values
  */
-// {"SDS": 1004("1985-04-12"), 99: "1985-04-12", "SDE": 100(-10676), 8: 3994}
 static const uint8_t spSpiffyDateTestInput[] = {
    0x86,
 

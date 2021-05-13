@@ -243,7 +243,7 @@ typedef enum {
     @c val.string */
 #define QCBOR_TYPE_DAYS_STRING   77
 
-/** Type for integer days since Jan 1 1970 described in  
+/** Type for integer days since Jan 1 1970 described in
     [RFC 8943](https://tools.ietf.org/html/rfc8943). Data is in
     @c val.epochDays */
 #define QCBOR_TYPE_DAYS_EPOCH    78
@@ -296,7 +296,8 @@ typedef struct _QCBORItem {
       /** The value for uDataType @ref QCBOR_TYPE_UINT64. */
       uint64_t    uint64;
       /** The value for @c uDataType @ref QCBOR_TYPE_BYTE_STRING and
-          @ref QCBOR_TYPE_TEXT_STRING. Also QCBOR_TYPE_DAYS_STRING. */
+          @ref QCBOR_TYPE_TEXT_STRING. Also
+          @ref QCBOR_TYPE_DAYS_STRING. */
       UsefulBufC  string;
       /** The "value" for @c uDataType @ref QCBOR_TYPE_ARRAY or @ref
           QCBOR_TYPE_MAP -- the number of items in the array or map.

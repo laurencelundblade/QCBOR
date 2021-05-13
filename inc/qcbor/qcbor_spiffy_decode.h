@@ -1103,9 +1103,9 @@ void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
  @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
  @param[out] pnDays            The decoded epoch date.
 
- This decodes the CBOR epoch date tag, integer tag
- number of 100, or encoded CBOR that is not a tag, but borrows the
- content format. The date is the number of days (not number of seconds) before or after
+ This decodes the CBOR epoch date tag, integer tag number of 100, or
+ encoded CBOR that is not a tag, but borrows the content format. The
+ date is the number of days (not number of seconds) before or after
  Jan 1, 1970.
 
  See @ref Decode-Errors for discussion on how error handling works.
