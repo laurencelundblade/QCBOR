@@ -784,7 +784,7 @@ static void QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx,
   @param[in] nDays            Number of days before or after 1970-01-0.
 
  This date format is described in
- [RFC 8943] (https://tools.ietf.org/html/rfc3339).
+ [RFC 8943] (https://tools.ietf.org/html/rfc8943).
 
  The integer encoding rules apply here so the date will be encoded in
  a minimal number of bytes. Until about the year 2149 these dates will
@@ -1475,7 +1475,7 @@ static void QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
  @param[in] szDate           Null-terminated string with date to add.
 
  This date format is described in
- [RFC 8943] (https://tools.ietf.org/html/rfc3339), but that mainly
+ [RFC 8943] (https://tools.ietf.org/html/rfc8943), but that mainly
  references RFC 3339.  The string szDate must be in the forrm
  specified the ABNF for a full-date in
  [RFC 3339] (https://tools.ietf.org/html/rfc3339). Examples of this

@@ -3880,7 +3880,7 @@ QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pMe,
 
 
 /*
- * Common processing for the RFC 8943 Day-count tag. Mostly
+ * Common processing for the RFC 8943 day-count tag. Mostly
  * make sure the tag content is correct and copy forward any
  * further other tag numbers.
  */

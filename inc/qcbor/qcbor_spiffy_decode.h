@@ -991,7 +991,7 @@ static void QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
 
  @param[in] pCtx             The decode context.
  @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pDateString            The decoded date.
+ @param[out] pDateString     The decoded date.
 
  This decodes the standard CBOR date/time string tag, integer tag
  number of 0, or encoded CBOR that is not a tag, but borrows the
@@ -1024,7 +1024,7 @@ static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
 
  @param[in] pCtx             The decode context.
  @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pDateString            The decoded date.
+ @param[out] pDateString     The decoded date.
 
  This decodes the  CBOR date-onlystring tag, integer tag
  number of 1004, or encoded CBOR that is not a tag, but borrows the
@@ -1101,7 +1101,7 @@ void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
 
  @param[in] pCtx             The decode context.
  @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pnDays            The decoded epoch date.
+ @param[out] pnDays          The decoded epoch date.
 
  This decodes the CBOR epoch date tag, integer tag number of 100, or
  encoded CBOR that is not a tag, but borrows the content format. The
