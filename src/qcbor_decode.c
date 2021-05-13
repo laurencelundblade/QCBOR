@@ -1987,8 +1987,8 @@ Done:
 }
 
 
-/** TODO: fix this documentation
- * @brief Convert different epoch date formats in to the QCBOR epoch date format
+/**
+ * @brief Convert the days epoch date
  *
  * pDecodedItem[in,out]  The data item to convert.
  *
@@ -1996,13 +1996,8 @@ Done:
  * @retval QCBOR_ERR_FLOAT_DATE_DISABLED
  * @retval QCBOR_ERR_BAD_TAG_CONTENT
  *
- * The epoch date tag defined in QCBOR allows for floating-point
- * dates. It even allows a protocol to flop between date formats when
- * ever it wants.  Floating-point dates aren't that useful as they are
- * only needed for dates beyond the age of the earth.
- *
- * This converts all the date formats into one format of an unsigned
- * integer plus a floating-point fraction.
+ * This is much simpler than the other epoch date format because
+ * floating-porint is not allowed. It is mostly a simple type check.
  */
 static QCBORError DecodeDaysEpoch(QCBORItem *pDecodedItem)
 {
@@ -2025,6 +2020,7 @@ static QCBORError DecodeDaysEpoch(QCBORItem *pDecodedItem)
       default:
          uReturn = QCBOR_ERR_BAD_TAG_CONTENT;
          goto Done;
+         break;
    }
 
    pDecodedItem->uDataType = QCBOR_TYPE_DAYS_EPOCH;

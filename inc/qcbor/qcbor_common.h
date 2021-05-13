@@ -204,16 +204,20 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     (https://tools.ietf.org/html/rfc8152). No API is provided for this
     tag. */
 #define CBOR_TAG_SIGN          98
-// TODO: fill this in
-#define CBOR_TAG_DAYS_EPOCH 100
+/** Tag for date counted by days from Jan 1 1970 per [RFC 8943]
+    (https://tools.ietf.org/html/rfc8943). See
+    QCBOREncode_AddTDaysEpoch(). */
+#define CBOR_TAG_DAYS_EPOCH    100
 /** Not Decoded by QCBOR. World geographic coordinates. See ISO 6709, [RFC 5870]
     (https://tools.ietf.org/html/rfc5870) and WGS-84. No API is
     provided for this tag. */
 #define CBOR_TAG_GEO_COORD     103
 /** Binary MIME.*/
 #define CBOR_TAG_BINARY_MIME   257
-// TOO: fill this in
-#define CBOR_TAG_DAYS_STRING 1004
+/** Tag for date string without time or time zone per [RFC 8943]
+    (https://tools.ietf.org/html/rfc8943). See
+    QCBOREncode_AddTDaysString(). */
+#define CBOR_TAG_DAYS_STRING   1004
 /** The magic number, self-described CBOR. No API is provided for this
     tag. */
 #define CBOR_TAG_CBOR_MAGIC    55799

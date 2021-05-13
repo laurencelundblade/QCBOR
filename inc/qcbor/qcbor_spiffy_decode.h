@@ -991,7 +991,7 @@ static void QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
 
  @param[in] pCtx             The decode context.
  @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pDateString            The decoded URI.
+ @param[out] pDateString            The decoded date.
 
  This decodes the standard CBOR date/time string tag, integer tag
  number of 0, or encoded CBOR that is not a tag, but borrows the
@@ -1018,7 +1018,25 @@ static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
                                              uint8_t             uTagRequirement,
                                              UsefulBufC         *pDateString);
 
-// TODO: document this
+
+/**
+ @brief Decode the next item as a date-only string.
+
+ @param[in] pCtx             The decode context.
+ @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ @param[out] pDateString            The decoded date.
+
+ This decodes the  CBOR date-onlystring tag, integer tag
+ number of 1004, or encoded CBOR that is not a tag, but borrows the
+ date-only string content format.
+
+ See @ref Decode-Errors for discussion on how error handling works.
+
+ See @ref Tag-Usage for discussion on tag requirements.
+
+ See also @ref CBOR_TAG_DAYS_STRING, QCBOREncode_AddDaysString() and
+ @ref QCBOR_TYPE_DAYS_STRING.
+*/
 static void QCBORDecode_GetDaysString(QCBORDecodeContext *pCtx,
                                       uint8_t             uTagRequirement,
                                       UsefulBufC         *pDateString);
@@ -1032,6 +1050,7 @@ static void QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pCtx,
                                              const char         *szLabel,
                                              uint8_t             uTagRequirement,
                                              UsefulBufC         *pDateString);
+
 
 /**
  @brief Decode the next item as an epoch date.
@@ -1076,8 +1095,26 @@ void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
                                      uint8_t             uTagRequirement,
                                      int64_t            *pnTime);
 
-// TODO: document this
 
+/**
+ @brief Decode the next item as an days-count epoch date.
+
+ @param[in] pCtx             The decode context.
+ @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ @param[out] pnDays            The decoded epoch date.
+
+ This decodes the CBOR epoch date tag, integer tag
+ number of 100, or encoded CBOR that is not a tag, but borrows the
+ content format. The date is the number of days (not number of seconds) before or after
+ Jan 1, 1970.
+
+ See @ref Decode-Errors for discussion on how error handling works.
+
+ See @ref Tag-Usage for discussion on tag requirements.
+
+ See also @ref CBOR_TAG_DAYS_EPOCH, QCBOREncode_AddTDaysEpoch() and
+ @ref QCBOR_TYPE_DAYS_EPOCH.
+*/
 void QCBORDecode_GetEpochDays(QCBORDecodeContext *pCtx,
                               uint8_t             uTagRequirement,
                               int64_t            *pnDays);
