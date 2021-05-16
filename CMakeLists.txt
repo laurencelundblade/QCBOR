@@ -9,6 +9,9 @@ set(CMAKE_C_FLAGS "-pedantic -Wall -O3 -ffunction-sections")
 include_directories(inc)
 include_directories(src)
 
+include_directories(${thirdparty_inc})
+list(APPEND libs ${thirdparty_lib})
+add_definitions(${thirdparty_def})
 
 if(MBEDTLS)
 
