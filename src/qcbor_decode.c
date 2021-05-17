@@ -2727,7 +2727,7 @@ static inline void CopyTags(QCBORDecodeContext *pMe, const QCBORItem *pItem)
 static inline QCBORError
 ConsumeItem(QCBORDecodeContext *pMe,
             const QCBORItem    *pItemToConsume,
-            uint_fast8_t       *puNextNestLevel)
+            uint8_t            *puNextNestLevel)
 {
    QCBORError uReturn;
    QCBORItem  Item;
@@ -2970,7 +2970,7 @@ MapSearch(QCBORDecodeContext *pMe,
     that error code is returned.
     */
    const uint8_t uMapNestLevel = DecodeNesting_GetBoundedModeLevel(&(pMe->nesting));
-   uint_fast8_t  uNextNestLevel;
+   uint8_t       uNextNestLevel;
    do {
       /* Remember offset of the item because sometimes it has to be returned */
       const size_t uOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
