@@ -15,8 +15,8 @@ LIBS=-lm
 
 # The QCBOR makefile uses a minimum of compiler flags so that it will
 # work out-of-the-box with a wide variety of compilers.  For example,
-# some compiler error out on some of the warnings flags available with
-# gcc. The $(CMD_LINE) variable allows passing in extra flags. This is
+# some compilers error out on some of the warnings flags gcc supports.
+# The $(CMD_LINE) variable allows passing in extra flags. This is
 # used on the stringent build script that is in
 # https://github.com/laurencelundblade/qdv.  This script is used
 # before pushes to master (though not yet through and automated build
