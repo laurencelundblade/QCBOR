@@ -2767,13 +2767,11 @@ Done:
 
 void QCBORDecode_VGetNextConsume(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
-   uint8_t    uNextNestLevel;
-
    QCBORDecode_VGetNext(pMe, pDecodedItem);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
-      pMe->uLastError = (uint8_t)ConsumeItem(pMe, pDecodedItem, &uNextNestLevel);
-      pDecodedItem->uNextNestLevel = uNextNestLevel;
+      pMe->uLastError = (uint8_t)ConsumeItem(pMe, pDecodedItem,
+         &pDecodedItem->uNextNestLevel);
    }
 }
 
