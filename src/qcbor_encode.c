@@ -545,7 +545,7 @@ static void InsertCBORHead(QCBOREncodeContext *me, uint8_t uMajorType, size_t uL
     * save object code. It is very clear that pBufferForEncodedHead is
     * the correct size. If EncodedHead == NULLUsefulBufC then
     * UsefulOutBuf_InsertUsefulBuf() will do nothing so there is no
-    * security whole introduced.
+    * security hole introduced.
     */
    UsefulOutBuf_InsertUsefulBuf(&(me->OutBuf),
                                 EncodedHead,
