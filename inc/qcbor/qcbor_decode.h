@@ -49,49 +49,51 @@ extern "C" {
 
 
 /**
-@file qcbor_decode.h
-
- @anchor BasicDecode
- # QCBOR Basic Decode
-
- This section just discusses decoding assuming familiarity with the
- general description of this encoder / decoder in section @ref
- Overview.
-
- Encoded CBOR can be viewed to have a tree structure where the leaf
- nodes are non-aggregate types like integers and strings and the
- intermediate nodes are either arrays or maps. Fundamentally, all CBOR
- decoding is a pre-order traversal of the tree. Calling
- QCBORDecode_GetNext() repeatedly will perform this. It is possible to
- decode any CBOR by only calling QCBORDecode_GetNext().
-
- QCBORDecode_GetNext() returns a 56 byte structure called
- @ref QCBORItem that describes the decoded item including
- - The data itself, integer, string, floating-point number...
- - The label if present
- - Unprocessed tags
- - Nesting level
- - Allocation type (primarily of interest for indefinite length strings)
-
- For strings, this structure contains a pointer and length
- back into the original data.
-
- All of the tags that QCBOR supports directly are decoded into a
- representation in @ref QCBORItem.
-
- A string allocator must be used when decoding indefinite length
- strings. See QCBORDecode_SetMemPool() or
- QCBORDecode_SetUpAllocator(). @ref QCBORItem indicates if a string
- was allocated with the string allocator.
-
- This pre-order traversal gives natural decoding of arrays where the
- array members are taken in order, but does not give natural decoding
- of maps where access by label is usually preferred.  See
- @ref SpiffyDecode for APIs to search maps by label and much more.
+ * @file qcbor_decode.h
+ *
+ * @anchor BasicDecode
+ * # QCBOR Basic Decode
+ *
+ * This section discusses decoding assuming familiarity with the
+ * general description of this encoder / decoder in section @ref
+ * Overview.
+ *
+ * Encoded CBOR has a tree structure where the leaf nodes are
+ * non-aggregate types like integers and strings and the intermediate
+ * nodes are either arrays or maps. Fundamentally, CBOR decoding is a
+ * pre-order traversal of this tree with CBOR sequences a minor ex
+ * *ception. Calling QCBORDecode_GetNext() repeatedly will perform
+ * this. It is possible to decode any CBOR by only calling
+ * QCBORDecode_GetNext(), though this doesn't take advantage of many
+ * QCBOR features.
+ *
+ * QCBORDecode_GetNext() returns a 56 byte structure called
+ * @ref QCBORItem that describes the decoded item including
+ * - The data itself, integer, string, floating-point number...
+ * - The label if present
+ * - Unprocessed tags
+ * - Nesting level
+ * - Allocation type (primarily of interest for indefinite length strings)
+ *
+ * For strings, this structure contains a pointer and length back into
+ * the original data.
+ *
+ * Most of the tags that QCBOR supports directly are decoded into a
+ * representation in @ref QCBORItem.
+ *
+ * A string allocator must be used when decoding indefinite length
+ * strings. See QCBORDecode_SetMemPool() or
+ * QCBORDecode_SetUpAllocator(). @ref QCBORItem indicates if a string
+ * was allocated with the string allocator.
+ *
+ * This pre-order traversal gives natural decoding of arrays where the
+ * array members are taken in order. Maps can be decoded this way too,
+ * but the @ref SpiffyDecode APIs that allow searching maps by label
+ * are often more convenient.
 */
 
 /**
- The decode mode options.
+ * The decode mode options.
  */
 typedef enum {
    /** See QCBORDecode_Init() */
@@ -104,14 +106,14 @@ typedef enum {
 } QCBORDecodeMode;
 
 /**
- The maximum size of input to the decoder. Slightly less than UINT32_MAX
- to make room for some special indicator values.
+ * The maximum size of input to the decoder. Slightly less than UINT32_MAX
+ * to make room for some special indicator values.
  */
 #define QCBOR_MAX_DECODE_INPUT_SIZE (UINT32_MAX - 2)
 
 /**
- The maximum number of tags that may occur on an individual nested
- item. Typically 4.
+ * The maximum number of tags that may occur on an individual nested
+ * item. Typically 4.
  */
 #define QCBOR_MAX_TAGS_PER_ITEM QCBOR_MAX_TAGS_PER_ITEM1
 
@@ -248,30 +250,30 @@ typedef enum {
     @c val.epochDays */
 #define QCBOR_TYPE_DAYS_EPOCH    78
 
-#define QCBOR_TYPE_TAG        254 // Used internally; never returned
+#define QCBOR_TYPE_TAG          254 /* Used internally; never returned */
 
-#define QCBOR_TYPE_OPTTAG   QCBOR_TYPE_TAG // Depricated in favor of QCBOR_TYPE_TAG
+#define QCBOR_TYPE_OPTTAG   QCBOR_TYPE_TAG /* Depricated. See QCBOR_TYPE_TAG */
 
 
 
 /**
- The largest value in @c utags that is unmapped and can be used without
- mapping it through QCBORDecode_GetNthTag().
+ * The largest value in @c utags that is unmapped and can be used without
+ * mapping it through QCBORDecode_GetNthTag().
  */
 #define QCBOR_LAST_UNMAPPED_TAG (CBOR_TAG_INVALID16 - QCBOR_NUM_MAPPED_TAGS - 1)
 
 
 /**
- The main data structure that holds the type, value and other info for
- a decoded item returned by QCBORDecode_GetNext() and
- and methods.
-
- This size of this may vary by compiler but is roughly 56 bytes on
- a 64-bit CPU and 52 bytes on a 32-bit CPU.
+ * The main data structure that holds the type, value and other
+ * details for a decoded item returned by QCBORDecode_GetNext() and
+ * other methods.
+ *
+ * This is typically 56 bytes on 64-bit CPUs and 52 bytes on 32-bit
+ * CPUs (the CPU and the system's ABI determine this size).
  */
 typedef struct _QCBORItem {
    /** Tells what element of the @c val union to use. One of @c
-       QCBOR_TYPE_XXXX */
+       QCBOR_TYPE_INT64,  QCBOR_TYPE_ARRAY, ...*/
    uint8_t  uDataType;
    /** How deep the nesting from arrays and maps is. 0 is the top
        level with no arrays or maps entered. */
