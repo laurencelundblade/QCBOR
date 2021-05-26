@@ -264,34 +264,46 @@ typedef enum {
 
 
 /**
- * The main data structure that holds the type, value and other
- * details for a decoded item returned by QCBORDecode_GetNext() and
- * other methods.
+ * This holds a decoded data item. It is returned by the
+ * QCBORDecode_GetNext(), the principle decoding function.
+ * It holds the type, value, label, tags and other details
+ * of the decoded data item.
  *
  * This is typically 56 bytes on 64-bit CPUs and 52 bytes on 32-bit
  * CPUs (the CPU and the system's ABI determine this size).
  */
 typedef struct _QCBORItem {
-   /** Tells what element of the @c val union to use. One of @c
-       QCBOR_TYPE_INT64,  QCBOR_TYPE_ARRAY, ...*/
+   /** Tells what element of the @c val union to use. One of @ref
+    *  QCBOR_TYPE_INT64, @ref QCBOR_TYPE_ARRAY, ...*/
    uint8_t  uDataType;
-   /** How deep the nesting from arrays and maps is. 0 is the top
-       level with no arrays or maps entered. */
-   uint8_t  uNestingLevel;
-    /** Tells what element of the label union to use. */
+
+   /** Tells what element of the @c label union to use. One of
+    *  @ref QCBOR_TYPE_INT64, @ref QCBOR_TYPE_BYTE_STRING, ...*/
    uint8_t  uLabelType;
-   /** 1 if allocated with string allocator, 0 if not. See
-       QCBORDecode_SetMemPool() or QCBORDecode_SetUpAllocator() */
-   uint8_t  uDataAlloc;
-   /** Like @c uDataAlloc, but for label. */
-   uint8_t  uLabelAlloc;
-   /** The nesting level of the next item after this one.  If less
-       than @c uNestingLevel, this item was the last one in an arry or
-       map and closed out at least one nesting level */
+
+   /** Holds the nesting depth for arrays and map. 0 is the top level
+    *  with no arrays or maps entered. */
+   uint8_t  uNestingLevel;
+
+   /** Holds the nesting level of the next item after this one.  If
+    *  less than @c uNestingLevel, this item was the last one in an
+    *  arry or map and it closed out at least one nesting level. */
    uint8_t  uNextNestLevel;
 
+   /** 1 if a @c val that is a string is allocated with string
+    * allocator, 0 if not. Always 0 unless an allocator has been set
+    * up by calling QCBORDecode_SetMemPool() or
+    * QCBORDecode_SetUpAllocator(). */
+   uint8_t  uDataAlloc;
+
+   /** 1 if a @c label that is a string is allocated with string
+    * allocator, 0 if not. Always 0 unless an allocator has been set
+    * up by calling QCBORDecode_SetMemPool() or
+    * QCBORDecode_SetUpAllocator(). */
+   uint8_t  uLabelAlloc;
+
    /** The union holding the item's value. Select union member based
-       on @c uDataType */
+    *  on @c uDataType */
    union {
       /** The value for @c uDataType @ref QCBOR_TYPE_INT64. */
       int64_t     int64;
@@ -305,7 +317,7 @@ typedef struct _QCBORItem {
           QCBOR_TYPE_MAP -- the number of items in the array or map.
           It is @c UINT16_MAX when decoding indefinite-lengths maps
           and arrays. Detection of the end of a map or array is
-          best done with uNextLevel and uNextNestLevel so as to
+          best done with @c uNestLevel and @c uNextNestLevel so as to
           work for both definite and indefinite length maps
           and arrays. */
       uint16_t    uCount;
@@ -334,27 +346,31 @@ typedef struct _QCBORItem {
       /** The integer value for unknown simple types. */
       uint8_t     uSimple;
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
-      /** @anchor expAndMantissa
-
-          The value for bigfloats and decimal fractions.  The use of the
-          fields in this structure depend on @c uDataType.
-
-          When @c uDataType is a @c DECIMAL_FRACTION, the exponent is
-          base-10. When it is a @c BIG_FLOAT it is base-2.
-
-          When @c uDataType is a @c POS_BIGNUM or a @c NEG_BIGNUM then the
-          @c bigNum part of @c Mantissa is valid. Otherwise the
-          @c nInt part of @c Mantissa is valid.
-
-          See @ref QCBOR_TYPE_DECIMAL_FRACTION,
-          @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
-          @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,
-          @ref QCBOR_TYPE_BIGFLOAT, @ref QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
-          and @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM.
-
-          Also see QCBOREncode_AddDecimalFraction(), QCBOREncode_AddBigFloat(),
-          QCBOREncode_AddDecimalFractionBigNum() and
-          QCBOREncode_AddBigFloatBigNum().
+      /**
+       * @anchor expAndMantissa
+       *
+       * This holds the value for big floats and decimal fractions.
+       * The use of the fields in this structure depends on @c
+       * uDataType.
+       *
+       * When @c uDataType indicates a decimal fraction, the 
+       * @c nExponent is base 10. When it indicates a big float, it
+       * is base 2.
+       *
+       * When @c uDataType indicates a big number, then the @c bigNum
+       * member of @c Mantissa is valid. Otherwise the @c nInt member
+       * of @c Mantissa is valid.
+       *
+       * See @ref QCBOR_TYPE_DECIMAL_FRACTION,
+       * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+       * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,
+       * @ref QCBOR_TYPE_BIGFLOAT, @ref QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+       * and @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM.
+       *
+       * Also see QCBOREncode_AddTDecimalFraction(),
+       * QCBOREncode_AddTBigFloat(),
+       * QCBOREncode_AddTDecimalFractionBigNum() and
+       * QCBOREncode_AddTBigFloatBigNum().
        */
       struct {
          int64_t nExponent;
@@ -364,7 +380,7 @@ typedef struct _QCBORItem {
          } Mantissa;
       } expAndMantissa;
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      uint64_t    uTagV;  // Used internally during decoding
+      uint64_t    uTagV;  /* Used internally during decoding */
 
    } val;
 
