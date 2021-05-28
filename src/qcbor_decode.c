@@ -2236,7 +2236,7 @@ ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
 
    const uint8_t uQCBORType = StringTagMap[uIndex].uQCBORtype;
    if(uQCBORType == QCBOR_TYPE_NONE) {
-      /* repurpose this error to mean, not handled here */
+      /* repurpose this error to mean not handled here */
       return QCBOR_ERR_UNSUPPORTED;
    }
 

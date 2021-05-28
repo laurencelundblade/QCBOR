@@ -149,7 +149,9 @@ typedef enum {
     pointer and a length. */
 #define QCBOR_TYPE_NEGBIGNUM     10
 /** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
-    string, possibly with time zone. Data is in @c val.dateString */
+    string, possibly with time zone. Data is in @c val.string . Note this
+    was previously in @c val.dateString, however this is the same as
+    val.string being the same type in same union. */
 #define QCBOR_TYPE_DATE_STRING   11
 /** Type for integer seconds since Jan 1970 + floating-point
     fraction. Data is in @c val.epochDate */
@@ -303,47 +305,48 @@ typedef struct _QCBORItem {
    uint8_t  uLabelAlloc;
 
    /** The union holding the item's value. Select union member based
-    *  on @c uDataType */
+    *  on @c uDataType. */
    union {
       /** The value for @c uDataType @ref QCBOR_TYPE_INT64. */
       int64_t     int64;
-      /** The value for uDataType @ref QCBOR_TYPE_UINT64. */
+      /** The value for @c uDataType @ref QCBOR_TYPE_UINT64. */
       uint64_t    uint64;
       /** The value for @c uDataType @ref QCBOR_TYPE_BYTE_STRING and
-          @ref QCBOR_TYPE_TEXT_STRING. Also
-          @ref QCBOR_TYPE_DAYS_STRING. */
+       *  @ref QCBOR_TYPE_TEXT_STRING. Also
+       *  for many tags whose content is a string such @ref QCBOR_TYPE_DAYS_STRING
+       *  and @ref QCBOR_TYPE_URI. */
       UsefulBufC  string;
       /** The "value" for @c uDataType @ref QCBOR_TYPE_ARRAY or @ref
-          QCBOR_TYPE_MAP -- the number of items in the array or map.
-          It is @c UINT16_MAX when decoding indefinite-lengths maps
-          and arrays. Detection of the end of a map or array is
-          best done with @c uNestLevel and @c uNextNestLevel so as to
-          work for both definite and indefinite length maps
-          and arrays. */
+       *  QCBOR_TYPE_MAP, the number of items in the array or map.  It
+       *  is @c UINT16_MAX when decoding indefinite-lengths maps and
+       *  arrays. Detection of the end of a map or array is best done
+       *  with @c uNestLevel and @c uNextNestLevel so as to work for
+       *  both definite and indefinite length maps and arrays. */
       uint16_t    uCount;
       /** The value for @c uDataType @ref QCBOR_TYPE_DOUBLE. */
       double      dfnum;
       /** The value for @c uDataType @ref QCBOR_TYPE_FLOAT. */
       float       fnum;
       /** The value for @c uDataType @ref QCBOR_TYPE_DATE_EPOCH.
-          Floating-point dates that are NaN, +Inifinity or -Inifinity
-          result in the @ref QCBOR_ERR_DATE_OVERFLOW error. */
+       *  Floating-point dates that are NaN, +Inifinity or -Inifinity
+       *  result in the @ref QCBOR_ERR_DATE_OVERFLOW error. */
       struct {
          int64_t  nSeconds;
          double   fSecondsFraction;
       } epochDate;
 
       /** The value for @c uDataType @ref QCBOR_TYPE_DAYS_EPOCH -- the
-          number of days before or after Jan 1, 1970. */
+       *  number of days before or after Jan 1, 1970. */
       int64_t     epochDays;
 
-      /** The value for @c uDataType @ref QCBOR_TYPE_DATE_STRING. */
+      /** No longer used. Was the value for @ref QCBOR_TYPE_DATE_STRING,
+       * but now that value is in @c string.  TODO: finish writing this.*/
       UsefulBufC  dateString;
 
       /** The value for @c uDataType @ref QCBOR_TYPE_POSBIGNUM and
-           @ref QCBOR_TYPE_NEGBIGNUM. */
+           @ref QCBOR_TYPE_NEGBIGNUM.  TODO: change to string*/
       UsefulBufC  bigNum;
-      /** The integer value for unknown simple types. */
+      /** The integer value for unknown simple types. TODO: doc this better. */
       uint8_t     uSimple;
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       /**
@@ -384,11 +387,10 @@ typedef struct _QCBORItem {
 
    } val;
 
-   /** Union holding the different label types selected based on @c
-       uLabelType */
+   /** Union holding the different label types selected based on @c uLabelType */
    union {
       /** The label for @c uLabelType @ref QCBOR_TYPE_BYTE_STRING and
-          @ref QCBOR_TYPE_TEXT_STRING */
+       *  @ref QCBOR_TYPE_TEXT_STRING */
       UsefulBufC  string;
       /** The label for @c uLabelType for @ref QCBOR_TYPE_INT64 */
       int64_t     int64;
@@ -396,30 +398,32 @@ typedef struct _QCBORItem {
       uint64_t    uint64;
    } label;
 
-   /** The tags on the item.  Tags nest, so index 0 in the array is
-       the tag on the data item itself, index 1 is the tag that
-       applies to the tag in index 0. The end of the list is indicated
-       by @ref CBOR_TAG_INVALID16
-
-       Tag nesting is uncommon and rarely deep. This implementation
-       only allows nesting to a depth of @ref QCBOR_MAX_TAGS_PER_ITEM,
-       usually 4.
-
-       Tags in the array below and equal to @ref
-       QCBOR_LAST_UNMAPPED_TAG are unmapped and can be used
-       directly. Tags above this must be be translated through
-       QCBORDecode_GetNthTag().
-
-       See also the large number of QCBORDecode_GetXxxx() functions in
-       qcbor_spiffy_decode.h for a way to decode tagged types without
-       having to reference this array.
+   /**
+    * The tags numbers for which the item is the tag content.  Tags
+    * nest, so index 0 in the array is the tag on the data item
+    * itself, index 1 is the tag that applies to the tag in index
+    * 0. The end of the list is indicated by @ref CBOR_TAG_INVALID16
+    *
+    * Tag nesting is uncommon and rarely deep. This implementation
+    * only allows nesting to a depth of @ref QCBOR_MAX_TAGS_PER_ITEM,
+    * usually 4.
+    *
+    * Tag numbers in the array below and equal to @ref
+    * QCBOR_LAST_UNMAPPED_TAG are unmapped and can be used
+    * directly. Tag numbers above this must be translated through
+    * QCBORDecode_GetNthTag().
+    *
+    * See also the large number of functions like
+    * QCBORDecode_GetEpochDate() and QCBORDecode_GetBignum() in
+    * qcbor_spiffy_decode.h for a way to decode tagged types without
+    * having to reference this array. Also see @ref Tags-Overview.
     */
    uint16_t uTags[QCBOR_MAX_TAGS_PER_ITEM];
 
 } QCBORItem;
 
 /**
-   An array or map's length is indefinite when it has this value.
+ * An array or map's length is indefinite when it has this value.
  */
 #define QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH UINT16_MAX
 
