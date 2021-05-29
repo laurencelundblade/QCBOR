@@ -114,6 +114,19 @@ inline static uint8_t Nesting_Increment(QCBORTrackNesting *pNesting)
    return QCBOR_SUCCESS;
 }
 
+inline static uint8_t Nesting_Decrement(QCBORTrackNesting *pNesting)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(!pNesting->pCurrentNesting->uCount) {
+      return 99; // TODO: error
+   }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   pNesting->pCurrentNesting->uCount--;
+
+   return QCBOR_SUCCESS;
+}
+
 inline static uint16_t Nesting_GetCount(QCBORTrackNesting *pNesting)
 {
    /* The nesting count recorded is always the actual number of
@@ -886,7 +899,34 @@ void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, U
 
 
 /*
- * Public functions for closing arrays and maps. See qcbor/qcbor_encode.h
+ * Public function for canceling a bstr wrap. See qcbor/qcbor_encode.h
+ */
+void QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uError == QCBOR_SUCCESS) {
+      if(!Nesting_IsInNest(&(pMe->nesting))) {
+         pMe->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+         return;
+      } else if(Nesting_GetMajorType(&(pMe->nesting)) != CBOR_MAJOR_TYPE_BYTE_STRING) {
+         pMe->uError = QCBOR_ERR_CLOSE_MISMATCH;
+         return;
+      }
+      const size_t uCurrent = UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
+      if(pMe->nesting.pCurrentNesting->uStart != uCurrent) {
+         pMe->uError = QCBOR_ERR_CANNOT_CANCEL;
+         return;
+      }
+   }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   Nesting_Decrease(&(pMe->nesting));
+   Nesting_Decrement(&(pMe->nesting));
+}
+
+
+/*
+ * Public function for closing arrays and maps. See qcbor/qcbor_encode.h
  */
 void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
@@ -911,7 +951,7 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t
 
 
 /*
- * Public functions to finish and get the encoded result. See qcbor/qcbor_encode.h
+ * Public function to finish and get the encoded result. See qcbor/qcbor_encode.h
  */
 QCBORError QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
 {

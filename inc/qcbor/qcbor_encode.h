@@ -1774,6 +1774,17 @@ static void QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWra
 
 
 /**
+ @brief Cancel a wrapping bstr.
+
+ @param[in] pCtx              The encoding context to close of bstr wrapping in.
+
+ This only works if nothing has been added into the wrapped byte string.
+ If something has been added, this sets the TODO: error.
+ **/
+void QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pCtx);
+
+
+/**
  @brief Add some already-encoded CBOR bytes.
 
  @param[in] pCtx     The encoding context to add the already-encode CBOR to.
