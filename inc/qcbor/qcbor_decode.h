@@ -431,106 +431,105 @@ typedef struct _QCBORItem {
 
 
 /**
-  @brief The type defining what a string allocator function must do.
-
-  @param[in] pAllocateCxt  Pointer to context for the particular
-                            allocator implementation What is in the
-                            context is dependent on how a particular
-                            string allocator works. Typically, it
-                            will contain a pointer to the memory pool
-                            and some booking keeping data.
- @param[in] pOldMem         Points to some memory allocated by the
-                            allocator that is either to be freed or
-                            to be reallocated to be larger. It is
-                            @c NULL for new allocations and when called as
-                            a destructor to clean up the whole
-                            allocation.
- @param[in] uNewSize        Size of memory to be allocated or new
-                            size of chunk to be reallocated. Zero for
-                            a new allocation or when called as a
-                            destructor.
-
- @return   Either the allocated buffer is returned, or @ref
-           NULLUsefulBufC. @ref NULLUsefulBufC is returned on a failed
-           allocation and in the two cases where there is nothing to
-           return.
-
- This is called in one of four modes:
-
- Allocate -- @c uNewSize is the amount to allocate. @c pOldMem is @c
- NULL.
-
- Free -- @c uNewSize is 0. @c pOldMem points to the memory to be
- freed.  When the decoder calls this, it will always be the most
- recent block that was either allocated or reallocated.
-
- Reallocate -- @c pOldMem is the block to reallocate. @c uNewSize is
- its new size.  When the decoder calls this, it will always be the
- most recent block that was either allocated or reallocated.
-
- Destruct -- @c pOldMem is @c NULL and @c uNewSize is 0. This is called
- when the decoding is complete by QCBORDecode_Finish(). Usually the
- strings allocated by a string allocator are in use after the decoding
- is completed so this usually will not free those strings. Many string
- allocators will not need to do anything in this mode.
-
- The strings allocated by this will have @c uDataAlloc set to true in
- the @ref QCBORItem when they are returned. The user of the strings
- will have to free them. How they free them, depends on the string
- allocator.
-
- If QCBORDecode_SetMemPool() is called, the internal MemPool will be
- used. It has its own internal implementation of this function, so
- one does not need to be implemented.
+ * @brief Prototype for the implementation of a string allocator.
+ *
+ * @param[in] pAllocateCxt Pointer to context for the particular
+ *                         allocator implementation. Its contents
+ *                         depend on how a particular string allocator
+ *                         works. Typically, it will contain a pointer
+ *                         to the memory pool and some booking keeping
+ *                         data.
+ *
+ * @param[in] pOldMem      Points to some memory previously allocated
+ *                         that is either to be freed or to be
+ *                         reallocated to be larger. It is @c NULL for
+ *                         new allocations and when called as the
+ *                         destructor.
+ *
+ * @param[in] uNewSize     Size of memory to be allocated or new size
+ *                         for a chunk being reallocated. Zero when
+ *                         called to free memory or when called as the
+ *                         destructor.
+ *
+ * @return Either the allocated buffer is returned, or
+ *         @ref NULLUsefulBufC. @ref NULLUsefulBufC is returned on a
+ *         failed allocation and in the two cases where there is
+ *         nothing to return.
+ *
+ * This function must be implemented for a custom string
+ * allocator. See QCBORDecode_SetUpAllocator().
+ *
+ * This is not needed if the built-in string allocator available
+ * through QCBORDecode_SetMemPool() is used.
+ *
+ * After being set up through a call to QCBORDecode_SetUpAllocator(),
+ * this is called in four modes:
+ *
+ * Allocate -- @c uNewSize is the amount to allocate. @c pOldMem is
+ *  @c NULL.
+ *
+ * Free -- @c uNewSize is 0. @c pOldMem points to the memory to be
+ * freed.  When the decoder calls this, it will always be the most
+ * recent block that was either allocated or reallocated.
+ *
+ * Reallocate -- @c pOldMem is the block to reallocate. @c uNewSize is
+ * its new size.  When the decoder calls this, it will always be the
+ * most recent block that was either allocated or reallocated.
+ *
+ * Destruct -- @c pOldMem is @c NULL and @c uNewSize is 0. This is
+ * called when the decoding is complete by
+ * QCBORDecode_Finish(). Usually, the strings allocated by a string
+ * allocator are in use after the decoding is completed so this
+ * usually will not free those strings. Many string allocators will
+ * not need to do anything in this mode.
+ *
+ * The strings allocated by this will have @c uDataAlloc set to true
+ * in the @ref QCBORItem when they are returned. The user of the
+ * strings will have to free them. How they free them, depends on the
+ * string allocator.
  */
 typedef UsefulBuf (* QCBORStringAllocate)(void *pAllocateCxt, void *pOldMem, size_t uNewSize);
 
 
 /**
- This only matters if you use the built-in string allocator by setting
- it up with QCBORDecode_SetMemPool(). This is the size of the overhead
- needed by QCBORDecode_SetMemPool(). The amount of memory available
- for decoded strings will be the size of the buffer given to
- QCBORDecode_SetMemPool() less this amount.
-
- If you write your own string allocator or use the separately
- available malloc based string allocator, this size will not apply.
+ * For the built-in string allocator available via
+ * QCBORDecode_SetMemPool(), this is the size overhead needed
+ * internally.  The amount of memory available for decoded strings is
+ * the size of the buffer given to QCBORDecode_SetMemPool() less this
+ * amount.
+ *
+ * This doesn't apply to custom string allocators, only to the one
+ * available via QCBORDecode_SetMemPool().
  */
 #define QCBOR_DECODE_MIN_MEM_POOL_SIZE 8
 
 
 /**
- This is used by QCBORDecode_SetCallerConfiguredTagList() to set a
- list of tags beyond the built-in ones.
-
- See also QCBORDecode_GetNext() for general description of tag
- decoding.
+ * Deprecated -- Tag handling has been revised and this is no longer
+ * used. See QCBORDecode_GetNthTag() for new tag handling.
  */
 typedef struct {
-   /** The number of tags in the @c puTags. The maximum size is @ref
-       QCBOR_MAX_CUSTOM_TAGS. */
-   uint8_t uNumTags;
-   /** An array of tags to add to recognize in addition to the
-       built-in ones. */
+   uint8_t         uNumTags;
    const uint64_t *puTags;
 } QCBORTagListIn;
 
 
 /**
- This is for QCBORDecode_GetNextWithTags() to be able to return the
- full list of tags on an item. It is not needed for most CBOR protocol
- implementations. Its primary use is for pretty-printing CBOR or
- protocol conversion to another format.
-
- On input, @c puTags points to a buffer to be filled in and
- uNumAllocated is the number of @c uint64_t values in the buffer.
-
- On output the buffer contains the tags for the item.  @c uNumUsed
- tells how many there are.
+ * Deprecated -- this is retained only for backwards compatibility.
+ * Use QCBORDecode_GetNthTag() instead.
+ *
+ * This is for QCBORDecode_GetNextWithTags() to be able to return the
+ * full list of tags on an item.
+ *
+ * On input, @c puTags points to a buffer to be filled in and
+ * uNumAllocated is the number of @c uint64_t values in the buffer.
+ *
+ * On output the buffer contains the tags for the item.  @c uNumUsed
+ * tells how many there are.
  */
 typedef struct {
-   uint8_t uNumUsed;
-   uint8_t uNumAllocated;
+   uint8_t   uNumUsed;
+   uint8_t   uNumAllocated;
    uint64_t *puTags;
 } QCBORTagListOut;
 
@@ -952,7 +951,7 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  @retval QCBOR_ERR_TOO_MANY_TAGS  The size of @c pTagList is too small.
 
  This is retained for backwards compatibility. It is replaced by
- QCBORDecode_GetNthTag() which can also return all the
+ QCBORDecode_GetNthTag() which also returns all the
  tags that have been decoded.
 
  This is not backwards compatibile in two ways. First, it is limited to
