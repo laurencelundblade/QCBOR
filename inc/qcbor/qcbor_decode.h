@@ -625,6 +625,9 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDec
  * Assuming dead-stripping of unused symbols is being performed, this
  * simple allocator will not be linked in unless
  * QCBORDecode_SetMemPool() is called.
+ *
+ * See also QCBORDecode_SetUpAllocator() to set up a custom allocator
+ * if this one isn't sufficient.
  */
 QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAllStrings);
 
@@ -648,10 +651,9 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, b
  * allows the caller to configure an external string allocator
  * implementation if the internal string allocator is
  * unsuitable. See QCBORDecode_SetMemPool() to configure the internal
- * allocator. Note that the internal allocator is not automatically
- * set up.
+ * allocator.
  *
- * The string allocator configured here can be a custom one designed
+ * The string allocator configured here is a custom one designed
  * and implemented by the caller.  See @ref QCBORStringAllocate for
  * the requirements for a string allocator implementation.
  *
@@ -660,7 +662,8 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, b
  * function and pointer that can be given here as @c pAllocatorFunction
  * and @c pAllocatorContext. It uses standard @c malloc() so @c free()
  * must be called on all strings marked by @c uDataAlloc @c == @c 1 or
- * @c uLabelAlloc @c == @c 1 in @ref QCBORItem.
+ * @c uLabelAlloc @c == @c 1 in @ref QCBORItem. Note this is in a
+ * separate GitHub repository.
  */
 void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
                                 QCBORStringAllocate pfAllocateFunction,
@@ -1338,7 +1341,7 @@ static inline bool QCBORDecode_IsUnrecoverableError(QCBORError uErr)
    }
 }
 
-// A few sanity checks on size constants and special value lenghts
+/* A few cross checks on size constants and special value lengths */
 #if  QCBOR_MAP_OFFSET_CACHE_INVALID < QCBOR_MAX_DECODE_INPUT_SIZE
 #error QCBOR_MAP_OFFSET_CACHE_INVALID is too large
 #endif

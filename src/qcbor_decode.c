@@ -2704,9 +2704,7 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
       return QCBOR_ERR_MEM_POOL_SIZE;
    }
 
-   pMe->StringAllocator.pfAllocator    = MemPool_Function;
-   pMe->StringAllocator.pAllocateCxt   = Pool.ptr;
-   pMe->bStringAllocateAll             = bAllStrings;
+   QCBORDecode_SetUpAllocator(pMe, MemPool_Function, Pool.ptr, bAllStrings);
 
    return QCBOR_SUCCESS;
 }
