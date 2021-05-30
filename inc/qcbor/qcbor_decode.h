@@ -535,50 +535,50 @@ typedef struct {
 
 
 /**
- QCBORDecodeContext is the data type that holds context decoding the
- data items for some received CBOR.  It is about 100 bytes, so it can
- go on the stack.  The contents are opaque, and the caller should not
- access any internal items.  A context may be re used serially as long
- as it is re initialized.
+ * QCBORDecodeContext holds the context for decoding CBOR.  It is
+ * about 300 bytes, so it can go on the stack.  The contents are
+ * opaque, and the caller should not access any internal items.  A
+ * context may be re-used serially as long as it is re initialized.
  */
 typedef struct _QCBORDecodeContext QCBORDecodeContext;
 
 
 /**
- Initialize the CBOR decoder context.
-
- @param[in] pCtx         The context to initialize.
- @param[in] EncodedCBOR  The buffer with CBOR encoded bytes to be decoded.
- @param[in] nMode        See below and @ref QCBORDecodeMode.
-
- Initialize context for a pre-order traversal of the encoded CBOR
- tree.
-
- Most CBOR decoding can be completed by calling this function to start
- and QCBORDecode_GetNext() in a loop.
-
- If indefinite-length strings are to be decoded, then
- QCBORDecode_SetMemPool() or QCBORDecode_SetUpAllocator() must be
- called to set up a string allocator.
-
- Three decoding modes are supported.  In normal mode, @ref
- QCBOR_DECODE_MODE_NORMAL, maps are decoded and strings and integers
- are accepted as map labels. If a label is other than these, the error
- @ref QCBOR_ERR_MAP_LABEL_TYPE is returned by QCBORDecode_GetNext().
-
- In strings-only mode, @ref QCBOR_DECODE_MODE_MAP_STRINGS_ONLY, only
- text strings are accepted for map labels.  This lines up with CBOR
- that converts to JSON. The error @ref QCBOR_ERR_MAP_LABEL_TYPE is
- returned by QCBORDecode_GetNext() if anything but a text string label
- is encountered.
-
- In @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY maps are treated as special
- arrays.  They will be return with special @c uDataType @ref
- QCBOR_TYPE_MAP_AS_ARRAY and @c uCount, the number of items, will be
- double what it would be for a normal map because the labels are also
- counted. This mode is useful for decoding CBOR that has labels that
- are not integers or text strings, but the caller must manage much of
- the map decoding.
+ * Initialize the CBOR decoder context.
+ *
+ * @param[in] pCtx         The context to initialize.
+ * @param[in] EncodedCBOR  The buffer with CBOR encoded bytes to be decoded.
+ * @param[in] nMode        See below and @ref QCBORDecodeMode.
+ *
+ * Initialize context for a pre-order traversal of the encoded CBOR
+ * tree.
+ *
+ * Most CBOR decoding can be completed by calling this function to
+ * start and QCBORDecode_GetNext() in a loop.
+ *
+ * If indefinite-length strings are to be decoded, then
+ * QCBORDecode_SetMemPool() or QCBORDecode_SetUpAllocator() must be
+ * called to set up a string allocator.
+ *
+ * Three decoding modes are supported.  In normal mode, @ref
+ * QCBOR_DECODE_MODE_NORMAL, maps are decoded and strings and integers
+ * are accepted as map labels. If a label is other than these, the
+ * error @ref QCBOR_ERR_MAP_LABEL_TYPE is returned by
+ * QCBORDecode_GetNext().
+ *
+ * In strings-only mode, @ref QCBOR_DECODE_MODE_MAP_STRINGS_ONLY, only
+ * text strings are accepted for map labels.  This lines up with CBOR
+ * that converts to JSON. The error @ref QCBOR_ERR_MAP_LABEL_TYPE is
+ * returned by QCBORDecode_GetNext() if anything but a text string
+ * label is encountered.
+ *
+ * In @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY maps are treated as special
+ * arrays.  They will be returned with special @c uDataType @ref
+ * QCBOR_TYPE_MAP_AS_ARRAY and @c uCount, the number of items, will be
+ * double what it would be for a normal map because the labels are
+ * also counted. This mode is useful for decoding CBOR that has labels
+ * that are not integers or text strings, but the caller must manage
+ * much of the map decoding.
  */
 void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDecodeMode nMode);
 
@@ -631,7 +631,7 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, b
 
 /**
  * @brief Sets up a custom string allocator for indefinite-length strings
- * 
+ *
  * @param[in] pCtx                 The decoder context to set up an
  *                                 allocator for.
  * @param[in] pfAllocateFunction   Pointer to function that will be
@@ -664,8 +664,8 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, b
  */
 void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
                                 QCBORStringAllocate pfAllocateFunction,
-                                void *pAllocateContext,
-                                bool bAllStrings);
+                                void               *pAllocateContext,
+                                bool                bAllStrings);
 
 /**
  @brief Deprecated -- Configure list of caller-selected tags to be recognized.
