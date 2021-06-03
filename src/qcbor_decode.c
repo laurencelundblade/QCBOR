@@ -5919,3 +5919,209 @@ void QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
 }
 
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+
+
+
+/* The one that matches the endianness should return without copying
+ The other either has to copy or has to swap by violating const-ness.
+ If copying, the caller has to know. If violating const-ness, then
+the caller only knows that const-ness is violated. */
+
+void QCBORDecode_GetUint32ArrayBE(QCBORDecodeContext *pMe,
+                                uint8_t             uTagRequirement,
+                                uint32_t           *pInts,
+                                size_t             *pSize)
+{
+   QCBORItem item;
+   QCBORDecode_VGetNext(pMe, &item);
+
+   if(item.uDataType != QCBOR_TYPE_BYTE_STRING ||
+      !QCBORDecode_IsTagged(pMe, &item, 99)) { // TODO: correct tag number
+      pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+      return;
+   }
+
+   if(item.val.string.len % 4 != 0) {
+      pMe->uLastError = 99; // TODO: figure out error
+      return;
+   }
+
+   *pSize = item.val.string.len / 4;
+
+   /* may have to swap if endianness doesn't match */
+   pInts = (uint32_t *) &(item.val.string.ptr);
+}
+
+
+void QCBORDecode_GetUint32ArrayLE(QCBORDecodeContext *pMe,
+                                uint8_t             uTagRequirement,
+                                uint32_t           *pInts,
+                                size_t             *pSize)
+{
+   QCBORItem item;
+   QCBORDecode_GetNext(pMe, &item);
+
+   // TODO: check type
+   // TODO: check size is a multiple of 4
+
+   *pSize = item.val.string.len / 4;
+
+   // TODO: must swap all the ints
+
+   pInts = (uint32_t *) &(item.val.string.ptr);
+
+
+}
+
+
+
+
+
+static QCBORError
+CheckTagList(uint64_t uTag, const uint64_t *puTagList)
+{
+   for(size_t i = 0; puTagList[i] != CBOR_TAG_INVALID64; i++) {
+      if(uTag == puTagList[i]) {
+         return QCBOR_SUCCESS;
+      }
+   }
+   return QCBOR_ERR_UNEXPECTED_TYPE;
+}
+
+
+QCBORError CheckTagRequirement2(QCBORDecodeContext *pMe,
+                                uint8_t uTagRequirement,
+                                const uint64_t *puTagNumbers,
+                                const uint8_t *puContentTypes,
+                                const QCBORItem *pItem)
+{
+   /* In this checker, the tags of interest are never mapped
+    to QCBOR_TYPEs. */
+
+   /* Check the content type first. If that is wrong, then this fails
+    no matter what. */
+   QCBORError uReturn = CheckTypeList(pItem->uDataType, puContentTypes);
+   if(uReturn != QCBOR_SUCCESS) {
+      return uReturn;
+   }
+
+   uReturn = CheckTagList(QCBORDecode_GetNthTag(pMe, pItem, 0), puTagNumbers);
+
+   const int nTagReq = uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS;
+   switch(nTagReq) {
+      case QCBOR_TAG_REQUIREMENT_TAG:
+         if(uReturn != QCBOR_SUCCESS) {
+            goto Done;
+         }
+         break;
+
+      case QCBOR_TAG_REQUIREMENT_NOT_A_TAG:
+         if(uReturn == QCBOR_SUCCESS) {
+            uReturn = QCBOR_ERR_UNEXPECTED_TYPE;
+            goto Done;
+         }
+         break;
+
+      case QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG:
+         break;
+   }
+
+   if(!(uTagRequirement & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS)) {
+      /* Additional tags are prohibited. */
+      int nAdditionalIndex = 0;
+      if(uReturn == QCBOR_SUCCESS) {
+         nAdditionalIndex++;
+      }
+      if(pItem->uTags[0] != CBOR_TAG_INVALID16) {
+         uReturn = QCBOR_ERR_UNEXPECTED_TYPE;
+      }
+   }
+   uReturn = QCBOR_SUCCESS;
+
+Done:
+   return uReturn;
+}
+
+
+
+
+void QCBORDecode_GetHomogenousArray(QCBORDecodeContext *pMe,
+                                    uint8_t             uTagRequirement,
+                                    uint8_t             uType,
+                                    size_t              nInArrayCount,
+                                    union QCBORHomogenousArray array,
+                                    size_t             *pnOutArrayCount)
+{
+   QCBORItem item;
+   QCBORDecode_GetNext(pMe, &item);
+
+   const uint64_t puAllowedTags[] = {CBOR_TAG_HOMOGENEOUS_ARRAY, CBOR_TAG_INVALID64};
+
+   const uint8_t puAllowedContents[] = {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE};
+
+
+   QCBORError uError = CheckTagRequirement2(pMe,
+                                            uTagRequirement,
+                                            puAllowedTags,
+                                            puAllowedContents,
+                                            &item);
+   if(uError) {
+      pMe->uLastError = (uint8_t)uError;
+      goto Done;
+   }
+
+   const uint8_t uIntNestLevel = item.uNextNestLevel;
+
+   size_t uIntCount = 0;
+   do {
+      QCBORDecode_GetNext(pMe, &item);
+      if(item.uDataType != uType) {
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+         goto Done;
+      }
+
+      /* A good compiler should not generate much code here since
+       since it is just a copy of either 8 or 16 bytes for the
+       cases. */
+      switch (uType) {
+         case QCBOR_TYPE_INT64:
+            if(array.pnInt64s) {
+               array.pnInt64s[uIntCount] = item.val.int64;
+            }
+            break;
+
+         case QCBOR_TYPE_UINT64:
+            if(array.puUInt64s) {
+               array.puUInt64s[uIntCount] = item.val.int64;
+            }
+            break;
+
+         case QCBOR_TYPE_DOUBLE:
+              if(array.pDoubles) {
+                 array.pDoubles[uIntCount] = item.val.dfnum;
+              }
+              break;
+
+         case QCBOR_TYPE_TEXT_STRING:
+         case QCBOR_TYPE_BYTE_STRING:
+              if(array.pStrings) {
+                 array.pStrings[uIntCount] = item.val.string;
+              }
+              break;
+      }
+      uIntCount++;
+
+      if(uIntCount >= nInArrayCount) {
+         pMe->uLastError = QCBOR_ERR_BUFFER_TOO_SMALL;
+         goto Done;
+      }
+
+   } while(item.uNextNestLevel >= uIntNestLevel);
+
+
+   *pnOutArrayCount = uIntCount;
+
+Done:
+   return;
+}
+

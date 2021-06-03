@@ -1957,6 +1957,39 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
                                   uint64_t  uNumber);
 
 
+/*
+Definitely need to have two functions, one for BE and one for LE.
+ Since we have to say what format to output. There is no wire format.
+
+ Do we want a third that just outputs without swapping? It would
+ be called when the caller doesn't want to figure out which
+ endianness they have. They want the minimal processing.
+ The implementation will have to figure out which though to
+use correct tag.
+
+
+
+
+
+ */
+
+
+void
+QCBOREncode_AddArrayOfInts(QCBOREncodeContext *pMe,
+                           uint8_t             uTagRequirement,
+                           const int64_t      *puInts,
+                           size_t              uNumInts);
+
+void QCBOREncode_AddUint32ArrayBigEndian(QCBOREncodeContext *pCtx,
+                                         const uint32_t      array[],
+                                         size_t              uArrayLen);
+
+void QCBOREncode_AddUint32ArrayLittleEndian(QCBOREncodeContext *pCtx,
+const uint32_t array[],
+size_t uArrayLen);
+
+
+
 
 
 /* =========================================================================

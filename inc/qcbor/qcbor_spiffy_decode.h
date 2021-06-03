@@ -2584,6 +2584,122 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
+
+
+union QCBORHomogenousArray {
+   int64_t    *pnInt64s;
+   int64_t    *puUInt64s;
+   double     *pDoubles;
+   UsefulBufC *pStrings;
+};
+
+void QCBORDecode_GetHomogenousArray(QCBORDecodeContext *pMe,
+                                    uint8_t             uTagRequirement,
+                                    uint8_t             uType,
+                                    size_t              nInArrayCount,
+                                    union QCBORHomogenousArray array,
+                                    size_t             *pnOutArrayCount);
+
+
+static void inline
+QCBORDecode_GetArrayOfInt64(QCBORDecodeContext *pMe,
+                            uint8_t             uTagRequirement,
+                            size_t              nInArrayCount,
+                            int64_t            *pnInt64s,
+                            size_t             *pnOutArrayCount)
+{
+   union QCBORHomogenousArray array;
+
+   array.pnInt64s = pnInt64s;
+
+   QCBORDecode_GetHomogenousArray(pMe,
+                                  uTagRequirement,
+                                  QCBOR_TYPE_INT64,
+                                  nInArrayCount,
+                                  array,
+                                  pnOutArrayCount);
+}
+
+
+static void inline
+QCBORDecode_GetArrayOfUInt64(QCBORDecodeContext *pMe,
+                             uint8_t             uTagRequirement,
+                             size_t              nInArrayCount,
+                             int64_t            *puUInt64s,
+                             size_t             *pnOutArrayCount)
+{
+   union QCBORHomogenousArray array;
+
+   array.pnInt64s = puUInt64s;
+
+   QCBORDecode_GetHomogenousArray(pMe,
+                                  uTagRequirement,
+                                  QCBOR_TYPE_UINT64,
+                                  nInArrayCount,
+                                  array,
+                                  pnOutArrayCount);
+}
+
+
+static void inline
+QCBORDecode_GetArrayOfTextStrings(QCBORDecodeContext *pMe,
+                                  uint8_t             uTagRequirement,
+                                  size_t              nInArrayCount,
+                                  UsefulBufC         *pStrings,
+                                  size_t             *pnOutArrayCount)
+{
+   union QCBORHomogenousArray array;
+
+   array.pStrings = pStrings;
+
+   QCBORDecode_GetHomogenousArray(pMe,
+                                  uTagRequirement,
+                                  QCBOR_TYPE_TEXT_STRING,
+                                  nInArrayCount,
+                                  array,
+                                  pnOutArrayCount);
+}
+
+
+static void inline
+QCBORDecode_GetArrayOfByteStrings(QCBORDecodeContext *pMe,
+                                  uint8_t             uTagRequirement,
+                                  size_t              nInArrayCount,
+                                  UsefulBufC         *pStrings,
+                                  size_t             *pnOutArrayCount)
+{
+   union QCBORHomogenousArray array;
+
+   array.pStrings = pStrings;
+
+   QCBORDecode_GetHomogenousArray(pMe,
+                                  uTagRequirement,
+                                  QCBOR_TYPE_BYTE_STRING,
+                                  nInArrayCount,
+                                  array,
+                                  pnOutArrayCount);
+}
+
+
+static void inline
+QCBORDecode_GetArrayOfDoubles(QCBORDecodeContext *pMe,
+                              uint8_t             uTagRequirement,
+                              size_t              nInArrayCount,
+                              double             *pDoubles,
+                              size_t             *pnOutArrayCount)
+{
+   union QCBORHomogenousArray array;
+
+   array.pDoubles = pDoubles;
+
+   QCBORDecode_GetHomogenousArray(pMe,
+                                  uTagRequirement,
+                                  QCBOR_TYPE_DOUBLE,
+                                  nInArrayCount,
+                                  array,
+                                  pnOutArrayCount);
+}
+
 #ifdef __cplusplus
 }
 #endif

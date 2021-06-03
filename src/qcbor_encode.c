@@ -950,3 +950,195 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
 
    return nReturn;
 }
+
+
+
+static inline void UsefulOutBuf_InsertUint32LE(UsefulOutBuf *pMe,
+                                             uint32_t uInteger32,
+                                             size_t uPos)
+{
+   /* See UsefulOutBuf_InsertUint64() for comments on this code */
+
+    /* htonl is not used (but it is used for outputting BE)
+
+   htonl will swap if CPU is little endian and do nothing if it is big endian
+
+     The opposite is needed.
+
+     Could use htonl and then always swap the result, but
+     that doesn't seem any better than the default
+     shift and swap that always works.
+
+
+     */
+
+   const void *pBytes;
+
+#if defined(USEFULBUF_CONFIG_LITTLE_ENDIAN)
+   pBytes = &uInteger32;
+
+#elif defined(USEFULBUF_CONFIG_BIG_ENDIAN) && defined(USEFULBUF_CONFIG_BSWAP)
+   uint32_t uTmp = __builtin_bswap32(uInteger32);
+
+   pBytes = &uTmp;
+
+#else
+   uint8_t aTmp[4];
+
+   aTmp[0] = (uint8_t)((uInteger32 & 0xff) >> 24);
+   aTmp[1] = (uint8_t)((uInteger32 & 0xff00) >> 16);
+   aTmp[2] = (uint8_t)((uInteger32 & 0xff0000) >> 8);
+   aTmp[3] = (uint8_t)(uInteger32 & 0xff000000);
+
+   pBytes = aTmp;
+#endif
+
+   UsefulOutBuf_InsertData(pMe, pBytes, 4, uPos);
+}
+
+void
+QCBOREncode_AddUint32ArrayLittleEndian(QCBOREncodeContext *pMe,
+                                         const uint32_t      array[],
+                                         size_t              uArrayLen)
+{
+   QCBOREncode_AddTag(pMe, 84); // TODO: the correct tag
+
+   const size_t uNumBytes = uArrayLen * sizeof(uint32_t);
+
+   AppendCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uNumBytes, 0);
+
+   for(size_t n = 0; n < uArrayLen; n++) {
+      UsefulOutBuf_InsertUint32LE(&(pMe->OutBuf), array[n], 99); // TODO: correct position
+   }
+}
+
+void
+QCBOREncode_AddUint32ArrayBigEndian(QCBOREncodeContext *pMe,
+                                         const uint32_t      array[],
+                                         size_t              uArrayLen)
+{
+   QCBOREncode_AddTag(pMe, 84); // TODO: the correct tag
+
+   const size_t uNumBytes = uArrayLen * sizeof(uint32_t);
+
+   AppendCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uNumBytes, 0);
+
+   for(size_t n = 0; n < uArrayLen; n++) {
+      UsefulOutBuf_AppendUint32(&(pMe->OutBuf), array[n]);
+   }
+}
+
+
+// Note that this will produce an array of major type 0 and 1,
+// but that is what is necessary to have an array of positive
+// and negative integers. The types allowed for a homogeneous
+// array are caller-defined, not strictly by CBOR major type
+// or such, so this is just fine.
+void
+QCBOREncode_AddArrayOfInts(QCBOREncodeContext *pMe,
+                           uint8_t             uTagRequirement,
+                           const int64_t      *puInts,
+                           size_t              uNumInts)
+{
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, CBOR_TAG_HOMOGENEOUS_ARRAY);
+   }
+   QCBOREncode_OpenArray(pMe);
+
+   for(size_t i = 0; i < uNumInts; i++) {
+      QCBOREncode_AddInt64(pMe, puInts[i]);
+   }
+   QCBOREncode_CloseArray(pMe);
+}
+
+
+void
+QCBOREncode_AddArrayOfUInts(QCBOREncodeContext *pMe,
+                            uint8_t             uTagRequirement,
+                            const uint64_t     *puInts,
+                            size_t              uNumInts)
+{
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, CBOR_TAG_HOMOGENEOUS_ARRAY);
+   }
+   QCBOREncode_OpenArray(pMe);
+
+   for(size_t i = 0; i < uNumInts; i++) {
+      QCBOREncode_AddUInt64(pMe, puInts[i]);
+   }
+   QCBOREncode_CloseArray(pMe);
+}
+
+
+void
+QCBOREncode_AddArrayOfDoubles(QCBOREncodeContext *pMe,
+                              uint8_t             uTagRequirement,
+                              const double       *pdDoubles,
+                              size_t              uNumDoubles)
+{
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, CBOR_TAG_HOMOGENEOUS_ARRAY);
+   }
+   QCBOREncode_OpenArray(pMe);
+
+   for(size_t i = 0; i < uNumDoubles; i++) {
+      QCBOREncode_AddDouble(pMe, pdDoubles[i]);
+   }
+   QCBOREncode_CloseArray(pMe);
+}
+
+
+void
+QCBOREncode_AddArrayOfByteStrings(QCBOREncodeContext *pMe,
+                                  uint8_t             uTagRequirement,
+                                  const UsefulBufC   *pStrings,
+                                  size_t              uNumStrings)
+{
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, CBOR_TAG_HOMOGENEOUS_ARRAY);
+   }
+   QCBOREncode_OpenArray(pMe);
+
+   for(size_t i = 0; i < uNumStrings; i++) {
+      QCBOREncode_AddBytes(pMe, pStrings[i]);
+   }
+   QCBOREncode_CloseArray(pMe);
+}
+
+void
+QCBOREncode_AddArrayOfTextStrings(QCBOREncodeContext *pMe,
+                                  uint8_t             uTagRequirement,
+                                  const UsefulBufC   *pStrings,
+                                  size_t              uNumStrings)
+{
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, CBOR_TAG_HOMOGENEOUS_ARRAY);
+   }
+   QCBOREncode_OpenArray(pMe);
+
+   for(size_t i = 0; i < uNumStrings; i++) {
+      QCBOREncode_AddText(pMe, pStrings[i]);
+   }
+   QCBOREncode_CloseArray(pMe);
+}
+
+
+void
+QCBOREncode_AddArrayOSZStrings(QCBOREncodeContext *pMe,
+                               uint8_t             uTagRequirement,
+                               const char        **pStrings,
+                               size_t              uNumStrings)
+{
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, CBOR_TAG_HOMOGENEOUS_ARRAY);
+   }
+   QCBOREncode_OpenArray(pMe);
+
+   for(size_t i = 0; i < uNumStrings; i++) {
+      QCBOREncode_AddSZString(pMe, pStrings[i]);
+   }
+   QCBOREncode_CloseArray(pMe);
+}
+
+
+

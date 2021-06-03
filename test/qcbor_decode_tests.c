@@ -8003,3 +8003,43 @@ int32_t BoolTest(void)
 
    return 0;
 }
+
+
+int32_t DecodeArraysOfTest(void)
+{
+   int64_t ints[] = {-1, 0, 5000, -9000};
+
+   QCBOREncodeContext EC;
+
+   MakeUsefulBufOnStack(xx, 100);
+   QCBOREncode_Init(&EC, xx);
+
+   QCBOREncode_AddArrayOfInts(&EC,
+                              QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                              ints,
+                              4);
+   UsefulBufC Encoded;
+   QCBOREncode_Finish(&EC, &Encoded);
+
+
+   QCBORDecodeContext DC;
+
+   int64_t i2[6];
+   size_t count;
+
+   QCBORDecode_Init(&DC, Encoded, 0);
+
+   QCBORDecode_GetArrayOfInt64(&DC,
+                               QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                               6,
+                               i2,
+                               &count);
+
+
+
+
+
+
+
+   return 0;
+}
