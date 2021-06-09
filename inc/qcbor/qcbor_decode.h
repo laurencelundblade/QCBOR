@@ -90,7 +90,55 @@ extern "C" {
  * array members are taken in order. Maps can be decoded this way too,
  * but the @ref SpiffyDecode APIs that allow searching maps by label
  * are often more convenient.
-*/
+ *
+ * @anchor Decoding-Errors
+ * # Decode Error Handling
+ *
+ * The simplest way to handle decoding errors is to make use of the
+ * internal error tracking. To do this:
+ *
+ * - Use QCBORDecode_VGetNext(), NOT QCBORDecode_GetNext().
+ * - Use QCBORDecode_VPeekNext() NOT QCBORDecode_PeekNext().
+ * - Use any and all of the spiffy decode functions.
+ * - Call QCBORDecode_Finish() and check its return code.
+ * - Do not reference any decoded data until after
+ *    QCBORDecode_Finish() returns success.
+ *
+ * Once an encoding error has been encountered, the error state is
+ * entered and further decoding function calls will do nothing so it
+ * is safe to just call them anyway.  The two exceptions are
+ * QCBORDecode_GetNext() and QCBORDecode_PeekNext which will try to
+ * decode even if the decoder is in the error state. Use
+ * QCBORDecode_VGetNext() and QCBORDecode_VPeekNext() instead.
+ *
+ * While some protocols are simple enough to be decoded this way, many
+ * aren’t because the type of data items earlier in the protocol
+ * determine how later data items are to be decoded. In that case it is
+ * necessary to call QCBORDecode_GetError() to know the earlier items
+ * were successfully decoded.
+ *
+ * The internal decode error state is reset only by re initializing the
+ * decoder or QCBORDecode_GetErrorAndReset().
+ *
+ * It is only useful to reset the error state by calling
+ * QCBORDecode_GetErrorAndReset() on recoverable errors. Examples of
+ * recoverable errors are a map entry not being found or integer
+ * overflow or underflow during conversion. Examples of unrecoverable
+ * errors are hitting the end of the input and array or map nesting
+ * beyond the limits of the implementation. See
+ * QCBORDecode_IsUnrecoverableError().Trying to reset and decode after
+ * an unrecoverable error will usually just lead to another error.
+ *
+ * It is possible to use QCBORDecode_GetNext() and
+ * QCBORDecode_PeekNext() to decode an entire protocol. However, that is
+ * usually more work, more code and less convenient than using spiffy
+ * decode functions.
+ *
+ * It is also possible to mix the use of QCBORDecode_GetNext() with
+ * QCBORDecode_VGetNext() and the spiffy decode functions, but
+ * QCBORDecode_GetError() must be called and return QCBOR_SUCCESS before
+ * QCBORDecode_GetNext() is called.
+ */
 
 /**
  * The decode mode options.
@@ -720,9 +768,9 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  - The label for an item in a map, which may be a text or byte string
    or an integer.
 
- - The CBOR optional tag or tags.
+ - The unprocessed tag numbers for which the item is the tag content.
 
- See documentation on in the data type @ref _QCBORItem for all the
+ See documentation on in the data type @ref QCBORItem for all the
  details on what is returned.
 
  This function handles arrays and maps. When first encountered a @ref
@@ -732,7 +780,7 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  QCBORDecode_GetNext() in a for loop to fetch them all. When decoding
  indefinite-length maps and arrays, @c QCBORItem.val.uCount is @c
  UINT16_MAX and @c uNextNestLevel must be used to know when the end of
- a map or array is reached.
+ a map or array is reached.  TODO: reword about nesting
 
  Nesting level 0 is the outside top-most nesting level. For example,
  in a CBOR structure with two items, an integer and a byte string
@@ -774,7 +822,7 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  byte string                1
  @endverbatim
 
- In @ref _QCBORItem, @c uNextNestLevel is the nesting level for the
+ In @ref QCBORItem, @c uNextNestLevel is the nesting level for the
  next call to QCBORDecode_GetNext(). It indicates if any maps or
  arrays were closed out during the processing of the just-fetched @ref
  QCBORItem. This processing includes a look-ahead for any breaks that
@@ -818,7 +866,7 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
 
  - Not well-formed errors are those where there is something
  syntactically and fundamentally wrong with the CBOR being
- decoded. Encoding should stop completely.
+ decoded. Decoding should stop completely.
 
  - Invalid CBOR is well-formed, but still not correct. It is probably
  best to stop decoding, but not necessary.
@@ -857,40 +905,60 @@ void QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
- @brief QCBORDecode_GetNext() and consume entire map or array.
-
- @param[in]  pCtx          The decoder context.
- @param[out] pDecodedItem  Holds the CBOR item just decoded.
-
- This is the same as QCBORDecode_VGetNext() but the contents of the
- entire map or array will be consumed if the next item is a map or array.
-
- In order to go back to decode the contents of a map or array consumed
- by this, the decoder must be rewound using QCBORDecode_Rewind().
-*/
+ * @brief QCBORDecode_GetNext() and consume entire map or array.
+ *
+ * @param[in]  pCtx          The decoder context.
+ * @param[out] pDecodedItem  Holds the CBOR item just decoded.
+ *
+ * This is the same as QCBORDecode_VGetNext() but the contents of the
+ * entire map or array will be consumed if the item is a map or array.
+ *
+ * In order to go back to decode the contents of a map or array consumed
+ * by this, the decoder must be rewound using QCBORDecode_Rewind().
+ */
 void QCBORDecode_VGetNextConsume(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
- @brief Get the next data item without consuming it.
-
- @param[in]  pCtx          The decoder context.
- @param[out] pDecodedItem  Holds the CBOR item just decoded.
-
- This is the same as QCBORDecode_GetNext() but does not consume
- the data item. This only looks ahead one item. Calling it
- repeatedly will just return the same item over and over.
-
- This uses a lot of stack, far more than anything else
- here in qcbor_decode.h because it saves a copy of most of
- the decode context temporarily.
-
- This is useful for looking ahead to determine the type
- of a data item to know which type-specific spiffy decode
- function to call.
+ * @brief Get the next data item without consuming it.
+ *
+ * @param[in]  pCtx          The decoder context.
+ * @param[out] pDecodedItem  Holds the CBOR item just decoded.
+ *
+ * This is the same as QCBORDecode_GetNext() but does not consume the
+ * data item. This only looks ahead one item. Calling it repeatedly
+ * will just return the same item over and over.
+ *
+ * This uses about 200 bytes of stack, far more than anything else
+ * here in qcbor_decode.h because it saves a copy of most of the
+ * decode context temporarily.
+ *
+ * This is useful for looking ahead to determine the type of a data
+ * item to know which type-specific spiffy decode function to call or
+ * decoding protocols where the types of following data items
+ * depending on type of leading ones.
  */
 QCBORError
 QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
+
+
+/**
+ * @brief QCBORDecode_PeekNext() using internal error state error handling.
+ *
+ * @param[in]  pCtx          The decoder context.
+ * @param[out] pDecodedItem  Holds the CBOR item just decoded.
+ *
+ * This is the same as QCBORDecode_PeekNext() but uses the error
+ * handling method of spiffy decode where an internal error is set
+ * instead of returning an error. If the internal error is set, this
+ * doesn't do anything.
+ *
+ * The error must be retrieved with QCBORDecode_GetError() and checked
+ * to know the peek was successful before referencing the contents of
+ * @c pDecodedItem.
+ */
+void
+QCBORDecode_VPeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
@@ -901,7 +969,7 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * @param[in] uIndex The index of the tag to get.
  *
  * @returns The nth tag number or CBOR_TAG_INVALID64.
- * 
+ *
  * When QCBOR decodes an item that is a tag, it will fully decode tags
  * it is able to. Tags that it is unable to process are put in a list
  * in the QCBORItem.
@@ -938,8 +1006,8 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem,
  * @returns The actual nth tag value or CBOR_TAG_INVALID64.
  *
  * See QCBORDecode_GetNthTag(). This is the same but works with spiffy
- * decoding functions that do not return a QCBORItem with the tag a
- * list of recorded tag n* umbers.  This gets the tags for the most
+ * decoding functions that do not return a QCBORItem with a
+ * list of recorded tag numbers.  This gets the tags for the most
  * recently decoded item.
  *
  * If a decoding error set then this returns CBOR_TAG_INVALID64.
@@ -967,7 +1035,8 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uI
  This should always be called to determine if all maps and arrays
  where correctly closed and that the CBOR was well-formed.
 
- This calls the destructor for the string allocator, if one is in use.
+ This calls the destructor for the string allocator, if one is in use, so it can't
+ be called multiple times like QCBORDecode_PartialFinish().
 
  Some CBOR protocols use a CBOR sequence [RFC 8742]
  (https://tools.ietf.org/html/rfc8742) .  A CBOR sequence typically
@@ -1021,6 +1090,7 @@ QCBORDecode_PartialFinish(QCBORDecodeContext *pCtx, size_t *puConsumed);
 
  @param[in] pCtx    The decoder context.
  @return            The decoding error.
+
 
  All decoding functions set a saved internal error when they fail.
  Most decoding functions do not return an error. To know the error,
@@ -1088,10 +1158,10 @@ static bool QCBORDecode_IsNotWellFormedError(QCBORError uErr);
  When an error is unrecoverable, no further decoding of the input is possible.
  CBOR is a compact format with almost no redundancy so errors like
  incorrect lengths or array counts are unrecoverable. Unrecoverable
- errors also occur when certain implementation limits such as the
- limit on array and map nesting occur.
+ errors also occur when implementation limits such as the
+ limit on array and map nesting are encountered.
 
- The specific errors are a range of the errors in @ref QCBORError.
+ The unrecoverable errors are a range of the errors in @ref QCBORError.
  */
 static bool QCBORDecode_IsUnrecoverableError(QCBORError uErr);
 
@@ -1215,7 +1285,7 @@ static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 
 
 /* ------------------------------------------------------------------------
- * Deprecated functions for backwards compatibility.
+ * Deprecated functions retained for backwards compatibility.
  * ---- */
 
 
@@ -1250,77 +1320,78 @@ typedef struct {
 
 
 /**
- @brief Deprecated -- Configure list of caller-selected tags to be recognized.
-
- @param[in] pCtx       The decode context.
- @param[out] pTagList  Structure holding the list of tags to configure.
-
- Tag handling has been revised and it is no longer ncessary to use this.
- See QCBORDecode_GetNthTag().
+ * @brief Deprecated -- Configure list of caller-selected tags to be recognized.
+ *
+ * @param[in] pCtx       The decode context.
+ * @param[out] pTagList  Structure holding the list of tags to configure.
+ *
+ * Tag handling has been revised and it is no longer ncessary to use
+ * this.  See QCBORDecode_GetNthTag().
  */
 void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBORTagListIn *pTagList);
 
 
 /**
- @brief Deprecated -- Determine if a CBOR item is a particular tag.
-
- @param[in] pCtx    The decoder context.
- @param[in] pItem   The CBOR item to check.
- @param[in] uTag    The tag to check, one of @c CBOR_TAG_XXX,
-                   for example, @ref CBOR_TAG_DATE_STRING.
-
- @return true if it was tagge, false if not
-
- See QCBORDecode_GetNext() for the main description of tag
- handling. For tags that are not fully decoded a bit corresponding to
- the tag is set in in @c uTagBits in the @ref QCBORItem. The
- particular bit depends on an internal mapping table. This function
- checks for set bits against the mapping table.
-
- Typically, a protocol implementation just wants to know if a
- particular tag is present. That is what this provides. To get the
- full list of tags on a data item, see QCBORDecode_GetNextWithTags().
-
- Also see QCBORDecode_SetCallerConfiguredTagList() for the means to
- add new tags to the internal list so they can be checked for with
- this function.
+ * @brief Deprecated -- Determine if a CBOR item is a particular tag.
+ *
+ * @param[in] pCtx    The decoder context.
+ * @param[in] pItem   The CBOR item to check.
+ * @param[in] uTag    The tag to check, one of @c CBOR_TAG_XXX,
+ *                   for example, @ref CBOR_TAG_DATE_STRING.
+ *
+ * @return true if it was tagged, false if not.
+ *
+ * See QCBORDecode_GetNext() for the main description of tag
+ * handling. For tags that are not fully decoded a bit corresponding
+ * to the tag is set in in @c uTagBits in the @ref QCBORItem. The
+ * particular bit depends on an internal mapping table. This function
+ * checks for set bits against the mapping table.
+ *
+ * Typically, a protocol implementation just wants to know if a
+ * particular tag is present. That is what this provides. To get the
+ * full list of tags on a data item, see
+ * QCBORDecode_GetNextWithTags().
+ *
+ * Also see QCBORDecode_SetCallerConfiguredTagList() for the means to
+ * add new tags to the internal list so they can be checked for with
+ * this function.
  */
 bool QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint64_t uTag);
 
 
 /**
- @brief Deprecated -- Gets the next item including full list of tags for item.
-
- @param[in]  pCtx          The decoder context.
- @param[out] pDecodedItem  Holds the CBOR item just decoded.
- @param[in,out] pTagList   On input array to put tags in; on output
- the tags on this item. See
- @ref QCBORTagListOut.
-
- @return See return values for QCBORDecode_GetNext().
-
- @retval QCBOR_ERR_TOO_MANY_TAGS  The size of @c pTagList is too small.
-
- This is retained for backwards compatibility. It is replaced by
- QCBORDecode_GetNthTag() which also returns all the
- tags that have been decoded.
-
- This is not backwards compatibile in two ways. First, it is limited to
- \ref QCBOR_MAX_TAGS_PER_ITEM items whereas previously
- it was unlimited. Second, it will not inlucde the tags that QCBOR
- decodes internally.
-
- This works the same as QCBORDecode_GetNext() except that it also
- returns the list of tags for the data item in \c pTagList.
-
- The 0th tag returned here is the one furthest from the data item. This
- is opposite the order for QCBORDecode_GetNthTag().
-
- CBOR has no upper bound or limit on the number of tags that can be
- associated with a data item but in practice the number of tags on
- an item will usually be small. This will
- return @ref QCBOR_ERR_TOO_MANY_TAGS if the array in @c pTagList is
- too small to hold all the tags for the item.
+ * @brief Deprecated -- Gets the next item including full list of tags for item.
+ *
+ * @param[in]  pCtx          The decoder context.
+ * @param[out] pDecodedItem  Holds the CBOR item just decoded.
+ * @param[in,out] pTagList   On input array to put tags in; on output
+ * the tags on this item. See
+ * @ref QCBORTagListOut.
+ *
+ * @return See return values for QCBORDecode_GetNext().
+ *
+ * @retval QCBOR_ERR_TOO_MANY_TAGS  The size of @c pTagList is too small.
+ *
+ * This is retained for backwards compatibility. It is replaced by
+ * QCBORDecode_GetNthTag() which also returns all the tags that have
+ * been decoded.
+ *
+ * This is not backwards compatibile in two ways. First, it is limited
+ * to \ref QCBOR_MAX_TAGS_PER_ITEM items whereas previously it was
+ * unlimited. Second, it will not inlucde the tags that QCBOR decodes
+ * internally.
+ *
+ * This works the same as QCBORDecode_GetNext() except that it also
+ * returns the list of tags for the data item in \c pTagList.
+ *
+ * The 0th tag returned here is the one furthest from the data
+ * item. This is opposite the order for QCBORDecode_GetNthTag().
+ *
+ * CBOR has no upper bound or limit on the number of tags that can be
+ * associated with a data item but in practice the number of tags on
+ * an item will usually be small. This will return @ref
+ * QCBOR_ERR_TOO_MANY_TAGS if the array in @c pTagList is too small to
+ * hold all the tags for the item.
  */
 QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
 

@@ -2380,6 +2380,20 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
+void
+QCBORDecode_VPeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   pMe->uLastError = (uint8_t)QCBORDecode_PeekNext(pMe, pDecodedItem);
+}
+
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
 void QCBORDecode_VGetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
