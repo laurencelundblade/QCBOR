@@ -105,8 +105,9 @@ extern "C" {
  *    QCBORDecode_Finish() returns success.
  *
  * Once an encoding error has been encountered, the error state is
- * entered and further decoding function calls will do nothing so it
- * is safe to just call them anyway.  The two exceptions are
+ * entered and further decoding function calls will do nothing.  it
+ * is safe to just continue calling decoding functions anway. No error
+ * checking is necessary so code to decode a protocols is much simpler.  The two exceptions are
  * QCBORDecode_GetNext() and QCBORDecode_PeekNext which will try to
  * decode even if the decoder is in the error state. Use
  * QCBORDecode_VGetNext() and QCBORDecode_VPeekNext() instead.
@@ -1016,152 +1017,151 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uI
 
 
 /**
- @brief Check whether all the bytes have been decoded and maps and arrays closed.
-
- @param[in]  pCtx  The context to check.
-
- @retval QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN The CBOR is not well-formed
-          as some map or array was not closed off. This should always
-          be treated as an unrecoverable error.
-
- @retval QCBOR_ERR_EXTRA_BYTES The CBOR was decoded correctly and all
-         maps and arrays are closed, but some of the bytes in the
-         input were not consumed.  This may or may not be considered
-         an error.
-
- @retval QCBOR_SUCCES There were no errors and all bytes were
-         consumed.
-
- This should always be called to determine if all maps and arrays
- where correctly closed and that the CBOR was well-formed.
-
- This calls the destructor for the string allocator, if one is in use, so it can't
- be called multiple times like QCBORDecode_PartialFinish().
-
- Some CBOR protocols use a CBOR sequence [RFC 8742]
- (https://tools.ietf.org/html/rfc8742) .  A CBOR sequence typically
- doesn't start out with a map or an array. The end of the CBOR is
- determined in some other way, perhaps by external framing, or by the
- occurrence of some particular CBOR data item or such. The buffer given
- to decode must start out with valid CBOR, but it can have extra bytes
- at the end that are not CBOR or CBOR that is to be ignored.
-
- QCBORDecode_Finish() should still be called when decoding CBOR
- Sequences to check that the input decoded was well-formed. If the
- input was well-formed and there are extra bytes at the end @ref
- QCBOR_ERR_EXTRA_BYTES will be returned.  This can be considered a
- successful decode.
-
- See also QCBORDecode_PartialFinish().
+ * @brief Check whether all the bytes have been decoded and maps and arrays closed.
+ *
+ * @param[in]  pCtx  The context to check.
+ *
+ * @retval QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN The CBOR is not well-formed
+ *          as some map or array was not closed off. This should always
+ *          be treated as an unrecoverable error.
+ *
+ * @retval QCBOR_ERR_EXTRA_BYTES The CBOR was decoded correctly and all
+ *         maps and arrays are closed, but some of the bytes in the
+ *         input were not consumed.  This may or may not be considered
+ *         an error.
+ *
+ * @retval QCBOR_SUCCES There were no errors and all bytes were
+ *         consumed.
+ *
+ * This should always be called at the end of a decode to determine if
+ * it completed successfully.  For some protocols, checking the return
+ * value here may be the only error check necessary.
+ *
+ * This returns the internal tracked error if the decoder is in the
+ * error state.  Additionally this checks that all the maps and arrays
+ * were closed and that that all the bytes were consumed. Note that
+ * QCBORDecode_GetError() doesn't do the same checks and this and
+ * never returns these two errors.
+ *
+ * See @ref Decoding-Errors for a good general of QCBOR's error
+ * handling design.
+ *
+ * This calls the destructor for the string allocator, if one is in
+ * use. It can't be called multiple times like
+ * QCBORDecode_PartialFinish().
+ *
+ * Some CBOR protocols use a CBOR sequence [RFC 8742]
+ * (https://tools.ietf.org/html/rfc8742) .  A CBOR sequence typically
+ * doesn't start out with a map or an array. The end of the CBOR is
+ * determined in some other way, perhaps by external framing, or by
+ * the occurrence of some particular CBOR data item or such. The
+ * buffer given to decode must start out with valid CBOR, but it can
+ * have extra bytes at the end that are not CBOR or CBOR that is to be
+ * ignored.
+ *
+ * QCBORDecode_Finish() should still be called when decoding CBOR
+ * Sequences to check that the input decoded was well-formed. If the
+ * input was well-formed and there are extra bytes at the end @ref
+ * QCBOR_ERR_EXTRA_BYTES will be returned.  This can be considered a
+ * successful decode.  See also QCBORDecode_PartialFinish().
  */
 QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 
 
 /**
- @brief Return number of bytes consumed so far.
-
- @param[in]  pCtx        The context to check.
- @param[out] puConsumed  The number of bytes consumed so far. May be @c NULL.
-
- @returns The same as QCBORDecode_Finish();
-
- This is primarily for partially decoding CBOR sequences. It is the
- same as QCBORDecode_Finish() except it returns the number of bytes
- consumed and doesn't call the destructor for the string allocator
- (See @ref and QCBORDecode_SetMemPool()).
-
- When this is called before all input bytes are consumed, @ref
- QCBOR_ERR_EXTRA_BYTES will be returned as QCBORDecode_Finish()
- does. For typical use of this, that particular error is disregarded.
-
- Decoding with the same @ref QCBORDecodeContext can continue after
- calling this and this may be called many times.
-
- Another way to resume decoding is to call QCBORDecode_Init() on the
- bytes not decoded, but this only works on CBOR sequences when the
- decoding stopped with no open arrays, maps or byte strings.
+ * @brief Return number of bytes consumed so far.
+ *
+ * @param[in]  pCtx        The context to check.
+ * @param[out] puConsumed  The number of bytes consumed so far. May be @c NULL.
+ *
+ * @returns The same as QCBORDecode_Finish();
+ *
+ * This is primarily for partially decoding CBOR sequences. It is the
+ * same as QCBORDecode_Finish() except it returns the number of bytes
+ * consumed and doesn't call the destructor for the string allocator
+ * (See @ref and QCBORDecode_SetMemPool()).
+ *
+ * When this is called before all input bytes are consumed, @ref
+ * QCBOR_ERR_EXTRA_BYTES will be returned as QCBORDecode_Finish()
+ * does. For typical use of this, that particular error is disregarded.
+ *
+ * Decoding with the same @ref QCBORDecodeContext can continue after
+ * calling this and this may be called many times.
+ *
+ * Another way to resume decoding is to call QCBORDecode_Init() on the
+ * bytes not decoded, but this only works on CBOR sequences when the
+ * decoding stopped with no open arrays, maps or byte strings.
  */
 QCBORError
 QCBORDecode_PartialFinish(QCBORDecodeContext *pCtx, size_t *puConsumed);
 
 
 /**
- @brief Get the decoding error.
-
- @param[in] pCtx    The decoder context.
- @return            The decoding error.
-
-
- All decoding functions set a saved internal error when they fail.
- Most decoding functions do not return an error. To know the error,
- this function must be called.
-
- The intended use is that decoding functions can be called one
- after another with no regard to error until either the whole
- decode is finished or some data returned from the decode must
- be referenced. This makes implementations of protocols much
- cleaner and prettier. For simple protocols the only error check
- may be the return code from QCBORDecode_Finish().
-
- Once a decoding error has occured most decode functions will do
- nothing if called. QCBORDecode_GetNext() is an exception.
-
- The implementation of this is just an inline accessor function
- so its use adds very little object code.
-
- Note that no reference to the decoded data should be made until
- after QCBORDecode_Finish() is called as it will not be valid
- after a decoding error has occured.
-
- This will not work for protocols where the expected data items
- depend on preceding data items existence, type, label or value.
- In that case call this function to see there is no error
- before examining data items before QCBORDecode_Finish() is
- called.
-
- Some errors, like integer conversion overflow, date string
- format may not affect the flow of a protocol. The protocol
- decoder may wish to proceed even if they occur. In that case
- QCBORDecode_GetAndResetError() may be called after these
- data items are fetched.
+ * @brief Get the decoding error.
+ *
+ * @param[in] pCtx    The decoder context.
+ * @return            The decoding error.
+ *
+ * See @ref Decoding-Errors for a good general of QCBOR's error
+ * handling design.
+ *
+ * The returns the tracked internal error code. All decoding functions
+ * set the internal error except QCBORDecode_GetNext() and
+ * QCBORDecode_PeekNext().
+ *
+ * For many protocols it is only necessary to check the return code
+ * from QCBORDecode_Finish() at the end of all the decoding.  It is
+ * unnecessary to call this.
+ *
+ * For some protocols, the decoding sequence depends on the types,
+ * values or labels of data items. If so, this must be called before
+ * using decoded values to know the decode was a success and the
+ * type, value and label is valid.
+ *
+ * Some errors, like integer conversion overflow, date string format
+ * may not affect the flow of a protocol. The protocol decoder may
+ * wish to proceed even if they occur. In that case
+ * QCBORDecode_GetAndResetError() may be called after these data items
+ * are fetched.
  */
 static QCBORError QCBORDecode_GetError(QCBORDecodeContext *pCtx);
 
 
 /**
- @brief Get and reset the decoding error.
-
- @param[in] pCtx    The decoder context.
- @returns The decoding error.
-
- This returns the same as QCBORDecode_GetError() and also
- resets the error state to @ref QCBOR_SUCCESS.
+ * @brief Get and reset the decoding error.
+ *
+ * @param[in] pCtx    The decoder context.
+ * @returns The decoding error.
+ *
+ * This returns the same as QCBORDecode_GetError() and also resets the
+ * error state to @ref QCBOR_SUCCESS.
  */
 static QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
 
 
 /**
- @brief Whether an error indicates non-well-formed CBOR.
-
- @param[in] uErr    The decoder context.
- @return @c true if the error code indicates non-well-formed CBOR.
+ * @brief Whether an error indicates non-well-formed CBOR.
+ *
+ * @param[in] uErr    The decoder context.
+ * @return @c true if the error code indicates non-well-formed CBOR.
  */
 static bool QCBORDecode_IsNotWellFormedError(QCBORError uErr);
 
 
 /**
- @brief Whether a decoding error is recoverable.
-
- @param[in] uErr    The decoder context.
- @return @c true if the error code indicates and uncrecoverable error.
-
- When an error is unrecoverable, no further decoding of the input is possible.
- CBOR is a compact format with almost no redundancy so errors like
- incorrect lengths or array counts are unrecoverable. Unrecoverable
- errors also occur when implementation limits such as the
- limit on array and map nesting are encountered.
-
- The unrecoverable errors are a range of the errors in @ref QCBORError.
+ * @brief Whether a decoding error is recoverable.
+ *
+ * @param[in] uErr    The decoder context.
+ * @return @c true if the error code indicates and uncrecoverable error.
+ *
+ * When an error is unrecoverable, no further decoding of the input is
+ * possible.  CBOR is a compact format with almost no redundancy so
+ * errors like incorrect lengths or array counts are
+ * unrecoverable. Unrecoverable errors also occur when implementation
+ * limits such as the limit on array and map nesting are encountered.
+ *
+ * The unrecoverable errors are a range of the errors in
+ * @ref QCBORError.
  */
 static bool QCBORDecode_IsUnrecoverableError(QCBORError uErr);
 
