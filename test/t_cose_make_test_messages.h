@@ -82,7 +82,7 @@ extern "C" {
 /** The crit parameter is in the unprotected bucket */
 #define T_COSE_TEST_CRIT_NOT_PROTECTED 0x00100000
 
-/** More than T_COSE_PARAMETER_LIST_MAX unknown parameters occured */
+/** More than T_COSE_PARAMETER_LIST_MAX unknown parameters occurred */
 #define T_COSE_TEST_TOO_MANY_UNKNOWN 0x00080000
 
 /** The crit parameter lists several text string critical labels and

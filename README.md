@@ -151,7 +151,7 @@ different internals than the 1.1.0 version on the public GitHub.
 The PSA Crypto API in MBed 1.1.0 is different from that in MBed 2.0.0.
 t_cose has one configuration that covers both which hinges off a 
 #define that happens to occur in 1.1.0 and not in 2.0.0. It can auto-detect
-which is which so you shouldn't have to worry about it. To overide
+which is which so you shouldn't have to worry about it. To override
 the auto-detect `#define T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11`
 or `#define T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO20`.
 

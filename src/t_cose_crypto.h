@@ -352,7 +352,7 @@ struct t_cose_crypto_hash {
         #endif
         } ctx;
 
-        int     update_error; /* Used to track error return by SHAXXX_Upate() */
+        int     update_error; /* Used to track error return by SHAXXX_Update() */
         int32_t cose_hash_alg_id; /* COSE integer ID for the hash alg */
 
    #elif T_COSE_USE_B_CON_SHA256

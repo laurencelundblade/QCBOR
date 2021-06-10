@@ -166,7 +166,7 @@ struct t_cose_parameters {
  * this option the \c verification_key is not needed.  This is useful
  * to decode the \c COSE_Sign1 message to get the kid (key ID).  The
  * verification key can be looked up or otherwise obtained by the
- * caller. Once the key in in hand, t_cose_sign1_verify() can be
+ * caller. Once the key in hand, t_cose_sign1_verify() can be
  * called again to perform the full verification.
  *
  * The payload will always be returned whether this is option is given
