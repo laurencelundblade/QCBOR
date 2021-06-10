@@ -83,54 +83,6 @@ extern "C" {
  this is to use QCBORDecode_GetItemsInMap() which allows decoding of a
  list of items expected in an map in one traveral.
 
- @anchor Decode-Errors
- ## Spiffy Decode Errors
-
- Like encoding, decoding maintains an internal error state. Once a
- call to the decoder returns an error, this error state is entered and
- subsequent decoder calls do nothing. This allows for prettier and
- cleaner decoding code. In some cases the only error check that may be
- necessary is the return code from QCBORDecode_Finish().
-
- The internal error can be retrived with QCBORDecode_GetError(). Any
- further attempts to get specific data types will do nothing so it is
- safe for code to get many items without checking the error on each
- one as long as there is an error check before any data is used.  The
- error state is reset only by re initializing the decoder or
- QCBORDecode_GetErrorAndReset().  QCBORDecode_GetErrorAndReset() is
- mainly useful after a failure to get an item in a map by label.
-
- An easy and clean way to use this decoder is to always use EnterMap
- and EnterArray for each array or map. They will error if the input
- CBOR is not the expected array or map.  Then use GetInt, GetString
- and such to get the individual items of the maps and arrays making
- use of the internal error tracking provided by this decoder. The only
- error check needed is the call to QCBORDecode_Finish().
-
- QCBORDecode_GetNext() is the exception to this. It returns an
- error. It doesn't set the internal error state. It will attempt to
- decode even when in the error state.
-
- The effect of a decoding error on the traversal cursor position
- varies by the type of decoding method called. The methods for getting
- an item in a map by label don't affect the traversal cursor when
- there is an error (nor when they succeed).
- QCBORDecode_GetInt64InMapN() is an example of this. The other methods
- like QCBORDecode_GetInt64() and QCBORDecode_GetNext() that normally
- advance the traversal cursor will also advance it also when there is
- an error unless the error is unrecoverable due to CBOR that is not
- well formed or such. QCBORDecode_Rewind() can be used to reset the
- cursor position after any error.
-
- When getting an item by label from a map the whole map is internally
- traversed including traversal of nested arrays and maps. If there is
- any unrecoverable error anywhere in the that traversal the retrieval
- by label will fail and the unrecoverable error will be returned even
- if it is not because item being sought is in error. Recoverable
- errors will be ignored unless they are on the item being sought, in
- which case the unrecoverable error will be returned. Unrecoverable
- errors are those indicated by QCBORDecode_IsUnrecoverableError().
-
  @anchor Tag-Usage
  ## Tag Usage
 
@@ -246,7 +198,7 @@ extern "C" {
  unsigned integers can be larger than will fit in an int64_t and type
  1 negative integers can be smaller than will fit in an int64_t.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See also QCBORDecode_GetUInt64(), QCBORDecode_GetInt64Convert() and
  QCBORDecode_GetInt64ConvertAll().
@@ -276,7 +228,7 @@ static void QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pCtx,
  QCBOR_CONVERT_TYPE_XINT64 and @ref QCBOR_CONVERT_TYPE_FLOAT
  conversions.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  If the CBOR data type can never be convered by this function or the
  conversion was not selected in @c uConversionTypes @ref
@@ -326,7 +278,7 @@ static void QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  QCBOR_CONVERT_TYPE_BIG_NUM, @ref QCBOR_CONVERT_TYPE_DECIMAL_FRACTION
  and @ref QCBOR_CONVERT_TYPE_BIGFLOAT.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  Note that most these types can support numbers much larger that can
  be represented by in a 64-bit integer, so @ref
@@ -367,7 +319,7 @@ void QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  @ref QCBOR_ERR_NUMBER_SIGN_CONVERSION is set if the input is a negative
  integer.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See also QCBORDecode_GetUInt64Convert() and QCBORDecode_GetUInt64ConvertAll().
 */
@@ -457,9 +409,9 @@ void QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx,
 
  The CBOR item to decode must be a byte string, CBOR type 2.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
- If the CBOR tem to decode is not a byte string, the @ref
+ If the CBOR item to decode is not a byte string, the @ref
  QCBOR_ERR_UNEXPECTED_TYPE error is set.
  */
 static void QCBORDecode_GetByteString(QCBORDecodeContext *pCtx,
@@ -482,7 +434,7 @@ static void QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pCtx,
 
  The CBOR item to decode must be a text string, CBOR type 3.
 
- See @ref Decode-Errors for discussion on how error handling works.  It the CBOR item
+ See @ref Decoding-Errors for discussion on how error handling works.  It the CBOR item
  to decode is not a text string, the @ref QCBOR_ERR_UNEXPECTED_TYPE
  error is set.
 
@@ -519,7 +471,7 @@ static void QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pCtx,
  this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
  a half-precision number is encountered.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See also QCBORDecode_GetDoubleConvert() and
  QCBORDecode_GetDoubleConvertAll().
@@ -550,7 +502,7 @@ static void QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx,
  not supported by this function, @ref QCBOR_ERR_UNEXPECTED_TYPE is
  set.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  If floating-point HW use is disabled this will set
  @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision
@@ -640,7 +592,7 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
 
  This works the same for definite and indefinite length arrays.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  If attempting to enter a data item that is not an array @ref
  QCBOR_ERR_UNEXPECTED_TYPE wil be set.
@@ -720,7 +672,7 @@ static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  its contents. After QCBORDecode_ExitMap(), the pre-order traversal
  cursor will be at the first item after the map.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See also QCBORDecode_EnterArray() and QCBORDecode_EnterBstrWrapped().
  Entering and exiting any nested combination of maps, arrays and
@@ -802,7 +754,7 @@ void QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
 
  The position of the pre-order traversal cursor is not changed.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See also QCBORDecode_GetItemsInMap() for error discussion.
 */
@@ -846,7 +798,7 @@ void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
 
  The position of the pre-order traversal cursor is not changed.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  The following errors are set:
 
@@ -932,7 +884,7 @@ void QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
  The CBOR item to decode must be either the CBOR simple value (CBOR
  type 7) @c true or @c false.
 
- See @ref Decode-Errors for discussion on how error handling works.  If
+ See @ref Decoding-Errors for discussion on how error handling works.  If
  the CBOR item to decode is not true or false the @ref
  QCBOR_ERR_UNEXPECTED_TYPE error is set.
 */
@@ -997,7 +949,7 @@ static void QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
  number of 0, or encoded CBOR that is not a tag, but borrows the
  date string content format.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See @ref Tag-Usage for discussion on tag requirements.
 
@@ -1031,7 +983,7 @@ static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
  date-only string content format. An example of the format
  is "1985-04-12".
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See @ref Tag-Usage for discussion on tag requirements.
 
@@ -1075,7 +1027,7 @@ static void QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pCtx,
  float disabled, half-precision dates will result in the @ref
  QCBOR_ERR_HALF_PRECISION_DISABLED error.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See @ref Tag-Usage for discussion on tag requirements.
 
@@ -1109,7 +1061,7 @@ void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
  date is the number of days (not number of seconds) before or after
  Jan 1, 1970.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See @ref Tag-Usage for discussion on tag requirements.
 
@@ -1146,7 +1098,7 @@ void QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  This decodes a standard CBOR big number, integer tag number of 2 or
  3, or encoded CBOR that is not a tag, but borrows the content format.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  The big number is in network byte order. The first byte in @c pValue
  is the most significant byte. There may be leading zeros.
@@ -1208,7 +1160,7 @@ void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
  This decodes a standard CBOR decimal fraction, integer tag number of
  4, or encoded CBOR that is not a tag, but borrows the content format.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  The  value of this is computed by:
 
@@ -1409,7 +1361,7 @@ void QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
  This decodes a standard CBOR URI tag, integer tag number of 32,
  or encoded CBOR that is not a tag, that is a URI encoded in a text string.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See @ref Tag-Usage for discussion on tag requirements.
 
@@ -1442,7 +1394,7 @@ static void QCBORDecode_GetURIInMapSZ(QCBORDecodeContext *pCtx,
  encoded CBOR that is not a tag, that is base64 encoded bytes encoded
  in a text string.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See @ref Tag-Usage for discussion on tag requirements.
 
@@ -1476,7 +1428,7 @@ static void QCBORDecode_GetB64InMapSZ(QCBORDecodeContext *pCtx,
  or encoded CBOR that is not a tag, that is base64url encoded bytes
  encoded in a text string.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See @ref Tag-Usage for discussion on tag requirements.
 
@@ -1510,7 +1462,7 @@ static void QCBORDecode_GetB64URLInMapSZ(QCBORDecodeContext *pCtx,
  encoded CBOR that is not a tag, that is a PERL-compatible regular
  expression encoded in a text string.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See @ref Tag-Usage for discussion on tag requirements.
 
@@ -1544,7 +1496,7 @@ static void QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pCtx,
  numbers of 36 or 257, or encoded CBOR that is not a tag, that is a
  MIME message encoded in a text or binary string.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See @ref Tag-Usage for discussion on tag requirements.
 
@@ -1593,7 +1545,7 @@ static void QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pCtx,
  encoded CBOR that is not a tag, that is a UUID encoded in a byte
  string.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See @ref Tag-Usage for discussion on tag requirements.
 
@@ -1662,7 +1614,7 @@ inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
  COSE payload. This is usually the pointer and length of the
  data is that is hashed or MACed.
 
- See @ref Decode-Errors for discussion on how error handling works.
+ See @ref Decoding-Errors for discussion on how error handling works.
 
  See also QCBORDecode_ExitBstrWrapped(), QCBORDecode_EnterMap() and
  QCBORDecode_EnterArray().

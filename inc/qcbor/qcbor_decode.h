@@ -139,6 +139,26 @@ extern "C" {
  * QCBORDecode_VGetNext() and the spiffy decode functions, but
  * QCBORDecode_GetError() must be called and return QCBOR_SUCCESS before
  * QCBORDecode_GetNext() is called.
+ *
+ * The effect of a decoding error on the traversal cursor position
+ * varies by the decoding method called. It is unaffected by spiffy
+ * decode methods that get items by map label.
+ * QCBORDecode_GetInt64InMapN() is an example of this. The traversal
+ * cursor will be advanced by most other decode methods even when
+ * there is a decode error, often leaving it in an indeterminate
+ * position. If it is necessary to continue to decoding after an
+ * error, QCBORDecode_Rewind() can be used to reset it to a known-good
+ * position.
+ *
+ * When using spiffy decode methods to get an item by label from a map
+ * the whole map is internally traversed including nested arrays and
+ * maps. If there is any unrecoverable error during that traversal,
+ * the retrieval by label will fail. The unrecoverable error will be
+ * returned even if it is not because the item being sought is in
+ * error. Recoverable errors will be ignored unless they are on the
+ * item being sought, in which case the unrecoverable error will be
+ * returned. Unrecoverable errors are those indicated by
+ * QCBORDecode_IsUnrecoverableError().
  */
 
 /**
