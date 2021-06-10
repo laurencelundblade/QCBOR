@@ -1776,14 +1776,14 @@ static void QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWra
 /**
  * @brief Cancel byte string wrapping.
  *
- * @param[in] pCtx       The encoding context to close of bstr wrapping in.
+ * @param[in] pCtx       The encoding context.
  *
  * This cancels QCBOREncode_BstrWrap() making tghe encoding as if it
  * were never called.
  *
- * WARNING: This does no work on QCBOREncode_BstrWrapInMap()
- * or QCBOREncode_BstrWrapInMapN() and there is no detection
- * of this error.
+ * WARNING: This does not work on QCBOREncode_BstrWrapInMap()
+ * or QCBOREncode_BstrWrapInMapN() and there is no error detection
+ * of an attempt at their use.
  *
  * This only works if nothing has been added into the wrapped byte
  * string.  If something has been added, this sets the error

@@ -114,17 +114,12 @@ inline static uint8_t Nesting_Increment(QCBORTrackNesting *pNesting)
    return QCBOR_SUCCESS;
 }
 
-inline static uint8_t Nesting_Decrement(QCBORTrackNesting *pNesting)
+inline static void Nesting_Decrement(QCBORTrackNesting *pNesting)
 {
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(!pNesting->pCurrentNesting->uCount) {
-      return 99; // TODO: error
-   }
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-
+   /* No error check for going below 0 here needed because this
+    * is only used by QCBOREncode_CancelBstrWrap() and it checks
+    * the nesting level before calling this. */
    pNesting->pCurrentNesting->uCount--;
-
-   return QCBOR_SUCCESS;
 }
 
 inline static uint16_t Nesting_GetCount(QCBORTrackNesting *pNesting)
