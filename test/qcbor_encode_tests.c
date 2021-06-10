@@ -1746,8 +1746,9 @@ static const uint8_t spExpectedBstrWrap[] = {0x82, 0x19, 0x01, 0xC3, 0x43, 0x19,
 static const uint8_t spExpectedTypeAndLen[] = {0x81, 0x58, 0x25};
 
 static const uint8_t spExpectedTypeAndLenXXX[] = {0x82, 0x19, 0x01, 0xC3, 0x18, 0x2A};
+
 /*
- Very basic bstr wrapping test
+ * bstr wrapping test
  */
 int BstrWrapTest()
 {
@@ -1807,7 +1808,6 @@ int BstrWrapTest()
       return -7;
    }
 
-
    // Fourth test, cancelling a byte string
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
@@ -1827,6 +1827,8 @@ int BstrWrapTest()
       return -9;
    }
 
+   QCBORError uErr;
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    // Fifth test, failed cancelling
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
@@ -1839,9 +1841,28 @@ int BstrWrapTest()
 
    QCBOREncode_AddUInt64(&EC, 42);
    QCBOREncode_CloseArray(&EC);
-   QCBORError uErr = QCBOREncode_Finish(&EC, &Encoded);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
    if(uErr != QCBOR_ERR_CANNOT_CANCEL) {
       return -10;
+   }
+#endif
+
+   // Sixth test, another cancel, but the error is not caught
+   // This use will produce unintended CBOR. The error
+   // is not caught because it would require tracking state
+   // for QCBOREncode_BstrWrapInMapN.
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddUInt64ToMapN(&EC, 451, 88);
+
+   QCBOREncode_BstrWrapInMapN(&EC, 55);
+   QCBOREncode_CancelBstrWrap(&EC);
+
+   QCBOREncode_CloseMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr != QCBOR_SUCCESS) {
+      return -11;
    }
 
    return 0;

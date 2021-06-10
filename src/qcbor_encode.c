@@ -918,6 +918,14 @@ void QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
          return;
       }
    }
+   /* QCBOREncode_CancelBstrWrap() can't correctly undo
+    * QCBOREncode_BstrWrapInMap() or QCBOREncode_BstrWrapInMapN(). It
+    * can't undo the labels they add. It also doesn't catch the error
+    * of using it this way.  QCBOREncode_CancelBstrWrap() is used
+    * infrequently and the the result is incorrect CBOR, not a
+    * security hole, so no extra code or state is added to handle this
+    * condition.
+    */
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    Nesting_Decrease(&(pMe->nesting));
