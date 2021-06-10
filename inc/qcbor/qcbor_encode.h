@@ -1774,6 +1774,25 @@ static void QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWra
 
 
 /**
+ * @brief Cancel byte string wrapping.
+ *
+ * @param[in] pCtx       The encoding context.
+ *
+ * This cancels QCBOREncode_BstrWrap() making tghe encoding as if it
+ * were never called.
+ *
+ * WARNING: This does not work on QCBOREncode_BstrWrapInMap()
+ * or QCBOREncode_BstrWrapInMapN() and there is no error detection
+ * of an attempt at their use.
+ *
+ * This only works if nothing has been added into the wrapped byte
+ * string.  If something has been added, this sets the error
+ * @ref QCBOR_ERR_CANNOT_CANCEL.
+ */
+void QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pCtx);
+
+
+/**
  @brief Add some already-encoded CBOR bytes.
 
  @param[in] pCtx     The encoding context to add the already-encode CBOR to.

@@ -114,6 +114,14 @@ inline static uint8_t Nesting_Increment(QCBORTrackNesting *pNesting)
    return QCBOR_SUCCESS;
 }
 
+inline static void Nesting_Decrement(QCBORTrackNesting *pNesting)
+{
+   /* No error check for going below 0 here needed because this
+    * is only used by QCBOREncode_CancelBstrWrap() and it checks
+    * the nesting level before calling this. */
+   pNesting->pCurrentNesting->uCount--;
+}
+
 inline static uint16_t Nesting_GetCount(QCBORTrackNesting *pNesting)
 {
    /* The nesting count recorded is always the actual number of
@@ -886,7 +894,42 @@ void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, U
 
 
 /*
- * Public functions for closing arrays and maps. See qcbor/qcbor_encode.h
+ * Public function for canceling a bstr wrap. See qcbor/qcbor_encode.h
+ */
+void QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uError == QCBOR_SUCCESS) {
+      if(!Nesting_IsInNest(&(pMe->nesting))) {
+         pMe->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+         return;
+      } else if(Nesting_GetMajorType(&(pMe->nesting)) != CBOR_MAJOR_TYPE_BYTE_STRING) {
+         pMe->uError = QCBOR_ERR_CLOSE_MISMATCH;
+         return;
+      }
+      const size_t uCurrent = UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
+      if(pMe->nesting.pCurrentNesting->uStart != uCurrent) {
+         pMe->uError = QCBOR_ERR_CANNOT_CANCEL;
+         return;
+      }
+   }
+   /* QCBOREncode_CancelBstrWrap() can't correctly undo
+    * QCBOREncode_BstrWrapInMap() or QCBOREncode_BstrWrapInMapN(). It
+    * can't undo the labels they add. It also doesn't catch the error
+    * of using it this way.  QCBOREncode_CancelBstrWrap() is used
+    * infrequently and the the result is incorrect CBOR, not a
+    * security hole, so no extra code or state is added to handle this
+    * condition.
+    */
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   Nesting_Decrease(&(pMe->nesting));
+   Nesting_Decrement(&(pMe->nesting));
+}
+
+
+/*
+ * Public function for closing arrays and maps. See qcbor/qcbor_encode.h
  */
 void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
@@ -911,7 +954,7 @@ void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t
 
 
 /*
- * Public functions to finish and get the encoded result. See qcbor/qcbor_encode.h
+ * Public function to finish and get the encoded result. See qcbor/qcbor_encode.h
  */
 QCBORError QCBOREncode_Finish(QCBOREncodeContext *me, UsefulBufC *pEncodedCBOR)
 {

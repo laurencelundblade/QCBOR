@@ -1745,8 +1745,10 @@ static const uint8_t spExpectedBstrWrap[] = {0x82, 0x19, 0x01, 0xC3, 0x43, 0x19,
  */
 static const uint8_t spExpectedTypeAndLen[] = {0x81, 0x58, 0x25};
 
+static const uint8_t spExpectedForBstrWrapCancel[] = {0x82, 0x19, 0x01, 0xC3, 0x18, 0x2A};
+
 /*
- Very basic bstr wrapping test
+ * bstr wrapping test
  */
 int BstrWrapTest()
 {
@@ -1804,6 +1806,63 @@ int BstrWrapTest()
    }
    if(CheckResults(Encoded, spExpectedTypeAndLen)) {
       return -7;
+   }
+
+   // Fourth test, cancelling a byte string
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddUInt64(&EC, 451);
+
+   QCBOREncode_BstrWrap(&EC);
+   QCBOREncode_CancelBstrWrap(&EC);
+
+
+   QCBOREncode_AddUInt64(&EC, 42);
+   QCBOREncode_CloseArray(&EC);
+   if(QCBOREncode_Finish(&EC, &Encoded)) {
+      return -8;
+   }
+   if(CheckResults(Encoded, spExpectedForBstrWrapCancel)) {
+      return -9;
+   }
+
+   QCBORError uErr;
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   // Fifth test, failed cancelling
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddUInt64(&EC, 451);
+
+   QCBOREncode_BstrWrap(&EC);
+   QCBOREncode_AddUInt64(&EC, 99);
+   QCBOREncode_CancelBstrWrap(&EC);
+
+   QCBOREncode_AddUInt64(&EC, 42);
+   QCBOREncode_CloseArray(&EC);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr != QCBOR_ERR_CANNOT_CANCEL) {
+      return -10;
+   }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   // Sixth test, another cancel, but the error is not caught
+   // This use will produce unintended CBOR. The error
+   // is not caught because it would require tracking state
+   // for QCBOREncode_BstrWrapInMapN.
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddUInt64ToMapN(&EC, 451, 88);
+
+   QCBOREncode_BstrWrapInMapN(&EC, 55);
+   QCBOREncode_CancelBstrWrap(&EC);
+
+   QCBOREncode_CloseMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr != QCBOR_SUCCESS) {
+      return -11;
    }
 
    return 0;

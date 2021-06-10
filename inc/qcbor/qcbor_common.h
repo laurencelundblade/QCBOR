@@ -502,6 +502,10 @@ typedef enum {
        indefinite length map or array in the input CBOR. */
    QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED = 44,
 
+   /** Trying to cancel a byte string wrapping after items have been
+       added to it. */
+   QCBOR_ERR_CANNOT_CANCEL = 45,
+
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
 
