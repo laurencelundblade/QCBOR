@@ -1745,7 +1745,7 @@ static const uint8_t spExpectedBstrWrap[] = {0x82, 0x19, 0x01, 0xC3, 0x43, 0x19,
  */
 static const uint8_t spExpectedTypeAndLen[] = {0x81, 0x58, 0x25};
 
-static const uint8_t spExpectedTypeAndLenXXX[] = {0x82, 0x19, 0x01, 0xC3, 0x18, 0x2A};
+static const uint8_t spExpectedForBstrWrapCancel[] = {0x82, 0x19, 0x01, 0xC3, 0x18, 0x2A};
 
 /*
  * bstr wrapping test
@@ -1823,7 +1823,7 @@ int BstrWrapTest()
    if(QCBOREncode_Finish(&EC, &Encoded)) {
       return -8;
    }
-   if(CheckResults(Encoded, spExpectedTypeAndLenXXX)) {
+   if(CheckResults(Encoded, spExpectedForBstrWrapCancel)) {
       return -9;
    }
 
@@ -1845,7 +1845,7 @@ int BstrWrapTest()
    if(uErr != QCBOR_ERR_CANNOT_CANCEL) {
       return -10;
    }
-#endif
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    // Sixth test, another cancel, but the error is not caught
    // This use will produce unintended CBOR. The error
