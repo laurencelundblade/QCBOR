@@ -43,7 +43,7 @@
 #ifdef __cplusplus
 extern "C" {
 #if 0
-} // Keep editor indention formatting happy
+} /* Keep editor indention formatting happy */
 #endif
 #endif
 
@@ -68,7 +68,7 @@ extern "C" {
  * QCBOR features.
  *
  * QCBORDecode_GetNext() returns a 56 byte structure called
- * @ref QCBORItem that describes the decoded item including
+ * @ref QCBORItem that describes the decoded item including:
  * - The data itself, integer, string, floating-point number...
  * - The label if present
  * - Unprocessed tags
@@ -91,11 +91,12 @@ extern "C" {
  * but the @ref SpiffyDecode APIs that allow searching maps by label
  * are often more convenient.
  *
- * @anchor Decoding-Errors
- * # Decode Error Handling
+ * @anchor Decode-Errors-Overview
+ * # Decode Errors Overview
  *
  * The simplest way to handle decoding errors is to make use of the
- * internal error tracking. To do this:
+ * internal error tracking. The only error code check necessary is
+ * at the end when QCBORDecode_Finish() is called. To do this:
  *
  * - Use QCBORDecode_VGetNext(), NOT QCBORDecode_GetNext().
  * - Use QCBORDecode_VPeekNext() NOT QCBORDecode_PeekNext().
@@ -105,21 +106,22 @@ extern "C" {
  *    QCBORDecode_Finish() returns success.
  *
  * Once an encoding error has been encountered, the error state is
- * entered and further decoding function calls will do nothing.  it
- * is safe to just continue calling decoding functions anway. No error
- * checking is necessary so code to decode a protocols is much simpler.  The two exceptions are
- * QCBORDecode_GetNext() and QCBORDecode_PeekNext which will try to
- * decode even if the decoder is in the error state. Use
- * QCBORDecode_VGetNext() and QCBORDecode_VPeekNext() instead.
+ * entered and further decoding function calls will do nothing.  It is
+ * safe to continue calling decoding functions after an error. No
+ * error checking is necessary making the code to decode a protocol
+ * simpler.  The two exceptions are QCBORDecode_GetNext() and
+ * QCBORDecode_PeekNext() which will try to decode even if the decoder
+ * is in the error state. Use QCBORDecode_VGetNext() and
+ * QCBORDecode_VPeekNext() instead.
  *
  * While some protocols are simple enough to be decoded this way, many
- * aren’t because the type of data items earlier in the protocol
- * determine how later data items are to be decoded. In that case it is
- * necessary to call QCBORDecode_GetError() to know the earlier items
- * were successfully decoded.
+ * aren’t because the data items earlier in the protocol determine how
+ * later data items are to be decoded. In that case it is necessary to
+ * call QCBORDecode_GetError() to know the earlier items were
+ * successfully decoded before examining their value or type.
  *
  * The internal decode error state is reset only by re initializing the
- * decoder or QCBORDecode_GetErrorAndReset().
+ * decoder or calling QCBORDecode_GetErrorAndReset().
  *
  * It is only useful to reset the error state by calling
  * QCBORDecode_GetErrorAndReset() on recoverable errors. Examples of
@@ -271,7 +273,7 @@ typedef enum {
 /** Type for a double floating-point number. Data is in @c val.double. */
 #define QCBOR_TYPE_DOUBLE        27
 
-#define QCBOR_TYPE_BREAK         31 // Used internally; never returned
+#define QCBOR_TYPE_BREAK         31 /* Used internally; never returned */
 
 /** For @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY decode mode, a map that is
     being traversed as an array. See QCBORDecode_Init() */
@@ -425,7 +427,7 @@ typedef struct _QCBORItem {
        * The use of the fields in this structure depends on @c
        * uDataType.
        *
-       * When @c uDataType indicates a decimal fraction, the 
+       * When @c uDataType indicates a decimal fraction, the
        * @c nExponent is base 10. When it indicates a big float, it
        * is base 2.
        *
@@ -878,6 +880,8 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  to handle newly defined tags, while using very little memory, in
  particular keeping @ref QCBORItem as small as possible.
 
+ See [Decode Error Overview](#Decode-Errors-Overview).
+
  If any error occurs, \c uDataType and \c uLabelType will be set
  to @ref QCBOR_TYPE_NONE. If there is no need to know the specific
  error, @ref QCBOR_TYPE_NONE can be checked for and the return value
@@ -912,21 +916,23 @@ QCBORError QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem
 
 
 /**
- @brief QCBORDecode_GetNext() using internal error state error handling.
-
- @param[in]  pCtx          The decoder context.
- @param[out] pDecodedItem  Holds the CBOR item just decoded.
-
- This is the same as QCBORDecode_GetNext() but uses the error handling
- method of spiffy decode where an internal error is set instead
- of returning an error. If the internal error is set, this doesn't
- do anything.
-*/
+ * @brief QCBORDecode_GetNext() using internal error state error handling.
+ *
+ * @param[in]  pCtx          The decoder context.
+ * @param[out] pDecodedItem  Holds the CBOR item just decoded.
+ *
+ * This is the same as QCBORDecode_GetNext() but uses the error
+ * handling method of spiffy decode where an internal error is set
+ * instead of returning an error. If the internal error is set, this
+ * doesn't do anything.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ */
 void QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
- * @brief QCBORDecode_GetNext() and consume entire map or array.
+ * @brief Get the next item, fully consuming it if it is a map or array.
  *
  * @param[in]  pCtx          The decoder context.
  * @param[out] pDecodedItem  Holds the CBOR item just decoded.
@@ -1037,41 +1043,30 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uI
 
 
 /**
- * @brief Check whether all the bytes have been decoded and maps and arrays closed.
+ * @brief Check that a decode completed successfully.
  *
  * @param[in]  pCtx  The context to check.
  *
- * @retval QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN The CBOR is not well-formed
- *          as some map or array was not closed off. This should always
- *          be treated as an unrecoverable error.
+ * @returns The internal tracked decode error or @ref QCBOR_SUCCESS.
  *
- * @retval QCBOR_ERR_EXTRA_BYTES The CBOR was decoded correctly and all
- *         maps and arrays are closed, but some of the bytes in the
- *         input were not consumed.  This may or may not be considered
- *         an error.
- *
- * @retval QCBOR_SUCCES There were no errors and all bytes were
- *         consumed.
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  *
  * This should always be called at the end of a decode to determine if
  * it completed successfully.  For some protocols, checking the return
  * value here may be the only error check necessary.
  *
  * This returns the internal tracked error if the decoder is in the
- * error state.  Additionally this checks that all the maps and arrays
- * were closed and that that all the bytes were consumed. Note that
- * QCBORDecode_GetError() doesn't do the same checks and this and
- * never returns these two errors.
- *
- * See @ref Decoding-Errors for a good general of QCBOR's error
- * handling design.
+ * error state, the same one returned by QCBORDecode_GetError().  This
+ * performs final checks at the end of the decode, and may also return
+ * @ref QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN
+ * or @ref QCBOR_ERR_EXTRA_BYTES.
  *
  * This calls the destructor for the string allocator, if one is in
- * use. It can't be called multiple times like
+ * use. Because of this, It can't be called multiple times like
  * QCBORDecode_PartialFinish().
  *
- * Some CBOR protocols use a CBOR sequence [RFC 8742]
- * (https://tools.ietf.org/html/rfc8742) .  A CBOR sequence typically
+ * Some CBOR protocols use a CBOR sequence defined in [RFC 8742]
+ * (https://tools.ietf.org/html/rfc8742). A CBOR sequence typically
  * doesn't start out with a map or an array. The end of the CBOR is
  * determined in some other way, perhaps by external framing, or by
  * the occurrence of some particular CBOR data item or such. The
@@ -1080,7 +1075,7 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uI
  * ignored.
  *
  * QCBORDecode_Finish() should still be called when decoding CBOR
- * Sequences to check that the input decoded was well-formed. If the
+ * sequences to check that the input decoded was well-formed. If the
  * input was well-formed and there are extra bytes at the end @ref
  * QCBOR_ERR_EXTRA_BYTES will be returned.  This can be considered a
  * successful decode.  See also QCBORDecode_PartialFinish().
@@ -1092,7 +1087,8 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
  * @brief Return number of bytes consumed so far.
  *
  * @param[in]  pCtx        The context to check.
- * @param[out] puConsumed  The number of bytes consumed so far. May be @c NULL.
+ * @param[out] puConsumed  The number of bytes consumed so far.
+ *                          May be @c NULL.
  *
  * @returns The same as QCBORDecode_Finish();
  *
@@ -1108,7 +1104,7 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
  * Decoding with the same @ref QCBORDecodeContext can continue after
  * calling this and this may be called many times.
  *
- * Another way to resume decoding is to call QCBORDecode_Init() on the
+ * Another way to resume decoding is to call QCBORDecode_Init() with the
  * bytes not decoded, but this only works on CBOR sequences when the
  * decoding stopped with no open arrays, maps or byte strings.
  */
@@ -1122,8 +1118,7 @@ QCBORDecode_PartialFinish(QCBORDecodeContext *pCtx, size_t *puConsumed);
  * @param[in] pCtx    The decoder context.
  * @return            The decoding error.
  *
- * See @ref Decoding-Errors for a good general of QCBOR's error
- * handling design.
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  *
  * The returns the tracked internal error code. All decoding functions
  * set the internal error except QCBORDecode_GetNext() and
@@ -1305,7 +1300,8 @@ static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 
 
 /* ------------------------------------------------------------------------
- * Deprecated functions retained for backwards compatibility.
+ * Deprecated functions retained for backwards compatibility. Use is
+ * not recommended.
  * ---- */
 
 
