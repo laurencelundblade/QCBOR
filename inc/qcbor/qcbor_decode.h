@@ -715,27 +715,11 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
 
 
 /**
- * @brief Preorder traversal like QCBORDecode_VGetNext() without use
- * of internal error state.
- *
- * @param[in]  pCtx          The decoder context.
- * @param[out] pDecodedItem  Holds the CBOR item just decoded.
- *
- * @return See error table of decoding errors set by QCBORDecode_VGetNext().
- *
- * This is largely the same as QCBORDecode_VGetNext() except it
- * doesn't set the internal decoding error and will attempt to decode
- * even if the decoder is in the error state.
- */
-QCBORError QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
-
-
-/**
  * @brief Gets the next item (integer, byte string, array...) in the
  * preorder traversal of the CBOR tree.
  *
  * @param[in]  pCtx          The decoder context.
- * @param[out] pDecodedItem  Holds the CBOR item just decoded.
+ * @param[out] pDecodedItem  The decoded CBOR item.
  *
  * @c pDecodedItem is filled from the decoded item. Generally, the
  * following data is returned in the structure:
@@ -912,16 +896,33 @@ void QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
+ * @brief Preorder traversal like QCBORDecode_VGetNext() without use
+ * of internal error state.
+ *
+ * @param[in]  pCtx          The decoder context.
+ * @param[out] pDecodedItem  The decoded CBOR item.
+ *
+ * @return See error table of decoding errors set by QCBORDecode_VGetNext().
+ *
+ * This is the same as QCBORDecode_VGetNext() except it
+ * doesn't set the internal decoding error and will attempt to decode
+ * even if the decoder is in the error state.
+ */
+QCBORError QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
+
+
+/**
  * @brief Get the next item, fully consuming it if it is a map or array.
  *
  * @param[in]  pCtx          The decoder context.
- * @param[out] pDecodedItem  Holds the CBOR item just decoded.
+ * @param[out] pDecodedItem  The decoded CBOR item.
  *
  * This is the same as QCBORDecode_VGetNext() but the contents of the
  * entire map or array will be consumed if the item is a map or array.
  *
- * In order to go back to decode the contents of a map or array consumed
- * by this, the decoder must be rewound using QCBORDecode_Rewind().
+ * In order to go back to decode the contents of a map or array
+ * consumed by this, the decoder must be rewound using
+ * QCBORDecode_Rewind().
  */
 void QCBORDecode_VGetNextConsume(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
@@ -930,9 +931,9 @@ void QCBORDecode_VGetNextConsume(QCBORDecodeContext *pCtx, QCBORItem *pDecodedIt
  * @brief Get the next data item without consuming it.
  *
  * @param[in]  pCtx          The decoder context.
- * @param[out] pDecodedItem  Holds the CBOR item just decoded.
+ * @param[out] pDecodedItem  The decoded CBOR item.
  *
- * This is the same as QCBORDecode_GetNext() but does not consume the
+ * This is the same as QCBORDecode_VGetNext() but does not consume the
  * data item. This only looks ahead one item. Calling it repeatedly
  * will just return the same item over and over.
  *
@@ -942,23 +943,8 @@ void QCBORDecode_VGetNextConsume(QCBORDecodeContext *pCtx, QCBORItem *pDecodedIt
  *
  * This is useful for looking ahead to determine the type of a data
  * item to know which type-specific spiffy decode function to call or
- * decoding protocols where the types of following data items
- * depending on type of leading ones.
- */
-QCBORError
-QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
-
-
-/**
- * @brief QCBORDecode_PeekNext() using internal error state error handling.
- *
- * @param[in]  pCtx          The decoder context.
- * @param[out] pDecodedItem  Holds the CBOR item just decoded.
- *
- * This is the same as QCBORDecode_PeekNext() but uses the error
- * handling method of spiffy decode where an internal error is set
- * instead of returning an error. If the internal error is set, this
- * doesn't do anything.
+ * decoding protocols where the types of later data items
+ * depending on type of earlier ones.
  *
  * The error must be retrieved with QCBORDecode_GetError() and checked
  * to know the peek was successful before referencing the contents of
@@ -966,6 +952,21 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  */
 void
 QCBORDecode_VPeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
+
+
+/**
+ * @brief Get the next data item without consuming it without use
+ * of internal error state.
+ *
+ * @param[in]  pCtx          The decoder context.
+ * @param[out] pDecodedItem  The decoded CBOR item.
+ *
+ * This is the same as QCBORDecode_VPeekNext() except it doesn't set
+ * the internal decoding error and will attempt to decode even if the
+ * decoder is in the error state.
+ */
+QCBORError
+QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
