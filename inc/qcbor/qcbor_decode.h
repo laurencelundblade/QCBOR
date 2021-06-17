@@ -715,218 +715,198 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Gets the next item (integer, byte string, array...) in
-        preorder traversal of CBOR tree.
-
- @param[in]  pCtx          The decoder context.
- @param[out] pDecodedItem  Holds the CBOR item just decoded.
-
- @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK  Not well-formed, one of the
-                                            chunks in indefinite-length
-                                            string is wrong type.
-
- @retval QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN  Not well-formed, array or map
-                                            not closed.
-
- @retval QCBOR_ERR_UNSUPPORTED     Not well-formed, input contains
-                                   unsupported CBOR.
-
- @retval QCBOR_ERR_HIT_END         Not well-formed, unexpectedly ran out
-                                   of bytes.
-
- @retval QCBOR_ERR_BAD_TYPE_7      Not well-formed, bad simple type value.
-
- @retval QCBOR_ERR_BAD_BREAK       Not well-formed, break occurs where
-                                   not allowed.
-
- @retval QCBOR_ERR_EXTRA_BYTES     Not well-formed, unprocessed bytes at
-                                   the end.
-
- @retval QCBOR_ERR_BAD_INT         Not well-formed, length of integer is
-                                   bad.
-
- @retval QCBOR_ERR_BAD_OPT_TAG     Invalid CBOR, tag on wrong type.
-
- @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG  Implementation limit, array or map
-                                   too long.
-
- @retval QCBOR_ERR_INT_OVERFLOW    Implementation limit, negative
-                                   integer too large.
-
- @retval QCBOR_ERR_DATE_OVERFLOW   Implementation limit, date larger
-                                   than can be handled.
-
- @retval QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP  Implementation limit, nesting
-                                           too deep.
-
- @retval QCBOR_ERR_STRING_ALLOCATE Resource exhaustion, string allocator
-                                   failed.
-
- @retval QCBOR_ERR_MAP_LABEL_TYPE  Configuration error / Implementation
-                                   limit encountered a map label this is
-                                   not a string on an integer.
-
- @retval QCBOR_ERR_NO_STRING_ALLOCATOR  Configuration error, encountered
-                                        indefinite-length string with no
-                                        allocator configured.
- @retval QCBOR_ERR_NO_MORE_ITEMS   No more bytes to decode. The previous
-                                   item was successfully decoded. This
-                                   is usually how the non-error end of
-                                   a CBOR stream / sequence is detected.
-
- @c pDecodedItem is filled in with the value parsed. Generally, the
- following data is returned in the structure:
-
- - @c uDataType which indicates which member of the @c val union the
-   data is in. This decoder figures out the type based on the CBOR
-   major type, the CBOR "additionalInfo", the CBOR optional tags and
-   the value of the integer.
-
- - The value of the item, which might be an integer, a pointer and a
-   length, the count of items in an array, a floating-point number or
-   other.
-
- - The nesting level for maps and arrays.
-
- - The label for an item in a map, which may be a text or byte string
-   or an integer.
-
- - The unprocessed tag numbers for which the item is the tag content.
-
- See documentation on in the data type @ref QCBORItem for all the
- details on what is returned.
-
- This function handles arrays and maps. When first encountered a @ref
- QCBORItem will be returned with major type @ref QCBOR_TYPE_ARRAY or
- @ref QCBOR_TYPE_MAP. @c QCBORItem.val.uCount will indicate the number
- of Items in the array or map.  Typically, an implementation will call
- QCBORDecode_GetNext() in a for loop to fetch them all. When decoding
- indefinite-length maps and arrays, @c QCBORItem.val.uCount is @c
- UINT16_MAX and @c uNextNestLevel must be used to know when the end of
- a map or array is reached.  TODO: reword about nesting
-
- Nesting level 0 is the outside top-most nesting level. For example,
- in a CBOR structure with two items, an integer and a byte string
- only, both would be at nesting level 0.  A CBOR structure with an
- array open, an integer and a byte string, would have the integer and
- byte string as nesting level 1.
-
- Here is an example of how the nesting level is reported with no arrays
- or maps at all.
-
- @verbatim
- CBOR Structure           Nesting Level
- Integer                    0
- Byte String                0
- @endverbatim
-
- Here is an example of how the nesting level is reported with a simple
- array and some top-level items.
-
- @verbatim
- Integer                    0
- Array (with 2 items)       0
- Byte String                1
- Byte string                1
- Integer                    0
- @endverbatim
-
-
- Here's a more complex example
- @verbatim
-
- Map with 2 items           0
- Text string                1
- Array with 3 integers      1
- integer                    2
- integer                    2
- integer                    2
- text string                1
- byte string                1
- @endverbatim
-
- In @ref QCBORItem, @c uNextNestLevel is the nesting level for the
- next call to QCBORDecode_GetNext(). It indicates if any maps or
- arrays were closed out during the processing of the just-fetched @ref
- QCBORItem. This processing includes a look-ahead for any breaks that
- close out indefinite-length arrays or maps. This value is needed to
- be able to understand the hierarchical structure. If @c
- uNextNestLevel is not equal to @c uNestLevel the end of the current
- map or array has been encountered. This works the same for both
- definite and indefinite-length arrays.
-
- QCBOR will automatically decode all the tags defined in RFC 8949
- plus a few more. They will show up in a QCBORItem as QCBOR types
- like QCBOR_TYPE_POS_BIGNUM.
-
- Most tags with a CBOR_TAG_XXX define in qcbor_common.h like @ref
- CBOR_TAG_DATE_STRING are automaticlly decoded by QCBOR. Those that
- are defined but not decoded are so noted.
-
- Tags that are not decoded by QCBOR will be identified and recorded in
- a QCBORItem. Use QCBORDecode_GetNthTag() to get them. Only @ref
- QCBOR_MAX_TAGS_PER_ITEM tags are recorded per item and an error is
- returned if there are more than that.
-
- Previous versions of QCBOR handled tags in a more complex way using
- QCBORDecode_SetCallerConfiguredTagList() and
- QCBORDecode_GetNextWithTags().  This is largely compatible, but
- imposes the limit of @ref QCBOR_MAX_TAGS_PER_ITEM tags per item
-
- See @ref Tags-Overview for a description of how to go about creating
- custom tags.
-
- This tag decoding design is to be open-ended and flexible to be able
- to handle newly defined tags, while using very little memory, in
- particular keeping @ref QCBORItem as small as possible.
-
- See [Decode Error Overview](#Decode-Errors-Overview).
-
- If any error occurs, \c uDataType and \c uLabelType will be set
- to @ref QCBOR_TYPE_NONE. If there is no need to know the specific
- error, @ref QCBOR_TYPE_NONE can be checked for and the return value
- ignored.
-
- Errors fall in several categories as noted in list above:
-
- - Not well-formed errors are those where there is something
- syntactically and fundamentally wrong with the CBOR being
- decoded. Decoding should stop completely.
-
- - Invalid CBOR is well-formed, but still not correct. It is probably
- best to stop decoding, but not necessary.
-
- - This implementation has some size limits. They should rarely be
- encountered. If they are it may because something is wrong with the
- CBOR, for example an array size is incorrect.
-
- - Resource exhaustion. This only occurs when a string allocator is
- configured to handle indefinite-length strings as other than that,
- this implementation does no dynamic memory allocation.
-
- - There are a few CBOR constructs that are not handled without some
- extra configuration. These are indefinite length strings and maps
- with labels that are not strings or integers. See QCBORDecode_Init().
-
- This does not set the internal error code or cease to function when
- it is set. The error returned must always be checked. See also
- QCBORDecode_VGetNext().
+ * @brief Preorder traversal like QCBORDecode_VGetNext() without use
+ * of internal error state.
+ *
+ * @param[in]  pCtx          The decoder context.
+ * @param[out] pDecodedItem  Holds the CBOR item just decoded.
+ *
+ * @return See error table of decoding errors set by QCBORDecode_VGetNext().
+ *
+ * This is largely the same as QCBORDecode_VGetNext() except it
+ * doesn't set the internal decoding error and will attempt to decode
+ * even if the decoder is in the error state.
  */
 QCBORError QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
- * @brief QCBORDecode_GetNext() using internal error state error handling.
+ * @brief Gets the next item (integer, byte string, array...) in the
+ * preorder traversal of the CBOR tree.
  *
  * @param[in]  pCtx          The decoder context.
  * @param[out] pDecodedItem  Holds the CBOR item just decoded.
  *
- * This is the same as QCBORDecode_GetNext() but uses the error
- * handling method of spiffy decode where an internal error is set
- * instead of returning an error. If the internal error is set, this
- * doesn't do anything.
+ * @c pDecodedItem is filled from the decoded item. Generally, the
+ * following data is returned in the structure:
  *
- * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ * - @c uDataType which indicates which member of the @c val union the
+ *   data is in. This decoder figures out the type based on the CBOR
+ *   major type, the CBOR "additionalInfo", the CBOR optional tags and
+ *   the value of the integer.
+ *
+ * - The value of the item, which might be an integer, a pointer and a
+ *   length, the count of items in an array, a floating-point number or
+ *   other.
+ *
+ * - The nesting level for maps and arrays.
+ *
+ * - The label for an item in a map, which may be a text or byte string
+ *   or an integer.
+ *
+ * - The unprocessed tag numbers for which the item is the tag content.
+ *
+ * See @ref QCBORItem for all the details about what is returned.
+ *
+ * This function handles arrays and maps. When an array or map is
+ * first encountered a @ref QCBORItem will be returned with major type
+ * @ref QCBOR_TYPE_ARRAY or @ref QCBOR_TYPE_MAP.  @c
+ * QCBORItem.val.uNestLevel gives the nesting level of the opening of
+ * the array or map. When the next item is fetched, it will be the
+ * first one in the array or map and its @c QCBORItem.val.uNestLevel
+ * will be one more than that of the opening of the array or map.
+ *
+ * Nesting level 0 is the top-most nesting level. The first item
+ * decoded always has nesting level 0. A map or array at the top level
+ * has nesting level 0 and the members of the array or map have
+ * nesting level 1.
+ *
+ * Here is an example of how the nesting level is reported for a CBOR
+ * sequence with no arrays or maps at all.
+ *
+ * @verbatim
+ * Data Item           Nesting Level
+ * integer                     0
+ * byte string                 0
+ * @endverbatim
+ *
+ * Here is an example of how the nesting level is reported for a CBOR
+ * sequence with a simple array and some top-level items.
+ *
+ * @verbatim
+ * Data Item           Nesting Level
+ * integer                     0
+ * array with 2 items          0
+ *    byte string              1
+ *    byte string              1
+ * integer                     0
+ * @endverbatim
+ *
+ * Here's a more complex example that is not a CBOR sequence
+ *
+ * @verbatim
+ * Data Item           Nesting Level
+ * map with 4 items            0
+ *    text string              1
+ *    array with 3 integers    1
+ *       integer               2
+ *       integer               2
+ *       integer               2
+ *    text string              1
+ *    byte string              1
+ * @endverbatim
+ *
+ * In @ref QCBORItem, @c uNextNestLevel is the nesting level for the
+ * next call to QCBORDecode_VGetNext(). It indicates if any maps or
+ * arrays were closed out during the processing of the just-fetched
+ * @ref QCBORItem. This processing includes a look-ahead for any
+ * breaks that close out indefinite-length arrays or maps. This value
+ * is needed to be able to understand the hierarchical structure. If
+ * @c uNextNestLevel is not equal to @c uNestLevel the end of the
+ * current map or array has been encountered. This works for both
+ * definite and indefinite-length arrays so it is the best way to find the
+ * end of a map or array. Alternatively, for definite-length arrays,
+ * @c QCBORItem.val.uCount contains the number of items in the
+ * array. For indefinite-length arrays, @c QCBORItem.val.uCount
+ * is @c UINT16_MAX.
+ *
+ * All tags defined in RFC 8949 are automatically fully decoded. There
+ * are QCBOR_TYPES and members in @ref QCBORItem for them. For
+ * example, the tag 9 will show up in the @ref QCBORItem as type @ref
+ * QCBOR_TYPE_POS_BIGNUM with the value in @c QCBORItem.val.bignum.
+ * There is also support for some of the tags in the IANA tag
+ * registry.
+ *
+ * Most tags with a CBOR_TAG_XXX define in qcbor_common.h like @ref
+ * CBOR_TAG_DATE_STRING are automaticlly decoded by QCBOR. Those that
+ * are defined but not decoded are so noted.
+ *
+ * Tags that are not decoded by QCBOR will be identified and recorded
+ * in @ref QCBORItem. Use QCBORDecode_GetNthTag() to get them. Only
+ * @ref QCBOR_MAX_TAGS_PER_ITEM tags are recorded per item and an
+ * error is returned if there are more than that.
+ *
+ * Previous versions of QCBOR handled tags in a more complex way using
+ * QCBORDecode_SetCallerConfiguredTagList() and
+ * QCBORDecode_GetNextWithTags().  This version is largely compatible, but
+ * imposes the limit of @ref QCBOR_MAX_TAGS_PER_ITEM tags per item.
+ *
+ * See @ref Tags-Overview for a description of how to go about
+ * creating custom tags.
+ *
+ * This tag decoding design is to be open-ended and flexible to be
+ * able to handle newly defined tags, while using very little memory,
+ * in particular keeping @ref QCBORItem as small as possible.
+ *
+ * See [Decode Error Overview](#Decode-Errors-Overview).
+ *
+ * If a decoding error occurs, \c uDataType and \c uLabelType will be set
+ * to @ref QCBOR_TYPE_NONE. If there is no need to know the specific
+ * error, it is sufficient to check for @ref QCBOR_TYPE_NONE.
+ *
+ * Errors fall in several categories:
+ *
+ * - Not well-formed errors are those where there is something
+ *   syntactically and fundamentally wrong with the CBOR being
+ *   decoded. Decoding should stop completely.
+ *
+ * - Invalid CBOR is well-formed, but still not correct. It is
+ *   probably best to stop decoding, but not necessary.
+ *
+ * - This implementation has some size limits. They should rarely be
+ *   encountered. If they are it may because something is wrong with
+ *   the CBOR, for example an array size is incorrect.
+ *
+ * - There are a few CBOR constructs that are not handled without some
+ *   extra configuration. These are indefinite length strings and maps
+ *   with labels that are not strings or integers. See
+ *   QCBORDecode_Init().  Also, the QCBOR library may have been
+ *   compiled with some features disabled to reduce code size and this
+ *   can result in some errors.
+ *
+ * - Resource exhaustion. This only occurs when a string allocator is
+ *   configured to handle indefinite-length strings as other than
+ *   that, this implementation does no dynamic memory allocation.
+ *
+ * | Error | Description |
+ * | ---- | ---- |
+ * | __Not well-formed errors__  ||
+ * | @ref QCBOR_ERR_HIT_END                 | Partial data item; need more input bytes to complete decoding |
+ * | @ref QCBOR_ERR_UNSUPPORTED             | Input contains CBOR with reserved additional info values |
+ * | @ref QCBOR_ERR_BAD_TYPE_7              | Simple value encoded as two-byte integer rather than one |
+ * | @ref QCBOR_ERR_BAD_BREAK               | Break occured outside an indefinite-length map or such |
+ * | @ref QCBOR_ERR_BAD_INT                 | Length of integer is bad |
+ * | @ref QCBOR_ERR_INDEFINITE_STRING_CHUNK | One of the chunks in indefinite-length string is the wrong type |
+ * | __Invalid CBOR__  ||
+ * | @ref QCBOR_ERR_NO_MORE_ITEMS        | Need more input data items to decode |
+ * | @ref QCBOR_ERR_BAD_EXP_AND_MANTISSA | The structure of a big float or big number is invalid |
+ * | @ref QCBOR_ERR_BAD_TAG_CONTENT      | The content of a tag is of the wrong type |
+ * | __Implementation Limits__  ||
+ * | @ref QCBOR_ERR_INT_OVERFLOW                  | Input integer smaller than INT64_MIN |
+ * | @ref QCBOR_ERR_ARRAY_DECODE_TOO_LONG         | Array or map has more elements than can be handled |
+ * | @ref QCBOR_ERR_DATE_OVERFLOW                 | Date larger than can be handled |
+ * | @ref QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP | Nesting deeper than can be handled |
+ * | @ref QCBOR_ERR_STRING_TOO_LONG               | Encountered a string longer than size_t can hold less 4 bytes |
+ * | @ref QCBOR_ERR_TOO_MANY_TAGS                 | Tag nesting deeper than limit, typically 4 |
+ * | __Configuration errors__  ||
+ * | @ref QCBOR_ERR_NO_STRING_ALLOCATOR        | Encountered indefinite-length string with no allocator configured |
+ * | @ref QCBOR_ERR_MAP_LABEL_TYPE             | A map label this is not a string on an integer |
+ * | @ref QCBOR_ERR_HALF_PRECISION_DISABLED    | Library compiled with half-precision disabled and half-precision input encountered |
+ * | @ref QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  | Library compiled with indefinite maps and arrays  disabled and indefinite map or array encountered |
+ * | @ref QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED | Library compiled with indefinite strings disabled and indefinite string encountered |
+ * | @ref QCBOR_ERR_FLOAT_DATE_DISABLED        | Library compiled with floating-point disabled and floating-point date encountered |
+ * | __Resource exhaustion errors__  ||
+ * | @ref QCBOR_ERR_STRING_ALLOCATE | The string allocator is unable to allocate more memory |
  */
 void QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
