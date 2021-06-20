@@ -7251,6 +7251,14 @@ int32_t PeekAndRewindTest()
       return 200;
    }
 
+   QCBORDecode_VPeekNext(&DCtx, &Item);
+   if((nCBORError = QCBORDecode_GetError(&DCtx))) {
+      return 150+(int32_t)nCBORError;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 3) {
+      return 250;
+   }
+
    if((nCBORError = QCBORDecode_PeekNext(&DCtx, &Item))) {
       return (int32_t)nCBORError;
    }
@@ -7435,6 +7443,22 @@ int32_t PeekAndRewindTest()
       return 3300;
    }
 
+   nCBORError = QCBORDecode_PeekNext(&DCtx, &Item);
+   if(nCBORError != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 3300 + (int32_t)nCBORError;
+   }
+
+   QCBORDecode_VPeekNext(&DCtx, &Item);
+   nCBORError = QCBORDecode_GetError(&DCtx);
+   if(nCBORError != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 3400 + (int32_t)nCBORError;
+   }
+
+   QCBORDecode_VPeekNext(&DCtx, &Item);
+   nCBORError = QCBORDecode_GetError(&DCtx);
+   if(nCBORError != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 3500 + (int32_t)nCBORError;
+   }
 
 
    // Rewind to top level after entering several maps
