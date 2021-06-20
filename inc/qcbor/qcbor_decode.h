@@ -98,9 +98,9 @@ extern "C" {
  * internal error tracking. The only error code check necessary is
  * at the end when QCBORDecode_Finish() is called. To do this:
  *
- * - Use QCBORDecode_VGetNext(), NOT QCBORDecode_GetNext().
- * - Use QCBORDecode_VPeekNext() NOT QCBORDecode_PeekNext().
- * - Use any and all of the spiffy decode functions.
+ * - Use QCBORDecode_VGetNext(), QCBORDecode_VPeekNext()
+ *  and any or all of the functions in qcbor_spiffy_decode.h. Don't use
+ *  QCBORDecode_GetNext() or QCBORDecode_PeekNext().
  * - Call QCBORDecode_Finish() and check its return code.
  * - Do not reference any decoded data until after
  *    QCBORDecode_Finish() returns success.
@@ -715,7 +715,7 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
 
 
 /**
- * @brief Gets the next item (integer, byte string, array...) in the
+ * @brief Get the next item (integer, byte string, array...) in the
  * preorder traversal of the CBOR tree.
  *
  * @param[in]  pCtx          The decoder context.
@@ -758,27 +758,27 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * Here is an example of how the nesting level is reported for a CBOR
  * sequence with no arrays or maps at all.
  *
- * @verbatim
+ * @code
  * Data Item           Nesting Level
  * integer                     0
  * byte string                 0
- * @endverbatim
+ * @endcode
  *
  * Here is an example of how the nesting level is reported for a CBOR
  * sequence with a simple array and some top-level items.
  *
- * @verbatim
+ * @code
  * Data Item           Nesting Level
  * integer                     0
  * array with 2 items          0
  *    byte string              1
  *    byte string              1
  * integer                     0
- * @endverbatim
+ * @endcode
  *
  * Here's a more complex example that is not a CBOR sequence
  *
- * @verbatim
+ * @code
  * Data Item           Nesting Level
  * map with 4 items            0
  *    text string              1
@@ -788,7 +788,7 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  *       integer               2
  *    text string              1
  *    byte string              1
- * @endverbatim
+ * @endcode
  *
  * In @ref QCBORItem, @c uNextNestLevel is the nesting level for the
  * next call to QCBORDecode_VGetNext(). It indicates if any maps or
@@ -806,10 +806,10 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  *
  * All tags defined in RFC 8949 are automatically fully decoded. There
  * are QCBOR_TYPES and members in @ref QCBORItem for them. For
- * example, the tag 9 will show up in the @ref QCBORItem as type @ref
- * QCBOR_TYPE_POS_BIGNUM with the value in @c QCBORItem.val.bignum.
- * There is also support for some of the tags in the IANA tag
- * registry.
+ * example, the tag 9 will show up in the @ref QCBORItem as type
+ * @ref QCBOR_TYPE_POSBIGNUM with the value in
+ * @c QCBORItem.val.bignum. There is also support for
+ * some of the tags in the IANA tag registry.
  *
  * Most tags with a CBOR_TAG_XXX define in qcbor_common.h like @ref
  * CBOR_TAG_DATE_STRING are automaticlly decoded by QCBOR. Those that
@@ -1076,7 +1076,7 @@ QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
  * This is primarily for partially decoding CBOR sequences. It is the
  * same as QCBORDecode_Finish() except it returns the number of bytes
  * consumed and doesn't call the destructor for the string allocator
- * (See @ref and QCBORDecode_SetMemPool()).
+ * (See @ref QCBORDecode_SetMemPool()).
  *
  * When this is called before all input bytes are consumed, @ref
  * QCBOR_ERR_EXTRA_BYTES will be returned as QCBORDecode_Finish()
@@ -1281,7 +1281,7 @@ static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 
 
 /* ------------------------------------------------------------------------
- * Deprecated functions retained for backwards compatibility. Use is
+ * Deprecated functions retained for backwards compatibility. Their use is
  * not recommended.
  * ---- */
 
