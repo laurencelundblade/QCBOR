@@ -314,4 +314,10 @@ Test decoding of booleans
 int32_t BoolTest(void);
 
 
+/*
+Test decoding of arrays of integers, strings...
+*/
+int32_t DecodeArraysOfTest(void);
+
+
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

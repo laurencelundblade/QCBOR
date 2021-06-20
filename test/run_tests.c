@@ -137,7 +137,8 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ExponentAndMantissaEncodeTests),
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
     TEST_ENTRY(ParseEmptyMapInMapTest),
-    TEST_ENTRY(BoolTest)
+    TEST_ENTRY(BoolTest),
+    TEST_ENTRY(DecodeArraysOfTest)
 };
 
 

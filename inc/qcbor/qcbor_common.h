@@ -185,6 +185,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CBOR_TAG_MIME          36
 /** See QCBOREncode_AddBinaryUUID(). */
 #define CBOR_TAG_BIN_UUID      37
+/** An array where all elements are of the same type. See
+    [RFC8746](https://tools.ietf.org/html/rfc8932) */
+#define CBOR_TAG_HOMOGENEOUS_ARRAY 41
 /** The data is a CBOR Web Token per [RFC 8392]
     (https://tools.ietf.org/html/rfc8932). No API is provided for this
     tag. */
