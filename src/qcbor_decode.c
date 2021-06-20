@@ -2236,7 +2236,7 @@ ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
 
    const uint8_t uQCBORType = StringTagMap[uIndex].uQCBORtype;
    if(uQCBORType == QCBOR_TYPE_NONE) {
-      /* repurpose this error to mean, not handled here */
+      /* repurpose this error to mean not handled here */
       return QCBOR_ERR_UNSUPPORTED;
    }
 
@@ -2374,6 +2374,20 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
    pMe->InBuf = Save;
 
    return uErr;
+}
+
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
+void
+QCBORDecode_VPeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   pMe->uLastError = (uint8_t)QCBORDecode_PeekNext(pMe, pDecodedItem);
 }
 
 
@@ -2704,9 +2718,7 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
       return QCBOR_ERR_MEM_POOL_SIZE;
    }
 
-   pMe->StringAllocator.pfAllocator    = MemPool_Function;
-   pMe->StringAllocator.pAllocateCxt  = Pool.ptr;
-   pMe->bStringAllocateAll             = bAllStrings;
+   QCBORDecode_SetUpAllocator(pMe, MemPool_Function, Pool.ptr, bAllStrings);
 
    return QCBOR_SUCCESS;
 }
