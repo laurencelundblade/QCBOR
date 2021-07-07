@@ -1,9 +1,23 @@
+dist:
+  - bionic
+
 os:
   - linux
 
 language: c
 compiler:
   - gcc
+
+jobs:
+  include:
+  - name: "Default"
+    env: CMD_LINE=""
+  - name: "Disable float HW use"
+    env: CMD_LINE="-DQCBOR_DISABLE_FLOAT_HW_USE"
+  - name: "Disable preferred float"
+    env: CMD_LINE="-DQCBOR_DISABLE_PREFERRED_FLOAT"
+  - name: "Disable float HW use and preferred float"
+    env: CMD_LINE="-DQCBOR_DISABLE_FLOAT_HW_USE -DQCBOR_DISABLE_PREFERRED_FLOAT"
 
 env:
 sudo: false
