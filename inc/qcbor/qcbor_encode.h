@@ -1,6 +1,7 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -341,6 +342,11 @@ extern "C" {
  float type as 32-bits and a C double type as 64-bits. Floating-point
  epoch dates will be unsupported.
 
+ If USEFULBUF_DISABLE_ALL_FLOATis defined, then floating point support is
+ completely disabled. Decoding functions return @ref QCBOR_ERR_ALL_FLOAT_DISABLED
+ if a floating point value is encountered during decoding. Functions that are
+ encoding floating point values are not available.
+
  ## Limitations
 
  Summary Limits of this implementation:
@@ -588,6 +594,7 @@ static void QCBOREncode_AddSZStringToMap(QCBOREncodeContext *pCtx, const char *s
 static void QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const char *szString);
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /**
  @brief Add a double-precision floating-point number to the encoded output.
 
@@ -690,6 +697,7 @@ void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pCtx, float fNum);
 static void QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, float fNum);
 
 static void QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float fNum);
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 /**
@@ -2215,6 +2223,7 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pMe, int64_t nLabel, const cha
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 static inline void
 QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pMe, const char *szLabel, double dNum)
 {
@@ -2270,6 +2279,7 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe, int64_t nLabel, f
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddFloatNoPreferred(pMe, dNum);
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 

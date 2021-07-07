@@ -1,6 +1,7 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -637,16 +638,20 @@ const char *  UIBTest_IntegerFormat(void)
    const uint64_t u64 = 1984738472938472;
    const uint16_t u16 = 40000;
    const uint8_t  u8 = 9;
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    const float    f  = (float)314.15;
    const double   d  = 2.1e10;
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
    UsefulOutBuf_AppendUint32(&UOB, u32); // Also tests UsefulOutBuf_InsertUint64 and UsefulOutBuf_GetEndPosition
    UsefulOutBuf_AppendUint64(&UOB, u64); // Also tests UsefulOutBuf_InsertUint32
    UsefulOutBuf_AppendUint16(&UOB, u16); // Also tests UsefulOutBuf_InsertUint16
    UsefulOutBuf_AppendByte(&UOB, u8);
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    UsefulOutBuf_AppendFloat(&UOB, f); // Also tests UsefulOutBuf_InsertFloat
    UsefulOutBuf_AppendDouble(&UOB, d); // Also tests UsefulOutBuf_InsertDouble
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    const UsefulBufC O = UsefulOutBuf_OutUBuf(&UOB);
    if(UsefulBuf_IsNULLC(O))
@@ -678,12 +683,14 @@ const char *  UIBTest_IntegerFormat(void)
    if(UsefulInputBuf_GetByte(&UIB) != u8) {
       return "u8 out then in failed";
    }
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    if(UsefulInputBuf_GetFloat(&UIB) != f) {
       return "float out then in failed";
    }
    if(UsefulInputBuf_GetDouble(&UIB) != d) {
       return "double out then in failed";
    }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    // Reset and go again for a few more tests
    UsefulInputBuf_Init(&UIB, O);
@@ -696,6 +703,7 @@ const char *  UIBTest_IntegerFormat(void)
       return "Four compare failed";
    }
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    if(UsefulInputBuf_BytesUnconsumed(&UIB) != 23){
       return "Wrong number of unconsumed bytes";
    }
@@ -707,6 +715,18 @@ const char *  UIBTest_IntegerFormat(void)
    if(UsefulInputBuf_BytesAvailable(&UIB, 24)){
       return "Wrong number of bytes available II";
    }
+#else /* USEFULBUF_DISABLE_ALL_FLOAT */
+   if(UsefulInputBuf_BytesUnconsumed(&UIB) != 11){
+      return "Wrong number of unconsumed bytes";
+   }
+   if(!UsefulInputBuf_BytesAvailable(&UIB, 11)){
+      return "Wrong number of bytes available I";
+   }
+
+   if(UsefulInputBuf_BytesAvailable(&UIB, 12)){
+      return "Wrong number of bytes available II";
+   }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    UsefulInputBuf_Seek(&UIB, 0);
 
@@ -737,6 +757,7 @@ const char *  UIBTest_IntegerFormat(void)
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 const char *UBUTest_CopyUtil(void)
 {
    if(UsefulBufUtil_CopyFloatToUint32(65536.0F) != 0x47800000) {
@@ -757,6 +778,7 @@ const char *UBUTest_CopyUtil(void)
 
    return NULL;
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 

@@ -276,6 +276,13 @@ Roughly 900 bytes are saved, though about half of this
 can be saved just by not calling any functions that
 encode floating-point numbers.
 
+### #define USEFULBUF_DISABLE_ALL_FLOAT
+
+This eliminates floating point support completely (along with related function
+headers). This is useful if the compiler options deny the usage of floating
+point operations completely, and the usage soft floating point ABI is not
+possible.
+
 ### Compiler options
 
 Compilers support a number of options that control
@@ -515,3 +522,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ### Copyright for this README
 
 Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+Copyright (c) 2021, Arm Limited. All rights reserved.

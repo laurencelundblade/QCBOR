@@ -1,6 +1,7 @@
 /*============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2021, Arm Limited. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -138,6 +139,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     handle big and little-endian with system option.
  *   USEFULBUF_CONFIG_BSWAP -- With USEFULBUF_CONFIG_LITTLE_ENDIAN,
  *     use __builtin_bswapXX().
+ *
+ * It is possible to run this code in environments where using floating point is
+ * not allowed. Defining USEFULBUF_DISABLE_ALL_FLOAT will disable all the code
+ * that is related to handling floating point types, along with related
+ * interfaces. This makes it possible to compile the code with the compile
+ * option -mgeneral-regs-only.
  */
 
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN) && defined(USEFULBUF_CONFIG_LITTLE_ENDIAN)
@@ -679,6 +686,7 @@ static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
 
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /**
  * @brief Copy a @c float to a @c uint32_t.
  *
@@ -733,6 +741,7 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32);
  * is a crusty corner of C.
  */
 static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 
@@ -1032,6 +1041,7 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pUOutBuf,
                                              size_t uPos);
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /**
  * @brief Insert a @c float into the @ref UsefulOutBuf.
  *
@@ -1064,6 +1074,7 @@ static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *pUOutBuf,
 static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pUOutBuf,
                                              double d,
                                              size_t uPos);
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 /**
@@ -1162,6 +1173,7 @@ static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *pUOutBuf,
                                              uint64_t uInteger64);
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /**
  * @brief Append a @c float to the @ref UsefulOutBuf
  *
@@ -1190,6 +1202,7 @@ static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *pUOutBuf,
  */
 static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pUOutBuf,
                                              double d);
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 /**
@@ -1519,6 +1532,7 @@ static uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *pUInBuf);
 static uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pUInBuf);
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /**
  * @brief Get a float out of the input buffer.
  *
@@ -1547,6 +1561,7 @@ static float UsefulInputBuf_GetFloat(UsefulInputBuf *pUInBuf);
  * The input bytes are interpreted in network order (big endian).
  */
 static double UsefulInputBuf_GetDouble(UsefulInputBuf *pUInBuf);
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 /**
@@ -1778,6 +1793,7 @@ static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p)
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 static inline uint32_t UsefulBufUtil_CopyFloatToUint32(float f)
 {
    uint32_t u32;
@@ -1805,6 +1821,7 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32)
    memcpy(&f, &u32, sizeof(uint32_t));
    return f;
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 
@@ -1984,6 +2001,7 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pMe,
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *pMe,
                                             float f,
                                             size_t uPos)
@@ -1998,6 +2016,7 @@ static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pMe,
 {
    UsefulOutBuf_InsertUint64(pMe, UsefulBufUtil_CopyDoubleToUint64(d), uPos);
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe,
@@ -2055,6 +2074,7 @@ static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *pMe,
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *pMe,
                                             float f)
 {
@@ -2067,6 +2087,7 @@ static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pMe,
 {
    UsefulOutBuf_InsertDouble(pMe, d, UsefulOutBuf_GetEndPosition(pMe));
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 static inline int UsefulOutBuf_GetError(UsefulOutBuf *pMe)
@@ -2325,6 +2346,7 @@ static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pMe)
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 static inline float UsefulInputBuf_GetFloat(UsefulInputBuf *pMe)
 {
    uint32_t uResult = UsefulInputBuf_GetUint32(pMe);
@@ -2339,6 +2361,7 @@ static inline double UsefulInputBuf_GetDouble(UsefulInputBuf *pMe)
 
    return uResult ? UsefulBufUtil_CopyUint64ToDouble(uResult) : 0;
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 static inline int UsefulInputBuf_GetError(UsefulInputBuf *pMe)

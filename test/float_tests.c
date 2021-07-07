@@ -2,6 +2,7 @@
  float_tests.c -- tests for float and conversion to/from half-precision
 
  Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2021, Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -648,6 +649,7 @@ static const uint8_t spExpectedFloats[] = {
          0x18, 0x6A,
           0xFA, 0x00, 0x00, 0x00, 0x00};
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 static const uint8_t spExpectedFloatsNoHalf[] = {
    0x8B,
       0xFB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -749,6 +751,7 @@ static int CHECK_EXPECTED_DOUBLE(double val, double expected)
       return 0;
    }
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 int32_t GeneralFloatDecodeTests()
@@ -766,133 +769,164 @@ int32_t GeneralFloatDecodeTests()
       return -1;
    }
 
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      Item.val.dfnum != 0.0) {
+   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || Item.val.dfnum != 0.0
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+   ) {
       return -2;
    }
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
-      return -3;
-   }
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      Item.val.dfnum != 3.14) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || Item.val.dfnum != 3.14
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+   ) {
       return -4;
    }
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      Item.val.dfnum != 0.0) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || Item.val.dfnum != 0.0
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+   ) {
       return -5;
    }
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      !isnan(Item.val.dfnum)) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || !isnan(Item.val.dfnum)
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+   ) {
       return -6;
    }
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      Item.val.dfnum != INFINITY) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || Item.val.dfnum != INFINITY
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+   ) {
       return -7;
    }
 
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   // Tests for normal config
+// Tests for normal config
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      Item.val.dfnum != 0.0) {
+   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || Item.val.dfnum != 0.0
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+   ) {
       return -8;
    }
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-      // Tests for preferred serialization turned off
-      uErr = QCBORDecode_GetNext(&DC, &Item);
-      if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
-         return -13;
-      }
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      CHECK_EXPECTED_DOUBLE(3.14, Item.val.dfnum)) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || CHECK_EXPECTED_DOUBLE(3.14, Item.val.dfnum)
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+   ) {
       return -9;
    }
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      Item.val.dfnum != 0.0) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || Item.val.dfnum != 0.0
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+   ) {
       return -10;
    }
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      !isnan(Item.val.dfnum)) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || !isnan(Item.val.dfnum)
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+   ) {
       return -11;
    }
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      Item.val.dfnum != INFINITY) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || Item.val.dfnum != INFINITY
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+   ) {
       return -12;
    }
 
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
    // Tests for floating point HW use disabled
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_FLOAT ||
-      CHECK_EXPECTED_DOUBLE(3.14, Item.val.fnum)) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.uDataType != QCBOR_TYPE_FLOAT
+      || CHECK_EXPECTED_DOUBLE(3.14, Item.val.fnum)
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+   ) {
       return -9;
    }
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_FLOAT ||
-      Item.val.fnum != 0.0) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.uDataType != QCBOR_TYPE_FLOAT
+      || Item.val.fnum != 0.0
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+   ) {
       return -10;
    }
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_FLOAT ||
-      !isnan(Item.val.fnum)) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.uDataType != QCBOR_TYPE_FLOAT
+      || !isnan(Item.val.fnum)
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+   ) {
       return -11;
    }
 
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_FLOAT ||
-      Item.val.fnum != INFINITY) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.uDataType != QCBOR_TYPE_FLOAT
+      || Item.val.fnum != INFINITY
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+   ) {
       return -12;
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
 
    /* Sufficent test coverage. Don't need to decode the rest */
 
 
    // Now tests for spiffy decode
    TestData = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    double d;
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    QCBORDecode_Init(&DC, TestData, 0);
    QCBORDecode_EnterArray(&DC, NULL);
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
    // Spiffy decode tests for normal full float support
@@ -1135,6 +1169,7 @@ int32_t GeneralFloatDecodeTests()
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    return 0;
 }

@@ -2,6 +2,7 @@
   qcbor_spiffy_decode.h -- higher-level easier-to-use CBOR decoding.
 
   Copyright (c) 2020-2021, Laurence Lundblade. All rights reserved.
+  Copyright (c) 2021, Arm Limited. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 
@@ -244,6 +245,9 @@ static void QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pCtx,
  this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
  a half-precision number is encountered.
 
+ If floating-point usage is disabled this will set @ref QCBOR_ERR_ALL_FLOAT_DISABLED
+ if a floating point value is encountered.
+
  See also QCBORDecode_GetInt64ConvertAll() which will perform the same
  conversions as this and a lot more at the cost of adding more object
  code to your executable.
@@ -352,6 +356,9 @@ static void QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pCtx,
  this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
  a half-precision number is encountered.
 
+ If floating-point usage is disabled this will set @ref QCBOR_ERR_ALL_FLOAT_DISABLED
+ if a floating point value is encountered.
+
  See also QCBORDecode_GetUInt64Convert() and
  QCBORDecode_GetUInt64ConvertAll().
 */
@@ -455,6 +462,7 @@ static void QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pCtx,
 
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /**
  @brief Decode next item into a double floating-point value.
 
@@ -570,6 +578,7 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
                                             const char         *szLabel,
                                             uint32_t            uConvertTypes,
                                             double             *pdValue);
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 
@@ -1022,10 +1031,13 @@ static void QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pCtx,
 
  Floating-point dates that are plus infinity, minus infinity or NaN
  (not-a-number) will result in the @ref QCBOR_ERR_DATE_OVERFLOW
- error. If the QCBOR library is compiled with floating-point disabled,
+ error. If the QCBOR library is compiled with hardware floating-point disabled,
  @ref QCBOR_ERR_HW_FLOAT_DISABLED is set. If compiled with preferred
  float disabled, half-precision dates will result in the @ref
  QCBOR_ERR_HALF_PRECISION_DISABLED error.
+
+ If the QCBOR library is compiled with floating-point disabled,
+ @ref QCBOR_ERR_ALL_FLOAT_DISABLED is set.
 
  Please see @ref Decode-Errors-Overview "Decode Errors Overview".
 
@@ -1866,6 +1878,7 @@ QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pMe,
 
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 // Semi-private
 void
 QCBORDecode_GetDoubleConvertInternal(QCBORDecodeContext *pMe,
@@ -1954,6 +1967,7 @@ QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pMe,
                                        QCBOR_CONVERT_TYPE_FLOAT,
                                        pdValue);
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 

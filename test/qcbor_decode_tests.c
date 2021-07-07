@@ -1,6 +1,7 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -2418,8 +2419,11 @@ int32_t DateParseTest()
       return -4;
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-      Item.val.epochDate.nSeconds != 1400000000 ||
-      Item.val.epochDate.fSecondsFraction != 0 ) {
+      Item.val.epochDate.nSeconds != 1400000000
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || Item.val.epochDate.fSecondsFraction != 0
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+     ) {
       return -5;
    }
 
@@ -2436,7 +2440,9 @@ int32_t DateParseTest()
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
       Item.val.epochDate.nSeconds != 1400000001 ||
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
       Item.val.epochDate.fSecondsFraction != 0 ||
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
       !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_ENC_AS_B64)) {
       return -8;
    }
@@ -2446,14 +2452,18 @@ int32_t DateParseTest()
       return -9;
    }
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
    // Epoch date in float format with fractional seconds
    if((uError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return -10;
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-      Item.val.epochDate.nSeconds != 1 ||
-      CHECK_EXPECTED_DOUBLE(Item.val.epochDate.fSecondsFraction, 0.1 )) {
+      Item.val.epochDate.nSeconds != 1
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+      || CHECK_EXPECTED_DOUBLE(Item.val.epochDate.fSecondsFraction, 0.1 )
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+     ) {
       return -11;
    }
 
@@ -2526,6 +2536,7 @@ int32_t DateParseTest()
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    return 0;
 }
@@ -2655,11 +2666,11 @@ int32_t SpiffyDateDecodeTest()
    QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
    uError = QCBORDecode_GetAndResetError(&DC);
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   if(uError != QCBOR_ERR_DATE_OVERFLOW) {
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_DATE_OVERFLOW)) {
       return 1111;
    }
 #else
-   if(uError != QCBOR_ERR_FLOAT_DATE_DISABLED) {
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_FLOAT_DATE_DISABLED)) {
       return 1112;
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
@@ -2676,12 +2687,12 @@ int32_t SpiffyDateDecodeTest()
    uError = QCBORDecode_GetAndResetError(&DC);
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   const QCBORError uExpectedforHalfMinusInfinity = QCBOR_ERR_DATE_OVERFLOW;
+   const QCBORError uExpectedforHalfMinusInfinity = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_DATE_OVERFLOW);
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
-   const QCBORError uExpectedforHalfMinusInfinity = QCBOR_ERR_FLOAT_DATE_DISABLED;
+   const QCBORError uExpectedforHalfMinusInfinity = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_FLOAT_DATE_DISABLED);
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   const QCBORError uExpectedforHalfMinusInfinity = QCBOR_ERR_HALF_PRECISION_DISABLED;
+   const QCBORError uExpectedforHalfMinusInfinity = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_HALF_PRECISION_DISABLED);
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
    if(uError != uExpectedforHalfMinusInfinity) {
       return 2;
@@ -2715,7 +2726,7 @@ int32_t SpiffyDateDecodeTest()
    }
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_FLOAT_DATE_DISABLED) {
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_FLOAT_DATE_DISABLED)) {
       return 102;
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
@@ -2729,7 +2740,7 @@ int32_t SpiffyDateDecodeTest()
    }
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_FLOAT_DATE_DISABLED) {
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_FLOAT_DATE_DISABLED)) {
       return 112;
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
@@ -2743,7 +2754,7 @@ int32_t SpiffyDateDecodeTest()
    }
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_FLOAT_DATE_DISABLED) {
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_FLOAT_DATE_DISABLED)) {
       return 104;
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
@@ -5483,11 +5494,11 @@ int32_t EnterMapTest()
    QCBORDecode_GetEpochDateInMapN(&DCtx, 0x04, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   if(uErr != QCBOR_ERR_DATE_OVERFLOW) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_DATE_OVERFLOW)) {
       return 2024;
    }
 #else
-   if(uErr != QCBOR_ERR_FLOAT_DATE_DISABLED) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_FLOAT_DATE_DISABLED)) {
       return 2027;
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
@@ -5831,14 +5842,14 @@ static const struct NumberConversion NumberConversions[] = {
       {(uint8_t[]){0xfb, 0x40, 0x59, 0x13, 0x33, 0x33, 0x33, 0x33, 0x33}, 9},
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
       100L,
-      QCBOR_SUCCESS,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS),
       100ULL,
-      QCBOR_SUCCESS,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS),
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
       0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_HW_FLOAT_DISABLED),
       0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_HW_FLOAT_DISABLED),
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
       100.3,
       QCBOR_SUCCESS
@@ -5846,50 +5857,32 @@ static const struct NumberConversion NumberConversions[] = {
    {
       "Floating point value NaN 0xfa7fc00000",
       {(uint8_t[]){0xfa, 0x7f, 0xc0, 0x00, 0x00}, 5},
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
       0,
-      QCBOR_ERR_FLOAT_EXCEPTION,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
       0,
-      QCBOR_ERR_FLOAT_EXCEPTION,
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
       NAN,
       QCBOR_SUCCESS
    },
    {
       "half-precision Floating point value -4",
       {(uint8_t[]){0xf9, 0xc4, 0x00}, 3},
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
       // Normal case with all enabled.
       -4,
-      QCBOR_SUCCESS,
+      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_SUCCESS),
       0,
-      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       -4.0,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-      // Float HW disabled
-      -4,
-      QCBOR_ERR_HW_FLOAT_DISABLED, // Can't convert to integer
+      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_SUCCESS)
+#else /* USEFULBUF_DISABLE_ALL_FLOAT */
       0,
-      QCBOR_ERR_HW_FLOAT_DISABLED, // Can't convert to integer
-      -4.0,
-      QCBOR_SUCCESS // Uses ieee754.h to conver, not HW
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-      // Half-precision disabled
-      -4,
-      QCBOR_ERR_HALF_PRECISION_DISABLED,
+      QCBOR_ERR_ALL_FLOAT_DISABLED,
       0,
-      QCBOR_ERR_HALF_PRECISION_DISABLED,
-      -4.0,
-      QCBOR_ERR_HALF_PRECISION_DISABLED
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+      QCBOR_ERR_ALL_FLOAT_DISABLED,
+      0,
+      QCBOR_ERR_ALL_FLOAT_DISABLED,
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    },
    {
       "Decimal fraction 3/10",
@@ -5913,17 +5906,10 @@ static const struct NumberConversion NumberConversions[] = {
    {
       "+inifinity",
       {(uint8_t[]){0xfa, 0x7f, 0x80, 0x00, 0x00}, 5},
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
       0,
-      QCBOR_ERR_FLOAT_EXCEPTION,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       INFINITY,
       QCBOR_SUCCESS
    },
@@ -7123,6 +7109,7 @@ int32_t SpiffyIndefiniteLengthStringsTests()
       return 4;
    }
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    double uDouble;
    QCBORDecode_GetDoubleConvertAllInMapSZ(&DCtx,
                                           "label2",
@@ -7140,6 +7127,7 @@ int32_t SpiffyIndefiniteLengthStringsTests()
       return 7;
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
    QCBORDecode_ExitMap(&DCtx);
