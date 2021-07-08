@@ -18,6 +18,10 @@ jobs:
     env: CMD_LINE="-DQCBOR_DISABLE_PREFERRED_FLOAT"
   - name: "Disable float HW use and preferred float"
     env: CMD_LINE="-DQCBOR_DISABLE_FLOAT_HW_USE -DQCBOR_DISABLE_PREFERRED_FLOAT"
+  - name: "Disable floating point"
+    env: CMD_LINE="-DQCBOR_DISABLE_FLOATING_POINT"
+  - name: "Disable floating point in build and in compiler"
+    env: CMD_LINE="-mgeneral-regs-only -DQCBOR_DISABLE_FLOATING_POINT"
 
 env:
 sudo: false
