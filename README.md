@@ -227,6 +227,10 @@ floating-point numbers.
 Defining QCBOR_DISABLE_FLOAT_HW_USE will save a small amount of object
 code. Its main use is on CPUs that have no floating-point hardware.
 
+QCBOR_DISABLE_FLOATING_POINT -- Eliminates Floating point support completely
+(along with related function headers). This is useful if the compiler options
+deny the usage of floating point operations completely.
+
 See discussion in qcbor_encode.h for details.
 G
 ## Comparison to TinyCBOR
@@ -454,3 +458,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ### Copyright for this README
 
 Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+Copyright (c) 2021, Arm Limited. All rights reserved.

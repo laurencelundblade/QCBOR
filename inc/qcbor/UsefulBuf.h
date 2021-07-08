@@ -1,6 +1,7 @@
 /*============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2021, Arm Limited. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -640,6 +641,7 @@ static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
 
 
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 /**
  * @brief Copy a @c float to a @c uint32_t.
  *
@@ -694,6 +696,7 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32);
  * is a crusty corner of C.
  */
 static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
 
 
@@ -993,6 +996,7 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pUOutBuf,
                                              size_t uPos);
 
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 /**
  * @brief Insert a @c float into the @ref UsefulOutBuf.
  *
@@ -1025,6 +1029,7 @@ static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *pUOutBuf,
 static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pUOutBuf,
                                              double d,
                                              size_t uPos);
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
 
 /**
@@ -1123,6 +1128,7 @@ static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *pUOutBuf,
                                              uint64_t uInteger64);
 
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 /**
  * @brief Append a @c float to the @ref UsefulOutBuf
  *
@@ -1151,6 +1157,7 @@ static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *pUOutBuf,
  */
 static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pUOutBuf,
                                              double d);
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
 
 /**
@@ -1480,6 +1487,7 @@ static uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *pUInBuf);
 static uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pUInBuf);
 
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 /**
  * @brief Get a float out of the input buffer.
  *
@@ -1508,6 +1516,7 @@ static float UsefulInputBuf_GetFloat(UsefulInputBuf *pUInBuf);
  * The input bytes are interpreted in network order (big endian).
  */
 static double UsefulInputBuf_GetDouble(UsefulInputBuf *pUInBuf);
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
 
 /**
@@ -1711,6 +1720,7 @@ static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p)
 }
 
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 static inline uint32_t UsefulBufUtil_CopyFloatToUint32(float f)
 {
    uint32_t u32;
@@ -1738,6 +1748,7 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32)
    memcpy(&f, &u32, sizeof(uint32_t));
    return f;
 }
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
 
 
@@ -1915,6 +1926,7 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pMe,
 }
 
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *pMe,
                                             float f,
                                             size_t uPos)
@@ -1929,6 +1941,7 @@ static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pMe,
 {
    UsefulOutBuf_InsertUint64(pMe, UsefulBufUtil_CopyDoubleToUint64(d), uPos);
 }
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
 
 static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe,
@@ -1982,6 +1995,7 @@ static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *pMe,
 }
 
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *pMe,
                                             float f)
 {
@@ -1994,6 +2008,7 @@ static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pMe,
 {
    UsefulOutBuf_InsertDouble(pMe, d, UsefulOutBuf_GetEndPosition(pMe));
 }
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
 
 static inline int UsefulOutBuf_GetError(UsefulOutBuf *pMe)
@@ -2249,6 +2264,7 @@ static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pMe)
 }
 
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 static inline float UsefulInputBuf_GetFloat(UsefulInputBuf *pMe)
 {
    uint32_t uResult = UsefulInputBuf_GetUint32(pMe);
@@ -2263,6 +2279,7 @@ static inline double UsefulInputBuf_GetDouble(UsefulInputBuf *pMe)
 
    return uResult ? UsefulBufUtil_CopyUint64ToDouble(uResult) : 0;
 }
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
 
 static inline int UsefulInputBuf_GetError(UsefulInputBuf *pMe)

@@ -1,6 +1,7 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -839,6 +840,7 @@ DecodeInteger(int nMajorType, uint64_t uArgument, QCBORItem *pDecodedItem)
  * @param[out] pDecodedItem     The filled in decoded item.
  *
  * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
+ * @retval QCBOR_ERR_FLOAT_DISABLED
  * @retval QCBOR_ERR_BAD_TYPE_7
  */
 
@@ -860,6 +862,7 @@ DecodeType7(int nAdditionalInfo, uint64_t uArgument, QCBORItem *pDecodedItem)
        */
 
       case HALF_PREC_FLOAT: /* 25 */
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          /* Half-precision is returned as a double.  The cast to
           * uint16_t is safe because the encoded value was 16 bits. It
@@ -870,8 +873,12 @@ DecodeType7(int nAdditionalInfo, uint64_t uArgument, QCBORItem *pDecodedItem)
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
          uReturn = QCBOR_ERR_HALF_PRECISION_DISABLED;
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#else /* QCBOR_DISABLE_FLOATING_POINT */
+         uReturn = QCBOR_ERR_FLOAT_DISABLED;
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
          break;
       case SINGLE_PREC_FLOAT: /* 26 */
+#ifndef QCBOR_DISABLE_FLOATING_POINT
          /* Single precision is normally returned as a double since
           * double is widely supported, there is no loss of precision,
           * it makes it easy for the caller in most cases and it can
@@ -899,11 +906,18 @@ DecodeType7(int nAdditionalInfo, uint64_t uArgument, QCBORItem *pDecodedItem)
              */
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          }
+#else /* QCBOR_DISABLE_FLOATING_POINT */
+         uReturn = QCBOR_ERR_FLOAT_DISABLED;
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
          break;
 
       case DOUBLE_PREC_FLOAT: /* 27 */
+#ifndef QCBOR_DISABLE_FLOATING_POINT
          pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uArgument);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
+#else /* QCBOR_DISABLE_FLOATING_POINT */
+         uReturn = QCBOR_ERR_FLOAT_DISABLED;
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
          break;
 
       case CBOR_SIMPLEV_FALSE: /* 20 */
@@ -1068,6 +1082,7 @@ static inline uint8_t ConvertArrayOrMapType(int nCBORMajorType)
  * @retval QCBOR_ERR_STRING_ALLOCATE
  * @retval QCBOR_ERR_STRING_TOO_LONG
  * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
+ * @retval QCBOR_ERR_FLOAT_DISABLED
  * @retval QCBOR_ERR_BAD_TYPE_7
  * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
  *
@@ -1179,6 +1194,7 @@ Done:
  * @retval QCBOR_ERR_STRING_ALLOCATE
  * @retval QCBOR_ERR_STRING_TOO_LONG
  * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
+ * @retval QCBOR_ERR_FLOAT_DISABLED
  * @retval QCBOR_ERR_BAD_TYPE_7
  * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
  * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
@@ -1412,6 +1428,7 @@ UnMapTagNumber(const QCBORDecodeContext *pMe, uint16_t uMappedTagNumber)
  * @retval QCBOR_ERR_STRING_ALLOCATE
  * @retval QCBOR_ERR_STRING_TOO_LONG
  * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
+ * @retval QCBOR_ERR_FLOAT_DISABLED
  * @retval QCBOR_ERR_BAD_TYPE_7
  * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
  * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
@@ -1494,6 +1511,7 @@ Done:
  * @retval QCBOR_ERR_STRING_ALLOCATE
  * @retval QCBOR_ERR_STRING_TOO_LONG
  * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
+ * @retval QCBOR_ERR_FLOAT_DISABLED
  * @retval QCBOR_ERR_BAD_TYPE_7
  * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
  * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
@@ -1733,6 +1751,7 @@ Done:
  * @retval QCBOR_ERR_STRING_ALLOCATE
  * @retval QCBOR_ERR_STRING_TOO_LONG
  * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
+ * @retval QCBOR_ERR_FLOAT_DISABLED
  * @retval QCBOR_ERR_BAD_TYPE_7
  * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
  * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
@@ -1893,6 +1912,7 @@ static inline void ShiftTags(QCBORItem *pDecodedItem)
  *
  * @retval QCBOR_ERR_DATE_OVERFLOW
  * @retval QCBOR_ERR_FLOAT_DATE_DISABLED
+ * @retval QCBOR_ERR_FLOAT_DISABLED
  * @retval QCBOR_ERR_BAD_TAG_CONTENT
  *
  * The epoch date tag defined in QCBOR allows for floating-point
@@ -1907,7 +1927,9 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
 {
    QCBORError uReturn = QCBOR_SUCCESS;
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
    pDecodedItem->val.epochDate.fSecondsFraction = 0;
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
    switch (pDecodedItem->uDataType) {
 
@@ -1994,6 +2016,7 @@ Done:
  *
  * @retval QCBOR_ERR_DATE_OVERFLOW
  * @retval QCBOR_ERR_FLOAT_DATE_DISABLED
+ * @retval QCBOR_ERR_FLOAT_DISABLED
  * @retval QCBOR_ERR_BAD_TAG_CONTENT
  *
  * This is much simpler than the other epoch date format because
@@ -5051,6 +5074,7 @@ void QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe,
 
 
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 static QCBORError ConvertDouble(const QCBORItem *pItem,
                                 uint32_t         uConvertTypes,
                                 double          *pdValue)
@@ -5373,6 +5397,7 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe,
 
    pMe->uLastError = (uint8_t)DoubleConvertAll(&Item, uConvertTypes, pdValue);
 }
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
 
 

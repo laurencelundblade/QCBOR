@@ -1,6 +1,7 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,6 +59,17 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define QCBOR_DISABLE_EXP_AND_MANTISSA
 #endif
 
+/* If QCBOR_DISABLE_FLOATING_POINT is defined then define
+ * QCBOR_DISABLE_FLOAT_HW_USE and QCBOR_DISABLE_PREFERRED_FLOAT
+ */
+#ifdef QCBOR_DISABLE_FLOATING_POINT
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#define QCBOR_DISABLE_FLOAT_HW_USE
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+#define QCBOR_DISABLE_PREFERRED_FLOAT
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
 /* Standard CBOR Major type for positive integers of various lengths */
 #define CBOR_MAJOR_TYPE_POSITIVE_INT 0
@@ -494,17 +506,23 @@ typedef enum {
        attempted. */
    QCBOR_ERR_FLOAT_EXCEPTION = 42,
 
+#ifdef QCBOR_DISABLE_FLOATING_POINT
+   /** Floating point support is completely turned off, encoding/decoding
+       floating point numbers is not possible. */
+   QCBOR_ERR_FLOAT_DISABLED = 43,
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
+
    /** Indefinite length string handling is disabled and there is an
        indefinite length string in the input CBOR. */
-   QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED = 43,
+   QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED = 44,
 
    /** Indefinite length arrays and maps handling are disabled and there is an
        indefinite length map or array in the input CBOR. */
-   QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED = 44,
+   QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED = 45,
 
    /** Trying to cancel a byte string wrapping after items have been
        added to it. */
-   QCBOR_ERR_CANNOT_CANCEL = 45,
+   QCBOR_ERR_CANNOT_CANCEL = 46,
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;

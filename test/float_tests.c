@@ -2,6 +2,7 @@
  float_tests.c -- tests for float and conversion to/from half-precision
 
  Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2021, Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -648,6 +649,7 @@ static const uint8_t spExpectedFloats[] = {
          0x18, 0x6A,
           0xFA, 0x00, 0x00, 0x00, 0x00};
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 static const uint8_t spExpectedFloatsNoHalf[] = {
    0x8B,
       0xFB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -749,6 +751,7 @@ static int CHECK_EXPECTED_DOUBLE(double val, double expected)
       return 0;
    }
 }
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
 
 int32_t GeneralFloatDecodeTests()
@@ -766,6 +769,7 @@ int32_t GeneralFloatDecodeTests()
       return -1;
    }
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != QCBOR_SUCCESS ||
@@ -808,6 +812,30 @@ int32_t GeneralFloatDecodeTests()
       return -7;
    }
 
+#else /* QCBOR_DISABLE_FLOATING_POINT */
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_FLOAT_DISABLED) {
+      return -20;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_FLOAT_DISABLED) {
+      return -21;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_FLOAT_DISABLED) {
+      return -22;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_FLOAT_DISABLED) {
+      return -23;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_FLOAT_DISABLED) {
+      return -24;
+   }
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
+
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    // Tests for normal config
    uErr = QCBORDecode_GetNext(&DC, &Item);
@@ -883,16 +911,41 @@ int32_t GeneralFloatDecodeTests()
       return -12;
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* QCBOR_DISABLE_FLOATING_POINT */
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_FLOAT_DISABLED) {
+      return -25;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_FLOAT_DISABLED) {
+      return -26;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_FLOAT_DISABLED) {
+      return -27;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_FLOAT_DISABLED) {
+      return -28;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_FLOAT_DISABLED) {
+      return -29;
+   }
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
    /* Sufficent test coverage. Don't need to decode the rest */
 
 
    // Now tests for spiffy decode
    TestData = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
+#ifndef QCBOR_DISABLE_FLOATING_POINT
    double d;
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
    QCBORDecode_Init(&DC, TestData, 0);
    QCBORDecode_EnterArray(&DC, NULL);
 
+#ifndef QCBOR_DISABLE_FLOATING_POINT
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
    // Spiffy decode tests for normal full float support
@@ -1135,6 +1188,7 @@ int32_t GeneralFloatDecodeTests()
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* QCBOR_DISABLE_FLOATING_POINT */
 
    return 0;
 }
