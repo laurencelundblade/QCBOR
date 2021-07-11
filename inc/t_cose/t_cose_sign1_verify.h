@@ -167,7 +167,7 @@ struct t_cose_parameters {
  * this option the \c verification_key is not needed.  This is useful
  * to decode the \c COSE_Sign1 message to get the kid (key ID).  The
  * verification key can be looked up or otherwise obtained by the
- * caller. Once the key in hand, t_cose_sign1_verify() can be
+ * caller. Once the key in in hand, t_cose_sign1_verify() can be
  * called again to perform the full verification.
  *
  * The payload will always be returned whether this is option is given
@@ -346,34 +346,30 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
                         struct t_cose_parameters       *parameters);
 
 
+
 /**
- * \brief Private function to verify a COSE_Sign1.
+ * \brief Verify a COSE_Sign1 with detached payload
  *
  * \param[in,out] context   The t_cose signature verification context.
- * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
+ * \param[in] cose_sign1         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          message that is to be verified.
  * \param[in] aad           The Additional Autenticated Data.
- * \param[in,out] payload   Pointer and length of the payload.
- * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
- * \param[in] is_dc         Indicator of detached content mode.
+ * \param[in] detached_payload      Pointer and length of the payload.
+ * \param[out] returned_parameters   Place to return parsed parameters. Maybe be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * This is just like t_cose_sign1_verify(), but additionally allows
- * passing AAD (Additional Authenticated Data) and specify to verify
- * the detached content mode payload. Calling this with
- * \c aad as \c NULL_Q_USEFUL_BUF_C is the same as calling
- * t_cose_sign1_verify().  See t_cose_sign1_encode_signature() for
- * more details on AAD.
+ * This is just like t_cose_sign1_verify_aad(), but for use with a
+ * detached payload. Instead of the payload being returned, it must be
+ * passed in as it must have arrived separately from the COSE_Sign1.
+ * The signature covers it so it must be passed in to complete the verification.
  */
-enum t_cose_err_t
-t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *context,
-                             struct q_useful_buf_c           sign1,
+static inline enum t_cose_err_t
+t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *context,
+                             struct q_useful_buf_c           cose_sign1,
                              struct q_useful_buf_c           aad,
-                             struct q_useful_buf_c          *payload,
-                             struct t_cose_parameters       *parameters,
-                             bool                            is_dc);
-
+                             struct q_useful_buf_c           detached_payload,
+                             struct t_cose_parameters       *returned_parameters);
 
 
 /**
@@ -432,24 +428,48 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
 }
 
 
-static inline enum t_cose_err_t
-t_cose_sign1_verify_aad_dc(struct t_cose_sign1_verify_ctx *me,
-                           struct q_useful_buf_c           cose_sign1,
-                           struct q_useful_buf_c           aad,
-                           struct q_useful_buf_c           detached_payload,
-                           struct t_cose_parameters       *returned_parameters)
-{
-     return t_cose_sign1_verify_internal(me, cose_sign1, aad, &detached_payload, returned_parameters, true);
-}
+/**
+ * \brief Private function to verify a COSE_Sign1.
+ *
+ * \param[in,out] context   The t_cose signature verification context.
+ * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
+ *                          message that is to be verified.
+ * \param[in] aad           The Additional Autenticated Data. May be \c NULL_Q_USEFUL_BUF_C.
+ * \param[in,out] payload   Pointer and length of the payload.
+ * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
+ * \param[in] is_detached         Indicator of detached content mode.
+ *
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ *
+ * This is just like t_cose_sign1_verify(), but additionally allows
+ * passing AAD (Additional Authenticated Data) and specify to verify
+ * the detached content mode payload. Calling this with
+ * \c aad as \c NULL_Q_USEFUL_BUF_C is the same as calling
+ * t_cose_sign1_verify().  See t_cose_sign1_encode_signature() for
+ * more details on AAD.
+ */
+enum t_cose_err_t
+t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *context,
+                             struct q_useful_buf_c           sign1,
+                             struct q_useful_buf_c           aad,
+                             struct q_useful_buf_c          *payload,
+                             struct t_cose_parameters       *parameters,
+                             bool                            is_detached);
 
 
 static inline enum t_cose_err_t
-t_cose_sign1_verify_dc(struct t_cose_sign1_verify_ctx *me,
-                       struct q_useful_buf_c           cose_sign1,
-                       struct q_useful_buf_c           detached_payload,
-                       struct t_cose_parameters       *returned_parameters)
+t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
+                             struct q_useful_buf_c           cose_sign1,
+                             struct q_useful_buf_c           aad,
+                             struct q_useful_buf_c           detached_payload,
+                             struct t_cose_parameters       *returned_parameters)
 {
-     return t_cose_sign1_verify_internal(me, cose_sign1, NULL_Q_USEFUL_BUF_C, &detached_payload, returned_parameters, true);
+     return t_cose_sign1_verify_internal(me,
+                                         cose_sign1,
+                                         aad,
+                                         &detached_payload,
+                                         returned_parameters,
+                                         true);
 }
 
 

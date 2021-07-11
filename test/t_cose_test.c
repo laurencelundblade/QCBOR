@@ -158,15 +158,16 @@ int_fast32_t short_circuit_self_detached_content_test()
 
     /* --- Make COSE Sign1 object --- */
     t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG | T_COSE_OPT_DETACHED_CONTENT,
+                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
                            T_COSE_ALGORITHM_ES256);
 
     /* No key necessary because short-circuit test mode is used */
 
-    result = t_cose_sign1_sign(&sign_ctx,
-                                     s_input_payload,
-                                     signed_cose_buffer,
-                                     &signed_cose);
+    result = t_cose_sign1_sign_detached(&sign_ctx,
+                                          NULL_Q_USEFUL_BUF_C,
+                                          s_input_payload,
+                                          signed_cose_buffer,
+                                         &signed_cose);
     if(result) {
         return 1000 + (int32_t)result;
     }
@@ -183,13 +184,15 @@ int_fast32_t short_circuit_self_detached_content_test()
     payload = s_input_payload;
 
     /* Run the signature verification */
-    result = t_cose_sign1_verify_dc(&verify_ctx,
-                                    /* COSE to verify */
-                                    signed_cose,
-                                    /* The detached payload */
-                                    payload,
-                                    /* Don't return parameters */
-                                    NULL);
+    result = t_cose_sign1_verify_detached(&verify_ctx,
+                                          /* COSE to verify */
+                                          signed_cose,
+                                          /* No AAD */
+                                          NULL_Q_USEFUL_BUF_C,
+                                          /* The detached payload */
+                                          payload,
+                                          /* Don't return parameters */
+                                          NULL);
     if(result) {
         return 2000 + (int32_t)result;
     }
