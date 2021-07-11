@@ -36,6 +36,18 @@ int_fast32_t short_circuit_self_test(void);
 
 
 /**
+ * \brief COSE detached content test using a short-circuit signature.
+ *
+ * \return non-zero on failure.
+ *
+ * This test makes a detached content COSE_Sign1 and verify it.  It uses
+ * short-circuit signatures so no keys or even integration with public
+ * key crypto is necessary.
+ */
+int_fast32_t short_circuit_self_detached_content_test(void);
+
+
+/**
  * \brief Test where payload bytes are corrupted and sig fails.
  *
  * \return non-zero on failure.

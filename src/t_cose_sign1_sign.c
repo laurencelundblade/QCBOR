@@ -230,21 +230,10 @@ add_unprotected_parameters(const struct t_cose_sign1_sign_ctx *me,
     return T_COSE_SUCCESS;
 }
 
-
-/*
- * Public function. See t_cose_sign1_sign.h
- */
 enum t_cose_err_t
 t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *me,
                                QCBOREncodeContext           *cbor_encode_ctx)
 {
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    28          16
-     *   QCBOR   (guess)                               32          24
-     *   max(encode_protected, add_unprotected)        48          32
-     *   TOTAL                                        108          72
-     */
     enum t_cose_err_t      return_value;
     struct q_useful_buf_c  kid;
     int32_t                hash_alg_id;
@@ -291,7 +280,9 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *me,
         goto Done;
     }
 
-    QCBOREncode_BstrWrap(cbor_encode_ctx);
+    if (!(me->option_flags & T_COSE_OPT_DETACHED_CONTENT)) {
+        QCBOREncode_BstrWrap(cbor_encode_ctx);
+    }
 
     /* Any failures in CBOR encoding will be caught in finish when the
      * CBOR encoding is closed off. No need to track here as the CBOR
@@ -303,25 +294,12 @@ Done:
 }
 
 
-/*
- * Public function. See t_cose_sign1_sign.h
- */
 enum t_cose_err_t
-t_cose_sign1_encode_signature_aad(struct t_cose_sign1_sign_ctx *me,
-                                  struct q_useful_buf_c         aad,
-                                  QCBOREncodeContext           *cbor_encode_ctx)
+t_cose_sign1_encode_signature_internal(struct t_cose_sign1_sign_ctx *me,
+                                       struct q_useful_buf_c         aad,
+                                       struct q_useful_buf_c         payload,
+                                       QCBOREncodeContext           *cbor_encode_ctx)
 {
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    64          32
-     *   hash buffer (varies by hashes enabled)     32-64       32-64
-     *   signature buffer (varies by EC key size)  64-132      64-132
-     *   QCBOR   (guess)                               32          24
-     *   max(create_tbs_hash, pub_key_sign)
-     *    32-748 ; 30-746
-     *    64-1024 (wild guess about crypto)       64-1024      64-1024
-     *   TOTAL                                   224-1316     216-1276
-     */
     enum t_cose_err_t            return_value;
     QCBORError                   cbor_err;
     /* pointer and length of the completed tbs hash */
@@ -334,7 +312,12 @@ t_cose_sign1_encode_signature_aad(struct t_cose_sign1_sign_ctx *me,
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        signed_payload;
 
-    QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
+
+    if(!(me->option_flags & T_COSE_OPT_DETACHED_CONTENT)) {
+        QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
+    } else {
+        signed_payload = payload;
+    }
 
     /* Check that there are no CBOR encoding errors before proceeding
      * with hashing and signing. This is not actually necessary as the
@@ -424,6 +407,7 @@ t_cose_sign1_encode_signature_aad(struct t_cose_sign1_sign_ctx *me,
      */
 Done:
     return return_value;
+
 }
 
 
@@ -457,15 +441,25 @@ t_cose_sign1_sign_aad(struct t_cose_sign1_sign_ctx *me,
         goto Done;
     }
 
-    /* -- Output the payload into the encoder context -- */
-    /* Payload may or may not actually be CBOR format here. This
-     * function does the job just fine because it just adds bytes to
-     * the encoded output without anything extra.
-     */
-    QCBOREncode_AddEncoded(&encode_context, payload);
+    if(me->option_flags & T_COSE_OPT_DETACHED_CONTENT) {
+        /* -- Output NULL but the payload -- */
+        /* In detached content mode, the output COSE binary does not
+         * contain the target payload, and it should be derivered
+         * in another channel.
+         */
+
+        QCBOREncode_AddNULL(&encode_context);
+    } else {
+        /* -- Output the payload into the encoder context -- */
+        /* Payload may or may not actually be CBOR format here. This
+         * function does the job just fine because it just adds bytes to
+         * the encoded output without anything extra.
+         */
+        QCBOREncode_AddEncoded(&encode_context, payload);
+    }
 
     /* -- Sign and put signature in the encoder context -- */
-    return_value = t_cose_sign1_encode_signature_aad(me, aad, &encode_context);
+    return_value = t_cose_sign1_encode_signature_internal(me, aad, payload, &encode_context);
     if(return_value) {
         goto Done;
     }

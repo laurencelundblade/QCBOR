@@ -143,6 +143,90 @@ int_fast32_t short_circuit_self_test()
     return 0;
 }
 
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t short_circuit_self_detached_content_test()
+{
+    struct t_cose_sign1_sign_ctx    sign_ctx;
+    struct t_cose_sign1_verify_ctx  verify_ctx;
+    enum t_cose_err_t               result;
+    Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
+    struct q_useful_buf_c           signed_cose;
+    struct q_useful_buf_c           payload;
+
+
+    /* --- Make COSE Sign1 object --- */
+    t_cose_sign1_sign_init(&sign_ctx,
+                           T_COSE_OPT_SHORT_CIRCUIT_SIG | T_COSE_OPT_DETACHED_CONTENT,
+                           T_COSE_ALGORITHM_ES256);
+
+    /* No key necessary because short-circuit test mode is used */
+
+    result = t_cose_sign1_sign(&sign_ctx,
+                                     s_input_payload,
+                                     signed_cose_buffer,
+                                     &signed_cose);
+    if(result) {
+        return 1000 + (int32_t)result;
+    }
+    /* --- Done making COSE Sign1 object  --- */
+
+
+    /* --- Start verifying the COSE Sign1 object  --- */
+    /* Select short circuit signing */
+    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+
+    /* No key necessary with short circuit */
+
+    /* The detached content */
+    payload = s_input_payload;
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify_dc(&verify_ctx,
+                                    /* COSE to verify */
+                                    signed_cose,
+                                    /* The detached payload */
+                                    payload,
+                                    /* Don't return parameters */
+                                    NULL);
+    if(result) {
+        return 2000 + (int32_t)result;
+    }
+
+    /* compare payload output to the one expected */
+    if(q_useful_buf_compare(payload, s_input_payload)) {
+        return 3000;
+    }
+
+    /* This value comes from C-COSE test case sign-pass-03.json. The test
+     * case JSON gives the expected TBS bytes. These were then run through
+     * openssl dgst -sha256 -binary | hexdump -e '"\n" 8/1 "0x%01x,  "'.
+     *
+     * Short-circuit signature are just the hash of the TBS bytes. They are
+     * twice to fake the length of a real signature. In the COSE format the
+     * signature is last, so this hash occurs as the last 32 bytes of a
+     * the encoded COSE.
+     *
+     * This is a useful test because it confirms the TBS byte calculation is
+     * right in comparison to C-COSE.
+     */
+    static const uint8_t hash_of_tbs[] = {
+        0x4c,  0x33,  0x63,  0xb4,  0x99,  0xe1,  0xda,  0xc4,
+        0xaa,  0xfc,  0x8d,  0x69,  0x23,  0xf1,  0xca,  0x65,
+        0x77,  0xdf,  0xda,  0x80,  0xda,  0x24,  0xe5,  0x4f,
+        0xb9,  0x24,  0x24,  0x90,  0x64,  0x82,  0x7c,  0x88};
+
+    if(q_useful_buf_compare(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(hash_of_tbs),
+                            q_useful_buf_tail(signed_cose, signed_cose.len - 32))) {
+        return 4000;
+    }
+
+    /* --- Done verifying the COSE Sign1 object  --- */
+
+    return 0;
+}
+
 
 /*
  * Public function, see t_cose_test.h

@@ -187,15 +187,13 @@ qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error)
 }
 
 
-/*
- * Public function. See t_cose_sign1_verify.h
- */
 enum t_cose_err_t
-t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
-                        struct q_useful_buf_c           cose_sign1,
-                        struct q_useful_buf_c           aad,
-                        struct q_useful_buf_c          *payload,
-                        struct t_cose_parameters       *returned_parameters)
+t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
+                             struct q_useful_buf_c           cose_sign1,
+                             struct q_useful_buf_c           aad,
+                             struct q_useful_buf_c          *payload,
+                             struct t_cose_parameters       *returned_parameters,
+                             bool                            is_dc)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -266,7 +264,19 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
     }
 
     /* --- The payload --- */
-    QCBORDecode_GetByteString(&decode_context, payload);
+    if(is_dc) {
+        QCBORItem tmp;
+        QCBORDecode_GetNext(&decode_context, &tmp);
+        if (tmp.uDataType != QCBOR_TYPE_NULL) {
+            return_value = T_COSE_ERR_CBOR_FORMATTING;
+            goto Done;
+        }
+        /* In detached content mode, the payload should be set by function caller,
+         * so there is no need to set tye payload.
+         */
+    } else {
+        QCBORDecode_GetByteString(&decode_context, payload);
+    }
 
     /* --- The signature --- */
     QCBORDecode_GetByteString(&decode_context, &signature);
@@ -346,5 +356,6 @@ Done:
     }
 
     return return_value;
+
 }
 

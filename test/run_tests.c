@@ -79,6 +79,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(cose_example_test),
     TEST_ENTRY(short_circuit_signing_error_conditions_test),
     TEST_ENTRY(short_circuit_self_test),
+    TEST_ENTRY(short_circuit_self_detached_content_test),
     TEST_ENTRY(short_circuit_decode_only_test),
     TEST_ENTRY(short_circuit_make_cwt_test),
     TEST_ENTRY(short_circuit_verify_fail_test),

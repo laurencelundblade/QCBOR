@@ -13,6 +13,7 @@
 #define __T_COSE_SIGN1_VERIFY_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 #include "qcbor/qcbor_common.h"
@@ -337,12 +338,42 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
  * t_cose_sign1_verify().  See t_cose_sign1_encode_signature() for
  * more details on AAD.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
                         struct q_useful_buf_c           sign1,
                         struct q_useful_buf_c           aad,
                         struct q_useful_buf_c          *payload,
                         struct t_cose_parameters       *parameters);
+
+
+/**
+ * \brief Private function to verify a COSE_Sign1.
+ *
+ * \param[in,out] context   The t_cose signature verification context.
+ * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
+ *                          message that is to be verified.
+ * \param[in] aad           The Additional Autenticated Data.
+ * \param[in,out] payload   Pointer and length of the payload.
+ * \param[out] parameters   Place to return parsed parameters. Maybe be \c NULL.
+ * \param[in] is_dc         Indicator of detached content mode.
+ *
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ *
+ * This is just like t_cose_sign1_verify(), but additionally allows
+ * passing AAD (Additional Authenticated Data) and specify to verify
+ * the detached content mode payload. Calling this with
+ * \c aad as \c NULL_Q_USEFUL_BUF_C is the same as calling
+ * t_cose_sign1_verify().  See t_cose_sign1_encode_signature() for
+ * more details on AAD.
+ */
+enum t_cose_err_t
+t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *context,
+                             struct q_useful_buf_c           sign1,
+                             struct q_useful_buf_c           aad,
+                             struct q_useful_buf_c          *payload,
+                             struct t_cose_parameters       *parameters,
+                             bool                            is_dc);
+
 
 
 /**
@@ -402,12 +433,44 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
 
 
 static inline enum t_cose_err_t
+t_cose_sign1_verify_aad_dc(struct t_cose_sign1_verify_ctx *me,
+                           struct q_useful_buf_c           cose_sign1,
+                           struct q_useful_buf_c           aad,
+                           struct q_useful_buf_c           detached_payload,
+                           struct t_cose_parameters       *returned_parameters)
+{
+     return t_cose_sign1_verify_internal(me, cose_sign1, aad, &detached_payload, returned_parameters, true);
+}
+
+
+static inline enum t_cose_err_t
+t_cose_sign1_verify_dc(struct t_cose_sign1_verify_ctx *me,
+                       struct q_useful_buf_c           cose_sign1,
+                       struct q_useful_buf_c           detached_payload,
+                       struct t_cose_parameters       *returned_parameters)
+{
+     return t_cose_sign1_verify_internal(me, cose_sign1, NULL_Q_USEFUL_BUF_C, &detached_payload, returned_parameters, true);
+}
+
+
+static inline enum t_cose_err_t
+t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
+                        struct q_useful_buf_c           cose_sign1,
+                        struct q_useful_buf_c           aad,
+                        struct q_useful_buf_c          *payload,
+                        struct t_cose_parameters       *returned_parameters)
+{
+     return t_cose_sign1_verify_internal(me, cose_sign1, aad, payload, returned_parameters, false);
+}
+
+
+static inline enum t_cose_err_t
 t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
                     struct q_useful_buf_c           sign1,
                     struct q_useful_buf_c          *payload,
                     struct t_cose_parameters       *parameters)
 {
-    return t_cose_sign1_verify_aad(me, sign1, NULL_Q_USEFUL_BUF_C, payload, parameters);
+    return t_cose_sign1_verify_internal(me, sign1, NULL_Q_USEFUL_BUF_C, payload, parameters, false);
 }
 
 #ifdef __cplusplus
