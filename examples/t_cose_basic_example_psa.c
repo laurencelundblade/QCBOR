@@ -228,7 +228,7 @@ enum t_cose_err_t make_psa_ecdsa_key_pair(int32_t            cose_algorithm_id,
  */
 void free_psa_ecdsa_key_pair(struct t_cose_key key_pair)
 {
-    psa_close_key(key_pair.k.key_handle);
+    psa_close_key((psa_key_handle_t)key_pair.k.key_handle);
 }
 
 
@@ -442,7 +442,7 @@ int32_t one_step_sign_example()
     free_psa_ecdsa_key_pair(key_pair);
 
 Done:
-    return return_value;
+    return (int32_t)return_value;
 }
 
 
@@ -646,7 +646,7 @@ int two_step_sign_example()
     free_psa_ecdsa_key_pair(key_pair);
 
 Done:
-    return return_value;
+    return (int)return_value;
 }
 
 int main(int argc, const char * argv[])

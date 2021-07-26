@@ -128,7 +128,7 @@ enum t_cose_err_t make_ossl_ecdsa_key_pair(int32_t            cose_algorithm_id,
         break;
 
     default:
-        return -1;
+       return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
 
     /* Make a group for the particular EC algorithm */
@@ -432,7 +432,7 @@ int32_t one_step_sign_example()
     free_ossl_ecdsa_key_pair(key_pair);
 
 Done:
-    return return_value;
+    return (int32_t)return_value;
 }
 
 
@@ -635,7 +635,7 @@ int two_step_sign_example()
     free_ossl_ecdsa_key_pair(key_pair);
 
 Done:
-    return return_value;
+    return (int)return_value;
 }
 
 int main(int argc, const char * argv[])

@@ -11,7 +11,7 @@
 
 #include "qcbor/qcbor_decode.h"
 #ifndef QCBOR_SPIFFY_DECODE
-#error This version of t_cose requires a version of QCBOR that supports spiffy decode
+#error This t_cose requires a version of QCBOR that supports spiffy decode
 #endif
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose/t_cose_sign1_verify.h"
@@ -271,8 +271,8 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
             return_value = T_COSE_ERR_CBOR_FORMATTING;
             goto Done;
         }
-        /* In detached content mode, the payload should be set by function caller,
-         * so there is no need to set tye payload.
+        /* In detached content mode, the payload should be set by
+         * function caller, so there is no need to set tye payload.
          */
     } else {
         QCBORDecode_GetByteString(&decode_context, payload);

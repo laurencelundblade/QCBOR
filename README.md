@@ -300,6 +300,7 @@ just have different names.
 
 ## Credit
 
+* Ken Takayama for the bulk of the detached content implementation.
 * Tamas Ban for lots code review comments, design ideas and porting to ARM PSA.
 * Rob Coombs, Shebu Varghese Kuriakose and other ARM folks for sponsorship.
 * Michael Eckel for makefile fixes.

@@ -56,6 +56,9 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
  *
  * @param hash_ctx  Hash context to hash it into
  * @param bstr      Bytes of the bstr
+ *
+ * If \c bstr is \c NULL_Q_USEFUL_BUF_C, a zero-length bstr will be
+ * hashed into the output.
  */
 static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
                       struct q_useful_buf_c      bstr)
@@ -99,13 +102,9 @@ static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
  *    payload : bstr
  * ]
  *
- * body_protected refers to the protected parameters from the
- * main COSE_Sign1 structure. This is a little hard to
- * to understand in the spec.
- *
-
- *
-
+ * body_protected refers to the protected parameters from the main
+ * COSE_Sign1 structure. This is a little hard to to understand in the
+ * spec.
  */
 enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
                                   struct q_useful_buf_c  protected_parameters,
@@ -136,9 +135,8 @@ enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
     }
 
     /*
-     * Format of to-be-signed bytes.  This is
-     * defined in COSE (RFC 8152) section 4.4. It is the input to the
-     * hash.
+     * Format of to-be-signed bytes.  This is defined in COSE (RFC
+     * 8152) section 4.4. It is the input to the hash.
      *
      * Sig_structure = [
      *    context : "Signature" / "Signature1" / "CounterSignature",
@@ -148,16 +146,17 @@ enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
      *    payload : bstr
      * ]
      *
-     * sign_protected is not used with COSE_Sign1 since there is no signer
-     * chunk.
+     * sign_protected is not used with COSE_Sign1 since there is no
+     * signer chunk.
      *
-     * external_aad allows external data to be covered by the hash, but is
-     * not supported by this implementation.
+     * external_aad allows external data to be covered by the
+     * signature, but may be a NULL_Q_USEFUL_BUF_C in which case a
+     * zero-length bstr will be correctly hashed into the result.
      *
-     * Instead of formatting the TBS bytes in one buffer, they are formatted
-     * in chunks and fed into the hash. If actually formatted, the TBS
-     * bytes are slightly larger than the payload, so this saves a lot of
-     * memory.
+     * Instead of formatting the TBS bytes in one buffer, they are
+     * formatted in chunks and fed into the hash. If actually
+     * formatted, the TBS bytes are slightly larger than the payload,
+     * so this saves a lot of memory.
      */
 
     /* Hand-constructed CBOR for the array of 4 and the context string.

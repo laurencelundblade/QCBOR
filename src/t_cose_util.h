@@ -71,7 +71,8 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * \param[in] cose_algorithm_id     The COSE signing algorithm ID. Used to
  *                                  determine which hash function to use.
  * \param[in] protected_parameters  Full, CBOR encoded, protected parameters.
- * \param[in] aad  Application Authenitcation Data to be included in TBS.
+ * \param[in] aad                   Additional Authenitcated Data to be
+ *                                  included in TBS.
  * \param[in] payload               The CBOR-encoded payload.
  * \param[in] buffer_for_hash       Pointer and length of buffer into which
  *                                  the resulting hash is put.
@@ -92,8 +93,10 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * of a CBOR encoded structure containing the protected parameters
  * algorithm ID and a few other things. This formats that structure
  * and computes the hash of it. These are known as the to-be-signed or
- * "TBS" bytes. The exact specification is in
- * [RFC 8152 section 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).
+ * "TBS" bytes. The exact specification is in [RFC 8152 section
+ * 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).
+ *
+ * \c aad can be \ref NULL_Q_USEFUL_BUF_C if not present.
  */
 enum t_cose_err_t create_tbs_hash(int32_t                     cose_algorithm_id,
                                   struct q_useful_buf_c       protected_parameters,
