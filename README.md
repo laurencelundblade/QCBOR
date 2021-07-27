@@ -203,22 +203,28 @@ Some of the error codes have changed.
 
 ## Floating Point Support & Configuration
 
-By default, all QCBOR floating-point features are enabled. This
-includes encoding and decoding of half-precision, CBOR preferred
-serialization for floating-point and floating-point epoch dates.
+By default, all QCBOR floating-point features are enabled:
 
-If full floating-point is not needed the following #defines can be
+* Encoding and decoding of basic float types, single and double-precision
+* Encoding and decoding of half-precision with conversion to/from single
+  and double-precision
+* Preferred serialization of floating-point
+* Floating point dates
+* Methods that can convert big numbers, decimal fractions and other numbers
+  to/from floating-point
+
+If full floating-point is not needed, the following #defines can be
 used to reduce object code size and dependency.
 
 See discussion in qcbor_encode.h for other details.
 
-### QCBOR_DISABLE_FLOAT_HW_USE
+### #define QCBOR_DISABLE_FLOAT_HW_USE
 
 This removes dependency on:
 
-* floating-point hardware and floating-point instructions
-* <math.h> and <fenv.h>
-* the math library (libm, -lm)
+* Floating-point hardware and floating-point instructions
+* `<math.h>` and `<fenv.h>`
+* The math library (libm, -lm)
 
 For most limited environments, this removes enough floating-point
 dependencies to be able to compile and run QCBOR.
@@ -229,9 +235,9 @@ byte stream to them and copying them. Converting and copying them
 usually don't require any hardware, libraries or includes. The C
 compiler takes care of it on its own.
 
-QCBOR uses it's own implementation of half-precision float-pointing
+QCBOR uses its own implementation of half-precision float-pointing
 that doesn't depend on math libraries. It uses masks and shifts
-instead. Thus even with this define, half-precision encoding and
+instead. Thus, even with this define, half-precision encoding and
 decoding works.
 
 When this is defined, the QCBOR functionality lost is minimal and only
@@ -246,13 +252,13 @@ for decoding:
 No interfaces are disabled or removed with this define.  If input that
 requires floating-point conversion or functions are called that
 request floating-point conversion, an error code like
-QCBOR_ERR_HW_FLOAT_DISABLED will be returned.
+`QCBOR_ERR_HW_FLOAT_DISABLED` will be returned.
 
 This saves only a small amount of object code. The primary purpose for
 defining this is to remove dependency on floating point hardware and
 libraries.
 
-### QCBOR_DISABLE_PREFERRED_FLOAT 
+### #define QCBOR_DISABLE_PREFERRED_FLOAT 
 
 This eliminates support for half-precision
 and CBOR preferred serialization by disabling
@@ -268,7 +274,7 @@ supported.
 The primary reason to define this is to save object code.
 Roughly 900 bytes are saved, though about half of this
 can be saved just by not calling any functions that
-encode floating point numbers.
+encode floating-point numbers.
 
 ### Compiler options
 
@@ -279,8 +285,8 @@ floating-point hardware and instructions, to use software
 and replacement libraries instead. These are usually
 bigger and slower, but these options may still be useful
 in getting QCBOR to run in some environments in 
-combination with QCBOR_DISABLE_FLOAT_HW_USE.
-In particular, -mfloat-abi=soft, disables use of 
+combination with `QCBOR_DISABLE_FLOAT_HW_USE`.
+In particular, `-mfloat-abi=soft`, disables use of 
  hardware instructions for the float and double
  types in C for some architectures. 
 
