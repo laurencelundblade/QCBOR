@@ -8027,3 +8027,27 @@ int32_t BoolTest(void)
 
    return 0;
 }
+
+
+int32_t GetMapAndArrayTest(void)
+{
+   QCBORDecodeContext DCtx;
+
+   QCBORDecode_Init(&DCtx,
+                    (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)},
+                    0);
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   QCBORItem Item;
+
+   QCBORDecode_VGetNextConsume(&DCtx, &Item);
+
+
+   uint16_t uNumItems;
+   UsefulBufC ArrayCBOR;
+
+   QCBORDecode_GetArray(&DCtx, &uNumItems, &ArrayCBOR);
+
+   return 0;
+}

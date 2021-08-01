@@ -657,7 +657,7 @@ void QCBORDecode_GetArrayFromMapN(QCBORDecodeContext *pCtx,
                                  UsefulBufC         *pEncodedCBOR);
 
 void QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pCtx,
-                                   int64_t             nLabel,
+                                   const char *       *szLabel,
                                    uint16_t           *puNumItems,
                                    UsefulBufC         *pEncodedCBOR);
 

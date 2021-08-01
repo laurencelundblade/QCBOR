@@ -2887,15 +2887,22 @@ MatchType(QCBORItem Item1, QCBORItem Item2)
 }
 
 
+typedef struct {
+   void               *pCBContext;
+   QCBORItemCallback   pfCallback;
+} MapSearchCallBack;
+
+typedef struct {
+   size_t   uStartOffset;
+   uint16_t uItemCount;
+} MapSearchInfo;
+
 /**
  @brief Search a map for a set of items.
 
  @param[in]  pMe           The decode context to search.
  @param[in,out] pItemArray The items to search for and the items found.
- @param[out] puOffset      Byte offset of last item matched.
- @param[in] pCBContext     Context for the not-found item call back.
- @param[in] pfCallback     Function to call on items not matched in pItemArray.
-
+\ TODO: fix params
  @retval QCBOR_ERR_NOT_ENTERED Trying to search without having entered a map
 
  @retval QCBOR_ERR_DUPLICATE_LABEL Duplicate items (items with the same label)
@@ -2922,9 +2929,8 @@ MatchType(QCBORItem Item1, QCBORItem Item2)
 static QCBORError
 MapSearch(QCBORDecodeContext *pMe,
           QCBORItem          *pItemArray,
-          size_t             *puOffset,
-          void               *pCBContext,
-          QCBORItemCallback   pfCallback)
+          MapSearchInfo      *pInfo,
+          MapSearchCallBack  *pCallBack)
 {
    QCBORError uReturn;
    uint64_t   uFoundItemBitMap = 0;
@@ -2980,6 +2986,9 @@ MapSearch(QCBORDecodeContext *pMe,
     that error code is returned.
     */
    const uint8_t uMapNestLevel = DecodeNesting_GetBoundedModeLevel(&(pMe->nesting));
+   if(pInfo) {
+      pInfo->uItemCount = 0;
+   }
    uint8_t       uNextNestLevel;
    do {
       /* Remember offset of the item because sometimes it has to be returned */
@@ -2989,12 +2998,12 @@ MapSearch(QCBORDecodeContext *pMe,
       QCBORItem Item;
       QCBORError uResult = QCBORDecode_GetNextTagContent(pMe, &Item);
       if(QCBORDecode_IsUnrecoverableError(uResult)) {
-         /* Unrecoverable error so map can't even be decoded. */
+         /* The map/array can't be decoded when unrecoverable errors occur */
          uReturn = uResult;
          goto Done;
       }
       if(uResult == QCBOR_ERR_NO_MORE_ITEMS) {
-         // Unexpected end of map or array.
+         /* Unexpected end of map or array. */
          uReturn = uResult;
          goto Done;
       }
@@ -3022,22 +3031,22 @@ MapSearch(QCBORDecodeContext *pMe,
             /* Successful match. Return the item. */
             pItemArray[nIndex] = Item;
             uFoundItemBitMap |= 0x01ULL << nIndex;
-            if(puOffset) {
-               *puOffset = uOffset;
+            if(pInfo) {
+               pInfo->uStartOffset = uOffset;
             }
             bMatched = true;
          }
       }
 
 
-      if(!bMatched && pfCallback != NULL) {
+      if(!bMatched && pCallBack != NULL) {
          /*
           Call the callback on unmatched labels.
           (It is tempting to do duplicate detection here, but that would
           require dynamic memory allocation because the number of labels
           that might be encountered is unbounded.)
          */
-         uReturn = (*pfCallback)(pCBContext, &Item);
+         uReturn = (*(pCallBack->pfCallback))(pCallBack->pCBContext, &Item);
          if(uReturn != QCBOR_SUCCESS) {
             goto Done;
          }
@@ -3053,6 +3062,10 @@ MapSearch(QCBORDecodeContext *pMe,
       uReturn = ConsumeItem(pMe, &Item, &uNextNestLevel);
       if(uReturn != QCBOR_SUCCESS) {
          goto Done;
+      }
+
+      if(pInfo) {
+         pInfo->uItemCount++;
       }
 
    } while (uNextNestLevel >= uMapNestLevel);
@@ -3106,7 +3119,7 @@ void QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
    OneItemSeach[0].uDataType   = uQcborType;
    OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORError uReturn = MapSearch(pMe, OneItemSeach, NULL, NULL, NULL);
+   QCBORError uReturn = MapSearch(pMe, OneItemSeach, NULL, NULL);
 
    *pItem = OneItemSeach[0];
 
@@ -3140,7 +3153,7 @@ void QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
    OneItemSeach[0].uDataType    = uQcborType;
    OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORError uReturn = MapSearch(pMe, OneItemSeach, NULL, NULL, NULL);
+   QCBORError uReturn = MapSearch(pMe, OneItemSeach, NULL, NULL);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -3160,36 +3173,37 @@ void QCBORDecode_GetArray(QCBORDecodeContext *pMe,
                           uint16_t           *puNumItems,
                           UsefulBufC         *pEncodedCBOR)
 {
-   uint8_t uType = QCBOR_TYPE_ARRAY;
+   //uint8_t uType = QCBOR_TYPE_ARRAY; // TODO: implement this for maps too
    QCBORError uErr;
 
+
    QCBORItem Item;
-   uErr = QCBORDecode_GetNext(pMe, &Item);
-   if(uErr != QCBOR_SUCCESS) {
-      goto Done;
-   }
-   if(Item.uDataType != uType) {
-      uErr = QCBOR_ERR_UNEXPECTED_TYPE;
-      goto Done;
-   }
+   QCBORDecode_EnterArray(pMe, &Item);
 
    CopyTags(pMe, &Item);
 
    // TODO: a better method for this
-   pEncodedCBOR->ptr = (const uint8_t *)pMe->InBuf.UB.ptr + pMe->InBuf.cursor;
+
+   size_t uStart = DecodeNesting_GetMapOrArrayStart(&(pMe->nesting));
 
 
-   size_t uStart = UsefulInputBuf_Tell(&(pMe->InBuf));
+   MapSearchInfo Info;
+
    QCBORItem Dummy;
    Dummy.uLabelType = QCBOR_TYPE_NONE;
-   uErr = MapSearch(pMe, &Dummy, NULL, NULL, NULL);
+   uErr = MapSearch(pMe, &Dummy, &Info, NULL);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
 
-   pEncodedCBOR->len = pMe->uMapEndOffsetCache - uStart;
+   // TODO: how to really get a pointer to start of CBOR array?
 
-   // TODO: figure out how to count the number of items in the array
+
+   pEncodedCBOR->ptr = (const uint8_t *)pMe->InBuf.UB.ptr + uStart;
+
+   pEncodedCBOR->len = pMe->uMapEndOffsetCache - uStart;
+   *puNumItems = Info.uItemCount;
+
 
 Done:
    return;
@@ -3319,7 +3333,7 @@ void QCBORDecode_GetTaggedStringInMapSZ(QCBORDecodeContext *pMe,
 */
 void QCBORDecode_GetItemsInMap(QCBORDecodeContext *pMe, QCBORItem *pItemList)
 {
-   QCBORError uErr = MapSearch(pMe, pItemList, NULL, NULL, NULL);
+   QCBORError uErr = MapSearch(pMe, pItemList, NULL, NULL);
    pMe->uLastError = (uint8_t)uErr;
 }
 
@@ -3331,7 +3345,11 @@ void QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pMe,
                                            void               *pCallbackCtx,
                                            QCBORItemCallback   pfCB)
 {
-   QCBORError uErr = MapSearch(pMe, pItemList, NULL, pCallbackCtx, pfCB);
+   MapSearchCallBack CallBack;
+   CallBack.pCBContext = pCallbackCtx;
+   CallBack.pfCallback = pfCB;
+
+   QCBORError uErr = MapSearch(pMe, pItemList, NULL, &CallBack);
    pMe->uLastError = (uint8_t)uErr;
 }
 
@@ -3358,8 +3376,8 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
       return;
    }
 
-   size_t uOffset;
-   pMe->uLastError = (uint8_t)MapSearch(pMe, pSearch, &uOffset, NULL, NULL);
+   MapSearchInfo Info;
+   pMe->uLastError = (uint8_t)MapSearch(pMe, pSearch, &Info, NULL);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
@@ -3389,7 +3407,7 @@ static void SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
     * to be used to get one item and MapSearch() has already found it
     * confirming it exists.
     */
-   UsefulInputBuf_Seek(&(pMe->InBuf), uOffset);
+   UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset);
 
    DecodeNesting_ResetMapOrArrayCount(&(pMe->nesting));
 
@@ -3588,7 +3606,7 @@ void QCBORDecode_ExitBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType)
    if(pMe->uMapEndOffsetCache == QCBOR_MAP_OFFSET_CACHE_INVALID) {
       QCBORItem Dummy;
       Dummy.uLabelType = QCBOR_TYPE_NONE;
-      uErr = MapSearch(pMe, &Dummy, NULL, NULL, NULL);
+      uErr = MapSearch(pMe, &Dummy, NULL, NULL);
       if(uErr != QCBOR_SUCCESS) {
          goto Done;
       }
