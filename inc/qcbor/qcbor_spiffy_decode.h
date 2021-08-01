@@ -631,6 +631,35 @@ static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
 
 
+/*
+
+ This returns the number of items in the array, whether
+ it is definite or indefinite length.
+
+ This returns the pointer to the first encoded item in
+ the array and the length in bytes of the array.
+
+ This traverses the whole array and every subordinate
+ array or map in it. This is necessary to find the
+ length of the array.
+
+ This will fail if any item in the array is not well-formed.
+
+ TODO: fill this in
+ */
+void QCBORDecode_GetArray(QCBORDecodeContext *pCtx,
+                          uint16_t           *puNumItems,
+                          UsefulBufC         *pEncodedCBOR);
+
+void QCBORDecode_GetArrayFromMapN(QCBORDecodeContext *pCtx,
+                                 int64_t             nLabel,
+                                 uint16_t           *puNumItems,
+                                 UsefulBufC         *pEncodedCBOR);
+
+void QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pCtx,
+                                   int64_t             nLabel,
+                                   uint16_t           *puNumItems,
+                                   UsefulBufC         *pEncodedCBOR);
 
 /**
  @brief Enter a map for decoding and searching.

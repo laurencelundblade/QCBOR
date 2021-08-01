@@ -3156,6 +3156,45 @@ Done:
 }
 
 
+void QCBORDecode_GetArray(QCBORDecodeContext *pMe,
+                          uint16_t           *puNumItems,
+                          UsefulBufC         *pEncodedCBOR)
+{
+   uint8_t uType = QCBOR_TYPE_ARRAY;
+   QCBORError uErr;
+
+   QCBORItem Item;
+   uErr = QCBORDecode_GetNext(pMe, &Item);
+   if(uErr != QCBOR_SUCCESS) {
+      goto Done;
+   }
+   if(Item.uDataType != uType) {
+      uErr = QCBOR_ERR_UNEXPECTED_TYPE;
+      goto Done;
+   }
+
+   CopyTags(pMe, &Item);
+
+   // TODO: a better method for this
+   pEncodedCBOR->ptr = (const uint8_t *)pMe->InBuf.UB.ptr + pMe->InBuf.cursor;
+
+
+   size_t uStart = UsefulInputBuf_Tell(&(pMe->InBuf));
+   QCBORItem Dummy;
+   Dummy.uLabelType = QCBOR_TYPE_NONE;
+   uErr = MapSearch(pMe, &Dummy, NULL, NULL, NULL);
+   if(uErr != QCBOR_SUCCESS) {
+      goto Done;
+   }
+
+   pEncodedCBOR->len = pMe->uMapEndOffsetCache - uStart;
+
+   // TODO: figure out how to count the number of items in the array
+
+Done:
+   return;
+}
+
 
 static QCBORError
 CheckTypeList(int uDataType, const uint8_t puTypeList[QCBOR_TAGSPEC_NUM_TYPES])
