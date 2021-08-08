@@ -13,19 +13,8 @@
 #ifndef qcborExample_h
 #define qcborExample_h
 
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* Keep editor indention formatting happy */
-#endif
-#endif
-
 #include <stdint.h>
 
 int32_t RunQCborExample(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* qcborExample_h */

@@ -285,7 +285,7 @@ typedef struct q_useful_buf {
  * In C compound literals are used.
  *
  * In C++ list initalization is used. This only works
- * in C11 and later.
+ * in C++11 and later.
  *
  * Note that some popular C++ compilers can handle compound
  * literals with on-by-default extensions, however
@@ -293,9 +293,9 @@ typedef struct q_useful_buf {
  * compilers so they are not used.
  */
 #ifdef __cplusplus
-#define NULLUsefulBufC  {NULL, 0}
+#define NULLUsefulBufC {NULL, 0}
 #else
-#define NULLUsefulBufC  ((UsefulBufC) {NULL, 0})
+#define NULLUsefulBufC ((UsefulBufC) {NULL, 0})
 #endif
 
 /**
@@ -419,8 +419,7 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
  * The terminating \0 (NULL) is NOT included in the length!
  */
 #ifdef __cplusplus
-#define UsefulBuf_FROM_SZ_LITERAL(szString) \
-    {(szString), sizeof(szString)-1}
+#define UsefulBuf_FROM_SZ_LITERAL(szString)  {(szString), sizeof(szString)-1}
 #else
 #define UsefulBuf_FROM_SZ_LITERAL(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
@@ -434,8 +433,7 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
  * will not work on non-literal arrays.
  */
 #ifdef __cplusplus
-#define UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBytes) \
-   {(pBytes), sizeof(pBytes)}
+#define UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBytes)  {(pBytes), sizeof(pBytes)}
 #else
 #define UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBytes) \
    ((UsefulBufC) {(pBytes), sizeof(pBytes)})
@@ -456,11 +454,10 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
  * UsefulBuf_MAKE_STACK_UB.
  */
 #ifdef __cplusplus
-#define UsefulBuf_FROM_BYTE_ARRAY(pBytes) \
-    {(pBytes), sizeof(pBytes)}
+#define UsefulBuf_FROM_BYTE_ARRAY(pBytes)  {(pBytes), sizeof(pBytes)}
 #else
 #define UsefulBuf_FROM_BYTE_ARRAY(pBytes) \
-    ((UsefulBuf) {(pBytes), sizeof(pBytes)})
+   ((UsefulBuf) {(pBytes), sizeof(pBytes)})
 #endif
 
 
@@ -651,8 +648,7 @@ static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p);
 
 #ifndef USEFULBUF_DISABLE_DEPRECATED
 /** Deprecated macro; use @ref UsefulBuf_FROM_SZ_LITERAL instead */
-#define SZLiteralToUsefulBufC(szString) \
-    UsefulBuf_FROM_SZ_LITERAL(szString)
+#define SZLiteralToUsefulBufC(szString)  UsefulBuf_FROM_SZ_LITERAL(szString)
 
 /** Deprecated macro; use UsefulBuf_MAKE_STACK_UB instead */
 #define  MakeUsefulBufOnStack(name, size) \
@@ -661,7 +657,7 @@ static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p);
 
 /** Deprecated macro; use @ref UsefulBuf_FROM_BYTE_ARRAY_LITERAL instead */
 #define ByteArrayLiteralToUsefulBufC(pBytes) \
-    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBytes)
+   UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBytes)
 
 /** Deprecated function; use UsefulBuf_Unconst() instead */
 static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
