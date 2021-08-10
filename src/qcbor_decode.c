@@ -5922,34 +5922,145 @@ void QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
 
 
 
-/* The one that matches the endianness should return without copying
- The other either has to copy or has to swap by violating const-ness.
- If copying, the caller has to know. If violating const-ness, then
-the caller only knows that const-ness is violated. */
 
-void QCBORDecode_GetUint32ArrayBE(QCBORDecodeContext *pMe,
+
+
+typedef enum {
+   QCBOR_IS_BIG_ENDIAN = 0,
+   QCBOR_IS_LITTLE_ENDIAN = 1,
+   QCBOR_UNKNOWN_ENDIAN = 2
+} QCBOREndianness;
+
+void QCBORDecode_GetUint32Array(QCBORDecodeContext *pMe,
                                 uint8_t             uTagRequirement,
-                                uint32_t           *pInts,
-                                size_t             *pSize)
+                                uint32_t          **puUIntsDecoded,
+                                size_t             *puSizeDecoded,
+                                QCBOREndianness    *puEndianness)
 {
-   QCBORItem item;
-   QCBORDecode_VGetNext(pMe, &item);
+   QCBORItem Item;
+   QCBORDecode_VGetNext(pMe, &Item);
 
-   if(item.uDataType != QCBOR_TYPE_BYTE_STRING ||
-      !QCBORDecode_IsTagged(pMe, &item, 99)) { // TODO: correct tag number
+   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING) {
       pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
       return;
    }
 
-   if(item.val.string.len % 4 != 0) {
-      pMe->uLastError = 99; // TODO: figure out error
+   const TagSpecification TagSpec =
+      {
+         uTagRequirement,
+         {CBOR_TAG_UINT32_BIG_ENDIAN_ARRAY, CBOR_TAG_UINT32_LITTLE_ENDIAN_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      };
+
+   pMe->uLastError = (uint8_t)CheckTagRequirement(TagSpec, &Item);
+   if(pMe->uLastError) {
       return;
    }
 
-   *pSize = item.val.string.len / 4;
+   if(QCBORDecode_IsTagged(pMe, &Item, CBOR_TAG_UINT32_BIG_ENDIAN_ARRAY)) {
+      *puEndianness = QCBOR_IS_BIG_ENDIAN;
+   } else if(QCBORDecode_IsTagged(pMe, &Item, CBOR_TAG_UINT32_LITTLE_ENDIAN_ARRAY)) {
+      *puEndianness = QCBOR_IS_LITTLE_ENDIAN;
+   } else {
+      *puEndianness = QCBOR_UNKNOWN_ENDIAN;
+   }
 
-   /* may have to swap if endianness doesn't match */
-   pInts = (uint32_t *) &(item.val.string.ptr);
+
+   if(Item.val.string.len % sizeof(uint32_t) != 0) {
+      pMe->uLastError = QCBOR_ERR_INPUT_SIZE_MULTIPLE;
+      return;
+   }
+
+   *puSizeDecoded = Item.val.string.len / sizeof(uint32_t);
+
+   *puUIntsDecoded = (uint32_t *)(Item.val.string.ptr);
+}
+
+
+
+
+
+// positive values are QCBOR error codes
+#define PERFORM_SWAP -1
+#define DO_NOT_SWAP 0
+static int
+ShallWeSwap(QCBOREndianRequirement uSwapRequirement, QCBOREndianness uEndianness)
+{
+   /* Asked to always swap */
+   if(uSwapRequirement == QCBOR_ENDIAN_SWAP) {
+      return PERFORM_SWAP;
+   }
+
+   /* Asked to never swap */
+   if(uSwapRequirement == QCBOR_ENDIAN_NO_SWAP) {
+      return DO_NOT_SWAP;
+   }
+
+   /* The following use cases require the input endianness to be known */
+   if(uEndianness == QCBOR_UNKNOWN_ENDIAN) {
+      return QCBOR_ERR_INPUT_ENDIANNESS_UNKNOWN;
+   }
+
+   QCBOREndianRequirement uOutput = uSwapRequirement;
+   if(uOutput == QCBOR_ENDIAN_MATCH_ENDIANNESS) {
+#if defined(USEFULBUF_CONFIG_BIG_ENDIAN)
+      uOutput = QCBOR_ENDIAN_BIG_ENDIAN;
+#else
+      uOutput = QCBOR_ENDIAN_LITTLE_ENDIAN;
+#endif
+   }
+
+   if((QCBOREndianness)uOutput != uEndianness) {
+      return PERFORM_SWAP;
+   } else {
+      return DO_NOT_SWAP;
+   }
+}
+
+
+void QCBORDecode_GetUint32ArrayCopy(QCBORDecodeContext    *pMe,
+                                    uint8_t                uTagRequirement,
+                                    QCBOREndianRequirement uSwapRequirement,
+                                    size_t                 uBufferSize,
+                                    uint32_t              *puUIntsBuffer,
+                                    size_t                *puReturnedSize)
+{
+   size_t           uReceivedArraySize;
+   uint32_t        *puReceivedArray;
+   QCBOREndianness  uEndianness;
+
+   QCBORDecode_GetUint32Array(pMe,
+                              uTagRequirement,
+                             &puReceivedArray,
+                             &uReceivedArraySize,
+                             &uEndianness);
+   if(pMe->uLastError) {
+      return;
+   }
+
+
+   if(uBufferSize < uReceivedArraySize) {
+      /* Given buffer is too small */
+      pMe->uLastError = QCBOR_ERR_BUFFER_TOO_SMALL;
+      return;
+   }
+
+   memcpy(puUIntsBuffer, puReceivedArray, uReceivedArraySize * sizeof(uint32_t));
+
+   int nSwapRequest = ShallWeSwap(uSwapRequirement, uEndianness);
+
+   if(nSwapRequest > 0) {
+      /* Error figuring out whether to swap or not. */
+      pMe->uLastError = (uint8_t)nSwapRequest;
+      return;
+   }
+
+   if(nSwapRequest == PERFORM_SWAP) {
+      for(size_t i = 0; i < uReceivedArraySize; i++) {
+         const uint32_t uArrayElement = USEFUL_SWAP32(puUIntsBuffer[i]);
+         puUIntsBuffer[i] = uArrayElement;
+      }
+   }
 }
 
 
@@ -5966,7 +6077,15 @@ void QCBORDecode_GetUint32ArrayLE(QCBORDecodeContext *pMe,
 
    *pSize = item.val.string.len / 4;
 
-   // TODO: must swap all the ints
+#if defined(USEFULBUF_CONFIG_BIG_ENDIAN)
+   /* Must swap all the unsigned integers */
+   uint32_t *pUIntStart = item.val.string.ptr;
+   uint32_t *pUIntEnd   = pUIntStart + *pSize;
+   for(uint32_t *pUInt = pUIntStart; pUInt < pUIntEnd; pUInt++) {
+      const uint32_t u = USEFUL_SWAP32(*pUInt);
+      *pUInt = u;
+   }
+#endif
 
    pInts = (uint32_t *) &(item.val.string.ptr);
 
@@ -6043,18 +6162,14 @@ Done:
 }
 
 
-
-
-void QCBORDecode_GetHomogenousArray(QCBORDecodeContext *pMe,
+void ProcessHomogenousArray(QCBORDecodeContext *pMe,
+                            const QCBORItem *pItem,
                                     uint8_t             uTagRequirement,
                                     uint8_t             uType,
                                     size_t              nInArrayCount,
                                     union QCBORHomogenousArray array,
                                     size_t             *pnOutArrayCount)
 {
-   QCBORItem item;
-   QCBORDecode_GetNext(pMe, &item);
-
    const uint64_t puAllowedTags[] = {CBOR_TAG_HOMOGENEOUS_ARRAY, CBOR_TAG_INVALID64};
 
    const uint8_t puAllowedContents[] = {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE};
@@ -6064,13 +6179,15 @@ void QCBORDecode_GetHomogenousArray(QCBORDecodeContext *pMe,
                                             uTagRequirement,
                                             puAllowedTags,
                                             puAllowedContents,
-                                            &item);
+                                            pItem);
    if(uError) {
       pMe->uLastError = (uint8_t)uError;
       goto Done;
    }
 
-   const uint8_t uIntNestLevel = item.uNextNestLevel;
+   const uint8_t uIntNestLevel = pItem->uNextNestLevel;
+   QCBORItem item;
+
 
    size_t uIntCount = 0;
    do {
@@ -6125,3 +6242,80 @@ Done:
    return;
 }
 
+
+void QCBORDecode_GetHomogenousArray(QCBORDecodeContext *pMe,
+                                    uint8_t             uTagRequirement,
+                                    uint8_t             uType,
+                                    size_t              nInArrayCount,
+                                    union QCBORHomogenousArray array,
+                                    size_t             *pnOutArrayCount)
+{
+   QCBORItem item;
+   QCBORDecode_VGetNext(pMe, &item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   ProcessHomogenousArray(pMe,
+                          &item,
+                          uTagRequirement,
+                          uType,
+                          nInArrayCount,
+                          array,
+                          pnOutArrayCount);
+}
+
+void QCBORDecode_GetHomogenousArrayInMapN(QCBORDecodeContext *pMe,
+                                          int64_t             nLabel,
+                                          uint8_t             uTagRequirement,
+                                          uint8_t             uType,
+                                          size_t              nInArrayCount,
+                                          union QCBORHomogenousArray array,
+                                          size_t             *pnOutArrayCount)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   ProcessHomogenousArray(pMe,
+                          &Item,
+                          uTagRequirement,
+                          uType,
+                          nInArrayCount,
+                          array,
+                          pnOutArrayCount);
+}
+
+
+void QCBORDecode_GetHomogenousArrayInMapSZ(QCBORDecodeContext *pMe,
+                                           const char          *szLabel,
+                                           uint8_t             uTagRequirement,
+                                           uint8_t             uType,
+                                           size_t              nInArrayCount,
+                                           union QCBORHomogenousArray array,
+                                           size_t             *pnOutArrayCount)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   ProcessHomogenousArray(pMe,
+                          &Item,
+                          uTagRequirement,
+                          uType,
+                          nInArrayCount,
+                          array,
+                          pnOutArrayCount);
+}

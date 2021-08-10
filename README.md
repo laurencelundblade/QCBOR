@@ -201,34 +201,94 @@ unlimited.
 
 Some of the error codes have changed.
 
-## Floating Point Support
+## Floating Point Support & Configuration
 
 By default, all QCBOR floating-point features are enabled. This includes
 encoding and decoding of half-precision, CBOR preferred serialization
 for floating-point and floating-point epoch dates.
 
 If full floating-point is not needed the following #defines can be
-used to reduce object code size.
+used to reduce object code size and dependency.
 
-QCBOR_DISABLE_FLOAT_HW_USE -- Avoid all use of floating-point hardware
-and inclusion of <math.h> and <fenv.h>
+See discussion in qcbor_encode.h for other details.
 
-QCBOR_DISABLE_PREFERRED_FLOAT -- Eliminates support for half-precision
-and CBOR preferred serialization.
+### QCBOR_DISABLE_FLOAT_HW_USE
 
-Even if these are #defined, QCBOR can still encode and decode basic
-floating point numbers.
+This removes dependency on:
 
-Defining QCBOR_DISABLE_PREFERRED_FLOAT will reduce object code size by
-about 900 bytes, though 550 of these bytes can be avoided without the
-#define by just not calling any of the functions that encode
-floating-point numbers.
+* floating-point hardware and floating-point instructions
+* <math.h> and <fenv.h>
+* the math library (libm, -lm)
 
-Defining QCBOR_DISABLE_FLOAT_HW_USE will save a small amount of object
-code. Its main use is on CPUs that have no floating-point hardware.
+For most limited environments, this removes enough
+floating-point dependencies to be able to compile
+and run QCBOR.
 
-See discussion in qcbor_encode.h for details.
-G
+Note that this does not remove use of the types
+double and float from QCBOR, but it limits QCBOR's
+use of them to converting the encoded byte stream to them
+and copying them. Converting and copying them
+usually doesn't require any hardware, libraries
+or includes. The C compiler takes care of it on its
+own.
+
+QCBOR uses it's own implementation of
+half-precision float-pointing that doesn't depend on 
+math libraries. It uses masks and shifts instead. Thus
+even with this define, half-precision encoding and 
+decoding works.
+
+When this is defined, the QCBOR functionality lost 
+is minimal and only for decoding:
+
+* Decoding floating-point format dates are not handled
+* There is no conversion between floats and integers when decoding. For
+example, QCBORDecode_GetUInt64ConvertAll() will be unable to convert
+to and from float-point.
+* Floats will not be converted to double when decoding.
+
+No interfaces are disabled or removed with this define.
+If input that requires floating-point conversion or functions
+are called that request floating-point conversion, an error
+code like QCBOR_ERR_HW_FLOAT_DISABLED will be
+returned.
+
+This saves only a small amount of object code. The primary
+purpose for defining this is to remove dependency on
+floating point hardware and libraries.
+
+### QCBOR_DISABLE_PREFERRED_FLOAT 
+
+This eliminates support for half-precision
+and CBOR preferred serialization by disabling
+QCBOR's shift and mask based implementation of
+half-precision floating-point.
+
+With this defined, single and double-precision floating-point
+numbers can still be encoded and decoded. Conversion
+of floating-point to and from integers, big numbers and 
+such is also supported. Floating-point dates are still
+supported. 
+
+The primary reason to define this is to save object code.
+Roughly 900 bytes are saved, though about half of this
+can be saved just by not calling any functions that
+encode floating point numbers.
+
+### Compiler options
+
+Compilers support a number of options that control
+which float-point related code is generated. For example,
+it is usually possible to give options to the compiler to avoid all
+floating-point hardware and instructions, to use software
+and replacement libraries instead. These are usually
+bigger and slower, but these options may still be useful
+in getting QCBOR to run in some environments in 
+combination with QCBOR_DISABLE_FLOAT_HW_USE.
+In particular, -mfloat-abi=soft, disables use of 
+ hardware instructions for the float and double
+ types in C for some architectures. 
+
 ## Comparison to TinyCBOR
 
 TinyCBOR is a popular widely used implementation. Like QCBOR,

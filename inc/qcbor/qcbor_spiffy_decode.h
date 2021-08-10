@@ -1700,6 +1700,176 @@ void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
 
 
 
+/**
+ @brief Get a "homgeneous" array of 64-bit integers
+
+ @param[in] pCtx   The decode context.
+
+ This decodes was is called the "homogenous array" tag in RFC xxxx.
+  The input must be a normal CBOR array where every item
+ in the array is CBOR item of major type 0 or 1.
+
+ See also QCBORDecode_GetTypedArrayOfInt64s() for an alternate encoding of 64-bit integers that is
+ more compact in some cases, but is NOT endian neutral.
+
+*/
+static void
+QCBORDecode_GetArrayOfInt64(QCBORDecodeContext *pCtx,
+                            uint8_t             uTagRequirement,
+                            size_t              nInArrayCount,
+                            int64_t            *pnInt64s,
+                            size_t             *pnOutArrayCount);
+
+static void
+QCBORDecode_GetArrayOfInt64InMapN(QCBORDecodeContext *pCtx,
+                                  int64_t             nLabel,
+                                  uint8_t             uTagRequirement,
+                                  size_t              nInArrayCount,
+                                  int64_t            *pnInt64s,
+                                  size_t             *pnOutArrayCount);
+
+static void
+QCBORDecode_GetArrayOfInt64InMapSZ(QCBORDecodeContext *pCtx,
+                                   const char         *szLabel,
+                                   uint8_t             uTagRequirement,
+                                   size_t              nInArrayCount,
+                                   int64_t            *pnInt64s,
+                                   size_t             *pnOutArrayCount);
+
+
+
+static void inline
+QCBORDecode_GetArrayOfUInt64(QCBORDecodeContext *pCtx,
+                             uint8_t             uTagRequirement,
+                             size_t              nInArrayCount,
+                             int64_t            *puUInt64s,
+                             size_t             *pnOutArrayCount);
+
+
+static void inline
+QCBORDecode_GetArrayOfTextStrings(QCBORDecodeContext *pCtx,
+                                  uint8_t             uTagRequirement,
+                                  size_t              nInArrayCount,
+                                  UsefulBufC         *pStrings,
+                                  size_t             *pnOutArrayCount);
+
+static void inline
+QCBORDecode_GetArrayOfByteStrings(QCBORDecodeContext *pCtx,
+                                  uint8_t             uTagRequirement,
+                                  size_t              nInArrayCount,
+                                  UsefulBufC         *pStrings,
+                                  size_t             *pnOutArrayCount);
+
+
+static void inline
+QCBORDecode_GetArrayOfDoubles(QCBORDecodeContext *pCtx,
+                              uint8_t             uTagRequirement,
+                              size_t              nInArrayCount,
+                              double             *pDoubles,
+                              size_t             *pnOutArrayCount);
+
+
+
+#define IS_BIG_ENDIAN   0
+#define IS_LITTLE_ENDIAN 1
+#define ENDIAN_UNKNOWN 2
+
+/**
+ @brief Get a "typed" array of 64-bit integers
+
+ @param[in] pCtx   The decode context.
+
+ This decodes was is called the "type array" tag in RFC xxxx.
+ The CBOR to be decoded is a byte string where every 8 bytes are interpreted as
+ as signed 64-bit integer.
+
+ Unlike everything else in CBOR, the integers are NOT in network byte
+ order. The sender may have encoded them as big or little endian. The point
+ of doing this is to be able to more-efficiently send large arrays of integers
+ between implementing end-points that need and support this. This
+ avoids any copying or byte swapping of the integers saving both
+ memory and CPU cycles.
+
+ The array may be a CBOR tag or not. \c uTagRequrement instructs the
+ decoder as to whether it will decode as a tag.
+
+ If encoded CBOR is a tag, it will be known whether what was sent
+ was big or little endian and returned in \c uEndianness. If it
+ is not a tag, then the knowledge of the endianess has to come from
+ else where. Perhaps it is part of the particular protocol that all
+ type arrays are to be of a particular endianness.
+*/
+void QCBORDecode_GetTypedArrayOfInt64s(QCBORDecodeContext *pCtx,
+                                       uint8_t             uTagRequirement,
+                                       uint64_t           **pInts,
+                                       size_t             *pSize,
+                                       uint8_t            *uEndianess); // TODO: constants for endianness
+/**
+  * This specifies the enianness processing that should be done for a few
+ * methods for array decoding that are configurable this way.
+ *
+ * Note that the endianness of the input must be known for some
+ * of these to work. Somtimes the input CBOR is not a tag
+ * and the endianness is not know.
+ */
+typedef enum {
+   /** The output is to be big endian. The input must be a tag indicating its endianness for this to work. */
+   QCBOR_ENDIAN_BIG_ENDIAN = 0,
+   /** The output is to be little endian. The input must be a tag indicating its endianness for this to work. */
+   QCBOR_ENDIAN_LITTLE_ENDIAN = 1,
+   /** A swap will always be performed. It is up to the caller to know the input endianness. */
+   QCBOR_ENDIAN_SWAP = 2,
+   /** A swap will never be performed. It is up to the caller to know the input endianness. */
+   QCBOR_ENDIAN_NO_SWAP = 3,
+   /** Swapping will be performed if necessary to make the output the correct endianness. The input must be a tag indicating its endianness for this to work. */
+   QCBOR_ENDIAN_MATCH_ENDIANNESS = 4,
+} QCBOREndianRequirement;
+
+
+
+/**
+ @brief Get an "typed" array of 64-bit integers with copying and swapping
+
+ @param[in] pCtx   The decode context.
+
+This decodes the same data type as QCBORDecode_GetTypedArrayOfInt64s().
+ Additionaly, it copies the array to a supplied buffer and does byte swapping
+ for endianness as instructed.
+
+ The received array may or may not have indication of its endianness.
+
+
+
+ The possible swapping options are:
+   - big endian; the input must have indication of its endianness for this to work
+      - little endianess
+ - swap; the endianness will always be swapped regardless of what of the input is marked
+ - no swap; there will be no swapping regardless of how the input is marked
+ - match configured endianness of machine
+*/
+void QCBORDecode_GetTypedArrayOfInt64sCopy(QCBORDecodeContext *pCtx,
+                                           uint8_t             uTagRequirement,
+                                           QCBOREndianRequirement uSwapRequirement,
+                                           size_t              uSize,
+                                           uint64_t          **pInts,
+                                           size_t             *pSize);
+
+
+
+void QCBORDecode_GetUInt32Array(QCBORDecodeContext *pCtx,
+                                uint8_t             uTagRequirement,
+                                uint32_t           **pInts,
+                                size_t             *pSize);
+
+
+void QCBORDecode_GetUint32ArrayCopy(QCBORDecodeContext *pCtx,
+                                    uint8_t             uTagRequirement,
+                                    QCBOREndianRequirement  uSwapRequirement,
+                                    size_t              uSize,
+                                    uint32_t           *pInts,
+                                    size_t             *pSize);
+
+
 /* ===========================================================================
    BEGINNING OF PRIVATE INLINE IMPLEMENTATION
    ========================================================================== */
@@ -2585,7 +2755,10 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
 
 
 
-
+/**
+ * Semi-private data structure to hold the pointer into which to copy
+ * a decoded homogeneous array.
+ */
 union QCBORHomogenousArray {
    int64_t    *pnInt64s;
    int64_t    *puUInt64s;
@@ -2593,13 +2766,55 @@ union QCBORHomogenousArray {
    UsefulBufC *pStrings;
 };
 
-void QCBORDecode_GetHomogenousArray(QCBORDecodeContext *pMe,
+/**
+ * Semi-private method to decode a homogeneous array
+ *
+ * @param[in] pCtx   The decode context.
+ * @param[in] uTagRequirement   One of @c QCBOR_TAG_REQUIREMENT_XXX
+ * @param[in] uType                      The QCBOR type of the array elements.
+ * @param[in] nInArrayCount  The size in number of elements of @c array passed in.
+ * @param[in,out] array  The buffer into which the array is decoded.
+ * @param[out] pnOutArrayCount The number of elements in @c array that were filled in.
+ *
+ * This decodes the next item as a homogenous array where all the elements in the
+ * array can be decoded as the QCBOR_TYPE passed in as @c uType. The type
+ * must be one of @ref  QCBOR_TYPE_INT64, @ref QCBOR_TYPE_UINT64,
+ * @ref QCBOR_TYPE_DOUBLE, @ref QCBOR_TYPE_TEXT_STRING or
+ * @ref QCBOR_TYPE_BYTE_STRING. Note that for QCBOR_TYPE_INT64
+ * the members in the array can be of either major type 0 or 1.
+ *
+ * The buffer into which the array is decoded is in the @ref QCBORHomogenousArray
+ * union. The size of the buffer must be @c nInArrayCount times the size of the
+ * data type. The number of elements decoded is returned in @c pnOutArrayCount.
+ *
+ * @c array may be NULL in which case the array will be decoded and
+ * @c pnOutArrayCount will be filled in, but note that input will be consumed.
+ * To actually get the decoded array values QCBORDecode_Rewind() will have to
+ * be used and it goes back to the start of an entered enclosing array or map.
+ */
+void QCBORDecode_GetHomogenousArray(QCBORDecodeContext *pCtx,
                                     uint8_t             uTagRequirement,
                                     uint8_t             uType,
                                     size_t              nInArrayCount,
                                     union QCBORHomogenousArray array,
                                     size_t             *pnOutArrayCount);
 
+
+void QCBORDecode_GetHomogenousArrayInMapN(QCBORDecodeContext *pMe,
+                                          int64_t             nLabel,
+                                          uint8_t             uTagRequirement,
+                                          uint8_t             uType,
+                                          size_t              nInArrayCount,
+                                          union QCBORHomogenousArray array,
+                                          size_t             *pnOutArrayCount);
+
+void QCBORDecode_GetHomogenousArrayInMapSZ(QCBORDecodeContext *pMe,
+                                           const char          *szLabel,
+                                           uint8_t             uTagRequirement,
+                                           uint8_t             uType,
+                                           size_t              nInArrayCount,
+                                           union QCBORHomogenousArray array,
+                                           size_t             *pnOutArrayCount);
 
 static void inline
 QCBORDecode_GetArrayOfInt64(QCBORDecodeContext *pMe,
@@ -2619,6 +2834,50 @@ QCBORDecode_GetArrayOfInt64(QCBORDecodeContext *pMe,
                                   array,
                                   pnOutArrayCount);
 }
+
+
+static void inline
+QCBORDecode_GetArrayOfInt64InMapN(QCBORDecodeContext *pMe,
+                                 int64_t             nLabel,
+                            uint8_t             uTagRequirement,
+                            size_t              nInArrayCount,
+                            int64_t            *pnInt64s,
+                            size_t             *pnOutArrayCount)
+{
+   union QCBORHomogenousArray array;
+
+   array.pnInt64s = pnInt64s;
+
+   QCBORDecode_GetHomogenousArrayInMapN(pMe,
+                                        nLabel,
+                                        uTagRequirement,
+                                        QCBOR_TYPE_INT64,
+                                        nInArrayCount,
+                                        array,
+                                        pnOutArrayCount);
+}
+
+static void inline
+QCBORDecode_GetArrayOfInt64InMapSZ(QCBORDecodeContext *pMe,
+                                   const char         *szLabel,
+                                   uint8_t             uTagRequirement,
+                                   size_t              nInArrayCount,
+                                   int64_t            *pnInt64s,
+                                   size_t             *pnOutArrayCount)
+{
+   union QCBORHomogenousArray array;
+
+   array.pnInt64s = pnInt64s;
+
+   QCBORDecode_GetHomogenousArrayInMapSZ(pMe,
+                                         szLabel,
+                                         uTagRequirement,
+                                         QCBOR_TYPE_INT64,
+                                         nInArrayCount,
+                                         array,
+                                         pnOutArrayCount);
+}
+
 
 
 static void inline

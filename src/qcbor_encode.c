@@ -953,48 +953,42 @@ QCBORError QCBOREncode_FinishGetSize(QCBOREncodeContext *me, size_t *puEncodedLe
 
 
 
-static inline void UsefulOutBuf_InsertUint32LE(UsefulOutBuf *pMe,
-                                             uint32_t uInteger32,
-                                             size_t uPos)
+
+static inline void
+UsefulOutBuf_InsertUint32LittleEndian(UsefulOutBuf *pMe,
+                            uint32_t      uInteger32,
+                            size_t        uPos)
 {
    /* See UsefulOutBuf_InsertUint64() for comments on this code */
 
-    /* htonl is not used (but it is used for outputting BE)
+#if defined(USEFULBUF_CONFIG_BIG_ENDIAN)
+   const uint32_t uOut = USEFUL_SWAP32(uInteger32);
 
-   htonl will swap if CPU is little endian and do nothing if it is big endian
+#else /* Default is little endian; tests catch mis-configuration. */
+   const uint32_t uOut = uInteger32;
 
-     The opposite is needed.
+#endif /* big or little endian */
 
-     Could use htonl and then always swap the result, but
-     that doesn't seem any better than the default
-     shift and swap that always works.
-
-
-     */
-
-   const void *pBytes;
-
-#if defined(USEFULBUF_CONFIG_LITTLE_ENDIAN)
-   pBytes = &uInteger32;
-
-#elif defined(USEFULBUF_CONFIG_BIG_ENDIAN) && defined(USEFULBUF_CONFIG_BSWAP)
-   uint32_t uTmp = __builtin_bswap32(uInteger32);
-
-   pBytes = &uTmp;
-
-#else
-   uint8_t aTmp[4];
-
-   aTmp[0] = (uint8_t)((uInteger32 & 0xff) >> 24);
-   aTmp[1] = (uint8_t)((uInteger32 & 0xff00) >> 16);
-   aTmp[2] = (uint8_t)((uInteger32 & 0xff0000) >> 8);
-   aTmp[3] = (uint8_t)(uInteger32 & 0xff000000);
-
-   pBytes = aTmp;
-#endif
-
-   UsefulOutBuf_InsertData(pMe, pBytes, 4, uPos);
+   UsefulOutBuf_InsertData(pMe, &uOut, 4, uPos);
 }
+
+static inline void
+UsefulOutBuf_InsertUint32BE(UsefulOutBuf *pMe,
+                            uint32_t      uInteger32,
+                            size_t        uPos)
+{
+   /* See UsefulOutBuf_InsertUint64() for comments on this code */
+
+#if !defined(USEFULBUF_CONFIG_BIG_ENDIAN)
+   const uint32_t uOut = USEFUL_SWAP32(uInteger32);
+
+#else /* Default is little endian; tests catch mis-configuration. */
+   const uint32_t uOut = uInteger32;
+#endif /* big or little endian */
+
+   UsefulOutBuf_InsertData(pMe, &uOut, 4, uPos);
+}
+
 
 void
 QCBOREncode_AddUint32ArrayLittleEndian(QCBOREncodeContext *pMe,
@@ -1008,12 +1002,13 @@ QCBOREncode_AddUint32ArrayLittleEndian(QCBOREncodeContext *pMe,
    AppendCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uNumBytes, 0);
 
    for(size_t n = 0; n < uArrayLen; n++) {
-      UsefulOutBuf_InsertUint32LE(&(pMe->OutBuf), array[n], 99); // TODO: correct position
+      UsefulOutBuf_InsertUint32LittleEndian(&(pMe->OutBuf), array[n], 99); // TODO: correct position
    }
 }
 
+
 void
-QCBOREncode_AddUint32ArrayBigEndian(QCBOREncodeContext *pMe,
+QCBOREncode_AddTypedArrayOfUInt32BigEndian(QCBOREncodeContext *pMe,
                                          const uint32_t      array[],
                                          size_t              uArrayLen)
 {
@@ -1024,21 +1019,21 @@ QCBOREncode_AddUint32ArrayBigEndian(QCBOREncodeContext *pMe,
    AppendCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uNumBytes, 0);
 
    for(size_t n = 0; n < uArrayLen; n++) {
-      UsefulOutBuf_AppendUint32(&(pMe->OutBuf), array[n]);
+      UsefulOutBuf_InsertUint32BE(&(pMe->OutBuf), array[n], 99);
    }
 }
 
 
-// Note that this will produce an array of major type 0 and 1,
-// but that is what is necessary to have an array of positive
-// and negative integers. The types allowed for a homogeneous
-// array are caller-defined, not strictly by CBOR major type
-// or such, so this is just fine.
+
+
+/*
+ * Public function to encode an array. See qcbor/qcbor_encode.h
+ */
 void
-QCBOREncode_AddArrayOfInts(QCBOREncodeContext *pMe,
-                           uint8_t             uTagRequirement,
-                           const int64_t      *puInts,
-                           size_t              uNumInts)
+QCBOREncode_AddArrayOfInt64s(QCBOREncodeContext *pMe,
+                             uint8_t             uTagRequirement,
+                             const int64_t       pInts[],
+                             size_t              uNumInts)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTag(pMe, CBOR_TAG_HOMOGENEOUS_ARRAY);
@@ -1046,34 +1041,40 @@ QCBOREncode_AddArrayOfInts(QCBOREncodeContext *pMe,
    QCBOREncode_OpenArray(pMe);
 
    for(size_t i = 0; i < uNumInts; i++) {
-      QCBOREncode_AddInt64(pMe, puInts[i]);
+      QCBOREncode_AddInt64(pMe, pInts[i]);
    }
    QCBOREncode_CloseArray(pMe);
 }
 
 
+/*
+ * Public function to encode an array. See qcbor/qcbor_encode.h
+ */
 void
-QCBOREncode_AddArrayOfUInts(QCBOREncodeContext *pMe,
-                            uint8_t             uTagRequirement,
-                            const uint64_t     *puInts,
-                            size_t              uNumInts)
+QCBOREncode_AddArrayOfUInt64s(QCBOREncodeContext *pMe,
+                              uint8_t             uTagRequirement,
+                              const uint64_t      puInts[],
+                              size_t              uNumUInts)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTag(pMe, CBOR_TAG_HOMOGENEOUS_ARRAY);
    }
    QCBOREncode_OpenArray(pMe);
 
-   for(size_t i = 0; i < uNumInts; i++) {
+   for(size_t i = 0; i < uNumUInts; i++) {
       QCBOREncode_AddUInt64(pMe, puInts[i]);
    }
    QCBOREncode_CloseArray(pMe);
 }
 
 
+/*
+ * Public function to encode an array. See qcbor/qcbor_encode.h
+ */
 void
 QCBOREncode_AddArrayOfDoubles(QCBOREncodeContext *pMe,
                               uint8_t             uTagRequirement,
-                              const double       *pdDoubles,
+                              const double        pdDoubles[],
                               size_t              uNumDoubles)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
@@ -1088,10 +1089,13 @@ QCBOREncode_AddArrayOfDoubles(QCBOREncodeContext *pMe,
 }
 
 
+/*
+ * Public function to encode an array. See qcbor/qcbor_encode.h
+ */
 void
 QCBOREncode_AddArrayOfByteStrings(QCBOREncodeContext *pMe,
                                   uint8_t             uTagRequirement,
-                                  const UsefulBufC   *pStrings,
+                                  const UsefulBufC    pStrings[],
                                   size_t              uNumStrings)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
@@ -1105,10 +1109,14 @@ QCBOREncode_AddArrayOfByteStrings(QCBOREncodeContext *pMe,
    QCBOREncode_CloseArray(pMe);
 }
 
+
+/*
+ * Public function to encode an array. See qcbor/qcbor_encode.h
+ */
 void
 QCBOREncode_AddArrayOfTextStrings(QCBOREncodeContext *pMe,
                                   uint8_t             uTagRequirement,
-                                  const UsefulBufC   *pStrings,
+                                  const UsefulBufC    pStrings[],
                                   size_t              uNumStrings)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
@@ -1123,11 +1131,14 @@ QCBOREncode_AddArrayOfTextStrings(QCBOREncodeContext *pMe,
 }
 
 
+/*
+ * Public function to encode an array. See qcbor/qcbor_encode.h
+ */
 void
-QCBOREncode_AddArrayOSZStrings(QCBOREncodeContext *pMe,
-                               uint8_t             uTagRequirement,
-                               const char        **pStrings,
-                               size_t              uNumStrings)
+QCBOREncode_AddArrayOfSZStrings(QCBOREncodeContext *pMe,
+                                uint8_t             uTagRequirement,
+                                const char         *pStrings[],
+                                size_t              uNumStrings)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTag(pMe, CBOR_TAG_HOMOGENEOUS_ARRAY);
@@ -1139,6 +1150,3 @@ QCBOREncode_AddArrayOSZStrings(QCBOREncodeContext *pMe,
    }
    QCBOREncode_CloseArray(pMe);
 }
-
-
-

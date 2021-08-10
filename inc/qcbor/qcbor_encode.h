@@ -503,9 +503,9 @@ void QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  */
 void QCBOREncode_AddInt64(QCBOREncodeContext *pCtx, int64_t nNum);
 
-static void QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum);
+static void QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nNum);
 
-static void QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t uNum);
+static void QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t nNum);
 
 
 /**
@@ -1957,6 +1957,79 @@ UsefulBufC QCBOREncode_EncodeHead(UsefulBuf buffer,
                                   uint64_t  uNumber);
 
 
+
+
+
+/**
+ @brief Encode a "homogeneous" array of signed integers.
+
+ @param[in] pCtx  The encoding context.
+ @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
+                             @ref QCBOR_ENCODE_AS_BORROWED.
+ @param[in] pnNum  The array of integers to output.
+ @param[in] uNumInts  The number of integers in \c pnNum.
+
+ This encodes a homogeneous array of signed integers as described in section 3.2 in [RFC 8746](https://tools.ietf.org/html/rfc8746).
+
+ To encode the actual integers, this just opens an array, adds all the integers
+ and closes the array as one might expect. The only thing unusual is the
+ encoding of this as a tag.
+
+ If \c uTagRequirement is @ref QCBOR_ENCODE_AS_TAG then
+ this is encoded as the homogenous array tag, which means the array
+ is preceded by the tag number \ref CBOR_TAG_HOMOGENEOUS_ARRAY.
+
+ If \c uTagRequirement is @ref QCBOR_ENCODE_AS_BORROWED then
+ there is no tag number and this is the straight forward encoding of an
+ array of integers. This is "borrowed" because the definition of a homogenous
+ array is as a tag.
+
+ This uses QCBOREncode_AddInt64() to encode the integers so
+ preferred encoding in the shortest form is used and this will encode
+ with either major type 0 or 1 depending on whether each integer is
+ positive or negative.
+*/
+void
+QCBOREncode_AddArrayOfInt64s(QCBOREncodeContext *pCtx,
+                             uint8_t             uTagRequirement,
+                             const int64_t       pnNum[],
+                             size_t              uNumInts);
+
+
+void
+QCBOREncode_AddArrayOfUInt64s(QCBOREncodeContext *pMe,
+                              uint8_t             uTagRequirement,
+                              const uint64_t      puInts[],
+                              size_t              uNumUInts);
+
+
+void
+QCBOREncode_AddArrayOfDoubles(QCBOREncodeContext *pMe,
+                              uint8_t             uTagRequirement,
+                              const double        pdDoubles[],
+                              size_t              uNumDoubles);
+
+
+void
+QCBOREncode_AddArrayOfByteStrings(QCBOREncodeContext *pMe,
+                                  uint8_t             uTagRequirement,
+                                  const UsefulBufC    pStrings[],
+                                  size_t              uNumStrings);
+
+
+void
+QCBOREncode_AddArrayOfTextStrings(QCBOREncodeContext *pMe,
+                                  uint8_t             uTagRequirement,
+                                  const UsefulBufC    pStrings[],
+                                  size_t              uNumStrings);
+
+
+void
+QCBOREncode_AddArrayOfSZStrings(QCBOREncodeContext *pMe,
+                                uint8_t             uTagRequirement,
+                                const char         *pStrings[],
+                                size_t              uNumStrings);
+
 /*
 Definitely need to have two functions, one for BE and one for LE.
  Since we have to say what format to output. There is no wire format.
@@ -1968,19 +2041,16 @@ Definitely need to have two functions, one for BE and one for LE.
 use correct tag.
 
 
-
+There are going to be about 20 functions here for
+ all the different integer types.
 
 
  */
 
 
-void
-QCBOREncode_AddArrayOfInts(QCBOREncodeContext *pMe,
-                           uint8_t             uTagRequirement,
-                           const int64_t      *puInts,
-                           size_t              uNumInts);
 
-void QCBOREncode_AddUint32ArrayBigEndian(QCBOREncodeContext *pCtx,
+
+void QCBOREncode_AddTypedArrayOfUInt32BigEndian(QCBOREncodeContext *pCtx,
                                          const uint32_t      array[],
                                          size_t              uArrayLen);
 
@@ -2156,18 +2226,18 @@ static inline void QCBOREncode_AddBytesLenOnlyToMapN(QCBOREncodeContext *pCtx, i
 
 
 static inline void
-QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe, const char *szLabel, int64_t uNum)
+QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe, const char *szLabel, int64_t nNum)
 {
    // Use _AddBuffer() because _AddSZString() is defined below, not above
    QCBOREncode_AddBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, UsefulBuf_FromSZ(szLabel));
-   QCBOREncode_AddInt64(pMe, uNum);
+   QCBOREncode_AddInt64(pMe, nNum);
 }
 
 static inline void
-QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pMe, int64_t nLabel, int64_t uNum)
+QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pMe, int64_t nLabel, int64_t nNum)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddInt64(pMe, uNum);
+   QCBOREncode_AddInt64(pMe, nNum);
 }
 
 

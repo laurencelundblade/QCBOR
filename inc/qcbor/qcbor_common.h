@@ -197,6 +197,16 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     tag. */
 #define CBOR_TAG_CBOR_SEQUENCE 63
 
+#define CBOR_TAG_UINT8_ARRAY 64
+
+#define CBOR_TAG_UINT16_BIG_ENDIAN_ARRAY 65
+#define CBOR_TAG_UINT32_BIG_ENDIAN_ARRAY 66
+#define CBOR_TAG_UINT64_BIG_ENDIAN_ARRAY 67
+
+#define CBOR_TAG_UINT16_LITTLE_ENDIAN_ARRAY 69
+#define CBOR_TAG_UINT32_LITTLE_ENDIAN_ARRAY 70
+#define CBOR_TAG_UINT64_LITTLE_ENDIAN_ARRAY 71
+
 
 #define CBOR_TAG_ENCRYPT       96
 /** Not Decoded by QCBOR. Tag for COSE format MAC. See [RFC 8152, COSE]
@@ -504,6 +514,14 @@ typedef enum {
    /** Indefinite length arrays and maps handling are disabled and there is an
        indefinite length map or array in the input CBOR. */
    QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED = 44,
+
+   /** The input CBOR needs to be a multiple of 2, 4 or 8 bytes and it is not. */
+   QCBOR_ERR_INPUT_SIZE_MULTIPLE = 45,
+
+   /** The input CBOR  is not a tag indicating endianness and the input endianness
+    needs to be know to proceed. */
+   QCBOR_ERR_INPUT_ENDIANNESS_UNKNOWN = 45,
+
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;

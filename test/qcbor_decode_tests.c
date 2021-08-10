@@ -8014,7 +8014,7 @@ int32_t DecodeArraysOfTest(void)
    MakeUsefulBufOnStack(xx, 100);
    QCBOREncode_Init(&EC, xx);
 
-   QCBOREncode_AddArrayOfInts(&EC,
+   QCBOREncode_AddArrayOfInt64s(&EC,
                               QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
                               ints,
                               4);
@@ -8022,10 +8022,33 @@ int32_t DecodeArraysOfTest(void)
    QCBOREncode_Finish(&EC, &Encoded);
 
 
+/*
+get an array of ints,
+ uint,
+ double,
+ text strings
+ and byte strings
+ get an array of ints where one is a uint
+ get an array of uints where one is negative
+
+ get an array of ints where the buffer is too small
+
+ get an array of ints and require a tag; input is a tag
+ get an array of ints and require no tag; input is a tag
+ get an array of ints and requiare a tag; intput isn't a tag
+ get an array of ints and tag is optional; intput is a tag
+ get an array of ints and tag is optional; input is not a tag
+
+
+
+ */
+
+
    QCBORDecodeContext DC;
 
    int64_t i2[6];
    size_t count;
+
 
    QCBORDecode_Init(&DC, Encoded, 0);
 

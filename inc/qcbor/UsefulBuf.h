@@ -1580,6 +1580,18 @@ static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pUInBuf);
 static void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pUInBuf, size_t uNewLen);
 
 
+// TODO: document this; maybe add tests...
+#if defined(USEFULBUF_CONFIG_BSWAP)
+#define USEFUL_SWAP32(integer) \
+   __builtin_bswap32(integer);
+#else
+#define USEFUL_SWAP32(integer) \
+   ((integer & 0xff) >> 24) + \
+   ((integer & 0xff00) >> 16) + \
+   ((integer & 0xff0000) >> 8) + \
+    (integer & 0xff000000)
+#endif
+
 
 
 /*----------------------------------------------------------
@@ -1789,6 +1801,7 @@ static inline void UsefulOutBuf_InsertByte(UsefulOutBuf *me,
 }
 
 
+
 static inline void UsefulOutBuf_InsertUint16(UsefulOutBuf *me,
                                              uint16_t uInteger16,
                                              size_t uPos)
@@ -1836,20 +1849,21 @@ static inline void UsefulOutBuf_InsertUint32(UsefulOutBuf *pMe,
    uint32_t uTmp = htonl(uInteger32);
    pBytes = &uTmp;
 
-#elif defined(USEFULBUF_CONFIG_LITTLE_ENDIAN) && defined(USEFULBUF_CONFIG_BSWAP)
-   uint32_t uTmp = __builtin_bswap32(uInteger32);
-
+#elif defined(USEFULBUF_CONFIG_LITTLE_ENDIAN)
+   uint32_t uTmp = XSWAP(uInteger32);
    pBytes = &uTmp;
 
 #else
-   uint8_t aTmp[4];
 
-   aTmp[0] = (uint8_t)((uInteger32 & 0xff000000) >> 24);
-   aTmp[1] = (uint8_t)((uInteger32 & 0xff0000) >> 16);
-   aTmp[2] = (uint8_t)((uInteger32 & 0xff00) >> 8);
-   aTmp[3] = (uint8_t)(uInteger32 & 0xff);
+   uint32_t uTmp =
+   ((uInteger32 & 0xff) >> 24) + \
+   ((uInteger32 & 0xff00) >> 16) + \
+   ((uInteger32 & 0xff0000) >> 8) + \
+   (uInteger32 & 0xff000000);
 
-   pBytes = aTmp;
+   pBytes = &uTmp;
+
+
 #endif
 
    UsefulOutBuf_InsertData(pMe, pBytes, 4, uPos);
