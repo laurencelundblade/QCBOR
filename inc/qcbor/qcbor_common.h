@@ -504,7 +504,7 @@ typedef enum {
 
    /** Trying to cancel a byte string wrapping after items have been
        added to it. */
-   QCBOR_ERR_CANNOT_CANCEL = 45,
+   QCBOR_ERR_CANNOT_CANCEL = 45
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
