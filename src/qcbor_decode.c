@@ -3018,7 +3018,9 @@ MapSearch(QCBORDecodeContext *pMe,
                goto Done;
             }
             if(uResult != QCBOR_SUCCESS) {
-               /* The label matches, but the data item is in error */
+               /* The label matches, but the data item is in error.
+                * It is OK to have recoverable errors on items that are not
+                * matched. */
                uReturn = uResult;
                goto Done;
             }
@@ -3169,23 +3171,34 @@ Done:
 }
 
 
-void QCBORDecode_GetArray(QCBORDecodeContext *pMe,
-                          uint16_t           *puNumItems,
-                          UsefulBufC         *pEncodedCBOR)
+
+
+// Semi-private
+void QCBORDecode_GetMapOrArray(QCBORDecodeContext *pMe,
+                               uint8_t             uType,
+                               uint16_t           *puNumItems,
+                               UsefulBufC         *pEncodedCBOR)
 {
-   //uint8_t uType = QCBOR_TYPE_ARRAY; // TODO: implement this for maps too
+   // If there are no labels, then the current position
+   // is the start of the array.
+
+   size_t uStart2 = UsefulInputBuf_Tell(&(pMe->InBuf));
+
+   if(DecodeNesting_IsCurrentTypeMap(&(pMe->nesting))) {
+      QCBORItem LabelItem; // not used
+      QCBORError uReturn = QCBORDecode_GetNextTagNumber(pMe, &LabelItem);
+      (void)uReturn; // TODO handle this error
+   }
+
+   size_t uStart = UsefulInputBuf_Tell(&(pMe->InBuf));
+   QCBORItem Item;
    QCBORError uErr;
 
+   UsefulInputBuf_Seek(&(pMe->InBuf), uStart2);
 
-   QCBORItem Item;
-   QCBORDecode_EnterArray(pMe, &Item);
+   QCBORDecode_EnterBoundedMapOrArray(pMe, uType, &Item);
 
    CopyTags(pMe, &Item);
-
-   // TODO: a better method for this
-
-   size_t uStart = DecodeNesting_GetMapOrArrayStart(&(pMe->nesting));
-
 
    MapSearchInfo Info;
 
@@ -3196,18 +3209,42 @@ void QCBORDecode_GetArray(QCBORDecodeContext *pMe,
       goto Done;
    }
 
-   // TODO: how to really get a pointer to start of CBOR array?
-
-
    pEncodedCBOR->ptr = (const uint8_t *)pMe->InBuf.UB.ptr + uStart;
 
    pEncodedCBOR->len = pMe->uMapEndOffsetCache - uStart;
    *puNumItems = Info.uItemCount;
-
+   QCBORDecode_ExitBoundedMapOrArray(pMe, uType);
 
 Done:
    return;
 }
+
+
+void SearchAndGetMapOrArray(QCBORDecodeContext *pMe,
+                  QCBORItem          *pTarget,
+                  uint16_t           *puNumItems,
+                  UsefulBufC         *pEncodedCBOR)
+{
+   MapSearchInfo Info;
+   pMe->uLastError = (uint8_t)MapSearch(pMe, pTarget, &Info, NULL);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset);
+
+   QCBORDecode_GetMapOrArray(pMe, pTarget[0].uDataType, puNumItems, pEncodedCBOR);
+
+   // TODO: cursor position after this call
+}
+
+
+
+// Inline all these below
+
+
+
+
 
 
 static QCBORError

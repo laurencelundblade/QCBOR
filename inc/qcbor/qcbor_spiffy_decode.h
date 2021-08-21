@@ -647,17 +647,32 @@ static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
  TODO: fill this in
  */
-void QCBORDecode_GetArray(QCBORDecodeContext *pCtx,
+static void QCBORDecode_GetArray(QCBORDecodeContext *pCtx,
                           uint16_t           *puNumItems,
                           UsefulBufC         *pEncodedCBOR);
 
-void QCBORDecode_GetArrayFromMapN(QCBORDecodeContext *pCtx,
+static void QCBORDecode_GetArrayFromMapN(QCBORDecodeContext *pCtx,
                                  int64_t             nLabel,
                                  uint16_t           *puNumItems,
                                  UsefulBufC         *pEncodedCBOR);
 
-void QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pCtx,
-                                   const char *       *szLabel,
+static void QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pCtx,
+                                   const char         *szLabel,
+                                   uint16_t           *puNumItems,
+                                   UsefulBufC         *pEncodedCBOR);
+
+
+static void QCBORDecode_GetMap(QCBORDecodeContext *pCtx,
+                          uint16_t           *puNumItems,
+                          UsefulBufC         *pEncodedCBOR);
+
+static void QCBORDecode_GetMapFromMapN(QCBORDecodeContext *pCtx,
+                                 int64_t             nLabel,
+                                 uint16_t           *puNumItems,
+                                 UsefulBufC         *pEncodedCBOR);
+
+static void QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pCtx,
+                                   const char         *szLabel,
                                    uint16_t           *puNumItems,
                                    UsefulBufC         *pEncodedCBOR);
 
@@ -1800,6 +1815,92 @@ static inline void QCBORDecode_ExitArray(QCBORDecodeContext *pMe)
 static inline void QCBORDecode_ExitMap(QCBORDecodeContext *pMe)
 {
    QCBORDecode_ExitBoundedMapOrArray(pMe, QCBOR_TYPE_MAP);
+}
+
+// Semi-private
+void QCBORDecode_GetMapOrArray(QCBORDecodeContext *pMe,
+                               uint8_t             uType,
+                               uint16_t           *puNumItems,
+                               UsefulBufC         *pEncodedCBOR);
+
+// Semi-private
+void SearchAndGetMapOrArray(QCBORDecodeContext *pMe,
+                            QCBORItem          *pTarget,
+                            uint16_t           *puNumItems,
+                            UsefulBufC         *pEncodedCBOR);
+
+static inline void QCBORDecode_GetArray(QCBORDecodeContext *pMe,
+                          uint16_t           *puNumItems,
+                          UsefulBufC         *pEncodedCBOR)
+{
+   QCBORDecode_GetMapOrArray(pMe, QCBOR_TYPE_ARRAY, puNumItems, pEncodedCBOR);
+}
+
+
+static inline void QCBORDecode_GetArrayFromMapN(QCBORDecodeContext *pMe,
+                                  int64_t             nLabel,
+                                  uint16_t           *puNumItems,
+                                  UsefulBufC         *pEncodedCBOR)
+{
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
+   OneItemSeach[0].label.int64 = nLabel;
+   OneItemSeach[0].uDataType   = QCBOR_TYPE_ARRAY;
+   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE;
+
+   SearchAndGetMapOrArray(pMe, OneItemSeach, puNumItems, pEncodedCBOR);
+}
+
+
+static inline void QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pMe,
+                                   const char         *szLabel,
+                                   uint16_t           *puNumItems,
+                                   UsefulBufC         *pEncodedCBOR)
+{
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType  = QCBOR_TYPE_TEXT_STRING;
+   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSeach[0].uDataType   = QCBOR_TYPE_ARRAY;
+   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE;
+
+   SearchAndGetMapOrArray(pMe, OneItemSeach, puNumItems, pEncodedCBOR);
+}
+
+static inline void QCBORDecode_GetMap(QCBORDecodeContext *pMe,
+uint16_t           *puNumItems,
+UsefulBufC         *pEncodedCBOR)
+{
+   QCBORDecode_GetMapOrArray(pMe, QCBOR_TYPE_MAP, puNumItems, pEncodedCBOR);
+}
+
+
+static inline void QCBORDecode_GetMapFromMapN(QCBORDecodeContext *pMe,
+                                  int64_t             nLabel,
+                                  uint16_t           *puNumItems,
+                                  UsefulBufC         *pEncodedCBOR)
+{
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
+   OneItemSeach[0].label.int64 = nLabel;
+   OneItemSeach[0].uDataType   = QCBOR_TYPE_MAP;
+   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE;
+
+   SearchAndGetMapOrArray(pMe, OneItemSeach, puNumItems, pEncodedCBOR);
+}
+
+
+static inline void QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
+                                 const char         *szLabel,
+                                 uint16_t           *puNumItems,
+                                 UsefulBufC         *pEncodedCBOR)
+{
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSeach[0].uDataType    = QCBOR_TYPE_MAP;
+   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
+
+   SearchAndGetMapOrArray(pMe, OneItemSeach, puNumItems, pEncodedCBOR);
 }
 
 
