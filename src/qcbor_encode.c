@@ -1,6 +1,7 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -690,6 +691,7 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /*
  * Public functions for adding a double. See qcbor/qcbor_encode.h
  */
@@ -740,6 +742,7 @@ void QCBOREncode_AddFloat(QCBOREncodeContext *me, float fNum)
    QCBOREncode_AddFloatNoPreferred(me, fNum);
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA

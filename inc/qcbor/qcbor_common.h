@@ -1,6 +1,7 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,6 +59,17 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define QCBOR_DISABLE_EXP_AND_MANTISSA
 #endif
 
+/* If USEFULBUF_DISABLE_ALL_FLOATis defined then define
+ * QCBOR_DISABLE_FLOAT_HW_USE and QCBOR_DISABLE_PREFERRED_FLOAT
+ */
+#ifdef USEFULBUF_DISABLE_ALL_FLOAT
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#define QCBOR_DISABLE_FLOAT_HW_USE
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+#define QCBOR_DISABLE_PREFERRED_FLOAT
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 /* Standard CBOR Major type for positive integers of various lengths */
 #define CBOR_MAJOR_TYPE_POSITIVE_INT 0
@@ -504,7 +516,11 @@ typedef enum {
 
    /** Trying to cancel a byte string wrapping after items have been
        added to it. */
-   QCBOR_ERR_CANNOT_CANCEL = 45
+   QCBOR_ERR_CANNOT_CANCEL = 45,
+
+   /** Floating point support is completely turned off, encoding/decoding
+       floating point numbers is not possible. */
+   QCBOR_ERR_ALL_FLOAT_DISABLED = 46
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;

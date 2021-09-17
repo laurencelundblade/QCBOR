@@ -2,6 +2,7 @@
  ieee754.c -- floating-point conversion between half, double & single-precision
 
  Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2021, Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +10,12 @@
 
  Created on 7/23/18
  =============================================================================*/
+
+/*
+ Include before QCBOR_DISABLE_PREFERRED_FLOAT is checked as
+ QCBOR_DISABLE_PREFERRED_FLOAT might be defined in qcbor/qcbor_common.h
+ */
+#include "qcbor/qcbor_common.h"
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 

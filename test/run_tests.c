@@ -2,6 +2,7 @@
  run_tests.c -- test aggregator and results reporting
 
  Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2021, Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -51,7 +52,9 @@ typedef struct {
 
 
 static test_entry2 s_tests2[] = {
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
     TEST_ENTRY(UBUTest_CopyUtil),
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
     TEST_ENTRY(UOBTest_NonAdversarial),
     TEST_ENTRY(TestBasicSanity),
     TEST_ENTRY(UOBTest_BoundaryConditionsTest),
@@ -114,7 +117,9 @@ static test_entry s_tests[] = {
     TEST_ENTRY(DoubleAsSmallestTest),
     TEST_ENTRY(HalfPrecisionAgainstRFCCodeTest),
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
     TEST_ENTRY(GeneralFloatEncodeTests),
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
     TEST_ENTRY(GeneralFloatDecodeTests),
     TEST_ENTRY(BstrWrapTest),
     TEST_ENTRY(BstrWrapErrorTest),

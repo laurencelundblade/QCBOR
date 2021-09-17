@@ -1,6 +1,7 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -394,16 +395,20 @@ typedef struct _QCBORItem {
        *  with @c uNestLevel and @c uNextNestLevel so as to work for
        *  both definite and indefinite length maps and arrays. */
       uint16_t    uCount;
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
       /** The value for @c uDataType @ref QCBOR_TYPE_DOUBLE. */
       double      dfnum;
       /** The value for @c uDataType @ref QCBOR_TYPE_FLOAT. */
       float       fnum;
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
       /** The value for @c uDataType @ref QCBOR_TYPE_DATE_EPOCH.
        *  Floating-point dates that are NaN, +Inifinity or -Inifinity
        *  result in the @ref QCBOR_ERR_DATE_OVERFLOW error. */
       struct {
          int64_t  nSeconds;
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
          double   fSecondsFraction;
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
       } epochDate;
 
       /** The value for @c uDataType @ref QCBOR_TYPE_DAYS_EPOCH -- the
@@ -889,6 +894,7 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * | @ref QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  | Library compiled with indefinite maps and arrays  disabled and indefinite map or array encountered |
  * | @ref QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED | Library compiled with indefinite strings disabled and indefinite string encountered |
  * | @ref QCBOR_ERR_FLOAT_DATE_DISABLED        | Library compiled with floating-point disabled and floating-point date encountered |
+ * | @ref QCBOR_ERR_ALL_FLOAT_DISABLED             | Library compiled with floating-point support turned off. |
  * | __Resource exhaustion errors__  ||
  * | @ref QCBOR_ERR_STRING_ALLOCATE | The string allocator is unable to allocate more memory |
  */
