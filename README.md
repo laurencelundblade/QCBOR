@@ -479,8 +479,9 @@ still exist and work the same)
 * Michael Eckel for Makefile improvements
 * Jan Jongboom for indefinite length encoding
 * Peter Uiterwijk for error strings and other
-* Michael Richarson for CI set up and additional compiler warnings
-
+* Michael Richarson for CI set up and fixing some compiler warnings
+* Máté Tóth-Pál for float-point disabling and other
+* Dave Thaler for portability to Windows
 
 ## Copyright and License
 

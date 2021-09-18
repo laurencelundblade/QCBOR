@@ -1034,14 +1034,14 @@ static void QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pCtx,
  fractional part is discarded.
 
  If the input is a floating-point date and the QCBOR library is
- compiled with some or all floating-point features, the following
- errors will be set.  If the input is half-precision and
+ compiled with some or all floating-point features disabled, the
+ following errors will be set.  If the input is half-precision and
  half-precision is disabled @ref QCBOR_ERR_HALF_PRECISION_DISABLED is
  set. This function needs hardware floating-point to convert the
  floating-point value to an integer so if HW floating point is
  disabled QCBOR_ERR_HW_FLOAT_DISABLED is set. If all floating-point is
  disabled then @ref QCBOR_ERR_ALL_FLOAT_DISABLED is set.  A previous
- version of this function would return @ref  QCBOR_ERR_FLOAT_DATE_DISABLED
+ version of this function would return @ref QCBOR_ERR_FLOAT_DATE_DISABLED
  in some, but not all, cases when floating-point decoding was disabled.
 
  Floating-point dates that are plus infinity, minus infinity or NaN
