@@ -1019,25 +1019,33 @@ static void QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pCtx,
 
  @param[in] pCtx             The decode context.
  @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pnTime            The decoded epoch date.
+ @param[out] pnTime          The decoded epoch date.
 
  This decodes the standard CBOR epoch date/time tag, integer tag
- number of 1, or encoded CBOR that is not a tag, but borrows the
- content format.
+ number of 1. This will also decode any integer or floating-point
+ number as an epoch date (a tag 1 epoch date is just an integer or
+ floating-point number).
 
- This will handle floating-point dates, but always returns them as an
- @c int64_t discarding the fractional part. Use QCBORDecode_GetNext()
- instead of this to get the fractional part.
+ This will set @ref QCBOR_ERR_DATE_OVERFLOW if the input integer will
+ not fit in an @c int64_t. Note that an @c int64_t can represent a
+ range of over 500 billion years with one second resolution.
+
+ Floating-point dates are always returned as an @c int64_t. The
+ fractional part is discarded.
+
+ If the input is a floating-point date and the QCBOR library is
+ compiled with some or all floating-point features, the following
+ errors will be set.  If the input is half-precision and
+ half-precision is disabled @ref QCBOR_ERR_HALF_PRECISION_DISABLED is
+ set. This function needs hardware floating-point to convert the
+ floating-point value to an integer so if HW floating point is
+ disabled QCBOR_ERR_HW_FLOAT_DISABLED is set. If all floating-point is
+ disabled then @ref QCBOR_ERR_ALL_FLOAT_DISABLED is set.  A previous
+ version of this function would return @ref  QCBOR_ERR_FLOAT_DATE_DISABLED
+ in some, but not all, cases when floating-point decoding was disabled.
 
  Floating-point dates that are plus infinity, minus infinity or NaN
- (not-a-number) will result in the @ref QCBOR_ERR_DATE_OVERFLOW
- error. If the QCBOR library is compiled with hardware floating-point disabled,
- @ref QCBOR_ERR_HW_FLOAT_DISABLED is set. If compiled with preferred
- float disabled, half-precision dates will result in the @ref
- QCBOR_ERR_HALF_PRECISION_DISABLED error.
-
- If the QCBOR library is compiled with floating-point disabled,
- @ref QCBOR_ERR_ALL_FLOAT_DISABLED is set.
+ (not-a-number) will result in the @ref QCBOR_ERR_DATE_OVERFLOW error.
 
  Please see @ref Decode-Errors-Overview "Decode Errors Overview".
 
