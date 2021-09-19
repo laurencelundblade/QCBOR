@@ -18,6 +18,23 @@
 #include "qcbor/qcbor_spiffy_decode.h"
 #include <math.h> // For INFINITY and NAN and isnan()
 
+
+/* Make a test results code that includes three components
+ * Return code is
+ * xxxyyyzzz where zz is the error code, yy is the test number and zz is
+ * check being performed
+ */
+static inline int32_t MakeTestResultCode(uint32_t   uTestCase,
+                                         uint32_t   uTestNumber,
+                                         QCBORError uErrorCode)
+{
+   uint32_t uCode = (uTestCase * 1000000) +
+                    (uTestNumber * 1000) +
+                    (uint32_t)uErrorCode;
+   return (int32_t)uCode;
+}
+
+
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 #include "half_to_double_from_rfc7049.h"
@@ -606,18 +623,21 @@ int32_t DoubleAsSmallestTest()
 
 
 /*
-[0.0,  // Half
- 3.14, // Double
- 0.0,  // Double
- NaN,  // Double
- Infinity, // Double
- 0.0,  // Half
- 3.140000104904175, // Single
- 0.0,  // Single
- NaN,  // Single
- Infinity, // Single
- {100: 0.0, 101: 3.1415926, "euler": 2.718281828459045, 105: 0.0,
-  102: 0.0, 103: 3.141592502593994, "euler2": 2.7182817459106445, 106: 0.0}]
+ * Some encoded floating point numbers that are used for both
+ * encode and decode tests.
+ *
+ * [0.0,  // Half
+ *  3.14, // Double
+ *  0.0,  // Double
+ *  NaN,  // Double
+ *  Infinity, // Double
+ *  0.0,  // Half (Duplicate because of use in encode tests)
+ *  3.140000104904175, // Single
+ *  0.0,  // Single
+ *  NaN,  // Single
+ *  Infinity, // Single
+ *  {100: 0.0, 101: 3.1415926, "euler": 2.718281828459045, 105: 0.0,
+ *   102: 0.0, 103: 3.141592502593994, "euler2": 2.7182817459106445, 106: 0.0}]
  */
 static const uint8_t spExpectedFloats[] = {
    0x8B,
@@ -756,419 +776,270 @@ static int CHECK_EXPECTED_DOUBLE(double val, double expected)
 
 int32_t GeneralFloatDecodeTests()
 {
-   UsefulBufC TestData = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
-
+   QCBORItem          Item;
+   QCBORError         uErr;
    QCBORDecodeContext DC;
-   QCBORDecode_Init(&DC, TestData, 0);
 
-   QCBORItem Item;
-   QCBORError uErr;
+   UsefulBufC TestData = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
+   QCBORDecode_Init(&DC, TestData, 0);
 
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
-      return -1;
+      return MakeTestResultCode(0, 1, 0);
    }
 
+   /* 0.0 half-precision */
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || Item.val.dfnum != 0.0
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
+      || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
    ) {
-      return -2;
+      return MakeTestResultCode(0, 2, uErr);
    }
 
+   /* 3.14 double-precision */
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || Item.val.dfnum != 3.14
+#else /* USEFULBUF_DISABLE_ALL_FLOAT */
+      || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    ) {
-      return -4;
+      return MakeTestResultCode(0, 3, uErr);
    }
 
+   /* 0.0 double-precision */
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || Item.val.dfnum != 0.0
+#else /* USEFULBUF_DISABLE_ALL_FLOAT */
+      || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    ) {
-      return -5;
+      return MakeTestResultCode(0, 4, uErr);
    }
 
+   /* NaN double-precision */
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || !isnan(Item.val.dfnum)
+#else /* USEFULBUF_DISABLE_ALL_FLOAT */
+      || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    ) {
-      return -6;
+      return MakeTestResultCode(0, 5, uErr);
    }
 
+   /* Infinity double-precision */
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || Item.val.dfnum != INFINITY
+#else /* USEFULBUF_DISABLE_ALL_FLOAT */
+      || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    ) {
-      return -7;
+      return MakeTestResultCode(0, 6, uErr);
    }
 
-// Tests for normal config
+   /* 0.0 half-precision (again) */
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || Item.val.dfnum != 0.0
+#else /* USEFULBUF_DISABLE_ALL_FLOAT */
+      || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
    ) {
-      return -8;
+      return MakeTestResultCode(0, 7, uErr);
    }
 
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+   /* 3.140000104904175 single-precision */
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || CHECK_EXPECTED_DOUBLE(3.14, Item.val.dfnum)
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-   ) {
-      return -9;
-   }
-
-   uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
-      || Item.uDataType != QCBOR_TYPE_DOUBLE
-      || Item.val.dfnum != 0.0
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-   ) {
-      return -10;
-   }
-
-   uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
-      || Item.uDataType != QCBOR_TYPE_DOUBLE
-      || !isnan(Item.val.dfnum)
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-   ) {
-      return -11;
-   }
-
-   uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
-      || Item.uDataType != QCBOR_TYPE_DOUBLE
-      || Item.val.dfnum != INFINITY
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-   ) {
-      return -12;
-   }
-
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
-   // Tests for floating point HW use disabled
-   uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
       || Item.uDataType != QCBOR_TYPE_FLOAT
       || CHECK_EXPECTED_DOUBLE(3.14, Item.val.fnum)
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* USEFULBUF_DISABLE_ALL_FLOAT */
+      || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    ) {
-      return -9;
+      return MakeTestResultCode(0, 8, uErr);
    }
 
+   /* 0.0 single-precision */
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || Item.val.dfnum != 0.0
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
       || Item.uDataType != QCBOR_TYPE_FLOAT
       || Item.val.fnum != 0.0
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* USEFULBUF_DISABLE_ALL_FLOAT */
+      || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    ) {
-      return -10;
+      return MakeTestResultCode(0, 9, uErr);
    }
 
+   /* NaN single-precision */
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || !isnan(Item.val.dfnum)
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
       || Item.uDataType != QCBOR_TYPE_FLOAT
       || !isnan(Item.val.fnum)
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* USEFULBUF_DISABLE_ALL_FLOAT */
+      || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    ) {
-      return -11;
+      return MakeTestResultCode(0, 10, uErr);
    }
 
+   /* Infinity single-precision */
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+      || Item.uDataType != QCBOR_TYPE_DOUBLE
+      || Item.val.dfnum != INFINITY
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
       || Item.uDataType != QCBOR_TYPE_FLOAT
       || Item.val.fnum != INFINITY
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* USEFULBUF_DISABLE_ALL_FLOAT */
+      || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    ) {
-      return -12;
+      return MakeTestResultCode(0, 11, uErr);
    }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+   /* Sufficent test coverage. Don't need to decode the rest. */
 
 
-   /* Sufficent test coverage. Don't need to decode the rest */
-
-
-   // Now tests for spiffy decode
-   TestData = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
+   /* Now tests for spiffy decode main function */
+   TestData = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
    double d;
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    QCBORDecode_Init(&DC, TestData, 0);
    QCBORDecode_EnterArray(&DC, NULL);
 
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+   /* 0.0 half-precision */
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   // Spiffy decode tests for normal full float support
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != 0.0) {
-      return -100;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != 3.14) {
-      return -101;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != 0.0) {
-      return -102;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      !isnan(d)) {
-      return -103;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != INFINITY) {
-      return -104;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != 0.0) {
-      return -105;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != 3.140000104904175) {
-      return -106;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != 0.0) {
-      return -107;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      !isnan(d)) {
-      return -108;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != INFINITY) {
-      return -109;
-   }
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-   // Spiffy decode tests for float HW disabled
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != 0.0) {
-      return -200;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != 3.14) {
-      return -201;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != 0.0) {
-      return -202;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      !isnan(d)) {
-      return -203;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != INFINITY) {
-      return -204;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_SUCCESS ||
-      d != 0.0) {
-      return -205;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_ERR_HW_FLOAT_DISABLED) {
-      return -206;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_ERR_HW_FLOAT_DISABLED) {
-      return -207;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_ERR_HW_FLOAT_DISABLED ) {
-      return -208;
-   }
-
-   QCBORDecode_GetDouble(&DC, &d);
-   uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != QCBOR_ERR_HW_FLOAT_DISABLED ) {
-      return -209;
-   }
-
-
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   // Spiffy decode tests for half-precision disabled
-   QCBORDecode_GetDouble(&DC, &d);
-    uErr = QCBORDecode_GetAndResetError(&DC);
-    if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
-       return -300;
-    }
-
-    QCBORDecode_GetDouble(&DC, &d);
-    uErr = QCBORDecode_GetAndResetError(&DC);
-    if(uErr != QCBOR_SUCCESS ||
-       d != 3.14) {
-       return -301;
-    }
-
-    QCBORDecode_GetDouble(&DC, &d);
-    uErr = QCBORDecode_GetAndResetError(&DC);
-    if(uErr != QCBOR_SUCCESS ||
-       d != 0.0) {
-       return -302;
-    }
-
-    QCBORDecode_GetDouble(&DC, &d);
-    uErr = QCBORDecode_GetAndResetError(&DC);
-    if(uErr != QCBOR_SUCCESS ||
-       !isnan(d)) {
-       return -303;
-    }
-
-    QCBORDecode_GetDouble(&DC, &d);
-    uErr = QCBORDecode_GetAndResetError(&DC);
-    if(uErr != QCBOR_SUCCESS ||
-       d != INFINITY) {
-       return -304;
-    }
-
-    QCBORDecode_GetDouble(&DC, &d);
-    uErr = QCBORDecode_GetAndResetError(&DC);
-    if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
-       return -305;
-    }
-
-    QCBORDecode_GetDouble(&DC, &d);
-    uErr = QCBORDecode_GetAndResetError(&DC);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-    if(uErr != QCBOR_SUCCESS ||
-       d != 3.140000104904175) {
-       return -306;
-    }
-#else
-   // Disabled use of HW to convert from single to double
-   if(uErr != QCBOR_ERR_HW_FLOAT_DISABLED) {
-      return -316;
-   }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-
-
-    QCBORDecode_GetDouble(&DC, &d);
-    uErr = QCBORDecode_GetAndResetError(&DC);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-    if(uErr != QCBOR_SUCCESS ||
-       d != 0.0) {
-       return -307;
-    }
-#else
-   // Disabled use of HW to convert from single to double
-   if(uErr == QCBOR_SUCCESS) {
-      return -317;
-   }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-
-
-    QCBORDecode_GetDouble(&DC, &d);
-    uErr = QCBORDecode_GetAndResetError(&DC);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-    if(uErr != QCBOR_SUCCESS ||
-       !isnan(d)) {
-       return -308;
-    }
-#else
-   // Disabled use of HW to convert from single to double
-   if(uErr == QCBOR_SUCCESS) {
-      return -318;
-   }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-
-    QCBORDecode_GetDouble(&DC, &d);
-    uErr = QCBORDecode_GetAndResetError(&DC);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-    if(uErr != QCBOR_SUCCESS ||
-       d != INFINITY) {
-       return -309;
-    }
-#else
-   // Disabled use of HW to convert from single to double
-   if(uErr == QCBOR_SUCCESS) {
-      return -318;
-   }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      || d != 0.0
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+      ) {
+      return MakeTestResultCode(1, 1, uErr);
+   }
+
+   /* 3.14 double-precision */
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS || d != 3.14) {
+      return MakeTestResultCode(1, 2, uErr);
+   }
+
+   /* 0.0 double-precision */
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS || d != 0.0) {
+      return MakeTestResultCode(1, 3, uErr);
+   }
+
+   /* NaN double-precision */
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS || !isnan(d)) {
+      return MakeTestResultCode(1, 4, uErr);
+   }
+
+   /* Infinity double-precision */
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_SUCCESS || d != INFINITY) {
+      return MakeTestResultCode(1, 5, uErr);
+   }
+
+   /* 0.0 half-precision */
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+      || d != 0.0
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+      ) {
+      return MakeTestResultCode(1, 6, uErr);
+   }
+
+   /* 3.140000104904175 single-precision */
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+      || d != 3.140000104904175
+#endif
+      ) {
+      return MakeTestResultCode(1, 7, uErr);
+   }
+
+   /* 0.0 single-precision */
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+      || d != 0.0
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      ) {
+      return MakeTestResultCode(1, 8, uErr);
+   }
+
+   /* NaN single-precision */
+   QCBORDecode_GetDouble(&DC, &d);
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+      || !isnan(d)
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      ) {
+      return MakeTestResultCode(1, 9, uErr);
+   }
+
+   /* Infinity single-precision */
+   QCBORDecode_GetDouble(&DC, &d);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+      || d != INFINITY
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      ) {
+      return MakeTestResultCode(1, 10, uErr);
+   }
+
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    return 0;

@@ -401,9 +401,16 @@ typedef struct _QCBORItem {
       /** The value for @c uDataType @ref QCBOR_TYPE_FLOAT. */
       float       fnum;
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-      /** The value for @c uDataType @ref QCBOR_TYPE_DATE_EPOCH.
-       *  Floating-point dates that are NaN, +Inifinity or -Inifinity
-       *  result in the @ref QCBOR_ERR_DATE_OVERFLOW error. */
+      /** The value for @c uDataType @ref QCBOR_TYPE_DATE_EPOCH, the
+       *  number of seconds after or before Jan 1, 1970. This has a
+       *  range of 500 billion years. Floating-point dates are
+       *  converted to this integer + fractional value. If the input
+       *  value is beyond the 500 billion-year range (e.g., +/i
+       *  infinity, large floating point values, NaN)
+       *  @ref QCBOR_ERR_DATE_OVERFLOW will be returned. If the input
+       *  is floating-point and QCBOR has been compiled with
+       *  floating-point disabled, one of the various floating-point
+       *  disabled errors will be returned. */
       struct {
          int64_t  nSeconds;
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
@@ -893,7 +900,6 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * | @ref QCBOR_ERR_HALF_PRECISION_DISABLED    | Library compiled with half-precision disabled and half-precision input encountered |
  * | @ref QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  | Library compiled with indefinite maps and arrays  disabled and indefinite map or array encountered |
  * | @ref QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED | Library compiled with indefinite strings disabled and indefinite string encountered |
- * | @ref QCBOR_ERR_FLOAT_DATE_DISABLED        | Library compiled with floating-point disabled and floating-point date encountered |
  * | @ref QCBOR_ERR_ALL_FLOAT_DISABLED             | Library compiled with floating-point support turned off. |
  * | __Resource exhaustion errors__  ||
  * | @ref QCBOR_ERR_STRING_ALLOCATE | The string allocator is unable to allocate more memory |

@@ -2331,44 +2331,57 @@ int32_t BigComprehensiveInputTest()
 
 
 static const uint8_t spDateTestInput[] = {
+   /* 1. The valid date string "1985-04-12" */
    0xc0, // tag for string date
    0x6a, '1','9','8','5','-','0','4','-','1','2', // Date string
 
+   /* 2. An invalid date string due to wrong tag content type */
    0xc0, // tag for string date
    0x00, // Wrong type for a string date
 
+   /* 3. A valid epoch date, 1400000000; Tue, 13 May 2014 16:53:20 GMT */
    0xc1, // tag for epoch date
    0x1a, 0x53, 0x72, 0x4E, 0x00, // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
 
+   /* 4. An invalid epoch date due to wrong tag content type */
    0xc1,
    0x62, 'h', 'i', // wrong type tagged
 
+   /* 5. Valid epoch date tag as content for a two other nested tags */
    // CBOR_TAG_ENC_AS_B64
-   0xcf, 0xd8, 0x16, 0xc1, // 0xee, // Epoch date with extra tags
+   0xcf, 0xd8, 0x16, 0xc1, // Epoch date with extra tags
    0x1a, 0x53, 0x72, 0x4E, 0x01,
 
+   /* 6. Epoch date with value to large to fit into int64 */
    0xc1, // tag for epoch date
    0x1b, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, // Too large integer
 
+   /* 7. Epoch date with single-precision value of 1.1. */
    0xc1, // tag for epoch date
    0xfa, 0x3f, 0x8c, 0xcc, 0xcd, // single with value 1.1
 
+   /* 8. Epoch date with too-large single precision float */
    0xc1, // tag for epoch date
    0xfa, 0x7f, 0x7f, 0xff, 0xff, // 3.4028234663852886e+38 too large
 
+   /* 9. Epoch date with slightly too-large double precision value */
    0xc1, // tag for epoch date
    0xfb, 0x43, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 9223372036854775808.000000 just barely too large
    //0xfa, 0x7f, 0x7f, 0xff, 0xff // 3.4028234663852886e+38 too large
 
+   /* 10. Epoch date with largest supported double precision value */
    0xc1, // tag for epoch date
    0xfb, 0x43, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // 9223372036854773760 largest supported
 
+   /* 11. Epoch date with single-precision NaN */
    0xc1, // tag for epoch date
    0xfa, 0x7f, 0xc0, 0x00, 0x00, // Single-precision NaN
 
+   /* 12. Epoch date with double precision plus infinity */
    0xc1,
    0xfb, 0x7f,  0xf0,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // +infinity
 
+   /* 13. Epoch date with half-precision negative infinity */
    0xc1, // tag for epoch date
    0xf9, 0xfc, 0x00, // -Infinity
 };
@@ -2399,7 +2412,7 @@ int32_t DateParseTest()
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   // String date
+   /* 1. The valid date string "1985-04-12" */
    if((uError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return -1;
    }
@@ -2408,30 +2421,34 @@ int32_t DateParseTest()
       return -2;
    }
 
-   // Wrong type for a string date
+   /* 2. An invalid date string due to wrong tag content type */
    uError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uError != QCBOR_ERR_BAD_OPT_TAG) {
       return -3;
    }
 
-   // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
-   if((uError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   /* 3. A valid epoch date, 1400000000; Tue, 13 May 2014 16:53:20 GMT */
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != QCBOR_SUCCESS) {
       return -4;
    }
-   if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-      Item.val.epochDate.nSeconds != 1400000000
+   if(uError == QCBOR_SUCCESS) {
+      if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
+         Item.val.epochDate.nSeconds != 1400000000
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-      || Item.val.epochDate.fSecondsFraction != 0
+         || Item.val.epochDate.fSecondsFraction != 0
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-     ) {
-      return -5;
+        ) {
+         return -5;
+      }
    }
 
-   // Wrong type for an epoch date
+   /* 4. An invalid epoch date due to wrong tag content type */
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_BAD_OPT_TAG) {
       return -6;
    }
 
+   /* 5. Valid epoch date tag as content for a two other nested tags */
    // Epoch date wrapped in an CBOR_TAG_ENC_AS_B64 and an unknown tag.
    // The date is decoded and the two tags are returned. This is to
    // make sure the wrapping of epoch date in another tag works OK.
@@ -2447,96 +2464,70 @@ int32_t DateParseTest()
       return -8;
    }
 
-   // Epoch date that is too large for our representation
+   /* 6. Epoch date with value to large to fit into int64 */
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
       return -9;
    }
 
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   // Epoch date in float format with fractional seconds
-   if((uError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   /* 7. Epoch date with single-precision value of 1.1. */
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
       return -10;
    }
-   if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-      Item.val.epochDate.nSeconds != 1
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
-      || CHECK_EXPECTED_DOUBLE(Item.val.epochDate.fSecondsFraction, 0.1 )
+   if(uError == QCBOR_SUCCESS) {
+      if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
+         Item.val.epochDate.nSeconds != 1
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+         || CHECK_EXPECTED_DOUBLE(Item.val.epochDate.fSecondsFraction, 0.1)
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-     ) {
-      return -11;
+        ) {
+         return -11;
+      }
    }
 
-   // Epoch date float that is too large for our representation
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
+   /* 8. Epoch date with too-large single-precision float */
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return -12;
    }
 
-   // Epoch date double that is just slightly too large
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
+   /* 9. Epoch date with slightly too-large double-precision value */
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return -13;
    }
 
-   // Largest double epoch date supported
-    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_SUCCESS ||
-       Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-       Item.val.epochDate.nSeconds != 9223372036854773760 ||
-       Item.val.epochDate.nSeconds == 0) {
-       return -14;
-    }
+   /* 10. Epoch date with largest supported double-precision value */
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
+      return -14;
+   }
+   if(uError == QCBOR_SUCCESS) {
+      if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
+         Item.val.epochDate.nSeconds != 9223372036854773760
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+         || Item.val.epochDate.fSecondsFraction != 0.0
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      ) {
+         return -14;
+      }
+   }
 
-   // Nan
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
+   /* 11. Epoch date with single-precision NaN */
+   if(QCBORDecode_GetNext(&DCtx, &Item) != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return -15;
    }
 
-   // +Inifinity double-precision
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
+   /* 12. Epoch date with double-precision plus infinity */
+   if(QCBORDecode_GetNext(&DCtx, &Item) != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return -16;
    }
 
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   // -Inifinity half-precision
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
+   /* 13. Epoch date with half-precision negative infinity */
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return -17;
    }
-#else
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_HALF_PRECISION_DISABLED) {
-      return -18;
-   }
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -19;
-   }
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -20;
-   }
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -21;
-   }
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -22;
-   }
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -23;
-   }
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -24;
-   }
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -25;
-   }
-#else
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_HALF_PRECISION_DISABLED) {
-      return -26;
-   }
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    return 0;
 }
@@ -2665,15 +2656,9 @@ int32_t SpiffyDateDecodeTest()
    // Too-negative float, -9.2233720368547748E+18
    QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
    uError = QCBORDecode_GetAndResetError(&DC);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   if(uError != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_DATE_OVERFLOW)) {
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return 1111;
    }
-#else
-   if(uError != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_FLOAT_DATE_DISABLED)) {
-      return 1112;
-   }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
    // Too-large integer
    QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
@@ -2685,16 +2670,7 @@ int32_t SpiffyDateDecodeTest()
    // Half-precision minus infinity
    QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
    uError = QCBORDecode_GetAndResetError(&DC);
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   const QCBORError uExpectedforHalfMinusInfinity = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_DATE_OVERFLOW);
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-   const QCBORError uExpectedforHalfMinusInfinity = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_FLOAT_DATE_DISABLED);
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   const QCBORError uExpectedforHalfMinusInfinity = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_HALF_PRECISION_DISABLED);
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   if(uError != uExpectedforHalfMinusInfinity) {
+   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return 2;
    }
 
@@ -2720,59 +2696,54 @@ int32_t SpiffyDateDecodeTest()
                                   QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG |
                                     QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS,
                                   &nEpochDate2);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   if(nEpochDate2 != -9223372036854773760LL) {
-      return 101;
-   }
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_FLOAT_DATE_DISABLED)) {
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
       return 102;
    }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+   if(uError == QCBOR_SUCCESS) {
+      if(nEpochDate2 != -9223372036854773760LL) {
+         return 101;
+      }
+   }
 
    // Get largest double precision epoch date allowed
    QCBORDecode_GetEpochDateInMapN(&DC, 7, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
                                   &nEpochDate2);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   if(nEpochDate2 != 9223372036854773760ULL) {
-      return 111;
-   }
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_FLOAT_DATE_DISABLED)) {
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
       return 112;
    }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+   if(uError == QCBOR_SUCCESS) {
+      if(nEpochDate2 != 9223372036854773760ULL) {
+         return 111;
+      }
+   }
 
    // A single-precision date
    QCBORDecode_GetEpochDateInMapSZ(&DC, "x", QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
                                    &nEpochDate5);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   if(nEpochDate5 != 3) {
-      return 103;
-   }
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_FLOAT_DATE_DISABLED)) {
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
       return 104;
    }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+   if(uError == QCBOR_SUCCESS) {
+      if(nEpochDate5 != 3) {
+         return 103;
+      }
+   }
 
    // A half-precision date with value -2 FFF
    QCBORDecode_GetEpochDateInMapN(&DC, 9, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
                                   &nEpochDate4);
-#if !defined(QCBOR_DISABLE_FLOAT_HW_USE) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
-   if(nEpochDate4 != -2) {
-      return 105;
-   }
-#else
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError == QCBOR_SUCCESS) {
+   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_SUCCESS)) {
       return 106;
    }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-
+   if(uError == QCBOR_SUCCESS) {
+      if(nEpochDate4 != -2) {
+         return 105;
+      }
+   }
 
    // Fail to get an epoch date by string label
    QCBORDecode_GetEpochDateInMapSZ(&DC, "no-label",
@@ -5493,15 +5464,9 @@ int32_t EnterMapTest()
 
    QCBORDecode_GetEpochDateInMapN(&DCtx, 0x04, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_DATE_OVERFLOW)) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return 2024;
    }
-#else
-   if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_FLOAT_DATE_DISABLED)) {
-      return 2027;
-   }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
    QCBORDecode_GetInt64InMapN(&DCtx, 0x05, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
@@ -5625,6 +5590,13 @@ struct NumberConversion {
    QCBORError  uErrorDouble;
 };
 
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
+#define EXP_AND_MANTISSA_ERROR(x) x
+#else
+#define EXP_AND_MANTISSA_ERROR(x) QCBOR_ERR_UNEXPECTED_TYPE
+#endif
+
+
 static const struct NumberConversion NumberConversions[] = {
    {
       "too large to fit into int64_t",
@@ -5634,7 +5606,7 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       ((double)INT64_MIN) + 1 ,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
       "largest negative int that fits in int64_t",
@@ -5644,7 +5616,7 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       (double)INT64_MIN,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
       "negative bignum -1",
@@ -5654,67 +5626,40 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       -1.0,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
       "Decimal Fraction with positive bignum 257 * 10e3",
       {(uint8_t[]){0xC4, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                                0xC2, 0x42, 0x01, 0x01}, 15},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       257000,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       257000,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       257000.0,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA*/
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "bigfloat with negative bignum -258 * 2e3",
       {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                                0xC3, 0x42, 0x01, 0x01}, 15},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       -2064,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       0,
-      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       -2064.0,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA*/
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "bigfloat with positive bignum 257 * 2e3",
       {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                                0xC2, 0x42, 0x01, 0x01}, 15},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       2056,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       2056,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       2056.0,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA*/
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "negative bignum 0xc349010000000000000000 -18446744073709551617",
@@ -5724,7 +5669,7 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       -18446744073709551617.0,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
    {
@@ -5735,67 +5680,40 @@ static const struct NumberConversion NumberConversions[] = {
       0x01020304,
       QCBOR_SUCCESS,
       16909060.0,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
    {
       "Decimal Fraction with neg bignum [9223372036854775807, -4759477275222530853137]",
       {(uint8_t[]){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                                0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,}, 23},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0,
-      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       -INFINITY,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "big float [9223372036854775806,  9223372036854775806]",
       {(uint8_t[]){0xC5, 0x82, 0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
                                0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}, 20},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       INFINITY,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "Big float 3 * 2^^2",
       {(uint8_t[]){0xC5, 0x82, 0x02, 0x03}, 4},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       12,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       12,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       12.0,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "Positive integer 18446744073709551615",
@@ -5805,7 +5723,7 @@ static const struct NumberConversion NumberConversions[] = {
       18446744073709551615ULL,
       QCBOR_SUCCESS,
       18446744073709551615.0,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
       "Positive bignum 0xffff",
@@ -5815,7 +5733,7 @@ static const struct NumberConversion NumberConversions[] = {
       0xffff,
       QCBOR_SUCCESS,
       65535.0,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
       "Postive integer 0",
@@ -5825,7 +5743,7 @@ static const struct NumberConversion NumberConversions[] = {
       0ULL,
       QCBOR_SUCCESS,
       0.0,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
       "Negative integer -18446744073709551616",
@@ -5835,24 +5753,17 @@ static const struct NumberConversion NumberConversions[] = {
       0ULL,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       -9223372036854775808.0,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
       "Double Floating point value 100.3",
       {(uint8_t[]){0xfb, 0x40, 0x59, 0x13, 0x33, 0x33, 0x33, 0x33, 0x33}, 9},
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
       100L,
-      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS),
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
       100ULL,
-      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS),
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-      0,
-      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_HW_FLOAT_DISABLED),
-      0,
-      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_HW_FLOAT_DISABLED),
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
       100.3,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS),
    },
    {
       "Floating point value NaN 0xfa7fc00000",
@@ -5862,56 +5773,38 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
       NAN,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
    },
    {
       "half-precision Floating point value -4",
       {(uint8_t[]){0xf9, 0xc4, 0x00}, 3},
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
       // Normal case with all enabled.
       -4,
       FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_SUCCESS),
       0,
       FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       -4.0,
-      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_SUCCESS)
-#else /* USEFULBUF_DISABLE_ALL_FLOAT */
-      0,
-      QCBOR_ERR_ALL_FLOAT_DISABLED,
-      0,
-      QCBOR_ERR_ALL_FLOAT_DISABLED,
-      0,
-      QCBOR_ERR_ALL_FLOAT_DISABLED,
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+      FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
    },
    {
       "Decimal fraction 3/10",
       {(uint8_t[]){0xC4, 0x82, 0x20, 0x03}, 4},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0.30000000000000004,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
-      "+inifinity",
+      "+inifinity single precision",
       {(uint8_t[]){0xfa, 0x7f, 0x80, 0x00, 0x00}, 5},
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       INFINITY,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
 
    {
@@ -5973,13 +5866,8 @@ static const struct NumberConversion NumberConversions[] = {
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
       INFINITY,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
    },
 
    {
@@ -6041,13 +5929,8 @@ static const struct NumberConversion NumberConversions[] = {
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
       -INFINITY,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
 
    {
@@ -6056,21 +5939,12 @@ static const struct NumberConversion NumberConversions[] = {
          0xC5, 0x82,
             0x3B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
             0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}, 20},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
 
    {
@@ -6079,21 +5953,12 @@ static const struct NumberConversion NumberConversions[] = {
          0xC5, 0x82,
             0x1B, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
             0xC3, 0x42, 0x01, 0x01}, 15},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0,
-      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       -INFINITY,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA*/
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
 };
 
@@ -6159,7 +6024,8 @@ int32_t IntegerConvertTest()
        if(SetUpDecoder(&DCtx, pF->CBOR, Pool)) {
          return (int32_t)(3333+nIndex);
       }
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
       double d;
       QCBORDecode_GetDoubleConvertAll(&DCtx, 0xffff, &d);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorDouble) {
@@ -6178,7 +6044,7 @@ int32_t IntegerConvertTest()
             }
          }
       }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    }
 
    return 0;
