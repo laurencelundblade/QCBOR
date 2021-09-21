@@ -516,180 +516,180 @@ static void AddAll(QCBOREncodeContext *pECtx)
 {
    QCBOREncode_OpenArray(pECtx);
 
-    // Some ints that are tagged and have strings preceeding them
-    // (not labels becase it is not a map)
-    QCBOREncode_AddSZString(pECtx, "UINT62");
-    QCBOREncode_AddTag(pECtx, 100);
-    QCBOREncode_AddUInt64(pECtx, 89989909);
-    QCBOREncode_AddSZString(pECtx, "INT64");
-    QCBOREncode_AddTag(pECtx, 76);
-    QCBOREncode_AddInt64(pECtx, 77689989909);
-    QCBOREncode_AddUInt64(pECtx,0);
-    QCBOREncode_AddInt64(pECtx, -44);
+   /* Some ints that are tagged and have strings preceeding them
+    * (not labels becase it is not a map) */
+   QCBOREncode_AddSZString(pECtx, "UINT62");
+   QCBOREncode_AddTag(pECtx, 100);
+   QCBOREncode_AddUInt64(pECtx, 89989909);
+   QCBOREncode_AddSZString(pECtx, "INT64");
+   QCBOREncode_AddTag(pECtx, 76);
+   QCBOREncode_AddInt64(pECtx, 77689989909);
+   QCBOREncode_AddUInt64(pECtx,0);
+   QCBOREncode_AddInt64(pECtx, -44);
 
-    // ints that go in maps
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_AddUInt64ToMap(pECtx, "LBL", 77);
-    QCBOREncode_AddUInt64ToMapN(pECtx, -4, 88);
-    QCBOREncode_AddInt64ToMap(pECtx, "NEGLBLTHAT IS KIND OF LONG", -2394893489238);
-    QCBOREncode_AddInt64ToMapN(pECtx, -100000000, -800000000);
-    QCBOREncode_CloseMap(pECtx);
+   /* ints that go in maps */
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddUInt64ToMap(pECtx, "LBL", 77);
+   QCBOREncode_AddUInt64ToMapN(pECtx, -4, 88);
+   QCBOREncode_AddInt64ToMap(pECtx, "NEGLBLTHAT IS KIND OF LONG", -2394893489238);
+   QCBOREncode_AddInt64ToMapN(pECtx, -100000000, -800000000);
+   QCBOREncode_CloseMap(pECtx);
 
-    // Epoch Date
-    QCBOREncode_AddDateEpoch(pECtx, 2383748234);
+   /* Epoch Date */
+   QCBOREncode_AddDateEpoch(pECtx, 2383748234);
 
-    // Epoch date with labels
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_AddDateEpochToMap(pECtx, "LongLiveDenisRitchie", 1400000000);
-    QCBOREncode_AddDateEpochToMap(pECtx, "time()", 1477263730);
-    QCBOREncode_AddDateEpochToMapN(pECtx, -1969, 1477263222);
-    QCBOREncode_CloseMap(pECtx);
+   /* Epoch date with labels */
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddDateEpochToMap(pECtx, "LongLiveDenisRitchie", 1400000000);
+   QCBOREncode_AddDateEpochToMap(pECtx, "time()", 1477263730);
+   QCBOREncode_AddDateEpochToMapN(pECtx, -1969, 1477263222);
+   QCBOREncode_CloseMap(pECtx);
 
-    // Binary blobs
-    QCBOREncode_AddBytes(pECtx, ((UsefulBufC) {(uint8_t []){0xff, 0x00}, 2}));
+   /* Binary blobs */
+   QCBOREncode_AddBytes(pECtx, ((UsefulBufC) {(uint8_t []){0xff, 0x00}, 2}));
 
-    // binary blobs in maps
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_AddSZString(pECtx, "binbin");
-    QCBOREncode_AddTag(pECtx, 100000);
-    QCBOREncode_AddBytes(pECtx, ((UsefulBufC) {(uint8_t []){0x00}, 1}));
-    QCBOREncode_AddBytesToMap(pECtx, "blabel", ((UsefulBufC) {(uint8_t []){0x01, 0x02, 0x03}, 3}));
-    QCBOREncode_AddBytesToMapN(pECtx, 0, ((UsefulBufC){(uint8_t []){0x04, 0x02, 0x03, 0xfe}, 4}));
-    QCBOREncode_CloseMap(pECtx);
+   /* binary blobs in maps */
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddSZString(pECtx, "binbin");
+   QCBOREncode_AddTag(pECtx, 100000);
+   QCBOREncode_AddBytes(pECtx, ((UsefulBufC) {(uint8_t []){0x00}, 1}));
+   QCBOREncode_AddBytesToMap(pECtx, "blabel", ((UsefulBufC) {(uint8_t []){0x01, 0x02, 0x03}, 3}));
+   QCBOREncode_AddBytesToMapN(pECtx, 0, ((UsefulBufC){(uint8_t []){0x04, 0x02, 0x03, 0xfe}, 4}));
+   QCBOREncode_CloseMap(pECtx);
 
-    // text blobs
-    QCBOREncode_AddText(pECtx, UsefulBuf_FROM_SZ_LITERAL("bar bar foo bar"));
-    QCBOREncode_AddSZString(pECtx, "oof\n");
-    const char *szURL =
-       "http://stackoverflow.com/questions/28059697/how-do-i-toggle-between-debug-and-release-builds-in-xcode-6-7-8";
-    QCBOREncode_AddURI(pECtx, UsefulBuf_FromSZ(szURL));
-    QCBOREncode_AddB64Text(pECtx, UsefulBuf_FROM_SZ_LITERAL("YW55IGNhcm5hbCBwbGVhc3VyZQ=="));
-    QCBOREncode_AddRegex(pECtx, UsefulBuf_FROM_SZ_LITERAL("[^abc]+"));
-    QCBOREncode_AddMIMEData(pECtx, UsefulBuf_FromSZ(szMIME));
+   /* text blobs */
+   QCBOREncode_AddText(pECtx, UsefulBuf_FROM_SZ_LITERAL("bar bar foo bar"));
+   QCBOREncode_AddSZString(pECtx, "oof\n");
+   const char *szURL =
+    "http://stackoverflow.com/questions/28059697/how-do-i-toggle-between-debug-and-release-builds-in-xcode-6-7-8";
+   QCBOREncode_AddURI(pECtx, UsefulBuf_FromSZ(szURL));
+   QCBOREncode_AddB64Text(pECtx, UsefulBuf_FROM_SZ_LITERAL("YW55IGNhcm5hbCBwbGVhc3VyZQ=="));
+   QCBOREncode_AddRegex(pECtx, UsefulBuf_FROM_SZ_LITERAL("[^abc]+"));
+   QCBOREncode_AddMIMEData(pECtx, UsefulBuf_FromSZ(szMIME));
 
-    // text blobs in maps
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_AddTextToMap(pECtx, "#####", UsefulBuf_FROM_SZ_LITERAL("foo bar foo foo"));
-    QCBOREncode_AddTextToMap(pECtx, "____", UsefulBuf_FROM_SZ_LITERAL("foo bar"));
-    QCBOREncode_AddSZString(pECtx, "()()()");
-    QCBOREncode_AddTag(pECtx, 1000);
-    QCBOREncode_AddSZString(pECtx, "rab rab oof");
-    QCBOREncode_AddTextToMapN(pECtx,22, UsefulBuf_FROM_SZ_LITERAL("foo foo foo foo"));
-    QCBOREncode_AddSZStringToMap(pECtx, "^^", "oooooooof");
-    QCBOREncode_AddSZStringToMapN(pECtx, 99, "ffffoooooooof");
-    QCBOREncode_AddURIToMap(pECtx,
-                            "RFC",
-                            UsefulBuf_FROM_SZ_LITERAL("https://tools.ietf.org/html/rfc7049#section-2.4.5"));
-    QCBOREncode_AddURIToMapN(pECtx, 0x89, UsefulBuf_FROM_SZ_LITERAL("http://cbor.me/"));
-    QCBOREncode_AddB64TextToMap(pECtx, "whenim64", UsefulBuf_FROM_SZ_LITERAL("cGxlYXN1cmUu"));
-    QCBOREncode_AddB64TextToMapN(pECtx, 64, UsefulBuf_FROM_SZ_LITERAL("c3VyZS4="));
-    QCBOREncode_AddRegexToMap(pECtx, "popo", UsefulBuf_FROM_SZ_LITERAL("100\\s*mk")); //   x code string literal bug
-    QCBOREncode_AddRegexToMapN(pECtx, -51, UsefulBuf_FROM_SZ_LITERAL("perl\\B"));  //   x code string literal bug
-    QCBOREncode_AddMIMEDataToMap(pECtx, "Ned", UsefulBuf_FromSZ(szMIME));
-    QCBOREncode_AddMIMEDataToMapN(pECtx, 10, UsefulBuf_FromSZ(szMIME));
-    QCBOREncode_CloseMap(pECtx);
+   /* text blobs in maps */
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddTextToMap(pECtx, "#####", UsefulBuf_FROM_SZ_LITERAL("foo bar foo foo"));
+   QCBOREncode_AddTextToMap(pECtx, "____", UsefulBuf_FROM_SZ_LITERAL("foo bar"));
+   QCBOREncode_AddSZString(pECtx, "()()()");
+   QCBOREncode_AddTag(pECtx, 1000);
+   QCBOREncode_AddSZString(pECtx, "rab rab oof");
+   QCBOREncode_AddTextToMapN(pECtx,22, UsefulBuf_FROM_SZ_LITERAL("foo foo foo foo"));
+   QCBOREncode_AddSZStringToMap(pECtx, "^^", "oooooooof");
+   QCBOREncode_AddSZStringToMapN(pECtx, 99, "ffffoooooooof");
+   QCBOREncode_AddURIToMap(pECtx,
+                           "RFC",
+                           UsefulBuf_FROM_SZ_LITERAL("https://tools.ietf.org/html/rfc7049#section-2.4.5"));
+   QCBOREncode_AddURIToMapN(pECtx, 0x89, UsefulBuf_FROM_SZ_LITERAL("http://cbor.me/"));
+   QCBOREncode_AddB64TextToMap(pECtx, "whenim64", UsefulBuf_FROM_SZ_LITERAL("cGxlYXN1cmUu"));
+   QCBOREncode_AddB64TextToMapN(pECtx, 64, UsefulBuf_FROM_SZ_LITERAL("c3VyZS4="));
+   QCBOREncode_AddRegexToMap(pECtx, "popo", UsefulBuf_FROM_SZ_LITERAL("100\\s*mk")); //   x code string literal bug
+   QCBOREncode_AddRegexToMapN(pECtx, -51, UsefulBuf_FROM_SZ_LITERAL("perl\\B"));  //   x code string literal bug
+   QCBOREncode_AddMIMEDataToMap(pECtx, "Ned", UsefulBuf_FromSZ(szMIME));
+   QCBOREncode_AddMIMEDataToMapN(pECtx, 10, UsefulBuf_FromSZ(szMIME));
+   QCBOREncode_CloseMap(pECtx);
 
-    // Date strings
-    QCBOREncode_AddDateString(pECtx, "2003-12-13T18:30:02Z");
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_AddDateStringToMap(pECtx, "Bed time", "2003-12-13T18:30:02.25+01:00");
-    QCBOREncode_AddDateStringToMapN(pECtx, 88, "2003-12-13T18:30:02.25+01:00");
-    QCBOREncode_CloseMap(pECtx);
+   /* Date strings */
+   QCBOREncode_AddDateString(pECtx, "2003-12-13T18:30:02Z");
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddDateStringToMap(pECtx, "Bed time", "2003-12-13T18:30:02.25+01:00");
+   QCBOREncode_AddDateStringToMapN(pECtx, 88, "2003-12-13T18:30:02.25+01:00");
+   QCBOREncode_CloseMap(pECtx);
 
-    // true / false ...
-    QCBOREncode_AddSimple(pECtx, CBOR_SIMPLEV_UNDEF);
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_AddSZString(pECtx, "dare");
-    QCBOREncode_AddTag(pECtx, 66);
-    QCBOREncode_AddBool(pECtx, true);
-    QCBOREncode_AddBoolToMap(pECtx, "uu", false);
-    QCBOREncode_AddSimpleToMapN(pECtx, 737634, CBOR_SIMPLEV_NULL);
-    QCBOREncode_CloseMap(pECtx);
+   /* true / false ... */
+   QCBOREncode_AddSimple(pECtx, CBOR_SIMPLEV_UNDEF);
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddSZString(pECtx, "dare");
+   QCBOREncode_AddTag(pECtx, 66);
+   QCBOREncode_AddBool(pECtx, true);
+   QCBOREncode_AddBoolToMap(pECtx, "uu", false);
+   QCBOREncode_AddSimpleToMapN(pECtx, 737634, CBOR_SIMPLEV_NULL);
+   QCBOREncode_CloseMap(pECtx);
 
-    // opening an array
-    QCBOREncode_OpenArray(pECtx);
-    QCBOREncode_CloseArray(pECtx);
+   /* opening an array */
+   QCBOREncode_OpenArray(pECtx);
+   QCBOREncode_CloseArray(pECtx);
 
-    // opening arrays in a map
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_AddSZString(pECtx, "label and tagged empty array");
-    QCBOREncode_AddTag(pECtx, 1093);
-    QCBOREncode_OpenArray(pECtx);
-    QCBOREncode_CloseArray(pECtx);
-    QCBOREncode_OpenArrayInMap(pECtx, "alabl");
-    QCBOREncode_CloseArray(pECtx);
-    QCBOREncode_OpenArrayInMapN(pECtx, 42);
-    QCBOREncode_CloseArray(pECtx);
-    QCBOREncode_CloseMap(pECtx);
+   /* opening arrays in a map */
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddSZString(pECtx, "label and tagged empty array");
+   QCBOREncode_AddTag(pECtx, 1093);
+   QCBOREncode_OpenArray(pECtx);
+   QCBOREncode_CloseArray(pECtx);
+   QCBOREncode_OpenArrayInMap(pECtx, "alabl");
+   QCBOREncode_CloseArray(pECtx);
+   QCBOREncode_OpenArrayInMapN(pECtx, 42);
+   QCBOREncode_CloseArray(pECtx);
+   QCBOREncode_CloseMap(pECtx);
 
-    // opening maps with labels and tagging
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_OpenMapInMap(pECtx, "in a map");
-    QCBOREncode_OpenMapInMapN(pECtx, 5556);
-    QCBOREncode_AddSZString(pECtx, "in a in a in a");
-    QCBOREncode_AddTag(pECtx, 9087);
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_CloseMap(pECtx);
-    QCBOREncode_CloseMap(pECtx);
-    QCBOREncode_CloseMap(pECtx);
-    QCBOREncode_CloseMap(pECtx);
+   /* opening maps with labels and tagging */
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_OpenMapInMap(pECtx, "in a map");
+   QCBOREncode_OpenMapInMapN(pECtx, 5556);
+   QCBOREncode_AddSZString(pECtx, "in a in a in a");
+   QCBOREncode_AddTag(pECtx, 9087);
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_CloseMap(pECtx);
+   QCBOREncode_CloseMap(pECtx);
+   QCBOREncode_CloseMap(pECtx);
+   QCBOREncode_CloseMap(pECtx);
 
+   /* Extended simple values (these are not standard...) */
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddSZString(pECtx, "s1");
+   QCBOREncode_AddTag(pECtx, 88);
+   QCBOREncode_AddSimple(pECtx, 255);
+   QCBOREncode_AddSimpleToMap(pECtx, "s2", 0);
+   QCBOREncode_AddSZString(pECtx, "s3");
+   QCBOREncode_AddTag(pECtx, 88);
+   QCBOREncode_AddSimple(pECtx, 33);
+   QCBOREncode_AddInt64(pECtx, 88378374); // label before tag
+   QCBOREncode_AddTag(pECtx, 88);
+   QCBOREncode_AddSimple(pECtx, 255);
+   QCBOREncode_AddInt64(pECtx, 89); // label before tag
+   QCBOREncode_AddTag(pECtx, 88);
+   QCBOREncode_AddSimple(pECtx, 19);
+   QCBOREncode_CloseMap(pECtx);
 
-    // Extended simple values (these are not standard...)
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_AddSZString(pECtx, "s1");
-    QCBOREncode_AddTag(pECtx, 88);
-    QCBOREncode_AddSimple(pECtx, 255);
-    QCBOREncode_AddSimpleToMap(pECtx, "s2", 0);
-    QCBOREncode_AddSZString(pECtx, "s3");
-    QCBOREncode_AddTag(pECtx, 88);
-    QCBOREncode_AddSimple(pECtx, 33);
-    QCBOREncode_AddInt64(pECtx, 88378374); // label before tag
-    QCBOREncode_AddTag(pECtx, 88);
-    QCBOREncode_AddSimple(pECtx, 255);
-    QCBOREncode_AddInt64(pECtx, 89); // label before tag
-    QCBOREncode_AddTag(pECtx, 88);
-    QCBOREncode_AddSimple(pECtx, 19);
-    QCBOREncode_CloseMap(pECtx);
+   /* UUIDs */
+   static const uint8_t ppppUUID[] = {0x53, 0x4D, 0x41, 0x52, 0x54, 0x43,
+                                      0x53, 0x4C, 0x54, 0x54, 0x43, 0x46,
+                                      0x49, 0x43, 0x41, 0x32};
+   const UsefulBufC XXUUID = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(ppppUUID);
+   QCBOREncode_AddBinaryUUID(pECtx, XXUUID);
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddBinaryUUIDToMap(pECtx, "UUUU", XXUUID);
+   QCBOREncode_AddBinaryUUIDToMapN(pECtx, 99, XXUUID);
+   QCBOREncode_CloseMap(pECtx);
 
-    // UUIDs
-    static const uint8_t ppppUUID[] = {0x53, 0x4D, 0x41, 0x52, 0x54, 0x43,
-                                       0x53, 0x4C, 0x54, 0x54, 0x43, 0x46,
-                                       0x49, 0x43, 0x41, 0x32};
-    const UsefulBufC XXUUID = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(ppppUUID);
-    QCBOREncode_AddBinaryUUID(pECtx, XXUUID);
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_AddBinaryUUIDToMap(pECtx, "UUUU", XXUUID);
-    QCBOREncode_AddBinaryUUIDToMapN(pECtx, 99, XXUUID);
-    QCBOREncode_CloseMap(pECtx);
+   /* Bool */
+   QCBOREncode_AddBool(pECtx, true);
+   QCBOREncode_AddBool(pECtx, false);
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddBoolToMap(pECtx, "George is the man", true);
+   QCBOREncode_AddBoolToMapN(pECtx, 010101, true);
+   QCBOREncode_CloseMap(pECtx);
 
-    // Bool
-    QCBOREncode_AddBool(pECtx, true);
-    QCBOREncode_AddBool(pECtx, false);
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_AddBoolToMap(pECtx, "George is the man", true);
-    QCBOREncode_AddBoolToMapN(pECtx, 010101, true);
-    QCBOREncode_CloseMap(pECtx);
+   /* Big numbers */
+   static const uint8_t pBignum[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+   const UsefulBufC BIGNUM = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBignum);
+   QCBOREncode_AddPositiveBignum(pECtx, BIGNUM);
+   QCBOREncode_AddNegativeBignum(pECtx, BIGNUM);
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddPositiveBignumToMap(pECtx, "BN+", BIGNUM);
+   QCBOREncode_AddPositiveBignumToMapN(pECtx, 64, BIGNUM);
+   QCBOREncode_AddNegativeBignumToMap(pECtx, "BN-", BIGNUM);
+   QCBOREncode_AddNegativeBignumToMapN(pECtx, -64, BIGNUM);
+   QCBOREncode_CloseMap(pECtx);
 
-
-    static const uint8_t pBignum[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    const UsefulBufC BIGNUM = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBignum);
-    QCBOREncode_AddPositiveBignum(pECtx, BIGNUM);
-    QCBOREncode_AddNegativeBignum(pECtx, BIGNUM);
-    QCBOREncode_OpenMap(pECtx);
-    QCBOREncode_AddPositiveBignumToMap(pECtx, "BN+", BIGNUM);
-    QCBOREncode_AddPositiveBignumToMapN(pECtx, 64, BIGNUM);
-    QCBOREncode_AddNegativeBignumToMap(pECtx, "BN-", BIGNUM);
-    QCBOREncode_AddNegativeBignumToMapN(pECtx, -64, BIGNUM);
-    QCBOREncode_CloseMap(pECtx);
-
-    QCBOREncode_CloseArray(pECtx);
+   QCBOREncode_CloseArray(pECtx);
 }
+
 
 int32_t AllAddMethodsTest()
 {
-   // Improvement: this test should be broken down into several so it is more
-   // managable. Tags and labels could be more sensible
+   /* Improvement: this test should be broken down into several so it is more
+    * managable. Tags and labels could be more sensible */
    QCBOREncodeContext ECtx;
    int nReturn = 0;
 
@@ -698,7 +698,6 @@ int32_t AllAddMethodsTest()
    AddAll (&ECtx);
 
    UsefulBufC Enc;
-
    if(QCBOREncode_Finish(&ECtx, &Enc)) {
       nReturn = -1;
       goto Done;
@@ -727,6 +726,7 @@ int32_t AllAddMethodsTest()
 Done:
    return nReturn;
 }
+
 
 /*
  98 30                  # array(48)
