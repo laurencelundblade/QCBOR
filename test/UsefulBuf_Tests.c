@@ -46,7 +46,7 @@ const char * UOBTest_NonAdversarial(void)
 {
    const char *szReturn = NULL;
 
-   UsefulBuf_MAKE_STACK_UB(outbuf,50);
+   UsefulBuf_MAKE_STACK_UB(outbuf, 50);
 
    UsefulOutBuf UOB;
 
@@ -163,7 +163,7 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
 
 const char *UOBTest_BoundaryConditionsTest(void)
 {
-   UsefulBuf_MAKE_STACK_UB(outbuf,2);
+   UsefulBuf_MAKE_STACK_UB(outbuf, 2);
 
    UsefulOutBuf UOB;
 
@@ -275,8 +275,9 @@ const char *TestBasicSanity(void)
 
    UsefulOutBuf_AppendData(&UOB, (const uint8_t *)"bluster", 7);
 
-   if(!UsefulOutBuf_GetError(&UOB))
+   if(!UsefulOutBuf_GetError(&UOB)) {
       return "magic corruption check failed";
+   }
 
 
 

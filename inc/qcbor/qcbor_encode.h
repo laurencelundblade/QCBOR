@@ -166,10 +166,11 @@ extern "C" {
 
  ## Encoding
 
+ @TODO: improve wording
  A common encoding usage mode is to invoke the encoding twice. First
- with no output buffer to compute the length of the needed output
+ with the output buffer as @ref SizeCalculateUsefulBuf to compute the length of the needed output
  buffer. Then the correct sized output buffer is allocated. Last the
- encoder is invoked again, this time with the output buffer.
+ encoder is invoked again, this time with the correctly size output buffer.
 
  The double invocation is not required if the maximum output buffer
  size can be predicted. This is usually possible for simple CBOR
@@ -444,19 +445,19 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
  that will ever be needed and hard code a buffer of that size.
 
  Another way to do it is to have QCBOR calculate it for you. To do
- this set @c Storage.ptr to @c NULL and @c Storage.len to @c
- UINT32_MAX. Then call all the functions to add the CBOR exactly as if
- encoding for real. Then call QCBOREncode_Finish(). The pointer
- returned will be @c NULL, but the length returned is that of what would
- be encoded. Once the length is obtained, allocate a buffer of that
+ this, pass @ref SizeCalculateUsefulBuf for @c Storage.
+ Then call all the functions to add the CBOR exactly as if
+ encoding for real. Finally, call QCBOREncode_FinishGetSize().
+ Once the length is obtained, allocate a buffer of that
  size, call QCBOREncode_Init() again with the real buffer. Call all
  the add functions again and finally, QCBOREncode_Finish() to obtain
- the final result. This uses almost twice the CPU time, but that is
+ the final result. This uses twice the CPU time, but that is
  usually not an issue.
 
  See QCBOREncode_Finish() for how the pointer and length for the
  encoded CBOR is returned.
 
+ TODO: rewrite this...
  The maximum output buffer size allowed is @c UINT32_MAX (4GB). The
  error @ref QCBOR_ERR_BUFFER_TOO_LARGE will be returned by
  QCBOREncode_Finish() if a larger buffer length is passed in.

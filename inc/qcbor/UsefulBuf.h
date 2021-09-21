@@ -793,17 +793,13 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  *    - Call UsefulOutBuf_OutUBuf() or UsefulOutBuf_CopyOut() to see
  *      there were no errors and to get the serialized output bytes.
  *
- * @ref UsefulOutBuf can be used in a size calculation mode to
- * calculate the size of output that would be generated. This is
+ * @ref UsefulOutBuf can be used in a mode to calculate the size of
+ * what would be output without actually outputting anything.  This is
  * useful to calculate the size of a buffer that is to be allocated to
- * hold the output. To use @ref UsefulOutBuf in this mode, call
- * UsefulOutBuf_Init() with the @c Storage @ref UsefulBuf as
- * @c (UsefulBuf){NULL, MAX_UINT32}. Then call all the Insert and Add
- * functions. No attempt will be made to actually copy data, so only
- * the lengths have to be valid for inputs to these calls.
+ * hold the output. See @ref SizeCalculateUsefulBuf.
  *
  * Methods like UsefulOutBuf_InsertUint64() always output in network
- * bytes order (big endian).
+ * byte order (big endian).
  *
  * The possible errors are:
  *
@@ -840,6 +836,23 @@ typedef struct useful_out_buf {
 
 
 /**
+ * This is a @ref UsefulBuf value that can be passed to
+ * UsefulOutBuf_Init() to have it calculate the size of the output
+ * buffer needed. Pass this for @c Storage, call all the append and
+ * insert functions normally, then call UsefulOutBuf_OutUBuf(). The
+ * returned @ref UsefulBufC has the size.
+ *
+ * As one can see, this is just a NULL pointer and very large size.
+ * The NULL pointer tells UsefulOutputBuf to not copy any data.
+ */
+#ifdef __cplusplus
+#define SizeCalculateUsefulBuf {NULL, SIZE_MAX}
+#else
+#define SizeCalculateUsefulBuf ((UsefulBuf) {NULL, SIZE_MAX})
+#endif
+
+
+/**
  * @brief Initialize and supply the actual output buffer.
  *
  * @param[out] pUOutBuf  The @ref UsefulOutBuf to initialize.
@@ -848,6 +861,10 @@ typedef struct useful_out_buf {
  * This initializes the @ref UsefulOutBuf with storage, sets the
  * current position to the beginning of the buffer and clears the
  * error state.
+ *
+ * See @ref SizeCalculateUsefulBuf for instructions on how to
+ * initialize a @ref UsefulOutBuf to calculate the size that would be
+ * output without actually outputting.
  *
  * This must be called before the @ref UsefulOutBuf is used.
  */
