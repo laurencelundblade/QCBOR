@@ -288,8 +288,9 @@ typedef enum {
        and 31. */
    QCBOR_ERR_ENCODE_UNSUPPORTED = 2,
 
-   /** During encoding, the length of the encoded CBOR exceeded @c
-       UINT32_MAX. */
+   /** During encoding, the length of the encoded CBOR exceeded
+       QCBOR_MAX_ARRAY_OFFSET, which is slightly less than
+       @c UINT32_MAX. */
    QCBOR_ERR_BUFFER_TOO_LARGE = 3,
 
    /** During encoding, the array or map nesting was deeper than this

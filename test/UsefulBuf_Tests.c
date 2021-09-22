@@ -34,64 +34,97 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "UsefulBuf.h"
 
 
-/* Basic exercise...
+/* This calls the main methods to add stuff to a UsefulOutBuf.
+ * The result in the UsefulOutBuf is "heffalump unbounce bluster hunny"
+ */
+const char *AddStuffToUOB(UsefulOutBuf *pUOB)
+{
+   const char *szReturn = NULL;
 
-   Call all the main public functions.
+   if(!UsefulOutBuf_AtStart(pUOB)) {
+      szReturn = "Not at start";
+      goto Done;
+   }
 
-   Binary compare the result to the expected.
+   /* Put 7 bytes at beginning of buf */
+   UsefulOutBuf_AppendData(pUOB, "bluster", 7);
 
-   There is nothing adversarial in this test
+   if(UsefulOutBuf_AtStart(pUOB)) {
+      szReturn = "At start";
+      goto Done;
+   }
+
+   /* add a space to end */
+   UsefulOutBuf_AppendByte(pUOB, ' ');
+
+   /* Add 5 bytes to the end */
+   UsefulBufC UBC = {"hunny", 5};
+   UsefulOutBuf_AppendUsefulBuf(pUOB, UBC);
+
+   /* Insert 9 bytes at the beginning, slide the previous stuff right */
+   UsefulOutBuf_InsertData(pUOB, "heffalump", 9, 0);
+   UsefulOutBuf_InsertByte(pUOB, ' ', 9);
+
+   /* Put 9 bytes in at position 10 -- just after "heffalump " */
+   UsefulBufC UBC2 = {"unbounce ", 9};
+   UsefulOutBuf_InsertUsefulBuf(pUOB, UBC2, 10);
+
+Done:
+   return szReturn;
+}
+
+
+/* Basic exercise of a UsefulOutBuf
+ *
+ *  Call all the main public functions.
+ *
+ *  Binary compare the result to the expected.
+ *
+ * There is nothing adversarial in this test
  */
 const char * UOBTest_NonAdversarial(void)
 {
    const char *szReturn = NULL;
 
-   UsefulBuf_MAKE_STACK_UB(outbuf,50);
+   UsefulBuf_MAKE_STACK_UB(outbuf, 50);
 
    UsefulOutBuf UOB;
 
    UsefulOutBuf_Init(&UOB, outbuf);
 
-   if(!UsefulOutBuf_AtStart(&UOB)) {
-      szReturn = "Not at start";
+   szReturn = AddStuffToUOB(&UOB);
+   if(szReturn) {
       goto Done;
    }
-
-   // Put 7 bytes at beginning of buf
-   UsefulOutBuf_AppendData(&UOB, "bluster", 7);
-
-   if(UsefulOutBuf_AtStart(&UOB)) {
-      szReturn = "At start";
-      goto Done;
-   }
-
-   // add a space to end
-   UsefulOutBuf_AppendByte(&UOB, ' ');
-
-   // Add 5 bytes to the end
-   UsefulBufC UBC = {"hunny", 5};
-   UsefulOutBuf_AppendUsefulBuf(&UOB, UBC);
-
-   // Insert 9 bytes at the beginning, slide the previous stuff right
-   UsefulOutBuf_InsertData(&UOB, "heffalump", 9, 0);
-   UsefulOutBuf_InsertByte(&UOB, ' ', 9);
-
-   // Put 9 bytes in at position 10 -- just after "heffalump "
-   UsefulBufC UBC2 = {"unbounce ", 9};
-   UsefulOutBuf_InsertUsefulBuf(&UOB, UBC2, 10);
-
 
    const UsefulBufC Expected = UsefulBuf_FROM_SZ_LITERAL("heffalump unbounce bluster hunny");
 
    UsefulBufC U = UsefulOutBuf_OutUBuf(&UOB);
-   if(UsefulBuf_IsNULLC(U) || UsefulBuf_Compare(Expected, U) || UsefulOutBuf_GetError(&UOB)) {
+   if(UsefulBuf_IsNULLC(U) ||
+      UsefulBuf_Compare(Expected, U) ||
+      UsefulOutBuf_GetError(&UOB)) {
       szReturn = "OutUBuf";
+      goto Done;
    }
 
    UsefulBuf_MAKE_STACK_UB(buf, 50);
-   UsefulBufC Out =  UsefulOutBuf_CopyOut(&UOB, buf);
+   UsefulBufC Out = UsefulOutBuf_CopyOut(&UOB, buf);
    if(UsefulBuf_IsNULLC(Out) || UsefulBuf_Compare(Expected, Out)) {
       szReturn = "CopyOut";
+      goto Done;
+   }
+
+   /* Now test the size calculation mode */
+   UsefulOutBuf_Init(&UOB, SizeCalculateUsefulBuf);
+
+   szReturn = AddStuffToUOB(&UOB);
+   if(szReturn) {
+      goto Done;
+   }
+
+   U = UsefulOutBuf_OutUBuf(&UOB);
+   if(U.len != Expected.len || U.ptr != NULL) {
+      szReturn = "size calculation failed";
    }
 
 Done:
@@ -163,7 +196,7 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
 
 const char *UOBTest_BoundaryConditionsTest(void)
 {
-   UsefulBuf_MAKE_STACK_UB(outbuf,2);
+   UsefulBuf_MAKE_STACK_UB(outbuf, 2);
 
    UsefulOutBuf UOB;
 
@@ -275,8 +308,9 @@ const char *TestBasicSanity(void)
 
    UsefulOutBuf_AppendData(&UOB, (const uint8_t *)"bluster", 7);
 
-   if(!UsefulOutBuf_GetError(&UOB))
+   if(!UsefulOutBuf_GetError(&UOB)) {
       return "magic corruption check failed";
+   }
 
 
 
