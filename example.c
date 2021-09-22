@@ -366,6 +366,7 @@ int32_t RunQCborExample()
       printf("Engine encode size calculation failed\n");
       goto Done;
    }
+   (void)EncodedEngineSize; /* Supress unsed variable warning */
    /* Here malloc could be called to allocate a buffer. Then
     * EncodeEngine() can be called a second time to actually
     * encode. (The actual code is not live here to avoid a
