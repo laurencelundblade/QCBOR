@@ -166,17 +166,15 @@ extern "C" {
 
  ## Encoding
 
- @TODO: improve wording
  A common encoding usage mode is to invoke the encoding twice. First
- with the output buffer as @ref SizeCalculateUsefulBuf to compute the length of the needed output
- buffer. Then the correct sized output buffer is allocated. Last the
- encoder is invoked again, this time with the correctly size output buffer.
+ with the output buffer as @ref SizeCalculateUsefulBuf to compute the
+ length of the needed output buffer. The correct sized output buffer
+ is allocated. The encoder is invoked a second time with the allocated
+ output buffer.
 
  The double invocation is not required if the maximum output buffer
  size can be predicted. This is usually possible for simple CBOR
- structures.  If the double invocation is implemented, it can be in a
- loop or function as in the example code so that the code doesn't have
- to actually be written twice, saving code size.
+ structures.
 
  If a buffer too small to hold the encoded output is given, the error
  @ref QCBOR_ERR_BUFFER_TOO_SMALL will be returned. Data will never be
@@ -457,10 +455,10 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
  See QCBOREncode_Finish() for how the pointer and length for the
  encoded CBOR is returned.
 
- TODO: rewrite this...
- The maximum output buffer size allowed is @c UINT32_MAX (4GB). The
- error @ref QCBOR_ERR_BUFFER_TOO_LARGE will be returned by
- QCBOREncode_Finish() if a larger buffer length is passed in.
+ For practical purposes QCBOR can't output encoded CBOR larger than
+ @c UINT32_MAX (4GB) even on 64-bit CPUs because the internal offsets
+ used to track the start of an array/map are 32 bits to reduce the
+ size of the encoding context.
 
  A @ref QCBOREncodeContext can be reused over and over as long as
  QCBOREncode_Init() is called before each use.

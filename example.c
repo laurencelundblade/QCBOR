@@ -149,9 +149,9 @@ static bool EngineCompare(const CarEngine *pE1, const CarEngine *pE2)
  * returned for any other encoding errors.
  *
  * This can be called with @c Buffer set to @ref SizeCalculateUsefulBuf
- * in which case the size of the encoded engine will be calculated, but no
- * actual encoding will be done. The size is in @c .len of the returned
- * UsefulBufC.
+ * in which case the size of the encoded engine will be calculated,
+ * but no actual encoded CBOR will be output. The calculated size is
+ * in @c .len of the returned @ref UsefulBufC.
  */
 UsefulBufC EncodeEngine(const CarEngine *pEngine, UsefulBuf Buffer)
 {
@@ -370,10 +370,10 @@ int32_t RunQCborExample()
     * EncodeEngine() can be called a second time to actually
     * encode. (The actual code is not live here to avoid a
     * dependency on malloc()).
-    *   UsefulBuf  MallocedBuffer;
-    *   MallocedBuffer.len = EncodedEngineSize.len;
-    *   MallocedBuffer.ptr = malloc(EncodedEngineSize.len);
-    *   EncodedEngine = EncodeEngine(&InitialEngine, MallocedBuffer);
+    *  UsefulBuf  MallocedBuffer;
+    *  MallocedBuffer.len = EncodedEngineSize.len;
+    *  MallocedBuffer.ptr = malloc(EncodedEngineSize.len);
+    *  EncodedEngine = EncodeEngine(&InitialEngine, MallocedBuffer);
     */
 
 Done:

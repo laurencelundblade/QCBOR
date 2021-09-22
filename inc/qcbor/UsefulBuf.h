@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 9/21/2021    llundbla        Clarify UsefulOutBuf size calculation mode
  8/8/2021     dthaler/llundbla Work with C++ without compiler extensions
  5/11/2021    llundblade      Improve comments and comment formatting.
  3/6/2021     mcr/llundblade  Fix warnings related to --Wcast-qual
