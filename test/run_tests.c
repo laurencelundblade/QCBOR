@@ -50,7 +50,6 @@ static test_entry2 s_tests2[] = {
 
 static test_entry s_tests[] = {
     TEST_ENTRY(sign1_structure_decode_test),
-    TEST_ENTRY(crit_parameters_test),
 
 #ifndef T_COSE_DISABLE_SIGN_VERIFY_TESTS
     /* Many tests can be run without a crypto library integration and
@@ -72,6 +71,7 @@ static test_entry s_tests[] = {
      * tests are typically always run.
      */
     TEST_ENTRY(bad_parameters_test),
+    TEST_ENTRY(crit_parameters_test),
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     TEST_ENTRY(content_type_test),
 #endif
