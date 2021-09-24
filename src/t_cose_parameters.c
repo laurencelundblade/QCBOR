@@ -2,6 +2,7 @@
  * t_cose_parameters.c
  *
  * Copyright 2019-2020, Laurence Lundblade
+ * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -155,7 +156,7 @@ decode_critical_parameter(QCBORDecodeContext       *decode_context,
 
     while(1) {
         cbor_result = QCBORDecode_GetNext(decode_context, &item);
-        if(cbor_result != QCBOR_ERR_NO_MORE_ITEMS) {
+        if(cbor_result == QCBOR_ERR_NO_MORE_ITEMS) {
             /* successful exit from loop */
             break;
         }

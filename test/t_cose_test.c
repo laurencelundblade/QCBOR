@@ -2,6 +2,7 @@
  *  t_cose_test.c
  *
  * Copyright 2019-2021, Laurence Lundblade
+ * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -938,7 +939,7 @@ int_fast32_t crit_parameters_test()
 
     for(test = crit_tests_table; test->test_option; test++) {
         if(run_test_sign_and_verify(test->test_option) != test->result) {
-            return (int_fast32_t)(test - crit_tests_table);
+            return (int_fast32_t)(test - crit_tests_table + 1);
         }
     }
 
