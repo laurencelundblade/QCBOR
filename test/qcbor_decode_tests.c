@@ -8029,18 +8029,37 @@ int32_t BoolTest(void)
 }
 
 
+
+static uint8_t spFoo[] = {
+0x82, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e,
+0x67, 0x31, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e,
+   0x67, 0x32};
+
+
+static uint8_t spFood[] = {
+0xa4,
+0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x31,
+0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62, 0x79,
+0x74, 0x65, 0x73, 0x20, 0x32, 0x44, 0x79, 0x79,
+0x79, 0x79, 0x6b, 0x61, 0x6e, 0x6f, 0x74, 0x68,
+0x65, 0x72, 0x20, 0x69, 0x6e, 0x74, 0x18, 0x62,
+0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32, 0x78,
+0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x64,
+0x61, 0x6d, 0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73,
+0x20, 0x61, 0x6e, 0x64, 0x20, 0x73, 0x74, 0x61,
+   0x74, 0x69, 0x73, 0x74, 0x69, 0x63, 0x73};
+
+
 int32_t GetMapAndArrayTest(void)
 {
    QCBORDecodeContext DCtx;
 
    QCBORDecode_Init(&DCtx,
-                    (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)},
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
                     0);
 
    QCBORDecode_EnterMap(&DCtx, NULL);
-
    QCBORItem Item;
-
    QCBORDecode_VGetNextConsume(&DCtx, &Item);
 
 
@@ -8048,6 +8067,55 @@ int32_t GetMapAndArrayTest(void)
    UsefulBufC ArrayCBOR;
 
    QCBORDecode_GetArray(&DCtx, &uNumItems, &ArrayCBOR);
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 44;
+   }
+   if(uNumItems != 2) {
+      return 1;
+   }
+   if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
+      return 2;
+   }
 
+
+   QCBORDecode_GetMap(&DCtx, &uNumItems, &ArrayCBOR);
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 44;
+   }
+   if(uNumItems != 4) {
+      return 1;
+   }
+   if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {
+      return 2;
+   }
+
+
+   QCBORDecode_GetArrayFromMapSZ(&DCtx,
+                                 "an array of two strings",
+                                 &uNumItems,
+                                 &ArrayCBOR);
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 44;
+   }
+   if(uNumItems != 2) {
+      return 1;
+   }
+   if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
+      return 2;
+   }
+
+
+   QCBORDecode_GetMapFromMapSZ(&DCtx, "map in a map", &uNumItems, &ArrayCBOR);
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 44;
+   }
+   if(uNumItems != 4) {
+      return 1;
+   }
+   if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {
+      return 2;
+   }
+
+   
    return 0;
 }

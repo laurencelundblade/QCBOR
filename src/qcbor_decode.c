@@ -3173,57 +3173,81 @@ Done:
 
 
 
-// Semi-private
+/* Semi-private, see qcbor_spiffy_decode.h */
 void QCBORDecode_GetMapOrArray(QCBORDecodeContext *pMe,
                                uint8_t             uType,
                                uint16_t           *puNumItems,
                                UsefulBufC         *pEncodedCBOR)
 {
-   // If there are no labels, then the current position
-   // is the start of the array.
-
-   size_t uStart2 = UsefulInputBuf_Tell(&(pMe->InBuf));
-
-   if(DecodeNesting_IsCurrentTypeMap(&(pMe->nesting))) {
-      QCBORItem LabelItem; // not used
-      QCBORError uReturn = QCBORDecode_GetNextTagNumber(pMe, &LabelItem);
-      (void)uReturn; // TODO handle this error
-   }
-
-   size_t uStart = UsefulInputBuf_Tell(&(pMe->InBuf));
-   QCBORItem Item;
    QCBORError uErr;
 
-   UsefulInputBuf_Seek(&(pMe->InBuf), uStart2);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
+   /* First thing is to figure out the start of the
+    * array or map that we are, getting, which is NOT
+    * the start of the label that might be in front of it.
+    * The cursor has to be put back to the position
+    */
+   size_t uSavedStart = UsefulInputBuf_Tell(&(pMe->InBuf));
+
+   if(DecodeNesting_IsCurrentTypeMap(&(pMe->nesting))) {
+      QCBORItem LabelItem; /* not used, but must be given */
+      uErr = QCBORDecode_GetNextTagNumber(pMe, &LabelItem);
+      if(uErr != QCBOR_SUCCESS) {
+         pMe->uLastError = (uint8_t)uErr;
+         goto Done;
+      }
+   }
+   // This will increment the consumed count and not put it back! TODO: fix this
+
+   /* Cursor is after label, if there was one, and at array/map. */
+   size_t uStartOfActual = UsefulInputBuf_Tell(&(pMe->InBuf));
+
+   UsefulInputBuf_Seek(&(pMe->InBuf), uSavedStart);
+   /* Done figuring out the start of the actual array/map */
+
+   /* Traverse the array/map to count the number of items in it
+    * and to leave the cursor at end of it. */
+   QCBORItem Item;
    QCBORDecode_EnterBoundedMapOrArray(pMe, uType, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
-   CopyTags(pMe, &Item);
+   CopyTags(pMe, &Item); // TODO: really do this?
 
    MapSearchInfo Info;
-
-   QCBORItem Dummy;
+   QCBORItem     Dummy;
    Dummy.uLabelType = QCBOR_TYPE_NONE;
    uErr = MapSearch(pMe, &Dummy, &Info, NULL);
-   if(uErr != QCBOR_SUCCESS) {
+   if(QCBORDecode_IsUnrecoverableError(uErr)) {
+      pMe->uLastError = (uint8_t)uErr;
       goto Done;
    }
 
-   pEncodedCBOR->ptr = (const uint8_t *)pMe->InBuf.UB.ptr + uStart;
-
-   pEncodedCBOR->len = pMe->uMapEndOffsetCache - uStart;
+   /* Fill in returned values */
+   pEncodedCBOR->ptr = (const uint8_t *)pMe->InBuf.UB.ptr + uStartOfActual;
+   pEncodedCBOR->len = pMe->uMapEndOffsetCache - uStartOfActual;
    *puNumItems = Info.uItemCount;
+
+   
    QCBORDecode_ExitBoundedMapOrArray(pMe, uType);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
 Done:
    return;
 }
 
 
+/* Semi-private, see qcbor_spiffy_decode.h */
 void SearchAndGetMapOrArray(QCBORDecodeContext *pMe,
-                  QCBORItem          *pTarget,
-                  uint16_t           *puNumItems,
-                  UsefulBufC         *pEncodedCBOR)
+                            QCBORItem          *pTarget,
+                            uint16_t           *puNumItems,
+                            UsefulBufC         *pEncodedCBOR)
 {
    MapSearchInfo Info;
    pMe->uLastError = (uint8_t)MapSearch(pMe, pTarget, &Info, NULL);
@@ -3231,18 +3255,19 @@ void SearchAndGetMapOrArray(QCBORDecodeContext *pMe,
       return;
    }
 
+   /* Save the whole position of things so they can be restored.
+    * so the cursor position is unchanged by this operation, like
+    * all the other GetXxxxInMap() operations. */
+   QCBORDecodeNesting SaveNesting;
+   DecodeNesting_PrepareForMapSearch(&(pMe->nesting), &SaveNesting);
+
    UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset);
 
    QCBORDecode_GetMapOrArray(pMe, pTarget[0].uDataType, puNumItems, pEncodedCBOR);
 
-   // TODO: cursor position after this call
+   // TODO: UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset); ???
+   DecodeNesting_RestoreFromMapSearch(&(pMe->nesting), &SaveNesting);
 }
-
-
-
-// Inline all these below
-
-
 
 
 
