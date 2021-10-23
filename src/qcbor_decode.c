@@ -1957,7 +1957,7 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
           *
           * The factor of 0x7ff is added/subtracted to avoid a
           * rounding error in the wrong direction when the compiler
-          * computes these constants. There is rounding because an
+          * computes these constants. There is rounding because a
           * 64-bit integer has 63 bits of precision where a double
           * only has 53 bits. Without the 0x7ff factor, the compiler
           * may round up and produce a double for the bounds check
@@ -1966,7 +1966,7 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
           *
           * Without the 0x7ff there is a ~30 minute range of time
           * values 10 billion years in the past and in the future
-          * where this code could go wrong. Some compilers correctly
+          * where this code could go wrong. Some compilers
           * generate a warning or error without the 0x7ff.
           */
          const double dDateMax = (double)(INT64_MAX - 0x7ff);
@@ -1984,7 +1984,7 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
       }
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
 
-         uReturn = QCBOR_ERR_FLOAT_DATE_DISABLED;
+         uReturn = QCBOR_ERR_HW_FLOAT_DISABLED;
          goto Done;
 
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
@@ -5218,9 +5218,9 @@ DoubleConvertAll(const QCBORItem *pItem, uint32_t uConvertTypes, double *pdValue
 {
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
    /*
-   https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
-
-   */
+    * What Every Computer Scientist Should Know About Floating-Point Arithmetic
+    * https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
+    */
    switch(pItem->uDataType) {
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA

@@ -147,8 +147,13 @@ static bool EngineCompare(const CarEngine *pE1, const CarEngine *pE2)
  * @c Buffer must be big enough to hold the output. If it is not @ref
  * NULLUsefulBufC will be returned. @ref NULLUsefulBufC will be
  * returned for any other encoding errors.
+ *
+ * This can be called with @c Buffer set to @ref SizeCalculateUsefulBuf
+ * in which case the size of the encoded engine will be calculated,
+ * but no actual encoded CBOR will be output. The calculated size is
+ * in @c .len of the returned @ref UsefulBufC.
  */
-UsefulBufC EncodeEngineDefiniteLength(const CarEngine *pEngine, UsefulBuf Buffer)
+UsefulBufC EncodeEngine(const CarEngine *pEngine, UsefulBuf Buffer)
 {
    /* Set up the encoding context with the output buffer */
     QCBOREncodeContext EncodeCtx;
@@ -333,7 +338,7 @@ int32_t RunQCborExample()
    EngineInit(&InitialEngine);
 
    /* Encode the engine structure. */
-   EncodedEngine = EncodeEngineDefiniteLength(&InitialEngine, EngineBuffer);
+   EncodedEngine = EncodeEngine(&InitialEngine, EngineBuffer);
    if(UsefulBuf_IsNULLC(EncodedEngine)) {
       printf("Engine encode failed\n");
       goto Done;
@@ -352,6 +357,25 @@ int32_t RunQCborExample()
    if(!EngineCompare(&InitialEngine, &DecodedEngine)) {
       printf("Example: Spiffy Engine Decode comparison fail\n");
    }
+
+
+   /* Further example of how to calculate the encoded size, then allocate */
+   UsefulBufC EncodedEngineSize;
+   EncodedEngineSize = EncodeEngine(&InitialEngine, SizeCalculateUsefulBuf);
+   if(UsefulBuf_IsNULLC(EncodedEngine)) {
+      printf("Engine encode size calculation failed\n");
+      goto Done;
+   }
+   (void)EncodedEngineSize; /* Supress unsed variable warning */
+   /* Here malloc could be called to allocate a buffer. Then
+    * EncodeEngine() can be called a second time to actually
+    * encode. (The actual code is not live here to avoid a
+    * dependency on malloc()).
+    *  UsefulBuf  MallocedBuffer;
+    *  MallocedBuffer.len = EncodedEngineSize.len;
+    *  MallocedBuffer.ptr = malloc(EncodedEngineSize.len);
+    *  EncodedEngine = EncodeEngine(&InitialEngine, MallocedBuffer);
+    */
 
 Done:
    printf("\n");

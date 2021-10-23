@@ -288,8 +288,9 @@ typedef enum {
        and 31. */
    QCBOR_ERR_ENCODE_UNSUPPORTED = 2,
 
-   /** During encoding, the length of the encoded CBOR exceeded @c
-       UINT32_MAX. */
+   /** During encoding, the length of the encoded CBOR exceeded
+       QCBOR_MAX_ARRAY_OFFSET, which is slightly less than
+       @c UINT32_MAX. */
    QCBOR_ERR_BUFFER_TOO_LARGE = 3,
 
    /** During encoding, the array or map nesting was deeper than this
@@ -488,8 +489,11 @@ typedef enum {
        non-CBOR reason */
    QCBOR_ERR_CALLBACK_FAIL = 38,
 
-   /** Decoding of floating-point epoch dates is unsupported and a
-       floating-point date was encountered by the decoder. */
+   /** This error code is deprecated. Instead, 
+       \ref QCBOR_ERR_HALF_PRECISION_DISABLED,
+       \ref QCBOR_ERR_HW_FLOAT_DISABLED or \ref QCBOR_ERR_ALL_FLOAT_DISABLED
+       is returned depending on the specific floating-point functionality
+       that is disabled and the type of floating-point input. */
    QCBOR_ERR_FLOAT_DATE_DISABLED = 39,
 
    /** Support for half-precision float decoding is disabled. */
