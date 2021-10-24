@@ -1,6 +1,6 @@
 ![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
 
-QCBOR is a powerful, commercial-quality CBOR encoder/decoder that
+**QCBOR** is a powerful, commercial-quality CBOR encoder/decoder that
 completely implements these RFCs except as noted:
 
 * [RFC8949](https://tools.ietf.org/html/rfc8949) The CBOR Standard. _Everything_
