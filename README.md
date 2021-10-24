@@ -1,7 +1,5 @@
 ![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
 
-# QCBOR
-
 QCBOR is a powerful, commercial-quality CBOR encoder/decoder that
 completely implements these RFCs except as noted:
 
