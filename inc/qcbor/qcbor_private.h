@@ -48,6 +48,102 @@ extern "C" {
 #endif
 
 
+/* It was originally defined as QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
+ * but this is incosistent with all the other QCBOR_DISABLE_
+ * #defines, so the name was changed and this was added for backwards
+ * compatibility
+ */
+#ifdef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#define QCBOR_DISABLE_EXP_AND_MANTISSA
+#endif
+
+/* If USEFULBUF_DISABLE_ALL_FLOATis defined then define
+ * QCBOR_DISABLE_FLOAT_HW_USE and QCBOR_DISABLE_PREFERRED_FLOAT
+ */
+#ifdef USEFULBUF_DISABLE_ALL_FLOAT
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#define QCBOR_DISABLE_FLOAT_HW_USE
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+#define QCBOR_DISABLE_PREFERRED_FLOAT
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+
+/* Standard CBOR Major type for positive integers of various lengths */
+#define CBOR_MAJOR_TYPE_POSITIVE_INT 0
+
+/* Standard CBOR Major type for negative integer of various lengths */
+#define CBOR_MAJOR_TYPE_NEGATIVE_INT 1
+
+/* Standard CBOR Major type for an array of arbitrary 8-bit bytes. */
+#define CBOR_MAJOR_TYPE_BYTE_STRING  2
+
+/* Standard CBOR Major type for a UTF-8 string. Note this is true 8-bit UTF8
+ with no encoding and no NULL termination */
+#define CBOR_MAJOR_TYPE_TEXT_STRING  3
+
+/* Standard CBOR Major type for an ordered array of other CBOR data items */
+#define CBOR_MAJOR_TYPE_ARRAY        4
+
+/* Standard CBOR Major type for CBOR MAP. Maps an array of pairs. The
+ first item in the pair is the "label" (key, name or identfier) and the second
+ item is the value.  */
+#define CBOR_MAJOR_TYPE_MAP          5
+
+/* Standard CBOR major type for a tag number. This creates a CBOR "tag" that
+ * is the tag number and a data item that follows as the tag content.
+ *
+ * Note that this was called an optional tag in RFC 7049, but there's
+ * not really anything optional about it. It was misleading. It is
+ * renamed in RFC 8949.
+ */
+#define CBOR_MAJOR_TYPE_TAG          6
+#define CBOR_MAJOR_TYPE_OPTIONAL     6
+
+/* Standard CBOR extra simple types like floats and the values true and false */
+#define CBOR_MAJOR_TYPE_SIMPLE       7
+
+
+/*
+ These are special values for the AdditionalInfo bits that are part of
+ the first byte.  Mostly they encode the length of the data item.
+ */
+#define LEN_IS_ONE_BYTE    24
+#define LEN_IS_TWO_BYTES   25
+#define LEN_IS_FOUR_BYTES  26
+#define LEN_IS_EIGHT_BYTES 27
+#define ADDINFO_RESERVED1  28
+#define ADDINFO_RESERVED2  29
+#define ADDINFO_RESERVED3  30
+#define LEN_IS_INDEFINITE  31
+
+
+/*
+ 24 is a special number for CBOR. Integers and lengths
+ less than it are encoded in the same byte as the major type.
+ */
+#define CBOR_TWENTY_FOUR   24
+
+
+
+
+/*
+ Values for the 5 bits for items of major type 7
+ */
+#define CBOR_SIMPLEV_FALSE   20
+#define CBOR_SIMPLEV_TRUE    21
+#define CBOR_SIMPLEV_NULL    22
+#define CBOR_SIMPLEV_UNDEF   23
+#define CBOR_SIMPLEV_ONEBYTE 24
+#define HALF_PREC_FLOAT      25
+#define SINGLE_PREC_FLOAT    26
+#define DOUBLE_PREC_FLOAT    27
+#define CBOR_SIMPLE_BREAK    31
+#define CBOR_SIMPLEV_RESERVED_START  CBOR_SIMPLEV_ONEBYTE
+#define CBOR_SIMPLEV_RESERVED_END    CBOR_SIMPLE_BREAK
+
+
+
 /*
  The maxium nesting of arrays and maps when encoding or decoding.
  (Further down in the file there is a definition that refers to this
