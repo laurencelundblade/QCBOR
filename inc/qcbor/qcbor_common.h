@@ -88,28 +88,28 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  tag. */
 #define CBOR_TAG_COSE_MAC0     17
 /** Tag for COSE format single signature signing. No API is provided
-    for this tag. See [RFC 8152, COSE]
-    (https://tools.ietf.org/html/rfc8152). */
+ *  for this tag. See [RFC 8152, COSE]
+ *  (https://tools.ietf.org/html/rfc8152). */
 #define CBOR_TAG_COSE_SIGN1    18
 /** A hint that the following byte string should be encoded in
-    Base64URL when converting to JSON or similar text-based
-    representations. Call @c
-    QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B64URL) before the call to
-    QCBOREncode_AddBytes(). */
+ *  Base64URL when converting to JSON or similar text-based
+ *  representations. Call @c
+ *  QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B64URL) before the call to
+ *  QCBOREncode_AddBytes(). */
 #define CBOR_TAG_ENC_AS_B64URL 21
 /** A hint that the following byte string should be encoded in Base64
-    when converting to JSON or similar text-based
-    representations. Call @c
-    QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B64) before the call to
-    QCBOREncode_AddBytes(). */
+ *  when converting to JSON or similar text-based
+ *  representations. Call @c
+ *  QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B64) before the call to
+ *  QCBOREncode_AddBytes(). */
 #define CBOR_TAG_ENC_AS_B64    22
 /** A hint that the following byte string should be encoded in base-16
-    format per [RFC 4648] (https://tools.ietf.org/html/rfc4648) when
-    converting to JSON or similar text-based
-    representations. Essentially, Base-16 encoding is the standard
-    case- insensitive hex encoding and may be referred to as
-    "hex". Call @c QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B16) before
-    the call to QCBOREncode_AddBytes(). */
+ *  format per [RFC 4648] (https://tools.ietf.org/html/rfc4648) when
+ *  converting to JSON or similar text-based
+ *  representations. Essentially, Base-16 encoding is the standard
+ *  case- insensitive hex encoding and may be referred to as
+ *  "hex". Call @c QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B16) before
+ *  the call to QCBOREncode_AddBytes(). */
 #define CBOR_TAG_ENC_AS_B16    23
 /** See QCBORDecode_EnterBstrWrapped()). */
 #define CBOR_TAG_CBOR          24
@@ -126,40 +126,41 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** See QCBOREncode_AddBinaryUUID(). */
 #define CBOR_TAG_BIN_UUID      37
 /** The data is a CBOR Web Token per [RFC 8392]
-    (https://tools.ietf.org/html/rfc8932). No API is provided for this
-    tag. */
+ *  (https://tools.ietf.org/html/rfc8932). No API is provided for this
+ *  tag. */
 #define CBOR_TAG_CWT           61
 /** Tag for COSE format encryption. See [RFC 8152, COSE]
-    (https://tools.ietf.org/html/rfc8152). No API is provided for this
-    tag. */
+ *  (https://tools.ietf.org/html/rfc8152). No API is provided for this
+ *  tag. */
 #define CBOR_TAG_CBOR_SEQUENCE 63
-
-
+/** Not Decoded by QCBOR. Tag for COSE format encrypt. See [RFC 8152, COSE]
+ *  (https://tools.ietf.org/html/rfc8152). No API is provided for this
+ *  tag. */
 #define CBOR_TAG_ENCRYPT       96
 /** Not Decoded by QCBOR. Tag for COSE format MAC. See [RFC 8152, COSE]
-    (https://tools.ietf.org/html/rfc8152). No API is provided for this
-    tag. */
+ *  (https://tools.ietf.org/html/rfc8152). No API is provided for this
+ *  tag. */
 #define CBOR_TAG_MAC           97
 /** Not Decoded by QCBOR. Tag for COSE format signed data. See [RFC 8152, COSE]
-    (https://tools.ietf.org/html/rfc8152). No API is provided for this
-    tag. */
+ *  (https://tools.ietf.org/html/rfc8152). No API is provided for this
+ *  tag. */
 #define CBOR_TAG_SIGN          98
 /** Tag for date counted by days from Jan 1 1970 per [RFC 8943]
-    (https://tools.ietf.org/html/rfc8943). See
-    QCBOREncode_AddTDaysEpoch(). */
+ *  (https://tools.ietf.org/html/rfc8943). See
+ *  QCBOREncode_AddTDaysEpoch(). */
 #define CBOR_TAG_DAYS_EPOCH    100
 /** Not Decoded by QCBOR. World geographic coordinates. See ISO 6709, [RFC 5870]
-    (https://tools.ietf.org/html/rfc5870) and WGS-84. No API is
-    provided for this tag. */
+ *  (https://tools.ietf.org/html/rfc5870) and WGS-84. No API is
+ *  provided for this tag. */
 #define CBOR_TAG_GEO_COORD     103
 /** Binary MIME.*/
 #define CBOR_TAG_BINARY_MIME   257
 /** Tag for date string without time or time zone per [RFC 8943]
-    (https://tools.ietf.org/html/rfc8943). See
-    QCBOREncode_AddTDaysString(). */
+ *  (https://tools.ietf.org/html/rfc8943). See
+ *  QCBOREncode_AddTDaysString(). */
 #define CBOR_TAG_DAYS_STRING   1004
 /** The magic number, self-described CBOR. No API is provided for this
-    tag. */
+ * tag. */
 #define CBOR_TAG_CBOR_MAGIC    55799
 
 /** The 16-bit invalid tag from the CBOR tags registry */
@@ -299,54 +300,54 @@ typedef enum {
    QCBOR_ERR_ARRAY_DECODE_TOO_LONG = 19,
 
    /** When decoding, a string's size is greater than what a size_t
-       can hold less 4. In all but some very strange situations this
-       is because of corrupt input CBOR and should be treated as
-       such. The strange situation is a CPU with a very small size_t
-       (e.g., a 16-bit CPU) and a large string (e.g., > 65KB). This
-       error makes no further decoding possible. */
+    *  can hold less 4. In all but some very strange situations this
+    *  is because of corrupt input CBOR and should be treated as
+    *  such. The strange situation is a CPU with a very small size_t
+    *  (e.g., a 16-bit CPU) and a large string (e.g., > 65KB). This
+    *  error makes no further decoding possible. */
    QCBOR_ERR_STRING_TOO_LONG = 20,
 
    /** Something is wrong with a decimal fraction or bigfloat such as
-       it not consisting of an array with two integers. This error
-       makes no further decoding possible. */
+    *  it not consisting of an array with two integers. This error
+    *  makes no further decoding possible. */
    QCBOR_ERR_BAD_EXP_AND_MANTISSA = 21,
 
    /** Unable to decode an indefinite-length string because no string
-       allocator was configured. See QCBORDecode_SetMemPool() or
-       QCBORDecode_SetUpAllocator().  This error makes no further
-       decoding possible.*/
+    *  allocator was configured. See QCBORDecode_SetMemPool() or
+    *  QCBORDecode_SetUpAllocator().  This error makes no further
+    *  decoding possible.*/
    QCBOR_ERR_NO_STRING_ALLOCATOR = 22,
 
    /** Error allocating space for a string, usually for an
-       indefinite-length string. This error makes no further decoding
-       possible. */
+    *  indefinite-length string. This error makes no further decoding
+    *  possible. */
    QCBOR_ERR_STRING_ALLOCATE = 23,
 
 #define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 23
 
    /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tags encounterd for a
-       CBOR ITEM.  @ref QCBOR_MAX_TAGS_PER_ITEM is a limit of this
-       implementation.  During decoding, too many tags in the
-       caller-configured tag list, or not enough space in @ref
-       QCBORTagListOut. This error makes no further decoding
-       possible.  */
+    *  CBOR ITEM.  @ref QCBOR_MAX_TAGS_PER_ITEM is a limit of this
+    *  implementation.  During decoding, too many tags in the
+    *  caller-configured tag list, or not enough space in @ref
+    *  QCBORTagListOut. This error makes no further decoding
+    *  possible.  */
    QCBOR_ERR_TOO_MANY_TAGS = 24,
 
    /** During decoding, the type of the label for a map entry is not
-       one that can be handled in the current decoding mode. Typically
-       this is because a label is not an intger or a string. This is
-       an implemation limit. */
+    *  one that can be handled in the current decoding mode. Typically
+    *  this is because a label is not an intger or a string. This is
+    *  an implemation limit. */
    QCBOR_ERR_MAP_LABEL_TYPE = 25,
 
    /** When decodeing for a specific type, the type was not was
-       expected.  */
+    *  expected.  */
    QCBOR_ERR_UNEXPECTED_TYPE = 26,
 
    /** This occurs when decoding one of the tags that QCBOR processed
-       internally.  The content of a tag was of the wrong type. (They
-       were known as "Optional Tags" in RFC 7049, but "optional" is
-       misleading. The old error name is retained for backwards
-       compatibility. */
+    *  internally.  The content of a tag was of the wrong type. (They
+    *  were known as "Optional Tags" in RFC 7049, but "optional" is
+    *  misleading. The old error name is retained for backwards
+    *  compatibility. */
    QCBOR_ERR_BAD_TAG_CONTENT = 27,
    QCBOR_ERR_BAD_OPT_TAG = 27,
 
@@ -354,34 +355,34 @@ typedef enum {
    QCBOR_ERR_DUPLICATE_LABEL = 28,
 
    /** During decoding, the buffer given to QCBORDecode_SetMemPool()
-       is either too small, smaller than
-       QCBOR_DECODE_MIN_MEM_POOL_SIZE or too large, larger than
-       UINT32_MAX. */
+    *  is either too small, smaller than
+    *  QCBOR_DECODE_MIN_MEM_POOL_SIZE or too large, larger than
+    *  UINT32_MAX. */
    QCBOR_ERR_MEM_POOL_SIZE = 29,
 
    /** During decoding, an integer smaller than INT64_MIN was received
-       (CBOR can represent integers smaller than INT64_MIN, but C
-       cannot). */
+    *  (CBOR can represent integers smaller than INT64_MIN, but C
+    *  cannot). */
    QCBOR_ERR_INT_OVERFLOW = 30,
 
    /** During decoding, a date greater than +- 292 billion years from
-       Jan 1 1970 encountered during parsing. This is an
-       implementation limit. */
+    *  Jan 1 1970 encountered during parsing. This is an
+    *  implementation limit. */
    QCBOR_ERR_DATE_OVERFLOW = 31,
 
    /** During decoding, @c QCBORDecode_ExitXxx() was called for a
-       different type than @c QCBORDecode_EnterXxx(). */
+    *  different type than @c QCBORDecode_EnterXxx(). */
    QCBOR_ERR_EXIT_MISMATCH = 32,
 
    /** All well-formed data items have been consumed and there are no
-       more. If parsing a CBOR stream this indicates the non-error end
-       of the stream. If not parsing a CBOR stream / sequence, this
-       probably indicates that some data items expected are not
-       present.  See also @ref QCBOR_ERR_HIT_END. */
+    *  more. If parsing a CBOR stream this indicates the non-error end
+    *  of the stream. If not parsing a CBOR stream / sequence, this
+    *  probably indicates that some data items expected are not
+    *  present.  See also @ref QCBOR_ERR_HIT_END. */
    QCBOR_ERR_NO_MORE_ITEMS = 33,
 
    /** When finding an item by lablel, an item with the requested label
-       was not found. */
+    *  was not found. */
    QCBOR_ERR_LABEL_NOT_FOUND = 34,
 
    /** Number conversion failed because of sign. For example a
@@ -441,33 +442,45 @@ typedef enum {
 } QCBORError;
 
 
-/* Function for getting an error string from an error code */
+/**
+ * @brief Get string describing an error code.
+ *
+ * @param[in] err   The error code.
+ *
+ * @return  NULL-terimated string describing error or "Unidentified
+ *          error" if the error is not known.
+ */
 const char *qcbor_err_to_str(QCBORError err);
 
 
 
+
 /**
- The maximum nesting of arrays and maps when encoding or decoding. The
- error @ref QCBOR_ERR_ARRAY_NESTING_TOO_DEEP will be returned on
- encoding or QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP on decoding if it is exceeded.
+ * The maximum nesting of arrays and maps when encoding or
+ * decoding. The error @ref QCBOR_ERR_ARRAY_NESTING_TOO_DEEP will be
+ * returned on encoding or QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP on
+ * decoding if it is exceeded.
  */
 #define QCBOR_MAX_ARRAY_NESTING  QCBOR_MAX_ARRAY_NESTING1
 
 
 /**
- The maximum number of items in a single array or map when encoding of
- decoding.
+ * The maximum number of items in a single array or map when encoding of
+ * decoding.
  */
-// -1 is because the value UINT16_MAX is used to track indefinite-length arrays
-#define QCBOR_MAX_ITEMS_IN_ARRAY (UINT16_MAX-1)
+#define QCBOR_MAX_ITEMS_IN_ARRAY (UINT16_MAX-1) /* -1 is because the
+                                                 * value UINT16_MAX is
+                                                 * used to indicate
+                                                 * indefinite-length.
+                                                 */
 
 
 /**
- This is deprecated. See QCBORDecode_GetNthTag() and QCBORDecode_GetNthTagOfLast()
- for tag handling.
-
- The maximum number of tags that can be in @ref QCBORTagListIn and passed to
- QCBORDecode_SetCallerConfiguredTagList()
+ * This is deprecated. See QCBORDecode_GetNthTag() and
+ * QCBORDecode_GetNthTagOfLast() for tag handling.
+ *
+ * The maximum number of tags that can be in @ref QCBORTagListIn and
+ * passed to QCBORDecode_SetCallerConfiguredTagList()
  */
 #define QCBOR_MAX_CUSTOM_TAGS    16
 
