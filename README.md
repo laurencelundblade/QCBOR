@@ -1,8 +1,7 @@
+![t_cose](https://github.com/laurencelundblade/t_cose/blob/master/t-cose-logo.png?raw=true)
 
 
-#  t_cose
-
-t_cose implements enough of COSE to support [CBOR Web Token, RFC 8392](https://tools.ietf.org/html/rfc8392)  
+*t_cose* implements enough of COSE to support [CBOR Web Token, RFC 8392](https://tools.ietf.org/html/rfc8392)  
 and [Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01). 
 This is the COSE_Sign1 part of [COSE, RFC 8152](https://tools.ietf.org/html/rfc8152). 
 
