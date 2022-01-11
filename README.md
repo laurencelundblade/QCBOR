@@ -49,7 +49,7 @@ useful for embedded implementations that have to run in small fixed memory.
 
 As of December 2019, the code is in reasonable working order and the public interface is 
 fairly stable. There is a crypto adaptaion layer for [OpenSSL](https://www.openssl.org) 
-and for [Arm MBed Crypto](https://github.com/ARMmbed/mbed-crypto).
+and for [Arm Mbed Crypto](https://github.com/ARMmbed/mbedtls).
 
 This version requires a QCBOR library that supports Spiffy Decode. 
 
@@ -108,7 +108,7 @@ by virtue of the Makefile not linking to it.
 #### PSA Crypto -- Makefile.psa
 
 This build configuration works for Arm PSA Crypto compatible libraries
-like the MBed Crypto Library. 
+like the Mbed Crypto Library. 
 
 This integration supports SHA-256, SHA-384 and SHA-512 with ECDSA to support
 the COSE algorithms ES256, ES384 and ES512. It is a full implementation but
@@ -138,16 +138,16 @@ using earlier APIs so this variation must be handled by the crypto
 adpatation layer here. There are no official mechanisms, like a 
 #define to help handle variations in these older versions.
 
-The MBed Crypto Library is an implementation of the PSA Crypto API and
+The Mbed Crypto Library is an implementation of the PSA Crypto API and
 is versions separately. Presumably there are or will be implementations of
-the PSA Crypto API that are not the MBed Crypto Library.
+the PSA Crypto API that are not the Mbed Crypto Library.
 
 t_cose has been made to work against the released 1.1.0 version of
-MBed released in June 2019 and the 2.0.0 version released in September
+Mbed released in June 2019 and the 2.0.0 version released in September
 2019. Also, it works against the 1.1 version that is in TF-M which has
 different internals than the 1.1.0 version on the public GitHub. 
 
-The PSA Crypto API in MBed 1.1.0 is different from that in MBed 2.0.0.
+The PSA Crypto API in Mbed 1.1.0 is different from that in Mbed 2.0.0.
 t_cose has one configuration that covers both which hinges off a 
 #define that happens to occur in 1.1.0 and not in 2.0.0. It can auto-detect
 which is which so you shouldn't have to worry about it. To override
@@ -155,7 +155,7 @@ the auto-detect `#define T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO11`
 or `#define T_COSE_USE_PSA_CRYPTO_FROM_MBED_CRYPTO20`.
 
 Presumably, this will soon become less messy with the release of 
-PSA Crypto 1.0. Presumably the older implementations like MBed
+PSA Crypto 1.0. Presumably the older implementations like Mbed
 Crypto 1.1 will stop being used. Also, PSA Crypto 1.0 has 
 official #defines to manage API versions.
 

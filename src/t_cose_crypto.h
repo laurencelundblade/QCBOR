@@ -193,7 +193,7 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  * \retval T_COSE_ERR_FAIL
  *         General unspecific failure.
  * \retval T_COSE_ERR_TAMPERING_DETECTED
- *         Equivalent to \c PSA_ERROR_TAMPERING_DETECTED.
+ *         Equivalent to \c PSA_ERROR_CORRUPTION_DETECTED.
  *
  * This is called to do public key signing. The implementation will
  * vary from one platform / OS to another but should conform to the
@@ -267,7 +267,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
  * \retval T_COSE_ERR_FAIL
  *         General unspecific failure.
  * \retval T_COSE_ERR_TAMPERING_DETECTED
- *         Equivalent to \c PSA_ERROR_TAMPERING_DETECTED.
+ *         Equivalent to \c PSA_ERROR_CORRUPTION_DETECTED.
  */
 enum t_cose_err_t
 t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,

@@ -99,7 +99,7 @@ static enum t_cose_err_t psa_status_to_t_cose_error_signing(psa_status_t err)
            err == PSA_ERROR_INVALID_SIGNATURE   ? T_COSE_ERR_SIG_VERIFY :
            err == PSA_ERROR_NOT_SUPPORTED       ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
            err == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
-           err == PSA_ERROR_TAMPERING_DETECTED  ? T_COSE_ERR_TAMPERING_DETECTED :
+           err == PSA_ERROR_CORRUPTION_DETECTED  ? T_COSE_ERR_TAMPERING_DETECTED :
                                                   T_COSE_ERR_SIG_FAIL;
 }
 
@@ -133,7 +133,7 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
      * signing_key passed in, not the cose_algorithm_id This check
      * looks for ECDSA signing as indicated by COSE and rejects what
      * is not. (Perhaps this check can be removed to save object code
-     * if it is the case that psa_asymmetric_verify() does the right
+     * if it is the case that psa_verify_hash() does the right
      * checks).
      */
     if(!PSA_ALG_IS_ECDSA(psa_alg_id)) {
@@ -145,14 +145,14 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
 
 
     /* The official PSA Crypto API expected to be formally set in 2020
-     * uses psa_verify_hash() instead of psa_asymmetric_verify().
+     * uses psa_verify_hash() instead of psa_verify_hash().
      * This older API is used because Mbed Crypto 2.0 provides
      * backwards compatibility to this with crypto_compat.h and there
      * is no forward compatibility in the other direction. If Mbed
      * Crypto ceases providing backwards compatibility then this code
      * has to be changed to use psa_verify_hash().
      */
-    psa_result = psa_asymmetric_verify(verification_key_psa,
+    psa_result = psa_verify_hash(verification_key_psa,
                                        psa_alg_id,
                                        hash_to_verify.ptr,
                                        hash_to_verify.len,
@@ -191,7 +191,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
      * signing_key passed in, not the cose_algorithm_id This check
      * looks for ECDSA signing as indicated by COSE and rejects what
      * is not. (Perhaps this check can be removed to save object code
-     * if it is the case that psa_asymmetric_verify() does the right
+     * if it is the case that psa_verify_hash() does the right
      * checks).
      */
     if(!PSA_ALG_IS_ECDSA(psa_alg_id)) {
@@ -205,14 +205,14 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
      * length and won't write off the end of it.
      */
     /* The official PSA Crypto API expected to be formally set in 2020
-     * uses psa_sign_hash() instead of psa_asymmetric_sign().  This
+     * uses psa_sign_hash() instead of psa_sign_hash().  This
      * older API is used because Mbed Crypto 2.0 provides backwards
      * compatibility to this crypto_compat.h and there is no forward
      * compatibility in the other direction. If Mbed Crypto ceases
      * providing backwards compatibility then this code has to be
      * changed to use psa_sign_hash().
      */
-    psa_result = psa_asymmetric_sign(signing_key_psa,
+    psa_result = psa_sign_hash(signing_key_psa,
                                      psa_alg_id,
                                      hash_to_sign.ptr,
                                      hash_to_sign.len,

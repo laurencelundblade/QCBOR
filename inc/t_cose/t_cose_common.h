@@ -234,7 +234,7 @@ enum t_cose_err_t {
     /** General unspecific failure. */
     T_COSE_ERR_FAIL = 17,
 
-    /** Equivalent to \c PSA_ERROR_TAMPERING_DETECTED. */
+    /** Equivalent to \c PSA_ERROR_CORRUPTION_DETECTED. */
     T_COSE_ERR_TAMPERING_DETECTED = 18,
 
     /** The key identified by a \ref t_cose_key or a key ID was not

@@ -1,5 +1,5 @@
-# Makefile -- UNIX-style make for t_cose using crypto with MBed Crypto
-# MBed Crypto uses the PSA Crypto interface
+# Makefile -- UNIX-style make for t_cose using crypto with Mbed Crypto
+# Mbed Crypto uses the PSA Crypto interface
 #
 # Copyright (c) 2019-2021, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
@@ -10,7 +10,7 @@
 #
 
 # ---- comment ----
-# This is for PSA Crypto / MBed Crypto. See longer explanation in README.md
+# This is for PSA Crypto / Mbed Crypto. See longer explanation in README.md
 # Adjust CRYPTO_INC and CRYPTO_LIB for the
 # location of the openssl libraries on your build machine.
 
@@ -33,13 +33,13 @@ QCBOR_LIB=-lqcbor
 
 # ---- crypto configuration -----
 
-# These two are for direct reference to MBed Crypto that is not installed
+# These two are for direct reference to Mbed Crypto that is not installed
 # in /usr/local/ /usr/local or some system location. The path names
-# may need to be adjusted for your location of MBed Crypto
-#CRYPTO_INC=-I ../../mbed-crypto/include/
-#CRYPTO_LIB=../../mbed-crypto/library/libmbedcrypto.a
+# may need to be adjusted for your location of Mbed Crypto
+#CRYPTO_INC=-I ../../mbedtls/include/
+#CRYPTO_LIB=../../mbedtls/library/libmbedcrypto.a
 
-# These two are for reference to MBed Crypto that has been installed in
+# These two are for reference to Mbed Crypto that has been installed in
 # /usr/local/ or in some system location.
 CRYPTO_LIB=-l mbedcrypto
 CRYPTO_INC=-I /usr/local/include
