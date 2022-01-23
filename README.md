@@ -35,7 +35,7 @@ Replaced by RFC 8949.
   of memory usage making it good for embedded implementations that
   have to run in small fixed memory.
   
-**Easy decoding of maps** -- The "spiffy decode" functions allow
+**Easy decoding of maps** – The "spiffy decode" functions allow
   fetching map items directly by label. Detection of duplicate map
   items is automatically performed. This makes decoding of complex
   protocols much simpler, say when compared to TinyCBOR.
@@ -168,7 +168,7 @@ QCBOR.
 
 ## Code Status
 
-Code is stable for over a year with the last major change in 
+Code has been stable for over a year. The last major change was in
 fall of 2020. 
 
 QCBOR was originally developed by Qualcomm. It was [open sourced
