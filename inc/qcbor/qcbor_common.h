@@ -413,7 +413,7 @@ typedef enum {
 
 #define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 23
 
-   /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tags encounterd for a
+   /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tags encountered for a
        CBOR ITEM.  @ref QCBOR_MAX_TAGS_PER_ITEM is a limit of this
        implementation.  During decoding, too many tags in the
        caller-configured tag list, or not enough space in @ref
@@ -427,7 +427,7 @@ typedef enum {
        an implemation limit. */
    QCBOR_ERR_MAP_LABEL_TYPE = 25,
 
-   /** When decodeing for a specific type, the type was not was
+   /** When decoding for a specific type, the type was not was
        expected.  */
    QCBOR_ERR_UNEXPECTED_TYPE = 26,
 
@@ -469,7 +469,7 @@ typedef enum {
        present.  See also @ref QCBOR_ERR_HIT_END. */
    QCBOR_ERR_NO_MORE_ITEMS = 33,
 
-   /** When finding an item by lablel, an item with the requested label
+   /** When finding an item by label, an item with the requested label
        was not found. */
    QCBOR_ERR_LABEL_NOT_FOUND = 34,
 
