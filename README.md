@@ -1,10 +1,10 @@
 ![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
 
 **QCBOR** is a powerful, commercial-quality CBOR encoder/decoder that
-completely implements these RFCs except as noted:
+implements these RFCs:
 
-* [RFC8949](https://tools.ietf.org/html/rfc8949) The CBOR Standard. _Everything_
-except sorting of encoded maps is implemented.
+* [RFC8949](https://tools.ietf.org/html/rfc8949) The CBOR Standard. (Everything
+except sorting of encoded maps)
 * [RFC7049](https://tools.ietf.org/html/rfc7049) The previous CBOR standard.
 Replaced by RFC 8949.
 * [RFC8742](https://tools.ietf.org/html/rfc8742) CBOR Sequences
