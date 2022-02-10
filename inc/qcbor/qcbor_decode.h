@@ -62,8 +62,8 @@ extern "C" {
  * Encoded CBOR has a tree structure where the leaf nodes are
  * non-aggregate types like integers and strings and the intermediate
  * nodes are either arrays or maps. Fundamentally, CBOR decoding is a
- * pre-order traversal of this tree with CBOR sequences a minor ex
- * *ception. Calling QCBORDecode_GetNext() repeatedly will perform
+ * pre-order traversal of this tree with CBOR sequences a minor
+ * exception. Calling QCBORDecode_GetNext() repeatedly will perform
  * this. It is possible to decode any CBOR by only calling
  * QCBORDecode_GetNext(), though this doesn't take advantage of many
  * QCBOR features.
