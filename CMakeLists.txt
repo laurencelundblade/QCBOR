@@ -6,8 +6,6 @@ project(qcbor
 
 set(CMAKE_C_FLAGS "-pedantic -Wall -O3 -ffunction-sections")
 
-include_directories(inc)
-
 set(SOURCE
 	src/ieee754.c
 	src/qcbor_decode.c
@@ -17,3 +15,5 @@ set(SOURCE
 ) 
 
 add_library(qcbor ${SOURCE})
+
+target_include_directories(qcbor PUBLIC inc)
