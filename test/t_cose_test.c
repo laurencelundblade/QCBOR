@@ -1,7 +1,7 @@
 /*
  *  t_cose_test.c
  *
- * Copyright 2019-2021, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -269,7 +269,8 @@ int_fast32_t short_circuit_verify_fail_test()
         return 6000;
     }
     /* Change "payload" to "hayload" */
-    ((char *)signed_cose.ptr)[payload_offset] = 'h';
+    struct q_useful_buf temp_unconst = q_useful_buf_unconst(signed_cose);
+    ((char *)temp_unconst.ptr)[payload_offset] = 'h';
     /* --- Tamper with payload Done --- */
 
 
@@ -582,8 +583,8 @@ int_fast32_t short_circuit_decode_only_test()
         return 2000 + (int32_t)result;
     }
 
-    /* Finally close of the CBOR formatting and get the pointer and length
-     * of the resulting COSE_Sign1
+    /* Finally close of the CBOR formatting and get the pointer and
+     * length of the resulting COSE_Sign1
      */
     cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
     if(cbor_error) {
@@ -591,17 +592,20 @@ int_fast32_t short_circuit_decode_only_test()
     }
     /* --- Done making COSE Sign1 object  --- */
 
-    /* -- Tweak signature bytes -- */
-    /* The signature is the last thing so reach back that many bytes and tweak
-       so if signature verification were attempted, it would fail */
+    /* --- Tweak signature bytes --- */
+    /* The signature is the last thing so reach back that many bytes
+     * and tweak so if signature verification were attempted, it would
+     * fail (but this is a decode-only test so it won't fail).
+     */
     const size_t last_byte_offset = signed_cose.len - T_COSE_EC_P256_SIG_SIZE;
-    ((uint8_t *)signed_cose.ptr)[last_byte_offset]++;
+    struct q_useful_buf temp_unconst = q_useful_buf_unconst(signed_cose);
+    ((uint8_t *)temp_unconst.ptr)[last_byte_offset]++;
 
 
     /* --- Start verifying the COSE Sign1 object  --- */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
 
-    /* No key necessary with short circuit */
+    /* Decode-only mode so no key and no signature check. */
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,

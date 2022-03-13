@@ -1,7 +1,7 @@
 /*
  * t_cose_common.h
  *
- * Copyright 2019-2020, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -134,9 +134,28 @@ struct t_cose_key {
     } k;
 };
 
+
 /** An empty or \c NULL \c t_cose_key */
+/*
+ * This has to be definied differently in C than C++ because there is
+ * no common construct for a literal structure.
+ *
+ * In C compound literals are used.
+ *
+ * In C++ list initalization is used. This only works
+ * in C++11 and later.
+ *
+ * Note that some popular C++ compilers can handle compound
+ * literals with on-by-default extensions, however
+ * this code aims for full correctness with strict
+ * compilers so they are not used.
+ */
+#ifdef __cplusplus
+#define T_COSE_NULL_KEY {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}}
+#else
 #define T_COSE_NULL_KEY \
     ((struct t_cose_key){T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}})
+#endif
 
 
 /* Private value. Intentionally not documented for Doxygen.  This is

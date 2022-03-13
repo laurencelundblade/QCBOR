@@ -1,7 +1,7 @@
 /*
  *  t_cose_test.h
  *
- * Copyright 2019-2020, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -77,7 +77,7 @@ int_fast32_t short_circuit_make_cwt_test(void);
 
 /*
  * Test the decode only mode, the mode where the
- * headers are returned, but the signature is no
+ * headers are returned, but the signature is not
  * verified.
  */
 int_fast32_t short_circuit_decode_only_test(void);

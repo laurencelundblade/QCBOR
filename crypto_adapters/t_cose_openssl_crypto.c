@@ -1,7 +1,7 @@
 /*
  *  t_cose_openssl_crypto.c
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -149,7 +149,7 @@ convert_ecdsa_signature_to_ossl(unsigned               key_len,
         goto Done;
     }
 
-    ossl_signature_s_bn = BN_bin2bn(((uint8_t *)signature.ptr)+key_len,
+    ossl_signature_s_bn = BN_bin2bn(((const uint8_t *)signature.ptr)+key_len,
                                     (int)key_len,
                                     NULL);
     if(ossl_signature_s_bn == NULL) {

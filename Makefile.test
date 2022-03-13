@@ -1,6 +1,6 @@
 # Makefile -- UNIX-style make for no-crypto test config for t_cose
 #
-# Copyright (c) 2019, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2019-2022, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -16,10 +16,10 @@
 
 # ---- QCBOR location ----
 # Adjust this to the location of QCBOR in your build environment
-QCBOR_INC= -I ../../QCBOR/master/inc
-QCBOR_LIB=../../QCBOR/master/libqcbor.a
-#QCBOR_INC= -I/usr/include -I/usr/local/include
-#QCBOR_LIB= -l qcbor
+#QCBOR_INC= -I ../../QCBOR/master/inc
+#QCBOR_LIB=../../QCBOR/master/libqcbor.a
+QCBOR_INC= -I/usr/include -I/usr/local/include
+QCBOR_LIB= -l qcbor
 
 
 # ---- crypto configuration -----
