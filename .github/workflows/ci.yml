@@ -1,0 +1,77 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  main:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - os-image: ubuntu-latest
+          crypto-provider: OpenSSL
+        
+        - os-image: ubuntu-latest
+          crypto-provider: MbedTLS
+          mbedtls-version: v2.28.0
+        
+        - os-image: ubuntu-latest
+          crypto-provider: MbedTLS
+          mbedtls-version: v3.1.0
+          allow-failure: true
+
+        - os-image: ubuntu-latest
+          crypto-provider: Test
+
+    runs-on: ${{ matrix.config.os-image }}
+
+    continue-on-error: ${{ matrix.config.allow-failure || false }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Fetch mbedTLS
+      if: matrix.config.crypto-provider == 'MbedTLS'
+      uses: actions/checkout@v3
+      with:
+        repository: ARMmbed/mbedtls
+        ref: ${{ matrix.config.mbedtls-version }}
+        path: mbedtls
+
+    - name: Install mbedTLS
+      if: matrix.config.crypto-provider == 'MbedTLS'
+      run: |
+        cd mbedtls
+        make -j $(nproc)
+        sudo make install
+
+    - name: Fetch QCBOR
+      uses: actions/checkout@v3
+      with:
+        repository: laurencelundblade/QCBOR
+        path: QCBOR
+
+    - name: Install QCBOR
+      run: |
+        cd QCBOR
+        make -j$(nproc)
+        sudo make install
+
+    - name: Build t_cose
+      run: |
+        set -ex
+        mkdir build
+        cd build
+        cmake -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} ..
+        make -j $(nproc)
+
+    - name: Run OpenSSL example
+      if: matrix.config.crypto-provider == 'OpenSSL'
+      run: build/t_cose_basic_example_ossl
+
+    - name: Run MbedTLS example
+      if: matrix.config.crypto-provider == 'MbedTLS'
+      run: build/t_cose_basic_example_psa
+
+    - name: Run tests
+      run: build/t_cose_test
