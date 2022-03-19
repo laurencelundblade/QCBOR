@@ -198,7 +198,7 @@ static void print_useful_buf(const char *string_label, struct q_useful_buf_c buf
 
     size_t i;
     for(i = 0; i < buf.len; i++) {
-        uint8_t Z = ((uint8_t *)buf.ptr)[i];
+        const uint8_t Z = ((const uint8_t *)buf.ptr)[i];
         printf("%02x ", Z);
         if((i % 8) == 7) {
             printf("\n    ");

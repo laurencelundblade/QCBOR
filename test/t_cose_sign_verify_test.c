@@ -171,8 +171,9 @@ int_fast32_t sign_verify_sig_fail_test()
         return_value = 99;
         goto Done;
     }
-    ((char *)signed_cose.ptr)[tamper_offset] = 'h';
-
+    /* Change "payload" to "hayload" */
+    struct q_useful_buf temp_unconst = q_useful_buf_unconst(signed_cose);
+    ((char *)temp_unconst.ptr)[tamper_offset] = 'h';
 
     t_cose_sign1_verify_init(&verify_ctx, 0);
 

@@ -1,7 +1,7 @@
 /*
  *  t_cose_basic_example_ossl.c
  *
- * Copyright 2019-2020, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -241,7 +241,7 @@ static void print_useful_buf(const char *string_label, struct q_useful_buf_c buf
 
     size_t i;
     for(i = 0; i < buf.len; i++) {
-        uint8_t Z = ((uint8_t *)buf.ptr)[i];
+        const uint8_t Z = ((const uint8_t *)buf.ptr)[i];
         printf("%02x ", Z);
         if((i % 8) == 7) {
             printf("\n    ");
