@@ -29,7 +29,6 @@ jobs:
           container: ubuntu:20.04
           crypto-provider: MbedTLS
           crypto-provider-version: '3.1.0'
-          allow-failure: true
 
         - os-image: ubuntu-latest
           container: ubuntu:20.04
@@ -39,8 +38,6 @@ jobs:
 
     runs-on: ${{ matrix.config.os-image }}
     container: ${{ matrix.config.container }}
-
-    continue-on-error: ${{ matrix.config.allow-failure || false }}
 
     steps:
     - uses: actions/checkout@v3
