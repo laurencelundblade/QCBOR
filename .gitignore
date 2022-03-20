@@ -57,3 +57,6 @@ t_cose_basic_example_ossl
 
 # CMake build folder
 build/
+
+# Doxygen output folder
+doxygen/output
