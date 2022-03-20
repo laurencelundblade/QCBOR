@@ -31,6 +31,10 @@ for signing and 1500 bytes for verifying. The caller supplies the output buffer
 and context structures so the caller has control over memory usage making it
 useful for embedded implementations that have to run in small fixed memory.
 
+## Documentation
+
+[API documentation is here](https://laurencelundblade.github.io/t_cose/)
+
 
 ## Code Status
 
