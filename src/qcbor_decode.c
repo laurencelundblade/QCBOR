@@ -1436,6 +1436,9 @@ UnMapTagNumber(const QCBORDecodeContext *pMe, uint16_t uMappedTagNumber)
 static QCBORError
 QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
+   /* Accummulate the tags from multiple items here and then copy them
+    * into the last item, the non-tag item.
+    */
    uint16_t auItemsTags[QCBOR_MAX_TAGS_PER_ITEM];
 
    /* Initialize to CBOR_TAG_INVALID16 */
@@ -1475,16 +1478,18 @@ QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
        * Must use memmove because the move source and destination
        * overlap.
        */
-      memmove(&auItemsTags[1], auItemsTags, sizeof(auItemsTags) - sizeof(auItemsTags[0]));
+      memmove(&auItemsTags[1],
+              auItemsTags,
+              sizeof(auItemsTags) - sizeof(auItemsTags[0]));
 
       /* Map the tag */
-      uint16_t uMappedTagNumer = 0;
-      uReturn = MapTagNumber(pMe, pDecodedItem->val.uTagV, &uMappedTagNumer);
+      uint16_t uMappedTagNumber = 0;
+      uReturn = MapTagNumber(pMe, pDecodedItem->val.uTagV, &uMappedTagNumber);
       /* Continue even on error so as to consume all tags wrapping
        * this data item so decoding can go on. If MapTagNumber()
        * errors once it will continue to error.
        */
-      auItemsTags[0] = uMappedTagNumer;
+      auItemsTags[0] = uMappedTagNumber;
    }
 
 Done:
@@ -1518,7 +1523,7 @@ Done:
  * combines pairs of items into one data item with a label
  * and value.
  *
- * This is pass-through if the current nesting leve is
+ * This is passthrough if the current nesting leve is
  * not a map.
  *
  * This also implements maps-as-array mode where a map
@@ -2330,11 +2335,11 @@ QCBORDecode_GetNextTagContent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 #endif /* QCBOR_DISABLE_UNCOMMON_TAGS */
 
       } else {
-         /* See if it is a pass-through byte/text string tag; process if so */
+         /* See if it is a passthrough byte/text string tag; process if so */
          uReturn = ProcessTaggedString(pDecodedItem->uTags[0], pDecodedItem);
 
          if(uReturn == QCBOR_ERR_UNSUPPORTED) {
-            /* It wasn't a pass-through byte/text string tag so it is
+            /* It wasn't a passthrough byte/text string tag so it is
              * an unknown tag. This is the exit from the loop on the
              * first unknown tag.  It is a successful exit.
              */
