@@ -6050,8 +6050,28 @@ int32_t IntegerConvertTest()
    return 0;
 }
 
+int32_t CBORTestIssue134()
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem          Item;
+   QCBORError         uCBORError;
+   const uint8_t      spTestIssue134[] = { 0x5F, 0x40, 0xFF };
 
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTestIssue134),
+                    QCBOR_DECODE_MODE_NORMAL);
 
+   UsefulBuf_MAKE_STACK_UB(StringBuf, 200);
+   QCBORDecode_SetMemPool(&DCtx, StringBuf, false);
+   
+   do {
+      uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   } while (QCBOR_SUCCESS == uCBORError);
+
+   uCBORError = QCBORDecode_Finish(&DCtx);
+
+   return uCBORError;
+}
 
 int32_t CBORSequenceDecodeTests(void)
 {
