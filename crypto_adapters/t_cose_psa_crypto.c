@@ -15,8 +15,8 @@
  * \brief Crypto Adaptation for t_cose to use ARM's PSA ECDSA and hashes.
  *
  * This connects up the abstract interface in t_cose_crypto.h to the
- * implementations of ECDSA signing and hashing in ARM's PSA crypto
- * library.
+ * implementations of ECDSA signing and hashing in ARM's Mbed TLS  crypto
+ * library that implements the Arm PSA 1.0 crypto API.
  *
  * This adapter layer doesn't bloat the implementation as everything
  * here had to be done anyway -- the mapping of algorithm IDs, the
@@ -125,15 +125,6 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
 
     verification_key_psa = (mbedtls_svc_key_id_t)verification_key.k.key_handle;
 
-
-    /* The official PSA Crypto API expected to be formally set in 2020
-     * uses psa_verify_hash() instead of psa_verify_hash().
-     * This older API is used because Mbed Crypto 2.0 provides
-     * backwards compatibility to this with crypto_compat.h and there
-     * is no forward compatibility in the other direction. If Mbed
-     * Crypto ceases providing backwards compatibility then this code
-     * has to be changed to use psa_verify_hash().
-     */
     psa_result = psa_verify_hash(verification_key_psa,
                                  psa_alg_id,
                                  hash_to_verify.ptr,
@@ -186,14 +177,7 @@ t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
     /* It is assumed that this call is checking the signature_buffer
      * length and won't write off the end of it.
      */
-    /* The official PSA Crypto API expected to be formally set in 2020
-     * uses psa_sign_hash() instead of psa_sign_hash().  This
-     * older API is used because Mbed Crypto 2.0 provides backwards
-     * compatibility to this crypto_compat.h and there is no forward
-     * compatibility in the other direction. If Mbed Crypto ceases
-     * providing backwards compatibility then this code has to be
-     * changed to use psa_sign_hash().
-     */
+
     psa_result = psa_sign_hash(signing_key_psa,
                                psa_alg_id,
                                hash_to_sign.ptr,
