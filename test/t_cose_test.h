@@ -129,7 +129,7 @@ int_fast32_t sign1_structure_decode_test(void);
  * by default because it needs a hacked version of a hash algorithm.
  * It is very hard to get hash algorithms to fail, so this hacked
  * version is necessary. This test will not run correctly with
- * OpenSSL or PSA hashes because they aren't (and shouldn't be) hacked.
+ * OpenSSL or Mbed TLS hashes because they aren't (and shouldn't be) hacked.
  * It works only with the b_con hash bundled and not intended for
  * commercial use (though it is a perfectly fine implementation).
  */

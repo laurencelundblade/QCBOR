@@ -66,6 +66,11 @@ static inline int q_useful_buf_c_is_null_or_empty(struct q_useful_buf_c in)
     return UsefulBuf_IsNULLOrEmptyC(in);
 }
 
+static inline struct q_useful_buf_c q_usefulbuf_const(struct q_useful_buf ub)
+{
+    return UsefulBuf_Const(ub);
+}
+
 
 static inline struct q_useful_buf q_useful_buf_unconst(struct q_useful_buf_c in)
 {

@@ -42,6 +42,50 @@ As of March 2022, the code is in  working order and the public interface has bee
 stable for over a year. There is a crypto adaptaion layer for [OpenSSL](https://www.openssl.org) 
 and for [Arm Mbed TLS](https://github.com/ARMmbed/mbedtls).
 
+### MbedTLS
+
+The crypto adapter for Mbed TLS is small and simple. The adapter
+allocates no memory and as far as I know Mbed TLS internally also
+allocates no memory. It is a good choice for embedded use.
+
+It makes use of the 1.0 version of the PSA cryptographic API.  No
+deprecated or to-be-deprecated functions are called (an older t_cose
+used some deprecated APIs).
+
+It is regularly tested against the latest version 2 and version 3 of
+Mbed TLS, an implementation of the PSA crypto API.
+
+Confidence in the adaptor code is high and reasonably well tested
+because it is simple.
+
+### OpenSSL
+
+The crypto adaptor for OpenSSL is about twice the size of that for
+Mbed TLS because the API doesn't line up well with the needs for COSE
+(OpenSSL is ASN.1/DER oriented). Memory allocation is performed inside
+OpenSSL and in the crypto adaptaion layer. This makes the OpenSSL
+crypto library less suitable for embedded use.
+
+No deprecated or to-be-deprecated APIs are used. 
+
+There are several different sets of APIs in OpenSSL that can be used
+to implement ECDSA and hashing. The ones choosen are the most official
+and well-supported, however others might suit particular uses cases
+better.  An older t_cose used some to-be-deprecated APIs and is a more
+efficient than this one.  It is unfortunate that these APIs
+(ECDSA_do_sign and ECDSA_do_verify) are slated for deprecation and
+there is no supported alternative to those that work with DER-encoded
+signatures.
+
+t_cose is regularly tested against OpenSSL 1.1.1 and 3.0.
+
+There are no known problems with the code and test coverages for the
+adaptor is reasonably good with the exception of the fan out of all
+the possible memory allocation failures. (Ideally there would be a
+test case for the failure of every single memory allocation, but this
+is difficult to implement. The code should handle them all correctly.
+
+
 
 ## Building and Dependencies
 

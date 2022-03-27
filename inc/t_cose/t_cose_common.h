@@ -18,6 +18,8 @@
 extern "C" {
 #endif
 
+
+
 /**
  * \file t_cose_common.h
  *
@@ -118,7 +120,7 @@ enum t_cose_crypto_lib_t {
  * fill in this data structure.
  *
  * For example, in the OpenSSL integration, \ref key_ptr should point
- * to an OpenSSL \c EC_KEY type.
+ * to an OpenSSL \c EVP_KEY type.
  */
 struct t_cose_key {
     /** Identifies the crypto library this key was created for.  The

@@ -22,7 +22,7 @@
 
 
 /**
- * \brief Self test using openssl crypto.
+ * \brief Self test using integrated  crypto.
  *
  * \return non-zero on failure.
  */
