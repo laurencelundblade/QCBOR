@@ -21,7 +21,7 @@ few days.
 
 When the fix has been created, it will be privately verified with the party that reported it.
 Only after the fix has been verified and the reporter has had a chance to integrate the fix,
-will be be made available as a public commit in GitHub.
+will it be made available as a public commit in GitHub.
 
 If the reporter doesn't respond or can't integrate the fix, it will be made public after 30 days.
 
