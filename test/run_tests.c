@@ -111,6 +111,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(IndefiniteLengthStringTest),
     TEST_ENTRY(SpiffyIndefiniteLengthStringsTests),
     TEST_ENTRY(SetUpAllocatorTest),
+    TEST_ENTRY(CBORTestIssue134),
 #endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
     TEST_ENTRY(HalfPrecisionDecodeBasicTests),

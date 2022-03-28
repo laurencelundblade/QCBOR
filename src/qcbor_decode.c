@@ -1303,21 +1303,23 @@ QCBORDecode_GetNextFullString(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
          break;
       }
 
-      /* The first time throurgh FullString.ptr is NULL and this is
-       * equivalent to StringAllocator_Allocate(). Subsequently it is
-       * not NULL and a reallocation happens.
-       */
-      UsefulBuf NewMem = StringAllocator_Reallocate(pAllocator,
-                                                    FullString.ptr,
-                                                    FullString.len + StringChunkItem.val.string.len);
+      if (StringChunkItem.val.string.len > 0) {
+         /* The first time throurgh FullString.ptr is NULL and this is
+          * equivalent to StringAllocator_Allocate(). Subsequently it is
+          * not NULL and a reallocation happens.
+          */
+         UsefulBuf NewMem = StringAllocator_Reallocate(pAllocator,
+                                                       FullString.ptr,
+                                                       FullString.len + StringChunkItem.val.string.len);
 
-      if(UsefulBuf_IsNULL(NewMem)) {
-         uReturn = QCBOR_ERR_STRING_ALLOCATE;
-         break;
+         if(UsefulBuf_IsNULL(NewMem)) {
+            uReturn = QCBOR_ERR_STRING_ALLOCATE;
+            break;
+         }
+ 
+         /* Copy new string chunk to the end of accumulated string */
+         FullString = UsefulBuf_CopyOffset(NewMem, FullString.len, StringChunkItem.val.string);
       }
-
-      /* Copy new string chunk to the end of accumulated string */
-      FullString = UsefulBuf_CopyOffset(NewMem, FullString.len, StringChunkItem.val.string);
    }
 
    if(uReturn != QCBOR_SUCCESS && !UsefulBuf_IsNULLC(FullString)) {
