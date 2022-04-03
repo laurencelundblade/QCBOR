@@ -90,11 +90,11 @@ static enum t_cose_err_t psa_status_to_t_cose_error_signing(psa_status_t err)
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
-                             struct t_cose_key     verification_key,
-                             struct q_useful_buf_c kid,
-                             struct q_useful_buf_c hash_to_verify,
-                             struct q_useful_buf_c signature)
+t_cose_crypto_verify(int32_t               cose_algorithm_id,
+                     struct t_cose_key     verification_key,
+                     struct q_useful_buf_c kid,
+                     struct q_useful_buf_c hash_to_verify,
+                     struct q_useful_buf_c signature)
 {
     psa_algorithm_t       psa_alg_id;
     psa_status_t          psa_result;
@@ -143,11 +143,11 @@ t_cose_crypto_pub_key_verify(int32_t               cose_algorithm_id,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_pub_key_sign(int32_t                cose_algorithm_id,
-                           struct t_cose_key      signing_key,
-                           struct q_useful_buf_c  hash_to_sign,
-                           struct q_useful_buf    signature_buffer,
-                           struct q_useful_buf_c *signature)
+t_cose_crypto_sign(int32_t                cose_algorithm_id,
+                   struct t_cose_key      signing_key,
+                   struct q_useful_buf_c  hash_to_sign,
+                   struct q_useful_buf    signature_buffer,
+                   struct q_useful_buf_c *signature)
 {
     enum t_cose_err_t     return_value;
     psa_status_t          psa_result;

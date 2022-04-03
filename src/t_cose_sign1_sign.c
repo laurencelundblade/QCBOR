@@ -378,11 +378,11 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
                                                   &signature.len);
         } else {
             /* Perform the public key signing */
-             return_value = t_cose_crypto_pub_key_sign(me->cose_algorithm_id,
-                                                       me->signing_key,
-                                                       tbs_hash,
-                                                       buffer_for_signature,
-                                                       &signature);
+             return_value = t_cose_crypto_sign(me->cose_algorithm_id,
+                                               me->signing_key,
+                                               tbs_hash,
+                                               buffer_for_signature,
+                                              &signature);
         }
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN

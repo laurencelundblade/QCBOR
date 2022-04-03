@@ -566,11 +566,11 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
      */
     if(!(me->option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG)) {
         /* Normal, non-short-circuit signing */
-        return_value = t_cose_crypto_pub_key_sign(me->cose_algorithm_id,
-                                                  me->signing_key,
-                                                  tbs_hash,
-                                                  buffer_for_signature,
-                                                  &signature);
+        return_value = t_cose_crypto_sign(me->cose_algorithm_id,
+                                          me->signing_key,
+                                          tbs_hash,
+                                          buffer_for_signature,
+                                         &signature);
     } else {
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         return_value = short_circuit_sign(me->cose_algorithm_id,

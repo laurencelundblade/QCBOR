@@ -344,11 +344,11 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
 
 
     /* -- Verify the signature (if it wasn't short-circuit) -- */
-    return_value = t_cose_crypto_pub_key_verify(parameters.cose_algorithm_id,
-                                                me->verification_key,
-                                                parameters.kid,
-                                                tbs_hash,
-                                                signature);
+    return_value = t_cose_crypto_verify(parameters.cose_algorithm_id,
+                                        me->verification_key,
+                                        parameters.kid,
+                                        tbs_hash,
+                                        signature);
 
 Done:
     if(returned_parameters != NULL) {
