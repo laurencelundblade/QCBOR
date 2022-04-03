@@ -351,10 +351,13 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c *signature)
 {
-    /* This is the overhead for the DER encoding of an EC signature.
-     * It is fixed and not variable by the signature or key size.
-     * TODO: cite the source of the size of this. */
-    #define DER_SIG_ENCODE_OVER_HEAD 20
+    /* This is the overhead for the DER encoding of an EC signature as
+     * described by ECDSA-Sig-Value in RFC 3279.  It is at max 3 * (1
+     * type byte and 2 length bytes) + 2 zero pad bytes = 11
+     * bytes. Make it 16 to have a little extra. It is expected that
+     * EVP_DigestSign() will not over write the buffer so there will
+     * be no security problem if this is too short. */
+    #define DER_SIG_ENCODE_OVER_HEAD 16
 
     enum t_cose_err_t      return_value;
     EVP_MD_CTX            *sign_context;
