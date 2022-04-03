@@ -1615,3 +1615,44 @@ int32_t get_size_test()
 
     return 0;
 }
+
+
+/*
+ * Public function, see t_cose_test.h
+ */
+int32_t indef_array_and_map_test()
+{
+    enum t_cose_err_t  return_value;
+    uint32_t           t_opts;
+
+    /* This makes some COSEs with
+     *  - The main array of four indefinite length
+     *  - The protected header parameters map indef
+     *  - The unprotected header parameters map indef
+     *  - The critical pamaraters array inde
+     */
+
+    /* General test with indefinite lengths */
+    return_value = run_test_sign_and_verify(T_COSE_TEST_INDEFINITE_MAPS_ARRAYS);
+    if(return_value != T_COSE_SUCCESS) {
+        return 1000 + (int32_t) return_value;
+    }
+
+    /* Test critical parameters encoded as indefinite length */
+    t_opts = T_COSE_TEST_INDEFINITE_MAPS_ARRAYS |
+             T_COSE_TEST_UNKNOWN_CRIT_UINT_PARAMETER;
+    return_value = run_test_sign_and_verify(t_opts);
+    if(return_value != T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER) {
+        return 2000 + (int32_t) return_value;
+    }
+
+    /* Another general test with indefinite lengths */
+    t_opts = T_COSE_TEST_INDEFINITE_MAPS_ARRAYS |
+             T_COSE_TEST_ALL_PARAMETERS;
+    return_value = run_test_sign_and_verify(t_opts);
+    if(return_value != T_COSE_SUCCESS) {
+        return 3000 + (int32_t) return_value;
+    }
+
+    return 0;
+}

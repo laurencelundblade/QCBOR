@@ -1,7 +1,7 @@
 /*
  * t_cose_make_test_messages.c
  *
- * Copyright (c) 2019-2021, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2019-2022, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -153,7 +153,11 @@ encode_protected_parameters(uint32_t            test_message_options,
         goto Finish;
     }
 
-    QCBOREncode_OpenMap(&cbor_encode_ctx);
+    if(test_message_options & T_COSE_TEST_INDEFINITE_MAPS_ARRAYS) {
+        QCBOREncode_OpenMapIndefiniteLength(&cbor_encode_ctx);
+    } else {
+        QCBOREncode_OpenMap(&cbor_encode_ctx);
+    }
     QCBOREncode_AddInt64ToMapN(&cbor_encode_ctx,
                                COSE_HEADER_PARAM_ALG,
                                cose_algorithm_id);
@@ -162,11 +166,19 @@ encode_protected_parameters(uint32_t            test_message_options,
         /* This is the parameter that will be unknown */
         QCBOREncode_AddInt64ToMapN(&cbor_encode_ctx, 42, 43);
         /* This is the critical labels parameter */
-        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+        if(test_message_options & T_COSE_TEST_INDEFINITE_MAPS_ARRAYS) {
+            QCBOREncode_OpenArrayIndefiniteLengthInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+        } else {
+            QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+        }
         QCBOREncode_AddInt64(&cbor_encode_ctx, 42);
         QCBOREncode_AddInt64(&cbor_encode_ctx, 43);
         QCBOREncode_AddInt64(&cbor_encode_ctx, 44);
-        QCBOREncode_CloseArray(&cbor_encode_ctx);
+        if(test_message_options & T_COSE_TEST_INDEFINITE_MAPS_ARRAYS) {
+            QCBOREncode_CloseArrayIndefiniteLength(&cbor_encode_ctx);
+        } else {
+            QCBOREncode_CloseArray(&cbor_encode_ctx);
+        }
     }
 
     if(test_message_options & T_COSE_TEST_UNKNOWN_CRIT_TSTR_PARAMETER) {
@@ -237,8 +249,11 @@ encode_protected_parameters(uint32_t            test_message_options,
                                     3);
     }
 
-
-    QCBOREncode_CloseMap(&cbor_encode_ctx);
+    if(test_message_options & T_COSE_TEST_INDEFINITE_MAPS_ARRAYS) {
+        QCBOREncode_CloseMapIndefiniteLength(&cbor_encode_ctx);
+    } else {
+        QCBOREncode_CloseMap(&cbor_encode_ctx);
+    }
 
 Finish:
     qcbor_result = QCBOREncode_Finish(&cbor_encode_ctx, &protected_parameters);
@@ -278,7 +293,11 @@ add_unprotected_parameters(uint32_t              test_message_options,
         return; /* skip the rest for this degenerate test */
     }
 
-    QCBOREncode_OpenMap(cbor_encode_ctx);
+    if(test_message_options & T_COSE_TEST_INDEFINITE_MAPS_ARRAYS) {
+        QCBOREncode_OpenMapIndefiniteLength(cbor_encode_ctx);
+    } else {
+        QCBOREncode_OpenMap(cbor_encode_ctx);
+    }
 
     if(test_message_options & T_COSE_TEST_NOT_WELL_FORMED_1) {
         QCBOREncode_AddEncoded(cbor_encode_ctx,
@@ -382,7 +401,11 @@ add_unprotected_parameters(uint32_t              test_message_options,
                                     3);
     }
 
-    QCBOREncode_CloseMap(cbor_encode_ctx);
+    if(test_message_options & T_COSE_TEST_INDEFINITE_MAPS_ARRAYS) {
+        QCBOREncode_CloseMapIndefiniteLength(cbor_encode_ctx);
+    } else {
+        QCBOREncode_CloseMap(cbor_encode_ctx);
+    }
 }
 
 
@@ -425,7 +448,11 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
 
     /* Get started with the tagged array that holds the four parts of
      * a cose single signed message */
-    QCBOREncode_OpenArray(cbor_encode_ctx);
+    if(test_mess_options & T_COSE_TEST_INDEFINITE_MAPS_ARRAYS) {
+        QCBOREncode_OpenArrayIndefiniteLength(cbor_encode_ctx);
+    } else {
+        QCBOREncode_OpenArray(cbor_encode_ctx);
+    }
 
     /* The protected parameters, which are added as a wrapped bstr  */
     if( ! (test_mess_options & T_COSE_TEST_NO_PROTECTED_PARAMETERS)) {
@@ -472,7 +499,8 @@ t_cose_sign1_test_message_encode_parameters(struct t_cose_sign1_sign_ctx *me,
  */
 static enum t_cose_err_t
 t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
-                                           QCBOREncodeContext *cbor_encode_ctx)
+                                           uint32_t                      test_mess_options,
+                                           QCBOREncodeContext           *cbor_encode_ctx)
 {
     /* approximate stack use on 32-bit machine:
      *   32 bytes local use
@@ -558,7 +586,12 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
 
     /* Add signature to CBOR and close out the array */
     QCBOREncode_AddBytes(cbor_encode_ctx, signature);
-    QCBOREncode_CloseArray(cbor_encode_ctx);
+
+    if(test_mess_options & T_COSE_TEST_INDEFINITE_MAPS_ARRAYS) {
+        QCBOREncode_CloseArrayIndefiniteLength(cbor_encode_ctx);
+    } else {
+        QCBOREncode_CloseArray(cbor_encode_ctx);
+    }
 
     /* The layer above this must check for and handle CBOR encoding
      * errors CBOR encoding errors.  Some are detected at the start of
@@ -600,6 +633,7 @@ t_cose_test_message_sign1_sign(struct t_cose_sign1_sign_ctx *me,
 
     /* -- Sign and put signature in the encoder context -- */
     return_value = t_cose_sign1_test_message_output_signature(me,
+                                                              test_message_options,
                                                               &encode_context);
     if(return_value) {
         goto Done;

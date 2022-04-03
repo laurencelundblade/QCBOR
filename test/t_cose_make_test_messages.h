@@ -1,7 +1,7 @@
 /*
  * t_cose_make_test_messages.h
  *
- * Copyright (c) 2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2019-2022, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -36,6 +36,7 @@ extern "C" {
  * Various flags to pass to t_cose_test_message_sign1_sign() to
  * make different types of test messages for testing verification
  */
+
 
 /** Make test message with a bstr label, which is not allowed by
   * COSE */
@@ -125,6 +126,10 @@ extern "C" {
 /** Exceed the limit on number of T_COSE_PARAMETER_LIST_MAX on number
  * of crit parameters this implementation can handle */
 #define T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS 0x00000100
+
+/** Encode the COSE maps and arrays with indefinte lengths rather
+ * than definite. */
+#define T_COSE_TEST_INDEFINITE_MAPS_ARRAYS 0x80
 
 
 /**

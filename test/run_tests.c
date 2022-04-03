@@ -1,7 +1,7 @@
 /*==============================================================================
  run_tests.c -- test aggregator and results reporting
 
- Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -85,6 +85,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(short_circuit_verify_fail_test),
     TEST_ENTRY(tags_test),
     TEST_ENTRY(get_size_test),
+    TEST_ENTRY(indef_array_and_map_test),
 
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     TEST_ENTRY(short_circuit_hash_fail_test),
