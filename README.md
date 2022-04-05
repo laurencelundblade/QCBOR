@@ -3,10 +3,7 @@
 
 *t_cose* implements enough of COSE to support [CBOR Web Token, RFC 8392](https://tools.ietf.org/html/rfc8392)  
 and [Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01). 
-This is the COSE_Sign1 part of [COSE, RFC 8152](https://tools.ietf.org/html/rfc8152). 
-
-
-## Characteristics
+This is the COSE_Sign1 part of [COSE, RFC 9052](https://tools.ietf.org/html/rfc9052). 
 
 **Implemented in C with minimal dependency** – There are three main 
 dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR),
@@ -18,7 +15,7 @@ compiler options need to be set for it to run correctly.
 
 **Crypto Library Integration Layer** – Works with different cryptographic
 libraries via a simple integration layer. The integration layer is kept small and simple, 
-just enough for the use cases, so that integration is simpler. An integration layer for 
+just enough for the use cases, so that integration is simpler. Integration layers for 
 the OpenSSL and ARM Mbed TLS (PSA Cryptography API) cryptographic libraries 
 are included.
 
@@ -38,53 +35,26 @@ useful for embedded implementations that have to run in small fixed memory.
 
 ## Code Status
 
-As of March 2022, the code is in  working order and the public interface has been
-stable for over a year. There is a crypto adaptaion layer for [OpenSSL](https://www.openssl.org) 
-and for [Arm Mbed TLS](https://github.com/ARMmbed/mbedtls).
+As of March 2022, the code is in good working order and the public interface has been
+stable for over a year.
 
-### MbedTLS
+Integration with the [OpenSSL](https://www.openssl.org) and [Arm Mbed
+TLS](https://github.com/ARMmbed/mbedtls) cryptographic libraries is
+fully supported.
 
-The crypto adapter for Mbed TLS is small and simple. The adapter
-allocates no memory and as far as I know Mbed TLS internally also
-allocates no memory. It is a good choice for embedded use.
+t_cose 1.0 only supports COSE Sign1, signing with one recipeint.
 
-It makes use of the 1.0 version of the PSA cryptographic API.  No
-deprecated or to-be-deprecated functions are called (an older t_cose
-used some deprecated APIs).
 
-It is regularly tested against the latest version 2 and version 3 of
-Mbed TLS, an implementation of the PSA crypto API.
+## Future Work
 
-Confidence in the adaptor code is high and reasonably well tested
-because it is simple.
+As of March 2022, work is underway to support encryption, MAC and
+other COSE features. When a good set of these are complete to
+commercial quality, a 2.0 version of t_cose will be released.
 
-### OpenSSL
-
-The crypto adaptor for OpenSSL is about twice the size of that for
-Mbed TLS because the API doesn't line up well with the needs for COSE
-(OpenSSL is ASN.1/DER oriented). Memory allocation is performed inside
-OpenSSL and in the crypto adaptaion layer. This makes the OpenSSL
-crypto library less suitable for embedded use.
-
-No deprecated or to-be-deprecated APIs are used. 
-
-There are several different sets of APIs in OpenSSL that can be used
-to implement ECDSA and hashing. The ones choosen are the most official
-and well-supported, however others might suit particular uses cases
-better.  An older t_cose used some to-be-deprecated APIs and is a more
-efficient than this one.  It is unfortunate that these APIs
-(ECDSA_do_sign and ECDSA_do_verify) are slated for deprecation and
-there is no supported alternative to those that work with DER-encoded
-signatures.
-
-t_cose is regularly tested against OpenSSL 1.1.1 and 3.0.
-
-There are no known problems with the code and test coverages for the
-adaptor is reasonably good with the exception of the fan out of all
-the possible memory allocation failures. (Ideally there would be a
-test case for the failure of every single memory allocation, but this
-is difficult to implement. The code should handle them all correctly.
-
+Note that there is no committed time line to complete t_cose
+2.0. t_cose is mostly implemented on a volunteer basis. You can
+volunteer! Work like adding support for more algorithms is not too
+difficult and is nicely framed up.
 
 
 ## Building and Dependencies
@@ -92,10 +62,16 @@ is difficult to implement. The code should handle them all correctly.
 Except for the crypto library set up, t_cose is very portable and
 should largely just work in any environment. It needs a few standard
 libraries and [QCBOR](https://github.com/laurencelundblade/QCBOR)
-(which is also very portable). Hence the rest of this section is about
+(which is also very portable). Hence most of this section is about
 crypto library set up.
 
-### Currently Supported Libraries
+### QCBOR
+
+If QCBOR is installed in /usr/local, then the makefiles should find
+it. If not then QCBOR may need to be downloaded. The makefiles can be
+modified to reference it other than in /usr/local.
+
+### Supported Cryptographic Libraries
 
 Here's three crypto library configurations that are supported. Others
 can be added with relative ease.
@@ -114,8 +90,7 @@ This configuration (and only this configuration) uses a bundled
 SHA-256 implementation (SHA-256 is simple and easy to bundle, ECDSA is
 not).
 
-To use this, edit the makefile for the location of QCBOR and then just
-do
+To build run:
 
     make -f Makefile.test
 
@@ -125,37 +100,74 @@ This OpenSSL integration supports SHA-256, SHA-384 and SHA-512 with
 ECDSA to support the COSE algorithms ES256, ES384 and ES512. It is a
 full and tested integration with OpenSSL crypto.
 
-To use this, edit the makefile for the location of QCBOR and OpenSSL
-and do:
+If OpenSSL is installed in /usr/local or as a standar library, you can
+probably just run make:
 
     make -f Makefile.ossl
 
 The specific things that Makefile.ossl does is:
-* Links the crypto_adapters/t_cose_openssl_crypto.o into libt_cose.a
-* Links test/test/t_cose_make_openssl_test_key.o into the test binary
-* `#define T_COSE_USE_OPENSSL_CRYPTO` 
+    * Links the crypto_adapters/t_cose_openssl_crypto.o into libt_cose.a
+    * Links test/test/t_cose_make_openssl_test_key.o into the test binary
+    * `#define T_COSE_USE_OPENSSL_CRYPTO`
+
+t_cose is regularly tested against OpenSSL 1.1.1 and 3.0.
+
+The crypto adaptor for OpenSSL is about twice the size of that for
+Mbed TLS because the API doesn't line up well with the needs for COSE
+(OpenSSL is ASN.1/DER oriented). Memory allocation is performed inside
+OpenSSL and in the crypto adaptation layer. This makes the OpenSSL
+crypto library less suitable for embedded use.
+
+No deprecated or to-be-deprecated APIs are used.
+
+There are several different sets of APIs in OpenSSL that can be used
+to implement ECDSA and hashing. The ones chosen are the most official
+and well-supported, however others might suit particular uses cases
+better.  An older t_cose used some to-be-deprecated APIs and is a more
+efficient than this one.  It is unfortunate that these APIs
+(ECDSA_do_sign and ECDSA_do_verify) are slated for deprecation and
+there is no supported alternative to those that work only with DER-encoded
+signatures.
+
+There are no known problems with the code and test coverage for the
+adaptor is good. Not every single memory allocation failure has
+test coverage, but the code should handle them all correctly.
+
 
 #### PSA Crypto -- Makefile.psa
 
-This build configuration works for Arm PSA Crypto compatible libraries
-like the Mbed TLS. 
+As of March 2022, t_cose works with the PSA 1.0 Crypto API as
+implemented by Mbed TLS 2.x and 3.x.
 
-This integration supports SHA-256, SHA-384 and SHA-512 with ECDSA to support
-the COSE algorithms ES256, ES384 and ES512. It is a full implementation but
-needs on-target testing.
+This integration supports SHA-256, SHA-384 and SHA-512 with ECDSA to
+support the COSE algorithms ES256, ES384 and ES512. 
 
-To use this, edit the makefile for the location of CBOR and your
-PSA-compatible cryptographic library and do:
+If Mbed TLS is installed in /usr/local, you can probably just run
+make:
 
     make -f Makefile.psa
-    
+
+If this doesn't work or you have Mbed TLS elsewhere edit the makefile.
+
 The specific things that Makefile.psa does is:
     * Links the crypto_adapters/t_cose_psa_crypto.o into libt_cose.a
     * Links test/test/t_cose_make_psa_test_key.o into the test binary
     * `#define T_COSE_USE_PSA_CRYPTO`   
 
-As of March 2022, t_cose works with the PSA 1.0 Crypto API as 
-implemented by Mbed TLS 2.x and 3.x.
+This crypto adapter is small and simple. The adapter allocates no
+memory and as far as I know it internally allocates no memory. It is a
+good choice for embedded use.
+
+It makes use of the 1.0 version of the PSA cryptographic API.  No
+deprecated or to-be-deprecated functions are called (an older t_cose
+used some to be deprecated APIs).
+
+It is regularly tested against the latest version 2 and version 3 of
+Mbed TLS, an implementation of the PSA crypto API.
+
+Confidence in the adaptor code is high and reasonably well tested
+because it is simple.
+
 
 ### General Crypto Library Strategy
 
@@ -194,10 +206,10 @@ Here are code sizes on 64-bit x86 optimized for size
 
      |                           | smallest | largest |  
      |---------------------------|----------|---------|
-     | signing only              |     1400 |    2300 |
-     | verification only         |     2200 |    3300 |
+     | signing only              |     1500 |    2300 |
+     | verification only         |     2500 |    3300 |
      | common to sign and verify |     (500)|    (800)|
-     | combined                  |     3000 |    4800 |
+     | combined                  |     3500 |    4800 |
      
 Things that make the code smaller:
 * PSA / Mbed crypto takes less code to interface with than OpenSSL
@@ -295,7 +307,7 @@ just have different names.
 
 ## Credit
 
-* Maik Reichert for cmake and CI work.
+* Maik Riechert for cmake, CI and other.
 * Ken Takayama for the bulk of the detached content implementation.
 * Tamas Ban for lots code review comments, design ideas and porting to ARM PSA.
 * Rob Coombs, Shebu Varghese Kuriakose and other ARM folks for sponsorship.
