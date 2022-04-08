@@ -840,6 +840,31 @@ static void QCBOREncode_AddBytesToMap(QCBOREncodeContext *pCtx, const char *szLa
 static void QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
 
 
+/*
+ The purpose of this is to be able to output the bytes that make
+ up a byte string directly to the QCBOR output buffer so you don't
+ need to have a copy of it in memory. This is particularly useful
+ if the byte string is large, for example the encrypted payload
+ of a COSE_Encrypt message.
+
+QCBOREncode_StartBytes
+   pPlace -- The pointer where the value of the byte string is written
+             and the maximum number of bytes that can be written.
+
+QCBOREncode_EndBytes
+   uAmount -- The number of bytes written into pPlace.
+
+When QCBOREncode_EndBytes is called, the correct CBOR header
+ will be inserted in front of the byte string value.
+
+ TODO: finish this documentation, write the implementation, tests the code.
+
+ */
+void QCBOREncode_StartBytes(QCBOREncodeContext *pCtx, UsefulBuf *pPlace);
+
+void QCBOREncode_EndBytes(QCBOREncodeContext *pCtx, size_t uAmount);
+
+
 /**
  @brief Add a binary UUID to the encoded output.
 

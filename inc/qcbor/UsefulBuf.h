@@ -1286,6 +1286,58 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *pUOutBuf, size_t uLen);
 static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pUOutBuf);
 
 
+static inline UsefulBuf UsefulOutBuf_Stuff(UsefulOutBuf *pUOutBuf)
+{
+   UsefulBuf R;
+
+   R.ptr = (uint8_t *)pUOutBuf->UB.ptr + pUOutBuf->data_len;
+   R.len = UsefulOutBuf_RoomLeft(pUOutBuf);
+
+   return R;
+}
+
+
+// TODO: return code
+static inline void UsefulOutBuf_StuffDone(UsefulOutBuf *pMe, size_t uAmount)
+{
+   if(pMe->err) {
+       // Already in error state.
+       return;
+    }
+
+    /* 0. Sanity check the UsefulOutBuf structure */
+    // A "counter measure". If magic number is not the right number it
+    // probably means me was not initialized or it was corrupted. Attackers
+    // can defeat this, but it is a hurdle and does good with very
+    // little code.
+   // if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
+      // pMe->err = 1;
+      // return;  // Magic number is wrong due to uninitalization or corrption
+   // }
+
+    // Make sure valid data is less than buffer size. This would only occur
+    // if there was corruption of me, but it is also part of the checks to
+    // be sure there is no pointer arithmatic under/overflow.
+    if(pMe->data_len > pMe->UB.len) {  // Check #1
+       pMe->err = 1;
+       // Offset of valid data is off the end of the UsefulOutBuf due to
+       // uninitialization or corruption
+       return;
+    }
+
+    /* 1. Will it fit? */
+    // WillItFit() is the same as: NewData.len <= (me->UB.len - me->data_len)
+    // Check #1 makes sure subtraction in RoomLeft will not wrap around
+    if(! UsefulOutBuf_WillItFit(pMe, uAmount)) { // Check #2
+       // The new data will not fit into the the buffer.
+       pMe->err = 1;
+       return;
+    }
+
+   pMe->data_len += uAmount;
+}
+
+
 /**
  *  @brief Returns the resulting valid data in a UsefulOutBuf
  *
