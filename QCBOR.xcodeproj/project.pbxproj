@@ -233,10 +233,10 @@
 		E743D0E024AC51470017899F /* example */ = {
 			isa = PBXGroup;
 			children = (
+				E743D0F224AC54600017899F /* example.h */,
 				E743D0E124AC516D0017899F /* example.c */,
 				E7C960B72800A09E00FB537C /* ub-example.h */,
 				E7C960B82800A09E00FB537C /* ub-example.c */,
-				E743D0F224AC54600017899F /* example.h */,
 			);
 			name = example;
 			sourceTree = "<group>";

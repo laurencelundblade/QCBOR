@@ -1,10 +1,14 @@
-//
-//  ub-example.c
-//  QCBOR
-//
-//  Created by Laurence Lundblade on 4/8/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/* =========================================================================
+   ub-example.c -- Example code for UsefulBuf
+
+   Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+
+   SPDX-License-Identifier: BSD-3-Clause
+
+   See BSD-3-Clause license in README.md
+
+   Created on 4/8/22
+  ========================================================================== */
 
 #include "ub-example.h"
 
@@ -12,82 +16,78 @@
 
 
 /*
- A large number of the security issues with C code come from mistakes
- made with a pointer and length for a buffer or some binary data.
- UsefulBuf adopts a convention that a pointer and length *always*
- go together to migitigate this.  With UsefulBuf there are never
- pointers without lengths so you always know how big the buffer
- or the data is.
-
- C99 allows passing structures so a structure is used. Compilers
- are smart these days so the object code produced is no different
- than passing two separate parameters. Passing structures also
- makes the interfaces prettier. Assignments of structures also
- can make code prettier.
-
- There are a bunch of (tested!) functions to manipulate UsefulBuf's so
- code using it may have no pointer manipulation at all!
-
- In this example the buffers that are filled in with data
- are const and the ones that are to-be-filled in are not
- const. Keeping const distinct from non-const is helpful
- when reading the code and helps avoid some coding mistakes.
- See this:
- https://stackoverflow.com/questions/117293/use-of-const-for-function-parameters
-
- This contrived example copies data from input to output
- expanding bytes with the value 'x' to 'xx'.
-
- Input -- This is the pointer and length of the input, the
- bytes to copy. Note that UsefulBufC.ptr is a const void *
- indicates that input data won't be changed by this function.
- There is a "C" in UsefulBufC to indicate the value is const.
- The length here is the length of the valid input data. Note
- also that the parameter Input is const, so this is fully
- const and clearly an [in] parameter.
-
- Output -- This is a pointer and length of
- the memory to used to store the output. The correct length
- here is critical for code security. Note that  UsefulBuf.ptr
- is void *, it is not const indicating data can be written to
- it. Note that the parameter itself *is* const indicating
- that the code below will not point this to some other buffer
- or change the length and clearly marked as an [in] parameter.
-
- Output -- This is the interesting and unusual one. To stay
- consistent with always paring and a length and for
- a pointer to valid data to always be const, this is returned as
- a UsefulBufC. Note that the parameter is a pointer to a
- UsefulBufC, a *place* to return a UsefulBufC.
-
- In this case and most cases the pointer in Output->ptr
- will be the same as OutputBuffer.ptr. This may seem
- redundant, but there's a few reasons for it. First,
- is the goal of always pairing a pointer and a length.
- Second is being more strict with constness. Third
- is the code hygene and clarity of having
- variables for to-be-filled buffers be distinct from those
- containing valid data. Fourth, there are no [in,out]
- parameters, only [in] parameters and [out] parameters
- (the to-be-filled-in buffer is considered an [in]
- parameter).
-
- Note that the compiler will be smart about all
- this and should generate pretty much the same code
- as for a traditional interface with the
- length parameter. On x86 with gcc-11 and no stack guards,
- the UB code is 81 bytes and the traditional code is 77 bytes.
-
- This supports computing of the would-be output
- without actually doing any outputing by making
- the OutputBuffer have a NULL pointer and a very
- large length, e.g., {NULL, SIZE_MAX}.
-
+ * A considerable number of the security issues with C code come from
+ * mistakes made with pointers and lengths.  UsefulBuf adopts a
+ * convention that a pointer and length *always* go together to help
+ * mitigate this.  With UsefulBuf there are never pointers without
+ * lengths, so you always know how big a buffer or some binary data
+ * is.
+ *
+ * C99 allows passing structures so a structure is used. Compilers are
+ * smart these days so the object code produced is little different
+ * than passing two separate parameters. Passing structures also makes
+ * the interfaces prettier. Assignments of structures also can make
+ * code prettier.
+ *
+ * ALong with the UsefulBuf structure, there are a bunch of (tested!)
+ * functions to manipulate them so code using it may have no pointer
+ * manipulation at all.
+ *
+ * Constness is also a useful and desirous thing. See
+ * https://stackoverflow.com/questions/117293/use-of-const-for-function-parameters
+ * Keeping const distinct from non-const is helpful when reading the
+ * code and helps avoid some coding mistakes.  In this example the
+ * buffers filled in with data are const and the ones that are
+ * to-be-filled in are not const.
+ *
+ * This contrived example copies data from input to output expanding
+ * bytes with the value 'x' to 'xx'.
+ *
+ * Input -- This is the pointer and length of the input, the bytes to
+ * copy. Note that UsefulBufC.ptr is a const void * indicating that
+ * input data won't be changed by this function.  There is a "C" in
+ * "UsefulBufC "to indicate the value is const.  The length here is
+ * the length of the valid input data. Note also that the parameter
+ * Input is const, so this is fully const and clearly an [in]
+ * parameter.
+ *
+ * OutputBuffer -- This is a pointer and length of the memory to be
+ * used to store the output. The correct length here is critical for
+ * code security. Note that UsefulBuf.ptr is void *, it is not const
+ * indicating data can be written to it. Note that the parameter
+ * itself *is* const indicating that the code below will not point
+ * this to some other buffer or change the length and clearly marking
+ * it as an [in] parameter.
+ *
+ * Output -- This is the interesting and unusual one. To stay
+ * consistent with always pairing a length and a pointer, this is
+ * returned as a UsefulBuC. Also, to stay consistent with valid data
+ * being const, it is a UsefulBufC, not a UsefulBuf. It is however, an
+ * [out] parameter so the parameter is a pointer to a UsefulBufC.
+ *
+ * In this case and most cases, the pointer in Output->ptr will be the
+ * same as OutputBuffer.ptr. This may seem redundant, but there are a
+ * few reasons for it. First, is the goal of always pairing a pointer
+ * and a length.  Second is being more strict and correct with
+ * constness. Third is the code hygiene and clarity of having
+ * variables for to-be-filled buffers be distinct from those
+ * containing valid data. Fourth, there are no [in,out] parameters,
+ * only [in] parameters and [out] parameters (the to-be-filled-in
+ * buffer is considered an [in] parameter).
+ *
+ * Note that the compiler will be smart and should generate pretty
+ * much the same code as for a traditional interface. On x86 with
+ * gcc-11 and no stack guards, the UB code is 81 bytes and the
+ * traditional code is 77 bytes.
+ *
+ * Finally, this supports computing of the length of the would-be
+ * output without actually doing any outputting. Pass {NULL, SIZE_MAX}
+ * for the OutputBuffer and the length will be returned in Output.
  */
 int
-ExpandUB(const UsefulBufC   Input,
-         const UsefulBuf    OutputBuffer,
-         UsefulBufC        *Output)
+ExpandxUB(const UsefulBufC   Input,
+          const UsefulBuf    OutputBuffer,
+          UsefulBufC        *Output)
 {
     size_t nInputPosition;
     size_t nOutputPosition;
@@ -104,7 +104,7 @@ ExpandUB(const UsefulBufC   Input,
         }
         nOutputPosition++;
         if(nOutputPosition >= OutputBuffer.len) {
-            return -1l;
+            return -1;
         }
 
         /* Double output 'x' because that is what this contrived example does */
@@ -114,7 +114,7 @@ ExpandUB(const UsefulBufC   Input,
             }
             nOutputPosition++;
             if(nOutputPosition >= OutputBuffer.len) {
-                return -1l;
+                return -1;
             }
         }
     }
@@ -126,11 +126,12 @@ ExpandUB(const UsefulBufC   Input,
 
 
 /* This is the more tradional way to implement this. */
-int ExpandTraditional(const uint8_t  *pInputPointer,
-                       const size_t    uInputLength,
-                       uint8_t        *pOutputBuffer,
-                       const size_t    uOutputBufferLength,
-                       size_t         *puOutputLength)
+int
+ExpandxTraditional(const uint8_t  *pInputPointer,
+                   const size_t    uInputLength,
+                   uint8_t        *pOutputBuffer,
+                   const size_t    uOutputBufferLength,
+                   size_t         *puOutputLength)
 {
     size_t nInputPosition;
     size_t nOutputPosition;
@@ -147,7 +148,7 @@ int ExpandTraditional(const uint8_t  *pInputPointer,
         }
         nOutputPosition++;
         if(nOutputPosition >= uOutputBufferLength) {
-            return -1l;
+            return -1;
         }
 
         /* Double output 'x' because that is what this contrived example does */
@@ -157,7 +158,7 @@ int ExpandTraditional(const uint8_t  *pInputPointer,
             }
             nOutputPosition++;
             if(nOutputPosition >= uOutputBufferLength) {
-                return -1l;
+                return -1;
             }
         }
     }
@@ -169,14 +170,15 @@ int ExpandTraditional(const uint8_t  *pInputPointer,
 
 
 /*
- Here's an example of going from a traditional interface
- interface to a UsefulBuf interface.
+ * Here's an example of going from a traditional interface
+ * interface to a UsefulBuf interface.
  */
-int ExpandTraditionalAdapted(const uint8_t  *pInputPointer,
-                             size_t          uInputLength,
-                             uint8_t        *pOutputBuffer,
-                             size_t          uOutputBufferLength,
-                             size_t         *puOutputLength)
+int
+ExpandxTraditionalAdaptor(const uint8_t  *pInputPointer,
+                          size_t          uInputLength,
+                          uint8_t        *pOutputBuffer,
+                          size_t          uOutputBufferLength,
+                          size_t         *puOutputLength)
 {
     UsefulBufC  Input;
     UsefulBuf   OutputBuffer;
@@ -186,7 +188,7 @@ int ExpandTraditionalAdapted(const uint8_t  *pInputPointer,
     Input = (UsefulBufC){pInputPointer, uInputLength};
     OutputBuffer = (UsefulBuf){pOutputBuffer, uOutputBufferLength};
 
-    nReturn = ExpandUB(Input, OutputBuffer, &Output);
+    nReturn = ExpandxUB(Input, OutputBuffer, &Output);
 
     *puOutputLength = Output.len;
 
@@ -197,15 +199,15 @@ int ExpandTraditionalAdapted(const uint8_t  *pInputPointer,
 /* Here's an example for going from a UsefulBuf interface
  to a traditional interface. */
 int
-ExpandUBAdapted(const UsefulBufC   Input,
-                const UsefulBuf    OutputBuffer,
-                UsefulBufC        *Output)
+ExpandxUBAdaptor(const UsefulBufC   Input,
+                 const UsefulBuf    OutputBuffer,
+                 UsefulBufC        *Output)
 {
-    Output->ptr = OutputBuffer.ptr;
+   Output->ptr = OutputBuffer.ptr;
 
-    return ExpandTraditional(Input.ptr, Input.len,
-                                OutputBuffer.ptr, OutputBuffer.len,
-                               &(Output->len));
+   return ExpandxTraditional(Input.ptr, Input.len,
+                             OutputBuffer.ptr, OutputBuffer.len,
+                           &(Output->len));
 }
 
 
@@ -228,14 +230,14 @@ int32_t RunUsefulBufExample()
     * will be placed. Output.ptr is a pointer to const bytes. */
    UsefulBufC           Output;
 
-   ExpandUB(Input, OutBuf, &Output);
+   ExpandxUB(Input, OutBuf, &Output);
 
-   ExpandUBAdapted(Input, OutBuf, &Output);
+   ExpandxUBAdaptor(Input, OutBuf, &Output);
 
 
 
    /* ------ Get Size example  -------- */
-   ExpandUB(Input, (UsefulBuf){NULL, SIZE_MAX}, &Output);
+   ExpandxUB(Input, (UsefulBuf){NULL, SIZE_MAX}, &Output);
 
    /* Size is in Output.len */
 
@@ -245,12 +247,12 @@ int32_t RunUsefulBufExample()
    uint8_t puBuffer[sizeof(INPUT) * 2];
    size_t  uOutputSize;
 
-   ExpandTraditional((const uint8_t *)INPUT, sizeof(INPUT),
+   ExpandxTraditional((const uint8_t *)INPUT, sizeof(INPUT),
                      puBuffer, sizeof(puBuffer),
                      &uOutputSize);
 
 
-   ExpandTraditionalAdapted((const uint8_t *)INPUT, sizeof(INPUT),
+   ExpandxTraditionalAdaptor((const uint8_t *)INPUT, sizeof(INPUT),
                             puBuffer, sizeof(puBuffer),
                            &uOutputSize);
 
