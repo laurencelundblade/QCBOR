@@ -931,7 +931,7 @@ void QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 }
 
 
-void QCBOREncode_StartBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
+void QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
    /* Add one item to the nesting level we are in for the new map or array */
    IncrementMapOrArrayCount(pMe);
@@ -969,7 +969,7 @@ void QCBOREncode_StartBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 }
 
 
-void QCBOREncode_EndBytes(QCBOREncodeContext *pMe, size_t uAmount)
+void QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, size_t uAmount)
 {
    UsefulOutBuf_StuffDone(&(pMe->OutBuf), uAmount);
    // TODO: sort out the major type

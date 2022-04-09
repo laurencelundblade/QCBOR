@@ -840,29 +840,49 @@ static void QCBOREncode_AddBytesToMap(QCBOREncodeContext *pCtx, const char *szLa
 static void QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
 
 
-/*
- The purpose of this is to be able to output the bytes that make
- up a byte string directly to the QCBOR output buffer so you don't
+/**
+ @brief Set up to write a byte string value directly to encoded output.
+
+ @param[in] pCtx   The encoding context to add the bytes to.
+ @param[out] pPlace  Pointer and length of place to write byte string value.
+
+ See QCBOREncode_AddBytes() for the usual way to output a byte string.
+
+ The purpose of this is to output the bytes that make
+ up a byte string value directly to the QCBOR output buffer so you don't
  need to have a copy of it in memory. This is particularly useful
  if the byte string is large, for example the encrypted payload
- of a COSE_Encrypt message.
+ of a COSE_Encrypt message. The payload encryption algorithm can
+ output directly to the encoded CBOR buffer.
 
-QCBOREncode_StartBytes
-   pPlace -- The pointer where the value of the byte string is written
-             and the maximum number of bytes that can be written.
+ The pointer in \c pPlace is where to start writing. Writing is just
+ copying bytes to the location by the pointer in \c pPlace.
+ Writing past
+ the length in \c pPlace will be writing off the end of the
+ output buffer.
 
-QCBOREncode_EndBytes
-   uAmount -- The number of bytes written into pPlace.
+ The byte string must be closed by calling QCBOREncode_CloseBytes().
 
-When QCBOREncode_EndBytes is called, the correct CBOR header
- will be inserted in front of the byte string value.
-
- TODO: finish this documentation, write the implementation, tests the code.
+ TODO: finish this documentation, write the implementation, test the code.
 
  */
-void QCBOREncode_StartBytes(QCBOREncodeContext *pCtx, UsefulBuf *pPlace);
+void QCBOREncode_OpenBytes(QCBOREncodeContext *pCtx, UsefulBuf *pPlace);
 
-void QCBOREncode_EndBytes(QCBOREncodeContext *pCtx, size_t uAmount);
+void QCBOREncode_OpenBytesInMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBuf *pPlace);
+
+void QCBOREncode_OpenBytesInMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBuf *pPlace);
+
+
+/**
+  @brief Close out a byte string written directly to encoded output.
+
+  @param[in] pCtx   The encoding context to add the bytes to.
+  @param[out] uAmount  The number of bytes written, the length of the byte string.
+
+ This inserts a CBOR header at the front of the byte string value to make
+ it a well-formed byte string.
+ */
+void QCBOREncode_CloseBytes(QCBOREncodeContext *pCtx, size_t uAmount);
 
 
 /**
