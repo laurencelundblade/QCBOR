@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include "run_tests.h"
 #include "example.h"
+#include "ub-example.h"
 
 
 /*
@@ -33,6 +34,7 @@ int main(int argc, const char * argv[])
    (void)argc; // Avoid unused parameter error
 
    RunQCborExample();
+   RunUsefulBufExample();
 
 
    // This call prints out sizes of data structures to remind us

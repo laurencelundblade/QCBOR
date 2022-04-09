@@ -28,7 +28,7 @@ QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o sr
 
 TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o \
     test/qcbor_decode_tests.o test/run_tests.o \
-    test/float_tests.o test/half_to_double_from_rfc7049.o example.o
+    test/float_tests.o test/half_to_double_from_rfc7049.o example.o ub-example.o
 
 .PHONY: all so install uninstall clean
 
@@ -58,6 +58,7 @@ src/iee754.o: src/ieee754.h
 src/qcbor_err_to_str.o: inc/qcbor/qcbor_common.h
 
 example.o:	$(PUBLIC_INTERFACE)
+ub-example.o:	$(PUBLIC_INTERFACE)
 
 test/run_tests.o: test/UsefulBuf_Tests.h test/float_tests.h test/run_tests.h test/qcbor_encode_tests.h test/qcbor_decode_tests.h inc/qcbor/qcbor_private.h
 test/UsefulBuf_Tests.o: test/UsefulBuf_Tests.h inc/qcbor/UsefulBuf.h
