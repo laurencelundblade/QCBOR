@@ -1286,56 +1286,53 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *pUOutBuf, size_t uLen);
 static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pUOutBuf);
 
 
-static inline UsefulBuf UsefulOutBuf_Stuff(UsefulOutBuf *pUOutBuf)
-{
-   UsefulBuf R;
+/**
+ *@brief Returns pointer and length of the output buffer not yet used.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf
+ *
+ * @return pointer and length of output buffer not used.
+ *
+ * This is an escape that allows the caller to write directly
+ * to the output buffer without any checks. This doesn't
+ * change the output buffer or state. It just returns a pointer
+ * and length of the bytes remaining.
+ *
+ * This is useful to avoid having the bytes to be written all
+ * in a contiguous buffer. It use can save memory. A good
+ * example is in the COSE encrypt implementation where
+ * the output of the symmetric cipher can go directly
+ * into the output buffer, rather than having to go into
+ * an intermediate.
+ *
+ * See UsefulOutBuf_Advance() which is used to tell
+ * UsefulOutBuf how much was written.
+ *
+ * Warning: this bypasses the buffer safety provided by
+ * UsefulOutBuf!
+ */
+static inline UsefulBuf
+UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf);
 
-   R.ptr = (uint8_t *)pUOutBuf->UB.ptr + pUOutBuf->data_len;
-   R.len = UsefulOutBuf_RoomLeft(pUOutBuf);
 
-   return R;
-}
-
-
-// TODO: return code
-static inline void UsefulOutBuf_StuffDone(UsefulOutBuf *pMe, size_t uAmount)
-{
-   if(pMe->err) {
-       // Already in error state.
-       return;
-    }
-
-    /* 0. Sanity check the UsefulOutBuf structure */
-    // A "counter measure". If magic number is not the right number it
-    // probably means me was not initialized or it was corrupted. Attackers
-    // can defeat this, but it is a hurdle and does good with very
-    // little code.
-   // if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
-      // pMe->err = 1;
-      // return;  // Magic number is wrong due to uninitalization or corrption
-   // }
-
-    // Make sure valid data is less than buffer size. This would only occur
-    // if there was corruption of me, but it is also part of the checks to
-    // be sure there is no pointer arithmatic under/overflow.
-    if(pMe->data_len > pMe->UB.len) {  // Check #1
-       pMe->err = 1;
-       // Offset of valid data is off the end of the UsefulOutBuf due to
-       // uninitialization or corruption
-       return;
-    }
-
-    /* 1. Will it fit? */
-    // WillItFit() is the same as: NewData.len <= (me->UB.len - me->data_len)
-    // Check #1 makes sure subtraction in RoomLeft will not wrap around
-    if(! UsefulOutBuf_WillItFit(pMe, uAmount)) { // Check #2
-       // The new data will not fit into the the buffer.
-       pMe->err = 1;
-       return;
-    }
-
-   pMe->data_len += uAmount;
-}
+/**
+ *@brief Advance the amount output assuming it was written by the caller.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf
+ * @param[in] uAmount  The amount to advance
+ *
+ * This advances the position in the output buffer
+ * by \c uAmount. This assumes that the
+ * caller has written uAmount to the pointer obtained
+ * with UsefulOutBuf_GetOutPlace().
+ *
+ * See UsefulOutBuf_GetOutPlace() which is used to
+ * get the pointer to write to.
+ *
+ * Warning: this bypasses the buffer safety provided by
+ * UsefulOutBuf!
+ */
+void UsefulOutBuf_Advance(UsefulOutBuf *pUOutBuf, size_t uAmount);
 
 
 /**
@@ -2182,6 +2179,17 @@ static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pMe)
 {
    return pMe->UB.ptr == NULL;
 }
+
+static inline UsefulBuf UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf)
+{
+   UsefulBuf R;
+
+   R.ptr = (uint8_t *)pUOutBuf->UB.ptr + pUOutBuf->data_len;
+   R.len = UsefulOutBuf_RoomLeft(pUOutBuf);
+
+   return R;
+}
+
 
 
 

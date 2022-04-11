@@ -60,7 +60,8 @@ static test_entry2 s_tests2[] = {
     TEST_ENTRY(UOBTest_BoundaryConditionsTest),
     TEST_ENTRY(UBMacroConversionsTest),
     TEST_ENTRY(UBUtilTests),
-    TEST_ENTRY(UIBTest_IntegerFormat)
+    TEST_ENTRY(UIBTest_IntegerFormat),
+    TEST_ENTRY(UBAdvanceTest)
 };
 
 

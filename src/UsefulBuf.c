@@ -304,6 +304,60 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
 
 
 /*
+ * Public function for advancing data length. See qcbor/UsefulBuf.h
+ */
+void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
+{
+   /* This function is a trimmed down version of
+      UsefulOutBuf_InsertUsefulBuf() */
+
+   if(pMe->err) {
+       /* Already in error state. */
+       return;
+    }
+
+    /* 0. Sanity check the UsefulOutBuf structure
+     *
+     * A "counter measure". If magic number is not the right number it
+     * probably means me was not initialized or it was
+     * corrupted. Attackers can defeat this, but it is a hurdle and
+     * does good with very little code.
+     */
+    if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
+       pMe->err = 1;
+       return;  /* Magic number is wrong due to uninitalization or corrption */
+    }
+
+    /* Make sure valid data is less than buffer size. This would only
+     * occur if there was corruption of me, but it is also part of the
+     * checks to be sure there is no pointer arithmatic
+     * under/overflow.
+     */
+    if(pMe->data_len > pMe->UB.len) {  // Check #1
+       pMe->err = 1;
+       /* Offset of valid data is off the end of the UsefulOutBuf due
+        * to uninitialization or corruption.
+        */
+       return;
+    }
+
+    /* 1. Will it fit?
+     *
+     * WillItFit() is the same as: NewData.len <= (me->UB.len -
+     * me->data_len) Check #1 makes sure subtraction in RoomLeft will
+     * not wrap around
+     */
+    if(! UsefulOutBuf_WillItFit(pMe, uAmount)) { /* Check #2 */
+       /* The new data will not fit into the the buffer. */
+       pMe->err = 1;
+       return;
+    }
+
+   pMe->data_len += uAmount;
+}
+
+
+/*
  Public function -- see UsefulBuf.h
  */
 UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pMe)

@@ -815,4 +815,35 @@ const char *UBUTest_CopyUtil(void)
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
+const char *UBAdvanceTest()
+{
+   UsefulOutBuf_MakeOnStack(UOB, 10);
 
+   UsefulBuf Place = UsefulOutBuf_GetOutPlace(&UOB);
+   if(Place.len != 10) {
+      return "Wrong Place";
+   }
+
+   memset(Place.ptr, 'x', Place.len/2);
+
+   UsefulOutBuf_Advance(&UOB, Place.len/2);
+
+   UsefulOutBuf_AppendByte(&UOB, 'y');
+
+   Place = UsefulOutBuf_GetOutPlace(&UOB);
+   if(Place.len != 10/2 -1 ) {
+      return "shit";
+   }
+
+   memset(Place.ptr, 'z', Place.len);
+
+   UsefulOutBuf_Advance(&UOB, Place.len);
+
+   UsefulBufC O = UsefulOutBuf_OutUBuf(&UOB);
+
+   UsefulBuf_Compare(O, UsefulBuf_FROM_SZ_LITERAL("xxxxxyzzzz"));
+
+   // TODO: check for advancing too far, full buffer, ....
+
+   return NULL;
+}

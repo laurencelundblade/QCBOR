@@ -50,4 +50,6 @@ const char *  UIBTest_IntegerFormat(void);
 const char *  UBUTest_CopyUtil(void);
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
+const char * UBAdvanceTest(void);
+
 #endif
