@@ -2875,3 +2875,72 @@ int32_t QCBORHeadTest()
 
    return 0;
 }
+
+
+
+
+static const uint8_t spExpectedBytes[] = {
+   0x50, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78,
+   0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78,
+   0x78
+};
+
+int32_t OpenCloseBytesTest(void)
+{
+   UsefulBuf_MAKE_STACK_UB(  TestBuf, 20);
+   QCBOREncodeContext         EC;
+   UsefulBuf                  Place;
+   UsefulBufC                 Encoded;
+   QCBORError                 uErr;
+
+   QCBOREncode_Init(&EC, TestBuf);
+
+   QCBOREncode_OpenBytes(&EC, &Place);
+   if(Place.ptr != TestBuf.ptr ||
+      Place.len != TestBuf.len) {
+      return 1;
+   }
+
+   Place.len -= 4;
+   UsefulBuf_Set(Place, 'x');
+
+   QCBOREncode_CloseBytes(&EC, Place.len);
+
+   QCBOREncode_Finish(&EC, &Encoded);
+
+   if(UsefulBuf_Compare(Encoded,
+                        UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedBytes))) {
+      return 2;
+   }
+
+
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_AddSZString(&EC, "0123456789012345678");
+   QCBOREncode_OpenBytes(&EC, &Place);
+   if(Place.ptr != NULL ||
+      Place.len != 0) {
+      return 3;
+   }
+
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_AddSZString(&EC, "012345678");
+   QCBOREncode_CloseBytes(&EC, 1);
+   uErr = QCBOREncode_GetErrorState(&EC);
+   if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
+      return 4;
+   }
+
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_AddSZString(&EC, "012345678901234567");
+   QCBOREncode_OpenBytes(&EC, &Place);
+   /* Don't bother to write any bytes*/
+   QCBOREncode_CloseBytes(&EC, Place.len+1);
+   uErr = QCBOREncode_GetErrorState(&EC);
+   // TODO: sort out this error -- issues with UOB internal error state
+   if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
+       return 5;
+   }
+
+
+   return 0;
+}

@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -541,6 +541,9 @@ static void InsertCBORHead(QCBOREncodeContext *me, uint8_t uMajorType, size_t uL
       }
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+   if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
+      uMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
+   }
 
    /* A stack buffer large enough for a CBOR head */
    UsefulBuf_MAKE_STACK_UB(pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
@@ -931,51 +934,30 @@ void QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 }
 
 
+/*
+ * Public function for opening a byte string. See qcbor/qcbor_encode.h
+ */
 void QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
-   /* Add one item to the nesting level we are in for the new map or array */
-   IncrementMapOrArrayCount(pMe);
-
-   /* The offset where the length of an array or map will get written
-    * is stored in a uint32_t, not a size_t to keep stack usage
-    * smaller. This checks to be sure there is no wrap around when
-    * recording the offset.  Note that on 64-bit machines CBOR larger
-    * than 4GB can be encoded as long as no array/map offsets occur
-    * past the 4GB mark, but the public interface says that the
-    * maximum is 4GB to keep the discussion simpler.
-    */
-   size_t uEndPosition = UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
-
-   /* QCBOR_MAX_ARRAY_OFFSET is slightly less than UINT32_MAX so this
-    * code can run on a 32-bit machine and tests can pass on a 32-bit
-    * machine. If it was exactly UINT32_MAX, then this code would not
-    * compile or run on a 32-bit machine and an #ifdef or some machine
-    * size detection would be needed reducing portability.
-    */
-   if(uEndPosition >= QCBOR_MAX_ARRAY_OFFSET) {
-      pMe->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
-
-      *pPlace = NULLUsefulBuf;
-
-   } else {
-      /* Increase nesting level because this is a map or array.  Cast
-       * from size_t to uin32_t is safe because of check above.
-       */
-      // TODO: proper type constant
-      pMe->uError = Nesting_Increase(&(pMe->nesting), 200, (uint32_t)uEndPosition);
-
-      *pPlace = UsefulOutBuf_Stuff(&(pMe->OutBuf));
+   *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
+   if(!UsefulBuf_IsNULL(*pPlace)){
+      QCBOREncode_OpenMapOrArray(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR);
    }
 }
 
 
+/*
+ * Public function for closing a byte string. See qcbor/qcbor_encode.h
+ */
 void QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, size_t uAmount)
 {
-   UsefulOutBuf_StuffDone(&(pMe->OutBuf), uAmount);
-   // TODO: sort out the major type
-   InsertCBORHead(pMe,
-                  CBOR_MAJOR_TYPE_BYTE_STRING,
-                  uAmount);
+   UsefulOutBuf_Advance(&(pMe->OutBuf), uAmount);
+   if(UsefulOutBuf_GetError(&(pMe->OutBuf))) {
+      pMe->uError = QCBOR_ERR_ADVANCE_TOO_FAR;
+      return;
+   }
+
+   InsertCBORHead(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR, uAmount);
 }
 
 

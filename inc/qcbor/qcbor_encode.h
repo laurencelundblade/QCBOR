@@ -861,6 +861,9 @@ static void QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
  the length in \c pPlace will be writing off the end of the
  output buffer.
 
+ If there is no room in the output buffer NULLUsefulBuf will be returned and
+ there is no need to call QCBOREncode_CloseBytes().
+
  The byte string must be closed by calling QCBOREncode_CloseBytes().
 
  TODO: finish this documentation, write the implementation, test the code.
@@ -868,9 +871,11 @@ static void QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
  */
 void QCBOREncode_OpenBytes(QCBOREncodeContext *pCtx, UsefulBuf *pPlace);
 
-void QCBOREncode_OpenBytesInMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBuf *pPlace);
+static void
+QCBOREncode_OpenBytesInMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBuf *pPlace);
 
-void QCBOREncode_OpenBytesInMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBuf *pPlace);
+static void
+QCBOREncode_OpenBytesInMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBuf *pPlace);
 
 
 /**
@@ -881,6 +886,9 @@ void QCBOREncode_OpenBytesInMapN(QCBOREncodeContext *pCtx, int64_t nLabel, Usefu
 
  This inserts a CBOR header at the front of the byte string value to make
  it a well-formed byte string.
+
+ If there was no call to QCBOREncode_OpenBytes() then @ref QCBOR_ERR_TOO_MANY_CLOSES is
+ set.
  */
 void QCBOREncode_CloseBytes(QCBOREncodeContext *pCtx, size_t uAmount);
 
@@ -2413,6 +2421,20 @@ QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC B
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddBytes(pMe, Bytes);
+}
+
+static inline void
+QCBOREncode_OpenBytesInMapSZ(QCBOREncodeContext *pMe, const char *szLabel, UsefulBuf *pPlace)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_OpenBytes(pMe, pPlace);
+}
+
+static inline void
+QCBOREncode_OpenBytesInMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBuf *pPlace)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_OpenBytes(pMe, pPlace);
 }
 
 static inline void
