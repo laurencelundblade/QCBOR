@@ -61,6 +61,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(sign_verify_make_cwt_test),
     TEST_ENTRY(sign_verify_sig_fail_test),
     TEST_ENTRY(sign_verify_get_size_test),
+    TEST_ENTRY(known_good_test),
 #endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN

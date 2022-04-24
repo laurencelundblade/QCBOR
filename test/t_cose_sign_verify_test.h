@@ -1,7 +1,7 @@
 /*
  *  t_cose_sign_verify_test.h
  *
- * Copyright 2019, Laurence Lundblade
+ * Copyright 2019, 2022, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -45,5 +45,11 @@ int_fast32_t sign_verify_make_cwt_test(void);
  * Test the ability to calculate size of a COSE_Sign1
  */
 int_fast32_t sign_verify_get_size_test(void);
+
+
+/*
+ * Test against known good messages.
+ */
+int_fast32_t known_good_test(void);
 
 #endif /* t_cose_sign_verify_test_h */

@@ -34,8 +34,8 @@
  * against OpenSSL and with the T_COSE_USE_OPENSSL_CRYPTO preprocessor
  * define set for the build.
  *
- * This works with OpenSSL 1.1.1 and 3.0. It uses the API common
- * to these two and that is not marked for future deprecation.
+ * This works with OpenSSL 1.1.1 and 3.0. It uses the APIs common
+ * to these two and that are not marked for future deprecation.
  *
  * A few complaints about OpenSSL in comparison to Mbed TLS:
  *
@@ -44,7 +44,7 @@
  * failures are necessary.
  *
  * There's a lot of APIs in OpenSSL, but there's a needle to thread to
- * get the APIS that are in 1.1.1, 3.0 and no slated for future
+ * get the APIS that are in 1.1.1, 3.0 and not slated for future
  * deprecation.
  *
  * The APIs that fit the above only work for DER-encoded signatures.
@@ -56,7 +56,8 @@
  * An older version of t_cose (anything from 2021) uses simpler
  * OpenSSL APIs. They still work but may be deprecated in the
  * future. They could be used in use cases where a particular version
- * of the OpenSSL library is selected.
+ * of the OpenSSL library is selected and reduce code size
+ * a llittle.
  */
 
 
@@ -157,7 +158,7 @@ Done:
  * OpenSSL has a preference for DER-encoded signatures.
  *
  * This uses an ECDSA_SIG as an intermediary to convert
- * between the two. 
+ * between the two.
  */
 static enum t_cose_err_t
 signature_cose_to_der(unsigned                key_len,
@@ -345,105 +346,80 @@ Done:
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_sign(int32_t                cose_algorithm_id,
-                   struct t_cose_key      signing_key,
-                   struct q_useful_buf_c  hash_to_sign,
-                   struct q_useful_buf    signature_buffer,
-                   struct q_useful_buf_c *signature)
+t_cose_crypto_sign(const int32_t                cose_algorithm_id,
+                   const struct t_cose_key      signing_key,
+                   const struct q_useful_buf_c  hash_to_sign,
+                   const struct q_useful_buf    signature_buffer,
+                   struct q_useful_buf_c       *signature)
 {
     /* This is the overhead for the DER encoding of an EC signature as
      * described by ECDSA-Sig-Value in RFC 3279.  It is at max 3 * (1
      * type byte and 2 length bytes) + 2 zero pad bytes = 11
-     * bytes. Make it 16 to have a little extra. It is expected that
-     * EVP_DigestSign() will not over write the buffer so there will
+     * bytes. We make it 16 to have a little extra. It is expected that
+     * EVP_PKEY_sign() will not over write the buffer so there will
      * be no security problem if this is too short. */
     #define DER_SIG_ENCODE_OVER_HEAD 16
 
     enum t_cose_err_t      return_value;
-    EVP_MD_CTX            *sign_context;
+    EVP_PKEY_CTX          *sign_context;
     EVP_PKEY              *signing_key_evp;
     int                    ossl_result;
     unsigned               key_size_bytes;
     MakeUsefulBufOnStack(  der_format_signature, T_COSE_MAX_SIG_SIZE + DER_SIG_ENCODE_OVER_HEAD);
 
-    /* This implementation supports ECDSA and only ECDSA. The
+    /* This implementation supports only ECDSA so far. The
      * interface allows it to support other, but none are implemented.
-     * This implementation works for different keys lengths and
-     * curves. That is, the curve and key length as associated with
-     * the \c signing_key passed in, not the \c cose_algorithm_id This
+     *
+     * This implementation works for different key lengths and
+     * curves. That is, the curve and key length is associated with
+     * the signing_key passed in, not the cose_algorithm_id This
      * check looks for ECDSA signing as indicated by COSE and rejects
      * what is not since it only supports ECDSA.
-     *
-     * If RSA or such is to be added, it would be added here and
-     * switch based on the cose_algorithm_id would select it.
      */
     if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done2;
     }
 
-    /* Pull the pointer of the OpenSSL-format key out of the
-     * t_cose key structure. */
+    /* Pull the pointer to the OpenSSL-format EVP_PKEY out of the
+     * t_cose key structure and get the key size. */
     return_value = key_convert_and_size(signing_key, &signing_key_evp, &key_size_bytes);
     if(return_value != T_COSE_SUCCESS) {
         goto Done2;
     }
 
-
-    /*
-     * Initialize the signing context and set up with the signing key.
-     *
-     * EVP_DigestSignInit_ex() is what the OpenSSL 3.0 examples use,
-     * but OpenSSL 1.1.1 doesn't have it, so try to figure out what
-     * EVP_DigestSignInit() does since the documentation is terrible
-     * (seems to be written for people that already know how it
-     * works).
-     *
-     * int EVP_DigestSignInit(EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,
-     *                        const EVP_MD *type, ENGINE *e, EVP_PKEY *pkey);
-     *
-     * pctx is NULL because that seems to be some way to return a copy
-     * of the signing context that is not needed here.
-     *
-     * type and e should be named digest_type and digest_engine so
-     * it's clear they are for a hash function that may be needed in
-     * the signature. RSA signature schemes like PSS need this. ECDSA
-     * doesn't so they are both NULL.
-     */
-    sign_context = EVP_MD_CTX_new();
+    /* Create and initialize the OpenSSL EVP_PKEY_CTX that is the
+     * signing context. */
+    sign_context = EVP_PKEY_CTX_new(signing_key_evp, NULL);
     if(sign_context == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
         goto Done;
     }
-    ossl_result = EVP_DigestSignInit(sign_context,
-                                     NULL, /* pctx */
-                                     NULL, /* type */
-                                     NULL, /* Engine */
-                                     signing_key_evp /* The private key */);
-    if(!ossl_result) {
-        return_value = T_COSE_ERR_SIG_FAIL;
-        goto Done;
-    }
-
-
-    /* Actually do the signature operation.  */
-    ossl_result = EVP_DigestSign(sign_context,
-                                 der_format_signature.ptr, &der_format_signature.len,
-                                 hash_to_sign.ptr, hash_to_sign.len);
+    ossl_result = EVP_PKEY_sign_init(sign_context);
     if(ossl_result != 1) {
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
 
+    /* Actually do the signature operation.  */
+    ossl_result = EVP_PKEY_sign(sign_context,
+                                der_format_signature.ptr, &der_format_signature.len,
+                                hash_to_sign.ptr, hash_to_sign.len);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_SIG_FAIL;
+        goto Done;
+    }
+
+
     /* The signature produced by OpenSSL is DER-encoded. That encoding
      * has to be removed and turned into the serialization format used
      * by COSE. It is unfortunate that the OpenSSL APIs that create
-     * signature that are non in DER-format are slated for
+     * signatures that are not in DER-format are slated for
      * deprecation.
      */
     *signature = signature_der_to_cose((unsigned)key_size_bytes,
-                                          q_usefulbuf_const(der_format_signature),
-                                          signature_buffer);
+                                       q_usefulbuf_const(der_format_signature),
+                                       signature_buffer);
     if(q_useful_buf_c_is_null(*signature)) {
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
@@ -453,10 +429,10 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     return_value = T_COSE_SUCCESS;
 
 Done:
-    /* This (is assumed to) checks for NULL before free, so it is not
+    /* This checks for NULL before free, so it is not
      * necessary to check for NULL here.
      */
-    EVP_MD_CTX_free(sign_context);
+    EVP_PKEY_CTX_free(sign_context);
 
 Done2:
     return return_value;
@@ -468,15 +444,15 @@ Done2:
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_verify(int32_t                cose_algorithm_id,
-                     struct t_cose_key      verification_key,
-                     struct q_useful_buf_c  kid,
-                     struct q_useful_buf_c  hash_to_verify,
-                     struct q_useful_buf_c  cose_signature)
+t_cose_crypto_verify(const int32_t                cose_algorithm_id,
+                     const struct t_cose_key      verification_key,
+                     const struct q_useful_buf_c  kid,
+                     const struct q_useful_buf_c  hash_to_verify,
+                     const struct q_useful_buf_c  cose_signature)
 {
     int                    ossl_result;
     enum t_cose_err_t      return_value;
-    EVP_MD_CTX            *verify_context = NULL;
+    EVP_PKEY_CTX          *verify_context = NULL;
     EVP_PKEY              *verification_key_evp;
     unsigned               key_size;
     MakeUsefulBufOnStack(  der_format_buffer, T_COSE_MAX_SIG_SIZE + DER_SIG_ENCODE_OVER_HEAD);
@@ -518,28 +494,24 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
     /* Create the verification context and set it up with the
      * necessary verification key.
      */
-    verify_context = EVP_MD_CTX_new();
+    verify_context = EVP_PKEY_CTX_new(verification_key_evp, NULL);
     if(verify_context == NULL) {
         return_value = T_COSE_ERR_INSUFFICIENT_MEMORY;
         goto Done;
     }
-    ossl_result = EVP_DigestVerifyInit(verify_context,
-                                       NULL, /* ppctx */
-                                       NULL, /* type */
-                                       NULL, /* e */
-                                       verification_key_evp);
-    if(!ossl_result) {
+
+    ossl_result = EVP_PKEY_verify_init(verify_context);
+    if(ossl_result != 1) {
         return_value = T_COSE_ERR_SIG_FAIL;
         goto Done;
     }
 
-
     /* Actually do the signature verification */
-    ossl_result =  EVP_DigestVerify(verify_context,
-                                    der_format_signature.ptr,
-                                    der_format_signature.len,
-                                    hash_to_verify.ptr,
-                                    hash_to_verify.len);
+    ossl_result =  EVP_PKEY_verify(verify_context,
+                                   der_format_signature.ptr,
+                                   der_format_signature.len,
+                                   hash_to_verify.ptr,
+                                   hash_to_verify.len);
 
 
     if(ossl_result == 0) {
@@ -556,7 +528,7 @@ t_cose_crypto_verify(int32_t                cose_algorithm_id,
     return_value = T_COSE_SUCCESS;
 
 Done:
-    EVP_MD_CTX_free(verify_context);
+    EVP_PKEY_CTX_free(verify_context);
 
     return return_value;
 }
@@ -597,7 +569,7 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
         return T_COSE_ERR_UNSUPPORTED_HASH;
     }
 
-    message_digest = EVP_get_digestbynid(NID_sha256);
+    message_digest = EVP_get_digestbynid(nid);
     if(message_digest == NULL){
         return T_COSE_ERR_UNSUPPORTED_HASH;
     }
