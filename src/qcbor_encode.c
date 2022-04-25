@@ -941,7 +941,15 @@ void QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
    *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
    if(!UsefulBuf_IsNULL(*pPlace)){
-      QCBOREncode_OpenMapOrArray(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR);
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+      uint8_t uMajorType = Nesting_GetMajorType(&(pMe->nesting));
+      if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
+         pMe->uError = QCBOR_ERR_OPEN_BYTE_STRING;
+         return;
+      }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   QCBOREncode_OpenMapOrArray(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR);
    }
 }
 
@@ -949,11 +957,11 @@ void QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 /*
  * Public function for closing a byte string. See qcbor/qcbor_encode.h
  */
-void QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, size_t uAmount)
+void QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
 {
    UsefulOutBuf_Advance(&(pMe->OutBuf), uAmount);
    if(UsefulOutBuf_GetError(&(pMe->OutBuf))) {
-      pMe->uError = QCBOR_ERR_ADVANCE_TOO_FAR;
+      /* Advance too far. Normal off-end error handling in effect here. */
       return;
    }
 

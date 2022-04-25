@@ -815,7 +815,7 @@ const char *UBUTest_CopyUtil(void)
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
-const char *UBAdvanceTest()
+const char *UBAdvanceTest(void)
 {
    #define ADVANCE_TEST_SIZE 10
    UsefulOutBuf_MakeOnStack(UOB, ADVANCE_TEST_SIZE);

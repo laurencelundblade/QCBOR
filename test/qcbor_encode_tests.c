@@ -2877,43 +2877,46 @@ int32_t QCBORHeadTest()
 }
 
 
-
-
-static const uint8_t spExpectedBytes[] = {
+static const uint8_t spExpectedForOpenBytes[] = {
    0x50, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78,
    0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78, 0x78,
    0x78
 };
 
-int32_t OpenCloseBytesTest(void)
+static const uint8_t spExpectedForOpenBytes2[] = {
+   0xA4, 0x0A, 0x16, 0x14, 0x42, 0x78, 0x78, 0x66,
+   0x74, 0x68, 0x69, 0x72, 0x74, 0x79, 0x43, 0x79,
+   0x79, 0x79, 0x18, 0x28, 0x81, 0x40
+};
+
+int32_t
+OpenCloseBytesTest(void)
 {
-   UsefulBuf_MAKE_STACK_UB(  TestBuf, 20);
+   UsefulBuf_MAKE_STACK_UB(   TestBuf,  20);
+   UsefulBuf_MAKE_STACK_UB(   TestBuf2, 30);
    QCBOREncodeContext         EC;
    UsefulBuf                  Place;
    UsefulBufC                 Encoded;
    QCBORError                 uErr;
 
+   /* Normal use case -- add a byte string that fits */
    QCBOREncode_Init(&EC, TestBuf);
-
    QCBOREncode_OpenBytes(&EC, &Place);
    if(Place.ptr != TestBuf.ptr ||
       Place.len != TestBuf.len) {
       return 1;
    }
-
    Place.len -= 4;
    UsefulBuf_Set(Place, 'x');
-
    QCBOREncode_CloseBytes(&EC, Place.len);
-
    QCBOREncode_Finish(&EC, &Encoded);
-
    if(UsefulBuf_Compare(Encoded,
-                        UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedBytes))) {
+                        UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenBytes))) {
       return 2;
    }
 
 
+   /* Open a byte string with no room left */
    QCBOREncode_Init(&EC, TestBuf);
    QCBOREncode_AddSZString(&EC, "0123456789012345678");
    QCBOREncode_OpenBytes(&EC, &Place);
@@ -2922,25 +2925,72 @@ int32_t OpenCloseBytesTest(void)
       return 3;
    }
 
-   QCBOREncode_Init(&EC, TestBuf);
-   QCBOREncode_AddSZString(&EC, "012345678");
-   QCBOREncode_CloseBytes(&EC, 1);
-   uErr = QCBOREncode_GetErrorState(&EC);
-   if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
-      return 4;
-   }
-
+   /* Try to extend byte string past end of encoding output buffer */
    QCBOREncode_Init(&EC, TestBuf);
    QCBOREncode_AddSZString(&EC, "012345678901234567");
    QCBOREncode_OpenBytes(&EC, &Place);
    /* Don't bother to write any bytes*/
    QCBOREncode_CloseBytes(&EC, Place.len+1);
    uErr = QCBOREncode_GetErrorState(&EC);
-   // TODO: sort out this error -- issues with UOB internal error state
    if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
-       return 5;
+      return 4;
    }
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   /* Close a byte string without opening one. */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_AddSZString(&EC, "012345678");
+   QCBOREncode_CloseBytes(&EC, 1);
+   uErr = QCBOREncode_GetErrorState(&EC);
+   if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
+      return 5;
+   }
+
+   /* Forget to close a byte string */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_AddSZString(&EC, "012345678");
+   QCBOREncode_OpenBytes(&EC, &Place);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return 6;
+   }
+
+   /* Try to open a byte string in a byte string */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_AddSZString(&EC, "012345678");
+   QCBOREncode_OpenBytes(&EC, &Place);
+   QCBOREncode_OpenBytes(&EC, &Place);
+   uErr = QCBOREncode_GetErrorState(&EC);
+   if(uErr != QCBOR_ERR_OPEN_BYTE_STRING) {
+      return 7;
+   }
+#endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   /* A successful case with a little complexity */
+   QCBOREncode_Init(&EC, TestBuf2);
+   QCBOREncode_OpenMap(&EC);
+      QCBOREncode_AddInt64ToMapN(&EC, 10, 22);
+      QCBOREncode_OpenBytesInMapN(&EC, 20, &Place);
+         Place.len = 2;
+         UsefulBuf_Set(Place, 'x');
+      QCBOREncode_CloseBytes(&EC, 2);
+      QCBOREncode_OpenBytesInMapSZ(&EC, "thirty", &Place);
+         Place.len = 3;
+         UsefulBuf_Set(Place, 'y');
+      QCBOREncode_CloseBytes(&EC, 3);
+      QCBOREncode_OpenArrayInMapN(&EC, 40);
+         QCBOREncode_OpenBytes(&EC, &Place);
+         QCBOREncode_CloseBytes(&EC, 0);
+      QCBOREncode_CloseArray(&EC);
+   QCBOREncode_CloseMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr != QCBOR_SUCCESS) {
+      return 8;
+   }
+   if(UsefulBuf_Compare(Encoded,
+                        UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenBytes2))) {
+      return 9;
+   }
 
    return 0;
 }
