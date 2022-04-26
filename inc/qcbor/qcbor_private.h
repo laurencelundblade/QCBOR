@@ -320,6 +320,8 @@ struct _QCBORDecodeContext {
 #define CBOR_MAJOR_NONE_TYPE_RAW  9
 #define CBOR_MAJOR_NONE_TAG_LABEL_REORDER 10
 #define CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY 11
+#define CBOR_MAJOR_NONE_TYPE_OPEN_BSTR 12
+
 
 // Add this to types to indicate they are to be encoded as indefinite lengths
 #define QCBOR_INDEFINITE_LEN_TYPE_MODIFIER 0x80

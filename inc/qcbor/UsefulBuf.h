@@ -1,6 +1,6 @@
 /*============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 4/11/2022    llundblade      Add GetOutPlace and Advance to UsefulOutBuf.
  9/21/2021    llundbla        Clarify UsefulOutBuf size calculation mode
  8/8/2021     dthaler/llundbla Work with C++ without compiler extensions
  5/11/2021    llundblade      Improve comments and comment formatting.
@@ -1287,6 +1288,53 @@ static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pUOutBuf);
 
 
 /**
+ * @brief Returns pointer and length of the output buffer not yet used.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ *
+ * @return pointer and length of output buffer not used.
+ *
+ * This is an escape that allows the caller to write directly
+ * to the output buffer without any checks. This doesn't
+ * change the output buffer or state. It just returns a pointer
+ * and length of the bytes remaining.
+ *
+ * This is useful to avoid having the bytes to be added all
+ * in a contiguous buffer. Its use can save memory. A good
+ * example is in the COSE encrypt implementation where
+ * the output of the symmetric cipher can go directly
+ * into the output buffer, rather than having to go into
+ * an intermediate buffer.
+ *
+ * See UsefulOutBuf_Advance() which is used to tell
+ * UsefulOutBuf how much was written.
+ *
+ * Warning: this bypasses the buffer safety provided by
+ * UsefulOutBuf!
+ */
+static inline UsefulBuf
+UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf);
+
+
+/**
+ * @brief Advance the amount output assuming it was written by the caller.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] uAmount  The amount to advance.
+ *
+ * This advances the position in the output buffer
+ * by \c uAmount. This assumes that the
+ * caller has written \c uAmount to the pointer obtained
+ * with UsefulOutBuf_GetOutPlace().
+ *
+ * Warning: this bypasses the buffer safety provided by
+ * UsefulOutBuf!
+ */
+void
+UsefulOutBuf_Advance(UsefulOutBuf *pUOutBuf, size_t uAmount);
+
+
+/**
  *  @brief Returns the resulting valid data in a UsefulOutBuf
  *
  *  @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
@@ -2130,6 +2178,22 @@ static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pMe)
 {
    return pMe->UB.ptr == NULL;
 }
+
+
+static inline UsefulBuf UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf)
+{
+   UsefulBuf R;
+
+   R.len = UsefulOutBuf_RoomLeft(pUOutBuf);
+   if(R.len > 0) {
+      R.ptr = (uint8_t *)pUOutBuf->UB.ptr + pUOutBuf->data_len;
+   } else {
+      R.ptr = NULL;
+   }
+
+   return R;
+}
+
 
 
 

@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -314,7 +314,8 @@ typedef enum {
    QCBOR_ERR_TOO_MANY_CLOSES = 7,
 
    /** During encoding the number of array or map opens was not
-       matched by the number of closes. */
+       matched by the number of closes. Also occurs with opened
+       byte strings that are not closed. */
    QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN = 8,
 
 #define QCBOR_START_OF_NOT_WELL_FORMED_ERRORS 9
@@ -489,7 +490,7 @@ typedef enum {
        non-CBOR reason */
    QCBOR_ERR_CALLBACK_FAIL = 38,
 
-   /** This error code is deprecated. Instead, 
+   /** This error code is deprecated. Instead,
        \ref QCBOR_ERR_HALF_PRECISION_DISABLED,
        \ref QCBOR_ERR_HW_FLOAT_DISABLED or \ref QCBOR_ERR_ALL_FLOAT_DISABLED
        is returned depending on the specific floating-point functionality
@@ -524,7 +525,11 @@ typedef enum {
 
    /** Floating point support is completely turned off, encoding/decoding
        floating point numbers is not possible. */
-   QCBOR_ERR_ALL_FLOAT_DISABLED = 46
+   QCBOR_ERR_ALL_FLOAT_DISABLED = 46,
+
+   /** During encode, opening a byte string while a byte string is open
+       is not allowed. . */
+   QCBOR_ERR_OPEN_BYTE_STRING = 47
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;

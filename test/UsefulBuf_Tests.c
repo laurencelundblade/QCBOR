@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -815,4 +815,48 @@ const char *UBUTest_CopyUtil(void)
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
+const char *UBAdvanceTest(void)
+{
+   #define ADVANCE_TEST_SIZE 10
+   UsefulOutBuf_MakeOnStack(UOB, ADVANCE_TEST_SIZE);
 
+   UsefulBuf Place = UsefulOutBuf_GetOutPlace(&UOB);
+   if(Place.len != 10) {
+      return "GetOutPlace wrong size";
+   }
+
+   memset(Place.ptr, 'x', Place.len/2);
+
+   UsefulOutBuf_Advance(&UOB, Place.len/2);
+
+   UsefulOutBuf_AppendByte(&UOB, 'y');
+
+   Place = UsefulOutBuf_GetOutPlace(&UOB);
+   if(Place.len != ADVANCE_TEST_SIZE/2 -1 ) {
+      return "GetOutPlace wrong size 2";
+   }
+
+   memset(Place.ptr, 'z', Place.len);
+
+   UsefulOutBuf_Advance(&UOB, Place.len);
+
+   UsefulBufC O = UsefulOutBuf_OutUBuf(&UOB);
+
+   UsefulBuf_Compare(O, UsefulBuf_FROM_SZ_LITERAL("xxxxxyzzzz"));
+
+   Place = UsefulOutBuf_GetOutPlace(&UOB);
+   if(Place.len != 0 || Place.ptr != NULL) {
+      return "GetOutPlace not null";
+   }
+
+   if(UsefulOutBuf_GetError(&UOB)) {
+      return "GetOutPlace error set";
+   }
+
+   UsefulOutBuf_Advance(&UOB, 1);
+   if(!UsefulOutBuf_GetError(&UOB)) {
+      return "Advance off end didn't set error";
+   }
+
+   return NULL;
+}

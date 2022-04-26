@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -541,6 +541,9 @@ static void InsertCBORHead(QCBOREncodeContext *me, uint8_t uMajorType, size_t uL
       }
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+   if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
+      uMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
+   }
 
    /* A stack buffer large enough for a CBOR head */
    UsefulBuf_MAKE_STACK_UB(pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
@@ -928,6 +931,41 @@ void QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 
    Nesting_Decrease(&(pMe->nesting));
    Nesting_Decrement(&(pMe->nesting));
+}
+
+
+/*
+ * Public function for opening a byte string. See qcbor/qcbor_encode.h
+ */
+void QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
+{
+   *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
+   if(!UsefulBuf_IsNULL(*pPlace)){
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+      uint8_t uMajorType = Nesting_GetMajorType(&(pMe->nesting));
+      if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
+         pMe->uError = QCBOR_ERR_OPEN_BYTE_STRING;
+         return;
+      }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   QCBOREncode_OpenMapOrArray(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR);
+   }
+}
+
+
+/*
+ * Public function for closing a byte string. See qcbor/qcbor_encode.h
+ */
+void QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
+{
+   UsefulOutBuf_Advance(&(pMe->OutBuf), uAmount);
+   if(UsefulOutBuf_GetError(&(pMe->OutBuf))) {
+      /* Advance too far. Normal off-end error handling in effect here. */
+      return;
+   }
+
+   InsertCBORHead(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR, uAmount);
 }
 
 

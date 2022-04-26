@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,11 +40,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  - All the functions in qcbor_encode.h are called once in the aggregation of all
    the tests below.
-
- - All the types that are supported are given as input and parsed by these tests
-
- - There is some hostile input such as invalid lengths and CBOR too complex
-   and types this parser doesn't handle
 
  */
 
@@ -141,10 +136,11 @@ int32_t RTICResultsTest(void);
  */
 int32_t AllAddMethodsTest(void);
 
+
 /*
  The binary string wrapping of maps and arrays used by COSE
  */
-int32_t  BstrWrapTest(void);
+int32_t BstrWrapTest(void);
 
 
 /*
@@ -188,6 +184,12 @@ int32_t EncodeErrorTests(void);
  test here exercises it in some way.
  */
 int32_t QCBORHeadTest(void);
+
+
+/* Fully test QCBOREncode_OpenBytes(), QCBOREncode_CloseBytes()
+ * and friends.
+ */
+int32_t OpenCloseBytesTest(void);
 
 
 
