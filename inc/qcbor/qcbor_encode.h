@@ -854,7 +854,8 @@ static void QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
  copy of it in memory. This is particularly useful if the byte string
  is large, for example, the encrypted payload of a COSE_Encrypt
  message. The payload encryption algorithm can output directly to the
- encoded CBOR buffer.
+ encoded CBOR buffer, perhaps by making it the output buffer
+ for some function (e.g. symmetric encryption) or by multiple writes.
 
  The pointer in \c pPlace is where to start writing. Writing is just
  copying bytes to the location by the pointer in \c pPlace.  Writing
