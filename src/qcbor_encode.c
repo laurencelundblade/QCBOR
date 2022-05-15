@@ -72,7 +72,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * with the type CBOR_MAJOR_TYPE_BYTE_STRING and is tracked here. Byte
  * string wrapped CBOR is used by COSE for data that is to be hashed.
  */
-inline static void Nesting_Init(QCBORTrackNesting *pNesting)
+static inline void
+Nesting_Init(QCBORTrackNesting *pNesting)
 {
    /* Assumes pNesting has been zeroed. */
    pNesting->pCurrentNesting = &pNesting->pArrays[0];
@@ -82,9 +83,10 @@ inline static void Nesting_Init(QCBORTrackNesting *pNesting)
    pNesting->pCurrentNesting->uMajorType = CBOR_MAJOR_TYPE_ARRAY;
 }
 
-inline static uint8_t Nesting_Increase(QCBORTrackNesting *pNesting,
-                                          uint8_t uMajorType,
-                                          uint32_t uPos)
+static inline uint8_t
+Nesting_Increase(QCBORTrackNesting *pNesting,
+                 uint8_t            uMajorType,
+                 uint32_t           uPos)
 {
    if(pNesting->pCurrentNesting == &pNesting->pArrays[QCBOR_MAX_ARRAY_NESTING]) {
       return QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
@@ -97,12 +99,16 @@ inline static uint8_t Nesting_Increase(QCBORTrackNesting *pNesting,
    }
 }
 
-inline static void Nesting_Decrease(QCBORTrackNesting *pNesting)
+static inline void
+Nesting_Decrease(QCBORTrackNesting *pNesting)
 {
-   pNesting->pCurrentNesting--;
+   if(pNesting->pCurrentNesting > &pNesting->pArrays[0]) {
+      pNesting->pCurrentNesting--;
+   }
 }
 
-inline static uint8_t Nesting_Increment(QCBORTrackNesting *pNesting)
+static inline uint8_t
+Nesting_Increment(QCBORTrackNesting *pNesting)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(1 >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
@@ -115,7 +121,8 @@ inline static uint8_t Nesting_Increment(QCBORTrackNesting *pNesting)
    return QCBOR_SUCCESS;
 }
 
-inline static void Nesting_Decrement(QCBORTrackNesting *pNesting)
+static inline void
+Nesting_Decrement(QCBORTrackNesting *pNesting)
 {
    /* No error check for going below 0 here needed because this
     * is only used by QCBOREncode_CancelBstrWrap() and it checks
@@ -123,7 +130,8 @@ inline static void Nesting_Decrement(QCBORTrackNesting *pNesting)
    pNesting->pCurrentNesting->uCount--;
 }
 
-inline static uint16_t Nesting_GetCount(QCBORTrackNesting *pNesting)
+static inline uint16_t
+Nesting_GetCount(QCBORTrackNesting *pNesting)
 {
    /* The nesting count recorded is always the actual number of
     * individual data items in the array or map. For arrays CBOR uses
@@ -140,18 +148,21 @@ inline static uint16_t Nesting_GetCount(QCBORTrackNesting *pNesting)
    }
 }
 
-inline static uint32_t Nesting_GetStartPos(QCBORTrackNesting *pNesting)
+static inline uint32_t
+Nesting_GetStartPos(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting->uStart;
 }
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-inline static uint8_t Nesting_GetMajorType(QCBORTrackNesting *pNesting)
+static inline uint8_t
+Nesting_GetMajorType(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting->uMajorType;
 }
 
-inline static bool Nesting_IsInNest(QCBORTrackNesting *pNesting)
+static inline bool
+Nesting_IsInNest(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting == &pNesting->pArrays[0] ? false : true;
 }
@@ -531,21 +542,25 @@ static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t
 static void InsertCBORHead(QCBOREncodeContext *me, uint8_t uMajorType, size_t uLen)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(me->uError == QCBOR_SUCCESS) {
-      if(!Nesting_IsInNest(&(me->nesting))) {
-         me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
-         return;
-      } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
-         me->uError = QCBOR_ERR_CLOSE_MISMATCH;
-         return;
-      }
+   if(me->uError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   if(!Nesting_IsInNest(&(me->nesting))) {
+      me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+      return;
+   }
+
+   if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
+      me->uError = QCBOR_ERR_CLOSE_MISMATCH;
+      return;
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
       uMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
    }
 
-   /* A stack buffer large enough for a CBOR head */
+   /* A stack buffer large enough for a CBOR head (9 bytes) */
    UsefulBuf_MAKE_STACK_UB(pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
 
    UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
@@ -798,7 +813,7 @@ void QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pMe,
  * this.
  *
  * See qcbor/qcbor_encode.h
-*/
+ */
 void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 {
    /* Add one item to the nesting level we are in for the new map or array */
@@ -905,19 +920,21 @@ void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, U
 void QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uError == QCBOR_SUCCESS) {
-      if(!Nesting_IsInNest(&(pMe->nesting))) {
-         pMe->uError = QCBOR_ERR_TOO_MANY_CLOSES;
-         return;
-      } else if(Nesting_GetMajorType(&(pMe->nesting)) != CBOR_MAJOR_TYPE_BYTE_STRING) {
-         pMe->uError = QCBOR_ERR_CLOSE_MISMATCH;
-         return;
-      }
-      const size_t uCurrent = UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
-      if(pMe->nesting.pCurrentNesting->uStart != uCurrent) {
-         pMe->uError = QCBOR_ERR_CANNOT_CANCEL;
-         return;
-      }
+   if(pMe->uError != QCBOR_SUCCESS) {
+      return;
+   }
+   if(!Nesting_IsInNest(&(pMe->nesting))) {
+      pMe->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+      return;
+   }
+   if(Nesting_GetMajorType(&(pMe->nesting)) != CBOR_MAJOR_TYPE_BYTE_STRING) {
+      pMe->uError = QCBOR_ERR_CLOSE_MISMATCH;
+      return;
+   }
+   const size_t uCurrent = UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
+   if(pMe->nesting.pCurrentNesting->uStart != uCurrent) {
+      pMe->uError = QCBOR_ERR_CANNOT_CANCEL;
+      return;
    }
    /* QCBOREncode_CancelBstrWrap() can't correctly undo
     * QCBOREncode_BstrWrapInMap() or QCBOREncode_BstrWrapInMapN(). It
@@ -940,8 +957,9 @@ void QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 void QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
    *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
-   if(!UsefulBuf_IsNULL(*pPlace)){
+   if(!UsefulBuf_IsNULL(*pPlace)) {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+      // TODO: is this right?
       uint8_t uMajorType = Nesting_GetMajorType(&(pMe->nesting));
       if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
          pMe->uError = QCBOR_ERR_OPEN_BYTE_STRING;
@@ -949,7 +967,7 @@ void QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
       }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
-   QCBOREncode_OpenMapOrArray(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR);
+      QCBOREncode_OpenMapOrArray(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR);
    }
 }
 
@@ -975,14 +993,16 @@ void QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
 void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(me->uError == QCBOR_SUCCESS) {
-      if(!Nesting_IsInNest(&(me->nesting))) {
-         me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
-         return;
-      } else if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
-         me->uError = QCBOR_ERR_CLOSE_MISMATCH;
-         return;
-      }
+   if(me->uError != QCBOR_SUCCESS) {
+      return;
+   }
+   if(!Nesting_IsInNest(&(me->nesting))) {
+      me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+      return;
+   }
+   if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
+      me->uError = QCBOR_ERR_CLOSE_MISMATCH;
+      return;
    }
 #else /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    (void) uMajorType;

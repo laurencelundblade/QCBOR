@@ -1944,7 +1944,7 @@ int32_t BstrWrapErrorTest()
    if(uError != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
       return (int32_t)(300 + uError);
    }
-
+   
    return 0;
 }
 
@@ -2487,7 +2487,6 @@ int32_t EncodeErrorTests()
       // Error fetch failed.
       return -122;
    }
-   QCBOREncode_CloseArray(&EC);
    QCBOREncode_CloseArray(&EC);
    if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_BUFFER_TOO_LARGE) {
       return -2;
