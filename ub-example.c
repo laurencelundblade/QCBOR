@@ -89,37 +89,37 @@ ExpandxUB(const UsefulBufC   Input,
           const UsefulBuf    OutputBuffer,
           UsefulBufC        *Output)
 {
-    size_t nInputPosition;
-    size_t nOutputPosition;
+    size_t uInputPosition;
+    size_t uOutputPosition;
 
-    nOutputPosition = 0;
+    uOutputPosition = 0;
 
     /* Loop over all the bytes in Input */
-    for(nInputPosition = 0; nInputPosition < Input.len; nInputPosition++) {
-        const uint8_t nInputByte = ((uint8_t*)Input.ptr)[nInputPosition];
+    for(uInputPosition = 0; uInputPosition < Input.len; uInputPosition++) {
+        const uint8_t uInputByte = ((const uint8_t*)Input.ptr)[uInputPosition];
 
         /* Copy every byte */
         if(OutputBuffer.ptr != NULL) {
-            ((uint8_t *)OutputBuffer.ptr)[nOutputPosition] = nInputByte;
+            ((uint8_t *)OutputBuffer.ptr)[uOutputPosition] = uInputByte;
         }
-        nOutputPosition++;
-        if(nOutputPosition >= OutputBuffer.len) {
+        uOutputPosition++;
+        if(uOutputPosition >= OutputBuffer.len) {
             return -1;
         }
 
         /* Double output 'x' because that is what this contrived example does */
-        if(nInputByte== 'x') {
+        if(uInputByte== 'x') {
             if(OutputBuffer.ptr != NULL) {
-                ((uint8_t *)OutputBuffer.ptr)[nOutputPosition] = 'x';
+                ((uint8_t *)OutputBuffer.ptr)[uOutputPosition] = 'x';
             }
-            nOutputPosition++;
-            if(nOutputPosition >= OutputBuffer.len) {
+            uOutputPosition++;
+            if(uOutputPosition >= OutputBuffer.len) {
                 return -1;
             }
         }
     }
 
-    *Output = (UsefulBufC){OutputBuffer.ptr, nOutputPosition};
+    *Output = (UsefulBufC){OutputBuffer.ptr, uOutputPosition};
 
     return 0; /* success */
 }
@@ -133,37 +133,37 @@ ExpandxTraditional(const uint8_t  *pInputPointer,
                    const size_t    uOutputBufferLength,
                    size_t         *puOutputLength)
 {
-    size_t nInputPosition;
-    size_t nOutputPosition;
+    size_t uInputPosition;
+    size_t uOutputPosition;
 
-    nOutputPosition = 0;
+    uOutputPosition = 0;
 
     /* Loop over all the bytes in Input */
-    for(nInputPosition = 0; nInputPosition < uInputLength; nInputPosition++) {
-        const uint8_t nInputByte = ((uint8_t*)pInputPointer)[nInputPosition];
+    for(uInputPosition = 0; uInputPosition < uInputLength; uInputPosition++) {
+        const uint8_t uInputByte = ((const uint8_t*)pInputPointer)[uInputPosition];
 
         /* Copy every byte */
         if(pOutputBuffer != NULL) {
-            ((uint8_t *)pOutputBuffer)[nOutputPosition] = nInputByte;
+            ((uint8_t *)pOutputBuffer)[uOutputPosition] = uInputByte;
         }
-        nOutputPosition++;
-        if(nOutputPosition >= uOutputBufferLength) {
+        uOutputPosition++;
+        if(uOutputPosition >= uOutputBufferLength) {
             return -1;
         }
 
         /* Double output 'x' because that is what this contrived example does */
-        if(nInputByte== 'x') {
+        if(uInputByte== 'x') {
             if(pOutputBuffer != NULL) {
-                ((uint8_t *)pOutputBuffer)[nOutputPosition] = 'x';
+                ((uint8_t *)pOutputBuffer)[uOutputPosition] = 'x';
             }
-            nOutputPosition++;
-            if(nOutputPosition >= uOutputBufferLength) {
+            uOutputPosition++;
+            if(uOutputPosition >= uOutputBufferLength) {
                 return -1;
             }
         }
     }
 
-   *puOutputLength = nOutputPosition;
+   *puOutputLength = uOutputPosition;
 
     return 0; /* success */
 }
