@@ -529,6 +529,53 @@ static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t
 
 
 /**
+ * @brief Check for errors when decreasing nesting.
+ *
+ * @param pMe          QCBOR encoding context.
+ * @param uMajorType  The major type of the nesting.
+ *
+ * Check that there is no previous error, that there is actually some
+ * nesting and that the major type of the opening of the nesting
+ * matches the major type of the nesting being closed.
+ *
+ * This is called when closing maps, arrays, byte string wrapping and
+ * open/close of byte strings.
+ */
+bool
+CheckDecreaseNesting(QCBOREncodeContext *pMe, uint8_t uMajorType)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uError != QCBOR_SUCCESS) {
+      return true;
+   }
+
+   if(!Nesting_IsInNest(&(pMe->nesting))) {
+      pMe->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+      return true;
+   }
+
+   if(Nesting_GetMajorType(&(pMe->nesting)) != uMajorType) {
+      pMe->uError = QCBOR_ERR_CLOSE_MISMATCH;
+      return true;
+   }
+
+#else
+   /* None of these checks are performed if the encode guards are
+    * turned off as they all relate to correct calling.
+    *
+    * Turning off all these checks does not turn off any checking for
+    * buffer overflows or pointer issues.
+    */
+
+   (void)uMajorType;
+   (void)pMe;
+#endif
+   
+   return false;
+}
+
+
+/**
  * @brief Insert the CBOR head for a map, array or wrapped bstr
  *
  * @param me          QCBOR encoding context.
@@ -541,21 +588,10 @@ static void AppendCBORHead(QCBOREncodeContext *me, uint8_t uMajorType,  uint64_t
  */
 static void InsertCBORHead(QCBOREncodeContext *me, uint8_t uMajorType, size_t uLen)
 {
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(me->uError != QCBOR_SUCCESS) {
+   if(CheckDecreaseNesting(me, uMajorType)) {
       return;
    }
 
-   if(!Nesting_IsInNest(&(me->nesting))) {
-      me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
-      return;
-   }
-
-   if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
-      me->uError = QCBOR_ERR_CLOSE_MISMATCH;
-      return;
-   }
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
       uMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
    }
@@ -919,18 +955,11 @@ void QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *me, bool bIncludeCBORHead, U
  */
 void QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 {
+   if(CheckDecreaseNesting(pMe, CBOR_MAJOR_TYPE_BYTE_STRING)) {
+      return;
+   }
+
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uError != QCBOR_SUCCESS) {
-      return;
-   }
-   if(!Nesting_IsInNest(&(pMe->nesting))) {
-      pMe->uError = QCBOR_ERR_TOO_MANY_CLOSES;
-      return;
-   }
-   if(Nesting_GetMajorType(&(pMe->nesting)) != CBOR_MAJOR_TYPE_BYTE_STRING) {
-      pMe->uError = QCBOR_ERR_CLOSE_MISMATCH;
-      return;
-   }
    const size_t uCurrent = UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
    if(pMe->nesting.pCurrentNesting->uStart != uCurrent) {
       pMe->uError = QCBOR_ERR_CANNOT_CANCEL;
@@ -990,27 +1019,15 @@ void QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
 /*
  * Public function for closing arrays and maps. See qcbor/qcbor_encode.h
  */
-void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
+void QCBOREncode_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe, uint8_t uMajorType)
 {
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(me->uError != QCBOR_SUCCESS) {
+   if(CheckDecreaseNesting(pMe, uMajorType)) {
       return;
    }
-   if(!Nesting_IsInNest(&(me->nesting))) {
-      me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
-      return;
-   }
-   if(Nesting_GetMajorType(&(me->nesting)) != uMajorType) {
-      me->uError = QCBOR_ERR_CLOSE_MISMATCH;
-      return;
-   }
-#else /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-   (void) uMajorType;
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    /* Append the break marker (0xff for both arrays and maps) */
-   AppendCBORHead(me, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
-   Nesting_Decrease(&(me->nesting));
+   AppendCBORHead(pMe, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
+   Nesting_Decrease(&(pMe->nesting));
 }
 
 
