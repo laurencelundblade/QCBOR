@@ -1151,12 +1151,16 @@ DecodeAtomicDataItem(UsefulInputBuf               *pUInBuf,
          break;
 
       case CBOR_MAJOR_TYPE_TAG: /* Major type 6, tag numbers */
+#ifndef QCBOR_DISABLE_TAGS
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
             uReturn = QCBOR_ERR_BAD_INT;
          } else {
             pDecodedItem->val.uTagV = uArgument;
             pDecodedItem->uDataType = QCBOR_TYPE_TAG;
          }
+#else /* QCBOR_DISABLE_TAGS */
+         uReturn = QCBOR_ERR_TAGS_DISABLED;
+#endif /* QCBOR_DISABLE_TAGS */
          break;
 
       case CBOR_MAJOR_TYPE_SIMPLE:
@@ -1335,6 +1339,7 @@ Done:
 }
 
 
+#ifndef QCBOR_DISABLE_TAGS
 /**
  * @brief This converts a tag number to a shorter mapped value for storage.
  *
@@ -1497,7 +1502,7 @@ QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 Done:
    return uReturn;
 }
-
+#endif /* QCBOR_DISABLE_TAGS */
 
 /**
  * @brief Combine a map entry label and value into one item (decode layer 3).
@@ -1535,10 +1540,17 @@ Done:
 static inline QCBORError
 QCBORDecode_GetNextMapEntry(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
+#ifndef QCBOR_DISABLE_TAGS
    QCBORError uReturn = QCBORDecode_GetNextTagNumber(pMe, pDecodedItem);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
+#else
+   QCBORError uReturn = QCBORDecode_GetNextFullString(pMe, pDecodedItem);
+   if(uReturn != QCBOR_SUCCESS) {
+      goto Done;
+   }
+#endif
 
    if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
       /* Break can't be a map entry */
@@ -1553,7 +1565,7 @@ QCBORDecode_GetNextMapEntry(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
           * be the real data item.
           */
          QCBORItem LabelItem = *pDecodedItem;
-         uReturn = QCBORDecode_GetNextTagNumber(pMe, pDecodedItem);
+         uReturn = QCBORDecode_GetNextFullString(pMe, pDecodedItem);
          if(QCBORDecode_IsUnrecoverableError(uReturn)) {
             goto Done;
          }
@@ -1887,7 +1899,7 @@ Done:
    return uReturn;
 }
 
-
+#ifndef QCBOR_DISABLE_TAGS
 /**
  * @brief Shift 0th tag out of the tag list.
  *
@@ -1904,6 +1916,7 @@ static inline void ShiftTags(QCBORItem *pDecodedItem)
    pDecodedItem->uTags[QCBOR_MAX_TAGS_PER_ITEM-1] = CBOR_TAG_INVALID16;
 }
 
+#endif
 
 /**
  * @brief Convert different epoch date formats in to the QCBOR epoch date format
@@ -2066,12 +2079,14 @@ Done:
  * @returns  Decoding errors from getting primitive data items or
  *           \ref QCBOR_ERR_BAD_EXP_AND_MANTISSA.
  *
- * When called pDecodedItem must be the array that is tagged as a big
- * float or decimal fraction, the array that has the two members, the
+ * When called pDecodedItem must be the array with two members, the
  * exponent and mantissa.
  *
  * This will fetch and decode the exponent and mantissa and put the
  * result back into pDecodedItem.
+ *
+ * This does no checking or processing of tag numbers. That is to be
+ * done by the code that calls this.
  */
 static inline QCBORError
 QCBORDecode_MantissaAndExponent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
@@ -2085,15 +2100,11 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem
    }
 
    /* A check for pDecodedItem->val.uCount == 2 would work for
-    * definite-length arrays, but not for indefnite.  Instead remember
+    * definite-length arrays, but not for indefinite.  Instead remember
     * the nesting level the two integers must be at, which is one
     * deeper than that of the array.
     */
    const int nNestLevel = pDecodedItem->uNestingLevel + 1;
-
-   /* --- Which is it, decimal fraction or a bigfloat? --- */
-   const bool bIsTaggedDecimalFraction = QCBORDecode_IsTagged(pMe, pDecodedItem, CBOR_TAG_DECIMAL_FRACTION);
-   pDecodedItem->uDataType = bIsTaggedDecimalFraction ? QCBOR_TYPE_DECIMAL_FRACTION : QCBOR_TYPE_BIGFLOAT;
 
    /* --- Get the exponent --- */
    QCBORItem exponentItem;
@@ -2139,14 +2150,21 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem
        * and thus an error that will get handled in an else below.
        */
       pDecodedItem->val.expAndMantissa.Mantissa.nInt = mantissaItem.val.int64;
+#ifndef QCBOR_DISABLE_TAGS
+      /* With tags fully disabled a big number mantissa will error out
+       * in the call to QCBORDecode_GetNextWithTags() because it has
+       * a tag number.
+       */
    }  else if(mantissaItem.uDataType == QCBOR_TYPE_POSBIGNUM ||
               mantissaItem.uDataType == QCBOR_TYPE_NEGBIGNUM) {
       /* Got a good big num mantissa */
       pDecodedItem->val.expAndMantissa.Mantissa.bigNum = mantissaItem.val.bigNum;
       /* Depends on numbering of QCBOR_TYPE_XXX */
+      // TODO: this is not working right in the disable_tags refactor
       pDecodedItem->uDataType = (uint8_t)(pDecodedItem->uDataType +
                                           mantissaItem.uDataType - QCBOR_TYPE_POSBIGNUM +
                                           1);
+#endif /* QCBOR_DISABLE_TAGS */
    } else {
       /* Wrong type of mantissa or a QCBOR_TYPE_UINT64 > INT64_MAX */
       uReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
@@ -2166,6 +2184,8 @@ Done:
 }
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
+
+#ifndef QCBOR_DISABLE_TAGS
 
 #ifndef QCBOR_DISABLE_UNCOMMON_TAGS
 /**
@@ -2190,7 +2210,6 @@ static inline QCBORError DecodeMIME(QCBORItem *pDecodedItem)
    return QCBOR_SUCCESS;
 }
 #endif /* QCBOR_DISABLE_UNCOMMON_TAGS */
-
 
 /**
  * Table of CBOR tags whose content is either a text string or a byte
@@ -2275,7 +2294,7 @@ ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
    pDecodedItem->uDataType = (uint8_t)(uQCBORType & QCBOR_TYPE_MASK);
    return QCBOR_SUCCESS;
 }
-
+#endif /* QCBOR_DISABLE_TAGS */
 
 /**
  * @brief Decode tag content for select tags (decoding layer 1).
@@ -2300,6 +2319,7 @@ QCBORDecode_GetNextTagContent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
       goto Done;
    }
 
+#ifndef QCBOR_DISABLE_TAGS
    /* When there are no tag numbers for the item, this exits first
     * thing and effectively does nothing.
     *
@@ -2329,6 +2349,13 @@ QCBORDecode_GetNextTagContent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
       } else if(uTagToProcess == CBOR_TAG_DECIMAL_FRACTION ||
                 uTagToProcess == CBOR_TAG_BIGFLOAT) {
          uReturn = QCBORDecode_MantissaAndExponent(pMe, pDecodedItem);
+         /* --- Which is it, decimal fraction or a bigfloat? --- */
+         if(uTagToProcess == CBOR_TAG_DECIMAL_FRACTION) {
+            pDecodedItem->uDataType = QCBOR_TYPE_DECIMAL_FRACTION;
+         } else {
+            pDecodedItem->uDataType = QCBOR_TYPE_BIGFLOAT;
+         }
+
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 #ifndef QCBOR_DISABLE_UNCOMMON_TAGS
       } else if(uTagToProcess == CBOR_TAG_MIME ||
@@ -2360,6 +2387,7 @@ QCBORDecode_GetNextTagContent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
        */
       ShiftTags(pDecodedItem);
    }
+#endif /* QCBOR_DISABLE_TAGS */
 
 Done:
    return uReturn;
@@ -2452,7 +2480,7 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pMe,
          if(pTags->uNumUsed >= pTags->uNumAllocated) {
             return QCBOR_ERR_TOO_MANY_TAGS;
          }
-         pTags->puTags[pTags->uNumUsed] = UnMapTagNumber(pMe,pDecodedItem->uTags[nTagIndex]);
+         pTags->puTags[pTags->uNumUsed] = 0; // TODO UnMapTagNumber(pMe,pDecodedItem->uTags[nTagIndex]);
          pTags->uNumUsed++;
       }
    }
@@ -2472,9 +2500,9 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *pMe,
       if(pItem->uTags[uTagIndex] == CBOR_TAG_INVALID16) {
          break;
       }
-      if(UnMapTagNumber(pMe, pItem->uTags[uTagIndex]) == uTag) {
+      /* TODO if(UnMapTagNumber(pMe, pItem->uTags[uTagIndex]) == uTag) {
          return true;
-      }
+      } */
    }
 
    return false;
@@ -2542,7 +2570,7 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
    if(uIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
       return CBOR_TAG_INVALID64;
    } else {
-      return UnMapTagNumber(pMe, pItem->uTags[uIndex]);
+      return 0 ;// TODO: UnMapTagNumber(pMe, pItem->uTags[uIndex]);
    }
 }
 
@@ -2559,7 +2587,7 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe,
    if(uIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
       return CBOR_TAG_INVALID64;
    } else {
-      return UnMapTagNumber(pMe, pMe->uLastTags[uIndex]);
+      return 0; // TODO: UnMapTagNumber(pMe, pMe->uLastTags[uIndex]);
    }
 }
 
@@ -2749,9 +2777,12 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
 
 
 
-static inline void CopyTags(QCBORDecodeContext *pMe, const QCBORItem *pItem)
+static inline void
+CopyTags(QCBORDecodeContext *pMe, const QCBORItem *pItem)
 {
+#ifndef QCBOR_DISABLE_TAGS
    memcpy(pMe->uLastTags, pItem->uTags, sizeof(pItem->uTags));
+#endif
 }
 
 
@@ -3179,7 +3210,6 @@ Done:
 }
 
 
-
 static QCBORError
 CheckTypeList(int uDataType, const uint8_t puTypeList[QCBOR_TAGSPEC_NUM_TYPES])
 {
@@ -3193,14 +3223,19 @@ CheckTypeList(int uDataType, const uint8_t puTypeList[QCBOR_TAGSPEC_NUM_TYPES])
 
 
 /**
- @param[in] TagSpec  Specification for matching tags.
- @param[in] pItem    The item to check.
-
- @retval QCBOR_SUCCESS   \c uDataType is allowed by @c TagSpec
- @retval QCBOR_ERR_UNEXPECTED_TYPE \c uDataType is not allowed by @c TagSpec
-
- The data type must be one of the QCBOR_TYPEs, not the IETF CBOR Registered
- tag value.
+ * Match a tag/type specification against the type of the item.
+ *
+ * @param[in] TagSpec  Specification for matching tags.
+ * @param[in] pItem    The item to check.
+ *
+ * @retval QCBOR_SUCCESS   \c uDataType is allowed by @c TagSpec
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE \c uDataType is not allowed by @c TagSpec
+ *
+ * This is used to check types for untagged items as well as for tagged items. It
+ * works off the data type and thus relies on the automatic tag type decoding.
+ *
+ * The data type must be one of the QCBOR_TYPEs, not the IETF CBOR Registered
+ * tag value.
  */
 static QCBORError
 CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
@@ -3208,7 +3243,8 @@ CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
    if(!(TagSpec.uTagRequirement & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS) &&
       pItem->uTags[0] != CBOR_TAG_INVALID16) {
       /* There are tags that QCBOR couldn't process on this item and
-       the caller has told us there should not be. */
+       * the caller has told us there should not be. There will never
+       * be tag numbers when QCBOR_DISABLE_TAGS is defined. */
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
@@ -3216,8 +3252,12 @@ CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
    const int nItemType = pItem->uDataType;
 
    if(nTagReq == QCBOR_TAG_REQUIREMENT_TAG) {
-      // Must match the tag and only the tag
+#ifndef QCBOR_DISABLE_TAGS
+      /* Must match the tag number and only the tag */
       return CheckTypeList(nItemType, TagSpec.uTaggedTypes);
+#else
+      return QCBOR_ERR_TAGS_DISABLED;
+#endif /* QCBOR_DISABLE_TAGS */
    }
 
    QCBORError uReturn = CheckTypeList(nItemType, TagSpec.uAllowedContentTypes);
@@ -3227,26 +3267,26 @@ CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
 
    if(nTagReq == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
       /* Must match the content type and only the content type.
-       There was no match just above so it is a fail. */
+       * There was no match just above so it is a fail. */
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
    /* If here it can match either the tag or the content
-    and it hasn't matched the content, so the end
-    result is whether it matches the tag. This is
-    also the case that the CBOR standard discourages. */
+    * and it hasn't matched the content, so the end
+    * result is whether it matches the tag. This is
+    * also the case that the CBOR standard discourages.
+    */
 
    return CheckTypeList(nItemType, TagSpec.uTaggedTypes);
 }
 
 
-
 // This could be semi-private if need be
 static inline
-void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext *pMe,
-                                     int64_t             nLabel,
-                                     TagSpecification    TagSpec,
-                                     QCBORItem          *pItem)
+void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext    *pMe,
+                                     const int64_t          nLabel,
+                                     const TagSpecification TagSpec,
+                                     QCBORItem             *pItem)
 {
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, pItem);
    if(pMe->uLastError != QCBOR_SUCCESS) {
@@ -3259,10 +3299,10 @@ void QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext *pMe,
 
 // This could be semi-private if need be
 static inline
-void QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext *pMe,
-                                     const char          *szLabel,
-                                     TagSpecification    TagSpec,
-                                     QCBORItem          *pItem)
+void QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext    *pMe,
+                                     const char             *szLabel,
+                                     const TagSpecification  TagSpec,
+                                     QCBORItem              *pItem)
 {
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, pItem);
    if(pMe->uLastError != QCBOR_SUCCESS) {
@@ -3276,7 +3316,7 @@ void QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext *pMe,
 void QCBORDecode_GetTaggedStringInMapN(QCBORDecodeContext *pMe,
                                        int64_t             nLabel,
                                        TagSpecification    TagSpec,
-                                       UsefulBufC          *pString)
+                                       UsefulBufC         *pString)
 {
    QCBORItem Item;
    QCBORDecode_GetTaggedItemInMapN(pMe, nLabel, TagSpec, &Item);
@@ -3586,10 +3626,11 @@ Done:
 
 
 
-static QCBORError InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
-                                           const QCBORItem    *pItem,
-                                           uint8_t             uTagRequirement,
-                                           UsefulBufC         *pBstr)
+static QCBORError
+InternalEnterBstrWrapped(QCBORDecodeContext *pMe,
+                         const QCBORItem    *pItem,
+                         const uint8_t       uTagRequirement,
+                         UsefulBufC         *pBstr)
 {
    if(pBstr) {
       *pBstr = NULLUsefulBufC;
@@ -3830,7 +3871,7 @@ void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, bo
 
 static void ProcessEpochDate(QCBORDecodeContext *pMe,
                              QCBORItem           *pItem,
-                             uint8_t              uTagRequirement,
+                             const uint8_t        uTagRequirement,
                              int64_t             *pnTime)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
@@ -4009,13 +4050,16 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pMe,
 
 
 
-
-void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe,
-                                         TagSpecification    TagSpec,
-                                         UsefulBufC         *pBstr)
+/*
+ * @brief Get a string that matches the type/tag specification.
+ */
+void
+QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext     *pMe,
+                                    const TagSpecification  TagSpec,
+                                    UsefulBufC             *pBstr)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state, do nothing
+      /* Already in error state, do nothing */
       return;
    }
 
@@ -4040,10 +4084,11 @@ void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe,
 
 
 
-static QCBORError ProcessBigNum(uint8_t          uTagRequirement,
-                                const QCBORItem *pItem,
-                                UsefulBufC      *pValue,
-                                bool            *pbIsNegative)
+static QCBORError
+ProcessBigNum(const uint8_t   uTagRequirement,
+             const QCBORItem *pItem,
+             UsefulBufC      *pValue,
+             bool            *pbIsNegative)
 {
    const TagSpecification TagSpec =
    {
@@ -4134,10 +4179,11 @@ void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe,
 
 
 // Semi private
-QCBORError QCBORDecode_GetMIMEInternal(uint8_t     uTagRequirement,
-                                       const       QCBORItem *pItem,
-                                       UsefulBufC *pMessage,
-                                       bool       *pbIsTag257)
+QCBORError
+QCBORDecode_GetMIMEInternal(const uint8_t     uTagRequirement,
+                            const QCBORItem  *pItem,
+                            UsefulBufC       *pMessage,
+                            bool             *pbIsTag257)
 {
    const TagSpecification TagSpecText =
       {
@@ -5424,33 +5470,40 @@ static inline UsefulBufC ConvertIntToBigNum(uint64_t uInt, UsefulBuf Buffer)
 }
 
 
-static QCBORError MantissaAndExponentTypeHandler(QCBORDecodeContext *pMe,
-                                                 TagSpecification    TagSpec,
-                                                 QCBORItem          *pItem)
+/* TODO: remove these notes..
+
+
+
+ */
+static QCBORError
+MantissaAndExponentTypeHandler(QCBORDecodeContext     *pMe,
+                               const TagSpecification  TagSpec,
+                               QCBORItem              *pItem)
 {
    QCBORError uErr;
-   // Loops runs at most 1.5 times. Making it a loop saves object code.
-   while(1) {
-      uErr = CheckTagRequirement(TagSpec, pItem);
-      if(uErr != QCBOR_SUCCESS) {
-         goto Done;
-      }
 
-      if(pItem->uDataType != QCBOR_TYPE_ARRAY) {
-         break; // Successful exit. Moving on to finish decoding.
-      }
+   uErr = CheckTagRequirement(TagSpec, pItem);
+   if(uErr != QCBOR_SUCCESS) {
+      goto Done;
+   }
 
-      // The item is an array, which means an undecoded
-      // mantissa and exponent, so decode it. It will then
-      // have a different type and exit the loop if.
+   if(pItem->uDataType == QCBOR_TYPE_ARRAY) {
+      /* The item is an array, which means an undecoded
+       * mantissa and exponent, so decode it.
+       */
       uErr = QCBORDecode_MantissaAndExponent(pMe, pItem);
       if(uErr != QCBOR_SUCCESS) {
          goto Done;
       }
 
+      // TODO: might need to check the type again here.
+
       // Second time around, the type must match.
-      TagSpec.uTagRequirement = QCBOR_TAG_REQUIREMENT_TAG;
+      //TagSpec.uTagRequirement = QCBOR_TAG_REQUIREMENT_TAG;
+   } else {
+      uErr = QCBOR_SUCCESS;
    }
+
 Done:
    return uErr;
 }
@@ -5754,6 +5807,17 @@ void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
 /*
  Public function, see header qcbor/qcbor_decode.h file
 */
+
+/*
+
+ TODO: remove these notes
+
+ Several cases:
+   - Item is BF tag and BF tag is required - sucess
+   - Item is not a tag and BF tag is required - error
+   - Item is a BF tag and no tag is allowed - error
+   - Item is not a tag and no tag is allowed - success
+ */
 void QCBORDecode_GetBigFloat(QCBORDecodeContext *pMe,
                              uint8_t             uTagRequirement,
                              int64_t             *pnMantissa,

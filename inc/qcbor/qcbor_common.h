@@ -35,6 +35,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
+#define QCBOR_DISABLE_TAGS
 
 /**
  @file qcbor_common.h
@@ -529,7 +530,11 @@ typedef enum {
 
    /** During encode, opening a byte string while a byte string is open
        is not allowed. . */
-   QCBOR_ERR_OPEN_BYTE_STRING = 47
+   QCBOR_ERR_OPEN_BYTE_STRING = 47,
+
+   /** All decoding of CBOR major type 6, tags, is disabled and a tag
+       occurred in the decode input. */
+   QCBOR_ERR_TAGS_DISABLED = 48
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
