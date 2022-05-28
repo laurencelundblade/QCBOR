@@ -1542,15 +1542,13 @@ QCBORDecode_GetNextMapEntry(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
 #ifndef QCBOR_DISABLE_TAGS
    QCBORError uReturn = QCBORDecode_GetNextTagNumber(pMe, pDecodedItem);
-   if(uReturn != QCBOR_SUCCESS) {
-      goto Done;
-   }
 #else
    QCBORError uReturn = QCBORDecode_GetNextFullString(pMe, pDecodedItem);
+   // TODO: someone needs to fix up the tag list to be empty
+#endif /* QCBOR_DISABLE_TAGS */
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
-#endif
 
    if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
       /* Break can't be a map entry */
@@ -1565,7 +1563,11 @@ QCBORDecode_GetNextMapEntry(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
           * be the real data item.
           */
          QCBORItem LabelItem = *pDecodedItem;
-         uReturn = QCBORDecode_GetNextFullString(pMe, pDecodedItem);
+         #ifndef QCBOR_DISABLE_TAGS
+            uReturn = QCBORDecode_GetNextTagNumber(pMe, pDecodedItem);
+         #else
+            uReturn = QCBORDecode_GetNextFullString(pMe, pDecodedItem);
+         #endif /* QCBOR_DISABLE_TAGS */
          if(QCBORDecode_IsUnrecoverableError(uReturn)) {
             goto Done;
          }
@@ -2087,6 +2089,9 @@ Done:
  *
  * This does no checking or processing of tag numbers. That is to be
  * done by the code that calls this.
+ *
+ * This stuffs the type of the mantissa into pDecodedItem with the expectation
+ * the caller will process it.
  */
 static inline QCBORError
 QCBORDecode_MantissaAndExponent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
@@ -2142,6 +2147,9 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem
       uReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
+   /* Stuff the mantissa data type into the item to send it up to the
+    * the next level. */
+   pDecodedItem->uDataType = mantissaItem.uDataType;
    if(mantissaItem.uDataType == QCBOR_TYPE_INT64) {
       /* Data arriving as an unsigned int < INT64_MAX has been
        * converted to QCBOR_TYPE_INT64 and thus handled here. This is
@@ -2161,9 +2169,9 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem
       pDecodedItem->val.expAndMantissa.Mantissa.bigNum = mantissaItem.val.bigNum;
       /* Depends on numbering of QCBOR_TYPE_XXX */
       // TODO: this is not working right in the disable_tags refactor
-      pDecodedItem->uDataType = (uint8_t)(pDecodedItem->uDataType +
+      /*pDecodedItem->uDataType = (uint8_t)(pDecodedItem->uDataType +
                                           mantissaItem.uDataType - QCBOR_TYPE_POSBIGNUM +
-                                          1);
+                                          1);  */
 #endif /* QCBOR_DISABLE_TAGS */
    } else {
       /* Wrong type of mantissa or a QCBOR_TYPE_UINT64 > INT64_MAX */
@@ -2296,6 +2304,28 @@ ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
 }
 #endif /* QCBOR_DISABLE_TAGS */
 
+
+/*
+
+Called in one context where there is always a tag
+
+ Called in another context where there might be a tag or the caller might say what they are expecting.
+
+ 6 possible outputs
+ */
+static inline uint8_t
+MantissaExponentDataType(const uint16_t uTagToProcess, const QCBORItem *pDecodedItem)
+{
+   uint8_t uBase = uTagToProcess == CBOR_TAG_DECIMAL_FRACTION ?
+                                       QCBOR_TYPE_DECIMAL_FRACTION :
+                                       QCBOR_TYPE_BIGFLOAT;
+   if(pDecodedItem->uDataType != QCBOR_TYPE_INT64) {
+      uBase = (uint8_t)(uBase + pDecodedItem->uDataType - QCBOR_TYPE_POSBIGNUM + 1);
+   }
+   return uBase;
+}
+
+
 /**
  * @brief Decode tag content for select tags (decoding layer 1).
  *
@@ -2350,11 +2380,7 @@ QCBORDecode_GetNextTagContent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
                 uTagToProcess == CBOR_TAG_BIGFLOAT) {
          uReturn = QCBORDecode_MantissaAndExponent(pMe, pDecodedItem);
          /* --- Which is it, decimal fraction or a bigfloat? --- */
-         if(uTagToProcess == CBOR_TAG_DECIMAL_FRACTION) {
-            pDecodedItem->uDataType = QCBOR_TYPE_DECIMAL_FRACTION;
-         } else {
-            pDecodedItem->uDataType = QCBOR_TYPE_BIGFLOAT;
-         }
+         pDecodedItem->uDataType = MantissaExponentDataType(uTagToProcess, pDecodedItem);
 
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 #ifndef QCBOR_DISABLE_UNCOMMON_TAGS
@@ -2480,7 +2506,7 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pMe,
          if(pTags->uNumUsed >= pTags->uNumAllocated) {
             return QCBOR_ERR_TOO_MANY_TAGS;
          }
-         pTags->puTags[pTags->uNumUsed] = 0; // TODO UnMapTagNumber(pMe,pDecodedItem->uTags[nTagIndex]);
+         pTags->puTags[pTags->uNumUsed] = UnMapTagNumber(pMe,pDecodedItem->uTags[nTagIndex]);
          pTags->uNumUsed++;
       }
    }
@@ -2500,9 +2526,9 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *pMe,
       if(pItem->uTags[uTagIndex] == CBOR_TAG_INVALID16) {
          break;
       }
-      /* TODO if(UnMapTagNumber(pMe, pItem->uTags[uTagIndex]) == uTag) {
+      if(UnMapTagNumber(pMe, pItem->uTags[uTagIndex]) == uTag) {
          return true;
-      } */
+      }
    }
 
    return false;
@@ -2570,7 +2596,7 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
    if(uIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
       return CBOR_TAG_INVALID64;
    } else {
-      return 0 ;// TODO: UnMapTagNumber(pMe, pItem->uTags[uIndex]);
+      return UnMapTagNumber(pMe, pItem->uTags[uIndex]);
    }
 }
 
@@ -2587,7 +2613,7 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe,
    if(uIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
       return CBOR_TAG_INVALID64;
    } else {
-      return 0; // TODO: UnMapTagNumber(pMe, pMe->uLastTags[uIndex]);
+      return UnMapTagNumber(pMe, pMe->uLastTags[uIndex]);
    }
 }
 
@@ -5472,16 +5498,23 @@ static inline UsefulBufC ConvertIntToBigNum(uint64_t uInt, UsefulBuf Buffer)
 
 /* TODO: remove these notes..
 
-
+This is common to decimal fraction and big float.
 
  */
 static QCBORError
 MantissaAndExponentTypeHandler(QCBORDecodeContext     *pMe,
-                               const TagSpecification  TagSpec,
+                               TagSpecification  TagSpec,
                                QCBORItem              *pItem)
 {
    QCBORError uErr;
 
+   /* The first item in the mantissa and exponent has been
+    retrieved. It might have been auto-decoded if it was
+    a tag or it might not have been auto decoded if it wasn't
+    a tag. CheckTagRequirements makes sure its one of
+    these two, but doesn't say which it was. Just that it
+    was OK.
+    */
    uErr = CheckTagRequirement(TagSpec, pItem);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
@@ -5489,17 +5522,21 @@ MantissaAndExponentTypeHandler(QCBORDecodeContext     *pMe,
 
    if(pItem->uDataType == QCBOR_TYPE_ARRAY) {
       /* The item is an array, which means an undecoded
-       * mantissa and exponent, so decode it.
+       * mantissa and exponent, so decode it. This is the
+       * case where there was no tag.
        */
       uErr = QCBORDecode_MantissaAndExponent(pMe, pItem);
       if(uErr != QCBOR_SUCCESS) {
          goto Done;
       }
 
-      // TODO: might need to check the type again here.
+      /* The expected type is fished out of TagSpec. */
+      pItem->uDataType = MantissaExponentDataType(TagSpec.uTaggedTypes[0], pItem);
 
-      // Second time around, the type must match.
-      //TagSpec.uTagRequirement = QCBOR_TAG_REQUIREMENT_TAG;
+      /* No need to check the type again. All that we need to know was
+       * that it decoded correctly as a mantissa and exponent. They
+       * QCBOR type gets figured out by what was requested. */
+
    } else {
       uErr = QCBOR_SUCCESS;
    }

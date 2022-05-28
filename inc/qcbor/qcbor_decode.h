@@ -162,6 +162,22 @@ extern "C" {
  * item being sought, in which case the unrecoverable error will be
  * returned. Unrecoverable errors are those indicated by
  * QCBORDecode_IsUnrecoverableError().
+ *
+ *  @anchor Disabilng-Tag-Decoding
+ * # Disabilng Tag Decoding
+ *
+ * If QCBOR_DISABLE_TAGS is defined, all code for decoding tags will
+ * be ommitted reducing the object code size of GetNext() by about 500
+ * bytes. If a tag number is encountered in the decoder input the
+ * @ref QCBOR_ERR_TAGS_DISABLED error will be returned.
+ *
+ * Spiffy decode functions like QCBORDecode_GetEpochDate() that decode
+ * types defined by tags are still available. Typically they won't be
+ * linked in because of dead stripping. If they are called with
+ * uTagRequirement QCBOR_TAG_REQUIREMENT_TAG or the input data item
+ * has a tag number @ref QCBOR_ERR_TAGS_DISABLED will be
+ * returned. That is they may only be used on dates, big numbers and
+ * such that don't have a tag number, whose type is implicitly known.
  */
 
 /**
