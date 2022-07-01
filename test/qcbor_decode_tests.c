@@ -6076,6 +6076,8 @@ int32_t IntegerConvertTest()
    return 0;
 }
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+
 int32_t CBORTestIssue134()
 {
    QCBORDecodeContext DCtx;
@@ -6098,6 +6100,8 @@ int32_t CBORTestIssue134()
 
    return (int32_t)uCBORError;
 }
+
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 int32_t CBORSequenceDecodeTests(void)
 {

@@ -367,17 +367,59 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
  code because Usefulbuf provides similar defenses and this code was
  carefully written to be defensive.
 
- Disable features with defines like:
-   QCBOR_DISABLE_EXP_AND_MANTISSA (saves about 400 bytes) 
-   QCBOR_DISABLE_ENCODE_USAGE_GUARDS (saves about 150), and
-   QCBOR_DISABLE_PREFERRED_FLOAT (saves about 900 bytes), and
-   QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS (saves about 400 bytes).  
-   QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS (saves about 200 bytes).
-   QCBOR_DISABLE_UNCOMMON_TAGS (saves about 100 bytes).
- 
  If QCBOR is installed as a shared library, then of course only one
  copy of the code is in memory no matter how many applications use it.
  
+### Disabling Features
+
+Here's the list of all features that can be disabled to save object
+code. The amount saved is an approximation.
+
+    | #define                                 | Saves | 
+    | ----------------------------------------| ------| 
+    | QCBOR_DISABLE_ENCODE_USAGE_GUARDS       |   150 | 
+    | QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS |   400 | 
+    | QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  |   200 | 
+    | QCBOR_DISABLE_UNCOMMON_TAGS             |   100 | 
+    | QCBOR_DISABLE_EXP_AND_MANTISSA          |   400 | 
+    | QCBOR_DISABLE_PREFERRED_FLOAT           |   900 | 
+    | QCBOR_DISABLE_FLOAT_HW_USE              |    50 | 
+    | USEFULBUF_DISABLE_ALL_FLOAT             |   950 | 
+
+QCBOR_DISABLE_ENCODE_USAGE_GUARDS affects encoding only.  It doesn't
+disable any encoding features, just some error checking.  Disable it
+when you are confident that an encoding implementation is complete and
+correct.
+
+Indefinite lengths are a feature of CBOR that makes encoding simpler
+and the decoding more complex. They allow the encoder to not have to
+know the length of a string, map or array when they start encoding
+it. Their main use is when encoding has to be done on a very
+constrained device.  Conversely when decoding on a very constrained
+device, it is good to prohibit use of indefinite lengths so the
+decoder can be smaller.
+
+The QCBOR decode API processes both definite and indefinite lengths
+with the same API, except to decode indefinite-length strings a
+storage allocator must be configured.
+
+To reduce the size of the decoder define
+QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS particularly if you are not
+configuring a storage allocator.
+
+Further reduction can be by defining
+QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS which will result in an error
+when an indefinite-length map or array arrives for decoding.
+
+QCBOR_DISABLE_UNCOMMON_TAGS disables the decoding of explicit tags for
+base 64, regex, UUID and MIME data. This just disabled the automatic
+recognition of these from a major type 6 tag.
+
+QCBOR_DISABLE_EXP_AND_MANTISSA disables the decoding of decimal
+fractions and big floats.
+
+See the discussion above on floating-point.
+
  ### Size of spiffy decode
  
  When creating a decode implementation, there is a choice of whether
