@@ -6072,7 +6072,7 @@ int32_t CBORTestIssue134()
 
    uCBORError = QCBORDecode_Finish(&DCtx);
 
-   return uCBORError;
+   return (int32_t)uCBORError;
 }
 
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
