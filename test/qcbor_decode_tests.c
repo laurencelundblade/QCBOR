@@ -4855,6 +4855,8 @@ int32_t ExponentAndMantissaDecodeFailTests()
  }
  */
 
+
+
 int32_t SpiffyDecodeBasicMap(UsefulBufC input)
 {
      QCBORItem Item1, Item2, Item3;
@@ -4944,6 +4946,7 @@ int32_t SpiffyDecodeBasicMap(UsefulBufC input)
      if(UsefulBuf_Compare(S3, UsefulBuf_FromSZ("string2"))){
         return 1009;
      }
+
 
    return 0;
 }
@@ -5230,9 +5233,11 @@ static const uint8_t spUnRecoverableMapError4[] = {
 };
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
-const unsigned char not_well_formed_submod_section[] = {
+static const unsigned char not_well_formed_submod_section[] = {
    0xa1, 0x14, 0x1f,
 };
+
+static const uint8_t spCOSEHeader[] = { 0xa1, 0x01, 0x26};
 
 int32_t EnterMapTest()
 {
@@ -5573,6 +5578,27 @@ int32_t EnterMapTest()
    QCBORDecode_EnterMapFromMapN(&DCtx, 20);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_BAD_INT) {
       return 2500;
+   }
+
+   /* Make sure failure to get an item doesn't disturb cursor. */
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCOSEHeader), 0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_EnterArrayFromMapN(&DCtx, 55);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+      return 2601;
+   }
+
+   QCBORDecode_GetNext(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_INT64 ||
+      Item1.val.int64 != -7 ||
+      QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 2600;
+   }
+
+   QCBORDecode_ExitMap(&DCtx);
+   uErr = QCBORDecode_Finish(&DCtx);
+   if(uErr != QCBOR_SUCCESS) {
+      return 2026;
    }
 
    return nReturn;
@@ -6070,7 +6096,7 @@ int32_t CBORTestIssue134()
 
    uCBORError = QCBORDecode_Finish(&DCtx);
 
-   return uCBORError;
+   return (int32_t)uCBORError;
 }
 
 int32_t CBORSequenceDecodeTests(void)

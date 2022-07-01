@@ -2981,6 +2981,8 @@ MapSearch(QCBORDecodeContext *pMe,
 
    QCBORDecodeNesting SaveNesting;
    DecodeNesting_PrepareForMapSearch(&(pMe->nesting), &SaveNesting);
+   const size_t uSaveCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
+
 
    /* Reposition to search from the start of the map / array */
    RewindMapOrArray(pMe);
@@ -3097,6 +3099,7 @@ MapSearch(QCBORDecodeContext *pMe,
 
  Done:
    DecodeNesting_RestoreFromMapSearch(&(pMe->nesting), &SaveNesting);
+   UsefulInputBuf_Seek(&(pMe->InBuf), uSaveCursor);
 
  Done2:
    /* For all items not found, set the data and label type to QCBOR_TYPE_NONE */
