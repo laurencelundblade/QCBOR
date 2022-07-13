@@ -1525,7 +1525,7 @@ Done:
  * combines pairs of items into one data item with a label
  * and value.
  *
- * This is passthrough if the current nesting leve is
+ * This is passthrough if the current nesting level is
  * not a map.
  *
  * This also implements maps-as-array mode where a map
@@ -1913,7 +1913,7 @@ static inline void ShiftTags(QCBORItem *pDecodedItem)
  * @retval QCBOR_ERR_DATE_OVERFLOW
  * @retval QCBOR_ERR_FLOAT_DATE_DISABLED
  * @retval QCBOR_ERR_ALL_FLOAT_DISABLED
- * @retval QCBOR_ERR_BAD_TAG_CONTENT
+ * @retval QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT
  *
  * The epoch date tag defined in QCBOR allows for floating-point
  * dates. It even allows a protocol to flop between date formats when
@@ -1998,7 +1998,11 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
          break;
 
       default:
-         uReturn = QCBOR_ERR_BAD_TAG_CONTENT;
+         /* It's the arrays and maps that are unrecoverable because
+          * they are not consumed here. Since this is just an error
+          * condition, no extra code is added here to make the error
+          * recoverable for non-arrays and maps like strings. */
+         uReturn = QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT;
          goto Done;
    }
 
@@ -2017,7 +2021,7 @@ Done:
  * @retval QCBOR_ERR_DATE_OVERFLOW
  * @retval QCBOR_ERR_FLOAT_DATE_DISABLED
  * @retval QCBOR_ERR_ALL_FLOAT_DISABLED
- * @retval QCBOR_ERR_BAD_TAG_CONTENT
+ * @retval QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT
  *
  * This is much simpler than the other epoch date format because
  * floating-porint is not allowed. This is mostly a simple type check.
@@ -2041,7 +2045,11 @@ static QCBORError DecodeDaysEpoch(QCBORItem *pDecodedItem)
          break;
 
       default:
-         uReturn = QCBOR_ERR_BAD_TAG_CONTENT;
+         /* It's the arrays and maps that are unrecoverable because
+          * they are not consumed here. Since this is just an error
+          * condition, no extra code is added here to make the error
+          * recoverable for non-arrays and maps like strings. */
+         uReturn = QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT;
          goto Done;
          break;
    }
@@ -2184,7 +2192,11 @@ static inline QCBORError DecodeMIME(QCBORItem *pDecodedItem)
    } else if(pDecodedItem->uDataType == QCBOR_TYPE_BYTE_STRING) {
       pDecodedItem->uDataType = QCBOR_TYPE_BINARY_MIME;
    } else {
-      return QCBOR_ERR_BAD_OPT_TAG;
+      /* It's the arrays and maps that are unrecoverable because
+       * they are not consumed here. Since this is just an error
+       * condition, no extra code is added here to make the error
+       * recoverable for non-arrays and maps like strings. */
+      return QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT;
    }
 
    return QCBOR_SUCCESS;
@@ -2232,7 +2244,7 @@ static const struct StringTagMapEntry StringTagMap[] = {
  *
  * @returns  This returns QCBOR_SUCCESS if the tag was procssed,
  *           \ref QCBOR_ERR_UNSUPPORTED if the tag was not processed and
- *           \ref QCBOR_ERR_BAD_OPT_TAG if the content type was wrong for the tag.
+ *           \ref QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT if the content type was wrong for the tag.
  *
  * Process the CBOR tags that whose content is a byte string or a text
  * string and for which the string is just passed on to the caller.
@@ -2269,7 +2281,11 @@ ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
    }
 
    if(pDecodedItem->uDataType != uExpectedType) {
-      return QCBOR_ERR_BAD_OPT_TAG;
+      /* It's the arrays and maps that are unrecoverable because
+       * they are not consumed here. Since this is just an error
+       * condition, no extra code is added here to make the error
+       * recoverable for non-arrays and maps like strings. */
+      return QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT;
    }
 
    pDecodedItem->uDataType = (uint8_t)(uQCBORType & QCBOR_TYPE_MASK);
@@ -2755,19 +2771,30 @@ static inline void CopyTags(QCBORDecodeContext *pMe, const QCBORItem *pItem)
 }
 
 
-/*
- Consume an entire map or array (and do next to
- nothing for non-aggregate types).
+/**
+ * @brief Consume an entire map or array including its contents
+ *
+ * @param[in]  pMe              The decoder context.
+ * @param[in]  pItemToConsume   The array/map whose contents are to be
+ *                              consumed.
+ * @param[out] puNextNestLevel  The next nesting level after the item was
+ *                              fully consumed.
+ *
+ * This may be called when @c pItemToConsume is not an array or
+ * map. In that case, this is just a pass through for @puNextNestLevel
+ * since there is nothing to do.
  */
 static inline QCBORError
 ConsumeItem(QCBORDecodeContext *pMe,
             const QCBORItem    *pItemToConsume,
             uint8_t            *puNextNestLevel)
 {
+   // TODO: what to do about QCBOR_ERR_BAD_TAG_CONTENT
+   // TODO: what to do about QCBOR_ERR_ALL_FLOAT_DISABLED
    QCBORError uReturn;
    QCBORItem  Item;
 
-   // If it is a map or array, this will tell if it is empty.
+   /* If it is a map or array, this will tell if it is empty. */
    const bool bIsEmpty = (pItemToConsume->uNextNestLevel <= pItemToConsume->uNestingLevel);
 
    if(QCBORItem_IsMapOrArray(pItemToConsume) && !bIsEmpty) {
@@ -2778,7 +2805,8 @@ ConsumeItem(QCBORDecodeContext *pMe,
        */
       do {
          uReturn = QCBORDecode_GetNext(pMe, &Item);
-         if(QCBORDecode_IsUnrecoverableError(uReturn)) {
+         if(QCBORDecode_IsUnrecoverableError(uReturn) ||
+            uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
             goto Done;
          }
       } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
@@ -2788,7 +2816,7 @@ ConsumeItem(QCBORDecodeContext *pMe,
       uReturn = QCBOR_SUCCESS;
 
    } else {
-      /* item_to_consume is not a map or array */
+      /* pItemToConsume is not a map or array. */
       /* Just pass the nesting level through */
       *puNextNestLevel = pItemToConsume->uNextNestLevel;
 

@@ -5234,6 +5234,37 @@ const unsigned char not_well_formed_submod_section[] = {
    0xa1, 0x14, 0x1f,
 };
 
+
+/* Array of length 3, but only two items. */
+const unsigned char spBadConsumeInput[] = {
+   0x83, 0x00, 0x00
+};
+
+/* Tag nesting too deep. */
+const unsigned char spBadConsumeInput2[] = {
+   0x81,
+   0xD8, 0x37,
+   0xD8, 0x2C,
+      0xD8, 0x21,
+         0xD6,
+            0xCB,
+               00
+};
+
+const unsigned char spBadConsumeInput3[] = {
+   0x81, 0xc0, 0x81, 0x00
+};
+
+const unsigned char spBadConsumeInput4[] = {
+   0x81, 0x9f, 0x00, 0xff
+};
+
+const unsigned char spBadConsumeInput5[] = {
+   0xa1, 0x80, 0x00
+};
+
+
+
 int32_t EnterMapTest()
 {
    QCBORItem          Item1;
@@ -5574,6 +5605,50 @@ int32_t EnterMapTest()
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_BAD_INT) {
       return 2500;
    }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 2600;
+   }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput2), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 2700;
+   }
+/*
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput3), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 2800;
+   }
+*/
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput4), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 2900;
+   }
+#else
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED) {
+      return 2901;
+   }
+#endif
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput5), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_MAP_LABEL_TYPE) {
+      return 2700;
+   }
+
+   /*
+
+    - Make BAD_TAG_CONTENT unrecoverable.
+    - Every tag decoder has to consume the bad content for the tag (if possible)
+    
+
+    */
 
    return nReturn;
 }
