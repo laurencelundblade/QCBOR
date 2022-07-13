@@ -2561,7 +2561,7 @@ int32_t DateParseTest()
    Untagged values
  */
 static const uint8_t spSpiffyDateTestInput[] = {
-   0x86,
+   0x86, // array of 6 items
 
    0xc1,
    0xfb, 0xc3, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // -9.2233720368547748E+18, too negative
@@ -2571,12 +2571,6 @@ static const uint8_t spSpiffyDateTestInput[] = {
 
    0xc1, // tag for epoch date
    0xf9, 0xfc, 0x00, // Half-precision -Infinity
-
-   0xc1, // tag for epoch date
-   0x80, // Erroneous empty array as content for date
-
-   0xc0, // tag for string date
-   0xa0, // Erroneous empty map as content for date
 
    0xad, // Open a map for tests involving labels.
 
@@ -2634,7 +2628,16 @@ static const uint8_t spSpiffyDateTestInput[] = {
 
    /* Untagged days-count epoch date */
    0x11,
-   0x19, 0x0F, 0x9A /* 3994 */
+   0x19, 0x0F, 0x9A, /* 3994 */
+
+   // End of map, back to array
+
+   // These two at the end because they are unrecoverable errors
+   0xc1, // tag for epoch date
+   0x80, // Erroneous empty array as content for date
+
+   0xc0, // tag for string date
+   0xa0 // Erroneous empty map as content for date
 
 };
 
@@ -2674,19 +2677,7 @@ int32_t SpiffyDateDecodeTest()
       return 2;
    }
 
-   // Bad content for epoch date
-   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
-   uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_BAD_OPT_TAG) {
-      return 3;
-   }
 
-   // Bad content for string date
-   QCBORDecode_GetDateString(&DC, QCBOR_TAG_REQUIREMENT_TAG, &StringDate1);
-   uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_BAD_OPT_TAG) {
-      return 4;
-   }
 
    QCBORDecode_EnterMap(&DC, NULL);
 
@@ -2826,9 +2817,27 @@ int32_t SpiffyDateDecodeTest()
                                   &nEpochDays2);
 
    QCBORDecode_ExitMap(&DC);
+   if(QCBORDecode_GetError(&DC) != QCBOR_SUCCESS) {
+      return 3001;
+   }
+
+   // Bad content for epoch date
+   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
+      return 3;
+   }
+
+   // Bad content for string date
+   QCBORDecode_GetDateString(&DC, QCBOR_TAG_REQUIREMENT_TAG, &StringDate1);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
+      return 4;
+   }
+
    QCBORDecode_ExitArray(&DC);
    uError = QCBORDecode_Finish(&DC);
-   if(uError) {
+   if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 1000 + (int32_t)uError;
    }
 
@@ -3031,6 +3040,10 @@ static const uint8_t spSpiffyTagInput[] = {
 
    0xc0, // tag for string date
    0x4a, '1','9','8','5','-','0','4','-','1','2', // Date string in byte string
+
+   // This last case makes the array untraversable because it is
+   // an uncrecoverable error. Make sure it stays last and is the only
+   // instance so the other tests can work.
 };
 
 
@@ -3432,11 +3445,15 @@ int32_t OptTagParseTest()
    }
    // tagged date string with a byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_BAD_OPT_TAG) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 103;
    }
+   // The exit errors out because the last item, the date string with
+   // bad content makes the array untraversable (the bad date string
+   // could have tag content of an array or such that is not consumed
+   // by the date decoding).
    QCBORDecode_ExitArray(&DCtx);
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_SUCCESS) {
+   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 104;
    }
 
@@ -3465,11 +3482,12 @@ int32_t OptTagParseTest()
    }
    // tagged date string with a byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_BAD_OPT_TAG) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 203;
    }
+   // See comments above
    QCBORDecode_ExitArray(&DCtx);
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_SUCCESS) {
+   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 204;
    }
 
@@ -3500,11 +3518,12 @@ int32_t OptTagParseTest()
    }
    // tagged date string with a byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_BAD_OPT_TAG) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 304;
    }
+   // See comments above
    QCBORDecode_ExitArray(&DCtx);
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_SUCCESS) {
+   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 305;
    }
 
@@ -5179,23 +5198,21 @@ static const uint8_t spMapOfEmpty[] = {
 
 /*
  Too many tags
- Invalid tag content
  Duplicate label
  Integer overflow
  Date overflow
 
    {
       1: 224(225(226(227(4(0))))),
-      2: 1(h''),
       3: -18446744073709551616,
       4: 1(1.0e+300),
-      5: 0, 8: 8
+      5: 0,
+      8: 8
     }
  */
 static const uint8_t spRecoverableMapErrors[] = {
-   0xa7,
+   0xa6,
    0x01, 0xd8, 0xe0, 0xd8, 0xe1, 0xd8, 0xe2, 0xd8, 0xe3, 0xd8, 0x04, 0x00,
-   0x02, 0xc1, 0x40,
    0x03, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    0x04, 0xc1, 0xfb, 0x7e, 0x37, 0xe4, 0x3c, 0x88, 0x00, 0x75, 0x9c,
    0x05, 0x00,
@@ -5480,12 +5497,6 @@ int32_t EnterMapTest()
    }
    (void)QCBORDecode_GetAndResetError(&DCtx);
 
-
-   QCBORDecode_GetEpochDateInMapN(&DCtx, 0x02, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
-   uErr = QCBORDecode_GetAndResetError(&DCtx);
-   if(uErr != QCBOR_ERR_BAD_OPT_TAG) {
-      return 2022;
-   }
 
    QCBORDecode_GetInt64InMapN(&DCtx, 0x03, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);

@@ -35,6 +35,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
+
 /**
  @file qcbor_common.h
 
@@ -436,6 +437,7 @@ typedef enum {
        were known as "Optional Tags" in RFC 7049, but "optional" is
        misleading. The old error name is retained for backwards
        compatibility. */
+   QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT = 27,
    QCBOR_ERR_BAD_TAG_CONTENT = 27,
    QCBOR_ERR_BAD_OPT_TAG = 27,
 
@@ -531,7 +533,7 @@ typedef enum {
    QCBOR_ERR_OPEN_BYTE_STRING = 47,
 
    /** Like *ref QCBOR_ERR_BAD_TAG_CONTENT, but unrecoverable.*/
-   QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT = 48
+   QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 48
 
 
    /* This is stored in uint8_t; never add values > 255 */

@@ -1435,6 +1435,10 @@ static inline bool QCBORDecode_IsNotWellFormedError(QCBORError uErr)
 
 static inline bool QCBORDecode_IsUnrecoverableError(QCBORError uErr)
 {
+   /* 
+
+
+    */
    // improvement: renumber errors so only the range test
    // is necessary. Be sure to leave extra for future
    // errors that are unrecoverable.
