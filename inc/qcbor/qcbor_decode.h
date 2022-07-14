@@ -1439,19 +1439,8 @@ static inline bool QCBORDecode_IsNotWellFormedError(QCBORError uErr)
 
 static inline bool QCBORDecode_IsUnrecoverableError(QCBORError uErr)
 {
-   // improvement: renumber errors so only the range test
-   // is necessary. Be sure to leave extra for future
-   // errors that are unrecoverable.
    if(uErr >= QCBOR_START_OF_UNRECOVERABLE_DECODE_ERRORS &&
       uErr <= QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS) {
-      return true;
-   } else if (uErr == QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED) {
-      return true;
-   } else if (uErr == QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED) {
-      return true;
-   } else if (uErr == QCBOR_ERR_MAP_LABEL_TYPE) {
-      return true;
-   } else if (uErr == QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return true;
    } else {
       return false;
