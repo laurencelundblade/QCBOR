@@ -1,3 +1,8 @@
+THIS IS A DEV BRANCH FOR t_cose 2.0. It's purpose is to integrate several large changes
+(multiple signers, MAC, encryption, and restartable crypto) together before
+they merge into master to become t_cose 2.0. (Replace this message with
+an introduction to t_cose 2.0 before the merge to master.
+
 ![t_cose](https://github.com/laurencelundblade/t_cose/blob/master/t-cose-logo.png?raw=true)
 
 
