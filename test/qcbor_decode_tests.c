@@ -5628,13 +5628,13 @@ int32_t EnterMapTest()
    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
       return 2700;
    }
-/*
+
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput3), 0);
    QCBORDecode_VGetNextConsume(&DCtx, &Item1);
-   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 2800;
    }
-*/
+
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput4), 0);
    QCBORDecode_VGetNextConsume(&DCtx, &Item1);
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
@@ -5650,7 +5650,7 @@ int32_t EnterMapTest()
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput5), 0);
    QCBORDecode_VGetNextConsume(&DCtx, &Item1);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_MAP_LABEL_TYPE) {
-      return 2700;
+      return 3000;
    }
 
    return nReturn;
