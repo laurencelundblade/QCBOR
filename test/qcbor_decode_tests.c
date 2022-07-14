@@ -5653,14 +5653,6 @@ int32_t EnterMapTest()
       return 2700;
    }
 
-   /*
-
-    - Make BAD_TAG_CONTENT unrecoverable.
-    - Every tag decoder has to consume the bad content for the tag (if possible)
-    
-
-    */
-
    return nReturn;
 }
 

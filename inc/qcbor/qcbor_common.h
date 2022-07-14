@@ -512,8 +512,8 @@ typedef enum {
    QCBOR_ERR_CALLBACK_FAIL = 72,
 
    /** This error code is deprecated. Instead,
-       \ref QCBOR_ERR_HALF_PRECISION_DISABLED,
-       \ref QCBOR_ERR_HW_FLOAT_DISABLED or \ref QCBOR_ERR_ALL_FLOAT_DISABLED
+       @ref QCBOR_ERR_HALF_PRECISION_DISABLED,
+       @ref QCBOR_ERR_HW_FLOAT_DISABLED or @ref QCBOR_ERR_ALL_FLOAT_DISABLED
        is returned depending on the specific floating-point functionality
        that is disabled and the type of floating-point input. */
    QCBOR_ERR_FLOAT_DATE_DISABLED = 73,
@@ -561,10 +561,9 @@ const char *qcbor_err_to_str(QCBORError err);
 
 
 /**
- The maximum number of items in a single array or map when encoding of
- decoding.
+ * The maximum number of items in a single array or map when encoding of decoding.
  */
-// -1 is because the value UINT16_MAX is used to track indefinite-length arrays
+/* -1 because the value UINT16_MAX is used to track indefinite-length arrays */
 #define QCBOR_MAX_ITEMS_IN_ARRAY (UINT16_MAX-1)
 
 
