@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -1167,6 +1167,10 @@ static bool QCBORDecode_IsNotWellFormedError(QCBORError uErr);
  * errors like incorrect lengths or array counts are
  * unrecoverable. Unrecoverable errors also occur when implementation
  * limits such as the limit on array and map nesting are encountered.
+ * When the built-in decoding of a tag like an epoch date encounters
+ * an error such as a data item of an unexpected type, this is also an
+ * unrecoverable error because the internal decoding doesn't try to
+ * decode everything in the tag.
  *
  * The unrecoverable errors are a range of the errors in
  * @ref QCBORError.
@@ -1435,10 +1439,6 @@ static inline bool QCBORDecode_IsNotWellFormedError(QCBORError uErr)
 
 static inline bool QCBORDecode_IsUnrecoverableError(QCBORError uErr)
 {
-   /* 
-
-
-    */
    // improvement: renumber errors so only the range test
    // is necessary. Be sure to leave extra for future
    // errors that are unrecoverable.

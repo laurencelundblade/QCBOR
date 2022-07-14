@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -2772,7 +2772,7 @@ static inline void CopyTags(QCBORDecodeContext *pMe, const QCBORItem *pItem)
 
 
 /**
- * @brief Consume an entire map or array including its contents
+ * @brief Consume an entire map or array including its contents.
  *
  * @param[in]  pMe              The decoder context.
  * @param[in]  pItemToConsume   The array/map whose contents are to be
@@ -2781,7 +2781,7 @@ static inline void CopyTags(QCBORDecodeContext *pMe, const QCBORItem *pItem)
  *                              fully consumed.
  *
  * This may be called when @c pItemToConsume is not an array or
- * map. In that case, this is just a pass through for @puNextNestLevel
+ * map. In that case, this is just a pass through for @c puNextNestLevel
  * since there is nothing to do.
  */
 static inline QCBORError
@@ -2789,8 +2789,6 @@ ConsumeItem(QCBORDecodeContext *pMe,
             const QCBORItem    *pItemToConsume,
             uint8_t            *puNextNestLevel)
 {
-   // TODO: what to do about QCBOR_ERR_BAD_TAG_CONTENT
-   // TODO: what to do about QCBOR_ERR_ALL_FLOAT_DISABLED
    QCBORError uReturn;
    QCBORItem  Item;
 
@@ -2800,8 +2798,8 @@ ConsumeItem(QCBORDecodeContext *pMe,
    if(QCBORItem_IsMapOrArray(pItemToConsume) && !bIsEmpty) {
       /* There is only real work to do for non-empty maps and arrays */
 
-      /* This works for definite- and indefinite- length
-       * maps and arrays by using the nesting level
+      /* This works for definite- and indefinite-length maps and
+       * arrays by using the nesting level
        */
       do {
          uReturn = QCBORDecode_GetNext(pMe, &Item);
@@ -2816,8 +2814,8 @@ ConsumeItem(QCBORDecodeContext *pMe,
       uReturn = QCBOR_SUCCESS;
 
    } else {
-      /* pItemToConsume is not a map or array. */
-      /* Just pass the nesting level through */
+      /* pItemToConsume is not a map or array.  Just pass the nesting
+       * level through. */
       *puNextNestLevel = pItemToConsume->uNextNestLevel;
 
       uReturn = QCBOR_SUCCESS;

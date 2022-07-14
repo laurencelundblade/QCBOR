@@ -432,11 +432,14 @@ typedef enum {
        expected.  */
    QCBOR_ERR_UNEXPECTED_TYPE = 26,
 
-   /** This occurs when decoding one of the tags that QCBOR processed
-       internally.  The content of a tag was of the wrong type. (They
-       were known as "Optional Tags" in RFC 7049, but "optional" is
-       misleading. The old error name is retained for backwards
-       compatibility. */
+   /** When the built-in tag decoding encounters an unexpected type,
+       this error is returned. This error is unrecoverable because the
+       built-in tag decoding doesn't try to consume the unexpected
+       type. In previous versions of QCBOR this was considered a
+       recoverable error hence QCBOR_ERR_BAD_TAG_CONTENT. Going back
+       further, RFC 7049 use the name "optional tags". That name is no
+       longer used because "optional" was causing confusion. See
+       also @ref QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT. */
    QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT = 27,
    QCBOR_ERR_BAD_TAG_CONTENT = 27,
    QCBOR_ERR_BAD_OPT_TAG = 27,
@@ -532,9 +535,12 @@ typedef enum {
        is not allowed. . */
    QCBOR_ERR_OPEN_BYTE_STRING = 47,
 
-   /** Like *ref QCBOR_ERR_BAD_TAG_CONTENT, but unrecoverable.*/
+   /** Like @ref QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT, but recoverable.
+       If an implementation decodes a tag and can and does consume the
+       whole tag contents when it is not the correct tag content, this
+       error can be returned. None of the built-in tag decoders do
+       this (to save object code). */
    QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 48
-
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
