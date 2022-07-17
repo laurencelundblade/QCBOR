@@ -1,7 +1,7 @@
 /*
  *  t_cose_sign1_verify.c
  *
- * Copyright 2019-2021, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -18,7 +18,7 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_crypto.h"
 #include "t_cose_util.h"
-#include "t_cose_parameters.h"
+#include "t_cose/t_cose_parameters.h"
 
 
 
@@ -319,6 +319,7 @@ t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
     /* -- Compute the TBS bytes -- */
     return_value = create_tbs_hash(parameters.cose_algorithm_id,
                                    protected_parameters,
+                                   NULL_Q_USEFUL_BUF_C,
                                    aad,
                                    *payload,
                                    buffer_for_tbs_hash,

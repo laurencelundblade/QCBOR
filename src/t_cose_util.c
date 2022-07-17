@@ -106,12 +106,14 @@ static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
  * COSE_Sign1 structure. This is a little hard to to understand in the
  * spec.
  */
-enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
-                                  struct q_useful_buf_c  protected_parameters,
-                                  struct q_useful_buf_c  aad,
-                                  struct q_useful_buf_c  payload,
-                                  struct q_useful_buf    buffer_for_hash,
-                                  struct q_useful_buf_c *hash)
+enum t_cose_err_t
+create_tbs_hash(const int32_t                cose_algorithm_id,
+                const struct q_useful_buf_c  body_protected_parameters,
+                const struct q_useful_buf_c  sign_protected_parameters,
+                const struct q_useful_buf_c  aad,
+                const struct q_useful_buf_c  payload,
+                const struct q_useful_buf    buffer_for_hash,
+                struct q_useful_buf_c *hash)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -160,11 +162,21 @@ enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
      */
 
     /* Hand-constructed CBOR for the array of 4 and the context string.
-     * \x84 is an array of 4. \x6A is a text string of 10 bytes. */
-    t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
+     * \x84 or \x85 is an array of 4 or 5. \x6A is a text string of 10 bytes. */
+    // TODO: maybe this can be optimized to one call to hash update
+    if(!q_useful_buf_c_is_null(sign_protected_parameters)) {
+        t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x85\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
+    } else {
+        t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
+
+    }
 
     /* body_protected */
-    hash_bstr(&hash_ctx, protected_parameters);
+    hash_bstr(&hash_ctx, body_protected_parameters);
+
+    if(!q_useful_buf_c_is_null(sign_protected_parameters)) {
+        hash_bstr(&hash_ctx, sign_protected_parameters);
+    }
 
     /* external_aad */
     hash_bstr(&hash_ctx, aad);

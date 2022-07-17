@@ -19,7 +19,135 @@ extern "C" {
 #endif
 
 
+/*
+ * API Design Overview
+ * 
+ * t_cose is made up of a collection of objects (in the
+ * object-oriented programming sense) that correspond to the main
+ * objects defined in CDDL by the COSE standard (RFC 9052). These
+ * objects come in pairs, one for the sendi *ng/signing/encrypting
+ * side and the other for the receiving/verifying/decrypting
+ * side. Following is a high-level description of all of these and how
+ * they connect up to each other.
+ *
+ * Some of this is implemented and some of this is a design proposal,
+ * so it is subject to some change, renaming and such as the
+ * implementation completes.
+ *
+ *
+ * COSE_Sign and COSE_Sign1
+ *
+ * t_cose_sign_sign() and t_cose_sign_verify() are the pair that
+ * implements both COSE_Sign and COSE_Sign1 COSE messages.
+ *
+ * They rely on implementations of t_cose_signature_sign and
+ * t_cose_signature_verify to create and to verify the
+ * COSE_Signature(s) that are in a COSE_Sign. They are also used to
+ * create the signature for COSE_Sign1. These two are an abstract
+ * base class they are just an interface without an implementation.
+ *
+ * t_cose_headers_decode() and t_cose_headers_encode() are also used
+ * by the t_cose_sign pair. These process both the protected and
+ * unprotected header parameter buckets called Headers in COSE.
+ *
+ *
+ * COSE_Encrypt and COSE_Encrypt0
+ *
+ * t_cose_encrypt_enc() and t_cose_encrypt_dec() are the pair for
+ * COSE_Encrypt and COSE_Encrypt0.
+ *
+ * t_cose_headers_decode() and t_cose_headers_encode() are used for
+ * the header parameters.
+ *
+ * This makes use of implementations of t_cose_recipient_enc and
+ * t_cose_recipient_dec for COSE_recipient used by COSE_Encrypt. They
+ * are not needed for COSE_Encrypt0.
+ *
+ *
+ * COSE_Mac and COSE_Mac0
+ *
+ * t_cose_mac_auth() and t_cose_mac_check() are the pair for COSE_Mac
+ * and COSE_Mac0.
+ *
+ * t_cose_headers_decode() and t_cose_headers_encode() are used for
+ * the header parameters.
+ *
+ * For COSE_Mac, t_cose_recipient_enc() and t_cose_recipient_dec()
+ * implement COSE_recipient. (I’m pretty sure sharing t_cose_recipient
+ * between COSE_MAC and COSE_Encrypt can work, but this needs to be
+ * checked by actually de *signing and implementing it). These are not
+ * needed for COSE_Mac0.
+ *
+ * 
+ * COSE_Message
+ *
+ * t_cose_message_create() and t_cose_message_decode handle
+ * COSE_Message. This is for handling COSE messages that might signed,
+ * encrypted, MACed or some combination of these. In the simplest case
+ * they decode the CBOR tag n *umber and switch off to one of the
+ * above handlers. In more complicated cases they recursively handled
+ * nested signing, encrypting and MACing. (Lots of work to do on
+ * this…)
+ *
+ *
+ * Headers
+ *
+ * t_cose_headers_decode() and t_cose_headers_encode() handle the
+ * protected and unprotected header parameter buckets that are used by
+ * all the COSE messages.
+ *
+ * This also defines a data structure, t_cose_header_parameter that
+ * holds one single parameter, for example an algorithm ID or a
+ * kid. This structure is used to pass the parameters in and out of
+ * all the methods above. It fa *cilitates the general header
+ * parameter implementation and allows for custom and specialized
+ * headers.
+ *
+ *
+ * COSE_signature
+ *
+ * t_cose_signature_sign and t_cose_signature_verify are abstract
+ * bases classes for a set of implementations of COSE_Signature. This
+ * design is chosen because there are a variety of signature schemes
+ * to implement. Mostly th *ese correspond to different signing
+ * algorithms, but there is enough variation from algorithm to
+ * algorithm that the use of an abstract base class here makes sense.
+ *
+ * The concrete classes will generally correspond to groups of
+ * algorithms. For example, there will likely be one for ECDSA,
+ * t_cose_signature_sign_ecdsa, another for RSAPSS and a variety for
+ * PQ. Perhaps there will be one fo *r counter signatures of
+ * particular types.
+ *
+ * The user of t_cose will create instances of t_cose_signature and
+ * configure them into t_cose_sign_sign() and t_cose_sign_verify().
+ *
+ *
+ * COSE_recipient
+ *
+ * t_cose_recipient_enc and t_cose_recipient_dec are abstract base
+ * classes for the set of concrete implementations of
+ * COSE_recipient. Because the variation in one type of COSE_recipient
+ * to another is so varied, this is whe *re the abstract base class is
+ * necessary.
+ *
+ * Note that this use object-orientation here gives some very nice
+ * modularity and extensibility. New types of COSE_recipient can be
+ * added to COSE_Encrypt and COSE_Mac without changing their
+ * implementation at all. It is als *o possible to add new types of
+ * recipients without even modifying the main t_cose library.
+ *
+ * 
+ * COSE_Key 
+ *
+ * Some formats of COSE_recipient have parameters that are in the
+ * COSE_key format. It would be useful to have some library code to
+ * handle these, in particular to encode and decode from the key data
+ * structure used by the cr *ypto library (OpenSSL, PSA, …).
+ */
 
+
+  
 /**
  * \file t_cose_common.h
  *
@@ -90,6 +218,8 @@ extern "C" {
  */
 #define T_COSE_ALGORITHM_ES512 -36
 
+
+#define T_COSE_ALGORITHM_NONE 0
 
 
 
@@ -341,6 +471,22 @@ enum t_cose_err_t {
     /** More than \ref T_COSE_MAX_TAGS_TO_RETURN unprocessed tags when
      * verifying a signature. */
     T_COSE_ERR_TOO_MANY_TAGS = 37,
+
+    /** When decoding a header parameter that is not a string, integer or boolean
+     * was encountered with no callback set handle it. See t_cose_ignore_param_cb()
+     * and related. */
+    T_COSE_ERR_UNHANDLED_HEADER_PARAMETER = 38,
+
+    /* When encoding parameters, struct t_cose_header_parameter.parameter_type
+     * is not a valid type.
+     */
+    T_COSE_ERR_INVALID_PARAMETER_TYPE = 39,
+
+    /* Can't put critical parameters in the non-protected
+     * header bucket. */
+    T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED = 40,
+
+    T_COSE_ERR_INSUFFICIENT_SPACE_FOR_PARAMETERS = 41,
 };
 
 

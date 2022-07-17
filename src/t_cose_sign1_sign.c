@@ -351,6 +351,7 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
      */
     return_value = create_tbs_hash(me->cose_algorithm_id,
                                    me->protected_parameters,
+                                   NULL_Q_USEFUL_BUF_C,
                                    aad,
                                    signed_payload,
                                    buffer_for_tbs_hash,
