@@ -1523,7 +1523,7 @@ int_fast32_t tags_test()
 }
 
 
-int32_t get_size_test()
+int_fast32_t get_size_test()
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
@@ -1620,7 +1620,7 @@ int32_t get_size_test()
 /*
  * Public function, see t_cose_test.h
  */
-int32_t indef_array_and_map_test()
+int_fast32_t indef_array_and_map_test()
 {
     enum t_cose_err_t  return_value;
     uint32_t           t_opts;
