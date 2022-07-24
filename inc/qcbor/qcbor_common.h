@@ -153,6 +153,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     identification. See [RFC 8152, COSE]
     (https://tools.ietf.org/html/rfc8152). No API is provided for this
     tag. */
+#define CBOR_TAG_COSE_ENCRYPT0 16
 #define CBOR_TAG_COSE_ENCRYPTO 16
 /** Not Decoded by QCBOR. Tag for COSE format MAC'd data with no recipient
     identification. See [RFC 8152, COSE]
@@ -205,16 +206,21 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     (https://tools.ietf.org/html/rfc8152). No API is provided for this
     tag. */
 #define CBOR_TAG_CBOR_SEQUENCE 63
-
-
+/** Not Decoded by QCBOR. Tag for COSE format encryption with recipient
+    identification. See [RFC 8152, COSE]
+    (https://tools.ietf.org/html/rfc8152). No API is provided for this
+    tag. */
+#define CBOR_TAG_COSE_ENCRYPT  96
 #define CBOR_TAG_ENCRYPT       96
 /** Not Decoded by QCBOR. Tag for COSE format MAC. See [RFC 8152, COSE]
     (https://tools.ietf.org/html/rfc8152). No API is provided for this
     tag. */
+#define CBOR_TAG_COSE_MAC      97
 #define CBOR_TAG_MAC           97
 /** Not Decoded by QCBOR. Tag for COSE format signed data. See [RFC 8152, COSE]
     (https://tools.ietf.org/html/rfc8152). No API is provided for this
     tag. */
+#define CBOR_TAG_COSE_SIGN     98
 #define CBOR_TAG_SIGN          98
 /** Tag for date counted by days from Jan 1 1970 per [RFC 8943]
     (https://tools.ietf.org/html/rfc8943). See
