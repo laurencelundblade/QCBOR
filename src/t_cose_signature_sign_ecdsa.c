@@ -115,7 +115,7 @@ Done:
 
 void
 t_cose_signature_sign_ecdsa_init(struct t_cose_signature_sign_ecdsa *me,
-                         int32_t                     cose_algorithm_id)
+                                 int32_t                             cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
     me->s.callback        = t_cose_ecdsa_sign;

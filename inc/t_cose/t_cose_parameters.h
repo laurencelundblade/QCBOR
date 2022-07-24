@@ -341,7 +341,7 @@ t_cose_headers_decode(QCBORDecodeContext         *decode_context,
                       struct header_location      location,
                       t_cose_header_reader       *cb,
                       void                       *cb_context,
-                      struct header_param_storage params,
+                      const struct header_param_storage params,
                       struct q_useful_buf_c      *protected_parameters);
 
 

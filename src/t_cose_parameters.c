@@ -572,10 +572,12 @@ decode_parameters_bucket(QCBORDecodeContext         *decode_context,
                          bool                        is_protected,
                          t_cose_header_reader       *cb,
                          void                       *cb_context,
-                         struct header_param_storage param_storage)
+                         const struct header_param_storage param_storage)
 {
     enum t_cose_err_t         return_value;
     struct t_cose_label_list  critical_parameter_labels;
+    size_t param_index;
+
 
     clear_label_list(&critical_parameter_labels);
     QCBORDecode_EnterMap(decode_context, NULL);
@@ -598,7 +600,10 @@ decode_parameters_bucket(QCBORDecodeContext         *decode_context,
     }
 #endif
 
-    size_t param_index = 0;
+    for(param_index = 0;
+        param_storage.storage[param_index].parameter_type != QCBOR_TYPE_NONE;
+        param_index++);
+
     struct t_cose_header_param *params = param_storage.storage;
 
     while(1) {
@@ -710,13 +715,10 @@ t_cose_headers_decode(QCBORDecodeContext          *decode_context,
                       struct header_location       location,
                       t_cose_header_reader        *cb,
                       void                        *cb_context,
-                      struct header_param_storage  param_storage,
+                      const struct header_param_storage  param_storage,
                       struct q_useful_buf_c       *protected_parameters)
 {
     enum t_cose_err_t return_value;
-    size_t            count;
-
-    param_storage.storage[0].parameter_type = T_COSE_PARAMETER_TYPE_NONE;
 
     /* --- The protected parameters --- */
      QCBORDecode_EnterBstrWrapped(decode_context,
@@ -736,13 +738,6 @@ t_cose_headers_decode(QCBORDecodeContext          *decode_context,
          }
      }
      QCBORDecode_ExitBstrWrapped(decode_context);
-
-    /* Count the params filled in by protected headers */
-    for(count = 0; param_storage.storage[count].parameter_type != QCBOR_TYPE_NONE; count++);
-
-    param_storage.storage      += count;
-    param_storage.storage_size -= count;
-
 
      /* ---  The unprotected parameters --- */
     return_value = decode_parameters_bucket(decode_context,
@@ -926,6 +921,6 @@ t_cose_find_parameter_kid(const struct t_cose_header_param *p)
        p_found->parameter_type == T_COSE_PARAMETER_TYPE_TEXT_STRING) {
         return p_found->value.string;
     } else {
-        return NULLUsefulBufC;
+        return NULL_Q_USEFUL_BUF_C;
     }
 }

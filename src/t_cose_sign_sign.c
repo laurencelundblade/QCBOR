@@ -275,6 +275,8 @@ void
 t_cose_sign_add_signer(struct t_cose_sign_sign_ctx  *context,
                        struct t_cose_signature_sign *signer)
 {
+    // TODO: for COSE_Sign1 this can be tiny and inline
+
     if(context->signers == NULL) {
         context->signers = signer;
     } else {

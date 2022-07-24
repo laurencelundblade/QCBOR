@@ -10,17 +10,38 @@
 #define t_cose_sign_verify_h
 
 
+#include "t_cose/t_cose_parameters.h"
+#include "t_cose/t_cose_signature_verify.h"
+
+
+/* Warning: this is still early development. Documentation may be incorrect. */
+
 /**
- * Context for signature verification.  It is about 56 bytes on a
- * 64-bit machine and 42 bytes on a 32-bit machine.
+ * Context for signature verification.
  */
 struct t_cose_sign_verify_ctx {
     /* Private data structure */
-    structure t_cose_signature_verify *verifiers;
-    uint32_t              option_flags;
-    uint64_t              auTags[T_COSE_MAX_TAGS_TO_RETURN];
+    struct t_cose_signature_verify *verifiers;
+    uint32_t                        option_flags;
+    uint64_t                        auTags[4]; // TODO: constants
+    struct header_param_storage     params;
+    struct t_cose_header_param      __params[10];
+    t_cose_header_reader           *reader;
+    void                           *reader_ctx;
 };
 
+
+/* Three modes to determine whether the input is COSE_Sign or COSE_Sign1.
+ 1) expliclity indicate COSE_SIGN1
+ 2) explicitly indicate COSE_SIGN
+ 3) require a CBOR tag number to tell which
+ */
+#define T_COSE_OPT_COSE_SIGN1 0x00000004
+#define T_COSE_OPT_COSE_SIGN  0x00000008
+#define T_COSE_OPT_COSE_SIGN_TYPE_BY_TAG  0x00000010
+
+/* ALL signatures must be verified successfully */
+#define T_COSE_VERIFY_ALL 0x00080
 
 /**
  * \brief Initialize for \c COSE_Sign1 message verification.
@@ -32,18 +53,137 @@ struct t_cose_sign_verify_ctx {
  */
 static void
 t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *context,
-                        uint32_t                        option_flags);
+                        uint32_t                       option_flags);
 
 
-t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx *context)
+/* Warning: this is still early development. Documentation may be incorrect. */
 
+
+/* Add a verifier object.
+
+ * Verifiers are objects that do the cryptographic operations
+ * to verify a COSE_Sign or COSE_Sign1. This is both the
+ * hashing and the public key cryptography. They also
+ * implement the decoding of the COSE_Signature(s) in a
+ * COSE_Sign.
+ *
+ * At least one verifier must be added in. Before they
+ * are added in they should be configured with any key
+ * material (the verification key) needed.
+ *
+ * By default the overall result is success if at least
+ * one of the signatures verifies. TODO: think
+ * more carefully through all the combinations of
+ * multiple signatures and verifiers.
+ */
+void
+t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *context,
+                         struct t_cose_signature_verify *verifier);
+
+
+/*
+ *
+ * Use this to increase the number of header parameters that can be decoded
+ * if the number expected is larger than XXX. If it is less than XXX,
+ * the internal storage is used and there is no need to call this.
+ *
+ * There must be room to decode all the header parameters that
+ * are in the body and in all in the COSE_Signatures.
+ */
+static void
+t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx *context,
+                              struct header_param_storage    param_storage);
+
+
+/*
+ * If customer headers that are not strings or integers needed to be
+ * decoded and processed, then use this to set a call back handler.
+ * Typically this is not needed.
+ */
+static void
+t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx *context,
+                              t_cose_header_reader          *reader,
+                              void                          *reader_ctx);
+
+
+/**
+ * \brief Verify a COSE_Sign1 or COSE_Sign.
+ *
+ * \param[in,out] context   The t_cose signature verification context.
+ * \param[in] sign         Pointer and length of CBOR encoded \c COSE_Sign1
+ *                          or \c COSE_Sign message that is to be verified.
+ * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[out] payload      Pointer and length of the payload that is returned.
+ * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
+ *
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ *
+ * See t_cose_sign1_set_verification_key() for discussion on where
+ * the verification key comes from.
+ *
+ * Verification involves the following steps.
+ *
+ * - The CBOR-format \c COSE_Sign1 or \c COSE_Sign structure is parsed. This makes
+ * sure the CBOR is valid and follows the required structure.
+ *
+ * - The protected header parameters are decoded, particular the algorithm id.
+ *
+ * - The unprotected headers parameters are decoded, particularly the kid.
+ *
+ * - The payload is identified. The internals of the payload are not decoded.
+ *
+ * - The expected hash, the "to-be-signed" bytes are computed. The hash
+ * algorithm used comes from the signing algorithm. If the algorithm is
+ * unknown or not supported this will error out.
+ *
+ * At least one verifier must be configured using t_cose_sign_add_verifier() to
+ * be able to perform a success verification.
+ *
+ * - Finally, the signature verification is performed.
+ *
+ * If verification is successful, the pointer to the CBOR-encoded payload is
+ * returned. The parameters are returned if requested. All pointers
+ * returned are to memory in the \c sign1 passed in.
+ *
+ * Indefinite length CBOR strings are not supported by this
+ * implementation.  \ref T_COSE_ERR_SIGN1_FORMAT will be returned if
+ * they are in the input \c COSE_Sign1 messages. For example, if the
+ * payload is an indefinite-length byte string, this error will be
+ * returned.
+ *
+ * See also t_cose_sign_verify_detached().
+ */
+static enum t_cose_err_t
+t_cose_sign_verify(struct t_cose_sign_verify_ctx *context,
+                   struct q_useful_buf_c          sign,
+                   struct q_useful_buf_c          aad,
+                   struct q_useful_buf_c         *payload,
+                   struct t_cose_header_param   **parameters);
+
+
+/* This is the same as t_cose_sign_verify(), but the payload
+ * is detached.
+*/
+static enum t_cose_err_t
+t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
+                             struct q_useful_buf_c         sign,
+                             struct q_useful_buf_c         aad,
+                             struct q_useful_buf_c         payload,
+                             struct t_cose_header_param  **parameters);
+
+
+
+
+/* ------------------------------------------------------------------------
+ * Private and inline implementations of public functions defined above.
+ */
 
 /**
  * \brief Semi-private function to verify a COSE_Sign1.
  *
  * \param[in,out] me   The t_cose signature verification context.
- * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
- *                          message that is to be verified.
+ * \param[in] sign         Pointer and length of CBOR encoded \c COSE_Sign1
+ *                          or \c COSE_Sign message that is to be verified.
  * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in,out] payload   Pointer and length of the payload.
  * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
@@ -57,10 +197,74 @@ t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx *context)
  * so it should not to call it directly.
  */
 enum t_cose_err_t
+t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
+                             struct q_useful_buf_c        sign,
+                             struct q_useful_buf_c        aad,
+                             struct q_useful_buf_c       *payload,
+                             struct t_cose_header_param **parameters,
+                             bool                         is_detached);
+
+
+
+static inline enum t_cose_err_t
 t_cose_sign_verify(struct t_cose_sign_verify_ctx *me,
-                             struct q_useful_buf_c           sign1,
-                             struct q_useful_buf_c           aad,
-                             struct q_useful_buf_c          *payload,
-                             struct t_cose_parameters       *parameters,
-                             bool                            is_detached);
+                   struct q_useful_buf_c          sign,
+                   struct q_useful_buf_c          aad,
+                   struct q_useful_buf_c         *payload,
+                   struct t_cose_header_param   **parameters)
+{
+    return t_cose_sign_verify_private(me,
+                                      sign,
+                                      aad,
+                                      payload,
+                                      parameters,
+                                      false);
+}
+
+
+static inline enum t_cose_err_t
+t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *me,
+                   struct q_useful_buf_c          sign,
+                   struct q_useful_buf_c          aad,
+                   struct q_useful_buf_c          payload,
+                   struct t_cose_header_param   **parameters)
+{
+    return t_cose_sign_verify_private(me,
+                                      sign,
+                                      aad,
+                                      &payload,
+                                      parameters,
+                                      true);
+}
+
+
+static inline void
+t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *me,
+                        uint32_t                       option_flags)
+{
+    memset(me, 0, sizeof(*me));
+    me->option_flags               = option_flags;
+    me->params.storage             = me->__params;
+    me->params.storage_size        = sizeof(me->__params);
+    me->__params[0].parameter_type = T_COSE_PARAMETER_TYPE_NONE;
+}
+
+
+static inline void
+t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx *me,
+                              struct header_param_storage    param_storage)
+{
+    me->params = param_storage;
+}
+
+
+static inline void
+t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx *me,
+                              t_cose_header_reader          *reader,
+                              void                          *reader_ctx)
+{
+    me->reader     = reader;
+    me->reader_ctx = reader_ctx;
+}
+
 #endif /* t_cose_sign_verify_h */

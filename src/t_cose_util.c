@@ -106,6 +106,7 @@ static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
  * COSE_Sign1 structure. This is a little hard to to understand in the
  * spec.
  */
+// TODO: replace aad, payload, protected with on tbs_input structure
 enum t_cose_err_t
 create_tbs_hash(const int32_t                cose_algorithm_id,
                 const struct q_useful_buf_c  body_protected_parameters,
@@ -113,7 +114,7 @@ create_tbs_hash(const int32_t                cose_algorithm_id,
                 const struct q_useful_buf_c  aad,
                 const struct q_useful_buf_c  payload,
                 const struct q_useful_buf    buffer_for_hash,
-                struct q_useful_buf_c *hash)
+                struct q_useful_buf_c       *hash)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
