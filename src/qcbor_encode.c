@@ -986,18 +986,16 @@ void QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 void QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
    *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
-   if(!UsefulBuf_IsNULL(*pPlace)) {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-      // TODO: is this right?
-      uint8_t uMajorType = Nesting_GetMajorType(&(pMe->nesting));
-      if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
-         pMe->uError = QCBOR_ERR_OPEN_BYTE_STRING;
-         return;
-      }
+   // TODO: is this right?
+   uint8_t uMajorType = Nesting_GetMajorType(&(pMe->nesting));
+   if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
+      pMe->uError = QCBOR_ERR_OPEN_BYTE_STRING;
+      return;
+   }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
-      QCBOREncode_OpenMapOrArray(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR);
-   }
+   QCBOREncode_OpenMapOrArray(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR);
 }
 
 
