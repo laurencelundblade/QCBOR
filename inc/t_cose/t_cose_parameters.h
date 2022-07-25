@@ -254,7 +254,11 @@ struct t_cose_header_param {
 
 #define T_COSE_END_PARAM  \
     (struct t_cose_header_param){0,\
-                                 T_COSE_PARAMETER_TYPE_NONE }
+                                 T_COSE_PARAMETER_TYPE_NONE, \
+                                 false, \
+                                 false, \
+                                 {0,0},\
+                                .value.string = NULL_Q_USEFUL_BUF_C }
 
 
 /* Find a parameter by label in array of parameters returned by verify */
