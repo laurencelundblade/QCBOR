@@ -2185,7 +2185,7 @@ static inline UsefulBuf UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf)
    UsefulBuf R;
 
    R.len = UsefulOutBuf_RoomLeft(pUOutBuf);
-   if(R.len > 0) {
+   if(R.len > 0 && pUOutBuf->UB.ptr != NULL) {
       R.ptr = (uint8_t *)pUOutBuf->UB.ptr + pUOutBuf->data_len;
    } else {
       R.ptr = NULL;

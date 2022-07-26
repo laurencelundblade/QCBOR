@@ -35,7 +35,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /* This calls the main methods to add stuff to a UsefulOutBuf.
- * The result in the UsefulOutBuf is "heffalump unbounce bluster hunny"
+ * The result in the UsefulOutBuf is "heffalump unbounce bluster hunny bear"
  */
 const char *AddStuffToUOB(UsefulOutBuf *pUOB)
 {
@@ -57,8 +57,8 @@ const char *AddStuffToUOB(UsefulOutBuf *pUOB)
    /* add a space to end */
    UsefulOutBuf_AppendByte(pUOB, ' ');
 
-   /* Add 5 bytes to the end */
-   UsefulBufC UBC = {"hunny", 5};
+   /* Add 6 bytes to the end */
+   UsefulBufC UBC = {"hunny ", 6};
    UsefulOutBuf_AppendUsefulBuf(pUOB, UBC);
 
    /* Insert 9 bytes at the beginning, slide the previous stuff right */
@@ -68,6 +68,13 @@ const char *AddStuffToUOB(UsefulOutBuf *pUOB)
    /* Put 9 bytes in at position 10 -- just after "heffalump " */
    UsefulBufC UBC2 = {"unbounce ", 9};
    UsefulOutBuf_InsertUsefulBuf(pUOB, UBC2, 10);
+
+   /* Add 4 bytes to the end, by accessing the buffer directly and then advancing it */
+   UsefulBuf UB = UsefulOutBuf_GetOutPlace(pUOB);
+   if (!UsefulBuf_IsNULL(UB)) {
+      memcpy(UB.ptr, "bear", UB.len < 4 ? UB.len : 4);
+   }
+   UsefulOutBuf_Advance(pUOB, 4);
 
 Done:
    return szReturn;
@@ -97,7 +104,7 @@ const char * UOBTest_NonAdversarial(void)
       goto Done;
    }
 
-   const UsefulBufC Expected = UsefulBuf_FROM_SZ_LITERAL("heffalump unbounce bluster hunny");
+   const UsefulBufC Expected = UsefulBuf_FROM_SZ_LITERAL("heffalump unbounce bluster hunny bear");
 
    UsefulBufC U = UsefulOutBuf_OutUBuf(&UOB);
    if(UsefulBuf_IsNULLC(U) ||
