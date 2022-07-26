@@ -2966,6 +2966,20 @@ OpenCloseBytesTest(void)
       return 2;
    }
 
+   /* Run the same test but with a NULL buffer */
+   QCBOREncode_Init(&EC, (UsefulBuf){NULL, 20});
+   QCBOREncode_OpenBytes(&EC, &Place);
+   if(!UsefulBuf_IsNULL(Place)) {
+      return 3;
+   }
+   Place.len -= 4;
+   /* We don't actually write anything since the pointer is NULL, but advance nevertheless. */
+   QCBOREncode_CloseBytes(&EC, Place.len);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr != QCBOR_SUCCESS ||
+      Encoded.len != sizeof(spExpectedForOpenBytes)) {
+      return 4;
+   }
 
    /* Open a byte string with no room left */
    QCBOREncode_Init(&EC, TestBuf);
@@ -2973,7 +2987,7 @@ OpenCloseBytesTest(void)
    QCBOREncode_OpenBytes(&EC, &Place);
    if(Place.ptr != NULL ||
       Place.len != 0) {
-      return 3;
+      return 5;
    }
 
    /* Try to extend byte string past end of encoding output buffer */
@@ -2984,7 +2998,7 @@ OpenCloseBytesTest(void)
    QCBOREncode_CloseBytes(&EC, Place.len+1);
    uErr = QCBOREncode_GetErrorState(&EC);
    if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
-      return 4;
+      return 6;
    }
 
    /* Close a byte string without opening one. */
@@ -2994,11 +3008,11 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_GetErrorState(&EC);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
-      return 5;
+      return 7;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 105;
+      return 107;
    }
 #endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3009,11 +3023,11 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_Finish(&EC, &Encoded);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
-      return 6;
+      return 8;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 106;
+      return 108;
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3025,11 +3039,11 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_GetErrorState(&EC);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_OPEN_BYTE_STRING) {
-      return 7;
+      return 9;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 107;
+      return 109;
    }
 #endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3052,11 +3066,11 @@ OpenCloseBytesTest(void)
    QCBOREncode_CloseMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &Encoded);
    if(uErr != QCBOR_SUCCESS) {
-      return 8;
+      return 10;
    }
    if(UsefulBuf_Compare(Encoded,
                         UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenBytes2))) {
-      return 9;
+      return 11;
    }
 
    return 0;
