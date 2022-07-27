@@ -10,11 +10,10 @@
 
 #include "t_cose/t_cose_sign_sign.h"
 #include "qcbor/qcbor.h"
-#include "t_cose_standard_constants.h"
-#include "t_cose_crypto.h"
-#include "t_cose_util.h"
 #include "t_cose/t_cose_signature_sign.h"
 #include "t_cose/t_cose_parameters.h"
+
+
 /**
  * \file t_cose_sign_sign.c
  *
@@ -28,12 +27,12 @@
 
 
 /*
- * Semi-private function. See t_cose_sign_sign.h
+ * Pubilc Function. See t_cose_sign_sign.h
  */
 enum t_cose_err_t
-t_cose_sign_encode_first_part(struct t_cose_sign_sign_ctx *me,
-                              bool                         payload_is_detached,
-                              QCBOREncodeContext          *cbor_encode_ctx)
+t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
+                         bool                         payload_is_detached,
+                         QCBOREncodeContext          *cbor_encode_ctx)
 {
     enum t_cose_err_t                 return_value;
     const struct t_cose_header_param *params_vector[3];
@@ -101,13 +100,13 @@ Done:
 
 
 /*
- * Semi-private function. See t_cose_sign_sign.h
+ * Pubilc Function. See t_cose_sign_sign.h
  */
 enum t_cose_err_t
-t_cose_sign_encode_second_part(struct t_cose_sign_sign_ctx *me,
-                               struct q_useful_buf_c         aad,
-                               struct q_useful_buf_c         detached_payload,
-                               QCBOREncodeContext           *cbor_encode_ctx)
+t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
+                          struct q_useful_buf_c        aad,
+                          struct q_useful_buf_c        detached_payload,
+                          QCBOREncodeContext          *cbor_encode_ctx)
 {
     enum t_cose_err_t             return_value;
     QCBORError                    cbor_err;
@@ -137,16 +136,7 @@ t_cose_sign_encode_second_part(struct t_cose_sign_sign_ctx *me,
     }
 
 
-    /* --- Create the signature --- */
-    /* TODO: this comment is wrong. Compute the signature using public key crypto. The key and
-     * algorithm ID are passed in to know how and what to sign
-     * with. The hash of the TBS bytes is what is signed. A buffer
-     * in which to place the signature is passed in and the
-     * signature is returned.
-     *
-     * That or just compute the length of the signature if this
-     * is only an output length computation.
-     */
+    /* --- Create the signature or signatures --- */
     signer = me->signers;
     if(!(me->option_flags & T_COSE_OPT_COSE_SIGN1)) {
         /* What is needed here is to output an arrray of signers, each
@@ -201,10 +191,10 @@ Done:
 enum t_cose_err_t
 t_cose_sign_one_short(struct t_cose_sign_sign_ctx *me,
                       bool                         payload_is_detached,
-                      struct q_useful_buf_c         payload,
-                      struct q_useful_buf_c         aad,
-                      struct q_useful_buf           out_buf,
-                      struct q_useful_buf_c        *result)
+                      struct q_useful_buf_c        payload,
+                      struct q_useful_buf_c        aad,
+                      struct q_useful_buf          out_buf,
+                      struct q_useful_buf_c       *result)
 {
     // TODO: recompute
     /* Aproximate stack usage
@@ -215,16 +205,16 @@ t_cose_sign_one_short(struct t_cose_sign_sign_ctx *me,
      *   max(encode_param, encode_signature)     224-1316    216-1024
      *   TOTAL                                   432-1524    392-1300
      */
-    QCBOREncodeContext  encode_context;
-    enum t_cose_err_t   return_value;
+    QCBOREncodeContext encode_context;
+    enum t_cose_err_t  return_value;
 
     /* -- Initialize CBOR encoder context with output buffer -- */
     QCBOREncode_Init(&encode_context, out_buf);
 
     /* -- Output the header parameters into the encoder context -- */
-    return_value = t_cose_sign_encode_first_part(me,
-                                                 payload_is_detached,
-                                                &encode_context);
+    return_value = t_cose_sign_encode_start(me,
+                                            payload_is_detached,
+                                           &encode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -249,10 +239,10 @@ t_cose_sign_one_short(struct t_cose_sign_sign_ctx *me,
     if(!payload_is_detached) {
         payload = NULL_Q_USEFUL_BUF_C;
     }
-    return_value = t_cose_sign_encode_second_part(me,
-                                                  aad,
-                                                  payload,
-                                                 &encode_context);
+    return_value = t_cose_sign_encode_finish(me,
+                                             aad,
+                                             payload,
+                                            &encode_context);
     if(return_value) {
         goto Done;
     }
@@ -285,4 +275,3 @@ t_cose_sign_add_signer(struct t_cose_sign_sign_ctx  *context,
         t->next_in_list = signer;
     }
 }
-

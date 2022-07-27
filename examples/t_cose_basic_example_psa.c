@@ -686,7 +686,7 @@ int two_step_sign_example_new()
      * This just outputs the COSE_Sign1 header parameters and gets set
      * up for the payload to be output.
      */
-    return_value = t_cose_sign_encode_parameters(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign_encode_start(&sign_ctx, false, &cbor_encode);
 
     printf("Encoded COSE headers: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
@@ -735,7 +735,10 @@ int two_step_sign_example_new()
      * This call signals the end payload construction, causes the actual
      * signing to run.
      */
-    return_value = t_cose_sign_encode_signature(&sign_ctx, &cbor_encode);
+    return_value = t_cose_sign_encode_finish(&sign_ctx,
+                                             NULL_Q_USEFUL_BUF_C,
+                                             NULL_Q_USEFUL_BUF_C,
+                                             &cbor_encode);
 
     printf("Fnished signing: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {

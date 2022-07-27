@@ -1,10 +1,14 @@
-//
-//  t_cose_sign_verify.h
-//  t_cose
-//
-//  Created by Laurence Lundblade on 7/17/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ *  t_cose_sign1_verify.h
+ *
+ * Copyright 2019-2022, Laurence Lundblade
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ * Created by Laurence Lundblade on 7/17/22.
+ *
+ * See BSD-3-Clause license in README.md
+ */
+
 
 #ifndef t_cose_sign_verify_h
 #define t_cose_sign_verify_h
@@ -14,7 +18,17 @@
 #include "t_cose/t_cose_signature_verify.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} /* Keep editor indention formatting happy */
+#endif
+#endif
+
 /* Warning: this is still early development. Documentation may be incorrect. */
+
+#define T_COSE_NUM_VERIFY_DECODE_HEADERS 8
+
 
 /**
  * Context for signature verification.
@@ -23,9 +37,9 @@ struct t_cose_sign_verify_ctx {
     /* Private data structure */
     struct t_cose_signature_verify *verifiers;
     uint32_t                        option_flags;
-    uint64_t                        auTags[4]; // TODO: constants
+    uint64_t                        auTags[T_COSE_MAX_TAGS_TO_RETURN];
     struct header_param_storage     params;
-    struct t_cose_header_param      __params[10];
+    struct t_cose_header_param      __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
     t_cose_header_reader           *reader;
     void                           *reader_ctx;
 };
@@ -84,11 +98,13 @@ t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *context,
 /*
  *
  * Use this to increase the number of header parameters that can be decoded
- * if the number expected is larger than XXX. If it is less than XXX,
+ * if the number expected is larger than \ref T_COSE_NUM_VERIFY_DECODE_HEADERS. If it is less than \ref T_COSE_NUM_VERIFY_DECODE_HEADERS,
  * the internal storage is used and there is no need to call this.
  *
  * There must be room to decode all the header parameters that
- * are in the body and in all in the COSE_Signatures.
+ * are in the body and in all in the COSE_Signatures. If not
+ * \ref T_COSE_ERR_TOO_MANY_PARAMETERS will be returned by
+ * t_cose_sign_verify() and similar.
  */
 static void
 t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx *context,
@@ -166,10 +182,10 @@ t_cose_sign_verify(struct t_cose_sign_verify_ctx *context,
 */
 static enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
-                             struct q_useful_buf_c         sign,
-                             struct q_useful_buf_c         aad,
-                             struct q_useful_buf_c         payload,
-                             struct t_cose_header_param  **parameters);
+                            struct q_useful_buf_c          sign,
+                            struct q_useful_buf_c          aad,
+                            struct q_useful_buf_c          payload,
+                            struct t_cose_header_param   **parameters);
 
 
 
@@ -266,5 +282,10 @@ t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx *me,
     me->reader     = reader;
     me->reader_ctx = reader_ctx;
 }
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* t_cose_sign_verify_h */

@@ -1,10 +1,13 @@
-//
-//  t_cose_signer.h
-//  t_cose
-//
-//  Created by Laurence Lundblade on 5/23/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ * t_cose_signature_sign.h
+ *
+ * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Created by Laurence Lundblade on 5/23/22.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ */
 
 #ifndef t_cose_signer_h
 #define t_cose_signer_h
@@ -20,7 +23,15 @@
  *
  * Each concrete signer (e.g., ECDSA signer, RSA signer,... must implement this. Each signer
  * also implements a few methods of its own beyond this
- * that it needs to work.
+ * that it needs to work like those for initialization and
+ * setting the key.
+ *
+ * Typically a signer will support one suite of algorithms,
+ * but there is no requirement that this be so. It is OK
+ * for a signer to implement several algorithms. The reason
+ * signers are abstracted out as they are here is in anticipation
+ * of more complicated signers that support things like counter
+ * signing, post-quantum signatures and certificate hierarchies.
  *
  * t_cose_signer_callback is the type of a function that every
  * signer must implement. It takes as input the context
@@ -28,6 +39,10 @@
  * the encoder instance. The work it does is to produce
  * the signature and output the COSE_Signature to the
  * encoder instance.
+ *
+ * t_cose_signature_sign_h_callback is a callback that signers
+ * that support COSE_Sign1 must implement. It returns the
+ * headers that have to go in the COSE_Sign1 body.
  *
  * This design allows new signers for new algorithms to be
  * added without modifying or even recompiling t_cose.
@@ -60,7 +75,19 @@
 struct t_cose_signature_sign;
 
 
-/* The main method / callback used to perform the signing and output
+/**
+ * @brief Callback that makes a COSE_Signature.
+ *
+ * @param [in] me   The context, the  t_cose_signature_sign instance. This will actully be some thing like
+ *                         t_cose_signature_sign_ecdsa that inplements t_cose_signature_sign
+ * @Param[in] sign_only TODO: 
+ * @param[in] protected_body_headers  The COSE_Sign body headers that are covered by the signature
+ * @param[in] payload                       The payload (regular or detaced) that is covered by the signature.
+ * @param[in] aad                               The aad covered by the signature.
+ * @param[in] qcbor_encoder    The CBOR encoder context to ouput either a COSE_Signature or
+ *                                                               the simple byte string signature for a COSE_Sign1.
+ *
+ * The main method / callback used to perform the signing and output
  * the COSE format signature.
  * If the qcbor_encoder buffer is NULL, then this should just
  * compute the size and add the size to qcbor_encoder because it
@@ -78,7 +105,7 @@ typedef enum t_cose_err_t
 /* This callback is used to get the header parameters for a COSE_Sign1.
  * It is never called for a COSE_Sign. */
 typedef void
-(t_cose_signature_sign_h_callback)(struct t_cose_signature_sign *me,
+(t_cose_signature_sign_h_callback)(struct t_cose_signature_sign       *me,
                                    const struct t_cose_header_param  **header_params);
 
 
