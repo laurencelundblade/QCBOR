@@ -194,6 +194,15 @@ Done:
 }
 
 
+/* This is declared in t_cose_common.h, but there is no t_coses_common.c,
+ * so this little function is put here.*/
+bool
+t_cose_is_algorithm_supported(int32_t cose_algorithm_id)
+{
+    return t_cose_crypto_is_algorithm_supported(cose_algorithm_id);
+}
+
+
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 /* This is a random hard coded kid (key ID) that is used to indicate
  * short-circuit signing. It is OK to hard code this as the

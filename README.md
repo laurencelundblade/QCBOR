@@ -202,6 +202,84 @@ named test/t_cose_make_xxxx_test_key.c and is linked in with the test
 app. The keys it makes are passed through t_cose untouched, through
 the t_cose_crypto.h interface into the underlying crypto.
 
+#### Unsupported Crypto
+
+Not all crypto libraries will support all algorithms that t_cose can
+make use of. For example, t_cose will likely be able to make use of PQ
+(post-quantum) algorithms, but that not all libraries will support all
+of these algorithms.
+
+Algorithm variability is handled in two layers: 1) compilation and
+linking in the t_cose crypto adaptor layer and 2) run-time indication
+in the public API. That is, there is no variability in the t_cose
+public API because of variation in algorithms available. When an
+algorithm isn't available, it manifests by one of the standard public
+APIs returning T_COSE_ERR_UNSUPPORTED_XXXX.
+
+All algorithm identification in t_cose is by COSE integer algorithm
+IDs.
+
+To go into detail of how compilation and linking are handled, the
+crypto adaptation layer should rely on #defines in the crypto library
+headers to know what files it can include and what functions it can
+call. Hopefully, the crypto libraries provide the necessary
+#defines. t_cose should always compile and link successfully with any
+crypto libraries it supports no matter the version or
+configuration. For example, if a version of Mbed TLS that doesn't
+support HPKE is used, it should still compile and link with no user
+intervention. The user will find out that HPKE is missing when they
+get a T_COSE_ERR_UNSUPPORTED_XXXX error from the public API.
+
+If a crypto library doesn't provide #defines, then algorithms in it
+that are made use of should be disabled by default.  To enable them,
+the user will have to go to the trouble of explicitly #defining
+something to enable it. This is so t_cose always compiles and links
+correctly the first time without the user doing any configuration
+work.
+
+t_cose does assume some algorithms like SHA-2 will always be present
+because they are widely supported and generally necessary.
+
+If an implementation or test case wishes to query whether a particular
+t_cose build supports a particular algorithm the public API
+t_cose_is_algorithm_supported() is provided.
+
+In the automated tests, cases that use specific algorithms that are
+known to be not widely supported are enabled and disabled at runtime
+by querying whether they are not supported through the runtime public
+API. They are generally not handled by #ifdefs unless absolutely
+necessary.
+
+For continuous integration (CI), it is fine if not every test covers
+every algorithm, but every algorithm should be covered by at least one
+test. This may require configuring CI with some alternate versions of
+crypto libraries.
+
+### Omitting Algorithms to Reduce Code Size
+
+Previously, t_cose had #defines like T_COSE_DISABLE_ES512 to omit
+algorthms to reduce code size. A different strategy is used for t_cose
+2.0 that takes advantage of the dynamic linking of the signing,
+COSE_Signature and COSE_Recipient implementations.
+
+For t_cose 2.0, the bulk of the crypto algorithms are called by the
+implementations of the t_cose_signature and of t_cose_recipient.
+These are not hard-linked to the rest of the t_cose. Assuming dead
+stripping, paticular implementations for particular algorithms will
+not be linked in unless they are explicitly called. The dead stripping
+can take care of this through the t_cose_crypto layer, though some
+adjustments may be necessary for it to be most effective.
+
+For example, the ECDSA algorithm is only called from
+t_cose_signature_sign_ecdsa and t_cose_signature_verify_ecdsa. If a
+user of t_cose never calls these, for example, never calls
+t_cose_signature_sign_ecdsa_init() it won't be linked and the
+references to the of the algorithms won't be made.
+
+For this to work well, the t_cose_crypto layer needs to have separate
+functions for separate algorithms. This is something to be looked
+into.
+
 
 ## Memory Usage
 

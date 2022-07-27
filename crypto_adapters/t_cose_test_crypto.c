@@ -29,6 +29,28 @@
  */
 
 
+/*
+* See documentation in t_cose_crypto.h
+*
+* This will typically not be referenced and thus not linked,
+* for deployed code. This is mainly used for test.
+*/
+bool
+t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
+{
+    static const int32_t supported_algs[] = {
+        COSE_ALGORITHM_SHA_256,
+        T_COSE_ALGORITHM_NONE /* List terminator */
+    };
+
+    for(const int32_t *i = supported_algs; *i != T_COSE_ALGORITHM_NONE; i++) {
+        if(*i == cose_algorithm_id) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /* The Brad Conte hash implementaiton bundled with t_cose */
 #include "sha256.h"
 

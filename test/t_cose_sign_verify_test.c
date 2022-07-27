@@ -89,27 +89,28 @@ int_fast32_t sign_verify_basic_test()
 {
     int_fast32_t return_value;
 
-   return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES256);
-   if(return_value) {
-        return 20000 + return_value;
-   }
-
-#ifndef T_COSE_DISABLE_ES384
-    return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES384);
-    if(return_value) {
-        return 30000 + return_value;
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES256);
+        if(return_value) {
+            return 20000 + return_value;
+        }
     }
-#endif
 
-#ifndef T_COSE_DISABLE_ES512
-    return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES512);
-    if(return_value) {
-        return 50000 + return_value;
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES384)) {
+        return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES384);
+        if(return_value) {
+            return 30000 + return_value;
+        }
     }
-#endif
+
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES512)) {
+        return_value  = sign_verify_basic_test_alg(T_COSE_ALGORITHM_ES512);
+        if(return_value) {
+            return 50000 + return_value;
+        }
+    }
 
     return 0;
-
 }
 
 
@@ -445,57 +446,53 @@ int_fast32_t sign_verify_get_size_test()
     struct t_cose_key   key_pair;
     int32_t             result;
 
-    return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
-    if(return_value) {
-        return 1000 + (int32_t)return_value;
-    }
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+        if(return_value) {
+            return 1000 + (int32_t)return_value;
+        }
 
-    result = size_test(T_COSE_ALGORITHM_ES256, NULL_Q_USEFUL_BUF_C, key_pair);
-    free_ecdsa_key_pair(key_pair);
-    if(result) {
-        return 2000 + result;
-    }
-
-
-#ifndef T_COSE_DISABLE_ES384
-
-    return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
-    if(return_value) {
-        return 3000 + (int32_t)return_value;
-    }
-
-    result = size_test(T_COSE_ALGORITHM_ES384, NULL_Q_USEFUL_BUF_C, key_pair);
-    free_ecdsa_key_pair(key_pair);
-    if(result) {
-        return 4000 + result;
-    }
-
-#endif /* T_COSE_DISABLE_ES384 */
-
-
-#ifndef T_COSE_DISABLE_ES512
-
-    return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES512, &key_pair);
-    if(return_value) {
-        return 5000 + (int32_t)return_value;
-    }
-
-    result = size_test(T_COSE_ALGORITHM_ES512, NULL_Q_USEFUL_BUF_C, key_pair);
-    if(result) {
+        result = size_test(T_COSE_ALGORITHM_ES256, NULL_Q_USEFUL_BUF_C, key_pair);
         free_ecdsa_key_pair(key_pair);
-        return 6000 + result;
+        if(result) {
+            return 2000 + result;
+        }
     }
 
-    result = size_test(T_COSE_ALGORITHM_ES512,
-                       Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"),
-                       key_pair);
-    free_ecdsa_key_pair(key_pair);
-    if(result) {
-        return 7000 + result;
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES384)) {
+        return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
+        if(return_value) {
+            return 3000 + (int32_t)return_value;
+        }
+
+        result = size_test(T_COSE_ALGORITHM_ES384, NULL_Q_USEFUL_BUF_C, key_pair);
+        free_ecdsa_key_pair(key_pair);
+        if(result) {
+            return 4000 + result;
+        }
     }
 
-#endif /* T_COSE_DISABLE_ES512 */
 
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES512)) {
+        return_value = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES512, &key_pair);
+        if(return_value) {
+            return 5000 + (int32_t)return_value;
+        }
+
+        result = size_test(T_COSE_ALGORITHM_ES512, NULL_Q_USEFUL_BUF_C, key_pair);
+        if(result) {
+            free_ecdsa_key_pair(key_pair);
+            return 6000 + result;
+        }
+
+        result = size_test(T_COSE_ALGORITHM_ES512,
+                           Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"),
+                           key_pair);
+        free_ecdsa_key_pair(key_pair);
+        if(result) {
+            return 7000 + result;
+        }
+    }
 
     return 0;
 }
@@ -521,7 +518,6 @@ static const uint8_t signed_cose_made_by_ossl_crypto_256[] = {
     0x69, 0x53, 0xCB, 0x05, 0xE3, 0x60, 0xAC, 0x98,
     0xE6};
 
-#ifndef T_COSE_DISABLE_ES384
 static const uint8_t signed_cose_made_by_psa_crypto_384[] = {
     0xD2, 0x84, 0x44, 0xA1, 0x01, 0x38, 0x22, 0xA0,
     0x47, 0x70, 0x61, 0x79, 0x6C, 0x6F, 0x61, 0x64,
@@ -538,10 +534,8 @@ static const uint8_t signed_cose_made_by_psa_crypto_384[] = {
     0x74, 0x1B, 0x5C, 0xCD, 0xD5, 0x11, 0xC1, 0x07,
     0xE2, 0xD9, 0x3B, 0x16, 0x31, 0x5A, 0x55, 0x58,
     0x6C, 0xC9};
-#endif /* T_COSE_DISABLE_ES384 */
 
 
-#ifndef T_COSE_DISABLE_ES512
 static const uint8_t signed_cose_made_by_openssl_crypto_521[] = {
     0xD2, 0x84, 0x44, 0xA1, 0x01, 0x38, 0x23, 0xA0,
     0x47, 0x70, 0x61, 0x79, 0x6C, 0x6F, 0x61, 0x64,
@@ -562,7 +556,6 @@ static const uint8_t signed_cose_made_by_openssl_crypto_521[] = {
     0x11, 0x22, 0x48, 0x09, 0xA2, 0x95, 0x6C, 0x9B,
     0x97, 0xA9, 0xE9, 0xBF, 0xA8, 0x63, 0x73, 0x88,
     0x24, 0xB0, 0x84, 0x46, 0xA8, 0x90};
-#endif /* T_COSE_DISABLE_ES512 */
 
 
 int_fast32_t known_good_test(void)
@@ -573,85 +566,95 @@ int_fast32_t known_good_test(void)
     struct q_useful_buf_c          payload;
     struct t_cose_sign1_verify_ctx verify_ctx;
     struct q_useful_buf_c          valid_message;
+    bool                           ran_a_test;
 
+    /* Tell the compiler not to worry about non-use of these. */
+    (void)signed_cose_made_by_ossl_crypto_256;
+    (void)signed_cose_made_by_psa_crypto_384;
+    (void)signed_cose_made_by_openssl_crypto_521;
+
+    ran_a_test = false;
     /* Improvement: rewrite this to fetch the algorithm header and
      * look up the key from it, so the generalizes to all sorts of
      * good known inputs for all sorts of algorithms. (Could do key id
      * too...) But for now this accomplishes what is needed.
      */
 
-    result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
-    if(result) {
-        return_value = 1000 + (int32_t)result;
-        goto Done;
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+        if(result) {
+            return_value = 1000 + (int32_t)result;
+            goto Done;
+        }
+
+        t_cose_sign1_verify_init(&verify_ctx, 0);
+
+        t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
+
+        valid_message = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_ossl_crypto_256);
+        result = t_cose_sign1_verify(&verify_ctx,
+                                      valid_message, /* COSE to verify */
+                                     &payload,       /* Payload from signed_cose */
+                                      NULL);         /* Don't return parameters */
+         if(result) {
+             return_value = 5000 + (int32_t)result;
+             goto Done;
+         }
+
+        free_ecdsa_key_pair(key_pair);
+        ran_a_test = true;
     }
 
-    t_cose_sign1_verify_init(&verify_ctx, 0);
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES384)) {
+        result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
+        if(result) {
+            return_value = 1100 + (int32_t)result;
+            goto Done;
+        }
 
-    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
+        t_cose_sign1_verify_init(&verify_ctx, 0);
 
-    valid_message = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_ossl_crypto_256);
-    result = t_cose_sign1_verify(&verify_ctx,
-                                  valid_message, /* COSE to verify */
-                                 &payload,       /* Payload from signed_cose */
-                                  NULL);         /* Don't return parameters */
-     if(result) {
-         return_value = 5000 + (int32_t)result;
-         goto Done;
-     }
+        t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
-    free_ecdsa_key_pair(key_pair);
+        valid_message = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_psa_crypto_384);
 
-#ifndef T_COSE_DISABLE_ES384
-    result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES384, &key_pair);
-    if(result) {
-        return_value = 1100 + (int32_t)result;
-        goto Done;
+        result = t_cose_sign1_verify(&verify_ctx,
+                                     valid_message, /* COSE to verify */
+                                    &payload,       /* Payload from signed_cose */
+                                     NULL);         /* Don't return parameters */
+        if(result) {
+            return_value = 5100 + (int32_t)result;
+            goto Done;
+        }
+        free_ecdsa_key_pair(key_pair);
+        ran_a_test = true;
     }
 
-    t_cose_sign1_verify_init(&verify_ctx, 0);
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES512)) {
+        result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES512, &key_pair);
+        if(result) {
+            return_value = 1200 + (int32_t)result;
+            goto Done;
+        }
 
-    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
+        t_cose_sign1_verify_init(&verify_ctx, 0);
 
-    valid_message = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_psa_crypto_384);
+        t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
-    result = t_cose_sign1_verify(&verify_ctx,
-                                 valid_message, /* COSE to verify */
-                                &payload,       /* Payload from signed_cose */
-                                 NULL);         /* Don't return parameters */
-    if(result) {
-        return_value = 5100 + (int32_t)result;
-        goto Done;
+        valid_message = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_openssl_crypto_521);
+
+        result = t_cose_sign1_verify(&verify_ctx,
+                                     valid_message, /* COSE to verify */
+                                    &payload,       /* Payload from signed_cose */
+                                     NULL);         /* Don't return parameters */
+        if(result) {
+            return_value = 5200 + (int32_t)result;
+            goto Done;
+        }
+
+        free_ecdsa_key_pair(key_pair);
+        ran_a_test = true;
     }
-
-    free_ecdsa_key_pair(key_pair);
-#endif /* T_COSE_DISABLE_ES384 */
-
-
-#ifndef T_COSE_DISABLE_ES512
-    result = make_ecdsa_key_pair(T_COSE_ALGORITHM_ES512, &key_pair);
-    if(result) {
-        return_value = 1200 + (int32_t)result;
-        goto Done;
-    }
-
-    t_cose_sign1_verify_init(&verify_ctx, 0);
-
-    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
-
-    valid_message = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(signed_cose_made_by_openssl_crypto_521);
-
-    result = t_cose_sign1_verify(&verify_ctx,
-                                 valid_message, /* COSE to verify */
-                                &payload,       /* Payload from signed_cose */
-                                 NULL);         /* Don't return parameters */
-    if(result) {
-        return_value = 5200 + (int32_t)result;
-        goto Done;
-    }
-
-    free_ecdsa_key_pair(key_pair);
-#endif /* T_COSE_DISABLE_ES512 */
 
     /* Can't make signed messages and compare them to a known good
      * value because ECDSA signature have a random component. They are
@@ -659,7 +662,7 @@ int_fast32_t known_good_test(void)
      * structure of the signed messages and there tests that verify
      * messages made by the signing function. */
 
-    return_value = 0;
+    return_value = ran_a_test ? 0 : 1000;
 
 Done:
     return return_value;

@@ -13,6 +13,7 @@
 #define __T_COSE_COMMON_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -515,6 +516,25 @@ enum t_cose_err_t {
  * type.  See \ref t_cose_parameters.
  */
 #define T_COSE_EMPTY_UINT_CONTENT_TYPE UINT16_MAX+1
+
+
+/**
+ * \brief  Check whether an algorithm is supported.
+ *
+ * \param[in] cose_algorithm_id        COSE Integer algorithm ID.
+ *
+ * \returns \c true if algorithm is supported, \c false if not.
+ *
+ * Algorithms identifiers are from COSE algorithm registry:
+ *   https://www.iana.org/assignments/cose/cose.xhtml#algorithms
+ *
+ * A primary use for this is to determine whether or not to run a test case.
+ * It is often unneccessary for regular use, because all the APIs will return
+ * T_COSE_ERR_UNSUPPORTED_XXXX if the algorithm is not supported.
+ */
+bool
+t_cose_is_algorithm_supported(int32_t cose_algorithm_id);
+
 
 
 #ifdef __cplusplus
