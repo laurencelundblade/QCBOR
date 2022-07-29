@@ -574,10 +574,9 @@ decode_parameters_bucket(QCBORDecodeContext         *decode_context,
                          void                       *cb_context,
                          const struct header_param_storage param_storage)
 {
-    enum t_cose_err_t         return_value;
-    struct t_cose_label_list  critical_parameter_labels;
-    size_t param_index;
-
+    enum t_cose_err_t           return_value;
+    struct t_cose_label_list    critical_parameter_labels;
+    struct t_cose_header_param *params;
 
     clear_label_list(&critical_parameter_labels);
     QCBORDecode_EnterMap(decode_context, NULL);
@@ -600,11 +599,9 @@ decode_parameters_bucket(QCBORDecodeContext         *decode_context,
     }
 #endif
 
-    for(param_index = 0;
-        param_storage.storage[param_index].parameter_type != QCBOR_TYPE_NONE;
-        param_index++);
-
-    struct t_cose_header_param *params = param_storage.storage;
+    for(params = param_storage.storage;
+        params->parameter_type != QCBOR_TYPE_NONE;
+        params++);
 
     while(1) {
         QCBORItem item;
@@ -616,7 +613,8 @@ decode_parameters_bucket(QCBORDecodeContext         *decode_context,
             break;
         }
 
-        if(param_index > param_storage.storage_size) {
+        // TODO: test this!
+        if(params > &param_storage.storage[param_storage.storage_size-1]) {
             return_value = T_COSE_ERR_INSUFFICIENT_SPACE_FOR_PARAMETERS;
             break;
         }
@@ -677,6 +675,7 @@ decode_parameters_bucket(QCBORDecodeContext         *decode_context,
             }
         }
     }
+    params->parameter_type = T_COSE_PARAMETER_TYPE_NONE;
 
     QCBORDecode_ExitMap(decode_context);
 
@@ -918,7 +917,7 @@ t_cose_find_parameter_kid(const struct t_cose_header_param *p)
 {
     const struct t_cose_header_param *p_found = t_cose_find_parameter(p, COSE_HEADER_PARAM_KID );
     if(p_found != NULL &&
-       p_found->parameter_type == T_COSE_PARAMETER_TYPE_TEXT_STRING) {
+       p_found->parameter_type == T_COSE_PARAMETER_TYPE_BYTE_STRING) {
         return p_found->value.string;
     } else {
         return NULL_Q_USEFUL_BUF_C;

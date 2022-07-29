@@ -99,6 +99,8 @@
 		E7FECC62288B346300420F6F /* t_cose_sign_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC5E288B266500420F6F /* t_cose_sign_verify.c */; };
 		E7FECC63288B346400420F6F /* t_cose_sign_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC5E288B266500420F6F /* t_cose_sign_verify.c */; };
 		E7FECC64288B346400420F6F /* t_cose_sign_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC5E288B266500420F6F /* t_cose_sign_verify.c */; };
+		E7FECC722892275000420F6F /* t_cose_signature_verify_short.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC702892274F00420F6F /* t_cose_signature_verify_short.c */; };
+		E7FECC732892275000420F6F /* t_cose_signature_sign_short.c in Sources */ = {isa = PBXBuildFile; fileRef = E7FECC712892274F00420F6F /* t_cose_signature_sign_short.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -235,6 +237,10 @@
 		E7FECC562887D5A000420F6F /* t_cose_signature_verify_ecdsa.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_signature_verify_ecdsa.c; sourceTree = "<group>"; };
 		E7FECC5D288B08B800420F6F /* t_cose_signature_verify_ecdsa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = t_cose_signature_verify_ecdsa.h; path = t_cose/t_cose_signature_verify_ecdsa.h; sourceTree = "<group>"; };
 		E7FECC5E288B266500420F6F /* t_cose_sign_verify.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_sign_verify.c; sourceTree = "<group>"; };
+		E7FECC6E2892260100420F6F /* t_cose_signature_verify_short.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_signature_verify_short.h; path = t_cose/t_cose_signature_verify_short.h; sourceTree = "<group>"; };
+		E7FECC6F2892260100420F6F /* t_cose_signature_sign_short.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_signature_sign_short.h; path = t_cose/t_cose_signature_sign_short.h; sourceTree = "<group>"; };
+		E7FECC702892274F00420F6F /* t_cose_signature_verify_short.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_signature_verify_short.c; sourceTree = "<group>"; };
+		E7FECC712892274F00420F6F /* t_cose_signature_sign_short.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_signature_sign_short.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -373,6 +379,8 @@
 		E7E36E82226CB9460040613B /* inc */ = {
 			isa = PBXGroup;
 			children = (
+				E7FECC6F2892260100420F6F /* t_cose_signature_sign_short.h */,
+				E7FECC6E2892260100420F6F /* t_cose_signature_verify_short.h */,
 				E72EC9EF242E74EE006D3DD3 /* q_useful_buf.h */,
 				E72EC9ED242E74EE006D3DD3 /* t_cose_common.h */,
 				E74F5A3D2884CFE10092D141 /* t_cose_sign_sign.h */,
@@ -392,6 +400,8 @@
 		E7E36E86226CB9460040613B /* src */ = {
 			isa = PBXGroup;
 			children = (
+				E7FECC712892274F00420F6F /* t_cose_signature_sign_short.c */,
+				E7FECC702892274F00420F6F /* t_cose_signature_verify_short.c */,
 				E7FECC5E288B266500420F6F /* t_cose_sign_verify.c */,
 				E7FECC452887430600420F6F /* t_cose_sign_sign.c */,
 				E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */,
@@ -603,6 +613,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E730E60B23612DAB00175CE0 /* t_cose_sign1_verify.c in Sources */,
+				E7FECC722892275000420F6F /* t_cose_signature_verify_short.c in Sources */,
 				E730E60C23612DAB00175CE0 /* run_tests.c in Sources */,
 				E730E62123612E3900175CE0 /* t_cose_test_crypto.c in Sources */,
 				E7FECC572887D5A000420F6F /* t_cose_signature_verify_ecdsa.c in Sources */,
@@ -612,6 +623,7 @@
 				E730E61323612DAB00175CE0 /* t_cose_util.c in Sources */,
 				E730E61523612DAB00175CE0 /* sha256.c in Sources */,
 				E730E61623612DAB00175CE0 /* t_cose_test.c in Sources */,
+				E7FECC732892275000420F6F /* t_cose_signature_sign_short.c in Sources */,
 				E730E61823612DAB00175CE0 /* main.c in Sources */,
 				E730E61923612DAB00175CE0 /* t_cose_sign1_sign.c in Sources */,
 				E7FECC472887430700420F6F /* t_cose_sign_sign.c in Sources */,
