@@ -674,10 +674,14 @@ static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
    UsefulBuf UB;
 
    // See UsefulBuf_Unconst() implementation for comment on pragmas
+#ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
    UB.ptr = (void *)UBC.ptr;
+#ifndef _MSC_VER
 #pragma GCC diagnostic pop
+#endif
 
    UB.len = UBC.len;
 
@@ -1757,10 +1761,14 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
    /* -Wcast-qual is a good warning flag to use in general. This is
     * the one place in UsefulBuf where it needs to be quieted. Since
     * clang supports GCC pragmas, this works for clang too. */
+#ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
    UB.ptr = (void *)UBC.ptr;
+#ifndef _MSC_VER
 #pragma GCC diagnostic pop
+#endif
 
    UB.len = UBC.len;
 
