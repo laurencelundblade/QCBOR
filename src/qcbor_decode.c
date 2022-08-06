@@ -505,10 +505,14 @@ StringAllocator_Free(const QCBORInternalAllocator *pMe, const void *pMem)
     * gcc and clang. This is the one place where the const needs to be
     * cast away so const can be use in the rest of the code.
     */
+#ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
    (pMe->pfAllocator)(pMe->pAllocateCxt, (void *)pMem, 0);
+#ifndef _MSC_VER
 #pragma GCC diagnostic pop
+#endif
 }
 
 // StringAllocator_Reallocate called with pMem NULL is
@@ -519,10 +523,14 @@ StringAllocator_Reallocate(const QCBORInternalAllocator *pMe,
                            size_t uSize)
 {
    /* See comment in StringAllocator_Free() */
+#ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
    return (pMe->pfAllocator)(pMe->pAllocateCxt, (void *)pMem, uSize);
+#ifndef _MSC_VER
 #pragma GCC diagnostic pop
+#endif
 }
 
 static inline UsefulBuf
@@ -535,12 +543,16 @@ static inline void
 StringAllocator_Destruct(const QCBORInternalAllocator *pMe)
 {
    /* See comment in StringAllocator_Free() */
+#ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
    if(pMe->pfAllocator) {
       (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, 0);
    }
+#ifndef _MSC_VER
 #pragma GCC diagnostic pop
+#endif
 }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
@@ -2738,12 +2750,19 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
                                   bool bAllStrings)
 {
    // The pool size and free mem offset are packed into the beginning
-   // of the pool memory. This compile time check make sure the
+   // of the pool memory. This compile time check makes sure the
    // constant in the header is correct.  This check should optimize
    // down to nothing.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4127) // conditional expression is constant
+#endif
    if(QCBOR_DECODE_MIN_MEM_POOL_SIZE < 2 * sizeof(uint32_t)) {
       return QCBOR_ERR_MEM_POOL_SIZE;
    }
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
    // The pool size and free offset packed in to the beginning of pool
    // memory are only 32-bits. This check will optimize out on 32-bit
