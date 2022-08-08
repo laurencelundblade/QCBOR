@@ -39,6 +39,21 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  @file qcbor_common.h
 
+ Types and defines common to QCBOR encoding and decoding.
+*/
+
+
+/**
+ * This define indicates QCBOR v1.1.
+ *
+ * There are no backwards compatibiliy issues with QCBOR 1.0.
+ *
+ * The only new API is QCBOREncode_OpenBytes() and related.
+ */
+#define QCBOR_1_1
+
+
+/**
  This define indicates a version of QCBOR that supports spiffy decode,
  the decode functions found in qcbor_spiffy_decode.h.
 

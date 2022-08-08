@@ -168,18 +168,15 @@ QCBOR.
 
 ## Code Status
 
+The current version is v1.1, a small feature addition and bug fix
+release over QCBOR 1.0.
+
 Code has been stable for over a year. The last major change was in
 fall of 2020. 
 
 QCBOR was originally developed by Qualcomm. It was [open sourced
 through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a
 permissive Linux license, September 2018 (thanks Qualcomm!).
-
-This code in [Laurence's
-GitHub](https://github.com/laurencelundblade/QCBOR) has diverged from
-the CAF source in 2018 with some simplifications, tidying up and feature
-additions.
-
 
 ## Building
 
