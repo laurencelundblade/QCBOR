@@ -1,7 +1,7 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2021, Laurence Lundblade.
- All rights reserved.
+ Copyright (c) 2022, Arm Limited. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -1772,7 +1772,7 @@ static const uint8_t spExpectedForBstrWrapCancel[] = {0x82, 0x19, 0x01, 0xC3, 0x
 /*
  * bstr wrapping test
  */
-int BstrWrapTest()
+int32_t BstrWrapTest()
 {
    QCBOREncodeContext EC;
 
