@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -505,10 +505,14 @@ StringAllocator_Free(const QCBORInternalAllocator *pMe, const void *pMem)
     * gcc and clang. This is the one place where the const needs to be
     * cast away so const can be use in the rest of the code.
     */
+#ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
    (pMe->pfAllocator)(pMe->pAllocateCxt, (void *)pMem, 0);
+#ifndef _MSC_VER
 #pragma GCC diagnostic pop
+#endif
 }
 
 // StringAllocator_Reallocate called with pMem NULL is
@@ -519,10 +523,14 @@ StringAllocator_Reallocate(const QCBORInternalAllocator *pMe,
                            size_t uSize)
 {
    /* See comment in StringAllocator_Free() */
+#ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
    return (pMe->pfAllocator)(pMe->pAllocateCxt, (void *)pMem, uSize);
+#ifndef _MSC_VER
 #pragma GCC diagnostic pop
+#endif
 }
 
 static inline UsefulBuf
@@ -535,12 +543,16 @@ static inline void
 StringAllocator_Destruct(const QCBORInternalAllocator *pMe)
 {
    /* See comment in StringAllocator_Free() */
+#ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
    if(pMe->pfAllocator) {
       (pMe->pfAllocator)(pMe->pAllocateCxt, NULL, 0);
    }
+#ifndef _MSC_VER
 #pragma GCC diagnostic pop
+#endif
 }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
@@ -1542,7 +1554,7 @@ QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
  * combines pairs of items into one data item with a label
  * and value.
  *
- * This is passthrough if the current nesting leve is
+ * This is passthrough if the current nesting level is
  * not a map.
  *
  * This also implements maps-as-array mode where a map
@@ -1933,7 +1945,7 @@ static inline void ShiftTags(QCBORItem *pDecodedItem)
  * @retval QCBOR_ERR_DATE_OVERFLOW
  * @retval QCBOR_ERR_FLOAT_DATE_DISABLED
  * @retval QCBOR_ERR_ALL_FLOAT_DISABLED
- * @retval QCBOR_ERR_BAD_TAG_CONTENT
+ * @retval QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT
  *
  * The epoch date tag defined in QCBOR allows for floating-point
  * dates. It even allows a protocol to flop between date formats when
@@ -2018,7 +2030,11 @@ static QCBORError DecodeDateEpoch(QCBORItem *pDecodedItem)
          break;
 
       default:
-         uReturn = QCBOR_ERR_BAD_TAG_CONTENT;
+         /* It's the arrays and maps that are unrecoverable because
+          * they are not consumed here. Since this is just an error
+          * condition, no extra code is added here to make the error
+          * recoverable for non-arrays and maps like strings. */
+         uReturn = QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT;
          goto Done;
    }
 
@@ -2037,7 +2053,7 @@ Done:
  * @retval QCBOR_ERR_DATE_OVERFLOW
  * @retval QCBOR_ERR_FLOAT_DATE_DISABLED
  * @retval QCBOR_ERR_ALL_FLOAT_DISABLED
- * @retval QCBOR_ERR_BAD_TAG_CONTENT
+ * @retval QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT
  *
  * This is much simpler than the other epoch date format because
  * floating-porint is not allowed. This is mostly a simple type check.
@@ -2061,7 +2077,11 @@ static QCBORError DecodeDaysEpoch(QCBORItem *pDecodedItem)
          break;
 
       default:
-         uReturn = QCBOR_ERR_BAD_TAG_CONTENT;
+         /* It's the arrays and maps that are unrecoverable because
+          * they are not consumed here. Since this is just an error
+          * condition, no extra code is added here to make the error
+          * recoverable for non-arrays and maps like strings. */
+         uReturn = QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT;
          goto Done;
          break;
    }
@@ -2217,7 +2237,11 @@ static inline QCBORError DecodeMIME(QCBORItem *pDecodedItem)
    } else if(pDecodedItem->uDataType == QCBOR_TYPE_BYTE_STRING) {
       pDecodedItem->uDataType = QCBOR_TYPE_BINARY_MIME;
    } else {
-      return QCBOR_ERR_BAD_OPT_TAG;
+      /* It's the arrays and maps that are unrecoverable because
+       * they are not consumed here. Since this is just an error
+       * condition, no extra code is added here to make the error
+       * recoverable for non-arrays and maps like strings. */
+      return QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT;
    }
 
    return QCBOR_SUCCESS;
@@ -2264,7 +2288,7 @@ static const struct StringTagMapEntry StringTagMap[] = {
  *
  * @returns  This returns QCBOR_SUCCESS if the tag was procssed,
  *           \ref QCBOR_ERR_UNSUPPORTED if the tag was not processed and
- *           \ref QCBOR_ERR_BAD_OPT_TAG if the content type was wrong for the tag.
+ *           \ref QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT if the content type was wrong for the tag.
  *
  * Process the CBOR tags that whose content is a byte string or a text
  * string and for which the string is just passed on to the caller.
@@ -2301,7 +2325,11 @@ ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
    }
 
    if(pDecodedItem->uDataType != uExpectedType) {
-      return QCBOR_ERR_BAD_OPT_TAG;
+      /* It's the arrays and maps that are unrecoverable because
+       * they are not consumed here. Since this is just an error
+       * condition, no extra code is added here to make the error
+       * recoverable for non-arrays and maps like strings. */
+      return QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT;
    }
 
    pDecodedItem->uDataType = (uint8_t)(uQCBORType & QCBOR_TYPE_MASK);
@@ -2798,12 +2826,19 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
                                   bool bAllStrings)
 {
    // The pool size and free mem offset are packed into the beginning
-   // of the pool memory. This compile time check make sure the
+   // of the pool memory. This compile time check makes sure the
    // constant in the header is correct.  This check should optimize
    // down to nothing.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4127) // conditional expression is constant
+#endif
    if(QCBOR_DECODE_MIN_MEM_POOL_SIZE < 2 * sizeof(uint32_t)) {
       return QCBOR_ERR_MEM_POOL_SIZE;
    }
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
    // The pool size and free offset packed in to the beginning of pool
    // memory are only 32-bits. This check will optimize out on 32-bit
@@ -2834,9 +2869,18 @@ CopyTags(QCBORDecodeContext *pMe, const QCBORItem *pItem)
 }
 
 
-/*
- Consume an entire map or array (and do next to
- nothing for non-aggregate types).
+/**
+ * @brief Consume an entire map or array including its contents.
+ *
+ * @param[in]  pMe              The decoder context.
+ * @param[in]  pItemToConsume   The array/map whose contents are to be
+ *                              consumed.
+ * @param[out] puNextNestLevel  The next nesting level after the item was
+ *                              fully consumed.
+ *
+ * This may be called when @c pItemToConsume is not an array or
+ * map. In that case, this is just a pass through for @c puNextNestLevel
+ * since there is nothing to do.
  */
 static inline QCBORError
 ConsumeItem(QCBORDecodeContext *pMe,
@@ -2846,18 +2890,19 @@ ConsumeItem(QCBORDecodeContext *pMe,
    QCBORError uReturn;
    QCBORItem  Item;
 
-   // If it is a map or array, this will tell if it is empty.
+   /* If it is a map or array, this will tell if it is empty. */
    const bool bIsEmpty = (pItemToConsume->uNextNestLevel <= pItemToConsume->uNestingLevel);
 
    if(QCBORItem_IsMapOrArray(pItemToConsume) && !bIsEmpty) {
       /* There is only real work to do for non-empty maps and arrays */
 
-      /* This works for definite- and indefinite- length
-       * maps and arrays by using the nesting level
+      /* This works for definite- and indefinite-length maps and
+       * arrays by using the nesting level
        */
       do {
          uReturn = QCBORDecode_GetNext(pMe, &Item);
-         if(QCBORDecode_IsUnrecoverableError(uReturn)) {
+         if(QCBORDecode_IsUnrecoverableError(uReturn) ||
+            uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
             goto Done;
          }
       } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
@@ -2867,8 +2912,8 @@ ConsumeItem(QCBORDecodeContext *pMe,
       uReturn = QCBOR_SUCCESS;
 
    } else {
-      /* item_to_consume is not a map or array */
-      /* Just pass the nesting level through */
+      /* pItemToConsume is not a map or array.  Just pass the nesting
+       * level through. */
       *puNextNestLevel = pItemToConsume->uNextNestLevel;
 
       uReturn = QCBOR_SUCCESS;

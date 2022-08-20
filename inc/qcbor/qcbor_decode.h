@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -915,7 +915,7 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * | @ref QCBOR_ERR_TOO_MANY_TAGS                 | Tag nesting deeper than limit, typically 4 |
  * | __Configuration errors__  ||
  * | @ref QCBOR_ERR_NO_STRING_ALLOCATOR        | Encountered indefinite-length string with no allocator configured |
- * | @ref QCBOR_ERR_MAP_LABEL_TYPE             | A map label this is not a string on an integer |
+ * | @ref QCBOR_ERR_MAP_LABEL_TYPE             | A map label that is not a string on an integer |
  * | @ref QCBOR_ERR_HALF_PRECISION_DISABLED    | Library compiled with half-precision disabled and half-precision input encountered |
  * | @ref QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  | Library compiled with indefinite maps and arrays  disabled and indefinite map or array encountered |
  * | @ref QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED | Library compiled with indefinite strings disabled and indefinite string encountered |
@@ -1186,6 +1186,10 @@ static bool QCBORDecode_IsNotWellFormedError(QCBORError uErr);
  * errors like incorrect lengths or array counts are
  * unrecoverable. Unrecoverable errors also occur when implementation
  * limits such as the limit on array and map nesting are encountered.
+ * When the built-in decoding of a tag like an epoch date encounters
+ * an error such as a data item of an unexpected type, this is also an
+ * unrecoverable error because the internal decoding doesn't try to
+ * decode everything in the tag.
  *
  * The unrecoverable errors are a range of the errors in
  * @ref QCBORError.

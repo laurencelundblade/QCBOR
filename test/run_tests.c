@@ -124,8 +124,8 @@ static test_entry s_tests[] = {
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
     TEST_ENTRY(GeneralFloatEncodeTests),
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
     TEST_ENTRY(GeneralFloatDecodeTests),
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
     TEST_ENTRY(BstrWrapTest),
     TEST_ENTRY(BstrWrapErrorTest),
     TEST_ENTRY(BstrWrapNestTest),
