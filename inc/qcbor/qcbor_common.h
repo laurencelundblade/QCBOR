@@ -35,7 +35,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
-//#define QCBOR_DISABLE_TAGS
+#define QCBOR_DISABLE_TAGS
 
 /**
  @file qcbor_common.h
@@ -207,7 +207,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     tag. */
 #define CBOR_TAG_CBOR_SEQUENCE 63
 
-
+/** Not Decoded by QCBOR. Tag for COSE format COSE_Encrypt. See [RFC 8152, COSE]
+   (https://tools.ietf.org/html/rfc8152). No API is provided for this
+   tag. */
 #define CBOR_TAG_ENCRYPT       96
 /** Not Decoded by QCBOR. Tag for COSE format MAC. See [RFC 8152, COSE]
     (https://tools.ietf.org/html/rfc8152). No API is provided for this

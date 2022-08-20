@@ -178,6 +178,9 @@ extern "C" {
  * has a tag number @ref QCBOR_ERR_TAGS_DISABLED will be
  * returned. That is they may only be used on dates, big numbers and
  * such that don't have a tag number, whose type is implicitly known.
+ *
+ * Spiffy decode map searching, GetXxxxInMap,  will ignore items that are tags. It
+ * will not error out on them because the error is recoverable.
  */
 
 /**

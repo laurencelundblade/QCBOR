@@ -99,8 +99,10 @@ static test_entry s_tests[] = {
     TEST_ENTRY(BasicEncodeTest),
     TEST_ENTRY(NestedMapTest),
     TEST_ENTRY(BignumParseTest),
+#ifndef QCBOR_DISABLE_TAGS
     TEST_ENTRY(OptTagParseTest),
     TEST_ENTRY(DateParseTest),
+#endif /* QCBOR_DISABLE_TAGS */
     TEST_ENTRY(SpiffyDateDecodeTest),
     TEST_ENTRY(ShortBufferParseTest2),
     TEST_ENTRY(ShortBufferParseTest),

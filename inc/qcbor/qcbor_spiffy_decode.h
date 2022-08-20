@@ -88,7 +88,7 @@ extern "C" {
  ## Tag Usage
 
  Data types beyond the basic CBOR types of numbers, strings, maps and
- arrays are called tags. The main registry of these new types is in in
+ arrays are called tags. The main registry of these new types is in
  the IANA CBOR tags registry. These new types may be simple such a
  number that is to be interpreted as a date, or of moderate complexity
  such as defining a decimal fraction that is an array containing a
@@ -296,6 +296,12 @@ static void QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  See also QCBORDecode_GetInt64ConvertAll() which does some of these
  conversions, but links in much less object code. See also
  QCBORDecode_GetUInt64ConvertAll().
+
+ This relies on CBOR tags to distinguish big numbers, decimal fractions and
+ big floats. It will not attempt to decode non-tag CBOR that might
+ be one of these.  (If QCBOR_DISABLE_TAGS is set, this is effectively
+ the same as QCBORDecode_GetInt64Convert() because all the
+ additional numbers this decodes are tags).
  */
 void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pCtx,
                                     uint32_t            uConvertTypes,

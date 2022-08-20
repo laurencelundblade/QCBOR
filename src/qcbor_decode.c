@@ -1414,7 +1414,7 @@ UnMapTagNumber(const QCBORDecodeContext *pMe, uint16_t uMappedTagNumber)
       return pMe->auMappedTags[uIndex];
    }
 }
-
+#endif
 
 /**
  * @brief Aggregate all tags wrapping a data item (decode layer 4).
@@ -1443,6 +1443,7 @@ UnMapTagNumber(const QCBORDecodeContext *pMe, uint16_t uMappedTagNumber)
 static QCBORError
 QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
+#ifndef QCBOR_DISABLE_TAGS
    /* Accummulate the tags from multiple items here and then copy them
     * into the last item, the non-tag item.
     */
@@ -1499,10 +1500,21 @@ QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
       auItemsTags[0] = uMappedTagNumber;
    }
 
-Done:
+  Done:
    return uReturn;
-}
+
+#else /* QCBOR_DISABLE_TAGS */
+
+   QCBORError uErr = QCBORDecode_GetNextFullString(pMe, pDecodedItem);
+
+   pDecodedItem->uTags[0] = CBOR_TAG_INVALID16;
+   
+   return uErr;
+
 #endif /* QCBOR_DISABLE_TAGS */
+
+
+}
 
 /**
  * @brief Combine a map entry label and value into one item (decode layer 3).
@@ -1540,12 +1552,8 @@ Done:
 static inline QCBORError
 QCBORDecode_GetNextMapEntry(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
-#ifndef QCBOR_DISABLE_TAGS
    QCBORError uReturn = QCBORDecode_GetNextTagNumber(pMe, pDecodedItem);
-#else
-   QCBORError uReturn = QCBORDecode_GetNextFullString(pMe, pDecodedItem);
-   // TODO: someone needs to fix up the tag list to be empty
-#endif /* QCBOR_DISABLE_TAGS */
+
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -1563,11 +1571,8 @@ QCBORDecode_GetNextMapEntry(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
           * be the real data item.
           */
          QCBORItem LabelItem = *pDecodedItem;
-         #ifndef QCBOR_DISABLE_TAGS
-            uReturn = QCBORDecode_GetNextTagNumber(pMe, pDecodedItem);
-         #else
-            uReturn = QCBORDecode_GetNextFullString(pMe, pDecodedItem);
-         #endif /* QCBOR_DISABLE_TAGS */
+         uReturn = QCBORDecode_GetNextTagNumber(pMe, pDecodedItem);
+
          if(QCBORDecode_IsUnrecoverableError(uReturn)) {
             goto Done;
          }
@@ -2489,6 +2494,8 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pMe,
                             QCBORItem          *pDecodedItem,
                             QCBORTagListOut    *pTags)
 {
+#ifndef QCBOR_DISABLE_TAGS
+
    QCBORError uReturn;
 
    uReturn = QCBORDecode_GetNext(pMe, pDecodedItem);
@@ -2512,6 +2519,10 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pMe,
    }
 
    return QCBOR_SUCCESS;
+
+#else
+   return QCBOR_ERR_TAGS_DISABLED;
+#endif /* QCBOR_DISABLE_TAGS */
 }
 
 
@@ -2522,6 +2533,7 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *pMe,
                           const QCBORItem   *pItem,
                           uint64_t           uTag)
 {
+#ifndef QCBOR_DISABLE_TAGS
    for(unsigned uTagIndex = 0; uTagIndex < QCBOR_MAX_TAGS_PER_ITEM; uTagIndex++) {
       if(pItem->uTags[uTagIndex] == CBOR_TAG_INVALID16) {
          break;
@@ -2530,6 +2542,7 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *pMe,
          return true;
       }
    }
+#endif /* QCBOR_TAGS_DISABLED */
 
    return false;
 }
@@ -2590,6 +2603,7 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
                                const QCBORItem    *pItem,
                                uint32_t            uIndex)
 {
+#ifndef QCBOR_DISABLE_TAGS
    if(pItem->uDataType == QCBOR_TYPE_NONE) {
       return CBOR_TAG_INVALID64;
    }
@@ -2598,6 +2612,9 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
    } else {
       return UnMapTagNumber(pMe, pItem->uTags[uIndex]);
    }
+#else
+   return CBOR_TAG_INVALID64;
+#endif /* QCBOR_DISABLE_TAGS */
 }
 
 
@@ -2607,6 +2624,8 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
 uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe,
                                      uint32_t                  uIndex)
 {
+#ifndef QCBOR_DISABLE_TAGS
+
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return CBOR_TAG_INVALID64;
    }
@@ -2615,6 +2634,9 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe,
    } else {
       return UnMapTagNumber(pMe, pMe->uLastTags[uIndex]);
    }
+#else
+   return CBOR_TAG_INVALID64;
+#endif /* QCBOR_DISABLE_TAGS */
 }
 
 
@@ -3262,10 +3284,16 @@ CheckTypeList(int uDataType, const uint8_t puTypeList[QCBOR_TAGSPEC_NUM_TYPES])
  *
  * The data type must be one of the QCBOR_TYPEs, not the IETF CBOR Registered
  * tag value.
+ *
+ * If QCBOR_DISABLE_TAGS is #defined, all this does is check the item data type
+ * against the expected types.
  */
 static QCBORError
 CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
 {
+   const int nItemType = pItem->uDataType;
+
+#ifndef QCBOR_DISABLE_TAGS
    if(!(TagSpec.uTagRequirement & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS) &&
       pItem->uTags[0] != CBOR_TAG_INVALID16) {
       /* There are tags that QCBOR couldn't process on this item and
@@ -3275,22 +3303,25 @@ CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
    }
 
    const int nTagReq = TagSpec.uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS;
-   const int nItemType = pItem->uDataType;
 
    if(nTagReq == QCBOR_TAG_REQUIREMENT_TAG) {
-#ifndef QCBOR_DISABLE_TAGS
       /* Must match the tag number and only the tag */
       return CheckTypeList(nItemType, TagSpec.uTaggedTypes);
-#else
-      return QCBOR_ERR_TAGS_DISABLED;
-#endif /* QCBOR_DISABLE_TAGS */
    }
+#endif /* QCBOR_DISABLE_TAGS */
+
 
    QCBORError uReturn = CheckTypeList(nItemType, TagSpec.uAllowedContentTypes);
+#ifndef QCBOR_DISABLE_TAGS
    if(uReturn == QCBOR_SUCCESS) {
       return QCBOR_SUCCESS;
    }
+#else
+   return uReturn;
+#endif /* QCBOR_DISABLE_TAGS */
 
+
+#ifndef QCBOR_DISABLE_TAGS
    if(nTagReq == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
       /* Must match the content type and only the content type.
        * There was no match just above so it is a fail. */
@@ -3304,6 +3335,7 @@ CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
     */
 
    return CheckTypeList(nItemType, TagSpec.uTaggedTypes);
+#endif /* QCBOR_DISABLE_TAGS */
 }
 
 
@@ -5848,6 +5880,12 @@ void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
 /*
 
  TODO: remove these notes
+
+In the case of tags being disabled, uTagRequirement has no
+ effect. If a tag occurs in the input, then a tags disabled
+ error will occur. If the data items decode as a big float
+ then success occurs.
+
 
  Several cases:
    - Item is BF tag and BF tag is required - sucess
