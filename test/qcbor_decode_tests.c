@@ -2567,7 +2567,6 @@ int32_t DateParseTest()
 static const uint8_t spSpiffyDateTestInput[] = {
    0x86, // array of 6 items
 
-#ifndef QCBOR_DISABLE_TAGS
    0xc1,
    0xfb, 0xc3, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // -9.2233720368547748E+18, too negative
 
@@ -2577,14 +2576,13 @@ static const uint8_t spSpiffyDateTestInput[] = {
    0xc1, // tag for epoch date
    0xf9, 0xfc, 0x00, // Half-precision -Infinity
 
-#endif /* QCBOR_DISABLE_TAGS */
 
    0xad, // Open a map for tests involving labels.
 
    0x00,
    //0xc0, // tag for string date
    0x6a, '1','9','8','5','-','0','4','-','1','2', // Tagged date string
-#if 0
+
    0x01,
    0xda, 0x03, 0x03, 0x03, 0x03, // An additional tag
    0xc1, // tag for epoch date
@@ -2614,7 +2612,6 @@ static const uint8_t spSpiffyDateTestInput[] = {
    // Untagged single-precision float with value 3.14 with string label x
    0x61, 0x78,
    0xFA, 0x40, 0x48, 0xF5, 0xC3,
-#endif // TODO: get rid of this
    // Untagged half-precision float with value -2
    0x09,
    0xF9, 0xC0, 0x00,
@@ -2646,9 +2643,6 @@ static const uint8_t spSpiffyDateTestInput[] = {
    0xc0, // tag for string date
    0xa0, // Erroneous empty map as content for date
 
-   0xff, // TODO: get rid of this?
-
-   0xff // TODO: get rid of this?
 };
 
 int32_t SpiffyDateDecodeTest()
@@ -2656,7 +2650,7 @@ int32_t SpiffyDateDecodeTest()
    QCBORDecodeContext DC;
    QCBORError         uError;
    int64_t            nEpochDate2, nEpochDate3, nEpochDate5,
-                      nEpochDate4, nEpochDate6, nEpochDateFail,
+                      nEpochDate4, nEpochDate6,
                       nEpochDate1400000000, nEpochDays1, nEpochDays2;
    UsefulBufC         StringDate1, StringDate2, StringDays1, StringDays2;
    uint64_t           uTag1, uTag2;
