@@ -170,6 +170,9 @@ extern "C" {
  * be ommitted reducing the object code size of GetNext() by about 500
  * bytes. If a tag number is encountered in the decoder input the
  * @ref QCBOR_ERR_TAGS_DISABLED error will be returned.
+ * This is an unrecoverable error so this means that no decoding
+ * of any input CBOR with tags is possible when QCBOR_DISABLE_TAGS
+ * is defined.
  *
  * Spiffy decode functions like QCBORDecode_GetEpochDate() that decode
  * types defined by tags are still available. Typically they won't be

@@ -1818,6 +1818,10 @@ static int32_t ProcessFailures(const struct FailInput *pFailInputs, size_t nNumF
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
+      if((size_t)(pF - pFailInputs) == 128) {
+         uCBORError = 0;
+      }
+
 
       // Iterate until there is an error of some sort error
       QCBORItem Item;
@@ -1871,8 +1875,12 @@ static const struct FailInput Failures[] = {
    { {(uint8_t[]){0x5f, 0x80, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
    // indefinite length byte string with an map chunk
    { {(uint8_t[]){0x5f, 0xa0, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
+#ifndef QCBOR_DISABLE_TAGS
    // indefinite length byte string with tagged integer chunk
    { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
+#else /* QCBOR_DISABLE_TAGS */
+   { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_TAGS_DISABLED },
+#endif /* QCBOR_DISABLE_TAGS */
    // indefinite length byte string with an simple type chunk
    { {(uint8_t[]){0x5f, 0xe0, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
    { {(uint8_t[]){0x5f, 0x5f, 0x41, 0x00, 0xff, 0xff}, 6}, QCBOR_ERR_INDEFINITE_STRING_CHUNK},
@@ -2003,10 +2011,12 @@ static const struct FailInput Failures[] = {
    // double-precision with 3 byte argument
    { {(uint8_t[]){0xfb, 0x00, 0x00, 0x00}, 4}, QCBOR_ERR_HIT_END },
 
-
+#ifndef QCBOR_DISABLE_TAGS
    // Tag with no content
    { {(uint8_t[]){0xc0}, 1}, QCBOR_ERR_HIT_END },
-
+#else /* QCBOR_DISABLE_TAGS */
+   { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_TAGS_DISABLED },
+#endif /* QCBOR_DISABLE_TAGS */
 
    // Breaks must not occur in definite length arrays and maps
    // Array of length 1 with sole member replaced by a break
@@ -2098,11 +2108,16 @@ static const struct FailInput Failures[] = {
    { {(uint8_t[]){0x1f}, 1}, QCBOR_ERR_BAD_INT },
    // Negative integer with additional info indefinite length
    { {(uint8_t[]){0x3f}, 1}, QCBOR_ERR_BAD_INT },
+
+#ifndef QCBOR_DISABLE_TAGS
    // CBOR tag with "argument" an indefinite length
    { {(uint8_t[]){0xdf, 0x00}, 2}, QCBOR_ERR_BAD_INT },
    // CBOR tag with "argument" an indefinite length alternate vector
    { {(uint8_t[]){0xdf}, 1}, QCBOR_ERR_BAD_INT },
-
+#else /* QCBOR_DISABLE_TAGS */
+   { {(uint8_t[]){0xdf, 0x00}, 2}, QCBOR_ERR_TAGS_DISABLED },
+   { {(uint8_t[]){0xdf}, 1}, QCBOR_ERR_TAGS_DISABLED },
+#endif /* QCBOR_DISABLE_TAGS */
 
    // Missing bytes from a deterministic length string
    // A byte string is of length 1 without the 1 byte
@@ -2121,7 +2136,7 @@ static const struct FailInput Failures[] = {
    // Text string should have 2^64 bytes, but has 3
    { {(uint8_t[]){0x7b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                   0x01, 0x02, 0x03}, 6}, QCBOR_ERR_HIT_END },
-#else
+#else 
    // Byte string should have 2^32-15 bytes, but has one
    { {(uint8_t[]){0x5a, 0x00, 0x00, 0xff, 0xf0, 0x00}, 6}, QCBOR_ERR_HIT_END },
    // Byte string should have 2^32-15 bytes, but has one
@@ -2195,7 +2210,7 @@ static const struct FailInput Failures[] = {
    { {(uint8_t[]){0xbf, 0x00, 0x00, 0x00, 0xff}, 5}, QCBOR_ERR_BAD_BREAK },
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
-
+#ifndef QCBOR_DISABLE_TAGS
    // In addition to not-well-formed, some invalid CBOR
    // Text-based date, with an integer
    { {(uint8_t[]){0xc0, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },
@@ -2205,6 +2220,17 @@ static const struct FailInput Failures[] = {
    { {(uint8_t[]){0xc1, 0xc0, 0x00}, 3}, QCBOR_ERR_BAD_OPT_TAG },
    // big num tagged an int, not a byte string
    { {(uint8_t[]){0xc2, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },
+#else /* QCBOR_DISABLE_TAGS */
+   // Text-based date, with an integer
+   { {(uint8_t[]){0xc0, 0x00}, 2}, QCBOR_ERR_TAGS_DISABLED },
+   // Epoch date, with an byte string
+   { {(uint8_t[]){0xc1, 0x41, 0x33}, 3}, QCBOR_ERR_TAGS_DISABLED },
+   // tagged as both epoch and string dates
+   { {(uint8_t[]){0xc1, 0xc0, 0x00}, 3}, QCBOR_ERR_TAGS_DISABLED },
+   // big num tagged an int, not a byte string
+   { {(uint8_t[]){0xc2, 0x00}, 2}, QCBOR_ERR_TAGS_DISABLED },
+#endif /* QCBOR_DISABLE_TAGS */
+
 };
 
 int32_t DecodeFailureTests()
@@ -2565,7 +2591,73 @@ int32_t DateParseTest()
    Untagged values
  */
 static const uint8_t spSpiffyDateTestInput[] = {
-   0x86, // array of 6 items
+   0x87, // array of 7 items
+
+   0xa6, // Open a map for tests involving untagged items with labels.
+
+   // Untagged integer 0
+   0x08,
+   0x00,
+
+   // Utagged date string with string label y
+   0x61, 0x79,
+   0x6a, '2','0','8','5','-','0','4','-','1','2', // Untagged date string
+
+   // Untagged single-precision float with value 3.14 with string label x
+   0x61, 0x78,
+   0xFA, 0x40, 0x48, 0xF5, 0xC3,
+
+   // Untagged half-precision float with value -2
+   0x09,
+   0xF9, 0xC0, 0x00,
+
+   /* Untagged date-only date string */
+   0x18, 0x63,
+   0x6A, 0x31, 0x39, 0x38, 0x35, 0x2D, 0x30, 0x34, 0x2D, 0x31, 0x32, /* "1985-04-12" */
+
+   /* Untagged days-count epoch date */
+   0x11,
+   0x19, 0x0F, 0x9A, /* 3994 */
+
+   // End of map, back to array
+
+   0xa7, // Open map of tagged items with labels
+
+   0x00,
+   0xc0, // tag for string date
+   0x6a, '1','9','8','5','-','0','4','-','1','2', // Tagged date string
+
+
+   0x01,
+   0xda, 0x03, 0x03, 0x03, 0x03, // An additional tag
+   0xc1, // tag for epoch date
+   0x1a, 0x53, 0x72, 0x4E, 0x00, // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
+
+   0x05,
+   0xc1,
+   0xfb, 0xc3, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // -9223372036854773760 largest negative
+
+
+   0x07,
+   0xc1, // tag for epoch date
+   0xfb, 0x43, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // 9223372036854773760 largest supported
+
+   /* Tagged days-count epoch date */
+   0x63, 0x53, 0x44, 0x45,
+   0xD8, 0x64,  /* tag(100) */
+   0x39, 0x29, 0xB3, /* -10676 */
+
+   // Untagged -1000 with label z
+   0x61, 0x7a,
+   0xda, 0x01, 0x01, 0x01, 0x01, // An additional tag
+   0x39, 0x03, 0xe7,
+
+   /* Tagged date-only date string */
+   0x63, 0x53, 0x44, 0x53,
+   0xD9, 0x03, 0xEC,
+   0x6A, 0x31, 0x39, 0x38, 0x35, 0x2D, 0x30, 0x34, 0x2D, 0x31, 0x32, /* "1985-04-12" */
+
+   // End of map of tagged items
 
    0xc1,
    0xfb, 0xc3, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // -9.2233720368547748E+18, too negative
@@ -2576,72 +2668,12 @@ static const uint8_t spSpiffyDateTestInput[] = {
    0xc1, // tag for epoch date
    0xf9, 0xfc, 0x00, // Half-precision -Infinity
 
-
-   0xad, // Open a map for tests involving labels.
-
-   0x00,
-   //0xc0, // tag for string date
-   0x6a, '1','9','8','5','-','0','4','-','1','2', // Tagged date string
-
-   0x01,
-   0xda, 0x03, 0x03, 0x03, 0x03, // An additional tag
-   0xc1, // tag for epoch date
-   0x1a, 0x53, 0x72, 0x4E, 0x00, // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
-
-   // Untagged integer 0
-   0x08,
-   0x00,
-
-   // Utagged date string with string label y
-   0x61, 0x79,
-   0x6a, '2','0','8','5','-','0','4','-','1','2', // Untagged date string
-
-   // Untagged -1000 with label z
-   0x61, 0x7a,
-   0xda, 0x01, 0x01, 0x01, 0x01, // An additional tag
-   0x39, 0x03, 0xe7,
-
-   0x07,
-   0xc1, // tag for epoch date
-   0xfb, 0x43, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // 9223372036854773760 largest supported
-
-   0x05,
-   0xc1,
-   0xfb, 0xc3, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // -9223372036854773760 largest negative
-
-   // Untagged single-precision float with value 3.14 with string label x
-   0x61, 0x78,
-   0xFA, 0x40, 0x48, 0xF5, 0xC3,
-   // Untagged half-precision float with value -2
-   0x09,
-   0xF9, 0xC0, 0x00,
-
-   /* Tagged date-only date string */
-   0x63, 0x53, 0x44, 0x53,
-   0xD9, 0x03, 0xEC,
-   0x6A, 0x31, 0x39, 0x38, 0x35, 0x2D, 0x30, 0x34, 0x2D, 0x31, 0x32, /* "1985-04-12" */
-
-   /* Untagged date-only date string */
-   0x18, 0x63,
-   0x6A, 0x31, 0x39, 0x38, 0x35, 0x2D, 0x30, 0x34, 0x2D, 0x31, 0x32, /* "1985-04-12" */
-
-   /* Tagged days-count epoch date */
-   0x63, 0x53, 0x44, 0x45,
-   0xD8, 0x64,  /* tag(100) */
-   0x39, 0x29, 0xB3, /* -10676 */
-
-   /* Untagged days-count epoch date */
-   0x11,
-   0x19, 0x0F, 0x9A, /* 3994 */
-
-   // End of map, back to array
-
    // These two at the end because they are unrecoverable errors
    0xc1, // tag for epoch date
    0x80, // Erroneous empty array as content for date
 
    0xc0, // tag for string date
-   0xa0, // Erroneous empty map as content for date
+   0xa0 // Erroneous empty map as content for date
 
 };
 
@@ -2649,104 +2681,27 @@ int32_t SpiffyDateDecodeTest()
 {
    QCBORDecodeContext DC;
    QCBORError         uError;
-   int64_t            nEpochDate2, nEpochDate3, nEpochDate5,
+   int64_t            nEpochDate3, nEpochDate5,
                       nEpochDate4, nEpochDate6,
-                      nEpochDate1400000000, nEpochDays1, nEpochDays2;
-   UsefulBufC         StringDate1, StringDate2, StringDays1, StringDays2;
-   uint64_t           uTag1, uTag2;
+                      nEpochDays2;
+   UsefulBufC         StringDate1, StringDate2, StringDays2;
 
+   // TODO: reveiew this test again before merging
    QCBORDecode_Init(&DC,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyDateTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
+
+   /* Items are in an array or map to test look up by label and other
+    * that might not occur in isolated items. But it does make the
+    * test a bit messy. */
    QCBORDecode_EnterArray(&DC, NULL);
 
-#ifndef QCBOR_DISABLE_TAGS
-   int64_t nEpochDateFail;
-
-   // Too-negative float, -9.2233720368547748E+18
-   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
-   uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
-      return 1111;
-   }
-
-   // Too-large integer
-   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
-   uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_DATE_OVERFLOW) {
-      return 1;
-   }
-
-   // Half-precision minus infinity
-   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
-   uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
-      return 2;
-   }
-
-   // Bad content for string date
-   QCBORDecode_GetDateString(&DC, QCBOR_TAG_REQUIREMENT_TAG, &StringDate1);
-   uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_BAD_OPT_TAG) {
-      return 4;
-   }
-#endif /* QCBOR_DISABLE_TAGS */
-
-
    QCBORDecode_EnterMap(&DC, NULL);
-
-   // Get largest negative double precision epoch date allowed
-   QCBORDecode_GetEpochDateInMapN(&DC,
-                                  5,
-                                  QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG |
-                                    QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS,
-                                  &nEpochDate2);
-   uError = QCBORDecode_GetAndResetError(&DC);
-#ifndef QCBOR_DISABLE_TAGS
-   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
-      return 102;
-   }
-   if(uError == QCBOR_SUCCESS) {
-      if(nEpochDate2 != -9223372036854773760LL) {
-         return 101;
-      }
-   }
-#else
-   /* Items with tag numbers are ignored by map searching so
-    * the error is not found. */
-   if(uError != QCBOR_ERR_LABEL_NOT_FOUND) {
-      return 402;
-   }
-#endif /* QCBOR_DISABLE_TAGS */
-
-   // Get largest double precision epoch date allowed
-   QCBORDecode_GetEpochDateInMapN(&DC, 7, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
-                                  &nEpochDate2);
-   uError = QCBORDecode_GetAndResetError(&DC);
-#ifndef QCBOR_DISABLE_TAGS
-   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
-      return 112;
-   }
-   if(uError == QCBOR_SUCCESS) {
-      if(nEpochDate2 != 9223372036854773760ULL) {
-         return 111;
-      }
-   }
-#else
-   /* Items with tag numbers are ignored by map searching so
-    * the error is not found. */
-   if(uError != QCBOR_ERR_LABEL_NOT_FOUND) {
-      return 412;
-   }
-#endif /* QCBOR_DISABLE_TAGS */
-
 
    // A single-precision date
    QCBORDecode_GetEpochDateInMapSZ(&DC, "x", QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
                                    &nEpochDate5);
    uError = QCBORDecode_GetAndResetError(&DC);
-#ifndef QCBOR_DISABLE_TAGS
-
    if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
       return 104;
    }
@@ -2755,14 +2710,6 @@ int32_t SpiffyDateDecodeTest()
          return 103;
       }
    }
-#else
-   /* Items with tag numbers are ignored by map searching so
-    * the error is not found. */
-   if(uError != QCBOR_ERR_LABEL_NOT_FOUND) {
-      return 404;
-   }
-#endif /* QCBOR_DISABLE_TAGS */
-
 
    // A half-precision date with value -2 FFF
    QCBORDecode_GetEpochDateInMapN(&DC, 9, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
@@ -2813,6 +2760,39 @@ int32_t SpiffyDateDecodeTest()
 
    // The rest of these succeed even if float features are disabled
 
+
+   // Untagged integer 0
+   QCBORDecode_GetEpochDateInMapN(&DC, 8, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                  &nEpochDate3);
+   // Untagged date string
+   QCBORDecode_GetDateStringInMapSZ(&DC, "y", QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                    &StringDate2);
+
+   QCBORDecode_GetDaysStringInMapN(&DC, 99, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                   &StringDays2);
+
+   QCBORDecode_GetEpochDaysInMapN(&DC, 17, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                  &nEpochDays2);
+
+   QCBORDecode_ExitMap(&DC);
+   if(QCBORDecode_GetError(&DC) != QCBOR_SUCCESS) {
+      return 3001;
+   }
+
+   // The map of tagged items
+   QCBORDecode_EnterMap(&DC, NULL);
+
+#ifndef QCBOR_DISABLE_TAGS
+   int64_t            nEpochDate2,
+                      nEpochDateFail,
+                      nEpochDate1400000000;
+   UsefulBufC         StringDays1;
+   uint64_t           uTag1;
+
+   // Tagged date string
+   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+                                   &StringDate1);
+
    // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
    QCBORDecode_GetEpochDateInMapN(&DC,
                                   1,
@@ -2820,15 +2800,23 @@ int32_t SpiffyDateDecodeTest()
                                     QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS,
                                   &nEpochDate1400000000);
    uTag1 = QCBORDecode_GetNthTagOfLast(&DC, 0);
-   // Tagged date string
-   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
-                                   &StringDate1);
-   // Untagged integer 0
-   QCBORDecode_GetEpochDateInMapN(&DC, 8, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-                                  &nEpochDate3);
-   // Untagged date string
-   QCBORDecode_GetDateStringInMapSZ(&DC, "y", QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-                                    &StringDate2);
+
+   // Get largest negative double precision epoch date allowed
+   QCBORDecode_GetEpochDateInMapN(&DC,
+                                  5,
+                                  QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG |
+                                    QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS,
+                                  &nEpochDate2);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
+      return 102;
+   }
+   if(uError == QCBOR_SUCCESS) {
+      if(nEpochDate2 != -9223372036854773760LL) {
+         return 101;
+      }
+   }
+
    // Untagged -1000 with label z
    QCBORDecode_GetEpochDateInMapSZ(&DC,
                                    "z",
@@ -2836,6 +2824,20 @@ int32_t SpiffyDateDecodeTest()
                                     QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS,
                                    &nEpochDate6);
    uTag2 = QCBORDecode_GetNthTagOfLast(&DC, 0);
+
+
+   // Get largest double precision epoch date allowed
+   QCBORDecode_GetEpochDateInMapN(&DC, 7, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+                                  &nEpochDate2);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
+      return 112;
+   }
+   if(uError == QCBOR_SUCCESS) {
+      if(nEpochDate2 != 9223372036854773760ULL) {
+         return 111;
+      }
+   }
 
    /* The days format is much simpler than the date format
     * because it can't be a floating point value. The test
@@ -2848,19 +2850,35 @@ int32_t SpiffyDateDecodeTest()
    QCBORDecode_GetDaysStringInMapSZ(&DC, "SDS", QCBOR_TAG_REQUIREMENT_TAG,
                                     &StringDays1);
 
-   QCBORDecode_GetDaysStringInMapN(&DC, 99, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-                                   &StringDays2);
-
    QCBORDecode_GetEpochDaysInMapSZ(&DC, "SDE", QCBOR_TAG_REQUIREMENT_TAG,
                                    &nEpochDays1);
-
-   QCBORDecode_GetEpochDaysInMapN(&DC, 17, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-                                  &nEpochDays2);
 
    QCBORDecode_ExitMap(&DC);
    if(QCBORDecode_GetError(&DC) != QCBOR_SUCCESS) {
       return 3001;
    }
+
+   // Too-negative float, -9.2233720368547748E+18
+   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
+      return 1111;
+   }
+
+   // Too-large integer
+   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_DATE_OVERFLOW) {
+      return 1;
+   }
+
+   // Half-precision minus infinity
+   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
+      return 2;
+   }
+
 
    // Bad content for epoch date
    QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
@@ -2881,6 +2899,17 @@ int32_t SpiffyDateDecodeTest()
    if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 1000 + (int32_t)uError;
    }
+#else /* QCBOR_DISABLE_TAGS */
+   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+                                   &StringDate1);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_TAGS_DISABLED) {
+      return 4;
+   }
+#endif /* QCBOR_DISABLE_TAGS */
+
+
+#ifndef QCBOR_DISABLE_TAGS
 
    if(nEpochDate1400000000 != 1400000000) {
       return 200;
@@ -2890,36 +2919,38 @@ int32_t SpiffyDateDecodeTest()
       return 201;
    }
 
-   if(nEpochDate3 != 0) {
-      return 202;
+   if(nEpochDays1 != -10676) {
+      return 205;
    }
 
-   if(nEpochDate6 != -1000) {
-      return 203;
+   if(UsefulBuf_Compare(StringDays1, UsefulBuf_FromSZ("1985-04-12"))) {
+      return 207;
    }
 
    if(uTag2 != 0x01010101) {
       return 204;
    }
 
-   if(nEpochDays1 != -10676) {
-      return 205;
-   }
-
-   if(nEpochDays2 != 3994) {
-      return 206;
+   if(nEpochDate6 != -1000) {
+      return 203;
    }
 
    if(UsefulBuf_Compare(StringDate1, UsefulBuf_FromSZ("1985-04-12"))) {
       return 205;
    }
 
-   if(UsefulBuf_Compare(StringDate2, UsefulBuf_FromSZ("2085-04-12"))) {
+#endif /* QCBOR_DISABLE_TAGS */
+
+   if(nEpochDate3 != 0) {
+      return 202;
+   }
+
+   if(nEpochDays2 != 3994) {
       return 206;
    }
 
-   if(UsefulBuf_Compare(StringDays1, UsefulBuf_FromSZ("1985-04-12"))) {
-      return 207;
+   if(UsefulBuf_Compare(StringDate2, UsefulBuf_FromSZ("2085-04-12"))) {
+      return 206;
    }
 
    if(UsefulBuf_Compare(StringDays2, UsefulBuf_FromSZ("1985-04-12"))) {
@@ -2928,7 +2959,6 @@ int32_t SpiffyDateDecodeTest()
 
    return 0;
 }
-
 
 
 // Input for one of the tagging tests
@@ -4076,6 +4106,8 @@ int32_t IndefiniteLengthArrayMapTest()
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
 
    nResult = QCBORDecode_GetNext(&DC, &Item);
+
+#ifndef QCBOR_DISABLE_TAGS
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
       return -18;
    }
@@ -4084,6 +4116,11 @@ int32_t IndefiniteLengthArrayMapTest()
    if(nResult != QCBOR_ERR_BAD_BREAK) {
       return -19;
    }
+#else /* QCBOR_DISABLE_TAGS */
+   if(nResult != QCBOR_ERR_TAGS_DISABLED) {
+      return -20;
+   }
+#endif /* QCBOR_DISABLE_TAGS */
 
     return 0;
 }
@@ -7185,6 +7222,12 @@ int32_t TooLargeInputTest(void)
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 
+/*
+ An array of three map entries
+ 1) Indefinite length string label for indefinite lenght byte string
+ 2) Indefinite length string label for an integer
+ 3) Indefinite length string label for an indefinite-length negative big num
+ */
 static const uint8_t spMapWithIndefLenStrings[] = {
    0xa3,
       0x7f, 0x61, 'l', 0x64, 'a', 'b', 'e', 'l' , 0x61, '1', 0xff,
@@ -7210,6 +7253,8 @@ int32_t SpiffyIndefiniteLengthStringsTests()
    UsefulBufC ByteString;
    QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetByteStringInMapSZ(&DCtx, "label1", &ByteString);
+
+#ifndef QCBOR_DISABLE_TAGS
    if(QCBORDecode_GetAndResetError(&DCtx)) {
       return 1;
    }
@@ -7235,7 +7280,6 @@ int32_t SpiffyIndefiniteLengthStringsTests()
                                           0xff,
                                           &uDouble);
 
-#ifndef QCBOR_DISABLE_TAGS
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
    if(QCBORDecode_GetAndResetError(&DCtx)) {
       return 5;
@@ -7249,25 +7293,28 @@ int32_t SpiffyIndefiniteLengthStringsTests()
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
-#else /* QCBOR_DISABLE_TAGS */
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_TAGS_DISABLED) {
       return 8;
    }
-#endif /* QCBOR_DISABLE_TAGS */
 
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-
-
-   // TODO: should TAGS_DISABLED error be
-   // unrecoverable? The question is whether
-   // all of it and it's content be consumed
-
 
    QCBORDecode_ExitMap(&DCtx);
 
    if(QCBORDecode_Finish(&DCtx)) {
       return 99;
    }
+
+#else /* QCBOR_DISABLE_TAGS */
+   /* The big num in the input is a CBOR tag and you can't do
+    * map lookups in a map with a tag so this test does very little
+    * when tags are disabled. That is OK, the test coverage is still
+    * good when they are not.
+    */
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_TAGS_DISABLED) {
+      return 1002;
+   }
+#endif /*QCBOR_DISABLE_TAGS */
 
    return 0;
 }
