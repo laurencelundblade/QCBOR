@@ -1874,7 +1874,8 @@ static const struct FailInput Failures[] = {
 #ifndef QCBOR_DISABLE_TAGS
    // indefinite length byte string with tagged integer chunk
    { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
-#else /* QCBOR_DISABLE_TAGS */
+#else
+   // indefinite length byte string with tagged integer chunk
    { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_TAGS_DISABLED },
 #endif /* QCBOR_DISABLE_TAGS */
    // indefinite length byte string with an simple type chunk
@@ -1904,8 +1905,12 @@ static const struct FailInput Failures[] = {
    { {(uint8_t[]){0x5f, 0x80, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
    // indefinite length byte string with an map chunk
    { {(uint8_t[]){0x5f, 0xa0, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
+#ifndef QCBOR_DISABLE_TAGSXXXXX
    // indefinite length byte string with tagged integer chunk
    { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
+#else   // indefinite length byte string with tagged integer chunk
+   { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_TAGS_DISABLED },
+#endif /* QCBOR_DISABLE_TAGS */
    // indefinite length byte string with an simple type chunk
    { {(uint8_t[]){0x5f, 0xe0, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
    { {(uint8_t[]){0x5f, 0x5f, 0x41, 0x00, 0xff, 0xff}, 6}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED},
@@ -2011,7 +2016,7 @@ static const struct FailInput Failures[] = {
    // Tag with no content
    { {(uint8_t[]){0xc0}, 1}, QCBOR_ERR_HIT_END },
 #else /* QCBOR_DISABLE_TAGS */
-   { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_TAGS_DISABLED },
+   { {(uint8_t[]){0xc0}, 1}, QCBOR_ERR_TAGS_DISABLED },
 #endif /* QCBOR_DISABLE_TAGS */
 
    // Breaks must not occur in definite length arrays and maps
@@ -2781,9 +2786,9 @@ int32_t SpiffyDateDecodeTest()
 #ifndef QCBOR_DISABLE_TAGS
    int64_t            nEpochDate2,
                       nEpochDateFail,
-                      nEpochDate1400000000;
+                      nEpochDate1400000000, nEpochDays1;
    UsefulBufC         StringDays1;
-   uint64_t           uTag1;
+   uint64_t           uTag1, uTag2;
 
    // Tagged date string
    QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
@@ -5869,6 +5874,7 @@ struct NumberConversion {
 
 
 static const struct NumberConversion NumberConversions[] = {
+#ifndef QCBOR_DISABLE_TAGS
    {
       "too large to fit into int64_t",
       {(uint8_t[]){0xc3, 0x48, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 10},
@@ -5987,77 +5993,6 @@ static const struct NumberConversion NumberConversions[] = {
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
-      "Positive integer 18446744073709551615",
-      {(uint8_t[]){0x1b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
-      0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
-      18446744073709551615ULL,
-      QCBOR_SUCCESS,
-      18446744073709551615.0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
-   },
-   {
-      "Positive bignum 0xffff",
-      {(uint8_t[]){0xC2, 0x42, 0xff, 0xff}, 4},
-      65536-1,
-      QCBOR_SUCCESS,
-      0xffff,
-      QCBOR_SUCCESS,
-      65535.0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
-   },
-   {
-      "Postive integer 0",
-      {(uint8_t[]){0x0}, 1},
-      0LL,
-      QCBOR_SUCCESS,
-      0ULL,
-      QCBOR_SUCCESS,
-      0.0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
-   },
-   {
-      "Negative integer -18446744073709551616",
-      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, 9},
-      -9223372036854775807-1, // INT64_MIN
-      QCBOR_SUCCESS,
-      0ULL,
-      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
-      -9223372036854775808.0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
-   },
-   {
-      "Double Floating point value 100.3",
-      {(uint8_t[]){0xfb, 0x40, 0x59, 0x13, 0x33, 0x33, 0x33, 0x33, 0x33}, 9},
-      100L,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
-      100ULL,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
-      100.3,
-      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS),
-   },
-   {
-      "Floating point value NaN 0xfa7fc00000",
-      {(uint8_t[]){0xfa, 0x7f, 0xc0, 0x00, 0x00}, 5},
-      0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
-      0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
-      NAN,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
-   },
-   {
-      "half-precision Floating point value -4",
-      {(uint8_t[]){0xf9, 0xc4, 0x00}, 3},
-      // Normal case with all enabled.
-      -4,
-      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_SUCCESS),
-      0,
-      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
-      -4.0,
-      FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
-   },
-   {
       "Decimal fraction 3/10",
       {(uint8_t[]){0xC4, 0x82, 0x20, 0x03}, 4},
       0,
@@ -6067,17 +6002,6 @@ static const struct NumberConversion NumberConversions[] = {
       0.30000000000000004,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
-   {
-      "+inifinity single precision",
-      {(uint8_t[]){0xfa, 0x7f, 0x80, 0x00, 0x00}, 5},
-      0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
-      0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
-      INFINITY,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
-   },
-
    {
       "extreme pos bignum",
       {(uint8_t[]){0xc2, 0x59, 0x01, 0x90,
@@ -6231,6 +6155,90 @@ static const struct NumberConversion NumberConversions[] = {
       -INFINITY,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
+   {
+      "Positive bignum 0xffff",
+      {(uint8_t[]){0xC2, 0x42, 0xff, 0xff}, 4},
+      65536-1,
+      QCBOR_SUCCESS,
+      0xffff,
+      QCBOR_SUCCESS,
+      65535.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+#endif /* QCBOR_DISABLE_TAGS */
+   {
+      "Positive integer 18446744073709551615",
+      {(uint8_t[]){0x1b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      18446744073709551615ULL,
+      QCBOR_SUCCESS,
+      18446744073709551615.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+
+   {
+      "Postive integer 0",
+      {(uint8_t[]){0x0}, 1},
+      0LL,
+      QCBOR_SUCCESS,
+      0ULL,
+      QCBOR_SUCCESS,
+      0.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      "Negative integer -18446744073709551616",
+      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, 9},
+      -9223372036854775807-1, // INT64_MIN
+      QCBOR_SUCCESS,
+      0ULL,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      -9223372036854775808.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      "Double Floating point value 100.3",
+      {(uint8_t[]){0xfb, 0x40, 0x59, 0x13, 0x33, 0x33, 0x33, 0x33, 0x33}, 9},
+      100L,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+      100ULL,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+      100.3,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS),
+   },
+   {
+      "Floating point value NaN 0xfa7fc00000",
+      {(uint8_t[]){0xfa, 0x7f, 0xc0, 0x00, 0x00}, 5},
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
+      NAN,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+   },
+   {
+      "half-precision Floating point value -4",
+      {(uint8_t[]){0xf9, 0xc4, 0x00}, 3},
+      // Normal case with all enabled.
+      -4,
+      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_SUCCESS),
+      0,
+      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      -4.0,
+      FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+   },
+   {
+      "+inifinity single precision",
+      {(uint8_t[]){0xfa, 0x7f, 0x80, 0x00, 0x00}, 5},
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      INFINITY,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+
 };
 
 
@@ -7310,11 +7318,6 @@ int32_t SpiffyIndefiniteLengthStringsTests()
       return 7;
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_TAGS_DISABLED) {
-      return 8;
-   }
-
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    QCBORDecode_ExitMap(&DCtx);

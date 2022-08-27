@@ -2338,7 +2338,9 @@ ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
 #endif /* QCBOR_DISABLE_TAGS */
 
 
+#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 /*
+ * This returns the QCBOR_TYPE for a mantissa and exponent.
 
 Called in one context where there is always a tag
 
@@ -2357,6 +2359,7 @@ MantissaExponentDataType(const uint16_t uTagToProcess, const QCBORItem *pDecoded
    }
    return uBase;
 }
+#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
 
 
 /**
@@ -2549,6 +2552,9 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pMe,
    return QCBOR_SUCCESS;
 
 #else
+   (void)pMe;
+   (void)pDecodedItem;
+   (void)pTags;
    return QCBOR_ERR_TAGS_DISABLED;
 #endif /* QCBOR_DISABLE_TAGS */
 }
@@ -2570,6 +2576,10 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *pMe,
          return true;
       }
    }
+#else /* QCBOR_TAGS_DISABLED */
+   (void)pMe;
+   (void)pItem;
+   (void)uTag;
 #endif /* QCBOR_TAGS_DISABLED */
 
    return false;
@@ -2641,6 +2651,10 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
       return UnMapTagNumber(pMe, pItem->uTags[uIndex]);
    }
 #else
+   (void)pMe;
+   (void)pItem;
+   (void)uIndex;
+
    return CBOR_TAG_INVALID64;
 #endif /* QCBOR_DISABLE_TAGS */
 }
@@ -2663,6 +2677,9 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe,
       return UnMapTagNumber(pMe, pMe->uLastTags[uIndex]);
    }
 #else
+   (void)pMe;
+   (void)uIndex;
+
    return CBOR_TAG_INVALID64;
 #endif /* QCBOR_DISABLE_TAGS */
 }
@@ -2865,6 +2882,9 @@ CopyTags(QCBORDecodeContext *pMe, const QCBORItem *pItem)
 {
 #ifndef QCBOR_DISABLE_TAGS
    memcpy(pMe->uLastTags, pItem->uTags, sizeof(pItem->uTags));
+#else
+   (void)pMe;
+   (void)pItem;
 #endif
 }
 

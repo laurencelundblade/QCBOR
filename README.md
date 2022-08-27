@@ -324,9 +324,9 @@ These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
 
     |               | smallest | largest |  
     |---------------|----------|---------|
-    | encode only   |      850 |    2100 |
-    | decode only   |     2000 |   13300 |
-    | combined      |     2850 |   15500 |
+    | encode only   |      900 |    2100 |
+    | decode only   |     1550 |   13300 |
+    | combined      |     2450 |   15500 |
     
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
@@ -381,6 +381,7 @@ code. The amount saved is an approximation.
     | QCBOR_DISABLE_EXP_AND_MANTISSA          |   400 | 
     | QCBOR_DISABLE_PREFERRED_FLOAT           |   900 | 
     | QCBOR_DISABLE_FLOAT_HW_USE              |    50 | 
+    | QCBOR_DISABLE_TAGS                      |   400 | 
     | USEFULBUF_DISABLE_ALL_FLOAT             |   950 | 
 
 QCBOR_DISABLE_ENCODE_USAGE_GUARDS affects encoding only.  It doesn't
