@@ -138,7 +138,9 @@ static test_entry s_tests[] = {
     TEST_ENTRY(EncodeLengthThirtyoneTest),
     TEST_ENTRY(CBORSequenceDecodeTests),
     TEST_ENTRY(IntToTests),
+#ifndef QCBOR_DISABLE_TAGS
     TEST_ENTRY(DecodeTaggedTypeTests),
+#endif /* QCBOR_DISABLE_TAGS */
     TEST_ENTRY(PeekAndRewindTest),
 #ifndef     QCBOR_DISABLE_EXP_AND_MANTISSA
     TEST_ENTRY(EncodeLengthThirtyoneTest),

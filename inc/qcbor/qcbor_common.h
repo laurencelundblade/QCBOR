@@ -35,7 +35,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
-//#define QCBOR_DISABLE_TAGS
+#define QCBOR_DISABLE_TAGS
 
 /**
  @file qcbor_common.h

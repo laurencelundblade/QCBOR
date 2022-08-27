@@ -1818,10 +1818,6 @@ static int32_t ProcessFailures(const struct FailInput *pFailInputs, size_t nNumF
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if((size_t)(pF - pFailInputs) == 128) {
-         uCBORError = 0;
-      }
-
 
       // Iterate until there is an error of some sort error
       QCBORItem Item;
@@ -5397,10 +5393,14 @@ static const uint8_t spMapOfEmpty[] = {
     }
  */
 static const uint8_t spRecoverableMapErrors[] = {
+#ifndef QCBOR_DISABLE_TAGS
    0xa6,
-   0x01, 0xd8, 0xe0, 0xd8, 0xe1, 0xd8, 0xe2, 0xd8, 0xe3, 0xd8, 0x04, 0x00,
-   0x03, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    0x04, 0xc1, 0xfb, 0x7e, 0x37, 0xe4, 0x3c, 0x88, 0x00, 0x75, 0x9c,
+   0x01, 0xd8, 0xe0, 0xd8, 0xe1, 0xd8, 0xe2, 0xd8, 0xe3, 0xd8, 0x04, 0x00,
+#else
+   0xa4,
+#endif
+   0x03, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    0x05, 0x00,
    0x05, 0x00,
    0x08, 0x08,
@@ -5673,6 +5673,7 @@ int32_t EnterMapTest()
    int64_t nInt;
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spRecoverableMapErrors), 0);
    QCBORDecode_EnterMap(&DCtx, NULL);
+#ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
    uErr = QCBORDecode_GetError(&DCtx);
    if(uErr != QCBOR_ERR_TOO_MANY_TAGS) {
@@ -5682,6 +5683,7 @@ int32_t EnterMapTest()
       return 2121;
    }
    (void)QCBORDecode_GetAndResetError(&DCtx);
+#endif
 
 
    QCBORDecode_GetInt64InMapN(&DCtx, 0x03, &nInt);
@@ -5690,11 +5692,13 @@ int32_t EnterMapTest()
       return 2023;
    }
 
+#ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_GetEpochDateInMapN(&DCtx, 0x04, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return 2024;
    }
+#endif
 
    QCBORDecode_GetInt64InMapN(&DCtx, 0x05, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
@@ -5809,6 +5813,7 @@ int32_t EnterMapTest()
       return 2600;
    }
 
+#ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput2), 0);
    QCBORDecode_VGetNextConsume(&DCtx, &Item1);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
@@ -5820,6 +5825,8 @@ int32_t EnterMapTest()
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 2800;
    }
+#endif
+
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput4), 0);
    QCBORDecode_VGetNextConsume(&DCtx, &Item1);
@@ -6341,6 +6348,23 @@ int32_t CBORTestIssue134()
 
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
+
+
+static const uint8_t spSequenceTestInput[] = {
+   /* 1. The valid date string "1985-04-12" */
+   0x6a, '1','9','8','5','-','0','4','-','1','2', // Date string
+
+   /* 2. */
+   0x00,
+
+   /* 3. A valid epoch date, 1400000000; Tue, 13 May 2014 16:53:20 GMT */
+   0x1a, 0x53, 0x72, 0x4E, 0x00,
+
+   /* 4. */
+   0x62, 'h', 'i',
+};
+
+
 int32_t CBORSequenceDecodeTests(void)
 {
    QCBORDecodeContext DCtx;
@@ -6350,22 +6374,29 @@ int32_t CBORSequenceDecodeTests(void)
 
    // --- Test a sequence with extra bytes ---
 
-   // The input for the date test happens to be a sequence so it
-   // is reused. It is a sequence because it doesn't start as
-   // an array or map.
-
-   // TODO: rewrite this test using something without tags
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput),
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSequenceTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   // Get the first item
+   // Get 1.
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
       return 1;
    }
-   if(Item.uDataType != QCBOR_TYPE_DATE_STRING) {
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ) {
       return 2;
+   }
+
+   uCBORError = QCBORDecode_PartialFinish(&DCtx, &uConsumed);
+   if(uCBORError != QCBOR_ERR_EXTRA_BYTES ||
+      uConsumed != 11) {
+      return 102;
+   }
+
+   // Get 2.
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 66;
    }
 
    uCBORError = QCBORDecode_PartialFinish(&DCtx, &uConsumed);
@@ -6374,24 +6405,12 @@ int32_t CBORSequenceDecodeTests(void)
       return 102;
    }
 
-   // Get a second item
-   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
-   if(uCBORError != QCBOR_ERR_BAD_OPT_TAG) {
-      return 66;
-   }
-
-   uCBORError = QCBORDecode_PartialFinish(&DCtx, &uConsumed);
-   if(uCBORError != QCBOR_ERR_EXTRA_BYTES ||
-      uConsumed != 14) {
-      return 102;
-   }
-
-   // Get a third item
+   // Get 3.
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
       return 2;
    }
-   if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH) {
+   if(Item.uDataType != QCBOR_TYPE_INT64) {
       return 3;
    }
 
@@ -6407,7 +6426,6 @@ int32_t CBORSequenceDecodeTests(void)
    if(uCBORError != QCBOR_ERR_EXTRA_BYTES) {
       return 4;
    }
-
 
    // --- Test an empty input ----
    uint8_t empty[1];
