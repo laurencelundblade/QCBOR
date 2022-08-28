@@ -474,7 +474,7 @@ typedef enum {
        indefinite length map or array in the input CBOR. */
    QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED = 50,
 
-   /** All decoding of CBOR major type 6, tags, is disabled and a tag
+   /** All decoding of tags (major type 6) has been disabled and a tag
        occurred in the decode input. */
    QCBOR_ERR_TAGS_DISABLED = 51,
 

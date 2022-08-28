@@ -163,27 +163,22 @@ extern "C" {
  * returned. Unrecoverable errors are those indicated by
  * QCBORDecode_IsUnrecoverableError().
  *
- *  @anchor Disabilng-Tag-Decoding
+ * @anchor Disabilng-Tag-Decoding
  * # Disabilng Tag Decoding
  *
  * If QCBOR_DISABLE_TAGS is defined, all code for decoding tags will
- * be ommitted reducing the object code size of GetNext() by about 500
- * bytes. If a tag number is encountered in the decoder input the
- * @ref QCBOR_ERR_TAGS_DISABLED error will be returned.
- * This is an unrecoverable error so this means that no decoding
- * of any input CBOR with tags is possible when QCBOR_DISABLE_TAGS
- * is defined.
+ * be omitted reducing the core decoder, QCBORDecode_VGetNext(), by
+ * about 400 bytes. If a tag number is encountered in the decoder
+ * input the unrecoverable error @ref QCBOR_ERR_TAGS_DISABLED will be
+ * returned.  No input with tags can be decoded.
  *
- * Spiffy decode functions like QCBORDecode_GetEpochDate() that decode
- * types defined by tags are still available. Typically they won't be
- * linked in because of dead stripping. If they are called with
- * uTagRequirement QCBOR_TAG_REQUIREMENT_TAG or the input data item
- * has a tag number @ref QCBOR_ERR_TAGS_DISABLED will be
- * returned. That is they may only be used on dates, big numbers and
- * such that don't have a tag number, whose type is implicitly known.
- *
- * Spiffy decode map searching, GetXxxxInMap,  will ignore items that are tags. It
- * will not error out on them because the error is recoverable.
+ * Decode functions like QCBORDecode_GetEpochDate() and
+ * QCBORDecode_GetDecimalFraction() that can decode the tag content
+ * even if the tag number is absent are still available.  Typically
+ * they won't be linked in because of dead stripping. They should be
+ * called with @c uTagRequirement set to @ref
+ * QCBOR_TAG_REQUIREMENT_NOT_A_TAG or to @ref
+ * QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG.
  */
 
 /**

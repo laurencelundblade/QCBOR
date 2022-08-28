@@ -410,11 +410,16 @@ QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS which will result in an error
 when an indefinite-length map or array arrives for decoding.
 
 QCBOR_DISABLE_UNCOMMON_TAGS disables the decoding of explicit tags for
-base 64, regex, UUID and MIME data. This just disabled the automatic
+base 64, regex, UUID and MIME data. This just disables the automatic
 recognition of these from a major type 6 tag.
 
 QCBOR_DISABLE_EXP_AND_MANTISSA disables the decoding of decimal
 fractions and big floats.
+
+QCBOR_DISABLE_TAGS disables all decoding of CBOR tags. If the input has
+a single tag, the error is unrecoverable so it is suitable only for protocols that 
+have no tags. "Borrowed" tag content formats (e.g. an epoch-based date
+without the tag number), can still be processed.
 
 See the discussion above on floating-point.
 
