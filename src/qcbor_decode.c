@@ -1518,13 +1518,9 @@ QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 
 #else /* QCBOR_DISABLE_TAGS */
 
-   QCBORError uErr = QCBORDecode_GetNextFullString(pMe, pDecodedItem);
-   
-   return uErr;
+   return QCBORDecode_GetNextFullString(pMe, pDecodedItem);
 
 #endif /* QCBOR_DISABLE_TAGS */
-
-
 }
 
 /**
@@ -1914,6 +1910,7 @@ QCBORDecode_GetNextMapOrArray(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 Done:
    return uReturn;
 }
+
 
 #ifndef QCBOR_DISABLE_TAGS
 /**

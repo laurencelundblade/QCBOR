@@ -297,11 +297,11 @@ static void QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  conversions, but links in much less object code. See also
  QCBORDecode_GetUInt64ConvertAll().
 
- This relies on CBOR tags to distinguish big numbers, decimal fractions and
- big floats. It will not attempt to decode non-tag CBOR that might
+ This relies on CBOR tags to identify big numbers, decimal fractions
+ and big floats. It will not attempt to decode non-tag CBOR that might
  be one of these.  (If QCBOR_DISABLE_TAGS is set, this is effectively
- the same as QCBORDecode_GetInt64Convert() because all the
- additional numbers this decodes are tags).
+ the same as QCBORDecode_GetInt64Convert() because all the additional
+ number types this decodes are tags).
  */
 void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pCtx,
                                     uint32_t            uConvertTypes,

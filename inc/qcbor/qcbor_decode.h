@@ -498,6 +498,7 @@ typedef struct _QCBORItem {
       uint64_t    uint64;
    } label;
 
+#ifndef QCBOR_DISABLE_TAGS
    /**
     * The tags numbers for which the item is the tag content.  Tags
     * nest, so index 0 in the array is the tag on the data item
@@ -519,6 +520,7 @@ typedef struct _QCBORItem {
     * having to reference this array. Also see @ref Tags-Overview.
     */
    uint16_t uTags[QCBOR_MAX_TAGS_PER_ITEM];
+#endif
 
 } QCBORItem;
 
