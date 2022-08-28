@@ -175,10 +175,9 @@ extern "C" {
  * Decode functions like QCBORDecode_GetEpochDate() and
  * QCBORDecode_GetDecimalFraction() that can decode the tag content
  * even if the tag number is absent are still available.  Typically
- * they won't be linked in because of dead stripping. They should be
- * called with @c uTagRequirement set to @ref
- * QCBOR_TAG_REQUIREMENT_NOT_A_TAG or to @ref
- * QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG.
+ * they won't be linked in because of dead stripping. Their
+ * @c uTagRequirement parameter will be ignored. All that matters is
+ * that the tag content is of the right type.
  */
 
 /**

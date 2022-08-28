@@ -1513,7 +1513,7 @@ QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
       auItemsTags[0] = uMappedTagNumber;
    }
 
-  Done:
+Done:
    return uReturn;
 
 #else /* QCBOR_DISABLE_TAGS */
@@ -3338,64 +3338,63 @@ CheckTypeList(int uDataType, const uint8_t puTypeList[QCBOR_TAGSPEC_NUM_TYPES])
  * @retval QCBOR_SUCCESS   \c uDataType is allowed by @c TagSpec
  * @retval QCBOR_ERR_UNEXPECTED_TYPE \c uDataType is not allowed by @c TagSpec
  *
- * This is used to check types for untagged items as well as for tagged items. It
- * works off the data type and thus relies on the automatic tag type decoding.
+ * This checks the item data type of untagged items as well as of
+ * tagged items against a specification to see if decoding should
+ * proceed.
  *
- * The data type must be one of the QCBOR_TYPEs, not the IETF CBOR Registered
- * tag value.
+ * This relies on the automatic tag decoding done by QCBOR that turns
+ * tag numbers into particular QCBOR_TYPEs so there is no actual
+ * comparsion of tag numbers, just of QCBOR_TYPEs.
  *
- * If QCBOR_DISABLE_TAGS is #defined, all this does is check the item data type
- * against the expected types.
+ * This checks the data item type as possibly representing the tag
+ * number or as the tag content type.
+ *
+ * If QCBOR_DISABLE_TAGS is #defined, all this does is check the item
+ * data type against the allowed tag content types.
  */
 static QCBORError
 CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
 {
    const int nItemType = pItem->uDataType;
 
-   // TODO: clean up the ifdefs here...
-
 #ifndef QCBOR_DISABLE_TAGS
    if(!(TagSpec.uTagRequirement & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS) &&
       pItem->uTags[0] != CBOR_TAG_INVALID16) {
       /* There are tags that QCBOR couldn't process on this item and
-       * the caller has told us there should not be. There will never
-       * be tag numbers when QCBOR_DISABLE_TAGS is defined. */
+       * the caller has told us there should not be.
+       */
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
    const int nTagReq = TagSpec.uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS;
-
    if(nTagReq == QCBOR_TAG_REQUIREMENT_TAG) {
       /* Must match the tag number and only the tag */
       return CheckTypeList(nItemType, TagSpec.uTaggedTypes);
    }
-#endif /* QCBOR_DISABLE_TAGS */
-
 
    QCBORError uReturn = CheckTypeList(nItemType, TagSpec.uAllowedContentTypes);
-#ifndef QCBOR_DISABLE_TAGS
    if(uReturn == QCBOR_SUCCESS) {
       return QCBOR_SUCCESS;
    }
-#else
-   return uReturn;
-#endif /* QCBOR_DISABLE_TAGS */
 
-
-#ifndef QCBOR_DISABLE_TAGS
    if(nTagReq == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
       /* Must match the content type and only the content type.
        * There was no match just above so it is a fail. */
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
-   /* If here it can match either the tag or the content
+   /* QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG: If here it can match either the tag or the content
     * and it hasn't matched the content, so the end
     * result is whether it matches the tag. This is
-    * also the case that the CBOR standard discourages.
+    * the tag optional case that the CBOR standard discourages.
     */
 
    return CheckTypeList(nItemType, TagSpec.uTaggedTypes);
+
+#else /* QCBOR_DISABLE_TAGS */
+
+   return CheckTypeList(nItemType, TagSpec.uAllowedContentTypes);
+
 #endif /* QCBOR_DISABLE_TAGS */
 }
 
@@ -5589,24 +5588,36 @@ static inline UsefulBufC ConvertIntToBigNum(uint64_t uInt, UsefulBuf Buffer)
 }
 
 
-/* TODO: remove these notes..
-
-This is common to decimal fraction and big float.
-
+/**
+ * @brief Check and/or complete mantissa and exponent item.
+ *
+ * @param[in] pMe        The decoder context
+ * @param[in] TagSpec    Expected type(s)
+ * @param[in,out] pItem  See below
+ *
+ * This is for decimal fractions and big floats, both of which are a
+ * mantissa and exponent.
+ *
+ * The input item is either a fully decoded decimal faction or big
+ * float, or a just the decoded first item of a decimal fraction or
+ * big float.
+ *
+ * On output, the item is always a fully decoded decimal fraction or
+ * big float.
+ *
+ * This errors out if the input type does not meet the TagSpec.
  */
+// TODO: document and see tests for the bug that was fixed by this rewrite
 static QCBORError
 MantissaAndExponentTypeHandler(QCBORDecodeContext     *pMe,
-                               TagSpecification  TagSpec,
+                               const TagSpecification  TagSpec,
                                QCBORItem              *pItem)
 {
    QCBORError uErr;
 
-   /* The first item in the mantissa and exponent has been
-    retrieved. It might have been auto-decoded if it was
-    a tag or it might not have been auto decoded if it wasn't
-    a tag. CheckTagRequirements makes sure its one of
-    these two, but doesn't say which it was. Just that it
-    was OK.
+   /* pItem could either be an auto-decoded mantissa and exponent or
+    * the opening array of an undecoded mantissa and exponent. This
+    * check will succeed on either, but doesn't say which it was.
     */
    uErr = CheckTagRequirement(TagSpec, pItem);
    if(uErr != QCBOR_SUCCESS) {
@@ -5614,25 +5625,32 @@ MantissaAndExponentTypeHandler(QCBORDecodeContext     *pMe,
    }
 
    if(pItem->uDataType == QCBOR_TYPE_ARRAY) {
-      /* The item is an array, which means an undecoded
-       * mantissa and exponent, so decode it. This is the
-       * case where there was no tag.
+      /* The item is an array, which means is is an undecoded mantissa
+       * and exponent. This call consumes the items in the array and
+       * results in a decoded mantissa and exponent in pItem. This is
+       * the case where there was no tag.
        */
       uErr = QCBORDecode_MantissaAndExponent(pMe, pItem);
       if(uErr != QCBOR_SUCCESS) {
          goto Done;
       }
 
-      /* The expected type is fished out of TagSpec. */
+      /* The above decode didn't determine whether it is a decimal
+       * fraction or big num. Which of these two depends on what the
+       * caller wants it decoded as since there is no tag, so fish the
+       * type out of the TagSpec. */
       pItem->uDataType = MantissaExponentDataType(TagSpec.uTaggedTypes[0], pItem);
 
       /* No need to check the type again. All that we need to know was
-       * that it decoded correctly as a mantissa and exponent. They
-       * QCBOR type gets figured out by what was requested. */
-
-   } else {
-      uErr = QCBOR_SUCCESS;
+       * that it decoded correctly as a mantissa and exponent. The
+       * QCBOR type is set out by what was requested.
+       */
    }
+
+   /* If the item was not an array and the check passed, then
+    * it is a fully decoded big float or decimal fraction and
+    * matches what is requested.
+    */
 
 Done:
    return uErr;

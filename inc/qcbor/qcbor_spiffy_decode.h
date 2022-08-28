@@ -1985,20 +1985,27 @@ QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pMe,
 
 
 
-// Semi private (this may change in the future)
 #define QCBOR_TAGSPEC_NUM_TYPES 4
-/* Improvement:  Carefully understand what compilers do with this,
-particularly initialization and see if it can be optimized so
-there is less code and maybe so it can be smaller. */
+/* Semi-private data structure (which might change).
+ *
+ * See CheckTagRequirement() which uses this to check the type of a
+ * item to be decoded as a tag or tag content.
+ *
+ * Improvement: Carefully understand what compilers do with this,
+ * particularly initialization and see if it can be optimized so there
+ * is less code and maybe so it can be smaller.
+ */
 typedef struct {
    /* One of QCBOR_TAGSPEC_MATCH_xxx */
    uint8_t uTagRequirement;
-   /* The tagged type translated into QCBOR_TYPE_XXX. Used to match explicit
-      tagging */
+   /* The tagged type translated into QCBOR_TYPE_XXX. Used to match
+    * explicit tagging */
    uint8_t uTaggedTypes[QCBOR_TAGSPEC_NUM_TYPES];
-   /* The types of the content, which are used to match implicit tagging */
+   /* The types of the content, which are used to match implicit
+    * tagging */
    uint8_t uAllowedContentTypes[QCBOR_TAGSPEC_NUM_TYPES];
 } TagSpecification;
+
 
 // Semi private
 void QCBORDecode_GetTaggedStringInternal(QCBORDecodeContext *pMe,
