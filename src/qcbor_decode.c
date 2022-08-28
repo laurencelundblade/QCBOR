@@ -1426,7 +1426,8 @@ UnMapTagNumber(const QCBORDecodeContext *pMe, uint16_t uMappedTagNumber)
       return pMe->auMappedTags[uIndex];
    }
 }
-#endif
+#endif /* QCBOR_DISABLE_TAGS */
+
 
 /**
  * @brief Aggregate all tags wrapping a data item (decode layer 4).
@@ -1518,8 +1519,6 @@ QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 #else /* QCBOR_DISABLE_TAGS */
 
    QCBORError uErr = QCBORDecode_GetNextFullString(pMe, pDecodedItem);
-
-   pDecodedItem->uTags[0] = CBOR_TAG_INVALID16;
    
    return uErr;
 
@@ -1565,7 +1564,6 @@ static inline QCBORError
 QCBORDecode_GetNextMapEntry(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    QCBORError uReturn = QCBORDecode_GetNextTagNumber(pMe, pDecodedItem);
-
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -1584,7 +1582,6 @@ QCBORDecode_GetNextMapEntry(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
           */
          QCBORItem LabelItem = *pDecodedItem;
          uReturn = QCBORDecode_GetNextTagNumber(pMe, pDecodedItem);
-
          if(QCBORDecode_IsUnrecoverableError(uReturn)) {
             goto Done;
          }
@@ -1935,7 +1932,7 @@ static inline void ShiftTags(QCBORItem *pDecodedItem)
    pDecodedItem->uTags[QCBOR_MAX_TAGS_PER_ITEM-1] = CBOR_TAG_INVALID16;
 }
 
-#endif
+#endif /* QCBOR_DISABLE_TAGS */
 
 /**
  * @brief Convert different epoch date formats in to the QCBOR epoch date format
@@ -2551,7 +2548,7 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pMe,
 
    return QCBOR_SUCCESS;
 
-#else
+#else /* QCBOR_DISABLE_TAGS */
    (void)pMe;
    (void)pDecodedItem;
    (void)pTags;
@@ -2650,7 +2647,7 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
    } else {
       return UnMapTagNumber(pMe, pItem->uTags[uIndex]);
    }
-#else
+#else /* QCBOR_DISABLE_TAGS */
    (void)pMe;
    (void)pItem;
    (void)uIndex;
@@ -2676,7 +2673,7 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe,
    } else {
       return UnMapTagNumber(pMe, pMe->uLastTags[uIndex]);
    }
-#else
+#else /* QCBOR_DISABLE_TAGS */
    (void)pMe;
    (void)uIndex;
 
@@ -3357,6 +3354,8 @@ static QCBORError
 CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
 {
    const int nItemType = pItem->uDataType;
+
+   // TODO: clean up the ifdefs here...
 
 #ifndef QCBOR_DISABLE_TAGS
    if(!(TagSpec.uTagRequirement & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS) &&
@@ -5941,23 +5940,6 @@ void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
 /*
  Public function, see header qcbor/qcbor_decode.h file
 */
-
-/*
-
- TODO: remove these notes
-
-In the case of tags being disabled, uTagRequirement has no
- effect. If a tag occurs in the input, then a tags disabled
- error will occur. If the data items decode as a big float
- then success occurs.
-
-
- Several cases:
-   - Item is BF tag and BF tag is required - sucess
-   - Item is not a tag and BF tag is required - error
-   - Item is a BF tag and no tag is allowed - error
-   - Item is not a tag and no tag is allowed - success
- */
 void QCBORDecode_GetBigFloat(QCBORDecodeContext *pMe,
                              uint8_t             uTagRequirement,
                              int64_t             *pnMantissa,
