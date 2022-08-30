@@ -23,12 +23,21 @@ jobs:
         - os-image: ubuntu-latest
           container: ubuntu:20.04
           crypto-provider: MbedTLS
-          crypto-provider-version: '2.28.0'
+          crypto-provider-version: 'v2.28.0'
+          crypto-provider-extra: ''
         
         - os-image: ubuntu-latest
           container: ubuntu:20.04
           crypto-provider: MbedTLS
-          crypto-provider-version: '3.1.0'
+          crypto-provider-version: 'v3.1.0'
+          crypto-provider-extra: ''
+
+        - os-image: ubuntu-latest
+          container: ubuntu:20.04
+          crypto-provider: MbedTLS
+          # crypto-provider-version: 'b489f1e6bcc54ba09730fb7487c2992e03a571a4'
+          crypto-provider-version: '9052cf2f1b755938bf8290b7b068ffe21194486f'
+          crypto-provider-extra: '-DTEST_HPKE=True'
 
         - os-image: ubuntu-latest
           container: ubuntu:20.04
@@ -47,7 +56,8 @@ jobs:
         set -ex
         export DEBIAN_FRONTEND=noninteractive
         apt-get update
-        apt-get install -y build-essential cmake python3 ${{ matrix.c-compiler }}
+        apt-get install -y build-essential cmake python3 ${{ matrix.c-compiler }} \
+                python3-jinja2
         echo "CC=${{ matrix.c-compiler }}" >> $GITHUB_ENV
     
     - name: Install OpenSSL
@@ -59,13 +69,23 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: ARMmbed/mbedtls
-        ref: v${{ matrix.config.crypto-provider-version }}
+        ref: ${{ matrix.config.crypto-provider-version }}
         path: mbedtls
 
     - name: Install MbedTLS
-      if: matrix.config.crypto-provider == 'MbedTLS'
+      if: matrix.config.crypto-provider == 'MbedTLS' &&
+          matrix.config.crypto-provider-extra == ''
       run: |
         cd mbedtls
+        make -j $(nproc)
+        make install
+
+    - name: Install MbedTLS
+      if: matrix.config.crypto-provider == 'MbedTLS' &&
+          matrix.config.crypto-provider-extra != ''
+      run: |
+        cd mbedtls
+        make generated_files
         make -j $(nproc)
         make install
 
@@ -86,7 +106,9 @@ jobs:
         set -ex
         mkdir build
         cd build
-        cmake -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} ..
+        cmake -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} \
+          ${{ matrix.config.crypto-provider-extra }} \
+          ..
         make -j $(nproc)
 
     - name: Run OpenSSL example
