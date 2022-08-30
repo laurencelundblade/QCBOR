@@ -1905,7 +1905,7 @@ static const struct FailInput Failures[] = {
    { {(uint8_t[]){0x5f, 0x80, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
    // indefinite length byte string with an map chunk
    { {(uint8_t[]){0x5f, 0xa0, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-#ifndef QCBOR_DISABLE_TAGSXXXXX
+#ifndef QCBOR_DISABLE_TAGS
    // indefinite length byte string with tagged integer chunk
    { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
 #else   // indefinite length byte string with tagged integer chunk
@@ -4649,21 +4649,19 @@ int32_t SetUpAllocatorTest(void)
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 
 /*  exponent, mantissa
-  [
-    4([-1, 3]),
-    4([-20,                   4759477275222530853136]),
-    4([9223372036854775807,  -4759477275222530853137]),
-    5([300, 100]),
-    5([-20,                   4759477275222530853136]),
-    5([-9223372036854775807, -4759477275222530853137])
-    5([ 9223372036854775806, -4759477275222530853137])
-    5([ 9223372036854775806,  9223372036854775806])]
-    [-1, 3],
-    [-20,                   4759477275222530853136],
-    [300, 100],
-
-
-  ]
+ * [
+ *   4([-1, 3]),
+ *   4([-20,                   4759477275222530853136]),
+ *   4([9223372036854775807,  -4759477275222530853137]),
+ *   5([300, 100]),
+ *   5([-20,                   4759477275222530853136]),
+ *   5([-9223372036854775807, -4759477275222530853137])
+ *   5([ 9223372036854775806, -4759477275222530853137])
+ *   5([ 9223372036854775806,  9223372036854775806])
+ *   [-1, 3],
+ *   [-20,                     4759477275222530853136],
+ *   [300, 100],
+ * ]
  */
 static const uint8_t spExpectedExponentsAndMantissas[] = {
    0x8b,
@@ -4691,6 +4689,46 @@ static const uint8_t spExpectedExponentsAndMantissas[] = {
                0x18, 0x64,
 };
 
+/*
+
+ GetNext when the items are explicitly tags
+    - big float
+    - big float big num
+    - decimal frac
+    - decmial frac big num
+
+ QCBORDecode_GetBigFloat
+    - tag
+    - not a tag
+    - wrong tag
+    - bad format
+    - big
+
+QCBORDecode_GetBigFloatBig
+ - tag
+  - not a tag
+  - wrong tag
+  - bad format
+  - not big
+
+ QCBORDecode_GetDecimalFraction
+
+ - tag
+  - not a tag
+  - wrong tag
+  - bad format
+  - big
+
+ QCBORDecode_GetDecimalFractionBig
+ - tag
+  - not a tag
+  - wrong tag
+  - bad format
+  - not big
+
+
+
+ */
 
 int32_t ExponentAndMantissaDecodeTests(void)
 {
@@ -4930,6 +4968,7 @@ int32_t ExponentAndMantissaDecodeTests(void)
    }
 
 
+   // TODO: duplicate code?
    int64_t                   nExp, nMant;
    UsefulBuf_MAKE_STACK_UB(  MantBuf, 20);
    UsefulBufC                Mant;

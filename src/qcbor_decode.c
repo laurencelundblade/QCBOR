@@ -2112,7 +2112,7 @@ Done:
  * This stuffs the type of the mantissa into pDecodedItem with the expectation
  * the caller will process it.
  */
-static inline QCBORError
+static QCBORError
 QCBORDecode_MantissaAndExponent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    QCBORError uReturn;
@@ -2186,11 +2186,6 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem
               mantissaItem.uDataType == QCBOR_TYPE_NEGBIGNUM) {
       /* Got a good big num mantissa */
       pDecodedItem->val.expAndMantissa.Mantissa.bigNum = mantissaItem.val.bigNum;
-      /* Depends on numbering of QCBOR_TYPE_XXX */
-      // TODO: this is not working right in the disable_tags refactor
-      /*pDecodedItem->uDataType = (uint8_t)(pDecodedItem->uDataType +
-                                          mantissaItem.uDataType - QCBOR_TYPE_POSBIGNUM +
-                                          1);  */
 #endif /* QCBOR_DISABLE_TAGS */
    } else {
       /* Wrong type of mantissa or a QCBOR_TYPE_UINT64 > INT64_MAX */
@@ -2201,6 +2196,7 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem
    /* --- Check that array only has the two numbers --- */
    if(mantissaItem.uNextNestLevel == nNestLevel) {
       /* Extra items in the decimal fraction / big float */
+      /* Improvement: this should probably be an unrecoverable error. */
       uReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
@@ -5657,6 +5653,36 @@ Done:
 }
 
 
+/* Some notes from the work to disable tags.
+ *
+ * The API for big floats and decimal fractions seems good.
+ * If there's any issue with it it's that the code size to
+ * implement is a bit large because of the conversion
+ * to/from int and bignum that is required. There is no API
+ * that doesn't do the conversion so dead stripping will never
+ * leave that code out.
+ *
+ * The implementation itself seems correct, but not as clean
+ * and neat as it could be. It could probably be smaller too.
+ *
+ * The implementation has three main parts / functions
+ *  - The decoding of the array of two
+ *  - All the tag and type checking for the various API functions
+ *  - Conversion to/from bignum and int
+ *
+ * The type checking seems like it wastes the most code for
+ * what it needs to do.
+ *
+ * The inlining for the conversion is probably making the
+ * overall code base larger.
+ *
+ * The tests cases could be organized a lot better and be
+ * more thorough.
+ *
+ * Seems also like there could be more common code in the
+ * first tier part of the public API. Some functions only
+ * vary by a TagSpec.
+ */
 static void ProcessMantissaAndExponent(QCBORDecodeContext *pMe,
                                        TagSpecification    TagSpec,
                                        QCBORItem          *pItem,
@@ -5674,10 +5700,11 @@ static void ProcessMantissaAndExponent(QCBORDecodeContext *pMe,
 
       case QCBOR_TYPE_DECIMAL_FRACTION:
       case QCBOR_TYPE_BIGFLOAT:
-         *pnMantissa = pItem->val.expAndMantissa.Mantissa.nInt;
          *pnExponent = pItem->val.expAndMantissa.nExponent;
+         *pnMantissa = pItem->val.expAndMantissa.Mantissa.nInt;
          break;
 
+#ifndef QCBOR_DISABLE_TAGS
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
       case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
          *pnExponent = pItem->val.expAndMantissa.nExponent;
@@ -5689,6 +5716,7 @@ static void ProcessMantissaAndExponent(QCBORDecodeContext *pMe,
          *pnExponent = pItem->val.expAndMantissa.nExponent;
          uErr = ConvertNegativeBigNumToSigned(pItem->val.expAndMantissa.Mantissa.bigNum, pnMantissa);
          break;
+#endif /* QCBOR_DISABLE_TAGS */
 
       default:
          uErr = QCBOR_ERR_UNEXPECTED_TYPE;
@@ -5731,6 +5759,7 @@ static void ProcessMantissaAndExponentBig(QCBORDecodeContext *pMe,
          *pnExponent = pItem->val.expAndMantissa.nExponent;
          break;
 
+#ifndef QCBOR_DISABLE_TAGS
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
       case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
          *pnExponent = pItem->val.expAndMantissa.nExponent;
@@ -5744,6 +5773,7 @@ static void ProcessMantissaAndExponentBig(QCBORDecodeContext *pMe,
          *pMantissa = pItem->val.expAndMantissa.Mantissa.bigNum;
          *pbIsNegative = true;
          break;
+#endif /* QCBOR_DISABLE_TAGS */
 
       default:
          uErr = QCBOR_ERR_UNEXPECTED_TYPE;
@@ -5846,7 +5876,7 @@ void QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
 */
 void QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pMe,
                                        uint8_t             uTagRequirement,
-                                       UsefulBuf          MantissaBuffer,
+                                       UsefulBuf           MantissaBuffer,
                                        UsefulBufC         *pMantissa,
                                        bool               *pbMantissaIsNegative,
                                        int64_t            *pnExponent)

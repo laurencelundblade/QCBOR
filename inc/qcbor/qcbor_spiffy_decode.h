@@ -1216,6 +1216,10 @@ void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
  See also @ref CBOR_TAG_DECIMAL_FRACTION,
  QCBOREncode_AddDecimalFraction(), @ref QCBOR_TYPE_DECIMAL_FRACTION
  and QCBORDecode_GetDecimalFractionBig().
+
+ If QCBOR_DISABLE_TAGS is set, the only input this will decode is
+ an array of two integers. It will set an error if the the array is preceded
+ by by a tag number or if the mantissa is a big number.
 */
 void QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pCtx,
                                     uint8_t             uTagRequirement,
@@ -1302,6 +1306,10 @@ void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pCtx,
  important distinction that the value is computed by:
 
      mantissa * ( 2 ** exponent )
+
+ If the mantissa is a tag that is a positive or negative big number,
+ this will attempt to fit it into the int64_t that @c pnMantissa is
+ and set an overflow error if it doesn't fit.
 
  See also QCBORDecode_GetInt64ConvertAll(),
  QCBORDecode_GetUInt64ConvertAll() and

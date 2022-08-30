@@ -102,7 +102,7 @@ static test_entry s_tests[] = {
 #ifndef QCBOR_DISABLE_TAGS
     TEST_ENTRY(OptTagParseTest),
     TEST_ENTRY(DateParseTest),
-   TEST_ENTRY(DecodeTaggedTypeTests),
+    TEST_ENTRY(DecodeTaggedTypeTests),
 #endif /* QCBOR_DISABLE_TAGS */
     TEST_ENTRY(SpiffyDateDecodeTest),
     TEST_ENTRY(ShortBufferParseTest2),
@@ -140,9 +140,9 @@ static test_entry s_tests[] = {
     TEST_ENTRY(CBORSequenceDecodeTests),
     TEST_ENTRY(IntToTests),
     TEST_ENTRY(PeekAndRewindTest),
-#ifndef     QCBOR_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 #ifndef QCBOR_DISABLE_TAGS
-    TEST_ENTRY(ExponentAndMantissaDecodeTests),
+    TEST_ENTRY(ExponentAndMantissaDecodeTests),  // TODO: really disable this. It can work without tags.
     TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
 #endif /* QCBOR_DISABLE_TAGS */
     TEST_ENTRY(ExponentAndMantissaEncodeTests),
