@@ -4646,7 +4646,377 @@ int32_t SetUpAllocatorTest(void)
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
+
+struct EaMTest {
+   const char *szName;
+   UsefulBufC  Input;
+   uint8_t     uTagRequirement;
+
+   /* Expected values for GetNext */
+   QCBORError  uExpectedErrorGN;
+   uint8_t     uQCBORTypeGN;
+   int64_t     nExponentGN;
+   int64_t     nMantissaGN;
+   UsefulBufC  MantissaGN;
+
+   /* Expected values for GetDecimalFraction */
+   QCBORError  uExpectedErrorGDF;
+   int64_t     nExponentGDF;
+   int64_t     nMantissaGDF;
+
+   /* Expected values for GetDecimalFractionBig */
+   QCBORError  uExpectedErrorGDFB;
+   int64_t     nExponentGDFB;
+   UsefulBufC  MantissaGDFB;
+   bool        IsNegativeGDFB;
+
+   /* Expected values for GetBigFloat */
+   QCBORError  uExpectedErrorGBF;
+   int64_t     nExponentGBF;
+   int64_t     nMantissaGBF;
+
+   /* Expected values for GetBigFloatBig */
+   QCBORError  uExpectedErrorGBFB;
+   int64_t     nExponentGBFB;
+   UsefulBufC  MantissaGBFB;
+   bool        IsNegativeGBFB;
+};
+
+
+
+static const struct EaMTest pEaMTests[] = {
+   {
+      "1. Untagged 1.5 big float, xxx decimal fraction, no tag required",
+      {(const uint8_t []){0x82, 0x20, 0x03}, 3},
+      QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_ARRAY,
+      0,
+      0,
+      {(const uint8_t []){0x00}, 1},
+
+      QCBOR_SUCCESS, /* GetDecimalFraction */
+      -1,
+      3,
+
+      QCBOR_SUCCESS, /* for GetDecimalFractionBig */
+      -1,
+      {(const uint8_t []){0x03}, 1},
+      false,
+
+      QCBOR_SUCCESS, /* for GetBigFloat */
+      -1,
+      3,
+
+      QCBOR_SUCCESS, /* for GetBigFloatBig */
+      -1,
+      {(const uint8_t []){0x03}, 1},
+      false
+   },
+
+   {
+      "2. Untagged 1.5 big float, xxx decimal fraction, tag required",
+      {(const uint8_t []){0x82, 0x20, 0x03}, 3},
+      QCBOR_TAG_REQUIREMENT_TAG,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_ARRAY,
+      0,
+      0,
+      {(const uint8_t []){0x00}, 1},
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBig */
+      0,
+      {(const uint8_t []){0x00}, 1},
+      false,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 1},
+      false
+
+   },
+
+#ifndef QCBOR_DISABLE_TAGS
+   {
+      "3. Tagged 1.5 decimal fraction, tag 4 optional",
+      {(const uint8_t []){0xC4, 0x82, 0x20, 0x03}, 4},
+      QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_DECIMAL_FRACTION,
+      -1,
+      3,
+      {(const uint8_t []){0x00}, 1},
+
+
+      QCBOR_SUCCESS, /* for GetDecimalFraction */
+      -1,
+      3,
+
+      QCBOR_SUCCESS, /* for GetDecimalFractionBig */
+      -1,
+      {(const uint8_t []){0x03}, 1},
+      false,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 1},
+      false
+   },
+#else /* QCBOR_DISABLE_TAGS */
+   {
+      "3D. Tagged 1.5 decimal fraction, tag optional",
+      {(const uint8_t []){0xC4, 0x82, 0x20, 0x03}, 4},
+      QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetNext */
+      QCBOR_TYPE_DECIMAL_FRACTION,
+      -1,
+      3,
+      {(const uint8_t []){0x00}, 1},
+
+      QCBOR_ERR_TAGS_DISABLED, /* GetDecimalFraction */
+      -1,
+      3,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetDecimalFractionBig */
+      -1,
+      {(const uint8_t []){0x03}, 1},
+      false,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 1},
+      false
+   },
+#endif /* QCBOR_DISABLE_TAGS */
+
+   {
+      "4. Tagged 100 * 2^300 big float, tag 5 optional",
+      {(const uint8_t []){0xC5, 0x82, 0x19, 0x01, 0x2C, 0x18, 0x64}, 7},
+      QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_BIGFLOAT,
+      300,
+      100,
+      {(const uint8_t []){0x00}, 1},
+
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBig */
+      0,
+      {(const uint8_t []){0x03}, 1},
+      false,
+
+      QCBOR_SUCCESS, /* for GetBigFloat */
+      300,
+      100,
+
+      QCBOR_SUCCESS, /* for GetBigFloatBig */
+      300,
+      {(const uint8_t []){0x64}, 1},
+      false
+   },
+
+   {
+      "5. Tagged 4([-20, 4759477275222530853136]) decimal fraction, tag 4 required",
+      {(const uint8_t []){0xC4, 0x82, 0x33,
+                          0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,}, 15},
+      QCBOR_TAG_REQUIREMENT_TAG,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+      -20,
+      0,
+      {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
+
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW, /* for GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_SUCCESS, /* for GetDecimalFractionBig */
+      -20,
+      {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
+      false,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 0},
+      false
+   }
+
+};
+
+
+
+int32_t ProcessEaMTests()
+{
+   size_t                 uIndex;
+   QCBORDecodeContext     DCtx;
+   QCBORItem              Item;
+   QCBORError             uError;
+   int64_t                nMantissa, nExponent;
+   MakeUsefulBufOnStack(  MantissaBuf, 200);
+   UsefulBufC             Mantissa;
+   bool                   bMantissaIsNegative;
+
+   for(uIndex = 0; uIndex < C_ARRAY_COUNT(pEaMTests, struct EaMTest); uIndex++) {
+      const struct EaMTest *pT = &pEaMTests[uIndex];
+      /* Decode with GetNext */
+      QCBORDecode_Init(&DCtx, pT->Input, 0);
+
+      if(uIndex + 1 == 5) {
+         nExponent = 99; // just to set a break point
+      }
+
+      uError = QCBORDecode_GetNext(&DCtx, &Item);
+      /* Now check return code, data type, mantissa and exponent */
+      if(pT->uExpectedErrorGN != uError) {
+         return (int32_t)(1+uIndex) * 1000 + 1;
+      }
+      if(uError == QCBOR_SUCCESS && pT->uQCBORTypeGN != QCBOR_TYPE_ARRAY) {
+         if(pT->uQCBORTypeGN != Item.uDataType) {
+            return (int32_t)(1+uIndex) * 1000 + 2;
+         }
+         if(pT->nExponentGN != Item.val.expAndMantissa.nExponent) {
+            return (int32_t)(1+uIndex) * 1000 + 3;
+         }
+         if(Item.uDataType == QCBOR_TYPE_DECIMAL_FRACTION || Item.uDataType == QCBOR_TYPE_BIGFLOAT ) {
+            if(pT->nMantissaGN != Item.val.expAndMantissa.Mantissa.nInt) {
+                return (int32_t)(1+uIndex) * 1000 + 4;
+             }
+         } else {
+            if(UsefulBuf_Compare(Item.val.expAndMantissa.Mantissa.bigNum, pT->MantissaGN)) {
+                return (int32_t)(1+uIndex) * 1000 + 5;
+            }
+         }
+      }
+
+      /* Decode with GetDecimalFraction */
+      QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_GetDecimalFraction(&DCtx,
+                                      pT->uTagRequirement,
+                                     &nMantissa,
+                                     &nExponent);
+      uError = QCBORDecode_GetAndResetError(&DCtx);
+      /* Now check return code, mantissa and exponent */
+      if(pT->uExpectedErrorGDF != uError) {
+         return (int32_t)(1+uIndex) * 1000 + 31;
+      }
+      if(uError == QCBOR_SUCCESS) {
+         if(pT->nExponentGDF != nExponent) {
+            return (int32_t)(1+uIndex) * 1000 + 32;
+         }
+         if(pT->nMantissaGDF != nMantissa) {
+             return (int32_t)(1+uIndex) * 1000 + 33;
+         }
+      }
+
+      /* Decode with GetDecimalFractionBig */
+      QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_GetDecimalFractionBig(&DCtx,
+                                 pT->uTagRequirement,
+                                 MantissaBuf,
+                                 &Mantissa,
+                                 &bMantissaIsNegative,
+                                 &nExponent);
+      uError = QCBORDecode_GetAndResetError(&DCtx);
+      /* Now check return code, mantissa (bytes and sign) and exponent */
+      if(pT->uExpectedErrorGDFB != uError) {
+         return (int32_t)(1+uIndex) * 1000 + 41;
+      }
+      if(uError == QCBOR_SUCCESS) {
+         if(pT->nExponentGDFB != nExponent) {
+            return (int32_t)(1+uIndex) * 1000 + 42;
+         }
+         if(pT->IsNegativeGDFB != bMantissaIsNegative) {
+             return (int32_t)(1+uIndex) * 1000 + 43;
+         }
+         if(UsefulBuf_Compare(Mantissa, pT->MantissaGDFB)) {
+             return (int32_t)(1+uIndex) * 1000 + 44;
+         }
+      }
+
+
+      /* Decode with GetBigFloat */
+      QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_GetBigFloat(&DCtx,
+                              pT->uTagRequirement,
+                              &nMantissa,
+                              &nExponent);
+      uError = QCBORDecode_GetAndResetError(&DCtx);
+      /* Now check return code, mantissa and exponent */
+      if(pT->uExpectedErrorGBF != uError) {
+         return (int32_t)(1+uIndex) * 1000 + 11;
+      }
+      if(uError == QCBOR_SUCCESS) {
+         if(pT->nExponentGBF != nExponent) {
+            return (int32_t)(1+uIndex) * 1000 + 12;
+         }
+         if(pT->nMantissaGBF != nMantissa) {
+             return (int32_t)(1+uIndex) * 1000 + 13;
+         }
+      }
+
+      /* Decode with GetBigFloatBig */
+      QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_GetBigFloatBig(&DCtx,
+                                 pT->uTagRequirement,
+                                 MantissaBuf,
+                                 &Mantissa,
+                                 &bMantissaIsNegative,
+                                 &nExponent);
+      uError = QCBORDecode_GetAndResetError(&DCtx);
+      /* Now check return code, mantissa (bytes and sign) and exponent */
+      if(pT->uExpectedErrorGBFB != uError) {
+         return (int32_t)(1+uIndex) * 1000 + 21;
+      }
+      if(uError == QCBOR_SUCCESS) {
+         if(pT->nExponentGBFB != nExponent) {
+            return (int32_t)(1+uIndex) * 1000 + 22;
+         }
+         if(pT->IsNegativeGBFB != bMantissaIsNegative) {
+             return (int32_t)(1+uIndex) * 1000 + 23;
+         }
+         if(UsefulBuf_Compare(Mantissa, pT->MantissaGBFB)) {
+             return (int32_t)(1+uIndex) * 1000 + 24;
+         }
+      }
+
+   }
+
+   return 0;
+}
+
+
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
+#ifdef QCBOR_TAGS_DISABLED
 
 /*  exponent, mantissa
  * [
@@ -4688,7 +5058,7 @@ static const uint8_t spExpectedExponentsAndMantissas[] = {
    0x82, 0x19, 0x01, 0x2C,
                0x18, 0x64,
 };
-
+#endif /* QCBOR_TAGS_DISABLED */
 /*
 
  GetNext when the items are explicitly tags
@@ -4730,8 +5100,14 @@ QCBORDecode_GetBigFloatBig
 
  */
 
-int32_t ExponentAndMantissaDecodeTests(void)
+int32_t ExponentAndMantissaDecodeTestsSecondary(void)
 {
+   int32_t rv = ProcessEaMTests();
+   if(rv) {
+      return rv;
+   }
+
+#ifdef QCBOR_TAGS_DISABLED
    QCBORDecodeContext DC;
    QCBORError         uErr;
    QCBORItem          item;
@@ -5025,8 +5401,21 @@ int32_t ExponentAndMantissaDecodeTests(void)
    if(uErr != QCBOR_SUCCESS) {
       return 200;
    }
+#endif /* QCBOR_TAGS_DISABLED */
 
    return 0;
+}
+
+
+int32_t ExponentAndMantissaDecodeTests(void)
+{
+   int32_t rv = ProcessEaMTests();
+   if(rv) {
+      return rv;
+   }
+
+   return ExponentAndMantissaDecodeTestsSecondary();
+
 }
 
 

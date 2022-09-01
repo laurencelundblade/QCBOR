@@ -2088,6 +2088,12 @@ Done:
 
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
+
+// TODO: test a MandE inside an MandE
+static QCBORError
+QCBORDecode_GetNextTagContent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem);
+
+
 /**
  * @brief Decode decimal fractions and big floats.
  *
@@ -2157,7 +2163,7 @@ QCBORDecode_MantissaAndExponent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem
 
    /* --- Get the mantissa --- */
    QCBORItem mantissaItem;
-   uReturn = QCBORDecode_GetNextWithTags(pMe, &mantissaItem, NULL);
+   uReturn = QCBORDecode_GetNextTagContent(pMe, &mantissaItem);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -3352,6 +3358,7 @@ static QCBORError
 CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
 {
    const int nItemType = pItem->uDataType;
+   const int nTagReq = TagSpec.uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS;
 
 #ifndef QCBOR_DISABLE_TAGS
    if(!(TagSpec.uTagRequirement & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS) &&
@@ -3362,7 +3369,6 @@ CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
-   const int nTagReq = TagSpec.uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS;
    if(nTagReq == QCBOR_TAG_REQUIREMENT_TAG) {
       /* Must match the tag number and only the tag */
       return CheckTypeList(nItemType, TagSpec.uTaggedTypes);
@@ -3388,6 +3394,9 @@ CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
    return CheckTypeList(nItemType, TagSpec.uTaggedTypes);
 
 #else /* QCBOR_DISABLE_TAGS */
+   if(nTagReq == QCBOR_TAG_REQUIREMENT_TAG) {
+      return QCBOR_ERR_UNEXPECTED_TYPE;
+   }
 
    return CheckTypeList(nItemType, TagSpec.uAllowedContentTypes);
 

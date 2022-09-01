@@ -141,8 +141,8 @@ static test_entry s_tests[] = {
     TEST_ENTRY(IntToTests),
     TEST_ENTRY(PeekAndRewindTest),
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
+    TEST_ENTRY(ExponentAndMantissaDecodeTests),
 #ifndef QCBOR_DISABLE_TAGS
-    TEST_ENTRY(ExponentAndMantissaDecodeTests),  // TODO: really disable this. It can work without tags.
     TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
 #endif /* QCBOR_DISABLE_TAGS */
     TEST_ENTRY(ExponentAndMantissaEncodeTests),
