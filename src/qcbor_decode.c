@@ -2089,7 +2089,13 @@ Done:
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 
-// TODO: test a MandE inside an MandE
+/* Forward declaration is necessary for
+ * QCBORDecode_MantissaAndExponent().  to be able to decode bignum
+ * tags in the mantissa. If the mantissa is a decimal fraction or big
+ * float in error, this will result in a recurive call to
+ * QCBORDecode_MantissaAndExponent(), but the recursion will unwined
+ * correctly and the correct error is returned.
+ */
 static QCBORError
 QCBORDecode_GetNextTagContent(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem);
 
@@ -3351,8 +3357,10 @@ CheckTypeList(int uDataType, const uint8_t puTypeList[QCBOR_TAGSPEC_NUM_TYPES])
  * This checks the data item type as possibly representing the tag
  * number or as the tag content type.
  *
- * If QCBOR_DISABLE_TAGS is #defined, all this does is check the item
- * data type against the allowed tag content types.
+ * If QCBOR_DISABLE_TAGS is #defined,  this primarily checks the item
+ * data type against the allowed tag content types. It will also error out
+ * if the caller tries to require a tag because there is no way that can
+ * ever be fulfilled.
  */
 static QCBORError
 CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
@@ -5714,6 +5722,7 @@ static void ProcessMantissaAndExponent(QCBORDecodeContext *pMe,
          break;
 
 #ifndef QCBOR_DISABLE_TAGS
+      /* If tags are disabled, mantissas can never be big nums */
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
       case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
          *pnExponent = pItem->val.expAndMantissa.nExponent;
@@ -5769,6 +5778,7 @@ static void ProcessMantissaAndExponentBig(QCBORDecodeContext *pMe,
          break;
 
 #ifndef QCBOR_DISABLE_TAGS
+      /* If tags are disabled, mantissas can never be big nums */
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
       case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
          *pnExponent = pItem->val.expAndMantissa.nExponent;

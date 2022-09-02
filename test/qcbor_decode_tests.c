@@ -1818,6 +1818,11 @@ static int32_t ProcessFailures(const struct FailInput *pFailInputs, size_t nNumF
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
+      const size_t nIndexx = (size_t)(pF - pFailInputs);
+      if(nIndexx == 8) {
+         uCBORError = 9;
+      }
+
 
       // Iterate until there is an error of some sort error
       QCBORItem Item;
@@ -1905,12 +1910,8 @@ static const struct FailInput Failures[] = {
    { {(uint8_t[]){0x5f, 0x80, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
    // indefinite length byte string with an map chunk
    { {(uint8_t[]){0x5f, 0xa0, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-#ifndef QCBOR_DISABLE_TAGS
    // indefinite length byte string with tagged integer chunk
    { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-#else   // indefinite length byte string with tagged integer chunk
-   { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_TAGS_DISABLED },
-#endif /* QCBOR_DISABLE_TAGS */
    // indefinite length byte string with an simple type chunk
    { {(uint8_t[]){0x5f, 0xe0, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
    { {(uint8_t[]){0x5f, 0x5f, 0x41, 0x00, 0xff, 0xff}, 6}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED},
@@ -4646,6 +4647,7 @@ int32_t SetUpAllocatorTest(void)
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 
 struct EaMTest {
    const char *szName;
@@ -4869,13 +4871,43 @@ static const struct EaMTest pEaMTests[] = {
       0,
       {(const uint8_t []){0x00}, 0},
       false
-   }
+   },
+   
+   {
+      "6. Mantissa and exponent inside a Mantissa and exponent",
+      {(const uint8_t []){0xC4, 0x82, 0x33,
+                          0xC5, 0x82, 0x19, 0x01, 0x2C, 0x18, 0x64}, 10},
+      QCBOR_TAG_REQUIREMENT_TAG,
 
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetNext */
+      QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+      0,
+      0,
+      {(const uint8_t []){0x00}, 0},
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFractionBig */
+      0,
+      {(const uint8_t []){0x00}, 0},
+      false,
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 0},
+      false
+   }
 };
 
 
 
-int32_t ProcessEaMTests()
+int32_t ProcessEaMTests(void)
 {
    size_t                 uIndex;
    QCBORDecodeContext     DCtx;
@@ -4891,7 +4923,7 @@ int32_t ProcessEaMTests()
       /* Decode with GetNext */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
 
-      if(uIndex + 1 == 5) {
+      if(uIndex + 1 == 6) {
          nExponent = 99; // just to set a break point
       }
 
@@ -5015,7 +5047,6 @@ int32_t ProcessEaMTests()
 }
 
 
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 #ifdef QCBOR_TAGS_DISABLED
 
 /*  exponent, mantissa
