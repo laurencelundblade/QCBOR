@@ -4779,38 +4779,6 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x00}, 1},
       false
    },
-#else /* QCBOR_DISABLE_TAGS */
-   {
-      "3D. Tagged 1.5 decimal fraction, tag optional",
-      {(const uint8_t []){0xC4, 0x82, 0x20, 0x03}, 4},
-      QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
-
-      QCBOR_ERR_TAGS_DISABLED, /* for GetNext */
-      QCBOR_TYPE_DECIMAL_FRACTION,
-      -1,
-      3,
-      {(const uint8_t []){0x00}, 1},
-
-      QCBOR_ERR_TAGS_DISABLED, /* GetDecimalFraction */
-      -1,
-      3,
-
-      QCBOR_ERR_TAGS_DISABLED, /* for GetDecimalFractionBig */
-      -1,
-      {(const uint8_t []){0x03}, 1},
-      false,
-
-      QCBOR_ERR_TAGS_DISABLED, /* for GetBigFloat */
-      0,
-      0,
-
-      QCBOR_ERR_TAGS_DISABLED, /* for GetBigFloatBig */
-      0,
-      {(const uint8_t []){0x00}, 1},
-      false
-   },
-#endif /* QCBOR_DISABLE_TAGS */
-
    {
       "4. Tagged 100 * 2^300 big float, tag 5 optional",
       {(const uint8_t []){0xC5, 0x82, 0x19, 0x01, 0x2C, 0x18, 0x64}, 7},
@@ -4872,7 +4840,7 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x00}, 0},
       false
    },
-   
+
    {
       "6. Mantissa and exponent inside a Mantissa and exponent",
       {(const uint8_t []){0xC4, 0x82, 0x33,
@@ -4903,6 +4871,134 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x00}, 0},
       false
    }
+
+
+#else /* QCBOR_DISABLE_TAGS */
+   {
+      "3D. Tagged 1.5 decimal fraction, tag optional",
+      {(const uint8_t []){0xC4, 0x82, 0x20, 0x03}, 4},
+      QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetNext */
+      QCBOR_TYPE_DECIMAL_FRACTION,
+      -1,
+      3,
+      {(const uint8_t []){0x00}, 1},
+
+      QCBOR_ERR_TAGS_DISABLED, /* GetDecimalFraction */
+      -1,
+      3,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetDecimalFractionBig */
+      -1,
+      {(const uint8_t []){0x03}, 1},
+      false,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 1},
+      false
+   },
+
+   {
+      "4D. Tagged 100 * 2^300 big float, tag 5 optional",
+      {(const uint8_t []){0xC5, 0x82, 0x19, 0x01, 0x2C, 0x18, 0x64}, 7},
+      QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetNext */
+      QCBOR_TYPE_BIGFLOAT,
+      300,
+      100,
+      {(const uint8_t []){0x00}, 1},
+
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetDecimalFractionBig */
+      0,
+      {(const uint8_t []){0x03}, 1},
+      false,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetBigFloat */
+      300,
+      100,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetBigFloatBig */
+      300,
+      {(const uint8_t []){0x64}, 1},
+      false
+   },
+
+   {
+      "5D. Tagged 4([-20, 4759477275222530853136]) decimal fraction, tag 4 required",
+      {(const uint8_t []){0xC4, 0x82, 0x33,
+                          0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,}, 15},
+      QCBOR_TAG_REQUIREMENT_TAG,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetNext */
+      QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+      -20,
+      0,
+      {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetDecimalFractionBig */
+      -20,
+      {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
+      false,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 0},
+      false
+   },
+   
+   {
+      "6D. Mantissa and exponent inside a Mantissa and exponent",
+      {(const uint8_t []){0xC4, 0x82, 0x33,
+                          0xC5, 0x82, 0x19, 0x01, 0x2C, 0x18, 0x64}, 10},
+      QCBOR_TAG_REQUIREMENT_TAG,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetNext */
+      QCBOR_TYPE_NONE,
+      0,
+      0,
+      {(const uint8_t []){0x00}, 0},
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetDecimalFractionBig */
+      0,
+      {(const uint8_t []){0x00}, 0},
+      false,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_TAGS_DISABLED, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 0},
+      false
+   }
+
+   #endif /* QCBOR_DISABLE_TAGS */
+
 };
 
 
@@ -4923,7 +5019,7 @@ int32_t ProcessEaMTests(void)
       /* Decode with GetNext */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
 
-      if(uIndex + 1 == 6) {
+      if(uIndex + 1 == 4) {
          nExponent = 99; // just to set a break point
       }
 
