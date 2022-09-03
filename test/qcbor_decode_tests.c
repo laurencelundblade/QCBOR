@@ -2432,8 +2432,8 @@ static int CHECK_EXPECTED_DOUBLE(double val, double expected) {
 }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
-// TODO: make sure there is a date parse test even when tags are disabled.
 
+/* Test date decoding using GetNext() */
 int32_t DateParseTest()
 {
    QCBORDecodeContext DCtx;
@@ -2564,6 +2564,7 @@ int32_t DateParseTest()
    return 0;
 }
 
+
 /*
  Test cases covered here. Some items cover more than one of these.
    positive integer (zero counts as a positive integer)
@@ -2676,7 +2677,6 @@ static const uint8_t spSpiffyDateTestInput[] = {
 
    0xc0, // tag for string date
    0xa0 // Erroneous empty map as content for date
-
 };
 
 int32_t SpiffyDateDecodeTest()
@@ -2688,7 +2688,6 @@ int32_t SpiffyDateDecodeTest()
                       nEpochDays2;
    UsefulBufC         StringDate1, StringDate2, StringDays2;
 
-   // TODO: reveiew this test again before merging
    QCBORDecode_Init(&DC,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyDateTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
