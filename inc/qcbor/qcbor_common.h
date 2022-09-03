@@ -35,12 +35,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
-#define QCBOR_DISABLE_TAGS
-//#define QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
-//#define QCBOR_DISABLE_FLOAT_HW_USE
-//#define QCBOR_DISABLE_PREFERRED_FLOAT
-//#define QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-
 
 /**
  @file qcbor_common.h
