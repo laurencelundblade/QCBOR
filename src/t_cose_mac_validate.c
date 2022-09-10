@@ -241,4 +241,11 @@ Done:
     return return_value;
 }
 
+#else /* !T_COSE_DISABLE_MAC0 */
+
+/* So some of the build checks don't get confused by an empty object file */
+void t_cose_mac_validate_placeholder(void)
+{}
+
+
 #endif /* !T_COSE_DISABLE_MAC0 */
