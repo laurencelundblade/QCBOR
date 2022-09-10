@@ -401,5 +401,12 @@
  */
 #define COSE_SIG_CONTEXT_STRING_SIGNATURE1 "Signature1"
 
+/**
+ * \def COSE_MAC_CONTEXT_STRING_MAC0
+ *
+ * \brief This is a string constant used by COSE to label \c COSE_Mac0
+ * structures. See RFC 8152, section 6.3.
+ */
+#define COSE_MAC_CONTEXT_STRING_MAC0 "MAC0"
 
 #endif /* __T_COSE_STANDARD_CONSTANTS_H__ */

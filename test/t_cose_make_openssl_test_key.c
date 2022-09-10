@@ -2,6 +2,7 @@
  *  t_cose_make_openssl_test_key.c
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -97,7 +98,7 @@ static const unsigned char ec521_key_pair[] = {
  */
 /*
  * The key object returned by this is malloced and has to be freed by
- * by calling free_ecdsa_key_pair(). This heap use is a part of
+ * by calling free_key(). This heap use is a part of
  * OpenSSL and not t_cose which does not use the heap.
  */
 enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
@@ -147,7 +148,7 @@ Done:
 /*
  * Public function, see t_cose_make_test_pub_key.h
  */
-void free_ecdsa_key_pair(struct t_cose_key key_pair)
+void free_key(struct t_cose_key key_pair)
 {
     EVP_PKEY_free(key_pair.k.key_ptr);
 }
@@ -163,4 +164,11 @@ int check_for_key_pair_leaks()
        some coverage of the code even though there is no check here.
      */
     return 0;
+}
+
+enum t_cose_err_t make_hmac_key(uint8_t cose_alg, struct t_cose_key *res_key)
+{
+    (void)cose_alg;
+    (void)res_key;
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }

@@ -2,6 +2,7 @@
  *  t_cose_make_test_pub_key.h
  *
  * Copyright 2019-2020, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -26,8 +27,9 @@
 enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
                                       struct t_cose_key *key_pair);
 
+enum t_cose_err_t make_hmac_key(uint8_t cose_alg, struct t_cose_key *key);
 
-void free_ecdsa_key_pair(struct t_cose_key key_pair);
+void free_key(struct t_cose_key key_pair);
 
 
 /**

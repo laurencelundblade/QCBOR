@@ -67,8 +67,10 @@ set(T_COSE_SRC_COMMON
     src/t_cose_sign1_verify.c
     src/t_cose_util.c
     src/t_cose_sign_sign.c
+    src/t_cose_mac_compute.c
     src/t_cose_signature_sign_ecdsa.c
     src/t_cose_sign_verify.c
+    src/t_cose_mac_validate.c
     src/t_cose_signature_verify_ecdsa.c
 )
 
@@ -112,15 +114,15 @@ if (BUILD_TESTS)
     )
 
     if (NOT CRYPTO_PROVIDER STREQUAL "Test")
-        list(APPEND TEST_SRC_COMMON test/t_cose_sign_verify_test.c)
+        list(APPEND TEST_SRC_COMMON test/t_cose_sign_verify_test.c test/t_cose_compute_validate_mac_test.c)
     endif()
 
     if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
         set(TEST_SRC_EXTRA test/t_cose_make_psa_test_key.c)
-        set(TEST_EXTRA_DEFS)
+        set(TEST_EXTRA_DEFS -DT_COSE_DISABLE_MAC0)
     elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
         set(TEST_SRC_EXTRA test/t_cose_make_openssl_test_key.c)
-        set(TEST_EXTRA_DEFS)
+        set(TEST_EXTRA_DEFS -DT_COSE_DISABLE_MAC0)
     elseif(CRYPTO_PROVIDER STREQUAL "Test")
         set(TEST_SRC_EXTRA)
         set(TEST_EXTRA_DEFS -DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS)

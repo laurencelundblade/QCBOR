@@ -2,6 +2,7 @@
  * t_cose_psa_crypto.c
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -74,7 +75,7 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 /* Avoid compiler warning due to unused argument */
 #define ARG_UNUSED(arg) (void)(arg)
 
-
+#ifndef T_COSE_DISABLE_SIGN1
 /**
  * \brief Map a COSE signing algorithm ID to a PSA signing algorithm ID
  *
@@ -113,7 +114,7 @@ static enum t_cose_err_t psa_status_to_t_cose_error_signing(psa_status_t err)
            err == PSA_ERROR_INVALID_SIGNATURE   ? T_COSE_ERR_SIG_VERIFY :
            err == PSA_ERROR_NOT_SUPPORTED       ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
            err == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
-           err == PSA_ERROR_CORRUPTION_DETECTED  ? T_COSE_ERR_TAMPERING_DETECTED :
+           err == PSA_ERROR_CORRUPTION_DETECTED ? T_COSE_ERR_TAMPERING_DETECTED :
                                                   T_COSE_ERR_SIG_FAIL;
 }
 
@@ -131,7 +132,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
     psa_algorithm_t       psa_alg_id;
     psa_status_t          psa_result;
     enum t_cose_err_t     return_value;
-    mbedtls_svc_key_id_t  verification_key_psa;
+    psa_key_handle_t  verification_key_psa;
 
     /* This implementation does no look up keys by kid in the key
      * store */
@@ -155,7 +156,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
         goto Done;
     }
 
-    verification_key_psa = (mbedtls_svc_key_id_t)verification_key.k.key_handle;
+    verification_key_psa = (psa_key_handle_t)verification_key.k.key_handle;
 
     psa_result = psa_verify_hash(verification_key_psa,
                                  psa_alg_id,
@@ -184,7 +185,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     enum t_cose_err_t     return_value;
     psa_status_t          psa_result;
     psa_algorithm_t       psa_alg_id;
-    mbedtls_svc_key_id_t  signing_key_psa;
+    psa_key_handle_t      signing_key_psa;
     size_t                signature_len;
 
     psa_alg_id = cose_alg_id_to_psa_alg_id(cose_algorithm_id);
@@ -204,7 +205,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
         goto Done;
     }
 
-    signing_key_psa = (mbedtls_svc_key_id_t)signing_key.k.key_handle;
+    signing_key_psa = (psa_key_handle_t)signing_key.k.key_handle;
 
     /* It is assumed that this call is checking the signature_buffer
      * length and won't write off the end of it.
@@ -239,7 +240,7 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
                                          size_t           *sig_size)
 {
     enum t_cose_err_t     return_value;
-    mbedtls_svc_key_id_t  signing_key_psa;
+    psa_key_handle_t      signing_key_psa;
     size_t                key_len_bits;
     size_t                key_len_bytes;
     psa_key_attributes_t  key_attributes;
@@ -258,7 +259,7 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
         goto Done;
     }
 
-    signing_key_psa = (mbedtls_svc_key_id_t)signing_key.k.key_handle;
+    signing_key_psa = (psa_key_handle_t)signing_key.k.key_handle;
     key_attributes = psa_key_attributes_init();
     status = psa_get_key_attributes(signing_key_psa, &key_attributes);
     key_len_bits = psa_get_key_bits(&key_attributes);
@@ -280,10 +281,11 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
 Done:
     return return_value;
 }
+#endif /* !T_COSE_DISABLE_SIGN1 */
 
 
-
-
+#if !defined(T_COSE_DISABLE_SHORT_CIRCUIT_SIGN) || \
+    !defined(T_COSE_DISABLE_SIGN1)
 /**
  * \brief Convert COSE hash algorithm ID to a PSA hash algorithm ID
  *
@@ -399,3 +401,182 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
 Done:
     return psa_status_to_t_cose_error_hash(hash_ctx->status);
 }
+#endif /* !T_COSE_DISABLE_SHORT_CIRCUIT_SIGN || !T_COSE_DISABLE_SIGN1 */
+
+#ifndef T_COSE_DISABLE_MAC0
+/**
+ * \brief Convert COSE algorithm ID to a PSA HMAC algorithm ID
+ *
+ * \param[in] cose_hmac_alg_id   The COSE-based ID for the
+ *
+ * \return PSA-based MAC algorithm ID, or a vendor flag in the case of error.
+ *
+ */
+static inline psa_algorithm_t cose_hmac_alg_id_to_psa(int32_t cose_hmac_alg_id)
+{
+    switch(cose_hmac_alg_id) {
+    case T_COSE_ALGORITHM_HMAC256:
+        return PSA_ALG_HMAC(PSA_ALG_SHA_256);
+    case T_COSE_ALGORITHM_HMAC384:
+        return PSA_ALG_HMAC(PSA_ALG_SHA_384);
+    case T_COSE_ALGORITHM_HMAC512:
+        return PSA_ALG_HMAC(PSA_ALG_SHA_512);
+    default:
+        return PSA_ALG_VENDOR_FLAG;
+    }
+}
+
+/**
+ * \brief Map a PSA error into a t_cose error for HMAC.
+ *
+ * \param[in] status   The PSA status.
+ *
+ * \return The \ref t_cose_err_t.
+ */
+static enum t_cose_err_t
+psa_status_to_t_cose_error_hmac(psa_status_t status)
+{
+    /* Intentionally limited to just this minimum set of errors to
+     * save object code as hashes don't really fail much
+     */
+    return status == PSA_SUCCESS                   ? T_COSE_SUCCESS :
+           status == PSA_ERROR_NOT_SUPPORTED       ? T_COSE_ERR_UNSUPPORTED_HASH :
+           status == PSA_ERROR_INVALID_ARGUMENT    ? T_COSE_ERR_INVALID_ARGUMENT :
+           status == PSA_ERROR_INSUFFICIENT_MEMORY ? T_COSE_ERR_INSUFFICIENT_MEMORY :
+           status == PSA_ERROR_BUFFER_TOO_SMALL    ? T_COSE_ERR_TOO_SMALL :
+           status == PSA_ERROR_INVALID_SIGNATURE   ? T_COSE_ERR_SIG_VERIFY :
+                                                     T_COSE_ERR_FAIL;
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_hmac_sign_setup(struct t_cose_crypto_hmac *hmac_ctx,
+                              struct t_cose_key          signing_key,
+                              const int32_t              cose_alg_id)
+{
+    psa_algorithm_t psa_alg;
+    psa_status_t psa_ret;
+
+    /* Map the algorithm ID */
+    psa_alg = cose_hmac_alg_id_to_psa(cose_alg_id);
+    if(!PSA_ALG_IS_MAC(psa_alg)) {
+        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    }
+
+    /*
+     * Verify if HMAC algorithm is valid.
+     * According to COSE (RFC 8152), only SHA-256, SHA-384 and SHA-512 are
+     * supported in COSE_Mac0 with HMAC.
+     */
+    if((psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_256)) &&
+       (psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_384)) &&
+       (psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_512))) {
+        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    }
+
+    hmac_ctx->op_ctx = psa_mac_operation_init();
+
+    psa_ret = psa_mac_sign_setup(&hmac_ctx->op_ctx,
+                                  (psa_key_id_t)signing_key.k.key_handle,
+                                  psa_alg);
+
+    return psa_status_to_t_cose_error_hmac(psa_ret);
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
+                          struct q_useful_buf_c      payload)
+{
+    psa_status_t psa_ret;
+
+    psa_ret = psa_mac_update(&hmac_ctx->op_ctx,
+                              payload.ptr, payload.len);
+
+    return psa_status_to_t_cose_error_hmac(psa_ret);
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_hmac_sign_finish(struct t_cose_crypto_hmac *hmac_ctx,
+                               struct q_useful_buf        tag_buf,
+                               struct q_useful_buf_c     *tag)
+{
+    psa_status_t psa_ret;
+
+    psa_ret = psa_mac_sign_finish(&hmac_ctx->op_ctx,
+                                   tag_buf.ptr, tag_buf.len,
+                                  &(tag->len));
+    if(psa_ret == PSA_SUCCESS) {
+        tag->ptr = tag_buf.ptr;
+    }
+
+    return psa_status_to_t_cose_error_hmac(psa_ret);
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_hmac_verify_setup(struct t_cose_crypto_hmac *hmac_ctx,
+                                const  int32_t             cose_alg_id,
+                                struct t_cose_key          verify_key)
+{
+    psa_algorithm_t psa_alg;
+    psa_status_t psa_ret;
+
+    if(!hmac_ctx) {
+        return T_COSE_ERR_INVALID_ARGUMENT;
+    }
+
+    /* Map the algorithm ID */
+    psa_alg = cose_hmac_alg_id_to_psa(cose_alg_id);
+    if(!PSA_ALG_IS_MAC(psa_alg)) {
+        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    }
+
+    /*
+     * Verify if HMAC algorithm is valid.
+     * According to COSE (RFC 8152), only SHA-256, SHA-384 and SHA-512 are
+     * supported in HMAC.
+     */
+    if((psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_256)) &&
+       (psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_384)) &&
+       (psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_512))) {
+        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    }
+
+    hmac_ctx->op_ctx = psa_mac_operation_init();
+
+    psa_ret = psa_mac_verify_setup(&hmac_ctx->op_ctx,
+                                    (psa_key_id_t)verify_key.k.key_handle,
+                                    psa_alg);
+
+    return psa_status_to_t_cose_error_hmac(psa_ret);
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_hmac_verify_finish(struct t_cose_crypto_hmac *hmac_ctx,
+                                 struct q_useful_buf_c      tag)
+{
+    psa_status_t psa_ret;
+
+    if(!hmac_ctx) {
+        return T_COSE_ERR_INVALID_ARGUMENT;
+    }
+
+    psa_ret = psa_mac_verify_finish(&hmac_ctx->op_ctx, tag.ptr, tag.len);
+
+    return psa_status_to_t_cose_error_hmac(psa_ret);
+}
+
+#endif /* !T_COSE_DISABLE_MAC0 */

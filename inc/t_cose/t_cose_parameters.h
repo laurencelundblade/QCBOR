@@ -2,6 +2,7 @@
  * t_cose_parameters.h
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -243,6 +244,13 @@ struct t_cose_header_param {
                                  false, \
                                  COSE_HEADER_PARAM_CONTENT_TYPE, \
                                  .value.i64 = x }
+
+#define T_COSE_CT_TSTR_PARAM(x) \
+    (struct t_cose_header_param){T_COSE_PARAMETER_TYPE_TEXT_STRING, \
+                                 false, \
+                                 false, \
+                                 COSE_HEADER_PARAM_CONTENT_TYPE, \
+                                 .value.string = x }
 
 #define T_COSE_KID_PARAM(kid) \
     (struct t_cose_header_param){COSE_HEADER_PARAM_KID, \

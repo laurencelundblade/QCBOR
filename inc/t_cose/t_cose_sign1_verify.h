@@ -59,49 +59,6 @@ extern "C" {
  * and stack use by disabling features.
  */
 
-
-/**
- * The result of parsing a set of COSE header parameters. The pointers
- * in this are all back into the \c COSE_Sign1 blob passed in to
- * t_cose_sign1_verify() as the \c sign1 parameter.
- *
- * Approximate size on a 64-bit machine is 80 bytes and on a 32-bit
- * machine is 40.
- */
-struct t_cose_parameters {
-    /** The algorithm ID. \ref T_COSE_UNSET_ALGORITHM_ID if the algorithm ID
-     * parameter is not present. String type algorithm IDs are not
-     * supported.  See the
-     * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml)
-     * for the algorithms corresponding to the integer values.
-     */
-    int32_t               cose_algorithm_id;
-
-    /** The COSE key ID. \c NULL_Q_USEFUL_BUF_C if parameter is not
-     * present */
-    struct q_useful_buf_c kid;
-
-    /** The initialization vector. \c NULL_Q_USEFUL_BUF_C if parameter
-     * is not present */
-    struct q_useful_buf_c iv;
-
-    /** The partial initialization vector. \c NULL_Q_USEFUL_BUF_C if
-     * parameter is not present */
-    struct q_useful_buf_c partial_iv;
-
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    /** The content type as a MIME type like
-     * "text/plain". \c NULL_Q_USEFUL_BUF_C if parameter is not present */
-    struct q_useful_buf_c content_type_tstr;
-
-    /** The content type as a CoAP Content-Format
-     * integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if parameter is not
-     * present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
-    uint32_t              content_type_uint;
-#endif /* T_COSE_DISABLE_CONTENT_TYPE */
-};
-
-
 /**
  * A special COSE algorithm ID that indicates no COSE algorithm ID or an unset
  * COSE algorithm ID.

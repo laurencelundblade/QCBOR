@@ -27,7 +27,6 @@ extern "C" {
 
 /* Warning: this is still early development. Documentation may be incorrect. */
 
-#define T_COSE_NUM_VERIFY_DECODE_HEADERS 8
 
 
 /**

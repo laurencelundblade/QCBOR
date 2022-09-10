@@ -2,6 +2,7 @@
  *  t_cose_openssl_crypto.c
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -668,5 +669,56 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
 
     /* OpenSSL returns 1 for success, not 0 */
     return ossl_result ? T_COSE_SUCCESS : T_COSE_ERR_HASH_GENERAL_FAIL;
+}
+
+enum t_cose_err_t
+t_cose_crypto_hmac_sign_setup(struct t_cose_crypto_hmac *hmac_ctx,
+                              struct t_cose_key          signing_key,
+                              const int32_t              cose_alg_id)
+{
+    (void)hmac_ctx;
+    (void)signing_key;
+    (void)cose_alg_id;
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+}
+
+enum t_cose_err_t
+t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
+                          struct q_useful_buf_c      payload)
+{
+    (void)hmac_ctx;
+    (void)payload;
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+}
+
+enum t_cose_err_t
+t_cose_crypto_hmac_sign_finish(struct t_cose_crypto_hmac *hmac_ctx,
+                               struct q_useful_buf        tag_buf,
+                               struct q_useful_buf_c     *tag)
+{
+    (void)hmac_ctx;
+    (void)tag_buf;
+    (void)tag;
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+}
+
+enum t_cose_err_t
+t_cose_crypto_hmac_verify_setup(struct t_cose_crypto_hmac *hmac_ctx,
+                                const  int32_t             cose_alg_id,
+                                struct t_cose_key          verify_key)
+{
+    (void)hmac_ctx;
+    (void)cose_alg_id;
+    (void)verify_key;
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+}
+
+enum t_cose_err_t
+t_cose_crypto_hmac_verify_finish(struct t_cose_crypto_hmac *hmac_ctx,
+                                 struct q_useful_buf_c      tag)
+{
+    (void)hmac_ctx;
+    (void)tag;
+    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 

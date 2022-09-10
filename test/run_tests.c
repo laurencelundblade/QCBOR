@@ -2,6 +2,7 @@
  run_tests.c -- test aggregator and results reporting
 
  Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2022 Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,12 +12,13 @@
  =============================================================================*/
 
 #include "run_tests.h"
-#include "qcbor/UsefulBuf.h"
+#include "t_cose/q_useful_buf.h"
 #include <stdbool.h>
 #include <stddef.h>
 
 #include "t_cose_test.h"
 #include "t_cose_sign_verify_test.h"
+#include "t_cose_compute_validate_mac_test.h"
 
 
 /*
@@ -45,13 +47,17 @@ typedef struct {
 
 
 static test_entry2 s_tests2[] = {
+    NULL
 };
 #endif
 
 static test_entry s_tests[] = {
+#ifndef T_COSE_DISABLE_SIGN1
     TEST_ENTRY(sign1_structure_decode_test),
+#endif /* T_COSE_DISABLE_SIGN1 */
 
 #ifndef T_COSE_DISABLE_SIGN_VERIFY_TESTS
+#ifndef T_COSE_DISABLE_SIGN1
     /* Many tests can be run without a crypto library integration and
      * provide good test coverage of everything but the signing and
      * verification. These tests can't be run with signing and
@@ -62,9 +68,18 @@ static test_entry s_tests[] = {
     TEST_ENTRY(sign_verify_sig_fail_test),
     TEST_ENTRY(sign_verify_get_size_test),
     TEST_ENTRY(known_good_test),
+#endif /* T_COSE_DISABLE_SIGN1 */
+
+#ifndef T_COSE_DISABLE_MAC0
+    TEST_ENTRY(sign_verify_mac_basic_test),
+    TEST_ENTRY(sign_verify_mac_sig_fail_test),
+    TEST_ENTRY(sign_verify_get_size_mac_test),
+#endif /* T_COSE_DISABLE_MAC0 */
+
 #endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+#ifndef T_COSE_DISABLE_SIGN1
     /* These tests can't run if short-circuit signatures are disabled.
      * The most critical ones are replicated in the group of tests
      * that require a real crypto library. Typically short-circuit
@@ -91,6 +106,7 @@ static test_entry s_tests[] = {
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
     TEST_ENTRY(short_circuit_hash_fail_test),
 #endif /* T_COSE_DISABLE_HASH_FAIL_TEST */
+#endif /* T_COSE_DISABLE_SIGN1 */
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 
@@ -112,7 +128,7 @@ static test_entry s_tests[] = {
  StringMem should be 12 bytes long, 9 for digits, 1 for minus and
  1 for \0 termination.
  */
-static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
+static const char *NumToString(int_fast32_t nNum, UsefulBuf StringMem)
 {
    const int32_t nMax = 1000000000;
 
@@ -129,7 +145,7 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 
    bool bDidSomeOutput = false;
    for(int32_t n = nMax; n > 0; n/=10) {
-      int32_t nDigitValue = nNum/n;
+      int_fast32_t nDigitValue = nNum/n;
       if(nDigitValue || bDidSomeOutput){
          bDidSomeOutput = true;
          UsefulOutBuf_AppendByte(&OutBuf, (uint8_t)('0' + nDigitValue));
@@ -231,7 +247,7 @@ int RunTestsTCose(const char    *szTestNames[],
             }
         }
 
-        int nTestResult = (t->test_fun)();
+        int_fast32_t nTestResult = (t->test_fun)();
         nTestsRun++;
         if(pfOutput) {
             (*pfOutput)(t->szTestName, poutCtx, 0);

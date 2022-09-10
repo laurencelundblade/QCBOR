@@ -2,6 +2,7 @@
  * t_cose_crypto.h
  *
  * Copyright 2019-2022, Laurence Lundblade
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -370,6 +371,23 @@ struct t_cose_crypto_hash {
 
 };
 
+/**
+ * The context for use with the HMAC adaptation layer here.
+ * Borrow the structure of t_cose_crypto_hash.
+ */
+struct t_cose_crypto_hmac {
+    #ifdef T_COSE_USE_PSA_CRYPTO
+        /* --- The context for PSA Crypto (MBed Crypto) --- */
+        psa_mac_operation_t op_ctx;
+    #else
+        /* --- Default: generic pointer / handle --- */
+        union {
+            void    *ptr;
+            uint64_t handle;
+        } context;
+        int64_t status;
+    #endif
+};
 
 /**
  * The size of the output of SHA-256.
@@ -390,6 +408,25 @@ struct t_cose_crypto_hash {
  */
 #define T_COSE_CRYPTO_SHA512_SIZE 64
 
+/**
+ * Size of the signature (tag) output for the HMAC-SHA256.
+ */
+#define T_COSE_CRYPTO_HMAC256_TAG_SIZE   T_COSE_CRYPTO_SHA256_SIZE
+
+/**
+ * Size of the signature (tag) output for the HMAC-SHA384.
+ */
+#define T_COSE_CRYPTO_HMAC384_TAG_SIZE   T_COSE_CRYPTO_SHA384_SIZE
+
+/**
+ * Size of the signature (tag) output for the HMAC-SHA512.
+ */
+#define T_COSE_CRYPTO_HMAC512_TAG_SIZE   T_COSE_CRYPTO_SHA512_SIZE
+
+/**
+ * Max size of the tag output for the HMAC operations.
+ */
+#define T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE  T_COSE_CRYPTO_SHA512_SIZE
 
 /**
  * The maximum needed to hold a hash. It is smaller and less stack is needed
@@ -501,7 +538,108 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
                           struct q_useful_buf        buffer_to_hold_result,
                           struct q_useful_buf_c     *hash_result);
 
+/**
+ * \brief Set up a multipart HMAC calculation operation
+ *
+ * \param[in,out] hmac_ctx           Pointer to the HMAC context.
+ * \param[in] signing_key            The key for the HMAC operation
+ * \param[in] cose_alg_id            The algorithm used in HMAC.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Tag calculation succeeds.
+ * \retval T_COSE_ERR_UNSUPPORTED_SIGNING_ALG
+ *         The algorithm is unsupported.
+ * \retval T_COSE_ERR_INVALID_ARGUMENT
+ *         Invalid arguments.
+ * \retval T_COSE_ERR_FAIL
+ *         Some general failure of the HMAC function.
+ */
+enum t_cose_err_t
+t_cose_crypto_hmac_sign_setup(struct t_cose_crypto_hmac *hmac_ctx,
+                              struct t_cose_key          signing_key,
+                              const int32_t              cose_alg_id);
 
+/**
+ * \brief Add a message fragment to a multipart HMAC operation
+ *
+ * \param[in,out] hmac_ctx           Pointer to the HMAC context.
+ * \param[in] payload                Pointer and length of payload
+ *
+ * \retval T_COSE_SUCCESS
+ *         Tag calculation succeeds.
+ * \retval T_COSE_ERR_SIG_BUFFER_SIZE
+ *         The size of the buffer to hold the tag result was too small.
+ * \retval T_COSE_ERR_INVALID_ARGUMENT
+ *         Invalid arguments.
+ * \retval T_COSE_ERR_FAIL
+ *         Some general failure of the HMAC function.
+ */
+enum t_cose_err_t
+t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
+                          struct q_useful_buf_c      payload);
+
+/**
+ * \brief Finish the calculation of the HMAC of a message.
+ *
+ * \param[in,out] hmac_ctx           Pointer to the HMAC context.
+ * \param[in] tag_buf                Pointer and length into which
+ *                                   the resulting tag is put.
+ * \param[out] tag                   Pointer and length of the
+ *                                   resulting tag.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Tag calculation succeeds.
+ * \retval T_COSE_ERR_SIG_BUFFER_SIZE
+ *         The size of the buffer to hold the tag result was too small.
+ * \retval T_COSE_ERR_INVALID_ARGUMENT
+ *         Invalid arguments.
+ * \retval T_COSE_ERR_FAIL
+ *         Some general failure of the HMAC function.
+ */
+enum t_cose_err_t
+t_cose_crypto_hmac_sign_finish(struct t_cose_crypto_hmac *hmac_ctx,
+                               struct q_useful_buf        tag_buf,
+                               struct q_useful_buf_c     *tag);
+
+/**
+ * \brief Set up a multipart HMAC verification operation
+ *
+ * \param[in,out] hmac_ctx           Pointer to the HMAC context.
+ * \param[in] cose_alg_id            The algorithm used in HMAC.
+ * \param[in] verify_key             Key for HMAC verification
+ *
+ * \retval T_COSE_SUCCESS
+ *         Operation succeeds.
+ * \retval T_COSE_ERR_UNSUPPORTED_SIGNING_ALG
+ *         The algorithm is unsupported.
+ * \retval T_COSE_ERR_INVALID_ARGUMENT
+ *         Invalid arguments.
+ * \retval T_COSE_ERR_FAIL
+ *         Some general failure of the HMAC function.
+ */
+enum t_cose_err_t
+t_cose_crypto_hmac_verify_setup(struct t_cose_crypto_hmac *hmac_ctx,
+                                const  int32_t             cose_alg_id,
+                                struct t_cose_key          verify_key);
+
+/**
+ * \brief Finish the verification of the HMAC of a message.
+ *
+ * \param[in,out] hmac_ctx           Pointer to the HMAC context.
+ * \param[in] tag                    Pointer and length of the tag.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Tag calculation succeeds.
+ * \retval T_COSE_ERR_INVALID_ARGUMENT
+ *         Invalid arguments.
+ * \retval T_COSE_ERR_FAIL
+ *         Some general failure of the HMAC function.
+ * \retval PSA_ERROR_INVALID_SIGNATURE
+ *         HMAC verification failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_hmac_verify_finish(struct t_cose_crypto_hmac *hmac_ctx,
+                                 struct q_useful_buf_c      tag);
 
 /**
  * \brief Indicate whether a COSE algorithm is ECDSA or not.
@@ -571,6 +709,37 @@ t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
 
     return t_cose_check_list(cose_algorithm_id, ecdsa_list);
 }
+
+static inline size_t t_cose_tag_size(int32_t cose_alg_id)
+{
+    switch(cose_alg_id) {
+        case T_COSE_ALGORITHM_HMAC256:
+            return T_COSE_CRYPTO_HMAC256_TAG_SIZE;
+        case T_COSE_ALGORITHM_HMAC384:
+            return T_COSE_CRYPTO_HMAC384_TAG_SIZE;
+        case T_COSE_ALGORITHM_HMAC512:
+            return T_COSE_CRYPTO_HMAC512_TAG_SIZE;
+        default:
+            return INT32_MAX;
+    }
+}
+
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+/*
+ * Get the COSE Hash algorithm ID from the corresponding
+ * COSE HMAC algorithm ID
+ */
+static inline int32_t t_cose_hmac_to_hash_alg_id(int32_t cose_hamc_alg_id)
+{
+    switch(cose_hamc_alg_id) {
+        case T_COSE_ALGORITHM_HMAC256:
+            return COSE_ALGORITHM_SHA_256;
+
+        default:
+            return INT32_MAX;
+    }
+}
+#endif
 
 #ifdef __cplusplus
 }

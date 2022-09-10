@@ -2,6 +2,7 @@
  *  t_cose_util.c
  *
  * Copyright 2019-2021, Laurence Lundblade
+ * Copyright (c) 2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -48,7 +49,62 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
                                                        T_COSE_INVALID_ALGORITHM_ID;
 }
 
+#ifndef T_COSE_DISABLE_MAC0
+enum t_cose_err_t create_tbm(UsefulBuf                       tbm_first_part_buf,
+                             struct q_useful_buf_c           protected_headers,
+                             struct q_useful_buf_c          *tbm_first_part,
+                             enum t_cose_tbm_payload_mode_t  payload_mode,
+                             struct q_useful_buf_c           payload)
+{
+    QCBOREncodeContext cbor_encode_ctx;
+    QCBORError         qcbor_result;
+    size_t             bytes_to_omit;
 
+    /* This builds the CBOR-format to-be-maced bytes */
+    QCBOREncode_Init(&cbor_encode_ctx, tbm_first_part_buf);
+    QCBOREncode_OpenArray(&cbor_encode_ctx);
+    /* context */
+    QCBOREncode_AddSZString(&cbor_encode_ctx, COSE_MAC_CONTEXT_STRING_MAC0);
+    /* body_protected */
+    QCBOREncode_AddBytes(&cbor_encode_ctx, protected_headers);
+
+    /* external_aad. There is none so an empty bstr */
+    QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
+
+    /* The short fake payload. */
+    if(payload_mode == T_COSE_TBM_PAYLOAD_IS_BSTR_WRAPPED) {
+        /* Fake payload is just an empty bstr. It is here only
+         * to make the array count right. It must be omitted
+         * in the actual MAC below
+         */
+        bytes_to_omit = 1;
+        QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
+    } else {
+        /* Fake payload is the type and length of the wrapping
+         * bstr. It gets MACed with the first part, so no
+         * bytes to omit.
+         */
+        bytes_to_omit = 0;
+        QCBOREncode_AddBytesLenOnly(&cbor_encode_ctx, payload);
+    }
+
+    /* Close of the array */
+    QCBOREncode_CloseArray(&cbor_encode_ctx);
+
+    /* get the encoded results, except for payload */
+    qcbor_result = QCBOREncode_Finish(&cbor_encode_ctx, tbm_first_part);
+    if(qcbor_result) {
+        /* Mainly means that the protected_headers were too big
+         * (which should never happen)
+         */
+        return T_COSE_ERR_SIG_STRUCT;
+    }
+
+    tbm_first_part->len -= bytes_to_omit;
+
+    return T_COSE_SUCCESS;
+}
+#endif /* !T_COSE_DISABLE_MAC0 */
 
 
 /**

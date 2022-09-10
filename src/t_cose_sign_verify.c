@@ -120,31 +120,6 @@ process_tags(struct t_cose_sign_verify_ctx *me, QCBORDecodeContext *decode_conte
     return T_COSE_SUCCESS;
 }
 
-
-/**
- * \brief Map QCBOR decode error to COSE errors.
- *
- * \param[in] qcbor_error   The QCBOR error to map.
- *
- * \return This returns one of the error codes defined by
- *         \ref t_cose_err_t.
- */
-static inline enum t_cose_err_t
-qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error)
-{
-    if(qcbor_error == QCBOR_ERR_TOO_MANY_TAGS) {
-        return T_COSE_ERR_TOO_MANY_TAGS;
-    }
-    if(QCBORDecode_IsNotWellFormedError(qcbor_error)) {
-        return T_COSE_ERR_CBOR_NOT_WELL_FORMED;
-    }
-    if(qcbor_error != QCBOR_SUCCESS) {
-        return T_COSE_ERR_SIGN1_FORMAT;
-    }
-    return T_COSE_SUCCESS;
-}
-
-
 enum t_cose_err_t
 t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
                              struct q_useful_buf_c           cose_sign1,

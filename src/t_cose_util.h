@@ -2,6 +2,7 @@
  *  t_cose_util.h
  *
  * Copyright 2019-2021, Laurence Lundblade
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -27,6 +28,40 @@ extern "C" {
  *
  */
 
+/**
+ * The modes in which the payload is passed to create_tbs_hash().
+ * This exists so the TBS bytes can be hashed in two separate chunks
+ * and avoids needing a second buffer the size of the payload in the
+ * t_cose implementation.
+ */
+enum t_cose_tbs_hash_mode_t {
+    /** The bytes passed for the payload include a wrapping bstr so
+     * one does not need to be added.
+     */
+    T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED,
+    /** The bytes passed for the payload do NOT have a wrapping bstr
+     * so one must be added.
+     */
+    T_COSE_TBS_BARE_PAYLOAD
+};
+
+
+/**
+ * The modes in which the payload is passed to create_tbm().  This
+ * exists so the ToBeMaced bytes can be hashed in two separate chunks and
+ * avoids needing a second buffer the size of the payload in the
+ * t_cose implementation.
+ */
+enum t_cose_tbm_payload_mode_t {
+    /** The bytes passed for the payload include a wrapping bstr so
+     * one does not need to be added.
+     */
+    T_COSE_TBM_PAYLOAD_IS_BSTR_WRAPPED,
+    /** The bytes passed for the payload do NOT have a wrapping bstr
+     * so one must be added.
+     */
+    T_COSE_TBM_BARE_PAYLOAD
+};
 
 /**
  * This value represents an invalid or in-error algorithm ID.  The
@@ -36,6 +71,30 @@ extern "C" {
  */
 #define T_COSE_INVALID_ALGORITHM_ID COSE_ALGORITHM_RESERVED
 
+/*
+ * Format of ToBeMaced bytes
+ * This is defined in COSE (RFC 8152) section 6.2. It is the input to the HMAC
+ * operation.
+ *
+ * MAC_structure = [
+ *      context : "MAC0",
+ *      protected : empty_or_serialized_map,
+ *      external_aad : bstr,
+ *      payload : bstr
+ * ]
+ */
+
+/**
+ * This is the size of the first part of the CBOR encoded ToBeMaced
+ * bytes. It is around 30 bytes.
+ */
+#define T_COSE_SIZE_OF_TBM \
+    1 + /* For opening the array */ \
+    sizeof(COSE_MAC_CONTEXT_STRING_MAC0) + /* "MAC0" */ \
+    2 + /* Overhead for encoding string */ \
+    T_COSE_MAC0_MAX_SIZE_PROTECTED_PARAMETERS + /* entire protected headers */ \
+    1 + /* Empty bstr for absent external_aad */ \
+    9 /* The max CBOR length encoding for start of payload */
 
 /**
  * \brief Return hash algorithm ID from a signature algorithm ID
@@ -64,6 +123,33 @@ extern "C" {
  */
 int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
 
+/**
+ * \brief Create the ToBeMaced (TBM) structure bytes for COSE.
+ *
+ * \param[in] tbm_first_part_buf  The buffer to contain the first part
+ * \param[in] protected_headers   The CBOR encoded protected headers.
+ * \param[out] tbm_first_part     Pointer and length of buffer into which
+ *                                the resulting TBM is put.
+ * \param[in] payload_mode        See \ref t_cose_tbm_payload_mode_t.
+ * \param[in] payload             The CBOR encoded payload. It may or may
+ *                                not have a wrapping bstr per
+ *                                \c payload_mode.
+ *
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ *
+ * \retval T_COSE_ERR_SIG_STRUCT
+ *         Most likely this is because the protected_headers passed in
+ *         is larger than \ref T_COSE_MAC0_MAX_PROT_HEADER.
+ * \retval T_COSE_ERR_UNSUPPORTED_HASH
+ *         If the hash algorithm is not known.
+ * \retval T_COSE_ERR_HASH_GENERAL_FAIL
+ *         In case of some general hash failure.
+ */
+enum t_cose_err_t create_tbm(UsefulBuf                       tbm_first_part_buf,
+                             struct q_useful_buf_c           protected_headers,
+                             struct q_useful_buf_c          *tbm_first_part,
+                             enum t_cose_tbm_payload_mode_t  payload_mode,
+                             struct q_useful_buf_c           payload);
 
 /**
  * \brief Create the hash of the to-be-signed (TBS) bytes for COSE.
@@ -183,6 +269,29 @@ enum t_cose_err_t create_tbs_hash(int32_t                cose_algorithm_id,
  */
 struct q_useful_buf_c get_short_circuit_kid(void);
 #endif
+
+/**
+ * \brief Map QCBOR decode error to COSE errors.
+ *
+ * \param[in] qcbor_error   The QCBOR error to map.
+ *
+ * \return This returns one of the error codes defined by
+ *         \ref t_cose_err_t.
+ */
+static inline enum t_cose_err_t
+qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error)
+{
+    if(qcbor_error == QCBOR_ERR_TOO_MANY_TAGS) {
+        return T_COSE_ERR_TOO_MANY_TAGS;
+    }
+    if(QCBORDecode_IsNotWellFormedError(qcbor_error)) {
+        return T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+    }
+    if(qcbor_error != QCBOR_SUCCESS) {
+        return T_COSE_ERR_SIGN1_FORMAT;
+    }
+    return T_COSE_SUCCESS;
+}
 
 #ifdef __cplusplus
 }

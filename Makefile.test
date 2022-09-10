@@ -2,6 +2,7 @@
 #
 # Copyright (c) 2019-2022, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
+# Copyright (c) 2022 Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -46,7 +47,12 @@ INC=-I inc -I test -I src
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC)
 CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS)
 
-SRC_OBJ=src/t_cose_sign1_verify.o src/t_cose_sign1_sign.o src/t_cose_util.o src/t_cose_parameters.o
+SRC_OBJ=src/t_cose_sign1_verify.o \
+	src/t_cose_sign1_sign.o \
+	src/t_cose_util.o \
+	src/t_cose_parameters.o \
+	src/t_cose_mac_compute.o \
+	src/t_cose_mac_validate.o
 
 .PHONY: all clean
 
@@ -74,7 +80,9 @@ PUBLIC_INTERFACE=inc/t_cose/t_cose_common.h inc/t_cose/t_cose_sign1_sign.h inc/t
 src/t_cose_util.o: src/t_cose_util.h src/t_cose_standard_constants.h inc/t_cose/t_cose_common.h src/t_cose_crypto.h
 src/t_cose_sign1_verify.o: inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_parameters.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h src/t_cose_standard_constants.h
 src/t_cose_parameters.o: inc/t_cose/t_cose_parameters.h src/t_cose_standard_constants.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_common.h
-src/t_cose_sign1_sign.o: inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_parameters.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h 
+src/t_cose_sign1_sign.o: inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_parameters.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h
+src/t_cose_mac_validate.o: inc/t_cose/t_cose_mac_validate.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_parameters.h inc/t_cose/t_cose_common.h
+src/t_cose_mac_compute.o: inc/t_cose/t_cose_mac_compute.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h
 
 
 # ---- test dependencies -----
