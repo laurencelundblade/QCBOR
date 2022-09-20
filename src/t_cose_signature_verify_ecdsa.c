@@ -26,7 +26,7 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
                                const struct t_cose_header_param *body_parameters,
                                const struct q_useful_buf_c       signature)
 {
-    int32_t                             alg_id;
+    int32_t                             cose_algorithm_id;
     enum t_cose_err_t                   return_value;
     struct q_useful_buf_c               kid;
     const struct t_cose_signature_verify_ecdsa *me = (const struct t_cose_signature_verify_ecdsa *)me_x;
@@ -34,15 +34,15 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
     struct q_useful_buf_c               tbs_hash;
 
     /* --- Get the parameters values needed here --- */
-    alg_id = t_cose_find_parameter_alg_id(body_parameters);
-    if(alg_id == T_COSE_ALGORITHM_NONE) {
-        return_value = 88; // TODO: error code
+    cose_algorithm_id = t_cose_find_parameter_alg_id(body_parameters);
+    if(cose_algorithm_id == T_COSE_ALGORITHM_NONE) {
+        return_value = T_COSE_ERR_NO_ALG_ID;
         goto Done;
     }
     kid = t_cose_find_parameter_kid(body_parameters);
 
     /* --- Compute the hash of the to-be-signed bytes -- */
-    return_value = create_tbs_hash(alg_id,
+    return_value = create_tbs_hash(cose_algorithm_id,
                                    protected_body_headers,
                                    protected_signature_headers,
                                    aad,
@@ -54,7 +54,7 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
     }
 
     /* -- Verify the signature -- */
-    return_value = t_cose_crypto_verify(alg_id,
+    return_value = t_cose_crypto_verify(cose_algorithm_id,
                                         me->verification_key,
                                         kid,
                                         tbs_hash,
@@ -83,6 +83,7 @@ t_cose_signature_verify_ecdsa(struct t_cose_signature_verify *me_x,
                               const struct header_param_storage params,
                               QCBORDecodeContext               *qcbor_decoder)
 {
+    QCBORError             qcbor_error;
     enum t_cose_err_t      return_value;
     struct q_useful_buf_c  protected_parameters;
     struct q_useful_buf_c  signature;
@@ -105,8 +106,9 @@ t_cose_signature_verify_ecdsa(struct t_cose_signature_verify *me_x,
     QCBORDecode_GetByteString(qcbor_decoder, &signature);
 
     QCBORDecode_ExitArray(qcbor_decoder);
-    if(QCBORDecode_GetError(qcbor_decoder)) {
-        return_value = 200; // TODO:
+    qcbor_error = QCBORDecode_GetError(qcbor_decoder);
+    if(qcbor_error != QCBOR_SUCCESS) {
+        return_value = qcbor_decode_error_to_t_cose_error(qcbor_error, T_COSE_ERR_SIGNATURE_FORMAT);
         goto Done;
     }
     /* --- Done decoding the COSE_Signature --- */

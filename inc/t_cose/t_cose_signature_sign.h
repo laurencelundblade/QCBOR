@@ -94,7 +94,7 @@ struct t_cose_signature_sign;
  * is being called in size calculation mode.
  */
 typedef enum t_cose_err_t
-(t_cose_signature_sign_callback)(struct t_cose_signature_sign *me,
+t_cose_signature_sign_callback(struct t_cose_signature_sign *me,
                                  bool                          sign_only,
                                  const struct q_useful_buf_c   protected_body_headers,
                                  const struct q_useful_buf_c   payload,
@@ -103,7 +103,13 @@ typedef enum t_cose_err_t
 
 
 /* This callback is used to get the header parameters for a COSE_Sign1.
- * It is never called for a COSE_Sign. */
+ * It is never called for a COSE_Sign.
+ *
+ * Usually there are no errors in this because it does very little. If
+ * there is an error here that needs to be returned, set it in the
+ * instance context and then return it when t_cose_signature_sign_callback
+ * is called. t_cose_signature_sign_callback is always called. (The
+ * point of not returning an error here is to save object code) */
 typedef void
 (t_cose_signature_sign_h_callback)(struct t_cose_signature_sign       *me,
                                    const struct t_cose_header_param  **header_params);

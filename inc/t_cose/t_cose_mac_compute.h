@@ -249,6 +249,9 @@ t_cose_mac_set_content_type_tstr(struct t_cose_mac_calculate_ctx *context,
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
+#include "t_cose/t_cose_parameters.h" // TODO: maybe remove this?
+
+
 static inline void
 t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *me,
                      uint32_t                    option_flags,

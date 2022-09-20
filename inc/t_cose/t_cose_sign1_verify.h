@@ -1,7 +1,7 @@
 /*
  *  t_cose_sign1_verify.h
  *
- * Copyright 2019-2021, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -17,6 +17,12 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 #include "qcbor/qcbor_common.h"
+
+#include "t_cose/t_cose_sign_verify.h"
+#include "t_cose/t_cose_signature_verify_ecdsa.h"
+#include "t_cose/t_cose_signature_verify_short.h"
+
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,99 +65,64 @@ extern "C" {
  * and stack use by disabling features.
  */
 
-/**
- * A special COSE algorithm ID that indicates no COSE algorithm ID or an unset
- * COSE algorithm ID.
- */
-#define T_COSE_UNSET_ALGORITHM_ID 0
-
-
 
 
 /**
- * Pass this as \c option_flags to allow verification of short-circuit
- * signatures. This should only be used as a test mode as
- * short-circuit signatures are not secure.
+ * The result of parsing a set of COSE header parameters. The pointers
+ * in this are all back into the \c COSE_Sign1 blob passed in to
+ * t_cose_sign1_verify() as the \c sign1 parameter.
  *
- * See also \ref T_COSE_OPT_SHORT_CIRCUIT_SIG.
+ * Approximate size on a 64-bit machine is 80 bytes and on a 32-bit
+ * machine is 40.
  */
-#define T_COSE_OPT_ALLOW_SHORT_CIRCUIT 0x00000001
+struct t_cose_parameters {
+    /** The algorithm ID. \ref T_COSE_ALGORITHM_NONE if the algorithm ID
+     * parameter is not present. String type algorithm IDs are not
+     * supported.  See the
+     * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml)
+     * for the algorithms corresponding to the integer values.
+     */
+    int32_t               cose_algorithm_id;
+
+    /** The COSE key ID. \c NULL_Q_USEFUL_BUF_C if parameter is not
+     * present */
+    struct q_useful_buf_c kid;
+
+    /** The initialization vector. \c NULL_Q_USEFUL_BUF_C if parameter
+     * is not present */
+    struct q_useful_buf_c iv;
+
+    /** The partial initialization vector. \c NULL_Q_USEFUL_BUF_C if
+     * parameter is not present */
+    struct q_useful_buf_c partial_iv;
+
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
+    /** The content type as a MIME type like
+     * "text/plain". \c NULL_Q_USEFUL_BUF_C if parameter is not present */
+    struct q_useful_buf_c content_type_tstr;
+
+    /** The content type as a CoAP Content-Format
+     * integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if parameter is not
+     * present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
+    uint32_t              content_type_uint;
+#endif /* T_COSE_DISABLE_CONTENT_TYPE */
+};
+
+
 
 
 /**
- * The error \ref T_COSE_ERR_NO_KID is returned if the kid parameter
- * is missing. Note that the kid parameter is primarily passed on to
- * the crypto layer so the crypto layer can look up the key. If the
- * verification key is determined by other than the kid, then it is
- * fine if there is no kid.
- */
-#define T_COSE_OPT_REQUIRE_KID 0x00000002
-
-
-/**
- * Normally this will decode the CBOR presented as a \c COSE_Sign1
- * message whether it is tagged using QCBOR tagging as such or not.
- * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
- * returned if it is not a \ref CBOR_TAG_COSE_SIGN1 tag.
- *
- * See also \ref T_COSE_OPT_TAG_PROHIBITED. If neither this or
- * \ref T_COSE_OPT_TAG_PROHIBITED is set then the content can
- * either be COSE message (COSE_Sign1 CDDL from RFC 8152) or
- * a COSESign1 tagg (COSE_Sign1_Tagged from RFC 8152).
- *
- * See t_cose_sign1_get_nth_tag() to get further tags that enclose
- * the COSE message.
- */
-#define T_COSE_OPT_TAG_REQUIRED  0x00000004
-
-
-/**
- * Normally this will decode the CBOR presented as a \c COSE_Sign1
- * message whether it is tagged using QCBOR tagging as such or not.
- * If this option is set, then \ref T_COSE_ERR_INCORRECTLY_TAGGED is
- * returned if a \ref CBOR_TAG_COSE_SIGN1 tag. When this option is set the caller
- * knows for certain that a COSE signed message is expected.
- *
- * See discussion on @ref T_COSE_OPT_TAG_REQUIRED.
- */
-#define T_COSE_OPT_TAG_PROHIBITED  0x00000010
-
-
-/**
- * See t_cose_sign1_set_verification_key().
- *
- * This option disables cryptographic signature verification.  With
- * this option the \c verification_key is not needed.  This is useful
- * to decode the \c COSE_Sign1 message to get the kid (key ID).  The
- * verification key can be looked up or otherwise obtained by the
- * caller. Once the key in in hand, t_cose_sign1_verify() can be
- * called again to perform the full verification.
- *
- * The payload will always be returned whether this is option is given
- * or not, but it should not be considered secure when this option is
- * given.
- */
-#define T_COSE_OPT_DECODE_ONLY  0x00000008
-
-
-/**
- * The maximum number of unprocessed tags that can be returned by
- * t_cose_sign1_get_nth_tag(). The CWT
- * tag is an example of the tags that might returned. The COSE tags
- * that are processed, don't count here.
- */
-#define T_COSE_MAX_TAGS_TO_RETURN 4
-
-
-/**
- * Context for signature verification.  It is about 56 bytes on a
- * 64-bit machine and 42 bytes on a 32-bit machine.
+ * Context for signature verification.
  */
 struct t_cose_sign1_verify_ctx {
     /* Private data structure */
-    struct t_cose_key     verification_key;
-    uint32_t              option_flags;
-    uint64_t              auTags[T_COSE_MAX_TAGS_TO_RETURN];
+    struct t_cose_sign_verify_ctx        me2;
+
+    struct t_cose_signature_verify_ecdsa verifier;
+    struct t_cose_signature_verify_short verifier_sc;
+
+    uint32_t                             option_flags;
+    uint64_t                             auTags[T_COSE_MAX_TAGS_TO_RETURN];
 };
 
 
@@ -163,7 +134,7 @@ struct t_cose_sign1_verify_ctx {
  *
  * This must be called before using the verification context.
  */
-static void
+void
 t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
                          uint32_t                        option_flags);
 
@@ -216,7 +187,7 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
  * adaptation layer because it never calls out to it. The OpenSSL
  * adaptor supports 1 and 2.
  */
-static void
+void
 t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
                                   struct t_cose_key               verification_key);
 
@@ -372,22 +343,6 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
-static inline void
-t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
-                         uint32_t                        option_flags)
-{
-    me->option_flags = option_flags;
-    me->verification_key = T_COSE_NULL_KEY;
-}
-
-
-static inline void
-t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
-                                  struct t_cose_key               verification_key)
-{
-    me->verification_key = verification_key;
-}
-
 
 static inline uint64_t
 t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
@@ -400,45 +355,39 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
 }
 
 
-/**
- * \brief Semi-private function to verify a COSE_Sign1.
- *
- * \param[in,out] me   The t_cose signature verification context.
- * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
- *                          message that is to be verified.
- * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
- * \param[in,out] payload   Pointer and length of the payload.
- * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
- * \param[in] is_detached         Indicates the payload is detached.
- *
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * This does the work for t_cose_sign1_verify(),
- * t_cose_sign1_verify_aad() and t_cose_sign1_verify_detached(). It is
- * a semi-private function which means its interface isn't guaranteed
- * so it should not to call it directly.
- */
+// Private function used by inlined functions below.
 enum t_cose_err_t
-t_cose_sign1_verify_internal(struct t_cose_sign1_verify_ctx *me,
-                             struct q_useful_buf_c           sign1,
-                             struct q_useful_buf_c           aad,
-                             struct q_useful_buf_c          *payload,
-                             struct t_cose_parameters       *parameters,
-                             bool                            is_detached);
+t_cose_translate_params_private(const struct t_cose_header_param *decoded_params,
+                                struct t_cose_parameters   *returned_parameters);
+
 
 
 static inline enum t_cose_err_t
 t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
-                    struct q_useful_buf_c           sign1,
+                    struct q_useful_buf_c           cose_sign1,
                     struct q_useful_buf_c          *payload,
                     struct t_cose_parameters       *parameters)
 {
-    return t_cose_sign1_verify_internal(me,
-                                        sign1,
-                                        NULL_Q_USEFUL_BUF_C,
-                                        payload,
-                                        parameters,
-                                        false);
+    enum t_cose_err_t           return_value;
+    struct t_cose_header_param *decoded_params;
+
+    return_value = t_cose_sign_verify(&(me->me2),
+                                      cose_sign1,
+                                      NULL_Q_USEFUL_BUF_C,
+                                      payload,
+                                     &decoded_params);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    if(parameters != NULL) {
+        return_value = t_cose_translate_params_private(decoded_params, parameters);
+    }
+
+    memcpy(me->auTags, me->me2.auTags, sizeof(me->auTags));
+
+   Done:
+    return return_value;
 }
 
 
@@ -449,12 +398,19 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
                         struct q_useful_buf_c          *payload,
                         struct t_cose_parameters       *parameters)
 {
-     return t_cose_sign1_verify_internal(me,
-                                         cose_sign1,
-                                         aad,
-                                         payload,
-                                         parameters,
-                                         false);
+     enum t_cose_err_t           return_value;
+     struct t_cose_header_param *decoded_params;
+
+     return_value = t_cose_sign_verify(&(me->me2),
+                                       cose_sign1,
+                                       aad,
+                                       payload,
+                                      &decoded_params);
+     if(parameters != NULL) {
+         t_cose_translate_params_private(decoded_params, parameters);
+     }
+
+     return return_value;
 }
 
 
@@ -465,13 +421,22 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameters       *parameters)
 {
-     return t_cose_sign1_verify_internal(me,
-                                         cose_sign1,
-                                         aad,
-                                         &detached_payload,
-                                         parameters,
-                                         true);
+    enum t_cose_err_t           return_value;
+    struct t_cose_header_param *decoded_params;
+
+    return_value = t_cose_sign_verify_detached(&(me->me2),
+                                               cose_sign1,
+                                               aad,
+                                               detached_payload,
+                                              &decoded_params);
+
+    if(parameters != NULL) {
+        return_value = t_cose_translate_params_private(decoded_params, parameters);
+    }
+
+    return return_value;
 }
+
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /*
- *  t_cose_sign1_verify.h
+ *  t_cose_sign_verify.h
  *
  * Copyright 2019-2022, Laurence Lundblade
  *
@@ -13,7 +13,7 @@
 #ifndef t_cose_sign_verify_h
 #define t_cose_sign_verify_h
 
-
+#include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose/t_cose_signature_verify.h"
 
@@ -28,6 +28,31 @@ extern "C" {
 /* Warning: this is still early development. Documentation may be incorrect. */
 
 
+#define T_COSE_MAX_TAGS_TO_RETURN2 4
+
+
+
+
+/**
+ * The maximum number of unprocessed tags that can be returned by
+ * t_cose_sign1_get_nth_tag(). The CWT
+ * tag is an example of the tags that might returned. The COSE tags
+ * that are processed, don't count here.
+ */
+#define T_COSE_MAX_TAGS_TO_RETURN 4
+
+
+/**
+ * Pass this as \c option_flags to allow verification of short-circuit
+ * signatures. This should only be used as a test mode as
+ * short-circuit signatures are not secure.
+ *
+ * See also \ref T_COSE_OPT_SHORT_CIRCUIT_SIG.
+ */
+#define T_COSE_OPT_ALLOW_SHORT_CIRCUIT 0x00004000
+
+
+
 
 /**
  * Context for signature verification.
@@ -36,7 +61,7 @@ struct t_cose_sign_verify_ctx {
     /* Private data structure */
     struct t_cose_signature_verify *verifiers;
     uint32_t                        option_flags;
-    uint64_t                        auTags[T_COSE_MAX_TAGS_TO_RETURN];
+    uint64_t                        auTags[T_COSE_MAX_TAGS_TO_RETURN2];
     struct header_param_storage     params;
     struct t_cose_header_param      __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
     t_cose_header_reader           *reader;
@@ -44,20 +69,14 @@ struct t_cose_sign_verify_ctx {
 };
 
 
-/* Three modes to determine whether the input is COSE_Sign or COSE_Sign1.
- 1) expliclity indicate COSE_SIGN1
- 2) explicitly indicate COSE_SIGN
- 3) require a CBOR tag number to tell which
- */
-#define T_COSE_OPT_COSE_SIGN1 0x00000004
-#define T_COSE_OPT_COSE_SIGN  0x00000008
-#define T_COSE_OPT_COSE_SIGN_TYPE_BY_TAG  0x00000010
+
 
 /* ALL signatures must be verified successfully */
-#define T_COSE_VERIFY_ALL 0x00080
+#define T_COSE_VERIFY_ALL                  0x0008000
+
 
 /**
- * \brief Initialize for \c COSE_Sign1 message verification.
+ * \brief Initialize for \c COSE_Sign and \c COSE_Sign1 message verification.
  *
  * \param[in,out]  context       The context to initialize.
  * \param[in]      option_flags  Options controlling the verification.
@@ -241,13 +260,13 @@ static inline enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *me,
                    struct q_useful_buf_c          sign,
                    struct q_useful_buf_c          aad,
-                   struct q_useful_buf_c          payload,
+                   struct q_useful_buf_c          detatched_payload,
                    struct t_cose_header_param   **parameters)
 {
     return t_cose_sign_verify_private(me,
                                       sign,
                                       aad,
-                                      &payload,
+                                     &detatched_payload,
                                       parameters,
                                       true);
 }
@@ -260,7 +279,7 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *me,
     memset(me, 0, sizeof(*me));
     me->option_flags               = option_flags;
     me->params.storage             = me->__params;
-    me->params.storage_size        = sizeof(me->__params);
+    me->params.storage_size        = sizeof(me->__params)/sizeof(struct t_cose_header_param);
     me->__params[0].parameter_type = T_COSE_PARAMETER_TYPE_NONE;
 }
 

@@ -670,7 +670,7 @@ int two_step_sign_example_new(void)
 
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_COSE_SIGN1);
+    t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
 
     t_cose_signature_sign_ecdsa_init(&ecdsa_signer, T_COSE_ALGORITHM_ES256);
 
@@ -977,7 +977,7 @@ int two_step_sign_example_new_verify(void)
      * key. Internally it must be in the format for the crypto library
      * used. It is passed straight through t_cose.
      */
-    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_COSE_SIGN1);
+    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
 
     struct t_cose_signature_verify_ecdsa verifier;
     t_cose_signature_verify_ecdsa_init(&verifier);

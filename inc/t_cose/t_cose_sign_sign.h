@@ -103,27 +103,7 @@ struct t_cose_sign_sign_ctx {
  * testing all the way to a server or relying party, not just for
  * testing device code as t_cose_sign1_verify() supports it too.
  */
-#define T_COSE_OPT_SHORT_CIRCUIT_SIG 0x00000001
-
-
-/**
- * An \c option_flag for t_cose_sign_sign_init() to not add the CBOR
- * type 6 tag for \c COSE_Sign1 whose value is 18. Some uses of COSE
- * may require this tag be absent because it is known that it is a \c
- * COSE_Sign1 from surrounding context.
- *
- * Or said another way, per the COSE RFC, this code produces a \c
- * COSE_Sign1_Tagged by default and a \c COSE_Sign1 when this flag is
- * set.  The only difference between these two is the CBOR tag.
- */
-#define T_COSE_OPT_OMIT_CBOR_TAG 0x00000002
-
-/**
- * Produce a COSE_Sign1 instead of a COSE_Sign. When this
- * is set t_cose_sign_add_signer() must have been called
- * once and only once.
- */
-#define T_COSE_OPT_COSE_SIGN1 0x00000004
+#define T_COSE_OPT_SHORT_CIRCUIT_SIG 0x00002000
 
 
 
@@ -134,7 +114,7 @@ struct t_cose_sign_sign_ctx {
  * \param[in] option_flags       One of \c T_COSE_OPT_XXXX.
  *
  * Initialize the \ref t_cose_sign_sign_ctx context. Typically, no
- * \c option_flags are needed and 0 can be passed. . See \ref T_COSE_OPT_COSE_SIGN1 and
+ * \c option_flags are needed and 0 can be passed. . See \ref T_COSE_OPT_MESSAGE_TYPE_SIGN1 and
  * related for possible option flags.
  *
  * The algorithm ID(s) is(are) set for in the t_cose_signature_sign instance(s).

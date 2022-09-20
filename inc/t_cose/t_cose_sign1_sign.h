@@ -1,7 +1,7 @@
 /*
  * t_cose_sign1_sign.h
  *
- * Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2020, Michael Eckel
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -17,6 +17,11 @@
 #include "qcbor/qcbor.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
+#include "t_cose/t_cose_sign_sign.h"
+#include "t_cose/t_cose_signature_sign_ecdsa.h" // TODO: why is this here?
+#include "t_cose/t_cose_signature_sign_short.h"
+#include "t_cose/t_cose_parameters.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,55 +72,38 @@ extern "C" {
  * is about 100 bytes so it fits easily on the stack.
  */
 struct t_cose_sign1_sign_ctx {
+    struct t_cose_sign_sign_ctx  me2;
+
+    /* This is needed to implement backwards compatibility on the
+     * assumption that t_cose 1.0 primarily supported ECDSA. */
+    struct t_cose_signature_sign_ecdsa signer;
+
+    /* For compatibility implementation with t_cose_sign_sign.
+     * Storage lifetime must be that of the t_cose_sign1_sign_ctx
+     * because the user of t_cose_sign1_sign won't allocate a
+     * t_cose_header_param. They don't know about it. */
+    struct t_cose_header_param content_id_param[2];
+
+
     /* Private data structure */
     struct q_useful_buf_c protected_parameters; /* Encoded protected paramssy */
     int32_t               cose_algorithm_id;
-    struct t_cose_key     signing_key;
+    struct t_cose_key     signing_key; // Used by make_test_message
     uint32_t              option_flags;
     struct q_useful_buf_c kid;
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     uint32_t              content_type_uint;
     const char *          content_type_tstr;
 #endif
+
+    /* This is needed to implement the backwards compatibility
+     * based on t_cose_sign_sign.
+     */
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+    struct t_cose_signature_sign_short short_circuit_signer;
+#endif
 };
 
-
-/**
- * This selects a signing test mode called _short_ _circuit_
- * _signing_. This mode is useful when there is no signing key
- * available, perhaps because it has not been provisioned or
- * configured for the particular device. It may also be because the
- * public key cryptographic functions have not been connected up in
- * the cryptographic adaptation layer.
- *
- * It has no value for security at all. Data signed this way MUST NOT
- * be trusted as anyone can sign like this.
- *
- * In this mode, the signature is the hash of that which would
- * normally be signed by the public key algorithm. To make the
- * signature the correct size for the particular algorithm, instances
- * of the hash are concatenated to pad it out.
- *
- * This mode is very useful for testing because all the code except
- * the actual signing algorithm is run exactly as it would if a proper
- * signing algorithm was run. This can be used for end-end system
- * testing all the way to a server or relying party, not just for
- * testing device code as t_cose_sign1_verify() supports it too.
- */
-#define T_COSE_OPT_SHORT_CIRCUIT_SIG 0x00000001
-
-
-/**
- * An \c option_flag for t_cose_sign1_sign_init() to not add the CBOR
- * type 6 tag for \c COSE_Sign1 whose value is 18. Some uses of COSE
- * may require this tag be absent because it is known that it is a \c
- * COSE_Sign1 from surrounding context.
- *
- * Or said another way, per the COSE RFC, this code produces a \c
- * COSE_Sign1_Tagged by default and a \c COSE_Sign1 when this flag is
- * set.  The only difference between these two is the CBOR tag.
- */
-#define T_COSE_OPT_OMIT_CBOR_TAG 0x00000002
 
 
 /**
@@ -166,7 +154,7 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
  * will not be used and this \c COSE_Sign1 message can not be verified
  * by t_cose_sign1_verify().
  */
-static void
+void
 t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
                              struct t_cose_key             signing_key,
                              struct q_useful_buf_c         kid);
@@ -189,7 +177,7 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *context,
  * The IANA CoAP Content-Formats registry is found
  * [here](https://www.iana.org/assignments/core-parameters/core-parameters.xhtml#content-formats).
  */
-static inline void
+void
 t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
                                    uint16_t                      content_type);
 
@@ -209,7 +197,7 @@ t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *context,
  * [here](https://www.iana.org/assignments/media-types/media-types.xhtml).
  * These have been known as MIME types in the past.
  */
-static inline void
+void
 t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
                                    const char                   *content_type);
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
@@ -431,18 +419,23 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
 #endif
 
     me->cose_algorithm_id = cose_algorithm_id;
-    me->option_flags      = option_flags;
-}
+    me->option_flags = option_flags;  // Used by t_cose_make_test_messages.c
+
+    // TODO: Translate any more options flags?
+    t_cose_sign_sign_init(&(me->me2), option_flags | T_COSE_OPT_MESSAGE_TYPE_SIGN1);
 
 
-static inline void
-t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
-                             struct t_cose_key             signing_key,
-                             struct q_useful_buf_c         kid)
-{
-    me->kid         = kid;
-    me->signing_key = signing_key;
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+    if(option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
+        t_cose_signature_sign_short_init(&(me->short_circuit_signer), cose_algorithm_id);
+
+        t_cose_sign_add_signer(&(me->me2),
+                               t_cose_signature_sign_from_short(&(me->short_circuit_signer)));
+    }
+#endif
+
 }
+
 
 
 /**
@@ -460,7 +453,7 @@ t_cose_sign1_set_signing_key(struct t_cose_sign1_sign_ctx *me,
  * a private function inside the implementation. Call
  * t_cose_sign1_encode_parameters() instead of this.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_encode_parameters_internal(struct t_cose_sign1_sign_ctx *context,
                                         bool                          payload_is_detached,
                                         QCBOREncodeContext           *cbor_encode_ctx);
@@ -496,7 +489,7 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *context,
  * is to be inline and must have been added by calls to QCBOREncode
  * after the call to t_cose_sign1_encode_parameters().
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *context,
                                            struct q_useful_buf_c         aad,
                                            struct q_useful_buf_c         detached_payload,
@@ -523,7 +516,7 @@ t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *context
  * This is a private function internal to the implementation. Call
  * t_cose_sign1_sign_aad() instead of this.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_sign_aad_internal(struct t_cose_sign1_sign_ctx *context,
                                bool                          payload_is_detached,
                                struct q_useful_buf_c         aad,
@@ -602,22 +595,51 @@ t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
 }
 
 
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-static inline void
-t_cose_sign1_set_content_type_uint(struct t_cose_sign1_sign_ctx *me,
-                                   uint16_t                     content_type)
+
+
+
+/*
+ * Semi-private function. See t_cose_sign1_sign.h
+ */
+static inline enum t_cose_err_t
+t_cose_sign1_encode_parameters_internal(struct t_cose_sign1_sign_ctx *me,
+                                        bool                          payload_is_detached,
+                                        QCBOREncodeContext           *cbor_encode_ctx)
 {
-    me->content_type_uint = content_type;
+    return t_cose_sign_encode_start(&(me->me2), payload_is_detached, cbor_encode_ctx);
 }
 
 
-static inline void
-t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *me,
-                                   const char                   *content_type)
+/*
+ * Semi-private function. See t_cose_sign1_sign.h
+ */
+static inline enum t_cose_err_t
+t_cose_sign1_encode_signature_aad_internal(struct t_cose_sign1_sign_ctx *me,
+                                           struct q_useful_buf_c         aad,
+                                           struct q_useful_buf_c         detached_payload,
+                                           QCBOREncodeContext           *cbor_encode_ctx)
 {
-    me->content_type_tstr = content_type;
+    return t_cose_sign_encode_finish(&(me->me2), aad, detached_payload, cbor_encode_ctx);
 }
-#endif
+
+
+/*
+ * Semi-private function. See t_cose_sign1_sign.h
+ */
+static inline enum t_cose_err_t
+t_cose_sign1_sign_aad_internal(struct t_cose_sign1_sign_ctx *me,
+                               bool                         payload_is_detached,
+                               struct q_useful_buf_c         payload,
+                               struct q_useful_buf_c         aad,
+                               struct q_useful_buf           out_buf,
+                               struct q_useful_buf_c        *result)
+{
+    return t_cose_sign_one_short(&(me->me2), payload_is_detached, payload, aad, out_buf, result);
+}
+
+
+
+
 
 #ifdef __cplusplus
 }

@@ -142,7 +142,7 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
 
     /* --- The array of 4 and tags --- */
     QCBORDecode_EnterArray(&decode_context, NULL);
-    return_value = qcbor_decode_error_to_t_cose_error(QCBORDecode_GetError(&decode_context));
+    return_value = qcbor_decode_error_to_t_cose_error(QCBORDecode_GetError(&decode_context), T_COSE_ERR_MAC0_FORMAT);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -174,7 +174,7 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
      * makes sure there were no extra bytes. Also that the payload
      * and signature were decoded correctly. */
     qcbor_error = QCBORDecode_Finish(&decode_context);
-    return_value = qcbor_decode_error_to_t_cose_error(qcbor_error);
+    return_value = qcbor_decode_error_to_t_cose_error(qcbor_error, T_COSE_ERR_MAC0_FORMAT);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }

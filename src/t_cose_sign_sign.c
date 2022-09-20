@@ -42,12 +42,12 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
     signer = me->signers;
     if(signer == NULL) {
         /* No signers configured. */
-        return_value = 888;
+        return_value = T_COSE_ERR_NO_SIGNERS;
         goto Done;
     }
 
     vector_index = 0;
-    if(me->option_flags & T_COSE_OPT_COSE_SIGN1) {
+    if((me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK) ==  T_COSE_OPT_MESSAGE_TYPE_SIGN1) {
 
         /* For a COSE_Sign1, the header parameters go in the
          * main body header parameter section, not in the
@@ -57,7 +57,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
         vector_index++;
         if(signer->next_in_list != NULL) {
             /* In COSE_Sign1 mode, but too many signers configured.*/
-            return_value = 999;
+            return_value = T_COSE_ERR_TOO_MANY_SIGNERS;
             goto Done;
         }
     }
@@ -138,12 +138,12 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
 
     /* --- Create the signature or signatures --- */
     signer = me->signers;
-    if(!(me->option_flags & T_COSE_OPT_COSE_SIGN1)) {
+    if((me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK) !=  T_COSE_OPT_MESSAGE_TYPE_SIGN1) {
         /* What is needed here is to output an arrray of signers, each
          * of which is an array of Headers and signature. The surrounding
          * array is handed here.
          */
-        return_value = 888; // TODO: error code for no signers
+        return_value = T_COSE_ERR_NO_SIGNERS;
         QCBOREncode_OpenArray(cbor_encode_ctx);
         while(signer != NULL) {
             return_value = (signer->callback)(signer,

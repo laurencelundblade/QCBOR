@@ -1,9 +1,13 @@
-//
-//  t_cose_signature_sign_short.c
-//
-//  Created by Laurence Lundblade on 7/27/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ * t_cose_signature_sign_short.c
+ *
+ * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ */
+
 
 #include "t_cose/t_cose_signature_sign_short.h"
 #include "t_cose/t_cose_signature_sign.h"
@@ -12,9 +16,6 @@
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_util.h"
 
-#define T_COSE_SHORT_CIRCUIT_KID_SIZE 32
-
-// This is replicated in t_cose_signature_verify_short.c
 
 static const uint8_t defined_short_circuit_kid[] = {
     0xef, 0x95, 0x4b, 0x4b, 0xd9, 0xbd, 0xf6, 0x70,
@@ -25,9 +26,10 @@ static const uint8_t defined_short_circuit_kid[] = {
 static struct q_useful_buf_c short_circuit_kid;
 
 /*
- * Public function. See t_cose_util.h
+ * Public function.
  */
-struct q_useful_buf_c get_short_circuit_kid_l(void)
+struct q_useful_buf_c
+t_cose_get_short_circuit_kid_l(void)
 {
     short_circuit_kid.len = sizeof(defined_short_circuit_kid);
     short_circuit_kid.ptr = defined_short_circuit_kid;
@@ -36,22 +38,24 @@ struct q_useful_buf_c get_short_circuit_kid_l(void)
 }
 
 
+/*
+ * Short-circuit signer can pretend to be ES256, ES384 or ES512.
+ */
 static inline enum t_cose_err_t
-short_circuit_sig_size(int32_t            cose_algorithm_id,
-                       size_t            *sig_size)
+short_circuit_sig_size(int32_t cose_algorithm_id,
+                       size_t *sig_size)
 {
     *sig_size = cose_algorithm_id == COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
                 cose_algorithm_id == COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
                 cose_algorithm_id == COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
                 0;
 
-    return sig_size == 0 ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG : T_COSE_SUCCESS;
+    return *sig_size == 0 ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG : T_COSE_SUCCESS;
 }
 
 
-
 /**
- * \brief Create a short-circuit signature
+ * \brief Create a short-circuit signature.
  *
  * \param[in] cose_algorithm_id Algorithm ID. This is used only to make
  *                              the short-circuit signature the same size
@@ -73,10 +77,10 @@ short_circuit_sig_size(int32_t            cose_algorithm_id,
  * even if key material is not set up or accessible.
  */
 static inline enum t_cose_err_t
-short_circuit_sign(int32_t               cose_algorithm_id,
-                   struct q_useful_buf_c hash_to_sign,
-                   struct q_useful_buf   signature_buffer,
-                   struct q_useful_buf_c *signature)
+short_circuit_fake_sign(int32_t                cose_algorithm_id,
+                        struct q_useful_buf_c  hash_to_sign,
+                        struct q_useful_buf    signature_buffer,
+                        struct q_useful_buf_c *signature)
 {
     /* approximate stack use on 32-bit machine: local use: 16 bytes
      */
@@ -86,12 +90,11 @@ short_circuit_sign(int32_t               cose_algorithm_id,
     size_t            sig_size;
 
     return_value = short_circuit_sig_size(cose_algorithm_id, &sig_size);
-
-    /* Check the signature length against buffer size */
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
+    /* Check the signature length against buffer size */
     if(sig_size > signature_buffer.len) {
         /* Buffer too small for this signature type */
         return_value = T_COSE_ERR_SIG_BUFFER_SIZE;
@@ -117,32 +120,50 @@ Done:
 }
 
 
+/**
+ * See \ref t_cose_signature_sign_h_callback of which this is an implementation.
+ *
+ * While this is a private function, it is called externally as a
+ * callback via a function pointer that is set up in
+ * t_cose_short_signer_init().
+ */
 static void
-t_cose_short_headers(struct t_cose_signature_sign  *me_x,
+t_cose_short_headers(struct t_cose_signature_sign      *me_x,
                      const struct t_cose_header_param **params)
 {
     struct t_cose_signature_sign_short *me = (struct t_cose_signature_sign_short *)me_x;
 
-    me->local_params[0]  = T_COSE_MAKE_ALG_ID_PARAM(me->cose_algorithm_id);
-    me->local_params[1]  = T_COSE_KID_PARAM(get_short_circuit_kid_l());
-    me->local_params[2]  = T_COSE_END_PARAM;
+    /* Output the configured kid or the never-changing kid for
+     * short-circuit signatures. */
+    struct q_useful_buf_c kid = me->kid;
+    if(q_useful_buf_c_is_null(kid)) {
+        kid = t_cose_get_short_circuit_kid_l();
+    }
+
+    me->local_params[0] = T_COSE_MAKE_ALG_ID_PARAM(me->cose_algorithm_id);
+    me->local_params[1] = T_COSE_KID_PARAM(kid);
+    me->local_params[2] = T_COSE_END_PARAM;
 
     *params = me->local_params;
 }
 
 
-/* While this is a private function, it is called externally
- as a callback via a function pointer that is set up in  t_cose_short_signer_init().  */
+/**
+ * See \ref t_cose_signature_sign_callback of which this is an implementation.
+ *
+ * While this is a private function, it is called externally as a
+ * callback via a function pointer that is set up in
+ * t_cose_short_signer_init().
+ */
 static enum t_cose_err_t
-t_cose_short_sign(struct t_cose_signature_sign  *me_x,
-                  bool                         make_cose_signature,
-                  const struct q_useful_buf_c  protected_body_headers,
-                  const struct q_useful_buf_c  aad,
-                  const struct q_useful_buf_c  signed_payload,
-                  QCBOREncodeContext          *qcbor_encoder)
+t_cose_short_sign(struct t_cose_signature_sign *me_x,
+                  bool                          make_cose_signature,
+                  const struct q_useful_buf_c   protected_body_headers,
+                  const struct q_useful_buf_c   aad,
+                  const struct q_useful_buf_c   signed_payload,
+                  QCBOREncodeContext           *qcbor_encoder)
 {
     struct t_cose_signature_sign_short *me = (struct t_cose_signature_sign_short *)me_x;
-
     enum t_cose_err_t                  return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(        buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     Q_USEFUL_BUF_MAKE_STACK_UB(        buffer_for_signature, T_COSE_MAX_SIG_SIZE);
@@ -150,12 +171,21 @@ t_cose_short_sign(struct t_cose_signature_sign  *me_x,
     struct q_useful_buf_c              signature;
     const struct t_cose_header_param  *params_vector[3];
     struct q_useful_buf_c              signer_protected_headers;
+    size_t                             tmp_sig_size;
 
+    /* Get the sig size to find out if this is an alg that short-circuit
+     * signer can pretend to be.
+     */
+    return_value = short_circuit_sig_size(me->cose_algorithm_id, &tmp_sig_size);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
-    /* -- The headers if if is a COSE_Sign -- */
+    /* -- The headers if it is a COSE_Sign -- */
     signer_protected_headers = NULLUsefulBufC;
-    if(make_cose_signature) {
+    if(make_cose_signature) { // TODO: better name for this variable
         /* COSE_Sign, so making a COSE_Signature  */
+        /* Open the array enclosing the two header buckets and the sig. */
         QCBOREncode_OpenArray(qcbor_encoder);
 
         t_cose_short_headers(me_x, &params_vector[0]);
@@ -193,16 +223,17 @@ t_cose_short_sign(struct t_cose_signature_sign  *me_x,
             goto Done;
         }
 
-        return_value = short_circuit_sign(me->cose_algorithm_id,
-                                          tbs_hash,
-                                          buffer_for_signature,
-                                          &signature);
+        return_value = short_circuit_fake_sign(me->cose_algorithm_id,
+                                               tbs_hash,
+                                               buffer_for_signature,
+                                              &signature);
     }
     QCBOREncode_AddBytes(qcbor_encoder, signature);
 
 
     /* -- If a COSE_Sign, close of the COSE_Signature */
     if(make_cose_signature) {
+        /* Close the array enclosing the two header buckets and the sig. */
         QCBOREncode_CloseArray(qcbor_encoder);
     }
     // TODO: lots of error handling
@@ -212,6 +243,9 @@ Done:
 }
 
 
+/*
+ * Pubilc Function. See t_cose_signature_sign_short.h
+ */
 void
 t_cose_signature_sign_short_init(struct t_cose_signature_sign_short *me,
                                  int32_t                             cose_algorithm_id)
