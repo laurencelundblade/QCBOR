@@ -19,6 +19,7 @@
 #include "t_cose_test.h"
 #include "t_cose_sign_verify_test.h"
 #include "t_cose_compute_validate_mac_test.h"
+#include "t_cose_param_test.h"
 
 
 /*
@@ -51,10 +52,6 @@ static test_entry2 s_tests2[] = {
 };
 #endif
 
-int32_t dummy_test(void)
-{
-    return 0;
-}
 
 static test_entry s_tests[] = {
 
@@ -118,7 +115,7 @@ static test_entry s_tests[] = {
 #endif /* T_COSE_DISABLE_SIGN1 */
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
-    TEST_ENTRY(dummy_test)
+    TEST_ENTRY(param_test)
 };
 
 
@@ -314,6 +311,7 @@ static void PrintSize(const char *szWhat,
 #include "t_cose/t_cose_sign1_verify.h" /* For struct size printing */
 #include "t_cose/t_cose_sign1_sign.h" /* For struct size printing */
 #include "t_cose_crypto.h" /* For struct size printing */
+#include "t_cose/t_cose_parameters.h" /* For struct size printing */
 
 
 /*
@@ -338,5 +336,7 @@ void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx)
     PrintSize("sizeof(struct t_cose_sign1_verify_ctx)",
               (uint32_t)sizeof(struct t_cose_sign1_verify_ctx),
               pfOutput, pOutCtx);
-    (*pfOutput)("", pOutCtx, 1);
+    PrintSize("sizeof(struct t_cose_parameter)",
+              (uint32_t)sizeof(struct t_cose_parameter),
+              pfOutput, pOutCtx);    (*pfOutput)("", pOutCtx, 1);
 }

@@ -21,15 +21,15 @@ struct t_cose_signature_sign_ecdsa {
     /* t_cose_signer must be the first item for the polymorphism to work.
      * This structure, t_cose_ecdsa_signer, will sometimes be uses as a t_cose_signer.
      */
-    struct t_cose_signature_sign       s;
+    struct t_cose_signature_sign s;
 
     /* The rest of this is mostly specific to ECDSA signing */
-    int32_t                            cose_algorithm_id;
-    struct q_useful_buf_c              kid;
-    struct t_cose_key                  signing_key;
-    uint32_t                           option_flags; // TODO: use or get rid of
-    struct t_cose_header_param         local_params[3];
-    const struct t_cose_header_param  *added_signer_params;
+    int32_t                      cose_algorithm_id;
+    struct q_useful_buf_c        kid;
+    struct t_cose_key            signing_key;
+    uint32_t                     option_flags; // TODO: use or get rid of
+    struct t_cose_parameter      local_params[2];
+    struct t_cose_parameter     *added_signer_params;
 };
 
 
@@ -65,7 +65,7 @@ t_cose_signature_sign_ecdsa_set_signing_key(struct t_cose_signature_sign_ecdsa *
  */
 static void
 t_cose_signature_sign_ecdsa_set_header_parameter(struct t_cose_signature_sign_ecdsa *context,
-                                                 const struct t_cose_header_param   *header_parameters);
+                                                 struct t_cose_parameter   *header_parameters);
 
 
 /* This is how you get the general interface / instance for a signer,
@@ -117,7 +117,7 @@ t_cose_signature_sign_from_ecdsa(struct t_cose_signature_sign_ecdsa *me)
 
 static inline void
 t_cose_signature_sign_ecdsa_set_header_parameter(struct t_cose_signature_sign_ecdsa *me,
-                                                 const struct t_cose_header_param   *header_parameters)
+                                                 struct t_cose_parameter   *header_parameters)
 {
     me->added_signer_params = header_parameters;
 }

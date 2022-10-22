@@ -11,7 +11,7 @@
 
 
 #include "t_cose_make_test_pub_key.h" /* The interface implemented here */
-#include "t_cose_standard_constants.h"
+#include "t_cose/t_cose_standard_constants.h"
 #include "psa/crypto.h"
 
 
@@ -94,21 +94,21 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
      */
 
     switch(cose_algorithm_id) {
-    case COSE_ALGORITHM_ES256:
+    case T_COSE_ALGORITHM_ES256:
         private_key     = private_key_256;
         private_key_len = sizeof(private_key_256);
         key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
         key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_256);
         break;
 
-    case COSE_ALGORITHM_ES384:
+    case T_COSE_ALGORITHM_ES384:
         private_key     = private_key_384;
         private_key_len = sizeof(private_key_384);
         key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
         key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_384);
         break;
 
-    case COSE_ALGORITHM_ES512:
+    case T_COSE_ALGORITHM_ES512:
         private_key     = private_key_521;
         private_key_len = sizeof(private_key_521);
         key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);

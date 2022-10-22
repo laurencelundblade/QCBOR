@@ -111,8 +111,8 @@ t_cose_signature_sign_callback(struct t_cose_signature_sign *me,
  * is called. t_cose_signature_sign_callback is always called. (The
  * point of not returning an error here is to save object code) */
 typedef void
-(t_cose_signature_sign_h_callback)(struct t_cose_signature_sign       *me,
-                                   const struct t_cose_header_param  **header_params);
+(t_cose_signature_sign_h_callback)(struct t_cose_signature_sign *me,
+                                   struct t_cose_parameter     **header_params);
 
 
 /* The definition (not declaration) of the context that every

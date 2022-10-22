@@ -49,7 +49,7 @@ extern "C" {
  *  such are skipped correctly */
 #define T_COSE_TEST_EXTRA_PARAMETER 0x20000000
 
-/** The protected parameters bucked is left out of the COSE_Sign1
+/** The protected parameters bucket is left out of the COSE_Sign1
  *  message entirely */
 #define T_COSE_TEST_NO_PROTECTED_PARAMETERS 0x10000000
 
@@ -73,7 +73,7 @@ extern "C" {
  *  occur */
 #define T_COSE_TEST_CRIT_PARAMETER_EXIST 0x00800000
 
-/** Exceed the limit on number of T_COSE_PARAMETER_LIST_MAX on number
+/** Exceed the limit on number of T_COSE_MAX_CRITICAL_PARAMS on number
  * of crit parameters this implementation can handle */
 #define T_COSE_TEST_TOO_MANY_CRIT_PARAMETER_EXIST 0x00400000
 
@@ -83,7 +83,7 @@ extern "C" {
 /** The crit parameter is in the unprotected bucket */
 #define T_COSE_TEST_CRIT_NOT_PROTECTED 0x00100000
 
-/** More than T_COSE_PARAMETER_LIST_MAX unknown parameters occurred */
+/** More than T_COSE_MAX_CRITICAL_PARAMS unknown parameters occurred */
 #define T_COSE_TEST_TOO_MANY_UNKNOWN 0x00080000
 
 /** The crit parameter lists several text string critical labels and
@@ -123,7 +123,7 @@ extern "C" {
  * allowed by COSE */
 #define T_COSE_TEST_EMPTY_CRIT_PARAMETER 0x00000200
 
-/** Exceed the limit on number of T_COSE_PARAMETER_LIST_MAX on number
+/** Exceed the limit on number of T_COSE_MAX_CRITICAL_PARAMS on number
  * of crit parameters this implementation can handle */
 #define T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS 0x00000100
 

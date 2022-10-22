@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
+#include "t_cose/t_cose_parameters.h"
 #include "qcbor/qcbor_common.h"
 
 #include "t_cose/t_cose_sign_verify.h"
@@ -67,46 +68,6 @@ extern "C" {
 
 
 
-/**
- * The result of parsing a set of COSE header parameters. The pointers
- * in this are all back into the \c COSE_Sign1 blob passed in to
- * t_cose_sign1_verify() as the \c sign1 parameter.
- *
- * Approximate size on a 64-bit machine is 80 bytes and on a 32-bit
- * machine is 40.
- */
-struct t_cose_parameters {
-    /** The algorithm ID. \ref T_COSE_ALGORITHM_NONE if the algorithm ID
-     * parameter is not present. String type algorithm IDs are not
-     * supported.  See the
-     * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml)
-     * for the algorithms corresponding to the integer values.
-     */
-    int32_t               cose_algorithm_id;
-
-    /** The COSE key ID. \c NULL_Q_USEFUL_BUF_C if parameter is not
-     * present */
-    struct q_useful_buf_c kid;
-
-    /** The initialization vector. \c NULL_Q_USEFUL_BUF_C if parameter
-     * is not present */
-    struct q_useful_buf_c iv;
-
-    /** The partial initialization vector. \c NULL_Q_USEFUL_BUF_C if
-     * parameter is not present */
-    struct q_useful_buf_c partial_iv;
-
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    /** The content type as a MIME type like
-     * "text/plain". \c NULL_Q_USEFUL_BUF_C if parameter is not present */
-    struct q_useful_buf_c content_type_tstr;
-
-    /** The content type as a CoAP Content-Format
-     * integer. \ref T_COSE_EMPTY_UINT_CONTENT_TYPE if parameter is not
-     * present. Allowed range is 0 to UINT16_MAX per RFC 7252. */
-    uint32_t              content_type_uint;
-#endif /* T_COSE_DISABLE_CONTENT_TYPE */
-};
 
 
 
@@ -355,12 +316,6 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
 }
 
 
-// Private function used by inlined functions below.
-enum t_cose_err_t
-t_cose_translate_params_private(const struct t_cose_header_param *decoded_params,
-                                struct t_cose_parameters   *returned_parameters);
-
-
 
 static inline enum t_cose_err_t
 t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
@@ -369,7 +324,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
                     struct t_cose_parameters       *parameters)
 {
     enum t_cose_err_t           return_value;
-    struct t_cose_header_param *decoded_params;
+    struct t_cose_parameter *decoded_params;
 
     return_value = t_cose_sign_verify(&(me->me2),
                                       cose_sign1,
@@ -381,7 +336,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     }
 
     if(parameters != NULL) {
-        return_value = t_cose_translate_params_private(decoded_params, parameters);
+        return_value = t_cose_common_header_parameters(decoded_params, parameters);
     }
 
     memcpy(me->auTags, me->me2.auTags, sizeof(me->auTags));
@@ -399,7 +354,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
                         struct t_cose_parameters       *parameters)
 {
      enum t_cose_err_t           return_value;
-     struct t_cose_header_param *decoded_params;
+     struct t_cose_parameter *decoded_params;
 
      return_value = t_cose_sign_verify(&(me->me2),
                                        cose_sign1,
@@ -407,7 +362,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
                                        payload,
                                       &decoded_params);
      if(parameters != NULL) {
-         t_cose_translate_params_private(decoded_params, parameters);
+         t_cose_common_header_parameters(decoded_params, parameters);
      }
 
      return return_value;
@@ -422,7 +377,7 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                              struct t_cose_parameters       *parameters)
 {
     enum t_cose_err_t           return_value;
-    struct t_cose_header_param *decoded_params;
+    struct t_cose_parameter *decoded_params;
 
     return_value = t_cose_sign_verify_detached(&(me->me2),
                                                cose_sign1,
@@ -431,7 +386,7 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                                               &decoded_params);
 
     if(parameters != NULL) {
-        return_value = t_cose_translate_params_private(decoded_params, parameters);
+        return_value = t_cose_common_header_parameters(decoded_params, parameters);
     }
 
     return return_value;

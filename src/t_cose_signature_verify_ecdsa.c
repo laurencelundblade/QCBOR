@@ -12,34 +12,37 @@
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose_crypto.h"
 
-//#define T_COSE_CRYPTO_MAX_HASH_SIZE 300 // TODO: fix this
 
 /* Warning: this is still early development. Documentation may be incorrect. */
 
+/*
+This is an implementation of t_cose_signature_verify1_callback.
 
+ */
 static enum t_cose_err_t
 t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
-                               const struct q_useful_buf_c       protected_body_headers,
-                               const struct q_useful_buf_c       protected_signature_headers,
-                               const struct q_useful_buf_c       payload,
-                               const struct q_useful_buf_c       aad,
-                               const struct t_cose_header_param *body_parameters,
-                               const struct q_useful_buf_c       signature)
+                               const struct q_useful_buf_c     protected_body_headers,
+                               const struct q_useful_buf_c     protected_signature_headers,
+                               const struct q_useful_buf_c     payload,
+                               const struct q_useful_buf_c     aad,
+                               const struct t_cose_parameter  *parameter_list,
+                               const struct q_useful_buf_c     signature)
 {
-    int32_t                             cose_algorithm_id;
-    enum t_cose_err_t                   return_value;
-    struct q_useful_buf_c               kid;
-    const struct t_cose_signature_verify_ecdsa *me = (const struct t_cose_signature_verify_ecdsa *)me_x;
-    Q_USEFUL_BUF_MAKE_STACK_UB(         buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
-    struct q_useful_buf_c               tbs_hash;
+    const struct t_cose_signature_verify_ecdsa *me =
+                          (const struct t_cose_signature_verify_ecdsa *)me_x;
+    int32_t                      cose_algorithm_id;
+    enum t_cose_err_t            return_value;
+    struct q_useful_buf_c        kid;
+    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
+    struct q_useful_buf_c        tbs_hash;
 
-    /* --- Get the parameters values needed here --- */
-    cose_algorithm_id = t_cose_find_parameter_alg_id(body_parameters);
+    /* --- Get the parameters values needed --- */
+    cose_algorithm_id = t_cose_find_parameter_alg_id(parameter_list);
     if(cose_algorithm_id == T_COSE_ALGORITHM_NONE) {
         return_value = T_COSE_ERR_NO_ALG_ID;
         goto Done;
     }
-    kid = t_cose_find_parameter_kid(body_parameters);
+    kid = t_cose_find_parameter_kid(parameter_list);
 
     /* --- Compute the hash of the to-be-signed bytes -- */
     return_value = create_tbs_hash(cose_algorithm_id,
@@ -49,7 +52,7 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
                                    payload,
                                    buffer_for_tbs_hash,
                                    &tbs_hash);
-    if(return_value) {
+    if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
@@ -61,7 +64,6 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
                                         signature);
 Done:
     return return_value;
-
 }
 
 
@@ -72,22 +74,26 @@ Done:
           Error decoding the COSE_Signature (but not a COSE error)
           Signature validate
           Signature didn't validate
+
+ This is an implementation of t_cose_signature_verify_callback
  */
 static enum t_cose_err_t
-t_cose_signature_verify_ecdsa(struct t_cose_signature_verify *me_x,
-                              const bool                        run_crypto,
-                              const struct header_location      loc,
-                              const struct q_useful_buf_c       protected_body_headers,
-                              const struct q_useful_buf_c       payload,
-                              const struct q_useful_buf_c       aad,
-                              const struct header_param_storage params,
-                              QCBORDecodeContext               *qcbor_decoder)
+t_cose_signature_verify_ecdsa(struct t_cose_signature_verify      *me_x,
+                              const bool                           run_crypto,
+                              const struct t_cose_header_location  loc,
+                              const struct q_useful_buf_c          protected_body_headers,
+                              const struct q_useful_buf_c          payload,
+                              const struct q_useful_buf_c          aad,
+                              struct t_cose_parameter_storage     *param_storage,
+                              QCBORDecodeContext                  *qcbor_decoder,
+                              struct t_cose_parameter            **decoded_signature_parameters)
 {
+    const struct t_cose_signature_verify_ecdsa *me =
+                            (const struct t_cose_signature_verify_ecdsa *)me_x;
     QCBORError             qcbor_error;
     enum t_cose_err_t      return_value;
     struct q_useful_buf_c  protected_parameters;
     struct q_useful_buf_c  signature;
-    const struct t_cose_signature_verify_ecdsa *me = (const struct t_cose_signature_verify_ecdsa *)me_x;
 
     /* --- Decode the COSE_Signature ---*/
     QCBORDecode_EnterArray(qcbor_decoder, NULL);
@@ -96,7 +102,8 @@ t_cose_signature_verify_ecdsa(struct t_cose_signature_verify *me_x,
                                          loc,
                                          me->reader,
                                          me->reader_ctx,
-                                         params,
+                                         param_storage,
+                                         decoded_signature_parameters,
                                         &protected_parameters);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -123,7 +130,7 @@ t_cose_signature_verify_ecdsa(struct t_cose_signature_verify *me_x,
                                                   protected_parameters,
                                                   payload,
                                                   aad,
-                                                  params.storage,
+                                                  *decoded_signature_parameters,
                                                   signature);
 Done:
     return return_value;

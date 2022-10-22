@@ -49,15 +49,15 @@ bool
 t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 {
     static const int32_t supported_algs[] = {
-        COSE_ALGORITHM_SHA_256,
-        COSE_ALGORITHM_SHA_384,
-        COSE_ALGORITHM_SHA_512,
-        COSE_ALGORITHM_ES256,
+        T_COSE_ALGORITHM_SHA_256,
+        T_COSE_ALGORITHM_SHA_384,
+        T_COSE_ALGORITHM_SHA_512,
+        T_COSE_ALGORITHM_ES256,
 #ifndef T_COSE_DISABLE_ES384 /* The t_cose 1.0 macro. TODO: keep this? */
-        COSE_ALGORITHM_ES384,
+        T_COSE_ALGORITHM_ES384,
 #endif /* T_COSE_DISABLE_ES384 */
 #ifndef T_COSE_DISABLE_ES512
-        COSE_ALGORITHM_ES512, /* The t_cose 1.0 macro. TODO: keep this? */
+        T_COSE_ALGORITHM_ES512, /* The t_cose 1.0 macro. TODO: keep this? */
 #endif /* T_COSE_DISABLE_ES512 */
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
@@ -87,12 +87,12 @@ static psa_algorithm_t cose_alg_id_to_psa_alg_id(int32_t cose_alg_id)
 {
     /* The #ifdefs save a little code when algorithms are disabled */
 
-    return cose_alg_id == COSE_ALGORITHM_ES256 ? PSA_ALG_ECDSA(PSA_ALG_SHA_256) :
+    return cose_alg_id == T_COSE_ALGORITHM_ES256 ? PSA_ALG_ECDSA(PSA_ALG_SHA_256) :
 #ifndef T_COSE_DISABLE_ES384
-           cose_alg_id == COSE_ALGORITHM_ES384 ? PSA_ALG_ECDSA(PSA_ALG_SHA_384) :
+           cose_alg_id == T_COSE_ALGORITHM_ES384 ? PSA_ALG_ECDSA(PSA_ALG_SHA_384) :
 #endif
 #ifndef T_COSE_DISABLE_ES512
-           cose_alg_id == COSE_ALGORITHM_ES512 ? PSA_ALG_ECDSA(PSA_ALG_SHA_512) :
+           cose_alg_id == T_COSE_ALGORITHM_ES512 ? PSA_ALG_ECDSA(PSA_ALG_SHA_512) :
 #endif
                                                  0;
     /* psa/crypto_values.h doesn't seem to define a "no alg" value,
@@ -297,12 +297,12 @@ Done:
 static inline psa_algorithm_t
 cose_hash_alg_id_to_psa(int32_t cose_hash_alg_id)
 {
-    return cose_hash_alg_id == COSE_ALGORITHM_SHA_256 ? PSA_ALG_SHA_256 :
+    return cose_hash_alg_id == T_COSE_ALGORITHM_SHA_256 ? PSA_ALG_SHA_256 :
 #ifndef T_COSE_DISABLE_ES384
-           cose_hash_alg_id == COSE_ALGORITHM_SHA_384 ? PSA_ALG_SHA_384 :
+           cose_hash_alg_id == T_COSE_ALGORITHM_SHA_384 ? PSA_ALG_SHA_384 :
 #endif
 #ifndef T_COSE_DISABLE_ES512
-           cose_hash_alg_id == COSE_ALGORITHM_SHA_512 ? PSA_ALG_SHA_512 :
+           cose_hash_alg_id == T_COSE_ALGORITHM_SHA_512 ? PSA_ALG_SHA_512 :
 #endif
                                                         UINT16_MAX;
 }

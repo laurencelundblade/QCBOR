@@ -45,9 +45,9 @@ static inline enum t_cose_err_t
 short_circuit_sig_size(int32_t cose_algorithm_id,
                        size_t *sig_size)
 {
-    *sig_size = cose_algorithm_id == COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
-                cose_algorithm_id == COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
-                cose_algorithm_id == COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
+    *sig_size = cose_algorithm_id == T_COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
+                cose_algorithm_id == T_COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
+                cose_algorithm_id == T_COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
                 0;
 
     return *sig_size == 0 ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG : T_COSE_SUCCESS;
@@ -129,7 +129,7 @@ Done:
  */
 static void
 t_cose_short_headers(struct t_cose_signature_sign      *me_x,
-                     const struct t_cose_header_param **params)
+                     struct t_cose_parameter **params)
 {
     struct t_cose_signature_sign_short *me = (struct t_cose_signature_sign_short *)me_x;
 
@@ -140,9 +140,10 @@ t_cose_short_headers(struct t_cose_signature_sign      *me_x,
         kid = t_cose_get_short_circuit_kid_l();
     }
 
-    me->local_params[0] = T_COSE_MAKE_ALG_ID_PARAM(me->cose_algorithm_id);
-    me->local_params[1] = T_COSE_KID_PARAM(kid);
-    me->local_params[2] = T_COSE_END_PARAM;
+    /* Make the linked list of two parameters, the alg id and kid. */
+    me->local_params[0] = t_cose_make_alg_id_parameter(me->cose_algorithm_id);
+    me->local_params[1] = t_cose_make_kid_parameter(kid);
+    me->local_params[0].next = &me->local_params[1];
 
     *params = me->local_params;
 }
@@ -169,9 +170,9 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
     Q_USEFUL_BUF_MAKE_STACK_UB(        buffer_for_signature, T_COSE_MAX_SIG_SIZE);
     struct q_useful_buf_c              tbs_hash;
     struct q_useful_buf_c              signature;
-    const struct t_cose_header_param  *params_vector[3];
     struct q_useful_buf_c              signer_protected_headers;
     size_t                             tmp_sig_size;
+    struct t_cose_parameter           *parameter_list;
 
     /* Get the sig size to find out if this is an alg that short-circuit
      * signer can pretend to be.
@@ -188,11 +189,10 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
         /* Open the array enclosing the two header buckets and the sig. */
         QCBOREncode_OpenArray(qcbor_encoder);
 
-        t_cose_short_headers(me_x, &params_vector[0]);
-        params_vector[1] = me->added_signer_params;
-        params_vector[2] = NULL;
+        t_cose_short_headers(me_x, &parameter_list);
+        t_cose_parameter_list_append(parameter_list, me->added_signer_params);
 
-        t_cose_encode_headers(qcbor_encoder, params_vector, &signer_protected_headers);
+        t_cose_encode_headers(qcbor_encoder, parameter_list, &signer_protected_headers);
     }
 
     /* -- The signature -- */

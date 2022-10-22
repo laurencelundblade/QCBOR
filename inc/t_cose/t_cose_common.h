@@ -186,83 +186,9 @@ extern "C" {
 #define T_COSE_2
 
 
+/* Definitions of algorithm IDs is moved to t_cose_standard_constants.h */
 
-/**
- * \def T_COSE_ALGORITHM_ES256
- *
- * \brief Indicates ECDSA with SHA-256.
- *
- * This value comes from the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- *
- * The COSE standard recommends a key using the secp256r1 curve with
- * this algorithm. This curve is also known as prime256v1 and P-256.
- */
-#define T_COSE_ALGORITHM_ES256 -7
-
-/**
- * \def T_COSE_ALGORITHM_ES384
- *
- * \brief Indicates ECDSA with SHA-384.
- *
- * This value comes from the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- *
- * The COSE standard recommends a key using the secp384r1 curve with
- * this algorithm. This curve is also known as P-384.
- */
-#define T_COSE_ALGORITHM_ES384 -35
-
-/**
- * \def T_COSE_ALGORITHM_ES512
- *
- * \brief Indicates ECDSA with SHA-512.
- *
- * This value comes from the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- *
- * The COSE standard recommends a key using the secp521r1 curve with
- * this algorithm. This curve is also known as P-521.
- */
-#define T_COSE_ALGORITHM_ES512 -36
-
-/**
- * \def T_COSE_ALGORITHM_HMAC256
- *
- * \brief Indicates HMAC with SHA256
- *
- * This value comes from the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate HMAC w/ SHA-256
- */
-#define T_COSE_ALGORITHM_HMAC256 5
-
-/**
- * \def T_COSE_ALGORITHM_HMAC384
- *
- * \brief Indicates HMAC with SHA384
- *
- * This value comes from the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate HMAC w/ SHA-384
- */
-#define T_COSE_ALGORITHM_HMAC384 6
-
-/**
- * \def T_COSE_ALGORITHM_HMAC512
- *
- * \brief Indicates HMAC with SHA512
- *
- * This value comes from the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- *
- * Value for \ref COSE_HEADER_PARAM_ALG to indicate HMAC w/ SHA-512
- */
-#define T_COSE_ALGORITHM_HMAC512 7
-
-#define T_COSE_ALGORITHM_NONE 0
+ 
 
 
 
@@ -361,7 +287,8 @@ struct t_cose_key {
  */
 #define T_COSE_MAC0_MAX_SIZE_PROTECTED_PARAMETERS (1 + 1 + 5 + 9)
 
-#define T_COSE_NUM_VERIFY_DECODE_HEADERS 8
+/* Six: an alg id, a kid, an iv, a content type, one custom, crit list */
+#define T_COSE_NUM_VERIFY_DECODE_HEADERS 6
 /**
  * Error codes return by t_cose.
  */
@@ -474,10 +401,9 @@ enum t_cose_err_t {
      /** The buffer passed in to receive the output is too small. */
     T_COSE_ERR_TOO_SMALL = 25,
 
-    /** More parameters (more than \ref T_COSE_PARAMETER_LIST_MAX)
-     * than this implementation can handle. Note that all parameters
-     * need to be checked for criticality so all parameters need to be
-     * examined. */
+    /** More than \ref T_COSE_MAX_CRITICAL_PARAMS parameters
+     * listed in the "crit" parameter.
+     */
     T_COSE_ERR_TOO_MANY_PARAMETERS = 26,
 
     /** A parameter was encountered that was unknown and also listed in
@@ -540,7 +466,7 @@ enum t_cose_err_t {
     T_COSE_ERR_INVALID_PARAMETER_TYPE = 39,
 
     /** Can't put critical parameters in the non-protected
-     * header bucket. */
+     * header bucket per section 3.1 of RFC 9052. */
     T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED = 40,
 
     T_COSE_ERR_INSUFFICIENT_SPACE_FOR_PARAMETERS = 41,

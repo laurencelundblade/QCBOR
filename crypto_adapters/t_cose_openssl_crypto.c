@@ -73,15 +73,15 @@ bool
 t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 {
     static const int32_t supported_algs[] = {
-        COSE_ALGORITHM_SHA_256,
-        COSE_ALGORITHM_SHA_384,
-        COSE_ALGORITHM_SHA_512,
-        COSE_ALGORITHM_ES256,
+        T_COSE_ALGORITHM_SHA_256,
+        T_COSE_ALGORITHM_SHA_384,
+        T_COSE_ALGORITHM_SHA_512,
+        T_COSE_ALGORITHM_ES256,
 #ifndef T_COSE_DISABLE_ES384 /* The t_cose 1.0 macro. TODO: keep this? */
-        COSE_ALGORITHM_ES384,
+        T_COSE_ALGORITHM_ES384,
 #endif /* T_COSE_DISABLE_ES384 */
 #ifndef T_COSE_DISABLE_ES512
-        COSE_ALGORITHM_ES512, /* The t_cose 1.0 macro. TODO: keep this? */
+        T_COSE_ALGORITHM_ES512, /* The t_cose 1.0 macro. TODO: keep this? */
 #endif /* T_COSE_DISABLE_ES512 */
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
@@ -583,18 +583,18 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
 
     switch(cose_hash_alg_id) {
 
-    case COSE_ALGORITHM_SHA_256:
+    case T_COSE_ALGORITHM_SHA_256:
         nid = NID_sha256;
         break;
 
 #ifndef T_COSE_DISABLE_ES384
-    case COSE_ALGORITHM_SHA_384:
+    case T_COSE_ALGORITHM_SHA_384:
         nid = NID_sha384;
         break;
 #endif
 
 #ifndef T_COSE_DISABLE_ES512
-    case COSE_ALGORITHM_SHA_512:
+    case T_COSE_ALGORITHM_SHA_512:
         nid = NID_sha512;
         break;
 #endif

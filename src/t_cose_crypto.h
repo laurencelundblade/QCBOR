@@ -17,7 +17,7 @@
 #include <stdbool.h>
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
-#include "t_cose_standard_constants.h"
+#include "t_cose/t_cose_standard_constants.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,10 +79,10 @@ extern "C" {
  * new key types and sizes or the integration of cryptographic libraries
  * except on some occasions, this file as follows:
  *
- * - Support for a new COSE_ALGORITHM_XXX signature algorithm
+ * - Support for a new T_COSE_ALGORITHM_XXX signature algorithm
  *    - See t_cose_algorithm_is_ecdsa()
  *    - If not ECDSA add another function like t_cose_algorithm_is_ecdsa()
- * - Support for a new COSE_ALGORITHM_XXX signature algorithm is added
+ * - Support for a new T_COSE_ALGORITHM_XXX signature algorithm is added
  *    - See \ref T_COSE_CRYPTO_MAX_HASH_SIZE for additional hashes
  * - Support larger key sizes (and thus signature sizes)
  *    - See \ref T_COSE_MAX_SIG_SIZE
@@ -698,12 +698,12 @@ t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
 {
     /* The simple list of COSE alg IDs that use ECDSA */
     static const int32_t ecdsa_list[] = {
-        COSE_ALGORITHM_ES256,
+        T_COSE_ALGORITHM_ES256,
 #ifndef T_COSE_DISABLE_ES384
-        COSE_ALGORITHM_ES384,
+        T_COSE_ALGORITHM_ES384,
 #endif
 #ifndef T_COSE_DISABLE_ES512
-        COSE_ALGORITHM_ES512,
+        T_COSE_ALGORITHM_ES512,
 #endif
         0}; /* 0 is a reserved COSE alg ID ans will never be used */
 
@@ -733,7 +733,7 @@ static inline int32_t t_cose_hmac_to_hash_alg_id(int32_t cose_hamc_alg_id)
 {
     switch(cose_hamc_alg_id) {
         case T_COSE_ALGORITHM_HMAC256:
-            return COSE_ALGORITHM_SHA_256;
+            return T_COSE_ALGORITHM_SHA_256;
 
         default:
             return INT32_MAX;

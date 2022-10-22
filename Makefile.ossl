@@ -60,6 +60,7 @@ TEST_OBJ=test/t_cose_test.o \
     test/t_cose_sign_verify_test.o \
     test/t_cose_make_test_messages.o \
     test/t_cose_compute_validate_mac_test.o \
+    test/t_cose_param_test.o \
     $(CRYPTO_TEST_OBJ)
 
 
@@ -135,14 +136,14 @@ clean:
 
 
 # ---- public headers -----
-PUBLIC_INTERFACE=inc/t_cose/t_cose_common.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_parameters.h
+PUBLIC_INTERFACE=inc/t_cose/t_cose_common.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_sign1_verify.h inc/t_cose/t_cose_parameters.h inc/t_cose/t_cose_standard_constants.h
 
 # ---- source dependecies -----
 src/t_cose_util.o: src/t_cose_util.c \
                    src/t_cose_util.h \
                    inc/t_cose/q_useful_buf.h \
 		   inc/t_cose/t_cose_common.h \
-                   src/t_cose_standard_constants.h \
+                   inc/t_cose/t_cose_standard_constants.h \
 		   src/t_cose_crypto.h
 
 src/t_cose_sign1_verify.o: src/t_cose_sign1_verify.c \
@@ -152,7 +153,7 @@ src/t_cose_sign1_verify.o: src/t_cose_sign1_verify.c \
                            inc/t_cose/t_cose_parameters.h \
 			   src/t_cose_crypto.h \
 			   src/t_cose_util.h \
-			   src/t_cose_standard_constants.h
+			   inc/t_cose/t_cose_standard_constants.h
 
 src/t_cose_sign_verify.o: src/t_cose_sign_verify.c \
                           inc/t_cose/t_cose_sign_verify.h \
@@ -162,21 +163,21 @@ src/t_cose_sign_verify.o: src/t_cose_sign_verify.c \
                           inc/t_cose/t_cose_parameters.h \
 			  src/t_cose_crypto.h \
 			  src/t_cose_util.h \
-			  src/t_cose_standard_constants.h
+			  inc/t_cose/t_cose_standard_constants.h
 
 src/t_cose_parameters.o: src/t_cose_parameters.c \
                          inc/t_cose/t_cose_parameters.h \
 			 inc/t_cose/q_useful_buf.h \
                          inc/t_cose/t_cose_common.h \
                          inc/t_cose/t_cose_sign1_verify.h \
-                         src/t_cose_standard_constants.h
+                         inc/t_cose/t_cose_standard_constants.h
 
 src/t_cose_sign1_sign.o: src/t_cose_sign1_sign.c \
                          inc/t_cose/t_cose_sign1_sign.h \
 		         inc/t_cose/q_useful_buf.h \
 		 	 inc/t_cose/t_cose_common.h \
                          inc/t_cose/t_cose_parameters.h \
-			 src/t_cose_standard_constants.h \
+			 inc/t_cose/t_cose_standard_constants.h \
 			 src/t_cose_crypto.h \
 			 src/t_cose_util.h
 
@@ -186,7 +187,7 @@ src/t_cose_sign_sign.o: src/t_cose_sign_sign.c \
 	     	        inc/t_cose/t_cose_common.h\
 			inc/t_cose/t_cose_signature_sign.h \
                         inc/t_cose/t_cose_parameters.h \
-			src/t_cose_standard_constants.h \
+			inc/t_cose/t_cose_standard_constants.h \
 			src/t_cose_crypto.h \
 			src/t_cose_util.h
 
@@ -198,7 +199,7 @@ src/t_cose_signature_sign_ecdsa.o:   src/t_cose_signature_sign_ecdsa.c \
   				     inc/t_cose/t_cose_common.h \
   				     inc/t_cose/t_cose_sign1_verify.h \
   				     src/t_cose_crypto.h \
-  				     src/t_cose_standard_constants.h \
+  				     inc/t_cose/t_cose_standard_constants.h \
   				     src/t_cose_util.h
 
 src/t_cose_signature_verify_ecdsa.o: src/t_cose_signature_verify_ecdsa.c \
@@ -210,7 +211,7 @@ src/t_cose_signature_verify_ecdsa.o: src/t_cose_signature_verify_ecdsa.c \
                                      inc/t_cose/t_cose_sign1_verify.h \
                                      src/t_cose_util.h \
                                      src/t_cose_crypto.h \
-                                     src/t_cose_standard_constants.h
+                                     inc/t_cose/t_cose_standard_constants.h
 
 src/t_cose_mac_compute.o: inc/t_cose/t_cose_mac_compute.h \
 	src/t_cose_crypto.h \
@@ -227,13 +228,13 @@ src/t_cose_mac_validate.o: inc/t_cose/t_cose_mac_validate.h \
 # ---- test dependencies -----
 test/t_cose_test.o: test/t_cose_test.h test/t_cose_make_test_messages.h src/t_cose_crypto.h $(PUBLIC_INTERFACE)
 test/t_cose_sign_verify_test.o: test/t_cose_sign_verify_test.h test/t_cose_make_test_messages.h src/t_cose_crypto.h test/t_cose_make_test_pub_key.h $(PUBLIC_INTERFACE)
-test/t_cose_make_test_messages.o: test/t_cose_make_test_messages.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_common.h src/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h
+test/t_cose_make_test_messages.o: test/t_cose_make_test_messages.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h
 test/run_test.o: test/run_test.h test/t_cose_test.h test/t_cose_hash_fail_test.h test/t_cose_compute_validate_mac_test.h
-test/t_cose_make_openssl_test_key.o: test/t_cose_make_test_pub_key.h src/t_cose_standard_constants.h inc/t_cose/t_cose_common.h
+test/t_cose_make_openssl_test_key.o: test/t_cose_make_test_pub_key.h inc/t_cose/t_cose_standard_constants.h inc/t_cose/t_cose_common.h
 test/t_cose_compute_validate_mac_test.o: inc/t_cose/t_cose_mac_compute.h inc/t_cose/t_cose_mac_validate.h test/t_cose_make_test_pub_key.h test/t_cose_compute_validate_mac_test.h
 
 # ---- crypto dependencies ----
-crypto_adapters/t_cose_openssl_crypto.o: src/t_cose_crypto.h inc/t_cose/t_cose_common.h src/t_cose_standard_constants.h inc/t_cose/q_useful_buf.h
+crypto_adapters/t_cose_openssl_crypto.o: src/t_cose_crypto.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_standard_constants.h inc/t_cose/q_useful_buf.h
 
 # ---- example dependencies ----
 examples/t_cose_basic_example_ossl.o: $(PUBLIC_INTERFACE)

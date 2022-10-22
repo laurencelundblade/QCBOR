@@ -72,13 +72,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
 {
     size_t                            tag_len;
     enum t_cose_err_t                 return_value;
-    const struct t_cose_header_param *params_vector[3];
-    struct t_cose_header_param        protected_params_arr[2];
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    struct t_cose_header_param        unprotected_params_arr[3];
-#else
-    struct t_cose_header_param        unprotected_params_arr[2];
-#endif
+    struct t_cose_parameter        param_storage[2];
 
     /*
      * Check the algorithm now by getting the algorithm as an early
@@ -99,37 +93,15 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
      */
     QCBOREncode_OpenArray(cbor_encode_ctx);
 
-    params_vector[0] = protected_params_arr;
-    params_vector[1] = unprotected_params_arr;
-    params_vector[2] = NULL;
+    param_storage[0] = t_cose_make_alg_id_parameter(me->cose_algorithm_id);
+    param_storage[1] = t_cose_make_kid_parameter(me->kid);
+    param_storage[0].next = &param_storage[1];
 
-    protected_params_arr[0] = T_COSE_MAKE_ALG_ID_PARAM(me->cose_algorithm_id);
-    protected_params_arr[1] = T_COSE_END_PARAM;
-
-    unprotected_params_arr[0] = T_COSE_KID_PARAM(me->kid);
-    unprotected_params_arr[1] = T_COSE_END_PARAM;
-
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    unprotected_params_arr[2] = T_COSE_END_PARAM;
-
-    if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE &&
-       !q_useful_buf_c_is_null(me->content_type_tstr)) {
-        /* Both the string and int content types are not allowed */
-        return T_COSE_ERR_DUPLICATE_PARAMETER;
-    }
-
-    if(me->content_type_uint != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
-        unprotected_params_arr[1] = T_COSE_CT_INT_PARAM(me->content_type_uint);
-    }
-
-    if(!q_useful_buf_c_is_null(me->content_type_tstr)) {
-        unprotected_params_arr[1] = T_COSE_CT_TSTR_PARAM(me->content_type_tstr);
-    }
-#endif
+    t_cose_parameter_list_append(&param_storage[0], me->added_body_parameters);
 
     return_value = t_cose_encode_headers(
         cbor_encode_ctx,
-        params_vector,
+        &param_storage[0],
        &me->protected_parameters
     );
 

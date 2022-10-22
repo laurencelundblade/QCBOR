@@ -25,7 +25,7 @@ struct t_cose_signature_verify_short {
      */
     struct t_cose_signature_verify s;
 
-    t_cose_header_reader  *reader;
+    t_cose_parameter_decode_callback  *reader;
     void                  *reader_ctx;
 };
 
@@ -35,7 +35,7 @@ t_cose_signature_verify_short_init(struct t_cose_signature_verify_short *me);
 
 static void
 t_cose_signature_verify_short_set_header_reader(struct t_cose_signature_verify_short *me,
-                                                t_cose_header_reader                 *reader,
+                                                t_cose_parameter_decode_callback                 *reader,
                                                 void                                 *reader_ctx);
 
 static struct t_cose_signature_verify *
@@ -50,7 +50,7 @@ t_cose_signature_verify_from_short(struct t_cose_signature_verify_short *context
 
 static inline void
 t_cose_signature_verify_short_set_header_reader(struct t_cose_signature_verify_short *me,
-                                                t_cose_header_reader *reader,
+                                                t_cose_parameter_decode_callback *reader,
                                                 void *reader_ctx)
 {
     me->reader = reader;

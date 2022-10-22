@@ -82,7 +82,7 @@ struct t_cose_sign1_sign_ctx {
      * Storage lifetime must be that of the t_cose_sign1_sign_ctx
      * because the user of t_cose_sign1_sign won't allocate a
      * t_cose_header_param. They don't know about it. */
-    struct t_cose_header_param content_id_param[2];
+    struct t_cose_parameter content_id_param;
 
 
     /* Private data structure */

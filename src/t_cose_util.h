@@ -69,7 +69,7 @@ enum t_cose_tbm_payload_mode_t {
  * registry and is very unlikely to ever be used.  (It would take am
  * IETF standards-action to put it to use).
  */
-#define T_COSE_INVALID_ALGORITHM_ID COSE_ALGORITHM_RESERVED
+#define T_COSE_INVALID_ALGORITHM_ID T_COSE_ALGORITHM_RESERVED
 
 /*
  * Format of ToBeMaced bytes

@@ -61,9 +61,9 @@ short_circuit_sign(int32_t               cose_algorithm_id,
     size_t            amount_to_copy;
     size_t            sig_size;
 
-    sig_size = cose_algorithm_id == COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
-               cose_algorithm_id == COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
-               cose_algorithm_id == COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
+    sig_size = cose_algorithm_id == T_COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
+               cose_algorithm_id == T_COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
+               cose_algorithm_id == T_COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
                                                            0;
 
     /* Check the signature length against buffer size*/
@@ -159,7 +159,7 @@ encode_protected_parameters(uint32_t            test_message_options,
         QCBOREncode_OpenMap(&cbor_encode_ctx);
     }
     QCBOREncode_AddInt64ToMapN(&cbor_encode_ctx,
-                               COSE_HEADER_PARAM_ALG,
+                               T_COSE_HEADER_PARAM_ALG,
                                cose_algorithm_id);
 
     if(test_message_options & T_COSE_TEST_UNKNOWN_CRIT_UINT_PARAMETER) {
@@ -167,9 +167,9 @@ encode_protected_parameters(uint32_t            test_message_options,
         QCBOREncode_AddInt64ToMapN(&cbor_encode_ctx, 42, 43);
         /* This is the critical labels parameter */
         if(test_message_options & T_COSE_TEST_INDEFINITE_MAPS_ARRAYS) {
-            QCBOREncode_OpenArrayIndefiniteLengthInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+            QCBOREncode_OpenArrayIndefiniteLengthInMapN(&cbor_encode_ctx, T_COSE_HEADER_PARAM_CRIT);
         } else {
-            QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+            QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, T_COSE_HEADER_PARAM_CRIT);
         }
         QCBOREncode_AddInt64(&cbor_encode_ctx, 42);
         QCBOREncode_AddInt64(&cbor_encode_ctx, 43);
@@ -185,7 +185,7 @@ encode_protected_parameters(uint32_t            test_message_options,
         /* This is the parameter that will be unknown */
         QCBOREncode_AddInt64ToMap(&cbor_encode_ctx, "hh", 43);
         /* This is the critical labels parameter */
-        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, T_COSE_HEADER_PARAM_CRIT);
         QCBOREncode_AddSZString(&cbor_encode_ctx, "hh");
         QCBOREncode_AddSZString(&cbor_encode_ctx, "h");
         QCBOREncode_AddSZString(&cbor_encode_ctx, "hhh");
@@ -194,17 +194,17 @@ encode_protected_parameters(uint32_t            test_message_options,
 
     if(test_message_options & T_COSE_TEST_BAD_CRIT_LABEL) {
         /* This is the critical labels parameter */
-        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, T_COSE_HEADER_PARAM_CRIT);
         QCBOREncode_AddBool(&cbor_encode_ctx, true);
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
     if(test_message_options & T_COSE_TEST_CRIT_PARAMETER_EXIST) {
         /* This is the critical labels parameter */
-        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, T_COSE_HEADER_PARAM_CRIT);
         int i;
         /* Add the maxium */
-        for(i = 0; i < T_COSE_PARAMETER_LIST_MAX; i++) {
+        for(i = 0; i < T_COSE_MAX_CRITICAL_PARAMS; i++) {
             QCBOREncode_AddInt64(&cbor_encode_ctx, i + 10);
         }
         QCBOREncode_CloseArray(&cbor_encode_ctx);
@@ -212,10 +212,10 @@ encode_protected_parameters(uint32_t            test_message_options,
 
     if(test_message_options & T_COSE_TEST_TOO_MANY_CRIT_PARAMETER_EXIST) {
         /* This is the critical labels parameter */
-        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, T_COSE_HEADER_PARAM_CRIT);
         int i;
         /* One more than the maximum */
-        for(i = 0; i < T_COSE_PARAMETER_LIST_MAX+1; i++) {
+        for(i = 0; i < T_COSE_MAX_CRITICAL_PARAMS+1; i++) {
             QCBOREncode_AddInt64(&cbor_encode_ctx, i + 10);
         }
         QCBOREncode_CloseArray(&cbor_encode_ctx);
@@ -223,29 +223,29 @@ encode_protected_parameters(uint32_t            test_message_options,
 
     if(test_message_options & T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS) {
         /* This is the critical labels parameter */
-        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, T_COSE_HEADER_PARAM_CRIT);
         int i;
         /* One more than the maximum */
-        for(i = 0; i < T_COSE_PARAMETER_LIST_MAX+1; i++) {
+        for(i = 0; i < T_COSE_MAX_CRITICAL_PARAMS+1; i++) {
             QCBOREncode_AddSZString(&cbor_encode_ctx, "");
         }
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
     if(test_message_options & T_COSE_TEST_EMPTY_CRIT_PARAMETER) {
-        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+        QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, T_COSE_HEADER_PARAM_CRIT);
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
     if(test_message_options & T_COSE_TEST_KID_IN_PROTECTED) {
         QCBOREncode_AddBytesToMapN(&cbor_encode_ctx,
-                                   COSE_HEADER_PARAM_KID,
+                                   T_COSE_HEADER_PARAM_KID,
                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("kid"));
     }
 
     if(test_message_options & T_COSE_TEST_DUP_CONTENT_ID) {
         QCBOREncode_AddUInt64ToMapN(&cbor_encode_ctx,
-                                    COSE_HEADER_PARAM_CONTENT_TYPE,
+                                    T_COSE_HEADER_PARAM_CONTENT_TYPE,
                                     3);
     }
 
@@ -312,7 +312,7 @@ add_unprotected_parameters(uint32_t              test_message_options,
 
     if(test_message_options & T_COSE_TEST_BAD_CRIT_PARAMETER) {
         QCBOREncode_AddSZStringToMapN(cbor_encode_ctx,
-                                      COSE_HEADER_PARAM_CRIT, "hi");
+                                      T_COSE_HEADER_PARAM_CRIT, "hi");
     }
 
     if(test_message_options & T_COSE_TEST_EXTRA_PARAMETER) {
@@ -345,10 +345,10 @@ add_unprotected_parameters(uint32_t              test_message_options,
 
     if(test_message_options & T_COSE_TEST_CRIT_NOT_PROTECTED) {
         /* This is the critical labels parameter */
-        QCBOREncode_OpenArrayInMapN(cbor_encode_ctx, COSE_HEADER_PARAM_CRIT);
+        QCBOREncode_OpenArrayInMapN(cbor_encode_ctx, T_COSE_HEADER_PARAM_CRIT);
         int i;
         /* Add the maxium */
-        for(i = 0; i < T_COSE_PARAMETER_LIST_MAX; i++) {
+        for(i = 0; i < T_COSE_MAX_CRITICAL_PARAMS; i++) {
             QCBOREncode_AddInt64(cbor_encode_ctx, i + 100);
             QCBOREncode_AddSZString(cbor_encode_ctx, "xxxx");
         }
@@ -357,24 +357,24 @@ add_unprotected_parameters(uint32_t              test_message_options,
 
     if(test_message_options & T_COSE_TEST_TOO_MANY_UNKNOWN) {
         int i;
-        for(i = 0; i < T_COSE_PARAMETER_LIST_MAX + 1; i++ ) {
+        for(i = 0; i < T_COSE_MAX_CRITICAL_PARAMS + 1; i++ ) {
             QCBOREncode_AddBoolToMapN(cbor_encode_ctx, i+10, true);
         }
     }
 
     if(!q_useful_buf_c_is_null_or_empty(kid)) {
-        QCBOREncode_AddBytesToMapN(cbor_encode_ctx, COSE_HEADER_PARAM_KID, kid);
+        QCBOREncode_AddBytesToMapN(cbor_encode_ctx, T_COSE_HEADER_PARAM_KID, kid);
     }
 
     if(test_message_options & T_COSE_TEST_ALL_PARAMETERS) {
         QCBOREncode_AddBytesToMapN(cbor_encode_ctx,
-                                   COSE_HEADER_PARAM_IV,
+                                   T_COSE_HEADER_PARAM_IV,
                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"));
         QCBOREncode_AddBytesToMapN(cbor_encode_ctx,
-                                   COSE_HEADER_PARAM_PARTIAL_IV,
+                                   T_COSE_HEADER_PARAM_PARTIAL_IV,
                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"));
         QCBOREncode_AddInt64ToMapN(cbor_encode_ctx,
-                                   COSE_HEADER_PARAM_CONTENT_TYPE,
+                                   T_COSE_HEADER_PARAM_CONTENT_TYPE,
                                    1);
         /* A slighly complex unknown header parameter */
         QCBOREncode_OpenArrayInMapN(cbor_encode_ctx, 55);
@@ -391,13 +391,13 @@ add_unprotected_parameters(uint32_t              test_message_options,
 
     if(test_message_options & T_COSE_TEST_TOO_LARGE_CONTENT_TYPE) {
         QCBOREncode_AddInt64ToMapN(cbor_encode_ctx,
-                                   COSE_HEADER_PARAM_CONTENT_TYPE,
+                                   T_COSE_HEADER_PARAM_CONTENT_TYPE,
                                    UINT16_MAX+1);
     }
 
     if(test_message_options & T_COSE_TEST_DUP_CONTENT_ID) {
         QCBOREncode_AddUInt64ToMapN(cbor_encode_ctx,
-                                    COSE_HEADER_PARAM_CONTENT_TYPE,
+                                    T_COSE_HEADER_PARAM_CONTENT_TYPE,
                                     3);
     }
 

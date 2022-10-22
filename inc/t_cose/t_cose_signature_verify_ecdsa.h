@@ -26,7 +26,7 @@ struct t_cose_signature_verify_ecdsa {
     struct t_cose_signature_verify s;
     struct t_cose_key              verification_key;
 
-    t_cose_header_reader  *reader;
+    t_cose_parameter_decode_callback  *reader;
     void                  *reader_ctx;
 };
 
@@ -41,7 +41,7 @@ t_cose_signature_verify_ecdsa_set_key(struct t_cose_signature_verify_ecdsa *me,
 
 static void
 t_cose_signature_verify_ecdsa_set_header_reader(struct t_cose_signature_verify_ecdsa *me,
-                                                t_cose_header_reader                 *reader,
+                                                t_cose_parameter_decode_callback                 *reader,
                                                 void                                 *reader_ctx);
 
 static struct t_cose_signature_verify *
@@ -63,7 +63,7 @@ t_cose_signature_verify_ecdsa_set_key(struct t_cose_signature_verify_ecdsa *me,
 
 static inline void
 t_cose_signature_verify_ecdsa_set_header_reader(struct t_cose_signature_verify_ecdsa *me,
-                                                t_cose_header_reader *reader,
+                                                t_cose_parameter_decode_callback *reader,
                                                 void *reader_ctx)
 {
     me->reader = reader;

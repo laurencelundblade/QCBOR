@@ -31,10 +31,7 @@ struct t_cose_mac_calculate_ctx {
     struct t_cose_key      signing_key;
     uint32_t                option_flags;
     struct q_useful_buf_c  kid;
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    uint32_t               content_type_uint;
-    struct q_useful_buf_c         content_type_tstr;
-#endif
+    struct t_cose_parameter *added_body_parameters;
 };
 
 /**
@@ -126,7 +123,7 @@ t_cose_mac_compute_detatched(struct t_cose_mac_calculate_ctx *sign_ctx,
  * are reported when t_cose_mac_encode_parameters() is called.
  */
 static void
-t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *me,
+t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *context,
                      uint32_t                    option_flags,
                      int32_t                     cose_algorithm_id);
 
@@ -148,6 +145,19 @@ static void
 t_cose_mac_set_computing_key(struct t_cose_mac_calculate_ctx *context,
                             struct t_cose_key          signing_key,
                             struct q_useful_buf_c      kid);
+
+
+static void
+t_cose_mac_add_body_header_params(struct t_cose_mac_calculate_ctx *context,
+                                   struct t_cose_parameter *parameters);
+
+
+/*
+t_cose_sign1_set_content_type_uint and t_cose_sign1_set_content_type_tstr
+are replaced with t_cose_sign1_add_body_header_parameters()
+*/
+
+
 
 /**
  * \brief  Output first part and parameters for a \c COSE_Mac0 message.
@@ -207,44 +217,6 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *context,
                        QCBOREncodeContext        *cbor_encode_ctx);
 
 
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-/**
- * \brief Set the payload content type using CoAP content types.
- *
- * \param[in] context      The t_cose signing context.
- * \param[in] content_type The content type of the payload as defined
- *                         in the IANA CoAP Content-Formats registry.
- *
- * It is not allowed to have both a CoAP and MIME content type. This
- * error will show up when t_cose_mac_encode_parameters() is called
- * as no error is returned by this function.
- *
- * The IANA CoAP Content-Formats registry is found
- * [here](https://www.iana.org/assignments/core-parameters/core-parameters.xhtml#content-formats).
- */
-static inline void
-t_cose_mac_set_content_type_uint(struct t_cose_mac_calculate_ctx *context,
-                                  uint16_t                   content_type);
-
-/**
- * \brief Set the payload content type using MIME content types.
- *
- * \param[in] context      The t_cose signing context.
- * \param[in] content_type The content type of the payload as defined
- *                         in the IANA Media Types registry.
-
- *
- * It is not allowed to have both a CoAP and MIME content type. This
- * error will show up when t_cose_mac_encode_parameters() is called.
- *
- * The IANA Media Types registry can be found
- * [here](https://www.iana.org/assignments/media-types/media-types.xhtml).
- * These have been known as MIME types in the past.
- */
-static inline void
-t_cose_mac_set_content_type_tstr(struct t_cose_mac_calculate_ctx *context,
-                                 struct q_useful_buf_c       content_type);
-#endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
@@ -258,12 +230,6 @@ t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *me,
                      int32_t                     cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
-
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    /* Only member for which 0 is not the empty state */
-    me->content_type_uint = T_COSE_EMPTY_UINT_CONTENT_TYPE;
-#endif
-
     me->cose_algorithm_id = cose_algorithm_id;
     me->option_flags      = option_flags;
 }
@@ -278,21 +244,13 @@ t_cose_mac_set_computing_key(struct t_cose_mac_calculate_ctx *me,
 }
 
 
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
 static inline void
-t_cose_mac_set_content_type_uint(struct t_cose_mac_calculate_ctx *me,
-                                  uint16_t                   content_type)
+t_cose_mac_add_body_header_params(struct t_cose_mac_calculate_ctx *me,
+                                  struct t_cose_parameter *parameters)
 {
-    me->content_type_uint = content_type;
+    me->added_body_parameters = parameters;
 }
 
-static inline void
-t_cose_mac_set_content_type_tstr(struct t_cose_mac_calculate_ctx *me,
-                                 struct q_useful_buf_c       content_type)
-{
-    me->content_type_tstr = content_type;
-}
-#endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
 static inline enum t_cose_err_t
 t_cose_mac_compute(struct t_cose_mac_calculate_ctx *sign_ctx,

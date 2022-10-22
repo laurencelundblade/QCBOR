@@ -59,13 +59,14 @@ extern "C" {
  */
 struct t_cose_sign_verify_ctx {
     /* Private data structure */
-    struct t_cose_signature_verify *verifiers;
-    uint32_t                        option_flags;
-    uint64_t                        auTags[T_COSE_MAX_TAGS_TO_RETURN2];
-    struct header_param_storage     params;
-    struct t_cose_header_param      __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
-    t_cose_header_reader           *reader;
-    void                           *reader_ctx;
+    struct t_cose_signature_verify   *verifiers;
+    uint32_t                          option_flags;
+    uint64_t                          auTags[T_COSE_MAX_TAGS_TO_RETURN2];
+    struct t_cose_parameter_storage   params;
+    struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
+    struct t_cose_parameter_storage  *p_storage;
+    t_cose_parameter_decode_callback *reader;
+    void                             *reader_ctx;
 };
 
 
@@ -123,10 +124,14 @@ t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *context,
  * are in the body and in all in the COSE_Signatures. If not
  * \ref T_COSE_ERR_TOO_MANY_PARAMETERS will be returned by
  * t_cose_sign_verify() and similar.
+ *
+ * The storage can be partially used on in. The number
+ * used is incremented and if there's room left, it can be
+ * used elswhere.
  */
 static void
-t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx *context,
-                              struct header_param_storage    param_storage);
+t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx  *context,
+                              struct t_cose_parameter_storage *param_storage);
 
 
 /*
@@ -135,9 +140,9 @@ t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx *context,
  * Typically this is not needed.
  */
 static void
-t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx *context,
-                              t_cose_header_reader          *reader,
-                              void                          *reader_ctx);
+t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx    *context,
+                              t_cose_parameter_decode_callback *reader,
+                              void                             *reader_ctx);
 
 
 /**
@@ -192,7 +197,7 @@ t_cose_sign_verify(struct t_cose_sign_verify_ctx *context,
                    struct q_useful_buf_c          sign,
                    struct q_useful_buf_c          aad,
                    struct q_useful_buf_c         *payload,
-                   struct t_cose_header_param   **parameters);
+                   struct t_cose_parameter      **parameters);
 
 
 /* This is the same as t_cose_sign_verify(), but the payload
@@ -203,7 +208,7 @@ t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
                             struct q_useful_buf_c          sign,
                             struct q_useful_buf_c          aad,
                             struct q_useful_buf_c          payload,
-                            struct t_cose_header_param   **parameters);
+                            struct t_cose_parameter      **parameters);
 
 
 
@@ -235,7 +240,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
                              struct q_useful_buf_c        sign,
                              struct q_useful_buf_c        aad,
                              struct q_useful_buf_c       *payload,
-                             struct t_cose_header_param **parameters,
+                             struct t_cose_parameter    **parameters,
                              bool                         is_detached);
 
 
@@ -245,7 +250,7 @@ t_cose_sign_verify(struct t_cose_sign_verify_ctx *me,
                    struct q_useful_buf_c          sign,
                    struct q_useful_buf_c          aad,
                    struct q_useful_buf_c         *payload,
-                   struct t_cose_header_param   **parameters)
+                   struct t_cose_parameter      **parameters)
 {
     return t_cose_sign_verify_private(me,
                                       sign,
@@ -261,7 +266,7 @@ t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *me,
                    struct q_useful_buf_c          sign,
                    struct q_useful_buf_c          aad,
                    struct q_useful_buf_c          detatched_payload,
-                   struct t_cose_header_param   **parameters)
+                   struct t_cose_parameter      **parameters)
 {
     return t_cose_sign_verify_private(me,
                                       sign,
@@ -277,25 +282,26 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *me,
                         uint32_t                       option_flags)
 {
     memset(me, 0, sizeof(*me));
-    me->option_flags               = option_flags;
-    me->params.storage             = me->__params;
-    me->params.storage_size        = sizeof(me->__params)/sizeof(struct t_cose_header_param);
-    me->__params[0].parameter_type = T_COSE_PARAMETER_TYPE_NONE;
+    me->option_flags       = option_flags;
+    me->params.storage     = me->__params;
+    me->params.size        = sizeof(me->__params)/sizeof(struct t_cose_parameter);
+    me->params.used        = 0;
+    me->p_storage          = &(me->params);
 }
 
 
 static inline void
-t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx *me,
-                              struct header_param_storage    param_storage)
+t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx  *me,
+                              struct t_cose_parameter_storage *param_storage)
 {
-    me->params = param_storage;
+    me->p_storage = param_storage;
 }
 
 
 static inline void
-t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx *me,
-                              t_cose_header_reader          *reader,
-                              void                          *reader_ctx)
+t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx    *me,
+                              t_cose_parameter_decode_callback *reader,
+                              void                             *reader_ctx)
 {
     me->reader     = reader;
     me->reader_ctx = reader_ctx;

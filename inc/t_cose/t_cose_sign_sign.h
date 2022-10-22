@@ -73,10 +73,10 @@ extern "C" {
  */
 struct t_cose_sign_sign_ctx {
     /* Private data structure */
-    struct q_useful_buf_c protected_parameters; /* Encoded protected params */
-    uint32_t              option_flags;
-    struct t_cose_signature_sign      *signers;
-    const struct t_cose_header_param  *added_body_parameters;
+    struct q_useful_buf_c          protected_parameters; /* Encoded protected params */
+    uint32_t                       option_flags;
+    struct t_cose_signature_sign  *signers;
+    struct t_cose_parameter       *added_body_parameters;
 };
 
 
@@ -135,7 +135,7 @@ t_cose_sign_sign_init(struct t_cose_sign_sign_ctx *context,
  * that is configured with the signing algorithm, signing key and
  * related.
  *
- * When producing a \c COSE_Sign1, this should must be called only
+ * When producing a \c COSE_Sign1, this must be called only
  * once.  When producing a \c COSE_Sign, this must be called at least
  * once, but can be called many more times if there are to be multiple
  * signatures. Note that each call can be with a different key and/or
@@ -165,23 +165,22 @@ t_cose_sign_add_signer(struct t_cose_sign_sign_ctx   *context,
  *
  * This adds parameters to the \c COSE_Sign1 \c COSE_Sign
  * body. Parameters in \c COSE_Signatures in \c COSE_Sign are handed
- * through the t_cose_signature_sign
+ * through \ref t_cose_signature_sign.
  *
  * This adds an array of header parameters to the body. It is an array
  * terminated by a parameter with type \ref
  * T_COSE_PARAMETER_TYPE_NONE.
  *
- * Integer, string and boolean parameters are handled by filling in the
+ * Integer and string parameters are handled by filling in the
  * members of the array.
  *
  * All the parameters must have a label and a value.
  *
  * Alternatively, and particularly for parameters that are not
- * integers, strings or booleans, the value may be a callback and
- * pointer in which case the callback will be called when it is time
+ * integers or strings the value may be a callback of type t_cose_parameter_encode_callback
+ * in which case the callback will be called when it is time
  * to output the CBOR for the custom header. The callback should
- * output the CBOR for the particular parameter. It may be complex
- * CBOR.
+ * output the CBOR for the particular parameter.
  *
  * This supports only integer labels. (String labels could be added
  * but would increase object code size).
@@ -190,8 +189,8 @@ t_cose_sign_add_signer(struct t_cose_sign_sign_ctx   *context,
  * don't accumlate parameters.
  */
 static void
-t_cose_sign_add_body_header_params(struct t_cose_sign_sign_ctx      *context,
-                                   const struct t_cose_header_param *parameters);
+t_cose_sign_add_body_header_params(struct t_cose_sign_sign_ctx   *context,
+                                   struct t_cose_parameter *parameters);
 
 
 /*
@@ -268,7 +267,7 @@ t_cose_sign_sign(struct t_cose_sign_sign_ctx *context,
  *
  * This is similar to, but not the same as t_cose_sign_sign(). Here
  * the payload is detached and conveyed separately.  The signature is
- * still over the payload as with t_cose_sign_sign(). They payload
+ * still over the payload as with t_cose_sign_sign(). The payload
  * must be conveyed to recipient by some other means than by being
  * inside the \c COSE_Sign1 or \c COSE_Sign. The recipient will be
  * unable to verify the received message without it.
@@ -433,7 +432,7 @@ t_cose_sign_sign_detached(struct t_cose_sign_sign_ctx *me,
 
 static inline void
 t_cose_sign_add_body_header_params(struct t_cose_sign_sign_ctx *me,
-                                       const struct t_cose_header_param *parameters)
+                                   struct t_cose_parameter *parameters)
 {
     me->added_body_parameters = parameters;
 }

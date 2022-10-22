@@ -40,7 +40,7 @@ bool
 t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 {
     static const int32_t supported_algs[] = {
-        COSE_ALGORITHM_SHA_256,
+        T_COSE_ALGORITHM_SHA_256,
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
 
@@ -151,7 +151,7 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
     }
 #endif
 
-    if(cose_hash_alg_id != COSE_ALGORITHM_SHA_256) {
+    if(cose_hash_alg_id != T_COSE_ALGORITHM_SHA_256) {
         return T_COSE_ERR_UNSUPPORTED_HASH;
     }
 
