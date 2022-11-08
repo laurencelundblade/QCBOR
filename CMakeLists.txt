@@ -12,7 +12,7 @@ set(SOURCE
 	src/qcbor_encode.c
 	src/qcbor_err_to_str.c
 	src/UsefulBuf.c
-) 
+)
 
 add_library(qcbor ${SOURCE})
 

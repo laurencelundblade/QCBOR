@@ -143,7 +143,7 @@ static uint8_t spBigBuf[2200];
 /*
  Some very minimal tests.
  */
-int32_t BasicEncodeTest()
+int32_t BasicEncodeTest(void)
 {
    // Very simple CBOR, a map with one boolean that is true in it
    QCBOREncodeContext EC;
@@ -686,7 +686,7 @@ static void AddAll(QCBOREncodeContext *pECtx)
 }
 
 
-int32_t AllAddMethodsTest()
+int32_t AllAddMethodsTest(void)
 {
    /* Improvement: this test should be broken down into several so it is more
     * managable. Tags and labels could be more sensible */
@@ -814,7 +814,7 @@ static const uint8_t spExpectedEncodedInts[] = {
   to expected values generated from http://cbor.me.
 
  */
-int32_t IntegerValuesTest1()
+int32_t IntegerValuesTest1(void)
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
@@ -899,7 +899,7 @@ int32_t IntegerValuesTest1()
 static const uint8_t spExpectedEncodedSimple[] = {
    0x85, 0xf5, 0xf4, 0xf6, 0xf7, 0xa1, 0x65, 0x55, 0x4e, 0x44, 0x65, 0x66, 0xf7};
 
-int32_t SimpleValuesTest1()
+int32_t SimpleValuesTest1(void)
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
@@ -946,7 +946,7 @@ int32_t SimpleValuesTest1()
 static const uint8_t spExpectedEncodedSimpleIndefiniteLength[] = {
    0x9f, 0xf5, 0xf4, 0xf6, 0xf7, 0xbf, 0x65, 0x55, 0x4e, 0x44, 0x65, 0x66, 0xf7, 0xff, 0xff};
 
-int32_t SimpleValuesIndefiniteLengthTest1()
+int32_t SimpleValuesIndefiniteLengthTest1(void)
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
@@ -1141,7 +1141,7 @@ static const uint8_t EncodeLengthThirtyone[] = {
    0x31
 };
 
-int32_t EncodeLengthThirtyoneTest()
+int32_t EncodeLengthThirtyoneTest(void)
 {
    QCBOREncodeContext ECtx;
    int nReturn = 0;
@@ -1234,7 +1234,7 @@ static const uint8_t spExpectedEncodedDates[] = {
    0x30, 0x2E, 0x35, 0x32, 0x5A, 0x62, 0x53, 0x59, 0xD8, 0x64,
    0x39, 0x29, 0xB3, 0x18, 0x2D, 0x19, 0x0F, 0x9A};
 
-int32_t EncodeDateTest()
+int32_t EncodeDateTest(void)
 {
    QCBOREncodeContext ECtx;
 
@@ -1291,7 +1291,7 @@ int32_t EncodeDateTest()
 }
 
 
-int32_t ArrayNestingTest1()
+int32_t ArrayNestingTest1(void)
 {
    QCBOREncodeContext ECtx;
    int i;
@@ -1314,7 +1314,7 @@ int32_t ArrayNestingTest1()
 
 
 
-int32_t ArrayNestingTest2()
+int32_t ArrayNestingTest2(void)
 {
    QCBOREncodeContext ECtx;
    int i;
@@ -1338,7 +1338,7 @@ int32_t ArrayNestingTest2()
 
 
 
-int32_t ArrayNestingTest3()
+int32_t ArrayNestingTest3(void)
 {
    QCBOREncodeContext ECtx;
    int i;
@@ -1455,7 +1455,7 @@ static const uint8_t spEncodeRawExpected[] = {
    0xff, 0xff};
 
 
-int32_t EncodeRawTest()
+int32_t EncodeRawTest(void)
 {
    QCBOREncodeContext ECtx;
 
@@ -1578,7 +1578,7 @@ static const uint8_t spValidMapEncoded[] = {
    0x73 } ;
 
 
-int32_t MapEncodeTest()
+int32_t MapEncodeTest(void)
 {
    uint8_t *pEncodedMaps;
    size_t nEncodedMapLen;
@@ -1734,7 +1734,7 @@ static const uint8_t spExpectedRTIC[] = {
    0xaa, 0xbb, 0x01, 0x01};
 
 
-int32_t RTICResultsTest()
+int32_t RTICResultsTest(void)
 {
    const UsefulBufC Encoded = FormatRTICResults(CBOR_SIMPLEV_FALSE, 1477263730,
                                           "recent", "0xA1eC5001",
@@ -1772,7 +1772,7 @@ static const uint8_t spExpectedForBstrWrapCancel[] = {0x82, 0x19, 0x01, 0xC3, 0x
 /*
  * bstr wrapping test
  */
-int32_t BstrWrapTest()
+int32_t BstrWrapTest(void)
 {
    QCBOREncodeContext EC;
 
@@ -1896,7 +1896,7 @@ int32_t BstrWrapTest()
 
 
 
-int32_t BstrWrapErrorTest()
+int32_t BstrWrapErrorTest(void)
 {
    QCBOREncodeContext EC;
    UsefulBufC         Wrapped;
@@ -1963,7 +1963,7 @@ int32_t BstrWrapErrorTest()
    if(uError != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
       return (int32_t)(300 + uError);
    }
-   
+
    return 0;
 }
 
@@ -2207,7 +2207,7 @@ static int32_t DecodeNextNested2(UsefulBufC Wrapped)
 }
 
 
-int32_t BstrWrapNestTest()
+int32_t BstrWrapNestTest(void)
 {
    QCBOREncodeContext EC;
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
@@ -2350,7 +2350,7 @@ static const uint8_t pProtectedHeaders[] = {0xa1, 0x01, 0x26};
  C.2.1. This doesn't actually verify the signature (however
  the t_cose implementation does).
  */
-int32_t CoseSign1TBSTest()
+int32_t CoseSign1TBSTest(void)
 {
    // All of this is from RFC 8152 C.2.1
    const char          *szKid     = "11";
@@ -2474,7 +2474,7 @@ int32_t CoseSign1TBSTest()
 }
 
 
-int32_t EncodeErrorTests()
+int32_t EncodeErrorTests(void)
 {
    QCBOREncodeContext EC;
    QCBORError         uErr;
@@ -2767,7 +2767,7 @@ static const uint8_t spExpectedExponentAndMantissaMap[] = {
 };
 
 
-int32_t ExponentAndMantissaEncodeTests()
+int32_t ExponentAndMantissaEncodeTests(void)
 {
    QCBOREncodeContext EC;
    UsefulBufC         EncodedExponentAndMantissa;
@@ -2879,7 +2879,7 @@ int32_t ExponentAndMantissaEncodeTests()
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
-int32_t QCBORHeadTest()
+int32_t QCBORHeadTest(void)
 {
    /* This test doesn't have to be extensive, because just about every
     * other test exercises QCBOREncode_EncodeHead().
