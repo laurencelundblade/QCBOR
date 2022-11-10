@@ -15,7 +15,8 @@
 #ifndef not_well_formed_cbor_h
 #define not_well_formed_cbor_h
 
-#include <stdint.h> // for size_t and uint8_t
+#include <stddef.h> // for size_t
+#include <stdint.h> // for uint8_t
 
 
 struct someBinaryBytes {
