@@ -40,26 +40,20 @@ useful for embedded implementations that have to run in small fixed memory.
 
 ## Code Status
 
-As of March 2022, the code is in good working order and the public interface has been
-stable for over a year.
+Status for t_cose 2.0 is very roughly this. COSE_Sign1 is working
+except for decoding of protected parameters. COSE_Sign works for 
+a single signature.  COSE_Mac0 is generally working. COSE_Encrypt
+and COSE_Encrypt0 are somewhat working. The HPKE here is disabled
+and is a early IETF proposal. 
+
+There is still lots of work to do on COSE_Sign, clean up on 
+COSE_Mac0 and some re design is exected for COSE_Encrypt.
+
+RSA and Eddsa integration from main is still to be done.
 
 Integration with the [OpenSSL](https://www.openssl.org) and [Arm Mbed
 TLS](https://github.com/ARMmbed/mbedtls) cryptographic libraries is
-fully supported.
-
-t_cose 1.0 only supports COSE Sign1, signing with one recipeint.
-
-
-## Future Work
-
-As of March 2022, work is underway to support encryption, MAC and
-other COSE features. When a good set of these are complete to
-commercial quality, a 2.0 version of t_cose will be released.
-
-Note that there is no committed time line to complete t_cose
-2.0. t_cose is mostly implemented on a volunteer basis. You can
-volunteer! Work like adding support for more algorithms is not too
-difficult and is nicely framed up.
+fully supported for signing, but not COSE_Mac or COSE_Encrypt.
 
 
 ## Building and Dependencies

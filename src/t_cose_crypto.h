@@ -110,6 +110,48 @@ bool
 t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id);
 
 
+/* This sets the maximum key size for symmetric ciphers like AES and ChaCha20 (not supported yet).
+* It is set to 32 to accommodate AES 256 and anything with a smaller
+* key size. This is used to size stack buffers that hold keys.
+* Attempts to use a symmetric key size larger than this will result in an error.
+* Smaller keys sizes are no problem.
+* This could be more dynamically sized based on which algorithms
+* are turned on or off, but probably isn't necessary because
+* it isn't very large and dynamic setting wouldn't save much stack.
+*/
+#define T_COSE_ENCRYPTION_MAX_KEY_LENGTH 32
+
+/** Helper macro to convert bits to bytes */
+#define T_COSE_BITS_TO_BYTES(bits) (((bits) + 7) / 8)
+
+/** Constant for maximum ECC curve size in bits */
+#define T_COSE_ECC_MAX_CURVE_BITS 521
+
+
+#define T_COSE_EXPORT_ECC_PUBLIC_KEY_MAX_SIZE(key_bits)                         \
+    (2 * T_COSE_BITS_TO_BYTES(key_bits) + 1)
+
+/** Wrapper for T_COSE_EXPORT_ECC_PUBLIC_KEY_MAX_SIZE() */
+#define T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE                                       \
+    (T_COSE_EXPORT_ECC_PUBLIC_KEY_MAX_SIZE(T_COSE_ECC_MAX_CURVE_BITS))
+
+/** Helper macro to round up to a multiple */
+#define T_COSE_ROUND_UP_TO_MULTIPLE(block_size, length) \
+    (((length) + (block_size) - 1) / (block_size) * (block_size))
+
+/** The maximum size of a block cipher. */
+#define T_COSE_BLOCK_CIPHER_BLOCK_MAX_SIZE 16
+
+/** The maximum IV size for all supported cipher algorithms, in bytes. */
+#define T_COSE_CIPHER_IV_MAX_SIZE 16
+
+/** Macro to compute the maximum output size of a cipher */
+#define T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(input_length)                     \
+    (T_COSE_ROUND_UP_TO_MULTIPLE(T_COSE_BLOCK_CIPHER_BLOCK_MAX_SIZE,            \
+                              (input_length) + 1) +                             \
+     T_COSE_CIPHER_IV_MAX_SIZE)
+
+
 #define T_COSE_EC_P256_SIG_SIZE 64  /* size for secp256r1 */
 #define T_COSE_EC_P384_SIG_SIZE 96  /* size for secp384r1 */
 #define T_COSE_EC_P512_SIG_SIZE 132 /* size for secp521r1 */
@@ -243,7 +285,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
  *                              hasn't been registered.
  * \param[in] verification_key  The verification key to use.
  * \param[in] kid               The COSE kid (key ID) or \c NULL_Q_USEFUL_BUF_C.
- * \param[in] hash_to_verify    The data or hash that is to be verified.
+ * \param[in] hash_to_verify    The hash of the data that is to be verified.
  * \param[in] signature         The COSE-format signature.
  *
  * This verifies that the \c signature passed in was over the \c
@@ -740,6 +782,217 @@ static inline int32_t t_cose_hmac_to_hash_alg_id(int32_t cose_hamc_alg_id)
     }
 }
 #endif
+
+
+
+/**
+ * \brief Returns the requested number of random bytes.
+ *
+ * \param[in] buffer             Pointer and length of buffer into which
+ *                               the resulting random bytes are put.
+ * TBD:
+ *
+ * This function will either return the requested number of random bytes,
+ * or produce an error.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Successfully returned the requested number of random bytes.
+ * \retval T_COSE_ERR_RNG_FAILED
+ *         The random number generator failed to return the requested
+ *         number of bytes.
+ */
+
+enum t_cose_err_t
+t_cose_crypto_get_random(struct q_useful_buf    buffer,
+                         size_t                 number,
+                         struct q_useful_buf_c *random);
+
+/* TBD: Generate key */
+enum t_cose_err_t
+t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
+                           int32_t               cose_algorithm_id);
+
+/**
+ * \brief Exports the public key
+ *
+ * \param[in] key               Handle to key
+ * \param[in] pk_buffer         Pointer and length of buffer into which
+ *                              the resulting public key is put.
+ * \param[out] pk               Public Key
+ *
+ * \retval T_COSE_SUCCESS
+ *         Successfully exported the public key.
+ * \retval T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED
+ *         The public key export operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_export_public_key(struct t_cose_key      key,
+                                struct q_useful_buf    pk_buffer,
+                                size_t                *pk_len);
+
+/**
+ * \brief Exports key
+ *
+ * \param[in] key               Handle to key
+ * \param[in] key_buffer        Pointer and length of buffer into which
+ *                              the resulting key is put.
+ * \param[out] key_len          Length of the returned key.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Successfully exported the key.
+ * \retval T_COSE_ERR_KEY_EXPORT_FAILED
+ *         The key export operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_export_key(struct t_cose_key      key,
+                         struct q_useful_buf    key_buffer,
+                         size_t                *key_len);
+
+/**
+ * \brief Uses the AES key wrap algorithm defined in RFC 3394 to
+ *        encrypt the CEK.
+ *
+ * \param[in] algorithm_id        Algorithm id
+ * \param[in] kek                 Key Encryption Key
+ * \param[in] plaintext           Plaintext
+ * \param[in] ciphertext_buffer   Ciphertext buffer
+ * \param[out] ciphertext_result  Resulting ciphertext
+ *
+ * \retval T_COSE_SUCCESS
+ *         Operation was successful.
+ * \retval T_COSE_ERR_AES_KW_FAILED
+ *         AES key wrap operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_aes_kw(int32_t                 algorithm_id,
+                     struct q_useful_buf_c   kek,
+                     struct q_useful_buf_c   plaintext,
+                     struct q_useful_buf     ciphertext_buffer,
+                     struct q_useful_buf_c  *ciphertext_result);
+
+/**
+ * \brief HPKE Decrypt Wrapper
+ *
+ * \param[in] cose_algorithm_id   COSE algorithm id
+ * \param[in] pkE                 pkE buffer
+ * \param[in] pkR                 pkR key
+ * \param[in] ciphertext          Ciphertext buffer
+ * \param[in] plaintext           Plaintext buffer
+ * \param[out] plaintext_len      Length of the returned plaintext
+ *
+ * \retval T_COSE_SUCCESS
+ *         HPKE decrypt operation was successful.
+ * \retval T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG
+ *         An unsupported algorithm was supplied to the function call.
+ * \retval T_COSE_ERR_HPKE_DECRYPT_FAIL
+ *         Decrypt operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
+                           struct q_useful_buf_c              pkE,
+                           struct t_cose_key                  pkR,
+                           struct q_useful_buf_c              ciphertext,
+                           struct q_useful_buf                plaintext,
+                           size_t                            *plaintext_len);
+
+/**
+ * \brief Returns the t_cose_key given an algorithm.and a symmetric key
+ *
+ * \param[in] cose_algorithm_id  COSE algorithm id
+ * \param[in] cek                Symmetric key
+ * \param[in] cek_len            Symmetric key length
+ * \param[in] flags              Key usage flags
+ * \param[out] key               Key in t_cose_key structure.
+ *
+ * \retval T_COSE_SUCCESS
+ *         The key was successfully imported and is returned in the
+ *         t_cose_key format.
+ * \retval T_COSE_ERR_UNKNOWN_KEY
+ *         The provided symmetric key could not be imported.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         An unsupported COSE algorithm was provided.
+ * \retval T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS
+ *         The provided key usage flags are unsupported.
+ */
+enum t_cose_err_t
+t_cose_crypto_get_cose_key(int32_t              cose_algorithm_id,
+                           uint8_t             *cek,
+                           size_t               cek_len,
+                           uint8_t              flags,
+                           struct t_cose_key   *key);
+
+
+/**
+ * \brief Decrypt a ciphertext using an AEAD cipher. Part of the
+ * t_cose crypto adaptation layer.
+ *
+ * \param[in] cose_algorithm_id      The algorithm to use for decryption.
+ *                                   The IDs are defined in [COSE (RFC 8152)]
+ *                                   (https://tools.ietf.org/html/rfc8152)
+ *                                    or in the [IANA COSE Registry]
+ *                                   (https://www.iana.org/assignments/cose/cose.xhtml).
+ * \param[in] key                    The decryption key to use.
+ * \param[in] nonce                  The nonce used as input to the decryption operation.
+ * \param[in] add_data               Additional data used for decryption.
+ * \param[in] ciphertext             The ciphertext to decrypt.
+ * \param[in] plaintext_buffer       Buffer where the plaintext will be put.
+ * \param[out] plaintext_output_len  The size of the plaintext.
+ *
+ * The key provided must be a symmetric key of the correct type for
+ * \c cose_algorithm_id.
+ *
+ * \retval T_COSE_SUCCESS
+ *         The decryption operation was successful.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         An unsupported cipher algorithm was provided.
+ * \retval T_COSE_ERR_DECRYPT_FAIL
+ *         The decryption operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_decrypt(int32_t                cose_algorithm_id,
+                      struct t_cose_key      key,
+                      struct q_useful_buf_c  nonce,
+                      struct q_useful_buf_c  add_data,
+                      struct q_useful_buf_c  ciphertext,
+                      struct q_useful_buf    plaintext_buffer,
+                      size_t                *plaintext_output_len);
+
+/**
+ * \brief Encrypt plaintext using an AEAD cipher. Part of the
+ * t_cose crypto adaptation layer.
+ *
+ * \param[in] cose_algorithm_id      The algorithm to use for encryption.
+ *                                   The IDs are defined in [COSE (RFC 8152)]
+ *                                   (https://tools.ietf.org/html/rfc8152)
+ *                                    or in the [IANA COSE Registry]
+ *                                   (https://www.iana.org/assignments/cose/cose.xhtml).
+ * \param[in] key                    The encryption key to use.
+ * \param[in] nonce                  The nonce used as input to the encryption operation.
+ * \param[in] add_data               Additional data used for encryption.
+ * \param[in] plaintext              The plaintext to encrypt.
+ * \param[in] ciphertext_buffer      Buffer where the ciphertext will be put.
+ * \param[out] ciphertext_output_len The size of the ciphertext.
+ *
+ * The key provided must be a symmetric key of the correct type for
+ * \c cose_algorithm_id.
+ *
+ * \retval T_COSE_SUCCESS
+ *         The decryption operation was successful.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         An unsupported cipher algorithm was provided.
+ * \retval T_COSE_ERR_KEY_IMPORT_FAILED
+ *         The provided key could not be imported.
+ * \retval T_COSE_ERR_ENCRYPT_FAIL
+ *         The encryption operation failed.
+ */
+enum t_cose_err_t
+t_cose_crypto_encrypt(int32_t                cose_algorithm_id,
+                      struct q_useful_buf_c  key,
+                      struct q_useful_buf_c  nonce,
+                      struct q_useful_buf_c  add_data,
+                      struct q_useful_buf_c  plaintext,
+                      struct q_useful_buf    ciphertext_buffer,
+                      size_t                *ciphertext_output_len);
 
 #ifdef __cplusplus
 }

@@ -211,6 +211,23 @@ enum t_cose_crypto_lib_t {
 };
 
 
+// TODO: this may not belong in common.h
+enum t_cose_key_usage_flags {
+    T_COSE_KEY_USAGE_FLAG_NONE = 0,
+    T_COSE_KEY_USAGE_FLAG_DECRYPT = 1,
+    T_COSE_KEY_USAGE_FLAG_ENCRYPT = 2
+};
+
+// TODO: this probably doesn't belong in common.h because it is HPKE-specific
+/*!
+ * \brief HPKE ciphersuite
+ */
+struct t_cose_crypto_hpke_suite_t {
+    uint16_t    kem_id;  // Key Encryption Method id
+    uint16_t    kdf_id;  // Key Derivation Function id
+    uint16_t    aead_id; // Authenticated Encryption with Associated Data id
+};
+
 /**
  * This structure is used to indicate or pass a key through the t_cose
  * implementation to the underlying, platform-specific cryptography
@@ -264,7 +281,7 @@ struct t_cose_key {
  * needs to be big enough for encode_protected_parameters() to
  * succeed. It currently sized for one parameter with an algorithm ID
  * up to 32 bits long -- one byte for the wrapping map, one byte for
- * the label, 5 bytes for the ID. If this is made accidentially too
+ * the label, 5 bytes for the ID. If this is made accidentally too
  * small, QCBOR will only return an error, and not overrun any
  * buffers.
  *
@@ -499,7 +516,69 @@ enum t_cose_err_t {
      * format of the CBOR. For example, it is missing something like
      * the payload.
      */
-    T_COSE_ERR_MAC0_FORMAT = 48
+    T_COSE_ERR_MAC0_FORMAT = 48,
+
+  /** The requested key exchange algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG = 46,
+
+    /** The requested encryption algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG = 47,
+
+    /** The requested key length is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_KEY_LENGTH = 48,
+
+    /** Adding a recipient to the COSE_Encrypt0 structure is not allowed.  */
+    T_COSE_ERR_RECIPIENT_CANNOT_BE_ADDED = 49,
+
+    /** The requested cipher algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_CIPHER_ALG = 50,
+
+    /** Something went wrong in the crypto adaptor when
+     * encrypting data. */
+    T_COSE_ERR_ENCRYPT_FAIL = 51,
+
+    /** Something went wrong in the crypto adaptor when
+     * decrypting data. */
+    T_COSE_ERR_DECRYPT_FAIL = 52,
+
+    /** Something went wrong in the crypto adaptor when
+     * invoking HPKE to encrypt data. */
+    T_COSE_ERR_HPKE_ENCRYPT_FAIL = 53,
+
+    /** Something went wrong in the crypto adaptor when
+     * invoking HPKE to decrypt data. */
+    T_COSE_ERR_HPKE_DECRYPT_FAIL = 54,
+
+    /** When decoding a CBOR structure, a mandatory field
+     *  was not found. */
+    T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING = 55,
+
+    /** When decoding the ephemeral key structure, the included
+     * public key is of incorrect or unexpected size. */
+    T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT = 56,
+
+    /** Cryptographic operations may require a key usage flags
+     * to be indicated. If the provided flags are unsupported,
+     * this error is returned. */
+    T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS = 57,
+
+    /** The key import failed. */
+    T_COSE_ERR_KEY_IMPORT_FAILED = 58,
+
+    /** Obtaining random bytes failed. */
+    T_COSE_ERR_RNG_FAILED = 59,
+
+    /** Export of the public key failed. */
+    T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED = 60,
+
+    /** Generating asymmetric key pair failed. */
+    T_COSE_ERR_KEY_GENERATION_FAILED = 61,
+
+    /** Export of the key failed. */
+    T_COSE_ERR_KEY_EXPORT_FAILED = 62,
+
+    /** Something went wrong with AES Key Wrap. */
+    T_COSE_ERR_AES_KW_FAILED = 63,
 };
 
 

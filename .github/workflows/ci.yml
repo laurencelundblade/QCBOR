@@ -25,6 +25,7 @@ jobs:
           crypto-provider: MbedTLS
           crypto-provider-version: 'v2.28.0'
           crypto-provider-extra: ''
+          defines: '-DCC_DEFINES=-DT_COSE_DISABLE_AES_KW'
         
         - os-image: ubuntu-latest
           container: ubuntu:20.04
@@ -108,6 +109,7 @@ jobs:
         cd build
         cmake -DCRYPTO_PROVIDER=${{ matrix.config.crypto-provider }} \
           ${{ matrix.config.crypto-provider-extra }} \
+          ${{ matrix.config.defines }} \
           ..
         make -j $(nproc)
 

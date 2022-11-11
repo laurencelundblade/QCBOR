@@ -1,7 +1,9 @@
 /*
  * t_cose_standard_constants.h
  *
- * Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ *
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -131,12 +133,19 @@
 
 /* ------------ COSE Header Algorithm Parameters --------------
  * https://www.iana.org/assignments/cose/cose.xhtml#header-algorithm-parameters
- *
- * None of these are defined here yet, as they are not needed by t_cose yet.
  */
 
-
-
+/**
+ * \def T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY
+ *
+ * \brief CBOR map label of header algorithm parameter containing
+ *        an ephemeral key.
+ *
+ * A COSE_Key structure containing the ephemeral key.
+ *
+ * This implementation only supports a subset of the available algorithms.
+ */
+#define T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY -1
 
 /* ------------- COSE Algorithms ----------------------------
  * https://www.iana.org/assignments/cose/cose.xhtml#algorithms
@@ -217,6 +226,78 @@
  * This is not used in the t_cose interface, just used internally.
  */
 #define T_COSE_ALGORITHM_SHA_512 -44
+
+/**
+ * \def COSE_ALGORITHM_A256KW
+ *
+ * \brief AES Key Wrap w/ 256-bit key
+ */
+#define T_COSE_ALGORITHM_A256KW -5
+
+/**
+ * \def COSE_ALGORITHM_A192KW
+ *
+ * \brief AES Key Wrap w/ 192-bit key
+ */
+#define T_COSE_ALGORITHM_A192KW -4
+
+ /**
+ * \def COSE_ALGORITHM_A128KW
+ *
+ * \brief AES Key Wrap w/ 128-bit key
+ */
+#define T_COSE_ALGORITHM_A128KW -3
+
+/**
+ * \def COSE_ALGORITHM_A128GCM
+ *
+ * \brief AES-GCM mode w/ 128-bit key, 128-bit tag
+ */
+#define T_COSE_ALGORITHM_A128GCM 1
+
+/**
+ * \def COSE_ALGORITHM_A192GCM
+ *
+ * \brief AES-GCM mode w/ 192-bit key, 128-bit tag
+ */
+#define T_COSE_ALGORITHM_A192GCM 2
+
+/**
+ * \def COSE_ALGORITHM_A256GCM
+ *
+ * \brief AES-GCM mode w/ 256-bit key, 128-bit tag
+ */
+#define T_COSE_ALGORITHM_A256GCM 3
+
+/**
+ * \def COSE_ALGORITHM_AES128CCM_16_128
+ *
+ * \brief AES-CCM mode 128-bit key, 128-bit tag, 13-byte nonce
+ */
+#define T_COSE_ALGORITHM_AES128CCM_16_128 30
+
+/**
+ * \def COSE_ALGORITHM_AES256CCM_16_128
+ *
+ * \brief AES-CCM mode 256-bit key, 128-bit tag, 13-byte nonce
+ */
+#define T_COSE_ALGORITHM_AES256CCM_16_128 31
+
+/**
+ * \def COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM
+ *
+ * \brief HPKE/P-256+HKDF-256 and AES-128-GCM
+ * TODO: this is NOT registered with IANA
+ */
+#define T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM -100
+
+/**
+ * \def COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM
+ *
+ * \brief HPKE/P-512+HKDF-512 and AES-256-GCM
+ * TODO: this is NOT registered with IANA
+ */
+#define T_COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM -101
 
 /**
  * \def T_COSE_ALGORITHM_HMAC256
