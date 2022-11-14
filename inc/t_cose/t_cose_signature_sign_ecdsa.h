@@ -1,10 +1,14 @@
-//
-//  t_cose_ecdsa_signer.h
-//  t_cose_test
-//
-//  Created by Laurence Lundblade on 5/23/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ * t_cose_signature_sign_ecdsa.h
+ *
+ * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Created by Laurence Lundblade on 5/23/22.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ */
+
 
 #ifndef t_cose_ecdsa_signer_h
 #define t_cose_ecdsa_signer_h
@@ -18,8 +22,9 @@
 struct t_cose_signature_sign_ecdsa {
     /* Private data structure */
 
-    /* t_cose_signer must be the first item for the polymorphism to work.
-     * This structure, t_cose_ecdsa_signer, will sometimes be uses as a t_cose_signer.
+    /* t_cose_signer must be the first item for the polymorphism to
+     * work.  This structure, t_cose_ecdsa_signer, will sometimes be
+     * uses as a t_cose_signer.
      */
     struct t_cose_signature_sign s;
 
@@ -71,8 +76,8 @@ t_cose_signature_sign_ecdsa_set_header_parameter(struct t_cose_signature_sign_ec
 /* This is how you get the general interface / instance for a signer,
  * a t_cose_signer, from the specific and concrete instance of a
  * signer. Because the t_cose_signer is the first member in a
- * t_cose_ecdsa_signer, the implementation for this is in essence just a
- * cast and in the end no code is generated.
+ * t_cose_ecdsa_signer, the implementation for this is in essence just
+ * a cast and in the end no code is generated.
  *
  * t_cose calls signers as follows:
  *   struct t_cose_signature_sign *signer;
@@ -80,8 +85,8 @@ t_cose_signature_sign_ecdsa_set_header_parameter(struct t_cose_signature_sign_ec
  *
  *   result = (signer->s.callback)(signer, ....);
  *
- * It makes use of the function pointer in signer->s. This
- * callback is when all the interesting work id done by
+ * It makes use of the function pointer in signer->s. This callback is
+ * when all the interesting work id done by
  * t_cose_signature_sign_ecdsa.
  *
  */
@@ -108,8 +113,9 @@ t_cose_signature_sign_ecdsa_set_signing_key(struct t_cose_signature_sign_ecdsa *
 static inline struct t_cose_signature_sign *
 t_cose_signature_sign_from_ecdsa(struct t_cose_signature_sign_ecdsa *me)
 {
-    /* Because s is the first item in the t_cose_ecdsa_signer, this function should
-     * compile to nothing. It is here to keep the type checking safe.
+    /* Because s is the first item in the t_cose_ecdsa_signer, this
+     * function should compile to nothing. It is here to keep the type
+     * checking safe.
      */
     return &(me->s);
 }

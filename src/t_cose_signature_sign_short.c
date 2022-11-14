@@ -45,10 +45,11 @@ static inline enum t_cose_err_t
 short_circuit_sig_size(int32_t cose_algorithm_id,
                        size_t *sig_size)
 {
-    *sig_size = cose_algorithm_id == T_COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
-                cose_algorithm_id == T_COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
-                cose_algorithm_id == T_COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
-                0;
+    *sig_size =
+        cose_algorithm_id == T_COSE_ALGORITHM_ES256 ? T_COSE_EC_P256_SIG_SIZE :
+        cose_algorithm_id == T_COSE_ALGORITHM_ES384 ? T_COSE_EC_P384_SIG_SIZE :
+        cose_algorithm_id == T_COSE_ALGORITHM_ES512 ? T_COSE_EC_P512_SIG_SIZE :
+        0;
 
     return *sig_size == 0 ? T_COSE_ERR_UNSUPPORTED_SIGNING_ALG : T_COSE_SUCCESS;
 }
@@ -128,10 +129,11 @@ Done:
  * t_cose_short_signer_init().
  */
 static void
-t_cose_short_headers(struct t_cose_signature_sign      *me_x,
-                     struct t_cose_parameter **params)
+t_cose_short_headers(struct t_cose_signature_sign *me_x,
+                     struct t_cose_parameter     **params)
 {
-    struct t_cose_signature_sign_short *me = (struct t_cose_signature_sign_short *)me_x;
+    struct t_cose_signature_sign_short *me =
+                                   (struct t_cose_signature_sign_short *)me_x;
 
     /* Output the configured kid or the never-changing kid for
      * short-circuit signatures. */
@@ -164,7 +166,8 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
                   const struct q_useful_buf_c   signed_payload,
                   QCBOREncodeContext           *qcbor_encoder)
 {
-    struct t_cose_signature_sign_short *me = (struct t_cose_signature_sign_short *)me_x;
+    struct t_cose_signature_sign_short *me =
+                                    (struct t_cose_signature_sign_short *)me_x;
     enum t_cose_err_t                  return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(        buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     Q_USEFUL_BUF_MAKE_STACK_UB(        buffer_for_signature, T_COSE_MAX_SIG_SIZE);

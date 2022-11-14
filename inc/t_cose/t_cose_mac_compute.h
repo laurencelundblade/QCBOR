@@ -93,7 +93,7 @@ t_cose_mac_compute(struct t_cose_mac_calculate_ctx *sign_ctx,
                     struct q_useful_buf_c       *result);
 
 static enum t_cose_err_t
-t_cose_mac_compute_detatched(struct t_cose_mac_calculate_ctx *sign_ctx,
+t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *sign_ctx,
                           struct q_useful_buf_c            aad,
                           struct q_useful_buf_c            datached_payload,
                           struct q_useful_buf              out_buf,
@@ -269,7 +269,7 @@ t_cose_mac_compute(struct t_cose_mac_calculate_ctx *sign_ctx,
 }
 
 static inline enum t_cose_err_t
-t_cose_mac_compute_detatched(struct t_cose_mac_calculate_ctx *sign_ctx,
+t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *sign_ctx,
                           struct q_useful_buf_c            aad,
                           struct q_useful_buf_c            detached_payload,
                           struct q_useful_buf              out_buf,

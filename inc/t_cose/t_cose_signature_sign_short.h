@@ -29,21 +29,20 @@
 struct t_cose_signature_sign_short {
     /* Private data structure */
 
-    /* t_cose_signer must be the first item for the polymorphism to
+    /* t_cose_signature_sign must be the first item for the polymorphism to
      * work.  This structure, t_cose_short_signer, will sometimes be
-     * uses as a t_cose_signer.
+     * uses as a t_cose_signature_sign.
      */
-    struct t_cose_signature_sign       s;
-
-    int32_t                            cose_algorithm_id;
-    struct q_useful_buf_c              kid;
-    struct t_cose_parameter         local_params[2];
-    struct t_cose_parameter        *added_signer_params;
+    struct t_cose_signature_sign  s;
+    int32_t                       cose_algorithm_id;
+    struct q_useful_buf_c         kid;
+    struct t_cose_parameter       local_params[2];
+    struct t_cose_parameter      *added_signer_params;
 };
 
 
 /**
- * @brief Initialize the short-circuit signer
+ * \brief Initialize the short-circuit signer
  *
  * \param[in] context            The t_cose t_cose_signature_sign_short context.
  * \param[in] cose_algorithm_id  The signing algorithm to pretend to be.
@@ -62,7 +61,7 @@ struct t_cose_signature_sign_short {
  */
 void
 t_cose_signature_sign_short_init(struct t_cose_signature_sign_short *context,
-                                 int32_t                             cose_algorithm_id);
+                                 int32_t                    cose_algorithm_id);
 
 
 /* There is no set_key() for the short-circuit signer. It fakes the signatures
@@ -71,7 +70,7 @@ t_cose_signature_sign_short_init(struct t_cose_signature_sign_short *context,
 
 
 /**
- * @brief Return instance of t_cose_signature_sign from a t_cose_signature_sign_short.
+ * \brief Return instance of t_cose_signature_sign from a t_cose_signature_sign_short.
  *
  * \param[in] context      The t_cose t_cose_signature_sign_short context.
  * \param[in] header_parameters  Array of header parameters to add.
@@ -95,7 +94,7 @@ t_cose_signature_sign_short_set_header_parameter(struct t_cose_signature_sign_sh
 
 
 /**
- * @brief Return instance of t_cose_signature_sign from a t_cose_signature_sign_short.
+ * \brief Return instance of t_cose_signature_sign from a t_cose_signature_sign_short.
  *
  * \param[in] context      The t_cose t_cose_signature_sign_short context.
  *
@@ -121,9 +120,9 @@ t_cose_signature_sign_from_short(struct t_cose_signature_sign_short *context);
 
 
 /**
- * @brief Get the never-changing kid for a short-circuit signature.
+ * \brief Get the never-changing kid for a short-circuit signature.
  *
- * @returns  Pointer and length of the kid.
+ * \returns  Pointer and length of the kid.
  *
  * This is for testing and development only.
  *

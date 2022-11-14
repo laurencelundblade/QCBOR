@@ -1,9 +1,13 @@
-//
-//  t_cose_signature_verify_short.c
-//
-//  Created by Laurence Lundblade on 7/27/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ * t_cose_signature_verify_short.c
+ *
+ * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Created by Laurence Lundblade on 7/27/22.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ */
 
 #include "t_cose/t_cose_signature_verify_short.h"
 #include "t_cose/t_cose_parameters.h"
@@ -57,18 +61,18 @@ Done:
 
 static enum t_cose_err_t
 t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
-                               const struct q_useful_buf_c       protected_body_headers,
-                               const struct q_useful_buf_c       protected_signature_headers,
-                               const struct q_useful_buf_c       payload,
-                               const struct q_useful_buf_c       aad,
-                               const struct t_cose_parameter *body_parameters,
-                               const struct q_useful_buf_c       signature)
+                               const struct q_useful_buf_c     protected_body_headers,
+                               const struct q_useful_buf_c     protected_signature_headers,
+                               const struct q_useful_buf_c     payload,
+                               const struct q_useful_buf_c     aad,
+                               const struct t_cose_parameter  *body_parameters,
+                               const struct q_useful_buf_c     signature)
 {
-    int32_t                             cose_algorithm_id;
-    enum t_cose_err_t                   return_value;
-    struct q_useful_buf_c               kid;
-    Q_USEFUL_BUF_MAKE_STACK_UB(         buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
-    struct q_useful_buf_c               tbs_hash;
+    int32_t                     cose_algorithm_id;
+    enum t_cose_err_t           return_value;
+    struct q_useful_buf_c       kid;
+    Q_USEFUL_BUF_MAKE_STACK_UB( buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
+    struct q_useful_buf_c       tbs_hash;
 
     (void)me_x;
 
@@ -78,6 +82,7 @@ t_cose_signature_verify1_short(struct t_cose_signature_verify *me_x,
 
     kid = t_cose_find_parameter_kid(body_parameters);
 
+    // TODO: unify short-circuit kid 
     if(q_useful_buf_compare(kid, get_short_circuit_kid())) {
         return_value = T_COSE_ERR_KID_UNMATCHED;
         goto Done;
@@ -121,11 +126,13 @@ t_cose_signature_verify_short(struct t_cose_signature_verify *me_x,
                               QCBORDecodeContext               *qcbor_decoder,
                               struct t_cose_parameter **decoded_parameters)
 {
-    QCBORError             qcbor_error;
-    enum t_cose_err_t      return_value;
-    struct q_useful_buf_c  protected_parameters;
-    struct q_useful_buf_c  signature;
-    const struct t_cose_signature_verify_short *me = (const struct t_cose_signature_verify_short *)me_x;
+    QCBORError                                 qcbor_error;
+    enum t_cose_err_t                          return_value;
+    struct q_useful_buf_c                      protected_parameters;
+    struct q_useful_buf_c                      signature;
+    const struct t_cose_signature_verify_short *me;
+
+    me = (const struct t_cose_signature_verify_short *)me_x;
 
     /* --- Decode the COSE_Signature ---*/
     QCBORDecode_EnterArray(qcbor_decoder, NULL);

@@ -1,10 +1,14 @@
-//
-//  t_cose_signature_verify_short.h
-//  t_cose
-//
-//  Created by Laurence Lundblade on 7/27/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ * t_cose_signature_verify_short.h
+ *
+ * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Created by Laurence Lundblade on 7/27/22.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ */
+
 
 #ifndef t_cose_signature_verify_short_h
 #define t_cose_signature_verify_short_h
@@ -19,14 +23,15 @@
 struct t_cose_signature_verify_short {
     /* Private data structure */
 
-    /* t_cose_signer must be the first item for the polymorphism to work.
-     * This structure, t_cose_signature_verify_short, will sometimes be uses as
-     * a t_cose_signature_verify.
+    /* t_cose_signature_verify must be the first item for the
+     * polymorphism to work.  This structure,
+     * t_cose_signature_verify_short, will sometimes be uses as a
+     * t_cose_signature_verify.
      */
     struct t_cose_signature_verify s;
 
     t_cose_parameter_decode_callback  *reader;
-    void                  *reader_ctx;
+    void                              *reader_ctx;
 };
 
 
@@ -35,7 +40,7 @@ t_cose_signature_verify_short_init(struct t_cose_signature_verify_short *me);
 
 static void
 t_cose_signature_verify_short_set_header_reader(struct t_cose_signature_verify_short *me,
-                                                t_cose_parameter_decode_callback                 *reader,
+                                                t_cose_parameter_decode_callback     *reader,
                                                 void                                 *reader_ctx);
 
 static struct t_cose_signature_verify *
@@ -61,8 +66,9 @@ t_cose_signature_verify_short_set_header_reader(struct t_cose_signature_verify_s
 static inline struct t_cose_signature_verify *
 t_cose_signature_verify_from_short(struct t_cose_signature_verify_short *me)
 {
-    /* Because s is the first item in the t_cose_short_signer, this function should
-     * compile to nothing. It is here to keep the type checking safe.
+    /* Because s is the first item in the t_cose_short_signer, this
+     * function should compile to nothing. It is here to keep the type
+     * checking safe.
      */
     return &(me->s);
 }

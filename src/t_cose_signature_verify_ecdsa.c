@@ -1,9 +1,14 @@
-//
-//  t_cose_signature_verify_ecdsa.c
-//
-//  Created by Laurence Lundblade on 7/19/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ * t_cose_signature_verify_ecdsa.c
+ *
+ * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Created by Laurence Lundblade on 7/19/22.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ */
+
 
 #include "t_cose/t_cose_signature_verify_ecdsa.h"
 #include "t_cose/t_cose_parameters.h"
@@ -16,8 +21,7 @@
 /* Warning: this is still early development. Documentation may be incorrect. */
 
 /*
-This is an implementation of t_cose_signature_verify1_callback.
-
+ * This is an implementation of t_cose_signature_verify1_callback.
  */
 static enum t_cose_err_t
 t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
@@ -33,7 +37,7 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
     int32_t                      cose_algorithm_id;
     enum t_cose_err_t            return_value;
     struct q_useful_buf_c        kid;
-    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
+    Q_USEFUL_BUF_MAKE_STACK_UB(  tbs_hash_buffer, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        tbs_hash;
 
     /* --- Get the parameters values needed --- */
@@ -50,7 +54,7 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
                                    protected_signature_headers,
                                    aad,
                                    payload,
-                                   buffer_for_tbs_hash,
+                                   tbs_hash_buffer,
                                    &tbs_hash);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -78,15 +82,15 @@ Done:
  This is an implementation of t_cose_signature_verify_callback
  */
 static enum t_cose_err_t
-t_cose_signature_verify_ecdsa(struct t_cose_signature_verify      *me_x,
-                              const bool                           run_crypto,
-                              const struct t_cose_header_location  loc,
-                              const struct q_useful_buf_c          protected_body_headers,
-                              const struct q_useful_buf_c          payload,
-                              const struct q_useful_buf_c          aad,
-                              struct t_cose_parameter_storage     *param_storage,
-                              QCBORDecodeContext                  *qcbor_decoder,
-                              struct t_cose_parameter            **decoded_signature_parameters)
+t_cose_signature_verify_ecdsa(struct t_cose_signature_verify     *me_x,
+                              const bool                          run_crypto,
+                              const struct t_cose_header_location loc,
+                              const struct q_useful_buf_c         protected_body_headers,
+                              const struct q_useful_buf_c         payload,
+                              const struct q_useful_buf_c         aad,
+                              struct t_cose_parameter_storage    *param_storage,
+                              QCBORDecodeContext                 *qcbor_decoder,
+                              struct t_cose_parameter           **decoded_signature_parameters)
 {
     const struct t_cose_signature_verify_ecdsa *me =
                             (const struct t_cose_signature_verify_ecdsa *)me_x;

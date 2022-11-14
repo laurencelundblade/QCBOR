@@ -89,10 +89,11 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *context,
                         uint32_t                       option_flags);
 
 
-/* Warning: this is still early development. Documentation may be incorrect. */
-
-
-/* Add a verifier object.
+/**
+ * \brief Add a verifier object.
+ *
+ * \param[in] context     Signed message verification context.
+ * \param[in] verifier   Pointer to verifier object.
 
  * Verifiers are objects that do the cryptographic operations
  * to verify a COSE_Sign or COSE_Sign1. This is both the
@@ -102,7 +103,7 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *context,
  *
  * At least one verifier must be added in. Before they
  * are added in they should be configured with any key
- * material (the verification key) needed.
+ * material (e.g., the verification key) needed.
  *
  * By default the overall result is success if at least
  * one of the signatures verifies. TODO: think
@@ -114,24 +115,36 @@ t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *context,
                          struct t_cose_signature_verify *verifier);
 
 
-/*
+/**
+ * \brief Add storage for header parameter decoding.
  *
- * Use this to increase the number of header parameters that can be decoded
- * if the number expected is larger than \ref T_COSE_NUM_VERIFY_DECODE_HEADERS. If it is less than \ref T_COSE_NUM_VERIFY_DECODE_HEADERS,
- * the internal storage is used and there is no need to call this.
+ * \param[in] context     Signed message verification context.
+ * \param[in] storage     The parameter storage to add.
  *
+ * Decoded parameters are returned in a linked list of struct t_cose_parameter.
+ * The storage for the nodes in the list is not dynamically allocated as there
+ * is no dynamic storage allocation used here.
+ *
+ * It is assumed that the
+ * number of parameters is small and/or can be anticipated.
  * There must be room to decode all the header parameters that
  * are in the body and in all in the COSE_Signatures. If not
  * \ref T_COSE_ERR_TOO_MANY_PARAMETERS will be returned by
  * t_cose_sign_verify() and similar.
  *
- * The storage can be partially used on in. The number
- * used is incremented and if there's room left, it can be
- * used elswhere.
+ * By default, if this is not called there is internal storage for
+ * \ref T_COSE_NUM_VERIFY_DECODE_HEADERS headers. If
+ * this is not enough call this function to use external storage instead
+ * of the internal. This replaces the internal storage. It does not add to it.
+ *
+ * t_cose_parameter_storage allows for the storage to be partially
+ * used when it is passed in and whatever is not used by this
+ * decode can be used elsewhere. It internall keeps track of how
+ * many nodes were used.
  */
 static void
 t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx  *context,
-                              struct t_cose_parameter_storage *param_storage);
+                              struct t_cose_parameter_storage *storage);
 
 
 /*
@@ -149,7 +162,7 @@ t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx    *context,
  * \brief Verify a COSE_Sign1 or COSE_Sign.
  *
  * \param[in,out] context   The t_cose signature verification context.
- * \param[in] sign         Pointer and length of CBOR encoded \c COSE_Sign1
+ * \param[in] message         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          or \c COSE_Sign message that is to be verified.
  * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
  * \param[out] payload      Pointer and length of the payload that is returned.
@@ -182,7 +195,7 @@ t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx    *context,
  *
  * If verification is successful, the pointer to the CBOR-encoded payload is
  * returned. The parameters are returned if requested. All pointers
- * returned are to memory in the \c sign1 passed in.
+ * returned are to memory in the \c message passed in.
  *
  * Indefinite length CBOR strings are not supported by this
  * implementation.  \ref T_COSE_ERR_SIGN1_FORMAT will be returned if
@@ -194,7 +207,7 @@ t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx    *context,
  */
 static enum t_cose_err_t
 t_cose_sign_verify(struct t_cose_sign_verify_ctx *context,
-                   struct q_useful_buf_c          sign,
+                   struct q_useful_buf_c          message,
                    struct q_useful_buf_c          aad,
                    struct q_useful_buf_c         *payload,
                    struct t_cose_parameter      **parameters);
@@ -205,7 +218,7 @@ t_cose_sign_verify(struct t_cose_sign_verify_ctx *context,
 */
 static enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
-                            struct q_useful_buf_c          sign,
+                            struct q_useful_buf_c          message,
                             struct q_useful_buf_c          aad,
                             struct q_useful_buf_c          payload,
                             struct t_cose_parameter      **parameters);
@@ -221,7 +234,7 @@ t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
  * \brief Semi-private function to verify a COSE_Sign1.
  *
  * \param[in,out] me   The t_cose signature verification context.
- * \param[in] sign         Pointer and length of CBOR encoded \c COSE_Sign1
+ * \param[in] message         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          or \c COSE_Sign message that is to be verified.
  * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in,out] payload   Pointer and length of the payload.
@@ -237,23 +250,23 @@ t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
  */
 enum t_cose_err_t
 t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
-                             struct q_useful_buf_c        sign,
-                             struct q_useful_buf_c        aad,
-                             struct q_useful_buf_c       *payload,
-                             struct t_cose_parameter    **parameters,
-                             bool                         is_detached);
+                           struct q_useful_buf_c          message,
+                           struct q_useful_buf_c          aad,
+                           struct q_useful_buf_c         *payload,
+                           struct t_cose_parameter      **parameters,
+                           bool                           is_detached);
 
 
 
 static inline enum t_cose_err_t
 t_cose_sign_verify(struct t_cose_sign_verify_ctx *me,
-                   struct q_useful_buf_c          sign,
+                   struct q_useful_buf_c          message,
                    struct q_useful_buf_c          aad,
                    struct q_useful_buf_c         *payload,
                    struct t_cose_parameter      **parameters)
 {
     return t_cose_sign_verify_private(me,
-                                      sign,
+                                      message,
                                       aad,
                                       payload,
                                       parameters,
@@ -263,15 +276,15 @@ t_cose_sign_verify(struct t_cose_sign_verify_ctx *me,
 
 static inline enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *me,
-                   struct q_useful_buf_c          sign,
-                   struct q_useful_buf_c          aad,
-                   struct q_useful_buf_c          detatched_payload,
-                   struct t_cose_parameter      **parameters)
+                            struct q_useful_buf_c          message,
+                            struct q_useful_buf_c          aad,
+                            struct q_useful_buf_c          detached_payload,
+                            struct t_cose_parameter      **parameters)
 {
     return t_cose_sign_verify_private(me,
-                                      sign,
+                                      message,
                                       aad,
-                                     &detatched_payload,
+                                     &detached_payload,
                                       parameters,
                                       true);
 }
@@ -291,10 +304,10 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *me,
 
 
 static inline void
-t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx  *me,
-                              struct t_cose_parameter_storage *param_storage)
+t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx   *me,
+                              struct t_cose_parameter_storage *storage)
 {
-    me->p_storage = param_storage;
+    me->p_storage = storage;
 }
 
 

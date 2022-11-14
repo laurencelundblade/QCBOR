@@ -1,10 +1,14 @@
-//
-//  t_cose_signature_verify_ecdsa.h
-//  t_cose
-//
-//  Created by Laurence Lundblade on 7/22/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ * t_cose_signature_verify_ecdsa.h
+ *
+ * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Created by Laurence Lundblade on 7/22/22.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ */
+
 
 #ifndef t_cose_signature_verify_ecdsa_h
 #define t_cose_signature_verify_ecdsa_h
@@ -16,18 +20,19 @@
 /* Warning: this is still early development. Documentation may be incorrect. */
 
 
+/**
+ * Verification context. */
 struct t_cose_signature_verify_ecdsa {
     /* Private data structure */
 
-    /* t_cose_signer must be the first item for the polymorphism to work.
+    /* t_cose_signature_verify must be the first item for the polymorphism to work.
      * This structure, t_cose_signature_verify_ecdsa, will sometimes be uses as
      * a t_cose_signature_verify.
      */
-    struct t_cose_signature_verify s;
-    struct t_cose_key              verification_key;
-
+    struct t_cose_signature_verify     s;
+    struct t_cose_key                  verification_key;
     t_cose_parameter_decode_callback  *reader;
-    void                  *reader_ctx;
+    void                              *reader_ctx;
 };
 
 
@@ -46,6 +51,7 @@ t_cose_signature_verify_ecdsa_set_header_reader(struct t_cose_signature_verify_e
 
 static struct t_cose_signature_verify *
 t_cose_signature_verify_from_ecdsa(struct t_cose_signature_verify_ecdsa *context);
+
 
 
 

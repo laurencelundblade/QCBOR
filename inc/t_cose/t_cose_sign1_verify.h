@@ -69,9 +69,6 @@ extern "C" {
 
 
 
-
-
-
 /**
  * Context for signature verification.
  */
@@ -336,7 +333,8 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     }
 
     if(parameters != NULL) {
-        return_value = t_cose_common_header_parameters(decoded_params, parameters);
+        return_value = t_cose_common_header_parameters(decoded_params,
+                                                       parameters);
     }
 
     memcpy(me->auTags, me->me2.auTags, sizeof(me->auTags));
@@ -386,7 +384,8 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                                               &decoded_params);
 
     if(parameters != NULL) {
-        return_value = t_cose_common_header_parameters(decoded_params, parameters);
+        return_value = t_cose_common_header_parameters(decoded_params,
+                                                       parameters);
     }
 
     return return_value;

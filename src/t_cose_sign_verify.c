@@ -1,5 +1,5 @@
 /*
- *  t_cose_sign1_verify.c
+ * t_cose_sign_verify.c
  *
  * Copyright 2019-2022, Laurence Lundblade
  *
@@ -20,13 +20,13 @@
 #include "t_cose/t_cose_signature_verify.h"
 #include "t_cose_util.h"
 
-/* Warning: this is still early development. Documentation may be incorrect. */
+/* Warning: this is still early development. Documentation may be incorrect.*/
 
 
 /**
- * \file t_cose_sign1_verify.c
+ * \file t_cose_sign_verify.c
  *
- * \brief \c COSE_Sign1 verification implementation.
+ * \brief \c COSE_Sign and \c COSE_Sign1 verification implementation.
  */
 
 
@@ -49,7 +49,8 @@
  * at the level above COSE.
  */
 static inline enum t_cose_err_t
-process_tags(struct t_cose_sign_verify_ctx *me, QCBORDecodeContext *decode_context)
+process_tags(struct t_cose_sign_verify_ctx *me,
+             QCBORDecodeContext *decode_context)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
@@ -120,27 +121,17 @@ process_tags(struct t_cose_sign_verify_ctx *me, QCBORDecodeContext *decode_conte
 }
 
 
+/*
+ * A semi-private function. See t_cose_sign_verify.h
+ */
 enum t_cose_err_t
 t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
-                           struct q_useful_buf_c           cose_sign1,
+                           struct q_useful_buf_c           message,
                            struct q_useful_buf_c           aad,
                            struct q_useful_buf_c          *payload,
-                           struct t_cose_parameter    **returned_parameters,
+                           struct t_cose_parameter       **returned_parameters,
                            bool                            is_detached)
 {
-    /* TODO: this is wrong ... Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    80          40
-     *   Decode context                               312         256
-     *   Hash output                                32-64       32-64
-     *   header parameter lists                       244         176
-     *   MAX(parse_headers         768     628
-     *       process tags           20      16
-     *       check crit             24      12
-     *       create_tbs_hash     32-748  30-746
-     *       crypto lib verify  64-1024 64-1024) 768-1024    768-1024
-     *   TOTAL                                  1724-1436   1560-1272
-     */
     QCBORDecodeContext              decode_context;
     struct q_useful_buf_c           protected_parameters;
     enum t_cose_err_t               return_value;
@@ -149,16 +140,17 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     struct t_cose_signature_verify *verifier;
     struct t_cose_header_location   header_location;
     QCBORItem                       null_payload;
-    struct t_cose_parameter  *decoded_body_parameter_list;
-    struct t_cose_parameter  *decoded_sig_parameter_list;
+    struct t_cose_parameter        *decoded_body_parameter_list;
+    struct t_cose_parameter        *decoded_sig_parameter_list;
 
 
-    /* === Decoding of the array of four starts here === */
-    QCBORDecode_Init(&decode_context, cose_sign1, QCBOR_DECODE_MODE_NORMAL);
+    /* --- Decoding of the array of four starts here --- */
+    QCBORDecode_Init(&decode_context, message, QCBOR_DECODE_MODE_NORMAL);
 
     /* --- The array of 4 and tags --- */
     QCBORDecode_EnterArray(&decode_context, NULL);
-    return_value = qcbor_decode_error_to_t_cose_error(QCBORDecode_GetError(&decode_context), T_COSE_ERR_SIGN1_FORMAT);
+    return_value = qcbor_decode_error_to_t_cose_error(QCBORDecode_GetError(&decode_context),
+                                                      T_COSE_ERR_SIGN1_FORMAT);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -169,14 +161,14 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 
 
     /* --- The header parameters --- */
-    /* The location of body header parameters is 0,0 */
-    header_location = (struct t_cose_header_location){0,  /* nesting */
-                                                      0}; /* index */
+    /* The location of body header parameters is 0, 0 */
+    header_location = (struct t_cose_header_location){.nesting = 0,
+                                                      .index = 0};
 
     return_value = t_cose_headers_decode(&decode_context,
                                           header_location,
-                                          NULL, // TODO: read callback
-                                          NULL, // TODO: read callback
+                                          me->reader,
+                                          me->reader_ctx,
                                           me->p_storage,
                                          &decoded_body_parameter_list,
                                          &protected_parameters);
@@ -188,7 +180,9 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     /* --- The payload --- */
     if(is_detached) {
         QCBORDecode_GetNext(&decode_context, &null_payload);
-        /* If there is a decode error here, null_payload.uDataType will be QCBOR_TYPE_NONE */
+        /* If there is a decode error here, null_payload.uDataType will be
+         * QCBOR_TYPE_NONE
+         */
         if (null_payload.uDataType != QCBOR_TYPE_NULL) {
             return_value = T_COSE_ERR_SIGN1_FORMAT;
             goto Done;
@@ -200,39 +194,51 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         QCBORDecode_GetByteString(&decode_context, payload);
     }
 
-    /* --- The Signature or the COSE_Signature(s) --- */
-    if((me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK) == T_COSE_OPT_MESSAGE_TYPE_SIGN1) { // TODO: allow tag determination
+
+    /* --- The signature or the COSE_Signature(s) --- */
+    // TODO: allow tag determination
+    if(T_COSE_OPT_IS_SIGN1(me->option_flags)) {
+        /* --- The signature bytes for a COSE_Sign1, not COSE_Signatures */
         QCBORDecode_GetByteString(&decode_context, &signature);
-        // TODO: check decode error status here
+        return_value = qcbor_decode_error_to_t_cose_error(QCBORDecode_GetError(&decode_context),
+                                                    T_COSE_ERR_SIGN1_FORMAT);
+        if(return_value != T_COSE_SUCCESS) {
+            goto Done;
+        }
         if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
             goto continue_decode;
         }
-        /* Loop over all the verifiers configured in order asking each
+        /* Loop over all the verifiers configured asking each
          * to verify until one succeeds. If none succeeded, the error
          * returned is from the last one called.  There are
          * intentionally no types of errors that one verifier can return
-         * that ends the whole loop and blocks others from being called. */
+         * that ends the whole loop and blocks others from being called.
+         */
         for(verifier = me->verifiers; verifier != NULL; verifier = verifier->next_in_list) {
             /* Actually do the signature verification by calling
              * the main method of the cose_signature_verify. This
-             * will compute the tbs value and call the crypto. */
-            return_value = (verifier->callback1)(verifier,
-                                                 protected_parameters,
-                                                 NULL_Q_USEFUL_BUF_C,
-                                                *payload,
-                                                 aad,
-                                                 decoded_body_parameter_list,
-                                                 signature);
+             * will compute the tbs value and call the crypto.
+             */
+            return_value = verifier->callback1(verifier,
+                 protected_parameters, /* Protected body params cover by sig */
+                 NULL_Q_USEFUL_BUF_C,  /* Protected COSE_Signature params covered by sig */
+                *payload, /* inline or detached payload covered by the sig */
+                 aad,     /* Additional Authenticated Data (if any) covered by sig */
+                 decoded_body_parameter_list, /* Param list including alg ID */
+                 signature /* The signature to verify */
+               );
             if(return_value == T_COSE_SUCCESS) {
                 break;
             }
         }
 
     } else {
+        /* --- An array of COSE_Signatures --- */
         QCBORDecode_EnterArray(&decode_context, NULL);
         verifier = me->verifiers;
-        header_location = (struct t_cose_header_location){1, /* nesting at level 1 */
-                                                   0}; /* index that gets incremented with each signature */
+        /* Nesting level is 1, index starts at 0 and gets incremented */
+        header_location = (struct t_cose_header_location){.nesting = 1,
+                                                          .index   = 0 };
         bool decode_only = me->option_flags & T_COSE_OPT_DECODE_ONLY;
         while(1) { /* loop over COSE_Signatures */
             header_location.index++;
@@ -245,30 +251,32 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 
                 /* This call decodes one array entry containing a
                  * COSE_Signature. */
-                return_value = (verifier->callback)(verifier,
-                                                    !decode_only,
-                                                    header_location,
-                                                    protected_parameters,
-                                                   *payload,
-                                                    aad,
-                                                    me->p_storage,
-                                                     &decode_context,
-                                                    &decoded_sig_parameter_list);
+                return_value = verifier->callback(verifier,
+                                                  !decode_only,
+                                                  header_location,
+                                                  protected_parameters,
+                                                 *payload,
+                                                  aad,
+                                                  me->p_storage,
+                                                 &decode_context,
+                                                 &decoded_sig_parameter_list);
 
                 // TODO: this may not be in the right place
-                t_cose_parameter_list_append(decoded_body_parameter_list, decoded_sig_parameter_list);
+                t_cose_parameter_list_append(decoded_body_parameter_list,
+                                             decoded_sig_parameter_list);
 
                 if(return_value == T_COSE_SUCCESS) {
-                    if(me->option_flags & T_COSE_VERIFY_ALL) { // TODO: correct flag value
+                     // TODO: correct flag value
+                    if(me->option_flags & T_COSE_VERIFY_ALL) {
                         continue;
                     } else {
-                        break; /* successful decode. Don't need to try another verifier */
+                        break; /* success. Don't need to try another verifier*/
                     }
 #ifdef TODO_FIXME_MULTISIG
                 } else if(return_value == 98) {
-                    continue; /* Didn't know how to decode, try another verifier */
+                    continue; /* Didn't know how to decode, try another  */
                 } else if(return_value == 88) {
-                    goto done_with_sigs; /* No more COSE_Signatures to be read */
+                    goto done_with_sigs;/* No more COSE_Signatures to be read*/
 #endif
                 } else {
                     goto Done2;
@@ -292,9 +300,10 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     qcbor_error = QCBORDecode_Finish(&decode_context);
     if(qcbor_error != QCBOR_SUCCESS) {
         /* A decode error overrides other errors. */
-        return_value = qcbor_decode_error_to_t_cose_error(qcbor_error, T_COSE_ERR_SIGN1_FORMAT);
+        return_value = qcbor_decode_error_to_t_cose_error(qcbor_error,
+                                                      T_COSE_ERR_SIGN1_FORMAT);
     }
-    /* === End of the decoding of the array of four === */
+    /* --- End of the decoding of the array of four --- */
 
 Done2:
     if(returned_parameters != NULL) {
@@ -310,16 +319,15 @@ Done:
  * Public function. See t_cose_sign_sign.h
  */
 void
-t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx *context,
+t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *me,
                          struct t_cose_signature_verify *verifier)
 {
-    // TODO: for COSE_Sign1 this can be tiny and inline when DISABLE_COSE_SIGN is set
-    if(context->verifiers == NULL) {
-        context->verifiers = verifier;
+    // TODO: for COSE_Sign1 this can be tiny and inline fo DISABLE_COSE_SIGN
+    if(me->verifiers == NULL) {
+        me->verifiers = verifier;
     } else {
         struct t_cose_signature_verify *t;
-        for(t = context->verifiers; t->next_in_list != NULL; t = t->next_in_list);
+        for(t = me->verifiers; t->next_in_list != NULL; t = t->next_in_list);
         t->next_in_list = verifier;
     }
 }
-

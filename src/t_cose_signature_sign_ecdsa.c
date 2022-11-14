@@ -1,9 +1,14 @@
-//
-//  t_cose_signature_sign_ecdsa.c
-//
-//  Created by Laurence Lundblade on 5/23/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ * t_cose_signature_sign_ecdsa.c
+ *
+ * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Created by Laurence Lundblade on 5/23/22.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ */
+
 
 #include "t_cose/t_cose_signature_sign_ecdsa.h"
 #include "t_cose/t_cose_signature_sign.h"
@@ -17,7 +22,8 @@ static void
 t_cose_ecdsa_headers(struct t_cose_signature_sign   *me_x,
                      struct t_cose_parameter       **params)
 {
-    struct t_cose_signature_sign_ecdsa *me = (struct t_cose_signature_sign_ecdsa *)me_x;
+    struct t_cose_signature_sign_ecdsa *me =
+                                    (struct t_cose_signature_sign_ecdsa *)me_x;
 
     me->local_params[0]  = t_cose_make_alg_id_parameter(me->cose_algorithm_id);
     if(!q_useful_buf_c_is_null(me->kid)) {
@@ -30,7 +36,8 @@ t_cose_ecdsa_headers(struct t_cose_signature_sign   *me_x,
 
 
 /* While this is a private function, it is called externally
- as a callback via a function pointer that is set up in  t_cose_ecdsa_signer_init().  */
+ * as a callback via a function pointer that is set up in
+ * t_cose_ecdsa_signer_init().  */
 static enum t_cose_err_t
 t_cose_ecdsa_sign(struct t_cose_signature_sign  *me_x,
                   bool                           make_cose_signature,
@@ -39,15 +46,15 @@ t_cose_ecdsa_sign(struct t_cose_signature_sign  *me_x,
                   const struct q_useful_buf_c    signed_payload,
                   QCBOREncodeContext            *qcbor_encoder)
 {
-    struct t_cose_signature_sign_ecdsa *me = (struct t_cose_signature_sign_ecdsa *)me_x;
-
-    enum t_cose_err_t               return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB(     buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
-    Q_USEFUL_BUF_MAKE_STACK_UB(     buffer_for_signature, T_COSE_MAX_SIG_SIZE);
-    struct q_useful_buf_c           tbs_hash;
-    struct q_useful_buf_c           signature;
-    struct q_useful_buf_c           signer_protected_headers;
-    struct t_cose_parameter        *parameters;
+    struct t_cose_signature_sign_ecdsa *me =
+                                     (struct t_cose_signature_sign_ecdsa *)me_x;
+    enum t_cose_err_t           return_value;
+    Q_USEFUL_BUF_MAKE_STACK_UB( buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
+    Q_USEFUL_BUF_MAKE_STACK_UB( buffer_for_signature, T_COSE_MAX_SIG_SIZE);
+    struct q_useful_buf_c       tbs_hash;
+    struct q_useful_buf_c       signature;
+    struct q_useful_buf_c       signer_protected_headers;
+    struct t_cose_parameter    *parameters;
 
 
     /* -- The headers if if is a COSE_Sign -- */
@@ -59,14 +66,18 @@ t_cose_ecdsa_sign(struct t_cose_signature_sign  *me_x,
         t_cose_ecdsa_headers(me_x, &parameters);
         t_cose_parameter_list_append(parameters, me->added_signer_params);
 
-        t_cose_encode_headers(qcbor_encoder, parameters, &signer_protected_headers);
+        t_cose_encode_headers(qcbor_encoder,
+                              parameters,
+                              &signer_protected_headers);
     }
 
     /* -- The signature -- */
     if (QCBOREncode_IsBufferNULL(qcbor_encoder)) {
         /* Size calculation mode */
         signature.ptr = NULL;
-        t_cose_crypto_sig_size(me->cose_algorithm_id, me->signing_key, &signature.len);
+        t_cose_crypto_sig_size(me->cose_algorithm_id,
+                               me->signing_key,
+                               &signature.len);
 
         return_value = T_COSE_SUCCESS;
 

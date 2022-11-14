@@ -681,6 +681,13 @@ enum t_cose_err_t {
 #define T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0    16
 #define T_COSE_OPT_MESSAGE_TYPE_MAC         97
 #define T_COSE_OPT_MESSAGE_TYPE_MAC0        17
+
+#define T_COSE_OPT_IS_SIGN1(opts) \
+   ((T_COSE_OPT_MESSAGE_TYPE_MASK & opts) == T_COSE_OPT_MESSAGE_TYPE_SIGN1)
+
+#define T_COSE_OPT_IS_SIGN(opts) \
+((T_COSE_OPT_MESSAGE_TYPE_MASK & opts) == T_COSE_OPT_MESSAGE_TYPE_SIGN)
+
 /* Not expecting any more. */
 
 
