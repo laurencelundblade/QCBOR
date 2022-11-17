@@ -114,7 +114,7 @@ t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *sign_ctx,
  * related for possible option flags.
  *
  * The algorithm ID space is from
- * [COSE (RFC8152)](https://tools.ietf.org/html/rfc8152) and the
+ * [COSE (RFC9053)](https://tools.ietf.org/html/rfc9053) and the
  * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
  * \ref T_COSE_ALGORITHM_HMAC256 is defined here for convenience.
  * So far, only HMAC is supported in \c COSE_Mac0.

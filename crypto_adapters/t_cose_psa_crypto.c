@@ -473,7 +473,7 @@ t_cose_crypto_hmac_sign_setup(struct t_cose_crypto_hmac *hmac_ctx,
 
     /*
      * Verify if HMAC algorithm is valid.
-     * According to COSE (RFC 8152), only SHA-256, SHA-384 and SHA-512 are
+     * According to COSE (RFC 9053), only SHA-256, SHA-384 and SHA-512 are
      * supported in COSE_Mac0 with HMAC.
      */
     if((psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_256)) &&
@@ -549,7 +549,7 @@ t_cose_crypto_hmac_verify_setup(struct t_cose_crypto_hmac *hmac_ctx,
 
     /*
      * Verify if HMAC algorithm is valid.
-     * According to COSE (RFC 8152), only SHA-256, SHA-384 and SHA-512 are
+     * According to COSE (RFC 9053), only SHA-256, SHA-384 and SHA-512 are
      * supported in HMAC.
      */
     if((psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_256)) &&
