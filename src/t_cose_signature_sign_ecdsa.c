@@ -58,7 +58,7 @@ t_cose_ecdsa_sign(struct t_cose_signature_sign  *me_x,
 
 
     /* -- The headers if if is a COSE_Sign -- */
-    signer_protected_headers = NULLUsefulBufC;
+    signer_protected_headers = NULL_Q_USEFUL_BUF_C;
     if(make_cose_signature) {
         /* COSE_Sign, so making a COSE_Signature  */
         QCBOREncode_OpenArray(qcbor_encoder);

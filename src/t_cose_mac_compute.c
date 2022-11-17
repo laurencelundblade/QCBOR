@@ -67,7 +67,7 @@ Done:
  */
 enum t_cose_err_t
 t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
-                              QCBOREncodeContext        *cbor_encode_ctx)
+                             QCBOREncodeContext              *cbor_encode_ctx)
 
 {
     size_t                            tag_len;
@@ -122,7 +122,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
  */
 enum t_cose_err_t
 t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
-                       QCBOREncodeContext        *cbor_encode_ctx)
+                      QCBOREncodeContext              *cbor_encode_ctx)
 
 {
     enum t_cose_err_t            return_value;
@@ -134,7 +134,7 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
                                  T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE);
     struct q_useful_buf_c        tbm_first_part;
     /* Buffer for the ToBeMaced */
-    UsefulBuf_MAKE_STACK_UB(     tbm_first_part_buf,
+    Q_USEFUL_BUF_MAKE_STACK_UB(  tbm_first_part_buf,
                                  T_COSE_SIZE_OF_TBM);
     struct t_cose_crypto_hmac    hmac_ctx;
     struct q_useful_buf_c        maced_payload;

@@ -186,7 +186,7 @@ t_cose_short_sign(struct t_cose_signature_sign *me_x,
     }
 
     /* -- The headers if it is a COSE_Sign -- */
-    signer_protected_headers = NULLUsefulBufC;
+    signer_protected_headers = NULL_Q_USEFUL_BUF_C;
     if(make_cose_signature) { // TODO: better name for this variable
         /* COSE_Sign, so making a COSE_Signature  */
         /* Open the array enclosing the two header buckets and the sig. */

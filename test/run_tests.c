@@ -178,7 +178,7 @@ int RunTestsTCose(const char    *szTestNames[],
     // int (-32767 to 32767 according to C standard) used by conscious choice
     int nTestsFailed = 0;
     int nTestsRun = 0;
-    UsefulBuf_MAKE_STACK_UB(StringStorage, 12);
+    Q_USEFUL_BUF_MAKE_STACK_UB(StringStorage, 12);
 
 #ifdef STRING_RETURNING_TESTS
 
@@ -297,7 +297,7 @@ static void PrintSize(const char *szWhat,
                       OutputStringCB pfOutput,
                       void *pOutCtx)
 {
-   UsefulBuf_MAKE_STACK_UB(buffer, 20);
+   Q_USEFUL_BUF_MAKE_STACK_UB(buffer, 20);
 
    (*pfOutput)(szWhat, pOutCtx, 0);
    (*pfOutput)(" ", pOutCtx, 0);

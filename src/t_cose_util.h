@@ -145,7 +145,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * \retval T_COSE_ERR_HASH_GENERAL_FAIL
  *         In case of some general hash failure.
  */
-enum t_cose_err_t create_tbm(UsefulBuf                       tbm_first_part_buf,
+enum t_cose_err_t create_tbm(struct q_useful_buf             tbm_first_part_buf,
                              struct q_useful_buf_c           protected_headers,
                              struct q_useful_buf_c          *tbm_first_part,
                              enum t_cose_tbm_payload_mode_t  payload_mode,
