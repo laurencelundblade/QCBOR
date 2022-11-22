@@ -178,12 +178,16 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
     return T_COSE_SUCCESS;
 }
 
-enum t_cose_err_t make_hmac_key(uint8_t cose_alg, struct t_cose_key *res_key)
+/*
+ * Public function, see t_cose_make_test_pub_key.h
+ */
+enum t_cose_err_t make_hmac_key(int32_t            cose_algorithm_id,
+                                struct t_cose_key *key)
 {
     psa_status_t         crypto_result;
     psa_key_handle_t     key_handle;
     psa_algorithm_t      key_alg;
-    const uint8_t       *key;
+    const uint8_t       *key_buf;
     size_t               key_len;
     psa_key_attributes_t key_attributes;
 
@@ -192,20 +196,20 @@ enum t_cose_err_t make_hmac_key(uint8_t cose_alg, struct t_cose_key *res_key)
     static const uint8_t key_384[] = {KEY_hmac384};
     static const uint8_t key_512[] = {KEY_hmac512};
 
-    switch(cose_alg) {
+    switch(cose_algorithm_id) {
     case T_COSE_ALGORITHM_HMAC256:
-        key      = key_256;
+        key_buf  = key_256;
         key_len  = sizeof(key_256);
         key_alg  = PSA_ALG_HMAC(PSA_ALG_SHA_256);
         break;
 
     case T_COSE_ALGORITHM_HMAC384:
-        key     = key_384;
+        key_buf = key_384;
         key_len = sizeof(key_384);
         key_alg = PSA_ALG_HMAC(PSA_ALG_SHA_384);
         break;
     case T_COSE_ALGORITHM_HMAC512:
-        key     = key_512;
+        key_buf = key_512;
         key_len = sizeof(key_512);
         key_alg = PSA_ALG_HMAC(PSA_ALG_SHA_512);
         break;
@@ -243,7 +247,7 @@ enum t_cose_err_t make_hmac_key(uint8_t cose_alg, struct t_cose_key *res_key)
     psa_set_key_algorithm(&key_attributes, key_alg);
 
     crypto_result = psa_import_key(&key_attributes,
-                                    key,
+                                    key_buf,
                                     key_len,
                                    &key_handle);
 
@@ -258,8 +262,8 @@ enum t_cose_err_t make_hmac_key(uint8_t cose_alg, struct t_cose_key *res_key)
      * an linked library. If it is defined, the structure will
      * probably be less than 64 bits, so it can still fit in a
      * t_cose_key. */
-    res_key->k.key_handle = key_handle;
-    res_key->crypto_lib   = T_COSE_CRYPTO_LIB_PSA;
+    key->k.key_handle = key_handle;
+    key->crypto_lib   = T_COSE_CRYPTO_LIB_PSA;
 
     return T_COSE_SUCCESS;
 }

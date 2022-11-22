@@ -50,7 +50,7 @@ struct t_cose_mac_validate_ctx {
  */
 static void
 t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *context,
-                        int32_t                      option_flags);
+                         int32_t                         option_flags);
 
 
 /**
@@ -64,7 +64,7 @@ t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *context,
  */
 static void
 t_cose_mac_set_validate_key(struct t_cose_mac_validate_ctx *context,
-                           struct t_cose_key            verify_key);
+                            struct t_cose_key               verify_key);
 
 /**
  * \brief Verify a COSE_Mac0
@@ -98,33 +98,36 @@ t_cose_mac_set_validate_key(struct t_cose_mac_validate_ctx *context,
  * If it is successful, the pointer of the CBOR-encoded payload is
  * returned.
  */
-static enum t_cose_err_t t_cose_mac_validate(struct t_cose_mac_validate_ctx *context,
-                                     struct q_useful_buf_c                   cose_mac,
-                                     struct q_useful_buf_c                   aad,
-                                     struct q_useful_buf_c                  *payload,
-                                     struct t_cose_parameter            **return_params);
+static enum t_cose_err_t
+t_cose_mac_validate(struct t_cose_mac_validate_ctx *context,
+                    struct q_useful_buf_c           cose_mac,
+                    struct q_useful_buf_c           aad,
+                    struct q_useful_buf_c          *payload,
+                    struct t_cose_parameter       **return_params);
 
-static enum t_cose_err_t t_cose_mac_validate_detached(struct t_cose_mac_validate_ctx *context,
-                                     struct q_useful_buf_c                        cose_mac,
-                                     struct q_useful_buf_c                       *detached_payload,
-                                     struct t_cose_parameter                 **return_params);
+static enum t_cose_err_t
+t_cose_mac_validate_detached(struct t_cose_mac_validate_ctx *context,
+                             struct q_useful_buf_c           cose_mac,
+                             struct q_useful_buf_c          *detached_payload,
+                             struct t_cose_parameter       **return_params);
 
-enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
-                                            struct q_useful_buf_c         cose_mac,
-                                            struct q_useful_buf_c         aad,
-                                            bool                          payload_is_detached,
-                                            struct q_useful_buf_c        *payload,
-                                            struct t_cose_parameter  **return_params);
+enum t_cose_err_t
+t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
+                            struct q_useful_buf_c           cose_mac,
+                            struct q_useful_buf_c           aad,
+                            bool                            payload_is_detached,
+                            struct q_useful_buf_c          *payload,
+                            struct t_cose_parameter       **return_params);
 
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
 static inline void
 t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *context,
-                        int32_t                      option_flags)
+                         int32_t                         option_flags)
 {
-    context->option_flags        = option_flags;
-    context->verification_key    = T_COSE_NULL_KEY;
+    context->option_flags              = option_flags;
+    context->verification_key          = T_COSE_NULL_KEY;
     context->parameter_storage.storage = context->__params;
     context->parameter_storage.size    = sizeof(context->__params)/sizeof(struct t_cose_parameter);
     context->parameter_storage.used    = 0;
@@ -132,41 +135,40 @@ t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *context,
 
 static inline void
 t_cose_mac_set_validate_key(struct t_cose_mac_validate_ctx *context,
-                           struct t_cose_key            verify_key)
+                            struct t_cose_key               verify_key)
 {
     context->verification_key = verify_key;
 }
 
 static inline enum t_cose_err_t
 t_cose_mac_validate_detached(struct t_cose_mac_validate_ctx *context,
-                           struct q_useful_buf_c         cose_mac,
-                           struct q_useful_buf_c        *detached_payload,
-                        struct t_cose_parameter     **return_params){
-    return t_cose_mac_validate_private(
-        context,
-        cose_mac,
-        NULL_Q_USEFUL_BUF_C,
-        true,
-        detached_payload,
-        return_params
-    );
+                             struct q_useful_buf_c           cose_mac,
+                             struct q_useful_buf_c          *detached_payload,
+                             struct t_cose_parameter       **return_params)
+{
+    return t_cose_mac_validate_private(context,
+                                       cose_mac,
+                                       NULL_Q_USEFUL_BUF_C,
+                                       true,
+                                       detached_payload,
+                                       return_params);
 }
 
 static inline enum t_cose_err_t
 t_cose_mac_validate(struct t_cose_mac_validate_ctx *context,
-                      struct q_useful_buf_c         cose_mac,
-                      struct q_useful_buf_c         aad,
-                      struct q_useful_buf_c        *payload,
-                      struct t_cose_parameter  **return_params){
-    return t_cose_mac_validate_private(
-        context,
-        cose_mac,
-        aad,
-        false,
-        payload,
-        return_params
-    );
+                    struct q_useful_buf_c           cose_mac,
+                    struct q_useful_buf_c           aad,
+                    struct q_useful_buf_c          *payload,
+                    struct t_cose_parameter       **return_params)
+{
+    return t_cose_mac_validate_private(context,
+                                       cose_mac,
+                                       aad,
+                                       false,
+                                       payload,
+                                       return_params);
 }
+
 #ifdef __cplusplus
 }
 #endif

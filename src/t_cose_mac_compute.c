@@ -25,11 +25,11 @@
 
 enum t_cose_err_t
 t_cose_mac_compute_private(struct t_cose_mac_calculate_ctx *context,
-                      bool                               payload_is_detached,
-                      struct q_useful_buf_c              aad,
-                      struct q_useful_buf_c              payload,
-                      struct q_useful_buf                out_buf,
-                      struct q_useful_buf_c             *result)
+                           bool                             payload_is_detached,
+                           struct q_useful_buf_c            aad,
+                           struct q_useful_buf_c            payload,
+                           struct q_useful_buf              out_buf,
+                           struct q_useful_buf_c           *result)
 {
     (void)payload_is_detached;
     (void)aad;
@@ -68,11 +68,10 @@ Done:
 enum t_cose_err_t
 t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
                              QCBOREncodeContext              *cbor_encode_ctx)
-
 {
-    size_t                            tag_len;
-    enum t_cose_err_t                 return_value;
-    struct t_cose_parameter        param_storage[2];
+    size_t                  tag_len;
+    enum t_cose_err_t       return_value;
+    struct t_cose_parameter param_storage[2];
 
     /*
      * Check the algorithm now by getting the algorithm as an early
@@ -99,11 +98,9 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
 
     t_cose_parameter_list_append(&param_storage[0], me->added_body_parameters);
 
-    return_value = t_cose_encode_headers(
-        cbor_encode_ctx,
-        &param_storage[0],
-       &me->protected_parameters
-    );
+    return_value = t_cose_encode_headers(cbor_encode_ctx,
+                                         &param_storage[0],
+                                         &me->protected_parameters);
 
     /* --- Get started on the payload --- */
     QCBOREncode_BstrWrap(cbor_encode_ctx);
@@ -123,7 +120,6 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
 enum t_cose_err_t
 t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
                       QCBOREncodeContext              *cbor_encode_ctx)
-
 {
     enum t_cose_err_t            return_value;
     QCBORError                   cbor_err;
@@ -182,9 +178,9 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
      * Calculate the tag of the first part of ToBeMaced and the wrapped
      * payload, to save a bigger buffer containing the entire ToBeMaced.
      */
-    return_value = t_cose_crypto_hmac_sign_setup(&hmac_ctx,
-                                                 me->signing_key,
-                                                 me->cose_algorithm_id);
+    return_value = t_cose_crypto_hmac_compute_setup(&hmac_ctx,
+                                                    me->signing_key,
+                                                    me->cose_algorithm_id);
     if(return_value) {
         goto Done;
     }
@@ -206,7 +202,7 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
         goto Done;
     }
 
-    return_value = t_cose_crypto_hmac_sign_finish(&hmac_ctx, tag_buf, &tag);
+    return_value = t_cose_crypto_hmac_compute_finish(&hmac_ctx, tag_buf, &tag);
     if(return_value) {
         goto Done;
     }

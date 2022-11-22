@@ -75,9 +75,9 @@ static test_entry s_tests[] = {
 #endif /* T_COSE_DISABLE_SIGN1 */
 
 #ifndef T_COSE_DISABLE_MAC0
-    TEST_ENTRY(sign_verify_mac_basic_test),
-    TEST_ENTRY(sign_verify_mac_sig_fail_test),
-    TEST_ENTRY(sign_verify_get_size_mac_test),
+    TEST_ENTRY(compute_validate_mac_basic_test),
+    TEST_ENTRY(compute_validate_mac_sig_fail_test),
+    TEST_ENTRY(compute_validate_get_size_mac_test),
 #endif /* T_COSE_DISABLE_MAC0 */
 
 #endif /* T_COSE_DISABLE_SIGN_VERIFY_TESTS */

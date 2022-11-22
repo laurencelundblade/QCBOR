@@ -79,25 +79,25 @@ struct t_cose_mac_calculate_ctx {
  */
 enum t_cose_err_t
 t_cose_mac_compute_private(struct t_cose_mac_calculate_ctx *context,
-                      bool                               payload_is_detached,
-                      struct q_useful_buf_c              aad,
-                      struct q_useful_buf_c              payload,
-                      struct q_useful_buf                out_buf,
-                      struct q_useful_buf_c             *result);
+                           bool                             payload_is_detached,
+                           struct q_useful_buf_c            aad,
+                           struct q_useful_buf_c            payload,
+                           struct q_useful_buf              out_buf,
+                           struct q_useful_buf_c           *result);
 
 static enum t_cose_err_t
 t_cose_mac_compute(struct t_cose_mac_calculate_ctx *sign_ctx,
-                    struct q_useful_buf_c        aad,
-                    struct q_useful_buf_c        payload,
-                    struct q_useful_buf          out_buf,
-                    struct q_useful_buf_c       *result);
+                   struct q_useful_buf_c            aad,
+                   struct q_useful_buf_c            payload,
+                   struct q_useful_buf              out_buf,
+                   struct q_useful_buf_c           *result);
 
 static enum t_cose_err_t
 t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *sign_ctx,
-                          struct q_useful_buf_c            aad,
-                          struct q_useful_buf_c            datached_payload,
-                          struct q_useful_buf              out_buf,
-                          struct q_useful_buf_c           *result);
+                            struct q_useful_buf_c            aad,
+                            struct q_useful_buf_c            datached_payload,
+                            struct q_useful_buf              out_buf,
+                            struct q_useful_buf_c           *result);
 
 /**
  * \brief  Initialize to start creating a \c COSE_Mac0.
@@ -124,8 +124,8 @@ t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *sign_ctx,
  */
 static void
 t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *context,
-                     uint32_t                    option_flags,
-                     int32_t                     cose_algorithm_id);
+                        uint32_t                         option_flags,
+                        int32_t                          cose_algorithm_id);
 
 /**
  * \brief  Set the key and kid (key ID) for signing.
@@ -143,13 +143,13 @@ t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *context,
  */
 static void
 t_cose_mac_set_computing_key(struct t_cose_mac_calculate_ctx *context,
-                            struct t_cose_key          signing_key,
-                            struct q_useful_buf_c      kid);
+                             struct t_cose_key                signing_key,
+                             struct q_useful_buf_c            kid);
 
 
 static void
 t_cose_mac_add_body_header_params(struct t_cose_mac_calculate_ctx *context,
-                                   struct t_cose_parameter *parameters);
+                                  struct t_cose_parameter         *parameters);
 
 
 /*
@@ -194,7 +194,7 @@ are replaced with t_cose_sign1_add_body_header_parameters()
  */
 enum t_cose_err_t
 t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *context,
-                              QCBOREncodeContext        *cbor_encode_ctx);
+                             QCBOREncodeContext              *cbor_encode_ctx);
 
 /**
  * \brief Finish a \c COSE_Mac0 message by outputting the authentication tag.
@@ -214,7 +214,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *context,
  */
 enum t_cose_err_t
 t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *context,
-                       QCBOREncodeContext        *cbor_encode_ctx);
+                      QCBOREncodeContext              *cbor_encode_ctx);
 
 
 
@@ -226,8 +226,8 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *context,
 
 static inline void
 t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *me,
-                     uint32_t                    option_flags,
-                     int32_t                     cose_algorithm_id)
+                        uint32_t                         option_flags,
+                        int32_t                          cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
     me->cose_algorithm_id = cose_algorithm_id;
@@ -236,8 +236,8 @@ t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *me,
 
 static inline void
 t_cose_mac_set_computing_key(struct t_cose_mac_calculate_ctx *me,
-                            struct t_cose_key          signing_key,
-                            struct q_useful_buf_c      kid)
+                             struct t_cose_key                signing_key,
+                             struct q_useful_buf_c            kid)
 {
     me->kid         = kid;
     me->signing_key = signing_key;
@@ -246,7 +246,7 @@ t_cose_mac_set_computing_key(struct t_cose_mac_calculate_ctx *me,
 
 static inline void
 t_cose_mac_add_body_header_params(struct t_cose_mac_calculate_ctx *me,
-                                  struct t_cose_parameter *parameters)
+                                  struct t_cose_parameter         *parameters)
 {
     me->added_body_parameters = parameters;
 }
@@ -254,35 +254,33 @@ t_cose_mac_add_body_header_params(struct t_cose_mac_calculate_ctx *me,
 
 static inline enum t_cose_err_t
 t_cose_mac_compute(struct t_cose_mac_calculate_ctx *sign_ctx,
-                    struct q_useful_buf_c        aad,
-                    struct q_useful_buf_c        payload,
-                    struct q_useful_buf          out_buf,
-                    struct q_useful_buf_c       *result){
-    return t_cose_mac_compute_private(
-        sign_ctx,
-        false,
-        aad,
-        payload,
-        out_buf,
-        result
-    );
+                   struct q_useful_buf_c            aad,
+                   struct q_useful_buf_c            payload,
+                   struct q_useful_buf              out_buf,
+                   struct q_useful_buf_c           *result)
+{
+    return t_cose_mac_compute_private(sign_ctx,
+                                      false,
+                                      aad,
+                                      payload,
+                                      out_buf,
+                                      result);
 }
 
 static inline enum t_cose_err_t
 t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *sign_ctx,
-                          struct q_useful_buf_c            aad,
-                          struct q_useful_buf_c            detached_payload,
-                          struct q_useful_buf              out_buf,
-                          struct q_useful_buf_c           *result){
+                            struct q_useful_buf_c            aad,
+                            struct q_useful_buf_c            detached_payload,
+                            struct q_useful_buf              out_buf,
+                            struct q_useful_buf_c           *result)
+{
     (void)aad;
-    return t_cose_mac_compute_private(
-        sign_ctx,
-        true,
-        NULL_Q_USEFUL_BUF_C,
-        detached_payload,
-        out_buf,
-        result
-    );
+    return t_cose_mac_compute_private(sign_ctx,
+                                      true,
+                                      NULL_Q_USEFUL_BUF_C,
+                                      detached_payload,
+                                      out_buf,
+                                      result);
 }
 #ifdef __cplusplus
 }

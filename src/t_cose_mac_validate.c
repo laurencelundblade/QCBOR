@@ -34,12 +34,13 @@
  * at the level above COSE.
  */
 static inline enum t_cose_err_t
-process_tags(struct t_cose_mac_validate_ctx *me, QCBORDecodeContext *decode_context)
+process_tags(struct t_cose_mac_validate_ctx *me,
+             QCBORDecodeContext             *decode_context)
 {
     /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    20          16
-     *   TOTAL                                         20          16
+     *                  64-bit      32-bit
+     *   local vars     20          16
+     *   TOTAL          20          16
      */
     uint64_t uTag;
     uint32_t item_tag_index = 0;
@@ -69,7 +70,6 @@ process_tags(struct t_cose_mac_validate_ctx *me, QCBORDecodeContext *decode_cont
     /* If the protocol using COSE doesn't say one way or another about the
      * tag, then either is OK.
      */
-
 
     /* Initialize auTags, the returned tags, to CBOR_TAG_INVALID64 */
 #if CBOR_TAG_INVALID64 != 0xffffffffffffffff
@@ -115,12 +115,13 @@ process_tags(struct t_cose_mac_validate_ctx *me, QCBORDecodeContext *decode_cont
 /*
  * Public function. See t_cose_mac.h
  */
-enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
-                                            struct q_useful_buf_c         cose_mac,
-                                            struct q_useful_buf_c         aad,
-                                            bool                          payload_is_detached,
-                                            struct q_useful_buf_c        *payload,
-                                            struct t_cose_parameter  **return_params)
+enum t_cose_err_t
+t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
+                            struct q_useful_buf_c           cose_mac,
+                            struct q_useful_buf_c           aad,
+                            bool                            payload_is_detached,
+                            struct q_useful_buf_c          *payload,
+                            struct t_cose_parameter       **return_params)
 {
     (void)aad;
     (void)payload_is_detached;
@@ -135,7 +136,7 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
     Q_USEFUL_BUF_MAKE_STACK_UB(   tbm_first_part_buf,
                                   T_COSE_SIZE_OF_TBM);
     struct t_cose_crypto_hmac     hmac_ctx;
-    struct t_cose_parameter   *decoded_params;
+    struct t_cose_parameter      *decoded_params;
 
     *payload = NULL_Q_USEFUL_BUF_C;
     decoded_params = NULL; // TODO: check that this is right and necessary
@@ -144,7 +145,9 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
 
     /* --- The array of 4 and tags --- */
     QCBORDecode_EnterArray(&decode_context, NULL);
-    return_value = qcbor_decode_error_to_t_cose_error(QCBORDecode_GetError(&decode_context), T_COSE_ERR_MAC0_FORMAT);
+    return_value = qcbor_decode_error_to_t_cose_error(
+                                        QCBORDecode_GetError(&decode_context),
+                                        T_COSE_ERR_MAC0_FORMAT);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -159,8 +162,8 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
                           l,
                           NULL,
                           NULL,
-                        &context->parameter_storage,
-                        &decoded_params,
+                          &context->parameter_storage,
+                          &decoded_params,
                           &protected_parameters);
 
     /* --- The payload --- */
@@ -177,7 +180,8 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
      * makes sure there were no extra bytes. Also that the payload
      * and signature were decoded correctly. */
     qcbor_error = QCBORDecode_Finish(&decode_context);
-    return_value = qcbor_decode_error_to_t_cose_error(qcbor_error, T_COSE_ERR_MAC0_FORMAT);
+    return_value = qcbor_decode_error_to_t_cose_error(qcbor_error,
+                                                      T_COSE_ERR_MAC0_FORMAT);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -214,7 +218,7 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
      * Calculate the tag of the first part of ToBeMaced and the wrapped
      * payload, to save a bigger buffer containing the entire ToBeMaced.
      */
-    return_value = t_cose_crypto_hmac_verify_setup(&hmac_ctx,
+    return_value = t_cose_crypto_hmac_validate_setup(&hmac_ctx,
                                   t_cose_find_parameter_alg_id(decoded_params),
                                   context->verification_key);
     if(return_value) {
@@ -234,7 +238,7 @@ enum t_cose_err_t t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *co
         goto Done;
     }
 
-    return_value = t_cose_crypto_hmac_verify_finish(&hmac_ctx, tag);
+    return_value = t_cose_crypto_hmac_validate_finish(&hmac_ctx, tag);
 
 Done:
     if(return_params != NULL) {
@@ -249,6 +253,5 @@ Done:
 /* So some of the build checks don't get confused by an empty object file */
 void t_cose_mac_validate_placeholder(void)
 {}
-
 
 #endif /* !T_COSE_DISABLE_MAC0 */

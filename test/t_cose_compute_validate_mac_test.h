@@ -23,22 +23,22 @@
 
 
 /**
- * \brief Self test using integrated  crypto.
+ * \brief Self test using integrated crypto.
  *
  * \return non-zero on failure.
  */
-int_fast32_t sign_verify_mac_basic_test(void);
+int_fast32_t compute_validate_mac_basic_test(void);
 
 
 /*
- * Sign some data, perturb the data and see that sig validation fails
+ * Sign some data, perturb the data and see that sig validation fails.
  */
-int_fast32_t sign_verify_mac_sig_fail_test(void);
+int_fast32_t compute_validate_mac_sig_fail_test(void);
 
 
 /*
- * Test the ability to calculate size of a COSE_Mac0
+ * Test the ability to calculate size of a COSE_Mac0.
  */
-int_fast32_t sign_verify_get_size_mac_test(void);
+int_fast32_t compute_validate_get_size_mac_test(void);
 
 #endif /* t_cose_compute_validate_mac_test_h */
