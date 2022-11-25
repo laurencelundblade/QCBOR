@@ -92,19 +92,28 @@ int_fast32_t compute_validate_mac_basic_test()
 {
     int_fast32_t return_value;
 
-    return_value  = compute_validate_basic_test_alg_mac(T_COSE_ALGORITHM_HMAC256);
-    if(return_value) {
-        return 20000 + return_value;
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC256)) {
+        return_value  = compute_validate_basic_test_alg_mac(
+                                                    T_COSE_ALGORITHM_HMAC256);
+        if(return_value) {
+            return 20000 + return_value;
+        }
     }
 
-    return_value  = compute_validate_basic_test_alg_mac(T_COSE_ALGORITHM_HMAC384);
-    if(return_value) {
-        return 30000 + return_value;
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC384)) {
+        return_value  = compute_validate_basic_test_alg_mac(
+                                                    T_COSE_ALGORITHM_HMAC384);
+        if(return_value) {
+            return 30000 + return_value;
+        }
     }
 
-    return_value  = compute_validate_basic_test_alg_mac(T_COSE_ALGORITHM_HMAC512);
-    if(return_value) {
-        return 50000 + return_value;
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC512)) {
+        return_value  = compute_validate_basic_test_alg_mac(
+                                                    T_COSE_ALGORITHM_HMAC512);
+        if(return_value) {
+            return 50000 + return_value;
+        }
     }
 
     return 0;
@@ -288,45 +297,51 @@ int_fast32_t compute_validate_get_size_mac_test()
     struct t_cose_key key;
     int32_t           result;
 
-    return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC256, &key);
-    if(return_value) {
-        return 10000 + (int32_t)return_value;
-    }
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC256)) {
+        return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC256, &key);
+        if(return_value) {
+            return 10000 + (int32_t)return_value;
+        }
 
-    result = size_test(T_COSE_ALGORITHM_HMAC256, NULL_Q_USEFUL_BUF_C, key);
-    free_key(key);
-    if(result) {
-        return 20000 + result;
-    }
-
-    return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC384, &key);
-    if(return_value) {
-        return 30000 + (int32_t)return_value;
-    }
-
-    result = size_test(T_COSE_ALGORITHM_HMAC384, NULL_Q_USEFUL_BUF_C, key);
-    free_key(key);
-    if(result) {
-        return 40000 + result;
-    }
-
-    return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC512, &key);
-    if(return_value) {
-        return 50000 + (int32_t)return_value;
-    }
-
-    result = size_test(T_COSE_ALGORITHM_HMAC512, NULL_Q_USEFUL_BUF_C, key);
-    if(result) {
+        result = size_test(T_COSE_ALGORITHM_HMAC256, NULL_Q_USEFUL_BUF_C, key);
         free_key(key);
-        return 60000 + result;
+        if(result) {
+            return 20000 + result;
+        }
     }
 
-    result = size_test(T_COSE_ALGORITHM_HMAC512,
-                       Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"),
-                       key);
-    free_key(key);
-    if(result) {
-        return 70000 + result;
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC384)) {
+        return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC384, &key);
+        if(return_value) {
+            return 30000 + (int32_t)return_value;
+        }
+
+        result = size_test(T_COSE_ALGORITHM_HMAC384, NULL_Q_USEFUL_BUF_C, key);
+        free_key(key);
+        if(result) {
+            return 40000 + result;
+        }
+    }
+
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC512)) {
+        return_value = make_hmac_key(T_COSE_ALGORITHM_HMAC512, &key);
+        if(return_value) {
+            return 50000 + (int32_t)return_value;
+        }
+
+        result = size_test(T_COSE_ALGORITHM_HMAC512, NULL_Q_USEFUL_BUF_C, key);
+        if(result) {
+            free_key(key);
+            return 60000 + result;
+        }
+
+        result = size_test(T_COSE_ALGORITHM_HMAC512,
+                           Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"),
+                           key);
+        free_key(key);
+        if(result) {
+            return 70000 + result;
+        }
     }
 
     return 0;
