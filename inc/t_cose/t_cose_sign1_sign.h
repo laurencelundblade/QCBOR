@@ -639,7 +639,7 @@ t_cose_sign1_sign_aad_internal(struct t_cose_sign1_sign_ctx *me,
                                struct q_useful_buf           out_buf,
                                struct q_useful_buf_c        *result)
 {
-    return t_cose_sign_one_short(&(me->me2),
+    return t_cose_sign_one_shot(&(me->me2),
                                  payload_is_detached,
                                  payload,
                                  aad,

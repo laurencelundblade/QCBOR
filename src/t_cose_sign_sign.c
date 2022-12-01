@@ -218,12 +218,12 @@ Done:
  * Semi-private function. See t_cose_sign_sign.h
  */
 enum t_cose_err_t
-t_cose_sign_one_short(struct t_cose_sign_sign_ctx *me,
-                      bool                         payload_is_detached,
-                      struct q_useful_buf_c        payload,
-                      struct q_useful_buf_c        aad,
-                      struct q_useful_buf          out_buf,
-                      struct q_useful_buf_c       *result)
+t_cose_sign_one_shot(struct t_cose_sign_sign_ctx *me,
+                     bool                         payload_is_detached,
+                     struct q_useful_buf_c        payload,
+                     struct q_useful_buf_c        aad,
+                     struct q_useful_buf          out_buf,
+                     struct q_useful_buf_c       *result)
 {
     QCBOREncodeContext encode_context;
     enum t_cose_err_t  return_value;

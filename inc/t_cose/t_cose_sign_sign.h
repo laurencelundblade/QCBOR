@@ -390,12 +390,12 @@ t_cose_sign_sign_init(struct t_cose_sign_sign_ctx *me,
  * t_cose_sign_sign_aad() instead of this.
  */
 enum t_cose_err_t
-t_cose_sign_one_short(struct t_cose_sign_sign_ctx *context,
-                      bool                         payload_is_detached,
-                      struct q_useful_buf_c        aad,
-                      struct q_useful_buf_c        payload,
-                      struct q_useful_buf          out_buf,
-                      struct q_useful_buf_c       *result);
+t_cose_sign_one_shot(struct t_cose_sign_sign_ctx *context,
+                     bool                         payload_is_detached,
+                     struct q_useful_buf_c        aad,
+                     struct q_useful_buf_c        payload,
+                     struct q_useful_buf          out_buf,
+                     struct q_useful_buf_c       *result);
 
 
 static inline enum t_cose_err_t
@@ -405,12 +405,12 @@ t_cose_sign_sign(struct t_cose_sign_sign_ctx *me,
                  struct q_useful_buf          out_buf,
                  struct q_useful_buf_c       *result)
 {
-    return t_cose_sign_one_short(me,
-                                 false,
-                                 payload,
-                                 aad,
-                                 out_buf,
-                                 result);
+    return t_cose_sign_one_shot(me,
+                                false,
+                                payload,
+                                aad,
+                                out_buf,
+                                result);
 }
 
 
@@ -421,12 +421,12 @@ t_cose_sign_sign_detached(struct t_cose_sign_sign_ctx *me,
                           struct q_useful_buf          out_buf,
                           struct q_useful_buf_c       *result)
 {
-    return t_cose_sign_one_short(me,
-                                 true,
-                                 detached_payload,
-                                 aad,
-                                 out_buf,
-                                 result);
+    return t_cose_sign_one_shot(me,
+                                true,
+                                detached_payload,
+                                aad,
+                                out_buf,
+                                result);
 }
 
 
