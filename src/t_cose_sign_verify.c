@@ -157,6 +157,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     QCBORItem                       null_payload;
     struct t_cose_parameter        *decoded_body_parameter_list;
     struct t_cose_parameter        *decoded_sig_parameter_list;
+    struct t_cose_sign_inputs       sign_inputs;
 
 
     /* --- Decoding of the array of four starts here --- */
@@ -211,6 +212,10 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 
 
     /* --- The signature or the COSE_Signature(s) --- */
+    sign_inputs.body_protected = protected_parameters;
+    sign_inputs.sign_protected = NULL_Q_USEFUL_BUF_C;
+    sign_inputs.aad            = aad;
+    sign_inputs.payload        = *payload;
     // TODO: allow tag determination
     if(T_COSE_OPT_IS_SIGN1(me->option_flags)) {
         /* --- The signature bytes for a COSE_Sign1, not COSE_Signatures */
@@ -234,14 +239,10 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
              * will compute the tbs value and call the crypto.
              */
             verify_error = verifier->callback1(verifier,
-                 me->option_flags,
-                 protected_parameters, /* Protected body params cover by sig */
-                 NULL_Q_USEFUL_BUF_C,  /* Protected COSE_Signature params covered by sig */
-                *payload, /* inline or detached payload covered by the sig */
-                 aad,     /* Additional Authenticated Data (if any) covered by sig */
-                 decoded_body_parameter_list, /* Param list including alg ID */
-                 signature /* The signature to verify */
-               );
+                                               me->option_flags,
+                                              &sign_inputs,
+                                               decoded_body_parameter_list,
+                                               signature);
             if(verify_error == T_COSE_SUCCESS) {
                 break;
             }
@@ -276,9 +277,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                 return_value = verifier->callback(verifier,
                                                   me->option_flags,
                                                   header_location,
-                                                  protected_parameters,
-                                                 *payload,
-                                                  aad,
+                                                  &sign_inputs,
                                                   me->p_storage,
                                                  &decode_context,
                                                  &decoded_sig_parameter_list);

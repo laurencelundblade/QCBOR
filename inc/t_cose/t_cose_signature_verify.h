@@ -15,8 +15,6 @@
 
 #include "t_cose/t_cose_parameters.h"
 
-/* Warning: this is still early development. Documentation may be incorrect. */
-
 
 /*
  * This is the abstract base class that t_cose_sign_verify
@@ -47,9 +45,7 @@ struct t_cose_signature_verify;
  *                                    t_cose_signature_verify.
  * \param[in] option_flags          Option flags from t_cose_sign_verify_init(). Mostly for \ref T_COSE_OPT_DECODE_ONLY.
  * \param[in] loc                     The location of the signature inside the COSE_Sign.
- * \param[in] protected_body_headers  Body headers from COSE_Signature to verify
- * \param[in] payload                 The payload to verify (regular or detached)
- * \param[in] aad                     The aad to verify
+ * \param[in] sign_inputs             Payload, aad and header parameters to verify.
  * \param[in] params                  The place to put the decoded params.
  * \param[in] qcbor_decoder           The decoder instance from where the
  *                                     COSE_Signature is decoded.
@@ -59,9 +55,7 @@ typedef enum t_cose_err_t
 t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
                                  uint32_t                          option_flags,
                                  const struct t_cose_header_location loc,
-                                 const struct q_useful_buf_c       protected_body_headers,
-                                 const struct q_useful_buf_c       payload,
-                                 const struct q_useful_buf_c       aad,
+                                 const struct t_cose_sign_inputs *sign_inputs,
                                  struct t_cose_parameter_storage  *params,
                                  QCBORDecodeContext               *qcbor_decoder,
                                  struct t_cose_parameter         **decoded_signature_parameters);
@@ -75,10 +69,7 @@ t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
  *                                     t_cose_signature_verify_main that inplements
  *                                     t_cose_signature_verify.
  * \param[in] option_flags          Option flags from t_cose_sign_verify_init(). Mostly for \ref T_COSE_OPT_DECODE_ONLY.
- * \param[in] protected_body_headers   Encoded body headers from COSE_Signature to verify
- * \param[in] protected_signature_headers Headers from COSE_Signature.
- * \param[in] payload                  The payload to verify (regular or detached)
- * \param[in] aad                      The aad to verify
+ * \param[in] sign_inputs             Payload, aad and header parameters to verify.
  * \param[in] parameter_list           Parameter list in which algorithm and kid is
  *                                     found.
  * \param[in] signature                The signature.
@@ -90,10 +81,7 @@ t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
 typedef enum t_cose_err_t
 t_cose_signature_verify1_callback(struct t_cose_signature_verify *me,
                                   uint32_t                        option_flags,
-                                  const struct q_useful_buf_c     protected_body_headers,
-                                  const struct q_useful_buf_c     protected_signature_headers,
-                                  const struct q_useful_buf_c     payload,
-                                  const struct q_useful_buf_c     aad,
+                                  const struct t_cose_sign_inputs *sign_inputs,
                                   const struct t_cose_parameter  *parameter_list,
                                   const struct q_useful_buf_c     signature);
 

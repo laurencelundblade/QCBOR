@@ -27,10 +27,7 @@
 static enum t_cose_err_t
 t_cose_signature_verify1_eddsa(struct t_cose_signature_verify *me_x,
                                const uint32_t                  option_flags,
-                               const struct q_useful_buf_c     protected_body_headers,
-                               const struct q_useful_buf_c     protected_signature_headers,
-                               const struct q_useful_buf_c     payload,
-                               const struct q_useful_buf_c     aad,
+                               const struct t_cose_sign_inputs *sign_inputs,
                                const struct t_cose_parameter  *parameter_list,
                                const struct q_useful_buf_c     signature)
 {
@@ -61,10 +58,7 @@ t_cose_signature_verify1_eddsa(struct t_cose_signature_verify *me_x,
      * auxiliary_buffer, and we record the size the structure would
      * have occupied).
      */
-    return_value = create_tbs(protected_body_headers,
-                              aad,
-                              protected_signature_headers,
-                              payload,
+    return_value = create_tbs(sign_inputs,
                               me->auxiliary_buffer,
                              &tbs);
     if (return_value == T_COSE_ERR_TOO_SMALL) {
@@ -116,9 +110,7 @@ static enum t_cose_err_t
 t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
                               const uint32_t                      option_flags,
                               const struct t_cose_header_location loc,
-                              const struct q_useful_buf_c         protected_body_headers,
-                              const struct q_useful_buf_c         payload,
-                              const struct q_useful_buf_c         aad,
+                              const struct t_cose_sign_inputs    *sign_inputs,
                               struct t_cose_parameter_storage    *param_storage,
                               QCBORDecodeContext                 *qcbor_decoder,
                               struct t_cose_parameter           **decoded_signature_parameters)
@@ -157,10 +149,7 @@ t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
 
     return_value = t_cose_signature_verify1_eddsa(me_x,
                                                   option_flags,
-                                                  protected_body_headers,
-                                                  protected_parameters,
-                                                  payload,
-                                                  aad,
+                                                  sign_inputs,
                                                   *decoded_signature_parameters,
                                                   signature);
 Done:

@@ -100,12 +100,7 @@ struct t_cose_signature_sign;
  * \Param[in] option_flags           Option flags from t_cose_sign_verify_init().
  *                                   Primarily to check whether to make a
  *                                   COSE_Sign or COSE_Sign1.
- * \param[in] protected_body_headers The COSE_Sign body headers covered by the
- *                                   signature
- * \param[in] payload                The payload (regular or detached) that
- *                                   is covered by the signature.
- * \param[in] aad                    The aad covered by the signature. May
- *                                   be \ref NULL_Q_USEFUL_BUF_C
+ * \param[in] sign_inputs            Payload, aad and header parameters to sign.
  * \param[in] qcbor_encoder          The CBOR encoder context to ouput either
  *                                   a COSE_Signature or the simple byte
  *                                   string signature for a COSE_Sign1.
@@ -120,12 +115,10 @@ struct t_cose_signature_sign;
  * being called in size calculation mode.
  */
 typedef enum t_cose_err_t
-t_cose_signature_sign_callback(struct t_cose_signature_sign *me,
-                               uint32_t                      option_flags,
-                               const struct q_useful_buf_c   protected_body_headers,
-                               const struct q_useful_buf_c   aad,
-                               const struct q_useful_buf_c   payload,
-                               QCBOREncodeContext           *qcbor_encoder);
+t_cose_signature_sign_callback(struct t_cose_signature_sign    *me,
+                               uint32_t                         option_flags,
+                               const struct t_cose_sign_inputs *sign_inputs,
+                               QCBOREncodeContext              *qcbor_encoder);
 
 
 /**

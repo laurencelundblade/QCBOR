@@ -449,6 +449,7 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
     /* Buffer for the tbs hash. */
     Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        signed_payload;
+    struct t_cose_sign_inputs           sign_inputs;
 
     QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
 
@@ -472,11 +473,13 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
      * cose_algorithm_id was checked in t_cose_sign1_init() so it
      * doesn't need to be checked here.
      */
+    sign_inputs.body_protected = me->protected_parameters;
+    sign_inputs.aad            = NULL_Q_USEFUL_BUF_C;
+    sign_inputs.sign_protected = NULL_Q_USEFUL_BUF_C;
+    sign_inputs.payload        = signed_payload;
+
     return_value = create_tbs_hash(me->cose_algorithm_id,
-                                   me->protected_parameters,
-                                   NULL_Q_USEFUL_BUF_C,
-                                   NULL_Q_USEFUL_BUF_C,
-                                   signed_payload,
+                                   &sign_inputs,
                                    buffer_for_tbs_hash,
                                    &tbs_hash);
     if(return_value != T_COSE_SUCCESS) {

@@ -130,6 +130,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
     QCBORError                    cbor_err;
     struct q_useful_buf_c         signed_payload;
     struct t_cose_signature_sign *signer;
+    struct t_cose_sign_inputs     sign_inputs;
 
     /* --- Close off the payload --- */
     if(q_useful_buf_c_is_null(detached_payload)) {
@@ -158,6 +159,10 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
 
     /* --- Signature for COSE_Sign1 or signatures for COSE_Sign --- */
     signer = me->signers;
+    sign_inputs.body_protected = me->protected_parameters;
+    sign_inputs.sign_protected = NULL_Q_USEFUL_BUF_C;
+    sign_inputs.payload        = signed_payload;
+    sign_inputs.aad            = aad;
     if(T_COSE_OPT_IS_SIGN(me->option_flags)) {
         /* --- One or more COSE_Signatures for COSE_Sign --- */
 
@@ -167,14 +172,10 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
         return_value = T_COSE_ERR_NO_SIGNERS;
         QCBOREncode_OpenArray(cbor_encode_ctx);
         while(signer != NULL) {
-            return_value = signer->callback(
-                signer,  /* context for signer with alg ID and signing keys */
-                me->option_flags, /* So callback knows COSE_Sign vs Sign1 */
-                me->protected_parameters, /* Parameters covered by the sig */
-                aad,            /* Additional Authenticated data (if any) covered by sig */
-                signed_payload, /* Payload covered by the signature */
-                cbor_encode_ctx /* Encoder context to output to */
-            );
+            return_value = signer->callback(signer,
+                                            me->option_flags,
+                                           &sign_inputs,
+                                            cbor_encode_ctx);
             if(return_value != T_COSE_SUCCESS) {
                 goto Done;
             }
@@ -188,14 +189,10 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
         /* This calls the signer object to output the signature bytes
          * as a byte string to the CBOR encode context.
          */
-        return_value = signer->callback(
-            signer,    /* context for signer with alg ID and signing keys */
-            me->option_flags, /* So callback knows COSE_Sign vs Sign1 */
-            me->protected_parameters, /* Parameters covered by the signature */
-            aad,            /* Additional Authenticated data (if any) covered by sig */
-            signed_payload, /* Payload covered by the signature */
-            cbor_encode_ctx /* Encoder context to output to */
-        );
+        return_value = signer->callback(signer,
+                                        me->option_flags,
+                                       &sign_inputs,
+                                        cbor_encode_ctx);
     }
     if(return_value != T_COSE_SUCCESS) {
         goto Done;

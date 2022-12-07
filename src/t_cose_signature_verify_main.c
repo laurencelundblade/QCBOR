@@ -24,14 +24,11 @@
  * This is an implementation of t_cose_signature_verify1_callback.
  */
 static enum t_cose_err_t
-t_cose_signature_verify1_main(struct t_cose_signature_verify *me_x,
-                               const uint32_t                  option_flags,
-                               const struct q_useful_buf_c     protected_body_headers,
-                               const struct q_useful_buf_c     protected_signature_headers,
-                               const struct q_useful_buf_c     payload,
-                               const struct q_useful_buf_c     aad,
-                               const struct t_cose_parameter  *parameter_list,
-                               const struct q_useful_buf_c     signature)
+t_cose_signature_verify1_main(struct t_cose_signature_verify   *me_x,
+                               const uint32_t                   option_flags,
+                               const struct t_cose_sign_inputs *sign_inputs,
+                               const struct t_cose_parameter   *parameter_list,
+                               const struct q_useful_buf_c      signature)
 {
     const struct t_cose_signature_verify_main *me =
                           (const struct t_cose_signature_verify_main *)me_x;
@@ -66,10 +63,7 @@ t_cose_signature_verify1_main(struct t_cose_signature_verify *me_x,
 
     /* --- Compute the hash of the to-be-signed bytes -- */
     return_value = create_tbs_hash(cose_algorithm_id,
-                                   protected_body_headers,
-                                   protected_signature_headers,
-                                   aad,
-                                   payload,
+                                   sign_inputs,
                                    tbs_hash_buffer,
                                    &tbs_hash);
     if(return_value != T_COSE_SUCCESS) {
@@ -101,9 +95,7 @@ static enum t_cose_err_t
 t_cose_signature_verify_main(struct t_cose_signature_verify     *me_x,
                               const uint32_t                      option_flags,
                               const struct t_cose_header_location loc,
-                              const struct q_useful_buf_c         protected_body_headers,
-                              const struct q_useful_buf_c         payload,
-                              const struct q_useful_buf_c         aad,
+                              const struct t_cose_sign_inputs    *sign_inputs,
                               struct t_cose_parameter_storage    *param_storage,
                               QCBORDecodeContext                 *qcbor_decoder,
                               struct t_cose_parameter           **decoded_signature_parameters)
@@ -142,13 +134,10 @@ t_cose_signature_verify_main(struct t_cose_signature_verify     *me_x,
 
 
     return_value = t_cose_signature_verify1_main(me_x,
-                                                  option_flags,
-                                                  protected_body_headers,
-                                                  protected_parameters,
-                                                  payload,
-                                                  aad,
-                                                  *decoded_signature_parameters,
-                                                  signature);
+                                                 option_flags,
+                                                 sign_inputs,
+                                                *decoded_signature_parameters,
+                                                 signature);
 Done:
     return return_value;
 }

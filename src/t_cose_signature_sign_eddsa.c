@@ -40,12 +40,10 @@ t_cose_eddsa_headers(struct t_cose_signature_sign   *me_x,
  * as a callback via a function pointer that is set up in
  * t_cose_eddsa_signer_init().  */
 static enum t_cose_err_t
-t_cose_eddsa_sign(struct t_cose_signature_sign  *me_x,
-                  uint32_t                       options,
-                  const struct q_useful_buf_c    protected_body_headers,
-                  const struct q_useful_buf_c    aad,
-                  const struct q_useful_buf_c    signed_payload,
-                  QCBOREncodeContext            *qcbor_encoder)
+t_cose_eddsa_sign(struct t_cose_signature_sign    *me_x,
+                  uint32_t                         options,
+                  const struct t_cose_sign_inputs *sign_inputs,
+                  QCBOREncodeContext              *qcbor_encoder)
 {
     struct t_cose_signature_sign_eddsa *me =
                                      (struct t_cose_signature_sign_eddsa *)me_x;
@@ -54,7 +52,7 @@ t_cose_eddsa_sign(struct t_cose_signature_sign  *me_x,
     struct q_useful_buf_c       signature;
     struct q_useful_buf_c       signer_protected_headers;
     struct t_cose_parameter    *parameters;
-    struct q_useful_buf          buffer_for_signature;
+    struct q_useful_buf         buffer_for_signature;
 
 
     /* -- The headers if if is a COSE_Sign -- */
@@ -75,12 +73,7 @@ t_cose_eddsa_sign(struct t_cose_signature_sign  *me_x,
      * If auxiliary_buffer.ptr is NULL this will succeed, computing
      * the necessary size.
      */
-    return_value = create_tbs(protected_body_headers,
-                              aad,
-                              signer_protected_headers,
-                              signed_payload,
-                              me->auxiliary_buffer,
-                             &tbs);
+    return_value = create_tbs(sign_inputs, me->auxiliary_buffer, &tbs);
     if (return_value == T_COSE_ERR_TOO_SMALL) {
         /* Be a bit more specific about which buffer is too small */
         return_value = T_COSE_ERR_AUXILIARY_BUFFER_SIZE;

@@ -39,12 +39,10 @@ t_cose_main_headers(struct t_cose_signature_sign   *me_x,
  * as a callback via a function pointer that is set up in
  * t_cose_ecdsa_signer_init().  */
 static enum t_cose_err_t
-t_cose_main_sign(struct t_cose_signature_sign  *me_x,
-                  uint32_t                       options,
-                  const struct q_useful_buf_c    protected_body_headers,
-                  const struct q_useful_buf_c    aad,
-                  const struct q_useful_buf_c    signed_payload,
-                  QCBOREncodeContext            *qcbor_encoder)
+t_cose_main_sign(struct t_cose_signature_sign     *me_x,
+                  uint32_t                         options,
+                  const struct t_cose_sign_inputs *sign_inputs,
+                  QCBOREncodeContext              *qcbor_encoder)
 {
     struct t_cose_signature_sign_main *me =
                                      (struct t_cose_signature_sign_main *)me_x;
@@ -93,10 +91,7 @@ t_cose_main_sign(struct t_cose_signature_sign  *me_x,
          * t_cose_sign1_init() so it doesn't need to be checked here.
          */
         return_value = create_tbs_hash(me->cose_algorithm_id,
-                                       protected_body_headers,
-                                       signer_protected_headers,
-                                       aad,
-                                       signed_payload,
+                                       sign_inputs,
                                        buffer_for_tbs_hash,
                                        &tbs_hash);
         if(return_value) {
