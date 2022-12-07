@@ -18,8 +18,8 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_sign_sign.h"
-#include "t_cose/t_cose_signature_sign_ecdsa.h" // TODO: why is this here?
-#include "t_cose/t_cose_signature_sign_short.h"
+#include "t_cose/t_cose_signature_sign_main.h"
+#include "t_cose/t_cose_signature_sign_eddsa.h"
 #include "t_cose/t_cose_parameters.h"
 
 
@@ -72,11 +72,15 @@ extern "C" {
  * is about 100 bytes so it fits easily on the stack.
  */
 struct t_cose_sign1_sign_ctx {
+    /* Private data structure */
     struct t_cose_sign_sign_ctx  me2;
 
-    /* This is needed to implement backwards compatibility on the
-     * assumption that t_cose 1.0 primarily supported ECDSA. */
-    struct t_cose_signature_sign_ecdsa signer;
+    /* There is only one signer at a time, so a union works here.
+     * Switch is on the cose_algorithm_id */
+    union {
+        struct t_cose_signature_sign_main general;
+        struct t_cose_signature_sign_eddsa eddsa;
+    } signer;
 
     /* For compatibility implementation with t_cose_sign_sign.
      * Storage lifetime must be that of the t_cose_sign1_sign_ctx
@@ -84,23 +88,14 @@ struct t_cose_sign1_sign_ctx {
      * t_cose_header_param. They don't know about it. */
     struct t_cose_parameter content_id_param;
 
-
-    /* Private data structure */
     struct q_useful_buf_c protected_parameters; /* Encoded protected params */
     int32_t               cose_algorithm_id;
     struct t_cose_key     signing_key; // Used by make_test_message
     uint32_t              option_flags;
-    struct q_useful_buf_c kid;
+    struct q_useful_buf_c kid; // Used by make_test_message
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     uint32_t              content_type_uint;
     const char *          content_type_tstr;
-#endif
-
-    /* This is needed to implement the backwards compatibility
-     * based on t_cose_sign_sign.
-     */
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    struct t_cose_signature_sign_short short_circuit_signer;
 #endif
 };
 
@@ -130,7 +125,7 @@ struct t_cose_sign1_sign_ctx {
  * are reported when t_cose_sign1_sign() or
  * t_cose_sign1_encode_parameters() is called.
  */
-static void
+void
 t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
                        uint32_t                      option_flags,
                        int32_t                       cose_algorithm_id);
@@ -201,6 +196,57 @@ void
 t_cose_sign1_set_content_type_tstr(struct t_cose_sign1_sign_ctx *context,
                                    const char                   *content_type);
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
+
+
+/**
+ * \brief Configure an auxiliary buffer used to serialize the Sig_Structure.
+ *
+ * \param[in] context           The t_cose signing context.
+ * \param[in] auxiliary_buffer  The buffer used to serialize the Sig_Structure.
+ *
+ * Some signature algorithms (namely EdDSA), require two passes over
+ * their input. In order to achieve this, the library needs to serialize
+ * a temporary to-be-signed structure into an auxiliary buffer. This function
+ * allows the user to configure such a buffer.
+ *
+ * The buffer must be big enough to accomodate the Sig_Structure type,
+ * which is roughly the sum of sizes of the encoded protected parameters, aad
+ * and payload, along with a few dozen bytes of overhead.
+ *
+ * To compute the exact size needed, an auxiliary buffer with a NULL
+ * pointer and a large size, such as \c UINT32_MAX, can be used. No
+ * actual signing will take place, but the auxiliary buffer will be shrunk
+ * to the to expected size.
+ *
+ */
+void
+t_cose_sign1_sign_set_auxiliary_buffer(struct t_cose_sign1_sign_ctx *context,
+                                       struct q_useful_buf           auxiliary_buffer);
+
+
+/**
+ * \brief Get the required auxiliary buffer size for the most recent
+ * signing operation.
+ *
+ * \param[in] context           The t_cose signing context.
+ *
+ * \return The number of bytes of auxiliary buffer used by the most
+ *         recent signing operation.
+ *
+ * This function can be called after \ref t_cose_sign1_sign (or
+ * equivalent) was called. If a NULL output buffer was passed to the
+ * signing function (to operate in size calculation mode), this returns
+ * the number of bytes that would have been used by the signing
+ * operation. This allows the caller to allocate an appropriately sized
+ * buffer before performing the actual verification.
+ *
+ * This function returns if the signature algorithm used does not need
+ * an auxiliary buffer.
+ */
+size_t
+t_cose_sign1_sign_auxiliary_buffer_size(struct t_cose_sign1_sign_ctx *context);
+
+
 
 
 
@@ -407,35 +453,7 @@ t_cose_sign1_encode_signature_aad(struct t_cose_sign1_sign_ctx *context,
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
-static inline void
-t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *me,
-                       uint32_t                      option_flags,
-                       int32_t                       cose_algorithm_id)
-{
-    memset(me, 0, sizeof(*me));
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
-    /* Only member for which 0 is not the empty state */
-    me->content_type_uint = T_COSE_EMPTY_UINT_CONTENT_TYPE;
-#endif
 
-    me->cose_algorithm_id = cose_algorithm_id;
-    me->option_flags = option_flags;  // Used by t_cose_make_test_messages.c
-
-    // TODO: Translate any more options flags?
-    t_cose_sign_sign_init(&(me->me2), option_flags | T_COSE_OPT_MESSAGE_TYPE_SIGN1);
-
-
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    if(option_flags & T_COSE_OPT_SHORT_CIRCUIT_SIG) {
-        t_cose_signature_sign_short_init(&(me->short_circuit_signer),
-                                         cose_algorithm_id);
-
-        t_cose_sign_add_signer(&(me->me2),
-                               t_cose_signature_sign_from_short(&(me->short_circuit_signer)));
-    }
-#endif
-
-}
 
 
 

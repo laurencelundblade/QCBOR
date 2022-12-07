@@ -44,7 +44,7 @@ extern "C" {
  *
  * This must be configured with a signer, an instance of \ref t_cose_signature_sign,
  * to function. This signer is what produces the actual signature. An example
- * of a signer is \ref t_cose_signature_sign_ecdsa. See t_cose_sign_add_signer().
+ * of a signer is \ref t_cose_signature_sign_main. See t_cose_sign_add_signer().
  *
  * There is a cryptographic adaptation layer defined in
  * t_cose_crypto.h.  An implementation can be made of the functions in
@@ -142,7 +142,7 @@ t_cose_sign_sign_init(struct t_cose_sign_sign_ctx *context,
  * different signer implementations for different algorithm entirely.
  *
  * This must be called with a concrete instance, such as a \ref
- * t_cose_signature_sign_ecdsa. The concrete instance must be
+ * t_cose_signature_sign_main. The concrete instance must be
  * configured with a key and algorithm ID before this is called.
  */
 void

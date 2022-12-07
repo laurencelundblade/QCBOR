@@ -1,7 +1,7 @@
 /*
  *  t_cose_util.h
  *
- * Copyright 2019-2021, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -28,23 +28,6 @@ extern "C" {
  *
  */
 
-/**
- * The modes in which the payload is passed to create_tbs_hash().
- * This exists so the TBS bytes can be hashed in two separate chunks
- * and avoids needing a second buffer the size of the payload in the
- * t_cose implementation.
- */
-enum t_cose_tbs_hash_mode_t {
-    /** The bytes passed for the payload include a wrapping bstr so
-     * one does not need to be added.
-     */
-    T_COSE_TBS_PAYLOAD_IS_BSTR_WRAPPED,
-    /** The bytes passed for the payload do NOT have a wrapping bstr
-     * so one must be added.
-     */
-    T_COSE_TBS_BARE_PAYLOAD
-};
-
 
 /**
  * The modes in which the payload is passed to create_tbm().  This
@@ -52,6 +35,7 @@ enum t_cose_tbs_hash_mode_t {
  * avoids needing a second buffer the size of the payload in the
  * t_cose implementation.
  */
+// TODO: is this necessary?
 enum t_cose_tbm_payload_mode_t {
     /** The bytes passed for the payload include a wrapping bstr so
      * one does not need to be added.
@@ -96,13 +80,15 @@ enum t_cose_tbm_payload_mode_t {
     1 + /* Empty bstr for absent external_aad */ \
     9 /* The max CBOR length encoding for start of payload */
 
+
 /**
  * \brief Return hash algorithm ID from a signature algorithm ID
  *
  * \param[in] cose_algorithm_id  A COSE signature algorithm identifier.
  *
  * \return \c T_COSE_INVALID_ALGORITHM_ID when the signature algorithm ID
-              is not known.
+              is not known, or if the signature algorithm does not have
+              an associated hash algorithm (eg. EDDSA).
  *
  * This works off of algorithm identifiers defined in the
  * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
@@ -151,45 +137,41 @@ enum t_cose_err_t create_tbm(struct q_useful_buf             tbm_first_part_buf,
                              enum t_cose_tbm_payload_mode_t  payload_mode,
                              struct q_useful_buf_c           payload);
 
+
 /**
- * \brief Create the hash of the to-be-signed (TBS) bytes for COSE.
+ * Serialize the to-be-signed (TBS) bytes for COSE.
  *
- * \param[in] cose_algorithm_id     The COSE signing algorithm ID. Used to
- *                                  determine which hash function to use.
- * \param[in] protected_parameters  Full, CBOR encoded, protected parameters.
+ * \param[in] protected_parameters  Full, CBOR encoded, body protected parameters.
  * \param[in] aad                   Additional Authenitcated Data to be
  *                                  included in TBS.
+ * \param[in] sign_protected_parameters  Signature, CBOR encoded, protected parameters.
  * \param[in] payload               The CBOR-encoded payload.
- * \param[in] buffer_for_hash       Pointer and length of buffer into which
- *                                  the resulting hash is put.
- * \param[out] hash                 Pointer and length of the
- *                                  resulting hash.
+ * \param[in] buffer_for_tbs        Pointer and length of buffer into which
+ *                                  the resulting TBS bytes is put.
+ * \param[out] tbs                  Pointer and length of the
+ *                                  resulting TBS bytes.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ * \retval T_COSE_ERR_TOO_SMALL
+ *         The output buffer is too small.
+ * \retval T_COSE_ERR_CBOR_FORMATTING
+ *         Something went wrong formatting the CBOR.
  *
- * \retval T_COSE_ERR_SIG_STRUCT
- *         Most likely this is because the protected_parameters passed in
- *         is larger than \c T_COSE_SIGN1_MAX_SIZE_PROTECTED_PARAMETERS.
- * \retval T_COSE_ERR_UNSUPPORTED_HASH
- *         If the hash algorithm is not known.
- * \retval T_COSE_ERR_HASH_GENERAL_FAIL
- *         In case of some general hash failure.
- *
- * The input to the public key signature algorithm in COSE is the hash
- * of a CBOR encoded structure containing the protected parameters
- * algorithm ID and a few other things. This formats that structure
- * and computes the hash of it. These are known as the to-be-signed or
- * "TBS" bytes. The exact specification is in [RFC 8152 section
+ * The input to the public key signature algorithm in COSE is a CBOR
+ * encoded structure containing the protected parameters algorithm ID
+ * and a few other things. These are known as the to-be-signed or "TBS"
+ * bytes. The exact specification is in [RFC 8152 section
  * 4.4](https://tools.ietf.org/html/rfc8152#section-4.4).
  *
  * \c aad can be \ref NULL_Q_USEFUL_BUF_C if not present.
+ *  \c \sign_protected_parameters can be can be \ref NULL_Q_USEFUL_BUF_C if not present.
  */
-enum t_cose_err_t create_tbs_hash_old(int32_t                     cose_algorithm_id,
-                                  struct q_useful_buf_c       protected_parameters,
-                                  struct q_useful_buf_c       aad,
-                                  struct q_useful_buf_c       payload,
-                                  struct q_useful_buf         buffer_for_hash,
-                                  struct q_useful_buf_c      *hash);
+enum t_cose_err_t create_tbs(struct q_useful_buf_c  protected_parameters,
+                             struct q_useful_buf_c  aad,
+                             const struct q_useful_buf_c  sign_protected_parameters,
+                             struct q_useful_buf_c  payload,
+                             struct q_useful_buf    buffer_for_tbs,
+                             struct q_useful_buf_c *tbs);
 
 
 /**

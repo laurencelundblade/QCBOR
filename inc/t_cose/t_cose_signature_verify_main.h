@@ -1,5 +1,5 @@
 /*
- * t_cose_signature_verify_ecdsa.h
+ * t_cose_signature_verify_main.h
  *
  * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 7/22/22.
@@ -10,8 +10,8 @@
  */
 
 
-#ifndef t_cose_signature_verify_ecdsa_h
-#define t_cose_signature_verify_ecdsa_h
+#ifndef t_cose_signature_verify_main_h
+#define t_cose_signature_verify_main_h
 
 #include "t_cose/t_cose_signature_verify.h"
 #include "t_cose_parameters.h"
@@ -22,11 +22,11 @@
 
 /**
  * Verification context. */
-struct t_cose_signature_verify_ecdsa {
+struct t_cose_signature_verify_main {
     /* Private data structure */
 
     /* t_cose_signature_verify must be the first item for the polymorphism to work.
-     * This structure, t_cose_signature_verify_ecdsa, will sometimes be uses as
+     * This structure, t_cose_signature_verify_main, will sometimes be uses as
      * a t_cose_signature_verify.
      */
     struct t_cose_signature_verify     s;
@@ -37,20 +37,20 @@ struct t_cose_signature_verify_ecdsa {
 
 
 void
-t_cose_signature_verify_ecdsa_init(struct t_cose_signature_verify_ecdsa *me);
+t_cose_signature_verify_main_init(struct t_cose_signature_verify_main *me);
 
 
 static void
-t_cose_signature_verify_ecdsa_set_key(struct t_cose_signature_verify_ecdsa *me,
+t_cose_signature_verify_main_set_key(struct t_cose_signature_verify_main *me,
                                       struct t_cose_key verification_key);
 
 static void
-t_cose_signature_verify_ecdsa_set_header_reader(struct t_cose_signature_verify_ecdsa *me,
+t_cose_signature_verify_main_set_header_reader(struct t_cose_signature_verify_main *me,
                                                 t_cose_parameter_decode_callback                 *reader,
                                                 void                                 *reader_ctx);
 
 static struct t_cose_signature_verify *
-t_cose_signature_verify_from_ecdsa(struct t_cose_signature_verify_ecdsa *context);
+t_cose_signature_verify_from_main(struct t_cose_signature_verify_main *context);
 
 
 
@@ -60,7 +60,7 @@ t_cose_signature_verify_from_ecdsa(struct t_cose_signature_verify_ecdsa *context
  */
 
 static inline void
-t_cose_signature_verify_ecdsa_set_key(struct t_cose_signature_verify_ecdsa *me,
+t_cose_signature_verify_main_set_key(struct t_cose_signature_verify_main *me,
                                       struct t_cose_key verification_key)
 {
     me->verification_key = verification_key;
@@ -68,7 +68,7 @@ t_cose_signature_verify_ecdsa_set_key(struct t_cose_signature_verify_ecdsa *me,
 
 
 static inline void
-t_cose_signature_verify_ecdsa_set_header_reader(struct t_cose_signature_verify_ecdsa *me,
+t_cose_signature_verify_main_set_header_reader(struct t_cose_signature_verify_main *me,
                                                 t_cose_parameter_decode_callback *reader,
                                                 void *reader_ctx)
 {
@@ -78,7 +78,7 @@ t_cose_signature_verify_ecdsa_set_header_reader(struct t_cose_signature_verify_e
 
 
 static inline struct t_cose_signature_verify *
-t_cose_signature_verify_from_ecdsa(struct t_cose_signature_verify_ecdsa *me)
+t_cose_signature_verify_from_main(struct t_cose_signature_verify_main *me)
 {
     /* Because s is the first item in the t_cose_ecdsa_signer, this function should
      * compile to nothing. It is here to keep the type checking safe.
@@ -86,4 +86,4 @@ t_cose_signature_verify_from_ecdsa(struct t_cose_signature_verify_ecdsa *me)
     return &(me->s);
 }
 
-#endif /* t_cose_signature_verify_ecdsa_h */
+#endif /* t_cose_signature_verify_main_h */

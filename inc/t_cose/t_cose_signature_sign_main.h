@@ -1,5 +1,5 @@
 /*
- * t_cose_signature_sign_ecdsa.h
+ * t_cose_signature_sign_main.h
  *
  * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 5/23/22.
@@ -10,8 +10,8 @@
  */
 
 
-#ifndef t_cose_ecdsa_signer_h
-#define t_cose_ecdsa_signer_h
+#ifndef t_cose_signature_sign_main_h
+#define t_cose_signature_sign_main_h
 
 #include "t_cose/t_cose_signature_sign.h"
 #include "t_cose/t_cose_common.h"
@@ -19,12 +19,12 @@
 
 
 
-struct t_cose_signature_sign_ecdsa {
+struct t_cose_signature_sign_main {
     /* Private data structure */
 
     /* t_cose_signer must be the first item for the polymorphism to
-     * work.  This structure, t_cose_ecdsa_signer, will sometimes be
-     * uses as a t_cose_signer.
+     * work.  This structure, t_cose_signature_sign_main, will sometimes be
+     * uses as a t_cose_signature_sign.
      */
     struct t_cose_signature_sign s;
 
@@ -43,7 +43,7 @@ struct t_cose_signature_sign_ecdsa {
  *
  * This signer supports the ECDSA algorithms PS256, PS384 and PS512. */
 void
-t_cose_signature_sign_ecdsa_init(struct t_cose_signature_sign_ecdsa *context,
+t_cose_signature_sign_main_init(struct t_cose_signature_sign_main *context,
                                  int32_t                             cose_algorithm_id);
 
 
@@ -51,7 +51,7 @@ t_cose_signature_sign_ecdsa_init(struct t_cose_signature_sign_ecdsa *context,
  * Set the signing key and kid. The kid may be NULL_Q_USEFUL_BUF_C.
  */
 static void
-t_cose_signature_sign_ecdsa_set_signing_key(struct t_cose_signature_sign_ecdsa *context,
+t_cose_signature_sign_main_set_signing_key(struct t_cose_signature_sign_main *context,
                                             struct t_cose_key                   signing_key,
                                             struct q_useful_buf_c               kid);
 
@@ -69,7 +69,7 @@ t_cose_signature_sign_ecdsa_set_signing_key(struct t_cose_signature_sign_ecdsa *
  as ones that are maps and arrays themselves.
  */
 static void
-t_cose_signature_sign_ecdsa_set_header_parameter(struct t_cose_signature_sign_ecdsa *context,
+t_cose_signature_sign_main_set_header_parameter(struct t_cose_signature_sign_main *context,
                                                  struct t_cose_parameter   *header_parameters);
 
 
@@ -81,17 +81,17 @@ t_cose_signature_sign_ecdsa_set_header_parameter(struct t_cose_signature_sign_ec
  *
  * t_cose calls signers as follows:
  *   struct t_cose_signature_sign *signer;
- *   signer = t_cose_signature_sign_from_ecdsa(me);
+ *   signer = t_cose_signature_sign_from_main(me);
  *
  *   result = (signer->s.callback)(signer, ....);
  *
  * It makes use of the function pointer in signer->s. This callback is
  * when all the interesting work id done by
- * t_cose_signature_sign_ecdsa.
+ * t_cose_signature_sign_main.
  *
  */
 static struct t_cose_signature_sign *
-t_cose_signature_sign_from_ecdsa(struct t_cose_signature_sign_ecdsa *me);
+t_cose_signature_sign_from_main(struct t_cose_signature_sign_main *me);
 
 
 
@@ -100,7 +100,7 @@ t_cose_signature_sign_from_ecdsa(struct t_cose_signature_sign_ecdsa *me);
  ========================================================================= */
 
 static inline void
-t_cose_signature_sign_ecdsa_set_signing_key(struct t_cose_signature_sign_ecdsa *context,
+t_cose_signature_sign_main_set_signing_key(struct t_cose_signature_sign_main *context,
                                             struct t_cose_key                   signing_key,
                                             struct q_useful_buf_c               kid)
 {
@@ -111,7 +111,7 @@ t_cose_signature_sign_ecdsa_set_signing_key(struct t_cose_signature_sign_ecdsa *
 
 
 static inline struct t_cose_signature_sign *
-t_cose_signature_sign_from_ecdsa(struct t_cose_signature_sign_ecdsa *me)
+t_cose_signature_sign_from_main(struct t_cose_signature_sign_main *me)
 {
     /* Because s is the first item in the t_cose_ecdsa_signer, this
      * function should compile to nothing. It is here to keep the type
@@ -122,10 +122,10 @@ t_cose_signature_sign_from_ecdsa(struct t_cose_signature_sign_ecdsa *me)
 
 
 static inline void
-t_cose_signature_sign_ecdsa_set_header_parameter(struct t_cose_signature_sign_ecdsa *me,
+t_cose_signature_sign_main_set_header_parameter(struct t_cose_signature_sign_main *me,
                                                  struct t_cose_parameter   *header_parameters)
 {
     me->added_signer_params = header_parameters;
 }
 
-#endif /* t_cose_ecdsa_signer_h */
+#endif /* t_cose_signature_sign_main_h */

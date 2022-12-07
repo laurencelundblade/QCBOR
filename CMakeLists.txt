@@ -68,12 +68,12 @@ set(T_COSE_SRC_COMMON
     src/t_cose_util.c
     src/t_cose_sign_sign.c
     src/t_cose_mac_compute.c
-    src/t_cose_signature_sign_ecdsa.c
-    src/t_cose_signature_sign_short.c
+    src/t_cose_signature_sign_main.c
+    src/t_cose_signature_sign_eddsa.c
     src/t_cose_sign_verify.c
     src/t_cose_mac_validate.c
-    src/t_cose_signature_verify_ecdsa.c
-    src/t_cose_signature_verify_short.c
+    src/t_cose_signature_verify_main.c
+    src/t_cose_signature_verify_eddsa.c
 )
 
 find_package(QCBOR REQUIRED)
@@ -127,7 +127,7 @@ if (BUILD_TESTS)
         set(TEST_SRC_EXTRA test/t_cose_make_openssl_test_key.c)
         set(TEST_EXTRA_DEFS -DT_COSE_DISABLE_MAC0)
     elseif(CRYPTO_PROVIDER STREQUAL "Test")
-        set(TEST_SRC_EXTRA)
+        set(TEST_SRC_EXTRA test/t_cose_make_test_test_key.c)
         set(TEST_EXTRA_DEFS -DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS)
     else()
         message(FATAL_ERROR "Bug!")

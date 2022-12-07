@@ -21,11 +21,11 @@
 
 
 /**
- * \brief make an ECDSA key pair for testing suited to algorithm
+ * \brief make a key pair for testing suited to algorithm
  *
  */
-enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
-                                      struct t_cose_key *key_pair);
+enum t_cose_err_t make_key_pair(int32_t            cose_algorithm_id,
+                                struct t_cose_key *key_pair);
 
 /**
  * \brief make a HMAC secret key for testing suited to algorithm
@@ -34,7 +34,9 @@ enum t_cose_err_t make_ecdsa_key_pair(int32_t            cose_algorithm_id,
 enum t_cose_err_t make_hmac_key(int32_t            cose_algorithm_id,
                                 struct t_cose_key *key);
 
+
 void free_key(struct t_cose_key key_pair);
+
 
 
 /**

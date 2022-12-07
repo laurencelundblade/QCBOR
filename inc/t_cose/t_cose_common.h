@@ -15,7 +15,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "t_cose/q_useful_buf.h"
+// TODO: don't think this is needed, but it was added
+//#include "t_cose/q_useful_buf.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -111,15 +113,15 @@ extern "C" {
  * t_cose_signature_sign and t_cose_signature_verify are abstract
  * bases classes for a set of implementations of COSE_Signature. This
  * design is chosen because there are a variety of signature schemes
- * to implement. Mostly th *ese correspond to different signing
+ * to implement. Mostly these correspond to different signing
  * algorithms, but there is enough variation from algorithm to
  * algorithm that the use of an abstract base class here makes sense.
  *
- * The concrete classes will generally correspond to groups of
- * algorithms. For example, there will likely be one for ECDSA,
- * t_cose_signature_sign_ecdsa, another for RSAPSS and a variety for
- * PQ. Perhaps there will be one for counter signatures of
- * particular types.
+ * Currently there is a "main" signer/verify that supports RSA
+ * and ECDSA. There is another one for EdDSA, because it is
+ * structurally different in not using a hash. Future
+ * signer/verifiers might include one for counter signatures
+ * and one for PQ.
  *
  * The user of t_cose will create instances of t_cose_signature and
  * configure them into t_cose_sign_sign() and t_cose_sign_verify().
@@ -174,6 +176,15 @@ extern "C" {
  * of stack. No stack will be saved if \c T_COSE_DISABLE_ES512 is not
  * also defined.
  *
+ * \c T_COSE_DISABLE_PS256 -- Disables the COSE algorithm PS256
+ * algorithm.
+ *
+ * \c T_COSE_DISABLE_PS384 -- Disables the COSE algorithm PS384
+ * algorithm.
+ *
+ * \c T_COSE_DISABLE_PS512 -- Disables the COSE algorithm PS512
+ * algorithm.
+ *
  * \c T_COSE_DISABLE_CONTENT_TYPE -- Disables the content type
  * parameters for both signing and verifying.
  */
@@ -186,10 +197,7 @@ extern "C" {
 #define T_COSE_2
 
 
-/* Definitions of algorithm IDs is moved to t_cose_standard_constants.h */
-
- 
-
+/* Definition of algorithm IDs is moved to t_cose_standard_constants.h */
 
 
 /**
@@ -207,7 +215,12 @@ enum t_cose_crypto_lib_t {
     T_COSE_CRYPTO_LIB_OPENSSL = 1,
      /** \c key_handle is a \c psa_key_handle_t in Arm's Platform Security
       * Architecture */
-    T_COSE_CRYPTO_LIB_PSA = 2
+    T_COSE_CRYPTO_LIB_PSA = 2,
+
+    /** These are for the test crypto adapter layer. They are mostly fake, but useful
+     * for testing without a library and for testing some error conditions. */
+    T_COSE_CRYPTO_LIB_TEST = 3
+
 };
 
 
@@ -579,6 +592,15 @@ enum t_cose_err_t {
 
     /** Something went wrong with AES Key Wrap. */
     T_COSE_ERR_AES_KW_FAILED = 63,
+    /** The signature algorithm needs an extra buffer, but none was provided.
+     * See \ref t_cose_sign1_verify_set_auxiliary_buffer for more details.
+     */
+    T_COSE_ERR_NEED_AUXILIARY_BUFFER = 64,
+
+    /** The auxiliary buffer is too small */
+    T_COSE_ERR_AUXILIARY_BUFFER_SIZE = 65,
+
+    T_COSE_ERR_NO_VERIFIERS = 66,
 };
 
 
@@ -682,6 +704,7 @@ enum t_cose_err_t {
 #define T_COSE_OPT_MESSAGE_TYPE_MAC         97
 #define T_COSE_OPT_MESSAGE_TYPE_MAC0        17
 
+// TODO: more meaningful names
 #define T_COSE_OPT_IS_SIGN1(opts) \
    ((T_COSE_OPT_MESSAGE_TYPE_MASK & opts) == T_COSE_OPT_MESSAGE_TYPE_SIGN1)
 
@@ -717,6 +740,7 @@ enum t_cose_err_t {
  */
 bool
 t_cose_is_algorithm_supported(int32_t cose_algorithm_id);
+
 
 #ifdef __cplusplus
 }

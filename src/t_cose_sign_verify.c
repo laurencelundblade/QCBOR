@@ -120,6 +120,20 @@ process_tags(struct t_cose_sign_verify_ctx *me,
     return T_COSE_SUCCESS;
 }
 
+/* No error stops the calling of further verifiers, but soft verify errors are never returned to the caller.*/
+static bool
+is_soft_verify_error(enum t_cose_err_t error)
+{
+    switch(error) {
+        case T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
+        case T_COSE_ERR_KID_UNMATCHED:
+        case T_COSE_ERR_UNSUPPORTED_HASH:
+            return true;
+        default:
+            return false;
+    }
+}
+
 
 /*
  * A semi-private function. See t_cose_sign_verify.h
@@ -135,6 +149,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     QCBORDecodeContext              decode_context;
     struct q_useful_buf_c           protected_parameters;
     enum t_cose_err_t               return_value;
+    enum t_cose_err_t               verify_error;
     struct q_useful_buf_c           signature;
     QCBORError                      qcbor_error;
     struct t_cose_signature_verify *verifier;
@@ -205,21 +220,21 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         if(return_value != T_COSE_SUCCESS) {
             goto Done;
         }
-        if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
-            goto continue_decode;
-        }
+
         /* Loop over all the verifiers configured asking each
          * to verify until one succeeds. If none succeeded, the error
          * returned is from the last one called.  There are
          * intentionally no types of errors that one verifier can return
          * that ends the whole loop and blocks others from being called.
          */
+        verify_error = T_COSE_ERR_NO_VERIFIERS;
         for(verifier = me->verifiers; verifier != NULL; verifier = verifier->next_in_list) {
             /* Actually do the signature verification by calling
              * the main method of the cose_signature_verify. This
              * will compute the tbs value and call the crypto.
              */
-            return_value = verifier->callback1(verifier,
+            verify_error = verifier->callback1(verifier,
+                 me->option_flags,
                  protected_parameters, /* Protected body params cover by sig */
                  NULL_Q_USEFUL_BUF_C,  /* Protected COSE_Signature params covered by sig */
                 *payload, /* inline or detached payload covered by the sig */
@@ -227,9 +242,17 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                  decoded_body_parameter_list, /* Param list including alg ID */
                  signature /* The signature to verify */
                );
-            if(return_value == T_COSE_SUCCESS) {
+            if(verify_error == T_COSE_SUCCESS) {
                 break;
             }
+            if(!is_soft_verify_error(verify_error)) {
+                return_value = verify_error;
+            }
+        }
+        if(return_value == T_COSE_SUCCESS && verify_error != T_COSE_SUCCESS) {
+            /* Only a soft verification error occured. It is still an
+             * error, not success, so it has to be returned. */
+            return_value = verify_error;
         }
 
     } else {
@@ -239,7 +262,6 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         /* Nesting level is 1, index starts at 0 and gets incremented */
         header_location = (struct t_cose_header_location){.nesting = 1,
                                                           .index   = 0 };
-        bool decode_only = me->option_flags & T_COSE_OPT_DECODE_ONLY;
         while(1) { /* loop over COSE_Signatures */
             header_location.index++;
 
@@ -252,7 +274,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                 /* This call decodes one array entry containing a
                  * COSE_Signature. */
                 return_value = verifier->callback(verifier,
-                                                  !decode_only,
+                                                  me->option_flags,
                                                   header_location,
                                                   protected_parameters,
                                                  *payload,
@@ -289,7 +311,6 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 #endif
     }
 
-  continue_decode:
     /* --- Finish up the CBOR decode --- */
     QCBORDecode_ExitArray(&decode_context);
 

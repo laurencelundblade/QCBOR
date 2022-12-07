@@ -30,11 +30,13 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
                             option_flags | T_COSE_OPT_MESSAGE_TYPE_SIGN1);
     me->option_flags = option_flags;
 
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-    t_cose_signature_verify_short_init(&(me->verifier_sc));
+    t_cose_signature_verify_main_init(&(me->main_verifier));
     t_cose_sign_add_verifier(&(me->me2),
-                       t_cose_signature_verify_from_short(&(me->verifier_sc)));
-#endif
+                       t_cose_signature_verify_from_main(&(me->main_verifier)));
+
+    t_cose_signature_verify_eddsa_init(&(me->eddsa_verifier), option_flags);
+    t_cose_sign_add_verifier(&(me->me2),
+                    t_cose_signature_verify_from_eddsa(&(me->eddsa_verifier)));
 }
 
 
@@ -42,11 +44,11 @@ void
 t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
                                   struct t_cose_key           verification_key)
 {
-    t_cose_signature_verify_ecdsa_init(&(me->verifier));
-    t_cose_signature_verify_ecdsa_set_key(&(me->verifier), verification_key);
-    t_cose_sign_add_verifier(&(me->me2),
-                          t_cose_signature_verify_from_ecdsa(&(me->verifier)));
+    /* Set the same key for both. We don't know which verifier will be used
+     * until decoding the input. There is only one key in t_cose_sign1(). */
+    t_cose_signature_verify_eddsa_set_key(&(me->eddsa_verifier),
+                                          verification_key);
+    t_cose_signature_verify_main_set_key(&(me->main_verifier),
+                                         verification_key);
 }
-
-
 

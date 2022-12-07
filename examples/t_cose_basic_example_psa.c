@@ -15,10 +15,10 @@
 #include "t_cose/q_useful_buf.h"
 
 #include "t_cose/t_cose_sign_sign.h"
-#include "t_cose/t_cose_signature_sign_ecdsa.h"
+#include "t_cose/t_cose_signature_sign_main.h"
 
 #include "t_cose/t_cose_sign_verify.h"
-#include "t_cose/t_cose_signature_verify_ecdsa.h"
+#include "t_cose/t_cose_signature_verify_main.h"
 
 #include "psa/crypto.h"
 
@@ -619,7 +619,7 @@ Done:
 int two_step_sign_example_new(void)
 {
     struct t_cose_sign_sign_ctx    sign_ctx;
-    struct t_cose_signature_sign_ecdsa ecdsa_signer;
+    struct t_cose_signature_sign_main main_signer;
     enum t_cose_err_t              return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          signed_cose;
@@ -672,11 +672,11 @@ int two_step_sign_example_new(void)
 
     t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
 
-    t_cose_signature_sign_ecdsa_init(&ecdsa_signer, T_COSE_ALGORITHM_ES256);
+    t_cose_signature_sign_main_init(&main_signer, T_COSE_ALGORITHM_ES256);
 
-    t_cose_signature_sign_ecdsa_set_signing_key(&ecdsa_signer, key_pair, NULL_Q_USEFUL_BUF_C);
+    t_cose_signature_sign_main_set_signing_key(&main_signer, key_pair, NULL_Q_USEFUL_BUF_C);
 
-    t_cose_sign_add_signer(&sign_ctx, t_cose_signature_sign_from_ecdsa(&ecdsa_signer));
+    t_cose_sign_add_signer(&sign_ctx, t_cose_signature_sign_from_main(&main_signer));
 
     printf("Initialized QCBOR, t_cose and configured signing key\n");
 
@@ -979,11 +979,11 @@ int two_step_sign_example_new_verify(void)
      */
     t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
 
-    struct t_cose_signature_verify_ecdsa verifier;
-    t_cose_signature_verify_ecdsa_init(&verifier);
-    t_cose_signature_verify_ecdsa_set_key(&verifier, key_pair);
+    struct t_cose_signature_verify_main verifier;
+    t_cose_signature_verify_main_init(&verifier);
+    t_cose_signature_verify_main_set_key(&verifier, key_pair);
 
-    t_cose_sign_add_verifier(&verify_ctx, t_cose_signature_verify_from_ecdsa(&verifier));
+    t_cose_sign_add_verifier(&verify_ctx, t_cose_signature_verify_from_main(&verifier));
 
     printf("Initialized t_cose for verification and set verification key\n");
 

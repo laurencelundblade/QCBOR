@@ -165,7 +165,7 @@ t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx    *context,
  * \param[in] message         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          or \c COSE_Sign message that is to be verified.
  * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
- * \param[out] payload      Pointer and length of the payload that is returned.
+ * \param[out] payload      Pointer and length of the payload that is returned. Must not be \c NULL.
  * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.

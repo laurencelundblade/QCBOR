@@ -1,8 +1,8 @@
 /*
- * t_cose_signature_verify_ecdsa.c
+ * t_cose_signature_verify_eddsa.c
  *
  * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
- * Created by Laurence Lundblade on 7/19/22.
+ * Created by Laurence Lundblade on 11/19/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -10,7 +10,7 @@
  */
 
 
-#include "t_cose/t_cose_signature_verify_ecdsa.h"
+#include "t_cose/t_cose_signature_verify_eddsa.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_util.h"
 #include "qcbor/qcbor_decode.h"
@@ -20,11 +20,13 @@
 
 /* Warning: this is still early development. Documentation may be incorrect. */
 
+
 /*
  * This is an implementation of t_cose_signature_verify1_callback.
  */
 static enum t_cose_err_t
-t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
+t_cose_signature_verify1_eddsa(struct t_cose_signature_verify *me_x,
+                               const uint32_t                  option_flags,
                                const struct q_useful_buf_c     protected_body_headers,
                                const struct q_useful_buf_c     protected_signature_headers,
                                const struct q_useful_buf_c     payload,
@@ -32,13 +34,12 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
                                const struct t_cose_parameter  *parameter_list,
                                const struct q_useful_buf_c     signature)
 {
-    const struct t_cose_signature_verify_ecdsa *me =
-                          (const struct t_cose_signature_verify_ecdsa *)me_x;
+    struct t_cose_signature_verify_eddsa *me =
+                          (struct t_cose_signature_verify_eddsa *)me_x;
     int32_t                      cose_algorithm_id;
     enum t_cose_err_t            return_value;
     struct q_useful_buf_c        kid;
-    Q_USEFUL_BUF_MAKE_STACK_UB(  tbs_hash_buffer, T_COSE_CRYPTO_MAX_HASH_SIZE);
-    struct q_useful_buf_c        tbs_hash;
+    struct q_useful_buf_c        tbs;
 
     /* --- Get the parameters values needed --- */
     cose_algorithm_id = t_cose_find_parameter_alg_id(parameter_list);
@@ -46,26 +47,56 @@ t_cose_signature_verify1_ecdsa(struct t_cose_signature_verify *me_x,
         return_value = T_COSE_ERR_NO_ALG_ID;
         goto Done;
     }
+    if(cose_algorithm_id != T_COSE_ALGORITHM_EDDSA) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done;
+    }
+
     kid = t_cose_find_parameter_kid(parameter_list);
 
-    /* --- Compute the hash of the to-be-signed bytes -- */
-    return_value = create_tbs_hash(cose_algorithm_id,
-                                   protected_body_headers,
-                                   protected_signature_headers,
-                                   aad,
-                                   payload,
-                                   tbs_hash_buffer,
-                                   &tbs_hash);
-    if(return_value != T_COSE_SUCCESS) {
+    /* We need to serialize the Sig_structure (rather than hashing it
+     * incrementally) before signing. We do this before checking for
+     * the DECODE_ONLY option, as this allows the caller to discover
+     * the necessary buffer size (create_tbs supports a NULL
+     * auxiliary_buffer, and we record the size the structure would
+     * have occupied).
+     */
+    return_value = create_tbs(protected_body_headers,
+                              aad,
+                              protected_signature_headers,
+                              payload,
+                              me->auxiliary_buffer,
+                             &tbs);
+    if (return_value == T_COSE_ERR_TOO_SMALL) {
+        /* Be a bit more specific about which buffer is too small */
+        return_value = T_COSE_ERR_AUXILIARY_BUFFER_SIZE;
+    }
+    if (return_value) {
         goto Done;
     }
 
     /* -- Verify the signature -- */
-    return_value = t_cose_crypto_verify(cose_algorithm_id,
-                                        me->verification_key,
-                                        kid,
-                                        tbs_hash,
-                                        signature);
+    /* Record how much buffer we actually used / would have used,
+     * allowing the caller to allocate an appropriately sized buffer.
+     * This is particularly useful in DECODE_ONLY mode.
+     */
+    me->auxiliary_buffer_size = tbs.len;
+
+    if(option_flags & T_COSE_OPT_DECODE_ONLY) {
+        return_value = T_COSE_SUCCESS;
+        goto Done;
+    }
+
+    if (me->auxiliary_buffer.ptr == NULL) {
+        return_value = T_COSE_ERR_NEED_AUXILIARY_BUFFER;
+        goto Done;
+    }
+
+    return_value = t_cose_crypto_verify_eddsa(me->verification_key,
+                                              kid,
+                                              tbs,
+                                              signature);
+
 Done:
     return return_value;
 }
@@ -82,8 +113,8 @@ Done:
  This is an implementation of t_cose_signature_verify_callback
  */
 static enum t_cose_err_t
-t_cose_signature_verify_ecdsa(struct t_cose_signature_verify     *me_x,
-                              const bool                          run_crypto,
+t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
+                              const uint32_t                      option_flags,
                               const struct t_cose_header_location loc,
                               const struct q_useful_buf_c         protected_body_headers,
                               const struct q_useful_buf_c         payload,
@@ -92,8 +123,8 @@ t_cose_signature_verify_ecdsa(struct t_cose_signature_verify     *me_x,
                               QCBORDecodeContext                 *qcbor_decoder,
                               struct t_cose_parameter           **decoded_signature_parameters)
 {
-    const struct t_cose_signature_verify_ecdsa *me =
-                            (const struct t_cose_signature_verify_ecdsa *)me_x;
+    const struct t_cose_signature_verify_eddsa *me =
+                            (const struct t_cose_signature_verify_eddsa *)me_x;
     QCBORError             qcbor_error;
     enum t_cose_err_t      return_value;
     struct q_useful_buf_c  protected_parameters;
@@ -124,12 +155,8 @@ t_cose_signature_verify_ecdsa(struct t_cose_signature_verify     *me_x,
     }
     /* --- Done decoding the COSE_Signature --- */
 
-
-    if(!run_crypto) {
-        goto Done;
-    }
-
-    return_value = t_cose_signature_verify1_ecdsa(me_x,
+    return_value = t_cose_signature_verify1_eddsa(me_x,
+                                                  option_flags,
                                                   protected_body_headers,
                                                   protected_parameters,
                                                   payload,
@@ -142,9 +169,16 @@ Done:
 
 
 void
-t_cose_signature_verify_ecdsa_init(struct t_cose_signature_verify_ecdsa *me)
+t_cose_signature_verify_eddsa_init(struct t_cose_signature_verify_eddsa *me,
+                                   uint32_t option_flags)
 {
     memset(me, 0, sizeof(*me));
-    me->s.callback  = t_cose_signature_verify_ecdsa;
-    me->s.callback1 = t_cose_signature_verify1_ecdsa;
+    me->s.callback   = t_cose_signature_verify_eddsa_cb;
+    me->s.callback1  = t_cose_signature_verify1_eddsa;
+    me->option_flags = option_flags;
+
+    /* Start with large (but NULL) auxiliary buffer.
+     * The Sig_Structure data will be serialized here.
+     */
+    me->auxiliary_buffer.len = SIZE_MAX;
 }

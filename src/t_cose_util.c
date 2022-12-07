@@ -1,7 +1,7 @@
 /*
  *  t_cose_util.c
  *
- * Copyright 2019-2021, Laurence Lundblade
+ * Copyright 2019-2022, Laurence Lundblade
  * Copyright (c) 2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -16,6 +16,7 @@
 #include "t_cose_crypto.h"
 
 
+
 /**
  * \file t_cose_util.c
  *
@@ -24,6 +25,46 @@
  * These are some functions common to signing and verification,
  * primarily the to-be-signed bytes hashing.
  */
+
+/*
+ * Public function. See t_cose_util.h
+ */
+bool signature_algorithm_id_is_supported(int32_t cose_algorithm_id)
+{
+// TODO: disable ES256
+    return (cose_algorithm_id == T_COSE_ALGORITHM_ES256)
+#ifndef T_COSE_DISABLE_ES384
+           || (cose_algorithm_id == T_COSE_ALGORITHM_ES384)
+#endif
+#ifndef T_COSE_DISABLE_ES512
+           || (cose_algorithm_id == T_COSE_ALGORITHM_ES512)
+#endif
+#ifndef T_COSE_DISABLE_PS256
+           || (cose_algorithm_id == T_COSE_ALGORITHM_PS256)
+#endif
+#ifndef T_COSE_DISABLE_PS384
+           || (cose_algorithm_id == T_COSE_ALGORITHM_PS384)
+#endif
+#ifndef T_COSE_DISABLE_PS512
+           || (cose_algorithm_id == T_COSE_ALGORITHM_PS512)
+#endif
+#ifndef T_COSE_DISABLE_EDDSA
+           || (cose_algorithm_id == T_COSE_ALGORITHM_EDDSA)
+#endif
+           ;
+}
+
+
+/*
+ * Public function.
+ *
+ * This is declared in t_cose_common.h, but there is no t_cose_common.c,
+ * so this little function is put here.*/
+bool
+t_cose_is_algorithm_supported(int32_t cose_algorithm_id)
+{
+    return t_cose_crypto_is_algorithm_supported(cose_algorithm_id);
+}
 
 
 /*
@@ -39,6 +80,8 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
     /* ? : operator precedence is correct here. This makes smaller
      * code than a switch statement and is easier to read.
      */
+    // TODO: disable ES256
+
     return cose_algorithm_id == T_COSE_ALGORITHM_ES256 ? T_COSE_ALGORITHM_SHA_256 :
 #ifndef T_COSE_DISABLE_ES384
            cose_algorithm_id == T_COSE_ALGORITHM_ES384 ? T_COSE_ALGORITHM_SHA_384 :
@@ -46,11 +89,26 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_ES512
            cose_algorithm_id == T_COSE_ALGORITHM_ES512 ? T_COSE_ALGORITHM_SHA_512 :
 #endif
-                                                       T_COSE_INVALID_ALGORITHM_ID;
+#ifndef T_COSE_DISABLE_PS256
+           cose_algorithm_id == T_COSE_ALGORITHM_PS256 ? T_COSE_ALGORITHM_SHA_256 :
+#endif
+#ifndef T_COSE_DISABLE_PS384
+           cose_algorithm_id == T_COSE_ALGORITHM_PS384 ? T_COSE_ALGORITHM_SHA_384 :
+#endif
+#ifndef T_COSE_DISABLE_PS512
+           cose_algorithm_id == T_COSE_ALGORITHM_PS512 ? T_COSE_ALGORITHM_SHA_512 :
+#endif
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+           cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_256 ? T_COSE_ALGORITHM_SHA_256 :
+           cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_384 ? T_COSE_ALGORITHM_SHA_384 :
+           cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_512 ? T_COSE_ALGORITHM_SHA_512 :
+#endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
+                                                         T_COSE_INVALID_ALGORITHM_ID;
 }
 
 #ifndef T_COSE_DISABLE_MAC0
-enum t_cose_err_t create_tbm(struct q_useful_buf             tbm_first_part_buf,
+// TODO: maybe this can be shared with similar function for EDDSA?
+enum t_cose_err_t create_tbm(UsefulBuf                       tbm_first_part_buf,
                              struct q_useful_buf_c           protected_headers,
                              struct q_useful_buf_c          *tbm_first_part,
                              enum t_cose_tbm_payload_mode_t  payload_mode,
@@ -72,6 +130,8 @@ enum t_cose_err_t create_tbm(struct q_useful_buf             tbm_first_part_buf,
     QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
 
     /* The short fake payload. */
+    // TODO: is this mode necessary?
+
     if(payload_mode == T_COSE_TBM_PAYLOAD_IS_BSTR_WRAPPED) {
         /* Fake payload is just an empty bstr. It is here only
          * to make the array count right. It must be omitted
@@ -105,6 +165,43 @@ enum t_cose_err_t create_tbm(struct q_useful_buf             tbm_first_part_buf,
     return T_COSE_SUCCESS;
 }
 #endif /* !T_COSE_DISABLE_MAC0 */
+
+
+/*
+ * Public function. See t_cose_util.h
+ */
+// TODO: combine with create_tbm()
+// TODO: disable this when EdDSA is disabled?
+enum t_cose_err_t
+create_tbs(struct q_useful_buf_c  protected_parameters,
+           struct q_useful_buf_c  aad,
+           const struct q_useful_buf_c  sign_protected_parameters,
+           struct q_useful_buf_c  payload,
+           struct q_useful_buf    buffer_for_tbs,
+           struct q_useful_buf_c *tbs)
+{
+    QCBOREncodeContext  cbor_context;
+    QCBOREncode_Init(&cbor_context, buffer_for_tbs);
+
+    QCBOREncode_OpenArray(&cbor_context);
+    QCBOREncode_AddSZString(&cbor_context, COSE_SIG_CONTEXT_STRING_SIGNATURE1);
+    QCBOREncode_AddBytes(&cbor_context, protected_parameters);
+    if(!q_useful_buf_c_is_null(sign_protected_parameters)) {
+        QCBOREncode_AddBytes(&cbor_context, sign_protected_parameters);
+    }
+    QCBOREncode_AddBytes(&cbor_context, aad);
+    QCBOREncode_AddBytes(&cbor_context, payload);
+    QCBOREncode_CloseArray(&cbor_context);
+
+    QCBORError cbor_err = QCBOREncode_Finish(&cbor_context, tbs);
+    if (cbor_err == QCBOR_ERR_BUFFER_TOO_SMALL) {
+        return T_COSE_ERR_TOO_SMALL;
+    } else if (cbor_err != QCBOR_SUCCESS) {
+        return T_COSE_ERR_CBOR_FORMATTING;
+    } else {
+        return T_COSE_SUCCESS;
+    }
+}
 
 
 /**
@@ -185,6 +282,11 @@ create_tbs_hash(const int32_t                cose_algorithm_id,
 
     /* Start the hashing */
     hash_alg_id = hash_alg_id_from_sig_alg_id(cose_algorithm_id);
+    if (hash_alg_id == T_COSE_INVALID_ALGORITHM_ID) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done;
+    }
+
     /* Don't check hash_alg_id for failure. t_cose_crypto_hash_start()
      * will handle error properly. It was also checked earlier.
      */
@@ -250,14 +352,6 @@ Done:
 }
 
 
-/* This is declared in t_cose_common.h, but there is no t_coses_common.c,
- * so this little function is put here.*/
-bool
-t_cose_is_algorithm_supported(int32_t cose_algorithm_id)
-{
-    return t_cose_crypto_is_algorithm_supported(cose_algorithm_id);
-}
-
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 /* This is a random hard coded kid (key ID) that is used to indicate
@@ -285,6 +379,7 @@ struct q_useful_buf_c get_short_circuit_kid(void)
 
     return short_circuit_kid;
 }
+
 #endif
 
 

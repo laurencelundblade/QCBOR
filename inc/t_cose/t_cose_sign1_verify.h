@@ -20,8 +20,8 @@
 #include "qcbor/qcbor_common.h"
 
 #include "t_cose/t_cose_sign_verify.h"
-#include "t_cose/t_cose_signature_verify_ecdsa.h"
-#include "t_cose/t_cose_signature_verify_short.h"
+#include "t_cose/t_cose_signature_verify_main.h"
+#include "t_cose/t_cose_signature_verify_eddsa.h"
 
 
 
@@ -76,8 +76,8 @@ struct t_cose_sign1_verify_ctx {
     /* Private data structure */
     struct t_cose_sign_verify_ctx        me2;
 
-    struct t_cose_signature_verify_ecdsa verifier;
-    struct t_cose_signature_verify_short verifier_sc;
+    struct t_cose_signature_verify_main main_verifier;
+    struct t_cose_signature_verify_eddsa eddsa_verifier;
 
     uint32_t                             option_flags;
     uint64_t                             auTags[T_COSE_MAX_TAGS_TO_RETURN];
@@ -148,6 +148,56 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
 void
 t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
                                   struct t_cose_key               verification_key);
+
+
+/**
+ * \brief Configure a buffer used to serialize the Sig_Structure.
+ *
+ * \param[in,out] context       The t_cose signature verification context.
+ * \param[in] auxiliary_buffer  The auxiliary buffer to be used.
+ *
+ * Some signature algorithms (namely EdDSA), require two passes over
+ * their input. In order to achieve this, the library needs to serialize
+ * a temporary to-be-signed structure into an auxiliary buffer. This function
+ * allows the user to configure such a buffer.
+ *
+ * The buffer must be big enough to accomodate the Sig_Structure type,
+ * which is roughly the sum of sizes of the encoded protected parameters,
+ * aad and payload, along with a few dozen bytes of overhead.
+ *
+ * To compute the exact size needed, initialize the context with
+ * the \ref T_COSE_OPT_DECODE_ONLY option, and call the
+ * \ref t_cose_sign1_verify (or similar). After the message decoding,
+ * the necessary auxiliary buffer size is available by calling
+ * \ref t_cose_sign1_verify_auxiliary_buffer_size.
+ *
+ */
+static void
+t_cose_sign1_verify_set_auxiliary_buffer(struct t_cose_sign1_verify_ctx *context,
+                                         struct q_useful_buf             auxiliary_buffer);
+
+/**
+ * \brief Get the required auxiliary buffer size for the most recent
+ * verification operation.
+ *
+ * \param[in,out] context       The t_cose signature verification context.
+ *
+ * \return The number of bytes of auxiliary buffer used by the most
+ *         recent verification operation.
+ *
+ * This function can be called after \ref t_cose_sign1_verify (or
+ * equivalent) was called. If the context was initialized with the
+ * DECODE_ONLY flag, it returns the number of bytes that would have
+ * been used by the signing operation. This allows the caller to
+ * allocate an appropriately sized buffer before performing the
+ * actual verification.
+ *
+ * This function returns zero if the signature algorithm used does not
+ * need an auxiliary buffer.
+ */
+static size_t
+t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *context);
+
 
 
 /**
@@ -391,6 +441,22 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
     return return_value;
 }
 
+
+
+static inline void
+t_cose_sign1_verify_set_auxiliary_buffer(struct t_cose_sign1_verify_ctx *me,
+                                         struct q_useful_buf        aux_buffer)
+{
+    t_cose_signature_verify_eddsa_set_auxiliary_buffer(&(me->eddsa_verifier),
+                                                       aux_buffer);
+}
+
+
+static inline size_t
+t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *me)
+{
+    return t_cose_signature_verify_eddsa_auxiliary_buffer_size(&(me->eddsa_verifier));
+}
 
 #ifdef __cplusplus
 }

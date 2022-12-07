@@ -17,6 +17,8 @@
 #include "t_cose_crypto.h" /* For signature size constant */
 #include "t_cose_util.h" /* for get_short_circuit_kid */
 
+#include "t_cose_make_test_pub_key.h"
+
 
 /* String used by RFC 8152 and C-COSE tests and examples for payload */
 #define SZ_CONTENT "This is the content."
@@ -33,14 +35,20 @@ int_fast32_t short_circuit_self_test()
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
+    struct t_cose_key               key_pair;
+    int32_t                         cose_algorithm_id;
 
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        cose_algorithm_id = T_COSE_ALGORITHM_ES256;
+    } else {
+        cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+    }
+
+    make_key_pair(cose_algorithm_id, &key_pair);
 
     /* --- Make COSE Sign1 object --- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
-
-    /* No key necessary because short-circuit test mode is used */
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
     result = t_cose_sign1_sign(&sign_ctx,
                                 s_input_payload,
@@ -55,8 +63,7 @@ int_fast32_t short_circuit_self_test()
     /* --- Start verifying the COSE Sign1 object  --- */
     /* Select short circuit signing */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
-
-    /* No key necessary with short circuit */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
@@ -74,37 +81,23 @@ int_fast32_t short_circuit_self_test()
     if(q_useful_buf_compare(payload, s_input_payload)) {
         return 3000;
     }
-    /* This value comes from C-COSE test case sign-pass-03.json. The test
-     * case JSON gives the expected TBS bytes. These were then run through
-     * openssl dgst -sha256 -binary | hexdump -e '"\n" 8/1 "0x%01x,  "'.
-     *
-     * Short-circuit signature are just the hash of the TBS bytes. They are
-     * twice to fake the length of a real signature. In the COSE format the
-     * signature is last, so this hash occurs as the last 32 bytes of a
-     * the encoded COSE.
-     *
-     * This is a useful test because it confirms the TBS byte calculation is
-     * right in comparison to C-COSE.
-     */
-    static const uint8_t hash_of_tbs[] = {
-        0x4c,  0x33,  0x63,  0xb4,  0x99,  0xe1,  0xda,  0xc4,
-        0xaa,  0xfc,  0x8d,  0x69,  0x23,  0xf1,  0xca,  0x65,
-        0x77,  0xdf,  0xda,  0x80,  0xda,  0x24,  0xe5,  0x4f,
-        0xb9,  0x24,  0x24,  0x90,  0x64,  0x82,  0x7c,  0x88};
 
-    if(q_useful_buf_compare(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(hash_of_tbs),
-                            q_useful_buf_tail(signed_cose, signed_cose.len - 32))) {
-        return 4000;
-    }
+    /* The check against the TBS value from COSE  C test cases
+     * from t_cose 1.0 is removed because of the new way
+     * short circuit signature work. They used to pretend
+     * they were ECDSA and used the algorithm ID from ECDSA, but
+     * now they have their own algorithm ID. Since the algorithm
+     * ID is covered by the hash, the hash is not the same.
+     */
+    // TODO: create a test (elsewhere) that does check the TBS bytes from COSE C
+
+
     /* --- Done verifying the COSE Sign1 object  --- */
 
 
    /* --- Make COSE Sign1 object --- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
-
-    /* No key necessary because short-circuit test mode is used */
+    t_cose_sign1_sign_init(&sign_ctx,0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
     result = t_cose_sign1_sign_aad(&sign_ctx,
                                     s_input_payload,
@@ -120,8 +113,7 @@ int_fast32_t short_circuit_self_test()
     /* --- Start verifying the COSE Sign1 object  --- */
     /* Select short circuit signing */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
-
-    /* No key necessary with short circuit */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* Run the signature verification */
     result = t_cose_sign1_verify_aad(&verify_ctx,
@@ -155,14 +147,20 @@ int_fast32_t short_circuit_self_detached_content_test()
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
+    struct t_cose_key               key_pair;
+    int32_t                         cose_algorithm_id;
 
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        cose_algorithm_id = T_COSE_ALGORITHM_ES256;
+    } else {
+        cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+    }
+
+    make_key_pair(cose_algorithm_id, &key_pair);
 
     /* --- Make COSE Sign1 object --- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
-
-    /* No key necessary because short-circuit test mode is used */
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
     result = t_cose_sign1_sign_detached(&sign_ctx,
                                           NULL_Q_USEFUL_BUF_C,
@@ -178,8 +176,7 @@ int_fast32_t short_circuit_self_detached_content_test()
     /* --- Start verifying the COSE Sign1 object  --- */
     /* Select short circuit signing */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
-
-    /* No key necessary with short circuit */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* The detached content */
     payload = s_input_payload;
@@ -203,29 +200,6 @@ int_fast32_t short_circuit_self_detached_content_test()
         return 3000;
     }
 
-    /* This value comes from C-COSE test case sign-pass-03.json. The test
-     * case JSON gives the expected TBS bytes. These were then run through
-     * openssl dgst -sha256 -binary | hexdump -e '"\n" 8/1 "0x%01x,  "'.
-     *
-     * Short-circuit signature are just the hash of the TBS bytes. They are
-     * twice to fake the length of a real signature. In the COSE format the
-     * signature is last, so this hash occurs as the last 32 bytes of a
-     * the encoded COSE.
-     *
-     * This is a useful test because it confirms the TBS byte calculation is
-     * right in comparison to C-COSE.
-     */
-    static const uint8_t hash_of_tbs[] = {
-        0x4c,  0x33,  0x63,  0xb4,  0x99,  0xe1,  0xda,  0xc4,
-        0xaa,  0xfc,  0x8d,  0x69,  0x23,  0xf1,  0xca,  0x65,
-        0x77,  0xdf,  0xda,  0x80,  0xda,  0x24,  0xe5,  0x4f,
-        0xb9,  0x24,  0x24,  0x90,  0x64,  0x82,  0x7c,  0x88};
-
-    if(q_useful_buf_compare(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(hash_of_tbs),
-                            q_useful_buf_tail(signed_cose, signed_cose.len - 32))) {
-        return 4000;
-    }
-
     /* --- Done verifying the COSE Sign1 object  --- */
 
     return 0;
@@ -244,13 +218,21 @@ int_fast32_t short_circuit_verify_fail_test()
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
     size_t                          payload_offset;
+    struct t_cose_key               key_pair;
+    int32_t                         cose_algorithm_id;
+
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        cose_algorithm_id = T_COSE_ALGORITHM_ES256;
+    } else {
+        cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+    }
+
+    make_key_pair(cose_algorithm_id, &key_pair);
+
 
     /* --- Start making COSE Sign1 object  --- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
-
-    /* No key necessary because short-circuit test mode is used */
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
     result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
@@ -278,8 +260,7 @@ int_fast32_t short_circuit_verify_fail_test()
 
     /* Select short circuit signing */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
-
-    /* No key necessary with short circuit */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
@@ -297,11 +278,8 @@ int_fast32_t short_circuit_verify_fail_test()
 
     /* === AAD Verification Failure Test === */
     /* --- Start making COSE Sign1 object  --- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                            T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                            T_COSE_ALGORITHM_ES256);
-
-    /* No key necessary because short-circuit test mode is used */
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
     result = t_cose_sign1_sign_aad(&sign_ctx,
                                     s_input_payload,
@@ -317,8 +295,7 @@ int_fast32_t short_circuit_verify_fail_test()
 
     /* Select short circuit signing */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
-
-    /* No key necessary with short circuit */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* Run the signature verification */
     result = t_cose_sign1_verify_aad(&verify_ctx,
@@ -353,7 +330,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 
     /* -- Test bad algorithm ID 0 -- */
     /* Use reserved alg ID 0 to cause error. */
-    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, 0);
+    t_cose_sign1_sign_init(&sign_ctx, 0, 0);
 
     result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
@@ -365,7 +342,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 
     /* -- Test bad algorithm ID -4444444 -- */
     /* Use unassigned alg ID -4444444 to cause error. */
-    t_cose_sign1_sign_init(&sign_ctx, T_COSE_OPT_SHORT_CIRCUIT_SIG, -4444444);
+    t_cose_sign1_sign_init(&sign_ctx, 0, -4444444);
 
     result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
@@ -380,9 +357,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     /* -- Tests detection of CBOR encoding error in the payload -- */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_SHORT_CIRCUIT_256);
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
 
 
@@ -398,9 +373,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 
 
     /* -- Tests the output buffer being too small -- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_SHORT_CIRCUIT_256);
 
     result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
@@ -428,15 +401,24 @@ int_fast32_t short_circuit_make_cwt_test()
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
     QCBORError                      cbor_error;
+    struct t_cose_key               key_pair;
+    int32_t                         cose_algorithm_id;
+
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        cose_algorithm_id = T_COSE_ALGORITHM_ES256;
+    } else {
+        cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+    }
+
+    make_key_pair(cose_algorithm_id, &key_pair);
 
     /* --- Start making COSE Sign1 object  --- */
 
     /* The CBOR encoder instance that the COSE_Sign1 is output into */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
     /* Do the first part of the the COSE_Sign1, the parameters */
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
@@ -470,24 +452,28 @@ int_fast32_t short_circuit_make_cwt_test()
     }
     /* --- Done making COSE Sign1 object  --- */
 
-
     /* --- Compare to expected from CWT RFC --- */
-    /* The first part, the intro and protected pararameters must be the same */
-    const uint8_t cwt_first_part_bytes[] = {0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26};
-    struct q_useful_buf_c fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cwt_first_part_bytes);
-    struct q_useful_buf_c head = q_useful_buf_head(signed_cose, sizeof(cwt_first_part_bytes));
-    if(q_useful_buf_compare(head, fp)) {
-        return -1;
+
+    /* The first part, the intro and pararameters must be the same */
+    struct q_useful_buf_c first_part_expected;
+    struct q_useful_buf_c first_part_created;
+    /* What is actually in the RFC */
+    static const uint8_t fp_es[] = {0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26, 0xa0};
+    /* A different algorithm ID than the RFC because it is short circuit sig */
+    static const uint8_t fp_ss[] = {0xd2, 0x84, 0x47, 0xa1, 0x01, 0x3A,0x00, 0x0F, 0x43, 0x3F, 0xa0};
+    if(cose_algorithm_id == T_COSE_ALGORITHM_ES256) {
+        first_part_expected = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fp_es);
+    } else {
+        first_part_expected = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fp_ss);
+    }
+    first_part_created = q_useful_buf_head(signed_cose, first_part_expected.len);
+    if(q_useful_buf_compare(first_part_created, first_part_expected)) {
+        return -101;
     }
 
-    /* Skip the key id, because this has the short-circuit key id */
-    const size_t kid_encoded_len =
-       1 +
-       1 +
-       2 +
-       32; // length of short-circuit key id
-
     /* Compare the payload */
+    struct q_useful_buf_c created_payload;
+    struct q_useful_buf_c expected_payload;
     const uint8_t rfc8392_payload_bytes[] = {
         0x58, 0x50, 0xa7, 0x01, 0x75, 0x63, 0x6f, 0x61, 0x70, 0x3a, 0x2f,
         0x2f, 0x61, 0x73, 0x2e, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65,
@@ -497,25 +483,20 @@ int_fast32_t short_circuit_make_cwt_test()
         0x65, 0x2e, 0x63, 0x6f, 0x6d, 0x04, 0x1a, 0x56, 0x12, 0xae, 0xb0,
         0x05, 0x1a, 0x56, 0x10, 0xd9, 0xf0, 0x06, 0x1a, 0x56, 0x10, 0xd9,
         0xf0, 0x07, 0x42, 0x0b, 0x71};
-
-    struct q_useful_buf_c fp2 = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_payload_bytes);
-
-    struct q_useful_buf_c payload2 = q_useful_buf_tail(signed_cose,
-                                                       sizeof(cwt_first_part_bytes)+kid_encoded_len);
-    struct q_useful_buf_c pl3 = q_useful_buf_head(payload2,
-                                                sizeof(rfc8392_payload_bytes));
-    if(q_useful_buf_compare(pl3, fp2)) {
-        return -2;
+    expected_payload = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_payload_bytes);
+    created_payload = q_useful_buf_head(q_useful_buf_tail(signed_cose,
+                                                          first_part_expected.len),
+                                        sizeof(rfc8392_payload_bytes));
+    if(q_useful_buf_compare(created_payload, expected_payload)) {
+        return -102;
     }
-
-    /* Skip the signature because ECDSA signatures usually have a random
-     component */
+    /* Don't compare the signature because ECDSA signatures usually have a random
+     * component and we're not using the same key (yet) */
 
 
     /* --- Start verifying the COSE Sign1 object  --- */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
-
-    /* No key necessary with short circuit */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
@@ -532,7 +513,7 @@ int_fast32_t short_circuit_make_cwt_test()
     /* Format the expected payload CBOR fragment */
 
     /* compare payload output to the one expected */
-    if(q_useful_buf_compare(payload, q_useful_buf_tail(fp2, 2))) {
+    if(q_useful_buf_compare(payload, q_useful_buf_tail(expected_payload, 2))) {
         return 5000;
     }
     /* --- Done verifying the COSE Sign1 object  --- */
@@ -556,15 +537,25 @@ int_fast32_t short_circuit_decode_only_test()
     Q_USEFUL_BUF_MAKE_STACK_UB(     expected_payload_buffer, 10);
     struct q_useful_buf_c           expected_payload;
     QCBORError                      cbor_error;
+    struct t_cose_key               key_pair;
+    int32_t                         cose_algorithm_id;
+
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        cose_algorithm_id = T_COSE_ALGORITHM_ES256;
+    } else {
+        cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+    }
+
+    make_key_pair(cose_algorithm_id, &key_pair);
 
     /* --- Start making COSE Sign1 object  --- */
 
     /* The CBOR encoder instance that the COSE_Sign1 is output into */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+
 
     /* Do the first part of the the COSE_Sign1, the parameters */
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
@@ -602,8 +593,7 @@ int_fast32_t short_circuit_decode_only_test()
 
     /* --- Start verifying the COSE Sign1 object  --- */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
-
-    /* Decode-only mode so no key and no signature check. */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
@@ -680,9 +670,9 @@ int_fast32_t cose_example_test()
     struct q_useful_buf_c         head_actual;
     struct q_useful_buf_c         head_exp;
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    // TODO: revisit the key material for this test. Can we get the right key?
+    // SHould we get rid of this test?
+    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_SHORT_CIRCUIT_256);
 
     t_cose_sign1_set_signing_key(&sign_ctx,
                                  T_COSE_NULL_KEY,
@@ -723,15 +713,24 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
     struct q_useful_buf_c           signed_cose;
     struct q_useful_buf_c           payload;
     struct t_cose_parameters        old_parameters;
+    struct t_cose_key               key_pair;
+    int32_t                         cose_algorithm_id;
+
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        cose_algorithm_id = T_COSE_ALGORITHM_ES256;
+    } else {
+        cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+    }
+
+    make_key_pair(cose_algorithm_id, &key_pair);
 
     /* --- Start making COSE Sign1 object  --- */
 
     /* The CBOR encoder instance that the COSE_Sign1 is output into */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
     result =
         t_cose_test_message_sign1_sign(&sign_ctx,
@@ -747,9 +746,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
 
     /* --- Start verifying the COSE Sign1 object  --- */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
-
-    /* No key necessary with short circuit */
-
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
@@ -774,14 +771,21 @@ int_fast32_t all_header_parameters_test()
     struct t_cose_parameters        parameters;
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
+    struct t_cose_key               key_pair;
+    int32_t                         cose_algorithm_id;
+
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        cose_algorithm_id = T_COSE_ALGORITHM_ES256;
+    } else {
+        cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+    }
+
+    make_key_pair(cose_algorithm_id, &key_pair);
 
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
-
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
     t_cose_sign1_set_signing_key(&sign_ctx,
-                                 T_COSE_NULL_KEY,
+                                 key_pair,
                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
     result =
@@ -795,8 +799,7 @@ int_fast32_t all_header_parameters_test()
     }
 
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
-
-    /* No key necessary with short circuit */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
 
     result = t_cose_sign1_verify(&verify_ctx,
@@ -808,11 +811,11 @@ int_fast32_t all_header_parameters_test()
                                        &parameters);
 
     // Need to compare to short circuit kid
-    if(q_useful_buf_compare(parameters.kid, get_short_circuit_kid())) {
+    if(q_useful_buf_compare(parameters.kid, Q_USEFUL_BUF_FROM_SZ_LITERAL("11"))) {
         return 2;
     }
 
-    if(parameters.cose_algorithm_id != T_COSE_ALGORITHM_ES256) {
+    if(parameters.cose_algorithm_id != cose_algorithm_id) {
         return 3;
     }
 
@@ -842,7 +845,8 @@ struct test_case {
 };
 
 static struct test_case bad_parameters_tests_table[] = {
-    {T_COSE_TEST_EMPTY_PROTECTED_PARAMETERS, T_COSE_ERR_UNSUPPORTED_HASH},
+    // TODO: document that this is different than t_cose 1.0
+    {T_COSE_TEST_EMPTY_PROTECTED_PARAMETERS, T_COSE_ERR_NO_ALG_ID},
 
     {T_COSE_TEST_UNCLOSED_PROTECTED, T_COSE_ERR_PARAMETER_CBOR},
 
@@ -966,12 +970,21 @@ int_fast32_t content_type_test()
     struct q_useful_buf_c           payload;
     enum t_cose_err_t               result;
     struct t_cose_sign1_verify_ctx  verify_ctx;
+    struct t_cose_key               key_pair;
+    int32_t                         cose_algorithm_id;
+
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        cose_algorithm_id = T_COSE_ALGORITHM_ES256;
+    } else {
+        cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+    }
+
+    make_key_pair(cose_algorithm_id, &key_pair);
 
 
     /* -- integer content type -- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
     t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
 
@@ -984,6 +997,7 @@ int_fast32_t content_type_test()
     }
 
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     result = t_cose_sign1_verify(&verify_ctx,
                                         output,
@@ -999,9 +1013,9 @@ int_fast32_t content_type_test()
 
 
     /* -- string content type -- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+
 
     t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
 
@@ -1014,6 +1028,7 @@ int_fast32_t content_type_test()
     }
 
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     result = t_cose_sign1_verify(&verify_ctx,
                                        output,
@@ -1038,9 +1053,9 @@ int_fast32_t content_type_test()
      */
 
     /* -- content type in error -- */
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+
 
     t_cose_sign1_set_content_type_tstr(&sign_ctx, "text/plain");
     t_cose_sign1_set_content_type_uint(&sign_ctx, 42);
@@ -1151,9 +1166,7 @@ int_fast32_t short_circuit_hash_fail_test()
      */
     hash_test_mode = 1;
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_SHORT_CIRCUIT_256);
 
     result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
@@ -1172,9 +1185,7 @@ int_fast32_t short_circuit_hash_fail_test()
      */
     hash_test_mode = 2;
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_SHORT_CIRCUIT_256);
 
     result = t_cose_sign1_sign(&sign_ctx,
                                      s_input_payload,
@@ -1207,6 +1218,16 @@ int_fast32_t tags_test()
     struct q_useful_buf_c           payload;
     QCBORError                      cbor_error;
     uint64_t                        tag;
+    struct t_cose_key               key_pair;
+    int32_t                         cose_algorithm_id;
+
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        cose_algorithm_id = T_COSE_ALGORITHM_ES256;
+    } else {
+        cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+    }
+
+    make_key_pair(cose_algorithm_id, &key_pair);
 
     /* --- Start making COSE Sign1 object tagged 900(901(18())) --- */
 
@@ -1217,9 +1238,9 @@ int_fast32_t tags_test()
 
     QCBOREncode_AddTag(&cbor_encode, 901);
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+
 
     /* Do the first part of the the COSE_Sign1, the parameters */
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
@@ -1253,22 +1274,28 @@ int_fast32_t tags_test()
     }
     /* --- Done making COSE Sign1 object tagged 900(901(18(0))) --- */
 
-
     /* --- Compare to expected from CWT RFC --- */
-    /* The first part, the intro and protected pararameters must be the same */
-    const uint8_t cwt_first_part_bytes[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85, 0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26};
-    struct q_useful_buf_c fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cwt_first_part_bytes);
-    struct q_useful_buf_c head = q_useful_buf_head(signed_cose, sizeof(cwt_first_part_bytes));
+    /* The first part, the intro and protected pararameters, must be the same.
+     * This varies by algorithm ID so there's two. The one for ES256
+     * is the same as what's in the RFC example.
+     */
+    struct q_useful_buf_c fp;
+    if(cose_algorithm_id == T_COSE_ALGORITHM_ES256) {
+        static const uint8_t fpx[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85,
+                                      0xd2, 0x84, 0x43, 0xa1, 0x01, 0x26, 0xa0};
+        fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fpx);
+
+    } else {
+        /* A different algorithm ID than the RFC because it is short circuit sig */
+        static const uint8_t fpx[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85,
+                                      0xd2, 0x84, 0x47, 0xa1, 0x01, 0x3A,
+                                      0x00, 0x0F, 0x43, 0x3F, 0xa0};
+        fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fpx);
+    }
+    struct q_useful_buf_c head = q_useful_buf_head(signed_cose, fp.len);
     if(q_useful_buf_compare(head, fp)) {
         return -1;
     }
-
-    /* Skip the key id, because this has the short-circuit key id */
-    const size_t kid_encoded_len =
-    1 +
-    1 +
-    2 +
-    32; // length of short-circuit key id
 
     /* Compare the payload */
     const uint8_t rfc8392_payload_bytes[] = {
@@ -1283,8 +1310,7 @@ int_fast32_t tags_test()
 
     struct q_useful_buf_c fp2 = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc8392_payload_bytes);
 
-    struct q_useful_buf_c payload2 = q_useful_buf_tail(signed_cose,
-                                                       sizeof(cwt_first_part_bytes)+kid_encoded_len);
+    struct q_useful_buf_c payload2 = q_useful_buf_tail(signed_cose, fp.len);
     struct q_useful_buf_c pl3 = q_useful_buf_head(payload2,
                                                   sizeof(rfc8392_payload_bytes));
     if(q_useful_buf_compare(pl3, fp2)) {
@@ -1297,8 +1323,7 @@ int_fast32_t tags_test()
 
     /* --- Start verifying the COSE Sign1 object  --- */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
-
-    /* No key necessary with short circuit */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
@@ -1337,8 +1362,8 @@ int_fast32_t tags_test()
     /* --- Start verifying the COSE Sign1 object, requiring tag--- */
     t_cose_sign1_verify_init(&verify_ctx,
                              T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_REQUIRED);
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
-    /* No key necessary with short circuit */
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
@@ -1359,8 +1384,7 @@ int_fast32_t tags_test()
     /* --- Start verifying the COSE Sign1 object, prohibiting tag--- */
     t_cose_sign1_verify_init(&verify_ctx,
                              T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_PROHIBITED);
-
-    /* No key necessary with short circuit */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
@@ -1389,9 +1413,9 @@ int_fast32_t tags_test()
     QCBOREncode_AddTag(&cbor_encode, 903);
     QCBOREncode_AddTag(&cbor_encode, 904);
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+
 
     /* Do the first part of the the COSE_Sign1, the parameters */
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
@@ -1420,8 +1444,7 @@ int_fast32_t tags_test()
 
     /* --- Start verifying the COSE Sign1 object  --- */
     t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
-
-    /* No key necessary with short circuit */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
@@ -1447,8 +1470,10 @@ int_fast32_t tags_test()
     QCBOREncode_AddTag(&cbor_encode, 901);
 
     t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG | T_COSE_OPT_OMIT_CBOR_TAG,
-                           T_COSE_ALGORITHM_ES256);
+                           T_COSE_OPT_OMIT_CBOR_TAG,
+                           cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+
 
     /* Do the first part of the the COSE_Sign1, the parameters */
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
@@ -1483,21 +1508,33 @@ int_fast32_t tags_test()
     /* --- Done making COSE Sign1 object tagged 900(901(18(0))) --- */
 
 
-
     /* --- Compare to expected from CWT RFC --- */
-    /* The first part, the intro and protected pararameters must be the same */
-    const uint8_t cwt_first_part_bytes1[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85, 0x84, 0x43, 0xa1, 0x01, 0x26};
-    struct q_useful_buf_c fp1 = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cwt_first_part_bytes1);
-    struct q_useful_buf_c head1 = q_useful_buf_head(signed_cose, sizeof(cwt_first_part_bytes1));
-    if(q_useful_buf_compare(head1, fp1)) {
+    /* The first part, the intro and protected pararameters must be the same,
+     * except that the algorithm ID is -1000256 instead of -7 */
+    /* The first part, the intro and pararameters must be the same */
+    if(cose_algorithm_id == T_COSE_ALGORITHM_ES256) {
+        // 0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85
+        static const uint8_t fpx[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85,
+                               0x84, 0x43, 0xa1, 0x01, 0x26, 0xa0};
+        fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fpx);
+
+    } else {
+        /* A different algorithm ID than the RFC because it is short circuit sig */
+        static const uint8_t fpx[] = {0xd9, 0x03, 0x84, 0xd9, 0x03, 0x85,
+                               0x84, 0x47, 0xa1, 0x01, 0x3A,
+                               0x00, 0x0F, 0x43, 0x3F};
+        fp = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(fpx);
+    }
+    head = q_useful_buf_head(signed_cose, fp.len);
+    if(q_useful_buf_compare(head, fp)) {
         return -1;
     }
+
 
     /* --- Start verifying the COSE Sign1 object, requiring tag--- */
     t_cose_sign1_verify_init(&verify_ctx,
                              T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_REQUIRED);
-
-    /* No key necessary with short circuit */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
@@ -1515,8 +1552,7 @@ int_fast32_t tags_test()
     /* --- Start verifying the COSE Sign1 object, prohibiting tag--- */
     t_cose_sign1_verify_init(&verify_ctx,
                              T_COSE_OPT_ALLOW_SHORT_CIRCUIT | T_COSE_OPT_TAG_PROHIBITED);
-
-    /* No key necessary with short circuit */
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
@@ -1547,6 +1583,16 @@ int_fast32_t get_size_test()
     struct q_useful_buf_c          actual_signed_cose;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     struct q_useful_buf_c          payload;
+    struct t_cose_key               key_pair;
+    int32_t                         cose_algorithm_id;
+
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        cose_algorithm_id = T_COSE_ALGORITHM_ES256;
+    } else {
+        cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+    }
+
+    make_key_pair(cose_algorithm_id, &key_pair);
 
     /* ---- Common Set up ---- */
     payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
@@ -1555,9 +1601,8 @@ int_fast32_t get_size_test()
     nil_buf = (struct q_useful_buf) {NULL, SIZE_MAX};
     QCBOREncode_Init(&cbor_encode, nil_buf);
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
 
     return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
@@ -1577,7 +1622,7 @@ int_fast32_t get_size_test()
     }
 
     /* ---- General sanity check ---- */
-    size_t expected_min = 32 + payload.len + 64;
+    size_t expected_min = payload.len + 64 /* sig */;
 
     if(calculated_size < expected_min || calculated_size > expected_min + 30) {
         return -1;
@@ -1588,9 +1633,9 @@ int_fast32_t get_size_test()
     /* ---- Now make a real COSE_Sign1 and compare the size ---- */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+
 
     return_value = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
     if(return_value) {
@@ -1610,9 +1655,9 @@ int_fast32_t get_size_test()
     }
 
     /* ---- Again with one-call API to make COSE_Sign1 ---- */\
-    t_cose_sign1_sign_init(&sign_ctx,
-                           T_COSE_OPT_SHORT_CIRCUIT_SIG,
-                           T_COSE_ALGORITHM_ES256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, NULL_Q_USEFUL_BUF_C);
+
     return_value = t_cose_sign1_sign(&sign_ctx,
                                      payload,
                                      signed_cose_buffer,

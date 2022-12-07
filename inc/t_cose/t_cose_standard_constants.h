@@ -174,7 +174,21 @@
 #define T_COSE_ALGORITHM_ES256 -7
 
 /**
- * \def T_COSE_ALGORITHM_ES384
+ * \def COSE_ALGORITHM_EDDSA
+ *
+ * \brief Indicates EDDSA.
+ *
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate EDDSA.
+ *
+ * Keys using either the edwards25519 or edwards448 curves can be used
+ * with this algorithm.
+ *
+ * See https://tools.ietf.org/search/rfc8032 and https://tools.ietf.org/html/rfc8152
+ */
+#define T_COSE_ALGORITHM_EDDSA -8
+
+/**
+ * \def COSE_ALGORITHM_ES384
  *
  * \brief Indicates ECDSA with SHA-384.
  *
@@ -199,6 +213,38 @@
  */
 #define T_COSE_ALGORITHM_ES512 -36
 
+/**
+ * \def COSE_ALGORITHM_PS256
+ *
+ * \brief Indicates RSASSA-PSS with SHA-256.
+ *
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate RSASSA-PSS with SHA-256.
+ *
+ * See https://tools.ietf.org/search/rfc8230 and https://tools.ietf.org/html/rfc8152
+ */
+#define T_COSE_ALGORITHM_PS256 -37
+
+/**
+ * \def COSE_ALGORITHM_PS384
+ *
+ * \brief Indicates RSASSA-PSS with SHA-384.
+ *
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate RSASSA-PSS with SHA-384.
+ *
+ * See https://tools.ietf.org/search/rfc8230 and https://tools.ietf.org/html/rfc8152
+ */
+#define T_COSE_ALGORITHM_PS384 -38
+
+/**
+ * \def COSE_ALGORITHM_PS512
+ *
+ * \brief Indicates RSASSA-PSS with SHA-512.
+ *
+ * Value for \ref COSE_HEADER_PARAM_ALG to indicate RSASSA-PSS with SHA-512.
+ *
+ * See https://tools.ietf.org/search/rfc8230 and https://tools.ietf.org/html/rfc8152
+ */
+#define T_COSE_ALGORITHM_PS512 -39
 
 /**
  * \def T_COSE_ALGORITHM_SHA_256
@@ -336,7 +382,31 @@
 #define T_COSE_ALGORITHM_HMAC512 7
 
 
+/**
+ * \def T_COSE_ALGORITHM_SHORT_CIRCUIT_256
+ *
+ * \brief Special algorithm ID for test only
+ *
+ * This selects an algorithm that simulates an ECDSA signature.
+ * It is mplemented only by the test crypto adaptor. It has
+ * no security value, but is useful for testing and bringing
+ * t_cose up on a new target.
+ * The actual value is randomly selected from the COSE
+ * private ID space. It is not registered anywhere.
+ */
+// TODO: reference to details of short-circuit signature.
+#define T_COSE_ALGORITHM_SHORT_CIRCUIT_256 -1000256
+#define T_COSE_ALGORITHM_SHORT_CIRCUIT_384 -1000384
+#define T_COSE_ALGORITHM_SHORT_CIRCUIT_512 -1000512
 
+/**
+ * \def T_COSE_ALGORITHM_NONE
+ *
+ * \brief Indicate no algorithm
+ *
+ * This can mean unset, or error or such.  This is a reserved
+ * value per the COSE standard and can never be assigned.
+ */
 #define T_COSE_ALGORITHM_NONE 0
 
 
