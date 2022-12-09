@@ -21,7 +21,7 @@
  *
  * This relies on instances of t_cose_signature_sign to create the
  * actual signatures. The work done here is encoding the message with
- * the headers, body and signature(s).
+ * the headers, payload and signature(s).
  *
  */
 
@@ -62,7 +62,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
          * header parameter section, and the signatures part just
          * contains a raw signature bytes, not an array of
          * COSE_Signature. */
-        (signer->h_callback)(signer, &sign1_parameters);
+        signer->headers_cb(signer, &sign1_parameters);
         if(signer->next_in_list != NULL) {
             /* In COSE_Sign1 mode, but too many signers configured.*/
             return_value = T_COSE_ERR_TOO_MANY_SIGNERS;
@@ -108,8 +108,8 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
     }
 
     /* Failures in CBOR encoding will be caught in
-     * t_cose_sign_encode_finish(). No need to track here as the QCBOR
-     * encoder tracks it internally.
+     * t_cose_sign_encode_finish() or other. No need to track here as the QCBOR
+     * encoder tracks them internally.
      */
 
 Done:
@@ -160,7 +160,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
     /* --- Signature for COSE_Sign1 or signatures for COSE_Sign --- */
     signer = me->signers;
     sign_inputs.body_protected = me->protected_parameters;
-    sign_inputs.sign_protected = NULL_Q_USEFUL_BUF_C;
+    sign_inputs.sign_protected = NULL_Q_USEFUL_BUF_C; /* filled in by sign_cb */
     sign_inputs.payload        = signed_payload;
     sign_inputs.aad            = aad;
     if(T_COSE_OPT_IS_SIGN(me->option_flags)) {
@@ -172,10 +172,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
         return_value = T_COSE_ERR_NO_SIGNERS;
         QCBOREncode_OpenArray(cbor_encode_ctx);
         while(signer != NULL) {
-            return_value = signer->callback(signer,
-                                            me->option_flags,
-                                           &sign_inputs,
-                                            cbor_encode_ctx);
+            return_value = signer->sign_cb(signer, &sign_inputs, cbor_encode_ctx);
             if(return_value != T_COSE_SUCCESS) {
                 goto Done;
             }
@@ -189,10 +186,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
         /* This calls the signer object to output the signature bytes
          * as a byte string to the CBOR encode context.
          */
-        return_value = signer->callback(signer,
-                                        me->option_flags,
-                                       &sign_inputs,
-                                        cbor_encode_ctx);
+        return_value = signer->sign1_cb(signer, &sign_inputs, cbor_encode_ctx);
     }
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -203,7 +197,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
     QCBOREncode_CloseArray(cbor_encode_ctx);
 
     /* The layer above this must check for and handle CBOR encoding
-     * errors CBOR encoding errors.  Some are detected at the start of
+     * errors.  Some are detected at the start of
      * this function, but they cannot all be deteced there.
      */
 Done:

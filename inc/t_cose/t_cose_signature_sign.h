@@ -90,20 +90,34 @@ struct t_cose_signature_sign;
 
 
 /**
- * \brief Typedef of callback that  makes a COSE_Signature or the signature
- *         for a COSE_Sign1.
+ * \brief Typedef of callback that  creates and outputs a bare signature in a byte string for a COSE_Sign1.
+ *
+ * \param [in] me                    The context, the  t_cose_signature_sign
+ *                                   instance. 
+ * \param[in] sign_inputs            Payload, aad and header parameters to sign.
+ * \param[in] qcbor_encoder          The CBOR encoder context to ouput  the simple byte
+ *                                   string signature for a COSE_Sign1.
+ *
+ * This does the important work of computing the hash of the inputs and
+ * invoking the public key signing algorithm. It then outputs a byte string with
+ * signature to \c qcbor_encoder.
+ */
+typedef enum t_cose_err_t
+t_cose_signature_sign1_cb(struct t_cose_signature_sign    *me,
+                          const struct t_cose_sign_inputs *sign_inputs,
+                          QCBOREncodeContext              *qcbor_encoder);
+
+
+/**
+ * \brief Typedef of callback that  signs and encodes a COSE_Signature.
  *
  * \param [in] me                    The context, the  t_cose_signature_sign
  *                                   instance. This will actually be some
  *                                   thing like t_cose_signature_sign_main
  *                                   that implements t_cose_signature_sign
- * \Param[in] option_flags           Option flags from t_cose_sign_verify_init().
- *                                   Primarily to check whether to make a
- *                                   COSE_Sign or COSE_Sign1.
  * \param[in] sign_inputs            Payload, aad and header parameters to sign.
- * \param[in] qcbor_encoder          The CBOR encoder context to ouput either
- *                                   a COSE_Signature or the simple byte
- *                                   string signature for a COSE_Sign1.
+ * \param[in] qcbor_encoder          The CBOR encoder context to ouput
+ *                                   a COSE_Signature.
  *
  * Implementers of t_cose_signature_sign must implement one of
  * these. It is the method used to perform the cryptographic signing
@@ -113,12 +127,17 @@ struct t_cose_signature_sign;
  * If the output buffer in qcbor_encoder is NULL, then this must just
  * compute the size and add the size to qcbor_encoder because it is
  * being called in size calculation mode.
+ *
+ * If a signer implements only COSE_SIgn1, this still should be implemented and it
+ * should return an error.
+ *
+ * Note that \c sign_inputs is not const because it will be modifed to fill
+ * in the sign-protected headers.
  */
 typedef enum t_cose_err_t
-t_cose_signature_sign_callback(struct t_cose_signature_sign    *me,
-                               uint32_t                         option_flags,
-                               const struct t_cose_sign_inputs *sign_inputs,
-                               QCBOREncodeContext              *qcbor_encoder);
+t_cose_signature_sign_cb(struct t_cose_signature_sign  *me,
+                         struct t_cose_sign_inputs     *sign_inputs,
+                         QCBOREncodeContext            *qcbor_encoder);
 
 
 /**
@@ -141,18 +160,20 @@ t_cose_signature_sign_callback(struct t_cose_signature_sign    *me,
  * This is never called for COSE_Sign.
 */
 typedef void
-t_cose_signature_sign_h_callback(struct t_cose_signature_sign *me,
+t_cose_signature_sign_headers_cb(struct t_cose_signature_sign *me,
                                  struct t_cose_parameter     **header_params);
 
 
 /**
  * Data structture that must be the first part of every context of every concrete
- * implementation of t_cose_signature_sign.
+ * implementation of t_cose_signature_sign. The function callback pointers
+ * should never be NULL, but they may be stubs that return an error
+ * when the callback is not implemented.
  */
 struct t_cose_signature_sign {
-    /* some will call this a vtable with two entries */
-    t_cose_signature_sign_callback   *callback;
-    t_cose_signature_sign_h_callback *h_callback;
+    t_cose_signature_sign_headers_cb *headers_cb;
+    t_cose_signature_sign_cb         *sign_cb;
+    t_cose_signature_sign1_cb        *sign1_cb;
     struct t_cose_signature_sign     *next_in_list; /* linked list of signers */
 };
 

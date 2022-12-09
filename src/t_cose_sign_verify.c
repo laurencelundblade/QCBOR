@@ -238,11 +238,11 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
              * the main method of the cose_signature_verify. This
              * will compute the tbs value and call the crypto.
              */
-            verify_error = verifier->callback1(verifier,
-                                               me->option_flags,
-                                              &sign_inputs,
-                                               decoded_body_parameter_list,
-                                               signature);
+            verify_error = verifier->verify1_cb(verifier,
+                                                me->option_flags,
+                                               &sign_inputs,
+                                                decoded_body_parameter_list,
+                                                signature);
             if(verify_error == T_COSE_SUCCESS) {
                 break;
             }
@@ -274,13 +274,13 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 
                 /* This call decodes one array entry containing a
                  * COSE_Signature. */
-                return_value = verifier->callback(verifier,
-                                                  me->option_flags,
-                                                  header_location,
-                                                  &sign_inputs,
-                                                  me->p_storage,
-                                                 &decode_context,
-                                                 &decoded_sig_parameter_list);
+                return_value = verifier->verify_cb(verifier,
+                                                   me->option_flags,
+                                                   header_location,
+                                                   &sign_inputs,
+                                                   me->p_storage,
+                                                  &decode_context,
+                                                  &decoded_sig_parameter_list);
 
                 // TODO: this may not be in the right place
                 t_cose_parameter_list_append(decoded_body_parameter_list,

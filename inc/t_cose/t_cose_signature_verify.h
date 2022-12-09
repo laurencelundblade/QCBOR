@@ -19,7 +19,7 @@
 /*
  * This is the abstract base class that t_cose_sign_verify
  * calls to run signature verification. A concrete
- * implementation of this is needed.
+ * implementation of this must be created in actual use.
  *
  * Implementations may choose to support only COSE_Sign1,
  * only COSE_Signature/COSE_Sign or both. They are encouraged to
@@ -49,16 +49,16 @@ struct t_cose_signature_verify;
  * \param[in] params                  The place to put the decoded params.
  * \param[in] qcbor_decoder           The decoder instance from where the
  *                                     COSE_Signature is decoded.
- * \param[out] decoded_signature_parameters  Linked list of decoded parameters.
+ * \param[out] decoded_params  Returned linked list of decoded parameters.
  */
 typedef enum t_cose_err_t
-t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
-                                 uint32_t                          option_flags,
-                                 const struct t_cose_header_location loc,
-                                 const struct t_cose_sign_inputs *sign_inputs,
-                                 struct t_cose_parameter_storage  *params,
-                                 QCBORDecodeContext               *qcbor_decoder,
-                                 struct t_cose_parameter         **decoded_signature_parameters);
+t_cose_signature_verify_cb(struct t_cose_signature_verify     *me,
+                           uint32_t                            option_flags,
+                           const struct t_cose_header_location loc,
+                           const struct t_cose_sign_inputs    *sign_inputs,
+                           struct t_cose_parameter_storage    *params,
+                           QCBORDecodeContext                 *qcbor_decoder,
+                           struct t_cose_parameter           **decoded_params);
 
 
 /**
@@ -74,26 +74,28 @@ t_cose_signature_verify_callback(struct t_cose_signature_verify   *me,
  *                                     found.
  * \param[in] signature                The signature.
  *
- * This is very different from t_cose_signature_verify_callback
+ * This is very different from t_cose_signature_verify_cb()
  * because there is no header decoding to be done. Instead the headers
  * are decoded outside of this and passed in.
  */
 typedef enum t_cose_err_t
-t_cose_signature_verify1_callback(struct t_cose_signature_verify *me,
-                                  uint32_t                        option_flags,
-                                  const struct t_cose_sign_inputs *sign_inputs,
-                                  const struct t_cose_parameter  *parameter_list,
-                                  const struct q_useful_buf_c     signature);
+t_cose_signature_verify1_cb(struct t_cose_signature_verify *me,
+                            uint32_t                        option_flags,
+                            const struct t_cose_sign_inputs *sign_inputs,
+                            const struct t_cose_parameter  *parameter_list,
+                            const struct q_useful_buf_c     signature);
 
 
 /**
  * Data structture that must be the first part of every context of every concrete
- * implementation of t_cose_signature_verify.
+ * implementation of t_cose_signature_verify. Callback functions must not
+ * be NULL, but can be stubs that return an error when COSE_SIgn1 or COSE_Sign
+ * are not supported.
  */
 struct t_cose_signature_verify {
-    t_cose_signature_verify_callback  *callback; /* some will call this a vtable with two entries */
-    t_cose_signature_verify1_callback *callback1;
-    struct t_cose_signature_verify    *next_in_list; /* Linked list of signers */
+    t_cose_signature_verify_cb      *verify_cb;
+    t_cose_signature_verify1_cb     *verify1_cb;
+    struct t_cose_signature_verify  *next_in_list; /* Linked list of signers */
 };
 
 

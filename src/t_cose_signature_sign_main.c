@@ -17,10 +17,10 @@
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_util.h"
 
-
+/** This is an implementation of \ref t_cose_signature_sign_headers_cb */
 static void
-t_cose_main_headers(struct t_cose_signature_sign   *me_x,
-                     struct t_cose_parameter       **params)
+t_cose_signature_sign_headers_main_cb(struct t_cose_signature_sign   *me_x,
+                                      struct t_cose_parameter       **params)
 {
     struct t_cose_signature_sign_main *me =
                                     (struct t_cose_signature_sign_main *)me_x;
@@ -35,14 +35,11 @@ t_cose_main_headers(struct t_cose_signature_sign   *me_x,
 }
 
 
-/* While this is a private function, it is called externally
- * as a callback via a function pointer that is set up in
- * t_cose_ecdsa_signer_init().  */
+/** This is an implementation of \ref t_cose_signature_sign_cb */
 static enum t_cose_err_t
-t_cose_main_sign(struct t_cose_signature_sign     *me_x,
-                  uint32_t                         options,
-                  const struct t_cose_sign_inputs *sign_inputs,
-                  QCBOREncodeContext              *qcbor_encoder)
+t_cose_signature_sign1_main_cb(struct t_cose_signature_sign     *me_x,
+                               const struct t_cose_sign_inputs *sign_inputs,
+                               QCBOREncodeContext              *qcbor_encoder)
 {
     struct t_cose_signature_sign_main *me =
                                      (struct t_cose_signature_sign_main *)me_x;
@@ -51,25 +48,12 @@ t_cose_main_sign(struct t_cose_signature_sign     *me_x,
     struct q_useful_buf         buffer_for_signature;
     struct q_useful_buf_c       tbs_hash;
     struct q_useful_buf_c       signature;
-    struct q_useful_buf_c       signer_protected_headers;
-    struct t_cose_parameter    *parameters;
 
-
-    /* -- The headers if if is a COSE_Sign -- */
-    signer_protected_headers = NULL_Q_USEFUL_BUF_C;
-    if(T_COSE_OPT_IS_SIGN(options)) {
-        /* COSE_Sign, so making a COSE_Signature  */
-        QCBOREncode_OpenArray(qcbor_encoder);
-
-        t_cose_main_headers(me_x, &parameters);
-        t_cose_parameter_list_append(parameters, me->added_signer_params);
-
-        t_cose_encode_headers(qcbor_encoder,
-                              parameters,
-                              &signer_protected_headers);
-    }
-
-    /* -- The signature -- */
+    /* The signature gets written directly into the output buffer.
+     * The matching QCBOREncode_CloseBytes call further down still
+     * needs do a memmove to make space for the CBOR header, but
+     * at least we avoid the need to allocate an extra buffer.
+     */
     QCBOREncode_OpenBytes(qcbor_encoder, &buffer_for_signature);
 
     if (QCBOREncode_IsBufferNULL(qcbor_encoder)) {
@@ -88,49 +72,69 @@ t_cose_main_sign(struct t_cose_signature_sign     *me_x,
          * hash are the protected parameters, the payload that is
          * getting signed, the cose signature alg from which the hash
          * alg is determined. The cose_algorithm_id was checked in
-         * t_cose_sign1_init() so it doesn't need to be checked here.
+         * t_cose_sign_init() so it doesn't need to be checked here.
          */
         return_value = create_tbs_hash(me->cose_algorithm_id,
                                        sign_inputs,
                                        buffer_for_tbs_hash,
-                                       &tbs_hash);
+                                      &tbs_hash);
         if(return_value) {
             goto Done;
         }
-
-        /* The signature gets written directly into the output buffer.
-         * The matching QCBOREncode_CloseBytes call further down still
-         * needs do a memmove to make space for the CBOR header, but
-         * at least we avoid the need to allocate an extra buffer.
-         */
 
         return_value = t_cose_crypto_sign(me->cose_algorithm_id,
                                           me->signing_key,
                                           tbs_hash,
                                           buffer_for_signature,
-                                          &signature);
-
+                                         &signature);
     }
     QCBOREncode_CloseBytes(qcbor_encoder, signature.len);
-
-
-    /* -- If a COSE_Sign, close of the COSE_Signature */
-    if(T_COSE_OPT_IS_SIGN(options)) {
-        QCBOREncode_CloseArray(qcbor_encoder);
-    }
-    // TODO: lots of error handling
 
 Done:
     return return_value;
 }
 
 
+/** This is an implementation of \ref t_cose_signature_sign1_cb */
+static enum t_cose_err_t
+t_cose_signature_sign_main_cb(struct t_cose_signature_sign  *me_x,
+                              struct t_cose_sign_inputs     *sign_inputs,
+                              QCBOREncodeContext            *qcbor_encoder)
+{
+    struct t_cose_signature_sign_main *me =
+                                     (struct t_cose_signature_sign_main *)me_x;
+    enum t_cose_err_t         return_value;
+    struct t_cose_parameter  *parameters;
+
+    /* Array that holds a COSE_Signature */
+    QCBOREncode_OpenArray(qcbor_encoder);
+
+    /* -- The headers for a COSE_Sign -- */
+    t_cose_signature_sign_headers_main_cb(me_x, &parameters);
+    t_cose_parameter_list_append(parameters, me->added_signer_params);
+    t_cose_encode_headers(qcbor_encoder,
+                          parameters,
+                          &sign_inputs->sign_protected);
+
+    /* The actual signature (this runs hash and public key crypto) */
+    return_value = t_cose_signature_sign1_main_cb(me_x,
+                                                  sign_inputs,
+                                                  qcbor_encoder);
+
+    /* Close the array for the COSE_Signature */
+    QCBOREncode_CloseArray(qcbor_encoder);
+
+    return return_value;
+}
+
+
 void
 t_cose_signature_sign_main_init(struct t_cose_signature_sign_main *me,
-                                int32_t                            cose_algorithm_id)
+                                const int32_t               cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
-    me->s.callback        = t_cose_main_sign;
-    me->s.h_callback      = t_cose_main_headers;
+    me->s.headers_cb      = t_cose_signature_sign_headers_main_cb;
+    me->s.sign_cb         = t_cose_signature_sign_main_cb;
+    me->s.sign1_cb        = t_cose_signature_sign1_main_cb;
     me->cose_algorithm_id = cose_algorithm_id;
 }

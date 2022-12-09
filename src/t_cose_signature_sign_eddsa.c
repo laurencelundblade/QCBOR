@@ -18,9 +18,10 @@
 #include "t_cose_util.h"
 
 
+/** This is an implementation of \ref t_cose_signature_sign_headers_cb */
 static void
-t_cose_eddsa_headers(struct t_cose_signature_sign   *me_x,
-                     struct t_cose_parameter       **params)
+t_cose_signature_sign_headers_eddsa_cb(struct t_cose_signature_sign   *me_x,
+                                       struct t_cose_parameter       **params)
 {
     // TODO: this is the same as the main signer (formerly the ecdsa signer) reuse?
     struct t_cose_signature_sign_eddsa *me =
@@ -36,38 +37,18 @@ t_cose_eddsa_headers(struct t_cose_signature_sign   *me_x,
 }
 
 
-/* While this is a private function, it is called externally
- * as a callback via a function pointer that is set up in
- * t_cose_eddsa_signer_init().  */
+/** This is an implementation of \ref t_cose_signature_sign_cb */
 static enum t_cose_err_t
-t_cose_eddsa_sign(struct t_cose_signature_sign    *me_x,
-                  uint32_t                         options,
-                  const struct t_cose_sign_inputs *sign_inputs,
-                  QCBOREncodeContext              *qcbor_encoder)
+t_cose_signature_sign1_eddsa_cb(struct t_cose_signature_sign    *me_x,
+                                const struct t_cose_sign_inputs *sign_inputs,
+                                QCBOREncodeContext              *qcbor_encoder)
 {
     struct t_cose_signature_sign_eddsa *me =
                                      (struct t_cose_signature_sign_eddsa *)me_x;
     enum t_cose_err_t           return_value;
     struct q_useful_buf_c       tbs;
     struct q_useful_buf_c       signature;
-    struct q_useful_buf_c       signer_protected_headers;
-    struct t_cose_parameter    *parameters;
     struct q_useful_buf         buffer_for_signature;
-
-
-    /* -- The headers if if is a COSE_Sign -- */
-    signer_protected_headers = NULLUsefulBufC;
-    if(T_COSE_OPT_IS_SIGN(options)) {
-        /* COSE_Sign, so making a COSE_Signature  */
-        QCBOREncode_OpenArray(qcbor_encoder);
-
-        t_cose_eddsa_headers(me_x, &parameters);
-        t_cose_parameter_list_append(parameters, me->added_signer_params);
-
-        t_cose_encode_headers(qcbor_encoder,
-                              parameters,
-                              &signer_protected_headers);
-    }
 
     /* Serialize the TBS data into the auxiliary buffer.
      * If auxiliary_buffer.ptr is NULL this will succeed, computing
@@ -82,47 +63,68 @@ t_cose_eddsa_sign(struct t_cose_signature_sign    *me_x,
         goto Done;
     }
 
-
     /* Record how much buffer we actually used / would have used,
-     * allowing the caller to allocate an appropriately sized buffer.
-     * This is particularly useful when buffer_for_signature.ptr is
-     * NULL and no signing is actually taking place yet.
-     */
-    me->auxiliary_buffer_size = tbs.len;
+      * allowing the caller to allocate an appropriately sized buffer.
+      * This is particularly useful when buffer_for_signature.ptr is
+      * NULL and no signing is actually taking place yet.
+      */
+     me->auxiliary_buffer_size = tbs.len;
 
-    QCBOREncode_OpenBytes(qcbor_encoder, &buffer_for_signature);
-
-
-    if (buffer_for_signature.ptr == NULL) {
-        /* Output size calculation. Only need signature size. */
-        signature.ptr = NULL;
-        // TODO: an eddsa-specific size calculator?
-        return_value  = t_cose_crypto_sig_size(T_COSE_ALGORITHM_EDDSA,
-                                               me->signing_key,
-                                               &signature.len);
-    } else if (me->auxiliary_buffer.ptr == NULL) {
-        /* Without a real auxiliary buffer, we have nothing to sign. */
-        return_value = T_COSE_ERR_NEED_AUXILIARY_BUFFER;
-    } else {
-        /* Perform the public key signing over the TBS bytes we just
-         * serialized.
-         */
-        return_value = t_cose_crypto_sign_eddsa(me->signing_key,
-                                                tbs,
-                                                buffer_for_signature,
-                                                &signature);
-    }
-
-    QCBOREncode_CloseBytes(qcbor_encoder, signature.len);
+     QCBOREncode_OpenBytes(qcbor_encoder, &buffer_for_signature);
 
 
-    /* -- If a COSE_Sign, close of the COSE_Signature */
-    if(T_COSE_OPT_IS_SIGN(options)) {
-        QCBOREncode_CloseArray(qcbor_encoder);
-    }
-    // TODO: lots of error handling
+     if (buffer_for_signature.ptr == NULL) {
+         /* Output size calculation. Only need signature size. */
+         signature.ptr = NULL;
+         // TODO: an eddsa-specific size calculator?
+         return_value  = t_cose_crypto_sig_size(T_COSE_ALGORITHM_EDDSA,
+                                                me->signing_key,
+                                                &signature.len);
+     } else if (me->auxiliary_buffer.ptr == NULL) {
+         /* Without a real auxiliary buffer, we have nothing to sign. */
+         return_value = T_COSE_ERR_NEED_AUXILIARY_BUFFER;
+     } else {
+         /* Perform the public key signing over the TBS bytes we just
+          * serialized.
+          */
+         return_value = t_cose_crypto_sign_eddsa(me->signing_key,
+                                                 tbs,
+                                                 buffer_for_signature,
+                                                 &signature);
+     }
+
+     QCBOREncode_CloseBytes(qcbor_encoder, signature.len);
 
 Done:
+    return return_value;
+
+}
+
+/** This is an implementation of \ref t_cose_signature_sign1_cb */
+static enum t_cose_err_t
+t_cose_signature_sign_eddsa_cb(struct t_cose_signature_sign  *me_x,
+                               struct t_cose_sign_inputs     *sign_inputs,
+                               QCBOREncodeContext            *qcbor_encoder)
+{
+    struct t_cose_signature_sign_eddsa *me =
+                                     (struct t_cose_signature_sign_eddsa *)me_x;
+    enum t_cose_err_t           return_value;
+    struct t_cose_parameter    *parameters;
+
+    QCBOREncode_OpenArray(qcbor_encoder);
+
+    t_cose_signature_sign_headers_eddsa_cb(me_x, &parameters);
+    t_cose_parameter_list_append(parameters, me->added_signer_params);
+    t_cose_encode_headers(qcbor_encoder,
+                          parameters,
+                          &sign_inputs->sign_protected);
+
+    return_value = t_cose_signature_sign1_eddsa_cb(me_x,
+                                                   sign_inputs,
+                                                   qcbor_encoder);
+
+    QCBOREncode_CloseArray(qcbor_encoder);
+
     return return_value;
 }
 
@@ -131,6 +133,7 @@ void
 t_cose_signature_sign_eddsa_init(struct t_cose_signature_sign_eddsa *me)
 {
     memset(me, 0, sizeof(*me));
-    me->s.callback        = t_cose_eddsa_sign;
-    me->s.h_callback      = t_cose_eddsa_headers;
+    me->s.sign_cb    = t_cose_signature_sign_eddsa_cb;
+    me->s.sign1_cb   = t_cose_signature_sign1_eddsa_cb;
+    me->s.headers_cb = t_cose_signature_sign_headers_eddsa_cb;
 }
