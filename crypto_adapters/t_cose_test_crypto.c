@@ -14,6 +14,7 @@
 
 #include "t_cose_crypto.h"
 #include "t_cose/t_cose_standard_constants.h"
+#include "t_cose_test_crypto.h"
 
 
 /*
@@ -42,9 +43,11 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 {
     static const int32_t supported_algs[] = {
         T_COSE_ALGORITHM_SHA_256,
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
         T_COSE_ALGORITHM_SHORT_CIRCUIT_256,
         T_COSE_ALGORITHM_SHORT_CIRCUIT_384,
         T_COSE_ALGORITHM_SHORT_CIRCUIT_512,
+#endif /* !T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
 
@@ -102,14 +105,21 @@ t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
 enum t_cose_err_t
 t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct t_cose_key      signing_key,
+                   void                  *crypto_context,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c *signature)
 {
     enum t_cose_err_t return_value;
-    size_t            array_indx;
+    size_t            array_index;
     size_t            amount_to_copy;
     size_t            sig_size;
+    struct t_cose_test_crypto_context *cc = (struct t_cose_test_crypto_context *)crypto_context;
+
+    /* This is used for testing the crypto context */
+    if(cc != NULL && cc->test_error != T_COSE_SUCCESS) {
+        return cc->test_error;
+    }
 
     /* This makes the short-circuit signature that is a concatenation
      * of copies of the hash. */
@@ -126,12 +136,12 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     }
 
     /* Loop concatening copies of the hash to fill out to signature size */
-    for(array_indx = 0; array_indx < sig_size; array_indx += hash_to_sign.len) {
-        amount_to_copy = sig_size - array_indx;
+    for(array_index = 0; array_index < sig_size; array_index += hash_to_sign.len) {
+        amount_to_copy = sig_size - array_index;
         if(amount_to_copy > hash_to_sign.len) {
             amount_to_copy = hash_to_sign.len;
         }
-        memcpy((uint8_t *)signature_buffer.ptr + array_indx,
+        memcpy((uint8_t *)signature_buffer.ptr + array_index,
                hash_to_sign.ptr,
                amount_to_copy);
     }
@@ -151,14 +161,21 @@ enum t_cose_err_t
 t_cose_crypto_verify(int32_t                cose_algorithm_id,
                      struct t_cose_key      verification_key,
                      struct q_useful_buf_c  kid,
+                     void                  *crypto_context,
                      struct q_useful_buf_c  hash_to_verify,
                      struct q_useful_buf_c  signature)
 {
     struct q_useful_buf_c hash_from_sig;
     enum t_cose_err_t     return_value;
+    struct t_cose_test_crypto_context *cc = (struct t_cose_test_crypto_context *)crypto_context;
 
     (void)verification_key;
     (void)kid;
+
+    /* This is used for testing the crypto context */
+    if(cc != NULL && cc->test_error != T_COSE_SUCCESS) {
+        return cc->test_error;
+    }
 
     if(!t_cose_algorithm_is_short_circuit(cose_algorithm_id)) {
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
@@ -297,11 +314,13 @@ t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
  */
 enum t_cose_err_t
 t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
+                         void                  *crypto_context,
                          struct q_useful_buf_c  tbs,
                          struct q_useful_buf    signature_buffer,
                          struct q_useful_buf_c *signature)
 {
     (void)signing_key;
+    (void)crypto_context;
     (void)tbs;
     (void)signature_buffer;
     (void)signature;
@@ -315,11 +334,13 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
 enum t_cose_err_t
 t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
                            struct q_useful_buf_c kid,
+                           void                 *crypto_context,
                            struct q_useful_buf_c tbs,
                            struct q_useful_buf_c signature)
 {
     (void)verification_key;
     (void)kid;
+    (void)crypto_context;
     (void)tbs;
     (void)signature;
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;

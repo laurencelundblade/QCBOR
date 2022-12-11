@@ -155,4 +155,7 @@ int_fast32_t get_size_test(void);
 int_fast32_t indef_array_and_map_test(void);
 
 
+int_fast32_t crypto_context_test(void);
+
+
 #endif /* t_cose_test_h */

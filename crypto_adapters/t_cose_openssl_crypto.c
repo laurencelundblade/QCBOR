@@ -494,6 +494,7 @@ Done:
 enum t_cose_err_t
 t_cose_crypto_sign(const int32_t                cose_algorithm_id,
                    const struct t_cose_key      signing_key,
+                   void                        *crypto_context,
                    const struct q_useful_buf_c  hash_to_sign,
                    const struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c       *signature)
@@ -510,6 +511,8 @@ t_cose_crypto_sign(const int32_t                cose_algorithm_id,
     EVP_PKEY_CTX          *sign_context;
     EVP_PKEY              *signing_key_evp;
     int                    ossl_result;
+
+    (void)crypto_context; /* This crypto adaptor doesn't use this */
 
     /* This buffer is passed to OpenSSL to write the ECDSA signature into, in
      * DER format, before it can be converted to the expected COSE format. When
@@ -625,6 +628,7 @@ enum t_cose_err_t
 t_cose_crypto_verify(const int32_t                cose_algorithm_id,
                      const struct t_cose_key      verification_key,
                      const struct q_useful_buf_c  kid,
+                     void                        *crypto_context,
                      const struct q_useful_buf_c  hash_to_verify,
                      const struct q_useful_buf_c  cose_signature)
 {
@@ -648,6 +652,8 @@ t_cose_crypto_verify(const int32_t                cose_algorithm_id,
     /* This implementation doesn't use any key store with the ability
      * to look up a key based on kid. */
     (void)kid;
+
+    (void)crypto_context; /* This crypto adaptor doesn't use this */
 
     if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id) &&
        !t_cose_algorithm_is_rsassa_pss(cose_algorithm_id)) {
@@ -896,6 +902,7 @@ t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
  */
 enum t_cose_err_t
 t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
+                         void                  *crypto_context,
                          struct q_useful_buf_c  tbs,
                          struct q_useful_buf    signature_buffer,
                          struct q_useful_buf_c *signature)
@@ -904,6 +911,8 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
     int               ossl_result;
     EVP_MD_CTX       *sign_context = NULL;
     EVP_PKEY         *signing_key_evp;
+
+    (void)crypto_context; /* This crypto adaptor doesn't use this */
 
     return_value = key_convert(signing_key, &signing_key_evp);
     if(return_value != T_COSE_SUCCESS) {
@@ -958,6 +967,7 @@ Done:
 enum t_cose_err_t
 t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
                            struct q_useful_buf_c kid,
+                           void                 *crypto_context,
                            struct q_useful_buf_c tbs,
                            struct q_useful_buf_c signature)
 {
@@ -969,6 +979,8 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
     /* This implementation doesn't use any key store with the ability
      * to look up a key based on kid. */
     (void)kid;
+
+    (void)crypto_context; /* This crypto adaptor doesn't use this */
 
     return_value = key_convert(verification_key, &verification_key_evp);
     if(return_value != T_COSE_SUCCESS) {

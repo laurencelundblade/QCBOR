@@ -497,6 +497,7 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
     /* Normal, non-short-circuit signing */
     return_value = t_cose_crypto_sign(me->cose_algorithm_id,
                                       me->signing_key,
+                                      NULL, /* no crypto-context here */
                                       tbs_hash,
                                       buffer_for_signature,
                                      &signature);

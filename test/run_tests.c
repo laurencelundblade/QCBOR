@@ -60,6 +60,8 @@ static test_entry s_tests[] = {
     //TEST_ENTRY(sign1_structure_decode_test),
 #endif /* T_COSE_DISABLE_SIGN1 */
 
+    TEST_ENTRY(crypto_context_test),
+
 #ifndef T_COSE_DISABLE_SIGN_VERIFY_TESTS
 #ifndef T_COSE_DISABLE_SIGN1
     /* Many tests can be run without a crypto library integration and
@@ -75,6 +77,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(sign_verify_unsupported_test),
     TEST_ENTRY(sign_verify_bad_auxiliary_buffer),
 #endif /* T_COSE_DISABLE_SIGN1 */
+
 
 
 #ifndef T_COSE_DISABLE_MAC0

@@ -83,6 +83,7 @@ t_cose_signature_verify1_eddsa_cb(struct t_cose_signature_verify *me_x,
 
     return_value = t_cose_crypto_verify_eddsa(me->verification_key,
                                               kid,
+                                              NULL,
                                               tbs,
                                               signature);
 

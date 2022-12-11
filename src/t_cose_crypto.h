@@ -221,6 +221,7 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  *                              locally (\c \#define) if the needed
  *                              one hasn't been registered.
  * \param[in] signing_key       Indicates or contains key to sign with.
+ * \param[in] crypto_context       Pointer to adaptor-specific context. May be NULL.
  * \param[in] hash_to_sign      The bytes to sign. Typically, a hash of
  *                              a payload.
  * \param[in] signature_buffer  Pointer and length of buffer into which
@@ -259,10 +260,18 @@ t_cose_crypto_sig_size(int32_t            cose_algorithm_id,
  * for details on how \c q_useful_buf and \c q_useful_buf_c are used
  * to return the signature.
  *
+ * The \c crypto_context is a pointer that's passed in from the public
+ * t_cose interface all the way down to the crypto adaptor. It allows the
+ * user of t_cose to manipulate the how the crypto is called in some cases.
+ * Each crypto adapter that supports this must provide a definition of the
+ * structure of what is pointed to by the crypto context and users of this
+ * must be aware that what they are using is specific to one crypto
+ * adatpor.
  */
 enum t_cose_err_t
 t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct t_cose_key      signing_key,
+                   void                  *crypto_context,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c *signature);
@@ -282,6 +291,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
  *                              hasn't been registered.
  * \param[in] verification_key  The verification key to use.
  * \param[in] kid               The COSE kid (key ID) or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] crypto_context       Pointer to adaptor-specific context. May be NULL.
  * \param[in] hash_to_verify    The hash of the data that is to be verified.
  * \param[in] signature         The COSE-format signature.
  *
@@ -294,6 +304,9 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
  *
  * The key selected must be, or include, a public key of the correct
  * type for \c cose_algorithm_id.
+ *
+ * See the discussion for the crypto_context in t_cose_crypto_sign(). It applies also
+ * here.
  *
  * \retval T_COSE_SUCCESS
  *         The signature is valid
@@ -322,6 +335,7 @@ enum t_cose_err_t
 t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct t_cose_key     verification_key,
                      struct q_useful_buf_c kid,
+                     void                  *crypto_context,
                      struct q_useful_buf_c hash_to_verify,
                      struct q_useful_buf_c signature);
 
@@ -376,6 +390,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
  */
 enum t_cose_err_t
 t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
+                         void                  *crypto_context,
                          struct q_useful_buf_c  tbs,
                          struct q_useful_buf    signature_buffer,
                          struct q_useful_buf_c *signature);
@@ -423,6 +438,7 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
 enum t_cose_err_t
 t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
                            struct q_useful_buf_c kid,
+                           void                  *crypto_context,
                            struct q_useful_buf_c tbs,
                            struct q_useful_buf_c signature);
 #endif /* T_COSE_DISABLE_EDDSA */

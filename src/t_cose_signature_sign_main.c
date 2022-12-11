@@ -84,6 +84,7 @@ t_cose_signature_sign1_main_cb(struct t_cose_signature_sign     *me_x,
 
         return_value = t_cose_crypto_sign(me->cose_algorithm_id,
                                           me->signing_key,
+                                          me->crypto_context,
                                           tbs_hash,
                                           buffer_for_signature,
                                          &signature);

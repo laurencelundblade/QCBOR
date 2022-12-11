@@ -70,6 +70,7 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
     return_value = t_cose_crypto_verify(cose_algorithm_id,
                                         me->verification_key,
                                         kid,
+                                        me->crypto_context,
                                         tbs_hash,
                                         signature);
 Done:

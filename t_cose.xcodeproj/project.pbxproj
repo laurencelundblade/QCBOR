@@ -311,6 +311,7 @@
 		E7F17324293B09C200E5ADF3 /* t_cose_signature_sign_main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_signature_sign_main.h; path = t_cose/t_cose_signature_sign_main.h; sourceTree = "<group>"; };
 		E7F17325293B09E400E5ADF3 /* t_cose_signature_sign_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_signature_sign_main.c; sourceTree = "<group>"; };
 		E7F17326293B09E400E5ADF3 /* t_cose_signature_verify_main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_signature_verify_main.c; sourceTree = "<group>"; };
+		E7F1733B294358D100E5ADF3 /* t_cose_test_crypto.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_test_crypto.h; sourceTree = "<group>"; };
 		E7F70AC42270DFAE007CE07F /* t_cose_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_test.h; sourceTree = "<group>"; };
 		E7F70AC52270DFAE007CE07F /* t_cose_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_test.c; sourceTree = "<group>"; };
 		E7FECC452887430600420F6F /* t_cose_sign_sign.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_sign_sign.c; sourceTree = "<group>"; };
@@ -528,6 +529,7 @@
 				E7E36EA4226CBB570040613B /* t_cose_test_crypto.c */,
 				E7E36EA3226CBB570040613B /* t_cose_openssl_crypto.c */,
 				E7F70AAC2270D650007CE07F /* b_con_hash */,
+				E7F1733B294358D100E5ADF3 /* t_cose_test_crypto.h */,
 			);
 			path = crypto_adapters;
 			sourceTree = "<group>";

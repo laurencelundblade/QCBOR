@@ -1720,3 +1720,107 @@ int_fast32_t indef_array_and_map_test()
 
     return 0;
 }
+
+
+#include "../crypto_adapters/t_cose_test_crypto.h"
+/*
+ * Public function, see t_cose_test.h
+ */
+int_fast32_t crypto_context_test()
+{
+    struct t_cose_sign_sign_ctx         sign_ctx;
+    struct t_cose_sign_verify_ctx       verify_ctx;
+    enum t_cose_err_t                   result;
+    Q_USEFUL_BUF_MAKE_STACK_UB(         good_signed_cose_buffer, 200);
+    Q_USEFUL_BUF_MAKE_STACK_UB(         failed_signed_cose_buffer, 200);
+    struct q_useful_buf_c               good_signed_cose;
+    struct q_useful_buf_c               failed_signed_cose;
+    struct q_useful_buf_c               payload;
+    struct t_cose_key                   key_pair;
+    struct t_cose_test_crypto_context   crypto_context;
+    struct t_cose_signature_sign_main   signer;
+    struct t_cose_signature_verify_main verifier;
+
+
+    /* This only works for the test crypto because only it has
+     * crypto context behavior tested here.
+     */
+    if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_SHORT_CIRCUIT_256)) {
+        return 0;
+    }
+    make_key_pair(T_COSE_ALGORITHM_SHORT_CIRCUIT_256, &key_pair);
+
+
+    /* __1__ Successfully make a COSE_Sign1 with a set crypto context */
+    t_cose_signature_sign_main_init(&signer, T_COSE_ALGORITHM_SHORT_CIRCUIT_256);
+    crypto_context.test_error = T_COSE_SUCCESS;
+    t_cose_signature_sign_main_set_crypto_context(&signer, &crypto_context);
+    t_cose_signature_sign_main_set_signing_key(&signer, key_pair, NULL_Q_USEFUL_BUF_C);
+    t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
+    t_cose_sign_add_signer(&sign_ctx, t_cose_signature_sign_from_main(&signer));
+    result = t_cose_sign_sign(&sign_ctx,
+                              NULL_Q_USEFUL_BUF_C,
+                              s_input_payload,
+                              good_signed_cose_buffer,
+                             &good_signed_cose);
+    if(result != T_COSE_SUCCESS) {
+        return 1000 + (int32_t)result;
+    }
+
+
+    /* __2__ Change the value in the crypto context and see a failure  */
+    crypto_context.test_error = 99;
+    result = t_cose_sign_sign(&sign_ctx,
+                              NULL_Q_USEFUL_BUF_C,
+                              s_input_payload,
+                              failed_signed_cose_buffer,
+                             &failed_signed_cose);
+    if(result != 99) {
+        return 1000 + (int32_t)result;
+    }
+
+
+    /* __3__ Successfully verify with a set crypto context  */
+    t_cose_signature_verify_main_init(&verifier);
+    t_cose_signature_verify_main_set_key(&verifier, key_pair);
+    t_cose_signature_verify_main_set_crypto_context(&verifier, &crypto_context);
+    crypto_context.test_error = T_COSE_SUCCESS;
+    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
+    t_cose_sign_add_verifier(&verify_ctx,
+                             t_cose_signature_verify_from_main(&verifier));
+    result = t_cose_sign_verify(&verify_ctx,
+                                /* COSE to verify */
+                                good_signed_cose,
+                                NULL_Q_USEFUL_BUF_C,
+                                /* The returned payload */
+                                &payload,
+                                /* Don't return parameters */
+                                NULL);
+    if(result) {
+        return 2000 + (int32_t)result;
+    }
+
+    /* compare payload output to the one expected */
+    if(q_useful_buf_compare(payload, s_input_payload)) {
+        return 3000;
+    }
+
+
+    /* __4__ See failure when crypto context is set for failure  */
+    crypto_context.test_error = 99;
+    /* Run the signature verification */
+    result = t_cose_sign_verify(&verify_ctx,
+                                /* COSE to verify */
+                                good_signed_cose,
+                                NULL_Q_USEFUL_BUF_C,
+                                /* The returned payload */
+                                &payload,
+                                /* Don't return parameters */
+                                NULL);
+    if(result != 99) {
+        return 2000 + (int32_t)result;
+    }
+
+
+    return 0;
+}

@@ -88,6 +88,7 @@ t_cose_signature_sign1_eddsa_cb(struct t_cose_signature_sign    *me_x,
           * serialized.
           */
          return_value = t_cose_crypto_sign_eddsa(me->signing_key,
+                                                 NULL,
                                                  tbs,
                                                  buffer_for_signature,
                                                  &signature);

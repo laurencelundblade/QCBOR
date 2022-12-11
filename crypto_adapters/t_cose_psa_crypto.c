@@ -154,6 +154,7 @@ enum t_cose_err_t
 t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct t_cose_key     verification_key,
                      struct q_useful_buf_c kid,
+                     void                 *crypto_context,
                      struct q_useful_buf_c hash_to_verify,
                      struct q_useful_buf_c signature)
 {
@@ -165,6 +166,9 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
     /* This implementation does no look up keys by kid in the key
      * store */
     ARG_UNUSED(kid);
+
+    (void)crypto_context; /* This crypto-adapter doesn't use this */
+
 
     /* Convert to PSA algorithm ID scheme */
     psa_alg_id = cose_alg_id_to_psa_alg_id(cose_algorithm_id);
@@ -195,6 +199,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
 enum t_cose_err_t
 t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct t_cose_key      signing_key,
+                   void                  *crypto_context,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c *signature)
@@ -204,6 +209,8 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
     psa_algorithm_t       psa_alg_id;
     psa_key_handle_t      signing_key_psa;
     size_t                signature_len;
+
+    (void)crypto_context; /* This crypto-adapter doesn't use this */
 
     psa_alg_id = cose_alg_id_to_psa_alg_id(cose_algorithm_id);
     if(!PSA_ALG_IS_ECDSA(psa_alg_id) && !PSA_ALG_IS_RSA_PSS(psa_alg_id)) {
@@ -584,11 +591,13 @@ t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
 #ifndef T_COSE_DISABLE_EDDSA
 enum t_cose_err_t
 t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
+                         void                 *crypto_context,
                          struct q_useful_buf_c  tbs,
                          struct q_useful_buf    signature_buffer,
                          struct q_useful_buf_c *signature)
 {
     (void)signing_key;
+    (void)crypto_context;
     (void)tbs;
     (void)signature_buffer;
     (void)signature;
@@ -601,11 +610,13 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
 enum t_cose_err_t
 t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
                            struct q_useful_buf_c kid,
+                           void                 *crypto_context,
                            struct q_useful_buf_c tbs,
                            struct q_useful_buf_c signature)
 {
     (void)verification_key;
     (void)kid;
+    (void)crypto_context;
     (void)tbs;
     (void)signature;
 

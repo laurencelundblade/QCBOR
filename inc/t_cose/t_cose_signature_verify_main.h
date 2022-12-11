@@ -31,6 +31,7 @@ struct t_cose_signature_verify_main {
      */
     struct t_cose_signature_verify     s;
     struct t_cose_key                  verification_key;
+    void                              *crypto_context;
     t_cose_parameter_decode_callback  *reader;
     void                              *reader_ctx;
 };
@@ -44,10 +45,28 @@ static void
 t_cose_signature_verify_main_set_key(struct t_cose_signature_verify_main *me,
                                       struct t_cose_key verification_key);
 
+/**
+ * \brief  Set the crypto context to be passed to the crypto library..
+ *
+ * \param[in] context The signer context.
+ * \param[in] crypto_context   Pointer to the crypto context.
+ *
+ * The crypto context will be passed down to the crypto adapter
+ * layer. It can be used to configure special features, track special
+ * state or to return information for the crypto library.  The
+ * structure pointed to by the crypto context is specific to the
+ * crypto adapter that is in use. Many crypto adapters don't support
+ * this at all as it is not needed for most use cases.
+ */
+static void
+t_cose_signature_verify_main_set_crypto_context(struct t_cose_signature_verify_main *context,
+                                                void *crypto_context);
+
+
 static void
 t_cose_signature_verify_main_set_header_reader(struct t_cose_signature_verify_main *me,
-                                                t_cose_parameter_decode_callback                 *reader,
-                                                void                                 *reader_ctx);
+                                                t_cose_parameter_decode_callback   *reader,
+                                                void                               *reader_ctx);
 
 static struct t_cose_signature_verify *
 t_cose_signature_verify_from_main(struct t_cose_signature_verify_main *context);
@@ -72,8 +91,16 @@ t_cose_signature_verify_main_set_header_reader(struct t_cose_signature_verify_ma
                                                 t_cose_parameter_decode_callback *reader,
                                                 void *reader_ctx)
 {
-    me->reader = reader;
+    me->reader     = reader;
     me->reader_ctx = reader_ctx;
+}
+
+
+static inline void
+t_cose_signature_verify_main_set_crypto_context(struct t_cose_signature_verify_main *me,
+                                                void *crypto_context)
+{
+    me->crypto_context = crypto_context;
 }
 
 
