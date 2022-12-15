@@ -230,12 +230,14 @@ check_partial_iv(struct t_cose_parameter *param)
 }
 
 static enum t_cose_err_t
-header_writer(const struct t_cose_parameter  *param,
-              QCBOREncodeContext             *qcbor_encoder)
+param_encoder(void                           *cb_context,
+              const struct t_cose_parameter  *param,
+              QCBOREncodeContext             *cbor_encoder)
 {
+    (void)cb_context;
     switch(param->label) {
         case 44:
-            return encode_44(param, qcbor_encoder);
+            return encode_44(param, cbor_encoder);
 
         case 55:
             /* The point of this one is to fail */
@@ -243,7 +245,7 @@ header_writer(const struct t_cose_parameter  *param,
 
         case 66:
             /* Intentionally don't close the map */
-            QCBOREncode_OpenMapInMapN(qcbor_encoder, param->label);
+            QCBOREncode_OpenMapInMapN(cbor_encoder, param->label);
             return T_COSE_SUCCESS;
 
         default:
@@ -254,13 +256,13 @@ header_writer(const struct t_cose_parameter  *param,
 
 
 static enum t_cose_err_t
-header_reader(void                   *call_back_context,
-                     QCBORDecodeContext     *qcbor_decoder,
-                     struct t_cose_parameter *param)
+param_decoder(void                   *cb_context,
+              QCBORDecodeContext     *cbor_decoder,
+              struct t_cose_parameter *param)
 {
     switch(param->label) {
         case 44:
-            return decode_44(call_back_context, qcbor_decoder, param);
+            return decode_44(cb_context, cbor_decoder, param);
 
         default:
             return T_COSE_ERR_FAIL;
@@ -402,7 +404,7 @@ static const struct param_test param_tests[] = {
     /* 0. Critical, protected floating point parameter made by callback. */
     {
         UBX(x1),
-        {44, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, header_writer}, NULL },
+        {44, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, param_encoder}, NULL },
         T_COSE_SUCCESS,
         T_COSE_SUCCESS,
         check_44,
@@ -453,7 +455,7 @@ static const struct param_test param_tests[] = {
     /* 5. Encoder callback returns an error. */
     {
         {x2, 0}, // Unused
-        {55, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, header_writer}, NULL },
+        {55, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, param_encoder}, NULL },
         T_COSE_ERR_FAIL, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -463,7 +465,7 @@ static const struct param_test param_tests[] = {
     /* 6. Encoder callback produces invalid CBOR. */
     {
         {x2, 0}, // Unused
-        {66, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, header_writer}, NULL },
+        {66, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, param_encoder}, NULL },
         T_COSE_SUCCESS, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -705,7 +707,7 @@ param_test(void)
 
             t_cose_result = t_cose_headers_decode(&decode_context,
                                                   (struct t_cose_header_location){0,0},
-                                                  header_reader, NULL,
+                                                  param_decoder, NULL,
                                                  &param_storage,
                                                  &decoded_parameter,
                                                  &encoded_prot_params);
@@ -944,7 +946,7 @@ param_test(void)
 
     t_cose_result = t_cose_headers_decode(&decode_context,
                                           (struct t_cose_header_location){0,0},
-                                          header_reader, NULL,
+                                          param_decoder, NULL,
                                          &param_storage,
                                          &decoded_parameter,
                                          &encoded_prot_params);

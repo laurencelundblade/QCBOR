@@ -183,8 +183,8 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 
     return_value = t_cose_headers_decode(&decode_context,
                                           header_location,
-                                          me->reader,
-                                          me->reader_ctx,
+                                          me->param_decode_cb,
+                                          me->param_decode_cb_context,
                                           me->p_storage,
                                          &decoded_body_parameter_list,
                                          &protected_parameters);

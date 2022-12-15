@@ -111,8 +111,8 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
 
     return_value = t_cose_headers_decode(qcbor_decoder,
                                          loc,
-                                         me->reader,
-                                         me->reader_ctx,
+                                         me->param_decode_cb,
+                                         me->param_decode_cb_context,
                                          param_storage,
                                          decoded_params,
                                         &protected_parameters);

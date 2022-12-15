@@ -29,11 +29,11 @@ struct t_cose_signature_verify_eddsa {
      * This structure, t_cose_signature_verify_eddsa, will sometimes be uses as
      * a t_cose_signature_verify.
      */
-    struct t_cose_signature_verify     s;
-    struct t_cose_key                  verification_key;
-    t_cose_parameter_decode_callback  *reader;
-    void                              *reader_ctx;
-    uint32_t                           option_flags;
+    struct t_cose_signature_verify  s;
+    struct t_cose_key               verification_key;
+    t_cose_parameter_decode_cb     *param_decode_cb;
+    void                           *param_decode_cb_context;
+    uint32_t                        option_flags;
 
 
     /**
@@ -62,9 +62,9 @@ t_cose_signature_verify_eddsa_set_key(struct t_cose_signature_verify_eddsa *me,
                                       struct t_cose_key verification_key);
 
 static void
-t_cose_signature_verify_eddsa_set_header_reader(struct t_cose_signature_verify_eddsa *me,
-                                                t_cose_parameter_decode_callback                 *reader,
-                                                void                                 *reader_ctx);
+t_cose_signature_verify_eddsa_set_param_decoder(struct t_cose_signature_verify_eddsa *me,
+                                                t_cose_parameter_decode_cb           *decode_cb,
+                                                void                                 *decode_cb_context);
 
 /**
  * \brief Configure a buffer used to serialize the Sig_Structure.
@@ -133,17 +133,17 @@ t_cose_signature_verify_eddsa_set_key(struct t_cose_signature_verify_eddsa *me,
 }
 
 static inline void
-t_cose_signature_verify_eddsa_set_header_reader(struct t_cose_signature_verify_eddsa *me,
-                                                t_cose_parameter_decode_callback *reader,
-                                                void *reader_ctx)
+t_cose_signature_verify_eddsa_set_param_decoder(struct t_cose_signature_verify_eddsa *me,
+                                                t_cose_parameter_decode_cb           *decode_cb,
+                                                void                                 *decode_cb_context)
 {
-    me->reader = reader;
-    me->reader_ctx = reader_ctx;
+    me->param_decode_cb         = decode_cb;
+    me->param_decode_cb_context = decode_cb_context;
 }
 
 static inline void
 t_cose_signature_verify_eddsa_set_auxiliary_buffer(struct t_cose_signature_verify_eddsa *me,
-struct q_useful_buf             auxiliary_buffer)
+                                                   struct q_useful_buf                   auxiliary_buffer)
 {
     me->auxiliary_buffer = auxiliary_buffer;
 

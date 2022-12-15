@@ -346,5 +346,9 @@ void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx)
               pfOutput, pOutCtx);
     PrintSize("sizeof(struct t_cose_parameter)",
               (uint32_t)sizeof(struct t_cose_parameter),
-              pfOutput, pOutCtx);    (*pfOutput)("", pOutCtx, 1);
+              pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_parameters)",
+              (uint32_t)sizeof(struct t_cose_parameters),
+              pfOutput, pOutCtx);
+    (*pfOutput)("", pOutCtx, 1);
 }

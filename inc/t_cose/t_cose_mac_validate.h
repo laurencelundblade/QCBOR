@@ -123,14 +123,12 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
  * Inline implementations of public functions defined above.
  */
 static inline void
-t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *context,
+t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *me,
                          int32_t                         option_flags)
 {
-    context->option_flags              = option_flags;
-    context->verification_key          = T_COSE_NULL_KEY;
-    context->parameter_storage.storage = context->__params;
-    context->parameter_storage.size    = sizeof(context->__params)/sizeof(struct t_cose_parameter);
-    context->parameter_storage.used    = 0;
+    me->option_flags       = option_flags;
+    me->verification_key  = T_COSE_NULL_KEY;
+    T_COSE_PARAM_STORAGE_INIT(me->parameter_storage, me->__params);
 }
 
 static inline void

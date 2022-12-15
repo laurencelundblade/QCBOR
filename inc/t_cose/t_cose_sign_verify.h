@@ -65,8 +65,8 @@ struct t_cose_sign_verify_ctx {
     struct t_cose_parameter_storage   params;
     struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
-    t_cose_parameter_decode_callback *reader;
-    void                             *reader_ctx;
+    t_cose_parameter_decode_cb       *param_decode_cb;
+    void                             *param_decode_cb_context;
 };
 
 
@@ -153,9 +153,9 @@ t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx  *context,
  * Typically this is not needed.
  */
 static void
-t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx    *context,
-                              t_cose_parameter_decode_callback *reader,
-                              void                             *reader_ctx);
+t_cose_sign_set_param_decoder(struct t_cose_sign_verify_ctx *context,
+                              t_cose_parameter_decode_cb    *decode_cb,
+                              void                          *decode_cb_context);
 
 
 /**
@@ -295,10 +295,8 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *me,
                         uint32_t                       option_flags)
 {
     memset(me, 0, sizeof(*me));
+    T_COSE_PARAM_STORAGE_INIT(me->params, me->__params);
     me->option_flags       = option_flags;
-    me->params.storage     = me->__params;
-    me->params.size        = sizeof(me->__params)/sizeof(struct t_cose_parameter);
-    me->params.used        = 0;
     me->p_storage          = &(me->params);
 }
 
@@ -312,12 +310,12 @@ t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx   *me,
 
 
 static inline void
-t_cose_sign_set_header_reader(struct t_cose_sign_verify_ctx    *me,
-                              t_cose_parameter_decode_callback *reader,
-                              void                             *reader_ctx)
+t_cose_sign_set_param_decoder(struct t_cose_sign_verify_ctx *me,
+                              t_cose_parameter_decode_cb    *decode_cb,
+                              void                          *decode_cb_context)
 {
-    me->reader     = reader;
-    me->reader_ctx = reader_ctx;
+    me->param_decode_cb         = decode_cb;
+    me->param_decode_cb_context = decode_cb_context;
 }
 
 
