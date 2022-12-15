@@ -49,7 +49,14 @@ CRYPTO_TEST_OBJ=test/t_cose_make_openssl_test_key.o
 
 
 # ---- compiler configuration -----
-# Optimize for size
+# This makefile uses a minimum of compiler flags so that it will
+# work out-of-the-box with a wide variety of compilers.  For example,
+# some compilers error out on some of the warnings flags gcc supports.
+# The $(CMD_LINE) variable allows passing in extra flags. This is
+# used on the stringent build script that is in
+# https://github.com/laurencelundblade/tdv.  This script is used
+# before pushes to master (though not yet through an automated build
+# process). See "warn:" below.
 C_OPTS=-Os -fPIC
 
 
@@ -82,12 +89,15 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_mac_compute.o \
         src/t_cose_mac_validate.o
 
-.PHONY: all install install_headers install_so uninstall clean
+.PHONY: all install install_headers install_so uninstall clean warn
 
 all: libt_cose.a t_cose_test t_cose_basic_example_ossl
 
 libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
 	ar -r $@ $^
+
+warn:
+	make -f Makefile.ossl CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
 
 # The shared library is not made by default because of platform
 # variability For example MacOS and Linux behave differently and some
