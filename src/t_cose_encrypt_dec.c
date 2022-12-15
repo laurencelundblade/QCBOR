@@ -66,6 +66,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     size_t                 cek_len = T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
     struct t_cose_key      cek_key;
 
+
     /* Initialize decoder */
     QCBORDecode_Init(&DC,
                      (UsefulBufC){cose, cose_len},
@@ -440,7 +441,6 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         if (cose_result != T_COSE_SUCCESS) {
             return(cose_result);
         }
-
         cose_result = t_cose_crypto_decrypt((int32_t) algorithm_id,
                                             cek_key,
                                             nonce_cbor,
@@ -448,6 +448,11 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
             (struct q_useful_buf_c) {.ptr = ciphertext, .len = ciphertext_len},
             (struct q_useful_buf) {.ptr = plaintext, .len = plaintext_len},
                                             plaintext_output_len);
+
+        // TODO: put this in crypto layer
+        // TODO: find the other key memory leaks (pretty sure there are some...)
+        psa_close_key((psa_key_handle_t)cek_key.k.key_handle);
+
     } else {
         cose_result = t_cose_crypto_decrypt((int32_t) algorithm_id,
                                             me->recipient_key,

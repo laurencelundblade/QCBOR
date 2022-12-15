@@ -58,7 +58,8 @@ SRC_OBJ=src/t_cose_sign1_verify.o \
 	src/t_cose_util.o \
 	src/t_cose_parameters.o \
 	src/t_cose_mac_compute.o \
-	src/t_cose_mac_validate.o
+	src/t_cose_mac_validate.o \
+        src/hpke.o
 
 .PHONY: all clean
 

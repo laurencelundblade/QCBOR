@@ -39,6 +39,9 @@ uint8_t psk2[] = "aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbb";
 uint8_t psk_kid[] = "kid-1";
 uint8_t psk2_kid[] = "kid-1a";
 
+#define KID2 "kid2"
+
+
 /* Remove trailing null byte in the size calculations below */
 size_t psk_key_len = sizeof(psk)-1;
 size_t psk_kid_len = sizeof(psk_kid)-1;
@@ -68,6 +71,19 @@ uint8_t pk_kid[] = "kid-2";
 /* Public key id length and Public key length */
 size_t pk_key_len = sizeof(public_key);
 size_t pk_kid_len = sizeof(pk_kid)-1;
+
+
+
+/**
+ * \brief  Free a PSA / MBed key.
+ *
+ * \param[in] key_pair   The key pair to close / deallocate / free.
+ */
+void free_psa_key(struct t_cose_key key_pair)
+{
+    psa_close_key((psa_key_id_t)key_pair.k.key_handle);
+}
+
 
 int test_cose_encrypt(uint32_t options,
                       uint8_t *firmware, size_t firmware_len,
@@ -169,6 +185,11 @@ int main(void)
     int res = 0;
    psa_key_attributes_t psk_attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_handle_t psk_handle = 0;
+    struct t_cose_encrypt_dec_ctx dec_ctx;
+    enum t_cose_err_t ret;
+
+    uint8_t plaintext[400];
+    size_t plaintext_output_len;
 
     /* Key id for PSK */
     struct q_useful_buf_c kid1 = {psk_kid, psk_kid_len};
@@ -234,7 +255,7 @@ int main(void)
 
     t_cose_skR_key.k.key_handle = skR_handle;
     t_cose_skR_key.crypto_lib = T_COSE_CRYPTO_LIB_PSA;
-    #endif
+#endif
 
     /* Import PSK */
     psa_set_key_usage_flags(&psk_attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT);
@@ -256,6 +277,7 @@ int main(void)
 
 
     /* -------------------------------------------------------------------------*/
+
 #ifndef T_COSE_DISABLE_HPKE
 
     printf("\n-- 1a. Create COSE_Encrypt with detached payload using HPKE--\n\n");
@@ -269,11 +291,13 @@ int main(void)
                             T_COSE_ALGORITHM_A128GCM,
                             T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM,
                             t_cose_pkR_key,
-                            kid2);
+                            Q_USEFUL_BUF_FROM_SZ_LITERAL(KID2));
 
     if (res != EXIT_SUCCESS) {
         return(EXIT_FAILURE);
     }
+
+    free_psa_key(t_cose_pkR_key);
 
     printf("COSE: ");
     print_bytestr(buffer, result_len);
@@ -284,9 +308,12 @@ int main(void)
 
     printf("\n-- 1b. Process COSE_Encrypt with detached payload using HPKE --\n\n");
 
+
+
+
     t_cose_encrypt_dec_init(&dec_ctx, 0, T_COSE_KEY_DISTRIBUTION_HPKE);
 
-    t_cose_encrypt_dec_set_private_key(&dec_ctx, t_cose_skR_key, kid2);
+    t_cose_encrypt_dec_set_private_key(&dec_ctx, t_cose_skR_key, Q_USEFUL_BUF_FROM_SZ_LITERAL(KID2));
 
     ret = t_cose_encrypt_dec(&dec_ctx,
                              buffer, result_len, //sizeof(buffer),
@@ -306,9 +333,13 @@ int main(void)
     memset(encrypted_firmware, 0, encrypted_firmware_len);
     memset(plaintext, 0, plaintext_output_len);
 
+
+
+
     /* -------------------------------------------------------------------------*/
 
     printf("\n-- 2a. Create COSE_Encrypt with included payload using HPKE--\n\n");
+    // TODO: check error code here
     test_cose_encrypt(0,
                       firmware, firmware_len,
                       buffer, sizeof(buffer),
@@ -318,7 +349,7 @@ int main(void)
                       T_COSE_ALGORITHM_A128GCM,
                       T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM,
                       t_cose_skR_key,
-                      kid2);
+                      Q_USEFUL_BUF_FROM_SZ_LITERAL(KID2));
 
     printf("COSE: ");
     print_bytestr(buffer, result_len);
@@ -328,10 +359,11 @@ int main(void)
 
     t_cose_encrypt_dec_init(&dec_ctx, 0, T_COSE_KEY_DISTRIBUTION_HPKE);
 
-    t_cose_encrypt_dec_set_private_key(&dec_ctx, t_cose_skR_key, kid2);
+    t_cose_encrypt_dec_set_private_key(&dec_ctx, t_cose_skR_key, Q_USEFUL_BUF_FROM_SZ_LITERAL(KID2));
+
 
     ret = t_cose_encrypt_dec(&dec_ctx,
-                             buffer, sizeof(buffer),
+                             buffer, result_len,
                              NULL, 0,
                              plaintext, sizeof(plaintext),
                              &plaintext_output_len);
@@ -341,15 +373,20 @@ int main(void)
         return(EXIT_FAILURE);
     }
 
+    free_psa_key(t_cose_skR_key);
+
     printf("\nPlaintext: ");
     printf("%s\n", plaintext);
 
     memset(buffer, 0, sizeof(buffer));
     memset(encrypted_firmware, 0, encrypted_firmware_len);
     memset(plaintext, 0, plaintext_output_len);
-#endif /* T_COSE_DISABLE_HPKE */
-
+#endif
     /* -------------------------------------------------------------------------*/
+
+
+#ifndef T_COSE_DISABLE_HPKE
+
 
     printf("\n-- 3a. Create COSE_Encrypt0 with detached payload (direct encryption) --\n\n");
 
@@ -374,7 +411,6 @@ int main(void)
     printf("\n\nCiphertext: ");
     print_bytestr(encrypted_firmware, encrypted_firmware_result_len);
     printf("\n");
-#ifndef T_COSE_DISABLE_HPKE
 
     printf("\n-- 3b. Process COSE_Encrypt0 with detached payload (direct encryption) --\n\n");
     /* This doesn't work and is disable with HPKE because the decryption

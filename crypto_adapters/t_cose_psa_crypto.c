@@ -866,7 +866,11 @@ t_cose_crypto_encrypt(int32_t                cose_algorithm_id,
               ciphertext_buffer.len,          // ciphertext length
               ciphertext_output_len );        // length of output
 
+    if (status != PSA_SUCCESS) {
+        return(T_COSE_ERR_ENCRYPT_FAIL);
+    }
 
+    status = psa_close_key(cek_handle);
     if (status != PSA_SUCCESS) {
         return(T_COSE_ERR_ENCRYPT_FAIL);
     }

@@ -9,12 +9,11 @@
  *
  */
 
+#ifndef T_COSE_DISABLE_HPKE
+
 #include "t_cose/t_cose_recipient_enc.h"
 #include "t_cose/t_cose_recipient_enc_hpke.h" /* Interface implemented */
-#ifndef T_COSE_DISABLE_HPKE
-// TODO: this dependency should move to the crypto adaptor
-#include "mbedtls/hpke.h"   /* HPKE Interface */
-#endif
+#include "hpke.h"
 #include "qcbor/qcbor.h"
 #include "t_cose_crypto.h"
 #include "t_cose/t_cose_encrypt_enc.h"
@@ -24,7 +23,6 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_standard_constants.h"
 
-#ifndef T_COSE_DISABLE_HPKE
 
 /**
  * \brief Given a COSE HPKE algorithm id this function returns the

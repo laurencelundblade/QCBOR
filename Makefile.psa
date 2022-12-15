@@ -96,7 +96,8 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_recipient_dec_aes_kw.o \
         src/t_cose_recipient_enc_aes_kw.o \
         src/t_cose_recipient_dec_hpke.o \
-        src/t_cose_recipient_enc_hpke.o
+        src/t_cose_recipient_enc_hpke.o \
+        src/hpke.o
 
 .PHONY: all install install_headers install_so uninstall clean
 

@@ -9,11 +9,11 @@
  *
  */
 
-#include "t_cose/t_cose_recipient_dec_hpke.h"  /* Interface implemented */
+
 #ifndef T_COSE_DISABLE_HPKE
-// TODO: this dependency should only be in the crypto layer
-#include "mbedtls/hpke.h"   /* HPKE Interface */
-#endif
+
+#include "t_cose/t_cose_recipient_dec_hpke.h"  /* Interface implemented */
+#include "hpke.h"
 #include "qcbor/qcbor.h"
 #include "t_cose_crypto.h"
 #include "t_cose/t_cose_encrypt_enc.h"
@@ -23,7 +23,6 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_standard_constants.h"
 
-#ifndef T_COSE_DISABLE_HPKE
 
 /**
  * See definition in t_cose_recipient_dec_hpke.h

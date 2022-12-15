@@ -42,7 +42,7 @@ elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
 
     find_package(OpenSSL REQUIRED)
     set(CRYPTO_LIBRARY OpenSSL::Crypto)
-    set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_OPENSSL_CRYPTO=1)
+    set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_OPENSSL_CRYPTO=1 -DT_COSE_DISABLE_HPKE)
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_openssl_crypto.c)
 
 elseif(CRYPTO_PROVIDER STREQUAL "Test")
@@ -51,7 +51,7 @@ elseif(CRYPTO_PROVIDER STREQUAL "Test")
     target_include_directories(b_con_hash PUBLIC crypto_adapters/b_con_hash)
 
     set(CRYPTO_LIBRARY b_con_hash)
-    set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_B_CON_SHA256 -DT_COSE_ENABLE_HASH_FAIL_TEST)
+    set(CRYPTO_COMPILE_DEFS -DT_COSE_USE_B_CON_SHA256 -DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_HPKE)
     set(CRYPTO_ADAPTER_SRC crypto_adapters/t_cose_test_crypto.c)
 
 else()
@@ -74,6 +74,7 @@ set(T_COSE_SRC_COMMON
     src/t_cose_mac_validate.c
     src/t_cose_signature_verify_main.c
     src/t_cose_signature_verify_eddsa.c
+    src/hpke.c
 )
 
 find_package(QCBOR REQUIRED)
