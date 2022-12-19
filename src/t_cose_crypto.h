@@ -978,7 +978,7 @@ t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
  * \param[in] key               Handle to key
  * \param[in] pk_buffer         Pointer and length of buffer into which
  *                              the resulting public key is put.
- * \param[out] pk               Public Key
+ * \param[out] pk_len               Length of public key out
  *
  * \retval T_COSE_SUCCESS
  *         Successfully exported the public key.

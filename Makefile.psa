@@ -63,11 +63,8 @@ C_OPTS=-Os -fPIC
 
 
 # ---- other configuration ----
-# HPKE is disabled by default because it is not supported by common crypto
-# libraries. If you wish to use it remove this and find a version of
-# MbedTLS that supports it. For example:
-# https://github.com/hannestschofenig/mbedtls/tree/hpke.
-OTHER_OPTS=-DT_COSE_DISABLE_HPKE -DT_COSE_DISABLE_AES_KW
+# HPKE is on for PSA, but needs some work...
+OTHER_OPTS=
 
 
 # ---- T_COSE Config and test options ----

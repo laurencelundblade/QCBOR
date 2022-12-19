@@ -141,8 +141,8 @@ hpke_kem_info_t hpke_kem_tab[]={
  * \brief info about a KDF
  */
 typedef struct {
-    uint16_t            kdf_id; //< code point for KDF
-    size_t              Nh;     //< length of hash/extract output
+    uint16_t            kdf_id; // code point for KDF
+    size_t              Nh;     // length of hash/extract output
 } hpke_kdf_info_t;
 
 /*!
@@ -198,7 +198,7 @@ struct mbedtls_ssl_hpke_labels_struct const mbedtls_ssl_hpke_labels =
 
 int mbedtls_hpke_extract(
         const hpke_suite_t suite,
-        const size_t mode5869,
+        const int mode5869,
         const unsigned char *salt, const size_t saltlen,
         const char *label, const size_t labellen,
         const unsigned char *ikm, const size_t ikmlen,
@@ -320,11 +320,14 @@ exit:
     return( ret );
 }
 
+
+
+
 int mbedtls_hpke_expand( const hpke_suite_t suite, const int mode5869,
                          const unsigned char *prk, const size_t prklen,
                          const char *label, const size_t labellen,
                          const unsigned char *info, const size_t infolen,
-                         const uint32_t L,
+                         const size_t L,
                          unsigned char *out, size_t *outlen)
 {
     const mbedtls_md_info_t *md;
@@ -514,98 +517,6 @@ exit:
 }
 
 
-/*!
- * \brief map a string to a HPKE suite
- *
- * \param str is the string value
- * \param suite is the resulting suite
- * \return 1 for success, otherwise failure
- */
-
-int hpke_str2suite(char *suitestr, hpke_suite_t *suite)
-{
-    int erv=0;
-    uint16_t kem=0,kdf=0,aead=0;
-    if (!suite) return(__LINE__);
-
-    // See if it contains a mix of our strings and numbers
-    char *st=strtok(suitestr,",");
-    if (!st) { erv=__LINE__; return erv; }
-    while (st!=NULL) {
-        // check if string is known or number and if so handle appropriately
-        if (kem==0) {
-            if (HPKE_MSMATCH(st,HPKE_KEMSTR_P256)) kem=HPKE_KEM_ID_P256;
-            if (HPKE_MSMATCH(st,HPKE_KEMSTR_P384)) kem=HPKE_KEM_ID_P384;
-            if (HPKE_MSMATCH(st,HPKE_KEMSTR_P521)) kem=HPKE_KEM_ID_P521;
-            if (HPKE_MSMATCH(st,HPKE_KEMSTR_X25519)) kem=HPKE_KEM_ID_25519;
-            if (HPKE_MSMATCH(st,HPKE_KEMSTR_X448)) kem=HPKE_KEM_ID_448;
-            if (HPKE_MSMATCH(st,"0x10")) kem=HPKE_KEM_ID_P256;
-            if (HPKE_MSMATCH(st,"16")) kem=HPKE_KEM_ID_P256;
-            if (HPKE_MSMATCH(st,"0x11")) kem=HPKE_KEM_ID_P384;
-            if (HPKE_MSMATCH(st,"17")) kem=HPKE_KEM_ID_P384;
-            if (HPKE_MSMATCH(st,"0x12")) kem=HPKE_KEM_ID_P521;
-            if (HPKE_MSMATCH(st,"18")) kem=HPKE_KEM_ID_P521;
-            if (HPKE_MSMATCH(st,"0x20")) kem=HPKE_KEM_ID_25519;
-            if (HPKE_MSMATCH(st,"32")) kem=HPKE_KEM_ID_25519;
-            if (HPKE_MSMATCH(st,"0x21")) kem=HPKE_KEM_ID_448;
-            if (HPKE_MSMATCH(st,"33")) kem=HPKE_KEM_ID_448;
-        } else if (kem!=0 && kdf==0) {
-            if (HPKE_MSMATCH(st,HPKE_KDFSTR_256)) kdf=1;
-            if (HPKE_MSMATCH(st,HPKE_KDFSTR_384)) kdf=2;
-            if (HPKE_MSMATCH(st,HPKE_KDFSTR_512)) kdf=3;
-            if (HPKE_MSMATCH(st,"1")) kdf=1;
-            if (HPKE_MSMATCH(st,"2")) kdf=2;
-            if (HPKE_MSMATCH(st,"3")) kdf=3;
-        } else if (kem!=0 && kdf!=0 && aead==0) {
-            if (HPKE_MSMATCH(st,HPKE_AEADSTR_AES128GCM)) aead=1;
-            if (HPKE_MSMATCH(st,HPKE_AEADSTR_AES256GCM)) aead=2;
-            if (HPKE_MSMATCH(st,HPKE_AEADSTR_CP)) aead=3;
-            if (HPKE_MSMATCH(st,"1")) aead=1;
-            if (HPKE_MSMATCH(st,"2")) aead=2;
-            if (HPKE_MSMATCH(st,"3")) aead=3;
-        }
-        st=strtok(NULL,",");
-    }
-    if (kem==0||kdf==0||aead==0) { erv=__LINE__; return erv; }
-    suite->kem_id=kem;
-    suite->kdf_id=kdf;
-    suite->aead_id=aead;
-    return 1;
-}
-
-/*!
- * \brief decode ascii hex to a binary buffer
- *
- * \param ahlen is the ascii hex string length
- * \param ah is the ascii hex string
- * \param blen is a pointer to the returned binary length
- * \param buf is a pointer to the internally allocated binary buffer
- * \return 1 for good otherwise bad
- */
-int hpke_ah_decode(size_t ahlen, const char *ah, size_t *blen, unsigned char **buf)
-{
-    size_t lblen=0;
-    unsigned char *lbuf=NULL;
-    if (ahlen <=0 || ah==NULL || blen==NULL || buf==NULL) {
-        return 0;
-    }
-    if (ahlen%1) {
-        return 0;
-    }
-    lblen=ahlen/2;
-    lbuf=mbedtls_calloc(1, lblen);
-    if (lbuf==NULL) {
-        return 0;
-    }
-    size_t i=0;
-    for (i=0;i!=lblen;i++) {
-        lbuf[i]=HPKE_A2B(ah[2*i])*16+HPKE_A2B(ah[2*i+1]);
-    }
-    *blen=lblen;
-    *buf=lbuf;
-    return 1;
-}
-
 
 /*!
  * \brief Internal function for AEAD decryption
@@ -628,7 +539,7 @@ static int hpke_aead_dec(
             unsigned char *key, size_t keylen,
             unsigned char *iv, size_t ivlen,
             unsigned char *aad, size_t aadlen,
-            unsigned char *cipher, size_t cipherlen,
+            const unsigned char *cipher, size_t cipherlen,
             unsigned char *plain, size_t *plainlen)
 {
     psa_key_attributes_t attr_ciphertext = PSA_KEY_ATTRIBUTES_INIT;
@@ -705,7 +616,7 @@ static int hpke_aead_enc(
             unsigned char *key, size_t keylen,
             unsigned char *iv, size_t ivlen,
             unsigned char *aad, size_t aadlen,
-            unsigned char *plain, size_t plainlen,
+            const unsigned char *plain, size_t plainlen,
             unsigned char *cipher, size_t *cipherlen )
 {
     psa_key_attributes_t attr_ciphertext = PSA_KEY_ATTRIBUTES_INIT;
@@ -782,11 +693,11 @@ static int hpke_aead_enc(
  * \param encrypting is 1 if we're encrypting, 0 for decrypting
  * \param suite is the ciphersuite 
  * key1 is the first key, for which we have the private value
- * \param key1enclen is the length of the encoded form of key1
- * \param key1en is the encoded form of key1
+ * \param own_public_key_len is the length of the encoded form of key1
+ * \param own_public_key is the encoded form of key1
  * key2 is the peer's key
- * \param key2enclen is the length of the encoded form of key1
- * \param key2en is the encoded form of key1
+ * \param peer_public_key_len is the length of the encoded form of key1
+ * \param peer_public_key is the encoded form of key1
  * akey is the authentication private key
  * \param apublen is the length of the encoded the authentication public key
  * \param apub is the encoded form of the authentication public key
@@ -798,8 +709,8 @@ static int hpke_aead_enc(
 static int hpke_do_kem( int encrypting,
                         hpke_suite_t suite,
                         psa_key_handle_t own_key_handle,
-                        size_t own_public_key_len, uint8_t *own_public_key,
-                        size_t peer_public_key_len, uint8_t *peer_public_key,
+                        size_t own_public_key_len, const uint8_t *own_public_key,
+                        size_t peer_public_key_len, const uint8_t *peer_public_key,
                         psa_key_handle_t apriv_handle,
                         size_t apublen, uint8_t *apub,
                         uint8_t **ss, size_t *sslen)
@@ -916,8 +827,8 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
                           char *pskid, size_t psklen, unsigned char *psk,
                           size_t pkS_len, unsigned char *pkS,
                           psa_key_handle_t skR_handle,
-                          size_t pkE_len, unsigned char *pkE,
-                          size_t cipherlen, unsigned char *cipher,
+                          size_t pkE_len, const unsigned char *pkE,
+                          size_t cipherlen, const unsigned char *cipher,
                           size_t aadlen, unsigned char *aad,
                           size_t infolen, unsigned char *info,
                           size_t *clearlen, unsigned char *clear )
@@ -1243,30 +1154,25 @@ int hpke_suite_check( hpke_suite_t suite )
  * \param pskid is the pskid string fpr a PSK mode (can be NULL)
  * \param psklen is the psk length
  * \param psk is the psk 
- * \param publen is the length of the recipient public key
- * \param pub is the encoded recipient public key
- * \param privlen is the length of the private (authentication) key
- * \param priv is the encoded private (authentication) key
+ * \param pkR_len is the length of the recipient public key
+ * \param pkR is the encoded recipient public key
  * \param clearlen is the length of the cleartext
  * \param clear is the encoded cleartext
  * \param aadlen is the lenght of the additional data (can be zero)
  * \param aad is the encoded additional data (can be NULL)
  * \param infolen is the lenght of the info data (can be zero)
  * \param info is the encoded info data (can be NULL)
- * \param extsenderpublen is the length of the input buffer with the sender's public key 
- * \param extsenderpub is the input buffer for sender public key
- * \param extsenderpriv has the handle for the sender private key
- * \param senderpublen is the length of the input buffer for the sender's public key (length used on output)
- * \param senderpub is the input buffer for ciphertext
+ * \param pkE_len is the length of the input buffer for the sender's public key (length used on output)
+ * \param pkE is the input buffer for ciphertext
  * \param cipherlen is the length of the input buffer for ciphertext (length used on output)
  * \param cipher is the input buffer for ciphertext
  * \return 1 for good (OpenSSL style), not-1 for error
  */
 static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
                          char *pskid, size_t psklen, unsigned char *psk,
-                         size_t pkR_len, unsigned char *pkR,
+                         size_t pkR_len, const unsigned char *pkR,
                          psa_key_handle_t skS_handle,
-                         size_t clearlen, unsigned char *clear,
+                         size_t clearlen, const unsigned char *clear,
                          size_t aadlen, unsigned char *aad,
                          size_t infolen, unsigned char *info,
                          psa_key_handle_t ext_pkE_handle,
@@ -1540,9 +1446,9 @@ error:
 
 int mbedtls_hpke_encrypt( unsigned int mode, hpke_suite_t suite,
                           char *pskid, size_t psklen, uint8_t *psk,
-                          size_t pkR_len, uint8_t *pkR,
+                          size_t pkR_len, const uint8_t *pkR,
                           psa_key_handle_t skI_handle,
-                          size_t clearlen, uint8_t *clear,
+                          size_t clearlen, const uint8_t *clear,
                           size_t aadlen, uint8_t *aad,
                           size_t infolen, uint8_t *info,
                           psa_key_handle_t ext_skE_handle,

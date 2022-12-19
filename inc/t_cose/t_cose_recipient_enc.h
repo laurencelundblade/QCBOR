@@ -20,9 +20,8 @@
  * \brief Function pointer for use with different key agreement / key transport
  *        schemes used within the recipient structure of COSE_Encrypt.
  *
- * \param[in] ...TBD...
  *
- * \return \return The \ref t_cose_err_t.
+ * \return The \ref t_cose_err_t.
  */
 
 typedef enum t_cose_err_t t_cose_create_recipient(

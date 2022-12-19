@@ -152,9 +152,9 @@ typedef struct {
  */
 int mbedtls_hpke_encrypt( unsigned int mode, hpke_suite_t suite,
                           char *pskid, size_t psklen, uint8_t *psk,
-                          size_t pkR_len, uint8_t *pkR,
+                          size_t pkR_len, const uint8_t *pkR,
                           psa_key_handle_t skI_handle,
-                          size_t clearlen, uint8_t *clear,
+                          size_t clearlen, const uint8_t *clear,
                           size_t aadlen, uint8_t *aad,
                           size_t infolen, uint8_t *info,
                           psa_key_handle_t ext_skE_handle,
@@ -206,22 +206,13 @@ int mbedtls_hpke_decrypt( unsigned int mode, hpke_suite_t suite,
                           char *pskid, size_t psklen, unsigned char *psk,
                           size_t pkS_len, unsigned char *pkS,
                           psa_key_handle_t skR_handle,
-                          size_t pkE_len, unsigned char *pkE,
-                          size_t cipherlen, unsigned char *cipher,
+                          size_t pkE_len, const unsigned char *pkE,
+                          size_t cipherlen, const unsigned char *cipher,
                           size_t aadlen, unsigned char *aad,
                           size_t infolen, unsigned char *info,
                           size_t *clearlen, unsigned char *clear );
 
-/**
- * \brief decode ascii hex to a binary buffer
- *
- * \param ahlen is the ascii hex string length
- * \param ah is the ascii hex string
- * \param blen is a pointer to the returned binary length
- * \param buf is a pointer to the internally allocated binary buffer
- * \return 1 for good (OpenSSL style), not-1 for error
- */
-int hpke_ah_decode(size_t ahlen, const char *ah, size_t *blen, unsigned char **buf);
+
 
 /**
  * \brief check if a suite is supported locally
@@ -244,14 +235,6 @@ int hpke_suite_check(hpke_suite_t suite);
 #define HPKE_5869_MODE_FULL 2 ///< Abide by HPKE section 5.1
 
 
-/*!
- * \brief map a strin to a HPKE suite
- *
- * \param str is the string value
- * \param suite is the resulting suite
- * \return 1 for success, otherwise failure
- */ 
-int hpke_str2suite(char *str, hpke_suite_t *suite);
 
 
 #define MBEDTLS_SSL_HPKE_LABEL_LIST                           \
@@ -300,8 +283,8 @@ extern const struct mbedtls_ssl_hpke_labels_struct mbedtls_ssl_hpke_labels;
  *  \param  saltlen      Length of above
  *  \param  label        Label for separation
  *  \param  labellen     Length of above
- *  \param  zz           The initial key material (IKM)
- *  \param  zzlen        Length of above
+ *  \param  ikm          The initial key material (IKM)
+ *  \param  ikmlen       Length of above
  *  \param  secret       The result of extraction
  *  \param  secretlen    Bufsize on input, used size on output
  *
@@ -326,7 +309,7 @@ extern const struct mbedtls_ssl_hpke_labels_struct mbedtls_ssl_hpke_labels;
  *          I2OSP(kdf_id, 2), I2OSP(aead_id, 2))
  */
 int mbedtls_hpke_extract( const hpke_suite_t suite,
-                          const size_t mode5869,
+                          const int mode5869,
                           const unsigned char *salt, const size_t saltlen,
                           const char *label, const size_t labellen,
                           const unsigned char *ikm, const size_t ikmlen,
@@ -339,11 +322,11 @@ int mbedtls_hpke_extract( const hpke_suite_t suite,
  * \param suite is the ciphersuite 
  * \param mode5869 - controls labelling specifics
  * \param prk - the initial pseudo-random key material 
- * \param prk - length of above
+ * \param prklen - length of above
  * \param label - label to prepend to info
  * \param labellen - label to prepend to info
- * \param context - the info
- * \param contextlen - length of above
+ * \param info - the info
+ * \param infolen - length of above
  * \param L - the length of the output desired 
  * \param out - the result of expansion (allocated by caller)
  * \param outlen - buf size on input
@@ -353,7 +336,7 @@ int mbedtls_hpke_expand(const hpke_suite_t suite, const int mode5869,
                 const unsigned char *prk, const size_t prklen,
                 const char *label, const size_t labellen,
                 const unsigned char *info, const size_t infolen,
-                const uint32_t L,
+                const size_t L,
                 unsigned char *out, size_t *outlen);
 
 /*!

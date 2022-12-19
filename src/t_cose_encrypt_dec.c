@@ -38,8 +38,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     enum t_cose_err_t      cose_result;
     size_t                 key_bitlen;
     int64_t                alg = 0;
-    uint8_t               *ciphertext;
-    size_t                 ciphertext_len;
+    struct q_useful_buf_c  cipher_text;
 
     int64_t                kty;
     int64_t                crv;
@@ -140,12 +139,11 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     }
 
     if (Cipher.val.string.len != 0) {
-        ciphertext = (uint8_t *) Cipher.val.string.ptr;
-        ciphertext_len = Cipher.val.string.len;
+        cipher_text = Cipher.val.string;
         detached_mode = false;
     } else {
-        ciphertext = detached_ciphertext;
-        ciphertext_len = detached_ciphertext_len;
+        cipher_text.ptr = detached_ciphertext;
+        cipher_text.len = detached_ciphertext_len;
         detached_mode = true;
     }
 
@@ -445,7 +443,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
                                             cek_key,
                                             nonce_cbor,
                                             add_data_buf,
-            (struct q_useful_buf_c) {.ptr = ciphertext, .len = ciphertext_len},
+                                            cipher_text,
             (struct q_useful_buf) {.ptr = plaintext, .len = plaintext_len},
                                             plaintext_output_len);
 
@@ -458,7 +456,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
                                             me->recipient_key,
                                             nonce_cbor,
                                             add_data_buf,
-            (struct q_useful_buf_c) {.ptr = ciphertext, .len = ciphertext_len},
+                                            cipher_text,
             (struct q_useful_buf) {.ptr = plaintext, .len = plaintext_len},
                                             plaintext_output_len);
     }

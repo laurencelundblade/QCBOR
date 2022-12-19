@@ -29,9 +29,6 @@
  *        HPKE algorithm structure, the key length (in bits) and
  *        the COSE algorithm ID.
  *
- * \param[in] buffer             Pointer and length of buffer into which
- *                               the resulting random bytes are put.
- *
  * \retval T_COSE_SUCCESS
  *         Successfully produced the HPKE algorithm structure.
  * \retval T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG
@@ -103,10 +100,10 @@ t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
             hpke_suite,                         // ciphersuite
             NULL, 0, NULL,                      // PSK
             pkR.len,                            // pkR length
-            (uint8_t *) pkR.ptr,                // pkR
+            pkR.ptr,                            // pkR
             0,                                  // skI
             plaintext.len,                      // plaintext length
-            (uint8_t *) plaintext.ptr,          // plaintext
+            plaintext.ptr,                      // plaintext
             0, NULL,                            // Additional data
             0, NULL,                            // Info
             (psa_key_handle_t)
@@ -150,6 +147,9 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
     enum t_cose_err_t      return_value;
     struct t_cose_crypto_hpke_suite_t hpke_suite;
     struct t_cose_encrypt_recipient_ctx *context=(struct t_cose_encrypt_recipient_ctx *) ctx;
+
+    (void)cose_algorithm_id; // TODO: use this or get rid of it
+    (void)recipient_key; // TODO: use this or get rid of it
 
     if (context == NULL || encrypt_ctx == NULL) {
         return(T_COSE_ERR_INVALID_ARGUMENT);
