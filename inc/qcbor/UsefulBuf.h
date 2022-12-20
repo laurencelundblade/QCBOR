@@ -954,6 +954,8 @@ static inline int UsefulOutBuf_AtStart(UsefulOutBuf *pUOutBuf);
  * Overlapping buffers are OK. @c NewData can point to data in the
  * output buffer.
  *
+ * NewData.len may be 0 in which case nothing will be inserted.
+ *
  * If an error occurs, an error state is set in the @ref
  * UsefulOutBuf. No error is returned.  All subsequent attempts to add
  * data will do nothing.

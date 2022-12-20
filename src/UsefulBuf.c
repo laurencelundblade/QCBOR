@@ -268,7 +268,9 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
    uint8_t *pInsertionPoint = ((uint8_t *)pMe->UB.ptr) + uInsertionPos; // PtrMath #5
    if(pMe->UB.ptr) {
       // To know memmove won't go off end of destination, see PtrMath #6
-      memmove(pInsertionPoint, NewData.ptr, NewData.len);
+      if(NewData.ptr != NULL) {
+         memmove(pInsertionPoint, NewData.ptr, NewData.len);
+      }
    }
    pMe->data_len += NewData.len;
 }
