@@ -4341,7 +4341,20 @@ QCBORDecode_GetMIMEInternal(const uint8_t     uTagRequirement,
 typedef QCBORError (*fExponentiator)(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult);
 
 
-// The exponentiator that works on only positive numbers
+/**
+ * @brief  Base 10 exponentiate a mantissa and exponent into an unsigned 64-bit integer.
+ *
+ * @param[in] uMantissa  The unsigned integer mantissa.
+ * @param[in] nExponent  The signed integer exponent.
+ * @param[out] puResult  Place to return the unsigned integer result.
+ *
+ * This computes: mantissa * 10 ^^ exponent as for a decimal fraction. The output is a 64-bit
+ * unsigned integer.
+ *
+ * There are many inputs for which the result will not fit in the
+ * 64-bit integer and \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
+ * be returned.
+ */
 static QCBORError
 Exponentitate10(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult)
 {
@@ -4354,7 +4367,7 @@ Exponentitate10(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult)
        */
       for(; nExponent > 0; nExponent--) {
          if(uResult > UINT64_MAX / 10) {
-            return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW; // Error overflow
+            return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
          }
          uResult = uResult * 10;
       }
@@ -4362,7 +4375,7 @@ Exponentitate10(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult)
       for(; nExponent < 0; nExponent++) {
          uResult = uResult / 10;
          if(uResult == 0) {
-            return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW; // Underflow error
+            return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
          }
       }
    }
@@ -4374,7 +4387,20 @@ Exponentitate10(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult)
 }
 
 
-// The exponentiator that works on only positive numbers
+/**
+ * @brief  Base 2 exponentiate a mantissa and exponent into an unsigned 64-bit integer.
+ *
+ * @param[in] uMantissa  The unsigned integer mantissa.
+ * @param[in] nExponent  The signed integer exponent.
+ * @param[out] puResult  Place to return the unsigned integer result.
+ *
+ * This computes: mantissa * 2 ^^ exponent as for a big float. The
+ * output is a 64-bit unsigned integer.
+ *
+ * There are many inputs for which the result will not fit in the
+ * 64-bit integer and \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
+ * be returned.
+ */
 static QCBORError
 Exponentitate2(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult)
 {
@@ -4382,13 +4408,12 @@ Exponentitate2(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult)
 
    uResult = uMantissa;
 
-   /* This loop will run a maximum of 64 times because
-    * INT64_MAX < 2^31. More than that will cause
-    * exit with the overflow error
+   /* This loop will run a maximum of 64 times because INT64_MAX <
+    * 2^31. More than that will cause exit with the overflow error
     */
    while(nExponent > 0) {
       if(uResult > UINT64_MAX >> 1) {
-         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW; // Error overflow
+         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
       }
       uResult = uResult << 1;
       nExponent--;
@@ -4396,7 +4421,7 @@ Exponentitate2(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult)
 
    while(nExponent < 0 ) {
       if(uResult == 0) {
-         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW; // Underflow error
+         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
       }
       uResult = uResult >> 1;
       nExponent++;
@@ -4408,77 +4433,145 @@ Exponentitate2(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult)
 }
 
 
-/*
- Compute value with signed mantissa and signed result. Works with
- exponent of 2 or 10 based on exponentiator.
+/**
+ * @brief Exponentiate a signed mantissa and signed exponent to produce a signed result.
+ *
+ * @param[in] nMantissa  Signed integer mantissa.
+ * @param[in] nExponent  Signed integer exponent.
+ * @param[out] pnResult  Place to put the signed integer result.
+ * @param[in] pfExp      Exponentiation function.
+ *
+ * @returns Error code
+ *
+ * \c pfExp performs exponentiation on and unsigned mantissa and
+ * produces an unsigned result. This converts the mantissa from signed
+ * and converts the result to signed. The exponentiation function is
+ * either for base 2 or base 10 (and could be other if needed).
  */
-static inline QCBORError ExponentiateNN(int64_t       nMantissa,
-                                        int64_t       nExponent,
-                                        int64_t       *pnResult,
-                                        fExponentiator pfExp)
+static QCBORError
+ExponentiateNN(int64_t         nMantissa,
+               int64_t         nExponent,
+               int64_t        *pnResult,
+               fExponentiator  pfExp)
 {
    uint64_t uResult;
+   uint64_t uMantissa;
 
-   // Take the absolute value of the mantissa and convert to unsigned.
-   // Improvement: this should be possible in one instruction
-   uint64_t uMantissa = nMantissa > 0 ? (uint64_t)nMantissa : (uint64_t)-nMantissa;
+   /* Take the absolute value and put it into an unsigned. */
+   if(nMantissa >= 0) {
+      /* Positive case is straightforward */
+      uMantissa = (uint64_t)nMantissa;
+   } else if(nMantissa != INT64_MIN) {
+      /* The common negative case. See next. */
+      uMantissa = (uint64_t)-nMantissa;
+   } else {
+      /* int64_t and uint64_t require two's complement representation
+       * of integers (and since QCBOR uses these it only works with
+       * two's complement (which is pretty much universal these
+       * days)). The range of a negative two's complement integer is
+       * one more that than a positive, so the simple code above might
+       * not work all the time because you can't simply negate the
+       * value INT64_MIN because it can't be represented in an
+       * int64_t. -INT64_MIN can however be represented in a
+       * uint64_t. Some compilers seem to recognize this case for the
+       * above code and put the correct value in uMantissa, however
+       * they are not required to do this by the C standard. This next
+       * line does however work for all compilers.
+       *
+       * This does assume two's complement where -INT64_MIN ==
+       * INT64_MAX (which wouldn't be true for one's complement or
+       * sign and magnitude (but we know we're using two's complement
+       * because int64_t requires it)).
+       *
+       * See these, particularly the detailed commentary:
+       * https://stackoverflow.com/questions/54915742/does-c99-mandate-a-int64-t-type-be-available-always
+       * https://stackoverflow.com/questions/37301078/is-negating-int-min-undefined-behaviour
+       */
+      uMantissa = (uint64_t)INT64_MAX+1;
+   }
 
-   // Do the exponentiation of the positive mantissa
+   /* Call the exponentiator passed in for either base 2 or base 10.
+    * Here is where most of the overflow errors are caught. */
    QCBORError uReturn = (*pfExp)(uMantissa, nExponent, &uResult);
    if(uReturn) {
       return uReturn;
    }
 
-
-   /* (uint64_t)INT64_MAX+1 is used to represent the absolute value
-    of INT64_MIN. This assumes two's compliment representation where
-    INT64_MIN is one increment farther from 0 than INT64_MAX.
-    Trying to write -INT64_MIN doesn't work to get this because the
-    compiler tries to work with an int64_t which can't represent
-    -INT64_MIN.
-    */
-   uint64_t uMax = nMantissa > 0 ? INT64_MAX : (uint64_t)INT64_MAX+1;
-
-   // Error out if too large
-   if(uResult > uMax) {
-      return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+   /* Convert back to the sign of the original mantissa */
+   if(nMantissa >= 0) {
+      if(uResult > INT64_MAX) {
+         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+      }
+      *pnResult = (int64_t)uResult;
+   } else {
+      /* (uint64_t)INT64_MAX+1 is used to represent the absolute value
+       * of INT64_MIN. This assumes two's compliment representation
+       * where INT64_MIN is one increment farther from 0 than
+       * INT64_MAX.  Trying to write -INT64_MIN doesn't work to get
+       * this because the compiler makes it an int64_t which can't
+       * represent -INT64_MIN. Also see above.
+       */
+      if(uResult > (uint64_t)INT64_MAX+1) {
+         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+      }
+      *pnResult = -(int64_t)uResult;
    }
-
-   // Casts are safe because of checks above
-   *pnResult = nMantissa > 0 ? (int64_t)uResult : -(int64_t)uResult;
 
    return QCBOR_SUCCESS;
 }
 
 
-/*
- Compute value with signed mantissa and unsigned result. Works with
- exponent of 2 or 10 based on exponentiator.
+/**
+ * @brief Exponentiate an unsigned mantissa and signed exponent to produce an unsigned result.
+ *
+ * @param[in] nMantissa  Signed integer mantissa.
+ * @param[in] nExponent  Signed integer exponent.
+ * @param[out] puResult  Place to put the signed integer result.
+ * @param[in] pfExp      Exponentiation function.
+ *
+ * @returns Error code
+ *
+ * \c pfExp performs exponentiation on and unsigned mantissa and
+ * produces an unsigned result. This errors out if the mantissa
+ * is negative because the output is unsigned.
  */
-static inline QCBORError ExponentitateNU(int64_t       nMantissa,
-                                         int64_t       nExponent,
-                                         uint64_t      *puResult,
-                                         fExponentiator pfExp)
+static QCBORError
+ExponentitateNU(int64_t        nMantissa,
+                int64_t        nExponent,
+                uint64_t      *puResult,
+                fExponentiator pfExp)
 {
    if(nMantissa < 0) {
       return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
    }
 
-   // Cast to unsigned is OK because of check for negative
-   // Cast to unsigned is OK because UINT64_MAX > INT64_MAX
-   // Exponentiation is straight forward
+   /* Cast to unsigned is OK because of check for negative.
+    * Cast to unsigned is OK because UINT64_MAX > INT64_MAX.
+    * Exponentiation is straight forward
+    */
    return (*pfExp)((uint64_t)nMantissa, nExponent, puResult);
 }
 
 
-/*
- Compute value with signed mantissa and unsigned result. Works with
- exponent of 2 or 10 based on exponentiator.
+/**
+ * @brief Exponentiate an usnigned mantissa and unsigned exponent to produce an unsigned result.
+ *
+ * @param[in] uMantissa  Unsigned integer mantissa.
+ * @param[in] nExponent  Unsigned integer exponent.
+ * @param[out] puResult  Place to put the unsigned integer result.
+ * @param[in] pfExp      Exponentiation function.
+ *
+ * @returns Error code
+ *
+ * \c pfExp performs exponentiation on and unsigned mantissa and
+ * produces an unsigned result so this is just a wrapper that does
+ * nothing (and is likely inlined).
  */
-static inline QCBORError ExponentitateUU(uint64_t       uMantissa,
-                                         int64_t        nExponent,
-                                         uint64_t      *puResult,
-                                         fExponentiator pfExp)
+static QCBORError
+ExponentitateUU(uint64_t       uMantissa,
+                int64_t        nExponent,
+                uint64_t      *puResult,
+                fExponentiator pfExp)
 {
    return (*pfExp)(uMantissa, nExponent, puResult);
 }
@@ -4488,8 +4581,20 @@ static inline QCBORError ExponentitateUU(uint64_t       uMantissa,
 
 
 
-
-static QCBORError ConvertBigNumToUnsigned(const UsefulBufC BigNum, uint64_t uMax, uint64_t *pResult)
+/**
+ * @brief Convert a CBOR big number to a uint64_t.
+ *
+ * @param[in] BigNum  Bytes of the big number to convert.
+ * @param[in] uMax  Maximum value allowed for the result.
+ * @param[out] pResult  Place to put the unsigned integer result.
+ *
+ * @returns Error code
+ *
+ * Many values will overflow because  a big num can represent a much
+ * larger range than uint64_t.
+ */
+static QCBORError
+ConvertBigNumToUnsigned(const UsefulBufC BigNum, const uint64_t uMax, uint64_t *pResult)
 {
    uint64_t uResult;
 
@@ -4508,49 +4613,85 @@ static QCBORError ConvertBigNumToUnsigned(const UsefulBufC BigNum, uint64_t uMax
 }
 
 
-static inline QCBORError ConvertPositiveBigNumToUnsigned(const UsefulBufC BigNum, uint64_t *pResult)
+/**
+ * @brief Convert a CBOR postive big number to a uint64_t.
+ *
+ * @param[in] BigNum  Bytes of the big number to convert.
+ * @param[out] pResult  Place to put the unsigned integer result.
+ *
+ * @returns Error code
+ *
+ * Many values will overflow because  a big num can represent a much
+ * larger range than uint64_t.
+ */
+static QCBORError
+ConvertPositiveBigNumToUnsigned(const UsefulBufC BigNum, uint64_t *pResult)
 {
    return ConvertBigNumToUnsigned(BigNum, UINT64_MAX, pResult);
 }
 
 
-static inline QCBORError ConvertPositiveBigNumToSigned(const UsefulBufC BigNum, int64_t *pResult)
+/**
+ * @brief Convert a CBOR positive big number to an int64_t.
+ *
+ * @param[in] BigNum  Bytes of the big number to convert.
+ * @param[out] pResult  Place to put the signed integer result.
+ *
+ * @returns Error code
+ *
+ * Many values will overflow because  a big num can represent a much
+ * larger range than int64_t.
+ */
+static QCBORError
+ConvertPositiveBigNumToSigned(const UsefulBufC BigNum, int64_t *pResult)
 {
    uint64_t uResult;
-   QCBORError uError =  ConvertBigNumToUnsigned(BigNum, INT64_MAX, &uResult);
+   QCBORError uError = ConvertBigNumToUnsigned(BigNum, INT64_MAX, &uResult);
    if(uError) {
       return uError;
    }
-   /* Cast is safe because ConvertBigNum is told to limit to INT64_MAX */
+   /* Cast is safe because ConvertBigNumToUnsigned is told to limit to INT64_MAX */
    *pResult = (int64_t)uResult;
    return QCBOR_SUCCESS;
 }
 
 
-static inline QCBORError ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, int64_t *pnResult)
+/**
+ * @brief Convert a CBOR negative big number to an int64_t.
+ *
+ * @param[in] BigNum  Bytes of the big number to convert.
+ * @param[out] pnResult  Place to put the signed integer result.
+ *
+ * @returns Error code
+ *
+ * Many values will overflow because  a big num can represent a much
+ * larger range than int64_t.
+ */
+static QCBORError
+ConvertNegativeBigNumToSigned(const UsefulBufC BigNum, int64_t *pnResult)
 {
    uint64_t uResult;
    /* The negative integer furthest from zero for a C int64_t is
-    INT64_MIN which is expressed as -INT64_MAX - 1. The value of a
-    negative number in CBOR is computed as -n - 1 where n is the
-    encoded integer, where n is what is in the variable BigNum. When
-    converting BigNum to a uint64_t, the maximum value is thus
-    INT64_MAX, so that when it -n - 1 is applied to it the result will
-    never be further from 0 than INT64_MIN.
-
-       -n - 1 <= INT64_MIN.
-       -n - 1 <= -INT64_MAX - 1
-        n     <= INT64_MAX.
+    * INT64_MIN which is expressed as -INT64_MAX - 1. The value of a
+    * negative number in CBOR is computed as -n - 1 where n is the
+    * encoded integer, where n is what is in the variable BigNum. When
+    * converting BigNum to a uint64_t, the maximum value is thus
+    * INT64_MAX, so that when it -n - 1 is applied to it the result
+    * will never be further from 0 than INT64_MIN.
+    *
+    *   -n - 1 <= INT64_MIN.
+    *   -n - 1 <= -INT64_MAX - 1
+    *    n     <= INT64_MAX.
     */
    QCBORError uError = ConvertBigNumToUnsigned(BigNum, INT64_MAX, &uResult);
    if(uError != QCBOR_SUCCESS) {
       return uError;
    }
 
-   /// Now apply -n - 1. The cast is safe because
-   // ConvertBigNumToUnsigned() is limited to INT64_MAX which does fit
-   // is the largest positive integer that an int64_t can
-   // represent. */
+   /* Now apply -n - 1. The cast is safe because
+    * ConvertBigNumToUnsigned() is limited to INT64_MAX which does fit
+    * is the largest positive integer that an int64_t can
+    * represent. */
    *pnResult =  -(int64_t)uResult - 1;
 
    return QCBOR_SUCCESS;
@@ -5745,11 +5886,15 @@ static void ProcessMantissaAndExponentBig(QCBORDecodeContext *pMe,
 
       case QCBOR_TYPE_DECIMAL_FRACTION:
       case QCBOR_TYPE_BIGFLOAT:
+         /* See comments in ExponentiateNN() on handling INT64_MIN */
          if(pItem->val.expAndMantissa.Mantissa.nInt >= 0) {
             uMantissa = (uint64_t)pItem->val.expAndMantissa.Mantissa.nInt;
             *pbIsNegative = false;
-         } else {
+         } else if(pItem->val.expAndMantissa.Mantissa.nInt != INT64_MIN) {
             uMantissa = (uint64_t)-pItem->val.expAndMantissa.Mantissa.nInt;
+            *pbIsNegative = true;
+         } else {
+            uMantissa = (uint64_t)INT64_MAX+1;
             *pbIsNegative = true;
          }
          *pMantissa = ConvertIntToBigNum(uMantissa, BufferForMantissa);

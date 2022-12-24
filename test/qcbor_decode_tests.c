@@ -6132,6 +6132,18 @@ struct NumberConversion {
 static const struct NumberConversion NumberConversions[] = {
 #ifndef QCBOR_DISABLE_TAGS
    {
+      "Big float: INT64_MIN * 2e-1 to test handling of INT64_MIN",
+      {(uint8_t[]){0xC5, 0x82, 0x20,
+                               0x3B, 0x7f, 0xff, 0xff, 0xff, 0xff, 0x0ff, 0xff, 0xff,
+                               }, 15},
+      -4611686018427387904, /* INT64_MIN / 2 */
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      0,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      -4.6116860184273879E+18,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+   },
+   {
       "too large to fit into int64_t",
       {(uint8_t[]){0xc3, 0x48, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 10},
       0,
