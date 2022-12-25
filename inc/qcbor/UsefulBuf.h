@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 19/12/2022   llundblade      Document that adding empty data is allowed.
  4/11/2022    llundblade      Add GetOutPlace and Advance to UsefulOutBuf.
  9/21/2021    llundbla        Clarify UsefulOutBuf size calculation mode
  8/8/2021     dthaler/llundbla Work with C++ without compiler extensions

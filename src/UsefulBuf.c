@@ -41,7 +41,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
- 4/11/2022    llundblade  Add GetOutPlace and Advance to UsefulOutBuf
+ 19/12/2022  llundblade   Don't pass NULL to memmove when adding empty data.
+ 4/11/2022   llundblade   Add GetOutPlace and Advance to UsefulOutBuf
  3/6/2021     mcr/llundblade  Fix warnings related to --Wcast-qual
  01/28/2020  llundblade   Refine integer signedness to quiet static analysis.
  01/08/2020  llundblade   Documentation corrections & improved code formatting.
