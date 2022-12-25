@@ -41,7 +41,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
- 4/11/2022    llundblade  Add GetOutPlace and Advance to UsefulOutBuf
+ 19/12/2022  llundblade   Don't pass NULL to memmove when adding empty data.
+ 4/11/2022   llundblade   Add GetOutPlace and Advance to UsefulOutBuf
  3/6/2021     mcr/llundblade  Fix warnings related to --Wcast-qual
  01/28/2020  llundblade   Refine integer signedness to quiet static analysis.
  01/08/2020  llundblade   Documentation corrections & improved code formatting.
@@ -266,7 +267,9 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
       /* 4. Put the new data in */
       uint8_t *pInsertionPoint = pSourceOfMove;
       // To know memmove won't go off end of destination, see PtrMath #5
-      memmove(pInsertionPoint, NewData.ptr, NewData.len);
+      if(NewData.ptr != NULL) {
+         memmove(pInsertionPoint, NewData.ptr, NewData.len);
+      }
    }
 
    pMe->data_len += NewData.len;

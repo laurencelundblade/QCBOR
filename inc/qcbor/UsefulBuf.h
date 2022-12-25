@@ -42,6 +42,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 19/12/2022   llundblade      Document that adding empty data is allowed.
  4/11/2022    llundblade      Add GetOutPlace and Advance to UsefulOutBuf.
  9/21/2021    llundbla        Clarify UsefulOutBuf size calculation mode
  8/8/2021     dthaler/llundbla Work with C++ without compiler extensions
@@ -946,6 +947,8 @@ static inline int UsefulOutBuf_AtStart(UsefulOutBuf *pUOutBuf);
  *
  * Overlapping buffers are OK. @c NewData can point to data in the
  * output buffer.
+ *
+ * NewData.len may be 0 in which case nothing will be inserted.
  *
  * If an error occurs, an error state is set in the @ref
  * UsefulOutBuf. No error is returned.  All subsequent attempts to add
