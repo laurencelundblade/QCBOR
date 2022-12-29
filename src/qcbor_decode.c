@@ -4465,10 +4465,10 @@ ExponentiateNN(int64_t         nMantissa,
       /* The common negative case. See next. */
       uMantissa = (uint64_t)-nMantissa;
    } else {
-      /* int64_t and uint64_t require two's complement representation
-       * of integers (and since QCBOR uses these it only works with
-       * two's complement (which is pretty much universal these
-       * days)). The range of a negative two's complement integer is
+      /* int64_t and uint64_t are always two's complement per the
+       * C standard (and since QCBOR uses these it only works with
+       * two's complement, which is pretty much universal these
+       * days). The range of a negative two's complement integer is
        * one more that than a positive, so the simple code above might
        * not work all the time because you can't simply negate the
        * value INT64_MIN because it can't be represented in an
@@ -4479,7 +4479,7 @@ ExponentiateNN(int64_t         nMantissa,
        * line does however work for all compilers.
        *
        * This does assume two's complement where -INT64_MIN ==
-       * INT64_MAX (which wouldn't be true for one's complement or
+       * INT64_MAX + 1 (which wouldn't be true for one's complement or
        * sign and magnitude (but we know we're using two's complement
        * because int64_t requires it)).
        *
@@ -4490,7 +4490,7 @@ ExponentiateNN(int64_t         nMantissa,
       uMantissa = (uint64_t)INT64_MAX+1;
    }
 
-   /* Call the exponentiator passed in for either base 2 or base 10.
+   /* Call the exponentiator passed for either base 2 or base 10.
     * Here is where most of the overflow errors are caught. */
    QCBORError uReturn = (*pfExp)(uMantissa, nExponent, &uResult);
    if(uReturn) {
