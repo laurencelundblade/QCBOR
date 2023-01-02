@@ -280,7 +280,7 @@ used to reduce object code size and dependency.
 
 See discussion in qcbor_encode.h for other details.
 
-### #define QCBOR_DISABLE_FLOAT_HW_USE
+#### #define QCBOR_DISABLE_FLOAT_HW_USE
 
 This removes dependency on:
 
@@ -358,6 +358,19 @@ combination with `QCBOR_DISABLE_FLOAT_HW_USE`.
 In particular, `-mfloat-abi=soft`, disables use of
  hardware instructions for the float and double
  types in C for some architectures.
+
+#### CMake options
+
+If you are using CMake, it can also be used to configure the floating-point
+support. These options can be enabled by adding them to the CMake configuration
+step and setting their value to 'ON' (True). The following table shows the
+available options and the associated #defines.
+
+    | CMake option                      | #define                       |
+    |-----------------------------------|-------------------------------|
+    | QCBOR_OPT_DISABLE_FLOAT_HW_USE    | QCBOR_DISABLE_FLOAT_HW_USE    |
+    | QCBOR_OPT_DISABLE_FLOAT_PREFERRED | QCBOR_DISABLE_PREFERRED_FLOAT |
+    | QCBOR_OPT_DISABLE_FLOAT_ALL       | USEFULBUF_DISABLE_ALL_FLOAT   |
 
 ## Code Size
 
@@ -551,4 +564,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ### Copyright for this README
 
 Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
-Copyright (c) 2021, Arm Limited. All rights reserved.
+Copyright (c) 2021-2023, Arm Limited. All rights reserved.
