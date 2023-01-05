@@ -1,3 +1,11 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2022-2023, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# See BSD-3-Clause license in README.md
+#-------------------------------------------------------------------------------
+
 cmake_minimum_required(VERSION 3.15)
 
 # Validate value of BUILD_QCBOR_TEST config option
@@ -24,12 +32,20 @@ target_include_directories(qcbor_test
         ../inc
 )
 
+target_compile_definitions(qcbor_test
+    PUBLIC
+        $<$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_HW_USE}>:QCBOR_DISABLE_FLOAT_HW_USE>
+        $<$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_PREFERRED}>:QCBOR_DISABLE_PREFERRED_FLOAT>
+        $<$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_ALL}>:USEFULBUF_DISABLE_ALL_FLOAT>
+)
+
 target_link_libraries(qcbor_test
     PRIVATE
         qcbor
         # The math library is needed for floating-point support.
         # To avoid need for it #define QCBOR_DISABLE_FLOAT_HW_USE
-        m
+        # Using GCC
+        $<$<AND:$<STREQUAL:${CMAKE_C_COMPILER_ID},"GNU">,$<NOT:$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_HW_USE}>>>:m>
 )
 
 if (BUILD_QCBOR_TEST STREQUAL "APP")
