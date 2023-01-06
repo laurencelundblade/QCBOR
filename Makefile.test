@@ -46,7 +46,7 @@ C_OPTS=-Os -fPIC
 
 # ---- T_COSE Config and test options ----
 TEST_CONFIG_OPTS=-DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS
-TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_make_test_messages.o test/t_cose_make_test_test_key.o test/t_cose_param_test.o $(CRYPTO_TEST_OBJ)
+TEST_OBJ=test/t_cose_test.o test/run_tests.o test/t_cose_crypto_test.o test/t_cose_make_test_messages.o test/t_cose_make_test_test_key.o test/t_cose_param_test.o $(CRYPTO_TEST_OBJ)
 
 
 # ---- the main body that is invariant ----

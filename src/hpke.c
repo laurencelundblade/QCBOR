@@ -34,6 +34,8 @@
 #include "hpke.h"
 #include "mbedtls/hkdf.h"
 
+#include "t_cose_crypto.h" /* The crypto adaptor layer */
+
 #include "mbedtls/platform_util.h"
 #include "mbedtls/error.h"
 
@@ -195,6 +197,29 @@ struct mbedtls_ssl_hpke_labels_struct const mbedtls_ssl_hpke_labels =
                      MBEDTLS_SSL_TLS1_3_KEY_SCHEDULE_MAX_CONTEXT_LEN )
 
 #undef MBEDTLS_SSL_HPKE_LABEL
+
+
+
+static int32_t
+hpke_aead_id_2_cose(const hpke_suite_t suite)
+{
+    // TODO: this can probably be a look up table (smaller code size and inlined)
+    switch(suite.aead_id) {
+        case HPKE_AEAD_ID_AES_GCM_256:
+            return T_COSE_ALGORITHM_A256GCM;
+
+        case HPKE_AEAD_ID_AES_GCM_128:
+            return T_COSE_ALGORITHM_A128GCM;
+/*
+        case PSA_ALG_CHACHA20_POLY1305:
+            return T_COSE_ALG_CHA_CHA; */
+
+        default:
+            return T_COSE_ALGORITHM_NONE;
+    }
+}
+
+
 
 int mbedtls_hpke_extract(
         const hpke_suite_t suite,
@@ -611,81 +636,7 @@ static int hpke_aead_dec(
     return( 0 );
 }
 
-static int hpke_aead_enc(
-            hpke_suite_t suite,
-            unsigned char *key, size_t keylen,
-            unsigned char *iv, size_t ivlen,
-            unsigned char *aad, size_t aadlen,
-            const unsigned char *plain, size_t plainlen,
-            unsigned char *cipher, size_t *cipherlen )
-{
-    psa_key_attributes_t attr_ciphertext = PSA_KEY_ATTRIBUTES_INIT;
-    psa_status_t status;
-    psa_algorithm_t mode;
-    size_t key_length;
-    psa_key_handle_t key_handle = 0;
-    psa_key_type_t key_type;
 
-    /* Initialize the PSA */
-    status = psa_crypto_init( );
-
-    if( status != PSA_SUCCESS )
-    {
-        return( status );
-    }
-
-    if ( ( suite.aead_id == HPKE_AEAD_ID_AES_GCM_256 ) ||
-         ( suite.aead_id == HPKE_AEAD_ID_AES_GCM_128 ) )
-    {
-        mode = PSA_ALG_GCM;
-        key_type = PSA_KEY_TYPE_AES;
-    }
-    else if (suite.aead_id == HPKE_AEAD_ID_CHACHA_POLY1305 )
-    {
-        mode = PSA_ALG_CHACHA20_POLY1305; 
-        key_type = PSA_KEY_TYPE_CHACHA20; 
-    }
-    else return( MBEDTLS_ERR_HPKE_BAD_INPUT_DATA );
-
-    // key length are in bits
-    key_length = hpke_aead_tab[suite.aead_id].Nk * 8;
-
-    if( key_length != keylen * 8 )
-    {
-        return( MBEDTLS_ERR_HPKE_INTERNAL_ERROR );
-    }
-
-    psa_set_key_usage_flags( &attr_ciphertext, PSA_KEY_USAGE_ENCRYPT );
-    psa_set_key_algorithm( &attr_ciphertext, mode );
-    psa_set_key_type( &attr_ciphertext, key_type );
-    psa_set_key_bits( &attr_ciphertext, key_length );
-
-    status = psa_import_key( &attr_ciphertext, key, key_length / 8, &key_handle );
-
-    if ( status != PSA_SUCCESS )
-    {
-        return( status );
-    }
-
-    status = psa_aead_encrypt( key_handle,       // key
-                               mode,             // algorithm
-                               iv,               // iv
-                               ivlen,            // iv length
-                               aad,              // additional data
-                               aadlen,           // additional data length
-                               plain, plainlen,  // plaintext
-                               cipher,           // ciphertext
-                               *cipherlen,       // ciphertext length
-                               cipherlen );      // length of output
-
-    if ( status != PSA_SUCCESS )
-    {
-        return( status );
-    }
-
-    psa_destroy_key( key_handle );
-    return( 0 );
-}
 
 /*!
  * \brief run the KEM with two keys as per draft-05
@@ -1225,6 +1176,7 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
     size_t key_len;
     psa_key_type_t type;
     int ret;
+    enum t_cose_err_t err;
 
     // Input check: mode
     switch( mode )
@@ -1427,22 +1379,46 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
         goto error;
     }
 
-    /* step 5. call the AEAD */
-    ret = hpke_aead_enc( suite,
-                         key, keylen,
-                         nonce, noncelen,
-                         aad, aadlen,
-                         clear, clearlen,
-                         cipher, cipherlen );
+    int32_t               cose_aead_algorithm_id;
+    struct q_useful_buf_c ci;
+    struct t_cose_key     cek_handle;
 
-    if( ret != 0 )
+    /* Map the HPKE algorithm ID to a COSE algorithm ID */
+    cose_aead_algorithm_id = hpke_aead_id_2_cose(suite);
+
+    /* Turn the bytes of the CEK into a key handle for the crypto library. */
+    err = t_cose_crypto_make_symmetric_key_handle(cose_aead_algorithm_id,
+                                            (struct q_useful_buf_c) {key, keylen},
+                                            &cek_handle);
+    if( err != 0 )
     {
+        ret = (int)err; // TODO: make this function return enum t_cose_err_t
+        goto error;
+    }
+
+
+    // TODO: move this call out of hpke and into main t_cose_encrypt_enc so it is shared for all key distribution types
+    /* Call crypto layer to actually encrypt the payload */
+    err = t_cose_crypto_aead_encrypt(cose_aead_algorithm_id,
+                                     cek_handle,
+                                     (struct q_useful_buf_c) {nonce, noncelen},
+                                     (struct q_useful_buf_c) {aad, aadlen},
+                                     (struct q_useful_buf_c) {clear, clearlen},
+                                     (struct q_useful_buf) {cipher, *cipherlen},
+                                     &ci);
+
+    *cipherlen = ci.len; // TODO: when fully converted to useful, this will go away
+
+    if( err != 0 )
+    {
+        ret = (int)err; // TODO: make this function return enum t_cose_err_t
         goto error;
     }
 
 error:
     return( ret );
 }
+
 
 int mbedtls_hpke_encrypt( unsigned int mode, hpke_suite_t suite,
                           char *pskid, size_t psklen, uint8_t *psk,
@@ -1468,5 +1444,12 @@ int mbedtls_hpke_encrypt( unsigned int mode, hpke_suite_t suite,
                          cipherlen, cipher ); // ciphertext
 }
 
+#else
+
+void hpke_placeholder(void) {}
+
+
 #endif /* T_COSE_DISABLE_HPKE */
+
+
 

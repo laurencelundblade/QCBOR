@@ -99,7 +99,7 @@ int test_cose_encrypt(uint32_t options,
 {
     struct t_cose_encrypt_enc_ctx enc_ctx;
     enum t_cose_err_t result;
-    struct q_useful_buf encrypted_firmware_final = {0,0};
+    struct q_useful_buf_c encrypted_firmware_final;
 
     struct q_useful_buf_c encrypt_cose;
 
@@ -189,7 +189,8 @@ int main(void)
     enum t_cose_err_t ret;
 
     uint8_t plaintext[400];
-    size_t plaintext_output_len;
+
+    struct q_useful_buf_c plain_text_ubc;
 
     /* Key id for PSK */
     struct q_useful_buf_c kid1 = {psk_kid, psk_kid_len};
@@ -319,7 +320,7 @@ int main(void)
                              buffer, result_len, //sizeof(buffer),
                              encrypted_firmware, encrypted_firmware_result_len,
                              plaintext, sizeof(plaintext),
-                             &plaintext_output_len);
+                             &plain_text_ubc);
 
     if (ret != T_COSE_SUCCESS) {
         printf("\nDecryption failed!\n");
@@ -327,11 +328,11 @@ int main(void)
     }
 
     printf("\nPlaintext: ");
-    printf("%s\n", plaintext);
+    printf("%s\n", (const char *)plain_text_ubc.ptr); // TODO: probably shouldn't assume a NULL-terminated string here
 
     memset(buffer, 0, sizeof(buffer));
     memset(encrypted_firmware, 0, encrypted_firmware_len);
-    memset(plaintext, 0, plaintext_output_len);
+    memset(plaintext, 0, sizeof(plaintext));
 
 
 
@@ -366,7 +367,7 @@ int main(void)
                              buffer, result_len,
                              NULL, 0,
                              plaintext, sizeof(plaintext),
-                             &plaintext_output_len);
+                             &plain_text_ubc);
 
     if (ret != T_COSE_SUCCESS) {
         printf("\nDecryption failed!\n");
@@ -376,11 +377,11 @@ int main(void)
     free_psa_key(t_cose_skR_key);
 
     printf("\nPlaintext: ");
-    printf("%s\n", plaintext);
+    printf("%s\n", (const char *)plain_text_ubc.ptr); // TODO: probably shouldn't assume a NULL-terminated string here
 
     memset(buffer, 0, sizeof(buffer));
     memset(encrypted_firmware, 0, encrypted_firmware_len);
-    memset(plaintext, 0, plaintext_output_len);
+    memset(plaintext, 0, sizeof(plaintext));
 #endif
     /* -------------------------------------------------------------------------*/
 
@@ -425,7 +426,7 @@ int main(void)
                              buffer, sizeof(buffer),
                              encrypted_firmware, encrypted_firmware_result_len,
                              plaintext, sizeof(plaintext),
-                             &plaintext_output_len);
+                             &plain_text_ubc);
 
     if (ret != T_COSE_SUCCESS) {
         printf("\nDecryption failed!\n");
@@ -433,11 +434,11 @@ int main(void)
     }
 
     printf("\nPlaintext: ");
-    printf("%s\n", plaintext);
+    printf("%s\n", (const char *)plain_text_ubc.ptr); // TODO: probably shouldn't assume a NULL-terminated string here
 
     memset(buffer, 0, sizeof(buffer));
     memset(encrypted_firmware, 0, encrypted_firmware_len);
-    memset(plaintext, 0, plaintext_output_len);
+    memset(plaintext, 0, sizeof(plaintext));
 #endif /* T_COSE_DISABLE_HPKE */
 
 #ifndef T_COSE_DISABLE_AES_KW
@@ -470,7 +471,7 @@ int main(void)
     memset(buffer, 0, sizeof(buffer));
     memset(encrypted_firmware, 0, encrypted_firmware_len);
 #ifndef T_COSE_DISABLE_HPKE
-    memset(plaintext, 0, plaintext_output_len);
+    memset(plaintext, 0, sizeof(plaintext));
 #endif /* T_COSE_DISABLE_HPKE */
 
 #endif /* T_COSE_DISABLE_AES_KW */

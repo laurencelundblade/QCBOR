@@ -17,6 +17,8 @@
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_util.h"
 
+#ifndef T_COSE_DISABLE_EDDSA
+
 
 /** This is an implementation of \ref t_cose_signature_sign_headers_cb */
 static void
@@ -138,3 +140,9 @@ t_cose_signature_sign_eddsa_init(struct t_cose_signature_sign_eddsa *me)
     me->s.sign1_cb   = t_cose_signature_sign1_eddsa_cb;
     me->s.headers_cb = t_cose_signature_sign_headers_eddsa_cb;
 }
+
+#else /* !T_COSE_DISABLE_EDDSA */
+
+void t_cose_signature_verify_eddsa_placeholder(void) {}
+
+#endif /* !T_COSE_DISABLE_EDDSA */

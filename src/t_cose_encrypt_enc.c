@@ -74,7 +74,7 @@ enum t_cose_err_t
 t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
                    struct q_useful_buf_c          payload,
                    struct q_useful_buf            encrypted_payload,
-                   struct q_useful_buf           *encrypted_payload_final,
+                   struct q_useful_buf_c         *encrypted_payload_final,
                    struct q_useful_buf            out_buf,
                    struct q_useful_buf_c         *result)
 {
@@ -229,6 +229,8 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
         return(T_COSE_ERR_CBOR_FORMATTING);
     }
 
+    struct t_cose_key cek_handle;
+
     if ( (context->option_flags & T_COSE_OPT_COSE_ENCRYPT0) == 0) {
         /* For everything but direct encryption, we create a
          * random CEK and encrypt payload with CEK.
@@ -237,6 +239,10 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
         if (cose_result != T_COSE_SUCCESS) {
             return(cose_result);
         }
+
+        cose_result = t_cose_crypto_make_symmetric_key_handle(context->cose_algorithm_id,
+                                                random_result,
+                                                &cek_handle);
 
     } else {
         /* Direct encryption with recipient key. This requires us
@@ -255,23 +261,22 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
 
         random_result.ptr = random.ptr;
         random_result.len = data_length;
+
+        cek_handle = context->recipient_ctx.recipient_key;
     }
 
-    cose_result = t_cose_crypto_encrypt(
+    cose_result = t_cose_crypto_aead_encrypt(
                         context->cose_algorithm_id,
-                        random_result,
+                        cek_handle,
                         nonce_result,
                         add_data_buf,
                         payload,
                         encrypted_payload,
-                        &encrypted_payload_final->len);
+                        encrypted_payload_final);
 
     if (cose_result != T_COSE_SUCCESS) {
         return(cose_result);
     }
-
-    encrypted_payload_final->ptr = encrypted_payload.ptr;
-    encrypted_payload_final->len = encrypted_payload_final->len;
 
     if ((context->option_flags & T_COSE_OPT_COSE_ENCRYPT_DETACHED) == 0) {
         /* Embed ciphertext */

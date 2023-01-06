@@ -368,4 +368,149 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
     return T_COSE_SUCCESS;
 }
 
+
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
+                                        struct q_useful_buf_c symmetric_key,
+                                        struct t_cose_key    *key_handle)
+{
+    (void)cose_algorithm_id;
+
+    key_handle->k.key_buffer = symmetric_key;
+    key_handle->crypto_lib   = T_COSE_CRYPTO_LIB_TEST;
+
+    return T_COSE_SUCCESS;
+}
+
+
+/* Compute size of ciphertext, given size of plaintext. Returns
+ * SIZE_MAX if the algorithm is unknown. Also returns the tag
+ * length. */
+static size_t
+aead_byte_count(const int32_t cose_algorithm_id,
+                size_t        plain_text_len)
+{
+    /* So far this just works for GCM AEAD algorithms, but can be
+     * augmented for others.
+     *
+     * For GCM as used by COSE and HPKE, the authentication tag is
+     * appended to the end of the cipher text and is always 16 bytes.
+     * Since GCM is a variant of counter mode, the ciphertext length
+     * is the same as the plaintext length. (This is not true of other
+     * ciphers).
+     * https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode
+     */
+
+    /* The same tag length for all COSE and HPKE AEAD algorithms supported.*/
+    const size_t common_gcm_tag_length = 16;
+
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_A128GCM:
+            return plain_text_len + common_gcm_tag_length;
+        case T_COSE_ALGORITHM_A192GCM:
+            return plain_text_len + common_gcm_tag_length;
+        case T_COSE_ALGORITHM_A256GCM:
+            return plain_text_len + common_gcm_tag_length;
+        default: return SIZE_MAX;;
+    }
+}
+
+#define FAKE_TAG "tagtagtagtagtagt"
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
+                           struct t_cose_key      key,
+                           struct q_useful_buf_c  nonce,
+                           struct q_useful_buf_c  aad,
+                           struct q_useful_buf_c  plaintext,
+                           struct q_useful_buf    ciphertext_buffer,
+                           struct q_useful_buf_c *ciphertext)
+{
+    struct q_useful_buf_c tag = Q_USEFUL_BUF_FROM_SZ_LITERAL(FAKE_TAG);
+
+    (void)nonce;
+    (void)aad;
+    (void)cose_algorithm_id;
+
+
+    if(ciphertext_buffer.ptr == NULL) {
+        /* Called in length calculation mode. Return length & exit. */
+        ciphertext->len = aead_byte_count(cose_algorithm_id,
+                                          plaintext.len);;
+        return T_COSE_SUCCESS;
+    }
+
+    if(key.crypto_lib != T_COSE_CRYPTO_LIB_TEST) {
+        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
+    }
+
+    /* Use useful output to copy the plaintext as pretend encryption
+     * and add "tagtag.." as a pretend tag.*/
+    UsefulOutBuf UOB;
+    UsefulOutBuf_Init(&UOB, ciphertext_buffer);
+    UsefulOutBuf_AppendUsefulBuf(&UOB, plaintext);
+    UsefulOutBuf_AppendUsefulBuf(&UOB, tag);
+    *ciphertext = UsefulOutBuf_OutUBuf(&UOB);
+
+    if(q_useful_buf_c_is_null(*ciphertext)) {
+        return T_COSE_ERR_TOO_SMALL;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
+                           struct t_cose_key      key,
+                           struct q_useful_buf_c  nonce,
+                           struct q_useful_buf_c  aad,
+                           struct q_useful_buf_c  ciphertext,
+                           struct q_useful_buf    plaintext_buffer,
+                           struct q_useful_buf_c *plaintext)
+{
+    struct q_useful_buf_c expected_tag = Q_USEFUL_BUF_FROM_SZ_LITERAL(FAKE_TAG);
+    struct q_useful_buf_c received_tag;
+    struct q_useful_buf_c received_plaintext;
+
+    (void)nonce;
+    (void)aad;
+    (void)cose_algorithm_id;
+
+    if(key.crypto_lib != T_COSE_CRYPTO_LIB_TEST) {
+        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
+    }
+
+    UsefulInputBuf UIB;
+    UsefulInputBuf_Init(&UIB, ciphertext);
+    if(ciphertext.len < expected_tag.len) {
+        return T_COSE_ERR_DECRYPT_FAIL;
+    }
+    received_plaintext = UsefulInputBuf_GetUsefulBuf(&UIB, ciphertext.len - expected_tag.len);
+    received_tag = UsefulInputBuf_GetUsefulBuf(&UIB, expected_tag.len);
+
+    if(q_useful_buf_compare(expected_tag, received_tag)) {
+        return T_COSE_ERR_DATA_AUTH_FAILED;
+    }
+
+    *plaintext = q_useful_buf_copy(plaintext_buffer, received_plaintext);
+
+    if(q_useful_buf_c_is_null(*plaintext)) {
+        return T_COSE_ERR_TOO_SMALL;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
 #endif /* T_COSE_DISABLE_EDDSA */

@@ -59,6 +59,8 @@ t_cose_crypto_hpke_decrypt(int32_t                cose_algorithm_id,
         return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
     }
 
+    (void)key_bitlen; // TODO: use this or get rid of it.
+
     /* Execute HPKE */
     *plaintext_len = plaintext.len;
 

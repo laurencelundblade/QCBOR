@@ -263,6 +263,9 @@ struct t_cose_key {
         void *key_ptr;
         /** For libraries that use an integer handle to the key */
         uint64_t key_handle;
+        /** For pointer and length of actual key bytes. Length is a uint16_t to keep the
+         * size of this struct down because it occurs on the stack. */
+        struct q_useful_buf_c key_buffer;
     } k;
 };
 
@@ -381,10 +384,11 @@ enum t_cose_err_t {
      * when verifying a \c COSE_Sign1. */
     T_COSE_ERR_NO_KID = 12,
 
-    /** Signature verification failed. For example, the cryptographic
-     * operations completed successfully but hash wasn't as
-     * expected. */
+    /** Signature verification or data authentication failed. For
+     * example, the cryptographic operations completed successfully
+     * but hash wasn't as expected. */
     T_COSE_ERR_SIG_VERIFY = 13,
+    T_COSE_ERR_DATA_AUTH_FAILED = 13,
 
     /** Verification of a short-circuit signature failed. */
     T_COSE_ERR_BAD_SHORT_CIRCUIT_KID = 14,

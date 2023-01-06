@@ -152,10 +152,9 @@ t_cose_encrypt_dec_set_private_key(struct t_cose_encrypt_dec_ctx *context,
  * \param[in] cose_len                  The COSE payload length.
  * \param[in] detached_ciphertext       The detached ciphertext.
  * \param[in] detached_ciphertext_len   The detached ciphertext length.
- * \param[out] plaintext                A buffer for plaintext.
+ * \param[out] plaintext_ptr                A buffer for plaintext.
  * \param[in] plaintext_len             The length of the plaintext buffer.
- * \param[out] plaintext_output_len     The true plaintext length after
- *                                      decryption.
+ * \param[out] plaintext     Place to return pointer and length of the plaintext.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -167,8 +166,8 @@ enum t_cose_err_t
 t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
                    uint8_t *cose, size_t cose_len,
                    uint8_t *detached_ciphertext, size_t detached_ciphertext_len,
-                   uint8_t *plaintext, size_t plaintext_len,
-                   size_t *plaintext_output_len
+                   uint8_t *plaintext_ptr, size_t plaintext_len,
+                   struct q_useful_buf_c *plaintext
                   );
 
 /* ------------------------------------------------------------------------
@@ -189,7 +188,7 @@ t_cose_encrypt_dec_set_private_key(struct t_cose_encrypt_dec_ctx *context,
                                    struct t_cose_key              recipient_key,
                                    struct q_useful_buf_c          kid)
 {
-    memcpy(&context->recipient_key, &recipient_key, sizeof(struct t_cose_key));
+    context->recipient_key = recipient_key;
     memcpy(&context->kid, &kid, sizeof(struct q_useful_buf_c));
 }
 

@@ -17,6 +17,7 @@
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose_crypto.h"
 
+#ifndef T_COSE_DISABLE_EDDSA
 
 /** This is an implementation of \ref t_cose_signature_verify1_cb. */
 static enum t_cose_err_t
@@ -168,3 +169,9 @@ t_cose_signature_verify_eddsa_init(struct t_cose_signature_verify_eddsa *me,
      */
     me->auxiliary_buffer.len = SIZE_MAX;
 }
+
+#else
+
+void t_cose_signature_verify_eddsa_placeholder(void) {}
+
+#endif

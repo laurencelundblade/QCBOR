@@ -23,7 +23,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
                    size_t detached_ciphertext_len,
                    uint8_t *plaintext,
                    size_t plaintext_len,
-                   size_t *plaintext_output_len)
+                   struct q_useful_buf_c *plain_text)
 {
 #if !defined(T_COSE_DISABLE_HPKE) && !defined(T_COSE_DISABLE_AES_KW)
 
@@ -146,6 +146,8 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         cipher_text.len = detached_ciphertext_len;
         detached_mode = true;
     }
+
+    (void)detached_mode; // TODO: use this variable or get rid of it
 
     /* Two key distribution mechanisms are supported, namely
      *  - Direct key distribution (where no recipient info is included)
@@ -429,37 +431,27 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     }
 
     if (me->key_distribution == T_COSE_KEY_DISTRIBUTION_HPKE) {
+        enum t_cose_err_t err;
 
-        cose_result = t_cose_crypto_get_cose_key((int32_t) algorithm_id,
-                                                 cek,
-                                                 cek_len,
-                                                 T_COSE_KEY_USAGE_FLAG_DECRYPT,
-                                                 &cek_key);
-
-        if (cose_result != T_COSE_SUCCESS) {
-            return(cose_result);
+        err = t_cose_crypto_make_symmetric_key_handle((int32_t)algorithm_id,
+                                                      (struct q_useful_buf_c) {cek, cek_len},
+                                                      &cek_key);
+        if(err) {
+            return 11; // TODO: correct error code
         }
-        cose_result = t_cose_crypto_decrypt((int32_t) algorithm_id,
-                                            cek_key,
-                                            nonce_cbor,
-                                            add_data_buf,
-                                            cipher_text,
-            (struct q_useful_buf) {.ptr = plaintext, .len = plaintext_len},
-                                            plaintext_output_len);
-
-        // TODO: put this in crypto layer
-        // TODO: find the other key memory leaks (pretty sure there are some...)
-        psa_close_key((psa_key_handle_t)cek_key.k.key_handle);
 
     } else {
-        cose_result = t_cose_crypto_decrypt((int32_t) algorithm_id,
-                                            me->recipient_key,
-                                            nonce_cbor,
-                                            add_data_buf,
-                                            cipher_text,
-            (struct q_useful_buf) {.ptr = plaintext, .len = plaintext_len},
-                                            plaintext_output_len);
+        cek_key = me->recipient_key;
     }
+
+    cose_result = t_cose_crypto_aead_decrypt((int32_t) algorithm_id,
+                                             cek_key,
+                                             nonce_cbor,
+                                             add_data_buf,
+                                             cipher_text,
+                                             (struct q_useful_buf) {.ptr = plaintext, .len = plaintext_len},
+                                             plain_text);
+
 
     if (cose_result != T_COSE_SUCCESS) {
         return(cose_result);
@@ -474,7 +466,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     (void)detached_ciphertext_len;
     (void)plaintext;
     (void)plaintext_len;
-    (void)plaintext_output_len;
+    (void)plain_text;
 
     return T_COSE_ERR_FAIL;
 #endif /* T_COSE_DISABLE_HPKE */

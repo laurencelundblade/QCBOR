@@ -305,6 +305,10 @@
  * \def COSE_ALGORITHM_A192GCM
  *
  * \brief AES-GCM mode w/ 192-bit key, 128-bit tag
+ *
+ * Note that while RFC 9180 (HPKE) doesn't define
+ * support of this, RFC 9053 (COSE) for direct
+ * and key wrap encryption.
  */
 #define T_COSE_ALGORITHM_A192GCM 2
 
