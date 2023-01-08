@@ -18,6 +18,39 @@
 #include "t_cose_crypto.h"
 
 
+/* The list of algorithms supported by this verifier. */
+static bool
+sig_algorithm_check(int32_t cose_algorithm_id)
+{
+    static const int32_t supported_algorithms[] = {
+#ifndef T_COSE_DISABLE_PS256
+        T_COSE_ALGORITHM_PS256,
+#endif
+#ifndef T_COSE_DISABLE_PS384
+        T_COSE_ALGORITHM_PS384,
+#endif
+#ifndef T_COSE_DISABLE_PS512
+        T_COSE_ALGORITHM_PS512,
+#endif
+        T_COSE_ALGORITHM_ES256,
+#ifndef T_COSE_DISABLE_ES384
+        T_COSE_ALGORITHM_ES384,
+#endif
+#ifndef T_COSE_DISABLE_ES512
+        T_COSE_ALGORITHM_ES512,
+#endif
+#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_256,
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_384,
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_512,
+#endif
+        T_COSE_ALGORITHM_NONE
+    };
+
+    return t_cose_check_list(cose_algorithm_id, supported_algorithms);
+}
+
+
 /** This is an implementation of \ref t_cose_signature_verify1_cb. */
 static enum t_cose_err_t
 t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
@@ -41,11 +74,7 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
         goto Done;
     }
 
-    if(!t_cose_algorithm_is_ecdsa(cose_algorithm_id) &&
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-       !t_cose_algorithm_is_short_circuit(cose_algorithm_id) &&
-#endif /* !T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-       !t_cose_algorithm_is_rsassa_pss(cose_algorithm_id) ) {
+    if(!sig_algorithm_check(cose_algorithm_id)) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }

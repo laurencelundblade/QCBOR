@@ -15,6 +15,7 @@
 #include "t_cose_crypto.h"
 #include "t_cose/t_cose_standard_constants.h"
 #include "t_cose_test_crypto.h"
+#include "t_cose_util.h"
 
 
 /*
@@ -57,6 +58,21 @@ t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         }
     }
     return false;
+}
+
+
+static bool
+t_cose_algorithm_is_short_circuit(int32_t cose_algorithm_id)
+{
+    /* The simple list of COSE alg IDs that use ECDSA */
+    static const int32_t ecdsa_list[] = {
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_256,
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_384,
+        T_COSE_ALGORITHM_SHORT_CIRCUIT_512,
+        T_COSE_ALGORITHM_NONE
+    };
+
+    return t_cose_check_list(cose_algorithm_id, ecdsa_list);
 }
 
 

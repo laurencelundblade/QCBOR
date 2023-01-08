@@ -19,6 +19,8 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
+#include "t_cose_util.h"
+
 /**
  * \file t_cose_openssl_crypto.c
  *
@@ -437,6 +439,43 @@ Done:
 }
 
 
+static bool
+t_cose_algorithm_is_ecdsa(int32_t cose_algorithm_id)
+{
+    /* The simple list of COSE alg IDs that use ECDSA */
+    static const int32_t ecdsa_list[] = {
+        T_COSE_ALGORITHM_ES256,
+#ifndef T_COSE_DISABLE_ES384
+        T_COSE_ALGORITHM_ES384,
+#endif
+#ifndef T_COSE_DISABLE_ES512
+        T_COSE_ALGORITHM_ES512,
+#endif
+        T_COSE_ALGORITHM_NONE};
+
+    return t_cose_check_list(cose_algorithm_id, ecdsa_list);
+}
+
+
+static bool
+t_cose_algorithm_is_rsassa_pss(int32_t cose_algorithm_id)
+{
+    /* The simple list of COSE alg IDs that use RSASSA-PSS */
+    static const int32_t rsa_list[] = {
+#ifndef T_COSE_DISABLE_PS256
+        T_COSE_ALGORITHM_PS256,
+#endif
+#ifndef T_COSE_DISABLE_PS384
+        T_COSE_ALGORITHM_PS384,
+#endif
+#ifndef T_COSE_DISABLE_PS512
+        T_COSE_ALGORITHM_PS512,
+#endif
+        T_COSE_ALGORITHM_NONE};
+
+    return t_cose_check_list(cose_algorithm_id, rsa_list);
+}
+
 /*
  * Public Interface. See documentation in t_cose_crypto.h
  */
@@ -452,6 +491,8 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
         return return_value;
     }
 
+    // TODO: see if EVP works for all key sizes and/or if other means of
+    // checking algorithm so t_cose_algorithm_is can be elimiated here (like it is for PSA)
     if(t_cose_algorithm_is_ecdsa(cose_algorithm_id)) {
         /* EVP_PKEY_size is not suitable because it returns the size
          * of the DER-encoded signature, which is larger than the COSE
@@ -822,6 +863,7 @@ Done:
 
 
 
+
 /*
  * See documentation in t_cose_crypto.h
  */
@@ -833,6 +875,7 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
     int           nid;
     const EVP_MD *message_digest;
 
+    /*  switch() is less object code than t_cose_int16_map(). */
     switch(cose_hash_alg_id) {
 
     case T_COSE_ALGORITHM_SHA_256:

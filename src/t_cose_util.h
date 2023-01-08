@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
+#include "qcbor/qcbor_common.h" /* For QCBORError */
 
 #ifdef __cplusplus
 extern "C" {
@@ -245,6 +246,48 @@ struct q_useful_buf_c get_short_circuit_kid(void);
  */
 enum t_cose_err_t
 qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error, enum t_cose_err_t format_error);
+
+
+/**
+ * \brief Look for an integer in a zero-terminated list of integers.
+ *
+ * \param[in] cose_algorithm_id    The algorithm ID to check.
+ * \param[in] list                 zero-terminated list of algorithm IDs.
+ *
+ * \returns This returns \c true if an integer is in the list, \c false if not.
+ *
+ * Search a list terminated by \ref T_COSE_ALGORITHM_NONE (0) for
+ * \c cose_algorithm_id. It is typically used to determine if an algorithm
+ * is supported or not by looking it up in a list of algorithms.
+ */
+bool
+t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list);
+
+
+/**
+ * \brief Map a 16-bit integer like an error code to another.
+ *
+ * \param[in] map   Two-dimentional array that is the mapping.
+ * \param[in] query  The input to map
+ *
+ * \returns The output of the mapping.
+ *
+ * This function maps one 16-bit integer to another and is
+ * mostly used for mapping error codes and sometimes for
+ * mapping algorithm IDs. The map is an array of two-element
+ * arrays. The first element is matched against \c query.
+ * The second is returned on a match. The input map is terminated
+ * when the first element is INT16_MIN. When there is not
+ * match the value paired with the terminating INT16_MIN is returned.
+ *
+ * Both gcc and clang are good at optimizing switch statements
+ * that map one integer to another so for some but not all uses the switch
+ * statement generates less code than making a mapping array
+ * and using this function. Particularly, smaller mappings that
+ * are called once and get inlined are better as a case statement.
+ */
+int16_t
+t_cose_int16_map(const int16_t map[][2], int16_t query);
 
 
 #ifdef __cplusplus

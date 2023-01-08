@@ -26,40 +26,13 @@
  * primarily the to-be-signed bytes hashing.
  */
 
-/*
- * Public function. See t_cose_util.h
- */
-bool signature_algorithm_id_is_supported(int32_t cose_algorithm_id)
-{
-// TODO: disable ES256
-    return (cose_algorithm_id == T_COSE_ALGORITHM_ES256)
-#ifndef T_COSE_DISABLE_ES384
-           || (cose_algorithm_id == T_COSE_ALGORITHM_ES384)
-#endif
-#ifndef T_COSE_DISABLE_ES512
-           || (cose_algorithm_id == T_COSE_ALGORITHM_ES512)
-#endif
-#ifndef T_COSE_DISABLE_PS256
-           || (cose_algorithm_id == T_COSE_ALGORITHM_PS256)
-#endif
-#ifndef T_COSE_DISABLE_PS384
-           || (cose_algorithm_id == T_COSE_ALGORITHM_PS384)
-#endif
-#ifndef T_COSE_DISABLE_PS512
-           || (cose_algorithm_id == T_COSE_ALGORITHM_PS512)
-#endif
-#ifndef T_COSE_DISABLE_EDDSA
-           || (cose_algorithm_id == T_COSE_ALGORITHM_EDDSA)
-#endif
-           ;
-}
-
 
 /*
  * Public function.
  *
  * This is declared in t_cose_common.h, but there is no t_cose_common.c,
- * so this little function is put here.*/
+ * so this little function is put here as linkage glue to the
+ * crypto adaptor layer. */
 bool
 t_cose_is_algorithm_supported(int32_t cose_algorithm_id)
 {
@@ -70,41 +43,73 @@ t_cose_is_algorithm_supported(int32_t cose_algorithm_id)
 /*
  * Public function. See t_cose_util.h
  */
-int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
+// TODO: make this a private function by not calling from test.
+// Then the compiler will probably inline it.
+int32_t
+hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 {
     /* If other hashes, particularly those that output bigger hashes
      * are added here, various other parts of this code have to be
      * changed to have larger buffers, in particular
      * \ref T_COSE_CRYPTO_MAX_HASH_SIZE.
      */
-    /* ? : operator precedence is correct here. This makes smaller
-     * code than a switch statement and is easier to read.
-     */
-    // TODO: disable ES256
+    // TODO: allows disabling ES256
 
-    return cose_algorithm_id == T_COSE_ALGORITHM_ES256 ? T_COSE_ALGORITHM_SHA_256 :
+    /* Private-use algorithm IDs, those less than -65536, won't fit in
+     * the int16_t values in this table so a switch statement like
+     * that for T_COSE_ALGORITHM_SHORT_CIRCUIT_XXX will be needed.
+     */
+    static const int16_t hash_alg_map[][2] = {
+        { T_COSE_ALGORITHM_ES256 , T_COSE_ALGORITHM_SHA_256 },
 #ifndef T_COSE_DISABLE_ES384
-           cose_algorithm_id == T_COSE_ALGORITHM_ES384 ? T_COSE_ALGORITHM_SHA_384 :
+        { T_COSE_ALGORITHM_ES384 , T_COSE_ALGORITHM_SHA_384 },
 #endif
 #ifndef T_COSE_DISABLE_ES512
-           cose_algorithm_id == T_COSE_ALGORITHM_ES512 ? T_COSE_ALGORITHM_SHA_512 :
+        { T_COSE_ALGORITHM_ES512 , T_COSE_ALGORITHM_SHA_512},
 #endif
 #ifndef T_COSE_DISABLE_PS256
-           cose_algorithm_id == T_COSE_ALGORITHM_PS256 ? T_COSE_ALGORITHM_SHA_256 :
+        { T_COSE_ALGORITHM_PS256 , T_COSE_ALGORITHM_SHA_256 },
 #endif
 #ifndef T_COSE_DISABLE_PS384
-           cose_algorithm_id == T_COSE_ALGORITHM_PS384 ? T_COSE_ALGORITHM_SHA_384 :
+        { T_COSE_ALGORITHM_PS384 , T_COSE_ALGORITHM_SHA_384},
 #endif
 #ifndef T_COSE_DISABLE_PS512
-           cose_algorithm_id == T_COSE_ALGORITHM_PS512 ? T_COSE_ALGORITHM_SHA_512 :
+        { T_COSE_ALGORITHM_PS512 , T_COSE_ALGORITHM_SHA_512 },
 #endif
+        { INT16_MIN ,              T_COSE_INVALID_ALGORITHM_ID}
+    };
+
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-           cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_256 ? T_COSE_ALGORITHM_SHA_256 :
-           cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_384 ? T_COSE_ALGORITHM_SHA_384 :
-           cose_algorithm_id == T_COSE_ALGORITHM_SHORT_CIRCUIT_512 ? T_COSE_ALGORITHM_SHA_512 :
+    /* T_COSE_ALGORITHM_SHORT_CIRCUIT_256 and related are outside of
+     * the standard allocation space and outside the range of int16_t
+     * so they are handled by a case statement (which usually optimize
+     * well).
+     */
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_SHORT_CIRCUIT_256: return T_COSE_ALGORITHM_SHA_256;
+        case T_COSE_ALGORITHM_SHORT_CIRCUIT_384: return T_COSE_ALGORITHM_SHA_384;
+        case T_COSE_ALGORITHM_SHORT_CIRCUIT_512: return T_COSE_ALGORITHM_SHA_512;
+        default: break;/* intentional fall through */
+    }
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
-                                                         T_COSE_INVALID_ALGORITHM_ID;
+
+
+#ifndef T_COSE_DISABLE_USE_GUARDS
+    /* This check can be disabled for tested apps using t_cose because
+     * they won't pass in bad algorithm IDs outside the range of an
+     * int16_t and even if they did it is unlikely it would fold into
+     * a valid ID and further unlikely it would be the hash required.
+     * It's pretty safe to disable this check even with use cases that
+     * arent' tested. */
+    if(cose_algorithm_id > INT16_MAX || cose_algorithm_id < INT16_MIN) {
+        return T_COSE_INVALID_ALGORITHM_ID;
+    }
+#endif
+
+    /* Cast to int16_t is safe because of check above */
+    return (int32_t)t_cose_int16_map(hash_alg_map, (int16_t)(cose_algorithm_id));
 }
+
 
 #ifndef T_COSE_DISABLE_MAC0
 // TODO: maybe this can be shared with similar function for EDDSA?
@@ -314,12 +319,15 @@ create_tbs_hash(const int32_t             cose_algorithm_id,
      */
 
     /* Hand-constructed CBOR for the array of 4 and the context string.
-     * \x84 or \x85 is an array of 4 or 5. \x6A is a text string of 10 bytes. */
+     * \x84 or \x85 is an array of 4 or 5. \x6A is a text string of 10 bytes.
+     */
     // TODO: maybe this can be optimized to one call to hash update
     if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
-        t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x85\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
+        t_cose_crypto_hash_update(&hash_ctx,
+                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("\x85\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
     } else {
-        t_cose_crypto_hash_update(&hash_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
+        t_cose_crypto_hash_update(&hash_ctx,
+                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
 
     }
 
@@ -396,3 +404,34 @@ qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error, enum t_cose_err_t for
     }
     return T_COSE_SUCCESS;
 }
+
+
+/*
+ * Public function. See t_cose_util.h
+ */
+bool
+t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list)
+{
+    while(*list != T_COSE_ALGORITHM_NONE) {
+        if(*list == cose_algorithm_id) {
+            return true;
+        }
+        list++;
+    }
+    return false;
+}
+
+
+/*
+ * Public function. See t_cose_util.h
+ */
+int16_t t_cose_int16_map(const int16_t map[][2], int16_t query)
+{
+    int i;
+    for(i = 0; ; i++) {
+        if(map[i][0] == query || map[i][0] == INT16_MIN) {
+            return map[i][1];
+        }
+    }
+}
+
