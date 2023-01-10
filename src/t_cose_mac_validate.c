@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -123,7 +123,6 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
                             struct q_useful_buf_c          *payload,
                             struct t_cose_parameter       **return_params)
 {
-    (void)aad;
     (void)payload_is_detached;
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
@@ -137,6 +136,8 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
                                   T_COSE_SIZE_OF_TBM);
     struct t_cose_crypto_hmac     hmac_ctx;
     struct t_cose_parameter      *decoded_params;
+    struct t_cose_sign_inputs    sign_input;
+
 
     *payload = NULL_Q_USEFUL_BUF_C;
     decoded_params = NULL; // TODO: check that this is right and necessary
@@ -204,11 +205,13 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
     }
 
     /* -- Compute the ToBeMaced -- */
-    return_value = create_tbm(tbm_first_part_buf,
-                              protected_parameters,
-                              &tbm_first_part,
-                              T_COSE_TBM_BARE_PAYLOAD,
-                              *payload);
+    sign_input.aad = aad;
+    sign_input.payload = *payload;
+    sign_input.body_protected = protected_parameters;
+    sign_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* Never sign-protected for MAC */
+    return_value = create_tbm(&sign_input,
+                              tbm_first_part_buf,
+                              &tbm_first_part);
     if(return_value) {
         goto Done;
     }

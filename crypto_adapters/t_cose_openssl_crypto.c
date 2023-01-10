@@ -954,6 +954,7 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
         return T_COSE_ERR_HASH_GENERAL_FAIL;
     }
 
+    // TODO: know what the correct hash size is and error out of buffer is too small
     hash_result_len = (unsigned int)buffer_to_hold_result.len;
     ossl_result = EVP_DigestFinal_ex(hash_ctx->evp_ctx,
                                      buffer_to_hold_result.ptr,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -134,6 +134,7 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
                                  T_COSE_SIZE_OF_TBM);
     struct t_cose_crypto_hmac    hmac_ctx;
     struct q_useful_buf_c        maced_payload;
+    struct t_cose_sign_inputs    sign_input;
 
     QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &maced_payload);
 
@@ -164,11 +165,13 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
      * MAC are the protected parameters, the payload that is
      * getting MACed.
      */
-    return_value = create_tbm(tbm_first_part_buf,
-                              me->protected_parameters,
-                              &tbm_first_part,
-                              T_COSE_TBM_BARE_PAYLOAD,
-                              maced_payload);
+    sign_input.aad = NULL_Q_USEFUL_BUF_C; // TODO: this won't be NULL when AAD is supported
+    sign_input.payload = maced_payload;
+    sign_input.body_protected = me->protected_parameters;
+    sign_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* Never sign-protected for MAC */
+    return_value = create_tbm(&sign_input,
+                              tbm_first_part_buf,
+                              &tbm_first_part);
     if(return_value) {
         goto Done;
     }

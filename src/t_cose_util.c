@@ -1,7 +1,7 @@
 /*
  *  t_cose_util.c
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  * Copyright (c) 2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -112,46 +112,29 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 
 
 #ifndef T_COSE_DISABLE_MAC0
-// TODO: maybe this can be shared with similar function for EDDSA?
-enum t_cose_err_t create_tbm(UsefulBuf                       tbm_first_part_buf,
-                             struct q_useful_buf_c           protected_headers,
-                             struct q_useful_buf_c          *tbm_first_part,
-                             enum t_cose_tbm_payload_mode_t  payload_mode,
-                             struct q_useful_buf_c           payload)
+// TODO: try to combine with create_tbs_hash so that no buffer for headers
+// is needed. Make sure it doesn't make sign-only or mac-only object code big
+enum t_cose_err_t
+create_tbm(const struct t_cose_sign_inputs *sign_inputs,
+           struct q_useful_buf              tbm_first_part_buf,
+           struct q_useful_buf_c           *tbm_first_part)
 {
     QCBOREncodeContext cbor_encode_ctx;
     QCBORError         qcbor_result;
-    size_t             bytes_to_omit;
 
     /* This builds the CBOR-format to-be-maced bytes */
     QCBOREncode_Init(&cbor_encode_ctx, tbm_first_part_buf);
     QCBOREncode_OpenArray(&cbor_encode_ctx);
     /* context */
-    QCBOREncode_AddSZString(&cbor_encode_ctx, COSE_MAC_CONTEXT_STRING_MAC0);
+    QCBOREncode_AddBytes(&cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL(COSE_MAC_CONTEXT_STRING_MAC0));
     /* body_protected */
-    QCBOREncode_AddBytes(&cbor_encode_ctx, protected_headers);
+    QCBOREncode_AddBytes(&cbor_encode_ctx, sign_inputs->body_protected);
 
     /* external_aad. There is none so an empty bstr */
     QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
 
     /* The short fake payload. */
-    // TODO: is this mode necessary?
-
-    if(payload_mode == T_COSE_TBM_PAYLOAD_IS_BSTR_WRAPPED) {
-        /* Fake payload is just an empty bstr. It is here only
-         * to make the array count right. It must be omitted
-         * in the actual MAC below
-         */
-        bytes_to_omit = 1;
-        QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
-    } else {
-        /* Fake payload is the type and length of the wrapping
-         * bstr. It gets MACed with the first part, so no
-         * bytes to omit.
-         */
-        bytes_to_omit = 0;
-        QCBOREncode_AddBytesLenOnly(&cbor_encode_ctx, payload);
-    }
+    QCBOREncode_AddBytesLenOnly(&cbor_encode_ctx, sign_inputs->payload);
 
     /* Close of the array */
     QCBOREncode_CloseArray(&cbor_encode_ctx);
@@ -165,28 +148,32 @@ enum t_cose_err_t create_tbm(UsefulBuf                       tbm_first_part_buf,
         return T_COSE_ERR_SIG_STRUCT;
     }
 
-    tbm_first_part->len -= bytes_to_omit;
-
     return T_COSE_SUCCESS;
 }
 #endif /* !T_COSE_DISABLE_MAC0 */
 
 
+#ifndef T_COSE_DISABLE_EDDSA
 /*
  * Public function. See t_cose_util.h
  */
-// TODO: combine with create_tbm()
-// TODO: disable this when EdDSA is disabled?
 enum t_cose_err_t
 create_tbs(const struct t_cose_sign_inputs *sign_inputs,
-           struct q_useful_buf       buffer_for_tbs,
-           struct q_useful_buf_c    *tbs)
+           struct q_useful_buf              buffer_for_tbs,
+           struct q_useful_buf_c           *tbs)
 {
-    QCBOREncodeContext  cbor_context;
+    QCBOREncodeContext    cbor_context;
+    struct q_useful_buf_c s1;
+
     QCBOREncode_Init(&cbor_context, buffer_for_tbs);
 
     QCBOREncode_OpenArray(&cbor_context);
-    QCBOREncode_AddSZString(&cbor_context, COSE_SIG_CONTEXT_STRING_SIGNATURE1);
+    if(q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
+        s1 = Q_USEFUL_BUF_FROM_SZ_LITERAL(COSE_SIG_CONTEXT_STRING_SIGNATURE1);
+    } else {
+        s1 = Q_USEFUL_BUF_FROM_SZ_LITERAL(COSE_SIG_CONTEXT_STRING_SIGNATURE);
+    }
+    QCBOREncode_AddText(&cbor_context, s1);
     QCBOREncode_AddBytes(&cbor_context, sign_inputs->body_protected);
     if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
         QCBOREncode_AddBytes(&cbor_context, sign_inputs->sign_protected);
@@ -204,13 +191,14 @@ create_tbs(const struct t_cose_sign_inputs *sign_inputs,
         return T_COSE_SUCCESS;
     }
 }
+#endif /* !T_COSE_DISABLE_EDDSA */
 
 
 /**
- * \brief Hash an encoded bstr without actually encoding it in memory
+ * \brief Hash an encoded bstr without actually encoding it in memory.
  *
- * @param hash_ctx  Hash context to hash it into
- * @param bstr      Bytes of the bstr
+ * @param hash_ctx  Hash context to hash it into.
+ * @param bstr      Bytes of the bstr.
  *
  * If \c bstr is \c NULL_Q_USEFUL_BUF_C, a zero-length bstr will be
  * hashed into the output.
@@ -244,58 +232,43 @@ static void hash_bstr(struct t_cose_crypto_hash *hash_ctx,
 /*
  * Public function. See t_cose_util.h
  */
-/*
- * Format of to-be-signed bytes used by create_tbs_hash().  This is
- * defined in COSE (RFC 8152) section 4.4. It is the input to the
- * hash.
- *
- * Sig_structure = [
- *    context : "Signature" / "Signature1" / "CounterSignature",
- *    body_protected : empty_or_serialized_map,
- *    ? sign_protected : empty_or_serialized_map,
- *    external_aad : bstr,
- *    payload : bstr
- * ]
- *
- * body_protected refers to the protected parameters from the main
- * COSE_Sign1 structure. This is a little hard to to understand in the
- * spec.
- */
 enum t_cose_err_t
-create_tbs_hash(const int32_t             cose_algorithm_id,
+create_tbs_hash(const int32_t                    cose_algorithm_id,
                 const struct t_cose_sign_inputs *sign_inputs,
-                const struct q_useful_buf buffer_for_hash,
-                struct q_useful_buf_c    *hash)
+                const struct q_useful_buf        buffer_for_hash,
+                struct q_useful_buf_c           *hash)
 {
     /* Aproximate stack usage
      *                                             64-bit      32-bit
-     *   local vars                                     8           6
+     *   local vars                                    24          14
      *   hash_ctx                                   8-224       8-224
      *   hash function (a guess! variable!)        16-512      16-512
-     *   TOTAL                                     32-748      30-746
+     *   TOTAL                                     48-760      38-750
      */
     enum t_cose_err_t           return_value;
-    struct t_cose_crypto_hash   hash_ctx;
     int32_t                     hash_alg_id;
+    struct q_useful_buf_c       first_part;
+    struct t_cose_crypto_hash   hash_ctx;
 
     /* Start the hashing */
     hash_alg_id = hash_alg_id_from_sig_alg_id(cose_algorithm_id);
+    // TODO: possibly remove this check and let t_cose_crypto_hash_start()
+    // handle this error. The problem right now is that it returns
+    // UNSUPPORTED HASH, not T_COSE_ERR_UNSUPPORTED_SIGNING_ALG
+    // The removal of the check is just to save object code.
     if (hash_alg_id == T_COSE_INVALID_ALGORITHM_ID) {
         return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
         goto Done;
     }
 
-    /* Don't check hash_alg_id for failure. t_cose_crypto_hash_start()
-     * will handle error properly. It was also checked earlier.
-     */
     return_value = t_cose_crypto_hash_start(&hash_ctx, hash_alg_id);
-    if(return_value) {
+    if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
     /*
-     * Format of to-be-signed bytes.  This is defined in COSE (RFC
-     * 8152) section 4.4. It is the input to the hash.
+     * Format of to-be-signed bytes.  This is defined in COSE RFC 9052
+     * section 4.4. It is the input to the hash.
      *
      * Sig_structure = [
      *    context : "Signature" / "Signature1" / "CounterSignature",
@@ -305,8 +278,12 @@ create_tbs_hash(const int32_t             cose_algorithm_id,
      *    payload : bstr
      * ]
      *
-     * sign_protected is not used with COSE_Sign1 since there is no
-     * signer chunk.
+     * body_protected refers to the protected parameters from the main
+     * COSE_Sign1 structure. This is a little hard to to understand in
+     * the spec.
+     *
+     * sign_protected is not used with COSE_Sign1 so it is sometimes
+     * NULL.
      *
      * external_aad allows external data to be covered by the
      * signature, but may be a NULL_Q_USEFUL_BUF_C in which case a
@@ -315,25 +292,24 @@ create_tbs_hash(const int32_t             cose_algorithm_id,
      * Instead of formatting the TBS bytes in one buffer, they are
      * formatted in chunks and fed into the hash. If actually
      * formatted, the TBS bytes are slightly larger than the payload,
-     * so this saves a lot of memory.
+     * so this saves a lot of memory. This also puts no limit on the
+     * size of protected headers.
      */
 
-    /* Hand-constructed CBOR for the array of 4 and the context string.
-     * \x84 or \x85 is an array of 4 or 5. \x6A is a text string of 10 bytes.
-     */
-    // TODO: maybe this can be optimized to one call to hash update
+    /* Hand-constructed CBOR for the enclosing array and the context string */
     if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
-        t_cose_crypto_hash_update(&hash_ctx,
-                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("\x85\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
+        /* 0x85 is array of 5, 0x69 is length of a 9 byte string in CBOR */
+        first_part = Q_USEFUL_BUF_FROM_SZ_LITERAL("\x85\x69" COSE_SIG_CONTEXT_STRING_SIGNATURE);
     } else {
-        t_cose_crypto_hash_update(&hash_ctx,
-                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1));
-
+        /* 0x84 is array of 4, 0x6a is length of a 10 byte string in CBOR */
+        first_part = Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x6A" COSE_SIG_CONTEXT_STRING_SIGNATURE1);
     }
+    t_cose_crypto_hash_update(&hash_ctx, first_part);
 
     /* body_protected */
     hash_bstr(&hash_ctx, sign_inputs->body_protected);
 
+    /* sign_protected */
     if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
         hash_bstr(&hash_ctx, sign_inputs->sign_protected);
     }
@@ -434,4 +410,3 @@ int16_t t_cose_int16_map(const int16_t map[][2], int16_t query)
         }
     }
 }
-

@@ -1,7 +1,7 @@
 /*
  * t_cose_standard_constants.h
  *
- * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
@@ -596,6 +596,9 @@
  * COSE_Sign1 structures. See RFC 8152, section 4.4.
  */
 #define COSE_SIG_CONTEXT_STRING_SIGNATURE1 "Signature1"
+
+#define COSE_SIG_CONTEXT_STRING_SIGNATURE "Signature"
+
 
 /**
  * \def COSE_MAC_CONTEXT_STRING_MAC0
