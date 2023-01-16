@@ -124,6 +124,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
                             struct t_cose_parameter       **return_params)
 {
     (void)payload_is_detached;
+  
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     QCBORError                    qcbor_error;
@@ -168,7 +169,13 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
                           &protected_parameters);
 
     /* --- The payload --- */
-    QCBORDecode_GetByteString(&decode_context, payload);
+    if (payload_is_detached) {
+        /* detached payload: the payload should be set by caller */
+        QCBORDecode_GetNull(&decode_context);
+    }
+    else {
+        QCBORDecode_GetByteString(&decode_context, payload);
+    }
 
     /* --- The tag --- */
     QCBORDecode_GetByteString(&decode_context, &tag);

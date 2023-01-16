@@ -31,7 +31,6 @@ t_cose_mac_compute_private(struct t_cose_mac_calculate_ctx *context,
                            struct q_useful_buf              out_buf,
                            struct q_useful_buf_c           *result)
 {
-    (void)payload_is_detached;
     (void)aad;
     QCBOREncodeContext  encode_ctx;
     enum t_cose_err_t   return_value;
@@ -40,14 +39,26 @@ t_cose_mac_compute_private(struct t_cose_mac_calculate_ctx *context,
     QCBOREncode_Init(&encode_ctx, out_buf);
 
     /* -- Output the header parameters into the encoder context -- */
-    return_value = t_cose_mac_encode_parameters(context, &encode_ctx);
+    return_value = t_cose_mac_encode_parameters(context, payload_is_detached, &encode_ctx);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
-    QCBOREncode_AddEncoded(&encode_ctx, payload);
+    if(payload_is_detached) {
+        /* detached payload:
+         * the payload should be transfered in another channel
+         */
+        QCBOREncode_AddNULL(&encode_ctx);
+    } else {
+        /* --- Get started on the payload --- */
+        QCBOREncode_AddEncoded(&encode_ctx, payload);
+    }
+    if(!payload_is_detached) {
+        // TODO: combine with above?
+        payload = NULL_Q_USEFUL_BUF_C;
+    }
 
-    return_value = t_cose_mac_encode_tag(context,&encode_ctx);
+    return_value = t_cose_mac_encode_tag(context, payload, &encode_ctx);
     if(return_value) {
         goto Done;
     }
@@ -67,6 +78,7 @@ Done:
  */
 enum t_cose_err_t
 t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
+                             bool                             payload_is_detached,
                              QCBOREncodeContext              *cbor_encode_ctx)
 {
     size_t                  tag_len;
@@ -103,7 +115,9 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
                                          &me->protected_parameters);
 
     /* --- Get started on the payload --- */
-    QCBOREncode_BstrWrap(cbor_encode_ctx);
+    if(!payload_is_detached) {
+        QCBOREncode_BstrWrap(cbor_encode_ctx);
+    }
 
     /*
      * Any failures in CBOR encoding will be caught in finish
@@ -119,6 +133,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
  */
 enum t_cose_err_t
 t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
+                      struct q_useful_buf_c            detached_payload,
                       QCBOREncodeContext              *cbor_encode_ctx)
 {
     enum t_cose_err_t            return_value;
@@ -136,7 +151,14 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
     struct q_useful_buf_c        maced_payload;
     struct t_cose_sign_inputs    sign_input;
 
-    QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &maced_payload);
+    /* --- Close off the payload --- */
+    if(q_useful_buf_c_is_null(detached_payload)) {
+        /* Payload is inline, not detached */
+        QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &maced_payload);
+    } else {
+        maced_payload = detached_payload;
+    }
+
 
     /* Check that there are no CBOR encoding errors before proceeding
      * with hashing and tagging. This is not actually necessary as the
