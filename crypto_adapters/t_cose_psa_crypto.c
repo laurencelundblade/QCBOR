@@ -1,7 +1,7 @@
 /*
  * t_cose_psa_crypto.c
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -40,11 +40,16 @@
 #include <mbedtls/aes.h> // TODO: Isn't there a PSA API for AES?
 
 #ifndef T_COSE_DISABLE_AES_KW
-// TODO: isn't there a PSA API for key wrap?
 #include <mbedtls/nist_kw.h>
 #endif /* T_COSE_DISABLE_AES_KW */
 
 #include "t_cose_util.h"
+
+#if MBEDTLS_VERSION_MAJOR < 3
+#define NO_MBED_KW_API
+#warning "AES key wrap is unavailable with MbedTLS versions below 3"
+#warning "Use of COSE algorithms A128KW..A256KW will return an error"
+#endif /* MBEDTLS_VERSION_MAJOR < 3 */
 
 
 /* Avoid compiler warning due to unused argument */
@@ -87,10 +92,16 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         T_COSE_ALGORITHM_HMAC384,
         T_COSE_ALGORITHM_HMAC512,
         T_COSE_ALGORITHM_A128GCM,
-        T_COSE_ALGORITHM_A192GCM, /* For 9053 key wrap and direct, not HPKE */
+        T_COSE_ALGORITHM_A192GCM, /* For 9053 direct, not HPKE */
         T_COSE_ALGORITHM_A256GCM,
+        #endif /* T_COSE_DISABLE_MAC0 */
 
-#endif /* T_COSE_DISABLE_MAC0 */
+#if !defined NO_MBED_KW_API & !defined T_COSE_DISABLE_AES_KW
+        T_COSE_ALGORITHM_A128KW,
+        T_COSE_ALGORITHM_A192KW,
+        T_COSE_ALGORITHM_A256KW,
+#endif /* !(NO_MBED_KW_API && T_COSE_DISABLE_AES_KW) */
+
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
 
@@ -719,61 +730,176 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
 
 
 #ifndef T_COSE_DISABLE_AES_KW
+
+
+static unsigned int
+bits_in_kw_key(int32_t cose_algorithm_id)
+{
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_A128KW: return 128;
+        case T_COSE_ALGORITHM_A192KW: return 192;
+        case T_COSE_ALGORITHM_A256KW: return 256;
+        default: return UINT_MAX;
+    }
+}
+
+
 /*
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_aes_kw(int32_t                 algorithm_id,
-                     struct q_useful_buf_c   kek,
-                     struct q_useful_buf_c   plaintext,
-                     struct q_useful_buf     ciphertext_buffer,
-                     struct q_useful_buf_c  *ciphertext_result)
+t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
+                      struct q_useful_buf_c   kek,
+                      struct q_useful_buf_c   plaintext,
+                      struct q_useful_buf     ciphertext_buffer,
+                      struct q_useful_buf_c  *ciphertext_result)
 {
-    /* Mbed TLS AES-KW Variables */
-    mbedtls_nist_kw_context ctx;
+#ifdef NO_MBED_KW_API
+    return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+#else
+    mbedtls_nist_kw_context kw_context;
     int                     ret;
-    size_t                  res_len;
+    size_t                  ciphertext_len;
+    unsigned int            kek_bits;
+    unsigned int            expected_kek_bits;
 
-    // TODO: this needs to check the algorithm ID
-    (void)algorithm_id;
+    /* Check the supplied kek and algorithm ID */
+    if(kek.len > UINT_MAX / 8) {
+        /* Integer math would overflow (and it would be an enormous key) */
+        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+    }
+    kek_bits = (unsigned int)(8 * kek.len);
 
-    mbedtls_nist_kw_init(&ctx);
+    expected_kek_bits = bits_in_kw_key(cose_algorithm_id);
+    if(expected_kek_bits == UINT_MAX) {
+        return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+    }
+
+    if(kek_bits != expected_kek_bits) {
+        /* An unsupported algorithm will return UINT_MAX bits */
+        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+    }
+
+    mbedtls_nist_kw_init(&kw_context);
 
     /* Configure KEK to be externally supplied symmetric key */
-    ret = mbedtls_nist_kw_setkey(&ctx,                 // Key wrapping context
-                                 MBEDTLS_CIPHER_ID_AES, // Block cipher
-                                 kek.ptr,           // Key Encryption Key (KEK)
-                                 (unsigned int)
-                                    kek.len * 8,    // KEK size in bits
-                                 MBEDTLS_ENCRYPT    // Operation within the context
+    ret = mbedtls_nist_kw_setkey(&kw_context,
+                                  MBEDTLS_CIPHER_ID_AES,
+                                  kek.ptr,
+                                  kek_bits,
+                                  MBEDTLS_ENCRYPT
                                 );
 
     if (ret != 0) {
-        return(T_COSE_ERR_AES_KW_FAILED);
+        return T_COSE_ERR_KW_FAILED;
     }
 
     /* Encrypt CEK with the AES key wrap algorithm defined in RFC 3394. */
-    ret = mbedtls_nist_kw_wrap(&ctx,
-                               MBEDTLS_KW_MODE_KW,
-                               plaintext.ptr,
-                               plaintext.len,
-                               ciphertext_buffer.ptr,
-                               &res_len,
-                               ciphertext_buffer.len
+    ret = mbedtls_nist_kw_wrap(&kw_context,
+                                MBEDTLS_KW_MODE_KW,
+                                plaintext.ptr,
+                                plaintext.len,
+                                ciphertext_buffer.ptr,
+                               &ciphertext_len,
+                                ciphertext_buffer.len
                               );
 
     if (ret != 0) {
-        return(T_COSE_ERR_AES_KW_FAILED);
+        return T_COSE_ERR_KW_FAILED;
     }
 
     ciphertext_result->ptr = ciphertext_buffer.ptr;
-    ciphertext_result->len = res_len;
+    ciphertext_result->len = ciphertext_len;
 
-    mbedtls_nist_kw_free(&ctx);
+    // TODO: this needs to be called in error conditions
 
-    return(T_COSE_SUCCESS);
+    mbedtls_nist_kw_free(&kw_context);
+
+    return T_COSE_SUCCESS;
+#endif /* NO_MBED_KW_API */
 }
-#endif
+
+
+enum t_cose_err_t
+t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
+                        struct q_useful_buf_c   kek,
+                        struct q_useful_buf_c   ciphertext,
+                        struct q_useful_buf     plaintext_buffer,
+                        struct q_useful_buf_c  *plaintext_result)
+{
+#ifdef NO_MBED_KW_API
+    return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+#else
+    mbedtls_nist_kw_context kw_context;
+    int                     ret;
+    size_t                  plaintext_len;
+    unsigned int            kek_bits;
+    unsigned int            expected_kek_bits;
+    enum t_cose_err_t       return_value;
+
+    /* Check the supplied kek and algorithm ID */
+    if(kek.len > UINT_MAX / 8) {
+        /* Integer math would overflow (and it would be an enormous key) */
+        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+    }
+    kek_bits = (unsigned int)(8 * kek.len);
+
+    expected_kek_bits = bits_in_kw_key(cose_algorithm_id);
+    if(expected_kek_bits == UINT_MAX) {
+        return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+    }
+
+    if(kek_bits != expected_kek_bits) {
+        /* An unsupported algorithm will return UINT_MAX bits */
+        return T_COSE_ERR_WRONG_TYPE_OF_KEY;
+    }
+
+    /* Initialize and configure KEK */
+    mbedtls_nist_kw_init(&kw_context);
+    ret = mbedtls_nist_kw_setkey(&kw_context,
+                                 MBEDTLS_CIPHER_ID_AES,
+                                 kek.ptr,
+                                 kek_bits,
+                                 MBEDTLS_DECRYPT
+                                );
+    if (ret != 0) {
+        return_value = T_COSE_ERR_KW_FAILED;
+        goto Done;
+    }
+
+    /* Encrypt CEK with the AES key wrap algorithm defined in RFC 3394. */
+    ret = mbedtls_nist_kw_unwrap(&kw_context,
+                                  MBEDTLS_KW_MODE_KW,
+                                  ciphertext.ptr,
+                                  ciphertext.len,
+                                  plaintext_buffer.ptr,
+                                 &plaintext_len,
+                                  plaintext_buffer.len
+                                );
+
+    if(ret == MBEDTLS_ERR_CIPHER_AUTH_FAILED) {
+        return_value = T_COSE_ERR_DATA_AUTH_FAILED;
+        goto Done;
+    }
+    if (ret != 0) {
+        return_value = T_COSE_ERR_KW_FAILED;
+        goto Done;
+    }
+    plaintext_result->ptr = plaintext_buffer.ptr;
+    plaintext_result->len = plaintext_len;
+
+    return_value = T_COSE_SUCCESS;
+
+Done:
+    mbedtls_nist_kw_free(&kw_context);
+
+    return return_value;
+#endif /* NO_MBED_KW_API */
+}
+#endif /* !T_COSE_DISABLE_AES_KW */
+
+
+
 
 /*
  * See documentation in t_cose_crypto.h

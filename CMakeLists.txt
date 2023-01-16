@@ -124,7 +124,7 @@ if (BUILD_TESTS)
 
     if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
         set(TEST_SRC_EXTRA test/t_cose_make_psa_test_key.c)
-        set(TEST_EXTRA_DEFS -DT_COSE_DISABLE_MAC0 -DT_COSE_DISABLE_AES_KW)
+        set(TEST_EXTRA_DEFS -DT_COSE_DISABLE_MAC0)
     elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
         set(TEST_SRC_EXTRA test/t_cose_make_openssl_test_key.c)
         set(TEST_EXTRA_DEFS -DT_COSE_DISABLE_MAC0)

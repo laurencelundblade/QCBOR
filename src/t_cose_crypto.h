@@ -896,27 +896,88 @@ t_cose_crypto_export_key(struct t_cose_key      key,
                          struct q_useful_buf    key_buffer,
                          size_t                *key_len);
 
+
 /**
  * \brief Uses the AES key wrap algorithm defined in RFC 3394 to
  *        encrypt the CEK.
  *
- * \param[in] algorithm_id        Algorithm id
- * \param[in] kek                 Key Encryption Key
- * \param[in] plaintext           Plaintext
- * \param[in] ciphertext_buffer   Ciphertext buffer
- * \param[out] ciphertext_result  Resulting ciphertext
+ * \param[in] cose_algorithm_id   A COSE key wrap algorithm id.
+ * \param[in] kek                 The key encryption key.
+ * \param[in] plaintext           The plaintext to encrypt, e.g. the CEK.
+ * \param[in] ciphertext_buffer   Buffer to hold ciphertext output.
+ * \param[out] ciphertext_result  Resulting ciphertext with wrapped key.
  *
  * \retval T_COSE_SUCCESS
  *         Operation was successful.
- * \retval T_COSE_ERR_AES_KW_FAILED
- *         AES key wrap operation failed.
+ * \retval T_COSE_ERR_TOO_SMALL
+ *         \c ciphertext_buffer was too smalll.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         The wrapping algorithm is not supported (this error code is borrowed to mean
+ *         wrapping algorithm)
+ * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
+ *         The key is the wrong length for the algorithm.
+ * \retval T_COSE_ERR_KW_FAILED
+ *         Key wrap failed for other than the above reasons.
+ *
+ * This uses RFC 3394 to wrap a key, typically the CEK (content
+ * encryption key) using another key, the KEK (key encryption
+ * key). This key wrap provides both confidentiality and integrity.
+ *
+ * OIther than AES could work here, but in practice only AES is needed.
+ *
+ * Implementations of this must error out on incorrect algorithm IDs. They
+ * can't just assume AES and go off the key size. This is so callers of this
+ * can rely on this to check the algorithm ID and not have to check it.
  */
 enum t_cose_err_t
-t_cose_crypto_aes_kw(int32_t                 algorithm_id,
-                     struct q_useful_buf_c   kek,
-                     struct q_useful_buf_c   plaintext,
-                     struct q_useful_buf     ciphertext_buffer,
-                     struct q_useful_buf_c  *ciphertext_result);
+t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
+                      struct q_useful_buf_c   kek,
+                      struct q_useful_buf_c   plaintext,
+                      struct q_useful_buf     ciphertext_buffer,
+                      struct q_useful_buf_c  *ciphertext_result);
+
+
+/**
+ * \brief Uses the AES key wrap algorithm defined in RFC 3394 to
+ *        decrypt the CEK.
+ *
+ * \param[in] cose_algorithm_id   A COSE key wrap algorithm id.
+ * \param[in] kek                 The key encryption key.
+ * \param[in] ciphertext           The wrapped key.
+ * \param[in] plaintext_buffer   Buffer to hold plaintext output.
+ * \param[out] plaintext_result  Resulting plaintext, usually the CEK.
+ *
+ * \retval T_COSE_SUCCESS
+ *         Operation was successful.
+ * \retval T_COSE_ERR_TOO_SMALL
+ *         \c plaintext_buffer was too smalll.
+ * \retval T_COSE_ERR_UNSUPPORTED_CIPHER_ALG
+ *         The wrapping algorithm is not supported (this error code is borrowed to mean
+ *         wrapping algorithm)
+ * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
+ *         The key is the wrong length for the algorithm.
+ * \retval T_COSE_ERR_DATA_AUTH_FAILED
+ *         The authentication of the wrapped key failed.
+ * \retval T_COSE_ERR_KW_FAILED
+ *         Key unwrap failed for other than the above reasons.
+ *
+ * This uses RFC 3394 to unwrap a key, typically the CEK (content
+ * encryption key) using another key, the KEK (key encryption
+ * key). This key wrap provides both confidentiality and integrity.
+ *
+ * OIther than AES could work here, but in practice only AES is needed.
+ *
+ * Implementations of this must error out on incorrect algorithm IDs. They
+ * can't just assume AES and go off the key size. This is so callers of this
+ * can rely on this to check the algorithm ID and not have to check it.
+ */
+enum t_cose_err_t
+t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
+                        struct q_useful_buf_c   kek,
+                        struct q_useful_buf_c   ciphertext,
+                        struct q_useful_buf     plaintext_buffer,
+                        struct q_useful_buf_c  *plaintext_result);
+
 
 /**
  * \brief HPKE Decrypt Wrapper

@@ -65,7 +65,7 @@ enum t_cose_err_t t_cose_create_recipient_aes_kw(
     recipient_key_result.len = recipient_key_len;
 
     /* AES key wrap encryption */
-    return_value = t_cose_crypto_aes_kw(
+    return_value = t_cose_crypto_kw_wrap(
                         0,
                         recipient_key_result,
                         plaintext,

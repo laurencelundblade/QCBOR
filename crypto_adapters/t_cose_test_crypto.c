@@ -1,7 +1,7 @@
 /*
  *  t_cose_test_crypto.c
  *
- * Copyright 2019-2020, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -530,3 +530,63 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
 }
 
 #endif /* T_COSE_DISABLE_EDDSA */
+
+
+static const uint8_t rfc_3394_key_wrap_iv[] = {0xa6, 0xa6, 0xa6, 0xa6, 0xa6, 0xa6, 0xa6, 0xa6};
+
+enum t_cose_err_t
+t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
+                      struct q_useful_buf_c   kek,
+                      struct q_useful_buf_c   plaintext,
+                      struct q_useful_buf     ciphertext_buffer,
+                      struct q_useful_buf_c  *ciphertext_result)
+{
+    UsefulOutBuf UOB;
+
+    (void)cose_algorithm_id;
+    (void)kek;
+
+    UsefulOutBuf_Init(&UOB, ciphertext_buffer);
+    UsefulOutBuf_AppendUsefulBuf(&UOB, plaintext);
+    UsefulOutBuf_AppendUsefulBuf(&UOB, Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc_3394_key_wrap_iv));
+    *ciphertext_result = UsefulOutBuf_OutUBuf(&UOB);
+
+    if(q_useful_buf_c_is_null(*ciphertext_result)){
+        return T_COSE_ERR_TOO_SMALL;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+enum t_cose_err_t
+t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
+                        struct q_useful_buf_c   kek,
+                        struct q_useful_buf_c   ciphertext,
+                        struct q_useful_buf     plaintext_buffer,
+                        struct q_useful_buf_c  *plaintext_result)
+{
+    UsefulBufC                  tag;
+    struct q_useful_buf_c       plain_text;
+    const struct q_useful_buf_c expected_tag = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rfc_3394_key_wrap_iv);
+
+    (void)cose_algorithm_id;
+    (void)kek;
+
+    UsefulInputBuf UIB;
+    UsefulInputBuf_Init(&UIB, ciphertext);
+
+    plain_text = UsefulInputBuf_GetUsefulBuf(&UIB, ciphertext.len - expected_tag.len);
+    tag = UsefulInputBuf_GetUsefulBuf(&UIB, expected_tag.len);
+
+    if(UsefulBuf_Compare(tag, expected_tag)) {
+        return T_COSE_ERR_DATA_AUTH_FAILED;
+    }
+
+    *plaintext_result = UsefulBuf_Copy(plaintext_buffer, plain_text);
+    if(q_useful_buf_c_is_null(*plaintext_result)) {
+        return T_COSE_ERR_TOO_SMALL;
+    }
+
+    return T_COSE_SUCCESS;
+}

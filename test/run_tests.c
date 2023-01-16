@@ -57,6 +57,9 @@ static test_entry2 s_tests2[] = {
 static test_entry s_tests[] = {
 
     TEST_ENTRY(aead_test),
+#ifndef T_COSE_DISABLE_AES_KW
+    TEST_ENTRY(kw_test),
+#endif
 
 #ifndef T_COSE_DISABLE_SIGN1
     // TODO: re enable this test when it is fixed

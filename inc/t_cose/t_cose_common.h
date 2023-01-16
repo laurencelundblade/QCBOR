@@ -582,7 +582,7 @@ enum t_cose_err_t {
     T_COSE_ERR_KEY_EXPORT_FAILED = 62,
 
     /** Something went wrong with AES Key Wrap. */
-    T_COSE_ERR_AES_KW_FAILED = 63,
+    T_COSE_ERR_KW_FAILED = 63,
     /** The signature algorithm needs an extra buffer, but none was provided.
      * See \ref t_cose_sign1_verify_set_auxiliary_buffer for more details.
      */
