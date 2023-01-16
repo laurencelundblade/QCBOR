@@ -135,6 +135,7 @@ int_fast32_t compute_validate_mac_sig_fail_test()
     struct q_useful_buf_c        payload;
     QCBORError                   cbor_error;
     struct t_cose_mac_validate_ctx verify_ctx;
+    size_t                       tamper_offset;
 
 
     /* Make an HMAC key that will be used for both signing and
@@ -362,7 +363,6 @@ int_fast32_t compute_validate_detached_content_mac_sig_fail_test()
     struct q_useful_buf_c        payload;
     QCBORError                   cbor_error;
     struct t_cose_mac_validate_ctx verify_ctx;
-    size_t                       tamper_offset;
 
 
     /* ---- Set up ---- */
