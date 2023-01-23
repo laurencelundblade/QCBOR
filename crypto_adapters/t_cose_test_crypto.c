@@ -536,7 +536,7 @@ static const uint8_t rfc_3394_key_wrap_iv[] = {0xa6, 0xa6, 0xa6, 0xa6, 0xa6, 0xa
 
 enum t_cose_err_t
 t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
-                      struct q_useful_buf_c   kek,
+                      struct t_cose_key   kek,
                       struct q_useful_buf_c   plaintext,
                       struct q_useful_buf     ciphertext_buffer,
                       struct q_useful_buf_c  *ciphertext_result)
@@ -561,7 +561,7 @@ t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
 
 enum t_cose_err_t
 t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
-                        struct q_useful_buf_c   kek,
+                        struct t_cose_key   kek,
                         struct q_useful_buf_c   ciphertext,
                         struct q_useful_buf     plaintext_buffer,
                         struct q_useful_buf_c  *plaintext_result)

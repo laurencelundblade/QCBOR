@@ -884,17 +884,29 @@ t_cose_crypto_export_public_key(struct t_cose_key      key,
  * \param[in] key               Handle to key
  * \param[in] key_buffer        Pointer and length of buffer into which
  *                              the resulting key is put.
- * \param[out] key_len          Length of the returned key.
+ * \param[out] exported_key          Length of the returned key.
  *
  * \retval T_COSE_SUCCESS
  *         Successfully exported the key.
  * \retval T_COSE_ERR_KEY_EXPORT_FAILED
  *         The key export operation failed.
+ *
+ * The t_cose implementation tries to avoid use of this, preferring
+ * to use keys in the form of a struct t_cose_key rather than
+ * have the actual bytes of the key in memory. This allows
+ * crypto adaptors to work with crypto implementations in
+ * HSMs and such that can encrypt/decrypt without the
+ * key being present outside the HSM.
+ *
+ * The one place this is used outside of the PSA crypto layer
+ * is the option that lets the caller set the CEK and the
+ * CEK needs to be given to a key distribtion method.
  */
+// TODO: say how to know the length
 enum t_cose_err_t
-t_cose_crypto_export_key(struct t_cose_key      key,
-                         struct q_useful_buf    key_buffer,
-                         size_t                *key_len);
+t_cose_crypto_export_symmetric_key(struct t_cose_key      key,
+                                   struct q_useful_buf    key_buffer,
+                                   struct q_useful_buf_c *exported_key);
 
 
 /**
@@ -923,7 +935,7 @@ t_cose_crypto_export_key(struct t_cose_key      key,
  * encryption key) using another key, the KEK (key encryption
  * key). This key wrap provides both confidentiality and integrity.
  *
- * OIther than AES could work here, but in practice only AES is needed.
+ * OIther than AES is facilitated here, but in practice only AES is needed.
  *
  * Implementations of this must error out on incorrect algorithm IDs. They
  * can't just assume AES and go off the key size. This is so callers of this
@@ -931,7 +943,7 @@ t_cose_crypto_export_key(struct t_cose_key      key,
  */
 enum t_cose_err_t
 t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
-                      struct q_useful_buf_c   kek,
+                      struct t_cose_key       kek,
                       struct q_useful_buf_c   plaintext,
                       struct q_useful_buf     ciphertext_buffer,
                       struct q_useful_buf_c  *ciphertext_result);
@@ -965,7 +977,7 @@ t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
  * encryption key) using another key, the KEK (key encryption
  * key). This key wrap provides both confidentiality and integrity.
  *
- * OIther than AES could work here, but in practice only AES is needed.
+ * OIther than AES is facilitated here, but in practice only AES is needed.
  *
  * Implementations of this must error out on incorrect algorithm IDs. They
  * can't just assume AES and go off the key size. This is so callers of this
@@ -973,7 +985,7 @@ t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
  */
 enum t_cose_err_t
 t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
-                        struct q_useful_buf_c   kek,
+                        struct t_cose_key       kek,
                         struct q_useful_buf_c   ciphertext,
                         struct q_useful_buf     plaintext_buffer,
                         struct q_useful_buf_c  *plaintext_result);

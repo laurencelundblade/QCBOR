@@ -18,60 +18,9 @@
 #include "t_cose/t_cose_recipient_enc_hpke.h"
 #include "t_cose/t_cose_recipient_enc_aes_kw.h"
 
-/**
- * \brief  Initialize a recipient structure for use with HPKE.
- *
- * \param[in] context           The t_cose_encrypt_recipient_ctx context.
- * \param[in] option_flags       One of \c T_COSE_OPT_XXXX.
- * \param[in] cose_algorithm_id  the HPKE algorithm, for example
- *                               \ref COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM.
- *
- */
-enum t_cose_err_t
-t_cose_encrypt_recipient_init(struct t_cose_encrypt_recipient_ctx *context,
-                              uint32_t                             option_flags,
-                              int32_t                              cose_algorithm_id)
-{
-    memset(context, 0, sizeof(*context));
-    context->cose_algorithm_id = cose_algorithm_id;
-    context->option_flags = option_flags;
-
-    /* Setting key distribution parameters. */
-    switch(cose_algorithm_id) {
-#ifndef T_COSE_DISABLE_HPKE
-    case T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM:
-    case T_COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM:
-        context->recipient_func = t_cose_create_recipient_hpke;
-        break;
-#endif /* T_COSE_DISABLE_HPKE */
-
-#ifndef T_COSE_DISABLE_AES_KW
-    case T_COSE_ALGORITHM_A256KW:
-    case T_COSE_ALGORITHM_A192KW:
-    case T_COSE_ALGORITHM_A128KW:
-        context->recipient_func = t_cose_create_recipient_aes_kw;
-        break;
-#endif /* T_COSE_DISABLE_AES_KW */
-            
-    default:
-        context->recipient_func = NULL;
-    }
-
-    return(T_COSE_SUCCESS);
-}
-
-static inline void
-t_cose_encrypt_set_recipient_key(struct t_cose_encrypt_recipient_ctx *context,
-                                 struct t_cose_key                    recipient_key,
-                                 struct q_useful_buf_c                kid)
-{
-    context->recipient_key = recipient_key;
-    context->kid = kid;
-}
-
 
 enum t_cose_err_t
-t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
+t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
                    struct q_useful_buf_c          payload,
                    struct q_useful_buf            encrypted_payload,
                    struct q_useful_buf_c         *encrypted_payload_final,
@@ -83,8 +32,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
     QCBORError             ret;
     QCBOREncodeContext     encrypt_ctx;
     struct q_useful_buf_c  nonce_result;
-    struct q_useful_buf_c  random_result={NULL,0};
-    size_t data_length;
+    struct q_useful_buf_c  cek_bytes={NULL,0};
 
     /* Additional data buffer */
     UsefulBufC             add_data_buf;
@@ -94,11 +42,11 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
 
     size_t                 key_bitlen;
     enum t_cose_err_t      cose_result;
-    Q_USEFUL_BUF_MAKE_STACK_UB(random, 16);
+    Q_USEFUL_BUF_MAKE_STACK_UB(cek_buffer, 16);
     Q_USEFUL_BUF_MAKE_STACK_UB(nonce, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
 
     /* Determine algorithm parameters */
-    switch(context->cose_algorithm_id) {
+    switch(context->payload_cose_algorithm_id) {
     case T_COSE_ALGORITHM_A128GCM:
         key_bitlen = 128;
         break;
@@ -132,7 +80,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
 
     QCBOREncode_AddInt64ToMapN(&encrypt_ctx,
                                T_COSE_HEADER_PARAM_ALG,
-                               context->cose_algorithm_id);
+                               context->payload_cose_algorithm_id);
 
     QCBOREncode_CloseMap(&encrypt_ctx);
 
@@ -159,7 +107,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
     if ((context->option_flags & T_COSE_OPT_COSE_ENCRYPT0) > 0) {
         QCBOREncode_AddBytesToMapN(&encrypt_ctx,
                                    T_COSE_HEADER_PARAM_KID,
-                                   context->recipient_ctx.kid);
+                                   context->cek_kid);
     }
 
     /* Close unprotected header map */
@@ -206,7 +154,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
 
     QCBOREncode_AddInt64ToMapN(&additional_data,
                                T_COSE_HEADER_PARAM_ALG,
-                               context->cose_algorithm_id);
+                               context->payload_cose_algorithm_id);
 
     QCBOREncode_CloseMap(&additional_data);
     QCBOREncode_CloseBstrWrap2(&additional_data, false, &add_data_buf);
@@ -235,14 +183,14 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
         /* For everything but direct encryption, we create a
          * random CEK and encrypt payload with CEK.
          */
-        cose_result = t_cose_crypto_get_random(random, 16, &random_result);
+        cose_result = t_cose_crypto_get_random(cek_buffer, 16, &cek_bytes);
         if (cose_result != T_COSE_SUCCESS) {
             return(cose_result);
         }
 
-        cose_result = t_cose_crypto_make_symmetric_key_handle(context->cose_algorithm_id,
-                                                random_result,
-                                                &cek_handle);
+        cose_result = t_cose_crypto_make_symmetric_key_handle(context->payload_cose_algorithm_id,
+                                                              cek_bytes,
+                                                             &cek_handle);
 
     } else {
         /* Direct encryption with recipient key. This requires us
@@ -250,23 +198,20 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
          * encryption.
          */
 
-        cose_result = t_cose_crypto_export_key(
-                                        context->recipient_ctx.recipient_key,
-                                        random,
-                                        &data_length);
+        cose_result = t_cose_crypto_export_symmetric_key(context->cek,
+                                                         cek_buffer,
+                                                        &cek_bytes);
 
         if (cose_result != T_COSE_SUCCESS) {
             return(cose_result);
         }
 
-        random_result.ptr = random.ptr;
-        random_result.len = data_length;
-
-        cek_handle = context->recipient_ctx.recipient_key;
+        cek_handle = context->cek;
     }
 
+    // TODO: for non-recipient HPKE, there will have to be algorithm mapping and other stuff here
     cose_result = t_cose_crypto_aead_encrypt(
-                        context->cose_algorithm_id,
+                        context->payload_cose_algorithm_id,
                         cek_handle,
                         nonce_result,
                         add_data_buf,
@@ -295,6 +240,23 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
      * COSE_Encrypt, however, requires a recipient structure. Here we add it.
      */
     if ( (context->option_flags & T_COSE_OPT_COSE_ENCRYPT0) == 0) {
+        struct t_cose_recipient_enc *recipient;
+        for(recipient = context->recipients_list; recipient != NULL; recipient = recipient->next_in_list) {
+            /* Array holding the recipients */
+            QCBOREncode_OpenArray(&encrypt_ctx);
+
+            /* This does the public-key crypto and outputs the COSE_Recipient */
+            cose_result = recipient->creat_cb(recipient,
+                                              cek_bytes,
+                                              &encrypt_ctx);
+            if(cose_result) {
+                // TODO: hard and soft errors
+                break;
+            }
+
+            QCBOREncode_CloseArray(&encrypt_ctx);
+        }
+/*
         cose_result = context->recipient_ctx.recipient_func(
                                     &context->recipient_ctx,
                                     context->cose_algorithm_id,
@@ -304,7 +266,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
 
         if (cose_result != T_COSE_SUCCESS) {
             return(cose_result);
-        }
+        } */
     }
 
      /* Close COSE_Encrypt/COSE_Encrypt0 array */
@@ -320,26 +282,25 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc_ctx *context,
     return(T_COSE_SUCCESS);
 }
 
-enum t_cose_err_t
-t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc_ctx* context,
-                             int32_t                        cose_algorithm_id,
-                             struct t_cose_key              recipient_key,
-                             struct q_useful_buf_c          kid)
+
+
+void
+t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc   *me,
+                             struct t_cose_recipient_enc *recipient)
 {
-    enum t_cose_err_t result;
-
-    /* Init recipient */
-    result = t_cose_encrypt_recipient_init(&context->recipient_ctx,
-                                           0,
-                                           cose_algorithm_id);
-    if (result != T_COSE_SUCCESS) {
-        return(result);
+    if(me->recipients_list == NULL) {
+        me->recipients_list = recipient;
+    } else {
+        /* find end of list and add it */
     }
+}
 
-    /* Set recipient key */
-    t_cose_encrypt_set_recipient_key(&context->recipient_ctx,
-                                     recipient_key,
-                                     kid);
 
-    return(T_COSE_SUCCESS);
+void
+t_cose_encypt_enc_init(struct t_cose_encrypt_enc*   context,
+                       uint32_t                         option_flags,
+                       int32_t                          payload_cose_algorithm_id)
+{
+    context->option_flags              = option_flags;
+    context->payload_cose_algorithm_id = payload_cose_algorithm_id;
 }

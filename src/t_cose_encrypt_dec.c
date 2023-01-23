@@ -162,6 +162,9 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     } else {
         /* Recipients */
         QCBORDecode_EnterArray(&DC, NULL);
+        /* One recipient */
+        QCBORDecode_EnterArray(&DC, NULL);
+        // TODO: Exit these arrays and Finish()
 
         /* protected header */
         result = QCBORDecode_GetNext(&DC, &Item);

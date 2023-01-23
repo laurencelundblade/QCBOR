@@ -19,6 +19,7 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/aes.h>
+#include <openssl/rand.h>
 
 #include "t_cose_util.h"
 
@@ -1191,6 +1192,34 @@ Done:
 #endif /* T_COSE_DISABLE_EDDSA */
 
 
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_get_random(struct q_useful_buf    buffer,
+                         size_t                 number,
+                         struct q_useful_buf_c *random)
+{
+    int ossl_result;
+
+    if (number > buffer.len) {
+        return T_COSE_ERR_TOO_SMALL;
+    }
+
+    if(!is_size_t_to_int_cast_ok(number)) {
+        return T_COSE_ERR_FAIL;
+    }
+    ossl_result = RAND_bytes(buffer.ptr, (int)number);
+    if(ossl_result != 1) {
+        return T_COSE_ERR_RNG_FAILED;
+    }
+
+    random->ptr = buffer.ptr;
+    random->len = number;
+
+    return T_COSE_SUCCESS;
+}
+
 
 /*
  * See documentation in t_cose_crypto.h
@@ -1206,6 +1235,29 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
 
     return T_COSE_SUCCESS;
 }
+
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_export_symmetric_key(struct t_cose_key      key,
+                                   struct q_useful_buf    key_buffer,
+                                   struct q_useful_buf_c *exported_key)
+{
+    if(key.crypto_lib  != T_COSE_CRYPTO_LIB_OPENSSL) {
+        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
+    }
+
+    *exported_key = q_useful_buf_copy(key_buffer, key.k.key_buffer);
+    if(q_useful_buf_c_is_null(*exported_key)) {
+        return T_COSE_ERR_TOO_SMALL;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
 
 
 /* Compute size of ciphertext, given size of plaintext. Returns
@@ -1706,16 +1758,28 @@ static const uint8_t rfc_3394_key_wrap_iv[] = {0xa6, 0xa6, 0xa6, 0xa6,
  */
 enum t_cose_err_t
 t_cose_crypto_kw_wrap(int32_t                 algorithm_id,
-                      struct q_useful_buf_c   kek,
+                      struct t_cose_key       kek,
                       struct q_useful_buf_c   plaintext,
                       struct q_useful_buf     ciphertext_buffer,
                       struct q_useful_buf_c  *ciphertext_result)
 {
+    enum t_cose_err_t  err;
     int      ossl_result;
     AES_KEY  kek_ossl;
     size_t   wrapped_size;
     int      key_size_in_bits;
     int      expected_kek_bits;
+    struct q_useful_buf_c   kek_bytes;
+    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+
+    /* Export the actual key bytes from t_cose_key (which might be a handle) */
+    err = t_cose_crypto_export_symmetric_key(kek,
+                                             kek_bytes_buf,
+                                            &kek_bytes);
+    if(err != T_COSE_SUCCESS) {
+        return err;
+    }
+
 
     /* Check the algorithm ID and get expected bits in KEK. */
     expected_kek_bits = bits_in_kw_key(algorithm_id);
@@ -1724,17 +1788,17 @@ t_cose_crypto_kw_wrap(int32_t                 algorithm_id,
     }
 
     /* Safely calculate bits in the KEK and check it */
-    if(kek.len > INT_MAX / 8) {
+    if(kek_bytes.len > INT_MAX / 8) {
         /* Cast to int isn't safe */
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
     }
-    key_size_in_bits = (int)kek.len * 8;
+    key_size_in_bits = (int)kek_bytes.len * 8;
     if(key_size_in_bits != expected_kek_bits){
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
     }
 
     /* Set up the kek as an OpenSSL AES_KEY */
-    ossl_result = AES_set_encrypt_key(kek.ptr, key_size_in_bits, &kek_ossl);
+    ossl_result = AES_set_encrypt_key(kek_bytes.ptr, key_size_in_bits, &kek_ossl);
     if(ossl_result != 0) {
         /* An OpenSSL API unlike others for which 0 is success. */
         return T_COSE_ERR_KW_FAILED;
@@ -1774,16 +1838,28 @@ t_cose_crypto_kw_wrap(int32_t                 algorithm_id,
  */
 enum t_cose_err_t
 t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
-                        struct q_useful_buf_c   kek,
+                        struct t_cose_key       kek,
                         struct q_useful_buf_c   ciphertext,
                         struct q_useful_buf     plaintext_buffer,
                         struct q_useful_buf_c  *plaintext_result)
 {
     int     unwrapped_size;
+    enum t_cose_err_t err;
     AES_KEY kek_ossl;
     size_t  expected_unwrapped_size;
     int     kek_size_in_bits;
     int      expected_kek_bits;
+    struct q_useful_buf_c   kek_bytes;
+    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+
+    /* Export the actual key bytes from t_cose_key (which might be a handle) */
+    err = t_cose_crypto_export_symmetric_key(kek,
+                                             kek_bytes_buf,
+                                            &kek_bytes);
+    if(err != T_COSE_SUCCESS) {
+        return err;
+    };
+
 
     /* Check the algorithm ID and get expected bits in KEK. */
     expected_kek_bits = bits_in_kw_key(algorithm_id);
@@ -1792,17 +1868,17 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
     }
 
     /* Safely calculate bits in the KEK and check it */
-    if(kek.len > INT_MAX / 8) {
+    if(kek_bytes.len > INT_MAX / 8) {
         /* Cast to int isn't safe */
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
     }
-    kek_size_in_bits = (int)kek.len * 8;
+    kek_size_in_bits = (int)kek_bytes.len * 8;
     if(kek_size_in_bits != expected_kek_bits){
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
     }
 
     /* Set up the kek as an OpenSSL AES_KEY */
-    unwrapped_size = AES_set_decrypt_key(kek.ptr, kek_size_in_bits, &kek_ossl);
+    unwrapped_size = AES_set_decrypt_key(kek_bytes.ptr, kek_size_in_bits, &kek_ossl);
     if(unwrapped_size != 0) {
         /* An OpenSSL API unlike others for which 0 is success. */
         return T_COSE_ERR_KW_FAILED;

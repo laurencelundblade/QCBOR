@@ -88,7 +88,14 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_signature_verify_main.o \
         src/t_cose_signature_verify_eddsa.o \
         src/t_cose_mac_compute.o \
-        src/t_cose_mac_validate.o
+        src/t_cose_mac_validate.o \
+        src/t_cose_encrypt_enc.o \
+        src/t_cose_encrypt_dec.o \
+        src/t_cose_recipient_dec_aes_kw.o \
+        src/t_cose_recipient_enc_aes_kw.o \
+        src/t_cose_recipient_dec_hpke.o \
+        src/t_cose_recipient_enc_hpke.o \
+        src/hpke.o
 
 .PHONY: all install install_headers install_so uninstall clean warn
 
@@ -110,7 +117,7 @@ t_cose_test: main.o $(TEST_OBJ) libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
 
-t_cose_basic_example_ossl: examples/t_cose_basic_example_ossl.o libt_cose.a
+t_cose_basic_example_ossl: examples/t_cose_basic_example_ossl.o examples/encryption_examples_ossl.o libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
 

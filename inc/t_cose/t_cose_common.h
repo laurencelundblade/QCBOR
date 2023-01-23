@@ -592,6 +592,10 @@ enum t_cose_err_t {
     T_COSE_ERR_AUXILIARY_BUFFER_SIZE = 65,
 
     T_COSE_ERR_NO_VERIFIERS = 66,
+
+    /* Trying to protect a parameter when not possible, for example,
+     * in an AES Keywrap COSE_Recipient. */
+    T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED = 67,
 };
 
 

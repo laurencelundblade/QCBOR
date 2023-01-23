@@ -749,26 +749,39 @@ bits_in_kw_key(int32_t cose_algorithm_id)
  */
 enum t_cose_err_t
 t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
-                      struct q_useful_buf_c   kek,
+                      struct t_cose_key       kek,
                       struct q_useful_buf_c   plaintext,
                       struct q_useful_buf     ciphertext_buffer,
                       struct q_useful_buf_c  *ciphertext_result)
 {
 #ifdef NO_MBED_KW_API
+    /* Handle MbedTLS 2.28 that doesn't support key wrap by default */
     return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
 #else
     mbedtls_nist_kw_context kw_context;
+    enum t_cose_err_t       err;
     int                     ret;
     size_t                  ciphertext_len;
     unsigned int            kek_bits;
     unsigned int            expected_kek_bits;
+    struct q_useful_buf_c   kek_bytes;
+    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+
+
+    /* Export the actual key bytes from t_cose_key (which might be a handle) */
+    err = t_cose_crypto_export_symmetric_key(kek,
+                                              kek_bytes_buf,
+                                              &kek_bytes);
+    if(err != T_COSE_SUCCESS) {
+        return err;
+    }
 
     /* Check the supplied kek and algorithm ID */
-    if(kek.len > UINT_MAX / 8) {
+    if(kek_bytes.len > UINT_MAX / 8) {
         /* Integer math would overflow (and it would be an enormous key) */
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
     }
-    kek_bits = (unsigned int)(8 * kek.len);
+    kek_bits = (unsigned int)(8 * kek_bytes.len);
 
     expected_kek_bits = bits_in_kw_key(cose_algorithm_id);
     if(expected_kek_bits == UINT_MAX) {
@@ -785,7 +798,7 @@ t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
     /* Configure KEK to be externally supplied symmetric key */
     ret = mbedtls_nist_kw_setkey(&kw_context,
                                   MBEDTLS_CIPHER_ID_AES,
-                                  kek.ptr,
+                                  kek_bytes.ptr,
                                   kek_bits,
                                   MBEDTLS_ENCRYPT
                                 );
@@ -822,7 +835,7 @@ t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
 
 enum t_cose_err_t
 t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
-                        struct q_useful_buf_c   kek,
+                        struct t_cose_key       kek,
                         struct q_useful_buf_c   ciphertext,
                         struct q_useful_buf     plaintext_buffer,
                         struct q_useful_buf_c  *plaintext_result)
@@ -831,19 +844,32 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
     return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
 #else
     mbedtls_nist_kw_context kw_context;
+    enum t_cose_err_t       err;
     int                     ret;
     size_t                  plaintext_len;
     unsigned int            kek_bits;
     unsigned int            expected_kek_bits;
     enum t_cose_err_t       return_value;
+    struct q_useful_buf_c   kek_bytes;
+    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+
+    /* Export the actual key bytes from t_cose_key (which might be a handle) */
+    /* Maybe someday there will be wrap API that takes a key handle as input. */
+    err = t_cose_crypto_export_symmetric_key(kek,
+                                             kek_bytes_buf,
+                                            &kek_bytes);
+    if(err != T_COSE_SUCCESS) {
+        return err;
+    }
 
     /* Check the supplied kek and algorithm ID */
-    if(kek.len > UINT_MAX / 8) {
+    if(kek_bytes.len > UINT_MAX / 8) {
         /* Integer math would overflow (and it would be an enormous key) */
         return T_COSE_ERR_WRONG_TYPE_OF_KEY;
     }
-    kek_bits = (unsigned int)(8 * kek.len);
+    kek_bits = (unsigned int)(8 * kek_bytes.len);
 
+    /* This checks the algorithm ID in addition to getting the number of bits */
     expected_kek_bits = bits_in_kw_key(cose_algorithm_id);
     if(expected_kek_bits == UINT_MAX) {
         return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
@@ -858,7 +884,7 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
     mbedtls_nist_kw_init(&kw_context);
     ret = mbedtls_nist_kw_setkey(&kw_context,
                                  MBEDTLS_CIPHER_ID_AES,
-                                 kek.ptr,
+                                 kek_bytes.ptr,
                                  kek_bits,
                                  MBEDTLS_DECRYPT
                                 );
@@ -905,18 +931,19 @@ Done:
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_export_key(struct t_cose_key      key,
-                         struct q_useful_buf    key_buffer,
-                         size_t                *key_len)
+t_cose_crypto_export_symmetric_key(struct t_cose_key      key,
+                                   struct q_useful_buf    key_buffer,
+                                   struct q_useful_buf_c *key_bytes)
 {
-    psa_status_t      status;
+    psa_status_t  status;
 
-    status = psa_export_key( (mbedtls_svc_key_id_t)
-                                key.k.key_handle,
-                             (uint8_t *) key_buffer.ptr,
-                             (size_t) key_buffer.len,
-                             key_len);
+    status = psa_export_key((mbedtls_svc_key_id_t)key.k.key_handle,
+                             key_buffer.ptr,
+                             key_buffer.len,
+                            &key_bytes->len);
+    key_bytes->ptr = key_buffer.ptr;
 
+    // TODO: maybe error about buffer length?
     if (status != PSA_SUCCESS) {
         return(T_COSE_ERR_KEY_EXPORT_FAILED);
     }
@@ -1008,7 +1035,8 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
      * through t_cose and the crypto adapter, so if the crypto lib
      * enforces key usage like PSA does, they will be in effect.
      */
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT);
+    // TODO: export is here because of the PSA key wrap API
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT);
     psa_set_key_algorithm(&attributes, psa_algorithm);
     psa_set_key_type(&attributes, psa_keytype);
     psa_set_key_bits(&attributes, key_bitlen);

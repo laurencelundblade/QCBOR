@@ -93,6 +93,9 @@
 		E772027C23CAEC84006E966E /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E7B226CB8400040613B /* main.c */; };
 		E772027D23CAEC84006E966E /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
 		E772027E23CAEC84006E966E /* t_cose_sign1_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8E226CB9460040613B /* t_cose_sign1_sign.c */; };
+		E78247EF297AADE1008ED9C8 /* encryption_examples_ossl.c in Sources */ = {isa = PBXBuildFile; fileRef = E78247EE297AADE1008ED9C8 /* encryption_examples_ossl.c */; };
+		E78247F0297AAF2D008ED9C8 /* t_cose_encrypt_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = E77108092917EDA900D8ADF4 /* t_cose_encrypt_enc.c */; };
+		E78247F1297AB428008ED9C8 /* t_cose_recipient_enc_aes_kw.c in Sources */ = {isa = PBXBuildFile; fileRef = E771080C2917EDA900D8ADF4 /* t_cose_recipient_enc_aes_kw.c */; };
 		E7AF703628DADF5E00F07637 /* t_cose_param_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AF703528DADF5E00F07637 /* t_cose_param_test.c */; };
 		E7AF703728DADFCF00F07637 /* t_cose_param_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AF703528DADF5E00F07637 /* t_cose_param_test.c */; };
 		E7AF703828DADFD000F07637 /* t_cose_param_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AF703528DADF5E00F07637 /* t_cose_param_test.c */; };
@@ -330,6 +333,8 @@
 		E77108332918577500D8ADF4 /* t_cose_encryption_example_psa.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_encryption_example_psa.c; sourceTree = "<group>"; };
 		E772028523CAEC84006E966E /* t_cose_psa_noss */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_psa_noss; sourceTree = BUILT_PRODUCTS_DIR; };
 		E77F343028F979DF0089FC2A /* t_cose_standard_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_standard_constants.h; path = t_cose/t_cose_standard_constants.h; sourceTree = "<group>"; };
+		E78247ED297AADE1008ED9C8 /* encryption_examples_ossl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = encryption_examples_ossl.h; sourceTree = "<group>"; };
+		E78247EE297AADE1008ED9C8 /* encryption_examples_ossl.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = encryption_examples_ossl.c; sourceTree = "<group>"; };
 		E7AF703428DADF5E00F07637 /* t_cose_param_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_param_test.h; sourceTree = "<group>"; };
 		E7AF703528DADF5E00F07637 /* t_cose_param_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_param_test.c; sourceTree = "<group>"; };
 		E7C960A527F7569500FB537C /* libqcbor.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libqcbor.a; path = ../../../../../usr/local/lib/libqcbor.a; sourceTree = "<group>"; };
@@ -452,6 +457,8 @@
 				E73BF6F023B07AB200DF5C36 /* t_cose_basic_example_ossl.c */,
 				E73BF6D223AFFA6500DF5C36 /* t_cose_basic_example_psa.c */,
 				E7F1733F2948016800E5ADF3 /* t_cose_encryption_example_psa.h */,
+				E78247ED297AADE1008ED9C8 /* encryption_examples_ossl.h */,
+				E78247EE297AADE1008ED9C8 /* encryption_examples_ossl.c */,
 			);
 			path = examples;
 			sourceTree = "<group>";
@@ -874,11 +881,14 @@
 				E7F17337293B110600E5ADF3 /* t_cose_signature_sign_eddsa.c in Sources */,
 				E73BF70723B07ACF00DF5C36 /* t_cose_sign1_verify.c in Sources */,
 				E7F17334293B110100E5ADF3 /* t_cose_signature_verify_eddsa.c in Sources */,
+				E78247EF297AADE1008ED9C8 /* encryption_examples_ossl.c in Sources */,
 				E7F1733A293ED83100E5ADF3 /* t_cose_basic_example_ossl.c in Sources */,
 				E7FECC4C288754E400420F6F /* t_cose_sign_sign.c in Sources */,
 				E73BF70B23B07ACF00DF5C36 /* t_cose_openssl_crypto.c in Sources */,
+				E78247F0297AAF2D008ED9C8 /* t_cose_encrypt_enc.c in Sources */,
 				E77108302917EDA900D8ADF4 /* t_cose_recipient_enc_hpke.c in Sources */,
 				E7F17331293B10EC00E5ADF3 /* t_cose_signature_verify_main.c in Sources */,
+				E78247F1297AB428008ED9C8 /* t_cose_recipient_enc_aes_kw.c in Sources */,
 				E7F1732E293B10E400E5ADF3 /* t_cose_signature_sign_main.c in Sources */,
 				E73BF70D23B07ACF00DF5C36 /* t_cose_parameters.c in Sources */,
 				E77108242917EDA900D8ADF4 /* t_cose_recipient_dec_hpke.c in Sources */,

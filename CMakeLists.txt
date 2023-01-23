@@ -74,6 +74,12 @@ set(T_COSE_SRC_COMMON
     src/t_cose_mac_validate.c
     src/t_cose_signature_verify_main.c
     src/t_cose_signature_verify_eddsa.c
+    src/t_cose_encrypt_enc.c
+    src/t_cose_encrypt_dec.c
+    src/t_cose_recipient_dec_aes_kw.c
+    src/t_cose_recipient_enc_aes_kw.c
+    src/t_cose_recipient_dec_hpke.c
+    src/t_cose_recipient_enc_hpke.c
     src/hpke.c
 )
 
@@ -99,7 +105,7 @@ if (BUILD_EXAMPLES)
         add_executable(t_cose_basic_example_psa examples/t_cose_basic_example_psa.c)
         target_link_libraries(t_cose_basic_example_psa PRIVATE t_cose ${CRYPTO_LIBRARY})
     elseif (CRYPTO_PROVIDER STREQUAL "OpenSSL")
-        add_executable(t_cose_basic_example_ossl examples/t_cose_basic_example_ossl.c)
+        add_executable(t_cose_basic_example_ossl examples/t_cose_basic_example_ossl.c examples/encryption_examples_ossl.c)
         target_link_libraries(t_cose_basic_example_ossl PRIVATE t_cose ${CRYPTO_LIBRARY})
     endif()
 

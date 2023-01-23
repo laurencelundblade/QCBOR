@@ -2,6 +2,7 @@
  * \file t_cose_recipient_enc_hpke.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -123,8 +124,9 @@ t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
 /*
  * See documentation in t_cose_recipient_enc_hpke.h
  */
-enum t_cose_err_t t_cose_create_recipient_hpke(
-                           void                  *ctx,
+static enum t_cose_err_t
+t_cose_create_recipient_hpke2(
+                           struct t_cose_recipient_enc_hpke *context,
                            int32_t                cose_algorithm_id,
                            struct t_cose_key      recipient_key,
                            struct q_useful_buf_c  plaintext,
@@ -146,7 +148,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
     uint8_t                pkE[T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};
     enum t_cose_err_t      return_value;
     struct t_cose_crypto_hpke_suite_t hpke_suite;
-    struct t_cose_encrypt_recipient_ctx *context=(struct t_cose_encrypt_recipient_ctx *) ctx;
+    struct t_cose_key      ephemeral_key;
 
     (void)cose_algorithm_id; // TODO: use this or get rid of it
     (void)recipient_key; // TODO: use this or get rid of it
@@ -165,7 +167,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
     }
 
     /* Create ephemeral key */
-    return_value = t_cose_crypto_generate_key(&context->ephemeral_key,
+    return_value = t_cose_crypto_generate_key(&ephemeral_key,
                                               context->cose_algorithm_id);
     if (return_value != T_COSE_SUCCESS) {
         return(return_value);
@@ -173,7 +175,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
 
     /* Export pkR */
     return_value = t_cose_crypto_export_public_key(
-                         context->recipient_key,
+                         context->pkR,
                          (struct q_useful_buf) {.ptr=pkR, .len=pkR_len},
                          &pkR_len);
 
@@ -183,7 +185,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
 
     /* Export pkE */
     return_value = t_cose_crypto_export_public_key(
-                         context->ephemeral_key,
+                         ephemeral_key,
                          (struct q_useful_buf) {.ptr=pkE, .len=pkE_len},
                          &pkE_len);
 
@@ -195,7 +197,7 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
     return_value = t_cose_crypto_hpke_encrypt(
                         hpke_suite,
                         (struct q_useful_buf_c) {.ptr = pkR, .len = pkR_len},
-                        context->ephemeral_key,
+                        ephemeral_key,
                         plaintext,
                         (struct q_useful_buf) {.ptr = encrypted_cek, .len = encrypted_cek_len},
                         &encrypted_cek_len);
@@ -310,6 +312,29 @@ enum t_cose_err_t t_cose_create_recipient_hpke(
 
     return(T_COSE_SUCCESS);
 }
+
+
+enum t_cose_err_t
+t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
+                         struct q_useful_buf_c         cek,
+                         QCBOREncodeContext           *cbor_encoder)
+{
+    enum t_cose_err_t err;
+    struct t_cose_recipient_enc_hpke *me;
+
+    me = (struct t_cose_recipient_enc_hpke *)me_x;
+
+    err = t_cose_create_recipient_hpke2(me,
+                                       0,
+                                       me->pkR,
+                                       cek,
+                                       cbor_encoder);
+
+    return err;
+}
+
+
+
 
 #else
 

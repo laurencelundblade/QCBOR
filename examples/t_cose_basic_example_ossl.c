@@ -28,6 +28,8 @@
 #include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/q_useful_buf.h"
 
+#include "encryption_examples_ossl.h"
+
 #include <stdio.h>
 
 #include "openssl/ecdsa.h"
@@ -731,4 +733,8 @@ int main(int argc, const char * argv[])
     one_step_sign_example();
     two_step_sign_example();
     aux_buffer_example();
+
+    direct_detached_example();
+
+    key_wrap_example();
 }
