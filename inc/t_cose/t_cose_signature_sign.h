@@ -171,10 +171,10 @@ t_cose_signature_sign_headers_cb(struct t_cose_signature_sign *me,
  * when the callback is not implemented.
  */
 struct t_cose_signature_sign {
+    struct t_cose_rs_obj             rs;
     t_cose_signature_sign_headers_cb *headers_cb;
     t_cose_signature_sign_cb         *sign_cb;
     t_cose_signature_sign1_cb        *sign1_cb;
-    struct t_cose_signature_sign     *next_in_list; /* linked list of signers */
 };
 
 

@@ -453,7 +453,6 @@ int main(void)
     /* Key id for public key */
     /* Key id for PSK 2 */
 
-    struct t_cose_key t_cose_psk_key;
 
     struct t_cose_key t_cose_pkR_key;
     psa_key_attributes_t pkR_attributes = PSA_KEY_ATTRIBUTES_INIT;
@@ -527,9 +526,6 @@ int main(void)
         printf("Importing key failed\n");
         return(EXIT_FAILURE);
     }
-
-    t_cose_psk_key.k.key_handle = psk_handle;
-    t_cose_psk_key.crypto_lib = T_COSE_CRYPTO_LIB_PSA;
 
 #ifndef T_COSE_DISABLE_HPKE
 

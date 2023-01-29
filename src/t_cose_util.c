@@ -410,3 +410,18 @@ int16_t t_cose_int16_map(const int16_t map[][2], int16_t query)
         }
     }
 }
+
+
+/* This gets re-used in 6 places (maybe more) and is called by
+ * an inline add_recipient or add_signer or... method. */
+void
+t_cose_link_rs(struct t_cose_rs_obj **list, struct t_cose_rs_obj *new_rs)
+{
+    if(*list == NULL) {
+        *list = new_rs;
+    } else {
+        struct t_cose_rs_obj *t;
+        for(t = *list; t->next != NULL; t = t->next);
+        t->next = new_rs;
+    }
+}

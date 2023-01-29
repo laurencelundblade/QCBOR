@@ -1,7 +1,7 @@
 /*
  * t_cose_sign_sign.c
  *
- * Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -38,7 +38,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
     struct t_cose_signature_sign  *signer;
     struct t_cose_parameter       *sign1_parameters;
     struct t_cose_parameter       *body_parameters;
-    uint64_t                       message_type_tag;
+    uint64_t                       message_type_tag_number;
 
     /* There must be at least one signer configured (a signer is an
      * object, a callback and context, that makes a signature). See
@@ -53,17 +53,18 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
     }
 
     /* --- Is this COSE_Sign or COSE_Sign1? --- */
-    message_type_tag = me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
+    message_type_tag_number = me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
 
     /* --- Make list of the body header parameters --- */
     sign1_parameters = NULL;
-    if(message_type_tag == CBOR_TAG_COSE_SIGN1) {
+    if(message_type_tag_number == CBOR_TAG_COSE_SIGN1) {
         /* For a COSE_Sign1, the header parameters go in the main body
          * header parameter section, and the signatures part just
          * contains a raw signature bytes, not an array of
-         * COSE_Signature. */
+         * COSE_Signature. This gets the parameters from the
+         * signer. */
         signer->headers_cb(signer, &sign1_parameters);
-        if(signer->next_in_list != NULL) {
+        if(signer->rs.next != NULL) {
             /* In COSE_Sign1 mode, but too many signers configured.*/
             return_value = T_COSE_ERR_TOO_MANY_SIGNERS;
             goto Done;
@@ -80,16 +81,16 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
         t_cose_parameter_list_append(body_parameters, me->added_body_parameters);
     }
 
-    /* --- Add the CBOR tag indicating COSE_Sign1 --- */
+    /* --- Add the CBOR tag indicating COSE message type --- */
     if(!(me->option_flags & T_COSE_OPT_OMIT_CBOR_TAG)) {
-        QCBOREncode_AddTag(cbor_encode_ctx, message_type_tag);
+        QCBOREncode_AddTag(cbor_encode_ctx, message_type_tag_number);
     }
 
     /* --- Open array-of-four that holds all COSE_Sign(1) messages --- */
     QCBOREncode_OpenArray(cbor_encode_ctx);
 
 
-    /* --- Encode both proteced and unprotected headers --- */
+    /* --- Encode both protected and unprotected headers --- */
     return_value = t_cose_encode_headers(cbor_encode_ctx,
                                          body_parameters,
                                          &me->protected_parameters);
@@ -158,11 +159,13 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
 
 
     /* --- Signature for COSE_Sign1 or signatures for COSE_Sign --- */
-    signer = me->signers;
     sign_inputs.body_protected = me->protected_parameters;
     sign_inputs.sign_protected = NULL_Q_USEFUL_BUF_C; /* filled in by sign_cb */
     sign_inputs.payload        = signed_payload;
     sign_inputs.aad            = aad;
+
+    signer = me->signers;
+
     if(T_COSE_OPT_IS_SIGN(me->option_flags)) {
         /* --- One or more COSE_Signatures for COSE_Sign --- */
 
@@ -176,7 +179,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
             if(return_value != T_COSE_SUCCESS) {
                 goto Done;
             }
-            signer = signer->next_in_list;
+            signer = (struct t_cose_signature_sign *)signer->rs.next;
         }
         QCBOREncode_CloseArray(cbor_encode_ctx);
 
@@ -268,21 +271,3 @@ Done:
     return return_value;
 }
 
-
-/*
- * Public function. See t_cose_sign_sign.h
- */
-void
-t_cose_sign_add_signer(struct t_cose_sign_sign_ctx  *context,
-                       struct t_cose_signature_sign *signer)
-{
-    // TODO: for COSE_Sign1 this can be tiny and inline
-
-    if(context->signers == NULL) {
-        context->signers = signer;
-    } else {
-        struct t_cose_signature_sign *t;
-        for(t = context->signers; t->next_in_list != NULL; t = t->next_in_list);
-        t->next_in_list = signer;
-    }
-}

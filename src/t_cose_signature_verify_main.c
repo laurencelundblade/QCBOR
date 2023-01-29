@@ -1,7 +1,7 @@
 /*
  * t_cose_signature_verify_main.c
  *
- * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2022-2023, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 7/19/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -85,6 +85,14 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
     }
 
     kid = t_cose_find_parameter_kid(parameter_list);
+    if(!q_useful_buf_c_is_null(me->verification_kid)) {
+        if(q_useful_buf_c_is_null(kid)) {
+            return T_COSE_ERR_NO_KID;
+        }
+        if(q_useful_buf_compare(kid, me->verification_kid)) {
+            return T_COSE_ERR_KID_UNMATCHED;
+        }
+    }
 
     /* --- Compute the hash of the to-be-signed bytes -- */
     return_value = create_tbs_hash(cose_algorithm_id,
@@ -123,7 +131,7 @@ static enum t_cose_err_t
 t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
                                 const uint32_t                  option_flags,
                                 const struct t_cose_header_location loc,
-                                const struct t_cose_sign_inputs *sign_inputs,
+                                struct t_cose_sign_inputs       *sign_inputs,
                                 struct t_cose_parameter_storage *param_storage,
                                 QCBORDecodeContext              *qcbor_decoder,
                                 struct t_cose_parameter        **decoded_params)
@@ -137,6 +145,11 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
 
     /* --- Decode the COSE_Signature ---*/
     QCBORDecode_EnterArray(qcbor_decoder, NULL);
+    qcbor_error = QCBORDecode_GetError(qcbor_decoder);
+    if(qcbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
+        return T_COSE_ERR_NO_MORE;
+    }
+    // TODO: make sure other errors are processed correctly by fall through here
 
     return_value = t_cose_headers_decode(qcbor_decoder,
                                          loc,
@@ -148,6 +161,7 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
+    sign_inputs->sign_protected = protected_parameters;
 
     /* --- The signature --- */
     QCBORDecode_GetByteString(qcbor_decoder, &signature);
@@ -175,6 +189,7 @@ void
 t_cose_signature_verify_main_init(struct t_cose_signature_verify_main *me)
 {
     memset(me, 0, sizeof(*me));
+    me->s.rs.ident = RS_IDENT(TYPE_RS_VERIFIER, 'm');
     me->s.verify_cb  = t_cose_signature_verify_main_cb;
     me->s.verify1_cb = t_cose_signature_verify1_main_cb;
 }

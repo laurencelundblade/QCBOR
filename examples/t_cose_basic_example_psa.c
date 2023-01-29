@@ -981,7 +981,7 @@ int two_step_sign_example_new_verify(void)
 
     struct t_cose_signature_verify_main verifier;
     t_cose_signature_verify_main_init(&verifier);
-    t_cose_signature_verify_main_set_key(&verifier, key_pair);
+    t_cose_signature_verify_main_set_key(&verifier, key_pair, NULL_Q_USEFUL_BUF_C);
 
     t_cose_sign_add_verifier(&verify_ctx, t_cose_signature_verify_from_main(&verifier));
 

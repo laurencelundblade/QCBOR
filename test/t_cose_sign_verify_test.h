@@ -64,4 +64,11 @@ int_fast32_t sign_verify_unsupported_test(void);
  */
 int_fast32_t sign_verify_bad_auxiliary_buffer(void);
 
+
+/*
+ * Test creation and verification of COSE_Sign with multiple COSE_Signatures
+ */
+int_fast32_t sign_verify_multi(void);
+
+
 #endif /* t_cose_sign_verify_test_h */

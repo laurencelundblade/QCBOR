@@ -1,7 +1,7 @@
 /*
  * t_cose_signature_verify.h
  *
- * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 7/17/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -50,12 +50,14 @@ struct t_cose_signature_verify;
  * \param[in] qcbor_decoder           The decoder instance from where the
  *                                     COSE_Signature is decoded.
  * \param[out] decoded_params  Returned linked list of decoded parameters.
+ *
+ * This must return T_COSE_ERR_NO_MORE if there are no more COSE_Signatures.
  */
 typedef enum t_cose_err_t
 t_cose_signature_verify_cb(struct t_cose_signature_verify     *me,
                            uint32_t                            option_flags,
                            const struct t_cose_header_location loc,
-                           const struct t_cose_sign_inputs    *sign_inputs,
+                           struct t_cose_sign_inputs          *sign_inputs,
                            struct t_cose_parameter_storage    *params,
                            QCBORDecodeContext                 *qcbor_decoder,
                            struct t_cose_parameter           **decoded_params);
@@ -87,15 +89,15 @@ t_cose_signature_verify1_cb(struct t_cose_signature_verify *me,
 
 
 /**
- * Data structture that must be the first part of every context of every concrete
+ * Data structure that must be the first part of every context of every concrete
  * implementation of t_cose_signature_verify. Callback functions must not
  * be NULL, but can be stubs that return an error when COSE_SIgn1 or COSE_Sign
  * are not supported.
  */
 struct t_cose_signature_verify {
+    struct t_cose_rs_obj             rs;
     t_cose_signature_verify_cb      *verify_cb;
     t_cose_signature_verify1_cb     *verify1_cb;
-    struct t_cose_signature_verify  *next_in_list; /* Linked list of signers */
 };
 
 

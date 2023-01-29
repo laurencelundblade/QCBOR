@@ -1782,7 +1782,7 @@ int_fast32_t crypto_context_test()
 
     /* __3__ Successfully verify with a set crypto context  */
     t_cose_signature_verify_main_init(&verifier);
-    t_cose_signature_verify_main_set_key(&verifier, key_pair);
+    t_cose_signature_verify_main_set_key(&verifier, key_pair, NULL_Q_USEFUL_BUF_C);
     t_cose_signature_verify_main_set_crypto_context(&verifier, &crypto_context);
     crypto_context.test_error = T_COSE_SUCCESS;
     t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);

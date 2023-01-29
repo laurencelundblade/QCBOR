@@ -1,7 +1,7 @@
 /*
  * t_cose_signature_verify_eddsa.h
  *
- * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2022-2023, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 11/18/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -35,6 +35,8 @@ struct t_cose_signature_verify_eddsa {
     void                           *param_decode_cb_context;
     uint32_t                        option_flags;
 
+    struct q_useful_buf_c           verification_kid;
+
 
     /**
      * A auxiliary buffer provided by the caller, used to serialize
@@ -59,7 +61,8 @@ t_cose_signature_verify_eddsa_init(struct t_cose_signature_verify_eddsa *me,
 
 static void
 t_cose_signature_verify_eddsa_set_key(struct t_cose_signature_verify_eddsa *me,
-                                      struct t_cose_key verification_key);
+                                      struct t_cose_key verification_key,
+                                      struct q_useful_buf_c verification_kid);
 
 static void
 t_cose_signature_verify_eddsa_set_param_decoder(struct t_cose_signature_verify_eddsa *me,
@@ -127,9 +130,11 @@ t_cose_signature_verify_from_eddsa(struct t_cose_signature_verify_eddsa *context
 
 static inline void
 t_cose_signature_verify_eddsa_set_key(struct t_cose_signature_verify_eddsa *me,
-                                      struct t_cose_key verification_key)
+                                      struct t_cose_key verification_key,
+                                      struct q_useful_buf_c verification_kid)
 {
     me->verification_key = verification_key;
+    me->verification_kid = verification_kid;
 }
 
 static inline void
