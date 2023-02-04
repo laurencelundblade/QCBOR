@@ -131,7 +131,7 @@ is_soft_verify_error(enum t_cose_err_t error)
         case T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
         case T_COSE_ERR_KID_UNMATCHED:
         case T_COSE_ERR_UNSUPPORTED_HASH:
-        case T_COSE_ERR_DECLINE_TO_VERIFY:
+        case T_COSE_ERR_DECLINE:
             return true;
         default:
             return false;

@@ -135,12 +135,28 @@ extern "C" {
  * to another is so varied, this is whe *re the abstract base class is
  * necessary.
  *
+ *
+ * Notes on objects
+ *
  * Note that this use object-orientation here gives some very nice
  * modularity and extensibility. New types of COSE_recipient can be
  * added to COSE_Encrypt and COSE_Mac without changing their
  * implementation at all. It is als *o possible to add new types of
  * recipients without even modifying the main t_cose library.
  *
+ * This effectively gives dynamic linking for a lot of code that
+ * makes dead-stripping by the linker more effective and requires
+ * less use of #defines to reduce object code size. For example,
+ * if a switch were used to select EdDSA, all the EdDSA code would
+ * always be linked unless it was #ifdef'd out. With this design
+ * not calling the EdDSA signer init function removes all reference
+ * to EdDSA and it will be dead-stripped.
+ *
+ * This design should faciliate a lot of variance and innovation
+ * in signers and encryptors, for example faciliating key
+ * database look ups, use of certificates, counter signatures
+ * and such, all without changing the source or even object
+ * code of the core t_cose library.
  * 
  * COSE_Key 
  *
@@ -317,8 +333,9 @@ struct t_cose_key {
  *
  * Explicit values are included because some tools like debuggers show
  * only the value, not the symbol, and it is hard to count up through
- * 35 lines to figure out the actual value.
+ * 50-plus lines to figure out the actual value.
  */
+// TODO: renumber grouping unsupported algorithm errors together
 enum t_cose_err_t {
     /** Operation completed successfully. */
     T_COSE_SUCCESS = 0,
@@ -595,20 +612,23 @@ enum t_cose_err_t {
 
     /* A verifier declined to verify a COSE_Signature for a reason other
      * than algorithm ID or kid. */
-    T_COSE_ERR_DECLINE_TO_VERIFY = 67,
+    T_COSE_ERR_DECLINE = 67,
 
     /* Trying to protect a parameter when not possible, for example,
      * in an AES Keywrap COSE_Recipient. */
     T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED = 68,
 
+    T_COSE_ERR_RECIPIENT_FORMAT = 69,
+
+
     /* No more COSE_Signatures or COSE_Recipients. Returned by
      * COSE_Signature and COSE_Recipient implementations. */
-    T_COSE_ERR_NO_MORE = 69,
+    T_COSE_ERR_NO_MORE = 70,
 
     /* A newer version of QCBOR is needed to processes multiple
      * COSE_Signature or COSE_Recipients.  (As of Jan 2023, this
      * QCBOR is not released) */
-    T_COSE_ERR_CANT_PROCESS_MULTIPLE = 70
+    T_COSE_ERR_CANT_PROCESS_MULTIPLE = 71
 };
 
 

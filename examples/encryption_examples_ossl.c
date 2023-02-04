@@ -52,7 +52,7 @@ direct_detached_example()
     Q_USEFUL_BUF_MAKE_STACK_UB(    decrypted_payload_buf, 1024);
     struct t_cose_encrypt_dec_ctx  dec_ctx;
 
-    printf("\n-- 3a. Create COSE_Encrypt0 with detached payload (direct encryption) --\n\n");
+    printf("\n-- 3a. Create COSE_Encrypt0 with detached payload --\n\n");
     /* This is the simplest form of COSE encryption, a COSE_Encrypt0.
      * It has only headers and the ciphertext.
      *
@@ -78,20 +78,11 @@ direct_detached_example()
      * There is no COSE_Recipient so t_cose_encrypt_add_recipient() is
      * not called.
      *
-     * Direct encryption is always a COSE_Encrypt0 and a COSE_Encrypt0
-     * is always direct encryption.
-     *
-     * The encryption key is conveyed separately.
-     *
-     * No kid is provided in line with the examples of Encrypt0
-     * in RFC 9052. RFC 9052 text describing Encrypt0 also implies that
-     * no kid should be needed, but it doesn't seem to prohibit
-     * the kid header and t_cose will allow it to be present.
      */
     make_ossl_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
                                   &cek);
-    t_cose_encrypt_set_key(&enc_context, cek, NULL_Q_USEFUL_BUF_C);
+    t_cose_encrypt_set_cek(&enc_context, cek);
 
     err = t_cose_encrypt_enc(&enc_context,
                               Q_USEFUL_BUF_FROM_SZ_LITERAL("This is a real plaintext."),
@@ -107,11 +98,11 @@ direct_detached_example()
     print_bytestr(encrypted_payload.ptr, encrypted_payload.len);
     printf("\n");
 
-    printf("\n-- 3b. Process COSE_Encrypt0 with detached payload (direct encryption) --\n\n");
+    printf("\n-- 3b. Process COSE_Encrypt0 with detached payload --\n\n");
 
-    t_cose_encrypt_dec_init(&dec_ctx, 0, T_COSE_KEY_DISTRIBUTION_DIRECT);
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0);
 
-    t_cose_encrypt_dec_set_private_key(&dec_ctx, cek, NULL_Q_USEFUL_BUF_C);
+    t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
 
     err = t_cose_encrypt_dec(&dec_ctx,
                              (uint8_t *)(uintptr_t)encrypted_cose_message.ptr, encrypted_cose_message.len,

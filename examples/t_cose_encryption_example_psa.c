@@ -30,6 +30,7 @@
 #include "psa/crypto.h"
 #include "t_cose_crypto.h"
 #include "t_cose/t_cose_recipient_enc_hpke.h"
+#include "t_cose/t_cose_recipient_dec_hpke.h"
 
 #define DETACHED_PAYLOAD     1
 #define INCLUDED_PAYLOAD     2
@@ -170,11 +171,11 @@ int test_cose_encrypt(uint32_t options,
                       struct q_useful_buf_c kid
                      )
 {
-    struct t_cose_encrypt_enc enc_ctx;
-    enum t_cose_err_t result;
-    struct q_useful_buf_c encrypted_firmware_final;
+    struct t_cose_encrypt_enc        enc_ctx;
+    enum t_cose_err_t                result;
+    struct q_useful_buf_c            encrypted_firmware_final;
     struct t_cose_recipient_enc_hpke recipient;
-    struct q_useful_buf_c encrypt_cose;
+    struct q_useful_buf_c            encrypt_cose;
 
     t_cose_recipient_enc_hpke_init(&recipient, key_exchange);
     t_cose_recipient_enc_hpke_set_key(&recipient,
@@ -244,16 +245,22 @@ int test_cose_encrypt(uint32_t options,
 
 
 #include "t_cose/t_cose_recipient_enc_aes_kw.h"
+#include "t_cose/t_cose_recipient_dec_aes_kw.h"
 static int key_wrap_example(void)
 {
     struct t_cose_recipient_enc_keywrap kw_recipient;
-    struct t_cose_encrypt_enc       enc_context;
+    struct t_cose_encrypt_enc           enc_context;
+    struct t_cose_recipient_dec_keywrap kw_unwrap_recipient;
+    struct t_cose_encrypt_dec_ctx       dec_context;
     enum t_cose_err_t                   err;
     struct t_cose_key                   kek;
     struct q_useful_buf_c               encrypted_cose_message;
     struct q_useful_buf_c               encrypted_payload;
+    struct q_useful_buf_c               decrypted_payload;
     Q_USEFUL_BUF_MAKE_STACK_UB(         cose_message_buf, 1024);
     Q_USEFUL_BUF_MAKE_STACK_UB(         encrypted_payload_buf, 1024);
+    Q_USEFUL_BUF_MAKE_STACK_UB(         decrypted_payload_buf, 1024);
+
 
 
     printf("\n-- 4a. Create COSE_Encrypt with detached payload using AES-KW --\n\n");
@@ -263,7 +270,7 @@ static int key_wrap_example(void)
      *
      * The wrapping key, the KEK, is just the bytes "aaaa....".  The
      * API requires input keys be struct t_cose_key so there's a
-     * little work to do.
+     * little work to do here.
      */
     // TODO: should th algorithm ID be T_COSE_ALGORITHM_A128KW?
     make_psa_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
@@ -327,6 +334,23 @@ static int key_wrap_example(void)
     print_bytestr(encrypted_payload.ptr, encrypted_payload.len);
     printf("\n");
 
+
+    t_cose_encrypt_dec_init(&dec_context, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT);
+
+    t_cose_recipient_dec_keywrap_init(&kw_unwrap_recipient);
+    t_cose_recipient_dec_keywrap_set_kek(&kw_unwrap_recipient, kek, NULL_Q_USEFUL_BUF_C);
+
+    t_cose_encrypt_dec_add_recipient(&dec_context, (struct t_cose_recipient_dec *)&kw_unwrap_recipient);
+
+    err = t_cose_encrypt_dec(&dec_context,
+                       encrypted_cose_message.ptr, /* ciphertext */
+                       encrypted_cose_message.len,
+                       NULL, /* aad */
+                       0,
+                       decrypted_payload_buf.ptr, decrypted_payload_buf.len,
+                             &decrypted_payload);
+
+
     return 0;
 }
 
@@ -334,7 +358,7 @@ static int key_wrap_example(void)
 
 
 static void
-direct_detached_example(void)
+encrypt0_example(void)
 {
     struct t_cose_encrypt_enc  enc_context;
     enum t_cose_err_t              err;
@@ -347,7 +371,7 @@ direct_detached_example(void)
     Q_USEFUL_BUF_MAKE_STACK_UB(    decrypted_payload_buf, 1024);
     struct t_cose_encrypt_dec_ctx  dec_ctx;
 
-    printf("\n-- 3a. Create COSE_Encrypt0 with detached payload (direct encryption) --\n\n");
+    printf("\n-- 3a. Create COSE_Encrypt0 with detached payload --\n\n");
     /* This is the simplest form of COSE encryption, a COSE_Encrypt0.
      * It has only headers and the ciphertext.
      *
@@ -362,7 +386,7 @@ direct_detached_example(void)
                             T_COSE_OPT_COSE_ENCRYPT0 | T_COSE_OPT_COSE_ENCRYPT_DETACHED,
                             T_COSE_ALGORITHM_A128GCM);
 
-    /* In direct encryption, we simply make a t_cose_key for the
+    /* For COSE_Encrypt0, we simply make a t_cose_key for the
      * content encryption key, the CEK, and give it to t_cose.  It's
      * the only key there is and it is simply a key to be used with
      * AES, a string of bytes. (It is still t_cose_key, not a byte string
@@ -373,11 +397,6 @@ direct_detached_example(void)
      * There is no COSE_Recipient so t_cose_encrypt_add_recipient() is
      * not called.
      *
-     * Direct encryption is always a COSE_Encrypt0 and a COSE_Encrypt0
-     * is always direct encryption.
-     *
-     * The encryption key is conveyed separately.
-     *
      * No kid is provided in line with the examples of Encrypt0
      * in RFC 9052. RFC 9052 text describing Encrypt0 also implies that
      * no kid should be needed, but it doesn't seem to prohibit
@@ -386,7 +405,7 @@ direct_detached_example(void)
     make_psa_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
                                   Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
                                   &cek);
-    t_cose_encrypt_set_key(&enc_context, cek, NULL_Q_USEFUL_BUF_C);
+    t_cose_encrypt_set_cek(&enc_context, cek);
 
     err = t_cose_encrypt_enc(&enc_context,
                               Q_USEFUL_BUF_FROM_SZ_LITERAL("This is a real plaintext."),
@@ -394,7 +413,9 @@ direct_detached_example(void)
                              &encrypted_payload,
                               cose_message_buf,
                              &encrypted_cose_message);
-
+    if(err != T_COSE_SUCCESS) {
+        printf("Encryption Failed %d\n", err);
+    }
 
     printf("COSE: ");
     print_bytestr(encrypted_cose_message.ptr, encrypted_cose_message.len);
@@ -402,11 +423,11 @@ direct_detached_example(void)
     print_bytestr(encrypted_payload.ptr, encrypted_payload.len);
     printf("\n");
 
-    printf("\n-- 3b. Process COSE_Encrypt0 with detached payload (direct encryption) --\n\n");
+    printf("\n-- 3b. Process COSE_Encrypt0 with detached payload --\n\n");
 
-    t_cose_encrypt_dec_init(&dec_ctx, 0, T_COSE_KEY_DISTRIBUTION_DIRECT);
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0);
 
-    t_cose_encrypt_dec_set_private_key(&dec_ctx, cek, NULL_Q_USEFUL_BUF_C);
+    t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
 
     // TODO: fix this cast to non-const
     err = t_cose_encrypt_dec(&dec_ctx,
@@ -416,7 +437,7 @@ direct_detached_example(void)
                              &decrypted_cose_message);
 
     if (err != T_COSE_SUCCESS) {
-        printf("\nDecryption failed!\n");
+        printf("\nDecryption failed %d!\n", err);
         return;
     }
 
@@ -425,27 +446,12 @@ direct_detached_example(void)
 }
 
 
-
-
 int main(void)
 {
     psa_status_t status;
-    uint8_t firmware[] = "This is a real plaintext.";
-    size_t firmware_len = sizeof(firmware);
-    uint8_t encrypted_firmware[BUFFER_SIZE] = {0};
-    size_t encrypted_firmware_len = sizeof(encrypted_firmware)-1;
-    uint8_t buffer[BUFFER_SIZE] = {0};
-    size_t result_len;
-    size_t encrypted_firmware_result_len;
-    int res = 0;
-   psa_key_attributes_t psk_attributes = PSA_KEY_ATTRIBUTES_INIT;
+    psa_key_attributes_t psk_attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_handle_t psk_handle = 0;
-    struct t_cose_encrypt_dec_ctx dec_ctx;
-    enum t_cose_err_t ret;
 
-    uint8_t plaintext[400];
-
-    struct q_useful_buf_c plain_text_ubc;
 
     /* Key id for PSK */
     // TODO: sort out which kid for PSK
@@ -528,6 +534,22 @@ int main(void)
     }
 
 #ifndef T_COSE_DISABLE_HPKE
+    uint8_t firmware[] = "This is a real plaintext.";
+    size_t firmware_len = sizeof(firmware);
+    uint8_t encrypted_firmware[BUFFER_SIZE] = {0};
+
+    size_t encrypted_firmware_len = sizeof(encrypted_firmware)-1;
+    uint8_t buffer[BUFFER_SIZE] = {0};
+    size_t result_len;
+    size_t encrypted_firmware_result_len;
+    int res = 0;
+
+    struct t_cose_encrypt_dec_ctx dec_ctx;
+    enum t_cose_err_t ret;
+
+    uint8_t plaintext[400];
+
+    struct q_useful_buf_c plain_text_ubc;
 
     /* -------------------------------------------------------------------------*/
 
@@ -562,11 +584,13 @@ int main(void)
     printf("\n-- 1b. Process COSE_Encrypt with detached payload using HPKE --\n\n");
 
 
+    struct t_cose_recipient_dec_hpke dec_recipient;
 
+    t_cose_recipient_dec_hpke_init(&dec_recipient);
+    t_cose_recipient_dec_hpke_set_skr(&dec_recipient, t_cose_skR_key, Q_USEFUL_BUF_FROM_SZ_LITERAL(KID2));
 
-    t_cose_encrypt_dec_init(&dec_ctx, 0, T_COSE_KEY_DISTRIBUTION_HPKE);
-
-    t_cose_encrypt_dec_set_private_key(&dec_ctx, t_cose_skR_key, Q_USEFUL_BUF_FROM_SZ_LITERAL(KID2));
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT);
+    t_cose_encrypt_dec_add_recipient(&dec_ctx, (struct t_cose_recipient_dec *)&dec_recipient);
 
     ret = t_cose_encrypt_dec(&dec_ctx,
                              buffer, result_len, //sizeof(buffer),
@@ -608,9 +632,11 @@ int main(void)
 
     printf("\n-- 2b. Process COSE_Encrypt with included payload using HPKE --\n\n");
 
-    t_cose_encrypt_dec_init(&dec_ctx, 0, T_COSE_KEY_DISTRIBUTION_HPKE);
+    t_cose_recipient_dec_hpke_init(&dec_recipient);
+    t_cose_recipient_dec_hpke_set_skr(&dec_recipient, t_cose_skR_key, Q_USEFUL_BUF_FROM_SZ_LITERAL(KID2));
 
-    t_cose_encrypt_dec_set_private_key(&dec_ctx, t_cose_skR_key, Q_USEFUL_BUF_FROM_SZ_LITERAL(KID2));
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT);
+    t_cose_encrypt_dec_add_recipient(&dec_ctx, (struct t_cose_recipient_dec *)&dec_recipient);
 
 
     ret = t_cose_encrypt_dec(&dec_ctx,
@@ -637,7 +663,7 @@ int main(void)
 #endif /* T_COSE_DISABLE_HPKE */
 
 
-    direct_detached_example();
+    encrypt0_example();
 
 
 #ifndef T_COSE_DISABLE_AES_KW

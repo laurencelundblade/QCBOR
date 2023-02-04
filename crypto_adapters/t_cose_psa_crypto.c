@@ -829,6 +829,14 @@ t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
     mbedtls_nist_kw_free(&kw_context);
 
     return T_COSE_SUCCESS;
+
+    /* Here's a personal commentary on the Mbed/PSA API -- it's worse
+     * that the other Mbed/PSA APIs so this adaptor function is
+     * actually kind of large. It would be better if it took
+     * a key handle as input rather than a key. It would better if it
+     * combined setkey and init to save a function call. It's
+     * not clear fro the API documentation whether it does any
+     * checking on the key size. */
 #endif /* NO_MBED_KW_API */
 }
 

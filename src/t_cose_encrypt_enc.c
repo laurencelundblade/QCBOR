@@ -103,12 +103,8 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
                                nonce_result
                               );
 
-    /* Add kid */
-    if ((context->option_flags & T_COSE_OPT_COSE_ENCRYPT0) > 0) {
-        QCBOREncode_AddBytesToMapN(&encrypt_ctx,
-                                   T_COSE_HEADER_PARAM_KID,
-                                   context->cek_kid);
-    }
+    /* TODO: kid is going to get handled when this switches to t_cose_encode_parameters() */
+
 
     /* Close unprotected header map */
     QCBOREncode_CloseMap(&encrypt_ctx);

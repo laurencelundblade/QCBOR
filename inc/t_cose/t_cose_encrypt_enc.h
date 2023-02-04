@@ -161,7 +161,6 @@ struct t_cose_encrypt_enc {
     uint8_t                             recipients;
     struct t_cose_recipient_enc        *recipients_list;
     struct t_cose_key                   cek;
-    struct q_useful_buf_c               cek_kid;
 };
 
 
@@ -217,19 +216,32 @@ t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc    *context,
                              struct t_cose_recipient_enc  *recipient);
 
 
+// TODO: add methods for custom headers parameters in the body
 
 /**
  * \brief Set the content-encryption key, the CEK
  *
  *
- * This is required for direct encryption when there is no recipient.
- * RFC 9052 discourages setting the kid here, but this implementation
- * allows it. It is typically NULL here
+ * This is required for COSE_Encrypt0 when there is no recipient. This
+ * may be used for COSE_Encrypt to explicitly set the CEK. If it is not
+ * called the CEK will automatically be generated using the random
+ * number generator. (Which random number generator depends on the
+ * crypto adaptor layer, but is usually the highest-quality generator
+ * on the device. Typically the port of OpenSSL or MbedTLS to the
+ * particular platform will use the highest-quality generator).
+ *
+ * RFC 9052 section 5.2 discourages setting the kid for COSE_Encrypt0
+ * so this API doesn't faciliate it, but the API to add custom body headers
+ * can be used.
+ *
+ * RFC 9052 uses the term "direct" encryption sometimes to refer to
+ * COSE_Encrypt0, but much more prevalentaly uses it to refer to a
+ * type of COSE_Recipient. See the t_cose_recipient_direct (which hasn't
+ * been created yet)
  */
 static void
-t_cose_encrypt_set_key(struct t_cose_encrypt_enc *context,
-                       struct t_cose_key          cek,
-                       struct q_useful_buf_c      kid);
+t_cose_encrypt_set_cek(struct t_cose_encrypt_enc *context,
+                       struct t_cose_key          cek);
 
 
 /**
@@ -285,12 +297,10 @@ t_cose_encrypt_enc_init(struct t_cose_encrypt_enc *context,
 
 
 static inline void
-t_cose_encrypt_set_key(struct t_cose_encrypt_enc *context,
-                       struct t_cose_key          cek,
-                       struct q_useful_buf_c      cek_kid)
+t_cose_encrypt_set_cek(struct t_cose_encrypt_enc *context,
+                       struct t_cose_key          cek)
 {
-    context->cek     = cek;
-    context->cek_kid = cek_kid;
+    context->cek = cek;
 }
 
 #ifdef __cplusplus

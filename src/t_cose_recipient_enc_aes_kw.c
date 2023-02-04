@@ -1,5 +1,5 @@
-/**
- * \file t_cose_recipient_enc_aes_kw.c
+/*
+ * t_cose_recipient_enc_aes_kw.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
@@ -49,7 +49,14 @@ t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
     if (return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    if(!q_useful_buf_c_is_null(protected_params_not)) {
+    if(protected_params_not.len &&
+       q_useful_buf_compare(protected_params_not, Q_USEFUL_BUF_FROM_SZ_LITERAL("\xa0"))) {
+        /* Empty protected params can either be an empty bstr or a bstr
+         * with an empty map. Make sure they are empty here per section 5.4
+         * of RFC 9052.
+         */
+        // TODO: Erata for 9052?
+        // 5.4 says this must be an empty bstr. 3 says either empty map or empty bstr.
         return_value = T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED;
         goto Done;
     }

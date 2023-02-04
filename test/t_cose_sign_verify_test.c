@@ -1003,6 +1003,11 @@ int_fast32_t sign_verify_multi(void)
     struct q_useful_buf            empty_buf;
 
 
+    if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES512)) {
+        /* T_COSE_ALGORITHM_ES512 is required for this test */
+        return 0;
+    }
+
     result = make_key_pair(T_COSE_ALGORITHM_ES256, &key_pair1);
     if(result) {
         return 1000 + (int32_t)result;
