@@ -36,6 +36,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define qcbor_common_h
 
 
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} // Keep editor indention formatting happy
+#endif
+#endif
+
+
 /**
  @file qcbor_common.h
 
@@ -601,5 +609,9 @@ const char *qcbor_err_to_str(QCBORError err);
  */
 #define QCBOR_MAX_CUSTOM_TAGS    16
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* qcbor_common_h */
