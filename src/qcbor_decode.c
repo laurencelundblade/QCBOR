@@ -46,6 +46,44 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
 
+#if (defined(__GNUC__) && !defined(__clang__))
+/* -Wmaybe-uninitialized will generate false warnings because it
+ * doesn't do a thorough static analysis. It is known that The
+ * warnings generated for this code are false positives because 1)
+ * each case was examined and 2) this code has been run through proper
+ * static analyzers.
+ *
+ * What is reported by -Wmaybe-uninitialized varies by GCC version,
+ * target OS and optimizer settings. Sometimes it's on with -Wall and
+ * some times it's not. Compilers that aren't GCC (e.g., clang)
+ * pretend to be GCC and don't know about this warn option. It's kind
+ * of a mess...  :-(
+ *
+ * There are no warnings for qcbode_decode.c with
+ * -Wuninitialized. Presumably the difference is that -Wuninitialized
+ * only reports issues that are clearly issues that have no
+ * possibility of a false positive.
+ *
+ * This pragma disables the warning for -Wmaybe-uninitialized for the whole file so the source
+ * code is kept a bit cleaner and nicer, in particularly because what
+ * this warns about is so variable.
+ *
+ * Another way to solve this is to provide initializations. The
+ * problem with this is that they make the code bigger,
+ * but even worse, just initializing without understanding what
+ * the code does and what it should be initialized to understand if it really
+ * isn't initialized is just as bad for the end correctness as
+ * suppressing the warning without checking the code.
+ *
+ * Most of the warnings are about Item.Item->uDataType being
+ * unitialized. QCBORDecode_GetNext() *always* sets this value. -Wmaybe-uninitialized
+ * just can't tell.
+ *
+ * https://stackoverflow.com/questions/5080848/disable-gcc-may-be-used-uninitialized-on-a-particular-variable
+ */
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif 
+
 
 #define SIZEOF_C_ARRAY(array,type) (sizeof(array)/sizeof(type))
 
@@ -3202,7 +3240,6 @@ MapSearch(QCBORDecodeContext *pMe,
       if(uReturn != QCBOR_SUCCESS) {
          goto Done;
       }
-
    } while (uNextNestLevel >= uMapNestLevel);
 
    uReturn = QCBOR_SUCCESS;
@@ -3308,7 +3345,7 @@ static QCBORError
 CheckTypeList(int uDataType, const uint8_t puTypeList[QCBOR_TAGSPEC_NUM_TYPES])
 {
    for(size_t i = 0; i < QCBOR_TAGSPEC_NUM_TYPES; i++) {
-      if(uDataType == puTypeList[i]) {
+      if(uDataType == puTypeList[i]) { /* -Wmaybe-uninitialized falsly warns here */
          return QCBOR_SUCCESS;
       }
    }
@@ -3344,10 +3381,11 @@ CheckTypeList(int uDataType, const uint8_t puTypeList[QCBOR_TAGSPEC_NUM_TYPES])
 static QCBORError
 CheckTagRequirement(const TagSpecification TagSpec, const QCBORItem *pItem)
 {
-   const int nItemType = pItem->uDataType;
+   const int nItemType = pItem->uDataType; /* -Wmaybe-uninitialized falsly warns here */
    const int nTagReq = TagSpec.uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS;
 
 #ifndef QCBOR_DISABLE_TAGS
+   /* -Wmaybe-uninitialized falsly warns here */
    if(!(TagSpec.uTagRequirement & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS) &&
       pItem->uTags[0] != CBOR_TAG_INVALID16) {
       /* There are tags that QCBOR couldn't process on this item and
@@ -5189,7 +5227,7 @@ void QCBORDecode_GetUInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
 static QCBORError
 UInt64ConvertAll(const QCBORItem *pItem, uint32_t uConvertTypes, uint64_t *puValue)
 {
-   switch(pItem->uDataType) {
+   switch(pItem->uDataType) { /* -Wmaybe-uninitialized falsly warns here */
 
       case QCBOR_TYPE_POSBIGNUM:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIG_NUM) {
