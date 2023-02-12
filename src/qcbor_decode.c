@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2022, Laurence Lundblade.
+ Copyright (c) 2018-2023, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -47,42 +47,52 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #if (defined(__GNUC__) && !defined(__clang__))
-/* -Wmaybe-uninitialized will generate false warnings because it
- * doesn't do a thorough static analysis. It is known that The
- * warnings generated for this code are false positives because 1)
- * each case was examined and 2) this code has been run through proper
- * static analyzers.
+/* 
+ * This is how the -Wmaybe-uninitialized compiler warning is
+ * handled. It can’t be ignored because some version of gcc enable it
+ * with -Wall which is a common and useful gcc warning option. It also
+ * can’t be ignored because it is the goal of QCBOR to compile clean
+ * out of the box in all environments.
  *
- * What is reported by -Wmaybe-uninitialized varies by GCC version,
- * target OS and optimizer settings. Sometimes it's on with -Wall and
- * some times it's not. Compilers that aren't GCC (e.g., clang)
- * pretend to be GCC and don't know about this warn option. It's kind
- * of a mess...  :-(
+ * The big problem with -Wmaybe-uninitialized is that it generates
+ * false positives. It complains things are uninitialized when they
+ * are not. This is because it is not a thorough static analyzer. This
+ * is why “maybe” is in its name. The problem is it is just not
+ * thorough enough to understand all the code (and someone saw fit to
+ * put it in gcc and worse to enable it with -Wall).
  *
- * There are no warnings for qcbode_decode.c with
- * -Wuninitialized. Presumably the difference is that -Wuninitialized
- * only reports issues that are clearly issues that have no
- * possibility of a false positive.
+ * One solution would be to change the code so -Wmaybe-uninitialized
+ * doesn’t get confused, for example adding an unnecessary extra
+ * initialization to zero. (If variables were truly uninitialized, the
+ * correct path is to understand the code thoroughly and set them to
+ * the correct value at the correct time; in essence this is already
+ * done; -Wmaybe-uninitialized just can’t tell). This path is not
+ * taken because it makes the code bigger and is kind of the tail
+ * wagging the dog.
  *
- * This pragma disables the warning for -Wmaybe-uninitialized for the whole file so the source
- * code is kept a bit cleaner and nicer, in particularly because what
- * this warns about is so variable.
+ * The solution here is to just use a pragma to disable it for the
+ * whole file. Disabling it for each line makes the code fairly ugly
+ * requiring #pragma to push, pop and ignore. Another reason is the
+ * warnings issues vary by version of gcc and which optimization
+ * optimizations are selected. Another reason is that compilers other
+ * than gcc don’t have -Wmaybe-uninitialized.
  *
- * Another way to solve this is to provide initializations. The
- * problem with this is that they make the code bigger,
- * but even worse, just initializing without understanding what
- * the code does and what it should be initialized to understand if it really
- * isn't initialized is just as bad for the end correctness as
- * suppressing the warning without checking the code.
+ * One may ask how to be sure these warnings are false positives and
+ * not real issues. 1) The code has been read carefully to check. 2)
+ * Testing is pretty thorough. 3) This code has been run through
+ * thorough high-quality static analyzers.
  *
- * Most of the warnings are about Item.Item->uDataType being
- * unitialized. QCBORDecode_GetNext() *always* sets this value. -Wmaybe-uninitialized
- * just can't tell.
+ * In particularly, most of the warnings are about
+ * Item.Item->uDataType being uninitialized. QCBORDecode_GetNext()
+ * *always* sets this value and test case confirm
+ * this. -Wmaybe-uninitialized just can't tell.
  *
  * https://stackoverflow.com/questions/5080848/disable-gcc-may-be-used-uninitialized-on-a-particular-variable
  */
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif 
+
+
 
 
 #define SIZEOF_C_ARRAY(array,type) (sizeof(array)/sizeof(type))
