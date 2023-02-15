@@ -2,21 +2,21 @@
  * t_cose_encrypt_enc.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * See BSD-3-Clause license in README.md
  */
+
+
+#include <stdlib.h>
+#include "qcbor/qcbor_encode.h"
 #include "t_cose/t_cose_encrypt_enc.h"
 #include "t_cose/t_cose_standard_constants.h"
-#include "qcbor/qcbor.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include "qcbor/qcbor_spiffy_decode.h"
-#include "t_cose_crypto.h"
 #include "t_cose/t_cose_common.h"
-#include "t_cose/t_cose_recipient_enc_hpke.h"
-#include "t_cose/t_cose_recipient_enc_aes_kw.h"
+#include "t_cose/t_cose_recipient_enc.h"
+#include "t_cose_crypto.h"
 
 
 enum t_cose_err_t

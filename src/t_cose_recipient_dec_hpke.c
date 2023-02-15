@@ -13,16 +13,15 @@
 
 #ifndef T_COSE_DISABLE_HPKE
 
-#include "t_cose/t_cose_recipient_dec_hpke.h"  /* Interface implemented */
-#include "hpke.h"
-#include "qcbor/qcbor_spiffy_decode.h"
-#include "t_cose_crypto.h"
-#include "t_cose/t_cose_encrypt_enc.h"
 #include <stdint.h>
-#include <stdbool.h>
+#include "qcbor/qcbor_spiffy_decode.h"
+#include "t_cose/t_cose_recipient_dec_hpke.h"  /* Interface implemented */
+#include "t_cose/t_cose_encrypt_enc.h"
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_standard_constants.h"
+#include "t_cose_crypto.h"
+#include "hpke.h"
 
 
 /**

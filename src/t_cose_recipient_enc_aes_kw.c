@@ -10,11 +10,11 @@
  *
  */
 
-#include "t_cose/t_cose_recipient_enc_aes_kw.h" /* Interface implemented */
 #include "qcbor/qcbor_encode.h"
-#include "t_cose_crypto.h"
+#include "t_cose/t_cose_recipient_enc_aes_kw.h" /* Interface implemented */
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
+#include "t_cose_crypto.h"
 
 
 #ifndef T_COSE_DISABLE_AES_KW

@@ -14,9 +14,9 @@
 #define t_cose_parameters_h
 
 #include <stdint.h>
+#include "qcbor/qcbor.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
-#include "qcbor/qcbor.h"
 #include "t_cose/t_cose_standard_constants.h"
 
 #ifdef __cplusplus

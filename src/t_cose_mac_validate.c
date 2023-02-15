@@ -9,9 +9,9 @@
 
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
-#include "t_cose_crypto.h"
 #include "t_cose/t_cose_mac_validate.h"
 #include "t_cose_util.h"
+#include "t_cose_crypto.h"
 
 #ifndef T_COSE_DISABLE_MAC0
 

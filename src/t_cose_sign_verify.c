@@ -10,12 +10,9 @@
 
 
 #include "qcbor/qcbor_decode.h"
-#ifndef QCBOR_SPIFFY_DECODE
-#error This t_cose requires a version of QCBOR that supports spiffy decode
-#endif
 #include "qcbor/qcbor_spiffy_decode.h"
-#include "t_cose/t_cose_sign_verify.h"
 #include "t_cose/q_useful_buf.h"
+#include "t_cose/t_cose_sign_verify.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose/t_cose_signature_verify.h"
 #include "t_cose_util.h"

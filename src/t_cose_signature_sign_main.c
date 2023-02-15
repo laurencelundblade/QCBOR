@@ -1,7 +1,7 @@
 /*
  * t_cose_signature_sign_main.c
  *
- * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 5/23/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -9,13 +9,15 @@
  * See BSD-3-Clause license in README.md
  */
 
-
+#include "qcbor/qcbor_encode.h"
+#include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_signature_sign_main.h"
 #include "t_cose/t_cose_signature_sign.h"
 #include "t_cose/t_cose_common.h"
-#include "t_cose_crypto.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_util.h"
+#include "t_cose_crypto.h"
+
 
 /** This is an implementation of \ref t_cose_signature_sign_headers_cb */
 static void

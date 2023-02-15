@@ -8,8 +8,8 @@
  * See BSD-3-Clause license in README.md
  */
 
-#include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/q_useful_buf.h"
+#include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose/t_cose_sign_verify.h"
 #include "t_cose/t_cose_standard_constants.h"

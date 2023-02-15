@@ -14,10 +14,9 @@
 #define __T_COSE_UTIL_H__
 
 #include <stdint.h>
+#include "qcbor/qcbor_common.h" /* For QCBORError */
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
-#include "qcbor/qcbor_common.h" /* For QCBORError */
-#include "t_cose/t_cose_signature_sign.h"
 
 #ifdef __cplusplus
 extern "C" {

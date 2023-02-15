@@ -1,7 +1,6 @@
-# Makefile -- UNIX-style make for t_cose using crypto with Mbed Crypto
-# Mbed Crypto uses the PSA Crypto interface
+# Makefile.psa --  Makefile for t_cose with the Mbed TLS crypto library
 #
-# Copyright (c) 2019-2022, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2019-2023, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
 # Copyright (c) 2022, Arm Limited. All rights reserved.
 #
@@ -10,44 +9,56 @@
 # See BSD-3-Clause license in README.md
 #
 
-# ---- comment ----
-# This is for PSA Crypto / Mbed Crypto. See longer explanation in README.md
-# Adjust CRYPTO_INC and CRYPTO_LIB for the
-# location of the openssl libraries on your build machine.
+
+# ---- General comment ----
+
+# This makefile is for t_cose with the Mbed TLS crypto library. Mbed
+# TLS is an implementation of the PSA crypto API.  See longer
+# explanation in README.md. Adjust CRYPTO_INC and CRYPTO_LIB for the
+# location of the Mbed TLS library on your build machine.
+
+# Makefile.common, included below, contains the lists of library, test
+# and example object files that are invariant by crypto library.
 
 
 # ---- QCBOR location ----
 
 # This is for direct reference to QCBOR that is not installed in
-# /usr/local or some system location. The path may need to be
-# adjusted for your location of QCBOR.
+# /usr/local or some system location. The path may need to be adjusted
+# for your location of QCBOR.
 #QCBOR_DIR=../../QCBOR/master
 #QCBOR_INC=-I $(QCBOR_DIR)/inc
 #QCBOR_LIB=$(QCBOR_DIR)/libqcbor.a
 
-# This is for reference to QCBOR that has been installed in
-# /usr/local/ or in some system location. This will typically
-# use dynamic linking if there is a libqcbor.so
+# This is for reference to QCBOR that is installed in /usr/local or in
+# some system location. This will typically use dynamic linking if
+# there is a libqcbor.so
 QCBOR_INC=-I /usr/local/include
 QCBOR_LIB=-lqcbor
 
 
 # ---- crypto configuration -----
 
-# These two are for direct reference to Mbed Crypto that is not installed
-# in /usr/local/ /usr/local or some system location. The path names
-# may need to be adjusted for your location of Mbed Crypto
+# These two are for direct reference to Mbed TLS crypto that is not
+# installed in /usr/local or some system location. The path names may
+# need to be adjusted for your location of Mbed TLS
 #CRYPTO_INC=-I ../../mbedtls/include/
 #CRYPTO_LIB=../../mbedtls/library/libmbedcrypto.a
 
-# These two are for reference to Mbed Crypto that has been installed in
-# /usr/local/ or in some system location.
+# These two are for reference to Mbed TLS that has been installed in
+# /usr/local or in some system location.
 CRYPTO_LIB=-l mbedcrypto
 CRYPTO_INC=-I /usr/local/include
 
 CRYPTO_CONFIG_OPTS=-DT_COSE_USE_PSA_CRYPTO
 CRYPTO_OBJ=crypto_adapters/t_cose_psa_crypto.o
 CRYPTO_TEST_OBJ=test/t_cose_make_psa_test_key.o
+
+
+# ---- other configuration ----
+# Use as needed. It has been used to disable features that aren't ready
+# or that aren't passing tests
+OTHER_OPTS=
 
 
 # ---- compiler configuration -----
@@ -62,76 +73,55 @@ CRYPTO_TEST_OBJ=test/t_cose_make_psa_test_key.o
 C_OPTS=-Os -fPIC
 
 
-# ---- other configuration ----
-# HPKE is on for PSA, but needs some work...
-OTHER_OPTS=
-
-
-# ---- T_COSE Config and test options ----
-TEST_CONFIG_OPTS=
-TEST_OBJ=test/t_cose_test.o \
-    test/run_tests.o \
-    test/t_cose_sign_verify_test.o \
-    test/t_cose_compute_validate_mac_test.o \
-    test/t_cose_make_test_messages.o \
-    test/t_cose_crypto_test.o \
-    test/t_cose_param_test.o \
-    $(CRYPTO_TEST_OBJ)
-
-
-# ---- the main body that is invariant ----
+# ---- Aggregate includes and options ----
 INC=-I inc -I test -I src
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC)
-CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(TEST_CONFIG_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
+CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
 
-SRC_OBJ=src/t_cose_util.o \
-        src/t_cose_sign1_verify.o \
-        src/t_cose_sign1_sign.o \
-        src/t_cose_parameters.o \
-        src/t_cose_sign_sign.o \
-        src/t_cose_signature_sign_main.o \
-        src/t_cose_signature_sign_eddsa.o \
-        src/t_cose_sign_verify.o \
-        src/t_cose_signature_verify_main.o \
-        src/t_cose_signature_verify_eddsa.o \
-        src/t_cose_mac_compute.o \
-        src/t_cose_mac_validate.o \
-        src/t_cose_encrypt_enc.o \
-        src/t_cose_encrypt_dec.o \
-        src/t_cose_recipient_dec_aes_kw.o \
-        src/t_cose_recipient_enc_aes_kw.o \
-        src/t_cose_recipient_dec_hpke.o \
-        src/t_cose_recipient_enc_hpke.o \
-        src/hpke.o
 
+# ---- The build targets ----
 .PHONY: all install install_headers install_so uninstall clean warn
 
 all: libt_cose.a t_cose_test t_cose_basic_example_psa t_cose_encryption_example_psa
 
-libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
-	ar -r $@ $^
-
 # run "make warn" as a handy way to compile with the warning flags
-# used in the QCBOR release process. See CFLAGS above.
+# used in the QCBOR release process. See C_OPTS above.
 warn:
 	make -f Makefile.psa CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
 
 
-# The shared library is not made by default because of platform
+# ---- Bring in common definitions of SRC_OBJ, TEST_OBJ, ... -----
+
+include Makefile.common
+
+
+# --- Finally, the things that actually get built ----
+
+libt_cose.a: $(SRC_OBJ) $(CRYPTO_OBJ)
+	ar -r $@ $^
+
+
+# The shared library which is not made by default because of platform
 # variability For example MacOS and Linux behave differently and some
 # IoT OS's don't support them at all.
 libt_cose.so: $(SRC_OBJ) $(CRYPTO_OBJ)
 	cc -shared $^ -o $@ $(CRYPTO_LIB) $(QCBOR_LIB)
 
-t_cose_test: main.o $(TEST_OBJ) libt_cose.a
+t_cose_test: main.o $(TEST_OBJ) $(CRYPTO_TEST_OBJ) libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
-
 
 t_cose_basic_example_psa: examples/t_cose_basic_example_psa.o libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
 t_cose_encryption_example_psa: examples/t_cose_encryption_example_psa.o libt_cose.a
 	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
+
+crypto_adapters/t_cose_psa_crypto.o: crypto_adapters/t_cose_psa_crypto.c \
+                                     src/t_cose_crypto.h \
+                                     src/t_cose_util.h \
+                                     inc/t_cose/t_cose_standard_constants.h
+
+
 
 # ---- Installation ----
 ifeq ($(PREFIX),)
@@ -144,24 +134,9 @@ install: libt_cose.a install_headers
 
 install_headers: $(PUBLIC_INTERFACE)
 	install -d $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_common.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/q_useful_buf.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_sign1_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_parameters.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_sign_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_sign_main.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_sign_eddsa.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_sign1_sign.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_sign_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_verify.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_verify_main.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_signature_verify_eddsa.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_standard_constants.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_encrypt_enc.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_encrypt_dec.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_mac_compute.h $(DESTDIR)$(PREFIX)/include/t_cose
-	install -m 644 inc/t_cose/t_cose_mac_validate.h $(DESTDIR)$(PREFIX)/include/t_cose
+	@for i in $(PUBLIC_INTERFACE); do \
+	    install -m 644 $$i $(DESTDIR)$(PREFIX)/include/t_cose ; \
+	done
 
 # The shared library is not installed by default because of platform variability.
 install_so: libt_cose.so install_headers
@@ -176,129 +151,7 @@ uninstall: libt_cose.a $(PUBLIC_INTERFACE)
 		libt_cose.a libt_cose.so libt_cose.so.1 libt_cose.so.1.0.0)
 
 clean:
-	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) t_cose_basic_example_psa t_cose_encryption_example_psa t_cose_test libt_cose.a libt_cose.so examples/*.o main.o
+	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) $(CRYPTO_TEST_OBJ) $(EXAMPLE_OBJ) \
+	      t_cose_basic_example_psa t_cose_encryption_example_psa libt_cose.so examples/*.o \
+	      main.o t_cose_test libt_cose.a libt_cose.so
 
-# ---- public headers -----
-PUBLIC_INTERFACE=inc/t_cose/t_cose_common.h \
-                 inc/t_cose/t_cose_sign1_sign.h \
-                 inc/t_cose/t_cose_sign1_verify.h \
-                 inc/t_cose/t_cose_parameters.h \
-                 inc/t_cose/t_cose_sign_sign.h \
-                 inc/t_cose/t_cose_signature_sign.h \
-                 inc/t_cose/t_cose_signature_sign_main.h \
-		 inc/t_cose/t_cose_signature_sign_eddsa.h \
-                 inc/t_cose/t_cose_sign1_sign.h \
-                 inc/t_cose/t_cose_sign_verify.h \
-                 inc/t_cose/t_cose_signature_verify.h \
-                 inc/t_cose/t_cose_signature_verify_main.h\
-                 inc/t_cose/t_cose_signature_verify_eddsa.h\
-                 inc/t_cose/t_cose_standard_constants.h \
-                 inc/t_cose/t_cose_encrypt_dec.h \
-                 inc/t_cose/t_cose_encrypt_enc.h
-
-# ---- source dependecies -----
-src/t_cose_util.o: src/t_cose_util.c \
-                   src/t_cose_util.h \
-                   inc/t_cose/q_useful_buf.h \
-                   inc/t_cose/t_cose_common.h \
-                   src/t_cose_crypto.h
-
-src/t_cose_sign1_verify.o: src/t_cose_sign1_verify.c \
-                           inc/t_cose/t_cose_sign1_verify.h \
-                           inc/t_cose/q_useful_buf.h \
-                           inc/t_cose/t_cose_common.h \
-                           inc/t_cose/t_cose_parameters.h \
-                           inc/t_cose/t_cose_standard_constants.h \
-                           src/t_cose_crypto.h \
-                           src/t_cose_util.h
-
-src/t_cose_sign_verify.o: src/t_cose_sign_verify.c \
-                          inc/t_cose/t_cose_sign_verify.h \
-                          inc/t_cose/q_useful_buf.h \
-                          inc/t_cose/t_cose_common.h \
-                          inc/t_cose/t_cose_signature_verify.h \
-                          inc/t_cose/t_cose_parameters.h \
-                          inc/t_cose/t_cose_standard_constants.h \
-                          src/t_cose_crypto.h \
-                          src/t_cose_util.h
-
-src/t_cose_parameters.o: src/t_cose_parameters.c \
-                         inc/t_cose/t_cose_parameters.h \
-                         inc/t_cose/q_useful_buf.h \
-                         inc/t_cose/t_cose_common.h \
-                         inc/t_cose/t_cose_sign1_verify.h \
-                         inc/t_cose/t_cose_standard_constants.h
-
-src/t_cose_sign1_sign.o: src/t_cose_sign1_sign.c \
-                         inc/t_cose/t_cose_sign1_sign.h \
-                         inc/t_cose/q_useful_buf.h \
-                         inc/t_cose/t_cose_common.h \
-                         inc/t_cose/t_cose_parameters.h \
-                         inc/t_cose/t_cose_standard_constants.h \
-                         src/t_cose_crypto.h \
-                         src/t_cose_util.h
-
-src/t_cose_sign_sign.o: src/t_cose_sign_sign.c \
-                        inc/t_cose/t_cose_sign1_sign.h \
-                        inc/t_cose/q_useful_buf.h \
-                        inc/t_cose/t_cose_common.h\
-                        inc/t_cose/t_cose_signature_sign.h \
-                        inc/t_cose/t_cose_parameters.h \
-                        inc/t_cose/t_cose_standard_constants.h \
-                        src/t_cose_crypto.h \
-                        src/t_cose_util.h
-
-src/t_cose_signature_sign_main.o: src/t_cose_signature_sign_main.c \
-                                   inc/t_cose/t_cose_signature_sign_main.h \
-                                   inc/t_cose/t_cose_signature_sign.h \
-                                   inc/t_cose/t_cose_parameters.h \
-                                   inc/t_cose/q_useful_buf.h \
-                                   inc/t_cose/t_cose_common.h \
-                                   inc/t_cose/t_cose_sign1_verify.h \
-                                   inc/t_cose/t_cose_standard_constants.h \
-                                   src/t_cose_crypto.h \
-                                   src/t_cose_util.h
-
-src/t_cose_signature_verify_main.o: src/t_cose_signature_verify_main.c \
-                                     inc/t_cose/t_cose_signature_verify_main.h \
-                                     inc/t_cose/t_cose_signature_verify.h \
-                                     inc/t_cose/t_cose_parameters.h \
-                                     inc/t_cose/q_useful_buf.h \
-                                     inc/t_cose/t_cose_common.h \
-                                     inc/t_cose/t_cose_sign1_verify.h \
-                                     inc/t_cose/t_cose_standard_constants.h \
-                                     src/t_cose_util.h \
-                                     src/t_cose_crypto.h
-
-src/t_cose_mac_compute.o: inc/t_cose/t_cose_mac_compute.h \
-                          src/t_cose_crypto.h \
-                          src/t_cose_util.h \
-                          inc/t_cose/t_cose_common.h
-
-src/t_cose_mac_validate.o: inc/t_cose/t_cose_mac_validate.h \
-                           src/t_cose_crypto.h \
-                           src/t_cose_util.h \
-                           inc/t_cose/t_cose_parameters.h \
-                           inc/t_cose/t_cose_common.h
-
-src/t_cose_encrypt_enc.o: inc/t_cose/t_cose_encrypt_enc.h inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_recipient_enc_hpke.h inc/t_cose/t_cose_recipient_enc_aes_kw.h
-src/t_cose_encrypt_dec.o: inc/t_cose/t_cose_encrypt_dec.h inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_recipient_dec_hpke.h inc/t_cose/t_cose_recipient_dec_aes_kw.h
-src/t_cose_recipient_dec_aes_kw.o: inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h
-src/t_cose_recipient_enc_aes_kw.o: inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_recipient_enc_aes_kw.h
-src/t_cose_recipient_dec_hpke.o: inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_recipient_dec_hpke.h
-src/t_cose_recipient_enc_hpke.o: inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_recipient_enc_hpke.h
-
-# ---- test dependencies -----
-test/t_cose_test.o: test/t_cose_test.h test/t_cose_make_test_messages.h src/t_cose_crypto.h $(PUBLIC_INTERFACE)
-test/t_cose_sign_verify_test.o: test/t_cose_sign_verify_test.h test/t_cose_make_test_messages.h src/t_cose_crypto.h test/t_cose_make_test_pub_key.h $(PUBLIC_INTERFACE)
-test/t_cose_make_test_messages.o: test/t_cose_make_test_messages.h inc/t_cose/t_cose_sign1_sign.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_standard_constants.h src/t_cose_crypto.h src/t_cose_util.h
-test/run_test.o: test/run_test.h test/t_cose_test.h test/t_cose_hash_fail_test.h test/t_cose_compute_validate_mac_test.h
-test/t_cose_make_psa_test_key.o: test/t_cose_make_test_pub_key.h inc/t_cose/t_cose_standard_constants.h inc/t_cose/t_cose_common.h
-test/t_cose_compute_validate_mac_test.o: inc/t_cose/t_cose_mac_compute.h inc/t_cose/t_cose_mac_validate.h test/t_cose_make_test_pub_key.h test/t_cose_compute_validate_mac_test.h
-
-# ---- crypto dependencies ----
-crypto_adapters/t_cose_psa_crypto.o: src/t_cose_crypto.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_standard_constants.h inc/t_cose/q_useful_buf.h
-
-# ---- example dependencies ----
-examples/t_cose_basic_example_psa.o: $(PUBLIC_INTERFACE)
-examples/t_cose_encryption_example_psa.o: $(PUBLIC_INTERFACE)

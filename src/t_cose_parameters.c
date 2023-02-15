@@ -10,9 +10,9 @@
  */
 
 
+#include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose/t_cose_standard_constants.h"
-#include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose_util.h"
 
 

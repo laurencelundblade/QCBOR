@@ -8,10 +8,10 @@
  */
 
 #include "qcbor/qcbor.h"
-#include "t_cose_crypto.h"
 #include "t_cose/t_cose_mac_compute.h"
-#include "t_cose_util.h"
 #include "t_cose/t_cose_parameters.h"
+#include "t_cose_util.h"
+#include "t_cose_crypto.h"
 
 /**
  * \file t_cose_mac_compute.c

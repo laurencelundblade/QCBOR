@@ -8,13 +8,15 @@
  *
  * See BSD-3-Clause license in README.md
  */
-#include "t_cose/t_cose_encrypt_dec.h"
-#include "t_cose/t_cose_standard_constants.h"
-#include "qcbor/qcbor.h"
-#include <stdio.h>
 #include <stdlib.h>
+#include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
+#include "t_cose/t_cose_encrypt_dec.h"
+#include "t_cose/t_cose_recipient_dec.h"
+#include "t_cose/t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
+
+
 
 enum t_cose_err_t
 t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
