@@ -182,6 +182,19 @@ create_tbs_hash(int32_t                          cose_algorithm_id,
                 struct q_useful_buf_c           *hash);
 
 
+/*
+ * Create the Enc_structure for COSE_Encrypt as described
+ * in RFC 9052 section 5.2.
+ */
+enum t_cose_err_t
+create_enc_structure(const char             *context_string,
+                     struct q_useful_buf_c   protected_headers,
+                     struct q_useful_buf_c   aad,
+                     struct q_useful_buf     buffer_for_enc,
+                     struct q_useful_buf_c  *enc_structure);
+
+
+
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 

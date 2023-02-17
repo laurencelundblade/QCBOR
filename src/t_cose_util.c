@@ -330,6 +330,41 @@ Done:
 
 
 
+enum t_cose_err_t
+create_enc_structure(const char            *context_string,
+                     struct q_useful_buf_c  protected_headers,
+                     struct q_useful_buf_c  aad,
+                     struct q_useful_buf    buffer_for_enc,
+                     struct q_useful_buf_c *enc_structure)
+{
+    QCBOREncodeContext cbor_encoder;
+    QCBORError         err;
+
+    /* Create Enc_structure per RFC 9052 section
+     * 5.3. This gets fed into the AEAD as the AD.
+     *
+     * Enc_structure = [
+     *    context : "Encrypt" / "Encrypt0" / "Enc_Recipient" /
+     *        "Mac_Recipient" / "Rec_Recipient",
+     *    protected : empty_or_serialized_map,
+     *    external_aad : bstr
+     * ]
+     */
+
+    QCBOREncode_Init(&cbor_encoder, buffer_for_enc);
+    QCBOREncode_OpenArray(&cbor_encoder);
+    QCBOREncode_AddSZString(&cbor_encoder, context_string);
+    QCBOREncode_AddBytes(&cbor_encoder, protected_headers);
+    QCBOREncode_AddBytes(&cbor_encoder, aad);
+    QCBOREncode_CloseArray(&cbor_encoder);
+    err = QCBOREncode_Finish(&cbor_encoder, enc_structure);
+    if(err) {
+        return T_COSE_ERR_FAIL; // TODO: improve error mapping
+    }
+    return T_COSE_SUCCESS;
+}
+
+
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 /* This is a random hard coded kid (key ID) that is used to indicate
  * short-circuit signing. It is OK to hard code this as the

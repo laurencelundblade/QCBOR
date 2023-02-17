@@ -172,13 +172,43 @@ t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *me,
  * \brief Decryption of a \c COSE_Encrypt0 or \c COSE_Encrypt structure.
  *
  * \param[in,out] context               The t_cose_encrypt_dec_ctx context.
- * \param[in] cose                      The COSE payload (a COSE_Encrypt0
+ * \param[in] message                      The COSE message (a COSE_Encrypt0
  *                                      or COSE_Encrypt).
- * \param[in] cose_len                  The COSE payload length.
- * \param[in] detached_ciphertext       The detached ciphertext.
- * \param[in] detached_ciphertext_len   The detached ciphertext length.
- * \param[out] plaintext_ptr                A buffer for plaintext.
- * \param[in] plaintext_len             The length of the plaintext buffer.
+ * \param[in] aad   Additional data that is verified or \ref NULL_Q_USEFUL_BUF if none.
+ * \param[in] plaintext_buffer                A buffer for plaintext.
+ * \param[out] plaintext     Place to return pointer and length of the plaintext.
+ *
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ *
+ * This decrypts and returns the plaintext.
+ *
+ * It accepts either COSE_Encrypt0 or COSE_Encrypt. For COSE_Encrypt0,
+ * t_cose_encrypt_dec_set_cek() must have been called to set the decryption
+ * key. For COSE_Encrypt, t_cose_encrypt_dec_add_recipient() must have
+ * been called to provide COSE_Recipient processers that have been
+ * set up with decryption keys.
+ *
+ * See also t_cose_encrypt_dec_detached().
+ */
+// TODO: return the parameters
+// TODO: support a decode-only mode
+enum t_cose_err_t
+t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
+                   struct q_useful_buf_c          message,
+                   struct q_useful_buf_c          aad,
+                   struct q_useful_buf            plaintext_buffer,
+                   struct q_useful_buf_c         *plaintext);
+
+
+/**
+ * \brief Decrypt a \c COSE_Encrypt0 or \c COSE_Encrypt with detached cipher text.
+ *
+ * \param[in,out] context               The t_cose_encrypt_dec_ctx context.
+ * \param[in] message                      The COSE message (a COSE_Encrypt0
+ *                                      or COSE_Encrypt).
+ * \param[in] aad   Additional data that is verified or \ref NULL_Q_USEFUL_BUF if none.
+ * \param[in] detached_ciphertext  The detached ciphertext.
+ * \param[in] plaintext_buffer                A buffer for plaintext.
  * \param[out] plaintext     Place to return pointer and length of the plaintext.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
@@ -188,14 +218,12 @@ t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *me,
  * detached_ciphertext to 0.
  */
 enum t_cose_err_t
-t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
-                   const uint8_t *cose, size_t cose_len,
-                   uint8_t *detached_ciphertext, size_t detached_ciphertext_len,
-                   uint8_t *plaintext_ptr, size_t plaintext_len,
-                   struct q_useful_buf_c *plaintext
-                  );
-
-
+t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx *context,
+                            struct q_useful_buf_c          message,
+                            struct q_useful_buf_c          aad,
+                            struct q_useful_buf_c          detached_ciphertext,
+                            struct q_useful_buf            plaintext_buffer,
+                            struct q_useful_buf_c         *plaintext);
 
 
 /* ------------------------------------------------------------------------

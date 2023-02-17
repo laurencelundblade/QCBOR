@@ -742,6 +742,12 @@ enum t_cose_err_t {
 /* Not expecting any more. */
 
 
+/* Default size allowed for Enc_structure for COSE_Encrypt and COSE_Encrypt0.
+ * If there are a lot or header parameters or AAD passed in is large,
+ * this may not be big enough and error TODO will be returned. Call
+ * TODO to give a bigger buffer.*/
+#define T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE 64
+
 /**
  * The error \ref T_COSE_ERR_NO_KID is returned if the kid parameter
  * is missing. Note that the kid parameter is primarily passed on to

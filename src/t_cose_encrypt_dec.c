@@ -19,13 +19,11 @@
 
 
 enum t_cose_err_t
-t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
-                   const uint8_t *cose,
-                   size_t cose_len,
-                   uint8_t *detached_ciphertext,
-                   size_t detached_ciphertext_len,
-                   uint8_t *plaintext,
-                   size_t plaintext_len,
+t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
+                   struct q_useful_buf_c          message,
+                   struct q_useful_buf_c          aad,
+                   struct q_useful_buf_c          detached_ciphertext,
+                   struct q_useful_buf            plaintext_buffer,
                    struct q_useful_buf_c *plain_text)
 {
     QCBORItem              protected_hdr;
@@ -54,9 +52,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
 
 
     /* Initialize decoder */
-    QCBORDecode_Init(&DC,
-                     (UsefulBufC){cose, cose_len},
-                     QCBOR_DECODE_MODE_NORMAL);
+    QCBORDecode_Init(&DC,message, QCBOR_DECODE_MODE_NORMAL);
 
    /* Make sure the first item is a tag */
     result = QCBORDecode_GetNext(&DC, &Item);
@@ -139,8 +135,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
         cipher_text = Cipher.val.string;
         detached_mode = false;
     } else {
-        cipher_text.ptr = detached_ciphertext;
-        cipher_text.len = detached_ciphertext_len;
+        cipher_text = detached_ciphertext;
         detached_mode = true;
     }
 
@@ -191,7 +186,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     /* Initialize additional data CBOR array */
     QCBOREncode_Init(&additional_data, add_data_struct);
 
-    QCBOREncode_BstrWrap(&additional_data);
+    //QCBOREncode_BstrWrap(&additional_data);
 
     /* Open array */
     QCBOREncode_OpenArray(&additional_data);
@@ -224,17 +219,14 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
     /* 3. Add any externally provided additional data,
      *    which is empty in our case.
      */
-    QCBOREncode_BstrWrap(&additional_data);
-    QCBOREncode_CloseBstrWrap2(&additional_data,
-                               false,
-                               &add_data_buf);
+    QCBOREncode_AddBytes(&additional_data, aad);
 
     /* Close array */
     QCBOREncode_CloseArray(&additional_data);
 
-    QCBOREncode_CloseBstrWrap2(&additional_data,
-                               false,
-                               &add_data_buf);
+    //QCBOREncode_CloseBstrWrap2(&additional_data,
+    //                           false,
+    //                           &add_data_buf);
 
     /* Finish and check the results */
     result = QCBOREncode_Finish(&additional_data,
@@ -249,7 +241,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx* me,
                                              nonce_cbor,
                                              add_data_buf,
                                              cipher_text,
-                                             (struct q_useful_buf) {.ptr = plaintext, .len = plaintext_len},
+                                             plaintext_buffer,
                                              plain_text);
 
 
