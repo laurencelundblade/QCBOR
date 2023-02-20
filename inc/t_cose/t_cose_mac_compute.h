@@ -12,6 +12,7 @@
 #include "t_cose/q_useful_buf.h"
 #include "qcbor/qcbor_encode.h"
 #include "t_cose_common.h"
+#include "t_cose/t_cose_key.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -131,7 +132,7 @@ t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *context,
  * \brief  Set the key and kid (key ID) for signing.
  *
  * \param[in] context      The t_cose signing context.
- * \param[in] signing_key  The signing key to use or \ref T_COSE_NULL_KEY.
+ * \param[in] signing_key  The signing key to use or an empty key..
  * \param[in] kid          COSE key ID parameter or \c NULL_Q_USEFUL_BUF_C.
  *
  * This needs to be called to set the signing key to use. The \c kid
@@ -140,6 +141,8 @@ t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *context,
  * If short-circuit signing is used,
  * \ref T_COSE_OPT_SHORT_CIRCUIT_TAG, then this does not need to be
  * called.
+ *
+ * TODO: remove mention of short circuit; is empty key really OK?
  */
 static void
 t_cose_mac_set_computing_key(struct t_cose_mac_calculate_ctx *context,

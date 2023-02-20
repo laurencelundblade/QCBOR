@@ -107,7 +107,7 @@ t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
             0, NULL,                            // Additional data
             0, NULL,                            // Info
             (psa_key_handle_t)
-            pkE.k.key_handle,                   // skE handle
+            pkE.key.handle,                   // skE handle
             0, NULL,                            // pkE
             ciphertext_len,                     // ciphertext length
             (uint8_t *) ciphertext.ptr);        // ciphertext
@@ -138,8 +138,8 @@ t_cose_create_recipient_hpke2(
     QCBOREncodeContext     ephemeral_key_struct;
     uint8_t                ephemeral_buf[100] = {0};
     struct q_useful_buf    e_buf = {ephemeral_buf, sizeof(ephemeral_buf)};
-    uint8_t                encrypted_cek[T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH)];
-    size_t                 encrypted_cek_len = T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+    uint8_t                encrypted_cek[T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)];
+    size_t                 encrypted_cek_len = T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
     UsefulBufC             cek_encrypted_cbor;
     size_t                 pkR_len = T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE;
     uint8_t                pkR[T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};

@@ -397,12 +397,20 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
 {
     (void)cose_algorithm_id;
 
-    key_handle->k.key_buffer = symmetric_key;
-    key_handle->crypto_lib   = T_COSE_CRYPTO_LIB_TEST;
+    key_handle->key.buffer = symmetric_key;
 
     return T_COSE_SUCCESS;
 }
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+void
+t_cose_crypto_free_symmetric_key(struct t_cose_key key)
+{
+    (void)key;
+}
 
 /* Compute size of ciphertext, given size of plaintext. Returns
  * SIZE_MAX if the algorithm is unknown. Also returns the tag
@@ -455,6 +463,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     (void)nonce;
     (void)aad;
     (void)cose_algorithm_id;
+    (void)key;
 
 
     if(ciphertext_buffer.ptr == NULL) {
@@ -462,10 +471,6 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
         ciphertext->len = aead_byte_count(cose_algorithm_id,
                                           plaintext.len);;
         return T_COSE_SUCCESS;
-    }
-
-    if(key.crypto_lib != T_COSE_CRYPTO_LIB_TEST) {
-        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
     }
 
     /* Use useful output to copy the plaintext as pretend encryption
@@ -503,10 +508,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
     (void)nonce;
     (void)aad;
     (void)cose_algorithm_id;
-
-    if(key.crypto_lib != T_COSE_CRYPTO_LIB_TEST) {
-        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
-    }
+    (void)key;
 
     UsefulInputBuf UIB;
     UsefulInputBuf_Init(&UIB, ciphertext);

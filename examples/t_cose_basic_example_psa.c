@@ -166,8 +166,7 @@ enum t_cose_err_t make_psa_ecdsa_key_pair(int32_t            cose_algorithm_id,
         return T_COSE_ERR_FAIL;
     }
 
-    key_pair->k.key_handle = key_handle;
-    key_pair->crypto_lib   = T_COSE_CRYPTO_LIB_PSA;
+    key_pair->key.handle = key_handle;
 
     return T_COSE_SUCCESS;
 }
@@ -180,7 +179,7 @@ enum t_cose_err_t make_psa_ecdsa_key_pair(int32_t            cose_algorithm_id,
  */
 void free_psa_ecdsa_key_pair(struct t_cose_key key_pair)
 {
-    psa_close_key((psa_key_id_t)key_pair.k.key_handle);
+    psa_close_key((psa_key_id_t)key_pair.key.handle);
 }
 
 

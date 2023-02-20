@@ -16,8 +16,10 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_crypto.h" /* For signature size constant */
 #include "t_cose_util.h" /* for get_short_circuit_kid */
+#include "t_cose/t_cose_key.h"
 
 #include "t_cose_make_test_pub_key.h"
+
 
 
 /* String used by RFC 8152 and C-COSE tests and examples for payload */
@@ -674,9 +676,9 @@ int_fast32_t cose_example_test()
     // SHould we get rid of this test?
     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_SHORT_CIRCUIT_256);
 
-    t_cose_sign1_set_signing_key(&sign_ctx,
-                                 T_COSE_NULL_KEY,
-                                 Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
+   // t_cose_sign1_set_signing_key(&sign_ctx,
+     //                            t_cose_key_empty(),
+       //                          Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
     /* Make example C.2.1 from RFC 8152 */
 

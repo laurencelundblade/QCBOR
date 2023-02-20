@@ -70,7 +70,7 @@ t_cose_crypto_hpke_decrypt(int32_t                cose_algorithm_id,
             NULL, 0, NULL,                   // PSK for authentication
             0, NULL,                         // pkS
             (psa_key_handle_t)
-            pkR.k.key_handle,                // skR handle
+            pkR.key.handle,                // skR handle
             pkE.len,                         // pkE_len
             pkE.ptr,                         // pkE
             ciphertext.len,                  // Ciphertext length

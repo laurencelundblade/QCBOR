@@ -16,6 +16,7 @@
 #include "t_cose/t_cose_signature_sign.h"
 #include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_parameters.h"
+#include "t_cose/t_cose_key.h"
 
 
 

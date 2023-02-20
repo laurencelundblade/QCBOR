@@ -135,7 +135,7 @@ t_cose_sign1_sign_init(struct t_cose_sign1_sign_ctx *context,
  * \brief  Set the key and kid (key ID) for signing.
  *
  * \param[in] context      The t_cose signing context.
- * \param[in] signing_key  The signing key to use or \ref T_COSE_NULL_KEY.
+ * \param[in] signing_key  The signing key to use or an empty key.
  * \param[in] kid          COSE kid (key ID) parameter or \c NULL_Q_USEFUL_BUF_C.
  *
  * This needs to be called to set the signing key to use. The \c kid

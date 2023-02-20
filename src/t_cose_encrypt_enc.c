@@ -43,8 +43,8 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     struct q_useful_buf_c        body_prot_headers;
     struct q_useful_buf_c        enc_structure;
     size_t                       key_byte_len;
-    Q_USEFUL_BUF_MAKE_STACK_UB(  cek_buffer, 16); // TODO: constant for key size
-    Q_USEFUL_BUF_MAKE_STACK_UB(  nonce_buffer, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+    Q_USEFUL_BUF_MAKE_STACK_UB(  cek_buffer, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
+    Q_USEFUL_BUF_MAKE_STACK_UB(  nonce_buffer, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
     Q_USEFUL_BUF_MAKE_STACK_UB(  enc_struct_buffer, T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE);
     struct t_cose_key            cek_handle;
     const char                  *enc_struct_string;
@@ -133,16 +133,12 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
 
 
     /* ---- Figure out the CEK ---- */
-    // TODO: allow cek to be set for COSE_Encrypt.
     if(is_cose_encrypt0) {
-        /* For COSE_Encrypt0, the caller must have set the cek explicitly.*/
-        // TODO: error condition here if cek is unset
-        return_value = t_cose_crypto_export_symmetric_key(me->cek, /* in: key handle */
-                                                          cek_buffer, /* in: buffer to write to */
-                                                         &cek_bytes); /* out: exported key bytes */
+        /* For COSE_Encrypt0, the caller must have set the cek explicitly. */
         cek_handle = me->cek;
 
     } else {
+        // TODO: allow cek to be set for COSE_Encrypt?
         /* For COSE_Encrypt, a random key is generated (which will be
          * conveyed to the recipient by some key distribution method in
          * a COSE_Recipient). */

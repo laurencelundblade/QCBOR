@@ -18,6 +18,7 @@
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_standard_constants.h"
+#include "t_cose/t_cose_key.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -98,16 +99,6 @@ extern "C" {
 
 
 
-/* This sets the maximum key size for symmetric ciphers like AES and ChaCha20 (not supported yet).
-* It is set to 32 to accommodate AES 256 and anything with a smaller
-* key size. This is used to size stack buffers that hold keys.
-* Attempts to use a symmetric key size larger than this will result in an error.
-* Smaller keys sizes are no problem.
-* This could be more dynamically sized based on which algorithms
-* are turned on or off, but probably isn't necessary because
-* it isn't very large and dynamic setting wouldn't save much stack.
-*/
-#define T_COSE_ENCRYPTION_MAX_KEY_LENGTH 32
 
 /** Helper macro to convert bits to bytes */
 #define T_COSE_BITS_TO_BYTES(bits) (((bits) + 7) / 8)
@@ -1021,7 +1012,7 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
  * \brief Returns the t_cose_key given an algorithm and a symmetric key.
  *
  * \param[in] cose_algorithm_id  COSE algorithm id
- * \param[in] symmetric_key                Symmetric key
+ * \param[in] symmetric_key                Symmetric key.
  * \param[out] key               Key in t_cose_key structure.
  *
  * \retval T_COSE_SUCCESS
@@ -1033,24 +1024,25 @@ t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
  *         The provided symmetric key could not be imported.
  *
  * This is part of the crypto adaptor layer because there is an easy
- * universal representation of a symmetric key -- a byte
- * string (this is not true for public key algorithms, so
- * there isn't similar for them (yet)).
+ * universal representation of a symmetric key -- a byte string (not
+ * true for public key algorithms, so there isn't similar for them
+ * (yet)).
  *
- * Some crypto libraries support key usage policy. For example, a key
- * marked only to be used for decryption can't be used for
- * encryption. The t_cose crypto adaptor layer doesn't support this
- * for symmetric keys in the interest of code size, because it isn't
- * universal and because it is not a critical security feature.  That
- * is why this API has no usage flags and implementations of this for
- * libraries that do have usage policy should allow all usage
- * policies.
+ * If the crypto library enforces policy around keys (e.g., Mbed TLS),
+ * this will confgure the key returned for the algorithm passed in and
+ * an expected usage policy based on the algorithm. If the library
+ * enforces no policy (e.g. OpenSSL) this will not configure the key
+ * returned. Future adaptors for libraries where the policy is
+ * optional may choose to do either.
  *
- * Note however that many key handles used in t_cose just pass through
- * to to the crypto library in a struct t_cose_key. For these the key
- * usage will be enforced. For example, a signing key passed into to
- * t_cose_sign will pass through to the library's sign API which will
- * enforce the usage with t_cose non the wiser.
+ * There's one odd-ball case the PSA implementation of this takes into
+ * account -- the Mbed TLS key wrap API. The t_cose API takes the kek
+ * as a t_cose_key because all input keys to t_cose are such. This
+ * means a PSA key handle. However, the key wrap API takes bytes for
+ * the key so the key must be exported from the handle and thus must
+ * allow the key export key use.
+ *
+ * See also t_cose_crypto_free_symmetric_key().
  */
 enum t_cose_err_t
 t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
@@ -1158,6 +1150,11 @@ t_cose_crypto_aead_encrypt(int32_t                cose_algorithm_id,
                            struct q_useful_buf_c  plaintext,
                            struct q_useful_buf    ciphertext_buffer,
                            struct q_useful_buf_c *ciphertext);
+
+
+/* Free a symmetric key. */
+void
+t_cose_crypto_free_symmetric_key(struct t_cose_key key);
 
 
 #ifdef __cplusplus

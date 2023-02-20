@@ -216,28 +216,7 @@ extern "C" {
 /* Definition of algorithm IDs is moved to t_cose_standard_constants.h */
 
 
-/**
- * Indicates the cryptographic library the \ref t_cose_key is intended
- * for. Usually only one cryptographic library is integrated so this
- * serves as a cross-check.
- */
-enum t_cose_crypto_lib_t {
-    /** can be used for integrations
-     * that don't have or don't want to have any cross-check.
-     */
-    T_COSE_CRYPTO_LIB_UNIDENTIFIED = 0,
-    /** \c key_ptr points to a malloced OpenSSL EC_KEY. The caller
-     * needs to free it after the operation is done. */
-    T_COSE_CRYPTO_LIB_OPENSSL = 1,
-     /** \c key_handle is a \c psa_key_handle_t in Arm's Platform Security
-      * Architecture */
-    T_COSE_CRYPTO_LIB_PSA = 2,
-
-    /** These are for the test crypto adapter layer. They are mostly fake, but useful
-     * for testing without a library and for testing some error conditions. */
-    T_COSE_CRYPTO_LIB_TEST = 3
-
-};
+/* Definition of struct t_cose_key is moved to t_cose_key.h */
 
 
 // TODO: this may not belong in common.h
@@ -257,55 +236,6 @@ struct t_cose_crypto_hpke_suite_t {
     uint16_t    aead_id; // Authenticated Encryption with Associated Data id
 };
 
-/**
- * This structure is used to indicate or pass a key through the t_cose
- * implementation to the underlying, platform-specific cryptography
- * libraries for signing and verifying signature. You must know the
- * cryptographic library that is integrated with t_cose to know how to
- * fill in this data structure.
- *
- * For example, in the OpenSSL integration, \ref key_ptr should point
- * to an OpenSSL \c EVP_KEY type.
- */
-struct t_cose_key {
-    /** Identifies the crypto library this key was created for.  The
-     * crypto library knows if it uses the handle or the pointer so
-     * this indirectly selects the union member. */
-    enum t_cose_crypto_lib_t crypto_lib;
-    union {
-        /** For libraries that use a pointer to the key or key
-         * handle. \c NULL indicates empty. */
-        void *key_ptr;
-        /** For libraries that use an integer handle to the key */
-        uint64_t key_handle;
-        /** For pointer and length of actual key bytes. Length is a uint16_t to keep the
-         * size of this struct down because it occurs on the stack. */
-        struct q_useful_buf_c key_buffer;
-    } k;
-};
-
-
-/** An empty or \c NULL \c t_cose_key */
-/*
- * This has to be definied differently in C than C++ because there is
- * no common construct for a literal structure.
- *
- * In C compound literals are used.
- *
- * In C++ list initalization is used. This only works
- * in C++11 and later.
- *
- * Note that some popular C++ compilers can handle compound
- * literals with on-by-default extensions, however
- * this code aims for full correctness with strict
- * compilers so they are not used.
- */
-#ifdef __cplusplus
-#define T_COSE_NULL_KEY {T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}}
-#else
-#define T_COSE_NULL_KEY \
-    ((struct t_cose_key){T_COSE_CRYPTO_LIB_UNIDENTIFIED, {0}})
-#endif
 
 
 /* Private value. Intentionally not documented for Doxygen.
@@ -472,7 +402,7 @@ enum t_cose_err_t {
      * returned. */
     T_COSE_ERR_INCORRECTLY_TAGGED = 32,
 
-    /** The signing or verification key given is empty. */
+    /** The a struct t_cose_key is not set.  */
     T_COSE_ERR_EMPTY_KEY = 33,
 
     /** A header parameter occurs twice, perhaps once in protected and

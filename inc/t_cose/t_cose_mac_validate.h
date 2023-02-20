@@ -12,6 +12,7 @@
 #include "t_cose/q_useful_buf.h"
 #include "qcbor/qcbor.h"
 #include "t_cose_common.h"
+#include "t_cose/t_cose_key.h"
 #include "t_cose/t_cose_parameters.h"
 
 #ifdef __cplusplus
@@ -126,8 +127,8 @@ static inline void
 t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *me,
                          int32_t                         option_flags)
 {
+    memset(me, 0, sizeof(*me));
     me->option_flags       = option_flags;
-    me->verification_key  = T_COSE_NULL_KEY;
     T_COSE_PARAM_STORAGE_INIT(me->parameter_storage, me->__params);
 }
 

@@ -158,8 +158,7 @@ enum t_cose_err_t make_key_pair(int32_t            cose_algorithm_id,
         goto Done;
     }
 
-    key_pair->k.key_ptr  = pkey;
-    key_pair->crypto_lib = T_COSE_CRYPTO_LIB_OPENSSL;
+    key_pair->key.ptr  = pkey;
     return_value         = T_COSE_SUCCESS;
 
 Done:
@@ -173,7 +172,7 @@ Done:
 void free_key(struct t_cose_key key_pair)
 {
     // TODO: this might not work for keys that aren't public keys
-    EVP_PKEY_free(key_pair.k.key_ptr);
+    EVP_PKEY_free(key_pair.key.ptr);
 }
 
 

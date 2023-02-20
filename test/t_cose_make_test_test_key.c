@@ -29,8 +29,7 @@ enum t_cose_err_t make_key_pair(int32_t            cose_algorithm_id,
 {
     (void)cose_algorithm_id;
     
-    key_pair->k.key_ptr  = NULL;
-    key_pair->crypto_lib = T_COSE_CRYPTO_LIB_TEST;
+    key_pair->key.ptr  = NULL;
 
     // TODO: track keys made, so it can be confirmed they are freed
 
@@ -59,9 +58,4 @@ int check_for_key_pair_leaks()
     return 0;
 }
 
-enum t_cose_err_t make_hmac_key(int32_t cose_alg, struct t_cose_key *res_key)
-{
-    (void)cose_alg;
-    (void)res_key;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-}
+

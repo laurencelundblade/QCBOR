@@ -14,6 +14,7 @@
 
 #include <stdlib.h>
 #include "t_cose/t_cose_parameters.h"
+#include "t_cose/t_cose_key.h"
 #include "t_cose_recipient_dec.h"
 
 #ifdef __cplusplus

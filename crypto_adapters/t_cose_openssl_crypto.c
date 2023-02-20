@@ -455,15 +455,11 @@ key_convert(struct t_cose_key  t_cose_key, EVP_PKEY **return_ossl_ec_key)
     enum t_cose_err_t  return_value;
 
     /* Check the signing key and get it out of the union */
-    if(t_cose_key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
-        goto Done;
-    }
-    if(t_cose_key.k.key_ptr == NULL) {
+    if(t_cose_key.key.ptr == NULL) {
         return_value = T_COSE_ERR_EMPTY_KEY;
         goto Done;
     }
-    *return_ossl_ec_key = (EVP_PKEY *)t_cose_key.k.key_ptr;
+    *return_ossl_ec_key = (EVP_PKEY *)t_cose_key.key.ptr;
 
     return_value = T_COSE_SUCCESS;
 
@@ -1229,13 +1225,27 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
                                         struct q_useful_buf_c symmetric_key,
                                         struct t_cose_key    *key_handle)
 {
-    (void)cose_algorithm_id; // TODO: maybe check the algorithm is symmetric
-    key_handle->crypto_lib   = T_COSE_CRYPTO_LIB_OPENSSL;
-    key_handle->k.key_buffer = symmetric_key;
+    const int32_t symmetric_algs[] = {
+        T_COSE_ALGORITHM_A128GCM,
+        T_COSE_ALGORITHM_A192GCM,
+        T_COSE_ALGORITHM_A192KW,
+        T_COSE_ALGORITHM_A256GCM,
+        T_COSE_ALGORITHM_A256KW,
+        T_COSE_ALGORITHM_HMAC256,
+        T_COSE_ALGORITHM_HMAC384,
+        T_COSE_ALGORITHM_HMAC512};
+
+    if(!t_cose_check_list(cose_algorithm_id, symmetric_algs)) {
+        /* This check could be disabled when usage guards are disabled */
+        return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+    }
+
+    /* Unlike PSA/Mbed, there is no key use policy enforcement and not even
+     * a key handle, so this is much much simpler. */
+    key_handle->key.buffer = symmetric_key;
 
     return T_COSE_SUCCESS;
 }
-
 
 
 /*
@@ -1246,11 +1256,7 @@ t_cose_crypto_export_symmetric_key(struct t_cose_key      key,
                                    struct q_useful_buf    key_buffer,
                                    struct q_useful_buf_c *exported_key)
 {
-    if(key.crypto_lib  != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
-    }
-
-    *exported_key = q_useful_buf_copy(key_buffer, key.k.key_buffer);
+    *exported_key = q_useful_buf_copy(key_buffer, key.key.buffer);
     if(q_useful_buf_c_is_null(*exported_key)) {
         return T_COSE_ERR_TOO_SMALL;
     }
@@ -1258,6 +1264,16 @@ t_cose_crypto_export_symmetric_key(struct t_cose_key      key,
     return T_COSE_SUCCESS;
 }
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+void
+t_cose_crypto_free_symmetric_key(struct t_cose_key key)
+{
+    (void)key;
+    /* Nothing to do for OpenSSL symmetric keys. */
+}
 
 
 /* Compute size of ciphertext, given size of plaintext. Returns
@@ -1379,16 +1395,13 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
          case T_COSE_ALGORITHM_A256GCM: evp_cipher = EVP_aes_256_gcm();break;
         default: return_value = T_COSE_ERR_UNSUPPORTED_CIPHER_ALG; goto Done3;
      }
-    if(key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
-    }
     /* This is a sanity check. OpenSSL doesn't provide this check when
      * using a key. It just assume you've provided the right key
      * length to EVP_EncryptInit(). A bit unhygenic if you ask me.
      * Assuming that EVP_CIPHER_key_length() will always return a
      * small positive integer so the cast to size_t is safe. */
     expected_key_length = EVP_CIPHER_key_length(evp_cipher);
-    if(key.k.key_buffer.len != (size_t)expected_key_length) {
+    if(key.key.buffer.len != (size_t)expected_key_length) {
         return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
         goto Done2;
     }
@@ -1428,7 +1441,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
     }
     ossl_result = EVP_EncryptInit(evp_context,
                                   evp_cipher,
-                                  key.k.key_buffer.ptr,
+                                  key.key.buffer.ptr,
                                   nonce.ptr);
 
     // TODO: I'm not sure this code is working right yet. The documentation
@@ -1582,15 +1595,11 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
     }
 
     /* ------- Algorithm and key and IV length checks -------*/
-    if(key.crypto_lib != T_COSE_CRYPTO_LIB_OPENSSL) {
-        return_value = T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
-        goto Done2;
-    }
     /* This is a sanity check. OpenSSL doesn't provide this check
      * when using a key. It just assumes you've provided the right key
      * length to EVP_DecryptInit(). A bit unhygenic if you ask me. */
     expected_key_length = EVP_CIPHER_key_length(evp_cipher);
-    if(key.k.key_buffer.len != (size_t)expected_key_length) {
+    if(key.key.buffer.len != (size_t)expected_key_length) {
         return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
         goto Done2;
     }
@@ -1612,7 +1621,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
     }
     ossl_result = EVP_DecryptInit(evp_context,
                                   evp_cipher,
-                                  key.k.key_buffer.ptr,
+                                  key.key.buffer.ptr,
                                   nonce.ptr);
     if(ossl_result != 1) {
         return_value = T_COSE_ERR_DECRYPT_FAIL;
@@ -1770,7 +1779,7 @@ t_cose_crypto_kw_wrap(int32_t                 algorithm_id,
     int      key_size_in_bits;
     int      expected_kek_bits;
     struct q_useful_buf_c   kek_bytes;
-    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
 
     /* Export the actual key bytes from t_cose_key (which might be a handle) */
     err = t_cose_crypto_export_symmetric_key(kek,
@@ -1850,7 +1859,7 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
     int     kek_size_in_bits;
     int      expected_kek_bits;
     struct q_useful_buf_c   kek_bytes;
-    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
 
     /* Export the actual key bytes from t_cose_key (which might be a handle) */
     err = t_cose_crypto_export_symmetric_key(kek,

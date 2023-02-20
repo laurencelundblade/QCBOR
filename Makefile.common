@@ -17,6 +17,7 @@
 # ---- Object files for t_cose library ----
 SRC_OBJ=src/t_cose_util.o \
         src/t_cose_parameters.o \
+        src/t_cose_key.o \
         src/t_cose_sign_sign.o \
         src/t_cose_sign_verify.o \
         src/t_cose_sign1_sign.o \
@@ -53,6 +54,7 @@ EXAMPLE_OBJ=
 # ---- public headers -----
 PUBLIC_INTERFACE=inc/t_cose/q_useful_buf.h \
                  inc/t_cose/t_cose_common.h \
+                 inc/t_cose/t_cose_key.h \
                  inc/t_cose/t_cose_encrypt_dec.h \
                  inc/t_cose/t_cose_encrypt_enc.h \
                  inc/t_cose/t_cose_mac_compute.h \
@@ -92,6 +94,10 @@ src/t_cose_util.o: src/t_cose_util.c \
                    inc/t_cose/t_cose_common.h \
                    inc/t_cose/t_cose_standard_constants.h \
                    src/t_cose_crypto.h
+
+src/t_cose_key.o: src/t_cose_key.c \
+                  inc/t_cose/t_cose_key.h \
+                  src/t_cose_crypto.h
 
 src/t_cose_sign_sign.o: src/t_cose_sign_sign.c \
                         inc/t_cose/t_cose_sign1_sign.h \

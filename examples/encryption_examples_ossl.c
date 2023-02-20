@@ -14,6 +14,7 @@
 
 #include "t_cose/t_cose_encrypt_enc.h"
 #include "t_cose/t_cose_encrypt_dec.h"
+#include "t_cose/t_cose_key.h"
 
 // TODO: switch to a common general purpose version of this.
 static void print_bytestr(const uint8_t *bytes, size_t len)
@@ -24,18 +25,6 @@ static void print_bytestr(const uint8_t *bytes, size_t len)
     }
 }
 
-
-static enum t_cose_err_t
-make_ossl_symmetric_key_handle(int32_t               cose_algorithm_id,
-                               struct q_useful_buf_c symmetric_key,
-                               struct t_cose_key    *key_handle)
-{
-    (void)cose_algorithm_id; // TODO: maybe check the algorithm is symmetric
-    key_handle->crypto_lib   = T_COSE_CRYPTO_LIB_OPENSSL;
-    key_handle->k.key_buffer = symmetric_key;
-
-    return T_COSE_SUCCESS;
-}
 
 
 void
@@ -79,9 +68,9 @@ direct_detached_example()
      * not called.
      *
      */
-    make_ossl_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
-                                   Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
-                                  &cek);
+    t_cose_key_init_symmetric(T_COSE_ALGORITHM_A128GCM,
+                              Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
+                             &cek);
     t_cose_encrypt_set_cek(&enc_context, cek);
 
     err = t_cose_encrypt_enc_detached(&enc_context,
@@ -143,10 +132,9 @@ void key_wrap_example()
      * API requires input keys be struct t_cose_key so there's a
      * little work to do.
      */
-    // TODO: should th algorithm ID be T_COSE_ALGORITHM_A128KW?
-    make_ossl_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
-                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
-                                  &kek);
+    t_cose_key_init_symmetric(T_COSE_ALGORITHM_A128KW,
+                              Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
+                             &kek);
 
     /* ---- Set up keywrap recipient object ----
      *

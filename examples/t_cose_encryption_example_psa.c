@@ -86,77 +86,6 @@ uint8_t pk_kid[] = "kid-2";
 size_t pk_key_len = sizeof(public_key);
 size_t pk_kid_len = sizeof(pk_kid)-1;
 
-enum t_cose_err_t
-make_psa_symmetric_key_handle(int32_t               cose_algorithm_id,
-                              struct q_useful_buf_c symmetric_key,
-                              struct t_cose_key    *key_handle)
-{
-    psa_algorithm_t        psa_algorithm;
-    psa_key_handle_t       psa_key_handle;
-    psa_status_t           status;
-    psa_key_attributes_t   attributes = PSA_KEY_ATTRIBUTES_INIT;
-    size_t                 key_bitlen;
-    psa_key_type_t         psa_keytype;
-
-    psa_crypto_init();
-
-
-    switch (cose_algorithm_id) {
-        case T_COSE_ALGORITHM_A128GCM:
-            psa_algorithm = PSA_ALG_GCM;
-            psa_keytype = PSA_KEY_TYPE_AES;
-            key_bitlen = 128;
-            break;
-
-        case T_COSE_ALGORITHM_A192GCM:
-            psa_algorithm = PSA_ALG_GCM;
-            psa_keytype = PSA_KEY_TYPE_AES;
-            key_bitlen = 192;
-            break;
-
-        case T_COSE_ALGORITHM_A256GCM:
-            psa_algorithm = PSA_ALG_GCM;
-            psa_keytype = PSA_KEY_TYPE_AES;
-            key_bitlen = 256;
-            break;
-
-        default:
-            return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
-    }
-
-
-    // TODO: PSA_KEY_USAGE_EXPORT required because of the way t_cose_crypto AES works. Maybe that should change
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT);
-    psa_set_key_algorithm(&attributes, psa_algorithm);
-    psa_set_key_type(&attributes, psa_keytype);
-    psa_set_key_bits(&attributes, key_bitlen);
-
-    status = psa_import_key(&attributes,
-                             symmetric_key.ptr,
-                             symmetric_key.len,
-                            &psa_key_handle);
-
-    if (status != PSA_SUCCESS) {
-        return T_COSE_ERR_KEY_IMPORT_FAILED;
-    }
-
-    key_handle->k.key_handle = psa_key_handle;
-    key_handle->crypto_lib   = T_COSE_CRYPTO_LIB_PSA;
-
-    return T_COSE_SUCCESS;
-}
-
-
-
-/**
- * \brief  Free a PSA / MBed key.
- *
- * \param[in] key_pair   The key pair to close / deallocate / free.
- */
-void free_psa_key(struct t_cose_key key_pair)
-{
-    psa_close_key((psa_key_id_t)key_pair.k.key_handle);
-}
 
 
 int test_cose_encrypt(uint32_t options,
@@ -274,10 +203,9 @@ static int key_wrap_example(void)
      * API requires input keys be struct t_cose_key so there's a
      * little work to do here.
      */
-    // TODO: should th algorithm ID be T_COSE_ALGORITHM_A128KW?
-    make_psa_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
-                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
-                                  &kek);
+    t_cose_key_init_symmetric(T_COSE_ALGORITHM_A128KW,
+                              Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
+                             &kek);
 
     /* ---- Set up keywrap recipient object ----
      *
@@ -404,9 +332,9 @@ encrypt0_example(void)
      * no kid should be needed, but it doesn't seem to prohibit
      * the kid header and t_cose will allow it to be present.
      */
-    make_psa_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,
-                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
-                                  &cek);
+    t_cose_key_init_symmetric(T_COSE_ALGORITHM_A128GCM,
+                              Q_USEFUL_BUF_FROM_SZ_LITERAL("aaaaaaaaaaaaaaaa"),
+                             &cek);
     t_cose_encrypt_set_cek(&enc_context, cek);
 
     err = t_cose_encrypt_enc_detached(&enc_context,
@@ -498,8 +426,7 @@ int main(void)
         return(EXIT_FAILURE);
     }
 
-    t_cose_pkR_key.k.key_handle = pkR_handle;
-    t_cose_pkR_key.crypto_lib = T_COSE_CRYPTO_LIB_PSA;
+    t_cose_pkR_key.key.handle = pkR_handle;
 
 
     /* Set up the recipient's secret key, skR, used for decrypting messages encrypted with pkR */
@@ -518,8 +445,7 @@ int main(void)
         return(EXIT_FAILURE);
     }
 
-    t_cose_skR_key.k.key_handle = skR_handle;
-    t_cose_skR_key.crypto_lib = T_COSE_CRYPTO_LIB_PSA;
+    t_cose_skR_key.key.handle = skR_handle;
 
     /* Import PSK */
     psa_set_key_usage_flags(&psk_attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT);
@@ -574,7 +500,7 @@ int main(void)
         return(EXIT_FAILURE);
     }
 
-    free_psa_key(t_cose_pkR_key);
+    t_cose_key_free_symmetric(t_cose_pkR_key);
 
     printf("COSE: ");
     print_bytestr(buffer, result_len);
@@ -655,7 +581,7 @@ int main(void)
         return(EXIT_FAILURE);
     }
 
-    free_psa_key(t_cose_skR_key);
+    t_cose_key_free_symmetric(t_cose_skR_key);
 
     printf("\nPlaintext: ");
     printf("%s\n", (const char *)plain_text_ubc.ptr); // TODO: probably shouldn't assume a NULL-terminated string here

@@ -14,6 +14,7 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_sign_verify.h"
 #include "t_cose/t_cose_parameters.h"
+#include "t_cose/t_cose_key.h"
 #include "t_cose/t_cose_signature_verify.h"
 #include "t_cose_util.h"
 

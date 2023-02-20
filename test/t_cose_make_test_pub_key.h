@@ -10,6 +10,7 @@
  */
 
 #include "t_cose/t_cose_common.h"
+#include "t_cose/t_cose_key.h"
 #include <stdint.h>
 
 /**

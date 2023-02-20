@@ -201,7 +201,7 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
         goto Done;
     }
 
-    verification_key_psa = (psa_key_handle_t)verification_key.k.key_handle;
+    verification_key_psa = (psa_key_handle_t)verification_key.key.handle;
 
     psa_result = psa_verify_hash(verification_key_psa,
                                  psa_alg_id,
@@ -242,7 +242,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
         goto Done;
     }
 
-    signing_key_psa = (psa_key_handle_t)signing_key.k.key_handle;
+    signing_key_psa = (psa_key_handle_t)signing_key.key.handle;
 
     /* It is assumed that this call is checking the signature_buffer
      * length and won't write off the end of it.
@@ -290,7 +290,7 @@ enum t_cose_err_t t_cose_crypto_sig_size(int32_t           cose_algorithm_id,
         goto Done;
     }
 
-    signing_key_psa = (psa_key_handle_t)signing_key.k.key_handle;
+    signing_key_psa = (psa_key_handle_t)signing_key.key.handle;
     key_attributes = psa_key_attributes_init();
     status = psa_get_key_attributes(signing_key_psa, &key_attributes);
     return_value = psa_status_to_t_cose_error_signing(status);
@@ -515,7 +515,7 @@ t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
     hmac_ctx->op_ctx = psa_mac_operation_init();
 
     psa_ret = psa_mac_sign_setup(&hmac_ctx->op_ctx,
-                                  (psa_key_id_t)signing_key.k.key_handle,
+                                  (psa_key_id_t)signing_key.key.handle,
                                   psa_alg);
 
     return psa_status_to_t_cose_error_hmac(psa_ret);
@@ -591,7 +591,7 @@ t_cose_crypto_hmac_validate_setup(struct t_cose_crypto_hmac *hmac_ctx,
     hmac_ctx->op_ctx = psa_mac_operation_init();
 
     psa_ret = psa_mac_verify_setup(&hmac_ctx->op_ctx,
-                                   (psa_key_id_t)validation_key.k.key_handle,
+                                   (psa_key_id_t)validation_key.key.handle,
                                    psa_alg);
 
     return psa_status_to_t_cose_error_hmac(psa_ret);
@@ -695,8 +695,7 @@ t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
         return(T_COSE_ERR_KEY_GENERATION_FAILED);
     }
 
-    ephemeral_key->k.key_handle = skE_handle;
-    ephemeral_key->crypto_lib = T_COSE_CRYPTO_LIB_PSA;
+    ephemeral_key->key.handle = skE_handle;
 
     return(T_COSE_SUCCESS);
 }
@@ -765,7 +764,7 @@ t_cose_crypto_kw_wrap(int32_t                 cose_algorithm_id,
     unsigned int            kek_bits;
     unsigned int            expected_kek_bits;
     struct q_useful_buf_c   kek_bytes;
-    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
 
 
     /* Export the actual key bytes from t_cose_key (which might be a handle) */
@@ -859,7 +858,7 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
     unsigned int            expected_kek_bits;
     enum t_cose_err_t       return_value;
     struct q_useful_buf_c   kek_bytes;
-    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_ENCRYPTION_MAX_KEY_LENGTH);
+    Q_USEFUL_BUF_MAKE_STACK_UB( kek_bytes_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
 
     /* Export the actual key bytes from t_cose_key (which might be a handle) */
     /* Maybe someday there will be wrap API that takes a key handle as input. */
@@ -945,7 +944,14 @@ t_cose_crypto_export_symmetric_key(struct t_cose_key      key,
 {
     psa_status_t  status;
 
-    status = psa_export_key((mbedtls_svc_key_id_t)key.k.key_handle,
+    if(key.key.handle == 0) {
+        /* Not strictly necessary but helpful at time for the library
+         * user to debug. PSA defines 0 as an invalid handle. Could
+         * disable with usage guards disabled for smaller code size. */
+        return T_COSE_ERR_EMPTY_KEY;
+    }
+
+    status = psa_export_key((mbedtls_svc_key_id_t)key.key.handle,
                              key_buffer.ptr,
                              key_buffer.len,
                             &key_bytes->len);
@@ -963,6 +969,16 @@ t_cose_crypto_export_symmetric_key(struct t_cose_key      key,
 /*
  * See documentation in t_cose_crypto.h
  */
+void
+t_cose_crypto_free_symmetric_key(struct t_cose_key key)
+{
+    psa_close_key((psa_key_id_t)key.key.handle);
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
 t_cose_crypto_export_public_key(struct t_cose_key      key,
                                 struct q_useful_buf    pk_buffer,
@@ -972,10 +988,10 @@ t_cose_crypto_export_public_key(struct t_cose_key      key,
 
     /* Export public key */
     status = psa_export_public_key( (mbedtls_svc_key_id_t)
-                                       key.k.key_handle,  /* Key handle */
-                                    pk_buffer.ptr,        /* PK buffer */
-                                    pk_buffer.len,        /* PK buffer size */
-                                    pk_len);              /* Result length */
+                                       key.key.handle, /* in: Key handle     */
+                                    pk_buffer.ptr,     /* in: PK buffer      */
+                                    pk_buffer.len,     /* in: PK buffer size */
+                                    pk_len);           /* out: Result length */
 
     if (status != PSA_SUCCESS) {
         return(T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED);
@@ -993,73 +1009,97 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
                                         struct q_useful_buf_c symmetric_key,
                                         struct t_cose_key    *key_handle)
 {
-    psa_algorithm_t        psa_algorithm;
-    psa_key_handle_t       psa_key_handle;
-    psa_status_t           status;
-    psa_key_attributes_t   attributes = PSA_KEY_ATTRIBUTES_INIT;
-    size_t                 key_bitlen;
-    psa_key_type_t         psa_keytype;
+    psa_algorithm_t       psa_algorithm;
+    psa_key_handle_t      psa_key_handle;
+    psa_status_t          status;
+    psa_key_attributes_t  attributes;
+    size_t                key_bitlen;
+    psa_key_type_t        psa_keytype;
+    psa_key_usage_t       psa_key_usage;
 
     /* TODO: remove this and put it somewhere common. (It's OK to call twice,
      * so having it here doesn't cause a problem in the short term */
     psa_crypto_init();
 
+    /* PSA always enforces policy for algorithms with no way to turn it off.
+     * It is also strict on usage, but that can be relaxed by listing lots
+     * of usages.  OpenSSL OTOH has no such enforcement (which means less
+     * codes in the crypto layer).
+
+     * Mbed TLS is inconsistent with the PSA API for key wrap that
+     * necessitates setting PSA_KEY_USAGE_EXPORT here. There is no PSA API
+     * for key wrap, only an MbedTLS API. That API takes key *bytes* not
+     * a key handle (like PSA APIs). See t_cose_crypto_kw_wrap().
+     *
+     * Also see comments in t_cose_key.h and t_cose_crypto.h
+     */
 
     switch (cose_algorithm_id) {
         case T_COSE_ALGORITHM_A128GCM:
+        case T_COSE_ALGORITHM_A128KW:
             psa_algorithm = PSA_ALG_GCM;
             psa_keytype = PSA_KEY_TYPE_AES;
+            psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
             key_bitlen = 128;
             break;
 
         case T_COSE_ALGORITHM_A192GCM:
+        case T_COSE_ALGORITHM_A192KW:
             psa_algorithm = PSA_ALG_GCM;
             psa_keytype = PSA_KEY_TYPE_AES;
+            psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
             key_bitlen = 192;
             break;
 
         case T_COSE_ALGORITHM_A256GCM:
+        case T_COSE_ALGORITHM_A256KW:
             psa_algorithm = PSA_ALG_GCM;
             psa_keytype = PSA_KEY_TYPE_AES;
+            psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
             key_bitlen = 256;
+            break;
+
+        case T_COSE_ALGORITHM_HMAC256:
+            psa_keytype = PSA_KEY_TYPE_HMAC;
+            psa_algorithm = PSA_ALG_HMAC(PSA_ALG_SHA_256);
+            psa_key_usage = PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_VERIFY_HASH;
+            key_bitlen = 256;
+            break;
+
+        case T_COSE_ALGORITHM_HMAC384:
+            psa_keytype = PSA_KEY_TYPE_HMAC;
+            psa_algorithm = PSA_ALG_HMAC(PSA_ALG_SHA_384);
+            psa_key_usage = PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_VERIFY_HASH;
+            key_bitlen = 384;
+            break;
+
+        case T_COSE_ALGORITHM_HMAC512:
+            psa_keytype = PSA_KEY_TYPE_HMAC;
+            psa_algorithm = PSA_ALG_HMAC(PSA_ALG_SHA_512);
+            psa_key_usage = PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_VERIFY_HASH;
+            key_bitlen = 512;
             break;
 
         default:
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
 
-    /* t_cose doesn't make use of PSA's ability to check key usage. It
-     * just sets all possible usages needed for t_cose here. While
-     * this loses some guards, these are only guards against the
-     * programmer doing something wrong, not against bad input. This
-     * particular function is also used primarily for only the CEK in
-     * t_cose. That means the programmer is the t_cose developer, not
-     * the t_cose user. Very little is lost and the object code is
-     * smaller.
-     *
-     * Note that all the key handles the user of t_cose passes into
-     * t_cose from the public interface (not the ones set up here)
-     * need to have key usage set right. These key handles pass
-     * through t_cose and the crypto adapter, so if the crypto lib
-     * enforces key usage like PSA does, they will be in effect.
-     */
-    // TODO: export is here because of the PSA key wrap API
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT);
+    attributes = psa_key_attributes_init();
+    psa_set_key_usage_flags(&attributes, psa_key_usage);
     psa_set_key_algorithm(&attributes, psa_algorithm);
     psa_set_key_type(&attributes, psa_keytype);
     psa_set_key_bits(&attributes, key_bitlen);
 
-    status = psa_import_key(&attributes,
-                             symmetric_key.ptr,
-                             symmetric_key.len,
-                            &psa_key_handle);
+    status = psa_import_key(&attributes,        /* in: filled-in attributes struct */
+                             symmetric_key.ptr, /* in: pointer to key bytes */
+                             symmetric_key.len, /* in: length of key bytes  */
+                            &psa_key_handle);   /* out: new key handle      */
 
     if (status != PSA_SUCCESS) {
         return T_COSE_ERR_KEY_IMPORT_FAILED;
     }
 
-    key_handle->k.key_handle = psa_key_handle;
-    key_handle->crypto_lib   = T_COSE_CRYPTO_LIB_PSA;
+    key_handle->key.handle = psa_key_handle;
 
     return T_COSE_SUCCESS;
 }
@@ -1158,11 +1198,7 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
         return T_COSE_SUCCESS;
     }
 
-    if(key.crypto_lib != T_COSE_CRYPTO_LIB_PSA) {
-        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
-    }
-
-    status = psa_aead_encrypt((psa_key_handle_t)key.k.key_handle,
+    status = psa_aead_encrypt((psa_key_handle_t)key.key.handle,
                               psa_algorithm_id,
                               nonce.ptr, nonce.len,
                               aad.ptr, aad.len,
@@ -1209,11 +1245,8 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
 
-    if(key.crypto_lib != T_COSE_CRYPTO_LIB_PSA) {
-        return T_COSE_ERR_INCORRECT_KEY_FOR_LIB;
-    }
 
-    status = psa_aead_decrypt((psa_key_handle_t)key.k.key_handle,
+    status = psa_aead_decrypt((psa_key_handle_t)key.key.handle,
                               psa_algorithm_id,
                               nonce.ptr, nonce.len,
                               aad.ptr, aad.len,

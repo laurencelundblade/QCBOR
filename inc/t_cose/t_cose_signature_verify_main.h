@@ -15,6 +15,8 @@
 
 #include "t_cose/t_cose_signature_verify.h"
 #include "t_cose_parameters.h"
+#include "t_cose/t_cose_key.h"
+
 
 
 /* Warning: this is still early development. Documentation may be incorrect. */
