@@ -48,7 +48,10 @@ TEST_OBJ=test/t_cose_test.o \
 
 
 # ---- Object files for examples ----
-EXAMPLE_OBJ=
+EXAMPLE_OBJ=examples/examples_main.o \
+            examples/signing_examples.o \
+            examples/encryption_examples.o \
+            examples/print_buf.o
 
 
 # ---- public headers -----
@@ -196,8 +199,8 @@ test/t_cose_test.o: test/t_cose_test.h \
 test/t_cose_sign_verify_test.o: test/t_cose_sign_verify_test.h \
                                 test/t_cose_make_test_messages.h \
                                 src/t_cose_crypto.h \
-                                test/t_cose_make_test_pub_key.h \
-                                $(PUBLIC_INTERFACE)
+				examples/init_keys.h \
+				$(PUBLIC_INTERFACE)
 
 test/t_cose_make_test_messages.o: test/t_cose_make_test_messages.h \
                                   inc/t_cose/t_cose_sign1_sign.h \
@@ -210,17 +213,28 @@ test/run_test.o: test/run_test.h \
                  test/t_cose_hash_fail_test.h \
                  test/t_cose_compute_validate_mac_test.h \
 
-test/t_cose_make_openssl_test_key.o: test/t_cose_make_test_pub_key.h \
-                                     inc/t_cose/t_cose_standard_constants.h \
-                                     inc/t_cose/t_cose_common.h
-
 test/t_cose_compute_validate_mac_test.o: inc/t_cose/t_cose_mac_compute.h \
                                          inc/t_cose/t_cose_mac_validate.h \
-                                         test/t_cose_make_test_pub_key.h \
                                          test/t_cose_compute_validate_mac_test.h
 
 
 # ---- example dependencies ----
+examples/encryption_examples.o:	examples/encryption_examples.h \
+				examples/encryption_examples.c \
+				$(PUBLIC_INTERFACE) \
+				examples/init_keys.h \
+				examples/print_buf.h
 
+examples/signing_examples.o:	examples/signing_examples.h \
+				examples/signing_examples.c \
+				examples/init_keys.h \
+				$(PUBLIC_INTERFACE) \
+				examples/print_buf.h
 
+examples/print_buf.o:	examples/print_buf.c \
+			examples/print_buf.h
+
+examples/examples_main.o:	examples/examples_main.c \
+				examples/encryption_examples.h \
+				examples/signing_examples.h
 

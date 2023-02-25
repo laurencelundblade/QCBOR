@@ -102,15 +102,32 @@ install(DIRECTORY inc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 if (BUILD_EXAMPLES)
 
+    set(EXAMPLE_SRC_COMMON
+        examples/examples_main.c
+        examples/print_buf.c
+        examples/signing_examples.c
+        examples/encryption_examples.c
+    )
+
     if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
-        add_executable(t_cose_basic_example_psa examples/t_cose_basic_example_psa.c)
-        target_link_libraries(t_cose_basic_example_psa PRIVATE t_cose ${CRYPTO_LIBRARY})
-    elseif (CRYPTO_PROVIDER STREQUAL "OpenSSL")
-        add_executable(t_cose_basic_example_ossl examples/t_cose_basic_example_ossl.c examples/encryption_examples_ossl.c)
-        target_link_libraries(t_cose_basic_example_ossl PRIVATE t_cose ${CRYPTO_LIBRARY})
+        set(EXAMPLE_SRC_EXTRA examples/init_keys_psa.c)
+    elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
+        set(EXAMPLE_SRC_EXTRA examples/init_keys_ossl.c)
+    elseif(CRYPTO_PROVIDER STREQUAL "Test")
+        set(EXAMPLE_SRC_EXTRA examples/init_keys_test.c)
+    else()
+        message(FATAL_ERROR "Bug!")
     endif()
 
+    add_executable(t_cose_examples ${EXAMPLE_SRC_COMMON} ${EXAMPLE_SRC_EXTRA})
+
+    target_include_directories(t_cose_examples PRIVATE examples)
+    target_link_libraries(t_cose_examples PRIVATE t_cose ${CRYPTO_LIBRARY})
+    # Crypto defs are needed because the tests include headers from src/
+    target_compile_definitions(t_cose_examples PRIVATE ${CRYPTO_COMPILE_DEFS} ${EXAMPLE_EXTRA_DEFS})
+
 endif()
+
 
 if (BUILD_TESTS)
 
@@ -130,20 +147,20 @@ if (BUILD_TESTS)
     endif()
 
     if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
-        set(TEST_SRC_EXTRA test/t_cose_make_psa_test_key.c)
+        set(TEST_SRC_EXTRA examples/init_keys_psa.c)
         set(TEST_EXTRA_DEFS -DT_COSE_DISABLE_MAC0)
     elseif(CRYPTO_PROVIDER STREQUAL "OpenSSL")
-        set(TEST_SRC_EXTRA test/t_cose_make_openssl_test_key.c)
+        set(TEST_SRC_EXTRA examples/init_keys_ossl.c)
         set(TEST_EXTRA_DEFS -DT_COSE_DISABLE_MAC0)
     elseif(CRYPTO_PROVIDER STREQUAL "Test")
-        set(TEST_SRC_EXTRA test/t_cose_make_test_test_key.c)
+        set(TEST_SRC_EXTRA examples/init_keys_test.c)
         set(TEST_EXTRA_DEFS -DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS)
     else()
         message(FATAL_ERROR "Bug!")
     endif()
 
     add_executable(t_cose_test ${TEST_SRC_COMMON} ${TEST_SRC_EXTRA})
-    target_include_directories(t_cose_test PRIVATE src test)
+    target_include_directories(t_cose_test PRIVATE src test examples)
     target_link_libraries(t_cose_test PRIVATE t_cose ${CRYPTO_LIBRARY})
     # Crypto defs are needed because the tests include headers from src/
     target_compile_definitions(t_cose_test PRIVATE ${CRYPTO_COMPILE_DEFS} ${TEST_EXTRA_DEFS})

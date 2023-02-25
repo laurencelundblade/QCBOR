@@ -51,7 +51,9 @@ CRYPTO_INC=-I /usr/local/include
 
 CRYPTO_CONFIG_OPTS=-DT_COSE_USE_OPENSSL_CRYPTO
 CRYPTO_OBJ=crypto_adapters/t_cose_openssl_crypto.o
-CRYPTO_TEST_OBJ=test/t_cose_make_openssl_test_key.o
+CRYPTO_TEST_OBJ=examples/init_keys_ossl.o
+CRYPTO_EXAMPLE_OBJ=examples/init_keys_ossl.o
+
 
 
 # ---- other configuration ----
@@ -73,7 +75,7 @@ C_OPTS=-Os -fPIC
 
 
 # ---- Aggregate includes and options ----
-INC=-I inc -I test -I src
+INC=-I inc -I test -I src -I examples
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC)
 CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
 
@@ -81,12 +83,12 @@ CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
 # ---- The build targets ----
 .PHONY: all install install_headers install_so uninstall clean warn
 
-all: libt_cose.a t_cose_test t_cose_basic_example_ossl
+all: libt_cose.a t_cose_test t_cose_examples
 
 # run "make warn" as a handy way to compile with the warning flags
 # used in the QCBOR release process. See C_OPTS above.
 warn:
-	make -f Makefile.psa CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
+	make -f Makefile.ossl CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
 
 
 # ---- Bring in common definitions of SRC_OBJ, TEST_OBJ, ... -----
@@ -117,6 +119,12 @@ crypto_adapters/t_cose_ossl_crypto.o: crypto_adapters/t_cose_ossl_crypto.c \
                                       src/t_cose_util.h \
                                       t_cose/t_cose_standard_constants.h
 
+examples/init_keys_ossl.o: 	examples/init_keys_ossl.c
+				examples/init_keys.h
+				$(PUBLIC_INTERFACE)
+
+t_cose_examples: $(EXAMPLE_OBJ) $(CRYPTO_EXAMPLE_OBJ) libt_cose.a
+	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
 
 # ---- Installation ----
@@ -147,6 +155,7 @@ uninstall: libt_cose.a $(PUBLIC_INTERFACE)
 		libt_cose.a libt_cose.so libt_cose.so.1 libt_cose.so.1.0.0)
 
 clean:
-	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) $(CRYPTO_TEST_OBJ) $(EXAMPLE_OBJ) \
-	      t_cose_basic_example_ossl libt_cose.so examples/*.o \
-	      main.o t_cose_test libt_cose.a libt_cose.so
+	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) $(CRYPTO_TEST_OBJ) $(EXAMPLE_OBJ) $(CRYPTO_EXAMPLE_OBJ) \
+        t_cose_examples libt_cose.so \
+        main.o t_cose_test libt_cose.a libt_cose.so
+

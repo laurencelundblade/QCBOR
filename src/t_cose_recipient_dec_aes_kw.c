@@ -54,14 +54,15 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
     if(err != T_COSE_SUCCESS) {
         goto Done;
     }
-
-    if(!q_useful_buf_c_is_empty(protected_params)) {
-        /* There's can't be any protected headers here because
-         * keywrap can't protected them (need an AEAD) */
+    if(!(q_useful_buf_c_is_empty(protected_params) ||
+         !q_useful_buf_compare(protected_params, Q_USEFUL_BUF_FROM_SZ_LITERAL("\xa0")))) {
+        /* There's can't be any protected headers here because keywrap
+         * can't protected them (need an AEAD). The byte 0xa0 is an
+         * encoded empty CBOR map. While completely empty headers are
+         * preferred an empty map is allowed. */
         // TODO: the right error here
         return T_COSE_ERR_FAIL;
     }
-
     /* ---- Third item -- ciphertext ---- */
     QCBORDecode_GetByteString(cbor_decoder, &ciphertext);
 
@@ -73,8 +74,7 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
                                                   T_COSE_ERR_RECIPIENT_FORMAT);
     }
 
-    // TODO: say how to find this in the not-protected bucket
-    cose_algorithm_id = t_cose_find_parameter_alg_id(*params);
+    cose_algorithm_id = t_cose_find_parameter_alg_id(*params, false);
 
     // TODO: should probably check the kid here
 

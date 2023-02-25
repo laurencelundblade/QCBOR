@@ -678,20 +678,23 @@ t_cose_find_parameter(const struct t_cose_parameter *parameter_list, int64_t lab
  * Public function. See t_cose_parameters.h
  */
 int32_t
-t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list)
+t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list, bool prot)
 {
     const struct t_cose_parameter *p_found;
 
     p_found = t_cose_find_parameter(parameter_list, T_COSE_HEADER_PARAM_ALG);
-    if(p_found != NULL &&
-       p_found->value_type == T_COSE_PARAMETER_TYPE_INT64 &&
-       p_found->in_protected &&
-       p_found->value.i64 != T_COSE_ALGORITHM_RESERVED &&
-       p_found->value.i64 < INT32_MAX) {
-        return (int32_t)p_found->value.i64;
-    } else {
+    if(p_found == NULL ||
+        p_found->value_type != T_COSE_PARAMETER_TYPE_INT64 ||
+        p_found->value.i64 == T_COSE_ALGORITHM_RESERVED ||
+        p_found->value.i64 >= INT32_MAX) {
         return T_COSE_ALGORITHM_NONE;
     }
+
+    if(prot != p_found->in_protected) { /* effective exclusive OR */
+        return T_COSE_ALGORITHM_NONE;
+    }
+
+    return (int32_t)p_found->value.i64;
 }
 
 

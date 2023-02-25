@@ -13,7 +13,6 @@
 #include "t_cose/t_cose_mac_validate.h"
 #include "t_cose/t_cose_key.h"
 #include "t_cose/q_useful_buf.h"
-#include "t_cose_make_test_pub_key.h"
 #include "t_cose_compute_validate_mac_test.h"
 
 
@@ -130,7 +129,7 @@ static int_fast32_t compute_validate_basic_test_alg_mac(int32_t cose_alg)
 
 Done:
     /* Many crypto libraries allocate memory, slots, etc for keys */
-    free_key(key);
+    t_cose_key_free_symmetric(key);
 
     return return_value;
 }
@@ -249,7 +248,7 @@ int_fast32_t compute_validate_mac_sig_fail_test()
     return_value = 0;
 
 Done:
-    free_key(key);
+    t_cose_key_free_symmetric(key);
 
     return return_value;
 }
@@ -355,7 +354,7 @@ int_fast32_t compute_validate_get_size_mac_test()
         }
 
         result = size_test(T_COSE_ALGORITHM_HMAC256, NULL_Q_USEFUL_BUF_C, key);
-        free_key(key);
+        t_cose_key_free_symmetric(key);
         if(result) {
             return 20000 + result;
         }
@@ -368,7 +367,7 @@ int_fast32_t compute_validate_get_size_mac_test()
         }
 
         result = size_test(T_COSE_ALGORITHM_HMAC384, NULL_Q_USEFUL_BUF_C, key);
-        free_key(key);
+        t_cose_key_free_symmetric(key);
         if(result) {
             return 40000 + result;
         }
@@ -382,14 +381,14 @@ int_fast32_t compute_validate_get_size_mac_test()
 
         result = size_test(T_COSE_ALGORITHM_HMAC512, NULL_Q_USEFUL_BUF_C, key);
         if(result) {
-            free_key(key);
+            t_cose_key_free_symmetric(key);
             return 60000 + result;
         }
 
         result = size_test(T_COSE_ALGORITHM_HMAC512,
                            Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"),
                            key);
-        free_key(key);
+        t_cose_key_free_symmetric(key);
         if(result) {
             return 70000 + result;
         }
@@ -472,7 +471,7 @@ int_fast32_t compute_validate_detached_content_mac_sig_fail_test()
     return_value = 0;
 
 Done:
-    free_key(key);
+    t_cose_key_free_symmetric(key);
 
     return return_value;
 }
@@ -578,7 +577,7 @@ int_fast32_t compute_validate_get_size_detached_content_mac_test()
         }
 
         result = detached_content_size_test(T_COSE_ALGORITHM_HMAC256, NULL_Q_USEFUL_BUF_C, key);
-        free_key(key);
+        t_cose_key_free_symmetric(key);
         if(result) {
             return 20000 + result;
         }
@@ -591,7 +590,7 @@ int_fast32_t compute_validate_get_size_detached_content_mac_test()
         }
 
         result = detached_content_size_test(T_COSE_ALGORITHM_HMAC384, NULL_Q_USEFUL_BUF_C, key);
-        free_key(key);
+        t_cose_key_free_symmetric(key);
         if(result) {
             return 40000 + result;
         }
@@ -605,14 +604,14 @@ int_fast32_t compute_validate_get_size_detached_content_mac_test()
 
         result = detached_content_size_test(T_COSE_ALGORITHM_HMAC512, NULL_Q_USEFUL_BUF_C, key);
         if(result) {
-            free_key(key);
+            t_cose_key_free_symmetric(key);
             return 60000 + result;
         }
 
         result = detached_content_size_test(T_COSE_ALGORITHM_HMAC512,
                            Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"),
                            key);
-        free_key(key);
+        t_cose_key_free_symmetric(key);
         if(result) {
             return 70000 + result;
         }

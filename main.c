@@ -12,7 +12,7 @@
 
 #include <stdio.h>
 #include "run_tests.h"
-#include "t_cose_make_test_pub_key.h"
+#include "examples/init_keys.h" /* For key leak detection. */
 
 
 /*
@@ -45,7 +45,7 @@ int main(int argc, const char * argv[])
         return return_value;
     }
 
-    return_value = check_for_key_pair_leaks();
+    return_value = check_for_key_allocation_leaks();
     if(return_value) {
         printf("Detected key pair leaks: %d FAIL\n", return_value);
     }

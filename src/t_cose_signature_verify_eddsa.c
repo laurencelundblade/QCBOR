@@ -35,7 +35,7 @@ t_cose_signature_verify1_eddsa_cb(struct t_cose_signature_verify *me_x,
     struct q_useful_buf_c        tbs;
 
     /* --- Get the parameters values needed --- */
-    cose_algorithm_id = t_cose_find_parameter_alg_id(parameter_list);
+    cose_algorithm_id = t_cose_find_parameter_alg_id(parameter_list, true);
     if(cose_algorithm_id == T_COSE_ALGORITHM_NONE) {
         return_value = T_COSE_ERR_NO_ALG_ID;
         goto Done;

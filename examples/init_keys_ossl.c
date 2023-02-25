@@ -1,7 +1,7 @@
 /*
- *  t_cose_make_openssl_test_key.c
+ * init_keys_ossl.c
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -9,22 +9,110 @@
  * See BSD-3-Clause license in README.md
  */
 
-#include "t_cose_make_test_pub_key.h" /* The interface implemented here */
+
+#include "init_keys.h"
+
+#include "t_cose/t_cose_standard_constants.h"
+#include "t_cose/t_cose_common.h"
+#include "t_cose/t_cose_key.h"
 
 #include "openssl/err.h"
 #include "openssl/evp.h"
 #include "openssl/x509.h"
 
-#include "t_cose/t_cose_standard_constants.h"
+
+/*
+ *
+ * The input bytes are what d2i_PrivateKey() will decode.
+ * It's documentation is sparse. It says it must be DER
+ * format and is related to PKCS #8. This seems to be
+ * a set of DER-encoded ASN.1 data types such as:
+ *
+ *    ECPrivateKey defined in RFC 5915
+ *
+ * The key object returned by this is malloced and has to be freed by
+ * by calling free_key(). This heap use is a part of
+ * OpenSSL and not t_cose which does not use the heap.
+ *
+ *
+ */
+static enum t_cose_err_t
+init_signing_key_der(int32_t               cose_algorithm_id,
+                     struct q_useful_buf_c der_encoded,
+                     struct t_cose_key    *key_pair)
+{
+    EVP_PKEY          *pkey;
+    int                key_type;
+    enum t_cose_err_t  return_value;
+    long               der_length;
+
+    switch (cose_algorithm_id) {
+     case T_COSE_ALGORITHM_ES256:
+     case T_COSE_ALGORITHM_ES384:
+     case T_COSE_ALGORITHM_ES512:
+         key_type = EVP_PKEY_EC;
+         break;
+
+     case T_COSE_ALGORITHM_PS256:
+     case T_COSE_ALGORITHM_PS384:
+     case T_COSE_ALGORITHM_PS512:
+         key_type = EVP_PKEY_RSA;
+         break;
+
+     case T_COSE_ALGORITHM_EDDSA:
+         key_type = EVP_PKEY_ED25519;
+          break;
+
+     default:
+         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+     }
+
+    /* Safely convert size_t to long */
+    if(der_encoded.len > LONG_MAX) {
+        return T_COSE_ERR_FAIL;
+    }
+    der_length = (long)der_encoded.len;
+
+    /* This imports the public key too */
+    pkey = d2i_PrivateKey(key_type, /* in: type */
+                          NULL, /* unused: defined as EVP_PKEY **a */
+                          (const unsigned char **)&der_encoded.ptr, /*in: pointer to DER byes; out: unused */
+                          der_length /* in: length of DER bytes */
+                          );
+    if(pkey == NULL) {
+        // TODO: better error?
+        return_value = T_COSE_ERR_FAIL;
+        goto Done;
+    }
+
+    key_pair->key.ptr = pkey;
+    return_value      = T_COSE_SUCCESS;
+
+Done:
+    return return_value;
+}
 
 
 /*
- * RFC 5915 format EC private key, including the public key. These
- * are the same key as in t_cose_make_psa_test_key.c
+ * These are RFC 5915 format EC private keys. The ASN.1 for them is:
  *
- * They are made by:
+ *    ECPrivateKey ::= SEQUENCE {
+ *       version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
+ *       privateKey     OCTET STRING,
+ *       parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
+ *       publicKey  [1] BIT STRING OPTIONAL
+ *    }
  *
- *   openssl ecparam -genkey -name prime256v1 | sed -e '1d' -e '$d' | base64 --decode  | xxd -i
+ * The byte arrays below are DER encoding of this. They include
+ * the public key (which is optional).
+ *
+ * They also include ECParameters so identification of the curve and
+ * such are part of the data and don't have to be specified in the
+ * API call to OpenSSL.
+ *
+ * These are the same key as in init_keys_psa.c (but there only the private
+ * key bytes are needed because the PSA import doesn't need the DER or
+ * the public key).
  *
  * See also:
  *  https://stackoverflow.com/
@@ -32,7 +120,6 @@
  *  set-an-evp-pkey-from-ec-raw-points-pem-or-der-in-both-openssl-1-1-1-and-3-0-x/
  *  71896633#71896633
  */
-
 static const unsigned char ec256_key_pair[] = {
   0x30, 0x77, 0x02, 0x01, 0x01, 0x04, 0x20, 0xd9, 0xb5, 0xe7, 0x1f, 0x77,
   0x28, 0xbf, 0xe5, 0x63, 0xa9, 0xdc, 0x93, 0x75, 0x62, 0x27, 0x7e, 0x32,
@@ -87,7 +174,7 @@ static const unsigned char ec521_key_pair[] = {
 };
 
 static const unsigned char rsa2048_private_key[] = {
-#include "t_cose_rsa_test_key.h"
+#include "rsa_test_key.h"
 };
 
 static const unsigned char ed25519_private_key[] = {
@@ -97,101 +184,96 @@ static const unsigned char ed25519_private_key[] = {
   0xe8, 0x22, 0x80, 0x2a, 0x68, 0x5d, 0xa8, 0x99, 0x16, 0x5d, 0x44, 0x58
 };
 
-/*
- * Public function, see t_cose_make_test_pub_key.h
- */
-/*
- * The key object returned by this is malloced and has to be freed by
- * by calling free_key(). This heap use is a part of
- * OpenSSL and not t_cose which does not use the heap.
- */
-enum t_cose_err_t make_key_pair(int32_t            cose_algorithm_id,
-                                      struct t_cose_key *key_pair)
-{
-    enum t_cose_err_t  return_value;
-    EVP_PKEY          *pkey;
-    int                key_type;
-    const uint8_t     *key_data;
-    long               key_len;
 
+/*
+ * Public function, see init_key.h
+ */
+enum t_cose_err_t
+init_fixed_test_signing_key(int32_t            cose_algorithm_id,
+                            struct t_cose_key *key_pair)
+{
+    struct q_useful_buf_c der_encoded_key;
+
+    /* Select the key bytes based on the algorithm */
     switch (cose_algorithm_id) {
     case T_COSE_ALGORITHM_ES256:
-        key_type = EVP_PKEY_EC;
-        key_data = ec256_key_pair;
-        key_len = sizeof(ec256_key_pair);
+        der_encoded_key = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec256_key_pair);
         break;
 
     case T_COSE_ALGORITHM_ES384:
-        key_type = EVP_PKEY_EC;
-        key_data = ec384_key_pair;
-        key_len = sizeof(ec384_key_pair);
+        der_encoded_key = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec384_key_pair);
         break;
 
     case T_COSE_ALGORITHM_ES512:
-        key_type = EVP_PKEY_EC;
-        key_data = ec521_key_pair;
-        key_len = sizeof(ec521_key_pair);
+        der_encoded_key = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec521_key_pair);
         break;
 
     case T_COSE_ALGORITHM_PS256:
     case T_COSE_ALGORITHM_PS384:
     case T_COSE_ALGORITHM_PS512:
-        key_type = EVP_PKEY_RSA;
-        key_data = rsa2048_private_key;
-        key_len = sizeof(rsa2048_private_key);
+        der_encoded_key = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(rsa2048_private_key);
         break;
 
     case T_COSE_ALGORITHM_EDDSA:
-        key_type = EVP_PKEY_ED25519;
-        key_data = ed25519_private_key;
-        key_len = sizeof(ed25519_private_key);
+        der_encoded_key = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ed25519_private_key);
         break;
 
     default:
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
 
-    /* This imports the public key too */
-    pkey = d2i_PrivateKey(key_type, NULL, &key_data, key_len);
-    if(pkey == NULL) {
-        return_value = T_COSE_ERR_FAIL;
-        goto Done;
-    }
-
-    key_pair->key.ptr  = pkey;
-    return_value         = T_COSE_SUCCESS;
-
-Done:
-    return return_value;
+    /* Turn the DER bytes into a t_cose_key */
+    return init_signing_key_der(cose_algorithm_id,
+                                der_encoded_key,
+                                key_pair);
 }
 
 
 /*
- * Public function, see t_cose_make_test_pub_key.h
+ * Public function, see init_keys.h
  */
-void free_key(struct t_cose_key key_pair)
+void free_fixed_signing_key(struct t_cose_key key_pair)
 {
-    // TODO: this might not work for keys that aren't public keys
     EVP_PKEY_free(key_pair.key.ptr);
 }
 
 
+
+
 /*
- * Public function, see t_cose_make_test_pub_key.h
+ * Public function, see init_key.h
  */
-int check_for_key_pair_leaks()
+enum t_cose_err_t
+init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
+                               struct t_cose_key *public_key,
+                               struct t_cose_key *private_key)
+{
+    (void)cose_algorithm_id;
+    (void)public_key;
+    (void)private_key;
+    return T_COSE_ERR_FAIL;
+}
+
+
+/*
+ * Public function, see init_key.h
+ */
+void
+free_fixed_test_encryption_key(struct t_cose_key key_pair)
+{
+    (void)key_pair;
+}
+
+
+
+/*
+ * Public function, see init_keys.h
+ */
+int check_for_key_allocation_leaks()
 {
     /* So far no good way to do this for OpenSSL or malloc() in general
        in a nice portable way. The PSA version does check so there is
        some coverage of the code even though there is no check here.
      */
     return 0;
-}
-
-enum t_cose_err_t make_hmac_key(int32_t            cose_algorithm_id,
-                                struct t_cose_key *key)
-{
-    (void)cose_algorithm_id;
-    (void)key;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }

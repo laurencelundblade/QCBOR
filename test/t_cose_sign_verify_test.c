@@ -13,7 +13,7 @@
 #include "t_cose/t_cose_sign1_sign.h"
 #include "t_cose/t_cose_sign1_verify.h"
 #include "t_cose/q_useful_buf.h"
-#include "t_cose_make_test_pub_key.h"
+#include "init_keys.h"
 #include "t_cose_sign_verify_test.h"
 
 #include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
@@ -240,7 +240,7 @@ static int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
 
     /* Make a key pair that will be used for both signing and verification.
      */
-    result = make_key_pair(cose_alg, &key_pair);
+    result = init_fixed_test_signing_key(cose_alg, &key_pair);
     if(result) {
         return 1000 + (int32_t)result;
     }
@@ -284,7 +284,7 @@ static int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
 
 Done:
     /* Many crypto libraries allocate memory, slots, etc for keys */
-    free_key(key_pair);
+    free_fixed_signing_key(key_pair);
 
     return return_value;
 }
@@ -332,7 +332,7 @@ int_fast32_t sig_fail_test(int32_t cose_alg)
     /* Make a key pair that will be used for both signing and
      * verification.
      */
-    result = make_key_pair(cose_alg, &key_pair);
+    result = init_fixed_test_signing_key(cose_alg, &key_pair);
     if(result) {
         return 1000 + (int32_t)result;
     }
@@ -390,7 +390,7 @@ int_fast32_t sig_fail_test(int32_t cose_alg)
     return_value = 0;
 
 Done:
-    free_key(key_pair);
+    free_fixed_signing_key(key_pair);
 
     return return_value;
 }
@@ -444,7 +444,7 @@ int_fast32_t sign_verify_make_cwt_test()
      * The ECDSA key pair made is both for signing and verification.
      * The kid comes from RFC 8932
      */
-    result = make_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+    result = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &key_pair);
     if(result) {
         return 1000 + (int32_t)result;
     }
@@ -551,7 +551,7 @@ int_fast32_t sign_verify_make_cwt_test()
 
 Done:
     /* Many crypto libraries allocate memory, slots, etc for keys */
-    free_key(key_pair);
+    free_fixed_signing_key(key_pair);
 
     return return_value;
 }
@@ -574,7 +574,7 @@ static int_fast32_t size_test(int32_t               cose_algorithm_id,
     struct q_useful_buf_c          payload;
     size_t                         sig_size;
 
-    result = make_key_pair(cose_algorithm_id, &key_pair);
+    result = init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
     if(result) {
         return 1000 + (int32_t)result;
     }
@@ -690,7 +690,7 @@ static int_fast32_t size_test(int32_t               cose_algorithm_id,
     return_value = 0;
 
 Done:
-    free_key(key_pair);
+    free_fixed_signing_key(key_pair);
 
     return return_value;
 }
@@ -755,7 +755,7 @@ static int_fast32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c
         goto Done2;
     }
 
-    result = make_key_pair(cose_algorithm_id, &key_pair);
+    result = init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
     if(result) {
         return_value = 3000 + (int32_t)result;
         goto Done2;
@@ -798,7 +798,7 @@ static int_fast32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c
     return_value = 0;
 
 Done:
-    free_key(key_pair);
+    free_fixed_signing_key(key_pair);
 
 Done2:
     return return_value;
@@ -851,7 +851,7 @@ sign_verify_unsupported_test_alg(int32_t cose_alg,
     Q_USEFUL_BUF_MAKE_STACK_UB(    auxiliary_buffer, 100);
     struct q_useful_buf_c          payload;
 
-    result = make_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+    result = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &key_pair);
     if(result) {
         return 1000 + (int32_t)result;
     }
@@ -877,7 +877,7 @@ sign_verify_unsupported_test_alg(int32_t cose_alg,
     return_value = 0;
 
 Done:
-    free_key(key_pair);
+    free_fixed_signing_key(key_pair);
     return return_value;
 }
 
@@ -924,7 +924,7 @@ int_fast32_t sign_verify_bad_auxiliary_buffer(void)
         return 0;
     }
 
-    result = make_key_pair(T_COSE_ALGORITHM_EDDSA, &key_pair);
+    result = init_fixed_test_signing_key(T_COSE_ALGORITHM_EDDSA, &key_pair);
     if(result) {
         return 1000 + (int32_t)result;
     }
@@ -980,7 +980,7 @@ int_fast32_t sign_verify_bad_auxiliary_buffer(void)
     return_value = 0;
 
 Done:
-    free_key(key_pair);
+    free_fixed_signing_key(key_pair);
 
     return return_value;
 }
@@ -1008,12 +1008,12 @@ int_fast32_t sign_verify_multi(void)
         return 0;
     }
 
-    result = make_key_pair(T_COSE_ALGORITHM_ES256, &key_pair1);
+    result = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &key_pair1);
     if(result) {
         return 1000 + (int32_t)result;
     }
 
-    result = make_key_pair(T_COSE_ALGORITHM_ES512, &key_pair2);
+    result = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES512, &key_pair2);
     if(result) {
         return 1000 + (int32_t)result;
     }

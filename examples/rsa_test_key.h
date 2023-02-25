@@ -1,5 +1,5 @@
 /*
- *  t_cose_rsa_test_key.h
+ *  rsa_test_key.h
  *
  * Copyright 2019-2022, Laurence Lundblade
  *

@@ -517,7 +517,7 @@ t_cose_find_parameter(const struct t_cose_parameter *parameter_list, int64_t lab
  * of the wrong type and the parameter not being protected.
  */
 int32_t
-t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list);
+t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list, bool prot);
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
 

@@ -838,7 +838,7 @@ param_test(void)
     }
 
 
-    if(t_cose_find_parameter_alg_id(NULL) != T_COSE_ALGORITHM_NONE) {
+    if(t_cose_find_parameter_alg_id(NULL, true) != T_COSE_ALGORITHM_NONE) {
         return -4;
     }
 
@@ -888,7 +888,7 @@ param_test(void)
         return -10; //i * 1000 + 1;
     }
 
-    if(t_cose_find_parameter_alg_id(dec) != T_COSE_ALGORITHM_ES256) {
+    if(t_cose_find_parameter_alg_id(dec, true) != T_COSE_ALGORITHM_ES256) {
         return -11;
     }
 

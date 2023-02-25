@@ -17,8 +17,7 @@
 #include "t_cose_crypto.h" /* For signature size constant */
 #include "t_cose_util.h" /* for get_short_circuit_kid */
 #include "t_cose/t_cose_key.h"
-
-#include "t_cose_make_test_pub_key.h"
+#include "init_keys.h" /* Use the same test keys as examples */
 
 
 
@@ -46,7 +45,7 @@ int_fast32_t short_circuit_self_test()
         cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
     }
 
-    make_key_pair(cose_algorithm_id, &key_pair);
+    init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
     /* --- Make COSE Sign1 object --- */
     t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
@@ -158,7 +157,7 @@ int_fast32_t short_circuit_self_detached_content_test()
         cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
     }
 
-    make_key_pair(cose_algorithm_id, &key_pair);
+    init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
     /* --- Make COSE Sign1 object --- */
     t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
@@ -229,7 +228,7 @@ int_fast32_t short_circuit_verify_fail_test()
         cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
     }
 
-    make_key_pair(cose_algorithm_id, &key_pair);
+    init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
 
     /* --- Start making COSE Sign1 object  --- */
@@ -412,7 +411,7 @@ int_fast32_t short_circuit_make_cwt_test()
         cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
     }
 
-    make_key_pair(cose_algorithm_id, &key_pair);
+    init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
     /* --- Start making COSE Sign1 object  --- */
 
@@ -548,7 +547,7 @@ int_fast32_t short_circuit_decode_only_test()
         cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
     }
 
-    make_key_pair(cose_algorithm_id, &key_pair);
+    init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
     /* --- Start making COSE Sign1 object  --- */
 
@@ -724,7 +723,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
         cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
     }
 
-    make_key_pair(cose_algorithm_id, &key_pair);
+    init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
     /* --- Start making COSE Sign1 object  --- */
 
@@ -782,7 +781,7 @@ int_fast32_t all_header_parameters_test()
         cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
     }
 
-    make_key_pair(cose_algorithm_id, &key_pair);
+    init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
 
     t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
@@ -981,7 +980,7 @@ int_fast32_t content_type_test()
         cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
     }
 
-    make_key_pair(cose_algorithm_id, &key_pair);
+    init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
 
     /* -- integer content type -- */
@@ -1229,7 +1228,7 @@ int_fast32_t tags_test()
         cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
     }
 
-    make_key_pair(cose_algorithm_id, &key_pair);
+    init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
     /* --- Start making COSE Sign1 object tagged 900(901(18())) --- */
 
@@ -1594,7 +1593,7 @@ int_fast32_t get_size_test()
         cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
     }
 
-    make_key_pair(cose_algorithm_id, &key_pair);
+    init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
 
     /* ---- Common Set up ---- */
     payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
@@ -1750,7 +1749,7 @@ int_fast32_t crypto_context_test()
     if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_SHORT_CIRCUIT_256)) {
         return 0;
     }
-    make_key_pair(T_COSE_ALGORITHM_SHORT_CIRCUIT_256, &key_pair);
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_SHORT_CIRCUIT_256, &key_pair);
 
 
     /* __1__ Successfully make a COSE_Sign1 with a set crypto context */

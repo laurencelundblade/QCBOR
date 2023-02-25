@@ -25,7 +25,6 @@ jobs:
           crypto-provider: MbedTLS
           crypto-provider-version: 'v2.28.0'
           crypto-provider-extra: ''
-          defines: '-DCC_DEFINES=-DT_COSE_DISABLE_AES_KW'
         
         - os-image: ubuntu-latest
           container: ubuntu:20.04
@@ -113,13 +112,8 @@ jobs:
           ..
         make -j $(nproc)
 
-    - name: Run OpenSSL example
-      if: matrix.config.crypto-provider == 'OpenSSL'
-      run: build/t_cose_basic_example_ossl
-
-    - name: Run MbedTLS example
-      if: matrix.config.crypto-provider == 'MbedTLS'
-      run: build/t_cose_basic_example_psa
+    - name: Run examples
+      run: build/t_cose_examples
 
     - name: Run tests
       run: build/t_cose_test

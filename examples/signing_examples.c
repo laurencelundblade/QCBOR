@@ -1,13 +1,18 @@
 /*
- *  t_cose_basic_example_psa.c
+ * signing_examples.c
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
+ *
+ * Created by Laurence Lundblade on 2/20/23 from previous files.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * See BSD-3-Clause license in README.md
  */
 
+
+#include "signing_examples.h"
+#include "init_keys.h"
 
 #include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_sign1_sign.h"
@@ -20,199 +25,21 @@
 #include "t_cose/t_cose_sign_verify.h"
 #include "t_cose/t_cose_signature_verify_main.h"
 
-#include "psa/crypto.h"
-
+#include "print_buf.h"
 #include <stdio.h>
 
 
-/**
- * \file t_cose_basic_example_psa.c
+/* This file is crypto-library independent. It works for OpenSSL, Mbed
+ * TLS and others. The key initialization, which *is* crypto-library
+ * dependent, has been separated.
  *
- * \brief Example code for signing and verifying a COSE_Sign1 message using PSA
- *
- * This file has simple code to sign a payload and verify it.
- *
- * This works with PSA / MBed Crypto. It assumes t_cose has been wired
- * up to PSA / MBed Crypto and has code specific to this library to
- * make a key pair that will be passed through t_cose. See t_cose
- * README for more details on how integration with crypto libraries
- * works.
+ * Each example should pretty much stand on its own and be pretty
+ * clean and well-commented code. Its purpose is to be an example
+ * (not a test case). Someone should be able to easily copy the
+ * example as a starting point for their use case.
  */
 
 
-/*
- * Some hard coded keys for the test cases here.
- */
-#define PRIVATE_KEY_prime256v1 \
-0xf1, 0xb7, 0x14, 0x23, 0x43, 0x40, 0x2f, 0x3b, 0x5d, 0xe7, 0x31, 0x5e, 0xa8, \
-0x94, 0xf9, 0xda, 0x5c, 0xf5, 0x03, 0xff, 0x79, 0x38, 0xa3, 0x7c, 0xa1, 0x4e, \
-0xb0, 0x32, 0x86, 0x98, 0x84, 0x50
-
-#define PRIVATE_KEY_secp384r1 \
-0x03, 0xdf, 0x14, 0xf4, 0xb8, 0xa4, 0x3f, 0xd8, 0xab, 0x75, 0xa6, 0x04, 0x6b, \
-0xd2, 0xb5, 0xea, 0xa6, 0xfd, 0x10, 0xb2, 0xb2, 0x03, 0xfd, 0x8a, 0x78, 0xd7, \
-0x91, 0x6d, 0xe2, 0x0a, 0xa2, 0x41, 0xeb, 0x37, 0xec, 0x3d, 0x4c, 0x69, 0x3d, \
-0x23, 0xba, 0x2b, 0x4f, 0x6e, 0x5b, 0x66, 0xf5, 0x7f
-
-#define PRIVATE_KEY_secp521r1 \
-0x00, 0x45, 0xd2, 0xd1, 0x43, 0x94, 0x35, 0xfa, 0xb3, 0x33, 0xb1, 0xc6, 0xc8, \
-0xb5, 0x34, 0xf0, 0x96, 0x93, 0x96, 0xad, 0x64, 0xd5, 0xf5, 0x35, 0xd6, 0x5f, \
-0x68, 0xf2, 0xa1, 0x60, 0x65, 0x90, 0xbb, 0x15, 0xfd, 0x53, 0x22, 0xfc, 0x97, \
-0xa4, 0x16, 0xc3, 0x95, 0x74, 0x5e, 0x72, 0xc7, 0xc8, 0x51, 0x98, 0xc0, 0x92, \
-0x1a, 0xb3, 0xb8, 0xe9, 0x2d, 0xd9, 0x01, 0xb5, 0xa4, 0x21, 0x59, 0xad, 0xac, \
-0x6d
-
-
-/**
- * \brief Make an EC key pair in PSA / Mbed library form.
- *
- * \param[in] cose_algorithm_id  The algorithm to sign with, for example
- *                               \ref T_COSE_ALGORITHM_ES256.
- * \param[out] key_pair          The key pair. This must be freed.
- *
- * The key made here is fixed and just useful for testing.
- */
-enum t_cose_err_t make_psa_ecdsa_key_pair(int32_t            cose_algorithm_id,
-                                          struct t_cose_key *key_pair)
-{
-    psa_key_type_t       key_type;
-    psa_status_t         crypto_result;
-    psa_key_id_t         key_handle;
-    psa_algorithm_t      key_alg;
-    const uint8_t       *private_key;
-    size_t               private_key_len;
-    psa_key_attributes_t key_attributes;
-
-
-    static const uint8_t private_key_256[] = {PRIVATE_KEY_prime256v1};
-    static const uint8_t private_key_384[] = {PRIVATE_KEY_secp384r1};
-    static const uint8_t private_key_521[] = {PRIVATE_KEY_secp521r1};
-
-    /* There is not a 1:1 mapping from alg to key type, but
-     * there is usually an obvious curve for an algorithm. That
-     * is what this does.
-     */
-
-    switch(cose_algorithm_id) {
-    case T_COSE_ALGORITHM_ES256:
-        private_key     = private_key_256;
-        private_key_len = sizeof(private_key_256);
-        key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-        key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_256);
-        break;
-
-    case T_COSE_ALGORITHM_ES384:
-        private_key     = private_key_384;
-        private_key_len = sizeof(private_key_384);
-        key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-        key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_384);
-        break;
-
-    case T_COSE_ALGORITHM_ES512:
-        private_key     = private_key_521;
-        private_key_len = sizeof(private_key_521);
-        key_type        = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-        key_alg         = PSA_ALG_ECDSA(PSA_ALG_SHA_512);
-        break;
-
-    default:
-        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-    }
-
-
-    /* OK to call this multiple times */
-    crypto_result = psa_crypto_init();
-    if(crypto_result != PSA_SUCCESS) {
-        return T_COSE_ERR_FAIL;
-    }
-
-
-    /* When importing a key with the PSA API there are two main things
-     * to do.
-     *
-     * First you must tell it what type of key it is as this cannot be
-     * discovered from the raw data. The variable key_type contains
-     * that information including the EC curve. This is sufficient for
-     * psa_import_key() to succeed, but you probably want actually use
-     * the key.
-     *
-     * Second, you must say what algorithm(s) and operations the key
-     * can be used as the PSA Crypto Library has policy enforcement.
-     *
-     * How this is done varies quite a lot in the newer
-     * PSA Crypto API compared to the older.
-     */
-
-    key_attributes = psa_key_attributes_init();
-
-    /* Say what algorithm and operations the key can be used with / for */
-    psa_set_key_usage_flags(&key_attributes, PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_VERIFY_HASH);
-    psa_set_key_algorithm(&key_attributes, key_alg);
-
-    /* The type of key including the EC curve */
-    psa_set_key_type(&key_attributes, key_type);
-
-    /* Import the private key. psa_import_key() automatically
-     * generates the public key from the private so no need to import
-     * more than the private key. (With ECDSA the public key is always
-     * deterministically derivable from the private key).
-     */
-    crypto_result = psa_import_key(&key_attributes,
-                                   private_key,
-                                   private_key_len,
-                                   &key_handle);
-
-    if (crypto_result != PSA_SUCCESS) {
-        return T_COSE_ERR_FAIL;
-    }
-
-    key_pair->key.handle = key_handle;
-
-    return T_COSE_SUCCESS;
-}
-
-
-/**
- * \brief  Free a PSA / MBed key.
- *
- * \param[in] key_pair   The key pair to close / deallocate / free.
- */
-void free_psa_ecdsa_key_pair(struct t_cose_key key_pair)
-{
-    psa_close_key((psa_key_id_t)key_pair.key.handle);
-}
-
-
-/**
- * \brief  Print a q_useful_buf_c on stdout in hex ASCII text.
- *
- * \param[in] string_label   A string label to output first
- * \param[in] buf            The q_useful_buf_c to output.
- *
- * This is just for pretty printing.
- */
-static void print_useful_buf(const char *string_label, struct q_useful_buf_c buf)
-{
-    if(string_label) {
-        printf("%s", string_label);
-    }
-
-    printf("    %ld bytes\n", buf.len);
-
-    printf("    ");
-
-    size_t i;
-    for(i = 0; i < buf.len; i++) {
-        const uint8_t Z = ((const uint8_t *)buf.ptr)[i];
-        printf("%02x ", Z);
-        if((i % 8) == 7) {
-            printf("\n    ");
-        }
-    }
-    printf("\n");
-
-    fflush(stdout);
-}
 
 /**
  * \brief  Sign and verify example with one-step signing
@@ -223,7 +50,6 @@ static void print_useful_buf(const char *string_label, struct q_useful_buf_c buf
  */
 int32_t one_step_sign_example(void)
 {
-
     struct t_cose_sign1_sign_ctx   sign_ctx;
     enum t_cose_err_t              return_value;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
@@ -236,6 +62,8 @@ int32_t one_step_sign_example(void)
     QCBOREncodeContext             cbor_encode;
     QCBORError                     qcbor_result;
 
+    printf("\n---- START EXAMPLE one_step_sign  ----\n");
+    printf("Create COSE_Sign1 with ES256\n");
 
     /* ------   Construct the payload    ------
      *
@@ -280,7 +108,7 @@ int32_t one_step_sign_example(void)
      * The making and destroying of the key pair is the only code
      * dependent on the crypto library in this file.
      */
-    return_value = make_psa_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+    return_value = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &key_pair);
 
     printf("Made EC key with curve prime256v1: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
@@ -339,9 +167,7 @@ int32_t one_step_sign_example(void)
         goto Done;
     }
 
-    print_useful_buf("Completed COSE_Sign1 message:\n", signed_cose);
-
-
+    print_useful_buf("COSE_Sign1 message:", signed_cose);
     printf("\n");
 
 
@@ -381,7 +207,7 @@ int32_t one_step_sign_example(void)
         goto Done;
     }
 
-    print_useful_buf("Signed payload:\n", returned_payload);
+    print_useful_buf("Verifyed payload:", returned_payload);
 
 
     /* ------   Free key pair   ------
@@ -389,10 +215,12 @@ int32_t one_step_sign_example(void)
      * Some implementations of PSA allocate slots for the keys in
      * use. This call indicates that the key slot can be de allocated.
      */
-    printf("Freeing key pair\n\n\n");
-    free_psa_ecdsa_key_pair(key_pair);
+    free_fixed_signing_key(key_pair);
 
 Done:
+    printf("---- %s EXAMPLE one_step_sign (%d) ----\n\n",
+           return_value ? "FAILED" : "COMPLETED", return_value);
+
     return (int32_t)return_value;
 }
 
@@ -406,7 +234,7 @@ Done:
  * constructed directly into the output buffer, uses less memory,
  * but is more complicated to use.
  */
-int two_step_sign_example(void)
+int32_t two_step_sign_example(void)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     enum t_cose_err_t              return_value;
@@ -418,7 +246,8 @@ int two_step_sign_example(void)
     QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
 
-
+    printf("\n---- START EXAMPLE two_step_sign  ----\n");
+    printf("Create COSE_Sign1 with ES256\n");
 
     /* ------   Make an ECDSA key pair    ------
      *
@@ -431,7 +260,7 @@ int two_step_sign_example(void)
      * The making and destroying of the key pair is the only code
      * dependent on the crypto library in this file.
      */
-    return_value = make_psa_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+    return_value = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &key_pair);
 
     printf("Made EC key with curve prime256v1: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
@@ -483,7 +312,7 @@ int two_step_sign_example(void)
      *
      * QCBOREncode functions are used to add the payload. It all goes
      * directly into the output buffer without any temporary copies.
-     * QCBOR keeps track of the what is the payload so t_cose knows
+     * QCBOR keeps track of the what is the payload is so t_cose knows
      * what to hash and sign.
      *
      * The encoded CBOR here can be very large and complex. The only
@@ -543,7 +372,7 @@ int two_step_sign_example(void)
         goto Done;
     }
 
-    print_useful_buf("Completed COSE_Sign1 message:\n", signed_cose);
+    print_useful_buf("COSE_Sign1:", signed_cose);
 
 
     printf("\n");
@@ -585,7 +414,7 @@ int two_step_sign_example(void)
         goto Done;
     }
 
-    print_useful_buf("Signed payload:\n", payload);
+    print_useful_buf("Verified payload:", payload);
 
 
     /* ------   Free key pair   ------
@@ -593,17 +422,13 @@ int two_step_sign_example(void)
      * Some implementations of PSA allocate slots for the keys in
      * use. This call indicates that the key slot can be de allocated.
      */
-    printf("Freeing key pair\n\n\n");
-    free_psa_ecdsa_key_pair(key_pair);
+    free_fixed_signing_key(key_pair);
 
 Done:
+    printf("---- %s EXAMPLE two_step_sign (%d) ----\n\n",
+       return_value ? "FAILED" : "COMPLETED", return_value);
     return (int)return_value;
 }
-
-
-
-
-
 
 
 
@@ -615,7 +440,7 @@ Done:
  * constructed directly into the output buffer, uses less memory,
  * but is more complicated to use.
  */
-int two_step_sign_example_new(void)
+int32_t two_step_sign_example_new(void)
 {
     struct t_cose_sign_sign_ctx    sign_ctx;
     struct t_cose_signature_sign_main main_signer;
@@ -628,7 +453,9 @@ int two_step_sign_example_new(void)
     QCBORError                     cbor_error;
     struct t_cose_sign1_verify_ctx verify_ctx;
 
-
+    printf("\n---- START EXAMPLE two_step_sign_new  ----\n");
+    printf("Create COSE_Sign1 with ES256\n");
+    printf("Create using new sign API, verify with old\n");
 
     /* ------   Make an ECDSA key pair    ------
      *
@@ -641,7 +468,7 @@ int two_step_sign_example_new(void)
      * The making and destroying of the key pair is the only code
      * dependent on the crypto library in this file.
      */
-    return_value = make_psa_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+    return_value = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &key_pair);
 
     printf("Made EC key with curve prime256v1: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
@@ -760,9 +587,7 @@ int two_step_sign_example_new(void)
         goto Done;
     }
 
-    print_useful_buf("Completed COSE_Sign1 message:\n", signed_cose);
-
-
+    print_useful_buf("COSE_Sign1:", signed_cose);
     printf("\n");
 
 
@@ -802,7 +627,7 @@ int two_step_sign_example_new(void)
         goto Done;
     }
 
-    print_useful_buf("Signed payload:\n", payload);
+    print_useful_buf("Verified payload:", payload);
 
 
     /* ------   Free key pair   ------
@@ -810,12 +635,15 @@ int two_step_sign_example_new(void)
      * Some implementations of PSA allocate slots for the keys in
      * use. This call indicates that the key slot can be de allocated.
      */
-    printf("Freeing key pair\n\n\n");
-    free_psa_ecdsa_key_pair(key_pair);
+    free_fixed_signing_key(key_pair);
 
 Done:
+    printf("---- %s EXAMPLE two_step_sign_new (%d) ----\n\n",
+       return_value ? "FAILED" : "COMPLETED", return_value);
     return (int)return_value;
 }
+
+
 
 
 /**
@@ -825,7 +653,7 @@ Done:
  * constructed directly into the output buffer, uses less memory,
  * but is more complicated to use.
  */
-int two_step_sign_example_new_verify(void)
+int32_t two_step_sign_example_new_verify(void)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     enum t_cose_err_t              return_value;
@@ -837,7 +665,9 @@ int two_step_sign_example_new_verify(void)
     QCBORError                     cbor_error;
     struct t_cose_sign_verify_ctx verify_ctx;
 
-
+    printf("\n---- START EXAMPLE two_step_sign_example_new_verify  ----\n");
+    printf("Create COSE_Sign1 with ES256\n");
+    printf("Create using old sign API, verify with new\n");
 
     /* ------   Make an ECDSA key pair    ------
      *
@@ -850,7 +680,7 @@ int two_step_sign_example_new_verify(void)
      * The making and destroying of the key pair is the only code
      * dependent on the crypto library in this file.
      */
-    return_value = make_psa_ecdsa_key_pair(T_COSE_ALGORITHM_ES256, &key_pair);
+    return_value = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &key_pair);
 
     printf("Made EC key with curve prime256v1: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
@@ -962,9 +792,7 @@ int two_step_sign_example_new_verify(void)
         goto Done;
     }
 
-    print_useful_buf("Completed COSE_Sign1 message:\n", signed_cose);
-
-
+    print_useful_buf("COSE_Sign1:", signed_cose);
     printf("\n");
 
 
@@ -1009,7 +837,7 @@ int two_step_sign_example_new_verify(void)
         goto Done;
     }
 
-    print_useful_buf("Signed payload:\n", payload);
+    print_useful_buf("Verified payload:", payload);
 
 
     /* ------   Free key pair   ------
@@ -1017,24 +845,12 @@ int two_step_sign_example_new_verify(void)
      * Some implementations of PSA allocate slots for the keys in
      * use. This call indicates that the key slot can be de allocated.
      */
-    printf("Freeing key pair\n\n\n");
-    free_psa_ecdsa_key_pair(key_pair);
+    free_fixed_signing_key(key_pair);
 
 Done:
-    return (int)return_value;
+
+    printf("---- %s EXAMPLE two_step_sign_example_new_verify (%d) ----\n\n",
+       return_value ? "FAILED" : "COMPLETED", return_value);
+    return (int32_t)return_value;
 }
 
-
-
-
-int main(int argc, const char * argv[])
-{
-    (void)argc; /* Avoid unused parameter error */
-    (void)argv;
-
-    one_step_sign_example();
-    two_step_sign_example();
-    two_step_sign_example_new();
-    two_step_sign_example_new_verify();
-
-}

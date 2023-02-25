@@ -229,7 +229,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
      * payload, to save a bigger buffer containing the entire ToBeMaced.
      */
     return_value = t_cose_crypto_hmac_validate_setup(&hmac_ctx,
-                                  t_cose_find_parameter_alg_id(decoded_params),
+                                  t_cose_find_parameter_alg_id(decoded_params, true),
                                   context->verification_key);
     if(return_value) {
         goto Done;

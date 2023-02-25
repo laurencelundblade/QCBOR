@@ -1,4 +1,4 @@
-# Makefile -- Makefile for no-crypto test config for t_cose
+# Makefile.test -- Makefile for no-crypto test config for t_cose
 #
 # Copyright (c) 2019-2023, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
@@ -43,13 +43,14 @@ CRYPTO_INC=-I crypto_adapters/b_con_hash
 CRYPTO_LIB=
 CRYPTO_CONFIG_OPTS=-DT_COSE_USE_B_CON_SHA256 
 CRYPTO_OBJ=crypto_adapters/t_cose_test_crypto.o crypto_adapters/b_con_hash/sha256.o
-CRYPTO_TEST_OBJ=test/t_cose_make_test_test_key.o
+CRYPTO_EXAMPLE_OBJ=examples/init_keys_test.o
+CRYPTO_TEST_OBJ=examples/init_keys_test.o
 
 
 # ---- other configuration ----
 # Use as needed. It has been used to disable features that aren't ready
 # or that aren't passing tests
-OTHER_OPTS=-DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS
+OTHER_OPTS=-DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS -DT_COSE_DISABLE_HPKE
 
 
 # ---- compiler configuration -----
@@ -65,7 +66,7 @@ C_OPTS=-Os -fPIC
 
 
 # ---- Aggregate includes and options ----
-INC=-I inc -I test -I src
+INC=-I inc -I test -I src -I examples
 ALL_INC=$(INC) $(CRYPTO_INC) $(QCBOR_INC)
 CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
 
@@ -73,7 +74,7 @@ CFLAGS=$(CMD_LINE) $(ALL_INC) $(C_OPTS) $(CRYPTO_CONFIG_OPTS) $(OTHER_OPTS)
 # ---- The build targets ----
 .PHONY: all clean warn
 
-all: libt_cose.a t_cose_test
+all: libt_cose.a t_cose_test t_cose_examples
 
 # run "make warn" as a handy way to compile with the warning flags
 # used in the QCBOR release process. See C_OPTS above.
@@ -104,12 +105,21 @@ t_cose_test: main.o $(TEST_OBJ) $(CRYPTO_TEST_OBJ) libt_cose.a
 crypto_adapters/t_cose_test_crypto.o: crypto_adapters/t_cose_test_crypto.c \
                                       src/t_cose_crypto.h \
                                       src/t_cose_util.h \
-                                      inc/t_cose/t_cose_standard_constants.h
+                                      inc/t_cose/t_cose_standard_constants.h \
+                                      crypto_adapters/b_con_hash/sha256.h
 
+crypto_adapters/b_con_hash/sha256.o: crypto_adapters/b_con_hash/sha256.h
+
+examples/init_keys_test.o: 	examples/init_keys_test.c \
+				examples/init_keys.h \
+				$(PUBLIC_INTERFACE)
+
+t_cose_examples: $(EXAMPLE_OBJ) $(CRYPTO_EXAMPLE_OBJ) libt_cose.a
+	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
 
 clean:
-	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) libt_cose.a libt_cose.so t_cose_test main.o
+	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) $(CRYPTO_TEST_OBJ) $(EXAMPLE_OBJ) $(CRYPTO_EXAMPLE_OBJ) \
+        t_cose_examples libt_cose.so \
+        main.o t_cose_test libt_cose.a libt_cose.so
 
-crypto_adapters/t_cose_test_crypto.o: src/t_cose_crypto.h inc/t_cose/t_cose_common.h inc/t_cose/t_cose_standard_constants.h inc/t_cose/q_useful_buf.h crypto_adapters/b_con_hash/sha256.h
-crypto_adapters/b_con_hash/sha256.o: crypto_adapters/b_con_hash/sha256.h
