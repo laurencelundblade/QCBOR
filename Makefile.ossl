@@ -1,4 +1,4 @@
-# Makefile --  Makefile for t_cose with the OpenSSL crypto library
+# Makefile.ossl --  Makefile for t_cose with the OpenSSL crypto library
 #
 # Copyright (c) 2019-2023, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
@@ -119,8 +119,8 @@ crypto_adapters/t_cose_ossl_crypto.o: crypto_adapters/t_cose_ossl_crypto.c \
                                       src/t_cose_util.h \
                                       t_cose/t_cose_standard_constants.h
 
-examples/init_keys_ossl.o: 	examples/init_keys_ossl.c
-				examples/init_keys.h
+examples/init_keys_ossl.o: 	examples/init_keys_ossl.c \
+				examples/init_keys.h \
 				$(PUBLIC_INTERFACE)
 
 t_cose_examples: $(EXAMPLE_OBJ) $(CRYPTO_EXAMPLE_OBJ) libt_cose.a

@@ -140,6 +140,7 @@ if (BUILD_TESTS)
         test/t_cose_test.c
         test/t_cose_crypto_test.c
         test/t_cose_param_test.c
+        test/t_cose_encrypt_decrypt_test.c
     )
 
     if (NOT CRYPTO_PROVIDER STREQUAL "Test")

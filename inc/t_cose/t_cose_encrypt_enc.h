@@ -282,6 +282,9 @@ t_cose_encrypt_set_cek(struct t_cose_encrypt_enc *context,
 /**
  * \brief Setup buffer for larger AAD or header parameters.
  *
+ * \param[in] context    The encryption context
+ * \param[in] enc_buffer    Pointer and length of buffer to add.
+ *
  * By default there is a limit of T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE (typically 64 bytes) for the
  * AAD and protected header parameters. Normally this is quite adequate, but it may not
  * be in all cases. If not call this with a larger buffer.

@@ -113,7 +113,8 @@ encrypt0_example(void)
                                       NULL_Q_USEFUL_BUF_C,
                                       encrypted_payload,
                                       decrypted_payload_buf,
-                                     &decrypted_cose_message);
+                                     &decrypted_cose_message,
+                                      NULL);
 
     if (err != T_COSE_SUCCESS) {
         printf("\nDecryption failed %d!\n", err);
@@ -235,7 +236,8 @@ key_wrap_example(void)
                                       NULL_Q_USEFUL_BUF_C,
                               encrypted_payload,
                               decrypted_payload_buf,
-                             &decrypted_payload);
+                             &decrypted_payload,
+                                      NULL);
     if(err) {
         goto Done;
     }
@@ -356,7 +358,8 @@ hpke_example(void)
                                          NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
                                          encrypted_detached_payload, /* in: detached encrypted ciphertext */
                                          decrypted_plaintext_buffer,
-                                        &decrypted_plain_text);
+                                        &decrypted_plain_text,
+                                         NULL);
 
     if (result != T_COSE_SUCCESS) {
         printf("error decrypting (%d)\n", result);

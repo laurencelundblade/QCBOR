@@ -45,6 +45,7 @@ TEST_OBJ=test/t_cose_test.o \
          test/t_cose_compute_validate_mac_test.o \
          test/t_cose_param_test.o \
          test/t_cose_crypto_test.o \
+         test/t_cose_encrypt_decrypt_test.o
 
 
 # ---- Object files for examples ----
@@ -216,6 +217,11 @@ test/run_test.o: test/run_test.h \
 test/t_cose_compute_validate_mac_test.o: inc/t_cose/t_cose_mac_compute.h \
                                          inc/t_cose/t_cose_mac_validate.h \
                                          test/t_cose_compute_validate_mac_test.h
+
+test/t_cose_encrypt_decrypt_test.o:	test/t_cose_encrypt_decrypt_test.c \
+					test/t_cose_encrypt_decrypt_test.h \
+					examples/init_keys.h \
+					$(PUBLIC_INTERFACE) 
 
 
 # ---- example dependencies ----

@@ -34,11 +34,11 @@ static test_entry s_tests[] = {
     TEST_ENTRY(two_step_sign_example_new),
     TEST_ENTRY(two_step_sign_example_new_verify),
 
-#ifndef T_COSE_DISABLE_HPKE
-    TEST_ENTRY(hpke_example),
-#endif /* !T_COSE_DISABLE_HPKE */
+    TEST_ENTRY(encrypt0_example),
     TEST_ENTRY(key_wrap_example),
-    TEST_ENTRY(encrypt0_example)
+#ifndef T_COSE_DISABLE_HPKE
+    TEST_ENTRY(hpke_example)
+#endif /* !T_COSE_DISABLE_HPKE */
 };
 
 

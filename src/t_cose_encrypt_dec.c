@@ -15,239 +15,316 @@
 #include "t_cose/t_cose_recipient_dec.h"
 #include "t_cose/t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
+#include "t_cose/t_cose_parameters.h"
+#include "t_cose_util.h"
 
 
+/* These errors do not stop the calling of further verifiers for
+ * a given COSE_Recipient.
+ * TODO: see about make this common with signing
+ * TODO: group unsupported error codes to make this less code
+ * TODO: use t_cose_check_list for optimization?
+ */
+static bool
+is_soft_verify_error(enum t_cose_err_t error)
+{
+    switch(error) {
+        case T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
+        case T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG:
+        case T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG:
+        case T_COSE_ERR_UNSUPPORTED_CIPHER_ALG:
+        case T_COSE_ERR_KID_UNMATCHED:
+        case T_COSE_ERR_UNSUPPORTED_HASH:
+        case T_COSE_ERR_DECLINE:
+            return true;
+        default:
+            return false;
+    }
+}
 
+
+/**
+ * \brief Invoke recipient decoders on one COSE_Recipient
+ *
+ * \param[in] me     The big COSE decode context.
+ * \param[in] header_location   Location in COSE_Encrypt of the COSE_Recipient
+ * \param[in] cbor_decoder    The CBOR decode context.
+ * \param[in] cek_buffer     Buffer to write CEK to.
+ * \param[out] rcpnt_params_list  Linked list of decoded header params.
+ * \param[out] cek    The decrypted content encryption key.
+ *
+ * While this is called only once, it is split out for code readability.
+ *
+ * This loops over all the configured recipient decoders calling them
+ * until one succeeds or has a hard failure. This involve multiple
+ * attempts at the CBOR decode of the COSE_Recipient.
+ */
+static enum t_cose_err_t
+decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
+                      const struct t_cose_header_location header_location,
+                      QCBORDecodeContext                 *cbor_decoder,
+                      struct q_useful_buf                 cek_buffer,
+                      struct t_cose_parameter           **rcpnt_params_list,
+                      struct q_useful_buf_c              *cek)
+{
+    struct t_cose_recipient_dec *rcpnt_decoder;
+    enum t_cose_err_t            return_value;
+
+#ifdef QCBOR_FOR_T_COSE_2
+    SaveDecodeCursor saved_cursor;
+
+    QCBORDecode_SaveCursor(qcbor_decoder, &saved_cursor);
+#endif
+
+    /* Loop over the configured recipients */
+    for(rcpnt_decoder = me->recipient_list;
+        rcpnt_decoder != NULL;
+        rcpnt_decoder = (struct t_cose_recipient_dec *)rcpnt_decoder->base_obj.next) {
+        // TODO: decode-only mode for recipients
+        return_value =
+            rcpnt_decoder->decode_cb(
+                rcpnt_decoder,     /* in: me ptr of the recipient decoder */
+                header_location,   /* in: header location to record */
+                cbor_decoder,      /* in: CBOR decoder context */
+                cek_buffer,        /* in: buffer to write CEK to */
+                me->p_storage,     /* in: parameter nodes storage pool */
+                rcpnt_params_list, /* out: linked list of decoded params */
+                cek
+           );
+
+        /* This is pretty much the same as for decrypting recipients */
+        if(return_value == T_COSE_SUCCESS) {
+            /* Only need to find one success and this is it so done.*/
+            return T_COSE_SUCCESS;
+        }
+
+        if(return_value == T_COSE_ERR_NO_MORE) {
+            /* Tried all the recipient decoders. None succeeded and
+             * none gave a hard failure. */
+            return T_COSE_ERR_NO_MORE;
+        }
+
+        if(!is_soft_verify_error(return_value)) {
+            return return_value;
+            /* Something very wrong. */
+        }
+
+        /* Loop continues on for the next recipient */
+#ifdef QCBOR_FOR_T_COSE_2
+        QCBORDecode_RestoreCursor(qcbor_decoder, &saved_cursor);
+#else
+        return T_COSE_ERR_CANT_PROCESS_MULTIPLE;
+#endif
+    }
+
+    /* Got to end of list and no recipient attempted to verify */
+    return T_COSE_ERR_DECLINE;
+}
+
+
+/*
+ * Pubilc Function. See t_cose_encrypt_dec.h
+ */
 enum t_cose_err_t
 t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
-                   struct q_useful_buf_c          message,
-                   struct q_useful_buf_c          aad,
-                   struct q_useful_buf_c          detached_ciphertext,
-                   struct q_useful_buf            plaintext_buffer,
-                   struct q_useful_buf_c *plain_text)
+                            const struct q_useful_buf_c    message,
+                            const struct q_useful_buf_c    aad,
+                            const struct q_useful_buf_c    detached_ciphertext,
+                            struct q_useful_buf            plaintext_buffer,
+                            struct q_useful_buf_c         *plaintext,
+                            struct t_cose_parameter      **returned_parameters)
 {
-    QCBORItem              protected_hdr;
-    UsefulBufC             nonce_cbor;
-    UsefulBufC             kid_cbor;
-    int64_t                algorithm_id = 0;
-    QCBORDecodeContext     DC, DC2;
-    QCBORItem              Item;
-    QCBORItem              Cipher;
-    QCBORError             result;
-    enum t_cose_err_t      cose_result;
-
-    struct q_useful_buf_c  cipher_text;
-
-    uint8_t                add_data[20];
-    size_t                 add_data_len = sizeof(add_data);
-    struct q_useful_buf    add_data_struct = {add_data, add_data_len};
-    UsefulBufC             add_data_buf;
-    QCBOREncodeContext     additional_data;
-    bool                   detached_mode;
-    struct q_useful_buf_c  cek;
-    struct t_cose_key      cek_key;
-    struct t_cose_parameter *decoded_params;
-    MakeUsefulBufOnStack(cek_buf, 64); // TODO: correct size
-    uint32_t                 message_type;
+    enum t_cose_err_t            return_value;
+    QCBORDecodeContext           cbor_decoder;
+    QCBORItem                    array_item;
+    QCBORError                   cbor_error;
+    uint32_t                     message_type;
+    struct t_cose_header_location  header_location;
+    struct t_cose_parameter       *body_params_list;
+    struct q_useful_buf_c          nonce_cbor;
+    int32_t                        body_enc_algorithm_id;
+    struct q_useful_buf_c          protected_params;
+    struct q_useful_buf_c        cipher_text;
+    struct q_useful_buf_c        cek;
+    struct t_cose_key            cek_key;
+    MakeUsefulBufOnStack(        cek_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
+    struct t_cose_parameter     *rcpnt_params_list;
+    struct t_cose_parameter     *all_params_list;
+    const char                   *msg_type_string;
+    Q_USEFUL_BUF_MAKE_STACK_UB(  enc_struct_buffer, T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE);
+    struct q_useful_buf_c        enc_structure;
 
 
-    /* Initialize decoder */
-    QCBORDecode_Init(&DC,message, QCBOR_DECODE_MODE_NORMAL);
+    /* --- Get started decoding array of four and tags --- */
+    QCBORDecode_Init(&cbor_decoder, message, QCBOR_DECODE_MODE_NORMAL);
 
-   /* Make sure the first item is a tag */
-    result = QCBORDecode_GetNext(&DC, &Item);
+    QCBORDecode_EnterArray(&cbor_decoder, &array_item);
 
     message_type = me->option_flags & T_COSE_OPT_MESSAGE_TYPE_MASK;
 
     /* Check whether tag is CBOR_TAG_COSE_ENCRYPT or CBOR_TAG_COSE_ENCRYPT0 */
     // TODO: allow tag determination of message_type
-    if (QCBORDecode_IsTagged(&DC, &Item, CBOR_TAG_COSE_ENCRYPT) == false &&
-        QCBORDecode_IsTagged(&DC, &Item, CBOR_TAG_COSE_ENCRYPT0) == false) {
+    if (QCBORDecode_IsTagged(&cbor_decoder, &array_item, CBOR_TAG_COSE_ENCRYPT) == false &&
+        QCBORDecode_IsTagged(&cbor_decoder, &array_item, CBOR_TAG_COSE_ENCRYPT0) == false) {
         return(T_COSE_ERR_INCORRECTLY_TAGGED);
     }
 
-    /* protected header */
-    result = QCBORDecode_GetNext(&DC, &protected_hdr);
+    /* --- The header parameters --- */
+    /* The location of body header parameters is 0, 0 */
+    header_location.nesting = 0;
+    header_location.index   = 0;
 
-    if (result != QCBOR_SUCCESS) {
-        return(T_COSE_ERR_CBOR_FORMATTING);
+    return_value =
+        t_cose_headers_decode(
+           &cbor_decoder,     /* in: cbor decoder context */
+            header_location,  /* in: location of headers in message */
+            NULL,             /* TODO: in: header decode callback function */
+            NULL,             /* TODO: in: header decode callback context */
+            me->p_storage,    /* in: pool of nodes for linked list */
+           &body_params_list, /* out: linked list of params */
+           &protected_params  /* out: ptr & len of encoded protected params */
+        );
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
     }
 
-    if (protected_hdr.uDataType != QCBOR_TYPE_BYTE_STRING) {
-        return(T_COSE_ERR_PARAMETER_CBOR);
-    }
+    nonce_cbor = t_cose_find_parameter_iv(body_params_list);
+    body_enc_algorithm_id = t_cose_find_parameter_alg_id(body_params_list, true);
+    all_params_list = body_params_list;
 
-    /* Re-initialize to parse protected header */
-    kid_cbor = NULL_Q_USEFUL_BUF_C;
-    QCBORDecode_Init(&DC2,
-                     (UsefulBufC)
-                     {
-                      protected_hdr.val.string.ptr,
-                      protected_hdr.val.string.len
-                     },
-                     QCBOR_DECODE_MODE_NORMAL);
-
-    QCBORDecode_EnterMap(&DC2, NULL);
-
-    QCBORDecode_GetInt64InMapN(&DC2, T_COSE_HEADER_PARAM_ALG, &algorithm_id);
-
-    QCBORDecode_ExitMap(&DC2);
-
-    result = QCBORDecode_Finish(&DC2);
-
-    if (result != QCBOR_SUCCESS) {
-        return(T_COSE_ERR_CBOR_FORMATTING);
-    }
-
-    /* unprotected header */
-    QCBORDecode_EnterMap(&DC, NULL);
-
-    QCBORDecode_GetByteStringInMapN(&DC, T_COSE_HEADER_PARAM_IV, &nonce_cbor);
-
-    if (QCBORDecode_GetError(&DC) !=0 ) {
-         return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
-    }
-
-#if 0
-    if (me->key_distribution == T_COSE_KEY_DISTRIBUTION_DIRECT) {
-        // TODO: not sure that the kid is mandatory here.
-        QCBORDecode_GetByteStringInMapN(&DC, T_COSE_HEADER_PARAM_KID, &kid_cbor);
-
-        if (QCBORDecode_GetError(&DC) !=0 ) {
-            // TODO: not sure this is the right error code
-             return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
-        }
-    }
-#else
-    (void)kid_cbor;
-#endif
-
-    QCBORDecode_ExitMap(&DC);
-
-    /* Ciphertext */
-    result = QCBORDecode_GetNext(&DC, &Cipher);
-
-    if (result != QCBOR_SUCCESS) {
-        return(T_COSE_ERR_CBOR_FORMATTING);
-    }
-
-    if (Cipher.val.string.len != 0) {
-        cipher_text = Cipher.val.string;
-        detached_mode = false;
-    } else {
+    /* --- The Ciphertext --- */
+    if(!q_useful_buf_c_is_null(detached_ciphertext)) {
+        QCBORDecode_GetNull(&cbor_decoder);
         cipher_text = detached_ciphertext;
-        detached_mode = true;
+    } else {
+        QCBORDecode_GetByteString(&cbor_decoder, &cipher_text);
     }
 
-    (void)detached_mode; // TODO: use this variable or get rid of it
-
+    /* --- COSE_Recipients (if there are any) --- */
     if (message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0) {
-        // TODO: need a mechanism to detect whether cek was set. This may be a change to the defintion of t_cose_key
+        // TODO: test case where CEK is not set; improve error code?
         if(me->recipient_list != NULL) {
             return T_COSE_ERR_FAIL; // TODO: need better error here
         }
-        // TODO: create example / test of using custom headers to check the kid here.
         cek_key = me->cek;
 
     } else if (message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT) {
-        enum t_cose_err_t err;
-        QCBORDecode_EnterArray(&DC, NULL);
-        // TODO: handle multiple recipient decoders in a loop
-        const struct t_cose_header_location loc = {.nesting = 1,
-                                                   .index = 0};
-        err = me->recipient_list->decode_cb(me->recipient_list,
-                                            loc,
-                                           &DC,
-                                            cek_buf,
-                                            me->p_storage,
-                                           &decoded_params,
-                                           &cek);
-        (void)err; // TODO: check the error code
-        QCBORDecode_ExitArray(&DC);
+        header_location.nesting = 1;
+        header_location.index   = 0;
 
+        /* Loop over the array of COSE_Recipients */
+        QCBORDecode_EnterArray(&cbor_decoder, NULL);
+        while(1) {
+            return_value = decrypt_one_recipient(me,
+                                                 header_location,
+                                                 &cbor_decoder,
+                                                 cek_buf,
+                                                &rcpnt_params_list,
+                                                 &cek);
+            /* This will have consumed the CBOR of one recipient */
+            if(return_value == T_COSE_SUCCESS) {
+                break; /* One success is good enough. This is done. */
+            }
 
-        err = t_cose_crypto_make_symmetric_key_handle((int32_t)algorithm_id,
-                                                      cek,
-                                                      &cek_key);
+            if(return_value != T_COSE_ERR_DECLINE) {
+                /* Either we got to the end of the list and on
+                 * recipient decoder attempted, or some decoder
+                 * attemted and there was an error.  TODO: a lot of
+                 * testing to be sure this is sufficient.
+                 */
+                goto Done;
+            }
+
+            /* Going on to try another recipient since this one wasn't
+             * a success and wasn't a hard error -- all recipient
+             * decoders declined to try it.
+             */
+            header_location.index++;
+        }
+
+        /* Successfully decoded one recipient */
+        QCBORDecode_ExitArray(&cbor_decoder);
+
+        if(all_params_list == NULL) {
+            all_params_list = rcpnt_params_list;
+        } else {
+            t_cose_parameter_list_append(all_params_list, rcpnt_params_list);
+        }
+
+        /* The decrypted cek bytes must be a t_cose_key for the AEAD API */
+        return_value =
+            t_cose_crypto_make_symmetric_key_handle(
+                body_enc_algorithm_id, /* in: algorithm ID */
+                cek,                   /* in: CEK bytes */
+                &cek_key               /* out: t_cose_key */
+            );
+        if(return_value != T_COSE_SUCCESS) {
+            goto Done;
+        }
+
     } else {
+        /* Message type is not right. */
         // TODO: better error here.
         return T_COSE_ERR_FAIL;
     }
 
-    /* Create Additional Data Structure
-    *
-    *  Enc_structure = [
-    *    context : "Encrypt" or "Encrypt0",
-    *    protected : empty_or_serialized_map,
-    *    external_aad : bstr
-    *  ]
-    */
+    /* --- Close of CBOR decode --- */
+    QCBORDecode_ExitArray(&cbor_decoder);
 
-    /* Initialize additional data CBOR array */
-    QCBOREncode_Init(&additional_data, add_data_struct);
-
-    //QCBOREncode_BstrWrap(&additional_data);
-
-    /* Open array */
-    QCBOREncode_OpenArray(&additional_data);
-
-    /* 1. Add context string "Encrypt0" or "Encrypt" */
-    if (message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0) {
-        QCBOREncode_AddText(&additional_data,
-                            ((UsefulBufC) {"Encrypt0", 8})
-                           );
-    } else {
-        QCBOREncode_AddText(&additional_data,
-                            ((UsefulBufC) {"Encrypt", 7})
-                           );
+    cbor_error = QCBORDecode_Finish(&cbor_decoder);
+    if(cbor_error != QCBOR_SUCCESS) {
+        // TODO: there is probably more to be done here...
+        return_value = T_COSE_ERR_CBOR_DECODE;
+        goto Done;
+    }
+    if(returned_parameters != NULL) {
+        *returned_parameters = all_params_list;
     }
 
-    /* 2. Add protected headers (as bstr) */
-    QCBOREncode_BstrWrap(&additional_data);
-
-    QCBOREncode_OpenMap(&additional_data);
-
-    QCBOREncode_AddInt64ToMapN(&additional_data,
-                               T_COSE_HEADER_PARAM_ALG,
-                               algorithm_id);
-
-    QCBOREncode_CloseMap(&additional_data);
-    QCBOREncode_CloseBstrWrap2(&additional_data,
-                               false,
-                               &add_data_buf);
-
-    /* 3. Add any externally provided additional data,
-     *    which is empty in our case.
+    /* A lot of stuff is done now: 1) All the CBOR decoding is done, 2) we
+     * have the CEK, 3) all the headers are decoded and in a linked list
      */
-    QCBOREncode_AddBytes(&additional_data, aad);
 
-    /* Close array */
-    QCBOREncode_CloseArray(&additional_data);
+    // TODO: stop here for decode-only mode */
 
-    //QCBOREncode_CloseBstrWrap2(&additional_data,
-    //                           false,
-    //                           &add_data_buf);
 
-    /* Finish and check the results */
-    result = QCBOREncode_Finish(&additional_data,
-                                &add_data_buf);
-
-    if (result != QCBOR_SUCCESS) {
-        return(T_COSE_ERR_CBOR_FORMATTING);
+    /* --- Make the Enc_structure ---- */
+    /* The Enc_structure from RFC 9052 section 5.3 that is AAD input
+     * to the AEAD to integrity-protect COSE headers and
+     * parameters. */
+    if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
+        /* Caller gave us a (bigger) buffer for Enc_structure */
+        enc_struct_buffer = me->extern_enc_struct_buffer;
+    }
+    msg_type_string = (message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0 ?
+                          "Encrypt0" :
+                          "Encrypt");
+    return_value =
+        create_enc_structure(
+            msg_type_string,   /* in: message type context string */
+            protected_params,  /* in: body protected parameters */
+            aad,               /* in: AAD from caller to integrity protect */
+            enc_struct_buffer, /* in: buffer for encoded Enc_structure */
+            &enc_structure     /* out: CBOR encoded Enc_structure */
+        );
+    if (return_value != T_COSE_SUCCESS) {
+        goto Done;
     }
 
-    cose_result = t_cose_crypto_aead_decrypt((int32_t) algorithm_id,
-                                             cek_key,
-                                             nonce_cbor,
-                                             add_data_buf,
-                                             cipher_text,
-                                             plaintext_buffer,
-                                             plain_text);
+    /* --- The body/content decryption --- */
+    // TODO: handle AE algorithms
+    // TODO: handle single-recipient HPKE
+    return_value =
+        t_cose_crypto_aead_decrypt(
+            body_enc_algorithm_id, /* in: cose alg id to decrypt payload */
+            cek_key,               /* in: content encryption key */
+            nonce_cbor,            /* in: iv / nonce for decrypt */
+            enc_structure,         /* in: the AAD for the AEAD */
+            cipher_text,           /* in: bytes to decrypt */
+            plaintext_buffer,      /* in: buffer to output plaintext into */
+            plaintext              /* out: the decrypted payload */
+        );
 
-
-    if (cose_result != T_COSE_SUCCESS) {
-        return(cose_result);
-    }
-
-    return(T_COSE_SUCCESS);
+Done:
+    return return_value;
 }

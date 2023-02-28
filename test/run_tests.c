@@ -21,6 +21,7 @@
 #include "t_cose_compute_validate_mac_test.h"
 #include "t_cose_param_test.h"
 #include "t_cose_crypto_test.h"
+#include "t_cose_encrypt_decrypt_test.h"
 
 
 /*
@@ -134,7 +135,10 @@ static test_entry s_tests[] = {
 #endif /* T_COSE_DISABLE_SIGN1 */
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
-    TEST_ENTRY(param_test)
+    TEST_ENTRY(param_test),
+
+    TEST_ENTRY(base_encrypt_decrypt_test)
+
 };
 
 

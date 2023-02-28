@@ -23,34 +23,43 @@
 extern "C" {
 #endif
 
+/* This is alpha-release code; documentation is mostly OK, but
+ * still likely to be incomplete and wrong at times.
+ *
+ * Here's the major TODO items:
+ *   decode only mode
+ *   size calculation mode include of Enc_structure size
+ *   testing of error conditions and make error codes better
+ *   tag message type detection
+ *   header decode call back functions
+ *   AE algorithms
+ *   HPKE single-recipient mode
+ */
+
+
 /**
  * \file t_cose_encrypt_dec.h
  *
- * \brief Process a COSE_Encrypt0 or COSE_Encrypt message, which decrypts the
- * integrated or detached ciphertext.
+ * \brief Process a COSE_Encrypt0 or COSE_Encrypt message, which
+ * decrypts the integrated or detached ciphertext.
  *
- * TODO: update this documentation
- * The functions in this file decrypt ciphertext with a symmetric cryptographic
- * algorithm, as defined in [COSE (RFC 8152)]
- * (https://tools.ietf.org/html/rfc8152), for use with \c COSE_Encrypt0 and
- * \c COSE_Encrypt messages. The ciphertext may be detached, in which case it
- * is not included in the CBOR encoded message.
+ * The functions in this file decrypt ciphertext with a symmetric
+ * cryptographic algorithm, as defined in [COSE (RFC 9052)]
+ * (https://tools.ietf.org/html/rfc9052), for use with \c
+ * COSE_Encrypt0 and \c COSE_Encrypt messages. The ciphertext may be
+ * detached, in which case it is not included in the CBOR encoded
+ * message.
  *
- * \c COSE_Encrypt and \c COSE_Encrypt0 messages require a symmetric key for
- * decryption (referred to as Content Encryption Key or CEK). Two "Content
- * Key Distribution Methods" are implemented in this library:
- *
- * 1) Direct: The CEK is pre-negotiated between the involved communication
- * parties. For this approach the COSE_Encrypt0 message is used and no
- * encrypted CEK is conveyed in the message.
- *
- * 2) Key agreement: This approach requires utilizes an algorithm for
- * establishing a shared secret, which then serves as a CEK. This approach
- * requires a so-called recipient structure to be included in the COSE
- * message. COSE_Encrypt carries such a recipient structure while
- * \c COSE_Encrypt0 does not. The key agreement algorithm used in this
- * implementation is based on Hybrid Public Key Encryption (HPKE) and
- * is described in https://datatracker.ietf.org/doc/draft-ietf-cose-hpke/.
+ * \c COSE_Encrypt and \c COSE_Encrypt0 messages require a symmetric
+ * key for decryption (referred to as Content Encryption Key or
+ * CEK). For \c COSE_Encrypt0 the CEK is supplied directly by an API
+ * below.  For \c COSE_Encrypt the CEK is provided in a \c
+ * COSE_Recipient that is carried in the \c COSE_Encrypt. There
+ * several types of \c COSE_Recipient such as HPKE and keywrap.  \c
+ * COSE_Recipient implementations are separate objects that plug-in
+ * here. This supports multiple \c COSE_Recipients and \c
+ * COSE_Recipients of multiple types simultanesously.  They are
+ * defined in separate headers files.
  *
  * This implementation is intended to be small and portable to
  * different OS's and platforms. Its dependencies are:
@@ -61,9 +70,9 @@ extern "C" {
  *   at https://github.com/hannestschofenig/mbedtls/tree/hpke
  * - Hash functions like SHA-256 (for use with HPKE)
  *
- * Prior to using the decryption functionality, a digital signature or MAC
- * must be verified. Signing and MACing is supported by other APIs in the
- * t_cose library.
+ * Prior to using the decryption functionality, a digital signature or
+ * MAC should be verified. Signing and MACing is supported by other
+ * APIs in the t_cose library.
  *
  * There is a cryptographic adaptation layer defined in t_cose_crypto.h.
  * An implementation can be made of the functions in it for different
@@ -75,25 +84,11 @@ extern "C" {
  *
  * See t_cose_common.h for preprocessor defines to reduce object code
  * and stack use by disabling features.
- *
- * A recipient of a COSE_Encrypt0 or a COSE_Encrypt message knows what key
- * distribution mechanism is utilized in a specific context since the keys
- * have to be available accordingly.
- *
- * 1. Import a key, for example with psa_import_key().
- *    This key may be the pre-agreed CEK (in case of direct key distribution)
- *    or the private key corresponding to the public key used by the sender
- *    (in case of key agreement with HPKE).
- * 2. Initialize the decrypt context with t_cose_encrypt_dec_init() for use
- *    with a selected key distribution mechanism.
- * 3. Use t_cose_encrypt_dec_set_private_key() to associate the previously
- *    imported key with the decryption structure.
- * 4. Call t_cose_encrypt_dec() to decrypt the ciphertext.
  */
 
 
 /**
- * Context for use with decryption.
+ * Context for decryption.
  */
 struct t_cose_encrypt_dec_ctx {
     /* Private data structure */
@@ -105,6 +100,8 @@ struct t_cose_encrypt_dec_ctx {
     struct t_cose_parameter_storage   params;
     struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
+
+    struct q_useful_buf           extern_enc_struct_buffer;
 };
 
 
@@ -161,45 +158,129 @@ t_cose_encrypt_dec_set_cek(struct t_cose_encrypt_dec_ctx *context,
                            struct t_cose_key              cek);
 
 
-/*
+/**
+ * \brief Add a \c COSE_Recipient decryptor/decoder.
+ *
+ * \param[in] context     Encrypted message decryption context.
+ * \param[in] recipient  Recipient decryptor/decoder object.
+
  * See the various recipient implementations such as the ones for
- * direct encryption (TBD), keywrap and HPKE.
+ * keywrap and HPKE.
+ *
+ * This may be called multiple times to configure many \c
+ * COSE_Recipient decryptor/decoders. Many of the same type may be
+ * added for different keys with different key IDs. Many of different
+ * types may be added.
+ *
+ * See t_cose_encrypt_dec() for the details of each individual
+ * t_cose_recipient_dec is invoked in a loop on each COSE_Recipient.
  */
 static void
-t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *me,
+t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *context,
                                  struct t_cose_recipient_dec   *recipient);
 
 
 /**
+ * \brief Add storage for header parameter decoding.
+ *
+ * \param[in] context     Encrypted message decryption context.
+ * \param[in] storage     The parameter storage to add.
+ *
+ * This is optionally called to increase the number of storage nodes
+ * for COSE_Encrypt or COSE_Encrypt0 message with
+ * T_COSE_NUM_VERIFY_DECODE_HEADERS header parameters.  Decoded
+ * parameters are returned in a linked list of struct
+ * t_cose_parameter.  The storage for the nodes in the list is not
+ * dynamically allocated as there is no dynamic storage allocation
+ * used here.
+ *
+ * It is assumed that the number of parameters is small and/or can be
+ * anticipated.  There must be room to decode all the header
+ * parameters that are in the body and in all in the
+ * COSE_Signatures. If not \ref T_COSE_ERR_TOO_MANY_PARAMETERS will be
+ * returned by t_cose_sign_verify() and similar.
+ *
+ * By default, if this is not called there is internal storage for
+ * \ref T_COSE_NUM_VERIFY_DECODE_HEADERS headers. If this is not
+ * enough call this function to use external storage instead of the
+ * internal. This replaces the internal storage. It does not add to
+ * it.
+ *
+ * t_cose_parameter_storage allows for the storage to be partially
+ * used when it is passed in and whatever is not used by this
+ * decode can be used elsewhere. It internall keeps track of how
+ * many nodes were used.
+ */
+static void
+t_cose_encrypt_add_param_storage(struct t_cose_encrypt_dec_ctx   *context,
+                                 struct t_cose_parameter_storage *storage);
+
+
+
+/**
+ * \brief Setup buffer for larger AAD or header parameters.
+ *
+ * \param[in] context    The encryption context
+ * \param[in] enc_buffer    Pointer and length of buffer to add.
+ *
+ * By default there is a limit of T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE
+ * (typically 64 bytes) for the AAD and protected header
+ * parameters. Normally this is quite adequate, but it may not be in
+ * all cases. If not call this with a larger buffer.
+ *
+ * Specifically, this is the buffer to create the Enc_structure
+ * described in RFC 9052 section 5.2. It needs to be the size of the
+ * CBOR-encoded protected headers, the AAD and some overhead.
+ *
+ * TODO: size calculation mode that will tell the caller how bit it should be
+ */
+static void
+t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
+                                     struct q_useful_buf            enc_buffer);
+
+/**
  * \brief Decryption of a \c COSE_Encrypt0 or \c COSE_Encrypt structure.
  *
- * \param[in,out] context               The t_cose_encrypt_dec_ctx context.
- * \param[in] message                      The COSE message (a COSE_Encrypt0
- *                                      or COSE_Encrypt).
- * \param[in] aad   Additional data that is verified or \ref NULL_Q_USEFUL_BUF if none.
- * \param[in] plaintext_buffer                A buffer for plaintext.
- * \param[out] plaintext     Place to return pointer and length of the plaintext.
+ * \param[in,out] context       The t_cose_encrypt_dec_ctx context.
+ * \param[in] message           The COSE message (a COSE_Encrypt0
+ *                              or COSE_Encrypt).
+ * \param[in] aad               Additional data that is verified or
+ *                              \ref NULL_Q_USEFUL_BUF if none.
+ * \param[in] plaintext_buffer  A buffer for plaintext.
+ * \param[out] plaintext        Place to return pointer and length of
+ *                              the plaintext.
+ * \param[out] returned_parameters  Linked list of all header parameters.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * This decrypts and returns the plaintext.
+ * This returns the decrypted plain text.
  *
  * It accepts either COSE_Encrypt0 or COSE_Encrypt. For COSE_Encrypt0,
- * t_cose_encrypt_dec_set_cek() must have been called to set the decryption
- * key. For COSE_Encrypt, t_cose_encrypt_dec_add_recipient() must have
- * been called to provide COSE_Recipient processers that have been
- * set up with decryption keys.
+ * t_cose_encrypt_dec_set_cek() must have been called to set the
+ * decryption key. For COSE_Encrypt,
+ * t_cose_encrypt_dec_add_recipient() must have been called to provide
+ * COSE_Recipient processers that have been set up with decryption
+ * keys.
+ *
+ * Each \ref struct t_cose_recipient_dec is invoked on each \c
+ * COSE_Recipient until one successfully decrypts the content
+ * encryption key. Only one success is necessary. Each
+ * t_cose_recipient_dec may decline to decrypt if it is not suitable
+ * for the particular COSE_Recipient (the algorith ID doesn't match)
+ * or if the key ID (the kid) doesn't match). If a
+ * t_cose_recipient_dec attempts and fails, this is a hard error that
+ * stops the decode of the whole COSE_Encrypt.
  *
  * See also t_cose_encrypt_dec_detached().
  */
-// TODO: return the parameters
 // TODO: support a decode-only mode
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
                    struct q_useful_buf_c          message,
                    struct q_useful_buf_c          aad,
                    struct q_useful_buf            plaintext_buffer,
-                   struct q_useful_buf_c         *plaintext);
+                   struct q_useful_buf_c         *plaintext,
+                   struct t_cose_parameter      **returned_parameters);
 
 
 /**
@@ -212,12 +293,13 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
  * \param[in] detached_ciphertext  The detached ciphertext.
  * \param[in] plaintext_buffer                A buffer for plaintext.
  * \param[out] plaintext     Place to return pointer and length of the plaintext.
+ * \param[out] returned_parameters  Place to return linked list of header parameters.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * Note: If the ciphertext is integrated into the COSE_Encrypt0 or COSE_Encrypt
- * structure then set the detached_ciphertext parameter NULL and
- * detached_ciphertext to 0.
+ * Note: If the ciphertext is integrated into the COSE_Encrypt0 or
+ * COSE_Encrypt structure then set the detached_ciphertext parameter
+ * NULL and detached_ciphertext to 0.
  */
 enum t_cose_err_t
 t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx *context,
@@ -225,7 +307,8 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx *context,
                             struct q_useful_buf_c          aad,
                             struct q_useful_buf_c          detached_ciphertext,
                             struct q_useful_buf            plaintext_buffer,
-                            struct q_useful_buf_c         *plaintext);
+                            struct q_useful_buf_c         *plaintext,
+                            struct t_cose_parameter      **returned_parameters);
 
 
 /* ------------------------------------------------------------------------
@@ -260,6 +343,39 @@ t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *me,
 }
 
 
+static inline void
+t_cose_encrypt_add_param_storage(struct t_cose_encrypt_dec_ctx   *me,
+                                 struct t_cose_parameter_storage *storage)
+{
+    me->p_storage = storage;
+}
+
+
+static inline void
+t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
+                                     struct q_useful_buf extern_enc_buffer)
+{
+    context->extern_enc_struct_buffer = extern_enc_buffer;
+}
+
+
+
+static inline enum t_cose_err_t
+t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *me,
+                   struct q_useful_buf_c          message,
+                   struct q_useful_buf_c          aad,
+                   struct q_useful_buf            plaintext_buffer,
+                   struct q_useful_buf_c         *plaintext,
+                   struct t_cose_parameter      **returned_parameters)
+{
+    return t_cose_encrypt_dec_detached(me,
+                                       message,
+                                       aad,
+                                       NULL_Q_USEFUL_BUF_C,
+                                       plaintext_buffer,
+                                       plaintext,
+                                       returned_parameters);
+}
 
 #ifdef __cplusplus
 }
