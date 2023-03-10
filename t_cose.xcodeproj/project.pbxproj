@@ -300,6 +300,7 @@
 		E7AE888D29A6DF140093B326 /* init_keys_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = init_keys_test.c; sourceTree = "<group>"; };
 		E7AE889129AB72740093B326 /* t_cose_encrypt_decrypt_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_encrypt_decrypt_test.h; sourceTree = "<group>"; };
 		E7AE889229AB72740093B326 /* t_cose_encrypt_decrypt_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_encrypt_decrypt_test.c; sourceTree = "<group>"; };
+		E7AE889829AE25BE0093B326 /* t_cose_call_all.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = t_cose_call_all.c; path = tdv/t_cose_call_all.c; sourceTree = "<group>"; };
 		E7AF703428DADF5E00F07637 /* t_cose_param_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_param_test.h; sourceTree = "<group>"; };
 		E7AF703528DADF5E00F07637 /* t_cose_param_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_param_test.c; sourceTree = "<group>"; };
 		E7C960A527F7569500FB537C /* libqcbor.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libqcbor.a; path = ../../../../../usr/local/lib/libqcbor.a; sourceTree = "<group>"; };
@@ -437,6 +438,7 @@
 			children = (
 				E762D6F328D2C32E00A22792 /* decode_only_psa.c */,
 				E762D6F128D0ADCF00A22792 /* encode_only_psa.c */,
+				E7AE889829AE25BE0093B326 /* t_cose_call_all.c */,
 			);
 			name = tdv;
 			sourceTree = "<group>";
@@ -476,8 +478,8 @@
 			isa = PBXGroup;
 			children = (
 				E771080C2917EDA900D8ADF4 /* t_cose_recipient_enc_aes_kw.c */,
-				E77108082917EDA900D8ADF4 /* t_cose_recipient_dec_aes_kw.c */,
 				E771080D2917EDA900D8ADF4 /* t_cose_recipient_enc_hpke.c */,
+				E77108082917EDA900D8ADF4 /* t_cose_recipient_dec_aes_kw.c */,
 				E771080B2917EDA900D8ADF4 /* t_cose_recipient_dec_hpke.c */,
 				E7F17341294967CC00E5ADF3 /* hpke.h */,
 				E7F17342294967CD00E5ADF3 /* hpke.c */,
@@ -508,12 +510,12 @@
 		E7AE8843299BCB000093B326 /* COSE_Signature */ = {
 			isa = PBXGroup;
 			children = (
-				E7AE884C299BCD180093B326 /* t_cose_signature_sign_eddsa.h */,
-				E7AE8850299BCD190093B326 /* t_cose_signature_sign_main.h */,
 				E7AE8851299BCD190093B326 /* t_cose_signature_sign.h */,
-				E7AE884F299BCD180093B326 /* t_cose_signature_verify_eddsa.h */,
-				E7AE884D299BCD180093B326 /* t_cose_signature_verify_main.h */,
+				E7AE8850299BCD190093B326 /* t_cose_signature_sign_main.h */,
+				E7AE884C299BCD180093B326 /* t_cose_signature_sign_eddsa.h */,
 				E7AE884E299BCD180093B326 /* t_cose_signature_verify.h */,
+				E7AE884D299BCD180093B326 /* t_cose_signature_verify_main.h */,
+				E7AE884F299BCD180093B326 /* t_cose_signature_verify_eddsa.h */,
 			);
 			name = COSE_Signature;
 			sourceTree = "<group>";
@@ -530,8 +532,8 @@
 		E7AE8845299BCB520093B326 /* COSE_Encrypt */ = {
 			isa = PBXGroup;
 			children = (
-				E7AE8854299BCD580093B326 /* t_cose_encrypt_dec.h */,
 				E7AE8855299BCD580093B326 /* t_cose_encrypt_enc.h */,
+				E7AE8854299BCD580093B326 /* t_cose_encrypt_dec.h */,
 			);
 			name = COSE_Encrypt;
 			sourceTree = "<group>";
@@ -539,12 +541,12 @@
 		E7AE8846299BCB730093B326 /* COSE_Recipient */ = {
 			isa = PBXGroup;
 			children = (
-				E7AE8857299BCD6D0093B326 /* t_cose_recipient_dec_aes_kw.h */,
-				E7AE885A299BCD6E0093B326 /* t_cose_recipient_dec_hpke.h */,
-				E7AE8856299BCD6D0093B326 /* t_cose_recipient_dec.h */,
+				E7AE8859299BCD6E0093B326 /* t_cose_recipient_enc.h */,
 				E7AE885B299BCD6E0093B326 /* t_cose_recipient_enc_aes_kw.h */,
 				E7AE8858299BCD6E0093B326 /* t_cose_recipient_enc_hpke.h */,
-				E7AE8859299BCD6E0093B326 /* t_cose_recipient_enc.h */,
+				E7AE8856299BCD6D0093B326 /* t_cose_recipient_dec.h */,
+				E7AE8857299BCD6D0093B326 /* t_cose_recipient_dec_aes_kw.h */,
+				E7AE885A299BCD6E0093B326 /* t_cose_recipient_dec_hpke.h */,
 			);
 			name = COSE_Recipient;
 			sourceTree = "<group>";
@@ -626,8 +628,8 @@
 		E7E36EA2226CBA540040613B /* crypto_adapters */ = {
 			isa = PBXGroup;
 			children = (
-				E73CDAD223AD4E6D00D262E0 /* t_cose_psa_crypto.c */,
 				E7E36EA4226CBB570040613B /* t_cose_test_crypto.c */,
+				E73CDAD223AD4E6D00D262E0 /* t_cose_psa_crypto.c */,
 				E7E36EA3226CBB570040613B /* t_cose_openssl_crypto.c */,
 				E7F70AAC2270D650007CE07F /* b_con_hash */,
 				E7F1733B294358D100E5ADF3 /* t_cose_test_crypto.h */,

@@ -19,6 +19,10 @@
 #include "t_cose/t_cose_key.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 struct t_cose_signature_sign_main {
     /* Private data structure */
@@ -156,5 +160,9 @@ t_cose_signature_sign_main_set_crypto_context(struct t_cose_signature_sign_main 
     me->crypto_context = crypto_context;
 }
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* t_cose_signature_sign_main_h */

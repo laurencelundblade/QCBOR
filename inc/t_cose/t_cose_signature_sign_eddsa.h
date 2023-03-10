@@ -18,6 +18,9 @@
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose/t_cose_key.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 struct t_cose_signature_sign_eddsa {
@@ -206,5 +209,8 @@ t_cose_signature_sign_eddsa_auxiliary_buffer_size(struct t_cose_signature_sign_e
 }
 
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* t_cose_eddsa_signer_h */

@@ -18,6 +18,9 @@
 #include "t_cose/t_cose_key.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Warning: this is still early development. Documentation may be incorrect. */
 
@@ -171,5 +174,10 @@ t_cose_signature_verify_from_eddsa(struct t_cose_signature_verify_eddsa *me)
      */
     return &(me->s);
 }
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* t_cose_signature_verify_eddsa_h */

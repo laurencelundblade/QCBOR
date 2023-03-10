@@ -18,6 +18,9 @@
 #include <t_cose/q_useful_buf.h>
 #include "t_cose/t_cose_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * \file t_cose_key.h
@@ -224,5 +227,9 @@ t_cose_key_init_symmetric(int32_t               cose_algorithm_id,
 void
 t_cose_key_free_symmetric(struct t_cose_key key);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* t_cose_key_h */

@@ -1,5 +1,5 @@
 /*
- *  t_cose_sign_verify.h
+ * t_cose_sign_verify.h
  *
  * Copyright 2019-2023, Laurence Lundblade
  *
