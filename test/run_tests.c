@@ -60,7 +60,7 @@ static test_entry s_tests[] = {
 
 
     TEST_ENTRY(aead_test),
-#ifndef T_COSE_DISABLE_AES_KW
+#ifndef T_COSE_DISABLE_KEYWRAP
     TEST_ENTRY(kw_test),
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * t_cose_recipient_dec_aes_kw.h
+ * t_cose_recipient_dec_keywrap.h
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
@@ -9,8 +9,8 @@
  * See BSD-3-Clause license in README.md
  */
 
-#ifndef __T_COSE_RECIPIENT_DEC_AES_KW_H__
-#define __T_COSE_RECIPIENT_DEC_AES_KW_H__
+#ifndef __T_COSE_RECIPIENT_DEC_KEYWRAP_H__
+#define __T_COSE_RECIPIENT_DEC_KEYWRAP_H__
 
 #include <stdlib.h>
 #include "t_cose/t_cose_parameters.h"
@@ -100,4 +100,4 @@ t_cose_recipient_dec_keywrap_set_kek(struct t_cose_recipient_dec_keywrap *me,
 }
 #endif
 
-#endif /* __T_COSE_RECIPIENT_DEC_AES_KW_H__ */
+#endif /* __T_COSE_RECIPIENT_DEC_KEYWRAP_H__ */

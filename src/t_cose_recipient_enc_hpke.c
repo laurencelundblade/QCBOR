@@ -338,6 +338,6 @@ t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
 #else
 
 /* Place holder for compiler tools that don't like files with no functions */
-void t_cose_recipient_enc_aes_kw_placeholder(void) {}
+void t_cose_recipient_enc_hpke_placeholder(void) {}
 
 #endif /* T_COSE_DISABLE_HPKE */

@@ -39,9 +39,9 @@
 #include <psa/crypto.h>     /* PSA Crypto Interface to mbed crypto or such */
 #include <mbedtls/aes.h> // TODO: Isn't there a PSA API for AES?
 
-#ifndef T_COSE_DISABLE_AES_KW
+#ifndef T_COSE_DISABLE_KEYWRAP
 #include <mbedtls/nist_kw.h>
-#endif /* T_COSE_DISABLE_AES_KW */
+#endif /* T_COSE_DISABLE_KEYWRAP */
 
 #include "t_cose_util.h"
 
@@ -96,11 +96,11 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         T_COSE_ALGORITHM_A256GCM,
         #endif /* T_COSE_DISABLE_MAC0 */
 
-#if !defined NO_MBED_KW_API & !defined T_COSE_DISABLE_AES_KW
+#if !defined NO_MBED_KW_API & !defined T_COSE_DISABLE_KEYWRAP
         T_COSE_ALGORITHM_A128KW,
         T_COSE_ALGORITHM_A192KW,
         T_COSE_ALGORITHM_A256KW,
-#endif /* !(NO_MBED_KW_API && T_COSE_DISABLE_AES_KW) */
+#endif /* !(NO_MBED_KW_API && T_COSE_DISABLE_KEYWRAP) */
 
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
@@ -728,7 +728,7 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
 }
 
 
-#ifndef T_COSE_DISABLE_AES_KW
+#ifndef T_COSE_DISABLE_KEYWRAP
 
 
 static unsigned int
@@ -929,7 +929,7 @@ Done:
     return return_value;
 #endif /* NO_MBED_KW_API */
 }
-#endif /* !T_COSE_DISABLE_AES_KW */
+#endif /* !T_COSE_DISABLE_KEYWRAP */
 
 
 

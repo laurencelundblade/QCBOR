@@ -332,6 +332,6 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
 #else /* T_COSE_DISABLE_HPKE */
 
 /* Place holder for compiler tools that don't like files with no functions */
-void t_cose_recipient_dec_hpke(void) {}
+void t_cose_recipient_dec_hpke_placeholder(void) {}
 
 #endif /* T_COSE_DISABLE_HPKE */

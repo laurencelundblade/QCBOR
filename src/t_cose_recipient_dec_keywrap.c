@@ -1,5 +1,5 @@
 /*
- * t_cose_recipient_dec_aes_kw.c
+ * t_cose_recipient_dec_keywrap.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
@@ -11,7 +11,7 @@
  */
 
 #include "qcbor/qcbor_spiffy_decode.h"
-#include "t_cose/t_cose_recipient_dec_aes_kw.h" /* Interface implemented */
+#include "t_cose/t_cose_recipient_dec_keywrap.h" /* Interface implemented */
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_parameters.h"

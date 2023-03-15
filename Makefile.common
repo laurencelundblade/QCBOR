@@ -30,8 +30,8 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_mac_validate.o \
         src/t_cose_encrypt_enc.o \
         src/t_cose_encrypt_dec.o \
-        src/t_cose_recipient_dec_aes_kw.o \
-        src/t_cose_recipient_enc_aes_kw.o \
+        src/t_cose_recipient_dec_keywrap.o \
+        src/t_cose_recipient_enc_keywrap.o \
         src/t_cose_recipient_dec_hpke.o \
         src/t_cose_recipient_enc_hpke.o \
         src/hpke.o 
@@ -65,10 +65,10 @@ PUBLIC_INTERFACE=inc/t_cose/q_useful_buf.h \
                  inc/t_cose/t_cose_mac_validate.h \
                  inc/t_cose/t_cose_parameters.h \
                  inc/t_cose/t_cose_recipient_dec.h \
-                 inc/t_cose/t_cose_recipient_dec_aes_kw.h \
+                 inc/t_cose/t_cose_recipient_dec_keywrap.h \
                  inc/t_cose/t_cose_recipient_dec_hpke.h \
                  inc/t_cose/t_cose_recipient_enc.h \
-                 inc/t_cose/t_cose_recipient_enc_aes_kw.h \
+                 inc/t_cose/t_cose_recipient_enc_keywrap.h \
                  inc/t_cose/t_cose_recipient_enc_hpke.h \
                  inc/t_cose/t_cose_sign1_sign.h \
                  inc/t_cose/t_cose_sign1_verify.h \
@@ -182,9 +182,9 @@ src/t_cose_encrypt_enc.o: src/t_cose_encrypt_enc.c
 
 src/t_cose_encrypt_dec.o: src/t_cose_encrypt_dec.c
 
-src/t_cose_recipient_enc_aes_kw.o: src/t_cose_recipient_enc_aes_kw.c
+src/t_cose_recipient_enc_keywrap.o: src/t_cose_recipient_enc_keywrap.c
 
-src/t_cose_recipient_dec_aes_kw.o: src/t_cose_recipient_dec_aes_kw.c
+src/t_cose_recipient_dec_keywrap.o: src/t_cose_recipient_dec_keywrap.c
 
 src/t_cose_recpient_enc_hpke.o: src/t_cose_recipient_enc_hpke.c \
                                 src/hpke.h

@@ -77,8 +77,8 @@ set(T_COSE_SRC_COMMON
     src/t_cose_signature_verify_eddsa.c
     src/t_cose_encrypt_enc.c
     src/t_cose_encrypt_dec.c
-    src/t_cose_recipient_dec_aes_kw.c
-    src/t_cose_recipient_enc_aes_kw.c
+    src/t_cose_recipient_dec_keywrap.c
+    src/t_cose_recipient_enc_keywrap.c
     src/t_cose_recipient_dec_hpke.c
     src/t_cose_recipient_enc_hpke.c
     src/hpke.c

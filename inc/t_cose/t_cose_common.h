@@ -17,6 +17,7 @@
 #include <stdbool.h>
 #include "t_cose/q_useful_buf.h" /* For t_cose_key and t_cose_sign_inputs */
 
+//#define T_COSE_DISABLE_EDDSA
 
 #ifdef __cplusplus
 extern "C" {
@@ -528,7 +529,7 @@ enum t_cose_err_t {
     /** Export of the key failed. */
     T_COSE_ERR_KEY_EXPORT_FAILED = 62,
 
-    /** Something went wrong with AES Key Wrap. */
+    /** Something went wrong with Key Wrap. */
     T_COSE_ERR_KW_FAILED = 63,
     /** The signature algorithm needs an extra buffer, but none was provided.
      * See \ref t_cose_sign1_verify_set_auxiliary_buffer for more details.

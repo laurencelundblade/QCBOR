@@ -1,5 +1,5 @@
 /*
- * t_cose_recipient_enc_aes_kw.c
+ * t_cose_recipient_enc_keywrap.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
@@ -11,13 +11,13 @@
  */
 
 #include "qcbor/qcbor_encode.h"
-#include "t_cose/t_cose_recipient_enc_aes_kw.h" /* Interface implemented */
+#include "t_cose/t_cose_recipient_enc_keywrap.h" /* Interface implemented */
 #include "t_cose/t_cose_common.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose_crypto.h"
 
 
-#ifndef T_COSE_DISABLE_AES_KW
+#ifndef T_COSE_DISABLE_KEYWRAP
 
 enum t_cose_err_t
 t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
@@ -38,7 +38,7 @@ t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
 
     /* Output the header parameters */
     params[0]  = t_cose_make_alg_id_parameter(me->keywrap_cose_algorithm_id);
-    params[0].in_protected = false; /* Override t_cose_make_alg_id_parameter() because there is no protection in AES Keywrap */
+    params[0].in_protected = false; /* Override t_cose_make_alg_id_parameter() because there is no protection in Keywrap */
     if(!q_useful_buf_c_is_null(me->kid)) {
         params[1] = t_cose_make_kid_parameter(me->kid);
         params[0].next = &params[1];
@@ -79,9 +79,9 @@ Done:
     return return_value;
 }
 
-#else /* T_COSE_DISABLE_AES_KW */
+#else /* T_COSE_DISABLE_KEYWRAP */
 
 /* Place holder for compiler tools that don't like files with no functions */
-void t_cose_recipient_enc_aes_placeholder(void) {}
+void t_cose_recipient_enc_keywrap_placeholder(void) {}
 
-#endif /* T_COSE_DISABLE_AES_KW */
+#endif /* T_COSE_DISABLE_KEYWRAP */

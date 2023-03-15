@@ -145,7 +145,7 @@ int_fast32_t aead_test(void)
 
 
 
-#ifndef T_COSE_DISABLE_AES_KW
+#ifndef T_COSE_DISABLE_KEYWRAP
 
 int_fast32_t kw_test(void)
 {
@@ -235,4 +235,4 @@ int_fast32_t kw_test(void)
     return 0;
 }
 
-#endif /* !T_COSE_DISABLE_AES_KW */
+#endif /* !T_COSE_DISABLE_KEYWRAP */
