@@ -131,7 +131,7 @@ Done:
 
 
 
-
+#ifndef T_COSE_DISABLE_AES_KW
 #include "t_cose/t_cose_recipient_enc_aes_kw.h"
 #include "t_cose/t_cose_recipient_dec_aes_kw.h"
 
@@ -251,6 +251,7 @@ key_wrap_example(void)
     return (int32_t)err;
 }
 
+#endif /* !T_COSE_DISABLE_AES_KW */
 
 
 #ifndef T_COSE_DISABLE_HPKE

@@ -22,6 +22,7 @@
 #include "t_cose_param_test.h"
 #include "t_cose_crypto_test.h"
 #include "t_cose_encrypt_decrypt_test.h"
+#include "t_cose/t_cose_common.h"
 
 
 /*
@@ -111,10 +112,10 @@ static test_entry s_tests[] = {
     TEST_ENTRY(bad_parameters_test),
 #ifdef TODO_CRIT_PARAM_FIXED
     TEST_ENTRY(crit_parameters_test),
-#endif
+#endif /* TODO_CRIT_PARAM_FIXED */
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     TEST_ENTRY(content_type_test),
-#endif
+#endif /* !T_COSE_DISABLE_CONTENT_TYPE */
     TEST_ENTRY(all_header_parameters_test),
 #ifdef FIXME /* Issue with key material for this test */
     TEST_ENTRY(cose_example_test),

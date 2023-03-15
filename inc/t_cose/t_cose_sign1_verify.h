@@ -455,7 +455,12 @@ t_cose_sign1_verify_set_auxiliary_buffer(struct t_cose_sign1_verify_ctx *me,
 static inline size_t
 t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *me)
 {
+#ifndef T_COSE_DISABLE_EDDSA
     return t_cose_signature_verify_eddsa_auxiliary_buffer_size(&(me->eddsa_verifier));
+#else
+    (void)me;
+    return 0;
+#endif
 }
 
 #ifdef __cplusplus

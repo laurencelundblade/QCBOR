@@ -222,7 +222,9 @@ static struct test_case test_cases[] = {
     { T_COSE_ALGORITHM_PS256, { signed_cose_made_by_psa_crypto_ps256, sizeof(signed_cose_made_by_psa_crypto_ps256) } },
     { T_COSE_ALGORITHM_PS384, { signed_cose_made_by_psa_crypto_ps384, sizeof(signed_cose_made_by_psa_crypto_ps384) } },
     { T_COSE_ALGORITHM_PS512, { signed_cose_made_by_psa_crypto_ps512, sizeof(signed_cose_made_by_psa_crypto_ps512) } },
+#ifndef T_COSE_DISABLE_EDDSA
     { T_COSE_ALGORITHM_EDDSA, { signed_cose_made_by_pycose_eddsa, sizeof(signed_cose_made_by_pycose_eddsa) } },
+#endif /* !T_COSE_DISABLE_EDDSA */
     { 0 }, /* Sentinel value with an invalid algorithm id */
 };
 
@@ -810,9 +812,6 @@ int_fast32_t sign_verify_known_good_test(void)
     const struct test_case* tc;
     for (tc = test_cases; tc->cose_algorithm_id != 0; tc++) {
         if (t_cose_is_algorithm_supported(tc->cose_algorithm_id)) {
-            if((1 + tc - test_cases) == 7) {
-                return_value = 9;
-            }
             return_value = known_good_test(tc->cose_algorithm_id,
                                            tc->known_good_message);
             if (return_value) {

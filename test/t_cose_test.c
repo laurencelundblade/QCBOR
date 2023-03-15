@@ -838,7 +838,7 @@ int_fast32_t all_header_parameters_test()
 
     return 0;
 }
-#endif
+#endif /* !T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 struct test_case {
     uint32_t           test_option;

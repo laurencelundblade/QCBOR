@@ -143,6 +143,6 @@ t_cose_signature_sign_eddsa_init(struct t_cose_signature_sign_eddsa *me)
 
 #else /* !T_COSE_DISABLE_EDDSA */
 
-void t_cose_signature_verify_eddsa_placeholder(void) {}
+void t_cose_signature_sign_eddsa_placeholder(void) {}
 
 #endif /* !T_COSE_DISABLE_EDDSA */

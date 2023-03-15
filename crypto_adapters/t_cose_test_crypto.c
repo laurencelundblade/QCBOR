@@ -362,6 +362,7 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 
+#endif /* !T_COSE_DISABLE_EDDSA */
 
 /*
  * See documentation in t_cose_crypto.h
@@ -530,8 +531,6 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
 
     return T_COSE_SUCCESS;
 }
-
-#endif /* T_COSE_DISABLE_EDDSA */
 
 
 static const uint8_t rfc_3394_key_wrap_iv[] = {0xa6, 0xa6, 0xa6, 0xa6, 0xa6, 0xa6, 0xa6, 0xa6};
