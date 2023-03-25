@@ -133,11 +133,7 @@ t_cose_create_recipient_hpke2(
 {
     size_t                 key_bitlen;
     int64_t                algorithm_id;
-    QCBORError             ret = QCBOR_SUCCESS;
     UsefulBufC             scratch;
-    QCBOREncodeContext     hpke_sender_info;
-    uint8_t                ephemeral_buf[100] = {0};
-    struct q_useful_buf    e_buf = {ephemeral_buf, sizeof(ephemeral_buf)};
     uint8_t                encrypted_cek[T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)];
     size_t                 encrypted_cek_len = T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
     UsefulBufC             cek_encrypted_cbor;
@@ -235,25 +231,23 @@ t_cose_create_recipient_hpke2(
      *     enc : bstr,          ; encapsulated key
      *  ]
      */
-    QCBOREncode_Init(&hpke_sender_info, e_buf);
-
     /* Open HPKE_sender_info array */
-    QCBOREncode_OpenArray(&hpke_sender_info);
+    QCBOREncode_OpenArrayInMapN(encrypt_ctx, T_COSE_HEADER_ALG_PARAM_HPKE_SENDER_INFO);
 
     /* -- add kem id */
-    QCBOREncode_AddUInt64(&hpke_sender_info,
+    QCBOREncode_AddUInt64(encrypt_ctx,
                           hpke_suite.kem_id);
 
     /* -- add kdf id */
-    QCBOREncode_AddUInt64(&hpke_sender_info,
+    QCBOREncode_AddUInt64(encrypt_ctx,
                           hpke_suite.kdf_id);
 
     /* -- add aead id */
-    QCBOREncode_AddUInt64(&hpke_sender_info,
+    QCBOREncode_AddUInt64(encrypt_ctx,
                           hpke_suite.aead_id);
 
     /* -- add enc */
-    QCBOREncode_AddBytes(&hpke_sender_info,
+    QCBOREncode_AddBytes(encrypt_ctx,
                          (struct q_useful_buf_c)
                          {
                            pkE,
@@ -262,24 +256,8 @@ t_cose_create_recipient_hpke2(
                         );
 
     /* Close HPKE_sender_info array */
-    QCBOREncode_CloseArray(&hpke_sender_info);
+    QCBOREncode_CloseArray(encrypt_ctx);
 
-    /* Finish HPKE_sender_info array */
-    ret = QCBOREncode_Finish(&hpke_sender_info, &scratch);
-
-    if (ret != QCBOR_SUCCESS) {
-        return(T_COSE_ERR_CBOR_FORMATTING);
-    }
-
-    /* Add HPKE_sender_info to unprotected map */
-    QCBOREncode_AddBytesToMapN(encrypt_ctx,
-                               T_COSE_HEADER_ALG_PARAM_HPKE_SENDER_INFO,
-                               (struct q_useful_buf_c)
-                               {
-                                 scratch.ptr,
-                                 scratch.len
-                               }
-                              );
 
     /* Add kid to unprotected map  */
     QCBOREncode_AddBytesToMapN(encrypt_ctx,
