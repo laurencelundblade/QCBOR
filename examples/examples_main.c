@@ -40,6 +40,7 @@ static test_entry s_tests[] = {
 #endif /* !T_COSE_DISABLE_KEYWRAP */
 
 #ifndef T_COSE_DISABLE_HPKE
+    TEST_ENTRY(hpke_example_detached),
     TEST_ENTRY(hpke_example)
 #endif /* !T_COSE_DISABLE_HPKE */
 };

@@ -22,4 +22,6 @@ int32_t encrypt0_example(void);
 
 int32_t hpke_example(void);
 
+int32_t hpke_example_detached(void);
+
 #endif /* encryption_examples_h */
