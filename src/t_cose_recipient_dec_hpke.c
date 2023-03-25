@@ -21,6 +21,7 @@
 #include "t_cose/t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
 #include "hpke.h"
+#include "t_cose_util.h"
 
 
 // TODO: maybe rearrange this to align with what happens in crypto adaptor layer
@@ -73,6 +74,8 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
     enum t_cose_err_t      cose_result;
     struct hpke_sender_info  sender_info;
     int                    psa_ret;
+    MakeUsefulBufOnStack(enc_struct_buf, 50); // TODO: allow this to be supplied externally
+    struct q_useful_buf_c enc_struct;
 
     me = (struct t_cose_recipient_dec_hpke *)me_x;
 
@@ -121,7 +124,16 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
         return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
     }
 
-    // TODO: fill in the AAD so the parameters are protected
+    /* --- Make the Enc_structure ---- */
+
+    cose_result = create_enc_structure("Enc_Recipient", /* in: context string */
+                         protected_params,
+                         NULL_Q_USEFUL_BUF_C, /* in: Externally supplied AAD */
+                         enc_struct_buf,
+                         &enc_struct);
+    if(cose_result != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
     // TODO: There is a big rearrangement necessary when the crypto adaptation layer calls for HPKE are sorted out. Lots of work to complete that...
     hpke_suite_t     suite;
@@ -144,7 +156,8 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
              sender_info.enc.ptr,                         // pkE
              cek_encrypted.len,                  // Ciphertext length
              cek_encrypted.ptr,                  // Ciphertext
-             0, NULL,                         // Additional data
+                                   // TODO: fix the const-ness all the way down so the cast can be removed
+             enc_struct.len, (uint8_t *)enc_struct.ptr,   // Additional data
              0, NULL,                         // Info
              &cek_len_in_out,                   // Plaintext length
              cek_buffer.ptr                   // Plaintext

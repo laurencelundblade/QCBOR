@@ -22,6 +22,7 @@
 #include "t_cose/t_cose_standard_constants.h"
 #include "t_cose_crypto.h"
 #include "hpke.h"
+#include "t_cose_util.h"
 
 
 /**
@@ -84,6 +85,7 @@ enum t_cose_err_t
 t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
                            struct q_useful_buf_c              pkR,
                            struct t_cose_key                  pkE,
+                           struct q_useful_buf_c              aad,
                            struct q_useful_buf_c              plaintext,
                            struct q_useful_buf                ciphertext,
                            size_t                             *ciphertext_len)
@@ -104,7 +106,8 @@ t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
             0,                                  // skI
             plaintext.len,                      // plaintext length
             plaintext.ptr,                      // plaintext
-            0, NULL,                            // Additional data
+            // TODO: fix the const-ness all the way down so this cast can go away
+            aad.len, (uint8_t *)aad.ptr,         // Additional data
             0, NULL,                            // Info
             (psa_key_handle_t)
             pkE.key.handle,                   // skE handle
@@ -144,6 +147,9 @@ t_cose_create_recipient_hpke2(
     enum t_cose_err_t      return_value;
     struct t_cose_crypto_hpke_suite_t hpke_suite;
     struct t_cose_key      ephemeral_key;
+
+    MakeUsefulBufOnStack(enc_struct_buf, 50); // TODO: allow this to be supplied externally
+    struct q_useful_buf_c enc_struct;
 
     (void)cose_algorithm_id; // TODO: use this or get rid of it
     (void)recipient_key; // TODO: use this or get rid of it
@@ -188,18 +194,13 @@ t_cose_create_recipient_hpke2(
         return(return_value);
     }
 
-    /* HPKE encryption */
-    return_value = t_cose_crypto_hpke_encrypt(
-                        hpke_suite,
-                        (struct q_useful_buf_c) {.ptr = pkR, .len = pkR_len},
-                        ephemeral_key,
-                        plaintext,
-                        (struct q_useful_buf) {.ptr = encrypted_cek, .len = encrypted_cek_len},
-                        &encrypted_cek_len);
-
-    if (return_value != T_COSE_SUCCESS) {
-        return(return_value);
-    }
+    /* There's an be of an odd order dependency here.
+     * First get started encoding and output/make the protected header.
+     * Then, before outputting the unprotected header, make the Enc_structure
+     * and do the HPKE encrypt. This requires the protected headers as input.
+     * This will produce the HPKE "enc" value.
+     * Then the unprotected headers which includes the "enc"
+     * value can be output. This is going to be a problem with encode_headers().*/
 
     /* Create recipient array */
     QCBOREncode_OpenArray(encrypt_ctx);
@@ -218,6 +219,30 @@ t_cose_create_recipient_hpke2(
     QCBOREncode_CloseBstrWrap2(encrypt_ctx,
                                false,
                                &scratch);
+
+
+    /* --- Make the Enc_structure ---- */
+
+    return_value = create_enc_structure("Enc_Recipient", /* in: context string */
+                         scratch,
+                         NULL_Q_USEFUL_BUF_C, /* in: Externally supplied AAD */
+                         enc_struct_buf,
+                         &enc_struct);
+
+
+    /* --- HPKE encryption of the CEK ---- */
+    return_value = t_cose_crypto_hpke_encrypt(
+                        hpke_suite,
+                        (struct q_useful_buf_c) {.ptr = pkR, .len = pkR_len},
+                        ephemeral_key,
+                        enc_struct,
+                        plaintext,
+                        (struct q_useful_buf) {.ptr = encrypted_cek, .len = encrypted_cek_len},
+                        &encrypted_cek_len);
+
+    if (return_value != T_COSE_SUCCESS) {
+        return(return_value);
+    }
 
     /* Add unprotected Header */
     QCBOREncode_OpenMap(encrypt_ctx);
