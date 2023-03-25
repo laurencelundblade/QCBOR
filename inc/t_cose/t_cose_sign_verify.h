@@ -65,8 +65,8 @@ struct t_cose_sign_verify_ctx {
     struct t_cose_parameter_storage   params;
     struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
-    t_cose_parameter_decode_cb       *param_decode_cb;
-    void                             *param_decode_cb_context;
+    t_cose_special_param_decode_cb   *special_param_decode_cb;
+    void                             *special_param_decode_ctx;
     struct t_cose_signature_verify   *last_verifier; /* Last verifier that didn't succeed */
 };
 
@@ -173,7 +173,7 @@ t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *context,
  * many nodes were used.
  */
 static void
-t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx  *context,
+t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx   *context,
                               struct t_cose_parameter_storage *storage);
 
 
@@ -183,9 +183,9 @@ t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx  *context,
  * Typically this is not needed.
  */
 static void
-t_cose_sign_set_param_decoder(struct t_cose_sign_verify_ctx *context,
-                              t_cose_parameter_decode_cb    *decode_cb,
-                              void                          *decode_cb_context);
+t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx *context,
+                                      t_cose_special_param_decode_cb  *decode_cb,
+                                      void                            *decode_ctx);
 
 
 /**
@@ -276,9 +276,9 @@ t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx *context);
  * \param[in] message         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          or \c COSE_Sign message that is to be verified.
  * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] is_detached         Indicates the payload is detached.
  * \param[in,out] payload   Pointer and length of the payload.
  * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
- * \param[in] is_detached         Indicates the payload is detached.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
@@ -291,9 +291,9 @@ enum t_cose_err_t
 t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
                            struct q_useful_buf_c          message,
                            struct q_useful_buf_c          aad,
+                           bool                           is_detached,
                            struct q_useful_buf_c         *payload,
-                           struct t_cose_parameter      **parameters,
-                           bool                           is_detached);
+                           struct t_cose_parameter      **parameters);
 
 
 
@@ -307,9 +307,9 @@ t_cose_sign_verify(struct t_cose_sign_verify_ctx *me,
     return t_cose_sign_verify_private(me,
                                       message,
                                       aad,
+                                      false,
                                       payload,
-                                      parameters,
-                                      false);
+                                      parameters);
 }
 
 
@@ -323,9 +323,9 @@ t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *me,
     return t_cose_sign_verify_private(me,
                                       message,
                                       aad,
+                                      true,
                                      &detached_payload,
-                                      parameters,
-                                      true);
+                                      parameters);
 }
 
 
@@ -349,12 +349,12 @@ t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx   *me,
 
 
 static inline void
-t_cose_sign_set_param_decoder(struct t_cose_sign_verify_ctx *me,
-                              t_cose_parameter_decode_cb    *decode_cb,
-                              void                          *decode_cb_context)
+t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *me,
+                                      t_cose_special_param_decode_cb *decode_cb,
+                                      void                           *decode_ctx)
 {
-    me->param_decode_cb         = decode_cb;
-    me->param_decode_cb_context = decode_cb_context;
+    me->special_param_decode_cb  = decode_cb;
+    me->special_param_decode_ctx = decode_ctx;
 }
 
 

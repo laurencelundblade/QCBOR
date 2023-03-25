@@ -82,10 +82,10 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
     }
 
     if(option_flags & T_COSE_OPT_DECODE_ONLY) {
-        /* It's mainly EdDSA, not this, that runs when only decoding */
         return T_COSE_SUCCESS;
     }
 
+    // TODO: COSE doesn't require kids to be unique. This code probably won't work if they're not unique
     kid = t_cose_find_parameter_kid(parameter_list);
     if(!q_useful_buf_c_is_null(me->verification_kid)) {
         if(q_useful_buf_c_is_null(kid)) {
@@ -135,7 +135,7 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
                                 const struct t_cose_header_location loc,
                                 struct t_cose_sign_inputs       *sign_inputs,
                                 struct t_cose_parameter_storage *param_storage,
-                                QCBORDecodeContext              *qcbor_decoder,
+                                QCBORDecodeContext              *cbor_decoder,
                                 struct t_cose_parameter        **decoded_params)
 {
     const struct t_cose_signature_verify_main *me =
@@ -146,17 +146,17 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
     struct q_useful_buf_c  signature;
 
     /* --- Decode the COSE_Signature ---*/
-    QCBORDecode_EnterArray(qcbor_decoder, NULL);
-    qcbor_error = QCBORDecode_GetError(qcbor_decoder);
+    QCBORDecode_EnterArray(cbor_decoder, NULL);
+    qcbor_error = QCBORDecode_GetError(cbor_decoder);
     if(qcbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
         return T_COSE_ERR_NO_MORE;
     }
     // TODO: make sure other errors are processed correctly by fall through here
 
-    return_value = t_cose_headers_decode(qcbor_decoder,
+    return_value = t_cose_headers_decode(cbor_decoder,
                                          loc,
-                                         me->param_decode_cb,
-                                         me->param_decode_cb_context,
+                                         me->special_param_decode_cb,
+                                         me->special_param_decode_ctx,
                                          param_storage,
                                          decoded_params,
                                         &protected_parameters);
@@ -166,10 +166,10 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
     sign_inputs->sign_protected = protected_parameters;
 
     /* --- The signature --- */
-    QCBORDecode_GetByteString(qcbor_decoder, &signature);
+    QCBORDecode_GetByteString(cbor_decoder, &signature);
 
-    QCBORDecode_ExitArray(qcbor_decoder);
-    qcbor_error = QCBORDecode_GetError(qcbor_decoder);
+    QCBORDecode_ExitArray(cbor_decoder);
+    qcbor_error = QCBORDecode_GetError(cbor_decoder);
     if(qcbor_error != QCBOR_SUCCESS) {
         return_value = qcbor_decode_error_to_t_cose_error(qcbor_error, T_COSE_ERR_SIGNATURE_FORMAT);
         goto Done;

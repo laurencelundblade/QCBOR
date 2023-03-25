@@ -36,8 +36,8 @@ struct t_cose_signature_verify_eddsa {
      */
     struct t_cose_signature_verify  s;
     struct t_cose_key               verification_key;
-    t_cose_parameter_decode_cb     *param_decode_cb;
-    void                           *param_decode_cb_context;
+    t_cose_special_param_decode_cb *special_param_decode_cb;
+    void                           *special_param_decode_ctx;
     uint32_t                        option_flags;
 
     struct q_useful_buf_c           verification_kid;
@@ -70,9 +70,9 @@ t_cose_signature_verify_eddsa_set_key(struct t_cose_signature_verify_eddsa *me,
                                       struct q_useful_buf_c verification_kid);
 
 static void
-t_cose_signature_verify_eddsa_set_param_decoder(struct t_cose_signature_verify_eddsa *me,
-                                                t_cose_parameter_decode_cb           *decode_cb,
-                                                void                                 *decode_cb_context);
+t_cose_signature_verify_eddsa_set_special_param_decoder(struct t_cose_signature_verify_eddsa *me,
+                                                t_cose_special_param_decode_cb               *decode_cb,
+                                                void                                         *decode_ctx);
 
 /**
  * \brief Configure a buffer used to serialize the Sig_Structure.
@@ -143,12 +143,12 @@ t_cose_signature_verify_eddsa_set_key(struct t_cose_signature_verify_eddsa *me,
 }
 
 static inline void
-t_cose_signature_verify_eddsa_set_param_decoder(struct t_cose_signature_verify_eddsa *me,
-                                                t_cose_parameter_decode_cb           *decode_cb,
-                                                void                                 *decode_cb_context)
+t_cose_signature_verify_eddsa_set_special_param_decoder(struct t_cose_signature_verify_eddsa *me,
+                                                        t_cose_special_param_decode_cb       *decode_cb,
+                                                        void                                 *decode_ctx)
 {
-    me->param_decode_cb         = decode_cb;
-    me->param_decode_cb_context = decode_cb_context;
+    me->special_param_decode_cb  = decode_cb;
+    me->special_param_decode_ctx = decode_ctx;
 }
 
 static inline void

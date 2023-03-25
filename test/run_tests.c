@@ -66,7 +66,7 @@ static test_entry s_tests[] = {
 
 #ifndef T_COSE_DISABLE_SIGN1
     // TODO: re enable this test when it is fixed
-    //TEST_ENTRY(sign1_structure_decode_test),
+    TEST_ENTRY(sign1_structure_decode_test),
 #endif /* T_COSE_DISABLE_SIGN1 */
 
     TEST_ENTRY(crypto_context_test),

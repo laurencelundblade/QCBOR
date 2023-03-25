@@ -215,7 +215,7 @@ static void
 t_cose_encrypt_add_param_storage(struct t_cose_encrypt_dec_ctx   *context,
                                  struct t_cose_parameter_storage *storage);
 
-
+// TODO: Add equivalent of t_cose_signature_verify_main_set_special_param_decoder()
 
 /**
  * \brief Setup buffer for larger AAD or header parameters.

@@ -1,7 +1,7 @@
 /*
  * t_cose_signature_verify_eddsa.c
  *
- * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 11/19/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -121,7 +121,7 @@ t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
                                  const struct t_cose_header_location loc,
                                  struct t_cose_sign_inputs       *sign_inputs,
                                  struct t_cose_parameter_storage *param_storage,
-                                 QCBORDecodeContext             *qcbor_decoder,
+                                 QCBORDecodeContext             *cbor_decoder,
                                  struct t_cose_parameter       **decoded_params)
 {
     const struct t_cose_signature_verify_eddsa *me =
@@ -132,16 +132,16 @@ t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
     struct q_useful_buf_c  signature;
 
     /* --- Decode the COSE_Signature ---*/
-    QCBORDecode_EnterArray(qcbor_decoder, NULL);
-    qcbor_error = QCBORDecode_GetError(qcbor_decoder);
+    QCBORDecode_EnterArray(cbor_decoder, NULL);
+    qcbor_error = QCBORDecode_GetError(cbor_decoder);
     if(qcbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
         return T_COSE_ERR_NO_MORE;
     }
 
-    return_value = t_cose_headers_decode(qcbor_decoder,
+    return_value = t_cose_headers_decode(cbor_decoder,
                                          loc,
-                                         me->param_decode_cb,
-                                         me->param_decode_cb_context,
+                                         me->special_param_decode_cb,
+                                         me->special_param_decode_ctx,
                                          param_storage,
                                          decoded_params,
                                         &protected_parameters);
@@ -152,10 +152,10 @@ t_cose_signature_verify_eddsa_cb(struct t_cose_signature_verify  *me_x,
     sign_inputs->sign_protected = protected_parameters;
 
     /* --- The signature --- */
-    QCBORDecode_GetByteString(qcbor_decoder, &signature);
+    QCBORDecode_GetByteString(cbor_decoder, &signature);
 
-    QCBORDecode_ExitArray(qcbor_decoder);
-    qcbor_error = QCBORDecode_GetError(qcbor_decoder);
+    QCBORDecode_ExitArray(cbor_decoder);
+    qcbor_error = QCBORDecode_GetError(cbor_decoder);
     if(qcbor_error != QCBOR_SUCCESS) {
         return_value = qcbor_decode_error_to_t_cose_error(qcbor_error, T_COSE_ERR_SIGNATURE_FORMAT);
         goto Done;

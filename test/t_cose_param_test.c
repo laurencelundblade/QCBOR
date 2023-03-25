@@ -3,7 +3,7 @@
 //  t_cose_test
 //
 //  Created by Laurence Lundblade on 9/20/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
+//  Copyright © 2022-2023 Laurence Lundblade. All rights reserved.
 //
 
 #include "t_cose_param_test.h"
@@ -14,7 +14,7 @@
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "t_cose/q_useful_buf.h"
 
-#include "t_cose/t_cose_standard_constants.h" // TODO: change path when this becomes public
+#include "t_cose/t_cose_standard_constants.h"
 
 
 /* Param with label 44 carries a single float. This test
@@ -29,8 +29,8 @@ encode_44(const struct t_cose_parameter  *param,
 }
 
 static enum t_cose_err_t
-decode_44(void                       *callback_context,
-          QCBORDecodeContext         *qcbor_decoder,
+decode_44(void                    *callback_context,
+          QCBORDecodeContext      *qcbor_decoder,
           struct t_cose_parameter *p)
 {
     double  d;
@@ -40,8 +40,7 @@ decode_44(void                       *callback_context,
     QCBORDecode_GetDouble(qcbor_decoder, &d);
     // Stuff the double into the little buf
     // because that's what we're doing for label 44 floats.
-    memcpy(p->value.little_buf, &d, sizeof(d));
-    p->value_type = T_COSE_PARAMETER_TYPE_LITTLE_BUF;
+    memcpy(p->value.special_decode.value.little_buf, &d, sizeof(d));
     return T_COSE_SUCCESS;
 }
 
@@ -52,12 +51,9 @@ check_44(struct t_cose_parameter *param)
         return 1;
     }
 
-    if(param->value_type != T_COSE_PARAMETER_TYPE_LITTLE_BUF) {
-        return 2;
-    }
     /* Have to have some comparision function in the test case. */
     double d;
-    memcpy(&d, param->value.little_buf, sizeof(d));
+    memcpy(&d, param->value.special_decode.value.little_buf, sizeof(d));
 
     if(d != 3.14) {
         return 3;
@@ -78,7 +74,7 @@ check_alg_id(struct t_cose_parameter *param)
         return 2;
     }
 
-    if(param->value.i64 != T_COSE_ALGORITHM_ES256) {
+    if(param->value.int64 != T_COSE_ALGORITHM_ES256) {
         return 3;
     }
 
@@ -106,7 +102,7 @@ check_int_content_id(struct t_cose_parameter *param)
         return 2;
     }
 
-    if(param->value.i64 != 42) {
+    if(param->value.int64 != 42) {
         return 3;
     }
 
@@ -230,11 +226,9 @@ check_partial_iv(struct t_cose_parameter *param)
 }
 
 static enum t_cose_err_t
-param_encoder(void                           *cb_context,
-              const struct t_cose_parameter  *param,
+param_encoder(const struct t_cose_parameter  *param,
               QCBOREncodeContext             *cbor_encoder)
 {
-    (void)cb_context;
     switch(param->label) {
         case 44:
             return encode_44(param, cbor_encoder);
@@ -290,7 +284,7 @@ struct param_test {
                                  false,\
                                  {0,0},\
                                  T_COSE_PARAMETER_TYPE_INT64,\
-                                 .value.i64 = alg_id }
+                                 .value.int64 = alg_id }
 
 
 //#ifndef T_COSE_DISABLE_CONTENT_TYPE
@@ -302,7 +296,7 @@ struct param_test {
                               false,\
                               {0,0},\
                               T_COSE_PARAMETER_TYPE_INT64,\
-                              .value.i64 = content_type }
+                              .value.int64 = content_type }
 
 
 
@@ -404,7 +398,7 @@ static const struct param_test param_tests[] = {
     /* 0. Critical, protected floating point parameter made by callback. */
     {
         UBX(x1),
-        {44, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, param_encoder}, NULL },
+        {44, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, {NULL}}, NULL },
         T_COSE_SUCCESS,
         T_COSE_SUCCESS,
         check_44,
@@ -425,7 +419,7 @@ static const struct param_test param_tests[] = {
     /* 2. Trying to make a parameter of an unknown type. */
     {
         {x2, 0}, // Unused
-        {22, false, false, {0,0}, 200 /* Unknown type */, .value.i64 = 11, NULL},
+        {22, false, false, {0,0}, 200 /* Unknown type */, .value.int64 = 11, NULL},
         T_COSE_ERR_INVALID_PARAMETER_TYPE,
         0,
         NULL,
@@ -435,7 +429,7 @@ static const struct param_test param_tests[] = {
     /* 3. A protected negative integer parameter. */
     {
         UBX(x3), /* CBOR encoded header params */
-        {11, true, false, {0,0}, T_COSE_PARAMETER_TYPE_INT64, .value.i64 = INT32_MIN, NULL},
+        {11, true, false, {0,0}, T_COSE_PARAMETER_TYPE_INT64, .value.int64 = INT32_MIN, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_SUCCESS, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -445,7 +439,7 @@ static const struct param_test param_tests[] = {
     /* 4. Attempt to encode a critical unprotected parameter. */
     {
         {x2, 0}, // Unused
-        {101, false, true, {0,0}, T_COSE_PARAMETER_TYPE_INT64, .value.i64 = INT32_MIN, NULL},
+        {101, false, true, {0,0}, T_COSE_PARAMETER_TYPE_INT64, .value.int64 = INT32_MIN, NULL},
         T_COSE_ERR_CRIT_PARAMETER_IN_UNPROTECTED, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -455,7 +449,7 @@ static const struct param_test param_tests[] = {
     /* 5. Encoder callback returns an error. */
     {
         {x2, 0}, // Unused
-        {55, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, param_encoder}, NULL },
+        {55, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, {NULL}}, NULL },
         T_COSE_ERR_FAIL, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -465,7 +459,7 @@ static const struct param_test param_tests[] = {
     /* 6. Encoder callback produces invalid CBOR. */
     {
         {x2, 0}, // Unused
-        {66, true, true, {0,0}, T_COSE_PARAMETER_TYPE_CALLBACK, .value.custom_encoder = {NULL, param_encoder}, NULL },
+        {66, true, true, {0,0}, T_COSE_PARAMETER_TYPE_SPECIAL, .value.special_encode = {param_encoder, {NULL}}, NULL },
         T_COSE_SUCCESS, /* Expected encode result */
         0, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -480,7 +474,7 @@ static const struct param_test param_tests[] = {
     /* 8. Incorrectly formatted parameters (decode only test) */
     {
         UBX(x6), /* CBOR encoded header params */
-        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL, NULL},
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_PARAMETER_CBOR, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -490,7 +484,7 @@ static const struct param_test param_tests[] = {
     /* 9. Not-well formed parameters (decode only test) */
     {
         UBX(x7), /* CBOR encoded header params */
-        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL},
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_CBOR_NOT_WELL_FORMED, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -500,7 +494,7 @@ static const struct param_test param_tests[] = {
     /* 10. Not-well formed parameters (decode only test) */
     {
         UBX(x8), /* CBOR encoded header params */
-        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL, NULL},
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_CBOR_NOT_WELL_FORMED, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -510,7 +504,7 @@ static const struct param_test param_tests[] = {
     /* 11. No protected headers at all (decode only test) */
     {
         UBX(x9), /* CBOR encoded header params */
-        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL, NULL},
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0, NULL},
         T_COSE_SUCCESS, /* Expected encode result */
         T_COSE_ERR_PARAMETER_CBOR, /* Expected decode result */
         NULL, /* Call back for decode check */
@@ -595,7 +589,7 @@ static const struct param_test param_tests[] = {
     /* */
     {
         {NULL, 0},
-        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.ptr = NULL},
+        {0, false, false, {0,0}, NO_ENCODE_TEST, .value.int64 = 0},
         0,
         0,
         NULL,
@@ -731,7 +725,7 @@ param_test(void)
                     }
                     switch(decoded.value_type) {
                         case T_COSE_PARAMETER_TYPE_INT64:
-                            if(decoded.value.i64 != param_test->unencoded.value.i64) {
+                            if(decoded.value.int64 != param_test->unencoded.value.int64) {
                                 return i * 1000 + 5;
                             }
                             break;

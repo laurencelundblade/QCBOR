@@ -170,7 +170,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
         /* --- One or more COSE_Signatures for COSE_Sign --- */
 
         /* Output the arrray of signers, each of which is an array of
-         * Headers and signature. The surrounding array is handled here.
+         * headers and signature. The surrounding array is handled here.
          */
         return_value = T_COSE_ERR_NO_SIGNERS;
         QCBOREncode_OpenArray(cbor_encode_ctx);

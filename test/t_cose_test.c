@@ -1083,10 +1083,10 @@ struct sign1_sample {
 
 static struct sign1_sample sign1_sample_inputs[] = {
     /* 0. With an indefinite length string payload */
-    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x5f, 0x00, 0xff, 0x40}, 7}, T_COSE_ERR_SIGN1_FORMAT},
+    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x5f, 0x00, 0xff, 0x40}, 7}, T_COSE_ERR_CBOR_DECODE},
     /* 1. Too few items in unprotected header parameters bucket */
     { {(uint8_t[]){0x84, 0x40, 0xa3, 0x01, 0x40}, 5}, T_COSE_ERR_PARAMETER_CBOR},
-    /* 2. Too few items in definite array */
+    /* 2. Too few items in definite-length array */
     { {(uint8_t[]){0x83, 0x40, 0xa0, 0x40}, 4}, T_COSE_ERR_SIGN1_FORMAT},
     /* 3. Too-long signature */
     { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x4f}, 5}, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
@@ -1097,14 +1097,345 @@ static struct sign1_sample sign1_sample_inputs[] = {
     /* 6. Unterminated indefinite length */
     { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40}, 6}, T_COSE_ERR_SIGN1_FORMAT},
     /* 7. The smallest legal COSE_Sign1 using indefinite lengths */
-    { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40, 0xff}, 7}, T_COSE_SUCCESS},
+    { {(uint8_t[]){0x9f, 0x40, 0xbf, 0xff, 0x40, 0x40, 0xff}, 7}, T_COSE_ERR_NO_ALG_ID},
     /* 8. The smallest legal COSE_Sign1 using definite lengths */
-    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x40}, 5}, T_COSE_SUCCESS},
+    { {(uint8_t[]){0x84, 0x40, 0xa0, 0x40, 0x40}, 5}, T_COSE_ERR_NO_ALG_ID},
     /* 9. Just one not-well-formed byte -- a reserved value */
     { {(uint8_t[]){0x3c}, 1}, T_COSE_ERR_CBOR_NOT_WELL_FORMED },
+    /* 10. The smallest legal COSE_Sign1 using definite lengths */
+    { {(uint8_t[]){0x84, 0x43, 0xa1, 0x01, 0x26, 0xa0, 0x40, 0x40}, 8}, T_COSE_SUCCESS},
     /* terminate the list */
     { {NULL, 0}, 0 },
 };
+
+#include "t_cose/t_cose_parameters.h"
+#include "qcbor/qcbor_spiffy_decode.h"
+
+
+static enum t_cose_err_t
+foo_encode_cb(const struct t_cose_parameter  *parameter,
+              QCBOREncodeContext             *cbor_encoder)
+{
+    QCBOREncode_OpenMapInMapN(cbor_encoder, parameter->label);
+    QCBOREncode_AddInt64ToMap(cbor_encoder, "xxx", 88);
+    QCBOREncode_AddInt64ToMap(cbor_encoder, "yyy", 99);
+    QCBOREncode_CloseMap(cbor_encoder);
+    return T_COSE_SUCCESS;
+}
+
+
+static enum t_cose_err_t
+foo_decode_cb(void                    *cb_context,
+              QCBORDecodeContext      *cbor_decoder,
+              struct t_cose_parameter *parameter)
+{
+    (void)cb_context; /* Intentionally unused */
+
+    if(parameter->label == 66) {
+        int64_t n1, n2;
+
+        QCBORDecode_EnterMap(cbor_decoder, NULL);
+        QCBORDecode_GetInt64InMapSZ (cbor_decoder, "xxx", &n1);
+        QCBORDecode_GetInt64InMapSZ(cbor_decoder, "yyy", &n2);
+        QCBORDecode_ExitMap(cbor_decoder);
+        if(QCBORDecode_IsNotWellFormedError(QCBORDecode_GetError(cbor_decoder))) {
+            return T_COSE_ERR_CBOR_NOT_WELL_FORMED;
+        }
+
+        parameter->value.special_decode.value.little_buf[0] = (uint8_t)n1;
+        parameter->value.special_decode.value.little_buf[1] = (uint8_t)n2;
+        parameter->value.special_decode.status = SP_DECODED;
+        parameter->value_type = T_COSE_PARAMETER_TYPE_SPECIAL;
+
+    } else if(parameter->label == 314) {
+        double dd;
+        QCBORDecode_GetDouble(cbor_decoder, &dd);
+
+        parameter->value.special_decode.value.uint64 = UsefulBufUtil_CopyDoubleToUint64(dd);
+        parameter->value.special_decode.status = SP_DECODED;
+        parameter->value_type = T_COSE_PARAMETER_TYPE_SPECIAL;
+
+    } else {
+        /* A label we don't understand. */
+        if(parameter->critical) {
+            return T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
+        }
+        parameter->value.special_decode.status = SP_NOT_DECODED;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+static enum t_cose_err_t
+float_encode_cb(const struct t_cose_parameter  *parameter,
+                QCBOREncodeContext             *cbor_encoder)
+{
+    QCBOREncode_AddDoubleToMapN(cbor_encoder,
+                                parameter->label,
+                                UsefulBufUtil_CopyUint64ToDouble(parameter->value.special_encode.data.uint64));
+
+    return T_COSE_SUCCESS;
+}
+
+
+static int32_t
+make_complex_cose_sign(struct q_useful_buf cose_sign_buf, struct q_useful_buf_c *cose_sign)
+{
+    struct t_cose_sign_sign_ctx sign_encoder;
+    struct t_cose_signature_sign_main  sig1_encoder;
+    struct t_cose_signature_sign_main  sig2_encoder;
+    struct t_cose_signature_sign_main  sig3_encoder;
+    struct t_cose_parameter sig1_params[3];
+    struct t_cose_parameter sig2_params[3];
+    struct t_cose_parameter sig3_params[3];
+    struct t_cose_key sig1_key;
+    struct t_cose_key sig2_key;
+    struct t_cose_key sig3_key;
+    enum t_cose_err_t err;
+
+    t_cose_sign_sign_init(&sign_encoder, T_COSE_OPT_MESSAGE_TYPE_SIGN);
+
+
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &sig1_key);
+    t_cose_signature_sign_main_init(&sig1_encoder, T_COSE_ALGORITHM_ES256);
+    t_cose_signature_sign_main_set_signing_key(&sig1_encoder, sig1_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("sig1"));
+    sig1_params[0] = t_cose_make_ct_tstr_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("app/foo"));
+    sig1_params[1].critical         = false;
+    sig1_params[1].in_protected     = false;
+    sig1_params[1].location.index   = 0;
+    sig1_params[1].location.nesting = 0;
+    sig1_params[1].label            = 99;
+    sig1_params[1].value_type       = T_COSE_PARAMETER_TYPE_INT64;
+    sig1_params[1].value.int64      = INT64_MAX;
+    sig1_params[1].next             = NULL;
+    sig1_params[0].next = &sig1_params[1];
+
+    sig1_params[2].critical         = false;
+    sig1_params[2].in_protected     = false;
+    sig1_params[2].location.index   = 0;
+    sig1_params[2].location.nesting = 0;
+    sig1_params[2].label            = 66;
+    sig1_params[2].value_type       = T_COSE_PARAMETER_TYPE_SPECIAL;
+    sig1_params[2].value.special_encode.encode_cb = foo_encode_cb;
+    sig1_params[2].next             = NULL;
+    sig1_params[1].next = &sig1_params[2];
+    t_cose_signature_sign_main_set_header_parameter(&sig1_encoder, sig1_params);
+    t_cose_sign_add_signer(&sign_encoder, t_cose_signature_sign_from_main(&sig1_encoder));
+
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_ES384, &sig2_key);
+    t_cose_signature_sign_main_init(&sig2_encoder, T_COSE_ALGORITHM_ES384);
+    t_cose_signature_sign_main_set_signing_key(&sig2_encoder, sig2_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("sig2"));
+    sig2_params[0] = t_cose_make_ct_tstr_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("app/xxx"));
+    sig2_params[1].critical         = false;
+    sig2_params[1].in_protected     = false;
+    sig2_params[1].location.index   = 0;
+    sig2_params[1].location.nesting = 0;
+    sig2_params[1].label            = 314;
+    sig2_params[1].value_type       = T_COSE_PARAMETER_TYPE_SPECIAL;
+    sig2_params[1].value.special_encode.encode_cb = float_encode_cb;
+    sig2_params[1].value.special_encode.data.uint64 = UsefulBufUtil_CopyDoubleToUint64(3.14159);
+    sig2_params[1].next             = NULL;
+    sig2_params[0].next = &sig2_params[1];
+    t_cose_signature_sign_main_set_header_parameter(&sig2_encoder, sig2_params);
+    t_cose_sign_add_signer(&sign_encoder, t_cose_signature_sign_from_main(&sig2_encoder));
+
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_ES512, &sig3_key);
+    t_cose_signature_sign_main_init(&sig3_encoder, T_COSE_ALGORITHM_ES512);
+    t_cose_signature_sign_main_set_signing_key(&sig3_encoder, sig3_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("sig3"));
+    sig3_params[0] = t_cose_make_ct_uint_parameter(217);
+    t_cose_signature_sign_main_set_header_parameter(&sig3_encoder, sig3_params);
+    t_cose_sign_add_signer(&sign_encoder, t_cose_signature_sign_from_main(&sig3_encoder));
+
+
+    err = t_cose_sign_sign(&sign_encoder,
+                           Q_USEFUL_BUF_FROM_SZ_LITERAL("AAD"),
+                           Q_USEFUL_BUF_FROM_SZ_LITERAL("PAYLOAD"),
+                           cose_sign_buf,
+                           cose_sign);
+
+    return 0;
+}
+
+
+/* This checks the value for all special headers by having the
+ * expected valued hard-coded in.
+ */
+static int32_t
+match_special(const struct t_cose_parameter *p1)
+{
+    double dd;
+
+    switch(p1->label) {
+        case 66:
+            if(p1->value.special_decode.value.little_buf[0] != 88 ||
+               p1->value.special_decode.value.little_buf[1] != 99) {
+                return 1;
+            }
+            break;
+
+        case 314:
+            dd = UsefulBufUtil_CopyUint64ToDouble(p1->value.special_decode.value.uint64);
+            if(dd != 3.14159) {
+                return 1;
+            }
+            break;
+
+        default:
+            /* In this test case, it is an error for there to be special
+             * header parameters that are not understood.
+             */
+            return 1;
+    }
+    return 0;
+}
+
+
+
+/* return 0 on match, non-zero for no match*/
+static int32_t
+match_param_value(const struct t_cose_parameter *p1, const struct t_cose_parameter *p2)
+{
+    if(p1->value_type != p2->value_type) {
+        return 1;
+    }
+    switch(p1->value_type) {
+        case T_COSE_PARAMETER_TYPE_INT64:
+            return !(p1->value.int64 == p2->value.int64);
+
+        case T_COSE_PARAMETER_TYPE_TEXT_STRING:
+        case T_COSE_PARAMETER_TYPE_BYTE_STRING:
+            return q_useful_buf_compare(p1->value.string, p2->value.string);
+
+        case T_COSE_PARAMETER_TYPE_SPECIAL:
+            return match_special(p1);
+
+        default:
+            return 1;
+    }
+
+    return 0;
+}
+
+
+static int32_t
+check_complex_sign_params(struct t_cose_parameter *params)
+{
+    struct expected_param {
+        struct t_cose_parameter param;
+        bool                    found;
+    };
+
+    struct expected_param expected[20];
+
+    memset(expected, 0, sizeof(expected));
+
+    expected[0].param.label = T_COSE_HEADER_PARAM_ALG;
+    expected[0].param.value_type = T_COSE_PARAMETER_TYPE_INT64;
+    expected[0].param.value.int64 = T_COSE_ALGORITHM_ES256;
+    expected[0].param.location.nesting = 1;
+    expected[0].param.location.index = 0; // Might not matter what the index is
+    expected[0].param.in_protected = true;
+
+    expected[1].param.label = T_COSE_HEADER_PARAM_ALG;
+    expected[1].param.value_type = T_COSE_PARAMETER_TYPE_INT64;
+    expected[1].param.value.int64 = T_COSE_ALGORITHM_ES384;
+    expected[1].param.location.nesting = 1;
+    expected[1].param.location.index = 1; // Might not matter what the index is
+    expected[1].param.in_protected = true;
+
+    expected[2].param.label = T_COSE_HEADER_PARAM_ALG;
+    expected[2].param.value_type = T_COSE_PARAMETER_TYPE_INT64;
+    expected[2].param.value.int64 = T_COSE_ALGORITHM_ES512;
+    expected[2].param.location.nesting = 1;
+    expected[2].param.location.index = 2; // Might not matter what the index is
+    expected[2].param.in_protected = true;
+
+    expected[3].param.label = T_COSE_HEADER_PARAM_KID;
+    expected[3].param.value_type = T_COSE_PARAMETER_TYPE_BYTE_STRING;
+    expected[3].param.value.string = Q_USEFUL_BUF_FROM_SZ_LITERAL("sig1");
+    expected[3].param.location.nesting = 1;
+    expected[3].param.location.index = 0; // Might not matter what the index is
+
+    expected[4].param.label = T_COSE_HEADER_PARAM_KID;
+    expected[4].param.value_type = T_COSE_PARAMETER_TYPE_BYTE_STRING;
+    expected[4].param.value.string = Q_USEFUL_BUF_FROM_SZ_LITERAL("sig2");
+    expected[4].param.location.nesting = 1;
+    expected[4].param.location.index = 1; // Might not matter what the index is
+
+    expected[5].param.label = T_COSE_HEADER_PARAM_KID;
+    expected[5].param.value_type = T_COSE_PARAMETER_TYPE_BYTE_STRING;
+    expected[5].param.value.string = Q_USEFUL_BUF_FROM_SZ_LITERAL("sig3");
+    expected[5].param.location.nesting = 1;
+    expected[5].param.location.index = 2; // Might not matter what the index is
+
+    expected[6].param.label = T_COSE_HEADER_PARAM_CONTENT_TYPE;
+    expected[6].param.value_type = T_COSE_PARAMETER_TYPE_TEXT_STRING;
+    expected[6].param.value.string = Q_USEFUL_BUF_FROM_SZ_LITERAL("app/foo");
+    expected[6].param.location.nesting = 1;
+    expected[6].param.location.index = 0; // Might not matter what the index is
+
+    expected[7].param.label = T_COSE_HEADER_PARAM_CONTENT_TYPE;
+    expected[7].param.value_type = T_COSE_PARAMETER_TYPE_INT64;
+    expected[7].param.value.int64 = 217;
+    expected[7].param.location.nesting = 1;
+    expected[7].param.location.index = 2; // Might not matter what the index is
+
+    expected[8].param.label = T_COSE_HEADER_PARAM_CONTENT_TYPE;
+    expected[8].param.value_type = T_COSE_PARAMETER_TYPE_TEXT_STRING;
+    expected[8].param.value.string = Q_USEFUL_BUF_FROM_SZ_LITERAL("app/xxx");
+    expected[8].param.location.nesting = 1;
+    expected[8].param.location.index = 1; // Might not matter what the index is
+
+    expected[9].param.label = 99;
+    expected[9].param.value_type = T_COSE_PARAMETER_TYPE_INT64;
+    expected[9].param.value.int64 = INT64_MAX;
+    expected[9].param.location.nesting = 1;
+    expected[9].param.location.index = 0; // Might not matter what the index is
+
+    expected[10].param.label = 314;
+    expected[10].param.value_type = T_COSE_PARAMETER_TYPE_SPECIAL;
+    expected[10].param.location.nesting = 1;
+    expected[10].param.location.index = 1; // Might not matter what the index is
+
+    expected[11].param.label = 66;
+    expected[11].param.value_type = T_COSE_PARAMETER_TYPE_SPECIAL;
+    expected[11].param.location.nesting = 1;
+    expected[11].param.location.index = 0; // Might not matter what the index is
+
+    expected[12].param.label = INT64_MIN;
+
+    int i;
+    for(i = 0; expected[i].param.label != INT64_MIN; i++) {
+        const struct t_cose_parameter *p;
+        for(p = params; p != NULL; p = p->next) {
+            if(p->label == expected[i].param.label &&
+               p->location.nesting == expected[i].param.location.nesting &&
+               match_param_value(p, &(expected[i].param)) == 0 &&
+               p->critical == expected[i].param.critical &&
+               p->in_protected == expected[i].param.in_protected &&
+               p->location.index == expected[i].param.location.index) {
+                if(expected[i].found == true) {
+                    /* duplicate */
+                    return -33;
+                }
+                expected[i].found = true;
+                break;
+            }
+        }
+    }
+
+    /* Make sure they were all found */
+    for(i = 0; expected[i].param.label != INT64_MIN; i++) {
+        if(!expected[i].found){
+            return i;
+        }
+    }
+
+
+    return 0;
+}
+
 
 
 /*
@@ -1112,24 +1443,71 @@ static struct sign1_sample sign1_sample_inputs[] = {
  */
 int_fast32_t sign1_structure_decode_test(void)
 {
-    const struct sign1_sample      *sample;
     struct q_useful_buf_c           payload;
     enum t_cose_err_t               result;
-    struct t_cose_sign1_verify_ctx  verify_ctx;
+    struct t_cose_sign1_verify_ctx  verify1_ctx;
+    int32_t                         return_value;
+    MakeUsefulBufOnStack(           cose_sign_buf, 900);
+    struct q_useful_buf_c           cose_sign;
+    struct t_cose_parameter        *decoded_params;
+
+    struct t_cose_parameter        _params[20];
+
+    struct t_cose_parameter_storage extra_params;
+
+    T_COSE_PARAM_STORAGE_INIT(extra_params, _params);
+
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        /* Only works with real algorithms (so far). */
+
+        return_value = make_complex_cose_sign(cose_sign_buf, &cose_sign);
+        if(return_value != 0) {
+            return return_value;
+        }
+
+        struct t_cose_sign_verify_ctx verify_ctx;
+        struct t_cose_signature_verify_main verifier_main;
+
+        t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
+        t_cose_sign_set_special_param_decoder(&verify_ctx,
+                                               foo_decode_cb,
+                                               NULL);
+
+        t_cose_signature_verify_main_init(&verifier_main);
+        t_cose_signature_verify_main_set_special_param_decoder(&verifier_main,
+                                                               foo_decode_cb,
+                                                               NULL);
+        t_cose_sign_add_verifier(&verify_ctx, t_cose_signature_verify_from_main(&verifier_main));
+        /* Don't need to set key because this is only decoding */
+
+        t_cose_sign_add_param_storage(&verify_ctx, &extra_params);
 
 
-    for(sample = sign1_sample_inputs; !q_useful_buf_c_is_null(sample->CBOR); sample++) {
-        t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_DECODE_ONLY);
+        result = t_cose_sign_verify(&verify_ctx,
+                                     cose_sign,
+                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("AAD"),
+                                    &payload,
+                                    &decoded_params);
+        if(result != T_COSE_SUCCESS) {
+            return -999;
+        }
 
-        result = t_cose_sign1_verify(&verify_ctx,
-                                      sample->CBOR,
+        return_value = check_complex_sign_params(decoded_params);
+        if(return_value != 0) {
+            return return_value;
+        }
+    }
+
+
+    for(int i = 0; !q_useful_buf_c_is_null(sign1_sample_inputs[i].CBOR); i++) {
+        t_cose_sign1_verify_init(&verify1_ctx, T_COSE_OPT_DECODE_ONLY);
+        result = t_cose_sign1_verify(&verify1_ctx,
+                                      sign1_sample_inputs[i].CBOR,
                                      &payload,
                                       NULL);
 
-        if(result != sample->expected_error) {
-            /* Returns 100 * index of the input + the unexpected error code */
-            const size_t sample_index = (size_t)(sample - sign1_sample_inputs);
-            return (int32_t)((sample_index+1)*100 + result);
+        if(result != sign1_sample_inputs[i].expected_error) {
+            return i*100 + (int)result;
         }
     }
 

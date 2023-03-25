@@ -1,7 +1,7 @@
 /*
  * t_cose_signature_sign_main.h
  *
- * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2022-2023, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 5/23/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -50,7 +50,7 @@ struct t_cose_signature_sign_main {
  * This signer supports the ECDSA algorithms PS256, PS384 and PS512. */
 void
 t_cose_signature_sign_main_init(struct t_cose_signature_sign_main *context,
-                                 int32_t                             cose_algorithm_id);
+                                int32_t                            cose_algorithm_id);
 
 
 /*
@@ -58,8 +58,8 @@ t_cose_signature_sign_main_init(struct t_cose_signature_sign_main *context,
  */
 static void
 t_cose_signature_sign_main_set_signing_key(struct t_cose_signature_sign_main *context,
-                                            struct t_cose_key                   signing_key,
-                                            struct q_useful_buf_c               kid);
+                                           struct t_cose_key                   signing_key,
+                                           struct q_useful_buf_c               kid);
 
 
 /**
@@ -94,7 +94,7 @@ t_cose_signature_sign_main_set_crypto_context(struct t_cose_signature_sign_main 
  */
 static void
 t_cose_signature_sign_main_set_header_parameter(struct t_cose_signature_sign_main *context,
-                                                 struct t_cose_parameter   *header_parameters);
+                                                struct t_cose_parameter   *header_parameters);
 
 
 /* This is how you get the general interface / instance for a signer,

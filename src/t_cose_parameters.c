@@ -248,8 +248,8 @@ encode_crit_parameter(QCBOREncodeContext            *cbor_encoder,
  * \param[in] cbor_decoder   CBOR decode context to pull from.
  * \param[in] location  Location in CBOR message of the bucket of parameters.
  * \param[in] is_protected  \c true if bucket is protected.
- * \param[in] decode_cb   Function called for parameters that are not strings or ints.
- * \param[in] decode_cb_context  Context for the \c callback function.
+ * \param[in] special_decode_cb   Function called for parameters that are not strings or ints.
+ * \param[in] special_decode_ctx  Context for the \c callback function.
  * \param [in] param_storage   Memory pool from which to take parameter storage.
  * \param[out] decoded_params  Linked list of decoded parameters.
  *
@@ -270,8 +270,8 @@ static enum t_cose_err_t
 decode_parameters_bucket(QCBORDecodeContext               *cbor_decoder,
                          const struct t_cose_header_location location,
                          bool                              is_protected,
-                         t_cose_parameter_decode_cb       *decode_cb,
-                         void                             *decode_cb_context,
+                         t_cose_special_param_decode_cb   *special_decode_cb,
+                         void                             *special_decode_ctx,
                          struct t_cose_parameter_storage  *param_storage,
                          struct t_cose_parameter         **decoded_params)
 {
@@ -371,12 +371,12 @@ decode_parameters_bucket(QCBORDecodeContext               *cbor_decoder,
                 break;
 
             case T_COSE_PARAMETER_TYPE_INT64:
-                parameter->value.i64 = item.val.int64;
+                parameter->value.int64 = item.val.int64;
                 QCBORDecode_VGetNextConsume(cbor_decoder, &item);
                 break;
 
             default:
-                if(decode_cb == NULL) {
+                if(special_decode_cb == NULL) {
                     /* No callback configured to handle the unknown */
                     if(parameter->critical) {
                         /* It is critical and unknown, so must error out */
@@ -388,9 +388,10 @@ decode_parameters_bucket(QCBORDecodeContext               *cbor_decoder,
                     }
                 } else {
                     /* Processed and consumed by the callback. */
-                    return_value = decode_cb(decode_cb_context,
-                                             cbor_decoder,
-                                             parameter);
+                    // TODO: What if the cb doesn't know how to process? Maybe do it here rather than make every decoder do it? Special error code?
+                    return_value = special_decode_cb(special_decode_ctx,
+                                                     cbor_decoder,
+                                                     parameter);
                     if(return_value != T_COSE_SUCCESS) {
                         break;
                     }
@@ -450,8 +451,8 @@ dup_detect_list(const struct t_cose_parameter *params_list)
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
                       const struct t_cose_header_location location,
-                      t_cose_parameter_decode_cb       *decode_cb,
-                      void                             *decode_cb_context,
+                      t_cose_special_param_decode_cb   *special_decode_cb,
+                      void                             *special_decode_ctx,
                       struct t_cose_parameter_storage  *param_storage,
                       struct t_cose_parameter         **decoded_params,
                       struct q_useful_buf_c            *protected_parameters)
@@ -478,8 +479,8 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
          return_value = decode_parameters_bucket(cbor_decoder,
                                                  location,
                                                  true,
-                                                 decode_cb,
-                                                 decode_cb_context,
+                                                 special_decode_cb,
+                                                 special_decode_ctx,
                                                  param_storage,
                                                  &decoded_protected);
 
@@ -493,8 +494,8 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
     return_value = decode_parameters_bucket(cbor_decoder,
                                             location,
                                             false,
-                                            decode_cb,
-                                            decode_cb_context,
+                                            special_decode_cb,
+                                            special_decode_ctx,
                                             param_storage,
                                             &decoded_unprotected);
 
@@ -566,7 +567,7 @@ encode_parameters_bucket(QCBOREncodeContext            *cbor_encoder,
 
         switch(p_param->value_type) {
             case T_COSE_PARAMETER_TYPE_INT64:
-                QCBOREncode_AddInt64ToMapN(cbor_encoder, p_param->label, p_param->value.i64);
+                QCBOREncode_AddInt64ToMapN(cbor_encoder, p_param->label, p_param->value.int64);
                 break;
 
             case T_COSE_PARAMETER_TYPE_TEXT_STRING:
@@ -577,16 +578,12 @@ encode_parameters_bucket(QCBOREncodeContext            *cbor_encoder,
                 QCBOREncode_AddBytesToMapN(cbor_encoder, p_param->label, p_param->value.string);
                 break;
 
-            case T_COSE_PARAMETER_TYPE_CALLBACK:
+            case T_COSE_PARAMETER_TYPE_SPECIAL:
                 /* Intentionally no check for NULL callback pointer to
                  * save a little object code. Caller should never
                  * indicate a callback without supplying the pointer
                  */
-                return_value = p_param->value.custom_encoder.param_encode_cb(
-                          p_param->value.custom_encoder.param_encode_cb_context,
-                          p_param,
-                          cbor_encoder
-                    );
+                return_value = p_param->value.special_encode.encode_cb(p_param, cbor_encoder);
                 if(return_value != T_COSE_SUCCESS) {
                     goto Done;
                 }
@@ -685,8 +682,8 @@ t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list, bool
     p_found = t_cose_find_parameter(parameter_list, T_COSE_HEADER_PARAM_ALG);
     if(p_found == NULL ||
         p_found->value_type != T_COSE_PARAMETER_TYPE_INT64 ||
-        p_found->value.i64 == T_COSE_ALGORITHM_RESERVED ||
-        p_found->value.i64 >= INT32_MAX) {
+        p_found->value.int64 == T_COSE_ALGORITHM_RESERVED ||
+        p_found->value.int64 >= INT32_MAX) {
         return T_COSE_ALGORITHM_NONE;
     }
 
@@ -694,7 +691,7 @@ t_cose_find_parameter_alg_id(const struct t_cose_parameter *parameter_list, bool
         return T_COSE_ALGORITHM_NONE;
     }
 
-    return (int32_t)p_found->value.i64;
+    return (int32_t)p_found->value.int64;
 }
 
 
@@ -711,8 +708,8 @@ t_cose_find_parameter_content_type_int(const struct t_cose_parameter *parameter_
                                     T_COSE_HEADER_PARAM_CONTENT_TYPE);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_INT64 &&
-       p_found->value.i64 < UINT16_MAX) {
-        return (uint32_t)p_found->value.i64;
+       p_found->value.int64 < UINT16_MAX) {
+        return (uint32_t)p_found->value.int64;
     } else {
         return T_COSE_EMPTY_UINT_CONTENT_TYPE;
     }
@@ -854,11 +851,11 @@ t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,
                 return_value = T_COSE_ERR_PARAMETER_NOT_PROTECTED;
                 goto Done;
             }
-            if(p->value.i64 == T_COSE_ALGORITHM_RESERVED || p->value.i64 > INT32_MAX) {
+            if(p->value.int64 == T_COSE_ALGORITHM_RESERVED || p->value.int64 > INT32_MAX) {
                 return_value = T_COSE_ERR_NON_INTEGER_ALG_ID;
                 goto Done;
             }
-            returned_params->cose_algorithm_id = (int32_t)p->value.i64;
+            returned_params->cose_algorithm_id = (int32_t)p->value.int64;
 
         } else if(p->label == T_COSE_HEADER_PARAM_IV) {
             if(p->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
@@ -880,11 +877,11 @@ t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,
                 returned_params->content_type_tstr = p->value.string;
 
             } else if(p->value_type == T_COSE_PARAMETER_TYPE_INT64) {
-                if(p->value.i64 < 0 || p->value.i64 > UINT16_MAX) {
+                if(p->value.int64 < 0 || p->value.int64 > UINT16_MAX) {
                       return_value = T_COSE_ERR_BAD_CONTENT_TYPE;
                       goto Done;
                 }
-                returned_params->content_type_uint = (uint32_t)p->value.i64;
+                returned_params->content_type_uint = (uint32_t)p->value.int64;
 
             } else {
                 return_value = T_COSE_ERR_BAD_CONTENT_TYPE;

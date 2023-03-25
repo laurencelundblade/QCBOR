@@ -1,7 +1,7 @@
 /*
  * t_cose_parameters.h
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  * Copyright (c) 2022 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -38,8 +38,10 @@ extern "C" {
  * Struct \ref t_cose_parameter holds a single header parameter that
  * is to be encoded or has been decoded. The same structure is used
  * for both. Most parameter values are either integers or strings and
- * are held directly in struct t_cose_parameter. A callback is used
- * for more complex parameters.
+ * are held directly in struct t_cose_parameter. Parameters that are
+ * not integer or strings are special and must be encoded or decoded
+ * by a callback. "Special" here is only a characteristic of t_cose
+ * not anything in the COSE standard.
  *
  * Only integer parameter labels are supported (so far).
  *
@@ -107,16 +109,15 @@ struct t_cose_parameter;
 
 
 /**
- * \brief Type of callback to output the encoded CBOR of a parameter.
+ * \brief Type of callback to output the encoded CBOR of a special parameter.
  *
- * \param[in] cb_context      Context passed to the callback.
  * \param[in] parameter      A single parameter to encode.
  * \param[in] cbor_encoder  The encoder instance to output to.
  *
  * A callback pointer of this type is placed in struct
  * t_cose_parameter. It is called back when t_cose_encode_headers()
  * gets to encoding the particular parameter. It is typically used for
- * encoding parameters that are not integers or strings, but can be
+ * encoding special parameters that are not integers or strings, but can be
  * used for them too. For most use cases, this is not needed.
  *
  * When called it should output the CBOR for the header parameter to
@@ -126,16 +127,15 @@ struct t_cose_parameter;
  * error out with the error it returned.
  *
  * If desired there can be several implementations of this for several
- * different parameters.
+ * different parameters or types of parameters.
  */
 typedef enum t_cose_err_t
-t_cose_parameter_encode_cb(void                           *cb_context,
-                           const struct t_cose_parameter  *parameter,
-                           QCBOREncodeContext             *cbor_encoder);
+t_cose_special_param_encode_cb(const struct t_cose_parameter  *parameter,
+                               QCBOREncodeContext             *cbor_encoder);
 
 
 /**
- * \brief Type of callback to decode the QCBOR of a parameter.
+ * \brief Type of callback to decode the QCBOR of a special parameter.
  *
  * \param[in] cb_context  Context for callback.
  * \param[in] cbor_decoder     QCBOR decoder to pull from.
@@ -153,15 +153,43 @@ t_cose_parameter_encode_cb(void                           *cb_context,
  *
  * On exit, this function must set the value_type and the value.
  *
- * Unlike t_cose_parameter_encode_callback() there is just one
+ * Unlike t_cose_special_param_encode_cb() there is just one
  * implementation of this that switches on the label.
  */
 typedef enum t_cose_err_t
-t_cose_parameter_decode_cb(void                    *cb_context,
-                           QCBORDecodeContext      *cbor_decoder,
-                           struct t_cose_parameter *parameter);
+t_cose_special_param_decode_cb(void                    *cb_context,
+                               QCBORDecodeContext      *cbor_decoder,
+                               struct t_cose_parameter *parameter);
 
 
+struct t_cose_special_param_encode {
+    t_cose_special_param_encode_cb *encode_cb;
+    /** Encoder callbacks can use any one of these types that
+     * they see fit. The variety is for the convenience of the
+     * encoder callback. */
+    union {
+        void                 *context;
+        int64_t               int64;
+        uint64_t              uint64;
+        struct q_useful_buf_c string;
+        uint8_t               little_buf[8];
+    } data;
+};
+
+
+struct t_cose_special_param_decode {
+    enum {SP_DECODED, SP_ERR, SP_NOT_DECODED} status;
+    /** Decoder callbacks can use any one of these types that
+     * they see fit. The variety is for the convenience of the
+     * decoder callback. */
+    union {
+        void                 *context;
+        int64_t               int64;
+        uint64_t              uint64;
+        struct q_useful_buf_c string;
+        uint8_t               little_buf[8];
+    } value;
+};
 
 
 /** Where in a COSE message a header was found. */
@@ -173,7 +201,6 @@ struct t_cose_header_location {
      * starting from 0. */
     uint8_t  index;
 };
-
 
 /**
  * This holds one parameter such as an algorithm ID or kid. When that
@@ -212,14 +239,10 @@ struct t_cose_parameter {
 
     /** The value of the parameter. */
     union {
-        int64_t               i64;
+        int64_t               int64;
         struct q_useful_buf_c string;
-        void                 *ptr;
-        uint8_t               little_buf[8];
-        struct { /* Used only for encoding */
-            void                       *param_encode_cb_context;
-            t_cose_parameter_encode_cb *param_encode_cb;
-        } custom_encoder;
+        struct t_cose_special_param_encode special_encode;
+        struct t_cose_special_param_decode  special_decode;
     } value;
 
     /** next parameter in the linked list or NULL at the end of the list. */
@@ -231,9 +254,7 @@ struct t_cose_parameter {
 #define T_COSE_PARAMETER_TYPE_INT64        2
 #define T_COSE_PARAMETER_TYPE_BYTE_STRING  6
 #define T_COSE_PARAMETER_TYPE_TEXT_STRING  7
-#define T_COSE_PARAMETER_TYPE_PTR        100
-#define T_COSE_PARAMETER_TYPE_LITTLE_BUF 101
-#define T_COSE_PARAMETER_TYPE_CALLBACK   102
+#define T_COSE_PARAMETER_TYPE_SPECIAL    100
 // TODO: add a parameters type to recursively encode because COSE_Keys are
 // parameter sets too and they go into headers.
 
@@ -345,7 +366,7 @@ struct t_cose_parameter_storage {
  * T_COSE_PARAMETER_TYPE_BYTE_STRING or
  * T_COSE_PARAMETER_TYPE_TEXT_STRING).
  *
- * The parameter type may also be T_COSE_PARAMETER_TYPE_CALLBACK in
+ * The parameter type may also be T_COSE_PARAMETER_TYPE_SPECIAL in
  * which case the a callback function and context are supplied that
  * will be called when it is time to encode that parameter. This is
  * typically needed for parameter types that are not integers or
@@ -410,8 +431,8 @@ t_cose_encode_headers(QCBOREncodeContext            *cbor_encoder,
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext                *cbor_decoder,
                       const struct t_cose_header_location location,
-                      t_cose_parameter_decode_cb        *decode_cb,
-                      void                              *decode_cb_context,
+                      t_cose_special_param_decode_cb    *special_decode_cb,
+                      void                              *special_decode_ctx,
                       struct t_cose_parameter_storage   *parameter_storage,
                       struct t_cose_parameter          **decoded_params,
                       struct q_useful_buf_c             *protected_parameters);
@@ -606,10 +627,10 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
      *     false,\
      *     {0,0},\
      *     T_COSE_PARAMETER_TYPE_INT64,\
-     *     .value.i64 = alg_id }
+     *     .value.int64 = alg_id }
      * is an initializer. Both C and C++ have initializers,
      * but in C++ they can't use designated initializers,
-     * the part where .value.i64 = alg_id.
+     * the part where .value.int64 = alg_id.
      *
      * The following is a compound literal.
      * #define T_COSE_MAKE_ALG_ID_PARAM(alg_id) \
@@ -618,7 +639,7 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
      *     false,\
      *     {0,0},\
      *     T_COSE_PARAMETER_TYPE_INT64,\
-     *     .value.i64 = alg_id }
+     *     .value.int64 = alg_id }
      *
      * It looks like a cast but it is not. You can take the address of
      * it and it is an lvalue. These exist only in C, not in C++,
@@ -643,7 +664,7 @@ t_cose_make_alg_id_parameter(int32_t alg_id)
     parameter.location.nesting = 0;
     parameter.label            = T_COSE_HEADER_PARAM_ALG;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_INT64;
-    parameter.value.i64        = alg_id;
+    parameter.value.int64      = alg_id;
     parameter.next             = NULL;
 
     return parameter;
@@ -660,7 +681,7 @@ t_cose_make_ct_uint_parameter(uint32_t content_type)
     parameter.location.nesting = 0;
     parameter.label            = T_COSE_HEADER_PARAM_CONTENT_TYPE;
     parameter.value_type       = T_COSE_PARAMETER_TYPE_INT64;
-    parameter.value.i64        = (int32_t)content_type;
+    parameter.value.int64      = (int32_t)content_type;
     parameter.next             = NULL;
 
     return parameter;
