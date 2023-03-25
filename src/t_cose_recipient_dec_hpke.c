@@ -108,12 +108,12 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
     uint8_t                tmp2[50];
     uint8_t                tmp[50];
 
-    UsefulBufC             ephemeral = {(uint8_t *) tmp, sizeof(tmp)};
+    UsefulBufC             hpke_sender_info = {(uint8_t *) tmp, sizeof(tmp)};
 
-    int64_t                kty;
-    int64_t                crv;
-    UsefulBufC             peer_key_x;
-    UsefulBufC             peer_key_y;
+    uint64_t               kem_id;
+    uint64_t               kdf_id;
+    uint64_t               aead_id;
+    UsefulBufC             enc;
 
     UsefulBufC             cek_encrypted = {(uint8_t *) tmp2, sizeof(tmp2)};
     size_t                 peer_key_buf_len = 0;
@@ -173,27 +173,16 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
         return(T_COSE_ERR_CBOR_FORMATTING);
     }
 
-    /* Setting key distribution parameters. */
-    switch(alg) {
-    case T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM:
-        key_bitlen = 128;
-        break;
-
-    case T_COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM:
-        key_bitlen = 256;
-       break;
-
-    default:
+    if (alg != T_COSE_ALGORITHM_HPKE_v1_BASE)
         return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
-    }
 
     /* unprotected header */
     QCBORDecode_EnterMap(cbor_decoder, NULL);
 
-    /* get ephemeral */
+    /* get HPKE_sender_info */
     QCBORDecode_GetByteStringInMapN(cbor_decoder,
-                                    T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY,
-                                    &ephemeral);
+                                    T_COSE_HEADER_ALG_PARAM_HPKE_SENDER_INFO,
+                                    &hpke_sender_info);
 
     result = QCBORDecode_GetError(cbor_decoder);
 
@@ -201,87 +190,79 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
         return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
     }
 
-    /* Decode ephemeral */
+    /* Decode HPKE_sender_info structure
+     *
+     *  HPKE_sender_info = [
+     *     kem_id : uint,       ; kem identifier
+     *     kdf_id : uint,       ; kdf identifier
+     *     aead_id : uint,      ; aead identifier
+     *     enc : bstr,          ; encapsulated key
+     *  ]
+     */
     QCBORDecode_Init(&DC2,
                      (UsefulBufC)
                      {
-                      ephemeral.ptr,
-                      ephemeral.len
+                      hpke_sender_info.ptr,
+                      hpke_sender_info.len
                      },
                      QCBOR_DECODE_MODE_NORMAL);
 
-    QCBORDecode_EnterMap(&DC2, NULL);
+    QCBORDecode_EnterArray(&DC2, NULL);
 
-    /* -- get kty paramter */
-    QCBORDecode_GetInt64InMapN(&DC2,
-                               T_COSE_KEY_COMMON_KTY,
-                               &kty);
+    /* -- get kem_id  */
+    QCBORDecode_GetUInt64(&DC2,
+                          &kem_id);
 
-    result = QCBORDecode_GetError(&DC2);
+    result = QCBORDecode_GetAndResetError(&DC2);
 
-    if (result != QCBOR_SUCCESS) {
+    if (result != QCBOR_ERR_NO_MORE_ITEMS) {
         return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
     }
 
-    QCBORDecode_GetInt64InMapN(&DC2,
-                               T_COSE_KEY_PARAM_CRV,
-                               &crv);
+    /* -- set key length */
+    switch(kem_id) {
 
-    result = QCBORDecode_GetError(&DC2);
+    case HPKE_KEM_ID_P256:
+        key_bitlen = 128;
+        break;
 
-    if (result != QCBOR_SUCCESS) {
+    default:
+        /* TBD: need a better error code */
+        return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
+    }
+
+    /* -- get kem_id  */
+    QCBORDecode_GetUInt64(&DC2,
+                          &kdf_id);
+
+    result = QCBORDecode_GetAndResetError(&DC2);
+
+    if (result != QCBOR_ERR_NO_MORE_ITEMS) {
         return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
     }
 
-    /* -- get x parameter */
-    QCBORDecode_GetByteStringInMapN(&DC2,
-                                    T_COSE_KEY_PARAM_X_COORDINATE,
-                                    &peer_key_x);
+    /* -- get aead_id  */
+    QCBORDecode_GetUInt64(&DC2,
+                          &aead_id);
 
-    result = QCBORDecode_GetError(&DC2);
+    result = QCBORDecode_GetAndResetError(&DC2);
 
-    if (result != QCBOR_SUCCESS) {
+    if (result != QCBOR_ERR_NO_MORE_ITEMS) {
         return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
     }
 
-    /* Check whether the key size is expected */
-    if (peer_key_x.len != key_bitlen / 4) {
-        return(T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT);
-    }
+    /* -- get enc */
+    QCBORDecode_GetByteString(&DC2,
+                              &enc);
 
-    /* Copy the x-part of the key into the peer key buffer */
-    if (peer_key_x.len > T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE / 2) {
-        return(T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT);
-    }
+    result = QCBORDecode_GetAndResetError(&DC2);
 
-    memcpy(peer_key_buf+1, peer_key_x.ptr, peer_key_x.len);
-    peer_key_buf_len = 1+peer_key_x.len;
-
-    /* -- get y parameter */
-    QCBORDecode_GetByteStringInMapN(&DC2,
-                                    T_COSE_KEY_PARAM_Y_COORDINATE,
-                                    &peer_key_y);
-
-    result = QCBORDecode_GetError(&DC2);
-
-    if (result != QCBOR_SUCCESS) {
+    if (result != QCBOR_ERR_NO_MORE_ITEMS) {
         return(T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING);
     }
 
-    /* Check whether the key size is expected */
-    if (peer_key_y.len != key_bitlen / 4) {
-        return(T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT);
-    }
 
-    /* Copy the y-part of the key into the peer key buffer */
-    if (peer_key_x.len > T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE / 2) {
-        return(T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT);
-    }
-
-    memcpy(peer_key_buf+1+peer_key_x.len, peer_key_y.ptr, peer_key_y.len);
-    peer_key_buf_len += peer_key_y.len;
-
-    QCBORDecode_ExitMap(&DC2);
+    QCBORDecode_ExitArray(&DC2);
 
     /* get kid */
     QCBORDecode_GetByteStringInMapN(cbor_decoder,
@@ -315,8 +296,8 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
     cose_result = t_cose_crypto_hpke_decrypt((int32_t) alg,
                                              (struct q_useful_buf_c)
                                              {
-                                                 .len = peer_key_buf_len,
-                                                 .ptr = peer_key_buf
+                                                 .len = enc.len,
+                                                 .ptr = enc.ptr
                                              },
                                              me->skr,
                                              cek_encrypted,

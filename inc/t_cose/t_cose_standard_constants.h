@@ -136,16 +136,14 @@
  */
 
 /**
- * \def T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY
+ * \def T_COSE_HEADER_ALG_PARAM_HPKE_SENDER_INFO
  *
- * \brief CBOR map label of header algorithm parameter containing
- *        an ephemeral key.
- *
- * A COSE_Key structure containing the ephemeral key.
+ * \brief CBOR label of header algorithm parameter containing
+ *        the HPKE_sender_info structure.
  *
  * This implementation only supports a subset of the available algorithms.
  */
-#define T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY -1
+#define T_COSE_HEADER_ALG_PARAM_HPKE_SENDER_INFO -4
 
 /* ------------- COSE Algorithms ----------------------------
  * https://www.iana.org/assignments/cose/cose.xhtml#algorithms
@@ -157,6 +155,19 @@
  */
 #define T_COSE_ALGORITHM_RESERVED 0
 
+
+/**
+ * \def T_COSE_ALGORITHM_HPKE_v1_BASE
+ *
+ * \brief Indicates use of HPKE in base mode (version 1).
+ *
+ * Value for \ref T_COSE_HEADER_PARAM_ALG to indicate HPKE usage.
+ *
+ * The HPKE functionality for COSE is specified in draft-ietf-cose-hpke.
+ *
+ * See https://datatracker.ietf.org/doc/html/draft-ietf-cose-hpke
+ */
+#define T_COSE_ALGORITHM_HPKE_v1_BASE  -1
 
 /**
  * \def T_COSE_ALGORITHM_ES256
@@ -582,7 +593,6 @@
  * secp521r1.
  */
 #define T_COSE_ELLIPTIC_CURVE_P_521 3
-
 
 
 

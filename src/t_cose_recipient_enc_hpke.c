@@ -135,7 +135,7 @@ t_cose_create_recipient_hpke2(
     int64_t                algorithm_id;
     QCBORError             ret = QCBOR_SUCCESS;
     UsefulBufC             scratch;
-    QCBOREncodeContext     ephemeral_key_struct;
+    QCBOREncodeContext     hpke_sender_info;
     uint8_t                ephemeral_buf[100] = {0};
     struct q_useful_buf    e_buf = {ephemeral_buf, sizeof(ephemeral_buf)};
     uint8_t                encrypted_cek[T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)];
@@ -215,7 +215,7 @@ t_cose_create_recipient_hpke2(
 
     QCBOREncode_AddInt64ToMapN(encrypt_ctx,
                                T_COSE_HEADER_PARAM_ALG,
-                               context->cose_algorithm_id);
+                               T_COSE_ALGORITHM_HPKE_v1_BASE);
 
     QCBOREncode_CloseMap(encrypt_ctx);
 
@@ -226,64 +226,54 @@ t_cose_create_recipient_hpke2(
     /* Add unprotected Header */
     QCBOREncode_OpenMap(encrypt_ctx);
 
-    /* Create ephemeral parameter map */
-    QCBOREncode_Init(&ephemeral_key_struct, e_buf);
+    /* Create HPKE_sender_info structure
+     *
+     *  HPKE_sender_info = [
+     *     kem_id : uint,       ; kem identifier
+     *     kdf_id : uint,       ; kdf identifier
+     *     aead_id : uint,      ; aead identifier
+     *     enc : bstr,          ; encapsulated key
+     *  ]
+     */
+    QCBOREncode_Init(&hpke_sender_info, e_buf);
 
-    QCBOREncode_OpenMap(&ephemeral_key_struct);
+    /* Open HPKE_sender_info array */
+    QCBOREncode_OpenArray(&hpke_sender_info);
 
-    /* -- add kty paramter */
-    QCBOREncode_AddInt64ToMapN(&ephemeral_key_struct,
-                               T_COSE_KEY_COMMON_KTY,
-                               T_COSE_KEY_TYPE_EC2);
+    /* -- add kem id */
+    QCBOREncode_AddUInt64(&hpke_sender_info,
+                          hpke_suite.kem_id);
 
-    /* -- add crv parameter */
-    if (key_bitlen == 128) {
-        QCBOREncode_AddInt64ToMapN(&ephemeral_key_struct,
-                                   T_COSE_KEY_PARAM_CRV,
-                                   T_COSE_ELLIPTIC_CURVE_P_256);
-    } else if (key_bitlen == 256) {
-        QCBOREncode_AddInt64ToMapN(&ephemeral_key_struct,
-                                   T_COSE_KEY_PARAM_CRV,
-                                   T_COSE_ELLIPTIC_CURVE_P_521);
-    } else {
-        return(T_COSE_ERR_UNSUPPORTED_KEY_LENGTH);
-    }
+    /* -- add kdf id */
+    QCBOREncode_AddUInt64(&hpke_sender_info,
+                          hpke_suite.kdf_id);
 
-    /* x_len is calculated as ( pkE_len - 1) / 2 */
+    /* -- add aead id */
+    QCBOREncode_AddUInt64(&hpke_sender_info,
+                          hpke_suite.aead_id);
 
-    /* -- add x parameter */
-    QCBOREncode_AddBytesToMapN(&ephemeral_key_struct,
-                               T_COSE_KEY_PARAM_X_COORDINATE,
-                               (struct q_useful_buf_c)
-                               {
-                                 pkE + 1,
-                                 (pkE_len - 1) / 2
-                               }
-                              );
+    /* -- add enc */
+    QCBOREncode_AddBytes(&hpke_sender_info,
+                         (struct q_useful_buf_c)
+                         {
+                           pkE,
+                           pkE_len
+                         }
+                        );
 
-    /* -- add y parameter */
-    QCBOREncode_AddBytesToMapN(&ephemeral_key_struct,
-                               T_COSE_KEY_PARAM_Y_COORDINATE,
-                               (struct q_useful_buf_c)
-                               {
-                                 &pkE[(pkE_len - 1) / 2 + 1],
-                                 (pkE_len - 1) / 2
-                               }
-                              );
+    /* Close HPKE_sender_info array */
+    QCBOREncode_CloseArray(&hpke_sender_info);
 
-    /* Close ephemeral parameter map */
-    QCBOREncode_CloseMap(&ephemeral_key_struct);
-
-    /* Finish ephemeral parameter map */
-    ret = QCBOREncode_Finish(&ephemeral_key_struct, &scratch);
+    /* Finish HPKE_sender_info array */
+    ret = QCBOREncode_Finish(&hpke_sender_info, &scratch);
 
     if (ret != QCBOR_SUCCESS) {
         return(T_COSE_ERR_CBOR_FORMATTING);
     }
 
-    /* Add ephemeral parameter to unprotected map */
+    /* Add HPKE_sender_info to unprotected map */
     QCBOREncode_AddBytesToMapN(encrypt_ctx,
-                               T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY,
+                               T_COSE_HEADER_ALG_PARAM_HPKE_SENDER_INFO,
                                (struct q_useful_buf_c)
                                {
                                  scratch.ptr,
