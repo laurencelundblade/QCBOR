@@ -1407,6 +1407,8 @@ static int hpke_enc_int( unsigned int mode, hpke_suite_t suite,
                                      (struct q_useful_buf) {cipher, *cipherlen},
                                      &ci);
 
+    t_cose_crypto_free_symmetric_key(cek_handle);
+
     *cipherlen = ci.len; // TODO: when fully converted to useful, this will go away
 
     if( err != 0 )
