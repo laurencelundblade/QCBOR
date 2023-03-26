@@ -179,6 +179,9 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
                                    payload,        /* in: payload to encrypt */
                                    encrypt_buffer, /* in: buffer to write to */
                                   &encrypt_output  /* out: ciphertext */);
+    if(!is_cose_encrypt0) {
+        t_cose_crypto_free_symmetric_key(cek_handle);
+    }
     if (return_value != T_COSE_SUCCESS) {
         goto Done;
     }
