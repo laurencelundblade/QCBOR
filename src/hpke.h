@@ -46,7 +46,7 @@
 #define HPKE_MODE_PSKAUTH           3 ///< PSK+authenticated mode
 
 /*
- * The (16bit) HPKE algorithn IDs
+ * The (16bit) HPKE algorithm IDs
  */
 #define HPKE_KEM_ID_RESERVED         0x0000 ///< not used
 #define HPKE_KEM_ID_P256             0x0010 ///< NIST P-256
@@ -59,13 +59,11 @@
 #define HPKE_KDF_ID_HKDF_SHA256      0x0001 ///< HKDF-SHA256
 #define HPKE_KDF_ID_HKDF_SHA384      0x0002 ///< HKDF-SHA512
 #define HPKE_KDF_ID_HKDF_SHA512      0x0003 ///< HKDF-SHA512
-#define HPKE_KDF_ID_MAX              0x0003 ///< HKDF-SHA512
 
 #define HPKE_AEAD_ID_RESERVED        0x0000 ///< not used
 #define HPKE_AEAD_ID_AES_GCM_128     0x0001 ///< AES-GCM-128
 #define HPKE_AEAD_ID_AES_GCM_256     0x0002 ///< AES-GCM-256
 #define HPKE_AEAD_ID_CHACHA_POLY1305 0x0003 ///< Chacha20-Poly1305
-#define HPKE_AEAD_ID_MAX             0x0003 ///< Chacha20-Poly1305
 
 /* strings for modes */
 #define HPKE_MODESTR_BASE       "base"              ///< base mode (1), no sender auth

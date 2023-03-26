@@ -671,16 +671,20 @@ t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
     psa_status_t         status;
 
    switch (cose_algorithm_id) {
-    case T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM:
+    case T_COSE_HPKE_KEM_ID_P256:
+        type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
         key_bitlen = 256;
-        type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
         break;
-    case T_COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM:
-        key_bitlen = 521;
-        type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-        break;
+    case T_COSE_HPKE_KEM_ID_P384:
+         type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+         key_bitlen = 384;
+         break;
+    case T_COSE_HPKE_KEM_ID_P521:
+         type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+         key_bitlen = 521;
+         break;
     default:
-        return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
+        return(T_COSE_ERR_UNSUPPORTED_KEM_ALG);
     }
 
     /* generate ephemeral key pair: skE, pkE */
@@ -1096,7 +1100,7 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
                             &psa_key_handle);   /* out: new key handle      */
 
     if (status != PSA_SUCCESS) {
-        return T_COSE_ERR_KEY_IMPORT_FAILED;
+        return T_COSE_ERR_SYMMETRIC_KEY_IMPORT_FAILED;
     }
 
     key_handle->key.handle = psa_key_handle;
@@ -1186,6 +1190,12 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
             break;
         case T_COSE_ALGORITHM_A256GCM:
             psa_algorithm_id = PSA_ALG_GCM;
+            break;
+        case T_COSE_ALGORITHM_AES128CCM_16_128:
+            psa_algorithm_id = PSA_ALG_CCM;
+            break;
+        case T_COSE_ALGORITHM_AES256CCM_16_128:
+            psa_algorithm_id = PSA_ALG_CCM;
             break;
         default:
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;

@@ -30,7 +30,7 @@ is_soft_verify_error(enum t_cose_err_t error)
 {
     switch(error) {
         case T_COSE_ERR_UNSUPPORTED_SIGNING_ALG:
-        case T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG:
+        case T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG:
         case T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG:
         case T_COSE_ERR_UNSUPPORTED_CIPHER_ALG:
         case T_COSE_ERR_KID_UNMATCHED:

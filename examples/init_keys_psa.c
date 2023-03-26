@@ -226,17 +226,7 @@ void free_fixed_signing_key(struct t_cose_key key_pair)
     psa_destroy_key((psa_key_handle_t)key_pair.key.handle);
 }
 
-
-
-
-/* I don't know how thes were generated. Pretty sure they are related
- * to each other and were generated at the same time (or they wouldn't
- * work).
- *
- * Would also like to know exactly what the format is here.  Obviously
- * not DER, but what about x9?
- */
-/* Example ECC public key (P256r1) */
+/* Example Recipient Public ECC Key (P256r1) */
 static const uint8_t fixed_test_p256r1_public_key[] = {
   0x04, 0x6d, 0x35, 0xe7, 0xa0, 0x75, 0x42, 0xc1, 0x2c, 0x6d, 0x2a, 0x0d,
   0x2d, 0x45, 0xa4, 0xe9, 0x46, 0x68, 0x95, 0x27, 0x65, 0xda, 0x9f, 0x68,
@@ -246,7 +236,7 @@ static const uint8_t fixed_test_p256r1_public_key[] = {
   0x62, 0x80, 0x93, 0x84, 0x55
 };
 
-/* Example ECC private key (P256r1) */
+/* Example Recipient ECC Private Key (P256r1) */
 static const uint8_t fixed_test_p256r1_private_key[] = {
   0x37, 0x0b, 0xaf, 0x20, 0x45, 0x17, 0x01, 0xf6, 0x64, 0xe1, 0x28, 0x57,
   0x4e, 0xb1, 0x7a, 0xd3, 0x5b, 0xdd, 0x96, 0x65, 0x0a, 0xa8, 0xa3, 0xcd,
@@ -255,34 +245,56 @@ static const uint8_t fixed_test_p256r1_private_key[] = {
 
 
 enum t_cose_err_t
-init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
+init_fixed_test_encryption_key(uint32_t           cose_algorithm_id,
                                struct t_cose_key *public_key,
                                struct t_cose_key *private_key)
 {
-    (void)cose_algorithm_id; // TODO: probably need to check this
     psa_status_t status;
     psa_key_attributes_t pkR_attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_handle_t pkR_handle = PSA_KEY_HANDLE_INIT;
 
     psa_key_attributes_t skR_attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_handle_t skR_handle = PSA_KEY_HANDLE_INIT;
-
+    psa_key_type_t type_public;
+    psa_key_type_t type_private;
+    uint32_t key_bitlen;
 
     psa_crypto_init();
 
-    
-    /* Set up the recipient's public key, pkR, used for encrypting messages */
+    switch (cose_algorithm_id) {
+    case T_COSE_ELLIPTIC_CURVE_P_256:
+         type_public = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+         key_bitlen = 256;
+         break;
+    case T_COSE_ELLIPTIC_CURVE_P_384:
+         type_public = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+         key_bitlen = 384;
+         break;
+    case T_COSE_ELLIPTIC_CURVE_P_521:
+         type_public = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+         key_bitlen = 521;
+         break;
+    default:
+         return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
+    }
+
+    /* Set up the recipient's public key (pkR) */
+
     /* Import public key */
     psa_set_key_usage_flags(&pkR_attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_EXPORT);
     psa_set_key_algorithm(&pkR_attributes, PSA_ALG_ECDSA_ANY);
-    psa_set_key_type(&pkR_attributes, PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1));
+    psa_set_key_type(&pkR_attributes, type_public);
+    psa_set_key_bits(&pkR_attributes, key_bitlen);
 
     status = psa_import_key(&pkR_attributes, /* in: attributes */
                             fixed_test_p256r1_public_key, /* in: key bytes */
                             sizeof(fixed_test_p256r1_public_key), /* in: key length */
                             &pkR_handle); /* out: PSA key handle */
     if(status != PSA_SUCCESS) {
-        return T_COSE_ERR_FAIL; // TODO: better error code?
+        return T_COSE_ERR_PUBLIC_KEY_IMPORT_FAILED;
     }
 
     public_key->key.handle = pkR_handle;
@@ -290,14 +302,15 @@ init_fixed_test_encryption_key(int32_t            cose_algorithm_id,
     /* Import private key */
     psa_set_key_usage_flags(&skR_attributes, PSA_KEY_USAGE_DERIVE);
     psa_set_key_algorithm(&skR_attributes, PSA_ALG_ECDH);
-    psa_set_key_type(&skR_attributes, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));
+    psa_set_key_type(&skR_attributes, type_private);
+    psa_set_key_bits(&skR_attributes, key_bitlen);
 
     status = psa_import_key(&skR_attributes,
                              fixed_test_p256r1_private_key, sizeof(fixed_test_p256r1_private_key),
                              &skR_handle);
 
     if (status != PSA_SUCCESS) {
-        return T_COSE_ERR_FAIL; // TODO: better error code?
+        return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
     }
 
     private_key->key.handle = skR_handle;

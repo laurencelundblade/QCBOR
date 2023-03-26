@@ -68,7 +68,6 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
     struct t_cose_recipient_dec_hpke *me;
     QCBORError             result;
     int64_t                alg = 0;
-    size_t                 key_bitlen;
     struct q_useful_buf_c  cek_encrypted;
     struct q_useful_buf_c  protected_params;
     enum t_cose_err_t      cose_result;
@@ -96,22 +95,9 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
 
     alg = t_cose_find_parameter_alg_id(*params, true);
     if (alg != T_COSE_ALGORITHM_HPKE_v1_BASE)
-        return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
+        return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
 
     // TODO: put kid processing back in
-
-
-    /* -- set key length */
-    switch(sender_info.kem_id) {
-
-    case HPKE_KEM_ID_P256:
-        key_bitlen = 128;
-        break;
-
-    default:
-        /* TBD: need a better error code */
-        return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
-    }
 
     /* get CEK */
     QCBORDecode_GetByteString(cbor_decoder, &cek_encrypted);

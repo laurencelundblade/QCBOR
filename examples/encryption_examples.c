@@ -17,7 +17,6 @@
 #include "t_cose/t_cose_encrypt_dec.h"
 #include "t_cose/t_cose_key.h"
 
-
 #include <stdio.h>
 #include "print_buf.h"
 #include "init_keys.h"
@@ -280,13 +279,13 @@ hpke_example(void)
 #define TEST_KID "fixed_test_key_p256r1"
 
     printf("\n---- START EXAMPLE HPKE ----\n");
-    printf("Create COSE_Encrypt with HPKE\n");
+    printf("Create COSE_Encrypt with included payload using HPKE with KEM: DHKEM(P-256, HKDF-SHA256), KDF: HKDF-SHA256, AEAD: AES-128-GCM\n");
 
     /* Create a key pair.  This is a fixed test key pair. The creation
      * of this key pair is crypto-library dependent because t_cose_key
      * is crypto-library dependent. See t_cose_key.h and the examples
      * to understand key-pair creation better. */
-    result = init_fixed_test_encryption_key(T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM,
+    result = init_fixed_test_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
                                             &pkR, /* out: public key to be used for encryption */
                                             &skR); /* out: corresponding private key for decryption */
     if(result != T_COSE_SUCCESS) {
@@ -310,7 +309,11 @@ hpke_example(void)
      * to the main encryption context. (Only one recipient is set here, but
      * there could be more)
      */
-    t_cose_recipient_enc_hpke_init(&recipient, T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM);
+    t_cose_recipient_enc_hpke_init(&recipient,
+                                    T_COSE_HPKE_KEM_ID_P256,          /* kem id */
+                                    T_COSE_HPKE_KDF_ID_HKDF_SHA256,   /* kdf id */
+                                    T_COSE_HPKE_AEAD_ID_AES_GCM_128); /* aead id */
+
     t_cose_recipient_enc_hpke_set_key(&recipient,
                                        pkR,
                                        Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_KID));
@@ -401,13 +404,13 @@ hpke_example_detached(void)
 #define TEST_KID "fixed_test_key_p256r1"
 
     printf("\n---- START EXAMPLE HPKE ----\n");
-    printf("Create COSE_Encrypt with detached payload using HPKE_P256_HKDF256_AES128_GCM\n");
+    printf("Create COSE_Encrypt with detached payload using HPKE with KEM: DHKEM(P-256, HKDF-SHA256), KDF: HKDF-SHA256, AEAD: AES-128-GCM\n");
 
     /* Create a key pair.  This is a fixed test key pair. The creation
      * of this key pair is crypto-library dependent because t_cose_key
      * is crypto-library dependent. See t_cose_key.h and the examples
      * to understand key-pair creation better. */
-    result = init_fixed_test_encryption_key(T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM,
+    result = init_fixed_test_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
                                             &pkR, /* out: public key to be used for encryption */
                                             &skR); /* out: corresponding private key for decryption */
     if(result != T_COSE_SUCCESS) {
@@ -431,7 +434,11 @@ hpke_example_detached(void)
      * to the main encryption context. (Only one recipient is set here, but
      * there could be more)
      */
-    t_cose_recipient_enc_hpke_init(&recipient, T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM);
+    t_cose_recipient_enc_hpke_init(&recipient,
+                                   T_COSE_HPKE_KEM_ID_P256,          /* kem id */
+                                   T_COSE_HPKE_KDF_ID_HKDF_SHA256,   /* kdf id */
+                                   T_COSE_HPKE_AEAD_ID_AES_GCM_128); /* aead id */
+
     t_cose_recipient_enc_hpke_set_key(&recipient,
                                        pkR,
                                        Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_KID));

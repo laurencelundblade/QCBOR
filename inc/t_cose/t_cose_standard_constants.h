@@ -345,22 +345,6 @@
 #define T_COSE_ALGORITHM_AES256CCM_16_128 31
 
 /**
- * \def COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM
- *
- * \brief HPKE/P-256+HKDF-256 and AES-128-GCM
- * TODO: this is NOT registered with IANA
- */
-#define T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM -100
-
-/**
- * \def COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM
- *
- * \brief HPKE/P-512+HKDF-512 and AES-256-GCM
- * TODO: this is NOT registered with IANA
- */
-#define T_COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM -101
-
-/**
  * \def T_COSE_ALGORITHM_HMAC256
  *
  * \brief Indicates HMAC with SHA256
@@ -593,6 +577,48 @@
  * secp521r1.
  */
 #define T_COSE_ELLIPTIC_CURVE_P_521 3
+
+/**
+ * \def T_COSE_ELLIPTIC_CURVE_X25519
+ *
+ * \brief X25519 key type for use with ECDH only
+ */
+#define T_COSE_ELLIPTIC_CURVE_X25519 4
+
+/**
+ * \def T_COSE_ELLIPTIC_CURVE_X448
+ *
+ * \brief X448 key type for use with ECDH only
+ */
+#define T_COSE_ELLIPTIC_CURVE_X448 5
+
+
+
+/* ------- Constants from RFC 9180 ---------
+ */
+
+/**
+ * HPKE KEM Identifiers
+ */
+#define T_COSE_HPKE_KEM_ID_P256             0x0010 ///< NIST P-256
+#define T_COSE_HPKE_KEM_ID_P384             0x0011 ///< NIST P-256
+#define T_COSE_HPKE_KEM_ID_P521             0x0012 ///< NIST P-521
+#define T_COSE_HPKE_KEM_ID_25519            0x0020 ///< Curve25519
+#define T_COSE_HPKE_KEM_ID_448              0x0021 ///< Curve448
+
+/**
+ * HPKE KDF Identifiers
+ */
+#define T_COSE_HPKE_KDF_ID_HKDF_SHA256      0x0001 ///< HKDF-SHA256
+#define T_COSE_HPKE_KDF_ID_HKDF_SHA384      0x0002 ///< HKDF-SHA512
+#define T_COSE_HPKE_KDF_ID_HKDF_SHA512      0x0003 ///< HKDF-SHA512
+
+/**
+ * HPKE AEAD Identifiers
+ */
+#define T_COSE_HPKE_AEAD_ID_AES_GCM_128     0x0001 ///< AES-GCM-128
+#define T_COSE_HPKE_AEAD_ID_AES_GCM_256     0x0002 ///< AES-GCM-256
+#define T_COSE_HPKE_AEAD_ID_CHACHA_POLY1305 0x0003 ///< Chacha20-Poly1305
 
 
 

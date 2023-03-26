@@ -26,46 +26,6 @@
 
 
 /**
- * \brief Given a COSE HPKE algorithm id this function returns the
- *        HPKE algorithm structure, the key length (in bits) and
- *        the COSE algorithm ID.
- *
- * \retval T_COSE_SUCCESS
- *         Successfully produced the HPKE algorithm structure.
- * \retval T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG
- *         The supported key exchange algorithm is not supported.
- */
-enum t_cose_err_t
-t_cose_crypto_convert_hpke_algorithms(
-                int32_t                            hpke_cose_algorithm_id,
-                struct t_cose_crypto_hpke_suite_t *hpke_suite,
-                size_t                            *key_bitlen,
-                int64_t                           *cose_algorithm_id)
-{
-    switch (hpke_cose_algorithm_id) {
-    case T_COSE_ALGORITHM_HPKE_P256_HKDF256_AES128_GCM:
-         *key_bitlen = 128;
-         *cose_algorithm_id = T_COSE_ALGORITHM_A128GCM;
-         hpke_suite->kem_id = HPKE_KEM_ID_P256;
-         hpke_suite->kdf_id = HPKE_KDF_ID_HKDF_SHA256;
-         hpke_suite->aead_id = HPKE_AEAD_ID_AES_GCM_128;
-         break;
-    case T_COSE_ALGORITHM_HPKE_P521_HKDF512_AES256_GCM:
-         *key_bitlen = 256;
-         *cose_algorithm_id = T_COSE_ALGORITHM_A256GCM;
-         hpke_suite->kem_id = HPKE_KEM_ID_P521;
-         hpke_suite->kdf_id = HPKE_KDF_ID_HKDF_SHA512;
-         hpke_suite->aead_id = HPKE_AEAD_ID_AES_GCM_256;
-         break;
-    default:
-         return(T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG);
-    }
-
-    return(T_COSE_SUCCESS);
-}
-
-
-/**
  * \brief HPKE Encrypt Wrapper
  *
  * \param[in] suite               HPKE ciphersuite
@@ -134,8 +94,6 @@ t_cose_create_recipient_hpke2(
                            struct q_useful_buf_c  plaintext,
                            QCBOREncodeContext    *encrypt_ctx)
 {
-    size_t                 key_bitlen;
-    int64_t                algorithm_id;
     UsefulBufC             scratch;
     uint8_t                encrypted_cek[T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)];
     size_t                 encrypted_cek_len = T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
@@ -145,31 +103,21 @@ t_cose_create_recipient_hpke2(
     size_t                 pkE_len = T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE;
     uint8_t                pkE[T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};
     enum t_cose_err_t      return_value;
-    struct t_cose_crypto_hpke_suite_t hpke_suite;
     struct t_cose_key      ephemeral_key;
 
     MakeUsefulBufOnStack(enc_struct_buf, 50); // TODO: allow this to be supplied externally
     struct q_useful_buf_c enc_struct;
 
-    (void)cose_algorithm_id; // TODO: use this or get rid of it
     (void)recipient_key; // TODO: use this or get rid of it
+    (void)cose_algorithm_id; // TODO: use this or get rid of it
 
     if (context == NULL || encrypt_ctx == NULL) {
         return(T_COSE_ERR_INVALID_ARGUMENT);
     }
 
-    return_value = t_cose_crypto_convert_hpke_algorithms(context->cose_algorithm_id,
-                                                    &hpke_suite,
-                                                    &key_bitlen,
-                                                    &algorithm_id);
-
-    if (return_value != T_COSE_SUCCESS) {
-        return(return_value);
-    }
-
     /* Create ephemeral key */
     return_value = t_cose_crypto_generate_key(&ephemeral_key,
-                                              context->cose_algorithm_id);
+                                              context->hpke_suite.kem_id);
     if (return_value != T_COSE_SUCCESS) {
         return(return_value);
     }
@@ -232,7 +180,7 @@ t_cose_create_recipient_hpke2(
 
     /* --- HPKE encryption of the CEK ---- */
     return_value = t_cose_crypto_hpke_encrypt(
-                        hpke_suite,
+                        context->hpke_suite,
                         (struct q_useful_buf_c) {.ptr = pkR, .len = pkR_len},
                         ephemeral_key,
                         enc_struct,
@@ -261,15 +209,15 @@ t_cose_create_recipient_hpke2(
 
     /* -- add kem id */
     QCBOREncode_AddUInt64(encrypt_ctx,
-                          hpke_suite.kem_id);
+                          context->hpke_suite.kem_id);
 
     /* -- add kdf id */
     QCBOREncode_AddUInt64(encrypt_ctx,
-                          hpke_suite.kdf_id);
+                          context->hpke_suite.kdf_id);
 
     /* -- add aead id */
     QCBOREncode_AddUInt64(encrypt_ctx,
-                          hpke_suite.aead_id);
+                          context->hpke_suite.aead_id);
 
     /* -- add enc */
     QCBOREncode_AddBytes(encrypt_ctx,

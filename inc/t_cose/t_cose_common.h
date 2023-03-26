@@ -470,8 +470,8 @@ enum t_cose_err_t {
      */
     T_COSE_ERR_MAC0_FORMAT = 48,
 
-  /** The requested key exchange algorithm is not supported.  */
-    T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG = 46,
+    /** The requested content key distribution algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG = 46,
 
     /** The requested encryption algorithm is not supported.  */
     T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG = 47,
@@ -505,17 +505,17 @@ enum t_cose_err_t {
      *  was not found. */
     T_COSE_ERR_CBOR_MANDATORY_FIELD_MISSING = 55,
 
-    /** When decoding the ephemeral key structure, the included
-     * public key is of incorrect or unexpected size. */
-    T_COSE_ERR_EPHEMERAL_KEY_SIZE_INCORRECT = 56,
+    /** When decoding the HPKE_sender_info structure, the included
+     * information is either incorrect or of unexpected size. */
+    T_COSE_ERR_HPKE_SENDER_INFO_INCORRECT = 56,
 
     /** Cryptographic operations may require a key usage flags
      * to be indicated. If the provided flags are unsupported,
      * this error is returned. */
     T_COSE_ERR_UNSUPPORTED_KEY_USAGE_FLAGS = 57,
 
-    /** The key import failed. */
-    T_COSE_ERR_KEY_IMPORT_FAILED = 58,
+    /** The private key import failed. */
+    T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED = 58,
 
     /** Obtaining random bytes failed. */
     T_COSE_ERR_RNG_FAILED = 59,
@@ -551,7 +551,6 @@ enum t_cose_err_t {
 
     T_COSE_ERR_RECIPIENT_FORMAT = 69,
 
-
     /* No more COSE_Signatures or COSE_Recipients. Returned by
      * COSE_Signature and COSE_Recipient implementations. */
     T_COSE_ERR_NO_MORE = 70,
@@ -559,7 +558,20 @@ enum t_cose_err_t {
     /* A newer version of QCBOR is needed to processes multiple
      * COSE_Signature or COSE_Recipients.  (As of Jan 2023, this
      * QCBOR is not released) */
-    T_COSE_ERR_CANT_PROCESS_MULTIPLE = 71
+    T_COSE_ERR_CANT_PROCESS_MULTIPLE = 71,
+
+    /** The specific elliptic curve is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG = 72,
+
+    /** The public key import failed. */
+    T_COSE_ERR_PUBLIC_KEY_IMPORT_FAILED = 73,
+
+    /** The symmetric key import failed. */
+    T_COSE_ERR_SYMMETRIC_KEY_IMPORT_FAILED = 74,
+
+    /** The specific KEM is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_KEM_ALG = 75,
+
 };
 
 
