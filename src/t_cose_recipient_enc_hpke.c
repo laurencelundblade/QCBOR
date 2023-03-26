@@ -188,6 +188,8 @@ t_cose_create_recipient_hpke2(
                         (struct q_useful_buf) {.ptr = encrypted_cek, .len = encrypted_cek_len},
                         &encrypted_cek_len);
 
+    t_cose_crypto_free_symmetric_key(ephemeral_key); // TODO: free method for generate key
+
     if (return_value != T_COSE_SUCCESS) {
         return(return_value);
     }

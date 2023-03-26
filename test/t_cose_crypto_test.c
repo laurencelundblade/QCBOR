@@ -140,6 +140,8 @@ int_fast32_t aead_test(void)
      * Most of these tests are aimed at OpenSSL because it has a terrible API and
      * documentation for AEAD. */
 
+    t_cose_crypto_free_symmetric_key(key);
+
     return 0;
 }
 
@@ -230,6 +232,8 @@ int_fast32_t kw_test(void)
     if(e != T_COSE_ERR_DATA_AUTH_FAILED) {
         return 27;
     }
+
+    t_cose_crypto_free_symmetric_key(kek);
 
 
     return 0;

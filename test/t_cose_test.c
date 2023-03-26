@@ -134,6 +134,8 @@ int_fast32_t short_circuit_self_test()
         return 3000;
     }
 
+    free_fixed_signing_key(key_pair);
+
     return 0;
 }
 
@@ -312,6 +314,8 @@ int_fast32_t short_circuit_verify_fail_test()
         return 4000 + (int32_t)result;
     }
     /* --- Done verifying the COSE Sign1 object  --- */
+
+    free_fixed_signing_key(key_pair);
 
     return 0;
 }
@@ -519,6 +523,8 @@ int_fast32_t short_circuit_make_cwt_test()
     }
     /* --- Done verifying the COSE Sign1 object  --- */
 
+    free_fixed_signing_key(key_pair);
+
     return 0;
 }
 
@@ -620,6 +626,8 @@ int_fast32_t short_circuit_decode_only_test()
         return 5000;
     }
     /* --- Done verifying the COSE Sign1 object  --- */
+
+    free_fixed_signing_key(key_pair);
 
     return 0;
 }
@@ -758,6 +766,8 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
                                        /* Don't return parameters */
                                        &old_parameters);
 
+    free_fixed_signing_key(key_pair);
+
     return result;
 }
 
@@ -835,6 +845,9 @@ int_fast32_t all_header_parameters_test()
                             Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"))) {
         return 6;
     }
+
+    free_fixed_signing_key(key_pair);
+
 
     return 0;
 }
@@ -1255,6 +1268,14 @@ make_complex_cose_sign(struct q_useful_buf cose_sign_buf, struct q_useful_buf_c 
                            Q_USEFUL_BUF_FROM_SZ_LITERAL("PAYLOAD"),
                            cose_sign_buf,
                            cose_sign);
+    if(err) {
+        return 182;
+    }
+
+    free_fixed_signing_key(sig1_key);
+    free_fixed_signing_key(sig2_key);
+    free_fixed_signing_key(sig3_key);
+
 
     free_fixed_signing_key(sig1_key);
     free_fixed_signing_key(sig2_key);
@@ -1952,6 +1973,8 @@ int_fast32_t tags_test()
         return 4000 + (int32_t)result;
     }
 
+    free_fixed_signing_key(key_pair);
+
     /* --- Done verifying the COSE Sign1 object  --- */
 
     return 0;
@@ -2055,7 +2078,7 @@ int_fast32_t get_size_test()
     if(actual_signed_cose.len != calculated_size) {
         return -3;
     }
-
+    free_fixed_signing_key(key_pair);
 
     return 0;
 }
@@ -2206,7 +2229,7 @@ int_fast32_t crypto_context_test()
     if(result != 99) {
         return 2000 + (int32_t)result;
     }
-
+    free_fixed_signing_key(key_pair);
 
     return 0;
 }

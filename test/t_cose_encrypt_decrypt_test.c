@@ -307,7 +307,6 @@ encrypt_enc_dec(int32_t                cose_algorithm_id,
     struct t_cose_recipient_dec_hpke dec_recipient;
     struct t_cose_encrypt_dec_ctx    dec_ctx;
 
-
     /* Initialize the encryption context telling it we want
      * a COSE_Encrypt (not a COSE_Encrypt0) because we're doing HPKE with a
      * COSE_Recpipient. Also tell it the AEAD algorithm for the
@@ -380,7 +379,6 @@ encrypt_enc_dec(int32_t                cose_algorithm_id,
         return_value = 1;
         goto Done;
     }
-
 Done:
     return (int32_t)return_value;
 }
@@ -390,7 +388,6 @@ Done:
 int32_t base_encrypt_decrypt_test(void)
 {
     int32_t rv;
-
     rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128GCM);
     if(rv) {
         return rv;
@@ -405,7 +402,6 @@ int32_t base_encrypt_decrypt_test(void)
     if(rv) {
         return rv;
     }
-
 
 //    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_AES256CCM_16_128);
 //    if(rv) {
@@ -441,7 +437,6 @@ int32_t base_encrypt_decrypt_test(void)
     if(rv) {
         return rv;
     }
-
     free_fixed_test_encryption_key(skR);
     free_fixed_test_encryption_key(pkR);
 #endif /* T_COSE_DISABLE_HPKE */
