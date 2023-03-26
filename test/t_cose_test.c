@@ -1071,6 +1071,8 @@ int_fast32_t content_type_test()
     }
 #endif
 
+    free_fixed_signing_key(key_pair);
+
     return 0;
 }
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
@@ -1253,6 +1255,11 @@ make_complex_cose_sign(struct q_useful_buf cose_sign_buf, struct q_useful_buf_c 
                            Q_USEFUL_BUF_FROM_SZ_LITERAL("PAYLOAD"),
                            cose_sign_buf,
                            cose_sign);
+
+    free_fixed_signing_key(sig1_key);
+    free_fixed_signing_key(sig2_key);
+    free_fixed_signing_key(sig3_key);
+
 
     return 0;
 }
