@@ -1276,12 +1276,6 @@ make_complex_cose_sign(struct q_useful_buf cose_sign_buf, struct q_useful_buf_c 
     free_fixed_signing_key(sig2_key);
     free_fixed_signing_key(sig3_key);
 
-
-    free_fixed_signing_key(sig1_key);
-    free_fixed_signing_key(sig2_key);
-    free_fixed_signing_key(sig3_key);
-
-
     return 0;
 }
 
