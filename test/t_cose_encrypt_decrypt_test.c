@@ -286,9 +286,9 @@ Done2:
 #ifndef T_COSE_DISABLE_HPKE
 int32_t
 encrypt_enc_dec(int32_t                cose_algorithm_id,
-                uint32_t               kem_id,
-                uint32_t               kdf_id,
-                uint32_t               aead_id,
+                uint16_t               kem_id,
+                uint16_t               kdf_id,
+                uint16_t               aead_id,
                 struct q_useful_buf_c  kid,
                 struct t_cose_key      skR,
                 struct t_cose_key      pkR,

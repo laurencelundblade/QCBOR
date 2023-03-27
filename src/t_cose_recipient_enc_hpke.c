@@ -66,8 +66,8 @@ t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
             0,                                  // skI
             plaintext.len,                      // plaintext length
             plaintext.ptr,                      // plaintext
-            // TODO: fix the const-ness all the way down so this cast can go away
-            aad.len, (uint8_t *)aad.ptr,         // Additional data
+            //TODO: fix the const-ness all the way down so this cast can go away
+            aad.len, (uint8_t *)(uintptr_t)aad.ptr,         // Additional data
             0, NULL,                            // Info
             (psa_key_handle_t)
             pkE.key.handle,                   // skE handle
@@ -86,34 +86,27 @@ t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
 /*
  * See documentation in t_cose_recipient_enc_hpke.h
  */
-static enum t_cose_err_t
-t_cose_create_recipient_hpke2(
-                           struct t_cose_recipient_enc_hpke *context,
-                           int32_t                cose_algorithm_id,
-                           struct t_cose_key      recipient_key,
-                           struct q_useful_buf_c  plaintext,
-                           QCBOREncodeContext    *encrypt_ctx)
+enum t_cose_err_t
+t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
+                                        struct q_useful_buf_c         cek,
+                                        QCBOREncodeContext           *cbor_encoder)
 {
-    UsefulBufC             scratch;
+    struct q_useful_buf_c  proteced_params;
     uint8_t                encrypted_cek[T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)];
     size_t                 encrypted_cek_len = T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
-    UsefulBufC             cek_encrypted_cbor;
+    struct q_useful_buf_c  cek_encrypted_cbor;
     size_t                 pkR_len = T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE;
     uint8_t                pkR[T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};
     size_t                 pkE_len = T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE;
     uint8_t                pkE[T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};
     enum t_cose_err_t      return_value;
     struct t_cose_key      ephemeral_key;
+    MakeUsefulBufOnStack(  enc_struct_buf, 50); // TODO: allow this to be
+                                                // supplied externally
+    struct q_useful_buf_c  enc_struct;
+    struct t_cose_recipient_enc_hpke *context;
 
-    MakeUsefulBufOnStack(enc_struct_buf, 50); // TODO: allow this to be supplied externally
-    struct q_useful_buf_c enc_struct;
-
-    (void)recipient_key; // TODO: use this or get rid of it
-    (void)cose_algorithm_id; // TODO: use this or get rid of it
-
-    if (context == NULL || encrypt_ctx == NULL) {
-        return(T_COSE_ERR_INVALID_ARGUMENT);
-    }
+    context = (struct t_cose_recipient_enc_hpke *)me_x;
 
     /* Create ephemeral key */
     return_value = t_cose_crypto_generate_key(&ephemeral_key,
@@ -142,37 +135,38 @@ t_cose_create_recipient_hpke2(
         return(return_value);
     }
 
-    /* There's an be of an odd order dependency here.
+    /* There's an odd order dependency here.
      * First get started encoding and output/make the protected header.
      * Then, before outputting the unprotected header, make the Enc_structure
      * and do the HPKE encrypt. This requires the protected headers as input.
      * This will produce the HPKE "enc" value.
      * Then the unprotected headers which includes the "enc"
-     * value can be output. This is going to be a problem with encode_headers().*/
+     * value can be output. This is going to be a problem with encode_headers().
+     * The fix is to break up HPKE into two parts. */
 
     /* Create recipient array */
-    QCBOREncode_OpenArray(encrypt_ctx);
+    QCBOREncode_OpenArray(cbor_encoder);
 
     /* Add protected headers with alg parameter */
-    QCBOREncode_BstrWrap(encrypt_ctx);
+    QCBOREncode_BstrWrap(cbor_encoder);
 
-    QCBOREncode_OpenMap(encrypt_ctx);
+    QCBOREncode_OpenMap(cbor_encoder);
 
-    QCBOREncode_AddInt64ToMapN(encrypt_ctx,
+    QCBOREncode_AddInt64ToMapN(cbor_encoder,
                                T_COSE_HEADER_PARAM_ALG,
                                T_COSE_ALGORITHM_HPKE_v1_BASE);
 
-    QCBOREncode_CloseMap(encrypt_ctx);
+    QCBOREncode_CloseMap(cbor_encoder);
 
-    QCBOREncode_CloseBstrWrap2(encrypt_ctx,
+    QCBOREncode_CloseBstrWrap2(cbor_encoder,
                                false,
-                               &scratch);
+                               &proteced_params);
 
 
     /* --- Make the Enc_structure ---- */
 
-    return_value = create_enc_structure("Enc_Recipient", /* in: context string */
-                         scratch,
+    return_value = create_enc_structure("Enc_Recipient",/* in: context string */
+                         proteced_params,
                          NULL_Q_USEFUL_BUF_C, /* in: Externally supplied AAD */
                          enc_struct_buf,
                          &enc_struct);
@@ -184,8 +178,9 @@ t_cose_create_recipient_hpke2(
                         (struct q_useful_buf_c) {.ptr = pkR, .len = pkR_len},
                         ephemeral_key,
                         enc_struct,
-                        plaintext,
-                        (struct q_useful_buf) {.ptr = encrypted_cek, .len = encrypted_cek_len},
+                        cek,
+                        (struct q_useful_buf) {.ptr = encrypted_cek,
+                                               .len = encrypted_cek_len},
                         &encrypted_cek_len);
 
     t_cose_crypto_free_symmetric_key(ephemeral_key); // TODO: free method for generate key
@@ -195,7 +190,7 @@ t_cose_create_recipient_hpke2(
     }
 
     /* Add unprotected Header */
-    QCBOREncode_OpenMap(encrypt_ctx);
+    QCBOREncode_OpenMap(cbor_encoder);
 
     /* Create HPKE_sender_info structure
      *
@@ -207,22 +202,23 @@ t_cose_create_recipient_hpke2(
      *  ]
      */
     /* Open HPKE_sender_info array */
-    QCBOREncode_OpenArrayInMapN(encrypt_ctx, T_COSE_HEADER_ALG_PARAM_HPKE_SENDER_INFO);
+    QCBOREncode_OpenArrayInMapN(cbor_encoder,
+                                T_COSE_HEADER_ALG_PARAM_HPKE_SENDER_INFO);
 
     /* -- add kem id */
-    QCBOREncode_AddUInt64(encrypt_ctx,
+    QCBOREncode_AddUInt64(cbor_encoder,
                           context->hpke_suite.kem_id);
 
     /* -- add kdf id */
-    QCBOREncode_AddUInt64(encrypt_ctx,
+    QCBOREncode_AddUInt64(cbor_encoder,
                           context->hpke_suite.kdf_id);
 
     /* -- add aead id */
-    QCBOREncode_AddUInt64(encrypt_ctx,
+    QCBOREncode_AddUInt64(cbor_encoder,
                           context->hpke_suite.aead_id);
 
     /* -- add enc */
-    QCBOREncode_AddBytes(encrypt_ctx,
+    QCBOREncode_AddBytes(cbor_encoder,
                          (struct q_useful_buf_c)
                          {
                            pkE,
@@ -231,51 +227,29 @@ t_cose_create_recipient_hpke2(
                         );
 
     /* Close HPKE_sender_info array */
-    QCBOREncode_CloseArray(encrypt_ctx);
+    QCBOREncode_CloseArray(cbor_encoder);
 
 
     /* Add kid to unprotected map  */
-    QCBOREncode_AddBytesToMapN(encrypt_ctx,
+    QCBOREncode_AddBytesToMapN(cbor_encoder,
                                T_COSE_HEADER_PARAM_KID,
                                context->kid);
 
     /* Close unprotected map */
-    QCBOREncode_CloseMap(encrypt_ctx);
+    QCBOREncode_CloseMap(cbor_encoder);
 
     /* Convert to UsefulBufC structure */
     cek_encrypted_cbor.len = encrypted_cek_len;
     cek_encrypted_cbor.ptr = encrypted_cek;
 
     /* Add encrypted CEK */
-    QCBOREncode_AddBytes(encrypt_ctx, cek_encrypted_cbor);
+    QCBOREncode_AddBytes(cbor_encoder, cek_encrypted_cbor);
 
     /* Close recipient array */
-    QCBOREncode_CloseArray(encrypt_ctx);
+    QCBOREncode_CloseArray(cbor_encoder);
 
     return(T_COSE_SUCCESS);
 }
-
-
-enum t_cose_err_t
-t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
-                         struct q_useful_buf_c         cek,
-                         QCBOREncodeContext           *cbor_encoder)
-{
-    enum t_cose_err_t err;
-    struct t_cose_recipient_enc_hpke *me;
-
-    me = (struct t_cose_recipient_enc_hpke *)me_x;
-
-    err = t_cose_create_recipient_hpke2(me,
-                                       0,
-                                       me->pkR,
-                                       cek,
-                                       cbor_encoder);
-
-    return err;
-}
-
-
 
 
 #else

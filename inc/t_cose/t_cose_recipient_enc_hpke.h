@@ -55,9 +55,9 @@ struct t_cose_recipient_enc_hpke {
  */
 static void
 t_cose_recipient_enc_hpke_init(struct t_cose_recipient_enc_hpke *context,
-                               uint32_t                          kem_id,
-                               uint32_t                          kdf_id,
-                               uint32_t                          aead_id);
+                               uint16_t                          kem_id,
+                               uint16_t                          kdf_id,
+                               uint16_t                          aead_id);
 
 
 /**
@@ -84,9 +84,9 @@ t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
 
 static inline void
 t_cose_recipient_enc_hpke_init(struct t_cose_recipient_enc_hpke *me,
-                               uint32_t                          kem_id,
-                               uint32_t                          kdf_id,
-                               uint32_t                          aead_id)
+                               uint16_t                          kem_id,
+                               uint16_t                          kdf_id,
+                               uint16_t                          aead_id)
 {
     memset(me, 0, sizeof(*me));
     me->e.creat_cb = t_cose_recipient_create_hpke_cb_private;

@@ -134,25 +134,25 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
                             struct q_useful_buf_c         *plaintext,
                             struct t_cose_parameter      **returned_parameters)
 {
-    enum t_cose_err_t            return_value;
-    QCBORDecodeContext           cbor_decoder;
-    QCBORItem                    array_item;
-    QCBORError                   cbor_error;
-    uint32_t                     message_type;
+    enum t_cose_err_t              return_value;
+    QCBORDecodeContext             cbor_decoder;
+    QCBORItem                      array_item;
+    QCBORError                     cbor_error;
+    uint32_t                       message_type;
     struct t_cose_header_location  header_location;
     struct t_cose_parameter       *body_params_list;
     struct q_useful_buf_c          nonce_cbor;
     int32_t                        body_enc_algorithm_id;
     struct q_useful_buf_c          protected_params;
-    struct q_useful_buf_c        cipher_text;
-    struct q_useful_buf_c        cek;
-    struct t_cose_key            cek_key;
-    MakeUsefulBufOnStack(        cek_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
-    struct t_cose_parameter     *rcpnt_params_list;
-    struct t_cose_parameter     *all_params_list;
-    const char                   *msg_type_string;
-    Q_USEFUL_BUF_MAKE_STACK_UB(  enc_struct_buffer, T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE);
-    struct q_useful_buf_c        enc_structure;
+    struct q_useful_buf_c          cipher_text;
+    struct q_useful_buf_c          cek;
+    struct t_cose_key              cek_key;
+    MakeUsefulBufOnStack(          cek_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
+    struct t_cose_parameter       *rcpnt_params_list;
+    struct t_cose_parameter       *all_params_list;
+    const char                    *msg_type_string;
+    Q_USEFUL_BUF_MAKE_STACK_UB(    enc_struct_buffer, T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE);
+    struct q_useful_buf_c          enc_structure;
 
 
     /* --- Get started decoding array of four and tags --- */
@@ -166,7 +166,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     // TODO: allow tag determination of message_type
     if (QCBORDecode_IsTagged(&cbor_decoder, &array_item, CBOR_TAG_COSE_ENCRYPT) == false &&
         QCBORDecode_IsTagged(&cbor_decoder, &array_item, CBOR_TAG_COSE_ENCRYPT0) == false) {
-        return(T_COSE_ERR_INCORRECTLY_TAGGED);
+        return T_COSE_ERR_INCORRECTLY_TAGGED;
     }
 
     /* --- The header parameters --- */
@@ -324,6 +324,9 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
             plaintext_buffer,      /* in: buffer to output plaintext into */
             plaintext              /* out: the decrypted payload */
         );
+    if (message_type != T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0) {
+        t_cose_crypto_free_symmetric_key(cek_key);
+    }
 
    if (message_type != T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0) {
        t_cose_crypto_free_symmetric_key(cek_key);
