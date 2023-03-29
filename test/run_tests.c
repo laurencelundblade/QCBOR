@@ -1,14 +1,14 @@
-/*==============================================================================
- run_tests.c -- test aggregator and results reporting
-
- Copyright (c) 2018-2022, Laurence Lundblade. All rights reserved.
- Copyright (c) 2022 Arm Limited. All rights reserved.
-
- SPDX-License-Identifier: BSD-3-Clause
-
- See BSD-3-Clause license in README.md
-
- Created on 9/30/18
+/* ==============================================================================
+ * run_tests.c -- test aggregator and results reporting
+ *
+ * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2022 Arm Limited. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ *
+ * Created on 9/30/18
  =============================================================================*/
 
 #include "run_tests.h"
@@ -16,21 +16,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "t_cose_test.h"
-#include "t_cose_sign_verify_test.h"
-#include "t_cose_compute_validate_mac_test.h"
-#include "t_cose_param_test.h"
-#include "t_cose_crypto_test.h"
-#include "t_cose_encrypt_decrypt_test.h"
-#include "t_cose/t_cose_common.h"
 
-
-/*
- Test configuration
- */
-
-typedef int_fast32_t (test_fun_t)(void);
-typedef const char * (test_fun2_t)(void);
+typedef int32_t (test_fun_t)(void);
 
 
 #define TEST_ENTRY(test_name)  {#test_name, test_name, true}
@@ -42,30 +29,27 @@ typedef struct {
     bool         bEnabled;
 } test_entry;
 
-#ifdef STRING_RETURNING_TESTS
-typedef struct {
-    const char *szTestName;
-    test_fun2_t  *test_fun;
-    bool         bEnabled;
-} test_entry2;
 
+/*
+ * Test configuration
+ */
 
-static test_entry2 s_tests2[] = {
-    NULL
-};
-#endif
+#include "t_cose_test.h"
+#include "t_cose_sign_verify_test.h"
+#include "t_cose_compute_validate_mac_test.h"
+#include "t_cose_param_test.h"
+#include "t_cose_crypto_test.h"
+#include "t_cose_encrypt_decrypt_test.h"
+#include "t_cose/t_cose_common.h"
 
 
 static test_entry s_tests[] = {
-
-
     TEST_ENTRY(aead_test),
 #ifndef T_COSE_DISABLE_KEYWRAP
     TEST_ENTRY(kw_test),
 #endif
 
 #ifndef T_COSE_DISABLE_SIGN1
-    // TODO: re enable this test when it is fixed
     TEST_ENTRY(sign1_structure_decode_test),
 #endif /* T_COSE_DISABLE_SIGN1 */
 
@@ -137,26 +121,26 @@ static test_entry s_tests[] = {
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
     TEST_ENTRY(param_test),
-
     TEST_ENTRY(base_encrypt_decrypt_test)
 
 };
 
 
 
+
 /**
-  \brief Convert number to ASCII string, similar to sprint
-
-  \param [in]  nNum       The 32-bit integer to convert.
-  \param [in]  StringMem  The buffer to output to.
-
-  \return POinter to NULL-terminated string with result or "XXX" on failure.
-
- Convert a number up to 999999999 to a string. This is so sprintf doesn't
- have to be linked in so as to minimized dependencies even in test code.
-
- StringMem should be 12 bytes long, 9 for digits, 1 for minus and
- 1 for \0 termination.
+ * \brief Convert number to ASCII string, similar to sprint
+ *
+ * \param [in]  nNum       The 32-bit integer to convert.
+ * \param [in]  StringMem  The buffer to output to.
+ *
+ * \return POinter to NULL-terminated string with result or "XXX" on failure.
+ *
+ * Convert a number up to 999999999 to a string. This is so sprintf doesn't
+ * have to be linked in so as to minimized dependencies even in test code.
+ *
+ * StringMem should be 12 bytes long, 9 for digits, 1 for minus and
+ * 1 for \0 termination.
  */
 static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 {
@@ -175,7 +159,7 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 
    bool bDidSomeOutput = false;
    for(int32_t n = nMax; n > 0; n/=10) {
-      int_fast32_t nDigitValue = nNum/n;
+      int32_t nDigitValue = nNum/n;
       if(nDigitValue || bDidSomeOutput){
          bDidSomeOutput = true;
          UsefulOutBuf_AppendByte(&OutBuf, (uint8_t)('0' + nDigitValue));
@@ -192,87 +176,39 @@ static const char *NumToString(int32_t nNum, UsefulBuf StringMem)
 
 
 /*
- Public function. See run_test.h.
+ * Public function. See run_test.h.
  */
 int RunTestsTCose(const char    *szTestNames[],
                   OutputStringCB pfOutput,
                   void          *poutCtx,
                   int           *pNumTestsRun)
 {
-    // int (-32767 to 32767 according to C standard) used by conscious choice
-    int nTestsFailed = 0;
-    int nTestsRun = 0;
+    int                        nTestsFailed = 0;
+    int                        nTestsRun = 0;
     Q_USEFUL_BUF_MAKE_STACK_UB(StringStorage, 12);
+    test_entry                *t;
 
-#ifdef STRING_RETURNING_TESTS
-
-    test_entry2 *t2;
-    const test_entry2 *s_tests2_end = s_tests2 + sizeof(s_tests2)/sizeof(test_entry2);
-
-    for(t2 = s_tests2; t2 < s_tests2_end; t2++) {
-        if(szTestNames[0]) {
-            // Some tests have been named
-            const char **szRequestedNames;
-            for(szRequestedNames = szTestNames; *szRequestedNames;  szRequestedNames++) {
-                if(!strcmp(t2->szTestName, *szRequestedNames)) {
-                    break; // Name matched
-                }
-            }
-            if(*szRequestedNames == NULL) {
-                // Didn't match this test
-                continue;
-            }
-        } else {
-            // no tests named, but don't run "disabled" tests
-            if(!t2->bEnabled) {
-                // Don't run disabled tests when all tests are being run
-                // as indicated by no specific test names being given
-                continue;
-            }
-        }
-        const char * szTestResult = (t2->test_fun)();
-        nTestsRun++;
-        if(pfOutput) {
-            (*pfOutput)(t2->szTestName, poutCtx, 0);
-        }
-
-        if(szTestResult) {
-            if(pfOutput) {
-                (*pfOutput)(" FAILED (returned ", poutCtx, 0);
-                (*pfOutput)(szTestResult, poutCtx, 0);
-                (*pfOutput)(")", poutCtx, 1);
-            }
-            nTestsFailed++;
-        } else {
-            if(pfOutput) {
-                (*pfOutput)( " PASSED", poutCtx, 1);
-            }
-        }
-    }
-#endif
-
-
-    test_entry *t;
     const test_entry *s_tests_end = s_tests + sizeof(s_tests)/sizeof(test_entry);
 
     for(t = s_tests; t < s_tests_end; t++) {
         if(szTestNames[0]) {
-            // Some tests have been named
+            /* Some tests have been named */
             const char **szRequestedNames;
             for(szRequestedNames = szTestNames; *szRequestedNames;  szRequestedNames++) {
                 if(!strcmp(t->szTestName, *szRequestedNames)) {
-                    break; // Name matched
+                    break; /* Name matched */
                 }
             }
             if(*szRequestedNames == NULL) {
-                // Didn't match this test
+                /* Didn't match this test */
                 continue;
             }
         } else {
-            // no tests named, but don't run "disabled" tests
+            /* no tests named, but don't run "disabled" tests */
             if(!t->bEnabled) {
-                // Don't run disabled tests when all tests are being run
-                // as indicated by no specific test names being given
+                /* Don't run disabled tests when all tests are being run
+                 * as indicated by no specific test names being given
+                 */
                 continue;
             }
         }
@@ -314,57 +250,134 @@ int RunTestsTCose(const char    *szTestNames[],
 
 
 /*
- Public function. See run_test.h.
+ * Public function. See run_test.h.
  */
-static void PrintSize(const char *szWhat,
-                      uint32_t uSize,
+static void PrintSize(const char    *szWhat,
+                      uint32_t       uSize,
                       OutputStringCB pfOutput,
-                      void *pOutCtx)
+                      void          *pOutCtx)
 {
-   Q_USEFUL_BUF_MAKE_STACK_UB(buffer, 20);
+    Q_USEFUL_BUF_MAKE_STACK_UB(buffer, 20);
+    const char                *szNum;
 
    (*pfOutput)(szWhat, pOutCtx, 0);
-   (*pfOutput)(" ", pOutCtx, 0);
-   (*pfOutput)(NumToString((int32_t)uSize, buffer), pOutCtx, 0);
+    szNum = NumToString((int32_t)uSize, buffer);
+    for(size_t i = strlen(szWhat); i < 49 - strlen(szNum); i++) {
+       (*pfOutput)(" ", pOutCtx, 0);
+    }
+   (*pfOutput)(szNum, pOutCtx, 0);
    (*pfOutput)("", pOutCtx, 1);
 }
 
 
 
 
-#include "t_cose/t_cose_sign1_verify.h" /* For struct size printing */
-#include "t_cose/t_cose_sign1_sign.h" /* For struct size printing */
-#include "t_cose_crypto.h" /* For struct size printing */
-#include "t_cose/t_cose_parameters.h" /* For struct size printing */
+/* Print out the sizes of the important data structures */
+
+#include "t_cose/t_cose_sign_sign.h"
+#include "t_cose/t_cose_sign_verify.h"
+#include "t_cose/t_cose_sign1_verify.h"
+#include "t_cose/t_cose_sign1_sign.h"
+
+#include "t_cose/t_cose_signature_sign_main.h"
+#include "t_cose/t_cose_signature_verify_main.h"
+
+#include "t_cose/t_cose_signature_sign_eddsa.h"
+#include "t_cose/t_cose_signature_verify_eddsa.h"
+
+#include "t_cose_crypto.h"
+#include "t_cose/t_cose_parameters.h"
+
+#include "t_cose/t_cose_encrypt_enc.h"
+#include "t_cose/t_cose_encrypt_dec.h"
+
+#include "t_cose/t_cose_mac_compute.h"
+#include "t_cose/t_cose_mac_validate.h"
+
+#include "t_cose/t_cose_recipient_enc_keywrap.h"
+#include "t_cose/t_cose_recipient_dec_keywrap.h"
+
+#include "t_cose/t_cose_recipient_enc_hpke.h"
+#include "t_cose/t_cose_recipient_dec_hpke.h"
 
 
 /*
- Public function. See run_test.h.
+ * Public function. See run_test.h.
  */
 void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx)
 {
-   // Type and size of return from sizeof() varies. These will never be large
-   // so cast is safe.
-    PrintSize("sizeof(struct t_cose_sign1_ctx)",
-              (uint32_t)sizeof(struct t_cose_sign1_sign_ctx),
-              pfOutput, pOutCtx);
-    PrintSize("sizeof(struct t_cose_key)",
-              (uint32_t)sizeof(struct t_cose_key),
-              pfOutput, pOutCtx);
-    PrintSize("sizeof(struct t_cose_crypto_hash)",
-              (uint32_t)sizeof(struct t_cose_crypto_hash),
-              pfOutput, pOutCtx);
-    PrintSize("sizeof(struct t_cose_parameters)",
-              (uint32_t)sizeof(struct t_cose_parameters),
-              pfOutput, pOutCtx);
-    PrintSize("sizeof(struct t_cose_sign1_verify_ctx)",
-              (uint32_t)sizeof(struct t_cose_sign1_verify_ctx),
-              pfOutput, pOutCtx);
+   /* Type and size of return from sizeof() varies. These will never be large
+    * so cast to uint32_t is safe.
+    */
     PrintSize("sizeof(struct t_cose_parameter)",
               (uint32_t)sizeof(struct t_cose_parameter),
               pfOutput, pOutCtx);
     PrintSize("sizeof(struct t_cose_parameters)",
               (uint32_t)sizeof(struct t_cose_parameters),
               pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_key)",
+              (uint32_t)sizeof(struct t_cose_key),
+              pfOutput, pOutCtx);
+
+    PrintSize("sizeof(struct t_cose_sign_ctx)",
+              (uint32_t)sizeof(struct t_cose_sign_sign_ctx),
+              pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_sign1_ctx)",
+              (uint32_t)sizeof(struct t_cose_sign1_sign_ctx),
+              pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_sign_verify_ctx)",
+              (uint32_t)sizeof(struct t_cose_sign_verify_ctx),
+              pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_sign1_verify_ctx)",
+              (uint32_t)sizeof(struct t_cose_sign1_verify_ctx),
+              pfOutput, pOutCtx);
+
+    PrintSize("sizeof(struct t_cose_encrypt_enc)",
+              (uint32_t)sizeof(struct t_cose_encrypt_enc),
+              pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_encrypt_dec_ctx)",
+              (uint32_t)sizeof(struct t_cose_encrypt_dec_ctx),
+              pfOutput, pOutCtx);
+
+    PrintSize("sizeof(struct t_cose_mac_calculate_ctx)",
+              (uint32_t)sizeof(struct t_cose_mac_calculate_ctx),
+              pfOutput, pOutCtx);
+
+    PrintSize("sizeof(struct t_cose_mac_validate_ctx)",
+              (uint32_t)sizeof(struct t_cose_mac_validate_ctx),
+              pfOutput, pOutCtx);
+
+    PrintSize("sizeof(struct t_cose_signature_sign_main)",
+              (uint32_t)sizeof(struct t_cose_signature_sign_main),
+              pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_signature_verify_main)",
+              (uint32_t)sizeof(struct t_cose_signature_verify_main),
+              pfOutput, pOutCtx);
+
+    PrintSize("sizeof(struct t_cose_signature_sign_eddsa)",
+               (uint32_t)sizeof(struct t_cose_signature_sign_eddsa),
+               pfOutput, pOutCtx);
+     PrintSize("sizeof(struct t_cose_signature_verify_eddsa)",
+               (uint32_t)sizeof(struct t_cose_signature_verify_eddsa),
+               pfOutput, pOutCtx);
+
+    PrintSize("sizeof(struct t_cose_recipient_enc_keywrap)",
+              (uint32_t)sizeof(struct t_cose_recipient_enc_keywrap),
+              pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_recipient_dec_keywrap)",
+              (uint32_t)sizeof(struct t_cose_recipient_dec_keywrap),
+              pfOutput, pOutCtx);
+
+    PrintSize("sizeof(struct t_cose_recipient_enc_hpke)",
+              (uint32_t)sizeof(struct t_cose_recipient_enc_keywrap),
+              pfOutput, pOutCtx);
+    PrintSize("sizeof(struct t_cose_recipient_dec_hpke)",
+              (uint32_t)sizeof(struct t_cose_recipient_dec_keywrap),
+              pfOutput, pOutCtx);
+
+    PrintSize("sizeof(struct t_cose_crypto_hash)",
+              (uint32_t)sizeof(struct t_cose_crypto_hash),
+              pfOutput, pOutCtx);
+
     (*pfOutput)("", pOutCtx, 1);
 }
