@@ -462,8 +462,6 @@ t_cose_sign1_encode_signature_aad(struct t_cose_sign1_sign_ctx *context,
  *        \c COSE_Sign1 message.
  *
  * \param[in] context              The t_cose signing context.
- * \param[in] payload_is_detached  If the payload is to be detached, this
- *                                 is \c true.
  * \param[in] cbor_encode_ctx      Encoding context to output to.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
@@ -474,7 +472,7 @@ t_cose_sign1_encode_signature_aad(struct t_cose_sign1_sign_ctx *context,
  */
 static enum t_cose_err_t
 t_cose_sign1_encode_parameters_private(struct t_cose_sign1_sign_ctx *context,
-                                       bool              payload_is_detached,
+                                       bool                  payload_is_detached,
                                        QCBOREncodeContext   *cbor_encode_ctx);
 
 
@@ -483,8 +481,8 @@ t_cose_sign1_encode_parameters(struct t_cose_sign1_sign_ctx *context,
                                QCBOREncodeContext           *cbor_encode_ctx)
 {
     return t_cose_sign1_encode_parameters_private(context,
-                                                   false,
-                                                   cbor_encode_ctx);
+                                                  false,
+                                                  cbor_encode_ctx);
 }
 
 
@@ -602,7 +600,6 @@ t_cose_sign1_encode_signature_aad(struct t_cose_sign1_sign_ctx *me,
                                                     cbor_encode_ctx);
 }
 
-
 static inline enum t_cose_err_t
 t_cose_sign1_encode_signature(struct t_cose_sign1_sign_ctx *me,
                               QCBOREncodeContext           *cbor_encode_ctx)
@@ -624,9 +621,12 @@ t_cose_sign1_encode_parameters_private(struct t_cose_sign1_sign_ctx *me,
                                        bool                payload_is_detached,
                                        QCBOREncodeContext *cbor_encode_ctx)
 {
-    return t_cose_sign_encode_start(&(me->me2),
-                                    payload_is_detached,
+    enum t_cose_err_t err = t_cose_sign_encode_start(&(me->me2),
                                     cbor_encode_ctx);
+    if (!payload_is_detached) {
+        QCBOREncode_BstrWrap(cbor_encode_ctx);
+    }
+    return err;
 }
 
 
@@ -636,12 +636,16 @@ t_cose_sign1_encode_parameters_private(struct t_cose_sign1_sign_ctx *me,
 static inline enum t_cose_err_t
 t_cose_sign1_encode_signature_aad_private(struct t_cose_sign1_sign_ctx *me,
                                           struct q_useful_buf_c aad,
-                                          struct q_useful_buf_c detached_payload,
+                                          struct q_useful_buf_c signed_payload,
                                           QCBOREncodeContext   *cbor_encode_ctx)
 {
+    if (q_useful_buf_c_is_null(signed_payload)) {
+        /* Non Detached Content mode, close BstrWrap for backword compatibility only for t_cose_sign1_* interfaces */
+        QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
+    }
     return t_cose_sign_encode_finish(&(me->me2),
                                      aad,
-                                     detached_payload,
+                                     signed_payload,
                                      cbor_encode_ctx);
 }
 

@@ -331,6 +331,7 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     enum t_cose_err_t            result;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
     Q_USEFUL_BUF_MAKE_STACK_UB(  small_signed_cose_buffer, 15);
+    struct q_useful_buf_c        payload;
     struct q_useful_buf_c        signed_cose;
 
     /* -- Test bad algorithm ID 0 -- */
@@ -364,7 +365,6 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 
     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_SHORT_CIRCUIT_256);
     result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
-
 
     QCBOREncode_AddSZString(&cbor_encode, "payload");
     /* Force a CBOR encoding error by closing a map that is not open */
@@ -569,7 +569,6 @@ int_fast32_t short_circuit_decode_only_test()
     if(result) {
         return 1000 + (int32_t)result;
     }
-
 
     QCBOREncode_AddSZString(&cbor_encode, "payload");
 

@@ -319,7 +319,6 @@ t_cose_sign_sign_detached(struct t_cose_sign_sign_ctx *context,
  */
 enum t_cose_err_t
 t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *context,
-                         bool                         payload_is_detached,
                          QCBOREncodeContext          *cbor_encode_ctx);
 
 
@@ -351,7 +350,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *context,
 enum t_cose_err_t
 t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *context,
                           struct q_useful_buf_c        aad,
-                          struct q_useful_buf_c        detached_payload,
+                          struct q_useful_buf_c        signed_payload,
                           QCBOREncodeContext          *cbor_encode_ctx);
 
 

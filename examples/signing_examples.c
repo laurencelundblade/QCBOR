@@ -512,7 +512,7 @@ int32_t two_step_sign_example_new(void)
      * This just outputs the COSE_Sign1 header parameters and gets set
      * up for the payload to be output.
      */
-    return_value = t_cose_sign_encode_start(&sign_ctx, false, &cbor_encode);
+    return_value = t_cose_sign_encode_start(&sign_ctx, &cbor_encode);
 
     printf("Encoded COSE headers: %d (%s)\n", return_value, return_value ? "fail" : "success");
     if(return_value) {
@@ -544,6 +544,7 @@ int32_t two_step_sign_example_new(void)
      * message. For that call the payload is just passed in as a
      * buffer.
      */
+    QCBOREncode_BstrWrap(&cbor_encode);
     QCBOREncode_OpenMap(&cbor_encode);
     QCBOREncode_AddSZStringToMap(&cbor_encode, "BeingType", "Humanoid");
     QCBOREncode_AddSZStringToMap(&cbor_encode, "Greeting", "We come in peace");
@@ -552,6 +553,7 @@ int32_t two_step_sign_example_new(void)
     QCBOREncode_AddSZStringToMap(&cbor_encode, "BrainSize", "medium");
     QCBOREncode_AddBoolToMap(&cbor_encode, "DrinksWater", true);
     QCBOREncode_CloseMap(&cbor_encode);
+    QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &payload);
 
     printf("Payload added\n");
 
@@ -563,7 +565,7 @@ int32_t two_step_sign_example_new(void)
      */
     return_value = t_cose_sign_encode_finish(&sign_ctx,
                                              NULL_Q_USEFUL_BUF_C,
-                                             NULL_Q_USEFUL_BUF_C,
+                                             payload,
                                              &cbor_encode);
 
     printf("Fnished signing: %d (%s)\n", return_value, return_value ? "fail" : "success");

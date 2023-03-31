@@ -31,7 +31,6 @@
  */
 enum t_cose_err_t
 t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
-                         bool                         payload_is_detached,
                          QCBOREncodeContext          *cbor_encode_ctx)
 {
     enum t_cose_err_t              return_value;
@@ -98,16 +97,6 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
         goto Done;
     }
 
-    /* --- Get started on the payload --- */
-    if(!payload_is_detached) {
-        /* The caller will encode the payload directly into the
-         * QCBOREncoder. It is byte-string wrapped so, open the
-         * wrapping. If the payload is detached, then it is sent
-         * separately and there is nothing to do.
-         */
-        QCBOREncode_BstrWrap(cbor_encode_ctx);
-    }
-
     /* Failures in CBOR encoding will be caught in
      * t_cose_sign_encode_finish() or other. No need to track here as the QCBOR
      * encoder tracks them internally.
@@ -124,23 +113,13 @@ Done:
 enum t_cose_err_t
 t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
                           struct q_useful_buf_c        aad,
-                          struct q_useful_buf_c        detached_payload,
+                          struct q_useful_buf_c        signed_payload,
                           QCBOREncodeContext          *cbor_encode_ctx)
 {
     enum t_cose_err_t             return_value;
     QCBORError                    cbor_err;
-    struct q_useful_buf_c         signed_payload;
     struct t_cose_signature_sign *signer;
     struct t_cose_sign_inputs     sign_inputs;
-
-    /* --- Close off the payload --- */
-    if(q_useful_buf_c_is_null(detached_payload)) {
-        /* Payload is inline, not detached */
-        QCBOREncode_CloseBstrWrap2(cbor_encode_ctx, false, &signed_payload);
-    } else {
-        signed_payload = detached_payload;
-    }
-
 
     /* --- Early error check --- */
     /* Check that there are no CBOR encoding errors before proceeding
@@ -227,7 +206,6 @@ t_cose_sign_one_shot(struct t_cose_sign_sign_ctx *me,
 
     /* --- Output the header parameters into the encoder context --- */
     return_value = t_cose_sign_encode_start(me,
-                                            payload_is_detached,
                                            &encode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -245,14 +223,9 @@ t_cose_sign_one_shot(struct t_cose_sign_sign_ctx *me,
          * function does the job just fine because it just adds bytes
          * to the encoded output without anything extra.
          */
-        QCBOREncode_AddEncoded(&encode_context, payload);
+        QCBOREncode_AddBytes(&encode_context, payload);
     }
 
-    /* --- Sign and output signature to the encoder context --- */
-    if(!payload_is_detached) {
-        // TODO: combine with above?
-        payload = NULL_Q_USEFUL_BUF_C;
-    }
     return_value = t_cose_sign_encode_finish(me,
                                              aad,
                                              payload,

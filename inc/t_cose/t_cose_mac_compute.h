@@ -197,7 +197,6 @@ are replaced with t_cose_sign1_add_body_header_parameters()
  */
 enum t_cose_err_t
 t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *context,
-                             bool                             payload_is_detached,
                              QCBOREncodeContext              *cbor_encode_ctx);
 
 /**
@@ -218,7 +217,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *context,
  */
 enum t_cose_err_t
 t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *context,
-                      struct q_useful_buf_c            detached_payload,
+                      struct q_useful_buf_c            payload,
                       QCBOREncodeContext              *cbor_encode_ctx);
 
 

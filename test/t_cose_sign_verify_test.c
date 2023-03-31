@@ -477,7 +477,6 @@ int_fast32_t sign_verify_make_cwt_test()
                                Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(xx));
     QCBOREncode_CloseMap(&cbor_encode);
 
-
     /* -- Finish up the COSE_Sign1. This is where the signing happens -- */
     result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
     if(result) {
