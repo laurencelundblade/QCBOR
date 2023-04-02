@@ -31,8 +31,9 @@ static test_entry s_tests[] = {
 
     TEST_ENTRY(one_step_sign_example),
     TEST_ENTRY(two_step_sign_example),
-    TEST_ENTRY(two_step_sign_example_new),
-    TEST_ENTRY(two_step_sign_example_new_verify),
+    TEST_ENTRY(one_step_multi_sign_detached_example),
+    TEST_ENTRY(old_one_step_sign_example),
+    TEST_ENTRY(old_two_step_sign_example),
 
     TEST_ENTRY(encrypt0_example),
 #ifndef T_COSE_DISABLE_KEYWRAP

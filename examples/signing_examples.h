@@ -1,7 +1,7 @@
 /*
  * signing_examples.h
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  *
  * Created by Laurence Lundblade on 2/20/23 from previous files.
  *
@@ -16,7 +16,9 @@
 
 int32_t one_step_sign_example(void);
 int32_t two_step_sign_example(void);
-int32_t two_step_sign_example_new(void);
-int32_t two_step_sign_example_new_verify(void);
+int32_t one_step_multi_sign_detached_example(void);
+int32_t old_one_step_sign_example(void);
+int32_t old_two_step_sign_example(void);
+
 
 #endif /* signing_examples_h */
