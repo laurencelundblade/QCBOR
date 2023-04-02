@@ -239,10 +239,10 @@ struct t_cose_parameter {
 
     /** The value of the parameter. */
     union {
-        int64_t               int64;
-        struct q_useful_buf_c string;
+        int64_t                            int64;
+        struct q_useful_buf_c              string;
         struct t_cose_special_param_encode special_encode;
-        struct t_cose_special_param_decode  special_decode;
+        struct t_cose_special_param_decode special_decode;
     } value;
 
     /** next parameter in the linked list or NULL at the end of the list. */

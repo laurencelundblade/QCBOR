@@ -38,7 +38,6 @@ struct t_cose_signature_sign_main {
     struct q_useful_buf_c        kid;
     struct t_cose_key            signing_key;
     void                        *crypto_context;
-    uint32_t                     option_flags; // TODO: use or get rid of
     struct t_cose_parameter      local_params[2];
     struct t_cose_parameter     *added_signer_params;
 };
