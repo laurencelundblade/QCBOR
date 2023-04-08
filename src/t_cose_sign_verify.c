@@ -158,6 +158,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
     QCBORDecode_SaveCursor(qcbor_decoder, &saved_cursor);
 #endif
 
+    /* Loop over verifier instances */
     for(verifier = me->verifiers;
         verifier != NULL;
         verifier = (struct t_cose_signature_verify *)verifier->rs.next) {
@@ -167,7 +168,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
                                 header_location,  /* in: nesting/index */
                                 sign_inputs,      /* in: everything covered by signature */
                                 me->p_storage,    /* in: pool of t_cose_parameter structs */
-                                cbor_decoder,     /* in: decoder */
+                                cbor_decoder,     /* in: CBOR decoder */
                                 sig_param_list);  /* out: linked list of decoded params*/
         if(return_value == T_COSE_SUCCESS) {
             /* If here, then the decode was a success, the crypto

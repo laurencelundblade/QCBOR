@@ -1157,6 +1157,81 @@ void
 t_cose_crypto_free_symmetric_key(struct t_cose_key key);
 
 
+
+/**
+ * \brief RFC 5869 HKDF
+ *
+ * \param[in] cose_hash_algorithm_id  Hash algorithm the HKDF uses.
+ * \param[in] salt     The salt bytes or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] ikm   The input key material.
+ * \param[in] info   The info bytes or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in,out] okm_buffer  The output key material.
+ *
+ * \retval T_COSE_ERR_UNSUPPORTED_HASH
+ * \retval T_COSE_ERR_HKDF_FAIL
+ *
+ * With HKDF you can request the output be up to 255 times
+ * the length of output of the hash function. In this interface that length
+ * request is the length of the okm_buffer. On success
+ * the whole \c okm_buffer will always be filled in.
+ * The usual parameter pair of an empty \c q_useful_buf
+ * passed in and filled-in \c q_useful_buf_c returned is not
+ * used because it would be redundant and waste some
+ * object code.
+ *
+ * The salt is usually a non-secret random value and is
+ * optional.
+ *
+ * The input key material is a secret and is not optional.
+ *
+ * The info is an optional context and application-specific
+ * information string.
+ *
+ * See RFC 5869 for a detailed description.
+ */
+enum t_cose_err_t
+t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
+                   struct q_useful_buf_c  salt,
+                   struct q_useful_buf_c  ikm,
+                   struct q_useful_buf_c  info,
+                   struct q_useful_buf    okm_buffer);
+
+
+
+#ifdef WE_NEED_THESE_FOR_HPKE
+/* HPKE doesn't use the basic hkdf. */
+
+/** \brief HKDF extract
+
+ * This provides the HKDF extract function defined in RFC 5869 for
+ * various hash functions. This does not use prk_buffer as in/out
+ * the way t_cose_crypto_hkdf() uses okm_buffer. Instead this
+ * is more like the usual use of the pair of a buffer in and a
+ * constant pointer and length for the value out.
+
+ */
+enum t_cose_err_t
+t_cose_crypto_hkdf_extract(int32_t                cose_hash_algorithm_id,
+                           struct q_useful_buf_c  salt,
+                           struct q_useful_buf_c  ikm,
+                           struct q_useful_buf    prk_buffer
+                           struct q_useful_buf_c *prk);
+
+
+/** \brief HKDF epxand
+
+* This provides the HKDF expand function defined in RFC 5869 for
+* various hash functions.
+ * This use the okm_buffer as in/out like t_cose_crypto_hkdf().
+*/
+enum t_cose_err_t
+t_cose_crypto_hkdf_expand(int32_t                cose_hash_algorithm_id,
+                          struct q_useful_buf_c  prk,
+                          struct q_useful_buf_c  info,
+                          struct q_useful_buf    okm_buffer);
+
+#endif /* WE_NEED_THESE */
+
 #ifdef __cplusplus
 }
 #endif

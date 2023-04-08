@@ -240,3 +240,65 @@ int_fast32_t kw_test(void)
 }
 
 #endif /* !T_COSE_DISABLE_KEYWRAP */
+
+
+
+
+/* The following are one of the test vectors from RFC 5869. One is
+ * enough as the goal is just to validate the adaptor layer, not fully
+ * test the HKDF implementation as it was presumably tested when the
+ * crypto library was released. */
+static const uint8_t tc1_ikm_bytes[] = {
+    0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
+    0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
+    0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b
+};
+
+static const uint8_t tc1_salt_bytes[] = {
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+    0x08, 0x09, 0x0a, 0x0b, 0x0c
+};
+
+static const uint8_t tc1_info_bytes[] = {
+    0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
+    0xf8, 0xf9
+};
+
+#ifndef T_COSE_USE_B_CON_SHA256
+static const uint8_t tc1_okm_bytes[] = {
+    0x3c, 0xb2, 0x5f, 0x25, 0xfa, 0xac, 0xd5, 0x7a,
+    0x90, 0x43, 0x4f, 0x64, 0xd0, 0x36, 0x2f, 0x2a,
+    0x2d, 0x2d, 0x0a, 0x90, 0xcf, 0x1a, 0x5a, 0x4c,
+    0x5d, 0xb0, 0x2d, 0x56, 0xec, 0xc4, 0xc5, 0xbf,
+    0x34, 0x00, 0x72, 0x08, 0xd5, 0xb8, 0x87, 0x18,
+    0x58, 0x65
+};
+#endif
+
+int_fast32_t hkdf_test(void)
+{
+    Q_USEFUL_BUF_MAKE_STACK_UB(tc1_okm, 42);
+    enum t_cose_err_t          err;
+    struct q_useful_buf_c      okm;
+
+    err = t_cose_crypto_hkdf(T_COSE_ALGORITHM_SHA_256,
+                         Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(tc1_salt_bytes),
+                         Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(tc1_ikm_bytes),
+                         Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(tc1_info_bytes),
+                         tc1_okm);
+    if(err) {
+        return 1;
+    }
+
+    okm.len = tc1_okm.len;
+    okm.ptr = tc1_okm.ptr;
+
+#ifndef T_COSE_USE_B_CON_SHA256
+    if(q_useful_buf_compare(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(tc1_okm_bytes),
+                            okm)) {
+        return 2;
+    }
+#endif
+
+    return 0;
+}

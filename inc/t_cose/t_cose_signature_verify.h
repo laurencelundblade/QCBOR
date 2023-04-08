@@ -21,17 +21,13 @@
  * calls to run signature verification. A concrete
  * implementation of this must be created in actual use.
  *
- * Implementations may choose to support only COSE_Sign1,
- * only COSE_Signature/COSE_Sign or both. They are encouraged to
- * support both.
+ * Verifiers can do just a little or quite a lot. The
+ * minimum would probably be verification of only COSE_Sign1
+ * and only one key. A large verifier might support
+ * look up in a key database, multiple algorithms,
+ * and maybe even complex add-ons that manifest
+ * as additional header parameters in a COSE_Signature.
  *
- * An instance of this may be used without any verification
- * key material to decode to get the key ID or such.
- *
- * An instance of this may also be set up with key material,
- * perhaps just one key.
- *
- * An instance of this may be wired up to a key database.
  */
 struct t_cose_signature_verify;
 

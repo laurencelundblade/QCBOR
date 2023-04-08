@@ -572,6 +572,14 @@ enum t_cose_err_t {
     /** The specific KEM is not supported.  */
     T_COSE_ERR_UNSUPPORTED_KEM_ALG = 75,
 
+    /** HKDF failed. */
+    T_COSE_ERR_HKDF_FAIL = 76,
+
+    /** The length of an input is invalid. In particular, this occurs with the OpenSSL crypto
+     * adaptor when a size greater than MAX_INT is given because OpenSSL
+     * input lengths are type int rather than size_t. */
+    T_COSE_ERR_INVALID_LENGTH = 77
+
 };
 
 

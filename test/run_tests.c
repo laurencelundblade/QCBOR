@@ -48,6 +48,7 @@ static test_entry s_tests[] = {
 #ifndef T_COSE_DISABLE_KEYWRAP
     TEST_ENTRY(kw_test),
 #endif
+    TEST_ENTRY(hkdf_test),
 
 #ifndef T_COSE_DISABLE_SIGN1
     TEST_ENTRY(sign1_structure_decode_test),
