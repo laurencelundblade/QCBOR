@@ -541,7 +541,10 @@ enum t_cose_err_t {
 
     T_COSE_ERR_NO_VERIFIERS = 66,
 
-    /* A verifier declined to verify a COSE_Signature for a reason other
+    /* When \ref T_COSE_OPT_VERIFY_ALL_SIGNATURES is requested, one of the
+     * signatures could not be verified because no verifier was configured
+     * to handle it, typically because there was not verify for the algorithm.
+     * Also returned by a verifier when it declines to verify a COSE_Signature for a reason other
      * than algorithm ID or kid. */
     T_COSE_ERR_DECLINE = 67,
 

@@ -16,6 +16,9 @@
 #include "init_keys.h"
 #include "t_cose_sign_verify_test.h"
 
+#include "t_cose/t_cose_signature_verify_eddsa.h"
+#include "t_cose/t_cose_signature_verify_main.h"
+
 #include "t_cose_crypto.h" /* Just for t_cose_crypto_sig_size() */
 
 /* These are complete known-good COSE messages for a verification
@@ -984,6 +987,8 @@ Done:
 }
 
 
+
+
 int_fast32_t sign_verify_multi(void)
 {
     enum t_cose_err_t              result;
@@ -1052,7 +1057,7 @@ int_fast32_t sign_verify_multi(void)
         return 2;
     }
 
-    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN | T_COSE_VERIFY_ALL_SIGNATURES);
+    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN | T_COSE_OPT_VERIFY_ALL_SIGNATURES);
 
     t_cose_signature_verify_main_init(&verify1);
     t_cose_signature_verify_main_set_key(&verify1, key_pair1, Q_USEFUL_BUF_FROM_SZ_LITERAL("kid1"));
@@ -1067,6 +1072,7 @@ int_fast32_t sign_verify_multi(void)
                                  NULL_Q_USEFUL_BUF_C,
                                 &verified_payload,
                                  NULL);
+
 
 #ifdef QCBOR_FOR_T_COSE_2
     if(result) {
@@ -1089,3 +1095,183 @@ int_fast32_t sign_verify_multi(void)
 
     return 0;
 }
+
+
+
+static enum t_cose_err_t
+make_triple_signed(struct q_useful_buf buffer,
+                   struct q_useful_buf_c *signed_message)
+{
+    enum t_cose_err_t            result;
+    struct t_cose_sign_sign_ctx  signing_ctx;
+    MakeUsefulBufOnStack(        eddsa_aux_buf, 100);
+
+
+    t_cose_sign_sign_init(&signing_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN);
+
+    struct t_cose_signature_sign_main  ecdsa_signer;
+    struct t_cose_key                  ecdsa_key;
+    t_cose_signature_sign_main_init(&ecdsa_signer, T_COSE_ALGORITHM_ES256);
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &ecdsa_key);
+    t_cose_signature_sign_main_set_signing_key(&ecdsa_signer,
+                                               ecdsa_key,
+                                               Q_USEFUL_BUF_FROM_SZ_LITERAL("ecsda_kid"));
+    t_cose_sign_add_signer(&signing_ctx, t_cose_signature_sign_from_main(&ecdsa_signer));
+
+
+
+    struct t_cose_signature_sign_eddsa eddsa_signer;
+    struct t_cose_key                  eddsa_key;
+    t_cose_signature_sign_eddsa_init(&eddsa_signer);
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_EDDSA, &eddsa_key);
+    t_cose_signature_sign_eddsa_set_signing_key(&eddsa_signer,
+                                               eddsa_key,
+                                               Q_USEFUL_BUF_FROM_SZ_LITERAL("eddsa_kid"));
+    t_cose_signature_sign_eddsa_set_auxiliary_buffer(&eddsa_signer, eddsa_aux_buf);
+    t_cose_sign_add_signer(&signing_ctx, t_cose_signature_sign_from_eddsa(&eddsa_signer));
+
+
+    struct t_cose_signature_sign_main  rsa_signer;
+    struct t_cose_key                  rsa_key;
+    t_cose_signature_sign_main_init(&rsa_signer, T_COSE_ALGORITHM_PS256);
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_PS256, &rsa_key);
+    t_cose_signature_sign_main_set_signing_key(&rsa_signer,
+                                               rsa_key,
+                                               Q_USEFUL_BUF_FROM_SZ_LITERAL("rsa_kid"));
+    t_cose_sign_add_signer(&signing_ctx, t_cose_signature_sign_from_main(&rsa_signer));
+
+    result = t_cose_sign_sign(&signing_ctx,
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE PAYLOAD"),
+                               buffer, signed_message);
+
+    free_fixed_signing_key(ecdsa_key);
+    free_fixed_signing_key(eddsa_key);
+    free_fixed_signing_key(rsa_key);
+
+    return result;
+}
+
+
+int32_t verify_multi_test(void)
+{
+    enum t_cose_err_t            err;
+    MakeUsefulBufOnStack(        cose_sign_buf, 700);
+    struct q_useful_buf_c        cose_sign;
+    struct t_cose_parameter      param_pool[25];
+    Q_USEFUL_BUF_MAKE_STACK_UB(  auxiliary_buffer, 100);
+
+    if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256) ||
+        !t_cose_is_algorithm_supported(T_COSE_ALGORITHM_EDDSA) ||
+        !t_cose_is_algorithm_supported(T_COSE_ALGORITHM_PS256)) {
+        /* T_COSE_ALGORITHM_ES512 is required for this test */
+        return 0;
+    }
+    /* This requires Eddsa, RSA and ECDSA. Since PSA doesn't support EdDSA,
+     * this can only run with OpenSSL.
+     */
+    // TODO: check for algorithm support?
+    err = make_triple_signed(cose_sign_buf, &cose_sign);
+    if(err) {
+        return 895;
+    }
+
+
+    struct t_cose_sign_verify_ctx  verify_ctx;
+    struct q_useful_buf_c payload;
+
+    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN | T_COSE_OPT_VERIFY_ALL_SIGNATURES);
+
+    struct t_cose_parameter_storage st;
+    T_COSE_PARAM_STORAGE_INIT(st, param_pool);
+    t_cose_sign_add_param_storage(&verify_ctx, &st);
+
+
+    struct t_cose_signature_verify_main verify_ecdsa;
+    struct t_cose_key                   ecdsa_key;
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &ecdsa_key);
+    t_cose_signature_verify_main_init(&verify_ecdsa);
+    t_cose_signature_verify_main_set_key(&verify_ecdsa,
+                                         ecdsa_key,
+                                         Q_USEFUL_BUF_FROM_SZ_LITERAL("ecsda_kid"));
+    t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_ecdsa);
+
+
+    err = t_cose_sign_verify(&verify_ctx,
+                              cose_sign,
+                              Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
+                             &payload,
+                              NULL);
+
+    /* Not all verifier were configured, but verify all was requested so
+     * decline is expected */
+
+#ifdef QCBOR_FOR_T_COSE_2
+    if(err != T_COSE_ERR_DECLINE) {
+        return 11;
+    }
+#else
+    if(err != T_COSE_ERR_CANT_PROCESS_MULTIPLE) {
+        return 33;
+    }
+#endif /* QCBOR_FOR_T_COSE_2 */
+
+
+
+
+    struct t_cose_signature_verify_eddsa verify_eddsa;
+    struct t_cose_key                   eddsa_key;
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_EDDSA, &eddsa_key);
+    t_cose_signature_verify_eddsa_init(&verify_eddsa, 0);  // TODO: why does this have option flags and _main_ doesn't
+    t_cose_signature_verify_eddsa_set_key(&verify_eddsa,
+                                         eddsa_key,
+                                         Q_USEFUL_BUF_FROM_SZ_LITERAL("eddsa_kid"));
+    t_cose_signature_verify_eddsa_set_auxiliary_buffer(&verify_eddsa, auxiliary_buffer);
+    t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_eddsa);
+
+
+
+    struct t_cose_signature_verify_main verify_rsa;
+    struct t_cose_key                   rsa_key;
+    init_fixed_test_signing_key(T_COSE_ALGORITHM_PS256, &rsa_key);
+    t_cose_signature_verify_main_init(&verify_rsa);
+    t_cose_signature_verify_main_set_key(&verify_rsa,
+                                         rsa_key,
+                                         Q_USEFUL_BUF_FROM_SZ_LITERAL("rsa_kid"));
+    t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_rsa);
+
+    err = t_cose_sign_verify(&verify_ctx,
+                              cose_sign,
+                              Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
+                             &payload,
+                              NULL);
+
+
+#ifdef QCBOR_FOR_T_COSE_2
+    if(err) {
+        return 3;
+    }
+#else
+    if(err != T_COSE_ERR_CANT_PROCESS_MULTIPLE) {
+        return 33;
+    }
+#endif /* QCBOR_FOR_T_COSE_2 */
+
+    return 0;
+
+
+}
+
+/*
+
+ Conditions:
+ - Require all three to verify and see success
+ - Require all three where one fails
+ - Require one sig and the 3rd one succeeds
+ - Require one sig and none succeed because they all decline
+ - Require one sig and one fails because the data is corrupt/key is wrong
+
+- Use one message signed with ES256, EdDSA and RS2048
+ 
+
+ */

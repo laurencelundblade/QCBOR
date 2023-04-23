@@ -1149,7 +1149,7 @@ foo_decode_cb(void                    *cb_context,
         int64_t n1, n2;
 
         QCBORDecode_EnterMap(cbor_decoder, NULL);
-        QCBORDecode_GetInt64InMapSZ (cbor_decoder, "xxx", &n1);
+        QCBORDecode_GetInt64InMapSZ(cbor_decoder, "xxx", &n1);
         QCBORDecode_GetInt64InMapSZ(cbor_decoder, "yyy", &n2);
         QCBORDecode_ExitMap(cbor_decoder);
         if(QCBORDecode_IsNotWellFormedError(QCBORDecode_GetError(cbor_decoder))) {
@@ -1158,7 +1158,6 @@ foo_decode_cb(void                    *cb_context,
 
         parameter->value.special_decode.value.little_buf[0] = (uint8_t)n1;
         parameter->value.special_decode.value.little_buf[1] = (uint8_t)n2;
-        parameter->value.special_decode.status = SP_DECODED;
         parameter->value_type = T_COSE_PARAMETER_TYPE_SPECIAL;
 
     } else if(parameter->label == 314) {
@@ -1166,15 +1165,10 @@ foo_decode_cb(void                    *cb_context,
         QCBORDecode_GetDouble(cbor_decoder, &dd);
 
         parameter->value.special_decode.value.uint64 = UsefulBufUtil_CopyDoubleToUint64(dd);
-        parameter->value.special_decode.status = SP_DECODED;
         parameter->value_type = T_COSE_PARAMETER_TYPE_SPECIAL;
 
     } else {
-        /* A label we don't understand. */
-        if(parameter->critical) {
-            return T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
-        }
-        parameter->value.special_decode.status = SP_NOT_DECODED;
+        return T_COSE_ERR_DECLINE;
     }
 
     return T_COSE_SUCCESS;
@@ -1191,6 +1185,8 @@ float_encode_cb(const struct t_cose_parameter  *parameter,
 
     return T_COSE_SUCCESS;
 }
+
+
 
 
 static int32_t
@@ -1275,12 +1271,13 @@ make_complex_cose_sign(struct q_useful_buf cose_sign_buf, struct q_useful_buf_c 
     free_fixed_signing_key(sig2_key);
     free_fixed_signing_key(sig3_key);
 
+
     return 0;
 }
 
 
 /* This checks the value for all special headers by having the
- * expected valued hard-coded in.
+ * expected values hard-coded in.
  */
 static int32_t
 match_special(const struct t_cose_parameter *p1)
@@ -1510,7 +1507,7 @@ int_fast32_t sign1_structure_decode_test(void)
                                     &payload,
                                     &decoded_params);
         if(result != T_COSE_SUCCESS) {
-            return -999;
+            return -99;
         }
 
         return_value = check_complex_sign_params(decoded_params);

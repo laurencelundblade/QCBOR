@@ -114,8 +114,8 @@ t_cose_signature_sign_main_cb(struct t_cose_signature_sign  *me_x,
 
     /* -- The headers for a COSE_Sign -- */
     t_cose_signature_sign_headers_main_cb(me_x, &parameters);
-    t_cose_parameter_list_append(parameters, me->added_signer_params);
-    t_cose_encode_headers(qcbor_encoder,
+    t_cose_parameter_list_append(&parameters, me->added_signer_params);
+    t_cose_headers_encode(qcbor_encoder,
                           parameters,
                           &sign_inputs->sign_protected);
 

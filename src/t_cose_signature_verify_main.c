@@ -53,7 +53,29 @@ sig_algorithm_check(int32_t cose_algorithm_id)
 }
 
 
-/** This is an implementation of \ref t_cose_signature_verify1_cb. */
+/**
+ * \brief "Main" verifier implementation of \ref t_cose_signature_verify1_cb.
+ *
+ * \param[in] me_x                       The context, the  t_cose_signature_verify_main
+ *                                     instance.
+ * \param[in] option_flags          Option flags from t_cose_sign_verify_init(). Mostly for \ref T_COSE_OPT_DECODE_ONLY.
+ * \param[in] sign_inputs             Payload, aad and header parameters to verify.
+ * \param[in] parameter_list           Parameter list in which algorithm and kid is
+ *                                     found.
+ * \param[in] signature                The signature.
+ *
+ * This does the job of calling the crypto that does a signature verification. It is used as a callback
+ * for COSE_Sign1. It is also called for COSE_Signatures in COSE_Sign as the work done
+ * for those is similar and reusing this saves code.
+ *
+ * This does no CBOR decoding.
+ *
+ * Specifically this
+ *  - Checks the algorithm ID
+ *  - Checks the kid if needed
+ *  - Computes the hash over the signed input
+ *  - Call the signature verification alg through the crypto adaptation layer
+ */
 static enum t_cose_err_t
 t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
                                  const uint32_t                   option_flags,
@@ -85,7 +107,8 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
         return T_COSE_SUCCESS;
     }
 
-    // TODO: COSE doesn't require kids to be unique. This code probably won't work if they're not unique
+    // TODO: COSE doesn't require kids to be unique. This code probably won't
+    // work if they're not unique
     kid = t_cose_find_parameter_kid(parameter_list);
     if(!q_useful_buf_c_is_null(me->verification_kid)) {
         if(q_useful_buf_c_is_null(kid)) {
@@ -118,6 +141,30 @@ Done:
 
 
 
+
+/**
+ * \brief "Main" verifier of t_cose_signature_verify_cb.
+ *
+ * \param[in] me_x                      The context, the  t_cose_signature_verify_main
+ *                                    instance.
+ * \param[in] option_flags          Option flags from t_cose_sign_verify_init(). Mostly for \ref T_COSE_OPT_DECODE_ONLY.
+ * \param[in] loc                     The location of the signature inside the COSE_Sign.
+ * \param[in] sign_inputs             Payload, aad and header parameters to verify.
+ * \param[in] param_storage                  The place to put the decoded params.
+ * \param[in] cbor_decoder           The decoder instance from where the
+ *                                     COSE_Signature is decoded.
+ * \param[out] decoded_params  Returned linked list of decoded parameters.
+ *
+ * This CBOR-decodes a COSE_Signature, particularly the header parameters and then
+ * calls t_cose_signature_verify1_main_cb() to verify the signature itself.
+ *
+ * The return code is important here as it determines how decoding and verification
+ * proceeds for COSE_Sign message with multiple COSE_Signatures.
+ *
+ * Note that *decoded_params parameters should be NULL in most cases when
+ * this is called.
+ *
+ */
 /*
  Returns: END_OF_HEADERS if no there are no more COSE_Signatures
           CBOR decoding error
@@ -125,7 +172,6 @@ Done:
           Signature validate
           Signature didn't validate
 
- This is an implementation of t_cose_signature_verify_cb
  */
 
 /** This is an implementation of \ref t_cose_signature_verify_cb. */
@@ -160,6 +206,7 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
                                          param_storage,
                                          decoded_params,
                                         &protected_parameters);
+
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -182,6 +229,7 @@ t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
                                                     sign_inputs,
                                                    *decoded_params,
                                                     signature);
+
 Done:
     return return_value;
 }
@@ -191,7 +239,7 @@ void
 t_cose_signature_verify_main_init(struct t_cose_signature_verify_main *me)
 {
     memset(me, 0, sizeof(*me));
-    me->s.rs.ident = RS_IDENT(TYPE_RS_VERIFIER, 'm');
+    me->s.rs.ident = RS_IDENT(TYPE_RS_VERIFIER, 'M');
     me->s.verify_cb  = t_cose_signature_verify_main_cb;
     me->s.verify1_cb = t_cose_signature_verify1_main_cb;
 }

@@ -98,7 +98,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
 
 
     /* ---- The body header parameters ---- */
-    return_value = t_cose_encode_headers(&cbor_encoder, /* in: cbor encoder */
+    return_value = t_cose_headers_encode(&cbor_encoder, /* in: cbor encoder */
                                          &params[0],    /* in: param linked list */
                                          &body_prot_headers); /* out: bytes for CBOR-encoded protected params */
     if(return_value != T_COSE_SUCCESS) {

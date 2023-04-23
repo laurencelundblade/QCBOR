@@ -117,8 +117,8 @@ t_cose_signature_sign_eddsa_cb(struct t_cose_signature_sign  *me_x,
     QCBOREncode_OpenArray(qcbor_encoder);
 
     t_cose_signature_sign_headers_eddsa_cb(me_x, &parameters);
-    t_cose_parameter_list_append(parameters, me->added_signer_params);
-    t_cose_encode_headers(qcbor_encoder,
+    t_cose_parameter_list_append(&parameters, me->added_signer_params);
+    t_cose_headers_encode(qcbor_encoder,
                           parameters,
                           &sign_inputs->sign_protected);
 
@@ -136,6 +136,7 @@ void
 t_cose_signature_sign_eddsa_init(struct t_cose_signature_sign_eddsa *me)
 {
     memset(me, 0, sizeof(*me));
+    me->s.rs.ident   = RS_IDENT(TYPE_RS_SIGNER, 'E');
     me->s.sign_cb    = t_cose_signature_sign_eddsa_cb;
     me->s.sign1_cb   = t_cose_signature_sign1_eddsa_cb;
     me->s.headers_cb = t_cose_signature_sign_headers_eddsa_cb;

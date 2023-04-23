@@ -668,7 +668,7 @@ param_test(void)
         /* Encode test */
         if(param_test->unencoded.value_type != NO_ENCODE_TEST) {
             QCBOREncode_Init(&qcbor_encoder, encode_buffer);
-            t_cose_result = t_cose_encode_headers(&qcbor_encoder,
+            t_cose_result = t_cose_headers_encode(&qcbor_encoder,
                                                   &(param_test->unencoded),
                                                   NULL);
 
@@ -698,6 +698,8 @@ param_test(void)
             struct t_cose_parameter *decoded_parameter;
 
             QCBORDecode_Init(&decode_context, param_test->encoded, 0);
+
+            decoded_parameter = NULL;
 
             t_cose_result = t_cose_headers_decode(&decode_context,
                                                   (struct t_cose_header_location){0,0},
@@ -765,7 +767,7 @@ param_test(void)
         }
 
         QCBOREncode_Init(&qcbor_encoder, encode_buffer);
-        t_cose_result = t_cose_encode_headers(&qcbor_encoder,
+        t_cose_result = t_cose_headers_encode(&qcbor_encoder,
                                               param_array,
                                               NULL);
 
@@ -814,7 +816,7 @@ param_test(void)
 
 
     QCBOREncode_Init(&qcbor_encoder, encode_buffer);
-    t_cose_result = t_cose_encode_headers(&qcbor_encoder,
+    t_cose_result = t_cose_headers_encode(&qcbor_encoder,
                                           &param_array[0],
                                           NULL);
 
@@ -864,6 +866,7 @@ param_test(void)
     param_storage.size = sizeof(param_array)/sizeof(struct t_cose_parameter);
     param_storage.storage = param_array;
     param_storage.used = 0;
+    dec = NULL;
 
 
     t_cose_result = t_cose_headers_decode(&decode_context,
@@ -910,7 +913,7 @@ param_test(void)
 
     /* Empty parameters section test */
     QCBOREncode_Init(&qcbor_encoder, encode_buffer);
-    t_cose_result = t_cose_encode_headers(&qcbor_encoder,
+    t_cose_result = t_cose_headers_encode(&qcbor_encoder,
                                           NULL,
                                           NULL);
 
@@ -935,6 +938,8 @@ param_test(void)
     param_storage.used = 0;
     param_storage.storage = param_array;
     struct t_cose_parameter *decoded_parameter;
+
+    decoded_parameter = NULL;
 
     QCBORDecode_Init(&decode_context, encoded_params, 0);
 

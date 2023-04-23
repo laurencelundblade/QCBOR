@@ -42,7 +42,6 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
 
     // TODO: support the header decode callbacks
     /* ----  First and second items -- protected & unprotected headers  ---- */
-    *params = NULL;
     err = t_cose_headers_decode(cbor_decoder, /* in: decoder to read from */
                                 loc,          /* in: location in COSE message */
                                 NULL,         /* in: callback for specials */

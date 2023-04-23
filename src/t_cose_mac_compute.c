@@ -79,6 +79,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
     size_t                  tag_len;
     enum t_cose_err_t       return_value;
     struct t_cose_parameter param_storage[2];
+    struct t_cose_parameter *p_tmp;
 
     /*
      * Check the algorithm now by getting the algorithm as an early
@@ -102,10 +103,11 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
     param_storage[0] = t_cose_make_alg_id_parameter(me->cose_algorithm_id);
     param_storage[1] = t_cose_make_kid_parameter(me->kid);
     param_storage[0].next = &param_storage[1];
+    p_tmp = &param_storage[0];
 
-    t_cose_parameter_list_append(&param_storage[0], me->added_body_parameters);
+    t_cose_parameter_list_append(&p_tmp, me->added_body_parameters);
 
-    return_value = t_cose_encode_headers(cbor_encode_ctx,
+    return_value = t_cose_headers_encode(cbor_encode_ctx,
                                          &param_storage[0],
                                          &me->protected_parameters);
 

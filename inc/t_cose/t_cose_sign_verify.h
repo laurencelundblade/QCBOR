@@ -25,7 +25,7 @@ extern "C" {
 #endif
 #endif
 
-/* Warning: multiple signatures and verifiers are still early development. Documentation may be incorrect. */
+/* TODO: Warning: multiple signatures and verifiers are still early development. Documentation may be incorrect. */
 
 
 #define T_COSE_MAX_TAGS_TO_RETURN2 4
@@ -52,6 +52,12 @@ extern "C" {
 #define T_COSE_OPT_ALLOW_SHORT_CIRCUIT 0x00004000
 
 
+/* Requires that ALL COSE_Signatures must be verified successfully. The default
+ * is that only the one must verify.
+ */
+#define T_COSE_OPT_VERIFY_ALL_SIGNATURES  0x0008000
+
+
 
 
 /**
@@ -71,14 +77,6 @@ struct t_cose_sign_verify_ctx {
 };
 
 
-
-
-/* Requires that ALL COSE_Signatures must be verified successfully. The default
- * is that only the one must verify.
- */
-#define T_COSE_VERIFY_ALL_SIGNATURES                  0x0008000
-
-
 /**
  * \brief Initialize for \c COSE_Sign and \c COSE_Sign1 message verification.
  *
@@ -86,6 +84,8 @@ struct t_cose_sign_verify_ctx {
  * \param[in]      option_flags  Options controlling the verification.
  *
  * This must be called before using the verification context.
+ *
+ * TODO: describe (and implement) selection of COSE_Sign1 vs COSE_Sign.
  */
 static void
 t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *context,
@@ -99,7 +99,7 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *context,
  * \param[in] verifier   Pointer to verifier object.
 
  * Verifiers are objects that do the cryptographic operations
- * to verify a COSE_Sign or COSE_Sign1. This is both the
+ * to verify a COSE_Sign or COSE_Sign1. They do both the
  * hashing and the public key cryptography. They also
  * implement the decoding of the COSE_Signature(s) in a
  * COSE_Sign.
@@ -117,7 +117,7 @@ t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *context,
  * For COSE_SIgn messages, t_cose_sign_verify() loops over
  * all the COSE_Signatures. By default the verification is a success
  * if one can be verified and there are no decoding errors. The
- * option \ref T_COSE_VERIFY_ALL_SIGNATURES can be set
+ * option \ref T_COSE_OPT_VERIFY_ALL_SIGNATURES can be set
  * to require that all the signatures verify for the overall COSE_Sign
  * to be a success.
  *
@@ -178,14 +178,14 @@ t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx   *context,
 
 
 /*
- * If customer headers that are not strings or integers needed to be
+ * If custom headers that are not strings or integers needed to be
  * decoded and processed, then use this to set a call back handler.
  * Typically this is not needed.
  */
 static void
-t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx *context,
-                                      t_cose_special_param_decode_cb  *decode_cb,
-                                      void                            *decode_ctx);
+t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *context,
+                                      t_cose_special_param_decode_cb *decode_cb,
+                                      void                           *decode_ctx);
 
 
 /**
@@ -270,7 +270,7 @@ t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx *context);
  */
 
 /**
- * \brief Semi-private function to verify a COSE_Sign1.
+ * \brief Semi-private function to verify a COSE_Sign or COSE_Sign1.
  *
  * \param[in,out] me   The t_cose signature verification context.
  * \param[in] message         Pointer and length of CBOR encoded \c COSE_Sign1
@@ -282,10 +282,10 @@ t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx *context);
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * This does the work for t_cose_sign1_verify(),
- * t_cose_sign1_verify_aad() and t_cose_sign1_verify_detached(). It is
+ * This does the work for t_cose_sign_verify()
+ * and t_cose_sign_verify_detached(). It is
  * a semi-private function which means its interface isn't guaranteed
- * so it should not to call it directly.
+ * so it should not be called directly.
  */
 enum t_cose_err_t
 t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,

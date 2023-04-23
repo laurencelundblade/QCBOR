@@ -73,7 +73,7 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
 #ifdef QCBOR_FOR_T_COSE_2
     SaveDecodeCursor saved_cursor;
 
-    QCBORDecode_SaveCursor(qcbor_decoder, &saved_cursor);
+    QCBORDecode_SaveCursor(cbor_decoder, &saved_cursor);
 #endif
 
     /* Loop over the configured recipients */
@@ -111,7 +111,7 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
 
         /* Loop continues on for the next recipient */
 #ifdef QCBOR_FOR_T_COSE_2
-        QCBORDecode_RestoreCursor(qcbor_decoder, &saved_cursor);
+        QCBORDecode_RestoreCursor(cbor_decoder, &saved_cursor);
 #else
         return T_COSE_ERR_CANT_PROCESS_MULTIPLE;
 #endif
@@ -173,6 +173,8 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     /* The location of body header parameters is 0, 0 */
     header_location.nesting = 0;
     header_location.index   = 0;
+    body_params_list = NULL;
+    rcpnt_params_list = NULL;
 
     return_value =
         t_cose_headers_decode(
@@ -245,11 +247,8 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         /* Successfully decoded one recipient */
         QCBORDecode_ExitArray(&cbor_decoder);
 
-        if(all_params_list == NULL) {
-            all_params_list = rcpnt_params_list;
-        } else {
-            t_cose_parameter_list_append(all_params_list, rcpnt_params_list);
-        }
+
+        t_cose_parameter_list_append(&all_params_list, rcpnt_params_list);
 
         /* The decrypted cek bytes must be a t_cose_key for the AEAD API */
         return_value =

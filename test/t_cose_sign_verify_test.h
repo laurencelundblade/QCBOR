@@ -71,4 +71,8 @@ int_fast32_t sign_verify_bad_auxiliary_buffer(void);
 int_fast32_t sign_verify_multi(void);
 
 
+
+int32_t verify_multi_test(void);
+
+
 #endif /* t_cose_sign_verify_test_h */

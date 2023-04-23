@@ -177,6 +177,7 @@ t_cose_signature_verify_eddsa_init(struct t_cose_signature_verify_eddsa *me,
                                    uint32_t option_flags)
 {
     memset(me, 0, sizeof(*me));
+    me->s.rs.ident   = RS_IDENT(TYPE_RS_VERIFIER, 'E');
     me->s.verify_cb   = t_cose_signature_verify_eddsa_cb;
     me->s.verify1_cb  = t_cose_signature_verify1_eddsa_cb;
     me->option_flags = option_flags;
