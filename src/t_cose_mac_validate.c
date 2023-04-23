@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
- * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -16,9 +16,9 @@
 #ifndef T_COSE_DISABLE_MAC0
 
 /**
- * \brief Check the tagging of the COSE about to be verified.
+ * \brief Check the tagging of the COSE about to be validated.
  *
- * \param[in] me                 The verification context.
+ * \param[in] me                 The validation context.
  * \param[in] decode_context     The decoder context to pull from.
  *
  * \return This returns one of the error codes defined by \ref
@@ -81,7 +81,7 @@ process_tags(struct t_cose_mac_validate_ctx *me,
 
     if(uTag != CBOR_TAG_COSE_MAC0) {
         /* Never return the tag that this code is about to process. Note
-         * that you can sign a COSE_MAC0 recursively. This only takes out
+         * that you can MAC a COSE_MAC0 recursively. This only takes out
          * the one tag layer that is processed here.
          */
         me->auTags[returned_tag_index] = uTag;
@@ -107,7 +107,7 @@ process_tags(struct t_cose_mac_validate_ctx *me,
 /**
  * \file t_cose_mac_validate.c
  *
- * \brief This verifies t_cose Mac authentication structure without a recipient
+ * \brief This validates t_cose MAC authentication structure without a recipient
  *        structure.
  *        Only HMAC is supported so far.
  */
@@ -124,7 +124,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
                             struct t_cose_parameter       **return_params)
 {
     (void)payload_is_detached;
-  
+
     QCBORDecodeContext            decode_context;
     struct q_useful_buf_c         protected_parameters;
     QCBORError                    qcbor_error;
@@ -137,7 +137,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
                                   T_COSE_SIZE_OF_TBM);
     struct t_cose_crypto_hmac     hmac_ctx;
     struct t_cose_parameter      *decoded_params;
-    struct t_cose_sign_inputs    sign_input;
+    struct t_cose_sign_inputs     mac_input;
 
 
     *payload = NULL_Q_USEFUL_BUF_C;
@@ -186,7 +186,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
     /* This check make sure the array only had the expected four
      * items. It works for definite and indefinte length arrays. Also
      * makes sure there were no extra bytes. Also that the payload
-     * and signature were decoded correctly. */
+     * and authentication tag were decoded correctly. */
     qcbor_error = QCBORDecode_Finish(&decode_context);
     return_value = qcbor_decode_error_to_t_cose_error(qcbor_error,
                                                       T_COSE_ERR_MAC0_FORMAT);
@@ -205,18 +205,18 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
         goto Done;
     }
 
-    /* -- Skip tag verification if requested --*/
+    /* -- Skip tag validation if requested --*/
     if(context->option_flags & T_COSE_OPT_DECODE_ONLY) {
         return_value = T_COSE_SUCCESS;
         goto Done;
     }
 
     /* -- Compute the ToBeMaced -- */
-    sign_input.aad = aad;
-    sign_input.payload = *payload;
-    sign_input.body_protected = protected_parameters;
-    sign_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* Never sign-protected for MAC */
-    return_value = create_tbm(&sign_input,
+    mac_input.aad = aad;
+    mac_input.payload = *payload;
+    mac_input.body_protected = protected_parameters;
+    mac_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* Never sign-protected for MAC */
+    return_value = create_tbm(&mac_input,
                               tbm_first_part_buf,
                               &tbm_first_part);
     if(return_value) {
@@ -224,13 +224,13 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
     }
 
     /*
-     * Start the HMAC verification.
+     * Start the HMAC validation.
      * Calculate the tag of the first part of ToBeMaced and the wrapped
      * payload, to save a bigger buffer containing the entire ToBeMaced.
      */
     return_value = t_cose_crypto_hmac_validate_setup(&hmac_ctx,
                                   t_cose_find_parameter_alg_id(decoded_params, true),
-                                  context->verification_key);
+                                  context->validation_key);
     if(return_value) {
         goto Done;
     }

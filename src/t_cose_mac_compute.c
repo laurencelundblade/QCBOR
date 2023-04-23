@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
- * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -16,7 +16,7 @@
 /**
  * \file t_cose_mac_compute.c
  *
- * \brief This creates t_cose Mac authentication structure without a recipient
+ * \brief This creates t_cose MAC authentication structure without a recipient
  *        structure.
  *        Only HMAC is supported so far.
  */
@@ -138,7 +138,7 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
     Q_USEFUL_BUF_MAKE_STACK_UB(  tbm_first_part_buf,
                                  T_COSE_SIZE_OF_TBM);
     struct t_cose_crypto_hmac    hmac_ctx;
-    struct t_cose_sign_inputs    sign_input;
+    struct t_cose_sign_inputs    mac_input;
 
     /* Check that there are no CBOR encoding errors before proceeding
      * with hashing and tagging. This is not actually necessary as the
@@ -167,11 +167,11 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
      * MAC are the protected parameters, the payload that is
      * getting MACed.
      */
-    sign_input.aad = NULL_Q_USEFUL_BUF_C; // TODO: this won't be NULL when AAD is supported
-    sign_input.payload = maced_payload;
-    sign_input.body_protected = me->protected_parameters;
-    sign_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* Never sign-protected for MAC */
-    return_value = create_tbm(&sign_input,
+    mac_input.aad = NULL_Q_USEFUL_BUF_C; // TODO: this won't be NULL when AAD is supported
+    mac_input.payload = maced_payload;
+    mac_input.body_protected = me->protected_parameters;
+    mac_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* Never sign-protected for MAC */
+    return_value = create_tbm(&mac_input,
                               tbm_first_part_buf,
                               &tbm_first_part);
     if(return_value) {
@@ -184,7 +184,7 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
      * payload, to save a bigger buffer containing the entire ToBeMaced.
      */
     return_value = t_cose_crypto_hmac_compute_setup(&hmac_ctx,
-                                                    me->signing_key,
+                                                    me->mac_key,
                                                     me->cose_algorithm_id);
     if(return_value) {
         goto Done;

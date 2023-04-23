@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
- * Copyright (c) 2020-2022 Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2023 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -29,17 +29,17 @@ struct t_cose_mac_calculate_ctx {
                                     T_COSE_MAC0_MAX_SIZE_PROTECTED_PARAMETERS];
     struct q_useful_buf_c  protected_parameters; /* The encoded protected parameters */
     int32_t                cose_algorithm_id;
-    struct t_cose_key      signing_key;
-    uint32_t                option_flags;
+    struct t_cose_key      mac_key;
+    uint32_t               option_flags;
     struct q_useful_buf_c  kid;
     struct t_cose_parameter *added_body_parameters;
 };
 
 /**
- * \brief  Create and sign a \c COSE_Mac0 message with a payload in one call.
+ * \brief  Create and compute a \c COSE_Mac0 message with a payload in one call.
  *
- * \param[in] context  The t_cose signing context.
- * \param[in] payload  Pointer and length of payload to sign.
+ * \param[in] context  The t_cose MAC context.
+ * \param[in] payload  Pointer and length of payload to be MACed.
  * \param[in] out_buf  Pointer and length of buffer to output to.
  * \param[out] result  Pointer and length of the resulting \c COSE_Mac0.
  *
@@ -47,8 +47,8 @@ struct t_cose_mac_calculate_ctx {
  * t_cose_mac_compute_init() and the key set with
  * t_cose_mac_set_computing_key() before this is called.
  *
- * This creates the COSE header parameter, hashes and signs the
- * payload and creates the signature all in one go. \c out_buf gives
+ * This creates the COSE header parameter, hashes and computes the MAC
+ * authentication tag of the payload in one go. \c out_buf gives
  * the pointer and length of the memory into which the output is
  * written. The pointer and length of the completed \c COSE_Mac0 is
  * returned in \c result.  (\c out_buf and \c result are used instead
@@ -56,7 +56,7 @@ struct t_cose_mac_calculate_ctx {
  * convention for q_useful_buf and is more const correct.)
  *
  * The size of \c out_buf must be the size of the payload plus
- * overhead for formating, the signature and the key id (if used).
+ * overhead for formating, the authentication tag and the key id (if used).
  *
  * To compute the size of the buffer needed before it is allocated
  * call this with \c out_buf containing a \c NULL pointer and large
@@ -87,14 +87,14 @@ t_cose_mac_compute_private(struct t_cose_mac_calculate_ctx *context,
                            struct q_useful_buf_c           *result);
 
 static enum t_cose_err_t
-t_cose_mac_compute(struct t_cose_mac_calculate_ctx *sign_ctx,
+t_cose_mac_compute(struct t_cose_mac_calculate_ctx *mac_ctx,
                    struct q_useful_buf_c            aad,
                    struct q_useful_buf_c            payload,
                    struct q_useful_buf              out_buf,
                    struct q_useful_buf_c           *result);
 
 static enum t_cose_err_t
-t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *sign_ctx,
+t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *mac_ctx,
                             struct q_useful_buf_c            aad,
                             struct q_useful_buf_c            datached_payload,
                             struct q_useful_buf              out_buf,
@@ -103,7 +103,7 @@ t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *sign_ctx,
 /**
  * \brief  Initialize to start creating a \c COSE_Mac0.
  *
- * \param[in] context            The t_cose signing context.
+ * \param[in] context            The t_cose MAC context.
  * \param[in] option_flags       One of \c T_COSE_OPT_XXXX.
  * \param[in] cose_algorithm_id  The algorithm to generate the authentication
  *                               tag, for example
@@ -129,13 +129,13 @@ t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *context,
                         int32_t                          cose_algorithm_id);
 
 /**
- * \brief  Set the key and kid (key ID) for signing.
+ * \brief  Set the key and kid (key ID) for computing MAC.
  *
- * \param[in] context      The t_cose signing context.
- * \param[in] signing_key  The signing key to use or an empty key..
+ * \param[in] context      The t_cose MAC context.
+ * \param[in] mac_key      The MAC key to use or an empty key..
  * \param[in] kid          COSE key ID parameter or \c NULL_Q_USEFUL_BUF_C.
  *
- * This needs to be called to set the signing key to use. The \c kid
+ * This needs to be called to set the MAC key to use. The \c kid
  * may be omitted by giving \c NULL_Q_USEFUL_BUF_C.
  *
  * If short-circuit signing is used,
@@ -146,26 +146,21 @@ t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *context,
  */
 static void
 t_cose_mac_set_computing_key(struct t_cose_mac_calculate_ctx *context,
-                             struct t_cose_key                signing_key,
+                             struct t_cose_key                mac_key,
                              struct q_useful_buf_c            kid);
 
-
+/*
+ * t_cose_mac_set_content_type_uint() and t_cose_mac_set_content_type_tstr()
+ * are replaced with t_cose_mac_add_body_header_params().
+ */
 static void
 t_cose_mac_add_body_header_params(struct t_cose_mac_calculate_ctx *context,
                                   struct t_cose_parameter         *parameters);
 
-
-/*
-t_cose_sign1_set_content_type_uint and t_cose_sign1_set_content_type_tstr
-are replaced with t_cose_sign1_add_body_header_parameters()
-*/
-
-
-
 /**
  * \brief  Output first part and parameters for a \c COSE_Mac0 message.
  *
- * \param[in] context          The t_cose signing context.
+ * \param[in] context          The t_cose MAC context.
  * \param[in] cbor_encode_ctx  Encoding context to output to.
  *
  * t_cose_mac_compute_init() and t_cose_mac_set_computing_key() must be
@@ -181,8 +176,8 @@ are replaced with t_cose_sign1_add_body_header_parameters()
  * To complete the \c COSE_Mac0 call t_cose_mac_encode_tag().
  *
  * The \c cbor_encode_ctx must have been initialized with an output
- * buffer to hold the \c COSE_Mac0 header parameters, the payload and the
- * signature.
+ * buffer to hold the \c COSE_Mac0 header parameters, the payload and
+ * the authentication tag.
  *
  * This and t_cose_mac_encode_tag() can be used to calculate
  * the size of the \c COSE_Mac0 in the way \c QCBOREncode is usually
@@ -202,7 +197,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *context,
 /**
  * \brief Finish a \c COSE_Mac0 message by outputting the authentication tag.
  *
- * \param[in] context          The t_cose signing context.
+ * \param[in] context          The t_cose MAC context.
  * \param[in] cbor_encode_ctx  Encoding context to output to.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
@@ -240,11 +235,11 @@ t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *me,
 
 static inline void
 t_cose_mac_set_computing_key(struct t_cose_mac_calculate_ctx *me,
-                             struct t_cose_key                signing_key,
+                             struct t_cose_key                mac_key,
                              struct q_useful_buf_c            kid)
 {
-    me->kid         = kid;
-    me->signing_key = signing_key;
+    me->kid     = kid;
+    me->mac_key = mac_key;
 }
 
 
@@ -257,13 +252,13 @@ t_cose_mac_add_body_header_params(struct t_cose_mac_calculate_ctx *me,
 
 
 static inline enum t_cose_err_t
-t_cose_mac_compute(struct t_cose_mac_calculate_ctx *sign_ctx,
+t_cose_mac_compute(struct t_cose_mac_calculate_ctx *mac_ctx,
                    struct q_useful_buf_c            aad,
                    struct q_useful_buf_c            payload,
                    struct q_useful_buf              out_buf,
                    struct q_useful_buf_c           *result)
 {
-    return t_cose_mac_compute_private(sign_ctx,
+    return t_cose_mac_compute_private(mac_ctx,
                                       false,
                                       aad,
                                       payload,
@@ -272,14 +267,14 @@ t_cose_mac_compute(struct t_cose_mac_calculate_ctx *sign_ctx,
 }
 
 static inline enum t_cose_err_t
-t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *sign_ctx,
+t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *mac_ctx,
                             struct q_useful_buf_c            aad,
                             struct q_useful_buf_c            detached_payload,
                             struct q_useful_buf              out_buf,
                             struct q_useful_buf_c           *result)
 {
     (void)aad;
-    return t_cose_mac_compute_private(sign_ctx,
+    return t_cose_mac_compute_private(mac_ctx,
                                       true,
                                       NULL_Q_USEFUL_BUF_C,
                                       detached_payload,

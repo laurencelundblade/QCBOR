@@ -2,7 +2,7 @@
  *  t_cose_compute_validate_mac_test.c
  *
  * Copyright 2019-2023, Laurence Lundblade
- * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2022-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -44,7 +44,7 @@ static const uint8_t key_512[] = {KEY_hmac512};
 enum t_cose_err_t
 make_hmac_key(int32_t cose_alg, struct t_cose_key *key)
 {
-    struct q_useful_buf_c        key_bytes;
+    struct q_useful_buf_c key_bytes;
 
     switch(cose_alg) {
     case T_COSE_ALGORITHM_HMAC256:
@@ -68,52 +68,52 @@ make_hmac_key(int32_t cose_alg, struct t_cose_key *key)
 
 
 /*
- * Sign and validate a test COSE_Mac0 message with the selected MAC algorithm.
+ * Compute and validate a test COSE_Mac0 message with the selected MAC algorithm.
  */
 static int_fast32_t compute_validate_basic_test_alg_mac(int32_t cose_alg)
 {
-    struct t_cose_mac_calculate_ctx   sign_ctx;
+    struct t_cose_mac_calculate_ctx   mac_ctx;
+    struct t_cose_mac_validate_ctx    validate_ctx;
     int32_t                      return_value;
     enum t_cose_err_t            cose_res;
-    Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
-    struct q_useful_buf_c        signed_cose;
+    Q_USEFUL_BUF_MAKE_STACK_UB(  maced_cose_buffer, 300);
+    struct q_useful_buf_c        maced_cose;
     struct t_cose_key            key;
     struct q_useful_buf_c        in_payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
     struct q_useful_buf_c        out_payload;
-    struct t_cose_mac_validate_ctx verify_ctx;
 
     /* -- Get started with context initialization, selecting the alg -- */
-    t_cose_mac_compute_init(&sign_ctx, 0, cose_alg);
+    t_cose_mac_compute_init(&mac_ctx, 0, cose_alg);
 
-    /* Make an HMAC key that will be used for both signing and
-     * verification.
+    /* Make an HMAC key that will be used for both computing the
+     * authentication tag and validation.
      */
     cose_res = make_hmac_key(cose_alg, &key);
     if(cose_res != T_COSE_SUCCESS) {
         return 1000 + (int32_t)cose_res;
     }
-    t_cose_mac_set_computing_key(&sign_ctx, key, NULL_Q_USEFUL_BUF_C);
+    t_cose_mac_set_computing_key(&mac_ctx, key, NULL_Q_USEFUL_BUF_C);
 
-    cose_res = t_cose_mac_compute(&sign_ctx,
-                                     NULL_Q_USEFUL_BUF_C,
-                                     in_payload,
-                                     signed_cose_buffer,
-                                    &signed_cose);
+    cose_res = t_cose_mac_compute(&mac_ctx,
+                                   NULL_Q_USEFUL_BUF_C,
+                                   in_payload,
+                                   maced_cose_buffer,
+                                  &maced_cose);
     if(cose_res != T_COSE_SUCCESS) {
         return_value = 2000 + (int32_t)cose_res;
         goto Done;
     }
 
-    /* Verification */
-    t_cose_mac_validate_init(&verify_ctx, 0);
+    /* Validation */
+    t_cose_mac_validate_init(&validate_ctx, 0);
 
-    t_cose_mac_set_validate_key(&verify_ctx, key);
+    t_cose_mac_set_validate_key(&validate_ctx, key);
 
-    cose_res = t_cose_mac_validate(&verify_ctx,
-                                  signed_cose, /* COSE to verify */
-                                  NULL_Q_USEFUL_BUF_C,
-                                 &out_payload, /* Payload from signed_cose */
-                                  NULL);
+    cose_res = t_cose_mac_validate(&validate_ctx,
+                                    maced_cose,  /* COSE to validate */
+                                    NULL_Q_USEFUL_BUF_C,
+                                   &out_payload, /* Payload from maced_cose */
+                                    NULL);
     if(cose_res != T_COSE_SUCCESS) {
         return_value = 5000 + (int32_t)cose_res;
         goto Done;
@@ -173,35 +173,35 @@ int_fast32_t compute_validate_mac_basic_test()
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int_fast32_t compute_validate_mac_sig_fail_test()
+int_fast32_t compute_validate_mac_fail_test()
 {
-    struct t_cose_mac_calculate_ctx   sign_ctx;
+    struct t_cose_mac_calculate_ctx   mac_ctx;
+    struct t_cose_mac_validate_ctx    validate_ctx;
     QCBOREncodeContext           cbor_encode;
     int32_t                      return_value;
     enum t_cose_err_t            result;
-    Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
-    struct q_useful_buf_c        signed_cose;
+    Q_USEFUL_BUF_MAKE_STACK_UB(  maced_cose_buffer, 300);
+    struct q_useful_buf_c        maced_cose;
     struct t_cose_key            key;
     struct q_useful_buf_c        payload;
     QCBORError                   cbor_error;
-    struct t_cose_mac_validate_ctx verify_ctx;
     size_t                       tamper_offset;
 
 
-    /* Make an HMAC key that will be used for both signing and
-     * verification.
+    /* Make an HMAC key that will be used for both computing the
+     * authentication tag and validation.
      */
     result = make_hmac_key(T_COSE_ALGORITHM_HMAC256, &key);
     if(result) {
         return 1000 + (int32_t)result;
     }
 
-    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+    QCBOREncode_Init(&cbor_encode, maced_cose_buffer);
 
-    t_cose_mac_compute_init(&sign_ctx, 0, T_COSE_ALGORITHM_HMAC256);
-    t_cose_mac_set_computing_key(&sign_ctx, key, NULL_Q_USEFUL_BUF_C);
+    t_cose_mac_compute_init(&mac_ctx, 0, T_COSE_ALGORITHM_HMAC256);
+    t_cose_mac_set_computing_key(&mac_ctx, key, NULL_Q_USEFUL_BUF_C);
 
-    result = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
+    result = t_cose_mac_encode_parameters(&mac_ctx, &cbor_encode);
     if(result) {
         return_value = 2000 + (int32_t)result;
         goto Done;
@@ -211,37 +211,37 @@ int_fast32_t compute_validate_mac_sig_fail_test()
     QCBOREncode_AddSZString(&cbor_encode, "payload");
     QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &payload);
 
-    result = t_cose_mac_encode_tag(&sign_ctx, payload, &cbor_encode);
+    result = t_cose_mac_encode_tag(&mac_ctx, payload, &cbor_encode);
     if(result) {
         return_value = 3000 + (int32_t)result;
         goto Done;
     }
 
-    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &maced_cose);
     if(cbor_error) {
         return_value = 4000 + (int32_t)cbor_error;
         goto Done;
     }
 
-    /* tamper with the pay load to see that the signature verification fails */
-    tamper_offset = q_useful_buf_find_bytes(signed_cose, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
+    /* Tamper with the pay load to see that the MAC validation fails */
+    tamper_offset = q_useful_buf_find_bytes(maced_cose, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"));
     if(tamper_offset == SIZE_MAX) {
         return_value = 99;
         goto Done;
     }
     /* Change "payload" to "hayload" */
-    struct q_useful_buf temp_unconst = q_useful_buf_unconst(signed_cose);
+    struct q_useful_buf temp_unconst = q_useful_buf_unconst(maced_cose);
     ((char *)temp_unconst.ptr)[tamper_offset] = 'h';
 
-    t_cose_mac_validate_init(&verify_ctx, 0);
+    t_cose_mac_validate_init(&validate_ctx, 0);
 
-    t_cose_mac_set_validate_key(&verify_ctx, key);
+    t_cose_mac_set_validate_key(&validate_ctx, key);
 
-    result = t_cose_mac_validate(&verify_ctx,
-                                signed_cose, /* COSE to verify */
-                                NULL_Q_USEFUL_BUF_C,
-                               &payload,     /* Payload from signed_cose */
-                                NULL);
+    result = t_cose_mac_validate(&validate_ctx,
+                                  maced_cose, /* COSE to validate */
+                                  NULL_Q_USEFUL_BUF_C,
+                                 &payload,    /* Payload from maced_cose */
+                                  NULL);
 
     if(result != T_COSE_ERR_SIG_VERIFY) {
         return_value = 5000 + (int32_t)result;
@@ -260,14 +260,14 @@ static int size_test(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c kid,
                      struct t_cose_key     key)
 {
-    struct t_cose_mac_calculate_ctx sign_ctx;
+    struct t_cose_mac_calculate_ctx mac_ctx;
     QCBOREncodeContext         cbor_encode;
     enum t_cose_err_t          return_value;
     struct q_useful_buf        nil_buf;
     size_t                     calculated_size;
     QCBORError                 cbor_error;
-    struct q_useful_buf_c      actual_signed_cose;
-    Q_USEFUL_BUF_MAKE_STACK_UB(signed_cose_buffer, 300);
+    struct q_useful_buf_c      actual_maced_cose;
+    Q_USEFUL_BUF_MAKE_STACK_UB(maced_cose_buffer, 300);
     struct q_useful_buf_c      payload;
 
     /* ---- Common Set up ---- */
@@ -277,17 +277,17 @@ static int size_test(int32_t               cose_algorithm_id,
     nil_buf = (struct q_useful_buf) {NULL, INT32_MAX};
     QCBOREncode_Init(&cbor_encode, nil_buf);
 
-    t_cose_mac_compute_init(&sign_ctx,  0,  cose_algorithm_id);
-    t_cose_mac_set_computing_key(&sign_ctx, key, kid);
+    t_cose_mac_compute_init(&mac_ctx, 0, cose_algorithm_id);
+    t_cose_mac_set_computing_key(&mac_ctx, key, kid);
 
-    return_value = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
+    return_value = t_cose_mac_encode_parameters(&mac_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + (int32_t)return_value;
     }
 
     QCBOREncode_AddBytes(&cbor_encode, payload);
 
-    return_value = t_cose_mac_encode_tag(&sign_ctx, payload, &cbor_encode);
+    return_value = t_cose_mac_encode_tag(&mac_ctx, payload, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
@@ -298,41 +298,41 @@ static int size_test(int32_t               cose_algorithm_id,
     }
 
     /* ---- Now make a real COSE_Mac0 and compare the size ---- */
-    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+    QCBOREncode_Init(&cbor_encode, maced_cose_buffer);
 
-    t_cose_mac_compute_init(&sign_ctx, 0, cose_algorithm_id);
-    t_cose_mac_set_computing_key(&sign_ctx, key, kid);
+    t_cose_mac_compute_init(&mac_ctx, 0, cose_algorithm_id);
+    t_cose_mac_set_computing_key(&mac_ctx, key, kid);
 
-    return_value = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
+    return_value = t_cose_mac_encode_parameters(&mac_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + (int32_t)return_value;
     }
 
     QCBOREncode_AddBytes(&cbor_encode, payload);
 
-    return_value = t_cose_mac_encode_tag(&sign_ctx, payload, &cbor_encode);
+    return_value = t_cose_mac_encode_tag(&mac_ctx, payload, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
 
-    cbor_error = QCBOREncode_Finish(&cbor_encode, &actual_signed_cose);
-    if(actual_signed_cose.len != calculated_size) {
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &actual_maced_cose);
+    if(actual_maced_cose.len != calculated_size) {
         return -2;
     }
 
     /* ---- Again with one-call API to make COSE_Mac0 ---- */\
-    t_cose_mac_compute_init(&sign_ctx, 0, cose_algorithm_id);
-    t_cose_mac_set_computing_key(&sign_ctx, key, kid);
-    return_value = t_cose_mac_compute(&sign_ctx,
-                                         NULL_Q_USEFUL_BUF_C,
-                                         payload,
-                                         signed_cose_buffer,
-                                        &actual_signed_cose);
+    t_cose_mac_compute_init(&mac_ctx, 0, cose_algorithm_id);
+    t_cose_mac_set_computing_key(&mac_ctx, key, kid);
+    return_value = t_cose_mac_compute(&mac_ctx,
+                                       NULL_Q_USEFUL_BUF_C,
+                                       payload,
+                                       maced_cose_buffer,
+                                      &actual_maced_cose);
     if(return_value) {
         return 7000 + (int32_t)return_value;
     }
 
-    if(actual_signed_cose.len != calculated_size) {
+    if(actual_maced_cose.len != calculated_size) {
         return -3;
     }
 
@@ -403,37 +403,37 @@ int_fast32_t compute_validate_get_size_mac_test()
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int_fast32_t compute_validate_detached_content_mac_sig_fail_test()
+int_fast32_t compute_validate_detached_content_mac_fail_test()
 {
-    struct t_cose_mac_calculate_ctx   sign_ctx;
+    struct t_cose_mac_calculate_ctx   mac_ctx;
+    struct t_cose_mac_validate_ctx    validate_ctx;
     QCBOREncodeContext           cbor_encode;
     int32_t                      return_value;
     enum t_cose_err_t            result;
-    Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
-    struct q_useful_buf_c        signed_cose;
+    Q_USEFUL_BUF_MAKE_STACK_UB(  maced_cose_buffer, 300);
+    struct q_useful_buf_c        maced_cose;
     struct t_cose_key            key;
     struct q_useful_buf_c        payload;
     QCBORError                   cbor_error;
-    struct t_cose_mac_validate_ctx verify_ctx;
 
 
     /* ---- Set up ---- */
     payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
 
-    /* Make an HMAC key that will be used for both signing and
-     * verification.
+    /* Make an HMAC key that will be used for both computing the
+     * authentication tag and validation.
      */
     result = make_hmac_key(T_COSE_ALGORITHM_HMAC256, &key);
     if(result) {
         return 1000 + (int32_t)result;
     }
 
-    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+    QCBOREncode_Init(&cbor_encode, maced_cose_buffer);
 
-    t_cose_mac_compute_init(&sign_ctx, 0, T_COSE_ALGORITHM_HMAC256);
-    t_cose_mac_set_computing_key(&sign_ctx, key, NULL_Q_USEFUL_BUF_C);
+    t_cose_mac_compute_init(&mac_ctx, 0, T_COSE_ALGORITHM_HMAC256);
+    t_cose_mac_set_computing_key(&mac_ctx, key, NULL_Q_USEFUL_BUF_C);
 
-    result = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
+    result = t_cose_mac_encode_parameters(&mac_ctx, &cbor_encode);
     if(result) {
         return_value = 2000 + (int32_t)result;
         goto Done;
@@ -441,13 +441,13 @@ int_fast32_t compute_validate_detached_content_mac_sig_fail_test()
 
     QCBOREncode_AddNULL(&cbor_encode);
 
-    result = t_cose_mac_encode_tag(&sign_ctx, payload, &cbor_encode);
+    result = t_cose_mac_encode_tag(&mac_ctx, payload, &cbor_encode);
     if(result) {
         return_value = 3000 + (int32_t)result;
         goto Done;
     }
 
-    cbor_error = QCBOREncode_Finish(&cbor_encode, &signed_cose);
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &maced_cose);
     if(cbor_error) {
         return_value = 4000 + (int32_t)cbor_error;
         goto Done;
@@ -456,15 +456,15 @@ int_fast32_t compute_validate_detached_content_mac_sig_fail_test()
     /* Set up tampered detached payload */
     struct q_useful_buf_c temp_const = Q_USEFUL_BUF_FROM_SZ_LITERAL("hayload");
 
-    t_cose_mac_validate_init(&verify_ctx, 0);
+    t_cose_mac_validate_init(&validate_ctx, 0);
 
-    t_cose_mac_set_validate_key(&verify_ctx, key);
+    t_cose_mac_set_validate_key(&validate_ctx, key);
 
-    result = t_cose_mac_validate(&verify_ctx,
-                                signed_cose, /* COSE to verify */
-                                NULL_Q_USEFUL_BUF_C,
-                               &temp_const, /* detached payload */
-                                NULL);
+    result = t_cose_mac_validate(&validate_ctx,
+                                  maced_cose, /* COSE to validate */
+                                  NULL_Q_USEFUL_BUF_C,
+                                 &temp_const, /* detached payload */
+                                  NULL);
 
     if(result != T_COSE_ERR_SIG_VERIFY) {
         return_value = 5000 + (int32_t)result;
@@ -480,17 +480,17 @@ Done:
 
 
 static int detached_content_size_test(int32_t               cose_algorithm_id,
-                     struct q_useful_buf_c kid,
-                     struct t_cose_key     key)
+                                      struct q_useful_buf_c kid,
+                                      struct t_cose_key     key)
 {
-    struct t_cose_mac_calculate_ctx sign_ctx;
+    struct t_cose_mac_calculate_ctx mac_ctx;
     QCBOREncodeContext         cbor_encode;
     enum t_cose_err_t          return_value;
     struct q_useful_buf        nil_buf;
     size_t                     calculated_size;
     QCBORError                 cbor_error;
-    struct q_useful_buf_c      actual_signed_cose;
-    Q_USEFUL_BUF_MAKE_STACK_UB(signed_cose_buffer, 300);
+    struct q_useful_buf_c      actual_maced_cose;
+    Q_USEFUL_BUF_MAKE_STACK_UB(maced_cose_buffer, 300);
     struct q_useful_buf_c      payload;
 
     /* ---- Common Set up ---- */
@@ -500,17 +500,17 @@ static int detached_content_size_test(int32_t               cose_algorithm_id,
     nil_buf = (struct q_useful_buf) {NULL, INT32_MAX};
     QCBOREncode_Init(&cbor_encode, nil_buf);
 
-    t_cose_mac_compute_init(&sign_ctx,  0,  cose_algorithm_id);
-    t_cose_mac_set_computing_key(&sign_ctx, key, kid);
+    t_cose_mac_compute_init(&mac_ctx, 0, cose_algorithm_id);
+    t_cose_mac_set_computing_key(&mac_ctx, key, kid);
 
-    return_value = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
+    return_value = t_cose_mac_encode_parameters(&mac_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + (int32_t)return_value;
     }
 
     QCBOREncode_AddNULL(&cbor_encode);
 
-    return_value = t_cose_mac_encode_tag(&sign_ctx, payload, &cbor_encode);
+    return_value = t_cose_mac_encode_tag(&mac_ctx, payload, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
@@ -521,41 +521,41 @@ static int detached_content_size_test(int32_t               cose_algorithm_id,
     }
 
     /* ---- Now make a real COSE_Mac0 and compare the size ---- */
-    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+    QCBOREncode_Init(&cbor_encode, maced_cose_buffer);
 
-    t_cose_mac_compute_init(&sign_ctx, 0, cose_algorithm_id);
-    t_cose_mac_set_computing_key(&sign_ctx, key, kid);
+    t_cose_mac_compute_init(&mac_ctx, 0, cose_algorithm_id);
+    t_cose_mac_set_computing_key(&mac_ctx, key, kid);
 
-    return_value = t_cose_mac_encode_parameters(&sign_ctx, &cbor_encode);
+    return_value = t_cose_mac_encode_parameters(&mac_ctx, &cbor_encode);
     if(return_value) {
         return 2000 + (int32_t)return_value;
     }
 
     QCBOREncode_AddNULL(&cbor_encode);
 
-    return_value = t_cose_mac_encode_tag(&sign_ctx, payload, &cbor_encode);
+    return_value = t_cose_mac_encode_tag(&mac_ctx, payload, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
 
-    cbor_error = QCBOREncode_Finish(&cbor_encode, &actual_signed_cose);
-    if(actual_signed_cose.len != calculated_size) {
+    cbor_error = QCBOREncode_Finish(&cbor_encode, &actual_maced_cose);
+    if(actual_maced_cose.len != calculated_size) {
         return -2;
     }
 
     /* ---- Again with one-call API to make COSE_Mac0 ---- */\
-    t_cose_mac_compute_init(&sign_ctx, 0, cose_algorithm_id);
-    t_cose_mac_set_computing_key(&sign_ctx, key, kid);
-    return_value = t_cose_mac_compute_detached(&sign_ctx,
-                                         NULL_Q_USEFUL_BUF_C,
-                                         payload,
-                                         signed_cose_buffer,
-                                        &actual_signed_cose);
+    t_cose_mac_compute_init(&mac_ctx, 0, cose_algorithm_id);
+    t_cose_mac_set_computing_key(&mac_ctx, key, kid);
+    return_value = t_cose_mac_compute_detached(&mac_ctx,
+                                                NULL_Q_USEFUL_BUF_C,
+                                                payload,
+                                                maced_cose_buffer,
+                                               &actual_maced_cose);
     if(return_value) {
         return 7000 + (int32_t)return_value;
     }
 
-    if(actual_signed_cose.len != calculated_size) {
+    if(actual_maced_cose.len != calculated_size) {
         return -3;
     }
 

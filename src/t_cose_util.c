@@ -2,7 +2,7 @@
  *  t_cose_util.c
  *
  * Copyright 2019-2023, Laurence Lundblade
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -115,7 +115,7 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 // TODO: try to combine with create_tbs_hash so that no buffer for headers
 // is needed. Make sure it doesn't make sign-only or mac-only object code big
 enum t_cose_err_t
-create_tbm(const struct t_cose_sign_inputs *sign_inputs,
+create_tbm(const struct t_cose_sign_inputs *mac_inputs,
            struct q_useful_buf              tbm_first_part_buf,
            struct q_useful_buf_c           *tbm_first_part)
 {
@@ -128,13 +128,13 @@ create_tbm(const struct t_cose_sign_inputs *sign_inputs,
     /* context */
     QCBOREncode_AddBytes(&cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL(COSE_MAC_CONTEXT_STRING_MAC0));
     /* body_protected */
-    QCBOREncode_AddBytes(&cbor_encode_ctx, sign_inputs->body_protected);
+    QCBOREncode_AddBytes(&cbor_encode_ctx, mac_inputs->body_protected);
 
     /* external_aad. There is none so an empty bstr */
     QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
 
     /* The short fake payload. */
-    QCBOREncode_AddBytesLenOnly(&cbor_encode_ctx, sign_inputs->payload);
+    QCBOREncode_AddBytesLenOnly(&cbor_encode_ctx, mac_inputs->payload);
 
     /* Close of the array */
     QCBOREncode_CloseArray(&cbor_encode_ctx);

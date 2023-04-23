@@ -2,7 +2,7 @@
  *  t_cose_util.h
  *
  * Copyright 2019-2023, Laurence Lundblade
- * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -95,8 +95,9 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
 /**
  * \brief Create the ToBeMaced (TBM) structure bytes for COSE.
  *
- * \param[in] tbm_first_part_buf  The buffer to contain the first part
- * \param[in] sign_inputs    The input to be mac'd -- payload, aad, protected headers.
+ * \param[in] mac_inputs          The input to be mac'd -- payload, aad,
+ *                                protected headers.
+ * \param[in]  tbm_first_part_buf The buffer to contain the first part.
  * \param[out] tbm_first_part     Pointer and length of buffer into which
  *                                the resulting TBM is put.
  *
@@ -110,7 +111,7 @@ int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
  * \retval T_COSE_ERR_HASH_GENERAL_FAIL
  *         In case of some general hash failure.
  */
-enum t_cose_err_t create_tbm(const struct t_cose_sign_inputs *sign_inputs,
+enum t_cose_err_t create_tbm(const struct t_cose_sign_inputs *mac_inputs,
                              struct q_useful_buf              tbm_first_part_buf,
                              struct q_useful_buf_c           *tbm_first_part);
 
@@ -118,7 +119,7 @@ enum t_cose_err_t create_tbm(const struct t_cose_sign_inputs *sign_inputs,
 /**
  * Serialize the to-be-signed (TBS) bytes for COSE.
  *
- * \param[in] sign_inputs               The payload, AAD and header params to hash.
+ * \param[in] sign_inputs           The payload, AAD and header params to hash.
  * \param[in] buffer_for_tbs        Pointer and length of buffer into which
  *                                  the resulting TBS bytes is put.
  * \param[out] tbs                  Pointer and length of the
@@ -154,7 +155,7 @@ enum t_cose_err_t create_tbs(const struct t_cose_sign_inputs *sign_inputs,
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  * \retval T_COSE_ERR_UNSUPPORTED_HASH
  *         If the hash algorithm is not known.
- * \retval T_COSE_ERR_HASH_BUFFER_SIZE  
+ * \retval T_COSE_ERR_HASH_BUFFER_SIZE
  *         \c buffer_for_tbs is too small.
  * \retval T_COSE_ERR_HASH_GENERAL_FAIL
  *         In case of some general hash failure.
@@ -261,7 +262,7 @@ t_cose_check_list(int32_t cose_algorithm_id, const int32_t *list);
 /**
  * \brief Map a 16-bit integer like an error code to another.
  *
- * \param[in] map   Two-dimentional array that is the mapping.
+ * \param[in] map    Two-dimentional array that is the mapping.
  * \param[in] query  The input to map
  *
  * \returns The output of the mapping.

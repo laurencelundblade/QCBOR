@@ -2,7 +2,7 @@
  * run_tests.c -- test aggregator and results reporting
  *
  * Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
- * Copyright (c) 2022 Arm Limited. All rights reserved.
+ * Copyright (c) 2022-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -70,15 +70,15 @@ static test_entry s_tests[] = {
     TEST_ENTRY(sign_verify_known_good_test),
     TEST_ENTRY(sign_verify_unsupported_test),
     TEST_ENTRY(sign_verify_bad_auxiliary_buffer),
-    
+
 #endif /* T_COSE_DISABLE_SIGN1 */
 
 #ifndef T_COSE_DISABLE_MAC0
     // TODO: should these really be conditional on T_COSE_DISABLE_SIGN_VERIFY_TESTS
     TEST_ENTRY(compute_validate_mac_basic_test),
-    TEST_ENTRY(compute_validate_mac_sig_fail_test),
+    TEST_ENTRY(compute_validate_mac_fail_test),
     TEST_ENTRY(compute_validate_get_size_mac_test),
-    TEST_ENTRY(compute_validate_detached_content_mac_sig_fail_test),
+    TEST_ENTRY(compute_validate_detached_content_mac_fail_test),
     TEST_ENTRY(compute_validate_get_size_detached_content_mac_test),
 #endif /* T_COSE_DISABLE_MAC0 */
 

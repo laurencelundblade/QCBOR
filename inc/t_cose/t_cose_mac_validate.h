@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2019, Laurence Lundblade. All rights reserved.
- * Copyright (c) 2020-2022 Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2023 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -28,12 +28,12 @@ extern "C" {
 #define T_COSE_MAX_TAGS_TO_RETURN 4
 
 /**
- * Context for tag verification.  It is about 24 bytes on a
+ * Context for tag validation.  It is about 24 bytes on a
  * 64-bit machine and 12 bytes on a 32-bit machine.
  */
 struct t_cose_mac_validate_ctx {
     /* Private data structure */
-    struct t_cose_key                verification_key;
+    struct t_cose_key                validation_key;
     int32_t                          option_flags;
     uint64_t                         auTags[T_COSE_MAX_TAGS_TO_RETURN];
     struct t_cose_parameter          __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
@@ -42,12 +42,12 @@ struct t_cose_mac_validate_ctx {
 
 
 /**
- * \brief Initialize for \c COSE_Mac0 message verification.
+ * \brief Initialize for \c COSE_Mac0 message validation.
  *
  * \param[in,out]  context       The context to initialize.
- * \param[in]      option_flags  Options controlling the verification.
+ * \param[in]      option_flags  Options controlling the validation.
  *
- * This must be called before using the verification context.
+ * This must be called before using the validation context.
  */
 static void
 t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *context,
@@ -55,44 +55,44 @@ t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *context,
 
 
 /**
- * \brief Set key for \c COSE_Mac0 message verification.
+ * \brief Set key for \c COSE_Mac0 message validation.
  *
- * \param[in,out] context      The context of COSE_Mac0 verification
- * \param[in] verify_key       The verification key to use.
+ * \param[in,out] context      The context of COSE_Mac0 validation.
+ * \param[in] validate_key     The validation key to use.
  *
- * Look up by kid parameter and fetch the key for MAC verification.
- * Setup the \ref verify_key structure and fill it in \ref context.
+ * Look up by kid parameter and fetch the key for MAC validation.
+ * Setup the \ref validate_key structure and fill it in \ref context.
  */
 static void
 t_cose_mac_set_validate_key(struct t_cose_mac_validate_ctx *context,
-                            struct t_cose_key               verify_key);
+                            struct t_cose_key               validate_key);
 
 /**
- * \brief Verify a COSE_Mac0
+ * \brief Validate a COSE_Mac0
  *
- * \param[in] context      The context of COSE_Mac0 verification
- * \param[in] cose_mac    Pointer and length of CBOR encoded \c COSE_Mac0
- *                         that is to be verified.
+ * \param[in] context      The context of COSE_Mac0 validation.
+ * \param[in] cose_mac     Pointer and length of CBOR encoded \c COSE_Mac0
+ *                         that is to be validated.
  * \param[out] payload     Pointer and length of the still CBOR encoded
- *                         payload
+ *                         payload.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * Verification involves the following steps.
+ * The validation involves the following steps.
  *
- * The CBOR structure is parsed and verified. It makes sure \c COSE_Mac0
+ * The CBOR structure is parsed and validated. It makes sure \c COSE_Mac0
  * is valid CBOR and that it is tagged as a \c COSE_Mac0.
  *
- * The signing algorithm is pulled out of the protected headers.
+ * The MAC algorithm is pulled out of the protected headers.
  *
  * The kid (key ID) is parsed out of the unprotected headers if it exists.
  *
  * The payload is identified. It doesn't have to be parsed in detail
  * because it is wrapped in a bstr.
  *
- * Finally, the MAC verification is performed if \ref T_COSE_OPT_DECODE_ONLY
- * is not set in option flag. Otherwise, the verification will be skipped.
- * The MAC algorithm to use comes from the signing algorithm in the
+ * Finally, the MAC validation is performed if \ref T_COSE_OPT_DECODE_ONLY
+ * is not set in option flag. Otherwise, the validation will be skipped.
+ * The MAC algorithm to use comes from the algorithm field in the
  * protected headers.
  * If the algorithm is not known or not supported this will error out.
  *
@@ -134,9 +134,9 @@ t_cose_mac_validate_init(struct t_cose_mac_validate_ctx *me,
 
 static inline void
 t_cose_mac_set_validate_key(struct t_cose_mac_validate_ctx *context,
-                            struct t_cose_key               verify_key)
+                            struct t_cose_key               validate_key)
 {
-    context->verification_key = verify_key;
+    context->validation_key = validate_key;
 }
 
 static inline enum t_cose_err_t
