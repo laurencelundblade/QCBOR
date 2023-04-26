@@ -111,8 +111,7 @@ t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *mac_ctx,
  *
  * Initialize the \ref t_cose_mac_calculate_ctx context. Typically, no
  * \c option_flags are needed and 0 is passed. A \c cose_algorithm_id
- * must always be given. See \ref T_COSE_OPT_SHORT_CIRCUIT_TAG and
- * related for possible option flags.
+ * must always be given.
  *
  * The algorithm ID space is from
  * [COSE (RFC9053)](https://tools.ietf.org/html/rfc9053) and the
@@ -138,11 +137,7 @@ t_cose_mac_compute_init(struct t_cose_mac_calculate_ctx *context,
  * This needs to be called to set the MAC key to use. The \c kid
  * may be omitted by giving \c NULL_Q_USEFUL_BUF_C.
  *
- * If short-circuit signing is used,
- * \ref T_COSE_OPT_SHORT_CIRCUIT_TAG, then this does not need to be
- * called.
- *
- * TODO: remove mention of short circuit; is empty key really OK?
+ * TODO: is empty key really OK?
  */
 static void
 t_cose_mac_set_computing_key(struct t_cose_mac_calculate_ctx *context,

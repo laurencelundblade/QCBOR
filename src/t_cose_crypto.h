@@ -2,7 +2,7 @@
  * t_cose_crypto.h
  *
  * Copyright 2019-2022, Laurence Lundblade
- * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -804,24 +804,6 @@ static inline size_t t_cose_tag_size(int32_t cose_alg_id)
             return INT32_MAX;
     }
 }
-
-#ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-/*
- * Get the COSE Hash algorithm ID from the corresponding
- * COSE HMAC algorithm ID
- */
-static inline int32_t t_cose_hmac_to_hash_alg_id(int32_t cose_hamc_alg_id)
-{
-    switch(cose_hamc_alg_id) {
-        case T_COSE_ALGORITHM_HMAC256:
-            return T_COSE_ALGORITHM_SHA_256;
-
-        default:
-            return INT32_MAX;
-    }
-}
-#endif
-
 
 
 /**

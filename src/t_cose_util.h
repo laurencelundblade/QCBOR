@@ -228,7 +228,7 @@ create_enc_structure(const char             *context_string,
  *
  */
 struct q_useful_buf_c get_short_circuit_kid(void);
-#endif
+#endif /* !T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
 
 /**
