@@ -317,7 +317,9 @@ Done:
 
 #else /* QCBOR_FOR_T_COSE_2 */
 
+#ifndef _MSC_VER
 #warning "Linking against QCBOR 1.x, not 2.x. No use of multiple verifiers on COSE_Signatures"
+#endif
 
 static enum t_cose_err_t
 verify_one_signature(struct t_cose_sign_verify_ctx       *me,
