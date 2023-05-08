@@ -125,7 +125,7 @@
  * Counter signatures can be full \c COSE_Sign1, \c COSE_Signature and
  * such messages.  This implementation doesn't support them.
  */
-#define T_COSE_HEADER_PARAM_COUNTER_SIGNATURE 6
+#define T_COSE_HEADER_PARAM_COUNTER_SIGNATURE 7
 
 
 

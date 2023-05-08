@@ -280,6 +280,14 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         *returned_parameters = all_params_list;
     }
 
+    /* --- Check for critical parameters --- */
+    if(!(me->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {
+        return_value = t_cose_params_check(all_params_list);
+        if(return_value != T_COSE_SUCCESS) {
+            goto Done;
+        }
+    }
+
     /* A lot of stuff is done now: 1) All the CBOR decoding is done, 2) we
      * have the CEK, 3) all the headers are decoded and in a linked list
      */

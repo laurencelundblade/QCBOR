@@ -27,9 +27,12 @@
 /**
  * \file t_cose_parameters.c
  *
- * \brief Implementation of COSE header parameter decoding.
+ * \brief Implementation of COSE header parameter encoding and decoding..
  *
  */
+
+
+
 
 /**
  *
@@ -70,41 +73,37 @@ struct t_cose_label_list {
 /**
  * \brief Clear a label list to empty.
  *
- * \param[in,out] list The list to clear.
+ * \param[in,out] label_list The list to clear.
  */
 static inline void
-clear_label_list(struct t_cose_label_list *list)
+label_list_clear(struct t_cose_label_list *label_list)
 {
-    memset(list, 0, sizeof(struct t_cose_label_list));
+    memset(label_list, 0, sizeof(struct t_cose_label_list));
 }
-
-
-
-#ifdef TODO_CRIT_PARAM_FIXED
 
 
 /**
  * \brief Indicate whether label list is clear or not.
  *
- * \param[in,out] list  The list to check.
+ * \param[in,out] label_list  The list to check.
  *
  * \return true if the list is clear.
  */
 inline static bool
-is_label_list_clear(const struct t_cose_label_list *list)
+label_list_is_clear(const struct t_cose_label_list *label_list)
 {
-    return list->int_labels[0] == 0 &&
-               q_useful_buf_c_is_null_or_empty(list->tstr_labels[0]);
+    return label_list->int_labels[0] == 0 &&
+               q_useful_buf_c_is_null_or_empty(label_list->tstr_labels[0]);
 }
-#endif
+
 
 static inline bool
-is_in_list(const struct t_cose_label_list *critical_labels, int64_t label)
+label_list_is_in(const struct t_cose_label_list *label_list, int64_t label)
 {
-    for(int num_critical = 0;
-        critical_labels->int_labels[num_critical];
-        num_critical++) {
-        if(critical_labels->int_labels[num_critical] == label) {
+    unsigned count;
+
+    for(count = 0; label_list->int_labels[count]; count++) {
+        if(label_list->int_labels[count] == label) {
             return true;
         }
     }
@@ -113,107 +112,6 @@ is_in_list(const struct t_cose_label_list *critical_labels, int64_t label)
 }
 
 
-#ifdef TODO_CRIT_PARAM_FIXED
-
-/**
- * \brief Decode the parameter containing the labels of parameters considered
- *        critical.
- *
- * \param[in,out]  decode_context          Decode context to read critical
- *                                         parameter list from.
- * \param[out]     critical_labels         List of labels of critical
- *                                         parameters.
- *
- * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED  Undecodable CBOR.
- * \retval T_COSE_ERR_TOO_MANY_PARAMETERS   More critical labels than this
- *                                          implementation can handle.
- * \retval T_COSE_ERR_PARAMETER_CBOR        Unexpected CBOR data type.
- */
-static inline enum t_cose_err_t
-decode_critical_parameter(QCBORDecodeContext       *cbor_decoder,
-                          struct t_cose_label_list *critical_labels)
-{
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   QCBORItem                                     56          52
-     *   local vars                                    32          16
-     *   TOTAL                                         88          68
-     */
-    QCBORItem         item;
-    uint_fast8_t      num_int_labels;
-    uint_fast8_t      num_tstr_labels;
-    enum t_cose_err_t return_value;
-    QCBORError        cbor_result;
-
-    /* Assume that decoder has been entered into the parameters map */
-
-    /* Find and enter the array that is the critical parameters parameter */
-    QCBORDecode_EnterArrayFromMapN(cbor_decoder, T_COSE_HEADER_PARAM_CRIT);
-
-    cbor_result = QCBORDecode_GetAndResetError(cbor_decoder);
-    if(cbor_result == QCBOR_ERR_LABEL_NOT_FOUND) {
-        /* Critical paratmeters parameter doesn't exist */
-        return_value = T_COSE_SUCCESS;
-        goto Done;
-    } else if(cbor_result != QCBOR_SUCCESS) {
-        return_value = T_COSE_ERR_CRIT_PARAMETER;
-        goto Done;
-    }
-
-    if(critical_labels == NULL) {
-        /* crit parameter occuring in non-protected bucket */
-        return_value = T_COSE_ERR_PARAMETER_NOT_PROTECTED;
-        goto Done;
-    }
-
-    num_int_labels  = 0;
-    num_tstr_labels = 0;
-
-    while(1) {
-        cbor_result = QCBORDecode_GetNext(cbor_decoder, &item);
-        if(cbor_result == QCBOR_ERR_NO_MORE_ITEMS) {
-            /* successful exit from loop */
-            break;
-        }
-        if(cbor_result != QCBOR_SUCCESS) {
-            return_value = T_COSE_ERR_CBOR_NOT_WELL_FORMED;
-            goto Done;
-        }
-
-        if(item.uDataType == QCBOR_TYPE_INT64) {
-            if(num_int_labels >= T_COSE_MAX_CRITICAL_PARAMS) {
-                return_value = T_COSE_ERR_CRIT_PARAMETER;
-                goto Done;
-            }
-            critical_labels->int_labels[num_int_labels++] = item.val.int64;
-        } else if(item.uDataType == QCBOR_TYPE_TEXT_STRING) {
-            if(num_tstr_labels >= T_COSE_MAX_CRITICAL_PARAMS) {
-                return_value = T_COSE_ERR_CRIT_PARAMETER;
-                goto Done;
-            }
-            critical_labels->tstr_labels[num_tstr_labels++] = item.val.string;
-        } else {
-            return_value = T_COSE_ERR_CRIT_PARAMETER;
-            goto Done;
-        }
-    }
-
-    /* Exit out of array back up to parameters map */
-    QCBORDecode_ExitArray(cbor_decoder);
-
-    if(is_label_list_clear(critical_labels)) {
-        /* Per RFC 9052 crit parameter can't be empty */
-        return_value = T_COSE_ERR_CRIT_PARAMETER;
-        goto Done;
-    }
-
-    return_value = T_COSE_SUCCESS;
-
-Done:
-    return return_value;
-}
-
-#endif /* TODO_CRIT_PARAM_FIXED */
 
 
 /**
@@ -226,7 +124,7 @@ Done:
  * list. This always outputs the critical parameters parameter so the list should
  * be checked to be sure it has critical parameters in it before this is called.
  */
-static inline void
+static void
 encode_crit_parameter(QCBOREncodeContext            *cbor_encoder,
                       const struct t_cose_parameter *parameters)
 {
@@ -239,6 +137,135 @@ encode_crit_parameter(QCBOREncodeContext            *cbor_encoder,
         }
     }
     QCBOREncode_CloseArray(cbor_encoder);
+}
+
+
+/**
+ * \brief Decode the parameter containing the labels of parameters considered
+ *        critical.
+ *
+ * \param[in,out]  cbor_decoder          Decode context to read critical
+ *                                         parameter list from.
+ * \param[out]     crit_labels         List of labels of critical
+ *                                         parameters.
+ *
+ * \retval T_COSE_ERR_CBOR_NOT_WELL_FORMED  Undecodable CBOR.
+ * \retval T_COSE_ERR_TOO_MANY_PARAMETERS   More critical labels than this
+ *                                          implementation can handle.
+ * \retval T_COSE_ERR_PARAMETER_CBOR        Unexpected CBOR data type.
+ */
+static enum t_cose_err_t
+decode_crit_param(QCBORDecodeContext       *cbor_decoder,
+                  struct t_cose_label_list *crit_labels)
+{
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   QCBORItem                                     56          52
+     *   local vars                                    32          16
+     *   TOTAL                                         88          68
+     */
+    QCBORItem         item;
+    unsigned          num_int_labels;
+    unsigned          num_tstr_labels;
+    enum t_cose_err_t return_value;
+    QCBORError        cbor_result;
+
+    /* Assumes that the next item is map holding crit params list */
+
+    /* Enter the array that is the crit parameters parameter */
+    QCBORDecode_EnterArray(cbor_decoder, NULL);
+
+    num_int_labels  = 0;
+    num_tstr_labels = 0;
+
+    while(1) {
+        QCBORDecode_VGetNext(cbor_decoder, &item);
+        cbor_result = QCBORDecode_GetAndResetError(cbor_decoder);
+        if(cbor_result == QCBOR_ERR_NO_MORE_ITEMS) {
+            /* successful exit from loop */
+            break;
+        }
+        if(cbor_result != QCBOR_SUCCESS) {
+            /* Don't bother mapping CBOR errors into detailed t_cose errors.
+             * It's probably more useful to know its the crit param. */
+            return_value = T_COSE_ERR_CRIT_PARAMETER;
+            goto Done;
+        }
+
+        if(item.uDataType == QCBOR_TYPE_INT64) {
+            if(num_int_labels >= T_COSE_MAX_CRITICAL_PARAMS) {
+                return_value = T_COSE_ERR_CRIT_PARAMETER;
+                goto Done;
+            }
+            crit_labels->int_labels[num_int_labels++] = item.val.int64;
+        } else if(item.uDataType == QCBOR_TYPE_TEXT_STRING) {
+            if(num_tstr_labels >= T_COSE_MAX_CRITICAL_PARAMS) {
+                return_value = T_COSE_ERR_CRIT_PARAMETER;
+                goto Done;
+            }
+            crit_labels->tstr_labels[num_tstr_labels++] = item.val.string;
+        } else {
+            return_value = T_COSE_ERR_CRIT_PARAMETER;
+            goto Done;
+        }
+    }
+
+    /* Exit out of array back up to parameters map */
+    QCBORDecode_ExitArray(cbor_decoder);
+
+    if(label_list_is_clear(crit_labels)) {
+        /* Per RFC 9052, crit parameter can't be empty */
+        return_value = T_COSE_ERR_CRIT_PARAMETER;
+        goto Done;
+    }
+
+    return_value = T_COSE_SUCCESS;
+
+Done:
+    return return_value;
+}
+
+
+static void
+mark_crit_params(struct t_cose_parameter *parameters,
+                 struct t_cose_label_list *crit_labels)
+{
+    struct t_cose_parameter *p_param;
+
+    for(p_param = parameters; p_param != NULL; p_param = p_param->next) {
+        if(label_list_is_in(crit_labels, p_param->label)) {
+            p_param->critical = true;
+        }
+    }
+}
+
+
+/*
+ * Public function. See t_cose_parameters.h
+ */
+enum t_cose_err_t
+t_cose_params_check(const struct t_cose_parameter *parameters)
+{
+    const struct t_cose_parameter *p_param;
+    bool                           iv_present;
+
+    iv_present = false;
+    for(p_param = parameters; p_param != NULL; p_param = p_param->next) {
+        if(p_param->critical && !(p_param->label >= T_COSE_HEADER_PARAM_ALG &&
+                                  p_param->label <= T_COSE_HEADER_PARAM_PARTIAL_IV)) {
+            return T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
+        }
+        if(p_param->label == T_COSE_HEADER_PARAM_IV ||
+           p_param->label == T_COSE_HEADER_PARAM_PARTIAL_IV) {
+            if(iv_present) {
+                return T_COSE_ERR_DUPLICATE_PARAMETER;
+            } else {
+                iv_present = true;
+            }
+        }
+    }
+
+    return T_COSE_SUCCESS;
 }
 
 
@@ -278,18 +305,17 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
                      struct t_cose_parameter_storage    *param_storage,
                      struct t_cose_parameter           **decoded_params)
 {
-    /* Stack usage:
-      Item   56
-      vars   24
-     crit list :120
-     QCBORpeek: 200 (The largest subroutine called)
-
-     TOTAL 400
-
+    /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   QCBORItem                                     56          52
+     *   local vars                                    40          20
+     *   crit list                                    120          80
+     *   largest function call, QCBORDecode_VPeekNext 200         200
+     *   TOTAL                                        416         352
      */
     QCBORError                cbor_error;
     enum t_cose_err_t         return_value;
-    struct t_cose_label_list  critical_parameter_labels;
+    struct t_cose_label_list  crit_param_labels;
     struct t_cose_parameter  *parameter;
     struct t_cose_parameter  *last_in_list;
     QCBORItem                 item;
@@ -303,28 +329,7 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
 
     QCBORDecode_EnterMap(cbor_decoder, NULL);
 
-    clear_label_list(&critical_parameter_labels);
-
-#ifdef TODO_CRIT_PARAM_FIXED
-    /* TODO: There is a bug in QCBOR where mixing of get by
-     * label and traversal don't work together right.
-     * When it is fixed, this code can be re enabled.
-     * For now there is no decoding of crit.
-     */
-    if(is_protected) {
-        /* Get the list of critical parameters first so each one can
-         * be marked so as they are decoded.
-         */
-        // TODO: should there be an error check for crit
-        // parameter occuring in an unprotected bucket?
-        clear_label_list(&critical_parameter_labels);
-        return_value = decode_critical_parameter(decode_context,
-                                                &critical_parameter_labels);
-        if(return_value != T_COSE_SUCCESS) {
-            goto Done;
-        }
-    }
-#endif
+    label_list_clear(&crit_param_labels);
 
     /* Main loop to decode the parameters in the map. */
     while(1) {
@@ -346,9 +351,16 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
             goto Done;
         }
 
-        if (item.label.int64 == T_COSE_HEADER_PARAM_CRIT) {
-            QCBORDecode_VGetNextConsume(cbor_decoder, &item);
-            /* ignore crit param because it was already processed .*/
+        if(item.label.int64 == T_COSE_HEADER_PARAM_CRIT) {
+            /* Process "crit" parameter */
+            if(!is_protected) {
+                return_value = T_COSE_ERR_PARAMETER_NOT_PROTECTED;
+                goto Done;
+            }
+            return_value = decode_crit_param(cbor_decoder, &crit_param_labels);
+            if(return_value != T_COSE_SUCCESS) {
+                goto Done;
+            }
             continue;
         }
 
@@ -366,8 +378,7 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
         parameter->location      = location;
         parameter->label         = item.label.int64;
         parameter->in_protected  = is_protected;
-        parameter->critical      = is_in_list(&critical_parameter_labels,
-                                               item.label.int64);;
+        parameter->critical      = false;
         parameter->next          = NULL;
 
         switch (item.uDataType) {
@@ -381,16 +392,7 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
                 break;
 
             default:
-                if(special_decode_cb == NULL) {
-                    /* No callback configured to handle the unknown */
-                    if(parameter->critical) {
-                        /* It is critical and unknown, so error out */
-                        return_value = T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
-                        goto Done;
-                    } else {
-                        /* Not critical. Just skip over it. */
-                    }
-                } else {
+               if(special_decode_cb != NULL) {
                     return_value = special_decode_cb(special_decode_ctx,
                                                      cbor_decoder,
                                                      parameter);
@@ -398,11 +400,10 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
                         goto Next;
                     } else if(return_value != T_COSE_ERR_DECLINE) {
                         goto Done;
-                    } else if(parameter->critical) {
-                        return_value = T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER;
-                        goto Done;
                     } else {
-                        /* Not decoded or consumed, not critical continue loop normally */
+                        /* Not decoded or consumed continue loop normally and ignore.
+                         * A t_cose_parameter will go into the list for it so
+                         * crit check for it can occur. */
                     }
                 }
         }
@@ -427,6 +428,8 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
         goto Done;
     }
 
+    mark_crit_params(*decoded_params, &crit_param_labels);
+
     return_value = T_COSE_SUCCESS;
 
 Done:
@@ -437,7 +440,7 @@ Done:
 
 
 static bool
-dup_detect_list_2(const struct t_cose_parameter *target,
+param_dup_detect_2(const struct t_cose_parameter *target,
                   const struct t_cose_parameter *params_list)
 {
     const struct t_cose_parameter *p1;
@@ -452,14 +455,14 @@ dup_detect_list_2(const struct t_cose_parameter *target,
 
 
 static bool
-dup_detect_list(const struct t_cose_parameter *params_list)
+pram_dup_detect(const struct t_cose_parameter *params_list)
 {
     const struct t_cose_parameter *p1;
 
 
     /* n ^ 2 algorithm, but n is very small. */
     for(p1 = params_list; p1 != NULL; p1 = p1->next) {
-        if(dup_detect_list_2(p1, params_list)) {
+        if(param_dup_detect_2(p1, params_list)) {
             return true;
         }
     }
@@ -479,13 +482,15 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
                       struct t_cose_parameter         **decoded_params,
                       struct q_useful_buf_c            *protected_parameters)
 {
-    /* stack usage:
-     vars: 16
-     decode_bucket  324
+     /* Aproximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    24          12
+     *   largest call, t_cose_params_decode           416         352
+     *   TOTAL                                        440         364
      */
 
-    QCBORError         cbor_error;
-    enum t_cose_err_t  return_value;
+    QCBORError                cbor_error;
+    enum t_cose_err_t         return_value;
     struct t_cose_parameter  *newly_decode_params;
 
     newly_decode_params = NULL;
@@ -511,12 +516,12 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
 
     /* ---  The unprotected parameters --- */
     return_value = t_cose_params_decode(cbor_decoder,
-                                            location,
-                                            false,
-                                            special_decode_cb,
-                                            special_decode_ctx,
-                                            param_storage,
-                                            &newly_decode_params);
+                                        location,
+                                        false,
+                                        special_decode_cb,
+                                        special_decode_ctx,
+                                        param_storage,
+                                       &newly_decode_params);
 
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -530,7 +535,7 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
     }
 
 
-    if(dup_detect_list(newly_decode_params)) {
+    if(pram_dup_detect(newly_decode_params)) {
         return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
         goto Done;
     }
@@ -646,7 +651,7 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
     enum t_cose_err_t return_value;
 
     // TODO: allow disabling this check to save object code
-    if(dup_detect_list(parameters)) {
+    if(pram_dup_detect(parameters)) {
         return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
         goto Done;
     }
@@ -812,7 +817,8 @@ t_cose_find_parameter_partial_iv(const struct t_cose_parameter *parameter_list)
  *
  * \param[in,out] parameters   Parameter list to clear.
  */
-static inline void clear_cose_parameters(struct t_cose_parameters *parameters)
+static void
+clear_cose_parameters(struct t_cose_parameters *parameters)
 {
 #if T_COSE_ALGORITHM_RESERVED != 0
 #error Invalid algorithm designator not 0. Parameter list initialization fails.
@@ -877,11 +883,21 @@ t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
                 goto Done;
             }
+            if(!q_useful_buf_c_is_null(returned_params->partial_iv)) {
+                /* RFC 9052 prohibits both iv and partial iv */
+                return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
+                goto Done;
+            }
             returned_params->iv = p->value.string;
 
         } else if(p->label == T_COSE_HEADER_PARAM_PARTIAL_IV) {
             if(p->value_type != T_COSE_PARAMETER_TYPE_BYTE_STRING) {
                 return_value = T_COSE_ERR_PARAMETER_CBOR;
+                goto Done;
+            }
+            if(!q_useful_buf_c_is_null(returned_params->iv)) {
+                /* RFC 9052 prohibits both iv and partial iv */
+                return_value = T_COSE_ERR_DUPLICATE_PARAMETER;
                 goto Done;
             }
             returned_params->partial_iv = p->value.string;

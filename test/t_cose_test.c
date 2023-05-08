@@ -819,6 +819,9 @@ int_fast32_t all_header_parameters_test()
                                        &payload,
                                        /* Get parameters for checking */
                                        &parameters);
+    if(result) {
+        return -2;
+    }
 
     // Need to compare to short circuit kid
     if(q_useful_buf_compare(parameters.kid, Q_USEFUL_BUF_FROM_SZ_LITERAL("11"))) {
@@ -838,11 +841,6 @@ int_fast32_t all_header_parameters_test()
     if(q_useful_buf_compare(parameters.iv,
                             Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"))) {
         return 5;
-    }
-
-    if(q_useful_buf_compare(parameters.partial_iv,
-                            Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"))) {
-        return 6;
     }
 
     free_fixed_signing_key(key_pair);
@@ -917,7 +915,7 @@ int_fast32_t bad_parameters_test()
 
 
 
-
+/* These test the processing of the crit param in a COSE_SIGN1 */
 static struct test_case crit_tests_table[] = {
     /* Test existance of the critical header. Also makes sure that
      * it works with the max number of labels allowed in it.
@@ -936,18 +934,21 @@ static struct test_case crit_tests_table[] = {
      * the label doesn't exist. This works for integer-labeled header params.
      */
     {T_COSE_TEST_UNKNOWN_CRIT_UINT_PARAMETER, T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER},
-
+#if WE_HAVE_ADDED_STRING_LABELS
     /* A critical label is listed in the protected section, but
      * the label doesn't exist. This works for string-labeled header params.
      */
     {T_COSE_TEST_UNKNOWN_CRIT_TSTR_PARAMETER, T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER},
+#endif /* WE_HAVE_ADDED_STRING_LABELS */
 
     /* The critical labels list is not protected */
     {T_COSE_TEST_CRIT_NOT_PROTECTED, T_COSE_ERR_PARAMETER_NOT_PROTECTED},
 
     {T_COSE_TEST_EMPTY_CRIT_PARAMETER, T_COSE_ERR_CRIT_PARAMETER},
 
+#if WE_HAVE_ADDED_STRING_LABELS
     {T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS, T_COSE_ERR_CRIT_PARAMETER},
+#endif /* WE_HAVE_ADDED_STRING_LABELS */
 
     {0, 0}
 };
@@ -958,11 +959,13 @@ static struct test_case crit_tests_table[] = {
  */
 int_fast32_t crit_parameters_test()
 {
-    struct test_case *test;
+    unsigned index;
 
-    for(test = crit_tests_table; test->test_option; test++) {
+    for(index = 0; index < C_ARRAY_COUNT(crit_tests_table, struct test_case); index++) {
+        struct test_case *test = &crit_tests_table[index];
+
         if(run_test_sign_and_verify(test->test_option) != test->result) {
-            return (int_fast32_t)(test - crit_tests_table + 1);
+            return (int_fast32_t)(index * 1000 + 1);
         }
     }
 
@@ -1518,6 +1521,10 @@ int_fast32_t sign1_structure_decode_test(void)
 
 
     for(int i = 0; !q_useful_buf_c_is_null(sign1_sample_inputs[i].CBOR); i++) {
+        if(i == 7) {
+            result = 9;
+        }
+
         t_cose_sign1_verify_init(&verify1_ctx, T_COSE_OPT_DECODE_ONLY);
         result = t_cose_sign1_verify(&verify1_ctx,
                                       sign1_sample_inputs[i].CBOR,

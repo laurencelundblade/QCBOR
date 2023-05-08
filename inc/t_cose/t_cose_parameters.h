@@ -202,9 +202,9 @@ struct t_cose_special_param_encode {
 
 
 struct t_cose_special_param_decode {
-    /** Decoder callbacks of type t_cose_special_param_encode_cb can use any one of these types that
-     * they see fit. The variety is for the convenience of the
-     * decoder callback. */
+    /** Decoder callbacks of type t_cose_special_param_encode_cb can
+     * use any one of these types that they see fit. The variety is
+     * for the convenience of the decoder callback. */
     union {
         void                 *context;
         int64_t               int64;
@@ -220,7 +220,7 @@ struct t_cose_header_location {
     /** 0 means the body, 1 means the first level of signer/recipient, 2,
      * the second level.*/
     uint8_t  nesting;
-    /* For signers and recipients, the index within the nesting level
+    /** For signers and recipients, the index within the nesting level
      * starting from 0. */
     uint8_t  index;
 };
@@ -240,7 +240,8 @@ struct t_cose_header_location {
  */
 struct t_cose_parameter {
     /** Label indicating which parameter it is. Typically, one of
-     * T_COSE_HEADER_PARAM_XXXXX, such as \ref T_COSE_HEADER_PARAM_ALG
+     * T_COSE_HEADER_PARAM_XXXXX, such as \ref T_COSE_HEADER_PARAM_ALG,
+     * but may also be a proprietary label.
      */
     int64_t label;
 
@@ -248,13 +249,14 @@ struct t_cose_parameter {
      * bucket or was decoded from the protected header bucket. */
     bool    in_protected;
     /** Indicates parameter should be listed in the critical headers
-     * when encoding. Not used while decoding.*/
+     * when encoding. When encoding the parameter's label was
+     * listed in the crit parameter.*/
     bool    critical;
-    /** When decoding the location. Ignored when encoding. */
+    /** When decoding, the location. Ignored when encoding. */
     struct t_cose_header_location location;
 
     /** One of \ref T_COSE_PARAMETER_TYPE_INT64, ... This is the
-     * selector for the contents of the value union. On encoding, the
+     * selector for the contents of the union \c value. On encoding, the
      * caller fills this in to say what they want encoded.  On
      * decoding it is filled in by the decoder for strings and
      * integers. When it is not a string or integer, the decode call
@@ -425,24 +427,35 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  * \param[in] special_decode_cb              Callback for non-integer and
  *                                   non-string parameters.
  * \param[in] special_decode_ctx      Context for the above callback
- * \param[in] parameter_storage      Storage for parameters.
+ * \param[in] parameter_storage      Storage pool for parameter list nodes.
  * \param[in,out] decoded_params        Pointer to parameter list to append to or to  \c NULL.
  * \param[out] protected_parameters  Pointer and length of encoded protected
  *                                   parameters.
  *
  * For most COSE message decoding (e.g. verification of a COSE_SIgn1), this
- * is not needed. This is mainly used by implemention of a new
- * \c t_cose_signature_verify or \c t_cose_recipient_decrypt.
+ * is not needed. This is mainly used internally or by implemention of a new
+ * \c t_cose_signature_verify or \c t_cose_recipient_decrypt object.
  *
  * Use this to decode "Headers" that occurs throughout COSE. The QCBOR
  * decoder should be positioned so the protected header bucket is the
  * next item to be decoded. This then consumes the CBOR for the two
- * headers leaving the decoder position for what ever comes after.
+ * header parameter buckets leaving the decoder positioned for what ever comes after.
  *
  * The decoded headers are put into a linked list the
  * nodes for which are allocated out of \c parameter_storage.
  * They are appended to the list in \c *decoded_params. It may
  * be an empty list (e.g., \c NULL) or a linked list to append to.
+ *
+ * In order to handle parameters that are not integers or strings a
+ * callback of type \ref special_decode_cb must be
+ * given. There is only one of these callbacks for all the
+ * non-integer and non-string header parameters. It typically switches
+ * on the parameter label.
+ *
+ * The crit parameter will be decoded and any parameter label
+ * listed in it will be marked as crit in the list returned. It is up
+ * to the caller to check the list for crit parameters and error
+ * out if they are not processed. See t_cose_params_check().
  *
  * The number of parameters in the crititical parameters parameter is
  * limited to \ref T_COSE_MAX_CRITICAL_PARAMS for each bucket of
@@ -451,18 +464,8 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  * only the limit for one header bucket, not the aggregation of all
  * the headers buckets. For example it limits the crit list in for one
  * COSE_Signer, not the the total of all COSE_Signers. This is a hard
- * limt that can only be increased by changing the size and re
+ * limit that can only be increased by changing the size and re
  * building the t_cose library.
- *
- * In order to handle parameters that are not integers or strings a
- * callback of type \ref special_decode_cb must be
- * given. There is only one of these callbacks for all the
- * non-integer and non-string header parameters. It typically switches
- * on the parameter label.
- *
- * When parameters that are not integers or strings occur and there is
- * no callback configured, critical parameters will result in an error
- * and non-critical parameters will be ignored.
  */
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
@@ -474,6 +477,23 @@ t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
                       struct q_useful_buf_c              *protected_parameters);
 
 
+/**
+ * \brief Check parameter list, particularly for unknown critical parameters
+ *
+ * \param[in] parameters   Linked list of parameters to check.
+ *
+ * \retval  T_COSE_SUCCESS  Nothing wrong in parameter list.
+ * \retval T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER   A parameter was marked
+ * critical that is not one of the standard common parameters handled by t_cose
+ * (T_COSE_HEADER_PARAM_ALG through T_COSE_HEADER_PARAM_PARTIAL_IV).
+ * \retval  T_COSE_ERR_DUPLICATE_PARAMETER    Both IV and partial IV parameters are present
+ *
+ * This is used by t_cose_sign_verify() and such to check there are
+ * no critical parameters except that it allows the standard parameters
+ * that are decoded by default to be marked critical..
+ */
+enum t_cose_err_t
+t_cose_params_check(const struct t_cose_parameter *parameters);
 
 
 /**
@@ -481,7 +501,7 @@ t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
  *
  * \param[in] existing        A pointer to the head of a  parameter linked list to which \c to_be_appended is
  *                            added to the end or a pointer to \c NULL.
- * \param[in] to_be_appended  A parameter link list which is to added.
+ * \param[in] to_be_appended  A parameter linked list which it is to added.
  *
  * If \c *existing is not \c NULL, this finds the end of \c *existing and sets the \c next member in
  * the last node to \c to_be_appended. If it is \c NULL, this just assigns
@@ -624,11 +644,19 @@ t_cose_find_parameter_partial_iv(const struct t_cose_parameter *parameter_list);
  * \param[out] returned_params  A filled in structure with the common
  *                              header parameters.
  *
- *  \c decoded_params is traversed and any of the common headers
- *  parameters found in it are filled into \c returned_parameters.
- *  Unknown header parameters are ignored.
+ * \c decoded_params is traversed and any of the common headers
+ * parameters found in it are filled into \c returned_parameters.
+ * Unknown header parameters are ignored, even critical ones.
  *
- *  TODO: anything to be done with critical parameters that are unknown?
+ * This is called by t_cose_sign1_verify() internally to convert the linked list
+ * parameters format in t_cose 2.x to t_cose_parameters used in t_cose 1.x.
+ *
+ * Note that the parameters processed by this are the set defined in
+ * section 3.1 of RFC 9052 and are sole parameters used in RFC 9052
+ * and 9053.
+ *
+ * This will return \ref T_COSE_ERR_DUPLICATE_PARAMETER if both iv and
+ * partial_iv parameters are present.
  */
 enum t_cose_err_t
 t_cose_common_header_parameters(const struct t_cose_parameter *decoded_params,

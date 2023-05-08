@@ -305,9 +305,6 @@ add_unprotected_parameters(uint32_t              test_message_options,
         QCBOREncode_AddBytesToMapN(cbor_encode_ctx,
                                    T_COSE_HEADER_PARAM_IV,
                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("iv"));
-        QCBOREncode_AddBytesToMapN(cbor_encode_ctx,
-                                   T_COSE_HEADER_PARAM_PARTIAL_IV,
-                                   Q_USEFUL_BUF_FROM_SZ_LITERAL("partial_iv"));
         QCBOREncode_AddInt64ToMapN(cbor_encode_ctx,
                                    T_COSE_HEADER_PARAM_CONTENT_TYPE,
                                    1);

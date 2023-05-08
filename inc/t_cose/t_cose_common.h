@@ -413,11 +413,12 @@ enum t_cose_err_t {
     T_COSE_ERR_DUPLICATE_PARAMETER = 34,
 
     /** A header parameter that should be protected (alg id or crit)
-     * is not. This occurs when verifying a \c COSE_Sign1 that is
-     * improperly constructed. */
+     * is not. This occurs when verifying, decrypting,.... */
     T_COSE_ERR_PARAMETER_NOT_PROTECTED = 35,
 
-    /** Something is wrong with the crit parameter. */
+    /** Something is wrong with the crit parameter. It may be not well-formed,
+     * invalid, have more than \ref T_COSE_MAX_CRITICAL_PARAMS values and
+     * other. */
     T_COSE_ERR_CRIT_PARAMETER = 36,
 
     /** More than \ref T_COSE_MAX_TAGS_TO_RETURN unprocessed tags when
@@ -665,6 +666,22 @@ enum t_cose_err_t {
  * been verified and should be considered untrusted.
  */
 #define T_COSE_OPT_DECODE_ONLY  0x00000800
+
+
+/**
+ * Functions like t_cose_sign_verify() and t_cose_encrypt_dec() will
+ * error out with \ref T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER if there
+ * are any critical header parameters. Since the header parameters for
+ * verification, decryption and similar are all standard, don't need
+ * to be marked critical and understood by this implementation, this
+ * error is not returned.
+ *
+ * This option turns off the check for critical parameters for use
+ * cases that use them. In that case the caller of t_cose takes
+ * responsibility for checking all the parameters decoded to be sure
+ * there are no critical parameters that are not understood.
+ */
+#define T_COSE_OPT_NO_CRIT_PARAM_CHECK  0x00001000
 
 
 /* The lower 8 bits of the options give the type of the

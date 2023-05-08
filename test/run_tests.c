@@ -96,9 +96,8 @@ static test_entry s_tests[] = {
      * tests are typically always run.
      */
     TEST_ENTRY(bad_parameters_test),
-#ifdef TODO_CRIT_PARAM_FIXED
     TEST_ENTRY(crit_parameters_test),
-#endif /* TODO_CRIT_PARAM_FIXED */
+
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
     TEST_ENTRY(content_type_test),
 #endif /* !T_COSE_DISABLE_CONTENT_TYPE */

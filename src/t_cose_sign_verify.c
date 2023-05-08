@@ -526,15 +526,15 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                            const struct q_useful_buf_c     aad,
                            const bool                      is_detached,
                            struct q_useful_buf_c          *payload,
-                           struct t_cose_parameter       **returned_parameters)
+                           struct t_cose_parameter       **returned_params)
 {
     QCBORDecodeContext              cbor_decoder;
-    struct q_useful_buf_c           protected_parameters;
+    struct q_useful_buf_c           protected_params;
     enum t_cose_err_t               return_value;
     struct q_useful_buf_c           signature;
     QCBORError                      cbor_error;
     struct t_cose_header_location   header_location;
-    struct t_cose_parameter        *decoded_parameters;
+    struct t_cose_parameter        *decoded_params;
     struct t_cose_sign_inputs       sign_inputs;
 
 
@@ -544,6 +544,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     /* --- Process opening array of 4 and tags --- */
     QCBORDecode_EnterArray(&cbor_decoder, NULL);
     if(QCBORDecode_GetError(&cbor_decoder)) {
+        /* Done2 re-uses CBOR->COSE error mapping code. */
         goto Done2;
     }
 
@@ -557,15 +558,15 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     /* The location of body header parameters is 0, 0 */
     header_location.nesting = 0;
     header_location.index   = 0;
-    decoded_parameters      = NULL;
+    decoded_params      = NULL;
 
     return_value = t_cose_headers_decode(&cbor_decoder,
                                           header_location,
                                           me->special_param_decode_cb,
                                           me->special_param_decode_ctx,
                                           me->p_storage,
-                                         &decoded_parameters,
-                                         &protected_parameters);
+                                         &decoded_params,
+                                         &protected_params);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -583,7 +584,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
 
 
     /* --- The signature or COSE_Signature(s) --- */
-    sign_inputs.body_protected = protected_parameters;
+    sign_inputs.body_protected = protected_params;
     sign_inputs.sign_protected = NULL_Q_USEFUL_BUF_C;
     sign_inputs.aad            = aad;
     sign_inputs.payload        = *payload;
@@ -592,13 +593,14 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         /* --- The signature bytes for a COSE_Sign1, not COSE_Signatures */
         QCBORDecode_GetByteString(&cbor_decoder, &signature);
         if(QCBORDecode_GetError(&cbor_decoder)) {
-            /* Must error out here. */
+            /* Must have successfully decoded sig before verifying */
+            /* Done2 re-uses CBOR->COSE error mapping code. */
             goto Done2;
         }
 
         /* Call the signature verifier(s) */
         return_value = call_sign1_verifiers(me,
-                                            decoded_parameters,
+                                            decoded_params,
                                            &sign_inputs,
                                             signature);
 
@@ -609,7 +611,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         return_value = process_cose_signatures(me,
                                                &cbor_decoder,
                                                &sign_inputs,
-                                               &decoded_parameters);
+                                               &decoded_params);
 
         QCBORDecode_ExitArray(&cbor_decoder);
     }
@@ -618,8 +620,8 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     /* --- Finish up the CBOR decode --- */
     QCBORDecode_ExitArray(&cbor_decoder);
 
-    if(returned_parameters != NULL) {
-        *returned_parameters = decoded_parameters;
+    if(returned_params != NULL) {
+        *returned_params = decoded_params;
     }
 
   Done2:
@@ -629,11 +631,22 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
      * for other decode errors detected above. */
     cbor_error = QCBORDecode_Finish(&cbor_decoder);
     if(cbor_error != QCBOR_SUCCESS) {
-        /* A decode error overrides other errors. */
+        /* A decode error overrides the other errors detected above. */
         return_value = qcbor_decode_error_to_t_cose_error(cbor_error,
                                                       T_COSE_ERR_SIGN1_FORMAT);
+        goto Done;
     }
     /* --- End of the decoding of the array of four --- */
+
+
+    /* --- Check for critical params and other --- */
+    if(return_value != T_COSE_SUCCESS) {
+        /* param check must not override non-decoding errors. */
+        goto Done;
+    }
+    if(!(me->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {
+        return_value = t_cose_params_check(decoded_params);
+    }
 
   Done:
     return return_value;
