@@ -80,7 +80,7 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
     /* Form up the full list of body header parameters which may
      * include the COSE_Sign1 algorithm ID and kid. It may also
      * include the caller-added parameters like content type. */
-    t_cose_parameter_list_append(&parameters, me->added_body_parameters);
+    t_cose_params_append(&parameters, me->added_body_parameters);
 
     /* --- Add the CBOR tag indicating COSE message type --- */
     if(!(me->option_flags & T_COSE_OPT_OMIT_CBOR_TAG)) {

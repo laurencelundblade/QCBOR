@@ -36,7 +36,7 @@ struct t_cose_signature_verify_main {
     struct t_cose_signature_verify  s;
     struct t_cose_key               verification_key;
     struct q_useful_buf_c           verification_kid;
-    t_cose_special_param_decode_cb *special_param_decode_cb;
+    t_cose_param_special_decode_cb *special_param_decode_cb;
     void                           *special_param_decode_ctx;
     void                           *crypto_context;
 
@@ -92,7 +92,7 @@ t_cose_signature_verify_main_set_crypto_context(struct t_cose_signature_verify_m
 
 static void
 t_cose_signature_verify_main_set_special_param_decoder(struct t_cose_signature_verify_main *me,
-                                                       t_cose_special_param_decode_cb      *decode_cb,
+                                                       t_cose_param_special_decode_cb      *decode_cb,
                                                        void                                *decode_ctx);
 
 static struct t_cose_signature_verify *
@@ -117,7 +117,7 @@ t_cose_signature_verify_main_set_key(struct t_cose_signature_verify_main *me,
 
 static inline void
 t_cose_signature_verify_main_set_special_param_decoder(struct t_cose_signature_verify_main *me,
-                                                       t_cose_special_param_decode_cb      *decode_cb,
+                                                       t_cose_param_special_decode_cb      *decode_cb,
                                                        void                                *decode_ctx)
 {
     me->special_param_decode_cb  = decode_cb;

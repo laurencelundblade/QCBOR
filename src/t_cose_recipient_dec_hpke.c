@@ -98,7 +98,7 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
         goto Done;
     }
 
-    alg = t_cose_find_parameter_alg_id(*params, true);
+    alg = t_cose_param_find_alg_id(*params, true);
     if (alg != T_COSE_ALGORITHM_HPKE_v1_BASE)
         return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
 

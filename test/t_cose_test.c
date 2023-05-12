@@ -1213,7 +1213,7 @@ make_complex_cose_sign(struct q_useful_buf cose_sign_buf, struct q_useful_buf_c 
     init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &sig1_key);
     t_cose_signature_sign_main_init(&sig1_encoder, T_COSE_ALGORITHM_ES256);
     t_cose_signature_sign_main_set_signing_key(&sig1_encoder, sig1_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("sig1"));
-    sig1_params[0] = t_cose_make_ct_tstr_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("app/foo"));
+    sig1_params[0] = t_cose_param_make_ct_tstr(Q_USEFUL_BUF_FROM_SZ_LITERAL("app/foo"));
     sig1_params[1].critical         = false;
     sig1_params[1].in_protected     = false;
     sig1_params[1].location.index   = 0;
@@ -1239,7 +1239,7 @@ make_complex_cose_sign(struct q_useful_buf cose_sign_buf, struct q_useful_buf_c 
     init_fixed_test_signing_key(T_COSE_ALGORITHM_ES384, &sig2_key);
     t_cose_signature_sign_main_init(&sig2_encoder, T_COSE_ALGORITHM_ES384);
     t_cose_signature_sign_main_set_signing_key(&sig2_encoder, sig2_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("sig2"));
-    sig2_params[0] = t_cose_make_ct_tstr_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("app/xxx"));
+    sig2_params[0] = t_cose_param_make_ct_tstr(Q_USEFUL_BUF_FROM_SZ_LITERAL("app/xxx"));
     sig2_params[1].critical         = false;
     sig2_params[1].in_protected     = false;
     sig2_params[1].location.index   = 0;
@@ -1256,7 +1256,7 @@ make_complex_cose_sign(struct q_useful_buf cose_sign_buf, struct q_useful_buf_c 
     init_fixed_test_signing_key(T_COSE_ALGORITHM_ES512, &sig3_key);
     t_cose_signature_sign_main_init(&sig3_encoder, T_COSE_ALGORITHM_ES512);
     t_cose_signature_sign_main_set_signing_key(&sig3_encoder, sig3_key, Q_USEFUL_BUF_FROM_SZ_LITERAL("sig3"));
-    sig3_params[0] = t_cose_make_ct_uint_parameter(217);
+    sig3_params[0] = t_cose_param_make_ct_uint(217);
     t_cose_signature_sign_main_set_header_parameter(&sig3_encoder, sig3_params);
     t_cose_sign_add_signer(&sign_encoder, t_cose_signature_sign_from_main(&sig3_encoder));
 

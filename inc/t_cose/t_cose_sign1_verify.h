@@ -383,7 +383,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
     }
 
     if(parameters != NULL) {
-        return_value = t_cose_common_header_parameters(decoded_params,
+        return_value = t_cose_params_common(decoded_params,
                                                        parameters);
     }
 
@@ -410,7 +410,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
                                        payload,
                                       &decoded_params);
      if(parameters != NULL) {
-         t_cose_common_header_parameters(decoded_params, parameters);
+         t_cose_params_common(decoded_params, parameters);
      }
 
      return return_value;
@@ -434,8 +434,7 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                                               &decoded_params);
 
     if(parameters != NULL) {
-        return_value = t_cose_common_header_parameters(decoded_params,
-                                                       parameters);
+        return_value = t_cose_params_common(decoded_params, parameters);
     }
 
     return return_value;

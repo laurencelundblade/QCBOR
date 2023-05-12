@@ -79,11 +79,11 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
         default:
             return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
-    params[0] = t_cose_make_alg_id_parameter(me->payload_cose_algorithm_id);
+    params[0] = t_cose_param_make_alg_id(me->payload_cose_algorithm_id);
 
     /* Generate random nonce (aka iv) */
     return_value = t_cose_crypto_get_random(nonce_buffer, key_byte_len, &nonce);
-    params[1] = t_cose_make_iv_parameter(nonce);
+    params[1] = t_cose_param_make_iv(nonce);
 
     params[0].next = &params[1];
     params[1].next = me->added_body_parameters;

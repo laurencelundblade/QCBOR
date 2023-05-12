@@ -197,7 +197,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
 
     /* === End of the decoding of the array of four === */
     if((context->option_flags & T_COSE_OPT_REQUIRE_KID) &&
-        q_useful_buf_c_is_null(t_cose_find_parameter_kid(decoded_params))) {
+        q_useful_buf_c_is_null(t_cose_param_find_kid(decoded_params))) {
         return_value = T_COSE_ERR_NO_KID;
         goto Done;
     }
@@ -230,7 +230,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
      * payload, to save a bigger buffer containing the entire ToBeMaced.
      */
     return_value = t_cose_crypto_hmac_validate_setup(&hmac_ctx,
-                                  t_cose_find_parameter_alg_id(decoded_params, true),
+                                  t_cose_param_find_alg_id(decoded_params, true),
                                   context->validation_key);
     if(return_value) {
         goto Done;

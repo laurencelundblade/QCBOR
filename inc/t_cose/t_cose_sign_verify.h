@@ -71,7 +71,7 @@ struct t_cose_sign_verify_ctx {
     struct t_cose_parameter_storage   params;
     struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
-    t_cose_special_param_decode_cb   *special_param_decode_cb;
+    t_cose_param_special_decode_cb   *special_param_decode_cb;
     void                             *special_param_decode_ctx;
     struct t_cose_signature_verify   *last_verifier; /* Last verifier that didn't succeed */
 };
@@ -184,7 +184,7 @@ t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx   *context,
  */
 static void
 t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *context,
-                                      t_cose_special_param_decode_cb *decode_cb,
+                                      t_cose_param_special_decode_cb *decode_cb,
                                       void                           *decode_ctx);
 
 
@@ -350,7 +350,7 @@ t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx   *me,
 
 static inline void
 t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *me,
-                                      t_cose_special_param_decode_cb *decode_cb,
+                                      t_cose_param_special_decode_cb *decode_cb,
                                       void                           *decode_ctx)
 {
     me->special_param_decode_cb  = decode_cb;

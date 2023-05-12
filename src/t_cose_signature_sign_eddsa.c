@@ -29,9 +29,9 @@ t_cose_signature_sign_headers_eddsa_cb(struct t_cose_signature_sign   *me_x,
     struct t_cose_signature_sign_eddsa *me =
                                     (struct t_cose_signature_sign_eddsa *)me_x;
 
-    me->local_params[0]  = t_cose_make_alg_id_parameter(T_COSE_ALGORITHM_EDDSA);
+    me->local_params[0]  = t_cose_param_make_alg_id(T_COSE_ALGORITHM_EDDSA);
     if(!q_useful_buf_c_is_null(me->kid)) {
-        me->local_params[1] = t_cose_make_kid_parameter(me->kid);
+        me->local_params[1] = t_cose_param_make_kid(me->kid);
         me->local_params[0].next = &me->local_params[1];
     }
 
@@ -117,7 +117,7 @@ t_cose_signature_sign_eddsa_cb(struct t_cose_signature_sign  *me_x,
     QCBOREncode_OpenArray(qcbor_encoder);
 
     t_cose_signature_sign_headers_eddsa_cb(me_x, &parameters);
-    t_cose_parameter_list_append(&parameters, me->added_signer_params);
+    t_cose_params_append(&parameters, me->added_signer_params);
     t_cose_headers_encode(qcbor_encoder,
                           parameters,
                           &sign_inputs->sign_protected);

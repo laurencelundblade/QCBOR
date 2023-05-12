@@ -73,7 +73,7 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
                                                   T_COSE_ERR_RECIPIENT_FORMAT);
     }
 
-    cose_algorithm_id = t_cose_find_parameter_alg_id(*params, false);
+    cose_algorithm_id = t_cose_param_find_alg_id(*params, false);
 
     // TODO: should probably check the kid here
 

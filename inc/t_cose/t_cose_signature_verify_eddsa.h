@@ -36,7 +36,7 @@ struct t_cose_signature_verify_eddsa {
      */
     struct t_cose_signature_verify  s;
     struct t_cose_key               verification_key;
-    t_cose_special_param_decode_cb *special_param_decode_cb;
+    t_cose_param_special_decode_cb *special_param_decode_cb;
     void                           *special_param_decode_ctx;
     uint32_t                        option_flags;
 
@@ -71,7 +71,7 @@ t_cose_signature_verify_eddsa_set_key(struct t_cose_signature_verify_eddsa *me,
 
 static void
 t_cose_signature_verify_eddsa_set_special_param_decoder(struct t_cose_signature_verify_eddsa *me,
-                                                t_cose_special_param_decode_cb               *decode_cb,
+                                                t_cose_param_special_decode_cb               *decode_cb,
                                                 void                                         *decode_ctx);
 
 /**
@@ -144,7 +144,7 @@ t_cose_signature_verify_eddsa_set_key(struct t_cose_signature_verify_eddsa *me,
 
 static inline void
 t_cose_signature_verify_eddsa_set_special_param_decoder(struct t_cose_signature_verify_eddsa *me,
-                                                        t_cose_special_param_decode_cb       *decode_cb,
+                                                        t_cose_param_special_decode_cb       *decode_cb,
                                                         void                                 *decode_ctx)
 {
     me->special_param_decode_cb  = decode_cb;

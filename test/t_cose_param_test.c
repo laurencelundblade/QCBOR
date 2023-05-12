@@ -931,22 +931,22 @@ param_test(void)
 
     param_array[0] = param_tests[1].unencoded;
 
-    param_array[1] = t_cose_make_ct_uint_parameter(42);
+    param_array[1] = t_cose_param_make_ct_uint(42);
     param_array[0].next = &param_array[1];
 
-    param_array[2] = t_cose_make_kid_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid"));
+    param_array[2] = t_cose_param_make_kid(Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid"));
     param_array[1].next = &param_array[2];
 
-    param_array[3] = t_cose_make_iv_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"));
+    param_array[3] = t_cose_param_make_iv(Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"));
     param_array[2].next = &param_array[3];
 
-    param_array[4] = t_cose_make_partial_iv_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("piv"));
+    param_array[4] = t_cose_param_make_partial_iv(Q_USEFUL_BUF_FROM_SZ_LITERAL("piv"));
     param_array[3].next = &param_array[4];
 
     param_array[5] = param_tests[0].unencoded;
     param_array[4].next = &param_array[5];
 
-    param_array[6] = t_cose_make_alg_id_parameter(T_COSE_ALGORITHM_ES256);
+    param_array[6] = t_cose_param_make_alg_id(T_COSE_ALGORITHM_ES256);
     param_array[5].next = &param_array[6];
 
 
@@ -969,26 +969,26 @@ param_test(void)
     }
 
 
-    if(t_cose_find_parameter_alg_id(NULL, true) != T_COSE_ALGORITHM_NONE) {
+    if(t_cose_param_find_alg_id(NULL, true) != T_COSE_ALGORITHM_NONE) {
         return -4;
     }
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
-    if(t_cose_find_parameter_content_type_int(NULL) != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
+    if(t_cose_param_find_content_type_int(NULL) != T_COSE_EMPTY_UINT_CONTENT_TYPE) {
         return -5;
     }
 #endif
 
 
-    if(!q_useful_buf_c_is_null(t_cose_find_parameter_kid(NULL))) {
+    if(!q_useful_buf_c_is_null(t_cose_param_find_kid(NULL))) {
         return -6;
     }
 
-    if(!q_useful_buf_c_is_null(t_cose_find_parameter_iv(NULL))) {
+    if(!q_useful_buf_c_is_null(t_cose_param_find_iv(NULL))) {
         return -7;
     }
 
-    if(!q_useful_buf_c_is_null(t_cose_find_parameter_partial_iv(NULL))) {
+    if(!q_useful_buf_c_is_null(t_cose_param_find_partial_iv(NULL))) {
         return -8;
     }
 
@@ -1020,28 +1020,28 @@ param_test(void)
         return -10; //i * 1000 + 1;
     }
 
-    if(t_cose_find_parameter_alg_id(dec, true) != T_COSE_ALGORITHM_ES256) {
+    if(t_cose_param_find_alg_id(dec, true) != T_COSE_ALGORITHM_ES256) {
         return -11;
     }
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
-    if(t_cose_find_parameter_content_type_int (dec) != 42) {
+    if(t_cose_param_find_content_type_int (dec) != 42) {
         return -12;
     }
 #endif
 
 
-    string = t_cose_find_parameter_kid(dec);
+    string = t_cose_param_find_kid(dec);
     if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("this-is-a-kid"))) {
         return -13;
     }
 
-    string = t_cose_find_parameter_iv(dec);
+    string = t_cose_param_find_iv(dec);
     if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"))) {
         return -14;
     }
 
-    string = t_cose_find_parameter_partial_iv(dec);
+    string = t_cose_param_find_partial_iv(dec);
     if(q_useful_buf_compare(string, Q_USEFUL_BUF_FROM_SZ_LITERAL("piv"))) {
         return -15;
     }

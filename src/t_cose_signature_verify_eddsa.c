@@ -35,7 +35,7 @@ t_cose_signature_verify1_eddsa_cb(struct t_cose_signature_verify *me_x,
     struct q_useful_buf_c        tbs;
 
     /* --- Get the parameters values needed --- */
-    cose_algorithm_id = t_cose_find_parameter_alg_id(parameter_list, true);
+    cose_algorithm_id = t_cose_param_find_alg_id(parameter_list, true);
     if(cose_algorithm_id == T_COSE_ALGORITHM_NONE) {
         return_value = T_COSE_ERR_NO_ALG_ID;
         goto Done;
@@ -45,7 +45,7 @@ t_cose_signature_verify1_eddsa_cb(struct t_cose_signature_verify *me_x,
         goto Done;
     }
 
-    kid = t_cose_find_parameter_kid(parameter_list);
+    kid = t_cose_param_find_kid(parameter_list);
     if(!q_useful_buf_c_is_null(me->verification_kid)) {
         if(q_useful_buf_c_is_null(kid)) {
             return T_COSE_ERR_NO_KID;

@@ -190,8 +190,8 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         goto Done;
     }
 
-    nonce_cbor = t_cose_find_parameter_iv(body_params_list);
-    body_enc_algorithm_id = t_cose_find_parameter_alg_id(body_params_list, true);
+    nonce_cbor = t_cose_param_find_iv(body_params_list);
+    body_enc_algorithm_id = t_cose_param_find_alg_id(body_params_list, true);
     all_params_list = body_params_list;
 
     /* --- The Ciphertext --- */
@@ -248,7 +248,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         QCBORDecode_ExitArray(&cbor_decoder);
 
 
-        t_cose_parameter_list_append(&all_params_list, rcpnt_params_list);
+        t_cose_params_append(&all_params_list, rcpnt_params_list);
 
         /* The decrypted cek bytes must be a t_cose_key for the AEAD API */
         return_value =

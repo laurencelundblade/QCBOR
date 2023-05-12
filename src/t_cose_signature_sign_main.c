@@ -27,9 +27,9 @@ t_cose_signature_sign_headers_main_cb(struct t_cose_signature_sign   *me_x,
     struct t_cose_signature_sign_main *me =
                                     (struct t_cose_signature_sign_main *)me_x;
 
-    me->local_params[0]  = t_cose_make_alg_id_parameter(me->cose_algorithm_id);
+    me->local_params[0]  = t_cose_param_make_alg_id(me->cose_algorithm_id);
     if(!q_useful_buf_c_is_null(me->kid)) {
-        me->local_params[1] = t_cose_make_kid_parameter(me->kid);
+        me->local_params[1] = t_cose_param_make_kid(me->kid);
         me->local_params[0].next = &me->local_params[1];
     }
 
@@ -114,7 +114,7 @@ t_cose_signature_sign_main_cb(struct t_cose_signature_sign  *me_x,
 
     /* -- The headers for a COSE_Sign -- */
     t_cose_signature_sign_headers_main_cb(me_x, &parameters);
-    t_cose_parameter_list_append(&parameters, me->added_signer_params);
+    t_cose_params_append(&parameters, me->added_signer_params);
     t_cose_headers_encode(qcbor_encoder,
                           parameters,
                           &sign_inputs->sign_protected);

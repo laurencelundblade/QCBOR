@@ -310,7 +310,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
     return_value = T_COSE_ERR_DECLINE;
 
 Done:
-    t_cose_parameter_list_append(param_list, best_sig_param_list);
+    t_cose_params_append(param_list, best_sig_param_list);
 
     return return_value;
 }
@@ -345,7 +345,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
                             cbor_decoder,     /* in: decoder */
                             &tmp_sig_param_list);  /* out: linked list of decoded params*/
 
-    t_cose_parameter_list_append(sig_param_list, tmp_sig_param_list);
+    t_cose_params_append(sig_param_list, tmp_sig_param_list);
 
     if(return_value == T_COSE_SUCCESS) {
         /* If here, then the decode was a success, the crypto
@@ -483,7 +483,7 @@ process_cose_signatures(struct t_cose_sign_verify_ctx *me,
 
         /* Now what's left is a T_COSE_SUCCESS or T_COSE_ERR_DECLINE */
 
-        t_cose_parameter_list_append(decode_parameters, sig_params);
+        t_cose_params_append(decode_parameters, sig_params);
 
         if(me->option_flags & (T_COSE_OPT_VERIFY_ALL_SIGNATURES | T_COSE_OPT_DECODE_ONLY)) {
             if(return_value == T_COSE_ERR_DECLINE) {
@@ -558,7 +558,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     /* The location of body header parameters is 0, 0 */
     header_location.nesting = 0;
     header_location.index   = 0;
-    decoded_params      = NULL;
+    decoded_params          = NULL;
 
     return_value = t_cose_headers_decode(&cbor_decoder,
                                           header_location,

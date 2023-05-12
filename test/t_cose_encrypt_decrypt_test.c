@@ -176,7 +176,7 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
 
     t_cose_encrypt_set_cek(&enc_context, cek);
 
-    ps[0] = t_cose_make_ct_tstr_parameter(Q_USEFUL_BUF_FROM_SZ_LITERAL("text/plain"));
+    ps[0] = t_cose_param_make_ct_tstr(Q_USEFUL_BUF_FROM_SZ_LITERAL("text/plain"));
     ps[0].next = &ps[1];
     ps[1].value_type = T_COSE_PARAMETER_TYPE_BYTE_STRING;
     ps[1].value.string = Q_USEFUL_BUF_FROM_SZ_LITERAL("xxxxxxxxxx");
