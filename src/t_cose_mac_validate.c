@@ -13,6 +13,14 @@
 #include "t_cose_util.h"
 #include "t_cose_crypto.h"
 
+/**
+ * \file t_cose_mac_validate.c
+ *
+ * \brief This validates t_cose MAC authentication structure without
+ *        a recipient structure (COSE_Mac0).
+ *        Only HMAC is supported so far.
+ */
+
 #ifndef T_COSE_DISABLE_MAC0
 
 /**
@@ -104,19 +112,13 @@ process_tags(struct t_cose_mac_validate_ctx *me,
     return T_COSE_SUCCESS;
 }
 
-/**
- * \file t_cose_mac_validate.c
- *
- * \brief This validates t_cose MAC authentication structure without a recipient
- *        structure.
- *        Only HMAC is supported so far.
- */
+
 
 /*
- * Public function. See t_cose_mac.h
+ * Semi-private function. See t_cose_mac_validate.h
  */
 enum t_cose_err_t
-t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
+t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
                             struct q_useful_buf_c           cose_mac,
                             struct q_useful_buf_c           aad,
                             bool                            payload_is_detached,
@@ -153,7 +155,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    return_value = process_tags(context, &decode_context);
+    return_value = process_tags(me, &decode_context);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -165,7 +167,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
                           l,
                           NULL,
                           NULL,
-                          &context->parameter_storage,
+                          &me->parameter_storage,
                           &decoded_params,
                           &protected_parameters);
 
@@ -196,7 +198,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
     }
 
     /* === End of the decoding of the array of four === */
-    if((context->option_flags & T_COSE_OPT_REQUIRE_KID) &&
+    if((me->option_flags & T_COSE_OPT_REQUIRE_KID) &&
         q_useful_buf_c_is_null(t_cose_param_find_kid(decoded_params))) {
         return_value = T_COSE_ERR_NO_KID;
         goto Done;
@@ -207,7 +209,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
     }
 
     /* -- Skip tag validation if requested --*/
-    if(context->option_flags & T_COSE_OPT_DECODE_ONLY) {
+    if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
         return_value = T_COSE_SUCCESS;
         goto Done;
     }
@@ -231,7 +233,8 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
      */
     return_value = t_cose_crypto_hmac_validate_setup(&hmac_ctx,
                                   t_cose_param_find_alg_id(decoded_params, true),
-                                  context->validation_key);
+                                  me->validation_key);
+
     if(return_value) {
         goto Done;
     }
