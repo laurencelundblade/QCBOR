@@ -258,7 +258,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     }
 
     /* --- Check for critical parameters --- */
-    if(!(context->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {
+    if(!(me->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {
         return_value = t_cose_params_check(decoded_params);
     }
 
