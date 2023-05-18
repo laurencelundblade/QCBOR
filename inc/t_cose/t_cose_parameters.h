@@ -680,7 +680,7 @@ t_cose_param_find_content_type_tstr(const struct t_cose_parameter *parameter_lis
  * t_cose_param_find_content_type_tstr().
  */
 uint32_t
-t_cose_param_find_content_type_int(const struct t_cose_parameter *parameter_list);
+t_cose_param_find_content_type_uint(const struct t_cose_parameter *parameter_list);
 
 
 /**

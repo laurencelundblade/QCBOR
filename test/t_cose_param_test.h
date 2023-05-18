@@ -1,10 +1,12 @@
-//
-//  t_cose_param_test.h
-//  t_cose_test
-//
-//  Created by Laurence Lundblade on 9/20/22.
-//  Copyright © 2022 Laurence Lundblade. All rights reserved.
-//
+/*
+ *  t_cose_param_test.h
+ *
+ * Copyright 2022-2023, Laurence Lundblade
+ * Created by Laurence Lundblade on 9/20/22.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ */
 
 #ifndef t_cose_param_test_h
 #define t_cose_param_test_h
@@ -13,5 +15,7 @@
 
 
 int_fast32_t param_test(void);
+
+int_fast32_t common_params_test(void);
 
 #endif /* t_cose_param_test_h */

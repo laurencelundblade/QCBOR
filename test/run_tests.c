@@ -122,6 +122,7 @@ static test_entry s_tests[] = {
 #endif /* T_COSE_DISABLE_SHORT_CIRCUIT_SIGN */
 
     TEST_ENTRY(param_test),
+    TEST_ENTRY(common_params_test),
     TEST_ENTRY(base_encrypt_decrypt_test)
 
 };

@@ -16,11 +16,6 @@
 #include "t_cose_util.h"
 
 
-// TODO: test the parameter write callback
-// TODO: test the parameter read callback
-// TODO: check in on stack usage of label list
-// TODO: check on in stack usage in general here
-// TODO: test the find parameter functions
 // TODO: put the encode stuff first in the file
 
 /**
@@ -74,7 +69,7 @@ struct t_cose_label_list {
  *
  * \param[in,out] label_list The list to clear.
  */
-static inline void
+static void
 label_list_clear(struct t_cose_label_list *label_list)
 {
     memset(label_list, 0, sizeof(struct t_cose_label_list));
@@ -88,15 +83,24 @@ label_list_clear(struct t_cose_label_list *label_list)
  *
  * \return true if the list is clear.
  */
-inline static bool
+static bool
 label_list_is_clear(const struct t_cose_label_list *label_list)
 {
     return label_list->int_labels[0] == 0 &&
                q_useful_buf_c_is_null_or_empty(label_list->tstr_labels[0]);
 }
 
-
-static inline bool
+/**
+ * \brief Returns true if a label is in the label list.
+ *
+ * \param[in] label_list  The list to check.
+ * \param[in] label    The label to check for.
+ *
+ * \return true if label is in the list.
+ *
+ * This works only for integer labels.
+ */
+static bool
 label_list_is_in(const struct t_cose_label_list *label_list, int64_t label)
 {
     unsigned count;
@@ -227,10 +231,14 @@ Done:
     return return_value;
 }
 
-
+/*
+ *
+ * Set the crit member for every parameter in the list
+ * based on whether it is listed in \c crit_labels.
+ */
 static void
-mark_crit_params(struct t_cose_parameter *parameters,
-                 struct t_cose_label_list *crit_labels)
+mark_crit_params(struct t_cose_parameter        *parameters,
+                 const struct t_cose_label_list *crit_labels)
 {
     struct t_cose_parameter *p_param;
 
@@ -310,7 +318,7 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
                      struct t_cose_parameter_storage    *param_storage,
                      struct t_cose_parameter           **decoded_params)
 {
-    /* Aproximate stack usage
+    /* Approximate stack usage
      *                                             64-bit      32-bit
      *   QCBORItem                                     56          52
      *   local vars                                    40          20
@@ -444,7 +452,7 @@ Done:
 
 
 
-
+/* Return true if there is a second occurance of target in param_list */
 static bool
 param_dup_detect_2(const struct t_cose_parameter *target,
                   const struct t_cose_parameter *params_list)
@@ -459,12 +467,11 @@ param_dup_detect_2(const struct t_cose_parameter *target,
     return false;
 }
 
-
+/* Returns true if there is any duplicate label in a parameters list. */
 static bool
 param_dup_detect(const struct t_cose_parameter *params_list)
 {
     const struct t_cose_parameter *p1;
-
 
     /* n ^ 2 algorithm, but n is very small. */
     for(p1 = params_list; p1 != NULL; p1 = p1->next) {
@@ -480,15 +487,15 @@ param_dup_detect(const struct t_cose_parameter *params_list)
  * Public function. See t_cose_parameters.h
  */
 enum t_cose_err_t
-t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
+t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
                       const struct t_cose_header_location location,
-                      t_cose_param_special_decode_cb   *special_decode_cb,
-                      void                             *special_decode_ctx,
-                      struct t_cose_parameter_storage  *param_storage,
-                      struct t_cose_parameter         **decoded_params,
-                      struct q_useful_buf_c            *protected_parameters)
+                      t_cose_param_special_decode_cb     *special_decode_cb,
+                      void                               *special_decode_ctx,
+                      struct t_cose_parameter_storage    *param_storage,
+                      struct t_cose_parameter           **decoded_params,
+                      struct q_useful_buf_c              *protected_parameters)
 {
-     /* Aproximate stack usage
+     /* Approximate stack usage
      *                                             64-bit      32-bit
      *   local vars                                    24          12
      *   largest call, t_cose_params_decode           416         352
@@ -508,12 +515,12 @@ t_cose_headers_decode(QCBORDecodeContext               *cbor_decoder,
 
     if(protected_parameters->len) {
         return_value = t_cose_params_decode(cbor_decoder,
-                                                location,
-                                                true,
-                                                special_decode_cb,
-                                                special_decode_ctx,
-                                                param_storage,
-                                                &newly_decode_params);
+                                            location,
+                                            true,
+                                            special_decode_cb,
+                                            special_decode_ctx,
+                                            param_storage,
+                                           &newly_decode_params);
         if(return_value != T_COSE_SUCCESS) {
             goto Done;
         }
@@ -578,6 +585,13 @@ t_cose_params_encode(QCBOREncodeContext            *cbor_encoder,
                      const struct t_cose_parameter *parameters,
                      const bool                     is_protected_bucket)
 {
+    /* Approximate stack usage
+     *                                             64-bit      32-bit
+     *   local vars                                    24          12
+     *   largest call, t_cose_params_decode             8           4
+     *   TOTAL                                         32          16
+     */
+
     const struct t_cose_parameter  *p_param;
     bool                            criticals_present;
     enum t_cose_err_t               return_value;
@@ -657,6 +671,13 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
                       const struct t_cose_parameter *parameters,
                       struct q_useful_buf_c         *protected_parameters)
 {
+    /* Approximate stack usage
+     *                                             64-bit    32-bit
+     *   local vars                                     8         4
+     *   largest call, t_cose_params_decode            32        16
+     *   TOTAL                                         40        20
+     */
+
     enum t_cose_err_t return_value;
 
     // TODO: allow disabling this check to save object code
@@ -683,7 +704,6 @@ Done:
 }
 
 
-// TODO: test all these functions below
 /*
  * Public function. See t_cose_parameters.h
  */
@@ -724,19 +744,18 @@ t_cose_param_find_alg_id(const struct t_cose_parameter *parameter_list, bool pro
 }
 
 
-#ifndef T_COSE_DISABLE_CONTENT_TYPE
 /*
  * Public function. See t_cose_parameters.h
  */
 uint32_t
-t_cose_param_find_content_type_int(const struct t_cose_parameter *parameter_list)
+t_cose_param_find_content_type_uint(const struct t_cose_parameter *parameter_list)
 {
     const struct t_cose_parameter *p_found;
 
-    p_found = t_cose_param_find(parameter_list,
-                                    T_COSE_HEADER_PARAM_CONTENT_TYPE);
+    p_found = t_cose_param_find(parameter_list, T_COSE_HEADER_PARAM_CONTENT_TYPE);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_INT64 &&
+       p_found->value.int64 >= 0 &&
        p_found->value.int64 < UINT16_MAX) {
         return (uint32_t)p_found->value.int64;
     } else {
@@ -753,8 +772,7 @@ t_cose_param_find_content_type_tstr(const struct t_cose_parameter *parameter_lis
 {
     const struct t_cose_parameter *p_found;
 
-    p_found = t_cose_param_find(parameter_list,
-                                    T_COSE_HEADER_PARAM_CONTENT_TYPE);
+    p_found = t_cose_param_find(parameter_list, T_COSE_HEADER_PARAM_CONTENT_TYPE);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_TEXT_STRING) {
         return p_found->value.string;
@@ -762,7 +780,6 @@ t_cose_param_find_content_type_tstr(const struct t_cose_parameter *parameter_lis
         return NULL_Q_USEFUL_BUF_C;
     }
 }
-#endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
 
 /*
@@ -809,8 +826,7 @@ t_cose_param_find_partial_iv(const struct t_cose_parameter *parameter_list)
 {
     const struct t_cose_parameter *p_found;
 
-    p_found = t_cose_param_find(parameter_list,
-                                    T_COSE_HEADER_PARAM_PARTIAL_IV);
+    p_found = t_cose_param_find(parameter_list, T_COSE_HEADER_PARAM_PARTIAL_IV);
     if(p_found != NULL &&
        p_found->value_type == T_COSE_PARAMETER_TYPE_BYTE_STRING) {
         return p_found->value.string;
@@ -857,10 +873,11 @@ enum t_cose_err_t
 t_cose_params_common(const struct t_cose_parameter *decoded_params,
                      struct t_cose_parameters      *returned_params)
 {
-    enum t_cose_err_t              return_value = T_COSE_SUCCESS;
+    enum t_cose_err_t              return_value;
     const struct t_cose_parameter *p;
 
     clear_cose_parameters(returned_params);
+    return_value = T_COSE_SUCCESS;
 
     /* No duplicate detection is necessary because t_cose_headers_decode()
      * does it. */
