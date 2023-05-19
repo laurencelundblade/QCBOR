@@ -172,7 +172,7 @@ int_fast32_t kw_test(void)
          * this dynamically. The below tests will correctly link
          * on 2.28, but will fail to run so this exception is needed.
          */
-        return 0;
+        return INT32_MIN; /* Means no testing was actually done */
     }
 
     e = t_cose_crypto_make_symmetric_key_handle(T_COSE_ALGORITHM_A128GCM,

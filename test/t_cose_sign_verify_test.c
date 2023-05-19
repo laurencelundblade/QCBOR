@@ -922,7 +922,7 @@ int_fast32_t sign_verify_bad_auxiliary_buffer(void)
      * meaning less if we don't support it.
      */
     if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_EDDSA)) {
-        return 0;
+        return INT32_MIN; /* Means no testing was actually done */
     }
 
     result = init_fixed_test_signing_key(T_COSE_ALGORITHM_EDDSA, &key_pair);
@@ -1008,7 +1008,7 @@ int_fast32_t sign_verify_multi(void)
 
     if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES512)) {
         /* T_COSE_ALGORITHM_ES512 is required for this test */
-        return 0;
+        return INT32_MIN; /* Means no testing was actually done */
     }
 
     result = init_fixed_test_signing_key(T_COSE_ALGORITHM_ES256, &key_pair1);
@@ -1165,7 +1165,7 @@ int32_t verify_multi_test(void)
         !t_cose_is_algorithm_supported(T_COSE_ALGORITHM_EDDSA) ||
         !t_cose_is_algorithm_supported(T_COSE_ALGORITHM_PS256)) {
         /* T_COSE_ALGORITHM_ES512 is required for this test */
-        return 0;
+        return INT32_MIN; /* Means no testing was actually done */
     }
     /* This requires Eddsa, RSA and ECDSA. Since PSA doesn't support EdDSA,
      * this can only run with OpenSSL.

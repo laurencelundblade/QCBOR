@@ -2152,7 +2152,7 @@ int_fast32_t crypto_context_test()
      * crypto context behavior tested here.
      */
     if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_SHORT_CIRCUIT_256)) {
-        return 0;
+        return INT32_MIN; /* Means no testing was actually done */
     }
     init_fixed_test_signing_key(T_COSE_ALGORITHM_SHORT_CIRCUIT_256, &key_pair);
 

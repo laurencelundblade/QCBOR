@@ -216,6 +216,13 @@ int RunTestsTCose(const char    *szTestNames[],
         }
 
         int32_t nTestResult = (int32_t)(t->test_fun)();
+
+        if(nTestResult == INT32_MIN) {
+            /* INT32_MIN means tests didn't do any testing. It is typically
+             * returned when the algorithms needed for a test aren't
+             * available when checked by t_cose_is_algorithm_supported(). */
+            continue;
+        }
         nTestsRun++;
         if(pfOutput) {
             (*pfOutput)(t->szTestName, poutCtx, 0);
