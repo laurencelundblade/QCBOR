@@ -582,8 +582,16 @@ enum t_cose_err_t {
     /** The length of an input is invalid. In particular, this occurs with the OpenSSL crypto
      * adaptor when a size greater than MAX_INT is given because OpenSSL
      * input lengths are type int rather than size_t. */
-    T_COSE_ERR_INVALID_LENGTH = 77
+    T_COSE_ERR_INVALID_LENGTH = 77,
 
+    /** The HMAC algorithm is not supported.  */
+    T_COSE_ERR_UNSUPPORTED_HMAC_ALG = 78,
+
+    /** The HMAC algorithm is not supported.  */
+    T_COSE_ERR_HMAC_GENERAL_FAIL = 79,
+
+    /** The HMAC did not successfully verify.  */
+    T_COSE_ERR_HMAC_VERIFY = 80,
 };
 
 

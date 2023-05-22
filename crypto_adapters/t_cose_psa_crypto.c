@@ -470,17 +470,17 @@ static psa_algorithm_t cose_hmac_alg_id_to_psa(int32_t cose_hmac_alg_id)
 static enum t_cose_err_t
 psa_status_to_t_cose_error_hmac(psa_status_t status)
 {
-    /* See documentation for t_cose_int16_map(). It's use gives smaller
+    /* See documentation for t_cose_int16_map(). Its use gives smaller
      * object code than a switch statement here.
      */
     static const int16_t error_map[][2] = {
         { PSA_SUCCESS,                   T_COSE_SUCCESS},
-        { PSA_ERROR_NOT_SUPPORTED,       T_COSE_ERR_UNSUPPORTED_HASH},
+        { PSA_ERROR_NOT_SUPPORTED,       T_COSE_ERR_UNSUPPORTED_HMAC_ALG},
         { PSA_ERROR_INVALID_ARGUMENT,    T_COSE_ERR_INVALID_ARGUMENT},
         { PSA_ERROR_INSUFFICIENT_MEMORY, T_COSE_ERR_INSUFFICIENT_MEMORY},
         { PSA_ERROR_BUFFER_TOO_SMALL,    T_COSE_ERR_TOO_SMALL},
-        { PSA_ERROR_INVALID_SIGNATURE,   T_COSE_ERR_SIG_VERIFY},
-        { INT16_MIN,                     T_COSE_ERR_SIG_FAIL},
+        { PSA_ERROR_INVALID_SIGNATURE,   T_COSE_ERR_HMAC_VERIFY},
+        { INT16_MIN,                     T_COSE_ERR_HMAC_GENERAL_FAIL},
     };
 
     return (enum t_cose_err_t )t_cose_int16_map(error_map, (int16_t)status);
@@ -501,7 +501,7 @@ t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
     /* Map the algorithm ID */
     psa_alg = cose_hmac_alg_id_to_psa(cose_alg_id);
     if(!PSA_ALG_IS_MAC(psa_alg)) {
-        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        return T_COSE_ERR_UNSUPPORTED_HMAC_ALG;
     }
 
     /*
@@ -512,7 +512,7 @@ t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
     if((psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_256)) &&
        (psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_384)) &&
        (psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_512))) {
-        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        return T_COSE_ERR_UNSUPPORTED_HMAC_ALG;
     }
 
     hmac_ctx->op_ctx = psa_mac_operation_init();
@@ -577,7 +577,7 @@ t_cose_crypto_hmac_validate_setup(struct t_cose_crypto_hmac *hmac_ctx,
     /* Map the algorithm ID */
     psa_alg = cose_hmac_alg_id_to_psa(cose_alg_id);
     if(!PSA_ALG_IS_MAC(psa_alg)) {
-        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        return T_COSE_ERR_UNSUPPORTED_HMAC_ALG;
     }
 
     /*
@@ -588,7 +588,7 @@ t_cose_crypto_hmac_validate_setup(struct t_cose_crypto_hmac *hmac_ctx,
     if((psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_256)) &&
        (psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_384)) &&
        (psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_512))) {
-        return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        return T_COSE_ERR_UNSUPPORTED_HMAC_ALG;
     }
 
     hmac_ctx->op_ctx = psa_mac_operation_init();

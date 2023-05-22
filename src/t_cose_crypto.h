@@ -1,7 +1,7 @@
 /*
  * t_cose_crypto.h
  *
- * Copyright 2019-2022, Laurence Lundblade
+ * Copyright 2019-2023, Laurence Lundblade
  * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -434,6 +434,7 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
                            struct q_useful_buf_c signature);
 #endif /* T_COSE_DISABLE_EDDSA */
 
+
 #ifdef T_COSE_USE_PSA_CRYPTO
 #include "psa/crypto.h"
 
@@ -498,7 +499,6 @@ struct t_cose_crypto_hash {
         /* --- The context for OpenSSL crypto --- */
         EVP_MD_CTX  *evp_ctx;
         int          update_error; /* Used to track error return by SHAXXX_Update() */
-        int32_t      cose_hash_alg_id; /* COSE integer ID for the hash alg */
 
    #elif T_COSE_USE_B_CON_SHA256
         /* --- Specific context for Brad Conte's sha256.c --- */
@@ -524,6 +524,12 @@ struct t_cose_crypto_hmac {
     #ifdef T_COSE_USE_PSA_CRYPTO
         /* --- The context for PSA Crypto (MBed Crypto) --- */
         psa_mac_operation_t op_ctx;
+
+    #elif T_COSE_USE_OPENSSL_CRYPTO
+        /* --- The context for OpenSSL crypto --- */
+        EVP_MD_CTX  *evp_ctx;
+        EVP_PKEY    *evp_pkey;
+
     #else
         /* --- Default: generic pointer / handle --- */
         union {
@@ -569,9 +575,19 @@ struct t_cose_crypto_hmac {
 #define T_COSE_CRYPTO_HMAC512_TAG_SIZE   T_COSE_CRYPTO_SHA512_SIZE
 
 /**
- * Max size of the tag output for the HMAC operations.
+ * Max size of the tag output for the HMAC operations. This works up to SHA3-512.
  */
+/* TODO: should this vary with T_COSE_CRYPTO_MAX_HASH_SIZE? */
 #define T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE  T_COSE_CRYPTO_SHA512_SIZE
+
+
+/**
+ * Max size of an HMAC key. RFC 2160 which says the key should be the block size of the hash
+ * function used and that a longer key is allowed, but doesn't increase security. The block size
+ * of SHA-512 is 1024 bits and of SHA3-224 is 1152. This constant is for internal buffers
+ * holding a key. It is set at 200, far above what is needed to be generous and because
+ * 200 bytes isn't very much. */
+#define T_COSE_CRYPTO_HMAC_MAX_KEY 200
 
 /**
  * The maximum needed to hold a hash. It is smaller and less stack is needed
@@ -790,7 +806,7 @@ t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
 
 
 
-
+// TODO: rename this to have hmac in its name
 static inline size_t t_cose_tag_size(int32_t cose_alg_id)
 {
     switch(cose_alg_id) {

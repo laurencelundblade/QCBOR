@@ -121,7 +121,7 @@ static enum t_cose_err_t
 t_cose_mac_validate_detached(struct t_cose_mac_validate_ctx *context,
                              struct q_useful_buf_c           cose_mac,
                              struct q_useful_buf_c           aad,
-                             struct q_useful_buf_c          *detached_payload,
+                             struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameter       **return_params);
 
 
@@ -198,14 +198,14 @@ static inline enum t_cose_err_t
 t_cose_mac_validate_detached(struct t_cose_mac_validate_ctx *me,
                              struct q_useful_buf_c           cose_mac,
                              struct q_useful_buf_c           aad,
-                             struct q_useful_buf_c          *detached_payload,
+                             struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameter       **return_params)
 {
     return t_cose_mac_validate_private(me,
                                        cose_mac,
                                        aad,
                                        true,
-                                       detached_payload,
+                                      &detached_payload,
                                        return_params);
 }
 

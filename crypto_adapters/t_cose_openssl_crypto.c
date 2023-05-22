@@ -106,6 +106,10 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
         T_COSE_ALGORITHM_A256KW,
 #endif /* T_COSE_DISABLE_KEYWRAP */
 
+        T_COSE_ALGORITHM_HMAC256,
+        T_COSE_ALGORITHM_HMAC384,
+        T_COSE_ALGORITHM_HMAC512,
+
         T_COSE_ALGORITHM_NONE /* List terminator */
     };
 
@@ -153,6 +157,32 @@ cose_hash_alg_to_ossl(int32_t cose_hash_alg_id)
     return EVP_get_digestbynid(nid);
 }
 
+/* As cose_hash_alg_to_ossl(), but for HMAC algorithms. */
+static const EVP_MD *
+cose_hmac_alg_to_ossl(int32_t cose_hmac_alg_id)
+{
+    int nid;
+
+    /*  switch() is less object code than t_cose_int16_map(). */
+    switch(cose_hmac_alg_id) {
+        case T_COSE_ALGORITHM_HMAC256:
+            nid = NID_sha256;
+            break;
+
+        case T_COSE_ALGORITHM_HMAC384:
+            nid = NID_sha384;
+            break;
+
+        case T_COSE_ALGORITHM_HMAC512:
+            nid = NID_sha512;
+            break;
+
+        default:
+            return NULL;
+    }
+
+    return EVP_get_digestbynid(nid);
+}
 
 
 /* OpenSSL archaically uses int for lengths in some APIs. t_cose
@@ -281,7 +311,7 @@ static unsigned ecdsa_key_size(EVP_PKEY *key_evp)
 /**
  * \brief Convert DER-encoded ECDSA signature to COSE-serialized signature
  *
- * \param[in] key_len             Size of the key in bytes -- governs sig size.
+ * \param[in] key_evp             The key used to produce the DER signature.
  * \param[in] der_signature       DER-encoded signature.
  * \param[in] signature_buffer    The buffer for output.
  *
@@ -311,7 +341,7 @@ ecdsa_signature_der_to_cose(EVP_PKEY              *key_evp,
 
     key_len = ecdsa_key_size(key_evp);
 
-    /* Put DER-encode sig into an ECDSA_SIG so we can get the r and s out. */
+    /* Put DER-encoded sig into an ECDSA_SIG so we can get the r and s out. */
     temp_der_sig_pointer = der_signature.ptr;
     es = d2i_ECDSA_SIG(NULL, &temp_der_sig_pointer, (long)der_signature.len);
     if(es == NULL) {
@@ -363,7 +393,7 @@ Done:
 /**
  * \brief Convert COSE-serialized ECDSA signature to DER-encoded signature.
  *
- * \param[in] key_len         Size of the key in bytes -- governs sig size.
+ * \param[in] key_evp         Key that will be used to verify the signature.
  * \param[in] cose_signature  The COSE-serialized signature.
  * \param[in] buffer          Place to write DER-format signature.
  * \param[out] der_signature  The returned DER-encoded signature
@@ -969,7 +999,6 @@ t_cose_crypto_hash_start(struct t_cose_crypto_hash *hash_ctx,
         return T_COSE_ERR_HASH_GENERAL_FAIL;
     }
 
-    hash_ctx->cose_hash_alg_id = cose_hash_alg_id;
     hash_ctx->update_error = 1; /* 1 is success in OpenSSL */
 
     return T_COSE_SUCCESS;
@@ -1023,56 +1052,152 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
     return ossl_result ? T_COSE_SUCCESS : T_COSE_ERR_HASH_GENERAL_FAIL;
 }
 
+
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
 t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
                                  struct t_cose_key          signing_key,
                                  const int32_t              cose_alg_id)
 {
-    (void)hmac_ctx;
-    (void)signing_key;
-    (void)cose_alg_id;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    int                         ossl_result;
+    const EVP_MD               *message_digest;
+    Q_USEFUL_BUF_MAKE_STACK_UB( key_buf, T_COSE_CRYPTO_HMAC_MAX_KEY);
+    struct q_useful_buf_c       key_bytes;
+    enum t_cose_err_t           result;
+
+    message_digest = cose_hmac_alg_to_ossl(cose_alg_id);
+    if(message_digest == NULL) {
+        return T_COSE_ERR_UNSUPPORTED_HMAC_ALG;
+    }
+
+    result = t_cose_crypto_export_symmetric_key(signing_key, /* in: key to export */
+                                                key_buf,     /* in: buffer to write to */
+                                               &key_bytes); /* out: exported key */
+    if(result != T_COSE_SUCCESS) {
+        /* This happens when the key is bigger than T_COSE_CRYPTO_HMAC_MAX_KEY */
+        return T_COSE_ERR_UNSUPPORTED_KEY_LENGTH;
+    }
+
+    hmac_ctx->evp_ctx = EVP_MD_CTX_new();
+    if(hmac_ctx->evp_ctx == NULL) {
+        return T_COSE_ERR_INSUFFICIENT_MEMORY;
+    }
+
+    /* The cast from size_t to int is safe because t_cose_crypto_export_symmetric_key()
+     * will never return a key larger than T_COSE_CRYPTO_HMAC_MAX_KEY because
+     * that is the size of its input buffer as defined above/here. */
+    hmac_ctx->evp_pkey = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC,       /* in: type */
+                                              NULL,                /* in: engine */
+                                              key_bytes.ptr,       /* in: key */
+                                              (int)key_bytes.len); /* in: keylen */
+    if(hmac_ctx->evp_pkey == NULL) {
+        EVP_MD_CTX_free(hmac_ctx->evp_ctx);
+        return T_COSE_ERR_INSUFFICIENT_MEMORY;
+    }
+
+    /* EVP_MAC is not used because it is not available in OpenSSL 1.1. */
+
+    ossl_result = EVP_DigestSignInit(hmac_ctx->evp_ctx, /* in: ctx -- EVP Context to initialize */
+                                     NULL,  /* in/out: pctx */
+                                     message_digest, /* in: type Digest function/type/algorithm */
+                                     NULL,  /* in: Engine -- not used */
+                                     hmac_ctx->evp_pkey); /* in: pkey -- the HMAC key */
+    if(ossl_result != 1) {
+        EVP_MD_CTX_free(hmac_ctx->evp_ctx);
+        return T_COSE_ERR_HMAC_GENERAL_FAIL;
+    }
+
+    return T_COSE_SUCCESS;
 }
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
 t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
                           struct q_useful_buf_c      payload)
 {
-    (void)hmac_ctx;
-    (void)payload;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    int  ossl_result;
+
+    ossl_result = EVP_DigestSignUpdate(hmac_ctx->evp_ctx, payload.ptr, payload.len);
+    if(ossl_result != 1) {
+        return T_COSE_ERR_HMAC_GENERAL_FAIL;
+    }
+
+    return T_COSE_SUCCESS;
 }
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
 t_cose_crypto_hmac_compute_finish(struct t_cose_crypto_hmac *hmac_ctx,
                                   struct q_useful_buf        tag_buf,
                                   struct q_useful_buf_c     *tag)
 {
-    (void)hmac_ctx;
-    (void)tag_buf;
-    (void)tag;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    int    ossl_result;
+    size_t in_out_len;
+
+    in_out_len = tag_buf.len;
+    ossl_result = EVP_DigestSignFinal(hmac_ctx->evp_ctx, tag_buf.ptr, &in_out_len);
+
+    EVP_MD_CTX_free(hmac_ctx->evp_ctx);
+    EVP_PKEY_free(hmac_ctx->evp_pkey);
+
+    if(ossl_result != 1) {
+        return T_COSE_ERR_HMAC_GENERAL_FAIL;
+    }
+
+    tag->ptr = tag_buf.ptr;
+    tag->len = in_out_len;
+
+    return T_COSE_SUCCESS;
 }
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+// TODO: argument order alignment with t_cose_crypto_hmac_compute_setup
 enum t_cose_err_t
 t_cose_crypto_hmac_validate_setup(struct t_cose_crypto_hmac *hmac_ctx,
                                   const  int32_t             cose_alg_id,
                                   struct t_cose_key          validation_key)
 {
-    (void)hmac_ctx;
-    (void)cose_alg_id;
-    (void)validation_key;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    return t_cose_crypto_hmac_compute_setup(hmac_ctx, validation_key, cose_alg_id);
 }
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
 t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
-                                   struct q_useful_buf_c      tag)
+                                   struct q_useful_buf_c      input_tag)
 {
-    (void)hmac_ctx;
-    (void)tag;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+    Q_USEFUL_BUF_MAKE_STACK_UB( tag_buf, T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE);
+    struct q_useful_buf_c       computed_tag;
+    enum t_cose_err_t           result;
+
+    result = t_cose_crypto_hmac_compute_finish(hmac_ctx, tag_buf, &computed_tag);
+    if(result != T_COSE_SUCCESS) {
+        return result;
+    }
+
+    if(q_useful_buf_compare(computed_tag, input_tag)) {
+        return T_COSE_ERR_HMAC_VERIFY;
+    }
+
+    return T_COSE_SUCCESS;
 }
+
+
 
 
 #ifndef T_COSE_DISABLE_EDDSA
