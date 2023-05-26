@@ -858,7 +858,6 @@ Done2:
 enum t_cose_err_t
 t_cose_crypto_verify(const int32_t                cose_algorithm_id,
                      const struct t_cose_key      verification_key,
-                     const struct q_useful_buf_c  kid,
                      void                        *crypto_context,
                      const struct q_useful_buf_c  hash_to_verify,
                      const struct q_useful_buf_c  cose_signature)
@@ -879,10 +878,6 @@ t_cose_crypto_verify(const int32_t                cose_algorithm_id,
      * whether an RSA or ECDSA signature is used
      */
     struct q_useful_buf_c  openssl_signature;
-
-    /* This implementation doesn't use any key store with the ability
-     * to look up a key based on kid. */
-    (void)kid;
 
     (void)crypto_context; /* This crypto adaptor doesn't use this */
 
@@ -1271,7 +1266,6 @@ Done:
  */
 enum t_cose_err_t
 t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
-                           struct q_useful_buf_c kid,
                            void                 *crypto_context,
                            struct q_useful_buf_c tbs,
                            struct q_useful_buf_c signature)
@@ -1280,10 +1274,6 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
     int               ossl_result;
     EVP_MD_CTX       *verify_context = NULL;
     EVP_PKEY         *verification_key_evp;
-
-    /* This implementation doesn't use any key store with the ability
-     * to look up a key based on kid. */
-    (void)kid;
 
     (void)crypto_context; /* This crypto adaptor doesn't use this */
 

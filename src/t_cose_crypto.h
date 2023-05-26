@@ -281,17 +281,12 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
  *                              locally (\c \#define) if the needed one
  *                              hasn't been registered.
  * \param[in] verification_key  The verification key to use.
- * \param[in] kid               The COSE kid (key ID) or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] crypto_context       Pointer to adaptor-specific context. May be NULL.
  * \param[in] hash_to_verify    The hash of the data that is to be verified.
  * \param[in] signature         The COSE-format signature.
  *
  * This verifies that the \c signature passed in was over the \c
  * hash_to_verify passed in.
- *
- * The public key used to verify the signature is selected by the \c
- * kid if it is not \c NULL_Q_USEFUL_BUF_C or the \c key_select if it
- * is.
  *
  * The key selected must be, or include, a public key of the correct
  * type for \c cose_algorithm_id.
@@ -305,9 +300,6 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
  *         Signature verification failed. For example, the
  *         cryptographic operations completed successfully but hash
  *         wasn't as expected.
- * \retval T_COSE_ERR_UNKNOWN_KEY
- *         The key identified by \c key_select or a \c kid was
- *         not found.
  * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
  *         The key was found, but it was the wrong type
  *         for the operation.
@@ -325,7 +317,6 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
 enum t_cose_err_t
 t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct t_cose_key     verification_key,
-                     struct q_useful_buf_c kid,
                      void                  *crypto_context,
                      struct q_useful_buf_c hash_to_verify,
                      struct q_useful_buf_c signature);
@@ -396,7 +387,6 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
  * an incrementally computed hash.
  *
  * \param[in] verification_key  The verification key to use.
- * \param[in] kid               The COSE kid (key ID) or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] tbs               The data to be verified.
  * \param[in] signature         The COSE-format signature.
  *
@@ -409,9 +399,6 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
  *         Signature verification failed. For example, the
  *         cryptographic operations completed successfully but hash
  *         wasn't as expected.
- * \retval T_COSE_ERR_UNKNOWN_KEY
- *         The key identified by \c key_select or a \c kid was
- *         not found.
  * \retval T_COSE_ERR_WRONG_TYPE_OF_KEY
  *         The key was found, but it was the wrong type
  *         for the operation.
@@ -428,7 +415,6 @@ t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
  */
 enum t_cose_err_t
 t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
-                           struct q_useful_buf_c kid,
                            void                  *crypto_context,
                            struct q_useful_buf_c tbs,
                            struct q_useful_buf_c signature);

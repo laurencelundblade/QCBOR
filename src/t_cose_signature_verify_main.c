@@ -91,6 +91,8 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
     Q_USEFUL_BUF_MAKE_STACK_UB(  tbs_hash_buffer, T_COSE_CRYPTO_MAX_HASH_SIZE);
     struct q_useful_buf_c        tbs_hash;
 
+    (void)kid;
+
     /* --- Get the parameters values needed --- */
     cose_algorithm_id = t_cose_param_find_alg_id(parameter_list, true);
     if(cose_algorithm_id == T_COSE_ALGORITHM_NONE) {
@@ -131,7 +133,6 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
     /* -- Verify the signature -- */
     return_value = t_cose_crypto_verify(cose_algorithm_id,
                                         me->verification_key,
-                                        kid,
                                         me->crypto_context,
                                         tbs_hash,
                                         signature);
