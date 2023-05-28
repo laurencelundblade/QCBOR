@@ -109,7 +109,7 @@ libt_cose.so: $(SRC_OBJ) $(CRYPTO_OBJ)
 	cc -shared $^ -o $@ $(CRYPTO_LIB) $(QCBOR_LIB)
 
 t_cose_test: main.o $(TEST_OBJ) $(CRYPTO_TEST_OBJ) libt_cose.a
-	cc -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
+	cc -dead_strip -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
 crypto_adapters/t_cose_psa_crypto.o: crypto_adapters/t_cose_psa_crypto.c \
                                      src/t_cose_crypto.h \

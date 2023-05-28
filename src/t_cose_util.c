@@ -153,7 +153,6 @@ create_tbm(const struct t_cose_sign_inputs *mac_inputs,
 #endif /* !T_COSE_DISABLE_MAC0 */
 
 
-#ifndef T_COSE_DISABLE_EDDSA
 /*
  * Public function. See t_cose_util.h
  */
@@ -191,7 +190,6 @@ create_tbs(const struct t_cose_sign_inputs *sign_inputs,
         return T_COSE_SUCCESS;
     }
 }
-#endif /* !T_COSE_DISABLE_EDDSA */
 
 
 /**

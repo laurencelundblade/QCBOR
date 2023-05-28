@@ -34,11 +34,9 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
     t_cose_sign_add_verifier(&(me->me2),
                        t_cose_signature_verify_from_main(&(me->main_verifier)));
 
-#ifndef T_COSE_DISABLE_EDDSA
     t_cose_signature_verify_eddsa_init(&(me->eddsa_verifier), option_flags);
     t_cose_sign_add_verifier(&(me->me2),
                     t_cose_signature_verify_from_eddsa(&(me->eddsa_verifier)));
-#endif /* !T_COSE_DISABLE_EDDSA */
 }
 
 

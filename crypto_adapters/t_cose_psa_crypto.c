@@ -616,7 +616,6 @@ t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
 #endif /* !T_COSE_DISABLE_MAC0 */
 
 
-#ifndef T_COSE_DISABLE_EDDSA
 enum t_cose_err_t
 t_cose_crypto_sign_eddsa(struct t_cose_key      signing_key,
                          void                 *crypto_context,
@@ -649,7 +648,6 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
     /* MbedTLS does not support EdDSA */
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
-#endif /* ! T_COSE_DISABLE_EDDSA */
 
 
 /*

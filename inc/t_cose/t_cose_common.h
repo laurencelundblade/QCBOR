@@ -17,7 +17,6 @@
 #include <stdbool.h>
 #include "t_cose/q_useful_buf.h" /* For t_cose_key and t_cose_sign_inputs */
 
-//#define T_COSE_DISABLE_EDDSA
 
 #ifdef __cplusplus
 extern "C" {

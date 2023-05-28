@@ -321,7 +321,6 @@ t_cose_crypto_verify(int32_t               cose_algorithm_id,
                      struct q_useful_buf_c hash_to_verify,
                      struct q_useful_buf_c signature);
 
-#ifndef T_COSE_DISABLE_EDDSA
 
 /**
  * \brief Perform public key signing for EdDSA.
@@ -418,7 +417,6 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
                            void                  *crypto_context,
                            struct q_useful_buf_c tbs,
                            struct q_useful_buf_c signature);
-#endif /* T_COSE_DISABLE_EDDSA */
 
 
 #ifdef T_COSE_USE_PSA_CRYPTO

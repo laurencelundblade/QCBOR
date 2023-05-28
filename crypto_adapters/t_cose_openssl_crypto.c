@@ -93,9 +93,7 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_PS512
         T_COSE_ALGORITHM_PS512,
 #endif
-#ifndef T_COSE_DISABLE_EDDSA
         T_COSE_ALGORITHM_EDDSA,
-#endif
         T_COSE_ALGORITHM_A128GCM,
         T_COSE_ALGORITHM_A192GCM, /* For 9053 key wrap and direct, not HPKE */
         T_COSE_ALGORITHM_A256GCM,
@@ -1193,10 +1191,6 @@ t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
 }
 
 
-
-
-#ifndef T_COSE_DISABLE_EDDSA
-
 /*
  * See documentation in t_cose_crypto.h
  */
@@ -1326,7 +1320,6 @@ Done:
     return return_value;
 }
 
-#endif /* T_COSE_DISABLE_EDDSA */
 
 
 /*

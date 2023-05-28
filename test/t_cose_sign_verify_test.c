@@ -225,9 +225,7 @@ static struct test_case test_cases[] = {
     { T_COSE_ALGORITHM_PS256, { signed_cose_made_by_psa_crypto_ps256, sizeof(signed_cose_made_by_psa_crypto_ps256) } },
     { T_COSE_ALGORITHM_PS384, { signed_cose_made_by_psa_crypto_ps384, sizeof(signed_cose_made_by_psa_crypto_ps384) } },
     { T_COSE_ALGORITHM_PS512, { signed_cose_made_by_psa_crypto_ps512, sizeof(signed_cose_made_by_psa_crypto_ps512) } },
-#ifndef T_COSE_DISABLE_EDDSA
     { T_COSE_ALGORITHM_EDDSA, { signed_cose_made_by_pycose_eddsa, sizeof(signed_cose_made_by_pycose_eddsa) } },
-#endif /* !T_COSE_DISABLE_EDDSA */
     { 0 }, /* Sentinel value with an invalid algorithm id */
 };
 
