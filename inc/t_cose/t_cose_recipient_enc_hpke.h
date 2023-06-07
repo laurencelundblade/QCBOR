@@ -79,6 +79,7 @@ t_cose_recipient_enc_hpke_set_key(struct t_cose_recipient_enc_hpke *context,
 enum t_cose_err_t
 t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
                                         struct q_useful_buf_c         cek,
+                                        struct t_cose_alg_and_bits    ce,
                                         QCBOREncodeContext           *cbor_encoder);
 
 

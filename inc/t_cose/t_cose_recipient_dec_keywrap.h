@@ -71,6 +71,7 @@ t_cose_recipient_dec_keywrap_set_kek(struct t_cose_recipient_dec_keywrap *contex
 enum t_cose_err_t
 t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec        *me_x,
                                         const struct t_cose_header_location loc,
+                                        const struct t_cose_alg_and_bits    ce_alg,
                                         QCBORDecodeContext                 *cbor_decoder,
                                         struct q_useful_buf                 cek_buffer,
                                         struct t_cose_parameter_storage    *p_storage,

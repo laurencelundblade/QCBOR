@@ -89,6 +89,7 @@ t_cose_crypto_hpke_encrypt(struct t_cose_crypto_hpke_suite_t  suite,
 enum t_cose_err_t
 t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
                                         struct q_useful_buf_c         cek,
+                                        struct t_cose_alg_and_bits    ce_alg,
                                         QCBOREncodeContext           *cbor_encoder)
 {
     struct q_useful_buf_c  proteced_params;
@@ -107,6 +108,8 @@ t_cose_recipient_create_hpke_cb_private(struct t_cose_recipient_enc  *me_x,
     struct t_cose_recipient_enc_hpke *context;
 
     context = (struct t_cose_recipient_enc_hpke *)me_x;
+
+    (void)ce_alg; /* TODO: Still up for debate whether COSE-HPKE does COSE_KDF_Context or not. */
 
     /* Create ephemeral key */
     return_value = t_cose_crypto_generate_key(&ephemeral_key,

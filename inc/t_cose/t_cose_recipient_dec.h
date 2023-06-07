@@ -60,6 +60,7 @@ struct t_cose_recipient_dec;
 typedef enum t_cose_err_t
 t_cose_recipient_dec_cb(struct t_cose_recipient_dec        *context,
                         const struct t_cose_header_location loc,
+                        const struct t_cose_alg_and_bits    ce_alg,
                         QCBORDecodeContext                 *cbor_decoder,
                         struct q_useful_buf                 cek_buffer,
                         struct t_cose_parameter_storage    *p_storage,

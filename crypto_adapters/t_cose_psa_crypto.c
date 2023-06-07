@@ -1268,11 +1268,11 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hkdf(int32_t                cose_hash_algorithm_id,
-                   struct q_useful_buf_c  salt,
-                   struct q_useful_buf_c  ikm,
-                   struct q_useful_buf_c  info,
-                   struct q_useful_buf    okm_buffer)
+t_cose_crypto_hkdf(int32_t                     cose_hash_algorithm_id,
+                   const struct q_useful_buf_c salt,
+                   const struct q_useful_buf_c ikm,
+                   const struct q_useful_buf_c info,
+                   struct q_useful_buf         okm_buffer)
 {
     int                       psa_result;
     const mbedtls_md_info_t  *md_info;

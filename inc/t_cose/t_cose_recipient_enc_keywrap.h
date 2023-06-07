@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "t_cose_parameters.h"
+#include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_key.h"
 #include "t_cose/t_cose_recipient_enc.h"
 
@@ -116,9 +117,10 @@ t_cose_recipient_enc_add_params(struct t_cose_recipient_enc_keywrap *context,
 
 /* Private function referenced by inline implementation. */
 enum t_cose_err_t
-t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
-                                           struct q_useful_buf_c         plaintext,
-                                           QCBOREncodeContext           *cbor_encoder);
+t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc     *me_x,
+                                           struct q_useful_buf_c            plaintext,
+                                           const struct t_cose_alg_and_bits ce_alg,
+                                           QCBOREncodeContext              *cbor_encoder);
 
 
 static inline void

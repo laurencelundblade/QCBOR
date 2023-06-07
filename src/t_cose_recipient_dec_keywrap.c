@@ -23,6 +23,7 @@
 enum t_cose_err_t
 t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
                                         const struct t_cose_header_location loc,
+                                        const struct t_cose_alg_and_bits ce_alg,
                                         QCBORDecodeContext *cbor_decoder,
                                         struct q_useful_buf cek_buffer,
                                         struct t_cose_parameter_storage *p_storage,
@@ -36,6 +37,8 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
     QCBORError             cbor_error;
 
     struct t_cose_recipient_dec_keywrap *me = (struct t_cose_recipient_dec_keywrap *)me_x;
+
+    (void)ce_alg; /* No COSE_KDF_Context is built for key wrap. */
 
     /* ---- The array of three that is a COSE_Recipient ---- */
     QCBORDecode_EnterArray(cbor_decoder, NULL);

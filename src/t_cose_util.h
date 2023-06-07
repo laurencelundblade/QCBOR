@@ -92,6 +92,20 @@ extern "C" {
  */
 int32_t hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id);
 
+
+/**
+ * \brief Returns the key length (in bits) of a given encryption algo.
+ *
+ * @param cose_algorithm_id  Crypto algorithm.
+ *
+ * Returns the key length (in bits) or UINT_MAX in case of an
+ * unknown algorithm id.
+ */
+uint32_t
+bits_in_crypto_alg(int32_t cose_algorithm_id);
+
+
+
 /**
  * \brief Create the ToBeMaced (TBM) structure bytes for COSE.
  *

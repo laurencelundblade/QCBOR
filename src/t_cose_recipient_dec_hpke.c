@@ -63,6 +63,7 @@ hpke_sender_info_decode_cb(void                    *cb_context,
 enum t_cose_err_t
 t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
                                      const struct t_cose_header_location loc,
+                                     struct t_cose_alg_and_bits      ce_alg,
                                      QCBORDecodeContext *cbor_decoder,
                                      struct q_useful_buf cek_buffer,
                                      struct t_cose_parameter_storage *p_storage,
@@ -82,6 +83,8 @@ t_cose_recipient_dec_hpke_cb_private(struct t_cose_recipient_dec *me_x,
     struct q_useful_buf_c enc_struct;
 
     me = (struct t_cose_recipient_dec_hpke *)me_x;
+
+    (void)ce_alg; /* TODO: Still up for debate whether COSE-HPKE does COSE_KDF_Context or not. */
 
     /* One recipient */
     QCBORDecode_EnterArray(cbor_decoder, NULL);

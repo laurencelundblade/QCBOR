@@ -111,6 +111,31 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 }
 
 
+/**
+ * \brief Returns the key length (in bits) of a given encryption algo.
+ *
+ * @param cose_algorithm_id  Crypto algorithm.
+ *
+ * Returns the key length (in bits) or UINT_MAX in case of an
+ * unknown algorithm id.
+ */
+uint32_t
+bits_in_crypto_alg(int32_t cose_algorithm_id)
+{
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_AES128CCM_16_128:
+        case T_COSE_ALGORITHM_A128KW:
+        case T_COSE_ALGORITHM_A128GCM: return 128;
+        case T_COSE_ALGORITHM_A192KW:
+        case T_COSE_ALGORITHM_A192GCM: return 192;
+        case T_COSE_ALGORITHM_AES256CCM_16_128:
+        case T_COSE_ALGORITHM_A256KW:
+        case T_COSE_ALGORITHM_A256GCM: return 256;
+        default: return UINT32_MAX;
+    }
+}
+
+
 #ifndef T_COSE_DISABLE_MAC0
 // TODO: try to combine with create_tbs_hash so that no buffer for headers
 // is needed. Make sure it doesn't make sign-only or mac-only object code big
