@@ -2,7 +2,7 @@
  * t_cose_psa_crypto.c
  *
  * Copyright 2019-2023, Laurence Lundblade
- * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -90,14 +90,12 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 #ifndef T_COSE_DISABLE_PS512
         T_COSE_ALGORITHM_PS512,
 #endif
-#ifndef T_COSE_DISABLE_MAC0
         T_COSE_ALGORITHM_HMAC256,
         T_COSE_ALGORITHM_HMAC384,
         T_COSE_ALGORITHM_HMAC512,
         T_COSE_ALGORITHM_A128GCM,
         T_COSE_ALGORITHM_A192GCM, /* For 9053 direct, not HPKE */
         T_COSE_ALGORITHM_A256GCM,
-        #endif /* T_COSE_DISABLE_MAC0 */
 
 #if !defined NO_MBED_KW_API & !defined T_COSE_DISABLE_KEYWRAP
         T_COSE_ALGORITHM_A128KW,
@@ -429,8 +427,6 @@ Done:
 #endif /* !T_COSE_DISABLE_SIGN1 */
 
 
-
-#ifndef T_COSE_DISABLE_MAC0
 /**
  * \brief Convert COSE algorithm ID to a PSA HMAC algorithm ID
  *
@@ -612,8 +608,6 @@ t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
 
     return psa_status_to_t_cose_error_hmac(psa_ret);
 }
-
-#endif /* !T_COSE_DISABLE_MAC0 */
 
 
 enum t_cose_err_t

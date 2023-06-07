@@ -16,8 +16,6 @@
 #include "t_cose_compute_validate_mac_test.h"
 
 
-#ifndef T_COSE_DISABLE_MAC0
-
 #define KEY_hmac256 \
 0x0b, 0x2d, 0x6f, 0x32, 0x53, 0x67, 0x86, 0xb3, 0x8f, 0x83, 0x56, 0xaa, \
 0xe0, 0x8c, 0x05, 0x52, 0x79, 0x31, 0xdd, 0x43, 0xef, 0xe9, 0xf4, 0x12, \
@@ -187,6 +185,9 @@ int_fast32_t compute_validate_mac_fail_test()
     QCBORError                   cbor_error;
     size_t                       tamper_offset;
 
+    if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC256)) {
+        return 0;
+    }
 
     /* Make an HMAC key that will be used for both computing the
      * authentication tag and validation.
@@ -415,6 +416,9 @@ int_fast32_t compute_validate_detached_content_mac_fail_test()
     struct t_cose_key            key;
     QCBORError                   cbor_error;
 
+    if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC256)) {
+        return 0;
+    }
 
     /* ---- Set up ---- */
 
@@ -621,5 +625,3 @@ int_fast32_t compute_validate_get_size_detached_content_mac_test()
 
     return 0;
 }
-
-#endif /* !T_COSE_DISABLE_MAC0 */

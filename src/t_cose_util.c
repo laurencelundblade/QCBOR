@@ -111,6 +111,8 @@ hash_alg_id_from_sig_alg_id(int32_t cose_algorithm_id)
 }
 
 
+
+
 /**
  * \brief Returns the key length (in bits) of a given encryption algo.
  *
@@ -136,7 +138,8 @@ bits_in_crypto_alg(int32_t cose_algorithm_id)
 }
 
 
-#ifndef T_COSE_DISABLE_MAC0
+
+
 // TODO: try to combine with create_tbs_hash so that no buffer for headers
 // is needed. Make sure it doesn't make sign-only or mac-only object code big
 enum t_cose_err_t
@@ -175,7 +178,6 @@ create_tbm(const struct t_cose_sign_inputs *mac_inputs,
 
     return T_COSE_SUCCESS;
 }
-#endif /* !T_COSE_DISABLE_MAC0 */
 
 
 /*
