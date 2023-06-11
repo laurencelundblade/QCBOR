@@ -25,7 +25,7 @@ extern "C" {
 
 /*
  * API Design Overview
- * 
+ *
  * t_cose is made up of a collection of objects (in the
  * object-oriented programming sense) that correspond to the main
  * objects defined in CDDL by the COSE standard (RFC 9052). These
@@ -82,7 +82,7 @@ extern "C" {
  * checked by actually designing and implementing it). These are not
  * needed for COSE_Mac0.
  *
- * 
+ *
  * COSE_Message
  *
  * t_cose_message_create() and t_cose_message_decode handle
@@ -157,8 +157,8 @@ extern "C" {
  * database look ups, use of certificates, counter signatures
  * and such, all without changing the source or even object
  * code of the core t_cose library.
- * 
- * COSE_Key 
+ *
+ * COSE_Key
  *
  * Some formats of COSE_recipient have parameters that are in the
  * COSE_key format. It would be useful to have some library code to
@@ -167,7 +167,7 @@ extern "C" {
  */
 
 
-  
+
 /**
  * \file t_cose_common.h
  *
@@ -611,10 +611,13 @@ enum t_cose_err_t {
     /** The HMAC did not successfully verify.  */
     T_COSE_ERR_HMAC_VERIFY = 80,
 
+    /** General unsupported operation failure. */
+    T_COSE_ERR_UNSUPPORTED = 81,
+  
     /* A signing operation is in progress. The function returning this value
      * can be called again until it returns \ref T_COSE_SUCCESS or error.
      */
-    T_COSE_ERR_SIG_IN_PROGRESS = 81,
+    T_COSE_ERR_SIG_IN_PROGRESS = 82,
 };
 
 
@@ -683,7 +686,7 @@ enum t_cose_err_t {
  */
 #define T_COSE_OPT_OMIT_CBOR_TAG 0x00000400
 
-  
+
 /**
  * When verifying or signing a COSE message, cryptographic operations
  * like verification and decryption will not be performed. Keys needed

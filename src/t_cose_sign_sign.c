@@ -146,6 +146,7 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
     signer = me->signers;
 
     if(T_COSE_OPT_IS_SIGN(me->option_flags)) {
+#ifndef T_COSE_DISABLE_COSE_SIGN
         /* --- One or more COSE_Signatures for COSE_Sign --- */
 
         /* Output the arrray of signers, each of which is an array of
@@ -161,6 +162,9 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
             signer = (struct t_cose_signature_sign *)signer->rs.next;
         }
         QCBOREncode_CloseArray(cbor_encoder);
+#else
+        return_value = T_COSE_ERR_UNSUPPORTED;
+#endif /* !T_COSE_DISABLE_COSE_SIGN */
 
     } else {
         /* --- Single signature for COSE_Sign1 --- */

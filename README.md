@@ -6,11 +6,11 @@ an introduction to t_cose 2.0 before the merge to master.
 ![t_cose](https://github.com/laurencelundblade/t_cose/blob/master/t-cose-logo.png?raw=true)
 
 
-*t_cose* implements enough of COSE to support [CBOR Web Token, RFC 8392](https://tools.ietf.org/html/rfc8392)  
-and [Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01). 
-This is the COSE_Sign1 part of [COSE, RFC 9052](https://tools.ietf.org/html/rfc9052). 
+*t_cose* implements enough of COSE to support [CBOR Web Token, RFC 8392](https://tools.ietf.org/html/rfc8392)
+and [Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01).
+This is the COSE_Sign1 part of [COSE, RFC 9052](https://tools.ietf.org/html/rfc9052).
 
-**Implemented in C with minimal dependency** – There are three main 
+**Implemented in C with minimal dependency** – There are three main
 dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR),
 2) A cryptographic library for ECDSA and SHA-2, 3) C99, <stdint.h>,
 <stddef.h>, <stdbool.h> and <string.h>.  It is  highly
@@ -19,9 +19,9 @@ some minor configuration for the cryptographic library, no #ifdefs or
 compiler options need to be set for it to run correctly.
 
 **Crypto Library Integration Layer** – Works with different cryptographic
-libraries via a simple integration layer. The integration layer is kept small and simple, 
-just enough for the use cases, so that integration is simpler. Integration layers for 
-the OpenSSL and ARM Mbed TLS (PSA Cryptography API) cryptographic libraries 
+libraries via a simple integration layer. The integration layer is kept small and simple,
+just enough for the use cases, so that integration is simpler. Integration layers for
+the OpenSSL and ARM Mbed TLS (PSA Cryptography API) cryptographic libraries
 are included.
 
 **Secure coding style** – Uses a construct called UsefulBuf / q_useful_buf as a
@@ -41,12 +41,12 @@ useful for embedded implementations that have to run in small fixed memory.
 ## Code Status
 
 Status for t_cose 2.0 is very roughly this. COSE_Sign1 is working
-except for decoding of protected parameters. COSE_Sign works for 
+except for decoding of protected parameters. COSE_Sign works for
 a single signature.  COSE_Mac0 is generally working. COSE_Encrypt
 and COSE_Encrypt0 are somewhat working. The HPKE here is disabled
-and is a early IETF proposal. 
+and is a early IETF proposal.
 
-There is still lots of work to do on COSE_Sign, clean up on 
+There is still lots of work to do on COSE_Sign, clean up on
 COSE_Mac0 and some re design is exected for COSE_Encrypt.
 
 RSA and Eddsa integration from main is still to be done.
@@ -153,7 +153,7 @@ If this doesn't work or you have Mbed TLS elsewhere edit the makefile.
 The specific things that Makefile.psa does is:
     * Links the crypto_adapters/t_cose_psa_crypto.o into libt_cose.a
     * Links test/test/t_cose_make_psa_test_key.o into the test binary
-    * `#define T_COSE_USE_PSA_CRYPTO`   
+    * `#define T_COSE_USE_PSA_CRYPTO`
 
 This crypto adapter is small and simple. The adapter allocates no
 memory and as far as I know it internally allocates no memory. It is a
@@ -279,23 +279,25 @@ into.
 
 ## Memory Usage
 
-### Code 
+### Code
 
 Here are code sizes on 64-bit x86 optimized for size
 
-     |                           | smallest | largest |  
+     |                           | smallest | largest |
      |---------------------------|----------|---------|
      | signing only              |     1500 |    2300 |
      | verification only         |     2500 |    3300 |
      | common to sign and verify |     (500)|    (800)|
      | combined                  |     3500 |    4800 |
-     
+
 Things that make the code smaller:
 * PSA / Mbed crypto takes less code to interface with than OpenSSL
 * gcc is usually smaller than llvm because stack guards are off by default
 * Use only 256-bit crypto with the T_COSE_DISABLE_ESXXX options
-* Disable short-circut sig debug faclity T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
+* Disable short-circut sig debug facility T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 * Disable the content type header T_COSE_DISABLE_CONTENT_TYPE
+* Disable COSE_Sign structure support with T_COSE_DISABLE_COSE_SIGN
+  (use only COSE_Sign1 signature structures if adequate).
 
 #### Change in code size with spiffy decode
 
@@ -357,13 +359,13 @@ implementation of ECDSA might not use malloc, as the keys are small
 enough.
 
 ### Mixed code style
-QCBOR uses camelCase and t_cose follows 
+QCBOR uses camelCase and t_cose follows
 [Arm's coding guidelines](https://git.trustedfirmware.org/TF-M/trusted-firmware-m.git/tree/docs/contributing/coding_guide.rst)
 resulting in code with mixed styles. For better or worse, an Arm-style version of UsefulBuf
 is created and used and so there is a duplicate of UsefulBuf. The two are identical. They
 just have different names.
 
-## Limitations 
+## Limitations
 
 * Most inputs and outputs must be in a continguous buffer. One
   exception to this is that CBOR payloads being signed can be

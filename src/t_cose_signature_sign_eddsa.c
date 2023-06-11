@@ -2,6 +2,8 @@
  * t_cose_signature_sign_eddsa.c
  *
  * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023, Arm Limited. All rights reserved.
+ *
  * Created by Laurence Lundblade on 11/15/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -108,6 +110,7 @@ t_cose_signature_sign_eddsa_cb(struct t_cose_signature_sign  *me_x,
                                struct t_cose_sign_inputs     *sign_inputs,
                                QCBOREncodeContext            *qcbor_encoder)
 {
+#ifndef T_COSE_DISABLE_COSE_SIGN
     struct t_cose_signature_sign_eddsa *me =
                                      (struct t_cose_signature_sign_eddsa *)me_x;
     enum t_cose_err_t           return_value;
@@ -128,6 +131,15 @@ t_cose_signature_sign_eddsa_cb(struct t_cose_signature_sign  *me_x,
     QCBOREncode_CloseArray(qcbor_encoder);
 
     return return_value;
+
+#else /* !T_COSE_DISABLE_COSE_SIGN */
+
+    (void)me_x;
+    (void)sign_inputs;
+    (void)qcbor_encoder;
+
+    return T_COSE_ERR_UNSUPPORTED;
+#endif /* !T_COSE_DISABLE_COSE_SIGN */
 }
 
 
@@ -140,4 +152,3 @@ t_cose_signature_sign_eddsa_init(struct t_cose_signature_sign_eddsa *me)
     me->s.sign1_cb   = t_cose_signature_sign1_eddsa_cb;
     me->s.headers_cb = t_cose_signature_sign_headers_eddsa_cb;
 }
-

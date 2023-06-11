@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2023, Arm Limited. All rights reserved.
+ *
  * Created by Laurence Lundblade on 5/23/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -106,6 +107,7 @@ t_cose_signature_sign_main_cb(struct t_cose_signature_sign  *me_x,
                               struct t_cose_sign_inputs     *sign_inputs,
                               QCBOREncodeContext            *qcbor_encoder)
 {
+#ifndef T_COSE_DISABLE_COSE_SIGN
     struct t_cose_signature_sign_main *me =
                                      (struct t_cose_signature_sign_main *)me_x;
     enum t_cose_err_t         return_value;
@@ -130,6 +132,15 @@ t_cose_signature_sign_main_cb(struct t_cose_signature_sign  *me_x,
     QCBOREncode_CloseArray(qcbor_encoder);
 
     return return_value;
+
+#else /* !T_COSE_DISABLE_COSE_SIGN */
+
+    (void)me_x;
+    (void)sign_inputs;
+    (void)qcbor_encoder;
+
+    return T_COSE_ERR_UNSUPPORTED;
+#endif /* !T_COSE_DISABLE_COSE_SIGN */
 }
 
 
