@@ -2,6 +2,7 @@
  * t_cose_make_test_messages.c
  *
  * Copyright (c) 2019-2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -12,6 +13,7 @@
 #include "qcbor/qcbor.h"
 #include "t_cose_crypto.h"
 #include "t_cose_util.h"
+#include "t_cose/t_cose_signature_main.h"
 
 
 /**
@@ -444,7 +446,7 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
     /* Pointer and length of the buffer for the signature */
     struct q_useful_buf          buffer_for_signature;
     /* Buffer for the tbs hash. */
-    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
+    Q_USEFUL_BUF_MAKE_STACK_UB(  buffer_for_tbs_hash, T_COSE_MAIN_MAX_HASH_SIZE);
     struct q_useful_buf_c        signed_payload;
     struct t_cose_sign_inputs           sign_inputs;
 

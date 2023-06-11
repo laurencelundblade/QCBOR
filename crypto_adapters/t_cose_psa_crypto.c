@@ -47,6 +47,7 @@
 #include <mbedtls/md.h>
 
 #include "t_cose_util.h"
+#include "t_cose_psa_crypto.h"
 
 #if MBEDTLS_VERSION_MAJOR < 3
 #define NO_MBED_KW_API
@@ -166,6 +167,9 @@ psa_status_to_t_cose_error_signing(psa_status_t err)
         { PSA_ERROR_NOT_SUPPORTED        , T_COSE_ERR_UNSUPPORTED_SIGNING_ALG},
         { PSA_ERROR_INSUFFICIENT_MEMORY  , T_COSE_ERR_INSUFFICIENT_MEMORY},
         { PSA_ERROR_CORRUPTION_DETECTED  , T_COSE_ERR_TAMPERING_DETECTED},
+#if PSA_CRYPTO_HAS_RESTARTABLE_SIGNING
+        { PSA_OPERATION_INCOMPLETE       , T_COSE_ERR_SIG_IN_PROGRESS},
+#endif /* PSA_CRYPTO_HAS_RESTARTABLE_SIGNING */
         { INT16_MIN                      , T_COSE_ERR_SIG_FAIL},
     };
 
@@ -263,6 +267,74 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
      return return_value;
 }
 
+
+#if PSA_CRYPTO_HAS_RESTARTABLE_SIGNING
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_sign_restart(bool                   started,
+                           int32_t                cose_algorithm_id,
+                           struct t_cose_key      signing_key,
+                           void                  *crypto_context,
+                           struct q_useful_buf_c  hash_to_sign,
+                           struct q_useful_buf    signature_buffer,
+                           struct q_useful_buf_c *signature)
+{
+    enum t_cose_err_t     return_value;
+    psa_status_t          psa_result;
+    psa_algorithm_t       psa_alg_id;
+    psa_key_handle_t      signing_key_psa;
+    size_t                signature_len;
+    struct t_cose_psa_crypto_context *psa_crypto_context;
+
+    psa_alg_id = cose_alg_id_to_psa_alg_id(cose_algorithm_id);
+    if(!PSA_ALG_IS_ECDSA(psa_alg_id) && !PSA_ALG_IS_RSA_PSS(psa_alg_id)) {
+        return_value = T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
+        goto Done;
+    }
+
+    signing_key_psa = (psa_key_handle_t)signing_key.key.handle;
+
+    /* It is assumed that this call is checking the signature_buffer
+     * length and won't write off the end of it.
+     */
+
+    if(!crypto_context) {
+        return_value = T_COSE_ERR_FAIL;
+    }
+    psa_crypto_context = (struct t_cose_psa_crypto_context *)crypto_context;
+
+    if(!started) {
+        psa_result = psa_sign_hash_start(
+                            &psa_crypto_context->operation,
+                            signing_key_psa,
+                            psa_alg_id,
+                            hash_to_sign.ptr,
+                            hash_to_sign.len);
+        if(psa_result != PSA_SUCCESS) {
+            return_value = psa_status_to_t_cose_error_signing(psa_result);
+            goto Done;
+        }
+    }
+    psa_result = psa_sign_hash_complete(
+                            &psa_crypto_context->operation,
+                            signature_buffer.ptr, /* Sig buf */
+                            signature_buffer.len, /* Sig buf size */
+                            &signature_len);
+
+    return_value = psa_status_to_t_cose_error_signing(psa_result);
+
+    if(return_value == T_COSE_SUCCESS) {
+        /* Success, fill in the return useful_buf */
+        signature->ptr = signature_buffer.ptr;
+        signature->len = signature_len;
+    }
+
+Done:
+     return return_value;
+}
+#endif /* PSA_CRYPTO_HAS_RESTARTABLE_SIGNING */
 
 /*
  * See documentation in t_cose_crypto.h

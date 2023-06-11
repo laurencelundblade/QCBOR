@@ -2,7 +2,7 @@
  *  t_cose_sign_verify_test.c
  *
  * Copyright 2019-2022, Laurence Lundblade
- * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2022-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include "t_cose/t_cose_sign1_sign.h"
 #include "t_cose/t_cose_sign1_verify.h"
+#include "t_cose/t_cose_signature_sign_restart.h"
 #include "t_cose/q_useful_buf.h"
 #include "init_keys.h"
 #include "t_cose_sign_verify_test.h"
@@ -1273,3 +1274,115 @@ int32_t verify_multi_test(void)
  
 
  */
+
+#if defined(T_COSE_USE_PSA_CRYPTO)
+/* Include the PSA crypto adapter header so that PSA_CRYPTO_HAS_RESTARTABLE_SIGNING
+ * is defined for the next condition
+ */
+#include "../crypto_adapters/t_cose_psa_crypto.h"
+#endif
+
+#if (defined(T_COSE_USE_PSA_CRYPTO) && PSA_CRYPTO_HAS_RESTARTABLE_SIGNING) || \
+     defined(T_COSE_USE_B_CON_SHA256)
+
+#if defined(T_COSE_USE_PSA_CRYPTO)
+    #define DECLARE_DEFAULT_ALGORITHM_ID(alg_id) \
+        int32_t alg_id = T_COSE_ALGORITHM_ES256
+    #define DECLARE_RESTARTABLE_CONTEXT(crypto_ctx) \
+        psa_interruptible_set_max_ops(0); \
+        struct t_cose_psa_crypto_context crypto_ctx = {0}
+#else
+    /* Assume test crypto adapter */
+    #include "../crypto_adapters/t_cose_test_crypto.h"
+    #define DECLARE_DEFAULT_ALGORITHM_ID(alg_id) \
+        int32_t alg_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256
+    #define DECLARE_RESTARTABLE_CONTEXT(crypto_ctx) \
+        struct t_cose_test_crypto_context crypto_ctx = {0}
+#endif
+
+int_fast32_t restart_test_2_step(void)
+{
+    QCBOREncodeContext              cbor_encode;
+    QCBORError                      qcbor_result;
+    struct t_cose_sign_sign_ctx     sign_ctx;
+    enum t_cose_err_t               result;
+    Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 200);
+    struct q_useful_buf_c           signed_cose;
+    struct t_cose_sign1_verify_ctx  verify_ctx;
+    struct q_useful_buf_c           payload =
+        Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE PAYLOAD");
+    int                             counter;
+    struct t_cose_key               key_pair;
+    struct t_cose_signature_sign_restart signer;
+
+    DECLARE_RESTARTABLE_CONTEXT(crypto_context);
+    DECLARE_DEFAULT_ALGORITHM_ID(cose_algorithm_id);
+
+    init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
+
+    t_cose_signature_sign_restart_init(&signer, cose_algorithm_id);
+    t_cose_signature_sign_restart_set_crypto_context(&signer,
+                                                     &crypto_context);
+    t_cose_signature_sign_restart_set_signing_key(&signer, key_pair);
+
+    t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
+    t_cose_sign_add_signer(&sign_ctx, t_cose_signature_sign_from_restart(&signer));
+
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    result = t_cose_sign_encode_start(&sign_ctx, &cbor_encode);
+    if(result != T_COSE_SUCCESS) {
+        return 1000 + (int32_t)result;
+    }
+
+    QCBOREncode_AddBytes(&cbor_encode, payload);
+
+    counter = 0;
+    do {
+        result = t_cose_sign_encode_finish(&sign_ctx,
+                                           NULL_Q_USEFUL_BUF_C,
+                                           payload,
+                                           &cbor_encode);
+        counter++;
+    } while(result == T_COSE_ERR_SIG_IN_PROGRESS);
+
+    if(result) {
+        return 2000 + (int32_t)result;
+    }
+    if(counter <= 1) {
+        return 3000;
+    }
+
+    qcbor_result = QCBOREncode_Finish(&cbor_encode, &signed_cose);
+    if(qcbor_result) {
+        return 4000 + (int32_t)qcbor_result;
+    }
+
+    /* --- Done making COSE Sign1 object  --- */
+
+    /* --- Start verifying the COSE Sign1 object  --- */
+    /* Select short circuit signing */
+    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
+
+    /* Run the signature verification */
+    result = t_cose_sign1_verify(&verify_ctx,
+                                 /* COSE to verify */
+                                 signed_cose,
+                                 /* The returned payload */
+                                 &payload,
+                                 /* Don't return parameters */
+                                 NULL);
+    if(result) {
+        return 5000 + (int32_t)result;
+    }
+
+
+    return 0;
+}
+#else
+int_fast32_t restart_test_2_step(void)
+{
+    return 0;
+}
+#endif

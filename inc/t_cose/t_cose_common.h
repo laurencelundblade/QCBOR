@@ -2,7 +2,7 @@
  * t_cose_common.h
  *
  * Copyright 2019-2023, Laurence Lundblade
- * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -218,6 +218,25 @@ extern "C" {
 
 /* Definition of struct t_cose_key is moved to t_cose_key.h */
 
+
+/**
+ * The size of the output of SHA-256.
+ *
+ * (It is safe to define these independently here as they are
+ * well-known and fixed. There is no need to reference
+ * platform-specific headers and incur messy dependence.)
+ */
+#define T_COSE_CRYPTO_SHA256_SIZE 32
+
+/**
+ * The size of the output of SHA-384 in bytes.
+ */
+#define T_COSE_CRYPTO_SHA384_SIZE 48
+
+/**
+ * The size of the output of SHA-512 in bytes.
+ */
+#define T_COSE_CRYPTO_SHA512_SIZE 64
 
 // TODO: this may not belong in common.h
 enum t_cose_key_usage_flags {
@@ -591,6 +610,11 @@ enum t_cose_err_t {
 
     /** The HMAC did not successfully verify.  */
     T_COSE_ERR_HMAC_VERIFY = 80,
+
+    /* A signing operation is in progress. The function returning this value
+     * can be called again until it returns \ref T_COSE_SUCCESS or error.
+     */
+    T_COSE_ERR_SIG_IN_PROGRESS = 81,
 };
 
 

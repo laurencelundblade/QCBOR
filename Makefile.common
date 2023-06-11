@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2019-2023, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
-# Copyright (c) 2022 Arm Limited. All rights reserved.
+# Copyright (c) 2022-2023 Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -23,6 +23,7 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_sign1_sign.o \
         src/t_cose_sign1_verify.o \
         src/t_cose_signature_sign_main.o \
+        src/t_cose_signature_sign_restart.o \
         src/t_cose_signature_sign_eddsa.o \
         src/t_cose_signature_verify_main.o \
         src/t_cose_signature_verify_eddsa.o \

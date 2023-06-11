@@ -83,8 +83,6 @@ extern "C" {
  * - Support for a new T_COSE_ALGORITHM_XXX signature algorithm
  *    - See t_cose_algorithm_is_ecdsa()
  *    - If not ECDSA add another function like t_cose_algorithm_is_ecdsa()
- * - Support for a new T_COSE_ALGORITHM_XXX signature algorithm is added
- *    - See \ref T_COSE_CRYPTO_MAX_HASH_SIZE for additional hashes
  * - Support another hash implementation that is not a service
  *    - See struct \ref t_cose_crypto_hash
  *
@@ -266,6 +264,43 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                    struct q_useful_buf_c  hash_to_sign,
                    struct q_useful_buf    signature_buffer,
                    struct q_useful_buf_c *signature);
+
+
+/**
+ * \brief Perform public key signing in a restartable manner. Part of the t_cose
+ * crypto adaptation layer.
+ *
+ * \param[in] started           If false, then this is the first call of a
+ *                              signing operation. If it is true, this is a
+ *                              subsequent call.
+ *
+ * \retval T_COSE_ERR_SIG_IN_PROGRESS
+ *         Signing is in progress, the function needs to be called again with
+ *         the same parameters.
+ *
+ * For other parameters and possible return values and general description see
+ * t_cose_crypto_sign.
+ *
+ * To complete a signing operation this function needs to be called multiple
+ * times. For a signing operation the first call to this function must happen
+ * with \c started == false, and all subsequent calls for this signing operation
+ * must happen with \c started == true. When the return value is
+ * \c T_COSE_ERR_SIG_IN_PROGRESS the data in the output parameters is undefined.
+ * The function must be called again (and again...) until \c T_COSE_SUCCESS or
+ * an error is returned.
+ *
+ * Note that this function is only implemented if the crypto adapter supports
+ * restartable operation, and even in that case it might not be available for
+ * all algorithms.
+ */
+enum t_cose_err_t
+t_cose_crypto_sign_restart(bool                   started,
+                           int32_t                cose_algorithm_id,
+                           struct t_cose_key      signing_key,
+                           void                  *crypto_context,
+                           struct q_useful_buf_c  hash_to_sign,
+                           struct q_useful_buf    signature_buffer,
+                           struct q_useful_buf_c *signature);
 
 
 /**
@@ -525,25 +560,6 @@ struct t_cose_crypto_hmac {
 };
 
 /**
- * The size of the output of SHA-256.
- *
- * (It is safe to define these independently here as they are
- * well-known and fixed. There is no need to reference
- * platform-specific headers and incur messy dependence.)
- */
-#define T_COSE_CRYPTO_SHA256_SIZE 32
-
-/**
- * The size of the output of SHA-384 in bytes.
- */
-#define T_COSE_CRYPTO_SHA384_SIZE 48
-
-/**
- * The size of the output of SHA-512 in bytes.
- */
-#define T_COSE_CRYPTO_SHA512_SIZE 64
-
-/**
  * Size of the signature (tag) output for the HMAC-SHA256.
  */
 #define T_COSE_CRYPTO_HMAC256_TAG_SIZE   T_COSE_CRYPTO_SHA256_SIZE
@@ -572,20 +588,6 @@ struct t_cose_crypto_hmac {
  * holding a key. It is set at 200, far above what is needed to be generous and because
  * 200 bytes isn't very much. */
 #define T_COSE_CRYPTO_HMAC_MAX_KEY 200
-
-/**
- * The maximum needed to hold a hash. It is smaller and less stack is needed
- * if the larger hashes are disabled.
- */
-#if !defined(T_COSE_DISABLE_ES512) || !defined(T_COSE_DISABLE_PS512)
-    #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA512_SIZE
-#else
-    #if !defined(T_COSE_DISABLE_ES384) || !defined(T_COSE_DISABLE_PS384)
-        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA384_SIZE
-    #else
-        #define T_COSE_CRYPTO_MAX_HASH_SIZE T_COSE_CRYPTO_SHA256_SIZE
-    #endif
-#endif
 
 
 /**

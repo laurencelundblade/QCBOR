@@ -2,7 +2,7 @@
  *  t_cose_test_crypto.c
  *
  * Copyright 2019-2023, Laurence Lundblade
- * Copyright (c) 2022, Arm Limited. All rights reserved.
+ * Copyright (c) 2022-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -17,6 +17,7 @@
 #include "t_cose_test_crypto.h"
 #include "t_cose_util.h"
 
+#define SIGN_ITERATION_COUNT 5
 
 /*
  * This file is stub crypto for initial bring up and test of t_cose.
@@ -167,6 +168,36 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
 
 Done:
     return return_value;
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_sign_restart(bool                   started,
+                           int32_t                cose_algorithm_id,
+                           struct t_cose_key      signing_key,
+                           void                  *crypto_context,
+                           struct q_useful_buf_c  hash_to_sign,
+                           struct q_useful_buf    signature_buffer,
+                           struct q_useful_buf_c *signature)
+{
+    struct t_cose_test_crypto_context *cc = (struct t_cose_test_crypto_context *)crypto_context;
+
+    /* If this is the first iteration */
+    if(!started) {
+        cc->sign_iterations_left = SIGN_ITERATION_COUNT;
+    }
+    if(cc->sign_iterations_left-- > 1) {
+        return T_COSE_ERR_SIG_IN_PROGRESS;
+    }
+
+    return t_cose_crypto_sign(cose_algorithm_id,
+                              signing_key,
+                              crypto_context,
+                              hash_to_sign,
+                              signature_buffer,
+                              signature);
 }
 
 

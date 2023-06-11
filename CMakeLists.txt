@@ -70,6 +70,7 @@ set(T_COSE_SRC_COMMON
     src/t_cose_sign_sign.c
     src/t_cose_mac_compute.c
     src/t_cose_signature_sign_main.c
+    src/t_cose_signature_sign_restart.c
     src/t_cose_signature_sign_eddsa.c
     src/t_cose_sign_verify.c
     src/t_cose_mac_validate.c

@@ -2,6 +2,7 @@
  * t_cose_signature_sign_main.c
  *
  * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023, Arm Limited. All rights reserved.
  * Created by Laurence Lundblade on 5/23/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -11,6 +12,7 @@
 
 #include "qcbor/qcbor_encode.h"
 #include "t_cose/q_useful_buf.h"
+#include "t_cose/t_cose_signature_main.h"
 #include "t_cose/t_cose_signature_sign_main.h"
 #include "t_cose/t_cose_signature_sign.h"
 #include "t_cose/t_cose_common.h"
@@ -46,7 +48,7 @@ t_cose_signature_sign1_main_cb(struct t_cose_signature_sign     *me_x,
     struct t_cose_signature_sign_main *me =
                                      (struct t_cose_signature_sign_main *)me_x;
     enum t_cose_err_t           return_value;
-    Q_USEFUL_BUF_MAKE_STACK_UB( buffer_for_tbs_hash, T_COSE_CRYPTO_MAX_HASH_SIZE);
+    Q_USEFUL_BUF_MAKE_STACK_UB( buffer_for_tbs_hash, T_COSE_MAIN_MAX_HASH_SIZE);
     struct q_useful_buf         buffer_for_signature;
     struct q_useful_buf_c       tbs_hash;
     struct q_useful_buf_c       signature;

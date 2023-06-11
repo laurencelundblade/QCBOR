@@ -25,12 +25,14 @@ jobs:
           crypto-provider: MbedTLS
           crypto-provider-version: 'v2.28.0'
           crypto-provider-extra: ''
+          crypto-provider-build-extra: ''
         
         - os-image: ubuntu-latest
           container: ubuntu:20.04
           crypto-provider: MbedTLS
           crypto-provider-version: 'v3.1.0'
           crypto-provider-extra: ''
+          crypto-provider-build-extra: ''
 
         - os-image: ubuntu-latest
           container: ubuntu:20.04
@@ -38,6 +40,21 @@ jobs:
           # crypto-provider-version: 'b489f1e6bcc54ba09730fb7487c2992e03a571a4'
           crypto-provider-version: '9052cf2f1b755938bf8290b7b068ffe21194486f'
           crypto-provider-extra: '-DTEST_HPKE=True'
+          crypto-provider-build-extra: 'make generated_files'
+
+        - os-image: ubuntu-latest
+          container: ubuntu:20.04
+          crypto-provider: MbedTLS
+          crypto-provider-version: 'v3.4.0'
+          crypto-provider-extra: ''
+          crypto-provider-build-extra: ''
+
+        - os-image: ubuntu-latest
+          container: ubuntu:20.04
+          crypto-provider: MbedTLS
+          crypto-provider-version: 'v3.4.0'
+          crypto-provider-extra: ''
+          crypto-provider-build-extra: 'python3 scripts/config.py set MBEDTLS_ECP_RESTARTABLE'
 
         - os-image: ubuntu-latest
           container: ubuntu:20.04
@@ -57,7 +74,7 @@ jobs:
         export DEBIAN_FRONTEND=noninteractive
         apt-get update
         apt-get install -y build-essential cmake python3 ${{ matrix.c-compiler }} \
-                python3-jinja2
+                python3-jinja2 python3-jsonschema
         echo "CC=${{ matrix.c-compiler }}" >> $GITHUB_ENV
     
     - name: Install OpenSSL
@@ -73,19 +90,10 @@ jobs:
         path: mbedtls
 
     - name: Install MbedTLS
-      if: matrix.config.crypto-provider == 'MbedTLS' &&
-          matrix.config.crypto-provider-extra == ''
+      if: matrix.config.crypto-provider == 'MbedTLS'
       run: |
         cd mbedtls
-        make -j $(nproc)
-        make install
-
-    - name: Install MbedTLS
-      if: matrix.config.crypto-provider == 'MbedTLS' &&
-          matrix.config.crypto-provider-extra != ''
-      run: |
-        cd mbedtls
-        make generated_files
+        ${{ matrix.config.crypto-provider-build-extra }}
         make -j $(nproc)
         make install
 
@@ -116,4 +124,15 @@ jobs:
       run: build/t_cose_examples
 
     - name: Run tests
+      if: matrix.config.crypto-provider == 'MbedTLS' &&
+          matrix.config.crypto-provider-version == 'v3.4.0' &&
+          matrix.config.crypto-provider-build-extra == ''
+      # This Mbed TLS version has the option of restartable ECP, however it is
+      # not turned on. In this case the restartable testcase should fail.
+      run: build/t_cose_test | grep 'restart_test_2_step FAILED'
+
+    - name: Run tests
+      if: ${{ ! ( matrix.config.crypto-provider == 'MbedTLS' &&
+              matrix.config.crypto-provider-version == 'v3.4.0' &&
+              matrix.config.crypto-provider-build-extra == '' ) }}
       run: build/t_cose_test
