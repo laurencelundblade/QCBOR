@@ -619,12 +619,16 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
 
 
 enum t_cose_err_t
-t_cose_crypto_hkdf(int32_t                     cose_hash_algorithm_id,
+t_cose_crypto_hkdf(const int32_t               cose_hash_algorithm_id,
                    const struct q_useful_buf_c salt,
                    const struct q_useful_buf_c ikm,
                    const struct q_useful_buf_c info,
-                   struct q_useful_buf         okm_buffer)
+                   const struct q_useful_buf   okm_buffer)
 {
+    (void)cose_hash_algorithm_id;
+    (void)salt;
+    (void)ikm;
+    (void)info;
     /* This makes a fixed fake output of all x's */
     (void)UsefulBuf_Set(okm_buffer, 'x');
     return T_COSE_SUCCESS;

@@ -1178,7 +1178,7 @@ t_cose_crypto_hkdf(int32_t                     cose_hash_algorithm_id,
                    const struct q_useful_buf_c salt,
                    const struct q_useful_buf_c ikm,
                    const struct q_useful_buf_c info,
-                   struct q_useful_buf         okm_buffer);
+                   const struct q_useful_buf   okm_buffer);
 
 
 

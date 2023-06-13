@@ -497,7 +497,6 @@ Done_free2:
 Done_free1:
     free_fixed_signing_key(ecdsa_key_pair);
 
-Done:
     printf("---- %s EXAMPLE one_step_multi_sign_detached (%d) ----\n\n",
            return_value ? "FAILED" : "COMPLETED", return_value);
 

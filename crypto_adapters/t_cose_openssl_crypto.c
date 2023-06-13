@@ -2072,11 +2072,11 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hkdf(int32_t                     cose_hash_algorithm_id,
+t_cose_crypto_hkdf(const int32_t               cose_hash_algorithm_id,
                    const struct q_useful_buf_c salt,
                    const struct q_useful_buf_c ikm,
                    const struct q_useful_buf_c info,
-                   struct q_useful_buf         okm_buffer)
+                   const struct q_useful_buf   okm_buffer)
 {
     int               ossl_result;
     EVP_PKEY_CTX     *ctx;
@@ -2120,6 +2120,12 @@ t_cose_crypto_hkdf(int32_t                     cose_hash_algorithm_id,
         goto Done1;
     }
 
+    /* See comment above in configure_pkey_context(). The following
+     * OpenSSL APIs should have the argments declared as const, but
+     * they are not so this pragma is necessary t_cose can compile
+     * with "-Wcast-qual". */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
     ossl_result = EVP_PKEY_CTX_set_hkdf_md(ctx, message_digest);
     if(ossl_result != 1) {
         return_value = T_COSE_ERR_HKDF_FAIL;
@@ -2146,6 +2152,7 @@ t_cose_crypto_hkdf(int32_t                     cose_hash_algorithm_id,
         return_value = T_COSE_ERR_HKDF_FAIL;
         goto Done1;
     }
+#pragma GCC diagnostic pop
 
     ossl_result = EVP_PKEY_derive(ctx,
                                   okm_buffer.ptr,

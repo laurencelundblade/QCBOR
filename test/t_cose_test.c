@@ -331,7 +331,6 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     enum t_cose_err_t            result;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
     Q_USEFUL_BUF_MAKE_STACK_UB(  small_signed_cose_buffer, 15);
-    struct q_useful_buf_c        payload;
     struct q_useful_buf_c        signed_cose;
 
     /* -- Test bad algorithm ID 0 -- */
