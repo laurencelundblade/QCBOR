@@ -1127,6 +1127,7 @@ static struct sign1_sample sign1_sample_inputs[] = {
 #include "t_cose/t_cose_parameters.h"
 #include "qcbor/qcbor_spiffy_decode.h"
 
+#ifndef T_COSE_DISABLE_COSE_SIGN
 
 static enum t_cose_err_t
 foo_encode_cb(const struct t_cose_parameter  *parameter,
@@ -1175,7 +1176,6 @@ foo_decode_cb(void                    *cb_context,
 
     return T_COSE_SUCCESS;
 }
-
 
 static enum t_cose_err_t
 float_encode_cb(const struct t_cose_parameter  *parameter,
@@ -1455,6 +1455,7 @@ check_complex_sign_params(struct t_cose_parameter *params)
 
     return 0;
 }
+#endif /* !T_COSE_DISABLE_COSE_SIGN */
 
 
 
@@ -1466,18 +1467,19 @@ int_fast32_t sign1_structure_decode_test(void)
     struct q_useful_buf_c           payload;
     enum t_cose_err_t               result;
     struct t_cose_sign1_verify_ctx  verify1_ctx;
+
+#ifndef T_COSE_DISABLE_COSE_SIGN
     int32_t                         return_value;
     MakeUsefulBufOnStack(           cose_sign_buf, 900);
     struct q_useful_buf_c           cose_sign;
     struct t_cose_parameter        *decoded_params;
-
     struct t_cose_parameter        _params[20];
-
     struct t_cose_parameter_storage extra_params;
 
-    T_COSE_PARAM_STORAGE_INIT(extra_params, _params);
 
     if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        T_COSE_PARAM_STORAGE_INIT(extra_params, _params);
+
         /* Only works with real algorithms (so far). */
 
         return_value = make_complex_cose_sign(cose_sign_buf, &cose_sign);
@@ -1517,6 +1519,7 @@ int_fast32_t sign1_structure_decode_test(void)
             return return_value;
         }
     }
+#endif  /* !T_COSE_DISABLE_T_COSE_SIGN */
 
 
     for(int i = 0; !q_useful_buf_c_is_null(sign1_sample_inputs[i].CBOR); i++) {

@@ -1260,9 +1260,11 @@ common_params_test(void)
         return -53;
     }
 
+#ifndef T_COSE_DISABLE_CONTENT_TYPE
     if(q_useful_buf_compare(common_params.content_type_tstr, Q_USEFUL_BUF_FROM_SZ_LITERAL("text/foo"))) {
         return -54;
     }
+#endif /* !T_COSE_DISABLE_CONTENT_TYPE */
 
     if(q_useful_buf_compare(common_params.iv, Q_USEFUL_BUF_FROM_SZ_LITERAL("iviviviv"))) {
         return -55;
