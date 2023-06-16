@@ -298,6 +298,8 @@ int_fast32_t hkdf_test(void)
                             okm)) {
         return 2;
     }
+#else
+    (void)okm;
 #endif
 
     return 0;

@@ -284,20 +284,21 @@ t_cose_params_check(const struct t_cose_parameter *parameters)
  *
  * \param[in] cbor_decoder        CBOR decode context to pull from.
  * \param[in] location            Location in CBOR message of the bucket of
- *                                parameters.
+ *                                parameters being decoded.
  * \param[in] is_protected        \c true if bucket is protected.
  * \param[in] special_decode_cb   Function called for parameters that are not
- *                                strings or ints.
- * \param[in] special_decode_ctx  Context for the \c callback function.
- * \param [in] param_storage      Memory pool from which to take parameter storage.
- * \param[in,out] decoded_params  Linked list of decoded parameters the
- *                                parameters will be added to.
+ *                                strings or integers.
+ * \param[in] special_decode_ctx  Context for the \c specials callback function.
+ * \param [in] param_storage      Pool of nodes from which to allocate.
+ * \param[in,out] returned_params Linked list of parameters to which
+ *                                the decoded params will be added.
  *
- * This decode a CBOR map of parameters into a linked list. The nodes
- * are allocated out of \c param_storage.
+ * This decodes a CBOR map of parameters (a "bucket") into a linked
+ * list. The nodes are allocated out of \c param_storage.
  *
- * \c *decoded_params must be \c NULL or point to a valid parameter list to which
- * the newly decoded parameters will be appended.
+ * The decoded parameters are added to the list in \c
+ * *decoded_parameters.  \c *decoded_parameters may be \c NULL if there is
+ * no linked list to add do.
  *
  * If \c is_protected is set then every parameter decode is marked
  * as protected and vice versa.
@@ -307,46 +308,40 @@ t_cose_params_check(const struct t_cose_parameter *parameters)
  * a recipient.
  *
  * String and integer parameters are fully decoded without help. For
- * others, the \c decode_cb is called.
+ * others, the \c special_decode_cb is called.
  */
 static enum t_cose_err_t
 t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
                      const struct t_cose_header_location location,
-                     bool                                is_protected,
+                     const bool                          is_protected,
                      t_cose_param_special_decode_cb     *special_decode_cb,
                      void                               *special_decode_ctx,
                      struct t_cose_parameter_storage    *param_storage,
-                     struct t_cose_parameter           **decoded_params)
+                     struct t_cose_parameter           **returned_params)
 {
     /* Approximate stack usage
      *                                             64-bit      32-bit
      *   QCBORItem                                     56          52
-     *   local vars                                    40          20
+     *   local vars                                    24          12
      *   crit list                                    120          80
      *   largest function call, QCBORDecode_VPeekNext 200         200
-     *   TOTAL                                        416         352
+     *   TOTAL                                        400         344
      */
     QCBORError                cbor_error;
     enum t_cose_err_t         return_value;
     struct t_cose_label_list  crit_param_labels;
-    struct t_cose_parameter  *parameter;
-    struct t_cose_parameter  *last_in_list;
+    struct t_cose_parameter  *decoded_param;
     QCBORItem                 item;
-
-    if(*decoded_params != NULL) {
-        /* Find end of list to append to */
-        for(last_in_list = *decoded_params;
-            last_in_list->next != NULL;
-            last_in_list = last_in_list->next);
-    }
 
     QCBORDecode_EnterMap(cbor_decoder, NULL);
 
     label_list_clear(&crit_param_labels);
 
-    /* Main loop to decode the parameters in the map. */
+    /* --- Main loop to decode the parameters in the map --- */
     while(1) {
-        /* Can't consume it because it might be special to be consumed by callback */
+        /* --- Peek at next parameter and do some checks --- */
+        /* Can't consume because it might be special to be consumed by
+	   callback */
         QCBORDecode_VPeekNext(cbor_decoder, &item);
         cbor_error = QCBORDecode_GetAndResetError(cbor_decoder);
         if(cbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
@@ -383,32 +378,32 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
             return_value = T_COSE_ERR_TOO_MANY_PARAMETERS;
             goto Done;
         }
-        parameter = &param_storage->storage[param_storage->used];
+        decoded_param = &param_storage->storage[param_storage->used];
         param_storage->used++;
 
         /* --- Fill in the decoded values --- */
-        parameter->value_type    = item.uDataType;
-        parameter->location      = location;
-        parameter->label         = item.label.int64;
-        parameter->in_protected  = is_protected;
-        parameter->critical      = false;
-        parameter->next          = NULL;
+        decoded_param->value_type    = item.uDataType;
+        decoded_param->location      = location;
+        decoded_param->label         = item.label.int64;
+        decoded_param->in_protected  = is_protected;
+        decoded_param->critical      = false;
+        decoded_param->next          = NULL;
 
         switch (item.uDataType) {
             case T_COSE_PARAMETER_TYPE_BYTE_STRING:
             case T_COSE_PARAMETER_TYPE_TEXT_STRING:
-                parameter->value.string = item.val.string;
+                decoded_param->value.string = item.val.string;
                 break;
 
             case T_COSE_PARAMETER_TYPE_INT64:
-                parameter->value.int64 = item.val.int64;
+                decoded_param->value.int64 = item.val.int64;
                 break;
 
             default:
                if(special_decode_cb != NULL) {
                     return_value = special_decode_cb(special_decode_ctx,
                                                      cbor_decoder,
-                                                     parameter);
+                                                     decoded_param);
                     if(return_value == T_COSE_SUCCESS) {
                         goto Next;
                     } else if(return_value != T_COSE_ERR_DECLINE) {
@@ -422,17 +417,21 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
                 }
         }
 
-        /* Now actually consume it from the CBOR input. */
+        /* --- Consume it from the CBOR input ---- */
         QCBORDecode_VGetNextConsume(cbor_decoder, &item);
 
     Next:
-        /* --- Add it to end of the linked list --- */
-        if(*decoded_params == NULL) {
-            *decoded_params = parameter;
+        /* --- Put it in the list --- */
+        /* Insert at the head of the list because it is a less
+         * code. The list returned is in reverse order from the
+         * encoded params, but that is OK.
+         */
+        if(*returned_params == NULL) {
+            *returned_params = decoded_param;
         } else {
-            last_in_list->next = parameter;
+            decoded_param->next = *returned_params;
+            *returned_params = decoded_param;
         }
-        last_in_list = parameter;
     }
 
     QCBORDecode_ExitMap(cbor_decoder);
@@ -442,7 +441,7 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
         goto Done;
     }
 
-    mark_crit_params(*decoded_params, &crit_param_labels);
+    mark_crit_params(*returned_params, &crit_param_labels);
 
     return_value = T_COSE_SUCCESS;
 
