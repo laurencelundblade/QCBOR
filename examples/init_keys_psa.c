@@ -14,6 +14,7 @@
 #include "t_cose/t_cose_standard_constants.h"
 #include "t_cose/t_cose_key.h"
 #include "psa/crypto.h"
+#include "example_keys.h"
 
 
 /*
@@ -73,7 +74,6 @@ init_signing_key_from_xx(int32_t               cose_algorithm_id,
         return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
     }
 
-
     /* OK to call this multiple times */
     crypto_result = psa_crypto_init();
     if(crypto_result != PSA_SUCCESS) {
@@ -132,40 +132,6 @@ init_signing_key_from_xx(int32_t               cose_algorithm_id,
 }
 
 
-/*
- * These are the same keys as in init_keys_ossl.c so that messages
- * made with openssl-based tests and examples can be verified those
- * made by mbedtls tests and examples.  These were made with openssl
- * as detailed in init_keys_ossl.c.  Then just the private key was
- * pulled out to be put here because mbedtls just needs the private
- * key, unlike openssl for which there is a full rfc5915 DER
- * structure. These were pulled out of the DER by identifying the key
- * with openssl asn1parse and then finding those bytes in the C
- * variable holding the rfc5915 (perhaps there is a better way, but
- * it worked).
- */
-
-
-#define PRIVATE_KEY_prime256v1 \
- 0xd9, 0xb5, 0xe7, 0x1f, 0x77, 0x28, 0xbf, 0xe5, 0x63, 0xa9, 0xdc, 0x93, 0x75, \
- 0x62, 0x27, 0x7e, 0x32, 0x7d, 0x98, 0xd9, 0x94, 0x80, 0xf3, 0xdc, 0x92, 0x41, \
- 0xe5, 0x74, 0x2a, 0xc4, 0x58, 0x89
-
-#define PRIVATE_KEY_secp384r1 \
- 0x63, 0x88, 0x1c, 0xbf, \
- 0x86, 0x65, 0xec, 0x39, 0x27, 0x33, 0x24, 0x2e, 0x5a, 0xae, 0x63, 0x3a, \
- 0xf5, 0xb1, 0xb4, 0x54, 0xcf, 0x7a, 0x55, 0x7e, 0x44, 0xe5, 0x7c, 0xca, \
- 0xfd, 0xb3, 0x59, 0xf9, 0x72, 0x66, 0xec, 0x48, 0x91, 0xdf, 0x27, 0x79, \
- 0x99, 0xbd, 0x1a, 0xbc, 0x09, 0x36, 0x49, 0x9c
-
-#define PRIVATE_KEY_secp521r1 \
- 0x00, 0x4b, 0x35, 0x4d, \
- 0xa4, 0xab, 0xf7, 0xa5, 0x4f, 0xac, 0xee, 0x06, 0x49, 0x4a, 0x97, 0x0e, \
- 0xa6, 0x5f, 0x85, 0xf0, 0x6a, 0x2e, 0xfb, 0xf8, 0xdd, 0x60, 0x9a, 0xf1, \
- 0x0b, 0x7a, 0x13, 0xf7, 0x90, 0xf8, 0x9f, 0x49, 0x02, 0xbf, 0x5d, 0x5d, \
- 0x71, 0xa0, 0x90, 0x93, 0x11, 0xfd, 0x0c, 0xda, 0x7b, 0x6a, 0x5f, 0x7b, \
- 0x82, 0x9d, 0x79, 0x61, 0xe1, 0x6b, 0x31, 0x0a, 0x30, 0x6f, 0x4d, 0xf3, \
- 0x8b, 0xe3
 
 /*
  * Public function, see init_keys.h
@@ -176,38 +142,31 @@ init_fixed_test_signing_key(int32_t            cose_algorithm_id,
 {
     struct q_useful_buf_c key_bytes;
 
-    static const uint8_t private_key_256[]     = {PRIVATE_KEY_prime256v1};
-    static const uint8_t private_key_384[]     = {PRIVATE_KEY_secp384r1};
-    static const uint8_t private_key_521[]     = {PRIVATE_KEY_secp521r1};
-    static const uint8_t private_key_rsa2048[] = {
-#include "rsa_test_key.h"
-    };
-
     /* PSA doesn't support EdDSA so no keys for it here (OpenSSL does). */
 
     switch(cose_algorithm_id) {
     case T_COSE_ALGORITHM_ES256:
-        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(private_key_256);
+        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_priv_key_raw);
         break;
 
     case T_COSE_ALGORITHM_ES384:
-        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(private_key_384);
+        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_priv_key_raw);
         break;
 
     case T_COSE_ALGORITHM_ES512:
-        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(private_key_521);
+        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_raw);
         break;
 
     case T_COSE_ALGORITHM_PS256:
-        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(private_key_rsa2048);
+        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(RSA_2048_key_pair_der);
         break;
 
     case T_COSE_ALGORITHM_PS384:
-        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(private_key_rsa2048);
+        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(RSA_2048_key_pair_der);
         break;
 
     case T_COSE_ALGORITHM_PS512:
-        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(private_key_rsa2048);
+        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(RSA_2048_key_pair_der);
         break;
 
     default:
@@ -226,94 +185,84 @@ void free_fixed_signing_key(struct t_cose_key key_pair)
     psa_destroy_key((psa_key_handle_t)key_pair.key.handle);
 }
 
-/* Example Recipient Public ECC Key (P256r1) */
-static const uint8_t fixed_test_p256r1_public_key[] = {
-  0x04, 0x6d, 0x35, 0xe7, 0xa0, 0x75, 0x42, 0xc1, 0x2c, 0x6d, 0x2a, 0x0d,
-  0x2d, 0x45, 0xa4, 0xe9, 0x46, 0x68, 0x95, 0x27, 0x65, 0xda, 0x9f, 0x68,
-  0xb4, 0x7c, 0x75, 0x5f, 0x38, 0x00, 0xfb, 0x95, 0x85, 0xdd, 0x7d, 0xed,
-  0xa7, 0xdb, 0xfd, 0x2d, 0xf0, 0xd1, 0x2c, 0xf3, 0xcc, 0x3d, 0xb6, 0xa0,
-  0x75, 0xd6, 0xb9, 0x35, 0xa8, 0x2a, 0xac, 0x3c, 0x38, 0xa5, 0xb7, 0xe8,
-  0x62, 0x80, 0x93, 0x84, 0x55
-};
-
-/* Example Recipient ECC Private Key (P256r1) */
-static const uint8_t fixed_test_p256r1_private_key[] = {
-  0x37, 0x0b, 0xaf, 0x20, 0x45, 0x17, 0x01, 0xf6, 0x64, 0xe1, 0x28, 0x57,
-  0x4e, 0xb1, 0x7a, 0xd3, 0x5b, 0xdd, 0x96, 0x65, 0x0a, 0xa8, 0xa3, 0xcd,
-  0xbd, 0xd6, 0x6f, 0x57, 0xa8, 0xcc, 0xe8, 0x09
-};
 
 
+
+/*
+ * Public function, see init_keys.h
+ */
 enum t_cose_err_t
-init_fixed_test_encryption_key(uint32_t           cose_algorithm_id,
-                               struct t_cose_key *public_key,
-                               struct t_cose_key *private_key)
+init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
+                                  struct t_cose_key *public_key,
+                                  struct t_cose_key *private_key)
 {
-    psa_status_t status;
-    psa_key_attributes_t pkR_attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_key_handle_t pkR_handle = PSA_KEY_HANDLE_INIT;
-
-    psa_key_attributes_t skR_attributes = PSA_KEY_ATTRIBUTES_INIT;
-    psa_key_handle_t skR_handle = PSA_KEY_HANDLE_INIT;
-    psa_key_type_t type_public;
-    psa_key_type_t type_private;
-    uint32_t key_bitlen;
+    psa_status_t          status;
+    psa_key_attributes_t  attributes;
+    psa_key_type_t        type_public;
+    psa_key_type_t        type_private;
+    uint32_t              key_bitlen;
+    struct q_useful_buf_c key_bytes;
 
     psa_crypto_init();
 
-    switch (cose_algorithm_id) {
+    switch (cose_ec_curve_id) {
     case T_COSE_ELLIPTIC_CURVE_P_256:
-         type_public = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-         key_bitlen = 256;
+         key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_priv_key_raw);
+         key_bitlen   = 256;
          break;
     case T_COSE_ELLIPTIC_CURVE_P_384:
-         type_public = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-         key_bitlen = 384;
+         key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_priv_key_raw);
+         key_bitlen   = 384;
          break;
     case T_COSE_ELLIPTIC_CURVE_P_521:
-         type_public = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-         key_bitlen = 521;
+         key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_raw);
+         key_bitlen   = 521;
          break;
     default:
          return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
     }
 
-    /* Set up the recipient's public key (pkR) */
+    /* Import as a private key / key pair */
+    /* Would be nice not to have PSA_KEY_USAGE_COPY on the private
+     * key, but it is needed to make the copy for the public key.
+     */
+    attributes = psa_key_attributes_init();
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_COPY);
+    psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
+    psa_set_key_type(&attributes, type_private);
+    psa_set_key_bits(&attributes, key_bitlen);
 
-    /* Import public key */
-    psa_set_key_usage_flags(&pkR_attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_EXPORT);
-    psa_set_key_algorithm(&pkR_attributes, PSA_ALG_ECDSA_ANY);
-    psa_set_key_type(&pkR_attributes, type_public);
-    psa_set_key_bits(&pkR_attributes, key_bitlen);
-
-    status = psa_import_key(&pkR_attributes, /* in: attributes */
-                            fixed_test_p256r1_public_key, /* in: key bytes */
-                            sizeof(fixed_test_p256r1_public_key), /* in: key length */
-                            &pkR_handle); /* out: PSA key handle */
-    if(status != PSA_SUCCESS) {
-        return T_COSE_ERR_PUBLIC_KEY_IMPORT_FAILED;
-    }
-
-    public_key->key.handle = pkR_handle;
-
-    /* Import private key */
-    psa_set_key_usage_flags(&skR_attributes, PSA_KEY_USAGE_DERIVE);
-    psa_set_key_algorithm(&skR_attributes, PSA_ALG_ECDH);
-    psa_set_key_type(&skR_attributes, type_private);
-    psa_set_key_bits(&skR_attributes, key_bitlen);
-
-    status = psa_import_key(&skR_attributes,
-                             fixed_test_p256r1_private_key, sizeof(fixed_test_p256r1_private_key),
-                             &skR_handle);
+    status = psa_import_key(&attributes,
+                            key_bytes.ptr, key_bytes.len,
+                            (mbedtls_svc_key_id_t *)(&private_key->key.handle));
 
     if (status != PSA_SUCCESS) {
         return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
     }
 
-    private_key->key.handle = skR_handle;
+    /* Make a copy that is the public key, There's still a private
+     * key in the key handle. Maybe there is a more correct way
+     * to do all this so the private key can't be copied and the
+     * public key can, but I figured out how to do all that yet.
+     */
+    attributes = psa_key_attributes_init();
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_COPY);
+    psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
+    psa_set_key_type(&attributes, type_private);
+    // TODO: why doesn't this work? psa_set_key_type(&attributes, type_public);
+    psa_set_key_bits(&attributes, key_bitlen);
+    status = psa_copy_key((mbedtls_svc_key_id_t)private_key->key.handle,
+                          &attributes,
+                          (mbedtls_svc_key_id_t *)&(public_key->key.handle));
+    if (status != PSA_SUCCESS) {
+        return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
+    }
 
     return T_COSE_SUCCESS;
 }
@@ -323,9 +272,9 @@ init_fixed_test_encryption_key(uint32_t           cose_algorithm_id,
  * Public function, see init_keys.h
  */
 void
-free_fixed_test_encryption_key(struct t_cose_key key_pair)
+free_fixed_test_ec_encryption_key(struct t_cose_key key)
 {
-    psa_destroy_key((psa_key_handle_t)key_pair.key.handle);
+    psa_destroy_key((psa_key_handle_t)key.key.handle);
 }
 
 

@@ -46,13 +46,15 @@ TEST_OBJ=test/t_cose_test.o \
          test/t_cose_compute_validate_mac_test.o \
          test/t_cose_param_test.o \
          test/t_cose_crypto_test.o \
-         test/t_cose_encrypt_decrypt_test.o
+         test/t_cose_encrypt_decrypt_test.o \
+         examples/example_keys.o
 
 
 # ---- Object files for examples ----
 EXAMPLE_OBJ=examples/examples_main.o \
             examples/signing_examples.o \
             examples/encryption_examples.o \
+            examples/example_keys.o \
             examples/print_buf.o
 
 

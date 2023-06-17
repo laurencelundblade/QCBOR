@@ -285,9 +285,9 @@ hpke_example(void)
      * of this key pair is crypto-library dependent because t_cose_key
      * is crypto-library dependent. See t_cose_key.h and the examples
      * to understand key-pair creation better. */
-    result = init_fixed_test_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
-                                            &pkR, /* out: public key to be used for encryption */
-                                            &skR); /* out: corresponding private key for decryption */
+    result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+                                               &pkR, /* out: public key to be used for encryption */
+                                               &skR); /* out: corresponding private key for decryption */
     if(result != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -410,9 +410,9 @@ hpke_example_detached(void)
      * of this key pair is crypto-library dependent because t_cose_key
      * is crypto-library dependent. See t_cose_key.h and the examples
      * to understand key-pair creation better. */
-    result = init_fixed_test_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
-                                            &pkR, /* out: public key to be used for encryption */
-                                            &skR); /* out: corresponding private key for decryption */
+    result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+                                               &pkR, /* out: public key to be used for encryption */
+                                               &skR); /* out: corresponding private key for decryption */
     if(result != T_COSE_SUCCESS) {
         goto Done;
     }

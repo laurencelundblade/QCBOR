@@ -108,6 +108,7 @@ if (BUILD_EXAMPLES)
         examples/print_buf.c
         examples/signing_examples.c
         examples/encryption_examples.c
+        examples/example_keys.c
     )
 
     if (CRYPTO_PROVIDER STREQUAL "MbedTLS")
@@ -143,6 +144,7 @@ if (BUILD_TESTS)
         test/t_cose_make_test_messages.c
         test/t_cose_param_test.c
         test/t_cose_test.c
+        examples/example_keys.c
     )
 
     if (NOT CRYPTO_PROVIDER STREQUAL "Test")

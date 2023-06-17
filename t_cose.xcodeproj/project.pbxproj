@@ -9,6 +9,12 @@
 /* Begin PBXBuildFile section */
 		0F8B2FEF2345A33A00A22349 /* t_cose_make_test_messages.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F8B2FE8233C3DD600A22349 /* t_cose_make_test_messages.c */; };
 		0F91057A2321878F00008572 /* t_cose_parameters.c in Sources */ = {isa = PBXBuildFile; fileRef = 0F9105792321878F00008572 /* t_cose_parameters.c */; };
+		E7088A032A38604A00F1B2DE /* example_keys.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A022A38604A00F1B2DE /* example_keys.c */; };
+		E7088A042A38604A00F1B2DE /* example_keys.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A022A38604A00F1B2DE /* example_keys.c */; };
+		E7088A052A38604A00F1B2DE /* example_keys.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A022A38604A00F1B2DE /* example_keys.c */; };
+		E7088A062A38604A00F1B2DE /* example_keys.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A022A38604A00F1B2DE /* example_keys.c */; };
+		E7088A072A38604A00F1B2DE /* example_keys.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A022A38604A00F1B2DE /* example_keys.c */; };
+		E7088A082A38604A00F1B2DE /* example_keys.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A022A38604A00F1B2DE /* example_keys.c */; };
 		E721CB9B2362AC2A00C7FD56 /* t_cose_sign_verify_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E721CB9423628D2600C7FD56 /* t_cose_sign_verify_test.c */; };
 		E72FB01D231ADAA8000970FE /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
 		E730E60B23612DAB00175CE0 /* t_cose_sign1_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */; };
@@ -252,6 +258,8 @@
 		0F8B2FE8233C3DD600A22349 /* t_cose_make_test_messages.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_make_test_messages.c; sourceTree = "<group>"; };
 		0F8B2FE9233C3DD600A22349 /* t_cose_make_test_messages.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_make_test_messages.h; sourceTree = "<group>"; };
 		0F9105792321878F00008572 /* t_cose_parameters.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_parameters.c; sourceTree = "<group>"; };
+		E7088A012A38604A00F1B2DE /* example_keys.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = example_keys.h; sourceTree = "<group>"; };
+		E7088A022A38604A00F1B2DE /* example_keys.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = example_keys.c; sourceTree = "<group>"; };
 		E71D9E8E231C930B00A21F7F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		E721CB9423628D2600C7FD56 /* t_cose_sign_verify_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_sign_verify_test.c; sourceTree = "<group>"; };
 		E721CB9523628D2700C7FD56 /* t_cose_sign_verify_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_sign_verify_test.h; sourceTree = "<group>"; };
@@ -339,7 +347,6 @@
 		E7AE887B29A4C26F0093B326 /* examples_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = examples_main.c; sourceTree = "<group>"; };
 		E7AE887F29A4C3C20093B326 /* encryption_examples.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = encryption_examples.h; sourceTree = "<group>"; };
 		E7AE888029A4C3C20093B326 /* encryption_examples.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = encryption_examples.c; sourceTree = "<group>"; };
-		E7AE888C29A6A79E0093B326 /* rsa_test_key.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rsa_test_key.h; sourceTree = "<group>"; };
 		E7AE888D29A6DF140093B326 /* init_keys_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = init_keys_test.c; sourceTree = "<group>"; };
 		E7AE889129AB72740093B326 /* t_cose_encrypt_decrypt_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_encrypt_decrypt_test.h; sourceTree = "<group>"; };
 		E7AE889229AB72740093B326 /* t_cose_encrypt_decrypt_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_encrypt_decrypt_test.c; sourceTree = "<group>"; };
@@ -527,7 +534,6 @@
 		E73CDAA123A082A500D262E0 /* examples */ = {
 			isa = PBXGroup;
 			children = (
-				E7AE888C29A6A79E0093B326 /* rsa_test_key.h */,
 				E7AE887229A49B3A0093B326 /* signing_examples.c */,
 				E7AE888029A4C3C20093B326 /* encryption_examples.c */,
 				E7AE887129A49B3A0093B326 /* signing_examples.h */,
@@ -539,6 +545,8 @@
 				E7AE887629A4C0250093B326 /* print_buf.h */,
 				E7AE887729A4C0250093B326 /* print_buf.c */,
 				E7AE887B29A4C26F0093B326 /* examples_main.c */,
+				E7088A012A38604A00F1B2DE /* example_keys.h */,
+				E7088A022A38604A00F1B2DE /* example_keys.c */,
 			);
 			path = examples;
 			sourceTree = "<group>";
@@ -1069,6 +1077,7 @@
 				E730E60C23612DAB00175CE0 /* run_tests.c in Sources */,
 				E730E62123612E3900175CE0 /* t_cose_test_crypto.c in Sources */,
 				E7AE889029A6DF790093B326 /* init_keys_test.c in Sources */,
+				E7088A032A38604A00F1B2DE /* example_keys.c in Sources */,
 				E7FECC5F288B266500420F6F /* t_cose_sign_verify.c in Sources */,
 				E730E61123612DAB00175CE0 /* t_cose_parameters.c in Sources */,
 				E730E61223612DAB00175CE0 /* t_cose_make_test_messages.c in Sources */,
@@ -1118,6 +1127,7 @@
 				E73BF6E723AFFB4100DF5C36 /* t_cose_sign1_sign.c in Sources */,
 				E7AE887329A49B3A0093B326 /* signing_examples.c in Sources */,
 				E7F1736E29592A4D00E5ADF3 /* t_cose_recipient_dec_keywrap.c in Sources */,
+				E7088A062A38604A00F1B2DE /* example_keys.c in Sources */,
 				E7F1732D293B10E300E5ADF3 /* t_cose_signature_sign_main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1130,6 +1140,7 @@
 				E771081E2917EDA900D8ADF4 /* t_cose_encrypt_dec.c in Sources */,
 				E7F17337293B110600E5ADF3 /* t_cose_signature_sign_eddsa.c in Sources */,
 				E73BF70723B07ACF00DF5C36 /* t_cose_sign1_verify.c in Sources */,
+				E7088A072A38604A00F1B2DE /* example_keys.c in Sources */,
 				E7AE888229A4C3C20093B326 /* encryption_examples.c in Sources */,
 				E7F17334293B110100E5ADF3 /* t_cose_signature_verify_eddsa.c in Sources */,
 				E7FECC4C288754E400420F6F /* t_cose_sign_sign.c in Sources */,
@@ -1158,6 +1169,7 @@
 				E77108282917EDA900D8ADF4 /* t_cose_recipient_enc_keywrap.c in Sources */,
 				E73CDAAE23A7316700D262E0 /* t_cose_sign1_verify.c in Sources */,
 				E771081C2917EDA900D8ADF4 /* t_cose_encrypt_dec.c in Sources */,
+				E7088A052A38604A00F1B2DE /* example_keys.c in Sources */,
 				E73CDAB023A7316700D262E0 /* t_cose_test.c in Sources */,
 				E7AF703828DADFD000F07637 /* t_cose_param_test.c in Sources */,
 				E77108222917EDA900D8ADF4 /* t_cose_recipient_dec_hpke.c in Sources */,
@@ -1197,6 +1209,7 @@
 				E7D3CFAB29EE7A4400F8C764 /* t_cose_recipient_enc_keywrap.c in Sources */,
 				E7D3CFAC29EE7A4400F8C764 /* t_cose_sign1_verify.c in Sources */,
 				E7D3CFAD29EE7A4400F8C764 /* t_cose_encrypt_dec.c in Sources */,
+				E7088A082A38604A00F1B2DE /* example_keys.c in Sources */,
 				E7D3CFAE29EE7A4400F8C764 /* t_cose_test.c in Sources */,
 				E7D3CFAF29EE7A4400F8C764 /* t_cose_param_test.c in Sources */,
 				E7D3CFB029EE7A4400F8C764 /* t_cose_recipient_dec_hpke.c in Sources */,
@@ -1238,6 +1251,7 @@
 				E7E36EA5226CBB570040613B /* t_cose_openssl_crypto.c in Sources */,
 				E7F1732B293B0EE700E5ADF3 /* t_cose_signature_verify_main.c in Sources */,
 				E7AE889629AC4DFB0093B326 /* t_cose_encrypt_enc.c in Sources */,
+				E7088A042A38604A00F1B2DE /* example_keys.c in Sources */,
 				E7AE888B29A6A3870093B326 /* init_keys_ossl.c in Sources */,
 				E771082D2917EDA900D8ADF4 /* t_cose_recipient_enc_hpke.c in Sources */,
 				E7F1730529275F4900E5ADF3 /* t_cose_signature_sign_eddsa.c in Sources */,

@@ -418,9 +418,9 @@ int32_t base_encrypt_decrypt_test(void)
     struct t_cose_key pkR;
 
     /* Load public / private recipient key */
-    result = init_fixed_test_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
-                                            &pkR, /* out: public key to be used for encryption */
-                                            &skR); /* out: corresponding private key for decryption */
+    result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+                                               &pkR, /* out: public key to be used for encryption */
+                                               &skR); /* out: corresponding private key for decryption */
     if(result != T_COSE_SUCCESS) {
        return -7; /* return some error value */
     }
@@ -437,8 +437,8 @@ int32_t base_encrypt_decrypt_test(void)
     if(rv) {
         return rv;
     }
-    free_fixed_test_encryption_key(skR);
-    free_fixed_test_encryption_key(pkR);
+    free_fixed_test_ec_encryption_key(skR);
+    free_fixed_test_ec_encryption_key(pkR);
 #endif /* T_COSE_DISABLE_HPKE */
     return 0;
 
