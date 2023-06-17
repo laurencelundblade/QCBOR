@@ -1070,16 +1070,9 @@ int_fast32_t sign_verify_multi(void)
                                 &verified_payload,
                                  NULL);
 
-
-#ifdef QCBOR_FOR_T_COSE_2
     if(result) {
         return 3;
     }
-#else
-    if(result != T_COSE_ERR_CANT_PROCESS_MULTIPLE) {
-        return 33;
-    }
-#endif /* QCBOR_FOR_T_COSE_2 */
 
 
     if(q_useful_buf_compare(verified_payload, Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"))){
@@ -1201,16 +1194,9 @@ int32_t verify_multi_test(void)
     /* Not all verifier were configured, but verify all was requested so
      * decline is expected */
 
-#ifdef QCBOR_FOR_T_COSE_2
     if(err != T_COSE_ERR_DECLINE) {
         return 11;
     }
-#else
-    if(err != T_COSE_ERR_CANT_PROCESS_MULTIPLE) {
-        return 33;
-    }
-#endif /* QCBOR_FOR_T_COSE_2 */
-
 
     struct t_cose_signature_verify_eddsa verify_eddsa;
     struct t_cose_key                   eddsa_key;
@@ -1238,16 +1224,9 @@ int32_t verify_multi_test(void)
                              &payload,
                               NULL);
 
-
-#ifdef QCBOR_FOR_T_COSE_2
     if(err) {
         return 3;
     }
-#else
-    if(err != T_COSE_ERR_CANT_PROCESS_MULTIPLE) {
-        return 33;
-    }
-#endif /* QCBOR_FOR_T_COSE_2 */
 
     return 0;
 }

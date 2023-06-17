@@ -16,6 +16,12 @@
 		E7088A072A38604A00F1B2DE /* example_keys.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A022A38604A00F1B2DE /* example_keys.c */; };
 		E7088A082A38604A00F1B2DE /* example_keys.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A022A38604A00F1B2DE /* example_keys.c */; };
 		E721CB9B2362AC2A00C7FD56 /* t_cose_sign_verify_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E721CB9423628D2600C7FD56 /* t_cose_sign_verify_test.c */; };
+		E72BBC722A3C08F40093455E /* t_cose_qcbor_gap.c in Sources */ = {isa = PBXBuildFile; fileRef = E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */; };
+		E72BBC732A3C08FE0093455E /* t_cose_qcbor_gap.c in Sources */ = {isa = PBXBuildFile; fileRef = E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */; };
+		E72BBC742A3C09010093455E /* t_cose_qcbor_gap.c in Sources */ = {isa = PBXBuildFile; fileRef = E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */; };
+		E72BBC752A3C09030093455E /* t_cose_qcbor_gap.c in Sources */ = {isa = PBXBuildFile; fileRef = E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */; };
+		E72BBC762A3C09040093455E /* t_cose_qcbor_gap.c in Sources */ = {isa = PBXBuildFile; fileRef = E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */; };
+		E72BBC772A3C09070093455E /* t_cose_qcbor_gap.c in Sources */ = {isa = PBXBuildFile; fileRef = E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */; };
 		E72FB01D231ADAA8000970FE /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
 		E730E60B23612DAB00175CE0 /* t_cose_sign1_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */; };
 		E730E60C23612DAB00175CE0 /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
@@ -263,6 +269,8 @@
 		E71D9E8E231C930B00A21F7F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		E721CB9423628D2600C7FD56 /* t_cose_sign_verify_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_sign_verify_test.c; sourceTree = "<group>"; };
 		E721CB9523628D2700C7FD56 /* t_cose_sign_verify_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_sign_verify_test.h; sourceTree = "<group>"; };
+		E72BBC702A3C08F30093455E /* t_cose_qcbor_gap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = t_cose_qcbor_gap.h; sourceTree = "<group>"; };
+		E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_qcbor_gap.c; sourceTree = "<group>"; };
 		E72EC9ED242E74EE006D3DD3 /* t_cose_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_common.h; path = t_cose/t_cose_common.h; sourceTree = "<group>"; };
 		E72EC9EF242E74EE006D3DD3 /* q_useful_buf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = q_useful_buf.h; path = t_cose/q_useful_buf.h; sourceTree = "<group>"; };
 		E72FB01B231ADAA8000970FE /* run_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = run_tests.h; sourceTree = "<group>"; };
@@ -843,6 +851,8 @@
 		E7E36E86226CB9460040613B /* src */ = {
 			isa = PBXGroup;
 			children = (
+				E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */,
+				E72BBC702A3C08F30093455E /* t_cose_qcbor_gap.h */,
 				E7AE885F299FF5FE0093B326 /* t_cose_key.c */,
 				0F9105792321878F00008572 /* t_cose_parameters.c */,
 				E7E36E8C226CB9460040613B /* t_cose_util.h */,
@@ -1069,6 +1079,7 @@
 				E771080E2917EDA900D8ADF4 /* t_cose_recipient_dec_keywrap.c in Sources */,
 				E7AE883A2999EA3F0093B326 /* t_cose_recipient_enc_keywrap.c in Sources */,
 				E762D6D728CC0BBD00A22792 /* t_cose_mac_validate.c in Sources */,
+				E72BBC722A3C08F40093455E /* t_cose_qcbor_gap.c in Sources */,
 				E7F17327293B09E500E5ADF3 /* t_cose_signature_sign_main.c in Sources */,
 				E77108202917EDA900D8ADF4 /* t_cose_recipient_dec_hpke.c in Sources */,
 				E7F17373295D1EC700E5ADF3 /* t_cose_crypto_test.c in Sources */,
@@ -1112,6 +1123,7 @@
 				E77108232917EDA900D8ADF4 /* t_cose_recipient_dec_hpke.c in Sources */,
 				E77108172917EDA900D8ADF4 /* t_cose_encrypt_enc.c in Sources */,
 				E7FECC62288B346300420F6F /* t_cose_sign_verify.c in Sources */,
+				E72BBC752A3C09030093455E /* t_cose_qcbor_gap.c in Sources */,
 				E7F17336293B110500E5ADF3 /* t_cose_signature_sign_eddsa.c in Sources */,
 				E7AE886329A075E50093B326 /* t_cose_key.c in Sources */,
 				E7AE888829A546BC0093B326 /* t_cose_recipient_enc_hpke.c in Sources */,
@@ -1150,6 +1162,7 @@
 				E7F1732E293B10E400E5ADF3 /* t_cose_signature_sign_main.c in Sources */,
 				E7AE888929A59C9D0093B326 /* t_cose_recipient_dec_keywrap.c in Sources */,
 				E7AE883B299A02390093B326 /* t_cose_recipient_enc_keywrap.c in Sources */,
+				E72BBC762A3C09040093455E /* t_cose_qcbor_gap.c in Sources */,
 				E73BF70D23B07ACF00DF5C36 /* t_cose_parameters.c in Sources */,
 				E73BF70F23B07ACF00DF5C36 /* t_cose_util.c in Sources */,
 				E7FECC63288B346400420F6F /* t_cose_sign_verify.c in Sources */,
@@ -1179,6 +1192,7 @@
 				E7F1730429275F4800E5ADF3 /* t_cose_signature_sign_eddsa.c in Sources */,
 				E73CDAB223A7316700D262E0 /* t_cose_util.c in Sources */,
 				E7F17375295D1EC800E5ADF3 /* t_cose_crypto_test.c in Sources */,
+				E72BBC742A3C09010093455E /* t_cose_qcbor_gap.c in Sources */,
 				E7FECC61288B346300420F6F /* t_cose_sign_verify.c in Sources */,
 				E73CDAB623A7316700D262E0 /* t_cose_parameters.c in Sources */,
 				E73CDAB823A7316700D262E0 /* t_cose_sign_verify_test.c in Sources */,
@@ -1219,6 +1233,7 @@
 				E7D3CFB429EE7A4400F8C764 /* t_cose_signature_sign_eddsa.c in Sources */,
 				E7D3CFB529EE7A4400F8C764 /* t_cose_util.c in Sources */,
 				E7D3CFB629EE7A4400F8C764 /* t_cose_crypto_test.c in Sources */,
+				E72BBC772A3C09070093455E /* t_cose_qcbor_gap.c in Sources */,
 				E7D3CFB729EE7A4400F8C764 /* t_cose_sign_verify.c in Sources */,
 				E7D3CFB829EE7A4400F8C764 /* t_cose_parameters.c in Sources */,
 				E7D3CFB929EE7A4400F8C764 /* t_cose_sign_verify_test.c in Sources */,
@@ -1259,6 +1274,7 @@
 				0F91057A2321878F00008572 /* t_cose_parameters.c in Sources */,
 				E762D6DF28CC0BFD00A22792 /* t_cose_compute_validate_mac_test.c in Sources */,
 				0F8B2FEF2345A33A00A22349 /* t_cose_make_test_messages.c in Sources */,
+				E72BBC732A3C08FE0093455E /* t_cose_qcbor_gap.c in Sources */,
 				E7E36E90226CB9460040613B /* t_cose_util.c in Sources */,
 				E7F1730A292DE5DF00E5ADF3 /* t_cose_signature_verify_eddsa.c in Sources */,
 				E7F17345294AF18500E5ADF3 /* hpke.c in Sources */,

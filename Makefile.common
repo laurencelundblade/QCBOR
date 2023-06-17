@@ -35,7 +35,8 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_recipient_enc_keywrap.o \
         src/t_cose_recipient_dec_hpke.o \
         src/t_cose_recipient_enc_hpke.o \
-        src/hpke.o 
+        src/hpke.o \
+        src/t_cose_qcbor_gap.o
 
 
 # ---- Object files for test suite ----

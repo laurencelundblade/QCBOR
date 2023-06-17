@@ -97,8 +97,8 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *me,
                                          &me->encoded_prot_params);
 
     /* Failures in CBOR encoding will be caught in
-     * t_cose_sign_encode_finish() or other. No need to track here as the QCBOR
-     * encoder tracks them internally.
+     * t_cose_sign_encode_finish() or other. No need to track here as
+     * the QCBOR encoder tracks them internally.
      */
 
 Done:
@@ -107,7 +107,7 @@ Done:
 
 
 /*
- * Pubilc Function. See t_cose_sign_sign.h
+ * Public Function. See t_cose_sign_sign.h
  */
 enum t_cose_err_t
 t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
@@ -189,8 +189,8 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *me,
     QCBOREncode_CloseArray(cbor_encoder);
 
     /* The layer above this must check for and handle CBOR encoding
-     * errors.  Some are detected at the start of
-     * this function, but they cannot all be deteced there.
+     * errors.  Some are detected at the start of this function, but
+     * they cannot all be deteced there.
      */
 Done:
     return return_value;

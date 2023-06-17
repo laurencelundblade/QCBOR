@@ -17,6 +17,7 @@
 #include "t_cose_crypto.h"
 #include "t_cose/t_cose_parameters.h"
 #include "t_cose_util.h"
+#include "t_cose_qcbor_gap.h"
 
 
 /* These errors do not stop the calling of further verifiers for
@@ -70,12 +71,9 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
 {
     struct t_cose_recipient_dec *rcpnt_decoder;
     enum t_cose_err_t            return_value;
-
-#ifdef QCBOR_FOR_T_COSE_2
-    SaveDecodeCursor saved_cursor;
+    QCBORSaveDecodeCursor        saved_cursor;
 
     QCBORDecode_SaveCursor(cbor_decoder, &saved_cursor);
-#endif
 
     /* Loop over the configured recipients */
     for(rcpnt_decoder = me->recipient_list;
@@ -112,11 +110,8 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
         }
 
         /* Loop continues on for the next recipient */
-#ifdef QCBOR_FOR_T_COSE_2
         QCBORDecode_RestoreCursor(cbor_decoder, &saved_cursor);
-#else
-        return T_COSE_ERR_CANT_PROCESS_MULTIPLE;
-#endif
+
     }
 
     /* Got to end of list and no recipient attempted to verify */
