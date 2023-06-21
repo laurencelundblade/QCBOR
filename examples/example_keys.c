@@ -19,7 +19,7 @@
  *
  * All keys here are const byte arrays.
  *
- * They are always formatted with 8 bytes to a line.
+ * In t_cose source always 8 bytes per line.
  */
 
 

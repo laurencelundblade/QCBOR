@@ -20,5 +20,8 @@ int_fast32_t kw_test(void);
 
 int_fast32_t hkdf_test(void);
 
+int_fast32_t ecdh_test(void);
+
+
 
 #endif /* t_cose_crypto_test_h */

@@ -20,10 +20,13 @@
 #include "t_cose/t_cose_standard_constants.h"
 #include "t_cose/t_cose_key.h"
 
+
 #ifdef __cplusplus
 extern "C" {
+#if 0
+} /* Keep editor indention formatting happy */
 #endif
-
+#endif
 
 
 
@@ -1139,6 +1142,35 @@ t_cose_crypto_aead_encrypt(int32_t                cose_algorithm_id,
 /* Free a symmetric key. */
 void
 t_cose_crypto_free_symmetric_key(struct t_cose_key key);
+
+
+
+/**
+ * \brief Elliptic curve diffie-helman.
+ *
+ * \param[in] private_key     The private EC Key
+ * \param[in] public_key      The public EC key
+ * \param[in] shared_key_buf  Buffer to write the derived shared key in to
+ * \param[out] shared_key     The derived shared key
+ *
+ *  This works works for NIST curves up to secp521r1.
+ *  It must work for key sizes up to T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE.
+ *
+ *  This should work for Edwards curves too. TODO: test this.
+ *
+ *  (The choice is made to focus just on ECDH because no
+ *  one really does finite field DH (aka classic DH) and
+ *  there's no expectation that any will be registered in
+ *  the COSE registry.  This also keeps the API simpler,
+ *  saves a little code and makes it more clear what
+ *  someone needs to implement in the adaptor and the
+ *  expected output and key sizes.)
+ */
+enum t_cose_err_t
+t_cose_crypto_ecdh(struct t_cose_key      private_key,
+                   struct t_cose_key      public_key,
+                   struct q_useful_buf    shared_key_buf,
+                   struct q_useful_buf_c *shared_key);
 
 
 

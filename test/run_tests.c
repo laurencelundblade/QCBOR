@@ -50,6 +50,10 @@ static test_entry s_tests[] = {
 #endif
     TEST_ENTRY(hkdf_test),
 
+#ifndef T_COSE_USE_B_CON_SHA256 /* test crypto doesn't support ECDH */
+    TEST_ENTRY(ecdh_test),
+#endif /* T_COSE_USE_B_CON_SHA256 */
+
     TEST_ENTRY(sign1_structure_decode_test),
 
     TEST_ENTRY(crypto_context_test),

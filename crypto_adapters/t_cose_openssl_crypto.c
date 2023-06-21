@@ -2064,6 +2064,69 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
 #endif /* !T_COSE_DISABLE_KEYWRAP */
 
 
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_ecdh(struct t_cose_key      private_key,
+                   struct t_cose_key      public_key,
+                   struct q_useful_buf    shared_key_buf,
+                   struct q_useful_buf_c *shared_key)
+{
+    int           ossl_status;
+    EVP_PKEY_CTX *ctx;
+    size_t        shared_key_len;
+
+    ctx = EVP_PKEY_CTX_new((EVP_PKEY *)private_key.key.ptr, /* in: pkey */
+                           NULL);                           /* in: engine */
+    if(ctx == NULL) {
+        return T_COSE_ERR_FAIL; // TODO error code
+    }
+
+    /* Pretty sure EVP_PKEY_derive works with finite-field
+     * DH in addition to ECDH, but that is not made
+     * use of here. If finite-field DH is needed,
+     * maybe this here implementation can be wrapped
+     * by an inline function named t_cose_crypto_ffdh()
+     */
+
+    ossl_status = EVP_PKEY_derive_init(ctx);
+    if(ossl_status != 1) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    ossl_status = EVP_PKEY_derive_set_peer(ctx,
+                                           (EVP_PKEY *)public_key.key.ptr);
+    if(ossl_status != 1) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+
+    ossl_status = EVP_PKEY_derive(ctx, NULL, &shared_key_len);
+    if(ossl_status != 1) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+    if(shared_key_len > shared_key_buf.len) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+    ossl_status = EVP_PKEY_derive(ctx, shared_key_buf.ptr, &shared_key_len);
+    if(ossl_status != 1) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    shared_key->ptr = shared_key_buf.ptr;
+    shared_key->len = shared_key_len;
+
+    EVP_PKEY_CTX_free(ctx);
+
+    return T_COSE_SUCCESS;
+}
+
+
+
+
 #include "openssl/kdf.h"
 
 

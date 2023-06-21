@@ -22,6 +22,7 @@
 		E72BBC752A3C09030093455E /* t_cose_qcbor_gap.c in Sources */ = {isa = PBXBuildFile; fileRef = E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */; };
 		E72BBC762A3C09040093455E /* t_cose_qcbor_gap.c in Sources */ = {isa = PBXBuildFile; fileRef = E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */; };
 		E72BBC772A3C09070093455E /* t_cose_qcbor_gap.c in Sources */ = {isa = PBXBuildFile; fileRef = E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */; };
+		E72BBC792A437F330093455E /* t_cose_compute_validate_mac_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E762D6D928CC0BD700A22792 /* t_cose_compute_validate_mac_test.c */; };
 		E72FB01D231ADAA8000970FE /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
 		E730E60B23612DAB00175CE0 /* t_cose_sign1_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */; };
 		E730E60C23612DAB00175CE0 /* run_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = E72FB01C231ADAA8000970FE /* run_tests.c */; };
@@ -1093,6 +1094,7 @@
 				E730E61123612DAB00175CE0 /* t_cose_parameters.c in Sources */,
 				E730E61223612DAB00175CE0 /* t_cose_make_test_messages.c in Sources */,
 				E771081A2917EDA900D8ADF4 /* t_cose_encrypt_dec.c in Sources */,
+				E72BBC792A437F330093455E /* t_cose_compute_validate_mac_test.c in Sources */,
 				E771082C2917EDA900D8ADF4 /* t_cose_recipient_enc_hpke.c in Sources */,
 				E7F173082928557A00E5ADF3 /* t_cose_signature_verify_eddsa.c in Sources */,
 				E7F17344294AF07200E5ADF3 /* hpke.c in Sources */,

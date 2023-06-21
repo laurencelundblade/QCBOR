@@ -1330,6 +1330,47 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
+t_cose_crypto_ecdh(struct t_cose_key      private_key,
+                   struct t_cose_key      public_key,
+                   struct q_useful_buf    shared_key_buf,
+                   struct q_useful_buf_c *shared_key)
+{
+    psa_status_t         psa_status;
+    MakeUsefulBufOnStack(public_key_buf, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE);
+    size_t               pub_key_len;
+
+    /* Export public key */
+    psa_status = psa_export_public_key((mbedtls_svc_key_id_t)public_key.key.handle, /* in: Key handle     */
+                                        public_key_buf.ptr,     /* in: PK buffer      */
+                                        public_key_buf.len,     /* in: PK buffer size */
+                                       &pub_key_len);           /* out: Result length */
+    if(psa_status != PSA_SUCCESS) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+
+    psa_status = psa_raw_key_agreement(PSA_ALG_ECDH,
+                                       (mbedtls_svc_key_id_t)private_key.key.handle,
+                                       public_key_buf.ptr,
+                                       pub_key_len,
+                                       shared_key_buf.ptr,
+                                       shared_key_buf.len,
+                                       &(shared_key->len));
+    if(psa_status != PSA_SUCCESS) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
 t_cose_crypto_hkdf(const int32_t               cose_hash_algorithm_id,
                    const struct q_useful_buf_c salt,
                    const struct q_useful_buf_c ikm,

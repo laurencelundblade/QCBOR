@@ -618,6 +618,8 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
 }
 
 
+
+
 enum t_cose_err_t
 t_cose_crypto_hkdf(const int32_t               cose_hash_algorithm_id,
                    const struct q_useful_buf_c salt,
