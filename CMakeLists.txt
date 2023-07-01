@@ -82,6 +82,8 @@ set(T_COSE_SRC_COMMON
     src/t_cose_recipient_enc_keywrap.c
     src/t_cose_recipient_dec_hpke.c
     src/t_cose_recipient_enc_hpke.c
+    src/t_cose_recipient_dec_esdh.c
+    src/t_cose_recipient_enc_esdh.c
     src/t_cose_qcbor_gap.c
     src/hpke.c
 )

@@ -726,14 +726,17 @@ t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
     psa_status_t         status;
 
    switch (cose_algorithm_id) {
+    case T_COSE_ELLIPTIC_CURVE_P_256:
     case T_COSE_HPKE_KEM_ID_P256:
         type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
         key_bitlen = 256;
         break;
+    case T_COSE_ELLIPTIC_CURVE_P_384:
     case T_COSE_HPKE_KEM_ID_P384:
          type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bitlen = 384;
          break;
+    case T_COSE_ELLIPTIC_CURVE_P_521:
     case T_COSE_HPKE_KEM_ID_P521:
          type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bitlen = 521;
@@ -1324,6 +1327,59 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
 }
 
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+
+enum t_cose_err_t
+t_cose_crypto_key_agreement(const int32_t          cose_algorithm_id,
+                            struct t_cose_key      private_key,
+                            struct t_cose_key      public_key,
+                            struct q_useful_buf    symmetric_key,
+                            size_t                *symmetric_key_len
+                           )
+{
+    psa_status_t status;
+    size_t pubKey_len;
+    enum t_cose_err_t return_value;
+    psa_algorithm_t key_agreement_alg;
+    Q_USEFUL_BUF_MAKE_STACK_UB(pubKey, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE );
+
+    switch(cose_algorithm_id) {
+    case T_COSE_ALGORITHM_ECDH_ES_A128KW:
+    case T_COSE_ALGORITHM_ECDH_ES_A192KW:
+    case T_COSE_ALGORITHM_ECDH_ES_A256KW:
+        key_agreement_alg = PSA_ALG_ECDH;
+        break;
+    default:
+        return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
+    }
+
+    /* Export public key for use with PSA Crypto API */
+    return_value = t_cose_crypto_export_public_key(
+                         public_key,
+                         pubKey,
+                         &pubKey_len);
+
+    if (return_value != T_COSE_SUCCESS) {
+        return(return_value);
+    }
+
+    /* Produce ECDH derived key */
+    status = psa_raw_key_agreement( key_agreement_alg,       // algorithm id
+                                    private_key.key.handle,  // client secret key
+                                    pubKey.ptr, pubKey_len,  // server public key
+                                    symmetric_key.ptr,       // buffer to store derived key
+                                    symmetric_key.len,       // length of the buffer for derived key
+                                    symmetric_key_len );     // length of derived key
+    if( status != PSA_SUCCESS )
+    {
+        return T_COSE_ERR_KEY_AGREEMENT_FAIL;
+    }
+
+    return T_COSE_SUCCESS;
+}
 
 
 /*

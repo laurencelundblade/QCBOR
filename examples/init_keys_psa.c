@@ -185,9 +185,6 @@ void free_fixed_signing_key(struct t_cose_key key_pair)
     psa_destroy_key((psa_key_handle_t)key_pair.key.handle);
 }
 
-
-
-
 /*
  * Public function, see init_keys.h
  */
@@ -196,6 +193,7 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
                                   struct t_cose_key *public_key,
                                   struct t_cose_key *private_key)
 {
+
     psa_status_t          status;
     psa_key_attributes_t  attributes;
     psa_key_type_t        type_public;
@@ -221,8 +219,7 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
     case T_COSE_ELLIPTIC_CURVE_P_521:
          type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-         key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_raw);
-         key_bitlen   = 521;
+         key_bitlen = 521;
          break;
     default:
          return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
@@ -260,6 +257,7 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
     status = psa_copy_key((mbedtls_svc_key_id_t)private_key->key.handle,
                           &attributes,
                           (mbedtls_svc_key_id_t *)&(public_key->key.handle));
+
     if (status != PSA_SUCCESS) {
         return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
     }

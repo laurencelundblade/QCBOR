@@ -145,6 +145,16 @@
  */
 #define T_COSE_HEADER_ALG_PARAM_HPKE_SENDER_INFO -4
 
+
+/**
+ * \def T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY
+ *
+ * \brief Label of COSE header algorithm parameter that indicates an ephemeral key.
+ *
+ */
+#define T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY -1
+
+
 /* ------------- COSE Algorithms ----------------------------
  * https://www.iana.org/assignments/cose/cose.xhtml#algorithms
  */
@@ -283,6 +293,28 @@
  * This is not used in the t_cose interface, just used internally.
  */
 #define T_COSE_ALGORITHM_SHA_512 -44
+
+
+/**
+ * \def T_COSE_ALGORITHM_ECDH_ES_A256KW
+ *
+ * \brief ECDH ES w/ Concat KDF and AES Key Wrap w/ 256-bit key
+ */
+#define T_COSE_ALGORITHM_ECDH_ES_A256KW -31
+
+/**
+ * \def T_COSE_ALGORITHM_ECDH_ES_A192KW
+ *
+ * \brief ECDH ES w/ Concat KDF and AES Key Wrap w/ 192-bit key
+ */
+#define T_COSE_ALGORITHM_ECDH_ES_A192KW -30
+
+/**
+ * \def T_COSE_ALGORITHM_ECDH_ES_A128KW
+ *
+ * \brief ECDH ES w/ Concat KDF and AES Key Wrap w/ 128-bit key
+ */
+#define T_COSE_ALGORITHM_ECDH_ES_A128KW -29
 
 /**
  * \def COSE_ALGORITHM_A256KW

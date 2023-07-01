@@ -40,10 +40,16 @@ static test_entry s_tests[] = {
     TEST_ENTRY(key_wrap_example),
 #endif /* !T_COSE_DISABLE_KEYWRAP */
 
+#ifndef T_COSE_DISABLE_ESDH
+    TEST_ENTRY(esdh_example),
+    TEST_ENTRY(esdh_example_detached),
+#endif /* !T_COSE_DISABLE_ESDH */
+
 #ifndef T_COSE_DISABLE_HPKE
     TEST_ENTRY(hpke_example_detached),
     TEST_ENTRY(hpke_example)
 #endif /* !T_COSE_DISABLE_HPKE */
+
 };
 
 

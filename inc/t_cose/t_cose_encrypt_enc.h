@@ -150,6 +150,8 @@ struct t_cose_encrypt_enc {
     struct t_cose_key             cek;
     struct t_cose_parameter      *added_body_parameters;
     struct q_useful_buf           extern_enc_struct_buffer;
+    struct q_useful_buf           extern_hash_buffer;
+    int32_t                       hash_cose_algorithm_id;
 };
 
 

@@ -393,6 +393,54 @@ t_cose_crypto_verify_eddsa(struct t_cose_key     verification_key,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
+t_cose_crypto_export_public_key(struct t_cose_key      key,
+                                struct q_useful_buf    pk_buffer,
+                                size_t                *pk_len)
+{
+    (void)key;
+    (void)pk_buffer;
+    (void)pk_len;
+    return T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED;
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
+                           int32_t               cose_algorithm_id)
+{
+    (void)ephemeral_key;
+    (void)cose_algorithm_id;
+    return T_COSE_ERR_KEY_GENERATION_FAILED;
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_key_agreement(const int32_t          cose_algorithm_id,
+                            struct t_cose_key      private_key,
+                            struct t_cose_key      public_key,
+                            struct q_useful_buf    symmetric_key,
+                            size_t                *symmetric_key_len
+                           )
+{
+    (void)cose_algorithm_id;
+    (void)private_key;
+    (void)public_key;
+    (void)symmetric_key;
+    (void)symmetric_key_len;
+    return T_COSE_ERR_KEY_AGREEMENT_FAIL;
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
 t_cose_crypto_get_random(struct q_useful_buf    buffer,
                          size_t                 number,
                          struct q_useful_buf_c *random)
