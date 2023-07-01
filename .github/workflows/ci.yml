@@ -37,14 +37,6 @@ jobs:
         - os-image: ubuntu-latest
           container: ubuntu:20.04
           crypto-provider: MbedTLS
-          # crypto-provider-version: 'b489f1e6bcc54ba09730fb7487c2992e03a571a4'
-          crypto-provider-version: '9052cf2f1b755938bf8290b7b068ffe21194486f'
-          crypto-provider-extra: '-DTEST_HPKE=True'
-          crypto-provider-build-extra: 'make generated_files'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:20.04
-          crypto-provider: MbedTLS
           crypto-provider-version: 'v3.4.0'
           crypto-provider-extra: ''
           crypto-provider-build-extra: ''

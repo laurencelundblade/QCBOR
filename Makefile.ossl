@@ -59,7 +59,7 @@ CRYPTO_EXAMPLE_OBJ=examples/init_keys_ossl.o
 # ---- other configuration ----
 # Use as needed. It has been used to disable features that aren't ready
 # or that aren't passing tests
-OTHER_OPTS=-DT_COSE_DISABLE_HPKE
+OTHER_OPTS=
 
 
 # ---- compiler configuration -----

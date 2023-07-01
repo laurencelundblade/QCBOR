@@ -33,8 +33,6 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_encrypt_dec.o \
         src/t_cose_recipient_dec_keywrap.o \
         src/t_cose_recipient_enc_keywrap.o \
-        src/t_cose_recipient_dec_hpke.o \
-        src/t_cose_recipient_enc_hpke.o \
         src/t_cose_recipient_dec_esdh.o \
         src/t_cose_recipient_enc_esdh.o \
         src/hpke.o \
@@ -72,11 +70,11 @@ PUBLIC_INTERFACE=inc/t_cose/q_useful_buf.h \
                  inc/t_cose/t_cose_parameters.h \
                  inc/t_cose/t_cose_recipient_dec.h \
                  inc/t_cose/t_cose_recipient_dec_keywrap.h \
-                 inc/t_cose/t_cose_recipient_dec_hpke.h \
+                 inc/t_cose/t_cose_recipient_enc.h \
+                 inc/t_cose/t_cose_recipient_enc_keywrap.h \
                  inc/t_cose/t_cose_recipient_dec_esdh.h \
                  inc/t_cose/t_cose_recipient_enc.h \
                  inc/t_cose/t_cose_recipient_enc_keywrap.h \
-                 inc/t_cose/t_cose_recipient_enc_hpke.h \
                  inc/t_cose/t_cose_recipient_enc_esdh.h \
                  inc/t_cose/t_cose_sign1_sign.h \
                  inc/t_cose/t_cose_sign1_verify.h \
@@ -194,11 +192,6 @@ src/t_cose_recipient_enc_keywrap.o: src/t_cose_recipient_enc_keywrap.c
 
 src/t_cose_recipient_dec_keywrap.o: src/t_cose_recipient_dec_keywrap.c
 
-src/t_cose_recpient_enc_hpke.o: src/t_cose_recipient_enc_hpke.c \
-                                src/hpke.h
-
-src/t_cose_recpient_dec_hpke.o: src/t_cose_recipient_dec_hpke.c \
-                                src/hpke.h
 
 src/t_cose_recpient_enc_esdh.o: src/t_cose_recipient_enc_esdh.c
 

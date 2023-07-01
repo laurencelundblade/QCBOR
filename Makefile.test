@@ -50,7 +50,7 @@ CRYPTO_TEST_OBJ=examples/init_keys_test.o
 # ---- other configuration ----
 # Use as needed. It has been used to disable features that aren't ready
 # or that aren't passing tests
-OTHER_OPTS=-DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS -DT_COSE_DISABLE_HPKE
+OTHER_OPTS=-DT_COSE_ENABLE_HASH_FAIL_TEST -DT_COSE_DISABLE_SIGN_VERIFY_TESTS 
 
 
 # ---- compiler configuration -----

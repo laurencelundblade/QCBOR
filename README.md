@@ -43,8 +43,7 @@ useful for embedded implementations that have to run in small fixed memory.
 Status for t_cose 2.0 is very roughly this. COSE_Sign1 is working
 except for decoding of protected parameters. COSE_Sign works for
 a single signature.  COSE_Mac0 is generally working. COSE_Encrypt
-and COSE_Encrypt0 are somewhat working. The HPKE here is disabled
-and is a early IETF proposal.
+and COSE_Encrypt0 are somewhat working. 
 
 There is still lots of work to do on COSE_Sign, clean up on
 COSE_Mac0 and some re design is exected for COSE_Encrypt.

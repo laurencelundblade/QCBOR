@@ -308,9 +308,6 @@ static void PrintSize(const char    *szWhat,
 #include "t_cose/t_cose_recipient_enc_keywrap.h"
 #include "t_cose/t_cose_recipient_dec_keywrap.h"
 
-#include "t_cose/t_cose_recipient_enc_hpke.h"
-#include "t_cose/t_cose_recipient_dec_hpke.h"
-
 
 /*
  * Public function. See run_test.h.
