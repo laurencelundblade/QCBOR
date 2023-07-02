@@ -44,7 +44,7 @@ t_cose_signature_sign_headers_main_cb(struct t_cose_signature_sign   *me_x,
 static enum t_cose_err_t
 t_cose_signature_sign1_main_cb(struct t_cose_signature_sign     *me_x,
                                const struct t_cose_sign_inputs *sign_inputs,
-                               QCBOREncodeContext              *qcbor_encoder)
+                               QCBOREncodeContext              *cbor_encoder)
 {
     struct t_cose_signature_sign_main *me =
                                      (struct t_cose_signature_sign_main *)me_x;
@@ -54,14 +54,21 @@ t_cose_signature_sign1_main_cb(struct t_cose_signature_sign     *me_x,
     struct q_useful_buf_c       tbs_hash;
     struct q_useful_buf_c       signature;
 
+    /* Check encoder state before QCBOREncode_OpenBytes() for sensible
+     * error reporting. */
+    return_value = qcbor_encode_error_to_t_cose_error(cbor_encoder);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
     /* The signature gets written directly into the output buffer.
      * The matching QCBOREncode_CloseBytes call further down still
      * needs do a memmove to make space for the CBOR header, but
      * at least we avoid the need to allocate an extra buffer.
      */
-    QCBOREncode_OpenBytes(qcbor_encoder, &buffer_for_signature);
+    QCBOREncode_OpenBytes(cbor_encoder, &buffer_for_signature);
 
-    if (QCBOREncode_IsBufferNULL(qcbor_encoder)) {
+    if (QCBOREncode_IsBufferNULL(cbor_encoder)) {
         /* Size calculation mode */
         signature.ptr = NULL;
         t_cose_crypto_sig_size(me->cose_algorithm_id,
@@ -94,7 +101,7 @@ t_cose_signature_sign1_main_cb(struct t_cose_signature_sign     *me_x,
                                           buffer_for_signature,
                                          &signature);
     }
-    QCBOREncode_CloseBytes(qcbor_encoder, signature.len);
+    QCBOREncode_CloseBytes(cbor_encoder, signature.len);
 
 Done:
     return return_value;
@@ -105,7 +112,7 @@ Done:
 static enum t_cose_err_t
 t_cose_signature_sign_main_cb(struct t_cose_signature_sign  *me_x,
                               struct t_cose_sign_inputs     *sign_inputs,
-                              QCBOREncodeContext            *qcbor_encoder)
+                              QCBOREncodeContext            *cbor_encoder)
 {
 #ifndef T_COSE_DISABLE_COSE_SIGN
     struct t_cose_signature_sign_main *me =
@@ -114,22 +121,22 @@ t_cose_signature_sign_main_cb(struct t_cose_signature_sign  *me_x,
     struct t_cose_parameter  *parameters;
 
     /* Array that holds a COSE_Signature */
-    QCBOREncode_OpenArray(qcbor_encoder);
+    QCBOREncode_OpenArray(cbor_encoder);
 
     /* -- The headers for a COSE_Sign -- */
     t_cose_signature_sign_headers_main_cb(me_x, &parameters);
     t_cose_params_append(&parameters, me->added_signer_params);
-    t_cose_headers_encode(qcbor_encoder,
+    t_cose_headers_encode(cbor_encoder,
                           parameters,
                           &sign_inputs->sign_protected);
 
     /* The actual signature (this runs hash and public key crypto) */
     return_value = t_cose_signature_sign1_main_cb(me_x,
                                                   sign_inputs,
-                                                  qcbor_encoder);
+                                                  cbor_encoder);
 
     /* Close the array for the COSE_Signature */
-    QCBOREncode_CloseArray(qcbor_encoder);
+    QCBOREncode_CloseArray(cbor_encoder);
 
     return return_value;
 
@@ -137,7 +144,7 @@ t_cose_signature_sign_main_cb(struct t_cose_signature_sign  *me_x,
 
     (void)me_x;
     (void)sign_inputs;
-    (void)qcbor_encoder;
+    (void)cbor_encoder;
 
     return T_COSE_ERR_UNSUPPORTED;
 #endif /* !T_COSE_DISABLE_COSE_SIGN */

@@ -15,6 +15,7 @@
 
 #include <stdint.h>
 #include "qcbor/qcbor_common.h" /* For QCBORError */
+#include "qcbor/qcbor_encode.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 
@@ -270,6 +271,10 @@ struct q_useful_buf_c get_short_circuit_kid(void);
  */
 enum t_cose_err_t
 qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error, enum t_cose_err_t format_error);
+
+
+enum t_cose_err_t
+qcbor_encode_error_to_t_cose_error(QCBOREncodeContext *cbor_encoder);
 
 
 /**

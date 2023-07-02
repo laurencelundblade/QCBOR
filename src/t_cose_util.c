@@ -638,6 +638,25 @@ qcbor_decode_error_to_t_cose_error(QCBORError qcbor_error, enum t_cose_err_t for
     return T_COSE_SUCCESS;
 }
 
+/*
+ * Public function. See t_cose_util.h
+ */
+enum t_cose_err_t
+qcbor_encode_error_to_t_cose_error(QCBOREncodeContext *cbor_encoder)
+{
+    switch(QCBOREncode_GetErrorState(cbor_encoder)) {
+        case QCBOR_ERR_BUFFER_TOO_SMALL:
+            return T_COSE_ERR_TOO_SMALL;
+
+        case QCBOR_SUCCESS:
+            return T_COSE_SUCCESS;
+
+        default:
+            return T_COSE_ERR_CBOR_FORMATTING;
+    }
+}
+
+
 
 /*
  * Public function. See t_cose_util.h

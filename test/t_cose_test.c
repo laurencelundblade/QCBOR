@@ -324,23 +324,30 @@ int_fast32_t short_circuit_verify_fail_test()
 /*
  * Public function, see t_cose_test.h
  */
+// TODO: name of this tests isn't right.
 int_fast32_t short_circuit_signing_error_conditions_test()
 {
     struct t_cose_sign1_sign_ctx sign_ctx;
-    QCBOREncodeContext           cbor_encode;
     enum t_cose_err_t            result;
     Q_USEFUL_BUF_MAKE_STACK_UB(  signed_cose_buffer, 300);
     Q_USEFUL_BUF_MAKE_STACK_UB(  small_signed_cose_buffer, 15);
     struct q_useful_buf_c        signed_cose;
+    int32_t                      cose_algorithm_id;
+
+    if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256)) {
+        cose_algorithm_id = T_COSE_ALGORITHM_ES256;
+    } else {
+        cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
+    }
 
     /* -- Test bad algorithm ID 0 -- */
     /* Use reserved alg ID 0 to cause error. */
     t_cose_sign1_sign_init(&sign_ctx, 0, 0);
 
     result = t_cose_sign1_sign(&sign_ctx,
-                                     s_input_payload,
-                                     signed_cose_buffer,
-                                     &signed_cose);
+                                s_input_payload,
+                                signed_cose_buffer,
+                               &signed_cose);
     if(result != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
         return -1;
     }
@@ -350,9 +357,9 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     t_cose_sign1_sign_init(&sign_ctx, 0, -4444444);
 
     result = t_cose_sign1_sign(&sign_ctx,
-                                     s_input_payload,
-                                     signed_cose_buffer,
-                                     &signed_cose);
+                                s_input_payload,
+                                signed_cose_buffer,
+                               &signed_cose);
     if(result != T_COSE_ERR_UNSUPPORTED_SIGNING_ALG) {
         return -2;
     }
@@ -360,6 +367,9 @@ int_fast32_t short_circuit_signing_error_conditions_test()
 
 
     /* -- Tests detection of CBOR encoding error in the payload -- */
+#ifndef T_COSE_DISABLE_USAGE_GUARDS
+    QCBOREncodeContext   cbor_encode;
+
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
     t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_SHORT_CIRCUIT_256);
@@ -374,15 +384,16 @@ int_fast32_t short_circuit_signing_error_conditions_test()
     if(result != T_COSE_ERR_CBOR_FORMATTING) {
         return -3;
     }
+#endif /* !T_COSE_DISABLE_USAGE_GUARDS */
 
 
     /* -- Tests the output buffer being too small -- */
-    t_cose_sign1_sign_init(&sign_ctx, 0, T_COSE_ALGORITHM_SHORT_CIRCUIT_256);
+    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
 
     result = t_cose_sign1_sign(&sign_ctx,
-                                     s_input_payload,
-                                     small_signed_cose_buffer,
-                                     &signed_cose);
+                                s_input_payload,
+                                small_signed_cose_buffer,
+                               &signed_cose);
 
     if(result != T_COSE_ERR_TOO_SMALL) {
         return -4;

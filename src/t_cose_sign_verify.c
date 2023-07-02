@@ -259,7 +259,8 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
         if(param_count > best_param_count) {
             /* Remove the old best out of the pool. */
             if( best_sig_param_list != NULL) {
-                me->p_storage->used -= squeeze_nodes(best_sig_param_list,tmp_sig_param_list);
+                me->p_storage->used -= squeeze_nodes(best_sig_param_list,
+                                                     tmp_sig_param_list);
             }
             best_param_count = param_count;
             best_sig_param_list = tmp_sig_param_list;
@@ -322,7 +323,8 @@ Done:
 
 /*
  *
- * @param[in,out] decode_parameters param list to append newly decoded params to
+ * @param[in,out] decode_parameters param list to append newly decoded
+ * params to
  *
  * Process all the COSE_Signatures in a COSE_Sign. The main job
  * here is knowing whether all signatures must be validated
@@ -358,7 +360,8 @@ process_cose_signatures(struct t_cose_sign_verify_ctx *me,
             break;
         }
 
-        if(return_value != T_COSE_SUCCESS && return_value != T_COSE_ERR_DECLINE) {
+        if(return_value != T_COSE_SUCCESS &&
+           return_value != T_COSE_ERR_DECLINE) {
             /* Some error condition. Do not continue. */
             break;
         }
@@ -400,10 +403,16 @@ process_cose_signatures(struct t_cose_sign_verify_ctx *me,
 
 
 
-/* Run all the verifiers against the a COSE_Sign1 signature (not a COSE_Signature).
+
+/**
+ * \brief Run all the verifiers against a COSE_Sign1 signature
  *
- * Called once. Expect it will be inlined. Separate function for
- * code readability.
+ * \param[in] me                Signature verication context.
+ * \param[in] body_params_list  Params from main COSE_SIgn body (not from
+ *                              COSE_Recipients).
+ * \param[in] sign_inputs       All the stuff (content, headers...) covered
+ *                              by sig.
+ * \param[in] signature         Actual bytes of the signature.
  */
 static enum t_cose_err_t
 call_sign1_verifiers(struct t_cose_sign_verify_ctx   *me,

@@ -640,6 +640,9 @@ enum t_cose_err_t {
      * can be called again until it returns \ref T_COSE_SUCCESS or error.
      */
     T_COSE_ERR_SIG_IN_PROGRESS = 83,
+
+    /* A T_COSE_OPT_XXX is invalid in some way. */
+    T_COSE_ERR_BAD_OPT = 84
 };
 
 
@@ -759,12 +762,9 @@ enum t_cose_err_t {
 #define T_COSE_OPT_MESSAGE_TYPE_MAC         97
 #define T_COSE_OPT_MESSAGE_TYPE_MAC0        17
 
-// TODO: more meaningful names
+// TODO: get rid of this
 #define T_COSE_OPT_IS_SIGN1(opts) \
    ((T_COSE_OPT_MESSAGE_TYPE_MASK & opts) == T_COSE_OPT_MESSAGE_TYPE_SIGN1)
-
-#define T_COSE_OPT_IS_SIGN(opts) \
-((T_COSE_OPT_MESSAGE_TYPE_MASK & opts) == T_COSE_OPT_MESSAGE_TYPE_SIGN)
 
 /* Not expecting any more. */
 
