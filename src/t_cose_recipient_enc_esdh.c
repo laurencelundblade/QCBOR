@@ -34,11 +34,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                                         QCBOREncodeContext           *cbor_encoder)
 {
     struct q_useful_buf_c   protected_params;
-    uint8_t                 encrypted_cek[T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)];
-    size_t                  encrypted_cek_len = T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
     uint8_t                 kek[T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)];
-    size_t                  kek_len = T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
-    struct q_useful_buf_c   cek_encrypted_cbor;
     size_t                  pkR_len = T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE;
     uint8_t                 pkR[T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};
     size_t                  pkE_len = T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE;
@@ -53,15 +49,11 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     UsefulBufC              protected_hdrC;
 
     struct q_useful_buf_c   info_struct;
-    QCBOREncodeContext      ephemeral_key_struct;
-    MakeUsefulBufOnStack(   ephemeral_buf, 150);   // TODO: Avoid use of constant
     QCBORError              ret = QCBOR_SUCCESS;
     size_t                  output_kek_len;
-    UsefulBufC              scratch;
-    struct t_cose_parameter params[2];
+    // TODO: use this? struct t_cose_parameter params[2];
     struct q_useful_buf     encrypted_cek_destination;
     struct q_useful_buf_c   encrypted_cek_result;
-    struct q_useful_buf_c   protected_params_not;
     struct t_cose_key       kek_handle;
     size_t                  target_kek_len;
     int32_t                 hash_alg;
@@ -140,6 +132,8 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
         return(T_COSE_ERR_CBOR_NOT_WELL_FORMED);
     }
 
+
+    (void)ce_alg; // TODO: put this to use
     return_value = create_info_structure(context->info->enc_alg,
                                          context->info->sender_identity_type_id,
                                          context->info->sender_identity,

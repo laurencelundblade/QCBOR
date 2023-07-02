@@ -567,8 +567,10 @@ create_info_structure(int32_t enc_alg,
     /* hash of the encrypted payload/firmware in form of a SUIT_Digest structure */
     /* Likely to be removed in the future */
 //    QCBOREncode_AddInt64(&cbor_encoder, hash_algorithm_id);
+    (void)hash_algorithm_id;
 
 //    QCBOREncode_AddBytes(&cbor_encoder, hash_encrypted_payload);
+    (void)hash_encrypted_payload;
 
     QCBOREncode_CloseArray(&cbor_encoder);
 

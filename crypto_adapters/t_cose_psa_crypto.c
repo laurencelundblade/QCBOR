@@ -1368,7 +1368,7 @@ t_cose_crypto_key_agreement(const int32_t          cose_algorithm_id,
 
     /* Produce ECDH derived key */
     status = psa_raw_key_agreement( key_agreement_alg,       // algorithm id
-                                    private_key.key.handle,  // client secret key
+                                    (psa_key_handle_t)private_key.key.handle,  // client secret key
                                     pubKey.ptr, pubKey_len,  // server public key
                                     symmetric_key.ptr,       // buffer to store derived key
                                     symmetric_key.len,       // length of the buffer for derived key

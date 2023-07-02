@@ -35,7 +35,6 @@ SRC_OBJ=src/t_cose_util.o \
         src/t_cose_recipient_enc_keywrap.o \
         src/t_cose_recipient_dec_esdh.o \
         src/t_cose_recipient_enc_esdh.o \
-        src/hpke.o \
         src/t_cose_qcbor_gap.o
 
 
@@ -193,9 +192,30 @@ src/t_cose_recipient_enc_keywrap.o: src/t_cose_recipient_enc_keywrap.c
 src/t_cose_recipient_dec_keywrap.o: src/t_cose_recipient_dec_keywrap.c
 
 
-src/t_cose_recpient_enc_esdh.o: src/t_cose_recipient_enc_esdh.c
+src/t_cose_recpient_enc_esdh.o: src/t_cose_recipient_enc_esdh.c \
+                                inc/t_cose/t_cose_standard_constants.h \
+                                inc/t_cose/t_cose_key.h \
+                                inc/t_cose/t_cose_encrypt_enc.h \
+                                inc/t_cose/t_cose_recipient_enc.h \
+                                inc/t_cose/t_cose_common.h \
+                                inc/t_cose/t_cose_parameters.h \
+                                inc/t_cose/t_cose_recipient_enc_keywrap.h \
+                                inc/t_cose/q_useful_buf.h \
+                                src/t_cose_crypto.h \
+                                src/t_cose_util.h \
 
-src/t_cose_recpient_dec_esdh.o: src/t_cose_recipient_dec_esdh.c
+src/t_cose_recpient_dec_esdh.o: src/t_cose_recipient_dec_esdh.c \
+                                inc/t_cose/t_cose_recipient_dec_esdh.h \
+                                inc/t_cose/t_cose_parameters.h \
+                                inc/t_cose/q_useful_buf.h \
+                                inc/t_cose/t_cose_common.h \
+                                inc/t_cose/t_cose_standard_constants.h \
+                                inc/t_cose/t_cose_recipient_dec.h \
+                                inc/t_cose/t_cose_key.h \
+                                inc/t_cose/t_cose_encrypt_enc.h \
+                                inc/t_cose/t_cose_recipient_enc.h \
+                                src/t_cose_crypto.h \
+                                src/t_cose_util.h
 
 # ---- test dependencies -----
 test/t_cose_test.o: test/t_cose_test.h \

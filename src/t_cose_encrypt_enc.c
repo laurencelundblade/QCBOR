@@ -53,9 +53,9 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     bool                         is_cose_encrypt0;
     struct t_cose_recipient_enc *recipient;
 #ifndef T_COSE_DISABLE_ESDH
-    struct t_cose_crypto_hash    hash_ctx;
-    Q_USEFUL_BUF_MAKE_STACK_UB(  hash_buffer, T_COSE_CRYPTO_MAX_HASH_SIZE);
-    struct q_useful_buf_c        hash;
+    //struct t_cose_crypto_hash    hash_ctx;
+    //Q_USEFUL_BUF_MAKE_STACK_UB(  hash_buffer, T_COSE_CRYPTO_MAX_HASH_SIZE);
+    //struct q_useful_buf_c        hash;
 #endif /* T_COSE_DISABLE_ESDH */
 
 
