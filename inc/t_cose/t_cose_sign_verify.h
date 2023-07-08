@@ -25,17 +25,11 @@ extern "C" {
 #endif
 #endif
 
-/* TODO: Warning: multiple signatures and verifiers are still early development. Documentation may be incorrect. */
-
-
-#define T_COSE_MAX_TAGS_TO_RETURN2 4
-
-
 
 
 /**
  * The maximum number of unprocessed tags that can be returned by
- * t_cose_sign1_get_nth_tag(). The CWT
+ * t_cose_xxx_get_nth_tag(). The CWT
  * tag is an example of the tags that might returned. The COSE tags
  * that are processed, don't count here.
  */
@@ -67,7 +61,7 @@ struct t_cose_sign_verify_ctx {
     /* Private data structure */
     struct t_cose_signature_verify   *verifiers;
     uint32_t                          option_flags;
-    uint64_t                          auTags[T_COSE_MAX_TAGS_TO_RETURN2];
+    uint64_t                          unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN];
     struct t_cose_parameter_storage   params;
     struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
@@ -256,6 +250,30 @@ t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
 
 
 
+/**
+ * \brief Return unprocessed tags from most recent signature verify.
+ *
+ * \param[in] context   The t_cose signature verification context.
+ * \param[in] n         Index of the tag to return.
+ *
+ * \return  The tag value or \ref CBOR_TAG_INVALID64 if there is no tag
+ *          at the index or the index is too large.
+ *
+ * The 0th tag is the one for which the COSE message is the content. Loop
+ * from 0 up until \ref CBOR_TAG_INVALID64 is returned. The maximum
+ * is \ref T_COSE_MAX_TAGS_TO_RETURN.
+ *
+ * It will be necessary to call this for a general implementation
+ * of a CWT since sometimes the CWT tag is required. This is also
+ * needed for recursive processing of nested COSE signing and/or
+ * encryption.
+ */
+static uint64_t
+t_cose_sign_verify_nth_tag(const struct t_cose_sign_verify_ctx *context,
+                           size_t                                n);
+
+
+
 /* Get a pointer to the last verifier that was called, the one that
  * caused the error returned by t_cose_sign_verify(). */
 // TODO: maybe this should return the signature index too?
@@ -372,6 +390,17 @@ static inline struct t_cose_signature_verify *
 t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx  *me)
 {
     return me->last_verifier;
+}
+
+
+static inline uint64_t
+t_cose_sign_verify_nth_tag(const struct t_cose_sign_verify_ctx *me,
+                           size_t                                n)
+{
+    if(n > T_COSE_MAX_TAGS_TO_RETURN) {
+        return CBOR_TAG_INVALID64;
+    }
+    return me->unprocessed_tag_nums[n];
 }
 
 

@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include "qcbor/qcbor_common.h" /* For QCBORError */
 #include "qcbor/qcbor_encode.h"
+#include "qcbor/qcbor_decode.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 
@@ -29,6 +30,48 @@ extern "C" {
  * \brief Utility functions used internally by the t_cose implementation.
  *
  */
+
+
+
+
+/*
+ * \brief Process CBOR tag numbers and figure out message type.
+ *
+ * \param[in] relevant_cose_tag_nums  List of tag numbers relevant for
+ *                                    message type being processed, ending
+ *                                    with \ref CBOR_TAG_INVALID64
+ * \param[in] option_flags            Flags passed to xxxx_init() that
+ *                                    say how to process tag nums, plus
+ *                                    optional default message type.
+ * \param[in] item                    The QCBORItem of the array that
+ *                                    opens the message so the tag
+ *                                    numbers on it can be processed.
+ * \param[in] cbor_decoder            Needed to process the tag numbers
+ *                                    on item.
+ * \param[out] unprocessed_tag_nums   Any additional tag numbers that were
+ *                                    not used to determine the message
+ *                                    type.
+ * \param[out] cost_tag_num           The end result message type.
+ *
+ * Either this will error out or \c cose_tag_num will identify the
+ * message type and be one of those listed in \c relevant_cose_tag_nums.
+ * This also puts any additional tag numbers that are not the
+ * one returned in \c cose_tag_num in \c unprocessed_tag_nums. This
+ * genric processor can be used for all the CBOR message types with
+ * tag numbers (e.g., COSE_Sign1, COSE_Encrypt,...)
+ *
+ * \c option_flags are a critical input. It may contain the
+ * tag number of the expected type and option flags that say
+ * how the tag numbers are to be interpreted and error conditions.
+ */
+enum t_cose_err_t
+t_cose_tags_and_type(const uint64_t     *relevant_cose_tag_nums,
+                     uint32_t            option_flags,
+                     const QCBORItem    *item,
+                     QCBORDecodeContext *cbor_decoder,
+                     uint64_t            unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN],
+                     uint64_t           *cose_tag_num);
+
 
 
 /**

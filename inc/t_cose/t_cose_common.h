@@ -642,7 +642,11 @@ enum t_cose_err_t {
     T_COSE_ERR_SIG_IN_PROGRESS = 83,
 
     /* A T_COSE_OPT_XXX is invalid in some way. */
-    T_COSE_ERR_BAD_OPT = 84
+    T_COSE_ERR_BAD_OPT = 84,
+
+    T_COSE_ERR_CANT_DETERMINE_MESSAGE_TYPE = 85,
+
+    T_COSE_ERR_WRONG_COSE_MESSAGE_TYPE = 86,
 };
 
 
@@ -741,6 +745,16 @@ enum t_cose_err_t {
  * there are no critical parameters that are not understood.
  */
 #define T_COSE_OPT_NO_CRIT_PARAM_CHECK  0x00001000
+
+
+/**
+ * The maximum number of unprocessed tags that can be returned by
+ * t_cose_xxx_get_nth_tag(). The CWT
+ * tag is an example of the tags that might returned. The COSE tags
+ * that are processed, don't count here.
+ */
+#define T_COSE_MAX_TAGS_TO_RETURN 4
+
 
 
 /* The lower 8 bits of the options give the type of the

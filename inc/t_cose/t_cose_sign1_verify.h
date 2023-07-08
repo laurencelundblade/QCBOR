@@ -80,7 +80,6 @@ struct t_cose_sign1_verify_ctx {
     struct t_cose_signature_verify_eddsa eddsa_verifier;
 
     uint32_t                             option_flags;
-    uint64_t                             auTags[T_COSE_MAX_TAGS_TO_RETURN];
 };
 
 
@@ -249,7 +248,7 @@ t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *contex
  * payload is an indefinite-length byte string, this error will be
  * returned.
  */
-static enum t_cose_err_t
+enum t_cose_err_t
 t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
                     struct q_useful_buf_c           sign1,
                     struct q_useful_buf_c          *payload,
@@ -352,47 +351,6 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
  * Inline implementations of public functions defined above.
  */
 
-static inline uint64_t
-t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
-                         size_t                                n)
-{
-    if(n > T_COSE_MAX_TAGS_TO_RETURN) {
-        return CBOR_TAG_INVALID64;
-    }
-    return context->auTags[n];
-}
-
-
-
-static inline enum t_cose_err_t
-t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
-                    struct q_useful_buf_c           cose_sign1,
-                    struct q_useful_buf_c          *payload,
-                    struct t_cose_parameters       *parameters)
-{
-    enum t_cose_err_t           return_value;
-    struct t_cose_parameter *decoded_params;
-
-    return_value = t_cose_sign_verify(&(me->me2),
-                                      cose_sign1,
-                                      NULL_Q_USEFUL_BUF_C,
-                                      payload,
-                                     &decoded_params);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
-    if(parameters != NULL) {
-        return_value = t_cose_params_common(decoded_params,
-                                                       parameters);
-    }
-
-    memcpy(me->auTags, me->me2.auTags, sizeof(me->auTags));
-
-   Done:
-    return return_value;
-}
-
 
 static inline enum t_cose_err_t
 t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
@@ -456,6 +414,15 @@ t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *me)
 {
     return t_cose_signature_verify_eddsa_auxiliary_buffer_size(&(me->eddsa_verifier));
 }
+
+
+static inline uint64_t
+t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *me,
+                         size_t                                n)
+{
+    return t_cose_sign_verify_nth_tag(&(me->me2), n);
+}
+
 
 #ifdef __cplusplus
 }

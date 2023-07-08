@@ -22,96 +22,6 @@
  */
 
 
-/**
- * \brief Check the tagging of the COSE about to be validated.
- *
- * \param[in] me                 The validation context.
- * \param[in] decode_context     The decoder context to pull from.
- *
- * \return This returns one of the error codes defined by \ref
- *         t_cose_err_t.
- *
- * This must be called after decoding the opening array of four that
- * starts all COSE message that is the item that is the content of the
- * tags.
- *
- * This checks that the tag usage is as requested by the caller.
- *
- * This returns any tags that enclose the COSE message for processing
- * at the level above COSE.
- */
-static inline enum t_cose_err_t
-process_tags(struct t_cose_mac_validate_ctx *me,
-             QCBORDecodeContext             *decode_context)
-{
-    /* Aproximate stack usage
-     *                  64-bit      32-bit
-     *   local vars     20          16
-     *   TOTAL          20          16
-     */
-    uint64_t uTag;
-    uint32_t item_tag_index = 0;
-    int returned_tag_index;
-
-    /* The 0th tag is the only one that might identify the type of the
-     * CBOR we are trying to decode so it is handled special.
-     */
-    uTag = QCBORDecode_GetNthTagOfLast(decode_context, item_tag_index);
-    item_tag_index++;
-    if(me->option_flags & T_COSE_OPT_TAG_REQUIRED) {
-        /* The protocol that is using COSE says the input CBOR must
-         * be a COSE tag.
-         */
-        if(uTag != CBOR_TAG_COSE_MAC0) {
-            return T_COSE_ERR_INCORRECTLY_TAGGED;
-        }
-    }
-    if(me->option_flags & T_COSE_OPT_TAG_PROHIBITED) {
-        /* The protocol that is using COSE says the input CBOR must
-         * not be a COSE tag.
-         */
-        if(uTag == CBOR_TAG_COSE_MAC0) {
-            return T_COSE_ERR_INCORRECTLY_TAGGED;
-        }
-    }
-    /* If the protocol using COSE doesn't say one way or another about the
-     * tag, then either is OK.
-     */
-
-    /* Initialize auTags, the returned tags, to CBOR_TAG_INVALID64 */
-#if CBOR_TAG_INVALID64 != 0xffffffffffffffff
-#error Initializing return tags array
-#endif
-    memset(me->auTags, 0xff, sizeof(me->auTags));
-
-    returned_tag_index = 0;
-
-    if(uTag != CBOR_TAG_COSE_MAC0) {
-        /* Never return the tag that this code is about to process. Note
-         * that you can MAC a COSE_MAC0 recursively. This only takes out
-         * the one tag layer that is processed here.
-         */
-        me->auTags[returned_tag_index] = uTag;
-        returned_tag_index++;
-    }
-
-    while(1) {
-        uTag = QCBORDecode_GetNthTagOfLast(decode_context, item_tag_index);
-        item_tag_index++;
-        if(uTag == CBOR_TAG_INVALID64) {
-            break;
-        }
-        if(returned_tag_index > T_COSE_MAX_TAGS_TO_RETURN) {
-            return T_COSE_ERR_TOO_MANY_TAGS;
-        }
-        me->auTags[returned_tag_index] = uTag;
-        returned_tag_index++;
-    }
-
-    return T_COSE_SUCCESS;
-}
-
-
 
 /*
  * Semi-private function. See t_cose_mac_validate.h
@@ -137,26 +47,37 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     struct t_cose_crypto_hmac     hmac_ctx;
     struct t_cose_parameter      *decoded_params;
     struct t_cose_sign_inputs     mac_input;
+    QCBORItem                     item;
+    uint64_t                      message_type;
 
     decoded_params = NULL;
 
     QCBORDecode_Init(&decode_context, cose_mac, QCBOR_DECODE_MODE_NORMAL);
 
-    /* --- The array of 4 and tags --- */
-    QCBORDecode_EnterArray(&decode_context, NULL);
+    /* --- The array of 4 and type determination and tags --- */
+    QCBORDecode_EnterArray(&decode_context, &item);
     return_value = qcbor_decode_error_to_t_cose_error(
                                         QCBORDecode_GetError(&decode_context),
                                         T_COSE_ERR_MAC0_FORMAT);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    return_value = process_tags(me, &decode_context);
+
+    const uint64_t mac_tag_nums[] = {T_COSE_OPT_MESSAGE_TYPE_MAC0, CBOR_TAG_INVALID64};
+    return_value = t_cose_tags_and_type(mac_tag_nums,
+                                        me->option_flags,
+                                        &item,
+                                        &decode_context,
+                                        me->unprocessed_tag_nums,
+                                        &message_type);
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
 
-    const struct t_cose_header_location l = {0,0};
+
     /* --- The protected parameters --- */
+    const struct t_cose_header_location l = {0,0};
+    decoded_params = NULL;
     t_cose_headers_decode(&decode_context,
                           l,
                           NULL,
@@ -169,8 +90,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     if (payload_is_detached) {
         /* detached payload: the payload should be set by caller */
         QCBORDecode_GetNull(&decode_context);
-    }
-    else {
+    } else {
         QCBORDecode_GetByteString(&decode_context, payload);
     }
 

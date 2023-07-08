@@ -28,95 +28,6 @@
  */
 
 
-/**
- * \brief Check the tagging of the COSE about to be verified.
- *
- * \param[in] me                 The verification context.
- * \param[in] decode_context     The decoder context to pull from.
- *
- * \return This returns one of the error codes defined by \ref
- *         t_cose_err_t.
- *
- * This must be called after decoding the opening array of four that
- * starts all COSE message that is the item that is the content of the
- * tags.
- *
- * This checks that the tag usage is as requested by the caller.
- *
- * This returns any tags that enclose the COSE message for processing
- * at the level above COSE.
- */
-static inline enum t_cose_err_t
-process_tags(struct t_cose_sign_verify_ctx *me,
-             QCBORDecodeContext *decode_context)
-{
-    /* Aproximate stack usage
-     *                                             64-bit      32-bit
-     *   local vars                                    20          16
-     *   TOTAL                                         20          16
-     */
-    uint64_t uTag;
-    uint32_t item_tag_index = 0;
-    int returned_tag_index;
-
-    /* The 0th tag is the only one that might identify the type of the
-     * CBOR we are trying to decode so it is handled special.
-     */
-    uTag = QCBORDecode_GetNthTagOfLast(decode_context, item_tag_index);
-    item_tag_index++;
-    if(me->option_flags & T_COSE_OPT_TAG_REQUIRED) {
-        /* The protocol that is using COSE says the input CBOR must
-         * be a COSE tag.
-         */
-        if(uTag != CBOR_TAG_COSE_SIGN1) {
-            return T_COSE_ERR_INCORRECTLY_TAGGED;
-        }
-    }
-    if(me->option_flags & T_COSE_OPT_TAG_PROHIBITED) {
-        /* The protocol that is using COSE says the input CBOR must
-         * not be a COSE tag.
-         */
-        if(uTag == CBOR_TAG_COSE_SIGN1) {
-            return T_COSE_ERR_INCORRECTLY_TAGGED;
-        }
-    }
-    /* If the protocol using COSE doesn't say one way or another about the
-     * tag, then either is OK.
-     */
-
-
-    /* Initialize auTags, the returned tags, to CBOR_TAG_INVALID64 */
-#if CBOR_TAG_INVALID64 != 0xffffffffffffffff
-#error Initializing return tags array
-#endif
-    memset(me->auTags, 0xff, sizeof(me->auTags));
-
-    returned_tag_index = 0;
-
-    if(uTag != CBOR_TAG_COSE_SIGN1) {
-        /* Never return the tag that this code is about to process. Note
-         * that you can sign a COSE_SIGN1 recursively. This only takes out
-         * the one tag layer that is processed here.
-         */
-        me->auTags[returned_tag_index] = uTag;
-        returned_tag_index++;
-    }
-
-    while(1) {
-        uTag = QCBORDecode_GetNthTagOfLast(decode_context, item_tag_index);
-        item_tag_index++;
-        if(uTag == CBOR_TAG_INVALID64) {
-            break;
-        }
-        if(returned_tag_index > T_COSE_MAX_TAGS_TO_RETURN) {
-            return T_COSE_ERR_TOO_MANY_TAGS;
-        }
-        me->auTags[returned_tag_index] = uTag;
-        returned_tag_index++;
-    }
-
-    return T_COSE_SUCCESS;
-}
 
 
 /* These error do not stop the calling of the further verifiers for
@@ -459,7 +370,6 @@ call_sign1_verifiers(struct t_cose_sign_verify_ctx   *me,
 }
 
 
-
 /*
  * A semi-private function. See t_cose_sign_verify.h
  */
@@ -479,30 +389,18 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     struct t_cose_header_location   header_location;
     struct t_cose_parameter        *decoded_params;
     struct t_cose_sign_inputs       sign_inputs;
+    QCBORItem                       array_item;
+    uint64_t                        message_type_tag_number;
 
-
-    /* --- Decoding of the array of four starts here --- */
+    /* --- Get started with the array of four --- */
     QCBORDecode_Init(&cbor_decoder, message, QCBOR_DECODE_MODE_NORMAL);
-
-    /* --- Process opening array of 4 and tags --- */
-    QCBORDecode_EnterArray(&cbor_decoder, NULL);
-    if(QCBORDecode_GetError(&cbor_decoder)) {
-        /* Done2 re-uses CBOR->COSE error mapping code. */
-        goto Done2;
-    }
-
-    return_value = process_tags(me, &cbor_decoder);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-
+    QCBORDecode_EnterArray(&cbor_decoder, &array_item);
+    /* t_cose_headers_decode processes errors from this to save object code */
 
     /* --- The main body header parameters --- */
-    /* The location of body header parameters is 0, 0 */
-    header_location.nesting = 0;
-    header_location.index   = 0;
+    header_location.nesting = 0; /* Location of body header */
+    header_location.index   = 0; /* params is 0, 0          */
     decoded_params          = NULL;
-
     return_value = t_cose_headers_decode(&cbor_decoder,
                                           header_location,
                                           me->special_param_decode_cb,
@@ -514,6 +412,19 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         goto Done;
     }
 
+    /* --- The tags and message type --- */
+    const uint64_t signing_tag_nums[] = {T_COSE_OPT_MESSAGE_TYPE_SIGN1,
+                                         T_COSE_OPT_MESSAGE_TYPE_SIGN,
+                                         CBOR_TAG_INVALID64};
+    return_value = t_cose_tags_and_type(signing_tag_nums,
+                                        me->option_flags,
+                                       &array_item,
+                                       &cbor_decoder,
+                                        me->unprocessed_tag_nums,
+                                       &message_type_tag_number);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
     /* --- The payload --- */
     if(is_detached) {
@@ -531,8 +442,7 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
     sign_inputs.sign_protected = NULL_Q_USEFUL_BUF_C;
     sign_inputs.aad            = aad;
     sign_inputs.payload        = *payload;
-    // TODO: allow tag determination of message type
-    if(T_COSE_OPT_IS_SIGN1(me->option_flags)) {
+    if(message_type_tag_number == T_COSE_OPT_MESSAGE_TYPE_SIGN1) {
         /* --- The signature bytes for a COSE_Sign1, not COSE_Signatures */
         QCBORDecode_GetByteString(&cbor_decoder, &signature);
         if(QCBORDecode_GetError(&cbor_decoder)) {
@@ -546,7 +456,6 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
                                             decoded_params,
                                            &sign_inputs,
                                             signature);
-
     } else {
 
 #ifndef T_COSE_DISABLE_COSE_SIGN
@@ -563,7 +472,6 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         return_value = T_COSE_ERR_UNSUPPORTED;
 #endif /* !T_COSE_DISABLE_COSE_SIGN */
     }
-
 
     /* --- Finish up the CBOR decode --- */
     QCBORDecode_ExitArray(&cbor_decoder);
@@ -582,16 +490,15 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx  *me,
         /* A decode error overrides the other errors detected above. */
         return_value = qcbor_decode_error_to_t_cose_error(cbor_error,
                                                       T_COSE_ERR_SIGN1_FORMAT);
-        goto Done;
     }
     /* --- End of the decoding of the array of four --- */
-
 
     /* --- Check for critical params and other --- */
     if(return_value != T_COSE_SUCCESS) {
         /* param check must not override non-decoding errors. */
         goto Done;
     }
+
     if(!(me->option_flags & T_COSE_OPT_NO_CRIT_PARAM_CHECK)) {
         return_value = t_cose_params_check(decoded_params);
     }

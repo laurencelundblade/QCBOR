@@ -101,6 +101,8 @@ struct t_cose_encrypt_dec_ctx {
     struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
 
+    uint64_t                         unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN];
+
     struct q_useful_buf           extern_enc_struct_buffer;
 };
 
@@ -311,6 +313,30 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx *context,
                             struct t_cose_parameter      **returned_parameters);
 
 
+
+/**
+ * \brief Return unprocessed tags from most recent decryption.
+ *
+ * \param[in] context   The t_cose decryption context.
+ * \param[in] n         Index of the tag to return.
+ *
+ * \return  The tag value or \ref CBOR_TAG_INVALID64 if there is no tag
+ *          at the index or the index is too large.
+ *
+ * The 0th tag is the one for which the COSE message is the content. Loop
+ * from 0 up until \ref CBOR_TAG_INVALID64 is returned. The maximum
+ * is \ref T_COSE_MAX_TAGS_TO_RETURN.
+ *
+ * It will be necessary to call this for a general implementation
+ * of a CWT since sometimes the CWT tag is required. This is also
+ * useful for recursive processing of nested COSE signing, mac
+ * and encryption.
+ */
+static inline uint64_t
+t_cose_encrypt_dec_nth_tag(const struct t_cose_encrypt_dec_ctx *context,
+                           size_t                               n);
+
+
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
@@ -375,6 +401,17 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *me,
                                        plaintext_buffer,
                                        plaintext,
                                        returned_parameters);
+}
+
+
+static inline uint64_t
+t_cose_encrypt_dec_nth_tag(const struct t_cose_encrypt_dec_ctx *me,
+                           size_t                               n)
+{
+    if(n > T_COSE_MAX_TAGS_TO_RETURN) {
+        return CBOR_TAG_INVALID64;
+    }
+    return me->unprocessed_tag_nums[n];
 }
 
 #ifdef __cplusplus

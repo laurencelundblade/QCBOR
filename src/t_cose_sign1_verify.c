@@ -22,6 +22,7 @@
  */
 
 
+
 void
 t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *me,
                          uint32_t                        option_flags)
@@ -57,3 +58,31 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *me,
                                          NULL_Q_USEFUL_BUF_C);
 }
 
+
+
+enum t_cose_err_t
+t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
+                    struct q_useful_buf_c           cose_sign1,
+                    struct q_useful_buf_c          *payload,
+                    struct t_cose_parameters       *parameters)
+{
+    enum t_cose_err_t        return_value;
+    struct t_cose_parameter *decoded_params;
+ 
+    return_value = t_cose_sign_verify(&(me->me2),
+                                      cose_sign1,
+                                      NULL_Q_USEFUL_BUF_C,
+                                      payload,
+                                      &decoded_params);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    if(parameters != NULL) {
+        return_value = t_cose_params_common(decoded_params,
+                                            parameters);
+    }
+
+Done:
+    return return_value;
+}
