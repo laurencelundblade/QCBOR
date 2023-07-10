@@ -2188,13 +2188,13 @@ int_fast32_t crypto_context_test()
 
 
     /* __2__ Change the value in the crypto context and see a failure  */
-    crypto_context.test_error = 99;
+    crypto_context.test_error = 18; /* 18 just picked to make test work */
     result = t_cose_sign_sign(&sign_ctx,
                               NULL_Q_USEFUL_BUF_C,
                               s_input_payload,
                               failed_signed_cose_buffer,
                              &failed_signed_cose);
-    if(result != 99) {
+    if(result != 18) {
         return 1000 + (int32_t)result;
     }
 
@@ -2226,7 +2226,7 @@ int_fast32_t crypto_context_test()
 
 
     /* __4__ See failure when crypto context is set for failure  */
-    crypto_context.test_error = 99;
+    crypto_context.test_error = 18; /* 18 just picked to make test work */
     /* Run the signature verification */
     result = t_cose_sign_verify(&verify_ctx,
                                 /* COSE to verify */
@@ -2236,7 +2236,7 @@ int_fast32_t crypto_context_test()
                                 &payload,
                                 /* Don't return parameters */
                                 NULL);
-    if(result != 99) {
+    if(result != 18) {
         return 2000 + (int32_t)result;
     }
     free_fixed_signing_key(key_pair);

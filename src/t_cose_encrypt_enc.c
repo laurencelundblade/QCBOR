@@ -52,21 +52,22 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     struct q_useful_buf_c        encrypt_output;
     bool                         is_cose_encrypt0;
     struct t_cose_recipient_enc *recipient;
-#ifndef T_COSE_DISABLE_ESDH
-    //struct t_cose_crypto_hash    hash_ctx;
-    //Q_USEFUL_BUF_MAKE_STACK_UB(  hash_buffer, T_COSE_CRYPTO_MAX_HASH_SIZE);
-    //struct q_useful_buf_c        hash;
-#endif /* T_COSE_DISABLE_ESDH */
 
 
     /* ---- Figure out the COSE message type ---- */
     message_type = T_COSE_OPT_MESSAGE_TYPE_MASK & me->option_flags;
     is_cose_encrypt0 = true;
     switch(message_type) {
-        case 0: message_type = T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0; break;
-        case T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0: break;
-        case T_COSE_OPT_MESSAGE_TYPE_ENCRYPT: is_cose_encrypt0 = false; break;
-        default: return T_COSE_ERR_FAIL; // TODO: better error code
+        case T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED:
+            message_type = T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0;
+            break;
+        case T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0:
+            break;
+        case T_COSE_OPT_MESSAGE_TYPE_ENCRYPT:
+            is_cose_encrypt0 = false;
+            break;
+        default:
+            return T_COSE_ERR_BAD_OPT;
     }
 
 
@@ -75,24 +76,27 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     ce_alg.cose_alg_id = me->payload_cose_algorithm_id;
     ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);
     if(ce_alg.bits_in_key == UINT32_MAX) {
-        // TODO: this may not be the full error check for unsupported.
         return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
     params[0] = t_cose_param_make_alg_id(ce_alg.cose_alg_id);
 
     /* Generate random nonce (aka iv) */
-    return_value = t_cose_crypto_get_random(nonce_buffer, ce_alg.bits_in_key  / 8, &nonce);
+    return_value = t_cose_crypto_get_random(nonce_buffer,
+                                            ce_alg.bits_in_key / 8,
+                                            &nonce);
     params[1] = t_cose_param_make_iv(nonce);
 
     params[0].next = &params[1];
     params[1].next = me->added_body_parameters;
-    /* At this point all the header parameters to be encoded are in
-     * a linked list the head of which is params[0]. */
+    /* At this point all the header parameters to be encoded are in a
+     * linked list the head of which is params[0]. */
 
 
     /* ---- Get started with the CBOR encoding ---- */
     QCBOREncode_Init(&cbor_encoder, buffer_for_message);
-    QCBOREncode_AddTag(&cbor_encoder, message_type);
+    if(!(me->option_flags & T_COSE_OPT_OMIT_CBOR_TAG)) {
+        QCBOREncode_AddTag(&cbor_encoder, message_type);
+    }
     QCBOREncode_OpenArray(&cbor_encoder);
 
 
@@ -135,9 +139,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     if(is_cose_encrypt0) {
         /* For COSE_Encrypt0, the caller must have set the cek explicitly. */
         cek_handle = me->cek;
-
     } else {
-        // TODO: allow cek to be set for COSE_Encrypt?
         /* For COSE_Encrypt, a random key is generated (which will be
          * conveyed to the recipient by some key distribution method in
          * a COSE_Recipient). */
@@ -154,16 +156,13 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     if (return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    /* At this point cek_handle references the encryption key for the AEAD */
+    /* At this point cek_handle has the encryption key for the AEAD */
 
-    // TODO: for non-recipient HPKE, there will have to be algorithm mapping
-    // and other stuff here
-    // TODO: probably some new callback scheme...
 
-    /* ---- Run AEAD to actually encrypt the payload, detached or not */
+    /* ---- Run AEAD to encrypt the payload, detached or not */
     if(q_useful_buf_is_null(buffer_for_detached)) {
-        /* This sets up so AEAD writes directly to the output buffer. This
-         * saves a lot of memory since no intermediate buffer is needed!
+        /* Set up so AEAD writes directly to the output buffer to save lots
+         * of memory since no intermediate buffer is needed!
          */
         QCBOREncode_OpenBytes(&cbor_encoder, &encrypt_buffer);
     } else {
@@ -171,7 +170,6 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
         encrypt_buffer = buffer_for_detached;
     }
 
-    // TODO: support AE (in addition to AEAD) algorithms
     return_value =
         t_cose_crypto_aead_encrypt(ce_alg.cose_alg_id, /* in: AEAD algorithm ID */
                                    cek_handle,     /* in: content encryption key handle */
@@ -180,10 +178,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
                                    payload,        /* in: payload to encrypt */
                                    encrypt_buffer, /* in: buffer to write to */
                                   &encrypt_output  /* out: ciphertext */);
-    if(!is_cose_encrypt0) {
-        /* If not encrypt0, then we made the CEK here and must free it here. */
-        t_cose_crypto_free_symmetric_key(cek_handle);
-    }
+
     if (return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -204,7 +199,10 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
             /* Array holding the COSE_Recipients */
             QCBOREncode_OpenArray(&cbor_encoder);
 
-            /* This does the public-key crypto and outputs a COSE_Recipient */
+            /* Do the public key crypto and output a COSE_Recipient */
+            /* cek_bytes is not uninitialized here despite what some
+             * compilers think. It is a waste of code to put in an
+             * unneccessary initialization for them. */
             return_value = recipient->creat_cb(recipient,
                                                cek_bytes,
                                                ce_alg,
@@ -215,14 +213,14 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
 
             QCBOREncode_CloseArray(&cbor_encoder);
         }
+        t_cose_crypto_free_symmetric_key(cek_handle);
     }
 
      /* ---- Close out the CBOR encoding ---- */
     QCBOREncode_CloseArray(&cbor_encoder);
     cbor_err = QCBOREncode_Finish(&cbor_encoder, encrypted_cose_message);
-
     if (cbor_err != QCBOR_SUCCESS) {
-        return T_COSE_ERR_FAIL; // TODO: map error
+        return qcbor_encode_error_to_t_cose_error(&cbor_encoder);
     }
 
 Done:
