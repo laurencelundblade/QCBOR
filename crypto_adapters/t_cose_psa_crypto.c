@@ -1468,3 +1468,103 @@ t_cose_crypto_hkdf(const int32_t               cose_hash_algorithm_id,
 
     return T_COSE_SUCCESS;
 }
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
+                                struct q_useful_buf_c x_coord,
+                                struct q_useful_buf_c y_coord,
+                                bool                  y_bool,
+                                struct t_cose_key    *pub_key)
+{
+    psa_status_t          status;
+    psa_key_attributes_t  attributes;
+    psa_key_type_t        type_public;
+    uint32_t              key_bitlen;
+    struct q_useful_buf_c  import;
+    // TODO: really make sure this size is right for the curve types supported
+    UsefulOutBuf_MakeOnStack (import_form, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE + 5);
+
+    switch (cose_ec_curve_id) {
+    case T_COSE_ELLIPTIC_CURVE_P_256:
+         type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         key_bitlen   = 256;
+         break;
+    case T_COSE_ELLIPTIC_CURVE_P_384:
+         type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         key_bitlen   = 384;
+         break;
+    case T_COSE_ELLIPTIC_CURVE_P_521:
+         type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         key_bitlen   = 521;
+         break;
+
+    default:
+         return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
+    }
+
+
+    // TODO: are these attributes right?
+    attributes = psa_key_attributes_init();
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_COPY);
+    psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
+    psa_set_key_type(&attributes, type_public);
+    //psa_set_key_bits(&attributes, key_bitlen);
+
+    /* This converts to a serialized representation of an EC Point
+     * described in
+     * Certicom Research, "SEC 1: Elliptic Curve Cryptography", Standards for
+     * Efficient Cryptography, May 2009, <https://www.secg.org/sec1-v2.pdf>.
+     * The description is very mathematical and hard to read for us
+     * coder types. It was much easier to understand reading Jim's
+     * COSE-C implementation. See mbedtls_ecp_keypair() in COSE-C.
+     *
+     * This string is the format used by Mbed TLS to import an EC
+     * public key.
+     *
+     * This does implement point compression. The patents for it have
+     * run out so it's OK to implement. Point compression is commented
+     * out in Jim's implementation, presumably because of the paten
+     * issue.
+     *
+     * A simple English description of the format is this. The first
+     * byte is 0x04 for no point compression and 0x02 or 0x03 if there
+     * is point compression. 0x02 indicates a positive y and 0x03 a
+     * negative y (or is the other way). Following the first byte
+     * are the octets of x. If the first byte is 0x04 then following
+     * x is the y value.
+     *
+     * UsefulOutBut is used to safely construct this string.
+     */
+    uint8_t first_byte;
+    if(q_useful_buf_c_is_null(y_coord)) {
+        /* This is point compression */
+        first_byte = y_bool ? 0x03 : 0x02;
+    } else {
+        first_byte = 0x04;
+    }
+
+    // TODO: is padding of x necessary? Jim's code goes to
+    // a lot of trouble to look up the group and get the length.
+
+    UsefulOutBuf_AppendByte(&import_form, first_byte);
+    UsefulOutBuf_AppendUsefulBuf(&import_form, x_coord);
+    if(first_byte == 0x04) {
+        UsefulOutBuf_AppendUsefulBuf(&import_form, y_coord);
+    }
+    import = UsefulOutBuf_OutUBuf(&import_form);
+
+
+    status = psa_import_key(&attributes,
+                            import.ptr, import.len,
+                            (mbedtls_svc_key_id_t *)(&pub_key->key.handle));
+
+    if (status != PSA_SUCCESS) {
+        return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
+    }
+
+    return T_COSE_SUCCESS;
+}

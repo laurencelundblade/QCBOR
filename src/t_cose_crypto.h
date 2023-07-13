@@ -1297,6 +1297,14 @@ t_cose_crypto_hkdf_expand(int32_t                cose_hash_algorithm_id,
 
 #endif /* WE_NEED_THESE */
 
+
+enum t_cose_err_t
+t_cose_crypto_import_ec2_pubkey(int32_t               curve,
+                                struct q_useful_buf_c x_coord,
+                                struct q_useful_buf_c y_coord,
+                                bool                  y_bool,
+                                struct t_cose_key    *pub_key);
+
 #ifdef __cplusplus
 }
 #endif

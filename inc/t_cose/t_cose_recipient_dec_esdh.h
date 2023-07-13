@@ -41,7 +41,7 @@ struct t_cose_recipient_dec_esdh {
        */
     struct t_cose_recipient_dec base;
 
-    struct t_cose_key     skr;
+    struct t_cose_key     private_key;
     struct q_useful_buf_c kid;
 };
 
@@ -58,8 +58,8 @@ t_cose_recipient_dec_esdh_init(struct t_cose_recipient_dec_esdh *context);
 // TODO: describe and implement the rules for kid matching
 
 static void
-t_cose_recipient_dec_esdh_set_skr(struct t_cose_recipient_dec_esdh *context,
-                                  struct t_cose_key                 skr,
+t_cose_recipient_dec_esdh_set_key(struct t_cose_recipient_dec_esdh *context,
+                                  struct t_cose_key                 private_key,
                                   struct q_useful_buf_c             kid);
 
 
@@ -89,11 +89,11 @@ t_cose_recipient_dec_esdh_init(struct t_cose_recipient_dec_esdh *me)
 
 
 static inline void
-t_cose_recipient_dec_esdh_set_skr(struct t_cose_recipient_dec_esdh *me,
-                                  struct t_cose_key                 skr,
+t_cose_recipient_dec_esdh_set_key(struct t_cose_recipient_dec_esdh *me,
+                                  struct t_cose_key                 private_key,
                                   struct q_useful_buf_c             kid)
 {
-    me->skr = skr;
+    me->private_key = private_key;
     me->kid = kid;
 }
 

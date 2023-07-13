@@ -78,6 +78,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     default:
         return(T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG);
     }
+    (void)target_kek_len; // Will use this at some point
 
     /* Create ephemeral key */
     return_value = t_cose_crypto_generate_key(&ephemeral_key,

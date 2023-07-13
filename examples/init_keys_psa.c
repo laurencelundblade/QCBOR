@@ -219,7 +219,8 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
     case T_COSE_ELLIPTIC_CURVE_P_521:
          type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-         key_bitlen = 521;
+         key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_raw);
+         key_bitlen   = 521;
          break;
     default:
          return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;

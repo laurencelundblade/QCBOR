@@ -18,6 +18,7 @@
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
 #include "t_cose/t_cose_standard_constants.h"
+#include "t_cose/t_cose_key.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -200,6 +201,7 @@ struct t_cose_param_special_encode {
         uint64_t              uint64;
         struct q_useful_buf_c string;
         uint8_t               little_buf[8];
+        struct t_cose_key     key;
     } data;
 };
 
@@ -214,6 +216,7 @@ struct t_cose_param_special_decode {
         uint64_t              uint64;
         struct q_useful_buf_c string;
         uint8_t               little_buf[8];
+        struct t_cose_key     key;
     } value;
 };
 

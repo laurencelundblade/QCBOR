@@ -2072,7 +2072,7 @@ t_cose_crypto_kw_unwrap(int32_t                 algorithm_id,
 
     /* Check for space in the output buffer */
     expected_unwrapped_size = ciphertext.len - 8;
-    if(plaintext_buffer.len <= expected_unwrapped_size) {
+    if(plaintext_buffer.len < expected_unwrapped_size) {
         return T_COSE_ERR_TOO_SMALL;
     }
 
@@ -2276,3 +2276,132 @@ Done2:
     return return_value;
 }
 
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
+                                struct q_useful_buf_c x_coord,
+                                struct q_useful_buf_c y_coord,
+                                bool                  y_bool,
+                                struct t_cose_key    *pub_key)
+{
+    int                    nid;
+    int                    ossl_result;
+    uint32_t               key_bitlen;
+    struct q_useful_buf_c  import_octets;
+    EC_POINT              *ec_point;
+    EC_KEY                *ec_key;
+    EC_GROUP              *ec_group;
+    uint8_t                first_byte;
+    EVP_PKEY              *evp_pkey;
+    UsefulOutBuf_MakeOnStack (import_form, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE + 5);
+
+    switch (cose_ec_curve_id) {
+    case T_COSE_ELLIPTIC_CURVE_P_256:
+         nid  = NID_X9_62_prime256v1;
+         key_bitlen   = 256;
+         break;
+    case T_COSE_ELLIPTIC_CURVE_P_384:
+         nid  = NID_secp384r1;
+         key_bitlen   = 384;
+         break;
+    case T_COSE_ELLIPTIC_CURVE_P_521:
+         nid  = NID_secp521r1;
+         key_bitlen   = 521;
+         break;
+
+    default:
+         return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
+    }
+
+
+    /* This converts to a serialized representation of an EC Point
+     * described in
+     * Certicom Research, "SEC 1: Elliptic Curve Cryptography", Standards for
+     * Efficient Cryptography, May 2009, <https://www.secg.org/sec1-v2.pdf>.
+     * The description is very mathematical and hard to read for us
+     * coder types. It was much easier to understand reading Jim's
+     * COSE-C implementation. See mbedtls_ecp_keypair() in COSE-C.
+     *
+     * This string is the format used by Mbed TLS to import an EC
+     * public key.
+     *
+     * This does implement point compression. The patents for it have
+     * run out so it's OK to implement. Point compression is commented
+     * out in Jim's implementation, presumably because of the paten
+     * issue.
+     *
+     * A simple English description of the format is this. The first
+     * byte is 0x04 for no point compression and 0x02 or 0x03 if there
+     * is point compression. 0x02 indicates a positive y and 0x03 a
+     * negative y (or is the other way). Following the first byte
+     * are the octets of x. If the first byte is 0x04 then following
+     * x is the y value.
+     *
+     * UsefulOutBut is used to safely construct this string.
+     */
+    if(q_useful_buf_c_is_null(y_coord)) {
+        /* This is point compression */
+        first_byte = y_bool ? 0x02 : 0x03;
+    } else {
+        first_byte = 0x04;
+    }
+    UsefulOutBuf_AppendByte(&import_form, first_byte);
+    UsefulOutBuf_AppendUsefulBuf(&import_form, x_coord);
+    if(first_byte == 0x04) {
+        UsefulOutBuf_AppendUsefulBuf(&import_form, y_coord);
+    }
+    import_octets = UsefulOutBuf_OutUBuf(&import_form);
+
+
+    ec_key = EC_KEY_new();
+    if(ec_key == NULL) {
+        return 99;
+    }
+
+    ec_group = EC_GROUP_new_by_curve_name(nid);
+    if(ec_group == NULL) {
+        return 99;
+    }
+
+    // TODO: this and related are to be depreacted, so they say...
+    ossl_result = EC_KEY_set_group(ec_key, ec_group);
+    if(ossl_result != 1) {
+        return 99;
+    }
+
+    ec_point = EC_POINT_new(ec_group);
+    if(ec_point == NULL) {
+        return 99;
+    }
+
+    ossl_result = EC_POINT_oct2point(ec_group,
+                                     ec_point,
+                                     import_octets.ptr, import_octets.len,
+                                     NULL);
+    if(ossl_result != 1) {
+         return 99;
+     }
+
+    ossl_result = EC_KEY_set_public_key(ec_key, ec_point);
+    if(ossl_result != 1) {
+        return 99;
+    }
+
+    evp_pkey = EVP_PKEY_new();
+    if(evp_pkey == NULL) {
+         return 99;
+     }
+
+    ossl_result = EVP_PKEY_set1_EC_KEY(evp_pkey, ec_key);
+    if(ossl_result != 1) {
+        return 99;
+    }
+
+    pub_key->key.ptr = evp_pkey;
+
+    return T_COSE_SUCCESS;
+}

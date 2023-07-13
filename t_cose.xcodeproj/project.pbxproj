@@ -325,6 +325,7 @@
 		E771080A2917EDA900D8ADF4 /* t_cose_encrypt_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_encrypt_dec.c; sourceTree = "<group>"; };
 		E771080C2917EDA900D8ADF4 /* t_cose_recipient_enc_keywrap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_recipient_enc_keywrap.c; sourceTree = "<group>"; };
 		E77F343028F979DF0089FC2A /* t_cose_standard_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_standard_constants.h; path = t_cose/t_cose_standard_constants.h; sourceTree = "<group>"; };
+		E78555872A5B573F00BA326A /* include */ = {isa = PBXFileReference; lastKnownFileType = folder; name = include; path = "../../openssl-1.1.1t/include"; sourceTree = "<group>"; };
 		E7AE8848299BCCF80093B326 /* t_cose_sign_verify.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_sign_verify.h; path = t_cose/t_cose_sign_verify.h; sourceTree = "<group>"; };
 		E7AE8849299BCCF80093B326 /* t_cose_sign_sign.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_sign_sign.h; path = t_cose/t_cose_sign_sign.h; sourceTree = "<group>"; };
 		E7AE884A299BCCF80093B326 /* t_cose_sign1_sign.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = t_cose_sign1_sign.h; path = t_cose/t_cose_sign1_sign.h; sourceTree = "<group>"; };
@@ -592,6 +593,14 @@
 			name = tdv;
 			sourceTree = "<group>";
 		};
+		E78555862A5B56F600BA326A /* OSSL Interface */ = {
+			isa = PBXGroup;
+			children = (
+				E78555872A5B573F00BA326A /* include */,
+			);
+			name = "OSSL Interface";
+			sourceTree = "<group>";
+		};
 		E7AE88312999E95F0093B326 /* COSE_Sign */ = {
 			isa = PBXGroup;
 			children = (
@@ -799,6 +808,7 @@
 		E7E36E6F226CB8400040613B = {
 			isa = PBXGroup;
 			children = (
+				E78555862A5B56F600BA326A /* OSSL Interface */,
 				E762D6F028D0ADAF00A22792 /* tdv */,
 				E71D9E8E231C930B00A21F7F /* README.md */,
 				E73CDAA123A082A500D262E0 /* examples */,
