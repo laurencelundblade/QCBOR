@@ -14,8 +14,8 @@
 #include <stdint.h>
 
 
-int_fast32_t param_test(void);
+int32_t param_test(void);
 
-int_fast32_t common_params_test(void);
+int32_t common_params_test(void);
 
 #endif /* t_cose_param_test_h */

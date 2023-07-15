@@ -68,7 +68,7 @@ make_hmac_key(int32_t cose_alg, struct t_cose_key *key)
 /*
  * Compute and validate a test COSE_Mac0 message with the selected MAC algorithm.
  */
-static int_fast32_t compute_validate_basic_test_alg_mac(int32_t cose_alg)
+static int32_t compute_validate_basic_test_alg_mac(int32_t cose_alg)
 {
     struct t_cose_mac_calculate_ctx   mac_ctx;
     struct t_cose_mac_validate_ctx    validate_ctx;
@@ -136,9 +136,9 @@ Done:
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int_fast32_t compute_validate_mac_basic_test()
+int32_t compute_validate_mac_basic_test()
 {
-    int_fast32_t return_value;
+    int32_t return_value;
 
     if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC256)) {
         return_value  = compute_validate_basic_test_alg_mac(
@@ -171,7 +171,7 @@ int_fast32_t compute_validate_mac_basic_test()
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int_fast32_t compute_validate_mac_fail_test()
+int32_t compute_validate_mac_fail_test()
 {
     struct t_cose_mac_calculate_ctx   mac_ctx;
     struct t_cose_mac_validate_ctx    validate_ctx;
@@ -344,7 +344,7 @@ static int size_test(int32_t               cose_algorithm_id,
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int_fast32_t compute_validate_get_size_mac_test()
+int32_t compute_validate_get_size_mac_test()
 {
     enum t_cose_err_t return_value;
     struct t_cose_key key;
@@ -404,7 +404,7 @@ int_fast32_t compute_validate_get_size_mac_test()
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int_fast32_t compute_validate_detached_content_mac_fail_test()
+int32_t compute_validate_detached_content_mac_fail_test()
 {
     struct t_cose_mac_calculate_ctx   mac_ctx;
     struct t_cose_mac_validate_ctx    validate_ctx;
@@ -570,7 +570,7 @@ static int detached_content_size_test(int32_t               cose_algorithm_id,
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int_fast32_t compute_validate_get_size_detached_content_mac_test()
+int32_t compute_validate_get_size_detached_content_mac_test()
 {
     enum t_cose_err_t return_value;
     struct t_cose_key key;

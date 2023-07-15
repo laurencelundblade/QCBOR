@@ -230,7 +230,7 @@ static struct test_case test_cases[] = {
     { 0 }, /* Sentinel value with an invalid algorithm id */
 };
 
-static int_fast32_t sign_verify_basic_test_alg(int32_t cose_alg)
+static int32_t sign_verify_basic_test_alg(int32_t cose_alg)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     int32_t                        return_value;
@@ -297,9 +297,9 @@ Done:
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_basic_test(void)
+int32_t sign_verify_basic_test(void)
 {
-    int_fast32_t return_value;
+    int32_t return_value;
 
     const struct test_case* tc;
     for (tc = test_cases; tc->cose_algorithm_id != 0; tc++) {
@@ -315,7 +315,7 @@ int_fast32_t sign_verify_basic_test(void)
 }
 
 
-static int_fast32_t sig_fail_test(int32_t cose_alg)
+static int32_t sig_fail_test(int32_t cose_alg)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
@@ -401,9 +401,9 @@ Done:
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_sig_fail_test()
+int32_t sign_verify_sig_fail_test()
 {
-    int_fast32_t return_value;
+    int32_t return_value;
     const struct test_case* tc;
     for (tc = test_cases; tc->cose_algorithm_id != 0; tc++) {
         if (t_cose_is_algorithm_supported(tc->cose_algorithm_id)) {
@@ -420,7 +420,7 @@ int_fast32_t sign_verify_sig_fail_test()
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_make_cwt_test()
+int32_t sign_verify_make_cwt_test()
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
@@ -558,7 +558,7 @@ Done:
 }
 
 
-static int_fast32_t size_test(int32_t               cose_algorithm_id,
+static int32_t size_test(int32_t               cose_algorithm_id,
                               struct q_useful_buf_c kid)
 {
     struct t_cose_key              key_pair;
@@ -700,9 +700,9 @@ Done:
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_get_size_test()
+int32_t sign_verify_get_size_test()
 {
-    int_fast32_t return_value;
+    int32_t return_value;
     const struct test_case* tc;
     for (tc = test_cases; tc->cose_algorithm_id != 0; tc++) {
         if (t_cose_is_algorithm_supported(tc->cose_algorithm_id)) {
@@ -724,7 +724,7 @@ int_fast32_t sign_verify_get_size_test()
 }
 
 
-static int_fast32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c signed_message)
+static int32_t known_good_test(int cose_algorithm_id, struct q_useful_buf_c signed_message)
 {
     int32_t                        return_value;
     enum t_cose_err_t              result;
@@ -805,9 +805,9 @@ Done2:
     return return_value;
 }
 
-int_fast32_t sign_verify_known_good_test(void)
+int32_t sign_verify_known_good_test(void)
 {
-    int_fast32_t return_value = 0;
+    int32_t return_value = 0;
     const struct test_case* tc;
     for (tc = test_cases; tc->cose_algorithm_id != 0; tc++) {
         if (t_cose_is_algorithm_supported(tc->cose_algorithm_id)) {
@@ -835,7 +835,7 @@ int_fast32_t sign_verify_known_good_test(void)
  * not supported by the current t_cose configuration
  * and crypto adapter.
  */
-static int_fast32_t
+static int32_t
 sign_verify_unsupported_test_alg(int32_t cose_alg,
                                  struct q_useful_buf_c signed_message)
 {
@@ -879,9 +879,9 @@ Done:
     return return_value;
 }
 
-int_fast32_t sign_verify_unsupported_test(void)
+int32_t sign_verify_unsupported_test(void)
 {
-    int_fast32_t return_value;
+    int32_t return_value;
     const struct test_case* tc;
     for (tc = test_cases; tc->cose_algorithm_id != 0; tc++) {
         /* Unlike other tests, this one runs only on unsupported algorithms.
@@ -901,7 +901,7 @@ int_fast32_t sign_verify_unsupported_test(void)
 /*
  * Public function, see t_cose_sign_verify_test.h
  */
-int_fast32_t sign_verify_bad_auxiliary_buffer(void)
+int32_t sign_verify_bad_auxiliary_buffer(void)
 {
     enum t_cose_err_t              result;
     int32_t                        return_value;
@@ -986,7 +986,7 @@ Done:
 
 
 #ifndef T_COSE_DISABLE_COSE_SIGN
-int_fast32_t sign_verify_multi(void)
+int32_t sign_verify_multi(void)
 {
     enum t_cose_err_t              result;
     struct t_cose_key   key_pair1;
@@ -1275,7 +1275,7 @@ int32_t verify_multi_test(void)
         struct t_cose_test_crypto_context crypto_ctx = {0}
 #endif
 
-int_fast32_t restart_test_2_step(void)
+int32_t restart_test_2_step(void)
 {
     QCBOREncodeContext              cbor_encode;
     QCBORError                      qcbor_result;
@@ -1356,7 +1356,7 @@ int_fast32_t restart_test_2_step(void)
     return 0;
 }
 #else
-int_fast32_t restart_test_2_step(void)
+int32_t restart_test_2_step(void)
 {
     return 0;
 }

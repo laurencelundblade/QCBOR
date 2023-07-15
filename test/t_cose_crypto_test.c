@@ -43,7 +43,7 @@ static const uint8_t expected_empty_tag[] = {
     0xC9, 0x4A, 0xA9, 0xF3, 0x22, 0x75, 0x73, 0x8C, 0xD5, 0xCC, 0x75, 0x01, 0xA4, 0x80, 0xBC, 0xF5};
 #endif
 
-int_fast32_t aead_test(void)
+int32_t aead_test(void)
 {
     enum t_cose_err_t      err;
     int32_t                cose_algorithm_id;
@@ -61,7 +61,7 @@ int_fast32_t aead_test(void)
                                                   UsefulBuf_FROM_BYTE_ARRAY_LITERAL(test_key_0_128bit),
                                                  &key);
     if(err) {
-        return 1000 + (int_fast32_t)err;
+        return 1000 + (int32_t)err;
     }
 
     /* First the simplest case, no payload, no aad, just the tag */
@@ -73,7 +73,7 @@ int_fast32_t aead_test(void)
                                      ciphertext_buffer,
                                      &ciphertext);
     if(err) {
-        return 2000 + (int_fast32_t)err;
+        return 2000 + (int32_t)err;
     }
 
     /* TODO: proper define to know about test crypto */
@@ -102,7 +102,7 @@ int_fast32_t aead_test(void)
                                      &plaintext);
 
     if(err) {
-        return 3000 + (int_fast32_t)err;
+        return 3000 + (int32_t)err;
     }
 
     if(plaintext.len != 0) {
@@ -119,7 +119,7 @@ int_fast32_t aead_test(void)
                                      ciphertext_buffer,
                                      &ciphertext);
     if(err) {
-        return 4000 + (int_fast32_t)err;
+        return 4000 + (int32_t)err;
     }
 
     err = t_cose_crypto_aead_decrypt(cose_algorithm_id,
@@ -130,7 +130,7 @@ int_fast32_t aead_test(void)
                                      plaintext_buffer,
                                      &plaintext);
     if(err) {
-        return 5000 + (int_fast32_t)err;
+        return 5000 + (int32_t)err;
     }
 
     if(q_useful_buf_compare(Q_USEFUL_BUF_FROM_SZ_LITERAL("plain text"), plaintext)) {
@@ -150,7 +150,7 @@ int_fast32_t aead_test(void)
 
 #ifndef T_COSE_DISABLE_KEYWRAP
 
-int_fast32_t kw_test(void)
+int32_t kw_test(void)
 {
     struct t_cose_key kek;
     /* These are test vectors from RFC 3394 */
@@ -276,7 +276,7 @@ static const uint8_t tc1_okm_bytes[] = {
 };
 #endif
 
-int_fast32_t hkdf_test(void)
+int32_t hkdf_test(void)
 {
     Q_USEFUL_BUF_MAKE_STACK_UB(tc1_okm, 42);
     enum t_cose_err_t          err;
@@ -308,7 +308,7 @@ int_fast32_t hkdf_test(void)
 
 #ifndef T_COSE_USE_B_CON_SHA256 /* test crypto doesn't support ECDH */
 
-int_fast32_t ecdh_test(void)
+int32_t ecdh_test(void)
 {
     enum t_cose_err_t           err;
     struct t_cose_key           public_key;

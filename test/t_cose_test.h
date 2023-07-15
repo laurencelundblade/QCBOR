@@ -32,7 +32,7 @@
  * short-circuit signatures so no keys or even integration with public
  * key crypto is necessary.
  */
-int_fast32_t short_circuit_self_test(void);
+int32_t short_circuit_self_test(void);
 
 
 /**
@@ -44,7 +44,7 @@ int_fast32_t short_circuit_self_test(void);
  * short-circuit signatures so no keys or even integration with public
  * key crypto is necessary.
  */
-int_fast32_t short_circuit_self_detached_content_test(void);
+int32_t short_circuit_self_detached_content_test(void);
 
 
 /**
@@ -56,7 +56,7 @@ int_fast32_t short_circuit_self_detached_content_test(void);
  * verification fails.  It uses short-circuit signatures so no keys or
  * even integration with public key crypto is necessary.
  */
-int_fast32_t short_circuit_verify_fail_test(void);
+int32_t short_circuit_verify_fail_test(void);
 
 
 /**
@@ -67,12 +67,12 @@ int_fast32_t short_circuit_verify_fail_test(void);
  * It uses short-circuit signatures so no keys or even integration
  * with public key crypto is necessary.
  */
-int_fast32_t short_circuit_signing_error_conditions_test(void);
+int32_t short_circuit_signing_error_conditions_test(void);
 
 
 /* Make a CWT and see that it compares to the sample in the CWT RFC
  */
-int_fast32_t short_circuit_make_cwt_test(void);
+int32_t short_circuit_make_cwt_test(void);
 
 
 /*
@@ -80,7 +80,7 @@ int_fast32_t short_circuit_make_cwt_test(void);
  * headers are returned, but the signature is not
  * verified.
  */
-int_fast32_t short_circuit_decode_only_test(void);
+int32_t short_circuit_decode_only_test(void);
 
 
 /*
@@ -90,36 +90,36 @@ int_fast32_t short_circuit_decode_only_test(void);
 - No algorithm ID parameter
 
  */
-int_fast32_t bad_parameters_test(void);
+int32_t bad_parameters_test(void);
 
 
 /* Test that makes a CWT (CBOR Web Token)
  */
-int_fast32_t cose_example_test(void);
+int32_t cose_example_test(void);
 
 
 /*
  Various tests involving the crit parameter.
  */
-int_fast32_t crit_parameters_test(void);
+int32_t crit_parameters_test(void);
 
 
 /*
  Check that all types of headers are correctly returned.
  */
-int_fast32_t all_header_parameters_test(void);
+int32_t all_header_parameters_test(void);
 
 
 /*
  * Check that setting the content type works
  */
-int_fast32_t content_type_test(void);
+int32_t content_type_test(void);
 
 
 /*
  * Check that setting the content type works
  */
-int_fast32_t sign1_structure_decode_test(void);
+int32_t sign1_structure_decode_test(void);
 
 
 #ifdef T_COSE_ENABLE_HASH_FAIL_TEST
@@ -133,7 +133,7 @@ int_fast32_t sign1_structure_decode_test(void);
  * It works only with the b_con hash bundled and not intended for
  * commercial use (though it is a perfectly fine implementation).
  */
-int_fast32_t short_circuit_hash_fail_test(void);
+int32_t short_circuit_hash_fail_test(void);
 
 #endif /* T_COSE_ENABLE_HASH_FAIL_TEST*/
 
@@ -142,20 +142,20 @@ int_fast32_t short_circuit_hash_fail_test(void);
 /*
  * Test tagging of COSE message
  */
-int_fast32_t tags_test(void);
+int32_t tags_test(void);
 
 
-int_fast32_t get_size_test(void);
+int32_t get_size_test(void);
 
 
 /*
  * Test the decoding of COSE messages that use indefinite length
  * maps and arrays instead of definite length.
  */
-int_fast32_t indef_array_and_map_test(void);
+int32_t indef_array_and_map_test(void);
 
 
-int_fast32_t crypto_context_test(void);
+int32_t crypto_context_test(void);
 
 
 #endif /* t_cose_test_h */

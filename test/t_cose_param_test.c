@@ -851,7 +851,7 @@ static struct param_test_combo param_combo_tests[] = {
 
 
 
-int_fast32_t
+int32_t
 param_test(void)
 {
     struct t_cose_parameter         param_array[20];
@@ -1067,7 +1067,7 @@ param_test(void)
 
 
 
-int_fast32_t
+int32_t
 common_params_test(void)
 {
     struct t_cose_parameter         param_array[20];
