@@ -683,3 +683,59 @@ t_cose_crypto_hkdf(const int32_t               cose_hash_algorithm_id,
     (void)UsefulBuf_Set(okm_buffer, 'x');
     return T_COSE_SUCCESS;
 }
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
+                                struct q_useful_buf_c x_coord,
+                                struct q_useful_buf_c y_coord,
+                                bool                  y_bool,
+                                struct t_cose_key    *pub_key)
+{
+    (void)cose_ec_curve_id;
+    (void)x_coord;
+    (void)y_coord;
+    (void)y_bool;
+    (void)pub_key;
+
+    return T_COSE_ERR_FAIL;
+}
+
+
+enum t_cose_err_t
+t_cose_crypto_export_ec2_key(struct t_cose_key     pub_key,
+                             int32_t               *curve,
+                             struct q_useful_buf    x_coord_buf,
+                             struct q_useful_buf_c *x_coord,
+                             struct q_useful_buf    y_coord_buf,
+                             struct q_useful_buf_c *y_coord,
+                             bool                  *y_bool)
+{
+    (void)curve;
+    (void)x_coord;
+    (void)x_coord_buf;
+    (void)y_coord_buf;
+    (void)y_coord;
+    (void)y_bool;
+    (void)pub_key;
+
+    return T_COSE_ERR_FAIL;
+}
+
+enum t_cose_err_t
+t_cose_crypto_ecdh(struct t_cose_key      private_key,
+                   struct t_cose_key      public_key,
+                   struct q_useful_buf    shared_key_buf,
+                   struct q_useful_buf_c *shared_key)
+{
+    (void)private_key;
+    (void)public_key;
+    (void)shared_key_buf;
+    (void)shared_key;
+
+    return T_COSE_ERR_FAIL;
+
+}

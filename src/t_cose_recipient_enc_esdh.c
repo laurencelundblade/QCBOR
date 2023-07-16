@@ -24,6 +24,49 @@
 #include "t_cose_util.h"
 #include "t_cose/t_cose_recipient_enc_keywrap.h"
 
+
+static enum t_cose_err_t
+ephem_special_encode_cb(const struct t_cose_parameter  *parameter,
+                        QCBOREncodeContext             *cbor_encoder)
+{
+    enum t_cose_err_t      result;
+    int32_t                cose_curve;
+    MakeUsefulBufOnStack(  x_coord_buf, 64); // TODO: buffer size
+    MakeUsefulBufOnStack(  y_coord_buf, 64); // TODO: buffer size
+    struct q_useful_buf_c  x_coord;
+    struct q_useful_buf_c  y_coord;
+    bool                   y_sign;
+
+    result = t_cose_crypto_export_ec2_key(parameter->value.special_encode.data.key,
+                                         &cose_curve,
+                                          x_coord_buf,
+                                         &x_coord,
+                                          y_coord_buf,
+                                         &y_coord,
+                                        &y_sign);
+    if(result != T_COSE_SUCCESS) {
+        return result;
+    }
+
+    /* Create ephemeral key parameter map */
+    QCBOREncode_OpenMapInMapN(cbor_encoder, T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY);
+
+    QCBOREncode_AddInt64ToMapN(cbor_encoder, T_COSE_KEY_COMMON_KTY, T_COSE_KEY_TYPE_EC2);
+    QCBOREncode_AddInt64ToMapN(cbor_encoder, T_COSE_KEY_PARAM_CRV, cose_curve);
+    QCBOREncode_AddBytesToMapN(cbor_encoder, T_COSE_KEY_PARAM_X_COORDINATE, x_coord);
+    if(q_useful_buf_c_is_null(y_coord)) {
+        QCBOREncode_AddBoolToMapN(cbor_encoder, T_COSE_KEY_PARAM_Y_COORDINATE, y_sign);
+    } else {
+        QCBOREncode_AddBytesToMapN(cbor_encoder, T_COSE_KEY_PARAM_Y_COORDINATE, y_coord);
+    }
+
+    QCBOREncode_CloseMap(cbor_encoder);
+
+    // TODO: should cbor encode error be checked here?
+    return T_COSE_SUCCESS;
+}
+
+
 /*
  * See documentation in t_cose_recipient_enc_esdh.h
  */
@@ -33,25 +76,18 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                                         const struct t_cose_alg_and_bits ce_alg,
                                         QCBOREncodeContext           *cbor_encoder)
 {
-    struct q_useful_buf_c   protected_params;
     uint8_t                 kek[T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)];
     size_t                  pkR_len = T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE;
     uint8_t                 pkR[T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};
-    size_t                  pkE_len = T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE;
-    uint8_t                 pkE[T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};
     enum t_cose_err_t       return_value;
     struct t_cose_key       ephemeral_key;
     MakeUsefulBufOnStack(   info_struct_buf, 200); // TODO: allow this to be
                                                 // supplied externally
-    MakeUsefulBufOnStack(   protected_hdr_buffer, 50);
-    QCBOREncodeContext      protected_hdr_ctx;
     struct q_useful_buf_c   protected_hdr;
-    UsefulBufC              protected_hdrC;
-
     struct q_useful_buf_c   info_struct;
-    QCBORError              ret = QCBOR_SUCCESS;
     size_t                  output_kek_len;
-    // TODO: use this? struct t_cose_parameter params[2];
+    struct t_cose_parameter params[3];
+    struct t_cose_parameter  *params2;
     struct q_useful_buf     encrypted_cek_destination;
     struct q_useful_buf_c   encrypted_cek_result;
     struct t_cose_key       kek_handle;
@@ -97,42 +133,34 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
         return(return_value);
     }
 
-    /* Export pkE */
-    return_value = t_cose_crypto_export_public_key(
-                         ephemeral_key,
-                         (struct q_useful_buf) {.ptr=pkE, .len=pkE_len},
-                         &pkE_len);
-
-    if (return_value != T_COSE_SUCCESS) {
-        return(return_value);
-    }
 
     /* Create COSE_recipient array */
-//    QCBOREncode_OpenArray(cbor_encoder);
+    QCBOREncode_OpenArray(cbor_encoder);
 
-    /* --- Make Info structure ---- */
+    /* ---- Make linked list of parameters and encode them ---- */
+    params[0]  = t_cose_param_make_alg_id(context->esdh_suite.ckd_id);
 
-    /* Create structure for protected header */
-    QCBOREncode_Init(&protected_hdr_ctx, protected_hdr_buffer);
-    QCBOREncode_BstrWrap(&protected_hdr_ctx);
-    QCBOREncode_OpenMap(&protected_hdr_ctx);
+    params[1].value_type = T_COSE_PARAMETER_TYPE_SPECIAL;
+    params[1].value.special_encode.data.key = ephemeral_key;
+    params[1].value.special_encode.encode_cb = ephem_special_encode_cb;
+    params[1].label = T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY;
+    params[0].next = &params[1];
 
-    QCBOREncode_AddInt64ToMapN(&protected_hdr_ctx,
-                               T_COSE_HEADER_PARAM_ALG,
-                               context->esdh_suite.ckd_id);
-
-    QCBOREncode_CloseMap(&protected_hdr_ctx);
-
-    QCBOREncode_CloseBstrWrap2(&protected_hdr_ctx,
-                               false,
-                               &protected_hdr);
-
-    ret = QCBOREncode_Finish(&protected_hdr_ctx, &protected_hdrC);
-
-    if (ret != QCBOR_SUCCESS) {
-        return(T_COSE_ERR_CBOR_NOT_WELL_FORMED);
+    if(!q_useful_buf_c_is_null(context->kid)) {
+        params[2] = t_cose_param_make_kid(context->kid);
+        params[1].next = &params[2];
     }
 
+    params2 = params;
+    t_cose_params_append(&params2, context->added_params);
+
+    return_value = t_cose_headers_encode(cbor_encoder,
+                                         &params[0],
+                                         &protected_hdr);
+
+
+
+    /* --- Make Info structure ---- */
 
     (void)ce_alg; // TODO: put this to use
     return_value = create_info_structure(context->info->enc_alg,
@@ -244,79 +272,6 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
         return(return_value);
     }
 
-    /* Add protected header */
-    QCBOREncode_BstrWrap(cbor_encoder);
-    QCBOREncode_OpenMap(cbor_encoder);
-
-    QCBOREncode_AddInt64ToMapN(cbor_encoder,
-                               T_COSE_HEADER_PARAM_ALG,
-                               context->esdh_suite.ckd_id);
-
-    QCBOREncode_CloseMap(cbor_encoder);
-
-    QCBOREncode_CloseBstrWrap2(cbor_encoder,
-                               false,
-                               &protected_params);
-
-    /* Add unprotected Header */
-    QCBOREncode_OpenMap(cbor_encoder);
-
-    /* Create ephemeral COSE_Key structure
-     *
-     * / ephemeral / -1:{
-     *        / kty / 1: int (2),
-     *        / crv / -1: int / tstr,
-     *        / x / -2: bstr,
-     *        / y / -3: bstr / bool
-     *   }
-     */
-
-    /* Create ephemeral key parameter map */
-    QCBOREncode_OpenMapInMapN(cbor_encoder, T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY);
-
-    /* -- add kty paramter */
-    QCBOREncode_AddInt64ToMapN(cbor_encoder,
-                               T_COSE_KEY_COMMON_KTY,
-                               T_COSE_KEY_TYPE_EC2);
-
-    /* -- add crv parameter */
-    QCBOREncode_AddInt64ToMapN(cbor_encoder,
-                               T_COSE_KEY_PARAM_CRV,
-                               context->esdh_suite.curve_id);
-
-    /* x_len is calculated as ( pkE_len - 1) / 2 */
-
-    /* -- add x parameter */
-    QCBOREncode_AddBytesToMapN(cbor_encoder,
-                               T_COSE_KEY_PARAM_X_COORDINATE,
-                               (struct q_useful_buf_c)
-                               {
-                                 pkE + 1,
-                                 (pkE_len - 1) / 2
-                               }
-                              );
-
-    /* -- add y parameter */
-    QCBOREncode_AddBytesToMapN(cbor_encoder,
-                               T_COSE_KEY_PARAM_Y_COORDINATE,
-                               (struct q_useful_buf_c)
-                               {
-                                 &pkE[(pkE_len - 1) / 2 + 1],
-                                 (pkE_len - 1) / 2
-                               }
-                              );
-
-    /* Close ephemeral parameter map */
-    QCBOREncode_CloseMap(cbor_encoder);
-
-    /* Add kid to unprotected map  */
-    QCBOREncode_AddBytesToMapN(cbor_encoder,
-                               T_COSE_HEADER_PARAM_KID,
-                               context->kid);
-
-    /* Close unprotected map */
-    QCBOREncode_CloseMap(cbor_encoder);
-
     /* Do the keywrap directly into the output buffer
      * t_cose_crypto_kw_wrap() will catch incorrect algorithm ID errors
      */
@@ -332,7 +287,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     QCBOREncode_CloseBytes(cbor_encoder, encrypted_cek_result.len);
 
     /* Close recipient array */
-//    QCBOREncode_CloseArray(cbor_encoder);
+    QCBOREncode_CloseArray(cbor_encoder);
 
     /* Free KEK */
     t_cose_crypto_free_symmetric_key(kek_handle);

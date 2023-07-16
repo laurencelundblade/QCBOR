@@ -26,8 +26,6 @@
 		E7088A192A50B88B00F1B2DE /* t_cose_recipient_enc_esdh.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A102A50B78100F1B2DE /* t_cose_recipient_enc_esdh.c */; };
 		E7088A1A2A50B88C00F1B2DE /* t_cose_recipient_enc_esdh.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A102A50B78100F1B2DE /* t_cose_recipient_enc_esdh.c */; };
 		E7088A1B2A50B88D00F1B2DE /* t_cose_recipient_enc_esdh.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A102A50B78100F1B2DE /* t_cose_recipient_enc_esdh.c */; };
-		E7088A1E2A50B89B00F1B2DE /* t_cose_signature_sign_restart.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A0E2A50B78100F1B2DE /* t_cose_signature_sign_restart.c */; };
-		E7088A1F2A50B89C00F1B2DE /* t_cose_signature_sign_restart.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A0E2A50B78100F1B2DE /* t_cose_signature_sign_restart.c */; };
 		E721CB9B2362AC2A00C7FD56 /* t_cose_sign_verify_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E721CB9423628D2600C7FD56 /* t_cose_sign_verify_test.c */; };
 		E72BBC722A3C08F40093455E /* t_cose_qcbor_gap.c in Sources */ = {isa = PBXBuildFile; fileRef = E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */; };
 		E72BBC732A3C08FE0093455E /* t_cose_qcbor_gap.c in Sources */ = {isa = PBXBuildFile; fileRef = E72BBC712A3C08F40093455E /* t_cose_qcbor_gap.c */; };
@@ -1138,7 +1136,6 @@
 				E7088A162A50B88400F1B2DE /* t_cose_recipient_dec_esdh.c in Sources */,
 				E7AE887C29A4C26F0093B326 /* examples_main.c in Sources */,
 				E7AE888129A4C3C20093B326 /* encryption_examples.c in Sources */,
-				E7088A1E2A50B89B00F1B2DE /* t_cose_signature_sign_restart.c in Sources */,
 				E7AE886929A402670093B326 /* init_keys_psa.c in Sources */,
 				E7AE887829A4C0250093B326 /* print_buf.c in Sources */,
 				E7F1736D29592A4600E5ADF3 /* t_cose_recipient_enc_keywrap.c in Sources */,
@@ -1168,7 +1165,6 @@
 				E7088A1B2A50B88D00F1B2DE /* t_cose_recipient_enc_esdh.c in Sources */,
 				E7FECC4C288754E400420F6F /* t_cose_sign_sign.c in Sources */,
 				E73BF70B23B07ACF00DF5C36 /* t_cose_openssl_crypto.c in Sources */,
-				E7088A1F2A50B89C00F1B2DE /* t_cose_signature_sign_restart.c in Sources */,
 				E78247F0297AAF2D008ED9C8 /* t_cose_encrypt_enc.c in Sources */,
 				E7F17331293B10EC00E5ADF3 /* t_cose_signature_verify_main.c in Sources */,
 				E7F1732E293B10E400E5ADF3 /* t_cose_signature_sign_main.c in Sources */,

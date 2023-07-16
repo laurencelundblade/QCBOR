@@ -1298,12 +1298,55 @@ t_cose_crypto_hkdf_expand(int32_t                cose_hash_algorithm_id,
 #endif /* WE_NEED_THESE */
 
 
+/* Import a COSE_Key in EC2 format into a key handle.
+ *
+ * \param[in] curve        EC curve from COSE curve registry.
+ * \param[in] x_coord      The X coordinate as a byte string.
+ * \param[in] y_coord      The Y coordinate or NULL.
+ * \param[in] y_bool       The Y sign bit when y_coord is NULL.
+ * \param[out] key_handle  The key handle.
+ *
+ * This doesn't do the actual CBOR decoding, just the import
+ * into a key handle for the crypto library.
+ *
+ * The coordinates are as specified in SECG 1.
+ *
+ * TODO: also support the private key.
+ */
 enum t_cose_err_t
 t_cose_crypto_import_ec2_pubkey(int32_t               curve,
                                 struct q_useful_buf_c x_coord,
                                 struct q_useful_buf_c y_coord,
                                 bool                  y_bool,
-                                struct t_cose_key    *pub_key);
+                                struct t_cose_key    *key_handle);
+
+
+/* Export a key handle into COSE_Key in EC2 format.
+ *
+ * \param[in] key_handle   The key handle.
+ * \param[out] curve        EC curve from COSE curve registry.
+ * \param[out] x_coord_buf  Buffer in which to put X coordinate.
+ * \param[out] x_coord      The X coordinate as a byte string.
+ * \param[out] y_coord_buf  Buffer in which to put Y coordinate.
+ * \param[out] y_coord      The Y coordinate or NULL.
+ * \param[out] y_bool       The Y sign bit when y_coord is NULL.
+ *
+ * This doesn't do the actual CBOR decoding, just the export
+ * from a key handle for the crypto library.
+ *
+ * The coordinates are as specified in SECG 1.
+ *
+ * TODO: also support the private key.
+ * TODO: a way to turn point compression on / off?
+ */
+enum t_cose_err_t
+t_cose_crypto_export_ec2_key(struct t_cose_key      key_handle,
+                             int32_t               *curve,
+                             struct q_useful_buf    x_coord_buf,
+                             struct q_useful_buf_c *x_coord,
+                             struct q_useful_buf    y_coord_buf,
+                             struct q_useful_buf_c *y_coord,
+                             bool                  *y_bool);
 
 #ifdef __cplusplus
 }

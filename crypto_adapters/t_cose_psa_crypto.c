@@ -1568,3 +1568,86 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
 
     return T_COSE_SUCCESS;
 }
+
+
+enum t_cose_err_t
+t_cose_crypto_export_ec2_key(struct t_cose_key     pub_key,
+                             int32_t               *curve,
+                             struct q_useful_buf    x_coord_buf,
+                             struct q_useful_buf_c *x_coord,
+                             struct q_useful_buf    y_coord_buf,
+                             struct q_useful_buf_c *y_coord,
+                             bool                  *y_bool)
+{
+    psa_status_t          psa_status;
+    uint8_t               export_buf[T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE];
+    size_t                export_len;
+    struct q_useful_buf_c export;
+    size_t                len;
+    uint8_t               first_byte;
+
+    /* Export public key */
+    psa_status = psa_export_public_key((mbedtls_svc_key_id_t)pub_key.key.handle, /* in: Key handle     */
+                                        export_buf,     /* in: PK buffer      */
+                                       sizeof(export_buf),     /* in: PK buffer size */
+                                       &export_len);           /* out: Result length */
+    if(psa_status != PSA_SUCCESS) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+    first_byte = export_buf[0];
+    export = (struct q_useful_buf_c){export_buf+1, export_len-1};
+
+    /* export_buf is one first byte, the x-coord and maybe the y-coord
+     * per SEC1.
+     */
+
+    psa_key_attributes_t attributes;
+    attributes = psa_key_attributes_init();
+    psa_status = psa_get_key_attributes((mbedtls_svc_key_id_t)pub_key.key.handle,
+                                        &attributes);
+    if(PSA_KEY_TYPE_ECC_GET_FAMILY(psa_get_key_type(&attributes)) != PSA_ECC_FAMILY_SECP_R1) {
+        return T_COSE_ERR_FAIL;
+    }
+
+    switch(psa_get_key_bits(&attributes)) {
+    case 256:
+        *curve = T_COSE_ELLIPTIC_CURVE_P_256;
+        break;
+    case 384:
+        *curve = T_COSE_ELLIPTIC_CURVE_P_384;
+        break;
+    case 521:
+        *curve = T_COSE_ELLIPTIC_CURVE_P_521;
+        break;
+    default:
+        return T_COSE_ERR_FAIL;
+    }
+
+
+    switch(first_byte) {
+        case 0x04:
+            len = (export_len - 1 ) / 2;
+            *y_coord = UsefulBuf_Copy(y_coord_buf, UsefulBuf_Tail(export, len));
+            break;
+
+        case 0x02:
+            len = export_len - 1;
+            *y_coord = NULL_Q_USEFUL_BUF_C;
+            *y_bool = true;
+            break;
+
+        case 0x03:
+            len = export_len - 1;
+            *y_coord = NULL_Q_USEFUL_BUF_C;
+            *y_bool = false;
+            break;
+
+        default:
+            return T_COSE_ERR_FAIL;
+    }
+
+    *x_coord = UsefulBuf_Copy(x_coord_buf, UsefulBuf_Head(export, len));
+    // TODO: errors when buffer is too small
+
+    return T_COSE_SUCCESS;
+}

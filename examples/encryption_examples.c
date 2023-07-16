@@ -277,6 +277,14 @@ esdh_example(void)
     struct t_cose_info_t info;
     struct q_useful_buf_c            cose_encrypted_message;
     Q_USEFUL_BUF_MAKE_STACK_UB  (    cose_encrypt_message_buffer, 400);
+    struct t_cose_encrypt_dec_ctx    dec_ctx;
+    struct t_cose_recipient_dec_esdh dec_recipient;
+
+    Q_USEFUL_BUF_MAKE_STACK_UB  (    decrypted_buffer, 400);
+    struct q_useful_buf_c            decrypted_payload;
+    struct t_cose_parameter         *params;
+
+
 
     printf("\n---- START EXAMPLE ESDH ----\n");
     printf("Create COSE_Encrypt with attached payload using ESDH\n");
@@ -335,17 +343,30 @@ esdh_example(void)
                                  cose_encrypt_message_buffer, /* in: buffer for COSE_Encrypt */
                                  &cose_encrypted_message); /* out: COSE_Encrypt */
 
-     if (result != T_COSE_SUCCESS) {
-         printf("error encrypting (%d)\n", result);
-         goto Done;
-     }
+    if (result != T_COSE_SUCCESS) {
+        printf("error encrypting (%d)\n", result);
+        goto Done;
+    }
 
-     print_useful_buf("\nCOSE_Encrypt: ", cose_encrypted_message);
+    print_useful_buf("\nCOSE_Encrypt: ", cose_encrypted_message);
 
-     /* TBD: Decryption goes in here.
-      * Assume everything worked fine.
-      */
-     result = 0;
+
+    t_cose_encrypt_dec_init(&dec_ctx, 0);
+
+    t_cose_recipient_dec_esdh_init(&dec_recipient);
+
+    t_cose_recipient_dec_esdh_set_key(&dec_recipient, skR, NULL_Q_USEFUL_BUF_C);
+
+    t_cose_encrypt_dec_add_recipient(&dec_ctx,
+                                     (struct t_cose_recipient_dec *)&dec_recipient);
+
+    result = t_cose_encrypt_dec(&dec_ctx,
+                                cose_encrypted_message,
+                                NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                decrypted_buffer,
+                                &decrypted_payload,
+                                &params);
+
 
 Done:
      printf("---- %s EXAMPLE ESDH (%d) ----\n\n",

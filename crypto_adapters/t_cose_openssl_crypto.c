@@ -2405,3 +2405,23 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
 
     return T_COSE_SUCCESS;
 }
+
+enum t_cose_err_t
+t_cose_crypto_export_ec2_key(struct t_cose_key     pub_key,
+                             int32_t               *curve,
+                             struct q_useful_buf    x_coord_buf,
+                             struct q_useful_buf_c *x_coord,
+                             struct q_useful_buf    y_coord_buf,
+                             struct q_useful_buf_c *y_coord,
+                             bool                  *y_bool)
+{
+    (void)curve;
+    (void)x_coord;
+    (void)x_coord_buf;
+    (void)y_coord_buf;
+    (void)y_coord;
+    (void)y_bool;
+    (void)pub_key;
+
+    return T_COSE_ERR_FAIL;
+}
