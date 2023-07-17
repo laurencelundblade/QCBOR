@@ -1416,6 +1416,8 @@ t_cose_crypto_ecdh(struct t_cose_key      private_key,
         return T_COSE_ERR_FAIL; // TODO: error code
     }
 
+    shared_key->ptr = shared_key_buf.ptr;
+
     return T_COSE_SUCCESS;
 }
 

@@ -127,7 +127,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     MakeUsefulBufOnStack(  kek_buffer ,T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH));
 
     MakeUsefulBufOnStack(  derived_secret_buf ,10+T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)); // TODO: size this correctly
-    MakeUsefulBufOnStack(info_buf, 50); // TODO: allow this to be
+    MakeUsefulBufOnStack(info_buf, 200); // TODO: allow this to be
                                               // supplied externally
 
     me = (struct t_cose_recipient_dec_esdh *)me_x;
@@ -232,10 +232,6 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     } else {
         salt = NULL_Q_USEFUL_BUF_C;
     }
-
-    derived_key.ptr = "xxx"; // Fake it to get a full run through even though crypto is right yet
-    derived_key.len = 3;
-
     cose_result = t_cose_crypto_hkdf(kdf_hash_alg,
                                      salt, /* in: salt */
                                      derived_key, /* in: ikm */
@@ -263,11 +259,6 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
                         cek_encrypted, /* in: encrypted CEK */
                         cek_buffer, /* in: buffer for CEK */
                         cek); /* out: the CEK*/
-
-    cek->ptr = "xxxxxxxxxxxxxxxx"; // Fake it to get a full run through even though crypto is right yet
-    cek->len = 16;
-    cose_result = 0;
-
 
 Done:
     return cose_result;

@@ -1348,6 +1348,16 @@ t_cose_crypto_export_ec2_key(struct t_cose_key      key_handle,
                              struct q_useful_buf_c *y_coord,
                              bool                  *y_bool);
 
+
+enum t_cose_err_t
+t_cose_crypto_export_ec2_key(struct t_cose_key     pub_key,
+                             int32_t               *curve,
+                             struct q_useful_buf    x_coord_buf,
+                             struct q_useful_buf_c *x_coord,
+                             struct q_useful_buf    y_coord_buf,
+                             struct q_useful_buf_c *y_coord,
+                             bool                  *y_bool);
+
 #ifdef __cplusplus
 }
 #endif

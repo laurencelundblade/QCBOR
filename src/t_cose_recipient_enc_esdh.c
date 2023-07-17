@@ -77,8 +77,6 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                                         QCBOREncodeContext           *cbor_encoder)
 {
     uint8_t                 kek[T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)];
-    size_t                  pkR_len = T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE;
-    uint8_t                 pkR[T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE] = {0};
     enum t_cose_err_t       return_value;
     struct t_cose_key       ephemeral_key;
     MakeUsefulBufOnStack(   info_struct_buf, 200); // TODO: allow this to be
@@ -94,9 +92,10 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     size_t                  target_kek_len;
     int32_t                 hash_alg;
     int32_t                 kw_alg;
-    size_t                  ecdhe_derived_key_len;
     struct t_cose_recipient_enc_esdh *context;
-    Q_USEFUL_BUF_MAKE_STACK_UB(derived_key, T_COSE_RAW_KEY_AGREEMENT_OUTPUT_MAX_SIZE );
+    Q_USEFUL_BUF_MAKE_STACK_UB(derived_key_buf, T_COSE_RAW_KEY_AGREEMENT_OUTPUT_MAX_SIZE );
+    struct q_useful_buf_c   derived_key;
+
 
     context = (struct t_cose_recipient_enc_esdh *)me_x;
 
@@ -123,45 +122,40 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
         return(return_value);
     }
 
-    /* Export pkR */
-    return_value = t_cose_crypto_export_public_key(
-                         context->pkR,
-                         (struct q_useful_buf) {.ptr=pkR, .len=pkR_len},
-                         &pkR_len);
-
-    if (return_value != T_COSE_SUCCESS) {
-        return(return_value);
-    }
-
-
     /* Create COSE_recipient array */
     QCBOREncode_OpenArray(cbor_encoder);
 
     /* ---- Make linked list of parameters and encode them ---- */
+    /* Alg ID param */
     params[0]  = t_cose_param_make_alg_id(context->esdh_suite.ckd_id);
 
-    params[1].value_type = T_COSE_PARAMETER_TYPE_SPECIAL;
-    params[1].value.special_encode.data.key = ephemeral_key;
+    /* Ephemeral public key param */
+    params[1].value_type                     = T_COSE_PARAMETER_TYPE_SPECIAL;
+    params[1].value.special_encode.data.key  = ephemeral_key;
     params[1].value.special_encode.encode_cb = ephem_special_encode_cb;
-    params[1].label = T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY;
+    params[1].critical                       = false;
+    params[1].in_protected                   = false;
+    params[1].label                          = T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY;
     params[0].next = &params[1];
 
+    /* Optional kid param */
     if(!q_useful_buf_c_is_null(context->kid)) {
         params[2] = t_cose_param_make_kid(context->kid);
         params[1].next = &params[2];
     }
 
+    /* Custom params from caller */
     params2 = params;
     t_cose_params_append(&params2, context->added_params);
 
     return_value = t_cose_headers_encode(cbor_encoder,
-                                         &params[0],
+                                         params2,
                                          &protected_hdr);
 
 
+#if 0
 
     /* --- Make Info structure ---- */
-
     (void)ce_alg; // TODO: put this to use
     return_value = create_info_structure(context->info->enc_alg,
                                          context->info->sender_identity_type_id,
@@ -180,15 +174,20 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     if (return_value != T_COSE_SUCCESS) {
         return(return_value);
     }
+#else
+    // Temp until info struct is figured out
+    info_struct = UsefulBuf_Set(info_struct_buf, 'x');
+#endif
+
 
     /* --- Generation of ECDHE derived key with HKDF applied afterwards ---- */
-    return_value = t_cose_crypto_key_agreement(
-                        context->esdh_suite.ckd_id, // Content Key Distribution Method
-                        ephemeral_key,              // Private Key
-                        context->pkR,               // Public Key
-                        derived_key,                // Derived Key
-                        &ecdhe_derived_key_len);
 
+    // TODO: reorganize so crypto suite check is before this
+
+    return_value = t_cose_crypto_ecdh(ephemeral_key,   /* in: ephemeral public key */
+                                      context->pkR,    /* in: private key */
+                                      derived_key_buf, /* in: buffer for derived key */
+                                      &derived_key);   /* out: derived key */
     if(return_value) {
         return T_COSE_ERR_KEY_AGREEMENT_FAIL;
     }
@@ -221,11 +220,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     /* HKDF-based Key Derivation */
     return_value = t_cose_crypto_hkdf(hash_alg,       // Hash Algorithm
                              NULL_Q_USEFUL_BUF_C,     // Empty Salt
-                             (struct q_useful_buf_c)  // IKM
-                                {
-                                    derived_key.ptr,
-                                    ecdhe_derived_key_len
-                                },
+                             derived_key, /* in: input key material (ikm) */
                              info_struct,             // Info Context Structure
                              (struct q_useful_buf)  // OKM
                                 {
