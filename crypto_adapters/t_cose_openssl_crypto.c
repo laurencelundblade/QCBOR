@@ -1430,9 +1430,64 @@ t_cose_crypto_export_public_key(struct t_cose_key      key,
  */
 enum t_cose_err_t
 t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
-                           int32_t               cose_algorithm_id)
+                           int32_t               cose_ec_curve_id)
 {
-    /* TBD: This is a dummy function */
+    EC_KEY   *ec_key;
+    int       ossl_result;
+    int       nid;
+    size_t    key_bitlen;
+    EC_GROUP *ec_group;
+    EVP_PKEY *evp_pkey;
+
+    switch (cose_ec_curve_id) {
+        case T_COSE_ELLIPTIC_CURVE_P_256:
+             nid        = NID_X9_62_prime256v1;
+             key_bitlen = 256;
+             break;
+        case T_COSE_ELLIPTIC_CURVE_P_384:
+             nid        = NID_secp384r1;
+             key_bitlen   = 384;
+             break;
+        case T_COSE_ELLIPTIC_CURVE_P_521:
+             nid  = NID_secp521r1;
+             key_bitlen   = 521;
+             break;
+        default:
+             return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
+    }
+
+    ec_key = EC_KEY_new();
+    if(ec_key == NULL) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    ec_group = EC_GROUP_new_by_curve_name(nid);
+    if(ec_group == NULL) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    ossl_result = EC_KEY_set_group(ec_key, ec_group);
+    if(ossl_result != 1) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    ossl_result = EC_KEY_generate_key(ec_key);
+    if(ossl_result != 1) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    evp_pkey = EVP_PKEY_new();
+    if(evp_pkey == NULL) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    ossl_result = EVP_PKEY_set1_EC_KEY(evp_pkey, ec_key);
+    if(ossl_result != 1) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    ephemeral_key->key.ptr = evp_pkey;
+
     return T_COSE_SUCCESS;
 }
 
@@ -2278,43 +2333,41 @@ Done2:
 
 
 
+
 /*
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
-                                struct q_useful_buf_c x_coord,
-                                struct q_useful_buf_c y_coord,
-                                bool                  y_bool,
-                                struct t_cose_key    *pub_key)
+t_cose_crypto_import_ec2_pubkey(const int32_t               cose_ec_curve_id,
+                                const struct q_useful_buf_c x_coord,
+                                const struct q_useful_buf_c y_coord,
+                                const bool                  y_bool,
+                                struct t_cose_key          *key_handle)
 {
-    int                    nid;
-    int                    ossl_result;
-    uint32_t               key_bitlen;
-    struct q_useful_buf_c  import_octets;
-    EC_POINT              *ec_point;
-    EC_KEY                *ec_key;
-    EC_GROUP              *ec_group;
-    uint8_t                first_byte;
-    EVP_PKEY              *evp_pkey;
-    UsefulOutBuf_MakeOnStack (import_form, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE + 5);
+    int                       ossl_result;
+    int                       nid;
+    EC_POINT                 *ec_point;
+    EC_KEY                   *ec_key;
+    EC_GROUP                 *ec_group;
+    EVP_PKEY                 *evp_pkey;
+    uint8_t                   first_byte;
+    UsefulOutBuf_MakeOnStack( import_buf, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE);
+    struct q_useful_buf_c     import_octets;
+
 
     switch (cose_ec_curve_id) {
-    case T_COSE_ELLIPTIC_CURVE_P_256:
-         nid  = NID_X9_62_prime256v1;
-         key_bitlen   = 256;
-         break;
-    case T_COSE_ELLIPTIC_CURVE_P_384:
-         nid  = NID_secp384r1;
-         key_bitlen   = 384;
-         break;
-    case T_COSE_ELLIPTIC_CURVE_P_521:
-         nid  = NID_secp521r1;
-         key_bitlen   = 521;
-         break;
-
-    default:
-         return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
+        case T_COSE_ELLIPTIC_CURVE_P_256:
+             nid  = NID_X9_62_prime256v1;
+             break;
+        case T_COSE_ELLIPTIC_CURVE_P_384:
+             nid  = NID_secp384r1;
+             break;
+        case T_COSE_ELLIPTIC_CURVE_P_521:
+             nid  = NID_secp521r1;
+             break;
+        /* The only other registered for EC2 is secp256k1 */
+        default:
+             return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
     }
 
 
@@ -2331,7 +2384,7 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
      *
      * This does implement point compression. The patents for it have
      * run out so it's OK to implement. Point compression is commented
-     * out in Jim's implementation, presumably because of the paten
+     * out in Jim's implementation, presumably because of the patent
      * issue.
      *
      * A simple English description of the format is this. The first
@@ -2347,35 +2400,36 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
         /* This is point compression */
         first_byte = y_bool ? 0x02 : 0x03;
     } else {
+        /* Uncompressed */
         first_byte = 0x04;
     }
-    UsefulOutBuf_AppendByte(&import_form, first_byte);
-    UsefulOutBuf_AppendUsefulBuf(&import_form, x_coord);
+    UsefulOutBuf_AppendByte(&import_buf, first_byte);
+    UsefulOutBuf_AppendUsefulBuf(&import_buf, x_coord);
     if(first_byte == 0x04) {
-        UsefulOutBuf_AppendUsefulBuf(&import_form, y_coord);
+        UsefulOutBuf_AppendUsefulBuf(&import_buf, y_coord);
     }
-    import_octets = UsefulOutBuf_OutUBuf(&import_form);
+    import_octets = UsefulOutBuf_OutUBuf(&import_buf);
 
 
     ec_key = EC_KEY_new();
     if(ec_key == NULL) {
-        return 99;
+        return T_COSE_ERR_FAIL; // TODO: error code
     }
 
     ec_group = EC_GROUP_new_by_curve_name(nid);
     if(ec_group == NULL) {
-        return 99;
+        return T_COSE_ERR_FAIL; // TODO: error code
     }
 
     // TODO: this and related are to be depreacted, so they say...
     ossl_result = EC_KEY_set_group(ec_key, ec_group);
     if(ossl_result != 1) {
-        return 99;
+        return T_COSE_ERR_FAIL; // TODO: error code
     }
 
     ec_point = EC_POINT_new(ec_group);
     if(ec_point == NULL) {
-        return 99;
+        return T_COSE_ERR_FAIL; // TODO: error code
     }
 
     ossl_result = EC_POINT_oct2point(ec_group,
@@ -2383,45 +2437,128 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
                                      import_octets.ptr, import_octets.len,
                                      NULL);
     if(ossl_result != 1) {
-         return 99;
+         return T_COSE_ERR_FAIL; // TODO: error code
      }
 
     ossl_result = EC_KEY_set_public_key(ec_key, ec_point);
     if(ossl_result != 1) {
-        return 99;
+        return T_COSE_ERR_FAIL; // TODO: error code
     }
 
     evp_pkey = EVP_PKEY_new();
     if(evp_pkey == NULL) {
-         return 99;
-     }
+         return T_COSE_ERR_FAIL; // TODO: error code
+    }
 
     ossl_result = EVP_PKEY_set1_EC_KEY(evp_pkey, ec_key);
     if(ossl_result != 1) {
-        return 99;
+        return T_COSE_ERR_FAIL; // TODO: error code
     }
 
-    pub_key->key.ptr = evp_pkey;
+    key_handle->key.ptr = evp_pkey;
 
     return T_COSE_SUCCESS;
 }
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
 enum t_cose_err_t
-t_cose_crypto_export_ec2_key(struct t_cose_key     pub_key,
-                             int32_t               *curve,
+t_cose_crypto_export_ec2_key(struct t_cose_key      key_handle,
+                             int32_t               *cose_ec_curve_id,
                              struct q_useful_buf    x_coord_buf,
                              struct q_useful_buf_c *x_coord,
                              struct q_useful_buf    y_coord_buf,
                              struct q_useful_buf_c *y_coord,
                              bool                  *y_bool)
 {
-    (void)curve;
-    (void)x_coord;
-    (void)x_coord_buf;
-    (void)y_coord_buf;
-    (void)y_coord;
-    (void)y_bool;
-    (void)pub_key;
+    EC_KEY               *ec_key;
+    const EC_POINT       *ec_point;
+    const EC_GROUP       *ec_group;
+    uint8_t               export_buf[T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE];
+    size_t                export_len;
+    struct q_useful_buf_c export;
+    uint8_t               first_byte;
+    size_t                len;
 
-    return T_COSE_ERR_FAIL;
+    ec_key = EVP_PKEY_get1_EC_KEY((EVP_PKEY *)key_handle.key.ptr);
+    if(ec_key == NULL) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    ec_point = EC_KEY_get0_public_key(ec_key);
+    if(ec_point == NULL) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    ec_group = EC_KEY_get0_group(ec_key);
+    if(ec_group == NULL) {
+        return T_COSE_ERR_FAIL;
+    }
+
+    /* TODO: add support for compressed? */
+    export_len = EC_POINT_point2oct(ec_group, /* in: group */
+                                    ec_point, /* in: point */
+                                    POINT_CONVERSION_UNCOMPRESSED, /* in: point conversion form */
+                                    export_buf, /* in/out: buffer to output to */
+                                    sizeof(export_buf), /* in: */
+                                    NULL /* in: BN_CTX */
+                                   );
+
+    first_byte = export_buf[0];
+    export = (struct q_useful_buf_c){export_buf+1, export_len-1};
+
+    /* export_buf is one first byte, the x-coord and maybe the y-coord
+     * per SEC1.
+     */
+
+    switch(EC_GROUP_get_curve_name(ec_group)) {
+        case NID_X9_62_prime256v1:
+            *cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
+            break;
+        case NID_secp384r1:
+            *cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_384;
+            break;
+        case NID_secp521r1:
+            *cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_521;
+            break;
+        /* The only other registered for EC2 is secp256k1 */
+        default:
+            return T_COSE_ERR_FAIL;
+    }
+
+    switch(first_byte) {
+        case 0x04:
+            /* uncompressed */
+            len      = (export_len - 1 ) / 2;
+            *y_coord = UsefulBuf_Copy(y_coord_buf, UsefulBuf_Tail(export, len));
+            if(q_useful_buf_c_is_null(*y_coord)) {
+                return T_COSE_ERR_FAIL;
+            }
+            break;
+
+        case 0x02:
+            /* compressed */
+            len      = export_len - 1;
+            *y_coord = NULL_Q_USEFUL_BUF_C;
+            *y_bool  = true;
+            break;
+
+        case 0x03:
+            /* compressed */
+            len      = export_len - 1;
+            *y_coord = NULL_Q_USEFUL_BUF_C;
+            *y_bool  = false;
+            break;
+
+        default:
+            return T_COSE_ERR_FAIL;
+    }
+    *x_coord = UsefulBuf_Copy(x_coord_buf, UsefulBuf_Head(export, len));
+    if(q_useful_buf_c_is_null(*x_coord)) {
+        return T_COSE_ERR_FAIL;
+    }
+
+    return T_COSE_SUCCESS;
 }

@@ -31,8 +31,8 @@ ephem_special_encode_cb(const struct t_cose_parameter  *parameter,
 {
     enum t_cose_err_t      result;
     int32_t                cose_curve;
-    MakeUsefulBufOnStack(  x_coord_buf, 64); // TODO: buffer size
-    MakeUsefulBufOnStack(  y_coord_buf, 64); // TODO: buffer size
+    MakeUsefulBufOnStack(  x_coord_buf, T_COSE_BITS_TO_BYTES(T_COSE_ECC_MAX_CURVE_BITS));
+    MakeUsefulBufOnStack(  y_coord_buf, T_COSE_BITS_TO_BYTES(T_COSE_ECC_MAX_CURVE_BITS));
     struct q_useful_buf_c  x_coord;
     struct q_useful_buf_c  y_coord;
     bool                   y_sign;

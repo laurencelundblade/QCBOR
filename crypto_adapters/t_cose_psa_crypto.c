@@ -1480,7 +1480,7 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
                                 struct q_useful_buf_c x_coord,
                                 struct q_useful_buf_c y_coord,
                                 bool                  y_bool,
-                                struct t_cose_key    *pub_key)
+                                struct t_cose_key    *key_handle)
 {
     psa_status_t          status;
     psa_key_attributes_t  attributes;
@@ -1562,7 +1562,7 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
 
     status = psa_import_key(&attributes,
                             import.ptr, import.len,
-                            (mbedtls_svc_key_id_t *)(&pub_key->key.handle));
+                            (mbedtls_svc_key_id_t *)(&key_handle->key.handle));
 
     if (status != PSA_SUCCESS) {
         return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
@@ -1573,7 +1573,7 @@ t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
 
 
 enum t_cose_err_t
-t_cose_crypto_export_ec2_key(struct t_cose_key     pub_key,
+t_cose_crypto_export_ec2_key(struct t_cose_key      key_handle,
                              int32_t               *curve,
                              struct q_useful_buf    x_coord_buf,
                              struct q_useful_buf_c *x_coord,
@@ -1587,11 +1587,12 @@ t_cose_crypto_export_ec2_key(struct t_cose_key     pub_key,
     struct q_useful_buf_c export;
     size_t                len;
     uint8_t               first_byte;
+    psa_key_attributes_t  attributes;
 
     /* Export public key */
-    psa_status = psa_export_public_key((mbedtls_svc_key_id_t)pub_key.key.handle, /* in: Key handle     */
+    psa_status = psa_export_public_key((mbedtls_svc_key_id_t)key_handle.key.handle, /* in: Key handle     */
                                         export_buf,     /* in: PK buffer      */
-                                       sizeof(export_buf),     /* in: PK buffer size */
+                                        sizeof(export_buf),     /* in: PK buffer size */
                                        &export_len);           /* out: Result length */
     if(psa_status != PSA_SUCCESS) {
         return T_COSE_ERR_FAIL; // TODO: error code
@@ -1603,9 +1604,8 @@ t_cose_crypto_export_ec2_key(struct t_cose_key     pub_key,
      * per SEC1.
      */
 
-    psa_key_attributes_t attributes;
     attributes = psa_key_attributes_init();
-    psa_status = psa_get_key_attributes((mbedtls_svc_key_id_t)pub_key.key.handle,
+    psa_status = psa_get_key_attributes((mbedtls_svc_key_id_t)key_handle.key.handle,
                                         &attributes);
     if(PSA_KEY_TYPE_ECC_GET_FAMILY(psa_get_key_type(&attributes)) != PSA_ECC_FAMILY_SECP_R1) {
         return T_COSE_ERR_FAIL;

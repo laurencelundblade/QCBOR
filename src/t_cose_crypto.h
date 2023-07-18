@@ -107,7 +107,7 @@ extern "C" {
 /** Constant for maximum ECC curve size in bits */
 #define T_COSE_ECC_MAX_CURVE_BITS 521
 
-
+/** Export of EC key in SEC1 uncompressed format */
 #define T_COSE_EXPORT_ECC_PUBLIC_KEY_MAX_SIZE(key_bits)                         \
     (2 * T_COSE_BITS_TO_BYTES(key_bits) + 1)
 
@@ -1314,7 +1314,7 @@ t_cose_crypto_hkdf_expand(int32_t                cose_hash_algorithm_id,
  * TODO: also support the private key.
  */
 enum t_cose_err_t
-t_cose_crypto_import_ec2_pubkey(int32_t               curve,
+t_cose_crypto_import_ec2_pubkey(int32_t               cose_ec_curve_id,
                                 struct q_useful_buf_c x_coord,
                                 struct q_useful_buf_c y_coord,
                                 bool                  y_bool,
@@ -1341,17 +1341,7 @@ t_cose_crypto_import_ec2_pubkey(int32_t               curve,
  */
 enum t_cose_err_t
 t_cose_crypto_export_ec2_key(struct t_cose_key      key_handle,
-                             int32_t               *curve,
-                             struct q_useful_buf    x_coord_buf,
-                             struct q_useful_buf_c *x_coord,
-                             struct q_useful_buf    y_coord_buf,
-                             struct q_useful_buf_c *y_coord,
-                             bool                  *y_bool);
-
-
-enum t_cose_err_t
-t_cose_crypto_export_ec2_key(struct t_cose_key     pub_key,
-                             int32_t               *curve,
+                             int32_t               *cose_ec_curve_id,
                              struct q_useful_buf    x_coord_buf,
                              struct q_useful_buf_c *x_coord,
                              struct q_useful_buf    y_coord_buf,

@@ -27,10 +27,6 @@ decode_ephemeral_key(void                    *cb_context,
                             QCBORDecodeContext      *cbor_decoder,
                             struct t_cose_parameter *parameter)
 {
-    (void) cb_context; /* Not used because key goes back into parameter */
-    if(parameter->label != T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY) {
-        return 0;
-    }
     struct q_useful_buf_c  x;
     struct q_useful_buf_c  y_string;
     bool                   y_bool;
@@ -39,7 +35,11 @@ decode_ephemeral_key(void                    *cb_context,
     enum t_cose_err_t      result;
     QCBORItem              y;
 
+    if(parameter->label != T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY) {
+        return 0;
+    }
     // TODO: this will have to cascade to an external supplied special header decoder
+    (void) cb_context; /* Not used because key goes back into parameter */
     // TODO: this is pretty generic and can probably move to t_cose_key.c
 
     QCBORDecode_EnterMap(cbor_decoder, NULL);
@@ -53,6 +53,8 @@ decode_ephemeral_key(void                    *cb_context,
     if(QCBORDecode_GetError(cbor_decoder)) {
         return T_COSE_ERR_FAIL; // TODO: is this right?
     }
+
+    // TODO: check kty
 
     /* If y is a bool, then point compression is used and y is a boolean
      * indicating the sign. If not then it is a byte string with the y.
@@ -75,7 +77,7 @@ decode_ephemeral_key(void                    *cb_context,
             break;
 
         default:
-            return 77;
+            return 77; // TODO: error code
     }
 
     /* Turn it into a t_cose_key that is imported into the library */
