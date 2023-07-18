@@ -127,7 +127,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     MakeUsefulBufOnStack(  kek_buffer ,T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH));
 
     MakeUsefulBufOnStack(  derived_secret_buf ,10+T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)); // TODO: size this correctly
-    MakeUsefulBufOnStack(info_buf, 200); // TODO: allow this to be
+    MakeUsefulBufOnStack(info_buf, T_COSE_DEC_COSE_KDF_CONTEXT); // TODO: allow this to be
                                               // supplied externally
 
     me = (struct t_cose_recipient_dec_esdh *)me_x;

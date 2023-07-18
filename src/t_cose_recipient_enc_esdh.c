@@ -79,7 +79,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     uint8_t                 kek[T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)];
     enum t_cose_err_t       return_value;
     struct t_cose_key       ephemeral_key;
-    MakeUsefulBufOnStack(   info_struct_buf, 200); // TODO: allow this to be
+    MakeUsefulBufOnStack(   info_struct_buf, T_COSE_ENC_COSE_KDF_CONTEXT); // TODO: allow this to be
                                                 // supplied externally
     struct q_useful_buf_c   protected_hdr;
     struct q_useful_buf_c   info_struct;
@@ -177,6 +177,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 #else
     // Temp until info struct is figured out
     info_struct = UsefulBuf_Set(info_struct_buf, 'x');
+    (void)ce_alg;
 #endif
 
 
