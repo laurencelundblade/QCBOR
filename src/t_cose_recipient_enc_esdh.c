@@ -99,7 +99,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
     context = (struct t_cose_recipient_enc_esdh *)me_x;
 
-    switch (context->esdh_suite.ckd_id)
+    switch (context->cose_algorithm_id)
     {
     case T_COSE_ALGORITHM_ECDH_ES_A128KW:
         target_kek_len = 16;
@@ -116,8 +116,8 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     (void)target_kek_len; // Will use this at some point
 
     /* Create ephemeral key */
-    return_value = t_cose_crypto_generate_key(&ephemeral_key,
-                                              context->esdh_suite.curve_id);
+    return_value = t_cose_crypto_generate_ec_key(context->cose_ec_curve_id,
+                                                &ephemeral_key);
     if (return_value != T_COSE_SUCCESS) {
         return(return_value);
     }
@@ -127,7 +127,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
     /* ---- Make linked list of parameters and encode them ---- */
     /* Alg ID param */
-    params[0]  = t_cose_param_make_alg_id(context->esdh_suite.ckd_id);
+    params[0]  = t_cose_param_make_alg_id(context->cose_algorithm_id);
 
     /* Ephemeral public key param */
     params[1].value_type                     = T_COSE_PARAMETER_TYPE_SPECIAL;
@@ -201,7 +201,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
      * with the HKDF-based key derivation function.
      */
 
-    switch(context->esdh_suite.ckd_id) {
+    switch(context->cose_algorithm_id) {
     case T_COSE_ALGORITHM_ECDH_ES_A128KW:
         output_kek_len = 128/8;
         hash_alg = T_COSE_ALGORITHM_SHA_256;
@@ -240,7 +240,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
         return(return_value);
     }
 
-    switch(context->esdh_suite.ckd_id)
+    switch(context->cose_algorithm_id)
     {
     case T_COSE_ALGORITHM_ECDH_ES_A256KW:
         return_value = t_cose_crypto_make_symmetric_key_handle(T_COSE_ALGORITHM_A256GCM,

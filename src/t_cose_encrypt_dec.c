@@ -326,7 +326,6 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
 
     /* --- The body/content decryption --- */
     // TODO: handle AE algorithms
-    // TODO: handle single-recipient HPKE
     return_value =
         t_cose_crypto_aead_decrypt(
             ce_alg.cose_alg_id,    /* in: cose alg id to decrypt payload */

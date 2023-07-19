@@ -842,13 +842,12 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
                          size_t                 number,
                          struct q_useful_buf_c *random);
 
+
 /**
  * \brief Requests generation of a public / private key.
  *
- * \param[in] key                t_cose_key structure to hold the key pair
- *
- * \param[in] cose_algorithm_id  algorithm identifier
- *                               (e.g. for a NIST P256r1 curve)
+ * \param[in] cose_ec_curve_id   Curve identifier from COSE curve registry.
+ * \param[out] key                t_cose_key structure to hold the key pair
  *
  * This function will either return a key in form of a t_cose_key
  * structure, or produce an error.
@@ -863,26 +862,10 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
  *         Key generation failed
  */
 enum t_cose_err_t
-t_cose_crypto_generate_key(struct t_cose_key    *key,
-                           int32_t               cose_algorithm_id);
+t_cose_crypto_generate_ec_key(int32_t            cose_ec_curve_id,
+                              struct t_cose_key *key);
 
-/**
- * \brief Exports the public key
- *
- * \param[in] key               Handle to key
- * \param[in] pk_buffer         Pointer and length of buffer into which
- *                              the resulting public key is put.
- * \param[out] pk_len               Length of public key out
- *
- * \retval T_COSE_SUCCESS
- *         Successfully exported the public key.
- * \retval T_COSE_ERR_PUBLIC_KEY_EXPORT_FAILED
- *         The public key export operation failed.
- */
-enum t_cose_err_t
-t_cose_crypto_export_public_key(struct t_cose_key      key,
-                                struct q_useful_buf    pk_buffer,
-                                size_t                *pk_len);
+
 
 /**
  * \brief Exports key
@@ -995,32 +978,6 @@ t_cose_crypto_kw_unwrap(int32_t                 cose_algorithm_id,
                         struct q_useful_buf_c   ciphertext,
                         struct q_useful_buf     plaintext_buffer,
                         struct q_useful_buf_c  *plaintext_result);
-
-
-/**
- * \brief HPKE Decrypt Wrapper
- *
- * \param[in] cose_algorithm_id   COSE algorithm id
- * \param[in] pkE                 pkE buffer
- * \param[in] pkR                 pkR key
- * \param[in] ciphertext          Ciphertext buffer
- * \param[in] plaintext           Plaintext buffer
- * \param[out] plaintext_len      Length of the returned plaintext
- *
- * \retval T_COSE_SUCCESS
- *         HPKE decrypt operation was successful.
- * \retval T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG
- *         An unsupported algorithm was supplied to the function call.
- * \retval T_COSE_ERR_HPKE_DECRYPT_FAIL
- *         Decrypt operation failed.
- */
-enum t_cose_err_t
-t_cose_crypto_hpke_decrypt(int32_t                            cose_algorithm_id,
-                           struct q_useful_buf_c              pkE,
-                           struct t_cose_key                  pkR,
-                           struct q_useful_buf_c              ciphertext,
-                           struct q_useful_buf                plaintext,
-                           size_t                            *plaintext_len);
 
 
 /**
@@ -1173,28 +1130,6 @@ t_cose_crypto_free_symmetric_key(struct t_cose_key key);
 
 
 /**
- * \brief Key Agreement
- *
- * Computes a shared secret based on the provided key agreement
- * algorithm. Is used to generate a ECDHE-derived symmetric key.
- *
- * \param[in] cose_algorithm_id      Algorithm id.
- * \param[in] private_key            Private key.
- * \param[in] public_key             Public key.
- * \param[in,out] symmetric_key      Buffer where to place the derived symmetric key.
- * \param[in,out] symmetric_key_len  Length of the derived key.
- *
- * \return Error code.
- */
-enum t_cose_err_t
-t_cose_crypto_key_agreement(const int32_t          cose_algorithm_id,
-                            struct t_cose_key      private_key,
-                            struct t_cose_key      public_key,
-                            struct q_useful_buf    symmetric_key,
-                            size_t                *symmetric_key_len
-                           );
-
-/**
  * \brief Elliptic curve diffie-helman.
  *
  * \param[in] private_key     The private EC Key
@@ -1261,41 +1196,6 @@ t_cose_crypto_hkdf(int32_t                     cose_hash_algorithm_id,
                    const struct q_useful_buf_c info,
                    const struct q_useful_buf   okm_buffer);
 
-
-
-#ifdef WE_NEED_THESE_FOR_HPKE
-/* HPKE doesn't use the basic hkdf. */
-
-/** \brief HKDF extract
-
- * This provides the HKDF extract function defined in RFC 5869 for
- * various hash functions. This does not use prk_buffer as in/out
- * the way t_cose_crypto_hkdf() uses okm_buffer. Instead this
- * is more like the usual use of the pair of a buffer in and a
- * constant pointer and length for the value out.
-
- */
-enum t_cose_err_t
-t_cose_crypto_hkdf_extract(int32_t                cose_hash_algorithm_id,
-                           struct q_useful_buf_c  salt,
-                           struct q_useful_buf_c  ikm,
-                           struct q_useful_buf    prk_buffer
-                           struct q_useful_buf_c *prk);
-
-
-/** \brief HKDF epxand
-
-* This provides the HKDF expand function defined in RFC 5869 for
-* various hash functions.
- * This use the okm_buffer as in/out like t_cose_crypto_hkdf().
-*/
-enum t_cose_err_t
-t_cose_crypto_hkdf_expand(int32_t                cose_hash_algorithm_id,
-                          struct q_useful_buf_c  prk,
-                          struct q_useful_buf_c  info,
-                          struct q_useful_buf    okm_buffer);
-
-#endif /* WE_NEED_THESE */
 
 
 /* Import a COSE_Key in EC2 format into a key handle.

@@ -1,5 +1,5 @@
 /**
- * \file t_cose_recipient_enc_hpke.c
+ * \file t_cose_recipient_enc.h
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  * Copyright (c) 2023, Laurence Lundblade. All rights reserved.

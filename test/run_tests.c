@@ -309,6 +309,9 @@ static void PrintSize(const char    *szWhat,
 #include "t_cose/t_cose_recipient_enc_keywrap.h"
 #include "t_cose/t_cose_recipient_dec_keywrap.h"
 
+#include "t_cose/t_cose_recipient_enc_esdh.h"
+#include "t_cose/t_cose_recipient_dec_esdh.h"
+
 
 /*
  * Public function. See run_test.h.
@@ -377,11 +380,11 @@ void PrintSizesTCose(OutputStringCB pfOutput, void *pOutCtx)
               (uint32_t)sizeof(struct t_cose_recipient_dec_keywrap),
               pfOutput, pOutCtx);
 
-    PrintSize("sizeof(struct t_cose_recipient_enc_hpke)",
-              (uint32_t)sizeof(struct t_cose_recipient_enc_keywrap),
+    PrintSize("sizeof(struct t_cose_recipient_enc_esdh)",
+              (uint32_t)sizeof(struct t_cose_recipient_enc_esdh),
               pfOutput, pOutCtx);
-    PrintSize("sizeof(struct t_cose_recipient_dec_hpke)",
-              (uint32_t)sizeof(struct t_cose_recipient_dec_keywrap),
+    PrintSize("sizeof(struct t_cose_recipient_dec_esdh)",
+              (uint32_t)sizeof(struct t_cose_recipient_dec_esdh),
               pfOutput, pOutCtx);
 
     PrintSize("sizeof(struct t_cose_crypto_hash)",

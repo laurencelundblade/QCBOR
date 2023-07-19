@@ -24,8 +24,8 @@
 
 static enum t_cose_err_t
 decode_ephemeral_key(void                    *cb_context,
-                            QCBORDecodeContext      *cbor_decoder,
-                            struct t_cose_parameter *parameter)
+                     QCBORDecodeContext      *cbor_decoder,
+                     struct t_cose_parameter *parameter)
 {
     struct q_useful_buf_c  x;
     struct q_useful_buf_c  y_string;
@@ -187,8 +187,8 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
         kek_buffer.len    = 256/8;
         cose_key_wrap_alg = T_COSE_ALGORITHM_A256KW;
         kdf_hash_alg      = T_COSE_ALGORITHM_SHA_256;
-
         break;
+
     default:
         return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
     }
@@ -198,11 +198,10 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     /* Inputs: pub key, ephemeral key
      * Outputs: shared key */
 
-    ephem_param = t_cose_param_find(*params, -1);
+    ephem_param = t_cose_param_find(*params, T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY);
     if(ephem_param == NULL) {
         return T_COSE_ERR_FAIL; // TODO: error code
     }
-
 
     ephemeral_key = ephem_param->value.special_decode.value.key;
 

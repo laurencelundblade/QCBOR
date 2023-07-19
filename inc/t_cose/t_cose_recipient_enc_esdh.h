@@ -38,7 +38,8 @@ struct t_cose_recipient_enc_esdh {
 
     struct t_cose_key           pkR; /* recipient public key */
     struct q_useful_buf_c       kid;
-    struct t_cose_crypto_esdh_suite_t esdh_suite;
+    int32_t                     cose_ec_curve_id;
+    int32_t                     cose_algorithm_id;
     struct t_cose_parameter    *added_params;
     struct t_cose_info_t       *info;
 };
@@ -48,8 +49,8 @@ struct t_cose_recipient_enc_esdh {
 /**
  * @brief Initialize the creator COSE_Recipient for ESDH content key distribution.
 
- * @param[in]  ckd_id    The content key distribution algorithm ID.
- * @param[in]  curve_id  The curve ID.
+ * @param[in]  cose_algorithm_id    The content key distribution algorithm ID.
+ * @param[in]  cose_ec_curve_id  The curve ID.
  *
  * This must be called not only to set the keywrap id, the content key distribution (ckd) id, and
  * the curve id, but also because this sets up the recipient callbacks. That is when all the real
@@ -60,8 +61,8 @@ struct t_cose_recipient_enc_esdh {
  */
 static void
 t_cose_recipient_enc_esdh_init(struct t_cose_recipient_enc_esdh *context,
-                               int16_t                          ckd_id,
-                               int16_t                          curve_id);
+                               int32_t                           cose_algorithm_id,
+                               int32_t                           cose_ec_curve_id);
 
 
 /**
@@ -170,14 +171,13 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
 static inline void
 t_cose_recipient_enc_esdh_init(struct t_cose_recipient_enc_esdh *me,
-                               int16_t                          ckd_id,
-                               int16_t                          curve_id
-                               )
+                               int32_t                          cose_algorithm_id,
+                               int32_t                          cose_ec_curve_id)
 {
     memset(me, 0, sizeof(*me));
-    me->e.creat_cb = t_cose_recipient_create_esdh_cb_private;
-    me->esdh_suite.ckd_id = ckd_id;
-    me->esdh_suite.curve_id = curve_id;
+    me->e.creat_cb        = t_cose_recipient_create_esdh_cb_private;
+    me->cose_algorithm_id = cose_algorithm_id;
+    me->cose_ec_curve_id  = cose_ec_curve_id;
 }
 
 static inline void

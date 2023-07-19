@@ -95,7 +95,7 @@ bool t_cose_crypto_is_algorithm_supported(int32_t cose_algorithm_id)
 #endif
         T_COSE_ALGORITHM_EDDSA,
         T_COSE_ALGORITHM_A128GCM,
-        T_COSE_ALGORITHM_A192GCM, /* For 9053 key wrap and direct, not HPKE */
+        T_COSE_ALGORITHM_A192GCM,
         T_COSE_ALGORITHM_A256GCM,
 
 #ifndef T_COSE_DISABLE_KEYWRAP
@@ -1415,22 +1415,8 @@ t_cose_crypto_free_symmetric_key(struct t_cose_key key)
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_export_public_key(struct t_cose_key      key,
-                                struct q_useful_buf    pk_buffer,
-                                size_t                *pk_len)
-{
-    /* TBD: This is a dummy function */
-    *pk_len = 0;
-    return T_COSE_SUCCESS;
-}
-
-
-/*
- * See documentation in t_cose_crypto.h
- */
-enum t_cose_err_t
-t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
-                           int32_t               cose_ec_curve_id)
+t_cose_crypto_generate_ec_key(const int32_t       cose_ec_curve_id,
+                              struct t_cose_key  *key)
 {
     EC_KEY   *ec_key;
     int       ossl_result;
@@ -1486,27 +1472,11 @@ t_cose_crypto_generate_key(struct t_cose_key    *ephemeral_key,
         return T_COSE_ERR_FAIL; // TODO: error code
     }
 
-    ephemeral_key->key.ptr = evp_pkey;
+    key->key.ptr = evp_pkey;
 
     return T_COSE_SUCCESS;
 }
 
-
-/*
- * See documentation in t_cose_crypto.h
- */
-enum t_cose_err_t
-t_cose_crypto_key_agreement(const int32_t          cose_algorithm_id,
-                            struct t_cose_key      private_key,
-                            struct t_cose_key      public_key,
-                            struct q_useful_buf    symmetric_key,
-                            size_t                *symmetric_key_len
-                           )
-{
-    /* TBD: This is a dummy function */
-    *symmetric_key_len = 0;
-    return T_COSE_SUCCESS;
-}
 
 /* Compute size of ciphertext, given size of plaintext. Returns
  * SIZE_MAX if the algorithm is unknown. Also returns the tag
