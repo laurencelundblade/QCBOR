@@ -60,7 +60,6 @@ ephem_special_encode_cb(const struct t_cose_parameter  *parameter,
 
     QCBOREncode_CloseMap(cbor_encoder);
 
-    // TODO: should cbor encode error be checked here?
     return T_COSE_SUCCESS;
 }
 
@@ -96,15 +95,12 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
     me = (struct t_cose_recipient_enc_esdh *)me_x;
 
+    /* ---- Sort out the algorithm IDs and key lengths ---- */
 
-    /* Determine hash algorithm for HKDF and the length of the
-     * KEK to be produced. The length of the KEK aligns with
-     * the AES KW algorithm selected.
-     *
-     * All three ES-DH content key distribution algorithms use SHA256
-     * with the HKDF-based key derivation function.
+    /* The main algorithm ID for the content distribution type
+     * determines the hash used with the HKDF, the key wrap
+     * algorithm and the length of the key wrap key (the kek).
      */
-
     switch(me->cose_algorithm_id) {
         case T_COSE_ALGORITHM_ECDH_ES_A128KW:
             kek_len  = 128/8;
@@ -137,31 +133,6 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     }
 
 
-#if 0
-    /* --- Make Info structure ---- */
-    (void)ce_alg; // TODO: put this to use
-    return_value = create_info_structure(context->info->enc_alg,
-                                         context->info->sender_identity_type_id,
-                                         context->info->sender_identity,
-                                         context->info->recipient_identity_type_id,
-                                         context->info->recipient_identity,
-                                         protected_hdr,
-                                         context->info->enc_ctx->hash_cose_algorithm_id,
-                                         (struct q_useful_buf_c)
-                                         {.ptr = context->info->enc_ctx->extern_hash_buffer.ptr,
-                                          .len =  context->info->enc_ctx->extern_hash_buffer.len
-                                         },
-                                         info_struct_buf,
-                                        &info_struct);
-
-    if (return_value != T_COSE_SUCCESS) {
-        return(return_value);
-    }
-#else
-    // Temp until info struct is figured out
-    info_struct = UsefulBuf_Set(info_struct_buf, 'x');
-    (void)ce_alg;
-#endif
 
     /* ---- Make linked list of parameters and encode them ---- */
     /* Alg ID param */
@@ -194,6 +165,34 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                                          &protected_hdr);
 
 
+#if 0
+
+    /* --- Make Info structure ---- */
+    (void)ce_alg; // TODO: put this to use
+    return_value = create_info_structure(context->info->enc_alg,
+                                         context->info->sender_identity_type_id,
+                                         context->info->sender_identity,
+                                         context->info->recipient_identity_type_id,
+                                         context->info->recipient_identity,
+                                         protected_hdr,
+                                         context->info->enc_ctx->hash_cose_algorithm_id,
+                                         (struct q_useful_buf_c)
+                                         {.ptr = context->info->enc_ctx->extern_hash_buffer.ptr,
+                                          .len =  context->info->enc_ctx->extern_hash_buffer.len
+                                         },
+                                         info_struct_buf,
+                                        &info_struct);
+
+    if (return_value != T_COSE_SUCCESS) {
+        return(return_value);
+    }
+#else
+    // Temp until info struct is figured out
+    info_struct = UsefulBuf_Set(info_struct_buf, 'x');
+    (void)ce_alg;
+#endif
+
+
     /* --- Generation of ECDH-derived key  ---- */
     return_value = t_cose_crypto_ecdh(ephemeral_key,   /* in: ephemeral public key */
                                       me->pkR,         /* in: private key */
@@ -204,13 +203,13 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     }
 
 
-    /* ---- HKDF-based Key Derivation  ---- */
+    /* ---- HKDF on derived key to make kek for key wrap  ---- */
     kek_buf.len = kek_len;
-    return_value = t_cose_crypto_hkdf(hash_alg,       // Hash Algorithm
-                                      NULL_Q_USEFUL_BUF_C,     // Empty Salt
+    return_value = t_cose_crypto_hkdf(hash_alg,       /* in: hash alg for HKDF */
+                                      NULL_Q_USEFUL_BUF_C, /* in: salt */
                                       derived_key, /* in: input key material (ikm) */
-                                      info_struct,             // Info Context Structure
-                                      kek_buf);
+                                      info_struct,  /* in: encoded info struct */
+                                      kek_buf); /* in: buffer, out: kek */
     if(return_value) {
         return T_COSE_ERR_HKDF_FAIL;
     }
@@ -232,11 +231,11 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
     /* Do the keywrap directly into the output buffer */
     QCBOREncode_OpenBytes(cbor_encoder, &encrypted_cek_destination);
-    return_value = t_cose_crypto_kw_wrap(kw_alg,        // key wrap algorithm
-                                         kek_handle,    // key encryption key
-                                         cek,           // "plaintext" = cek
-                                         encrypted_cek_destination,
-                                        &encrypted_cek_result);
+    return_value = t_cose_crypto_kw_wrap(kw_alg,        /* in: key wrap algorithm */
+                                         kek_handle,    /* in: key encryption key */
+                                         cek,           /* in: "plaintext" = cek */
+                                         encrypted_cek_destination, /* in: buffer to write to */
+                                        &encrypted_cek_result); /* out: encrypted cek */
     if (return_value != T_COSE_SUCCESS) {
         return return_value;
     }
