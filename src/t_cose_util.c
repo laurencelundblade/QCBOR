@@ -317,27 +317,6 @@ create_tbs(const struct t_cose_sign_inputs *sign_inputs,
     }
 }
 
-/**
- * \brief Returns the key length (in bits) of a given encryption algo.
- *
- * @param cose_algorithm_id  Crypto algorithm.
- *
- * Returns the key length (in bits) or 0 in case of an
- * unknown algorithm id.
- */
-static unsigned int
-bits_in_content_encryption_alg(int32_t cose_algorithm_id)
-{
-    switch(cose_algorithm_id) {
-        case T_COSE_ALGORITHM_AES128CCM_16_128:
-        case T_COSE_ALGORITHM_A128GCM: return 128;
-        case T_COSE_ALGORITHM_A192GCM: return 192;
-        case T_COSE_ALGORITHM_AES256CCM_16_128:
-        case T_COSE_ALGORITHM_A256GCM: return 256;
-    }
-    return 0;
-}
-
 
 /**
  * \brief Hash an encoded bstr without actually encoding it in memory.
@@ -510,7 +489,27 @@ create_enc_structure(const char            *context_string,
 }
 
 
-/* The context information structure is used to ensure that the
+
+
+static void
+party_encode(QCBOREncodeContext           *cbor_encoder,
+             const struct q_useful_buf_c   party)
+{
+    QCBOREncode_OpenArray(cbor_encoder);
+    if(!q_useful_buf_c_is_null(party)) {
+        QCBOREncode_AddBytes(cbor_encoder, party);
+    } else {
+        QCBOREncode_AddNULL(cbor_encoder);
+    }
+    QCBOREncode_AddNULL(cbor_encoder);
+    QCBOREncode_AddNULL(cbor_encoder);
+    QCBOREncode_CloseArray(cbor_encoder);
+}
+
+
+/*
+ * TODO: update this comment. It is wrong
+ * The context information structure is used to ensure that the
  * derived keying material is "bound" to the context of the transaction.
  *
  * The structure described below is based on Section 5.2 of RFC 9053
@@ -570,112 +569,49 @@ create_enc_structure(const char            *context_string,
  *
  */
 enum t_cose_err_t
-create_info_structure(int32_t enc_alg,
-                      uint8_t sender_identity_type_id,
-                      struct q_useful_buf_c  sender_identity,
-                      uint8_t recipient_identity_type_id,
-                      struct q_useful_buf_c  recipient_identity,
-                      struct q_useful_buf_c  protected_headers,
-                      const int32_t          hash_algorithm_id,
-                      struct q_useful_buf_c  hash_encrypted_payload,
-                      struct q_useful_buf    buffer_for_info,
-                      struct q_useful_buf_c *info_structure)
+create_info_structure(const struct t_cose_alg_and_bits next_alg,
+                      const struct q_useful_buf_c      sender_identity,
+                      const struct q_useful_buf_c      recipient_identity,
+                      const struct q_useful_buf_c      protected_headers,
+                      const struct q_useful_buf_c      other,
+                      const struct q_useful_buf_c      other_priv,
+                      const struct q_useful_buf        buffer_for_info,
+                      struct q_useful_buf_c     *info_structure)
 {
-    QCBOREncodeContext     cbor_encoder;
-    QCBORError             err;
-    struct q_useful_buf_c  other;
+    QCBOREncodeContext  cbor_encoder;
+    QCBORError          err;
 
     QCBOREncode_Init(&cbor_encoder, buffer_for_info);
     QCBOREncode_OpenArray(&cbor_encoder);
 
     /* -----------AlgorithmID---------------*/
+    QCBOREncode_AddInt64(&cbor_encoder, next_alg.cose_alg_id);
 
-    QCBOREncode_AddInt64(&cbor_encoder, enc_alg);
+    /* -----------PartyInfo ---------------*/
+    party_encode(&cbor_encoder, sender_identity);
+    party_encode(&cbor_encoder, recipient_identity);
 
-    /* -----------PartyInfoSender---------------*/
-
-    /* Add PartyUInfo - Sender Identity Array */
-    QCBOREncode_OpenArray(&cbor_encoder);
-    /* identity: here a constant */
-    QCBOREncode_AddSZString(&cbor_encoder, "author");
-    /* nonce: nil because not used */
-    QCBOREncode_AddText(&cbor_encoder, NULLUsefulBufC);
-    /* other: identity structure for the sender */
-    QCBOREncode_BstrWrap(&cbor_encoder);
-    QCBOREncode_OpenArray(&cbor_encoder);
-
-    /* Identity type */
-    QCBOREncode_AddUInt64(&cbor_encoder, sender_identity_type_id);
-
-    /* Identity of the sender */
-    QCBOREncode_AddBytes(&cbor_encoder, sender_identity);
-
-    QCBOREncode_CloseArray(&cbor_encoder);
-
-    QCBOREncode_CloseBstrWrap2(&cbor_encoder,
-                               false,
-                               &other);
-
-    QCBOREncode_CloseArray(&cbor_encoder);
-
-    /* -----------PartyInfoRecipient---------------*/
-
-    /* Add PartyUInfo - Recipient Identity Array */
-    QCBOREncode_OpenArray(&cbor_encoder);
-    /* identity: here a constant */
-    QCBOREncode_AddSZString(&cbor_encoder, "recipient");
-    /* nonce: nil because not used */
-    QCBOREncode_AddText(&cbor_encoder, NULLUsefulBufC);
-    /* other: identity structure for the recipient */
-    QCBOREncode_BstrWrap(&cbor_encoder);
-    QCBOREncode_OpenArray(&cbor_encoder);
-
-    /* Identity type */
-    QCBOREncode_AddUInt64(&cbor_encoder, recipient_identity_type_id);
-
-    /* Identity of the recipient */
-    QCBOREncode_AddBytes(&cbor_encoder, recipient_identity);
-
-    QCBOREncode_CloseArray(&cbor_encoder);
-
-    QCBOREncode_CloseBstrWrap2(&cbor_encoder,
-                               false,
-                               &other);
-
-    QCBOREncode_CloseArray(&cbor_encoder);
 
     /* -----------SuppPubInfo---------------*/
-
     QCBOREncode_OpenArray(&cbor_encoder);
 
     /* keyDataLength */
-    QCBOREncode_AddUInt64(&cbor_encoder, bits_in_content_encryption_alg(enc_alg));
+    QCBOREncode_AddUInt64(&cbor_encoder, next_alg.bits_in_key);
 
     /* recipients-inner.protected header */
     QCBOREncode_AddBytes(&cbor_encoder, protected_headers);
 
     /* other */
-    QCBOREncode_AddText(&cbor_encoder, NULLUsefulBufC);
+    if(!q_useful_buf_c_is_null(other)) {
+        QCBOREncode_AddBytes(&cbor_encoder, other);
+    }
 
     QCBOREncode_CloseArray(&cbor_encoder);
 
     /* -----------SuppPrivInfo----------- */
-    QCBOREncode_BstrWrap(&cbor_encoder);
-    QCBOREncode_OpenArray(&cbor_encoder);
-
-    /* hash of the encrypted payload/firmware in form of a SUIT_Digest structure */
-    /* Likely to be removed in the future */
-//    QCBOREncode_AddInt64(&cbor_encoder, hash_algorithm_id);
-    (void)hash_algorithm_id;
-
-//    QCBOREncode_AddBytes(&cbor_encoder, hash_encrypted_payload);
-    (void)hash_encrypted_payload;
-
-    QCBOREncode_CloseArray(&cbor_encoder);
-
-    QCBOREncode_CloseBstrWrap2(&cbor_encoder,
-                               false,
-                               &other);
+    if(!q_useful_buf_c_is_null(other_priv)) {
+        QCBOREncode_AddBytes(&cbor_encoder, other_priv);
+    }
 
     QCBOREncode_CloseArray(&cbor_encoder);
 
@@ -685,6 +621,9 @@ create_info_structure(int32_t enc_alg,
     }
     return T_COSE_SUCCESS;
 }
+
+
+
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
 /* This is a random hard coded kid (key ID) that is used to indicate

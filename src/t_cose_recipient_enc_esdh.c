@@ -80,8 +80,9 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     struct q_useful_buf_c   protected_hdr;
     struct q_useful_buf_c   info_struct;
     size_t                  kek_len;
-    struct t_cose_parameter params[3];
+    struct t_cose_parameter params[6];
     struct t_cose_parameter *params2;
+    struct t_cose_parameter *params_tail;
     struct q_useful_buf     encrypted_cek_destination;
     struct q_useful_buf_c   encrypted_cek_result;
     struct t_cose_key       kek_handle;
@@ -137,6 +138,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     /* ---- Make linked list of parameters and encode them ---- */
     /* Alg ID param */
     params[0]  = t_cose_param_make_alg_id(me->cose_algorithm_id);
+    params_tail = &params[0];
 
     /* Ephemeral public key param */
     params[1].value_type                     = T_COSE_PARAMETER_TYPE_SPECIAL;
@@ -145,16 +147,28 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     params[1].critical                       = false;
     params[1].in_protected                   = false;
     params[1].label                          = T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY;
-    params[0].next = &params[1];
+    params_tail->next = &params[1];
+    params_tail = params_tail->next;
 
     /* Optional kid param */
     if(!q_useful_buf_c_is_null(me->kid)) {
         params[2] = t_cose_param_make_kid(me->kid);
-        params[1].next = &params[2];
+        params_tail->next = &params[2];
+        params_tail = params_tail->next;
     }
+    if(!q_useful_buf_c_is_null(me->partyu)) {
+        params[3] = t_cose_param_make_unprot_bstr(me->partyu, T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
+        params_tail->next = &params[3];
+        params_tail = params_tail->next;
+    }
+    if(!q_useful_buf_c_is_null(me->partyv)) {
+        params[4] = t_cose_param_make_unprot_bstr(me->partyv, T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
+        params_tail->next = &params[4];
+        params_tail = params_tail->next;
+    }
+    /* Surprised there's no header for 'other' data item. */
 
     /* TODO: add the salt param */
-    /* TODO: add the info params */
 
     /* Custom params from caller */
     params2 = params;
@@ -165,32 +179,19 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                                          &protected_hdr);
 
 
-#if 0
-
     /* --- Make Info structure ---- */
-    (void)ce_alg; // TODO: put this to use
-    return_value = create_info_structure(context->info->enc_alg,
-                                         context->info->sender_identity_type_id,
-                                         context->info->sender_identity,
-                                         context->info->recipient_identity_type_id,
-                                         context->info->recipient_identity,
+    return_value = create_info_structure(ce_alg,
+                                         me->partyu,
+                                         me->partyv,
                                          protected_hdr,
-                                         context->info->enc_ctx->hash_cose_algorithm_id,
-                                         (struct q_useful_buf_c)
-                                         {.ptr = context->info->enc_ctx->extern_hash_buffer.ptr,
-                                          .len =  context->info->enc_ctx->extern_hash_buffer.len
-                                         },
+                                         me->other,
+                                         me->other_priv,
                                          info_struct_buf,
                                         &info_struct);
 
     if (return_value != T_COSE_SUCCESS) {
-        return(return_value);
+        return return_value;
     }
-#else
-    // Temp until info struct is figured out
-    info_struct = UsefulBuf_Set(info_struct_buf, 'x');
-    (void)ce_alg;
-#endif
 
 
     /* --- Generation of ECDH-derived key  ---- */

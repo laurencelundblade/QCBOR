@@ -845,6 +845,23 @@ t_cose_param_make_alg_id(int32_t alg_id)
 }
 
 static inline struct t_cose_parameter
+t_cose_param_make_unprot_bstr(struct q_useful_buf_c string, int32_t label)
+{
+    struct t_cose_parameter parameter;
+
+    parameter.critical         = false;
+    parameter.in_protected     = false;
+    parameter.location.index   = 0;
+    parameter.location.nesting = 0;
+    parameter.label            = label;
+    parameter.value_type       = T_COSE_PARAMETER_TYPE_BYTE_STRING;
+    parameter.value.string     = string;
+    parameter.next             = NULL;
+
+    return parameter;
+}
+
+static inline struct t_cose_parameter
 t_cose_param_make_ct_uint(uint32_t content_type)
 {
     struct t_cose_parameter parameter;

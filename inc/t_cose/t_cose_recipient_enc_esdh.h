@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 
-/* The default size of the COSE_KDF_Context. See t_cose_recipient_enc_esdh_kdf_buf()
+/* The default size of the COSE_KDF_Context. See t_cose_recipient_dec_esdh_kdf_buf()
  * and T_COSE_ERR_KDF_BUFFER_TOO_SMALL. */
 #define T_COSE_ENC_COSE_KDF_CONTEXT 200
 
@@ -41,7 +41,13 @@ struct t_cose_recipient_enc_esdh {
     int32_t                     cose_ec_curve_id;
     int32_t                     cose_algorithm_id;
     struct t_cose_parameter    *added_params;
-    struct t_cose_info_t       *info;
+
+    /* stuff for info struct KDF context */
+    struct q_useful_buf_c       partyu;
+    struct q_useful_buf_c       partyv;
+    struct q_useful_buf_c       other;
+    struct q_useful_buf_c       other_priv;
+
 };
 
 
@@ -74,14 +80,6 @@ static void
 t_cose_recipient_enc_esdh_set_key(struct t_cose_recipient_enc_esdh *context,
                                   struct t_cose_key                 recipient,
                                   struct q_useful_buf_c             kid);
-
-
-/**
- * @brief Sets the info structure
- */
-static inline void
-t_cose_recipient_enc_esdh_set_info(struct t_cose_recipient_enc_esdh *me,
-                                   struct t_cose_info_t             *info);
 
 
 /*
@@ -180,12 +178,6 @@ t_cose_recipient_enc_esdh_init(struct t_cose_recipient_enc_esdh *me,
     me->cose_ec_curve_id  = cose_ec_curve_id;
 }
 
-static inline void
-t_cose_recipient_enc_esdh_set_info(struct t_cose_recipient_enc_esdh *me,
-                                   struct t_cose_info_t             *info)
-{
-    me->info = info;
-}
 
 static inline void
 t_cose_recipient_enc_esdh_set_key(struct t_cose_recipient_enc_esdh *me,
@@ -194,6 +186,26 @@ t_cose_recipient_enc_esdh_set_key(struct t_cose_recipient_enc_esdh *me,
 {
     me->pkR = pkR;
     me->kid = kid;
+}
+
+
+static inline void
+t_cose_recipient_enc_esdh_party_info(struct t_cose_recipient_enc_esdh *me,
+                                     const struct q_useful_buf_c       party_u_ident,
+                                     const struct q_useful_buf_c       party_v_ident)
+{
+    me->partyu = party_u_ident;
+    me->partyv = party_v_ident;
+}
+
+
+static inline void
+t_cose_recipient_enc_esdh_supp_info(struct t_cose_recipient_enc_esdh *me,
+                                    const struct q_useful_buf_c       supp_other_info,
+                                    const struct q_useful_buf_c       supp_priv_info)
+{
+    me->other      = supp_other_info;
+    me->other_priv = supp_priv_info;
 }
 
 #ifdef __cplusplus

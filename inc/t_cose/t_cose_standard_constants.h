@@ -155,6 +155,11 @@
 #define T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY -1
 
 
+#define T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT -21
+#define T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT -24
+
+
+
 /* ------------- COSE Algorithms ----------------------------
  * https://www.iana.org/assignments/cose/cose.xhtml#algorithms
  */

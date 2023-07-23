@@ -255,19 +255,19 @@ create_enc_structure(const char             *context_string,
 
 /*
  * Create the info structure for ESDH-based content key distribution,
- * as described draft-ietf-suit-firmware-encryption.
+ * as described RFC 9053. This doesn't allow for filling in some
+ * fields like pary U nonce because the author thinks them
+ * unnecessary. Use the salt instead.
  */
 enum t_cose_err_t
-create_info_structure(int32_t enc_alg,
-                      uint8_t sender_identity_type_id,
-                      struct q_useful_buf_c  sender_identity,
-                      uint8_t recipient_identity_type_id,
-                      struct q_useful_buf_c  recipient_identity,
-                      struct q_useful_buf_c  protected_headers,
-                      const int32_t          hash_algorithm_id,
-                      struct q_useful_buf_c  hash_encrypted_payload,
-                      struct q_useful_buf    buffer_for_info,
-                      struct q_useful_buf_c *info_structure);
+create_info_structure(const struct t_cose_alg_and_bits  next_alg,
+                      const struct q_useful_buf_c       sender_identity,
+                      const struct q_useful_buf_c       recipient_identity,
+                      const struct q_useful_buf_c       protected_headers,
+                      const struct q_useful_buf_c       other,
+                      const struct q_useful_buf_c       other_priv,
+                      const struct q_useful_buf         buffer_for_info,
+                      struct q_useful_buf_c            *info_structure);
 
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN

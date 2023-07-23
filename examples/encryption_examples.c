@@ -274,7 +274,6 @@ esdh_example(void)
     struct t_cose_key                pkR;
     struct t_cose_encrypt_enc        enc_ctx;
     struct t_cose_recipient_enc_esdh recipient;
-    struct t_cose_info_t info;
     struct q_useful_buf_c            cose_encrypted_message;
     Q_USEFUL_BUF_MAKE_STACK_UB  (    cose_encrypt_message_buffer, 400);
     struct t_cose_encrypt_dec_ctx    dec_ctx;
@@ -320,16 +319,6 @@ esdh_example(void)
                                        pkR,
                                        Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY));
 
-    /* Set Context Info structure */
-    info.enc_alg = T_COSE_ALGORITHM_A128GCM;
-    info.sender_identity_type_id = 1;
-    info.recipient_identity_type_id = 1;
-    info.sender_identity = Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_SENDER_IDENTITY);
-    info.recipient_identity = Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY);
-    info.enc_ctx = &enc_ctx;
-
-    t_cose_recipient_enc_esdh_set_info(&recipient, &info);
-
     /* Give the recipient object to the main encryption context.
      * (Only one recipient is set here, but there could be more).
      */
@@ -366,6 +355,9 @@ esdh_example(void)
                                 decrypted_buffer,
                                 &decrypted_payload,
                                 &params);
+    if(result != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
     print_useful_buf("Decrypted Payload:", decrypted_payload);
 
@@ -384,7 +376,6 @@ esdh_example_detached(void)
     struct t_cose_key                pkR;
     struct t_cose_encrypt_enc        enc_ctx;
     struct t_cose_recipient_enc_esdh recipient;
-    struct t_cose_info_t info;
     struct q_useful_buf_c            cose_encrypted_message;
     Q_USEFUL_BUF_MAKE_STACK_UB  (    cose_encrypt_message_buffer, 400);
     struct q_useful_buf_c            encrypted_detached_payload;
@@ -424,16 +415,7 @@ esdh_example_detached(void)
                                        pkR,
                                        Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY));
 
-    /* Set Context Info structure */
-    info.enc_alg = T_COSE_ALGORITHM_A128GCM;
-    info.sender_identity_type_id = 1;
-    info.recipient_identity_type_id = 1;
-    info.sender_identity = Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_SENDER_IDENTITY);
-    info.recipient_identity = Q_USEFUL_BUF_FROM_SZ_LITERAL(TEST_RECIPIENT_IDENTITY);
-    info.enc_ctx = &enc_ctx;
-
-    t_cose_recipient_enc_esdh_set_info(&recipient, &info);
-
+ 
     /* Give the recipient object to the main encryption context.
      * (Only one recipient is set here, but there could be more).
      */

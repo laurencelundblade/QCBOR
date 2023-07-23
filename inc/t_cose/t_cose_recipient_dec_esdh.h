@@ -25,7 +25,8 @@ extern "C" {
 
 
 /* The default size of the COSE_KDF_Context. See t_cose_recipient_dec_esdh_kdf_buf()
- * and T_COSE_ERR_KDF_BUFFER_TOO_SMALL. */
+ * and T_COSE_ERR_KDF_BUFFER_TOO_SMALL.  See also \ref T_COSE_ENC_COSE_KDF_CONTEXT
+ * which usually has the same value. */
 #define T_COSE_DEC_COSE_KDF_CONTEXT 200
 
 
@@ -47,6 +48,12 @@ struct t_cose_recipient_dec_esdh {
 
     struct t_cose_key     private_key;
     struct q_useful_buf_c kid;
+
+    /* stuff for info struct KDF context */
+    struct q_useful_buf_c  partyu;
+    struct q_useful_buf_c  partyv;
+    struct q_useful_buf_c  other;
+    struct q_useful_buf_c  other_priv;
 };
 
 

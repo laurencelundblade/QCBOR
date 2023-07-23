@@ -115,6 +115,8 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     int64_t                alg = 0;
     struct q_useful_buf_c  cek_encrypted;
     struct q_useful_buf_c  info_struct;
+    struct q_useful_buf_c  partyu;
+    struct q_useful_buf_c  partyv;
     struct q_useful_buf_c  kek;
     struct t_cose_key      kekx;
     struct q_useful_buf_c  derived_key;
@@ -124,12 +126,15 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     int32_t                kdf_hash_alg;
     const struct t_cose_parameter *salt_param;
     const struct t_cose_parameter *ephem_param;
+    const struct t_cose_parameter *partyu_param;
+    const struct t_cose_parameter *partyv_param;
     struct q_useful_buf_c  salt;
     struct t_cose_key      ephemeral_key;
     MakeUsefulBufOnStack(  kek_buffer ,T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH));
+    MakeUsefulBufOnStack(  info_struct_buf, T_COSE_DEC_COSE_KDF_CONTEXT); // TODO: allow this to be
+
 
     MakeUsefulBufOnStack(  derived_secret_buf ,10+T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH)); // TODO: size this correctly
-    MakeUsefulBufOnStack(info_buf, T_COSE_DEC_COSE_KDF_CONTEXT); // TODO: allow this to be
                                               // supplied externally
 
     me = (struct t_cose_recipient_dec_esdh *)me_x;
@@ -214,13 +219,23 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
          goto Done;
      }
 
+    /* --- Make Info structure ---- */
+    partyu_param = t_cose_param_find(*params, T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
+    partyv_param = t_cose_param_find(*params, T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
+    // TODO: error processing and type checking
 
-    /* --- Make the info structure ---- */
-    (void)ce_alg;
-    // TODO: make the info structure. Just set to 'x's for now
-    // LOTS to do here!
-    info_struct = UsefulBuf_Set(info_buf, 'x');
+    cose_result = create_info_structure(ce_alg,
+                                        partyu_param == NULL ? NULL_Q_USEFUL_BUF_C : partyu_param->value.string,
+                                        partyv_param == NULL ? NULL_Q_USEFUL_BUF_C :partyv_param->value.string,
+                                        protected_params,
+                                        me->other,
+                                        me->other_priv,
+                                        info_struct_buf,
+                                       &info_struct);
 
+    if (cose_result != T_COSE_SUCCESS) {
+        return cose_result;
+    }
 
 
     /* --- Run the HKDF --- */

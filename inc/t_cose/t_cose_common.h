@@ -247,18 +247,6 @@ enum t_cose_key_usage_flags {
 
 
 
-/*!
- * \brief Data items needed for information context structure
- */
-struct t_cose_info_t {
-    int32_t enc_alg; // encryption algorithm
-    uint8_t sender_identity_type_id; // sender identity type
-    struct q_useful_buf_c  sender_identity; // sender identity
-    uint8_t recipient_identity_type_id; // recipient identity type
-    struct q_useful_buf_c  recipient_identity; // recipient identity
-    struct t_cose_encrypt_enc *enc_ctx; // encryption context
-};
-
 /* Private value. Intentionally not documented for Doxygen.
  * This is the size allocated for the encoded protected headers.  It
  * needs to be big enough for make_protected_header() to succeed. It
