@@ -50,10 +50,8 @@ struct t_cose_recipient_dec_esdh {
     struct q_useful_buf_c kid;
 
     /* stuff for info struct KDF context */
-    struct q_useful_buf_c  partyu;
-    struct q_useful_buf_c  partyv;
-    struct q_useful_buf_c  other;
-    struct q_useful_buf_c  other_priv;
+    struct q_useful_buf_c  supp_pub_other;
+    struct q_useful_buf_c  supp_priv_info;
 };
 
 
@@ -79,6 +77,7 @@ t_cose_recipient_dec_esdh_set_key(struct t_cose_recipient_dec_esdh *context,
  * Normally these fields are decoded out of parameters in the COSE recipient so there
  * is no need to set them. This method is provided for use cases where they are not
  * sent and a nil value is not sufficient.
+ * TODO: this is not implemented.
  */
 static inline void
 t_cose_recipient_dec_esdh_party_info(struct t_cose_recipient_dec_esdh *context,
@@ -97,7 +96,7 @@ t_cose_recipient_dec_esdh_party_info(struct t_cose_recipient_dec_esdh *context,
  */
 static inline void
 t_cose_recipient_dec_esdh_supp_info(struct t_cose_recipient_dec_esdh *context,
-                                    const struct q_useful_buf_c       supp_other_info,
+                                    const struct q_useful_buf_c       supp_pub_other,
                                     const struct q_useful_buf_c       supp_priv_info);
 
 
@@ -155,6 +154,15 @@ t_cose_recipient_dec_esdh_set_key(struct t_cose_recipient_dec_esdh *me,
     me->kid = kid;
 }
 
+
+static inline void
+t_cose_recipient_dec_esdh_supp_info(struct t_cose_recipient_dec_esdh *me,
+                                    const struct q_useful_buf_c       supp_pub_other,
+                                    const struct q_useful_buf_c       supp_priv_info)
+{
+    me->supp_priv_info = supp_priv_info;
+    me->supp_pub_other = supp_pub_other;
+}
 
 #ifdef __cplusplus
 }

@@ -182,6 +182,91 @@ Done:
 }
 
 
+#if 0
+/* This isn't in use yet because something wasn't going right for it.
+ * It would be good to have this working for the example.
+ */
+#include <openssl/x509.h>
+
+static enum t_cose_err_t
+init_encryption_pubkey_der(
+                           struct q_useful_buf_c der_encoded,
+                           struct t_cose_key    *key_pair)
+{
+    EVP_PKEY          *pkey;
+    enum t_cose_err_t  return_value;
+
+
+    EVP_PKEY          *apkey;
+    EC_KEY            *ec_key;
+    EC_GROUP          *ec_group;
+    enum t_cose_err_t  return_value;
+    long               der_length;
+    int                nid;
+
+    /* Safely convert size_t to long */
+    if(der_encoded.len > LONG_MAX) {
+        return T_COSE_ERR_FAIL;
+    }
+    der_length = (long)der_encoded.len;
+
+
+    switch (cose_ec_curve_id) {
+        case T_COSE_ELLIPTIC_CURVE_P_256:
+             nid  = NID_X9_62_prime256v1;
+             break;
+        case T_COSE_ELLIPTIC_CURVE_P_384:
+             nid  = NID_secp384r1;
+             break;
+        case T_COSE_ELLIPTIC_CURVE_P_521:
+             nid  = NID_secp521r1;
+             break;
+        /* The only other registered for EC2 is secp256k1 */
+        default:
+             return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
+    }
+
+    ec_key = EC_KEY_new();
+    if(ec_key == NULL) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    ec_group = EC_GROUP_new_by_curve_name(nid);
+    if(ec_group == NULL) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+    // TODO: this and related are to be depreacted, so they say...
+    ossl_result = EC_KEY_set_group(ec_key, ec_group);
+    if(ossl_result != 1) {
+        return T_COSE_ERR_FAIL; // TODO: error code
+    }
+
+
+    apkey = EVP_PKEY_new();
+
+
+    const uint8_t *pp = ec_P_256_pub_key_der;
+
+    pkey = d2i_PUBKEY(NULL, /* unused: defined as EVP_PKEY **a */
+                          (const unsigned char **)&pp, /* in: pointer to DER byes; out: unused */
+                          sizeof(ec_P_256_pub_key_der) /* in: length of DER bytes */
+                          );
+    if(pkey == NULL) {
+        return_value = T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
+        goto Done;
+    }
+
+    key_pair->key.ptr = pkey;
+    return_value      = T_COSE_SUCCESS;
+
+Done:
+    return return_value;
+}
+#endif
+
+
+
 /*
  * Public function, see init_key.h
  */
@@ -195,7 +280,7 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
 
     switch(cose_ec_curve_id) {
         case T_COSE_ELLIPTIC_CURVE_P_256:
-            der_encoded = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_key_pair_der);
+            der_encoded = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_256_key_pair_der);
             break;
         case T_COSE_ELLIPTIC_CURVE_P_384:
             der_encoded = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_key_pair_der);
@@ -207,9 +292,14 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
             return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
     }
 
-    err = init_encryption_key_der(der_encoded, public_key);
+    err = init_encryption_key_der(der_encoded, private_key);
+    if(err) {
+        return err;
+    }
 
-    *private_key = *public_key;
+    /* Clone the private key since it also has the public key. Would be
+     * good to give an example of public-key only import instead.*/
+    *public_key = *private_key;
     EVP_PKEY_up_ref((EVP_PKEY *)public_key->key.ptr);
 
     return T_COSE_SUCCESS;

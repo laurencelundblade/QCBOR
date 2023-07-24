@@ -637,6 +637,10 @@ const struct t_cose_parameter *
 t_cose_param_find(const struct t_cose_parameter *parameter_list, int64_t label);
 
 
+struct q_useful_buf_c
+t_cose_param_find_bstr(const struct t_cose_parameter *parameter_list, int64_t label);
+
+
 /**
  * \brief Find the algorithm ID parameter in a linked list
  *

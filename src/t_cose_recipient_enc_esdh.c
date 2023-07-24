@@ -79,7 +79,6 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                                                 // supplied externally
     struct q_useful_buf_c   protected_hdr;
     struct q_useful_buf_c   info_struct;
-    size_t                  kek_len;
     struct t_cose_parameter params[6];
     struct t_cose_parameter *params2;
     struct t_cose_parameter *params_tail;
@@ -87,52 +86,52 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     struct q_useful_buf_c   encrypted_cek_result;
     struct t_cose_key       kek_handle;
     int32_t                 hash_alg;
-    int32_t                 kw_alg;
     struct t_cose_recipient_enc_esdh *me;
     Q_USEFUL_BUF_MAKE_STACK_UB(derived_key_buf, T_COSE_RAW_KEY_AGREEMENT_OUTPUT_MAX_SIZE );
     struct q_useful_buf_c   derived_key;
     Q_USEFUL_BUF_MAKE_STACK_UB(kek_buf, T_COSE_CIPHER_ENCRYPT_OUTPUT_MAX_SIZE(T_COSE_MAX_SYMMETRIC_KEY_LENGTH) );
     struct q_useful_buf_c   kek;
+    struct t_cose_alg_and_bits kek_alg;
 
     me = (struct t_cose_recipient_enc_esdh *)me_x;
 
     /* ---- Sort out the algorithm IDs and key lengths ---- */
-
     /* The main algorithm ID for the content distribution type
      * determines the hash used with the HKDF, the key wrap
      * algorithm and the length of the key wrap key (the kek).
      */
     switch(me->cose_algorithm_id) {
         case T_COSE_ALGORITHM_ECDH_ES_A128KW:
-            kek_len  = 128/8;
-            hash_alg = T_COSE_ALGORITHM_SHA_256;
-            kw_alg   = T_COSE_ALGORITHM_A128KW;
+            hash_alg            = T_COSE_ALGORITHM_SHA_256;
+            kek_alg.cose_alg_id = T_COSE_ALGORITHM_A128KW;
+            kek_alg.bits_in_key = 128;
             break;
         case T_COSE_ALGORITHM_ECDH_ES_A192KW:
-            kek_len  = 192/8;
-            hash_alg = T_COSE_ALGORITHM_SHA_256;
-            kw_alg   = T_COSE_ALGORITHM_A192KW;
+            hash_alg            = T_COSE_ALGORITHM_SHA_256;
+            kek_alg.cose_alg_id = T_COSE_ALGORITHM_A192KW;
+            kek_alg.bits_in_key = 192;
             break;
         case T_COSE_ALGORITHM_ECDH_ES_A256KW:
-            kek_len  = 256/8;
-            hash_alg = T_COSE_ALGORITHM_SHA_256;
-            kw_alg   = T_COSE_ALGORITHM_A256KW;
+            hash_alg            = T_COSE_ALGORITHM_SHA_256;
+            kek_alg.cose_alg_id = T_COSE_ALGORITHM_A256KW;
+            kek_alg.bits_in_key = 256;
             break;
         default:
             return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
     }
+    (void)ce_alg; /* Not used here because key wrap is not an AEAD */
 
 
     /* Create COSE_recipient array */
     QCBOREncode_OpenArray(cbor_encoder);
 
-    /* ---- Create ephemeral key ---- */
+
+    /* ---- Create ephemeral key pair ---- */
     return_value = t_cose_crypto_generate_ec_key(me->cose_ec_curve_id,
                                                 &ephemeral_key);
     if (return_value != T_COSE_SUCCESS) {
         return return_value;
     }
-
 
 
     /* ---- Make linked list of parameters and encode them ---- */
@@ -156,13 +155,13 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
         params_tail->next = &params[2];
         params_tail = params_tail->next;
     }
-    if(!q_useful_buf_c_is_null(me->partyu)) {
-        params[3] = t_cose_param_make_unprot_bstr(me->partyu, T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
+    if(!q_useful_buf_c_is_null(me->party_u_identity)) {
+        params[3] = t_cose_param_make_unprot_bstr(me->party_u_identity, T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
         params_tail->next = &params[3];
         params_tail = params_tail->next;
     }
-    if(!q_useful_buf_c_is_null(me->partyv)) {
-        params[4] = t_cose_param_make_unprot_bstr(me->partyv, T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
+    if(!q_useful_buf_c_is_null(me->party_v_identity)) {
+        params[4] = t_cose_param_make_unprot_bstr(me->party_v_identity, T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
         params_tail->next = &params[4];
         params_tail = params_tail->next;
     }
@@ -180,12 +179,12 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
 
     /* --- Make Info structure ---- */
-    return_value = create_info_structure(ce_alg,
-                                         me->partyu,
-                                         me->partyv,
+    return_value = create_kdf_context_info(kek_alg,
+                                         me->party_u_identity,
+                                         me->party_v_identity,
                                          protected_hdr,
-                                         me->other,
-                                         me->other_priv,
+                                         me->supp_pub_other,
+                                         me->supp_priv_info,
                                          info_struct_buf,
                                         &info_struct);
 
@@ -195,8 +194,8 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
 
     /* --- Generation of ECDH-derived key  ---- */
-    return_value = t_cose_crypto_ecdh(ephemeral_key,   /* in: ephemeral public key */
-                                      me->pkR,         /* in: private key */
+    return_value = t_cose_crypto_ecdh(me->recipient_pub_key, /* in: public key */
+                                      ephemeral_key,   /* in: private key */
                                       derived_key_buf, /* in: buffer for derived key */
                                       &derived_key);   /* out: derived key */
     if(return_value) {
@@ -205,12 +204,12 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
 
     /* ---- HKDF on derived key to make kek for key wrap  ---- */
-    kek_buf.len = kek_len;
-    return_value = t_cose_crypto_hkdf(hash_alg,       /* in: hash alg for HKDF */
+    kek_buf.len = kek_alg.bits_in_key / 8;
+    return_value = t_cose_crypto_hkdf(hash_alg,     /* in: hash alg for HKDF */
                                       NULL_Q_USEFUL_BUF_C, /* in: salt */
-                                      derived_key, /* in: input key material (ikm) */
+                                      derived_key,  /* in: input key material (ikm) */
                                       info_struct,  /* in: encoded info struct */
-                                      kek_buf); /* in: buffer, out: kek */
+                                      kek_buf);     /* in: buffer, out: kek */
     if(return_value) {
         return T_COSE_ERR_HKDF_FAIL;
     }
@@ -223,7 +222,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
 
     /* ---- Key wrap --- */
-    return_value = t_cose_crypto_make_symmetric_key_handle(kw_alg,
+    return_value = t_cose_crypto_make_symmetric_key_handle(kek_alg.cose_alg_id,
                                                            kek,
                                                           &kek_handle);
     if (return_value != T_COSE_SUCCESS) {
@@ -232,9 +231,9 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
     /* Do the keywrap directly into the output buffer */
     QCBOREncode_OpenBytes(cbor_encoder, &encrypted_cek_destination);
-    return_value = t_cose_crypto_kw_wrap(kw_alg,        /* in: key wrap algorithm */
-                                         kek_handle,    /* in: key encryption key */
-                                         cek,           /* in: "plaintext" = cek */
+    return_value = t_cose_crypto_kw_wrap(kek_alg.cose_alg_id, /* in: key wrap algorithm */
+                                         kek_handle,          /* in: key encryption key */
+                                         cek,                 /* in: "plaintext" = cek */
                                          encrypted_cek_destination, /* in: buffer to write to */
                                         &encrypted_cek_result); /* out: encrypted cek */
     if (return_value != T_COSE_SUCCESS) {

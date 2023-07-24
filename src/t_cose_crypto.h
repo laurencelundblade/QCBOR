@@ -844,7 +844,7 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
 
 
 /**
- * \brief Requests generation of a public / private key.
+ * \brief Requests generation of a public / private key pair.
  *
  * \param[in] cose_ec_curve_id   Curve identifier from COSE curve registry.
  * \param[out] key                t_cose_key structure to hold the key pair
@@ -853,7 +853,7 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
  * structure, or produce an error.
  *
  * \retval T_COSE_SUCCESS
- *         Successfully generated a public/private key pair/
+ *         Successfully generated a public/private key pair
  *
  * \retval T_COSE_ERR_UNSUPPORTED_KEM_ALG
  *         Unknown algorithm

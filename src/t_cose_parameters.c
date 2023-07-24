@@ -781,6 +781,21 @@ t_cose_param_find_content_type_tstr(const struct t_cose_parameter *parameter_lis
 }
 
 
+struct q_useful_buf_c
+t_cose_param_find_bstr(const struct t_cose_parameter *parameter_list, int64_t label)
+{
+    const struct t_cose_parameter *p_found;
+
+    p_found = t_cose_param_find(parameter_list, label);
+    if(p_found != NULL &&
+       p_found->value_type == T_COSE_PARAMETER_TYPE_BYTE_STRING) {
+        return p_found->value.string;
+    } else {
+        return NULL_Q_USEFUL_BUF_C;
+    }
+}
+
+
 /*
  * Public function. See t_cose_parameters.h
  */

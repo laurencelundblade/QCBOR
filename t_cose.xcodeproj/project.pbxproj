@@ -1632,7 +1632,7 @@
 				E730E61F23612DAB00175CE0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		E73BF6EB23AFFB4100DF5C36 /* Build configuration list for PBXNativeTarget "PSA examples" */ = {
 			isa = XCConfigurationList;
@@ -1641,7 +1641,7 @@
 				E73BF6ED23AFFB4100DF5C36 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		E73BF71923B07ACF00DF5C36 /* Build configuration list for PBXNativeTarget "Ossl examples" */ = {
 			isa = XCConfigurationList;
@@ -1650,7 +1650,7 @@
 				E73BF71B23B07ACF00DF5C36 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		E73CDAC323A7316700D262E0 /* Build configuration list for PBXNativeTarget "t_cose_psa" */ = {
 			isa = XCConfigurationList;
@@ -1659,7 +1659,7 @@
 				E73CDAC523A7316700D262E0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		E7D3CFCE29EE7A4400F8C764 /* Build configuration list for PBXNativeTarget "t_cose_psa_qcbor2" */ = {
 			isa = XCConfigurationList;
@@ -1668,7 +1668,7 @@
 				E7D3CFD029EE7A4400F8C764 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		E7E36E73226CB8400040613B /* Build configuration list for PBXProject "t_cose" */ = {
 			isa = XCConfigurationList;
@@ -1677,7 +1677,7 @@
 				E7E36E7E226CB8400040613B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		E7E36E7F226CB8400040613B /* Build configuration list for PBXNativeTarget "t_cose_openssl" */ = {
 			isa = XCConfigurationList;
@@ -1686,7 +1686,7 @@
 				E7E36E81226CB8400040613B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};

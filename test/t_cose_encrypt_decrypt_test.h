@@ -15,7 +15,9 @@
 
 int32_t base_encrypt_decrypt_test(void);
 
-int32_t dec_fixed(void);
+int32_t esdh_enc_dec_test(void);
+
+int32_t decrypt_known_good(void);
 
 
 #endif /* t_cose_encrypt_decrypt_test_h */

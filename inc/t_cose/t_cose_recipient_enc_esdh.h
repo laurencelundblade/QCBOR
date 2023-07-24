@@ -36,18 +36,17 @@ struct t_cose_recipient_enc_esdh {
       */
     struct t_cose_recipient_enc e;
 
-    struct t_cose_key           pkR; /* recipient public key */
+    struct t_cose_key           recipient_pub_key;
     struct q_useful_buf_c       kid;
     int32_t                     cose_ec_curve_id;
     int32_t                     cose_algorithm_id;
     struct t_cose_parameter    *added_params;
 
-    /* stuff for info struct KDF context */
-    struct q_useful_buf_c       partyu;
-    struct q_useful_buf_c       partyv;
-    struct q_useful_buf_c       other;
-    struct q_useful_buf_c       other_priv;
-
+    /* stuff for KDF context info struct */
+    struct q_useful_buf_c       party_u_identity;
+    struct q_useful_buf_c       party_v_identity;
+    struct q_useful_buf_c       supp_pub_other;
+    struct q_useful_buf_c       supp_priv_info;
 };
 
 
@@ -133,7 +132,7 @@ t_cose_recipient_enc_esdh_party_info(struct t_cose_recipient_enc_esdh *context,
  */
 static inline void
 t_cose_recipient_enc_esdh_supp_info(struct t_cose_recipient_enc_esdh *context,
-                                    const struct q_useful_buf_c       supp_other_info,
+                                    const struct q_useful_buf_c       supp_pub_other,
                                     const struct q_useful_buf_c       supp_priv_info);
 
 
@@ -181,11 +180,11 @@ t_cose_recipient_enc_esdh_init(struct t_cose_recipient_enc_esdh *me,
 
 static inline void
 t_cose_recipient_enc_esdh_set_key(struct t_cose_recipient_enc_esdh *me,
-                                  struct t_cose_key                 pkR,
+                                  struct t_cose_key                 recipient_pub_key,
                                   struct q_useful_buf_c             kid)
 {
-    me->pkR = pkR;
-    me->kid = kid;
+    me->recipient_pub_key = recipient_pub_key;
+    me->kid               = kid;
 }
 
 
@@ -194,18 +193,18 @@ t_cose_recipient_enc_esdh_party_info(struct t_cose_recipient_enc_esdh *me,
                                      const struct q_useful_buf_c       party_u_ident,
                                      const struct q_useful_buf_c       party_v_ident)
 {
-    me->partyu = party_u_ident;
-    me->partyv = party_v_ident;
+    me->party_u_identity = party_u_ident;
+    me->party_v_identity = party_v_ident;
 }
 
 
 static inline void
 t_cose_recipient_enc_esdh_supp_info(struct t_cose_recipient_enc_esdh *me,
-                                    const struct q_useful_buf_c       supp_other_info,
+                                    const struct q_useful_buf_c       supp_pub_other,
                                     const struct q_useful_buf_c       supp_priv_info)
 {
-    me->other      = supp_other_info;
-    me->other_priv = supp_priv_info;
+    me->supp_pub_other = supp_pub_other;
+    me->supp_priv_info = supp_priv_info;
 }
 
 #ifdef __cplusplus

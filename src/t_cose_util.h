@@ -254,20 +254,21 @@ create_enc_structure(const char             *context_string,
 
 
 /*
- * Create the info structure for ESDH-based content key distribution,
- * as described RFC 9053. This doesn't allow for filling in some
- * fields like pary U nonce because the author thinks them
- * unnecessary. Use the salt instead.
+ * Create the KDF context info structure for ESDH content key
+ * distribution as described RFC 9053 section 5. This doesn't allow
+ * for filling in some fields like pary U/V nonce. The prevelance of
+ * good RNGs makes them less important. They are filled in as NULLs in
+ * compliance with RFC 9053.
  */
 enum t_cose_err_t
-create_info_structure(const struct t_cose_alg_and_bits  next_alg,
-                      const struct q_useful_buf_c       sender_identity,
-                      const struct q_useful_buf_c       recipient_identity,
-                      const struct q_useful_buf_c       protected_headers,
-                      const struct q_useful_buf_c       other,
-                      const struct q_useful_buf_c       other_priv,
-                      const struct q_useful_buf         buffer_for_info,
-                      struct q_useful_buf_c            *info_structure);
+create_kdf_context_info(const struct t_cose_alg_and_bits  next_alg,
+                        const struct q_useful_buf_c       party_u_identity,
+                        const struct q_useful_buf_c       party_v_identity,
+                        const struct q_useful_buf_c       protected_headers,
+                        const struct q_useful_buf_c       supp_pub_other,
+                        const struct q_useful_buf_c       supp_priv_info,
+                        const struct q_useful_buf         buffer_for_info,
+                        struct q_useful_buf_c            *kdf_context_info);
 
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN

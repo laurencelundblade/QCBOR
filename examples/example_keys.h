@@ -88,13 +88,15 @@
  * Here's another dump from another tool of the same key.
  *
  * 30 77
- *  02 01 01
- *  04 20 D9B5E71F7728BFE563A9DC937562277E327D98D99480F3DC9241E5742AC45889
+ *  02 01 01    integer version 01
+ *  04 20 D9B5E71F7728BFE563A9DC937562277E327D98D99480F3DC9241E5742AC45889   Private key
  *  A0 0A
- *    06 08 2A8648CE3D030107
+ *    06 08 2A8648CE3D030107    OID for prime256v1
  *  A1 44
- *    03 42 000440416C8CDAA0F7A175695553C3279C109CE9277E53C5862AA715EDC636F171...
+ *    03 42 000440416C8CDAA0F7A175695553C3279C109CE9277E53C5862AA715EDC636F171... Public key bit string
  *
+ * X 40 41 6C 8C DA A0 F7 A1 75 69 55 53 C3 27 9C 10 9C E9 27 7E 53 C5 86 2A A7 15 ED C6 36 F1 71 
+ * Y 32 F1 76 43 54 96 15 E5 C8 34 0D 43 32 DD 13 77 8A EC 87 15 76 A3 3C 26 08 6C 32 0C 9F F3 3F C7
  * See also:
  *  https://stackoverflow.com/questions/71890050/set-an-evp-pkey-from-ec-raw-points-pem-or-der-in-both-openssl-1-1-1-and-3-0-x/71896633#71896633
  *
@@ -108,6 +110,8 @@
  */
 extern const unsigned char ec_P_256_key_pair_der[121];
 extern const unsigned char ec_P_256_priv_key_raw[32];
+extern const unsigned char ec_P_256_pub_key_der[91];
+
 
 extern const unsigned char ec_P_384_key_pair_der[167];
 extern const unsigned char ec_P_384_priv_key_raw[48];
@@ -115,6 +119,11 @@ extern const unsigned char ec_P_384_priv_key_raw[48];
 extern const unsigned char ec_P_521_key_pair_der[223];
 extern const unsigned char ec_P_521_priv_key_raw[66];
 
+
+
+/* These keys are the ones used in the COSE Work Group GitHub Examples Repository */
+extern const unsigned char cose_ex_P_256_priv_key_raw[32];
+extern const unsigned char cose_ex_P_256_key_pair_der[121];
 
 
 

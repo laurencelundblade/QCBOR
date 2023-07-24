@@ -22,6 +22,8 @@ int32_t hkdf_test(void);
 
 int32_t ecdh_test(void);
 
+int32_t ec_import_export_test(void);
+
 
 
 #endif /* t_cose_crypto_test_h */

@@ -1432,11 +1432,11 @@ t_cose_crypto_generate_ec_key(const int32_t       cose_ec_curve_id,
              break;
         case T_COSE_ELLIPTIC_CURVE_P_384:
              nid        = NID_secp384r1;
-             key_bitlen   = 384;
+             key_bitlen = 384;
              break;
         case T_COSE_ELLIPTIC_CURVE_P_521:
-             nid  = NID_secp521r1;
-             key_bitlen   = 521;
+             nid        = NID_secp521r1;
+             key_bitlen = 521;
              break;
         default:
              return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
@@ -2323,7 +2323,6 @@ t_cose_crypto_import_ec2_pubkey(const int32_t               cose_ec_curve_id,
     uint8_t                   first_byte;
     UsefulOutBuf_MakeOnStack( import_buf, T_COSE_EXPORT_PUBLIC_KEY_MAX_SIZE);
     struct q_useful_buf_c     import_octets;
-
 
     switch (cose_ec_curve_id) {
         case T_COSE_ELLIPTIC_CURVE_P_256:

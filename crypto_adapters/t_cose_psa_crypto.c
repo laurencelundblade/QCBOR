@@ -727,11 +727,11 @@ t_cose_crypto_generate_ec_key(const int32_t       cose_ec_curve_id,
 
    switch (cose_ec_curve_id) {
     case T_COSE_ELLIPTIC_CURVE_P_256:
-        type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+        type       = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
         key_bitlen = 256;
         break;
     case T_COSE_ELLIPTIC_CURVE_P_384:
-         type = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+         type       = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bitlen = 384;
          break;
     case T_COSE_ELLIPTIC_CURVE_P_521:
@@ -742,7 +742,7 @@ t_cose_crypto_generate_ec_key(const int32_t       cose_ec_curve_id,
         return(T_COSE_ERR_UNSUPPORTED_KEM_ALG);
     }
 
-    /* generate ephemeral key pair: skE, pkE */
+    /* generate ephemeral key pair */
     key_attributes = psa_key_attributes_init();
     psa_set_key_usage_flags(&key_attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_EXPORT);
     psa_set_key_algorithm(&key_attributes, PSA_ALG_ECDH);

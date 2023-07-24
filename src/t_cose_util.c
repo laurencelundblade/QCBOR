@@ -490,7 +490,9 @@ create_enc_structure(const char            *context_string,
 
 
 
-
+/*
+ * Encode one party info. Used twice for party U and party V.
+ */
 static void
 party_encode(QCBOREncodeContext           *cbor_encoder,
              const struct q_useful_buf_c   party)
@@ -501,6 +503,7 @@ party_encode(QCBOREncodeContext           *cbor_encoder,
     } else {
         QCBOREncode_AddNULL(cbor_encoder);
     }
+    /* nonce and other are hard coded to NULL because they seen unneeded. */
     QCBOREncode_AddNULL(cbor_encoder);
     QCBOREncode_AddNULL(cbor_encoder);
     QCBOREncode_CloseArray(cbor_encoder);
@@ -508,78 +511,22 @@ party_encode(QCBOREncodeContext           *cbor_encoder,
 
 
 /*
- * TODO: update this comment. It is wrong
- * The context information structure is used to ensure that the
- * derived keying material is "bound" to the context of the transaction.
- *
- * The structure described below is based on Section 5.2 of RFC 9053
- * with further details added in draft-ietf-suit-firmware-encryption.
- *
- * Note: The structure below is work in progress and likely to be changed.
- *
- * The following CDDL describes the content of the context information
- * structure used for ES-DH.
- *
- * identity-kid     = 1
- * identity-x5u     = 2
- * identity-x5t     = 3
- * identity-x5chain = 4
- * identity-x5bag   = 5
- *
- * identity-type-id /= identity-kid
- * identity-type-id /= identity-x5u
- * identity-type-id /= identity-x5t
- * identity-type-id /= identity-x5chain
- * identity-type-id /= identity-x5bag
- *
- * Identity = [
- *   type : identity-type-id,
- *   // content of the parameter in the COSE structure of the indicated <type>
- *   bytes : bstr,
- * ]
- *
- * PartyInfoSender = (
- *     identity : bstr "author"
- *     nonce : nil,
- *     other : bstr .cbor Identity
- * )
- *
- * PartyInfoRecipient = (
- *     identity : bstr "recipient",
- *     nonce : nil,
- *     other : bstr .cbor Identity
- * )
- *
- * COSE_KDF_Context = [
- *     // algorithm ID for payload encryption (e.g. AES-GCM-256)
- *     AlgorithmID : int,
- *     PartyUInfo : [ PartyInfoSender ],
- *     PartyVInfo : [ PartyInfoRecipient ],
- *     SuppPubInfo : [
- *         // Length of the algorithm indicated in the AlgorithmID
- *         keyDataLength : uint,
- *         // serialized content of the recipients-inner.protected field
- *         // e.g. h'a1013818' from Figure 7 in draft-ietf-suit-firmware-encryption-11
- *         protected : bstr .cbor recipients-inner.protected,
- *         other: bstr .size 0
- *     ],
- *     // hash of the encrypted payload/firmware in form of a SUIT_Digest structure
- *     SuppPrivInfo : bstr .cbor SUIT_Digest
- * ]
- *
+ * Public function. See t_cose_util.h
  */
 enum t_cose_err_t
-create_info_structure(const struct t_cose_alg_and_bits next_alg,
-                      const struct q_useful_buf_c      sender_identity,
-                      const struct q_useful_buf_c      recipient_identity,
-                      const struct q_useful_buf_c      protected_headers,
-                      const struct q_useful_buf_c      other,
-                      const struct q_useful_buf_c      other_priv,
-                      const struct q_useful_buf        buffer_for_info,
-                      struct q_useful_buf_c     *info_structure)
+create_kdf_context_info(const struct t_cose_alg_and_bits next_alg,
+                        const struct q_useful_buf_c      party_u_identity,
+                        const struct q_useful_buf_c      party_v_identity,
+                        const struct q_useful_buf_c      protected_headers,
+                        const struct q_useful_buf_c      supp_pub_other,
+                        const struct q_useful_buf_c      supp_priv_info,
+                        const struct q_useful_buf        buffer_for_info,
+                        struct q_useful_buf_c           *kdf_context_info)
 {
     QCBOREncodeContext  cbor_encoder;
     QCBORError          err;
+    enum t_cose_err_t   return_value;
+
 
     QCBOREncode_Init(&cbor_encoder, buffer_for_info);
     QCBOREncode_OpenArray(&cbor_encoder);
@@ -588,8 +535,8 @@ create_info_structure(const struct t_cose_alg_and_bits next_alg,
     QCBOREncode_AddInt64(&cbor_encoder, next_alg.cose_alg_id);
 
     /* -----------PartyInfo ---------------*/
-    party_encode(&cbor_encoder, sender_identity);
-    party_encode(&cbor_encoder, recipient_identity);
+    party_encode(&cbor_encoder, party_u_identity);
+    party_encode(&cbor_encoder, party_v_identity);
 
 
     /* -----------SuppPubInfo---------------*/
@@ -602,24 +549,34 @@ create_info_structure(const struct t_cose_alg_and_bits next_alg,
     QCBOREncode_AddBytes(&cbor_encoder, protected_headers);
 
     /* other */
-    if(!q_useful_buf_c_is_null(other)) {
-        QCBOREncode_AddBytes(&cbor_encoder, other);
+    if(!q_useful_buf_c_is_null(supp_pub_other)) {
+        QCBOREncode_AddBytes(&cbor_encoder, supp_pub_other);
     }
 
     QCBOREncode_CloseArray(&cbor_encoder);
 
     /* -----------SuppPrivInfo----------- */
-    if(!q_useful_buf_c_is_null(other_priv)) {
-        QCBOREncode_AddBytes(&cbor_encoder, other_priv);
+    if(!q_useful_buf_c_is_null(supp_priv_info)) {
+        QCBOREncode_AddBytes(&cbor_encoder, supp_priv_info);
     }
 
     QCBOREncode_CloseArray(&cbor_encoder);
 
-    err = QCBOREncode_Finish(&cbor_encoder, info_structure);
-    if(err) {
-        return T_COSE_ERR_FAIL; // TODO: improve error mapping
+    err = QCBOREncode_Finish(&cbor_encoder, kdf_context_info);
+    switch(err) {
+        case QCBOR_SUCCESS:
+            return_value = T_COSE_SUCCESS;
+            break;
+
+        case QCBOR_ERR_BUFFER_TOO_SMALL:
+            return_value =T_COSE_ERR_KDF_CONTEXT_SIZE;
+            break;
+
+        default:
+            return_value = T_COSE_ERR_CBOR_FORMATTING;
     }
-    return T_COSE_SUCCESS;
+
+    return return_value;
 }
 
 
