@@ -22,19 +22,20 @@ extern "C" {
 #endif
 
 
-/* This is the decoder for COSE_Recipients of type key wrap.
- * To use this make an instance of it, initialize it and set
- * the kek, and add it as a t_cose_recipient_dec to t_cose_encrypt_dec.
- * When t_cose_encrypt_dec() is called to process the cose message
- * a callback will be made to this code to process COSE_Recpients
- * it encounters that might be of type key wrap.
+/* This is the decoder for COSE_Recipients of type key wrap.  To use
+ * this make an instance of it, initialize it and set the kek, and add
+ * it as a t_cose_recipient_dec to t_cose_encrypt_dec.  When
+ * t_cose_encrypt_dec() is called to process the cose message a
+ * callback will be made to this code to process COSE_Recpients it
+ * encounters that might be of type key wrap.
  */
 struct t_cose_recipient_dec_keywrap {
      /* Private data structure */
 
-     /* t_cose_recipient_dec must be the first item for the polymorphism to
-       * work.  This structure, t_cose_recipient_dec_keywrap, will sometimes be
-       * used as a t_cose_recipient_dec.
+     /* t_cose_recipient_dec must be the first item for the
+       * polymorphism to work.  This structure,
+       * t_cose_recipient_dec_keywrap, will sometimes be used as a
+       * t_cose_recipient_dec.
        */
     struct t_cose_recipient_dec base;
 
@@ -49,8 +50,7 @@ t_cose_recipient_dec_keywrap_init(struct t_cose_recipient_dec_keywrap *context);
 
 /* The kek must always be set and must be of the right type for the
  * algorithm in the key wrap COSE_Recipient. The algorithm ID can be
- * found using decode only mode....*
- * TODO: implement and describe this
+ * found using decode only mode....* TODO: implement and describe this
  *
  * TODO: describe and implement the rules for kid matching
  */
@@ -69,14 +69,14 @@ t_cose_recipient_dec_keywrap_set_kek(struct t_cose_recipient_dec_keywrap *contex
  * here so it can be referenced by t_cose_recipient_dec_keywrap_init()
  * which is an inline function. */
 enum t_cose_err_t
-t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec        *me_x,
+t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec     *me_x,
                                         const struct t_cose_header_location loc,
-                                        const struct t_cose_alg_and_bits    ce_alg,
-                                        QCBORDecodeContext                 *cbor_decoder,
-                                        struct q_useful_buf                 cek_buffer,
-                                        struct t_cose_parameter_storage    *p_storage,
-                                        struct t_cose_parameter           **params,
-                                        struct q_useful_buf_c              *cek);
+                                        const struct t_cose_alg_and_bits ce_alg,
+                                        QCBORDecodeContext        *cbor_decoder,
+                                        struct q_useful_buf         cek_buffer,
+                                        struct t_cose_parameter_storage *p_storage,
+                                        struct t_cose_parameter   **params,
+                                        struct q_useful_buf_c      *cek);
 
 
 static inline void

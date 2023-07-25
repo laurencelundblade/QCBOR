@@ -143,11 +143,13 @@ t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *context,
  * \param[in] context     Signed message verification context.
  * \param[in] storage     The parameter storage to add.
  *
- * This is optionally called to increase the number of storage
- * nodes for COSE_Sign or COSE_Sign1 message with T_COSE_NUM_VERIFY_DECODE_HEADERS header parameters.
- * Decoded parameters are returned in a linked list of struct t_cose_parameter.
- * The storage for the nodes in the list is not dynamically allocated as there
- * is no dynamic storage allocation used here.
+ * This is optionally called to increase the number of storage nodes
+ * for COSE_Sign or COSE_Sign1 message with
+ * T_COSE_NUM_VERIFY_DECODE_HEADERS header parameters.  Decoded
+ * parameters are returned in a linked list of struct
+ * t_cose_parameter.  The storage for the nodes in the list is not
+ * dynamically allocated as there is no dynamic storage allocation
+ * used here.
  *
  * It is assumed that the
  * number of parameters is small and/or can be anticipated.
@@ -157,9 +159,10 @@ t_cose_sign_add_verifier(struct t_cose_sign_verify_ctx  *context,
  * t_cose_sign_verify() and similar.
  *
  * By default, if this is not called there is internal storage for
- * \ref T_COSE_NUM_VERIFY_DECODE_HEADERS headers. If
- * this is not enough call this function to use external storage instead
- * of the internal. This replaces the internal storage. It does not add to it.
+ * \ref T_COSE_NUM_VERIFY_DECODE_HEADERS headers. If this is not
+ * enough call this function to use external storage instead of the
+ * internal. This replaces the internal storage. It does not add to
+ * it.
  *
  * t_cose_parameter_storage allows for the storage to be partially
  * used when it is passed in and whatever is not used by this
@@ -186,10 +189,11 @@ t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *context,
  * \brief Verify a COSE_Sign1 or COSE_Sign.
  *
  * \param[in,out] context   The t_cose signature verification context.
- * \param[in] message         Pointer and length of CBOR encoded \c COSE_Sign1
+ * \param[in] message       Pointer and length of CBOR encoded \c COSE_Sign1
  *                          or \c COSE_Sign message that is to be verified.
  * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
- * \param[out] payload      Pointer and length of the payload that is returned. Must not be \c NULL.
+ * \param[out] payload      Pointer and length of the payload that is returned.
+ *                          Must not be \c NULL.
  * \param[out] parameters   Place to return decoded parameters. May be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
@@ -200,8 +204,8 @@ t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *context,
  *
  * Verification involves the following steps.
  *
- * - The CBOR-format \c COSE_Sign1 or \c COSE_Sign structure is decoded. This makes
- * sure the CBOR is valid and follows the required structure.
+ * - The CBOR-format \c COSE_Sign1 or \c COSE_Sign structure is decoded. This
+ * makes sure the CBOR is valid and follows the required structure.
  *
  * - The protected header parameters are decoded, particular the algorithm id.
  *
@@ -218,9 +222,9 @@ t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *context,
  *
  * - Finally, the signature verification is performed.
  *
- * If verification is successful, the pointer to the CBOR-encoded payload is
- * returned. The parameters are returned if requested. All pointers
- * returned are to memory in the \c message passed in.
+ * If verification is successful, the pointer to the CBOR-encoded
+ * payload is returned. The parameters are returned if requested. All
+ * pointers returned are to memory in the \c message passed in.
  *
  * Indefinite length CBOR strings are not supported by this
  * implementation.  \ref T_COSE_ERR_SIGN1_FORMAT will be returned if
@@ -300,10 +304,10 @@ t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx *context);
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * This does the work for t_cose_sign_verify()
- * and t_cose_sign_verify_detached(). It is
- * a semi-private function which means its interface isn't guaranteed
- * so it should not be called directly.
+ * This does the work for t_cose_sign_verify() and
+ * t_cose_sign_verify_detached(). It is a semi-private function which
+ * means its interface isn't guaranteed so it should not be called
+ * directly.
  */
 enum t_cose_err_t
 t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,

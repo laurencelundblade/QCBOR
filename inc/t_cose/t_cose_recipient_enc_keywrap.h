@@ -28,9 +28,10 @@ extern "C" {
 struct t_cose_recipient_enc_keywrap {
     /* Private data structure */
 
-    /* t_cose_recipient_enc must be the first item for the polymorphism to
-      * work.  This structure, t_cose_recipient_enc_keywrap, will sometimes be
-      * uses as a t_cose_recipient_enc.
+    /* t_cose_recipient_enc must be the first item for the
+      * polymorphism to work.  This structure,
+      * t_cose_recipient_enc_keywrap, will sometimes be uses as a
+      * t_cose_recipient_enc.
       */
     struct t_cose_recipient_enc e;
 
@@ -46,30 +47,32 @@ struct t_cose_recipient_enc_keywrap {
 
  * @param[in]  keywrap_cose_algorithm_id  The key wrap algorithm ID.
  *
- * This must be called not only to set the key wrap algorithm ID, but also because
- * this sets up the callbacks in the t_cose_recipient_enc_keywrap. That is when
- * all the real work of keywrapping gets done.
+ * This must be called not only to set the key wrap algorithm ID, but
+ * also because this sets up the callbacks in the
+ * t_cose_recipient_enc_keywrap. That is when all the real work of
+ * keywrapping gets done.
  *
  * This typically only supports AES key wrap.
  *
- * If an unknown algortihm ID is passed, the error will occur when t_cose_encrypt_enc() is
- * called and the error code will be returned there.
+ * If an unknown algortihm ID is passed, the error will occur when
+ * t_cose_encrypt_enc() is called and the error code will be returned
+ * there.
  */
 static void
 t_cose_recipient_enc_keywrap_init(struct t_cose_recipient_enc_keywrap *context,
-                                  int32_t                              keywrap_cose_algorithm_id);
+                                  int32_t            keywrap_cose_algorithm_id);
 
 
 /**
  * @brief Sets the wrapping key to use.
  *
- * The key must be usable with the key wrap algorithm passed to t_cose_recipient_enc_keywrap_init() The
- * kid is optional.
+ * The key must be usable with the key wrap algorithm passed to
+ * t_cose_recipient_enc_keywrap_init() The kid is optional.
  */
 static void
 t_cose_recipient_enc_keywrap_set_key(struct t_cose_recipient_enc_keywrap *context,
-                                     struct t_cose_key                    wrapping_key,
-                                     struct q_useful_buf_c                kid);
+                                     struct t_cose_key             wrapping_key,
+                                     struct q_useful_buf_c         kid);
 
 
 /**
@@ -82,8 +85,9 @@ t_cose_recipient_enc_keywrap_set_key(struct t_cose_recipient_enc_keywrap *contex
  * algorithm ID, the only mandatory parameter, is automatically
  * added.
  *
- * It is not necessary to call this to add the kid either as that
- * is handled by configuring the \ref t_cose_recipient_enc_keywrap_set_key with the kid.
+ * It is not necessary to call this to add the kid either as that is
+ * handled by configuring the \ref
+ * t_cose_recipient_enc_keywrap_set_key with the kid.
  *
  * This adds a linked list of header parameters to the recipient. I
  *
@@ -93,10 +97,11 @@ t_cose_recipient_enc_keywrap_set_key(struct t_cose_recipient_enc_keywrap *contex
  * All the parameters must have a label and a value.
  *
  * Alternatively, and particularly for parameters that are not
- * integers or strings the value may be a callback of type t_cose_parameter_encode_callback
- * in which case the callback will be called when it is time
- * to output the CBOR for the custom header. The callback should
- * output the CBOR for the particular parameter.
+ * integers or strings the value may be a callback of type
+ * t_cose_parameter_encode_callback in which case the callback will be
+ * called when it is time to output the CBOR for the custom
+ * header. The callback should output the CBOR for the particular
+ * parameter.
  *
  * This supports only integer labels. (String labels could be added
  * but would increase object code size).
@@ -106,7 +111,7 @@ t_cose_recipient_enc_keywrap_set_key(struct t_cose_recipient_enc_keywrap *contex
  */
 static void
 t_cose_recipient_enc_add_params(struct t_cose_recipient_enc_keywrap *context,
-                                struct t_cose_parameter             *parameters);
+                                struct t_cose_parameter            *parameters);
 
 
 
@@ -117,26 +122,26 @@ t_cose_recipient_enc_add_params(struct t_cose_recipient_enc_keywrap *context,
 
 /* Private function referenced by inline implementation. */
 enum t_cose_err_t
-t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc     *me_x,
-                                           struct q_useful_buf_c            plaintext,
+t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc   *me_x,
+                                           struct q_useful_buf_c     plaintext,
                                            const struct t_cose_alg_and_bits ce_alg,
-                                           QCBOREncodeContext              *cbor_encoder);
+                                           QCBOREncodeContext    *cbor_encoder);
 
 
 static inline void
 t_cose_recipient_enc_keywrap_init(struct t_cose_recipient_enc_keywrap *me,
-                                  int32_t                              cose_algorithm_id)
+                                  int32_t            keywrap_cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
     me->e.creat_cb = t_cose_recipient_create_keywrap_cb_private;
-    me->keywrap_cose_algorithm_id = cose_algorithm_id;
+    me->keywrap_cose_algorithm_id = keywrap_cose_algorithm_id;
 }
 
 
 static inline void
 t_cose_recipient_enc_keywrap_set_key(struct t_cose_recipient_enc_keywrap *me,
-                                     struct t_cose_key wrapping_key,
-                                     struct q_useful_buf_c kid)
+                                     struct t_cose_key           wrapping_key,
+                                     struct q_useful_buf_c       kid)
 {
     me->wrapping_key = wrapping_key;
     me->kid          = kid;

@@ -256,12 +256,13 @@ process_cose_signatures(struct t_cose_sign_verify_ctx *me,
     for(header_location.index = 0;  ; header_location.index++) {
 
         sig_params = NULL;
-        return_value = verify_one_signature(me, /* in: main sig verification context */
-                                            header_location, /* in: for header decoding */
-                                            sign_inputs, /* in: what to verify */
-                                            cbor_decoder, /* in: CBOR decoder */
-                                            &sig_params /* out: decoded params */
-                                            );
+        return_value = verify_one_signature(
+                                me,              /* in: main sig verify cntxt */
+                                header_location, /* in: for header decoding */
+                                sign_inputs,     /* in: what to verify */
+                                cbor_decoder,    /* in: CBOR decoder */
+                                &sig_params      /* out: decoded params */
+                                );
 
         if(return_value == T_COSE_ERR_NO_MORE) {
             /* End of the array of signatures. */

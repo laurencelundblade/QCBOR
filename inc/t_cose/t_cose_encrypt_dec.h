@@ -115,7 +115,7 @@ struct t_cose_encrypt_dec_ctx {
  *                                   Currently none.
  *
  * TODO: not all of the following is implemented
- * If \c option_flags includes either \ref T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0 
+ * If \c option_flags includes either \ref T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0
  * or \ref T_COSE_OPT_MESSAGE_TYPE_ENCRYPT then the input message must be
  * \c COSE_Encrypt0 or \c COSE_Encrypt respectively. The error
  * T_COSE_ERR_XXXXXX will be returned if the option_flags indicated

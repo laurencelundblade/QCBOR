@@ -1421,22 +1421,18 @@ t_cose_crypto_generate_ec_key(const int32_t       cose_ec_curve_id,
     EC_KEY   *ec_key;
     int       ossl_result;
     int       nid;
-    size_t    key_bitlen;
     EC_GROUP *ec_group;
     EVP_PKEY *evp_pkey;
 
     switch (cose_ec_curve_id) {
         case T_COSE_ELLIPTIC_CURVE_P_256:
              nid        = NID_X9_62_prime256v1;
-             key_bitlen = 256;
              break;
         case T_COSE_ELLIPTIC_CURVE_P_384:
              nid        = NID_secp384r1;
-             key_bitlen = 384;
              break;
         case T_COSE_ELLIPTIC_CURVE_P_521:
              nid        = NID_secp521r1;
-             key_bitlen = 521;
              break;
         default:
              return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;

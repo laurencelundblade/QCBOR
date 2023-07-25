@@ -55,15 +55,15 @@
  * signings by multiple aglorithms, for example an ECDSA signature and
  * an HSS/LMS signature.
  *
- * Because this design is based on dynamic linking it gives
- * some help dealing with code size and dependency on crypto libraries.
- * If you don't call the init function for a signer or verifier
- * it won't be linked No disabling #define needed. You can
- * just leave out the source files for signers/verifiers you don't
- * want and all will compile and link nicely without having to
- * managed a #define. (This doesn't work to elimiate RSA if you use only ECDSA
- * though because  they both go through the same layer
- * in the crypto adaptation layer. It does work for EdDSA).
+ * Because this design is based on dynamic linking it gives some help
+ * dealing with code size and dependency on crypto libraries.  If you
+ * don't call the init function for a signer or verifier it won't be
+ * linked No disabling #define needed. You can just leave out the
+ * source files for signers/verifiers you don't want and all will
+ * compile and link nicely without having to managed a #define. (This
+ * doesn't work to elimiate RSA if you use only ECDSA though because
+ * they both go through the same layer in the crypto adaptation
+ * layer. It does work for EdDSA).
  *
  * What's really going on here is a bit of doing object orientation
  * implementned in C. This is an abstract base class, an object that
@@ -90,17 +90,19 @@ struct t_cose_signature_sign;
 
 
 /**
- * \brief Typedef of callback that  creates and outputs a bare signature in a byte string for a COSE_Sign1.
+ * \brief Typedef of callback that  creates and outputs a bare signature in
+ * a byte string for a COSE_Sign1.
  *
  * \param [in] me                    The context, the  t_cose_signature_sign
- *                                   instance. 
+ *                                   instance.
  * \param[in] sign_inputs            Payload, aad and header parameters to sign.
- * \param[in] qcbor_encoder          The CBOR encoder context to ouput  the simple byte
- *                                   string signature for a COSE_Sign1.
+ * \param[in] qcbor_encoder          The CBOR encoder context to ouput the
+ *                                   simple byte string signature for a
+ *                                   COSE_Sign1.
  *
- * This does the important work of computing the hash of the inputs and
- * invoking the public key signing algorithm. It then outputs a byte string with
- * signature to \c qcbor_encoder.
+ * This does the important work of computing the hash of the inputs
+ * and invoking the public key signing algorithm. It then outputs a
+ * byte string with signature to \c qcbor_encoder.
  */
 typedef enum t_cose_err_t
 t_cose_signature_sign1_cb(struct t_cose_signature_sign    *me,
@@ -128,8 +130,8 @@ t_cose_signature_sign1_cb(struct t_cose_signature_sign    *me,
  * compute the size and add the size to qcbor_encoder because it is
  * being called in size calculation mode.
  *
- * If a signer implements only COSE_SIgn1, this still should be implemented and it
- * should return an error.
+ * If a signer implements only COSE_SIgn1, this still should be
+ * implemented and it should return an error.
  *
  * Note that \c sign_inputs is not const because it will be modifed to fill
  * in the sign-protected headers.
@@ -165,10 +167,10 @@ t_cose_signature_sign_headers_cb(struct t_cose_signature_sign *me,
 
 
 /**
- * Data structture that must be the first part of every context of every concrete
- * implementation of t_cose_signature_sign. The function callback pointers
- * should never be NULL, but they may be stubs that return an error
- * when the callback is not implemented.
+ * Data structture that must be the first part of every context of
+ * every concrete implementation of t_cose_signature_sign. The
+ * function callback pointers should never be NULL, but they may be
+ * stubs that return an error when the callback is not implemented.
  */
 struct t_cose_signature_sign {
     struct t_cose_rs_obj             rs;

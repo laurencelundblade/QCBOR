@@ -43,15 +43,19 @@ t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
 
     /* Output the header parameters */
     params[0]  = t_cose_param_make_alg_id(me->keywrap_cose_algorithm_id);
-    params[0].in_protected = false; /* Override t_cose_make_alg_id_parameter() because there is no protection in Keywrap */
+    params[0].in_protected = false; /* Override t_cose_make_alg_id_parameter().
+                                     * There's no protection in Keywrap */
     if(!q_useful_buf_c_is_null(me->kid)) {
         params[1] = t_cose_param_make_kid(me->kid);
         params[0].next = &params[1];
     }
     params2 = params;
     t_cose_params_append(&params2, me->added_params);
-    // TODO: make sure no custom headers are protected because there is no protect with key wrap
-    return_value = t_cose_headers_encode(cbor_encoder, params2, &protected_params_not);
+    // TODO: make sure no custom headers are protected because
+    // there is no protect with key wrap
+    return_value = t_cose_headers_encode(cbor_encoder,
+                                         params2,
+                                         &protected_params_not);
     if (return_value != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -62,7 +66,8 @@ t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
          * of RFC 9052.
          */
         // TODO: Erata for 9052?
-        // 5.4 says this must be an empty bstr. 3 says either empty map or empty bstr.
+        // 5.4 says this must be an empty bstr.
+        // 3 says either empty map or empty bstr.
         return_value = T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED;
         goto Done;
     }

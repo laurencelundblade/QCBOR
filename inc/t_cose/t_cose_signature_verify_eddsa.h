@@ -22,17 +22,17 @@
 extern "C" {
 #endif
 
-/* Warning: this is still early development. Documentation may be incorrect. */
-
 
 /**
- * Verification context. */
+ * Verification context.
+ */
 struct t_cose_signature_verify_eddsa {
     /* Private data structure */
 
-    /* t_cose_signature_verify must be the first item for the polymorphism to work.
-     * This structure, t_cose_signature_verify_eddsa, will sometimes be uses as
-     * a t_cose_signature_verify.
+    /* t_cose_signature_verify must be the first item for the
+     * polymorphism to work.  This structure,
+     * t_cose_signature_verify_eddsa, will sometimes be uses as a
+     * t_cose_signature_verify.
      */
     struct t_cose_signature_verify  s;
     struct t_cose_key               verification_key;
@@ -145,7 +145,7 @@ t_cose_signature_verify_eddsa_set_key(struct t_cose_signature_verify_eddsa *me,
 static inline void
 t_cose_signature_verify_eddsa_set_special_param_decoder(struct t_cose_signature_verify_eddsa *me,
                                                         t_cose_param_special_decode_cb       *decode_cb,
-                                                        void                                 *decode_ctx)
+                                                        void      *decode_ctx)
 {
     me->special_param_decode_cb  = decode_cb;
     me->special_param_decode_ctx = decode_ctx;
@@ -153,7 +153,7 @@ t_cose_signature_verify_eddsa_set_special_param_decoder(struct t_cose_signature_
 
 static inline void
 t_cose_signature_verify_eddsa_set_auxiliary_buffer(struct t_cose_signature_verify_eddsa *me,
-                                                   struct q_useful_buf                   auxiliary_buffer)
+                                        struct q_useful_buf auxiliary_buffer)
 {
     me->auxiliary_buffer = auxiliary_buffer;
 

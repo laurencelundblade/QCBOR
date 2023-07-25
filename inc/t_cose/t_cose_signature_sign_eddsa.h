@@ -1,7 +1,7 @@
 /*
  * t_cose_signature_sign_eddsa.h
  *
- * Copyright (c) 2022, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 11/15/22.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -67,8 +67,8 @@ t_cose_signature_sign_eddsa_init(struct t_cose_signature_sign_eddsa *context);
  */
 static void
 t_cose_signature_sign_eddsa_set_signing_key(struct t_cose_signature_sign_eddsa *context,
-                                            struct t_cose_key                   signing_key,
-                                            struct q_useful_buf_c               kid);
+                                            struct t_cose_key       signing_key,
+                                            struct q_useful_buf_c   kid);
 
 
 /* The header parameter for the algorithm ID is generated automatically.
@@ -78,10 +78,11 @@ t_cose_signature_sign_eddsa_set_signing_key(struct t_cose_signature_sign_eddsa *
  t_cose_sign_add_body_header_parameters() for the parameters that go in
  the COSE_Sign and COSE_Sign1 main body.
 
- The parameters to add are passed in as an array of t_cose_header_param.
- Note that individual parameters in this array can have a call back that does
- the encoding, so it is possible to handle complicated parameters, such
- as ones that are maps and arrays themselves.
+ The parameters to add are passed in as an array of
+ t_cose_header_param.  Note that individual parameters in this array
+ can have a call back that does the encoding, so it is possible to
+ handle complicated parameters, such as ones that are maps and arrays
+ themselves.
  */
 static void
 t_cose_signature_sign_eddsa_set_header_parameter(struct t_cose_signature_sign_eddsa *context,
@@ -112,7 +113,7 @@ t_cose_signature_sign_eddsa_set_header_parameter(struct t_cose_signature_sign_ed
  */
 static void
 t_cose_signature_sign_eddsa_set_auxiliary_buffer(struct t_cose_signature_sign_eddsa *context,
-                                                 struct q_useful_buf           auxiliary_buffer);
+                                        struct q_useful_buf auxiliary_buffer);
 
 /**
  * \brief Get the required auxiliary buffer size for the most recent
@@ -165,8 +166,8 @@ t_cose_signature_sign_from_eddsa(struct t_cose_signature_sign_eddsa *me);
 
 static inline void
 t_cose_signature_sign_eddsa_set_signing_key(struct t_cose_signature_sign_eddsa *me,
-                                            struct t_cose_key                   signing_key,
-                                            struct q_useful_buf_c               kid)
+                                            struct t_cose_key       signing_key,
+                                            struct q_useful_buf_c   kid)
 {
     me->signing_key = signing_key;
     me->kid         = kid;
@@ -188,7 +189,7 @@ t_cose_signature_sign_from_eddsa(struct t_cose_signature_sign_eddsa *me)
 
 static inline void
 t_cose_signature_sign_eddsa_set_header_parameter(struct t_cose_signature_sign_eddsa *me,
-                                                 struct t_cose_parameter   *header_parameters)
+                                                 struct t_cose_parameter *header_parameters)
 {
     me->added_signer_params = header_parameters;
 }
@@ -196,7 +197,7 @@ t_cose_signature_sign_eddsa_set_header_parameter(struct t_cose_signature_sign_ed
 
 static inline void
 t_cose_signature_sign_eddsa_set_auxiliary_buffer(struct t_cose_signature_sign_eddsa *me,
-                                       struct q_useful_buf           auxiliary_buffer)
+                                          struct q_useful_buf auxiliary_buffer)
 {
     me->auxiliary_buffer = auxiliary_buffer;
 }

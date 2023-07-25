@@ -198,7 +198,6 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
 {
     psa_status_t          status;
     psa_key_attributes_t  attributes;
-    psa_key_type_t        type_public;
     psa_key_type_t        type_private;
     uint32_t              key_bitlen;
     struct q_useful_buf_c key_bytes;
@@ -207,19 +206,16 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
 
     switch (cose_ec_curve_id) {
     case T_COSE_ELLIPTIC_CURVE_P_256:
-         type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_256_priv_key_raw);
          key_bitlen   = 256;
          break;
     case T_COSE_ELLIPTIC_CURVE_P_384:
-         type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_priv_key_raw);
          key_bitlen   = 384;
          break;
     case T_COSE_ELLIPTIC_CURVE_P_521:
-         type_public  = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
          type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
          key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_raw);
          key_bitlen   = 521;

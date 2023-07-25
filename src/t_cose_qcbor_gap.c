@@ -19,7 +19,8 @@
 /*
  * Public Function. See t_cose_qcbor_gap.h
  */
-void QCBORDecode_SaveCursor(QCBORDecodeContext *pMe, QCBORSaveDecodeCursor *cursor)
+void QCBORDecode_SaveCursor(QCBORDecodeContext *pMe,
+                            QCBORSaveDecodeCursor *cursor)
 {
     cursor->Nesting = pMe->nesting;
     cursor->offset  = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
@@ -30,7 +31,8 @@ void QCBORDecode_SaveCursor(QCBORDecodeContext *pMe, QCBORSaveDecodeCursor *curs
 /*
  * Public Function. See t_cose_qcbor_gap.h
  */
-void QCBORDecode_RestoreCursor(QCBORDecodeContext *pMe, const QCBORSaveDecodeCursor *cursor)
+void QCBORDecode_RestoreCursor(QCBORDecodeContext *pMe,
+                               const QCBORSaveDecodeCursor *cursor)
 {
     pMe->nesting = cursor->Nesting;
     UsefulInputBuf_Seek(&(pMe->InBuf), cursor->offset);

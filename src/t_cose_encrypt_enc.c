@@ -144,14 +144,15 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
          * conveyed to the recipient by some key distribution method in
          * a COSE_Recipient). */
         return_value = t_cose_crypto_get_random(cek_buffer,
-                                                ce_alg.bits_in_key  / 8,
+                                                ce_alg.bits_in_key / 8,
                                                 &cek_bytes);
         if (return_value != T_COSE_SUCCESS) {
             goto Done;
         }
-        return_value = t_cose_crypto_make_symmetric_key_handle(ce_alg.cose_alg_id, /* in: alg id */
-                                                               cek_bytes, /* in: key bytes */
-                                                              &cek_handle); /* out: key handle */
+        return_value = t_cose_crypto_make_symmetric_key_handle(
+                                    ce_alg.cose_alg_id, /* in: alg id */
+                                    cek_bytes,          /* in: key bytes */
+                                   &cek_handle);        /* out: key handle */
     }
     if (return_value != T_COSE_SUCCESS) {
         goto Done;
@@ -171,10 +172,10 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     }
 
     return_value =
-        t_cose_crypto_aead_encrypt(ce_alg.cose_alg_id, /* in: AEAD algorithm ID */
+        t_cose_crypto_aead_encrypt(ce_alg.cose_alg_id, /* in: AEAD alg ID */
                                    cek_handle,     /* in: content encryption key handle */
                                    nonce,          /* in: nonce / IV */
-                                   enc_structure,  /* in: additional data to authenticate */
+                                   enc_structure,  /* in: AAD to authenticate */
                                    payload,        /* in: payload to encrypt */
                                    encrypt_buffer, /* in: buffer to write to */
                                   &encrypt_output  /* out: ciphertext */);

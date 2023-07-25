@@ -30,13 +30,16 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
                                         struct t_cose_parameter **params,
                                         struct q_useful_buf_c *cek)
 {
-    struct q_useful_buf_c  ciphertext;
-    struct q_useful_buf_c  protected_params;
-    enum t_cose_err_t      err;
-    int32_t                cose_algorithm_id;
-    QCBORError             cbor_error;
+    struct t_cose_recipient_dec_keywrap *me;
+    enum t_cose_err_t                    err;
+    struct q_useful_buf_c                ciphertext;
+    struct q_useful_buf_c                protected_params;
+    int32_t                              cose_algorithm_id;
+    QCBORError                           cbor_error;
+    struct q_useful_buf_c                encoded_empty_map;
 
-    struct t_cose_recipient_dec_keywrap *me = (struct t_cose_recipient_dec_keywrap *)me_x;
+    /* Morph to the object we actually are */
+    me = (struct t_cose_recipient_dec_keywrap *)me_x;
 
     (void)ce_alg; /* No COSE_KDF_Context is built for key wrap. */
 
@@ -56,12 +59,13 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
     if(err != T_COSE_SUCCESS) {
         goto Done;
     }
+
+    encoded_empty_map = Q_USEFUL_BUF_FROM_SZ_LITERAL("\xa0");
     if(!(q_useful_buf_c_is_empty(protected_params) ||
-         !q_useful_buf_compare(protected_params, Q_USEFUL_BUF_FROM_SZ_LITERAL("\xa0")))) {
+         !q_useful_buf_compare(protected_params, encoded_empty_map))) {
         /* There's can't be any protected headers here because keywrap
-         * can't protected them (need an AEAD). The byte 0xa0 is an
-         * encoded empty CBOR map. While completely empty headers are
-         * preferred an empty map is allowed. */
+         * can't protected them (need an AEAD). While completely empty
+         * headers are preferred an empty map is allowed. */
         // TODO: the right error here
         return T_COSE_ERR_FAIL;
     }

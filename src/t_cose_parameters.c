@@ -340,8 +340,7 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
     /* --- Main loop to decode the parameters in the map --- */
     while(1) {
         /* --- Peek at next parameter and do some checks --- */
-        /* Can't consume because it might be special to be consumed by
-	   callback */
+        /* Can't consume because it might be special to be consumed by callback */
         QCBORDecode_VPeekNext(cbor_decoder, &item);
         cbor_error = QCBORDecode_GetAndResetError(cbor_decoder);
         if(cbor_error == QCBOR_ERR_NO_MORE_ITEMS) {

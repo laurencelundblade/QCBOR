@@ -35,16 +35,18 @@ struct t_cose_signature_verify;
 /**
  * \brief Type definition of function used to verify a COSE_Signature in a COSE_Sign.
  *
- * \param[in] me                      The context, the  t_cose_signature_verify
- *                                    instance. This  will actully be some thing like
- *                                    t_cose_signature_verify_main that inplements
- *                                    t_cose_signature_verify.
- * \param[in] option_flags          Option flags from t_cose_sign_verify_init(). Mostly for \ref T_COSE_OPT_DECODE_ONLY.
- * \param[in] loc                     The location of the signature inside the COSE_Sign.
- * \param[in] sign_inputs             Payload, aad and header parameters to verify.
- * \param[in] params                  The place to put the decoded params.
- * \param[in] qcbor_decoder           The decoder instance from where the
- *                                     COSE_Signature is decoded.
+ * \param[in] me               The context, the  t_cose_signature_verify
+ *                             instance. This  will actully be some thing like
+ *                             t_cose_signature_verify_main that inplements
+ *                             t_cose_signature_verify.
+ * \param[in] option_flags     Option flags from t_cose_sign_verify_init().
+ *                             Mostly for \ref T_COSE_OPT_DECODE_ONLY.
+ * \param[in] loc              The location of the signature inside the
+ *                             COSE_Sign.
+ * \param[in] sign_inputs      Payload, aad and header parameters to verify.
+ * \param[in] params           The place to put the decoded params.
+ * \param[in] qcbor_decoder    The decoder instance from where the
+ *                             COSE_Signature is decoded.
  * \param[out] decoded_params  Returned linked list of decoded parameters.
  *
  * This must return T_COSE_ERR_NO_MORE if there are no more COSE_Signatures.
@@ -62,15 +64,16 @@ t_cose_signature_verify_cb(struct t_cose_signature_verify     *me,
 /**
  * \brief Type definition of function to verify the bare signature in COSE_Sign1.
  *
- * \param[in] me                       The context, the  t_cose_signature_verify
- *                                     instance. This  will actully be some thing like
- *                                     t_cose_signature_verify_main that inplements
- *                                     t_cose_signature_verify.
- * \param[in] option_flags          Option flags from t_cose_sign_verify_init(). Mostly for \ref T_COSE_OPT_DECODE_ONLY.
- * \param[in] sign_inputs             Payload, aad and header parameters to verify.
- * \param[in] parameter_list           Parameter list in which algorithm and kid is
- *                                     found.
- * \param[in] signature                The signature.
+ * \param[in] me              The context, the  t_cose_signature_verify
+ *                            instance. This  will actully be some thing like
+ *                            t_cose_signature_verify_main that inplements
+ *                            t_cose_signature_verify.
+ * \param[in] option_flags    Option flags from t_cose_sign_verify_init().
+ *                            Mostly for \ref T_COSE_OPT_DECODE_ONLY.
+ * \param[in] sign_inputs     Payload, aad and header parameters to verify.
+ * \param[in] parameter_list  Parameter list in which algorithm and kid is
+ *                            found.
+ * \param[in] signature       The signature.
  *
  * This is very different from t_cose_signature_verify_cb()
  * because there is no header decoding to be done. Instead the headers

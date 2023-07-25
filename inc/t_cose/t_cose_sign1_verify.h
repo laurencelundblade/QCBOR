@@ -146,7 +146,7 @@ t_cose_sign1_verify_init(struct t_cose_sign1_verify_ctx *context,
  */
 void
 t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
-                                  struct t_cose_key               verification_key);
+                                  struct t_cose_key          verification_key);
 
 
 /**
@@ -173,7 +173,7 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  */
 static void
 t_cose_sign1_verify_set_auxiliary_buffer(struct t_cose_sign1_verify_ctx *context,
-                                         struct q_useful_buf             auxiliary_buffer);
+                                         struct q_useful_buf  auxiliary_buffer);
 
 /**
  * \brief Get the required auxiliary buffer size for the most recent
@@ -382,7 +382,7 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameters       *parameters)
 {
-    enum t_cose_err_t           return_value;
+    enum t_cose_err_t        return_value;
     struct t_cose_parameter *decoded_params;
 
     return_value = t_cose_sign_verify_detached(&(me->me2),

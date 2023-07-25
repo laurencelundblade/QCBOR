@@ -29,33 +29,37 @@ extern "C" {
  *
  * Warning: documentation may be incorrect in some places here.
  *
- * \brief Encrypt plaintext and encode it in a CBOR-based structure referred to as
- * COSE_Encrypt0 or COSE_Encrypt.
+ * \brief Encrypt plaintext and encode it in a CBOR-based structure
+ * referred to as COSE_Encrypt0 or COSE_Encrypt.
  *
- * The functions defined encrypt plaintext with a symmetric cryptographic algorithm.
- * The result is then stored in \c COSE_Encrypt0 or in a \c COSE_Encrypt
- * message, as defined in [COSE (RFC 8152)]
- * (https://tools.ietf.org/html/rfc8152). \c COSE_Encrypt0 and \c COSE_Encrypt
- * messages are CBOR encoded binary payloads that contain header parameters,
- * a payload - the ciphertext. The payload may be detached in which case it is
- * not included in the CBOR encoded message and needs to be conveyed separately.
+ * The functions defined encrypt plaintext with a symmetric
+ * cryptographic algorithm.  The result is then stored in \c
+ * COSE_Encrypt0 or in a \c COSE_Encrypt message, as defined in [COSE
+ * (RFC 8152)] (https://tools.ietf.org/html/rfc8152). \c COSE_Encrypt0
+ * and \c COSE_Encrypt messages are CBOR encoded binary payloads that
+ * contain header parameters, a payload - the ciphertext. The payload
+ * may be detached in which case it is not included in the CBOR
+ * encoded message and needs to be conveyed separately.
  *
- * \c COSE_Encrypt and \c COSE_Encrypt0 messages require a symmetric key for encryption
- * (referred to as Content Encryption Key or CEK). Hence, it is necessary to think
- * about  key distribution and COSE (RFC 8152) defines various "Content Key
- * Distribution Methods", as RFC 8152 calls it, and two of them are
- * implemented in this library:
+ * \c COSE_Encrypt and \c COSE_Encrypt0 messages require a symmetric
+ * key for encryption (referred to as Content Encryption Key or
+ * CEK). Hence, it is necessary to think about key distribution and
+ * COSE (RFC 8152) defines various "Content Key Distribution Methods",
+ * as RFC 8152 calls it, and two of them are implemented in this
+ * library:
  *
- * 1) The CEK is pre-negotiated between the involved communication parties.
- * Hence, no CEK is transported in the COSE message. For this approach the COSE_Encrypt0
- * message is used.
+ * 1) The CEK is pre-negotiated between the involved communication
+ * parties.  Hence, no CEK is transported in the COSE message. For
+ * this approach the COSE_Encrypt0 message is used.
  *
- * 2) Key agreement: This approach requires utilizes an algorithm for establishing
- * a shared secret, which then serves as a CEK. Therefore, a recipient structure
- * must be included in the COSE message and the COSE_Encrypt message carries such
- * a recipient structure(while \c COSE_Encrypt0 does not). The key agreement
- * algorithm used in this implementation is based on Hybrid Public Key Encryption
- * (HPKE) and is described in https://datatracker.ietf.org/doc/draft-ietf-cose-hpke/.
+ * 2) Key agreement: This approach requires utilizes an algorithm for
+ * establishing a shared secret, which then serves as a
+ * CEK. Therefore, a recipient structure must be included in the COSE
+ * message and the COSE_Encrypt message carries such a recipient
+ * structure(while \c COSE_Encrypt0 does not). The key agreement
+ * algorithm used in this implementation is based on Hybrid Public Key
+ * Encryption (HPKE) and is described in
+ * https://datatracker.ietf.org/doc/draft-ietf-cose-hpke/.
  *
  * This implementation is intended to be small and portable to
  * different OS's and platforms. Its dependencies are:
@@ -66,16 +70,16 @@ extern "C" {
  *
  * Additionally, it is necessary to either sign or MAC the resulting
  * COSE_Encrypt0 or COSE_Encrypt message to provide authentication and
- * integrity protection. This functionality is supported by other APIs in
- * the t_cose library.
+ * integrity protection. This functionality is supported by other APIs
+ * in the t_cose library.
  *
  * There is a cryptographic adaptation layer defined in
  * t_cose_crypto.h.  An implementation can be made of the functions in
  * it for different cryptographic libraries. This means that different
- * integrations with different cryptographic libraries may, for example,
- * support only encryption with a particular set of algorithms.
- * At this moment, only the integration with Mbed TLS (and more
- * specifically the PSA Crypto API) is supported.
+ * integrations with different cryptographic libraries may, for
+ * example, support only encryption with a particular set of
+ * algorithms.  At this moment, only the integration with Mbed TLS
+ * (and more specifically the PSA Crypto API) is supported.
  *
  * See t_cose_common.h for preprocessor defines to reduce object code
  * and stack use by disabling features.
@@ -138,9 +142,10 @@ extern "C" {
 
 
 /**
- * This is the context for creating \c COSE_Encrypt and \c COSE_Encrypt0 structures.
- * The caller should allocate it and pass it to the functions here. This
- * is around 50 bytes, so it fits easily on the stack.
+ * This is the context for creating \c COSE_Encrypt and \c
+ * COSE_Encrypt0 structures.  The caller should allocate it and pass
+ * it to the functions here. This is around 50 bytes, so it fits
+ * easily on the stack.
  */
 struct t_cose_encrypt_enc {
     /* Private data structure */
@@ -164,21 +169,20 @@ struct t_cose_encrypt_enc {
  *                               data, for example
  *                               \ref COSE_ALGORITHM_A128GCM.
  *
- * The lower bits of \ref option_flags may be either 
- * \ref  T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0 or 
+ * The lower bits of \ref option_flags may be either
+ * \ref  T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0 or
  * \ref T_COSE_OPT_MESSAGE_TYPE_ENCRYPT to select the message type. If
  * the lower bits are zero it will default to
  * \re T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0.
  *
- * The algorithm ID is requires and is from
- * [COSE (RFC9053)](https://tools.ietf.org/html/rfc9053) and the
- * [IANA COSE Registry](https://www.iana.org/assignments/cose/cose.xhtml).
- * \ref T_COSE_ALGORITHM_A128GCM and a few others are defined here for
- * convenience. The supported algorithms depend on the
- * cryptographic library that t_cose is integrated with.
- * The algorithm ID given here is for the bulk encryption of the payload,
- * typically an AES AEAD algorithm. (Non-recpient HPKE will be an exception
- * here.)
+ * The algorithm ID is requires and is from [COSE
+ * (RFC9053)](https://tools.ietf.org/html/rfc9053) and the [IANA COSE
+ * Registry](https://www.iana.org/assignments/cose/cose.xhtml).  \ref
+ * T_COSE_ALGORITHM_A128GCM and a few others are defined here for
+ * convenience. The supported algorithms depend on the cryptographic
+ * library that t_cose is integrated with.  The algorithm ID given
+ * here is for the bulk encryption of the payload, typically an AES
+ * AEAD algorithm. (Non-recpient HPKE will be an exception here.)
  *
  * The algorithm ID for the COSE_Recipient is set in the particular
  * t_cose_recipient_enc being used. You can even have serveral with
@@ -200,10 +204,11 @@ t_cose_encypt_enc_init(struct t_cose_encrypt_enc *context,
  * \param[in] context                  The t_cose_encrypt_enc_ctx context.
  * \param[in] recipient  Pointer to recipient object.
  *
- * The recipient object should be initialized with algorithm ID and key material.
- * Note that for COSE encryption there are two algorithm IDs, the one for the
- * payload/content set with t_cose_encypt_enc_init() and the one
- * for COSE_Recpient set in the API implementing it.
+ * The recipient object should be initialized with algorithm ID and
+ * key material.  Note that for COSE encryption there are two
+ * algorithm IDs, the one for the payload/content set with
+ * t_cose_encypt_enc_init() and the one for COSE_Recpient set in the
+ * API implementing it.
  *
  * The recipient object set here has callbacks that will when t_cose_encrypt_enc()
  * is doing its work.
@@ -239,10 +244,11 @@ t_cose_encrypt_add_recipient(struct t_cose_encrypt_enc    *context,
  * All the parameters must have a label and a value.
  *
  * Alternatively, and particularly for parameters that are not
- * integers or strings the value may be a callback of type t_cose_parameter_encode_callback
- * in which case the callback will be called when it is time
- * to output the CBOR for the custom header. The callback should
- * output the CBOR for the particular parameter.
+ * integers or strings the value may be a callback of type
+ * t_cose_parameter_encode_callback in which case the callback will be
+ * called when it is time to output the CBOR for the custom
+ * header. The callback should output the CBOR for the particular
+ * parameter.
  *
  * This supports only integer labels. (String labels could be added
  * but would increase object code size).
@@ -260,8 +266,8 @@ t_cose_encrypt_enc_body_header_params(struct t_cose_encrypt_enc *context,
  *
  *
  * This is required for COSE_Encrypt0 when there is no recipient. This
- * may be used for COSE_Encrypt to explicitly set the CEK. If it is not
- * called the CEK will automatically be generated using the random
+ * may be used for COSE_Encrypt to explicitly set the CEK. If it is
+ * not called the CEK will automatically be generated using the random
  * number generator. (Which random number generator depends on the
  * crypto adaptor layer, but is usually the highest-quality generator
  * on the device. Typically the port of OpenSSL or MbedTLS to the
@@ -287,13 +293,14 @@ t_cose_encrypt_set_cek(struct t_cose_encrypt_enc *context,
  * \param[in] context    The encryption context
  * \param[in] enc_buffer    Pointer and length of buffer to add.
  *
- * By default there is a limit of T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE (typically 64 bytes) for the
- * AAD and protected header parameters. Normally this is quite adequate, but it may not
- * be in all cases. If not call this with a larger buffer.
+ * By default there is a limit of T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE
+ * (typically 64 bytes) for the AAD and protected header
+ * parameters. Normally this is quite adequate, but it may not be in
+ * all cases. If not call this with a larger buffer.
  *
- * Specifically, this is the buffer to create the Enc_structure described in
- * RFC 9052 section 5.2. It needs to be the size of the CBOR-encoded protected
- * headers, the AAD and some overhead.
+ * Specifically, this is the buffer to create the Enc_structure
+ * described in RFC 9052 section 5.2. It needs to be the size of the
+ * CBOR-encoded protected headers, the AAD and some overhead.
  *
  * TODO: size calculation mode that will tell the caller how bit it should be
  */
@@ -314,20 +321,24 @@ t_cose_encrypt_set_enc_struct_buffer(struct t_cose_encrypt_enc *context,
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * This is where all the work gets done including calling the cryptographic algorithms.
- * In most cases this will cause callbacks to the t_cose_recipient_enc object
- * to be made to create the COSE_Recipients. Only when direct encryption
- * is used are they not called.
+ * This is where all the work gets done including calling the
+ * cryptographic algorithms.  In most cases this will cause callbacks
+ * to the t_cose_recipient_enc object to be made to create the
+ * COSE_Recipients. Only when direct encryption is used are they not
+ * called.
  *
- * The size of encoded protected parameters plus the aad is limited to TODO by
- * default. If it is exceeded the error TODO: will be returned. See TODO to increase this.
+ * The size of encoded protected parameters plus the aad is limited to
+ * TODO by default. If it is exceeded the error TODO: will be
+ * returned. See TODO to increase this.
  *
- * This puts the encrypted payload in the body of the message. See also t_cose_encrypt_enc_detached().
+ * This puts the encrypted payload in the body of the message. See
+ * also t_cose_encrypt_enc_detached().
  *
- * \c buffer_for_message must be large enough to hold the resulting COSE_Encrypt
- * or COSE_Encrypt0 message with the encrypted payload in the message.
- * To use this in size calculation mode, pass a \c buffer_for_message with ptr
- * NULL and a very large size like \c SIZE_MAX.
+ * \c buffer_for_message must be large enough to hold the resulting
+ * COSE_Encrypt or COSE_Encrypt0 message with the encrypted payload in
+ * the message.  To use this in size calculation mode, pass a \c
+ * buffer_for_message with ptr NULL and a very large size like \c
+ * SIZE_MAX.
  */
 static enum t_cose_err_t
 t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
@@ -351,19 +362,19 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * This is the same as t_cose_encrypt_enc() except it produces two separate
- * outputs, the detached ciphertext and the
- * \c COSE_Encrypt or \c COSE_Encrypt0. Typically the detached ciphertext
- * is 16 bytes larger than then payload and the COSE_Encrypt
- * COSE_Encrypt is relatively small and fixed.
+ * This is the same as t_cose_encrypt_enc() except it produces two
+ * separate outputs, the detached ciphertext and the \c COSE_Encrypt
+ * or \c COSE_Encrypt0. Typically the detached ciphertext is 16 bytes
+ * larger than then payload and the COSE_Encrypt COSE_Encrypt is
+ * relatively small and fixed.
  *
- * This may be used in size calculation mode in which case
- * both the size of the detached ciphertext and the encrypted
- * message will be computed and returned.
+ * This may be used in size calculation mode in which case both the
+ * size of the detached ciphertext and the encrypted message will be
+ * computed and returned.
  *
- * \c buffer_for_detached may be \ref NULL_Q_USEFUL_BUF and
- * \c encrypted_detached may be \c NULL in which case this
- * behaves exactly like t_cose_encrypt_enc().
+ * \c buffer_for_detached may be \ref NULL_Q_USEFUL_BUF and \c
+ * encrypted_detached may be \c NULL in which case this behaves
+ * exactly like t_cose_encrypt_enc().
  */
 enum t_cose_err_t
 t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *context,

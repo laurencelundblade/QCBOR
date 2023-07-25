@@ -46,7 +46,7 @@ struct t_cose_signature_verify_main {
 
 /* This verifier supports ECDSA and RSA (but no EdDSA).
  *
- * This verifier 
+ * This verifier
  *
  * The context initialized here can be cast to t_cose_signature_verify
  * and given to t_cose_sign_verify which will invoke the verify through

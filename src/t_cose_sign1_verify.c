@@ -68,7 +68,7 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
 {
     enum t_cose_err_t        return_value;
     struct t_cose_parameter *decoded_params;
- 
+
     return_value = t_cose_sign_verify(&(me->me2),
                                       cose_sign1,
                                       NULL_Q_USEFUL_BUF_C,

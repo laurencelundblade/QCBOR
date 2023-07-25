@@ -49,7 +49,7 @@ struct t_cose_signature_sign_main {
  * This signer supports the ECDSA algorithms PS256, PS384 and PS512. */
 void
 t_cose_signature_sign_main_init(struct t_cose_signature_sign_main *context,
-                                int32_t                            cose_algorithm_id);
+                                int32_t                     cose_algorithm_id);
 
 
 /*
@@ -57,8 +57,8 @@ t_cose_signature_sign_main_init(struct t_cose_signature_sign_main *context,
  */
 static void
 t_cose_signature_sign_main_set_signing_key(struct t_cose_signature_sign_main *context,
-                                           struct t_cose_key                   signing_key,
-                                           struct q_useful_buf_c               kid);
+                                           struct t_cose_key        signing_key,
+                                           struct q_useful_buf_c    kid);
 
 
 /**
@@ -124,8 +124,8 @@ t_cose_signature_sign_from_main(struct t_cose_signature_sign_main *me);
 
 static inline void
 t_cose_signature_sign_main_set_signing_key(struct t_cose_signature_sign_main *context,
-                                            struct t_cose_key                   signing_key,
-                                            struct q_useful_buf_c               kid)
+                                            struct t_cose_key       signing_key,
+                                            struct q_useful_buf_c   kid)
 {
     context->signing_key = signing_key;
     context->kid         = kid;

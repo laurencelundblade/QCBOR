@@ -30,7 +30,7 @@ extern "C" {
  * - The definition of struct t_cose_key, an abstraction of a
  *   cryptographic key.
  *
- * - APIs to initialize struct t_cose_key from common or 
+ * - APIs to initialize struct t_cose_key from common or
  *   standard key representations.
  *
  * -  Encoding and decoding of COSE_Key defined in RFC 9052.

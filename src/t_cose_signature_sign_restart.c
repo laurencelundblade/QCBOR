@@ -41,7 +41,7 @@ t_cose_signature_sign1_restart_cb(struct t_cose_signature_sign     *me_x,
                                   QCBOREncodeContext              *qcbor_encoder)
 {
     struct t_cose_signature_sign_restart *me =
-                                     (struct t_cose_signature_sign_restart *)me_x;
+                                (struct t_cose_signature_sign_restart *)me_x;
     enum t_cose_err_t           return_value;
     struct q_useful_buf_c       signature;
     bool                        do_signing_step = true;
@@ -135,7 +135,7 @@ t_cose_signature_sign_restart_cb(struct t_cose_signature_sign  *me_x,
 
 void
 t_cose_signature_sign_restart_init(struct t_cose_signature_sign_restart *me,
-                                   const int32_t               cose_algorithm_id)
+                                   const int32_t            cose_algorithm_id)
 {
     memset(me, 0, sizeof(*me));
     me->s.rs.ident        = RS_IDENT(TYPE_RS_SIGNER, 'M');

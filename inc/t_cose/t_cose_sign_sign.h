@@ -32,7 +32,7 @@ extern "C" {
  * \brief Create a \c COSE_Sign or \c COSE_Sign1 message.
  *
  * This creates a \c COSE_Sign1 or \c COSE_Sign message in compliance
- * with [COSE (RFC 9052)](https://tools.ietf.org/html/rfc9052).  A 
+ * with [COSE (RFC 9052)](https://tools.ietf.org/html/rfc9052). A
  * \c COSE_Sign1 or \c COSE_Sign message is a CBOR-encoded binary blob
  * that contains header parameters, a payload and a signature or
  * signatures.
@@ -103,7 +103,7 @@ struct t_cose_sign_sign_ctx {
  * \param[in] context            The t_cose signing context.
  * \param[in] option_flags       One of \c T_COSE_OPT_XXXX.
  *
- * This initializes the \ref t_cose_sign_sign_ctx context. 
+ * This initializes the \ref t_cose_sign_sign_ctx context.
  * Either \ref T_COSE_OPT_MESSAGE_TYPE_SIGN1 or
  * \ref T_COSE_OPT_MESSAGE_TYPE_SIGN must be given for
  * \c option_flags to indicate which COSE message to produce.

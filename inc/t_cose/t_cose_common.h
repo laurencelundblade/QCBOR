@@ -606,7 +606,7 @@ enum t_cose_err_t {
 
     /** General unsupported operation failure. */
     T_COSE_ERR_UNSUPPORTED = 82,
-  
+
     /* A signing operation is in progress. The function returning this value
      * can be called again until it returns \ref T_COSE_SUCCESS or error.
      */
