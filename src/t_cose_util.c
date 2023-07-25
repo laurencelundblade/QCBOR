@@ -300,7 +300,7 @@ create_tbs(const struct t_cose_sign_inputs *sign_inputs,
     }
     QCBOREncode_AddText(&cbor_context, s1);
     QCBOREncode_AddBytes(&cbor_context, sign_inputs->body_protected);
-    if(!q_useful_buf_c_is_null(sign_inputs->sign_protected)) {
+    if(!q_useful_buf_c_is_empty(sign_inputs->sign_protected)) {
         QCBOREncode_AddBytes(&cbor_context, sign_inputs->sign_protected);
     }
     QCBOREncode_AddBytes(&cbor_context, sign_inputs->aad);

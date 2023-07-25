@@ -558,22 +558,29 @@ Done:
 }
 
 
-static int32_t size_test(int32_t               cose_algorithm_id,
-                              struct q_useful_buf_c kid)
+static int32_t signing_size_test(int32_t               cose_algorithm_id,
+                                 struct q_useful_buf_c kid)
 {
+#define SIZE_TEST_AUX_SIZE 100
     struct t_cose_key              key_pair;
-    struct t_cose_sign1_sign_ctx   sign_ctx;
+    struct t_cose_sign1_sign_ctx   sign1_ctx;
     QCBOREncodeContext             cbor_encode;
     int32_t                        return_value;
     enum t_cose_err_t              result;
     struct q_useful_buf            nil_buf;
     size_t                         calculated_size;
     QCBORError                     cbor_error;
+    struct q_useful_buf_c          calc_size;
     struct q_useful_buf_c          actual_signed_cose;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
-    Q_USEFUL_BUF_MAKE_STACK_UB(    auxiliary_buffer, 100);
+    Q_USEFUL_BUF_MAKE_STACK_UB(    auxiliary_buffer, SIZE_TEST_AUX_SIZE);
     struct q_useful_buf_c          payload;
     size_t                         sig_size;
+    struct t_cose_sign_sign_ctx    sign_ctx;
+    struct t_cose_signature_sign_eddsa  signer_eddsa;
+    struct t_cose_signature_sign_main  signer_main;
+    struct t_cose_signature_sign  *signer;
+    size_t                         auxiliary_buffer_size;
 
     result = init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
     if(result) {
@@ -592,10 +599,10 @@ static int32_t size_test(int32_t               cose_algorithm_id,
     nil_buf = (struct q_useful_buf) {NULL, INT32_MAX};
     QCBOREncode_Init(&cbor_encode, nil_buf);
 
-    t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
-    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
+    t_cose_sign1_sign_init(&sign1_ctx,  0,  cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign1_ctx, key_pair, kid);
 
-    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_parameters(&sign1_ctx, &cbor_encode);
     if(result) {
         return_value = 3000 + (int32_t)result;
         goto Done;
@@ -603,7 +610,7 @@ static int32_t size_test(int32_t               cose_algorithm_id,
 
     QCBOREncode_AddEncoded(&cbor_encode, payload);
 
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_signature(&sign1_ctx, &cbor_encode);
     if(result) {
         return_value = 4000 + (int32_t)result;
         goto Done;
@@ -623,18 +630,19 @@ static int32_t size_test(int32_t               cose_algorithm_id,
         goto Done;
     }
 
-    /**
-     * Get the expected auxiliary buffer size. For anything but EDDSA, this should be zero.
-     */
-    size_t auxiliary_buffer_size = t_cose_sign1_sign_auxiliary_buffer_size(&sign_ctx);
+    /* ----- aux buf size for EdDSA ---- */
+    auxiliary_buffer_size = t_cose_sign1_sign_auxiliary_buffer_size(&sign1_ctx);
     if (cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
         /* TBS is a bit smaller, given it doesn't include the signature */
         expected_min = payload.len + kid.len;
-        if(auxiliary_buffer_size < expected_min || auxiliary_buffer_size > expected_min + 30) {
+        if(auxiliary_buffer_size < expected_min ||
+           auxiliary_buffer_size > expected_min + 30 ||
+           auxiliary_buffer_size > SIZE_TEST_AUX_SIZE) {
             return_value = -2;
             goto Done;
         }
     } else if (auxiliary_buffer_size != 0) {
+        /* For anything but EDDSA, aux buf size should be zero.*/
         return_value = -3;
         goto Done;
     }
@@ -642,13 +650,15 @@ static int32_t size_test(int32_t               cose_algorithm_id,
     /* ---- Now make a real COSE_Sign1 and compare the size ---- */
     QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
 
-    t_cose_sign1_sign_init(&sign_ctx,  0,  cose_algorithm_id);
-    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
+    t_cose_sign1_sign_init(&sign1_ctx,  0,  cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign1_ctx, key_pair, kid);
     if (auxiliary_buffer_size > 0) {
-        t_cose_sign1_sign_set_auxiliary_buffer(&sign_ctx, auxiliary_buffer);
+        /* Narrow size to exactly what is required to fully check calc. */
+        auxiliary_buffer.len = auxiliary_buffer_size;
+        t_cose_sign1_sign_set_auxiliary_buffer(&sign1_ctx, auxiliary_buffer);
     }
 
-    result = t_cose_sign1_encode_parameters(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_parameters(&sign1_ctx, &cbor_encode);
     if(result) {
         return_value = 6000 + (int32_t)result;
         goto Done;
@@ -656,7 +666,7 @@ static int32_t size_test(int32_t               cose_algorithm_id,
 
     QCBOREncode_AddEncoded(&cbor_encode, payload);
 
-    result = t_cose_sign1_encode_signature(&sign_ctx, &cbor_encode);
+    result = t_cose_sign1_encode_signature(&sign1_ctx, &cbor_encode);
     if(result) {
         return_value = 7000 + (int32_t)result;
         goto Done;
@@ -669,12 +679,12 @@ static int32_t size_test(int32_t               cose_algorithm_id,
     }
 
     /* ---- Again with one-call API to make COSE_Sign1 ---- */\
-    t_cose_sign1_sign_init(&sign_ctx, 0, cose_algorithm_id);
-    t_cose_sign1_set_signing_key(&sign_ctx, key_pair, kid);
+    t_cose_sign1_sign_init(&sign1_ctx, 0, cose_algorithm_id);
+    t_cose_sign1_set_signing_key(&sign1_ctx, key_pair, kid);
     if (auxiliary_buffer_size > 0) {
-        t_cose_sign1_sign_set_auxiliary_buffer(&sign_ctx, auxiliary_buffer);
+        t_cose_sign1_sign_set_auxiliary_buffer(&sign1_ctx, auxiliary_buffer);
     }
-    result = t_cose_sign1_sign(&sign_ctx,
+    result = t_cose_sign1_sign(&sign1_ctx,
                                 payload,
                                 signed_cose_buffer,
                                &actual_signed_cose);
@@ -685,6 +695,76 @@ static int32_t size_test(int32_t               cose_algorithm_id,
 
     if(actual_signed_cose.len != calculated_size) {
         return_value = -5;
+        goto Done;
+    }
+
+
+    /* ========= Again for COSE_Sign ========= */
+
+    /* ---- First calculate the size ----- */
+    t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN);
+
+    if (cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
+        t_cose_signature_sign_eddsa_init(&signer_eddsa);
+        t_cose_signature_sign_eddsa_set_signing_key(&signer_eddsa,
+                                                    key_pair,
+                                                    NULL_Q_USEFUL_BUF_C);
+        signer = (struct t_cose_signature_sign *)&signer_eddsa;
+    } else {
+        t_cose_signature_sign_main_init(&signer_main, cose_algorithm_id);
+        t_cose_signature_sign_main_set_signing_key(&signer_main,
+                                                   key_pair,
+                                                   NULL_Q_USEFUL_BUF_C);
+        signer = (struct t_cose_signature_sign *)&signer_main;
+    }
+    t_cose_sign_add_signer(&sign_ctx, signer);
+
+    nil_buf = (struct q_useful_buf) {NULL, INT32_MAX};
+    result = t_cose_sign_sign(&sign_ctx,
+                              NULL_Q_USEFUL_BUF_C,
+                              payload,
+                              nil_buf,
+                             &calc_size);
+    if(result) {
+        return_value = 9000 + (int32_t)result;
+        goto Done;
+    }
+
+
+    /* ----- aux buf size for EdDSA ---- */
+    if(cose_algorithm_id == T_COSE_ALGORITHM_EDDSA) {
+        auxiliary_buffer_size = t_cose_signature_sign_eddsa_auxiliary_buffer_size(&signer_eddsa);
+        /* TBS is a bit smaller, given it doesn't include the signature */
+        expected_min = payload.len + kid.len;
+        if(auxiliary_buffer_size < expected_min ||
+           auxiliary_buffer_size > expected_min + 30 ||
+           auxiliary_buffer_size > SIZE_TEST_AUX_SIZE) {
+            return_value = -10;
+            goto Done;
+        }
+        /* Narrow size to exactly what is required to fully check calc. */
+        auxiliary_buffer.len = auxiliary_buffer_size;
+        t_cose_signature_sign_eddsa_set_auxiliary_buffer(&signer_eddsa,
+                                                         auxiliary_buffer);
+    } else if (auxiliary_buffer_size != 0) {
+        /* For anything but EDDSA, aux buf size should be zero.*/
+        return_value = -11;
+        goto Done;
+    }
+
+    /* ---- Make a real COSE_Sign and compare the size ---- */
+    result = t_cose_sign_sign(&sign_ctx,
+                              NULL_Q_USEFUL_BUF_C,
+                              payload,
+                              signed_cose_buffer,
+                             &actual_signed_cose);
+    if(result) {
+        return_value = 9500 + (int32_t)result;
+        goto Done;
+    }
+
+    if(actual_signed_cose.len != calc_size.len) {
+        return_value = -12;
         goto Done;
     }
 
@@ -702,17 +782,19 @@ Done:
  */
 int32_t sign_verify_get_size_test()
 {
-    int32_t return_value;
+    int32_t      return_value;
     const struct test_case* tc;
+
+    /* Just looping over all the algs here */
     for (tc = test_cases; tc->cose_algorithm_id != 0; tc++) {
         if (t_cose_is_algorithm_supported(tc->cose_algorithm_id)) {
-            return_value = size_test(tc->cose_algorithm_id,
-                                     NULL_Q_USEFUL_BUF_C);
+            return_value = signing_size_test(tc->cose_algorithm_id,
+                                             NULL_Q_USEFUL_BUF_C);
             if (return_value) {
                 return (int32_t)(1 + tc - test_cases) * 10000 + return_value;
             }
 
-            return_value = size_test(tc->cose_algorithm_id,
+            return_value = signing_size_test(tc->cose_algorithm_id,
                                      Q_USEFUL_BUF_FROM_SZ_LITERAL("greasy kid stuff"));
             if (return_value) {
                 return (int32_t)(1 + tc - test_cases) * 10000 + return_value;
