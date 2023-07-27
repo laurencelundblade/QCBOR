@@ -301,6 +301,7 @@ t_cose_crypto_sign_restart(bool                   started,
 
     if(!crypto_context) {
         return_value = T_COSE_ERR_FAIL;
+        goto Done;
     }
     psa_crypto_context = (struct t_cose_psa_crypto_context *)crypto_context;
 
