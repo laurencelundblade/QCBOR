@@ -706,3 +706,10 @@ t_cose_crypto_ecdh(struct t_cose_key      private_key,
     return T_COSE_ERR_FAIL;
 
 }
+
+
+void
+t_cose_crypto_free_ec_key(struct t_cose_key key_handle)
+{
+    (void)key_handle;
+}

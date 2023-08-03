@@ -98,7 +98,7 @@ struct t_cose_encrypt_dec_ctx {
     struct t_cose_key     cek;
 
     struct t_cose_parameter_storage   params;
-    struct t_cose_parameter           __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
+    struct t_cose_parameter           __params[T_COSE_NUM_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
 
     uint64_t                         unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN];
@@ -190,7 +190,7 @@ t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *context,
  *
  * This is optionally called to increase the number of storage nodes
  * for COSE_Encrypt or COSE_Encrypt0 message with
- * T_COSE_NUM_VERIFY_DECODE_HEADERS header parameters.  Decoded
+ * T_COSE_NUM_DECODE_HEADERS header parameters.  Decoded
  * parameters are returned in a linked list of struct
  * t_cose_parameter.  The storage for the nodes in the list is not
  * dynamically allocated as there is no dynamic storage allocation
@@ -203,7 +203,7 @@ t_cose_encrypt_dec_add_recipient(struct t_cose_encrypt_dec_ctx *context,
  * returned by t_cose_sign_verify() and similar.
  *
  * By default, if this is not called there is internal storage for
- * \ref T_COSE_NUM_VERIFY_DECODE_HEADERS headers. If this is not
+ * \ref T_COSE_NUM_DECODE_HEADERS headers. If this is not
  * enough call this function to use external storage instead of the
  * internal. This replaces the internal storage. It does not add to
  * it.

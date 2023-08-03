@@ -346,6 +346,8 @@ int32_t ecdh_test(void)
         return 44;
     }
 
+    free_fixed_test_ec_encryption_key(public_key);
+    free_fixed_test_ec_encryption_key(private_key);
 
     return 0;
 
@@ -414,6 +416,11 @@ int32_t ec_import_export_test(void)
                                        y_coord_buf,
                                       &y_coord,
                                       &y_sign);
+
+    free_fixed_test_ec_encryption_key(public_key);
+    free_fixed_test_ec_encryption_key(private_key);
+
+
     if(err) {
         return 4;
     }

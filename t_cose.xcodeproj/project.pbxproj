@@ -696,8 +696,8 @@
 		E7AE8846299BCB730093B326 /* COSE_Recipient */ = {
 			isa = PBXGroup;
 			children = (
-				E7088A0B2A50B75800F1B2DE /* t_cose_recipient_dec_esdh.h */,
 				E7088A0C2A50B75800F1B2DE /* t_cose_recipient_enc_esdh.h */,
+				E7088A0B2A50B75800F1B2DE /* t_cose_recipient_dec_esdh.h */,
 				E7088A0D2A50B75900F1B2DE /* t_cose_signature_sign_restart.h */,
 				E7AE8859299BCD6E0093B326 /* t_cose_recipient_enc.h */,
 				E7AE885B299BCD6E0093B326 /* t_cose_recipient_enc_keywrap.h */,

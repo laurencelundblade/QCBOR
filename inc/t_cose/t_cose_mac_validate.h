@@ -38,7 +38,7 @@ struct t_cose_mac_validate_ctx {
     struct t_cose_key                validation_key;
     uint32_t                         option_flags;
     uint64_t                         unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN];
-    struct t_cose_parameter          __params[T_COSE_NUM_VERIFY_DECODE_HEADERS];
+    struct t_cose_parameter          __params[T_COSE_NUM_DECODE_HEADERS];
     struct t_cose_parameter_storage  parameter_storage;
 };
 

@@ -224,12 +224,8 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
          return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
     }
 
-    /* Import as a private key / key pair */
-    /* Would be nice not to have PSA_KEY_USAGE_COPY on the private
-     * key, but it is needed to make the copy for the public key.
-     */
     attributes = psa_key_attributes_init();
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_COPY);
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE);
     psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
     psa_set_key_type(&attributes, type_private);
     psa_set_key_bits(&attributes, key_bitlen);
@@ -242,22 +238,15 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
         return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
     }
 
-    /* Make a copy that is the public key, There's still a private
-     * key in the key handle. Maybe there is a more correct way
-     * to do all this so the private key can't be copied and the
-     * public key can, but I figured out how to do all that yet.
+    /* Import a second time so there's a separate instance for the
+     * public key.
      */
-    attributes = psa_key_attributes_init();
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE | PSA_KEY_USAGE_COPY);
-    psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
-    psa_set_key_type(&attributes, type_private);
-    // TODO: why doesn't this work? psa_set_key_type(&attributes, type_public);
-    psa_set_key_bits(&attributes, key_bitlen);
-    status = psa_copy_key((mbedtls_svc_key_id_t)private_key->key.handle,
-                          &attributes,
-                          (mbedtls_svc_key_id_t *)&(public_key->key.handle));
+    status = psa_import_key(&attributes,
+                             key_bytes.ptr, key_bytes.len,
+                            (mbedtls_svc_key_id_t *)(&public_key->key.handle));
 
     if (status != PSA_SUCCESS) {
+        psa_destroy_key((psa_key_handle_t)private_key->key.handle);
         return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
     }
 

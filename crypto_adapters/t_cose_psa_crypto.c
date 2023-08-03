@@ -1574,3 +1574,10 @@ t_cose_crypto_export_ec2_key(struct t_cose_key      key_handle,
 
     return T_COSE_SUCCESS;
 }
+
+
+void
+t_cose_crypto_free_ec_key(struct t_cose_key key_handle)
+{
+    psa_destroy_key((psa_key_id_t)key_handle.key.handle);
+}

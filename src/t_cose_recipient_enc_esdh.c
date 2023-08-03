@@ -75,9 +75,11 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 {
     enum t_cose_err_t       return_value;
     struct t_cose_key       ephemeral_key;
-    MakeUsefulBufOnStack(   info_struct_buf, T_COSE_ENC_COSE_KDF_CONTEXT);
+    MakeUsefulBufOnStack(   kdf_context_buf, T_COSE_ENC_COSE_KDF_CONTEXT_SIZE);
     struct q_useful_buf_c   protected_hdr;
-    struct q_useful_buf_c   info_struct;
+    struct q_useful_buf_c   kdf_context;
+    struct q_useful_buf_c   salt;
+    Q_USEFUL_BUF_MAKE_STACK_UB(salt_buf, T_COSE_MAX_SYMMETRIC_KEY_LENGTH);
     struct t_cose_parameter params[6];
     struct t_cose_parameter *params2;
     struct t_cose_parameter *params_tail;
@@ -118,7 +120,8 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
             kek_alg.bits_in_key = 256;
             break;
         default:
-            return T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
+            return_value =  T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG;
+            goto done;
     }
     (void)ce_alg; /* Not used here because key wrap is not an AEAD */
 
@@ -131,7 +134,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     return_value = t_cose_crypto_generate_ec_key(me->cose_ec_curve_id,
                                                 &ephemeral_key);
     if (return_value != T_COSE_SUCCESS) {
-        return return_value;
+        goto done;
     }
 
 
@@ -148,51 +151,74 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     params[1].in_protected                   = false;
     params[1].label                          = T_COSE_HEADER_ALG_PARAM_EPHEMERAL_KEY;
     params_tail->next = &params[1];
-    params_tail = params_tail->next;
+    params_tail       = params_tail->next;
 
     /* Optional kid param */
     if(!q_useful_buf_c_is_null(me->kid)) {
-        params[2] = t_cose_param_make_kid(me->kid);
+        params[2]         = t_cose_param_make_kid(me->kid);
         params_tail->next = &params[2];
-        params_tail = params_tail->next;
+        params_tail       = params_tail->next;
     }
-    if(!q_useful_buf_c_is_null(me->party_u_identity)) {
-        params[3] = t_cose_param_make_unprot_bstr(me->party_u_identity, T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
-        params_tail->next = &params[3];
-        params_tail = params_tail->next;
-    }
-    if(!q_useful_buf_c_is_null(me->party_v_identity)) {
-        params[4] = t_cose_param_make_unprot_bstr(me->party_v_identity, T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
-        params_tail->next = &params[4];
-        params_tail = params_tail->next;
-    }
-    /* Surprised there's no header for 'other' data item. */
 
-    /* TODO: add the salt param */
+    /* Party U and Party V headers */
+    if(!me->do_not_send_party) {
+        if(!q_useful_buf_c_is_null(me->party_u_ident)) {
+            params[3]         = t_cose_param_make_unprot_bstr(me->party_u_ident,
+                                                      T_COSE_HEADER_ALG_PARAM_PARTYU_IDENT);
+            params_tail->next = &params[3];
+            params_tail       = params_tail->next;
+        }
+        if(!q_useful_buf_c_is_null(me->party_v_ident)) {
+            params[4]         = t_cose_param_make_unprot_bstr(me->party_v_ident,
+                                                      T_COSE_HEADER_ALG_PARAM_PARTYV_IDENT);
+            params_tail->next = &params[4];
+            params_tail       = params_tail->next;
+        }
+    }
+
+    /* Surprised there's no header for KDF Context info 'other' data item. */
+
+    /* Salt */
+    if(me->use_salt) {
+        if(!q_useful_buf_c_is_null(me->salt_bytes)) {
+            salt = me->salt_bytes;
+        } else {
+            t_cose_crypto_get_random(salt_buf, kek_alg.bits_in_key / 8, &salt);
+        }
+        params[5]         = t_cose_param_make_unprot_bstr(salt, T_COSE_HEADER_ALG_PARAM_SALT);
+        params_tail->next = &params[5];
+        params_tail       = params_tail->next;
+    } else {
+        salt = NULL_Q_USEFUL_BUF_C;
+    }
 
     /* Custom params from caller */
     params2 = params;
     t_cose_params_append(&params2, me->added_params);
 
+    /* List complete, do the actual encode */
     return_value = t_cose_headers_encode(cbor_encoder,
                                          params2,
                                          &protected_hdr);
+    if(return_value) {
+        goto done_free_ec;
+    }
 
 
-    /* --- Make Info structure ---- */
-    // TODO: allow info_struct_buf to be
-    // supplied externally
+    /* --- Make KDF Context ---- */
+    if(!q_useful_buf_is_null(me->kdf_context_buf)) {
+        kdf_context_buf = me->kdf_context_buf;
+    }
     return_value = create_kdf_context_info(kek_alg,
-                                         me->party_u_identity,
-                                         me->party_v_identity,
-                                         protected_hdr,
-                                         me->supp_pub_other,
-                                         me->supp_priv_info,
-                                         info_struct_buf,
-                                        &info_struct);
-
+                                           me->party_u_ident,
+                                           me->party_v_ident,
+                                           protected_hdr,
+                                           me->supp_pub_other,
+                                           me->supp_priv_info,
+                                           kdf_context_buf,
+                                          &kdf_context);
     if (return_value != T_COSE_SUCCESS) {
-        return return_value;
+        goto done_free_ec;
     }
 
 
@@ -203,7 +229,8 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                     derived_key_buf,       /* in: buffer for derived key */
                    &derived_key);          /* out: derived key */
     if(return_value) {
-        return T_COSE_ERR_KEY_AGREEMENT_FAIL;
+        return_value =  T_COSE_ERR_KEY_AGREEMENT_FAIL;
+        goto done_free_ec;
     }
 
 
@@ -211,19 +238,17 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
     kek_buf.len = kek_alg.bits_in_key / 8;
     return_value = t_cose_crypto_hkdf(
                         hash_alg,     /* in: hash alg for HKDF */
-                        NULL_Q_USEFUL_BUF_C, /* in: salt */
+                        salt, /* in: salt */
                         derived_key,  /* in: input key material (ikm) */
-                        info_struct,  /* in: encoded info struct */
+                        kdf_context,  /* in: encoded info struct */
                         kek_buf);     /* in: buffer, out: kek */
+
     if(return_value) {
-        return T_COSE_ERR_HKDF_FAIL;
+        return_value =  T_COSE_ERR_HKDF_FAIL;
+        goto done_free_ec;
     }
     kek.ptr = kek_buf.ptr;
     kek.len = kek_buf.len;
-
-    /* Free ephemeral key (which is not a symmetric key!) */
-    /* TBD: Rename the function to t_cose_crypto_free_key() */
-    t_cose_crypto_free_symmetric_key(ephemeral_key);
 
 
     /* ---- Key wrap --- */
@@ -231,7 +256,7 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                                                            kek,
                                                           &kek_handle);
     if (return_value != T_COSE_SUCCESS) {
-        return return_value;
+        goto done_free_ec;
     }
 
     /* Do the keywrap directly into the output buffer */
@@ -243,15 +268,22 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
                         encrypted_cek_destination, /* in: buffer to write to */
                        &encrypted_cek_result); /* out: encrypted cek */
     if (return_value != T_COSE_SUCCESS) {
-        return return_value;
+        goto done_free_both;
     }
-
     QCBOREncode_CloseBytes(cbor_encoder, encrypted_cek_result.len);
-    t_cose_crypto_free_symmetric_key(kek_handle);
 
 
     /* ---- Close recipient array -----*/
     QCBOREncode_CloseArray(cbor_encoder);
 
-    return T_COSE_SUCCESS;
+    return_value = T_COSE_SUCCESS;
+
+done_free_both:
+    t_cose_crypto_free_symmetric_key(kek_handle);
+
+done_free_ec:
+    t_cose_crypto_free_ec_key(ephemeral_key);
+
+done:
+    return return_value;
 }

@@ -852,6 +852,9 @@ t_cose_crypto_get_random(struct q_useful_buf    buffer,
  * This function will either return a key in form of a t_cose_key
  * structure, or produce an error.
  *
+ * For most crypto libraries, this must be freed by
+ * t_cose_crypto_free_ec_key();
+ *
  * \retval T_COSE_SUCCESS
  *         Successfully generated a public/private key pair
  *
@@ -1209,6 +1212,9 @@ t_cose_crypto_hkdf(int32_t                     cose_hash_algorithm_id,
  * This doesn't do the actual CBOR decoding, just the import
  * into a key handle for the crypto library.
  *
+ * For most crypto libraries, this must be freed by
+ * t_cose_crypto_free_ec_key();
+ *
  * The coordinates are as specified in SECG 1.
  *
  * TODO: also support the private key.
@@ -1247,6 +1253,16 @@ t_cose_crypto_export_ec2_key(struct t_cose_key      key_handle,
                              struct q_useful_buf    y_coord_buf,
                              struct q_useful_buf_c *y_coord,
                              bool                  *y_bool);
+
+/*
+ * Free an EC key handle.
+ *
+ * Frees a key allocated by t_cose_crypto_import_ec2_pubkey() or
+ * t_cose_crypto_generate_ec_key();
+ *
+ */
+void
+t_cose_crypto_free_ec_key(struct t_cose_key key_handle);
 
 #ifdef __cplusplus
 }
