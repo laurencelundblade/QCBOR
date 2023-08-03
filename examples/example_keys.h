@@ -19,111 +19,195 @@
  * files. Everything for test compiles into one executable.
  *
  * The actual import of the keys into data structures used by crypto
- * libraries is highly dependent on the library.  In many cases, but
- * not all, the key bytes are not dependent on the library because
- * there are standards for for serialized keys. The method to import
- * the keys is however highly dependent on the library as well as the
- * data structure that holds the keys. t_cose abstract the data
- * structure as a struct t_cose_key.  The varying import functions are
- * in init_keys_xxxx.[ch].
+ * libraries is dependent on the library. The most widely used formats
+ * are ASN.1/DER so that is mostly what is used here.  See
+ * init_keys_xxx.[ch]. These are pretty good examples for what you
+ * might do in your implementation.
  *
- * Note how ridiculously piece meal the formats for DER-
- * encoded keys are. Perhaps a dozen RFCs :-(. Implementations
- * seem to be hit-or-miss in what they support.
+ * Eventually, t_cose will have better support for COSE_Key, but even
+ * then most keys will still be in ASN.1/DER format.
  *
- * Also, this doesn't get into any password protected key formats.
- *
- * Some day this will all be CBOR-format COSE_Keys... :^)
+ * Note how ridiculously piece meal the formats for DER- encoded keys
+ * are. Perhaps a dozen RFCs :-(. Implementations seem to be
+ * hit-or-miss in what they support.  Maybe some day much more of this
+ * will be CBOR-format COSE_Keys... :^)
  */
 
 
 
 
 /*
- * Each EC NIST curve key is in two formats here, RFC 5915 DER format and a
- * raw private key format. This is needed because OpenSSL primarily supports
- * the DER formats and MbedTLS the raw private key.  The underly bit
- * serialization of the key is SEC1 for both.  Three key sizes are
- * provided.
+ * The format of an EC key in a file or in a protocol message is in
+ * 2-3 layers.
  *
- * Importing in both cases yields a key pair (public and private).
- * MbedTLS will compute the public key from the private. The DER
- * format imported for OpenSSL includes the public key.
+ * First, SEC1 (reference below) byte-encoding of the mathematical values.
  *
- * The MbedTLS import function psa_import_key() is reasonably well
- * document and seems to support only the raw format.
+ * Second, a structure that wraps the SEC1 bytes along with a curve
+ * identifier. There are three:
+ *    RFC 5480 and RFC 5915 — ASN.1/DER
+ *    JWK — JSON 
+ *    COSE_Key — CBOR
  *
- * There are several ways to import in OpenSSL and the documentation
- * is not clear. d2i_PrivateKey() is what is used because it seems
- * supported in the range of OpenSSL versions and is not deprecated.
+ * Sometimes a third layer, PEM, to make ASN.1/DER into text.
  *
- * It is my understanding (so far) that these key pairs can be used
- * with ECDSA for signing and ECDH for encryption.
+ * SEC1 defines the representation of the mathematical values use in EC
+ * cryptography like an X and Y coordinate in bytes. The SEC1
+ * specification is widely used as the basis of most protocol and file
+ * formats and as for import and export formats for cryptographic
+ * libraries.
  *
- * At 256 bits this is the NIST P-256 curve, AKA prime256v1 or
- * secp256r1.
+ * SEC1 defines private key serialization as a sequence of bytes.
  *
- * The DER format includes a curve identifier. The raw format does not
- * so it has to be specified during the key import.
+ * SEC1 defines the public key as a point, an X and Y coordinate. It
+ * defines compressed and uncompressed formats. The compressed format
+ * is half the size. It used to be covered by a patent, but the
+ * patent has expired. The public key is serialized in one of three
+ * ways:
+ *    0x04 || X-coordinate || y-coordinate (uncompressed)
+ *    0x02 || X-coordinate (compressed, Y positive)
+ *    0x03 || X-coordinate (compressed, Y negative)
  *
- *  ECPrivateKey ::= SEQUENCE {
- *     version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
- *     privateKey     OCTET STRING,
- *     parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
- *     publicKey  [1] BIT STRING OPTIONAL
- *  }
  *
- * Here's a dump of the DER for the 256-bit key. If you look, you'll
- * see that the private key in the DER is exactly the same values as
- * the raw private key string here.
+ * Generally, the SEC1 serialization is not used directly in
+ * protocols. Rather it is put into an ASN.1/DER, JSON or CBOR data
+ * structure. Often that additional structure identifies it as an EC
+ * key and gives the curve.
  *
- *   0:d=0  hl=2 l= 119 cons: SEQUENCE
- *   2:d=1  hl=2 l=   1 prim: INTEGER           :01
- *   5:d=1  hl=2 l=  32 prim: OCTET STRING      [HEX DUMP]:D9B5E71F7728BFE563A9DC937562277E327D98D99480F3DC9241E5742AC45889
- *  39:d=1  hl=2 l=  10 cons: cont [ 0 ]
- *  41:d=2  hl=2 l=   8 prim: OBJECT            :prime256v1
- *  51:d=1  hl=2 l=  68 cons: cont [ 1 ]
- *  53:d=2  hl=2 l=  66 prim: BIT STRING
+ * The most common protocol/file format for EC keys is ASN.1/DER
+ * defined by RFC 5480 for public keys and RFC 5915 for private
+ * keys. RFC 5915 can optionally carry a public key along side the
+ * private key. These are the file formats that the “openssl ec”
+ * command reads and writes.
  *
- * Here's another dump from another tool of the same key.
+ * Here’s the ASN.1 from RFC 5915:
  *
- * 30 77
- *  02 01 01    integer version 01
- *  04 20 D9B5E71F7728BFE563A9DC937562277E327D98D99480F3DC9241E5742AC45889   Private key
- *  A0 0A
- *    06 08 2A8648CE3D030107    OID for prime256v1
- *  A1 44
- *    03 42 000440416C8CDAA0F7A175695553C3279C109CE9277E53C5862AA715EDC636F171... Public key bit string
+ *   ECPrivateKey ::= SEQUENCE {
+ *       version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
+ *       privateKey     OCTET STRING,
+ *       parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
+ *       publicKey  [1] BIT STRING OPTIONAL
+ *    }
  *
- * X 40 41 6C 8C DA A0 F7 A1 75 69 55 53 C3 27 9C 10 9C E9 27 7E 53 C5 86 2A A7 15 ED C6 36 F1 71 
- * Y 32 F1 76 43 54 96 15 E5 C8 34 0D 43 32 DD 13 77 8A EC 87 15 76 A3 3C 26 08 6C 32 0C 9F F3 3F C7
- * See also:
- *  https://stackoverflow.com/questions/71890050/set-an-evp-pkey-from-ec-raw-points-pem-or-der-in-both-openssl-1-1-1-and-3-0-x/71896633#71896633
+ * And the ASN.1 from RFC 5480:
+ *
+ *    SubjectPublicKeyInfo  ::=  SEQUENCE  {
+ *       algorithm         AlgorithmIdentifier,
+ *       subjectPublicKey  BIT STRING
+ *    }
+ *
+ *    AlgorithmIdentifier  ::=  SEQUENCE  {
+ *       algorithm   OBJECT IDENTIFIER,
+ *       parameters  ANY DEFINED BY algorithm OPTIONAL
+ *    }
+ *
+ *    ECParameters ::= CHOICE {
+ *       namedCurve         OBJECT IDENTIFIER
+ *       -- implicitCurve   NULL
+ *       -- specifiedCurve  SpecifiedECDomain
+ *    }
+ *
+ * DER is a binary format, so it is often made into a PEM text file
+ * for convenience of handling. PEM is more or less base64 encoding
+ * with a little bit of extra text labeling to know the PEM file is a
+ * key and whether it is public or private.
+ *
+ * -----BEGIN EC PRIVATE KEY-----
+ * MHcCAQEEIK/5B8mfmtOq5sTN8hEivOK9aLUoPmkHFUrZEYQPogjPoAoGCCqGSM49
+ * AwEHoUQDQgAEZe2loSV3wrroKUN/4zhwGhCqo3Xhu1td4QjeQ5wIVR0eUu11cBFj
+ * 9/nkDd+fNBs9ybqGCvfgynyn6e7NAITRnA==
+ * -----END EC PRIVATE KEY——
+ *
+ *
+ * -----BEGIN PUBLIC KEY-----
+ * MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEZe2loSV3wrroKUN/4zhwGhCqo3Xh
+ * u1td4QjeQ5wIVR0eUu11cBFj9/nkDd+fNBs9ybqGCvfgynyn6e7NAITRnA==
+ * -----END PUBLIC KEY-----
+ *
+ * Not discussed here are X.509 certificates. It is comment to send
+ * public keys around in them so you know where the public key came
+ * from and can figure out how to trust it. X.509 is ASN.1/DER and
+ * often PEM wrapped. The public key inside it is in RFC 5480 format.
+ *
+ * Each EC key supplied here is in several forms to accommodate
+ * different cryptographic library import APIs, to give good examples
+ * and for other use if need be. The SEC1 form is given and the
+ * ASN.1/DER form is given. The PEM form is not given.
+ *
+ * Some of the keys are from the COSE examples GitHub repository and
+ * some are not. The intent is to use as many from the COSE examples
+ * as possible in the long run.
  *
  * [SEC1]
  * Certicom Research, "SEC 1: Elliptic Curve Cryptography", Standards for
  * Efficient Cryptography, May 2009, <https://www.secg.org/sec1-v2.pdf>.
- *
- * Note that there are also standard public key only formats. They aren't used
- * here because the test uses always need a private key, but some
- * applications and uses of t_cose might use them.
  */
+
+/*
+ * This describes how I converted the keys in KeySet.txt to what is
+ * here. The keys in KeySet.txt are CBOR diagnostic notation of a
+ * COSE_Key.  They kinda look like JWKs, but they are not. I haven't
+ * found any tools to process them yet.
+ *
+ * First I made the SEC1 bytes for private key and the public key:
+ *
+ *    xxd -r -p << EOD | xxd -i
+ *
+ * The hex text from KeySet.txt is fed into the above command stdin.
+ * The hex text C array initialization output by this is pasted in to
+ * example_keys.c. For the private key, just the "d" value. For the
+ * public key the "x" and then "y" value. Then the C code is edited to
+ * add a 0x04 to the start of the x and y.
+ *
+ * Next... (there has to be a better way), I generated a random key
+ * pairs in DER format using the openssl command line for the curves:
+ *
+ *    openssl ecparam -name secp521r1 -genkey -noout -out 521.der -outform der
+ *
+ * That was imported into a C array initialization with:
+ *
+ *    xxd -i -c 8 521.der
+ *
+ * Then the C array initialization was edited to splice in the COSE
+ * example private key and the the COSE example public key. You can
+ * see the comments in the code for the ASN.1/DER to figure where to
+ * splice.
+ *
+ * Finally the edited variables were turned into DER files and checked
+ * in to github to have them handy for future use. See grep command in
+ * // comment below that takes the C array initialization and turns it
+ * into a binary DER file.
+ */
+
+//grep -v '/\*.*\*/' << EOF | xxd -r -p
+
+
 extern const unsigned char ec_P_256_key_pair_der[121];
-extern const unsigned char ec_P_256_priv_key_raw[32];
+extern const unsigned char ec_P_256_priv_key_sec1[32];
 extern const unsigned char ec_P_256_pub_key_der[91];
 
 
 extern const unsigned char ec_P_384_key_pair_der[167];
-extern const unsigned char ec_P_384_priv_key_raw[48];
+extern const unsigned char ec_P_384_priv_key_sec1[48];
 
 extern const unsigned char ec_P_521_key_pair_der[223];
-extern const unsigned char ec_P_521_priv_key_raw[66];
+extern const unsigned char ec_P_521_priv_key_sec1[66];
 
 
 
-/* These keys are the ones used in the COSE Work Group GitHub Examples Repository */
-extern const unsigned char cose_ex_P_256_priv_key_raw[32];
-extern const unsigned char cose_ex_P_256_key_pair_der[121];
+/* These keys are the ones used in the COSE Work Group GitHub
+ * Examples Repository */
+// KID: meriadoc.brandybuck@buckland.example
+extern const unsigned char cose_ex_P_256_priv_sec1[32];
+extern const unsigned char cose_ex_P_256_pub_sec1[65];
+extern const unsigned char cose_ex_P_256_pair_der[121];
+extern const unsigned char cose_ex_P_256_pub_der[91];
+
+// KID: bilbo.baggins@hobbiton.example
+extern const unsigned char cose_ex_P_521_priv_sec1[66];
+extern const unsigned char cose_ex_P_521_pub_sec1[133];
+extern const unsigned char cose_ex_P_521_pair_der[223];
+extern const unsigned char cose_ex_P_521_pub_der[158];
+
 
 
 

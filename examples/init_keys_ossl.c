@@ -23,17 +23,16 @@
 
 
 /*
- *
- * The input bytes are what d2i_PrivateKey() will decode.
- * It's documentation is sparse. It says it must be DER
- * format and is related to PKCS #8. This seems to be
- * a set of DER-encoded ASN.1 data types such as:
+ * The input bytes are what d2i_PrivateKey() will decode.  It's
+ * documentation is sparse. It says it must be DER format and is
+ * related to PKCS #8. This seems to be a set of DER-encoded ASN.1
+ * data types such as:
  *
  *    ECPrivateKey defined in RFC 5915
  *
  * The key object returned by this is malloced and has to be freed by
- * by calling free_key(). This heap use is a part of
- * OpenSSL and not t_cose which does not use the heap.
+ * by calling free_key(). This heap use is a part of OpenSSL and not
+ * t_cose which does not use the heap.
  *
  *
  */
@@ -149,124 +148,6 @@ void free_fixed_signing_key(struct t_cose_key key_pair)
 
 
 
-static enum t_cose_err_t
-init_encryption_key_der(struct q_useful_buf_c der_encoded,
-                        struct t_cose_key    *key_pair)
-{
-    EVP_PKEY          *pkey;
-    enum t_cose_err_t  return_value;
-    long               der_length;
-
-    /* Safely convert size_t to long */
-    if(der_encoded.len > LONG_MAX) {
-        return T_COSE_ERR_FAIL;
-    }
-    der_length = (long)der_encoded.len;
-
-    /* This imports the public key too */
-    pkey = d2i_PrivateKey(EVP_PKEY_EC, /* in: type */
-                          NULL, /* unused: defined as EVP_PKEY **a */
-                          (const unsigned char **)&der_encoded.ptr, /*in: pointer to DER byes; out: unused */
-                          der_length /* in: length of DER bytes */
-                          );
-    if(pkey == NULL) {
-        return_value = T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
-        goto Done;
-    }
-
-    key_pair->key.ptr = pkey;
-    return_value      = T_COSE_SUCCESS;
-
-Done:
-    return return_value;
-}
-
-
-#if 0
-/* This isn't in use yet because something wasn't going right for it.
- * It would be good to have this working for the example.
- */
-#include <openssl/x509.h>
-
-static enum t_cose_err_t
-init_encryption_pubkey_der(
-                           struct q_useful_buf_c der_encoded,
-                           struct t_cose_key    *key_pair)
-{
-    EVP_PKEY          *pkey;
-    enum t_cose_err_t  return_value;
-
-
-    EVP_PKEY          *apkey;
-    EC_KEY            *ec_key;
-    EC_GROUP          *ec_group;
-    enum t_cose_err_t  return_value;
-    long               der_length;
-    int                nid;
-
-    /* Safely convert size_t to long */
-    if(der_encoded.len > LONG_MAX) {
-        return T_COSE_ERR_FAIL;
-    }
-    der_length = (long)der_encoded.len;
-
-
-    switch (cose_ec_curve_id) {
-        case T_COSE_ELLIPTIC_CURVE_P_256:
-             nid  = NID_X9_62_prime256v1;
-             break;
-        case T_COSE_ELLIPTIC_CURVE_P_384:
-             nid  = NID_secp384r1;
-             break;
-        case T_COSE_ELLIPTIC_CURVE_P_521:
-             nid  = NID_secp521r1;
-             break;
-        /* The only other registered for EC2 is secp256k1 */
-        default:
-             return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
-    }
-
-    ec_key = EC_KEY_new();
-    if(ec_key == NULL) {
-        return T_COSE_ERR_FAIL; // TODO: error code
-    }
-
-    ec_group = EC_GROUP_new_by_curve_name(nid);
-    if(ec_group == NULL) {
-        return T_COSE_ERR_FAIL; // TODO: error code
-    }
-
-    // TODO: this and related are to be depreacted, so they say...
-    ossl_result = EC_KEY_set_group(ec_key, ec_group);
-    if(ossl_result != 1) {
-        return T_COSE_ERR_FAIL; // TODO: error code
-    }
-
-
-    apkey = EVP_PKEY_new();
-
-
-    const uint8_t *pp = ec_P_256_pub_key_der;
-
-    pkey = d2i_PUBKEY(NULL, /* unused: defined as EVP_PKEY **a */
-                          (const unsigned char **)&pp, /* in: pointer to DER byes; out: unused */
-                          sizeof(ec_P_256_pub_key_der) /* in: length of DER bytes */
-                          );
-    if(pkey == NULL) {
-        return_value = T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
-        goto Done;
-    }
-
-    key_pair->key.ptr = pkey;
-    return_value      = T_COSE_SUCCESS;
-
-Done:
-    return return_value;
-}
-#endif
-
-
-
 /*
  * Public function, see init_key.h
  */
@@ -275,34 +156,76 @@ init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,
                                   struct t_cose_key *public_key,
                                   struct t_cose_key *private_key)
 {
-    enum t_cose_err_t     err;
-    struct q_useful_buf_c der_encoded;
+    long                  pub_der_len;
+    long                  priv_der_len;
+    const unsigned char * priv_der_ptr;
+    const unsigned char * pub_der_ptr;
+    EVP_PKEY             *pkey;
+    enum t_cose_err_t     return_value;
 
+    /* The input key bytes are in ASN.1/DER format (RFC 5915 and RFC
+     * 5480) since that is what d2i_PrivateKey() and d2i_PUBKEY()
+     * accept.*/
     switch(cose_ec_curve_id) {
         case T_COSE_ELLIPTIC_CURVE_P_256:
-            der_encoded = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_256_key_pair_der);
+            pub_der_ptr  = cose_ex_P_256_pub_der;
+            pub_der_len  = sizeof(cose_ex_P_256_pub_der);
+            priv_der_ptr = cose_ex_P_256_pair_der;
+            priv_der_len = sizeof(cose_ex_P_256_pair_der);
             break;
-        case T_COSE_ELLIPTIC_CURVE_P_384:
-            der_encoded = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_key_pair_der);
-            break;
+
         case T_COSE_ELLIPTIC_CURVE_P_521:
-            der_encoded = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_key_pair_der);
+            pub_der_ptr  = cose_ex_P_521_pub_der;
+            pub_der_len  = sizeof(cose_ex_P_521_pub_der);
+            priv_der_ptr = cose_ex_P_521_pair_der;
+            priv_der_len = sizeof(cose_ex_P_521_pair_der);
             break;
+
         default:
             return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
     }
 
-    err = init_encryption_key_der(der_encoded, private_key);
-    if(err) {
-        return err;
+    /* d2i_PrivateKey documentation isn't very clear. What is known
+     * from experimentation is that it does not support SEC1 raw keys
+     * and that it does support RFC 5915 ASN.1/DER keys.
+     */
+    pkey = d2i_PrivateKey(EVP_PKEY_EC,  /* in: type */
+                          NULL,         /* unused: defined as EVP_PKEY **a */
+                         &priv_der_ptr, /* in: pointer to DER byes; out: unused */
+                          priv_der_len  /* in: length of DER bytes */
+                         );
+    if(pkey == NULL) {
+        return_value = T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
+        goto Done;
     }
+    private_key->key.ptr = pkey;
 
-    /* Clone the private key since it also has the public key. Would be
-     * good to give an example of public-key only import instead.*/
-    *public_key = *private_key;
-    EVP_PKEY_up_ref((EVP_PKEY *)public_key->key.ptr);
 
-    return T_COSE_SUCCESS;
+    /* d2i_PrivateKey documentation isn't very clear. What is known
+     * from experimentation is that it does not support SEC1 raw keys
+     * and that it does support RFC 5480 ASN.1/DER keys.
+     */
+    /* The openssl documentation says something about providing a
+     * PKEY initialized with an EC Key of the right curve/group, but
+     * that doesn't seem to be necessary. Probably because the RFC 5480
+     * input provided here includes the curve identifier so it is
+     * parsed out and set.
+     */
+    pkey = d2i_PUBKEY(NULL,        /* unused: defined as EVP_PKEY **a */
+                     &pub_der_ptr, /* in: pointer to DER byes; out: unused */
+                      pub_der_len  /* in: length of DER bytes */
+                     );
+    if(pkey == NULL) {
+        EVP_PKEY_free(private_key->key.ptr);
+        return_value = T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
+        goto Done;
+    }
+    public_key->key.ptr = pkey;
+
+    return_value = T_COSE_SUCCESS;
+
+Done:
+    return return_value;
 }
 
 
@@ -317,14 +240,24 @@ free_fixed_test_ec_encryption_key(struct t_cose_key key)
 
 
 
+
 /*
  * Public function, see init_keys.h
  */
 int check_for_key_allocation_leaks()
 {
-    /* So far no good way to do this for OpenSSL or malloc() in general
-       in a nice portable way. The PSA version does check so there is
-       some coverage of the code even though there is no check here.
+    /* So far no good way to do this for OpenSSL or malloc() in
+       general in a nice portable way. The PSA version does check so
+       there is some coverage of the code even though there is no
+       check here.
      */
     return 0;
 }
+
+
+/*
+ char* e;
+  long err = ERR_peek_last_error_line(NULL, NULL);
+  e = ERR_error_string(err, NULL);
+
+ */

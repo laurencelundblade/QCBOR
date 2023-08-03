@@ -53,25 +53,28 @@ free_fixed_signing_key(struct t_cose_key key_pair);
 
 
 
-/* This is for key pairs for EC encryption (not symmetric
- * encryption). Typically this gets fed into ECDH either
- * for HPKE or the other COSE encryption key distrubution
- * methods.
+/**
+ * \brief Initialize two key handles with public and private for test
  *
- * The curve and number of bits are associated with the key
- * not with the encryption algorithm, so this takes
- * the COSE EC curve ID as an argument, not the encryption
- * algorithm.
+ * \param[in]  cose_ec_curve_id   Curve for the key pair
+ * \param[out] public_key         Handle for public key of the pair
+ * \param[out] private_key        Handle for the private key of the pair.
  *
- * While the crypto library representation of a private key
- * usually also includes the public key, they are split here
- * because that suits our test and example purposes much better.
- * In the real world, the encryptor will not have the private key.
+ * This is for key pairs for EC encryption. Typically this gets fed
+ * into ECDH either for HPKE or the RFC 9053 COSE encryption key
+ * distrubution methods.
  *
- * The actual keys can be the same as for ECDSA, but the
- * import can involve setting key usage bits so the import
- * function for keys used with ECDH is different than for
- * keys used with ECDSA.
+ * The curve and number of bits are associated with the key not with
+ * the encryption algorithm, so this takes the COSE EC curve ID as an
+ * argument, not the encryption algorithm.
+ *
+ * While the crypto library representation of a private key usually
+ * also includes the public key, they are separate here as in the real
+ * world the encryptor and decryptor will not be the same. In the real
+ * world, the encryptor will not have the private key.
+ *
+ * Both keys returned here must be freed with
+ * free_fixed_test_ec_encryption_key().
  */
 enum t_cose_err_t
 init_fixed_test_ec_encryption_key(int32_t            cose_ec_curve_id,

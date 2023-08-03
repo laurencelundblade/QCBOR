@@ -224,8 +224,8 @@ t_cose_recipient_create_esdh_cb_private(struct t_cose_recipient_enc  *me_x,
 
     /* --- Generation of ECDH-derived key  ---- */
     return_value = t_cose_crypto_ecdh(
-                    me->recipient_pub_key, /* in: public key */
                     ephemeral_key,         /* in: private key */
+                    me->recipient_pub_key, /* in: public key */
                     derived_key_buf,       /* in: buffer for derived key */
                    &derived_key);          /* out: derived key */
     if(return_value) {

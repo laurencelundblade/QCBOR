@@ -146,15 +146,15 @@ init_fixed_test_signing_key(int32_t            cose_algorithm_id,
 
     switch(cose_algorithm_id) {
     case T_COSE_ALGORITHM_ES256:
-        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_priv_key_raw);
+        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_256_priv_key_sec1);
         break;
 
     case T_COSE_ALGORITHM_ES384:
-        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_priv_key_raw);
+        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_priv_key_sec1);
         break;
 
     case T_COSE_ALGORITHM_ES512:
-        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_raw);
+        key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_sec1);
         break;
 
     case T_COSE_ALGORITHM_PS256:
@@ -199,31 +199,37 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
     psa_status_t          status;
     psa_key_attributes_t  attributes;
     psa_key_type_t        type_private;
+    psa_key_type_t        type_public;
     uint32_t              key_bitlen;
-    struct q_useful_buf_c key_bytes;
+    struct q_useful_buf_c priv_key_bytes;
+    struct q_useful_buf_c pub_key_bytes;
 
     psa_crypto_init();
 
     switch (cose_ec_curve_id) {
     case T_COSE_ELLIPTIC_CURVE_P_256:
-         type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-         key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_256_priv_key_raw);
-         key_bitlen   = 256;
+         type_private   = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+         type_public    = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         priv_key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_256_priv_sec1);
+         pub_key_bytes  = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_256_pub_sec1);
+         key_bitlen     = 256;
          break;
-    case T_COSE_ELLIPTIC_CURVE_P_384:
-         type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-         key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_384_priv_key_raw);
-         key_bitlen   = 384;
-         break;
+
     case T_COSE_ELLIPTIC_CURVE_P_521:
-         type_private = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
-         key_bytes    = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(ec_P_521_priv_key_raw);
-         key_bitlen   = 521;
+         type_private   = PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1);
+         type_public    = PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1);
+         priv_key_bytes = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_521_priv_sec1);
+         pub_key_bytes  = Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(cose_ex_P_521_pub_sec1);
+         key_bitlen     = 521;
          break;
     default:
          return T_COSE_ERR_UNSUPPORTED_ELLIPTIC_CURVE_ALG;
     }
 
+    /* Import the private key from the SEC1 representation. It is
+     * the only format supported by psa_import_key(). ASN.1/DER/PEM
+     * formats are not supported.
+     */
     attributes = psa_key_attributes_init();
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE);
     psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
@@ -231,19 +237,37 @@ init_fixed_test_ec_encryption_key(uint32_t           cose_ec_curve_id,
     psa_set_key_bits(&attributes, key_bitlen);
 
     status = psa_import_key(&attributes,
-                            key_bytes.ptr, key_bytes.len,
+                            priv_key_bytes.ptr, priv_key_bytes.len,
                             (mbedtls_svc_key_id_t *)(&private_key->key.handle));
 
-    if (status != PSA_SUCCESS) {
-        return T_COSE_ERR_PRIVATE_KEY_IMPORT_FAILED;
-    }
 
-    /* Import a second time so there's a separate instance for the
-     * public key.
+    /* Import the public key from the SEC1 representation. It is
+     * the only format supported by psa_import_key(). ASN.1/DER/PEM
+     * formats are not supported.
      */
+    attributes = psa_key_attributes_init();
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE);
+    psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
+    psa_set_key_type(&attributes, type_public);
+    psa_set_key_bits(&attributes, key_bitlen);
     status = psa_import_key(&attributes,
-                             key_bytes.ptr, key_bytes.len,
+                             pub_key_bytes.ptr, pub_key_bytes.len,
+                             (mbedtls_svc_key_id_t *)(&public_key->key.handle));
+
+    /*
+     * With PSA, it is also possible to import the private key as
+     * psa_import_key() will automatically derive the public key,
+     * the key handle will the key pair and will be usable as a public key.
+    attributes = psa_key_attributes_init();
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_DERIVE);
+    psa_set_key_algorithm(&attributes, PSA_ALG_ECDH);
+    psa_set_key_type(&attributes, type_private);
+    psa_set_key_bits(&attributes, key_bitlen);
+    status = psa_import_key(&attributes,
+                            key_bytes.ptr, key_bytes.len,
                             (mbedtls_svc_key_id_t *)(&public_key->key.handle));
+    */
+
 
     if (status != PSA_SUCCESS) {
         psa_destroy_key((psa_key_handle_t)private_key->key.handle);

@@ -315,8 +315,8 @@ int32_t base_encrypt_decrypt_test(void)
 
 
 
-int32_t
-esdh_enc_dec_test(void)
+static int32_t
+esdh_enc_dec(int32_t curve)
 {
     enum t_cose_err_t                result;
     struct t_cose_key                privatekey;
@@ -331,7 +331,7 @@ esdh_enc_dec_test(void)
     struct q_useful_buf_c            decrypted_payload;
     struct t_cose_parameter         *params;
 
-    if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_A128KW)) {
+    if(!t_cose_is_algorithm_supported(curve)) {
         /* Mbed TLS 2.28 doesn't support key wrap. */
         /* TODO: check for other required algorithms here */
         return INT32_MIN;
@@ -341,7 +341,7 @@ esdh_enc_dec_test(void)
      * of this key pair is crypto-library dependent because t_cose_key
      * is crypto-library dependent. See t_cose_key.h and the examples
      * to understand key-pair creation better. */
-    result = init_fixed_test_ec_encryption_key(T_COSE_ELLIPTIC_CURVE_P_256,
+    result = init_fixed_test_ec_encryption_key(curve,
                                               &publickey, /* out: public key to be used for encryption */
                                               &privatekey); /* out: corresponding private key for decryption */
     if(result != T_COSE_SUCCESS) {
@@ -362,7 +362,7 @@ esdh_enc_dec_test(void)
      */
     t_cose_recipient_enc_esdh_init(&recipient,
                                     T_COSE_ALGORITHM_ECDH_ES_A128KW, /* content key distribution id */
-                                    T_COSE_ELLIPTIC_CURVE_P_256);    /* curve id */
+                                    curve);    /* curve id */
 
     t_cose_recipient_enc_esdh_set_key(&recipient,
                                        publickey,
@@ -379,7 +379,7 @@ esdh_enc_dec_test(void)
                                  Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD), /* in: payload to encrypt */
                                  NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
                                  cose_encrypt_message_buffer, /* in: buffer for COSE_Encrypt */
-                                 &cose_encrypted_message); /* out: COSE_Encrypt */
+                                &cose_encrypted_message); /* out: COSE_Encrypt */
 
     if (result != T_COSE_SUCCESS) {
         goto Done;
@@ -396,9 +396,9 @@ esdh_enc_dec_test(void)
                                      (struct t_cose_recipient_dec *)&dec_recipient);
 
     result = t_cose_encrypt_dec(&dec_ctx,
-                                cose_encrypted_message,
-                                NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
-                                decrypted_buffer,
+                                 cose_encrypted_message,
+                                 NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                 decrypted_buffer,
                                 &decrypted_payload,
                                 &params);
     if(result != T_COSE_SUCCESS) {
@@ -411,6 +411,25 @@ Done:
 
     return (int32_t)result;
 }
+
+
+int32_t
+esdh_enc_dec_test(void)
+{
+    int32_t result;
+
+    if(!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_A128KW)) {
+        /* Mbed TLS 2.28 doesn't support key wrap. */
+        return INT32_MIN;
+    }
+
+    result = esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_256);
+    if(result) {
+        return result;
+    }
+    return esdh_enc_dec(T_COSE_ELLIPTIC_CURVE_P_521);
+}
+
 
 
 /* This comes from the COSE WG Examples repository */
