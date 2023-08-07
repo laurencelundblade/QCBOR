@@ -404,6 +404,109 @@ int32_t compute_validate_get_size_mac_test()
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
+int32_t compute_validate_known_good_test()
+{
+    struct t_cose_mac_calculate_ctx mac_ctx;
+    struct t_cose_mac_validate_ctx  validate_ctx;
+    int32_t                         return_value;
+    enum t_cose_err_t               cose_res;
+    Q_USEFUL_BUF_MAKE_STACK_UB(     maced_cose_buffer, 300);
+    struct q_useful_buf_c           maced_cose;
+    struct q_useful_buf_c           payload_in;
+    struct q_useful_buf_c           payload_out;
+    struct t_cose_key               key;
+
+    /* This test aims to verify the Mac0 implementation against a known
+     * good example that complies with the IETF COSE WG specification.
+     * Source: https://github.com/cose-wg/Examples/blob/master/mac0-tests/HMac-01.json
+     */
+
+    /* HMAC key from the HMac-01 example */
+    const uint8_t example_key_hmac[] = {
+                                0x84, 0x9b, 0x57, 0x21, 0x9d, 0xae, 0x48, 0xde,
+                                0x64, 0x6d, 0x07, 0xdb, 0xb5, 0x33, 0x56, 0x6e,
+                                0x97, 0x66, 0x86, 0x45, 0x7c, 0x14, 0x91, 0xbe,
+                                0x3a, 0x76, 0xdc, 0xea, 0x6c, 0x42, 0x71, 0x88};
+
+    /* Expected COSE_Mac0 structure from the HMac-01 example */
+    const uint8_t expected_maced_cose[] = {
+                                0xD1, 0x84, 0x43, 0xA1, 0x01, 0x05, 0xA0, 0x54,
+                                0x54, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20,
+                                0x74, 0x68, 0x65, 0x20, 0x63, 0x6F, 0x6E, 0x74,
+                                0x65, 0x6E, 0x74, 0x2E, 0x58, 0x20, 0xA1, 0xA8,
+                                0x48, 0xD3, 0x47, 0x1F, 0x9D, 0x61, 0xEE, 0x49,
+                                0x01, 0x8D, 0x24, 0x4C, 0x82, 0x47, 0x72, 0xF2,
+                                0x23, 0xAD, 0x4F, 0x93, 0x52, 0x93, 0xF1, 0x78,
+                                0x9F, 0xC3, 0xA0, 0x8D, 0x8C, 0x58};
+
+    if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_HMAC256)) {
+        return 0;
+    }
+
+    payload_in = Q_USEFUL_BUF_FROM_SZ_LITERAL("This is the content.");
+
+    /* Get started with context initialization, selecting the algorithm. */
+    t_cose_mac_compute_init(&mac_ctx, 0, T_COSE_ALGORITHM_HMAC256);
+
+    /* Set the HMAC key from the example that will be used for both computing
+     * the authentication tag and validation.
+     */
+    cose_res = t_cose_key_init_symmetric(
+                    T_COSE_ALGORITHM_HMAC256,
+                    Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(example_key_hmac),
+                    &key);
+    if (cose_res != T_COSE_SUCCESS) {
+        return 1000 + (int32_t)cose_res;
+    }
+    t_cose_mac_set_computing_key(&mac_ctx,
+                                  key,
+                                  NULL_Q_USEFUL_BUF_C);
+
+    cose_res = t_cose_mac_compute(&mac_ctx,
+                                   NULL_Q_USEFUL_BUF_C,
+                                   payload_in,
+                                   maced_cose_buffer,
+                                  &maced_cose);
+    if(cose_res != T_COSE_SUCCESS) {
+        return_value = 2000 + (int32_t)cose_res;
+        goto Done;
+    }
+
+    /* --- Done making COSE_Mac0 structure --- */
+
+    /* Verify the COSE_Mac0 structure */
+    t_cose_mac_validate_init(&validate_ctx, 0);
+    t_cose_mac_set_validate_key(&validate_ctx, key);
+    cose_res = t_cose_mac_validate(&validate_ctx,
+                                    maced_cose,  /* COSE to validate */
+                                    NULL_Q_USEFUL_BUF_C,
+                                   &payload_out, /* Payload from maced_cose */
+                                    NULL);
+    if (cose_res != T_COSE_SUCCESS) {
+        return_value = 3000 + (int32_t)cose_res;
+        goto Done;
+    }
+
+    /* Compare the output Mac0 structure to the one expected */
+    if (q_useful_buf_compare(Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(
+                                expected_maced_cose),
+                                maced_cose)) {
+        return_value = -1;
+        goto Done;
+    }
+
+    return_value = 0;
+
+Done:
+    t_cose_key_free_symmetric(key);
+
+    return return_value;
+}
+
+
+/*
+ * Public function, see t_cose_compute_validate_mac_test.h
+ */
 int32_t compute_validate_detached_content_mac_fail_test()
 {
     struct t_cose_mac_calculate_ctx   mac_ctx;

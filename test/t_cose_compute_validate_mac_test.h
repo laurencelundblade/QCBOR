@@ -43,6 +43,12 @@ int32_t compute_validate_get_size_mac_test(void);
 
 
 /*
+ * Test against known good example.
+ */
+int32_t compute_validate_known_good_test(void);
+
+
+/*
  * Compute MAC of some data, perturb the data and see that MAC validation fails.
  */
 int32_t compute_validate_detached_content_mac_fail_test(void);

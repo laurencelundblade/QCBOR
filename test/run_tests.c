@@ -92,6 +92,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(compute_validate_mac_basic_test),
     TEST_ENTRY(compute_validate_mac_fail_test),
     TEST_ENTRY(compute_validate_get_size_mac_test),
+    TEST_ENTRY(compute_validate_known_good_test),
     TEST_ENTRY(compute_validate_detached_content_mac_fail_test),
     TEST_ENTRY(compute_validate_get_size_detached_content_mac_test),
 

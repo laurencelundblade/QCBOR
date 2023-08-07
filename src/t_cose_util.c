@@ -253,14 +253,15 @@ create_tbm(const struct t_cose_sign_inputs *mac_inputs,
     QCBOREncode_Init(&cbor_encode_ctx, tbm_first_part_buf);
     QCBOREncode_OpenArray(&cbor_encode_ctx);
     /* context */
-    QCBOREncode_AddBytes(&cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL(COSE_MAC_CONTEXT_STRING_MAC0));
+    QCBOREncode_AddText(&cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL(COSE_MAC_CONTEXT_STRING_MAC0));
+
     /* body_protected */
     QCBOREncode_AddBytes(&cbor_encode_ctx, mac_inputs->body_protected);
 
     /* external_aad. There is none so an empty bstr */
     QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
 
-    /* The short fake payload. */
+    /* The short fake payload, add only the byte string type and length */
     QCBOREncode_AddBytesLenOnly(&cbor_encode_ctx, mac_inputs->payload);
 
     /* Close of the array */
