@@ -1068,7 +1068,7 @@ int32_t content_type_test()
         return 6;
     }
 
-#ifndef T_COSE_2
+#if !defined( T_COSE_VERSION_MAJOR ) ||  (T_COSE_VERSION_MAJOR < 2 )
     /* This test is turned off for t_cose 2 because the behavior
      * when setting the content type twice is different. For
      * t_cose 2, the second call over writes the first. It is not

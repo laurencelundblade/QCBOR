@@ -207,10 +207,15 @@ extern "C" {
 
 
 /**
- * This indicates this is t_cose 2.x, not 1.x. It should be forward compatible
- * with 1.x, but this is available in case it is not.
+ * Semantic versioning for t_cose x.y.z. Note that these were not defined
+ * for some releases of t_cose 1.x so !defined(T_COSE_VERSION_MAJOR)
+ * indicates t_cose 1.x.
  */
-#define T_COSE_2
+#define T_COSE_VERSION_MAJOR 2
+#define T_COSE_VERSION_MINOR 0
+#define T_COSE_VERSION_PATCH 0
+
+
 
 
 /* Definition of algorithm IDs is moved to t_cose_standard_constants.h */

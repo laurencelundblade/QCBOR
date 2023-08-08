@@ -1,18 +1,29 @@
-THIS IS A DEV BRANCH FOR t_cose 2.0. It's purpose is to integrate several large changes
-(multiple signers, MAC, encryption, and restartable crypto) together before
-they merge into master to become t_cose 2.0. (Replace this message with
-an introduction to t_cose 2.0 before the merge to master.
+This is the DEV BRANCH for t_cose 2.0. It is an ALPHA quality release. The major 
+features are in place. Test and documentation are not complete.  There may be 
+minor changes.
+
+COMPATIBILITY NOTE: t_cose 2.0 supports the same sign and verify APIs that t_cose 1.x 
+does, but it is recommended that t_cose 2.0 users move to the new APIs for better efficiency
+and code size. Specifically, users should move from t_cose_sign1_xxxx to t_cose_sign_xxx.
+The t_cose_sign_xxx APIs in 2.0 support both COSE_Sign and COSE_Sign1.  A select
+few users that are very concerned about code size and that do not need any t_cose 2.x
+features may choose to stay with t_cose 1.x as overall it a smaller implementation
+of COSE_Sign1.
 
 ![t_cose](https://github.com/laurencelundblade/t_cose/blob/master/t-cose-logo.png?raw=true)
 
 
-*t_cose* implements enough of COSE to support [CBOR Web Token, RFC 8392](https://tools.ietf.org/html/rfc8392)
-and [Entity Attestation Token (EAT)](https://tools.ietf.org/html/draft-ietf-rats-eat-01).
-This is the COSE_Sign1 part of [COSE, RFC 9052](https://tools.ietf.org/html/rfc9052).
+*t_cose* 2.x implements the following parts of [COSE, RFC 9052](https://tools.ietf.org/html/rfc9052)
+and [COSE, RFC 9053](https://tools.ietf.org/html/rfc9053):
+* COSE_Sign1 (single signer) with ECDSA, EdDSA and RSA algorithmns
+* COSE_Sign (multiple signatures) with ECDSA, EdDSA and RSA 
+* COSE_Mac0 (single MAC) with HMAC 256, 384 and 512
+* COSE_Encrypt0 (single recipient) with AES GCM 128, 192 and 256
+* COSE_Encrypt (multiple recipients) with ECDH + AES key wrap or just with AES key wrap
 
 **Implemented in C with minimal dependency** – There are three main
 dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR),
-2) A cryptographic library for ECDSA and SHA-2, 3) C99, <stdint.h>,
+2) A cryptographic library, 3) C99, <stdint.h>,
 <stddef.h>, <stdbool.h> and <string.h>.  It is  highly
 portable to different HW, OS's and cryptographic libraries. Except for
 some minor configuration for the cryptographic library, no #ifdefs or
@@ -27,32 +38,25 @@ are included.
 **Secure coding style** – Uses a construct called UsefulBuf / q_useful_buf as a
 discipline for safe coding and handling of binary data.
 
-**Small simple memory model** – Malloc is not needed. Besides the
-cryptographic library and payload buffer, about 600 bytes of heap/stack is needed
-for signing and 1500 bytes for verifying. The caller supplies the output buffer
-and context structures so the caller has control over memory usage making it
-useful for embedded implementations that have to run in small fixed memory.
-
-## Documentation
-
-[API documentation is here](https://laurencelundblade.github.io/t_cose/)
+**Small simple memory model** – Malloc is not used. Stack use is generally
+small. The caller supplies the larger buffers like those for the paylod giving full 
+control of memory usage and allocation making t_cose useful for embedded 
+implementations that have to run in small fixed memory.
 
 
 ## Code Status
 
-Status for t_cose 2.0 is very roughly this. COSE_Sign1 is working
-except for decoding of protected parameters. COSE_Sign works for
-a single signature.  COSE_Mac0 is generally working. COSE_Encrypt
-and COSE_Encrypt0 are somewhat working. 
+As of July 2023, the major t_cose 2.0 features are in and 
+functioning. There are many details to fix, interop testing and general
+testing to do, documentation to complete and correct.
 
-There is still lots of work to do on COSE_Sign, clean up on
-COSE_Mac0 and some re design is exected for COSE_Encrypt.
-
-RSA and Eddsa integration from main is still to be done.
+Backwards compatibility with t_cose 1.x is provided, but the code size
+is much larger. Those interested in small code size should switch
+to the newer signing API.
 
 Integration with the [OpenSSL](https://www.openssl.org) and [Arm Mbed
 TLS](https://github.com/ARMmbed/mbedtls) cryptographic libraries is
-fully supported for signing, but not COSE_Mac or COSE_Encrypt.
+fully supported.
 
 
 ## Building and Dependencies
@@ -280,15 +284,6 @@ into.
 
 ### Code
 
-Here are code sizes on 64-bit x86 optimized for size
-
-     |                           | smallest | largest |
-     |---------------------------|----------|---------|
-     | signing only              |     1500 |    2300 |
-     | verification only         |     2500 |    3300 |
-     | common to sign and verify |     (500)|    (800)|
-     | combined                  |     3500 |    4800 |
-
 Things that make the code smaller:
 * PSA / Mbed crypto takes less code to interface with than OpenSSL
 * gcc is usually smaller than llvm because stack guards are off by default
@@ -297,19 +292,6 @@ Things that make the code smaller:
 * Disable the content type header T_COSE_DISABLE_CONTENT_TYPE
 * Disable COSE_Sign structure support with T_COSE_DISABLE_COSE_SIGN
   (use only COSE_Sign1 signature structures if adequate).
-
-#### Change in code size with spiffy decode
-
-The encode size is as before.
-
-Compared to the previous t_cose, the code size for decoding/verifying
-is reduced by about 600 bytes. However, spiffy decode functions in
-QCBOR are now required and they are about 2KB, so there is a net size
-increase of 1.4KB. But use of spiffy decode will also make other parts
-of the overall SW stack smaller, perhaps by a lot, so this will likely
-break even. For example, EAT or CWT decoding will be reduced a lot
-through use of spiffy decode.  Basically, the more CBOR maps a SW
-stack has to handle, the more saving there will be from spiffy decode.
 
 
 ### Heap and stack
@@ -373,15 +355,15 @@ just have different names.
 * Doesn't handle COSE string algorithm IDs. Only COSE integer
   algorithm IDs are handled.  Thus far no string algorithm IDs have
   been assigned by IANA.
-* No way to add custom headers when creating signed messages or
-  process them during verification.
 * Does not handle CBOR indefinite length strings (indefinite length
   maps and arrays are handled).
 * Counter signatures are not supported.
 
 ## Credit
 
-* Paul Liétar for RSA PSS (PS256..PS512) and EdDSA
+* Dávid Vincze for work on COSE_Mac.
+* Mate Toth-Pal for restartable signing.
+* Paul Liétar for RSA PSS (PS256..PS512) and EdDSA.
 * Maik Riechert for cmake, CI and other.
 * Ken Takayama for the bulk of the detached content implementation.
 * Tamas Ban for lots code review comments, design ideas and porting to ARM PSA.
