@@ -76,6 +76,9 @@ int32_t sign_verify_multi(void);
 int32_t verify_multi_test(void);
 
 
+int32_t decode_only_multi_test(void);
+
+
 /*
  * Test restartable behaviour
  */

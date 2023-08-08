@@ -447,11 +447,11 @@ esdh_example_detached(void)
 Done:
      printf("---- %s EXAMPLE ESDH (%d) ----\n\n",
              result ? "FAILED" : "COMPLETED", result);
-         return (int32_t)result;
 
      /* Free test keys */
      free_fixed_test_ec_encryption_key(pkR);
      free_fixed_test_ec_encryption_key(skR);
 
+    return (int32_t)result;
 }
 #endif /* !T_COSE_DISABLE_ESDH */

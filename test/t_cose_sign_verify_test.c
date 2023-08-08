@@ -1312,6 +1312,161 @@ int32_t verify_multi_test(void)
 
     return 0;
 }
+
+
+
+static int32_t
+check_multi_params(const struct t_cose_parameter *decoded_params)
+{
+    // Very lazy check...
+    int64_t xxx = 0;
+    while(decoded_params != NULL) {
+        if(decoded_params->label == T_COSE_HEADER_PARAM_ALG) {
+            if(decoded_params->value_type != T_COSE_PARAMETER_TYPE_INT64) {
+                return 1;
+            }
+            xxx += decoded_params->value.int64;
+        }
+        decoded_params = decoded_params->next;
+    }
+
+    int64_t yyy = T_COSE_ALGORITHM_ES256 + T_COSE_ALGORITHM_EDDSA + T_COSE_ALGORITHM_PS256;
+    if(xxx != yyy) {
+        return 2;
+    }
+
+    return 0;
+}
+
+
+int32_t decode_only_multi_test(void)
+{
+    enum t_cose_err_t                   err;
+    MakeUsefulBufOnStack(               cose_sign_buf, 700);
+    struct q_useful_buf_c               cose_sign;
+    struct t_cose_parameter             param_pool[25];
+    struct t_cose_sign_verify_ctx       verify_ctx;
+    struct q_useful_buf_c               payload;
+    struct t_cose_signature_verify_main verify_ecdsa;
+    struct t_cose_parameter_storage      st;
+    struct t_cose_signature_verify_eddsa verify_eddsa;
+    struct t_cose_signature_verify_main  verify_rsa;
+    struct t_cose_parameter             *decoded_params;
+    size_t                               aux_size;
+
+
+    if (!t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256) ||
+        !t_cose_is_algorithm_supported(T_COSE_ALGORITHM_EDDSA) ||
+        !t_cose_is_algorithm_supported(T_COSE_ALGORITHM_PS256)) {
+        return INT32_MIN; /* Means no testing was actually done */
+    }
+    /* This requires EdDSA, RSA and ECDSA. Since PSA doesn't support EdDSA,
+     * this can only run with OpenSSL.
+     */
+    err = make_triple_signed(cose_sign_buf, &cose_sign);
+    if(err) {
+        return 1000 + (int32_t)err;
+    }
+
+    /* --- First run with no verifiers ---- */
+    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN | T_COSE_OPT_DECODE_ONLY);
+    T_COSE_PARAM_STORAGE_INIT(st, param_pool);
+    t_cose_sign_add_param_storage(&verify_ctx, &st);
+
+    err = t_cose_sign_verify(&verify_ctx,
+                              cose_sign,
+                              Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
+                             &payload,
+                             &decoded_params);
+
+    if(err) {
+        return 2000 + (int32_t)err;
+    }
+
+    if(check_multi_params(decoded_params)) {
+        return 2500;
+    }
+
+
+    /* --- Second run with all verifiers ---- */
+    t_cose_signature_verify_main_init(&verify_ecdsa);
+    t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_ecdsa);
+
+    t_cose_signature_verify_eddsa_init(&verify_eddsa, 0);
+    t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_eddsa);
+
+    t_cose_signature_verify_main_init(&verify_rsa);
+    t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_rsa);
+
+    err = t_cose_sign_verify(&verify_ctx,
+                              cose_sign,
+                              Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
+                             &payload,
+                             &decoded_params);
+
+    if(err) {
+        return 3000 + (int32_t)err;
+    }
+
+    aux_size = t_cose_signature_verify_eddsa_auxiliary_buffer_size(&verify_eddsa);
+    if(aux_size < 10 || aux_size > 1000) {
+        /* Just make sure it is in a reasonable range */
+        return 3600;
+    }
+
+    if(check_multi_params(decoded_params)) {
+        return 3500;
+    }
+
+
+    /* --- Third run with only EdDSA verifier ---- */
+     t_cose_signature_verify_eddsa_init(&verify_eddsa, 0);
+     t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_eddsa);
+
+     err = t_cose_sign_verify(&verify_ctx,
+                               cose_sign,
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
+                              &payload,
+                              &decoded_params);
+
+     if(err) {
+         return 4000 + (int32_t)err;
+     }
+
+     aux_size = t_cose_signature_verify_eddsa_auxiliary_buffer_size(&verify_eddsa);
+     if(aux_size < 10 || aux_size > 1000) {
+         /* Just make sure it is in a reasonable range */
+         return 4600;
+     }
+
+    if(check_multi_params(decoded_params)) {
+        return 4500;
+    }
+
+
+    /* --- Fourth run with only main verifier ---- */
+     t_cose_signature_verify_eddsa_init(&verify_eddsa, 0);
+     t_cose_sign_add_verifier(&verify_ctx, (struct t_cose_signature_verify *)&verify_eddsa);
+
+     err = t_cose_sign_verify(&verify_ctx,
+                               cose_sign,
+                               Q_USEFUL_BUF_FROM_SZ_LITERAL("SAMPLE AAD"),
+                              &payload,
+                              &decoded_params);
+
+     if(err) {
+         return 5000 + (int32_t)err;
+     }
+
+    if(check_multi_params(decoded_params)) {
+        return 5500;
+    }
+
+    return 0;
+}
+
+
+
 #endif /* !T_COSE_DISABLE_COSE_SIGN */
 
 

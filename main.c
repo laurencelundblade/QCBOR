@@ -17,7 +17,7 @@
 
 /*
  This is an implementation of OutputStringCB built using stdio. If
- you don't have stdio, replaces this.
+ you don't have stdio, replace this.
  */
 static void fputs_wrapper(const char *szString, void *pOutCtx, int bNewLine)
 {

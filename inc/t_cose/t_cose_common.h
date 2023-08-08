@@ -707,15 +707,15 @@ enum t_cose_err_t {
 
 
 /**
- * When verifying or signing a COSE message, cryptographic operations
- * like verification and decryption will not be performed. Keys needed
+ * When verifying a COSE message, cryptographic operations
+ * like verification will not be performed. Keys needed
  * for these operations are not needed. This is useful to decode a
  * COSE message to get the header parameter(s) to lookup/find/identify
  * the required key(s) (e.g., the kid parameter).  Then the key(s)
  * are/is configured and the message is decoded again without this
  * option.
  *
- * Note that anything returned (parameters, payload) will not have
+ * Note that anything returned (parameters and payload) will not have
  * been verified and should be considered untrusted.
  */
 #define T_COSE_OPT_DECODE_ONLY  0x00000800

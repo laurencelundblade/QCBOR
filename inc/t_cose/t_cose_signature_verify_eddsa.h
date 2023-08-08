@@ -36,8 +36,6 @@ struct t_cose_signature_verify_eddsa {
      */
     struct t_cose_signature_verify  s;
     struct t_cose_key               verification_key;
-    t_cose_param_special_decode_cb *special_param_decode_cb;
-    void                           *special_param_decode_ctx;
     uint32_t                        option_flags;
 
     struct q_useful_buf_c           verification_kid;
@@ -59,6 +57,7 @@ struct t_cose_signature_verify_eddsa {
 };
 
 
+// TODO: get rid of option_flags?
 void
 t_cose_signature_verify_eddsa_init(struct t_cose_signature_verify_eddsa *me,
                                    uint32_t                option_flags);
@@ -147,8 +146,9 @@ t_cose_signature_verify_eddsa_set_special_param_decoder(struct t_cose_signature_
                                                         t_cose_param_special_decode_cb       *decode_cb,
                                                         void      *decode_ctx)
 {
-    me->special_param_decode_cb  = decode_cb;
-    me->special_param_decode_ctx = decode_ctx;
+    struct t_cose_signature_verify *me_x = t_cose_signature_verify_from_eddsa(me);
+    me_x->special_param_decode_cb  = decode_cb;
+    me_x->special_param_decode_ctx = decode_ctx;
 }
 
 static inline void

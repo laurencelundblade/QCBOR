@@ -95,13 +95,82 @@ squeeze_nodes(struct t_cose_parameter *new_ones,
 }
 
 
+/**
+ * \brief "Main" verifier of t_cose_signature_verify_cb.
+ *
+ * \param[in] cbor_decoder     The decoder instance from where the
+ *                             COSE_Signature is decoded.
+ * \param[in] loc              The location of the sig inside the COSE_Sign.
+ * \param[in] param_storage    The place to put the decoded params.
+
+ * \param[out] decoded_params  Returned linked list of decoded parameters.
+ *
+ * This CBOR-decodes a COSE_Signature, particularly the header
+ * parameters.
+ *
+ * The return code is important here as it determines how decoding and
+ * verification proceeds for COSE_Sign message with multiple
+ * COSE_Signatures.
+ *
+ * Note that *decoded_params parameters should be NULL in most cases
+ * when this is called.
+ * Returns:  -- T_COSE_ERR_NO_MORE
+          -- header decode errors
+ -- Special header decode errors
+ -- CBOR format errors
+ *
+ */
+static enum t_cose_err_t
+decode_cose_signature(QCBORDecodeContext                 *cbor_decoder,
+                      const struct t_cose_header_location loc,
+                      struct t_cose_parameter_storage    *param_storage,
+                      t_cose_param_special_decode_cb     *special_decode_cb,
+                      void                               *special_decode_ctx,
+                      struct q_useful_buf_c              *protected_parameters,
+                      struct t_cose_parameter           **decoded_params,
+                      struct q_useful_buf_c              *signature)
+
+{
+    QCBORError               qcbor_error;
+    static enum t_cose_err_t return_value;
+
+    QCBORDecode_EnterArray(cbor_decoder, NULL);
+    qcbor_error = QCBORDecode_GetError(cbor_decoder);
+    if(qcbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
+        return T_COSE_ERR_NO_MORE;
+    }
+
+    return_value = t_cose_headers_decode(cbor_decoder,
+                                         loc,
+                                         special_decode_cb,
+                                         special_decode_ctx,
+                                         param_storage,
+                                         decoded_params,
+                                         protected_parameters);
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
+
+    /* --- The signature --- */
+    QCBORDecode_GetByteString(cbor_decoder, signature);
+
+    QCBORDecode_ExitArray(cbor_decoder);
+    qcbor_error = QCBORDecode_GetError(cbor_decoder);
+    if(qcbor_error != QCBOR_SUCCESS) {
+        return_value = qcbor_decode_error_to_t_cose_error(qcbor_error, T_COSE_ERR_SIGNATURE_FORMAT);
+        goto Done;
+    }
+
+Done:
+    return return_value;
+}
+
 
 /*
  * The work of this is to call multiple verifiers on one
- * signature until one succeeds.
-
-
- It is assumed the compiler will inline this since it is called
+ * COSE_Signature until one verifier succeeds.
+ *
+ * It is assumed the compiler will inline this since it is called
  * only once. Makes the large number of parameters not so
  * bad. This is a seperate function for code readability.
 
@@ -139,33 +208,37 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
     struct t_cose_parameter        *best_sig_param_list;
     int                             param_count;
     int                             best_param_count;
+    struct q_useful_buf_c           signature;
 
+    /* --- Loop Initialization ---- */
     QCBORDecode_SaveCursor(cbor_decoder, &saved_cursor);
-
-    best_param_count = 0;
+    best_param_count    = 0;
     best_sig_param_list = NULL;
+    verifier            = me->verifiers;
 
-    /* Loop over verifier instances */
-    for(verifier = me->verifiers;
-        verifier != NULL;
-        verifier = (struct t_cose_signature_verify *)verifier->rs.next) {
+    /* --- Loop over verifiers --- */
+    while(1) {
+        /* This loop will run partially even with no verifiers to
+         * always at least decode the COSE_Signature. */
 
-        /* Save state of parameters storage and list. */
-
+        /* --- Decode the COSE_Signature --- */
         size_t saved = me->p_storage->used;
-
         tmp_sig_param_list = NULL;
+        return_value = decode_cose_signature(cbor_decoder,
+                                             header_location,
+                                             me->p_storage,
+                                             verifier ? verifier->special_param_decode_cb : NULL,
+                                             verifier ? verifier->special_param_decode_ctx : NULL,
+                                            &sign_inputs->sign_protected,
+                                            &tmp_sig_param_list,
+                                            &signature);
 
-        return_value =
-            verifier->verify_cb(verifier,         /* in: verifier me context */
-                                me->option_flags, /* in: option_flags */
-                                header_location,  /* in: nesting/index */
-                                sign_inputs,      /* in: everything covered by signature */
-                                me->p_storage,    /* in: pool of t_cose_parameter structs */
-                                cbor_decoder,     /* in: decoder */
-                               &tmp_sig_param_list);  /* out: linked list of decoded params */
+        if(return_value != T_COSE_SUCCESS) {
+            /* Either no more COSE_Signatures or COSE_Signature decode error */
+            break;
+        }
 
-
+        /* --- Keep this header decode or last best decode? ---- */
         param_count = count_params(tmp_sig_param_list);
         if(param_count > best_param_count) {
             /* Remove the old best out of the pool. */
@@ -180,18 +253,31 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
             me->p_storage->used = saved;
         }
 
+        /* --- Is there a verifier to call? --- */
+        /* Got to the end of the list without success or there were no verifiers.  We arrive
+         * here because there was no verifier for the algorithm or the kid
+         * for the verification key didn't match any of the signatures or
+         * general decline failure. The decode above will have consumed
+         * the COSE signature. */
+        if(verifier == NULL) {
+            return_value = T_COSE_ERR_DECLINE;
+            break;
+        }
 
+        /* --- Attempt actual verification --- */
+        return_value = verifier->verify_cb(verifier, /* in: verifier me context */
+                                           me->option_flags, /* in: option_flags */
+                                           sign_inputs, /* in: everything covered by signature */
+                                           tmp_sig_param_list,
+                                           signature);
         if(return_value == T_COSE_SUCCESS) {
             /* If here, then the decode was a success, the crypto
-             * verified, and the signature CBOR was consumed. Nothing
-             * to do but leave */
-            goto Done;;
+             * verified, and the signature CBOR was consumed.
+             */
+            break;
         }
 
-        if(return_value == T_COSE_ERR_NO_MORE) {
-            goto Done;;
-        }
-
+        /* --- What kind of failure is this?--- */
         /* Remember the last verifier that failed. */
         me->last_verifier = verifier;
 
@@ -201,35 +287,25 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
              * failed to verify the bytes. In most cases the caller
              * will want to fail the whole thing if this happens.
              */
-            goto Done;;
+            break;
         }
-
 
         if(!is_soft_verify_error(return_value)) {
             /* Something is very wrong. Need to abort the entire
              * COSE mesage. */
-            goto Done;;
+            break;
         }
 
-        /* Go on to the next verifier */
+        /* --- Loop "increment" to try next verifier --- */
+        verifier = (struct t_cose_signature_verify *)verifier->rs.next;
+        /* Reset CBOR decoder to try next verifer on the same COSE_Signature */
         QCBORDecode_RestoreCursor(cbor_decoder, &saved_cursor);
     }
 
-    /* Got to the end of the list without success. The last verifier
-     * called will have consumed the CBOR for the signature. We arrive
-     * here because there was no verifier for the algorithm or the kid
-     * for the verification key didn't match any of the signatures or
-     * general decline failure. */
-    return_value = T_COSE_ERR_DECLINE;
-
-Done:
     t_cose_params_append(param_list, best_sig_param_list);
 
     return return_value;
 }
-
-
-
 
 
 /*
@@ -237,20 +313,24 @@ Done:
  * @param[in,out] decode_parameters param list to append newly decoded
  * params to
  *
- * Process all the COSE_Signatures in a COSE_Sign. The main job
- * here is knowing whether all signatures must be validated
- * or just one. */
+ * Process all the COSE_Signatures in a COSE_Sign. */
 static enum t_cose_err_t
 process_cose_signatures(struct t_cose_sign_verify_ctx *me,
                         QCBORDecodeContext            *cbor_decoder,
                         struct t_cose_sign_inputs     *sign_inputs,
                         struct t_cose_parameter      **decode_parameters)
 {
-    enum t_cose_err_t               return_value;
-    struct t_cose_header_location   header_location;
+    enum t_cose_err_t              return_value;
+    struct t_cose_header_location  header_location;
     struct t_cose_parameter       *sig_params;
 
     header_location.nesting = 1;
+
+    /* The call to verify_one_signature() does quite a lot of
+     * the work, but only for one COSE_Signature. What it doesn't
+     * do is the loop over all signatures and the policy of
+     * success from verifying one or from verifying all.
+     */
 
     /* --- loop over COSE_Signatures --- */
     for(header_location.index = 0;  ; header_location.index++) {
@@ -282,29 +362,26 @@ process_cose_signatures(struct t_cose_sign_verify_ctx *me,
 
         t_cose_params_append(decode_parameters, sig_params);
 
-        if(me->option_flags & (T_COSE_OPT_VERIFY_ALL_SIGNATURES | T_COSE_OPT_DECODE_ONLY)) {
+        if(me->option_flags & T_COSE_OPT_DECODE_ONLY) {
+            /* T_COSE_ERR_DECLINE never stops processing so all header
+             * params are decoded, all aux buffers sizes calculated */
+            continue;
+        }
+
+        if(me->option_flags & T_COSE_OPT_VERIFY_ALL_SIGNATURES ) {
             if(return_value == T_COSE_ERR_DECLINE) {
-                /* When verifying all, there can be no declines.
-                 * Also only decoding (not verifying) there can be
-                 * no declines because every signature must be
-                 * decoded so its parameters can be returned.
-                 * TODO: is this really true? It might be OK to
-                 * only decode some as long as the caller knows
-                 * that some weren't decoded. How to indicate this
-                 * if it happens? An error code? A special
-                 * indicator parameter in the returned list?
-                 */
+                /* When verifying all, there can be no declines. */
                 break;
             } else {
-                /* success. Continue on to check that the rest succeed. */
+                /* Success. Continue on to check that the rest succeed. */
             }
         } else {
             /* Not verifying all. Looking for one success */
             if(return_value == T_COSE_SUCCESS) {
-                /* Just one success is enough to complete.*/
+                /* Just one success is enough to complete */
                 break;
             } else {
-                /* decline. Continue to try other COSE_Signatures. */
+                /* Decline. Continue to try other COSE_Signatures */
             }
         }
     }
@@ -326,6 +403,7 @@ process_cose_signatures(struct t_cose_sign_verify_ctx *me,
  *                              by sig.
  * \param[in] signature         Actual bytes of the signature.
  */
+// TODO: how do special header decoders work for COSE_Sign1?
 static enum t_cose_err_t
 call_sign1_verifiers(struct t_cose_sign_verify_ctx   *me,
                      const struct t_cose_parameter   *body_params_list,
@@ -349,7 +427,7 @@ call_sign1_verifiers(struct t_cose_sign_verify_ctx   *me,
          * so the aux buffer size can be computed for EdDSA.
          */
         return_value =
-        verifier->verify1_cb(verifier,         /* in/out: me pointer for this verifier */
+        verifier->verify_cb(verifier,         /* in/out: me pointer for this verifier */
                              me->option_flags, /* in: option flags from top-level caller */
                              sign_inputs,      /* in: everything covered by signing */
                              body_params_list, /* in: linked list of header params from body */

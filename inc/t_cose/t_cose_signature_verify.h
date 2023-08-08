@@ -33,35 +33,6 @@ struct t_cose_signature_verify;
 
 
 /**
- * \brief Type definition of function used to verify a COSE_Signature in a COSE_Sign.
- *
- * \param[in] me               The context, the  t_cose_signature_verify
- *                             instance. This  will actully be some thing like
- *                             t_cose_signature_verify_main that inplements
- *                             t_cose_signature_verify.
- * \param[in] option_flags     Option flags from t_cose_sign_verify_init().
- *                             Mostly for \ref T_COSE_OPT_DECODE_ONLY.
- * \param[in] loc              The location of the signature inside the
- *                             COSE_Sign.
- * \param[in] sign_inputs      Payload, aad and header parameters to verify.
- * \param[in] params           The place to put the decoded params.
- * \param[in] qcbor_decoder    The decoder instance from where the
- *                             COSE_Signature is decoded.
- * \param[out] decoded_params  Returned linked list of decoded parameters.
- *
- * This must return T_COSE_ERR_NO_MORE if there are no more COSE_Signatures.
- */
-typedef enum t_cose_err_t
-t_cose_signature_verify_cb(struct t_cose_signature_verify     *me,
-                           uint32_t                            option_flags,
-                           const struct t_cose_header_location loc,
-                           struct t_cose_sign_inputs          *sign_inputs,
-                           struct t_cose_parameter_storage    *params,
-                           QCBORDecodeContext                 *qcbor_decoder,
-                           struct t_cose_parameter           **decoded_params);
-
-
-/**
  * \brief Type definition of function to verify the bare signature in COSE_Sign1.
  *
  * \param[in] me              The context, the  t_cose_signature_verify
@@ -75,9 +46,8 @@ t_cose_signature_verify_cb(struct t_cose_signature_verify     *me,
  *                            found.
  * \param[in] signature       The signature.
  *
- * This is very different from t_cose_signature_verify_cb()
- * because there is no header decoding to be done. Instead the headers
- * are decoded outside of this and passed in.
+ * This runs the crypto to actually verify a signature. The decoded headers are
+ * passed in \c parameter_list.
  */
 typedef enum t_cose_err_t
 t_cose_signature_verify1_cb(struct t_cose_signature_verify *me,
@@ -88,15 +58,20 @@ t_cose_signature_verify1_cb(struct t_cose_signature_verify *me,
 
 
 /**
- * Data structure that must be the first part of every context of every concrete
- * implementation of t_cose_signature_verify. Callback functions must not
- * be NULL, but can be stubs that return an error when COSE_SIgn1 or COSE_Sign
- * are not supported.
+ * Data structure that must be the first part of every context of
+ * every concrete implementation of t_cose_signature_verify. \c
+ * verify_cb must not be \c NULL. Header parameter decoding for
+ * integer and string parameters is done automatically. \c
+ * special_param_decode_cb should be non-NULL if there are non-integer
+ * or non-string parameters to decode.  \c special_param_decode_ctx is
+ * only passed to \c special_param_decode_cb so it may or may not by
+ * NULL as needed.
  */
 struct t_cose_signature_verify {
     struct t_cose_rs_obj             rs;
-    t_cose_signature_verify_cb      *verify_cb;
-    t_cose_signature_verify1_cb     *verify1_cb;
+    t_cose_signature_verify1_cb     *verify_cb;
+    t_cose_param_special_decode_cb  *special_param_decode_cb;
+    void                            *special_param_decode_ctx;
 };
 
 

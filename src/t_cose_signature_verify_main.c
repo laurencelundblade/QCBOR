@@ -81,7 +81,7 @@ sig_algorithm_check(int32_t cose_algorithm_id)
  *  - Call the signature verification alg through the crypto adaptation layer
  */
 static enum t_cose_err_t
-t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
+t_cose_signature_verify_main_cb(struct t_cose_signature_verify   *me_x,
                                  const uint32_t                   option_flags,
                                  const struct t_cose_sign_inputs *sign_inputs,
                                  const struct t_cose_parameter   *parameter_list,
@@ -94,8 +94,6 @@ t_cose_signature_verify1_main_cb(struct t_cose_signature_verify   *me_x,
     struct q_useful_buf_c        kid;
     Q_USEFUL_BUF_MAKE_STACK_UB(  tbs_hash_buffer, T_COSE_MAIN_MAX_HASH_SIZE);
     struct q_useful_buf_c        tbs_hash;
-
-    (void)kid;
 
     /* --- Get the parameters values needed --- */
     cose_algorithm_id = t_cose_param_find_alg_id(parameter_list, true);
@@ -146,121 +144,10 @@ Done:
 
 
 
-/**
- * \brief "Main" verifier of t_cose_signature_verify_cb.
- *
- * \param[in] me_x             The context, the t_cose_signature_verify_main
- *                             instance.
- * \param[in] option_flags     Option flags from t_cose_sign_verify_init().
- *                             Mostly for \ref T_COSE_OPT_DECODE_ONLY.
- * \param[in] loc              The location of the sig inside the COSE_Sign.
- * \param[in] sign_inputs      Payload, aad and header parameters to verify.
- * \param[in] param_storage    The place to put the decoded params.
- * \param[in] cbor_decoder     The decoder instance from where the
- *                             COSE_Signature is decoded.
- * \param[out] decoded_params  Returned linked list of decoded parameters.
- *
- * This CBOR-decodes a COSE_Signature, particularly the header
- * parameters and then calls t_cose_signature_verify1_main_cb() to
- * verify the signature itself.
- *
- * The return code is important here as it determines how decoding and
- * verification proceeds for COSE_Sign message with multiple
- * COSE_Signatures.
- *
- * Note that *decoded_params parameters should be NULL in most cases
- * when this is called.
- *
- */
-/*
- Returns: END_OF_HEADERS if no there are no more COSE_Signatures
-          CBOR decoding error
-          Error decoding the COSE_Signature (but not a COSE error)
-          Signature validate
-          Signature didn't validate
-
- */
-
-/** This is an implementation of \ref t_cose_signature_verify_cb. */
-static enum t_cose_err_t
-t_cose_signature_verify_main_cb(struct t_cose_signature_verify  *me_x,
-                                const uint32_t                  option_flags,
-                                const struct t_cose_header_location loc,
-                                struct t_cose_sign_inputs       *sign_inputs,
-                                struct t_cose_parameter_storage *param_storage,
-                                QCBORDecodeContext              *cbor_decoder,
-                                struct t_cose_parameter        **decoded_params)
-{
-#ifndef T_COSE_DISABLE_COSE_SIGN
-    const struct t_cose_signature_verify_main *me =
-                            (const struct t_cose_signature_verify_main *)me_x;
-    QCBORError             qcbor_error;
-    enum t_cose_err_t      return_value;
-    struct q_useful_buf_c  protected_parameters;
-    struct q_useful_buf_c  signature;
-
-    /* --- Decode the COSE_Signature ---*/
-    QCBORDecode_EnterArray(cbor_decoder, NULL);
-    qcbor_error = QCBORDecode_GetError(cbor_decoder);
-    if(qcbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
-        return T_COSE_ERR_NO_MORE;
-    }
-    // TODO: make sure other errors are processed correctly by fall through here
-
-    return_value = t_cose_headers_decode(cbor_decoder,
-                                         loc,
-                                         me->special_param_decode_cb,
-                                         me->special_param_decode_ctx,
-                                         param_storage,
-                                         decoded_params,
-                                        &protected_parameters);
-
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
-    }
-    sign_inputs->sign_protected = protected_parameters;
-
-    /* --- The signature --- */
-    QCBORDecode_GetByteString(cbor_decoder, &signature);
-
-    QCBORDecode_ExitArray(cbor_decoder);
-    qcbor_error = QCBORDecode_GetError(cbor_decoder);
-    if(qcbor_error != QCBOR_SUCCESS) {
-        return_value = qcbor_decode_error_to_t_cose_error(qcbor_error, T_COSE_ERR_SIGNATURE_FORMAT);
-        goto Done;
-    }
-    /* --- Done decoding the COSE_Signature --- */
-
-
-    return_value = t_cose_signature_verify1_main_cb(me_x,
-                                                    option_flags,
-                                                    sign_inputs,
-                                                   *decoded_params,
-                                                    signature);
-
-Done:
-    return return_value;
-
-#else /* !T_COSE_DISABLE_COSE_SIGN */
-
-    (void)me_x;
-    (void)option_flags;
-    (void)loc;
-    (void)sign_inputs;
-    (void)param_storage;
-    (void)cbor_decoder;
-    (void)decoded_params;
-
-    return T_COSE_ERR_UNSUPPORTED;
-#endif /* !T_COSE_DISABLE_COSE_SIGN */
-}
-
-
 void
 t_cose_signature_verify_main_init(struct t_cose_signature_verify_main *me)
 {
     memset(me, 0, sizeof(*me));
     me->s.rs.ident = RS_IDENT(TYPE_RS_VERIFIER, 'M');
-    me->s.verify_cb  = t_cose_signature_verify_main_cb;
-    me->s.verify1_cb = t_cose_signature_verify1_main_cb;
+    me->s.verify_cb = t_cose_signature_verify_main_cb;
 }
