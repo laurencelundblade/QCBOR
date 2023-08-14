@@ -162,6 +162,11 @@ encode_protected_parameters(uint32_t            test_message_options,
         QCBOREncode_CloseArray(&cbor_encode_ctx);
     }
 
+    if(test_message_options & T_COSE_TEST_BAD_CRIT_PARAMETER) {
+        QCBOREncode_AddSZStringToMapN(&cbor_encode_ctx,
+                                      T_COSE_HEADER_PARAM_CRIT, "hi");
+    }
+
     if(test_message_options & T_COSE_TEST_EMPTY_CRIT_PARAMETER) {
         QCBOREncode_OpenArrayInMapN(&cbor_encode_ctx, T_COSE_HEADER_PARAM_CRIT);
         QCBOREncode_CloseArray(&cbor_encode_ctx);
@@ -238,11 +243,6 @@ add_unprotected_parameters(uint32_t              test_message_options,
     if(test_message_options & T_COSE_TEST_PARAMETER_LABEL) {
         QCBOREncode_AddBytes(cbor_encode_ctx, kid);
         QCBOREncode_AddBytes(cbor_encode_ctx, kid);
-    }
-
-    if(test_message_options & T_COSE_TEST_BAD_CRIT_PARAMETER) {
-        QCBOREncode_AddSZStringToMapN(cbor_encode_ctx,
-                                      T_COSE_HEADER_PARAM_CRIT, "hi");
     }
 
     if(test_message_options & T_COSE_TEST_EXTRA_PARAMETER) {

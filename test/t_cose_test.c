@@ -721,7 +721,8 @@ int32_t cose_example_test()
 }
 
 
-static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
+static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options,
+                                                  uint32_t verify_options)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -740,7 +741,10 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
         cose_algorithm_id = T_COSE_ALGORITHM_SHORT_CIRCUIT_256;
     }
 
-    init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
+    result = init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
+    if(result) {
+        return result + 1000;
+    }
 
     /* --- Start making COSE Sign1 object  --- */
 
@@ -763,8 +767,9 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options)
 
 
     /* --- Start verifying the COSE Sign1 object  --- */
-    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT);
+    t_cose_sign1_verify_init(&verify_ctx, T_COSE_OPT_ALLOW_SHORT_CIRCUIT | verify_options);
     t_cose_sign1_set_verification_key(&verify_ctx, key_pair);
+
 
     /* Run the signature verification */
     result = t_cose_sign1_verify(&verify_ctx,
@@ -862,48 +867,43 @@ int32_t all_header_parameters_test()
 
 struct test_case {
     uint32_t           test_option;
+    uint32_t           verify_option;
     enum t_cose_err_t  result;
 };
 
 static struct test_case bad_parameters_tests_table[] = {
-    // TODO: document that this is different than t_cose 1.0
-    {T_COSE_TEST_EMPTY_PROTECTED_PARAMETERS, T_COSE_ERR_NO_ALG_ID},
 
-    {T_COSE_TEST_UNCLOSED_PROTECTED, T_COSE_ERR_PARAMETER_CBOR},
+    {T_COSE_TEST_EMPTY_PROTECTED_PARAMETERS, 0, T_COSE_ERR_NO_ALG_ID},
+
+    {T_COSE_TEST_UNCLOSED_PROTECTED, 0, T_COSE_ERR_PARAMETER_CBOR},
 
 #ifndef T_COSE_DISABLE_CONTENT_TYPE
-    {T_COSE_TEST_DUP_CONTENT_ID, T_COSE_ERR_DUPLICATE_PARAMETER},
+    {T_COSE_TEST_DUP_CONTENT_ID, 0, T_COSE_ERR_DUPLICATE_PARAMETER},
 
-    {T_COSE_TEST_TOO_LARGE_CONTENT_TYPE, T_COSE_ERR_BAD_CONTENT_TYPE},
+    {T_COSE_TEST_TOO_LARGE_CONTENT_TYPE, 0, T_COSE_ERR_BAD_CONTENT_TYPE},
 #endif /* T_COSE_DISABLE_CONTENT_TYPE */
 
-    {T_COSE_TEST_NOT_WELL_FORMED_2, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
+    {T_COSE_TEST_NOT_WELL_FORMED_2, 0, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
 
-    {T_COSE_TEST_KID_IN_PROTECTED, T_COSE_ERR_DUPLICATE_PARAMETER},
+    {T_COSE_TEST_KID_IN_PROTECTED, 0, T_COSE_ERR_DUPLICATE_PARAMETER},
 
-#ifdef TODO_CRIT_PARAM_FIXED
-    {T_COSE_TEST_TOO_MANY_UNKNOWN, T_COSE_ERR_TOO_MANY_PARAMETERS},
-#endif
+    {T_COSE_TEST_UNPROTECTED_NOT_MAP, 0, T_COSE_ERR_PARAMETER_CBOR},
 
-    {T_COSE_TEST_UNPROTECTED_NOT_MAP, T_COSE_ERR_PARAMETER_CBOR},
+    {T_COSE_TEST_BAD_CRIT_PARAMETER, 0, T_COSE_ERR_CRIT_PARAMETER},
 
-#ifdef TODO_CRIT_PARAM_FIXED
-    {T_COSE_TEST_BAD_CRIT_PARAMETER, T_COSE_ERR_CRIT_PARAMETER},
-#endif
+    {T_COSE_TEST_NOT_WELL_FORMED_1, 0, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
 
-    {T_COSE_TEST_NOT_WELL_FORMED_1, T_COSE_ERR_CBOR_NOT_WELL_FORMED},
+    {T_COSE_TEST_NO_UNPROTECTED_PARAMETERS, 0, T_COSE_ERR_PARAMETER_CBOR},
 
-    {T_COSE_TEST_NO_UNPROTECTED_PARAMETERS, T_COSE_ERR_PARAMETER_CBOR},
+    {T_COSE_TEST_NO_PROTECTED_PARAMETERS, 0, T_COSE_ERR_PARAMETER_CBOR},
 
-    {T_COSE_TEST_NO_PROTECTED_PARAMETERS, T_COSE_ERR_PARAMETER_CBOR},
+    {T_COSE_TEST_EXTRA_PARAMETER, 0, T_COSE_SUCCESS},
 
-    {T_COSE_TEST_EXTRA_PARAMETER, T_COSE_SUCCESS},
+    {T_COSE_TEST_PARAMETER_LABEL, 0, T_COSE_ERR_PARAMETER_CBOR},
 
-    {T_COSE_TEST_PARAMETER_LABEL, T_COSE_ERR_PARAMETER_CBOR},
+    {T_COSE_TEST_BAD_PROTECTED, 0, T_COSE_ERR_PARAMETER_CBOR},
 
-    {T_COSE_TEST_BAD_PROTECTED, T_COSE_ERR_PARAMETER_CBOR},
-
-    {0, 0}
+    {0, 0, 0}
 };
 
 
@@ -913,10 +913,17 @@ static struct test_case bad_parameters_tests_table[] = {
 int32_t bad_parameters_test()
 {
     struct test_case *test;
+    enum t_cose_err_t err;
+    int n;
 
-    for(test = bad_parameters_tests_table; test->test_option; test++) {
-        if(run_test_sign_and_verify(test->test_option) != test->result) {
-            return (int32_t)(test - bad_parameters_tests_table + 1);
+    for(n = 0; ; n++) {
+        test = &bad_parameters_tests_table[n];
+        if(!test->test_option) {
+            break;
+        }
+        err = run_test_sign_and_verify(test->test_option, test->verify_option);
+        if(err != test->result) {
+            return (int32_t)(n + 1);
         }
     }
 
@@ -930,34 +937,40 @@ static struct test_case crit_tests_table[] = {
     /* Test existance of the critical header. Also makes sure that
      * it works with the max number of labels allowed in it.
      */
-    {T_COSE_TEST_CRIT_PARAMETER_EXIST, T_COSE_SUCCESS},
+    {T_COSE_TEST_CRIT_PARAMETER_EXIST, 0, T_COSE_SUCCESS},
 
     /* Exceed the max number of labels by one and get an error */
-    {T_COSE_TEST_TOO_MANY_CRIT_PARAMETER_EXIST, T_COSE_ERR_CRIT_PARAMETER},
+    {T_COSE_TEST_TOO_MANY_CRIT_PARAMETER_EXIST, 0, T_COSE_ERR_CRIT_PARAMETER},
 
     /* A critical parameter exists in the protected section, but the
      * format of the internals of this parameter is not the expected CBOR
      */
-    {T_COSE_TEST_BAD_CRIT_LABEL, T_COSE_ERR_CRIT_PARAMETER},
+    {T_COSE_TEST_BAD_CRIT_LABEL, 0, T_COSE_ERR_CRIT_PARAMETER},
 
     /* A critical label is listed in the protected section, but
      * the label doesn't exist. This works for integer-labeled header params.
      */
-    {T_COSE_TEST_UNKNOWN_CRIT_UINT_PARAMETER, T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER},
+    {T_COSE_TEST_UNKNOWN_CRIT_UINT_PARAMETER, 0, T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER},
+    {T_COSE_TEST_UNKNOWN_CRIT_UINT_PARAMETER, T_COSE_OPT_UNKNOWN_CRIT_ALLOWED, T_COSE_SUCCESS},
+
 #if WE_HAVE_ADDED_STRING_LABELS
     /* A critical label is listed in the protected section, but
      * the label doesn't exist. This works for string-labeled header params.
      */
-    {T_COSE_TEST_UNKNOWN_CRIT_TSTR_PARAMETER, T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER},
+    {T_COSE_TEST_UNKNOWN_CRIT_TSTR_PARAMETER, 0, T_COSE_ERR_UNKNOWN_CRITICAL_PARAMETER},
+    {T_COSE_TEST_UNKNOWN_CRIT_TSTR_PARAMETER, T_COSE_OPT_UNKNOWN_CRIT_ALLOWED, T_COSE_SUCCESS},
+
 #endif /* WE_HAVE_ADDED_STRING_LABELS */
 
-    /* The critical labels list is not protected */
-    {T_COSE_TEST_CRIT_NOT_PROTECTED, T_COSE_ERR_PARAMETER_NOT_PROTECTED},
 
-    {T_COSE_TEST_EMPTY_CRIT_PARAMETER, T_COSE_ERR_CRIT_PARAMETER},
+
+    /* The critical labels list is not protected */
+    {T_COSE_TEST_CRIT_NOT_PROTECTED, 0, T_COSE_ERR_PARAMETER_NOT_PROTECTED},
+
+    {T_COSE_TEST_EMPTY_CRIT_PARAMETER, 0, T_COSE_ERR_CRIT_PARAMETER},
 
 #if WE_HAVE_ADDED_STRING_LABELS
-    {T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS, T_COSE_ERR_CRIT_PARAMETER},
+    {T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS, 0, T_COSE_ERR_CRIT_PARAMETER},
 #endif /* WE_HAVE_ADDED_STRING_LABELS */
 
     {0, 0}
@@ -969,13 +982,18 @@ static struct test_case crit_tests_table[] = {
  */
 int32_t crit_parameters_test()
 {
-    unsigned index;
+    struct test_case *test;
+    enum t_cose_err_t err;
+    int n;
 
-    for(index = 0; index < C_ARRAY_COUNT(crit_tests_table, struct test_case); index++) {
-        struct test_case *test = &crit_tests_table[index];
-
-        if(run_test_sign_and_verify(test->test_option) != test->result) {
-            return (int32_t)(index * 1000 + 1);
+    for(n = 0; ; n++) {
+        test = &crit_tests_table[n];
+        if(!test->test_option) {
+            break;
+        }
+        err = run_test_sign_and_verify(test->test_option, test->verify_option);
+        if(err != test->result) {
+            return (int32_t)(n + 1);
         }
     }
 
@@ -2115,7 +2133,7 @@ int32_t indef_array_and_map_test()
      */
 
     /* General test with indefinite lengths */
-    return_value = run_test_sign_and_verify(T_COSE_TEST_INDEFINITE_MAPS_ARRAYS);
+    return_value = run_test_sign_and_verify(T_COSE_TEST_INDEFINITE_MAPS_ARRAYS, 0);
     if(return_value != T_COSE_SUCCESS) {
         return 1000 + (int32_t) return_value;
     }
