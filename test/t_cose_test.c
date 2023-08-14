@@ -973,7 +973,7 @@ static struct test_case crit_tests_table[] = {
     {T_COSE_TEST_TOO_MANY_TSTR_CRIT_LABLELS, 0, T_COSE_ERR_CRIT_PARAMETER},
 #endif /* WE_HAVE_ADDED_STRING_LABELS */
 
-    {0, 0}
+    {0, 0, 0}
 };
 
 
