@@ -570,16 +570,18 @@ static int32_t signing_size_test(int32_t               cose_algorithm_id,
     struct q_useful_buf            nil_buf;
     size_t                         calculated_size;
     QCBORError                     cbor_error;
-    struct q_useful_buf_c          calc_size;
     struct q_useful_buf_c          actual_signed_cose;
     Q_USEFUL_BUF_MAKE_STACK_UB(    signed_cose_buffer, 300);
     Q_USEFUL_BUF_MAKE_STACK_UB(    auxiliary_buffer, SIZE_TEST_AUX_SIZE);
     struct q_useful_buf_c          payload;
     size_t                         sig_size;
+#ifndef T_COSE_DISABLE_COSE_SIGN
     struct t_cose_sign_sign_ctx    sign_ctx;
     struct t_cose_signature_sign_eddsa  signer_eddsa;
     struct t_cose_signature_sign_main  signer_main;
     struct t_cose_signature_sign  *signer;
+    struct q_useful_buf_c          calc_size;
+#endif /* T_COSE_DISABLE_COSE_SIGN */
     size_t                         auxiliary_buffer_size;
 
     result = init_fixed_test_signing_key(cose_algorithm_id, &key_pair);
@@ -698,7 +700,7 @@ static int32_t signing_size_test(int32_t               cose_algorithm_id,
         goto Done;
     }
 
-
+#ifndef T_COSE_DISABLE_COSE_SIGN
     /* ========= Again for COSE_Sign ========= */
 
     /* ---- First calculate the size ----- */
@@ -767,6 +769,7 @@ static int32_t signing_size_test(int32_t               cose_algorithm_id,
         return_value = -12;
         goto Done;
     }
+#endif /* ! T_COSE_DISABLE_COSE_SIGN */
 
     return_value = 0;
 
