@@ -1507,7 +1507,8 @@ int32_t sign1_structure_decode_test(void)
 
 
     if(t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES256) &&
-       t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES384)) {
+       t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES384) &&
+       t_cose_is_algorithm_supported(T_COSE_ALGORITHM_ES512)) {
         T_COSE_PARAM_STORAGE_INIT(extra_params, _params);
 
         /* Only works with real algorithms (so far). */
