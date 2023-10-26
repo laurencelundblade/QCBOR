@@ -28,7 +28,7 @@ static const struct q_useful_buf_c s_input_payload = {SZ_CONTENT, sizeof(SZ_CONT
 /*
  * Public function, see t_cose_test.h
  */
-int32_t short_circuit_self_test()
+int32_t short_circuit_self_test(void)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -142,7 +142,7 @@ int32_t short_circuit_self_test()
 /*
  * Public function, see t_cose_test.h
  */
-int32_t short_circuit_self_detached_content_test()
+int32_t short_circuit_self_detached_content_test(void)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -212,7 +212,7 @@ int32_t short_circuit_self_detached_content_test()
 /*
  * Public function, see t_cose_test.h
  */
-int32_t short_circuit_verify_fail_test()
+int32_t short_circuit_verify_fail_test(void)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -325,7 +325,7 @@ int32_t short_circuit_verify_fail_test()
  * Public function, see t_cose_test.h
  */
 // TODO: name of this tests isn't right.
-int32_t short_circuit_signing_error_conditions_test()
+int32_t short_circuit_signing_error_conditions_test(void)
 {
     struct t_cose_sign1_sign_ctx sign_ctx;
     enum t_cose_err_t            result;
@@ -406,7 +406,7 @@ int32_t short_circuit_signing_error_conditions_test()
 /*
  * Public function, see t_cose_test.h
  */
-int32_t short_circuit_make_cwt_test()
+int32_t short_circuit_make_cwt_test(void)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -542,7 +542,7 @@ int32_t short_circuit_make_cwt_test()
 /*
  * Public function, see t_cose_test.h
  */
-int32_t short_circuit_decode_only_test()
+int32_t short_circuit_decode_only_test(void)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -679,7 +679,7 @@ static const uint8_t rfc8152_example_2_1[] = {
 /*
  * Public function, see t_cose_test.h
  */
-int32_t cose_example_test()
+int32_t cose_example_test(void)
 {
     enum t_cose_err_t             result;
     Q_USEFUL_BUF_MAKE_STACK_UB(   signed_cose_buffer, 200);
@@ -787,7 +787,7 @@ static enum t_cose_err_t run_test_sign_and_verify(uint32_t test_mess_options,
 
 
 #ifndef T_COSE_DISABLE_SHORT_CIRCUIT_SIGN
-int32_t all_header_parameters_test()
+int32_t all_header_parameters_test(void)
 {
     enum t_cose_err_t               result;
     Q_USEFUL_BUF_MAKE_STACK_UB(     signed_cose_buffer, 300);
@@ -910,7 +910,7 @@ static struct test_case bad_parameters_tests_table[] = {
 /*
  * Public function, see t_cose_test.h
  */
-int32_t bad_parameters_test()
+int32_t bad_parameters_test(void)
 {
     struct test_case *test;
     enum t_cose_err_t err;
@@ -980,7 +980,7 @@ static struct test_case crit_tests_table[] = {
 /*
  * Public function, see t_cose_test.h
  */
-int32_t crit_parameters_test()
+int32_t crit_parameters_test(void)
 {
     struct test_case *test;
     enum t_cose_err_t err;
@@ -1005,7 +1005,7 @@ int32_t crit_parameters_test()
 /*
  * Public function, see t_cose_test.h
  */
-int32_t content_type_test()
+int32_t content_type_test(void)
 {
     struct t_cose_parameters        parameters;
     struct t_cose_sign1_sign_ctx    sign_ctx;
@@ -1586,7 +1586,7 @@ extern int hash_test_mode;
 /*
  * Public function, see t_cose_test.h
  */
-int32_t short_circuit_hash_fail_test()
+int32_t short_circuit_hash_fail_test(void)
 {
     struct t_cose_sign1_sign_ctx sign_ctx;
     enum t_cose_err_t            result;
@@ -1644,7 +1644,7 @@ int32_t short_circuit_hash_fail_test()
 /*
  * Public function, see t_cose_test.h
  */
-int32_t tags_test()
+int32_t tags_test(void)
 {
     struct t_cose_sign1_sign_ctx    sign_ctx;
     struct t_cose_sign1_verify_ctx  verify_ctx;
@@ -2011,7 +2011,7 @@ int32_t tags_test()
 }
 
 
-int32_t get_size_test()
+int32_t get_size_test(void)
 {
     struct t_cose_sign1_sign_ctx   sign_ctx;
     QCBOREncodeContext             cbor_encode;
@@ -2117,7 +2117,7 @@ int32_t get_size_test()
 /*
  * Public function, see t_cose_test.h
  */
-int32_t indef_array_and_map_test()
+int32_t indef_array_and_map_test(void)
 {
     enum t_cose_err_t  return_value;
     #ifdef TODO_CRIT_PARAM_FIXED
@@ -2165,7 +2165,7 @@ int32_t indef_array_and_map_test()
 /*
  * Public function, see t_cose_test.h
  */
-int32_t crypto_context_test()
+int32_t crypto_context_test(void)
 {
     struct t_cose_sign_sign_ctx         sign_ctx;
     struct t_cose_sign_verify_ctx       verify_ctx;

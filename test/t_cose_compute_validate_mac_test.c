@@ -136,7 +136,7 @@ Done:
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int32_t compute_validate_mac_basic_test()
+int32_t compute_validate_mac_basic_test(void)
 {
     int32_t return_value;
 
@@ -171,7 +171,7 @@ int32_t compute_validate_mac_basic_test()
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int32_t compute_validate_mac_fail_test()
+int32_t compute_validate_mac_fail_test(void)
 {
     struct t_cose_mac_calculate_ctx   mac_ctx;
     struct t_cose_mac_validate_ctx    validate_ctx;
@@ -344,7 +344,7 @@ static int size_test(int32_t               cose_algorithm_id,
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int32_t compute_validate_get_size_mac_test()
+int32_t compute_validate_get_size_mac_test(void)
 {
     enum t_cose_err_t return_value;
     struct t_cose_key key;
@@ -404,7 +404,7 @@ int32_t compute_validate_get_size_mac_test()
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int32_t compute_validate_known_good_test()
+int32_t compute_validate_known_good_test(void)
 {
     struct t_cose_mac_calculate_ctx mac_ctx;
     struct t_cose_mac_validate_ctx  validate_ctx;
@@ -507,7 +507,7 @@ Done:
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int32_t compute_validate_detached_content_mac_fail_test()
+int32_t compute_validate_detached_content_mac_fail_test(void)
 {
     struct t_cose_mac_calculate_ctx   mac_ctx;
     struct t_cose_mac_validate_ctx    validate_ctx;
@@ -673,7 +673,7 @@ static int detached_content_size_test(int32_t               cose_algorithm_id,
 /*
  * Public function, see t_cose_compute_validate_mac_test.h
  */
-int32_t compute_validate_get_size_detached_content_mac_test()
+int32_t compute_validate_get_size_detached_content_mac_test(void)
 {
     enum t_cose_err_t return_value;
     struct t_cose_key key;

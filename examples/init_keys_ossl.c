@@ -244,7 +244,7 @@ free_fixed_test_ec_encryption_key(struct t_cose_key key)
 /*
  * Public function, see init_keys.h
  */
-int check_for_key_allocation_leaks()
+int check_for_key_allocation_leaks(void)
 {
     /* So far no good way to do this for OpenSSL or malloc() in
        general in a nice portable way. The PSA version does check so
