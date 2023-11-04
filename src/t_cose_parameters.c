@@ -687,6 +687,8 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
      */
 
     enum t_cose_err_t return_value;
+    bool              protected_present;
+    const struct t_cose_parameter *p_param;
 
     // TODO: allow disabling this check to save object code
     if(param_dup_detect(parameters)) {
@@ -695,14 +697,24 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
     }
 
     /* --- Protected Headers --- */
-    QCBOREncode_BstrWrap(cbor_encoder);
-    return_value = t_cose_params_encode(cbor_encoder,
-                                            parameters,
-                                            true);
-    if(return_value != T_COSE_SUCCESS) {
-        goto Done;
+    protected_present = false;
+    for(p_param = parameters; p_param != NULL; p_param = p_param->next) {
+        if(p_param->in_protected) {
+            protected_present = true;
+        }
     }
-    QCBOREncode_CloseBstrWrap2(cbor_encoder, false, protected_parameters);
+    if(!protected_present) {
+        QCBOREncode_AddBytes(cbor_encoder, NULL_Q_USEFUL_BUF_C);
+    } else {
+        QCBOREncode_BstrWrap(cbor_encoder);
+        return_value = t_cose_params_encode(cbor_encoder,
+                                                parameters,
+                                                true);
+        if(return_value != T_COSE_SUCCESS) {
+            goto Done;
+        }
+        QCBOREncode_CloseBstrWrap2(cbor_encoder, false, protected_parameters);
+    }
 
 
     /* --- Unprotected Parameters --- */
