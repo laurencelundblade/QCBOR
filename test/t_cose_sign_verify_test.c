@@ -1552,6 +1552,38 @@ int32_t restart_test_2_step(void)
 
     QCBOREncode_AddBytes(&cbor_encode, payload);
 
+    for(counter = 0; counter < 3; ++counter) {
+        result = t_cose_sign_encode_finish(&sign_ctx,
+                                           NULL_Q_USEFUL_BUF_C,
+                                           payload,
+                                           &cbor_encode);
+        if(result != T_COSE_ERR_SIG_IN_PROGRESS) {
+            return 2000 + (int32_t)result;
+        }
+    }
+
+    /*
+     * Abandon the previous calculation, and call init on all the contexts to
+     * see that everything is initialised properly.
+     */
+
+    t_cose_signature_sign_restart_init(&signer, cose_algorithm_id);
+    t_cose_signature_sign_restart_set_crypto_context(&signer,
+                                                     &crypto_context);
+    t_cose_signature_sign_restart_set_signing_key(&signer, key_pair);
+
+    t_cose_sign_sign_init(&sign_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
+    t_cose_sign_add_signer(&sign_ctx, t_cose_signature_sign_from_restart(&signer));
+
+    QCBOREncode_Init(&cbor_encode, signed_cose_buffer);
+
+    result = t_cose_sign_encode_start(&sign_ctx, &cbor_encode);
+    if(result != T_COSE_SUCCESS) {
+        return 3000 + (int32_t)result;
+    }
+
+    QCBOREncode_AddBytes(&cbor_encode, payload);
+
     counter = 0;
     do {
         result = t_cose_sign_encode_finish(&sign_ctx,
@@ -1562,15 +1594,15 @@ int32_t restart_test_2_step(void)
     } while(result == T_COSE_ERR_SIG_IN_PROGRESS);
 
     if(result) {
-        return 2000 + (int32_t)result;
+        return 4000 + (int32_t)result;
     }
     if(counter <= 1) {
-        return 3000;
+        return 5000;
     }
 
     qcbor_result = QCBOREncode_Finish(&cbor_encode, &signed_cose);
     if(qcbor_result) {
-        return 4000 + (int32_t)qcbor_result;
+        return 6000 + (int32_t)qcbor_result;
     }
 
     /* --- Done making COSE Sign1 object  --- */
@@ -1589,7 +1621,7 @@ int32_t restart_test_2_step(void)
                                  /* Don't return parameters */
                                  NULL);
     if(result) {
-        return 5000 + (int32_t)result;
+        return 7000 + (int32_t)result;
     }
 
 

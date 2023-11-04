@@ -306,6 +306,8 @@ t_cose_crypto_sign_restart(bool                   started,
     psa_crypto_context = (struct t_cose_psa_crypto_context *)crypto_context;
 
     if(!started) {
+        psa_crypto_context->operation =
+            psa_sign_hash_interruptible_operation_init();
         psa_result = psa_sign_hash_start(
                             &psa_crypto_context->operation,
                             signing_key_psa,
