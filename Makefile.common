@@ -43,6 +43,7 @@ TEST_OBJ=test/t_cose_test.o \
          test/run_tests.o \
          test/t_cose_sign_verify_test.o \
          test/t_cose_make_test_messages.o \
+         test/data/test_messages.o \
          test/t_cose_compute_validate_mac_test.o \
          test/t_cose_param_test.o \
          test/t_cose_crypto_test.o \

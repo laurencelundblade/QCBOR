@@ -490,6 +490,7 @@ enum t_cose_err_t {
      */
     T_COSE_ERR_MAC0_FORMAT = 48,
 
+    // TODO: duplicate uses of next three error codes.
     /** The requested content key distribution algorithm is not supported.  */
     T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG = 46,
 
@@ -638,9 +639,12 @@ enum t_cose_err_t {
      * supp info was added. TODO: see xxxx*/
     T_COSE_ERR_KDF_CONTEXT_SIZE = 88,
 
+    /** COSE_Encrypt has the wrong stuff in it */
+    T_COSE_ERR_ENCRYPT_FORMAT = 89,
+  
     /** Protected headers exists when they are not allowed. This typically occurs when the
      * crypto algorithm is not AEAD and thus can't protect the headers. */
-    T_COSE_ERR_PROTECTED_NOT_ALLOWED = 89,
+    T_COSE_ERR_PROTECTED_NOT_ALLOWED = 90,
 
 };
 

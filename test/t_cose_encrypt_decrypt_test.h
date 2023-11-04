@@ -19,6 +19,8 @@ int32_t esdh_enc_dec_test(void);
 
 int32_t decrypt_known_good(void);
 
+int32_t decrypt_known_bad(void);
+
 int32_t kdf_context_test(void);
 
 #endif /* t_cose_encrypt_decrypt_test_h */

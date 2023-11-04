@@ -220,8 +220,15 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         header_location.nesting = 1;
         header_location.index   = 0;
 
-        /* Loop over the array of COSE_Recipients */
+        /* --- Enter array of recipients --- */
         QCBORDecode_EnterArray(&cbor_decoder, NULL);
+        cbor_error = QCBORDecode_GetError(&cbor_decoder);
+        if(cbor_error != QCBOR_SUCCESS) {
+            return_value = qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_ENCRYPT_FORMAT);
+            goto Done;
+        }
+
+        /* Loop over the array of COSE_Recipients */
         while(1) {
             return_value = decrypt_one_recipient(me,
                                                  header_location,
@@ -231,8 +238,20 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
                                                 &rcpnt_params_list,
                                                  &cek);
             /* This will have consumed the CBOR of one recipient */
+
             if(return_value == T_COSE_SUCCESS) {
-                break; /* One success is good enough. This is done. */
+                /* One success is enough to get the CEK.
+                 *
+                 * Breaking here short circuits decoding
+                 * further recipients. If they are not well-formed
+                 * it will be detected by QCBORDecode_ExitArray(), but
+                 * if they are well-formed and have the wrong CBOR
+                 * types and such, it will not be detected. This is
+                 * considered OK for this implementation. Perhaps
+                 * some will disagree. However doing the error detection
+                 * on all will add code and complexity.
+                 */
+                break;
             }
 
             if(return_value != T_COSE_ERR_DECLINE) {

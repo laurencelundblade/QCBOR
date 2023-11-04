@@ -142,6 +142,7 @@ if (BUILD_TESTS)
         test/t_cose_crypto_test.c
         test/t_cose_encrypt_decrypt_test.c
         test/t_cose_make_test_messages.c
+        test/data/test_messages.c
         test/t_cose_param_test.c
         test/t_cose_test.c
         examples/example_keys.c

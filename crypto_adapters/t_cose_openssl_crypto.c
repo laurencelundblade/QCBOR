@@ -1884,7 +1884,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
                                       (int)tag_length,
                                       tmp);
     if(ossl_result != 1) {
-        return_value = 10; // TODO: proper error code
+        return_value = T_COSE_ERR_DATA_AUTH_FAILED;
         goto Done1;
     }
     /* The pointer math is safe and this call won't write off the end
@@ -1898,7 +1898,7 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
                                       &dummy_length);
     if(ossl_result != 1) {
         /* This is where an authentication failure is detected. */
-        return_value = 10; // TODO: proper error code
+        return_value = T_COSE_ERR_DATA_AUTH_FAILED;
         goto Done1;
     }
 

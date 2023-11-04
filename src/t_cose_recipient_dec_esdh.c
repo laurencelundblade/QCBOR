@@ -112,6 +112,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
 {
     struct t_cose_recipient_dec_esdh *me;
     QCBORError             result;
+    QCBORError             cbor_error;
     int64_t                alg;
     struct q_useful_buf_c  cek_encrypted;
     struct q_useful_buf_c  info_struct;
@@ -139,17 +140,27 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
 
     /* One recipient */
     QCBORDecode_EnterArray(cbor_decoder, NULL);
+    cbor_error = QCBORDecode_GetError(cbor_decoder);
+    if(cbor_error != QCBOR_SUCCESS) {
+        cose_result = qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_RECIPIENT_FORMAT);
+        goto done;
+    }
 
     cose_result = t_cose_headers_decode(
                            cbor_decoder, /* in: decoder to read from */
-                           loc,          /* in: location in COSE message*/
+                           loc,          /* in: location in COSE message */
                            false,        /* in: no_protected headers */
                            decode_ephemeral_key, /* in: callback for specials */
-                           NULL,         /* in: context for callback */
+                           NULL,         /* in: context for specials callback */
                            p_storage,    /* in: parameter storage */
                            params,       /* out: list of decoded params */
                           &protected_params /* out: encoded prot params */
                            );
+
+    if(cose_result != T_COSE_SUCCESS) {
+        goto done;
+    }
+
     /* The ephemeral public key comes from the headers. It was
      * processed by the decode_ephemeral_key() callback. */
     ephem_param = t_cose_param_find(*params,
@@ -160,9 +171,6 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     }
     ephemeral_key = ephem_param->value.special_decode.value.key;
 
-    if(cose_result != T_COSE_SUCCESS) {
-        goto done_free_ec;
-    }
 
     /* Recipient array contains AES Key Wrap algorithm.
      * The KEK used to encrypt the CEK with AES-KW is then
