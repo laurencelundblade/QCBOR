@@ -448,6 +448,13 @@ static const uint8_t empty_preferred_indef[] = {0x5f, 0xff, 0xbf, 0xff};
 static const uint8_t empty_alt_indef[] = {0x5f, 0xbf, 0xff, 0xff, 0xbf, 0xff};
 #endif
 
+static const uint8_t unprot_non_aead_alg[] = {
+    0x40,
+    0xA2,
+    0x18, 0x2C, 0xFB, 0x40, 0x09, 0x1E, 0xB8, 0x51, 0xEB, 0x85, 0x1F,
+    0x01, 0x39, 0xFF, 0xFD
+};
+
 
 /* Alternative to UsefulBuf_FROM_BYTE_ARRAY_LITERAL() &
  * UsefulBuf_FROM_SZ_LITERAL()that works for static data initialization. */
@@ -925,6 +932,7 @@ param_test(void)
 
             t_cose_result = t_cose_headers_decode(&decode_context,
                                                    (struct t_cose_header_location){0,0},
+                                                   false,
                                                    param_decoder,
                                                    NULL,
                                                   &param_storage,
@@ -1019,9 +1027,7 @@ param_test(void)
 
     /* Empty parameters section test */
     QCBOREncode_Init(&qcbor_encoder, encode_buffer);
-    t_cose_result = t_cose_headers_encode(&qcbor_encoder,
-                                          NULL,
-                                          NULL);
+    t_cose_result = t_cose_headers_encode(&qcbor_encoder, NULL, NULL);
 
     if(t_cose_result != param_test->encode_result) {
         return -900;
@@ -1047,6 +1053,7 @@ param_test(void)
 
         t_cose_result = t_cose_headers_decode(&decode_context,
                                               (struct t_cose_header_location){0,0},
+                                              false,
                                               param_decoder, NULL,
                                              &param_storage,
                                              &decoded_parameter,
@@ -1059,6 +1066,32 @@ param_test(void)
         if(decoded_parameter != NULL) {
             return -900;
         }
+    }
+
+    /* Protected headers must be empty and they are */
+    QCBORDecode_Init(&decode_context, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(unprot_non_aead_alg), 0);
+    t_cose_result = t_cose_headers_decode(&decode_context,
+                                          (struct t_cose_header_location){0,0},
+                                          true,
+                                          param_decoder, NULL,
+                                         &param_storage,
+                                         &decoded_parameter,
+                                         &encoded_prot_params);
+    if(t_cose_result != T_COSE_SUCCESS) {
+        return 0;
+    }
+
+    /* Protected headers must be empty and they are NOT */
+    QCBORDecode_Init(&decode_context, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(common_params_encoded_cbor), 0);
+    t_cose_result = t_cose_headers_decode(&decode_context,
+                                          (struct t_cose_header_location){0,0},
+                                          true,
+                                          param_decoder, NULL,
+                                         &param_storage,
+                                         &decoded_parameter,
+                                         &encoded_prot_params);
+    if(t_cose_result != T_COSE_ERR_PROTECTED_NOT_ALLOWED) {
+        return -90000;
     }
 
     return 0;
@@ -1114,6 +1147,15 @@ common_params_test(void)
         return -1;
     }
 
+    /* One-off test for unprotected alg ID */
+    param_array[0] = t_cose_param_make_unprot_alg_id(T_COSE_ALGORITHM_ES256); // TODO: change this to AES-CTR
+    if(param_array[0].in_protected == true) {
+        return -101;
+    }
+    if(param_array[0].value.int64 != T_COSE_ALGORITHM_ES256) {
+        return -102;
+    }
+
     qcbor_result = QCBOREncode_Finish(&qcbor_encoder, &encoded_params);
     if(qcbor_result != QCBOR_SUCCESS) {
         return -2;
@@ -1124,7 +1166,7 @@ common_params_test(void)
     }
 
     /* --- Decode what was encoded ---*/
-    if(t_cose_param_find_alg_id(NULL, true) != T_COSE_ALGORITHM_NONE) {
+    if(t_cose_param_find_alg_id_prot(NULL) != T_COSE_ALGORITHM_NONE) {
         return -4;
     }
 
@@ -1151,6 +1193,7 @@ common_params_test(void)
 
     t_cose_result = t_cose_headers_decode(&decode_context,
                                           (struct t_cose_header_location){0,0},
+                                          false,
                                           NULL,
                                           NULL,
                                           &param_storage,
@@ -1166,7 +1209,7 @@ common_params_test(void)
     }
 
     /* Check that they decoded correctly */
-    if(t_cose_param_find_alg_id(dec, true) != T_COSE_ALGORITHM_ES256) {
+    if(t_cose_param_find_alg_id_prot(dec) != T_COSE_ALGORITHM_ES256) {
         return -11;
     }
 
@@ -1232,6 +1275,7 @@ common_params_test(void)
 
     t_cose_result = t_cose_headers_decode(&decode_context,
                                           (struct t_cose_header_location){0,0},
+                                          false,
                                           NULL,
                                           NULL,
                                           &param_storage,

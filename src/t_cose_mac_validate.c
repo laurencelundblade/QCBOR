@@ -80,6 +80,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     decoded_params = NULL;
     t_cose_headers_decode(&decode_context,
                           l,
+                          false,
                           NULL,
                           NULL,
                           &me->parameter_storage,
@@ -146,7 +147,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
      * payload, to save a bigger buffer containing the entire ToBeMaced.
      */
     return_value = t_cose_crypto_hmac_validate_setup(&hmac_ctx,
-                                  t_cose_param_find_alg_id(decoded_params, true),
+                                  t_cose_param_find_alg_id_prot(decoded_params),
                                   me->validation_key);
 
     if(return_value) {

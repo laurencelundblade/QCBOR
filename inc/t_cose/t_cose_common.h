@@ -9,7 +9,6 @@
  * See BSD-3-Clause license in README.md
  */
 
-
 #ifndef __T_COSE_COMMON_H__
 #define __T_COSE_COMMON_H__
 
@@ -636,7 +635,12 @@ enum t_cose_err_t {
      * to be larger because there are too many protected
      * headers, party u/v identities were added or
      * supp info was added. TODO: see xxxx*/
-    T_COSE_ERR_KDF_CONTEXT_SIZE = 88
+    T_COSE_ERR_KDF_CONTEXT_SIZE = 88,
+
+    /** Protected headers exists when they are not allowed. This typically occurs when the
+     * crypto algorithm is not AEAD and thus can't protect the headers. */
+    T_COSE_ERR_PROTECTED_NOT_ALLOWED = 89,
+
 };
 
 

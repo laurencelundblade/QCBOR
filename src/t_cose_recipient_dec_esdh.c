@@ -143,6 +143,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     cose_result = t_cose_headers_decode(
                            cbor_decoder, /* in: decoder to read from */
                            loc,          /* in: location in COSE message*/
+                           false,        /* in: no_protected headers */
                            decode_ephemeral_key, /* in: callback for specials */
                            NULL,         /* in: context for callback */
                            p_storage,    /* in: parameter storage */
@@ -181,7 +182,7 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
         goto done_free_ec;
     }
 
-    alg = t_cose_param_find_alg_id(*params, true);
+    alg = t_cose_param_find_alg_id_prot(*params);
 
     // TODO: indention of all case statements. Which is it?
     switch(alg) {

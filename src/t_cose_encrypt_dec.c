@@ -180,6 +180,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         t_cose_headers_decode(
            &cbor_decoder,     /* in: cbor decoder context */
             header_location,  /* in: location of headers in message */
+            false,            /* in: no_protected headers */
             NULL,             /* TODO: in: header decode callback function */
             NULL,             /* TODO: in: header decode callback context */
             me->p_storage,    /* in: pool of nodes for linked list */
@@ -191,7 +192,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     }
 
     nonce_cbor = t_cose_param_find_iv(body_params_list);
-    ce_alg.cose_alg_id = t_cose_param_find_alg_id(body_params_list, true);
+    ce_alg.cose_alg_id = t_cose_param_find_alg_id_prot(body_params_list);
     all_params_list = body_params_list;
 
     ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);

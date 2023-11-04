@@ -50,6 +50,7 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
     /* ----  First and second items -- protected & unprotected headers  ---- */
     err = t_cose_headers_decode(cbor_decoder, /* in: decoder to read from */
                                 loc,          /* in: location in COSE message */
+                                false,        /* in: no_protected headers */
                                 NULL,         /* in: callback for specials */
                                 NULL,         /* in: context for callback */
                                 p_storage,    /* in: parameter storage */
@@ -80,7 +81,7 @@ t_cose_recipient_dec_keywrap_cb_private(struct t_cose_recipient_dec *me_x,
                                                   T_COSE_ERR_RECIPIENT_FORMAT);
     }
 
-    cose_algorithm_id = t_cose_param_find_alg_id(*params, false);
+    cose_algorithm_id = t_cose_param_find_alg_id_unprot(*params);
 
     // TODO: should probably check the kid here
 
