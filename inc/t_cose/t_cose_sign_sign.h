@@ -23,6 +23,9 @@
 
 #ifdef __cplusplus
 extern "C" {
+#if 0
+} /* Keep editor indention formatting happy */
+#endif
 #endif
 
 
@@ -32,41 +35,57 @@ extern "C" {
  * \brief Create a \c COSE_Sign or \c COSE_Sign1 message.
  *
  * This creates a \c COSE_Sign1 or \c COSE_Sign message in compliance
- * with [COSE (RFC 9052)](https://tools.ietf.org/html/rfc9052). A
+ * with [COSE (RFC 9052)](https://tools.ietf.org/html/rfc9052). A 
  * \c COSE_Sign1 or \c COSE_Sign message is a CBOR-encoded binary blob
- * that contains header parameters, a payload and a signature or
- * signatures.
+ * that contains a payload that is to be authenticated, header
+ * parameters that carry things like the algorithm and key ID and a
+ * signature or signatures. Since it is CBOR, it is compact with  low
+ * overhead and simple to decode.
  *
- * This must be configured with a signer, an instance of
- * \ref t_cose_signature_sign, to function. This signer is what runs
- * the cryptographic algorithms and produces the actual signature. An
- * example of a signer is \ref t_cose_signature_sign_main. See
- * t_cose_sign_add_signer().
+ * This implementation is in the form of an "object" called 
+ * \c t_cose_sign_sign. The object is constituted of a signing context
+ * data structure and functions that operate on it.  Further, this
+ * object delegates the actual signing to another object called
+ * \c t_cose_signature_sign.  This is to accommodate different signing
+ * algorithms and schemes in a runtime pluggable manner. No
+ * modification of the source code for \c t_cose_sign_sign is required
+ * to add new algorithms.
  *
- * This implementation has a mode where a CBOR-format payload can be
- * output directly into the output buffer. This saves having two
- * copies of the payload in memory. For this mode use
- * t_cose_sign_encode_start() and
- * t_cose_sign_encode_finish(). For a simpler API that just takes
- * the payload as an input buffer use t_cose_sign_sign().
+ * This can be used in one of two ways.
+ *
+ * The first and simplest does the bulk of the work in one call,
+ * t_cose_sign_sign(). It requires the payload be supplied in a single
+ * contiguous buffer and outputs the COSE message to a single
+ * contiguous buffer.  This results in two copies of the payload in
+ * memory.
+ *
+ * The second way uses two calls, t_cose_sign_encode_start() and
+ * t_cose_sign_encode_finish(). Between the two calls the payload can
+ * be output to the CBOR encoder resulting in only one copy of the
+ * payload memory.
+ *
+ * This has a mode that can calculate the size of the output buffer
+ * for the COSE message.
+ *
+ * This is a largely complete implementation of COSE signing. It
+ * accommodates detached signatures and externally supplied data.
  *
  * This replaces t_cose_sign1_sign which supported only COSE_Sign1.
  */
 
 
 /**
- * The context for creating a \c COSE_Sign1 or \c COSE_Sign message. The
- * allocates it and pass it to the functions here.  At
- * about 44 bytes it fits easily on the stack.
+ * The context for creating a \c COSE_Sign1 or \c COSE_Sign
+ * message. The caller allocates this and passes it to the functions
+ * here.  At about 48 bytes, it fits easily on the stack.
  */
 struct t_cose_sign_sign_ctx {
     /* Private data structure */
     struct q_useful_buf_c          encoded_prot_params;
     uint32_t                       option_flags;
     struct t_cose_signature_sign  *signers;
-    struct t_cose_parameter       *added_body_parameters;
-    /* Fields related to restartable operation */
-    bool                           started;
+    struct t_cose_parameter       *added_body_params;
+    bool                           started; /* For restartable operation */
 };
 
 
@@ -98,28 +117,28 @@ struct t_cose_sign_sign_ctx {
 
 
 /**
- * \brief  Initialize to start creating a \c COSE_Sign1 or \c COSE_Sign.
+ * \brief Initialize to start creating a \c COSE_Sign1 or \c COSE_Sign.
  *
- * \param[in] context            The t_cose signing context.
+ * \param[in] context            The signing context.
  * \param[in] option_flags       One of \c T_COSE_OPT_XXXX.
  *
  * This initializes the \ref t_cose_sign_sign_ctx context.
  * Either \ref T_COSE_OPT_MESSAGE_TYPE_SIGN1 or
- * \ref T_COSE_OPT_MESSAGE_TYPE_SIGN must be given for
+ * \ref T_COSE_OPT_MESSAGE_TYPE_SIGN must be given in
  * \c option_flags to indicate which COSE message to produce.
  *
- * A \c COSE_Sign1 is simple and has only one signature.
+ * A \c COSE_Sign1 is simple having only one signature.
  * t_cose_sign_add_signer() should be called only once for it.  A
-  \c COSE_Sign can have multiple signatures using different algorithms
- * for different recipients. t_cose_sign_add_signer can be called one
+ * \c COSE_Sign can have multiple signatures using different algorithms
+ * for different recipients. t_cose_sign_add_signer() can be called one
  * more more times.
  *
  * \ref T_COSE_OPT_OMIT_CBOR_TAG can be or'd into \c option_flags if
  * the CBOR tag for \c COSE_Sign1, 18, or the tag for \c COSE_SIgn,
  * 98, is to be omitted.
  *
- * The signature algorithm ID(s) is(are) set in the
- * t_cose_signature_sign instance(s).
+ * The signature algorithm or algorithms are configured in the
+ * t_cose_signature_sign instance or instances.
  */
 static void
 t_cose_sign_sign_init(struct t_cose_sign_sign_ctx *context,
@@ -129,149 +148,160 @@ t_cose_sign_sign_init(struct t_cose_sign_sign_ctx *context,
 /**
  * \brief  Add a signer that is configured with a key and algorithm ID.
  *
- * \param[in] context    The t_cose signing context.
+ * \param[in] context    The signing context.
  * \param[in] signer     An initialized instance of \ref t_cose_signature_sign.
  *
  * Call this at least once to configure one or more signers. The
  * signer, an instance of \ref t_cose_signature_sign, is an object
- * that is configured with the signing algorithm, signing key and
- * related.
+ * configured with the signing algorithm, signing key and
+ * related and computes the actual signature.
  *
  * When producing a \c COSE_Sign1, this must be called only
  * once.  When producing a \c COSE_Sign, this must be called at least
  * once, but can be called many more times if there are to be multiple
- * signatures. Note that each call can be with a different key and/or
- * different signer implementations for different algorithm entirely.
+ * signatures. Note that each added signer can be with for a different key and/or
+ * different signer implementation for a different algorithm.
  *
  * This must be called with a concrete instance, such as a \ref
  * t_cose_signature_sign_main. The concrete instance must be
  * configured with a key and algorithm ID before this is called.
+ * Several signers are part of t_cose, but the caller may also design
+ * and implement their own.
  */
 static void
-t_cose_sign_add_signer(struct t_cose_sign_sign_ctx   *context,
-                       struct t_cose_signature_sign  *signer);
+t_cose_sign_add_signer(struct t_cose_sign_sign_ctx  *context,
+                       struct t_cose_signature_sign *signer);
 
 
 /**
- * \brief Add header parameters to the \c COSE_Sign or \c COSE_Sign1 main body.
+ * \brief Add body header parameters to the \c COSE_Sign or \c COSE_Sign1.
  *
- * \param[in] context     The t_cose signing context.
+ * \param[in] context     The signing context.
  * \param[in] parameters  Linked list of parameters to add.
  *
- * For simple use cases it is not necessary to call this as the
- * algorithm ID, the only mandatory parameter, is automatically
- * added.
+ * This adds parameters to the \c COSE_Sign1  or \c COSE_Sign
+ * body. Signature parameters in \c COSE_Signatures in \c COSE_Sign
+ * are handed through \ref t_cose_signature_sign.
  *
- * It is not necessary to call this to add the kid either as that
- * is handled by configuring the \ref t_cose_signature_sign with the kid.
+ * For simple use cases, it is unnecessary to call this as the
+ * algorithm ID is automatically added.
  *
- * This adds parameters to the \c COSE_Sign1 \c COSE_Sign
- * body. Parameters in \c COSE_Signatures in \c COSE_Sign are handed
- * through \ref t_cose_signature_sign.
+ * It is unnecessary to call this to add the kid either. The kid is added
+ * by configuring the \ref t_cose_signature_sign.
  *
- * This is called only once to add a linked list of
- * \ref t_cose_parameter.  Each node is filled in with the type,
- * value, criticality and protected ness of the parameter. Integer and
- * strings values go in the node.  Other types are allowed through a
- * parameter encode callback.  Only integer parameter labels are
- * supported (so far).
+ * This is typically called only once as subsequent calls do not
+ * accumulate a linked list.
+ *
+ * This adds a linked list of \ref t_cose_parameter.  Each node is
+ * filled in with the label, type, value, criticality and
+ * protectedness of the parameter. Integer and string values go in the
+ * list node.  Other types are allowed through a parameter encode
+ * callback.  Only integer parameter labels are supported (so far).
  *
  * This mechanism replaces t_cose_sign1_set_content_type_uint() and
  * t_cose_sign1_set_content_type_tstr() that is used by t_cose_sign1.
  */
 static void
-t_cose_sign_add_body_header_params(struct t_cose_sign_sign_ctx   *context,
-                                   struct t_cose_parameter *parameters);
+t_cose_sign_add_body_header_params(struct t_cose_sign_sign_ctx *context,
+                                   struct t_cose_parameter     *parameters);
 
 
 /**
- * \brief  Create and sign a \c COSE_Sign1 or \c COSE_Sign message with a payload in one call.
+ * \brief  Create and sign a \c COSE_Sign1 or \c COSE_Sign message.
  *
- * \param[in] context  The \ref t_cose signing context.
- * \param[in] aad      The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] context  The signing context.
+ * \param[in] ext_sup_data      Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] payload  Pointer and length of payload to sign.
  * \param[in] out_buf  Pointer and length of buffer to output to.
- * \param[out] result  Pointer and length of the resulting \c COSE_Sign1 or
- *                     \c COSE_Sign.
+ * \param[out] result  Pointer and length of the resulting message.
  *
  * The \c context must have been initialized with
- * t_cose_sign_sign_init() and the key set through
- * t_cose_sign_add_signer() before this is called.
+ * t_cose_sign_sign_init() and a signer object  with a signing key
+ * added using t_cose_sign_add_signer().
  *
  * This creates the COSE header parameter, hashes and signs the
  * payload and creates the signature all in one go. \c out_buf gives
  * the pointer and length of the memory into which the output is
- * written. The pointer and length of the completed \c COSE_Sign1 is
- * returned in \c result.  (\c out_buf and \c result are used instead
- * of the usual in/out parameter for length because it is the
- * convention for q_useful_buf and is more const correct.)
+ * written. The pointer and length of the completed message is
+ * returned in \c result.
+ *
+ * The externally supplied data simply any data that should also be
+ * covered by the signature as described in section 4.3 of RFC 9052.
+ * The verifier of the message must also have exactly this data to be
+ * able to successfully verify the signature. Often this data is some
+ * parameters or fields in the protocol carrying the COSE message.
+ * For many use cases there is none and \c ext_sup_data is
+ * \c NULL_Q_USEFUL_BUF_C.
  *
  * The size of \c out_buf must be the size of the payload plus
- * overhead for formating, the signature and the key id (if used). The
- * formatting overhead is minimal at about 30 bytes.The total overhead
- * is about 150 bytes for ECDSA 256 with a 32-byte key ID.
+ * overhead for formating, the signature and any added parameters like
+ * the key id and content type (if used).  The COSE standard
+ * formatting overhead is minimal at about 30 bytes.For example, total
+ * overhead is about 150 bytes for an ECDSA 256 signature with a
+ * 32-byte key ID.
  *
  * To compute the size of the buffer needed before it is allocated
  * call this with \c out_buf containing a \c NULL pointer and large
- * length like \c UINT32_MAX.  The algorithm and key, kid and such
- * must be set up just as if the real COSE message were to be created
- * as these values are needed to compute the size correctly.  The
+ * length like \c UINT32_MAX.  The algorithm, key, kid and such must
+ * be set up just as if the real COSE message were to be created as
+ * these values are needed to compute the size correctly.  The
  * contents of \c result will be a \c NULL pointer and the length of
- * the COSE message. When run like this, the cryptographic
- * functions will not actually run, but the size of their output will
- * be taken into account to give an exact size.
+ * the COSE message. When run like this, the cryptographic functions
+ * will not actually run, but the size of their output will be taken
+ * into account to give an exact size.
  *
- * This function requires the payload be complete and formatted in a
- * contiguous buffer. The resulting COSE message also
- * contains the payload preceded by the header parameters and followed
- * by the signature, all CBOR formatted. This function thus requires
- * two copies of the payload to be in memory.  Alternatively
- * t_cose_sign_encode_start() and
- * t_cose_sign_encode_finish() can be used. They are more complex
- * to use, but avoid the two copies of the payload and can reduce
- * memory requirements by close to half.
+ * It is also possible to not do the size calculation if the size can
+ * be reliably estimated. Perhaps no kid or other header parameters
+ * are used and the algorithm is fixed. It is always safe to do this
+ * because t_cose will never write off the end of the output buffer.
+ * If the message is too long, \ref T_COSE_ERR_TOO_SMALL
+ * will be returned.
  *
- * TODO: rename to externally supplied data, reference section 4.3
- * See t_cose_sign_encode_finish() for more details
- * about AAD.  For many use cases there is no AAD and \c aad is \c NULL_Q_USEFUL_BUF_C.
+ * This function requires the input payload to be complete and contiguous
+ * in a buffer. The resulting COSE message also contains the payload
+ * preceded by the header parameters and followed by the
+ * signature. This function thus requires two copies of the payload to
+ * be in memory.  Alternatively t_cose_sign_encode_start() and
+ * t_cose_sign_encode_finish() can be used. They are more complex to
+ * use, but avoid the two copies of the payload and can reduce memory
+ * requirements by close to half.
  */
 static enum t_cose_err_t
 t_cose_sign_sign(struct t_cose_sign_sign_ctx *context,
-                 struct q_useful_buf_c        aad,
+                 struct q_useful_buf_c        ext_sup_data,
                  struct q_useful_buf_c        payload,
                  struct q_useful_buf          out_buf,
                  struct q_useful_buf_c       *result);
 
 
 /**
- * \brief Create and sign a \c COSE_Sign1 or \c COSE_Sign message with detached payload in one call.
+ * \brief Create and sign a \c COSE_Sign1 or \c COSE_Sign message with detached payload.
  *
- * \param[in] context  The t_cose signing context.
- * \param[in] aad      The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] context           The signing context.
+ * \param[in] ext_sup_data      Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] detached_payload  Pointer and length of the detached payload to sign.
- * \param[in] out_buf  Pointer and length of buffer to output to.
- * \param[out] result  Pointer and length of the resulting \c COSE_Sign1
- *                     or \c COSE_Sign.
+ * \param[in] out_buf           Pointer and length of buffer to output to.
+ * \param[out] result           Pointer and length of the resulting message.
  *
  * This is similar to, but not the same as t_cose_sign_sign(). Here
  * the payload is detached and conveyed separately.  The signature is
- * still over the payload as with t_cose_sign_sign(). The payload
- * must be conveyed to recipient by some other means than by being
- * inside the \c COSE_Sign1 or \c COSE_Sign. The recipient will be
- * unable to verify the received message without it.
+ * still over the payload as with t_cose_sign_sign(). The payload must
+ * be conveyed to recipient by some other means than by being inside
+ * the \c COSE_Sign1 or \c COSE_Sign. The recipient will be unable to
+ * verify the received message without it.
  */
 static enum t_cose_err_t
 t_cose_sign_sign_detached(struct t_cose_sign_sign_ctx *context,
-                          struct q_useful_buf_c        aad,
+                          struct q_useful_buf_c        ext_sup_data,
                           struct q_useful_buf_c        detached_payload,
                           struct q_useful_buf          out_buf,
                           struct q_useful_buf_c       *result);
 
 
 /**
- * \brief  Output first part and parameters for a \c COSE_Sign1 or \c COSE_Sign message.
+ * \brief  Output first part of a \c COSE_Sign1 or \c COSE_Sign message.
  *
- * \param[in] context          The t_cose signing context.
+ * \param[in] context          The signing context.
  * \param[in] cbor_encoder  Encoding context to output to.
  *
  * This is the more complex and more memory efficient alternative to
@@ -279,12 +309,11 @@ t_cose_sign_sign_detached(struct t_cose_sign_sign_ctx *context,
  * t_cose_sign_sign_init() and t_cose_sign_add_signer() must be called
  * before calling this.
  *
- * When this is called, the opening parts of the \c COSE_Sign1 or \c
- * COSE_Sign message are output to the \c cbor_encoder -- openning
- * the array and the header parameters.
+ * When this is called, the first parts of the \c COSE_Sign1 or
+ * \c COSE_Sign message are output to the \c cbor_encoder.
  *
  * After this is call completes, the payload must be written to the
- * \c cbor_encoder. If payload is detached add a CBOR NULL by calling
+ * \c cbor_encoder. If payload is detached, add a CBOR NULL by calling
  * QCBOREncode_AddNULL(). If the payload is not CBOR or has already
  * been CBOR-encoded, add it with QCBOREncode_AddBytes(). To CBOR
  * encode the payload directly into the output buffer call
@@ -306,7 +335,7 @@ t_cose_sign_sign_detached(struct t_cose_sign_sign_ctx *context,
  * initialized with the options, signer and additional header
  * parameters just as normal as these are needed to calculate the
  * size. Then set up the output buffer for \c cbor_encoder with a \c
- * NULL pointer and large length like \c UINT32_MAX.  Call
+ * \c NULL pointer and large length like \c UINT32_MAX.  Call
  * t_cose_sign_encode_start(), then format the payload into the
  * encoder context, then call t_cose_sign_encode_finish().  Finally
  * call \c QCBOREncode_FinishGetSize() to get the length.
@@ -317,36 +346,30 @@ t_cose_sign_encode_start(struct t_cose_sign_sign_ctx *context,
 
 
 /**
- * \brief Finish a \c COSE_Sign1 message by outputting the signature.
+ * \brief Finish a \c COSE_Sign1 or \c COSE_Sign message by outputting the signature.
  *
- * \param[in] context         The t_cose signing context.
- * \param[in] aad             The Additional Authenticated Data or
- *                            \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] context         The signing context.
+ * \param[in] ext_sup_data    Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] signed_payload  The detached payload or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] cbor_encoder    Encoding context to output to.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * Call this to complete creation of a signed \c COSE_Sign1 or \c
- * COSE_Sign started with t_cose_sign_encode_start().
+ * Call this to complete a signed message started with t_cose_sign_encode_start().
  *
  * This is when the callback into the t_cose_signature_sign object(s)
  * is(are) called and when cryptographic signature algorithm is run.
  *
- * AAD is simply any data that should also be covered by the
- * signature.  The verifier of the \c COSE_Sign1 or \c COSE_Sign must
- * also have exactly this data to be able to successfully verify the
- * signature. Often this data is some parameters or fields in the
- * protocol carrying the COSE message.
+ * See t_cose_sign_sign() for a detailed description of \c ext_sup_data.
  *
- * The completed \c COSE_Sign1 or \c COSE_Sign message is retrieved
+ * The completed COSE message is retrieved
  * from the \c cbor_encoder by calling \c QCBOREncode_Finish().  Check
  * the return value from QCBOREncode_Finish() to be sure there were no
  * encoding errors.
  */
 enum t_cose_err_t
 t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *context,
-                          struct q_useful_buf_c        aad,
+                          struct q_useful_buf_c        ext_sup_data,
                           struct q_useful_buf_c        signed_payload,
                           QCBOREncodeContext          *cbor_encoder);
 
@@ -356,6 +379,9 @@ t_cose_sign_encode_finish(struct t_cose_sign_sign_ctx *context,
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
+
+
+/* Pubic inline function; see above */
 static inline void
 t_cose_sign_sign_init(struct t_cose_sign_sign_ctx *me,
                       uint32_t                     option_flags)
@@ -368,36 +394,35 @@ t_cose_sign_sign_init(struct t_cose_sign_sign_ctx *me,
 /**
  * \brief Semi-private function that does a complete signing in one call.
  *
- * \param[in] context              The t_cose signing context.
+ * \param[in] context              The signing context.
  * \param[in] payload_is_detached  If \c true, then \c payload is detached.
  * \param[in] payload              The payload, inline or detached.
- * \param[in] aad                  The Additional Authenticated Data or
- *                                 \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] ext_sup_data         Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] out_buf              Pointer and length of buffer to output to.
- * \param[out] result              Pointer and length of the resulting
- *                                 \c COSE_Sign1.
+ * \param[out] result              Pointer and length of the resulting message.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
  * This is where the work actually gets done for signing that is done
- * all in one call with or without AAD and for included or detached
- * payloads.
+ * all in one call with or without externally supplied data and for
+ * included or detached payloads.
  *
  * This is a private function internal to the implementation. Call
- * t_cose_sign_sign_aad() instead of this.
+ * t_cose_sign_sign() or t_cose_sign_sign_detached() instead of this.
  */
 enum t_cose_err_t
 t_cose_sign_sign_private(struct t_cose_sign_sign_ctx *context,
                          bool                         payload_is_detached,
-                         struct q_useful_buf_c        aad,
+                         struct q_useful_buf_c        ext_sup_data,
                          struct q_useful_buf_c        payload,
                          struct q_useful_buf          out_buf,
                          struct q_useful_buf_c       *result);
 
 
+/* Pubic inline function; see above */
 static inline enum t_cose_err_t
 t_cose_sign_sign(struct t_cose_sign_sign_ctx *me,
-                 struct q_useful_buf_c        aad,
+                 struct q_useful_buf_c        ext_sup_data,
                  struct q_useful_buf_c        payload,
                  struct q_useful_buf          out_buf,
                  struct q_useful_buf_c       *result)
@@ -405,15 +430,16 @@ t_cose_sign_sign(struct t_cose_sign_sign_ctx *me,
     return t_cose_sign_sign_private(me,
                                     false,
                                     payload,
-                                    aad,
+                                    ext_sup_data,
                                     out_buf,
                                     result);
 }
 
 
+/* Pubic inline function; see above */
 static inline enum t_cose_err_t
 t_cose_sign_sign_detached(struct t_cose_sign_sign_ctx *me,
-                          struct q_useful_buf_c        aad,
+                          struct q_useful_buf_c        ext_sup_data,
                           struct q_useful_buf_c        detached_payload,
                           struct q_useful_buf          out_buf,
                           struct q_useful_buf_c       *result)
@@ -421,20 +447,22 @@ t_cose_sign_sign_detached(struct t_cose_sign_sign_ctx *me,
     return t_cose_sign_sign_private(me,
                                     true,
                                     detached_payload,
-                                    aad,
+                                    ext_sup_data,
                                     out_buf,
                                     result);
 }
 
 
+/* Pubic inline function; see above */
 static inline void
 t_cose_sign_add_body_header_params(struct t_cose_sign_sign_ctx *me,
-                                   struct t_cose_parameter     *parameters)
+                                   struct t_cose_parameter     *params)
 {
-    me->added_body_parameters = parameters;
+    me->added_body_params = params;
 }
 
 
+/* Pubic inline function; see above */
 static inline void
 t_cose_sign_add_signer(struct t_cose_sign_sign_ctx  *context,
                        struct t_cose_signature_sign *signer)

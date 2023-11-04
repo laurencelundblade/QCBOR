@@ -288,19 +288,19 @@ t_cose_encrypt_set_cek(struct t_cose_encrypt_enc *context,
 
 
 /**
- * \brief Setup buffer for larger AAD or header parameters.
+ * \brief Setup buffer for larger externally supplied data or header parameters.
  *
  * \param[in] context    The encryption context
  * \param[in] enc_buffer    Pointer and length of buffer to add.
  *
  * By default there is a limit of T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE
- * (typically 64 bytes) for the AAD and protected header
+ * (typically 64 bytes) for the externally supplied data and protected header
  * parameters. Normally this is quite adequate, but it may not be in
  * all cases. If not call this with a larger buffer.
  *
  * Specifically, this is the buffer to create the Enc_structure
  * described in RFC 9052 section 5.2. It needs to be the size of the
- * CBOR-encoded protected headers, the AAD and some overhead.
+ * CBOR-encoded protected headers, the externally supplied data and some overhead.
  *
  * TODO: size calculation mode that will tell the caller how bit it should be
  */
@@ -315,7 +315,7 @@ t_cose_encrypt_set_enc_struct_buffer(struct t_cose_encrypt_enc *context,
  *
  * \param[in] context                  The t_cose_encrypt_enc_ctx context.
  * \param[in] payload                  Plaintext to be encypted.
- * \param[in] aad        Additional authenticated data or \ref NULL_Q_USEFUL_BUF if none.
+ * \param[in] ext_sup_data       External supplied data or \ref NULL_Q_USEFUL_BUF.
  * \param[in] buffer_for_message                  Buffer for COSE message.
  * \param[out] encrypted_message                  Completed COSE message.
  *
@@ -327,7 +327,13 @@ t_cose_encrypt_set_enc_struct_buffer(struct t_cose_encrypt_enc *context,
  * COSE_Recipients. Only when direct encryption is used are they not
  * called.
  *
- * The size of encoded protected parameters plus the aad is limited to
+ * \c ext_sup_data is additional data to be integrity protected by the AEAD
+ * algorthim. This the data described in section 4.3 of RFC 9052. Note that this
+ * data (nor the payload) is authenticated in the same way it is when signed.
+ *  TODO: sort out what happens with no AEAD
+ *  TODO: describe this all better.
+ *
+ * The size of encoded protected parameters plus the externally supplied data is limited to
  * TODO by default. If it is exceeded the error TODO: will be
  * returned. See TODO to increase this.
  *
@@ -343,7 +349,7 @@ t_cose_encrypt_set_enc_struct_buffer(struct t_cose_encrypt_enc *context,
 static enum t_cose_err_t
 t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
                    struct q_useful_buf_c      payload,
-                   struct q_useful_buf_c      aad,
+                   struct q_useful_buf_c      ext_sup_data,
                    struct q_useful_buf        buffer_for_message,
                    struct q_useful_buf_c     *encrypted_message);
 
@@ -354,7 +360,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
  *
  * \param[in] context                  The t_cose_encrypt_enc_ctx context.
  * \param[in] payload                  Plaintext to be encypted.
- * \param[in] aad        Additional authenticated data or \ref NULL_Q_USEFUL_BUF if none.
+ * \param[in] ext_sup_data       External supplimentary data or \ref NULL_Q_USEFUL_BUF.
  * \param[in] buffer_for_detached                 Buffer for detached cipher text.
  * \param[in] buffer_for_message                  Buffer for COSE message.
  * \param[out] encrypted_detached                 Detached ciphertext.
@@ -379,7 +385,7 @@ t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
 enum t_cose_err_t
 t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *context,
                             struct q_useful_buf_c      payload,
-                            struct q_useful_buf_c      aad,
+                            struct q_useful_buf_c      ext_sup_data,
                             struct q_useful_buf        buffer_for_detached,
                             struct q_useful_buf        buffer_for_message,
                             struct q_useful_buf_c     *encrypted_detached,
@@ -440,13 +446,13 @@ t_cose_encrypt_set_enc_struct_buffer(struct t_cose_encrypt_enc *context,
 static inline enum t_cose_err_t
 t_cose_encrypt_enc(struct t_cose_encrypt_enc *context,
                    struct q_useful_buf_c      payload,
-                   struct q_useful_buf_c      aad,
+                   struct q_useful_buf_c      ext_sup_data,
                    struct q_useful_buf        buffer_for_message,
                    struct q_useful_buf_c     *encrypted_cose_message)
 {
     return t_cose_encrypt_enc_detached(context,
                                        payload,
-                                       aad,
+                                       ext_sup_data,
                                        NULL_Q_USEFUL_BUF,
                                        buffer_for_message,
                                        NULL,

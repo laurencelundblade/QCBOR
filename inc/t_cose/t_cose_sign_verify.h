@@ -200,7 +200,7 @@ t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *context,
  * \param[in,out] context   The t_cose signature verification context.
  * \param[in] message       Pointer and length of CBOR encoded \c COSE_Sign1
  *                          or \c COSE_Sign message that is to be verified.
- * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] ext_sup_data  Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[out] payload      Pointer and length of the payload that is returned.
  *                          Must not be \c NULL.
  * \param[out] parameters   Place to return decoded parameters. May be \c NULL.
@@ -241,13 +241,14 @@ t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *context,
  * they are in the input \c COSE_Sign1 messages. For example, if the
  * payload is an indefinite-length byte string, this error will be
  * returned.
+ * TODO: discuss ext_sup_data like t_cose_verify1 does.
  *
  * See also t_cose_sign_verify_detached().
  */
 static enum t_cose_err_t
 t_cose_sign_verify(struct t_cose_sign_verify_ctx *context,
                    struct q_useful_buf_c          message,
-                   struct q_useful_buf_c          aad,
+                   struct q_useful_buf_c          ext_sup_data,
                    struct q_useful_buf_c         *payload,
                    struct t_cose_parameter      **parameters);
 
@@ -258,7 +259,7 @@ t_cose_sign_verify(struct t_cose_sign_verify_ctx *context,
 static enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
                             struct q_useful_buf_c          message,
-                            struct q_useful_buf_c          aad,
+                            struct q_useful_buf_c          ext_sup_data,
                             struct q_useful_buf_c          payload,
                             struct t_cose_parameter      **parameters);
 
@@ -307,7 +308,7 @@ t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx *context);
  * \param[in,out] me   The t_cose signature verification context.
  * \param[in] message         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          or \c COSE_Sign message that is to be verified.
- * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] ext_sup_data  Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] is_detached         Indicates the payload is detached.
  * \param[in,out] payload   Pointer and length of the payload.
  * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
@@ -322,7 +323,7 @@ t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx *context);
 enum t_cose_err_t
 t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
                            struct q_useful_buf_c          message,
-                           struct q_useful_buf_c          aad,
+                           struct q_useful_buf_c          ext_sup_data,
                            bool                           is_detached,
                            struct q_useful_buf_c         *payload,
                            struct t_cose_parameter      **parameters);
@@ -332,13 +333,13 @@ t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
 static inline enum t_cose_err_t
 t_cose_sign_verify(struct t_cose_sign_verify_ctx *me,
                    struct q_useful_buf_c          message,
-                   struct q_useful_buf_c          aad,
+                   struct q_useful_buf_c          ext_sup_data,
                    struct q_useful_buf_c         *payload,
                    struct t_cose_parameter      **parameters)
 {
     return t_cose_sign_verify_private(me,
                                       message,
-                                      aad,
+                                      ext_sup_data,
                                       false,
                                       payload,
                                       parameters);
@@ -348,13 +349,13 @@ t_cose_sign_verify(struct t_cose_sign_verify_ctx *me,
 static inline enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *me,
                             struct q_useful_buf_c          message,
-                            struct q_useful_buf_c          aad,
+                            struct q_useful_buf_c          ext_sup_data,
                             struct q_useful_buf_c          detached_payload,
                             struct t_cose_parameter      **parameters)
 {
     return t_cose_sign_verify_private(me,
                                       message,
-                                      aad,
+                                      ext_sup_data,
                                       true,
                                      &detached_payload,
                                       parameters);

@@ -162,7 +162,7 @@ t_cose_sign1_set_verification_key(struct t_cose_sign1_verify_ctx *context,
  *
  * The buffer must be big enough to accomodate the Sig_Structure type,
  * which is roughly the sum of sizes of the encoded protected parameters,
- * aad and payload, along with a few dozen bytes of overhead.
+ * externally supplied data and payload, along with a few dozen bytes of overhead.
  *
  * To compute the exact size needed, initialize the context with
  * the \ref T_COSE_OPT_DECODE_ONLY option, and call the
@@ -261,31 +261,31 @@ t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
  * \param[in,out] context   The t_cose signature verification context.
  * \param[in] sign1         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          message that is to be verified.
- * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] ext_sup_data          Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[out] payload      Pointer and length of the payload.
  * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * This is just like t_cose_sign1_verify(), but allows passing AAD
- * (Additional Authenticated Data) for verification.
+ * This is just like t_cose_sign1_verify(), but allows passing externally supplied data
+ * (fomerly referred to as "AAD") for verification.
  *
- * AAD is some additional bytes that are covered by the signature in
+ * Externally supplied data is some additional bytes that are covered by the signature in
  * addition to the payload. They may be any bytes, but are often some
  * options or commands that are sent along with the \c COSE_Sign1. If
- * a \c COSE_Sign1 was created with AAD, that AAD must be passed in
+ * a \c COSE_Sign1 was created with externally supplied data, that data must be passed in
  * here to successfully verify the signature.  If it is not, a \ref
  * T_COSE_ERR_SIG_VERIFY will occur. There is no indication in the \c
- * COSE_Sign1 to know whether there was AAD input when it was
+ * COSE_Sign1 to know whether there was externally supplied data input when it was
  * created. It has to be known by context.
  *
- * Calling this with \c aad as \c NULL_Q_USEFUL_BUF_C is the same as
+ * Calling this with \c ext_sup_data as \c NULL_Q_USEFUL_BUF_C is the same as
  * calling t_cose_sign1_verify().
  */
 static enum t_cose_err_t
 t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
                         struct q_useful_buf_c           sign1,
-                        struct q_useful_buf_c           aad,
+                        struct q_useful_buf_c           ext_sup_data,
                         struct q_useful_buf_c          *payload,
                         struct t_cose_parameters       *parameters);
 
@@ -296,7 +296,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
  * \param[in,out] context   The t_cose signature verification context.
  * \param[in] cose_sign1         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          message that is to be verified.
- * \param[in] aad           The Additional Authenticated Data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] ext_sup_data          Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] detached_payload      Pointer and length of the payload.
  * \param[out] parameters   Place to return parsed parameters. May be \c NULL.
  *
@@ -312,12 +312,12 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
  * \c COSE_Sign1.  The signature covers it so it must be passed in to
  * complete the verification.
  *
- * \c aad may be \c NULL_Q_USEFUL_BUF_C if there is no AAD.
+ * \c ext_sup_data may be \c NULL_Q_USEFUL_BUF_C if there is none.
  */
 static inline enum t_cose_err_t
 t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *context,
                              struct q_useful_buf_c           cose_sign1,
-                             struct q_useful_buf_c           aad,
+                             struct q_useful_buf_c           ext_sup_data,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameters       *parameters);
 
@@ -355,7 +355,7 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
 static inline enum t_cose_err_t
 t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
                         struct q_useful_buf_c           cose_sign1,
-                        struct q_useful_buf_c           aad,
+                        struct q_useful_buf_c           ext_sup_data,
                         struct q_useful_buf_c          *payload,
                         struct t_cose_parameters       *parameters)
 {
@@ -364,7 +364,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
 
      return_value = t_cose_sign_verify(&(me->me2),
                                        cose_sign1,
-                                       aad,
+                                       ext_sup_data,
                                        payload,
                                       &decoded_params);
      if(parameters != NULL) {
@@ -378,7 +378,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
 static inline enum t_cose_err_t
 t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
                              struct q_useful_buf_c           cose_sign1,
-                             struct q_useful_buf_c           aad,
+                             struct q_useful_buf_c           ext_sup_data,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameters       *parameters)
 {
@@ -387,7 +387,7 @@ t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
 
     return_value = t_cose_sign_verify_detached(&(me->me2),
                                                cose_sign1,
-                                               aad,
+                                               ext_sup_data,
                                                detached_payload,
                                               &decoded_params);
 

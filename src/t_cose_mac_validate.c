@@ -130,7 +130,7 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     }
 
     /* -- Compute the ToBeMaced -- */
-    mac_input.aad = aad;
+    mac_input.ext_sup_data = aad;
     mac_input.payload = *payload;
     mac_input.body_protected = protected_parameters;
     mac_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* Never sign-protected for MAC */

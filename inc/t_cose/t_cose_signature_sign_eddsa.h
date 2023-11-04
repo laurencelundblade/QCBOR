@@ -102,7 +102,7 @@ t_cose_signature_sign_eddsa_set_header_parameter(struct t_cose_signature_sign_ed
  * allows the user to configure such a buffer.
  *
  * The buffer must be big enough to accomodate the Sig_Structure type,
- * which is roughly the sum of sizes of the encoded protected parameters, aad
+ * which is roughly the sum of sizes of the encoded protected parameters, externally supplied data
  * and payload, along with a few dozen bytes of overhead.
  *
  * To compute the exact size needed, an auxiliary buffer with a NULL

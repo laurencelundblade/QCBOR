@@ -284,6 +284,7 @@ enum t_cose_key_usage_flags {
  * 50-plus lines to figure out the actual value.
  */
 // TODO: renumber grouping unsupported algorithm errors together
+// TODO: review the buffer-too-small errors; are there too many of them?
 enum t_cose_err_t {
     /** Operation completed successfully. */
     T_COSE_SUCCESS = 0,
@@ -778,7 +779,7 @@ enum t_cose_err_t {
 
 
 /* Default size allowed for Enc_structure for COSE_Encrypt and COSE_Encrypt0.
- * If there are a lot or header parameters or AAD passed in is large,
+ * If there are a lot or header parameters or the externally supplied data (Section 4.3, RFC 9052) passed in is large,
  * this may not be big enough and error TODO will be returned. Call
  * TODO to give a bigger buffer.*/
 #define T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE 64
@@ -819,7 +820,7 @@ t_cose_is_algorithm_supported(int32_t cose_algorithm_id);
  * These are the inputs to create a Sig_structure
  * from section 4.4 in RFC 9052.
  *
- * aad and sign_protected may be \ref NULL_Q_USEFUL_BUF_C.
+ * ext_sup_data and sign_protected may be \ref NULL_Q_USEFUL_BUF_C.
  *
  * payload is a CBOR encoded byte string that may
  * contain CBOR or other.
@@ -829,7 +830,7 @@ t_cose_is_algorithm_supported(int32_t cose_algorithm_id);
  */
 struct t_cose_sign_inputs {
     struct q_useful_buf_c  body_protected;
-    struct q_useful_buf_c  aad;
+    struct q_useful_buf_c  ext_sup_data;
     struct q_useful_buf_c  sign_protected;
     struct q_useful_buf_c  payload;
 };

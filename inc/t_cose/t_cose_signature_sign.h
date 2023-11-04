@@ -95,7 +95,7 @@ struct t_cose_signature_sign;
  *
  * \param [in] me                    The context, the  t_cose_signature_sign
  *                                   instance.
- * \param[in] sign_inputs            Payload, aad and header parameters to sign.
+ * \param[in] sign_inputs            Payload, externally supplied data and header parameters to sign.
  * \param[in] qcbor_encoder          The CBOR encoder context to ouput the
  *                                   simple byte string signature for a
  *                                   COSE_Sign1.
@@ -117,7 +117,7 @@ t_cose_signature_sign1_cb(struct t_cose_signature_sign    *me,
  *                                   instance. This will actually be some
  *                                   thing like t_cose_signature_sign_main
  *                                   that implements t_cose_signature_sign
- * \param[in] sign_inputs            Payload, aad and header parameters to sign.
+ * \param[in] sign_inputs            Payload, externally supplied data and header parameters to sign.
  * \param[in] qcbor_encoder          The CBOR encoder context to ouput
  *                                   a COSE_Signature.
  *

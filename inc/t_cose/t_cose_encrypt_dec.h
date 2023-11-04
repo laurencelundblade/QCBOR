@@ -220,19 +220,19 @@ t_cose_encrypt_add_param_storage(struct t_cose_encrypt_dec_ctx   *context,
 // TODO: Add equivalent of t_cose_signature_verify_main_set_special_param_decoder()
 
 /**
- * \brief Setup buffer for larger AAD or header parameters.
+ * \brief Setup buffer for larger externally supplied data or header parameters.
  *
  * \param[in] context    The encryption context
  * \param[in] enc_buffer    Pointer and length of buffer to add.
  *
  * By default there is a limit of T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE
- * (typically 64 bytes) for the AAD and protected header
+ * (typically 64 bytes) for the externally supplied data and protected header
  * parameters. Normally this is quite adequate, but it may not be in
  * all cases. If not call this with a larger buffer.
  *
  * Specifically, this is the buffer to create the Enc_structure
  * described in RFC 9052 section 5.2. It needs to be the size of the
- * CBOR-encoded protected headers, the AAD and some overhead.
+ * CBOR-encoded protected headers, the externally supplied data and some overhead.
  *
  * TODO: size calculation mode that will tell the caller how bit it should be
  */
@@ -246,8 +246,7 @@ t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
  * \param[in,out] context       The t_cose_encrypt_dec_ctx context.
  * \param[in] message           The COSE message (a COSE_Encrypt0
  *                              or COSE_Encrypt).
- * \param[in] aad               Additional data that is verified or
- *                              \ref NULL_Q_USEFUL_BUF if none.
+ * \param[in] ext_sup_data               Externally supplied data or \ref NULL_Q_USEFUL_BUF.
  * \param[in] plaintext_buffer  A buffer for plaintext.
  * \param[out] plaintext        Place to return pointer and length of
  *                              the plaintext.
@@ -279,7 +278,7 @@ t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
 static enum t_cose_err_t
 t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
                    struct q_useful_buf_c          message,
-                   struct q_useful_buf_c          aad,
+                   struct q_useful_buf_c          ext_sup_data,
                    struct q_useful_buf            plaintext_buffer,
                    struct q_useful_buf_c         *plaintext,
                    struct t_cose_parameter      **returned_parameters);
@@ -291,7 +290,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
  * \param[in,out] context               The t_cose_encrypt_dec_ctx context.
  * \param[in] message                      The COSE message (a COSE_Encrypt0
  *                                      or COSE_Encrypt).
- * \param[in] aad   Additional data that is verified or \ref NULL_Q_USEFUL_BUF if none.
+ * \param[in] ext_sup_data               Externally supplied data or \ref NULL_Q_USEFUL_BUF.
  * \param[in] detached_ciphertext  The detached ciphertext.
  * \param[in] plaintext_buffer                A buffer for plaintext.
  * \param[out] plaintext     Place to return pointer and length of the plaintext.
@@ -306,7 +305,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
 enum t_cose_err_t
 t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx *context,
                             struct q_useful_buf_c          message,
-                            struct q_useful_buf_c          aad,
+                            struct q_useful_buf_c          ext_sup_data,
                             struct q_useful_buf_c          detached_ciphertext,
                             struct q_useful_buf            plaintext_buffer,
                             struct q_useful_buf_c         *plaintext,
@@ -389,14 +388,14 @@ t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
 static inline enum t_cose_err_t
 t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *me,
                    struct q_useful_buf_c          message,
-                   struct q_useful_buf_c          aad,
+                   struct q_useful_buf_c          ext_sup_data,
                    struct q_useful_buf            plaintext_buffer,
                    struct q_useful_buf_c         *plaintext,
                    struct t_cose_parameter      **returned_parameters)
 {
     return t_cose_encrypt_dec_detached(me,
                                        message,
-                                       aad,
+                                       ext_sup_data,
                                        NULL_Q_USEFUL_BUF_C,
                                        plaintext_buffer,
                                        plaintext,

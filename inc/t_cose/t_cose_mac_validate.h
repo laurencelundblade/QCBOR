@@ -75,8 +75,7 @@ t_cose_mac_set_validate_key(struct t_cose_mac_validate_ctx *context,
  * \param[in] context   The context of COSE_Mac0 validation.
  * \param[in] cose_mac  Pointer and length of CBOR encoded \c COSE_Mac0
  *                      that is to be validated.
- * \param[in] aad       The Additional Authenticated Data or
- *                      \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] ext_sup_data    Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[out] payload        Pointer and length of the still
  *                            CBOR encoded payload.
  * \param[out] return_params  Place to return decoded parameters.
@@ -109,7 +108,7 @@ t_cose_mac_set_validate_key(struct t_cose_mac_validate_ctx *context,
 static enum t_cose_err_t
 t_cose_mac_validate(struct t_cose_mac_validate_ctx *context,
                     struct q_useful_buf_c           cose_mac,
-                    struct q_useful_buf_c           aad,
+                    struct q_useful_buf_c           ext_sup_data,
                     struct q_useful_buf_c          *payload,
                     struct t_cose_parameter       **return_params);
 
@@ -120,7 +119,7 @@ t_cose_mac_validate(struct t_cose_mac_validate_ctx *context,
 static enum t_cose_err_t
 t_cose_mac_validate_detached(struct t_cose_mac_validate_ctx *context,
                              struct q_useful_buf_c           cose_mac,
-                             struct q_useful_buf_c           aad,
+                             struct q_useful_buf_c           ext_sup_data,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameter       **return_params);
 
@@ -160,7 +159,7 @@ t_cose_mac_validate_nth_tag(const struct t_cose_mac_validate_ctx *context,
  * \param[in] context   The context of COSE_Mac0 validation.
  * \param[in] cose_mac  Pointer and length of CBOR encoded \c COSE_Mac0
  *                      that is to be validated.
- * \param[in] aad       The Additional Authenticated Data or
+ * \param[in] ext_sup_data       The Additional Authenticated Data or
  *                      \c NULL_Q_USEFUL_BUF_C.
  * \param[in] payload_is_detached  If \c true, indicates the \c payload
  *                                 is detached.
@@ -178,7 +177,7 @@ t_cose_mac_validate_nth_tag(const struct t_cose_mac_validate_ctx *context,
 enum t_cose_err_t
 t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
                             struct q_useful_buf_c           cose_mac,
-                            struct q_useful_buf_c           aad,
+                            struct q_useful_buf_c           ext_sup_data,
                             bool                            payload_is_detached,
                             struct q_useful_buf_c          *payload,
                             struct t_cose_parameter       **return_params);
@@ -205,13 +204,13 @@ t_cose_mac_set_validate_key(struct t_cose_mac_validate_ctx *me,
 static inline enum t_cose_err_t
 t_cose_mac_validate(struct t_cose_mac_validate_ctx *me,
                     struct q_useful_buf_c           cose_mac,
-                    struct q_useful_buf_c           aad,
+                    struct q_useful_buf_c           ext_sup_data,
                     struct q_useful_buf_c          *payload,
                     struct t_cose_parameter       **return_params)
 {
     return t_cose_mac_validate_private(me,
                                        cose_mac,
-                                       aad,
+                                       ext_sup_data,
                                        false,
                                        payload,
                                        return_params);
@@ -221,13 +220,13 @@ t_cose_mac_validate(struct t_cose_mac_validate_ctx *me,
 static inline enum t_cose_err_t
 t_cose_mac_validate_detached(struct t_cose_mac_validate_ctx *me,
                              struct q_useful_buf_c           cose_mac,
-                             struct q_useful_buf_c           aad,
+                             struct q_useful_buf_c           ext_sup_data,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameter       **return_params)
 {
     return t_cose_mac_validate_private(me,
                                        cose_mac,
-                                       aad,
+                                       ext_sup_data,
                                        true,
                                       &detached_payload,
                                        return_params);

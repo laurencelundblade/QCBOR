@@ -27,7 +27,7 @@
 enum t_cose_err_t
 t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
                             struct q_useful_buf_c      payload,
-                            struct q_useful_buf_c      external_aad,
+                            struct q_useful_buf_c      ext_sup_data,
                             struct q_useful_buf        buffer_for_detached,
                             struct q_useful_buf        buffer_for_message,
                             struct q_useful_buf_c     *encrypted_detached,
@@ -127,7 +127,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     return_value =
         create_enc_structure(enc_struct_string, /* in: message context string */
                              body_prot_headers, /* in: CBOR encoded prot hdrs */
-                             external_aad,      /* in: external AAD */
+                             ext_sup_data,      /* in: external AAD */
                              enc_struct_buffer, /* in: output buffer */
                             &enc_structure);    /* out: encoded Enc_structure */
     if(return_value != T_COSE_SUCCESS) {

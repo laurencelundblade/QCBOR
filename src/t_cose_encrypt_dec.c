@@ -125,7 +125,7 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
 enum t_cose_err_t
 t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
                             const struct q_useful_buf_c    message,
-                            const struct q_useful_buf_c    aad,
+                            const struct q_useful_buf_c    ext_sup_data,
                             const struct q_useful_buf_c    detached_ciphertext,
                             struct q_useful_buf            plaintext_buffer,
                             struct q_useful_buf_c         *plaintext,
@@ -317,7 +317,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         create_enc_structure(
             msg_type_string,   /* in: message type context string */
             protected_params,  /* in: body protected parameters */
-            aad,               /* in: AAD from caller to integrity protect */
+            ext_sup_data,      /* in: externally supplied data to protect */
             enc_struct_buffer, /* in: buffer for encoded Enc_structure */
             &enc_structure     /* out: CBOR encoded Enc_structure */
         );

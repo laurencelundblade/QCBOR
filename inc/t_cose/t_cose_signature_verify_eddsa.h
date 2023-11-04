@@ -86,7 +86,7 @@ t_cose_signature_verify_eddsa_set_special_param_decoder(struct t_cose_signature_
  *
  * The buffer must be big enough to accomodate the Sig_Structure type,
  * which is roughly the sum of sizes of the encoded protected parameters,
- * aad and payload, along with a few dozen bytes of overhead.
+ * externally supplied data and payload, along with a few dozen bytes of overhead.
  *
  * To compute the exact size needed, initialize the context with
  * the \ref T_COSE_OPT_DECODE_ONLY option, and call the

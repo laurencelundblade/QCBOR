@@ -127,7 +127,7 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
      * MAC are the protected parameters, the payload that is
      * getting MACed.
      */
-    mac_input.aad = NULL_Q_USEFUL_BUF_C; // TODO: this won't be NULL when AAD is supported
+    mac_input.ext_sup_data = NULL_Q_USEFUL_BUF_C; // TODO: this won't be NULL when AAD is supported
     mac_input.payload = payload;
     mac_input.body_protected = me->protected_parameters;
     mac_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* Never sign-protected for MAC */

@@ -41,7 +41,7 @@ struct t_cose_signature_verify;
  *                            t_cose_signature_verify.
  * \param[in] option_flags    Option flags from t_cose_sign_verify_init().
  *                            Mostly for \ref T_COSE_OPT_DECODE_ONLY.
- * \param[in] sign_inputs     Payload, aad and header parameters to verify.
+ * \param[in] sign_inputs     Payload, externally supplied data and header parameters to verify.
  * \param[in] parameter_list  Parameter list in which algorithm and kid is
  *                            found.
  * \param[in] signature       The signature.

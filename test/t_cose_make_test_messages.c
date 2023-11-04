@@ -473,7 +473,7 @@ t_cose_sign1_test_message_output_signature(struct t_cose_sign1_sign_ctx *me,
      * doesn't need to be checked here.
      */
     sign_inputs.body_protected = me->protected_parameters;
-    sign_inputs.aad            = NULL_Q_USEFUL_BUF_C;
+    sign_inputs.ext_sup_data   = NULL_Q_USEFUL_BUF_C;
     sign_inputs.sign_protected = NULL_Q_USEFUL_BUF_C;
     sign_inputs.payload        = signed_payload;
 
