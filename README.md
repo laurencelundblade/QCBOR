@@ -20,6 +20,7 @@ and [COSE, RFC 9053](https://tools.ietf.org/html/rfc9053):
 * COSE_Mac0 (single MAC) with HMAC 256, 384 and 512
 * COSE_Encrypt0 (single recipient) with AES GCM 128, 192 and 256
 * COSE_Encrypt (multiple recipients) with ECDH + AES key wrap or just with AES key wrap
+* AES CBC and CTR modes per [AES-CTR and AES-CBC, RFC 9459](https://tools.ietf.org/html/rfc9459)
 
 **Implemented in C with minimal dependency** – There are three main
 dependencies: 1) [QCBOR](https://github.com/laurencelundblade/QCBOR),
@@ -46,13 +47,13 @@ implementations that have to run in small fixed memory.
 
 ## Code Status
 
-As of July 2023, the major t_cose 2.0 features are in and 
+As of Novermber 2023, the major t_cose 2.0 features are in and 
 functioning. There are many details to fix, interop testing and general
 testing to do, documentation to complete and correct.
 
-Backwards compatibility with t_cose 1.x is provided, but the code size
-is much larger. Those interested in small code size should switch
-to the newer signing API.
+Backwards compatibility with t_cose 1.x APIs is provided, however
+the new APIs for signing and verification have a smaller code size
+than the backwards compatible APIs.
 
 Integration with the [OpenSSL](https://www.openssl.org) and [Arm Mbed
 TLS](https://github.com/ARMmbed/mbedtls) cryptographic libraries is
@@ -82,11 +83,8 @@ can be added with relative ease.
 
 This configuration should work instantly on any device and is useful
 to do a large amount of testing with, but can't be put to full
-commercial use. What it lacks is integration with an ECDSA
-implementation so it can't produce real ECDSA signatures. It does
-however produce fake signatures called "short-circuit
-signatures" that are very useful for testing. See header
-documentation for details on short-circuit sigs.
+commercial use. What it lacks is integration with an crypto libraries
+implementation so it can't produce real COSE messages.
 
 This configuration (and only this configuration) uses a bundled
 SHA-256 implementation (SHA-256 is simple and easy to bundle, ECDSA is
@@ -100,10 +98,11 @@ To build run:
 
 This OpenSSL integration supports SHA-256, SHA-384 and SHA-512 with
 ECDSA, EdDSA, or RSAPSS to support the COSE algorithms ES256, ES384 and
-ES512, PS256, PS384 and PS512. It is a full and tested integration
+ES512, PS256, PS384 and PS512. It also support AES, key wrap and ECDH
+for encryption. It is a full and tested integration
 with OpenSSL crypto.
 
-If OpenSSL is installed in /usr/local or as a standar library, you can
+If OpenSSL is installed in /usr/local or as a standard library, you can
 probably just run make:
 
     make -f Makefile.ossl
@@ -144,7 +143,8 @@ implemented by Mbed TLS 2.x and 3.x.
 
 This integration supports SHA-256, SHA-384 and SHA-512 with
 ECDSA, EdDSA or RSAPSS to support the COSE algorithms ES256, ES384 and
-ES512, PS256, PS384 and PS512.
+ES512, PS256, PS384 and PS512.  It also support AES, key wrap and ECDH
+for encryption.
 
 If Mbed TLS is installed in /usr/local, you can probably just run
 make:
@@ -365,10 +365,11 @@ just have different names.
 * Mate Toth-Pal for restartable signing.
 * Paul Liétar for RSA PSS (PS256..PS512) and EdDSA.
 * Maik Riechert for cmake, CI and other.
-* Ken Takayama for the bulk of the detached content implementation.
+* Ken Takayama for the bulk of the detached content implementation and AES-CTR and AES-CBC.
 * Tamas Ban for lots code review comments, design ideas and porting to ARM PSA.
 * Rob Coombs, Shebu Varghese Kuriakose and other ARM folks for sponsorship.
 * Michael Eckel for makefile fixes.
+* Hannes Tschofenig for initial implementation of encryption.
 
 ## Copyright and License
 
