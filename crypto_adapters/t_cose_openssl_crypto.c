@@ -1368,7 +1368,14 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
         T_COSE_ALGORITHM_A256KW,
         T_COSE_ALGORITHM_HMAC256,
         T_COSE_ALGORITHM_HMAC384,
-        T_COSE_ALGORITHM_HMAC512};
+        T_COSE_ALGORITHM_HMAC512,
+        T_COSE_ALGORITHM_A128CTR,
+        T_COSE_ALGORITHM_A192CTR,
+        T_COSE_ALGORITHM_A256CTR,
+        T_COSE_ALGORITHM_A128CBC,
+        T_COSE_ALGORITHM_A192CBC,
+        T_COSE_ALGORITHM_A256CBC,
+    };
 
     if(!t_cose_check_list(cose_algorithm_id, symmetric_algs)) {
         /* This check could be disabled when usage guards are disabled */
@@ -1520,6 +1527,239 @@ aead_byte_count(const int32_t cose_algorithm_id,
     }
 }
 
+/* Compute size of ciphertext, given size of plaintext. Returns
+ * SIZE_MAX if the algorithm is unknown. Also returns the padding
+ * length. */
+static size_t
+non_aead_byte_count(const int32_t cose_algorithm_id,
+                    size_t        plain_text_len,
+                    size_t       *padding_length)
+{
+    /* This works for CTR (counter) and CBC, non AEAD algorithms,
+     * but can be augmented for others.
+     *
+     * For both CTR and CBC as used by COSE and HPKE, the authentication tag is not
+     * appended.
+     *
+     * For CTR the ciphertext length is the same as the plaintext length.
+     * (This is not true of other ciphers).
+     * https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode
+     *
+     * For CBC the plaintext will be padded from 1 bytes to the block size.
+     * The block size is 16 bytes for all A128CBC, A192CBC and A256CBC.
+     * If the plaintext size is 30 bytes, 2 byte-padding will be inserted,
+     * and each padding byte has value 0x02.
+     */
+
+    switch(cose_algorithm_id) {
+    case T_COSE_ALGORITHM_A128CTR:
+    case T_COSE_ALGORITHM_A192CTR:
+    case T_COSE_ALGORITHM_A256CTR:
+        *padding_length = 0;
+        break;
+    case T_COSE_ALGORITHM_A128CBC:
+    case T_COSE_ALGORITHM_A192CBC:
+    case T_COSE_ALGORITHM_A256CBC:
+        *padding_length = 16 - plain_text_len % 16;
+        break;
+    }
+
+    if(plain_text_len > (SIZE_MAX - *padding_length)) {
+        /* The extremely rare case where plain_text_len
+         * is almost SIZE_MAX in length and the length
+         * additions below will fail. This error is not
+         * the right one, but the case is so rare that
+         * it's not worth the trouble of making up some
+         * other error. This check is here primarily
+         * for static analyzers. */
+        return SIZE_MAX;
+    }
+
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_A128CTR:
+        case T_COSE_ALGORITHM_A192CTR:
+        case T_COSE_ALGORITHM_A256CTR:
+        case T_COSE_ALGORITHM_A128CBC:
+        case T_COSE_ALGORITHM_A192CBC:
+        case T_COSE_ALGORITHM_A256CBC:
+            return plain_text_len + *padding_length;
+        default: return SIZE_MAX;;
+    }
+}
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_non_aead_encrypt(const int32_t          cose_algorithm_id,
+                               struct t_cose_key      key,
+                               struct q_useful_buf_c  nonce,
+                               struct q_useful_buf_c  plaintext,
+                               struct q_useful_buf    ciphertext_buffer,
+                               struct q_useful_buf_c *ciphertext)
+{
+    EVP_CIPHER_CTX   *evp_context;
+    int               ossl_result;
+    const EVP_CIPHER *evp_cipher;
+    int               expected_key_length;
+    size_t            expected_iv_length;
+    int               buffer_bytes_used;
+    int               bytes_output;
+    size_t            expected_output_length;
+    size_t            padding_length;
+    enum t_cose_err_t return_value;
+
+    /* ------- Plaintext and ciphertext lengths -------*/
+    /*
+     * This is the critical length check that makes the rest of the
+     * calls to OpenSSL that write to the output buffer safe because
+     * OpenSSL by itself doesn't isn't safe. You cannot tell it the
+     * length of the buffer it is writing to.
+     *
+     * Here's the text from the openssl documentation:
+     *
+     *    For most ciphers and modes, the amount of data written can
+     *    be anything from zero bytes to (inl + cipher_block_size - 1)
+     *    bytes. For wrap cipher modes, the amount of data written can
+     *    be anything from zero bytes to (inl + cipher_block_size)
+     *    bytes. For stream ciphers, the amount of data written can be
+     *    anything from zero bytes to inl bytes.
+     */
+
+    /* output-length-check */
+    /* This assumes that OpenSSL outputs exactly the number
+     * of bytes this call calculates.
+     * Note that the OpenSSL automatically add the padding for AES-CBC
+     * defined in RFC9459 (or so called PKCS7 padding) by default.
+     */
+    expected_output_length = non_aead_byte_count(cose_algorithm_id,
+                                                 plaintext.len,
+                                                &padding_length);
+    if(expected_output_length == SIZE_MAX) {
+        return_value = T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+        goto Done3;
+    }
+    if(ciphertext_buffer.len < expected_output_length) {
+        /* Output buffer is too small */
+        return_value = T_COSE_ERR_TOO_SMALL;
+        goto Done3;
+    }
+    /* Now it is established that the output buffer is big enough */
+    if(ciphertext_buffer.ptr == NULL) {
+        /* Called in length calculation mode. Return length & exit. */
+        ciphertext->len = expected_output_length;
+        return_value = T_COSE_SUCCESS;
+        goto Done3;
+    }
+
+    /* ------- Algorithm and key and IV length checks -------*/
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_A128CTR: evp_cipher = EVP_aes_128_ctr();break;
+        case T_COSE_ALGORITHM_A192CTR: evp_cipher = EVP_aes_192_ctr();break;
+        case T_COSE_ALGORITHM_A256CTR: evp_cipher = EVP_aes_256_ctr();break;
+        case T_COSE_ALGORITHM_A128CBC: evp_cipher = EVP_aes_128_cbc();break;
+        case T_COSE_ALGORITHM_A192CBC: evp_cipher = EVP_aes_192_cbc();break;
+        case T_COSE_ALGORITHM_A256CBC: evp_cipher = EVP_aes_256_cbc();break;
+        default: return_value = T_COSE_ERR_UNSUPPORTED_CIPHER_ALG; goto Done3;
+    }
+    /* This is a sanity check. OpenSSL doesn't provide this check when
+     * using a key. It just assume you've provided the right key
+     * length to EVP_EncryptInit(). A bit unhygenic if you ask me.
+     * Assuming that EVP_CIPHER_key_length() will always return a
+     * small positive integer so the cast to size_t is safe. */
+    expected_key_length = EVP_CIPHER_key_length(evp_cipher);
+    if(key.key.buffer.len != (size_t)expected_key_length) {
+        return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
+        goto Done2;
+    }
+    /* Same hygene check for IV/nonce length as for key */
+    /* Assume that EVP_CIPHER_iv_length() won't ever return something
+     * dumb like -1. It would be a bug in OpenSSL or such if it did.
+     * This make the cast to size_t mostly safe. */
+    expected_iv_length = (size_t)EVP_CIPHER_iv_length(evp_cipher);
+    if(nonce.len < expected_iv_length){
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
+        goto Done2;
+    }
+
+    /* -------- Context initialization with key and IV ---------- */
+    evp_context = EVP_CIPHER_CTX_new();
+    if(evp_context == NULL) {
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
+        goto Done2;
+    }
+    ossl_result = EVP_EncryptInit_ex(evp_context,
+                                     evp_cipher,
+                                     NULL,
+                                     key.key.buffer.ptr,
+                                     nonce.ptr);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
+        goto Done1;
+    }
+
+    /* ---------- Since this is non AEAD cipher AAD is ignored ---------- */
+
+    /* ---------- Actual encryption of plaintext to cipher text ---------*/
+    if(!is_size_t_to_int_cast_ok(expected_output_length)) {
+        /* This tells us that it is not safe to track the output
+         * of the encryption in the integer variables buffer_bytes_used
+         * and bytes_output. */
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
+        goto Done1;
+    }
+
+    buffer_bytes_used = 0;
+    /* This assumes a stream cipher and no need for handling blocks.
+     * The section above on lengths makes sure the buffer being written
+     * to is big enough and that the cast of plaintext.len is safe.
+     */
+    if(!is_size_t_to_int_cast_ok(plaintext.len)) {
+        /* Cast to integer below would not be safe. */
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
+        goto Done1;
+    }
+    ossl_result = EVP_EncryptUpdate(evp_context,
+                                    ciphertext_buffer.ptr,
+                                    &bytes_output,
+                                    plaintext.ptr, (int)plaintext.len);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
+        goto Done1;
+    }
+
+    buffer_bytes_used += bytes_output; /* Safe becaue of output-length-check */
+
+    // TODO: Final or Final_ex?
+    ossl_result = EVP_EncryptFinal_ex(evp_context,
+                                     (uint8_t *)ciphertext_buffer.ptr + buffer_bytes_used,
+                                     &bytes_output);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
+        goto Done1;
+    }
+    buffer_bytes_used += bytes_output; /* Safe becaue of output-length-check */
+
+    /* ---------- Since this is non AEAD do nothing for the tag ----------- */
+
+    if(!is_int_to_size_t_cast_ok(buffer_bytes_used)) {
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
+        goto Done1;
+    }
+    ciphertext->len = (size_t)buffer_bytes_used;
+    ciphertext->ptr = ciphertext_buffer.ptr;
+
+    return_value = T_COSE_SUCCESS;
+
+Done1:
+    /* https://stackoverflow.com/questions/26345175/correct-way-to-free-allocate-the-context-in-the-openssl */
+    EVP_CIPHER_CTX_free(evp_context);
+Done2:
+    /* It seems that EVP_aes_128_ctr(), ... returns a const, non-allocated
+     * EVP_CIPHER and thus doesn't have to be freed. */
+Done3:
+    return return_value;
+}
 
 /*
  * See documentation in t_cose_crypto.h
@@ -1737,6 +1977,138 @@ Done3:
     return return_value;
 }
 
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_non_aead_decrypt(const int32_t          cose_algorithm_id,
+                               struct t_cose_key      key,
+                               struct q_useful_buf_c  nonce,
+                               struct q_useful_buf_c  ciphertext,
+                               struct q_useful_buf    plaintext_buffer,
+                               struct q_useful_buf_c *plaintext)
+{
+    EVP_CIPHER_CTX   *evp_context;
+    int               ossl_result;
+    const EVP_CIPHER *evp_cipher;
+    int               expected_key_length;
+    size_t            expected_iv_length;
+    int               bytes_output;
+    int               dummy_length;
+    enum t_cose_err_t return_value;
+
+    /* ------- Identify the algorithm -------*/
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_A128CTR: evp_cipher = EVP_aes_128_ctr ();break;
+        case T_COSE_ALGORITHM_A192CTR: evp_cipher = EVP_aes_192_ctr ();break;
+        case T_COSE_ALGORITHM_A256CTR: evp_cipher = EVP_aes_256_ctr ();break;
+        case T_COSE_ALGORITHM_A128CBC: evp_cipher = EVP_aes_128_cbc ();break;
+        case T_COSE_ALGORITHM_A192CBC: evp_cipher = EVP_aes_192_cbc ();break;
+        case T_COSE_ALGORITHM_A256CBC: evp_cipher = EVP_aes_256_cbc ();break;
+        default: return_value = T_COSE_ERR_UNSUPPORTED_CIPHER_ALG; goto Done3;
+    }
+
+    /* ------- Length checks (since OpenSSL doesn't) -------*/
+    if(plaintext_buffer.len < ciphertext.len) { /* plaintext-buffer-check */
+        /* The buffer to receive the plaintext is too small. This
+         * check assumes AEAD. See aead_byte_count(). */
+        return_value = T_COSE_ERR_TOO_SMALL;
+        goto Done2;
+    }
+    if(!is_size_t_to_int_cast_ok(plaintext_buffer.len)){
+        /* While plaintext_buffer.len is never cast to int,
+         * the length of bytes that are put in it are
+         * held by the integer bytes_output. This checks
+         * affirms that it is OK to hold that counter in an int. */
+        return_value = T_COSE_ERR_DECRYPT_FAIL;
+        goto Done2;
+    }
+
+    /* ------- Algorithm and key and IV length checks -------*/
+    /* This is a sanity check. OpenSSL doesn't provide this check
+     * when using a key. It just assumes you've provided the right key
+     * length to EVP_DecryptInit(). A bit unhygenic if you ask me. */
+    expected_key_length = EVP_CIPHER_key_length(evp_cipher);
+    if(key.key.buffer.len != (size_t)expected_key_length) {
+        return_value = T_COSE_ERR_WRONG_TYPE_OF_KEY;
+        goto Done2;
+    }
+    /* Same hygene check for IV/nonce length as for key */
+    /* Assume that EVP_CIPHER_iv_length() won't ever return something
+     * dumb like -1. It would be a bug in OpenSSL or such if it did.
+     * This make the cast to size_t mostly safe. */
+    expected_iv_length = (size_t)EVP_CIPHER_iv_length(evp_cipher);
+    if(nonce.len < expected_iv_length){
+        return_value = T_COSE_ERR_DECRYPT_FAIL;
+        goto Done2;
+    }
+
+    /* -------- Context initialization with key and IV ---------- */
+    evp_context = EVP_CIPHER_CTX_new();
+    if(evp_context == NULL) {
+        return_value = T_COSE_ERR_DECRYPT_FAIL;
+        goto Done2;
+    }
+    ossl_result = EVP_DecryptInit(evp_context,
+                                  evp_cipher,
+                                  key.key.buffer.ptr,
+                                  nonce.ptr);
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_DECRYPT_FAIL;
+        goto Done1;
+    }
+
+    /* ---------- AAD ---------- */
+    /* Since this is non AEAD cipher, AAD is ignored */
+
+    /* ---------- Actual encryption of plaintext to cipher text ---------*/
+    /* Length subtraction safe because of ciphertext-length-check */
+    if(!is_size_t_to_int_cast_ok(ciphertext.len)) {
+        /* Cast to integer below would not be safe. */
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
+        goto Done1;
+    }
+    ossl_result = EVP_DecryptUpdate(evp_context,
+                                    plaintext_buffer.ptr,
+                                    &bytes_output,
+                                    ciphertext.ptr,
+                                    (int)(ciphertext.len));
+    if(ossl_result != 1) {
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
+        goto Done1;
+    }
+    /* I don't know why but */
+
+    ossl_result = EVP_DecryptFinal_ex(evp_context,
+                                      (uint8_t *)plaintext_buffer.ptr + bytes_output,
+                                      &dummy_length);
+    if(ossl_result != 1) {
+        /* This is where an authentication failure is detected. */
+        return_value = 10; // TODO: proper error code
+        goto Done1;
+    }
+    // This is needed for AES-CBC
+    bytes_output += dummy_length;
+
+    /* ---------- Return pointer and length of plaintext ---------*/
+    if(!is_int_to_size_t_cast_ok(bytes_output)) {
+        return_value = T_COSE_ERR_ENCRYPT_FAIL;
+        goto Done1;
+    }
+    plaintext->len = (size_t)bytes_output;
+    plaintext->ptr = plaintext_buffer.ptr;
+
+    return_value = T_COSE_SUCCESS;
+
+Done1:
+    /* https://stackoverflow.com/questions/26345175/correct-way-to-free-allocate-the-context-in-the-openssl */
+    EVP_CIPHER_CTX_free(evp_context);
+Done2:
+    /* It seems that EVP_aes_128_gcm(), ... returns a const, non-allocated
+     * EVP_CIPHER and thus doesn't have to be freed. */
+Done3:
+    return return_value;
+}
 
 /*
  * See documentation in t_cose_crypto.h

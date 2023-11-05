@@ -1024,7 +1024,7 @@ t_cose_param_find_alg_id_unprot(const struct t_cose_parameter *parameter_list)
     int32_t alg_id;
     bool    prot;
     alg_id = t_cose_param_find_alg_id(parameter_list, &prot);
-    if(prot != true) {
+    if(prot == true) {
         return T_COSE_ALGORITHM_NONE;
     }
 

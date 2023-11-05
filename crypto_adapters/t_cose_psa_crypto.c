@@ -1082,6 +1082,18 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
             psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
             key_bitlen = 128;
             break;
+        case T_COSE_ALGORITHM_A128CTR:
+            psa_algorithm = PSA_ALG_CTR;
+            psa_keytype = PSA_KEY_TYPE_AES;
+            psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
+            key_bitlen = 128;
+            break;
+        case T_COSE_ALGORITHM_A128CBC:
+            psa_algorithm = PSA_ALG_CBC_PKCS7; // RFC9459 requests to use padding
+            psa_keytype = PSA_KEY_TYPE_AES;
+            psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
+            key_bitlen = 128;
+            break;
 
         case T_COSE_ALGORITHM_A192GCM:
         case T_COSE_ALGORITHM_A192KW:
@@ -1090,10 +1102,34 @@ t_cose_crypto_make_symmetric_key_handle(int32_t               cose_algorithm_id,
             psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
             key_bitlen = 192;
             break;
+        case T_COSE_ALGORITHM_A192CTR:
+            psa_algorithm = PSA_ALG_CTR;
+            psa_keytype = PSA_KEY_TYPE_AES;
+            psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
+            key_bitlen = 192;
+            break;
+        case T_COSE_ALGORITHM_A192CBC:
+            psa_algorithm = PSA_ALG_CBC_PKCS7; // RFC9459 requests to use padding
+            psa_keytype = PSA_KEY_TYPE_AES;
+            psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
+            key_bitlen = 192;
+            break;
 
         case T_COSE_ALGORITHM_A256GCM:
         case T_COSE_ALGORITHM_A256KW:
             psa_algorithm = PSA_ALG_GCM;
+            psa_keytype = PSA_KEY_TYPE_AES;
+            psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
+            key_bitlen = 256;
+            break;
+        case T_COSE_ALGORITHM_A256CTR:
+            psa_algorithm = PSA_ALG_CTR;
+            psa_keytype = PSA_KEY_TYPE_AES;
+            psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
+            key_bitlen = 256;
+            break;
+        case T_COSE_ALGORITHM_A256CBC:
+            psa_algorithm = PSA_ALG_CBC_PKCS7; // RFC9459 requests to use padding
             psa_keytype = PSA_KEY_TYPE_AES;
             psa_key_usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT;
             key_bitlen = 256;
@@ -1178,6 +1214,58 @@ aead_byte_count(const int32_t cose_algorithm_id,
 }
 
 
+/* Compute size of ciphertext, given size of plaintext. Returns
+ * SIZE_MAX if the algorithm is unknown. Also returns the tag
+ * length. */
+static size_t
+non_aead_byte_count(const int32_t cose_algorithm_id,
+                    size_t        plain_text_len)
+{
+    /* This works for CTR (counter) and CBC, non AEAD algorithms,
+     * but can be augmented for others.
+     *
+     * For both CTR and CBC as used by COSE and HPKE, the authentication tag is not
+     * appended.
+     *
+     * For CTR the ciphertext length is the same as the plaintext length.
+     * (This is not true of other ciphers).
+     * https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode
+     *
+     * For CBC the plaintext will be padded from 1 bytes to the block size.
+     * The block size is 16 bytes for all A128CBC, A192CBC and A256CBC.
+     * If the plaintext size is 30 bytes for A128CBC, 2 bytes padding will be inserted,
+     * and each padding byte has value 0x02.
+     */
+
+    size_t padding_length = 0;
+    switch(cose_algorithm_id) {
+    case T_COSE_ALGORITHM_A128CTR:
+    case T_COSE_ALGORITHM_A192CTR:
+    case T_COSE_ALGORITHM_A256CTR:
+        return plain_text_len;
+    case T_COSE_ALGORITHM_A128CBC:
+    case T_COSE_ALGORITHM_A192CBC:
+    case T_COSE_ALGORITHM_A256CBC:
+        padding_length = 16 - plain_text_len % 16;
+        break;
+    default:
+        return SIZE_MAX;
+    }
+
+    if(plain_text_len > (SIZE_MAX - padding_length)) {
+        /* The extremely rare case where plain_text_len
+         * is almost SIZE_MAX in length and the length
+         * additions below will fail. This error is not
+         * the right one, but the case is so rare that
+         * it's not worth the trouble of making up some
+         * other error. This check is here primarily
+         * for static analyzers. */
+        return SIZE_MAX;
+    }
+    return plain_text_len + padding_length;
+}
+
+
 static enum t_cose_err_t
 aead_psa_status_to_t_cose_err(psa_status_t status, enum t_cose_err_t deflt)
 {
@@ -1195,6 +1283,8 @@ aead_psa_status_to_t_cose_err(psa_status_t status, enum t_cose_err_t deflt)
         case PSA_ERROR_NOT_PERMITTED: return T_COSE_ERR_WRONG_TYPE_OF_KEY;
 
         case PSA_ERROR_INVALID_SIGNATURE: return T_COSE_ERR_DATA_AUTH_FAILED;
+
+        case PSA_ERROR_INVALID_PADDING: return T_COSE_ERR_BAD_PADDING;
 
         default: return deflt;
     }
@@ -1266,6 +1356,91 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
+t_cose_crypto_non_aead_encrypt(const int32_t          cose_algorithm_id,
+                               struct t_cose_key      key,
+                               struct q_useful_buf_c  nonce,
+                               struct q_useful_buf_c  plaintext,
+                               struct q_useful_buf    ciphertext_buffer,
+                               struct q_useful_buf_c *ciphertext)
+{
+    // based on https://mbed-tls.readthedocs.io/en/latest/getting_started/psa/
+
+    psa_status_t     status;
+    psa_algorithm_t  psa_algorithm_id;
+    psa_cipher_operation_t operation = PSA_CIPHER_OPERATION_INIT;
+    size_t dummy_length = 0;
+
+    /* Pretty sure the optimizer will do good things with this switch. */
+    switch (cose_algorithm_id) {
+        case T_COSE_ALGORITHM_A128CTR:
+            psa_algorithm_id = PSA_ALG_CTR;
+            break;
+        case T_COSE_ALGORITHM_A192CTR:
+            psa_algorithm_id = PSA_ALG_CTR;
+            break;
+        case T_COSE_ALGORITHM_A256CTR:
+            psa_algorithm_id = PSA_ALG_CTR;
+            break;
+
+        // RFC9459 requests to use padding
+        case T_COSE_ALGORITHM_A128CBC:
+            psa_algorithm_id = PSA_ALG_CBC_PKCS7;
+            break;
+        case T_COSE_ALGORITHM_A192CBC:
+            psa_algorithm_id = PSA_ALG_CBC_PKCS7;
+            break;
+        case T_COSE_ALGORITHM_A256CBC:
+            psa_algorithm_id = PSA_ALG_CBC_PKCS7;
+            break;
+        default:
+            return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+    }
+
+    if(ciphertext_buffer.ptr == NULL) {
+        /* Called in length calculation mode. Return length & exit. */
+        ciphertext->len = non_aead_byte_count(cose_algorithm_id,
+                                              plaintext.len);;
+        return T_COSE_SUCCESS;
+    }
+
+    /* Encrypt the ciphertext */
+    status = psa_cipher_encrypt_setup(&operation, (psa_key_handle_t)key.key.handle, psa_algorithm_id);
+    if(status != PSA_SUCCESS) {
+        goto Done;
+    }
+    status = psa_cipher_set_iv(&operation, nonce.ptr, nonce.len);
+    if(status != PSA_SUCCESS) {
+        goto Done;
+    }
+    status = psa_cipher_update(&operation,
+                               plaintext.ptr,
+                               plaintext.len,
+                               ciphertext_buffer.ptr,
+                               ciphertext_buffer.len,
+                               &ciphertext->len);
+    if(status != PSA_SUCCESS) {
+        goto Done;
+    }
+    status = psa_cipher_finish(&operation,
+                               (uint8_t *)ciphertext_buffer.ptr + ciphertext->len,
+                               ciphertext_buffer.len - ciphertext->len,
+                               &dummy_length);
+    if(status != PSA_SUCCESS) {
+        goto Done;
+    }
+
+    ciphertext->len += dummy_length;
+    ciphertext->ptr = ciphertext_buffer.ptr;
+
+Done:
+    return aead_psa_status_to_t_cose_err(status, T_COSE_ERR_ENCRYPT_FAIL);
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
 t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
                            struct t_cose_key      key,
                            struct q_useful_buf_c  nonce,
@@ -1304,6 +1479,83 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
     return aead_psa_status_to_t_cose_err(status, T_COSE_ERR_DECRYPT_FAIL);
 }
 
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_non_aead_decrypt(const int32_t          cose_algorithm_id,
+                               struct t_cose_key      key,
+                               struct q_useful_buf_c  nonce,
+                               struct q_useful_buf_c  ciphertext,
+                               struct q_useful_buf    plaintext_buffer,
+                               struct q_useful_buf_c *plaintext)
+{
+    // based on https://mbed-tls.readthedocs.io/en/latest/getting_started/psa/
+
+    psa_status_t     status;
+    psa_algorithm_t  psa_algorithm_id;
+    psa_cipher_operation_t operation = PSA_CIPHER_OPERATION_INIT;
+    size_t dummy_length = 0;
+
+    /* Pretty sure the optimizer will do good things with this switch. */
+    switch (cose_algorithm_id) {
+        case T_COSE_ALGORITHM_A128CTR:
+            psa_algorithm_id = PSA_ALG_CTR;
+            break;
+        case T_COSE_ALGORITHM_A192CTR:
+            psa_algorithm_id = PSA_ALG_CTR;
+            break;
+        case T_COSE_ALGORITHM_A256CTR:
+            psa_algorithm_id = PSA_ALG_CTR;
+            break;
+
+        // RFC9459 requests to use padding
+        case T_COSE_ALGORITHM_A128CBC:
+            psa_algorithm_id = PSA_ALG_CBC_PKCS7;
+            break;
+        case T_COSE_ALGORITHM_A192CBC:
+            psa_algorithm_id = PSA_ALG_CBC_PKCS7;
+            break;
+        case T_COSE_ALGORITHM_A256CBC:
+            psa_algorithm_id = PSA_ALG_CBC_PKCS7;
+            break;
+        default:
+            return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
+    }
+
+    /* Decrypt the ciphertext */
+    status = psa_cipher_decrypt_setup(&operation, (psa_key_handle_t)key.key.handle, psa_algorithm_id);
+    if(status != PSA_SUCCESS) {
+        goto Done;
+    }
+    status = psa_cipher_set_iv(&operation, nonce.ptr, nonce.len);
+    if(status != PSA_SUCCESS) {
+        goto Done;
+    }
+    status = psa_cipher_update(&operation,
+                               ciphertext.ptr,
+                               ciphertext.len,
+                               plaintext_buffer.ptr,
+                               plaintext_buffer.len,
+                               &plaintext->len);
+    if(status != PSA_SUCCESS) {
+        goto Done;
+    }
+    status = psa_cipher_finish(&operation,
+                               (uint8_t *)plaintext_buffer.ptr + plaintext->len,
+                               plaintext_buffer.len - plaintext->len,
+                               &dummy_length);
+    if(status != PSA_SUCCESS) {
+        goto Done;
+    }
+
+    plaintext->len += dummy_length;
+    plaintext->ptr = plaintext_buffer.ptr;
+
+Done:
+    return aead_psa_status_to_t_cose_err(status, T_COSE_ERR_DECRYPT_FAIL);
+}
 
 
 /*

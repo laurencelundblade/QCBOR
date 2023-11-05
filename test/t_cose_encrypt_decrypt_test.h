@@ -13,6 +13,8 @@
 
 #include <stdint.h>
 
+int32_t decrypt_known_good_aeskw_non_aead_test(void);
+
 int32_t base_encrypt_decrypt_test(void);
 
 int32_t esdh_enc_dec_test(void);

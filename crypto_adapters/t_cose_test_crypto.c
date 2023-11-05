@@ -530,6 +530,84 @@ t_cose_crypto_aead_encrypt(const int32_t          cose_algorithm_id,
 }
 
 
+/* Compute size of ciphertext, given size of plaintext. Returns
+ * SIZE_MAX if the algorithm is unknown. Also returns the tag
+ * length. */
+static size_t
+non_aead_byte_count(const int32_t cose_algorithm_id,
+                    size_t        plain_text_len)
+{
+    /* This works for CTR (counter) and CBC, non AEAD algorithms,
+     * but can be augmented for others.
+     *
+     * For both CTR and CBC as used by COSE and HPKE, the authentication tag is not
+     * appended.
+     *
+     * For CTR the ciphertext length is the same as the plaintext length.
+     * (This is not true of other ciphers).
+     * https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode
+     *
+     * For CBC the plaintext will be padded from 1 bytes to the block size.
+     * The block size is 16 bytes for all A128CBC, A192CBC and A256CBC.
+     * If the plaintext size is 30 bytes for A128CBC, 2 bytes padding will be inserted,
+     * and each padding byte has value 0x02.
+     */
+
+    size_t padding_length = 0;
+    switch(cose_algorithm_id) {
+    case T_COSE_ALGORITHM_A128CTR:
+    case T_COSE_ALGORITHM_A192CTR:
+    case T_COSE_ALGORITHM_A256CTR:
+        return plain_text_len;
+    case T_COSE_ALGORITHM_A128CBC:
+    case T_COSE_ALGORITHM_A192CBC:
+    case T_COSE_ALGORITHM_A256CBC:
+        return plain_text_len + (16 - plain_text_len % 16);
+    }
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_non_aead_encrypt(const int32_t          cose_algorithm_id,
+                               struct t_cose_key      key,
+                               struct q_useful_buf_c  nonce,
+                               struct q_useful_buf_c  plaintext,
+                               struct q_useful_buf    ciphertext_buffer,
+                               struct q_useful_buf_c *ciphertext)
+{
+    struct q_useful_buf_c tag = Q_USEFUL_BUF_FROM_SZ_LITERAL(FAKE_TAG);
+
+    (void)nonce;
+    (void)cose_algorithm_id;
+    (void)key;
+
+
+    if(ciphertext_buffer.ptr == NULL) {
+        /* Called in length calculation mode. Return length & exit. */
+        ciphertext->len = non_aead_byte_count(cose_algorithm_id,
+                                              plaintext.len);;
+        return T_COSE_SUCCESS;
+    }
+
+    /* Use useful output to copy the plaintext as pretend encryption
+     * and add "tagtag.." as a pretend tag.*/
+    UsefulOutBuf UOB;
+    UsefulOutBuf_Init(&UOB, ciphertext_buffer);
+    UsefulOutBuf_AppendUsefulBuf(&UOB, plaintext);
+    UsefulOutBuf_AppendUsefulBuf(&UOB, tag);
+    *ciphertext = UsefulOutBuf_OutUBuf(&UOB);
+
+    if(q_useful_buf_c_is_null(*ciphertext)) {
+        return T_COSE_ERR_TOO_SMALL;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
 /*
  * See documentation in t_cose_crypto.h
  */
@@ -548,6 +626,47 @@ t_cose_crypto_aead_decrypt(const int32_t          cose_algorithm_id,
 
     (void)nonce;
     (void)aad;
+    (void)cose_algorithm_id;
+    (void)key;
+
+    UsefulInputBuf UIB;
+    UsefulInputBuf_Init(&UIB, ciphertext);
+    if(ciphertext.len < expected_tag.len) {
+        return T_COSE_ERR_DECRYPT_FAIL;
+    }
+    received_plaintext = UsefulInputBuf_GetUsefulBuf(&UIB, ciphertext.len - expected_tag.len);
+    received_tag = UsefulInputBuf_GetUsefulBuf(&UIB, expected_tag.len);
+
+    if(q_useful_buf_compare(expected_tag, received_tag)) {
+        return T_COSE_ERR_DATA_AUTH_FAILED;
+    }
+
+    *plaintext = q_useful_buf_copy(plaintext_buffer, received_plaintext);
+
+    if(q_useful_buf_c_is_null(*plaintext)) {
+        return T_COSE_ERR_TOO_SMALL;
+    }
+
+    return T_COSE_SUCCESS;
+}
+
+
+/*
+ * See documentation in t_cose_crypto.h
+ */
+enum t_cose_err_t
+t_cose_crypto_non_aead_decrypt(const int32_t          cose_algorithm_id,
+                               struct t_cose_key      key,
+                               struct q_useful_buf_c  nonce,
+                               struct q_useful_buf_c  ciphertext,
+                               struct q_useful_buf    plaintext_buffer,
+                               struct q_useful_buf_c *plaintext)
+{
+    struct q_useful_buf_c expected_tag = Q_USEFUL_BUF_FROM_SZ_LITERAL(FAKE_TAG);
+    struct q_useful_buf_c received_tag;
+    struct q_useful_buf_c received_plaintext;
+
+    (void)nonce;
     (void)cose_algorithm_id;
     (void)key;
 

@@ -226,7 +226,45 @@ bits_in_crypto_alg(int32_t cose_algorithm_id)
     switch(cose_algorithm_id) {
         case T_COSE_ALGORITHM_AES128CCM_16_128:
         case T_COSE_ALGORITHM_A128KW:
-        case T_COSE_ALGORITHM_A128GCM: return 128;
+        case T_COSE_ALGORITHM_A128GCM:
+        case T_COSE_ALGORITHM_A128CTR:
+        case T_COSE_ALGORITHM_A128CBC: return 128;
+        case T_COSE_ALGORITHM_A192KW:
+        case T_COSE_ALGORITHM_A192GCM:
+        case T_COSE_ALGORITHM_A192CTR:
+        case T_COSE_ALGORITHM_A192CBC: return 192;
+        case T_COSE_ALGORITHM_AES256CCM_16_128:
+        case T_COSE_ALGORITHM_A256KW:
+        case T_COSE_ALGORITHM_A256GCM:
+        case T_COSE_ALGORITHM_A256CTR:
+        case T_COSE_ALGORITHM_A256CBC: return 256;
+        default: return UINT32_MAX;
+    }
+}
+
+
+
+/**
+ * \brief Returns the IV length (in bits) of a given encryption algo.
+ *
+ * @param cose_algorithm_id  Crypto algorithm.
+ *
+ * Returns the IV length (in bits) or UINT_MAX in case of an
+ * unknown algorithm id.
+ */
+uint32_t
+bits_iv_alg(int32_t cose_algorithm_id)
+{
+    switch(cose_algorithm_id) {
+        case T_COSE_ALGORITHM_AES128CCM_16_128:
+        case T_COSE_ALGORITHM_A128KW:
+        case T_COSE_ALGORITHM_A128GCM:
+        case T_COSE_ALGORITHM_A128CTR:
+        case T_COSE_ALGORITHM_A128CBC:
+        case T_COSE_ALGORITHM_A192CTR:
+        case T_COSE_ALGORITHM_A192CBC:
+        case T_COSE_ALGORITHM_A256CTR:
+        case T_COSE_ALGORITHM_A256CBC: return 128;
         case T_COSE_ALGORITHM_A192KW:
         case T_COSE_ALGORITHM_A192GCM: return 192;
         case T_COSE_ALGORITHM_AES256CCM_16_128:
@@ -695,5 +733,22 @@ t_cose_link_rs(struct t_cose_rs_obj **list, struct t_cose_rs_obj *new_rs)
         struct t_cose_rs_obj *t;
         for(t = *list; t->next != NULL; t = t->next);
         t->next = new_rs;
+    }
+}
+
+/* This returns true if the algorithm id is non AEAD defined in RFC9459 */
+bool
+t_cose_alg_is_non_aead(int32_t cose_algorithm_id)
+{
+    switch(cose_algorithm_id) {
+    case T_COSE_ALGORITHM_A128CTR:
+    case T_COSE_ALGORITHM_A192CTR:
+    case T_COSE_ALGORITHM_A256CTR:
+    case T_COSE_ALGORITHM_A128CBC:
+    case T_COSE_ALGORITHM_A192CBC:
+    case T_COSE_ALGORITHM_A256CBC:
+        return true;
+    default:
+        return false;
     }
 }

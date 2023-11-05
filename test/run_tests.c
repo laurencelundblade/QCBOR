@@ -47,6 +47,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(aead_test),
 #ifndef T_COSE_DISABLE_KEYWRAP
     TEST_ENTRY(kw_test),
+    TEST_ENTRY(decrypt_known_good_aeskw_non_aead_test),
 #endif
     TEST_ENTRY(hkdf_test),
 

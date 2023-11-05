@@ -646,6 +646,11 @@ enum t_cose_err_t {
      * crypto algorithm is not AEAD and thus can't protect the headers. */
     T_COSE_ERR_PROTECTED_NOT_ALLOWED = 90,
 
+    /** While decryption, the padding for AES-CBC is invalid. */
+    T_COSE_ERR_BAD_PADDING = 90,
+
+    /** External AAD is passed as an argument for non AEAD cipher. */
+    T_COSE_ERR_AAD_WITH_NON_AEAD = 91,
 };
 
 
@@ -854,6 +859,7 @@ struct t_cose_sign_inputs {
 struct t_cose_alg_and_bits {
     int32_t   cose_alg_id;
     uint32_t  bits_in_key;
+    uint32_t  bits_iv;
 };
 
 
