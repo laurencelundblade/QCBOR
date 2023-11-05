@@ -1627,10 +1627,10 @@ t_cose_crypto_non_aead_encrypt(const int32_t          cose_algorithm_id,
      */
 
     /* output-length-check */
-    /* This assumes that OpenSSL outputs exactly the number
-     * of bytes this call calculates.
-     * Note that the OpenSSL automatically add the padding for AES-CBC
-     * defined in RFC9459 (or so called PKCS7 padding) by default.
+    /* This assumes that OpenSSL outputs exactly the number of bytes
+     * this call calculates.  Note that the OpenSSL automatically add
+     * the padding for AES-CBC defined in RFC9459 (or so called PKCS7
+     * padding) by default.
      */
     expected_output_length = non_aead_byte_count(cose_algorithm_id,
                                                  plaintext.len,
@@ -1710,9 +1710,9 @@ t_cose_crypto_non_aead_encrypt(const int32_t          cose_algorithm_id,
     }
 
     buffer_bytes_used = 0;
-    /* This assumes a stream cipher and no need for handling blocks.
-     * The section above on lengths makes sure the buffer being written
-     * to is big enough and that the cast of plaintext.len is safe.
+    /* This assumes a stream or padded cipher mode.  The section above
+     * on lengths makes sure the buffer being written to is big enough
+     * and that the cast of plaintext.len is safe.
      */
     if(!is_size_t_to_int_cast_ok(plaintext.len)) {
         /* Cast to integer below would not be safe. */

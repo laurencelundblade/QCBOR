@@ -150,6 +150,8 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     const char                    *msg_type_string;
     Q_USEFUL_BUF_MAKE_STACK_UB(    enc_struct_buffer, T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE);
     struct q_useful_buf_c          enc_structure;
+    bool                           alg_id_prot;
+    struct t_cose_parameter       *p_param;
 
 
     /* --- Get started decoding array of four and tags --- */
@@ -192,17 +194,24 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     }
 
     nonce_cbor = t_cose_param_find_iv(body_params_list);
-    ce_alg.cose_alg_id = t_cose_param_find_alg_id_prot(body_params_list);
+    ce_alg.cose_alg_id = t_cose_param_find_alg_id(body_params_list, &alg_id_prot);
     if(ce_alg.cose_alg_id == T_COSE_ALGORITHM_NONE) {
-        /* Might be non AEAD and located in unprotected header. */
-        ce_alg.cose_alg_id = t_cose_param_find_alg_id_unprot(body_params_list);
-        if(ce_alg.cose_alg_id == T_COSE_ALGORITHM_NONE) {
+        return T_COSE_ERR_NO_ALG_ID;
+    }
+    if(t_cose_alg_is_non_aead(ce_alg.cose_alg_id)) {
+        /* Make sure there are no protected headers for non-aead algorithms */
+        for(p_param = body_params_list; p_param->next != NULL; p_param = p_param->next) {
+            if(p_param->in_protected) {
+                return T_COSE_ERR_PROTECTED_NOT_ALLOWED;
+            }
+        }
+    } else {
+        /* Make sure alg id is protected for aead algorithms */
+        if(alg_id_prot != true) {
             return T_COSE_ERR_NO_ALG_ID;
         }
-        if(!t_cose_alg_is_non_aead(ce_alg.cose_alg_id)) {
-            /* TOCO: Should we accept AEAD algorithm ID in unprotected header? */
-        }
     }
+
     all_params_list = body_params_list;
 
     ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);

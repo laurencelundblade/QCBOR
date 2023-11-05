@@ -48,15 +48,13 @@ locations_equal(struct t_cose_header_location l1,
 
 
 static int32_t
-check_headers(const struct t_cose_parameter *headers)
+check_headers(const struct t_cose_parameter *headers, bool is_non_aead)
 {
     const struct t_cose_header_location body_location = {0,0};
     bool got_alg = false;
     bool got_ct = false;
     bool got_xxx = false;
     bool got_iv = false;
-
-
 
     /* Make sure that all the expected headers occur,
      * that they occur only once and that no unexpected
@@ -65,7 +63,7 @@ check_headers(const struct t_cose_parameter *headers)
     while(headers != NULL) {
         switch(headers->label) {
             case T_COSE_HEADER_PARAM_ALG:
-                if(headers->in_protected == false  ||
+                if((headers->in_protected != !is_non_aead)  ||
                    !locations_equal(headers->location, body_location) ||
                    headers->value_type != T_COSE_PARAMETER_TYPE_INT64 ||
                    got_alg == true) {
@@ -132,6 +130,7 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
     struct q_useful_buf_c          encrypted_cose_message;
     struct q_useful_buf_c          decrypted_payload;
     struct q_useful_buf_c          encrypted_detached;
+    struct q_useful_buf_c          ext_sup_data;
     Q_USEFUL_BUF_MAKE_STACK_UB(    cose_message_buf, 1024);
     Q_USEFUL_BUF_MAKE_STACK_UB(    detached_encrypted_buf, 1024);
     Q_USEFUL_BUF_MAKE_STACK_UB(    decrypted_payload_buf, 1024);
@@ -198,15 +197,15 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
 
     t_cose_encrypt_set_enc_struct_buffer(&enc_context, enc_struct_buf);
 
+    ext_sup_data = t_cose_alg_is_non_aead(cose_algorithm_id) ? NULL_Q_USEFUL_BUF_C :
+                                                               Q_USEFUL_BUF_FROM_SZ_LITERAL(AAD);
+
     t_cose_err = t_cose_encrypt_enc(&enc_context,
                                      Q_USEFUL_BUF_FROM_SZ_LITERAL(PAYLOAD),
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL(AAD),
+                                     ext_sup_data,
                                      cose_message_buf,
                                     &encrypted_cose_message);
-    if(t_cose_alg_is_non_aead(cose_algorithm_id) && t_cose_err == T_COSE_ERR_AAD_WITH_NON_AEAD) {
-        return_value = 0;
-        goto Done;
-    }
+
     if(t_cose_err) {
         return_value = 2000 + (int32_t)t_cose_err;
         goto Done;
@@ -233,7 +232,7 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
 
     t_cose_err = t_cose_encrypt_dec(&dec_ctx,
                                      encrypted_cose_message,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL(AAD),
+                                     ext_sup_data,
                                      decrypted_payload_buf,
                                     &decrypted_payload,
                                     &decoded_parameters);
@@ -242,7 +241,8 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
         goto Done;
     }
 
-    return_value = check_headers(decoded_parameters);
+    return_value = check_headers(decoded_parameters,
+                                 t_cose_alg_is_non_aead(cose_algorithm_id));
     if(return_value) {
         goto Done;
     }

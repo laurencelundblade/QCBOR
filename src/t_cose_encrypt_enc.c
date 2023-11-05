@@ -39,7 +39,6 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     unsigned                     message_type;
     struct q_useful_buf_c        nonce;
     struct t_cose_parameter      params[2]; /* 1 for Alg ID plus 1 for IV */
-    struct t_cose_parameter     *p_param;
     struct q_useful_buf_c        body_prot_headers;
     struct q_useful_buf_c        enc_structure;
     struct t_cose_alg_and_bits   ce_alg;
@@ -52,7 +51,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     struct q_useful_buf          encrypt_buffer;
     struct q_useful_buf_c        encrypt_output;
     bool                         is_cose_encrypt0;
-    bool                         is_none_aead_cipher;
+    bool                         is_non_aead_cipher;
     struct t_cose_recipient_enc *recipient;
 
 
@@ -74,8 +73,8 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
 
     /* ---- Algorithm ID, IV and parameter list ---- */
     /* Determine algorithm parameters */
-    is_none_aead_cipher = t_cose_alg_is_non_aead(me->payload_cose_algorithm_id);
-    if(is_none_aead_cipher && !q_useful_buf_c_is_null_or_empty(ext_sup_data)) {
+    is_non_aead_cipher = t_cose_alg_is_non_aead(me->payload_cose_algorithm_id);
+    if(is_non_aead_cipher && !q_useful_buf_c_is_null_or_empty(ext_sup_data)) {
         /* Section 6 of RFC9459 says,
         * COSE libraries that support either AES-CTR or AES-CBC and
         * accept Additional Authenticated Data (AAD) as input MUST return an error
@@ -89,7 +88,9 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     if(ce_alg.bits_in_key == UINT32_MAX) {
         return T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
     }
-    params[0] = t_cose_param_make_alg_id(ce_alg.cose_alg_id);
+    params[0] = is_non_aead_cipher ? t_cose_param_make_unprot_alg_id(ce_alg.cose_alg_id):
+                                     t_cose_param_make_alg_id(ce_alg.cose_alg_id);
+
 
     /* Generate random nonce (aka iv) */
     return_value = t_cose_crypto_get_random(nonce_buffer,
@@ -101,12 +102,6 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     params[1].next = me->added_body_parameters;
     /* At this point all the header parameters to be encoded are in a
      * linked list the head of which is params[0]. */
-    if(is_none_aead_cipher) {
-        /* Move all params to unprotected to make protected header be a zero-byte string */
-        for(p_param = &params[0]; p_param != NULL; p_param = p_param->next) {
-            p_param->in_protected = false;
-        }
-    }
 
 
     /* ---- Get started with the CBOR encoding ---- */
@@ -161,7 +156,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
         encrypt_buffer = buffer_for_detached;
     }
 
-    if(is_none_aead_cipher) {
+    if(is_non_aead_cipher) {
         return_value =
             t_cose_crypto_non_aead_encrypt(ce_alg.cose_alg_id, /* in: non AEAD alg ID */
                                            cek_handle,     /* in: content encryption key handle */
