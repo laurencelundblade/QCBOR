@@ -1532,9 +1532,9 @@ aead_byte_count(const int32_t cose_algorithm_id,
  * length. */
 static size_t
 non_aead_byte_count(const int32_t cose_algorithm_id,
-                    size_t        plain_text_len,
-                    size_t       *padding_length)
+                    size_t        plain_text_len)
 {
+    size_t padding_length;
     /* This works for CTR (counter) and CBC, non AEAD algorithms,
      * but can be augmented for others.
      *
@@ -1555,16 +1555,17 @@ non_aead_byte_count(const int32_t cose_algorithm_id,
     case T_COSE_ALGORITHM_A128CTR:
     case T_COSE_ALGORITHM_A192CTR:
     case T_COSE_ALGORITHM_A256CTR:
-        *padding_length = 0;
+        padding_length = 0;
         break;
     case T_COSE_ALGORITHM_A128CBC:
     case T_COSE_ALGORITHM_A192CBC:
     case T_COSE_ALGORITHM_A256CBC:
-        *padding_length = 16 - plain_text_len % 16;
+        padding_length = 16 - plain_text_len % 16;
         break;
+    default: return SIZE_MAX;
     }
 
-    if(plain_text_len > (SIZE_MAX - *padding_length)) {
+    if(plain_text_len > (SIZE_MAX - padding_length)) {
         /* The extremely rare case where plain_text_len
          * is almost SIZE_MAX in length and the length
          * additions below will fail. This error is not
@@ -1575,16 +1576,7 @@ non_aead_byte_count(const int32_t cose_algorithm_id,
         return SIZE_MAX;
     }
 
-    switch(cose_algorithm_id) {
-        case T_COSE_ALGORITHM_A128CTR:
-        case T_COSE_ALGORITHM_A192CTR:
-        case T_COSE_ALGORITHM_A256CTR:
-        case T_COSE_ALGORITHM_A128CBC:
-        case T_COSE_ALGORITHM_A192CBC:
-        case T_COSE_ALGORITHM_A256CBC:
-            return plain_text_len + *padding_length;
-        default: return SIZE_MAX;;
-    }
+    return plain_text_len + padding_length;
 }
 
 /*
@@ -1606,7 +1598,6 @@ t_cose_crypto_non_aead_encrypt(const int32_t          cose_algorithm_id,
     int               buffer_bytes_used;
     int               bytes_output;
     size_t            expected_output_length;
-    size_t            padding_length;
     enum t_cose_err_t return_value;
 
     /* ------- Plaintext and ciphertext lengths -------*/
@@ -1633,8 +1624,7 @@ t_cose_crypto_non_aead_encrypt(const int32_t          cose_algorithm_id,
      * padding) by default.
      */
     expected_output_length = non_aead_byte_count(cose_algorithm_id,
-                                                 plaintext.len,
-                                                &padding_length);
+                                                 plaintext.len);
     if(expected_output_length == SIZE_MAX) {
         return_value = T_COSE_ERR_UNSUPPORTED_CIPHER_ALG;
         goto Done3;

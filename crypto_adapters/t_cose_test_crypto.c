@@ -553,7 +553,6 @@ non_aead_byte_count(const int32_t cose_algorithm_id,
      * and each padding byte has value 0x02.
      */
 
-    size_t padding_length = 0;
     switch(cose_algorithm_id) {
     case T_COSE_ALGORITHM_A128CTR:
     case T_COSE_ALGORITHM_A192CTR:
@@ -563,7 +562,10 @@ non_aead_byte_count(const int32_t cose_algorithm_id,
     case T_COSE_ALGORITHM_A192CBC:
     case T_COSE_ALGORITHM_A256CBC:
         return plain_text_len + (16 - plain_text_len % 16);
+    default:
+        return SIZE_MAX;
     }
+
 }
 
 

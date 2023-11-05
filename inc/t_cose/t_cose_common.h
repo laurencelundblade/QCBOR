@@ -490,15 +490,15 @@ enum t_cose_err_t {
      */
     T_COSE_ERR_MAC0_FORMAT = 48,
 
-    // TODO: duplicate uses of next three error codes.
+    // TODO: renumber these properly as part of a big renumbering
     /** The requested content key distribution algorithm is not supported.  */
-    T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG = 46,
+    T_COSE_ERR_UNSUPPORTED_CONTENT_KEY_DISTRIBUTION_ALG = 146,
 
     /** The requested encryption algorithm is not supported.  */
-    T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG = 47,
+    T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG = 147,
 
     /** The requested key length is not supported.  */
-    T_COSE_ERR_UNSUPPORTED_KEY_LENGTH = 48,
+    T_COSE_ERR_UNSUPPORTED_KEY_LENGTH = 148,
 
     /** Adding a recipient to the COSE_Encrypt0 structure is not allowed.  */
     T_COSE_ERR_RECIPIENT_CANNOT_BE_ADDED = 49,

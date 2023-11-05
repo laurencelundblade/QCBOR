@@ -721,9 +721,11 @@ int32_t run_decrypt_test(const struct decrypt_test *test)
  * static initialization. It's only a test.
  */
 static int32_t
-init_decrypt_test_list(struct decrypt_test tests[], size_t size)
+init_decrypt_test_list(struct decrypt_test tests[], int tests_count)
 {
     int test_num;
+
+#define NEXT_TEST if(++test_num >= tests_count) return -1
 
     test_num = 0;
 
@@ -731,39 +733,38 @@ init_decrypt_test_list(struct decrypt_test tests[], size_t size)
     tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(unknown_symmetric_alg);
     tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
     tests[test_num].expected_return_value = T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG;
-    test_num++;
+    NEXT_TEST;
 
     tests[test_num].sz_description   = "cipher text is a tstr, not an bstr";
     tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(tstr_ciphertext);
     tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
     tests[test_num].expected_return_value = T_COSE_ERR_ENCRYPT_FORMAT;
-    test_num++;
+    NEXT_TEST;
 
     tests[test_num].sz_description   = "the aead ciphertext is modified so aead validation fails";
     tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(aead_in_error);
     tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
     tests[test_num].expected_return_value = T_COSE_ERR_DATA_AUTH_FAILED;
-    test_num++;
+    NEXT_TEST;
 
     tests[test_num].sz_description   = "the body unprot header params is an array, not a map";
     tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(unprot_headers_wrong_type);
     tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
     tests[test_num].expected_return_value = T_COSE_ERR_PARAMETER_CBOR;
-    test_num++;
+    NEXT_TEST;
 
     tests[test_num].sz_description   = "the array of recipients is a map, not an array";
     tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_recipients_map_instead_of_array);
     tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
     tests[test_num].expected_return_value = T_COSE_ERR_ENCRYPT_FORMAT;
-    test_num++;
+    NEXT_TEST;
 
 
     tests[test_num].sz_description   = "a recipient is a text string, not an array";
     tests[test_num].message          = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_junk_recipient);
     tests[test_num].cose_ec_curve_id = T_COSE_ELLIPTIC_CURVE_P_256;
     tests[test_num].expected_return_value = T_COSE_ERR_RECIPIENT_FORMAT;
-    test_num++;
-    // TODO: check size
+    NEXT_TEST;
 
     tests[test_num].sz_description = NULL;
 
@@ -777,7 +778,7 @@ int32_t decrypt_known_bad(void)
     struct decrypt_test  test_list[10];
     int32_t              i;
 
-    result = init_decrypt_test_list(test_list, sizeof(test_list));
+    result = init_decrypt_test_list(test_list, sizeof(test_list)/sizeof(struct decrypt_test));
     if(result) {
         return result;
     }
