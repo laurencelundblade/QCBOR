@@ -42,32 +42,22 @@ t_cose_recipient_create_keywrap_cb_private(struct t_cose_recipient_enc  *me_x,
     QCBOREncode_OpenArray(cbor_encoder);
 
     /* Output the header parameters */
-    params[0]  = t_cose_param_make_alg_id(me->keywrap_cose_algorithm_id);
-    params[0].in_protected = false; /* Override t_cose_make_alg_id_parameter().
-                                     * There's no protection in Keywrap */
+    params[0] = t_cose_param_make_unprot_alg_id(me->keywrap_cose_algorithm_id);
     if(!q_useful_buf_c_is_null(me->kid)) {
         params[1] = t_cose_param_make_kid(me->kid);
         params[0].next = &params[1];
     }
     params2 = params;
     t_cose_params_append(&params2, me->added_params);
-    // TODO: make sure no custom headers are protected because
-    // there is no protect with key wrap
     return_value = t_cose_headers_encode(cbor_encoder,
                                          params2,
                                          &protected_params_not);
     if (return_value != T_COSE_SUCCESS) {
         goto Done;
     }
-    if(protected_params_not.len &&
-       q_useful_buf_compare(protected_params_not, Q_USEFUL_BUF_FROM_SZ_LITERAL("\xa0"))) {
-        /* Empty protected params can either be an empty bstr or a bstr
-         * with an empty map. Make sure they are empty here per section 5.4
-         * of RFC 9052.
-         */
-        // TODO: Erata for 9052?
-        // 5.4 says this must be an empty bstr.
-        // 3 says either empty map or empty bstr.
+    if(!t_cose_params_empty(protected_params_not)) {
+        /* Section 8.5.2 of RFC 9052 requires the protected header bucket
+         * be an empty byte string. */
         return_value = T_CODE_ERR_PROTECTED_PARAM_NOT_ALLOWED;
         goto Done;
     }

@@ -419,6 +419,8 @@ struct t_cose_parameter_storage {
  * A pointer and length of the protected header byte string is
  * returned so that it can be covered by what ever protection
  * mechanism is in used (e.g., hashing or AEAD encryption).
+ * If there are no protected header parameters an empty string
+ * will always be returned in \c protected_parameters.
  */
 enum t_cose_err_t
 t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
@@ -431,7 +433,6 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
  *
  * \param[in] cbor_decoder           QCBOR decoder to decode from.
  * \param[in] location               Location in message of the parameters.
- * \param[in] no_protected           Protected headers must be empty.
  * \param[in] special_decode_cb      Callback for non-integer and
  *                                   non-string parameters.
  * \param[in] special_decode_ctx     Context for the above callback
@@ -486,12 +487,26 @@ t_cose_headers_encode(QCBOREncodeContext            *cbor_encoder,
 enum t_cose_err_t
 t_cose_headers_decode(QCBORDecodeContext                 *cbor_decoder,
                       const struct t_cose_header_location location,
-                      bool                                no_protected,
                       t_cose_param_special_decode_cb     *special_decode_cb,
                       void                               *special_decode_ctx,
                       struct t_cose_parameter_storage    *parameter_storage,
                       struct t_cose_parameter           **decoded_params,
                       struct q_useful_buf_c              *protected_parameters);
+
+
+
+/* Returns true if the CBOR encoded parameters are empty either because
+ * they are an empty string or a wrapped empty map. This is primarily
+ * used on protected headers. */
+static bool
+t_cose_params_empty(struct q_useful_buf_c encoded_params);
+
+
+/* Returns true of the CBOR-encoded parameters are an empty bstr. This is
+ * primarily used on protected headers in a few context where they
+ * must be empty only by being an empty bstr. */
+static bool
+t_cose_params_empty_bstr(struct q_useful_buf_c encoded_params);
 
 
 /**
@@ -825,6 +840,30 @@ t_cose_params_common(const struct t_cose_parameter *decoded_params,
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
+
+
+static inline bool
+t_cose_params_empty_bstr(struct q_useful_buf_c encoded_params)
+{
+    return encoded_params.len == 0;
+}
+
+static inline bool
+t_cose_params_empty(struct q_useful_buf_c encoded_params)
+{
+    int           compare_result;
+    const uint8_t empty_map[] = {0xa0};
+
+    if(t_cose_params_empty_bstr(encoded_params)) {
+        return true;
+    }
+
+    compare_result = q_useful_buf_compare(encoded_params,
+                                          Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(empty_map));
+
+    /* Check for a CBOR-encoded empty array */
+    return compare_result == 0 ? true : false;
+}
 
 
 static inline struct t_cose_parameter

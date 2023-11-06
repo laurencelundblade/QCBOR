@@ -80,7 +80,6 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     decoded_params = NULL;
     t_cose_headers_decode(&decode_context,
                           l,
-                          false,
                           NULL,
                           NULL,
                           &me->parameter_storage,
