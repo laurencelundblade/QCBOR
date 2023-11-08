@@ -81,6 +81,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *me,
  */
 enum t_cose_err_t
 t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
+                      struct q_useful_buf_c            ext_sup_data,
                       struct q_useful_buf_c            payload,
                       QCBOREncodeContext              *cbor_encode_ctx)
 {
@@ -127,8 +128,8 @@ t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *me,
      * MAC are the protected parameters, the payload that is
      * getting MACed.
      */
-    mac_input.ext_sup_data = NULL_Q_USEFUL_BUF_C; // TODO: this won't be NULL when AAD is supported
-    mac_input.payload = payload;
+    mac_input.ext_sup_data   = ext_sup_data;
+    mac_input.payload        = payload;
     mac_input.body_protected = me->protected_parameters;
     mac_input.sign_protected = NULL_Q_USEFUL_BUF_C; /* Never sign-protected for MAC */
     return_value = create_tbm(&mac_input,
@@ -191,12 +192,11 @@ Done:
 enum t_cose_err_t
 t_cose_mac_compute_private(struct t_cose_mac_calculate_ctx *me,
                            bool                             payload_is_detached,
-                           struct q_useful_buf_c            aad,
+                           struct q_useful_buf_c            ext_sup_data,
                            struct q_useful_buf_c            payload,
                            struct q_useful_buf              out_buf,
                            struct q_useful_buf_c           *result)
 {
-    (void)aad;
     QCBOREncodeContext  encode_ctx;
     enum t_cose_err_t   return_value;
 
@@ -217,7 +217,7 @@ t_cose_mac_compute_private(struct t_cose_mac_calculate_ctx *me,
         QCBOREncode_AddBytes(&encode_ctx, payload);
     }
 
-    return_value = t_cose_mac_encode_tag(me, payload, &encode_ctx);
+    return_value = t_cose_mac_encode_tag(me, ext_sup_data, payload, &encode_ctx);
     if(return_value) {
         goto Done;
     }

@@ -163,6 +163,7 @@ t_cose_mac_encode_parameters(struct t_cose_mac_calculate_ctx *context,
  */
 enum t_cose_err_t
 t_cose_mac_encode_tag(struct t_cose_mac_calculate_ctx *context,
+                      struct q_useful_buf_c            ext_sup_data,
                       struct q_useful_buf_c            payload,
                       QCBOREncodeContext              *cbor_encode_ctx);
 
@@ -224,15 +225,15 @@ t_cose_mac_compute(struct t_cose_mac_calculate_ctx *context,
  * \brief Create and compute a \c COSE_Mac0 message with detached
  *        payload in one call.
  *
- * \param[in] context  The t_cose MAC context.
+ * \param[in] context           The t_cose MAC context.
  * \param[in] ext_sup_data      Externally supplied data or
- *                     \c NULL_Q_USEFUL_BUF_C.
+ *                              \c NULL_Q_USEFUL_BUF_C.
  * \param[in] datached_payload  Pointer and length of the detached payload
  *                              to be MACed.
- * \param[in] out_buf  Pointer and length of buffer to output to.
- * \param[out] result  Pointer and length of the resulting \c COSE_Mac0.
+ * \param[in] out_buf           Pointer and length of buffer to output to.
+ * \param[out] result           Pointer and length of the resulting \c COSE_Mac0.
  *
- *  * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
  * This is similar to, but not the same as t_cose_mac_compute(). Here
  * the payload is detached and conveyed separately. The hash and authentication
@@ -261,7 +262,7 @@ t_cose_mac_compute_detached(struct t_cose_mac_calculate_ctx *context,
  *
  * \param[in] context              The t_cose MAC context.
  * \param[in] payload_is_detached  If \c true, then \c payload is detached.
- * \param[in] ext_sup_data                  Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] ext_sup_data         Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] payload              The payload to be MACed, inline or detached.
  * \param[in] out_buf              Pointer and length of buffer to output to.
  * \param[out] result              Pointer and length of the resulting

@@ -296,10 +296,10 @@ create_tbm(const struct t_cose_sign_inputs *mac_inputs,
     /* body_protected */
     QCBOREncode_AddBytes(&cbor_encode_ctx, mac_inputs->body_protected);
 
-    /* external_aad. There is none so an empty bstr */
-    QCBOREncode_AddBytes(&cbor_encode_ctx, NULL_Q_USEFUL_BUF_C);
+    /* ext_sup_data  */
+    QCBOREncode_AddBytes(&cbor_encode_ctx, mac_inputs->ext_sup_data);
 
-    /* The short fake payload, add only the byte string type and length */
+    /* The short fake payload, ext_sup_data only the byte string type and length */
     QCBOREncode_AddBytesLenOnly(&cbor_encode_ctx, mac_inputs->payload);
 
     /* Close of the array */

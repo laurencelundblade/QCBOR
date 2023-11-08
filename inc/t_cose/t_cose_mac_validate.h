@@ -122,9 +122,9 @@ t_cose_mac_set_special_param_decoder(struct t_cose_mac_validate_ctx *context,
 /**
  * \brief Validate a \c COSE_Mac0 message.
  *
- * \param[in] context   The context of COSE_Mac0 validation.
- * \param[in] cose_mac  Pointer and length of CBOR encoded \c COSE_Mac0
- *                      that is to be validated.
+ * \param[in] context         The context of COSE_Mac0 validation.
+ * \param[in] cose_mac        Pointer and length of CBOR encoded \c COSE_Mac0
+ *                            that is to be validated.
  * \param[in] ext_sup_data    Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[out] payload        Pointer and length of the still
  *                            CBOR encoded payload.

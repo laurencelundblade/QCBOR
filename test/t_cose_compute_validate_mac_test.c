@@ -79,6 +79,7 @@ static int32_t compute_validate_basic_test_alg_mac(int32_t cose_alg)
     struct q_useful_buf_c        maced_cose;
     struct t_cose_key            key;
     struct q_useful_buf_c        in_payload = Q_USEFUL_BUF_FROM_SZ_LITERAL("payload");
+    struct q_useful_buf_c        in_exp_sup_data = Q_USEFUL_BUF_FROM_SZ_LITERAL("sup data");
     struct q_useful_buf_c        out_payload;
 
     /* -- Get started with context initialization, selecting the alg -- */
@@ -94,7 +95,7 @@ static int32_t compute_validate_basic_test_alg_mac(int32_t cose_alg)
     t_cose_mac_set_computing_key(&mac_ctx, key, NULL_Q_USEFUL_BUF_C);
 
     cose_res = t_cose_mac_compute(&mac_ctx,
-                                   NULL_Q_USEFUL_BUF_C,
+                                   in_exp_sup_data,
                                    in_payload,
                                    maced_cose_buffer,
                                   &maced_cose);
@@ -110,7 +111,7 @@ static int32_t compute_validate_basic_test_alg_mac(int32_t cose_alg)
 
     cose_res = t_cose_mac_validate(&validate_ctx,
                                     maced_cose,  /* COSE to validate */
-                                    NULL_Q_USEFUL_BUF_C,
+                                    in_exp_sup_data,
                                    &out_payload, /* Payload from maced_cose */
                                     NULL);
     if(cose_res != T_COSE_SUCCESS) {
@@ -213,7 +214,7 @@ int32_t compute_validate_mac_fail_test(void)
     QCBOREncode_AddSZString(&cbor_encode, "payload");
     QCBOREncode_CloseBstrWrap2(&cbor_encode, false, &payload);
 
-    result = t_cose_mac_encode_tag(&mac_ctx, payload, &cbor_encode);
+    result = t_cose_mac_encode_tag(&mac_ctx, NULL_Q_USEFUL_BUF_C, payload, &cbor_encode);
     if(result) {
         return_value = 3000 + (int32_t)result;
         goto Done;
@@ -289,7 +290,7 @@ static int size_test(int32_t               cose_algorithm_id,
 
     QCBOREncode_AddBytes(&cbor_encode, payload);
 
-    return_value = t_cose_mac_encode_tag(&mac_ctx, payload, &cbor_encode);
+    return_value = t_cose_mac_encode_tag(&mac_ctx, NULL_Q_USEFUL_BUF_C, payload, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
@@ -312,7 +313,7 @@ static int size_test(int32_t               cose_algorithm_id,
 
     QCBOREncode_AddBytes(&cbor_encode, payload);
 
-    return_value = t_cose_mac_encode_tag(&mac_ctx, payload, &cbor_encode);
+    return_value = t_cose_mac_encode_tag(&mac_ctx, NULL_Q_USEFUL_BUF_C, payload, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
@@ -610,6 +611,7 @@ int32_t compute_validate_detached_content_mac_fail_test(void)
     QCBOREncode_AddNULL(&cbor_encode);
 
     result = t_cose_mac_encode_tag(&mac_ctx,
+                                   NULL_Q_USEFUL_BUF_C,
                                    Q_USEFUL_BUF_FROM_SZ_LITERAL("payload"),
                                    &cbor_encode);
     if(result) {
@@ -680,7 +682,7 @@ static int detached_content_size_test(int32_t               cose_algorithm_id,
 
     QCBOREncode_AddNULL(&cbor_encode);
 
-    return_value = t_cose_mac_encode_tag(&mac_ctx, payload, &cbor_encode);
+    return_value = t_cose_mac_encode_tag(&mac_ctx, NULL_Q_USEFUL_BUF_C, payload, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
@@ -703,7 +705,7 @@ static int detached_content_size_test(int32_t               cose_algorithm_id,
 
     QCBOREncode_AddNULL(&cbor_encode);
 
-    return_value = t_cose_mac_encode_tag(&mac_ctx, payload, &cbor_encode);
+    return_value = t_cose_mac_encode_tag(&mac_ctx, NULL_Q_USEFUL_BUF_C, payload, &cbor_encode);
     if(return_value) {
         return 3000 + (int32_t)return_value;
     }
