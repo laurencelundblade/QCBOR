@@ -1073,7 +1073,7 @@ t_cose_param_find_alg_id_unprot(const struct t_cose_parameter *parameter_list)
 
 static inline void
 t_cose_params_append(struct t_cose_parameter **existing,
-                             struct t_cose_parameter *to_be_appended)
+                     struct t_cose_parameter *to_be_appended)
 {
     /* Improvement: will overall code size be smaller if this is not inline? */
     struct t_cose_parameter *ex;

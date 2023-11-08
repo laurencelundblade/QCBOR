@@ -78,13 +78,17 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     /* --- The protected parameters --- */
     const struct t_cose_header_location l = {0,0};
     decoded_params = NULL;
-    t_cose_headers_decode(&decode_context,
+    return_value = t_cose_headers_decode(&decode_context,
                           l,
-                          NULL,
-                          NULL,
-                          &me->parameter_storage,
+                          me->special_param_decode_cb,
+                          me->special_param_decode_ctx,
+                          me->p_storage,
                           &decoded_params,
                           &protected_parameters);
+
+    if(return_value != T_COSE_SUCCESS) {
+        goto Done;
+    }
 
     /* --- The payload --- */
     if (payload_is_detached) {

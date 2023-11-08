@@ -408,7 +408,7 @@ t_cose_params_decode(QCBORDecodeContext                 *cbor_decoder,
                     } else if(return_value != T_COSE_ERR_DECLINE) {
                         goto Done;
                     } else {
-                        /* Not decoded or consumed continue loop
+                        /* Not decoded or consumed. Continue loop
                          * normally and ignore.  A t_cose_parameter
                          * will go into the list for it so crit check
                          * for it can occur. */
