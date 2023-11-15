@@ -141,6 +141,10 @@ t_cose_recipient_dec_esdh_cb_private(struct t_cose_recipient_dec *me_x,
     /* One recipient */
     QCBORDecode_EnterArray(cbor_decoder, NULL);
     cbor_error = QCBORDecode_GetError(cbor_decoder);
+    if(cbor_error == QCBOR_ERR_NO_MORE_ITEMS) {
+        cose_result = T_COSE_ERR_NO_MORE;
+        goto done;
+    }
     if(cbor_error != QCBOR_SUCCESS) {
         cose_result = qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_RECIPIENT_FORMAT);
         goto done;

@@ -328,8 +328,7 @@ enum t_cose_err_t {
      * when a byte string is expected. */
     T_COSE_ERR_PARAMETER_CBOR = 10,
 
-    /** No algorithm ID was found when one is needed. For example,
-     * when verifying a \c COSE_Sign1. */
+    /** No algorithm ID found, algorithm ID encoded wrong, not in protected header  or such. */
     T_COSE_ERR_NO_ALG_ID = 11,
 
     /** No kid (key ID) was found when one is needed. For example,
@@ -651,6 +650,10 @@ enum t_cose_err_t {
 
     /** External AAD is passed as an argument for non AEAD cipher. */
     T_COSE_ERR_AAD_WITH_NON_AEAD = 91,
+
+    /** An initialization vector (IV) is empty, wrong type or such. */
+    T_COSE_ERR_BAD_IV = 92,
+
 };
 
 

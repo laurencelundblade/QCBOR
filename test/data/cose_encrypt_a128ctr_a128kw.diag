@@ -1,0 +1,18 @@
+/ Valid COSE_Encrypt with AES-CTR body and A128 KW recipient /
+96(
+  [
+    h'' / NOTE: The 'protected' header MUST be a zero-length byte string. /,
+    {
+      1: -65534 / A128CTR /,
+      5: h'77D35242A191E9F9FD26104AB308564E'
+    },
+    h'793A616A5617482BE76F17077858B148241591',
+    [
+      [
+        h'',
+          {1: -3},
+          h'316ADA13003FE7C61AD4EA503500B285CACADE5107A8E280'
+      ]
+    ]
+  ]
+)

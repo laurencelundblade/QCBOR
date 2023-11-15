@@ -1,3 +1,4 @@
+/ COSE_Encrypt with unknown body algorithm ID /
 96(
   [
     h'A10108',

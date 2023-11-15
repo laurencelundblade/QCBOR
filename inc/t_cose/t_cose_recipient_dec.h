@@ -51,7 +51,7 @@ struct t_cose_recipient_dec;
  * \retval T_COSE_ERR_DECLINE
  * \retval T_COSE_ERR_KID_UNMATCHED
  * \retval T_COSE_ERR_UNSUPPORTED_KEY_EXCHANGE_ALG
- * \retval ....
+ * \retval T_COSE_ERR_NO_MORE   No more recipients to decode. End of recipients array.
  *
  *
  * The error returned is important as it determines whether

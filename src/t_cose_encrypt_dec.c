@@ -57,7 +57,7 @@ is_soft_verify_error(enum t_cose_err_t error)
  * While this is called only once, it is split out for code readability.
  *
  * This loops over all the configured recipient decoders calling them
- * until one succeeds or has a hard failure. This involve multiple
+ * until one succeeds or has a hard failure. This performs multiple
  * attempts at the CBOR decode of the COSE_Recipient.
  */
 static enum t_cose_err_t
@@ -76,10 +76,11 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
     QCBORDecode_SaveCursor(cbor_decoder, &saved_cursor);
 
     /* Loop over the configured recipients */
-    for(rcpnt_decoder = me->recipient_list;
-        rcpnt_decoder != NULL;
-        rcpnt_decoder = (struct t_cose_recipient_dec *)rcpnt_decoder->base_obj.next) {
+    rcpnt_decoder = me->recipient_list;
+    while(1) {
+
         // TODO: decode-only mode for recipients
+
         return_value =
             rcpnt_decoder->decode_cb(
                 rcpnt_decoder,     /* in: me ptr of the recipient decoder */
@@ -92,15 +93,14 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
                 cek                /* out: the returned CEK */
            );
 
-        /* This is pretty much the same as for decrypting recipients */
         if(return_value == T_COSE_SUCCESS) {
-            /* Only need to find one success and this is it so done.*/
-            return T_COSE_SUCCESS;
+            /* Only need to find one success. This is it, so we are done.
+             * We have the CEK. */
+            break;
         }
 
         if(return_value == T_COSE_ERR_NO_MORE) {
-            /* Tried all the recipient decoders. None succeeded and
-             * none gave a hard failure. */
+            /* The end of the recipients array. No more COSE_Recipients. */
             return T_COSE_ERR_NO_MORE;
         }
 
@@ -109,13 +109,19 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
             /* Something very wrong. */
         }
 
-        /* Loop continues on for the next recipient */
-        QCBORDecode_RestoreCursor(cbor_decoder, &saved_cursor);
+        /* Try going on to next configured recipient decoder if there is one */
+        rcpnt_decoder = (struct t_cose_recipient_dec *)rcpnt_decoder->base_obj.next;
+        if(rcpnt_decoder == NULL) {
+            /* Got to end of list and no recipient decoder succeeded. */
+            return T_COSE_ERR_DECLINE;
+        }
 
+        /* Loop continues on for the next recipient decoder */
+        QCBORDecode_RestoreCursor(cbor_decoder, &saved_cursor);
     }
 
     /* Got to end of list and no recipient attempted to verify */
-    return T_COSE_ERR_DECLINE;
+    return T_COSE_SUCCESS;
 }
 
 
@@ -151,14 +157,21 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     Q_USEFUL_BUF_MAKE_STACK_UB(    enc_struct_buffer, T_COSE_ENCRYPT_STRUCT_DEFAULT_SIZE);
     struct q_useful_buf_c          enc_structure;
     bool                           alg_id_prot;
+    enum t_cose_err_t              previous_return_value;
 
 
-    /* --- Get started decoding array of four and tags --- */
+    /* --- Get started decoding array of 4 and tags --- */
     QCBORDecode_Init(&cbor_decoder, message, QCBOR_DECODE_MODE_NORMAL);
 
     QCBORDecode_EnterArray(&cbor_decoder, &array_item);
+    cbor_error = QCBORDecode_GetError(&cbor_decoder);
+    if(cbor_error != QCBOR_SUCCESS) {
+        goto Done;
+    }
 
-    const uint64_t signing_tag_nums[] = {CBOR_TAG_COSE_ENCRYPT, CBOR_TAG_COSE_ENCRYPT0, CBOR_TAG_INVALID64};
+    const uint64_t signing_tag_nums[] = {CBOR_TAG_COSE_ENCRYPT,
+                                         CBOR_TAG_COSE_ENCRYPT0,
+                                         CBOR_TAG_INVALID64};
     return_value = t_cose_tags_and_type(signing_tag_nums,
                                         me->option_flags,
                                         &array_item,
@@ -174,7 +187,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     /* The location of body header parameters is 0, 0 */
     header_location.nesting = 0;
     header_location.index   = 0;
-    body_params_list = NULL;
+    body_params_list  = NULL;
     rcpnt_params_list = NULL;
 
     return_value =
@@ -192,6 +205,10 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     }
 
     nonce_cbor = t_cose_param_find_iv(body_params_list);
+    if(q_useful_buf_c_is_empty(nonce_cbor)) {
+        return T_COSE_ERR_BAD_IV;
+    }
+
     ce_alg.cose_alg_id = t_cose_param_find_alg_id(body_params_list, &alg_id_prot);
     if(ce_alg.cose_alg_id == T_COSE_ALGORITHM_NONE) {
         return T_COSE_ERR_NO_ALG_ID;
@@ -201,20 +218,19 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         if(!t_cose_params_empty(protected_params)) {
             return T_COSE_ERR_PROTECTED_NOT_ALLOWED;
         }
-
     } else {
         /* Make sure alg id is protected for aead algorithms */
         if(alg_id_prot != true) {
             return T_COSE_ERR_NO_ALG_ID;
         }
     }
-
-    all_params_list = body_params_list;
-
     ce_alg.bits_in_key = bits_in_crypto_alg(ce_alg.cose_alg_id);
     if(ce_alg.bits_in_key == UINT32_MAX) {
         return T_COSE_ERR_UNSUPPORTED_ENCRYPTION_ALG;
     }
+
+    all_params_list = body_params_list;
+
 
     /* --- The Ciphertext --- */
     if(!q_useful_buf_c_is_null(detached_ciphertext)) {
@@ -233,6 +249,10 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         cek_key = me->cek;
 
     } else if (message_type == T_COSE_OPT_MESSAGE_TYPE_ENCRYPT) {
+        if(me->recipient_list == NULL) {
+              return T_COSE_ERR_FAIL; // TODO: need better error here
+        }
+
         header_location.nesting = 1;
         header_location.index   = 0;
 
@@ -240,12 +260,13 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         QCBORDecode_EnterArray(&cbor_decoder, NULL);
         cbor_error = QCBORDecode_GetError(&cbor_decoder);
         if(cbor_error != QCBOR_SUCCESS) {
-            return_value = qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_ENCRYPT_FORMAT);
             goto Done;
         }
 
         /* Loop over the array of COSE_Recipients */
         while(1) {
+            previous_return_value = return_value;
+
             return_value = decrypt_one_recipient(me,
                                                  header_location,
                                                  ce_alg,
@@ -268,6 +289,14 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
                  * on all will add code and complexity.
                  */
                 break;
+            }
+
+            if(return_value == T_COSE_ERR_NO_MORE) {
+                /* Got to the end of the COSE_Recipients array without
+                 * success, so return the error the previous recipient decoder
+                 * returned. */
+                return_value = previous_return_value;
+                goto Done;
             }
 
             if(return_value != T_COSE_ERR_DECLINE) {
@@ -304,18 +333,15 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         }
 
     } else {
-        /* Message type is not right. */
-        // TODO: better error here.
-        return T_COSE_ERR_FAIL;
+       /* This never happens because of checks in t_cose_tags_and_type() */
     }
 
-    /* --- Close of CBOR decode --- */
+    /* --- Close of CBOR decode of the array of 4 --- */
+    /* This tolerates extra items. Someday we'll have a better ExitArray()
+     * and efficiently catch this (mostly harmless) error. */
     QCBORDecode_ExitArray(&cbor_decoder);
-
     cbor_error = QCBORDecode_Finish(&cbor_decoder);
     if(cbor_error != QCBOR_SUCCESS) {
-        // TODO: there is probably more to be done here...
-        return_value = T_COSE_ERR_CBOR_DECODE;
         goto Done;
     }
     if(returned_parameters != NULL) {
@@ -351,7 +377,7 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
     }
     else {
         /* --- Make the Enc_structure ---- */
-        /* The Enc_structure from RFC 9052 section 5.3 that is AAD input
+        /* The Enc_structure from RFC 9052 section 5.3 that is input as AAD
         * to the AEAD to integrity-protect COSE headers and
         * parameters. */
         if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
@@ -373,7 +399,6 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
             goto Done;
         }
 
-        // TODO: handle AE algorithms
         return_value =
             t_cose_crypto_aead_decrypt(
                 ce_alg.cose_alg_id,    /* in: cose alg id to decrypt payload */
@@ -389,10 +414,9 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx* me,
         t_cose_crypto_free_symmetric_key(cek_key);
     }
 
-   if (message_type != T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0) {
-       t_cose_crypto_free_symmetric_key(cek_key);
-   }
-
 Done:
+    if(cbor_error != QCBOR_SUCCESS) {
+         return_value = qcbor_decode_error_to_t_cose_error(cbor_error, T_COSE_ERR_ENCRYPT_FORMAT);
+     }
     return return_value;
 }

@@ -1,3 +1,4 @@
+/ COSE_Encrypt with cipher text that is tstr rather than a bstr /
 96(
   [
     h'A10103',

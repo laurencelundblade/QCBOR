@@ -188,7 +188,6 @@ struct t_cose_encrypt_enc {
  * t_cose_recipient_enc being used. You can even have serveral with
  * different algorithms (but there can only be one payload encryption
  * algorithm).
- * TODO: decode-only mode to get parameters to look up keys
  */
 void
 t_cose_encypt_enc_init(struct t_cose_encrypt_enc *context,
@@ -302,7 +301,7 @@ t_cose_encrypt_set_cek(struct t_cose_encrypt_enc *context,
  * described in RFC 9052 section 5.2. It needs to be the size of the
  * CBOR-encoded protected headers, the externally supplied data and some overhead.
  *
- * TODO: size calculation mode that will tell the caller how bit it should be
+ * TODO: size calculation mode that will tell the caller how big it should be
  */
 static void
 t_cose_encrypt_set_enc_struct_buffer(struct t_cose_encrypt_enc *context,

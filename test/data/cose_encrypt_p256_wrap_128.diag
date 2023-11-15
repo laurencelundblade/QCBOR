@@ -1,3 +1,4 @@
+/ Fully correct AES-GCM + ECDH on P256 NIST curve /
 96(
   [
     h'A10103',

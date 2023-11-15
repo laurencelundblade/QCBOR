@@ -1,12 +1,12 @@
-/ AEAD integrity check will fail /
+/ COSE_Encrypt with COSE_Recipient with unknown algorithm ID /
 96(
   [
     h'A10103',
     {5: h'02D1F7E6F26C43D4868D87CE'},
-    h'256B748DEB647131C12A10AC261DA0628E420492A36F3DED8642B4B6FA1EB15DCEC80A0E',
+    h'256B748DEB647131C12A10AC261DA0628E420492A36F3DED8642B4B6FA1EB15DCEC80A0F',
     [
       [
-        h'A101381C',
+        h'A10138AA',
         {-1:
           {
             1: 2,

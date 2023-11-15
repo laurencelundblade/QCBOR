@@ -139,7 +139,7 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
                                     cek_bytes,          /* in: key bytes */
                                    &cek_handle);        /* out: key handle */
     }
-    if (return_value != T_COSE_SUCCESS) {
+    if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
     /* At this point cek_handle has the encryption key for the AEAD */
@@ -166,15 +166,15 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
                                           &encrypt_output  /* out: ciphertext */);
     } else {
         /* ---- Make the Enc_structure ---- */
-        /* Per RFC 9052 section 5.3 the structure that is authenticated
-        * along with the payload by the AEAD.
-        *
-        *  Enc_structure = [
-        *    context : "Encrypt",
-        *    protected : empty_or_serialized_map,
-        *    external_aad : bstr
-        *  ]
-        */
+        /* Per RFC 9052 section 5.3 this is the structure that is authenticated
+         * along with the payload by the AEAD.
+         *
+         *  Enc_structure = [
+         *    context : "Encrypt",
+         *    protected : empty_or_serialized_map,
+         *    external_aad : bstr
+         *  ]
+         */
         if(!q_useful_buf_is_null(me->extern_enc_struct_buffer)) {
             /* Caller gave us a (bigger) buffer for Enc_structure */
             enc_struct_buffer = me->extern_enc_struct_buffer;

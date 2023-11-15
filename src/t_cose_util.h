@@ -317,7 +317,7 @@ struct q_useful_buf_c get_short_circuit_kid(void);
 
 
 /**
- * \brief Map QCBOR decode error to COSE errors.
+ * \brief Map QCBOR decode error to t_cose errors.
  *
  * \param[in] qcbor_error   The QCBOR error to map.
  *

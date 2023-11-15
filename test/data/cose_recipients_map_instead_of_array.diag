@@ -1,3 +1,4 @@
+/ COSE_Encrypt with recipients a map rather than an array /
 96(
   [
     h'A10103',

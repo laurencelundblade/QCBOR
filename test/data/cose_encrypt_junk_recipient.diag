@@ -1,3 +1,4 @@
+/ First item in a recipients array is a tstr, not an array with a recipient /
 96(
   [
     h'A10103',

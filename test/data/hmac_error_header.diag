@@ -1,3 +1,4 @@
+/ COSE_MAC0 with bad unprotected headers -- param label is float /
 17(
     [
         h'A10105',

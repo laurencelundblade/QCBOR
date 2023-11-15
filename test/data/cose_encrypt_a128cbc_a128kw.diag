@@ -1,0 +1,18 @@
+/ Valid COSE_Encrypt with AES-CBC body and A128 KW recipient /
+96(
+  [
+    h'' / NOTE: The 'protected' header MUST be a zero-length byte string. /,
+    {
+      1: -65531 / A128CBC /,
+      5: h'8262A8D72040A5E09A314586395D5750'
+    },
+    h'B60EC3C9A166D8EEFDAEA598FAB1CEBB7F0D5DDF2237F13A03A91364594983FE',
+    [
+      [
+        h'',
+        {1: -3},
+        h'D21A60F7F67BA866F15BE27C983881AA47DF15AE6925A0D1'
+      ]
+    ]
+  ]
+)

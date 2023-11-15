@@ -1,3 +1,4 @@
+/ COSE_Encrypt with unprotected headers an array rather than a map /
 96(
   [
     h'A10103',

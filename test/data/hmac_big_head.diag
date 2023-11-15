@@ -1,3 +1,4 @@
+/ Correct COSE_HMAC with a lot of headers of different types /
 17(
     [
         h'A10105',
