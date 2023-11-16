@@ -19,6 +19,8 @@
 #include "qcbor/qcbor_decode.h"
 #include "t_cose/q_useful_buf.h"
 #include "t_cose/t_cose_common.h"
+#include "t_cose/t_cose_key.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -95,17 +97,6 @@ t_cose_tags_and_type(const uint64_t     *relevant_cose_tag_nums,
  * ]
  */
 
-/**
- * This is the size of the first part of the CBOR encoded ToBeMaced
- * bytes. It is around 30 bytes.
- */
-#define T_COSE_SIZE_OF_TBM \
-    1 + /* For opening the array */ \
-    sizeof(COSE_MAC_CONTEXT_STRING_MAC0) + /* "MAC0" */ \
-    2 + /* Overhead for encoding string */ \
-    T_COSE_MAC0_MAX_SIZE_PROTECTED_PARAMETERS + /* entire protected headers */ \
-    1 + /* Empty bstr for absent external_aad */ \
-    9 /* The max CBOR length encoding for start of payload */
 
 
 /**
@@ -164,25 +155,29 @@ bits_iv_alg(int32_t cose_algorithm_id);
 /**
  * \brief Create the ToBeMaced (TBM) structure bytes for COSE.
  *
- * \param[in] mac_inputs          The input to be mac'd -- payload, aad,
- *                                protected headers.
- * \param[in]  tbm_first_part_buf The buffer to contain the first part.
- * \param[out] tbm_first_part     Pointer and length of buffer into which
- *                                the resulting TBM is put.
+ * \param[in] cose_alg_id  Which MAC algorithm to use.
+ * \param[in] mac_key      Key used to perform MAC.
+ * \param[in] mac_inputs   The input to be mac'd -- payload, ext supp data,
+ *                         protected headers.
+ * \param[in]  is_mac0     COSE_MAC0 or COSE_MAC.
+ * \param[out] tag_buf     Pointer and length of buffer into which the
+ *                         computed HMAC tag is put.
+ * \param[out] mac_tag     Pointer and length of computed tag.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * \retval T_COSE_ERR_SIG_STRUCT
- *         Most likely this is because the protected_headers passed in
- *         is larger than \ref T_COSE_MAC0_MAX_PROT_HEADER.
- * \retval T_COSE_ERR_UNSUPPORTED_HASH
+ * \retval T_COSE_ERR_UNSUPPORTED_HMAC
  *         If the hash algorithm is not known.
- * \retval T_COSE_ERR_HASH_GENERAL_FAIL
+ * \retval T_COSE_ERR_HMAC_GENERAL_FAIL
  *         In case of some general hash failure.
  */
-enum t_cose_err_t create_tbm(const struct t_cose_sign_inputs *mac_inputs,
-                             struct q_useful_buf              tbm_first_part_buf,
-                             struct q_useful_buf_c           *tbm_first_part);
+enum t_cose_err_t
+create_tbm(const int32_t                    cose_alg_id,
+           struct t_cose_key                mac_key,
+           bool                             is_mac0,
+           const struct t_cose_sign_inputs *mac_inputs,
+           const struct q_useful_buf        tag_buf,
+           struct q_useful_buf_c           *mac_tag);
 
 
 /**

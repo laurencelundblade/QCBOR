@@ -301,9 +301,9 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
 
 
 enum t_cose_err_t
-t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
-                                 struct t_cose_key          signing_key,
-                                 const int32_t              cose_alg_id)
+t_cose_crypto_hmac_setup(struct t_cose_crypto_hmac *hmac_ctx,
+                         struct t_cose_key          signing_key,
+                         const int32_t              cose_alg_id)
 {
     (void)hmac_ctx;
     (void)signing_key;
@@ -311,46 +311,24 @@ t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 
-enum t_cose_err_t
+void
 t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
                           struct q_useful_buf_c      payload)
 {
     (void)hmac_ctx;
     (void)payload;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
 
 enum t_cose_err_t
-t_cose_crypto_hmac_compute_finish(struct t_cose_crypto_hmac *hmac_ctx,
-                                  struct q_useful_buf        tag_buf,
-                                  struct q_useful_buf_c     *tag)
+t_cose_crypto_hmac_finish(struct t_cose_crypto_hmac *hmac_ctx,
+                          struct q_useful_buf        tag_buf,
+                          struct q_useful_buf_c     *tag)
 {
     (void)hmac_ctx;
     (void)tag_buf;
     (void)tag;
     return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
 }
-
-enum t_cose_err_t
-t_cose_crypto_hmac_validate_setup(struct t_cose_crypto_hmac *hmac_ctx,
-                                  const  int32_t             cose_alg_id,
-                                  struct t_cose_key          validation_key)
-{
-    (void)hmac_ctx;
-    (void)cose_alg_id;
-    (void)validation_key;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-}
-
-enum t_cose_err_t
-t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
-                                   struct q_useful_buf_c      tag)
-{
-    (void)hmac_ctx;
-    (void)tag;
-    return T_COSE_ERR_UNSUPPORTED_SIGNING_ALG;
-}
-
 
 
 /*

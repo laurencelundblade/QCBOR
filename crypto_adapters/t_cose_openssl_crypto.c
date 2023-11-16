@@ -1052,7 +1052,7 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
+t_cose_crypto_hmac_setup(struct t_cose_crypto_hmac *hmac_ctx,
                                  struct t_cose_key          signing_key,
                                  const int32_t              cose_alg_id)
 {
@@ -1104,6 +1104,8 @@ t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
         return T_COSE_ERR_HMAC_GENERAL_FAIL;
     }
 
+    hmac_ctx->update_error = 1; /* 1 is success in OpenSSL */
+
     return T_COSE_SUCCESS;
 }
 
@@ -1111,81 +1113,47 @@ t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
 /*
  * See documentation in t_cose_crypto.h
  */
-enum t_cose_err_t
+void
 t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
                           struct q_useful_buf_c      payload)
 {
-    int  ossl_result;
-
-    ossl_result = EVP_DigestSignUpdate(hmac_ctx->evp_ctx, payload.ptr, payload.len);
-    if(ossl_result != 1) {
-        return T_COSE_ERR_HMAC_GENERAL_FAIL;
+    if(hmac_ctx->update_error) { /* 1 is no error, 0 means error for OpenSSL */
+        if(payload.ptr) {
+            hmac_ctx->update_error = EVP_DigestSignUpdate(hmac_ctx->evp_ctx,
+                                                          payload.ptr,
+                                                          payload.len);
+        }
     }
-
-    return T_COSE_SUCCESS;
 }
+
 
 
 /*
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hmac_compute_finish(struct t_cose_crypto_hmac *hmac_ctx,
+t_cose_crypto_hmac_finish(struct t_cose_crypto_hmac *hmac_ctx,
                                   struct q_useful_buf        tag_buf,
                                   struct q_useful_buf_c     *tag)
 {
-    int    ossl_result;
     size_t in_out_len;
 
     in_out_len = tag_buf.len;
-    ossl_result = EVP_DigestSignFinal(hmac_ctx->evp_ctx, tag_buf.ptr, &in_out_len);
+    if(hmac_ctx->update_error) {
+        hmac_ctx->update_error = EVP_DigestSignFinal(hmac_ctx->evp_ctx,
+                                                     tag_buf.ptr,
+                                                     &in_out_len);
+    }
 
     EVP_MD_CTX_free(hmac_ctx->evp_ctx);
     EVP_PKEY_free(hmac_ctx->evp_pkey);
 
-    if(ossl_result != 1) {
+    if(hmac_ctx->update_error != 1) {
         return T_COSE_ERR_HMAC_GENERAL_FAIL;
     }
 
     tag->ptr = tag_buf.ptr;
     tag->len = in_out_len;
-
-    return T_COSE_SUCCESS;
-}
-
-
-/*
- * See documentation in t_cose_crypto.h
- */
-// TODO: argument order alignment with t_cose_crypto_hmac_compute_setup
-enum t_cose_err_t
-t_cose_crypto_hmac_validate_setup(struct t_cose_crypto_hmac *hmac_ctx,
-                                  const  int32_t             cose_alg_id,
-                                  struct t_cose_key          validation_key)
-{
-    return t_cose_crypto_hmac_compute_setup(hmac_ctx, validation_key, cose_alg_id);
-}
-
-
-/*
- * See documentation in t_cose_crypto.h
- */
-enum t_cose_err_t
-t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
-                                   struct q_useful_buf_c      input_tag)
-{
-    Q_USEFUL_BUF_MAKE_STACK_UB( tag_buf, T_COSE_CRYPTO_HMAC_TAG_MAX_SIZE);
-    struct q_useful_buf_c       computed_tag;
-    enum t_cose_err_t           result;
-
-    result = t_cose_crypto_hmac_compute_finish(hmac_ctx, tag_buf, &computed_tag);
-    if(result != T_COSE_SUCCESS) {
-        return result;
-    }
-
-    if(q_useful_buf_compare(computed_tag, input_tag)) {
-        return T_COSE_ERR_HMAC_VERIFY;
-    }
 
     return T_COSE_SUCCESS;
 }

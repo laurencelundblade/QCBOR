@@ -23,12 +23,10 @@ extern "C" {
 /**
  * This is the context for creating a \c COSE_Mac structure. The caller
  * should allocate it and pass it to the functions here.  This is
- * about 32 bytes so it fits easily on the stack.
+ * about 72 bytes so it fits easily on the stack.
  */
 struct t_cose_mac_calculate_ctx {
     /* Private data structure */
-    uint8_t                protected_parameters_buffer[
-                                    T_COSE_MAC0_MAX_SIZE_PROTECTED_PARAMETERS];
     struct q_useful_buf_c  protected_parameters; /* The encoded protected parameters */
     int32_t                cose_algorithm_id;
     struct t_cose_key      mac_key;

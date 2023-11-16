@@ -276,45 +276,80 @@ bits_iv_alg(int32_t cose_algorithm_id)
 
 
 
-
-// TODO: try to combine with create_tbs_hash so that no buffer for headers
-// is needed. Make sure it doesn't make sign-only or mac-only object code big
-enum t_cose_err_t
-create_tbm(const struct t_cose_sign_inputs *mac_inputs,
-           struct q_useful_buf              tbm_first_part_buf,
-           struct q_useful_buf_c           *tbm_first_part)
+/**
+ * \brief HMAC an encoded bstr without actually encoding it in memory.
+ *
+ * @param hmac_ctx  HMAC context.
+ * @param bstr      Bytes of the bstr.
+ *
+ * If \c bstr is \c NULL_Q_USEFUL_BUF_C, a zero-length bstr will be
+ * HMAC'd into the output.
+ */
+static void
+hmac_bstr(struct t_cose_crypto_hmac *hmac_ctx,
+          struct q_useful_buf_c      bstr)
 {
-    QCBOREncodeContext cbor_encode_ctx;
-    QCBORError         qcbor_result;
+    Q_USEFUL_BUF_MAKE_STACK_UB (buffer_for_encoded_head, QCBOR_HEAD_BUFFER_SIZE);
+    struct q_useful_buf_c       encoded_head;
 
-    /* This builds the CBOR-format to-be-maced bytes */
-    QCBOREncode_Init(&cbor_encode_ctx, tbm_first_part_buf);
-    QCBOREncode_OpenArray(&cbor_encode_ctx);
-    /* context */
-    QCBOREncode_AddText(&cbor_encode_ctx, Q_USEFUL_BUF_FROM_SZ_LITERAL(COSE_MAC_CONTEXT_STRING_MAC0));
+    encoded_head = QCBOREncode_EncodeHead(buffer_for_encoded_head,
+                                          CBOR_MAJOR_TYPE_BYTE_STRING,
+                                          0,
+                                          bstr.len);
 
-    /* body_protected */
-    QCBOREncode_AddBytes(&cbor_encode_ctx, mac_inputs->body_protected);
+    /* An encoded bstr is the CBOR head with its length followed by the bytes */
+    t_cose_crypto_hmac_update(hmac_ctx, encoded_head);
+    t_cose_crypto_hmac_update(hmac_ctx, bstr);
+}
 
-    /* ext_sup_data  */
-    QCBOREncode_AddBytes(&cbor_encode_ctx, mac_inputs->ext_sup_data);
+/* Tried combing the above with hash_bstr. It accepted a function
+ * pointer for the hash/hmac function. The object code with this was
+ * slightly smaller with GCC and substantially larger with
+ * clang/llvm. It was cool, but using the two functions for simplicity
+ * and substantially smaller clang/llvm code size.
+ */
 
-    /* The short fake payload, ext_sup_data only the byte string type and length */
-    QCBOREncode_AddBytesLenOnly(&cbor_encode_ctx, mac_inputs->payload);
 
-    /* Close of the array */
-    QCBOREncode_CloseArray(&cbor_encode_ctx);
+/*
+ * Public function. See t_cose_util.h
+ */
+enum t_cose_err_t
+create_tbm(const int32_t                    cose_alg_id,
+           struct t_cose_key                mac_key,
+           bool                             is_mac0,
+           const struct t_cose_sign_inputs *mac_inputs,
+           const struct q_useful_buf        tag_buf,
+           struct q_useful_buf_c           *mac_tag)
+{
+    enum t_cose_err_t          return_value;
+    struct t_cose_crypto_hmac  hmac_ctx;
+    struct q_useful_buf_c      first_part;
 
-    /* get the encoded results, except for payload */
-    qcbor_result = QCBOREncode_Finish(&cbor_encode_ctx, tbm_first_part);
-    if(qcbor_result) {
-        /* Mainly means that the protected_headers were too big
-         * (which should never happen)
-         */
-        return T_COSE_ERR_SIG_STRUCT;
+    return_value = t_cose_crypto_hmac_setup(&hmac_ctx,
+                                             mac_key,
+                                             cose_alg_id);
+    if(return_value) {
+        return return_value;
     }
 
-    return T_COSE_SUCCESS;
+    /* Same approach as hash_bstr(). See comments in hash_bstr() */
+
+    if(is_mac0) {
+        /* 0x84 is array of 4, 0x64 is length of a 4 text string in CBOR */
+        first_part = Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x64" COSE_MAC_CONTEXT_STRING_MAC0);
+    } else {
+        /* 0x84 is array of 4, 0x63 is length of a 3 text string in CBOR */
+        first_part = Q_USEFUL_BUF_FROM_SZ_LITERAL("\x84\x63" COSE_MAC_CONTEXT_STRING_MAC);
+    }
+    t_cose_crypto_hmac_update(&hmac_ctx, first_part);
+
+    hmac_bstr(&hmac_ctx, mac_inputs->body_protected);
+    hmac_bstr(&hmac_ctx, mac_inputs->ext_sup_data);
+    hmac_bstr(&hmac_ctx, mac_inputs->payload);
+
+    return_value = t_cose_crypto_hmac_finish(&hmac_ctx, tag_buf, mac_tag);
+
+    return return_value;
 }
 
 

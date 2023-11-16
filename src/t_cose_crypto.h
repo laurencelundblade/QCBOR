@@ -551,11 +551,14 @@ struct t_cose_crypto_hmac {
     #ifdef T_COSE_USE_PSA_CRYPTO
         /* --- The context for PSA Crypto (MBed Crypto) --- */
         psa_mac_operation_t op_ctx;
+        psa_status_t         status;
 
     #elif T_COSE_USE_OPENSSL_CRYPTO
         /* --- The context for OpenSSL crypto --- */
         EVP_MD_CTX  *evp_ctx;
         EVP_PKEY    *evp_pkey;
+        int          update_error; /* Used to track error return by SHAXXX_Update() */
+
 
     #else
         /* --- Default: generic pointer / handle --- */
@@ -714,9 +717,9 @@ t_cose_crypto_hash_finish(struct t_cose_crypto_hash *hash_ctx,
  *         Some general failure of the HMAC function.
  */
 enum t_cose_err_t
-t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
-                                 struct t_cose_key          signing_key,
-                                 const int32_t              cose_alg_id);
+t_cose_crypto_hmac_setup(struct t_cose_crypto_hmac *hmac_ctx,
+                         struct t_cose_key          signing_key,
+                         const int32_t              cose_alg_id);
 
 /**
  * \brief Add a message fragment to a multipart HMAC operation.
@@ -733,7 +736,7 @@ t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
  * \retval T_COSE_ERR_FAIL
  *         Some general failure of the HMAC function.
  */
-enum t_cose_err_t
+void
 t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
                           struct q_useful_buf_c      payload);
 
@@ -756,52 +759,9 @@ t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
  *         Some general failure of the HMAC function.
  */
 enum t_cose_err_t
-t_cose_crypto_hmac_compute_finish(struct t_cose_crypto_hmac *hmac_ctx,
-                                  struct q_useful_buf        tag_buf,
-                                  struct q_useful_buf_c     *tag);
-
-/**
- * \brief Set up a multipart HMAC validation operation.
- *
- * \param[in,out] hmac_ctx      Pointer to the HMAC context.
- * \param[in] cose_alg_id       The algorithm used in HMAC.
- * \param[in] validation_key    Key for HMAC validation.
- *
- * \retval T_COSE_SUCCESS
- *         Operation succeeds.
- * \retval T_COSE_ERR_UNSUPPORTED_SIGNING_ALG
- *         The algorithm is unsupported.
- * \retval T_COSE_ERR_INVALID_ARGUMENT
- *         Invalid arguments.
- * \retval T_COSE_ERR_FAIL
- *         Some general failure of the HMAC function.
- */
-enum t_cose_err_t
-t_cose_crypto_hmac_validate_setup(struct t_cose_crypto_hmac *hmac_ctx,
-                                  const  int32_t             cose_alg_id,
-                                  struct t_cose_key          validation_key);
-
-/**
- * \brief Finish the validation of the HMAC of a message.
- *
- * \param[in,out] hmac_ctx      Pointer to the HMAC context.
- * \param[in] tag               Pointer and length of the tag.
- *
- * \retval T_COSE_SUCCESS
- *         Tag calculation succeeds.
- * \retval T_COSE_ERR_INVALID_ARGUMENT
- *         Invalid arguments.
- * \retval T_COSE_ERR_FAIL
- *         Some general failure of the HMAC function.
- * \retval PSA_ERROR_INVALID_SIGNATURE
- *         HMAC validation failed.
- */
-enum t_cose_err_t
-t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
-                                   struct q_useful_buf_c      tag);
-
-
-
+t_cose_crypto_hmac_finish(struct t_cose_crypto_hmac *hmac_ctx,
+                          struct q_useful_buf        tag_buf,
+                          struct q_useful_buf_c     *tag);
 
 
 // TODO: rename this to have hmac in its name

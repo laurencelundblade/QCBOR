@@ -552,12 +552,12 @@ psa_status_to_t_cose_error_hmac(psa_status_t status)
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
-                                 struct t_cose_key          signing_key,
-                                 const int32_t              cose_alg_id)
+t_cose_crypto_hmac_setup(struct t_cose_crypto_hmac *hmac_ctx,
+                         struct t_cose_key          signing_key,
+                         const int32_t              cose_alg_id)
 {
     psa_algorithm_t psa_alg;
-    psa_status_t psa_ret;
+    psa_status_t    psa_ret;
 
     /* Map the algorithm ID */
     psa_alg = cose_hmac_alg_id_to_psa(cose_alg_id);
@@ -582,83 +582,27 @@ t_cose_crypto_hmac_compute_setup(struct t_cose_crypto_hmac *hmac_ctx,
                                   (psa_key_id_t)signing_key.key.handle,
                                   psa_alg);
 
+    hmac_ctx->status = PSA_SUCCESS;
+
     return psa_status_to_t_cose_error_hmac(psa_ret);
 }
+
 
 /*
  * See documentation in t_cose_crypto.h
  */
-enum t_cose_err_t
+void
 t_cose_crypto_hmac_update(struct t_cose_crypto_hmac *hmac_ctx,
                           struct q_useful_buf_c      payload)
 {
-    psa_status_t psa_ret;
-
-    psa_ret = psa_mac_update(&hmac_ctx->op_ctx,
-                              payload.ptr, payload.len);
-
-    return psa_status_to_t_cose_error_hmac(psa_ret);
-}
-
-/*
- * See documentation in t_cose_crypto.h
- */
-enum t_cose_err_t
-t_cose_crypto_hmac_compute_finish(struct t_cose_crypto_hmac *hmac_ctx,
-                                  struct q_useful_buf        tag_buf,
-                                  struct q_useful_buf_c     *tag)
-{
-    psa_status_t psa_ret;
-
-    psa_ret = psa_mac_sign_finish(&hmac_ctx->op_ctx,
-                                   tag_buf.ptr, tag_buf.len,
-                                  &(tag->len));
-    if(psa_ret == PSA_SUCCESS) {
-        tag->ptr = tag_buf.ptr;
+    if(hmac_ctx->status != PSA_SUCCESS) {
+        /* In error state. Nothing to do. */
+        return;
     }
 
-    return psa_status_to_t_cose_error_hmac(psa_ret);
-}
-
-/*
- * See documentation in t_cose_crypto.h
- */
-enum t_cose_err_t
-t_cose_crypto_hmac_validate_setup(struct t_cose_crypto_hmac *hmac_ctx,
-                                  const  int32_t             cose_alg_id,
-                                  struct t_cose_key          validation_key)
-{
-    psa_algorithm_t psa_alg;
-    psa_status_t psa_ret;
-
-    if(!hmac_ctx) {
-        return T_COSE_ERR_INVALID_ARGUMENT;
-    }
-
-    /* Map the algorithm ID */
-    psa_alg = cose_hmac_alg_id_to_psa(cose_alg_id);
-    if(!PSA_ALG_IS_MAC(psa_alg)) {
-        return T_COSE_ERR_UNSUPPORTED_HMAC_ALG;
-    }
-
-    /*
-     * Verify if HMAC algorithm is valid.
-     * According to COSE (RFC 9053), only SHA-256, SHA-384 and SHA-512 are
-     * supported in HMAC.
-     */
-    if((psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_256)) &&
-       (psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_384)) &&
-       (psa_alg != PSA_ALG_HMAC(PSA_ALG_SHA_512))) {
-        return T_COSE_ERR_UNSUPPORTED_HMAC_ALG;
-    }
-
-    hmac_ctx->op_ctx = psa_mac_operation_init();
-
-    psa_ret = psa_mac_verify_setup(&hmac_ctx->op_ctx,
-                                   (psa_key_id_t)validation_key.key.handle,
-                                   psa_alg);
-
-    return psa_status_to_t_cose_error_hmac(psa_ret);
+   hmac_ctx->status = psa_mac_update(&hmac_ctx->op_ctx,
+                                      payload.ptr,
+                                      payload.len);
 }
 
 
@@ -666,19 +610,33 @@ t_cose_crypto_hmac_validate_setup(struct t_cose_crypto_hmac *hmac_ctx,
  * See documentation in t_cose_crypto.h
  */
 enum t_cose_err_t
-t_cose_crypto_hmac_validate_finish(struct t_cose_crypto_hmac *hmac_ctx,
-                                   struct q_useful_buf_c      tag)
+t_cose_crypto_hmac_finish(struct t_cose_crypto_hmac *hmac_ctx,
+                          struct q_useful_buf        tag_buf,
+                          struct q_useful_buf_c     *tag)
 {
-    psa_status_t psa_ret;
-
-    if(!hmac_ctx) {
-        return T_COSE_ERR_INVALID_ARGUMENT;
+    if(hmac_ctx->status != PSA_SUCCESS) {
+        /* Error state. Nothing to do */
+        goto done;
     }
 
-    psa_ret = psa_mac_verify_finish(&hmac_ctx->op_ctx, tag.ptr, tag.len);
+    hmac_ctx->status  = psa_mac_sign_finish(&hmac_ctx->op_ctx,
+                                             tag_buf.ptr,
+                                             tag_buf.len,
+                                            &(tag->len));
+    tag->ptr = tag_buf.ptr;
 
-    return psa_status_to_t_cose_error_hmac(psa_ret);
+done:
+    return psa_status_to_t_cose_error_hmac(hmac_ctx->status);
 }
+
+
+/* The PSA API for MAC validation is not used because it results
+ * in larger code size overall and because OSSL doesn't have that
+ * API. There is no issue with a crypto service API that isolates
+ * the MAC key in an HSM or such by making this choice. It is still
+ * possible to to do. The MAC tag is a public value so it doesn't
+ * need to in the HSM.
+ */
 
 
 enum t_cose_err_t
