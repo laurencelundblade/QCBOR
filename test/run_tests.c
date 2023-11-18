@@ -61,7 +61,8 @@ static test_entry2 s_tests2[] = {
     TEST_ENTRY(UBMacroConversionsTest),
     TEST_ENTRY(UBUtilTests),
     TEST_ENTRY(UIBTest_IntegerFormat),
-    TEST_ENTRY(UBAdvanceTest)
+    TEST_ENTRY(UBAdvanceTest),
+    TEST_ENTRY(UOBExtraTests)
 };
 
 
@@ -148,7 +149,8 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ExponentAndMantissaEncodeTests),
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
     TEST_ENTRY(ParseEmptyMapInMapTest),
-    TEST_ENTRY(BoolTest)
+    TEST_ENTRY(BoolTest),
+    TEST_ENTRY(SortMapTest)
 };
 
 

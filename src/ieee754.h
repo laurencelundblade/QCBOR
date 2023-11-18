@@ -95,6 +95,7 @@ double IEEE754_HalfToDouble(uint16_t uHalfPrecision);
 #define IEEE754_UNION_IS_HALF   2
 #define IEEE754_UNION_IS_SINGLE 4
 #define IEEE754_UNION_IS_DOUBLE 8
+#define IEEE754_UNION_AS_INT   16
 
 typedef struct {
     uint8_t uSize;  // One of IEEE754_IS_xxxx
@@ -129,6 +130,11 @@ static inline IEEE754_union IEEE754_DoubleToSmallest(double d)
     return IEEE754_DoubleToSmallestInternal(d, 1);
 }
 
+/*
+ Converts double-precision to single-precision or half-precision if
+ possible without loss of precisions. If not, leaves it as a double.
+ */
+IEEE754_union IEEE754_DoubleToDeterministic(double d);
 
 /*
  Converts single-precision to half-precision if possible without loss

@@ -1758,6 +1758,29 @@ static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
 
 
 /**
+ @brief Close and sort an open map.
+
+ @param[in] pCtx The encoding context to close the map in .
+
+ This is the same as QCBOREncode_CloseMap() except it sorts the map
+ per RFC 8949 Section 4.2.1. This sort is lexographic of the CBOR
+ encoded map labels.
+
+ This is more expensive than most things in the encoder.  It adds a
+ lot of object code (very approximately, 50 bytes for regular close,
+ 600+ bytes for sorted close). In order to avoid a buffer to track the
+ irregular offsets of items to sort, it decodes what was encoded and
+ bubble sorts them. Bubble sort is of course n-squared by the number
+ of map items so this might be an issue with big maps on small
+ CPUs. But, bubble sort is order n if the map is already sorted, so
+ you can avoid n-squared sometimes.
+ */
+void QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pCtx);
+
+void QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pCtx);
+
+
+/**
  @brief Indicate start of encoded CBOR to be wrapped in a bstr.
 
  @param[in] pCtx The encoding context to open the bstr-wrapped CBOR in.

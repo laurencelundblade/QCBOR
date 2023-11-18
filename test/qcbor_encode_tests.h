@@ -193,4 +193,7 @@ int32_t OpenCloseBytesTest(void);
 
 
 
+int32_t SortMapTest(void);
+
+
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */

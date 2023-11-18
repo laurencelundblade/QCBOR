@@ -873,3 +873,146 @@ const char *UBAdvanceTest(void)
 
    return NULL;
 }
+
+
+const char * UOBExtraTests(void)
+{
+   #define COMPARE_TEST_SIZE 10
+   UsefulOutBuf_MakeOnStack(UOB, COMPARE_TEST_SIZE);
+   int nCompare;
+   UsefulBufC Out;
+
+   // Test UsefulOutBuf_Compare
+   UsefulOutBuf_AppendString(&UOB, "abcabdefab");
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 8);
+   if(nCompare != 0) {
+      return "ab should compare equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 3);
+   if(nCompare != 'c' - 'd') {
+      return "hi";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 3, 8);
+   if(nCompare != 0) {
+       return "ab should compare equal";
+    }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 2, 5);
+   if(nCompare != 'c' - 'd') {
+      return "yy";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 5, 2);
+   if(nCompare != 'd' - 'c') {
+      return "yy";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 7, 8);
+   if(nCompare != 'f' - 'a') {
+      return "ab should compare equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 0);
+   if(nCompare != 0) {
+      return "ab should compare equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 9, 9);
+   if(nCompare != 0) {
+      return "ab should compare equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 10, 10);
+   if(nCompare != 0) {
+      return "ab should compare equal";
+   }
+
+   // Test UsefulOutBuf_Swap
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 4, 8);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("efghabcd"))) {
+      return "swap fail 1";
+   }
+
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 1, 2);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("bacdefgh"))) {
+      return "swap fail 2";
+   }
+
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 1, 8);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("bcdefgha"))) {
+      return "swap fail 3";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 3, 4);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("dabcefgh"))) {
+      return "swap fail 4";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 9, 10, 11);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 5";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 4, 11);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 6";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 9, 0, 0);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 7";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 0, 0);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 8";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 8, 4, 0);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 8";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 8, 4);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 8";
+   }
+
+   return NULL;
+}

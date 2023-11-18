@@ -274,8 +274,8 @@
 				E776E08C214AE07400E67947 /* qcbor_encode.c */,
 				E776E08E214AE07500E67947 /* qcbor_decode.c */,
 				E776E08D214AE07500E67947 /* UsefulBuf.c */,
-				E73B57582161CA690080D658 /* ieee754.c */,
 				E73B57572161CA680080D658 /* ieee754.h */,
+				E73B57582161CA690080D658 /* ieee754.c */,
 				E7864765252CE63100A0C11B /* qcbor_err_to_str.c */,
 			);
 			name = src;

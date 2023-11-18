@@ -1368,6 +1368,37 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pUOutBuf);
 UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
 
 
+/**
+ * @brief Compare bytes at offsets
+ *
+ * This looks into bytes that have been output at
+ * the offsets @c start1 and @c start2. It compares
+ * bytes at those to starting points until they are not
+ * equal or the end of the output data is reached.
+ *
+ * This is a bit of an odd function for UsefulOutBuf.
+ * It is used to sort encoded CBOR maps.
+ */
+int UsefulOutBuf_Compare(UsefulOutBuf *me, size_t uStart1, size_t uStart2);
+
+
+/**
+ * @brief Swap two regions of output bytes
+ *
+ * This reaches into bytes that have been output
+ * and swaps two adjacent regions.
+ *
+ * If any of the offsets are outside the range of valid data,
+ * no swapping will be performed. If the start is not the
+ * smallest and the pivot is not in the middle no swapping
+ * will be performed.
+ *
+ * This is a bit of an odd function for UsefulOutBuf.
+ * It is used to bubble sort encoded CBOR maps.
+ */
+void UsefulOutBuf_Swap(UsefulOutBuf *me, size_t uStartOffset, size_t uPivotOffSet, size_t uEndOffSet);
+
+
 
 
 /**

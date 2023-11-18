@@ -3080,3 +3080,54 @@ OpenCloseBytesTest(void)
 
    return 0;
 }
+
+
+/* Need a recursive map sort checker */
+
+int32_t
+SortMapTest(void)
+{
+   UsefulBuf_MAKE_STACK_UB(   TestBuf,  200);
+   QCBOREncodeContext         EC;
+
+   /* Normal use case -- add a byte string that fits */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+
+   QCBOREncode_AddInt64ToMapN(&EC, 3, 3);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 4, 4);
+   QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
+
+   QCBOREncode_CloseAndSortMap(&EC);
+
+   /* Decode map and see it sorted correctly */
+
+   /* Encode a few complicated things and see them sorted */
+
+
+   /* Encode indefinite lengths and see them sorted */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMapIndefiniteLength(&EC);
+
+   QCBOREncode_OpenMapIndefiniteLengthInMap(&EC, "aa");
+   QCBOREncode_CloseMapIndefiniteLength(&EC);
+
+   QCBOREncode_OpenArrayIndefiniteLengthInMap(&EC, "ff");
+   QCBOREncode_CloseArrayIndefiniteLength(&EC);
+
+   QCBOREncode_OpenMapIndefiniteLengthInMap(&EC, "zz");
+   QCBOREncode_CloseMapIndefiniteLength(&EC);
+
+   QCBOREncode_OpenMapIndefiniteLengthInMap(&EC, "bb");
+   QCBOREncode_CloseMapIndefiniteLength(&EC);
+
+   QCBOREncode_CloseAndSortMapIndef(&EC);
+
+
+   /* Check for encode errors */
+
+
+   return 0;
+
+}

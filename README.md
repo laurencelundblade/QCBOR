@@ -1,3 +1,5 @@
+This is the QCBOR 2.0 branch. It is under development and non ready for use.
+
 ![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
 
 **QCBOR** is a powerful, commercial-quality CBOR encoder/decoder that

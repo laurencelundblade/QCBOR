@@ -498,8 +498,45 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
     return result;
 }
 
+
+#include <math.h> // TODO: move function to another file that uses math.h?
+
+IEEE754_union IEEE754_DoubleToDeterministic(double d)
+{
+    IEEE754_union u;
+
+    if(ceil(d) == d) {
+        u.uValue = (uint64_t)d;
+        u.uSize = IEEE754_UNION_AS_INT;
+    } else {
+        u = IEEE754_DoubleToSmallestInternal(d, 1);
+    }
+    return u;
+}
+
 #else
 
 int x;
 
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+
+/*
+ The largest half subnormal is 2 ** (-15) and smallest is 2 ** (-24)
+ The largest single subnormal is 2 ** (-126) and smallest is 2 ** (-149)
+ The largest double subnormal is 2 ** (-1022) and smallest is 2 ** (-1074)
+
+ Does numeric reduction of a double to a single or half subnormal make sense?
+
+ It seems the answer is yes. There are certainly double values
+ in the same range as single and half subnormals. Seems very likely that
+ they will convert without loss of precision.
+
+ Can you convert a half-precision subnormal to a double? Of course!
+
+
+
+
+
+
+
+ */

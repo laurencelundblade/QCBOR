@@ -778,6 +778,32 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 
 
 /*
+ * Public functions for adding a double. See qcbor/qcbor_encode.h
+ */
+void QCBOREncode_AddDoubleDeterministic(QCBOREncodeContext *me, double dNum)
+{
+   if(dNum <= (double)UINT64_MAX && dNum >= 0) {
+      uint64_t uNum = (uint64_t)dNum;
+      if((double)uNum == dNum) {
+         QCBOREncode_AddUInt64(me, uNum);
+         return;
+      }
+      /* Fall through */
+   } else if(dNum >= (double)INT64_MIN && dNum < 0) {
+      int64_t nNum = (int64_t)dNum;
+      if((double)nNum == dNum) {
+         QCBOREncode_AddInt64(me, nNum);
+         return;
+      }
+      /* Fall through */
+   }
+   //const IEEE754_union uNum = IEEE754_DoubleToSmallest(dNum);
+
+   //QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
+}
+
+
+/*
  * Public functions for adding a float. See qcbor/qcbor_encode.h
  */
 void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *me, float fNum)
@@ -915,6 +941,222 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 {
    InsertCBORHead(me, uMajorType, Nesting_GetCount(&(me->nesting)));
 }
+
+
+
+/* This is copied from qcbor_decode.c so the instance in
+ * qcbor_decode.c can be inlined and save 60 bytes of code.
+ * for the minimal encoder.  Here this is only used by map
+ * sorting so it makes map sorting bigger by 200 bytes, but
+ * map sorting is rarely used in environments that need small
+ * object code.
+ *
+ * This is also super stable and tested. It implements the
+ * very well-defined part of CBOR that will never change.
+ * So this won't change.
+ */
+static QCBORError
+DecodeHead_Clone(UsefulInputBuf *pUInBuf,
+                 int            *pnMajorType,
+                 uint64_t       *puArgument,
+                 int            *pnAdditionalInfo)
+{
+   QCBORError uReturn;
+
+   /* Get the initial byte that every CBOR data item has and break it
+    * down. */
+   const int nInitialByte    = (int)UsefulInputBuf_GetByte(pUInBuf);
+   const int nTmpMajorType   = nInitialByte >> 5;
+   const int nAdditionalInfo = nInitialByte & 0x1f;
+
+   /* Where the argument accumulates */
+   uint64_t uArgument;
+
+   if(nAdditionalInfo >= LEN_IS_ONE_BYTE && nAdditionalInfo <= LEN_IS_EIGHT_BYTES) {
+      /* Need to get 1,2,4 or 8 additional argument bytes. Map
+       * LEN_IS_ONE_BYTE..LEN_IS_EIGHT_BYTES to actual length.
+       */
+      static const uint8_t aIterate[] = {1,2,4,8};
+
+      /* Loop getting all the bytes in the argument */
+      uArgument = 0;
+      for(int i = aIterate[nAdditionalInfo - LEN_IS_ONE_BYTE]; i; i--) {
+         /* This shift and add gives the endian conversion. */
+         uArgument = (uArgument << 8) + UsefulInputBuf_GetByte(pUInBuf);
+      }
+   } else if(nAdditionalInfo >= ADDINFO_RESERVED1 && nAdditionalInfo <= ADDINFO_RESERVED3) {
+      /* The reserved and thus-far unused additional info values */
+      uReturn = QCBOR_ERR_UNSUPPORTED;
+      goto Done;
+   } else {
+      /* Less than 24, additional info is argument or 31, an
+       * indefinite-length.  No more bytes to get.
+       */
+      uArgument = (uint64_t)nAdditionalInfo;
+   }
+
+   if(UsefulInputBuf_GetError(pUInBuf)) {
+      uReturn = QCBOR_ERR_HIT_END;
+      goto Done;
+   }
+
+   /* All successful if arrived here. */
+   uReturn           = QCBOR_SUCCESS;
+   *pnMajorType      = nTmpMajorType;
+   *puArgument       = uArgument;
+   *pnAdditionalInfo = nAdditionalInfo;
+
+Done:
+   return uReturn;
+}
+
+
+/* Recursive, but stack usage is light and encoding depth limit */
+static int ConsumeNext(UsefulInputBuf *pInBuf)
+{
+   int      nMajor;
+   uint64_t uArgument;
+   int      nAdditional;
+   uint16_t uItemCount;
+   uint16_t uMul;
+   uint16_t i;
+
+   DecodeHead_Clone(pInBuf, &nMajor, &uArgument, &nAdditional);
+
+   uMul = 1;
+
+   switch(nMajor) {
+      case CBOR_MAJOR_TYPE_POSITIVE_INT: /* Major type 0 */
+      case CBOR_MAJOR_TYPE_NEGATIVE_INT: /* Major type 1 */
+         break;
+
+      case CBOR_MAJOR_TYPE_SIMPLE:
+         return uArgument == CBOR_SIMPLE_BREAK ? 1 : 0;
+         break;
+
+      case CBOR_MAJOR_TYPE_BYTE_STRING:
+      case CBOR_MAJOR_TYPE_TEXT_STRING:
+         if(nAdditional == LEN_IS_INDEFINITE) {
+            /* Segments of indefinite length */
+            while(ConsumeNext(pInBuf) == 0);
+         }
+         (void)UsefulInputBuf_GetBytes(pInBuf, uArgument);
+         break;
+
+      case CBOR_MAJOR_TYPE_TAG:
+         ConsumeNext(pInBuf);
+         break;
+
+      case CBOR_MAJOR_TYPE_MAP:
+         uMul = 2;
+         /* Fallthrough */
+      case CBOR_MAJOR_TYPE_ARRAY:
+         uItemCount = (uint16_t)uArgument * uMul;
+         if(nAdditional == LEN_IS_INDEFINITE) {
+            uItemCount = UINT16_MAX;
+         }
+         for(i = uItemCount; i > 0; i--) {
+            if(ConsumeNext(pInBuf)) {
+               /* End of indefinite length */
+               break;
+            }
+         }
+         break;
+   }
+
+   return 0;
+}
+
+/* Decode the next item in map recursively when item is a map or array */
+static uint32_t DecodeNextItemInMap(QCBOREncodeContext *pMe, uint32_t uStart)
+{
+   /* Seek to uStart */
+   UsefulInputBuf InBuf;
+   UsefulBufC     EncodedMapBytes;
+
+   EncodedMapBytes.ptr = (const uint8_t *)pMe->OutBuf.UB.ptr + uStart;
+   EncodedMapBytes.len = pMe->OutBuf.UB.len - uStart;
+   UsefulInputBuf_Init(&InBuf, EncodedMapBytes);
+
+   /* Map so always two items */
+   ConsumeNext(&InBuf);
+   ConsumeNext(&InBuf);
+
+   return (uint32_t)UsefulInputBuf_Tell(&InBuf);
+}
+
+
+static void QCBOREncode_SortMap(QCBOREncodeContext *pMe)
+{
+   uint32_t uStart;
+   bool     bSwapped;
+   int      nComparison;
+   uint32_t uLen2;
+   uint32_t uLen1;
+   uint32_t uStart1;
+   uint32_t uStart2;
+
+   if(pMe->uError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   /* uStart needs to be the offset of the first item *in the map*
+    * This is going to be after the length of the map for definite
+    * length maps. How to know this? */
+
+   uStart = Nesting_GetStartPos(&(pMe->nesting));
+
+   /* Bubble sort because the sizes of all the items are not the
+    * same. It works with adjacent pairs at a time so the swap is not
+    * too difficult. No memory is needed for a map of offsets of the
+    * items. But it uses a lot of CPU because it is n-squared and
+    * because it re-parses what was just encoded. */
+   do {
+      uLen1 = DecodeNextItemInMap(pMe, uStart);
+      uStart1 = uStart;
+      uStart2 = uStart1 + uLen1;
+      bSwapped = false;
+
+      while(1) {
+         uLen2 = DecodeNextItemInMap(pMe, uStart2);
+         if(uLen2 == 0) {
+            break;
+         }
+
+         nComparison = UsefulOutBuf_Compare(&(pMe->OutBuf), uStart1, uStart2);
+
+         if(nComparison > 0) {
+            UsefulOutBuf_Swap(&(pMe->OutBuf), uStart1, uStart2, uStart2 + uLen2);
+            uStart1 = uStart1 + uLen2;
+            bSwapped = true;
+         } else {
+            uStart1 = uStart2;
+         }
+         uStart2 = uStart2 + uLen2;
+      }
+   } while(bSwapped);
+}
+
+
+/*
+ * Public functions for closing sorted maps. See qcbor/qcbor_encode.h
+ */
+void QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
+{
+   QCBOREncode_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_MAP);
+   QCBOREncode_SortMap(pMe);
+}
+
+
+/*
+ * Public functions for closing sorted maps. See qcbor/qcbor_encode.h
+ */
+void QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pMe)
+{
+   QCBOREncode_CloseMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+   QCBOREncode_SortMap(pMe);
+}
+
 
 
 /*

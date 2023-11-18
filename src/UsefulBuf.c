@@ -424,3 +424,79 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pMe, size_t uAmount)
    return result;
 }
 
+
+/*
+ Public function -- see UsefulBuf.h
+
+ Code Reviewers: THIS FUNCTION DOES POINTER MATH
+ */
+int UsefulOutBuf_Compare(UsefulOutBuf *me, size_t uStart1, size_t uStart2)
+{
+   const uint8_t *pBase;
+   const uint8_t *pEnd;
+   const uint8_t *p1;
+   const uint8_t *p2;
+   int            uComparison;
+
+   pBase = me->UB.ptr;
+   pEnd = (const uint8_t *)pBase + me->data_len;
+   p1   = pBase + uStart1;
+   p2   = pBase + uStart2;
+
+   uComparison = 0;
+   while(p1 < pEnd && p2 < pEnd) {
+      uComparison = *p1 - *p2;
+      if(uComparison != 0) {
+         break;;
+      }
+      p1++;
+      p2++;
+   }
+
+   return uComparison;
+}
+
+/*
+ * Reverse order of bytes in a buffer
+ *
+ * This reverses bytes starting at pStart,
+ * up to, but not including the byte at pEnd
+ */
+static void
+ReverseBytes(uint8_t *pStart, uint8_t *pEnd)
+{
+   uint8_t tmp;
+
+   while(pStart < pEnd) {
+      pEnd--;
+      tmp     = *pStart;
+      *pStart = *pEnd;
+      *pEnd   = tmp;
+      pStart++;
+   }
+}
+
+
+/*
+Public function -- see UsefulBuf.h
+
+Code Reviewers: THIS FUNCTION DOES POINTER MATH
+*/
+void UsefulOutBuf_Swap(UsefulOutBuf *me, size_t uStartOffset, size_t uPivotOffSet, size_t uEndOffSet)
+{
+   uint8_t *pBase;
+
+   if(uStartOffset > me->data_len || uPivotOffSet > me->data_len || uEndOffSet > me->data_len) {
+      return;
+   }
+
+   if(uStartOffset > uPivotOffSet || uStartOffset > uEndOffSet || uPivotOffSet > uEndOffSet) {
+      return;
+   }
+
+   /* This is the "reverse" algorithm to swap two memory regions */
+   pBase = me->UB.ptr;
+   ReverseBytes(pBase + uStartOffset, pBase + uPivotOffSet);
+   ReverseBytes(pBase + uPivotOffSet, pBase + uEndOffSet);
+   ReverseBytes(pBase + uStartOffset, pBase + uEndOffSet);
+}
