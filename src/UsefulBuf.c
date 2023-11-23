@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2022, Laurence Lundblade.
+ Copyright (c) 2018-2023, Laurence Lundblade.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,9 +41,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 19/11/2023  llundblade   Add UsefulOutBuf_GetOutput().
+ 19/11/2023  llundblade   Add UsefulOutBuf_Swap().
+ 19/11/2023  llundblade   Add UsefulOutBuf_Compare().
  19/12/2022  llundblade   Don't pass NULL to memmove when adding empty data.
  4/11/2022   llundblade   Add GetOutPlace and Advance to UsefulOutBuf
- 3/6/2021     mcr/llundblade  Fix warnings related to --Wcast-qual
+ 3/6/2021    mcr/llundblade  Fix warnings related to --Wcast-qual
  01/28/2020  llundblade   Refine integer signedness to quiet static analysis.
  01/08/2020  llundblade   Documentation corrections & improved code formatting.
  11/08/2019  llundblade   Re check pointer math and update comments
@@ -426,9 +429,9 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pMe, size_t uAmount)
 
 
 /*
- Public function -- see UsefulBuf.h
-
- Code Reviewers: THIS FUNCTION DOES POINTER MATH
+ * Public function -- see UsefulBuf.h
+ *
+ * Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
 int UsefulOutBuf_Compare(UsefulOutBuf *me, size_t uStart1, size_t uStart2)
 {
@@ -445,7 +448,7 @@ int UsefulOutBuf_Compare(UsefulOutBuf *me, size_t uStart1, size_t uStart2)
 
    uComparison = 0;
    while(p1 < pEnd && p2 < pEnd) {
-      uComparison = *p1 - *p2;
+      uComparison = *p2 - *p1;
       if(uComparison != 0) {
          break;;
       }
@@ -456,8 +459,9 @@ int UsefulOutBuf_Compare(UsefulOutBuf *me, size_t uStart1, size_t uStart2)
    return uComparison;
 }
 
-/*
- * Reverse order of bytes in a buffer
+
+/**
+ * @brief Reverse order of bytes in a buffer.
  *
  * This reverses bytes starting at pStart,
  * up to, but not including the byte at pEnd
@@ -478,25 +482,48 @@ ReverseBytes(uint8_t *pStart, uint8_t *pEnd)
 
 
 /*
-Public function -- see UsefulBuf.h
-
-Code Reviewers: THIS FUNCTION DOES POINTER MATH
-*/
-void UsefulOutBuf_Swap(UsefulOutBuf *me, size_t uStartOffset, size_t uPivotOffSet, size_t uEndOffSet)
+ * Public function -- see UsefulBuf.h
+ *
+ * Code Reviewers: THIS FUNCTION DOES POINTER MATH
+ */
+void UsefulOutBuf_Swap(UsefulOutBuf *pMe, size_t uStartOffset, size_t uPivotOffset, size_t uEndOffset)
 {
    uint8_t *pBase;
 
-   if(uStartOffset > me->data_len || uPivotOffSet > me->data_len || uEndOffSet > me->data_len) {
+   if(uStartOffset > pMe->data_len || uPivotOffset > pMe->data_len || uEndOffset > pMe->data_len) {
       return;
    }
 
-   if(uStartOffset > uPivotOffSet || uStartOffset > uEndOffSet || uPivotOffSet > uEndOffSet) {
+   if(uStartOffset > uPivotOffset || uStartOffset > uEndOffset || uPivotOffset > uEndOffset) {
       return;
    }
 
    /* This is the "reverse" algorithm to swap two memory regions */
-   pBase = me->UB.ptr;
-   ReverseBytes(pBase + uStartOffset, pBase + uPivotOffSet);
-   ReverseBytes(pBase + uPivotOffSet, pBase + uEndOffSet);
-   ReverseBytes(pBase + uStartOffset, pBase + uEndOffSet);
+   pBase = pMe->UB.ptr;
+   ReverseBytes(pBase + uStartOffset, pBase + uPivotOffset);
+   ReverseBytes(pBase + uPivotOffset, pBase + uEndOffset);
+   ReverseBytes(pBase + uStartOffset, pBase + uEndOffset);
+}
+
+
+UsefulBufC
+UsefulOutBuf_GetOutput(UsefulOutBuf *pMe, size_t uOffset)
+{
+   UsefulBufC ReturnValue;
+
+   ReturnValue = UsefulOutBuf_OutUBuf(pMe);
+
+   if(UsefulBuf_IsNULLC(ReturnValue)) {
+      return NULLUsefulBufC;
+   }
+
+   if(uOffset >= ReturnValue.len) {
+      // TODO: test this condition properly.
+      return NULLUsefulBufC;
+   }
+
+   ReturnValue.ptr = (const uint8_t *)ReturnValue.ptr + uOffset;
+   ReturnValue.len -= uOffset;
+
+   return ReturnValue;
 }

@@ -878,11 +878,11 @@ const char *UBAdvanceTest(void)
 const char * UOBExtraTests(void)
 {
    #define COMPARE_TEST_SIZE 10
-   UsefulOutBuf_MakeOnStack(UOB, COMPARE_TEST_SIZE);
-   int nCompare;
-   UsefulBufC Out;
+   UsefulOutBuf_MakeOnStack( UOB, COMPARE_TEST_SIZE);
+   int                       nCompare;
+   UsefulBufC                Out;
 
-   // Test UsefulOutBuf_Compare
+   /* Test UsefulOutBuf_Compare() */
    UsefulOutBuf_AppendString(&UOB, "abcabdefab");
 
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 8);
@@ -891,8 +891,8 @@ const char * UOBExtraTests(void)
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 3);
-   if(nCompare != 'c' - 'd') {
-      return "hi";
+   if(nCompare != 'd' - 'c') {
+      return "abc should not equal abd";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 3, 8);
@@ -901,36 +901,46 @@ const char * UOBExtraTests(void)
     }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 2, 5);
-   if(nCompare != 'c' - 'd') {
-      return "yy";
+   if(nCompare != 'd' - 'c') {
+      return "ca should not equal de";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 5, 2);
-   if(nCompare != 'd' - 'c') {
-      return "yy";
+   if(nCompare != 'c' - 'd') {
+      return "de should not equal ca";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 7, 8);
-   if(nCompare != 'f' - 'a') {
-      return "ab should compare equal";
+   if(nCompare !=  'a' - 'f') {
+      return "fa should not equal ab";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 0);
    if(nCompare != 0) {
-      return "ab should compare equal";
+      return "comparison to self failed";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 9, 9);
    if(nCompare != 0) {
-      return "ab should compare equal";
+      return "b should compare equal to b";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 10, 10);
    if(nCompare != 0) {
-      return "ab should compare equal";
+      return "Comparison off the end is equal";
    }
 
-   // Test UsefulOutBuf_Swap
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 100);
+   if(nCompare != 0) {
+      return "Comparison off the end is equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 100, 0);
+   if(nCompare != 0) {
+      return "Comparison off the end is equal";
+   }
+
+   /* Test UsefulOutBuf_Swap() */
 
    UsefulOutBuf_Reset(&UOB);
    UsefulOutBuf_AppendString(&UOB, "abcdefgh");
@@ -940,7 +950,6 @@ const char * UOBExtraTests(void)
       return "swap fail 1";
    }
 
-
    UsefulOutBuf_Reset(&UOB);
    UsefulOutBuf_AppendString(&UOB, "abcdefgh");
    UsefulOutBuf_Swap(&UOB, 0, 1, 2);
@@ -948,7 +957,6 @@ const char * UOBExtraTests(void)
    if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("bacdefgh"))) {
       return "swap fail 2";
    }
-
 
    UsefulOutBuf_Reset(&UOB);
    UsefulOutBuf_AppendString(&UOB, "abcdefgh");
@@ -1003,7 +1011,7 @@ const char * UOBExtraTests(void)
    UsefulOutBuf_Swap(&UOB, 8, 4, 0);
    Out = UsefulOutBuf_OutUBuf(&UOB);
    if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
-      return "swap fail 8";
+      return "swap fail 9";
    }
 
    UsefulOutBuf_Reset(&UOB);
@@ -1011,7 +1019,33 @@ const char * UOBExtraTests(void)
    UsefulOutBuf_Swap(&UOB, 0, 8, 4);
    Out = UsefulOutBuf_OutUBuf(&UOB);
    if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
-      return "swap fail 8";
+      return "swap fail 10";
+   }
+
+
+   /* Test for UsefulOutBuf_GetOutput() */
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abc");
+   UsefulOutBuf_AppendString(&UOB, "xyz");
+
+   Out = UsefulOutBuf_GetOutput(&UOB, 0);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcxyz"))) {
+      return "GetOutput fail 1";
+   }
+
+   Out = UsefulOutBuf_GetOutput(&UOB, 5);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("z"))) {
+      return "GetOutput fail 2";
+   }
+
+   Out = UsefulOutBuf_GetOutput(&UOB, 1);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("bcxyz"))) {
+      return "GetOutput fail 3";
+   }
+
+   Out = UsefulOutBuf_GetOutput(&UOB, 6);
+   if(!UsefulBuf_IsEmptyC(Out)) {
+      return "GetOutput fail 4";
    }
 
    return NULL;

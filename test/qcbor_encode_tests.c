@@ -3089,8 +3089,10 @@ SortMapTest(void)
 {
    UsefulBuf_MAKE_STACK_UB(   TestBuf,  200);
    QCBOREncodeContext         EC;
+   UsefulBufC                 EncodedAndSorted;
+   QCBORError                 uErr;
 
-   /* Normal use case -- add a byte string that fits */
+   /* Basic sort test case */
    QCBOREncode_Init(&EC, TestBuf);
    QCBOREncode_OpenMap(&EC);
 
@@ -3102,6 +3104,67 @@ SortMapTest(void)
    QCBOREncode_CloseAndSortMap(&EC);
 
    /* Decode map and see it sorted correctly */
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 1;
+   }
+
+   static const uint8_t px[] = {0xA4, 0x01, 0x01, 0x02, 0x02, 0x03, 0x03, 0x04, 0x04};
+   struct UBCompareDiagnostic xx;
+
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(px),
+                                      &xx)) {
+      return 2;
+   }
+
+   /* Empty map sort test case */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 1;
+   }
+   static const uint8_t p7[] = {0xA0};
+
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(p7),
+                                      &xx)) {
+      return 2;
+   }
+
+
+   /* More complicated sort test case */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+     QCBOREncode_AddInt64ToMap(&EC, "three", 3);
+     QCBOREncode_OpenMapInMapN(&EC, 428);
+       QCBOREncode_AddNULLToMap(&EC, "null");
+       QCBOREncode_OpenArrayInMap(&EC, "array");
+         QCBOREncode_AddSZString(&EC, "hi");
+         QCBOREncode_AddSZString(&EC, "there");
+         QCBOREncode_CloseArray(&EC);
+       QCBOREncode_OpenMapInMap(&EC, "empty2");
+         QCBOREncode_CloseAndSortMap(&EC);
+       QCBOREncode_OpenMapInMap(&EC, "empty1");
+         QCBOREncode_CloseAndSortMap(&EC);
+       QCBOREncode_CloseAndSortMap(&EC);
+     QCBOREncode_AddDateEpochToMapN(&EC, 88, 888888);
+     QCBOREncode_AddBoolToMap(&EC, "boo", true);
+     QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 1;
+   }
+   static const uint8_t p8[] = {0xA4, 0x18, 0x58, 0xC1, 0x1A, 0x00, 0x0D, 0x90, 0x38, 0x19, 0x01, 0xAC, 0xA4, 0x64, 0x6E, 0x75, 0x6C, 0x6C, 0xF6, 0x65, 0x61, 0x72, 0x72, 0x61, 0x79, 0x82, 0x62, 0x68, 0x69, 0x65, 0x74, 0x68, 0x65, 0x72, 0x65, 0x66, 0x65, 0x6D, 0x70, 0x74, 0x79, 0x31, 0xA0, 0x66, 0x65, 0x6D, 0x70, 0x74, 0x79, 0x32, 0xA0, 0x63, 0x62, 0x6F, 0x6F, 0xF5, 0x65, 0x74, 0x68, 0x72, 0x65, 0x65, 0x03};
+
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(p8),
+                                      &xx)) {
+      return 2;
+   }
+
 
    /* Encode a few complicated things and see them sorted */
 
