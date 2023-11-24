@@ -1044,8 +1044,13 @@ const char * UOBExtraTests(void)
    }
 
    Out = UsefulOutBuf_GetOutput(&UOB, 6);
-   if(!UsefulBuf_IsEmptyC(Out)) {
+   if(!UsefulBuf_IsNULLC(Out)) {
       return "GetOutput fail 4";
+   }
+
+   Out = UsefulOutBuf_GetOutput(&UOB, 7);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "GetOutput fail 5";
    }
 
    return NULL;

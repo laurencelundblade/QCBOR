@@ -570,7 +570,7 @@ CheckDecreaseNesting(QCBOREncodeContext *pMe, uint8_t uMajorType)
    (void)uMajorType;
    (void)pMe;
 #endif
-   
+
    return false;
 }
 
@@ -944,32 +944,35 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
 
 
 
-/*
+/**
+ * @brief Decode a CBOR item head.
+ *
+ * @param[in]   pUInBuf           UsefulInputBuf to read from.
+ * @param[out]  pnMajorType       Major type of decoded head.
+ * @param[out]  puArgument        Argument of decoded head.
+ * @param[out]  pnAdditionalInfo  Additional info from decoded head.
  *
  * @return SUCCESS if a head was decoded
-           HIT_END if there were not enough bytes to decode a head
-           UNSUPPORTED if the decoded item is not one that is supported
+ *         HIT_END if there were not enough bytes to decode a head
+ *         UNSUPPORTED if the decoded item is not one that is supported
  *
- * This is copied from qcbor_decode.c so the instance in
- * qcbor_decode.c can be inlined and save 60 bytes of code.
- * for the minimal encoder.  Here this is only used by map
- * sorting so it makes map sorting bigger by 200 bytes, but
- * map sorting is rarely used in environments that need small
- * object code.
+ * This is copied from qcbor_decode.c rather than referenced.  This
+ * makes the core decoder 60 bytes smaller because it gets inlined.
+ * It would not get inlined if it was referenced. It is important to
+ * make the core decoder as small as possible. The copy here does make
+ * map sorting 200 bytes bigger, but map sorting is rarely used in
+ * environments that need small object code. It would also make
+ * qcbor_encode.c depend on qcbor_decode.c
  *
- * This is also super stable and tested. It implements the
- * very well-defined part of CBOR that will never change.
- * So this won't change.
- *
- * This should never be called on input that will result in
- * an error because it is always called on CBOR generated
- * by QCBOR.
+ * This is also super stable and tested. It implements the very
+ * well-defined part of CBOR that will never change.  So this won't
+ * change.
  */
 static QCBORError
-DecodeHead_Clone(UsefulInputBuf *pUInBuf,
-                 int            *pnMajorType,
-                 uint64_t       *puArgument,
-                 int            *pnAdditionalInfo)
+QCBOREncodePriv_DecodeHead(UsefulInputBuf *pUInBuf,
+                           int            *pnMajorType,
+                           uint64_t       *puArgument,
+                           int            *pnAdditionalInfo)
 {
    QCBORError uReturn;
 
@@ -1021,9 +1024,15 @@ Done:
 }
 
 
-/* Recursive, but stack usage is light and encoding depth limit */
+/**
+ * @brief Consume the next item from a UsefulInputBuf.
+ *
+ * @param[in] pInBuf  UsefulInputBuf from which to consume item.
+ *
+ * Recursive, but stack usage is light and encoding depth limit
+ */
 static QCBORError
-ConsumeNext(UsefulInputBuf *pInBuf)
+QCBOREncodePriv_ConsumeNext(UsefulInputBuf *pInBuf)
 {
    int      nMajor;
    uint64_t uArgument;
@@ -1033,8 +1042,7 @@ ConsumeNext(UsefulInputBuf *pInBuf)
    uint16_t i;
    QCBORError uCBORError;
 
-   // TODO: check error here
-   uCBORError = DecodeHead_Clone(pInBuf, &nMajor, &uArgument, &nAdditional);
+   uCBORError = QCBOREncodePriv_DecodeHead(pInBuf, &nMajor, &uArgument, &nAdditional);
    if(uCBORError != QCBOR_SUCCESS) {
       return uCBORError;
    }
@@ -1054,13 +1062,13 @@ ConsumeNext(UsefulInputBuf *pInBuf)
       case CBOR_MAJOR_TYPE_TEXT_STRING:
          if(nAdditional == LEN_IS_INDEFINITE) {
             /* Segments of indefinite length */
-            while(ConsumeNext(pInBuf) == 0);
+            while(QCBOREncodePriv_ConsumeNext(pInBuf) == 0);
          }
          (void)UsefulInputBuf_GetBytes(pInBuf, uArgument);
          break;
 
       case CBOR_MAJOR_TYPE_TAG:
-         ConsumeNext(pInBuf);
+         QCBOREncodePriv_ConsumeNext(pInBuf);
          break;
 
       case CBOR_MAJOR_TYPE_MAP:
@@ -1072,7 +1080,7 @@ ConsumeNext(UsefulInputBuf *pInBuf)
             uItemCount = UINT16_MAX;
          }
          for(i = uItemCount; i > 0; i--) {
-            if(ConsumeNext(pInBuf)) {
+            if(QCBOREncodePriv_ConsumeNext(pInBuf)) {
                /* End of indefinite length */
                break;
             }
@@ -1084,9 +1092,13 @@ ConsumeNext(UsefulInputBuf *pInBuf)
 }
 
 
-/* Decode the next item in map recursively when item is a map or array
- * Returns offset just past the item decoded or zero there are no
- * more items in the output buffer.
+/**
+ * @brief  Decoded next item to get its length.
+ *
+ * Decode the next item in map no matter what type it is. It works
+ * recursively when an item is a map or array It returns offset just
+ * past the item decoded or zero there are no more items in the output
+ * buffer.
  *
  * This doesn't distinguish between end of the input and an error
  * because it is used to decode stuff we encoded into a buffer, not
@@ -1094,7 +1106,7 @@ ConsumeNext(UsefulInputBuf *pInBuf)
  * in case of bugs here, but it is OK to report end of input on error.
  */
 static uint32_t
-DecodeNextItemInMap(QCBOREncodeContext *pMe, uint32_t uStart)
+QCBOREncodePriv_DecodeNextInMap(QCBOREncodeContext *pMe, uint32_t uStart)
 {
    UsefulInputBuf InBuf;
    UsefulBufC     EncodedMapBytes;
@@ -1108,23 +1120,34 @@ DecodeNextItemInMap(QCBOREncodeContext *pMe, uint32_t uStart)
 
    UsefulInputBuf_Init(&InBuf, EncodedMapBytes);
 
-   /* This is always used on maps, so consume two, label and value */
-   uCBORError = ConsumeNext(&InBuf);
+   /* This is always used on maps, so consume two, the label and the value */
+   uCBORError = QCBOREncodePriv_ConsumeNext(&InBuf);
    if(uCBORError) {
       return 0;
    }
-   uCBORError = ConsumeNext(&InBuf);
+   uCBORError = QCBOREncodePriv_ConsumeNext(&InBuf);
    if(uCBORError) {
       return 0;
    }
 
-   /* Cast is safe because this QCBOR which limits size to UINT32_MAX */
+   /* Cast is safe because this QCBOR which limits sizes to UINT32_MAX */
    return (uint32_t)UsefulInputBuf_Tell(&InBuf);
 }
 
 
+/**
+ * @brief Sort items lexographically by encoded labels.
+ *
+ * @param[in] pMe     Encoding context.
+ * @param[in] uStart  Offset in outbuf of first item for sorting.
+ *
+ * This reaches into the UsefulOutBuf in the encoding context and
+ * sorts encoded CBOR items. The byte offset start of the items is at
+ * @c uStart and it goes to the end of valid bytes in the
+ * UsefulOutBuf.
+ */
 static void
-QCBOREncode_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
+QCBOREncodePriv_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
 {
    bool     bSwapped;
    int      nComparison;
@@ -1136,24 +1159,23 @@ QCBOREncode_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
    if(pMe->uError != QCBOR_SUCCESS) {
       return;
    }
-   
 
    /* Bubble sort because the sizes of all the items are not the
-    * same. It works with adjacent pairs so the swap is not
-    * too difficult even though sizes are different.
+    * same. It works with adjacent pairs so the swap is not too
+    * difficult even though sizes are different.
     *
-    * While bubble sort is n-squared, it seems OK here because
-    * n will usually be small and the comparison and swap
-    * functions aren't too CPU intensive.
+    * While bubble sort is n-squared, it seems OK here because n will
+    * usually be small and the comparison and swap functions aren't
+    * too CPU intensive.
     *
-    * Another approach would be to have an array of offsets
-    * to the items. However this requires memory allocation
-    * and the swap operation for quick sort or such is complicated
-    * because the item sizes are not the same and overlap
-    * may occur in the bytes being swapped.
+    * Another approach would be to have an array of offsets to the
+    * items. However this requires memory allocation and the swap
+    * operation for quick sort or such is complicated because the item
+    * sizes are not the same and overlap may occur in the bytes being
+    * swapped.
     */
    do {
-      uLen1 = DecodeNextItemInMap(pMe, uStart);
+      uLen1 = QCBOREncodePriv_DecodeNextInMap(pMe, uStart);
       if(uLen1 == 0) {
          /* It's an empty map. Nothing to do. */
          break;
@@ -1163,13 +1185,12 @@ QCBOREncode_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
       bSwapped = false;
 
       while(1) {
-         uLen2 = DecodeNextItemInMap(pMe, uStart2);
+         uLen2 = QCBOREncodePriv_DecodeNextInMap(pMe, uStart2);
          if(uLen2 == 0) {
             break;
          }
 
          nComparison = UsefulOutBuf_Compare(&(pMe->OutBuf), uStart1, uStart2);
-
          if(nComparison < 0) {
             UsefulOutBuf_Swap(&(pMe->OutBuf), uStart1, uStart2, uStart2 + uLen2);
             uStart1 = uStart1 + uLen2;
@@ -1196,7 +1217,7 @@ void QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
     * items we are about to sort.
     */
    uStart = Nesting_GetStartPos(&(pMe->nesting));
-   QCBOREncode_SortMap(pMe, uStart);
+   QCBOREncodePriv_SortMap(pMe, uStart);
 
    QCBOREncode_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_MAP);
 }
@@ -1207,10 +1228,13 @@ void QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
  */
 void QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_CloseMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
-   QCBOREncode_SortMap(pMe, 0); // TODO: fix this
-}
+   uint32_t uStart;
 
+   uStart = Nesting_GetStartPos(&(pMe->nesting));
+   QCBOREncodePriv_SortMap(pMe, uStart);
+
+   QCBOREncode_CloseMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+}
 
 
 /*

@@ -3082,7 +3082,6 @@ OpenCloseBytesTest(void)
 }
 
 
-/* Need a recursive map sort checker */
 
 int32_t
 SortMapTest(void)
@@ -3091,51 +3090,48 @@ SortMapTest(void)
    QCBOREncodeContext         EC;
    UsefulBufC                 EncodedAndSorted;
    QCBORError                 uErr;
+   struct UBCompareDiagnostic CompareDiagnostics;
 
-   /* Basic sort test case */
+
+   /* --- Basic sort test case --- */
    QCBOREncode_Init(&EC, TestBuf);
    QCBOREncode_OpenMap(&EC);
-
    QCBOREncode_AddInt64ToMapN(&EC, 3, 3);
    QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
    QCBOREncode_AddInt64ToMapN(&EC, 4, 4);
    QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
-
    QCBOREncode_CloseAndSortMap(&EC);
-
-   /* Decode map and see it sorted correctly */
    uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
    if(uErr) {
-      return 1;
+      return 11;
    }
 
-   static const uint8_t px[] = {0xA4, 0x01, 0x01, 0x02, 0x02, 0x03, 0x03, 0x04, 0x04};
-   struct UBCompareDiagnostic xx;
+   static const uint8_t spBasic[] = {
+      0xA4, 0x01, 0x01, 0x02, 0x02, 0x03, 0x03, 0x04, 0x04};
 
    if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
-                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(px),
-                                      &xx)) {
-      return 2;
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBasic),
+                                      &CompareDiagnostics)) {
+      return 12;
    }
 
-   /* Empty map sort test case */
+   /* --- Empty map sort test case --- */
    QCBOREncode_Init(&EC, TestBuf);
    QCBOREncode_OpenMap(&EC);
    QCBOREncode_CloseAndSortMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
    if(uErr) {
-      return 1;
+      return 21;
    }
-   static const uint8_t p7[] = {0xA0};
 
+   static const uint8_t spEmpty[] = {0xA0};
    if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
-                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(p7),
-                                      &xx)) {
-      return 2;
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmpty),
+                                      &CompareDiagnostics)) {
+      return 22;
    }
 
-
-   /* More complicated sort test case */
+   /* --- Several levels of nested sorted maps ---  */
    QCBOREncode_Init(&EC, TestBuf);
    QCBOREncode_OpenMap(&EC);
      QCBOREncode_AddInt64ToMap(&EC, "three", 3);
@@ -3155,21 +3151,198 @@ SortMapTest(void)
      QCBOREncode_CloseAndSortMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
    if(uErr) {
-      return 1;
+      return 31;
    }
-   static const uint8_t p8[] = {0xA4, 0x18, 0x58, 0xC1, 0x1A, 0x00, 0x0D, 0x90, 0x38, 0x19, 0x01, 0xAC, 0xA4, 0x64, 0x6E, 0x75, 0x6C, 0x6C, 0xF6, 0x65, 0x61, 0x72, 0x72, 0x61, 0x79, 0x82, 0x62, 0x68, 0x69, 0x65, 0x74, 0x68, 0x65, 0x72, 0x65, 0x66, 0x65, 0x6D, 0x70, 0x74, 0x79, 0x31, 0xA0, 0x66, 0x65, 0x6D, 0x70, 0x74, 0x79, 0x32, 0xA0, 0x63, 0x62, 0x6F, 0x6F, 0xF5, 0x65, 0x74, 0x68, 0x72, 0x65, 0x65, 0x03};
+   static const uint8_t spNested[] = {
+      0xA4, 0x18, 0x58, 0xC1, 0x1A, 0x00, 0x0D, 0x90,
+      0x38, 0x19, 0x01, 0xAC, 0xA4, 0x64, 0x6E, 0x75,
+      0x6C, 0x6C, 0xF6, 0x65, 0x61, 0x72, 0x72, 0x61,
+      0x79, 0x82, 0x62, 0x68, 0x69, 0x65, 0x74, 0x68,
+      0x65, 0x72, 0x65, 0x66, 0x65, 0x6D, 0x70, 0x74,
+      0x79, 0x31, 0xA0, 0x66, 0x65, 0x6D, 0x70, 0x74,
+      0x79, 0x32, 0xA0, 0x63, 0x62, 0x6F, 0x6F, 0xF5,
+      0x65, 0x74, 0x68, 0x72, 0x65, 0x65, 0x03};
 
    if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
-                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(p8),
-                                      &xx)) {
-      return 2;
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNested),
+                                      &CompareDiagnostics)) {
+      return 32;
    }
 
+   /* --- Degenerate case of everything in order --- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddInt64ToMapN(&EC, 0, 0);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
+   QCBOREncode_AddInt64ToMap(&EC, "a", 3);
+   QCBOREncode_AddInt64ToMap(&EC, "b", 4);
+   QCBOREncode_AddInt64ToMap(&EC, "aa", 5);
+   QCBOREncode_AddInt64ToMap(&EC, "aaa", 6);
+   QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 41;
+   }
 
-   /* Encode a few complicated things and see them sorted */
+   static const uint8_t sp6Items[] = {
+      0xA7, 0x00, 0x00, 0x01, 0x01, 0x02, 0x02, 0x61,
+      0x61, 0x03, 0x61, 0x62, 0x04, 0x62, 0x61, 0x61,
+      0x05, 0x63, 0x61, 0x61, 0x61, 0x06};
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sp6Items),
+                                      &CompareDiagnostics)) {
+      return 42;
+   }
 
+   /* --- Degenerate case -- reverse order --- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddInt64ToMap(&EC, "aaa", 6);
+   QCBOREncode_AddInt64ToMap(&EC, "aa", 5);
+   QCBOREncode_AddInt64ToMap(&EC, "b", 4);
+   QCBOREncode_AddInt64ToMap(&EC, "a", 3);
+   QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
+   QCBOREncode_AddInt64ToMapN(&EC, 0, 0);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 51;
+   }
 
-   /* Encode indefinite lengths and see them sorted */
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sp6Items),
+                                      &CompareDiagnostics)) {
+      return 52;
+   }
+
+   /* --- Same items, randomly out of order --- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddInt64ToMap(&EC, "aa", 5);
+   QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
+   QCBOREncode_AddInt64ToMapN(&EC, 0, 0);
+   QCBOREncode_AddInt64ToMap(&EC, "b", 4);
+   QCBOREncode_AddInt64ToMap(&EC, "aaa", 6);
+   QCBOREncode_AddInt64ToMap(&EC, "a", 3);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 61;
+   }
+
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sp6Items),
+                                      &CompareDiagnostics)) {
+      return 62;
+   }
+
+   /* --- Stuff in front of and after array to sort --- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddInt64(&EC, 111);
+   QCBOREncode_AddInt64(&EC, 222);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddInt64ToMapN(&EC, 0, 0);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
+   QCBOREncode_CloseAndSortMap(&EC);
+   QCBOREncode_AddInt64(&EC, 888);
+   QCBOREncode_AddInt64(&EC, 999);
+   QCBOREncode_CloseArray(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 71;
+   }
+
+   static const uint8_t spPreItems[] = {
+      0x85, 0x18, 0x6F, 0x18, 0xDE, 0xA3, 0x00, 0x00,
+      0x01, 0x01, 0x02, 0x02, 0x19, 0x03, 0x78, 0x19,
+      0x03, 0xE7};
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spPreItems),
+                                      &CompareDiagnostics)) {
+      return 72;
+   }
+
+   /* --- map with labels of all CBOR major types and in reverse order --- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+
+   QCBOREncode_AddDouble(&EC, 8.77);
+   QCBOREncode_AddInt64(&EC, 7);
+
+   QCBOREncode_AddBool(&EC, true);
+   QCBOREncode_AddInt64(&EC, 6);
+
+   QCBOREncode_AddDateEpoch(&EC, 88);
+   QCBOREncode_AddInt64(&EC, 5);
+
+   QCBOREncode_AddEncoded(&EC, UsefulBuf_FromSZ("\xa0"));
+   QCBOREncode_AddInt64(&EC, 4);
+
+   QCBOREncode_AddEncoded(&EC, UsefulBuf_FromSZ("\x80"));
+   QCBOREncode_AddInt64(&EC, 7);
+
+   QCBOREncode_AddInt64ToMap(&EC, "text", 3);
+
+   QCBOREncode_AddBytes(&EC, UsefulBuf_FromSZ("xx"));
+   QCBOREncode_AddInt64(&EC, 2);
+
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1); /* Integer */
+   QCBOREncode_CloseAndSortMap(&EC);
+
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 81;
+   }
+
+   static const uint8_t spLabelTypes[] = {
+      0xA8, 0x01, 0x01, 0x42, 0x78, 0x78, 0x02, 0x64,
+      0x74, 0x65, 0x78, 0x74, 0x03, 0x80, 0x07, 0xA0,
+      0x04, 0xC1, 0x18, 0x58, 0x05, 0xF5, 0x06, 0xFB,
+      0x40, 0x21, 0x8A, 0x3D, 0x70, 0xA3, 0xD7, 0x0A,
+      0x07};
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spLabelTypes),
+                                      &CompareDiagnostics)) {
+      return 82;
+   }
+
+   /* --- labels are indefinitely encoded ---  */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+
+   QCBOREncode_AddInt64ToMap(&EC, "aaaa", 1);
+
+   QCBOREncode_AddInt64ToMap(&EC, "bb", 2);
+
+   QCBOREncode_AddEncoded(&EC, UsefulBuf_FromSZ("\x7f\x61" "a" "\x61" "a" "\xff"));
+   QCBOREncode_AddInt64(&EC, 3);
+
+   QCBOREncode_AddEncoded(&EC, UsefulBuf_FromSZ("\x7f" "\x61" "c" "\xff"));
+   QCBOREncode_AddInt64(&EC, 4);
+
+   QCBOREncode_CloseAndSortMap(&EC);
+
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 91;
+   }
+
+   static const uint8_t spIndefItems[] = {
+      0xA4, 0x62, 0x62, 0x62, 0x02, 0x64, 0x61, 0x61,
+      0x61, 0x61, 0x01, 0x7F, 0x61, 0x61, 0x61, 0x61,
+      0xFF, 0x03, 0x7F, 0x61, 0x63, 0xFF, 0x04};
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                       UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefItems),
+                                       &CompareDiagnostics)) {
+       return 92;
+   }
+
+   /* --- Indefinitely encoded maps --- */
    QCBOREncode_Init(&EC, TestBuf);
    QCBOREncode_OpenMapIndefiniteLength(&EC);
 
@@ -3186,11 +3359,20 @@ SortMapTest(void)
    QCBOREncode_CloseMapIndefiniteLength(&EC);
 
    QCBOREncode_CloseAndSortMapIndef(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 101;
+   }
 
-
-   /* Check for encode errors */
-
+   static const uint8_t spIndeMaps[] = {
+      0xBF, 0x62, 0x61, 0x61, 0xBF, 0xFF, 0x62, 0x62,
+      0x62, 0xBF, 0xFF, 0x62, 0x66, 0x66, 0x9F, 0xFF,
+      0x62, 0x7A, 0x7A, 0xBF, 0xFF, 0xFF, 0x06, 0xFB};
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndeMaps),
+                                      &CompareDiagnostics)) {
+      return 102;
+   }
 
    return 0;
-
 }

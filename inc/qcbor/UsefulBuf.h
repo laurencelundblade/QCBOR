@@ -1372,53 +1372,60 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
 
 
 /**
+ * @brief Get bytes output so far at an offset.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] uOffset    Offset to bytes to return.
+ *
+ * @return NULLUsefulBufC or the bytes at the offset.
+ *
+ * Get the bytes output so far starting at @c uOffset up to the end of
+ * what was encoded so far. Calling this with @c uOffset 0 is
+ * equivalent to UsefulOutBuf_OutUBuf().
+ *
+ * If there's nothing at @c uOffset or it is past the in the output
+ * buffer, a \ref NULLUsefulBufC is returned.
+ *
+ * This is typically not needed in normal use. It is used by QCBOR
+ * along with UsefulOutBuf_Compare() and UsefulOutBuf_Swap() for
+ * sorting maps.
+ */
+UsefulBufC
+UsefulOutBuf_GetOutput(UsefulOutBuf *pUOutBuf, size_t uOffset);
+
+
+/**
  * @brief Compare bytes at offsets.
  *
  * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  * @param[in] uStart1   Offset of first bytes to compare.
  * @param[in] uStart2  Offset of second bytes to compare.
  *
- * @return  0 for equality, positive if uStart1 is lexographically larger, negative if uStart2 is lexographically larger.
+ * @return  0 for equality, positive if uStart1 is lexographically larger,
+ *          negative if uStart2 is lexographically larger.
  *
  * This looks into bytes that have been output at the offsets @c
  * start1 and @c start2. It compares bytes at those to starting points
  * until they are not equal or the end of the output data is reached
  * from one of the startnig points.
  *
- * Returns positive when @c uStart1 lexographically sorts ahead of @c uStart2 and
- * vice versa.  Zero is returned if the strings compare equally. This
- * only happens when the end of the valid data is reached from one of
- * the starting points and the comparison up to that point is
- * equality.
+ * Returns positive when @c uStart1 lexographically sorts ahead of @c
+ * uStart2 and vice versa.  Zero is returned if the strings compare
+ * equally. This only happens when the end of the valid data is
+ * reached from one of the starting points and the comparison up to
+ * that point is equality.
  *
- * If either start is past the end of data in the output buffer, 0 will
- * be returned. It is the caller's responsibility to make sure the
- * offsets are not of the end and that a comparison is actually
- * being made. No data will ever be read off the end of the buffer
- * so this safe no matter what offsets are passed.
+ * If either start is past the end of data in the output buffer, 0
+ * will be returned. It is the caller's responsibility to make sure
+ * the offsets are not of the end and that a comparison is actually
+ * being made. No data will ever be read off the end of the buffer so
+ * this safe no matter what offsets are passed.
  *
- * This is a bit of an odd function in that it works on data in the output
- * buffer. It is used by QCBOR to sort CBOR-encoded maps that
+ * This is a bit of an odd function in that it works on data in the
+ * output buffer. It is used by QCBOR to sort CBOR-encoded maps that
  * are in the output buffer.
  */
 int UsefulOutBuf_Compare(UsefulOutBuf *pUOutBuf, size_t uStart1, size_t uStart2);
-
-
-/**
- * @brief Get bytes output so far at an offset
- *
- * @param[in] uOffset   Byte offset in output buffer.
- *
- * Get a UsefulBufC of the encoded stuff starting at @c uOffset up
- * to the end of what was encoded so far. If there's nothing
- * at uOffset, a NULLUSEFULBuf is returned.
- *
- * Calling this with an offset of 0 is equivalent to UsefulOutBuf_OutUBuf().
- */
-UsefulBufC
-UsefulOutBuf_GetOutput(UsefulOutBuf *pUOutBuf, size_t uOffset);
-
-
 
 /**
  * @brief Swap two regions of output bytes
@@ -1428,19 +1435,20 @@ UsefulOutBuf_GetOutput(UsefulOutBuf *pUOutBuf, size_t uOffset);
  * @param[in] uPivotOffset   Offset to pivot around which bytes are swapped.
  * @param[in] uEndOffset       Offset to end of region to be swappe.
  *
- * This reaches into bytes that have been output
- * and swaps two adjacent regions.
+ * This reaches into bytes that have been output and swaps two
+ * adjacent regions.
  *
- * If any of the offsets are outside the range of valid data,
- * no swapping will be performed. If the start is not the
- * smallest and the pivot is not in the middle no swapping
- * will be performed.
+ * If any of the offsets are outside the range of valid data, no
+ * swapping will be performed. If the start is not the smallest and
+ * the pivot is not in the middle no swapping will be performed.
  *
- * The byte at @c uStartOffset will participate in the swapping.
- * The byte at @c uEndOffset will not participate in the swapping, only the byte before it.
+ * The byte at @c uStartOffset will participate in the swapping.  The
+ * byte at @c uEndOffset will not participate in the swapping, only
+ * the byte before it.
  *
- * This is a bit of an odd function in that it works on data in the output
- * buffer. It is used by QCBOR to bubble sort encoded CBOR maps.
+ * This is a bit of an odd function in that it works on data in the
+ * output buffer. It is used by QCBOR to bubble sort encoded CBOR
+ * maps.
  */
 void UsefulOutBuf_Swap(UsefulOutBuf *pUOutBuf,
                        size_t        uStartOffset,
