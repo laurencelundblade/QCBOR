@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2022, Laurence Lundblade.
+ Copyright (c) 2018-2023, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -1113,7 +1113,7 @@ QCBOREncodePriv_DecodeNextInMap(QCBOREncodeContext *pMe, uint32_t uStart)
    QCBORError     uCBORError;
 
 
-   EncodedMapBytes = UsefulOutBuf_GetOutput(&(pMe->OutBuf), uStart);
+   EncodedMapBytes = UsefulOutBuf_OutUBufOffset(&(pMe->OutBuf), uStart);
    if(UsefulBuf_IsNULLC(EncodedMapBytes)) {
       return 0;
    }

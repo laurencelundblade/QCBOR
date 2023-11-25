@@ -463,19 +463,19 @@ int UsefulOutBuf_Compare(UsefulOutBuf *me, size_t uStart1, size_t uStart2)
 /**
  * @brief Reverse order of bytes in a buffer.
  *
- * This reverses bytes starting at pStart,
- * up to, but not including the byte at pEnd
+ * This reverses bytes starting at pStart, up to, but not including
+ * the byte at pEnd
  */
 static void
-ReverseBytes(uint8_t *pStart, uint8_t *pEnd)
+UsefulOutBuf_Private_ReverseBytes(uint8_t *pStart, uint8_t *pEnd)
 {
-   uint8_t tmp;
+   uint8_t uTmp;
 
    while(pStart < pEnd) {
       pEnd--;
-      tmp     = *pStart;
+      uTmp     = *pStart;
       *pStart = *pEnd;
-      *pEnd   = tmp;
+      *pEnd   = uTmp;
       pStart++;
    }
 }
@@ -500,9 +500,9 @@ void UsefulOutBuf_Swap(UsefulOutBuf *pMe, size_t uStartOffset, size_t uPivotOffs
 
    /* This is the "reverse" algorithm to swap two memory regions */
    pBase = pMe->UB.ptr;
-   ReverseBytes(pBase + uStartOffset, pBase + uPivotOffset);
-   ReverseBytes(pBase + uPivotOffset, pBase + uEndOffset);
-   ReverseBytes(pBase + uStartOffset, pBase + uEndOffset);
+   UsefulOutBuf_Private_ReverseBytes(pBase + uStartOffset, pBase + uPivotOffset);
+   UsefulOutBuf_Private_ReverseBytes(pBase + uPivotOffset, pBase + uEndOffset);
+   UsefulOutBuf_Private_ReverseBytes(pBase + uStartOffset, pBase + uEndOffset);
 }
 
 
@@ -510,7 +510,7 @@ void UsefulOutBuf_Swap(UsefulOutBuf *pMe, size_t uStartOffset, size_t uPivotOffs
  * Public function -- see UsefulBuf.h
  */
 UsefulBufC
-UsefulOutBuf_GetOutput(UsefulOutBuf *pMe, size_t uOffset)
+UsefulOutBuf_OutUBufOffset(UsefulOutBuf *pMe, size_t uOffset)
 {
    UsefulBufC ReturnValue;
 

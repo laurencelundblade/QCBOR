@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2022, Laurence Lundblade.
+ Copyright (c) 2018-2023, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -1028,27 +1028,27 @@ const char * UOBExtraTests(void)
    UsefulOutBuf_AppendString(&UOB, "abc");
    UsefulOutBuf_AppendString(&UOB, "xyz");
 
-   Out = UsefulOutBuf_GetOutput(&UOB, 0);
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 0);
    if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcxyz"))) {
       return "GetOutput fail 1";
    }
 
-   Out = UsefulOutBuf_GetOutput(&UOB, 5);
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 5);
    if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("z"))) {
       return "GetOutput fail 2";
    }
 
-   Out = UsefulOutBuf_GetOutput(&UOB, 1);
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 1);
    if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("bcxyz"))) {
       return "GetOutput fail 3";
    }
 
-   Out = UsefulOutBuf_GetOutput(&UOB, 6);
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 6);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "GetOutput fail 4";
    }
 
-   Out = UsefulOutBuf_GetOutput(&UOB, 7);
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 7);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "GetOutput fail 5";
    }
