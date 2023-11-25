@@ -506,6 +506,9 @@ void UsefulOutBuf_Swap(UsefulOutBuf *pMe, size_t uStartOffset, size_t uPivotOffs
 }
 
 
+/*
+ * Public function -- see UsefulBuf.h
+ */
 UsefulBufC
 UsefulOutBuf_GetOutput(UsefulOutBuf *pMe, size_t uOffset)
 {
@@ -518,7 +521,6 @@ UsefulOutBuf_GetOutput(UsefulOutBuf *pMe, size_t uOffset)
    }
 
    if(uOffset >= ReturnValue.len) {
-      // TODO: test this condition properly.
       return NULLUsefulBufC;
    }
 
