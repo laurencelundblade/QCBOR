@@ -1,4 +1,17 @@
-This is the QCBOR 2.0 branch. It is under development and non ready for use.
+This is the QCBOR 2.0 branch. It is under development and not ready for use.
+
+The plan for QCBOR 2 is a few larger features:
+  - Map sorting
+  - Full canonical encoding support (CDE)
+  - Improved support for tag handling
+  - Perhaps other features like OID support
+  - Perhaps dCBOR support
+  - Improved test and verification
+  - Improved documentation
+  - Better presence in GitHub
+
+The improved tag handling is one of the largest work items and may change
+backwards compatibility.
 
 ![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
 
