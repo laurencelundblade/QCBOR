@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2022, Laurence Lundblade.
+ Copyright (c) 2018-2023, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -869,6 +869,188 @@ const char *UBAdvanceTest(void)
    UsefulOutBuf_Advance(&UOB, 1);
    if(!UsefulOutBuf_GetError(&UOB)) {
       return "Advance off end didn't set error";
+   }
+
+   return NULL;
+}
+
+
+const char * UOBExtraTests(void)
+{
+   #define COMPARE_TEST_SIZE 10
+   UsefulOutBuf_MakeOnStack( UOB, COMPARE_TEST_SIZE);
+   int                       nCompare;
+   UsefulBufC                Out;
+
+   /* Test UsefulOutBuf_Compare() */
+   UsefulOutBuf_AppendString(&UOB, "abcabdefab");
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 8);
+   if(nCompare != 0) {
+      return "ab should compare equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 3);
+   if(nCompare != 'd' - 'c') {
+      return "abc should not equal abd";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 3, 8);
+   if(nCompare != 0) {
+       return "ab should compare equal";
+    }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 2, 5);
+   if(nCompare != 'd' - 'c') {
+      return "ca should not equal de";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 5, 2);
+   if(nCompare != 'c' - 'd') {
+      return "de should not equal ca";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 7, 8);
+   if(nCompare !=  'a' - 'f') {
+      return "fa should not equal ab";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 0);
+   if(nCompare != 0) {
+      return "comparison to self failed";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 9, 9);
+   if(nCompare != 0) {
+      return "b should compare equal to b";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 10, 10);
+   if(nCompare != 0) {
+      return "Comparison off the end is equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 100);
+   if(nCompare != 0) {
+      return "Comparison off the end is equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 100, 0);
+   if(nCompare != 0) {
+      return "Comparison off the end is equal";
+   }
+
+   /* Test UsefulOutBuf_Swap() */
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 4, 8);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("efghabcd"))) {
+      return "swap fail 1";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 1, 2);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("bacdefgh"))) {
+      return "swap fail 2";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 1, 8);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("bcdefgha"))) {
+      return "swap fail 3";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 3, 4);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("dabcefgh"))) {
+      return "swap fail 4";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 9, 10, 11);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 5";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 4, 11);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 6";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 9, 0, 0);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 7";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 0, 0);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 8";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 8, 4, 0);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 9";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 8, 4);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 10";
+   }
+
+
+   /* Test for UsefulOutBuf_GetOutput() */
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abc");
+   UsefulOutBuf_AppendString(&UOB, "xyz");
+
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 0);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcxyz"))) {
+      return "GetOutput fail 1";
+   }
+
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 5);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("z"))) {
+      return "GetOutput fail 2";
+   }
+
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 1);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("bcxyz"))) {
+      return "GetOutput fail 3";
+   }
+
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 6);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "GetOutput fail 4";
+   }
+
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 7);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "GetOutput fail 5";
    }
 
    return NULL;

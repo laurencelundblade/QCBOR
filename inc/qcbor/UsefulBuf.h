@@ -1,6 +1,6 @@
 /*============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2022, Laurence Lundblade.
+ Copyright (c) 2018-2023, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 19/11/2023   llundblade      Add UsefulOutBuf_GetOutput().
+ 19/11/2023   llundblade      Add UsefulOutBuf_Swap().
+ 19/11/2023   llundblade      Add UsefulOutBuf_Compare().
  19/12/2022   llundblade      Document that adding empty data is allowed.
  4/11/2022    llundblade      Add GetOutPlace and Advance to UsefulOutBuf.
  9/21/2021    llundbla        Clarify UsefulOutBuf size calculation mode
@@ -853,7 +856,7 @@ typedef struct useful_out_buf {
 
 
 /**
- * @brief Initialize and supply the actual output buffer.
+ * @brief Initialize and supply the output buffer.
  *
  * @param[out] pUOutBuf  The @ref UsefulOutBuf to initialize.
  * @param[in] Storage    Buffer to output into.
@@ -1335,7 +1338,7 @@ UsefulOutBuf_Advance(UsefulOutBuf *pUOutBuf, size_t uAmount);
 
 
 /**
- *  @brief Returns the resulting valid data in a UsefulOutBuf
+ *  @brief Returns the data put into a UsefulOutBuf.
  *
  *  @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
  *
@@ -1353,7 +1356,7 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pUOutBuf);
 
 
 /**
- * @brief Copies the valid data into a supplied buffer
+ * @brief Copy out the data put into a UsefulOutBuf.
  *
  * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  * @param[out] Dest     The destination buffer to copy into.
@@ -1363,9 +1366,96 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pUOutBuf);
  *         state was entered.
  *
  * This is the same as UsefulOutBuf_OutUBuf() except it copies the
- * data to @c Dest.
+ * data to @c Dest rather than returning a pointer.
  */
 UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
+
+
+/**
+ * @brief Returns data starting at an offset that was put into a UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] uOffset    Offset to bytes to return.
+ *
+ * @return NULLUsefulBufC or the bytes at the offset.
+ *
+ * This is the same as UsefulOutBuf_OutUBuf() except a starting offset
+ * maybe specified. It returns the bytes starting at @c uOffset to the
+ * end of what was encoded so far. Calling this with @c uOffset 0 is
+ * equivalent to UsefulOutBuf_OutUBuf().
+ *
+ * If there's nothing at @c uOffset or it is past the in the output
+ * buffer, a \ref NULLUsefulBufC is returned.
+ *
+ * This is typically not needed in typical use. It is used by QCBOR
+ * along with UsefulOutBuf_Compare() and UsefulOutBuf_Swap() for
+ * sorting CBOR maps.
+ */
+UsefulBufC
+UsefulOutBuf_OutUBufOffset(UsefulOutBuf *pUOutBuf, size_t uOffset);
+
+
+/**
+ * @brief Compare bytes at offsets.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] uStart1   Offset of first bytes to compare.
+ * @param[in] uStart2  Offset of second bytes to compare.
+ *
+ * @return  0 for equality, positive if uStart1 is lexographically larger,
+ *          negative if uStart2 is lexographically larger.
+ *
+ * This looks into bytes that have been output at the offsets @c start1
+ * and @c start2. It compares bytes at those two starting points until
+ * they are not equal or the end of the output data is reached from
+ * one of the starting points.
+ *
+ * This returns positive when @c uStart1 lexographically sorts ahead
+ * of @c uStart2 and vice versa.  Zero is returned if the strings
+ * compare equally. This only happens when the end of the valid data
+ * is reached from one of the starting points and the comparison up to
+ * that point is equality.
+ *
+ * If either start is past the end of data in the output buffer, 0
+ * will be returned. It is the caller's responsibility to make sure
+ * the offsets are not off the end such that a comparison is actually
+ * being made. No data will ever be read off the end of the buffer so
+ * this safe no matter what offsets are passed.
+ *
+ * This is a relatively odd function in that it works on data in the
+ * output buffer. It is employed by QCBOR to sort CBOR-encoded maps that
+ * are in the output buffer.
+ */
+int UsefulOutBuf_Compare(UsefulOutBuf *pUOutBuf, size_t uStart1, size_t uStart2);
+
+
+/**
+ * @brief Swap two regions of output bytes.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] uStartOffset   Offset to start of bytes to be swapped.
+ * @param[in] uPivotOffset   Offset to pivot around which bytes are swapped.
+ * @param[in] uEndOffset       Offset to end of region to be swappe.
+ *
+ * This reaches into bytes that have been output and swaps two
+ * adjacent regions.
+ *
+ * If any of the offsets are outside the range of valid data, no
+ * swapping will be performed. If the start is not the smallest and
+ * the pivot is not in the middle no swapping will be performed.
+ *
+ * The byte at @c uStartOffset will participate in the swapping.  The
+ * byte at @c uEndOffset will not participate in the swapping, only
+ * the byte before it.
+ *
+ * This is a relatively odd function in that it works on data in the
+ * output buffer. It is employed by QCBOR to bubble sort encoded CBOR
+ * maps.
+ */
+void UsefulOutBuf_Swap(UsefulOutBuf *pUOutBuf,
+                       size_t        uStartOffset,
+                       size_t        uPivotOffset,
+                       size_t        uEndOffset);
 
 
 

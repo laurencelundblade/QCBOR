@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2023, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -1755,6 +1755,29 @@ static void QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
  is called.
  */
 static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
+
+
+/**
+ *  @brief Close and sort an open map.
+ *
+ * @param[in] pCtx The encoding context to close the map in .
+ *
+ * This is the same as QCBOREncode_CloseMap() except it sorts the map
+ * per RFC 8949 Section 4.2.1. This sort is lexicographic of the CBOR-
+ * encoded map labels.
+ *
+ * This is more expensive than most things in the encoder. It uses
+ * bubble sort which runs in n-squared time where n is the number of
+ * map items. Sorting large maps on slow CPUs might be slow. This is
+ * also increases the object code size of the encoder by about 30%.
+ *
+ * Bubble sort was selected so as to not need an extra buffer to track
+ * map item offsets. Bubble sort works well even though map items are
+ * not all the same size because it always swaps adjacent items.
+ */
+void QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pCtx);
+
+void QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pCtx);
 
 
 /**

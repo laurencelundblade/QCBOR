@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2022, Laurence Lundblade.
+ Copyright (c) 2018-2023, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -191,6 +191,9 @@ int32_t QCBORHeadTest(void);
  */
 int32_t OpenCloseBytesTest(void);
 
+
+/* Test map sorting */
+int32_t SortMapTest(void);
 
 
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */

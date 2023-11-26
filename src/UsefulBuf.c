@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2022, Laurence Lundblade.
+ Copyright (c) 2018-2023, Laurence Lundblade.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,9 +41,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 19/11/2023  llundblade   Add UsefulOutBuf_GetOutput().
+ 19/11/2023  llundblade   Add UsefulOutBuf_Swap().
+ 19/11/2023  llundblade   Add UsefulOutBuf_Compare().
  19/12/2022  llundblade   Don't pass NULL to memmove when adding empty data.
  4/11/2022   llundblade   Add GetOutPlace and Advance to UsefulOutBuf
- 3/6/2021     mcr/llundblade  Fix warnings related to --Wcast-qual
+ 3/6/2021    mcr/llundblade  Fix warnings related to --Wcast-qual
  01/28/2020  llundblade   Refine integer signedness to quiet static analysis.
  01/08/2020  llundblade   Documentation corrections & improved code formatting.
  11/08/2019  llundblade   Re check pointer math and update comments
@@ -424,3 +427,105 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pMe, size_t uAmount)
    return result;
 }
 
+
+/*
+ * Public function -- see UsefulBuf.h
+ *
+ * Code Reviewers: THIS FUNCTION DOES POINTER MATH
+ */
+int UsefulOutBuf_Compare(UsefulOutBuf *me, size_t uStart1, size_t uStart2)
+{
+   const uint8_t *pBase;
+   const uint8_t *pEnd;
+   const uint8_t *p1;
+   const uint8_t *p2;
+   int            uComparison;
+
+   pBase = me->UB.ptr;
+   pEnd = (const uint8_t *)pBase + me->data_len;
+   p1   = pBase + uStart1;
+   p2   = pBase + uStart2;
+
+   uComparison = 0;
+   while(p1 < pEnd && p2 < pEnd) {
+      uComparison = *p2 - *p1;
+      if(uComparison != 0) {
+         break;;
+      }
+      p1++;
+      p2++;
+   }
+
+   return uComparison;
+}
+
+
+/**
+ * @brief Reverse order of bytes in a buffer.
+ *
+ * This reverses bytes starting at pStart, up to, but not including
+ * the byte at pEnd
+ */
+static void
+UsefulOutBuf_Private_ReverseBytes(uint8_t *pStart, uint8_t *pEnd)
+{
+   uint8_t uTmp;
+
+   while(pStart < pEnd) {
+      pEnd--;
+      uTmp     = *pStart;
+      *pStart = *pEnd;
+      *pEnd   = uTmp;
+      pStart++;
+   }
+}
+
+
+/*
+ * Public function -- see UsefulBuf.h
+ *
+ * Code Reviewers: THIS FUNCTION DOES POINTER MATH
+ */
+void UsefulOutBuf_Swap(UsefulOutBuf *pMe, size_t uStartOffset, size_t uPivotOffset, size_t uEndOffset)
+{
+   uint8_t *pBase;
+
+   if(uStartOffset > pMe->data_len || uPivotOffset > pMe->data_len || uEndOffset > pMe->data_len) {
+      return;
+   }
+
+   if(uStartOffset > uPivotOffset || uStartOffset > uEndOffset || uPivotOffset > uEndOffset) {
+      return;
+   }
+
+   /* This is the "reverse" algorithm to swap two memory regions */
+   pBase = pMe->UB.ptr;
+   UsefulOutBuf_Private_ReverseBytes(pBase + uStartOffset, pBase + uPivotOffset);
+   UsefulOutBuf_Private_ReverseBytes(pBase + uPivotOffset, pBase + uEndOffset);
+   UsefulOutBuf_Private_ReverseBytes(pBase + uStartOffset, pBase + uEndOffset);
+}
+
+
+/*
+ * Public function -- see UsefulBuf.h
+ */
+UsefulBufC
+UsefulOutBuf_OutUBufOffset(UsefulOutBuf *pMe, size_t uOffset)
+{
+   UsefulBufC ReturnValue;
+
+   ReturnValue = UsefulOutBuf_OutUBuf(pMe);
+
+   if(UsefulBuf_IsNULLC(ReturnValue)) {
+      return NULLUsefulBufC;
+   }
+
+   if(uOffset >= ReturnValue.len) {
+      return NULLUsefulBufC;
+   }
+
+   ReturnValue.ptr = (const uint8_t *)ReturnValue.ptr + uOffset;
+   ReturnValue.len -= uOffset;
+
+   return ReturnValue;
+}
