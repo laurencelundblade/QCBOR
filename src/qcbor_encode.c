@@ -1112,7 +1112,6 @@ QCBOREncodePriv_DecodeNextInMap(QCBOREncodeContext *pMe, uint32_t uStart)
    UsefulBufC     EncodedMapBytes;
    QCBORError     uCBORError;
 
-
    EncodedMapBytes = UsefulOutBuf_OutUBufOffset(&(pMe->OutBuf), uStart);
    if(UsefulBuf_IsNULLC(EncodedMapBytes)) {
       return 0;
@@ -1130,7 +1129,7 @@ QCBOREncodePriv_DecodeNextInMap(QCBOREncodeContext *pMe, uint32_t uStart)
       return 0;
    }
 
-   /* Cast is safe because this QCBOR which limits sizes to UINT32_MAX */
+   /* Cast is safe because this is QCBOR which limits sizes to UINT32_MAX */
    return (uint32_t)UsefulInputBuf_Tell(&InBuf);
 }
 
