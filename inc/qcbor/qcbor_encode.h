@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2023, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -1697,6 +1697,8 @@ static void QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabe
 static void QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
 
 
+
+
 /**
  @brief  Indicates that the next items added are in a map.
 
@@ -1755,6 +1757,72 @@ static void QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
  is called.
  */
 static void QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief Indicates that the next items added are in an indefinite length array.
+ *
+ * @param[in] pCtx The encoding context to open the array in.
+ *
+ * This is the same as QCBOREncode_OpenArray() except the array is
+ * indefinite length.
+ *
+ * This must be closed with QCBOREncode_CloseArrayIndefiniteLength().
+ */
+static void QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pCtx);
+
+static void QCBOREncode_OpenArrayIndefiniteLengthInMap(QCBOREncodeContext *pCtx,
+                                                       const char         *szLabel);
+
+static void
+QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
+                                            int64_t            nLabel);
+
+
+/**
+ * @brief Close an open indefinite length array.
+ *
+ * @param[in] pCtx The encoding context to close the array in.
+ *
+ * This is the same as QCBOREncode_CloseArray(), but the open array
+ * that is being close must be of indefinite length.
+ */
+static void
+QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief Indicates that the next items added are in an indefinite length map.
+ *
+ * @param[in] pCtx The encoding context to open the map in.
+ *
+ * This is the same as QCBOREncode_OpenMap() except the array is
+ * indefinite length.
+ *
+ * This must be closed with QCBOREncode_CloseMapIndefiniteLength().
+ */
+static void QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pCtx);
+
+static void QCBOREncode_OpenMapIndefiniteLengthInMap(QCBOREncodeContext *pCtx,
+                                                     const char         *szLabel);
+
+static void
+QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
+                                          int64_t            nLabel);
+
+
+/**
+ * @brief Close an open indefinite length map.
+ *
+ * @param[in] pCtx The encoding context to close the map in.
+ *
+ * This is the same as QCBOREncode_CloseMap(), but the open map that
+ * is being close must be of indefinite length.
+ */
+static  void
+QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
+
+
 
 
 /**
