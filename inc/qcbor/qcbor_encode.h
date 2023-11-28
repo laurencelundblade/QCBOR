@@ -1785,7 +1785,7 @@ QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
  * @param[in] pCtx The encoding context to close the array in.
  *
  * This is the same as QCBOREncode_CloseArray(), but the open array
- * that is being close must be indefinite length.
+ * that is being close must be of indefinite length.
  */
 static void
 QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pCtx);
@@ -1817,7 +1817,7 @@ QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
  * @param[in] pCtx The encoding context to close the map in.
  *
  * This is the same as QCBOREncode_CloseMap(), but the open map that
- * is being close must be indefinite length.
+ * is being close must be of indefinite length.
  */
 static  void
 QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
