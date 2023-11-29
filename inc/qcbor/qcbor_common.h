@@ -52,24 +52,27 @@ extern "C" {
 
 
 /**
- * This define indicates QCBOR v1.1.
+ * Semantic versioning for QCBOR x.y.z from 1.3.0 on
  *
- * There are no backwards compatibiliy issues with QCBOR 1.0.
- *
- * The only new API is QCBOREncode_OpenBytes() and related.
+ * Note:
+ *   - QCBOR 1.2 is indicated by the #define QCBOR_1_2
+ *   - QCBOR 1.1 is indicated by the #define QCBOR_1_1
+ *   - QCBOR 1.0 is indicated by the absence of all the above
  */
-#define QCBOR_1_1
+#define QCBOR_VERSION_MAJOR 2
+#define QCBOR_VERSION_MINOR 0
+#define QCBOR_VERSION_PATCH 0
 
 
 /**
- This define indicates a version of QCBOR that supports spiffy decode,
- the decode functions found in qcbor_spiffy_decode.h.
-
- Versions of QCBOR that support spiffy decode are backwards compatible
- with previous versions, but there are a few minor exceptions such as
- some aspects of tag handling that are different. This define can be
- used handle these variances.
-*/
+ * This define indicates a version of QCBOR that supports spiffy
+ * decode, the decode functions found in qcbor_spiffy_decode.h.
+ *
+ * Versions of QCBOR that support spiffy decode are backwards
+ * compatible with previous versions, but there are a few minor
+ * exceptions such as some aspects of tag handling that are
+ * different. This define can be used to handle these variances.
+ */
 #define QCBOR_SPIFFY_DECODE
 
 
