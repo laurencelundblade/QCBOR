@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2023, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -38,6 +38,7 @@
 
 #include <stdint.h>
 #include "UsefulBuf.h"
+#include "qcbor/qcbor_common.h"
 
 
 #ifdef __cplusplus
@@ -72,8 +73,8 @@ extern "C" {
 
 
 /*
- These are special values for the AdditionalInfo bits that are part of
- the first byte.  Mostly they encode the length of the data item.
+ * These are special values for the AdditionalInfo bits that are part of
+ * the first byte.  Mostly they encode the length of the data item.
  */
 #define LEN_IS_ONE_BYTE    24
 #define LEN_IS_TWO_BYTES   25
@@ -86,16 +87,14 @@ extern "C" {
 
 
 /*
- 24 is a special number for CBOR. Integers and lengths
- less than it are encoded in the same byte as the major type.
+ * 24 is a special number for CBOR. Integers and lengths
+ * less than it are encoded in the same byte as the major type.
  */
 #define CBOR_TWENTY_FOUR   24
 
 
-
-
 /*
- Values for the 5 bits for items of major type 7
+ * Values for the 5 bits for items of major type 7
  */
 #define CBOR_SIMPLEV_FALSE   20
 #define CBOR_SIMPLEV_TRUE    21
@@ -111,56 +110,49 @@ extern "C" {
 
 
 
-/*
- The maxium nesting of arrays and maps when encoding or decoding.
- (Further down in the file there is a definition that refers to this
- that is public. This is done this way so there can be a nice
- separation of public and private parts in this file.
-*/
-#define QCBOR_MAX_ARRAY_NESTING1 15 // Do not increase this over 255
-
-
 /* The largest offset to the start of an array or map. It is slightly
- less than UINT32_MAX so the error condition can be tested on 32-bit machines.
- UINT32_MAX comes from uStart in QCBORTrackNesting being a uin32_t.
-
- This will cause trouble on a machine where size_t is less than 32-bits.
+ * less than UINT32_MAX so the error condition can be tested on 32-bit
+ * machines.  UINT32_MAX comes from uStart in QCBORTrackNesting being
+ * a uin32_t.
+ *
+ * This will cause trouble on a machine where size_t is less than 32-bits.
  */
 #define QCBOR_MAX_ARRAY_OFFSET  (UINT32_MAX - 100)
 
 
 /* The number of tags that are 16-bit or larger that can be handled
- in a decode.
+ * in a decode.
  */
 #define QCBOR_NUM_MAPPED_TAGS 4
 
 /* The number of tags (of any size) recorded for an individual item. */
 #define QCBOR_MAX_TAGS_PER_ITEM1 4
 
+
 /*
- Convenience macro for selecting the proper return value in case floating
- point feature(s) are disabled.
-
- The macros:
-
-   FLOAT_ERR_CODE_NO_FLOAT(x) Can be used when disabled floating point should
-                              result error, and all other cases should return
-                              'x'.
-
-   The below macros always return QCBOR_ERR_ALL_FLOAT_DISABLED when all floating
-   point is disabled.
-
-   FLOAT_ERR_CODE_NO_HALF_PREC(x) Can be used when disabled preferred float
-                                  results in error, and all other cases should
-                                  return 'x'.
-   FLOAT_ERR_CODE_NO_FLOAT_HW(x) Can be used when disabled hardware floating
-                                 point results in error, and all other cases
-                                 should return 'x'.
-   FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) Can be used when either disabled
-                                              preferred float or disabling
-                                              hardware floating point results in
-                                              error, and all other cases should
-                                              return 'x'.
+ * Convenience macro for selecting the proper return value in case floating
+ * point feature(s) are disabled.
+ *
+ * The macros:
+ *
+ *  FLOAT_ERR_CODE_NO_FLOAT(x) Can be used when disabled floating point should
+ *                              result error, and all other cases should return
+ *                             'x'.
+ *
+ *  The below macros always return QCBOR_ERR_ALL_FLOAT_DISABLED when all
+ *  floating point is disabled.
+ *
+ *  FLOAT_ERR_CODE_NO_HALF_PREC(x) Can be used when disabled preferred float
+ *                                 results in error, and all other cases should
+ *                                 return 'x'.
+ *  FLOAT_ERR_CODE_NO_FLOAT_HW(x) Can be used when disabled hardware floating
+ *                                point results in error, and all other cases
+ *                                should return 'x'.
+ *  FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) Can be used when either disabled
+ *                                             preferred float or disabling
+ *                                             hardware floating point results in
+ *                                             error, and all other cases should
+ *                                             return 'x'.
  */
 #ifdef USEFULBUF_DISABLE_ALL_FLOAT
    #define FLOAT_ERR_CODE_NO_FLOAT(x)                 QCBOR_ERR_ALL_FLOAT_DISABLED
@@ -189,19 +181,20 @@ extern "C" {
 
 
 /*
- PRIVATE DATA STRUCTURE
-
- Holds the data for tracking array and map nesting during encoding. Pairs up
- with the Nesting_xxx functions to make an "object" to handle nesting encoding.
-
- uStart is a uint32_t instead of a size_t to keep the size of this
- struct down so it can be on the stack without any concern.  It would be about
- double if size_t was used instead.
-
- Size approximation (varies with CPU/compiler):
-    64-bit machine: (15 + 1) * (4 + 2 + 1 + 1 pad) + 8 = 136 bytes
-    32-bit machine: (15 + 1) * (4 + 2 + 1 + 1 pad) + 4 = 132 bytes
-*/
+ * PRIVATE DATA STRUCTURE
+ *
+ * Holds the data for tracking array and map nesting during
+ * encoding. Pairs up with the Nesting_xxx functions to make an
+ * "object" to handle nesting encoding.
+ *
+ * uStart is a uint32_t instead of a size_t to keep the size of this
+ * struct down so it can be on the stack without any concern.  It
+ * would be about double if size_t was used instead.
+ *
+ * Size approximation (varies with CPU/compiler):
+ *    64-bit machine: (15 + 1) * (4 + 2 + 1 + 1 pad) + 8 = 136 bytes
+ *   32-bit machine: (15 + 1) * (4 + 2 + 1 + 1 pad) + 4 = 132 bytes
+ */
 typedef struct __QCBORTrackNesting {
    // PRIVATE DATA STRUCTURE
    struct {
@@ -210,21 +203,21 @@ typedef struct __QCBORTrackNesting {
       uint16_t  uCount;   // Number of items in the arrary or map; counts items
                           // in a map, not pairs of items
       uint8_t   uMajorType; // Indicates if item is a map or an array
-   } pArrays[QCBOR_MAX_ARRAY_NESTING1+1], // stored state for the nesting levels
+   } pArrays[QCBOR_MAX_ARRAY_NESTING+1], // stored state for the nesting levels
    *pCurrentNesting; // the current nesting level
 } QCBORTrackNesting;
 
 
 /*
- PRIVATE DATA STRUCTURE
-
- Context / data object for encoding some CBOR. Used by all encode functions to
- form a public "object" that does the job of encdoing.
-
- Size approximation (varies with CPU/compiler):
-   64-bit machine: 27 + 1 (+ 4 padding) + 136 = 32 + 136 = 168 bytes
-   32-bit machine: 15 + 1 + 132 = 148 bytes
-*/
+ * PRIVATE DATA STRUCTURE
+ *
+ * Context / data object for encoding some CBOR. Used by all encode
+ * functions to form a public "object" that does the job of encdoing.
+ *
+ * Size approximation (varies with CPU/compiler):
+ *   64-bit machine: 27 + 1 (+ 4 padding) + 136 = 32 + 136 = 168 bytes
+ *  32-bit machine: 15 + 1 + 132 = 148 bytes
+ */
 struct _QCBOREncodeContext {
    // PRIVATE DATA STRUCTURE
    UsefulOutBuf      OutBuf;  // Pointer to output buffer, its length and
@@ -235,20 +228,20 @@ struct _QCBOREncodeContext {
 
 
 /*
- PRIVATE DATA STRUCTURE
-
- Holds the data for array and map nesting for decoding work. This
- structure and the DecodeNesting_Xxx() functions in qcbor_decode.c
- form an "object" that does the work for arrays and maps. All access
- to this structure is through DecodeNesting_Xxx() functions.
-
- 64-bit machine size
-   128 = 16 * 8 for the two unions
-   64  = 16 * 4 for the uLevelType, 1 byte padded to 4 bytes for alignment
-   16  = 16 bytes for two pointers
-   208 TOTAL
-
- 32-bit machine size is 200 bytes
+ * PRIVATE DATA STRUCTURE
+ *
+ * Holds the data for array and map nesting for decoding work. This
+ * structure and the DecodeNesting_Xxx() functions in qcbor_decode.c
+ * form an "object" that does the work for arrays and maps. All access
+ * to this structure is through DecodeNesting_Xxx() functions.
+ *
+ * 64-bit machine size
+ *   128 = 16 * 8 for the two unions
+ *   64  = 16 * 4 for the uLevelType, 1 byte padded to 4 bytes for alignment
+ *   16  = 16 bytes for two pointers
+ *   208 TOTAL
+ *
+ * 32-bit machine size is 200 bytes
  */
 typedef struct __QCBORDecodeNesting  {
    // PRIVATE DATA STRUCTURE
@@ -305,7 +298,7 @@ typedef struct __QCBORDecodeNesting  {
             uint32_t uBstrStartOffset;
          } bs; /* for top-level sequence and bstr-wrapped CBOR */
       } u;
-   } pLevels[QCBOR_MAX_ARRAY_NESTING1+1],
+   } pLevels[QCBOR_MAX_ARRAY_NESTING+1],
     *pCurrent,
     *pCurrentBounded;
    /*
@@ -334,14 +327,14 @@ typedef struct  {
 
 
 /*
- PRIVATE DATA STRUCTURE
-
- The decode context. This data structure plus the public QCBORDecode_xxx
- functions form an "object" that does CBOR decoding.
-
- Size approximation (varies with CPU/compiler):
-   64-bit machine: 32 + 1 + 1 + 6 bytes padding + 72 + 16 + 8 + 8 = 144 bytes
-   32-bit machine: 16 + 1 + 1 + 2 bytes padding + 68 +  8 + 8 + 4 = 108 bytes
+ * PRIVATE DATA STRUCTURE
+ *
+ * The decode context. This data structure plus the public QCBORDecode_xxx
+ * functions form an "object" that does CBOR decoding.
+ *
+ * Size approximation (varies with CPU/compiler):
+ *  64-bit machine: 32 + 1 + 1 + 6 bytes padding + 72 + 16 + 8 + 8 = 144 bytes
+ *  32-bit machine: 16 + 1 + 1 + 2 bytes padding + 68 +  8 + 8 + 4 = 108 bytes
  */
 struct _QCBORDecodeContext {
    // PRIVATE DATA STRUCTURE
@@ -369,7 +362,7 @@ struct _QCBORDecodeContext {
 
    uint8_t  uDecodeMode;
    uint8_t  bStringAllocateAll;
-   uint8_t  uLastError;  // QCBORError stuffed into a uint8_t
+   uint8_t  uLastError;  /* QCBORError stuffed into a uint8_t */
 
    /* See MapTagNumber() for description of how tags are mapped. */
    uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
@@ -378,12 +371,13 @@ struct _QCBORDecodeContext {
 
 };
 
-// Used internally in the impementation here
-// Must not conflict with any of the official CBOR types
-#define CBOR_MAJOR_NONE_TYPE_RAW  9
-#define CBOR_MAJOR_NONE_TAG_LABEL_REORDER 10
+/* Used internally in the impementation here
+ * Must not conflict with any of the official CBOR types
+ */
+#define CBOR_MAJOR_NONE_TYPE_RAW            9
+#define CBOR_MAJOR_NONE_TAG_LABEL_REORDER  10
 #define CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY 11
-#define CBOR_MAJOR_NONE_TYPE_OPEN_BSTR 12
+#define CBOR_MAJOR_NONE_TYPE_OPEN_BSTR     12
 
 
 // Add this to types to indicate they are to be encoded as indefinite lengths

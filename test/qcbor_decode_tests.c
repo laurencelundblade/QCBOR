@@ -1011,7 +1011,7 @@ int32_t ParseTooDeepArrayTest(void)
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooDeepArrays),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   for(i = 0; i < QCBOR_MAX_ARRAY_NESTING1; i++) {
+   for(i = 0; i < QCBOR_MAX_ARRAY_NESTING; i++) {
 
       if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
          Item.uDataType != QCBOR_TYPE_ARRAY ||
