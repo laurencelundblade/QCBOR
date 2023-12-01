@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -62,8 +62,8 @@ extern "C" {
  * Encoded CBOR has a tree structure where the leaf nodes are
  * non-aggregate types like integers and strings and the intermediate
  * nodes are either arrays or maps. Fundamentally, CBOR decoding is a
- * pre-order traversal of this tree with CBOR sequences a minor ex
- * *ception. Calling QCBORDecode_GetNext() repeatedly will perform
+ * pre-order traversal of this tree with CBOR sequences a minor
+ * exception. Calling QCBORDecode_GetNext() repeatedly will perform
  * this. It is possible to decode any CBOR by only calling
  * QCBORDecode_GetNext(), though this doesn't take advantage of many
  * QCBOR features.
@@ -162,6 +162,23 @@ extern "C" {
  * item being sought, in which case the unrecoverable error will be
  * returned. Unrecoverable errors are those indicated by
  * QCBORDecode_IsUnrecoverableError().
+ *
+ * @anchor Disabilng-Tag-Decoding
+ * # Disabilng Tag Decoding
+ *
+ * If QCBOR_DISABLE_TAGS is defined, all code for decoding tags will
+ * be omitted reducing the core decoder, QCBORDecode_VGetNext(), by
+ * about 400 bytes. If a tag number is encountered in the decoder
+ * input the unrecoverable error @ref QCBOR_ERR_TAGS_DISABLED will be
+ * returned.  No input with tags can be decoded.
+ *
+ * Decode functions like QCBORDecode_GetEpochDate() and
+ * QCBORDecode_GetDecimalFraction() that can decode the tag content
+ * even if the tag number is absent are still available.  Typically
+ * they won't be linked in because of dead stripping. The 
+ * @c uTagRequirement parameter has no effect, but if it is
+ * @ref QCBOR_TAG_REQUIREMENT_TAG, @ref QCBOR_ERR_TAGS_DISABLED
+ * will be set.
  */
 
 /**
@@ -481,6 +498,7 @@ typedef struct _QCBORItem {
       uint64_t    uint64;
    } label;
 
+#ifndef QCBOR_DISABLE_TAGS
    /**
     * The tags numbers for which the item is the tag content.  Tags
     * nest, so index 0 in the array is the tag on the data item
@@ -502,6 +520,7 @@ typedef struct _QCBORItem {
     * having to reference this array. Also see @ref Tags-Overview.
     */
    uint16_t uTags[QCBOR_MAX_TAGS_PER_ITEM];
+#endif
 
 } QCBORItem;
 
@@ -896,7 +915,7 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * | @ref QCBOR_ERR_TOO_MANY_TAGS                 | Tag nesting deeper than limit, typically 4 |
  * | __Configuration errors__  ||
  * | @ref QCBOR_ERR_NO_STRING_ALLOCATOR        | Encountered indefinite-length string with no allocator configured |
- * | @ref QCBOR_ERR_MAP_LABEL_TYPE             | A map label this is not a string on an integer |
+ * | @ref QCBOR_ERR_MAP_LABEL_TYPE             | A map label that is not a string on an integer |
  * | @ref QCBOR_ERR_HALF_PRECISION_DISABLED    | Library compiled with half-precision disabled and half-precision input encountered |
  * | @ref QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  | Library compiled with indefinite maps and arrays  disabled and indefinite map or array encountered |
  * | @ref QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED | Library compiled with indefinite strings disabled and indefinite string encountered |
@@ -1167,6 +1186,10 @@ static bool QCBORDecode_IsNotWellFormedError(QCBORError uErr);
  * errors like incorrect lengths or array counts are
  * unrecoverable. Unrecoverable errors also occur when implementation
  * limits such as the limit on array and map nesting are encountered.
+ * When the built-in decoding of a tag like an epoch date encounters
+ * an error such as a data item of an unexpected type, this is also an
+ * unrecoverable error because the internal decoding doesn't try to
+ * decode everything in the tag.
  *
  * The unrecoverable errors are a range of the errors in
  * @ref QCBORError.

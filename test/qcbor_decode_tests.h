@@ -313,5 +313,9 @@ Test decoding of booleans
 */
 int32_t BoolTest(void);
 
+/*
+Test GitHub issue #134: decode an indefinite-length string with a zero-length first chunk.
+*/
+int32_t CBORTestIssue134(void);
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

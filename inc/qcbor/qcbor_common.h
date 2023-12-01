@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -36,6 +36,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define qcbor_common_h
 
 
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} // Keep editor indention formatting happy
+#endif
+#endif
+
+
 /**
  * @file qcbor_common.h
  *
@@ -45,15 +53,66 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /**
+ * Semantic versioning for QCBOR x.y.z from 1.3.0 on
+ *
+ * Note:
+ *   - QCBOR 1.2 is indicated by the #define QCBOR_1_2
+ *   - QCBOR 1.1 is indicated by the #define QCBOR_1_1
+ *   - QCBOR 1.0 is indicated by the absence of all the above
+ */
+#define QCBOR_VERSION_MAJOR 1
+#define QCBOR_VERSION_MINOR 3
+#define QCBOR_VERSION_PATCH 0
+
+
+/**
  * This define indicates a version of QCBOR that supports spiffy
  * decode, the decode functions found in qcbor_spiffy_decode.h.
-
+ *
  * Versions of QCBOR that support spiffy decode are backwards
  * compatible with previous versions, but there are a few minor
  * exceptions such as some aspects of tag handling that are
- * different. This define can be used handle these variances.
-*/
+ * different. This define can be used to handle these variances.
+ */
 #define QCBOR_SPIFFY_DECODE
+
+
+
+/* Standard CBOR Major type for positive integers of various lengths */
+#define CBOR_MAJOR_TYPE_POSITIVE_INT 0
+
+/* Standard CBOR Major type for negative integer of various lengths */
+#define CBOR_MAJOR_TYPE_NEGATIVE_INT 1
+
+/* Standard CBOR Major type for an array of arbitrary 8-bit bytes. */
+#define CBOR_MAJOR_TYPE_BYTE_STRING  2
+
+/* Standard CBOR Major type for a UTF-8 string. Note this is true 8-bit UTF8
+ with no encoding and no NULL termination */
+#define CBOR_MAJOR_TYPE_TEXT_STRING  3
+
+/* Standard CBOR Major type for an ordered array of other CBOR data items */
+#define CBOR_MAJOR_TYPE_ARRAY        4
+
+/* Standard CBOR Major type for CBOR MAP. Maps an array of pairs. The
+ first item in the pair is the "label" (key, name or identfier) and the second
+ item is the value.  */
+#define CBOR_MAJOR_TYPE_MAP          5
+
+/* Standard CBOR major type for a tag number. This creates a CBOR "tag" that
+ * is the tag number and a data item that follows as the tag content.
+ *
+ * Note that this was called an optional tag in RFC 7049, but there's
+ * not really anything optional about it. It was misleading. It is
+ * renamed in RFC 8949.
+ */
+#define CBOR_MAJOR_TYPE_TAG          6
+#define CBOR_MAJOR_TYPE_OPTIONAL     6
+
+/* Standard CBOR extra simple types like floats and the values true and false */
+#define CBOR_MAJOR_TYPE_SIMPLE       7
+
+
 
 
 /*
@@ -81,6 +140,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  recipient identification. See [RFC 8152, COSE]
  *  (https://tools.ietf.org/html/rfc8152). No API is provided for this
  *  tag. */
+#define CBOR_TAG_COSE_ENCRYPT0 16
 #define CBOR_TAG_COSE_ENCRYPTO 16
 /** Not Decoded by QCBOR. Tag for COSE format MAC'd data with no
  *  recipient identification. See [RFC 8152, COSE]
@@ -136,14 +196,17 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Not Decoded by QCBOR. Tag for COSE format encrypt. See [RFC 8152, COSE]
  *  (https://tools.ietf.org/html/rfc8152). No API is provided for this
  *  tag. */
+#define CBOR_TAG_COSE_ENCRYPT  96
 #define CBOR_TAG_ENCRYPT       96
 /** Not Decoded by QCBOR. Tag for COSE format MAC. See [RFC 8152, COSE]
- *  (https://tools.ietf.org/html/rfc8152). No API is provided for this
- *  tag. */
+    (https://tools.ietf.org/html/rfc8152). No API is provided for this
+    tag. */
+#define CBOR_TAG_COSE_MAC      97
 #define CBOR_TAG_MAC           97
 /** Not Decoded by QCBOR. Tag for COSE format signed data. See [RFC 8152, COSE]
- *  (https://tools.ietf.org/html/rfc8152). No API is provided for this
- *  tag. */
+    (https://tools.ietf.org/html/rfc8152). No API is provided for this
+    tag. */
+#define CBOR_TAG_COSE_SIGN     98
 #define CBOR_TAG_SIGN          98
 /** Tag for date counted by days from Jan 1 1970 per [RFC 8943]
  *  (https://tools.ietf.org/html/rfc8943). See
@@ -175,18 +238,19 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /**
  * Error codes returned by QCBOR Encoder and Decoder.
- * Encode errors are 1..8
- * Decode errors are 9..43
- *     Not well-formed errors are 9..16
- *     Unrecoverable decode errors are 15..24
- *        (partial overlap with not well-formed errors)
- *   Other decode errors are 25..43
  *
- * The errors are ordered and grouped intentionally to keep the code size
- * of QCBORDecode_IsNotWellFormedError() and
- * QCBORDecode_IsUnrecoverableError() minimal. Error renumbering may
- * occur in the future when new error codes are added for new QCBOR
- * features.
+ * The errors are grouped to keep the code size of
+ * QCBORDecode_IsNotWellFormedError() and
+ * QCBORDecode_IsUnrecoverableError() minimal.
+ *
+ *    1..19: Encode errors
+ *    20..: Decode errors
+ *    20-39: QCBORDecode_IsNotWellFormedError()
+ *    30..59: QCBORDecode_IsUnrecoverableError()
+ *    60..: Other decode errors
+ *
+ * Error renumbering may occur in the future when new error codes are
+ * added for new QCBOR features.
  */
 typedef enum {
    /** The encode or decode completely correctly. */
@@ -226,44 +290,54 @@ typedef enum {
    QCBOR_ERR_TOO_MANY_CLOSES = 7,
 
    /** During encoding the number of array or map opens was not
-    *  matched by the number of closes. */
+       matched by the number of closes. Also occurs with opened
+       byte strings that are not closed. */
    QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN = 8,
 
-#define QCBOR_START_OF_NOT_WELL_FORMED_ERRORS 9
+   /** During encode, opening a byte string while a byte string is open
+       is not allowed. . */
+   QCBOR_ERR_OPEN_BYTE_STRING = 9,
+
+   /** Trying to cancel a byte string wrapping after items have been
+    *  added to it. */
+   QCBOR_ERR_CANNOT_CANCEL = 10,
+
+#define QCBOR_START_OF_NOT_WELL_FORMED_ERRORS 20
 
    /** During decoding, the CBOR is not well-formed because a simple
-    *  value between 0 and 31 is encoded in a two-byte integer rather
-    *  than one. */
-   QCBOR_ERR_BAD_TYPE_7 = 9,
+    *   value between 0 and 31 is encoded in a two-byte integer rather
+    *   than one. */
+   QCBOR_ERR_BAD_TYPE_7 = 20,
 
    /** During decoding, returned by QCBORDecode_Finish() if all the
     *  inputs bytes have not been consumed. This is considered not
     *  well-formed. */
-   QCBOR_ERR_EXTRA_BYTES = 10,
+   QCBOR_ERR_EXTRA_BYTES = 21,
 
    /** During decoding, some CBOR construct was encountered that this
     *  decoder doesn't support, primarily this is the reserved
     *  additional info values, 28 through 30. The CBOR is not
-    *  well-formed.*/
-   QCBOR_ERR_UNSUPPORTED = 11,
+    *  well-formed.
+    */
+   QCBOR_ERR_UNSUPPORTED = 22,
 
    /** During decoding, the an array or map was not fully consumed.
     *  Returned by QCBORDecode_Finish(). The CBOR is not
     *  well-formed. */
-   QCBOR_ERR_ARRAY_OR_MAP_UNCONSUMED = 12,
+   QCBOR_ERR_ARRAY_OR_MAP_UNCONSUMED = 23,
 
    /** During decoding, an integer type is encoded with a bad length
     *  (that of an indefinite length string). The CBOR is not-well
     *  formed. */
-   QCBOR_ERR_BAD_INT = 13,
+   QCBOR_ERR_BAD_INT = 24,
 
-#define QCBOR_START_OF_UNRECOVERABLE_DECODE_ERRORS 14
+#define QCBOR_START_OF_UNRECOVERABLE_DECODE_ERRORS 30
 
    /** During decoding, one of the chunks in an indefinite-length
     *  string is not of the type of the start of the string.  The CBOR
     *  is not well-formed.  This error makes no further decoding
     *  possible. */
-   QCBOR_ERR_INDEFINITE_STRING_CHUNK = 14,
+   QCBOR_ERR_INDEFINITE_STRING_CHUNK = 30,
 
    /** During decoding, hit the end of the given data to decode. For
     *  example, a byte string of 100 bytes was expected, but the end
@@ -271,19 +345,19 @@ typedef enum {
     *  CBOR input will often result in this error. See also @ref
     *  QCBOR_ERR_NO_MORE_ITEMS. The CBOR is not well-formed.  This
     *  error makes no further decoding possible. */
-   QCBOR_ERR_HIT_END = 15,
+   QCBOR_ERR_HIT_END = 31,
 
    /** During decoding, a break occurred outside an indefinite-length
     *  item. The CBOR is not well-formed. This error makes no further
     *  decoding possible. */
-   QCBOR_ERR_BAD_BREAK = 16,
+   QCBOR_ERR_BAD_BREAK = 32,
 
-#define QCBOR_END_OF_NOT_WELL_FORMED_ERRORS 16
+#define QCBOR_END_OF_NOT_WELL_FORMED_ERRORS 39
 
    /** During decoding, the input is too large. It is greater than
     *  QCBOR_MAX_DECODE_INPUT_SIZE. This is an implementation limit.
     *  This error makes no further decoding possible. */
-   QCBOR_ERR_INPUT_TOO_LARGE = 17,
+   QCBOR_ERR_INPUT_TOO_LARGE = 40,
 
    /** During decoding, the array or map nesting was deeper than this
     *  implementation can handle. Note that in the interest of code
@@ -291,13 +365,13 @@ typedef enum {
     *  array nesting. The limit is defined as the constant @ref
     *  QCBOR_MAX_ARRAY_NESTING. This error makes no further decoding
     *  possible. */
-   QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP = 18,
+   QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP = 41,
 
    /** During decoding, the array or map had too many items in it.
     *  This limit @ref QCBOR_MAX_ITEMS_IN_ARRAY, typically 65,534,
     *  UINT16_MAX - 1. This error makes no further decoding
     *  possible. */
-   QCBOR_ERR_ARRAY_DECODE_TOO_LONG = 19,
+   QCBOR_ERR_ARRAY_DECODE_TOO_LONG = 42,
 
    /** When decoding, a string's size is greater than what a size_t
     *  can hold less 4. In all but some very strange situations this
@@ -305,25 +379,55 @@ typedef enum {
     *  such. The strange situation is a CPU with a very small size_t
     *  (e.g., a 16-bit CPU) and a large string (e.g., > 65KB). This
     *  error makes no further decoding possible. */
-   QCBOR_ERR_STRING_TOO_LONG = 20,
+   QCBOR_ERR_STRING_TOO_LONG = 43,
 
    /** Something is wrong with a decimal fraction or bigfloat such as
     *  it not consisting of an array with two integers. This error
     *  makes no further decoding possible. */
-   QCBOR_ERR_BAD_EXP_AND_MANTISSA = 21,
+   QCBOR_ERR_BAD_EXP_AND_MANTISSA = 44,
 
    /** Unable to decode an indefinite-length string because no string
     *  allocator was configured. See QCBORDecode_SetMemPool() or
     *  QCBORDecode_SetUpAllocator().  This error makes no further
     *  decoding possible.*/
-   QCBOR_ERR_NO_STRING_ALLOCATOR = 22,
+   QCBOR_ERR_NO_STRING_ALLOCATOR = 45,
 
    /** Error allocating space for a string, usually for an
     *  indefinite-length string. This error makes no further decoding
     *  possible. */
-   QCBOR_ERR_STRING_ALLOCATE = 23,
+   QCBOR_ERR_STRING_ALLOCATE = 46,
 
-#define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 23
+   /** During decoding, the type of the label for a map entry is not
+    *  one that can be handled in the current decoding mode. Typically
+    *  this is because a label is not an intger or a string. This is
+    *  an implemation limit. */
+   QCBOR_ERR_MAP_LABEL_TYPE = 47,
+
+   /** When the built-in tag decoding encounters an unexpected type,
+    *  this error is returned. This error is unrecoverable because the
+    *  built-in tag decoding doesn't try to consume the unexpected
+    *  type. In previous versions of QCBOR this was considered a
+    *  recoverable error hence QCBOR_ERR_BAD_TAG_CONTENT. Going back
+    *  further, RFC 7049 use the name "optional tags". That name is no
+    *  longer used because "optional" was causing confusion. See
+    *  also @ref QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT. */
+   QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT = 48,
+   QCBOR_ERR_BAD_TAG_CONTENT = 48,
+   QCBOR_ERR_BAD_OPT_TAG = 48,
+
+   /** Indefinite length string handling is disabled and there is an
+    *  indefinite length string in the input CBOR. */
+   QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED = 49,
+
+   /** Indefinite length arrays and maps handling are disabled and there is an
+    *  indefinite length map or array in the input CBOR. */
+   QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED = 50,
+
+   /** All decoding of tags (major type 6) has been disabled and a tag
+       occurred in the decode input. */
+   QCBOR_ERR_TAGS_DISABLED = 51,
+
+#define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 59
 
    /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tags encounterd for a
     *  CBOR ITEM.  @ref QCBOR_MAX_TAGS_PER_ITEM is a limit of this
@@ -331,112 +435,93 @@ typedef enum {
     *  caller-configured tag list, or not enough space in @ref
     *  QCBORTagListOut. This error makes no further decoding
     *  possible.  */
-   QCBOR_ERR_TOO_MANY_TAGS = 24,
-
-   /** During decoding, the type of the label for a map entry is not
-    *  one that can be handled in the current decoding mode. Typically
-    *  this is because a label is not an intger or a string. This is
-    *  an implemation limit. */
-   QCBOR_ERR_MAP_LABEL_TYPE = 25,
+   QCBOR_ERR_TOO_MANY_TAGS = 60,
 
    /** When decodeing for a specific type, the type was not was
     *  expected.  */
-   QCBOR_ERR_UNEXPECTED_TYPE = 26,
+   QCBOR_ERR_UNEXPECTED_TYPE = 61,
 
-   /** This occurs when decoding one of the tags that QCBOR processed
-    *  internally.  The content of a tag was of the wrong type. (They
-    *  were known as "Optional Tags" in RFC 7049, but "optional" is
-    *  misleading. The old error name is retained for backwards
-    *  compatibility. */
-   QCBOR_ERR_BAD_TAG_CONTENT = 27,
-   QCBOR_ERR_BAD_OPT_TAG = 27,
-
-   /** Duplicate label in map detected */
-   QCBOR_ERR_DUPLICATE_LABEL = 28,
+   /** Duplicate label in map detected. */
+   QCBOR_ERR_DUPLICATE_LABEL = 62,
 
    /** During decoding, the buffer given to QCBORDecode_SetMemPool()
     *  is either too small, smaller than
     *  QCBOR_DECODE_MIN_MEM_POOL_SIZE or too large, larger than
     *  UINT32_MAX. */
-   QCBOR_ERR_MEM_POOL_SIZE = 29,
+   QCBOR_ERR_MEM_POOL_SIZE = 63,
 
    /** During decoding, an integer smaller than INT64_MIN was received
     *  (CBOR can represent integers smaller than INT64_MIN, but C
     *  cannot). */
-   QCBOR_ERR_INT_OVERFLOW = 30,
+   QCBOR_ERR_INT_OVERFLOW = 64,
 
    /** During decoding, a date greater than +- 292 billion years from
     *  Jan 1 1970 encountered during parsing. This is an
     *  implementation limit. */
-   QCBOR_ERR_DATE_OVERFLOW = 31,
+   QCBOR_ERR_DATE_OVERFLOW = 65,
 
    /** During decoding, @c QCBORDecode_ExitXxx() was called for a
     *  different type than @c QCBORDecode_EnterXxx(). */
-   QCBOR_ERR_EXIT_MISMATCH = 32,
+   QCBOR_ERR_EXIT_MISMATCH = 66,
 
    /** All well-formed data items have been consumed and there are no
     *  more. If parsing a CBOR stream this indicates the non-error end
     *  of the stream. If not parsing a CBOR stream / sequence, this
     *  probably indicates that some data items expected are not
     *  present.  See also @ref QCBOR_ERR_HIT_END. */
-   QCBOR_ERR_NO_MORE_ITEMS = 33,
+   QCBOR_ERR_NO_MORE_ITEMS = 67,
 
    /** When finding an item by lablel, an item with the requested label
     *  was not found. */
-   QCBOR_ERR_LABEL_NOT_FOUND = 34,
+   QCBOR_ERR_LABEL_NOT_FOUND = 68,
 
    /** Number conversion failed because of sign. For example a
     *  negative int64_t can't be converted to a uint64_t */
-   QCBOR_ERR_NUMBER_SIGN_CONVERSION = 35,
+   QCBOR_ERR_NUMBER_SIGN_CONVERSION = 69,
 
    /** When converting a decoded number, the value is too large or to
     *  small for the conversion target */
-   QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW = 36,
+   QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW = 70,
 
    /** Trying to get an item by label when a map has not been
     *  entered. */
-   QCBOR_ERR_MAP_NOT_ENTERED = 37,
+   QCBOR_ERR_MAP_NOT_ENTERED = 71,
 
    /** A callback indicates processing should not continue for some
     *  non-CBOR reason */
-   QCBOR_ERR_CALLBACK_FAIL = 38,
+   QCBOR_ERR_CALLBACK_FAIL = 72,
 
-   /** This error code is deprecated. Instead, 
+   /** This error code is deprecated. Instead,
     *  \ref QCBOR_ERR_HALF_PRECISION_DISABLED,
     *  \ref QCBOR_ERR_HW_FLOAT_DISABLED or \ref QCBOR_ERR_ALL_FLOAT_DISABLED
     *  is returned depending on the specific floating-point functionality
     *  that is disabled and the type of floating-point input. */
-   QCBOR_ERR_FLOAT_DATE_DISABLED = 39,
+   QCBOR_ERR_FLOAT_DATE_DISABLED = 73,
 
    /** Support for half-precision float decoding is disabled. */
-   QCBOR_ERR_HALF_PRECISION_DISABLED = 40,
+   QCBOR_ERR_HALF_PRECISION_DISABLED = 74,
 
    /** Use of floating-point HW is disabled. This affects all type
     *  conversions to and from double and float types. */
-   QCBOR_ERR_HW_FLOAT_DISABLED = 41,
+   QCBOR_ERR_HW_FLOAT_DISABLED = 75,
 
    /** Unable to complete operation because a floating-point value
     *  that is a NaN (not a number), that is too large, too small,
     *  infinity or -infinity was encountered in encoded CBOR. Usually
     *  this because conversion of the float-point value was being
     *  attempted. */
-   QCBOR_ERR_FLOAT_EXCEPTION = 42,
-
-   /** Indefinite length string handling is disabled and there is an
-    *  indefinite length string in the input CBOR. */
-   QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED = 43,
-
-   /** Indefinite length arrays and maps handling are disabled and there is an
-    *  indefinite length map or array in the input CBOR. */
-   QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED = 44,
-
-   /** Trying to cancel a byte string wrapping after items have been
-    *  added to it. */
-   QCBOR_ERR_CANNOT_CANCEL = 45,
+   QCBOR_ERR_FLOAT_EXCEPTION = 76,
 
    /** Floating point support is completely turned off, encoding/decoding
     *  floating point numbers is not possible. */
-   QCBOR_ERR_ALL_FLOAT_DISABLED = 46
+   QCBOR_ERR_ALL_FLOAT_DISABLED = 77,
+
+   /** Like @ref QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT, but recoverable.
+    * If an implementation decodes a tag and can and does consume the
+    * whole tag contents when it is not the correct tag content, this
+    * error can be returned. None of the built-in tag decoders do
+    * this (to save object code). */
+   QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 78
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
@@ -465,7 +550,7 @@ const char *qcbor_err_to_str(QCBORError err);
 
 
 /**
- * The maximum number of items in a single array or map when encoding of
+ * The maximum number of items in a single array or map when encoding or
  * decoding.
  */
 #define QCBOR_MAX_ITEMS_IN_ARRAY (UINT16_MAX-1) /* -1 is because the
@@ -484,5 +569,9 @@ const char *qcbor_err_to_str(QCBORError err);
  */
 #define QCBOR_MAX_CUSTOM_TAGS    16
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* qcbor_common_h */

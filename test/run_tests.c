@@ -60,11 +60,13 @@ static test_entry2 s_tests2[] = {
     TEST_ENTRY(UOBTest_BoundaryConditionsTest),
     TEST_ENTRY(UBMacroConversionsTest),
     TEST_ENTRY(UBUtilTests),
-    TEST_ENTRY(UIBTest_IntegerFormat)
+    TEST_ENTRY(UIBTest_IntegerFormat),
+    TEST_ENTRY(UBAdvanceTest)
 };
 
 
 static test_entry s_tests[] = {
+    TEST_ENTRY(OpenCloseBytesTest),
     TEST_ENTRY(EnterBstrTest),
     TEST_ENTRY(IntegerConvertTest),
     TEST_ENTRY(EnterMapTest),
@@ -97,8 +99,11 @@ static test_entry s_tests[] = {
     TEST_ENTRY(BasicEncodeTest),
     TEST_ENTRY(NestedMapTest),
     TEST_ENTRY(BignumParseTest),
+#ifndef QCBOR_DISABLE_TAGS
     TEST_ENTRY(OptTagParseTest),
     TEST_ENTRY(DateParseTest),
+    TEST_ENTRY(DecodeTaggedTypeTests),
+#endif /* QCBOR_DISABLE_TAGS */
     TEST_ENTRY(SpiffyDateDecodeTest),
     TEST_ENTRY(ShortBufferParseTest2),
     TEST_ENTRY(ShortBufferParseTest),
@@ -111,6 +116,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(IndefiniteLengthStringTest),
     TEST_ENTRY(SpiffyIndefiniteLengthStringsTests),
     TEST_ENTRY(SetUpAllocatorTest),
+    TEST_ENTRY(CBORTestIssue134),
 #endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
     TEST_ENTRY(HalfPrecisionDecodeBasicTests),
@@ -119,8 +125,8 @@ static test_entry s_tests[] = {
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
     TEST_ENTRY(GeneralFloatEncodeTests),
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
     TEST_ENTRY(GeneralFloatDecodeTests),
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
     TEST_ENTRY(BstrWrapTest),
     TEST_ENTRY(BstrWrapErrorTest),
     TEST_ENTRY(BstrWrapNestTest),
@@ -133,12 +139,12 @@ static test_entry s_tests[] = {
     TEST_ENTRY(EncodeLengthThirtyoneTest),
     TEST_ENTRY(CBORSequenceDecodeTests),
     TEST_ENTRY(IntToTests),
-    TEST_ENTRY(DecodeTaggedTypeTests),
     TEST_ENTRY(PeekAndRewindTest),
-#ifndef     QCBOR_DISABLE_EXP_AND_MANTISSA
-    TEST_ENTRY(EncodeLengthThirtyoneTest),
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
     TEST_ENTRY(ExponentAndMantissaDecodeTests),
+#ifndef QCBOR_DISABLE_TAGS
     TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
+#endif /* QCBOR_DISABLE_TAGS */
     TEST_ENTRY(ExponentAndMantissaEncodeTests),
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
     TEST_ENTRY(ParseEmptyMapInMapTest),

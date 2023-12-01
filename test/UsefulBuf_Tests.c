@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -35,7 +35,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /* This calls the main methods to add stuff to a UsefulOutBuf.
- * The result in the UsefulOutBuf is "heffalump unbounce bluster hunny"
+ * The result in the UsefulOutBuf is "heffalump unbounce bluster hunny bear"
  */
 const char *AddStuffToUOB(UsefulOutBuf *pUOB)
 {
@@ -57,8 +57,14 @@ const char *AddStuffToUOB(UsefulOutBuf *pUOB)
    /* add a space to end */
    UsefulOutBuf_AppendByte(pUOB, ' ');
 
-   /* Add 5 bytes to the end */
-   UsefulBufC UBC = {"hunny", 5};
+   /* Add an empty string */
+   UsefulOutBuf_AppendUsefulBuf(pUOB, NULLUsefulBufC);
+
+   /* Add a zero length string (valid pointer, 0 length) */
+   UsefulOutBuf_AppendData(pUOB, "xxx", 0);
+
+   /* Add 6 bytes to the end */
+   UsefulBufC UBC = {"hunny ", 6};
    UsefulOutBuf_AppendUsefulBuf(pUOB, UBC);
 
    /* Insert 9 bytes at the beginning, slide the previous stuff right */
@@ -68,6 +74,13 @@ const char *AddStuffToUOB(UsefulOutBuf *pUOB)
    /* Put 9 bytes in at position 10 -- just after "heffalump " */
    UsefulBufC UBC2 = {"unbounce ", 9};
    UsefulOutBuf_InsertUsefulBuf(pUOB, UBC2, 10);
+
+   /* Add 4 bytes to the end, by accessing the buffer directly and then advancing it */
+   UsefulBuf UB = UsefulOutBuf_GetOutPlace(pUOB);
+   if (!UsefulBuf_IsNULL(UB)) {
+      memcpy(UB.ptr, "bear", UB.len < 4 ? UB.len : 4);
+   }
+   UsefulOutBuf_Advance(pUOB, 4);
 
 Done:
    return szReturn;
@@ -97,7 +110,7 @@ const char * UOBTest_NonAdversarial(void)
       goto Done;
    }
 
-   const UsefulBufC Expected = UsefulBuf_FROM_SZ_LITERAL("heffalump unbounce bluster hunny");
+   const UsefulBufC Expected = UsefulBuf_FROM_SZ_LITERAL("heffalump unbounce bluster hunny bear");
 
    UsefulBufC U = UsefulOutBuf_OutUBuf(&UOB);
    if(UsefulBuf_IsNULLC(U) ||
@@ -815,4 +828,48 @@ const char *UBUTest_CopyUtil(void)
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
+const char *UBAdvanceTest(void)
+{
+   #define ADVANCE_TEST_SIZE 10
+   UsefulOutBuf_MakeOnStack(UOB, ADVANCE_TEST_SIZE);
 
+   UsefulBuf Place = UsefulOutBuf_GetOutPlace(&UOB);
+   if(Place.len != 10) {
+      return "GetOutPlace wrong size";
+   }
+
+   memset(Place.ptr, 'x', Place.len/2);
+
+   UsefulOutBuf_Advance(&UOB, Place.len/2);
+
+   UsefulOutBuf_AppendByte(&UOB, 'y');
+
+   Place = UsefulOutBuf_GetOutPlace(&UOB);
+   if(Place.len != ADVANCE_TEST_SIZE/2 -1 ) {
+      return "GetOutPlace wrong size 2";
+   }
+
+   memset(Place.ptr, 'z', Place.len);
+
+   UsefulOutBuf_Advance(&UOB, Place.len);
+
+   UsefulBufC O = UsefulOutBuf_OutUBuf(&UOB);
+
+   UsefulBuf_Compare(O, UsefulBuf_FROM_SZ_LITERAL("xxxxxyzzzz"));
+
+   Place = UsefulOutBuf_GetOutPlace(&UOB);
+   if(Place.len != 0 || Place.ptr != NULL) {
+      return "GetOutPlace not null";
+   }
+
+   if(UsefulOutBuf_GetError(&UOB)) {
+      return "GetOutPlace error set";
+   }
+
+   UsefulOutBuf_Advance(&UOB, 1);
+   if(!UsefulOutBuf_GetError(&UOB)) {
+      return "Advance off end didn't set error";
+   }
+
+   return NULL;
+}

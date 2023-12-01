@@ -69,39 +69,6 @@ extern "C" {
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
-/* Standard CBOR Major type for positive integers of various lengths */
-#define CBOR_MAJOR_TYPE_POSITIVE_INT 0
-
-/* Standard CBOR Major type for negative integer of various lengths */
-#define CBOR_MAJOR_TYPE_NEGATIVE_INT 1
-
-/* Standard CBOR Major type for an array of arbitrary 8-bit bytes. */
-#define CBOR_MAJOR_TYPE_BYTE_STRING  2
-
-/* Standard CBOR Major type for a UTF-8 string. Note this is true 8-bit UTF8
- with no encoding and no NULL termination */
-#define CBOR_MAJOR_TYPE_TEXT_STRING  3
-
-/* Standard CBOR Major type for an ordered array of other CBOR data items */
-#define CBOR_MAJOR_TYPE_ARRAY        4
-
-/* Standard CBOR Major type for CBOR MAP. Maps an array of pairs. The
- first item in the pair is the "label" (key, name or identfier) and the second
- item is the value.  */
-#define CBOR_MAJOR_TYPE_MAP          5
-
-/* Standard CBOR major type for a tag number. This creates a CBOR "tag" that
- * is the tag number and a data item that follows as the tag content.
- *
- * Note that this was called an optional tag in RFC 7049, but there's
- * not really anything optional about it. It was misleading. It is
- * renamed in RFC 8949.
- */
-#define CBOR_MAJOR_TYPE_TAG          6
-#define CBOR_MAJOR_TYPE_OPTIONAL     6
-
-/* Standard CBOR extra simple types like floats and the values true and false */
-#define CBOR_MAJOR_TYPE_SIMPLE       7
 
 
 /*
@@ -416,6 +383,8 @@ struct _QCBORDecodeContext {
 #define CBOR_MAJOR_NONE_TYPE_RAW  9
 #define CBOR_MAJOR_NONE_TAG_LABEL_REORDER 10
 #define CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY 11
+#define CBOR_MAJOR_NONE_TYPE_OPEN_BSTR 12
+
 
 // Add this to types to indicate they are to be encoded as indefinite lengths
 #define QCBOR_INDEFINITE_LEN_TYPE_MODIFIER 0x80
