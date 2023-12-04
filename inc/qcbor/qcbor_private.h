@@ -159,7 +159,6 @@ extern "C" {
 #define CBOR_SIMPLEV_RESERVED_END    CBOR_SIMPLE_BREAK
 
 
-
 /* The largest offset to the start of an array or map. It is slightly
  * less than UINT32_MAX so the error condition can be tested on 32-bit
  * machines.  UINT32_MAX comes from uStart in QCBORTrackNesting being
@@ -177,7 +176,6 @@ extern "C" {
 
 /* The number of tags (of any size) recorded for an individual item. */
 #define QCBOR_MAX_TAGS_PER_ITEM1 4
-
 
 
 
@@ -371,8 +369,8 @@ struct _QCBORDecodeContext {
    uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
 
    uint16_t uLastTags[QCBOR_MAX_TAGS_PER_ITEM1];
-
 };
+
 
 /* Used internally in the impementation here Must not conflict with
  * any of the official CBOR types
