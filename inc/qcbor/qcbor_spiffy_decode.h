@@ -26,183 +26,187 @@ extern "C" {
 
 
 /**
- @file qcbor_spiffy_decode.h
-
- @anchor SpiffyDecode
- # Spiffy Decode
-
- This section discusses spiffy decoding assuming familiarity with
- the general description of decoding in the
- @ref BasicDecode section.
-
- Spiffy decode is extra decode features over and above the @ref
- BasicDecode features that generally are easier to use, mirror the
- encoding functions better and can result in smaller code size for
- larger and more complex CBOR protocols.  In particular, spiffy decode
- facilitates getting the next data item of a specific type, setting an
- error if it is not of that type. It facilitates explicitly entering
- and exiting arrays and maps. It facilates fetching items by label
- from a map including duplicate label detection.
-
- Encoded CBOR can be viewed to have a tree structure where the leaf
- nodes are non-aggregate types like integers and strings and the
- intermediate nodes are either arrays or maps. Fundamentally, all
- decoding is a pre-order traversal of the tree. Calling
- QCBORDecode_GetNext() repeatedly will perform this.
-
- This pre-order traversal gives natural decoding of arrays where the
- array members are taken in order, but does not give natural decoding
- of maps where access by label is usually preferred.  Using the
- QCBORDecode_EnterMap() and QCBORDecode_GetXxxxInMapX() methods like
- QCBORDecode_GetInt64InMapN(), map items can be accessed by
- label. QCBORDecode_EnterMap() bounds decoding to a particular
- map. QCBORDecode_GetXxxxInMapX() methods allows decoding the item of
- a particular label in the particular map. This can be used with
- nested maps by using QCBORDecode_EnterMapFromMapX().
-
- When QCBORDecode_EnterMap() is called, pre-order traversal continues
- to work. There is a cursor that is run over the tree with calls to
- QCBORDecode_GetNext(). This can be intermixed with calls to
- QCBORDecode_GetXxxxInMapX(). The pre-order traversal is limited just
- to the map entered. Attempts to QCBORDecode_GetNext() beyond the end
- of the map will give the @ref QCBOR_ERR_NO_MORE_ITEMS error.
-
- There is also QCBORDecode_EnterArray() to decode arrays. It will
- narrow the traversal to the extent of the array entered.
-
- All the QCBORDecode_GetXxxxInMapX() methods support duplicate label
- detection and will result in an error if the map has duplicate
- labels.
-
- All the QCBORDecode_GetXxxxInMapX() methods are implemented by
- performing the pre-order traversal of the map to find the labeled
- item everytime it is called. It doesn't build up a hash table, a
- binary search tree or some other efficiently searchable structure
- internally. For simple trees this is fine and for high-speed CPUs
- this is fine, but for complex trees on slow CPUs, it may have
- performance issues (these have not be quantified yet). One way ease
- this is to use QCBORDecode_GetItemsInMap() which allows decoding of a
- list of items expected in an map in one traveral.
-
- @anchor Tag-Usage
- ## Tag Usage
-
- Data types beyond the basic CBOR types of numbers, strings, maps and
- arrays are called tags. The main registry of these new types is in
- the IANA CBOR tags registry. These new types may be simple such a
- number that is to be interpreted as a date, or of moderate complexity
- such as defining a decimal fraction that is an array containing a
- mantissa and exponent, or complex such as format for signing and
- encryption.
-
- When a tag occurs in a protocol it is encoded as an integer tag
- number plus the content of the tag.
-
- The content format of a tag may also be "borrowed". For example, a
- protocol definition may say that a particular data item is an epoch
- date just like tag 1, but not actually tag 1. In practice the
- difference is the presence or absence of the integer tag number in
- the encoded CBOR.
-
- The decoding functions for these new types takes a tag requirement
- parameter to say whether the item is a tag, is just borrowing the
- content format and is not a tag, or whether either is OK.
-
- If the parameter indicates the item must be a tag (@ref
- QCBOR_TAG_REQUIREMENT_TAG), then @ref QCBOR_ERR_UNEXPECTED_TYPE is
- set if it is not one of the expected tag types. To decode correctly
- the contents of the tag must also be of the correct type. For
- example, to decode an epoch date tag the content must be an integer
- or floating-point value.
-
- If the parameter indicates it should not be a tag
- (@ref  QCBOR_TAG_REQUIREMENT_NOT_A_TAG), then
-  @ref QCBOR_ERR_UNEXPECTED_TYPE set if it is a tag or the type of the
- encoded CBOR is not what is expected.  In the example of an epoch
- date, the data type must be an integer or floating-point value. This
- is the case where the content format of a tag is borrowed.
-
- The parameter can also indicate that either a tag or no tag is
- allowed ( @ref QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG ).  A good protocol
- design should however be clear and choose one or the other and not
- need this option. This is a way to implement "be liberal in what you
- accept", however these days that is less in favor. See
- https://tools.ietf.org/id/draft-thomson-postel-was-wrong-03.html.
-
- Map searching works with indefinite length strings. A string
- allocator must be set up the same as for any handling of indefinite
- length strings.  However, It currently over-allocates memory from the
- string pool and thus requires a much larger string pool than it
- should. The over-allocation happens every time a map is searched by
- label.  (This may be corrected in the future).
-*/
+ * @file qcbor_spiffy_decode.h
+ *
+ * @anchor SpiffyDecode
+ * # Spiffy Decode
+ *
+ * This section discusses spiffy decoding assuming familiarity with
+ * the general description of decoding in the
+ * @ref BasicDecode section.
+ *
+ * Spiffy decode is extra decode features over and above the @ref
+ * BasicDecode features that generally are easier to use, mirror the
+ * encoding functions better and can result in smaller code size for
+ * larger and more complex CBOR protocols.  In particular, spiffy
+ * decode facilitates getting the next data item of a specific type,
+ * setting an error if it is not of that type. It facilitates
+ * explicitly entering and exiting arrays and maps. It facilates
+ * fetching items by label from a map including duplicate label
+ * detection.
+ *
+ * Encoded CBOR can be viewed to have a tree structure where the leaf
+ * nodes are non-aggregate types like integers and strings and the
+ * intermediate nodes are either arrays or maps. Fundamentally, all
+ * decoding is a pre-order traversal of the tree. Calling
+ * QCBORDecode_GetNext() repeatedly will perform this.
+ *
+ * This pre-order traversal gives natural decoding of arrays where the
+ * array members are taken in order, but does not give natural decoding
+ * of maps where access by label is usually preferred.  Using the
+ * QCBORDecode_EnterMap() and QCBORDecode_GetXxxxInMapX() methods like
+ * QCBORDecode_GetInt64InMapN(), map items can be accessed by
+ * label. QCBORDecode_EnterMap() bounds decoding to a particular
+ * map. QCBORDecode_GetXxxxInMapX() methods allows decoding the item of
+ * a particular label in the particular map. This can be used with
+ * nested maps by using QCBORDecode_EnterMapFromMapX().
+ *
+ * When QCBORDecode_EnterMap() is called, pre-order traversal
+ * continues to work. There is a cursor that is run over the tree with
+ * calls to QCBORDecode_GetNext(). This can be intermixed with calls
+ * TODO: this is not quite true
+ * to QCBORDecode_GetXxxxInMapX(). The pre-order traversal is limited
+ * just to the map entered. Attempts to QCBORDecode_GetNext() beyond
+ * the end of the map will give the @ref QCBOR_ERR_NO_MORE_ITEMS
+ * error.
+ *
+ * There is also QCBORDecode_EnterArray() to decode arrays. It will
+ * narrow the traversal to the extent of the array entered.
+ *
+ * All the QCBORDecode_GetXxxxInMapX() methods support duplicate label
+ * detection and will result in an error if the map has duplicate
+ * labels.
+ *
+ * All the QCBORDecode_GetXxxxInMapX() methods are implemented by
+ * performing the pre-order traversal of the map to find the labeled
+ * item everytime it is called. It doesn't build up a hash table, a
+ * binary search tree or some other efficiently searchable structure
+ * internally. For simple trees this is fine and for high-speed CPUs
+ * this is fine, but for complex trees on slow CPUs, it may have
+ * performance issues (these have not be quantified yet). One way ease
+ * this is to use QCBORDecode_GetItemsInMap() which allows decoding of a
+ * list of items expected in an map in one traveral.
+ *
+ * @anchor Tag-Usage
+ * ## Tag Usage
+ *
+ * Data types beyond the basic CBOR types of numbers, strings, maps and
+ * arrays are called tags. The main registry of these new types is in
+ * the IANA CBOR tags registry. These new types may be simple such a
+ * number that is to be interpreted as a date, or of moderate complexity
+ * such as defining a decimal fraction that is an array containing a
+ * mantissa and exponent, or complex such as format for signing and
+ * encryption.
+ *
+ * When a tag occurs in a protocol it is encoded as an integer tag
+ * number plus the content of the tag.
+ *
+ * The content format of a tag may also be "borrowed". For example, a
+ * protocol definition may say that a particular data item is an epoch
+ * date just like tag 1, but not actually tag 1. In practice the
+ * difference is the presence or absence of the integer tag number in
+ * the encoded CBOR.
+ *
+ * The decoding functions for these new types takes a tag requirement
+ * parameter to say whether the item is a tag, is just borrowing the
+ * content format and is not a tag, or whether either is OK.
+ *
+ * If the parameter indicates the item must be a tag (@ref
+ * QCBOR_TAG_REQUIREMENT_TAG), then @ref QCBOR_ERR_UNEXPECTED_TYPE is
+ * set if it is not one of the expected tag types. To decode correctly
+ * the contents of the tag must also be of the correct type. For
+ * example, to decode an epoch date tag the content must be an integer
+ * or floating-point value.
+ *
+ * If the parameter indicates it should not be a tag
+ * (@ref  QCBOR_TAG_REQUIREMENT_NOT_A_TAG), then
+ *  @ref QCBOR_ERR_UNEXPECTED_TYPE set if it is a tag or the type of the
+ * encoded CBOR is not what is expected.  In the example of an epoch
+ * date, the data type must be an integer or floating-point value. This
+ * is the case where the content format of a tag is borrowed.
+ *
+ * The parameter can also indicate that either a tag or no tag is
+ * allowed ( @ref QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG ).  A good protocol
+ * design should however be clear and choose one or the other and not
+ * need this option. This is a way to implement "be liberal in what you
+ * accept", however these days that is less in favor. See
+ * https://tools.ietf.org/id/draft-thomson-postel-was-wrong-03.html.
+ *
+ * Map searching works with indefinite length strings. A string
+ * allocator must be set up the same as for any handling of indefinite
+ * length strings.  However, It currently over-allocates memory from the
+ * string pool and thus requires a much larger string pool than it
+ * should. The over-allocation happens every time a map is searched by
+ * label.  (This may be corrected in the future).
+ */
 
 
 
 
 /** The data item must be a tag of the expected type. It is an error
- if it is not. For example when calling QCBORDecode_GetEpochDate(),
- the data item must be an @ref CBOR_TAG_DATE_EPOCH tag.
- See @ref Tag-Usage. */
+ *  if it is not. For example when calling QCBORDecode_GetEpochDate(),
+ *  the data item must be an @ref CBOR_TAG_DATE_EPOCH tag.  See
+ *  @ref Tag-Usage. */
 #define QCBOR_TAG_REQUIREMENT_TAG 0
 
 /** The data item must be of the type expected for content data type
- being fetched. It is an error if it is not. For example, when
- calling QCBORDecode_GetEpochDate() and it must not be an @ref
- CBOR_TAG_DATE_EPOCH tag. See @ref Tag-Usage. */
+ *  being fetched. It is an error if it is not. For example, when
+ *  calling QCBORDecode_GetEpochDate() and it must not be an @ref
+ *  CBOR_TAG_DATE_EPOCH tag. See @ref Tag-Usage. */
 #define QCBOR_TAG_REQUIREMENT_NOT_A_TAG  1
 
 /** Either of the above two are allowed. This allows implementation of
- being liberal in what you receive, but it is better if CBOR-based
- protocols pick one and stick to and not required the reciever to
- take either. See @ref Tag-Usage. */
+ *  being liberal in what you receive, but it is better if CBOR-based
+ *  protocols pick one and stick to and not required the reciever to
+ *  take either. See @ref Tag-Usage. */
 #define QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG 2
 
 /** Add this into the above value if other tags not processed by QCBOR
- are to be allowed to surround the data item. See @ref Tag-Usage. */
+ *  are to be allowed to surround the data item. See @ref Tag-Usage. */
 #define QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS 0x80
 
 
 
 
 /** Conversion will proceed if the CBOR item to be decoded is an
-    integer or either type 0 (unsigned) or type 1 (negative). */
+ *  integer or either type 0 (unsigned) or type 1 (negative). */
 #define QCBOR_CONVERT_TYPE_XINT64           0x01
 /** Conversion will proceed if the CBOR item to be decoded is either
-    double, single or half-precision floating-point (major type 7). */
+ *  double, single or half-precision floating-point (major type 7). */
 #define QCBOR_CONVERT_TYPE_FLOAT            0x02
 /** Conversion will proceed if the CBOR item to be decoded is a big
-    number, positive or negative (tag 2 or tag 3). */
+ *  number, positive or negative (tag 2 or tag 3). */
 #define QCBOR_CONVERT_TYPE_BIG_NUM          0x04
 /** Conversion will proceed if the CBOR item to be decoded is a
-    decimal fraction (tag 4). */
+ *  decimal fraction (tag 4). */
 #define QCBOR_CONVERT_TYPE_DECIMAL_FRACTION 0x08
 /** Conversion will proceed if the CBOR item to be decoded is a big
-    float (tag 5). */
+ *  float (tag 5). */
 #define QCBOR_CONVERT_TYPE_BIGFLOAT         0x10
 
 
 
 
 /**
- @brief Decode next item into a signed 64-bit integer.
-
- @param[in] pCtx      The decode context.
- @param[out] pnValue  The returned 64-bit signed integer.
-
- The CBOR data item to decode must be a positive or negative integer
- (CBOR major type 0 or 1). If not @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
-
- If the CBOR integer is either too large or too small to fit in an
- int64_t, the error @ref QCBOR_ERR_INT_OVERFLOW or @ref
- QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW is set.  Note that type 0
- unsigned integers can be larger than will fit in an int64_t and type
- 1 negative integers can be smaller than will fit in an int64_t.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See also QCBORDecode_GetUInt64(), QCBORDecode_GetInt64Convert() and
- QCBORDecode_GetInt64ConvertAll().
+ * @brief Decode next item into a signed 64-bit integer.
+ *
+ * @param[in] pCtx      The decode context.
+ * @param[out] pnValue  The returned 64-bit signed integer.
+ *
+ * The CBOR data item to decode must be a positive or negative integer
+ * (CBOR major type 0 or 1). If not @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
+ *
+ * If the CBOR integer is either too large or too small to fit in an
+ * int64_t, the error @ref QCBOR_ERR_INT_OVERFLOW or
+ * @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW is set.  Note that type 0
+ * unsigned integers can be larger than will fit in an int64_t and
+ * type 1 negative integers can be smaller than will fit in an
+ * int64_t.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See also QCBORDecode_GetUInt64(), QCBORDecode_GetInt64Convert(),
+ * QCBORDecode_GetInt64ConvertAll() and QCBORDecode_GetDoubleConvert()
  */
 static void QCBORDecode_GetInt64(QCBORDecodeContext *pCtx,
                                  int64_t            *pnValue);
@@ -217,40 +221,41 @@ static void QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode next item into a signed 64-bit integer with basic conversions.
-
- @param[in] pCtx   The decode context.
- @param[in] uConvertTypes The integer conversion options.
- @param[out] pnValue  The returned 64-bit signed integer.
-
- @c uConvertTypes controls what conversions this will perform and thus
- what CBOR types will be decoded.  @c uConvertType is a bit map
- listing the conversions to be allowed. This function supports @ref
- QCBOR_CONVERT_TYPE_XINT64 and @ref QCBOR_CONVERT_TYPE_FLOAT
- conversions.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- If the CBOR data type can never be convered by this function or the
- conversion was not selected in @c uConversionTypes @ref
- @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
-
- When converting floating-point values, the integer is rounded to the
- nearest integer using llround(). By default, floating-point suport is
- enabled for QCBOR.
-
- If floating-point HW use is disabled this will set
- @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision
- number is encountered. If half-precision support is disabled,
- this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
- a half-precision number is encountered.
-
- If floating-point usage is disabled this will set @ref QCBOR_ERR_ALL_FLOAT_DISABLED
- if a floating point value is encountered.
-
- See also QCBORDecode_GetInt64ConvertAll() which will perform the same
- conversions as this and a lot more at the cost of adding more object
- code to your executable.
+ * @brief Decode next item into a signed 64-bit integer with basic conversions.
+ *
+ * @param[in] pCtx           The decode context.
+ * @param[in] uConvertTypes  The integer conversion options.
+ * @param[out] pnValue       The returned 64-bit signed integer.
+ *
+ * @c uConvertTypes controls what conversions this will perform and
+ * thus what CBOR types will be decoded.  @c uConvertType is a bit map
+ * listing the conversions to be allowed. This function supports
+ * @ref QCBOR_CONVERT_TYPE_XINT64 and @ref QCBOR_CONVERT_TYPE_FLOAT
+ * conversions.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * If the CBOR data type can never be convered by this function or the
+ * conversion was not selected in @c uConversionTypes
+ * @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
+ *
+ * When converting floating-point values, the integer is rounded to
+ * the nearest integer using llround(). By default, floating-point
+ * suport is enabled for QCBOR.
+ *
+ * If floating-point HW use is disabled this will set
+ * @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision number is
+ * encountered. If half-precision support is disabled, this will set
+ * @ref QCBOR_ERR_HALF_PRECISION_DISABLED if a half-precision number
+ * is encountered.
+ *
+ * If floating-point usage is disabled this will set
+ * @ref QCBOR_ERR_ALL_FLOAT_DISABLED if a floating point value is
+ * encountered.
+ *
+ * See also QCBORDecode_GetInt64ConvertAll() which will perform the
+ * same conversions as this and a lot more at the cost of adding more
+ * object code to your executable.
  */
 static void QCBORDecode_GetInt64Convert(QCBORDecodeContext *pCtx,
                                         uint32_t            uConvertTypes,
@@ -268,40 +273,41 @@ static void QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode next item into a signed 64-bit integer with conversions.
-
- @param[in] pCtx   The decode context.
- @param[in] uConvertTypes The integer conversion options.
- @param[out] pnValue  The returned 64-bit signed integer.
-
- This is the same as QCBORDecode_GetInt64Convert() but additionally
- supports conversion from positive and negative bignums, decimal
- fractions and big floats, including decimal fractions and big floats
- that use bignums. The conversion types supported are @ref
- QCBOR_CONVERT_TYPE_XINT64, @ref QCBOR_CONVERT_TYPE_FLOAT, @ref
- QCBOR_CONVERT_TYPE_BIG_NUM, @ref QCBOR_CONVERT_TYPE_DECIMAL_FRACTION
- and @ref QCBOR_CONVERT_TYPE_BIGFLOAT.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- Note that most these types can support numbers much larger that can
- be represented by in a 64-bit integer, so @ref
- QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW may often be encountered.
-
- When converting bignums and decimal fractions @ref
- QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will be set if the result is
- below 1, unless the mantissa is zero, in which case the coversion is
- successful and the value of 0 is returned.
-
- See also QCBORDecode_GetInt64ConvertAll() which does some of these
- conversions, but links in much less object code. See also
- QCBORDecode_GetUInt64ConvertAll().
-
- This relies on CBOR tags to identify big numbers, decimal fractions
- and big floats. It will not attempt to decode non-tag CBOR that might
- be one of these.  (If QCBOR_DISABLE_TAGS is set, this is effectively
- the same as QCBORDecode_GetInt64Convert() because all the additional
- number types this decodes are tags).
+ * @brief Decode next item into a signed 64-bit integer with conversions.
+ *
+ * @param[in] pCtx           The decode context.
+ * @param[in] uConvertTypes  The integer conversion options.
+ * @param[out] pnValue       The returned 64-bit signed integer.
+ *
+ * This is the same as QCBORDecode_GetInt64Convert() but additionally
+ * supports conversion from positive and negative bignums, decimal
+ * fractions and big floats, including decimal fractions and big floats
+ * that use bignums. The conversion types supported are
+ * @ref QCBOR_CONVERT_TYPE_XINT64, @ref QCBOR_CONVERT_TYPE_FLOAT,
+ * @ref QCBOR_CONVERT_TYPE_BIG_NUM,
+ * @ref QCBOR_CONVERT_TYPE_DECIMAL_FRACTION and
+ * @ref QCBOR_CONVERT_TYPE_BIGFLOAT.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * Note that most these types can support numbers much larger that can
+ * be represented by in a 64-bit integer, so
+ * @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW may often be encountered.
+ *
+ * When converting bignums and decimal fractions,
+ * @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will be set if the result
+ * is below 1, unless the mantissa is zero, in which case the
+ * coversion is successful and the value of 0 is returned.
+ *
+ * See also QCBORDecode_GetInt64ConvertAll() which does some of these
+ * conversions, but links in much less object code. See also
+ * QCBORDecode_GetUInt64ConvertAll().
+ *
+ * This relies on CBOR tags to identify big numbers, decimal fractions
+ * and big floats. It will not attempt to decode non-tag CBOR that might
+ * be one of these.  (If QCBOR_DISABLE_TAGS is set, this is effectively
+ * the same as QCBORDecode_GetInt64Convert() because all the additional
+ * number types this decodes are tags).
  */
 void QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pCtx,
                                     uint32_t            uConvertTypes,
@@ -319,20 +325,20 @@ void QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode next item into an unsigned 64-bit integer.
-
- @param[in] pCtx   The decode context.
- @param[out] puValue  The returned 64-bit unsigned integer.
-
- This is the same as QCBORDecode_GetInt64(), but returns an unsigned integer
- and thus can only decode CBOR positive integers.
- @ref QCBOR_ERR_NUMBER_SIGN_CONVERSION is set if the input is a negative
- integer.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See also QCBORDecode_GetUInt64Convert() and QCBORDecode_GetUInt64ConvertAll().
-*/
+ * @brief Decode next item into an unsigned 64-bit integer.
+ *
+ * @param[in] pCtx      The decode context.
+ * @param[out] puValue  The returned 64-bit unsigned integer.
+ *
+ * This is the same as QCBORDecode_GetInt64(), but returns an unsigned integer
+ * and thus can only decode CBOR positive integers.
+ * @ref QCBOR_ERR_NUMBER_SIGN_CONVERSION is set if the input is a negative
+ * integer.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See also QCBORDecode_GetUInt64Convert() and QCBORDecode_GetUInt64ConvertAll().
+ */
 static void QCBORDecode_GetUInt64(QCBORDecodeContext *pCtx,
                                   uint64_t           *puValue);
 
@@ -346,28 +352,29 @@ static void QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode next item as an unsigned 64-bit integer with basic conversions.
-
- @param[in] pCtx   The decode context.
- @param[in] uConvertTypes The integer conversion options.
- @param[out] puValue  The returned 64-bit unsigned integer.
-
- This is the same as QCBORDecode_GetInt64Convert(), but returns an
- unsigned integer and thus sets @ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
- is set if the value to be decoded is negatve.
-
- If floating-point HW use is disabled this will set
- @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision
- number is encountered. If half-precision support is disabled,
- this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
- a half-precision number is encountered.
-
- If floating-point usage is disabled this will set @ref QCBOR_ERR_ALL_FLOAT_DISABLED
- if a floating point value is encountered.
-
- See also QCBORDecode_GetUInt64Convert() and
- QCBORDecode_GetUInt64ConvertAll().
-*/
+ * @brief Decode next item as an unsigned 64-bit integer with basic conversions.
+ *
+ * @param[in] pCtx           The decode context.
+ * @param[in] uConvertTypes  The integer conversion options.
+ * @param[out] puValue       The returned 64-bit unsigned integer.
+ *
+ * This is the same as QCBORDecode_GetInt64Convert(), but returns an
+ * unsigned integer and thus sets @ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
+ * if the value to be decoded is negatve.
+ *
+ * If floating-point HW use is disabled this will set
+ * @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision number is
+ * encountered. If half-precision support is disabled, this will set
+ * @ref QCBOR_ERR_HALF_PRECISION_DISABLED if a half-precision number
+ * is encountered.
+ *
+ * If floating-point usage is disabled this will set
+ * @ref QCBOR_ERR_ALL_FLOAT_DISABLED if a floating point value is
+ * encountered.
+ *
+ * See also QCBORDecode_GetUInt64Convert() and
+ * QCBORDecode_GetUInt64ConvertAll().
+ */
 static void QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pCtx,
                                          uint32_t            uConvertTypes,
                                          uint64_t           *puValue);
@@ -384,19 +391,18 @@ static void QCBORDecode_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode next item into an unsigned 64-bit integer with conversions
-
- @param[in] pCtx           The decode context.
- @param[in] uConvertTypes  The integer conversion options.
- @param[out] puValue       The returned 64-bit unsigned integer.
-
- This is the same as QCBORDecode_GetInt64ConvertAll(), but returns an
- unsigned integer and thus sets @ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
- if the value to be decoded is negatve.
-
- See also QCBORDecode_GetUInt64() and
- QCBORDecode_GetUInt64Convert().
-*/
+ * @brief Decode next item into an unsigned 64-bit integer with conversions
+ *
+ * @param[in] pCtx           The decode context.
+ * @param[in] uConvertTypes  The integer conversion options.
+ * @param[out] puValue       The returned 64-bit unsigned integer.
+ *
+ * This is the same as QCBORDecode_GetInt64ConvertAll(), but returns
+ * an unsigned integer and thus sets @ref QCBOR_ERR_NUMBER_SIGN_CONVERSION
+ * if the value to be decoded is negatve.
+ *
+ * See also QCBORDecode_GetUInt64() and QCBORDecode_GetUInt64Convert().
+ */
 void QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pCtx,
                                      uint32_t            uConvertTypes,
                                      uint64_t           *puValue);
@@ -415,17 +421,17 @@ void QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as a byte string
-
- @param[in] pCtx   The decode context
- @param[out] pBytes  The decoded byte string
-
- The CBOR item to decode must be a byte string, CBOR type 2.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- If the CBOR item to decode is not a byte string, the @ref
- QCBOR_ERR_UNEXPECTED_TYPE error is set.
+ * @brief Decode the next item as a byte string
+ *
+ * @param[in] pCtx     The decode context.
+ * @param[out] pBytes  The decoded byte string.
+ *
+ * The CBOR item to decode must be a byte string, CBOR type 2.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * If the CBOR item to decode is not a byte string, the
+ * @ref QCBOR_ERR_UNEXPECTED_TYPE error is set.
  */
 static void QCBORDecode_GetByteString(QCBORDecodeContext *pCtx,
                                       UsefulBufC         *pBytes);
@@ -440,20 +446,20 @@ static void QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as a text string.
-
- @param[in] pCtx   The decode context.
- @param[out] pText  The decoded byte string.
-
- The CBOR item to decode must be a text string, CBOR type 3.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".  It the CBOR item
- to decode is not a text string, the @ref QCBOR_ERR_UNEXPECTED_TYPE
- error is set.
-
- This does no translation of line endings. See QCBOREncode_AddText()
- for a discussion of line endings in CBOR.
-*/
+ * @brief Decode the next item as a text string.
+ *
+ * @param[in] pCtx    The decode context.
+ * @param[out] pText  The decoded byte string.
+ *
+ * The CBOR item to decode must be a text string, CBOR type 3.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ * It the CBOR item to decode is not a text string, the
+ * @ref QCBOR_ERR_UNEXPECTED_TYPE error is set.
+ *
+ * This does no translation of line endings. See QCBOREncode_AddText()
+ * for a discussion of line endings in CBOR.
+ */
 static void QCBORDecode_GetTextString(QCBORDecodeContext *pCtx,
                                       UsefulBufC         *pText);
 
@@ -470,26 +476,26 @@ static void QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pCtx,
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /**
- @brief Decode next item into a double floating-point value.
-
- @param[in] pCtx   The decode context
- @param[out] pValue  The returned floating-point value.
-
- The CBOR data item to decode must be a half-precision,
- single-precision or double-precision floating-point value.  If not
- @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
-
- If floating-point HW use is disabled this will set
- @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision
- number is encountered. If half-precision support is disabled,
- this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
- a half-precision number is encountered.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See also QCBORDecode_GetDoubleConvert() and
- QCBORDecode_GetDoubleConvertAll().
-*/
+ * @brief Decode next item into a double floating-point value.
+ *
+ * @param[in] pCtx     The decode context.
+ * @param[out] pValue  The returned floating-point value.
+ *
+ * The CBOR data item to decode must be a half-precision,
+ * single-precision or double-precision floating-point value.  If not
+ * @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
+ *
+ * If floating-point HW use is disabled this will set
+ * @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision number is
+ * encountered. If half-precision support is disabled, this will set
+ * @ref QCBOR_ERR_HALF_PRECISION_DISABLED if a half-precision number
+ * is encountered.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See also QCBORDecode_GetDoubleConvert() and
+ * QCBORDecode_GetDoubleConvertAll().
+ */
 static void QCBORDecode_GetDouble(QCBORDecodeContext *pCtx,
                                   double             *pValue);
 
@@ -503,36 +509,37 @@ static void QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode next item into a double floating-point value with basic conversion.
+ * @brief Decode next item into a double floating-point value with basic conversion.
+ *
+ * @param[in] pCtx           The decode context.
+ * @param[in] uConvertTypes  The integer conversion options.
+ * @param[out] pdValue       The returned floating-point value.
+ *
+ * This will decode CBOR integer and floating-point numbers, returning
+ * them as a double floating-point number. This function supports
 
- @param[in] pCtx   The decode context.
- @param[in] uConvertTypes The integer conversion options.
- @param[out] pdValue  The returned floating-point value.
-
- This will decode CBOR integer and floating-point numbers, returning
- them as a double floating-point number. This function supports @ref
- QCBOR_CONVERT_TYPE_XINT64 and @ref QCBOR_CONVERT_TYPE_FLOAT
- conversions. If the encoded CBOR is not one of the requested types or a type
- not supported by this function, @ref QCBOR_ERR_UNEXPECTED_TYPE is
- set.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- If floating-point HW use is disabled this will set
- @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision
- number is encountered. If half-precision support is disabled,
- this will set QCBOR_ERR_HALF_PRECISION_DISABLED if
- a half-precision number is encountered.
-
- Positive and negative integers can always be converted to
- floating-point, so this will never error on CBOR major type 0 or 1.
-
- Note that a large 64-bit integer can have more precision (64 bits)
- than even a double floating-point (52 bits) value, so there is loss
- of precision in some conversions.
-
- See also QCBORDecode_GetDouble() and QCBORDecode_GetDoubleConvertAll().
-*/
+ * @ref QCBOR_CONVERT_TYPE_XINT64 and @ref QCBOR_CONVERT_TYPE_FLOAT
+ * conversions. If the encoded CBOR is not one of the requested types
+ * or a type not supported by this function, @ref QCBOR_ERR_UNEXPECTED_TYPE
+ * is set.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * If floating-point HW use is disabled this will set
+ * @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision number is
+ * encountered. If half-precision support is disabled, this will set
+ * #ref QCBOR_ERR_HALF_PRECISION_DISABLED if a half-precision number is
+ * encountered.
+ *
+ * Positive and negative integers can always be converted to
+ * floating-point, so this will never error on CBOR major type 0 or 1.
+ *
+ * Note that a large 64-bit integer can have more precision (64 bits)
+ * than even a double floating-point (52 bits) value, so there is loss
+ * of precision in some conversions.
+ *
+ * See also QCBORDecode_GetDouble() and QCBORDecode_GetDoubleConvertAll().
+ */
 static void QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pCtx,
                                          uint32_t            uConvertTypes,
                                          double             *pdValue);
@@ -549,28 +556,28 @@ static void QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode next item as a double floating-point value with conversion.
-
- @param[in] pCtx           The decode context.
- @param[in] uConvertTypes  The integer conversion options.
- @param[out] pdValue       The returned floating-point value.
-
- This is the same as QCBORDecode_GetDoubleConvert() but supports many
- more conversions at the cost of linking in more object code. The
- conversion types supported are @ref QCBOR_CONVERT_TYPE_XINT64, @ref
- QCBOR_CONVERT_TYPE_FLOAT, @ref QCBOR_CONVERT_TYPE_BIG_NUM, @ref
- QCBOR_CONVERT_TYPE_DECIMAL_FRACTION and @ref
- QCBOR_CONVERT_TYPE_BIGFLOAT.
-
- Big numbers, decimal fractions and big floats that are too small or
- too large to be reprented as a double floating-point number will be
- returned as plus or minus zero or infinity rather than setting an
- under or overflow error.
-
- There is often loss of precision in the conversion.
-
- See also QCBORDecode_GetDoubleConvert() and QCBORDecode_GetDoubleConvert().
-*/
+ * @brief Decode next item as a double floating-point value with conversion.
+ *
+ * @param[in] pCtx           The decode context.
+ * @param[in] uConvertTypes  The integer conversion options.
+ * @param[out] pdValue       The returned floating-point value.
+ *
+ * This is the same as QCBORDecode_GetDoubleConvert() but supports
+ * many more conversions at the cost of linking in more object
+ * code. The conversion types supported are @ref QCBOR_CONVERT_TYPE_XINT64,
+ * @ref QCBOR_CONVERT_TYPE_FLOAT, @ref QCBOR_CONVERT_TYPE_BIG_NUM,
+ * @ref QCBOR_CONVERT_TYPE_DECIMAL_FRACTION and
+ * @ref QCBOR_CONVERT_TYPE_BIGFLOAT.
+ *
+ * Big numbers, decimal fractions and big floats that are too small or
+ * too large to be reprented as a double floating-point number will be
+ * returned as plus or minus zero or infinity rather than setting an
+ * under or overflow error.
+ *
+ * There is often loss of precision in the conversion.
+ *
+ * See also QCBORDecode_GetDoubleConvert() and QCBORDecode_GetDoubleConvert().
+ */
 void QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pCtx,
                                      uint32_t            uConvertTypes,
                                      double             *pdValue);
@@ -1781,15 +1788,19 @@ QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pMe,
 
 
 // Semi-private
-void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe, uint8_t uType, QCBORItem *pItem);
+void QCBORDecode_EnterBoundedMapOrArray(QCBORDecodeContext *pMe,
+                                        uint8_t uType,
+                                        QCBORItem *pItem);
 
 // Semi-private
-inline static void QCBORDecode_EnterMap(QCBORDecodeContext *pMe, QCBORItem *pItem) {
+inline static void QCBORDecode_EnterMap(QCBORDecodeContext *pMe,
+                                        QCBORItem *pItem) {
    QCBORDecode_EnterBoundedMapOrArray(pMe, QCBOR_TYPE_MAP, pItem);
 }
 
 // Semi-private
-inline static void QCBORDecode_EnterArray(QCBORDecodeContext *pMe, QCBORItem *pItem) {
+inline static void QCBORDecode_EnterArray(QCBORDecodeContext *pMe,
+                                          QCBORItem *pItem) {
    QCBORDecode_EnterBoundedMapOrArray(pMe, QCBOR_TYPE_ARRAY, pItem);
 }
 
