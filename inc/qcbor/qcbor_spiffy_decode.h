@@ -84,8 +84,8 @@ extern "C" {
  * internally. For simple trees this is fine and for high-speed CPUs
  * this is fine, but for complex trees on slow CPUs, it may have
  * performance issues (these have not be quantified yet). One way ease
- * this is to use QCBORDecode_GetItemsInMap() which allows decoding of a
- * list of items expected in an map in one traveral.
+ * this is to use QCBORDecode_GetItemsInMap() which allows decoding of
+ * a list of items expected in an map in one traveral.
  *
  * @anchor Tag-Usage
  * ## Tag Usage
@@ -482,7 +482,7 @@ static void QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pCtx,
  * @param[out] pValue  The returned floating-point value.
  *
  * The CBOR data item to decode must be a half-precision,
- * single-precision or double-precision floating-point value.  If not
+ * single-precision or double-precision floating-point value. If not
  * @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
  *
  * If floating-point HW use is disabled this will set
@@ -509,7 +509,7 @@ static void QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- * @brief Decode next item into a double floating-point value with basic conversion.
+ * @brief Decode next item into a double floating-point with basic conversion.
  *
  * @param[in] pCtx           The decode context.
  * @param[in] uConvertTypes  The integer conversion options.
@@ -898,17 +898,17 @@ void QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as a Boolean.
-
- @param[in] pCtx   The decode context.
- @param[out] pbBool  The decoded byte string.
-
- The CBOR item to decode must be either the CBOR simple value (CBOR
- type 7) @c true or @c false.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview". If
- the CBOR item to decode is not true or false the @ref
- QCBOR_ERR_UNEXPECTED_TYPE error is set.
+ * @brief Decode the next item as a Boolean.
+ *
+ * @param[in] pCtx     The decode context.
+ * @param[out] pbBool  The decoded byte string.
+ *
+ * The CBOR item to decode must be either the CBOR simple value (CBOR
+ * type 7) @c true or @c false.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview". If
+ * the CBOR item to decode is not true or false the @ref
+ * QCBOR_ERR_UNEXPECTED_TYPE error is set.
 */
 void QCBORDecode_GetBool(QCBORDecodeContext *pCtx, bool *pbBool);
 
@@ -922,15 +922,15 @@ void QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as a null.
-
- @param[in] pCtx   The decode context.
-
- The CBOR item to decode must be the CBOR simple value (CBOR type 7)
- @c null. The reason to call this is to see if an error is returned or
- not indicating whether the item is a CBOR null. If it is not then the
- @ref QCBOR_ERR_UNEXPECTED_TYPE error is set.
-*/
+ * @brief Decode the next item as a null.
+ *
+ * @param[in] pCtx  The decode context.
+ *
+ * The CBOR item to decode must be the CBOR simple value (CBOR type 7)
+ * @c null. The reason to call this is to see if an error is returned
+ * or not indicating whether the item is a CBOR null. If it is not
+ * then the @ref QCBOR_ERR_UNEXPECTED_TYPE error is set.
+ */
 static void QCBORDecode_GetNull(QCBORDecodeContext *pCtx);
 
 static void QCBORDecode_GetNullInMapN(QCBORDecodeContext *pCtx,
@@ -941,16 +941,16 @@ static void QCBORDecode_GetNullInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as a CBOR "undefined" item.
-
- @param[in] pCtx   The decode context.
-
- The CBOR item to decode must be the CBOR simple value (CBOR type 7)
- @c undefined. The reason to call this is to see if an error is
- returned or not indicating whether the item is a CBOR undefed
- item. If it is not then the @ref QCBOR_ERR_UNEXPECTED_TYPE error is
- set.
-*/
+ * @brief Decode the next item as a CBOR "undefined" item.
+ *
+ * @param[in] pCtx  The decode context.
+ *
+ * The CBOR item to decode must be the CBOR simple value (CBOR type 7)
+ * @c undefined. The reason to call this is to see if an error is
+ * returned or not indicating whether the item is a CBOR undefed
+ * item. If it is not then the @ref QCBOR_ERR_UNEXPECTED_TYPE error is
+ * set.
+ */
 static void QCBORDecode_GetUndefined(QCBORDecodeContext *pCtx);
 
 static void QCBORDecode_GetUndefinedInMapN(QCBORDecodeContext *pCtx,
@@ -961,23 +961,23 @@ static void QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as a date string.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pDateString     The decoded date.
-
- This decodes the standard CBOR date/time string tag, integer tag
- number of 0, or encoded CBOR that is not a tag, but borrows the
- date string content format.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See @ref Tag-Usage for discussion on tag requirements.
-
- See also @ref CBOR_TAG_DATE_STRING, QCBOREncode_AddDateString() and
- @ref QCBOR_TYPE_DATE_STRING.
-*/
+ * @brief Decode the next item as a date string.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pDateString     The decoded date.
+ *
+ * This decodes the standard CBOR date/time string tag, integer tag
+ * number of 0, or encoded CBOR that is not a tag, but borrows the
+ * date string content format.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * See also @ref CBOR_TAG_DATE_STRING, QCBOREncode_AddDateString() and
+ * @ref QCBOR_TYPE_DATE_STRING.
+ */
 static void QCBORDecode_GetDateString(QCBORDecodeContext *pCtx,
                                       uint8_t             uTagRequirement,
                                       UsefulBufC         *pDateString);
@@ -994,24 +994,23 @@ static void QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as a date-only string.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pDateString     The decoded date.
-
- This decodes the CBOR date-only string tag, integer tag
- number of 1004, or encoded CBOR that is not a tag, but borrows the
- date-only string content format. An example of the format
- is "1985-04-12".
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See @ref Tag-Usage for discussion on tag requirements.
-
- See also @ref CBOR_TAG_DAYS_STRING, QCBOREncode_AddDaysString() and
- @ref QCBOR_TYPE_DAYS_STRING.
-*/
+ * @brief Decode the next item as a date-only string.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pDateString     The decoded date.
+ *
+ * This decodes the CBOR date-only string tag, integer tag number of
+ * 1004, or encoded CBOR that is not a tag, but borrows the date-only
+ * string content format. An example of the format is "1985-04-12".
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * See also @ref CBOR_TAG_DAYS_STRING, QCBOREncode_AddDaysString() and
+ * @ref QCBOR_TYPE_DAYS_STRING.
+ */
 static void QCBORDecode_GetDaysString(QCBORDecodeContext *pCtx,
                                       uint8_t             uTagRequirement,
                                       UsefulBufC         *pDateString);
@@ -1028,44 +1027,47 @@ static void QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as an epoch date.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pnTime          The decoded epoch date.
-
- This decodes the standard CBOR epoch date/time tag, integer tag
- number of 1. This will also decode any integer or floating-point
- number as an epoch date (a tag 1 epoch date is just an integer or
- floating-point number).
-
- This will set @ref QCBOR_ERR_DATE_OVERFLOW if the input integer will
- not fit in an @c int64_t. Note that an @c int64_t can represent a
- range of over 500 billion years with one second resolution.
-
- Floating-point dates are always returned as an @c int64_t. The
- fractional part is discarded.
-
- If the input is a floating-point date and the QCBOR library is
- compiled with some or all floating-point features disabled, the
- following errors will be set.  If the input is half-precision and
- half-precision is disabled @ref QCBOR_ERR_HALF_PRECISION_DISABLED is
- set. This function needs hardware floating-point to convert the
- floating-point value to an integer so if HW floating point is
- disabled QCBOR_ERR_HW_FLOAT_DISABLED is set. If all floating-point is
- disabled then @ref QCBOR_ERR_ALL_FLOAT_DISABLED is set.  A previous
- version of this function would return @ref QCBOR_ERR_FLOAT_DATE_DISABLED
- in some, but not all, cases when floating-point decoding was disabled.
-
- Floating-point dates that are plus infinity, minus infinity or NaN
- (not-a-number) will result in the @ref QCBOR_ERR_DATE_OVERFLOW error.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See @ref Tag-Usage for discussion on tag requirements.
-
- See also @ref CBOR_TAG_DATE_EPOCH, QCBOREncode_AddDateEpoch() and
- @ref QCBOR_TYPE_DATE_EPOCH.
+ * @brief Decode the next item as an epoch date.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pnTime          The decoded epoch date.
+ *
+ * This decodes the standard CBOR epoch date/time tag, integer tag
+ * number of 1. This will also decode any integer or floating-point
+ * number as an epoch date (a tag 1 epoch date is just an integer or
+ * floating-point number).
+ *
+ * This will set @ref QCBOR_ERR_DATE_OVERFLOW if the input integer
+ * will not fit in an @c int64_t. Note that an @c int64_t can
+ * represent a range of over 500 billion years with one second
+ * resolution.
+ *
+ * Floating-point dates are always returned as an @c int64_t. The
+ * fractional part is discarded.
+ *
+ * If the input is a floating-point date and the QCBOR library is
+ * compiled with some or all floating-point features disabled, the
+ * following errors will be set.  If the input is half-precision and
+ * half-precision is disabled @ref QCBOR_ERR_HALF_PRECISION_DISABLED
+ * is set. This function needs hardware floating-point to convert the
+ * floating-point value to an integer so if HW floating point is
+ * disabled @ref QCBOR_ERR_HW_FLOAT_DISABLED is set. If all
+ * floating-point is disabled then @ref QCBOR_ERR_ALL_FLOAT_DISABLED
+ * is set.  A previous version of this function would return
+ * @ref QCBOR_ERR_FLOAT_DATE_DISABLED in some, but not all, cases when
+ * floating-point decoding was disabled.
+ *
+ * Floating-point dates that are plus infinity, minus infinity or NaN
+ * (not-a-number) will result in the @ref QCBOR_ERR_DATE_OVERFLOW
+ * error.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * See also @ref CBOR_TAG_DATE_EPOCH, QCBOREncode_AddDateEpoch() and
+ * @ref QCBOR_TYPE_DATE_EPOCH.
 */
 void QCBORDecode_GetEpochDate(QCBORDecodeContext *pCtx,
                               uint8_t             uTagRequirement,
@@ -1083,23 +1085,23 @@ void QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as an days-count epoch date.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pnDays          The decoded epoch date.
-
- This decodes the CBOR epoch date tag, integer tag number of 100, or
- encoded CBOR that is not a tag, but borrows the content format. The
- date is the number of days (not number of seconds) before or after
- Jan 1, 1970.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See @ref Tag-Usage for discussion on tag requirements.
-
- See also @ref CBOR_TAG_DAYS_EPOCH, QCBOREncode_AddTDaysEpoch() and
- @ref QCBOR_TYPE_DAYS_EPOCH.
+ * @brief Decode the next item as an days-count epoch date.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pnDays          The decoded epoch date.
+ *
+ * This decodes the CBOR epoch date tag, integer tag number of 100, or
+ * encoded CBOR that is not a tag, but borrows the content format. The
+ * date is the number of days (not number of seconds) before or after
+ * Jan 1, 1970.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * See also @ref CBOR_TAG_DAYS_EPOCH, QCBOREncode_AddTDaysEpoch() and
+ * @ref QCBOR_TYPE_DAYS_EPOCH.
 */
 void QCBORDecode_GetEpochDays(QCBORDecodeContext *pCtx,
                               uint8_t             uTagRequirement,
@@ -1119,47 +1121,47 @@ void QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as a big number.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pValue          The returned big number.
- @param[out] pbIsNegative    Is @c true if the big number is negative. This
-                             is only valid when @c uTagRequirement is
-                             @ref QCBOR_TAG_REQUIREMENT_TAG.
-
- This decodes a standard CBOR big number, integer tag number of 2 or
- 3, or encoded CBOR that is not a tag, but borrows the content format.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- The big number is in network byte order. The first byte in @c pValue
- is the most significant byte. There may be leading zeros.
-
- The negative value is computed as -1 - n, where n is the postive big
- number in @c pValue. There is no standard representation for
- big numbers, positive or negative in C, so this implementation leaves
- it up to the caller to apply this computation for negative big numbers.
-
- See @ref Tag-Usage for discussion on tag requirements.
-
- Determination of the sign of the big number depends on the tag
- requirement of the protocol using the big number. If the protocol
- requires tagging, @ref QCBOR_TAG_REQUIREMENT_TAG, then the sign
- indication is in the protocol and @c pbIsNegative indicates the
- sign. If the protocol doesn't use a tag, @ref
- QCBOR_TAG_REQUIREMENT_NOT_A_TAG, then the protocol design must have some
- way of indicating the sign.
-
- See also QCBORDecode_GetInt64ConvertAll(),
- QCBORDecode_GetUInt64ConvertAll() and
- QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
-
- See also @ref CBOR_TAG_POS_BIGNUM, @ref CBOR_TAG_NEG_BIGNUM,
- QCBOREncode_AddPositiveBignum(), QCBOREncode_AddNegativeBignum(),
- @ref QCBOR_TYPE_POSBIGNUM and @ref QCBOR_TYPE_NEGBIGNUM.
-
-*/
+ * @brief Decode the next item as a big number.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pValue          The returned big number.
+ * @param[out] pbIsNegative    Is @c true if the big number is negative. This
+ *                             is only valid when @c uTagRequirement is
+ *                             @ref QCBOR_TAG_REQUIREMENT_TAG.
+ *
+ * This decodes a standard CBOR big number, integer tag number of 2 or
+ * 3, or encoded CBOR that is not a tag, but borrows the content
+ * format.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * The big number is in network byte order. The first byte in @c
+ * pValue is the most significant byte. There may be leading zeros.
+ *
+ * The negative value is computed as -1 - n, where n is the postive
+ * big number in @c pValue. There is no standard representation for
+ * big numbers, positive or negative in C, so this implementation
+ * leaves it up to the caller to apply this computation for negative
+ * big numbers.
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * Determination of the sign of the big number depends on the tag
+ * requirement of the protocol using the big number. If the protocol
+ * requires tagging, @ref QCBOR_TAG_REQUIREMENT_TAG, then the sign
+ * indication is in the protocol and @c pbIsNegative indicates the
+ * sign. If the protocol doesn't use a tag, @ref QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+ * then the protocol design must have some way of indicating the sign.
+ *
+ * See also QCBORDecode_GetInt64ConvertAll(),
+ * QCBORDecode_GetUInt64ConvertAll() and
+ * QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
+ *
+ * See also @ref CBOR_TAG_POS_BIGNUM, @ref CBOR_TAG_NEG_BIGNUM,
+ * QCBOREncode_AddPositiveBignum(), QCBOREncode_AddNegativeBignum(),
+ * @ref QCBOR_TYPE_POSBIGNUM and @ref QCBOR_TYPE_NEGBIGNUM.
+ */
 // Improvement: Add function that converts integers and other to big nums
 void QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,
                            uint8_t             uTagRequirement,
@@ -1183,51 +1185,51 @@ void QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
- @brief Decode the next item as a decimal fraction.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pnMantissa      The mantissa.
- @param[out] pnExponent      The base 10 exponent.
-
- This decodes a standard CBOR decimal fraction, integer tag number of
- 4, or encoded CBOR that is not a tag, but borrows the content format.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- The  value of this is computed by:
-
-     mantissa * ( 10 ** exponent )
-
- In the encoded CBOR, the mantissa and exponent may be of CBOR type 0
- (positive integer), type 1 (negative integer), type 2 tag 2 (positive
- big number) or type 2 tag 3 (negative big number). This
- implementation will attempt to convert all of these to an @c
- int64_t. If the value won't fit, @ref
- QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW or
- QCBOR_ERR_BAD_EXP_AND_MANTISSA will be set.
-
- This implementation limits the exponent to between @c INT64_MIN and
- @c INT64_MAX while CBOR allows the range of @c -UINT64_MAX to
- @c UINT64_MAX.
-
- Various format and type issues will result in @ref
- QCBOR_ERR_BAD_EXP_AND_MANTISSA being set.
-
- See @ref Tag-Usage for discussion on tag requirements.
-
- See also QCBORDecode_GetInt64ConvertAll(),
- QCBORDecode_GetUInt64ConvertAll() and
- QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
-
- See also @ref CBOR_TAG_DECIMAL_FRACTION,
- QCBOREncode_AddDecimalFraction(), @ref QCBOR_TYPE_DECIMAL_FRACTION
- and QCBORDecode_GetDecimalFractionBig().
-
- If QCBOR_DISABLE_TAGS is set, the only input this will decode is
- an array of two integers. It will set an error if the the array is preceded
- by by a tag number or if the mantissa is a big number.
-*/
+ * @brief Decode the next item as a decimal fraction.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pnMantissa      The mantissa.
+ * @param[out] pnExponent      The base 10 exponent.
+ *
+ * This decodes a standard CBOR decimal fraction, integer tag number
+ * of 4, or encoded CBOR that is not a tag, but borrows the content
+ * format.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * The  value of this is computed by:
+ *
+ *     mantissa * ( 10 ** exponent )
+ *
+ * In the encoded CBOR, the mantissa and exponent may be of CBOR type
+ * 0 (positive integer), type 1 (negative integer), type 2 tag 2
+ * (positive big number) or type 2 tag 3 (negative big number). This
+ * implementation will attempt to convert all of these to an @c
+ * int64_t. If the value won't fit, @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
+ * or @ref QCBOR_ERR_BAD_EXP_AND_MANTISSA will be set.
+ *
+ * This implementation limits the exponent to between @c INT64_MIN and
+ * @c INT64_MAX while CBOR allows the range of @c -UINT64_MAX to
+ * @c UINT64_MAX.
+ *
+ * Various format and type issues will result in
+ * @ref QCBOR_ERR_BAD_EXP_AND_MANTISSA being set.
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * See also QCBORDecode_GetInt64ConvertAll(),
+ * QCBORDecode_GetUInt64ConvertAll() and
+ * QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
+ *
+ * See also @ref CBOR_TAG_DECIMAL_FRACTION,
+ * QCBOREncode_AddDecimalFraction(), @ref QCBOR_TYPE_DECIMAL_FRACTION
+ * and QCBORDecode_GetDecimalFractionBig().
+ *
+ * If QCBOR_DISABLE_TAGS is set, the only input this will decode is an
+ * array of two integers. It will set an error if the the array is
+ * preceded by by a tag number or if the mantissa is a big number.
+ */
 void QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pCtx,
                                     uint8_t             uTagRequirement,
                                     int64_t            *pnMantissa,
@@ -1247,33 +1249,33 @@ void QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
 
 
 /**
- @brief Decode the next item as a decimal fraction with a big number mantissa.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[in] MantissaBuffer The buffer in which to put the mantissa.
- @param[out] pMantissa      The big num mantissa.
- @param[out] pbMantissaIsNegative  Is @c true if @c pMantissa is negative.
- @param[out] pnExponent      The base 10 exponent.
-
- This is the same as QCBORDecode_GetDecimalFraction() except the
- mantissa is returned as a big number.
-
- In the encoded CBOR, the mantissa may be a type 0 (positive integer),
- type 1 (negative integer), type 2 tag 2 (positive big number) or type
- 2 tag 3 (negative big number). This implementation will convert all
- these to a big number. The limit to this conversion is the size of @c
- MantissaBuffer.
-
- See also QCBORDecode_GetInt64ConvertAll(),
- QCBORDecode_GetUInt64ConvertAll() and
- QCBORDecode_GetDoubleConvertAll() which can convert decimal
- fractions.
-
- See also @ref CBOR_TAG_DECIMAL_FRACTION,
- QCBOREncode_AddDecimalFraction(), @ref QCBOR_TYPE_DECIMAL_FRACTION
- and QCBORDecode_GetDecimalFraction().
-*/
+ * @brief Decode the next item as a decimal fraction with a big number mantissa.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[in] MantissaBuffer   The buffer in which to put the mantissa.
+ * @param[out] pMantissa       The big num mantissa.
+ * @param[out] pbMantissaIsNegative  Is @c true if @c pMantissa is negative.
+ * @param[out] pnExponent      The base 10 exponent.
+ *
+ * This is the same as QCBORDecode_GetDecimalFraction() except the
+ * mantissa is returned as a big number.
+ *
+ * In the encoded CBOR, the mantissa may be a type 0 (positive
+ * integer), type 1 (negative integer), type 2 tag 2 (positive big
+ * number) or type 2 tag 3 (negative big number). This implementation
+ * will convert all these to a big number. The limit to this
+ * conversion is the size of @c MantissaBuffer.
+ *
+ * See also QCBORDecode_GetInt64ConvertAll(),
+ * QCBORDecode_GetUInt64ConvertAll() and
+ * QCBORDecode_GetDoubleConvertAll() which can convert decimal
+ * fractions.
+ *
+ * See also @ref CBOR_TAG_DECIMAL_FRACTION,
+ * QCBOREncode_AddDecimalFraction(), @ref QCBOR_TYPE_DECIMAL_FRACTION
+ * and QCBORDecode_GetDecimalFraction().
+ */
 void QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pCtx,
                                        uint8_t             uTagRequirement,
                                        UsefulBuf           MantissaBuffer,
@@ -1299,31 +1301,31 @@ void QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as a big float.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pnMantissa      The mantissa.
- @param[out] pnExponent      The base 2 exponent.
-
- This decodes a standard CBOR big float, integer tag number of 5, or
- encoded CBOR that is not a tag, but borrows the content format.
-
- This is the same as QCBORDecode_GetDecimalFraction() with the
- important distinction that the value is computed by:
-
-     mantissa * ( 2 ** exponent )
-
- If the mantissa is a tag that is a positive or negative big number,
- this will attempt to fit it into the int64_t that @c pnMantissa is
- and set an overflow error if it doesn't fit.
-
- See also QCBORDecode_GetInt64ConvertAll(),
- QCBORDecode_GetUInt64ConvertAll() and
- QCBORDecode_GetDoubleConvertAll() which can convert big floats.
-
- See also @ref CBOR_TAG_BIGFLOAT, QCBOREncode_AddBigFloat(), @ref
- QCBOR_TYPE_BIGFLOAT and QCBORDecode_GetBigFloatBig().
+ * @brief Decode the next item as a big float.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pnMantissa      The mantissa.
+ * @param[out] pnExponent      The base 2 exponent.
+ *
+ * This decodes a standard CBOR big float, integer tag number of 5, or
+ * encoded CBOR that is not a tag, but borrows the content format.
+ *
+ * This is the same as QCBORDecode_GetDecimalFraction() with the
+ * important distinction that the value is computed by:
+ *
+ *     mantissa * ( 2 ** exponent )
+ *
+ * If the mantissa is a tag that is a positive or negative big number,
+ * this will attempt to fit it into the int64_t that @c pnMantissa is
+ * and set an overflow error if it doesn't fit.
+ *
+ * See also QCBORDecode_GetInt64ConvertAll(),
+ * QCBORDecode_GetUInt64ConvertAll() and
+ * QCBORDecode_GetDoubleConvertAll() which can convert big floats.
+ *
+ * See also @ref CBOR_TAG_BIGFLOAT, QCBOREncode_AddBigFloat(), @ref
+ * QCBOR_TYPE_BIGFLOAT and QCBORDecode_GetBigFloatBig().
  */
 void QCBORDecode_GetBigFloat(QCBORDecodeContext *pCtx,
                              uint8_t             uTagRequirement,
@@ -1344,26 +1346,26 @@ void QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as a big float with a big number mantissa.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[in] MantissaBuffer The buffer in which to put the mantissa.
- @param[out] pMantissa      The big num mantissa.
- @param[out] pbMantissaIsNegative  Is @c true if @c pMantissa is negative.
- @param[out] pnExponent      The base 2 exponent.
-
- This is the same as QCBORDecode_GetDecimalFractionBig() with the
- important distinction that the value is computed by:
-
-     mantissa * ( 2 ** exponent )
-
- See also QCBORDecode_GetInt64ConvertAll(),
- QCBORDecode_GetUInt64ConvertAll() and
- QCBORDecode_GetDoubleConvertAll() which can convert big floats.
-
- See also @ref CBOR_TAG_BIGFLOAT, QCBOREncode_AddBigFloat(),
- @ref QCBOR_TYPE_BIGFLOAT and QCBORDecode_GetBigFloat().
+ * @brief Decode the next item as a big float with a big number mantissa.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[in] MantissaBuffer   The buffer in which to put the mantissa.
+ * @param[out] pMantissa       The big num mantissa.
+ * @param[out] pbMantissaIsNegative  Is @c true if @c pMantissa is negative.
+ * @param[out] pnExponent      The base 2 exponent.
+ *
+ * This is the same as QCBORDecode_GetDecimalFractionBig() with the
+ * important distinction that the value is computed by:
+ *
+ *     mantissa * ( 2 ** exponent )
+ *
+ * See also QCBORDecode_GetInt64ConvertAll(),
+ * QCBORDecode_GetUInt64ConvertAll() and
+ * QCBORDecode_GetDoubleConvertAll() which can convert big floats.
+ *
+ * See also @ref CBOR_TAG_BIGFLOAT, QCBOREncode_AddBigFloat(),
+ * @ref QCBOR_TYPE_BIGFLOAT and QCBORDecode_GetBigFloat().
  */
 void QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pCtx,
                                 uint8_t             uTagRequirement,
@@ -1393,21 +1395,22 @@ void QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as a URI.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pURI            The decoded URI.
-
- This decodes a standard CBOR URI tag, integer tag number of 32,
- or encoded CBOR that is not a tag, that is a URI encoded in a text string.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See @ref Tag-Usage for discussion on tag requirements.
-
- See also @ref CBOR_TAG_URI, QCBOREncode_AddURI() and
- @ref QCBOR_TYPE_URI.
+ * @brief Decode the next item as a URI.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pURI            The decoded URI.
+ *
+ * This decodes a standard CBOR URI tag, integer tag number of 32, or
+ * encoded CBOR that is not a tag, that is a URI encoded in a text
+ * string.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * See also @ref CBOR_TAG_URI, QCBOREncode_AddURI() and
+ *  @ref QCBOR_TYPE_URI.
  */
 static void QCBORDecode_GetURI(QCBORDecodeContext *pCtx,
                                uint8_t             uTagRequirement,
@@ -1425,25 +1428,25 @@ static void QCBORDecode_GetURIInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as base64 encoded text.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pB64Text          The decoded base64 text.
-
- This decodes a standard CBOR base64 tag, integer tag number of 34, or
- encoded CBOR that is not a tag, that is base64 encoded bytes encoded
- in a text string.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See @ref Tag-Usage for discussion on tag requirements.
-
- Note that this does not actually remove the base64 encoding.
-
- See also @ref CBOR_TAG_B64, QCBOREncode_AddB64Text() and
- @ref QCBOR_TYPE_BASE64.
-*/
+ * @brief Decode the next item as base64 encoded text.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pB64Text        The decoded base64 text.
+ *
+ * This decodes a standard CBOR base64 tag, integer tag number of 34,
+ * or encoded CBOR that is not a tag, that is base64 encoded bytes
+ * encoded in a text string.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * Note that this does not actually remove the base64 encoding.
+ *
+ * See also @ref CBOR_TAG_B64, QCBOREncode_AddB64Text() and
+ * @ref QCBOR_TYPE_BASE64.
+ */
 static void QCBORDecode_GetB64(QCBORDecodeContext *pCtx,
                                uint8_t             uTagRequirement,
                                UsefulBufC         *pB64Text);
@@ -1459,25 +1462,25 @@ static void QCBORDecode_GetB64InMapSZ(QCBORDecodeContext *pCtx,
                                       UsefulBufC         *pB64Text);
 
 /**
- @brief Decode the next item as base64URL encoded text.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pB64Text          The decoded base64 text.
-
- This decodes a standard CBOR base64url tag, integer tag number of 33,
- or encoded CBOR that is not a tag, that is base64url encoded bytes
- encoded in a text string.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See @ref Tag-Usage for discussion on tag requirements.
-
- Note that this does not actually remove the base64url encoding.
-
- See also @ref CBOR_TAG_B64URL, QCBOREncode_AddB64URLText() and
- @ref QCBOR_TYPE_BASE64URL.
-*/
+ * @brief Decode the next item as base64URL encoded text.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pB64Text        The decoded base64 text.
+ *
+ * This decodes a standard CBOR base64url tag, integer tag number of
+ * 33, or encoded CBOR that is not a tag, that is base64url encoded
+ * bytes encoded in a text string.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * Note that this does not actually remove the base64url encoding.
+ *
+ * See also @ref CBOR_TAG_B64URL, QCBOREncode_AddB64URLText() and
+ * @ref QCBOR_TYPE_BASE64URL.
+ */
 static void QCBORDecode_GetB64URL(QCBORDecodeContext *pCtx,
                                   uint8_t             uTagRequirement,
                                   UsefulBufC         *pB64Text);
@@ -1493,22 +1496,22 @@ static void QCBORDecode_GetB64URLInMapSZ(QCBORDecodeContext *pCtx,
                                          UsefulBufC         *pB64Text);
 
 /**
- @brief Decode the next item as a regular expression.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pRegex          The decoded regular expression.
-
- This decodes a standard CBOR regex tag, integer tag number of 35, or
- encoded CBOR that is not a tag, that is a PERL-compatible regular
- expression encoded in a text string.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See @ref Tag-Usage for discussion on tag requirements.
-
- See also @ref CBOR_TAG_REGEX, QCBOREncode_AddRegex() and
- @ref QCBOR_TYPE_REGEX.
+ * @brief Decode the next item as a regular expression.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pRegex          The decoded regular expression.
+ *
+ * This decodes a standard CBOR regex tag, integer tag number of 35,
+ * or encoded CBOR that is not a tag, that is a PERL-compatible
+ * regular expression encoded in a text string.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * See also @ref CBOR_TAG_REGEX, QCBOREncode_AddRegex() and
+ * @ref QCBOR_TYPE_REGEX.
  */
 static void QCBORDecode_GetRegex(QCBORDecodeContext *pCtx,
                                  uint8_t             uTagRequirement,
@@ -1526,37 +1529,36 @@ static void QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Decode the next item as a MIME message.
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pMessage        The decoded regular expression.
- @param[out] pbIsTag257     @c true if tag was 257. May be @c NULL.
-
- This decodes the standard CBOR MIME and binary MIME tags, integer tag
- numbers of 36 or 257, or encoded CBOR that is not a tag, that is a
- MIME message encoded in a text or binary string.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See @ref Tag-Usage for discussion on tag requirements.
-
- The MIME message itself is not parsed.
-
- This decodes both tag 36 and 257. If it is tag 257, pbIsTag257
- is @c true. The difference between the two is that
- tag 36 is utf8 and tag 257 is a byte string that can
- carry binary MIME. QCBOR processes them exactly
- the same. Possibly the difference can be ignored.
- NULL can be passed to have no value returned.
-
- See also @ref CBOR_TAG_MIME, @ref CBOR_TAG_BINARY_MIME,
- QCBOREncode_AddTMIMEData(), @ref QCBOR_TYPE_MIME and
- @ref QCBOR_TYPE_BINARY_MIME.
-
- This does no translation of line endings. See QCBOREncode_AddText()
- for a discussion of line endings in CBOR.
-*/
+ * @brief Decode the next item as a MIME message.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pMessage        The decoded regular expression.
+ * @param[out] pbIsTag257      @c true if tag was 257. May be @c NULL.
+ *
+ * This decodes the standard CBOR MIME and binary MIME tags, integer
+ * tag numbers of 36 or 257, or encoded CBOR that is not a tag, that
+ * is a MIME message encoded in a text or binary string.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * The MIME message itself is not parsed.
+ *
+ * This decodes both tag 36 and 257. If it is tag 257, pbIsTag257 is
+ * @c true. The difference between the two is that tag 36 is utf8 and
+ * tag 257 is a byte string that can carry binary MIME. QCBOR
+ * processes them exactly the same. Possibly the difference can be
+ * ignored.  NULL can be passed to have no value returned.
+ *
+ * See also @ref CBOR_TAG_MIME, @ref CBOR_TAG_BINARY_MIME,
+ * QCBOREncode_AddTMIMEData(), @ref QCBOR_TYPE_MIME and
+ * @ref QCBOR_TYPE_BINARY_MIME.
+ *
+ * This does no translation of line endings. See QCBOREncode_AddText()
+ * for a discussion of line endings in CBOR.
+ */
 static void QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pCtx,
                                        uint8_t             uTagRequirement,
                                        UsefulBufC         *pMessage,
@@ -1576,89 +1578,89 @@ static void QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pCtx,
                                               bool               *pbIsTag257);
 
 /**
- @brief Decode the next item as a UUID
-
- @param[in] pCtx             The decode context.
- @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pUUID            The decoded UUID
-
- This decodes a standard CBOR UUID tag, integer tag number of 37, or
- encoded CBOR that is not a tag, that is a UUID encoded in a byte
- string.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See @ref Tag-Usage for discussion on tag requirements.
-
- See also @ref CBOR_TAG_BIN_UUID, QCBOREncode_AddBinaryUUID() and
- @ref QCBOR_TYPE_UUID.
+ * @brief Decode the next item as a UUID
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pUUID           The decoded UUID
+ *
+ * This decodes a standard CBOR UUID tag, integer tag number of 37, or
+ * encoded CBOR that is not a tag, that is a UUID encoded in a byte
+ * string.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * See also @ref CBOR_TAG_BIN_UUID, QCBOREncode_AddBinaryUUID() and
+ * @ref QCBOR_TYPE_UUID.
  */
-static inline void QCBORDecode_GetBinaryUUID(QCBORDecodeContext *pCtx,
+static void QCBORDecode_GetBinaryUUID(QCBORDecodeContext *pCtx,
+                                      uint8_t             uTagRequirement,
+                                      UsefulBufC         *pUUID);
+
+static void QCBORDecode_GetBinaryUUIDInMapN(QCBORDecodeContext *pCtx,
+                                            int64_t             nLabel,
+                                            uint8_t             uTagRequirement,
+                                            UsefulBufC         *pUUID);
+
+static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
+                                             const char         *szLabel,
                                              uint8_t             uTagRequirement,
                                              UsefulBufC         *pUUID);
-
-inline static void QCBORDecode_GetBinaryUUIDInMapN(QCBORDecodeContext *pCtx,
-                                                   int64_t             nLabel,
-                                                   uint8_t             uTagRequirement,
-                                                   UsefulBufC         *pUUID);
-
-inline static void QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
-                                                    const char         *szLabel,
-                                                    uint8_t             uTagRequirement,
-                                                    UsefulBufC         *pUUID);
 
 
 
 /**
- @brief Decode some byte-string wrapped CBOR.
-
- @param[in] pCtx   The decode context.
- @param[in] uTagRequirement One of @c QCBOR_TAG_REQUIREMENT_XXX.
- @param[out] pBstr  Pointer and length of byte-string wrapped CBOR (optional).
-
- This is for use on some CBOR that has been wrapped in a byte
- string. There are several ways that this can occur.
-
- First is tag 24 and tag 63. Tag 24 wraps a single CBOR data item and
- 63 a CBOR sequence.  This implementation doesn't distinguish between
- the two (it would be more code and doesn't seem important).
-
- The @ref Tag-Usage discussion on the tag requirement applies here
- just the same as any other tag.
-
- In other cases, CBOR is wrapped in a byte string, but it is
- identified as CBOR by other means. The contents of a COSE payload are
- one example of that. They can be identified by the COSE content type,
- or they can be identified as CBOR indirectly by the protocol that
- uses COSE. for example, if a blob of CBOR is identified as a CWT,
- then the COSE payload is CBOR.  To enter into CBOR of this type use
- the @ref QCBOR_TAG_REQUIREMENT_NOT_A_TAG as the \c uTagRequirement
- argument.
-
- Note that byte string wrapped CBOR can also be decoded by getting the
- byte string with QCBORDecode_GetItem() or QCBORDecode_GetByteString()
- and feeding it into another instance of QCBORDecode. Doing it with
- this function has the advantage of using less memory as another
- instance of QCBORDecode is not necessary.
-
- When the wrapped CBOR is entered with this function, the pre-order
- traversal and such are bounded to the wrapped
- CBOR. QCBORDecode_ExitBstrWrapped() must be called to resume processing
- CBOR outside the wrapped CBOR.
-
- This does not (currently) work on indefinite-length strings. The
- (confusing) error @ref QCBOR_ERR_INPUT_TOO_LARGE will be set.
-
- If @c pBstr is not @c NULL the pointer and length of the wrapped
- CBOR will be returned. This is usually not needed, but sometimes
- useful, particularly in the case of verifying signed data like the
- COSE payload. This is usually the pointer and length of the
- data is that is hashed or MACed.
-
- Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-
- See also QCBORDecode_ExitBstrWrapped(), QCBORDecode_EnterMap() and
- QCBORDecode_EnterArray().
+ * @brief Decode some byte-string wrapped CBOR.
+ *
+ * @param[in] pCtx    The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pBstr  Pointer and length of byte-string wrapped CBOR (optional).
+ *
+ * This is for use on some CBOR that has been wrapped in a byte
+ * string. There are several ways that this can occur.
+ *
+ * First is tag 24 and tag 63. Tag 24 wraps a single CBOR data item
+ * and 63 a CBOR sequence.  This implementation doesn't distinguish
+ * between the two (it would be more code and doesn't seem important).
+ *
+ * The @ref Tag-Usage discussion on the tag requirement applies here
+ * just the same as any other tag.
+ *
+ * In other cases, CBOR is wrapped in a byte string, but it is
+ * identified as CBOR by other means. The contents of a COSE payload
+ * are one example of that. They can be identified by the COSE content
+ * type, or they can be identified as CBOR indirectly by the protocol
+ * that uses COSE. for example, if a blob of CBOR is identified as a
+ * CWT, then the COSE payload is CBOR.  To enter into CBOR of this
+ * type use the @ref QCBOR_TAG_REQUIREMENT_NOT_A_TAG as the \c
+ * uTagRequirement argument.
+ *
+ * Note that byte string wrapped CBOR can also be decoded by getting
+ * the byte string with QCBORDecode_GetItem() or
+ * QCBORDecode_GetByteString() and feeding it into another instance of
+ * QCBORDecode. Doing it with this function has the advantage of using
+ * less memory as another instance of QCBORDecode is not necessary.
+ *
+ * When the wrapped CBOR is entered with this function, the pre-order
+ * traversal and such are bounded to the wrapped
+ * CBOR. QCBORDecode_ExitBstrWrapped() must be called to resume
+ * processing CBOR outside the wrapped CBOR.
+ *
+ * This does not (currently) work on indefinite-length strings. The
+ * (confusing) error @ref QCBOR_ERR_INPUT_TOO_LARGE will be set.
+ *
+ * If @c pBstr is not @c NULL the pointer and length of the wrapped
+ * CBOR will be returned. This is usually not needed, but sometimes
+ * useful, particularly in the case of verifying signed data like the
+ * COSE payload. This is usually the pointer and length of the data is
+ * that is hashed or MACed.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See also QCBORDecode_ExitBstrWrapped(), QCBORDecode_EnterMap() and
+ * QCBORDecode_EnterArray().
  */
 void QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pCtx,
                                   uint8_t             uTagRequirement,
@@ -1676,18 +1678,18 @@ void QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- @brief Exit some bstr-wrapped CBOR  has been enetered.
-
- @param[in] pCtx   The decode context.
-
- Bstr-wrapped CBOR must have been entered for this to succeed.
-
- The items in the wrapped CBOR that was entered do not have to have been
- consumed for this to succeed.
-
- The this sets the pre-order traversal cursor to the item after
- the byte string that was exited.
-*/
+ * @brief Exit some bstr-wrapped CBOR  has been enetered.
+ *
+ * @param[in] pCtx  The decode context.
+ *
+ * Bstr-wrapped CBOR must have been entered for this to succeed.
+ *
+ * The items in the wrapped CBOR that was entered do not have to have
+ * been consumed for this to succeed.
+ *
+ * The this sets the pre-order traversal cursor to the item after the
+ * byte string that was exited.
+ */
 void QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
 
 
