@@ -590,7 +590,9 @@ typedef struct _QCBORItem {
  * strings will have to free them. How they free them, depends on the
  * design of the string allocator.
  */
-typedef UsefulBuf (* QCBORStringAllocate)(void *pAllocateCxt, void *pOldMem, size_t uNewSize);
+typedef UsefulBuf (* QCBORStringAllocate)(void   *pAllocateCxt,
+                                          void   *pOldMem,
+                                          size_t  uNewSize);
 
 
 /**
@@ -703,7 +705,9 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDec
  * See also QCBORDecode_SetUpAllocator() to set up a custom allocator
  * if this one isn't sufficient.
  */
-QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAllStrings);
+QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx,
+                                  UsefulBuf           MemPool,
+                                  bool                bAllStrings);
 
 
 /**
@@ -916,9 +920,9 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * | __Configuration errors__  ||
  * | @ref QCBOR_ERR_NO_STRING_ALLOCATOR        | Encountered indefinite-length string with no allocator configured |
  * | @ref QCBOR_ERR_MAP_LABEL_TYPE             | A map label that is not a string on an integer |
- * | @ref QCBOR_ERR_HALF_PRECISION_DISABLED    | Library compiled with half-precision disabled and half-precision input encountered |
- * | @ref QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  | Library compiled with indefinite maps and arrays  disabled and indefinite map or array encountered |
- * | @ref QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED | Library compiled with indefinite strings disabled and indefinite string encountered |
+ * | @ref QCBOR_ERR_HALF_PRECISION_DISABLED    | Half-precision input, but disabled in QCBOR library |
+ * | @ref QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  | Indefinite-length input, but disabled in QCBOR library |
+ * | @ref QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED | Indefinite-length input, but disabled in QCBOR library |
  * | @ref QCBOR_ERR_ALL_FLOAT_DISABLED             | Library compiled with floating-point support turned off. |
  * | __Resource exhaustion errors__  ||
  * | @ref QCBOR_ERR_STRING_ALLOCATE | The string allocator is unable to allocate more memory |
@@ -1360,7 +1364,8 @@ typedef struct {
  * Tag handling has been revised and it is no longer ncessary to use
  * this.  See QCBORDecode_GetNthTag().
  */
-void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBORTagListIn *pTagList);
+void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pCtx,
+                                            const QCBORTagListIn *pTagList);
 
 
 /**
@@ -1388,7 +1393,9 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  * add new tags to the internal list so they can be checked for with
  * this function.
  */
-bool QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint64_t uTag);
+bool QCBORDecode_IsTagged(QCBORDecodeContext *pCtx,
+                          const QCBORItem    *pItem,
+                          uint64_t            uTag);
 
 
 /**
@@ -1425,7 +1432,9 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint
  * QCBOR_ERR_TOO_MANY_TAGS if the array in @c pTagList is too small to
  * hold all the tags for the item.
  */
-QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
+QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx,
+                                       QCBORItem          *pDecodedItem,
+                                       QCBORTagListOut    *pTagList);
 
 
 

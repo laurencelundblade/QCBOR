@@ -617,7 +617,7 @@ void QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  *
- * If attempting to enter a data item that is not an array 
+ * If attempting to enter a data item that is not an array
  * @ref QCBOR_ERR_UNEXPECTED_TYPE wil be set.
  *
  * Nested arrays and maps may be entered to a depth of
@@ -863,7 +863,7 @@ void QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList);
  * The error set is intended for QCBOR errors, not general protocol
  * decoding errors. If this sets other than @ref QCBOR_SUCCESS, the
  * search will stop and the value it returns will be set in
- * QCBORDecode_GetItemsInMapWithCallback(). The special error, 
+ * QCBORDecode_GetItemsInMapWithCallback(). The special error,
  * @ref QCBOR_ERR_CALLBACK_FAIL, can be returned to indicate some
  * protocol processing error that is not a CBOR error. The specific
  * details of the protocol processing error can be returned the call
@@ -881,8 +881,8 @@ typedef QCBORError (*QCBORItemCallback)(void            *pCallbackCtx,
  *                              the returne *d items.
  * @param[in,out] pCallbackCtx  Pointer to a context structure for
  *                              @ref QCBORItemCallback
- * @param[in] pfCB              Pointer to function of type 
- *                              @ref QCBORItemCallback that is called on 
+ * @param[in] pfCB              Pointer to function of type
+ *                              @ref QCBORItemCallback that is called on
  *                              unmatched items.
  *
  * This searchs a map like QCBORDecode_GetItemsInMap(), but calls a
