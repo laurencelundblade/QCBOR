@@ -62,13 +62,27 @@ extern "C" {
 
  When QCBORDecode_EnterMap() is called, pre-order traversal continues
  to work. There is a cursor that is run over the tree with calls to
- QCBORDecode_GetNext(). This can be intermixed with calls to
- QCBORDecode_GetXxxxInMapX(). The pre-order traversal is limited just
- to the map entered. Attempts to QCBORDecode_GetNext() beyond the end
+ QCBORDecode_GetNext(). Attempts to QCBORDecode_GetNext() beyond the end
  of the map will give the @ref QCBOR_ERR_NO_MORE_ITEMS error.
 
- There is also QCBORDecode_EnterArray() to decode arrays. It will
- narrow the traversal to the extent of the array entered.
+ Use of the travsal cursor can be mixed with the fetching of items by
+ label with some caveats. When a non-aggregate item like an integer or
+ string is fetched by label, the traversal cursor is unaffected so the
+ mixing can be done freely.
+
+ When an aggregate item is entered by label, the traversal cursor is
+ set to the item after the aggregate item when it is exited. The
+ traversal cursor can always be set to the start of the current
+ entered map with QCBORDecode_Rewind(). (This behavior was incorrectly
+ documented in previous versions of QCBOR. This behavior may not be
+ ideal for some uses and may be considered inconsistent between
+ aggregate and non-aggregate, but it can be relied on or can be worked
+ around by ordering item fetching and/or use of
+ QCBORDecode_Rewind(). This may be improved in a future version of
+ QCBOR.)
+
+ QCBORDecode_EnterArray() can be used to
+ narrow the traversal to the extent of the array.
 
  All the QCBORDecode_GetXxxxInMapX() methods support duplicate label
  detection and will result in an error if the map has duplicate
@@ -673,11 +687,16 @@ static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  fully exited.
 
  While in bounded mode, QCBORDecode_GetNext() works as usual on the
- map and the in-order traversal cursor is maintained. It starts out at
+ map and the pre-order traversal cursor is maintained. It starts out at
  the first item in the map just entered. Attempts to get items off the
  end of the map will give error @ref QCBOR_ERR_NO_MORE_ITEMS rather
  going to the next item after the map as it would when not in bounded
  mode.
+
+ It is possible to mix use of the traversal cursor with the fetching
+ of items in a map by label with the caveat that fetching
+ non-aggregate items behaves differently from entering subordinate
+ aggregate items.  See dicussion in @ref SpiffyDecode.
 
  Exiting leaves the pre-order cursor at the data item following the
  last entry in the map or at the end of the input CBOR if there
