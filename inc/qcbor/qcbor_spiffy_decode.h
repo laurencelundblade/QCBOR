@@ -686,7 +686,8 @@ QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char *szLabel);
  * formed (since all items in the array must be decoded to find its
  * end), or there are not enough items in the array.
  */
-static void QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
+static void
+QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
 
 
@@ -1835,7 +1836,7 @@ QCBORDecode_GetUInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
                                             QCBORItem          *pItem);
 
 
-void
+static inline void
 QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pMe,
                              uint32_t            uConvertTypes,
                              uint64_t           *puValue)
@@ -2415,9 +2416,10 @@ QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pMe,
 
 
 
-static inline void QCBORDecode_GetURI(QCBORDecodeContext *pMe,
-                                      uint8_t             uTagRequirement,
-                                      UsefulBufC         *pUUID)
+static inline void
+QCBORDecode_GetURI(QCBORDecodeContext *pMe,
+                   uint8_t             uTagRequirement,
+                   UsefulBufC         *pUUID)
 {
    const TagSpecification TagSpec =
       {
@@ -2612,7 +2614,7 @@ QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
                            bool               *pbIsTag257)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state, do nothing
+      /* Already in error state, do nothing */
       return;
    }
 
