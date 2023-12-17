@@ -1,35 +1,35 @@
-/*==============================================================================
- Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2022, Laurence Lundblade.
- Copyright (c) 2021, Arm Limited.
- All rights reserved.
-
- Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are
- met:
- * Redistributions of source code must retain the above copyright
- notice, this list of conditions and the following disclaimer.
- * Redistributions in binary form must reproduce the above
- copyright notice, this list of conditions and the following
- disclaimer in the documentation and/or other materials provided
- with the distribution.
- * Neither the name of The Linux Foundation nor the names of its
- contributors, nor the name "Laurence Lundblade" may be used to
- endorse or promote products derived from this software without
- specific prior written permission.
-
- THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
- WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
- ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
- BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
- BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
- OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
- IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- =============================================================================*/
+/* ===========================================================================
+ * Copyright (c) 2016-2018, The Linux Foundation.
+ * Copyright (c) 2018-2023, Laurence Lundblade.
+ * Copyright (c) 2021, Arm Limited.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials provided
+ *       with the distribution.
+ *     * Neither the name of The Linux Foundation nor the names of its
+ *       contributors, nor the name "Laurence Lundblade" may be used to
+ *       endorse or promote products derived from this software without
+ *       specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ========================================================================= */
 
 
 #ifndef qcbor_decode_h
@@ -175,7 +175,7 @@ extern "C" {
  * Decode functions like QCBORDecode_GetEpochDate() and
  * QCBORDecode_GetDecimalFraction() that can decode the tag content
  * even if the tag number is absent are still available.  Typically
- * they won't be linked in because of dead stripping. The 
+ * they won't be linked in because of dead stripping. The
  * @c uTagRequirement parameter has no effect, but if it is
  * @ref QCBOR_TAG_REQUIREMENT_TAG, @ref QCBOR_ERR_TAGS_DISABLED
  * will be set.
@@ -215,11 +215,11 @@ typedef enum {
 #define QCBOR_TYPE_ANY            1
 
 /** Type for an integer that decoded either between @c INT64_MIN and
-    @c INT32_MIN or @c INT32_MAX and @c INT64_MAX. Data is in member
-    @c val.int64. */
+ *  @c INT32_MIN or @c INT32_MAX and @c INT64_MAX. Data is in member
+ *  @c val.int64. */
 #define QCBOR_TYPE_INT64          2
 /** Type for an integer that decoded to a more than @c INT64_MAX and
-     @c UINT64_MAX.  Data is in member @c val.uint64. */
+ *  @c UINT64_MAX.  Data is in member @c val.uint64. */
 #define QCBOR_TYPE_UINT64         3
 /** Type for an array. See comments on @c val.uCount. */
 #define QCBOR_TYPE_ARRAY          4
@@ -228,54 +228,54 @@ typedef enum {
 /** Type for a buffer full of bytes. Data is in @c val.string. */
 #define QCBOR_TYPE_BYTE_STRING    6
 /** Type for a UTF-8 string. It is not NULL-terminated. See
-    QCBOREncode_AddText() for a discussion of line endings in CBOR. Data
-    is in @c val.string.  */
+ *  QCBOREncode_AddText() for a discussion of line endings in CBOR. Data
+ *  is in @c val.string.  */
 #define QCBOR_TYPE_TEXT_STRING    7
 /** Type for a positive big number. Data is in @c val.bignum, a
-    pointer and a length. */
+ *  pointer and a length. */
 #define QCBOR_TYPE_POSBIGNUM      9
 /** Type for a negative big number. Data is in @c val.bignum, a
-    pointer and a length. */
+ *  pointer and a length. */
 #define QCBOR_TYPE_NEGBIGNUM     10
 /** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
-    string, possibly with time zone. Data is in @c val.string . Note this
-    was previously in @c val.dateString, however this is the same as
-    val.string being the same type in same union. */
+ *  string, possibly with time zone. Data is in @c val.string . Note this
+ *  was previously in @c val.dateString, however this is the same as
+ *  val.string being the same type in same union. */
 #define QCBOR_TYPE_DATE_STRING   11
 /** Type for integer seconds since Jan 1970 + floating-point
-    fraction. Data is in @c val.epochDate */
+ *  fraction. Data is in @c val.epochDate */
 #define QCBOR_TYPE_DATE_EPOCH    12
 /** A simple type that this CBOR implementation doesn't know about;
-    Type is in @c val.uSimple. */
+ *  Type is in @c val.uSimple. */
 #define QCBOR_TYPE_UKNOWN_SIMPLE 13
 
 /** A decimal fraction made of decimal exponent and integer mantissa.
-    See @ref expAndMantissa and QCBOREncode_AddDecimalFraction(). */
+ *  See @ref expAndMantissa and QCBOREncode_AddDecimalFraction(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION            14
 
 /** A decimal fraction made of decimal exponent and positive big
-    number mantissa. See @ref expAndMantissa and
-    QCBOREncode_AddDecimalFractionBigNum(). */
+ *  number mantissa. See @ref expAndMantissa and
+ *  QCBOREncode_AddDecimalFractionBigNum(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM 15
 
 /** A decimal fraction made of decimal exponent and negative big
-    number mantissa. See @ref expAndMantissa and
-    QCBOREncode_AddDecimalFractionBigNum(). */
+ *  number mantissa. See @ref expAndMantissa and
+ *  QCBOREncode_AddDecimalFractionBigNum(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM 16
 
 /** A floating-point number made of base-2 exponent and integer
-    mantissa.  See @ref expAndMantissa and
-    QCBOREncode_AddBigFloat(). */
+ *  mantissa.  See @ref expAndMantissa and
+ *  QCBOREncode_AddBigFloat(). */
 #define QCBOR_TYPE_BIGFLOAT                    17
 
 /** A floating-point number made of base-2 exponent and positive big
-    number mantissa.  See @ref expAndMantissa and
-    QCBOREncode_AddBigFloatBigNum(). */
+ *  number mantissa.  See @ref expAndMantissa and
+ *  QCBOREncode_AddBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_POS_BIGNUM         18
 
 /** A floating-point number made of base-2 exponent and negative big
-    number mantissa.  See @ref expAndMantissa and
-    QCBOREncode_AddBigFloatBigNum(). */
+ *  number mantissa.  See @ref expAndMantissa and
+ *  QCBOREncode_AddBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM         19
 
 /** Type for the value false. */
@@ -294,51 +294,51 @@ typedef enum {
 #define QCBOR_TYPE_BREAK         31 /* Used internally; never returned */
 
 /** For @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY decode mode, a map that is
-    being traversed as an array. See QCBORDecode_Init() */
+ *  being traversed as an array. See QCBORDecode_Init() */
 #define QCBOR_TYPE_MAP_AS_ARRAY  32
 
 /** Encoded CBOR that is wrapped in a byte string. Often used when the
-    CBOR is to be hashed for signing or HMAC. See also @ref
-    QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE. Data is in @c val.string. */
+ *  CBOR is to be hashed for signing or HMAC. See also @ref
+ *  QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE. Data is in @c val.string. */
 #define QBCOR_TYPE_WRAPPED_CBOR  36
 
 /** A URI as defined in RFC 3986.  Data is in @c val.string. */
 #define QCBOR_TYPE_URI           44
 
 /** Text is base64 URL encoded in RFC 4648.  The base64 encoding is
-    NOT removed. Data is in @c val.string. */
+ *  NOT removed. Data is in @c val.string. */
 #define QCBOR_TYPE_BASE64URL     45
 
 /** Text is base64 encoded in RFC 4648.  The base64 encoding is NOT
-    removed. Data is in @c val.string. */
+ *  removed. Data is in @c val.string. */
 #define QCBOR_TYPE_BASE64        46
 
 /** PERL-compatible regular expression. Data is in @c val.string. */
 #define QCBOR_TYPE_REGEX         47
 
 /** Non-binary MIME per RFC 2045.  See also @ref
-    QCBOR_TYPE_BINARY_MIME. Data is in @c val.string. */
+ *  QCBOR_TYPE_BINARY_MIME. Data is in @c val.string. */
 #define QCBOR_TYPE_MIME          48
 
 /** Binary UUID per RFC 4122.  Data is in @c val.string. */
 #define QCBOR_TYPE_UUID          49
 
 /** A CBOR sequence per RFC 8742. See also @ ref
-    QBCOR_TYPE_WRAPPED_CBOR.  Data is in @c val.string. */
+ *  QBCOR_TYPE_WRAPPED_CBOR.  Data is in @c val.string. */
 #define QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE  75
 
 /** Binary MIME per RFC 2045. See also @ref QCBOR_TYPE_MIME. Data is
-    in @c val.string. */
+ *  in @c val.string. */
 #define QCBOR_TYPE_BINARY_MIME   76
 
 /** Type for [RFC 8943](https://tools.ietf.org/html/rfc8943) date
-    string, a date with no time or time zone info. Data is in
-    @c val.string */
+ *  string, a date with no time or time zone info. Data is in
+ *  @c val.string */
 #define QCBOR_TYPE_DAYS_STRING   77
 
 /** Type for integer days since Jan 1 1970 described in
-    [RFC 8943](https://tools.ietf.org/html/rfc8943). Data is in
-    @c val.epochDays */
+ *  [RFC 8943](https://tools.ietf.org/html/rfc8943). Data is in
+ *  @c val.epochDays */
 #define QCBOR_TYPE_DAYS_EPOCH    78
 
 #define QCBOR_TYPE_TAG          254 /* Used internally; never returned */
@@ -590,7 +590,9 @@ typedef struct _QCBORItem {
  * strings will have to free them. How they free them, depends on the
  * design of the string allocator.
  */
-typedef UsefulBuf (* QCBORStringAllocate)(void *pAllocateCxt, void *pOldMem, size_t uNewSize);
+typedef UsefulBuf (* QCBORStringAllocate)(void   *pAllocateCxt,
+                                          void   *pOldMem,
+                                          size_t  uNewSize);
 
 
 /**
@@ -654,7 +656,8 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
  * that are not integers or text strings, but the caller must manage
  * much of the map decoding.
  */
-void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDecodeMode nMode);
+void
+QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDecodeMode nMode);
 
 
 /**
@@ -703,7 +706,10 @@ void QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDec
  * See also QCBORDecode_SetUpAllocator() to set up a custom allocator
  * if this one isn't sufficient.
  */
-QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, bool bAllStrings);
+QCBORError
+QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx,
+                       UsefulBuf           MemPool,
+                       bool                bAllStrings);
 
 
 /**
@@ -739,10 +745,11 @@ QCBORError QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx, UsefulBuf MemPool, b
  * @c uLabelAlloc @c == @c 1 in @ref QCBORItem. Note this is in a
  * separate GitHub repository.
  */
-void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
-                                QCBORStringAllocate pfAllocateFunction,
-                                void               *pAllocateContext,
-                                bool                bAllStrings);
+void
+QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
+                           QCBORStringAllocate pfAllocateFunction,
+                           void               *pAllocateContext,
+                           bool                bAllStrings);
 
 
 /**
@@ -905,7 +912,7 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * | __Invalid CBOR__  ||
  * | @ref QCBOR_ERR_NO_MORE_ITEMS        | Need more input data items to decode |
  * | @ref QCBOR_ERR_BAD_EXP_AND_MANTISSA | The structure of a big float or big number is invalid |
- * | @ref QCBOR_ERR_BAD_TAG_CONTENT      | The content of a tag is of the wrong type |
+ * | @ref QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT | The content of a tag is of the wrong type |
  * | __Implementation Limits__  ||
  * | @ref QCBOR_ERR_INT_OVERFLOW                  | Input integer smaller than INT64_MIN |
  * | @ref QCBOR_ERR_ARRAY_DECODE_TOO_LONG         | Array or map has more elements than can be handled |
@@ -916,14 +923,15 @@ void QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * | __Configuration errors__  ||
  * | @ref QCBOR_ERR_NO_STRING_ALLOCATOR        | Encountered indefinite-length string with no allocator configured |
  * | @ref QCBOR_ERR_MAP_LABEL_TYPE             | A map label that is not a string on an integer |
- * | @ref QCBOR_ERR_HALF_PRECISION_DISABLED    | Library compiled with half-precision disabled and half-precision input encountered |
- * | @ref QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  | Library compiled with indefinite maps and arrays  disabled and indefinite map or array encountered |
- * | @ref QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED | Library compiled with indefinite strings disabled and indefinite string encountered |
+ * | @ref QCBOR_ERR_HALF_PRECISION_DISABLED    | Half-precision input, but disabled in QCBOR library |
+ * | @ref QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  | Indefinite-length input, but disabled in QCBOR library |
+ * | @ref QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED | Indefinite-length input, but disabled in QCBOR library |
  * | @ref QCBOR_ERR_ALL_FLOAT_DISABLED             | Library compiled with floating-point support turned off. |
  * | __Resource exhaustion errors__  ||
  * | @ref QCBOR_ERR_STRING_ALLOCATE | The string allocator is unable to allocate more memory |
  */
-void QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
+void
+QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
@@ -939,7 +947,8 @@ void QCBORDecode_VGetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * doesn't set the internal decoding error and will attempt to decode
  * even if the decoder is in the error state.
  */
-QCBORError QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
+QCBORError
+QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
@@ -955,7 +964,8 @@ QCBORError QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem
  * consumed by this, the decoder must be rewound using
  * QCBORDecode_Rewind().
  */
-void QCBORDecode_VGetNextConsume(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
+void
+QCBORDecode_VGetNextConsume(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
 /**
@@ -1033,7 +1043,8 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * getting the item. This is also returned if there are no tags on the
  * item or no tag at @c uIndex.
  */
-uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t uIndex);
+uint64_t
+QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t uIndex);
 
 
 /**
@@ -1051,7 +1062,8 @@ uint64_t QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem,
  *
  * If a decoding error set then this returns CBOR_TAG_INVALID64.
  */
-uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
+uint64_t
+QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
 
 
 /**
@@ -1092,7 +1104,8 @@ uint64_t QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uI
  * QCBOR_ERR_EXTRA_BYTES will be returned.  This can be considered a
  * successful decode.  See also QCBORDecode_PartialFinish().
  */
-QCBORError QCBORDecode_Finish(QCBORDecodeContext *pCtx);
+QCBORError
+QCBORDecode_Finish(QCBORDecodeContext *pCtx);
 
 
 /**
@@ -1151,7 +1164,8 @@ QCBORDecode_PartialFinish(QCBORDecodeContext *pCtx, size_t *puConsumed);
  * QCBORDecode_GetAndResetError() may be called after these data items
  * are fetched.
  */
-static QCBORError QCBORDecode_GetError(QCBORDecodeContext *pCtx);
+static QCBORError
+QCBORDecode_GetError(QCBORDecodeContext *pCtx);
 
 
 /**
@@ -1163,7 +1177,8 @@ static QCBORError QCBORDecode_GetError(QCBORDecodeContext *pCtx);
  * This returns the same as QCBORDecode_GetError() and also resets the
  * error state to @ref QCBOR_SUCCESS.
  */
-static QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
+static QCBORError
+QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
 
 
 /**
@@ -1172,7 +1187,8 @@ static QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
  * @param[in] uErr    The decoder context.
  * @return @c true if the error code indicates non-well-formed CBOR.
  */
-static bool QCBORDecode_IsNotWellFormedError(QCBORError uErr);
+static bool
+QCBORDecode_IsNotWellFormedError(QCBORError uErr);
 
 
 /**
@@ -1194,55 +1210,57 @@ static bool QCBORDecode_IsNotWellFormedError(QCBORError uErr);
  * The unrecoverable errors are a range of the errors in
  * @ref QCBORError.
  */
-static bool QCBORDecode_IsUnrecoverableError(QCBORError uErr);
+static bool
+QCBORDecode_IsUnrecoverableError(QCBORError uErr);
 
 
 
 
 /**
- @brief Convert int64_t to smaller integers safely.
-
- @param [in]  src   An @c int64_t.
- @param [out] dest  A smaller sized integer to convert to.
-
- @return 0 on success -1 if not
-
- When decoding an integer, the CBOR decoder will return the value as
- an int64_t unless the integer is in the range of @c INT64_MAX and @c
- UINT64_MAX. That is, unless the value is so large that it can only be
- represented as a @c uint64_t, it will be an @c int64_t.
-
- CBOR itself doesn't size the individual integers it carries at
- all. The only limits it puts on the major integer types is that they
- are 8 bytes or less in length. Then encoders like this one use the
- smallest number of 1, 2, 4 or 8 bytes to represent the integer based
- on its value. There is thus no notion that one data item in CBOR is
- a 1-byte integer and another is a 4-byte integer.
-
- The interface to this CBOR encoder only uses 64-bit integers. Some
- CBOR protocols or implementations of CBOR protocols may not want to
- work with something smaller than a 64-bit integer.  Perhaps an array
- of 1000 integers needs to be sent and none has a value larger than
- 50,000 and are represented as @c uint16_t.
-
- The sending / encoding side is easy. Integers are temporarily widened
- to 64-bits as a parameter passing through QCBOREncode_AddInt64() and
- encoded in the smallest way possible for their value, possibly in
- less than an @c uint16_t.
-
- On the decoding side the integers will be returned at @c int64_t even if
- they are small and were represented by only 1 or 2 bytes in the
- encoded CBOR. The functions here will convert integers to a small
- representation with an overflow check.
-
- (The decoder could have support 8 different integer types and
- represented the integer with the smallest type automatically, but
- this would have made the decoder more complex and code calling the
- decoder more complex in most use cases.  In most use cases on 64-bit
- machines it is no burden to carry around even small integers as
- 64-bit values).
+ * @brief Convert int64_t to smaller integers safely.
+ *
+ * @param [in]  src   An @c int64_t.
+ * @param [out] dest  A smaller sized integer to convert to.
+ *
+ * @return 0 on success -1 if not
+ *
+ * When decoding an integer, the CBOR decoder will return the value as
+ * an int64_t unless the integer is in the range of @c INT64_MAX and @c
+ * UINT64_MAX. That is, unless the value is so large that it can only be
+ * represented as a @c uint64_t, it will be an @c int64_t.
+ *
+ * CBOR itself doesn't size the individual integers it carries at
+ * all. The only limits it puts on the major integer types is that they
+ * are 8 bytes or less in length. Then encoders like this one use the
+ * smallest number of 1, 2, 4 or 8 bytes to represent the integer based
+ * on its value. There is thus no notion that one data item in CBOR is
+ * a 1-byte integer and another is a 4-byte integer.
+ *
+ * The interface to this CBOR encoder only uses 64-bit integers. Some
+ * CBOR protocols or implementations of CBOR protocols may not want to
+ * work with something smaller than a 64-bit integer.  Perhaps an array
+ * of 1,000 integers needs to be sent and none has a value larger than
+ * 50,000 and are represented as @c uint16_t.
+ *
+ * The sending / encoding side is easy. Integers are temporarily widened
+ * to 64-bits as a parameter passing through QCBOREncode_AddInt64() and
+ * encoded in the smallest way possible for their value, possibly in
+ * less than an @c uint16_t.
+ *
+ * On the decoding side the integers will be returned at @c int64_t even if
+ * they are small and were represented by only 1 or 2 bytes in the
+ * encoded CBOR. The functions here will convert integers to a small
+ * representation with an overflow check.
+ *
+ * (The decoder could have support 8 different integer types and
+ * represented the integer with the smallest type automatically, but
+ * this would have made the decoder more complex and code calling the
+ * decoder more complex in most use cases.  In most use cases on 64-bit
+ * machines it is no burden to carry around even small integers as
+ * 64-bit values).
  */
-static inline int QCBOR_Int64ToInt32(int64_t src, int32_t *dest)
+static inline int
+QCBOR_Int64ToInt32(int64_t src, int32_t *dest)
 {
    if(src > INT32_MAX || src < INT32_MIN) {
       return -1;
@@ -1252,7 +1270,8 @@ static inline int QCBOR_Int64ToInt32(int64_t src, int32_t *dest)
    return 0;
 }
 
-static inline int QCBOR_Int64ToInt16(int64_t src, int16_t *dest)
+static inline int
+QCBOR_Int64ToInt16(int64_t src, int16_t *dest)
 {
    if(src > INT16_MAX || src < INT16_MIN) {
       return -1;
@@ -1262,7 +1281,8 @@ static inline int QCBOR_Int64ToInt16(int64_t src, int16_t *dest)
    return 0;
 }
 
-static inline int QCBOR_Int64ToInt8(int64_t src, int8_t *dest)
+static inline int
+QCBOR_Int64ToInt8(int64_t src, int8_t *dest)
 {
    if(src > INT8_MAX || src < INT8_MIN) {
       return -1;
@@ -1272,7 +1292,8 @@ static inline int QCBOR_Int64ToInt8(int64_t src, int8_t *dest)
    return 0;
 }
 
-static inline int QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
+static inline int
+QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
 {
    if(src > UINT32_MAX || src < 0) {
       return -1;
@@ -1282,7 +1303,8 @@ static inline int QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
    return 0;
 }
 
-static inline int QCBOR_Int64UToInt16(int64_t src, uint16_t *dest)
+static inline int
+QCBOR_Int64UToInt16(int64_t src, uint16_t *dest)
 {
    if(src > UINT16_MAX || src < 0) {
       return -1;
@@ -1292,7 +1314,8 @@ static inline int QCBOR_Int64UToInt16(int64_t src, uint16_t *dest)
    return 0;
 }
 
-static inline int QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
+static inline int
+QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
 {
    if(src > UINT8_MAX || src < 0) {
       return -1;
@@ -1302,7 +1325,8 @@ static inline int QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
    return 0;
 }
 
-static inline int QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
+static inline int
+QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 {
    if(src < 0) {
       return -1;
@@ -1360,7 +1384,9 @@ typedef struct {
  * Tag handling has been revised and it is no longer ncessary to use
  * this.  See QCBORDecode_GetNthTag().
  */
-void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBORTagListIn *pTagList);
+void
+QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pCtx,
+                                       const QCBORTagListIn *pTagList);
 
 
 /**
@@ -1388,7 +1414,10 @@ void QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext *pCtx, const QCBO
  * add new tags to the internal list so they can be checked for with
  * this function.
  */
-bool QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint64_t uTag);
+bool
+QCBORDecode_IsTagged(QCBORDecodeContext *pCtx,
+                     const QCBORItem    *pItem,
+                     uint64_t            uTag);
 
 
 /**
@@ -1425,7 +1454,10 @@ bool QCBORDecode_IsTagged(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint
  * QCBOR_ERR_TOO_MANY_TAGS if the array in @c pTagList is too small to
  * hold all the tags for the item.
  */
-QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
+QCBORError
+QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx,
+                            QCBORItem          *pDecodedItem,
+                            QCBORTagListOut    *pTagList);
 
 
 
@@ -1434,19 +1466,22 @@ QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDec
  * Inline implementations of public functions defined above.
  * ---- */
 
-static inline QCBORError QCBORDecode_GetError(QCBORDecodeContext *pMe)
+static inline QCBORError
+QCBORDecode_GetError(QCBORDecodeContext *pMe)
 {
     return (QCBORError)pMe->uLastError;
 }
 
-static inline QCBORError QCBORDecode_GetAndResetError(QCBORDecodeContext *pMe)
+static inline QCBORError
+QCBORDecode_GetAndResetError(QCBORDecodeContext *pMe)
 {
     const QCBORError uReturn = (QCBORError)pMe->uLastError;
     pMe->uLastError = QCBOR_SUCCESS;
     return uReturn;
 }
 
-static inline bool QCBORDecode_IsNotWellFormedError(QCBORError uErr)
+static inline bool
+QCBORDecode_IsNotWellFormedError(QCBORError uErr)
 {
    if(uErr >= QCBOR_START_OF_NOT_WELL_FORMED_ERRORS &&
       uErr <= QCBOR_END_OF_NOT_WELL_FORMED_ERRORS) {
@@ -1456,7 +1491,8 @@ static inline bool QCBORDecode_IsNotWellFormedError(QCBORError uErr)
    }
 }
 
-static inline bool QCBORDecode_IsUnrecoverableError(QCBORError uErr)
+static inline bool
+QCBORDecode_IsUnrecoverableError(QCBORError uErr)
 {
    if(uErr >= QCBOR_START_OF_UNRECOVERABLE_DECODE_ERRORS &&
       uErr <= QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS) {
