@@ -912,7 +912,6 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  * implementation can track.
  *
  * See also QCBORDecode_GetItemInMapN().
->>>>>>> master
  */
 void
 QCBORDecode_GetItemsInMap(QCBORDecodeContext *pCtx, QCBORItem *pItemList);
