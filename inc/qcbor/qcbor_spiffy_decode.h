@@ -63,23 +63,31 @@ extern "C" {
  *
  * When QCBORDecode_EnterMap() is called, pre-order traversal
  * continues to work. There is a cursor that is run over the tree with
- * calls to QCBORDecode_GetNext(). Attempts to QCBORDecode_GetNext() beyond the end
- * of the map will give the @ref QCBOR_ERR_NO_MORE_ITEMS
- * error.
+ * calls to QCBORDecode_GetNext(). Attempts to use
+ * QCBORDecode_GetNext() beyond the end of the map will give the
+ * @ref QCBOR_ERR_NO_MORE_ITEMS error.
  *
- * Use of the travsal cursor can be mixed with the fetching of items
+ * Use of the traversal cursor can be mixed with the fetching of items
  * by label with some caveats. When a non-aggregate item like an
  * integer or string is fetched by label, the traversal cursor is
  * unaffected so the mixing can be done freely.  When an aggregate
- * item is entered by label, the traversal cursor is set to the item
- * after the aggregate item when it is exited. The traversal cursor
- * can always be set to the start of the current entered map with
- * QCBORDecode_Rewind(). (This behavior was incorrectly documented in
- * previous versions of QCBOR. This behavior may not be ideal for some
- * uses and may be considered inconsistent between aggregate and
- * non-aggregate, but it can be relied on or can be worked around by
- * ordering item fetching and/or use of QCBORDecode_Rewind(). This may
- * be improved in a future version of QCBOR.)
+ * item is entered by label (by QCBORDecode_EnterMapFromMapN() and
+ * similar), the traversal cursor is set to the item after the
+ * subordinate aggregate item when it is exited. This will not matter
+ * to many use cases. Use cases that mix can be sure to separate
+ * traversal by the cursor from fetching by label.
+ * QCBORDecode_Rewind() may be useful to reset the traversal cursor
+ * after fetching aggregate items by label.
+ *
+ * (This behavior was incorrectly documented in QCBOR 1.2 and prior
+ * which described aggregate and non-aggregate as behaving the same.
+ * Rather than changing to make aggregate and non-aggregate
+ * consistent, the behavior is retained and documented because 1) it
+ * is usable as is, 2) a change would bring backward compatibility
+ * issues, 3) the change would increase the decode context size and
+ * code size.  In QCBOR 1.3 test cases were added to validate the
+ * behavior. No problems were uncovered.)
+ *
  * QCBORDecode_EnterArray() can be used to narrow the traversal to the
  * extent of the array.
  *
@@ -94,11 +102,12 @@ extern "C" {
  * performing the pre-order traversal of the map to find the labeled
  * item everytime it is called. It doesn't build up a hash table, a
  * binary search tree or some other efficiently searchable structure
- * internally. For simple trees this is fine and for high-speed CPUs
- * this is fine, but for complex trees on slow CPUs, it may have
- * performance issues (these have not be quantified yet). One way ease
- * this is to use QCBORDecode_GetItemsInMap() which allows decoding of
- * a list of items expected in an map in one traveral.
+ * internally. For small maps this is fine and for high-speed CPUs
+ * this is fine, but for large, perhaps deeply nested, maps on slow
+ * CPUs, it may have performance issues (these have not be
+ * quantified). One way ease this is to use
+ * QCBORDecode_GetItemsInMap() which allows decoding of a list of
+ * items expected in an map in one traveral.
  *
  * @anchor Tag-Usage
  * ## Tag Usage
@@ -739,8 +748,8 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  *
  * It is possible to mix use of the traversal cursor with the fetching
  * of items in a map by label with the caveat that fetching
- * non-aggregate items behaves differently from entering subordinate
- * aggregate items.  See dicussion in @ref SpiffyDecode.
+ * non-aggregate items by label behaves differently from entering subordinate
+ * aggregate items by label.  See dicussion in @ref SpiffyDecode.
  *
  * Exiting leaves the pre-order cursor at the data item following the
  * last entry in the map or at the end of the input CBOR if there
