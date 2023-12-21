@@ -134,7 +134,7 @@ static inline IEEE754_union IEEE754_DoubleToSmallest(double d)
  Converts single-precision to half-precision if possible without loss
  of precision. If not leaves as single-precision.
  */
-IEEE754_union IEEE754_FloatToSmallest(float f);
+IEEE754_union IEEE754_FloatToHalf2(float f);
 
 
 #endif /* ieee754_h */

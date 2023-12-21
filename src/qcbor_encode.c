@@ -794,7 +794,7 @@ void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *me, float fNum)
 void QCBOREncode_AddFloat(QCBOREncodeContext *me, float fNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   const IEEE754_union uNum = IEEE754_FloatToSmallest(fNum);
+   const IEEE754_union uNum = IEEE754_FloatToHalf2(fNum);
 
    QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */

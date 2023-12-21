@@ -640,7 +640,13 @@ int32_t DoubleAsSmallestTest(void)
  *   102: 0.0, 103: 3.141592502593994, "euler2": 2.7182817459106445, 106: 0.0}]
  */
 static const uint8_t spExpectedFloats[] = {
-   0x8B,
+   0x8E,
+/* == */
+      0xF9, 0x3c, 0x00,
+      0xF9, 0x7e, 0x00,
+      0xF9, 0x7c, 0x00,
+/* == */
+
       0xF9, 0x00, 0x00,
       0xFB, 0x40, 0x09, 0x1E, 0xB8, 0x51, 0xEB, 0x85, 0x1F,
       0xFB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -700,6 +706,8 @@ static const uint8_t spExpectedFloatsNoHalf[] = {
          0x18, 0x6A,
           0xFA, 0x00, 0x00, 0x00, 0x00};
 
+#include "qcbor/UsefulBuf.h"
+
 int32_t GeneralFloatEncodeTests(void)
 {
    UsefulBufC ExpectedFloats;
@@ -717,6 +725,43 @@ int32_t GeneralFloatEncodeTests(void)
    QCBOREncode_Init(&EC, OutBuffer);
    QCBOREncode_OpenArray(&EC);
 
+
+   /* ================================ */
+   QCBOREncode_AddFloat(&EC, 1.0);
+   QCBOREncode_AddFloat(&EC, NAN);
+   QCBOREncode_AddFloat(&EC, INFINITY);
+
+   #define SINGLE_NUM_SIGNIFICAND_BITS (23)
+   #define SINGLE_NUM_EXPONENT_BITS    (8)
+   #define SINGLE_NUM_SIGN_BITS        (1)
+
+   #define SINGLE_SIGNIFICAND_SHIFT    (0)
+   #define SINGLE_EXPONENT_SHIFT       (SINGLE_NUM_SIGNIFICAND_BITS)
+   #define SINGLE_SIGN_SHIFT           (SINGLE_NUM_SIGNIFICAND_BITS + SINGLE_NUM_EXPONENT_BITS)
+
+   #define SINGLE_SIGNIFICAND_MASK     (0x7fffffU) // The lower 23 bits
+   #define SINGLE_EXPONENT_MASK        (0xffU << SINGLE_EXPONENT_SHIFT) // 8 bits of exponent
+   #define SINGLE_SIGN_MASK            (0x01U << SINGLE_SIGN_SHIFT) // 1 bit of sign
+   #define SINGLE_QUIET_NAN_BIT        (0x01U << (SINGLE_NUM_SIGNIFICAND_BITS-1))
+
+   float dNaNPayload = UsefulBufUtil_CopyUint32ToFloat(SINGLE_EXPONENT_MASK | 0x0a0b0c);
+   QCBOREncode_AddFloat(&EC, dNaNPayload);
+
+    dNaNPayload = UsefulBufUtil_CopyUint32ToFloat(SINGLE_EXPONENT_MASK | 0x01);
+   QCBOREncode_AddFloat(&EC, dNaNPayload);
+
+    dNaNPayload = UsefulBufUtil_CopyUint32ToFloat(SINGLE_EXPONENT_MASK | 0x010000);
+   QCBOREncode_AddFloat(&EC, dNaNPayload);
+
+// 1.18·10−38
+   QCBOREncode_AddFloat(&EC, 1e-38f);
+   QCBOREncode_AddFloat(&EC, 1e-37f);
+   QCBOREncode_AddFloat(&EC, 1.18e-38f);
+   QCBOREncode_AddFloat(&EC, 0.00006097555160522461f); // largest half subnormal number
+   QCBOREncode_AddFloat(&EC, 9.5367431640625e-7);
+
+   /* ================================ */
+
    QCBOREncode_AddDouble(&EC, 0.0);
    QCBOREncode_AddDouble(&EC, 3.14);
    QCBOREncode_AddDoubleNoPreferred(&EC, 0.0);
@@ -728,6 +773,8 @@ int32_t GeneralFloatEncodeTests(void)
    QCBOREncode_AddFloatNoPreferred(&EC, 0.0f);
    QCBOREncode_AddFloatNoPreferred(&EC, NAN);
    QCBOREncode_AddFloatNoPreferred(&EC, INFINITY);
+
+
 
    QCBOREncode_OpenMap(&EC);
 

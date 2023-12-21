@@ -415,42 +415,233 @@ github history if needed.
 
 
 
-// Public function; see ieee754.h
-IEEE754_union IEEE754_FloatToSmallest(float f)
+
+IEEE754_union IEEE754_DoubleToSingle(double d)
 {
     IEEE754_union result;
 
-    // Pull the neeed two parts out of the single-precision float
-    const uint32_t uSingle = CopyFloatToUint32(f);
-    const int32_t  nSingleExponent    = (int32_t)((uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT) - SINGLE_EXPONENT_BIAS;
-    const uint32_t uSingleSignificand =   uSingle & SINGLE_SIGNIFICAND_MASK;
+    result.uSize   = IEEE754_UNION_IS_SINGLE;
+    result.uValue  = (uint64_t)d;
 
-    // Bit mask that is the significand bits that would be lost when
-    // converting from single-precision to half-precision
-    const uint64_t uDroppedSingleBits = SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS;
+    return result;
 
-    // Optimizer will re organize so there is only one call to
-    // IEEE754_FloatToHalf() in the final code.
-    if(uSingle == 0) {
-        // Value is 0.0000, not a a subnormal
-        result.uSize = IEEE754_UNION_IS_HALF;
-        result.uValue  = IEEE754_FloatToHalf(f);
-    } else if(nSingleExponent == SINGLE_EXPONENT_INF_OR_NAN) {
-        // NaN, +/- infinity
-        result.uSize = IEEE754_UNION_IS_HALF;
-        result.uValue  = IEEE754_FloatToHalf(f);
-    } else if((nSingleExponent >= HALF_EXPONENT_MIN) && nSingleExponent <= HALF_EXPONENT_MAX && (!(uSingleSignificand & uDroppedSingleBits))) {
-        // Normal number in exponent range and precision won't be lost
-        result.uSize = IEEE754_UNION_IS_HALF;
-        result.uValue  = IEEE754_FloatToHalf(f);
+}
+
+
+static uint32_t
+IEEE754_AssembleHalf(uint32_t uHalfSign, uint32_t uHalfSignificand, uint32_t uHalfBiasedExponent)
+{
+    return uHalfSignificand |
+          (uHalfBiasedExponent << HALF_EXPONENT_SHIFT) |
+          (uHalfSign << HALF_SIGN_SHIFT);
+}
+
+
+// Public function; see ieee754.h
+IEEE754_union
+IEEE754_FloatToHalf2(float f)
+{
+    IEEE754_union result;
+
+    /*  Pull the need parts out of the single-precision float */
+    const uint32_t uSingle                 = CopyFloatToUint32(f);
+    const int32_t  nSingleUnbiasedExponent = (int32_t)((uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT) - SINGLE_EXPONENT_BIAS;
+    const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
+    const uint32_t uSingleSign             = (uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
+
+    result.uValue = IEEE754_AssembleHalf(0, HALF_SIGNIFICAND_MASK, HALF_EXPONENT_ZERO+HALF_EXPONENT_BIAS);
+
+
+    // All works is done on uint32_t with conversion to uint16_t at
+    // the end.  This avoids integer promotions that static analyzers
+    // complain about and reduces code size.
+
+
+    if(nSingleUnbiasedExponent == SINGLE_EXPONENT_ZERO) {
+        if(uSingleSignificand == 0) {
+            /* --- ZERO --- */
+            result.uSize  = IEEE754_UNION_IS_HALF;
+            result.uValue = IEEE754_AssembleHalf(uSingleSign, 0, 0);
+
+        } else {
+            /* --- SUBNORMAL --- */
+            /* Subnormals are always too small to convert to a half precision */
+            /* TODO: how do we know this is true? Comparing decimal ranges in Wikipedia confirms, but want to understand in binary */
+            result.uSize   = IEEE754_UNION_IS_SINGLE;
+            result.uValue  = uSingle;
+         }
+    } else if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN) {
+         if(uSingleSignificand == 0) {
+             /* ---- INFINITY ---- */
+             result.uSize  = IEEE754_UNION_IS_HALF;
+             result.uValue = IEEE754_AssembleHalf(uSingleSign, 0, HALF_EXPONENT_INF_OR_NAN + HALF_EXPONENT_BIAS);
+         } else {
+             /* NAN */
+             const uint64_t uDroppedSingleBits = SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS;
+             if(!(uSingleSignificand & uDroppedSingleBits)) {
+                 /* --- CONVERT TO HALF --- */
+                result.uSize  = IEEE754_UNION_IS_HALF;
+                result.uValue =  IEEE754_AssembleHalf(uSingleSign,
+                                                     uSingleSignificand >> (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS),
+                                                     HALF_EXPONENT_INF_OR_NAN + HALF_EXPONENT_BIAS);
+
+            } else {
+               /* --- CAN NOT CONVERT NAN --- */
+               result.uSize   = IEEE754_UNION_IS_SINGLE;
+               result.uValue  = uSingle;
+            }
+         }
     } else {
-        // Subnormal, exponent out of range, or precision will be lost
-        result.uSize = IEEE754_UNION_IS_SINGLE;
-        result.uValue  = uSingle;
+        /* ---- REGULAR NUMBER ---- */
+        /* Check to see if the single-precision exponent is in the range
+         * of the half-precision exponent and if any significand bits
+         * would be lost in conversion to normal half-precision. */
+        if(nSingleUnbiasedExponent >= HALF_EXPONENT_MIN &&
+           nSingleUnbiasedExponent <= HALF_EXPONENT_MAX &&
+          (uSingleSignificand & (SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS)) == 0) {
+            /* --- CONVERT TO NORMAL HALF --- */
+            result.uSize  = IEEE754_UNION_IS_HALF;
+            result.uValue =  IEEE754_AssembleHalf(uSingleSign,
+                                                 uSingleSignificand >> (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS),
+                                                 (uint32_t)(nSingleUnbiasedExponent + HALF_EXPONENT_BIAS));
+        } else {
+            /*
+
+             Exponents -14 to -24 map to shift of 0 to 10 of the significand.
+             The largest value of a half subnormal has an exponent of -14. Subnormals are
+             not normalized like normals meaning they lose precision as
+             the numbers get smaller. Normals don't lose precision because
+             the exponent allows all the bits of the significand to be
+             significant.
+
+             */
+            /* The exponent of the largest possible half-precision subnormal is HALF_EXPONENT_MIN (-14).
+             * Exponents larger than this are normal and handled above. We're going to shift
+             * the significand right by at least this amount.
+             */
+            int nExponentDifference = -(nSingleUnbiasedExponent - HALF_EXPONENT_MIN);
+
+            /* In addition to the shift based on the exponent's value, the single
+             * significand has to be shifted right to fit into a half-precision significand */
+            int nShiftAmount = nExponentDifference + (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
+
+            /* Must add 1 in to the possible significand because there is an implied 1 for normal values
+             * and not for subnormal values. See equations here:  https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding */
+            const uint32_t uPossibleHalfSignificand = (uSingleSignificand + (1 << SINGLE_NUM_SIGNIFICAND_BITS)) >> nShiftAmount;
+
+            /* If only zero bits were shifted out, this can be converted to subnormal */
+            if(uPossibleHalfSignificand << nShiftAmount == uSingleSignificand + (1 << SINGLE_NUM_SIGNIFICAND_BITS)) {
+                /* --- CONVERT TO SUB NORMAL HALF --- */
+                result.uSize  = IEEE754_UNION_IS_HALF;
+                result.uValue =  IEEE754_AssembleHalf(uSingleSign,
+                                                      uPossibleHalfSignificand,
+                                                     (uint32_t)(HALF_EXPONENT_ZERO+HALF_EXPONENT_BIAS));
+            } else {
+               /* --- DO NOT CONVERT --- */
+               result.uSize   = IEEE754_UNION_IS_SINGLE;
+               result.uValue  = uSingle;
+            }
+        }
     }
 
     return result;
 }
+
+
+static uint64_t
+IEEE754_AssembleSingle(uint64_t uSingleSign, uint64_t uSingleSignificand, uint64_t uSingleBiasedExponent)
+{
+    return uSingleSignificand |
+          (uSingleBiasedExponent << SINGLE_EXPONENT_SHIFT) |
+          (uSingleSign << SINGLE_SIGN_SHIFT);
+}
+
+
+IEEE754_union
+IEEE754_DoubeToFloat2(double d)
+{
+    IEEE754_union result;
+
+     // Pull the three parts out of the double-precision float
+    const uint64_t uDouble = CopyDoubleToUint64(d);
+    const int64_t  nDoubleUnbiasedExponent = (int64_t)((uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT) - DOUBLE_EXPONENT_BIAS;
+    const uint64_t uDoubleSign             = (uDouble & DOUBLE_SIGN_MASK) >> DOUBLE_SIGN_SHIFT;
+    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
+
+
+    // All works is done on uint32_t with conversion to uint16_t at
+    // the end.  This avoids integer promotions that static analyzers
+    // complain about and reduces code size.
+
+
+    if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_ZERO) {
+        if(uDoubleSignificand == 0) {
+            /* --- ZERO --- */
+            result.uSize  = IEEE754_UNION_IS_SINGLE;
+            result.uValue = IEEE754_AssembleSingle(uDoubleSign, 0, 0);
+
+        } else {
+            /* --- SUBNORMAL --- */
+            /* Subnormals are always too small to convert to a half precision */
+            /* TODO: how do we know this is true? Comparing decimal ranges in Wikipedia confirms, but want to understand in binary */
+            result.uSize   = IEEE754_UNION_IS_DOUBLE;
+            result.uValue  = uDouble;
+         }
+    } else if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
+         if(uDoubleSignificand == 0) {
+             /* ---- INFINITY ---- */
+             result.uSize  = IEEE754_UNION_IS_SINGLE;
+             result.uValue = IEEE754_AssembleSingle(uDoubleSign, 0, HALF_EXPONENT_INF_OR_NAN + HALF_EXPONENT_BIAS);
+         } else {
+             /* NAN */
+             const uint64_t uDroppedSingleBits = SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS;
+             if(!(uDoubleSignificand & uDroppedSingleBits)) {
+                 /* --- CONVERT TO HALF --- */
+                result.uSize  = IEEE754_UNION_IS_SINGLE;
+                result.uValue =  IEEE754_AssembleSingle(uDoubleSign,
+                                                         uDoubleSignificand >> (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS),
+                                                         HALF_EXPONENT_INF_OR_NAN + HALF_EXPONENT_BIAS);
+            } else {
+               /* --- CAN NOT CONVERT NAN --- */
+               result.uSize   = IEEE754_UNION_IS_DOUBLE;
+               result.uValue  = uDouble;
+            }
+         }
+    } else {
+        /* ---- REGULAR NUMBER ---- */
+        if(nDoubleUnbiasedExponent >= SINGLE_EXPONENT_MIN &&
+           nDoubleUnbiasedExponent <= SINGLE_EXPONENT_MAX &&
+          (uDoubleSignificand & (SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS)) == 0) {
+            /* --- CONVERT TO NORMAL HALF --- */
+            result.uSize  = IEEE754_UNION_IS_SINGLE;
+            result.uValue =  IEEE754_AssembleSingle(uDoubleSign,
+                                                     uDoubleSignificand >> (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS),
+                                                     (uint32_t)(nDoubleUnbiasedExponent + SINGLE_EXPONENT_BIAS));
+        } else {
+            int64_t nExponentDifference = -(nDoubleUnbiasedExponent - SINGLE_EXPONENT_MIN);
+
+            int64_t nShiftAmount = nExponentDifference + (DOUBLE_NUM_EXPONENT_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+
+            const uint64_t uPossibleSingleSignificand = (uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) >> nShiftAmount;
+
+            if(uPossibleSingleSignificand << nShiftAmount == uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) {
+
+                /* --- CONVERT TO SUB NORMAL HALF --- */
+                result.uSize  = IEEE754_UNION_IS_SINGLE;
+                result.uValue =  IEEE754_AssembleSingle(uDoubleSign,
+                                                     uPossibleSingleSignificand,
+                                                     (uint32_t)(HALF_EXPONENT_ZERO+HALF_EXPONENT_BIAS));
+            } else {
+               /* --- DO NOT CONVERT --- */
+               result.uSize   = IEEE754_UNION_IS_DOUBLE;
+               result.uValue  = uDouble;
+            }
+        }
+    }
+
+    return result;
+}
+
 
 // Public function; see ieee754.h
 IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision)
@@ -497,6 +688,21 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
 
     return result;
 }
+
+
+IEEE754_union IEEE754_DoubleToSmallestInternal2(double d, int bAllowHalfPrecision)
+{
+    IEEE754_union result;
+
+    result = IEEE754_DoubleToSingle(d);
+
+    if(result.uSize == IEEE754_UNION_IS_SINGLE && bAllowHalfPrecision) {
+        result = IEEE754_FloatToHalf2(result.uValue);
+    }
+
+    return result;
+}
+
 
 #else
 
