@@ -773,12 +773,16 @@ static int CHECK_EXPECTED_DOUBLE(double val, double expected)
 }
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
+static int NaNExperiments(void);
+
 
 int32_t GeneralFloatDecodeTests(void)
 {
    QCBORItem          Item;
    QCBORError         uErr;
    QCBORDecodeContext DC;
+
+   NaNExperiments();
 
    UsefulBufC TestData = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
    QCBORDecode_Init(&DC, TestData, 0);
@@ -1047,13 +1051,68 @@ int32_t GeneralFloatDecodeTests(void)
 
 
 
-#ifdef NAN_EXPERIMENT
+//#ifdef NAN_EXPERIMENT
 /*
  Code for checking what the double to float cast does with
  NaNs.  Not run as part of tests. Keep it around to
  be able to check various platforms and CPUs.
  */
 
+
+// ----- Half Precsion -----------
+#define HALF_NUM_SIGNIFICAND_BITS (10)
+#define HALF_NUM_EXPONENT_BITS    (5)
+#define HALF_NUM_SIGN_BITS        (1)
+
+#define HALF_SIGNIFICAND_SHIFT    (0)
+#define HALF_EXPONENT_SHIFT       (HALF_NUM_SIGNIFICAND_BITS)
+#define HALF_SIGN_SHIFT           (HALF_NUM_SIGNIFICAND_BITS + HALF_NUM_EXPONENT_BITS)
+
+#define HALF_SIGNIFICAND_MASK     (0x3ffU) // The lower 10 bits  // 0x03ff
+#define HALF_EXPONENT_MASK        (0x1fU << HALF_EXPONENT_SHIFT) // 0x7c00 5 bits of exponent
+#define HALF_SIGN_MASK            (0x01U << HALF_SIGN_SHIFT) //  // 0x8000 1 bit of sign
+#define HALF_QUIET_NAN_BIT        (0x01U << (HALF_NUM_SIGNIFICAND_BITS-1)) // 0x0200
+
+/* Biased    Biased    Unbiased   Use
+    0x00       0        -15       0 and subnormal
+    0x01       1        -14       Smallest normal exponent
+    0x1e      30         15       Largest normal exponent
+    0x1F      31         16       NaN and Infinity  */
+#define HALF_EXPONENT_BIAS        (15)
+#define HALF_EXPONENT_MAX         (HALF_EXPONENT_BIAS)    //  15 Unbiased
+#define HALF_EXPONENT_MIN         (-HALF_EXPONENT_BIAS+1) // -14 Unbiased
+#define HALF_EXPONENT_ZERO        (-HALF_EXPONENT_BIAS)   // -15 Unbiased
+#define HALF_EXPONENT_INF_OR_NAN  (HALF_EXPONENT_BIAS+1)  //  16 Unbiased
+
+
+// ------ Single-Precision --------
+#define SINGLE_NUM_SIGNIFICAND_BITS (23)
+#define SINGLE_NUM_EXPONENT_BITS    (8)
+#define SINGLE_NUM_SIGN_BITS        (1)
+
+#define SINGLE_SIGNIFICAND_SHIFT    (0)
+#define SINGLE_EXPONENT_SHIFT       (SINGLE_NUM_SIGNIFICAND_BITS)
+#define SINGLE_SIGN_SHIFT           (SINGLE_NUM_SIGNIFICAND_BITS + SINGLE_NUM_EXPONENT_BITS)
+
+#define SINGLE_SIGNIFICAND_MASK     (0x7fffffU) // The lower 23 bits
+#define SINGLE_EXPONENT_MASK        (0xffU << SINGLE_EXPONENT_SHIFT) // 8 bits of exponent
+#define SINGLE_SIGN_MASK            (0x01U << SINGLE_SIGN_SHIFT) // 1 bit of sign
+#define SINGLE_QUIET_NAN_BIT        (0x01U << (SINGLE_NUM_SIGNIFICAND_BITS-1))
+
+/* Biased  Biased   Unbiased  Use
+    0x0000     0     -127      0 and subnormal
+    0x0001     1     -126      Smallest normal exponent
+    0x7f     127        0      1
+    0xfe     254      127      Largest normal exponent
+    0xff     255      128      NaN and Infinity  */
+#define SINGLE_EXPONENT_BIAS        (127)
+#define SINGLE_EXPONENT_MAX         (SINGLE_EXPONENT_BIAS)    //  127 unbiased
+#define SINGLE_EXPONENT_MIN         (-SINGLE_EXPONENT_BIAS+1) // -126 unbiased
+#define SINGLE_EXPONENT_ZERO        (-SINGLE_EXPONENT_BIAS)   // -127 unbiased
+#define SINGLE_EXPONENT_INF_OR_NAN  (SINGLE_EXPONENT_BIAS+1)  //  128 unbiased
+
+
+// --------- Double-Precision ----------
 #define DOUBLE_NUM_SIGNIFICAND_BITS (52)
 #define DOUBLE_NUM_EXPONENT_BITS    (11)
 #define DOUBLE_NUM_SIGN_BITS        (1)
@@ -1068,24 +1127,70 @@ int32_t GeneralFloatDecodeTests(void)
 #define DOUBLE_QUIET_NAN_BIT        (0x01ULL << (DOUBLE_NUM_SIGNIFICAND_BITS-1))
 
 
+/* Biased      Biased   Unbiased  Use
+   0x00000000     0     -1023     0 and subnormal
+   0x00000001     1     -1022     Smallest normal exponent
+   0x000007fe  2046      1023     Largest normal exponent
+   0x000007ff  2047      1024     NaN and Infinity  */
+#define DOUBLE_EXPONENT_BIAS        (1023)
+#define DOUBLE_EXPONENT_MAX         (DOUBLE_EXPONENT_BIAS)    // unbiased
+#define DOUBLE_EXPONENT_MIN         (-DOUBLE_EXPONENT_BIAS+1) // unbiased
+#define DOUBLE_EXPONENT_ZERO        (-DOUBLE_EXPONENT_BIAS)   // unbiased
+#define DOUBLE_EXPONENT_INF_OR_NAN  (DOUBLE_EXPONENT_BIAS+1)  // unbiased
+
+
+
+
+#include <stdio.h>
+
+void nps(uint64_t uPayload)
+{
+   double dqNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT);
+   double dsNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | 0x01);
+   double dNaNPayload = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | uPayload);
+
+   float f1 = (float)dqNaN;
+   float f2 = (float)dsNaN;
+   float f3 = (float)dNaNPayload;
+
+
+   uint32_t uqNaN = UsefulBufUtil_CopyFloatToUint32((float)dqNaN);
+   uint32_t usNaN = UsefulBufUtil_CopyFloatToUint32((float)dsNaN);
+   uint32_t uNaNPayload = UsefulBufUtil_CopyFloatToUint32((float)dNaNPayload);
+
+     uint32_t uSinglePayload = uNaNPayload & SINGLE_SIGNIFICAND_MASK & ~SINGLE_QUIET_NAN_BIT;
+
+  //   printf("0x%16.16llx 0x%8.8x  0x%8.8x  0x%16.16llx\n", uPayload, uSinglePayload, uNaNPayload, uPayload >> 29);
+
+      printf("0x%16.16llx 0x%8.8x\n", uPayload, uSinglePayload);
+
+
+}
+
 static int NaNExperiments() {
-    double dqNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT);
-    double dsNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | 0x01);
-    double dqNaNPayload = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT | 0xf00f);
 
-    float f1 = (float)dqNaN;
-    float f2 = (float)dsNaN;
-    float f3 = (float)dqNaNPayload;
+   uint64_t uPayload;
+
+   for(uPayload = 0x11; uPayload < DOUBLE_SIGNIFICAND_MASK; uPayload *=2) {
+      nps(uPayload);
+   }
+
+   printf("===============\n");
+
+   for(uPayload = 1; uPayload < DOUBLE_SIGNIFICAND_MASK; uPayload *=2 ) {
+      nps(uPayload);
+   }
+
+   printf("===============\n");
+
+   for(int i = 0 ; i < 50; i++) {
+         nps(0x123456789abcdULL >> i);
+   }
 
 
-    uint32_t uqNaN = UsefulBufUtil_CopyFloatToUint32((float)dqNaN);
-    uint32_t usNaN = UsefulBufUtil_CopyFloatToUint32((float)dsNaN);
-    uint32_t uqNaNPayload = UsefulBufUtil_CopyFloatToUint32((float)dqNaNPayload);
 
-    // Result of this on x86 is that every NaN is a qNaN. The intel
-    // CVTSD2SS instruction ignores the NaN payload and even converts
-    // a sNaN to a qNaN.
+
 
     return 0;
 }
-#endif /* NAN_EXPERIMENT */
+//#endif /* NAN_EXPERIMENT */
