@@ -1,7 +1,7 @@
 /*==============================================================================
  ieee754.c -- floating-point conversion between half, double & single-precision
 
- Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -68,27 +68,13 @@
 
 
 
-/*
- Convert single-precision float to half-precision float.  Precision
- and NaN payload bits will be lost. Too-large values will round up to
- infinity and too small to zero.
- */
-uint16_t IEEE754_FloatToHalf(float f);
-
-
-/*
- Convert double-precision float to half-precision float.  Precision
- and NaN payload bits will be lost. Too-large values will round up to
- infinity and too small to zero.
- */
-uint16_t IEEE754_DoubleToHalf(double d);
-
 
 /*
  Convert half-precision float to double-precision float.
  This is a loss-less conversion.
  */
-double IEEE754_HalfToDouble(uint16_t uHalfPrecision);
+double
+IEEE754_HalfToDouble(uint16_t uHalfPrecision);
 
 
 // Both tags the value and gives the size
@@ -108,33 +94,17 @@ typedef struct {
  double. Only converts to single-precision unless bAllowHalfPrecision
  is set.
  */
-IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision);
-
-/*
- Converts double-precision to single-precision if possible without
- loss of precision. If not, leaves it as a double.
- */
-static inline IEEE754_union IEEE754_DoubleToSmall(double d)
-{
-    return IEEE754_DoubleToSmallestInternal(d, 0);
-}
-
-
-/*
- Converts double-precision to single-precision or half-precision if
- possible without loss of precisions. If not, leaves it as a double.
- */
-static inline IEEE754_union IEEE754_DoubleToSmallest(double d)
-{
-    return IEEE754_DoubleToSmallestInternal(d, 1);
-}
+IEEE754_union
+IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision);
 
 
 /*
  Converts single-precision to half-precision if possible without loss
  of precision. If not leaves as single-precision.
  */
-IEEE754_union IEEE754_FloatToHalf2(float f);
+
+IEEE754_union
+IEEE754_SingleToHalf(float f);
 
 
 #endif /* ieee754_h */

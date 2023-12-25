@@ -768,7 +768,7 @@ void QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *me, double dNum)
 void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   const IEEE754_union uNum = IEEE754_DoubleToSmallest(dNum);
+   const IEEE754_union uNum = IEEE754_DoubleToSmaller(dNum, true);
 
    QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -794,7 +794,7 @@ void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *me, float fNum)
 void QCBOREncode_AddFloat(QCBOREncodeContext *me, float fNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   const IEEE754_union uNum = IEEE754_FloatToHalf2(fNum);
+   const IEEE754_union uNum = IEEE754_SingleToHalf(fNum);
 
    QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
