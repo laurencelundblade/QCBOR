@@ -377,6 +377,7 @@ IEEE754_SingleToHalf(float f)
 
             /* If only zero bits were shifted out, this can be converted to subnormal */
             if(nSingleUnbiasedExponent < HALF_EXPONENT_MIN &&
+               nSingleUnbiasedExponent >= HALF_EXPONENT_MIN - HALF_NUM_SIGNIFICAND_BITS && 
                uPossibleHalfSignificand << nShiftAmount == uSingleSignificand + (1 << SINGLE_NUM_SIGNIFICAND_BITS)) {
                 /* --- CONVERT TO SUB NORMAL HALF --- */
                 result.uSize  = IEEE754_UNION_IS_HALF;
@@ -461,7 +462,7 @@ IEEE754_DoubeToSingle(double d)
         if(nDoubleUnbiasedExponent >= SINGLE_EXPONENT_MIN &&
            nDoubleUnbiasedExponent <= SINGLE_EXPONENT_MAX &&
           (uDoubleSignificand & (DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS)) == 0) {
-            /* --- CONVERT TO NORMAL HALF --- */
+            /* --- CONVERT TO NORMAL SINGLE --- */
             result.uSize  = IEEE754_UNION_IS_SINGLE;
             result.uValue = IEEE754_AssembleSingle(uDoubleSign,
                                                    uDoubleSignificand >> (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS),
@@ -472,8 +473,9 @@ IEEE754_DoubeToSingle(double d)
             const uint64_t uPossibleSingleSignificand = (uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) >> nShiftAmount;
 
             if(nDoubleUnbiasedExponent < SINGLE_EXPONENT_MIN &&
+               nDoubleUnbiasedExponent >= SINGLE_EXPONENT_MIN - SINGLE_NUM_SIGNIFICAND_BITS &&
                uPossibleSingleSignificand << nShiftAmount == uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) {
-                /* --- CONVERT TO SUB NORMAL HALF --- */
+                /* --- CONVERT TO SINGLE SUB NORMAL --- */
                 result.uSize  = IEEE754_UNION_IS_SINGLE;
                 result.uValue = IEEE754_AssembleSingle(uDoubleSign,
                                                        uPossibleSingleSignificand,

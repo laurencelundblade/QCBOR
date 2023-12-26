@@ -55,96 +55,109 @@ struct DoubleTestCase {
  * there are zero bytes. */
 static const struct DoubleTestCase DoubleTestCases[] =  {
    /* Zero */
-   {0.0,                   {"\xF9\x00\x00", 3},                         {"\xFB\x00\x00\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xF9\x00\x00", 3},                         {"\xF9\x00\x00", 3}},
+   {0.0,                     {"\xF9\x00\x00", 3},                         {"\xFB\x00\x00\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xF9\x00\x00", 3},                         {"\xF9\x00\x00", 3}},
 
    /* Negative Zero */
-   {-0.0,                  {"\xF9\x80\x00", 3},                         {"\xFB\x80\x00\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xF9\x80\x00", 3},                         {"\xF9\x80\x00", 3}},
+   {-0.0,                    {"\xF9\x80\x00", 3},                         {"\xFB\x80\x00\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xF9\x80\x00", 3},                         {"\xF9\x80\x00", 3}},
 
    /* NaN */
-   {NAN,                   {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+   {NAN,                     {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Infinity */
-   {INFINITY,              {"\xF9\x7C\x00", 3},                         {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xF9\x7C\x00", 3},                         {"\xF9\x7C\x00", 3}},
+   {INFINITY,                {"\xF9\x7C\x00", 3},                         {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xF9\x7C\x00", 3},                         {"\xF9\x7C\x00", 3}},
 
    /* Negative Infinity */
-   {-INFINITY,             {"\xF9\xFC\x00", 3},                         {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xF9\xFC\x00", 3},                         {"\xF9\xFC\x00", 3}},
+   {-INFINITY,               {"\xF9\xFC\x00", 3},                         {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xF9\xFC\x00", 3},                         {"\xF9\xFC\x00", 3}},
 
    /* 1.0 */
-   {1.0,                   {"\xF9\x3C\x00", 3},                         {"\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xF9\x3C\x00", 3},                         {"\xF9\x3C\x00", 3}},
-
-   /* 65504.0 -- converts to the largest possible half-precision */
-   {65504.0,               {"\xF9\x7B\xFF", 3},                         {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x00", 9},
-                           {"\xF9\x7B\xFF", 3},                         {"\xF9\x7B\xFF", 3}},
-
-   /* 65504.1 -- exponent too large and too much precision to convert */
-   {65504.1,               {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9},
-                           {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}},
-
-   /* 65536.0 -- exponent too large but not too much precision for single */
-   {65536.0,               {"\xFA\x47\x80\x00\x00", 5},                 {"\xFB\x40\xF0\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xFA\x47\x80\x00\x00", 5},                 {"\xFA\x47\x80\x00\x00", 5}},
+   {1.0,                     {"\xF9\x3C\x00", 3},                         {"\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xF9\x3C\x00", 3},                         {"\xF9\x3C\x00", 3}},
 
    /* 1/3 */
-   {0.333251953125,        {"\xF9\x35\x55", 3},                         {"\xFB\x3F\xD5\x54\x00\x00\x00\x00\x00", 9},
-                           {"\xF9\x35\x55", 3},                         {"\xF9\x35\x55", 3}},
+   {0.333251953125,          {"\xF9\x35\x55", 3},                         {"\xFB\x3F\xD5\x54\x00\x00\x00\x00\x00", 9},
+                             {"\xF9\x35\x55", 3},                         {"\xF9\x35\x55", 3}},
 
-   /* 5.9604644775390625E-8 -- Converts to the smallest half-precision subnormal possible */
-   {5.9604644775390625E-8, {"\xF9\x00\x01", 3},                         {"\xFB\x3E\x70\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xF9\x00\x01", 3},                         {"\xF9\x00\x01", 3}},
-
-   /* 6.103515625E-5 -- converts to the smallest possible half-precision normal */
-   {6.103515625E-5,        {"\xF9\04\00", 3},                           {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xF9\04\00", 3},                           {"\xF9\04\00", 3}},
-
-   /* 6.1035156250000014E-5 -- Slightly larger than smallest half-precision normal */
-   {6.1035156250000014E-5, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9},
-                           {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}},
-
-   /* 6.1035156249999993E-5 -- Slightly smaller than smallest half-precision normal */
-   {6.1035156249999993E-5, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
-                           {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+   /* 5.9604644775390625E-8 -- smallest half-precision subnormal */
+   {5.9604644775390625E-8,   {"\xF9\x00\x01", 3},                         {"\xFB\x3E\x70\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xF9\x00\x01", 3},                         {"\xF9\x00\x01", 3}},
 
    /* 3.0517578125E-5 -- Converts to a half-precision subnormal */
-   {3.0517578125E-5,       {"\xF9\x02\x00", 3},                         {"\xFB\x3F\x00\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xF9\x02\x00", 3},                         {"\xF9\x02\x00", 3}},
+   {3.0517578125E-5,         {"\xF9\x02\x00", 3},                         {"\xFB\x3F\x00\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xF9\x02\x00", 3},                         {"\xF9\x02\x00", 3}},
 
-   /* 3.4028234663852886E+38 -- Converts to a largest possible single */
-   {3.4028234663852886E+38,{"\xFA\x7F\x7F\xFF\xFF", 5},                 {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
-                           {"\xFA\x7F\x7F\xFF\xFF", 5},                 {"\xFA\x7F\x7F\xFF\xFF", 5}},
+   /* 6.103515625E-5 -- converts to the smallest possible half-precision normal */
+   {6.103515625E-5,          {"\xF9\04\00", 3},                           {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xF9\04\00", 3},                           {"\xF9\04\00", 3}},
 
-   /* 3.402823466385289E+38 -- Slightly larger than largest possible single */
-   {3.402823466385289E+38, {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}, {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9},
-                           {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}, {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}},
+   /* 6.1035156250000014E-5 -- Slightly larger than smallest half-precision normal */
+   {6.1035156250000014E-5,   {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9},
+                             {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}},
+
+   /* 6.1035156249999993E-5 -- Slightly smaller than smallest half-precision normal */
+   {6.1035156249999993E-5,   {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+                             {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+
+   /* 65504.0 -- converts to the largest possible half-precision */
+   {65504.0,                 {"\xF9\x7B\xFF", 3},                         {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x00", 9},
+                             {"\xF9\x7B\xFF", 3},                         {"\xF9\x7B\xFF", 3}},
+
+   /* 65504.1 -- exponent too large and too much precision to convert */
+   {65504.1,                 {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9},
+                             {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}},
+
+    /* 65536.0 -- exponent too large but not too much precision for single */
+   {65536.0,                 {"\xFA\x47\x80\x00\x00", 5},                 {"\xFB\x40\xF0\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xFA\x47\x80\x00\x00", 5},                 {"\xFA\x47\x80\x00\x00", 5}},
+
+   /* 1.401298464324817e-45 -- Smallest single subnormal */
+   {1.401298464324817e-45,   {"\xFA\x00\x00\x00\x01", 5},                 {"\xFB\x36\xA0\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xFA\x00\x00\x00\x01", 5},                 {"\xFA\x00\x00\x00\x01", 5}},
+
+   /* 5.8774717541114375E-39 Another single subnormal */
+   {5.8774717541114375E-39,  {"\xFA\x00\x40\x00\x00", 5},                 {"\xFB\x38\x00\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xFA\x00\x40\x00\x00", 5},                 {"\xFA\x00\x40\x00\x00", 5}},
+
+   /* 1.1754943508222874E-38 Largest single subnormal */
+   {1.1754943508222874E-38,  {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9}, {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9},
+                             {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9}, {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9} },
 
    /* 1.1754943508222875e-38 -- Smallest single normal */
-   {1.1754943508222875e-38,{"\xFA\x00\x80\x00\x00", 5},                 {"\xFB\x38\x10\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xFA\x00\x80\x00\x00", 5},                 {"\xFA\x00\x80\x00\x00", 5}},
+   {1.1754943508222875e-38,  {"\xFA\x00\x80\x00\x00", 5},                 {"\xFB\x38\x10\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xFA\x00\x80\x00\x00", 5},                 {"\xFA\x00\x80\x00\x00", 5}},
 
-   /* 1.1754943508222875e-38 -- Slightly bigger than Smallest single normal */
-   {1.1754943508222878e-38,{"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9},
-                           {"\xFA\x00\x80\x00\x00", 5},                 {"\xFA\x00\x80\x00\x00", 5}},
+   /* 1.1754943508222875e-38 -- Slightly bigger than smallest single normal */
+   {1.1754943508222878e-38,  {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9},
+                             {"\xFA\x00\x80\x00\x00", 5},                 {"\xFA\x00\x80\x00\x00", 5}},
 
-   /* 1.1754943508222874E-38 */
-   {1.1754943508222874E-38,{"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9}, {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9},
-                           {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9}, {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9} },
+   /* 3.4028234663852886E+38 -- Largest possible single normal */
+   {3.4028234663852886E+38,  {"\xFA\x7F\x7F\xFF\xFF", 5},                 {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
+                             {"\xFA\x7F\x7F\xFF\xFF", 5},                 {"\xFA\x7F\x7F\xFF\xFF", 5}},
 
-   {5.8774717541114375E-39,{"\xFA\x00\x40\x00\x00", 5},                 {"\xFB\x38\x00\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xFA\x00\x40\x00\x00", 5},                 {"\xFA\x00\x40\x00\x00", 5}},
-
-   /* 1.401298464324817e-45 -- Smallest sub single normal */
-   {1.401298464324817e-45, {"\xFA\x00\x00\x00\x01", 5},                 {"\xFB\x36\xA0\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xFA\x00\x00\x00\x01", 5},                 {"\xFA\x00\x00\x00\x01", 5}},
+   /* 3.402823466385289E+38 -- Slightly larger than largest possible single */
+   {3.402823466385289E+38,   {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}, {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9},
+                             {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}, {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}},
 
 
-   /* 2.2250738585072014e-308 */
+   /* 5.0e-324 Smallest double subnormal normal */
+   {5.0e-324,                {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9},
+                             {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}},
+
+   /* 2.2250738585072009E−308 Largest double subnormal */
+   {2.2250738585072009e-308, {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+                             {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+
+   /* 2.2250738585072014e-308 Smallest double normal */
    {2.2250738585072014e-308, {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9},
-                           {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9},   {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}},
+                             {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}},
+
+   /* 1.7976931348623157E308 Largest double normal */
+   {1.7976931348623157e308,  {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+                             {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
 
    /* List terminator */
@@ -153,17 +166,22 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
 };
 
 /* Boundaries for destination conversions
- smallest subnormal single  1.401298464324817e-45
- smallest normal single 1.1754943508222875e-38
- largest single 3.4028234663852886E+38
+ smallest subnormal single  1.401298464324817e-45   2^^-149
+ largest subnormal single   2.2040517676619426e-38  2^^-126
+ smallest normal single     1.1754943508222875e-38
+ largest single             3.4028234663852886E+38
 
  smallest subnormal half   5.9604644775390625E-8
- smallest normal half  6.103515625E-5
- largest half  65504.0
+ largest subnormal half    6.097555160522461E-5
+ smallest normal half      6.103515625E-5
+ largest half              65504.0
 
 
  Boundaries for origin conversions
- smallest normal double e−308
+ smallest subnormal double 5.0e-324
+ largest subnormal double
+ smallest normal double 2.2250738585072014e-308
+ largest normal double 1.7976931348623157e308
 
  */
 
@@ -181,7 +199,7 @@ int32_t GeneralFloatEncodeTests(void)
    for(uTestIndex = 0; DoubleTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &DoubleTestCases[uTestIndex];
 
-      if(uTestIndex == 22) {
+      if(uTestIndex == 21) {
          uErr = 99;/* For setting break points for particular tests */
       }
 
@@ -571,7 +589,7 @@ static const uint8_t spExpectedSmallest[] = {
       0x77, 0x73, 0x6D, 0x61, 0x6C, 0x6C, 0x65, 0x73, 0x74,
          0x20, 0x68, 0x61, 0x6C, 0x66, 0x20, 0x73, 0x75, 0x62, 0x6E,
          0x6F, 0x72, 0x6D, 0x61, 0x6C,
-      0xFA, 0x33, 0x80, 0x00, 0x00,
+      0xF9, 0x00, 0x01,
 
       0x74, 0x73, 0x6D, 0x61, 0x6C, 0x6C, 0x65, 0x73, 0x74, 0x20, 0x68,
          0x61, 0x6C, 0x66, 0x20, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C,
@@ -590,7 +608,7 @@ static const uint8_t spExpectedSmallest[] = {
       0x75, 0x73, 0x6D, 0x61, 0x6C, 0x6C, 0x65, 0x73, 0x74, 0x20, 0x6E,
          0x6F, 0x72, 0x6D, 0x61, 0x6C, 0x20, 0x6D, 0x69, 0x6E, 0x75,
          0x73,
-      0xFA, 0x38, 0x00, 0x00, 0x00,
+      0xF9, 0x02, 0x00,
 
       0x6E, 0x6C, 0x61, 0x72, 0x67, 0x65, 0x73, 0x74, 0x20, 0x73, 0x69,
          0x6E, 0x67, 0x6C, 0x65,
@@ -620,7 +638,7 @@ static const uint8_t spExpectedSmallest[] = {
       0x78, 0x1A, 0x73, 0x6D, 0x61, 0x6C, 0x6C, 0x65, 0x73, 0x74, 0x20,
          0x73, 0x69, 0x6E, 0x67, 0x6C, 0x65, 0x20, 0x6D, 0x69, 0x6E,
          0x75, 0x73, 0x20, 0x6D, 0x6F, 0x72, 0x65,
-      0xFB, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0xFA, 0x00, 0x40, 0x00, 0x00,
 
       0x03,
       0xF9, 0xC0, 0x00,
@@ -645,6 +663,25 @@ static const uint8_t spExpectedSmallest[] = {
  */
 #define MAKE_DOUBLE(x) UsefulBufUtil_CopyUint64ToDouble(x)
 
+
+#include <stdio.h>
+
+
+// Do the comparison and print out where it fails
+ int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
+   size_t i;
+   for(i = 0; i < U1.len; i++) {
+      if(((uint8_t *)U1.ptr)[i] != ((uint8_t *)U2.ptr)[i]) {
+         printf("Position: %u  Actual: 0x%x   Expected: 0x%x\n",
+                (uint32_t)i,
+                ((uint8_t *)U1.ptr)[i],
+                ((uint8_t *)U2.ptr)[i]);
+         return 1;
+      }
+   }
+   return 0;
+
+}
 
 int32_t DoubleAsSmallestTest(void)
 {
@@ -701,7 +738,7 @@ int32_t DoubleAsSmallestTest(void)
    // 5.9604644775390625E-8, the smallest possible half-precision
    // subnormal, digitis are lost converting to half, but not
    // when converting to a single
-   // 0xFA, 0x33, 0x80, 0x00, 0x00,
+   // 0xF9, 0x00, 0x01 (This was incorrect in QCBOR 1.2 and there was a bug in QCBOR 1.2)
    QCBOREncode_AddDoubleToMap(&EC,
                               "smallest half subnormal",
                               MAKE_DOUBLE(0x3e70000000000000));
@@ -736,7 +773,7 @@ int32_t DoubleAsSmallestTest(void)
    // because precision would be lost. (This would fit into a
    // half-precision subnormal, but there is no converstion to
    // that). This ends up encoded as a single-precision.
-   // 0xFA, 0x38, 0x00, 0x00, 0x00,
+   // 0xF9, 0x02, 0x00
    QCBOREncode_AddDoubleToMap(&EC,
                               "smallest normal minus",
                               MAKE_DOUBLE(0x3f00000000000000));
@@ -788,8 +825,8 @@ int32_t DoubleAsSmallestTest(void)
 
    // 5.8774717541114375E-39, slightly smaller than the smallest
    // single-precision normal.  Conversion fails because the exponent
-   // is too small.
-   // 0xFB, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   // is too small. (Now converts to subnormal single)
+   // 0xFA, 0x00, 0x40, 0x00, 0x00,
    QCBOREncode_AddDoubleToMap(&EC,
                               "smallest single minus more",
                               MAKE_DOUBLE(0x3800000000000000));
@@ -818,7 +855,7 @@ int32_t DoubleAsSmallestTest(void)
       return -1;
    }
 
-   if(UsefulBuf_Compare(EncodedHalfs, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedSmallest))) {
+   if(UsefulBuf_Compare_Print(EncodedHalfs, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedSmallest))) {
       return -3;
    }
 
