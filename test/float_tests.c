@@ -1,7 +1,7 @@
 /*==============================================================================
  float_tests.c -- tests for float and conversion to/from half-precision
 
- Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
  Copyright (c) 2021, Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
@@ -16,7 +16,15 @@
 #include "qcbor/qcbor_encode.h"
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
-#include <math.h> // For INFINITY and NAN and isnan()
+#include <math.h> /* For INFINITY and NAN and isnan() */
+
+static inline double
+CopyUint64ToDouble(uint64_t u64)
+{
+    double d;
+    memcpy(&d, &u64, sizeof(uint64_t));
+    return d;
+}
 
 
 /* Make a test results code that includes three components
@@ -102,7 +110,7 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
    {6.1035156249999993E-5,   {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
                              {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
-   /* 65504.0 -- converts to the largest possible half-precision */
+   /* 65504.0 -- largest possible half-precision */
    {65504.0,                 {"\xF9\x7B\xFF", 3},                         {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x00", 9},
                              {"\xF9\x7B\xFF", 3},                         {"\xF9\x7B\xFF", 3}},
 
@@ -132,7 +140,7 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
 
    /* 1.1754943508222875e-38 -- Slightly bigger than smallest single normal */
    {1.1754943508222878e-38,  {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9},
-                             {"\xFA\x00\x80\x00\x00", 5},                 {"\xFA\x00\x80\x00\x00", 5}},
+                             {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}},
 
    /* 3.4028234663852886E+38 -- Largest possible single normal */
    {3.4028234663852886E+38,  {"\xFA\x7F\x7F\xFF\xFF", 5},                 {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
@@ -142,6 +150,9 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
    {3.402823466385289E+38,   {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}, {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9},
                              {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}, {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}},
 
+   /* 3.402823669209385e+38 -- Exponent larger by one than largest possible single */
+   {3.402823669209385e+38,   {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9},
+                             {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9}},
 
    /* 5.0e-324 Smallest double subnormal normal */
    {5.0e-324,                {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9},
@@ -159,11 +170,13 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
    {1.7976931348623157e308,  {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
                              {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
-
    /* List terminator */
    {0.0, {NULL, 0} }
 
 };
+
+
+
 
 /* Boundaries for destination conversions
  smallest subnormal single  1.401298464324817e-45   2^^-149
@@ -178,17 +191,67 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
 
 
  Boundaries for origin conversions
- smallest subnormal double 5.0e-324
+ smallest subnormal double 5.0e-324  2^^-1074
  largest subnormal double
- smallest normal double 2.2250738585072014e-308
- largest normal double 1.7976931348623157e308
+ smallest normal double 2.2250738585072014e-308  2^^-1022
+ largest normal double 1.7976931348623157e308 2^^-1023
 
  */
+
+
+struct NaNTestCase {
+   uint64_t    uNumber;
+   UsefulBufC  Preferred;
+   UsefulBufC  NotPreferred;
+   UsefulBufC  CDE;
+   UsefulBufC  DCBOR;
+};
+
+
+/* Always three lines per test case so shell scripts can process into other formats. */
+/* CDE and DCBOR standards are not complete yet, encodings are a guess. */
+/* Text strings are used because they are the shortest notation. They are used __with a length__ . NULL termination doesn't work because
+ * there are zero bytes. */
+static const struct NaNTestCase NaNTestCases[] =  {
+
+   /* Payload with most significant bit set, a qNaN by most implementations */
+   {0x7ff8000000000000,  {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
+                         {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+
+   /* Payload with single rightmost set */
+   {0x7ff8000000000001,  {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9},
+                         {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+
+   /* Payload with 10 leftmost bits set -- converts to half */
+   {0x7ffffc0000000000,  {"\xF9\x7F\xFF", 3},                         {"\xFB\x7F\xFF\xFC\x00\x00\x00\x00\x00", 9},
+                         {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+
+   /* Payload with 10 rightmost bits set -- cannot convert to half */
+   {0x7ff80000000003ff,  {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9}, {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9},
+                         {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+
+   /* Payload with 23 leftmost bits set -- converts to a single */
+   {0x7ffFFFFFE0000000, {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
+                        {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+
+   /* Payload with 24 leftmost bits set -- fails to convert to a single */
+   {0x7ffFFFFFF0000000, {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9},
+                        {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+
+   /* Payload with all bits set */
+   {0x7fffffffffffffff,  {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+                         {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+
+   /* List terminator */
+   {0.0, {NULL, 0} }
+};
+
 
 int32_t GeneralFloatEncodeTests(void)
 {
    unsigned int                 uTestIndex;
    const struct DoubleTestCase *pTestCase;
+   const struct NaNTestCase    *pNaNTestCase;
    MakeUsefulBufOnStack(         TestOutBuffer, 20);
    UsefulBufC                    TestOutput;
    QCBOREncodeContext            EnCtx;
@@ -199,7 +262,7 @@ int32_t GeneralFloatEncodeTests(void)
    for(uTestIndex = 0; DoubleTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &DoubleTestCases[uTestIndex];
 
-      if(uTestIndex == 21) {
+      if(pTestCase->dNumber == 3.402823669209385e+38) {
          uErr = 99;/* For setting break points for particular tests */
       }
 
@@ -256,6 +319,52 @@ int32_t GeneralFloatEncodeTests(void)
          }
       }
 
+   }
+
+
+   /* A variety of NaNs */
+   for(uTestIndex = 0; NaNTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
+      pNaNTestCase = &NaNTestCases[uTestIndex];
+
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_AddDouble(&EnCtx, CopyUint64ToDouble(pNaNTestCase->uNumber));
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 1, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pNaNTestCase->Preferred)) {
+         return MakeTestResultCode(uTestIndex, 1, 200);
+      }
+
+#define QCBOR_COMPARE_TO_HW_NAN_CONVERSION
+#ifdef QCBOR_COMPARE_TO_HW_NAN_CONVERSION
+      {
+         float f;
+         double d, d2;
+
+         d = CopyUint64ToDouble(pNaNTestCase->uNumber);
+         f = (float)d;
+         d2 = (double)f;
+
+         if((uint64_t)d != (uint64_t)d2 && pNaNTestCase->Preferred.len != 9) {
+            /* QCBOR conversion not the same as HW conversion */
+            return MakeTestResultCode(uTestIndex, 9, 200);
+         }
+      }
+#endif /* QCBOR_COMPARE_TO_HW_NAN_CONVERSION */
+
+
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_AddDoubleNoPreferred(&EnCtx, CopyUint64ToDouble(pNaNTestCase->uNumber));
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 2, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pNaNTestCase->NotPreferred)) {
+         return MakeTestResultCode(uTestIndex, 2, 200);
+      }
    }
 
    return 0;

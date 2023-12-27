@@ -1,7 +1,7 @@
 /*==============================================================================
- ieee754.c -- floating-point conversion between half, double & single-precision
+ ieee754.h -- floating-point conversion between half, double & single-precision
 
- Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -69,40 +69,71 @@
 
 
 
-/*
- Convert half-precision float to double-precision float.
- This is a loss-less conversion.
+/**
+ * @brief Convert half-precision float to double-precision float.
+ *
+ * @param[in] uHalfPrecision   Half-prevision number to convert
+ *
+ * @returns double-presion value.
+ *
+ * This is a loss-less conversion because every half-precision
+ * value can be represented as a double.
+ *
+ * There is no half-precision type in C, so it is represented
+ * here as a uint16_t. The bits of @c uHalfPrecision are
+ * as described for half-precision by IEEE 754.
  */
 double
 IEEE754_HalfToDouble(uint16_t uHalfPrecision);
 
 
-// Both tags the value and gives the size
+/* Indicates type and size of uvalue */
+// TODO: make this enum?
 #define IEEE754_UNION_IS_HALF   2
 #define IEEE754_UNION_IS_SINGLE 4
 #define IEEE754_UNION_IS_DOUBLE 8
 
+/** Holds a floating-point value that could be half, single or double-precision.
+ * The value is in a uint64_t that may be copied to a float or double.
+ * Simply casting uValue will usually work but may generate compiler or
+ * static analyzer warnings. Using UsefulBufUtil_CopyUint64ToDouble()
+ * or UsefulBufUtil_CopyUint32ToFloat() will not (and will not generate any extra code).
+ */
 typedef struct {
-    uint8_t uSize;  // One of IEEE754_IS_xxxx
+    uint8_t  uSize;  /* One of IEEE754_IS_xxxx */
     uint64_t uValue;
 } IEEE754_union;
 
 
-/*
- Converts double-precision to single-precision or half-precision if
- possible without loss of precisions. If not, leaves it as a
- double. Only converts to single-precision unless bAllowHalfPrecision
- is set.
+/**
+ * @brief Convert a double to either single or half-precision.
+ *
+ * @param[in] d    The value to convert.
+ * @param[in] bAllowHalfPrecision  If true, convert to either half or single precision.
+ *
+ * @returns Converted value.
+ *
+ * This always succeeds. If the value cannot be converted without the
+ * loss of precision, it is not converted.
+ *
+ * This handles subnormals and NaN payloads.
  */
 IEEE754_union
 IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision);
 
 
-/*
- Converts single-precision to half-precision if possible without loss
- of precision. If not leaves as single-precision.
+/**
+ * @brief Convert a single-precision float to half-precision.
+ *
+ * @param[in] f    The value to convert.
+ *
+ * @returns Converted value.
+ *
+ * This always succeeds. If the value cannot be converted without the
+ * loss of precision, it is not converted.
+ *
+ * This handles subnormals and NaN payloads.
  */
-
 IEEE754_union
 IEEE754_SingleToHalf(float f);
 
