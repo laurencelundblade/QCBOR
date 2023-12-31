@@ -780,11 +780,11 @@ static const uint8_t spExpectedSmallest[] = {
  int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
    size_t i;
    for(i = 0; i < U1.len; i++) {
-      if(((uint8_t *)U1.ptr)[i] != ((uint8_t *)U2.ptr)[i]) {
+      if(((const uint8_t *)U1.ptr)[i] != ((const uint8_t *)U2.ptr)[i]) {
          printf("Position: %u  Actual: 0x%x   Expected: 0x%x\n",
                 (uint32_t)i,
-                ((uint8_t *)U1.ptr)[i],
-                ((uint8_t *)U2.ptr)[i]);
+                ((const uint8_t *)U1.ptr)[i],
+                ((const uint8_t *)U2.ptr)[i]);
          return 1;
       }
    }
