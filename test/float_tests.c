@@ -1,7 +1,7 @@
 /*==============================================================================
  float_tests.c -- tests for float and conversion to/from half-precision
 
- Copyright (c) 2018-2023, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
  Copyright (c) 2021, Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
@@ -24,6 +24,14 @@ CopyUint64ToDouble(uint64_t u64)
     double d;
     memcpy(&d, &u64, sizeof(uint64_t));
     return d;
+}
+
+static inline uint64_t
+CopyDoubleToUint64(double d)
+{
+    uint64_t u64;
+    memcpy(&u64, &d, sizeof(uint64_t));
+    return u64;
 }
 
 
@@ -57,10 +65,33 @@ struct DoubleTestCase {
 };
 
 
+
+/* Boundaries for destination conversions
+ smallest subnormal single  1.401298464324817e-45   2^^-149
+ largest subnormal single   2.2040517676619426e-38  2^^-126
+ smallest normal single     1.1754943508222875e-38
+ largest single             3.4028234663852886E+38
+
+ smallest subnormal half   5.9604644775390625E-8
+ largest subnormal half    6.097555160522461E-5
+ smallest normal half      6.103515625E-5
+ largest half              65504.0
+
+
+ Boundaries for origin conversions
+ smallest subnormal double 5.0e-324  2^^-1074
+ largest subnormal double
+ smallest normal double 2.2250738585072014e-308  2^^-1022
+ largest normal double 1.7976931348623157e308 2^^-1023
+
+ */
+
 /* Always three lines per test case so shell scripts can process into other formats. */
 /* CDE and DCBOR standards are not complete yet, encodings are a guess. */
-/* Text strings are used because they are the shortest notation. They are used __with a length__ . NULL termination doesn't work because
+/* C string literals are used because they are the shortest notation. They are used __with a length__ . Null termination doesn't work because
  * there are zero bytes. */
+
+
 static const struct DoubleTestCase DoubleTestCases[] =  {
    /* Zero */
    {0.0,                     {"\xF9\x00\x00", 3},                         {"\xFB\x00\x00\x00\x00\x00\x00\x00\x00", 9},
@@ -172,31 +203,11 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
 
    /* List terminator */
    {0.0, {NULL, 0} }
-
 };
 
 
 
 
-/* Boundaries for destination conversions
- smallest subnormal single  1.401298464324817e-45   2^^-149
- largest subnormal single   2.2040517676619426e-38  2^^-126
- smallest normal single     1.1754943508222875e-38
- largest single             3.4028234663852886E+38
-
- smallest subnormal half   5.9604644775390625E-8
- largest subnormal half    6.097555160522461E-5
- smallest normal half      6.103515625E-5
- largest half              65504.0
-
-
- Boundaries for origin conversions
- smallest subnormal double 5.0e-324  2^^-1074
- largest subnormal double
- smallest normal double 2.2250738585072014e-308  2^^-1022
- largest normal double 1.7976931348623157e308 2^^-1023
-
- */
 
 
 struct NaNTestCase {
@@ -210,7 +221,7 @@ struct NaNTestCase {
 
 /* Always three lines per test case so shell scripts can process into other formats. */
 /* CDE and DCBOR standards are not complete yet, encodings are a guess. */
-/* Text strings are used because they are the shortest notation. They are used __with a length__ . NULL termination doesn't work because
+/* C string literals are used because they are the shortest notation. They are used __with a length__ . Null termination doesn't work because
  * there are zero bytes. */
 static const struct NaNTestCase NaNTestCases[] =  {
 
@@ -231,12 +242,12 @@ static const struct NaNTestCase NaNTestCases[] =  {
                          {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with 23 leftmost bits set -- converts to a single */
-   {0x7ffFFFFFE0000000, {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
-                        {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+   {0x7ffFFFFFE0000000, {"\xFA\x7F\xFF\xFF\xFF", 5},                  {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
+                        {"\xF9\x7E\x00", 3},                          {"\xF9\x7E\x00", 3}},
 
    /* Payload with 24 leftmost bits set -- fails to convert to a single */
-   {0x7ffFFFFFF0000000, {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9},
-                        {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+   {0x7ffFFFFFF0000000, {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9},  {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9},
+                        {"\xF9\x7E\x00", 3},                          {"\xF9\x7E\x00", 3}},
 
    /* Payload with all bits set */
    {0x7fffffffffffffff,  {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
@@ -258,11 +269,13 @@ int32_t GeneralFloatEncodeTests(void)
    QCBORError                    uErr;
    QCBORDecodeContext            DCtx;
    QCBORItem                     Item;
+   uint64_t                      uDecoded;
 
+   /* Test a variety of doubles */
    for(uTestIndex = 0; DoubleTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &DoubleTestCases[uTestIndex];
 
-      if(pTestCase->dNumber == 3.402823669209385e+38) {
+      if(uTestIndex == 5) {
          uErr = 99;/* For setting break points for particular tests */
       }
 
@@ -292,37 +305,36 @@ int32_t GeneralFloatEncodeTests(void)
       QCBORDecode_Init(&DCtx, pTestCase->Preferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 5, uErr);;
+         return MakeTestResultCode(uTestIndex, 3, uErr);;
       }
       if(isnan(pTestCase->dNumber)) {
          if(!isnan(Item.val.dfnum)) {
-            return MakeTestResultCode(uTestIndex, 3, 200);
+            return MakeTestResultCode(uTestIndex, 4, 0);
          }
       } else {
          if(Item.val.dfnum != pTestCase->dNumber) {
-            return MakeTestResultCode(uTestIndex, 4, 200);
+            return MakeTestResultCode(uTestIndex, 5, 0);
          }
       }
 
       QCBORDecode_Init(&DCtx, pTestCase->NotPreferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 5, uErr);;
+         return MakeTestResultCode(uTestIndex, 6, uErr);;
       }
       if(isnan(pTestCase->dNumber)) {
          if(!isnan(Item.val.dfnum)) {
-            return MakeTestResultCode(uTestIndex, 3, 200);
+            return MakeTestResultCode(uTestIndex, 7, 0);
          }
       } else {
          if(Item.val.dfnum != pTestCase->dNumber) {
-            return MakeTestResultCode(uTestIndex, 4, 200);
+            return MakeTestResultCode(uTestIndex, 8, 0);
          }
       }
 
    }
 
-
-   /* A variety of NaNs */
+   /* Test a variet of NaNs with payloads */
    for(uTestIndex = 0; NaNTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pNaNTestCase = &NaNTestCases[uTestIndex];
 
@@ -331,22 +343,41 @@ int32_t GeneralFloatEncodeTests(void)
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 1, uErr);;
+         return MakeTestResultCode(uTestIndex, 10, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pNaNTestCase->Preferred)) {
-         return MakeTestResultCode(uTestIndex, 1, 200);
+         return MakeTestResultCode(uTestIndex, 10, 200);
       }
 
-#define QCBOR_COMPARE_TO_HW_NAN_CONVERSION
 #ifdef QCBOR_COMPARE_TO_HW_NAN_CONVERSION
       {
+         /* This test is off by default. It's purpose is to check
+          * QCBOR's mask-n-shift implementation against the HW/CPU
+          * instructions that do conversion between double and single.
+          * It is off because it is only used on occasion to verify
+          * QCBOR and because it is suspected that some HW/CPU does
+          * implement this correctly. NaN payloads are an obscure
+          * feature. */
          float f;
          double d, d2;
 
          d = CopyUint64ToDouble(pNaNTestCase->uNumber);
+
+         /* Cast the double to a single and then back to a double
+          * and see if they are equal. If so, then the NaN payload
+          * doesn't have any bits that are lost when converting
+          * to single and it can be safely converted.
+          *
+          * This test can't be done for half-precision because it
+          * is not widely supported.
+          */
          f = (float)d;
          d2 = (double)f;
 
+         /* The length of encoded doubles is 9, singles 5 and halves 3. If
+          * there are NaN payload bits that can't be converted, then
+          * the length must be 9.
+          */
          if((uint64_t)d != (uint64_t)d2 && pNaNTestCase->Preferred.len != 9) {
             /* QCBOR conversion not the same as HW conversion */
             return MakeTestResultCode(uTestIndex, 9, 200);
@@ -360,10 +391,37 @@ int32_t GeneralFloatEncodeTests(void)
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 2, uErr);;
+         return MakeTestResultCode(uTestIndex, 11, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pNaNTestCase->NotPreferred)) {
-         return MakeTestResultCode(uTestIndex, 2, 200);
+         return MakeTestResultCode(uTestIndex, 11, 200);
+      }
+
+      QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, 0);
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 12, uErr);
+      }
+
+
+      uDecoded = CopyDoubleToUint64(Item.val.dfnum);
+
+      if(uDecoded != pNaNTestCase->uNumber) {
+         return MakeTestResultCode(uTestIndex, 12, 200);
+      }
+
+
+      QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, 0);
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 13, uErr);
+      }
+
+
+      uDecoded = CopyDoubleToUint64(Item.val.dfnum);
+
+      if(uDecoded != pNaNTestCase->uNumber) {
+         return MakeTestResultCode(uTestIndex, 13, 200);
       }
    }
 
@@ -389,13 +447,11 @@ int32_t GeneralFloatEncodeTests(void)
  "biggest subnormal": 0.00006103515625,
  "subnormal single": 0.0,
  3: -2.0,
- 4: NaN,
- 5: NaN,
- 6: NaN,
- 7: NaN}
+ 4: NaN
+}
  */
 static const uint8_t spExpectedHalf[] = {
-    0xB1,
+    0xAE,
         0x64,
             0x7A, 0x65, 0x72, 0x6F,
         0xF9, 0x00, 0x00, // half-precision 0.000
@@ -443,13 +499,7 @@ static const uint8_t spExpectedHalf[] = {
         0x03,
         0xF9, 0xC0, 0x00,    // -2
         0x04,
-        0xF9, 0x7E, 0x00,    // qNaN
-        0x05,
-        0xF9, 0x7C, 0x01,    // sNaN
-        0x06,
-        0xF9, 0x7E, 0x0F,    // qNaN with payload 0x0f
-        0x07,
-        0xF9, 0x7C, 0x0F,    // sNaN with payload 0x0f
+        0xF9, 0x7E, 0x00,    // Most common NaN, often considered a qNaN
 };
 
 
@@ -547,26 +597,11 @@ int32_t HalfPrecisionDecodeBasicTests(void)
       return -14;
    }
 
-   // TODO: NAN-related double check these four tests
+   /* One basic test for a NaN here. See NaNTestCases for more. */
    QCBORDecode_GetNext(&DC, &Item); // qNaN
    if(Item.uDataType != QCBOR_TYPE_DOUBLE ||
       CheckDouble(Item.val.dfnum, 0x7ff8000000000000ULL)) {
       return -15;
-   }
-   QCBORDecode_GetNext(&DC, &Item); // sNaN
-   if(Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      CheckDouble(Item.val.dfnum, 0x7ff0000000000001ULL)) {
-      return -16;
-   }
-   QCBORDecode_GetNext(&DC, &Item); // qNaN with payload 0x0f
-   if(Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      CheckDouble(Item.val.dfnum, 0x7ff800000000000fULL)) {
-      return -17;
-   }
-   QCBORDecode_GetNext(&DC, &Item); // sNaN with payload 0x0f
-   if(Item.uDataType != QCBOR_TYPE_DOUBLE ||
-      CheckDouble(Item.val.dfnum, 0x7ff000000000000fULL)) {
-      return -18;
    }
 
    if(QCBORDecode_Finish(&DC)) {
@@ -607,6 +642,8 @@ int32_t HalfPrecisionAgainstRFCCodeTest(void)
         if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
             return -1;
         }
+
+       
 
         //printf("%04x  QCBOR:%15.15f  RFC: %15.15f (%8x)\n",
         //       uHalfP, Item.val.fnum, d , UsefulBufUtil_CopyFloatToUint32(d));
