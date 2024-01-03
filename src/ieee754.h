@@ -49,7 +49,7 @@
 /**
  * @brief Convert half-precision float to double-precision float.
  *
- * @param[in] uHalfPrecision   Half-prevision number to convert
+ * @param[in] uHalfPrecision   Half-prevision number to convert.
  *
  * @returns double-presion value.
  *
@@ -73,11 +73,11 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision);
  * any extra code).
  */
 typedef struct {
-    enum {IEEE754_UNION_IS_HALF   = 2,
-          IEEE754_UNION_IS_SINGLE = 4,
-          IEEE754_UNION_IS_DOUBLE = 8,
-    } uSize; /* Size of uValue */
-    uint64_t uValue;
+   enum {IEEE754_UNION_IS_HALF   = 2,
+         IEEE754_UNION_IS_SINGLE = 4,
+         IEEE754_UNION_IS_DOUBLE = 8,
+   } uSize; /* Size of uValue */
+   uint64_t uValue;
 } IEEE754_union;
 
 
