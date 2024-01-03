@@ -1,15 +1,15 @@
-/*==============================================================================
- float_tests.c -- tests for float and conversion to/from half-precision
-
- Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
- Copyright (c) 2021, Arm Limited. All rights reserved.
-
- SPDX-License-Identifier: BSD-3-Clause
-
- See BSD-3-Clause license in README.md
-
- Created on 9/19/18
- =============================================================================*/
+/* ==========================================================================
+ * float_tests.c -- tests for float and conversion to/from half-precision
+ *
+ * Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2021, Arm Limited. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in README.md
+ *
+ * Created on 9/19/18
+ * ========================================================================= */
 
 
 #include "float_tests.h"
@@ -18,6 +18,16 @@
 #include "qcbor/qcbor_spiffy_decode.h"
 #include <math.h> /* For INFINITY and NAN and isnan() */
 
+
+/*
+ * Convenient functions to avoid type punning, compiler warnings and
+ * such. The optimizer reduces them to a simple assignment. This is a
+ * crusty corner of C. It shouldn't be this hard.
+ *
+ * These are also in UsefulBuf.h under a different name. They are copied
+ * here to avoid a dependency on UsefulBuf.h. There is no object code
+ * size impact because these always optimze down to a simple assignment.
+ */
 static inline double
 CopyUint64ToDouble(uint64_t u64)
 {
@@ -35,14 +45,14 @@ CopyDoubleToUint64(double d)
 }
 
 
-/* Make a test results code that includes three components
- * Return code is
- * xxxyyyzzz where zz is the error code, yy is the test number and zz is
- * check being performed
+/* Make a test results code that includes three components. Return code
+ * is xxxyyyzzz where zz is the error code, yy is the test number and
+ * zz is check being performed
  */
-static inline int32_t MakeTestResultCode(uint32_t   uTestCase,
-                                         uint32_t   uTestNumber,
-                                         QCBORError uErrorCode)
+static inline int32_t
+MakeTestResultCode(uint32_t   uTestCase,
+                   uint32_t   uTestNumber,
+                   QCBORError uErrorCode)
 {
    uint32_t uCode = (uTestCase * 1000000) +
                     (uTestNumber * 1000) +
@@ -66,32 +76,31 @@ struct DoubleTestCase {
 
 
 
-/* Boundaries for destination conversions
- smallest subnormal single  1.401298464324817e-45   2^^-149
- largest subnormal single   2.2040517676619426e-38  2^^-126
- smallest normal single     1.1754943508222875e-38
- largest single             3.4028234663852886E+38
-
- smallest subnormal half   5.9604644775390625E-8
- largest subnormal half    6.097555160522461E-5
- smallest normal half      6.103515625E-5
- largest half              65504.0
-
-
- Boundaries for origin conversions
- smallest subnormal double 5.0e-324  2^^-1074
- largest subnormal double
- smallest normal double 2.2250738585072014e-308  2^^-1022
- largest normal double 1.7976931348623157e308 2^^-1023
-
+/* Boundaries for all destination conversions to test at.
+ *
+ * smallest subnormal single  1.401298464324817e-45   2^^-149
+ * largest subnormal single   2.2040517676619426e-38  2^^-126
+ * smallest normal single     1.1754943508222875e-38
+ * largest single             3.4028234663852886E+38
+ *
+ * smallest subnormal half   5.9604644775390625E-8
+ * largest subnormal half    6.097555160522461E-5
+ * smallest normal half      6.103515625E-5
+ * largest half              65504.0
+ *
+ * Boundaries for origin conversions
+ * smallest subnormal double 5.0e-324  2^^-1074
+ * largest subnormal double
+ * smallest normal double 2.2250738585072014e-308  2^^-1022
+ * largest normal double 1.7976931348623157e308 2^^-1023
  */
 
-/* Always three lines per test case so shell scripts can process into other formats. */
-/* CDE and DCBOR standards are not complete yet, encodings are a guess. */
-/* C string literals are used because they are the shortest notation. They are used __with a length__ . Null termination doesn't work because
- * there are zero bytes. */
-
-
+/* Always three lines per test case so shell scripts can process into
+ * other formats.  CDE and DCBOR standards are not complete yet,
+ * encodings are a guess.  C string literals are used because they
+ * are the shortest notation. They are used __with a length__ . Null
+ * termination doesn't work because * there are zero bytes.
+ */
 static const struct DoubleTestCase DoubleTestCases[] =  {
    /* Zero */
    {0.0,                     {"\xF9\x00\x00", 3},                         {"\xFB\x00\x00\x00\x00\x00\x00\x00\x00", 9},
@@ -208,8 +217,6 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
 
 
 
-
-
 struct NaNTestCase {
    uint64_t    uNumber;
    UsefulBufC  Preferred;
@@ -219,10 +226,12 @@ struct NaNTestCase {
 };
 
 
-/* Always three lines per test case so shell scripts can process into other formats. */
-/* CDE and DCBOR standards are not complete yet, encodings are a guess. */
-/* C string literals are used because they are the shortest notation. They are used __with a length__ . Null termination doesn't work because
- * there are zero bytes. */
+/* Always three lines per test case so shell scripts can process into
+ * other formats.  CDE and DCBOR standards are not complete yet,
+ * encodings are a guess.  C string literals are used because they
+ * are the shortest notation. They are used __with a length__ . Null
+ * termination doesn't work because there are zero bytes.
+ */
 static const struct NaNTestCase NaNTestCases[] =  {
 
    /* Payload with most significant bit set, a qNaN by most implementations */
@@ -258,25 +267,27 @@ static const struct NaNTestCase NaNTestCases[] =  {
 };
 
 
+
+
 int32_t GeneralFloatEncodeTests(void)
 {
    unsigned int                 uTestIndex;
    const struct DoubleTestCase *pTestCase;
    const struct NaNTestCase    *pNaNTestCase;
-   MakeUsefulBufOnStack(         TestOutBuffer, 20);
-   UsefulBufC                    TestOutput;
-   QCBOREncodeContext            EnCtx;
-   QCBORError                    uErr;
-   QCBORDecodeContext            DCtx;
-   QCBORItem                     Item;
-   uint64_t                      uDecoded;
+   MakeUsefulBufOnStack(        TestOutBuffer, 20);
+   UsefulBufC                   TestOutput;
+   QCBOREncodeContext           EnCtx;
+   QCBORError                   uErr;
+   QCBORDecodeContext           DCtx;
+   QCBORItem                    Item;
+   uint64_t                     uDecoded;
 
    /* Test a variety of doubles */
    for(uTestIndex = 0; DoubleTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &DoubleTestCases[uTestIndex];
 
       if(uTestIndex == 5) {
-         uErr = 99;/* For setting break points for particular tests */
+         uErr = 99; /* For setting break points for particular tests */
       }
 
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
@@ -363,20 +374,20 @@ int32_t GeneralFloatEncodeTests(void)
 
          d = CopyUint64ToDouble(pNaNTestCase->uNumber);
 
-         /* Cast the double to a single and then back to a double
-          * and see if they are equal. If so, then the NaN payload
-          * doesn't have any bits that are lost when converting
-          * to single and it can be safely converted.
+         /* Cast the double to a single and then back to a double and
+          * see if they are equal. If so, then the NaN payload doesn't
+          * have any bits that are lost when converting to single and
+          * it can be safely converted.
           *
-          * This test can't be done for half-precision because it
-          * is not widely supported.
+          * This test can't be done for half-precision because it is
+          * not widely supported.
           */
          f = (float)d;
          d2 = (double)f;
 
-         /* The length of encoded doubles is 9, singles 5 and halves 3. If
-          * there are NaN payload bits that can't be converted, then
-          * the length must be 9.
+         /* The length of encoded doubles is 9, singles 5 and halves
+          * 3. If there are NaN payload bits that can't be converted,
+          * then the length must be 9.
           */
          if((uint64_t)d != (uint64_t)d2 && pNaNTestCase->Preferred.len != 9) {
             /* QCBOR conversion not the same as HW conversion */
@@ -538,8 +549,6 @@ int32_t HalfPrecisionDecodeBasicTests(void)
       return -4;
    }
 
-   // TODO: NAN-related is this really converting right? It is carrying
-   // payload, but this confuses things.
    QCBORDecode_GetNext(&DC, &Item);
    if(Item.uDataType != QCBOR_TYPE_DOUBLE || !isnan(Item.val.dfnum)) {
       return -5;
@@ -643,7 +652,7 @@ int32_t HalfPrecisionAgainstRFCCodeTest(void)
             return -1;
         }
 
-       
+
 
         //printf("%04x  QCBOR:%15.15f  RFC: %15.15f (%8x)\n",
         //       uHalfP, Item.val.fnum, d , UsefulBufUtil_CopyFloatToUint32(d));
@@ -856,8 +865,6 @@ int32_t DoubleAsSmallestTest(void)
 
    // F9 7E00                              # primitive(32256)
    QCBOREncode_AddDoubleToMap(&EC, "NaN", NAN);
-
-   // TODO: test a few NaN variants
 
    // F9 3C00                              # primitive(15360)
    QCBOREncode_AddDoubleToMap(&EC, "one", 1.0);
@@ -1088,7 +1095,6 @@ static const uint8_t spExpectedFloatsNoHalf[] = {
          0x18, 0x6A,
           0xFA, 0x00, 0x00, 0x00, 0x00};
 
-#include "qcbor/UsefulBuf.h"
 
 int32_t GeneralFloatEncodeTestsOld(void)
 {
