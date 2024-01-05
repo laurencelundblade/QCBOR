@@ -44,6 +44,16 @@ CopyDoubleToUint64(double d)
     return u64;
 }
 
+#ifdef QCBOR_DISABLE_FLOAT_HW_USE
+static inline uint32_t
+CopyDoubleToUint32(float d)
+{
+    uint32_t u32;
+    memcpy(&u32, &d, sizeof(uint32_t));
+    return u32;
+}
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
 
 /* Make a test results code that includes three components. Return code
  * is xxxyyyzzz where zz is the error code, yy is the test number and
@@ -68,13 +78,12 @@ MakeTestResultCode(uint32_t   uTestCase,
 
 struct DoubleTestCase {
    double      dNumber;
+   double      fNumber;
    UsefulBufC  Preferred;
    UsefulBufC  NotPreferred;
    UsefulBufC  CDE;
    UsefulBufC  DCBOR;
 };
-
-
 
 /* Boundaries for all destination conversions to test at.
  *
@@ -95,7 +104,7 @@ struct DoubleTestCase {
  * largest normal double 1.7976931348623157e308 2^^-1023
  */
 
-/* Always three lines per test case so shell scripts can process into
+/* Always four lines per test case so shell scripts can process into
  * other formats.  CDE and DCBOR standards are not complete yet,
  * encodings are a guess.  C string literals are used because they
  * are the shortest notation. They are used __with a length__ . Null
@@ -103,130 +112,155 @@ struct DoubleTestCase {
  */
 static const struct DoubleTestCase DoubleTestCases[] =  {
    /* Zero */
-   {0.0,                     {"\xF9\x00\x00", 3},                         {"\xFB\x00\x00\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xF9\x00\x00", 3},                         {"\xF9\x00\x00", 3}},
+   {0.0,                                         0.0f,
+    {"\xF9\x00\x00", 3},                         {"\xFB\x00\x00\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x00\x00", 3},                         {"\xF9\x00\x00", 3}},
 
    /* Negative Zero */
-   {-0.0,                    {"\xF9\x80\x00", 3},                         {"\xFB\x80\x00\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xF9\x80\x00", 3},                         {"\xF9\x80\x00", 3}},
+   {-0.0,                                        -0.0f,
+    {"\xF9\x80\x00", 3},                         {"\xFB\x80\x00\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x80\x00", 3},                         {"\xF9\x80\x00", 3}},
 
    /* NaN */
-   {NAN,                     {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+   {NAN,                                         NAN,
+    {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Infinity */
-   {INFINITY,                {"\xF9\x7C\x00", 3},                         {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xF9\x7C\x00", 3},                         {"\xF9\x7C\x00", 3}},
+   {INFINITY,                                    INFINITY,
+    {"\xF9\x7C\x00", 3},                         {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x7C\x00", 3},                         {"\xF9\x7C\x00", 3}},
 
    /* Negative Infinity */
-   {-INFINITY,               {"\xF9\xFC\x00", 3},                         {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xF9\xFC\x00", 3},                         {"\xF9\xFC\x00", 3}},
+   {-INFINITY,                                   -INFINITY,
+    {"\xF9\xFC\x00", 3},                         {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\xFC\x00", 3},                         {"\xF9\xFC\x00", 3}},
 
    /* 1.0 */
-   {1.0,                     {"\xF9\x3C\x00", 3},                         {"\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xF9\x3C\x00", 3},                         {"\xF9\x3C\x00", 3}},
+   {1.0,                                         1.0f,
+    {"\xF9\x3C\x00", 3},                         {"\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x3C\x00", 3},                         {"\xF9\x3C\x00", 3}},
 
    /* 1/3 */
-   {0.333251953125,          {"\xF9\x35\x55", 3},                         {"\xFB\x3F\xD5\x54\x00\x00\x00\x00\x00", 9},
-                             {"\xF9\x35\x55", 3},                         {"\xF9\x35\x55", 3}},
+   {0.333251953125,                              0.333251953125f,
+    {"\xF9\x35\x55", 3},                         {"\xFB\x3F\xD5\x54\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x35\x55", 3},                         {"\xF9\x35\x55", 3}},
 
    /* 5.9604644775390625E-8 -- smallest half-precision subnormal */
-   {5.9604644775390625E-8,   {"\xF9\x00\x01", 3},                         {"\xFB\x3E\x70\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xF9\x00\x01", 3},                         {"\xF9\x00\x01", 3}},
+   {5.9604644775390625E-8,                       0.0f,
+    {"\xF9\x00\x01", 3},                         {"\xFB\x3E\x70\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x00\x01", 3},                         {"\xF9\x00\x01", 3}},
 
    /* 3.0517578125E-5 -- Converts to a half-precision subnormal */
-   {3.0517578125E-5,         {"\xF9\x02\x00", 3},                         {"\xFB\x3F\x00\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xF9\x02\x00", 3},                         {"\xF9\x02\x00", 3}},
+   {3.0517578125E-5,                             0.0f,
+    {"\xF9\x02\x00", 3},                         {"\xFB\x3F\x00\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x02\x00", 3},                         {"\xF9\x02\x00", 3}},
 
    /* 6.103515625E-5 -- converts to the smallest possible half-precision normal */
-   {6.103515625E-5,          {"\xF9\04\00", 3},                           {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xF9\04\00", 3},                           {"\xF9\04\00", 3}},
+   {6.103515625E-5,                              0.0f,
+    {"\xF9\04\00", 3},                           {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\04\00", 3},                           {"\xF9\04\00", 3}},
 
    /* 6.1035156250000014E-5 -- Slightly larger than smallest half-precision normal */
-   {6.1035156250000014E-5,   {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9},
-                             {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}},
+   {6.1035156250000014E-5,                       6.1035156250000014E-5f,
+    {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9},
+    {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}},
 
    /* 6.1035156249999993E-5 -- Slightly smaller than smallest half-precision normal */
-   {6.1035156249999993E-5,   {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
-                             {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+   {6.1035156249999993E-5,  0.0f,
+    {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* 65504.0 -- largest possible half-precision */
-   {65504.0,                 {"\xF9\x7B\xFF", 3},                         {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x00", 9},
-                             {"\xF9\x7B\xFF", 3},                         {"\xF9\x7B\xFF", 3}},
+   {65504.0,                                     0.0f,
+    {"\xF9\x7B\xFF", 3},                         {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x7B\xFF", 3},                         {"\xF9\x7B\xFF", 3}},
 
    /* 65504.1 -- exponent too large and too much precision to convert */
-   {65504.1,                 {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9},
-                             {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}},
+   {65504.1,                                     0.0f,
+    {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9},
+    {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}},
 
     /* 65536.0 -- exponent too large but not too much precision for single */
-   {65536.0,                 {"\xFA\x47\x80\x00\x00", 5},                 {"\xFB\x40\xF0\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xFA\x47\x80\x00\x00", 5},                 {"\xFA\x47\x80\x00\x00", 5}},
+   {65536.0,                                     65536.0f,
+    {"\xFA\x47\x80\x00\x00", 5},                 {"\xFB\x40\xF0\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x47\x80\x00\x00", 5},                 {"\xFA\x47\x80\x00\x00", 5}},
 
    /* 1.401298464324817e-45 -- Smallest single subnormal */
-   {1.401298464324817e-45,   {"\xFA\x00\x00\x00\x01", 5},                 {"\xFB\x36\xA0\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xFA\x00\x00\x00\x01", 5},                 {"\xFA\x00\x00\x00\x01", 5}},
+   {1.401298464324817e-45,                       1.40129846E-45f,
+    {"\xFA\x00\x00\x00\x01", 5},                 {"\xFB\x36\xA0\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x00\x00\x00\x01", 5},                 {"\xFA\x00\x00\x00\x01", 5}},
 
    /* 5.8774717541114375E-39 Another single subnormal */
-   {5.8774717541114375E-39,  {"\xFA\x00\x40\x00\x00", 5},                 {"\xFB\x38\x00\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xFA\x00\x40\x00\x00", 5},                 {"\xFA\x00\x40\x00\x00", 5}},
+   {5.8774717541114375E-39,                      5.87747175E-39f,
+    {"\xFA\x00\x40\x00\x00", 5},                 {"\xFB\x38\x00\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x00\x40\x00\x00", 5},                 {"\xFA\x00\x40\x00\x00", 5}},
 
    /* 1.1754943508222874E-38 Largest single subnormal */
-   {1.1754943508222874E-38,  {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9}, {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9},
-                             {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9}, {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9} },
+   {1.1754943508222874E-38,                      0.0f,
+    {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9}, {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9},
+    {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9}, {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9} },
 
    /* 1.1754943508222875e-38 -- Smallest single normal */
-   {1.1754943508222875e-38,  {"\xFA\x00\x80\x00\x00", 5},                 {"\xFB\x38\x10\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xFA\x00\x80\x00\x00", 5},                 {"\xFA\x00\x80\x00\x00", 5}},
+   {1.1754943508222875e-38,                      1.17549435E-38f,
+    {"\xFA\x00\x80\x00\x00", 5},                 {"\xFB\x38\x10\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x00\x80\x00\x00", 5},                 {"\xFA\x00\x80\x00\x00", 5}},
 
    /* 1.1754943508222875e-38 -- Slightly bigger than smallest single normal */
-   {1.1754943508222878e-38,  {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9},
-                             {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}},
+   {1.1754943508222878e-38,                      0.0f,
+    {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9},
+    {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}},
 
    /* 3.4028234663852886E+38 -- Largest possible single normal */
-   {3.4028234663852886E+38,  {"\xFA\x7F\x7F\xFF\xFF", 5},                 {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
-                             {"\xFA\x7F\x7F\xFF\xFF", 5},                 {"\xFA\x7F\x7F\xFF\xFF", 5}},
+   {3.4028234663852886E+38,                      3.40282347E+38f,
+    {"\xFA\x7F\x7F\xFF\xFF", 5},                 {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
+    {"\xFA\x7F\x7F\xFF\xFF", 5},                 {"\xFA\x7F\x7F\xFF\xFF", 5}},
 
    /* 3.402823466385289E+38 -- Slightly larger than largest possible single */
-   {3.402823466385289E+38,   {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}, {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9},
-                             {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}, {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}},
+   {3.402823466385289E+38,                       0.0f,
+    {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}, {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9},
+    {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}, {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x01", 9}},
 
    /* 3.402823669209385e+38 -- Exponent larger by one than largest possible single */
-   {3.402823669209385e+38,   {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9}},
+   {3.402823669209385e+38,                       0.0f,
+    {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9}},
 
    /* 5.0e-324 Smallest double subnormal normal */
-   {5.0e-324,                {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9},
-                             {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}},
+   {5.0e-324,                                    0.0f,
+    {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9},
+    {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}},
 
    /* 2.2250738585072009E−308 Largest double subnormal */
-   {2.2250738585072009e-308, {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
-                             {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+   {2.2250738585072009e-308,                     0.0f,
+    {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* 2.2250738585072014e-308 Smallest double normal */
-   {2.2250738585072014e-308, {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9},
-                             {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}},
+   {2.2250738585072014e-308,                     0.0f,
+    {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}},
 
    /* 1.7976931348623157E308 Largest double normal */
-   {1.7976931348623157e308,  {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
-                             {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+   {1.7976931348623157e308,                      0.0f,
+    {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* List terminator */
-   {0.0, {NULL, 0} }
+   {0.0, 0.0f, {NULL, 0} }
 };
 
 
-
-
 struct NaNTestCase {
-   uint64_t    uNumber;
+   uint64_t    uDouble;
+   uint32_t    uSingle;
    UsefulBufC  Preferred;
    UsefulBufC  NotPreferred;
    UsefulBufC  CDE;
    UsefulBufC  DCBOR;
 };
 
-
-/* Always three lines per test case so shell scripts can process into
+/* Always four lines per test case so shell scripts can process into
  * other formats.  CDE and DCBOR standards are not complete yet,
  * encodings are a guess.  C string literals are used because they
  * are the shortest notation. They are used __with a length__ . Null
@@ -235,41 +269,55 @@ struct NaNTestCase {
 static const struct NaNTestCase NaNTestCases[] =  {
 
    /* Payload with most significant bit set, a qNaN by most implementations */
-   {0x7ff8000000000000,  {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
-                         {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+   {0x7ff8000000000000,                          0x00000000,
+    {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with single rightmost set */
-   {0x7ff8000000000001,  {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9},
-                         {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+   {0x7ff8000000000001,                          0x00000000,
+    {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9},
+    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with 10 leftmost bits set -- converts to half */
-   {0x7ffffc0000000000,  {"\xF9\x7F\xFF", 3},                         {"\xFB\x7F\xFF\xFC\x00\x00\x00\x00\x00", 9},
-                         {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+   {0x7ffffc0000000000,                          0x00000000,
+    {"\xF9\x7F\xFF", 3},                         {"\xFB\x7F\xFF\xFC\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with 10 rightmost bits set -- cannot convert to half */
-   {0x7ff80000000003ff,  {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9}, {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9},
-                         {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+   {0x7ff80000000003ff,                          0x00000000,
+    {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9}, {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9},
+    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with 23 leftmost bits set -- converts to a single */
-   {0x7ffFFFFFE0000000, {"\xFA\x7F\xFF\xFF\xFF", 5},                  {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
-                        {"\xF9\x7E\x00", 3},                          {"\xF9\x7E\x00", 3}},
+   {0x7ffFFFFFE0000000,                          0x7fffffff,
+    {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
+    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with 24 leftmost bits set -- fails to convert to a single */
-   {0x7ffFFFFFF0000000, {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9},  {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9},
-                        {"\xF9\x7E\x00", 3},                          {"\xF9\x7E\x00", 3}},
+   {0x7ffFFFFFF0000000,                          0x00000000,
+    {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9},
+    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with all bits set */
-   {0x7fffffffffffffff,  {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
-                         {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+   {0x7fffffffffffffff,                          0x00000000,
+    {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* List terminator */
-   {0.0, {NULL, 0} }
+   {0, 0, {NULL, 0} }
 };
 
 
 
-
-int32_t GeneralFloatEncodeTests(void)
+/* Public function. See float_tests.h
+ *
+ * This is the main test of floating-point encoding / decoding. It is
+ * data-driven by the above tables. It works better than tests below that
+ * it mostly replaces because it tests one number at a time, rather than
+ * putting them all in a map. It is much easier to debug test failures
+ * and to add new tests. */
+int32_t
+FloatNumberTests(void)
 {
    unsigned int                 uTestIndex;
    const struct DoubleTestCase *pTestCase;
@@ -286,10 +334,11 @@ int32_t GeneralFloatEncodeTests(void)
    for(uTestIndex = 0; DoubleTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &DoubleTestCases[uTestIndex];
 
-      if(uTestIndex == 5) {
+      if(uTestIndex == 4) {
          uErr = 99; /* For setting break points for particular tests */
       }
 
+      /* Number Encode of Preferred */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
@@ -301,7 +350,7 @@ int32_t GeneralFloatEncodeTests(void)
          return MakeTestResultCode(uTestIndex, 1, 200);
       }
 
-
+      /* Number Encode of Not Preferred */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_AddDoubleNoPreferred(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
@@ -313,51 +362,97 @@ int32_t GeneralFloatEncodeTests(void)
          return MakeTestResultCode(uTestIndex, 2, 200);
       }
 
+      /* Number Decode of Preferred */
       QCBORDecode_Init(&DCtx, pTestCase->Preferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex, 3, uErr);;
       }
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+      if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
+         return MakeTestResultCode(uTestIndex, 4, 0);
+      }
       if(isnan(pTestCase->dNumber)) {
          if(!isnan(Item.val.dfnum)) {
-            return MakeTestResultCode(uTestIndex, 4, 0);
+            return MakeTestResultCode(uTestIndex, 5, 0);
          }
       } else {
          if(Item.val.dfnum != pTestCase->dNumber) {
-            return MakeTestResultCode(uTestIndex, 5, 0);
+            return MakeTestResultCode(uTestIndex, 6, 0);
          }
       }
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+      /* When QCBOR_DISABLE_FLOAT_HW_USE is set, single-precision is not
+       * converted to double when decoding, so test differently. len == 5
+       * indicates single-precision in the encoded CBOR. */
+      if(pTestCase->Preferred.len == 5) {
+         if(Item.uDataType != QCBOR_TYPE_FLOAT) {
+            return MakeTestResultCode(uTestIndex, 4, 0);
+         }
+         if(isnan(pTestCase->dNumber)) {
+            if(!isnan(Item.val.fnum)) {
+               return MakeTestResultCode(uTestIndex, 5, 0);
+            }
+         } else {
+            if(Item.val.fnum != pTestCase->fNumber) {
+               return MakeTestResultCode(uTestIndex, 6, 0);
+            }
+         }
+      } else {
+         if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
+            return MakeTestResultCode(uTestIndex, 4, 0);
+         }
+         if(isnan(pTestCase->dNumber)) {
+            if(!isnan(Item.val.dfnum)) {
+               return MakeTestResultCode(uTestIndex, 5, 0);
+            }
+         } else {
+            if(Item.val.dfnum != pTestCase->dNumber) {
+               return MakeTestResultCode(uTestIndex, 6, 0);
+            }
+         }
+      }
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
+      /* Number Decode of Not Preferred */
       QCBORDecode_Init(&DCtx, pTestCase->NotPreferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 6, uErr);;
+         return MakeTestResultCode(uTestIndex, 7, uErr);;
+      }
+      if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
+         return MakeTestResultCode(uTestIndex, 8, 0);
       }
       if(isnan(pTestCase->dNumber)) {
          if(!isnan(Item.val.dfnum)) {
-            return MakeTestResultCode(uTestIndex, 7, 0);
+            return MakeTestResultCode(uTestIndex, 9, 0);
          }
       } else {
          if(Item.val.dfnum != pTestCase->dNumber) {
-            return MakeTestResultCode(uTestIndex, 8, 0);
+            return MakeTestResultCode(uTestIndex, 10, 0);
          }
       }
 
    }
 
-   /* Test a variet of NaNs with payloads */
+   /* Test a variety of NaNs with payloads */
    for(uTestIndex = 0; NaNTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pNaNTestCase = &NaNTestCases[uTestIndex];
 
-      QCBOREncode_Init(&EnCtx, TestOutBuffer);
-      QCBOREncode_AddDouble(&EnCtx, CopyUint64ToDouble(pNaNTestCase->uNumber));
-      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
+      if(uTestIndex == 4) {
+         uErr = 99; /* For setting break points for particular tests */
+      }
+
+      /* NaN Encode of Preferred */
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_AddDouble(&EnCtx, CopyUint64ToDouble(pNaNTestCase->uDouble));
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 10, uErr);;
+         return MakeTestResultCode(uTestIndex+100, 10, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pNaNTestCase->Preferred)) {
-         return MakeTestResultCode(uTestIndex, 10, 200);
+         return MakeTestResultCode(uTestIndex+100, 10, 200);
       }
 
 #ifdef QCBOR_COMPARE_TO_HW_NAN_CONVERSION
@@ -397,47 +492,67 @@ int32_t GeneralFloatEncodeTests(void)
 #endif /* QCBOR_COMPARE_TO_HW_NAN_CONVERSION */
 
 
+      /* NaN Encode of Not Preferred */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
-      QCBOREncode_AddDoubleNoPreferred(&EnCtx, CopyUint64ToDouble(pNaNTestCase->uNumber));
+      QCBOREncode_AddDoubleNoPreferred(&EnCtx, CopyUint64ToDouble(pNaNTestCase->uDouble));
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 11, uErr);;
+         return MakeTestResultCode(uTestIndex+100, 11, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pNaNTestCase->NotPreferred)) {
-         return MakeTestResultCode(uTestIndex, 11, 200);
+         return MakeTestResultCode(uTestIndex+100, 11, 200);
       }
 
+      /* NaN Decode of Preferred */
       QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 12, uErr);
+         return MakeTestResultCode(uTestIndex+100, 12, uErr);
       }
 
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
 
       uDecoded = CopyDoubleToUint64(Item.val.dfnum);
-
       if(uDecoded != pNaNTestCase->uNumber) {
-         return MakeTestResultCode(uTestIndex, 12, 200);
+         return MakeTestResultCode(uTestIndex+100, 12, 200);
       }
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+      if(pNaNTestCase->Preferred.len == 5) {
+         if(Item.uDataType != QCBOR_TYPE_FLOAT) {
+            return MakeTestResultCode(uTestIndex, 4, 0);
+         }
 
+         uint32_t uDecoded2 = CopyDoubleToUint32(Item.val.fnum);
 
+         if(uDecoded2 != pNaNTestCase->uSingle) {
+            return MakeTestResultCode(uTestIndex, 4, 0);
+         }
+      } else {
+         if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
+            return MakeTestResultCode(uTestIndex, 4, 0);
+         }
+         uDecoded = CopyDoubleToUint64(Item.val.dfnum);
+         if(uDecoded != pNaNTestCase->uDouble) {
+            return MakeTestResultCode(uTestIndex+100, 12, 200);
+         }
+      }
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
+      /* NaN Decode of Not Preferred */
       QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 13, uErr);
+         return MakeTestResultCode(uTestIndex+100, 13, uErr);
       }
-
-
       uDecoded = CopyDoubleToUint64(Item.val.dfnum);
-
-      if(uDecoded != pNaNTestCase->uNumber) {
-         return MakeTestResultCode(uTestIndex, 13, 200);
+      if(uDecoded != pNaNTestCase->uDouble) {
+         return MakeTestResultCode(uTestIndex+100, 13, 200);
       }
    }
 
    return 0;
 }
+
 
 
 
@@ -514,12 +629,15 @@ static const uint8_t spExpectedHalf[] = {
 };
 
 
-inline static bool CheckDouble(double d, uint64_t u)
+static inline bool
+CheckDouble(double d, uint64_t u)
 {
    return UsefulBufUtil_CopyDoubleToUint64(d) != u;
 }
 
 
+/* GeneralFloatTests() above mostly replace this. It is retained because
+ * it exercizes sequential decoding in a map. */
 int32_t HalfPrecisionDecodeBasicTests(void)
 {
    UsefulBufC HalfPrecision = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedHalf);
@@ -651,11 +769,6 @@ int32_t HalfPrecisionAgainstRFCCodeTest(void)
         if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
             return -1;
         }
-
-
-
-        //printf("%04x  QCBOR:%15.15f  RFC: %15.15f (%8x)\n",
-        //       uHalfP, Item.val.fnum, d , UsefulBufUtil_CopyFloatToUint32(d));
 
         if(isnan(d)) {
             // The RFC code uses the native instructions which may or may not
@@ -818,25 +931,6 @@ static const uint8_t spExpectedSmallest[] = {
  */
 #define MAKE_DOUBLE(x) UsefulBufUtil_CopyUint64ToDouble(x)
 
-
-#include <stdio.h>
-
-
-// Do the comparison and print out where it fails
- int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
-   size_t i;
-   for(i = 0; i < U1.len; i++) {
-      if(((const uint8_t *)U1.ptr)[i] != ((const uint8_t *)U2.ptr)[i]) {
-         printf("Position: %u  Actual: 0x%x   Expected: 0x%x\n",
-                (uint32_t)i,
-                ((const uint8_t *)U1.ptr)[i],
-                ((const uint8_t *)U2.ptr)[i]);
-         return 1;
-      }
-   }
-   return 0;
-
-}
 
 int32_t DoubleAsSmallestTest(void)
 {
@@ -1008,7 +1102,7 @@ int32_t DoubleAsSmallestTest(void)
       return -1;
    }
 
-   if(UsefulBuf_Compare_Print(EncodedHalfs, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedSmallest))) {
+   if(UsefulBuf_Compare(EncodedHalfs, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedSmallest))) {
       return -3;
    }
 
@@ -1035,7 +1129,7 @@ int32_t DoubleAsSmallestTest(void)
  *   102: 0.0, 103: 3.141592502593994, "euler2": 2.7182817459106445, 106: 0.0}]
  */
 static const uint8_t spExpectedFloats[] = {
-   0x8E,
+   0x8B,
       0xF9, 0x00, 0x00,
       0xFB, 0x40, 0x09, 0x1E, 0xB8, 0x51, 0xEB, 0x85, 0x1F,
       0xFB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1096,9 +1190,16 @@ static const uint8_t spExpectedFloatsNoHalf[] = {
           0xFA, 0x00, 0x00, 0x00, 0x00};
 
 
-int32_t GeneralFloatEncodeTestsOld(void)
+/* Public function. See float_tests.h */
+int32_t
+GeneralFloatEncodeTests(void)
 {
+   /* See FloatNumberTests() for tests that really cover lots of float values */
+
+   UsefulBufC Encoded;
    UsefulBufC ExpectedFloats;
+   QCBORError uErr;
+
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    UsefulBuf_MAKE_STACK_UB(OutBuffer, sizeof(spExpectedFloats));
    ExpectedFloats = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
@@ -1125,8 +1226,6 @@ int32_t GeneralFloatEncodeTestsOld(void)
    QCBOREncode_AddFloatNoPreferred(&EC, NAN);
    QCBOREncode_AddFloatNoPreferred(&EC, INFINITY);
 
-
-
    QCBOREncode_OpenMap(&EC);
 
    QCBOREncode_AddDoubleToMapN(&EC, 100, 0.0);
@@ -1142,8 +1241,7 @@ int32_t GeneralFloatEncodeTestsOld(void)
    QCBOREncode_CloseMap(&EC);
    QCBOREncode_CloseArray(&EC);
 
-   UsefulBufC Encoded;
-   QCBORError uErr = QCBOREncode_Finish(&EC, &Encoded);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
    if(uErr) {
       return -1;
    }
@@ -1155,25 +1253,15 @@ int32_t GeneralFloatEncodeTestsOld(void)
    return 0;
 }
 
-
-/* returns 0 if equivalent, non-zero if not equivalent */
-static int CHECK_EXPECTED_DOUBLE(double val, double expected)
-{
-   double diff = val - expected;
-
-   diff = fabs(diff);
-
-   if(diff > 0.000001) {
-      return 1;
-   } else {
-      return 0;
-   }
-}
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
-int32_t GeneralFloatDecodeTests(void)
+/* Public function. See float_tests.h */
+int32_t 
+GeneralFloatDecodeTests(void)
 {
+   /* See FloatNumberTests() for tests that really cover lots of float values */
+
    QCBORItem          Item;
    QCBORError         uErr;
    QCBORDecodeContext DC;
@@ -1270,10 +1358,10 @@ int32_t GeneralFloatDecodeTests(void)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
       || Item.uDataType != QCBOR_TYPE_DOUBLE
-      || CHECK_EXPECTED_DOUBLE(3.14, Item.val.dfnum)
+      || 3.1400001049041748 != Item.val.dfnum
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
       || Item.uDataType != QCBOR_TYPE_FLOAT
-      || CHECK_EXPECTED_DOUBLE(3.14, Item.val.fnum)
+      || 3.140000f != Item.val.fnum
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 #else /* USEFULBUF_DISABLE_ALL_FLOAT */
       || Item.uDataType != QCBOR_TYPE_NONE
@@ -1291,7 +1379,7 @@ int32_t GeneralFloatDecodeTests(void)
       || Item.val.dfnum != 0.0
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
       || Item.uDataType != QCBOR_TYPE_FLOAT
-      || Item.val.fnum != 0.0
+      || Item.val.fnum != 0.0f
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 #else /* USEFULBUF_DISABLE_ALL_FLOAT */
       || Item.uDataType != QCBOR_TYPE_NONE

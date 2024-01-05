@@ -217,7 +217,6 @@ IEEE754_AssembleDouble(uint64_t uDoubleSign,
 }
 
 
-/* Public function; see ieee754.h */
 double
 IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 {
@@ -296,9 +295,6 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 
    return dResult;
 }
-
-
-
 
 /**
  * @brief Assemble sign, significand and exponent into single precision float.
