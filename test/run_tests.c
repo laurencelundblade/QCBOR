@@ -118,11 +118,11 @@ static test_entry s_tests[] = {
     TEST_ENTRY(SetUpAllocatorTest),
     TEST_ENTRY(CBORTestIssue134),
 #endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-    TEST_ENTRY(HalfPrecisionAgainstRFCCodeTest),
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-    TEST_ENTRY(FloatValuesTests),
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+   TEST_ENTRY(HalfPrecisionAgainstRFCCodeTest),
+   TEST_ENTRY(FloatValuesTests),
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
     TEST_ENTRY(GeneralFloatEncodeTests),
     TEST_ENTRY(GeneralFloatDecodeTests),
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */

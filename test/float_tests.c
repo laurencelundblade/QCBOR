@@ -173,7 +173,7 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
     {"\xFA\x00\x40\x00\x00", 5},                 {"\xFA\x00\x40\x00\x00", 5}},
 
    /* 1.1754942106924411e-38 -- largest single subnormal */
-   {1.1754942106924411e-38,                      0.0f,
+   {1.1754942106924411E-38,                      1.17549421E-38f,
     {"\xFA\x00\x7f\xff\xff", 5},                 {"\xFB\x38\x0f\xff\xff\xC0\x00\x00\x00", 9},
     {"\xFA\x00\x7f\xff\xff", 5},                 {"\xFA\x00\x7f\xff\xff", 5} },
 
@@ -329,7 +329,7 @@ FloatValuesTests(void)
       pTestCase = &DoubleTestCases[uTestIndex];
 
      // if(pTestCase->dNumber == 1.1754943508222874E-38) {
-         if(uTestIndex == 26) {
+         if(uTestIndex == 19) {
          uErr = 99; /* For setting break points for particular tests */
       }
 
@@ -517,7 +517,7 @@ FloatValuesTests(void)
             return MakeTestResultCode(uTestIndex, 4, 0);
          }
 
-         uDecoded2 = UsefulBufUtil_CopyDoubleToUint32(Item.val.fnum);
+         uDecoded2 = UsefulBufUtil_CopyFloatToUint32(Item.val.fnum);
 
          if(uDecoded2 != pNaNTestCase->uSingle) {
             return MakeTestResultCode(uTestIndex, 4, 0);
