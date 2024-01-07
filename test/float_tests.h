@@ -17,10 +17,6 @@
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
-int32_t HalfPrecisionDecodeBasicTests(void);
-
-int32_t DoubleAsSmallestTest(void);
-
 /* This tests a large number half-precision values
  * in the conversion to/from half/double against
  * the sample code in the CBOR RFC. */
@@ -36,7 +32,7 @@ int32_t HalfPrecisionAgainstRFCCodeTest(void);
  * of floating point.  It's focus is on the numbers
  * not the encode/decode functions.
  */
-int32_t FloatNumberTests(void);
+int32_t FloatValuesTests(void);
 
 
 /*
@@ -48,7 +44,8 @@ int32_t GeneralFloatEncodeTests(void);
 
 /*
  * Tests float decoding, including error codes in scenarios
- * where various float features are disabled.
+ * where various float features are disabled. This also
+ * tests decoding using spiffy decode methods.
  */
 int32_t GeneralFloatDecodeTests(void);
 
