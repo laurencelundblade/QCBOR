@@ -24,21 +24,9 @@
 
 
 /*
- * This code is written for clarity and verifiability, not for size,
- * on the assumption that the optimizer will do a good job. The LLVM
- * optimizer, -Os, does seem to do the job and the resulting object
- * code is smaller from combining code for the many different cases
- * (normal, subnormal, infinity, zero...) for the conversions. GCC is
- * no where near as good.
- *
  * This code has long lines and is easier to read because of
  * them. Some coding guidelines prefer 80 column lines (can they not
  * afford big displays?).
- *
- * Dead stripping is also really helpful to get code size down when
- * floating-point encoding is not needed. (If this is put in a library
- * and linking is against the library, then dead stripping is
- * automatic).
  *
  * This code works solely using shifts and masks and thus has no
  * dependency on any math libraries. It can even work if the CPU
@@ -69,7 +57,7 @@
 
 
 
-// ----- Half Precsion -----------
+/* ----- Half Precsion ----------- */
 #define HALF_NUM_SIGNIFICAND_BITS (10)
 #define HALF_NUM_EXPONENT_BITS    (5)
 #define HALF_NUM_SIGN_BITS        (1)
@@ -78,16 +66,16 @@
 #define HALF_EXPONENT_SHIFT       (HALF_NUM_SIGNIFICAND_BITS)
 #define HALF_SIGN_SHIFT           (HALF_NUM_SIGNIFICAND_BITS + HALF_NUM_EXPONENT_BITS)
 
-#define HALF_SIGNIFICAND_MASK     (0x3ffU) // The lower 10 bits  // 0x03ff
+#define HALF_SIGNIFICAND_MASK     (0x3ffU) // The lower 10 bits
 #define HALF_EXPONENT_MASK        (0x1fU << HALF_EXPONENT_SHIFT) // 0x7c00 5 bits of exponent
-#define HALF_SIGN_MASK            (0x01U << HALF_SIGN_SHIFT) //  // 0x8000 1 bit of sign
+#define HALF_SIGN_MASK            (0x01U << HALF_SIGN_SHIFT) // 0x8000 1 bit of sign
 #define HALF_QUIET_NAN_BIT        (0x01U << (HALF_NUM_SIGNIFICAND_BITS-1)) // 0x0200
 
 /* Biased    Biased    Unbiased   Use
-    0x00       0        -15       0 and subnormal
-    0x01       1        -14       Smallest normal exponent
-    0x1e      30         15       Largest normal exponent
-    0x1F      31         16       NaN and Infinity  */
+ *  0x00       0        -15       0 and subnormal
+ *  0x01       1        -14       Smallest normal exponent
+ *  0x1e      30         15       Largest normal exponent
+ *  0x1F      31         16       NaN and Infinity  */
 #define HALF_EXPONENT_BIAS        (15)
 #define HALF_EXPONENT_MAX         (HALF_EXPONENT_BIAS)    //  15 Unbiased
 #define HALF_EXPONENT_MIN         (-HALF_EXPONENT_BIAS+1) // -14 Unbiased
@@ -95,7 +83,7 @@
 #define HALF_EXPONENT_INF_OR_NAN  (HALF_EXPONENT_BIAS+1)  //  16 Unbiased
 
 
-// ------ Single-Precision --------
+/* ------ Single-Precision -------- */
 #define SINGLE_NUM_SIGNIFICAND_BITS (23)
 #define SINGLE_NUM_EXPONENT_BITS    (8)
 #define SINGLE_NUM_SIGN_BITS        (1)
@@ -110,19 +98,19 @@
 #define SINGLE_QUIET_NAN_BIT        (0x01U << (SINGLE_NUM_SIGNIFICAND_BITS-1))
 
 /* Biased  Biased   Unbiased  Use
-    0x0000     0     -127      0 and subnormal
-    0x0001     1     -126      Smallest normal exponent
-    0x7f     127        0      1
-    0xfe     254      127      Largest normal exponent
-    0xff     255      128      NaN and Infinity  */
+ *  0x0000     0     -127      0 and subnormal
+ *  0x0001     1     -126      Smallest normal exponent
+ *  0x7f     127        0      1
+ *  0xfe     254      127      Largest normal exponent
+ *  0xff     255      128      NaN and Infinity  */
 #define SINGLE_EXPONENT_BIAS        (127)
-#define SINGLE_EXPONENT_MAX         (SINGLE_EXPONENT_BIAS)    //  127 unbiased
-#define SINGLE_EXPONENT_MIN         (-SINGLE_EXPONENT_BIAS+1) // -126 unbiased
-#define SINGLE_EXPONENT_ZERO        (-SINGLE_EXPONENT_BIAS)   // -127 unbiased
-#define SINGLE_EXPONENT_INF_OR_NAN  (SINGLE_EXPONENT_BIAS+1)  //  128 unbiased
+#define SINGLE_EXPONENT_MAX         (SINGLE_EXPONENT_BIAS)
+#define SINGLE_EXPONENT_MIN         (-SINGLE_EXPONENT_BIAS+1)
+#define SINGLE_EXPONENT_ZERO        (-SINGLE_EXPONENT_BIAS)
+#define SINGLE_EXPONENT_INF_OR_NAN  (SINGLE_EXPONENT_BIAS+1)
 
 
-// --------- Double-Precision ----------
+/* --------- Double-Precision ---------- */
 #define DOUBLE_NUM_SIGNIFICAND_BITS (52)
 #define DOUBLE_NUM_EXPONENT_BITS    (11)
 #define DOUBLE_NUM_SIGN_BITS        (1)
@@ -138,15 +126,16 @@
 
 
 /* Biased      Biased   Unbiased  Use
-   0x00000000     0     -1023     0 and subnormal
-   0x00000001     1     -1022     Smallest normal exponent
-   0x000007fe  2046      1023     Largest normal exponent
-   0x000007ff  2047      1024     NaN and Infinity  */
+ * 0x00000000     0     -1023     0 and subnormal
+ * 0x00000001     1     -1022     Smallest normal exponent
+ * 0x000007fe  2046      1023     Largest normal exponent
+ * 0x000007ff  2047      1024     NaN and Infinity  */
 #define DOUBLE_EXPONENT_BIAS        (1023)
-#define DOUBLE_EXPONENT_MAX         (DOUBLE_EXPONENT_BIAS)    // unbiased
-#define DOUBLE_EXPONENT_MIN         (-DOUBLE_EXPONENT_BIAS+1) // unbiased
-#define DOUBLE_EXPONENT_ZERO        (-DOUBLE_EXPONENT_BIAS)   // unbiased
-#define DOUBLE_EXPONENT_INF_OR_NAN  (DOUBLE_EXPONENT_BIAS+1)  // unbiased
+#define DOUBLE_EXPONENT_MAX         (DOUBLE_EXPONENT_BIAS)
+#define DOUBLE_EXPONENT_MIN         (-DOUBLE_EXPONENT_BIAS+1)
+#define DOUBLE_EXPONENT_ZERO        (-DOUBLE_EXPONENT_BIAS)
+#define DOUBLE_EXPONENT_INF_OR_NAN  (DOUBLE_EXPONENT_BIAS+1)
+
 
 
 
@@ -190,6 +179,8 @@ CopyUint32ToSingle(uint32_t u32)
    memcpy(&f, &u32, sizeof(uint32_t));
    return f;
 }
+
+
 
 
 /**
@@ -278,7 +269,6 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
          dResult = IEEE754_AssembleDouble(uHalfSign,
                                           uDoubleSignificand,
                                           DOUBLE_EXPONENT_INF_OR_NAN);
-
       } else {
          /* --- INFINITY --- */
          dResult = IEEE754_AssembleDouble(uHalfSign,
@@ -295,6 +285,7 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 
    return dResult;
 }
+
 
 /**
  * @brief Assemble sign, significand and exponent into single precision float.
@@ -349,7 +340,6 @@ IEEE754_SingleToHalf(float f)
          result.uValue = IEEE754_AssembleHalf(uSingleSign,
                                               0,
                                               HALF_EXPONENT_ZERO);
-
       } else {
          /* --- IS SINGLE SUBNORMAL --- */
          /* The largest single subnormal is slightly less than the
@@ -374,7 +364,7 @@ IEEE754_SingleToHalf(float f)
           * the moment this implementation is of Preferred
           * Serialization, not CDE. As of December 2023, we are also
           * expecting an update to CDE. This code may need to be
-          * updated for CDE.  TODO: QNAN, SNAN
+          * updated for CDE.
           */
          uDroppedBits = uSingleSignificand & (SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS);
          if(uDroppedBits == 0) {
@@ -394,7 +384,7 @@ IEEE754_SingleToHalf(float f)
    } else {
       /* ---- REGULAR NUMBER ---- */
       /* A regular single can be converted to a regular half if the
-       * single's exponent is in the smaller range ofa half and if no
+       * single's exponent is in the smaller range of a half and if no
        * precision is lost in the significand.
        */
       if(nSingleUnbiasedExponent >= HALF_EXPONENT_MIN &&
@@ -532,7 +522,6 @@ IEEE754_DoubleToSingle(double d)
             Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
                                                    0,
                                                    SINGLE_EXPONENT_ZERO);
-
         } else {
             /* --- IS DOUBLE SUBNORMAL --- */
             /* The largest double subnormal is slightly less than the
@@ -560,7 +549,7 @@ IEEE754_DoubleToSingle(double d)
               * but at the moment this implementation is of Preferred
               * Serialization, not CDE. As of December 2023, we are
               * also expecting an update to CDE. This code may need to
-              * be updated for CDE.  TODO: QNAN, SNAN
+              * be updated for CDE.
               */
              uDroppedBits = uDoubleSignificand & (DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS);
              if(uDroppedBits == 0) {
@@ -628,7 +617,6 @@ IEEE754_DoubleToSingle(double d)
 }
 
 
-
 /* Public function; see ieee754.h */
 IEEE754_union
 IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision)
@@ -648,7 +636,7 @@ IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision)
 }
 
 
-#else
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
 int ieee754_dummy_place_holder;
 

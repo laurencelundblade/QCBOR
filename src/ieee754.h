@@ -1,5 +1,5 @@
 /* ==========================================================================
- * ieee754.h -- floating-point conversion between half, double & single-precision
+ * ieee754.h -- Conversion between half, double & single-precision floats
  *
  * Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
  *
@@ -21,14 +21,14 @@
 /** @file ieee754.h
  *
  * This implements floating-point conversion between half, single and
- * double precision, in particular convesion to smaller representation
- * (e.g., double to single) that does not lose precision for CBOR
- * preferred serialization.
+ * double precision floating-point numbers, in particular convesion to
+ * smaller representation (e.g., double to single) that does not lose
+ * precision for CBOR preferred serialization.
  *
  * This implementation works entirely with shifts and masks and does
  * not require any floating-point HW or library.
  *
- * This conforms to IEEE 754-2008, but note that this doesn't specify
+ * This conforms to IEEE 754-2008, but note that it doesn't specify
  * conversions, just the encodings.
  *
  * This is complete, supporting +/- infinity, +/- zero, subnormals and
@@ -40,6 +40,12 @@
  * serialization and what modern HW conversion instructions do. CBOR
  * CDE handling for NaN is not clearly specified, but upcoming
  * documents may clarify this.
+ *
+ * There is no special handling of silent and quiet NaNs. It probably
+ * isn't necessary to transmit these special NaNs as there purpose is
+ * more for propgating errors up through some calculation. In many
+ * cases the handlng of the NaN payload will work for silent and quiet
+ * NaNs.
  *
  * A previous version of this was usable as a general library for
  * conversion. This version is reduced to what is needed for CBOR.
