@@ -5727,6 +5727,109 @@ const unsigned char spBadConsumeInput5[] = {
    0xa1, 0x80, 0x00
 };
 
+/*
+ Lots of nesting for various nesting tests.
+ { 1:1,
+   2:{
+      21:21,
+      22:{
+         221:[2111, 2112, 2113],
+         222:222,
+         223: {}
+      },
+      23: 23
+    },
+    3:3,
+    4: [ {} ]
+ }
+ */
+static const uint8_t spNested[] = {
+0xA4,                            /* Map of 4                              */
+   0x01, 0x01,                   /*   Map entry 1 : 1                     */
+   0x02, 0xA3,                   /*   Map entry 2 : {, an array of 3      */
+      0x15, 0x15,                /*     Map entry 21 : 21                 */
+      0x16, 0xA3,                /*     Map entry 22 : {, a map of 3      */
+         0x18, 0xDD, 0x83,       /*       Map entry 221 : [ an array of 3 */
+            0x19, 0x08, 0x3F,    /*         Array item 2111               */
+            0x19, 0x08, 0x40,    /*         Array item 2112               */
+            0x19, 0x08, 0x41,    /*         Array item 2113               */
+         0x18, 0xDE, 0x18, 0xDE, /*       Map entry 222 : 222             */
+         0x18, 0xDF, 0xA0,       /*       Map entry 223 : {}              */
+      0x17, 0x17,                /*     Map entry 23 : 23                 */
+   0x03, 0x03,                   /*   Map entry 3 : 3                     */
+   0x04, 0x81,                   /*   Map entry 4: [, an array of 1       */
+      0xA0                       /*     Array entry {}, an empty map      */
+};
+
+
+static int32_t EnterMapCursorTest(void)
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem          Item1;
+
+   int i;
+   for(i = 0; i < 13; i++) {
+      QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNested), 0);
+      QCBORDecode_EnterMap(&DCtx, NULL);
+      int j;
+      /* Move travesal cursor */
+      for(j = 0; j < i; j++) {
+         QCBORDecode_GetNext(&DCtx, &Item1);
+      }
+      QCBORDecode_EnterMapFromMapN(&DCtx, 2);
+      QCBORDecode_ExitMap(&DCtx);
+      QCBORDecode_GetNext(&DCtx, &Item1);
+      if(Item1.label.int64 != 3) {
+         return 8000;
+      }
+   }
+
+   for(i = 0; i < 13; i++) {
+      QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNested), 0);
+      QCBORDecode_EnterMap(&DCtx, NULL);
+      int j;
+      /* Move travesal cursor */
+      for(j = 0; j < i; j++) {
+         QCBORDecode_GetNext(&DCtx, &Item1);
+      }
+      QCBORDecode_EnterMapFromMapN(&DCtx, 2);
+      QCBORDecode_EnterMapFromMapN(&DCtx, 22);
+      QCBORDecode_ExitMap(&DCtx);
+      QCBORDecode_GetNext(&DCtx, &Item1);
+      if(Item1.label.int64 != 23) {
+         return 8000;
+      }
+   }
+
+   for(i = 0; i < 13; i++) {
+      QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNested), 0);
+      QCBORDecode_EnterMap(&DCtx, NULL);
+      int j;
+      /* Move travesal cursor */
+      for(j = 0; j < i; j++) {
+         QCBORDecode_GetNext(&DCtx, &Item1);
+      }
+      QCBORDecode_EnterMapFromMapN(&DCtx, 2);
+      QCBORDecode_EnterMapFromMapN(&DCtx, 22);
+      for(j = 0; j < i; j++) {
+          QCBORDecode_GetNext(&DCtx, &Item1);
+       }
+      QCBORDecode_EnterArrayFromMapN(&DCtx, 221);
+      QCBORDecode_ExitArray(&DCtx);
+      QCBORDecode_ExitMap(&DCtx);
+      QCBORDecode_GetNext(&DCtx, &Item1);
+      if(Item1.label.int64 != 23) {
+         return 8000;
+      }
+      QCBORDecode_ExitMap(&DCtx);
+      QCBORDecode_GetNext(&DCtx, &Item1);
+      if(Item1.label.int64 != 3) {
+         return 8000;
+      }
+   }
+
+   return 0;
+}
 
 
 int32_t EnterMapTest(void)
@@ -6106,6 +6209,8 @@ int32_t EnterMapTest(void)
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_MAP_LABEL_TYPE) {
       return 3000;
    }
+
+   nReturn = EnterMapCursorTest();
 
    return nReturn;
 }
