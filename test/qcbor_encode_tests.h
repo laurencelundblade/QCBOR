@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2023, Laurence Lundblade.
+ Copyright (c) 2018-2024, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -195,5 +195,10 @@ int32_t OpenCloseBytesTest(void);
 /* Test map sorting */
 int32_t SortMapTest(void);
 
+
+/* Test CDE Encoding Mode (TODO: CDE definition is in progress in IETF)  */
+int32_t CDETest(void);
+
+int32_t DCBORTest(void);
 
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */

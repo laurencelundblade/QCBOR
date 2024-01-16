@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2023, Laurence Lundblade.
+ Copyright (c) 2018-2024, Laurence Lundblade.
  Copyright (c) 2022, Arm Limited. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -3375,4 +3375,124 @@ SortMapTest(void)
    }
 
    return 0;
+}
+
+
+#include <math.h> /* For INFINITY and NAN and isnan() */
+
+
+int32_t CDETest(void)
+{
+   QCBOREncodeContext EC;
+   UsefulBufC         Encoded;
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   QCBOREncode_SerializationCDE(&EC);
+
+   /* Items added to test sorting and preferred encoding of numbers and floats */
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddFloatToMap(&EC, "k", 1.0f);
+   QCBOREncode_AddInt64ToMap(&EC, "a", 1);
+   QCBOREncode_AddDoubleToMap(&EC, "x", 2.0);
+   QCBOREncode_AddDoubleToMap(&EC, "r", 3.4028234663852886E+38);
+   QCBOREncode_AddDoubleToMap(&EC, "b", NAN);
+   QCBOREncode_AddUndefToMap(&EC, "t"); /* Test because dCBOR disallows */
+
+   QCBOREncode_CloseMap(&EC);
+
+   QCBOREncode_Finish(&EC, &Encoded);
+
+   static const uint8_t spExpectedCDE[] = {
+      0xA6, 0x61, 0x61, 0x01, 0x61, 0x62, 0xF9, 0x7E,
+      0x00, 0x61, 0x6B, 0xF9, 0x3C, 0x00, 0x61, 0x72,
+      0xFA, 0x7F, 0x7F, 0xFF, 0xFF, 0x61, 0x74, 0xF7,
+      0x61, 0x78, 0xF9, 0x40, 0x00};
+
+   if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedCDE),
+                        Encoded)) {
+      return 1;
+   }
+
+   /* Next, make sure methods that encode non-CDE error out */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_SerializationCDE(&EC);
+   QCBOREncode_OpenMapIndefiniteLength(&EC);
+   QCBOREncode_CloseMap(&EC);
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_ERR_NOT_PREFERRED) {
+      return 100;
+   }
+
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_SerializationCDE(&EC);
+   QCBOREncode_AddDoubleNoPreferred(&EC, 0);
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_ERR_NOT_PREFERRED) {
+      return 101;
+   }
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_SerializationCDE(&EC);
+   QCBOREncode_AddFloatNoPreferred(&EC, 0);
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_ERR_NOT_PREFERRED) {
+      return 101;
+   }
+
+   return 0;
+}
+
+
+int32_t DCBORTest(void)
+{
+   QCBOREncodeContext EC;
+   UsefulBufC         Encoded;
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   QCBOREncode_SerializationdCBOR(&EC);
+
+   /* Items added to test sorting and preferred encoding of numbers and floats */
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddFloatToMap(&EC, "k", 1.0f);
+   QCBOREncode_AddInt64ToMap(&EC, "a", 1);
+   QCBOREncode_AddDoubleToMap(&EC, "x", 2.0);
+   QCBOREncode_AddDoubleToMap(&EC, "r", 3.4028234663852886E+38);
+   QCBOREncode_AddDoubleToMap(&EC, "b", NAN);
+
+   QCBOREncode_CloseMap(&EC);
+
+   QCBOREncode_Finish(&EC, &Encoded);
+
+   static const uint8_t spExpecteddCBOR[] = {
+      0xA5, 0x61, 0x61, 0x01, 0x61, 0x62, 0xF9, 0x7E,
+      0x00, 0x61, 0x6B, 0x01, 0x61, 0x72, 0xFA, 0x7F,
+      0x7F, 0xFF, 0xFF, 0x61, 0x78, 0x02};
+
+   if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpecteddCBOR),
+                        Encoded)) {
+      return 1;
+   }
+
+
+   /* Next, make sure methods that encode non-CDE error out */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_SerializationdCBOR(&EC);
+   QCBOREncode_OpenMapIndefiniteLength(&EC);
+   QCBOREncode_CloseMap(&EC);
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_ERR_NOT_PREFERRED) {
+      return 100;
+   }
+
+   /* Next, make sure methods that encode non-CDE error out */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_SerializationdCBOR(&EC);
+   QCBOREncode_AddUndef(&EC);
+   QCBOREncode_CloseMap(&EC);
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_ERR_NOT_PREFERRED) {
+      return 101;
+   }
+
+
+   return 0;
+
 }

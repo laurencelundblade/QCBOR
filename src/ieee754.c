@@ -315,7 +315,7 @@ IEEE754_AssembleHalf(uint32_t uHalfSign,
 
 /*  Public function; see ieee754.h */
 IEEE754_union
-IEEE754_SingleToHalf(float f)
+IEEE754_SingleToHalf(float f, int bNoNaNPayload)
 {
    IEEE754_union result;
    uint32_t      uDroppedBits;
@@ -357,28 +357,36 @@ IEEE754_SingleToHalf(float f)
          result.uSize  = IEEE754_UNION_IS_HALF;
          result.uValue = IEEE754_AssembleHalf(uSingleSign, 0, HALF_EXPONENT_INF_OR_NAN);
       } else {
-         /* The NaN can only be converted if no payload bits are lost
-          * per RFC 8949 section 4.1 that defines Preferred
-          * Serializaton. Note that Deterministically Encode CBOR in
-          * section 4.2 allows for some variation of this rule, but at
-          * the moment this implementation is of Preferred
-          * Serialization, not CDE. As of December 2023, we are also
-          * expecting an update to CDE. This code may need to be
-          * updated for CDE.
-          */
-         uDroppedBits = uSingleSignificand & (SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS);
-         if(uDroppedBits == 0) {
-            /* --- IS CONVERTABLE NAN --- */
-            uHalfSignificand = uSingleSignificand >> (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
+         if(bNoNaNPayload) {
+            /* --- REQUIRE CANNONICAL NAN --- */
             result.uSize  = IEEE754_UNION_IS_HALF;
             result.uValue = IEEE754_AssembleHalf(uSingleSign,
-                                                 uHalfSignificand,
+                                                 HALF_QUIET_NAN_BIT,
                                                  HALF_EXPONENT_INF_OR_NAN);
-
          } else {
-            /* --- IS UNCONVERTABLE NAN --- */
-            result.uSize   = IEEE754_UNION_IS_SINGLE;
-            result.uValue  = uSingle;
+            /* The NaN can only be converted if no payload bits are lost
+             * per RFC 8949 section 4.1 that defines Preferred
+             * Serializaton. Note that Deterministically Encode CBOR in
+             * section 4.2 allows for some variation of this rule, but at
+             * the moment this implementation is of Preferred
+             * Serialization, not CDE. As of December 2023, we are also
+             * expecting an update to CDE. This code may need to be
+             * updated for CDE.
+             */
+            uDroppedBits = uSingleSignificand & (SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS);
+            if(uDroppedBits == 0) {
+               /* --- IS CONVERTABLE NAN --- */
+               uHalfSignificand = uSingleSignificand >> (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
+               result.uSize  = IEEE754_UNION_IS_HALF;
+               result.uValue = IEEE754_AssembleHalf(uSingleSign,
+                                                    uHalfSignificand,
+                                                    HALF_EXPONENT_INF_OR_NAN);
+
+            } else {
+               /* --- IS UNCONVERTABLE NAN --- */
+               result.uSize   = IEEE754_UNION_IS_SINGLE;
+               result.uValue  = uSingle;
+            }
          }
       }
    } else {
@@ -619,7 +627,7 @@ IEEE754_DoubleToSingle(double d)
 
 /* Public function; see ieee754.h */
 IEEE754_union
-IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision)
+IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision, int bNoNanPayload)
 {
    IEEE754_union result;
 
@@ -629,10 +637,185 @@ IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision)
       /* Cast to uint32_t is OK, because value was just successfully
        * converted to single. */
       float uSingle = CopyUint32ToSingle((uint32_t)result.uValue);
-      result = IEEE754_SingleToHalf(uSingle);
+      result = IEEE754_SingleToHalf(uSingle, bNoNanPayload);
    }
 
    return result;
+}
+
+
+/* Public function; see ieee754.h */
+struct IEEE754_ToInt
+IEEE754_DoubleToInt(double d)
+{
+   int64_t              nNonZeroBitsCount;
+   uint64_t             uMask;
+   struct IEEE754_ToInt Result;
+   uint64_t             uInteger;
+
+   /* Pull the three parts out of the double-precision float. Most
+    * work is done with uint64_t which helps avoid integer promotions
+    * and static analyzer complaints.
+    */
+   const uint64_t uDouble                 = CopyDoubleToUint64(d);
+   const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
+   const int64_t  nDoubleUnbiasedExponent = (int64_t)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
+   const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
+
+
+   if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_ZERO) {
+      if(uDoubleSignificand == 0) {
+         /* --- POSITIVE AND NEGATIVE ZERO --- */
+         Result.integer.un_signed = 0;
+         Result.type              = IEEE754_ToInt_IS_UINT;
+      } else {
+         /* --- SUBNORMAL --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      }
+   } else if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
+      if(uDoubleSignificand != 0) {
+         Result.type = IEEE754_To_int_NaN;
+      } else  {
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      }
+   } else if(nDoubleUnbiasedExponent < 0 || nDoubleUnbiasedExponent > 64) {
+      /* --- Exponent out of range --- */
+      Result.type = IEEE754_ToInt_NO_CONVERSION;
+   } else {
+      /* Count down from 52 to the number of bits that are not zero in
+       * the significand. This counts from the least significant bit
+       * until a non-zero bit is found.
+       */
+      for(nNonZeroBitsCount = DOUBLE_NUM_SIGNIFICAND_BITS; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
+         uMask = (0x01ULL << DOUBLE_NUM_SIGNIFICAND_BITS) >> nNonZeroBitsCount;
+         if(uMask & uDoubleSignificand) {
+            break;
+         }
+      }
+
+      if(nNonZeroBitsCount && nNonZeroBitsCount > nDoubleUnbiasedExponent) {
+         /* --- Not a whole number --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      } else {
+         /* --- CONVERTABLE WHOLE NUMBER --- */
+         /* Add in the one that is implied in normal floats */
+         uInteger = uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS);
+         /* Factor in the exponent */
+         if(nDoubleUnbiasedExponent < DOUBLE_NUM_SIGNIFICAND_BITS) {
+            /* Numbers less than 2^52 with up to 52 significant bits */
+            uInteger >>= DOUBLE_NUM_SIGNIFICAND_BITS - nDoubleUnbiasedExponent;
+         } else {
+            /* Numbers greater than 2^52 with at most 52 significant bits*/
+            uInteger <<= nDoubleUnbiasedExponent - DOUBLE_NUM_SIGNIFICAND_BITS;
+         }
+         if(uDouble & DOUBLE_SIGN_MASK) {
+            Result.integer.is_signed = -((int64_t)uInteger);
+            Result.type              = IEEE754_ToInt_IS_INT;
+         } else {
+            Result.integer.un_signed = uInteger;
+            Result.type              = IEEE754_ToInt_IS_UINT;
+         }
+      }
+   }
+
+   return Result;
+}
+
+
+/* Public function; see ieee754.h */
+struct IEEE754_ToInt
+IEEE754_SingleToInt(float f)
+{
+   int32_t              nNonZeroBitsCount;
+   uint32_t             uMask;
+   struct IEEE754_ToInt Result;
+   uint64_t             uInteger;
+
+   /* Pull the three parts out of the double-precision float. Most
+    * work is done with uint32_t which helps avoid integer promotions
+    * and static analyzer complaints.
+    */
+   const uint32_t uSingle                 = CopyFloatToUint32(f);
+   const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
+   const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
+   const uint32_t uSingleleSignificand    = uSingle & SINGLE_SIGNIFICAND_MASK;
+
+   if(nSingleUnbiasedExponent == SINGLE_EXPONENT_ZERO) {
+      if(uSingleleSignificand == 0 && !(uSingle & SINGLE_SIGN_MASK)) {
+         /* --- POSITIVE ZERO --- */
+         Result.integer.un_signed = 0;
+         Result.type              = IEEE754_ToInt_IS_UINT;
+      } else {
+         /* --- Subnormal or NEGATIVE ZERO --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      }
+   } else  if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN ||
+       (nSingleUnbiasedExponent < 0 || nSingleUnbiasedExponent > 64)) {
+       /* --- NAN or INFINITY or exponent out of range --- */
+       Result.type = IEEE754_ToInt_NO_CONVERSION;
+
+    } else{
+      /* Count down from 23 to the number of bits that are not zero in
+       * the significand. This counts from the least significant bit
+       * until a non-zero bit is found.
+       */
+      for(nNonZeroBitsCount = SINGLE_NUM_SIGNIFICAND_BITS; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
+         uMask = (0x01UL << SINGLE_NUM_SIGNIFICAND_BITS) >> nNonZeroBitsCount;
+         if(uMask & uSingleleSignificand) {
+            break;
+         }
+      }
+
+      if(nNonZeroBitsCount && nNonZeroBitsCount > nSingleUnbiasedExponent) {
+         /* --- Not a whole number --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      } else {
+         /* --- CONVERTABLE WHOLE NUMBER --- */
+         /* Add in the one that is implied in normal floats */
+         uInteger = uSingleleSignificand + (1ULL << SINGLE_NUM_SIGNIFICAND_BITS);
+         /* Factor in the exponent */
+         uInteger >>= SINGLE_NUM_SIGNIFICAND_BITS - nSingleUnbiasedExponent;
+         if(uSingle & SINGLE_SIGN_MASK) {
+            Result.integer.is_signed = -((int64_t)uInteger);
+            Result.type              = IEEE754_ToInt_IS_INT;
+         } else {
+            Result.integer.un_signed = uInteger;
+            Result.type              = IEEE754_ToInt_IS_UINT;
+         }
+      }
+   }
+
+   return Result;
+}
+
+
+#include <stdio.h>
+void
+foooo(void)
+{
+   double d;
+   uint64_t yyy;
+
+   d = IEEE754_AssembleDouble(0, 0xfffffffffffffULL, 50);
+   yyy = CopyDoubleToUint64(d);
+   printf("50 %llx %f\n", yyy, d);
+
+   d = IEEE754_AssembleDouble(0, 0xfffffffffffffULL, 51);
+   yyy = CopyDoubleToUint64(d);
+   printf("51 %llx %f\n", yyy, d);
+
+   d = IEEE754_AssembleDouble(0, 0xfffffffffffffULL, 52);
+   yyy = CopyDoubleToUint64(d);
+   printf("52 %llx %f\n", yyy, d);
+
+   d = IEEE754_AssembleDouble(0, 0xfffffffffffffULL, 53);
+   yyy = CopyDoubleToUint64(d);
+   printf("53 %llx %f\n", yyy, d);
+
+   d = IEEE754_AssembleDouble(0, 0xfffffffffffffULL, 54);
+   yyy = CopyDoubleToUint64(d);
+   printf("54 %llx %f\n", yyy, d);
+
 }
 
 

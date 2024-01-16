@@ -79,12 +79,12 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
    /* Zero */
    {0.0,                                         0.0f,
     {"\xF9\x00\x00", 3},                         {"\xFB\x00\x00\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x00\x00", 3},                         {"\xF9\x00\x00", 3}},
+    {"\xF9\x00\x00", 3},                         {"\x00", 1}},
 
    /* Negative Zero */
    {-0.0,                                        -0.0f,
     {"\xF9\x80\x00", 3},                         {"\xFB\x80\x00\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x80\x00", 3},                         {"\xF9\x80\x00", 3}},
+    {"\xF9\x80\x00", 3},                         {"\x00", 1}},
 
    /* NaN */
    {NAN,                                         NAN,
@@ -104,12 +104,12 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
    /* 1.0 */
    {1.0,                                         1.0f,
     {"\xF9\x3C\x00", 3},                         {"\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x3C\x00", 3},                         {"\xF9\x3C\x00", 3}},
+    {"\xF9\x3C\x00", 3},                         {"\x01", 1}},
 
    /* -2.0 -- a negative number that is not zero */
    {-2.0,                                        -2.0f,
     {"\xF9\xC0\x00", 3},                         {"\xFB\xC0\x00\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\xC0\x00", 3},                         {"\xF9\x3C\x00", 3}},
+    {"\xF9\xC0\x00", 3},                         {"\x21", 1}},
 
    /* 1/3 */
    {0.333251953125,                              0.333251953125f,
@@ -129,7 +129,7 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
    /* 6.097555160522461E-5 -- largest half-precision subnormal */
    {6.097555160522461E-5,                        0.0f,
     {"\xF9\x03\xFF", 3},                         {"\xFB\x3F\x0F\xF8\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x03\xFF", 3},                         {"\xF9\04\00", 3}},
+    {"\xF9\x03\xFF", 3},                         {"\xF9\x03\xFF", 3}},
 
    /* 6.103515625E-5 -- smallest possible half-precision normal */
    {6.103515625E-5,                              0.0f,
@@ -149,7 +149,7 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
    /* 65504.0 -- largest possible half-precision */
    {65504.0,                                     0.0f,
     {"\xF9\x7B\xFF", 3},                         {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x7B\xFF", 3},                         {"\xF9\x7B\xFF", 3}},
+    {"\xF9\x7B\xFF", 3},                         {"\x19\xFF\xE0", 3}},
 
    /* 65504.1 -- exponent too large and too much precision to convert */
    {65504.1,                                     0.0f,
@@ -159,15 +159,14 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
     /* 65536.0 -- exponent too large but not too much precision for single */
    {65536.0,                                     65536.0f,
     {"\xFA\x47\x80\x00\x00", 5},                 {"\xFB\x40\xF0\x00\x00\x00\x00\x00\x00", 9},
-    {"\xFA\x47\x80\x00\x00", 5},                 {"\xFA\x47\x80\x00\x00", 5}},
+    {"\xFA\x47\x80\x00\x00", 5},                 {"\x1A\x00\x01\x00\x00", 5}},
 
    /* 1.401298464324817e-45 -- smallest single subnormal */
    {1.401298464324817e-45,                       1.40129846E-45f,
     {"\xFA\x00\x00\x00\x01", 5},                 {"\xFB\x36\xA0\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x00\x00\x00\x01", 5},                 {"\xFA\x00\x00\x00\x01", 5}},
 
-   /* 5.8774717541114375E-39 -- slightly smaller than the smallest
-    // single normal */
+   /* 5.8774717541114375E-39 -- slightly smaller than the smallest single normal */
    {5.8774717541114375E-39,                      5.87747175E-39f,
     {"\xFA\x00\x40\x00\x00", 5},                 {"\xFB\x38\x00\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x00\x40\x00\x00", 5},                 {"\xFA\x00\x40\x00\x00", 5}},
@@ -195,12 +194,42 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
    /* 16777216 -- converts to single without loss */
    {16777216,                                    16777216,
     {"\xFA\x4B\x80\x00\x00", 5},                 {"\xFB\x41\x70\x00\x00\x00\x00\x00\x00", 9},
-    {"\xFA\x4B\x80\x00\x00", 5},                 {"\xFA\x4B\x80\x00\x00", 5}},
+    {"\xFA\x4B\x80\x00\x00", 5},                 {"\x1A\x01\x00\x00\x00", 5}},
 
    /* 16777217 -- one more than above and fails conversion to single */
-   {16777217,                                    16777216,
+   {16777217,                                    16777217,
     {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}, {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9},
-    {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}, {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}},
+    {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}, {"\x1A\x01\x00\x00\x01", 5}},
+
+   /* 4294967295 -- UINT32_MAX */
+   {4294967295,                                  0,
+    {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9},
+    {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\x1A\xFF\xFF\xFF\xFF", 5}},
+
+   /* exponent 51 */
+   {4503599627370495,                            0,
+    {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9},
+    {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\x1B\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+
+   /* exponent 52 */
+   {9007199254740991,                            0,
+    {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x1F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+
+   /* 18014398509481982 -- 52 bits set in double; 18014398509481983 not representable as a double  */
+   {18014398509481982,                           0,
+    {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x3F\xFF\xFF\xFF\xFF\xFF\xFE", 9}},
+
+   /* 18014398509481984 -- exponent is 54  */
+   {18014398509481984,                           0,
+    {"\xFA\x5A\x80\x00\x00",                 5}, {"\xFB\x43\x50\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x5A\x80\x00\x00",                 5}, {"\x1B\x00\x40\x00\x00\x00\x00\x00\x00", 9}},
+
+   /* -4294967295 -- Negative UINT32_MAX */
+   {-4294967295,                                  0,
+    {"\xFB\xC1\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\xFB\xC1\xEF\xFF\xFF\xFF\xE0\x00\x00", 9},
+    {"\xFB\xC1\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\x3A\xFF\xFF\xFF\xFE", 5}},
 
    /* 3.4028234663852886E+38 -- largest possible single normal */
    {3.4028234663852886E+38,                      3.40282347E+38f,
@@ -292,12 +321,16 @@ static const struct NaNTestCase NaNTestCases[] =  {
    /* Payload with all bits set */
    {0x7fffffffffffffff,                          0x00000000,
     {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
-    {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* List terminator */
    {0, 0, {NULL, 0}, {NULL, 0}, {NULL, 0}, {NULL, 0} }
 };
 
+
+
+#include <stdio.h>
+extern void foooo(void);
 
 
 /* Public function. See float_tests.h
@@ -324,12 +357,30 @@ FloatValuesTests(void)
    uint32_t                     uDecoded2;
 #endif
 
+   foooo();
+
+   {
+      uint64_t xxx = 0x4350000000000000 - 2;
+
+      for(uint64_t i = 0; i < 5; i++) {
+
+         uint64_t yyy = xxx + i;
+
+         double d = UsefulBufUtil_CopyUint64ToDouble(yyy);
+
+         printf("%llx %f\n", yyy, d);
+      }
+
+
+
+   }
+
    /* Test a variety of doubles */
    for(uTestIndex = 0; DoubleTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &DoubleTestCases[uTestIndex];
 
-     // if(pTestCase->dNumber == 1.1754943508222874E-38) {
-         if(uTestIndex == 19) {
+     //if(pTestCase->dNumber == -16325548649218046.0) {
+         if(uTestIndex == 26) {
          uErr = 99; /* For setting break points for particular tests */
       }
 
@@ -356,6 +407,33 @@ FloatValuesTests(void)
       if(UsefulBuf_Compare(TestOutput, pTestCase->NotPreferred)) {
          return MakeTestResultCode(uTestIndex, 2, 200);
       }
+
+      /* Number Encode of CDE */
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_SerializationCDE(&EnCtx);
+      QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 20, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pTestCase->CDE)) {
+         return MakeTestResultCode(uTestIndex, 21, 200);
+      }
+
+      /* Number Encode of dCBOR */
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_SerializationdCBOR(&EnCtx);
+      QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 20, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pTestCase->DCBOR)) {
+         return MakeTestResultCode(uTestIndex, 21, 200);
+      }
+
 
       /* Number Decode of Preferred */
       QCBORDecode_Init(&DCtx, pTestCase->Preferred, 0);
@@ -498,7 +576,7 @@ FloatValuesTests(void)
          return MakeTestResultCode(uTestIndex+100, 11, 200);
       }
 
-      /* NaN Decode of Preferred */
+      /* NaN Decode of Not Preferred */
       QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
@@ -543,6 +621,20 @@ FloatValuesTests(void)
       if(uDecoded != pNaNTestCase->uDouble) {
          return MakeTestResultCode(uTestIndex+100, 13, 200);
       }
+
+
+      /* NaN Encode of DCBOR */
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_SerializationdCBOR(&EnCtx);
+      QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex+100, 11, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pNaNTestCase->DCBOR)) {
+         return MakeTestResultCode(uTestIndex+100, 11, 200);
+      }
+
    }
 
    return 0;

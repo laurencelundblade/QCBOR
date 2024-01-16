@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2023, Laurence Lundblade.
+ Copyright (c) 2018-2024, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -247,15 +247,17 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  * [1] indicated disabled by QCBOR_DISABLE_ENCODE_USAGE_GUARDS
  */
 
+void QCBOREncode_CloseMapUnsorted(QCBOREncodeContext *pMe); // TODO: relocate/doc
 
 /*
  Public function for initialization. See qcbor/qcbor_encode.h
  */
-void QCBOREncode_Init(QCBOREncodeContext *me, UsefulBuf Storage)
+void QCBOREncode_Init(QCBOREncodeContext *pMe, UsefulBuf Storage)
 {
-   memset(me, 0, sizeof(QCBOREncodeContext));
-   UsefulOutBuf_Init(&(me->OutBuf), Storage);
-   Nesting_Init(&(me->nesting));
+   memset(pMe, 0, sizeof(QCBOREncodeContext));
+   UsefulOutBuf_Init(&(pMe->OutBuf), Storage);
+   Nesting_Init(&(pMe->nesting));
+   pMe->pfnCloseMap = QCBOREncode_CloseMapUnsorted;
 }
 
 
@@ -754,13 +756,21 @@ void QCBOREncode_AddType7(QCBOREncodeContext *me, uint8_t uMinLen, uint64_t uNum
 /*
  * Public functions for adding a double. See qcbor/qcbor_encode.h
  */
-void QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *me, double dNum)
+void QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, double dNum)
 {
-   QCBOREncode_AddType7(me,
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   QCBOREncode_AddType7(pMe,
                         sizeof(uint64_t),
                         UsefulBufUtil_CopyDoubleToUint64(dNum));
 }
 
+#include <math.h> // For NaN. Maybe a better way?  TODO:
 
 /*
  * Public functions for adding a double. See qcbor/qcbor_encode.h
@@ -768,47 +778,53 @@ void QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *me, double dNum)
 void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   const IEEE754_union uNum = IEEE754_DoubleToSmaller(dNum, true);
+   IEEE754_union        FloatResult;
+   bool                 bNoNaNPayload;
+   struct IEEE754_ToInt IntResult;
 
-   QCBOREncode_AddType7(me, (uint8_t)uNum.uSize, uNum.uValue);
+   if(me->uMode == QCBOR_ENCODE_MODE_DCBOR) {
+      IntResult = IEEE754_DoubleToInt(dNum);
+      switch(IntResult.type) {
+         case IEEE754_ToInt_IS_INT:
+            QCBOREncode_AddInt64(me, IntResult.integer.is_signed);
+            return;
+         case IEEE754_ToInt_IS_UINT:
+            QCBOREncode_AddUInt64(me, IntResult.integer.un_signed);
+            return;
+         case IEEE754_To_int_NaN:
+            QCBOREncode_AddFloat(me, NAN);
+            return;
+         case IEEE754_ToInt_NO_CONVERSION:
+            bNoNaNPayload = true;
+      }
+   } else  {
+      bNoNaNPayload = false;
+   }
+
+   FloatResult = IEEE754_DoubleToSmaller(dNum, true, bNoNaNPayload);
+
+   QCBOREncode_AddType7(me, (uint8_t)FloatResult.uSize, FloatResult.uValue);
+
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    QCBOREncode_AddDoubleNoPreferred(me, dNum);
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 
 
-/*
- * Public functions for adding a double. See qcbor/qcbor_encode.h
- */
-void QCBOREncode_AddDoubleDeterministic(QCBOREncodeContext *me, double dNum)
-{
-   if(dNum <= (double)UINT64_MAX && dNum >= 0) {
-      uint64_t uNum = (uint64_t)dNum;
-      if((double)uNum == dNum) {
-         QCBOREncode_AddUInt64(me, uNum);
-         return;
-      }
-      /* Fall through */
-   } else if(dNum >= (double)INT64_MIN && dNum < 0) {
-      int64_t nNum = (int64_t)dNum;
-      if((double)nNum == dNum) {
-         QCBOREncode_AddInt64(me, nNum);
-         return;
-      }
-      /* Fall through */
-   }
-   //const IEEE754_union uNum = IEEE754_DoubleToSmallest(dNum);
-
-   //QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
-}
 
 
 /*
  * Public functions for adding a float. See qcbor/qcbor_encode.h
  */
-void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *me, float fNum)
+void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, float fNum)
 {
-   QCBOREncode_AddType7(me,
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+   QCBOREncode_AddType7(pMe,
                         sizeof(uint32_t),
                         UsefulBufUtil_CopyFloatToUint32(fNum));
 }
@@ -817,12 +833,35 @@ void QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *me, float fNum)
 /*
  * Public functions for adding a float. See qcbor/qcbor_encode.h
  */
-void QCBOREncode_AddFloat(QCBOREncodeContext *me, float fNum)
+void QCBOREncode_AddFloat(QCBOREncodeContext *pMe, float fNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   const IEEE754_union uNum = IEEE754_SingleToHalf(fNum);
+   IEEE754_union        FloatResult;
+   bool                 bNoNaNPayload;
+   struct IEEE754_ToInt IntResult;
 
-   QCBOREncode_AddType7(me, (uint8_t)uNum.uSize, uNum.uValue);
+   if(pMe->uMode == QCBOR_ENCODE_MODE_DCBOR) {
+      IntResult = IEEE754_SingleToInt(fNum);
+      switch(IntResult.type) {
+         case IEEE754_ToInt_IS_INT:
+            QCBOREncode_AddInt64(pMe, IntResult.integer.is_signed);
+            return;
+         case       IEEE754_ToInt_IS_UINT:
+            QCBOREncode_AddUInt64(pMe, IntResult.integer.un_signed);
+            return;
+         case IEEE754_To_int_NaN:
+            QCBOREncode_AddFloat(pMe, NAN);
+            return;
+         case IEEE754_ToInt_NO_CONVERSION:
+            bNoNaNPayload = true;
+      }
+   } else  {
+      bNoNaNPayload = false;
+   }
+
+   FloatResult = IEEE754_SingleToHalf(fNum, bNoNaNPayload);
+
+   QCBOREncode_AddType7(pMe, (uint8_t)FloatResult.uSize, FloatResult.uValue);
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    QCBOREncode_AddFloatNoPreferred(me, fNum);
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -921,16 +960,22 @@ void QCBOREncode_OpenMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
  *
  * See qcbor/qcbor_encode.h
  */
-void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *me, uint8_t uMajorType)
+void QCBOREncode_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe, uint8_t uMajorType)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    /* Insert the indefinite length marker (0x9f for arrays, 0xbf for maps) */
-   AppendCBORHead(me, uMajorType, 0, 0);
+   AppendCBORHead(pMe, uMajorType, 0, 0);
 
    /* Call the definite-length opener just to do the bookkeeping for
     * nesting.  It will record the position of the opening item in the
     * encoded output but this is not used when closing this open.
     */
-   QCBOREncode_OpenMapOrArray(me, uMajorType);
+   QCBOREncode_OpenMapOrArray(pMe, uMajorType);
 }
 
 
@@ -942,6 +987,18 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me, uint8_t uMajorType)
    InsertCBORHead(me, uMajorType, Nesting_GetCount(&(me->nesting)));
 }
 
+
+void
+QCBOREncode_CloseArray(QCBOREncodeContext *pMe)
+{
+   InsertCBORHead(pMe, CBOR_MAJOR_TYPE_ARRAY, Nesting_GetCount(&(pMe->nesting)));
+}
+
+void
+QCBOREncode_CloseMapUnsorted(QCBOREncodeContext *pMe)
+{
+   InsertCBORHead(pMe, CBOR_MAJOR_TYPE_MAP, Nesting_GetCount(&(pMe->nesting)));
+}
 
 
 /**
@@ -1218,7 +1275,7 @@ void QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
    uStart = Nesting_GetStartPos(&(pMe->nesting));
    QCBOREncodePriv_SortMap(pMe, uStart);
 
-   QCBOREncode_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_MAP);
+   InsertCBORHead(pMe, CBOR_MAJOR_TYPE_MAP, Nesting_GetCount(&(pMe->nesting)));
 }
 
 

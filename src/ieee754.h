@@ -16,6 +16,7 @@
 #define ieee754_h
 
 #include <stdint.h>
+#include <stdbool.h>
 
 
 /** @file ieee754.h
@@ -87,6 +88,19 @@ typedef struct {
 } IEEE754_union;
 
 
+struct IEEE754_ToInt {
+   enum {IEEE754_ToInt_IS_INT,
+         IEEE754_ToInt_IS_UINT,
+         IEEE754_ToInt_NO_CONVERSION,
+         IEEE754_To_int_NaN
+   } type;
+   union {
+      uint64_t un_signed;
+      int64_t  is_signed;
+   } integer;
+};
+
+
 /**
  * @brief Convert a double to either single or half-precision.
  *
@@ -102,7 +116,7 @@ typedef struct {
  * This handles all subnormals and NaN payloads.
  */
 IEEE754_union
-IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision);
+IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision, int bNoNaNPayload);
 
 
 /**
@@ -118,8 +132,15 @@ IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision);
  * This handles all subnormals and NaN payloads.
  */
 IEEE754_union
-IEEE754_SingleToHalf(float f);
+IEEE754_SingleToHalf(float f, int bNoNanPayloads);
 
+
+struct IEEE754_ToInt
+IEEE754_DoubleToInt(double d);
+
+
+struct IEEE754_ToInt
+IEEE754_SingleToInt(float f);
 
 #endif /* ieee754_h */
 

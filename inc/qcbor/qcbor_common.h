@@ -1,6 +1,6 @@
 /* ==========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2023, Laurence Lundblade.
+ * Copyright (c) 2018-2024, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -521,7 +521,11 @@ typedef enum {
     * whole tag contents when it is not the correct tag content, this
     * error can be returned. None of the built-in tag decoders do this
     * (to save object code). */
-   QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 78
+   QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 78,
+
+   /* Attempt to output non-preferred, non-CDE or non-dCBOR
+    * when not allowed by mode. See xxxxx TODO */
+   QCBOR_ERR_NOT_PREFERRED = 79
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;

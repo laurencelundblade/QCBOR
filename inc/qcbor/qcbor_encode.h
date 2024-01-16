@@ -1,6 +1,6 @@
 /* ===========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2023, Laurence Lundblade.
+ * Copyright (c) 2018-2024, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -466,6 +466,18 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
  */
 void
 QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
+
+
+
+
+static void
+QCBOREncode_SerializationCDE(QCBOREncodeContext *pCtx);
+
+static void
+QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pCtx);
+
+static void
+QCBOREncode_SerializationPreferred(QCBOREncodeContext *pCtx);
 
 
 /**
@@ -1857,7 +1869,7 @@ QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel);
  * @ref QCBOR_ERR_CLOSE_MISMATCH will be returned when
  * QCBOREncode_Finish() is called.
  */
-static void
+void
 QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
 
 
@@ -2008,7 +2020,8 @@ QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
  * This is more expensive than most things in the encoder. It uses
  * bubble sort which runs in n-squared time where n is the number of
  * map items. Sorting large maps on slow CPUs might be slow. This is
- * also increases the object code size of the encoder by about 30%.
+ * also increases the object code size of the encoder by about 30%
+ * (500-1000 bytes).
  *
  * Bubble sort was selected so as to not need an extra buffer to track
  * map item offsets. Bubble sort works well even though map items are
@@ -2460,6 +2473,30 @@ QCBOREncode_AddExponentAndMantissa(QCBOREncodeContext *pCtx,
                                    int64_t             nMantissa,
                                    int64_t             nExponent);
 
+
+static inline void
+QCBOREncode_SerializationCDE(QCBOREncodeContext *pMe)
+{
+   pMe->pfnCloseMap = QCBOREncode_CloseAndSortMap;
+   pMe->uMode = QCBOR_ENCODE_MODE_CDE;
+}
+
+
+static inline void
+QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pMe)
+{
+   pMe->pfnCloseMap = QCBOREncode_CloseAndSortMap;
+   pMe->uMode = QCBOR_ENCODE_MODE_DCBOR;
+}
+
+
+static inline void
+QCBOREncode_SerializationPreferred(QCBOREncodeContext *pMe)
+{
+   pMe->uMode = QCBOR_ENCODE_MODE_PREFERRED;
+}
+
+
 /**
  * @brief Semi-private method to add only the type and length of a byte string.
  *
@@ -2495,8 +2532,6 @@ static inline void
 QCBOREncode_AddBytesLenOnlyToMapN(QCBOREncodeContext *pCtx,
                                  int64_t              nLabel,
                                  UsefulBufC           Bytes);
-
-
 
 
 
@@ -3802,6 +3837,11 @@ QCBOREncode_AddNULLToMapN(QCBOREncodeContext *pMe, int64_t nLabel)
 static inline void
 QCBOREncode_AddUndef(QCBOREncodeContext *pMe)
 {
+   // TODO: Conditional on usage guard
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_DCBOR) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
    QCBOREncode_AddSimple(pMe, CBOR_SIMPLEV_UNDEF);
 }
 
@@ -3840,11 +3880,11 @@ QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pMe,  int64_t nLabel)
    QCBOREncode_OpenArray(pMe);
 }
 
-static inline void
-QCBOREncode_CloseArray(QCBOREncodeContext *pMe)
-{
-   QCBOREncode_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_ARRAY);
-}
+//static inline void
+//QCBOREncode_CloseArray(QCBOREncodeContext *pMe)
+//{
+//   QCBOREncode_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_ARRAY);
+//}
 
 
 static inline void
@@ -3870,7 +3910,7 @@ QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pMe, int64_t nLabel)
 static inline void
 QCBOREncode_CloseMap(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_MAP);
+   (pMe->pfnCloseMap)(pMe);
 }
 
 static inline void
