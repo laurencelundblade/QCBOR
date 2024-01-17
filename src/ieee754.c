@@ -1,5 +1,5 @@
 /* ==========================================================================
- * ieee754.c -- floating-point conversion between half, double & single-precision
+ * ieee754.c -- floating-point conversion for half, double & single-precision
  *
  * Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
@@ -685,6 +685,11 @@ IEEE754_DoubleToInt(double d)
       /* Count down from 52 to the number of bits that are not zero in
        * the significand. This counts from the least significant bit
        * until a non-zero bit is found.
+       *
+       * Conversion only fails when the input is too large or is
+       * not a whole number, never because of lack of precision because
+       * 64-bit integers always have more precision than the 52-bits
+       * of a double.
        */
       for(nNonZeroBitsCount = DOUBLE_NUM_SIGNIFICAND_BITS; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
          uMask = (0x01ULL << DOUBLE_NUM_SIGNIFICAND_BITS) >> nNonZeroBitsCount;
@@ -773,8 +778,15 @@ IEEE754_SingleToInt(float f)
          /* --- CONVERTABLE WHOLE NUMBER --- */
          /* Add in the one that is implied in normal floats */
          uInteger = uSingleleSignificand + (1ULL << SINGLE_NUM_SIGNIFICAND_BITS);
-         /* Factor in the exponent */
-         uInteger >>= SINGLE_NUM_SIGNIFICAND_BITS - nSingleUnbiasedExponent;
+        /* Factor in the exponent */
+         if(nSingleUnbiasedExponent < SINGLE_NUM_SIGNIFICAND_BITS) {
+            /* Numbers less than 2^23 with up to 23 significant bits */
+            uInteger >>= SINGLE_NUM_SIGNIFICAND_BITS - nSingleUnbiasedExponent;
+         } else {
+            /* Numbers greater than 2^23 with at most 23 significant bits*/
+            uInteger <<= nSingleUnbiasedExponent - SINGLE_NUM_SIGNIFICAND_BITS;
+         }
+
          if(uSingle & SINGLE_SIGN_MASK) {
             Result.integer.is_signed = -((int64_t)uInteger);
             Result.type              = IEEE754_ToInt_IS_INT;
@@ -786,36 +798,6 @@ IEEE754_SingleToInt(float f)
    }
 
    return Result;
-}
-
-
-#include <stdio.h>
-void
-foooo(void)
-{
-   double d;
-   uint64_t yyy;
-
-   d = IEEE754_AssembleDouble(0, 0xfffffffffffffULL, 50);
-   yyy = CopyDoubleToUint64(d);
-   printf("50 %llx %f\n", yyy, d);
-
-   d = IEEE754_AssembleDouble(0, 0xfffffffffffffULL, 51);
-   yyy = CopyDoubleToUint64(d);
-   printf("51 %llx %f\n", yyy, d);
-
-   d = IEEE754_AssembleDouble(0, 0xfffffffffffffULL, 52);
-   yyy = CopyDoubleToUint64(d);
-   printf("52 %llx %f\n", yyy, d);
-
-   d = IEEE754_AssembleDouble(0, 0xfffffffffffffULL, 53);
-   yyy = CopyDoubleToUint64(d);
-   printf("53 %llx %f\n", yyy, d);
-
-   d = IEEE754_AssembleDouble(0, 0xfffffffffffffULL, 54);
-   yyy = CopyDoubleToUint64(d);
-   printf("54 %llx %f\n", yyy, d);
-
 }
 
 

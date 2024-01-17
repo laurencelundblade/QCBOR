@@ -41,9 +41,9 @@ MakeTestResultCode(uint32_t   uTestCase,
 #include "half_to_double_from_rfc7049.h"
 
 
-struct DoubleTestCase {
+struct FloatTestCase {
    double      dNumber;
-   double      fNumber;
+   float       fNumber;
    UsefulBufC  Preferred;
    UsefulBufC  NotPreferred;
    UsefulBufC  CDE;
@@ -67,15 +67,17 @@ struct DoubleTestCase {
  * largest subnormal double
  * smallest normal double 2.2250738585072014e-308  2^^-1022
  * largest normal double 1.7976931348623157e308 2^^-1023
+ *
+ * Boundaries for conversion to 64-bit integer
  */
 
 /* Always four lines per test case so shell scripts can process into
  * other formats.  CDE and DCBOR standards are not complete yet,
  * encodings are a guess.  C string literals are used because they
  * are the shortest notation. They are used __with a length__ . Null
- * termination doesn't work because * there are zero bytes.
+ * termination doesn't work because there are zero bytes.
  */
-static const struct DoubleTestCase DoubleTestCases[] =  {
+static const struct FloatTestCase FloatTestCases[] =  {
    /* Zero */
    {0.0,                                         0.0f,
     {"\xF9\x00\x00", 3},                         {"\xFB\x00\x00\x00\x00\x00\x00\x00\x00", 9},
@@ -106,7 +108,7 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
     {"\xF9\x3C\x00", 3},                         {"\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00", 9},
     {"\xF9\x3C\x00", 3},                         {"\x01", 1}},
 
-   /* -2.0 -- a negative number that is not zero */
+   /* -2.0 -- a negative */
    {-2.0,                                        -2.0f,
     {"\xF9\xC0\x00", 3},                         {"\xFB\xC0\x00\x00\x00\x00\x00\x00\x00", 9},
     {"\xF9\xC0\x00", 3},                         {"\x21", 1}},
@@ -131,32 +133,32 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
     {"\xF9\x03\xFF", 3},                         {"\xFB\x3F\x0F\xF8\x00\x00\x00\x00\x00", 9},
     {"\xF9\x03\xFF", 3},                         {"\xF9\x03\xFF", 3}},
 
+   /* 6.1035156249999993E-5 -- slightly smaller than smallest half-precision normal */
+   {6.1035156249999993E-5,  0.0f,
+    {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+
    /* 6.103515625E-5 -- smallest possible half-precision normal */
    {6.103515625E-5,                              0.0f,
     {"\xF9\04\00", 3},                           {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x00", 9},
     {"\xF9\04\00", 3},                           {"\xF9\04\00", 3}},
 
    /* 6.1035156250000014E-5 -- slightly larger than smallest half-precision normal */
-   {6.1035156250000014E-5,                       6.1035156250000014E-5f,
+   {6.1035156250000014E-5,                       0.0f,
     {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9},
     {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}},
-
-   /* 6.1035156249999993E-5 -- slightly smaller than smallest half-precision normal */
-   {6.1035156249999993E-5,  0.0f,
-    {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
-    {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* 65504.0 -- largest possible half-precision */
    {65504.0,                                     0.0f,
     {"\xF9\x7B\xFF", 3},                         {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x00", 9},
     {"\xF9\x7B\xFF", 3},                         {"\x19\xFF\xE0", 3}},
 
-   /* 65504.1 -- exponent too large and too much precision to convert */
+   /* 65504.1 -- exponent too large and too much precision to convert to half */
    {65504.1,                                     0.0f,
     {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9},
     {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}},
 
-    /* 65536.0 -- exponent too large but not too much precision for single */
+    /* 65536.0 -- exponent too large for half but not too much precision for single */
    {65536.0,                                     65536.0f,
     {"\xFA\x47\x80\x00\x00", 5},                 {"\xFB\x40\xF0\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x47\x80\x00\x00", 5},                 {"\x1A\x00\x01\x00\x00", 5}},
@@ -192,12 +194,12 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
     {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}},
 
    /* 16777216 -- converts to single without loss */
-   {16777216,                                    16777216,
+   {16777216,                                    16777216.0f,
     {"\xFA\x4B\x80\x00\x00", 5},                 {"\xFB\x41\x70\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x4B\x80\x00\x00", 5},                 {"\x1A\x01\x00\x00\x00", 5}},
 
-   /* 16777217 -- one more than above and fails conversion to single */
-   {16777217,                                    16777217,
+   /* 16777217 -- one more than above and fails conversion to single because of precision */
+   {16777217,                                    0.0f,
     {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}, {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9},
     {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}, {"\x1A\x01\x00\x00\x01", 5}},
 
@@ -206,22 +208,32 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
     {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9},
     {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\x1A\xFF\xFF\xFF\xFF", 5}},
 
-   /* exponent 51 */
+   /* 4294967296 -- 2^^32, UINT32_MAX + 1 */
+   {4294967296,                                  0,
+    {"\xFA\x4F\x80\x00\x00",                 5}, {"\xFB\x41\xF0\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x4F\x80\x00\x00",                 5}, {"\x1B\x00\x00\x00\x01\x00\x00\x00\x00", 9}},
+
+   /* 2251799813685248 -- exponent 51, 0 significand bits set */
+   {2251799813685248,                            0,
+    {"\xFA\x59\x00\x00\x00",                 5}, {"\xFB\x43\x20\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x59\x00\x00\x00",                 5}, {"\x1B\x00\x08\x00\x00\x00\x00\x00\x00", 9}},
+
+   /* 4503599627370495 -- exponent 51, 52 significand bits set */
    {4503599627370495,                            0,
     {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9},
     {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\x1B\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
-   /* exponent 52 */
+   /* 9007199254740991 -- exponent 52, 52 significand bits set */
    {9007199254740991,                            0,
     {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x1F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
-   /* 18014398509481982 -- 52 bits set in double; 18014398509481983 not representable as a double  */
+   /* 18014398509481982 -- exponent 53, 52 bits set in significand (double lacks precision to represent 18014398509481983) */
    {18014398509481982,                           0,
     {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x3F\xFF\xFF\xFF\xFF\xFF\xFE", 9}},
 
-   /* 18014398509481984 -- exponent is 54  */
+   /* 18014398509481984 -- next largest possible double above 18014398509481982  */
    {18014398509481984,                           0,
     {"\xFA\x5A\x80\x00\x00",                 5}, {"\xFB\x43\x50\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x5A\x80\x00\x00",                 5}, {"\x1B\x00\x40\x00\x00\x00\x00\x00\x00", 9}},
@@ -271,9 +283,12 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
 };
 
 
+/* Can't use types double and float here because there's no way in C to
+ * construct arbitrary payloads for those types.
+ */
 struct NaNTestCase {
-   uint64_t    uDouble;
-   uint32_t    uSingle;
+   uint64_t    uDouble; /* Converted to double in test */
+   uint32_t    uSingle; /* Converted to single in test */
    UsefulBufC  Preferred;
    UsefulBufC  NotPreferred;
    UsefulBufC  CDE;
@@ -328,11 +343,6 @@ static const struct NaNTestCase NaNTestCases[] =  {
 };
 
 
-
-#include <stdio.h>
-extern void foooo(void);
-
-
 /* Public function. See float_tests.h
  *
  * This is the main test of floating-point encoding / decoding. It is
@@ -344,7 +354,7 @@ int32_t
 FloatValuesTests(void)
 {
    unsigned int                 uTestIndex;
-   const struct DoubleTestCase *pTestCase;
+   const struct FloatTestCase *pTestCase;
    const struct NaNTestCase    *pNaNTestCase;
    MakeUsefulBufOnStack(        TestOutBuffer, 20);
    UsefulBufC                   TestOutput;
@@ -357,30 +367,12 @@ FloatValuesTests(void)
    uint32_t                     uDecoded2;
 #endif
 
-   foooo();
-
-   {
-      uint64_t xxx = 0x4350000000000000 - 2;
-
-      for(uint64_t i = 0; i < 5; i++) {
-
-         uint64_t yyy = xxx + i;
-
-         double d = UsefulBufUtil_CopyUint64ToDouble(yyy);
-
-         printf("%llx %f\n", yyy, d);
-      }
-
-
-
-   }
-
    /* Test a variety of doubles */
-   for(uTestIndex = 0; DoubleTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
-      pTestCase = &DoubleTestCases[uTestIndex];
+   for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
+      pTestCase = &FloatTestCases[uTestIndex];
 
      //if(pTestCase->dNumber == -16325548649218046.0) {
-         if(uTestIndex == 26) {
+         if(uTestIndex == 24) {
          uErr = 99; /* For setting break points for particular tests */
       }
 
@@ -428,10 +420,24 @@ FloatValuesTests(void)
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 20, uErr);;
+         return MakeTestResultCode(uTestIndex, 22, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pTestCase->DCBOR)) {
-         return MakeTestResultCode(uTestIndex, 21, 200);
+         return MakeTestResultCode(uTestIndex, 23, 200);
+      }
+
+      if(pTestCase->fNumber != 0) {
+         QCBOREncode_Init(&EnCtx, TestOutBuffer);
+         QCBOREncode_SerializationdCBOR(&EnCtx);
+         QCBOREncode_AddFloat(&EnCtx, pTestCase->fNumber);
+         uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+
+         if(uErr != QCBOR_SUCCESS) {
+            return MakeTestResultCode(uTestIndex, 24, uErr);;
+         }
+         if(UsefulBuf_Compare(TestOutput, pTestCase->DCBOR)) {
+            return MakeTestResultCode(uTestIndex, 25, 200);
+         }
       }
 
 
@@ -460,28 +466,28 @@ FloatValuesTests(void)
        * indicates single-precision in the encoded CBOR. */
       if(pTestCase->Preferred.len == 5) {
          if(Item.uDataType != QCBOR_TYPE_FLOAT) {
-            return MakeTestResultCode(uTestIndex, 4, 0);
+            return MakeTestResultCode(uTestIndex, 41, 0);
          }
          if(isnan(pTestCase->dNumber)) {
             if(!isnan(Item.val.fnum)) {
-               return MakeTestResultCode(uTestIndex, 5, 0);
+               return MakeTestResultCode(uTestIndex, 51, 0);
             }
          } else {
             if(Item.val.fnum != pTestCase->fNumber) {
-               return MakeTestResultCode(uTestIndex, 6, 0);
+               return MakeTestResultCode(uTestIndex, 61, 0);
             }
          }
       } else {
          if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
-            return MakeTestResultCode(uTestIndex, 4, 0);
+            return MakeTestResultCode(uTestIndex, 42, 0);
          }
          if(isnan(pTestCase->dNumber)) {
             if(!isnan(Item.val.dfnum)) {
-               return MakeTestResultCode(uTestIndex, 5, 0);
+               return MakeTestResultCode(uTestIndex, 52, 0);
             }
          } else {
             if(Item.val.dfnum != pTestCase->dNumber) {
-               return MakeTestResultCode(uTestIndex, 6, 0);
+               return MakeTestResultCode(uTestIndex, 62, 0);
             }
          }
       }
