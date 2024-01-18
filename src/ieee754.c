@@ -24,7 +24,7 @@
 
 
 /*
- * This code has long lines and is easier to read because of
+ * This has long lines and is easier to read because of
  * them. Some coding guidelines prefer 80 column lines (can they not
  * afford big displays?).
  *
@@ -184,7 +184,7 @@ CopyUint32ToSingle(uint32_t u32)
 
 
 /**
- * @brief Assemble sign, significand and exponent into single precision float.
+ * @brief Assemble sign, significand and exponent into double precision float.
  *
  * @param[in] uDoubleSign              0 if positive, 1 if negative
  * @pararm[in] uDoubleSignificand      Bits of the significand
@@ -208,6 +208,7 @@ IEEE754_AssembleDouble(uint64_t uDoubleSign,
 }
 
 
+/* Public function; see ieee754.h */
 double
 IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 {
@@ -522,7 +523,6 @@ IEEE754_DoubleToSingle(double d)
    const uint64_t uDoubleSign             = (uDouble & DOUBLE_SIGN_MASK) >> DOUBLE_SIGN_SHIFT;
    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
 
-
     if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_ZERO) {
         if(uDoubleSignificand == 0) {
             /* --- IS ZERO --- */
@@ -644,9 +644,11 @@ IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision, int bNoNanPayload)
 }
 
 
+
+
 /* Public function; see ieee754.h */
 struct IEEE754_ToInt
-IEEE754_DoubleToInt(double d)
+IEEE754_DoubleToInt(const double d)
 {
    int64_t              nNonZeroBitsCount;
    uint64_t             uMask;
@@ -659,9 +661,9 @@ IEEE754_DoubleToInt(double d)
     */
    const uint64_t uDouble                 = CopyDoubleToUint64(d);
    const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
+   /* Cast safe because of mask above; exponents < DOUBLE_EXPONENT_MAX */
    const int64_t  nDoubleUnbiasedExponent = (int64_t)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
-
 
    if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_ZERO) {
       if(uDoubleSignificand == 0) {
@@ -673,21 +675,24 @@ IEEE754_DoubleToInt(double d)
          Result.type = IEEE754_ToInt_NO_CONVERSION;
       }
    } else if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
+      /* --- NAN or INFINITY --- */
       if(uDoubleSignificand != 0) {
-         Result.type = IEEE754_To_int_NaN;
+         Result.type = IEEE754_To_int_NaN; /* dCBOR doesn't care about payload */
       } else  {
          Result.type = IEEE754_ToInt_NO_CONVERSION;
       }
-   } else if(nDoubleUnbiasedExponent < 0 || nDoubleUnbiasedExponent > 64) {
+   } else if(nDoubleUnbiasedExponent < 0 ||
+             (nDoubleUnbiasedExponent >= ((uDouble & DOUBLE_SIGN_MASK) ? 63 : 64))) {
       /* --- Exponent out of range --- */
       Result.type = IEEE754_ToInt_NO_CONVERSION;
    } else {
       /* Count down from 52 to the number of bits that are not zero in
        * the significand. This counts from the least significant bit
-       * until a non-zero bit is found.
+       * until a non-zero bit is found to know if it is a whole
+       * number.
        *
-       * Conversion only fails when the input is too large or is
-       * not a whole number, never because of lack of precision because
+       * Conversion only fails when the input is too large or is not a
+       * whole number, never because of lack of precision because
        * 64-bit integers always have more precision than the 52-bits
        * of a double.
        */
@@ -710,10 +715,11 @@ IEEE754_DoubleToInt(double d)
             /* Numbers less than 2^52 with up to 52 significant bits */
             uInteger >>= DOUBLE_NUM_SIGNIFICAND_BITS - nDoubleUnbiasedExponent;
          } else {
-            /* Numbers greater than 2^52 with at most 52 significant bits*/
+            /* Numbers greater than 2^52 with at most 52 significant bits */
             uInteger <<= nDoubleUnbiasedExponent - DOUBLE_NUM_SIGNIFICAND_BITS;
          }
          if(uDouble & DOUBLE_SIGN_MASK) {
+            /* Cast safe because exponent range check above */
             Result.integer.is_signed = -((int64_t)uInteger);
             Result.type              = IEEE754_ToInt_IS_INT;
          } else {
@@ -736,33 +742,45 @@ IEEE754_SingleToInt(float f)
    struct IEEE754_ToInt Result;
    uint64_t             uInteger;
 
-   /* Pull the three parts out of the double-precision float. Most
+   /* Pull the three parts out of the single-precision float. Most
     * work is done with uint32_t which helps avoid integer promotions
     * and static analyzer complaints.
     */
    const uint32_t uSingle                 = CopyFloatToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
+   /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
    const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
    const uint32_t uSingleleSignificand    = uSingle & SINGLE_SIGNIFICAND_MASK;
 
    if(nSingleUnbiasedExponent == SINGLE_EXPONENT_ZERO) {
       if(uSingleleSignificand == 0 && !(uSingle & SINGLE_SIGN_MASK)) {
-         /* --- POSITIVE ZERO --- */
+         /* --- POSITIVE AND NEGATIVE ZERO --- */
          Result.integer.un_signed = 0;
          Result.type              = IEEE754_ToInt_IS_UINT;
       } else {
-         /* --- Subnormal or NEGATIVE ZERO --- */
+         /* --- Subnormal --- */
          Result.type = IEEE754_ToInt_NO_CONVERSION;
       }
-   } else  if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN ||
-       (nSingleUnbiasedExponent < 0 || nSingleUnbiasedExponent > 64)) {
-       /* --- NAN or INFINITY or exponent out of range --- */
+   } else if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN) {
+      /* --- NAN or INFINITY --- */
+      if(uSingleleSignificand != 0) {
+         Result.type = IEEE754_To_int_NaN; /* dCBOR doesn't care about payload */
+      } else  {
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      }
+   } else if(nSingleUnbiasedExponent < 0 ||
+             (nSingleUnbiasedExponent >= ((uSingle & SINGLE_SIGN_MASK) ? 63 : 64))) {
+      /* --- Exponent out of range --- */
        Result.type = IEEE754_ToInt_NO_CONVERSION;
-
-    } else{
+    } else {
       /* Count down from 23 to the number of bits that are not zero in
        * the significand. This counts from the least significant bit
        * until a non-zero bit is found.
+       *
+       * Conversion only fails when the input is too large or is not a
+       * whole number, never because of lack of precision because
+       * 64-bit integers always have more precision than the 52-bits
+       * of a double.
        */
       for(nNonZeroBitsCount = SINGLE_NUM_SIGNIFICAND_BITS; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
          uMask = (0x01UL << SINGLE_NUM_SIGNIFICAND_BITS) >> nNonZeroBitsCount;
@@ -786,7 +804,6 @@ IEEE754_SingleToInt(float f)
             /* Numbers greater than 2^23 with at most 23 significant bits*/
             uInteger <<= nSingleUnbiasedExponent - SINGLE_NUM_SIGNIFICAND_BITS;
          }
-
          if(uSingle & SINGLE_SIGN_MASK) {
             Result.integer.is_signed = -((int64_t)uInteger);
             Result.type              = IEEE754_ToInt_IS_INT;
@@ -799,6 +816,7 @@ IEEE754_SingleToInt(float f)
 
    return Result;
 }
+
 
 
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */

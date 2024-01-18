@@ -792,8 +792,9 @@ void QCBOREncode_AddDouble(QCBOREncodeContext *me, double dNum)
             QCBOREncode_AddUInt64(me, IntResult.integer.un_signed);
             return;
          case IEEE754_To_int_NaN:
-            QCBOREncode_AddFloat(me, NAN);
-            return;
+            dNum = NAN;
+            bNoNaNPayload = true;
+            break;
          case IEEE754_ToInt_NO_CONVERSION:
             bNoNaNPayload = true;
       }
@@ -846,12 +847,13 @@ void QCBOREncode_AddFloat(QCBOREncodeContext *pMe, float fNum)
          case IEEE754_ToInt_IS_INT:
             QCBOREncode_AddInt64(pMe, IntResult.integer.is_signed);
             return;
-         case       IEEE754_ToInt_IS_UINT:
+         case IEEE754_ToInt_IS_UINT:
             QCBOREncode_AddUInt64(pMe, IntResult.integer.un_signed);
             return;
          case IEEE754_To_int_NaN:
-            QCBOREncode_AddFloat(pMe, NAN);
-            return;
+            fNum = NAN;
+            bNoNaNPayload = true;
+            break;
          case IEEE754_ToInt_NO_CONVERSION:
             bNoNaNPayload = true;
       }

@@ -26,6 +26,9 @@
  * smaller representation (e.g., double to single) that does not lose
  * precision for CBOR preferred serialization.
  *
+ * This also implements conversion of floats to whole numbers as
+ * is required for dCBOR.
+ *
  * This implementation works entirely with shifts and masks and does
  * not require any floating-point HW or library.
  *
@@ -88,6 +91,9 @@ typedef struct {
 } IEEE754_union;
 
 
+/** Holds result of an attempt to convert a floating-point
+ * number to an int64_t or uint64_t.
+ */
 struct IEEE754_ToInt {
    enum {IEEE754_ToInt_IS_INT,
          IEEE754_ToInt_IS_UINT,
@@ -135,10 +141,46 @@ IEEE754_union
 IEEE754_SingleToHalf(float f, int bNoNanPayloads);
 
 
+/**
+ * @brief Convert a double-precision float to integer if whole number
+ *
+ * @param[in] d  The value to convert.
+ *
+ * @returns Either converted number or conversion status.
+ *
+ * If the value is a whole number that will fit either in a uint64_t
+ * or an int64_t, it is converted. If it is a NaN, then there is no
+ * conversion and and the fact that it is a NaN is indicated in the
+ * returned structure.  If it can't be converted, then that is
+ * indicated in the returned structure.
+ *
+ * This always returns postive numbers as a uint64_t even if they will
+ * fit in an int64_t.
+ *
+ * This never fails becaue of precision, but may fail because of range.
+ */
 struct IEEE754_ToInt
 IEEE754_DoubleToInt(double d);
 
 
+/**
+ * @brief Convert a single-precision float to integer if whole number
+ *
+ * @param[in] f  The value to convert.
+ *
+ * @returns Either converted number or conversion status.
+ *
+ * If the value is a whole number that will fit either in a uint64_t
+ * or an int64_t, it is converted. If it is a NaN, then there is no
+ * conversion and and the fact that it is a NaN is indicated in the
+ * returned structure.  If it can't be converted, then that is
+ * indicated in the returned structure.
+ *
+ * This always returns postive numbers as a uint64_t even if they will
+ * fit in an int64_t.
+ *
+ * This never fails becaue of precision, but may fail because of range.
+ */
 struct IEEE754_ToInt
 IEEE754_SingleToInt(float f);
 
