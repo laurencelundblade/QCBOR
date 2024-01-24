@@ -502,7 +502,7 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
 /**
  * @brief Append the CBOR head, the major type and argument
  *
- * @param me          Encoder context.
+ * @param pMe          Encoder context.
  * @param uMajorType  Major type to insert.
  * @param uArgument   The argument (an integer value or a length).
  * @param uMinLen     The minimum number of bytes for encoding the CBOR argument.
@@ -585,7 +585,7 @@ QCBOREncode_Private_CheckDecreaseNesting(QCBOREncodeContext *pMe,
 /**
  * @brief Insert the CBOR head for a map, array or wrapped bstr
  *
- * @param me          QCBOR encoding context.
+ * @param pMe          QCBOR encoding context.
  * @param uMajorType  One of CBOR_MAJOR_TYPE_XXXX.
  * @param uLen        The length of the data item.
  *
@@ -695,7 +695,7 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
 /**
  * @brief Semi-private method to add a buffer full of bytes to encoded output.
  *
- * @param[in] pCtx       The encoding context to add the integer to.
+ * @param[in] pMe       The encoding context to add the integer to.
  * @param[in] uMajorType The CBOR major type of the bytes.
  * @param[in] Bytes      The bytes to add.
  *
@@ -760,7 +760,7 @@ QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
 /**
  * @brief  Semi-private method to add simple types.
  *
- * @param[in] pCtx     The encoding context to add the simple value to.
+ * @param[in] pMe     The encoding context to add the simple value to.
  * @param[in] uMinLen  Minimum encoding size for uNum. Usually 0.
  * @param[in] uNum     One of CBOR_SIMPLEV_FALSE through _UNDEF or other.
  *
@@ -816,9 +816,9 @@ void
 QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   const IEEE754_union uNum = IEEE754_DoubleToSmallest(dNum);
+   const IEEE754_union uNum = IEEE754_DoubleToSmaller(dNum, true);
 
-   QCBOREncode_Private_AddType7(pMe, uNum.uSize, uNum.uValue);
+   QCBOREncode_Private_AddType7(pMe, (uint8_t)uNum.uSize, uNum.uValue);
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    QCBOREncode_AddDoubleNoPreferred(me, dNum);
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -844,9 +844,9 @@ void
 QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   const IEEE754_union uNum = IEEE754_FloatToSmallest(fNum);
+   const IEEE754_union uNum = IEEE754_SingleToHalf(fNum);
 
-   QCBOREncode_Private_AddType7(pMe, uNum.uSize, uNum.uValue);
+   QCBOREncode_Private_AddType7(pMe, (uint8_t)uNum.uSize, uNum.uValue);
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    QCBOREncode_AddFloatNoPreferred(me, fNum);
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -858,7 +858,7 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
 /**
  * @brief  Semi-private method to add bigfloats and decimal fractions.
  *
- * @param[in] pCtx               The encoding context to add the value to.
+ * @param[in] pMe               The encoding context to add the value to.
  * @param[in] uTag               The type 6 tag indicating what this is to be.
  * @param[in] BigNumMantissa     Is @ref NULLUsefulBufC if mantissa is an
  *                               @c int64_t or the actual big number mantissa
@@ -921,7 +921,7 @@ QCBOREncode_Private_AddExponentAndMantissa(QCBOREncodeContext *pMe,
 /**
  * @brief Semi-private method to open a map, array or bstr-wrapped CBOR
  *
- * @param[in] pCtx        The context to add to.
+ * @param[in] pMe        The context to add to.
  * @param[in] uMajorType  The major CBOR type to close
  *
  * Call QCBOREncode_OpenArray(), QCBOREncode_OpenMap() or
@@ -965,7 +965,7 @@ QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
 /**
  * @brief Semi-private method to open a map, array with indefinite length
  *
- * @param[in] pCtx        The context to add to.
+ * @param[in] pMe        The context to add to.
  * @param[in] uMajorType  The major CBOR type to close
  *
  * Call QCBOREncode_OpenArrayIndefiniteLength() or
@@ -989,7 +989,7 @@ QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
 /**
  * @brief Semi-private method to close a map, array or bstr wrapped CBOR
  *
- * @param[in] pCtx           The context to add to.
+ * @param[in] pMe           The context to add to.
  * @param[in] uMajorType     The major CBOR type to close.
  *
  * Call QCBOREncode_CloseArray() or QCBOREncode_CloseMap() instead of this.
@@ -1113,7 +1113,7 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
 /**
  * @brief Semi-private method to close a map, array with indefinite length
  *
- * @param[in] pCtx           The context to add to.
+ * @param[in] pMe           The context to add to.
  * @param[in] uMajorType     The major CBOR type to close.
  *
  * Call QCBOREncode_CloseArrayIndefiniteLength() or

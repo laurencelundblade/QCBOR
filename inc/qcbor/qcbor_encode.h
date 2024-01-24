@@ -2255,7 +2255,7 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
 /**
  * Encode the "head" of a CBOR data item.
  *
- * @param buffer       Buffer to output the encoded head to; must be
+ * @param Buffer       Buffer to output the encoded head to; must be
  *                     @ref QCBOR_HEAD_BUFFER_SIZE bytes in size.
  * @param uMajorType   One of CBOR_MAJOR_TYPE_XX.
  * @param uMinLen      The minimum number of bytes to encode uNumber. Almost
