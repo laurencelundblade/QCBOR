@@ -2341,12 +2341,12 @@ QCBOREncode_Private_AddType7(QCBOREncodeContext *pCtx,
 
 /* Semi-private funcion used by public inline functions. See qcbor_encode.c */
 void
-QCBOREncode_Private_AddExponentAndMantissa(QCBOREncodeContext *pCtx,
-                                           uint64_t            uTag,
-                                           UsefulBufC          BigNumMantissa,
-                                           bool                bBigNumIsNegative,
-                                           int64_t             nMantissa,
-                                           int64_t             nExponent);
+QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pCtx,
+                                   uint64_t            uTag,
+                                   UsefulBufC          BigNumMantissa,
+                                   bool                bBigNumIsNegative,
+                                   int64_t             nMantissa,
+                                   int64_t             nExponent);
 
 /**
  * @brief Semi-private method to add only the type and length of a byte string.
@@ -2563,7 +2563,7 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pMe, 
+QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pMe,
                           const uint8_t       uTag,
                           const int64_t       nDate)
 {
@@ -2620,7 +2620,7 @@ QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pMe, 
+QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pMe,
                           const uint8_t       uTag,
                           const int64_t       nDays)
 {
@@ -2652,7 +2652,7 @@ QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddBytes(QCBOREncodeContext *pMe, 
+QCBOREncode_AddBytes(QCBOREncodeContext *pMe,
                      const UsefulBufC    Bytes)
 {
    QCBOREncode_Private_AddBuffer(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, Bytes);
@@ -2911,12 +2911,12 @@ QCBOREncode_AddTDecimalFraction(QCBOREncodeContext *pMe,
    } else {
       uTag = CBOR_TAG_INVALID64;
    }
-   QCBOREncode_Private_AddExponentAndMantissa(pMe,
-                                              uTag,
-                                              NULLUsefulBufC,
-                                              false,
-                                              nMantissa,
-                                              nBase10Exponent);
+   QCBOREncode_Private_AddExpMantissa(pMe,
+                                      uTag,
+                                      NULLUsefulBufC,
+                                      false,
+                                      nMantissa,
+                                      nBase10Exponent);
 }
 
 static inline void
@@ -2999,12 +2999,12 @@ QCBOREncode_AddTDecimalFractionBigNum(QCBOREncodeContext *pMe,
    } else {
       uTag = CBOR_TAG_INVALID64;
    }
-   QCBOREncode_Private_AddExponentAndMantissa(pMe,
-                                              uTag,
-                                              Mantissa,
-                                              bIsNegative,
-                                              0,
-                                              nBase10Exponent);
+   QCBOREncode_Private_AddExpMantissa(pMe,
+                                      uTag,
+                                      Mantissa,
+                                      bIsNegative,
+                                      0,
+                                      nBase10Exponent);
 }
 
 static inline void
@@ -3098,12 +3098,12 @@ QCBOREncode_AddTBigFloat(QCBOREncodeContext *pMe,
    } else {
       uTag = CBOR_TAG_INVALID64;
    }
-   QCBOREncode_Private_AddExponentAndMantissa(pMe,
-                                              uTag,
-                                              NULLUsefulBufC,
-                                              false,
-                                              nMantissa,
-                                              nBase2Exponent);
+   QCBOREncode_Private_AddExpMantissa(pMe,
+                                      uTag,
+                                      NULLUsefulBufC,
+                                      false,
+                                      nMantissa,
+                                      nBase2Exponent);
 }
 
 static inline void
@@ -3180,12 +3180,12 @@ QCBOREncode_AddTBigFloatBigNum(QCBOREncodeContext *pMe,
    } else {
       uTag = CBOR_TAG_INVALID64;
    }
-   QCBOREncode_Private_AddExponentAndMantissa(pMe,
-                                              uTag,
-                                              Mantissa,
-                                              bIsNegative,
-                                              0,
-                                              nBase2Exponent);
+   QCBOREncode_Private_AddExpMantissa(pMe,
+                                      uTag,
+                                      Mantissa,
+                                      bIsNegative,
+                                      0,
+                                      nBase2Exponent);
 }
 
 static inline void

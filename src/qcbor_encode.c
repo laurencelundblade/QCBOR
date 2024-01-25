@@ -265,9 +265,9 @@ QCBOREncode_Init(QCBOREncodeContext *pMe, UsefulBuf Storage)
  */
 UsefulBufC
 QCBOREncode_EncodeHead(UsefulBuf Buffer,
-                         uint8_t   uMajorType,
-                         uint8_t   uMinLen,
-                         uint64_t  uArgument)
+                       uint8_t   uMajorType,
+                       uint8_t   uMinLen,
+                       uint64_t  uArgument)
 {
    /*
     * == Description of the CBOR Head ==
@@ -886,12 +886,12 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
  * is called instead of this.
  */
 void
-QCBOREncode_Private_AddExponentAndMantissa(QCBOREncodeContext *pMe,
-                                           const uint64_t      uTag,
-                                           const UsefulBufC    BigNumMantissa,
-                                           const bool          bBigNumIsNegative,
-                                           const int64_t       nMantissa,
-                                           const int64_t       nExponent)
+QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pMe,
+                                   const uint64_t      uTag,
+                                   const UsefulBufC    BigNumMantissa,
+                                   const bool          bBigNumIsNegative,
+                                   const int64_t       nMantissa,
+                                   const int64_t       nExponent)
 {
    /* This is for encoding either a big float or a decimal fraction,
     * both of which are an array of two items, an exponent and a
