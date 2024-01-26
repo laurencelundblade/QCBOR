@@ -765,8 +765,8 @@ QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  * @param[out] puArgument        The decoded argument.
  * @param[out] pnAdditionalInfo  The decoded Lower 5 bits of initial byte.
  *
- * @retval QCBOR_ERR_UNSUPPORTED
- * @retval QCBOR_ERR_HIT_END
+ * @retval QCBOR_ERR_UNSUPPORTED Encountered unsupported/reserved features
+ * @retval QCBOR_ERR_HIT_END Unexpected end of input
  *
  * This decodes the CBOR "head" that every CBOR data item has. See
  * longer explaination of the head in documentation for
@@ -843,7 +843,7 @@ Done:
  * @param[in] uArgument      The argument from the head.
  * @param[out] pDecodedItem  The filled in decoded item.
  *
- * @retval QCBOR_ERR_INT_OVERFLOW
+ * @retval QCBOR_ERR_INT_OVERFLOW Too-large negative encountered
  *
  * Must only be called when major type is 0 or 1.
  *
@@ -932,9 +932,12 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
  * @param[in] uArgument         The argument from the head.
  * @param[out] pDecodedItem     The filled in decoded item.
  *
- * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
- * @retval QCBOR_ERR_ALL_FLOAT_DISABLED
- * @retval QCBOR_ERR_BAD_TYPE_7
+ * @retval QCBOR_ERR_HALF_PRECISION_DISABLED Half-precision in input, but decode
+ *                                           of half-precision disabled
+ * @retval QCBOR_ERR_ALL_FLOAT_DISABLED      Float-point in input, but all float
+ *                                           decode is disabled.
+ * @retval QCBOR_ERR_BAD_TYPE_7              Not-allowed representation of simple
+ *                                           type in input.
  */
 
 static QCBORError
@@ -1049,9 +1052,9 @@ Done:
  * @param[in] pUInBuf        The surce from which to read the string's bytes.
  * @param[out] pDecodedItem  The filled in decoded item.
  *
- * @retval QCBOR_ERR_HIT_END
- * @retval QCBOR_ERR_STRING_ALLOCATE
- * @retval QCBOR_ERR_STRING_TOO_LONG
+ * @retval QCBOR_ERR_HIT_END          Unexpected end of input.
+ * @retval QCBOR_ERR_STRING_ALLOCATE  Out of memory.
+ * @retval QCBOR_ERR_STRING_TOO_LONG  String longer than SIZE_MAX - 4.
  *
  * The reads @c uStrlen bytes from @c pUInBuf and fills in @c
  * pDecodedItem. If @c pAllocator is not NULL then memory for the
@@ -1166,15 +1169,21 @@ QCBORDecode_Private_ConvertArrayOrMapType(int nCBORMajorType)
  * @param[out] pDecodedItem  The filled-in decoded item.
  * @param[in] pAllocator    The allocator to use for strings or NULL.
  *
- * @retval QCBOR_ERR_UNSUPPORTED
- * @retval QCBOR_ERR_HIT_END
- * @retval QCBOR_ERR_INT_OVERFLOW
- * @retval QCBOR_ERR_STRING_ALLOCATE
- * @retval QCBOR_ERR_STRING_TOO_LONG
- * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
- * @retval QCBOR_ERR_ALL_FLOAT_DISABLED
- * @retval QCBOR_ERR_BAD_TYPE_7
- * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
+ * @retval QCBOR_ERR_UNSUPPORTED             Encountered unsupported/reserved
+ *                                           features
+ * @retval QCBOR_ERR_HIT_END                 Unexpected end of input
+ * @retval QCBOR_ERR_INT_OVERFLOW            Too-large negative encountered
+ * @retval QCBOR_ERR_STRING_ALLOCATE         Out of memory.
+ * @retval QCBOR_ERR_STRING_TOO_LONG         String longer than SIZE_MAX - 4.
+ * @retval QCBOR_ERR_HALF_PRECISION_DISABLED Half-precision in input, but decode
+ *                                           of half-precision disabled
+ * @retval QCBOR_ERR_ALL_FLOAT_DISABLED      Float-point in input, but all
+ *                                           float decode is disabled.
+ * @retval QCBOR_ERR_BAD_TYPE_7              Not-allowed representation of
+ *                                           simple type in input.
+ * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  Indefinite length map/array
+ *                                              in input, but indefinite
+ *                                              lengths disabled.
  *
  * This decodes the most primitive / atomic data item. It does
  * no combing of data items.
@@ -1282,18 +1291,27 @@ Done:
  * @param[in] pMe   Decoder context
  * @param[out] pDecodedItem  The decoded item that work is done on.
  *
- * @retval QCBOR_ERR_UNSUPPORTED
- * @retval QCBOR_ERR_HIT_END
- * @retval QCBOR_ERR_INT_OVERFLOW
- * @retval QCBOR_ERR_STRING_ALLOCATE
- * @retval QCBOR_ERR_STRING_TOO_LONG
- * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
- * @retval QCBOR_ERR_ALL_FLOAT_DISABLED
- * @retval QCBOR_ERR_BAD_TYPE_7
- * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
- * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
- * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
- * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED
+ * @retval QCBOR_ERR_UNSUPPORTED             Encountered unsupported/reserved
+ *                                           features
+ * @retval QCBOR_ERR_HIT_END                 Unexpected end of input
+ * @retval QCBOR_ERR_INT_OVERFLOW            Too-large negative encountered
+ * @retval QCBOR_ERR_STRING_ALLOCATE         Out of memory.
+ * @retval QCBOR_ERR_STRING_TOO_LONG         String longer than SIZE_MAX - 4.
+ * @retval QCBOR_ERR_HALF_PRECISION_DISABLED Half-precision in input, but decode
+ *                                           of half-precision disabled
+ * @retval QCBOR_ERR_ALL_FLOAT_DISABLED      Float-point in input, but all
+ *                                           float decode is disabled.
+ * @retval QCBOR_ERR_BAD_TYPE_7              Not-allowed representation of
+ *                                           simple type in input.
+ * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  Indefinite length map/array
+ *                                              in input, but indefinite
+ *                                              lengths disabled.
+ * @retval QCBOR_ERR_NO_STRING_ALLOCATOR     Indefinite-length string in input,
+ *                                           but no string allocator.
+ * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK  Error in indefinite-length string.
+ * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED  Indefinite-length string in
+ *                                               input, but indefinite-length
+ *                                               strings are disabled.
  *
  * If @c pDecodedItem is not an indefinite-length string, this does nothing.
  *
@@ -1523,20 +1541,29 @@ QCBORDecode_Private_UnMapTagNumber(const QCBORDecodeContext *pMe,
  *
  * @param[in] pMe            Decoder context
  * @param[out] pDecodedItem  The decoded item that work is done on.
-
- * @retval QCBOR_ERR_UNSUPPORTED
- * @retval QCBOR_ERR_HIT_END
- * @retval QCBOR_ERR_INT_OVERFLOW
- * @retval QCBOR_ERR_STRING_ALLOCATE
- * @retval QCBOR_ERR_STRING_TOO_LONG
- * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
- * @retval QCBOR_ERR_ALL_FLOAT_DISABLED
- * @retval QCBOR_ERR_BAD_TYPE_7
- * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
- * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
- * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
- * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED
- * @retval QCBOR_ERR_TOO_MANY_TAGS
+ *
+ * @retval QCBOR_ERR_UNSUPPORTED             Encountered unsupported/reserved
+ *                                           features
+ * @retval QCBOR_ERR_HIT_END                 Unexpected end of input
+ * @retval QCBOR_ERR_INT_OVERFLOW            Too-large negative encountered
+ * @retval QCBOR_ERR_STRING_ALLOCATE         Out of memory.
+ * @retval QCBOR_ERR_STRING_TOO_LONG         String longer than SIZE_MAX - 4.
+ * @retval QCBOR_ERR_HALF_PRECISION_DISABLED Half-precision in input, but decode
+ *                                           of half-precision disabled
+ * @retval QCBOR_ERR_ALL_FLOAT_DISABLED      Float-point in input, but all
+ *                                           float decode is disabled.
+ * @retval QCBOR_ERR_BAD_TYPE_7              Not-allowed representation of
+ *                                           simple type in input.
+ * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  Indefinite length map/array
+ *                                              in input, but indefinite
+ *                                              lengths disabled.
+ * @retval QCBOR_ERR_NO_STRING_ALLOCATOR     Indefinite-length string in input,
+ *                                           but no string allocator.
+ * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK  Error in indefinite-length string.
+ * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED  Indefinite-length string in
+ *                                               input, but indefinite-length
+ *                                               strings are disabled.
+ * @retval QCBOR_ERR_TOO_MANY_TAGS           Too many tag numbers on item.
  *
  * This loops getting atomic data items until one is not a tag
  * number.  Usually this is largely pass-through because most
@@ -1619,21 +1646,30 @@ Done:
  * @param[in] pMe            Decoder context
  * @param[out] pDecodedItem  The decoded item that work is done on.
  *
- * @retval QCBOR_ERR_UNSUPPORTED
- * @retval QCBOR_ERR_HIT_END
- * @retval QCBOR_ERR_INT_OVERFLOW
- * @retval QCBOR_ERR_STRING_ALLOCATE
- * @retval QCBOR_ERR_STRING_TOO_LONG
- * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
- * @retval QCBOR_ERR_ALL_FLOAT_DISABLED
- * @retval QCBOR_ERR_BAD_TYPE_7
- * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
- * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
- * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
- * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED
- * @retval QCBOR_ERR_TOO_MANY_TAGS
- * @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG
- * @retval QCBOR_ERR_MAP_LABEL_TYPE
+ * @retval QCBOR_ERR_UNSUPPORTED             Encountered unsupported/reserved
+ *                                           features
+ * @retval QCBOR_ERR_HIT_END                 Unexpected end of input
+ * @retval QCBOR_ERR_INT_OVERFLOW            Too-large negative encountered
+ * @retval QCBOR_ERR_STRING_ALLOCATE         Out of memory.
+ * @retval QCBOR_ERR_STRING_TOO_LONG         String longer than SIZE_MAX - 4.
+ * @retval QCBOR_ERR_HALF_PRECISION_DISABLED Half-precision in input, but decode
+ *                                           of half-precision disabled
+ * @retval QCBOR_ERR_ALL_FLOAT_DISABLED      Float-point in input, but all
+ *                                           float decode is disabled.
+ * @retval QCBOR_ERR_BAD_TYPE_7              Not-allowed representation of
+ *                                           simple type in input.
+ * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  Indefinite length map/array
+ *                                              in input, but indefinite
+ *                                              lengths disabled.
+ * @retval QCBOR_ERR_NO_STRING_ALLOCATOR     Indefinite-length string in input,
+ *                                           but no string allocator.
+ * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK  Error in indefinite-length string.
+ * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED  Indefinite-length string in
+ *                                               input, but indefinite-length
+ *                                               strings are disabled.
+ * @retval QCBOR_ERR_TOO_MANY_TAGS           Too many tag numbers on item.
+ * @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG   Too many items in array.
+ * @retval QCBOR_ERR_MAP_LABEL_TYPE          Map label not string or integer.
  *
  * If a the current nesting level is a map, then this
  * combines pairs of items into one data item with a label
@@ -1859,25 +1895,36 @@ Done:
  *
  * @param[in] pMe            Decoder context
  * @param[out] pDecodedItem  The decoded item that work is done on.
- *
- * @retval QCBOR_ERR_UNSUPPORTED
- * @retval QCBOR_ERR_HIT_END
- * @retval QCBOR_ERR_INT_OVERFLOW
- * @retval QCBOR_ERR_STRING_ALLOCATE
- * @retval QCBOR_ERR_STRING_TOO_LONG
- * @retval QCBOR_ERR_HALF_PRECISION_DISABLED
- * @retval QCBOR_ERR_ALL_FLOAT_DISABLED
- * @retval QCBOR_ERR_BAD_TYPE_7
- * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
- * @retval QCBOR_ERR_NO_STRING_ALLOCATOR
- * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK
- * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED
- * @retval QCBOR_ERR_TOO_MANY_TAGS
- * @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG
- * @retval QCBOR_ERR_MAP_LABEL_TYPE
- * @retval QCBOR_ERR_NO_MORE_ITEMS
- * @retval QCBOR_ERR_BAD_BREAK
- * @retval QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP
+
+ * @retval QCBOR_ERR_UNSUPPORTED             Encountered unsupported/reserved
+ *                                           features
+ * @retval QCBOR_ERR_HIT_END                 Unexpected end of input
+ * @retval QCBOR_ERR_INT_OVERFLOW            Too-large negative encountered
+ * @retval QCBOR_ERR_STRING_ALLOCATE         Out of memory.
+ * @retval QCBOR_ERR_STRING_TOO_LONG         String longer than SIZE_MAX - 4.
+ * @retval QCBOR_ERR_HALF_PRECISION_DISABLED Half-precision in input, but decode
+ *                                           of half-precision disabled
+ * @retval QCBOR_ERR_ALL_FLOAT_DISABLED      Float-point in input, but all
+ *                                           float decode is disabled.
+ * @retval QCBOR_ERR_BAD_TYPE_7              Not-allowed representation of
+ *                                           simple type in input.
+ * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  Indefinite length map/array
+ *                                              in input, but indefinite
+ *                                              lengths disabled.
+ * @retval QCBOR_ERR_NO_STRING_ALLOCATOR     Indefinite-length string in input,
+ *                                           but no string allocator.
+ * @retval QCBOR_ERR_INDEFINITE_STRING_CHUNK  Error in indefinite-length string.
+ * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED  Indefinite-length string in
+ *                                               input, but indefinite-length
+ *                                               strings are disabled.
+ * @retval QCBOR_ERR_TOO_MANY_TAGS           Too many tag numbers on item.
+ * @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG   Too many items in array.
+ * @retval QCBOR_ERR_MAP_LABEL_TYPE          Map label not string or integer.
+ * @retval QCBOR_ERR_NO_MORE_ITEMS           Need more items for map or array.
+ * @retval QCBOR_ERR_BAD_BREAK               Indefinite-length break in wrong
+ *                                           place.
+ * @retval QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP  Nesting deeper than QCBOR
+ *                                                  can handle.
  *
  * This handles the traversal descending into and asecnding out of
  * maps, arrays and bstr-wrapped CBOR. It figures out the ends of
@@ -2029,10 +2076,13 @@ QCBOR_Private_ShiftTags(QCBORItem *pDecodedItem)
  *
  * pDecodedItem[in,out]  The data item to convert.
  *
- * @retval QCBOR_ERR_DATE_OVERFLOW
- * @retval QCBOR_ERR_FLOAT_DATE_DISABLED
- * @retval QCBOR_ERR_ALL_FLOAT_DISABLED
- * @retval QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT
+ * @retval QCBOR_ERR_DATE_OVERFLOW              65-bit negative integer.
+ * @retval QCBOR_ERR_FLOAT_DATE_DISABLED        Float-point date in input,
+ *                                              floating-point date disabled.
+ * @retval QCBOR_ERR_ALL_FLOAT_DISABLED         Float-point date in input,
+ *                                              all floating-point disabled.
+ * @retval QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT  Unexpected and unrecoverable
+ *                                              error decoding date.
  *
  * The epoch date tag defined in QCBOR allows for floating-point
  * dates. It even allows a protocol to flop between date formats when
@@ -2138,10 +2188,13 @@ Done:
  *
  * pDecodedItem[in,out]  The data item to convert.
  *
- * @retval QCBOR_ERR_DATE_OVERFLOW
- * @retval QCBOR_ERR_FLOAT_DATE_DISABLED
- * @retval QCBOR_ERR_ALL_FLOAT_DISABLED
- * @retval QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT
+ * @retval QCBOR_ERR_DATE_OVERFLOW              65-bit negative integer.
+ * @retval QCBOR_ERR_FLOAT_DATE_DISABLED        Float-point date in input,
+ *                                              floating-point date disabled.
+ * @retval QCBOR_ERR_ALL_FLOAT_DISABLED         Float-point date in input,
+ *                                              all floating-point disabled.
+ * @retval QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT  Unexpected and unrecoverable
+ *                                              error decoding date.
  *
  * This is much simpler than the other epoch date format because
  * floating-porint is not allowed. This is mostly a simple type check.
