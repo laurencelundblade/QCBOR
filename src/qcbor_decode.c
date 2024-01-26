@@ -144,7 +144,7 @@ QCBORItem_IsIndefiniteLengthMapOrArray(const QCBORItem Item)
    Works only for integer and string labels. Returns false
    for any other type. */
 static bool
-QCBORItem_MatchLabel(QCBORItem Item1, QCBORItem Item2)
+QCBORItem_MatchLabel(const QCBORItem Item1, const QCBORItem Item2)
 {
    if(Item1.uLabelType == QCBOR_TYPE_INT64) {
       if(Item2.uLabelType == QCBOR_TYPE_INT64 && Item1.label.int64 == Item2.label.int64) {
@@ -174,7 +174,7 @@ QCBORItem_MatchLabel(QCBORItem Item1, QCBORItem Item2)
  or if either are of QCBOR_TYPE_ANY.
  */
 static bool
-QCBORItem_MatchType(QCBORItem Item1, QCBORItem Item2)
+QCBORItem_MatchType(const QCBORItem Item1, const QCBORItem Item2)
 {
    if(Item1.uDataType == Item2.uDataType) {
       return true;
@@ -2742,7 +2742,7 @@ QCBORDecode_Finish(QCBORDecodeContext *pMe)
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
-// Improvement: make these inline?
+// Improvement: make these inline?  TODO:
 uint64_t
 QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
                       const QCBORItem    *pItem,

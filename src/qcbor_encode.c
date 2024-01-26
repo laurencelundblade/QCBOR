@@ -820,7 +820,7 @@ QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
 
    QCBOREncode_Private_AddType7(pMe, (uint8_t)uNum.uSize, uNum.uValue);
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   QCBOREncode_AddDoubleNoPreferred(me, dNum);
+   QCBOREncode_AddDoubleNoPreferred(pMe, dNum);
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 
@@ -848,7 +848,7 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
 
    QCBOREncode_Private_AddType7(pMe, (uint8_t)uNum.uSize, uNum.uValue);
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   QCBOREncode_AddFloatNoPreferred(me, fNum);
+   QCBOREncode_AddFloatNoPreferred(pMe, fNum);
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
