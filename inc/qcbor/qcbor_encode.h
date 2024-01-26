@@ -3528,15 +3528,15 @@ QCBOREncode_AddMIMEData(QCBOREncodeContext *pMe, UsefulBufC MIMEData)
 static inline void
 QCBOREncode_AddMIMEDataToMap(QCBOREncodeContext *pMe,
                              const char         *szLabel,
-                             UsefulBufC          MIMEData)
+                             const UsefulBufC    MIMEData)
 {
    QCBOREncode_AddTMIMEDataToMapSZ(pMe, szLabel, QCBOR_ENCODE_AS_TAG, MIMEData);
 }
 
 static inline void
 QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pMe,
-                              int64_t             nLabel,
-                              UsefulBufC          MIMEData)
+                              const int64_t       nLabel,
+                              const UsefulBufC    MIMEData)
 {
    QCBOREncode_AddTMIMEDataToMapN(pMe, nLabel, QCBOR_ENCODE_AS_TAG, MIMEData);
 }
@@ -3544,7 +3544,7 @@ QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pMe,
 
 static inline void
 QCBOREncode_AddTDateString(QCBOREncodeContext *pMe,
-                           uint8_t             uTagRequirement,
+                           const uint8_t       uTagRequirement,
                            const char         *szDate)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
@@ -3556,7 +3556,7 @@ QCBOREncode_AddTDateString(QCBOREncodeContext *pMe,
 static inline void
 QCBOREncode_AddTDateStringToMapSZ(QCBOREncodeContext *pMe,
                                   const char         *szLabel,
-                                  uint8_t             uTagRequirement,
+                                  const uint8_t       uTagRequirement,
                                   const char         *szDate)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
@@ -3565,8 +3565,8 @@ QCBOREncode_AddTDateStringToMapSZ(QCBOREncodeContext *pMe,
 
 static inline void
 QCBOREncode_AddTDateStringToMapN(QCBOREncodeContext *pMe,
-                                 int64_t             nLabel,
-                                 uint8_t             uTagRequirement,
+                                 const int64_t       nLabel,
+                                 const uint8_t       uTagRequirement,
                                  const char         *szDate)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
@@ -3672,7 +3672,7 @@ QCBOREncode_AddBoolToMap(QCBOREncodeContext *pMe, const char *szLabel, const boo
 }
 
 static inline void
-QCBOREncode_AddBoolToMapN(QCBOREncodeContext *pMe, int64_t nLabel, const bool b)
+QCBOREncode_AddBoolToMapN(QCBOREncodeContext *pMe, const int64_t nLabel, const bool b)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddBool(pMe, b);
