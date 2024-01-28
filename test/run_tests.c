@@ -349,6 +349,6 @@ void PrintSizesQCBOR(OutputStringCB pfOutput, void *pOutCtx)
    PrintSize("sizeof(QCBORItem)",           (uint32_t)sizeof(QCBORItem),          pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORTagListIn)",      (uint32_t)sizeof(QCBORTagListIn),     pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORTagListOut)",     (uint32_t)sizeof(QCBORTagListOut),    pfOutput, pOutCtx);
-   PrintSize("sizeof(TagSpecification)",    (uint32_t)sizeof(TagSpecification),    pfOutput, pOutCtx);
+   PrintSize("sizeof(TagSpecification)",    (uint32_t)sizeof(QCBOR_Private_TagSpec),pfOutput, pOutCtx);
    (*pfOutput)("", pOutCtx, 1);
 }
