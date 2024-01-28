@@ -468,16 +468,86 @@ void
 QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
 
 
+/**
+ * @brief Select preferred serialization mode.
+ *
+ * @param[in] pCtx   The encoding context for mode set.
+ *
+ * Setting this mode will cause QCBOR to return an error if an attempt
+ * is made to use one of the methods that produce non-preferred
+ * serialization. It doesn't change anything else as QCBOR produces
+ * preferred serialization by default, except when particular methods
+ * to produce non-preferred are called.
+ *
+ * The non-preferred methods are: QCBOREncode_AddFloatNoPreferred(),
+ * QCBOREncode_AddDoubleNoPreferred(),
+ * QCBOREncode_OpenArrayIndefiniteLength(),
+ * QCBOREncode_CloseArrayIndefiniteLength(),
+ * QCBOREncode_OpenMapIndefiniteLength(),
+ * QCBOREncode_CloseMapIndefiniteLength(), plus those derived from the
+ * above listed.
+ *
+ * This mode is just a user guard to prevent accidentally calling
+ * something that produces non-preferred serialization. It doesn't do
+ * anything but causes errors to occur on attempts to call the above
+ * listed functions.
+ */
+static void
+QCBOREncode_SerializationPreferred(QCBOREncodeContext *pCtx);
 
 
+/**
+ * @brief Select CBOR deterministic encoding mode.
+ *
+ * @param[in] pCtx   The encoding context for mode set.
+
+ * This causes QCBOR to produce CBOR Deterministic Encoding.  With
+ * CDE, two distant unrelated CBOR encoders will produce exactly the
+ * same encoded CBOR for a given input. See serialization discussion
+ * TODO:
+ *
+ * In addition to doing what QCBOREncode_SerializationPreferred()
+ * does, this causes maps to be sorted. The map is sorted
+ * automatically when QCBOREncode_CloseMap() is called.
+ * QCBOREncode_CloseMap() becomes equivalent to
+ * QCBOREncode_CloseAndSortMap().
+ *
+ * Note that this causese about 30% more code from the QCBOR library
+ * to be linked and QCBOREncode_CloseMap() runs slower, but this is
+ * probably only of consequence in very constrained environments.
+ */
 static void
 QCBOREncode_SerializationCDE(QCBOREncodeContext *pCtx);
 
+
+/**
+ * @brief Select "dCBOR" encoding mode.
+ *
+ * @param[in] pCtx   The encoding context for mode set.
+ *
+ * This cases QCBOR to produce "dCBOR" as defined
+ * in  draft-mcnally-deterministic-cbor.
+ *
+ * This is a superset of CDE.
+ *
+ * The main feature of dCBOR that there is only one way to serialize a
+ * particular numeric value. This changes the behavior of functions
+ * that add floating point numbers.  If the floating-point number is
+ * whole, it will be added as an integer, not a floating-point number.
+ *
+ * dCBOR also disallows NaN payloads. QCBOR will allow NaN payloads if
+ * you pass a NaN to one of the floating-point encoding functions.
+ * This mode forces all NaNs to the half-precision queit NaN. TODO:
+ * should this error if an attempt is made to send a NaN payload?
+
+ * dCBOR also disallows 65-bit negative integers. QCBOR doesn't
+ * produce these by default.
+ *
+ * dCBOR disallows use of the simple type "undef" produced by
+ * QCBOREncode_AddUndef().
+ */
 static void
 QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pCtx);
-
-static void
-QCBOREncode_SerializationPreferred(QCBOREncodeContext *pCtx);
 
 
 /**

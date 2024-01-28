@@ -523,8 +523,11 @@ typedef enum {
     * (to save object code). */
    QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 78,
 
-   /* Attempt to output non-preferred, non-CDE or non-dCBOR
-    * when not allowed by mode. See xxxxx TODO */
+   /** Attempt to output non-preferred, non-CDE or non-dCBOR when not
+    * allowed by mode. See QCBOREncode_SerializationPreferred(),
+    * QCBOREncode_SerializationCDE(),
+    * QCBOREncode_SerializationdCBOR().
+    */
    QCBOR_ERR_NOT_PREFERRED = 79
 
    /* This is stored in uint8_t; never add values > 255 */
