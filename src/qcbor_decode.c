@@ -3068,6 +3068,74 @@ QCBORDecode_VGetNextConsume(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 }
 
 
+QCBORError
+QCBORDecode_Mappie(QCBORDecodeContext *pMe,
+                   const uint16_t      uMapSize,
+                   const MCB          *pCBList,
+                   void               *pCBCtx,
+                   const UsefulBuf     DupDetection)
+{
+   QCBORItem  Item;
+   QCBORError uErr;
+
+   if(!UsefulBuf_IsNULL(DupDetection)) {
+      if(DupDetection.len < uMapSize * sizeof(int64_t)) {
+         /* Dup detection buffer too small*/
+         return 888;
+      }
+   }
+
+   /* Loop over items */
+   for(int xx = 0; xx< uMapSize; xx++) {
+      uErr = QCBORDecode_GetNext(pMe, &Item);
+      if(uErr) {
+         goto Done;
+      }
+
+      if(Item.uLabelType != QCBOR_TYPE_INT64) {
+         /* Only works on integer labels */
+         // TODO: proper error code
+         return 99;
+      }
+
+      /* Duplicate detection if caller supplied a buffer */
+      if(!UsefulBuf_IsNULL(DupDetection)) {
+         for(int j = 0; j < xx; j++) {
+            if(((int64_t *)DupDetection.ptr)[xx] == Item.label.int64) {
+               /* Found a duplicate */
+               return 777;
+            }
+         }
+
+         ((int64_t *)DupDetection.ptr)[xx] = Item.label.int64;
+      }
+
+      /* Loop over CB's looking for label */
+      for(int i = 0 ; pCBList[i].pCB != NULL; i++) {
+
+         if(pCBList[i].nLabel == Item.label.int64) {
+            if(pCBList[i].uType != Item.uDataType &&
+               pCBList[i].uType != QCBOR_TYPE_ANY) {
+               uErr = QCBOR_ERR_UNEXPECTED_TYPE;
+               goto Done;
+            }
+
+            /* Matched label, make call back */
+            uErr = (*pCBList[i].pCB)(pCBCtx, pMe, &Item);
+            if(uErr) {
+               goto Done;
+            }
+            break; /* First callback for label wins */
+         }
+      }
+   }
+   uErr = QCBOR_SUCCESS;
+
+Done:
+   return uErr;
+}
+
+
 
 /* Call only on maps and arrays. Rewinds the cursor
  * to the start as if it was just entered.

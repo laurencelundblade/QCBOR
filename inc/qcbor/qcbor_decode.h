@@ -951,6 +951,19 @@ QCBORError
 QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
+
+typedef QCBORError (*MapCB)(void *pCBCtx, QCBORDecodeContext *pDecodeCtx, QCBORItem *pDecodedItem);
+
+typedef struct {
+   int64_t nLabel;
+   uint8_t uType;
+   MapCB   pCB;
+} MCB;
+
+
+QCBORError QCBORDecode_Mappie(QCBORDecodeContext *pCtx, uint16_t uMapSize, const MCB *pCBList, void *pCBCtx, UsefulBuf DupDetectionBuffer);
+
+
 /**
  * @brief Get the next item, fully consuming it if it is a map or array.
  *

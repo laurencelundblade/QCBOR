@@ -8613,3 +8613,82 @@ int32_t BoolTest(void)
 
    return 0;
 }
+
+
+
+/*
+ {1: "hi", 2: 42, 3: 3.14}
+ */
+
+static const uint8_t spMappieT[] = {0xA3, 0x01, 0x62, 0x68, 0x69, 0x02, 0x18, 0x2A, 0x03, 0xFB, 0x40, 0x09, 0x1E, 0xB8, 0x51, 0xEB, 0x85, 0x1F};
+
+struct MappieTest {
+   UsefulBufC   Text;
+   int64_t      Int;
+   double       Float;
+};
+
+
+
+static QCBORError
+DecodeOne(void *pCBCtx, QCBORDecodeContext *pDCtx, QCBORItem *Item)
+{
+   struct MappieTest *pMt = (struct MappieTest *)pCBCtx;
+
+   pMt->Text = Item->val.string;
+
+   return 0;
+}
+
+static QCBORError
+DecodeTwo(void *pCBCtx, QCBORDecodeContext *pDCtx, QCBORItem *Item)
+{
+   struct MappieTest *pMt = (struct MappieTest *)pCBCtx;
+
+   pMt->Int = Item->val.int64;
+
+   return 0;
+}
+
+static QCBORError
+DecodeThree(void *pCBCtx, QCBORDecodeContext *pDCtx, QCBORItem *Item)
+{
+   struct MappieTest *pMt = (struct MappieTest *)pCBCtx;
+
+   pMt->Float = Item->val.dfnum;
+
+   return 0;
+}
+
+
+int32_t MappieTest(void)
+{
+   QCBORDecodeContext DC;
+   QCBORItem          Item;
+   QCBORError         uErr;
+   MakeUsefulBufOnStack(DupDetect, (sizeof(int64_t) * 4));
+
+   struct MappieTest  MT;
+
+   MCB MM[] = {
+      {1, QCBOR_TYPE_TEXT_STRING, &DecodeOne},
+      {2, QCBOR_TYPE_INT64, &DecodeTwo},
+      {3, QCBOR_TYPE_DOUBLE, &DecodeThree},
+      {0, QCBOR_TYPE_NONE, NULL}
+   };
+
+
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMappieT), 0);
+
+   QCBORDecode_GetNext(&DC, &Item);
+
+   uErr = QCBORDecode_Mappie(&DC, Item.val.uCount, MM, &MT, DupDetect);
+
+   uErr = QCBORDecode_Finish(&DC);
+
+   if(MT.Int != 42) {
+      return 99;
+   }
+
+   return 0;
+}

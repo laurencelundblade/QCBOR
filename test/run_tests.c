@@ -66,6 +66,7 @@ static test_entry2 s_tests2[] = {
 
 
 static test_entry s_tests[] = {
+    TEST_ENTRY(MappieTest),
     TEST_ENTRY(OpenCloseBytesTest),
     TEST_ENTRY(EnterBstrTest),
     TEST_ENTRY(IntegerConvertTest),
