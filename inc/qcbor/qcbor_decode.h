@@ -1,6 +1,6 @@
 /* ===========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2023, Laurence Lundblade.
+ * Copyright (c) 2018-2024, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -1489,7 +1489,7 @@ QCBORDecode_GetAndResetError(QCBORDecodeContext *pMe)
 }
 
 static inline bool
-QCBORDecode_IsNotWellFormedError(QCBORError uErr)
+QCBORDecode_IsNotWellFormedError(const QCBORError uErr)
 {
    if(uErr >= QCBOR_START_OF_NOT_WELL_FORMED_ERRORS &&
       uErr <= QCBOR_END_OF_NOT_WELL_FORMED_ERRORS) {
@@ -1500,7 +1500,7 @@ QCBORDecode_IsNotWellFormedError(QCBORError uErr)
 }
 
 static inline bool
-QCBORDecode_IsUnrecoverableError(QCBORError uErr)
+QCBORDecode_IsUnrecoverableError(const QCBORError uErr)
 {
    if(uErr >= QCBOR_START_OF_UNRECOVERABLE_DECODE_ERRORS &&
       uErr <= QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS) {

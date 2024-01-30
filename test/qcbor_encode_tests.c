@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2023, Laurence Lundblade.
+ Copyright (c) 2018-2024, Laurence Lundblade.
  Copyright (c) 2022, Arm Limited. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -96,13 +96,9 @@ static int UsefulBuf_Compare_Print(UsefulBufC U1, UsefulBufC U2) {
 #endif
 
 
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /*
  Returns 0 if UsefulBufs are equal
  Returns 1000000 + offeset if they are not equal.
-
-
-
 */
 struct UBCompareDiagnostic {
    uint8_t uActual;
@@ -130,7 +126,6 @@ UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual,
    return 0;
 
 }
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 // One big buffer that is used by all the tests to encode into
@@ -603,13 +598,13 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_CloseMap(pECtx);
 
    /* true / false ... */
-   QCBOREncode_AddSimple(pECtx, CBOR_SIMPLEV_UNDEF);
+   QCBOREncode_AddUndef(pECtx);
    QCBOREncode_OpenMap(pECtx);
    QCBOREncode_AddSZString(pECtx, "dare");
    QCBOREncode_AddTag(pECtx, 66);
    QCBOREncode_AddBool(pECtx, true);
    QCBOREncode_AddBoolToMap(pECtx, "uu", false);
-   QCBOREncode_AddSimpleToMapN(pECtx, 737634, CBOR_SIMPLEV_NULL);
+   QCBOREncode_AddNULLToMapN(pECtx, 737634);
    QCBOREncode_CloseMap(pECtx);
 
    /* opening an array */
@@ -644,17 +639,17 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_OpenMap(pECtx);
    QCBOREncode_AddSZString(pECtx, "s1");
    QCBOREncode_AddTag(pECtx, 88);
-   QCBOREncode_AddSimple(pECtx, 255);
-   QCBOREncode_AddSimpleToMap(pECtx, "s2", 0);
+   QCBOREncode_Private_AddSimple(pECtx, 255);
+   QCBOREncode_Private_AddSimpleToMap(pECtx, "s2", 0);
    QCBOREncode_AddSZString(pECtx, "s3");
    QCBOREncode_AddTag(pECtx, 88);
-   QCBOREncode_AddSimple(pECtx, 33);
+   QCBOREncode_Private_AddSimple(pECtx, 33);
    QCBOREncode_AddInt64(pECtx, 88378374); // label before tag
    QCBOREncode_AddTag(pECtx, 88);
-   QCBOREncode_AddSimple(pECtx, 255);
+   QCBOREncode_Private_AddSimple(pECtx, 255);
    QCBOREncode_AddInt64(pECtx, 89); // label before tag
    QCBOREncode_AddTag(pECtx, 88);
-   QCBOREncode_AddSimple(pECtx, 19);
+   QCBOREncode_Private_AddSimple(pECtx, 19);
    QCBOREncode_CloseMap(pECtx);
 
    /* UUIDs */
@@ -913,14 +908,14 @@ int32_t SimpleValuesTest1(void)
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenArray(&ECtx);
 
-   QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_TRUE);
-   QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_FALSE);
-   QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_NULL);
-   QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_UNDEF);
+   QCBOREncode_AddBool(&ECtx, true);
+   QCBOREncode_AddBool(&ECtx, false);
+   QCBOREncode_AddNULL(&ECtx);
+   QCBOREncode_AddUndef(&ECtx);
 
    QCBOREncode_OpenMap(&ECtx);
 
-   QCBOREncode_AddSimpleToMap(&ECtx, "UNDef", CBOR_SIMPLEV_UNDEF);
+   QCBOREncode_AddUndefToMap(&ECtx, "UNDef");
    QCBOREncode_CloseMap(&ECtx);
 
    QCBOREncode_CloseArray(&ECtx);
@@ -960,14 +955,14 @@ int32_t SimpleValuesIndefiniteLengthTest1(void)
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenArrayIndefiniteLength(&ECtx);
 
-   QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_TRUE);
-   QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_FALSE);
-   QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_NULL);
-   QCBOREncode_AddSimple(&ECtx, CBOR_SIMPLEV_UNDEF);
+   QCBOREncode_AddBool(&ECtx, true);
+   QCBOREncode_AddBool(&ECtx, false);
+   QCBOREncode_AddNULL(&ECtx);
+   QCBOREncode_AddUndef(&ECtx);
 
    QCBOREncode_OpenMapIndefiniteLength(&ECtx);
 
-   QCBOREncode_AddSimpleToMap(&ECtx, "UNDef", CBOR_SIMPLEV_UNDEF);
+   QCBOREncode_AddUndefToMap(&ECtx, "UNDef");
    QCBOREncode_CloseMapIndefiniteLength(&ECtx);
 
    QCBOREncode_CloseArrayIndefiniteLength(&ECtx);
@@ -1648,7 +1643,7 @@ FormatRTICResults(uint8_t uRResult,
 
       // The result: 0 if scan happened and found nothing; 1 if it happened and
       // found something wrong; 2 if it didn't happen
-      QCBOREncode_AddSimpleToMap(&ECtx, "integrity", uRResult);
+      QCBOREncode_Private_AddSimpleToMap(&ECtx, "integrity", uRResult);
 
       // Add the diagnostic code
       QCBOREncode_AddSZStringToMap(&ECtx, "type", szType);
@@ -2652,7 +2647,7 @@ int32_t EncodeErrorTests(void)
    /* ------ QCBOR_ERR_UNSUPPORTED -------- */
    QCBOREncode_Init(&EC, Large);
    QCBOREncode_OpenArray(&EC);
-   QCBOREncode_AddSimple(&EC, 24); /* CBOR_SIMPLEV_RESERVED_START */
+   QCBOREncode_Private_AddSimple(&EC, 24); /* CBOR_SIMPLEV_RESERVED_START */
    uErr = QCBOREncode_FinishGetSize(&EC, &xx);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_ENCODE_UNSUPPORTED) {
@@ -2667,7 +2662,7 @@ int32_t EncodeErrorTests(void)
 
    QCBOREncode_Init(&EC, Large);
    QCBOREncode_OpenArray(&EC);
-   QCBOREncode_AddSimple(&EC, 31); /* CBOR_SIMPLEV_RESERVED_END */
+   QCBOREncode_Private_AddSimple(&EC, 31); /* CBOR_SIMPLEV_RESERVED_END */
    uErr = QCBOREncode_FinishGetSize(&EC, &xx);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_ENCODE_UNSUPPORTED) {
@@ -3110,9 +3105,7 @@ SortMapTest(void)
    static const uint8_t spBasic[] = {
       0xA4, 0x01, 0x01, 0x02, 0x02, 0x03, 0x03, 0x04, 0x04};
 
-   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
-                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBasic),
-                                      &CompareDiagnostics)) {
+   if(UsefulBuf_Compare(EncodedAndSorted, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBasic))) {
       return 12;
    }
 
@@ -3272,8 +3265,12 @@ SortMapTest(void)
    QCBOREncode_Init(&EC, TestBuf);
    QCBOREncode_OpenMap(&EC);
 
+   /* Adding labels directly rather than AddToMap functions */
+
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    QCBOREncode_AddDouble(&EC, 8.77);
    QCBOREncode_AddInt64(&EC, 7);
+#endif /* QCBOR_DISABLE_ALL_FLOAT */
 
    QCBOREncode_AddBool(&EC, true);
    QCBOREncode_AddInt64(&EC, 6);
@@ -3300,12 +3297,20 @@ SortMapTest(void)
       return 81;
    }
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    static const uint8_t spLabelTypes[] = {
       0xA8, 0x01, 0x01, 0x42, 0x78, 0x78, 0x02, 0x64,
       0x74, 0x65, 0x78, 0x74, 0x03, 0x80, 0x07, 0xA0,
       0x04, 0xC1, 0x18, 0x58, 0x05, 0xF5, 0x06, 0xFB,
       0x40, 0x21, 0x8A, 0x3D, 0x70, 0xA3, 0xD7, 0x0A,
       0x07};
+#else
+   static const uint8_t spLabelTypes[] = {
+      0xA7, 0x01, 0x01, 0x42, 0x78, 0x78, 0x02, 0x64,
+      0x74, 0x65, 0x78, 0x74, 0x03, 0x80, 0x07, 0xA0,
+      0x04, 0xC1, 0x18, 0x58, 0x05, 0xF5, 0x06};
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+
    if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
                                       UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spLabelTypes),
                                       &CompareDiagnostics)) {
