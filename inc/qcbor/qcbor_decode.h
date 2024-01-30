@@ -291,6 +291,14 @@ typedef enum {
 /** Type for a double floating-point number. Data is in @c val.double. */
 #define QCBOR_TYPE_DOUBLE        27
 
+// TODO: the exact values that fail.
+/** Special type for negative integers between 2^63 and 2^64 that
+ * can't be returned as @ref  QCBOR_TYPE_INT64 */
+#define QCBOR_TYPE_NEG_INT  28
+
+/* The one value -18446744073709551616. */
+#define QCBOR_TYPE_NEG_INT_MIN  29
+
 #define QCBOR_TYPE_BREAK         31 /* Used internally; never returned */
 
 /** For @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY decode mode, a map that is

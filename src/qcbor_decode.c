@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2023, Laurence Lundblade.
+ Copyright (c) 2018-2024, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -829,11 +829,12 @@ DecodeInteger(int nMajorType, uint64_t uArgument, QCBORItem *pDecodedItem)
          pDecodedItem->val.int64 = (-(int64_t)uArgument) - 1;
          pDecodedItem->uDataType = QCBOR_TYPE_INT64;
 
+      } else if(uArgument <= UINT64_MAX-1){
+         // TODO: test the range fully
+         pDecodedItem->val.uint64 = uArgument + 1;
+         pDecodedItem->uDataType  = QCBOR_TYPE_NEG_INT;
       } else {
-         /* C can't represent a negative integer in this range so it
-          * is an error.
-          */
-         uReturn = QCBOR_ERR_INT_OVERFLOW;
+         pDecodedItem->uDataType  = QCBOR_TYPE_NEG_INT_MIN;
       }
    }
 
@@ -5166,6 +5167,8 @@ static QCBORError ConvertUInt64(const QCBORItem *pItem, uint32_t uConvertTypes, 
          }
          break;
 
+         // TODO: errors for big neg int?
+
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
    }
@@ -5478,6 +5481,18 @@ static QCBORError ConvertDouble(const QCBORItem *pItem,
 #else
          return QCBOR_ERR_HW_FLOAT_DISABLED;
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
+         // TODO: testing...
+         // TODO: check for conversion flats
+
+      case QCBOR_TYPE_NEG_INT:
+         *pdValue = -(double)pItem->val.uint64;
+         break;
+
+      case QCBOR_TYPE_NEG_INT_MIN:
+         *pdValue = -18446744073709551616.0;
+         break;
+
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;

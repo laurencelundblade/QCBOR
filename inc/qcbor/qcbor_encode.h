@@ -544,6 +544,33 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t u
 
 
 /**
+ * @brief Add a negative 64-bit integer to encoded output
+ *
+ * @param[in] pCtx  The encoding context to add the integer to.
+ * @param[in] uNum  The integer to add.
+ *
+ * Normally, QCBOREncode_AddInt64() should be used to add negative
+ * integers. What this can do is add integers with more significant
+ * bit.  (a 65-bit integer if you count the sign as a bit). This is
+ * possible because CBOR supports such even though most CPU registers
+ * can't hold such a value.
+ *
+ * The value added is -uNum - 1. That is passing zero for uNum will
+ * encode -1, passing 1 will encode -2 and passing UINT64_MAX will
+ * encode -UINT64_MAX-1. This is so all the negative values CBOR can
+ * represent can be encoded making this a complete CBOR
+ * implementation. This odd interface is tolerated because this will
+ * probably never be used.
+ *
+ * WARNING: some CBOR decoders will not be able to decode such large
+ * integers. When QCBOR decodes them, they are returned as a special
+ * type because they can't be represented in an int64_t.
+ */
+void
+QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pCtx, uint64_t uNum);
+
+
+/**
  * @brief  Add a UTF-8 text string to the encoded output.
  *
  * @param[in] pCtx   The encoding context to add the text to.
