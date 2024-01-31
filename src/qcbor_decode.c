@@ -883,12 +883,9 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
          pDecodedItem->val.int64 = (-(int64_t)uArgument) - 1;
          pDecodedItem->uDataType = QCBOR_TYPE_INT64;
 
-      } else if(uArgument <= UINT64_MAX-1){
-         // TODO: test the range fully
-         pDecodedItem->val.uint64 = uArgument + 1;
-         pDecodedItem->uDataType  = QCBOR_TYPE_NEG_INT;
       } else {
-         pDecodedItem->uDataType  = QCBOR_TYPE_NEG_INT_MIN;
+         pDecodedItem->val.uint64 = uArgument;
+         pDecodedItem->uDataType  = QCBOR_TYPE_NEG_INT;
       }
    }
 
@@ -4922,6 +4919,15 @@ QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
          }
          break;
 
+      case QCBOR_TYPE_NEG_INT:
+         // TODO: test this
+         if(pItem->val.uint64 < INT64_MAX) {
+            *pnValue = -((int64_t)pItem->val.uint64)-1;
+         } else {
+            return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+         }
+         break;
+
       default:
          return  QCBOR_ERR_UNEXPECTED_TYPE;
    }
@@ -5292,13 +5298,14 @@ QCBOR_Private_ConvertUInt64(const QCBORItem *pItem,
 
       case QCBOR_TYPE_UINT64:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_XINT64) {
-            *puValue =  pItem->val.uint64;
+            *puValue = pItem->val.uint64;
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
 
-         // TODO: errors for big neg int?
+      case QCBOR_TYPE_NEG_INT:
+         return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -5641,13 +5648,8 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
          // TODO: check for conversion flats
 
       case QCBOR_TYPE_NEG_INT:
-         *pdValue = -(double)pItem->val.uint64;
+         *pdValue = -(double)pItem->val.uint64 - 1;
          break;
-
-      case QCBOR_TYPE_NEG_INT_MIN:
-         *pdValue = -18446744073709551616.0;
-         break;
-
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;

@@ -158,13 +158,14 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
-   if(Item.uDataType != QCBOR_TYPE_NEG_INT_MIN)
+   if(Item.uDataType != QCBOR_TYPE_NEG_INT ||
+      Item.val.uint64 != 18446744073709551615ULL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_NEG_INT ||
-      Item.val.uint64 != 18446744073709551615ULL)
+      Item.val.uint64 != 18446744073709551614ULL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
@@ -6549,13 +6550,23 @@ static const struct NumberConversion NumberConversions[] = {
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
-      "Negative integer -18446744073709551616",
-      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, 9},
+      "Negative integer -9223372036854775808",
+      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
       -9223372036854775807-1, // INT64_MIN
       QCBOR_SUCCESS,
       0ULL,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       -9223372036854775808.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      "Negative integer -18446744073709551616",
+      {(uint8_t[]){0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
+      0ULL,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0ULL,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      -18446744073709551616.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
@@ -6627,10 +6638,16 @@ int32_t IntegerConvertTest(void)
    for(int nIndex = 0; nIndex < nNumTests; nIndex++) {
       const struct NumberConversion *pF = &NumberConversions[nIndex];
 
+
+
       // Set up the decoding context including a memory pool so that
       // indefinite length items can be checked
       QCBORDecodeContext DCtx;
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
+
+      if(pF->dConvertToDouble == -18446744073709551616.0) {
+         Pool.len = 100;
+      }
 
       /* ----- test conversion to int64_t ------ */
       if(SetUpDecoder(&DCtx, pF->CBOR, Pool)) {

@@ -291,13 +291,15 @@ typedef enum {
 /** Type for a double floating-point number. Data is in @c val.double. */
 #define QCBOR_TYPE_DOUBLE        27
 
-// TODO: the exact values that fail.
-/** Special type for negative integers between 2^63 and 2^64 that
- * can't be returned as @ref  QCBOR_TYPE_INT64 */
-#define QCBOR_TYPE_NEG_INT  28
+/** Special type for integers between -(2^63) - 2 to -(2^64) that
+ * can't be returned as @ref QCBOR_TYPE_INT64 because they don't fit
+ * in an int64_t. The value is returned in @c val.uint64, but this
+ * isn't the number transmitted. Do this arithmatic (carefully to
+ * avoid over/underflow) to get the value transmitted - val.uint64 - 1.
+ * See QCBOREncode_AddNegativeUInt64() for a longer explanation
+ * and warning. */
+#define QCBOR_TYPE_NEG_INT       28
 
-/* The one value -18446744073709551616. */
-#define QCBOR_TYPE_NEG_INT_MIN  29
 
 #define QCBOR_TYPE_BREAK         31 /* Used internally; never returned */
 
