@@ -665,6 +665,18 @@ QCBOREncode_AddUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
 
 
 /*
+ * Public functions for adding negative integers. See qcbor/qcbor_encode.h
+ */
+void QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
+{
+   // TODO: Error out in dCBOR mode
+   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uValue, 0);
+
+   QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
+}
+
+
+/*
  * Public functions for adding signed integers. See qcbor/qcbor_encode.h
  */
 void
@@ -676,9 +688,9 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
    if(nNum < 0) {
       /* In CBOR -1 encodes as 0x00 with major type negative int.
        * First add one as a signed integer because that will not
-       * overflow. Then change the sign as needed for encoding.  (The
+       * overflow. Then change the sign as needed for encoding (the
        * opposite order, changing the sign and subtracting, can cause
-       * an overflow when encoding INT64_MIN. */
+       * an overflow when encoding INT64_MIN). */
       int64_t nTmp = nNum + 1;
       uValue = (uint64_t)-nTmp;
       uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
