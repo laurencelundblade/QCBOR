@@ -570,7 +570,7 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t u
  *
  * Negative integers are normally decoded in QCBOR with type \ref
  * QCBOR_TYPE_INT64.  Integers in the range of -9223372036854775809 to
- * -18446744073709551616 are returned as \ref QCBOR_TYPE_NEG_INT.
+ * -18446744073709551616 are returned as \ref QCBOR_TYPE_65BIT_NEG_INT.
  *
  * WARNING: some CBOR decoders will be unable to decode
  * -9223372036854775809 to -18446744073709551616.  Most CPUs do not

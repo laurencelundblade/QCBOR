@@ -298,7 +298,7 @@ typedef enum {
  * avoid over/underflow) to get the value transmitted - val.uint64 - 1.
  * See QCBOREncode_AddNegativeUInt64() for a longer explanation
  * and warning. */
-#define QCBOR_TYPE_NEG_INT       28
+#define QCBOR_TYPE_65BIT_NEG_INT 28
 
 
 #define QCBOR_TYPE_BREAK         31 /* Used internally; never returned */

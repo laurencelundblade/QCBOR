@@ -885,7 +885,7 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
 
       } else {
          pDecodedItem->val.uint64 = uArgument;
-         pDecodedItem->uDataType  = QCBOR_TYPE_NEG_INT;
+         pDecodedItem->uDataType  = QCBOR_TYPE_65BIT_NEG_INT;
       }
    }
 
@@ -4919,13 +4919,10 @@ QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
          }
          break;
 
-      case QCBOR_TYPE_NEG_INT:
-         // TODO: test this
-         if(pItem->val.uint64 < INT64_MAX) {
-            *pnValue = -((int64_t)pItem->val.uint64)-1;
-         } else {
-            return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
-         }
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         /* This type occurs if the value won't fit into int64_t
+          * so this is always an error. */
+         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
          break;
 
       default:
@@ -5304,7 +5301,7 @@ QCBOR_Private_ConvertUInt64(const QCBORItem *pItem,
          }
          break;
 
-      case QCBOR_TYPE_NEG_INT:
+      case QCBOR_TYPE_65BIT_NEG_INT:
          return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
 
       default:
@@ -5644,10 +5641,7 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
          return QCBOR_ERR_HW_FLOAT_DISABLED;
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
-         // TODO: testing...
-         // TODO: check for conversion flats
-
-      case QCBOR_TYPE_NEG_INT:
+      case QCBOR_TYPE_65BIT_NEG_INT:
          *pdValue = -(double)pItem->val.uint64 - 1;
          break;
 
