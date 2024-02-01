@@ -562,23 +562,22 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t u
  * QCBOR (making this a complete CBOR implementation).
  *
  * The most negative value QCBOREncode_AddInt64() can encode is
- * -9223372036854775808 which is -(2^63) -1 or negative
+ * -9223372036854775808 which is -2^63 or negative
  * 0x800000000000.  This can encode from -9223372036854775809 to
- * -18446744073709551616 or -(2^63) - 2 to -(2^64). Note that
+ * -18446744073709551616 or -2^63 - 1 to -2^64. Note that
  * it is not possible to represent plus or minus 18446744073709551616
  * in any standard C data type.
  *
- * Negative integers are normally decoded in QCBOR with type \ref
- * QCBOR_TYPE_INT64.  Integers in the range of -9223372036854775809 to
- * -18446744073709551616 are returned as \ref QCBOR_TYPE_65BIT_NEG_INT.
+ * Negative integers are normally decoded in QCBOR with type
+ * @ref QCBOR_TYPE_INT64.  Integers in the range of -9223372036854775809
+ * to -18446744073709551616 are returned as @ref QCBOR_TYPE_65BIT_NEG_INT.
  *
- * WARNING: some CBOR decoders will be unable to decode
- * -9223372036854775809 to -18446744073709551616.  Most CPUs do not
- * have registers that can represent this range either.  If you need
- * 65-bit negative integers, you likely need 66, 67 and 68-bit
- * negative integers so it's likely better to use
- * QCBOREncode_AddTNegativeBignum() where you can have any number of
- * bits. TODO: also see xxxx  
+ * WARNING: some CBOR decoders will be unable to decode -2^63 - 1 to
+ * -2^64.  Also, most CPUs do not have registers that can represent
+ * this range.  If you need 65-bit negative integers, you likely need
+ * negative 66, 67 and 68-bit negative integers so it is likely better
+ * to use CBOR big numbers where you can have any number of bits. See
+ * QCBOREncode_AddTNegativeBignum() and TODO: also xxxx
  */
 void
 QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pCtx, uint64_t uNum);
