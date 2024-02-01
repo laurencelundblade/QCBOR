@@ -6638,16 +6638,10 @@ int32_t IntegerConvertTest(void)
    for(int nIndex = 0; nIndex < nNumTests; nIndex++) {
       const struct NumberConversion *pF = &NumberConversions[nIndex];
 
-
-
       // Set up the decoding context including a memory pool so that
       // indefinite length items can be checked
       QCBORDecodeContext DCtx;
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
-
-      if(pF->dConvertToDouble == -18446744073709551616.0) {
-         Pool.len = 100;
-      }
 
       /* ----- test conversion to int64_t ------ */
       if(SetUpDecoder(&DCtx, pF->CBOR, Pool)) {

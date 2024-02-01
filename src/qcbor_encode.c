@@ -669,6 +669,7 @@ QCBOREncode_AddUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
  */
 void QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
 {
+   // TODO: Error out in dCBOR mode
    QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uValue, 0);
 
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
