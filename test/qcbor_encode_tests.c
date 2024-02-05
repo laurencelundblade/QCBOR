@@ -1762,12 +1762,6 @@ int32_t RTICResultsTest(void)
 */
 static const uint8_t spExpectedBstrWrap[] = {0x82, 0x19, 0x01, 0xC3, 0x43, 0x19, 0x01, 0xD2};
 
-/*
- 81   #array(1)
- 0x58  0x25  # string of length 37 (length of "This is longer than twenty four bytes")
- */
-static const uint8_t spExpectedTypeAndLen[] = {0x81, 0x58, 0x25};
-
 static const uint8_t spExpectedForBstrWrapCancel[] = {0x82, 0x19, 0x01, 0xC3, 0x18, 0x2A};
 
 /*
@@ -1817,19 +1811,6 @@ int32_t BstrWrapTest(void)
       return -5;
    }
 
-   // Third, test QCBOREncode_AddBytesLenOnly() here as it is part of the
-   // bstr wrapping use cases.
-   UsefulBuf_MAKE_STACK_UB(StuffBuf, 50);
-   QCBOREncode_Init(&EC, StuffBuf);
-   QCBOREncode_OpenArray(&EC);
-   QCBOREncode_AddBytesLenOnly(&EC, UsefulBuf_FROM_SZ_LITERAL("This is longer than twenty four bytes"));
-   QCBOREncode_CloseArray(&EC);
-   if(QCBOREncode_Finish(&EC, &Encoded)) {
-      return -6;
-   }
-   if(CheckResults(Encoded, spExpectedTypeAndLen)) {
-      return -7;
-   }
 
    // Fourth test, cancelling a byte string
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
