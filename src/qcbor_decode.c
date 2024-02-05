@@ -939,7 +939,6 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
  * @retval QCBOR_ERR_BAD_TYPE_7              Not-allowed representation of simple
  *                                           type in input.
  */
-
 static QCBORError
 QCBOR_Private_DecodeType7(const int      nAdditionalInfo,
                           const uint64_t uArgument,
@@ -1640,6 +1639,7 @@ Done:
 #endif /* QCBOR_DISABLE_TAGS */
 }
 
+
 /**
  * @brief Combine a map entry label and value into one item (decode layer 3).
  *
@@ -2068,8 +2068,8 @@ QCBOR_Private_ShiftTags(QCBORItem *pDecodedItem)
    }
    pDecodedItem->uTags[QCBOR_MAX_TAGS_PER_ITEM-1] = CBOR_TAG_INVALID16;
 }
-
 #endif /* QCBOR_DISABLE_TAGS */
+
 
 /**
  * @brief Convert different epoch date formats in to the QCBOR epoch date format
@@ -2492,18 +2492,25 @@ QCBOR_Private_ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
 
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
-/*
- * This returns the QCBOR_TYPE for a mantissa and exponent.
-
-Called in one context where there is always a tag
-
- Called in another context where there might be a tag or the caller might say what they are expecting.
-
- 6 possible outputs
+/**
+ * @brief Figures out data type for exponent mantissa tags.
+ *
+ * @param[in] uTagToProcess  Either @ref CBOR_TAG_DECIMAL_FRACTION or
+ *                           @ref CBOR_TAG_BIG_FLOAT.
+ * @param[in] pDecodedItem   Item being decoded.
+ *
+ * @returns One of the 6 values between \ref QCBOR_TYPE_DECIMAL_FRACTION
+ *          and @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM.
+ *
+ * Does mapping between a CBOR tag number and a QCBOR type.  with a
+ * little bit of logic and arithmatic.
+ *
+ * Used in serveral contexts. Does the work where sometimes the data
+ * item is explicitly tagged and sometimes not.
  */
 static uint8_t
 QCBOR_Private_ExpMantissaDataType(const uint16_t   uTagToProcess,
-                                       const QCBORItem *pDecodedItem)
+                                  const QCBORItem *pDecodedItem)
 {
    uint8_t uBase = uTagToProcess == CBOR_TAG_DECIMAL_FRACTION ?
                                        QCBOR_TYPE_DECIMAL_FRACTION :
@@ -2997,7 +3004,7 @@ Done:
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h file
+ * Public function, see header qcbor/qcbor_decode.h file
  */
 QCBORError
 QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
@@ -3121,9 +3128,12 @@ QCBORDecode_VGetNextConsume(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 }
 
 
-
-/* Call only on maps and arrays. Rewinds the cursor
- * to the start as if it was just entered.
+/**
+ * @brief Rewind cursor to start as if map or array were just entered.
+ *
+ * @param[in]  pMe   The decoding context
+ *
+ * This affects the nesting tracking and the UsefulInputBuf.
  */
 static void
 QCBORDecode_Private_RewindMapOrArray(QCBORDecodeContext *pMe)
@@ -3179,36 +3189,36 @@ QCBORDecode_Rewind(QCBORDecodeContext *pMe)
 
 
 /**
- @brief Search a map for a set of items.
-
- @param[in]  pMe           The decode context to search.
- @param[in,out] pItemArray The items to search for and the items found.
- @param[out] puOffset      Byte offset of last item matched.
- @param[in] pCBContext     Context for the not-found item call back.
- @param[in] pfCallback     Function to call on items not matched in pItemArray.
-
- @retval QCBOR_ERR_NOT_ENTERED Trying to search without having entered a map
-
- @retval QCBOR_ERR_DUPLICATE_LABEL Duplicate items (items with the same label)
-                                   were found for one of the labels being
-                                   search for. This duplicate detection is
-                                   only performed for items in pItemArray,
-                                   not every item in the map.
-
- @retval QCBOR_ERR_UNEXPECTED_TYPE A label was matched, but the type was
-                                   wrong for the matchd label.
-
- @retval Also errors returned by QCBORDecode_GetNext().
-
- On input pItemArray contains a list of labels and data types
- of items to be found.
-
- On output the fully retrieved items are filled in with
- values and such. The label was matched, so it never changes.
-
- If an item was not found, its data type is set to QCBOR_TYPE_NONE.
-
- This also finds the ends of maps and arrays when they are exited.
+ * @brief Search a map for a set of items.
+ *
+ * @param[in]  pMe           The decode context to search.
+ * @param[in,out] pItemArray The items to search for and the items found.
+ * @param[out] puOffset      Byte offset of last item matched.
+ * @param[in] pCBContext     Context for the not-found item call back.
+ * @param[in] pfCallback     Function to call on items not matched in pItemArray.
+ *
+ * @retval QCBOR_ERR_NOT_ENTERED     Trying to search without entering a map.
+ *
+ * @retval QCBOR_ERR_DUPLICATE_LABEL Duplicate items (items with the same label)
+ *                                   were found for one of the labels being
+ *                                   search for. This duplicate detection is
+ *                                   only performed for items in pItemArray,
+ *                                   not every item in the map.
+ *
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE A label was matched, but the type was
+ *                                   wrong for the matchd label.
+ *
+ * @retval Also errors returned by QCBORDecode_GetNext().
+ *
+ * On input, \c pItemArray contains a list of labels and data types of
+ * items to be found.
+ *
+ * On output, the fully retrieved items are filled in with values and
+ * such. The label was matched, so it never changes.
+ *
+ * If an item was not found, its data type is set to @ref QCBOR_TYPE_NONE.
+ *
+ * This also finds the ends of maps and arrays when they are exited.
  */
 static QCBORError
 QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
@@ -3448,6 +3458,15 @@ Done:
 }
 
 
+/**
+ * @brief Is a QCBOR_TYPE in the type list?
+ *
+ * @param[in] uDataType  Type to check for.
+ * @param[in] puTypeList  List to check.
+ *
+ * @retval  QCBOR_SUCCESS             If in the list.
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE  Not in the list.
+ */
 static QCBORError
 QCBOR_Private_CheckTypeList(const int     uDataType,
                             const uint8_t puTypeList[QCBOR_TAGSPEC_NUM_TYPES])
@@ -3537,9 +3556,21 @@ QCBOR_Private_CheckTagRequirement(const QCBOR_Private_TagSpec TagSpec,
 #endif /* QCBOR_DISABLE_TAGS */
 }
 
-
 // This could be semi-private if need be
 // TODO: decide what to do
+
+/**
+ * @brief Get an item by label to match a tag specification.
+ *
+ * @param[in] pMe      The decode context.
+ * @param[in] nLabel   The label to search map for.
+ * @param[in] TagSpec  The tag number specification to match.
+ * @param[out] pItem   The item found.
+ *
+ * This finds the item with the given label in currently open
+ * map. Then checks that its tag number and types matches the tag
+ * specification. If not, an error is set in the decode context.
+ */
 static void
 QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext         *pMe,
                                 const int64_t               nLabel,
@@ -3556,6 +3587,18 @@ QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext         *pMe,
 
 
 // This could be semi-private if need be
+/**
+ * @brief Get an item by label to match a tag specification.
+ *
+ * @param[in] pMe      The decode context.
+ * @param[in] szLabel   The label to search map for.
+ * @param[in] TagSpec  The tag number specification to match.
+ * @param[out] pItem   The item found.
+ *
+ * This finds the item with the given label in currently open
+ * map. Then checks that its tag number and types matches the tag
+ * specification. If not, an error is set in the decode context.
+ */
 static void
 QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext          *pMe,
                                  const char                  *szLabel,
@@ -3570,7 +3613,19 @@ QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext          *pMe,
    pMe->uLastError = (uint8_t)QCBOR_Private_CheckTagRequirement(TagSpec, pItem);
 }
 
-// Semi-private
+
+/**
+ * @brief Semi-private to get an string by label to match a tag specification.
+ *
+ * @param[in] pMe      The decode context.
+ * @param[in] nLabel   The label to search map for.
+ * @param[in] TagSpec  The tag number specification to match.
+ * @param[out] pString   The string found.
+ *
+ * This finds the string  with the given label in currently open
+ * map. Then checks that its tag number and types matches the tag
+ * specification. If not, an error is set in the decode context.
+ */
 void
 QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext         *pMe,
                                           const int64_t               nLabel,
@@ -3584,8 +3639,19 @@ QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext         *pMe,
    }
 }
 
-// Semi-private
-void
+
+/**
+ * @brief Semi-private to get an string by label to match a tag specification.
+ *
+ * @param[in] pMe      The decode context.
+ * @param[in] szLabel   The label to search map for.
+ * @param[in] TagSpec  The tag number specification to match.
+ * @param[out] pString   The string found.
+ *
+ * This finds the string  with the given label in currently open
+ * map. Then checks that its tag number and types matches the tag
+ * specification. If not, an error is set in the decode context.
+ */void
 QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext         *pMe,
                                            const char *                szLabel,
                                            const QCBOR_Private_TagSpec TagSpec,
@@ -3597,6 +3663,7 @@ QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext         *pMe,
       *pString = Item.val.string;
    }
 }
+
 
 /*
  * Public function, see header qcbor/qcbor_decode.h file
@@ -3749,7 +3816,17 @@ QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 }
 
 
-// Semi-private function
+/**
+ * @brief Semi-private to do the the work for EnterMap() and EnterArray().
+ *
+ * @param[in] pMe     The decode context
+ * @param[in] uType   QCBOR_TYPE_MAP or QCBOR_TYPE_ARRAY.
+ * @param[out] pItem  The data item for the map or array entered.
+ *
+ * The next item in the traversal must be a map or array.  This
+ * consumes that item and does the book keeping to enter the map or
+ * array.
+ */
 void
 QCBORDecode_Private_EnterBoundedMapOrArray(QCBORDecodeContext *pMe,
                                            const uint8_t       uType,
@@ -3803,16 +3880,23 @@ Done:
 }
 
 
-/*
- This is the common work for exiting a level that is a bounded map,
- array or bstr wrapped CBOR.
-
- One chunk of work is to set up the pre-order traversal so it is at
- the item just after the bounded map, array or bstr that is being
- exited. This is somewhat complex.
-
- The other work is to level-up the bounded mode to next higest bounded
- mode or the top level if there isn't one.
+/**
+ * @brief Exit a bounded map, array or bstr (semi-private).
+ *
+ * @param[in] pMe         Decode context.
+ * @param[in] uEndOffset  The input buffer offset of the end of item exited.
+ *
+ * @returns  QCBOR_SUCCESS or an error code.
+ *
+ * This is the common work for exiting a level that is a bounded map,
+ * array or bstr wrapped CBOR.
+ *
+ * One chunk of work is to set up the pre-order traversal so it is at
+ * the item just after the bounded map, array or bstr that is being
+ * exited. This is somewhat complex.
+ *
+ * The other work is to level-up the bounded mode to next higest
+ * bounded mode or the top level if there isn't one.
  */
 static QCBORError
 QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
@@ -3821,25 +3905,25 @@ QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
    QCBORError uErr;
 
    /*
-    First the pre-order-traversal byte offset is positioned to the
-    item just after the bounded mode item that was just consumed.
+    * First the pre-order-traversal byte offset is positioned to the
+    * item just after the bounded mode item that was just consumed.
     */
    UsefulInputBuf_Seek(&(pMe->InBuf), uEndOffset);
 
    /*
-    Next, set the current nesting level to one above the bounded level
-    that was just exited.
-
-    DecodeNesting_CheckBoundedType() is always called before this and
-    makes sure pCurrentBounded is valid.
+    * Next, set the current nesting level to one above the bounded
+    * level that was just exited.
+    *
+    * DecodeNesting_CheckBoundedType() is always called before this
+    * and makes sure pCurrentBounded is valid.
     */
    DecodeNesting_LevelUpCurrent(&(pMe->nesting));
 
    /*
-    This does the complex work of leveling up the pre-order traversal
-    when the end of a map or array or another bounded level is
-    reached.  It may do nothing, or ascend all the way to the top
-    level.
+    * This does the complex work of leveling up the pre-order
+    * traversal when the end of a map or array or another bounded
+    * level is reached.  It may do nothing, or ascend all the way to
+    * the top level.
     */
    uErr = QCBORDecode_Private_NestLevelAscender(pMe, false);
    if(uErr != QCBOR_SUCCESS) {
@@ -3847,9 +3931,9 @@ QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
    }
 
    /*
-    This makes the next highest bounded level the current bounded
-    level. If there is no next highest level, then no bounded mode is
-    in effect.
+    * This makes the next highest bounded level the current bounded
+    * level. If there is no next highest level, then no bounded mode
+    * is in effect.
     */
    DecodeNesting_LevelUpBounded(&(pMe->nesting));
 
@@ -3860,7 +3944,16 @@ Done:
 }
 
 
-// Semi-private function
+/**
+ * @brief Get started exiting a map or array (semi-private)
+ *
+ * @param[in] pMe  The decode context
+ * @param[in] uType  QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP
+ *
+ * This does some work for map and array exiting (but not
+ * bstr exiting). Then QCBORDecode_Private_ExitBoundedLevel()
+ * is called to do the rest.
+ */
 void
 QCBORDecode_Private_ExitBoundedMapOrArray(QCBORDecodeContext *pMe,
                                           const uint8_t       uType)
@@ -3898,7 +3991,20 @@ Done:
 }
 
 
-
+/**
+ * @brief The main work of entering some byte-string wrapped CBOR.
+ *
+ * @param[in] pMe             The decode context.
+ * @param[in] pItem           The byte string item.
+ * @param[in] uTagRequirement One of @c QCBOR_TAG_REQUIREMENT_XXX
+ * @param[out] pBstr          Pointer and length of byte string entered.
+ *
+ * This is called once the byte string item has been decoded to do all
+ * the book keeping work for descending a nesting level into the
+ * nested CBOR.
+ *
+ * See QCBORDecode_EnterBstrWrapped() for details on uTagRequirement.
+ */
 static QCBORError
 QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext *pMe,
                                      const QCBORItem    *pItem,
@@ -4076,7 +4182,16 @@ QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pMe)
 
 
 
-
+/**
+ * @brief Process simple type true and false, a boolean
+ *
+ * @param[in] pMe     The decode context.
+ * @param[in] pItem   The item with either true or false.
+ * @param[out] pBool  The boolean value output.
+ *
+ * Sets the internal error if the item isn't a true or a false. Also
+ * records any tag numbers as the tag numbers of the last item.
+ */
 static void
 QCBORDecode_Private_ProcessBool(QCBORDecodeContext *pMe,
                                 const QCBORItem    *pItem,
@@ -4155,6 +4270,17 @@ QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe,
 
 
 
+/**
+ * @brief Common processing for an epoch date.
+ *
+ * @param[in] pMe              The decode context.
+ * @param[in] pItem            The item with the date.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pnTime          The returned date.
+ *
+ * Common processing for the date tag. Mostly make sure the tag
+ * content is correct and copy forward any further other tag numbers.
+ */
 static void
 QCBORDecode_Private_ProcessEpochDate(QCBORDecodeContext *pMe,
                                      QCBORItem          *pItem,
@@ -4198,6 +4324,10 @@ Done:
 }
 
 
+
+/*
+ * Public function, see header qcbor/qcbor_spiffy_decode.h file
+ */
 void
 QCBORDecode_GetEpochDate(QCBORDecodeContext *pMe,
                          uint8_t             uTagRequirement,
@@ -4215,6 +4345,9 @@ QCBORDecode_GetEpochDate(QCBORDecodeContext *pMe,
 }
 
 
+/*
+ * Public function, see header qcbor/qcbor_spiffy_decode.h file
+ */
 void
 QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pMe,
                                int64_t             nLabel,
@@ -4227,6 +4360,9 @@ QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pMe,
 }
 
 
+/*
+ * Public function, see header qcbor/qcbor_spiffy_decode.h file
+ */
 void
 QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pMe,
                                 const char         *szLabel,
@@ -4240,10 +4376,17 @@ QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pMe,
 
 
 
-/*
- * Common processing for the RFC 8943 day-count tag. Mostly
- * make sure the tag content is correct and copy forward any
- * further other tag numbers.
+/**
+ * @brief Common processing for an epoch date.
+ *
+ * @param[in] pMe              The decode context.
+ * @param[in] pItem            The item with the date.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pnDays          The returned day count.
+ *
+ * Common processing for the RFC 8943 day-count tag. Mostly make sure
+ * the tag content is correct and copy forward any further other tag
+ * numbers.
  */
 static void
 QCBORDecode_Private_ProcessEpochDays(QCBORDecodeContext *pMe,
@@ -4374,6 +4517,18 @@ QCBORDecode_Private_GetTaggedString(QCBORDecodeContext         *pMe,
 
 
 
+/**
+ * @brief Common processing for a big number tag.
+ *
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[in] pItem            The item with the date.
+ * @param[out] pValue          The returned big number
+ * @param[out] pbIsNegative  The returned sign of the big number.
+ *
+ * Common processing for the big number tag. Mostly make sure
+ * the tag content is correct and copy forward any further other tag
+ * numbers.
+ */
 static QCBORError
 QCBOR_Private_ProcessBigNum(const uint8_t   uTagRequirement,
                             const QCBORItem *pItem,
@@ -4405,7 +4560,7 @@ QCBOR_Private_ProcessBigNum(const uint8_t   uTagRequirement,
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h
+ * Public function, see header qcbor/qcbor_spiffy_decode.h
  */
 void
 QCBORDecode_GetBignum(QCBORDecodeContext *pMe,
@@ -4433,8 +4588,8 @@ QCBORDecode_GetBignum(QCBORDecodeContext *pMe,
 
 
 /*
- Public function, see header qcbor/qcbor_decode.h
-*/
+ * Public function, see header qcbor/qcbor_spiffy_decode.h
+ */
 void
 QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe,
                             const int64_t       nLabel,
@@ -4456,7 +4611,7 @@ QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe,
 
 
 /*
- * Public function, see header qcbor/qcbor_decode.h
+ * Public function, see header qcbor/qcbor_spiffy_decode.h
  */
 void
 QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe,
@@ -4479,8 +4634,18 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe,
 
 
 
-
-// Semi private
+/**
+ * @brief Common processing for MIME tag (semi-private).
+ *
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[in] pItem            The item with the date.
+ * @param[out] pMessage        The returned MIME message.
+ * @param[out] pbIsTag257      If true, binary MIME, if not, text MIME.
+ *
+ * Common processing for the MIME tag. Mostly make sure the tag
+ * content is correct and copy forward any further other tag
+ * numbers. See QCBORDecode_GetMIMEMessage().
+ */
 QCBORError
 QCBORDecode_Private_GetMIME(const uint8_t     uTagRequirement,
                             const QCBORItem  *pItem,
@@ -4530,6 +4695,16 @@ QCBORDecode_Private_GetMIME(const uint8_t     uTagRequirement,
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 
+/**
+ * @brief Prototype for conversion of exponent and mantissa to unsigned integer.
+ *
+ * @param[in] uMantissa    The mantissa.
+ * @param[in] nExponent    The exponent.
+ * @param[out] puResult  The resulting integer.
+ *
+ * Concrete implementations of this are for exponent base 10 and 2 supporting
+ * decimal fractions and big floats.
+ */
 typedef QCBORError (*fExponentiator)(uint64_t uMantissa, int64_t nExponent, uint64_t *puResult);
 
 
@@ -4905,20 +5080,19 @@ QCBOR_Private_ConvertNegativeBigNumToSigned(const UsefulBufC BigNum,
 
 
 
-
-/*
-Convert integers and floats to an int64_t.
-
-\param[in] uConvertTypes  Bit mask list of conversion options.
-
-\retval QCBOR_ERR_UNEXPECTED_TYPE  Conversion, possible, but not requested
-                                   in uConvertTypes.
-
-\retval QCBOR_ERR_UNEXPECTED_TYPE  Of a type that can't be converted
-
-\retval QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW  Conversion result is too large
-                                              or too small.
-*/
+/**
+ * @brief Convert integers and floats to an int64_t.
+ *
+ * @param[in] pItem   The item to convert.
+ * @param[in] uConvertTypes  Bit mask list of conversion options.
+ * @param[out] pnValue  The resulting converted value.
+ *
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE  Conversion, possible, but not requested
+ *                                    in uConvertTypes.
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE  Of a type that can't be converted
+ * @retval QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW  Conversion result is too large
+ *                                               or too small.
+ */
 static QCBORError
 QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
                            const uint32_t   uConvertTypes,
@@ -4981,6 +5155,16 @@ QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
 }
 
 
+/**
+ * @brief Almost-public method to decode a number and convert to int64_t (semi-private).
+ *
+ * @param[in] pMe            The decode context.
+ * @param[in] uConvertTypes  Bit mask list of conversion options.
+ * @param[out] pnValue       Result of the conversion.
+ * @param[in,out] pItem      Temporary space to store Item, returned item.
+ *
+ * See QCBORDecode_GetInt64Convert().
+ */
 void
 QCBORDecode_Private_GetInt64Convert(QCBORDecodeContext *pMe,
                                     uint32_t            uConvertTypes,
@@ -4991,23 +5175,28 @@ QCBORDecode_Private_GetInt64Convert(QCBORDecodeContext *pMe,
       return;
    }
 
-   QCBORItem Item;
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   QCBORError uError = QCBORDecode_GetNext(pMe, pItem);
    if(uError) {
       pMe->uLastError = (uint8_t)uError;
       return;
    }
 
-   if(pItem) {
-      *pItem = Item;
-   }
-
-   pMe->uLastError = (uint8_t)QCBOR_Private_ConvertInt64(&Item,
+   pMe->uLastError = (uint8_t)QCBOR_Private_ConvertInt64(pItem,
                                                          uConvertTypes,
                                                          pnValue);
 }
 
-
+/**
+ * @brief Almost-public method to decode a number and convert to int64_t (semi-private).
+ *
+ * @param[in] pMe            The decode context.
+ * @param[in] nLabel         Label to find in map.
+ * @param[in] uConvertTypes  Bit mask list of conversion options.
+ * @param[out] pnValue       Result of the conversion.
+ * @param[in,out] pItem      Temporary space to store Item, returned item.
+ *
+ * See QCBORDecode_GetInt64ConvertInMapN().
+ */
 void
 QCBORDecode_Private_GetInt64ConvertInMapN(QCBORDecodeContext *pMe,
                                           int64_t             nLabel,
@@ -5025,7 +5214,17 @@ QCBORDecode_Private_GetInt64ConvertInMapN(QCBORDecodeContext *pMe,
                                                          pnValue);
 }
 
-
+/**
+ * @brief Almost-public method to decode a number and convert to int64_t (semi-private).
+ *
+ * @param[in] pMe            The decode context.
+ * @param[in] szLabel        Label to find in map.
+ * @param[in] uConvertTypes  Bit mask list of conversion options.
+ * @param[out] pnValue       Result of the conversion.
+ * @param[in,out] pItem      Temporary space to store Item, returned item.
+ *
+ * See QCBORDecode_GetInt64ConvertInMapSZ().
+ */
 void
 QCBORDecode_Private_GetInt64ConvertInMapSZ(QCBORDecodeContext *pMe,
                                            const char *         szLabel,
@@ -5044,18 +5243,18 @@ QCBORDecode_Private_GetInt64ConvertInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-/*
- Convert a large variety of integer types to an int64_t.
-
- \param[in] uConvertTypes  Bit mask list of conversion options.
-
- \retval QCBOR_ERR_UNEXPECTED_TYPE  Conversion, possible, but not requested
-                                    in uConvertTypes.
-
- \retval QCBOR_ERR_UNEXPECTED_TYPE  Of a type that can't be converted
-
- \retval QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW  Conversion result is too large
-                                               or too small.
+/**
+ * @brief Convert many number types to an int64_t.
+ *
+ * @param[in] pItem   The item to convert.
+ * @param[in] uConvertTypes  Bit mask list of conversion options.
+ * @param[out] pnValue  The resulting converted value.
+ *
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE  Conversion, possible, but not requested
+ *                                    in uConvertTypes.
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE  Of a type that can't be converted
+ * @retval QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW  Conversion result is too large
+ *                                               or too small.
  */
 static QCBORError
 QCBOR_Private_Int64ConvertAll(const QCBORItem *pItem,
@@ -5271,6 +5470,19 @@ QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
+/**
+ * @brief Convert many number types to an uint64_t.
+ *
+ * @param[in] pItem   The item to convert.
+ * @param[in] uConvertTypes  Bit mask list of conversion options.
+ * @param[out] puValue  The resulting converted value.
+ *
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE  Conversion, possible, but not requested
+ *                                    in uConvertTypes.
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE  Of a type that can't be converted
+ * @retval QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW  Conversion result is too large
+ *                                               or too small.
+ */
 static QCBORError
 QCBOR_Private_ConvertUInt64(const QCBORItem *pItem,
                             const uint32_t   uConvertTypes,
@@ -5358,6 +5570,16 @@ QCBOR_Private_ConvertUInt64(const QCBORItem *pItem,
 }
 
 
+/**
+ * @brief Almost-public method to decode a number and convert to uint64_t (semi-private).
+ *
+ * @param[in] pMe            The decode context.
+ * @param[in] uConvertTypes  Bit mask list of conversion options.
+ * @param[out] puValue       Result of the conversion.
+ * @param[in,out] pItem      Temporary space to store Item, returned item.
+ *
+ * See QCBORDecode_GetUInt64Convert().
+ */
 void
 QCBORDecode_Private_GetUInt64Convert(QCBORDecodeContext *pMe,
                                      const uint32_t      uConvertTypes,
@@ -5386,6 +5608,17 @@ QCBORDecode_Private_GetUInt64Convert(QCBORDecodeContext *pMe,
 }
 
 
+/**
+ * @brief Almost-public method to decode a number and convert to uint64_t (semi-private).
+ *
+ * @param[in] pMe            The decode context.
+ * @param[in] nLabel         Label to find in map.
+ * @param[in] uConvertTypes  Bit mask list of conversion options.
+ * @param[out] puValue       Result of the conversion.
+ * @param[in,out] pItem      Temporary space to store Item, returned item.
+ *
+ * See QCBORDecode_GetUInt64ConvertInMapN().
+ */
 void
 QCBORDecode_Private_GetUInt64ConvertInMapN(QCBORDecodeContext *pMe,
                                            const int64_t       nLabel,
@@ -5404,6 +5637,17 @@ QCBORDecode_Private_GetUInt64ConvertInMapN(QCBORDecodeContext *pMe,
 }
 
 
+/**
+ * @brief Almost-public method to decode a number and convert to uint64_t (semi-private).
+ *
+ * @param[in] pMe            The decode context.
+ * @param[in] szLabel         Label to find in map.
+ * @param[in] uConvertTypes  Bit mask list of conversion options.
+ * @param[out] puValue       Result of the conversion.
+ * @param[in,out] pItem      Temporary space to store Item, returned item.
+ *
+ * See QCBORDecode_GetUInt64ConvertInMapSZ().
+ */
 void
 QCBORDecode_Private_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pMe,
                                             const char         *szLabel,
@@ -5426,7 +5670,19 @@ QCBORDecode_Private_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-
+/**
+ * @brief Convert many number types to an unt64_t.
+ *
+ * @param[in] pItem   The item to convert.
+ * @param[in] uConvertTypes  Bit mask list of conversion options.
+ * @param[out] puValue  The resulting converted value.
+ *
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE  Conversion, possible, but not requested
+ *                                    in uConvertTypes.
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE  Of a type that can't be converted
+ * @retval QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW  Conversion result is too large
+ *                                               or too small.
+ */
 static QCBORError
 QCBOR_Private_UInt64ConvertAll(const QCBORItem *pItem,
                                const uint32_t   uConvertTypes,
@@ -5627,6 +5883,19 @@ QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe,
 
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
+/**
+ * @brief Basic conversions to a double.
+ *
+ * @param[in] pItem          The item to convert
+ * @param[in] uConvertTypes  Bit flags indicating source types for conversion
+ * @param[out] pdValue       The value converted to a double
+ *
+ * This does the conversions that don't need much object code,
+ * the conversions from int, uint and float to double.
+ *
+ * See QCBOR_Private_DoubleConvertAll() for the full set
+ * of conversions.
+ */
 static QCBORError
 QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
                             const uint32_t   uConvertTypes,
@@ -5695,6 +5964,16 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
 }
 
 
+/**
+ * @brief  Almost-public method to decode a number and convert to double (semi-private).
+ *
+ * @param[in] pMe            The decode context.
+ * @param[in] uConvertTypes  Bit mask list of conversion options
+ * @param[out] pdValue       The output of the conversion.
+ * @param[in,out] pItem      Temporary space to store Item, returned item.
+ *
+ * See QCBORDecode_GetDoubleConvert().
+ */
 void
 QCBORDecode_Private_GetDoubleConvert(QCBORDecodeContext *pMe,
                                      const uint32_t      uConvertTypes,
@@ -5705,24 +5984,29 @@ QCBORDecode_Private_GetDoubleConvert(QCBORDecodeContext *pMe,
       return;
    }
 
-   QCBORItem Item;
-
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   QCBORError uError = QCBORDecode_GetNext(pMe, pItem);
    if(uError) {
       pMe->uLastError = (uint8_t)uError;
       return;
    }
 
-   if(pItem) {
-      *pItem = Item;
-   }
-
-   pMe->uLastError = (uint8_t)QCBOR_Private_ConvertDouble(&Item,
+   pMe->uLastError = (uint8_t)QCBOR_Private_ConvertDouble(pItem,
                                                           uConvertTypes,
                                                           pdValue);
 }
 
 
+/**
+ * @brief  Almost-public method to decode a number and convert to double (semi-private).
+ *
+ * @param[in] pMe            The decode context.
+ * @param[in] nLabel         Label to find in map.
+ * @param[in] uConvertTypes  Bit mask list of conversion options
+ * @param[out] pdValue       The output of the conversion.
+ * @param[in,out] pItem      Temporary space to store Item, returned item.
+ *
+ * See QCBORDecode_GetDoubleConvertInMapN().
+ */
 void
 QCBORDecode_Private_GetDoubleConvertInMapN(QCBORDecodeContext *pMe,
                                            const int64_t       nLabel,
@@ -5741,6 +6025,17 @@ QCBORDecode_Private_GetDoubleConvertInMapN(QCBORDecodeContext *pMe,
 }
 
 
+/**
+ * @brief  Almost-public method to decode a number and convert to double (semi-private).
+ *
+ * @param[in] pMe            The decode context.
+ * @param[in] szLabel        Label to find in map.
+ * @param[in] uConvertTypes  Bit mask list of conversion options
+ * @param[out] pdValue       The output of the conversion.
+ * @param[in,out] pItem      Temporary space to store Item, returned item.
+ *
+ * See QCBORDecode_GetDoubleConvertInMapSZ().
+ */
 void
 QCBORDecode_Private_GetDoubleConvertInMapSZ(QCBORDecodeContext *pMe,
                                             const char         *szLabel,
@@ -5764,6 +6059,18 @@ QCBORDecode_Private_GetDoubleConvertInMapSZ(QCBORDecodeContext *pMe,
 
 
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
+/**
+ * @brief Convert a big number to double-precision float.
+ *
+ * @param[in] BigNum   The big number to convert
+ *
+ * @returns  The double value.
+ *
+ * This will always succeed. It will lose precision for larger
+ * numbers. If the big number is too large to fit (more than
+ * 1.7976931348623157E+308) infinity will be returned. NaN is never
+ * returned.
+ */
 static double
 QCBOR_Private_ConvertBigNumToDouble(const UsefulBufC BigNum)
 {
@@ -5773,7 +6080,7 @@ QCBOR_Private_ConvertBigNumToDouble(const UsefulBufC BigNum)
    const uint8_t *pByte = BigNum.ptr;
    size_t uLen = BigNum.len;
    /* This will overflow and become the float value INFINITY if the number
-    is too large to fit. */
+    * is too large to fit. */
    while(uLen--) {
       dResult = (dResult * 256.0) + (double)*pByte++;
    }
@@ -5783,6 +6090,21 @@ QCBOR_Private_ConvertBigNumToDouble(const UsefulBufC BigNum)
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
 
+
+
+/**
+ * @brief Convert many number types to a double.
+ *
+ * @param[in] pItem   The item to convert.
+ * @param[in] uConvertTypes  Bit mask list of conversion options.
+ * @param[out] pdValue  The resulting converted value.
+ *
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE  Conversion, possible, but not requested
+ *                                    in uConvertTypes.
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE  Of a type that can't be converted
+ * @retval QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW  Conversion result is too large
+ *                                               or too small.
+ */
 static QCBORError
 QCBOR_Private_DoubleConvertAll(const QCBORItem *pItem,
                                const uint32_t   uConvertTypes,
@@ -5888,7 +6210,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem *pItem,
 
 
 /*
- *Public function, see header qcbor/qcbor_decode.h file
+ * Public function, see header qcbor/qcbor_decode.h file
  */
 void
 QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe,
@@ -5985,6 +6307,16 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe,
 
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
+/**
+ * @brief Convert an integer to a big number
+ *
+ * @param[in] uInt  The integer to convert.
+ * @param[in] Buffer  The buffer to output the big number to.
+ *
+ * @returns The big number or NULLUsefulBufC is the buffer is to small.
+ *
+ * This always succeeds unless the buffer is too small.
+ */
 static UsefulBufC
 QCBOR_Private_ConvertIntToBigNum(uint64_t uInt, const UsefulBuf Buffer)
 {
@@ -5997,10 +6329,8 @@ QCBOR_Private_ConvertIntToBigNum(uint64_t uInt, const UsefulBuf Buffer)
    UsefulOutBuf_Init(&UOB, Buffer);
 
    while(uInt) {
-      const uint64_t xx = uInt & 0xff00000000000000UL;
       UsefulOutBuf_AppendByte(&UOB, (uint8_t)((uInt & 0xff00000000000000UL) >> 56));
       uInt = uInt << 8;
-      (void)xx;
    }
 
    return UsefulOutBuf_OutUBuf(&UOB);
@@ -6106,6 +6436,20 @@ Done:
  * first tier part of the public API. Some functions only
  * vary by a TagSpec.
  */
+
+/**
+ * @brief Common processor for exponent and mantissa.
+ *
+ * @param[in] pMe          The decode context.
+ * @param[in] TagSpec      The expected/allowed tags.
+ * @param[in] pItem        The data item to process.
+ * @param[out] pnMantissa  The returned mantissa as an int64_t.
+ * @param[out] pnExponent  The returned exponent as an int64_t.
+ *
+ * This handles exponent and mantissa for base 2 and 10. This
+ * is limited to a mantissa that is an int64_t. See also
+ * QCBORDecode_Private_ProcessExpMantissaBig().
+ */
 static void
 QCBOR_Private_ProcessExpMantissa(QCBORDecodeContext         *pMe,
                                  const QCBOR_Private_TagSpec TagSpec,
@@ -6152,14 +6496,29 @@ QCBOR_Private_ProcessExpMantissa(QCBORDecodeContext         *pMe,
 }
 
 
+/**
+ * @brief Decode exponent and mantissa into a big number.
+ *
+ * @param[in] pMe                The decode context.
+ * @param[in] TagSpec            The expected/allowed tags.
+ * @param[in] pItem              Item to decode and convert.
+ * @param[in] BufferForMantissa  Buffer to output mantissa into.
+ * @param[out] pMantissa         The output mantissa.
+ * @param[out] pbIsNegative      The sign of the output.
+ * @param[out] pnExponent        The mantissa of the output.
+ *
+ * This is the common processing of a decimal fraction or a big float
+ * into a big number. This will decode and consume all the CBOR items
+ * that make up the decimal fraction or big float.
+ */
 static void
-QCBOR_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
-                                    const QCBOR_Private_TagSpec  TagSpec,
-                                    QCBORItem                   *pItem,
-                                    const UsefulBuf              BufferForMantissa,
-                                    UsefulBufC                  *pMantissa,
-                                    bool                        *pbIsNegative,
-                                    int64_t                     *pnExponent)
+QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
+                                          const QCBOR_Private_TagSpec  TagSpec,
+                                          QCBORItem                   *pItem,
+                                          const UsefulBuf              BufferForMantissa,
+                                          UsefulBufC                  *pMantissa,
+                                          bool                        *pbIsNegative,
+                                          int64_t                     *pnExponent)
 {
    QCBORError uErr;
 
@@ -6348,13 +6707,13 @@ QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pMe,
       {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
-   QCBOR_Private_ProcessExpMantissaBig(pMe,
-                                       TagSpec,
-                                      &Item,
-                                       MantissaBuffer,
-                                       pMantissa,
-                                       pbMantissaIsNegative,
-                                       pnExponent);
+   QCBORDecode_Private_ProcessExpMantissaBig(pMe,
+                                             TagSpec,
+                                            &Item,
+                                             MantissaBuffer,
+                                             pMantissa,
+                                             pbMantissaIsNegative,
+                                             pnExponent);
 }
 
 
@@ -6388,13 +6747,13 @@ QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pMe,
       {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
-   QCBOR_Private_ProcessExpMantissaBig(pMe,
-                                       TagSpec,
-                                      &Item,
-                                       BufferForMantissa,
-                                       pMantissa,
-                                       pbIsNegative,
-                                       pnExponent);
+   QCBORDecode_Private_ProcessExpMantissaBig(pMe,
+                                             TagSpec,
+                                            &Item,
+                                             BufferForMantissa,
+                                             pMantissa,
+                                             pbIsNegative,
+                                             pnExponent);
 }
 
 
@@ -6428,13 +6787,13 @@ QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
       {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
-   QCBOR_Private_ProcessExpMantissaBig(pMe,
-                                       TagSpec,
-                                      &Item,
-                                       BufferForMantissa,
-                                       pMantissa,
-                                       pbIsNegative,
-                                       pnExponent);
+   QCBORDecode_Private_ProcessExpMantissaBig(pMe,
+                                             TagSpec,
+                                            &Item,
+                                             BufferForMantissa,
+                                             pMantissa,
+                                             pbIsNegative,
+                                             pnExponent);
 }
 
 
@@ -6575,13 +6934,13 @@ QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pMe,
       {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
-   QCBOR_Private_ProcessExpMantissaBig(pMe,
-                                       TagSpec,
-                                      &Item,
-                                       MantissaBuffer,
-                                       pMantissa,
-                                       pbMantissaIsNegative,
-                                       pnExponent);
+   QCBORDecode_Private_ProcessExpMantissaBig(pMe,
+                                             TagSpec,
+                                            &Item,
+                                             MantissaBuffer,
+                                             pMantissa,
+                                             pbMantissaIsNegative,
+                                             pnExponent);
 }
 
 
@@ -6615,13 +6974,13 @@ QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pMe,
       {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
-   QCBOR_Private_ProcessExpMantissaBig(pMe,
-                                       TagSpec,
-                                      &Item,
-                                       BufferForMantissa,
-                                       pMantissa,
-                                       pbIsNegative,
-                                       pnExponent);
+   QCBORDecode_Private_ProcessExpMantissaBig(pMe,
+                                             TagSpec,
+                                            &Item,
+                                             BufferForMantissa,
+                                             pMantissa,
+                                             pbIsNegative,
+                                             pnExponent);
 }
 
 
@@ -6655,13 +7014,13 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
       {QCBOR_TYPE_ARRAY, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
    };
 
-   QCBOR_Private_ProcessExpMantissaBig(pMe,
-                                       TagSpec,
-                                      &Item,
-                                       BufferForMantissa,
-                                       pMantissa,
-                                       pbIsNegative,
-                                       pnExponent);
+   QCBORDecode_Private_ProcessExpMantissaBig(pMe,
+                                             TagSpec,
+                                            &Item,
+                                             BufferForMantissa,
+                                             pMantissa,
+                                             pbIsNegative,
+                                             pnExponent);
 }
 
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
