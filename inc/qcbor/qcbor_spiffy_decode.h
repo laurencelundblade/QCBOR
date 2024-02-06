@@ -1929,7 +1929,7 @@ QCBORDecode_Private_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
 /* Semi-private data structure (which might change).
  *
  * See QCBOR_Private_CheckTagRequirement() which uses this to check the
- * type of a item to be decoded as a tag or tag content.
+ * type of an item to be decoded as a tag or tag content.
  *
  * Improvement: Carefully understand what compilers do with this,
  * particularly initialization and see if it can be optimized so there
@@ -2146,7 +2146,7 @@ QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pMe,
                              const uint32_t      uConvertTypes,
                              double             *pdValue)
 {
-    QCBORItem Item;
+   QCBORItem Item;
     QCBORDecode_Private_GetDoubleConvert(pMe, uConvertTypes, pdValue, &Item);
 }
 
