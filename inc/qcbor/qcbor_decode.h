@@ -211,6 +211,7 @@ typedef enum {
 /* Do not renumber these. Code depends on some of these values. */
 /** The data type is unknown, unset or invalid. */
 #define QCBOR_TYPE_NONE           0
+
 /** Never used in QCBORItem. Used by functions that match QCBOR types. */
 #define QCBOR_TYPE_ANY            1
 
@@ -218,35 +219,50 @@ typedef enum {
  *  @c INT32_MIN or @c INT32_MAX and @c INT64_MAX. Data is in member
  *  @c val.int64. */
 #define QCBOR_TYPE_INT64          2
+
 /** Type for an integer that decoded to a more than @c INT64_MAX and
  *  @c UINT64_MAX.  Data is in member @c val.uint64. */
 #define QCBOR_TYPE_UINT64         3
+
 /** Type for an array. See comments on @c val.uCount. */
 #define QCBOR_TYPE_ARRAY          4
+
 /** Type for a map. See comments on @c val.uCount. */
 #define QCBOR_TYPE_MAP            5
+
 /** Type for a buffer full of bytes. Data is in @c val.string. */
 #define QCBOR_TYPE_BYTE_STRING    6
+
 /** Type for a UTF-8 string. It is not NULL-terminated. See
  *  QCBOREncode_AddText() for a discussion of line endings in CBOR. Data
  *  is in @c val.string.  */
 #define QCBOR_TYPE_TEXT_STRING    7
+
 /** Type for a positive big number. Data is in @c val.bignum, a
  *  pointer and a length. */
 #define QCBOR_TYPE_POSBIGNUM      9
+
 /** Type for a negative big number. Data is in @c val.bignum, a
  *  pointer and a length. */
 #define QCBOR_TYPE_NEGBIGNUM     10
+
 /** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
  *  string, possibly with time zone. Data is in @c val.string . Note this
  *  was previously in @c val.dateString, however this is the same as
  *  val.string being the same type in same union. */
 #define QCBOR_TYPE_DATE_STRING   11
+
 /** Type for integer seconds since Jan 1970 + floating-point
  *  fraction. Data is in @c val.epochDate */
 #define QCBOR_TYPE_DATE_EPOCH    12
-/** A simple type that this CBOR implementation doesn't know about;
- *  Type is in @c val.uSimple. */
+
+/** The CBOR major type "simple" has a small integer value indicating
+ *  what it is. The standard CBOR simples are true, false, null, undef
+ *  (values 20-23) and float-point numbers (values 25-27).  The values
+ *  0-19 and 32-255 are unassigned and may be used if registered with
+ *  in the IANA Simple Values Registry.  If these unassigned simple
+ *  values occur in the input they will be decoded as this.  The value
+ *  is in @c val.uSimple. */
 #define QCBOR_TYPE_UKNOWN_SIMPLE 13
 
 /** A decimal fraction made of decimal exponent and integer mantissa.
@@ -278,16 +294,21 @@ typedef enum {
  *  QCBOREncode_AddBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM         19
 
-/** Type for the value false. */
+/** Type for the simple value false. */
 #define QCBOR_TYPE_FALSE         20
-/** Type for the value true. */
+
+/** Type for the simple value true. */
 #define QCBOR_TYPE_TRUE          21
-/** Type for the value null. */
+
+/** Type for the simple value null. */
 #define QCBOR_TYPE_NULL          22
-/** Type for the value undef. */
+
+/** Type for the simple value undef. */
 #define QCBOR_TYPE_UNDEF         23
+
 /** Type for a floating-point number. Data is in @c val.float. */
 #define QCBOR_TYPE_FLOAT         26
+
 /** Type for a double floating-point number. Data is in @c val.double. */
 #define QCBOR_TYPE_DOUBLE        27
 
@@ -444,7 +465,7 @@ typedef struct _QCBORItem {
       /** The value for @c uDataType @ref QCBOR_TYPE_POSBIGNUM and
        * @ref QCBOR_TYPE_NEGBIGNUM.  */
       UsefulBufC  bigNum;
-      /** The integer value for unknown simple types. TODO: doc this better. */
+      /** See @ref QCBOR_TYPE_UKNOWN_SIMPLE */
       uint8_t     uSimple;
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       /**
