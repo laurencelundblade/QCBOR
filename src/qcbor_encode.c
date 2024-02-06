@@ -247,10 +247,14 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  * [1] indicated disabled by QCBOR_DISABLE_ENCODE_USAGE_GUARDS
  */
 
-void QCBOREncode_CloseMapUnsorted(QCBOREncodeContext *pMe); // TODO: relocate/doc
+
+/* Forward declaration for reference in QCBOREncode_Init() */
+static void
+QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe);
+
 
 /*
- Public function for initialization. See qcbor/qcbor_encode.h
+ * Public function for initialization. See qcbor/qcbor_encode.h
  */
 void
 QCBOREncode_Init(QCBOREncodeContext *pMe, UsefulBuf Storage)
@@ -258,7 +262,7 @@ QCBOREncode_Init(QCBOREncodeContext *pMe, UsefulBuf Storage)
    memset(pMe, 0, sizeof(QCBOREncodeContext));
    UsefulOutBuf_Init(&(pMe->OutBuf), Storage);
    Nesting_Init(&(pMe->nesting));
-   pMe->pfnCloseMap = QCBOREncode_CloseMapUnsorted;
+   pMe->pfnCloseMap = QCBOREncode_Private_CloseMapUnsorted;
 }
 
 
@@ -1060,12 +1064,10 @@ QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
 
 
 /**
- * @brief Semi-private method to close a map, array or bstr wrapped CBOR
+ * @brief Semi-private method to close a map, array or bstr wrapped CBOR.
  *
  * @param[in] pMe           The context to add to.
  * @param[in] uMajorType     The major CBOR type to close.
- *
- * Call QCBOREncode_CloseArray() or QCBOREncode_CloseMap() instead of this.
  */
 void
 QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
@@ -1075,10 +1077,17 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
 }
 
 
-void
-QCBOREncode_CloseMapUnsorted(QCBOREncodeContext *pMe)
+/**
+ * @brief Private method to close a map without sorting.
+ *
+ * @param[in] pMe     The encode context with map to close.
+ *
+ * See QCBOREncode_SerializationCDE() implemention for explantion for why this exists in this form.
+ */
+static void
+QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_InsertCBORHead(pMe, CBOR_MAJOR_TYPE_MAP, Nesting_GetCount(&(pMe->nesting)));
+   QCBOREncode_Private_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_MAP);
 }
 
 

@@ -16,7 +16,6 @@
 #define ieee754_h
 
 #include <stdint.h>
-#include <stdbool.h>
 
 
 /** @file ieee754.h

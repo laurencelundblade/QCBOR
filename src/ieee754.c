@@ -316,7 +316,7 @@ IEEE754_AssembleHalf(uint32_t uHalfSign,
 
 /*  Public function; see ieee754.h */
 IEEE754_union
-IEEE754_SingleToHalf(float f, int bNoNaNPayload)
+IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
 {
    IEEE754_union result;
    uint32_t      uDroppedBits;
@@ -504,7 +504,7 @@ IEEE754_AssembleSingle(uint64_t uSingleSign,
  * This handles all subnormals and NaN payloads.
  */
 static IEEE754_union
-IEEE754_DoubleToSingle(double d)
+IEEE754_DoubleToSingle(const double d)
 {
    IEEE754_union Result;
    int64_t       nExponentDifference;
@@ -627,7 +627,9 @@ IEEE754_DoubleToSingle(double d)
 
 /* Public function; see ieee754.h */
 IEEE754_union
-IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision, int bNoNanPayload)
+IEEE754_DoubleToSmaller(const double d,
+                        const int    bAllowHalfPrecision,
+                        const int    bNoNanPayload)
 {
    IEEE754_union result;
 
@@ -644,6 +646,20 @@ IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision, int bNoNanPayload)
 }
 
 
+static int
+IEEE754_Private_CountNonZeroBits(int nMax, uint64_t uTarget)
+{
+   int      nNonZeroBitsCount;
+   uint64_t uMask;
+
+   for(nNonZeroBitsCount = nMax; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
+      uMask = (0x01UL << nMax) >> nNonZeroBitsCount;
+      if(uMask & uTarget) {
+         break;
+      }
+   }
+   return nNonZeroBitsCount;
+}
 
 
 /* Public function; see ieee754.h */
@@ -651,7 +667,6 @@ struct IEEE754_ToInt
 IEEE754_DoubleToInt(const double d)
 {
    int64_t              nNonZeroBitsCount;
-   uint64_t             uMask;
    struct IEEE754_ToInt Result;
    uint64_t             uInteger;
 
@@ -696,12 +711,7 @@ IEEE754_DoubleToInt(const double d)
        * 64-bit integers always have more precision than the 52-bits
        * of a double.
        */
-      for(nNonZeroBitsCount = DOUBLE_NUM_SIGNIFICAND_BITS; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
-         uMask = (0x01ULL << DOUBLE_NUM_SIGNIFICAND_BITS) >> nNonZeroBitsCount;
-         if(uMask & uDoubleSignificand) {
-            break;
-         }
-      }
+      nNonZeroBitsCount = IEEE754_Private_CountNonZeroBits(DOUBLE_NUM_SIGNIFICAND_BITS, uDoubleSignificand);
 
       if(nNonZeroBitsCount && nNonZeroBitsCount > nDoubleUnbiasedExponent) {
          /* --- Not a whole number --- */
@@ -735,10 +745,9 @@ IEEE754_DoubleToInt(const double d)
 
 /* Public function; see ieee754.h */
 struct IEEE754_ToInt
-IEEE754_SingleToInt(float f)
+IEEE754_SingleToInt(const float f)
 {
    int32_t              nNonZeroBitsCount;
-   uint32_t             uMask;
    struct IEEE754_ToInt Result;
    uint64_t             uInteger;
 
@@ -782,12 +791,8 @@ IEEE754_SingleToInt(float f)
        * 64-bit integers always have more precision than the 52-bits
        * of a double.
        */
-      for(nNonZeroBitsCount = SINGLE_NUM_SIGNIFICAND_BITS; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
-         uMask = (0x01UL << SINGLE_NUM_SIGNIFICAND_BITS) >> nNonZeroBitsCount;
-         if(uMask & uSingleleSignificand) {
-            break;
-         }
-      }
+       nNonZeroBitsCount = IEEE754_Private_CountNonZeroBits(SINGLE_NUM_SIGNIFICAND_BITS, uSingleleSignificand);
+
 
       if(nNonZeroBitsCount && nNonZeroBitsCount > nSingleUnbiasedExponent) {
          /* --- Not a whole number --- */
@@ -816,7 +821,6 @@ IEEE754_SingleToInt(float f)
 
    return Result;
 }
-
 
 
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */

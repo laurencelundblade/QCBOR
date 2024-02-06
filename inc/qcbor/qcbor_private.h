@@ -218,19 +218,21 @@ typedef struct __QCBORTrackNesting {
  *  64-bit machine: 27 + 1 (+ 4 padding) + 136 = 32 + 136 = 168 bytes
  *  32-bit machine: 15 + 1 + 132 = 148 bytes
  */
-typedef struct _QCBOREncodeContext QCBORPrivEncodeContext;
+typedef struct _QCBOREncodeContext QCBORPrivateEncodeContext;
 /* These are in order of increasing strictness, and that is relied upon in implementation */
+#define QCBOR_ENCODE_MODE_ANY       0
 #define QCBOR_ENCODE_MODE_PREFERRED 1
-#define QCBOR_ENCODE_MODE_CDE 2
-#define QCBOR_ENCODE_MODE_DCBOR 3
+#define QCBOR_ENCODE_MODE_CDE       2
+#define QCBOR_ENCODE_MODE_DCBOR     3
 
 struct _QCBOREncodeContext {
    /* PRIVATE DATA STRUCTURE */
    UsefulOutBuf      OutBuf;  /* Pointer to output buffer, its length and
                                * position in it. */
    uint8_t           uError;  /* Error state, always from QCBORError enum */
-   uint8_t           uMode;
-   void            (*pfnCloseMap)(QCBORPrivEncodeContext *); /* Map closing function */
+   uint8_t           uMode;   /* QCBOR_ENCODE_MODE_PREFERRED or related */
+   void            (*pfnCloseMap)(QCBORPrivateEncodeContext *); /* Use of function
+                               * pointer explained in QCBOREncode_SerializationCDE() */
    QCBORTrackNesting nesting; /* Keep track of array and map nesting */
 };
 

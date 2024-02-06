@@ -435,7 +435,7 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
  * is too small, encoding will go into an error state and not write
  * anything further.
  *
- * If allocating on the stack the convenience macro
+ * If allocating on the stack, the convenience macro
  * UsefulBuf_MAKE_STACK_UB() can be used, but its use is not required.
  *
  * Since there is no reallocation or such, the output buffer must be
@@ -476,8 +476,7 @@ QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  * Setting this mode will cause QCBOR to return an error if an attempt
  * is made to use one of the methods that produce non-preferred
  * serialization. It doesn't change anything else as QCBOR produces
- * preferred serialization by default, except when particular methods
- * to produce non-preferred are called.
+ * preferred serialization by default.
  *
  * The non-preferred methods are: QCBOREncode_AddFloatNoPreferred(),
  * QCBOREncode_AddDoubleNoPreferred(),
@@ -512,9 +511,10 @@ QCBOREncode_SerializationPreferred(QCBOREncodeContext *pCtx);
  * QCBOREncode_CloseMap() becomes equivalent to
  * QCBOREncode_CloseAndSortMap().
  *
- * Note that this causese about 30% more code from the QCBOR library
- * to be linked and QCBOREncode_CloseMap() runs slower, but this is
- * probably only of consequence in very constrained environments.
+ * Note that linking this function causese about 30% more code from
+ * the QCBOR library to be linked. Also, QCBOREncode_CloseMap() runs
+ * slower, but this is probably only of consequence in very
+ * constrained environments.
  */
 static void
 QCBOREncode_SerializationCDE(QCBOREncodeContext *pCtx);
@@ -528,7 +528,8 @@ QCBOREncode_SerializationCDE(QCBOREncodeContext *pCtx);
  * This cases QCBOR to produce "dCBOR" as defined
  * in  draft-mcnally-deterministic-cbor.
  *
- * This is a superset of CDE.
+ * This is a superset of CDE and this function does everything
+ * QCBOREncode_SerializationCDE() does, plus the following.
  *
  * The main feature of dCBOR that there is only one way to serialize a
  * particular numeric value. This changes the behavior of functions
@@ -2456,6 +2457,13 @@ QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pCtx,
 static inline void
 QCBOREncode_SerializationCDE(QCBOREncodeContext *pMe)
 {
+   /* The use of a function pointer here is a little trick to reduce
+    * code linked for the common use cases that don't sort.  If this
+    * function is never linked, then QCBOREncode_CloseAndSortMap() is
+    * never linked and the amount of code pulled in is small. If the
+    * mode switch between sorting and not sorting were an if
+    * statement, then QCBOREncode_CloseAndSortMap() would always be
+    * linked even when not used. */
    pMe->pfnCloseMap = QCBOREncode_CloseAndSortMap;
    pMe->uMode = QCBOR_ENCODE_MODE_CDE;
 }
