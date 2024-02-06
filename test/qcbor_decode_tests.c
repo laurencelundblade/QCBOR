@@ -2449,7 +2449,7 @@ int32_t DateParseTest(void)
       return -1;
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_STRING ||
-      UsefulBufCompareToSZ(Item.val.dateString, "1985-04-12")){
+      UsefulBufCompareToSZ(Item.val.string, "1985-04-12")){
       return -2;
    }
 
