@@ -392,9 +392,9 @@ typedef enum {
     *  decoding possible.*/
    QCBOR_ERR_NO_STRING_ALLOCATOR = 45,
 
-   /** Error allocating space for a string, usually for an
-    *  indefinite-length string. This error makes no further decoding
-    *  possible. */
+   /** Error allocating memory for a string, usually out of memory.
+    * This primarily occurs decoding indefinite-length strings. This
+    * error makes no further decoding possible. */
    QCBOR_ERR_STRING_ALLOCATE = 46,
 
    /** During decoding, the type of the label for a map entry is not
