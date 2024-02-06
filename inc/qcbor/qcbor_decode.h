@@ -238,9 +238,7 @@ typedef enum {
  *  pointer and a length. */
 #define QCBOR_TYPE_NEGBIGNUM     10
 /** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
- *  string, possibly with time zone. Data is in @c val.string . Note this
- *  was previously in @c val.dateString, however this is the same as
- *  val.string being the same type in same union. */
+ *  string, possibly with time zone. Data is in @c val.string . */
 #define QCBOR_TYPE_DATE_STRING   11
 /** Type for integer seconds since Jan 1970 + floating-point
  *  fraction. Data is in @c val.epochDate */
@@ -448,10 +446,6 @@ typedef struct _QCBORItem {
       /** The value for @c uDataType @ref QCBOR_TYPE_DAYS_EPOCH -- the
        *  number of days before or after Jan 1, 1970. */
       int64_t     epochDays;
-
-      /** No longer used. Was the value for @ref QCBOR_TYPE_DATE_STRING,
-       * but now that value is in @c string.  TODO: finish writing this.*/
-      UsefulBufC  dateString;
 
       /** The value for @c uDataType @ref QCBOR_TYPE_POSBIGNUM and
            @ref QCBOR_TYPE_NEGBIGNUM.  TODO: change to string*/
