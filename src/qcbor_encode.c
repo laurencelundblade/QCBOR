@@ -249,7 +249,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
 
 
 /*
- Public function for initialization. See qcbor/qcbor_encode.h
+ * Public function for initialization. See qcbor/qcbor_encode.h
  */
 void
 QCBOREncode_Init(QCBOREncodeContext *pMe, UsefulBuf Storage)
