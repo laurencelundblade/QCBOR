@@ -2371,8 +2371,6 @@ QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pCtx,
  * tested function.
  *
  * See also QCBOREncode_EncodeHead().
- *
- * TODO: remove this in QCBOR 2.0
  */
 static void
 QCBOREncode_AddBytesLenOnly(QCBOREncodeContext *pCtx,
