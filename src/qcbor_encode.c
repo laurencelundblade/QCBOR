@@ -1082,9 +1082,10 @@ QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
    *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   // TODO: is this right?
    uint8_t uMajorType = Nesting_GetMajorType(&(pMe->nesting));
    if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
+      /* It's OK to nest a byte string in any type but
+       * another open byte string. */
       pMe->uError = QCBOR_ERR_OPEN_BYTE_STRING;
       return;
    }
