@@ -470,9 +470,7 @@ typedef struct _QCBORItem {
       /** The value for @c uDataType @ref QCBOR_TYPE_DAYS_EPOCH -- the
        *  number of days before or after Jan 1, 1970. */
       int64_t     epochDays;
-      /** No longer used. Was the value for @ref QCBOR_TYPE_DATE_STRING,
-       * but now that value is in @c string. This will be removed in QCBOR 2.0. */
-      UsefulBufC  dateString;
+
       /** The value for @c uDataType @ref QCBOR_TYPE_POSBIGNUM and
        * @ref QCBOR_TYPE_NEGBIGNUM.  */
       UsefulBufC  bigNum;
