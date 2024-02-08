@@ -729,7 +729,6 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
  *   CBOR_MAJOR_TYPE_BYTE_STRING -- Byte strings
  *   CBOR_MAJOR_TYPE_TEXT_STRING -- Text strings
  *   CBOR_MAJOR_NONE_TYPE_RAW -- Already-encoded CBOR
- *   CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY -- Special case
  *
  * The first two add the head plus the actual bytes. The third just
  * adds the bytes as the heas is presumed to be in the bytes. The
@@ -744,16 +743,11 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pMe,
    /* If it is not Raw CBOR, add the type and the length */
    if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
       uint8_t uRealMajorType = uMajorType;
-      if(uRealMajorType == CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
-         uRealMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
-      }
       QCBOREncode_Private_AppendCBORHead(pMe, uRealMajorType, Bytes.len, 0);
    }
 
-   if(uMajorType != CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
-      /* Actually add the bytes */
-      UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
-   }
+   /* Actually add the bytes */
+   UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
 
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
 }
