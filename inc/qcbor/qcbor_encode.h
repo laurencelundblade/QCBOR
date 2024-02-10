@@ -2414,7 +2414,6 @@ QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pCtx,
 
 
 
-
 static inline void
 QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe,
                           const char        *szLabel,
