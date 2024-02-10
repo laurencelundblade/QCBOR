@@ -2528,7 +2528,6 @@ QCBOREncode_SerializationPreferred(QCBOREncodeContext *pMe)
 
 
 
-
 static inline void
 QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe,
                           const char        *szLabel,
