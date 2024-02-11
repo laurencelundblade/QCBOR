@@ -675,6 +675,13 @@ QCBOREncode_AddUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
  */
 void QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(!(pMe->uAllow & QCBOR_ENCODE_ALLOW_65_BIG_NEG)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    // TODO: Error out in dCBOR mode
    QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uValue, 0);
 
@@ -840,6 +847,13 @@ QCBOREncode_AddDouble(QCBOREncodeContext *pMe, double dNum)
    bool                 bNoNaNPayload;
    struct IEEE754_ToInt IntResult;
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(IEEE754_IsNotStandardDoubleNaN(dNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    if(pMe->uMode == QCBOR_ENCODE_MODE_DCBOR) {
       IntResult = IEEE754_DoubleToInt(dNum);
       switch(IntResult.type) {
@@ -900,6 +914,14 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pMe, float fNum)
    IEEE754_union        FloatResult;
    bool                 bNoNaNPayload;
    struct IEEE754_ToInt IntResult;
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(IEEE754_IsNotStandardSingleNaN(fNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
 
    if(pMe->uMode == QCBOR_ENCODE_MODE_DCBOR) {
       IntResult = IEEE754_SingleToInt(fNum);

@@ -183,6 +183,17 @@ IEEE754_DoubleToInt(double d);
 struct IEEE754_ToInt
 IEEE754_SingleToInt(float f);
 
+
+int
+IEEE754_IsNotStandardDoubleNaN(double dNum);
+
+
+
+
+int
+IEEE754_IsNotStandardSingleNaN(float fNum);
+
+
 #endif /* ieee754_h */
 
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */

@@ -823,6 +823,44 @@ IEEE754_SingleToInt(const float f)
 }
 
 
+int
+IEEE754_IsNotStandardDoubleNaN(double d)
+{
+   const uint64_t uDouble                 = CopyDoubleToUint64(d);
+   const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
+   /* Cast safe because of mask above; exponents < DOUBLE_EXPONENT_MAX */
+   const int64_t  nDoubleUnbiasedExponent = (int64_t)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
+   const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
+
+   if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN &&
+      uDoubleSignificand != 0 &&
+      uDoubleSignificand != DOUBLE_QUIET_NAN_BIT) {
+      return 1;
+   } else {
+      return 0;
+   }
+}
+
+
+
+int
+IEEE754_IsNotStandardSingleNaN(float f)
+{
+   const uint32_t uSingle                 = CopyFloatToUint32(f);
+   const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
+   /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
+   const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
+   const uint32_t uSingleleSignificand    = uSingle & SINGLE_SIGNIFICAND_MASK;
+
+   if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN &&
+      uSingleleSignificand != 0 &&
+      uSingleleSignificand != SINGLE_QUIET_NAN_BIT) {
+      return 1;
+   } else {
+      return 0;
+   }
+}
+
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
 int ieee754_dummy_place_holder;
