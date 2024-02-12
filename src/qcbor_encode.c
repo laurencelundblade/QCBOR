@@ -675,6 +675,13 @@ QCBOREncode_AddUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
  */
 void QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(!(pMe->uAllow & QCBOR_ENCODE_ALLOW_65_BIG_NEG)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    // TODO: Error out in dCBOR mode
    QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uValue, 0);
 
@@ -735,7 +742,6 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
  *   CBOR_MAJOR_TYPE_BYTE_STRING -- Byte strings
  *   CBOR_MAJOR_TYPE_TEXT_STRING -- Text strings
  *   CBOR_MAJOR_NONE_TYPE_RAW -- Already-encoded CBOR
- *   CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY -- Special case
  *
  * The first two add the head plus the actual bytes. The third just
  * adds the bytes as the heas is presumed to be in the bytes. The
@@ -750,16 +756,11 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pMe,
    /* If it is not Raw CBOR, add the type and the length */
    if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
       uint8_t uRealMajorType = uMajorType;
-      if(uRealMajorType == CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
-         uRealMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
-      }
       QCBOREncode_Private_AppendCBORHead(pMe, uRealMajorType, Bytes.len, 0);
    }
 
-   if(uMajorType != CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
-      /* Actually add the bytes */
-      UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
-   }
+   /* Actually add the bytes */
+   UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
 
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
 }
@@ -846,6 +847,13 @@ QCBOREncode_AddDouble(QCBOREncodeContext *pMe, double dNum)
    bool                 bNoNaNPayload;
    struct IEEE754_ToInt IntResult;
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(IEEE754_IsNotStandardDoubleNaN(dNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    if(pMe->uMode == QCBOR_ENCODE_MODE_DCBOR) {
       IntResult = IEEE754_DoubleToInt(dNum);
       switch(IntResult.type) {
@@ -906,6 +914,14 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pMe, float fNum)
    IEEE754_union        FloatResult;
    bool                 bNoNaNPayload;
    struct IEEE754_ToInt IntResult;
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(IEEE754_IsNotStandardSingleNaN(fNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
 
    if(pMe->uMode == QCBOR_ENCODE_MODE_DCBOR) {
       IntResult = IEEE754_SingleToInt(fNum);
@@ -1475,9 +1491,10 @@ QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
    *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   // TODO: is this right?
    uint8_t uMajorType = Nesting_GetMajorType(&(pMe->nesting));
    if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
+      /* It's OK to nest a byte string in any type but
+       * another open byte string. */
       pMe->uError = QCBOR_ERR_OPEN_BYTE_STRING;
       return;
    }

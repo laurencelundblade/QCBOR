@@ -570,6 +570,7 @@ FloatValuesTests(void)
 
       /* NaN Encode of Preferred */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_Allow(&EnCtx, QCBOR_ENCODE_ALLOW_NAN_PAYLOAD);
       QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
       if(uErr != QCBOR_SUCCESS) {
@@ -618,6 +619,7 @@ FloatValuesTests(void)
 
       /* NaN Encode of Not Preferred */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_Allow(&EnCtx, QCBOR_ENCODE_ALLOW_NAN_PAYLOAD);
       QCBOREncode_AddDoubleNoPreferred(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
       if(uErr != QCBOR_SUCCESS) {
@@ -629,6 +631,7 @@ FloatValuesTests(void)
 
       /* NaN Decode of Not Preferred */
       QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, 0);
+      QCBOREncode_Allow(&EnCtx, QCBOR_ENCODE_ALLOW_NAN_PAYLOAD);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex+100, 12, uErr);
@@ -664,6 +667,7 @@ FloatValuesTests(void)
 
       /* NaN Decode of Not Preferred */
       QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, 0);
+      QCBOREncode_Allow(&EnCtx, QCBOR_ENCODE_ALLOW_NAN_PAYLOAD);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex+100, 13, uErr);
@@ -676,6 +680,7 @@ FloatValuesTests(void)
 
       /* NaN Encode of DCBOR */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_Allow(&EnCtx, QCBOR_ENCODE_ALLOW_NAN_PAYLOAD);
       QCBOREncode_SerializationdCBOR(&EnCtx);
       QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);

@@ -528,7 +528,12 @@ typedef enum {
     * QCBOREncode_SerializationCDE(),
     * QCBOREncode_SerializationdCBOR().
     */
-   QCBOR_ERR_NOT_PREFERRED = 79
+   QCBOR_ERR_NOT_PREFERRED = 79,
+
+   /* Trying to encode something that is discouraged without
+    * allowing it by calling QCBOREncode_Allow() */
+   QCBOR_ERR_NOT_ALLOWED = 80
+
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;

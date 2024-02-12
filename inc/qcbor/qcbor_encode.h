@@ -489,7 +489,7 @@ QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  * This mode is just a user guard to prevent accidentally calling
  * something that produces non-preferred serialization. It doesn't do
  * anything but causes errors to occur on attempts to call the above
- * listed functions.
+ * listed functions. This does nothing if the library is compiled QCBOR_DISABLE_ENCODE_USAGE_GUARDS
  */
 static void
 QCBOREncode_SerializationPreferred(QCBOREncodeContext *pCtx);
@@ -502,11 +502,11 @@ QCBOREncode_SerializationPreferred(QCBOREncodeContext *pCtx);
 
  * This causes QCBOR to produce CBOR Deterministic Encoding.  With
  * CDE, two distant unrelated CBOR encoders will produce exactly the
- * same encoded CBOR for a given input. See serialization discussion
- * TODO:
+ * same encoded CBOR for a given input. See also
+ * @ref Serialization.
  *
- * In addition to doing what QCBOREncode_SerializationPreferred()
- * does, this causes maps to be sorted. The map is sorted
+ * In addition to doing everything QCBOREncode_SerializationPreferred()
+ * does (including excluding xxx), this causes maps to be sorted. The map is sorted
  * automatically when QCBOREncode_CloseMap() is called.
  * QCBOREncode_CloseMap() becomes equivalent to
  * QCBOREncode_CloseAndSortMap().
@@ -549,6 +549,21 @@ QCBOREncode_SerializationCDE(QCBOREncodeContext *pCtx);
  */
 static void
 QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pCtx);
+
+
+/* By default QCBOR will not encode some item values because they are
+ * not very interoperable. They are allowed by the CBOR standard, but
+ * almost never used. See QCBOREncode_Allow() and @ref Serialization.
+ */
+#define QCBOR_ENCODE_ALLOW_NAN_PAYLOAD 0x01
+#define QCBOR_ENCODE_ALLOW_65_BIG_NEG  0x02
+#define QCBOR_ENCODE_ALLOW_ALL         0xFF
+
+
+/* This does nothing if the library is compiled QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+static void
+QCBOREncode_Allow(QCBOREncodeContext *pCtx, uint8_t uAllow);
+
 
 
 /**
@@ -818,6 +833,10 @@ QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float dNum)
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
+ * This is not subject to the checks for allowed NaN Payloads. See
+ * QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
+ *
+ *
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(), and
  * QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
  */
@@ -841,6 +860,10 @@ QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
  * Preferred serialization is not used.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
+ *
+ * This is not subject to the checks for allowed NaN Payloads. See
+ * QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
+ *
  *
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(), and
  * QCBOREncode_AddDoubleNoPreferred() and @ref Floating-Point.
@@ -2497,6 +2520,8 @@ QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pCtx,
                                    int64_t             nExponent);
 
 
+
+
 static inline void
 QCBOREncode_SerializationCDE(QCBOREncodeContext *pMe)
 {
@@ -2511,7 +2536,6 @@ QCBOREncode_SerializationCDE(QCBOREncodeContext *pMe)
    pMe->uMode = QCBOR_ENCODE_MODE_CDE;
 }
 
-
 static inline void
 QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pMe)
 {
@@ -2519,14 +2543,19 @@ QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pMe)
    pMe->uMode = QCBOR_ENCODE_MODE_DCBOR;
 }
 
-
 static inline void
 QCBOREncode_SerializationPreferred(QCBOREncodeContext *pMe)
 {
    pMe->uMode = QCBOR_ENCODE_MODE_PREFERRED;
 }
 
-
+static inline void
+QCBOREncode_Allow(QCBOREncodeContext *pMe, const uint8_t uAllow)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   pMe->uAllow = uAllow;
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+}
 
 
 static inline void
@@ -3834,11 +3863,13 @@ QCBOREncode_AddNULLToMapN(QCBOREncodeContext *pMe, const int64_t nLabel)
 static inline void
 QCBOREncode_AddUndef(QCBOREncodeContext *pMe)
 {
-   // TODO: Conditional on usage guard
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(pMe->uMode >= QCBOR_ENCODE_MODE_DCBOR) {
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
       return;
    }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    QCBOREncode_Private_AddSimple(pMe, CBOR_SIMPLEV_UNDEF);
 }
 
