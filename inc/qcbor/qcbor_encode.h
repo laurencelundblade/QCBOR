@@ -489,7 +489,12 @@ QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  * This mode is just a user guard to prevent accidentally calling
  * something that produces non-preferred serialization. It doesn't do
  * anything but causes errors to occur on attempts to call the above
- * listed functions. This does nothing if the library is compiled QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+ * listed functions. This does nothing if the library is compiled
+ * QCBOR_DISABLE_ENCODE_USAGE_GUARDS.
+ *
+ * See @ref Serialization. It is usually not necessary to set this
+ * mode, but there is usually no issue in setting it.  Preferred
+ * Serialization is defined in RFC 8949, section 4.1.
  */
 static void
 QCBOREncode_SerializationPreferred(QCBOREncodeContext *pCtx);
@@ -500,14 +505,14 @@ QCBOREncode_SerializationPreferred(QCBOREncodeContext *pCtx);
  *
  * @param[in] pCtx   The encoding context for mode set.
 
- * This causes QCBOR to produce CBOR Deterministic Encoding.  With
- * CDE, two distant unrelated CBOR encoders will produce exactly the
- * same encoded CBOR for a given input. See also
- * @ref Serialization.
+ * This causes QCBOR to produce CBOR Deterministic Encoding (CDE).
+ * With CDE, two distant unrelated CBOR encoders will produce exactly
+ * the same encoded CBOR for a given input.
  *
- * In addition to doing everything QCBOREncode_SerializationPreferred()
- * does (including excluding xxx), this causes maps to be sorted. The map is sorted
- * automatically when QCBOREncode_CloseMap() is called.
+ * In addition to doing everything
+ * QCBOREncode_SerializationPreferred() does (including exclusion of
+ * indefinite lengths), this causes maps to be sorted. The map is
+ * sorted automatically when QCBOREncode_CloseMap() is called.
  * QCBOREncode_CloseMap() becomes equivalent to
  * QCBOREncode_CloseAndSortMap().
  *
@@ -515,6 +520,11 @@ QCBOREncode_SerializationPreferred(QCBOREncodeContext *pCtx);
  * the QCBOR library to be linked. Also, QCBOREncode_CloseMap() runs
  * slower, but this is probably only of consequence in very
  * constrained environments.
+ *
+ * See @ref Serialization. It is usually not necessary to set this
+ * mode as determinism is very rarely needed. However it will
+ * usually work with most protocols. CDE is defined in
+ * draft-ietf-cbor-cde.
  */
 static void
 QCBOREncode_SerializationCDE(QCBOREncodeContext *pCtx);
@@ -525,42 +535,71 @@ QCBOREncode_SerializationCDE(QCBOREncodeContext *pCtx);
  *
  * @param[in] pCtx   The encoding context for mode set.
  *
- * This cases QCBOR to produce "dCBOR" as defined
- * in  draft-mcnally-deterministic-cbor.
+ * This is a superset of CDE. This function does everything
+ * QCBOREncode_SerializationCDE() does. Also it is a super set of
+ * preferred serialization and does everything
+ * QCBOREncode_SerializationPreferred() does.
  *
- * This is a superset of CDE and this function does everything
- * QCBOREncode_SerializationCDE() does, plus the following.
- *
- * The main feature of dCBOR that there is only one way to serialize a
+ * The main feature of dCBOR is that there is only one way to serialize a
  * particular numeric value. This changes the behavior of functions
- * that add floating point numbers.  If the floating-point number is
- * whole, it will be added as an integer, not a floating-point number.
+ * that add floating-point numbers.  If the floating-point number is
+ * whole, it will be encoded as an integer, not a floating-point number.
+ * 0.000 will be encoded as 0x00. Precision is never lost in this
+ * conversion.
  *
  * dCBOR also disallows NaN payloads. QCBOR will allow NaN payloads if
  * you pass a NaN to one of the floating-point encoding functions.
- * This mode forces all NaNs to the half-precision queit NaN. TODO:
- * should this error if an attempt is made to send a NaN payload?
-
- * dCBOR also disallows 65-bit negative integers. QCBOR doesn't
- * produce these by default.
+ * This mode forces all NaNs to the half-precision queit NaN. Also see
+ * QCBOREncode_Allow().
  *
- * dCBOR disallows use of the simple type "undef" produced by
+ * dCBOR also disallows 65-bit negative integers.
+ *
+ * dCBOR disallows use of any simple type other than true, false and
+ * NULL. In particular it disallows use of "undef" produced by
  * QCBOREncode_AddUndef().
+ *
+ * See @ref Serialization. Set this mode only if the protocol you are
+ * implementing requires dCBOR. This mode is usually not compatible
+ * with protocols that don't use dCBOR. dCBOR is defined in
+ * draft-mcnally-deterministic-cbor.
  */
 static void
 QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pCtx);
 
 
-/* By default QCBOR will not encode some item values because they are
- * not very interoperable. They are allowed by the CBOR standard, but
- * almost never used. See QCBOREncode_Allow() and @ref Serialization.
- */
+
+
+/** Bit flag to be passed to QCBOREncode_Allow() to allow NaN payloads
+ *  to be output by QCBOREncode_AddDouble() and
+ *  QCBORENcode_AddFloat(). */
 #define QCBOR_ENCODE_ALLOW_NAN_PAYLOAD 0x01
+
+/** Bit flag to be passed to QCBOREncode_Allow() to allow use of
+ *  QCBOREncode_AddNegativeUInt64(). */
 #define QCBOR_ENCODE_ALLOW_65_BIG_NEG  0x02
+
+/** Bit flag to be passed to QCBOREncode_Allow() output of less
+ *  interoperable values. See @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD, and
+ *  @ref QCBOR_ENCODE_ALLOW_65_BIG_NEG. */
 #define QCBOR_ENCODE_ALLOW_ALL         0xFF
 
 
-/* This does nothing if the library is compiled QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+/*
+ * @brief Allow encoding output of less-interoperable values.
+ *
+ * @param[in] pCtx    The encoding context.
+ * @param[in] uAllow  Bit flags indicating what to allow.
+ *
+ * There are a few things in the CBOR standard that are often not
+ * supported and are thus not very interoperable.  By default QCBOR
+ * will error if you attempt to output them.  This disables that
+ * error.
+ *
+ * See @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD and @ref
+ * QCBOR_ENCODE_ALLOW_65_BIG_NEG.
+ *
+ * This does nothing if the library is compiled
+ * QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 static void
 QCBOREncode_Allow(QCBOREncodeContext *pCtx, uint8_t uAllow);
 
@@ -3792,6 +3831,16 @@ QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext *pMe,
 static inline void
 QCBOREncode_Private_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_DCBOR) {
+      if(uNum < CBOR_SIMPLEV_FALSE ||
+         uNum > CBOR_SIMPLEV_NULL) {
+         pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+         return;
+      }
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    QCBOREncode_Private_AddType7(pMe, 0, uNum);
 }
 
@@ -3863,13 +3912,6 @@ QCBOREncode_AddNULLToMapN(QCBOREncodeContext *pMe, const int64_t nLabel)
 static inline void
 QCBOREncode_AddUndef(QCBOREncodeContext *pMe)
 {
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uMode >= QCBOR_ENCODE_MODE_DCBOR) {
-      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
-      return;
-   }
-#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-
    QCBOREncode_Private_AddSimple(pMe, CBOR_SIMPLEV_UNDEF);
 }
 

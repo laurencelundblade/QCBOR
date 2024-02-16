@@ -823,6 +823,7 @@ IEEE754_SingleToInt(const float f)
 }
 
 
+/* Public function; see ieee754.h */
 int
 IEEE754_IsNotStandardDoubleNaN(double d)
 {
@@ -842,7 +843,7 @@ IEEE754_IsNotStandardDoubleNaN(double d)
 }
 
 
-
+/* Public function; see ieee754.h */
 int
 IEEE754_IsNotStandardSingleNaN(float f)
 {

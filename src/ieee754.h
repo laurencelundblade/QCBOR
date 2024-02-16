@@ -184,12 +184,38 @@ struct IEEE754_ToInt
 IEEE754_SingleToInt(float f);
 
 
+
+/**
+ * @brief Tests whether NaN is "quiet" vs having a payload.
+ *
+ * @param[in] dNum   Double number to test.
+ *
+ * @returns 0 if a quiet NaN, 1 if it has a payload.
+ *
+ * A quiet NaN is usually represented as 0x7ff8000000000000. That is
+ * the significand bits are 0x8000000000000. If the significand bits
+ * are other than 0x8000000000000 it is considered to have a NaN
+ * payload.
+ *
+ * Note that 0x7ff8000000000000 is not specified in a standard, but it
+ * is commonly implemented and chosen by CBOR as the best way to
+ * represent a NaN.
+ */
 int
 IEEE754_IsNotStandardDoubleNaN(double dNum);
 
 
 
-
+/**
+ * @brief Tests whether NaN is "quiet" vs having a payload.
+ *
+ * @param[in] fNum   Float number to test.
+ *
+ * @returns 0 if a quiet NaN, 1 if it has a payload.
+ *
+ * See IEEE754_IsNotStandardDoubleNaN(). A single precision quiet NaN
+ * is 0x7fc00000.
+ */
 int
 IEEE754_IsNotStandardSingleNaN(float fNum);
 
