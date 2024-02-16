@@ -92,9 +92,9 @@ extern "C" {
  *                                should return 'x'.
  *  FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) Can be used when either disabled
  *                                             preferred float or disabling
- *                                             hardware floating point results in
- *                                             error, and all other cases should
- *                                             return 'x'.
+ *                                             hardware floating point results
+ *                                             in error, and all other cases
+ *                                             should return 'x'.
  */
 #ifdef USEFULBUF_DISABLE_ALL_FLOAT
    #define FLOAT_ERR_CODE_NO_FLOAT(x)                 QCBOR_ERR_ALL_FLOAT_DISABLED
@@ -235,7 +235,7 @@ struct _QCBOREncodeContext {
                                * position in it. */
    uint8_t           uError;  /* Error state, always from QCBORError enum */
    uint8_t           uMode;   /* @ref QCBOR_ENCODE_MODE_PREFERRED or related */
-   uint8_t           uAllow;  /* @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD or related */
+   uint8_t           uAllow;  /* @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD, ... */
    void            (*pfnCloseMap)(QCBORPrivateEncodeContext *); /* Use of function
                                * pointer explained in QCBOREncode_SerializationCDE() */
    QCBORTrackNesting nesting; /* Keep track of array and map nesting */

@@ -36,7 +36,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ieee754.h"
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-#include <math.h> /* Only for NAN */
+#include <math.h> /* Only for NAN definition */
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
 
@@ -515,7 +515,7 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
  * @param pMe          Encoder context.
  * @param uMajorType  Major type to insert.
  * @param uArgument   The argument (an integer value or a length).
- * @param uMinLen     The minimum number of bytes for encoding the CBOR argument.
+ * @param uMinLen     Minimum number of bytes for encoding the CBOR argument.
  *
  * This formats the CBOR "head" and appends it to the output.
  */
@@ -677,16 +677,22 @@ QCBOREncode_AddUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
 /*
  * Public functions for adding negative integers. See qcbor/qcbor_encode.h
  */
-void QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
+void
+QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_DCBOR) {
+      /* Never allowed in dCBOR */
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+
    if(!(pMe->uAllow & QCBOR_ENCODE_ALLOW_65_BIG_NEG)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
-   // TODO: Error out in dCBOR mode
    QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uValue, 0);
 
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
@@ -824,11 +830,15 @@ QCBOREncode_Private_AddType7(QCBOREncodeContext *pMe,
  * Public functions for adding a double. See qcbor/qcbor_encode.h
  */
 void
-QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, double dNum)
+QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) {
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+   if(IEEE754_IsNotStandardDoubleNaN(dNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
@@ -866,7 +876,7 @@ QCBOREncode_AddDouble(QCBOREncodeContext *pMe, double dNum)
          case IEEE754_ToInt_IS_UINT:
             QCBOREncode_AddUInt64(pMe, IntResult.integer.un_signed);
             return;
-         case IEEE754_ToInt_NAN:
+         case IEEE754_ToInt_NaN:
             dNum = NAN;
             bNoNaNPayload = true;
             break;
@@ -898,6 +908,10 @@ QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float fNum)
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) {
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+   if(IEEE754_IsNotStandardSingleNaN(fNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
@@ -935,7 +949,7 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pMe, float fNum)
          case IEEE754_ToInt_IS_UINT:
             QCBOREncode_AddUInt64(pMe, IntResult.integer.un_signed);
             return;
-         case IEEE754_ToInt_NAN:
+         case IEEE754_ToInt_NaN:
             fNum = NAN;
             bNoNaNPayload = true;
             break;
@@ -949,6 +963,7 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pMe, float fNum)
    FloatResult = IEEE754_SingleToHalf(fNum, bNoNaNPayload);
 
    QCBOREncode_Private_AddType7(pMe, (uint8_t)FloatResult.uSize, FloatResult.uValue);
+
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    QCBOREncode_AddFloatNoPreferred(pMe, fNum);
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -1113,7 +1128,8 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
  *
  * @param[in] pMe     The encode context with map to close.
  *
- * See QCBOREncode_SerializationCDE() implemention for explantion for why this exists in this form.
+ * See QCBOREncode_SerializationCDE() implemention for explantion for why
+ * this exists in this form.
  */
 static void
 QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe)

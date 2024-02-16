@@ -6632,11 +6632,18 @@ static int32_t SetUpDecoder(QCBORDecodeContext *DCtx, UsefulBufC CBOR, UsefulBuf
 
 int32_t IntegerConvertTest(void)
 {
+   uint64_t uInt;
+
+
    const int nNumTests = C_ARRAY_COUNT(NumberConversions,
                                        struct NumberConversion);
 
    for(int nIndex = 0; nIndex < nNumTests; nIndex++) {
       const struct NumberConversion *pF = &NumberConversions[nIndex];
+
+      if(nIndex == 21) {
+         uInt = 99; // For break point
+      }
 
       // Set up the decoding context including a memory pool so that
       // indefinite length items can be checked
@@ -6662,7 +6669,6 @@ int32_t IntegerConvertTest(void)
          return (int32_t)(3333+nIndex);
       }
 
-      uint64_t uInt;
       QCBORDecode_GetUInt64ConvertAll(&DCtx, 0xffff, &uInt);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorUint64) {
          return (int32_t)(4000+nIndex);

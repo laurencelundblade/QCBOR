@@ -828,6 +828,9 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  *
  * See also QCBOREncode_AddDoubleNoPreferred(), QCBOREncode_AddFloat()
  * and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
+ *
+ * By default, this will error out on an attempt to encode a NaN with
+ * a payload. See QCBOREncode_Allow() and @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
  */
 void
 QCBOREncode_AddDouble(QCBOREncodeContext *pCtx, double dNum);
@@ -872,9 +875,8 @@ QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float dNum)
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
- * This is not subject to the checks for allowed NaN Payloads. See
- * QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
- *
+ * By default, this will error out on an attempt to encode a NaN with
+ * a payload. See QCBOREncode_Allow() and @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
  *
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(), and
  * QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
@@ -900,9 +902,8 @@ QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
- * This is not subject to the checks for allowed NaN Payloads. See
- * QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
- *
+ * By default, this will error out on an attempt to encode a NaN with
+ * a payload. See QCBOREncode_Allow() and @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
  *
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(), and
  * QCBOREncode_AddDoubleNoPreferred() and @ref Floating-Point.
@@ -2593,6 +2594,9 @@ QCBOREncode_Allow(QCBOREncodeContext *pMe, const uint8_t uAllow)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    pMe->uAllow = uAllow;
+#else
+   (void)uAllow;
+   (void)pMe;
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 

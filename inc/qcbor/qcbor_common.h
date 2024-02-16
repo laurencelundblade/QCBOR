@@ -44,6 +44,13 @@ extern "C" {
 #endif
 
 
+//#define QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+
+//#define QCBOR_DISABLE_FLOAT_HW_USE
+
+//#define QCBOR_DISABLE_PREFERRED_FLOAT
+
+
 /**
  * @file qcbor_common.h
  *

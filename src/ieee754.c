@@ -17,7 +17,6 @@
  */
 #include "qcbor/qcbor_common.h"
 
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 #include "ieee754.h"
 #include <string.h> /* For memcpy() */
@@ -163,6 +162,8 @@ CopyDoubleToUint64(double d)
    memcpy(&u64, &d, sizeof(uint64_t));
    return u64;
 }
+
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 static inline double
 CopyUint64ToDouble(uint64_t u64)
@@ -692,7 +693,7 @@ IEEE754_DoubleToInt(const double d)
    } else if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
       if(uDoubleSignificand != 0) {
          /* --- NAN --- */
-         Result.type = IEEE754_ToInt_NAN; /* dCBOR doesn't care about payload */
+         Result.type = IEEE754_ToInt_NaN; /* dCBOR doesn't care about payload */
       } else  {
          /* --- INIFINITY --- */
          Result.type = IEEE754_ToInt_NO_CONVERSION;
@@ -774,7 +775,7 @@ IEEE754_SingleToInt(const float f)
    } else if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN) {
       /* --- NAN or INFINITY --- */
       if(uSingleleSignificand != 0) {
-         Result.type = IEEE754_ToInt_NAN; /* dCBOR doesn't care about payload */
+         Result.type = IEEE754_ToInt_NaN; /* dCBOR doesn't care about payload */
       } else  {
          Result.type = IEEE754_ToInt_NO_CONVERSION;
       }
@@ -822,6 +823,9 @@ IEEE754_SingleToInt(const float f)
    return Result;
 }
 
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+
+
 
 /* Public function; see ieee754.h */
 int
@@ -862,8 +866,4 @@ IEEE754_IsNotStandardSingleNaN(float f)
    }
 }
 
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
-int ieee754_dummy_place_holder;
-
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */

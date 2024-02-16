@@ -195,10 +195,14 @@ int32_t OpenCloseBytesTest(void);
 /* Test map sorting */
 int32_t SortMapTest(void);
 
+#if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
 
-/* Test CDE Encoding Mode (TODO: CDE definition is in progress in IETF)  */
+/* Test CBOR Deterministic Encoding */
 int32_t CDETest(void);
 
+/* Test "dCBOR" mode */
 int32_t DCBORTest(void);
+
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */

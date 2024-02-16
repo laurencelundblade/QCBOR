@@ -5960,8 +5960,12 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
       case QCBOR_TYPE_65BIT_NEG_INT:
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
          *pdValue = -(double)pItem->val.uint64 - 1;
          break;
+#else
+         return QCBOR_ERR_HW_FLOAT_DISABLED;
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;

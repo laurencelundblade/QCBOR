@@ -10,10 +10,10 @@
  * Created on 7/23/18
  * ========================================================================== */
 
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 #ifndef ieee754_h
 #define ieee754_h
+
 
 #include <stdint.h>
 
@@ -54,6 +54,7 @@
  * conversion. This version is reduced to what is needed for CBOR.
  */
 
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 /**
  * @brief Convert half-precision float to double-precision float.
@@ -97,7 +98,7 @@ struct IEEE754_ToInt {
    enum {IEEE754_ToInt_IS_INT,
          IEEE754_ToInt_IS_UINT,
          IEEE754_ToInt_NO_CONVERSION,
-         IEEE754_ToInt_NAN
+         IEEE754_ToInt_NaN
    } type;
    union {
       uint64_t un_signed;
@@ -183,6 +184,7 @@ IEEE754_DoubleToInt(double d);
 struct IEEE754_ToInt
 IEEE754_SingleToInt(float f);
 
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
 /**
@@ -222,4 +224,3 @@ IEEE754_IsNotStandardSingleNaN(float fNum);
 
 #endif /* ieee754_h */
 
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */

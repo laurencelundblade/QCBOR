@@ -232,7 +232,7 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFA\x4F\x80\x00\x00",                 5}, {"\x1B\x00\x00\x00\x01\x00\x00\x00\x00", 9}},
 
    /* 2251799813685248 -- exponent 51, 0 significand bits set, to test double exponent boundary */
-   {2251799813685248,                            0,
+   {2251799813685248,                            2251799813685248.0f,
     {"\xFA\x59\x00\x00\x00",                 5}, {"\xFB\x43\x20\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x59\x00\x00\x00",                 5}, {"\x1B\x00\x08\x00\x00\x00\x00\x00\x00", 9}},
 
@@ -252,7 +252,7 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x3F\xFF\xFF\xFF\xFF\xFF\xFE", 9}},
 
    /* 18014398509481984 -- next largest possible double above 18014398509481982  */
-   {18014398509481984,                           0,
+   {18014398509481984,                           18014398509481984.0f,
     {"\xFA\x5A\x80\x00\x00",                 5}, {"\xFB\x43\x50\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x5A\x80\x00\x00",                 5}, {"\x1B\x00\x40\x00\x00\x00\x00\x00\x00", 9}},
    
@@ -414,6 +414,10 @@ FloatValuesTests(void)
    for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &FloatTestCases[uTestIndex];
 
+      if(uTestIndex == 34) {
+         uDecoded = 1;
+      }
+
       /* Number Encode of Preferred */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
@@ -529,7 +533,7 @@ FloatValuesTests(void)
             }
          }
       }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
 
       /* Number Decode of Not Preferred */
       QCBORDecode_Init(&DCtx, pTestCase->NotPreferred, 0);
