@@ -35,6 +35,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcbor/qcbor_encode.h"
 #include "ieee754.h"
 
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+#include <math.h> /* Only for NAN */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
 
 /**
  * @file qcbor_encode.c
@@ -834,7 +838,6 @@ QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, double dNum)
                                 UsefulBufUtil_CopyDoubleToUint64(dNum));
 }
 
-#include <math.h> // For NaN. Maybe a better way?  TODO:
 
 /*
  * Public functions for adding a double. See qcbor/qcbor_encode.h
@@ -863,7 +866,7 @@ QCBOREncode_AddDouble(QCBOREncodeContext *pMe, double dNum)
          case IEEE754_ToInt_IS_UINT:
             QCBOREncode_AddUInt64(pMe, IntResult.integer.un_signed);
             return;
-         case IEEE754_To_int_NaN:
+         case IEEE754_ToInt_NAN:
             dNum = NAN;
             bNoNaNPayload = true;
             break;
@@ -932,7 +935,7 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pMe, float fNum)
          case IEEE754_ToInt_IS_UINT:
             QCBOREncode_AddUInt64(pMe, IntResult.integer.un_signed);
             return;
-         case IEEE754_To_int_NaN:
+         case IEEE754_ToInt_NAN:
             fNum = NAN;
             bNoNaNPayload = true;
             break;

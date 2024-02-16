@@ -97,7 +97,7 @@ struct IEEE754_ToInt {
    enum {IEEE754_ToInt_IS_INT,
          IEEE754_ToInt_IS_UINT,
          IEEE754_ToInt_NO_CONVERSION,
-         IEEE754_To_int_NaN
+         IEEE754_ToInt_NAN
    } type;
    union {
       uint64_t un_signed;

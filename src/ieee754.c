@@ -690,10 +690,11 @@ IEEE754_DoubleToInt(const double d)
          Result.type = IEEE754_ToInt_NO_CONVERSION;
       }
    } else if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
-      /* --- NAN or INFINITY --- */
       if(uDoubleSignificand != 0) {
-         Result.type = IEEE754_To_int_NaN; /* dCBOR doesn't care about payload */
+         /* --- NAN --- */
+         Result.type = IEEE754_ToInt_NAN; /* dCBOR doesn't care about payload */
       } else  {
+         /* --- INIFINITY --- */
          Result.type = IEEE754_ToInt_NO_CONVERSION;
       }
    } else if(nDoubleUnbiasedExponent < 0 ||
@@ -773,7 +774,7 @@ IEEE754_SingleToInt(const float f)
    } else if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN) {
       /* --- NAN or INFINITY --- */
       if(uSingleleSignificand != 0) {
-         Result.type = IEEE754_To_int_NaN; /* dCBOR doesn't care about payload */
+         Result.type = IEEE754_ToInt_NAN; /* dCBOR doesn't care about payload */
       } else  {
          Result.type = IEEE754_ToInt_NO_CONVERSION;
       }
@@ -791,8 +792,7 @@ IEEE754_SingleToInt(const float f)
        * 64-bit integers always have more precision than the 52-bits
        * of a double.
        */
-       nNonZeroBitsCount = IEEE754_Private_CountNonZeroBits(SINGLE_NUM_SIGNIFICAND_BITS, uSingleleSignificand);
-
+      nNonZeroBitsCount = IEEE754_Private_CountNonZeroBits(SINGLE_NUM_SIGNIFICAND_BITS, uSingleleSignificand);
 
       if(nNonZeroBitsCount && nNonZeroBitsCount > nSingleUnbiasedExponent) {
          /* --- Not a whole number --- */
@@ -801,7 +801,7 @@ IEEE754_SingleToInt(const float f)
          /* --- CONVERTABLE WHOLE NUMBER --- */
          /* Add in the one that is implied in normal floats */
          uInteger = uSingleleSignificand + (1ULL << SINGLE_NUM_SIGNIFICAND_BITS);
-        /* Factor in the exponent */
+         /* Factor in the exponent */
          if(nSingleUnbiasedExponent < SINGLE_NUM_SIGNIFICAND_BITS) {
             /* Numbers less than 2^23 with up to 23 significant bits */
             uInteger >>= SINGLE_NUM_SIGNIFICAND_BITS - nSingleUnbiasedExponent;

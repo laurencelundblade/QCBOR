@@ -692,10 +692,12 @@ int32_t AllAddMethodsTest(void)
    /* Improvement: this test should be broken down into several so it is more
     * managable. Tags and labels could be more sensible */
    QCBOREncodeContext ECtx;
-   UsefulBufC Enc;
-   size_t size;
-   int nReturn = 0;
-   QCBORError uExpectedErr;
+   UsefulBufC         Enc;
+   size_t             size;
+   int                nReturn;
+   QCBORError         uExpectedErr;
+
+   nReturn = 0;
 
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_Allow(&ECtx, QCBOR_ENCODE_ALLOW_ALL);
@@ -768,10 +770,9 @@ int32_t AllAddMethodsTest(void)
    /* 0x7ffc0000UL is a NaN with a payload. */
    QCBOREncode_AddFloat(&ECtx, UsefulBufUtil_CopyUint32ToFloat(0x7ffc0000UL));
    if(QCBOREncode_Finish(&ECtx, &Enc) != uExpectedErr) {
-      nReturn = -24;
+      nReturn = -25;
       goto Done;
    }
-
 
 Done:
    return nReturn;
@@ -3438,7 +3439,10 @@ int32_t CDETest(void)
 
    QCBOREncode_CloseMap(&EC);
 
-   QCBOREncode_Finish(&EC, &Encoded);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_SUCCESS) {
+      return 2;
+   }
 
    static const uint8_t spExpectedCDE[] = {
       0xA6, 0x61, 0x61, 0x01, 0x61, 0x62, 0xF9, 0x7E,

@@ -397,7 +397,7 @@ int32_t
 FloatValuesTests(void)
 {
    unsigned int                 uTestIndex;
-   const struct FloatTestCase *pTestCase;
+   const struct FloatTestCase  *pTestCase;
    const struct NaNTestCase    *pNaNTestCase;
    MakeUsefulBufOnStack(        TestOutBuffer, 20);
    UsefulBufC                   TestOutput;
@@ -413,13 +413,6 @@ FloatValuesTests(void)
    /* Test a variety of doubles */
    for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &FloatTestCases[uTestIndex];
-
-
-      // 9223372036854774784
-     if(pTestCase->dNumber == 1.7976931348623157e308 ||
-        uTestIndex == 77) {
-         uErr = 99; /* For setting break points for particular tests */
-      }
 
       /* Number Encode of Preferred */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
@@ -685,10 +678,10 @@ FloatValuesTests(void)
       QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex+100, 11, uErr);;
+         return MakeTestResultCode(uTestIndex+100, 14, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pNaNTestCase->DCBOR)) {
-         return MakeTestResultCode(uTestIndex+100, 11, 200);
+         return MakeTestResultCode(uTestIndex+100, 14, 200);
       }
 
    }
