@@ -44,12 +44,6 @@ extern "C" {
 #endif
 
 
-//#define QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-
-//#define QCBOR_DISABLE_FLOAT_HW_USE
-
-//#define QCBOR_DISABLE_PREFERRED_FLOAT
-
 
 /**
  * @file qcbor_common.h
@@ -414,7 +408,7 @@ typedef enum {
     *  this error is returned. This error is unrecoverable because the
     *  built-in tag decoding doesn't try to consume the unexpected
     *  type. In previous versions of QCBOR this was considered a
-    *  recoverable error hence @ref QCBOR_ERR_BAD_TAG_CONTENT. Going
+    *  recoverable error hence QCBOR_ERR_BAD_TAG_CONTENT. Going
     *  back further, RFC 7049 use the name "optional tags". That name
     *  is no longer used because "optional" was causing confusion. See
     *  also @ref QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT. */

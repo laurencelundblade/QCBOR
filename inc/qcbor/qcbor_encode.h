@@ -493,7 +493,7 @@ QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  * QCBOR_DISABLE_ENCODE_USAGE_GUARDS.
  *
  * See @ref Serialization. It is usually not necessary to set this
- * mode, but there is usually no issue in setting it.  Preferred
+ * mode, but there is usually no disadvantage to setting it.  Preferred
  * Serialization is defined in RFC 8949, section 4.1.
  */
 static void
@@ -570,8 +570,9 @@ QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pCtx);
 
 
 /** Bit flag to be passed to QCBOREncode_Allow() to allow NaN payloads
- *  to be output by QCBOREncode_AddDouble() and
- *  QCBORENcode_AddFloat(). */
+ *  to be output by QCBOREncode_AddDouble(),
+ *  QCBOREncode_AddDoubleNoPreferred(), QCBORENcode_AddFloat() and
+ *  QCBOREncode_AddSingleleNoPreferred. */
 #define QCBOR_ENCODE_ALLOW_NAN_PAYLOAD 0x01
 
 /** Bit flag to be passed to QCBOREncode_Allow() to allow use of
@@ -584,19 +585,19 @@ QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pCtx);
 #define QCBOR_ENCODE_ALLOW_ALL         0xFF
 
 
-/*
- * @brief Allow encoding output of less-interoperable values.
+/**
+ * @brief Allow encoding of less-interoperable values.
  *
  * @param[in] pCtx    The encoding context.
  * @param[in] uAllow  Bit flags indicating what to allow.
  *
  * There are a few things in the CBOR standard that are often not
  * supported and are thus not very interoperable.  By default QCBOR
- * will error if you attempt to output them.  This disables that
+ * will error if you attempt to output them. This disables that
  * error.
  *
- * See @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD and @ref
- * QCBOR_ENCODE_ALLOW_65_BIG_NEG.
+ * See @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD and 
+ * @ref QCBOR_ENCODE_ALLOW_65_BIG_NEG.
  *
  * This does nothing if the library is compiled
  * QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
@@ -692,6 +693,10 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t u
  * the sign as a bit) which is possible because CBOR happens to
  * support such integers.
  *
+ * Because use of this is discouraged. It must be explicitly allowed
+ * by passing @ref QCBOR_ENCODE_ALLOW_65_BIG_NEG to a call to
+ * QCBOREncode_Allow().
+ *
  * The actual value encoded is -uNum - 1. That is, give 0 for uNum to
  * transmit -1, give 1 to transmit -2 and give UINT64_MAX to transmit
  * -UINT64_MAX-1 (18446744073709551616). The interface is odd like
@@ -699,11 +704,11 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t u
  * QCBOR (making this a complete CBOR implementation).
  *
  * The most negative value QCBOREncode_AddInt64() can encode is
- * -9223372036854775808 which is -2^63 or negative
- * 0x800000000000.  This can encode from -9223372036854775809 to
- * -18446744073709551616 or -2^63 - 1 to -2^64. Note that
- * it is not possible to represent plus or minus 18446744073709551616
- * in any standard C data type.
+ * -9223372036854775808 which is -2^63 or negative 0x800000000000.
+ * This can encode from -9223372036854775809 to -18446744073709551616
+ * or -2^63 - 1 to -2^64. Note that it is not possible to represent
+ * positive or negative 18446744073709551616 in any standard C data
+ * type.
  *
  * Negative integers are normally decoded in QCBOR with type
  * @ref QCBOR_TYPE_INT64.  Integers in the range of -9223372036854775809
@@ -714,7 +719,7 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t u
  * this range.  If you need 65-bit negative integers, you likely need
  * negative 66, 67 and 68-bit negative integers so it is likely better
  * to use CBOR big numbers where you can have any number of bits. See
- * QCBOREncode_AddTNegativeBignum() and TODO: also xxxx
+ * QCBOREncode_AddTNegativeBignum() and @ref Serialization.
  */
 void
 QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pCtx, uint64_t uNum);
@@ -2188,13 +2193,13 @@ QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
 
 
 /**
- *  @brief Close and sort an open map.
+ * @brief Close and sort an open map.
  *
  * @param[in] pCtx The encoding context to close the map in .
  *
  * This is the same as QCBOREncode_CloseMap() except it sorts the map
- * per RFC 8949 Section 4.2.1. This sort is lexicographic of the CBOR-
- * encoded map labels.
+ * per RFC 8949 Section 4.2.1. This sort is lexicographic of the CBOR-encoded
+ * map labels.
  *
  * This is more expensive than most things in the encoder. It uses
  * bubble sort which runs in n-squared time where n is the number of

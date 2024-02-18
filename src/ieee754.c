@@ -11,12 +11,7 @@
  * Created on 7/23/18
  * ========================================================================== */
 
-/*
- * Include before QCBOR_DISABLE_PREFERRED_FLOAT is checked as
- * QCBOR_DISABLE_PREFERRED_FLOAT might be defined in qcbor/qcbor_common.h
- */
 #include "qcbor/qcbor_common.h"
-
 
 #include "ieee754.h"
 #include <string.h> /* For memcpy() */
@@ -163,7 +158,9 @@ CopyDoubleToUint64(double d)
    return u64;
 }
 
+
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+
 
 static inline double
 CopyUint64ToDouble(uint64_t u64)
@@ -829,7 +826,7 @@ IEEE754_SingleToInt(const float f)
 
 /* Public function; see ieee754.h */
 int
-IEEE754_IsNotStandardDoubleNaN(double d)
+IEEE754_IsNotStandardDoubleNaN(const double d)
 {
    const uint64_t uDouble                 = CopyDoubleToUint64(d);
    const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
@@ -849,7 +846,7 @@ IEEE754_IsNotStandardDoubleNaN(double d)
 
 /* Public function; see ieee754.h */
 int
-IEEE754_IsNotStandardSingleNaN(float f)
+IEEE754_IsNotStandardSingleNaN(const float f)
 {
    const uint32_t uSingle                 = CopyFloatToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
@@ -865,5 +862,3 @@ IEEE754_IsNotStandardSingleNaN(float f)
       return 0;
    }
 }
-
-

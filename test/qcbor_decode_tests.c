@@ -6641,10 +6641,6 @@ int32_t IntegerConvertTest(void)
    for(int nIndex = 0; nIndex < nNumTests; nIndex++) {
       const struct NumberConversion *pF = &NumberConversions[nIndex];
 
-      if(nIndex == 21) {
-         uInt = 99; // For break point
-      }
-
       // Set up the decoding context including a memory pool so that
       // indefinite length items can be checked
       QCBORDecodeContext DCtx;

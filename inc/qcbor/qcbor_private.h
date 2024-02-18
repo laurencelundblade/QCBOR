@@ -165,6 +165,8 @@ extern "C" {
  * a uin32_t.
  *
  * This will cause trouble on a machine where size_t is less than 32-bits.
+ *
+ * TODO: make this public?
  */
 #define QCBOR_MAX_ARRAY_OFFSET  (UINT32_MAX - 100)
 
