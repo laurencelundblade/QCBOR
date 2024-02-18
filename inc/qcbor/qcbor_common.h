@@ -1,6 +1,6 @@
 /* ==========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2023, Laurence Lundblade.
+ * Copyright (c) 2018-2024, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -42,6 +42,7 @@ extern "C" {
 } // Keep editor indention formatting happy
 #endif
 #endif
+
 
 
 /**
@@ -407,7 +408,7 @@ typedef enum {
     *  this error is returned. This error is unrecoverable because the
     *  built-in tag decoding doesn't try to consume the unexpected
     *  type. In previous versions of QCBOR this was considered a
-    *  recoverable error hence @ref QCBOR_ERR_BAD_TAG_CONTENT. Going
+    *  recoverable error hence QCBOR_ERR_BAD_TAG_CONTENT. Going
     *  back further, RFC 7049 use the name "optional tags". That name
     *  is no longer used because "optional" was causing confusion. See
     *  also @ref QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT. */
@@ -521,7 +522,20 @@ typedef enum {
     * whole tag contents when it is not the correct tag content, this
     * error can be returned. None of the built-in tag decoders do this
     * (to save object code). */
-   QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 78
+   QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 78,
+
+   /** Attempt to output non-preferred, non-CDE or non-dCBOR when not
+    * allowed by mode. See QCBOREncode_SerializationPreferred(),
+    * QCBOREncode_SerializationCDE(),
+    * QCBOREncode_SerializationdCBOR().
+    */
+   QCBOR_ERR_NOT_PREFERRED = 79,
+
+   /* Trying to encode something that is discouraged (e.g., 65-bit
+    * negative integer) without allowing it by calling
+    * QCBOREncode_Allow() */
+   QCBOR_ERR_NOT_ALLOWED = 80
+
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
