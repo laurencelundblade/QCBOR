@@ -299,6 +299,79 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
                                    uint32_t            uConvertTypes,
                                    int64_t            *pnValue);
 
+/**
+ * @brief Decode next item into a signed 64-bit integer with basic conversions.
+ *
+ * @param[in] pCtx           The decode context.
+ * @param[in] uConvertTypes  The integer conversion options.
+ * @param[out] pNumber       The returned 64-bit signed integer.
+ *
+ * This will get the next item as a number and return it as a C
+ * data type such that no precision is lost.
+ *
+ * Basic version takes type 0, type 1 and type 7 inputs and outputs
+ * int64_t, uint64_t, double plus 65-bit negative. This gives 64-bit
+ * precision for integers and 52-bit for fractions. This will try to
+ * fit int64_t, then uint64_t then double, then 65-bit negative. Note that
+ * this will convert doubles to ints if they are whole numbers.
+ *
+ * Advanced adds decoding of big nums and big floats and
+ * can output bignums and big floats. This gives arbitrary
+ * precision and range with exponents in an int64_t. This will try to
+ * fit into int64_t, then uint64_t, then double, then big num,
+ * then big float.
+ *
+ * The precedence is:
+ * - int64_t Whole numbers between INT64_MIN and INT64_MAX
+ * - uint64_t Whole numbers between INT64_MAX and UINT64_MAX
+ * - double Fractions; whole numbers from UINT64_MAX to
+ *
+ * - big num
+ * - big float
+ *
+ * The encoded number may be type 0 or type 1, half, single or double float,
+ * big number or big float (probably should do decimal fraction too).
+ *
+ * This is useful for dCBOR where floats are converted to ints when they are whole numbers.
+ *
+ * @c uConvertTypes controls what conversions this will perform and
+ * thus what CBOR types will be decoded.  @c uConvertType is a bit map
+ * listing the conversions to be allowed. This function supports
+ * @ref QCBOR_CONVERT_TYPE_XINT64 and @ref QCBOR_CONVERT_TYPE_FLOAT
+ * conversions.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * If the CBOR data type can never be convered by this function or the
+ * conversion was not selected in @c uConversionTypes
+ * @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
+ *
+ * When converting floating-point values, the integer is rounded to
+ * the nearest integer using llround(). By default, floating-point
+ * suport is enabled for QCBOR.
+ *
+ * If floating-point HW use is disabled this will set
+ * @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision number is
+ * encountered. If half-precision support is disabled, this will set
+ * @ref QCBOR_ERR_HALF_PRECISION_DISABLED if a half-precision number
+ * is encountered.
+ *
+ * If floating-point usage is disabled this will set
+ * @ref QCBOR_ERR_ALL_FLOAT_DISABLED if a floating point value is
+ * encountered.
+ *
+ * See also QCBORDecode_GetInt64ConvertAll() which will perform the
+ * same conversions as this and a lot more at the cost of adding more
+ * object code to your executable.
+ */
+static void
+QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
+                                      QCBORItem          *pNumber);
+
+
+static void
+QCBORDecode_GetNumberConvertPreciselyBig(QCBORDecodeContext *pCtx,
+                                         QCBORItem          *pNumber);
 
 /**
  * @brief Decode next item into a signed 64-bit integer with conversions.

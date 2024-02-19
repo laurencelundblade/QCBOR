@@ -7035,3 +7035,128 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
 }
 
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+
+
+void
+QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
+                                      QCBORItem          *pNumber)
+{
+   QCBORItem Item;
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError) {
+      pMe->uLastError = (uint8_t)uError;
+      return;
+   }
+
+   switch(Item.uDataType) {
+
+      case QCBOR_TYPE_INT64:
+      case QCBOR_TYPE_UINT64:
+         *pNumber = Item;
+         break;
+
+      case QCBOR_TYPE_DOUBLE:
+         /* TODO: Try to convert to int */
+         break;
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         /* TODO: Try to convert to double without precision loss */
+
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+         break;
+
+
+   }
+
+
+}
+
+
+#if 0
+/*
+
+
+ case QCBOR_TYPE_65BIT_NEG_INT:
+
+ case QCBOR_TYPE_NEGBIGNUM:
+ case QCBOR_TYPE_POSBIGNUM:
+    /* TODO: convert to int, uint, double??? */
+
+ case QCBOR_TYPE_BIGFLOAT:
+
+ case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
+ case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
+ */
+#endif
+
+
+
+void
+Int_To_BigNum(int64_t     n,
+              UsefulBuf   B,
+              UsefulBufC pBigNum)
+{
+   /* This is just a memcpy, though watch out for endianess */
+   /* Have to check size */
+
+
+}
+
+
+void
+Double_To_BigNum(int64_t     n,
+              UsefulBuf   B,
+              UsefulBufC pBigNum)
+{
+   /* Have to do shift thing to figure out if it is whole number */
+   /* Then kind of a copy and shift, possibly with a lot of zeros */
+
+}
+
+
+void
+QCBORDecode_GetNumberConvertBigNum(QCBORDecodeContext *pMe,
+                                   UsefulBuf B,
+                                   UsefulBufC pBigNum)
+{
+   QCBORItem Item;
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError) {
+      pMe->uLastError = (uint8_t)uError;
+      return;
+   }
+
+   switch(Item.uDataType) {
+
+      case QCBOR_TYPE_INT64:
+      case QCBOR_TYPE_UINT64:
+         *pNumber = Item;
+         break;
+
+      case QCBOR_TYPE_DOUBLE:
+         /* TODO: Try to convert to int */
+         break;
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         /* TODO: Try to convert to double without precision loss */
+
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+         break;
+
+
+   }
+
+
+}
