@@ -41,16 +41,16 @@ MakeTestResultCode(uint32_t   uTestCase,
 #include "half_to_double_from_rfc7049.h"
 
 
-struct DoubleTestCase {
+struct FloatTestCase {
    double      dNumber;
-   double      fNumber;
+   float       fNumber;
    UsefulBufC  Preferred;
    UsefulBufC  NotPreferred;
    UsefulBufC  CDE;
    UsefulBufC  DCBOR;
 };
 
-/* Boundaries for all destination conversions to test at.
+/* Boundaries for destination conversions:
  *
  * smallest subnormal single  1.401298464324817e-45   2^^-149
  * largest subnormal single   1.1754942106924411e-38  2^^-126
@@ -62,29 +62,34 @@ struct DoubleTestCase {
  * smallest normal half      6.103515625E-5
  * largest half              65504.0
  *
- * Boundaries for origin conversions
+ * Boundaries for origin conversions:
  * smallest subnormal double 5.0e-324  2^^-1074
  * largest subnormal double
  * smallest normal double 2.2250738585072014e-308  2^^-1022
  * largest normal double 1.7976931348623157e308 2^^-1023
+ *
+ * Boundaries for double conversion to 64-bit integer:
+ * exponent 51, 52 significand bits set     4503599627370495
+ * exponent 52, 52 significand bits set     9007199254740991
+ * exponent 53, 52 bits set in significand  18014398509481982
  */
 
 /* Always four lines per test case so shell scripts can process into
- * other formats.  CDE and DCBOR standards are not complete yet,
- * encodings are a guess.  C string literals are used because they
+ * other formats. CDE and DCBOR standards are not complete yet,
+ * encodings are what is expected.  C string literals are used because they
  * are the shortest notation. They are used __with a length__ . Null
- * termination doesn't work because * there are zero bytes.
+ * termination doesn't work because there are zero bytes.
  */
-static const struct DoubleTestCase DoubleTestCases[] =  {
+static const struct FloatTestCase FloatTestCases[] =  {
    /* Zero */
    {0.0,                                         0.0f,
     {"\xF9\x00\x00", 3},                         {"\xFB\x00\x00\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x00\x00", 3},                         {"\xF9\x00\x00", 3}},
+    {"\xF9\x00\x00", 3},                         {"\x00", 1}},
 
    /* Negative Zero */
    {-0.0,                                        -0.0f,
     {"\xF9\x80\x00", 3},                         {"\xFB\x80\x00\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x80\x00", 3},                         {"\xF9\x80\x00", 3}},
+    {"\xF9\x80\x00", 3},                         {"\x00", 1}},
 
    /* NaN */
    {NAN,                                         NAN,
@@ -104,12 +109,12 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
    /* 1.0 */
    {1.0,                                         1.0f,
     {"\xF9\x3C\x00", 3},                         {"\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x3C\x00", 3},                         {"\xF9\x3C\x00", 3}},
+    {"\xF9\x3C\x00", 3},                         {"\x01", 1}},
 
-   /* -2.0 -- a negative number that is not zero */
+   /* -2.0 -- a negative */
    {-2.0,                                        -2.0f,
     {"\xF9\xC0\x00", 3},                         {"\xFB\xC0\x00\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\xC0\x00", 3},                         {"\xF9\x3C\x00", 3}},
+    {"\xF9\xC0\x00", 3},                         {"\x21", 1}},
 
    /* 1/3 */
    {0.333251953125,                              0.333251953125f,
@@ -129,45 +134,44 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
    /* 6.097555160522461E-5 -- largest half-precision subnormal */
    {6.097555160522461E-5,                        0.0f,
     {"\xF9\x03\xFF", 3},                         {"\xFB\x3F\x0F\xF8\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x03\xFF", 3},                         {"\xF9\04\00", 3}},
-
-   /* 6.103515625E-5 -- smallest possible half-precision normal */
-   {6.103515625E-5,                              0.0f,
-    {"\xF9\04\00", 3},                           {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\04\00", 3},                           {"\xF9\04\00", 3}},
-
-   /* 6.1035156250000014E-5 -- slightly larger than smallest half-precision normal */
-   {6.1035156250000014E-5,                       6.1035156250000014E-5f,
-    {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9},
-    {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}},
+    {"\xF9\x03\xFF", 3},                         {"\xF9\x03\xFF", 3}},
 
    /* 6.1035156249999993E-5 -- slightly smaller than smallest half-precision normal */
    {6.1035156249999993E-5,  0.0f,
     {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
-   /* 65504.0 -- largest possible half-precision */
+   /* 6.103515625E-5 -- smallest half-precision normal */
+   {6.103515625E-5,                              0.0f,
+    {"\xF9\04\00", 3},                           {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\04\00", 3},                           {"\xF9\04\00", 3}},
+
+   /* 6.1035156250000014E-5 -- slightly larger than smallest half-precision normal */
+   {6.1035156250000014E-5,                       0.0f,
+    {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9},
+    {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}},
+
+   /* 65504.0 -- largest half-precision */
    {65504.0,                                     0.0f,
     {"\xF9\x7B\xFF", 3},                         {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x7B\xFF", 3},                         {"\xF9\x7B\xFF", 3}},
+    {"\xF9\x7B\xFF", 3},                         {"\x19\xFF\xE0", 3}},
 
-   /* 65504.1 -- exponent too large and too much precision to convert */
+   /* 65504.1 -- exponent too large and too much precision to convert to half */
    {65504.1,                                     0.0f,
     {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9},
     {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}},
 
-    /* 65536.0 -- exponent too large but not too much precision for single */
+    /* 65536.0 -- exponent too large for half but not too much precision for single */
    {65536.0,                                     65536.0f,
     {"\xFA\x47\x80\x00\x00", 5},                 {"\xFB\x40\xF0\x00\x00\x00\x00\x00\x00", 9},
-    {"\xFA\x47\x80\x00\x00", 5},                 {"\xFA\x47\x80\x00\x00", 5}},
+    {"\xFA\x47\x80\x00\x00", 5},                 {"\x1A\x00\x01\x00\x00", 5}},
 
    /* 1.401298464324817e-45 -- smallest single subnormal */
    {1.401298464324817e-45,                       1.40129846E-45f,
     {"\xFA\x00\x00\x00\x01", 5},                 {"\xFB\x36\xA0\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x00\x00\x00\x01", 5},                 {"\xFA\x00\x00\x00\x01", 5}},
 
-   /* 5.8774717541114375E-39 -- slightly smaller than the smallest
-    // single normal */
+   /* 5.8774717541114375E-39 -- slightly smaller than the smallest single normal */
    {5.8774717541114375E-39,                      5.87747175E-39f,
     {"\xFA\x00\x40\x00\x00", 5},                 {"\xFB\x38\x00\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x00\x40\x00\x00", 5},                 {"\xFA\x00\x40\x00\x00", 5}},
@@ -192,20 +196,100 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
     {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9},
     {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}},
 
+   /* 8388607 -- exponent 22 to test single exponent boundary */
+   {8388607,                                     8388607.0f,
+    {"\xFA\x4A\xFF\xFF\xFE", 5},                 {"\xFB\x41\x5F\xFF\xFF\xC0\x00\x00\x00", 9},
+    {"\xFA\x4A\xFF\xFF\xFE", 5},                 {"\x1A\x00\x7F\xFF\xFF", 5}},
+
+   /* 16777215 -- exponent 23 to test single exponent boundary */
+   {16777215,                                    16777215.0f,
+    {"\xFA\x4B\x7F\xFF\xFF", 5},                 {"\xFB\x41\x6F\xFF\xFF\xE0\x00\x00\x00", 9},
+    {"\xFA\x4B\x7F\xFF\xFF", 5},                 {"\x1A\x00\xFF\xFF\xFF", 5}},
+
    /* 16777216 -- converts to single without loss */
-   {16777216,                                    16777216,
+   {16777216,                                    16777216.0f,
     {"\xFA\x4B\x80\x00\x00", 5},                 {"\xFB\x41\x70\x00\x00\x00\x00\x00\x00", 9},
-    {"\xFA\x4B\x80\x00\x00", 5},                 {"\xFA\x4B\x80\x00\x00", 5}},
+    {"\xFA\x4B\x80\x00\x00", 5},                 {"\x1A\x01\x00\x00\x00", 5}},
 
-   /* 16777217 -- one more than above and fails conversion to single */
-   {16777217,                                    16777216,
+   /* 16777217 -- one more than above and fails conversion to single because of precision */
+   {16777217,                                    0.0f,
     {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}, {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9},
-    {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}, {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}},
+    {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}, {"\x1A\x01\x00\x00\x01", 5}},
+ 
+   /* 33554430 -- exponent 24 to test single exponent boundary */
+   {33554430,                                    33554430.0f,
+    {"\xFA\x4B\xFF\xFF\xFF", 5},                 {"\xFB\x41\x7F\xFF\xFF\xE0\x00\x00\x00", 9},
+    {"\xFA\x4B\xFF\xFF\xFF", 5},                 {"\x1A\x01\xFF\xFF\xFE",                 5}},
 
-   /* 3.4028234663852886E+38 -- largest possible single normal */
+   /* 4294967295 -- 2^^32 - 1 UINT32_MAX */
+   {4294967295,                                  0,
+    {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9},
+    {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\x1A\xFF\xFF\xFF\xFF",                 5}},
+
+   /* 4294967296 -- 2^^32, UINT32_MAX + 1 */
+   {4294967296,                                  4294967296.0f,
+    {"\xFA\x4F\x80\x00\x00",                 5}, {"\xFB\x41\xF0\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x4F\x80\x00\x00",                 5}, {"\x1B\x00\x00\x00\x01\x00\x00\x00\x00", 9}},
+
+   /* 2251799813685248 -- exponent 51, 0 significand bits set, to test double exponent boundary */
+   {2251799813685248,                            2251799813685248.0f,
+    {"\xFA\x59\x00\x00\x00",                 5}, {"\xFB\x43\x20\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x59\x00\x00\x00",                 5}, {"\x1B\x00\x08\x00\x00\x00\x00\x00\x00", 9}},
+
+   /* 4503599627370495 -- exponent 51, 52 significand bits set to test double exponent boundary*/
+   {4503599627370495,                            0,
+    {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9},
+    {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\x1B\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+
+   /* 9007199254740991 -- exponent 52, 52 significand bits set to test double exponent boundary */
+   {9007199254740991,                            0,
+    {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x1F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+
+   /* 18014398509481982 -- exponent 53, 52 bits set in significand (double lacks precision to represent 18014398509481983) */
+   {18014398509481982,                           0,
+    {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x3F\xFF\xFF\xFF\xFF\xFF\xFE", 9}},
+
+   /* 18014398509481984 -- next largest possible double above 18014398509481982  */
+   {18014398509481984,                           18014398509481984.0f,
+    {"\xFA\x5A\x80\x00\x00",                 5}, {"\xFB\x43\x50\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x5A\x80\x00\x00",                 5}, {"\x1B\x00\x40\x00\x00\x00\x00\x00\x00", 9}},
+   
+   /* 18446742974197924000.0.0 -- largest single that can convert to uint64 */
+   {18446742974197924000.0,                      18446742974197924000.0f,
+    {"\xFA\x5F\x7F\xFF\xFF",                 5}, {"\xFB\x43\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
+    {"\xFA\x5F\x7F\xFF\xFF",                 5}, {"\x1B\xFF\xFF\xFF\x00\x00\x00\x00\x00", 9}},
+
+   /* 18446744073709550000.0 -- largest double that can convert to uint64, almost UINT64_MAX (18446744073709551615) */
+   {18446744073709550000.0,                      0,
+    {"\xFB\x43\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x43\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\xFF\xFF\xFF\xFF\xFF\xFF\xF8\x00", 9}},
+
+   /* 18446744073709552000.0 -- just too large to convert to uint64, but converts to a single, just over UINT64_MAX  */
+   {18446744073709552000.0,                      18446744073709552000.0f,
+    {"\xFA\x5F\x80\x00\x00",                 5}, {"\xFB\x43\xF0\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x5F\x80\x00\x00",                 5}, {"\xFA\x5F\x80\x00\x00",                 5}},
+
+   /* -4294967295 -- negative UINT32_MAX */
+   {-4294967295.0,                               0,
+    {"\xFB\xC1\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\xFB\xC1\xEF\xFF\xFF\xFF\xE0\x00\x00", 9},
+    {"\xFB\xC1\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\x3A\xFF\xFF\xFF\xFE", 5}},
+
+   /* -9223372036854774784.0 -- most negative double that converts to int64 */
+   {-9223372036854774784.0,                      0,
+    {"\xFB\xC3\xDF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\xC3\xDF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\xC3\xDF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x3B\x7F\xFF\xFF\xFF\xFF\xFF\xFB\xFF", 9}},
+
+   /* -18446742974197924000.0.0 -- large negative that converts to float, but too large for int64 */
+   {-18446742974197924000.0,                     -18446742974197924000.0f,
+    {"\xFA\xDF\x7F\xFF\xFF",                 5}, {"\xFB\xC3\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
+    {"\xFA\xDF\x7F\xFF\xFF",                 5}, {"\xFA\xDF\x7F\xFF\xFF",                 5}},
+
+   /* 3.4028234663852886E+38 -- largest possible single */
    {3.4028234663852886E+38,                      3.40282347E+38f,
-    {"\xFA\x7F\x7F\xFF\xFF", 5},                 {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
-    {"\xFA\x7F\x7F\xFF\xFF", 5},                 {"\xFA\x7F\x7F\xFF\xFF", 5}},
+    {"\xFA\x7F\x7F\xFF\xFF",                 5}, {"\xFB\x47\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
+    {"\xFA\x7F\x7F\xFF\xFF",                 5}, {"\xFA\x7F\x7F\xFF\xFF",                 5}},
 
    /* 3.402823466385289E+38 -- slightly larger than largest possible single */
    {3.402823466385289E+38,                       0.0f,
@@ -242,9 +326,12 @@ static const struct DoubleTestCase DoubleTestCases[] =  {
 };
 
 
+/* Can't use types double and float here because there's no way in C to
+ * construct arbitrary payloads for those types.
+ */
 struct NaNTestCase {
-   uint64_t    uDouble;
-   uint32_t    uSingle;
+   uint64_t    uDouble; /* Converted to double in test */
+   uint32_t    uSingle; /* Converted to single in test */
    UsefulBufC  Preferred;
    UsefulBufC  NotPreferred;
    UsefulBufC  CDE;
@@ -292,12 +379,11 @@ static const struct NaNTestCase NaNTestCases[] =  {
    /* Payload with all bits set */
    {0x7fffffffffffffff,                          0x00000000,
     {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
-    {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* List terminator */
    {0, 0, {NULL, 0}, {NULL, 0}, {NULL, 0}, {NULL, 0} }
 };
-
 
 
 /* Public function. See float_tests.h
@@ -311,7 +397,7 @@ int32_t
 FloatValuesTests(void)
 {
    unsigned int                 uTestIndex;
-   const struct DoubleTestCase *pTestCase;
+   const struct FloatTestCase  *pTestCase;
    const struct NaNTestCase    *pNaNTestCase;
    MakeUsefulBufOnStack(        TestOutBuffer, 20);
    UsefulBufC                   TestOutput;
@@ -325,12 +411,11 @@ FloatValuesTests(void)
 #endif
 
    /* Test a variety of doubles */
-   for(uTestIndex = 0; DoubleTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
-      pTestCase = &DoubleTestCases[uTestIndex];
+   for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
+      pTestCase = &FloatTestCases[uTestIndex];
 
-     // if(pTestCase->dNumber == 1.1754943508222874E-38) {
-         if(uTestIndex == 19) {
-         uErr = 99; /* For setting break points for particular tests */
+      if(uTestIndex == 34) {
+         uDecoded = 1;
       }
 
       /* Number Encode of Preferred */
@@ -357,6 +442,47 @@ FloatValuesTests(void)
          return MakeTestResultCode(uTestIndex, 2, 200);
       }
 
+      /* Number Encode of CDE */
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_SerializationCDE(&EnCtx);
+      QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 20, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pTestCase->CDE)) {
+         return MakeTestResultCode(uTestIndex, 21, 200);
+      }
+
+      /* Number Encode of dCBOR */
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_SerializationdCBOR(&EnCtx);
+      QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 22, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pTestCase->DCBOR)) {
+         return MakeTestResultCode(uTestIndex, 23, 200);
+      }
+
+      if(pTestCase->fNumber != 0) {
+         QCBOREncode_Init(&EnCtx, TestOutBuffer);
+         QCBOREncode_SerializationdCBOR(&EnCtx);
+         QCBOREncode_AddFloat(&EnCtx, pTestCase->fNumber);
+         uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+
+         if(uErr != QCBOR_SUCCESS) {
+            return MakeTestResultCode(uTestIndex, 24, uErr);;
+         }
+         if(UsefulBuf_Compare(TestOutput, pTestCase->DCBOR)) {
+            return MakeTestResultCode(uTestIndex, 25, 200);
+         }
+      }
+
+
       /* Number Decode of Preferred */
       QCBORDecode_Init(&DCtx, pTestCase->Preferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
@@ -382,32 +508,32 @@ FloatValuesTests(void)
        * indicates single-precision in the encoded CBOR. */
       if(pTestCase->Preferred.len == 5) {
          if(Item.uDataType != QCBOR_TYPE_FLOAT) {
-            return MakeTestResultCode(uTestIndex, 4, 0);
+            return MakeTestResultCode(uTestIndex, 41, 0);
          }
          if(isnan(pTestCase->dNumber)) {
             if(!isnan(Item.val.fnum)) {
-               return MakeTestResultCode(uTestIndex, 5, 0);
+               return MakeTestResultCode(uTestIndex, 51, 0);
             }
          } else {
             if(Item.val.fnum != pTestCase->fNumber) {
-               return MakeTestResultCode(uTestIndex, 6, 0);
+               return MakeTestResultCode(uTestIndex, 61, 0);
             }
          }
       } else {
          if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
-            return MakeTestResultCode(uTestIndex, 4, 0);
+            return MakeTestResultCode(uTestIndex, 42, 0);
          }
          if(isnan(pTestCase->dNumber)) {
             if(!isnan(Item.val.dfnum)) {
-               return MakeTestResultCode(uTestIndex, 5, 0);
+               return MakeTestResultCode(uTestIndex, 52, 0);
             }
          } else {
             if(Item.val.dfnum != pTestCase->dNumber) {
-               return MakeTestResultCode(uTestIndex, 6, 0);
+               return MakeTestResultCode(uTestIndex, 62, 0);
             }
          }
       }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
 
       /* Number Decode of Not Preferred */
       QCBORDecode_Init(&DCtx, pTestCase->NotPreferred, 0);
@@ -441,6 +567,7 @@ FloatValuesTests(void)
 
       /* NaN Encode of Preferred */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_Allow(&EnCtx, QCBOR_ENCODE_ALLOW_NAN_PAYLOAD);
       QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
       if(uErr != QCBOR_SUCCESS) {
@@ -489,6 +616,7 @@ FloatValuesTests(void)
 
       /* NaN Encode of Not Preferred */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_Allow(&EnCtx, QCBOR_ENCODE_ALLOW_NAN_PAYLOAD);
       QCBOREncode_AddDoubleNoPreferred(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
       if(uErr != QCBOR_SUCCESS) {
@@ -498,8 +626,9 @@ FloatValuesTests(void)
          return MakeTestResultCode(uTestIndex+100, 11, 200);
       }
 
-      /* NaN Decode of Preferred */
+      /* NaN Decode of Not Preferred */
       QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, 0);
+      QCBOREncode_Allow(&EnCtx, QCBOR_ENCODE_ALLOW_NAN_PAYLOAD);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex+100, 12, uErr);
@@ -535,6 +664,7 @@ FloatValuesTests(void)
 
       /* NaN Decode of Not Preferred */
       QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, 0);
+      QCBOREncode_Allow(&EnCtx, QCBOR_ENCODE_ALLOW_NAN_PAYLOAD);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex+100, 13, uErr);
@@ -543,6 +673,21 @@ FloatValuesTests(void)
       if(uDecoded != pNaNTestCase->uDouble) {
          return MakeTestResultCode(uTestIndex+100, 13, 200);
       }
+
+
+      /* NaN Encode of DCBOR */
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_Allow(&EnCtx, QCBOR_ENCODE_ALLOW_NAN_PAYLOAD);
+      QCBOREncode_SerializationdCBOR(&EnCtx);
+      QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex+100, 14, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pNaNTestCase->DCBOR)) {
+         return MakeTestResultCode(uTestIndex+100, 14, 200);
+      }
+
    }
 
    return 0;

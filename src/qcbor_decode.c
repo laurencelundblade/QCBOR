@@ -2800,7 +2800,6 @@ QCBORDecode_Finish(QCBORDecodeContext *pMe)
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
-// Improvement: make these inline?  TODO:
 uint64_t
 QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
                       const QCBORItem    *pItem,
@@ -3554,8 +3553,6 @@ QCBOR_Private_CheckTagRequirement(const QCBOR_Private_TagSpec TagSpec,
 #endif /* QCBOR_DISABLE_TAGS */
 }
 
-// This could be semi-private if need be
-// TODO: decide what to do
 
 /**
  * @brief Get an item by label to match a tag specification.
@@ -3584,7 +3581,6 @@ QCBORDecode_GetTaggedItemInMapN(QCBORDecodeContext         *pMe,
 }
 
 
-// This could be semi-private if need be
 /**
  * @brief Get an item by label to match a tag specification.
  *
@@ -5964,8 +5960,12 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
       case QCBOR_TYPE_65BIT_NEG_INT:
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
          *pdValue = -(double)pItem->val.uint64 - 1;
          break;
+#else
+         return QCBOR_ERR_HW_FLOAT_DISABLED;
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
