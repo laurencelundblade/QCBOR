@@ -703,43 +703,44 @@ QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  * down. If a layer has no work to do for a particular item, it
  * returns quickly.
  *
- * 1. QCBORDecode_GetNextTagContent - The top layer processes tagged
- * data items, turning them into the local C representation.  For the
- * most simple it is just associating a QCBOR_TYPE with the data. For
- * the complex ones that an aggregate of data items, there is some
- * further decoding and some limited recursion.
+ * 1. QCBORDecode_Private_GetNextTagContent - The top layer processes
+ * tagged data items, turning them into the local C representation.
+ * For the most simple it is just associating a QCBOR_TYPE with the
+ * data. For the complex ones that an aggregate of data items, there
+ * is some further decoding and some limited recursion.
  *
- * 2. QCBORDecode_GetNextMapOrArray - This manages the beginnings and
- * ends of maps and arrays. It tracks descending into and ascending
- * out of maps/arrays. It processes breaks that terminate
- * indefinite-length maps and arrays.
+ * 2. QCBORDecode_Private_GetNextMapOrArray - This manages the
+ * beginnings and ends of maps and arrays. It tracks descending into
+ * and ascending out of maps/arrays. It processes breaks that
+ * terminate indefinite-length maps and arrays.
  *
- * 3. QCBORDecode_GetNextMapEntry - This handles the combining of two
- * items, the label and the data, that make up a map entry.  It only
- * does work on maps. It combines the label and data items into one
- * labeled item.
+ * 3. QCBORDecode_Private_GetNextMapEntry - This handles the combining
+ * of two items, the label and the data, that make up a map entry.  It
+ * only does work on maps. It combines the label and data items into
+ * one labeled item.
  *
- * 4. QCBORDecode_GetNextTagNumber - This decodes type 6 tag
+ * 4. QCBORDecode_Private_GetNextTagNumber - This decodes type 6 tag
  * numbers. It turns the tag numbers into bit flags associated with
  * the data item. No actual decoding of the contents of the tag is
  * performed here.
  *
- * 5. QCBORDecode_GetNextFullString - This assembles the sub-items
- * that make up an indefinite-length string into one string item. It
- * uses the string allocator to create contiguous space for the
- * item. It processes all breaks that are part of indefinite-length
- * strings.
+ * 5. QCBORDecode_Private_GetNextFullString - This assembles the
+ * sub-items that make up an indefinite-length string into one string
+ * item. It uses the string allocator to create contiguous space for
+ * the item. It processes all breaks that are part of
+ * indefinite-length strings.
  *
- * 6. DecodeAtomicDataItem - This decodes the atomic data items in
- * CBOR. Each atomic data item has a "major type", an integer
- * "argument" and optionally some content. For text and byte strings,
- * the content is the bytes that make up the string. These are the
- * smallest data items that are considered to be well-formed.  The
- * content may also be other data items in the case of aggregate
+ * 6. QCBOR_Private_DecodeAtomicDataItem - This decodes the atomic
+ * data items in CBOR. Each atomic data item has a "major type", an
+ * integer "argument" and optionally some content. For text and byte
+ * strings, the content is the bytes that make up the string. These
+ * are the smallest data items that are considered to be well-formed.
+ * The content may also be other data items in the case of aggregate
  * types. They are not handled in this layer.
  *
- * Roughly this takes 300 bytes of stack for vars. TODO: evaluate this
- * more carefully and correctly.
+ * This uses about 350 bytes of stack. This number comes from
+ * instrumenting (printf address of stack variables) the code on x86
+ * compiled for size optimization.
  */
 
 
@@ -1634,7 +1635,7 @@ Done:
 
 #else /* QCBOR_DISABLE_TAGS */
 
-   return QCBORDecode_GetNextFullString(pMe, pDecodedItem);
+   return QCBORDecode_Private_GetNextFullString(pMe, pDecodedItem);
 
 #endif /* QCBOR_DISABLE_TAGS */
 }
@@ -3550,7 +3551,7 @@ QCBOR_Private_CheckTagRequirement(const QCBOR_Private_TagSpec TagSpec,
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
-   return CheckTypeList(nItemType, TagSpec.uAllowedContentTypes);
+   return QCBOR_Private_CheckTypeList(nItemType, TagSpec.uAllowedContentTypes);
 
 #endif /* QCBOR_DISABLE_TAGS */
 }
