@@ -36,8 +36,6 @@ jobs:
     - name: Build QCBOR
       run: |
         set -ex
-        mkdir build
-        cd build
         make 
 
     - name: Run tests
