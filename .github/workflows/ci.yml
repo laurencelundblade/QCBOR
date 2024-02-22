@@ -11,13 +11,13 @@ jobs:
 
         config:
         - os-image: ubuntu-latest
-          disable: ''
+          dis-xxx: ''
 
         - os-image: ubuntu-latest
           container: ubuntu:22.04
-          disable: -DQCBOR_DISABLE_TAGS
+          dis-xxx: '-DQCBOR_DISABLE_TAGS'
 
-    name: ${{ matrix.config.disable }}  ${{ matrix.c-compiler }} • ${{ matrix.config.container }}
+    name: ${{ matrix.config.dis-xxx }} • ${{ matrix.c-compiler }} • ${{ matrix.config.container }}
 
     runs-on: ${{ matrix.config.os-image }}
     container: ${{ matrix.config.container }}
@@ -37,7 +37,7 @@ jobs:
     - name: Build QCBOR
       run: |
         set -ex
-        make ${{ matrix.config.disable }}
+        make ${{ matrix.config.dis-xxx }}
 
     - name: Run tests
       run: ./qcbortest
