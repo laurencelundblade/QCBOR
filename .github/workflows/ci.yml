@@ -37,7 +37,7 @@ jobs:
     - name: Build QCBOR
       run: |
         set -ex
-        make ${{ matrix.config.dis-xxx }}
+        make CMD_LINE=${{ matrix.config.dis-xxx }}
 
     - name: Run tests
       run: ./qcbortest
