@@ -11,7 +11,7 @@ jobs:
 
         config:
         - os-image: ubuntu-latest
-          dis-xxx: '-DHI_THERE'
+          container: ubuntu:22.04
 
         - os-image: ubuntu-latest
           container: ubuntu:22.04
@@ -20,6 +20,35 @@ jobs:
         - os-image: ubuntu-latest
           container: ubuntu:22.04
           dis-xxx: '-DUSEFULBUF_DISABLE_ALL_FLOAT'
+
+        - os-image: ubuntu-latest
+          container: ubuntu:22.04
+          dis-xxx: '-DQCBOR_DISABLE_FLOAT_HW_USE'
+
+        - os-image: ubuntu-latest
+          container: ubuntu:22.04
+          dis-xxx: '-DQCBOR_DISABLE_PREFERRED_FLOAT'
+
+        - os-image: ubuntu-latest
+          container: ubuntu:22.04
+          dis-xxx: '-DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA'
+
+        - os-image: ubuntu-latest
+          container: ubuntu:22.04
+          dis-xxx: '-DQCBOR_DISABLE_ENCODE_USAGE_GUARDS'
+
+        - os-image: ubuntu-latest
+          container: ubuntu:22.04
+          dis-xxx: '-DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS'
+
+        - os-image: ubuntu-latest
+          container: ubuntu:22.04
+          dis-xxx: '-DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS'
+
+        - os-image: ubuntu-latest
+          container: ubuntu:22.04
+          dis-xxx: '-DQCBOR_DISABLE_UNCOMMON_TAGS'
+
 
     name: ${{ matrix.config.dis-xxx }} • ${{ matrix.c-compiler }} • ${{ matrix.config.container }}
 
