@@ -2,6 +2,8 @@ name: CI
 
 on: [push, pull_request]
 
+# Fan out for the two compilers
+# Fan out disabling on feature at a time -- too slow to do the full combo fan out
 jobs:
   main:
     strategy:
@@ -70,7 +72,7 @@ jobs:
     - name: Build QCBOR
       run: |
         set -ex
-        make CMD_LINE=${{ matrix.config.dis-xxx }}
+        make -warn CMD_LINE=${{ matrix.config.dis-xxx }}
 
     - name: Run tests
       run: ./qcbortest
