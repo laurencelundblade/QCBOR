@@ -11,11 +11,15 @@ jobs:
 
         config:
         - os-image: ubuntu-latest
-          dis-xxx: ''
+          dis-xxx: '-DHI_THERE'
 
         - os-image: ubuntu-latest
           container: ubuntu:22.04
           dis-xxx: '-DQCBOR_DISABLE_TAGS'
+
+        - os-image: ubuntu-latest
+          container: ubuntu:22.04
+          dis-xxx: '-DUSEFULBUF_DISABLE_ALL_FLOAT'
 
     name: ${{ matrix.config.dis-xxx }} • ${{ matrix.c-compiler }} • ${{ matrix.config.container }}
 
