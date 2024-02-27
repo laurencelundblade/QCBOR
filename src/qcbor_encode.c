@@ -1274,13 +1274,18 @@ QCBOREncode_Private_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
             break;
          }
 
-         nComparison = UsefulOutBuf_Compare(&(pMe->OutBuf), uStart1, uStart2);
+         nComparison = UsefulOutBuf_Compare(&(pMe->OutBuf),
+                                            uStart1, (uStart2 - uStart1),
+                                            uStart2, uLen2);
          if(nComparison < 0) {
             UsefulOutBuf_Swap(&(pMe->OutBuf), uStart1, uStart2, uStart2 + uLen2);
             uStart1 = uStart1 + uLen2;
             bSwapped = true;
-         } else {
+         } else if (nComparison > 0) {
             uStart1 = uStart2;
+         } else /* nComparison == 0 */ {
+            pMe->uError = QCBOR_ERR_DUPLICATE_LABEL;
+            return;
          }
          uStart2 = uStart2 + uLen2;
       }

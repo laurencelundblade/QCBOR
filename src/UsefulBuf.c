@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2023, Laurence Lundblade.
+ Copyright (c) 2018-2024, Laurence Lundblade.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,6 +41,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 28/02/2022  llundblade   Rearrange UsefulOutBuf_Compare().
  19/11/2023  llundblade   Add UsefulOutBuf_GetOutput().
  19/11/2023  llundblade   Add UsefulOutBuf_Swap().
  19/11/2023  llundblade   Add UsefulOutBuf_Compare().
@@ -433,21 +434,27 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pMe, size_t uAmount)
  *
  * Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
-int UsefulOutBuf_Compare(UsefulOutBuf *me, size_t uStart1, size_t uStart2)
+int UsefulOutBuf_Compare(UsefulOutBuf *me,
+                         size_t uStart1, size_t uLen1,
+                         size_t uStart2, size_t uLen2)
 {
    const uint8_t *pBase;
    const uint8_t *pEnd;
    const uint8_t *p1;
    const uint8_t *p2;
+   const uint8_t *p1End;
+   const uint8_t *p2End;
    int            uComparison;
 
    pBase = me->UB.ptr;
    pEnd = (const uint8_t *)pBase + me->data_len;
    p1   = pBase + uStart1;
    p2   = pBase + uStart2;
+   p1End = p1 + uLen1;
+   p2End = p2 + uLen2;
 
    uComparison = 0;
-   while(p1 < pEnd && p2 < pEnd) {
+   while(p1 < pEnd && p2 < pEnd && p1 < p1End && p2 < p2End) {
       uComparison = *p2 - *p1;
       if(uComparison != 0) {
          break;;
@@ -458,6 +465,7 @@ int UsefulOutBuf_Compare(UsefulOutBuf *me, size_t uStart1, size_t uStart2)
 
    return uComparison;
 }
+
 
 
 /**

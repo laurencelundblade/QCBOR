@@ -1,6 +1,6 @@
 /* =========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2022, Laurence Lundblade.
+ * Copyright (c) 2018-2024, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  * All rights reserved.
  *
@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 28/02/2022   llundblade      Rearrange UsefulOutBuf_Compare().
  19/11/2023   llundblade      Add UsefulOutBuf_GetOutput().
  19/11/2023   llundblade      Add UsefulOutBuf_Swap().
  19/11/2023   llundblade      Add UsefulOutBuf_Compare().
@@ -1406,6 +1407,8 @@ UsefulOutBuf_OutUBufOffset(UsefulOutBuf *pUOutBuf, size_t uOffset);
  * @return  0 for equality, positive if uStart1 is lexographically larger,
  *          negative if uStart2 is lexographically larger.
  *
+ * TODO: update documentation
+ * 
  * This looks into bytes that have been output at the offsets @c start1
  * and @c start2. It compares bytes at those two starting points until
  * they are not equal or the end of the output data is reached from
@@ -1427,8 +1430,10 @@ UsefulOutBuf_OutUBufOffset(UsefulOutBuf *pUOutBuf, size_t uOffset);
  * output buffer. It is employed by QCBOR to sort CBOR-encoded maps that
  * are in the output buffer.
  */
-int UsefulOutBuf_Compare(UsefulOutBuf *pUOutBuf, size_t uStart1, size_t uStart2);
 
+int UsefulOutBuf_Compare(UsefulOutBuf *me,
+                         size_t uStart1, size_t uLen1,
+                         size_t uStart2, size_t uLen2);
 
 /**
  * @brief Swap two regions of output bytes.

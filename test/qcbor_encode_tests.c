@@ -3379,5 +3379,19 @@ SortMapTest(void)
       return 102;
    }
 
+
+   /* --- Duplicate label test  --- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddInt64ToMapN(&EC, 3, 3);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
+   QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+      return 114;
+   }
+
    return 0;
 }
