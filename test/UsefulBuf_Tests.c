@@ -940,7 +940,25 @@ const char * UOBExtraTests(void)
       return "Comparison off the end is equal";
    }
 
-   // TODO: a bit more checking off the end
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 3, 3, 2);
+   if(nCompare > 0) {
+      return "Comparison of unequal lengths incorrect";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 8, 2, 0, 3);
+   if(nCompare < 0) {
+      return "Comparison of unequal lengths incorrect 2";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 2, 2, 3);
+   if(nCompare != 'c' - 'a') {
+      return "Inequal lengths, but inequal strings";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 1, 3, 4, 2);
+   if(nCompare != 'd' - 'c') {
+      return "Inequal lengths, but inequal strings";
+   }
 
    /* Test UsefulOutBuf_Swap() */
 

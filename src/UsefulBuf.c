@@ -434,9 +434,9 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pMe, size_t uAmount)
  *
  * Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
-int UsefulOutBuf_Compare(UsefulOutBuf *me,
-                         size_t uStart1, size_t uLen1,
-                         size_t uStart2, size_t uLen2)
+int UsefulOutBuf_Compare(UsefulOutBuf *pMe,
+                         const size_t uStart1, const size_t uLen1,
+                         const size_t uStart2, const size_t uLen2)
 {
    const uint8_t *pBase;
    const uint8_t *pEnd;
@@ -446,8 +446,8 @@ int UsefulOutBuf_Compare(UsefulOutBuf *me,
    const uint8_t *p2End;
    int            uComparison;
 
-   pBase = me->UB.ptr;
-   pEnd = (const uint8_t *)pBase + me->data_len;
+   pBase = pMe->UB.ptr;
+   pEnd = (const uint8_t *)pBase + pMe->data_len;
    p1   = pBase + uStart1;
    p2   = pBase + uStart2;
    p1End = p1 + uLen1;
@@ -461,6 +461,16 @@ int UsefulOutBuf_Compare(UsefulOutBuf *me,
       }
       p1++;
       p2++;
+   }
+
+   if(uComparison == 0 && p1 != p1End && p2 != p2End) {
+      if(uLen1 > uLen2) {
+         uComparison = 1;
+      } else if(uLen2 < uLen1){
+         uComparison = -1;
+      } else  {
+         return 0;
+      }
    }
 
    return uComparison;
@@ -481,7 +491,7 @@ UsefulOutBuf_Private_ReverseBytes(uint8_t *pStart, uint8_t *pEnd)
 
    while(pStart < pEnd) {
       pEnd--;
-      uTmp     = *pStart;
+      uTmp    = *pStart;
       *pStart = *pEnd;
       *pEnd   = uTmp;
       pStart++;
