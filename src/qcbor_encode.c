@@ -1178,7 +1178,7 @@ QCBOR_Private_ConsumeNext(UsefulInputBuf *pInBuf)
 
 
 /**
- * @brief  Decoded next item to get its length.
+ * @brief  Decoded next item to get its lengths.
  *
  * Decode the next item in map no matter what type it is. It works
  * recursively when an item is a map or array It returns offset just
@@ -1190,16 +1190,25 @@ QCBOR_Private_ConsumeNext(UsefulInputBuf *pInBuf)
  * stuff that came in from outside. We still want a check for safety
  * in case of bugs here, but it is OK to report end of input on error.
  */
-static uint32_t
+struct ItemLens {
+   uint32_t  uLabelLen;
+   uint32_t  uItemLen;
+};
+
+static struct ItemLens
 QCBOREncode_Private_DecodeNextInMap(QCBOREncodeContext *pMe, uint32_t uStart)
 {
-   UsefulInputBuf InBuf;
-   UsefulBufC     EncodedMapBytes;
-   QCBORError     uCBORError;
+   UsefulInputBuf  InBuf;
+   UsefulBufC      EncodedMapBytes;
+   QCBORError      uCBORError;
+   struct ItemLens Result;
+
+   Result.uLabelLen = 0;
+   Result.uItemLen  = 0;
 
    EncodedMapBytes = UsefulOutBuf_OutUBufOffset(&(pMe->OutBuf), uStart);
    if(UsefulBuf_IsNULLC(EncodedMapBytes)) {
-      return 0;
+      return Result;
    }
 
    UsefulInputBuf_Init(&InBuf, EncodedMapBytes);
@@ -1207,15 +1216,22 @@ QCBOREncode_Private_DecodeNextInMap(QCBOREncodeContext *pMe, uint32_t uStart)
    /* This is always used on maps, so consume two, the label and the value */
    uCBORError = QCBOR_Private_ConsumeNext(&InBuf);
    if(uCBORError) {
-      return 0;
-   }
-   uCBORError = QCBOR_Private_ConsumeNext(&InBuf);
-   if(uCBORError) {
-      return 0;
+      return Result;
    }
 
    /* Cast is safe because this is QCBOR which limits sizes to UINT32_MAX */
-   return (uint32_t)UsefulInputBuf_Tell(&InBuf);
+   Result.uLabelLen = (uint32_t)UsefulInputBuf_Tell(&InBuf);
+
+   uCBORError = QCBOR_Private_ConsumeNext(&InBuf);
+   if(uCBORError) {
+      Result.uLabelLen = 0;
+      return Result;
+   }
+
+   Result.uItemLen = (uint32_t)UsefulInputBuf_Tell(&InBuf);
+
+   /* Cast is safe because this is QCBOR which limits sizes to UINT32_MAX */
+   return Result;
 }
 
 
@@ -1233,12 +1249,13 @@ QCBOREncode_Private_DecodeNextInMap(QCBOREncodeContext *pMe, uint32_t uStart)
 static void
 QCBOREncode_Private_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
 {
-   bool     bSwapped;
-   int      nComparison;
-   uint32_t uLen2;
-   uint32_t uLen1;
-   uint32_t uStart1;
-   uint32_t uStart2;
+   bool            bSwapped;
+   int             nComparison;
+   uint32_t        uStart1;
+   uint32_t        uStart2;
+   struct ItemLens Lens1;
+   struct ItemLens Lens2;
+
 
    if(pMe->uError != QCBOR_SUCCESS) {
       return;
@@ -1259,35 +1276,37 @@ QCBOREncode_Private_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
     * swapped.
     */
    do {
-      uLen1 = QCBOREncode_Private_DecodeNextInMap(pMe, uStart);
-      if(uLen1 == 0) {
+      Lens1 = QCBOREncode_Private_DecodeNextInMap(pMe, uStart);
+      if(Lens1.uLabelLen == 0) {
          /* It's an empty map. Nothing to do. */
          break;
       }
       uStart1 = uStart;
-      uStart2 = uStart1 + uLen1;
+      uStart2 = uStart1 + Lens1.uItemLen;
       bSwapped = false;
 
       while(1) {
-         uLen2 = QCBOREncode_Private_DecodeNextInMap(pMe, uStart2);
-         if(uLen2 == 0) {
+         Lens2 = QCBOREncode_Private_DecodeNextInMap(pMe, uStart2);
+         if(Lens2.uLabelLen == 0) {
             break;
          }
 
          nComparison = UsefulOutBuf_Compare(&(pMe->OutBuf),
-                                            uStart1, (uStart2 - uStart1),
-                                            uStart2, uLen2);
+                                            uStart1, Lens1.uLabelLen,
+                                            uStart2, Lens2.uLabelLen);
          if(nComparison < 0) {
-            UsefulOutBuf_Swap(&(pMe->OutBuf), uStart1, uStart2, uStart2 + uLen2);
-            uStart1 = uStart1 + uLen2;
+            UsefulOutBuf_Swap(&(pMe->OutBuf), uStart1, uStart2, uStart2 + Lens2.uItemLen);
+            uStart1 = uStart1 + Lens2.uItemLen; /* item 2 now in position of item 1 */
+            /* Lens1 is still valid as Lens1 for the next loop */
             bSwapped = true;
          } else if (nComparison > 0) {
             uStart1 = uStart2;
+            Lens1   = Lens2;
          } else /* nComparison == 0 */ {
             pMe->uError = QCBOR_ERR_DUPLICATE_LABEL;
             return;
          }
-         uStart2 = uStart2 + uLen2;
+         uStart2 = uStart2 + Lens2.uItemLen;
       }
    } while(bSwapped);
 }
