@@ -1,6 +1,6 @@
 /* =========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2022, Laurence Lundblade.
+ * Copyright (c) 2018-2024, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  * All rights reserved.
  *
@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 28/02/2022   llundblade      Rearrange UsefulOutBuf_Compare().
  19/11/2023   llundblade      Add UsefulOutBuf_GetOutput().
  19/11/2023   llundblade      Add UsefulOutBuf_Swap().
  19/11/2023   llundblade      Add UsefulOutBuf_Compare().
@@ -1401,34 +1402,41 @@ UsefulOutBuf_OutUBufOffset(UsefulOutBuf *pUOutBuf, size_t uOffset);
  *
  * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  * @param[in] uStart1   Offset of first bytes to compare.
- * @param[in] uStart2  Offset of second bytes to compare.
+ * @param[in] uLen1     Length of first bytes to compare.
+ * @param[in] uStart2   Offset of second bytes to compare.
+ * @param[in] uLen2     Length of second bytes to compare.
  *
  * @return  0 for equality, positive if uStart1 is lexographically larger,
  *          negative if uStart2 is lexographically larger.
- *
+ * 
  * This looks into bytes that have been output at the offsets @c start1
  * and @c start2. It compares bytes at those two starting points until
- * they are not equal or the end of the output data is reached from
- * one of the starting points.
+ * they are not equal or @c uLen1 or @c uLen2 is reached. If the
+ * length of the string given is off the end of the output data, the
+ * string will be effectively concated to the data in the output
+ * buffer for the comparison.
  *
  * This returns positive when @c uStart1 lexographically sorts ahead
  * of @c uStart2 and vice versa.  Zero is returned if the strings
- * compare equally. This only happens when the end of the valid data
- * is reached from one of the starting points and the comparison up to
- * that point is equality.
+ * compare equally.
+ *
+ * If lengths are unequal and the first bytes are an exact subset of
+ * the second string, then a positve value will be returned and vice
+ * versa.
  *
  * If either start is past the end of data in the output buffer, 0
  * will be returned. It is the caller's responsibility to make sure
- * the offsets are not off the end such that a comparison is actually
+ * the offsets are not off the end so that a comparison is actually
  * being made. No data will ever be read off the end of the buffer so
  * this safe no matter what offsets are passed.
  *
  * This is a relatively odd function in that it works on data in the
- * output buffer. It is employed by QCBOR to sort CBOR-encoded maps that
- * are in the output buffer.
+ * output buffer. It is employed by QCBOR to sort CBOR-encoded maps
+ * that are in the output buffer.
  */
-int UsefulOutBuf_Compare(UsefulOutBuf *pUOutBuf, size_t uStart1, size_t uStart2);
-
+int UsefulOutBuf_Compare(UsefulOutBuf *pUOutBuf,
+                         size_t uStart1, size_t uLen1,
+                         size_t uStart2, size_t uLen2);
 
 /**
  * @brief Swap two regions of output bytes.

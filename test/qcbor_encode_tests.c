@@ -3196,7 +3196,24 @@ SortMapTest(void)
    if(uErr) {
       return 31;
    }
-   static const uint8_t spNested[] = {
+
+   /* Correctly sorted.
+    * {
+    *   88: 1(888888),
+    *   428: {
+    *     "null": null,
+    *     "array": [
+    *       "hi",
+    *       "there"
+    *     ],
+    *     "empty1": {},
+    *     "empty2": {}
+    *   },
+    *   "boo": true,
+    *   "three": 3
+    *  }
+    */
+   static const uint8_t spSorted[] = {
       0xA4, 0x18, 0x58, 0xC1, 0x1A, 0x00, 0x0D, 0x90,
       0x38, 0x19, 0x01, 0xAC, 0xA4, 0x64, 0x6E, 0x75,
       0x6C, 0x6C, 0xF6, 0x65, 0x61, 0x72, 0x72, 0x61,
@@ -3207,10 +3224,71 @@ SortMapTest(void)
       0x65, 0x74, 0x68, 0x72, 0x65, 0x65, 0x03};
 
    if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
-                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNested),
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSorted),
                                       &CompareDiagnostics)) {
       return 32;
    }
+
+
+   /* Same data items, but added in a different order */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+     QCBOREncode_AddInt64ToMap(&EC, "three", 3);
+     QCBOREncode_OpenMapInMapN(&EC, 428);
+       QCBOREncode_OpenMapInMap(&EC, "empty1");
+         QCBOREncode_CloseAndSortMap(&EC);
+       QCBOREncode_OpenArrayInMap(&EC, "array");
+         QCBOREncode_AddSZString(&EC, "hi");
+         QCBOREncode_AddSZString(&EC, "there");
+         QCBOREncode_CloseArray(&EC);
+       QCBOREncode_OpenMapInMap(&EC, "empty2");
+         QCBOREncode_CloseAndSortMap(&EC);
+       QCBOREncode_AddNULLToMap(&EC, "null");
+       QCBOREncode_CloseAndSortMap(&EC);
+     QCBOREncode_AddDateEpochToMapN(&EC, 88, 888888);
+     QCBOREncode_AddBoolToMap(&EC, "boo", true);
+     QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 31;
+   }
+
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSorted),
+                                      &CompareDiagnostics)) {
+      return 32;
+   }
+
+   /* Same data items, but added in a different order */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+     QCBOREncode_AddBoolToMap(&EC, "boo", true);
+     QCBOREncode_OpenMapInMapN(&EC, 428);
+       QCBOREncode_OpenMapInMap(&EC, "empty1");
+         QCBOREncode_CloseAndSortMap(&EC);
+       QCBOREncode_OpenArrayInMap(&EC, "array");
+         QCBOREncode_AddSZString(&EC, "hi");
+         QCBOREncode_AddSZString(&EC, "there");
+         QCBOREncode_CloseArray(&EC);
+       QCBOREncode_OpenMapInMap(&EC, "empty2");
+         QCBOREncode_CloseAndSortMap(&EC);
+       QCBOREncode_AddNULLToMap(&EC, "null");
+       QCBOREncode_CloseAndSortMap(&EC);
+     QCBOREncode_AddDateEpochToMapN(&EC, 88, 888888);
+     QCBOREncode_AddInt64ToMap(&EC, "three", 3);
+     QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 31;
+   }
+
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSorted),
+                                      &CompareDiagnostics)) {
+      return 32;
+   }
+
+
 
    /* --- Degenerate case of everything in order --- */
    QCBOREncode_Init(&EC, TestBuf);
@@ -3427,6 +3505,44 @@ SortMapTest(void)
                                       UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndeMaps),
                                       &CompareDiagnostics)) {
       return 102;
+   }
+
+
+   /* --- Duplicate label test  --- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddInt64ToMapN(&EC, 3, 3);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
+   QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+      return 114;
+   }
+
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddInt64ToMapN(&EC, 3, 3);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 2);
+   QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
+   QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+      return 115;
+   }
+
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddInt64ToMap(&EC, "abc", 3);
+   QCBOREncode_AddInt64ToMap(&EC, "def", 1);
+   QCBOREncode_AddInt64ToMap(&EC, "def", 1);
+   QCBOREncode_AddInt64ToMap(&EC, "def", 2);
+   QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+      return 116;
    }
 
    return 0;
