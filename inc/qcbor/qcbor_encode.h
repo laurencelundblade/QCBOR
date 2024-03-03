@@ -1992,31 +1992,34 @@ QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
  * This is the same as QCBOREncode_CloseMap(), but the open map that
  * is being close must be of indefinite length.
  */
-static  void
+static void
 QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
 
 
 /**
- *  @brief Close and sort an open map.
+ * @brief Close and sort an open map.
  *
  * @param[in] pCtx The encoding context to close the map in .
  *
  * This is the same as QCBOREncode_CloseMap() except it sorts the map
- * per RFC 8949 Section 4.2.1. This sort is lexicographic of the CBOR-
- * encoded map labels.
+ * per RFC 8949 Section 4.2.1 and checks for duplicate map keys. This
+ * sort is lexicographic of the CBOR-encoded map labels.
  *
  * This is more expensive than most things in the encoder. It uses
- * bubble sort which runs in n-squared time where n is the number of
- * map items. Sorting large maps on slow CPUs might be slow. This is
- * also increases the object code size of the encoder by about 30%.
+ * bubble sort which runs in n-squared time where @c n is the number
+ * of map items. Sorting large maps on slow CPUs might be slow. This
+ * is also increases the object code size of the encoder by about 30%.
  *
- * Bubble sort was selected so as to not need an extra buffer to track
- * map item offsets. Bubble sort works well even though map items are
- * not all the same size because it always swaps adjacent items.
+ * Bubble sort was selected so as to not need require configuration of
+ * a buffer to track map item offsets. Bubble sort works well even
+ * though map items are not all the same size because it always swaps
+ * adjacent items.
  */
-void QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pCtx);
+void 
+QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pCtx);
 
-void QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pCtx);
+void 
+QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pCtx);
 
 
 /**

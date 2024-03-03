@@ -1275,7 +1275,7 @@ QCBOREncode_Private_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
     * sizes are not the same and overlap may occur in the bytes being
     * swapped.
     */
-   do {
+   do { /* Loop until nothing was swapped */
       Lens1 = QCBOREncode_Private_DecodeNextInMap(pMe, uStart);
       if(Lens1.uLabelLen == 0) {
          /* It's an empty map. Nothing to do. */
@@ -1299,7 +1299,7 @@ QCBOREncode_Private_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
             uStart1 = uStart1 + Lens2.uItemLen; /* item 2 now in position of item 1 */
             /* Lens1 is still valid as Lens1 for the next loop */
             bSwapped = true;
-         } else if (nComparison > 0) {
+         } else if(nComparison > 0) {
             uStart1 = uStart2;
             Lens1   = Lens2;
          } else /* nComparison == 0 */ {
@@ -1315,7 +1315,8 @@ QCBOREncode_Private_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
 /*
  * Public functions for closing sorted maps. See qcbor/qcbor_encode.h
  */
-void QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
+void 
+QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
 {
    uint32_t uStart;
 
@@ -1334,7 +1335,8 @@ void QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
 /*
  * Public functions for closing sorted maps. See qcbor/qcbor_encode.h
  */
-void QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pMe)
+void 
+QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pMe)
 {
    uint32_t uStart;
 
