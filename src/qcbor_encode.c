@@ -35,6 +35,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcbor/qcbor_encode.h"
 #include "ieee754.h"
 
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+#include <math.h> /* Only for NAN definition */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
 
 /**
  * @file qcbor_encode.c
@@ -248,8 +252,13 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  */
 
 
+/* Forward declaration for reference in QCBOREncode_Init() */
+static void
+QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe);
+
+
 /*
- Public function for initialization. See qcbor/qcbor_encode.h
+ * Public function for initialization. See qcbor/qcbor_encode.h
  */
 void
 QCBOREncode_Init(QCBOREncodeContext *pMe, UsefulBuf Storage)
@@ -257,6 +266,7 @@ QCBOREncode_Init(QCBOREncodeContext *pMe, UsefulBuf Storage)
    memset(pMe, 0, sizeof(QCBOREncodeContext));
    UsefulOutBuf_Init(&(pMe->OutBuf), Storage);
    Nesting_Init(&(pMe->nesting));
+   pMe->pfnCloseMap = QCBOREncode_Private_CloseMapUnsorted;
 }
 
 
@@ -505,7 +515,7 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
  * @param pMe          Encoder context.
  * @param uMajorType  Major type to insert.
  * @param uArgument   The argument (an integer value or a length).
- * @param uMinLen     The minimum number of bytes for encoding the CBOR argument.
+ * @param uMinLen     Minimum number of bytes for encoding the CBOR argument.
  *
  * This formats the CBOR "head" and appends it to the output.
  */
@@ -665,6 +675,31 @@ QCBOREncode_AddUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
 
 
 /*
+ * Public functions for adding negative integers. See qcbor/qcbor_encode.h
+ */
+void
+QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_DCBOR) {
+      /* Never allowed in dCBOR */
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+
+   if(!(pMe->uAllow & QCBOR_ENCODE_ALLOW_65_BIG_NEG)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uValue, 0);
+
+   QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
+}
+
+
+/*
  * Public functions for adding signed integers. See qcbor/qcbor_encode.h
  */
 void
@@ -676,9 +711,9 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
    if(nNum < 0) {
       /* In CBOR -1 encodes as 0x00 with major type negative int.
        * First add one as a signed integer because that will not
-       * overflow. Then change the sign as needed for encoding.  (The
+       * overflow. Then change the sign as needed for encoding (the
        * opposite order, changing the sign and subtracting, can cause
-       * an overflow when encoding INT64_MIN. */
+       * an overflow when encoding INT64_MIN). */
       int64_t nTmp = nNum + 1;
       uValue = (uint64_t)-nTmp;
       uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
@@ -717,7 +752,6 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
  *   CBOR_MAJOR_TYPE_BYTE_STRING -- Byte strings
  *   CBOR_MAJOR_TYPE_TEXT_STRING -- Text strings
  *   CBOR_MAJOR_NONE_TYPE_RAW -- Already-encoded CBOR
- *   CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY -- Special case
  *
  * The first two add the head plus the actual bytes. The third just
  * adds the bytes as the heas is presumed to be in the bytes. The
@@ -732,16 +766,11 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pMe,
    /* If it is not Raw CBOR, add the type and the length */
    if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
       uint8_t uRealMajorType = uMajorType;
-      if(uRealMajorType == CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
-         uRealMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
-      }
       QCBOREncode_Private_AppendCBORHead(pMe, uRealMajorType, Bytes.len, 0);
    }
 
-   if(uMajorType != CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
-      /* Actually add the bytes */
-      UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
-   }
+   /* Actually add the bytes */
+   UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
 
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
 }
@@ -803,6 +832,17 @@ QCBOREncode_Private_AddType7(QCBOREncodeContext *pMe,
 void
 QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+   if(IEEE754_IsNotStandardDoubleNaN(dNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    QCBOREncode_Private_AddType7(pMe,
                                 sizeof(uint64_t),
                                 UsefulBufUtil_CopyDoubleToUint64(dNum));
@@ -813,42 +853,50 @@ QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
  * Public functions for adding a double. See qcbor/qcbor_encode.h
  */
 void
-QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
+QCBOREncode_AddDouble(QCBOREncodeContext *pMe, double dNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   const IEEE754_union uNum = IEEE754_DoubleToSmaller(dNum, true);
+   IEEE754_union        FloatResult;
+   bool                 bNoNaNPayload;
+   struct IEEE754_ToInt IntResult;
 
-   QCBOREncode_Private_AddType7(pMe, (uint8_t)uNum.uSize, uNum.uValue);
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(IEEE754_IsNotStandardDoubleNaN(dNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   if(pMe->uMode == QCBOR_ENCODE_MODE_DCBOR) {
+      IntResult = IEEE754_DoubleToInt(dNum);
+      switch(IntResult.type) {
+         case IEEE754_ToInt_IS_INT:
+            QCBOREncode_AddInt64(pMe, IntResult.integer.is_signed);
+            return;
+         case IEEE754_ToInt_IS_UINT:
+            QCBOREncode_AddUInt64(pMe, IntResult.integer.un_signed);
+            return;
+         case IEEE754_ToInt_NaN:
+            dNum = NAN;
+            bNoNaNPayload = true;
+            break;
+         case IEEE754_ToInt_NO_CONVERSION:
+            bNoNaNPayload = true;
+      }
+   } else  {
+      bNoNaNPayload = false;
+   }
+
+   FloatResult = IEEE754_DoubleToSmaller(dNum, true, bNoNaNPayload);
+
+   QCBOREncode_Private_AddType7(pMe, (uint8_t)FloatResult.uSize, FloatResult.uValue);
+
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    QCBOREncode_AddDoubleNoPreferred(pMe, dNum);
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 
 
-/*
- * Public functions for adding a double. See qcbor/qcbor_encode.h
- */
-void QCBOREncode_AddDoubleDeterministic(QCBOREncodeContext *me, double dNum)
-{
-   if(dNum <= (double)UINT64_MAX && dNum >= 0) {
-      uint64_t uNum = (uint64_t)dNum;
-      if((double)uNum == dNum) {
-         QCBOREncode_AddUInt64(me, uNum);
-         return;
-      }
-      /* Fall through */
-   } else if(dNum >= (double)INT64_MIN && dNum < 0) {
-      int64_t nNum = (int64_t)dNum;
-      if((double)nNum == dNum) {
-         QCBOREncode_AddInt64(me, nNum);
-         return;
-      }
-      /* Fall through */
-   }
-   //const IEEE754_union uNum = IEEE754_DoubleToSmallest(dNum);
-
-   //QCBOREncode_AddType7(me, uNum.uSize, uNum.uValue);
-}
 
 
 /*
@@ -857,6 +905,16 @@ void QCBOREncode_AddDoubleDeterministic(QCBOREncodeContext *me, double dNum)
 void
 QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float fNum)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+   if(IEEE754_IsNotStandardSingleNaN(fNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    QCBOREncode_Private_AddType7(pMe,
                                 sizeof(uint32_t),
                                 UsefulBufUtil_CopyFloatToUint32(fNum));
@@ -867,12 +925,45 @@ QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float fNum)
  * Public functions for adding a float. See qcbor/qcbor_encode.h
  */
 void
-QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
+QCBOREncode_AddFloat(QCBOREncodeContext *pMe, float fNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   const IEEE754_union uNum = IEEE754_SingleToHalf(fNum);
+   IEEE754_union        FloatResult;
+   bool                 bNoNaNPayload;
+   struct IEEE754_ToInt IntResult;
 
-   QCBOREncode_Private_AddType7(pMe, (uint8_t)uNum.uSize, uNum.uValue);
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(IEEE754_IsNotStandardSingleNaN(fNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+
+   if(pMe->uMode == QCBOR_ENCODE_MODE_DCBOR) {
+      IntResult = IEEE754_SingleToInt(fNum);
+      switch(IntResult.type) {
+         case IEEE754_ToInt_IS_INT:
+            QCBOREncode_AddInt64(pMe, IntResult.integer.is_signed);
+            return;
+         case IEEE754_ToInt_IS_UINT:
+            QCBOREncode_AddUInt64(pMe, IntResult.integer.un_signed);
+            return;
+         case IEEE754_ToInt_NaN:
+            fNum = NAN;
+            bNoNaNPayload = true;
+            break;
+         case IEEE754_ToInt_NO_CONVERSION:
+            bNoNaNPayload = true;
+      }
+   } else  {
+      bNoNaNPayload = false;
+   }
+
+   FloatResult = IEEE754_SingleToHalf(fNum, bNoNaNPayload);
+
+   QCBOREncode_Private_AddType7(pMe, (uint8_t)FloatResult.uSize, FloatResult.uValue);
+
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    QCBOREncode_AddFloatNoPreferred(pMe, fNum);
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -1001,6 +1092,12 @@ void
 QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
                                                    const uint8_t       uMajorType)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    /* Insert the indefinite length marker (0x9f for arrays, 0xbf for maps) */
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, 0, 0);
 
@@ -1013,12 +1110,10 @@ QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
 
 
 /**
- * @brief Semi-private method to close a map, array or bstr wrapped CBOR
+ * @brief Semi-private method to close a map, array or bstr wrapped CBOR.
  *
  * @param[in] pMe           The context to add to.
  * @param[in] uMajorType     The major CBOR type to close.
- *
- * Call QCBOREncode_CloseArray() or QCBOREncode_CloseMap() instead of this.
  */
 void
 QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
@@ -1027,6 +1122,20 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
    QCBOREncode_Private_InsertCBORHead(pMe, uMajorType, Nesting_GetCount(&(pMe->nesting)));
 }
 
+
+/**
+ * @brief Private method to close a map without sorting.
+ *
+ * @param[in] pMe     The encode context with map to close.
+ *
+ * See QCBOREncode_SerializationCDE() implemention for explantion for why
+ * this exists in this form.
+ */
+static void
+QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe)
+{
+   QCBOREncode_Private_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_MAP);
+}
 
 
 /**
@@ -1427,9 +1536,10 @@ QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
    *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   // TODO: is this right?
    uint8_t uMajorType = Nesting_GetMajorType(&(pMe->nesting));
    if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
+      /* It's OK to nest a byte string in any type but
+       * another open byte string. */
       pMe->uError = QCBOR_ERR_OPEN_BYTE_STRING;
       return;
    }

@@ -116,7 +116,9 @@ static void PrintUsefulBufC(const char *szLabel, UsefulBufC Buf)
  */
 
 static const uint8_t spExpectedEncodedInts[] = {
-   0x98, 0x2f, 0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff,
+   0x98, 0x31, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff,
+   0xff, 0xff, 0xff, 0x3b, 0xFf, 0xff, 0xff, 0xff, 0xff,
+   0xff, 0xff, 0xfe, 0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff,
    0xff, 0xff, 0xff, 0x3b, 0x00, 0x00, 0x00, 0x01,
    0x00, 0x00, 0x00, 0x00, 0x3a, 0xff, 0xff, 0xff,
    0xff, 0x3a, 0xff, 0xff, 0xff, 0xfe, 0x3a, 0xff,
@@ -152,6 +154,18 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_ARRAY)
+      return -1;
+
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
+      return (int32_t)nCBORError;
+   if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT ||
+      Item.val.uint64 != 18446744073709551615ULL)
+      return -1;
+
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
+      return (int32_t)nCBORError;
+   if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT ||
+      Item.val.uint64 != 18446744073709551614ULL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
@@ -471,14 +485,6 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
 }
 
 
-/* One less than the smallest negative integer allowed in C. Decoding
-   this should fail.
-   -9223372036854775809
- */
-static const uint8_t spTooSmallNegative[] = {
-   0x3b, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-};
-
 
 /*
    Tests the decoding of lots of different integers sizes
@@ -497,16 +503,6 @@ int32_t IntegerValuesParseTest(void)
    nReturn = IntegerValuesParseTestInternal(&DCtx);
    if(nReturn) {
       return nReturn;
-   }
-
-   // The one large negative integer that can be parsed
-   QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooSmallNegative),
-                    QCBOR_DECODE_MODE_NORMAL);
-
-   QCBORItem item;
-   if(QCBORDecode_GetNext(&DCtx, &item) != QCBOR_ERR_INT_OVERFLOW) {
-      nReturn = -4000;
    }
 
    return(nReturn);
@@ -2449,7 +2445,7 @@ int32_t DateParseTest(void)
       return -1;
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_STRING ||
-      UsefulBufCompareToSZ(Item.val.dateString, "1985-04-12")){
+      UsefulBufCompareToSZ(Item.val.string, "1985-04-12")){
       return -2;
    }
 
@@ -5655,13 +5651,12 @@ static const uint8_t spMapOfEmpty[] = {
  */
 static const uint8_t spRecoverableMapErrors[] = {
 #ifndef QCBOR_DISABLE_TAGS
-   0xa6,
+   0xa5,
    0x04, 0xc1, 0xfb, 0x7e, 0x37, 0xe4, 0x3c, 0x88, 0x00, 0x75, 0x9c,
    0x01, 0xd8, 0xe0, 0xd8, 0xe1, 0xd8, 0xe2, 0xd8, 0xe3, 0xd8, 0x04, 0x00,
 #else
    0xa4,
 #endif
-   0x03, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    0x05, 0x00,
    0x05, 0x00,
    0x08, 0x08,
@@ -6049,12 +6044,6 @@ int32_t EnterMapTest(void)
    (void)QCBORDecode_GetAndResetError(&DCtx);
 #endif
 
-
-   QCBORDecode_GetInt64InMapN(&DCtx, 0x03, &nInt);
-   uErr = QCBORDecode_GetAndResetError(&DCtx);
-   if(uErr != QCBOR_ERR_INT_OVERFLOW) {
-      return 2023;
-   }
 
 #ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_GetEpochDateInMapN(&DCtx, 0x04, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
@@ -6561,13 +6550,23 @@ static const struct NumberConversion NumberConversions[] = {
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
-      "Negative integer -18446744073709551616",
-      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, 9},
+      "Negative integer -9223372036854775808",
+      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
       -9223372036854775807-1, // INT64_MIN
       QCBOR_SUCCESS,
       0ULL,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       -9223372036854775808.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      "Negative integer -18446744073709551616",
+      {(uint8_t[]){0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
+      0ULL,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0ULL,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      -18446744073709551616.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
@@ -6633,6 +6632,9 @@ static int32_t SetUpDecoder(QCBORDecodeContext *DCtx, UsefulBufC CBOR, UsefulBuf
 
 int32_t IntegerConvertTest(void)
 {
+   uint64_t uInt;
+
+
    const int nNumTests = C_ARRAY_COUNT(NumberConversions,
                                        struct NumberConversion);
 
@@ -6663,7 +6665,6 @@ int32_t IntegerConvertTest(void)
          return (int32_t)(3333+nIndex);
       }
 
-      uint64_t uInt;
       QCBORDecode_GetUInt64ConvertAll(&DCtx, 0xffff, &uInt);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorUint64) {
          return (int32_t)(4000+nIndex);

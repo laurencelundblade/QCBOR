@@ -276,10 +276,10 @@ int32_t BasicEncodeTest(void)
 
 
 static const uint8_t spExpectedEncodedAll[] = {
- 0x98, 0x23, 0x66, 0x55, 0x49, 0x4e, 0x54, 0x36, 0x32, 0xd8,
+ 0x98, 0x24, 0x66, 0x55, 0x49, 0x4e, 0x54, 0x36, 0x32, 0xd8,
  0x64, 0x1a, 0x05, 0x5d, 0x23, 0x15, 0x65, 0x49, 0x4e, 0x54,
  0x36, 0x34, 0xd8, 0x4c, 0x1b, 0x00, 0x00, 0x00, 0x12, 0x16,
- 0xaf, 0x2b, 0x15, 0x00, 0x38, 0x2b, 0xa4, 0x63, 0x4c, 0x42,
+ 0xaf, 0x2b, 0x15, 0x00, 0x38, 0x2b, 0x20, 0xa4, 0x63, 0x4c, 0x42,
  0x4c, 0x18, 0x4d, 0x23, 0x18, 0x58, 0x78, 0x1a, 0x4e, 0x45,
  0x47, 0x4c, 0x42, 0x4c, 0x54, 0x48, 0x41, 0x54, 0x20, 0x49,
  0x53, 0x20, 0x4b, 0x49, 0x4e, 0x44, 0x20, 0x4f, 0x46, 0x20,
@@ -521,8 +521,9 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_AddSZString(pECtx, "INT64");
    QCBOREncode_AddTag(pECtx, 76);
    QCBOREncode_AddInt64(pECtx, 77689989909);
-   QCBOREncode_AddUInt64(pECtx,0);
+   QCBOREncode_AddUInt64(pECtx, 0);
    QCBOREncode_AddInt64(pECtx, -44);
+   QCBOREncode_AddNegativeUInt64(pECtx, 0);
 
    /* ints that go in maps */
    QCBOREncode_OpenMap(pECtx);
@@ -691,13 +692,18 @@ int32_t AllAddMethodsTest(void)
    /* Improvement: this test should be broken down into several so it is more
     * managable. Tags and labels could be more sensible */
    QCBOREncodeContext ECtx;
-   int nReturn = 0;
+   UsefulBufC         Enc;
+   size_t             size;
+   int                nReturn;
+   QCBORError         uExpectedErr;
+
+   nReturn = 0;
 
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_Allow(&ECtx, QCBOR_ENCODE_ALLOW_ALL);
 
-   AddAll (&ECtx);
+   AddAll(&ECtx);
 
-   UsefulBufC Enc;
    if(QCBOREncode_Finish(&ECtx, &Enc)) {
       nReturn = -1;
       goto Done;
@@ -705,15 +711,16 @@ int32_t AllAddMethodsTest(void)
 
    if(CheckResults(Enc, spExpectedEncodedAll)) {
       nReturn = -2;
+      goto Done;
    }
 
 
    /* Also test size calculation */
    QCBOREncode_Init(&ECtx, SizeCalculateUsefulBuf);
+   QCBOREncode_Allow(&ECtx, QCBOR_ENCODE_ALLOW_ALL);
 
-   AddAll (&ECtx);
+   AddAll(&ECtx);
 
-   size_t size;
    if(QCBOREncode_FinishGetSize(&ECtx, &size)) {
       nReturn = -10;
       goto Done;
@@ -721,7 +728,69 @@ int32_t AllAddMethodsTest(void)
 
    if(size != sizeof(spExpectedEncodedAll)) {
       nReturn = -11;
+      goto Done;
    }
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   uExpectedErr = QCBOR_ERR_NOT_ALLOWED;
+#else
+   uExpectedErr = QCBOR_SUCCESS;
+#endif
+
+   /* Test the QCBOR_ERR_NOT_ALLOWED error codes */
+   QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_AddNegativeUInt64(&ECtx, 1);
+   if(QCBOREncode_Finish(&ECtx, &Enc) != uExpectedErr) {
+      nReturn = -21;
+      goto Done;
+   }
+
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+   QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   /* 0x7ff8000000000001ULL is a NaN with a payload. */
+   QCBOREncode_AddDouble(&ECtx, UsefulBufUtil_CopyUint64ToDouble(0x7ff8000000000001ULL));
+   if(QCBOREncode_Finish(&ECtx, &Enc) != uExpectedErr) {
+      nReturn = -22;
+      goto Done;
+   }
+
+   QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   /* 0x7ff8000000000001ULL is a NaN with a payload. */
+   QCBOREncode_AddDoubleNoPreferred(&ECtx, UsefulBufUtil_CopyUint64ToDouble(0x7ff8000000000001ULL));
+   if(QCBOREncode_Finish(&ECtx, &Enc) != uExpectedErr) {
+      nReturn = -22;
+      goto Done;
+   }
+
+
+   /* 0x7ffc000000000000ULL is a NaN with a payload. */
+   QCBOREncode_AddDouble(&ECtx, UsefulBufUtil_CopyUint64ToDouble(0x7ff8000000000001ULL));
+   if(QCBOREncode_Finish(&ECtx, &Enc) != uExpectedErr) {
+      nReturn = -23;
+      goto Done;
+   }
+
+   /* 0x7ff80001UL is a NaN with a payload. */
+   QCBOREncode_AddFloat(&ECtx, UsefulBufUtil_CopyUint32ToFloat(0x7ff80001UL));
+   if(QCBOREncode_Finish(&ECtx, &Enc) != uExpectedErr) {
+      nReturn = -24;
+      goto Done;
+   }
+
+   /* 0x7ff80001UL is a NaN with a payload. */
+   QCBOREncode_AddFloatNoPreferred(&ECtx, UsefulBufUtil_CopyUint32ToFloat(0x7ff80001UL));
+   if(QCBOREncode_Finish(&ECtx, &Enc) != uExpectedErr) {
+      nReturn = -24;
+      goto Done;
+   }
+
+   /* 0x7ffc0000UL is a NaN with a payload. */
+   QCBOREncode_AddFloat(&ECtx, UsefulBufUtil_CopyUint32ToFloat(0x7ffc0000UL));
+   if(QCBOREncode_Finish(&ECtx, &Enc) != uExpectedErr) {
+      nReturn = -25;
+      goto Done;
+   }
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 Done:
    return nReturn;
@@ -1761,12 +1830,6 @@ int32_t RTICResultsTest(void)
 */
 static const uint8_t spExpectedBstrWrap[] = {0x82, 0x19, 0x01, 0xC3, 0x43, 0x19, 0x01, 0xD2};
 
-/*
- 81   #array(1)
- 0x58  0x25  # string of length 37 (length of "This is longer than twenty four bytes")
- */
-static const uint8_t spExpectedTypeAndLen[] = {0x81, 0x58, 0x25};
-
 static const uint8_t spExpectedForBstrWrapCancel[] = {0x82, 0x19, 0x01, 0xC3, 0x18, 0x2A};
 
 /*
@@ -1816,19 +1879,6 @@ int32_t BstrWrapTest(void)
       return -5;
    }
 
-   // Third, test QCBOREncode_AddBytesLenOnly() here as it is part of the
-   // bstr wrapping use cases.
-   UsefulBuf_MAKE_STACK_UB(StuffBuf, 50);
-   QCBOREncode_Init(&EC, StuffBuf);
-   QCBOREncode_OpenArray(&EC);
-   QCBOREncode_AddBytesLenOnly(&EC, UsefulBuf_FROM_SZ_LITERAL("This is longer than twenty four bytes"));
-   QCBOREncode_CloseArray(&EC);
-   if(QCBOREncode_Finish(&EC, &Encoded)) {
-      return -6;
-   }
-   if(CheckResults(Encoded, spExpectedTypeAndLen)) {
-      return -7;
-   }
 
    // Fourth test, cancelling a byte string
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
@@ -3497,3 +3547,167 @@ SortMapTest(void)
 
    return 0;
 }
+
+
+#if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+
+#include <math.h> /* For INFINITY and NAN and isnan() */
+
+
+/* Public function. See qcbor_encode_tests.h */
+int32_t CDETest(void)
+{
+   QCBOREncodeContext EC;
+   UsefulBufC         Encoded;
+   QCBORError         uExpectedErr;
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   QCBOREncode_SerializationCDE(&EC);
+
+   /* Items added to test sorting and preferred encoding of numbers and floats */
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddFloatToMap(&EC, "k", 1.0f);
+   QCBOREncode_AddInt64ToMap(&EC, "a", 1);
+   QCBOREncode_AddDoubleToMap(&EC, "x", 2.0);
+   QCBOREncode_AddDoubleToMap(&EC, "r", 3.4028234663852886E+38);
+   QCBOREncode_AddDoubleToMap(&EC, "b", NAN);
+   QCBOREncode_AddUndefToMap(&EC, "t"); /* Test because dCBOR disallows */
+
+   QCBOREncode_CloseMap(&EC);
+
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_SUCCESS) {
+      return 2;
+   }
+
+   static const uint8_t spExpectedCDE[] = {
+      0xA6, 0x61, 0x61, 0x01, 0x61, 0x62, 0xF9, 0x7E,
+      0x00, 0x61, 0x6B, 0xF9, 0x3C, 0x00, 0x61, 0x72,
+      0xFA, 0x7F, 0x7F, 0xFF, 0xFF, 0x61, 0x74, 0xF7,
+      0x61, 0x78, 0xF9, 0x40, 0x00};
+
+   if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedCDE),
+                        Encoded)) {
+      return 1;
+   }
+
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   uExpectedErr = QCBOR_ERR_NOT_PREFERRED;
+#else
+   uExpectedErr = QCBOR_SUCCESS;
+#endif
+
+
+   /* Next, make sure methods that encode non-CDE error out */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_SerializationCDE(&EC);
+   QCBOREncode_OpenMapIndefiniteLength(&EC);
+   QCBOREncode_CloseMap(&EC);
+   if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
+      return 100;
+   }
+
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_SerializationCDE(&EC);
+   QCBOREncode_AddDoubleNoPreferred(&EC, 0);
+   if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
+      return 101;
+   }
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_SerializationCDE(&EC);
+   QCBOREncode_AddFloatNoPreferred(&EC, 0);
+   if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
+      return 101;
+   }
+
+   return 0;
+}
+
+/* Public function. See qcbor_encode_tests.h */
+int32_t DCBORTest(void)
+{
+   QCBOREncodeContext EC;
+   UsefulBufC         Encoded;
+   QCBORError         uExpectedErr;
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   QCBOREncode_SerializationdCBOR(&EC);
+
+   /* Items added to test sorting and preferred encoding of numbers and floats */
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddFloatToMap(&EC, "k", 1.0f);
+   QCBOREncode_AddInt64ToMap(&EC, "a", 1);
+   QCBOREncode_AddDoubleToMap(&EC, "x", 2.0);
+   QCBOREncode_AddDoubleToMap(&EC, "r", 3.4028234663852886E+38);
+   QCBOREncode_AddDoubleToMap(&EC, "b", NAN);
+
+   QCBOREncode_CloseMap(&EC);
+
+   QCBOREncode_Finish(&EC, &Encoded);
+
+   static const uint8_t spExpecteddCBOR[] = {
+      0xA5, 0x61, 0x61, 0x01, 0x61, 0x62, 0xF9, 0x7E,
+      0x00, 0x61, 0x6B, 0x01, 0x61, 0x72, 0xFA, 0x7F,
+      0x7F, 0xFF, 0xFF, 0x61, 0x78, 0x02};
+
+   if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpecteddCBOR),
+                        Encoded)) {
+      return 1;
+   }
+
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   uExpectedErr = QCBOR_ERR_NOT_PREFERRED;
+#else
+   uExpectedErr = QCBOR_SUCCESS;
+#endif
+
+   /* Next, make sure methods that encode of non-CDE error out */
+
+   /* Indefinite-length map */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_SerializationdCBOR(&EC);
+   QCBOREncode_OpenMapIndefiniteLength(&EC);
+   QCBOREncode_CloseMap(&EC);
+   if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
+      return 100;
+   }
+
+   /* Indefinite-length array */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_SerializationdCBOR(&EC);
+   QCBOREncode_OpenArrayIndefiniteLength(&EC);
+   QCBOREncode_CloseMap(&EC);
+   if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
+      return 101;
+   }
+
+   /* The "undef" special value */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_SerializationdCBOR(&EC);
+   QCBOREncode_AddUndef(&EC);
+   QCBOREncode_CloseMap(&EC);
+   if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
+      return 102;
+   }
+
+   /* 65-bit negative integers */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_SerializationdCBOR(&EC);
+   QCBOREncode_AddNegativeUInt64(&EC, 1);
+   if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
+      return 103;
+   }
+
+   /* Improvement: when indefinite length string encoding is supported
+    * test it here too. */
+
+   return 0;
+
+}
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
