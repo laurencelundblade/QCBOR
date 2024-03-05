@@ -7037,11 +7037,29 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
+static double
+NegToD(uint64_t uNegInt)
+{
+   double d;
+   /* Improvement: do this with shifts and masks so it doesn't get disabled when float does */
+
+   /* Subtraction must be after the cast to avoid overflow. */
+   d = (double)uNegInt - 1.0;
+   if(d + 1 == (double)uNegInt) { /* Make sure it is a whole number */
+      return -d;
+   }
+
+   return NAN;
+}
+
+
 void
 QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
                                       QCBORItem          *pNumber)
 {
    QCBORItem Item;
+   struct IEEE754_ToInt ToInt;
+   double d;
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -7054,53 +7072,50 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
    }
 
    switch(Item.uDataType) {
-
       case QCBOR_TYPE_INT64:
       case QCBOR_TYPE_UINT64:
          *pNumber = Item;
          break;
 
       case QCBOR_TYPE_DOUBLE:
-         /* TODO: Try to convert to int */
+         ToInt = IEEE754_DoubleToInt(Item.val.dfnum);
+         if(ToInt.type == IEEE754_ToInt_IS_INT) {
+            pNumber->uDataType = QCBOR_TYPE_INT64;
+            pNumber->val.int64 = ToInt.integer.is_signed;
+         } else if(ToInt.type == IEEE754_ToInt_IS_UINT) {
+            pNumber->uDataType = QCBOR_TYPE_UINT64;
+            pNumber->val.uint64 = ToInt.integer.un_signed;
+         } else {
+            *pNumber = Item;
+         }
          break;
 
       case QCBOR_TYPE_65BIT_NEG_INT:
-         /* TODO: Try to convert to double without precision loss */
+         d = NegToD(Item.val.uint64);
+         if(d == NAN) {
+            *pNumber = Item;
+         } else {
+            pNumber->uDataType = QCBOR_TYPE_DOUBLE;
+            pNumber->val.dfnum = d;
+         }
+         break;
 
       default:
          pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+         pNumber->uDataType = QCBOR_TYPE_NONE;
          break;
-
-
    }
-
-
 }
 
 
 #if 0
-/*
-
-
- case QCBOR_TYPE_65BIT_NEG_INT:
-
- case QCBOR_TYPE_NEGBIGNUM:
- case QCBOR_TYPE_POSBIGNUM:
-    /* TODO: convert to int, uint, double??? */
-
- case QCBOR_TYPE_BIGFLOAT:
-
- case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
- case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
- */
-#endif
 
 
 
 void
-Int_To_BigNum(int64_t     n,
+Int_To_BigNum(uint64_t     u,
               UsefulBuf   B,
-              UsefulBufC pBigNum)
+              UsefulBufC  *pBigNum)
 {
    /* This is just a memcpy, though watch out for endianess */
    /* Have to check size */
@@ -7109,10 +7124,11 @@ Int_To_BigNum(int64_t     n,
 }
 
 
+// TODO: error conditions
 void
-Double_To_BigNum(int64_t     n,
+Double_To_BigNum(double     d,
               UsefulBuf   B,
-              UsefulBufC pBigNum)
+              UsefulBufC *pBigNum)
 {
    /* Have to do shift thing to figure out if it is whole number */
    /* Then kind of a copy and shift, possibly with a lot of zeros */
@@ -7123,7 +7139,8 @@ Double_To_BigNum(int64_t     n,
 void
 QCBORDecode_GetNumberConvertBigNum(QCBORDecodeContext *pMe,
                                    UsefulBuf B,
-                                   UsefulBufC pBigNum)
+                                   UsefulBufC *pBigNum,
+                                   bool       *pbIsNegative)
 {
    QCBORItem Item;
 
@@ -7140,16 +7157,36 @@ QCBORDecode_GetNumberConvertBigNum(QCBORDecodeContext *pMe,
    switch(Item.uDataType) {
 
       case QCBOR_TYPE_INT64:
+         if(Item.val.int64 < 0) {
+            *pbIsNegative = true;
+            Item.val.uint64 = (uint64_t)(-Item.val.int64);
+         } else {
+            Item.val.uint64 =  (uint64_t)Item.val.int64;
+         }
+         /* FALLTHROUGH */
+
       case QCBOR_TYPE_UINT64:
-         *pNumber = Item;
+         Int_To_BigNum(Item.val.uint64, B, pBigNum);
          break;
 
       case QCBOR_TYPE_DOUBLE:
-         /* TODO: Try to convert to int */
+         Double_To_BigNum(Item.val.dfnum, B, pBigNum);
+         /* TODO: sometimes this will fail */
          break;
 
       case QCBOR_TYPE_65BIT_NEG_INT:
          /* TODO: Try to convert to double without precision loss */
+
+      case QCBOR_TYPE_NEGBIGNUM:
+      case QCBOR_TYPE_POSBIGNUM:
+         *pBigNum = UsefulBuf_Copy(B, Item.val.bigNum);
+         break;
+         // TODO: sign
+
+      case QCBOR_TYPE_BIGFLOAT:
+         // TODO: lots of work
+         // This will fail sometimes
+
 
       default:
          pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
@@ -7157,6 +7194,69 @@ QCBORDecode_GetNumberConvertBigNum(QCBORDecodeContext *pMe,
 
 
    }
-
-
 }
+
+
+/* This can represent a very large range of values! */
+void
+QCBORDecode_GetNumberConvertBigFloat(QCBORDecodeContext *pMe,
+                                   UsefulBuf B,
+                                   UsefulBufC *pBigNum,
+                                   bool       *pbIsNegative,
+                                     int64_t   *nExponent)
+{
+   QCBORItem Item;
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError) {
+      pMe->uLastError = (uint8_t)uError;
+      return;
+   }
+
+   switch(Item.uDataType) {
+
+      case QCBOR_TYPE_INT64:
+         if(Item.val.int64 < 0) {
+            *pbIsNegative = true;
+            Item.val.uint64 = (uint64_t)(-Item.val.int64);
+         } else {
+            Item.val.uint64 =  (uint64_t)Item.val.int64;
+         }
+         /* FALLTHROUGH */
+
+      case QCBOR_TYPE_UINT64:
+         Int_To_BigNum(Item.val.uint64, B, pBigNum);
+         break;
+
+      case QCBOR_TYPE_DOUBLE:
+         Double_To_BigNum(Item.val.dfnum, B, pBigNum);
+         /* TODO: sometimes this will fail */
+         break;
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         /* TODO: Try to convert to double without precision loss */
+
+      case QCBOR_TYPE_NEGBIGNUM:
+      case QCBOR_TYPE_POSBIGNUM:
+         *pBigNum = UsefulBuf_Copy(B, Item.val.bigNum);
+         break;
+         // TODO: sign
+
+      case QCBOR_TYPE_BIGFLOAT:
+         // TODO: lots of work
+         // This will fail sometimes
+
+
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+         break;
+
+
+   }
+}
+
+#endif

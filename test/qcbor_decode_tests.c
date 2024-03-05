@@ -8614,3 +8614,99 @@ int32_t BoolTest(void)
 
    return 0;
 }
+
+
+struct PreciseNumberConversion {
+   char       *szDescription;
+   UsefulBufC  CBOR;
+   QCBORError  uError;
+   uint8_t     qcborType;
+   struct foo {
+      int64_t  int64;
+      uint64_t  uint64;
+      double   d;
+   } number;
+};
+
+
+
+static const struct PreciseNumberConversion PreciseNumberConversions[] = {
+   {
+      "Zero",
+      {"\x00", 1},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {0, 0, 0}
+   },
+   {
+      "Pi",
+      {"\xFB\x40\x09\x2A\xDB\x40\x2D\x16\xB9", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, 3.145926}
+   },
+   {
+      "String",
+      {"\x60", 1},
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_TYPE_NONE,
+      {0, 0, 0}
+   }
+
+};
+
+int32_t
+PreciseTest(void)
+{
+   int i;
+   const struct PreciseNumberConversion *pTest;
+   QCBORError uErr;
+   QCBORItem Item;
+   QCBORDecodeContext DCtx;
+
+   const int count = (int)C_ARRAY_COUNT(PreciseNumberConversions, struct PreciseNumberConversion);
+
+   for(i = 0; i < count; i++) {
+      pTest = &PreciseNumberConversions[i];
+
+      QCBORDecode_Init(&DCtx, pTest->CBOR, 0);
+
+      QCBORDecode_GetNumberConvertPrecisely(&DCtx, &Item);
+
+      uErr = QCBORDecode_GetError(&DCtx);
+
+      if(uErr != pTest->uError) {
+         return i * 1000 + (int)uErr;
+      }
+
+      if(pTest->qcborType != Item.uDataType) {
+         return i * 1000 + 200;
+      }
+
+      if(pTest->qcborType == QCBOR_TYPE_NONE) {
+         continue;
+      }
+
+      switch(pTest->qcborType) {
+         case QCBOR_TYPE_INT64:
+            if(Item.val.int64 != pTest->number.int64) {
+               return i * 1000 + 300;
+            }
+            break;
+
+         case QCBOR_TYPE_UINT64:
+            if(Item.val.uint64 != pTest->number.uint64) {
+               return i * 1000 + 400;
+            }
+            break;
+
+         case QCBOR_TYPE_DOUBLE:
+            if(Item.val.dfnum != pTest->number.d) {
+               return i * 1000 + 500;
+            }
+            break;
+      }
+   }
+
+   return 0;
+}

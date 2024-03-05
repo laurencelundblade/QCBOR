@@ -153,6 +153,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(CDETest),
    TEST_ENTRY(DCBORTest),
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+   TEST_ENTRY(PreciseTest),
    TEST_ENTRY(ParseEmptyMapInMapTest),
 
 };
