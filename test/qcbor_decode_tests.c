@@ -1,12 +1,12 @@
 /*==============================================================================
- Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2022, Laurence Lundblade.
- Copyright (c) 2021, Arm Limited.
- All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
+ * Copyright (c) 2016-2018, The Linux Foundation.
+ * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2021, Arm Limited.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
     * Redistributions of source code must retain the above copyright
       notice, this list of conditions and the following disclaimer.
     * Redistributions in binary form must reproduce the above
@@ -1798,57 +1798,507 @@ struct FailInput {
    QCBORError nError;
 };
 
+struct DecodeFailTestInput {
+   const char     *szDescription; /* Description of the test */
+   QCBORDecodeMode DecoderMode;   /* The QCBOR Decoder Mode for test */
+   UsefulBufC      Input;         /* Chunk of CBOR that cases error */
+   QCBORError      nError;        /* The expected error */
+};
 
-static int32_t ProcessFailures(const struct FailInput *pFailInputs, size_t nNumFails)
+static int32_t 
+ProcessDecodeFailures(const struct FailInput *pFailInputs, const int nNumFails)
 {
-   for(const struct FailInput *pF = pFailInputs; pF < pFailInputs + nNumFails; pF++) {
-      QCBORDecodeContext DCtx;
-      QCBORError         uCBORError;
+   int                nIndex;
+   QCBORDecodeContext DCtx;
+   QCBORError         uCBORError;
+   QCBORItem          Item;
+
+   for(nIndex = 0; nIndex < nNumFails; nIndex++) {
+      const struct FailInput *pF = &pFailInputs[nIndex];
 
       QCBORDecode_Init(&DCtx, pF->Input, QCBOR_DECODE_MODE_NORMAL);
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-      // Set up the decoding context including a memory pool so that
-      // indefinite length items can be checked
+      /* Set up the decoding context including a memory pool so that
+       * indefinite length items can be checked.
+       */
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
 
       uCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
-      if(uCBORError) {
-         return -9;
+      if(uCBORError != QCBOR_SUCCESS) {
+         return -1;
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      const size_t nIndexx = (size_t)(pF - pFailInputs);
-      if(nIndexx == 8) {
-         uCBORError = 9;
+      if(nIndex == 8) {
+         uCBORError = 9; /* For setting break points */
       }
 
-
-      // Iterate until there is an error of some sort error
-      QCBORItem Item;
+      /* Iterate until there is an error of some sort error */
       do {
-         // Set to something none-zero, something other than QCBOR_TYPE_NONE
+         /* Set to something none-zero, something other than QCBOR_TYPE_NONE */
          memset(&Item, 0x33, sizeof(Item));
 
          uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
       } while(uCBORError == QCBOR_SUCCESS);
 
-
-
-      // Must get the expected error or the this test fails
-      // The data and label type must also be QCBOR_TYPE_NONE
+      /* Must get the expected error or the this test fails
+       * The data and label type must also be QCBOR_TYPE_NONE.
+       */
       if(uCBORError != pF->nError ||
          Item.uDataType != QCBOR_TYPE_NONE ||
          Item.uLabelType != QCBOR_TYPE_NONE) {
-         // return index of CBOR + 100
-         const size_t nIndex = (size_t)(pF - pFailInputs);
-         return (int32_t)(nIndex * 100 + uCBORError);
+         return (int32_t)(nIndex * 1000 + (int)uCBORError);
       }
    }
 
    return 0;
 }
 
+
+static int32_t
+ProcessDecodeFailures2(const struct DecodeFailTestInput *pFailInputs, const int nNumFails)
+{
+   int                nIndex;
+   QCBORDecodeContext DCtx;
+   QCBORError         uCBORError;
+   QCBORItem          Item;
+
+   for(nIndex = 0; nIndex < nNumFails; nIndex++) {
+      const struct DecodeFailTestInput *pF = &pFailInputs[nIndex];
+
+      QCBORDecode_Init(&DCtx, pF->Input, pF->DecoderMode);
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+      /* Set up the decoding context including a memory pool so that
+       * indefinite length items can be checked.
+       */
+      UsefulBuf_MAKE_STACK_UB(Pool, 100);
+
+      uCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+      if(uCBORError != QCBOR_SUCCESS) {
+         return -1;
+      }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+      if(nIndex == 8) {
+         uCBORError = 9; /* For setting break points */
+      }
+
+      /* Iterate until there is an error of some sort of error */
+      do {
+         /* Set to something none-zero, something other than QCBOR_TYPE_NONE */
+         memset(&Item, 0x33, sizeof(Item));
+
+         uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+      } while(uCBORError == QCBOR_SUCCESS);
+
+      /* Must get the expected error or the this test fails
+       * The data and label type must also be QCBOR_TYPE_NONE.
+       */
+      if(uCBORError != pF->nError ||
+         Item.uDataType != QCBOR_TYPE_NONE ||
+         Item.uLabelType != QCBOR_TYPE_NONE) {
+         return (int32_t)(nIndex * 1000 + (int)uCBORError);
+      }
+   }
+
+   return 0;
+}
+
+
+static const struct DecodeFailTestInput Failures2[] = {
+   /* Most of this is copied from not_well_formed.h. Here the error
+    * code returned is also checked.
+    */
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+   /*  Indefinite length strings must be closed off */
+   { "An indefinite length byte string not closed off",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"0x5f\x41\x00", 3},
+      QCBOR_ERR_HIT_END
+   },
+
+   { "An indefinite length text string not closed off",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x7f\x61\x00", 3},
+      QCBOR_ERR_HIT_END
+   },
+
+
+   /* All the chunks in an indefinite length string must be of the
+    * type of indefinite length string
+    */
+   { "Indefinite length byte string with text string chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\x61\x00\xff", 4},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+
+   { "Indefinite length text string with a byte string chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x7f\x41\x00\xff", 4},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+
+   { "Indefinite length byte string with a positive integer chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\x00\xff", 3},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+
+   { "Indefinite length byte string with an negative integer chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\x21\xff", 3},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+
+   { "Indefinite length byte string with an array chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\x80\xff", 3},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+
+   { "Indefinite length byte string with an map chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\xa0\xff", 3},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+
+#ifndef QCBOR_DISABLE_TAGS
+   { "Indefinite length byte string with tagged integer chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\xc0\x00\xff", 4},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+#else
+   { "Indefinite length byte string with tagged integer chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\xc0\x00\xff", 4},
+      QCBOR_ERR_TAGS_DISABLED
+   },
+#endif /* QCBOR_DISABLE_TAGS */
+
+   { "Indefinite length byte string with an simple type chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\xe0\xff", 3},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+
+   { "???",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\x5f\x41\x00\xff\xff", 6},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+
+   { "indefinite length text string with indefinite string inside",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x7f\x7f\x61\x00\xff\xff", 6},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+   /* Definte length maps and arrays must be closed by having the right number of items */
+   { "A definte length array that is supposed to have 1 item, but has none",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x81", 1},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+
+   { "A definte length array that is supposed to have 2 items, but has only 1",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x82\x00", 2},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+
+   {
+      "A definte length array that is supposed to have 511 items, but has only 1",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9a\x01\xff\x00", 4},
+      QCBOR_ERR_HIT_END
+   },
+
+   { "A definte length map that is supposed to have 1 item, but has none",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1", 1},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+
+   { "A definte length map that is supposed to have s item, but has only 1",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa2\x01\x02", 3},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   /* Indefinte length maps and arrays must be ended by a break */
+   { "Indefinite length array with zero items and no break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f", 1},
+      QCBOR_ERR_NO_MORE_ITEMS },
+
+   { "Indefinite length array with two items and no break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9\x01\x02", 3},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Indefinite length map with zero items and no break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xbf", 1},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Indefinite length map with two items and no break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xbf\x01\x02\x01\x02", 5},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+
+   /* Nested maps and arrays must be closed off (some extra nested test vectors) */
+   { "Unclosed indefinite array containing a closed definite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x80\x00", 3},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Definite length array containing an unclosed indefinite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x81\x9f", 2},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Unclosed indefinite map containing a closed definite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xbf\x01\x80\x00\xa0", 5},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Definite length map containing an unclosed indefinite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\x02\x9f", 3},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Deeply nested definite length arrays with deepest one unclosed",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x81\x81\x81\x81\x81\x81\x81\x81\x81", 9},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Deeply nested indefinite length arrays with deepest one unclosed",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x9f\x9f\x9f\x9f\xff\xff\xff\xff", 9},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Mixed nesting with indefinite unclosed",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x81\x9f\x81\x9f\x9f\xff\xff\xff", 9},
+      QCBOR_ERR_NO_MORE_ITEMS },
+   { "Mixed nesting with definite unclosed",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x82\x9f\x81\x9f\x9f\xff\xff\xff\xff", 10},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Unclosed indefinite length map in definite length maps",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\x01\xa2\x02\xbf\xff\x02\xbf", 8},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Unclosed definite length map in indefinite length maps",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xbf\x01\xbf\x02\xa1", 5},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Unclosed indefinite length array in definite length maps",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\x01\xa2\x02\x9f\xff\x02\x9f", 8},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Unclosed definite length array in indefinite length maps",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xbf\x01\xbf\x02\x81", 5},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Unclosed indefinite length map in definite length arrays",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x81\x82\xbf\xff\xbf", 5},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Unclosed definite length map in indefinite length arrays",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x9f\xa1", 3},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+
+   /* The "argument" for the data item is incomplete */
+   { "Positive integer missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x18", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Positive integer missing 2 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x19", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Positive integer missing 4 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x1a", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Positive integer missing 8 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x1b", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Positive integer missing 1 byte of 2 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x19\x01", 2},
+      QCBOR_ERR_HIT_END
+   },
+   { "Positive integer missing 2 bytes of 4 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x1a\x01\x02", 3},
+      QCBOR_ERR_HIT_END
+   },
+   { "Positive integer missing 1 bytes of 7 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x1b\x01\x02\x03\x04\x05\x06\x07", 8},
+      QCBOR_ERR_HIT_END
+   },
+   { "Negative integer missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x38", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Binary string missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x58", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Text string missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x78", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Array missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x98", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Map missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xb8", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Tag missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xd8", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Simple missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "half-precision with 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf9\x00", 2},
+      QCBOR_ERR_HIT_END
+   },
+   { "single-precision with 2 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\0xfa\x00\x00", 3},
+      QCBOR_ERR_HIT_END
+   },
+   { "double-precision with 3 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xfb\x00\x00\x00", 4},
+      QCBOR_ERR_HIT_END
+   },
+
+#ifndef QCBOR_DISABLE_TAGS
+   { "Tag with no content",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc0", 1},
+      QCBOR_ERR_HIT_END
+   },
+#else /* QCBOR_DISABLE_TAGS */
+   { "Tag with no content",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc0", 1},
+      QCBOR_ERR_TAGS_DISABLED
+   },
+#endif /* QCBOR_DISABLE_TAGS */
+
+
+   /* Breaks must not occur in definite length arrays and maps */
+   // Array of length 1 with sole member replaced by a break
+   { "Array of length 1 with sole member replaced by a break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x81\xff", 2},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Array of length 2 with 2nd member replaced by a break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x82\x00\xff", 3},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Map of length 1 with sole member label replaced by a break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\xff", 2},
+      QCBOR_ERR_BAD_BREAK
+   },
+   /* Map of length 1 with sole member label replaced by break */
+   { "Alternate representation that some decoders handle differently",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\xff\x00", 3},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Array of length 1 with 2nd member value replaced by a break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\x00\xff", 3},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Map of length 2 with 2nd member replaced by a break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa2\x00\x00\xff", 4},
+      QCBOR_ERR_BAD_BREAK
+   },
+
+
+
+   /* Breaks must not occur on their own out of an indefinite length data item */
+   { "A bare break is not well formed",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xff", 1},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "A bare break after a zero length definite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x80\xff", 2},
+      QCBOR_ERR_BAD_BREAK
+   },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   { "A bare break after a zero length indefinite length map",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\xff\xff", 3},
+      QCBOR_ERR_BAD_BREAK
+   },
+   // A break inside a definite length array inside an indefenite length array
+   { "A break inside a definite length array inside an indefenite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x81\xff", 3},
+      QCBOR_ERR_BAD_BREAK
+   },
+   // Complicated mixed nesting with break outside indefinite length array
+   { "Complicated mixed nesting with break outside indefinite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"0x9f, 0x82, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff", 10},
+      QCBOR_ERR_BAD_BREAK },
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+
+};
 
 static const struct FailInput Failures[] = {
    // Most of this is copied from not_well_formed.h. Here the error code
@@ -2239,7 +2689,12 @@ int32_t DecodeFailureTests(void)
 {
    int32_t nResult;
 
-   nResult = ProcessFailures(Failures,C_ARRAY_COUNT(Failures,struct FailInput));
+   nResult = ProcessDecodeFailures(Failures,C_ARRAY_COUNT(Failures,struct FailInput));
+   if(nResult) {
+      return nResult;
+   }
+
+   nResult = ProcessDecodeFailures2(Failures2 ,C_ARRAY_COUNT(Failures2, struct DecodeFailTestInput));
    if(nResult) {
       return nResult;
    }
@@ -5290,7 +5745,7 @@ static const struct FailInput ExponentAndMantissaFailures[] = {
 
 int32_t ExponentAndMantissaDecodeFailTests(void)
 {
-   return ProcessFailures(ExponentAndMantissaFailures,
+   return ProcessDecodeFailures(ExponentAndMantissaFailures,
                           C_ARRAY_COUNT(ExponentAndMantissaFailures,
                                         struct FailInput));
 }
@@ -7785,23 +8240,17 @@ static const uint8_t pWithEmptyMapInDef[] = {0x9f, 0x18, 0x64, 0xbf, 0xff, 0xff}
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-
 /*
-An array of one that contains
- a byte string that is tagged 24 which means CBOR-encoded data
- the byte string is an indefinite length string
- the wrapped byte string is an array of three numbers
- [42, 43, 44]
-
-[
-  24(
-    (_ h'83', h'18', h'2A182B', h'182C')
-  )
-]
+ * An array of one that contains a byte string that is an indefinite
+ * length string that CBOR wraps an array of three numbers [42, 43,
+ * 44]. The byte string is an implicit tag 24.
+ *
+ * [
+ *   (_ h'83', h'18', h'2A182B', h'182C')
+ * ]
  */
 static const uint8_t pWrappedByIndefiniteLength[] = {
    0x81,
-   0xd8, 0x18,
    0x5f,
    0x41, 0x83,
    0x41, 0x18,
@@ -8399,7 +8848,6 @@ int32_t PeekAndRewindTest(void)
 
    // Rewind an indefnite length byte-string wrapped sequence
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-   // TODO: rewrite this test to not use tags
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pWrappedByIndefiniteLength),
                     0);
@@ -8408,7 +8856,6 @@ int32_t PeekAndRewindTest(void)
 
    QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_EnterBstrWrapped(&DCtx, 2, NULL);
-#ifndef QCBOR_DISABLE_TAGS
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_INPUT_TOO_LARGE) {
       /* TODO: This is what happens when trying to enter
        * indefinite-length byte string wrapped CBOR.  Tolerate for
@@ -8428,12 +8875,6 @@ int32_t PeekAndRewindTest(void)
    if(i != 42) {
       return 7220;
    }*/
-
-#else /* QCBOR_DISABLE_TAGS */
-   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_TAGS_DISABLED) {
-      return 7301;
-   }
-#endif /* QCBOR_DISABLE_TAGS */
 
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
