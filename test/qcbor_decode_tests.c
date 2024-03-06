@@ -1792,12 +1792,6 @@ int32_t NotWellFormedTests(void)
 }
 
 
-// TODO: add a test index and report it so it is eaier to figure out which test failed.
-struct FailInput {
-   UsefulBufC Input;
-   QCBORError nError;
-};
-
 struct DecodeFailTestInput {
    const char     *szDescription; /* Description of the test */
    QCBORDecodeMode DecoderMode;   /* The QCBOR Decoder Mode for test */
@@ -1805,59 +1799,9 @@ struct DecodeFailTestInput {
    QCBORError      nError;        /* The expected error */
 };
 
-static int32_t 
-ProcessDecodeFailures(const struct FailInput *pFailInputs, const int nNumFails)
-{
-   int                nIndex;
-   QCBORDecodeContext DCtx;
-   QCBORError         uCBORError;
-   QCBORItem          Item;
-
-   for(nIndex = 0; nIndex < nNumFails; nIndex++) {
-      const struct FailInput *pF = &pFailInputs[nIndex];
-
-      QCBORDecode_Init(&DCtx, pF->Input, QCBOR_DECODE_MODE_NORMAL);
-
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-      /* Set up the decoding context including a memory pool so that
-       * indefinite length items can be checked.
-       */
-      UsefulBuf_MAKE_STACK_UB(Pool, 100);
-
-      uCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
-      if(uCBORError != QCBOR_SUCCESS) {
-         return -1;
-      }
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
-
-      if(nIndex == 8) {
-         uCBORError = 9; /* For setting break points */
-      }
-
-      /* Iterate until there is an error of some sort error */
-      do {
-         /* Set to something none-zero, something other than QCBOR_TYPE_NONE */
-         memset(&Item, 0x33, sizeof(Item));
-
-         uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
-      } while(uCBORError == QCBOR_SUCCESS);
-
-      /* Must get the expected error or the this test fails
-       * The data and label type must also be QCBOR_TYPE_NONE.
-       */
-      if(uCBORError != pF->nError ||
-         Item.uDataType != QCBOR_TYPE_NONE ||
-         Item.uLabelType != QCBOR_TYPE_NONE) {
-         return (int32_t)(nIndex * 1000 + (int)uCBORError);
-      }
-   }
-
-   return 0;
-}
-
 
 static int32_t
-ProcessDecodeFailures2(const struct DecodeFailTestInput *pFailInputs, const int nNumFails)
+ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int nNumFails)
 {
    int                nIndex;
    QCBORDecodeContext DCtx;
@@ -2488,7 +2432,7 @@ DecodeFailureTests(void)
 {
    int32_t nResult;
 
-   nResult = ProcessDecodeFailures2(Failures ,C_ARRAY_COUNT(Failures, struct DecodeFailTestInput));
+   nResult = ProcessDecodeFailures(Failures ,C_ARRAY_COUNT(Failures, struct DecodeFailTestInput));
    if(nResult) {
       return nResult;
    }
@@ -5496,52 +5440,89 @@ int32_t ExponentAndMantissaDecodeTests(void)
 }
 
 
-static const struct FailInput ExponentAndMantissaFailures[] = {
-   // Exponent > INT64_MAX
-   { {(uint8_t[]){0xC4, 0x82, 0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF, 0x1B, 0x80, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF,}, 20}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
-   // Mantissa > INT64_MAX
-   { {(uint8_t[]){0xC4, 0x82, 0x1B, 0x80, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF, 0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05,
-                  0x06, 0x07, 0x08, 0x09, 0x10}, 23}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
-   // End of input
-   { {(uint8_t[]){0xC4, 0x82}, 2}, QCBOR_ERR_NO_MORE_ITEMS},
-   // End of input
-   { {(uint8_t[]){0xC4, 0x82, 0x01}, 3}, QCBOR_ERR_NO_MORE_ITEMS},
-   // bad content for big num
-   { {(uint8_t[]){0xC4, 0x82, 0x01, 0xc3, 0x01}, 5}, QCBOR_ERR_BAD_OPT_TAG},
-   // bad content for big num
-   { {(uint8_t[]){0xC4, 0x82, 0xc2, 0x01, 0x1f}, 5}, QCBOR_ERR_BAD_INT},
-   // Bad integer for exponent
-   { {(uint8_t[]){0xC4, 0x82, 0x01, 0x1f}, 4}, QCBOR_ERR_BAD_INT},
-   // Bad integer for mantissa
-   { {(uint8_t[]){0xC4, 0x82, 0x1f, 0x01}, 4}, QCBOR_ERR_BAD_INT},
-   // 3 items in array
-   { {(uint8_t[]){0xC4, 0x83, 0x03, 0x01, 02}, 5}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
+static const struct DecodeFailTestInput ExponentAndMantissaFailures[] = {
+   { "Exponent > INT64_MAX",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x1B\x7f\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x1B\x80\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 20},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+   { "Mantissa > INT64_MAX",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x1B\x80\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC3\x4A\x01\x02\x03\x04\x05\x06\x07\x08\x09\x10", 23},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+   {
+      "End of input",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82", 2},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   {"bad content for big num",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x01\xc3\x01", 5},
+      QCBOR_ERR_BAD_OPT_TAG
+   },
+   {"bad content for big num",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\xc2\x01\x1f", 5},
+      QCBOR_ERR_BAD_INT
+   },
+   {"Bad integer for exponent",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x01\x1f", 4},
+      QCBOR_ERR_BAD_INT
+   },
+   {"Bad integer for mantissa",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x1f\x01", 4},
+      QCBOR_ERR_BAD_INT
+   },
+   {"3 items in array",
+      QCBOR_DECODE_MODE_NORMAL,
+    {"\xC4\x83\x03\x01\x02", 5},
+    QCBOR_ERR_BAD_EXP_AND_MANTISSA},
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-   // unterminated indefinite length array
-   { {(uint8_t[]){0xC4, 0x9f, 0x03, 0x01, 0x02}, 5}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
+   {"unterminated indefinite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x9f\x03\x01\x02", 5},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
 #else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
-   // unterminated indefinite length array
-   { {(uint8_t[]){0xC4, 0x9f, 0x03, 0x01, 0x02}, 5}, QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED},
+   {"unterminated indefinite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x9f\x03\x01\x02", 5},
+      QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
+   },
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
-   // Empty array
-   { {(uint8_t[]){0xC4, 0x80}, 2}, QCBOR_ERR_NO_MORE_ITEMS},
-   // Second is not an integer
-   { {(uint8_t[]){0xC4, 0x82, 0x03, 0x40}, 4}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
-   // First is not an integer
-   { {(uint8_t[]){0xC4, 0x82, 0x40}, 3}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
-   // Not an array
-   { {(uint8_t[]){0xC4, 0xa2}, 2}, QCBOR_ERR_BAD_EXP_AND_MANTISSA}
+   {"Empty array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x80", 2},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   {"Second is not an integer",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x03\x40", 4},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+   {"First is not an integer",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x40", 3},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+   {"Not an array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\xA2", 2},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   }
 };
 
 
-int32_t ExponentAndMantissaDecodeFailTests(void)
+int32_t
+ExponentAndMantissaDecodeFailTests(void)
 {
    return ProcessDecodeFailures(ExponentAndMantissaFailures,
-                          C_ARRAY_COUNT(ExponentAndMantissaFailures,
-                                        struct FailInput));
+                                C_ARRAY_COUNT(ExponentAndMantissaFailures,
+                                              struct DecodeFailTestInput));
 }
 
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
