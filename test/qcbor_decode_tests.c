@@ -8829,3 +8829,87 @@ int32_t BoolTest(void)
 
    return 0;
 }
+
+
+int32_t
+ErrorHandlingTests(void)
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem          Item;
+   QCBORError         uError;
+   int64_t            integer;
+
+   /* Test QCBORDecode_SetError() */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    QCBOR_DECODE_MODE_NORMAL);
+
+   QCBORDecode_SetError(&DCtx, QCBOR_ERR_FIRST_USER);
+
+   QCBORDecode_VGetNext(&DCtx, &Item);
+
+   uError = QCBORDecode_GetError(&DCtx);
+
+   if(uError != QCBOR_ERR_FIRST_USER) {
+      return -1;
+   }
+
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataType != QCBOR_TYPE_NONE) {
+      return -2;
+   }
+
+
+   /* Test data type returned from previous error */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_GetInt64(&DCtx, &integer);
+   uError = QCBORDecode_GetError(&DCtx);
+   if(uError != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return -3;
+   }
+
+
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataType != QCBOR_TYPE_NONE) {
+      return -2;
+   }
+   uError = QCBORDecode_GetError(&DCtx);
+   if(uError != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return -3;
+   }
+
+
+
+   if(!QCBORDecode_IsUnrecoverableError(QCBOR_ERR_INDEFINITE_STRING_CHUNK)) {
+      return -10;
+   }
+   if(QCBORDecode_IsUnrecoverableError(QCBOR_SUCCESS)) {
+      return -11;
+   }
+   if(!QCBORDecode_IsUnrecoverableError(QCBOR_ERR_INDEFINITE_STRING_CHUNK)) {
+      return -12;
+   }
+   if(QCBORDecode_IsUnrecoverableError(QCBOR_ERR_DUPLICATE_LABEL)) {
+      return -13;
+   }
+
+   if(!QCBORDecode_IsNotWellFormedError(QCBOR_ERR_BAD_TYPE_7)) {
+      return -20;
+   }
+   if(!QCBORDecode_IsNotWellFormedError(QCBOR_ERR_BAD_BREAK)) {
+      return -21;
+   }
+   if(QCBORDecode_IsNotWellFormedError(QCBOR_SUCCESS)) {
+      return -22;
+   }
+   if(QCBORDecode_IsNotWellFormedError(QCBOR_ERR_ARRAY_DECODE_TOO_LONG)) {
+      return -23;
+   }
+
+
+
+   return 0;
+}

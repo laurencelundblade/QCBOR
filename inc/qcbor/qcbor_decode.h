@@ -892,7 +892,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  *
  * See [Decode Error Overview](#Decode-Errors-Overview).
  *
- * If a decoding error occurs, \c uDataType and \c uLabelType will be set
+ * If a decoding error occurs or previously occured, \c uDataType and \c uLabelType will be set
  * to @ref QCBOR_TYPE_NONE. If there is no need to know the specific
  * error, it is sufficient to check for @ref QCBOR_TYPE_NONE.
  *
@@ -1204,7 +1204,7 @@ QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
 /**
  * @brief Whether an error indicates non-well-formed CBOR.
  *
- * @param[in] uErr    The decoder context.
+ * @param[in] uErr    The QCBOR error code.
  * @return @c true if the error code indicates non-well-formed CBOR.
  */
 static bool
@@ -1214,7 +1214,7 @@ QCBORDecode_IsNotWellFormedError(QCBORError uErr);
 /**
  * @brief Whether a decoding error is recoverable.
  *
- * @param[in] uErr    The decoder context.
+ * @param[in] uErr    The QCBOR error code.
  * @return @c true if the error code indicates and uncrecoverable error.
  *
  * When an error is unrecoverable, no further decoding of the input is
@@ -1233,6 +1233,29 @@ QCBORDecode_IsNotWellFormedError(QCBORError uErr);
 static bool
 QCBORDecode_IsUnrecoverableError(QCBORError uErr);
 
+
+/**
+ * @brief Manually set error condition, or set user-defined error.
+ *
+ * @param[in] pCtx    The decoder context.
+ * @param[in] uError  The error code to set.
+ *
+ * Once set, none of the QCBORDecode methods will do anything and
+ * the error code set will stay until cleared with
+ * QCBORDecode_GetAndResetError().
+ * The error can be set deep in some decoding layers to propagate
+ * an error up.
+ *
+ * When the error condition is set, QCBORDecode_VGetNext() will always return
+ * an item with data and label type \ref QCBOR_TYPE_NONE. It is safe
+ * to count on this behavior.
+ *
+ * The main intent of this is to set a user-defined error
+ * code in the range of \ref QCBOR_ERR_FIRST_USER to \ref QCBOR_ERR_LAST_USER, but it is OK to set
+ * QCBOR-defined error codes too.
+ */
+static void
+QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
 
 
 
@@ -1521,6 +1544,14 @@ QCBORDecode_IsUnrecoverableError(const QCBORError uErr)
       return false;
    }
 }
+
+
+static inline void
+QCBORDecode_SetError(QCBORDecodeContext *pMe, QCBORError uError)
+{
+   pMe->uLastError = (uint8_t)uError;
+}
+
 
 /* A few cross checks on size constants and special value lengths */
 #if  QCBOR_MAP_OFFSET_CACHE_INVALID < QCBOR_MAX_DECODE_INPUT_SIZE

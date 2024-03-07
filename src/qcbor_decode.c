@@ -2660,6 +2660,8 @@ void
 QCBORDecode_VPeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
+      pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
+      pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
       return;
    }
 
@@ -2674,6 +2676,8 @@ void
 QCBORDecode_VGetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
+      pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
+      pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
       return;
    }
 
