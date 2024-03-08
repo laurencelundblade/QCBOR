@@ -523,12 +523,13 @@ typedef enum {
     * (to save object code). */
    QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 78,
 
-   /** A range of error codes that can be made use of by
-    * the caller. QCBOR internally does nothing with these
-    * except notice that they are not QCBOR_SUCCESS. See
-    * QCBORDecode_SetError(). */
-   QCBOR_ERR_FIRST_USER = 128,
-   QCBOR_ERR_LAST_USER = 255
+   /** A range of error codes that can be made use of by the
+    * caller. QCBOR internally does nothing with these except notice
+    * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */
+   QCBOR_ERR_FIRST_USER_DEFINED = 128,
+
+   /** See \ref QCBOR_ERR_FIRST_USER_DEFINED */
+   QCBOR_ERR_LAST_USER_DEFINED = 255
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;

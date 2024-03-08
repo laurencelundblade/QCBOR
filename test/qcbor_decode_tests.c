@@ -8844,13 +8844,13 @@ ErrorHandlingTests(void)
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   QCBORDecode_SetError(&DCtx, QCBOR_ERR_FIRST_USER);
+   QCBORDecode_SetError(&DCtx, QCBOR_ERR_FIRST_USER_DEFINED);
 
    QCBORDecode_VGetNext(&DCtx, &Item);
 
    uError = QCBORDecode_GetError(&DCtx);
 
-   if(uError != QCBOR_ERR_FIRST_USER) {
+   if(uError != QCBOR_ERR_FIRST_USER_DEFINED) {
       return -1;
    }
 
@@ -8870,7 +8870,6 @@ ErrorHandlingTests(void)
       return -3;
    }
 
-
    QCBORDecode_VGetNext(&DCtx, &Item);
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataType != QCBOR_TYPE_NONE) {
@@ -8882,6 +8881,7 @@ ErrorHandlingTests(void)
    }
 
 
+   /* Test error classification functions */
 
    if(!QCBORDecode_IsUnrecoverableError(QCBOR_ERR_INDEFINITE_STRING_CHUNK)) {
       return -10;
@@ -8908,8 +8908,6 @@ ErrorHandlingTests(void)
    if(QCBORDecode_IsNotWellFormedError(QCBOR_ERR_ARRAY_DECODE_TOO_LONG)) {
       return -23;
    }
-
-
 
    return 0;
 }

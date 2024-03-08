@@ -121,8 +121,11 @@ extern "C" {
  * call QCBORDecode_GetError() to know the earlier items were
  * successfully decoded before examining their value or type.
  *
- * The internal decode error state is reset only by re initializing the
- * decoder or calling QCBORDecode_GetErrorAndReset().
+ * The internal decode error state can be reset by reinitializing the
+ * decoder or calling QCBORDecode_GetErrorAndReset(). Code calling
+ * QCBOR may take advantage of the internal error state to halt
+ * futher decoding and propagate errors it detects using
+ * QCBORDecode_SetError().
  *
  * It is only useful to reset the error state by calling
  * QCBORDecode_GetErrorAndReset() on recoverable errors. Examples of
@@ -892,9 +895,10 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  *
  * See [Decode Error Overview](#Decode-Errors-Overview).
  *
- * If a decoding error occurs or previously occured, \c uDataType and \c uLabelType will be set
- * to @ref QCBOR_TYPE_NONE. If there is no need to know the specific
- * error, it is sufficient to check for @ref QCBOR_TYPE_NONE.
+ * If a decoding error occurs or previously occured, \c uDataType and
+ * \c uLabelType will be set to @ref QCBOR_TYPE_NONE. If there is no
+ * need to know the specific error, it is sufficient to check for @ref
+ * QCBOR_TYPE_NONE.
  *
  * Errors fall in several categories:
  *
@@ -1240,22 +1244,23 @@ QCBORDecode_IsUnrecoverableError(QCBORError uErr);
  * @param[in] pCtx    The decoder context.
  * @param[in] uError  The error code to set.
  *
- * Once set, none of the QCBORDecode methods will do anything and
- * the error code set will stay until cleared with
- * QCBORDecode_GetAndResetError().
- * The error can be set deep in some decoding layers to propagate
- * an error up.
+ * Once set, none of the QCBORDecode methods will do anything and the
+ * error code set will stay until cleared with
+ * QCBORDecode_GetAndResetError().  A user-defined error can be set
+ * deep in some decoding layers to short-circuit further decoding
+ * and propagate up.
  *
- * When the error condition is set, QCBORDecode_VGetNext() will always return
- * an item with data and label type \ref QCBOR_TYPE_NONE. It is safe
- * to count on this behavior.
+ * When the error condition is set, QCBORDecode_VGetNext() will always
+ * return an item with data and label type as \ref QCBOR_TYPE_NONE.
  *
- * The main intent of this is to set a user-defined error
- * code in the range of \ref QCBOR_ERR_FIRST_USER to \ref QCBOR_ERR_LAST_USER, but it is OK to set
- * QCBOR-defined error codes too.
+ * The main intent of this is to set a user-defined error code in the
+ * range of \ref QCBOR_ERR_FIRST_USER_DEFINED to
+ * \ref QCBOR_ERR_LAST_USER_DEFINED, but it is OK to set QCBOR-defined
+ * error codes too.
  */
 static void
 QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
+
 
 
 
