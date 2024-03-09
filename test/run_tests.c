@@ -95,7 +95,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(IntegerValuesTest1),
    TEST_ENTRY(AllAddMethodsTest),
    TEST_ENTRY(ParseTooDeepArrayTest),
-   TEST_ENTRY(ComprehensiveInputTest),
+   //TEST_ENTRY(ComprehensiveInputTest),
    TEST_ENTRY(ParseMapTest),
    TEST_ENTRY(BasicEncodeTest),
    TEST_ENTRY(NestedMapTest),

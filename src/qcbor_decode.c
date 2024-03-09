@@ -762,6 +762,7 @@ QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  * @brief Decode the CBOR head, the type and argument.
  *
  * @param[in] pUInBuf            The input buffer to read from.
+ * @param[in] bRequirePreferred  Require preferred serialization for argument.
  * @param[out] pnMajorType       The decoded major type.
  * @param[out] puArgument        The decoded argument.
  * @param[out] pnAdditionalInfo  The decoded Lower 5 bits of initial byte.
@@ -783,20 +784,19 @@ QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  */
 static QCBORError
 QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
+                         bool            bRequirePreferred,
                          int            *pnMajorType,
                          uint64_t       *puArgument,
                          int            *pnAdditionalInfo)
 {
-   QCBORError uReturn;
+   QCBORError           uReturn;
+   uint64_t             uMinArgument;
+   uint64_t             uArgument;
 
-   /* Get the initial byte that every CBOR data item has and break it
-    * down. */
+   /* Get and breakd down initial byte that every CBOR data item has */
    const int nInitialByte    = (int)UsefulInputBuf_GetByte(pUInBuf);
    const int nTmpMajorType   = nInitialByte >> 5;
    const int nAdditionalInfo = nInitialByte & 0x1f;
-
-   /* Where the argument accumulates */
-   uint64_t uArgument;
 
    if(nAdditionalInfo >= LEN_IS_ONE_BYTE && nAdditionalInfo <= LEN_IS_EIGHT_BYTES) {
       /* Need to get 1,2,4 or 8 additional argument bytes. Map
@@ -807,9 +807,30 @@ QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
       /* Loop getting all the bytes in the argument */
       uArgument = 0;
       for(int i = aIterate[nAdditionalInfo - LEN_IS_ONE_BYTE]; i; i--) {
-         /* This shift and add gives the endian conversion. */
+         /* This shift-and-add gives the endian conversion. */
          uArgument = (uArgument << 8) + UsefulInputBuf_GetByte(pUInBuf);
       }
+
+      /* If requested, check that argument is in preferred form */
+      if(bRequirePreferred) {
+         if(nAdditionalInfo == LEN_IS_ONE_BYTE) {
+            if(uArgument < 24) {
+               uReturn = QCBOR_ERR_NOT_PREFERRED_ARG;
+               goto Done;
+            }
+         } else {
+            if(nTmpMajorType != 7) {
+               /* Check only if not a floating-point number */
+               int nArgLen = aIterate[nAdditionalInfo - LEN_IS_ONE_BYTE - 1];
+               uMinArgument = 0xFFFFFFFFFFFFFFFFUL >> (8 - nArgLen) * 8;
+               if(uArgument < uMinArgument) {
+                  uReturn = QCBOR_ERR_NOT_PREFERRED_ARG;
+                  goto Done;
+               }
+            }
+         }
+      }
+
    } else if(nAdditionalInfo >= ADDINFO_RESERVED1 && nAdditionalInfo <= ADDINFO_RESERVED3) {
       /* The reserved and thus-far unused additional info values */
       uReturn = QCBOR_ERR_UNSUPPORTED;
@@ -825,6 +846,7 @@ QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
       uReturn = QCBOR_ERR_HIT_END;
       goto Done;
    }
+
 
    /* All successful if arrived here. */
    uReturn           = QCBOR_SUCCESS;
@@ -1188,6 +1210,7 @@ QCBORDecode_Private_ConvertArrayOrMapType(int nCBORMajorType)
  */
 static QCBORError
 QCBOR_Private_DecodeAtomicDataItem(UsefulInputBuf               *pUInBuf,
+                                   bool                          bRequirePreferred,
                                    QCBORItem                    *pDecodedItem,
                                    const QCBORInternalAllocator *pAllocator)
 {
@@ -1204,7 +1227,7 @@ QCBOR_Private_DecodeAtomicDataItem(UsefulInputBuf               *pUInBuf,
 
    memset(pDecodedItem, 0, sizeof(QCBORItem));
 
-   uReturn = QCBOR_Private_DecodeHead(pUInBuf, &nMajorType, &uArgument, &nAdditionalInfo);
+   uReturn = QCBOR_Private_DecodeHead(pUInBuf, !bRequirePreferred, &nMajorType, &uArgument, &nAdditionalInfo);
    if(uReturn) {
       goto Done;
    }
@@ -1363,7 +1386,7 @@ QCBORDecode_Private_GetNextFullString(QCBORDecodeContext *pMe,
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
    QCBORError uReturn;
-   uReturn = QCBOR_Private_DecodeAtomicDataItem(&(pMe->InBuf), pDecodedItem, pAllocatorForGetNext);
+   uReturn = QCBOR_Private_DecodeAtomicDataItem(&(pMe->InBuf), false, pDecodedItem, pAllocatorForGetNext);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -1397,7 +1420,7 @@ QCBORDecode_Private_GetNextFullString(QCBORDecodeContext *pMe,
        * be allocated. They are always copied in the the contiguous
        * buffer allocated here.
        */
-      uReturn = QCBOR_Private_DecodeAtomicDataItem(&(pMe->InBuf), &StringChunkItem, NULL);
+      uReturn = QCBOR_Private_DecodeAtomicDataItem(&(pMe->InBuf), false, &StringChunkItem, NULL);
       if(uReturn) {
          break;
       }
@@ -1779,7 +1802,7 @@ QCBOR_Private_NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
    if(UsefulInputBuf_BytesUnconsumed(pUIB) != 0) {
       QCBORItem Peek;
       size_t uPeek = UsefulInputBuf_Tell(pUIB);
-      QCBORError uReturn = QCBOR_Private_DecodeAtomicDataItem(pUIB, &Peek, NULL);
+      QCBORError uReturn = QCBOR_Private_DecodeAtomicDataItem(pUIB, false, &Peek, NULL);
       if(uReturn != QCBOR_SUCCESS) {
          return uReturn;
       }

@@ -534,8 +534,10 @@ typedef enum {
    /* Trying to encode something that is discouraged (e.g., 65-bit
     * negative integer) without allowing it by calling
     * QCBOREncode_Allow() */
-   QCBOR_ERR_NOT_ALLOWED = 80
+   QCBOR_ERR_NOT_ALLOWED = 80,
 
+   /* The CBOR head's argument is not encoded in shortest form. */
+   QCBOR_ERR_NOT_PREFERRED_ARG = 81
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
