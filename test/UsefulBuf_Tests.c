@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2023, Laurence Lundblade.
+ Copyright (c) 2018-2024, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -885,59 +885,79 @@ const char * UOBExtraTests(void)
    /* Test UsefulOutBuf_Compare() */
    UsefulOutBuf_AppendString(&UOB, "abcabdefab");
 
-   nCompare = UsefulOutBuf_Compare(&UOB, 0, 8);
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 2, 8, 2);
    if(nCompare != 0) {
       return "ab should compare equal";
    }
 
-   nCompare = UsefulOutBuf_Compare(&UOB, 0, 3);
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 3, 3, 3);
    if(nCompare != 'd' - 'c') {
       return "abc should not equal abd";
    }
 
-   nCompare = UsefulOutBuf_Compare(&UOB, 3, 8);
+   nCompare = UsefulOutBuf_Compare(&UOB, 3, 2, 8, 2);
    if(nCompare != 0) {
        return "ab should compare equal";
     }
 
-   nCompare = UsefulOutBuf_Compare(&UOB, 2, 5);
+   nCompare = UsefulOutBuf_Compare(&UOB, 2, 4, 5, 4);
    if(nCompare != 'd' - 'c') {
       return "ca should not equal de";
    }
 
-   nCompare = UsefulOutBuf_Compare(&UOB, 5, 2);
+   nCompare = UsefulOutBuf_Compare(&UOB, 5, 1, 2, 1);
    if(nCompare != 'c' - 'd') {
       return "de should not equal ca";
    }
 
-   nCompare = UsefulOutBuf_Compare(&UOB, 7, 8);
+   nCompare = UsefulOutBuf_Compare(&UOB, 7, 2, 8, 2);
    if(nCompare !=  'a' - 'f') {
       return "fa should not equal ab";
    }
 
-   nCompare = UsefulOutBuf_Compare(&UOB, 0, 0);
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 10, 0, 10);
    if(nCompare != 0) {
       return "comparison to self failed";
    }
 
-   nCompare = UsefulOutBuf_Compare(&UOB, 9, 9);
+   nCompare = UsefulOutBuf_Compare(&UOB, 9, 1, 9, 1);
    if(nCompare != 0) {
       return "b should compare equal to b";
    }
 
-   nCompare = UsefulOutBuf_Compare(&UOB, 10, 10);
+   nCompare = UsefulOutBuf_Compare(&UOB, 10, 1, 10, 1);
    if(nCompare != 0) {
       return "Comparison off the end is equal";
    }
 
-   nCompare = UsefulOutBuf_Compare(&UOB, 0, 100);
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 1, 100, 1);
    if(nCompare != 0) {
       return "Comparison off the end is equal";
    }
 
-   nCompare = UsefulOutBuf_Compare(&UOB, 100, 0);
+   nCompare = UsefulOutBuf_Compare(&UOB, 100, 1, 0, 1);
    if(nCompare != 0) {
       return "Comparison off the end is equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 3, 3, 2);
+   if(nCompare > 0) {
+      return "Comparison of unequal lengths incorrect";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 8, 2, 0, 3);
+   if(nCompare < 0) {
+      return "Comparison of unequal lengths incorrect 2";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 2, 2, 3);
+   if(nCompare != 'c' - 'a') {
+      return "Inequal lengths, but inequal strings";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 1, 3, 4, 2);
+   if(nCompare != 'd' - 'c') {
+      return "Inequal lengths, but inequal strings";
    }
 
    /* Test UsefulOutBuf_Swap() */
