@@ -537,7 +537,15 @@ typedef enum {
    QCBOR_ERR_NOT_ALLOWED = 80,
 
    /* The CBOR head's argument is not encoded in shortest form. */
-   QCBOR_ERR_NOT_PREFERRED_ARG = 81
+   QCBOR_ERR_NOT_PREFERRED_ARG = 81,
+
+   /** A range of error codes that can be made use of by the
+    * caller. QCBOR internally does nothing with these except notice
+    * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */
+   QCBOR_ERR_FIRST_USER_DEFINED = 128,
+
+   /** See \ref QCBOR_ERR_FIRST_USER_DEFINED */
+   QCBOR_ERR_LAST_USER_DEFINED = 255
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
