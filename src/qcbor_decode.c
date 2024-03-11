@@ -793,7 +793,7 @@ QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
    uint64_t             uMinArgument;
    uint64_t             uArgument;
 
-   /* Get and breakd down initial byte that every CBOR data item has */
+   /* Get and break down initial byte that every CBOR data item has */
    const int nInitialByte    = (int)UsefulInputBuf_GetByte(pUInBuf);
    const int nTmpMajorType   = nInitialByte >> 5;
    const int nAdditionalInfo = nInitialByte & 0x1f;
@@ -836,6 +836,11 @@ QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
       uReturn = QCBOR_ERR_UNSUPPORTED;
       goto Done;
    } else {
+      if(bRequirePreferred && nAdditionalInfo == LEN_IS_INDEFINITE) {
+         uReturn = QCBOR_ERR_NOT_PREFERRED_ARG;
+         goto Done;
+      }
+
       /* Less than 24, additional info is argument or 31, an
        * indefinite-length.  No more bytes to get.
        */
@@ -1050,7 +1055,7 @@ QCBOR_Private_DecodeType7(const int      nAdditionalInfo,
 
       default: /* 0-19 */
          pDecodedItem->uDataType   = QCBOR_TYPE_UKNOWN_SIMPLE;
-         /* DecodeHead() will make uArgument equal to
+         /* QCBOR_Private_DecodeHead() will make uArgument equal to
           * nAdditionalInfo when nAdditionalInfo is < 24. This cast is
           * safe because the 2, 4 and 8 byte lengths of uNumber are in
           * the double/float cases above
@@ -1227,7 +1232,7 @@ QCBOR_Private_DecodeAtomicDataItem(UsefulInputBuf               *pUInBuf,
 
    memset(pDecodedItem, 0, sizeof(QCBORItem));
 
-   uReturn = QCBOR_Private_DecodeHead(pUInBuf, !bRequirePreferred, &nMajorType, &uArgument, &nAdditionalInfo);
+   uReturn = QCBOR_Private_DecodeHead(pUInBuf, bRequirePreferred, &nMajorType, &uArgument, &nAdditionalInfo);
    if(uReturn) {
       goto Done;
    }
@@ -1386,7 +1391,10 @@ QCBORDecode_Private_GetNextFullString(QCBORDecodeContext *pMe,
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
    QCBORError uReturn;
-   uReturn = QCBOR_Private_DecodeAtomicDataItem(&(pMe->InBuf), false, pDecodedItem, pAllocatorForGetNext);
+   uReturn = QCBOR_Private_DecodeAtomicDataItem(&(pMe->InBuf),
+                                                pMe->uDecodeMode > QCBOR_DECODE_MODE_PREFERRED,
+                                                pDecodedItem,
+                                                pAllocatorForGetNext);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }

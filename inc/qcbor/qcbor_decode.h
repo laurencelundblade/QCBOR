@@ -191,8 +191,15 @@ typedef enum {
    QCBOR_DECODE_MODE_MAP_STRINGS_ONLY = 1,
    /** See QCBORDecode_Init() */
    QCBOR_DECODE_MODE_MAP_AS_ARRAY = 2,
-   /** TODO: .... */
-   QCBOR_DECODE_MODE_DCBOR = 3
+   /** TODO:
+    This requires preferred serialization -- no indef lengths; shortest form integers and floats */
+   QCBOR_DECODE_MODE_PREFERRED = 3,
+
+   /** This require maps to be sorted */
+   QCBOR_DECODE_MODE_CDE = 4,
+   
+   /* This requires integer-float unification */
+   QCBOR_DECODE_MODE_DCBOR = 5
 
    /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORDecodeMode;

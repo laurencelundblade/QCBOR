@@ -8827,3 +8827,11 @@ int32_t BoolTest(void)
 
    return 0;
 }
+
+
+
+
+int32_t DecodeCheckTests(void)
+{
+   return 0;
+}

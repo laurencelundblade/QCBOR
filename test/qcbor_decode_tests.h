@@ -318,4 +318,10 @@ Test GitHub issue #134: decode an indefinite-length string with a zero-length fi
 */
 int32_t CBORTestIssue134(void);
 
+
+/*
+ * Test the decode checking features for dCBOR, CDE and preferred.
+ */
+int32_t DecodeCheckTests(void);
+
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */
