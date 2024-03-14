@@ -43,7 +43,7 @@ extern "C" {
 #endif
 #endif
 
-
+//#define QCBOR_DISABLE_DECODE_CONFORMANCE
 
 /**
  * @file qcbor_common.h
@@ -531,14 +531,23 @@ typedef enum {
     */
    QCBOR_ERR_NOT_PREFERRED = 79,
 
-   /* Trying to encode something that is discouraged (e.g., 65-bit
+   /** Trying to encode something that is discouraged (e.g., 65-bit
     * negative integer) without allowing it by calling
     * QCBOREncode_Allow() */
    QCBOR_ERR_NOT_ALLOWED = 80,
 
-   /* The CBOR head's argument is not encoded in shortest form. */
-   QCBOR_ERR_NOT_PREFERRED_ARG = 81,
+   /** Decoded CBOR is does not conform to preferred serialization. The CBOR head's argument is not encoded in shortest form, or indefinite lengths are used.*/
+   QCBOR_ERR_PREFERRED_CONFORMANCE = 81,
 
+   /** Decoded CBOR does not conform to CDE. This occurs when a map is not sorted. Other
+    * CDE issues are reported as QCBOR_ERR_PREFERRED_CONFORMANCE. */
+   QCBOR_ERR_CDE_CONFORMANCE = 82,
+
+   /** Decoded CBOR does not conform to dCBOR. Floating point numbers are not reduced to integers.
+    * Other issues are reported as either QCBOR_ERR_CDE_CONFORMANCE or QCBOR_ERR_PREFERRED_CONFORMANCE. */
+   QCBOR_ERR_DCBOR_CONFORMANCE = 83,
+
+   
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
     * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */

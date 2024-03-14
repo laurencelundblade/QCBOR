@@ -762,7 +762,7 @@ QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  * @brief Decode the CBOR head, the type and argument.
  *
  * @param[in] pUInBuf            The input buffer to read from.
- * @param[in] bRequirePreferred  Require preferred serialization for argument.
+ * param[in] bRequirePreferred  Require preferred serialization for argument.
  * @param[out] pnMajorType       The decoded major type.
  * @param[out] puArgument        The decoded argument.
  * @param[out] pnAdditionalInfo  The decoded Lower 5 bits of initial byte.
@@ -771,11 +771,10 @@ QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  * @retval QCBOR_ERR_HIT_END Unexpected end of input
  *
  * This decodes the CBOR "head" that every CBOR data item has. See
- * longer explaination of the head in documentation for
- * QCBOREncode_EncodeHead().
+ * longer description in QCBOREncode_EncodeHead().
  *
- * This does the network->host byte order conversion. The conversion
- * here also results in the conversion for floats in addition to that
+ * This does the network to host byte order conversion. The conversion
+ * here also provides the conversion for floats in addition to that
  * for lengths, tags and integer values.
  *
  * The int type is preferred to uint8_t for some variables as this
@@ -784,14 +783,15 @@ QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  */
 static QCBORError
 QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
                          bool            bRequirePreferred,
+#endif
                          int            *pnMajorType,
                          uint64_t       *puArgument,
                          int            *pnAdditionalInfo)
 {
-   QCBORError           uReturn;
-   uint64_t             uMinArgument;
-   uint64_t             uArgument;
+   QCBORError uReturn;
+   uint64_t   uArgument;
 
    /* Get and break down initial byte that every CBOR data item has */
    const int nInitialByte    = (int)UsefulInputBuf_GetByte(pUInBuf);
@@ -811,35 +811,41 @@ QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
          uArgument = (uArgument << 8) + UsefulInputBuf_GetByte(pUInBuf);
       }
 
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
       /* If requested, check that argument is in preferred form */
       if(bRequirePreferred) {
+         uint64_t uMinArgument;
+
          if(nAdditionalInfo == LEN_IS_ONE_BYTE) {
             if(uArgument < 24) {
-               uReturn = QCBOR_ERR_NOT_PREFERRED_ARG;
+               uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
                goto Done;
             }
          } else {
-            if(nTmpMajorType != 7) {
+            if(nTmpMajorType != CBOR_MAJOR_TYPE_SIMPLE) {
                /* Check only if not a floating-point number */
                int nArgLen = aIterate[nAdditionalInfo - LEN_IS_ONE_BYTE - 1];
-               uMinArgument = 0xFFFFFFFFFFFFFFFFUL >> (8 - nArgLen) * 8;
-               if(uArgument < uMinArgument) {
-                  uReturn = QCBOR_ERR_NOT_PREFERRED_ARG;
+               uMinArgument = UINT64_MAX >> ((int)sizeof(uint64_t) - nArgLen) * 8;
+               if(uArgument <= uMinArgument) {
+                  uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
                   goto Done;
                }
             }
          }
       }
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
 
    } else if(nAdditionalInfo >= ADDINFO_RESERVED1 && nAdditionalInfo <= ADDINFO_RESERVED3) {
       /* The reserved and thus-far unused additional info values */
       uReturn = QCBOR_ERR_UNSUPPORTED;
       goto Done;
    } else {
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
       if(bRequirePreferred && nAdditionalInfo == LEN_IS_INDEFINITE) {
-         uReturn = QCBOR_ERR_NOT_PREFERRED_ARG;
+         uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
          goto Done;
       }
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
 
       /* Less than 24, additional info is argument or 31, an
        * indefinite-length.  No more bytes to get.
@@ -921,6 +927,189 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
 }
 
 
+
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+static QCBORError
+QCBORDecode_Private_HalfConformance(const double d, const uint8_t uDecodeMode)
+{
+   struct IEEE754_ToInt ToInt;
+
+   /* Only need to check for conversion to integer because
+    * half-precision is alwasy preferred serialization. Don't
+    * need special checker for half-precision because whole
+    * numbers always convert perfectly from half to double.
+    */
+   if(uDecodeMode >= QCBOR_DECODE_MODE_DCBOR) {
+      ToInt = IEEE754_DoubleToInt(d);
+      if(ToInt.type != QCBOR_TYPE_DOUBLE) {
+         return QCBOR_ERR_DCBOR_CONFORMANCE;
+      }
+   }
+
+   return 0;
+}
+
+
+static QCBORError
+QCBORDecode_Private_SingleConformance(const float f, const uint8_t uDecodeMode)
+{
+   struct IEEE754_ToInt ToInt;
+   IEEE754_union        ToSmaller;
+
+   if(uDecodeMode >= QCBOR_DECODE_MODE_DCBOR) {
+      ToInt = IEEE754_SingleToInt(f);
+      if(ToInt.type != QCBOR_TYPE_FLOAT) {
+         return QCBOR_ERR_DCBOR_CONFORMANCE;
+      }
+   }
+
+   /* Next, check to see if it can be decoded shorter */
+   if(uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED) {
+      ToSmaller = IEEE754_SingleToHalf(f, true);
+      if(ToSmaller.uSize != sizeof(float)) {
+         return QCBOR_ERR_NOT_PREFERRED; // TODO: error code
+      }
+   }
+
+   return 0;
+}
+
+
+static QCBORError
+QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
+{
+   struct IEEE754_ToInt ToInt;
+   IEEE754_union        ToSmaller;
+
+   if(uDecodeMode >= QCBOR_DECODE_MODE_DCBOR) {
+      ToInt = IEEE754_DoubleToInt(d);
+
+      if(ToInt.type != QCBOR_TYPE_DOUBLE) {
+         return QCBOR_ERR_DCBOR_CONFORMANCE;
+      }
+   }
+   
+   /* Next check to see if it can be decoded shorter */
+   if(uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED) {
+      ToSmaller = IEEE754_DoubleToSmaller(d, true, true);
+      if(ToSmaller.uSize != sizeof(double)) {
+         return QCBOR_ERR_NOT_PREFERRED; // TODO: error code
+      }
+   }
+
+   return 0;
+}
+#else /* QCBOR_DISABLE_DECODE_CONFORMANCE */
+
+static QCBORError
+QCBORDecode_Private_HalfConformance(const double d, uint8_t uDecodeMode)
+{
+   return QCBOR_SUCCESS;
+}
+
+static QCBORError
+QCBORDecode_Private_SingleConformance(const float f, uint8_t uDecodeMode)
+{
+   return QCBOR_SUCCESS;
+}
+
+static QCBORError
+QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
+{
+   return QCBOR_SUCCESS;
+}
+
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
+
+
+
+/*
+ * Decode a float
+ */
+static QCBORError
+QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
+                          const int      nAdditionalInfo,
+                          const uint64_t uArgument,
+                          QCBORItem     *pDecodedItem)
+{
+   QCBORError uReturn = QCBOR_SUCCESS;
+   float      f;
+
+   switch(nAdditionalInfo) {
+      case HALF_PREC_FLOAT: /* 25 */
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+         /* Half-precision is returned as a double.  The cast to
+          * uint16_t is safe because the encoded value was 16 bits. It
+          * was widened to 64 bits to be passed in here.
+          */
+         pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uArgument);
+         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
+
+         uReturn = QCBORDecode_Private_HalfConformance(pDecodedItem->val.dfnum, uDecodeMode);
+         if(uReturn != QCBOR_SUCCESS) {
+            break;
+         }
+
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+         uReturn = FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS);
+         break;
+
+      case SINGLE_PREC_FLOAT: /* 26 */
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+         /* Single precision is normally returned as a double since
+          * double is widely supported, there is no loss of precision,
+          * it makes it easy for the caller in most cases and it can
+          * be converted back to single with no loss of precision
+          *
+          * The cast to uint32_t is safe because the encoded value was
+          * 32 bits. It was widened to 64 bits to be passed in here.
+          */
+         f = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
+         uReturn = QCBORDecode_Private_SingleConformance(f, uDecodeMode);
+         if(uReturn != QCBOR_SUCCESS) {
+            break;
+         }
+
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+         /* In the normal case, use HW to convert float to
+          * double. */
+         pDecodedItem->val.dfnum = (double)f;
+         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+         /* Use of float HW is disabled, return as a float. */
+         pDecodedItem->val.fnum  = f;
+         pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
+
+         /* IEEE754_FloatToDouble() could be used here to return as
+          * a double, but it adds object code and most likely
+          * anyone disabling FLOAT HW use doesn't care about floats
+          * and wants to save object code.
+          */
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
+         break;
+
+      case DOUBLE_PREC_FLOAT: /* 27 */
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+         pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uArgument);
+         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
+
+         uReturn = QCBORDecode_Private_DoubleConformance(pDecodedItem->val.dfnum, uDecodeMode);
+         if(uReturn != QCBOR_SUCCESS) {
+            break;
+         }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
+         break;
+   }
+
+   return uReturn;
+}
+
+
+
+
 /* Make sure #define value line up as DecodeSimple counts on this. */
 #if QCBOR_TYPE_FALSE != CBOR_SIMPLEV_FALSE
 #error QCBOR_TYPE_FALSE macro value wrong
@@ -950,7 +1139,6 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
 #error QCBOR_TYPE_FLOAT macro value wrong
 #endif
 
-
 /**
  * @brief Decode major type 7 -- true, false, floating-point, break...
  *
@@ -966,7 +1154,8 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
  *                                           type in input.
  */
 static QCBORError
-QCBOR_Private_DecodeType7(const int      nAdditionalInfo,
+QCBOR_Private_DecodeType7(const uint8_t  uDecodeMode,
+                          const int      nAdditionalInfo,
                           const uint64_t uArgument,
                           QCBORItem     *pDecodedItem)
 {
@@ -985,55 +1174,9 @@ QCBOR_Private_DecodeType7(const int      nAdditionalInfo,
        */
 
       case HALF_PREC_FLOAT: /* 25 */
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         /* Half-precision is returned as a double.  The cast to
-          * uint16_t is safe because the encoded value was 16 bits. It
-          * was widened to 64 bits to be passed in here.
-          */
-         pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uArgument);
-         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-         uReturn = FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS);
-         break;
       case SINGLE_PREC_FLOAT: /* 26 */
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
-         /* Single precision is normally returned as a double since
-          * double is widely supported, there is no loss of precision,
-          * it makes it easy for the caller in most cases and it can
-          * be converted back to single with no loss of precision
-          *
-          * The cast to uint32_t is safe because the encoded value was
-          * 32 bits. It was widened to 64 bits to be passed in here.
-          */
-         {
-            const float f = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-            /* In the normal case, use HW to convert float to
-             * double. */
-            pDecodedItem->val.dfnum = (double)f;
-            pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-            /* Use of float HW is disabled, return as a float. */
-            pDecodedItem->val.fnum = f;
-            pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
-
-            /* IEEE754_FloatToDouble() could be used here to return as
-             * a double, but it adds object code and most likely
-             * anyone disabling FLOAT HW use doesn't care about floats
-             * and wants to save object code.
-             */
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-         }
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
-         break;
-
       case DOUBLE_PREC_FLOAT: /* 27 */
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
-         pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uArgument);
-         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
+         uReturn = QCBOR_Private_DecodeFloat(uDecodeMode, nAdditionalInfo, uArgument, pDecodedItem);
          break;
 
       case CBOR_SIMPLEV_FALSE: /* 20 */
@@ -1046,7 +1189,7 @@ QCBOR_Private_DecodeType7(const int      nAdditionalInfo,
       case CBOR_SIMPLEV_ONEBYTE: /* 24 */
          if(uArgument <= CBOR_SIMPLE_BREAK) {
             /* This takes out f8 00 ... f8 1f which should be encoded
-             * as e0 … f7
+             * as e0 … f7 -- preferred serialization check for simple values.
              */
             uReturn = QCBOR_ERR_BAD_TYPE_7;
             goto Done;
@@ -1215,7 +1358,7 @@ QCBORDecode_Private_ConvertArrayOrMapType(int nCBORMajorType)
  */
 static QCBORError
 QCBOR_Private_DecodeAtomicDataItem(UsefulInputBuf               *pUInBuf,
-                                   bool                          bRequirePreferred,
+                                   uint8_t                       uDecodeMode,
                                    QCBORItem                    *pDecodedItem,
                                    const QCBORInternalAllocator *pAllocator)
 {
@@ -1232,7 +1375,13 @@ QCBOR_Private_DecodeAtomicDataItem(UsefulInputBuf               *pUInBuf,
 
    memset(pDecodedItem, 0, sizeof(QCBORItem));
 
-   uReturn = QCBOR_Private_DecodeHead(pUInBuf, bRequirePreferred, &nMajorType, &uArgument, &nAdditionalInfo);
+   uReturn = QCBOR_Private_DecodeHead(pUInBuf,
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+                                      uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED,
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
+                                      &nMajorType,
+                                      &uArgument,
+                                      &nAdditionalInfo);
    if(uReturn) {
       goto Done;
    }
@@ -1297,7 +1446,7 @@ QCBOR_Private_DecodeAtomicDataItem(UsefulInputBuf               *pUInBuf,
 
       case CBOR_MAJOR_TYPE_SIMPLE:
          /* Major type 7: float, double, true, false, null... */
-         uReturn = QCBOR_Private_DecodeType7(nAdditionalInfo, uArgument, pDecodedItem);
+         uReturn = QCBOR_Private_DecodeType7(uDecodeMode, nAdditionalInfo, uArgument, pDecodedItem);
          break;
 
       default:
@@ -1392,7 +1541,7 @@ QCBORDecode_Private_GetNextFullString(QCBORDecodeContext *pMe,
 
    QCBORError uReturn;
    uReturn = QCBOR_Private_DecodeAtomicDataItem(&(pMe->InBuf),
-                                                pMe->uDecodeMode > QCBOR_DECODE_MODE_PREFERRED,
+                                                pMe->uDecodeMode,
                                                 pDecodedItem,
                                                 pAllocatorForGetNext);
    if(uReturn != QCBOR_SUCCESS) {

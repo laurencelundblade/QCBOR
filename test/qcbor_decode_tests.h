@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2024, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -322,7 +322,7 @@ int32_t CBORTestIssue134(void);
 /*
  * Test the decode checking features for dCBOR, CDE and preferred.
  */
-int32_t DecodeCheckTests(void);
+int32_t DecodeConformanceTests(void);
 
 int32_t ErrorHandlingTests(void);
 

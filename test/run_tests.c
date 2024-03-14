@@ -67,7 +67,9 @@ static test_entry2 s_tests2[] = {
 
 
 static test_entry s_tests[] = {
-   TEST_ENTRY(DecodeCheckTests),
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+   TEST_ENTRY(DecodeConformanceTests),
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
    TEST_ENTRY(ErrorHandlingTests),
    TEST_ENTRY(OpenCloseBytesTest),
    TEST_ENTRY(EnterBstrTest),
