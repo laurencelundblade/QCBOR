@@ -1184,6 +1184,13 @@ QCBOR_Private_DecodeType7(const uint8_t  uDecodeMode,
       case CBOR_SIMPLEV_NULL:  /* 22 */
       case CBOR_SIMPLEV_UNDEF: /* 23 */
       case CBOR_SIMPLE_BREAK:  /* 31 */
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+         if(uDecodeMode >= QCBOR_ENCODE_MODE_DCBOR &&
+            nAdditionalInfo == CBOR_SIMPLEV_UNDEF) {
+            uReturn = QCBOR_ERR_DCBOR_CONFORMANCE;
+            goto Done;
+         }
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
          break; /* nothing to do */
 
       case CBOR_SIMPLEV_ONEBYTE: /* 24 */
@@ -1197,7 +1204,15 @@ QCBOR_Private_DecodeType7(const uint8_t  uDecodeMode,
          /* FALLTHROUGH */
 
       default: /* 0-19 */
-         pDecodedItem->uDataType   = QCBOR_TYPE_UKNOWN_SIMPLE;
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+         if(uDecodeMode >= QCBOR_ENCODE_MODE_DCBOR &&
+            (uArgument < CBOR_SIMPLEV_FALSE || uArgument > CBOR_SIMPLEV_NULL)) {
+            uReturn = QCBOR_ERR_DCBOR_CONFORMANCE;
+            goto Done;
+         }
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
+
+         pDecodedItem->uDataType = QCBOR_TYPE_UKNOWN_SIMPLE;
          /* QCBOR_Private_DecodeHead() will make uArgument equal to
           * nAdditionalInfo when nAdditionalInfo is < 24. This cast is
           * safe because the 2, 4 and 8 byte lengths of uNumber are in
@@ -1396,6 +1411,12 @@ QCBOR_Private_DecodeAtomicDataItem(UsefulInputBuf               *pUInBuf,
             uReturn = QCBOR_ERR_BAD_INT;
          } else {
             uReturn = QCBOR_Private_DecodeInteger(nMajorType, uArgument, pDecodedItem);
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+            if(uDecodeMode >= QCBOR_DECODE_MODE_DCBOR &&
+               pDecodedItem->uDataType == QCBOR_TYPE_65BIT_NEG_INT) {
+               uReturn = QCBOR_ERR_DCBOR_CONFORMANCE;
+            }
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
          }
          break;
 

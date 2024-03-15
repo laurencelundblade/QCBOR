@@ -1825,6 +1825,10 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
          uCBORError = 9; /* For setting break points */
       }
 
+      if(strncmp("undefined no", pF->szDescription, 10) == 0) {
+         uCBORError = 9; /* For setting break points */
+      }
+
       /* Iterate until there is an error of some sort of error */
       do {
          /* Set to something none-zero, something other than QCBOR_TYPE_NONE */
@@ -8830,7 +8834,12 @@ int32_t BoolTest(void)
 
 
 /* These are all well-formed and valid CBOR, but fail
- * conformance with preferred, CDE or dCBOR
+ * conformance with preferred, CDE or dCBOR.
+ *
+ * There are no tests for duplicate map keys here because
+ * it is not well-formed or valid CBOR. Duplicate
+ * map keys are not a CDE or dCBOR error, but a general
+ * CBOR error.
  */
 static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    /* --- Major type 0 and 1 not shortest-form --- */
@@ -8879,8 +8888,41 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\x3b\x00\x00\x00\x00\xff\xff\xff\xff", 9},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
+   { "65-bit negative not allowed in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x3b\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+
+   /* --- Simple values not allowed in dCBOR --- */
+   { "undefined not allowed in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xf7", 1},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "Simple value 0 not allowed in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xe0", 1},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "Simple value 19 not allowed in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xf3", 1},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "Simple value 32 not allowed in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xF8\x20", 2},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "Simple value 255 not allowed in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xF8\xff", 2},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
 
    /* --- Floats not shortest-form --- */
+   // TODO: more of these
    { "Single not preferred form",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xfa\x3f\xc0\x00\x00", 5},
@@ -8888,6 +8930,7 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    },
 
    /* --- Floats that should be integers --- */
+   // TODO: more of these
    { "half zero not an integer in dCBOR",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xf9\x00\x00", 3},
@@ -8937,7 +8980,19 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xbf\xff", 2},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
+
+#if 0 /* Haven't implemented this yet */
+   /* --- Unsorted maps --- */
+   // TODO: more of these
+   { "unsorted map",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xa2\x61\x62\x00\x61\x61\x01", 7},
+      QCBOR_ERR_CDE_CONFORMANCE
+   },
+#endif
+
 };
+
 
 
 int32_t DecodeConformanceTests(void)
