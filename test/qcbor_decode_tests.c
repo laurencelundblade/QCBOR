@@ -8829,13 +8829,65 @@ int32_t BoolTest(void)
 }
 
 
+/* These are all well-formed and valid CBOR, but fail
+ * conformance with preferred, CDE or dCBOR
+ */
 static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
+   /* --- Major type 0 and 1 not shortest-form --- */
+   { "zero encoded in 2 bytes",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x18\x00", 2},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "23 encoded in 2 bytes",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x18\x17", 2},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "255 encoded in 3 bytes",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x19\x00\xff", 3},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "65535 encoded in 5 bytes",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x1a\x00\x00\xff\xff", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "4294967295 encoded in 9 bytes",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x1b\x00\x00\x00\x00\xff\xff\xff\xff", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "-24 encoded in 2 bytes",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x38\x17", 2},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "-256 encoded in 3 bytes",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x39\x00\xff", 3},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "-65536 encoded in 5 bytes",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x3a\x00\x00\xff\xff", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "-4294967296 encoded in 9 bytes",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x3b\x00\x00\x00\x00\xff\xff\xff\xff", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+
+   /* --- Floats not shortest-form --- */
    { "Single not preferred form",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xfa\x3f\xc0\x00\x00", 5},
       QCBOR_ERR_DCBOR_CONFORMANCE
    },
 
+   /* --- Floats that should be integers --- */
    { "half zero not an integer in dCBOR",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xf9\x00\x00", 3},
@@ -8847,32 +8899,44 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       QCBOR_ERR_DCBOR_CONFORMANCE
    },
 
+   /* --- Various non-shortest-form CBOR arguments ---*/
+   { "byte string length not-shortest form",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x59\x00\x01\x99", 4},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "array length not-shortest form",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x9a\x00\x00\x00\x02\x05\x06", 7},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
    { "tag number not shortest-form",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xd9\x00\xff\x00", 4},
-      QCBOR_ERR_PREFERRED_CONFORMANCE // TODO: this code is too close in name to another
+      QCBOR_ERR_PREFERRED_CONFORMANCE
    },
 
+   /* --- Indefinite lengths --- */
+   { "indefinite-length byte string",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x5f\x62\x68\x69\xff", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
    { "indefinite-length text string",
       QCBOR_DECODE_MODE_DCBOR,
-      {"\x7f\x62hi\xff", 5},
-      QCBOR_ERR_PREFERRED_CONFORMANCE // TODO: this code is too close in name to another
+      {"\x7f\x62\x68\x69\xff", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
    },
-
    { "indefinite-length array",
       QCBOR_DECODE_MODE_DCBOR,
       {"\x9f\xff", 2},
-      QCBOR_ERR_PREFERRED_CONFORMANCE // TODO: this code is too close in name to another
+      QCBOR_ERR_PREFERRED_CONFORMANCE
    },
-
-   { "2 byte zero",
+   { "indefinite-length map",
       QCBOR_DECODE_MODE_DCBOR,
-      {"\x18\x00", 2},
-      QCBOR_ERR_PREFERRED_CONFORMANCE // TODO: this code is too close in name to another
-   }
-
-
-
+      {"\xbf\xff", 2},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
 };
 
 
