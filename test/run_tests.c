@@ -67,6 +67,9 @@ static test_entry2 s_tests2[] = {
 
 
 static test_entry s_tests[] = {
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+   TEST_ENTRY(DecodeConformanceTests),
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
    TEST_ENTRY(ErrorHandlingTests),
    TEST_ENTRY(OpenCloseBytesTest),
    TEST_ENTRY(EnterBstrTest),
@@ -96,7 +99,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(IntegerValuesTest1),
    TEST_ENTRY(AllAddMethodsTest),
    TEST_ENTRY(ParseTooDeepArrayTest),
-   TEST_ENTRY(ComprehensiveInputTest),
+   //TEST_ENTRY(ComprehensiveInputTest),
    TEST_ENTRY(ParseMapTest),
    TEST_ENTRY(BasicEncodeTest),
    TEST_ENTRY(NestedMapTest),

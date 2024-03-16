@@ -1825,6 +1825,10 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
          uCBORError = 9; /* For setting break points */
       }
 
+      if(strncmp("255.875 single sh", pF->szDescription, 10) == 0) {
+         uCBORError = 9; /* For setting break points */
+      }
+
       /* Iterate until there is an error of some sort of error */
       do {
          /* Set to something none-zero, something other than QCBOR_TYPE_NONE */
@@ -6499,8 +6503,7 @@ static const struct NumberConversion NumberConversions[] = {
    },
    {
       "Decimal Fraction with positive bignum 257 * 10e3",
-      {(uint8_t[]){0xC4, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
-                               0xC2, 0x42, 0x01, 0x01}, 15},
+      {(uint8_t[]){0xC4, 0x82, 0x03, 0xC2, 0x42, 0x01, 0x01}, 8},
       257000,
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       257000,
@@ -6510,8 +6513,7 @@ static const struct NumberConversion NumberConversions[] = {
    },
    {
       "bigfloat with negative bignum -258 * 2e3",
-      {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
-                               0xC3, 0x42, 0x01, 0x01}, 15},
+      {(uint8_t[]){0xC5, 0x82, 0x03, 0xC3, 0x42, 0x01, 0x01}, 8},
       -2064,
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       0,
@@ -6521,8 +6523,7 @@ static const struct NumberConversion NumberConversions[] = {
    },
    {
       "bigfloat with positive bignum 257 * 2e3",
-      {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
-                               0xC2, 0x42, 0x01, 0x01}, 15},
+      {(uint8_t[]){0xC5, 0x82, 0x03, 0xC2, 0x42, 0x01, 0x01}, 8},
       2056,
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       2056,
@@ -8832,6 +8833,292 @@ int32_t BoolTest(void)
 }
 
 
+/* These are all well-formed and valid CBOR, but fail
+ * conformance with preferred, CDE or dCBOR.
+ *
+ * There are no tests for duplicate map keys here because
+ * it is not well-formed or valid CBOR. Duplicate
+ * map keys are not a CDE or dCBOR error, but a general
+ * CBOR error.
+ */
+static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
+   /* --- Major type 0 and 1 not shortest-form --- */
+   { "zero encoded in 2 bytes",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\x18\x00", 2},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "23 encoded in 2 bytes",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\x18\x17", 2},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "255 encoded in 3 bytes",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\x19\x00\xff", 3},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "65535 encoded in 5 bytes",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\x1a\x00\x00\xff\xff", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "4294967295 encoded in 9 bytes",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\x1b\x00\x00\x00\x00\xff\xff\xff\xff", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "-24 encoded in 2 bytes",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\x38\x17", 2},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "-256 encoded in 3 bytes",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\x39\x00\xff", 3},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "-65536 encoded in 5 bytes",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\x3a\x00\x00\xff\xff", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "-4294967296 encoded in 9 bytes",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\x3b\x00\x00\x00\x00\xff\xff\xff\xff", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "65-bit negative not allowed in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x3b\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+
+   /* --- Simple values not allowed in dCBOR --- */
+   { "undefined not allowed in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xf7", 1},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "Simple value 0 not allowed in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xe0", 1},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "Simple value 19 not allowed in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xf3", 1},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "Simple value 32 not allowed in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xF8\x20", 2},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "Simple value 255 not allowed in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xF8\xff", 2},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+
+   /* --- Floats not in shortest-form --- */
+   { "1.5 single should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfa\x3f\xc0\x00\x00", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "1.5 double should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfb\x3f\xf8\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "8388607.0 double should be single",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xFB\x41\x5F\xFF\xFF\xC0\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "3.0517578125E-5 double should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xFB\x3F\x00\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "255.875 single should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfa\x43\x7f\xe0\x00", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "INFINITY single should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfa\x7f\x80\x00\x00", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "INFINITY double should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfb\x7f\xf0\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "-INFINITY single should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfa\xff\x80\x00\x00", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "-INFINITY double should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfb\xff\xf0\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "NAN single should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfa\x7f\xc0\x00\x00", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "NAN double should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfb\x7f\xf8\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "NAN half with payload (signaling)",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xf9\x7e\x01", 3},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "NAN single with payload (signaling)",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xfa\x7f\xc0\x00\x01", 5},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "NAN double with payload (signaling)",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xfb\x7f\xf8\x00\x00\x00\x00\x00\x01", 9},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "NAN half with some payload",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xf9\x7e\x80", 3},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "NAN single with some payload",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xfa\x7f\xc4\x00\x00", 5},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "NAN double with some payload",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xfb\x7f\xf8\x01\x01\x00\x00\x00\x00", 9},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+
+   /* --- Floats that should be integers --- */
+   { "0 half not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xf9\x00\x00", 3},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "0 double not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xfb\x00\x00\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "-0 half not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xf9\x80\x00", 3},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "18446744073709550000 double not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xFB\x43\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "4294967295 double not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "65535 single not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xFA\x47\x7F\xFF\x00", 5},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "255 half not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xF9\x5C\x00", 3},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "-1 half not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xF9\xBC\x00", 3},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+
+   /* --- Various non-shortest-form CBOR arguments ---*/
+   { "byte string length not-shortest form",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x59\x00\x01\x99", 4},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "array length not-shortest form",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x9a\x00\x00\x00\x02\x05\x06", 7},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "tag number not shortest-form",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xd9\x00\xff\x00", 4},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+
+   /* --- Indefinite lengths --- */
+   { "indefinite-length byte string",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x5f\x62\x68\x69\xff", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "indefinite-length text string",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x7f\x62\x68\x69\xff", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "indefinite-length array",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\x9f\xff", 2},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "indefinite-length map",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xbf\xff", 2},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+
+#if 0 /* Haven't implemented sort checking yet */
+   /* --- Unsorted maps --- */
+   // TODO: more of these with different types of labels
+   { "unsorted map",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xa2\x61\x62\x00\x61\x61\x01", 7},
+      QCBOR_ERR_CDE_CONFORMANCE
+   },
+#endif
+};
+
+
+
+int32_t DecodeConformanceTests(void)
+{
+   int32_t nResult;
+
+   nResult = ProcessDecodeFailures(DecodeConformanceFailures,
+                                   C_ARRAY_COUNT(DecodeConformanceFailures, struct DecodeFailTestInput));
+   if(nResult) {
+      return nResult;
+   }
+
+   return 0;
+}
+
+
+
+
+
 int32_t
 ErrorHandlingTests(void)
 {
@@ -8909,6 +9196,5 @@ ErrorHandlingTests(void)
    if(QCBORDecode_IsNotWellFormedError(QCBOR_ERR_ARRAY_DECODE_TOO_LONG)) {
       return -23;
    }
-
    return 0;
 }
