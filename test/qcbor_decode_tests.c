@@ -8844,47 +8844,47 @@ int32_t BoolTest(void)
 static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    /* --- Major type 0 and 1 not shortest-form --- */
    { "zero encoded in 2 bytes",
-      QCBOR_DECODE_MODE_DCBOR,
+      QCBOR_DECODE_MODE_PREFERRED,
       {"\x18\x00", 2},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
    { "23 encoded in 2 bytes",
-      QCBOR_DECODE_MODE_DCBOR,
+      QCBOR_DECODE_MODE_PREFERRED,
       {"\x18\x17", 2},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
    { "255 encoded in 3 bytes",
-      QCBOR_DECODE_MODE_DCBOR,
+      QCBOR_DECODE_MODE_PREFERRED,
       {"\x19\x00\xff", 3},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
    { "65535 encoded in 5 bytes",
-      QCBOR_DECODE_MODE_DCBOR,
+      QCBOR_DECODE_MODE_PREFERRED,
       {"\x1a\x00\x00\xff\xff", 5},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
    { "4294967295 encoded in 9 bytes",
-      QCBOR_DECODE_MODE_DCBOR,
+      QCBOR_DECODE_MODE_PREFERRED,
       {"\x1b\x00\x00\x00\x00\xff\xff\xff\xff", 9},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
    { "-24 encoded in 2 bytes",
-      QCBOR_DECODE_MODE_DCBOR,
+      QCBOR_DECODE_MODE_PREFERRED,
       {"\x38\x17", 2},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
    { "-256 encoded in 3 bytes",
-      QCBOR_DECODE_MODE_DCBOR,
+      QCBOR_DECODE_MODE_PREFERRED,
       {"\x39\x00\xff", 3},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
    { "-65536 encoded in 5 bytes",
-      QCBOR_DECODE_MODE_DCBOR,
+      QCBOR_DECODE_MODE_PREFERRED,
       {"\x3a\x00\x00\xff\xff", 5},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
    { "-4294967296 encoded in 9 bytes",
-      QCBOR_DECODE_MODE_DCBOR,
+      QCBOR_DECODE_MODE_PREFERRED,
       {"\x3b\x00\x00\x00\x00\xff\xff\xff\xff", 9},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
@@ -8921,24 +8921,95 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       QCBOR_ERR_DCBOR_CONFORMANCE
    },
 
-   /* --- Floats not shortest-form --- */
+   /* --- Floats not in shortest-form --- */
    // TODO: more of these
-   { "Single not preferred form",
-      QCBOR_DECODE_MODE_DCBOR,
+   { "1.5 single should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
       {"\xfa\x3f\xc0\x00\x00", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "1.5 double should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfb\x3f\xf8\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "INFINITY single should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfa\x7f\x80\x00\x00", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "INFINITY double should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfb\x7f\xf0\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "-INFINITY single should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfa\xff\x80\x00\x00", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "-INFINITY double should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfb\xff\xf0\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "NAN single should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfa\x7f\xc0\x00\x00", 5},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "NAN double should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfb\x7f\xf8\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "NAN half with payload (signaling)",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xf9\x7e\x01", 3},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "NAN single with payload (signaling)",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xfa\x7f\xc0\x00\x01", 5},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "NAN double with payload (signaling)",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xfb\x7f\xf8\x00\x00\x00\x00\x00\x01", 9},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "NAN half with some payload",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xf9\x7e\x80", 3},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "NAN single with some payload",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xfa\x7f\xc4\x00\x00", 5},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "NAN double with some payload",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xfb\x7f\xf8\x01\x01\x00\x00\x00\x00", 9},
       QCBOR_ERR_DCBOR_CONFORMANCE
    },
 
+
    /* --- Floats that should be integers --- */
    // TODO: more of these
-   { "half zero not an integer in dCBOR",
+   { "0 half not an integer in dCBOR",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xf9\x00\x00", 3},
       QCBOR_ERR_DCBOR_CONFORMANCE
    },
-   { "double zero not an integer in dCBOR",
+   { "0 double not an integer in dCBOR",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xfb\x00\x00\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "-0 half not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xf9\x80\x00", 3},
       QCBOR_ERR_DCBOR_CONFORMANCE
    },
 
@@ -8999,7 +9070,7 @@ int32_t DecodeConformanceTests(void)
 {
    int32_t nResult;
 
-   float f = 1.5;
+   double f = 1.5;
 
    (void)f;
    nResult = ProcessDecodeFailures(DecodeConformanceFailures,

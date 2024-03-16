@@ -169,6 +169,9 @@ QCBORItem_MatchLabel(const QCBORItem Item1, const QCBORItem Item2)
 }
 
 
+
+
+
 /*
  Returns true if Item1 and Item2 are the same type
  or if either are of QCBOR_TYPE_ANY.
@@ -967,7 +970,7 @@ QCBORDecode_Private_SingleConformance(const float f, const uint8_t uDecodeMode)
    if(uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED) {
       ToSmaller = IEEE754_SingleToHalf(f, true);
       if(ToSmaller.uSize != sizeof(float)) {
-         return QCBOR_ERR_NOT_PREFERRED; // TODO: error code
+         return QCBOR_ERR_PREFERRED_CONFORMANCE;
       }
    }
 
@@ -993,7 +996,7 @@ QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
    if(uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED) {
       ToSmaller = IEEE754_DoubleToSmaller(d, true, true);
       if(ToSmaller.uSize != sizeof(double)) {
-         return QCBOR_ERR_NOT_PREFERRED; // TODO: error code
+         return QCBOR_ERR_PREFERRED_CONFORMANCE;
       }
    }
 
@@ -2817,6 +2820,69 @@ Done:
    return uReturn;
 }
 
+static QCBORError
+CheckMap(QCBORDecodeContext *pMe)
+{
+   QCBORError uErr;
+   //QCBORItem Item1, Item2;
+
+   const QCBORDecodeNesting SaveNesting = pMe->nesting;
+   const UsefulInputBuf Save = pMe->InBuf;
+
+   uErr = 99;
+   /*
+    Loop over all items in a map
+    - Check that labels are ascending
+    - Check for duplicates
+    - NO recursion to keep stack use under control.
+
+
+
+    How to check for duplicates if not ascending???
+
+    1) A big list of label (offsets, perhaps allow external buffer. 400 bytes for 100 map entries)
+    2) Decode the map twice -- n-squared algorithm
+
+    3) Hybrid
+
+
+    */
+
+#if 0
+   while(1) {
+      uErr = QCBORDecode_GetNext(pMe, &Item1);
+
+      // Save State
+
+      while(1) {
+         uErr = QCBORDecode_GetNext(pMe, &Item2);
+
+         // If end of map exit
+
+         // Label comparison must be of the *encoded* CBOR
+
+         // Must also know length of label when doing the comparison for equality
+
+         // Compare Labels; exit if equal
+
+         // Exit with dCBOR error if smaller
+
+
+
+      }
+
+      // Restore State
+
+
+   }
+
+#endif
+   pMe->nesting = SaveNesting;
+   pMe->InBuf = Save;
+
+   return uErr;
+
+}
 
 /*
  * Public function, see header qcbor/qcbor_decode.h file
@@ -2826,6 +2892,12 @@ QCBORDecode_GetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    QCBORError uErr;
    uErr = QCBORDecode_Private_GetNextTagContent(pMe, pDecodedItem);
+#ifndef QCBOR_DISABLE_CONFORMANCE
+   if(uErr == QCBOR_SUCCESS && pMe->uDecodeMode >= QCBOR_ENCODE_MODE_CDE && pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
+      /* Traverse map checking sort order and for duplicates */
+      uErr = CheckMap(pMe);
+   }
+#endif
    if(uErr != QCBOR_SUCCESS) {
       pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
       pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
