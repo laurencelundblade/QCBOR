@@ -1825,7 +1825,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
          uCBORError = 9; /* For setting break points */
       }
 
-      if(strncmp("undefined no", pF->szDescription, 10) == 0) {
+      if(strncmp("255.875 single sh", pF->szDescription, 10) == 0) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -8922,7 +8922,6 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    },
 
    /* --- Floats not in shortest-form --- */
-   // TODO: more of these
    { "1.5 single should be half",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xfa\x3f\xc0\x00\x00", 5},
@@ -8931,6 +8930,21 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    { "1.5 double should be half",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xfb\x3f\xf8\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "8388607.0 double should be single",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xFB\x41\x5F\xFF\xFF\xC0\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "3.0517578125E-5 double should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xFB\x3F\x00\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "255.875 single should be half",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xfa\x43\x7f\xe0\x00", 5},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
    { "INFINITY single should be half",
@@ -8994,9 +9008,7 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       QCBOR_ERR_DCBOR_CONFORMANCE
    },
 
-
    /* --- Floats that should be integers --- */
-   // TODO: more of these
    { "0 half not an integer in dCBOR",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xf9\x00\x00", 3},
@@ -9010,6 +9022,31 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    { "-0 half not an integer in dCBOR",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xf9\x80\x00", 3},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "18446744073709550000 double not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xFB\x43\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "4294967295 double not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "65535 single not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xFA\x47\x7F\xFF\x00", 5},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "255 half not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xF9\x5C\x00", 3},
+      QCBOR_ERR_DCBOR_CONFORMANCE
+   },
+   { "-1 half not an integer in dCBOR",
+      QCBOR_DECODE_MODE_DCBOR,
+      {"\xF9\xBC\x00", 3},
       QCBOR_ERR_DCBOR_CONFORMANCE
    },
 
@@ -9052,16 +9089,15 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
 
-#if 0 /* Haven't implemented this yet */
+#if 0 /* Haven't implemented sort checking yet */
    /* --- Unsorted maps --- */
-   // TODO: more of these
+   // TODO: more of these with different types of labels
    { "unsorted map",
       QCBOR_DECODE_MODE_CDE,
       {"\xa2\x61\x62\x00\x61\x61\x01", 7},
       QCBOR_ERR_CDE_CONFORMANCE
    },
 #endif
-
 };
 
 
@@ -9070,9 +9106,6 @@ int32_t DecodeConformanceTests(void)
 {
    int32_t nResult;
 
-   double f = 1.5;
-
-   (void)f;
    nResult = ProcessDecodeFailures(DecodeConformanceFailures,
                                    C_ARRAY_COUNT(DecodeConformanceFailures, struct DecodeFailTestInput));
    if(nResult) {

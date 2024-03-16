@@ -961,7 +961,10 @@ QCBORDecode_Private_SingleConformance(const float f, const uint8_t uDecodeMode)
 
    if(uDecodeMode >= QCBOR_DECODE_MODE_DCBOR) {
       ToInt = IEEE754_SingleToInt(f);
-      if(ToInt.type != QCBOR_TYPE_FLOAT) {
+      if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
+         return QCBOR_ERR_DCBOR_CONFORMANCE;
+      }
+      if(IEEE754_IsNotStandardSingleNaN(f)) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
    }
@@ -987,7 +990,10 @@ QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
    if(uDecodeMode >= QCBOR_DECODE_MODE_DCBOR) {
       ToInt = IEEE754_DoubleToInt(d);
 
-      if(ToInt.type != QCBOR_TYPE_DOUBLE) {
+      if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
+         return QCBOR_ERR_DCBOR_CONFORMANCE;
+      }
+      if(IEEE754_IsNotStandardDoubleNaN(d)) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
    }
