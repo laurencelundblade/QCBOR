@@ -319,7 +319,9 @@ Test GitHub issue #134: decode an indefinite-length string with a zero-length fi
 int32_t CBORTestIssue134(void);
 
 
-int32_t
-PreciseNumbersTest(void);
+int32_t PreciseNumbersTest(void);
+
+int32_t ErrorHandlingTests(void);
+
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */
