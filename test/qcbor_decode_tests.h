@@ -320,6 +320,6 @@ int32_t CBORTestIssue134(void);
 
 
 int32_t
-PreciseTest(void);
+PreciseNumbersTest(void);
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

@@ -7036,37 +7036,47 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
 
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
+#if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+
+/* This is an out-of-band value for NegToD. To avoid dependency on
+ * math.h INIFINITY and NAN are not used. (This will be rewritten
+ * with masks and shifts so it won't need any float HW or soft library.
+ */
+#define NEG_TO_D_OOB 0.1 /* Indicates no conversion */
 
 static double
-NegToD(uint64_t uNegInt)
+QCBORDecode_Private_65BitNegToDouble(uint64_t uNegInt)
 {
    double d;
    /* Improvement: do this with shifts and masks so it doesn't get disabled when float does */
 
-   /* Subtraction must be after the cast to avoid overflow. */
-   d = (double)uNegInt - 1.0;
-   if(d + 1 == (double)uNegInt) { /* Make sure it is a whole number */
-      return -d;
+   d = (double)uNegInt;
+   if((uint64_t)d == uNegInt) {
+      /* It is a whole number */
+      return (-d) - 1.0; /* Offset of one for CBOR negative numbers */
+   } else {
+      return NEG_TO_D_OOB;
    }
-
-   return NAN;
 }
 
-
+/*
+ * Public function, see header qcbor/qcbor_spiffy_decode.h file
+ */
 void
 QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
                                       QCBORItem          *pNumber)
 {
-   QCBORItem Item;
+   QCBORItem            Item;
    struct IEEE754_ToInt ToInt;
-   double d;
+   double               d;
+   QCBORError           uError;
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError) {
+   uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError != QCBOR_SUCCESS) {
       pMe->uLastError = (uint8_t)uError;
       return;
    }
@@ -7083,16 +7093,42 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
             pNumber->uDataType = QCBOR_TYPE_INT64;
             pNumber->val.int64 = ToInt.integer.is_signed;
          } else if(ToInt.type == IEEE754_ToInt_IS_UINT) {
-            pNumber->uDataType = QCBOR_TYPE_UINT64;
-            pNumber->val.uint64 = ToInt.integer.un_signed;
+            if(ToInt.integer.un_signed <= INT64_MAX) {
+               /* Do the same as base QCBOR integer decoding */
+               pNumber->uDataType = QCBOR_TYPE_INT64;
+               pNumber->val.int64 = (int64_t)ToInt.integer.un_signed;
+            } else {
+               pNumber->uDataType = QCBOR_TYPE_UINT64;
+               pNumber->val.uint64 = ToInt.integer.un_signed;
+            }
          } else {
             *pNumber = Item;
          }
          break;
 
+      case QCBOR_TYPE_FLOAT:
+         ToInt = IEEE754_SingleToInt(Item.val.fnum);
+         if(ToInt.type == IEEE754_ToInt_IS_INT) {
+            pNumber->uDataType = QCBOR_TYPE_INT64;
+            pNumber->val.int64 = ToInt.integer.is_signed;
+         } else if(ToInt.type == IEEE754_ToInt_IS_UINT) {
+            if(ToInt.integer.un_signed <= INT64_MAX) {
+               /* Do the same as base QCBOR integer decoding */
+               pNumber->uDataType = QCBOR_TYPE_INT64;
+               pNumber->val.int64 = (int64_t)ToInt.integer.un_signed;
+            } else {
+               pNumber->uDataType = QCBOR_TYPE_UINT64;
+               pNumber->val.uint64 = ToInt.integer.un_signed;
+            }
+         } else {
+            *pNumber = Item;
+         }
+         break;
+
+
       case QCBOR_TYPE_65BIT_NEG_INT:
-         d = NegToD(Item.val.uint64);
-         if(d == NAN) {
+         d = QCBORDecode_Private_65BitNegToDouble(Item.val.uint64);
+         if(d == NEG_TO_D_OOB) {
             *pNumber = Item;
          } else {
             pNumber->uDataType = QCBOR_TYPE_DOUBLE;
@@ -7107,156 +7143,4 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
    }
 }
 
-
-#if 0
-
-
-
-void
-Int_To_BigNum(uint64_t     u,
-              UsefulBuf   B,
-              UsefulBufC  *pBigNum)
-{
-   /* This is just a memcpy, though watch out for endianess */
-   /* Have to check size */
-
-
-}
-
-
-// TODO: error conditions
-void
-Double_To_BigNum(double     d,
-              UsefulBuf   B,
-              UsefulBufC *pBigNum)
-{
-   /* Have to do shift thing to figure out if it is whole number */
-   /* Then kind of a copy and shift, possibly with a lot of zeros */
-
-}
-
-
-void
-QCBORDecode_GetNumberConvertBigNum(QCBORDecodeContext *pMe,
-                                   UsefulBuf B,
-                                   UsefulBufC *pBigNum,
-                                   bool       *pbIsNegative)
-{
-   QCBORItem Item;
-
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError) {
-      pMe->uLastError = (uint8_t)uError;
-      return;
-   }
-
-   switch(Item.uDataType) {
-
-      case QCBOR_TYPE_INT64:
-         if(Item.val.int64 < 0) {
-            *pbIsNegative = true;
-            Item.val.uint64 = (uint64_t)(-Item.val.int64);
-         } else {
-            Item.val.uint64 =  (uint64_t)Item.val.int64;
-         }
-         /* FALLTHROUGH */
-
-      case QCBOR_TYPE_UINT64:
-         Int_To_BigNum(Item.val.uint64, B, pBigNum);
-         break;
-
-      case QCBOR_TYPE_DOUBLE:
-         Double_To_BigNum(Item.val.dfnum, B, pBigNum);
-         /* TODO: sometimes this will fail */
-         break;
-
-      case QCBOR_TYPE_65BIT_NEG_INT:
-         /* TODO: Try to convert to double without precision loss */
-
-      case QCBOR_TYPE_NEGBIGNUM:
-      case QCBOR_TYPE_POSBIGNUM:
-         *pBigNum = UsefulBuf_Copy(B, Item.val.bigNum);
-         break;
-         // TODO: sign
-
-      case QCBOR_TYPE_BIGFLOAT:
-         // TODO: lots of work
-         // This will fail sometimes
-
-
-      default:
-         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
-         break;
-
-
-   }
-}
-
-
-/* This can represent a very large range of values! */
-void
-QCBORDecode_GetNumberConvertBigFloat(QCBORDecodeContext *pMe,
-                                   UsefulBuf B,
-                                   UsefulBufC *pBigNum,
-                                   bool       *pbIsNegative,
-                                     int64_t   *nExponent)
-{
-   QCBORItem Item;
-
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError) {
-      pMe->uLastError = (uint8_t)uError;
-      return;
-   }
-
-   switch(Item.uDataType) {
-
-      case QCBOR_TYPE_INT64:
-         if(Item.val.int64 < 0) {
-            *pbIsNegative = true;
-            Item.val.uint64 = (uint64_t)(-Item.val.int64);
-         } else {
-            Item.val.uint64 =  (uint64_t)Item.val.int64;
-         }
-         /* FALLTHROUGH */
-
-      case QCBOR_TYPE_UINT64:
-         Int_To_BigNum(Item.val.uint64, B, pBigNum);
-         break;
-
-      case QCBOR_TYPE_DOUBLE:
-         Double_To_BigNum(Item.val.dfnum, B, pBigNum);
-         /* TODO: sometimes this will fail */
-         break;
-
-      case QCBOR_TYPE_65BIT_NEG_INT:
-         /* TODO: Try to convert to double without precision loss */
-
-      case QCBOR_TYPE_NEGBIGNUM:
-      case QCBOR_TYPE_POSBIGNUM:
-         *pBigNum = UsefulBuf_Copy(B, Item.val.bigNum);
-         break;
-         // TODO: sign
-
-      case QCBOR_TYPE_BIGFLOAT:
-         // TODO: lots of work
-         // This will fail sometimes
-
-
-      default:
-         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
-         break;
-
-
-   }
-}
-
-#endif
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */

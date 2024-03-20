@@ -335,23 +335,23 @@ This saves only a small amount of object code. The primary purpose for
 defining this is to remove dependency on floating point hardware and
 libraries.
 
+
 #### #define QCBOR_DISABLE_PREFERRED_FLOAT
 
-This eliminates support for half-precision
-and CBOR preferred serialization by disabling
-QCBOR's shift and mask based implementation of
-half-precision floating-point.
+This eliminates support of:
+- encode/decode of half-precision
+- shortest-form encoding of floats
+- QCBORDecode_GetNumberConvertPrecisely()
 
-With this defined, single and double-precision floating-point
-numbers can still be encoded and decoded. Conversion
-of floating-point to and from integers, big numbers and
-such is also supported. Floating-point dates are still
-supported.
+This saves about 1KB of object code, though much of this can be saved
+by not calling any functions to encode doubles or floats or
+QCBORDecode_GetNumberConvertPrecisely
 
-The primary reason to define this is to save object code.
-Roughly 900 bytes are saved, though about half of this
-can be saved just by not calling any functions that
-encode floating-point numbers.
+With this defined, single and double-precision floating-point numbers
+can still be encoded and decoded. Some conversion of floating-point to
+and from integers, big numbers and such is also supported. Floating-point
+dates are still supported.
+
 
 #### #define USEFULBUF_DISABLE_ALL_FLOAT
 

@@ -299,8 +299,9 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
                                    uint32_t            uConvertTypes,
                                    int64_t            *pnValue);
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /**
- * @brief Decode next as a number, with precision-preserving conversions.
+ * @brief Decode next as a number with precision-preserving conversions.
  *
  * @param[in] pCtx           The decode context.
  * @param[out] pNumber       The returned 64-bit signed integer.
@@ -313,25 +314,31 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  *
  * The conversion is as follows.
  *
- * Whole numbers between INT64_MIN and INT64_MAX will
+ * Whole numbers between \c INT64_MIN and \c INT64_MAX will
  * be returned as \ref QCBOR_TYPE_INT64. This includes
  * conversion of float values that are whole number.
  *
- * Whole numbers between INT64_MAX and UINT64_MAX will
+ * Whole numbers between \c INT64_MAX and \c UINT64_MAX will
  * be returned as \ref QCBOR_TYPE_UINT64, again including
  * conversion of whole floating-point numbers.
  *
+ * TODO: rewrite this more clearly
  * Whole numbers between -2^63 - 1 to -2^64 that have more than
  * 52-bit precision will be returned as \ref QCBOR_TYPE_65BIT_NEG_INT.
- * That is to avoid returning QCBOR_TYPE_65BIT_NEG_INT, which is
+ * That is, to avoid returning QCBOR_TYPE_65BIT_NEG_INT, which is
  * awkward to work with in C these far-from-zero negative whole
- * numbers will be converted to double floating point. QCBOR_TYPE_65BIT_NEG_INT
+ * numbers will be converted to double floating point. \ref QCBOR_TYPE_65BIT_NEG_INT
  * is only returned when the value can't convert to double because it
- * has more than 53-bits of precision.
+ * has more than 53-bits of precision. Hopefully, most protocols will
+ * not make use of 65-bit negative integers and occurance of the
+ * type QCBOR_TYPE_65BIT_NEG_INT can be considered an error.
+ * See also QCBOREncode_AddNegativeUInt64(). Note that
+ * QCBOR 1.x just errors out on 65-bit negative integers.
  *
  * All others are returned as a double.
  *
- * This is useful for dCBOR where floats are converted to ints when they are whole numbers.
+ * This is useful for dCBOR which essentially combines floats
+ * and integers into one number space.
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  *
@@ -352,28 +359,7 @@ void
 QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
                                       QCBORItem          *pNumber);
 
-/**
- * @brief Decode next item into a big number or big float.
- *
- * @param[in] pCtx           The decode context.
- * @param[in] Buffer   The buffer for the big number or mantissa.
- * @param[out] pNumber       The returned 64-bit signed integer.
- *
- * This outputs a big number QCBOR_TYPE_POSBIGNUM or QCBOR_TYPE_NEGBIGNUM when the input is a whole number
- * and a big float QCBOR_TYPE_BIGFLOAT_POS_BIGNUM or QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM when the input is not.  This can represent any
- * number with no precision loss. The only limitation is that the
- * exponent is a int64_t and the size of @c Buffer.
- *
- * Note that this will never return \ref QCBOR_TYPE_INT64 on the assumption
- * that the caller is committed to supporting big numbers and big floats.
- *
- * The CBOR inputs to this can be integers (major types 0 and 1), floating-point,
- * big numbers and big floats (eventually decimal fractions may also be supported).
- */
-void
-QCBORDecode_GetNumberConvertPreciselyBig(QCBORDecodeContext *pCtx,
-                                         UsefulBuf           Buffer,
-                                         QCBORItem          *pNumber);
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 /**
  * @brief Decode next item into a signed 64-bit integer with conversions.

@@ -44,7 +44,6 @@ extern "C" {
 #endif
 
 
-
 /**
  * @file qcbor_common.h
  *

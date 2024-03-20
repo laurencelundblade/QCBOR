@@ -8616,6 +8616,8 @@ int32_t BoolTest(void)
 }
 
 
+#if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+
 struct PreciseNumberConversion {
    char       *szDescription;
    UsefulBufC  CBOR;
@@ -8623,14 +8625,90 @@ struct PreciseNumberConversion {
    uint8_t     qcborType;
    struct foo {
       int64_t  int64;
-      uint64_t  uint64;
+      uint64_t uint64;
       double   d;
    } number;
 };
 
 
-
 static const struct PreciseNumberConversion PreciseNumberConversions[] = {
+   {
+      "-0.00",
+      {"\xf9\x80\x00", 3},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {0, 0, 0}
+   },
+   {
+      "NaN",
+      {"\xf9\x7e\x00", 3},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, NAN}
+   },
+   {
+      "NaN payload",
+      {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, NAN}
+   },
+   {
+      "65536.0 single",
+      {"\xFA\x47\x80\x00\x00", 5},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {65536, 0, 0}
+   },
+   {
+      "Infinity",
+      {"\xf9\x7c\x00", 3},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, INFINITY}
+   },
+   {
+      "1.0",
+      {"\xf9\x3c\x00", 3},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {1, 0, 0}
+   },
+   {
+      "UINT64_MAX",
+      {"\x1B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_UINT64,
+      {0, UINT64_MAX, 0}
+   },
+   {
+      "INT64_MIN",
+      {"\x3B\x7f\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {INT64_MIN, 0, 0}
+   },
+   {
+      "18446742974197923840",
+      {"\xFB\x43\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_UINT64,
+      {0, 18446742974197923840ULL, 0}
+   },
+   {
+      "65-bit neg, too much precision",
+      {"\x3B\x80\x00\x00\x00\x00\x00\x00\x01", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_65BIT_NEG_INT,
+      {0, 0x8000000000000001, 0}
+   },
+   {
+      "65-bit neg, power of two",
+      {"\x3B\x80\x00\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, -9223372036854775809.0}
+   },
    {
       "Zero",
       {"\x00", 1},
@@ -8652,17 +8730,17 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
       QCBOR_TYPE_NONE,
       {0, 0, 0}
    }
-
 };
 
+
 int32_t
-PreciseTest(void)
+PreciseNumbersTest(void)
 {
-   int i;
-   const struct PreciseNumberConversion *pTest;
-   QCBORError uErr;
-   QCBORItem Item;
+   int                i;
+   QCBORError         uErr;
+   QCBORItem          Item;
    QCBORDecodeContext DCtx;
+   const struct PreciseNumberConversion *pTest;
 
    const int count = (int)C_ARRAY_COUNT(PreciseNumberConversions, struct PreciseNumberConversion);
 
@@ -8695,14 +8773,21 @@ PreciseTest(void)
             break;
 
          case QCBOR_TYPE_UINT64:
+         case QCBOR_TYPE_65BIT_NEG_INT:
             if(Item.val.uint64 != pTest->number.uint64) {
                return i * 1000 + 400;
             }
             break;
 
          case QCBOR_TYPE_DOUBLE:
-            if(Item.val.dfnum != pTest->number.d) {
-               return i * 1000 + 500;
+            if(isnan(pTest->number.d)) {
+               if(!isnan(Item.val.dfnum)) {
+                  return i * 1000 + 600;
+               }
+            } else {
+               if(Item.val.dfnum != pTest->number.d) {
+                  return i * 1000 + 500;
+               }
             }
             break;
       }
@@ -8710,3 +8795,5 @@ PreciseTest(void)
 
    return 0;
 }
+
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
