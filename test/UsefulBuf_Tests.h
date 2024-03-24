@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018, Laurence Lundblade.
+ Copyright (c) 2018-2023, Laurence Lundblade.
  Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
@@ -51,5 +51,7 @@ const char *  UBUTest_CopyUtil(void);
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 const char * UBAdvanceTest(void);
+
+const char * UOBExtraTests(void);
 
 #endif

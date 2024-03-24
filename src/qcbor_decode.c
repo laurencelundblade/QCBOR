@@ -885,10 +885,8 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
          pDecodedItem->uDataType = QCBOR_TYPE_INT64;
 
       } else {
-         /* C can't represent a negative integer in this range so it
-          * is an error.
-          */
-         uReturn = QCBOR_ERR_INT_OVERFLOW;
+         pDecodedItem->val.uint64 = uArgument;
+         pDecodedItem->uDataType  = QCBOR_TYPE_65BIT_NEG_INT;
       }
    }
 
@@ -5149,6 +5147,12 @@ QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
          }
          break;
 
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         /* This type occurs if the value won't fit into int64_t
+          * so this is always an error. */
+         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+         break;
+
       default:
          return  QCBOR_ERR_UNEXPECTED_TYPE;
    }
@@ -5557,11 +5561,14 @@ QCBOR_Private_ConvertUInt64(const QCBORItem *pItem,
 
       case QCBOR_TYPE_UINT64:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_XINT64) {
-            *puValue =  pItem->val.uint64;
+            *puValue = pItem->val.uint64;
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -5952,6 +5959,14 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
+         break;
+#else
+         return QCBOR_ERR_HW_FLOAT_DISABLED;
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+         *pdValue = -(double)pItem->val.uint64 - 1;
          break;
 #else
          return QCBOR_ERR_HW_FLOAT_DISABLED;
@@ -7027,3 +7042,92 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
 }
 
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+
+
+#if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+/*
+ * Public function, see header qcbor/qcbor_spiffy_decode.h file
+ */
+void
+QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
+                                      QCBORItem          *pNumber)
+{
+   QCBORItem            Item;
+   struct IEEE754_ToInt ToInt;
+   double               d;
+   QCBORError           uError;
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError != QCBOR_SUCCESS) {
+      pMe->uLastError = (uint8_t)uError;
+      return;
+   }
+
+   switch(Item.uDataType) {
+      case QCBOR_TYPE_INT64:
+      case QCBOR_TYPE_UINT64:
+         *pNumber = Item;
+         break;
+
+      case QCBOR_TYPE_DOUBLE:
+         ToInt = IEEE754_DoubleToInt(Item.val.dfnum);
+         if(ToInt.type == IEEE754_ToInt_IS_INT) {
+            pNumber->uDataType = QCBOR_TYPE_INT64;
+            pNumber->val.int64 = ToInt.integer.is_signed;
+         } else if(ToInt.type == IEEE754_ToInt_IS_UINT) {
+            if(ToInt.integer.un_signed <= INT64_MAX) {
+               /* Do the same as base QCBOR integer decoding */
+               pNumber->uDataType = QCBOR_TYPE_INT64;
+               pNumber->val.int64 = (int64_t)ToInt.integer.un_signed;
+            } else {
+               pNumber->uDataType = QCBOR_TYPE_UINT64;
+               pNumber->val.uint64 = ToInt.integer.un_signed;
+            }
+         } else {
+            *pNumber = Item;
+         }
+         break;
+
+      case QCBOR_TYPE_FLOAT:
+         ToInt = IEEE754_SingleToInt(Item.val.fnum);
+         if(ToInt.type == IEEE754_ToInt_IS_INT) {
+            pNumber->uDataType = QCBOR_TYPE_INT64;
+            pNumber->val.int64 = ToInt.integer.is_signed;
+         } else if(ToInt.type == IEEE754_ToInt_IS_UINT) {
+            if(ToInt.integer.un_signed <= INT64_MAX) {
+               /* Do the same as base QCBOR integer decoding */
+               pNumber->uDataType = QCBOR_TYPE_INT64;
+               pNumber->val.int64 = (int64_t)ToInt.integer.un_signed;
+            } else {
+               pNumber->uDataType = QCBOR_TYPE_UINT64;
+               pNumber->val.uint64 = ToInt.integer.un_signed;
+            }
+         } else {
+            *pNumber = Item;
+         }
+         break;
+
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         d = IEEE754_UintToDouble(Item.val.uint64, 1);
+         if(d == IEEE754_UINT_TO_DOUBLE_OOB) {
+            *pNumber = Item;
+         } else {
+            pNumber->uDataType = QCBOR_TYPE_DOUBLE;
+            /* -1 is because of CBOR offset of negative numbers */
+            pNumber->val.dfnum = d - 1;
+         }
+         break;
+
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+         pNumber->uDataType = QCBOR_TYPE_NONE;
+         break;
+   }
+}
+
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
