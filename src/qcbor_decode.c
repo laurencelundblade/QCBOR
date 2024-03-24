@@ -7043,29 +7043,8 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
 
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
+
 #if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
-
-/* This is an out-of-band value for NegToD. To avoid dependency on
- * math.h INIFINITY and NAN are not used. (This will be rewritten
- * with masks and shifts so it won't need any float HW or soft library.
- */
-#define NEG_TO_D_OOB 0.1 /* Indicates no conversion */
-
-static double
-QCBORDecode_Private_65BitNegToDouble(uint64_t uNegInt)
-{
-   double d;
-   /* Improvement: do this with shifts and masks so it doesn't get disabled when float does */
-
-   d = (double)uNegInt;
-   if((uint64_t)d == uNegInt) {
-      /* It is a whole number */
-      return (-d) - 1.0; /* Offset of one for CBOR negative numbers */
-   } else {
-      return NEG_TO_D_OOB;
-   }
-}
-
 /*
  * Public function, see header qcbor/qcbor_spiffy_decode.h file
  */
@@ -7134,12 +7113,13 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
 
 
       case QCBOR_TYPE_65BIT_NEG_INT:
-         d = QCBORDecode_Private_65BitNegToDouble(Item.val.uint64);
-         if(d == NEG_TO_D_OOB) {
+         d = IEEE754_UintToDouble(Item.val.uint64, 1);
+         if(d == IEEE754_UINT_TO_DOUBLE_OOB) {
             *pNumber = Item;
          } else {
             pNumber->uDataType = QCBOR_TYPE_DOUBLE;
-            pNumber->val.dfnum = d;
+            /* -1 is because of CBOR offset of negative numbers */
+            pNumber->val.dfnum = d - 1;
          }
          break;
 

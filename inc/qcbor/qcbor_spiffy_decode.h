@@ -299,7 +299,8 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
                                    uint32_t            uConvertTypes,
                                    int64_t            *pnValue);
 
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+
+#if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
 /**
  * @brief Decode next as a number with precision-preserving conversions.
  *
@@ -316,24 +317,21 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  *
  * Whole numbers between \c INT64_MIN and \c INT64_MAX will
  * be returned as \ref QCBOR_TYPE_INT64. This includes
- * conversion of float values that are whole number.
+ * conversion of float-point values that are whole numbers.
  *
  * Whole numbers between \c INT64_MAX and \c UINT64_MAX will
  * be returned as \ref QCBOR_TYPE_UINT64, again including
- * conversion of whole floating-point numbers.
+ * conversion of floating-point values that are whole numbers.
  *
- * TODO: rewrite this more clearly
- * Whole numbers between -2^63 - 1 to -2^64 that have more than
- * 52-bit precision will be returned as \ref QCBOR_TYPE_65BIT_NEG_INT.
- * That is, to avoid returning QCBOR_TYPE_65BIT_NEG_INT, which is
- * awkward to work with in C these far-from-zero negative whole
- * numbers will be converted to double floating point. \ref QCBOR_TYPE_65BIT_NEG_INT
- * is only returned when the value can't convert to double because it
- * has more than 53-bits of precision. Hopefully, most protocols will
- * not make use of 65-bit negative integers and occurance of the
- * type QCBOR_TYPE_65BIT_NEG_INT can be considered an error.
- * See also QCBOREncode_AddNegativeUInt64(). Note that
- * QCBOR 1.x just errors out on 65-bit negative integers.
+ * The whole numbers called "65-bit negative" in CBOR (-2^63 - 1 to -2^64) are a
+ * special case. Some of them can be converted to a double without
+ * loss of precision and some can't (uint64_t has 64 bits of precision; a double
+ * has only 52). If they can't be converted to a double, they are returned
+ * as \ref QCBOR_TYPE_65BIT_NEG_INT.
+ * In many cases, it will be reasonable to error out if the
+ * number type returned here is \ref QCBOR_TYPE_65BIT_NEG_INT
+ * on the assumption that many protocols will never uses these.
+ * See also QCBOREncode_AddNegativeUInt64() for more discussion.
  *
  * All others are returned as a double.
  *
@@ -342,24 +340,13 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  *
- * TODO: is this right?
- * If floating-point HW use is disabled this will set
- * @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision number is
- * encountered. If half-precision support is disabled, this will set
- * @ref QCBOR_ERR_HALF_PRECISION_DISABLED if a half-precision number
- * is encountered.
- * * TODO: is this right?
- * If floating-point usage is disabled this will set
- * @ref QCBOR_ERR_ALL_FLOAT_DISABLED if a floating point value is
- * encountered.
- *
  * See also QCBORDecode_GetNumberConvertPreciselyBig().
  */
 void
 QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
                                       QCBORItem          *pNumber);
 
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 /**
  * @brief Decode next item into a signed 64-bit integer with conversions.

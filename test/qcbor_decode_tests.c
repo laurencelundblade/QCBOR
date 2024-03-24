@@ -8839,7 +8839,7 @@ struct PreciseNumberConversion {
    UsefulBufC  CBOR;
    QCBORError  uError;
    uint8_t     qcborType;
-   struct foo {
+   struct {
       int64_t  int64;
       uint64_t uint64;
       double   d;
@@ -8919,6 +8919,27 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
       {0, 0x8000000000000001, 0}
    },
    {
+      "65-bit neg lots of precision",
+      {"\x3B\xff\xff\xff\xff\xff\xff\xf0\x00", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, -18446744073709547521.0}
+   },
+   {
+      "65-bit neg very precise",
+      {"\x3B\xff\xff\xff\xff\xff\xff\xf8\x00", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, -18446744073709549569.0}
+   },
+   {
+      "65-bit neg too precise",
+      {"\x3B\xff\xff\xff\xff\xff\xff\xfc\x00", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_65BIT_NEG_INT,
+      {0, 18446744073709550592ULL, 0.0}
+   },
+   {
       "65-bit neg, power of two",
       {"\x3B\x80\x00\x00\x00\x00\x00\x00\x00", 9},
       QCBOR_SUCCESS,
@@ -8962,6 +8983,10 @@ PreciseNumbersTest(void)
 
    for(i = 0; i < count; i++) {
       pTest = &PreciseNumberConversions[i];
+
+      if(i == 11) {
+         uErr = 99; // For break point only
+      }
 
       QCBORDecode_Init(&DCtx, pTest->CBOR, 0);
 
