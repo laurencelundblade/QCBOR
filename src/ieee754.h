@@ -184,6 +184,25 @@ IEEE754_DoubleToInt(double d);
 struct IEEE754_ToInt
 IEEE754_SingleToInt(float f);
 
+
+/**
+ * @brief Convert an unsigned integer to a double with no precision loss.
+ *
+ * @param[in] uInt  The value to convert.
+ * @param[in] uIsNegative   0 if postive, 1 if negative.
+ *
+ * @returns Either the converted number or 0.5 if no conversion.
+ *
+ * The conversion will fail if the input can not be represented in the
+ * 52 bits or precision that a double has. 0.5 is returned to indicate
+ * no conversion. It is out-of-band from non-error results, because
+ * all non-error results are whole integers.
+ */
+#define IEEE754_UINT_TO_DOUBLE_OOB 0.5
+double
+IEEE754_UintToDouble(uint64_t uInt, int uIsNegative);
+
+
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 

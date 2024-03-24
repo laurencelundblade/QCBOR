@@ -191,6 +191,7 @@ CopyUint32ToSingle(uint32_t u32)
  * This returns the bits for a single-precision float, a binary64
  * as specified in IEEE754.
  */
+// TODO: make the sign and exponent type int?
 static double
 IEEE754_AssembleDouble(uint64_t uDoubleSign,
                        uint64_t uDoubleSignificand,
@@ -644,27 +645,40 @@ IEEE754_DoubleToSmaller(const double d,
 }
 
 
+
+/* This returns 64 minus the number of zero bits on the right. It is
+ * is the amount of precision in the 64-bit significand passed in.
+ * When used for 52 and 23-bit significands, subtract 12 and 41
+ * to get their precision.
+ *
+ * The value returned is for a *normalized* number like the
+ * significand of a double. When used for precision for a non-normalized
+ * number like a uint64_t, further computation is required.
+ *
+ * If the significand is 0, then 0 is returned as the precision.*/
 static int
-IEEE754_Private_CountNonZeroBits(int nMax, uint64_t uTarget)
+IEEE754_Private_CountPrecisionBits(uint64_t uSignigicand)
 {
    int      nNonZeroBitsCount;
    uint64_t uMask;
 
-   for(nNonZeroBitsCount = nMax; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
-      uMask = (0x01UL << nMax) >> nNonZeroBitsCount;
-      if(uMask & uTarget) {
+   for(nNonZeroBitsCount = 64; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
+      uMask = 0x01UL << (64 - nNonZeroBitsCount);
+      if(uMask & uSignigicand) {
          break;
       }
    }
+
    return nNonZeroBitsCount;
 }
+
 
 
 /* Public function; see ieee754.h */
 struct IEEE754_ToInt
 IEEE754_DoubleToInt(const double d)
 {
-   int64_t              nNonZeroBitsCount;
+   int64_t              nPrecisionBits;
    struct IEEE754_ToInt Result;
    uint64_t             uInteger;
 
@@ -700,19 +714,15 @@ IEEE754_DoubleToInt(const double d)
       /* --- Exponent out of range --- */
       Result.type = IEEE754_ToInt_NO_CONVERSION;
    } else {
-      /* Count down from 52 to the number of bits that are not zero in
-       * the significand. This counts from the least significant bit
-       * until a non-zero bit is found to know if it is a whole
-       * number.
-       *
-       * Conversion only fails when the input is too large or is not a
+      /* Conversion only fails when the input is too large or is not a
        * whole number, never because of lack of precision because
        * 64-bit integers always have more precision than the 52-bits
        * of a double.
        */
-      nNonZeroBitsCount = IEEE754_Private_CountNonZeroBits(DOUBLE_NUM_SIGNIFICAND_BITS, uDoubleSignificand);
+      nPrecisionBits = IEEE754_Private_CountPrecisionBits(uDoubleSignificand) -
+                               (64-DOUBLE_NUM_SIGNIFICAND_BITS);
 
-      if(nNonZeroBitsCount && nNonZeroBitsCount > nDoubleUnbiasedExponent) {
+      if(nPrecisionBits && nPrecisionBits > nDoubleUnbiasedExponent) {
          /* --- Not a whole number --- */
          Result.type = IEEE754_ToInt_NO_CONVERSION;
       } else {
@@ -746,7 +756,7 @@ IEEE754_DoubleToInt(const double d)
 struct IEEE754_ToInt
 IEEE754_SingleToInt(const float f)
 {
-   int32_t              nNonZeroBitsCount;
+   int32_t              nPrecisionBits;
    struct IEEE754_ToInt Result;
    uint64_t             uInteger;
 
@@ -781,18 +791,15 @@ IEEE754_SingleToInt(const float f)
       /* --- Exponent out of range --- */
        Result.type = IEEE754_ToInt_NO_CONVERSION;
     } else {
-      /* Count down from 23 to the number of bits that are not zero in
-       * the significand. This counts from the least significant bit
-       * until a non-zero bit is found.
-       *
-       * Conversion only fails when the input is too large or is not a
+      /* Conversion only fails when the input is too large or is not a
        * whole number, never because of lack of precision because
-       * 64-bit integers always have more precision than the 52-bits
-       * of a double.
+       * 64-bit integers always have more precision than the 23 bits
+       * of a single.
        */
-      nNonZeroBitsCount = IEEE754_Private_CountNonZeroBits(SINGLE_NUM_SIGNIFICAND_BITS, uSingleleSignificand);
+       nPrecisionBits = IEEE754_Private_CountPrecisionBits(uSingleleSignificand) -
+                           (64 - SINGLE_NUM_SIGNIFICAND_BITS);
 
-      if(nNonZeroBitsCount && nNonZeroBitsCount > nSingleUnbiasedExponent) {
+      if(nPrecisionBits && nPrecisionBits > nSingleUnbiasedExponent) {
          /* --- Not a whole number --- */
          Result.type = IEEE754_ToInt_NO_CONVERSION;
       } else {
@@ -818,6 +825,48 @@ IEEE754_SingleToInt(const float f)
    }
 
    return Result;
+}
+
+
+
+/* Public function; see ieee754.h */
+double
+IEEE754_UintToDouble(const uint64_t uInt, const int uIsNegative)
+{
+   int      nDoubleUnbiasedExponent;
+   uint64_t uDoubleSignificand;
+   int      nPrecisionBits;
+
+   /* Figure out the exponent and normalize the significand. This is
+    * done by shifting out all leading zero bits and counting them. If
+    * none are shifted out, the exponent is 63. */
+   uDoubleSignificand = uInt;
+   nDoubleUnbiasedExponent = 63;
+   while(1) {
+      if(uDoubleSignificand & 0x8000000000000000UL) {
+         break;
+      }
+      uDoubleSignificand <<= 1;
+      nDoubleUnbiasedExponent--;
+   };
+
+   /* Position significand correctly for a double. Only shift 63 bits
+    * because of the 1 that is present by implication in IEEE 754.*/
+   uDoubleSignificand >>= 63 - DOUBLE_NUM_SIGNIFICAND_BITS;
+
+   /* Subtract 1 which is present by implication in IEEE 754 */
+   uDoubleSignificand -= 1ULL << (DOUBLE_NUM_SIGNIFICAND_BITS);
+
+   nPrecisionBits = IEEE754_Private_CountPrecisionBits(uInt) - (64 - nDoubleUnbiasedExponent);
+
+   if(nPrecisionBits > DOUBLE_NUM_SIGNIFICAND_BITS) {
+      /* Will lose precision if converted */
+      return IEEE754_UINT_TO_DOUBLE_OOB;
+   }
+
+   return IEEE754_AssembleDouble((uint64_t)uIsNegative,
+                                 uDoubleSignificand,
+                                 nDoubleUnbiasedExponent);
 }
 
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */

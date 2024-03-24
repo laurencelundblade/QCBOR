@@ -300,6 +300,54 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
                                    int64_t            *pnValue);
 
 
+#if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+/**
+ * @brief Decode next as a number with precision-preserving conversions.
+ *
+ * @param[in] pCtx           The decode context.
+ * @param[out] pNumber       The returned 64-bit signed integer.
+ *
+ * This will get the next item as a number and return it as a C
+ * data type such that no precision is lost.
+ *
+ * The CBOR input can be integers (major type 0 or 1) or floats (major type 7).
+ * If not these \ref QCBOR_ERR_UNEXPECTED_TYPE will be set.
+ *
+ * The conversion is as follows.
+ *
+ * Whole numbers between \c INT64_MIN and \c INT64_MAX will
+ * be returned as \ref QCBOR_TYPE_INT64. This includes
+ * conversion of float-point values that are whole numbers.
+ *
+ * Whole numbers between \c INT64_MAX and \c UINT64_MAX will
+ * be returned as \ref QCBOR_TYPE_UINT64, again including
+ * conversion of floating-point values that are whole numbers.
+ *
+ * The whole numbers called "65-bit negative" in CBOR (-2^63 - 1 to -2^64) are a
+ * special case. Some of them can be converted to a double without
+ * loss of precision and some can't (uint64_t has 64 bits of precision; a double
+ * has only 52). If they can't be converted to a double, they are returned
+ * as \ref QCBOR_TYPE_65BIT_NEG_INT.
+ * In many cases, it will be reasonable to error out if the
+ * number type returned here is \ref QCBOR_TYPE_65BIT_NEG_INT
+ * on the assumption that many protocols will never uses these.
+ * See also QCBOREncode_AddNegativeUInt64() for more discussion.
+ *
+ * All others are returned as a double.
+ *
+ * This is useful for dCBOR which essentially combines floats
+ * and integers into one number space.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * See also QCBORDecode_GetNumberConvertPreciselyBig().
+ */
+void
+QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
+                                      QCBORItem          *pNumber);
+
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
 /**
  * @brief Decode next item into a signed 64-bit integer with conversions.
  *

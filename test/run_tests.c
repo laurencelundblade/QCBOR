@@ -124,6 +124,7 @@ static test_entry s_tests[] = {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    TEST_ENTRY(HalfPrecisionAgainstRFCCodeTest),
    TEST_ENTRY(FloatValuesTests),
+   TEST_ENTRY(PreciseNumbersTest),
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
    TEST_ENTRY(GeneralFloatEncodeTests),
    TEST_ENTRY(GeneralFloatDecodeTests),
