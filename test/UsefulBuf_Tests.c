@@ -1,6 +1,7 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
+ Copyright (c) 2021, Arm Limited.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,64 +34,110 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "UsefulBuf.h"
 
 
-/* Basic exercise...
+/* This calls the main methods to add stuff to a UsefulOutBuf.
+ * The result in the UsefulOutBuf is "heffalump unbounce bluster hunny bear"
+ */
+const char *AddStuffToUOB(UsefulOutBuf *pUOB)
+{
+   const char *szReturn = NULL;
 
-   Call all the main public functions.
+   if(!UsefulOutBuf_AtStart(pUOB)) {
+      szReturn = "Not at start";
+      goto Done;
+   }
 
-   Binary compare the result to the expected.
+   /* Put 7 bytes at beginning of buf */
+   UsefulOutBuf_AppendData(pUOB, "bluster", 7);
 
-   There is nothing adversarial in this test
+   if(UsefulOutBuf_AtStart(pUOB)) {
+      szReturn = "At start";
+      goto Done;
+   }
+
+   /* add a space to end */
+   UsefulOutBuf_AppendByte(pUOB, ' ');
+
+   /* Add an empty string */
+   UsefulOutBuf_AppendUsefulBuf(pUOB, NULLUsefulBufC);
+
+   /* Add a zero length string (valid pointer, 0 length) */
+   UsefulOutBuf_AppendData(pUOB, "xxx", 0);
+
+   /* Add 6 bytes to the end */
+   UsefulBufC UBC = {"hunny ", 6};
+   UsefulOutBuf_AppendUsefulBuf(pUOB, UBC);
+
+   /* Insert 9 bytes at the beginning, slide the previous stuff right */
+   UsefulOutBuf_InsertData(pUOB, "heffalump", 9, 0);
+   UsefulOutBuf_InsertByte(pUOB, ' ', 9);
+
+   /* Put 9 bytes in at position 10 -- just after "heffalump " */
+   UsefulBufC UBC2 = {"unbounce ", 9};
+   UsefulOutBuf_InsertUsefulBuf(pUOB, UBC2, 10);
+
+   /* Add 4 bytes to the end, by accessing the buffer directly and then advancing it */
+   UsefulBuf UB = UsefulOutBuf_GetOutPlace(pUOB);
+   if (!UsefulBuf_IsNULL(UB)) {
+      memcpy(UB.ptr, "bear", UB.len < 4 ? UB.len : 4);
+   }
+   UsefulOutBuf_Advance(pUOB, 4);
+
+Done:
+   return szReturn;
+}
+
+
+/* Basic exercise of a UsefulOutBuf
+ *
+ *  Call all the main public functions.
+ *
+ *  Binary compare the result to the expected.
+ *
+ * There is nothing adversarial in this test
  */
 const char * UOBTest_NonAdversarial(void)
 {
    const char *szReturn = NULL;
 
-   UsefulBuf_MAKE_STACK_UB(outbuf,50);
+   UsefulBuf_MAKE_STACK_UB(outbuf, 50);
 
    UsefulOutBuf UOB;
 
    UsefulOutBuf_Init(&UOB, outbuf);
 
-   if(!UsefulOutBuf_AtStart(&UOB)) {
-      szReturn = "Not at start";
+   szReturn = AddStuffToUOB(&UOB);
+   if(szReturn) {
       goto Done;
    }
 
-   // Put 7 bytes at beginning of buf
-   UsefulOutBuf_AppendData(&UOB, "bluster", 7);
-
-   if(UsefulOutBuf_AtStart(&UOB)) {
-      szReturn = "At start";
-      goto Done;
-   }
-
-   // add a space to end
-   UsefulOutBuf_AppendByte(&UOB, ' ');
-
-   // Add 5 bytes to the end
-   UsefulBufC UBC = {"hunny", 5};
-   UsefulOutBuf_AppendUsefulBuf(&UOB, UBC);
-
-   // Insert 9 bytes at the beginning, slide the previous stuff right
-   UsefulOutBuf_InsertData(&UOB, "heffalump", 9, 0);
-   UsefulOutBuf_InsertByte(&UOB, ' ', 9);
-
-   // Put 9 bytes in at position 10 -- just after "heffalump "
-   UsefulBufC UBC2 = {"unbounce ", 9};
-   UsefulOutBuf_InsertUsefulBuf(&UOB, UBC2, 10);
-
-
-   const UsefulBufC Expected = UsefulBuf_FROM_SZ_LITERAL("heffalump unbounce bluster hunny");
+   const UsefulBufC Expected = UsefulBuf_FROM_SZ_LITERAL("heffalump unbounce bluster hunny bear");
 
    UsefulBufC U = UsefulOutBuf_OutUBuf(&UOB);
-   if(UsefulBuf_IsNULLC(U) || UsefulBuf_Compare(Expected, U) || UsefulOutBuf_GetError(&UOB)) {
+   if(UsefulBuf_IsNULLC(U) ||
+      UsefulBuf_Compare(Expected, U) ||
+      UsefulOutBuf_GetError(&UOB)) {
       szReturn = "OutUBuf";
+      goto Done;
    }
 
    UsefulBuf_MAKE_STACK_UB(buf, 50);
-   UsefulBufC Out =  UsefulOutBuf_CopyOut(&UOB, buf);
+   UsefulBufC Out = UsefulOutBuf_CopyOut(&UOB, buf);
    if(UsefulBuf_IsNULLC(Out) || UsefulBuf_Compare(Expected, Out)) {
       szReturn = "CopyOut";
+      goto Done;
+   }
+
+   /* Now test the size calculation mode */
+   UsefulOutBuf_Init(&UOB, SizeCalculateUsefulBuf);
+
+   szReturn = AddStuffToUOB(&UOB);
+   if(szReturn) {
+      goto Done;
+   }
+
+   U = UsefulOutBuf_OutUBuf(&UOB);
+   if(U.len != Expected.len || U.ptr != NULL) {
+      szReturn = "size calculation failed";
    }
 
 Done:
@@ -162,7 +209,7 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
 
 const char *UOBTest_BoundaryConditionsTest(void)
 {
-   UsefulBuf_MAKE_STACK_UB(outbuf,2);
+   UsefulBuf_MAKE_STACK_UB(outbuf, 2);
 
    UsefulOutBuf UOB;
 
@@ -274,8 +321,9 @@ const char *TestBasicSanity(void)
 
    UsefulOutBuf_AppendData(&UOB, (const uint8_t *)"bluster", 7);
 
-   if(!UsefulOutBuf_GetError(&UOB))
+   if(!UsefulOutBuf_GetError(&UOB)) {
       return "magic corruption check failed";
+   }
 
 
 
@@ -637,16 +685,20 @@ const char *  UIBTest_IntegerFormat(void)
    const uint64_t u64 = 1984738472938472;
    const uint16_t u16 = 40000;
    const uint8_t  u8 = 9;
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    const float    f  = (float)314.15;
    const double   d  = 2.1e10;
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
    UsefulOutBuf_AppendUint32(&UOB, u32); // Also tests UsefulOutBuf_InsertUint64 and UsefulOutBuf_GetEndPosition
    UsefulOutBuf_AppendUint64(&UOB, u64); // Also tests UsefulOutBuf_InsertUint32
    UsefulOutBuf_AppendUint16(&UOB, u16); // Also tests UsefulOutBuf_InsertUint16
    UsefulOutBuf_AppendByte(&UOB, u8);
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    UsefulOutBuf_AppendFloat(&UOB, f); // Also tests UsefulOutBuf_InsertFloat
    UsefulOutBuf_AppendDouble(&UOB, d); // Also tests UsefulOutBuf_InsertDouble
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    const UsefulBufC O = UsefulOutBuf_OutUBuf(&UOB);
    if(UsefulBuf_IsNULLC(O))
@@ -678,12 +730,14 @@ const char *  UIBTest_IntegerFormat(void)
    if(UsefulInputBuf_GetByte(&UIB) != u8) {
       return "u8 out then in failed";
    }
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    if(UsefulInputBuf_GetFloat(&UIB) != f) {
       return "float out then in failed";
    }
    if(UsefulInputBuf_GetDouble(&UIB) != d) {
       return "double out then in failed";
    }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    // Reset and go again for a few more tests
    UsefulInputBuf_Init(&UIB, O);
@@ -696,6 +750,7 @@ const char *  UIBTest_IntegerFormat(void)
       return "Four compare failed";
    }
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    if(UsefulInputBuf_BytesUnconsumed(&UIB) != 23){
       return "Wrong number of unconsumed bytes";
    }
@@ -707,6 +762,18 @@ const char *  UIBTest_IntegerFormat(void)
    if(UsefulInputBuf_BytesAvailable(&UIB, 24)){
       return "Wrong number of bytes available II";
    }
+#else /* USEFULBUF_DISABLE_ALL_FLOAT */
+   if(UsefulInputBuf_BytesUnconsumed(&UIB) != 11){
+      return "Wrong number of unconsumed bytes";
+   }
+   if(!UsefulInputBuf_BytesAvailable(&UIB, 11)){
+      return "Wrong number of bytes available I";
+   }
+
+   if(UsefulInputBuf_BytesAvailable(&UIB, 12)){
+      return "Wrong number of bytes available II";
+   }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    UsefulInputBuf_Seek(&UIB, 0);
 
@@ -737,6 +804,7 @@ const char *  UIBTest_IntegerFormat(void)
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 const char *UBUTest_CopyUtil(void)
 {
    if(UsefulBufUtil_CopyFloatToUint32(65536.0F) != 0x47800000) {
@@ -757,6 +825,51 @@ const char *UBUTest_CopyUtil(void)
 
    return NULL;
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
+const char *UBAdvanceTest(void)
+{
+   #define ADVANCE_TEST_SIZE 10
+   UsefulOutBuf_MakeOnStack(UOB, ADVANCE_TEST_SIZE);
 
+   UsefulBuf Place = UsefulOutBuf_GetOutPlace(&UOB);
+   if(Place.len != 10) {
+      return "GetOutPlace wrong size";
+   }
+
+   memset(Place.ptr, 'x', Place.len/2);
+
+   UsefulOutBuf_Advance(&UOB, Place.len/2);
+
+   UsefulOutBuf_AppendByte(&UOB, 'y');
+
+   Place = UsefulOutBuf_GetOutPlace(&UOB);
+   if(Place.len != ADVANCE_TEST_SIZE/2 -1 ) {
+      return "GetOutPlace wrong size 2";
+   }
+
+   memset(Place.ptr, 'z', Place.len);
+
+   UsefulOutBuf_Advance(&UOB, Place.len);
+
+   UsefulBufC O = UsefulOutBuf_OutUBuf(&UOB);
+
+   UsefulBuf_Compare(O, UsefulBuf_FROM_SZ_LITERAL("xxxxxyzzzz"));
+
+   Place = UsefulOutBuf_GetOutPlace(&UOB);
+   if(Place.len != 0 || Place.ptr != NULL) {
+      return "GetOutPlace not null";
+   }
+
+   if(UsefulOutBuf_GetError(&UOB)) {
+      return "GetOutPlace error set";
+   }
+
+   UsefulOutBuf_Advance(&UOB, 1);
+   if(!UsefulOutBuf_GetError(&UOB)) {
+      return "Advance off end didn't set error";
+   }
+
+   return NULL;
+}

@@ -3,6 +3,8 @@
  Copyright (c) 2013 IETF Trust and the persons identified as the
  document authors.  All rights reserved.
 
+ Copyright (c) 2021, Arm Limited. All rights reserved.
+
  This document is subject to BCP 78 and the IETF Trust's Legal
  Provisions Relating to IETF Documents
  (http://trustee.ietf.org/license-info) in effect on the date of
@@ -33,7 +35,8 @@
 
 #include <math.h>
 
-double decode_half(unsigned char *halfp) {
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+double decode_half(const unsigned char *halfp) {
     int half = (halfp[0] << 8) + halfp[1];
     int exp = (half >> 10) & 0x1f;
     int mant = half & 0x3ff;
@@ -43,3 +46,4 @@ double decode_half(unsigned char *halfp) {
     else val = mant == 0 ? INFINITY : NAN;
     return half & 0x8000 ? -val : val;
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */

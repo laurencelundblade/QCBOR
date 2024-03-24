@@ -1,33 +1,35 @@
-/*============================================================================
- Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above
-      copyright notice, this list of conditions and the following
-      disclaimer in the documentation and/or other materials provided
-      with the distribution.
-    * Neither the name of The Linux Foundation nor the names of its
-      contributors, nor the name "Laurence Lundblade" may be used to
-      endorse or promote products derived from this software without
-      specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
-ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
-BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- =============================================================================*/
+/* =========================================================================
+ * Copyright (c) 2016-2018, The Linux Foundation.
+ * Copyright (c) 2018-2022, Laurence Lundblade.
+ * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials provided
+ *       with the distribution.
+ *     * Neither the name of The Linux Foundation nor the names of its
+ *       contributors, nor the name "Laurence Lundblade" may be used to
+ *       endorse or promote products derived from this software without
+ *       specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ========================================================================= */
 
 /*============================================================================
  FILE:  UsefulBuf.h
@@ -41,6 +43,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 19/12/2022   llundblade      Document that adding empty data is allowed.
+ 4/11/2022    llundblade      Add GetOutPlace and Advance to UsefulOutBuf.
+ 9/21/2021    llundbla        Clarify UsefulOutBuf size calculation mode
+ 8/8/2021     dthaler/llundbla Work with C++ without compiler extensions
  5/11/2021    llundblade      Improve comments and comment formatting.
  3/6/2021     mcr/llundblade  Fix warnings related to --Wcast-qual
  2/17/2021    llundblade      Add method to go from a pointer to an offset.
@@ -137,6 +143,12 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     handle big and little-endian with system option.
  *   USEFULBUF_CONFIG_BSWAP -- With USEFULBUF_CONFIG_LITTLE_ENDIAN,
  *     use __builtin_bswapXX().
+ *
+ * It is possible to run this code in environments where using floating point is
+ * not allowed. Defining USEFULBUF_DISABLE_ALL_FLOAT will disable all the code
+ * that is related to handling floating point types, along with related
+ * interfaces. This makes it possible to compile the code with the compile
+ * option -mgeneral-regs-only.
  */
 
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN) && defined(USEFULBUF_CONFIG_LITTLE_ENDIAN)
@@ -276,14 +288,36 @@ typedef struct q_useful_buf {
  * the @c ptr field is @c NULL. It doesn't matter what @c len is.  See
  * UsefulBuf_IsEmpty() for the distinction between null and empty.
  */
-#define NULLUsefulBufC  ((UsefulBufC) {NULL, 0})
-
+/*
+ * NULLUsefulBufC and few other macros have to be
+ * definied differently in C than C++ because there
+ * is no common construct for a literal structure.
+ *
+ * In C compound literals are used.
+ *
+ * In C++ list initalization is used. This only works
+ * in C++11 and later.
+ *
+ * Note that some popular C++ compilers can handle compound
+ * literals with on-by-default extensions, however
+ * this code aims for full correctness with strict
+ * compilers so they are not used.
+ */
+#ifdef __cplusplus
+#define NULLUsefulBufC {NULL, 0}
+#else
+#define NULLUsefulBufC ((UsefulBufC) {NULL, 0})
+#endif
 
 /**
  * A null @ref UsefulBuf is one that has no memory associated the same
  * way @c NULL points to nothing. It does not matter what @c len is.
  **/
-#define NULLUsefulBuf   ((UsefulBuf) {NULL, 0})
+#ifdef __cplusplus
+#define NULLUsefulBuf  {NULL, 0}
+#else
+#define NULLUsefulBuf  ((UsefulBuf) {NULL, 0})
+#endif
 
 
 /**
@@ -395,8 +429,12 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
  *
  * The terminating \0 (NULL) is NOT included in the length!
  */
+#ifdef __cplusplus
+#define UsefulBuf_FROM_SZ_LITERAL(szString)  {(szString), sizeof(szString)-1}
+#else
 #define UsefulBuf_FROM_SZ_LITERAL(szString) \
     ((UsefulBufC) {(szString), sizeof(szString)-1})
+#endif
 
 
 /**
@@ -405,9 +443,12 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
  * @c pBytes must be a literal string that @c sizeof() works on.  It
  * will not work on non-literal arrays.
  */
+#ifdef __cplusplus
+#define UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBytes)  {(pBytes), sizeof(pBytes)}
+#else
 #define UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBytes) \
-    ((UsefulBufC) {(pBytes), sizeof(pBytes)})
-
+   ((UsefulBufC) {(pBytes), sizeof(pBytes)})
+#endif
 
 /**
  * Make an automatic variable named @c name of type @ref UsefulBuf and
@@ -423,8 +464,12 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
  * stack variables or static variables.  Also see @ref
  * UsefulBuf_MAKE_STACK_UB.
  */
+#ifdef __cplusplus
+#define UsefulBuf_FROM_BYTE_ARRAY(pBytes)  {(pBytes), sizeof(pBytes)}
+#else
 #define UsefulBuf_FROM_BYTE_ARRAY(pBytes) \
-    ((UsefulBuf) {(pBytes), sizeof(pBytes)})
+   ((UsefulBuf) {(pBytes), sizeof(pBytes)})
+#endif
 
 
 /**
@@ -614,8 +659,7 @@ static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p);
 
 #ifndef USEFULBUF_DISABLE_DEPRECATED
 /** Deprecated macro; use @ref UsefulBuf_FROM_SZ_LITERAL instead */
-#define SZLiteralToUsefulBufC(szString) \
-    ((UsefulBufC) {(szString), sizeof(szString)-1})
+#define SZLiteralToUsefulBufC(szString)  UsefulBuf_FROM_SZ_LITERAL(szString)
 
 /** Deprecated macro; use UsefulBuf_MAKE_STACK_UB instead */
 #define  MakeUsefulBufOnStack(name, size) \
@@ -624,22 +668,26 @@ static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p);
 
 /** Deprecated macro; use @ref UsefulBuf_FROM_BYTE_ARRAY_LITERAL instead */
 #define ByteArrayLiteralToUsefulBufC(pBytes) \
-    ((UsefulBufC) {(pBytes), sizeof(pBytes)})
+   UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBytes)
 
 /** Deprecated function; use UsefulBuf_Unconst() instead */
 static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
 {
-   // See UsefulBuf_Unconst() implementation for comment on pragmas
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-    return (UsefulBuf){(void *)UBC.ptr, UBC.len};
-#pragma GCC diagnostic pop
+   UsefulBuf UB;
+
+   /* See UsefulBuf_Unconst() implementation for comment */
+   UB.ptr = (void *)(uintptr_t)UBC.ptr;
+
+   UB.len = UBC.len;
+
+   return UB;
 }
 #endif /* USEFULBUF_DISABLE_DEPRECATED */
 
 
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /**
  * @brief Copy a @c float to a @c uint32_t.
  *
@@ -694,6 +742,7 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32);
  * is a crusty corner of C.
  */
 static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 
@@ -745,17 +794,13 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  *    - Call UsefulOutBuf_OutUBuf() or UsefulOutBuf_CopyOut() to see
  *      there were no errors and to get the serialized output bytes.
  *
- * @ref UsefulOutBuf can be used in a size calculation mode to
- * calculate the size of output that would be generated. This is
+ * @ref UsefulOutBuf can be used in a mode to calculate the size of
+ * what would be output without actually outputting anything.  This is
  * useful to calculate the size of a buffer that is to be allocated to
- * hold the output. To use @ref UsefulOutBuf in this mode, call
- * UsefulOutBuf_Init() with the @c Storage @ref UsefulBuf as
- * @c (UsefulBuf){NULL, MAX_UINT32}. Then call all the Insert and Add
- * functions. No attempt will be made to actually copy data, so only
- * the lengths have to be valid for inputs to these calls.
+ * hold the output. See @ref SizeCalculateUsefulBuf.
  *
  * Methods like UsefulOutBuf_InsertUint64() always output in network
- * bytes order (big endian).
+ * byte order (big endian).
  *
  * The possible errors are:
  *
@@ -792,6 +837,23 @@ typedef struct useful_out_buf {
 
 
 /**
+ * This is a @ref UsefulBuf value that can be passed to
+ * UsefulOutBuf_Init() to have it calculate the size of the output
+ * buffer needed. Pass this for @c Storage, call all the append and
+ * insert functions normally, then call UsefulOutBuf_OutUBuf(). The
+ * returned @ref UsefulBufC has the size.
+ *
+ * As one can see, this is just a NULL pointer and very large size.
+ * The NULL pointer tells UsefulOutputBuf to not copy any data.
+ */
+#ifdef __cplusplus
+#define SizeCalculateUsefulBuf {NULL, SIZE_MAX}
+#else
+#define SizeCalculateUsefulBuf ((UsefulBuf) {NULL, SIZE_MAX})
+#endif
+
+
+/**
  * @brief Initialize and supply the actual output buffer.
  *
  * @param[out] pUOutBuf  The @ref UsefulOutBuf to initialize.
@@ -800,6 +862,10 @@ typedef struct useful_out_buf {
  * This initializes the @ref UsefulOutBuf with storage, sets the
  * current position to the beginning of the buffer and clears the
  * error state.
+ *
+ * See @ref SizeCalculateUsefulBuf for instructions on how to
+ * initialize a @ref UsefulOutBuf to calculate the size that would be
+ * output without actually outputting.
  *
  * This must be called before the @ref UsefulOutBuf is used.
  */
@@ -882,6 +948,8 @@ static inline int UsefulOutBuf_AtStart(UsefulOutBuf *pUOutBuf);
  *
  * Overlapping buffers are OK. @c NewData can point to data in the
  * output buffer.
+ *
+ * NewData.len may be 0 in which case nothing will be inserted.
  *
  * If an error occurs, an error state is set in the @ref
  * UsefulOutBuf. No error is returned.  All subsequent attempts to add
@@ -993,6 +1061,7 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pUOutBuf,
                                              size_t uPos);
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /**
  * @brief Insert a @c float into the @ref UsefulOutBuf.
  *
@@ -1025,6 +1094,7 @@ static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *pUOutBuf,
 static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pUOutBuf,
                                              double d,
                                              size_t uPos);
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 /**
@@ -1123,6 +1193,7 @@ static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *pUOutBuf,
                                              uint64_t uInteger64);
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /**
  * @brief Append a @c float to the @ref UsefulOutBuf
  *
@@ -1151,6 +1222,7 @@ static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *pUOutBuf,
  */
 static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pUOutBuf,
                                              double d);
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 /**
@@ -1214,6 +1286,53 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *pUOutBuf, size_t uLen);
   * just calculating the length of the encoded data.
   */
 static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pUOutBuf);
+
+
+/**
+ * @brief Returns pointer and length of the output buffer not yet used.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ *
+ * @return pointer and length of output buffer not used.
+ *
+ * This is an escape that allows the caller to write directly
+ * to the output buffer without any checks. This doesn't
+ * change the output buffer or state. It just returns a pointer
+ * and length of the bytes remaining.
+ *
+ * This is useful to avoid having the bytes to be added all
+ * in a contiguous buffer. Its use can save memory. A good
+ * example is in the COSE encrypt implementation where
+ * the output of the symmetric cipher can go directly
+ * into the output buffer, rather than having to go into
+ * an intermediate buffer.
+ *
+ * See UsefulOutBuf_Advance() which is used to tell
+ * UsefulOutBuf how much was written.
+ *
+ * Warning: this bypasses the buffer safety provided by
+ * UsefulOutBuf!
+ */
+static inline UsefulBuf
+UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf);
+
+
+/**
+ * @brief Advance the amount output assuming it was written by the caller.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] uAmount  The amount to advance.
+ *
+ * This advances the position in the output buffer
+ * by \c uAmount. This assumes that the
+ * caller has written \c uAmount to the pointer obtained
+ * with UsefulOutBuf_GetOutPlace().
+ *
+ * Warning: this bypasses the buffer safety provided by
+ * UsefulOutBuf!
+ */
+void
+UsefulOutBuf_Advance(UsefulOutBuf *pUOutBuf, size_t uAmount);
 
 
 /**
@@ -1480,6 +1599,7 @@ static uint32_t UsefulInputBuf_GetUint32(UsefulInputBuf *pUInBuf);
 static uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pUInBuf);
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /**
  * @brief Get a float out of the input buffer.
  *
@@ -1508,6 +1628,7 @@ static float UsefulInputBuf_GetFloat(UsefulInputBuf *pUInBuf);
  * The input bytes are interpreted in network order (big endian).
  */
 static double UsefulInputBuf_GetDouble(UsefulInputBuf *pUInBuf);
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 /**
@@ -1623,24 +1744,34 @@ static inline int UsefulBuf_IsNULLOrEmptyC(UsefulBufC UB)
 
 static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB)
 {
-   return (UsefulBufC){UB.ptr, UB.len};
+   UsefulBufC UBC;
+   UBC.ptr = UB.ptr;
+   UBC.len = UB.len;
+
+   return UBC;
 }
 
 static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
 {
+   UsefulBuf UB;
+
    /* -Wcast-qual is a good warning flag to use in general. This is
-    * the one place in UsefulBuf where it needs to be quieted. Since
-    * clang supports GCC pragmas, this works for clang too. */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-   return (UsefulBuf){(void *)UBC.ptr, UBC.len};
-#pragma GCC diagnostic pop
+    * the one place in UsefulBuf where it needs to be quieted.
+    */
+   UB.ptr = (void *)(uintptr_t)UBC.ptr;
+
+   UB.len = UBC.len;
+
+   return UB;
 }
 
 
 static inline UsefulBufC UsefulBuf_FromSZ(const char *szString)
 {
-   return ((UsefulBufC) {szString, strlen(szString)});
+   UsefulBufC UBC;
+   UBC.ptr = szString;
+   UBC.len = strlen(szString);
+   return UBC;
 }
 
 
@@ -1650,16 +1781,24 @@ static inline UsefulBufC UsefulBuf_Copy(UsefulBuf Dest, const UsefulBufC Src)
 }
 
 
-static inline UsefulBufC UsefulBuf_Set(UsefulBuf pDest, uint8_t value)
+static inline UsefulBufC UsefulBuf_Set(UsefulBuf Dest, uint8_t value)
 {
-   memset(pDest.ptr, value, pDest.len);
-   return (UsefulBufC){pDest.ptr, pDest.len};
+   memset(Dest.ptr, value, Dest.len);
+
+   UsefulBufC UBC;
+   UBC.ptr = Dest.ptr;
+   UBC.len = Dest.len;
+
+   return UBC;
 }
 
 
 static inline UsefulBufC UsefulBuf_CopyPtr(UsefulBuf Dest, const void *ptr, size_t len)
 {
-   return UsefulBuf_Copy(Dest, (UsefulBufC){ptr, len});
+   UsefulBufC UBC;
+   UBC.ptr = ptr;
+   UBC.len = len;
+   return UsefulBuf_Copy(Dest, UBC);
 }
 
 
@@ -1668,7 +1807,12 @@ static inline UsefulBufC UsefulBuf_Head(UsefulBufC UB, size_t uAmount)
    if(uAmount > UB.len) {
       return NULLUsefulBufC;
    }
-   return (UsefulBufC){UB.ptr, uAmount};
+   UsefulBufC UBC;
+
+   UBC.ptr = UB.ptr;
+   UBC.len = uAmount;
+
+   return UBC;
 }
 
 
@@ -1679,9 +1823,11 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
    if(uAmount > UB.len) {
       ReturnValue = NULLUsefulBufC;
    } else if(UB.ptr == NULL) {
-      ReturnValue = (UsefulBufC){NULL, UB.len - uAmount};
+      ReturnValue.ptr = NULL;
+      ReturnValue.len = UB.len - uAmount;
    } else {
-      ReturnValue = (UsefulBufC){(const uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
+      ReturnValue.ptr = (const uint8_t *)UB.ptr + uAmount;
+      ReturnValue.len = UB.len - uAmount;
    }
 
    return ReturnValue;
@@ -1699,7 +1845,7 @@ static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p)
       return SIZE_MAX;
    }
 
-   // Cast to size_t (from ptrdiff_t) is OK because of check above
+   /* Cast to size_t (from ptrdiff_t) is OK because of check above */
    const size_t uOffset = (size_t)((const uint8_t *)p - (const uint8_t *)UB.ptr);
 
     if(uOffset >= UB.len) {
@@ -1711,6 +1857,7 @@ static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p)
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 static inline uint32_t UsefulBufUtil_CopyFloatToUint32(float f)
 {
    uint32_t u32;
@@ -1738,6 +1885,7 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32)
    memcpy(&f, &u32, sizeof(uint32_t));
    return f;
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 
@@ -1775,9 +1923,11 @@ static inline void UsefulOutBuf_InsertString(UsefulOutBuf *pMe,
                                              const char *szString,
                                              size_t uPos)
 {
-   UsefulOutBuf_InsertUsefulBuf(pMe,
-                                (UsefulBufC){szString, strlen(szString)},
-                                uPos);
+   UsefulBufC UBC;
+   UBC.ptr = szString;
+   UBC.len = strlen(szString);
+
+   UsefulOutBuf_InsertUsefulBuf(pMe, UBC, uPos);
 }
 
 
@@ -1915,6 +2065,7 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pMe,
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 static inline void UsefulOutBuf_InsertFloat(UsefulOutBuf *pMe,
                                             float f,
                                             size_t uPos)
@@ -1929,6 +2080,7 @@ static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pMe,
 {
    UsefulOutBuf_InsertUint64(pMe, UsefulBufUtil_CopyDoubleToUint64(d), uPos);
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe,
@@ -1951,7 +2103,11 @@ static inline void UsefulOutBuf_AppendData(UsefulOutBuf *pMe,
 static inline void UsefulOutBuf_AppendString(UsefulOutBuf *pMe,
                                              const char *szString)
 {
-   UsefulOutBuf_AppendUsefulBuf(pMe, (UsefulBufC){szString, strlen(szString)});
+   UsefulBufC UBC;
+   UBC.ptr = szString;
+   UBC.len = strlen(szString);
+
+   UsefulOutBuf_AppendUsefulBuf(pMe, UBC);
 }
 
 
@@ -1982,6 +2138,7 @@ static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *pMe,
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *pMe,
                                             float f)
 {
@@ -1994,6 +2151,7 @@ static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pMe,
 {
    UsefulOutBuf_InsertDouble(pMe, d, UsefulOutBuf_GetEndPosition(pMe));
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 static inline int UsefulOutBuf_GetError(UsefulOutBuf *pMe)
@@ -2018,6 +2176,22 @@ static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pMe)
 {
    return pMe->UB.ptr == NULL;
 }
+
+
+static inline UsefulBuf UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf)
+{
+   UsefulBuf R;
+
+   R.len = UsefulOutBuf_RoomLeft(pUOutBuf);
+   if(R.len > 0 && pUOutBuf->UB.ptr != NULL) {
+      R.ptr = (uint8_t *)pUOutBuf->UB.ptr + pUOutBuf->data_len;
+   } else {
+      R.ptr = NULL;
+   }
+
+   return R;
+}
+
 
 
 
@@ -2095,7 +2269,10 @@ static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *pMe, size_t
    if(!pResult) {
       return NULLUsefulBufC;
    } else {
-      return (UsefulBufC){pResult, uNum};
+      UsefulBufC UBC;
+      UBC.ptr = pResult;
+      UBC.len = uNum;
+      return UBC;
    }
 }
 
@@ -2249,6 +2426,7 @@ static inline uint64_t UsefulInputBuf_GetUint64(UsefulInputBuf *pMe)
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 static inline float UsefulInputBuf_GetFloat(UsefulInputBuf *pMe)
 {
    uint32_t uResult = UsefulInputBuf_GetUint32(pMe);
@@ -2263,6 +2441,7 @@ static inline double UsefulInputBuf_GetDouble(UsefulInputBuf *pMe)
 
    return uResult ? UsefulBufUtil_CopyUint64ToDouble(uResult) : 0;
 }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 static inline int UsefulInputBuf_GetError(UsefulInputBuf *pMe)

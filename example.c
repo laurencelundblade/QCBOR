@@ -2,6 +2,7 @@
    example.c -- Example code for QCBOR
 
    Copyright (c) 2020-2021, Laurence Lundblade. All rights reserved.
+   Copyright (c) 2021, Arm Limited. All rights reserved.
 
    SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,12 +38,16 @@ typedef struct
    UsefulBufC Manufacturer;
    int64_t    uDisplacement;
    int64_t    uHorsePower;
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    double     dDesignedCompresion;
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    int64_t    uNumCylinders;
    bool       bTurboCharged;
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    struct {
       double dMeasuredCompression;
    } cylinders[MAX_CYLINDERS];
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 } CarEngine;
 
 
@@ -56,16 +61,20 @@ void EngineInit(CarEngine *pE)
    pE->Manufacturer        = UsefulBuf_FROM_SZ_LITERAL("Porsche");
    pE->uDisplacement       = 3296;
    pE->uHorsePower         = 210;
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    pE->dDesignedCompresion = 9.1;
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    pE->uNumCylinders       = 6;
    pE->bTurboCharged       = false;
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    pE->cylinders[0].dMeasuredCompression = 9.0;
    pE->cylinders[1].dMeasuredCompression = 9.2;
    pE->cylinders[2].dMeasuredCompression = 8.9;
    pE->cylinders[3].dMeasuredCompression = 8.9;
    pE->cylinders[4].dMeasuredCompression = 9.1;
    pE->cylinders[5].dMeasuredCompression = 9.0;
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 }
 
 
@@ -92,6 +101,7 @@ static bool EngineCompare(const CarEngine *pE1, const CarEngine *pE2)
    if(pE1->uHorsePower != pE2->uHorsePower) {
       return false;
    }
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    if(pE1->dDesignedCompresion != pE2->dDesignedCompresion) {
       return false;
    }
@@ -101,6 +111,7 @@ static bool EngineCompare(const CarEngine *pE1, const CarEngine *pE2)
          return false;
       }
    }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    if(UsefulBuf_Compare(pE1->Manufacturer, pE2->Manufacturer)) {
       return false;
@@ -136,8 +147,13 @@ static bool EngineCompare(const CarEngine *pE1, const CarEngine *pE2)
  * @c Buffer must be big enough to hold the output. If it is not @ref
  * NULLUsefulBufC will be returned. @ref NULLUsefulBufC will be
  * returned for any other encoding errors.
+ *
+ * This can be called with @c Buffer set to @ref SizeCalculateUsefulBuf
+ * in which case the size of the encoded engine will be calculated,
+ * but no actual encoded CBOR will be output. The calculated size is
+ * in @c .len of the returned @ref UsefulBufC.
  */
-UsefulBufC EncodeEngineDefiniteLength(const CarEngine *pEngine, UsefulBuf Buffer)
+UsefulBufC EncodeEngine(const CarEngine *pEngine, UsefulBuf Buffer)
 {
    /* Set up the encoding context with the output buffer */
     QCBOREncodeContext EncodeCtx;
@@ -150,12 +166,16 @@ UsefulBufC EncodeEngineDefiniteLength(const CarEngine *pEngine, UsefulBuf Buffer
     QCBOREncode_AddInt64ToMap(&EncodeCtx, "NumCylinders", pEngine->uNumCylinders);
     QCBOREncode_AddInt64ToMap(&EncodeCtx, "Displacement", pEngine->uDisplacement);
     QCBOREncode_AddInt64ToMap(&EncodeCtx, "Horsepower", pEngine->uHorsePower);
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
     QCBOREncode_AddDoubleToMap(&EncodeCtx, "DesignedCompression", pEngine->dDesignedCompresion);
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
     QCBOREncode_OpenArrayInMap(&EncodeCtx, "Cylinders");
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
     for(int64_t i = 0 ; i < pEngine->uNumCylinders; i++) {
         QCBOREncode_AddDouble(&EncodeCtx,
                               pEngine->cylinders[i].dMeasuredCompression);
     }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
     QCBOREncode_CloseArray(&EncodeCtx);
     QCBOREncode_AddBoolToMap(&EncodeCtx, "Turbo", pEngine->bTurboCharged);
     QCBOREncode_CloseMap(&EncodeCtx);
@@ -250,7 +270,9 @@ EngineDecodeErrors DecodeEngineSpiffy(UsefulBufC EncodedEngine, CarEngine *pE)
     QCBORDecode_GetTextStringInMapSZ(&DecodeCtx, "Manufacturer", &(pE->Manufacturer));
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Displacement", &(pE->uDisplacement));
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Horsepower", &(pE->uHorsePower));
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
     QCBORDecode_GetDoubleInMapSZ(&DecodeCtx, "DesignedCompression", &(pE->dDesignedCompresion));
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
     QCBORDecode_GetBoolInMapSZ(&DecodeCtx, "Turbo", &(pE->bTurboCharged));
 
     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "NumCylinders", &(pE->uNumCylinders));
@@ -268,10 +290,12 @@ EngineDecodeErrors DecodeEngineSpiffy(UsefulBufC EncodedEngine, CarEngine *pE)
     }
 
     QCBORDecode_EnterArrayFromMapSZ(&DecodeCtx, "Cylinders");
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
     for(int64_t i = 0; i < pE->uNumCylinders; i++) {
         QCBORDecode_GetDouble(&DecodeCtx,
                               &(pE->cylinders[i].dMeasuredCompression));
     }
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
     QCBORDecode_ExitArray(&DecodeCtx);
     QCBORDecode_ExitMap(&DecodeCtx);
 
@@ -283,7 +307,7 @@ Done:
 }
 
 
-int32_t RunQCborExample()
+int32_t RunQCborExample(void)
 {
    CarEngine                 InitialEngine;
    CarEngine                 DecodedEngine;
@@ -314,7 +338,7 @@ int32_t RunQCborExample()
    EngineInit(&InitialEngine);
 
    /* Encode the engine structure. */
-   EncodedEngine = EncodeEngineDefiniteLength(&InitialEngine, EngineBuffer);
+   EncodedEngine = EncodeEngine(&InitialEngine, EngineBuffer);
    if(UsefulBuf_IsNULLC(EncodedEngine)) {
       printf("Engine encode failed\n");
       goto Done;
@@ -333,6 +357,25 @@ int32_t RunQCborExample()
    if(!EngineCompare(&InitialEngine, &DecodedEngine)) {
       printf("Example: Spiffy Engine Decode comparison fail\n");
    }
+
+
+   /* Further example of how to calculate the encoded size, then allocate */
+   UsefulBufC EncodedEngineSize;
+   EncodedEngineSize = EncodeEngine(&InitialEngine, SizeCalculateUsefulBuf);
+   if(UsefulBuf_IsNULLC(EncodedEngine)) {
+      printf("Engine encode size calculation failed\n");
+      goto Done;
+   }
+   (void)EncodedEngineSize; /* Supress unsed variable warning */
+   /* Here malloc could be called to allocate a buffer. Then
+    * EncodeEngine() can be called a second time to actually
+    * encode. (The actual code is not live here to avoid a
+    * dependency on malloc()).
+    *  UsefulBuf  MallocedBuffer;
+    *  MallocedBuffer.len = EncodedEngineSize.len;
+    *  MallocedBuffer.ptr = malloc(EncodedEngineSize.len);
+    *  EncodedEngine = EncodeEngine(&InitialEngine, MallocedBuffer);
+    */
 
 Done:
    printf("\n");

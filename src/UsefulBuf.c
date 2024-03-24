@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2022, Laurence Lundblade.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,6 +41,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 19/12/2022  llundblade   Don't pass NULL to memmove when adding empty data.
+ 4/11/2022   llundblade   Add GetOutPlace and Advance to UsefulOutBuf
  3/6/2021     mcr/llundblade  Fix warnings related to --Wcast-qual
  01/28/2020  llundblade   Refine integer signedness to quiet static analysis.
  01/08/2020  llundblade   Documentation corrections & improved code formatting.
@@ -253,22 +255,23 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
    }
 
    /* 3. Slide existing data to the right */
-   uint8_t *pSourceOfMove       = ((uint8_t *)pMe->UB.ptr) + uInsertionPos; // PtrMath #1
-   size_t   uNumBytesToMove     = pMe->data_len - uInsertionPos; // PtrMath #2
-   uint8_t *pDestinationOfMove  = pSourceOfMove + NewData.len; // PtrMath #3
+   if (!UsefulOutBuf_IsBufferNULL(pMe)) {
+      uint8_t *pSourceOfMove       = ((uint8_t *)pMe->UB.ptr) + uInsertionPos; // PtrMath #1
+      size_t   uNumBytesToMove     = pMe->data_len - uInsertionPos; // PtrMath #2
+      uint8_t *pDestinationOfMove  = pSourceOfMove + NewData.len; // PtrMath #3
 
-   if(uNumBytesToMove && pMe->UB.ptr) {
       // To know memmove won't go off end of destination, see PtrMath #4
       // Use memove because it handles overlapping buffers
       memmove(pDestinationOfMove, pSourceOfMove, uNumBytesToMove);
+
+      /* 4. Put the new data in */
+      uint8_t *pInsertionPoint = pSourceOfMove;
+      // To know memmove won't go off end of destination, see PtrMath #5
+      if(NewData.ptr != NULL) {
+         memmove(pInsertionPoint, NewData.ptr, NewData.len);
+      }
    }
 
-   /* 4. Put the new data in */
-   uint8_t *pInsertionPoint = ((uint8_t *)pMe->UB.ptr) + uInsertionPos; // PtrMath #5
-   if(pMe->UB.ptr) {
-      // To know memmove won't go off end of destination, see PtrMath #6
-      memmove(pInsertionPoint, NewData.ptr, NewData.len);
-   }
    pMe->data_len += NewData.len;
 }
 
@@ -294,13 +297,69 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
     Check #3 allows Check #2 to be refactored as NewData.Len > (me->size - uInsertionPos)
     This algebraically rearranges to me->size > uInsertionPos + NewData.len
 
- PtrMath #5 is exactly the same as PtrMath #1
-
- PtrMath #6 will never wrap under because
+ PtrMath #5 will never wrap under because
     Calculation for extent of memove is uRoomInDestination = me->UB.len - uInsertionPos;
     Check #1 makes sure me->data_len is less than me->size
     Check #3 makes sure uInsertionPos is less than me->data_len
  */
+
+
+/*
+ * Public function for advancing data length. See qcbor/UsefulBuf.h
+ */
+void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
+{
+   /* This function is a trimmed down version of
+    * UsefulOutBuf_InsertUsefulBuf(). This could be combined with the
+    * code in UsefulOutBuf_InsertUsefulBuf(), but that would make
+    * UsefulOutBuf_InsertUsefulBuf() bigger and this will be very
+    * rarely used.
+    */
+
+   if(pMe->err) {
+      /* Already in error state. */
+      return;
+   }
+
+   /* 0. Sanity check the UsefulOutBuf structure
+    *
+    * A "counter measure". If magic number is not the right number it
+    * probably means me was not initialized or it was
+    * corrupted. Attackers can defeat this, but it is a hurdle and
+    * does good with very little code.
+    */
+   if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
+      pMe->err = 1;
+      return;  /* Magic number is wrong due to uninitalization or corrption */
+   }
+
+   /* Make sure valid data is less than buffer size. This would only
+    * occur if there was corruption of me, but it is also part of the
+    * checks to be sure there is no pointer arithmatic
+    * under/overflow.
+    */
+   if(pMe->data_len > pMe->UB.len) {  // Check #1
+      pMe->err = 1;
+      /* Offset of valid data is off the end of the UsefulOutBuf due
+       * to uninitialization or corruption.
+       */
+      return;
+   }
+
+   /* 1. Will it fit?
+    *
+    * WillItFit() is the same as: NewData.len <= (me->UB.len -
+    * me->data_len) Check #1 makes sure subtraction in RoomLeft will
+    * not wrap around
+    */
+   if(! UsefulOutBuf_WillItFit(pMe, uAmount)) { /* Check #2 */
+      /* The new data will not fit into the the buffer. */
+      pMe->err = 1;
+      return;
+   }
+
+   pMe->data_len += uAmount;
+}
 
 
 /*

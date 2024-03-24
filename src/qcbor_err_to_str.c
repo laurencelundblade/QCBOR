@@ -3,6 +3,7 @@
 
  Copyright (c) 2020, Patrick Uiterwijk. All rights reserved.
  Copyright (c) 2020, Laurence Lundblade.
+ Copyright (c) 2021, Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -60,6 +61,7 @@ const char *qcbor_err_to_str(QCBORError err) {
     _ERR_TO_STR(ERR_HALF_PRECISION_DISABLED)
     _ERR_TO_STR(ERR_HW_FLOAT_DISABLED)
     _ERR_TO_STR(ERR_FLOAT_EXCEPTION)
+    _ERR_TO_STR(ERR_ALL_FLOAT_DISABLED)
 
     default:
         return "Unidentified error";

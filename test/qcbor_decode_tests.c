@@ -1,11 +1,12 @@
 /*==============================================================================
- Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
- All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
+ * Copyright (c) 2016-2018, The Linux Foundation.
+ * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2021, Arm Limited.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
     * Redistributions of source code must retain the above copyright
       notice, this list of conditions and the following disclaimer.
     * Redistributions in binary form must reproduce the above
@@ -483,7 +484,7 @@ static const uint8_t spTooSmallNegative[] = {
    Tests the decoding of lots of different integers sizes
    and values.
  */
-int32_t IntegerValuesParseTest()
+int32_t IntegerValuesParseTest(void)
 {
    int nReturn;
    QCBORDecodeContext DCtx;
@@ -690,7 +691,7 @@ Done:
 
 
 
-int32_t SimpleArrayTest()
+int32_t SimpleArrayTest(void)
 {
    uint8_t *pEncoded;
    size_t  nEncodedLen;
@@ -897,7 +898,7 @@ static int32_t CheckEmpties(UsefulBufC input, bool bCheckCounts)
 }
 
 
-int32_t EmptyMapsAndArraysTest()
+int32_t EmptyMapsAndArraysTest(void)
 {
    int nResult;
    nResult = CheckEmpties(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmpties),
@@ -965,7 +966,7 @@ static const uint8_t spDeepArrays[] = {
    0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
    0x81, 0x80};
 
-int32_t ParseDeepArrayTest()
+int32_t ParseDeepArrayTest(void)
 {
    QCBORDecodeContext DCtx;
    int nReturn = 0;
@@ -998,7 +999,7 @@ static const uint8_t spTooDeepArrays[] = {
    0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
    0x80};
 
-int32_t ParseTooDeepArrayTest()
+int32_t ParseTooDeepArrayTest(void)
 {
    QCBORDecodeContext DCtx;
    int nReturn = 0;
@@ -1010,7 +1011,7 @@ int32_t ParseTooDeepArrayTest()
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooDeepArrays),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   for(i = 0; i < QCBOR_MAX_ARRAY_NESTING1; i++) {
+   for(i = 0; i < QCBOR_MAX_ARRAY_NESTING; i++) {
 
       if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
          Item.uDataType != QCBOR_TYPE_ARRAY ||
@@ -1029,7 +1030,7 @@ int32_t ParseTooDeepArrayTest()
 
 
 
-int32_t ShortBufferParseTest()
+int32_t ShortBufferParseTest(void)
 {
    int nResult = 0;
 
@@ -1053,7 +1054,7 @@ Done:
 
 
 
-int32_t ShortBufferParseTest2()
+int32_t ShortBufferParseTest2(void)
 {
    uint8_t *pEncoded;
    int      nReturn;
@@ -1213,7 +1214,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
  Decode and thoroughly check a moderately complex
  set of maps in the QCBOR_DECODE_MODE_MAP_AS_ARRAY mode.
  */
-int32_t ParseMapAsArrayTest()
+int32_t ParseMapAsArrayTest(void)
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -1636,7 +1637,7 @@ static int32_t ExtraBytesTest(int nLevel)
 
 
 
-int32_t ParseMapTest()
+int32_t ParseMapTest(void)
 {
    // Parse a moderatly complex map structure very thoroughly
    int32_t nResult = ParseMapTest1(QCBOR_DECODE_MODE_NORMAL);
@@ -1671,7 +1672,7 @@ static const uint8_t spSimpleValues[] = {
    0xf8, 0x00, 0xf8, 0x13, 0xf8, 0x1f, 0xf8, 0x20,
    0xf8, 0xff};
 
-int32_t ParseSimpleTest()
+int32_t ParseSimpleTest(void)
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -1747,7 +1748,7 @@ int32_t ParseSimpleTest()
 }
 
 
-int32_t NotWellFormedTests()
+int32_t NotWellFormedTests(void)
 {
    // Loop over all the not-well-formed instance of CBOR
    // that are test vectors in not_well_formed_cbor.h
@@ -1756,6 +1757,10 @@ int32_t NotWellFormedTests()
    for(uint16_t nIterate = 0; nIterate < nArraySize; nIterate++) {
       const struct someBinaryBytes *pBytes = &paNotWellFormedCBOR[nIterate];
       const UsefulBufC Input = (UsefulBufC){pBytes->p, pBytes->n};
+
+      if(nIterate == 86) {
+         nIterate = 86;
+      }
 
       // Set up decoder context. String allocator needed for indefinite
       // string test cases
@@ -1787,52 +1792,58 @@ int32_t NotWellFormedTests()
 }
 
 
-// TODO: add a test index and report it so it is eaier to figure out which test failed.
-struct FailInput {
-   UsefulBufC Input;
-   QCBORError nError;
+struct DecodeFailTestInput {
+   const char     *szDescription; /* Description of the test */
+   QCBORDecodeMode DecoderMode;   /* The QCBOR Decoder Mode for test */
+   UsefulBufC      Input;         /* Chunk of CBOR that cases error */
+   QCBORError      nError;        /* The expected error */
 };
 
 
-static int32_t ProcessFailures(const struct FailInput *pFailInputs, size_t nNumFails)
+static int32_t
+ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int nNumFails)
 {
-   for(const struct FailInput *pF = pFailInputs; pF < pFailInputs + nNumFails; pF++) {
-      QCBORDecodeContext DCtx;
-      QCBORError         uCBORError;
+   int                nIndex;
+   QCBORDecodeContext DCtx;
+   QCBORError         uCBORError;
+   QCBORItem          Item;
 
-      QCBORDecode_Init(&DCtx, pF->Input, QCBOR_DECODE_MODE_NORMAL);
+   for(nIndex = 0; nIndex < nNumFails; nIndex++) {
+      const struct DecodeFailTestInput *pF = &pFailInputs[nIndex];
+
+      QCBORDecode_Init(&DCtx, pF->Input, pF->DecoderMode);
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-      // Set up the decoding context including a memory pool so that
-      // indefinite length items can be checked
+      /* Set up the decoding context including a memory pool so that
+       * indefinite length items can be checked.
+       */
       UsefulBuf_MAKE_STACK_UB(Pool, 100);
 
       uCBORError = QCBORDecode_SetMemPool(&DCtx, Pool, 0);
-      if(uCBORError) {
-         return -9;
+      if(uCBORError != QCBOR_SUCCESS) {
+         return -1;
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
+      if(nIndex == 8) {
+         uCBORError = 9; /* For setting break points */
+      }
 
-      // Iterate until there is an error of some sort error
-      QCBORItem Item;
+      /* Iterate until there is an error of some sort of error */
       do {
-         // Set to something none-zero, something other than QCBOR_TYPE_NONE
+         /* Set to something none-zero, something other than QCBOR_TYPE_NONE */
          memset(&Item, 0x33, sizeof(Item));
 
          uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
       } while(uCBORError == QCBOR_SUCCESS);
 
-
-
-      // Must get the expected error or the this test fails
-      // The data and label type must also be QCBOR_TYPE_NONE
+      /* Must get the expected error or the this test fails
+       * The data and label type must also be QCBOR_TYPE_NONE.
+       */
       if(uCBORError != pF->nError ||
          Item.uDataType != QCBOR_TYPE_NONE ||
          Item.uLabelType != QCBOR_TYPE_NONE) {
-         // return index of CBOR + 100
-         const size_t nIndex = (size_t)(pF - pFailInputs);
-         return (int32_t)(nIndex * 100 + uCBORError);
+         return (int32_t)(nIndex * 1000 + (int)uCBORError);
       }
    }
 
@@ -1840,373 +1851,588 @@ static int32_t ProcessFailures(const struct FailInput *pFailInputs, size_t nNumF
 }
 
 
-static const struct FailInput Failures[] = {
-   // Most of this is copied from not_well_formed.h. Here the error code
-   // returned is also checked.
+static const struct DecodeFailTestInput Failures[] = {
+   /* Most of this is copied from not_well_formed.h. Here the error
+    * code returned is also checked.
+    */
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-   // Indefinite length strings must be closed off
-   // An indefinite length byte string not closed off
-   { {(uint8_t[]){0x5f, 0x41, 0x00}, 3}, QCBOR_ERR_HIT_END },
-   // An indefinite length text string not closed off
-   { {(uint8_t[]){0x7f, 0x61, 0x00}, 3}, QCBOR_ERR_HIT_END },
+   /*  Indefinite length strings must be closed off */
+   { "An indefinite length byte string not closed off",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"0x5f\x41\x00", 3},
+      QCBOR_ERR_HIT_END
+   },
+   { "An indefinite length text string not closed off",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x7f\x61\x00", 3},
+      QCBOR_ERR_HIT_END
+   },
 
+   /* All the chunks in an indefinite length string must be of the
+    * type of indefinite length string
+    */
+   { "Indefinite length byte string with text string chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\x61\x00\xff", 4},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+   { "Indefinite length text string with a byte string chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x7f\x41\x00\xff", 4},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+   { "Indefinite length byte string with a positive integer chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\x00\xff", 3},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+   { "Indefinite length byte string with an negative integer chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\x21\xff", 3},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+   { "Indefinite length byte string with an array chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\x80\xff", 3},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+   { "Indefinite length byte string with an map chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\xa0\xff", 3},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
 
-   // All the chunks in an indefinite length string must be of the type of
-   // indefinite length string
-   // indefinite length byte string with text string chunk
-   { {(uint8_t[]){0x5f, 0x61, 0x00, 0xff}, 4}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
-   // indefinite length text string with a byte string chunk
-   { {(uint8_t[]){0x7f, 0x41, 0x00, 0xff}, 4}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
-   // indefinite length byte string with an positive integer chunk
-   { {(uint8_t[]){0x5f, 0x00, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
-   // indefinite length byte string with an negative integer chunk
-   { {(uint8_t[]){0x5f, 0x21, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
-   // indefinite length byte string with an array chunk
-   { {(uint8_t[]){0x5f, 0x80, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
-   // indefinite length byte string with an map chunk
-   { {(uint8_t[]){0x5f, 0xa0, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
-   // indefinite length byte string with tagged integer chunk
-   { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
-   // indefinite length byte string with an simple type chunk
-   { {(uint8_t[]){0x5f, 0xe0, 0xff}, 3}, QCBOR_ERR_INDEFINITE_STRING_CHUNK },
-   { {(uint8_t[]){0x5f, 0x5f, 0x41, 0x00, 0xff, 0xff}, 6}, QCBOR_ERR_INDEFINITE_STRING_CHUNK},
-   // indefinite length text string with indefinite string inside
-   { {(uint8_t[]){0x7f, 0x7f, 0x61, 0x00, 0xff, 0xff}, 6}, QCBOR_ERR_INDEFINITE_STRING_CHUNK},
+#ifndef QCBOR_DISABLE_TAGS
+   { "Indefinite length byte string with tagged integer chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\xc0\x00\xff", 4},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+#else
+   { "Indefinite length byte string with tagged integer chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\xc0\x00\xff", 4},
+      QCBOR_ERR_TAGS_DISABLED
+   },
+#endif /* QCBOR_DISABLE_TAGS */
 
+   { "Indefinite length byte string with an simple type chunk",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\xe0\xff", 3},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+   { "???",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x5f\x5f\x41\x00\xff\xff", 6},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
+   { "indefinite length text string with indefinite string inside",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x7f\x7f\x61\x00\xff\xff", 6},
+      QCBOR_ERR_INDEFINITE_STRING_CHUNK
+   },
 #else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-   { {(uint8_t[]){0x5f, 0x41, 0x00}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-   // An indefinite length text string not closed off
-   { {(uint8_t[]){0x7f, 0x61, 0x00}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-
-
-   // All the chunks in an indefinite length string must be of the type of
-   // indefinite length string
-   // indefinite length byte string with text string chunk
-   { {(uint8_t[]){0x5f, 0x61, 0x00, 0xff}, 4}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-   // indefinite length text string with a byte string chunk
-   { {(uint8_t[]){0x7f, 0x41, 0x00, 0xff}, 4}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-   // indefinite length byte string with an positive integer chunk
-   { {(uint8_t[]){0x5f, 0x00, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-   // indefinite length byte string with an negative integer chunk
-   { {(uint8_t[]){0x5f, 0x21, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-   // indefinite length byte string with an array chunk
-   { {(uint8_t[]){0x5f, 0x80, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-   // indefinite length byte string with an map chunk
-   { {(uint8_t[]){0x5f, 0xa0, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-   // indefinite length byte string with tagged integer chunk
-   { {(uint8_t[]){0x5f, 0xc0, 0x00, 0xff}, 4}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-   // indefinite length byte string with an simple type chunk
-   { {(uint8_t[]){0x5f, 0xe0, 0xff}, 3}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED },
-   { {(uint8_t[]){0x5f, 0x5f, 0x41, 0x00, 0xff, 0xff}, 6}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED},
-   // indefinite length text string with indefinite string inside
-   { {(uint8_t[]){0x7f, 0x7f, 0x61, 0x00, 0xff, 0xff}, 6}, QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED},
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-
-   // Definte length maps and arrays must be closed by having the right number of items
-   // A definte length array that is supposed to have 1 item, but has none
-   { {(uint8_t[]){0x81}, 1}, QCBOR_ERR_NO_MORE_ITEMS },
-   // A definte length array that is supposed to have 2 items, but has only 1
-   { {(uint8_t[]){0x82, 0x00}, 2}, QCBOR_ERR_NO_MORE_ITEMS },
-   // A definte length array that is supposed to have 511 items, but has only 1
-   { {(uint8_t[]){0x9a, 0x01, 0xff, 0x00}, 4}, QCBOR_ERR_HIT_END },
-   // A definte length map that is supposed to have 1 item, but has none
-   { {(uint8_t[]){0xa1}, 1}, QCBOR_ERR_NO_MORE_ITEMS },
-   // A definte length map that is supposed to have s item, but has only 1
-   { {(uint8_t[]){0xa2, 0x01, 0x02}, 3}, QCBOR_ERR_NO_MORE_ITEMS },
-
+   /* Definte length maps and arrays must be closed by having the right number of items */
+   { "A definte length array that is supposed to have 1 item, but has none",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x81", 1},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "A definte length array that is supposed to have 2 items, but has only 1",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x82\x00", 2},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "A definte length array that is supposed to have 511 items, but has only 1",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9a\x01\xff\x00", 4},
+      QCBOR_ERR_HIT_END
+   },
+   { "A definte length map that is supposed to have 1 item, but has none",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1", 1},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "A definte length map that is supposed to have s item, but has only 1",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa2\x01\x02", 3},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-   // Indefinte length maps and arrays must be ended by a break
-   // Indefinite length array with zero items and no break
-   { {(uint8_t[]){0x9f}, 1}, QCBOR_ERR_NO_MORE_ITEMS },
-   // Indefinite length array with two items and no break
-   { {(uint8_t[]){0x9f, 0x01, 0x02}, 3}, QCBOR_ERR_NO_MORE_ITEMS },
-   // Indefinite length map with zero items and no break
-   { {(uint8_t[]){0xbf}, 1}, QCBOR_ERR_NO_MORE_ITEMS },
-   // Indefinite length map with two items and no break
-   { {(uint8_t[]){0xbf, 0x01, 0x02, 0x01, 0x02}, 5}, QCBOR_ERR_NO_MORE_ITEMS },
+   /* Indefinte length maps and arrays must be ended by a break */
+   { "Indefinite length array with zero items and no break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f", 1},
+      QCBOR_ERR_NO_MORE_ITEMS },
 
+   { "Indefinite length array with two items and no break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9\x01\x02", 3},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Indefinite length map with zero items and no break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xbf", 1},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Indefinite length map with two items and no break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xbf\x01\x02\x01\x02", 5},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
 
-   // Nested maps and arrays must be closed off (some extra nested test vectors)
-   // Unclosed indefinite array containing a closed definite length array
-   { {(uint8_t[]){0x9f, 0x80, 0x00}, 3}, QCBOR_ERR_NO_MORE_ITEMS },
-   // Definite length array containing an unclosed indefinite length array
-   { {(uint8_t[]){0x81, 0x9f}, 2}, QCBOR_ERR_NO_MORE_ITEMS },
-   // Unclosed indefinite map containing a closed definite length array
-   { {(uint8_t[]){0xbf, 0x01, 0x80, 0x00, 0xa0}, 5}, QCBOR_ERR_NO_MORE_ITEMS },
-   // Definite length map containing an unclosed indefinite length array
-   { {(uint8_t[]){0xa1, 0x02, 0x9f}, 3}, QCBOR_ERR_NO_MORE_ITEMS },
-   // Deeply nested definite length arrays with deepest one unclosed
-   { {(uint8_t[]){0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}, 9}, QCBOR_ERR_NO_MORE_ITEMS },
-   // Deeply nested indefinite length arrays with deepest one unclosed
-   { {(uint8_t[]){0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_NO_MORE_ITEMS },
-   // Mixed nesting with indefinite unclosed
-   { {(uint8_t[]){0x9f, 0x81, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff}, 9}, QCBOR_ERR_NO_MORE_ITEMS },
-   // Mixed nesting with definite unclosed
-   { {(uint8_t[]){0x9f, 0x82, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 10}, QCBOR_ERR_BAD_BREAK },
-   // Unclosed indefinite length map in definite length maps
-   { {(uint8_t[]){0xa1, 0x01, 0xa2, 0x02, 0xbf, 0xff, 0x02, 0xbf}, 8},
-      QCBOR_ERR_NO_MORE_ITEMS},
-   // Unclosed definite length map in indefinite length maps
-   { {(uint8_t[]){0xbf, 0x01, 0xbf, 0x02, 0xa1}, 5}, QCBOR_ERR_NO_MORE_ITEMS},
-   // Unclosed indefinite length array in definite length maps
-   { {(uint8_t[]){0xa1, 0x01, 0xa2, 0x02, 0x9f, 0xff, 0x02, 0x9f}, 8},
-      QCBOR_ERR_NO_MORE_ITEMS},
-   // Unclosed definite length array in indefinite length maps
-   { {(uint8_t[]){0xbf, 0x01, 0xbf, 0x02, 0x81}, 5}, QCBOR_ERR_NO_MORE_ITEMS},
-   // Unclosed indefinite length map in definite length arrays
-   { {(uint8_t[]){0x81, 0x82, 0xbf, 0xff, 0xbf}, 5}, QCBOR_ERR_NO_MORE_ITEMS},
-   // Unclosed definite length map in indefinite length arrays
-   { {(uint8_t[]){0x9f, 0x9f, 0xa1}, 3}, QCBOR_ERR_NO_MORE_ITEMS},
+   /* Nested maps and arrays must be closed off (some extra nested test vectors) */
+   { "Unclosed indefinite array containing a closed definite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x80\x00", 3},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+
+   { "Definite length array containing an unclosed indefinite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x81\x9f", 2},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Unclosed indefinite map containing a closed definite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xbf\x01\x80\x00\xa0", 5},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Definite length map containing an unclosed indefinite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\x02\x9f", 3},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Deeply nested definite length arrays with deepest one unclosed",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x81\x81\x81\x81\x81\x81\x81\x81\x81", 9},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Deeply nested indefinite length arrays with deepest one unclosed",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x9f\x9f\x9f\x9f\xff\xff\xff\xff", 9},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Mixed nesting with indefinite unclosed",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x81\x9f\x81\x9f\x9f\xff\xff\xff", 9},
+      QCBOR_ERR_NO_MORE_ITEMS },
+   { "Mixed nesting with definite unclosed",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x82\x9f\x81\x9f\x9f\xff\xff\xff\xff", 10},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Unclosed indefinite length map in definite length maps",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\x01\xa2\x02\xbf\xff\x02\xbf", 8},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Unclosed definite length map in indefinite length maps",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xbf\x01\xbf\x02\xa1", 5},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Unclosed indefinite length array in definite length maps",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\x01\xa2\x02\x9f\xff\x02\x9f", 8},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Unclosed definite length array in indefinite length maps",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xbf\x01\xbf\x02\x81", 5},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Unclosed indefinite length map in definite length arrays",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x81\x82\xbf\xff\xbf", 5},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "Unclosed definite length map in indefinite length arrays",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x9f\xa1", 3},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
-   // The "argument" for the data item is incomplete
-   // Positive integer missing 1 byte argument
-   { {(uint8_t[]){0x18}, 1}, QCBOR_ERR_HIT_END },
-   // Positive integer missing 2 byte argument
-   { {(uint8_t[]){0x19}, 1}, QCBOR_ERR_HIT_END },
-   // Positive integer missing 4 byte argument
-   { {(uint8_t[]){0x1a}, 1}, QCBOR_ERR_HIT_END },
-   // Positive integer missing 8 byte argument
-   { {(uint8_t[]){0x1b}, 1}, QCBOR_ERR_HIT_END },
-   // Positive integer missing 1 byte of 2 byte argument
-   { {(uint8_t[]){0x19, 0x01}, 2}, QCBOR_ERR_HIT_END },
-   // Positive integer missing 2 bytes of 4 byte argument
-   { {(uint8_t[]){0x1a, 0x01, 0x02}, 3}, QCBOR_ERR_HIT_END },
-   // Positive integer missing 1 bytes of 7 byte argument
-   { {(uint8_t[]){0x1b, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}, 8}, QCBOR_ERR_HIT_END },
-   // Negative integer missing 1 byte argument
-   { {(uint8_t[]){0x38}, 1}, QCBOR_ERR_HIT_END },
-   // Binary string missing 1 byte argument
-   { {(uint8_t[]){0x58}, 1}, QCBOR_ERR_HIT_END },
-   // Text string missing 1 byte argument
-   { {(uint8_t[]){0x78}, 1}, QCBOR_ERR_HIT_END },
-   // Array missing 1 byte argument
-   { {(uint8_t[]){0x98}, 1}, QCBOR_ERR_HIT_END },
-   // Map missing 1 byte argument
-   { {(uint8_t[]){0xb8}, 1}, QCBOR_ERR_HIT_END },
-   // Tag missing 1 byte argument
-   { {(uint8_t[]){0xd8}, 1}, QCBOR_ERR_HIT_END },
-   // Simple missing 1 byte argument
-   { {(uint8_t[]){0xf8}, 1}, QCBOR_ERR_HIT_END },
-   // half-precision with 1 byte argument
-   { {(uint8_t[]){0xf9, 0x00}, 2}, QCBOR_ERR_HIT_END },
-   // single-precision with 2 byte argument
-   { {(uint8_t[]){0xfa, 0x00, 0x00}, 3}, QCBOR_ERR_HIT_END },
-   // double-precision with 3 byte argument
-   { {(uint8_t[]){0xfb, 0x00, 0x00, 0x00}, 4}, QCBOR_ERR_HIT_END },
+   /* The "argument" for the data item is incomplete */
+   { "Positive integer missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x18", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Positive integer missing 2 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x19", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Positive integer missing 4 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x1a", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Positive integer missing 8 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x1b", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Positive integer missing 1 byte of 2 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x19\x01", 2},
+      QCBOR_ERR_HIT_END
+   },
+   { "Positive integer missing 2 bytes of 4 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x1a\x01\x02", 3},
+      QCBOR_ERR_HIT_END
+   },
+   { "Positive integer missing 1 bytes of 7 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x1b\x01\x02\x03\x04\x05\x06\x07", 8},
+      QCBOR_ERR_HIT_END
+   },
+   { "Negative integer missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x38", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Binary string missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x58", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Text string missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x78", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Array missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x98", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Map missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xb8", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Tag missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xd8", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "Simple missing 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8", 1},
+      QCBOR_ERR_HIT_END
+   },
+   { "half-precision with 1 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf9\x00", 2},
+      QCBOR_ERR_HIT_END
+   },
+   { "single-precision with 2 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\0xfa\x00\x00", 3},
+      QCBOR_ERR_HIT_END
+   },
+   { "double-precision with 3 byte argument",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xfb\x00\x00\x00", 4},
+      QCBOR_ERR_HIT_END
+   },
 
+#ifndef QCBOR_DISABLE_TAGS
+   { "Tag with no content",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc0", 1},
+      QCBOR_ERR_HIT_END
+   },
+#else /* QCBOR_DISABLE_TAGS */
+   { "Tag with no content",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc0", 1},
+      QCBOR_ERR_TAGS_DISABLED
+   },
+#endif /* QCBOR_DISABLE_TAGS */
 
-   // Tag with no content
-   { {(uint8_t[]){0xc0}, 1}, QCBOR_ERR_HIT_END },
+   /* Breaks must not occur in definite length arrays and maps */
+   { "Array of length 1 with sole member replaced by a break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x81\xff", 2},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Array of length 2 with 2nd member replaced by a break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x82\x00\xff", 3},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Map of length 1 with sole member label replaced by a break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\xff", 2},
+      QCBOR_ERR_BAD_BREAK
+   },
 
+   /* Map of length 1 with sole member label replaced by break */
+   { "Alternate representation that some decoders handle differently",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\xff\x00", 3},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Array of length 1 with 2nd member value replaced by a break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\x00\xff", 3},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Map of length 2 with 2nd member replaced by a break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa2\x00\x00\xff", 4},
+      QCBOR_ERR_BAD_BREAK
+   },
 
-   // Breaks must not occur in definite length arrays and maps
-   // Array of length 1 with sole member replaced by a break
-   { {(uint8_t[]){0x81, 0xff}, 2}, QCBOR_ERR_BAD_BREAK },
-   // Array of length 2 with 2nd member replaced by a break
-   { {(uint8_t[]){0x82, 0x00, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
-   // Map of length 1 with sole member label replaced by a break
-   { {(uint8_t[]){0xa1, 0xff}, 2}, QCBOR_ERR_BAD_BREAK },
-   // Map of length 1 with sole member label replaced by break
-   // Alternate representation that some decoders handle differently
-   { {(uint8_t[]){0xa1, 0xff, 0x00}, 3}, QCBOR_ERR_BAD_BREAK },
-   // Array of length 1 with 2nd member value replaced by a break
-   { {(uint8_t[]){0xa1, 0x00, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
-   // Map of length 2 with 2nd member replaced by a break
-   { {(uint8_t[]){0xa2, 0x00, 0x00, 0xff}, 4}, QCBOR_ERR_BAD_BREAK },
-
-
-   // Breaks must not occur on their own out of an indefinite length data item
-   // A bare break is not well formed
-   { {(uint8_t[]){0xff}, 1}, QCBOR_ERR_BAD_BREAK },
-   // A bare break after a zero length definite length array
-   { {(uint8_t[]){0x80, 0xff}, 2}, QCBOR_ERR_BAD_BREAK },
+   /* Breaks must not occur on their own out of an indefinite length data item */
+   { "A bare break is not well formed",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xff", 1},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "A bare break after a zero length definite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x80\xff", 2},
+      QCBOR_ERR_BAD_BREAK
+   },
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-   // A bare break after a zero length indefinite length map
-   { {(uint8_t[]){0x9f, 0xff, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
-   // A break inside a definite length array inside an indefenite length array
-   { {(uint8_t[]){0x9f, 0x81, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
-   // Complicated mixed nesting with break outside indefinite length array
-   { {(uint8_t[]){0x9f, 0x82, 0x9f, 0x81, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 10}, QCBOR_ERR_BAD_BREAK },
+   { "A bare break after a zero length indefinite length map",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\xff\xff", 3},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "A break inside a definite length array inside an indefenite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x81\xff", 3},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Complicated mixed nesting with break outside indefinite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\x9f\x82\x9f\x81\x9f\x9f\xff\xff\xff\xff", 10},
+      QCBOR_ERR_BAD_BREAK },
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+   /* Forbidden two byte encodings of simple types */
+   { "Must use 0xe0 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x00", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xe1 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x01", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xe2 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x02", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },   { "Should use 0xe3 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x03", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xe4 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x04", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xe5 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x05", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xe6 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x06", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xe7 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x07", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xe8 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x08", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xe9 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x09", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xea instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x0a", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xeb instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x0b", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xec instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x0c", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xed instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x0d", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xee instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x0e", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xef instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x0f", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xf0 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x10", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xf1 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x11", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xf2 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x12", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xf3 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x13", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xf4 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x14", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xf5 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x15", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xf6 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x16", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xef7 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x17", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Should use 0xef8 instead",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x18", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+   { "Reserved",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xf8\x18", 2},
+      QCBOR_ERR_BAD_TYPE_7
+   },
+
+   /* Maps must have an even number of data items (key & value) */
+   { "Map with 1 item when it should have 2",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa1\x00", 2},
+      QCBOR_ERR_HIT_END
+   },
+   { "Map with 3 item when it should have 4",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa2\x00\x00\x00", 2},
+      QCBOR_ERR_HIT_END
+   },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   { "Map with 1 item when it should have 2",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xbf\x00\xff", 3},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Map with 3 item when it should have 4",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xbf\x00\x00\x00\xff", 5},
+      QCBOR_ERR_BAD_BREAK
+   },
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
-   // Forbidden two byte encodings of simple types
-   // Must use 0xe0 instead
-   { {(uint8_t[]){0xf8, 0x00}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xe1 instead
-   { {(uint8_t[]){0xf8, 0x01}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xe2 instead
-   { {(uint8_t[]){0xf8, 0x02}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xe3 instead
-   { {(uint8_t[]){0xf8, 0x03}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xe4 instead
-   { {(uint8_t[]){0xf8, 0x04}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xe5 instead
-   { {(uint8_t[]){0xf8, 0x05}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xe6 instead
-   { {(uint8_t[]){0xf8, 0x06}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xe7 instead
-   { {(uint8_t[]){0xf8, 0x07}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xe8 instead
-   { {(uint8_t[]){0xf8, 0x08}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xe9 instead
-   { {(uint8_t[]){0xf8, 0x09}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xea instead
-   { {(uint8_t[]){0xf8, 0x0a}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xeb instead
-   { {(uint8_t[]){0xf8, 0x0b}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xec instead
-   { {(uint8_t[]){0xf8, 0x0c}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xed instead
-   { {(uint8_t[]){0xf8, 0x0d}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xee instead
-   { {(uint8_t[]){0xf8, 0x0e}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xef instead
-   { {(uint8_t[]){0xf8, 0x0f}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xf0 instead
-   { {(uint8_t[]){0xf8, 0x10}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xf1 instead
-   { {(uint8_t[]){0xf8, 0x11}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Should use 0xf2 instead
-   { {(uint8_t[]){0xf8, 0x12}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Must use 0xf3 instead
-   { {(uint8_t[]){0xf8, 0x13}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Must use 0xf4 instead
-   { {(uint8_t[]){0xf8, 0x14}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Must use 0xf5 instead
-   { {(uint8_t[]){0xf8, 0x15}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Must use 0xf6 instead
-   { {(uint8_t[]){0xf8, 0x16}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Must use 0xf7 instead
-   { {(uint8_t[]){0xf8, 0x17}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Must use 0xf8 instead
-   { {(uint8_t[]){0xf8, 0x18}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-   // Reserved
-   { {(uint8_t[]){0xf8, 0x1f}, 2}, QCBOR_ERR_BAD_TYPE_7 },
-
-   // Integers with additional info indefinite length
-   // Positive integer with additional info indefinite length
-   { {(uint8_t[]){0x1f}, 1}, QCBOR_ERR_BAD_INT },
-   // Negative integer with additional info indefinite length
-   { {(uint8_t[]){0x3f}, 1}, QCBOR_ERR_BAD_INT },
-   // CBOR tag with "argument" an indefinite length
-   { {(uint8_t[]){0xdf, 0x00}, 2}, QCBOR_ERR_BAD_INT },
-   // CBOR tag with "argument" an indefinite length alternate vector
-   { {(uint8_t[]){0xdf}, 1}, QCBOR_ERR_BAD_INT },
-
-
-   // Missing bytes from a deterministic length string
-   // A byte string is of length 1 without the 1 byte
-   { {(uint8_t[]){0x41}, 1}, QCBOR_ERR_HIT_END },
-   // A text string is of length 1 without the 1 byte
-   { {(uint8_t[]){0x61}, 1}, QCBOR_ERR_HIT_END },
-
-#if SIZE_MAX > 2147483647
-   // Byte string should have 2^32-15 bytes, but has one
-   { {(uint8_t[]){0x5a, 0xff, 0xff, 0xff, 0xf0, 0x00}, 6}, QCBOR_ERR_HIT_END },
-   // Byte string should have 2^32-15 bytes, but has one
-   { {(uint8_t[]){0x7a, 0xff, 0xff, 0xff, 0xf0, 0x00}, 6}, QCBOR_ERR_HIT_END },
-   // Byte string should have 2^64 bytes, but has 3
-   { {(uint8_t[]){0x5b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                  0x01, 0x02, 0x03}, 6}, QCBOR_ERR_HIT_END },
-   // Text string should have 2^64 bytes, but has 3
-   { {(uint8_t[]){0x7b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                  0x01, 0x02, 0x03}, 6}, QCBOR_ERR_HIT_END },
-#else
-   // Byte string should have 2^32-15 bytes, but has one
-   { {(uint8_t[]){0x5a, 0x00, 0x00, 0xff, 0xf0, 0x00}, 6}, QCBOR_ERR_HIT_END },
-   // Byte string should have 2^32-15 bytes, but has one
-   { {(uint8_t[]){0x7a, 0x00, 0x00, 0xff, 0xf0, 0x00}, 6}, QCBOR_ERR_HIT_END },
-   // Byte string should have 2^16 bytes, but has 3
-   { {(uint8_t[]){0x5b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x01, 0x02, 0x03}, 6}, QCBOR_ERR_HIT_END },
-   // Text string should have 2^64 bytes, but has 3
-   { {(uint8_t[]){0x7b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x01, 0x02, 0x03}, 6}, QCBOR_ERR_HIT_END },
-#endif
-
-   // Use of unassigned additional information values
-   // Major type positive integer with reserved value 28
-   { {(uint8_t[]){0x1c}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type positive integer with reserved value 29
-   { {(uint8_t[]){0x1d}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type positive integer with reserved value 30
-   { {(uint8_t[]){0x1e}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type negative integer with reserved value 28
-   { {(uint8_t[]){0x3c}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type negative integer with reserved value 29
-   { {(uint8_t[]){0x3d}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type negative integer with reserved value 30
-   { {(uint8_t[]){0x3e}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type byte string with reserved value 28 length
-   { {(uint8_t[]){0x5c}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type byte string with reserved value 29 length
-   { {(uint8_t[]){0x5d}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type byte string with reserved value 30 length
-   { {(uint8_t[]){0x5e}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type text string with reserved value 28 length
-   { {(uint8_t[]){0x7c}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type text string with reserved value 29 length
-   { {(uint8_t[]){0x7d}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type text string with reserved value 30 length
-   { {(uint8_t[]){0x7e}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type array with reserved value 28 length
-   { {(uint8_t[]){0x9c}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type array with reserved value 29 length
-   { {(uint8_t[]){0x9d}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type array with reserved value 30 length
-   { {(uint8_t[]){0x9e}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type map with reserved value 28 length
-   { {(uint8_t[]){0xbc}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type map with reserved value 29 length
-   { {(uint8_t[]){0xbd}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type map with reserved value 30 length
-   { {(uint8_t[]){0xbe}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type tag with reserved value 28 length
-   { {(uint8_t[]){0xdc}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type tag with reserved value 29 length
-   { {(uint8_t[]){0xdd}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type tag with reserved value 30 length
-   { {(uint8_t[]){0xde}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type simple with reserved value 28 length
-   { {(uint8_t[]){0xfc}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type simple with reserved value 29 length
-   { {(uint8_t[]){0xfd}, 1}, QCBOR_ERR_UNSUPPORTED },
-   // Major type simple with reserved value 30 length
-   { {(uint8_t[]){0xfe}, 1}, QCBOR_ERR_UNSUPPORTED },
-
-
-   // Maps must have an even number of data items (key & value)
-   // Map with 1 item when it should have 2
-   { {(uint8_t[]){0xa1, 0x00}, 2}, QCBOR_ERR_HIT_END },
-   // Map with 3 item when it should have 4
-   { {(uint8_t[]){0xa2, 0x00, 0x00, 0x00}, 2}, QCBOR_ERR_HIT_END },
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-   // Map with 1 item when it should have 2
-   { {(uint8_t[]){0xbf, 0x00, 0xff}, 3}, QCBOR_ERR_BAD_BREAK },
-   // Map with 3 item when it should have 4
-   { {(uint8_t[]){0xbf, 0x00, 0x00, 0x00, 0xff}, 5}, QCBOR_ERR_BAD_BREAK },
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
-
-
-   // In addition to not-well-formed, some invalid CBOR
-   // Text-based date, with an integer
-   { {(uint8_t[]){0xc0, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },
-   // Epoch date, with an byte string
-   { {(uint8_t[]){0xc1, 0x41, 0x33}, 3}, QCBOR_ERR_BAD_OPT_TAG },
-   // tagged as both epoch and string dates
-   { {(uint8_t[]){0xc1, 0xc0, 0x00}, 3}, QCBOR_ERR_BAD_OPT_TAG },
-   // big num tagged an int, not a byte string
-   { {(uint8_t[]){0xc2, 0x00}, 2}, QCBOR_ERR_BAD_OPT_TAG },
+#ifndef QCBOR_DISABLE_TAGS
+   /* In addition to not-well-formed, some invalid CBOR */
+   { "Text-based date, with an integer",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc0\x00", 2},
+      QCBOR_ERR_BAD_OPT_TAG
+   },
+   { "Epoch date, with an byte string",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc1\x41\x33", 3},
+      QCBOR_ERR_BAD_OPT_TAG
+   },
+   { "tagged as both epoch and string dates",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc1\xc0\x00", 3},
+      QCBOR_ERR_BAD_OPT_TAG
+   },
+   { "big num tagged an int, not a byte string",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc2\x00", 2},
+      QCBOR_ERR_BAD_OPT_TAG
+   },
+#else /* QCBOR_DISABLE_TAGS */
+   /* In addition to not-well-formed, some invalid CBOR */
+   { "Text-based date, with an integer",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc0\x00", 2},
+      QCBOR_ERR_TAGS_DISABLED
+   },
+   { "Epoch date, with an byte string",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc1\x41\x33", 3},
+      QCBOR_ERR_TAGS_DISABLED
+   },
+   { "tagged as both epoch and string dates",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc1\xc0\x00", 3},
+      QCBOR_ERR_TAGS_DISABLED
+   },
+   { "big num tagged an int, not a byte string",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc2\x00", 2},
+      QCBOR_ERR_TAGS_DISABLED
+   },
+#endif /* QCBOR_DISABLE_TAGS */
 };
 
-int32_t DecodeFailureTests()
+
+
+int32_t
+DecodeFailureTests(void)
 {
    int32_t nResult;
 
-   nResult = ProcessFailures(Failures,C_ARRAY_COUNT(Failures,struct FailInput));
+   nResult = ProcessDecodeFailures(Failures ,C_ARRAY_COUNT(Failures, struct DecodeFailTestInput));
    if(nResult) {
       return nResult;
    }
@@ -2302,7 +2528,7 @@ static void ComprehensiveInputRecurser(uint8_t *pBuf, size_t nLen, size_t nLenMa
 }
 
 
-int32_t ComprehensiveInputTest()
+int32_t ComprehensiveInputTest(void)
 {
    // Size 2 tests 64K inputs and runs quickly
    uint8_t pBuf[2];
@@ -2313,7 +2539,7 @@ int32_t ComprehensiveInputTest()
 }
 
 
-int32_t BigComprehensiveInputTest()
+int32_t BigComprehensiveInputTest(void)
 {
    // size 3 tests 16 million inputs and runs OK
    // in seconds on fast machines. Size 4 takes
@@ -2330,44 +2556,57 @@ int32_t BigComprehensiveInputTest()
 
 
 static const uint8_t spDateTestInput[] = {
+   /* 1. The valid date string "1985-04-12" */
    0xc0, // tag for string date
    0x6a, '1','9','8','5','-','0','4','-','1','2', // Date string
 
+   /* 2. An invalid date string due to wrong tag content type */
    0xc0, // tag for string date
    0x00, // Wrong type for a string date
 
+   /* 3. A valid epoch date, 1400000000; Tue, 13 May 2014 16:53:20 GMT */
    0xc1, // tag for epoch date
    0x1a, 0x53, 0x72, 0x4E, 0x00, // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
 
+   /* 4. An invalid epoch date due to wrong tag content type */
    0xc1,
    0x62, 'h', 'i', // wrong type tagged
 
+   /* 5. Valid epoch date tag as content for a two other nested tags */
    // CBOR_TAG_ENC_AS_B64
-   0xcf, 0xd8, 0x16, 0xc1, // 0xee, // Epoch date with extra tags
+   0xcf, 0xd8, 0x16, 0xc1, // Epoch date with extra tags
    0x1a, 0x53, 0x72, 0x4E, 0x01,
 
+   /* 6. Epoch date with value to large to fit into int64 */
    0xc1, // tag for epoch date
    0x1b, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, // Too large integer
 
+   /* 7. Epoch date with single-precision value of 1.1. */
    0xc1, // tag for epoch date
    0xfa, 0x3f, 0x8c, 0xcc, 0xcd, // single with value 1.1
 
+   /* 8. Epoch date with too-large single precision float */
    0xc1, // tag for epoch date
    0xfa, 0x7f, 0x7f, 0xff, 0xff, // 3.4028234663852886e+38 too large
 
+   /* 9. Epoch date with slightly too-large double precision value */
    0xc1, // tag for epoch date
    0xfb, 0x43, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 9223372036854775808.000000 just barely too large
    //0xfa, 0x7f, 0x7f, 0xff, 0xff // 3.4028234663852886e+38 too large
 
+   /* 10. Epoch date with largest supported double precision value */
    0xc1, // tag for epoch date
    0xfb, 0x43, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // 9223372036854773760 largest supported
 
+   /* 11. Epoch date with single-precision NaN */
    0xc1, // tag for epoch date
    0xfa, 0x7f, 0xc0, 0x00, 0x00, // Single-precision NaN
 
+   /* 12. Epoch date with double precision plus infinity */
    0xc1,
    0xfb, 0x7f,  0xf0,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // +infinity
 
+   /* 13. Epoch date with half-precision negative infinity */
    0xc1, // tag for epoch date
    0xf9, 0xfc, 0x00, // -Infinity
 };
@@ -2387,8 +2626,8 @@ static int CHECK_EXPECTED_DOUBLE(double val, double expected) {
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
 
-
-int32_t DateParseTest()
+/* Test date decoding using GetNext() */
+int32_t DateParseTest(void)
 {
    QCBORDecodeContext DCtx;
    QCBORItem          Item;
@@ -2398,36 +2637,43 @@ int32_t DateParseTest()
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   // String date
+   /* 1. The valid date string "1985-04-12" */
    if((uError = QCBORDecode_GetNext(&DCtx, &Item))) {
       return -1;
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_STRING ||
-      UsefulBufCompareToSZ(Item.val.dateString, "1985-04-12")){
+      UsefulBufCompareToSZ(Item.val.string, "1985-04-12")){
       return -2;
    }
 
-   // Wrong type for a string date
+   /* 2. An invalid date string due to wrong tag content type */
    uError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uError != QCBOR_ERR_BAD_OPT_TAG) {
       return -3;
    }
 
-   // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
-   if((uError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   /* 3. A valid epoch date, 1400000000; Tue, 13 May 2014 16:53:20 GMT */
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != QCBOR_SUCCESS) {
       return -4;
    }
-   if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-      Item.val.epochDate.nSeconds != 1400000000 ||
-      Item.val.epochDate.fSecondsFraction != 0 ) {
-      return -5;
+   if(uError == QCBOR_SUCCESS) {
+      if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
+         Item.val.epochDate.nSeconds != 1400000000
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+         || Item.val.epochDate.fSecondsFraction != 0
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+        ) {
+         return -5;
+      }
    }
 
-   // Wrong type for an epoch date
+   /* 4. An invalid epoch date due to wrong tag content type */
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_BAD_OPT_TAG) {
       return -6;
    }
 
+   /* 5. Valid epoch date tag as content for a two other nested tags */
    // Epoch date wrapped in an CBOR_TAG_ENC_AS_B64 and an unknown tag.
    // The date is decoded and the two tags are returned. This is to
    // make sure the wrapping of epoch date in another tag works OK.
@@ -2436,99 +2682,81 @@ int32_t DateParseTest()
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
       Item.val.epochDate.nSeconds != 1400000001 ||
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
       Item.val.epochDate.fSecondsFraction != 0 ||
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
       !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_ENC_AS_B64)) {
       return -8;
    }
 
-   // Epoch date that is too large for our representation
+   /* 6. Epoch date with value to large to fit into int64 */
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
       return -9;
    }
 
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   // Epoch date in float format with fractional seconds
-   if((uError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   /* 7. Epoch date with single-precision value of 1.1. */
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
       return -10;
    }
-   if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-      Item.val.epochDate.nSeconds != 1 ||
-      CHECK_EXPECTED_DOUBLE(Item.val.epochDate.fSecondsFraction, 0.1 )) {
-      return -11;
+   if(uError == QCBOR_SUCCESS) {
+      if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
+         Item.val.epochDate.nSeconds != 1
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+         || CHECK_EXPECTED_DOUBLE(Item.val.epochDate.fSecondsFraction, 0.1)
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+        ) {
+         return -11;
+      }
    }
 
-   // Epoch date float that is too large for our representation
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
+   /* 8. Epoch date with too-large single-precision float */
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return -12;
    }
 
-   // Epoch date double that is just slightly too large
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
+   /* 9. Epoch date with slightly too-large double-precision value */
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return -13;
    }
 
-   // Largest double epoch date supported
-    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_SUCCESS ||
-       Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-       Item.val.epochDate.nSeconds != 9223372036854773760 ||
-       Item.val.epochDate.nSeconds == 0) {
-       return -14;
-    }
+   /* 10. Epoch date with largest supported double-precision value */
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
+      return -14;
+   }
+   if(uError == QCBOR_SUCCESS) {
+      if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
+         Item.val.epochDate.nSeconds != 9223372036854773760
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+         || Item.val.epochDate.fSecondsFraction != 0.0
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      ) {
+         return -14;
+      }
+   }
 
-   // Nan
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
+   /* 11. Epoch date with single-precision NaN */
+   if(QCBORDecode_GetNext(&DCtx, &Item) != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return -15;
    }
 
-   // +Inifinity double-precision
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
+   /* 12. Epoch date with double-precision plus infinity */
+   if(QCBORDecode_GetNext(&DCtx, &Item) != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return -16;
    }
 
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   // -Inifinity half-precision
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DATE_OVERFLOW) {
+   /* 13. Epoch date with half-precision negative infinity */
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return -17;
    }
-#else
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_HALF_PRECISION_DISABLED) {
-      return -18;
-   }
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -19;
-   }
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -20;
-   }
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -21;
-   }
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -22;
-   }
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -23;
-   }
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -24;
-   }
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return -25;
-   }
-#else
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_HALF_PRECISION_DISABLED) {
-      return -26;
-   }
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
    return 0;
 }
+
 
 /*
  Test cases covered here. Some items cover more than one of these.
@@ -2559,7 +2787,73 @@ int32_t DateParseTest()
    Untagged values
  */
 static const uint8_t spSpiffyDateTestInput[] = {
-   0x86,
+   0x87, // array of 7 items
+
+   0xa6, // Open a map for tests involving untagged items with labels.
+
+   // Untagged integer 0
+   0x08,
+   0x00,
+
+   // Utagged date string with string label y
+   0x61, 0x79,
+   0x6a, '2','0','8','5','-','0','4','-','1','2', // Untagged date string
+
+   // Untagged single-precision float with value 3.14 with string label x
+   0x61, 0x78,
+   0xFA, 0x40, 0x48, 0xF5, 0xC3,
+
+   // Untagged half-precision float with value -2
+   0x09,
+   0xF9, 0xC0, 0x00,
+
+   /* Untagged date-only date string */
+   0x18, 0x63,
+   0x6A, 0x31, 0x39, 0x38, 0x35, 0x2D, 0x30, 0x34, 0x2D, 0x31, 0x32, /* "1985-04-12" */
+
+   /* Untagged days-count epoch date */
+   0x11,
+   0x19, 0x0F, 0x9A, /* 3994 */
+
+   // End of map, back to array
+
+   0xa7, // Open map of tagged items with labels
+
+   0x00,
+   0xc0, // tag for string date
+   0x6a, '1','9','8','5','-','0','4','-','1','2', // Tagged date string
+
+
+   0x01,
+   0xda, 0x03, 0x03, 0x03, 0x03, // An additional tag
+   0xc1, // tag for epoch date
+   0x1a, 0x53, 0x72, 0x4E, 0x00, // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
+
+   0x05,
+   0xc1,
+   0xfb, 0xc3, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // -9223372036854773760 largest negative
+
+
+   0x07,
+   0xc1, // tag for epoch date
+   0xfb, 0x43, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // 9223372036854773760 largest supported
+
+   /* Tagged days-count epoch date */
+   0x63, 0x53, 0x44, 0x45,
+   0xD8, 0x64,  /* tag(100) */
+   0x39, 0x29, 0xB3, /* -10676 */
+
+   // Untagged -1000 with label z
+   0x61, 0x7a,
+   0xda, 0x01, 0x01, 0x01, 0x01, // An additional tag
+   0x39, 0x03, 0xe7,
+
+   /* Tagged date-only date string */
+   0x63, 0x53, 0x44, 0x53,
+   0xD9, 0x03, 0xEC,
+   0x6A, 0x31, 0x39, 0x38, 0x35, 0x2D, 0x30, 0x34, 0x2D, 0x31, 0x32, /* "1985-04-12" */
+
+   // End of map of tagged items
 
    0xc1,
    0xfb, 0xc3, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // -9.2233720368547748E+18, too negative
@@ -2570,198 +2864,59 @@ static const uint8_t spSpiffyDateTestInput[] = {
    0xc1, // tag for epoch date
    0xf9, 0xfc, 0x00, // Half-precision -Infinity
 
+   // These two at the end because they are unrecoverable errors
    0xc1, // tag for epoch date
    0x80, // Erroneous empty array as content for date
 
    0xc0, // tag for string date
-   0xa0, // Erroneous empty map as content for date
-
-   0xad, // Open a map for tests involving labels.
-
-   0x00,
-   0xc0, // tag for string date
-   0x6a, '1','9','8','5','-','0','4','-','1','2', // Tagged date string
-
-   0x01,
-   0xda, 0x03, 0x03, 0x03, 0x03, // An additional tag
-   0xc1, // tag for epoch date
-   0x1a, 0x53, 0x72, 0x4E, 0x00, // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
-
-   // Untagged integer 0
-   0x08,
-   0x00,
-
-   // Utagged date string with string label y
-   0x61, 0x79,
-   0x6a, '2','0','8','5','-','0','4','-','1','2', // Untagged date string
-
-   // Untagged -1000 with label z
-   0x61, 0x7a,
-   0xda, 0x01, 0x01, 0x01, 0x01, // An additional tag
-   0x39, 0x03, 0xe7,
-
-   0x07,
-   0xc1, // tag for epoch date
-   0xfb, 0x43, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // 9223372036854773760 largest supported
-
-   0x05,
-   0xc1,
-   0xfb, 0xc3, 0xdf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, // -9223372036854773760 largest negative
-
-   // Untagged single-precision float with value 3.14 with string label x
-   0x61, 0x78,
-   0xFA, 0x40, 0x48, 0xF5, 0xC3,
-
-   // Untagged half-precision float with value -2
-   0x09,
-   0xF9, 0xC0, 0x00,
-
-   /* Tagged date-only date string */
-   0x63, 0x53, 0x44, 0x53,
-   0xD9, 0x03, 0xEC,
-   0x6A, 0x31, 0x39, 0x38, 0x35, 0x2D, 0x30, 0x34, 0x2D, 0x31, 0x32, /* "1985-04-12" */
-
-   /* Untagged date-only date string */
-   0x18, 0x63,
-   0x6A, 0x31, 0x39, 0x38, 0x35, 0x2D, 0x30, 0x34, 0x2D, 0x31, 0x32, /* "1985-04-12" */
-
-   /* Tagged days-count epoch date */
-   0x63, 0x53, 0x44, 0x45,
-   0xD8, 0x64,  /* tag(100) */
-   0x39, 0x29, 0xB3, /* -10676 */
-
-   /* Untagged days-count epoch date */
-   0x11,
-   0x19, 0x0F, 0x9A /* 3994 */
-
+   0xa0 // Erroneous empty map as content for date
 };
 
-int32_t SpiffyDateDecodeTest()
+int32_t SpiffyDateDecodeTest(void)
 {
    QCBORDecodeContext DC;
    QCBORError         uError;
-   int64_t            nEpochDate2, nEpochDate3, nEpochDate5,
-                      nEpochDate4, nEpochDate6, nEpochDateFail,
-                      nEpochDate1400000000, nEpochDays1, nEpochDays2;
-   UsefulBufC         StringDate1, StringDate2, StringDays1, StringDays2;
-   uint64_t           uTag1, uTag2;
+   int64_t            nEpochDate3, nEpochDate5,
+                      nEpochDate4, nEpochDate6,
+                      nEpochDays2;
+   UsefulBufC         StringDate1, StringDate2, StringDays2;
 
    QCBORDecode_Init(&DC,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyDateTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
+
+   /* Items are in an array or map to test look up by label and other
+    * that might not occur in isolated items. But it does make the
+    * test a bit messy. */
    QCBORDecode_EnterArray(&DC, NULL);
 
-   // Too-negative float, -9.2233720368547748E+18
-   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
-   uError = QCBORDecode_GetAndResetError(&DC);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   if(uError != QCBOR_ERR_DATE_OVERFLOW) {
-      return 1111;
-   }
-#else
-   if(uError != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return 1112;
-   }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-
-   // Too-large integer
-   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
-   uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_DATE_OVERFLOW) {
-      return 1;
-   }
-
-   // Half-precision minus infinity
-   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
-   uError = QCBORDecode_GetAndResetError(&DC);
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   const QCBORError uExpectedforHalfMinusInfinity = QCBOR_ERR_DATE_OVERFLOW;
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-   const QCBORError uExpectedforHalfMinusInfinity = QCBOR_ERR_FLOAT_DATE_DISABLED;
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   const QCBORError uExpectedforHalfMinusInfinity = QCBOR_ERR_HALF_PRECISION_DISABLED;
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   if(uError != uExpectedforHalfMinusInfinity) {
-      return 2;
-   }
-
-   // Bad content for epoch date
-   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
-   uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_BAD_OPT_TAG) {
-      return 3;
-   }
-
-   // Bad content for string date
-   QCBORDecode_GetDateString(&DC, QCBOR_TAG_REQUIREMENT_TAG, &StringDate1);
-   uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_BAD_OPT_TAG) {
-      return 4;
-   }
-
    QCBORDecode_EnterMap(&DC, NULL);
-
-   // Get largest negative double precision epoch date allowed
-   QCBORDecode_GetEpochDateInMapN(&DC,
-                                  5,
-                                  QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG |
-                                    QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS,
-                                  &nEpochDate2);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   if(nEpochDate2 != -9223372036854773760LL) {
-      return 101;
-   }
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-   uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return 102;
-   }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-
-   // Get largest double precision epoch date allowed
-   QCBORDecode_GetEpochDateInMapN(&DC, 7, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
-                                  &nEpochDate2);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   if(nEpochDate2 != 9223372036854773760ULL) {
-      return 111;
-   }
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-   uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return 112;
-   }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
    // A single-precision date
    QCBORDecode_GetEpochDateInMapSZ(&DC, "x", QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
                                    &nEpochDate5);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   if(nEpochDate5 != 3) {
-      return 103;
-   }
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != QCBOR_ERR_FLOAT_DATE_DISABLED) {
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
       return 104;
    }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+   if(uError == QCBOR_SUCCESS) {
+      if(nEpochDate5 != 3) {
+         return 103;
+      }
+   }
 
    // A half-precision date with value -2 FFF
    QCBORDecode_GetEpochDateInMapN(&DC, 9, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
                                   &nEpochDate4);
-#if !defined(QCBOR_DISABLE_FLOAT_HW_USE) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
-   if(nEpochDate4 != -2) {
-      return 105;
-   }
-#else
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError == QCBOR_SUCCESS) {
+   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_SUCCESS)) {
       return 106;
    }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-
+   if(uError == QCBOR_SUCCESS) {
+      if(nEpochDate4 != -2) {
+         return 105;
+      }
+   }
 
    // Fail to get an epoch date by string label
    QCBORDecode_GetEpochDateInMapSZ(&DC, "no-label",
@@ -2799,6 +2954,39 @@ int32_t SpiffyDateDecodeTest()
 
    // The rest of these succeed even if float features are disabled
 
+
+   // Untagged integer 0
+   QCBORDecode_GetEpochDateInMapN(&DC, 8, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                  &nEpochDate3);
+   // Untagged date string
+   QCBORDecode_GetDateStringInMapSZ(&DC, "y", QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                    &StringDate2);
+
+   QCBORDecode_GetDaysStringInMapN(&DC, 99, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                   &StringDays2);
+
+   QCBORDecode_GetEpochDaysInMapN(&DC, 17, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                  &nEpochDays2);
+
+   QCBORDecode_ExitMap(&DC);
+   if(QCBORDecode_GetError(&DC) != QCBOR_SUCCESS) {
+      return 3001;
+   }
+
+   // The map of tagged items
+   QCBORDecode_EnterMap(&DC, NULL);
+
+#ifndef QCBOR_DISABLE_TAGS
+   int64_t            nEpochDate2,
+                      nEpochDateFail,
+                      nEpochDate1400000000, nEpochDays1;
+   UsefulBufC         StringDays1;
+   uint64_t           uTag1, uTag2;
+
+   // Tagged date string
+   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+                                   &StringDate1);
+
    // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
    QCBORDecode_GetEpochDateInMapN(&DC,
                                   1,
@@ -2806,15 +2994,23 @@ int32_t SpiffyDateDecodeTest()
                                     QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS,
                                   &nEpochDate1400000000);
    uTag1 = QCBORDecode_GetNthTagOfLast(&DC, 0);
-   // Tagged date string
-   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
-                                   &StringDate1);
-   // Untagged integer 0
-   QCBORDecode_GetEpochDateInMapN(&DC, 8, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-                                  &nEpochDate3);
-   // Untagged date string
-   QCBORDecode_GetDateStringInMapSZ(&DC, "y", QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-                                    &StringDate2);
+
+   // Get largest negative double precision epoch date allowed
+   QCBORDecode_GetEpochDateInMapN(&DC,
+                                  5,
+                                  QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG |
+                                    QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS,
+                                  &nEpochDate2);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
+      return 102;
+   }
+   if(uError == QCBOR_SUCCESS) {
+      if(nEpochDate2 != -9223372036854773760LL) {
+         return 101;
+      }
+   }
+
    // Untagged -1000 with label z
    QCBORDecode_GetEpochDateInMapSZ(&DC,
                                    "z",
@@ -2822,6 +3018,20 @@ int32_t SpiffyDateDecodeTest()
                                     QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS,
                                    &nEpochDate6);
    uTag2 = QCBORDecode_GetNthTagOfLast(&DC, 0);
+
+
+   // Get largest double precision epoch date allowed
+   QCBORDecode_GetEpochDateInMapN(&DC, 7, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+                                  &nEpochDate2);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
+      return 112;
+   }
+   if(uError == QCBOR_SUCCESS) {
+      if(nEpochDate2 != 9223372036854773760ULL) {
+         return 111;
+      }
+   }
 
    /* The days format is much simpler than the date format
     * because it can't be a floating point value. The test
@@ -2834,21 +3044,66 @@ int32_t SpiffyDateDecodeTest()
    QCBORDecode_GetDaysStringInMapSZ(&DC, "SDS", QCBOR_TAG_REQUIREMENT_TAG,
                                     &StringDays1);
 
-   QCBORDecode_GetDaysStringInMapN(&DC, 99, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-                                   &StringDays2);
-
    QCBORDecode_GetEpochDaysInMapSZ(&DC, "SDE", QCBOR_TAG_REQUIREMENT_TAG,
                                    &nEpochDays1);
 
-   QCBORDecode_GetEpochDaysInMapN(&DC, 17, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-                                  &nEpochDays2);
-
    QCBORDecode_ExitMap(&DC);
+   if(QCBORDecode_GetError(&DC) != QCBOR_SUCCESS) {
+      return 3001;
+   }
+
+   // Too-negative float, -9.2233720368547748E+18
+   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
+      return 1111;
+   }
+
+   // Too-large integer
+   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_DATE_OVERFLOW) {
+      return 1;
+   }
+
+   // Half-precision minus infinity
+   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
+      return 2;
+   }
+
+
+   // Bad content for epoch date
+   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
+      return 3;
+   }
+
+   // Bad content for string date
+   QCBORDecode_GetDateString(&DC, QCBOR_TAG_REQUIREMENT_TAG, &StringDate1);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
+      return 4;
+   }
+
    QCBORDecode_ExitArray(&DC);
    uError = QCBORDecode_Finish(&DC);
-   if(uError) {
+   if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 1000 + (int32_t)uError;
    }
+#else /* QCBOR_DISABLE_TAGS */
+   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+                                   &StringDate1);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_TAGS_DISABLED) {
+      return 4;
+   }
+#endif /* QCBOR_DISABLE_TAGS */
+
+
+#ifndef QCBOR_DISABLE_TAGS
 
    if(nEpochDate1400000000 != 1400000000) {
       return 200;
@@ -2858,36 +3113,38 @@ int32_t SpiffyDateDecodeTest()
       return 201;
    }
 
-   if(nEpochDate3 != 0) {
-      return 202;
+   if(nEpochDays1 != -10676) {
+      return 205;
    }
 
-   if(nEpochDate6 != -1000) {
-      return 203;
+   if(UsefulBuf_Compare(StringDays1, UsefulBuf_FromSZ("1985-04-12"))) {
+      return 207;
    }
 
    if(uTag2 != 0x01010101) {
       return 204;
    }
 
-   if(nEpochDays1 != -10676) {
-      return 205;
-   }
-
-   if(nEpochDays2 != 3994) {
-      return 206;
+   if(nEpochDate6 != -1000) {
+      return 203;
    }
 
    if(UsefulBuf_Compare(StringDate1, UsefulBuf_FromSZ("1985-04-12"))) {
       return 205;
    }
 
-   if(UsefulBuf_Compare(StringDate2, UsefulBuf_FromSZ("2085-04-12"))) {
+#endif /* QCBOR_DISABLE_TAGS */
+
+   if(nEpochDate3 != 0) {
+      return 202;
+   }
+
+   if(nEpochDays2 != 3994) {
       return 206;
    }
 
-   if(UsefulBuf_Compare(StringDays1, UsefulBuf_FromSZ("1985-04-12"))) {
-      return 207;
+   if(UsefulBuf_Compare(StringDate2, UsefulBuf_FromSZ("2085-04-12"))) {
+      return 206;
    }
 
    if(UsefulBuf_Compare(StringDays2, UsefulBuf_FromSZ("1985-04-12"))) {
@@ -2896,7 +3153,6 @@ int32_t SpiffyDateDecodeTest()
 
    return 0;
 }
-
 
 
 // Input for one of the tagging tests
@@ -3049,13 +3305,17 @@ static const uint8_t spSpiffyTagInput[] = {
 
    0xc0, // tag for string date
    0x4a, '1','9','8','5','-','0','4','-','1','2', // Date string in byte string
+
+   // This last case makes the array untraversable because it is
+   // an uncrecoverable error. Make sure it stays last and is the only
+   // instance so the other tests can work.
 };
 
 
 static int32_t CheckCSRMaps(QCBORDecodeContext *pDC);
 
 
-int32_t OptTagParseTest()
+int32_t OptTagParseTest(void)
 {
    QCBORDecodeContext DCtx;
    QCBORItem          Item;
@@ -3450,11 +3710,15 @@ int32_t OptTagParseTest()
    }
    // tagged date string with a byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_BAD_OPT_TAG) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 103;
    }
+   // The exit errors out because the last item, the date string with
+   // bad content makes the array untraversable (the bad date string
+   // could have tag content of an array or such that is not consumed
+   // by the date decoding).
    QCBORDecode_ExitArray(&DCtx);
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_SUCCESS) {
+   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 104;
    }
 
@@ -3483,11 +3747,12 @@ int32_t OptTagParseTest()
    }
    // tagged date string with a byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_BAD_OPT_TAG) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 203;
    }
+   // See comments above
    QCBORDecode_ExitArray(&DCtx);
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_SUCCESS) {
+   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 204;
    }
 
@@ -3518,19 +3783,31 @@ int32_t OptTagParseTest()
    }
    // tagged date string with a byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_BAD_OPT_TAG) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 304;
    }
+   // See comments above
    QCBORDecode_ExitArray(&DCtx);
-   if(QCBORDecode_Finish(&DCtx) != QCBOR_SUCCESS) {
+   if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 305;
    }
 
    return 0;
 }
 
-
-
+/*
+ * These are showing the big numbers converted to integers.
+ * The tag numbers are not shown.
+ *
+ * [ 18446744073709551616,
+ *   -18446744073709551617,
+ *   {"BN+": 18446744073709551616,
+ *     64: 18446744073709551616,
+ *     "BN-": -18446744073709551617,
+ *     -64: -18446744073709551617
+ *   }
+ * ]
+ */
 
 static const uint8_t spBigNumInput[] = {
  0x83,
@@ -3546,13 +3823,15 @@ static const uint8_t spBigNumInput[] = {
     0x38, 0x3F,
        0xC3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
+#ifndef QCBOR_DISABLE_TAGS
 /* The expected big num */
 static const uint8_t spBigNum[] = {
    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
    0x00};
+#endif /* QCBOR_DISABLE_TAGS */
 
 
-int32_t BignumParseTest()
+int32_t BignumParseTest(void)
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -3570,6 +3849,7 @@ int32_t BignumParseTest()
       return -2;
    }
 
+#ifndef QCBOR_DISABLE_TAGS
    //
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return -3;
@@ -3626,6 +3906,12 @@ int32_t BignumParseTest()
       UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum))){
       return -16;
    }
+#else
+
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_TAGS_DISABLED) {
+      return -100;
+   }
+#endif /* QCBOR_DISABLE_TAGS */
 
    return 0;
 }
@@ -3742,7 +4028,7 @@ static const uint8_t spCSRInputIndefLen[] = {
    0x35, 0xbf, 0x24, 0x22, 0xff, 0xff};
 
 
-int32_t NestedMapTest()
+int32_t NestedMapTest(void)
 {
    QCBORDecodeContext DCtx;
 
@@ -3755,7 +4041,7 @@ int32_t NestedMapTest()
 
 
 
-int32_t StringDecoderModeFailTest()
+int32_t StringDecoderModeFailTest(void)
 {
    QCBORDecodeContext DCtx;
 
@@ -3783,7 +4069,7 @@ int32_t StringDecoderModeFailTest()
 
 
 
-int32_t NestedMapTestIndefLen()
+int32_t NestedMapTestIndefLen(void)
 {
    QCBORDecodeContext DCtx;
 
@@ -3847,7 +4133,7 @@ static int32_t parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
 }
 
 
-int32_t IndefiniteLengthNestTest()
+int32_t IndefiniteLengthNestTest(void)
 {
    UsefulBuf_MAKE_STACK_UB(Storage, 50);
    int i;
@@ -3874,7 +4160,7 @@ static const uint8_t spIndefiniteArrayBad4[] = {0x81, 0x9f};
 // confused tag
 static const uint8_t spIndefiniteArrayBad5[] = {0x9f, 0xd1, 0xff};
 
-int32_t IndefiniteLengthArrayMapTest()
+int32_t IndefiniteLengthArrayMapTest(void)
 {
    QCBORError nResult;
    // --- first test -----
@@ -4014,6 +4300,8 @@ int32_t IndefiniteLengthArrayMapTest()
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
 
    nResult = QCBORDecode_GetNext(&DC, &Item);
+
+#ifndef QCBOR_DISABLE_TAGS
    if(nResult || Item.uDataType != QCBOR_TYPE_ARRAY) {
       return -18;
    }
@@ -4022,6 +4310,11 @@ int32_t IndefiniteLengthArrayMapTest()
    if(nResult != QCBOR_ERR_BAD_BREAK) {
       return -19;
    }
+#else /* QCBOR_DISABLE_TAGS */
+   if(nResult != QCBOR_ERR_TAGS_DISABLED) {
+      return -20;
+   }
+#endif /* QCBOR_DISABLE_TAGS */
 
     return 0;
 }
@@ -4117,7 +4410,7 @@ static int CheckBigString(UsefulBufC BigString)
 }
 
 
-int32_t IndefiniteLengthStringTest()
+int32_t IndefiniteLengthStringTest(void)
 {
    QCBORDecodeContext DC;
    QCBORItem Item;
@@ -4306,7 +4599,7 @@ int32_t IndefiniteLengthStringTest()
 }
 
 
-int32_t AllocAllStringsTest()
+int32_t AllocAllStringsTest(void)
 {
    QCBORDecodeContext DC;
    QCBORError nCBORError;
@@ -4548,41 +4841,525 @@ int32_t SetUpAllocatorTest(void)
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 
-/*  exponent, mantissa
-  [
-    4([-1, 3]),
-    4([-20,                   4759477275222530853136]),
-    4([9223372036854775807,  -4759477275222530853137]),
-    5([300, 100]),
-    5([-20,                   4759477275222530853136]),
-    5([-9223372036854775807, -4759477275222530853137])
-    5([ 9223372036854775806, -4759477275222530853137])
-    5([ 9223372036854775806,  9223372036854775806])]
-  ]
- */
-static const uint8_t spExpectedExponentsAndMantissas[] = {
-   0x88,
-   0xC4, 0x82, 0x20,
-               0x03,
-   0xC4, 0x82, 0x33,
-               0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
-   0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-               0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
-   0xC5, 0x82, 0x19, 0x01, 0x2C,
-               0x18, 0x64,
-   0xC5, 0x82, 0x33,
-               0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
-   0xC5, 0x82, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
-               0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
-   0xC5, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
-               0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
-   0xC5, 0x82, 0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
-               0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE
+struct EaMTest {
+   const char *szName;
+   UsefulBufC  Input;
+   uint8_t     uTagRequirement;
+   bool        bHasTags;
+
+   /* Expected values for GetNext */
+   QCBORError  uExpectedErrorGN;
+   uint8_t     uQCBORTypeGN;
+   int64_t     nExponentGN;
+   int64_t     nMantissaGN;
+   UsefulBufC  MantissaGN;
+
+   /* Expected values for GetDecimalFraction */
+   QCBORError  uExpectedErrorGDF;
+   int64_t     nExponentGDF;
+   int64_t     nMantissaGDF;
+
+   /* Expected values for GetDecimalFractionBig */
+   QCBORError  uExpectedErrorGDFB;
+   int64_t     nExponentGDFB;
+   UsefulBufC  MantissaGDFB;
+   bool        IsNegativeGDFB;
+
+   /* Expected values for GetBigFloat */
+   QCBORError  uExpectedErrorGBF;
+   int64_t     nExponentGBF;
+   int64_t     nMantissaGBF;
+
+   /* Expected values for GetBigFloatBig */
+   QCBORError  uExpectedErrorGBFB;
+   int64_t     nExponentGBFB;
+   UsefulBufC  MantissaGBFB;
+   bool        IsNegativeGBFB;
 };
 
 
-int32_t ExponentAndMantissaDecodeTests(void)
+
+static const struct EaMTest pEaMTests[] = {
+   {
+      "1. Untagged pair (big float or decimal fraction), no tag required",
+      {(const uint8_t []){0x82, 0x20, 0x03}, 3},
+      QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+      false,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_ARRAY,
+      0,
+      0,
+      {(const uint8_t []){0x00}, 1},
+
+      QCBOR_SUCCESS, /* GetDecimalFraction */
+      -1,
+      3,
+
+      QCBOR_SUCCESS, /* for GetDecimalFractionBig */
+      -1,
+      {(const uint8_t []){0x03}, 1},
+      false,
+
+      QCBOR_SUCCESS, /* for GetBigFloat */
+      -1,
+      3,
+
+      QCBOR_SUCCESS, /* for GetBigFloatBig */
+      -1,
+      {(const uint8_t []){0x03}, 1},
+      false
+   },
+
+   {
+      "2. Untagged pair (big float or decimal fraction), tag required",
+      {(const uint8_t []){0x82, 0x20, 0x03}, 3},
+      QCBOR_TAG_REQUIREMENT_TAG,
+      false,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_ARRAY,
+      0,
+      0,
+      {(const uint8_t []){0x00}, 1},
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBig */
+      0,
+      {(const uint8_t []){0x00}, 1},
+      false,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 1},
+      false
+
+   },
+
+   {
+      "3. Tagged 1.5 decimal fraction, tag 4 optional",
+      {(const uint8_t []){0xC4, 0x82, 0x20, 0x03}, 4},
+      QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+      true,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_DECIMAL_FRACTION,
+      -1,
+      3,
+      {(const uint8_t []){0x00}, 1},
+
+
+      QCBOR_SUCCESS, /* for GetDecimalFraction */
+      -1,
+      3,
+
+      QCBOR_SUCCESS, /* for GetDecimalFractionBig */
+      -1,
+      {(const uint8_t []){0x03}, 1},
+      false,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 1},
+      false
+   },
+   {
+      "4. Tagged 100 * 2^300 big float, tag 5 optional",
+      {(const uint8_t []){0xC5, 0x82, 0x19, 0x01, 0x2C, 0x18, 0x64}, 7},
+      QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+      true,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_BIGFLOAT,
+      300,
+      100,
+      {(const uint8_t []){0x00}, 1},
+
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBig */
+      0,
+      {(const uint8_t []){0x03}, 1},
+      false,
+
+      QCBOR_SUCCESS, /* for GetBigFloat */
+      300,
+      100,
+
+      QCBOR_SUCCESS, /* for GetBigFloatBig */
+      300,
+      {(const uint8_t []){0x64}, 1},
+      false
+   },
+
+   {
+      "5. Tagged 4([-20, 4759477275222530853136]) decimal fraction, tag 4 required",
+      {(const uint8_t []){0xC4, 0x82, 0x33,
+                          0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,}, 15},
+      QCBOR_TAG_REQUIREMENT_TAG,
+      true,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+      -20,
+      0,
+      {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
+
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW, /* for GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_SUCCESS, /* for GetDecimalFractionBig */
+      -20,
+      {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
+      false,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 0},
+      false
+   },
+
+   {
+      "6. Error: Mantissa and exponent inside a Mantissa and exponent",
+      {(const uint8_t []){0xC4, 0x82, 0x33,
+                          0xC5, 0x82, 0x19, 0x01, 0x2C, 0x18, 0x64}, 10},
+      QCBOR_TAG_REQUIREMENT_TAG,
+      true,
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetNext */
+      QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+      0,
+      0,
+      {(const uint8_t []){0x00}, 0},
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFractionBig */
+      0,
+      {(const uint8_t []){0x00}, 0},
+      false,
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 0},
+      false
+   },
+   {
+      "7. Tagged 5([-20, 4294967295]) big float, big num mantissa, tag 5 required",
+      {(const uint8_t []){0xC5, 0x82, 0x33,
+                          0xC2, 0x44, 0xff, 0xff, 0xff, 0xff}, 9},
+      QCBOR_TAG_REQUIREMENT_TAG,
+      true,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+      -20,
+      0,
+      {(const uint8_t []){0xff, 0xff, 0xff, 0xff}, 4},
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBig */
+      -20,
+      {(const uint8_t []){0x00}, 1},
+      false,
+
+      QCBOR_SUCCESS, /* for GetBigFloat */
+      -20,
+      4294967295,
+
+      QCBOR_SUCCESS, /* for GetBigFloatBig */
+      -20,
+      {(const uint8_t []){0xff, 0xff, 0xff, 0xff}, 4},
+      false
+   },
+
+   {
+      /* Special case for test 8. Don't renumber it. */
+      "8. Untagged pair with big num (big float or decimal fraction), tag optional",
+      {(const uint8_t []){0x82, 0x33, 0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 14},
+      QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+      true,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_ARRAY,
+      0,
+      0,
+      {(const uint8_t []){0x00}, 1},
+
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW, /* GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_SUCCESS, /* for GetDecimalFractionBig */
+      -20,
+      {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
+      false,
+
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_SUCCESS, /* for GetBigFloatBig */
+      -20,
+      {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
+      false
+   },
+
+   {
+      "9. decimal fraction with large exponent and negative big num mantissa",
+      {(const uint8_t []){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                                0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 23},
+      QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+      true,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,
+      9223372036854775807,
+      0,
+      {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
+
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW, /* GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_SUCCESS, /* for GetDecimalFractionBig */
+      9223372036854775807,
+      {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
+      true,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
+      0,
+      {(const uint8_t []){0x00}, 1},
+      false
+   },
+};
+
+
+
+int32_t ProcessEaMTests(void)
 {
+   size_t                 uIndex;
+   QCBORDecodeContext     DCtx;
+   QCBORItem              Item;
+   QCBORError             uError;
+   int64_t                nMantissa, nExponent;
+   MakeUsefulBufOnStack(  MantissaBuf, 200);
+   UsefulBufC             Mantissa;
+   bool                   bMantissaIsNegative;
+
+   for(uIndex = 0; uIndex < C_ARRAY_COUNT(pEaMTests, struct EaMTest); uIndex++) {
+      const struct EaMTest *pT = &pEaMTests[uIndex];
+      /* Decode with GetNext */
+      QCBORDecode_Init(&DCtx, pT->Input, 0);
+
+      if(uIndex + 1 == 9) {
+         nExponent = 99; // just to set a break point
+      }
+
+      uError = QCBORDecode_GetNext(&DCtx, &Item);
+#ifdef QCBOR_DISABLE_TAGS
+      /* Test 8 is a special case when tags are disabled */
+      if(pT->bHasTags && uIndex + 1 != 8) {
+         if(uError != QCBOR_ERR_TAGS_DISABLED) {
+            return (int32_t)(1+uIndex) * 1000 + 9;
+         }
+      } else {
+#endif
+         /* Now check return code, data type, mantissa and exponent */
+         if(pT->uExpectedErrorGN != uError) {
+            return (int32_t)(1+uIndex) * 1000 + 1;
+         }
+         if(uError == QCBOR_SUCCESS && pT->uQCBORTypeGN != QCBOR_TYPE_ARRAY) {
+            if(pT->uQCBORTypeGN != Item.uDataType) {
+               return (int32_t)(1+uIndex) * 1000 + 2;
+            }
+            if(pT->nExponentGN != Item.val.expAndMantissa.nExponent) {
+               return (int32_t)(1+uIndex) * 1000 + 3;
+            }
+            if(Item.uDataType == QCBOR_TYPE_DECIMAL_FRACTION || Item.uDataType == QCBOR_TYPE_BIGFLOAT ) {
+               if(pT->nMantissaGN != Item.val.expAndMantissa.Mantissa.nInt) {
+                   return (int32_t)(1+uIndex) * 1000 + 4;
+                }
+            } else {
+               if(UsefulBuf_Compare(Item.val.expAndMantissa.Mantissa.bigNum, pT->MantissaGN)) {
+                   return (int32_t)(1+uIndex) * 1000 + 5;
+               }
+            }
+         }
+#ifdef QCBOR_DISABLE_TAGS
+      }
+#endif
+
+      /* Decode with GetDecimalFraction */
+      QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_GetDecimalFraction(&DCtx,
+                                      pT->uTagRequirement,
+                                     &nMantissa,
+                                     &nExponent);
+      uError = QCBORDecode_GetAndResetError(&DCtx);
+#ifdef QCBOR_DISABLE_TAGS
+      if(pT->bHasTags) {
+         if(uError != QCBOR_ERR_TAGS_DISABLED) {
+            return (int32_t)(1+uIndex) * 1000 + 39;
+         }
+      } else {
+#endif
+         /* Now check return code, mantissa and exponent */
+         if(pT->uExpectedErrorGDF != uError) {
+            return (int32_t)(1+uIndex) * 1000 + 31;
+         }
+         if(uError == QCBOR_SUCCESS) {
+            if(pT->nExponentGDF != nExponent) {
+               return (int32_t)(1+uIndex) * 1000 + 32;
+            }
+            if(pT->nMantissaGDF != nMantissa) {
+                return (int32_t)(1+uIndex) * 1000 + 33;
+            }
+         }
+#ifdef QCBOR_DISABLE_TAGS
+      }
+#endif
+
+      /* Decode with GetDecimalFractionBig */
+      QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_GetDecimalFractionBig(&DCtx,
+                                 pT->uTagRequirement,
+                                 MantissaBuf,
+                                 &Mantissa,
+                                 &bMantissaIsNegative,
+                                 &nExponent);
+      uError = QCBORDecode_GetAndResetError(&DCtx);
+#ifdef QCBOR_DISABLE_TAGS
+      if(pT->bHasTags) {
+         if(uError != QCBOR_ERR_TAGS_DISABLED) {
+            return (int32_t)(1+uIndex) * 1000 + 49;
+         }
+      } else {
+#endif
+         /* Now check return code, mantissa (bytes and sign) and exponent */
+         if(pT->uExpectedErrorGDFB != uError) {
+            return (int32_t)(1+uIndex) * 1000 + 41;
+         }
+         if(uError == QCBOR_SUCCESS) {
+            if(pT->nExponentGDFB != nExponent) {
+               return (int32_t)(1+uIndex) * 1000 + 42;
+            }
+            if(pT->IsNegativeGDFB != bMantissaIsNegative) {
+                return (int32_t)(1+uIndex) * 1000 + 43;
+            }
+            if(UsefulBuf_Compare(Mantissa, pT->MantissaGDFB)) {
+                return (int32_t)(1+uIndex) * 1000 + 44;
+            }
+         }
+#ifdef QCBOR_DISABLE_TAGS
+      }
+#endif
+
+      /* Decode with GetBigFloat */
+      QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_GetBigFloat(&DCtx,
+                              pT->uTagRequirement,
+                              &nMantissa,
+                              &nExponent);
+      uError = QCBORDecode_GetAndResetError(&DCtx);
+#ifdef QCBOR_DISABLE_TAGS
+      if(pT->bHasTags) {
+         if(uError != QCBOR_ERR_TAGS_DISABLED) {
+            return (int32_t)(1+uIndex) * 1000 + 19;
+         }
+      } else {
+#endif
+         /* Now check return code, mantissa and exponent */
+         if(pT->uExpectedErrorGBF != uError) {
+            return (int32_t)(1+uIndex) * 1000 + 11;
+         }
+         if(uError == QCBOR_SUCCESS) {
+            if(pT->nExponentGBF != nExponent) {
+               return (int32_t)(1+uIndex) * 1000 + 12;
+            }
+            if(pT->nMantissaGBF != nMantissa) {
+                return (int32_t)(1+uIndex) * 1000 + 13;
+            }
+         }
+#ifdef QCBOR_DISABLE_TAGS
+      }
+#endif
+
+      /* Decode with GetBigFloatBig */
+      QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_GetBigFloatBig(&DCtx,
+                                 pT->uTagRequirement,
+                                 MantissaBuf,
+                                 &Mantissa,
+                                 &bMantissaIsNegative,
+                                 &nExponent);
+      uError = QCBORDecode_GetAndResetError(&DCtx);
+#ifdef QCBOR_DISABLE_TAGS
+      if(pT->bHasTags) {
+         if(uError != QCBOR_ERR_TAGS_DISABLED) {
+            return (int32_t)(1+uIndex) * 1000 + 29;
+         }
+      } else {
+#endif
+         /* Now check return code, mantissa (bytes and sign) and exponent */
+         if(pT->uExpectedErrorGBFB != uError) {
+            return (int32_t)(1+uIndex) * 1000 + 21;
+         }
+         if(uError == QCBOR_SUCCESS) {
+            if(pT->nExponentGBFB != nExponent) {
+               return (int32_t)(1+uIndex) * 1000 + 22;
+            }
+            if(pT->IsNegativeGBFB != bMantissaIsNegative) {
+                return (int32_t)(1+uIndex) * 1000 + 23;
+            }
+            if(UsefulBuf_Compare(Mantissa, pT->MantissaGBFB)) {
+                return (int32_t)(1+uIndex) * 1000 + 24;
+            }
+         }
+#ifdef QCBOR_DISABLE_TAGS
+      }
+#endif
+   }
+
+   return 0;
+}
+
+
+int32_t ExponentAndMantissaDecodeTestsSecondary(void)
+{
+#ifndef QCBOR_DISABLE_TAGS
    QCBORDecodeContext DC;
    QCBORError         uErr;
    QCBORItem          item;
@@ -4592,111 +5369,6 @@ int32_t ExponentAndMantissaDecodeTests(void)
    UsefulBufC BN = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNumMantissa);
 
 
-   QCBORDecode_Init(&DC,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentsAndMantissas),
-                    QCBOR_DECODE_MODE_NORMAL);
-
-   uErr = QCBORDecode_GetNext(&DC, &item);
-   if(uErr != QCBOR_SUCCESS) {
-      return 1;
-   }
-
-   if(item.uDataType != QCBOR_TYPE_ARRAY) {
-      return 2;
-   }
-
-   uErr = QCBORDecode_GetNext(&DC, &item);
-   if(uErr != QCBOR_SUCCESS) {
-      return 3;
-   }
-
-   if(item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION ||
-      item.val.expAndMantissa.Mantissa.nInt != 3 ||
-      item.val.expAndMantissa.nExponent != -1) {
-      return 4;
-   }
-
-   uErr = QCBORDecode_GetNext(&DC, &item);
-   if(uErr != QCBOR_SUCCESS) {
-      return 5;
-   }
-
-   if(item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM ||
-      item.val.expAndMantissa.nExponent != -20 ||
-      UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
-      return 6;
-   }
-
-   uErr = QCBORDecode_GetNext(&DC, &item);
-   if(uErr != QCBOR_SUCCESS) {
-      return 7;
-   }
-
-   if(item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM ||
-      item.val.expAndMantissa.nExponent != 9223372036854775807 ||
-      UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
-      return 8;
-   }
-
-   uErr = QCBORDecode_GetNext(&DC, &item);
-   if(uErr != QCBOR_SUCCESS) {
-      return 9;
-   }
-
-   if(item.uDataType != QCBOR_TYPE_BIGFLOAT ||
-      item.val.expAndMantissa.Mantissa.nInt != 100 ||
-      item.val.expAndMantissa.nExponent != 300) {
-      return 10;
-   }
-
-   // 5([-20, 4759477275222530853136]),
-   uErr = QCBORDecode_GetNext(&DC, &item);
-   if(uErr != QCBOR_SUCCESS) {
-      return 11;
-   }
-   if(item.uDataType != QCBOR_TYPE_BIGFLOAT_POS_BIGNUM ||
-      item.val.expAndMantissa.nExponent != -20 ||
-      UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
-      return 12;
-   }
-
-   // 5([-9223372036854775807, -4759477275222530853137])
-   uErr = QCBORDecode_GetNext(&DC, &item);
-   if(uErr != QCBOR_SUCCESS) {
-      return 13;
-   }
-   if(item.uDataType != QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM ||
-      item.val.expAndMantissa.nExponent != -9223372036854775807 ||
-      UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
-      return 14;
-   }
-
-   // 5([ 9223372036854775806, -4759477275222530853137])
-   uErr = QCBORDecode_GetNext(&DC, &item);
-   if(uErr != QCBOR_SUCCESS) {
-      return 15;
-   }
-   if(item.uDataType != QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM ||
-      item.val.expAndMantissa.nExponent != 9223372036854775806 ||
-      UsefulBuf_Compare(item.val.expAndMantissa.Mantissa.bigNum, BN)) {
-      return 16;
-   }
-
-   // 5([ 9223372036854775806,  9223372036854775806])]
-   uErr = QCBORDecode_GetNext(&DC, &item);
-   if(uErr != QCBOR_SUCCESS) {
-      return 17;
-   }
-   if(item.uDataType != QCBOR_TYPE_BIGFLOAT ||
-      item.val.expAndMantissa.nExponent != 9223372036854775806 ||
-      item.val.expAndMantissa.Mantissa.nInt!= 9223372036854775806 ) {
-      return 18;
-   }
-
-   uErr = QCBORDecode_Finish(&DC);
-   if(uErr != QCBOR_SUCCESS) {
-      return 18;
-   }
 
    /* Now encode some stuff and then decode it */
    uint8_t pBuf[40];
@@ -4751,104 +5423,106 @@ int32_t ExponentAndMantissaDecodeTests(void)
       return 106;
    }
 
-
-   int64_t                   nExp, nMant;
-   UsefulBuf_MAKE_STACK_UB(  MantBuf, 20);
-   UsefulBufC                Mant;
-   bool                      bIsNeg;
-
-   QCBORDecode_Init(&DC,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentsAndMantissas),
-                    QCBOR_DECODE_MODE_NORMAL);
-   QCBORDecode_EnterArray(&DC, NULL);
-
-   // 4([-1, 3]),
-   QCBORDecode_GetDecimalFraction(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nExp, &nMant);
-
-   // 4([-20,                   4759477275222530853136]),
-   QCBORDecode_GetDecimalFractionBig(&DC, QCBOR_TAG_REQUIREMENT_TAG, MantBuf,
-                                     &Mant, &bIsNeg, &nExp);
-
-   // 4([9223372036854775807,  -4759477275222530853137]),
-   QCBORDecode_GetDecimalFractionBig(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
-                                     MantBuf, &Mant, &bIsNeg, &nExp);
-
-   // 5([300, 100]),
-   QCBORDecode_GetBigFloat(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nExp, &nMant);
-
-   // 5([-20,                   4759477275222530853136]),
-   QCBORDecode_GetBigFloatBig(&DC, QCBOR_TAG_REQUIREMENT_TAG, MantBuf, &Mant,
-                              &bIsNeg, &nExp);
-
-   // 5([-9223372036854775807, -4759477275222530853137])
-   QCBORDecode_GetBigFloatBig(&DC, QCBOR_TAG_REQUIREMENT_TAG, MantBuf, &Mant,
-                              &bIsNeg, &nExp);
-
-   // 5([ 9223372036854775806, -4759477275222530853137])
-   QCBORDecode_GetBigFloatBig(&DC, QCBOR_TAG_REQUIREMENT_TAG, MantBuf, &Mant,
-                              &bIsNeg, &nExp);
-
-   // 5([ 9223372036854775806,  9223372036854775806])]
-   QCBORDecode_GetBigFloatBig(&DC, QCBOR_TAG_REQUIREMENT_TAG, MantBuf, &Mant,
-                              &bIsNeg, &nExp);
-
-   QCBORDecode_ExitArray(&DC);
-
-   uErr = QCBORDecode_Finish(&DC);
-   if(uErr != QCBOR_SUCCESS) {
-      return 200;
-   }
+#endif /* QCBOR_TAGS_DISABLED */
 
    return 0;
 }
 
 
-static const struct FailInput ExponentAndMantissaFailures[] = {
-   // Exponent > INT64_MAX
-   { {(uint8_t[]){0xC4, 0x82, 0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF, 0x1B, 0x80, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF,}, 20}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
-   // Mantissa > INT64_MAX
-   { {(uint8_t[]){0xC4, 0x82, 0x1B, 0x80, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                  0xFF, 0xFF, 0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05,
-                  0x06, 0x07, 0x08, 0x09, 0x10}, 23}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
-   // End of input
-   { {(uint8_t[]){0xC4, 0x82}, 2}, QCBOR_ERR_NO_MORE_ITEMS},
-   // End of input
-   { {(uint8_t[]){0xC4, 0x82, 0x01}, 3}, QCBOR_ERR_NO_MORE_ITEMS},
-   // bad content for big num
-   { {(uint8_t[]){0xC4, 0x82, 0x01, 0xc3, 0x01}, 5}, QCBOR_ERR_BAD_OPT_TAG},
-   // bad content for big num
-   { {(uint8_t[]){0xC4, 0x82, 0xc2, 0x01, 0x1f}, 5}, QCBOR_ERR_BAD_INT},
-   // Bad integer for exponent
-   { {(uint8_t[]){0xC4, 0x82, 0x01, 0x1f}, 4}, QCBOR_ERR_BAD_INT},
-   // Bad integer for mantissa
-   { {(uint8_t[]){0xC4, 0x82, 0x1f, 0x01}, 4}, QCBOR_ERR_BAD_INT},
-   // 3 items in array
-   { {(uint8_t[]){0xC4, 0x83, 0x03, 0x01, 02}, 5}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
+int32_t ExponentAndMantissaDecodeTests(void)
+{
+   int32_t rv = ProcessEaMTests();
+   if(rv) {
+      return rv;
+   }
+
+   return ExponentAndMantissaDecodeTestsSecondary();
+}
+
+
+static const struct DecodeFailTestInput ExponentAndMantissaFailures[] = {
+   { "Exponent > INT64_MAX",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x1B\x7f\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x1B\x80\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 20},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+   { "Mantissa > INT64_MAX",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x1B\x80\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC3\x4A\x01\x02\x03\x04\x05\x06\x07\x08\x09\x10", 23},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+   {
+      "End of input",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82", 2},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   {"bad content for big num",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x01\xc3\x01", 5},
+      QCBOR_ERR_BAD_OPT_TAG
+   },
+   {"bad content for big num",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\xc2\x01\x1f", 5},
+      QCBOR_ERR_BAD_INT
+   },
+   {"Bad integer for exponent",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x01\x1f", 4},
+      QCBOR_ERR_BAD_INT
+   },
+   {"Bad integer for mantissa",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x1f\x01", 4},
+      QCBOR_ERR_BAD_INT
+   },
+   {"3 items in array",
+      QCBOR_DECODE_MODE_NORMAL,
+    {"\xC4\x83\x03\x01\x02", 5},
+    QCBOR_ERR_BAD_EXP_AND_MANTISSA},
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-   // unterminated indefinite length array
-   { {(uint8_t[]){0xC4, 0x9f, 0x03, 0x01, 0x02}, 5}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
+   {"unterminated indefinite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x9f\x03\x01\x02", 5},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
 #else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
-   // unterminated indefinite length array
-   { {(uint8_t[]){0xC4, 0x9f, 0x03, 0x01, 0x02}, 5}, QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED},
+   {"unterminated indefinite length array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x9f\x03\x01\x02", 5},
+      QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED
+   },
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
-   // Empty array
-   { {(uint8_t[]){0xC4, 0x80}, 2}, QCBOR_ERR_NO_MORE_ITEMS},
-   // Second is not an integer
-   { {(uint8_t[]){0xC4, 0x82, 0x03, 0x40}, 4}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
-   // First is not an integer
-   { {(uint8_t[]){0xC4, 0x82, 0x40}, 3}, QCBOR_ERR_BAD_EXP_AND_MANTISSA},
-   // Not an array
-   { {(uint8_t[]){0xC4, 0xa2}, 2}, QCBOR_ERR_BAD_EXP_AND_MANTISSA}
+   {"Empty array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x80", 2},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   {"Second is not an integer",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x03\x40", 4},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+   {"First is not an integer",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x40", 3},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+   {"Not an array",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\xA2", 2},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   }
 };
 
 
-int32_t ExponentAndMantissaDecodeFailTests()
+int32_t
+ExponentAndMantissaDecodeFailTests(void)
 {
-   return ProcessFailures(ExponentAndMantissaFailures,
-                          C_ARRAY_COUNT(ExponentAndMantissaFailures,
-                                        struct FailInput));
+   return ProcessDecodeFailures(ExponentAndMantissaFailures,
+                                C_ARRAY_COUNT(ExponentAndMantissaFailures,
+                                              struct DecodeFailTestInput));
 }
 
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
@@ -5197,25 +5871,27 @@ static const uint8_t spMapOfEmpty[] = {
 
 /*
  Too many tags
- Invalid tag content
  Duplicate label
  Integer overflow
  Date overflow
 
    {
       1: 224(225(226(227(4(0))))),
-      2: 1(h''),
       3: -18446744073709551616,
       4: 1(1.0e+300),
-      5: 0, 8: 8
+      5: 0,
+      8: 8
     }
  */
 static const uint8_t spRecoverableMapErrors[] = {
-   0xa7,
-   0x01, 0xd8, 0xe0, 0xd8, 0xe1, 0xd8, 0xe2, 0xd8, 0xe3, 0xd8, 0x04, 0x00,
-   0x02, 0xc1, 0x40,
-   0x03, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+#ifndef QCBOR_DISABLE_TAGS
+   0xa6,
    0x04, 0xc1, 0xfb, 0x7e, 0x37, 0xe4, 0x3c, 0x88, 0x00, 0x75, 0x9c,
+   0x01, 0xd8, 0xe0, 0xd8, 0xe1, 0xd8, 0xe2, 0xd8, 0xe3, 0xd8, 0x04, 0x00,
+#else
+   0xa4,
+#endif
+   0x03, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    0x05, 0x00,
    0x05, 0x00,
    0x08, 0x08,
@@ -5252,7 +5928,141 @@ const unsigned char not_well_formed_submod_section[] = {
    0xa1, 0x14, 0x1f,
 };
 
-int32_t EnterMapTest()
+
+/* Array of length 3, but only two items. */
+const unsigned char spBadConsumeInput[] = {
+   0x83, 0x00, 0x00
+};
+
+/* Tag nesting too deep. */
+const unsigned char spBadConsumeInput2[] = {
+   0x81,
+   0xD8, 0x37,
+   0xD8, 0x2C,
+      0xD8, 0x21,
+         0xD6,
+            0xCB,
+               00
+};
+
+const unsigned char spBadConsumeInput3[] = {
+   0x81, 0xc0, 0x81, 0x00
+};
+
+const unsigned char spBadConsumeInput4[] = {
+   0x81, 0x9f, 0x00, 0xff
+};
+
+const unsigned char spBadConsumeInput5[] = {
+   0xa1, 0x80, 0x00
+};
+
+/*
+ Lots of nesting for various nesting tests.
+ { 1:1,
+   2:{
+      21:21,
+      22:{
+         221:[2111, 2112, 2113],
+         222:222,
+         223: {}
+      },
+      23: 23
+    },
+    3:3,
+    4: [ {} ]
+ }
+ */
+static const uint8_t spNested[] = {
+0xA4,                            /* Map of 4                              */
+   0x01, 0x01,                   /*   Map entry 1 : 1                     */
+   0x02, 0xA3,                   /*   Map entry 2 : {, an array of 3      */
+      0x15, 0x15,                /*     Map entry 21 : 21                 */
+      0x16, 0xA3,                /*     Map entry 22 : {, a map of 3      */
+         0x18, 0xDD, 0x83,       /*       Map entry 221 : [ an array of 3 */
+            0x19, 0x08, 0x3F,    /*         Array item 2111               */
+            0x19, 0x08, 0x40,    /*         Array item 2112               */
+            0x19, 0x08, 0x41,    /*         Array item 2113               */
+         0x18, 0xDE, 0x18, 0xDE, /*       Map entry 222 : 222             */
+         0x18, 0xDF, 0xA0,       /*       Map entry 223 : {}              */
+      0x17, 0x17,                /*     Map entry 23 : 23                 */
+   0x03, 0x03,                   /*   Map entry 3 : 3                     */
+   0x04, 0x81,                   /*   Map entry 4: [, an array of 1       */
+      0xA0                       /*     Array entry {}, an empty map      */
+};
+
+
+static int32_t EnterMapCursorTest(void)
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem          Item1;
+
+   int i;
+   for(i = 0; i < 13; i++) {
+      QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNested), 0);
+      QCBORDecode_EnterMap(&DCtx, NULL);
+      int j;
+      /* Move travesal cursor */
+      for(j = 0; j < i; j++) {
+         QCBORDecode_GetNext(&DCtx, &Item1);
+      }
+      QCBORDecode_EnterMapFromMapN(&DCtx, 2);
+      QCBORDecode_ExitMap(&DCtx);
+      QCBORDecode_GetNext(&DCtx, &Item1);
+      if(Item1.label.int64 != 3) {
+         return 8000;
+      }
+   }
+
+   for(i = 0; i < 13; i++) {
+      QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNested), 0);
+      QCBORDecode_EnterMap(&DCtx, NULL);
+      int j;
+      /* Move travesal cursor */
+      for(j = 0; j < i; j++) {
+         QCBORDecode_GetNext(&DCtx, &Item1);
+      }
+      QCBORDecode_EnterMapFromMapN(&DCtx, 2);
+      QCBORDecode_EnterMapFromMapN(&DCtx, 22);
+      QCBORDecode_ExitMap(&DCtx);
+      QCBORDecode_GetNext(&DCtx, &Item1);
+      if(Item1.label.int64 != 23) {
+         return 8000;
+      }
+   }
+
+   for(i = 0; i < 13; i++) {
+      QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNested), 0);
+      QCBORDecode_EnterMap(&DCtx, NULL);
+      int j;
+      /* Move travesal cursor */
+      for(j = 0; j < i; j++) {
+         QCBORDecode_GetNext(&DCtx, &Item1);
+      }
+      QCBORDecode_EnterMapFromMapN(&DCtx, 2);
+      QCBORDecode_EnterMapFromMapN(&DCtx, 22);
+      for(j = 0; j < i; j++) {
+          QCBORDecode_GetNext(&DCtx, &Item1);
+       }
+      QCBORDecode_EnterArrayFromMapN(&DCtx, 221);
+      QCBORDecode_ExitArray(&DCtx);
+      QCBORDecode_ExitMap(&DCtx);
+      QCBORDecode_GetNext(&DCtx, &Item1);
+      if(Item1.label.int64 != 23) {
+         return 8000;
+      }
+      QCBORDecode_ExitMap(&DCtx);
+      QCBORDecode_GetNext(&DCtx, &Item1);
+      if(Item1.label.int64 != 3) {
+         return 8000;
+      }
+   }
+
+   return 0;
+}
+
+
+int32_t EnterMapTest(void)
 {
    QCBORItem          Item1;
    QCBORItem          ArrayItem;
@@ -5457,6 +6267,7 @@ int32_t EnterMapTest()
    int64_t nInt;
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spRecoverableMapErrors), 0);
    QCBORDecode_EnterMap(&DCtx, NULL);
+#ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
    uErr = QCBORDecode_GetError(&DCtx);
    if(uErr != QCBOR_ERR_TOO_MANY_TAGS) {
@@ -5466,13 +6277,8 @@ int32_t EnterMapTest()
       return 2121;
    }
    (void)QCBORDecode_GetAndResetError(&DCtx);
+#endif
 
-
-   QCBORDecode_GetEpochDateInMapN(&DCtx, 0x02, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
-   uErr = QCBORDecode_GetAndResetError(&DCtx);
-   if(uErr != QCBOR_ERR_BAD_OPT_TAG) {
-      return 2022;
-   }
 
    QCBORDecode_GetInt64InMapN(&DCtx, 0x03, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
@@ -5480,17 +6286,13 @@ int32_t EnterMapTest()
       return 2023;
    }
 
+#ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_GetEpochDateInMapN(&DCtx, 0x04, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-   if(uErr != QCBOR_ERR_DATE_OVERFLOW) {
+   if(uErr != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return 2024;
    }
-#else
-   if(uErr != QCBOR_ERR_FLOAT_DATE_DISABLED) {
-      return 2027;
-   }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif
 
    QCBORDecode_GetInt64InMapN(&DCtx, 0x05, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
@@ -5599,6 +6401,47 @@ int32_t EnterMapTest()
       return 2500;
    }
 
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 2600;
+   }
+
+#ifndef QCBOR_DISABLE_TAGS
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput2), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 2700;
+   }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput3), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
+      return 2800;
+   }
+#endif
+
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput4), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 2900;
+   }
+#else
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED) {
+      return 2901;
+   }
+#endif
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput5), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_MAP_LABEL_TYPE) {
+      return 3000;
+   }
+
+   nReturn = EnterMapCursorTest();
+
    return nReturn;
 }
 
@@ -5614,7 +6457,27 @@ struct NumberConversion {
    QCBORError  uErrorDouble;
 };
 
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
+#define EXP_AND_MANTISSA_ERROR(x) x
+#else
+#define EXP_AND_MANTISSA_ERROR(x) QCBOR_ERR_UNEXPECTED_TYPE
+#endif
+
+
 static const struct NumberConversion NumberConversions[] = {
+#ifndef QCBOR_DISABLE_TAGS
+   {
+      "Big float: INT64_MIN * 2e-1 to test handling of INT64_MIN",
+      {(uint8_t[]){0xC5, 0x82, 0x20,
+                               0x3B, 0x7f, 0xff, 0xff, 0xff, 0xff, 0x0ff, 0xff, 0xff,
+                               }, 15},
+      -4611686018427387904, /* INT64_MIN / 2 */
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      0,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      -4.6116860184273879E+18,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+   },
    {
       "too large to fit into int64_t",
       {(uint8_t[]){0xc3, 0x48, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 10},
@@ -5623,7 +6486,7 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       ((double)INT64_MIN) + 1 ,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
       "largest negative int that fits in int64_t",
@@ -5633,7 +6496,7 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       (double)INT64_MIN,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
       "negative bignum -1",
@@ -5643,67 +6506,40 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       -1.0,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
       "Decimal Fraction with positive bignum 257 * 10e3",
       {(uint8_t[]){0xC4, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                                0xC2, 0x42, 0x01, 0x01}, 15},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       257000,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       257000,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       257000.0,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA*/
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "bigfloat with negative bignum -258 * 2e3",
       {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                                0xC3, 0x42, 0x01, 0x01}, 15},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       -2064,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       0,
-      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       -2064.0,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA*/
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "bigfloat with positive bignum 257 * 2e3",
       {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                                0xC2, 0x42, 0x01, 0x01}, 15},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       2056,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       2056,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       2056.0,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA*/
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "negative bignum 0xc349010000000000000000 -18446744073709551617",
@@ -5713,7 +6549,7 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       -18446744073709551617.0,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
    {
@@ -5724,210 +6560,51 @@ static const struct NumberConversion NumberConversions[] = {
       0x01020304,
       QCBOR_SUCCESS,
       16909060.0,
-      QCBOR_SUCCESS
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
    {
       "Decimal Fraction with neg bignum [9223372036854775807, -4759477275222530853137]",
       {(uint8_t[]){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                                0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,}, 23},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0,
-      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       -INFINITY,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "big float [9223372036854775806,  9223372036854775806]",
       {(uint8_t[]){0xC5, 0x82, 0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
                                0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}, 20},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       INFINITY,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "Big float 3 * 2^^2",
       {(uint8_t[]){0xC5, 0x82, 0x02, 0x03}, 4},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       12,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       12,
-      QCBOR_SUCCESS,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       12.0,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-   },
-   {
-      "Positive integer 18446744073709551615",
-      {(uint8_t[]){0x1b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
-      0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
-      18446744073709551615ULL,
-      QCBOR_SUCCESS,
-      18446744073709551615.0,
-      QCBOR_SUCCESS
-   },
-   {
-      "Positive bignum 0xffff",
-      {(uint8_t[]){0xC2, 0x42, 0xff, 0xff}, 4},
-      65536-1,
-      QCBOR_SUCCESS,
-      0xffff,
-      QCBOR_SUCCESS,
-      65535.0,
-      QCBOR_SUCCESS
-   },
-   {
-      "Postive integer 0",
-      {(uint8_t[]){0x0}, 1},
-      0LL,
-      QCBOR_SUCCESS,
-      0ULL,
-      QCBOR_SUCCESS,
-      0.0,
-      QCBOR_SUCCESS
-   },
-   {
-      "Negative integer -18446744073709551616",
-      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, 9},
-      -9223372036854775807-1, // INT64_MIN
-      QCBOR_SUCCESS,
-      0ULL,
-      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
-      -9223372036854775808.0,
-      QCBOR_SUCCESS
-   },
-   {
-      "Double Floating point value 100.3",
-      {(uint8_t[]){0xfb, 0x40, 0x59, 0x13, 0x33, 0x33, 0x33, 0x33, 0x33}, 9},
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-      100L,
-      QCBOR_SUCCESS,
-      100ULL,
-      QCBOR_SUCCESS,
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-      100.3,
-      QCBOR_SUCCESS
-   },
-   {
-      "Floating point value NaN 0xfa7fc00000",
-      {(uint8_t[]){0xfa, 0x7f, 0xc0, 0x00, 0x00}, 5},
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-      0,
-      QCBOR_ERR_FLOAT_EXCEPTION,
-      0,
-      QCBOR_ERR_FLOAT_EXCEPTION,
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-      NAN,
-      QCBOR_SUCCESS
-   },
-   {
-      "half-precision Floating point value -4",
-      {(uint8_t[]){0xf9, 0xc4, 0x00}, 3},
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-      // Normal case with all enabled.
-      -4,
-      QCBOR_SUCCESS,
-      0,
-      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
-      -4.0,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-      // Float HW disabled
-      -4,
-      QCBOR_ERR_HW_FLOAT_DISABLED, // Can't convert to integer
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED, // Can't convert to integer
-      -4.0,
-      QCBOR_SUCCESS // Uses ieee754.h to conver, not HW
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-      // Half-precision disabled
-      -4,
-      QCBOR_ERR_HALF_PRECISION_DISABLED,
-      0,
-      QCBOR_ERR_HALF_PRECISION_DISABLED,
-      -4.0,
-      QCBOR_ERR_HALF_PRECISION_DISABLED
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "Decimal fraction 3/10",
       {(uint8_t[]){0xC4, 0x82, 0x20, 0x03}, 4},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0.30000000000000004,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
-   {
-      "+inifinity",
-      {(uint8_t[]){0xfa, 0x7f, 0x80, 0x00, 0x00}, 5},
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-      0,
-      QCBOR_ERR_FLOAT_EXCEPTION,
-      0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-      INFINITY,
-      QCBOR_SUCCESS
-   },
-
    {
       "extreme pos bignum",
       {(uint8_t[]){0xc2, 0x59, 0x01, 0x90,
@@ -5981,19 +6658,14 @@ static const struct NumberConversion NumberConversions[] = {
          0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0,
          0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0,
          0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0,
-         0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0},
+         0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0},
          404},
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
       INFINITY,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
    },
 
    {
@@ -6049,19 +6721,14 @@ static const struct NumberConversion NumberConversions[] = {
          0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0,
          0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0,
          0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0,
-         0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0},
+         0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0},
          404},
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
       -INFINITY,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-      0,
-      QCBOR_ERR_HW_FLOAT_DISABLED,
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
 
    {
@@ -6070,21 +6737,12 @@ static const struct NumberConversion NumberConversions[] = {
          0xC5, 0x82,
             0x3B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
             0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}, 20},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0,
-      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
 
    {
@@ -6093,22 +6751,97 @@ static const struct NumberConversion NumberConversions[] = {
          0xC5, 0x82,
             0x1B, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
             0xC3, 0x42, 0x01, 0x01}, 15},
-#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
+      0,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      -INFINITY,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+   },
+   {
+      "Positive bignum 0xffff",
+      {(uint8_t[]){0xC2, 0x42, 0xff, 0xff}, 4},
+      65536-1,
+      QCBOR_SUCCESS,
+      0xffff,
+      QCBOR_SUCCESS,
+      65535.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+#endif /* QCBOR_DISABLE_TAGS */
+   {
+      "Positive integer 18446744073709551615",
+      {(uint8_t[]){0x1b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
-      0,
-      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
-      -INFINITY,
-      QCBOR_SUCCESS
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
-      0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA*/
+      18446744073709551615ULL,
+      QCBOR_SUCCESS,
+      18446744073709551615.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
+
+   {
+      "Postive integer 0",
+      {(uint8_t[]){0x0}, 1},
+      0LL,
+      QCBOR_SUCCESS,
+      0ULL,
+      QCBOR_SUCCESS,
+      0.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      "Negative integer -18446744073709551616",
+      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, 9},
+      -9223372036854775807-1, // INT64_MIN
+      QCBOR_SUCCESS,
+      0ULL,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      -9223372036854775808.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      "Double Floating point value 100.3",
+      {(uint8_t[]){0xfb, 0x40, 0x59, 0x13, 0x33, 0x33, 0x33, 0x33, 0x33}, 9},
+      100L,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+      100ULL,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+      100.3,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS),
+   },
+   {
+      "Floating point value NaN 0xfa7fc00000",
+      {(uint8_t[]){0xfa, 0x7f, 0xc0, 0x00, 0x00}, 5},
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
+      NAN,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+   },
+   {
+      "half-precision Floating point value -4",
+      {(uint8_t[]){0xf9, 0xc4, 0x00}, 3},
+      // Normal case with all enabled.
+      -4,
+      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_SUCCESS),
+      0,
+      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      -4.0,
+      FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+   },
+   {
+      "+inifinity single precision",
+      {(uint8_t[]){0xfa, 0x7f, 0x80, 0x00, 0x00}, 5},
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      INFINITY,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+
 };
 
 
@@ -6128,7 +6861,7 @@ static int32_t SetUpDecoder(QCBORDecodeContext *DCtx, UsefulBufC CBOR, UsefulBuf
 }
 
 
-int32_t IntegerConvertTest()
+int32_t IntegerConvertTest(void)
 {
    const int nNumTests = C_ARRAY_COUNT(NumberConversions,
                                        struct NumberConversion);
@@ -6173,7 +6906,8 @@ int32_t IntegerConvertTest()
        if(SetUpDecoder(&DCtx, pF->CBOR, Pool)) {
          return (int32_t)(3333+nIndex);
       }
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
       double d;
       QCBORDecode_GetDoubleConvertAll(&DCtx, 0xffff, &d);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorDouble) {
@@ -6192,13 +6926,54 @@ int32_t IntegerConvertTest()
             }
          }
       }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
    }
 
    return 0;
 }
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 
+int32_t CBORTestIssue134(void)
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem          Item;
+   QCBORError         uCBORError;
+   const uint8_t      spTestIssue134[] = { 0x5F, 0x40, 0xFF };
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTestIssue134),
+                    QCBOR_DECODE_MODE_NORMAL);
+
+   UsefulBuf_MAKE_STACK_UB(StringBuf, 200);
+   QCBORDecode_SetMemPool(&DCtx, StringBuf, false);
+
+   do {
+      uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   } while (QCBOR_SUCCESS == uCBORError);
+
+   uCBORError = QCBORDecode_Finish(&DCtx);
+
+   return (int32_t)uCBORError;
+}
+
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+
+
+static const uint8_t spSequenceTestInput[] = {
+   /* 1. The valid date string "1985-04-12" */
+   0x6a, '1','9','8','5','-','0','4','-','1','2', // Date string
+
+   /* 2. */
+   0x00,
+
+   /* 3. A valid epoch date, 1400000000; Tue, 13 May 2014 16:53:20 GMT */
+   0x1a, 0x53, 0x72, 0x4E, 0x00,
+
+   /* 4. */
+   0x62, 'h', 'i',
+};
 
 
 int32_t CBORSequenceDecodeTests(void)
@@ -6210,20 +6985,29 @@ int32_t CBORSequenceDecodeTests(void)
 
    // --- Test a sequence with extra bytes ---
 
-   // The input for the date test happens to be a sequence so it
-   // is reused. It is a sequence because it doesn't start as
-   // an array or map.
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput),
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSequenceTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   // Get the first item
+   // Get 1.
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
       return 1;
    }
-   if(Item.uDataType != QCBOR_TYPE_DATE_STRING) {
+   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ) {
       return 2;
+   }
+
+   uCBORError = QCBORDecode_PartialFinish(&DCtx, &uConsumed);
+   if(uCBORError != QCBOR_ERR_EXTRA_BYTES ||
+      uConsumed != 11) {
+      return 102;
+   }
+
+   // Get 2.
+   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return 66;
    }
 
    uCBORError = QCBORDecode_PartialFinish(&DCtx, &uConsumed);
@@ -6232,24 +7016,12 @@ int32_t CBORSequenceDecodeTests(void)
       return 102;
    }
 
-   // Get a second item
-   uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
-   if(uCBORError != QCBOR_ERR_BAD_OPT_TAG) {
-      return 66;
-   }
-
-   uCBORError = QCBORDecode_PartialFinish(&DCtx, &uConsumed);
-   if(uCBORError != QCBOR_ERR_EXTRA_BYTES ||
-      uConsumed != 14) {
-      return 102;
-   }
-
-   // Get a third item
+   // Get 3.
    uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uCBORError != QCBOR_SUCCESS) {
       return 2;
    }
-   if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH) {
+   if(Item.uDataType != QCBOR_TYPE_INT64) {
       return 3;
    }
 
@@ -6265,7 +7037,6 @@ int32_t CBORSequenceDecodeTests(void)
    if(uCBORError != QCBOR_ERR_EXTRA_BYTES) {
       return 4;
    }
-
 
    // --- Test an empty input ----
    uint8_t empty[1];
@@ -6364,7 +7135,7 @@ int32_t CBORSequenceDecodeTests(void)
 
 
 
-int32_t IntToTests()
+int32_t IntToTests(void)
 {
    int nErrCode;
    int32_t n32;
@@ -6618,7 +7389,7 @@ static const uint8_t spBreakInByteString[] = {
 };
 
 
-int32_t EnterBstrTest()
+int32_t EnterBstrTest(void)
 {
    UsefulBuf_MAKE_STACK_UB(OutputBuffer, 100);
 
@@ -6780,7 +7551,7 @@ static const uint8_t spTaggedTypes[] = {
       0x54, 0x43, 0x46, 0x49, 0x43, 0x41, 0x32
 };
 
-int32_t DecodeTaggedTypeTests()
+int32_t DecodeTaggedTypeTests(void)
 {
    QCBORDecodeContext DC;
    QCBORError         uErr;
@@ -7080,6 +7851,12 @@ int32_t TooLargeInputTest(void)
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 
+/*
+ An array of three map entries
+ 1) Indefinite length string label for indefinite lenght byte string
+ 2) Indefinite length string label for an integer
+ 3) Indefinite length string label for an indefinite-length negative big num
+ */
 static const uint8_t spMapWithIndefLenStrings[] = {
    0xa3,
       0x7f, 0x61, 'l', 0x64, 'a', 'b', 'e', 'l' , 0x61, '1', 0xff,
@@ -7091,7 +7868,7 @@ static const uint8_t spMapWithIndefLenStrings[] = {
           0x5f, 0x42, 0x00, 0x01, 0x42, 0x00, 0x01, 0x41, 0x01, 0xff,
 };
 
-int32_t SpiffyIndefiniteLengthStringsTests()
+int32_t SpiffyIndefiniteLengthStringsTests(void)
 {
    QCBORDecodeContext DCtx;
 
@@ -7105,6 +7882,8 @@ int32_t SpiffyIndefiniteLengthStringsTests()
    UsefulBufC ByteString;
    QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetByteStringInMapSZ(&DCtx, "label1", &ByteString);
+
+#ifndef QCBOR_DISABLE_TAGS
    if(QCBORDecode_GetAndResetError(&DCtx)) {
       return 1;
    }
@@ -7123,11 +7902,13 @@ int32_t SpiffyIndefiniteLengthStringsTests()
       return 4;
    }
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    double uDouble;
    QCBORDecode_GetDoubleConvertAllInMapSZ(&DCtx,
                                           "label2",
                                           0xff,
                                           &uDouble);
+
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
    if(QCBORDecode_GetAndResetError(&DCtx)) {
       return 5;
@@ -7140,13 +7921,24 @@ int32_t SpiffyIndefiniteLengthStringsTests()
       return 7;
    }
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
    QCBORDecode_ExitMap(&DCtx);
 
    if(QCBORDecode_Finish(&DCtx)) {
       return 99;
    }
+
+#else /* QCBOR_DISABLE_TAGS */
+   /* The big num in the input is a CBOR tag and you can't do
+    * map lookups in a map with a tag so this test does very little
+    * when tags are disabled. That is OK, the test coverage is still
+    * good when they are not.
+    */
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_TAGS_DISABLED) {
+      return 1002;
+   }
+#endif /*QCBOR_DISABLE_TAGS */
 
    return 0;
 }
@@ -7223,9 +8015,17 @@ static const uint8_t pWithEmptyMapInDef[] = {0x9f, 0x18, 0x64, 0xbf, 0xff, 0xff}
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+/*
+ * An array of one that contains a byte string that is an indefinite
+ * length string that CBOR wraps an array of three numbers [42, 43,
+ * 44]. The byte string is an implicit tag 24.
+ *
+ * [
+ *   (_ h'83', h'18', h'2A182B', h'182C')
+ * ]
+ */
 static const uint8_t pWrappedByIndefiniteLength[] = {
    0x81,
-   0xd8, 0x18,
    0x5f,
    0x41, 0x83,
    0x41, 0x18,
@@ -7236,7 +8036,7 @@ static const uint8_t pWrappedByIndefiniteLength[] = {
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
-int32_t PeekAndRewindTest()
+int32_t PeekAndRewindTest(void)
 {
    QCBORItem          Item;
    QCBORError         nCBORError;
@@ -7832,10 +8632,11 @@ int32_t PeekAndRewindTest()
    QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_EnterBstrWrapped(&DCtx, 2, NULL);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_INPUT_TOO_LARGE) {
-      /* this is what happens when trying to enter
-       indefinite-length byte string
-       wrapped CBOR.  Tolerate for now. Eventually it needs
-       to be fixed so this works, but that is not simple. */
+      /* TODO: This is what happens when trying to enter
+       * indefinite-length byte string wrapped CBOR.  Tolerate for
+       * now. Eventually it needs to be fixed so this works, but that
+       * is not simple.
+       */
       return 7300;
    }
 
@@ -7849,6 +8650,7 @@ int32_t PeekAndRewindTest()
    if(i != 42) {
       return 7220;
    }*/
+
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
@@ -8116,6 +8918,87 @@ int32_t GetMapAndArrayTest(void)
       return 2;
    }
 
+   return 0;
+}
+
    
+int32_t
+ErrorHandlingTests(void)
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem          Item;
+   QCBORError         uError;
+   int64_t            integer;
+
+   /* Test QCBORDecode_SetError() */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    QCBOR_DECODE_MODE_NORMAL);
+
+   QCBORDecode_SetError(&DCtx, QCBOR_ERR_FIRST_USER_DEFINED);
+
+   QCBORDecode_VGetNext(&DCtx, &Item);
+
+   uError = QCBORDecode_GetError(&DCtx);
+
+   if(uError != QCBOR_ERR_FIRST_USER_DEFINED) {
+      return -1;
+   }
+
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataType != QCBOR_TYPE_NONE) {
+      return -2;
+   }
+
+
+   /* Test data type returned from previous error */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_GetInt64(&DCtx, &integer);
+   uError = QCBORDecode_GetError(&DCtx);
+   if(uError != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return -3;
+   }
+
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   if(Item.uLabelType != QCBOR_TYPE_NONE ||
+      Item.uDataType != QCBOR_TYPE_NONE) {
+      return -2;
+   }
+   uError = QCBORDecode_GetError(&DCtx);
+   if(uError != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return -3;
+   }
+
+
+   /* Test error classification functions */
+
+   if(!QCBORDecode_IsUnrecoverableError(QCBOR_ERR_INDEFINITE_STRING_CHUNK)) {
+      return -10;
+   }
+   if(QCBORDecode_IsUnrecoverableError(QCBOR_SUCCESS)) {
+      return -11;
+   }
+   if(!QCBORDecode_IsUnrecoverableError(QCBOR_ERR_INDEFINITE_STRING_CHUNK)) {
+      return -12;
+   }
+   if(QCBORDecode_IsUnrecoverableError(QCBOR_ERR_DUPLICATE_LABEL)) {
+      return -13;
+   }
+
+   if(!QCBORDecode_IsNotWellFormedError(QCBOR_ERR_BAD_TYPE_7)) {
+      return -20;
+   }
+   if(!QCBORDecode_IsNotWellFormedError(QCBOR_ERR_BAD_BREAK)) {
+      return -21;
+   }
+   if(QCBORDecode_IsNotWellFormedError(QCBOR_SUCCESS)) {
+      return -22;
+   }
+   if(QCBORDecode_IsNotWellFormedError(QCBOR_ERR_ARRAY_DECODE_TOO_LONG)) {
+      return -23;
+   }
+
    return 0;
 }
