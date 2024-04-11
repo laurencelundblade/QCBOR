@@ -2483,6 +2483,7 @@ int32_t EncodeErrorTests(void)
 {
    QCBOREncodeContext EC;
    QCBORError         uErr;
+   UsefulBufC         yy;
 
 
    // ------ Test for QCBOR_ERR_BUFFER_TOO_LARGE ------
@@ -2678,6 +2679,13 @@ int32_t EncodeErrorTests(void)
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
+   // TODO: make sure error sticks after Finish.
+   QCBOREncode_Init(&EC, Large);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_Finish(&EC, &yy);
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return -120;
+   }
 
    return 0;
 }

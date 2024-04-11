@@ -3892,15 +3892,17 @@ static inline QCBORError
 QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
 {
    if(UsefulOutBuf_GetError(&(pMe->OutBuf))) {
-      // Items didn't fit in the buffer.
-      // This check catches this condition for all the appends and inserts
-      // so checks aren't needed when the appends and inserts are performed.
-      // And of course UsefulBuf will never overrun the input buffer given
-      // to it. No complex analysis of the error handling in this file is
-      // needed to know that is true. Just read the UsefulBuf code.
+      /* Items didn't fit in the buffer. This check catches this
+       * condition for all the appends and inserts so checks aren't
+       * needed when the appends and inserts are performed.  And of
+       * course UsefulBuf will never overrun the input buffer given to
+       * it. No complex analysis of the error handling in this file is
+       * needed to know that is true. Just read the UsefulBuf code.
+       */
       pMe->uError = QCBOR_ERR_BUFFER_TOO_SMALL;
-      // QCBOR_ERR_BUFFER_TOO_SMALL masks other errors, but that is
-      // OK. Once the caller fixes this, they'll be unmasked.
+      /* QCBOR_ERR_BUFFER_TOO_SMALL masks other errors, but that is
+       * OK. Once the caller fixes this, they'll be unmasked.
+       */
    }
 
    return (QCBORError)pMe->uError;
