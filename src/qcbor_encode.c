@@ -1140,15 +1140,13 @@ QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
 QCBORError
 QCBOREncode_Finish(QCBOREncodeContext *pMe, UsefulBufC *pEncodedCBOR)
 {
-   QCBORError uReturn = QCBOREncode_GetErrorState(pMe);
-
-   if(uReturn != QCBOR_SUCCESS) {
+   if(QCBOREncode_GetErrorState(pMe) != QCBOR_SUCCESS) {
       goto Done;
    }
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(Nesting_IsInNest(&(pMe->nesting))) {
-      uReturn = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
+      pMe->uError = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
       goto Done;
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
@@ -1156,7 +1154,7 @@ QCBOREncode_Finish(QCBOREncodeContext *pMe, UsefulBufC *pEncodedCBOR)
    *pEncodedCBOR = UsefulOutBuf_OutUBuf(&(pMe->OutBuf));
 
 Done:
-   return uReturn;
+   return pMe->uError;
 }
 
 
