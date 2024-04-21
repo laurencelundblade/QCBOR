@@ -220,7 +220,7 @@ typedef enum {
 
 /** Type for an integer that decoded either between @c INT64_MIN and
  *  @c INT32_MIN or @c INT32_MAX and @c INT64_MAX. Data is in member
- *  @c val.int64. */
+ *  @c val.int64. See also \ref QCBOR_TYPE_NEGBIGNUM */
 #define QCBOR_TYPE_INT64          2
 
 /** Type for an integer that decoded to a more than @c INT64_MAX and
@@ -246,7 +246,15 @@ typedef enum {
 #define QCBOR_TYPE_POSBIGNUM      9
 
 /** Type for a negative big number. Data is in @c val.bignum, a
- *  pointer and a length. */
+ *  pointer and a length. Type 1 integers in the range of [-2**64, -2**63 - 1]
+ *  are returned in this type.  1 MUST be subtraced from what is
+ *  returned to get the actual value. This is because of the way
+ *  CBOR negative numbers are represented. QCBOR doesn't
+ *  do this because it can't be done without storage allocation and QCBOR
+ *   avoids storage allocation for the most part.
+ *  For example, if 1 is subtraced from a negative big number that
+ *  is the two bytes 0xff 0xff, the result would be 0x01 0x00 0x00,
+ *  one byte longer than what was received. */
 #define QCBOR_TYPE_NEGBIGNUM     10
 
 /** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
@@ -324,7 +332,6 @@ typedef enum {
  * See QCBOREncode_AddNegativeUInt64() for a longer explanation
  * and warning. */
 #define QCBOR_TYPE_65BIT_NEG_INT 28
-
 
 #define QCBOR_TYPE_BREAK         31 /* Used internally; never returned */
 
@@ -477,6 +484,7 @@ typedef struct _QCBORItem {
       /** The value for @c uDataType @ref QCBOR_TYPE_POSBIGNUM and
        * @ref QCBOR_TYPE_NEGBIGNUM.  */
       UsefulBufC  bigNum;
+
       /** See @ref QCBOR_TYPE_UKNOWN_SIMPLE */
       uint8_t     uSimple;
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
@@ -1270,6 +1278,10 @@ static void
 QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
 
 
+void
+QCBORDecode_FixNegBigNum(const QCBORItem Item,
+                         UsefulBuf       BigNumBuf,
+                         UsefulBufC      *pNegBigNum);
 
 
 /**

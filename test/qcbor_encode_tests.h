@@ -95,9 +95,9 @@ int32_t MapEncodeTest(void);
 
 
 /*
- Encodes a goodly number of floats and doubles and checks encoding is right
+ * Big number encoding tests.
  */
-int32_t FloatValuesTest1(void);
+int32_t BigNumEncodeTests(void);
 
 
 /*

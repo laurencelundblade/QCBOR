@@ -302,26 +302,39 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
 
 #if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
 /**
- * @brief Decode next as a number with precision-preserving conversions.
+ * @brief dCBOR Decode next as a number with precision-preserving conversions.
  *
  * @param[in] pCtx           The decode context.
- * @param[out] pNumber       The returned 64-bit signed integer.
+ * @param[out] pNumber       The returned number.
  *
  * This will get the next item as a number and return it as a C
  * data type such that no precision is lost.
+ *
+ * This is primarily works with integers and floats for both the to-be-decoded
+ * CBOR and the decoded types.
  *
  * The CBOR input can be integers (major type 0 or 1) or floats (major type 7).
  * If not these \ref QCBOR_ERR_UNEXPECTED_TYPE will be set.
  *
  * The conversion is as follows.
  *
- * Whole numbers between \c INT64_MIN and \c INT64_MAX will
+ * Whole numbers from \c INT64_MIN to \c INT64_MAX will
  * be returned as \ref QCBOR_TYPE_INT64. This includes
- * conversion of float-point values that are whole numbers.
+ * conversion of floating-point values that are whole numbers.
  *
- * Whole numbers between \c INT64_MAX and \c UINT64_MAX will
+ * Whole numbers from \c INT64_MAX +1 to \c UINT64_MAX will
  * be returned as \ref QCBOR_TYPE_UINT64, again including
  * conversion of floating-point values that are whole numbers.
+ *
+ * The whole numbers in the range of (-2^63 - 1 to -2^64) are a special case.
+ * Some of them can be converted to a double without
+ * loss of precision and some can't be converted (they might have 64 bits of precision; a double
+ * has only 52). If they can't be converted to a double, they are returned
+ * as \ref QCBOR_TYPE_NEGBIGNUM.
+ *
+ * cannot
+ * be represented as a uint64_t or int64_t so they are returned here
+ * as a negative bignum.
  *
  * The whole numbers called "65-bit negative" in CBOR (-2^63 - 1 to -2^64) are a
  * special case. Some of them can be converted to a double without
@@ -344,6 +357,19 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  */
 void
 QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
+                                      QCBORItem          *pNumber);
+
+
+/*
+
+ ... This works on integers and big numbers as input.
+ Floats, big floats and decimal fractions will give
+ an error.
+
+ It always returns a big number.
+ */
+void
+QCBORDecode_GetAsBigInteger(QCBORDecodeContext *pCtx,
                                       QCBORItem          *pNumber);
 
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */

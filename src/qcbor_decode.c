@@ -885,8 +885,29 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
          pDecodedItem->uDataType = QCBOR_TYPE_INT64;
 
       } else {
+#if 1
          pDecodedItem->val.uint64 = uArgument;
          pDecodedItem->uDataType  = QCBOR_TYPE_65BIT_NEG_INT;
+#else
+         // TODO: #ifdef to disable this so the critical integer decoder is as small as possible we want it to be
+         /* uArgument is > INT64_MAX, so make a big number.
+          * This does NOT subtract 1 as usual for CBOR negative
+          * numbers because. 
+          That is left to the user of the big num. It also
+          * avoids QCBOR having to implement big number subtraction
+          * and keeps our buffer size here to 8, rather than 9
+          * bytes. 9 bytes would increase QCBORItem size. Phew!
+	       */
+         uint8_t *pByte = &pDecodedItem->val.PrivateBigNum.bigNumBuf[7];
+         uint64_t uNum = uArgument;
+         while(uNum) {
+            *pByte-- = uNum & 0xff;
+            uNum >>= 8;
+         }
+         pDecodedItem->val.bigNum.ptr = &pDecodedItem->val.PrivateBigNum.bigNumBuf;
+         pDecodedItem->val.bigNum.len = sizeof(uArgument);
+         pDecodedItem->uDataType      = QCBOR_TYPE_NEGBIGNUM;
+#endif
       }
    }
 
@@ -5966,6 +5987,7 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
 
       case QCBOR_TYPE_65BIT_NEG_INT:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
+         // TODO: don't use float HW. We have the function to do it.
          *pdValue = -(double)pItem->val.uint64 - 1;
          break;
 #else
@@ -7056,6 +7078,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
    struct IEEE754_ToInt ToInt;
    double               d;
    QCBORError           uError;
+   //uint64_t             xxx;
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -7111,17 +7134,54 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
          }
          break;
 
-
       case QCBOR_TYPE_65BIT_NEG_INT:
-         d = IEEE754_UintToDouble(Item.val.uint64, 1);
-         if(d == IEEE754_UINT_TO_DOUBLE_OOB) {
-            *pNumber = Item;
-         } else {
+         if(Item.val.uint64 == UINT64_MAX) {
+            // Can't represent 18446744073709551616 in any kind of 64-bit int to
+            // pass to IEEE754_UintToDouble so special case for this one value
+            pNumber->val.dfnum = -18446744073709551616.0;
             pNumber->uDataType = QCBOR_TYPE_DOUBLE;
-            /* -1 is because of CBOR offset of negative numbers */
-            pNumber->val.dfnum = d - 1;
+         } else {
+            d = IEEE754_UintToDouble(Item.val.uint64+1, 1);
+            if(d == IEEE754_UINT_TO_DOUBLE_OOB) {
+               *pNumber = Item;
+            } else {
+               pNumber->val.dfnum = d;
+               pNumber->uDataType = QCBOR_TYPE_DOUBLE;
+            }
          }
          break;
+
+#if 0
+      case QCBOR_TYPE_NEGBIGNUM:
+         // TODO: big numbers != 8 bytes
+         if(Item.val.bigNum.len > 8) {
+            *pNumber = Item;
+         } else {
+            /* endian conversion */
+            size_t i;
+            xxx = 0;
+            for(i = 0; i < Item.val.bigNum.len; i++) {
+               xxx = (xxx << 8) + ((uint8_t *)Item.val.bigNum.ptr)[i];
+            }
+            if(xxx == UINT64_MAX) {
+               /* Special case because UINT64_MAX + 1 over flows, but is easily representable as a float
+                * A function to convert big nums to float, would avoid this special case. */
+               d = -18446744073709551616.0;
+            } else {
+               xxx++; // Add one because of CBOR offset of negative numbers
+               d = IEEE754_UintToDouble(xxx, 1);
+            }
+            if(d == IEEE754_UINT_TO_DOUBLE_OOB) {
+               // TODO: is this right?
+               *pNumber = Item;
+            } else {
+               pNumber->val.dfnum = d;
+               pNumber->uDataType = QCBOR_TYPE_DOUBLE;
+            }
+         }
+         break;
+#endif
+
 
       default:
          pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
@@ -7131,3 +7191,132 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
 }
 
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
+
+UsefulBufC
+QCBORDecode_65BitNegToBigNum(const QCBORItem Item,
+                             UsefulBuf       BigNumBuf)
+{
+   uint64_t uNum;
+
+   if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT) {
+      return NULLUsefulBufC;
+   }
+
+   if(Item.val.uint64 == UINT64_MAX) {
+      /* The one value that can't be done with a computation because it would
+       * overflow a uint64_t*/
+      static const uint8_t TwoToThe63Plus1[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+      return UsefulBuf_Copy(BigNumBuf, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(TwoToThe63Plus1));
+   } else {
+      uNum = Item.val.uint64+1; /* The offset for CBOR negatives */
+
+      uint8_t *pByte = &((uint8_t *)BigNumBuf.ptr)[BigNumBuf.len-1];
+      while(uNum) {
+         *pByte-- = uNum & 0xff;
+         uNum >>= 8;
+         if(pByte <= (uint8_t *)BigNumBuf.ptr) {
+            /* Buffer is too small */
+            return NULLUsefulBufC;
+         }
+      }
+      size_t uLen = (size_t)(pByte - (uint8_t *)BigNumBuf.ptr) + BigNumBuf.len;
+      return (UsefulBufC){pByte, uLen}; // TODO: size
+   }
+}
+
+#if 0
+void
+QCBORDecode_FixNegBigNum(const QCBORItem Item,
+                         UsefulBuf       BigNumBuf,
+                         UsefulBufC     *pNegBigNum)
+{
+#define INDEX(x, y) (((uint8_t *)(x).ptr)[nIndex])
+   // size_t nIndex;
+   uint8_t uCarry = 0;
+   uint8_t uNextCarry = 0;
+
+   if(Item.uDataType != QCBOR_TYPE_NEGBIGNUM) {
+      *pNegBigNum = NULLUsefulBufC;
+      return;
+   }
+
+   /* Find start of input number after removal of leading zeros */
+   // TODO: doesn't work with one byte 0
+   const uint8_t *pXX = Item.val.bigNum.ptr;
+   while(*pXX == 0) {
+      pXX++;
+   }
+   const uint8_t *pMSB = pXX;
+
+   /* Start at the LSB */
+   const uint8_t *pB = &((const uint8_t *)Item.val.bigNum.ptr)[Item.val.bigNum.len];
+   uint8_t *pD = &((uint8_t *)BigNumBuf.ptr)[BigNumBuf.len];
+
+   uCarry = 0;
+
+   ptrdiff_t uLeft = 0; // TODO: shouldn't need this; fix the boundary condition
+
+
+   while(pB >= pMSB) {
+      *pD = *pB + 1;
+      if(*pD == 0) { /* Unsigned wrap-around will zero, a standard behavior in C */
+         uNextCarry = 1;
+      } else {
+         uNextCarry = 0;
+      }
+      *pD += uCarry;
+      uCarry = uNextCarry;
+      pB--;
+      pD--;
+      uLeft = (uint8_t *)BigNumBuf.ptr - pD;
+      if(uLeft < 0) {
+         /* Given output buffer is too small */
+         *pNegBigNum = NULLUsefulBufC;
+         return;
+      }
+   }
+
+   pNegBigNum->ptr = pD;
+   pNegBigNum->len = BigNumBuf.len - (size_t)uLeft;
+
+
+
+
+#if 0
+
+   for(nIndex = Item.val.bigNum.len; nIndex >= 0 ; nIndex--) {
+      //uint8_t xx = INDEX(Item.val.bigNum, nIndex);
+      /* Take advantage of unsigned integer wrap around that is well-defined in C */
+      INDEX(BigNumBuf, nIndex) = INDEX(Item.val.bigNum, nIndex) + 1 + uCarry;
+      if(INDEX(BigNumBuf, nIndex) == 0) {
+         uCarry = 1;
+      } else {
+         uCarry = 0;
+      }
+   }
+
+   pNegBigNum.ptr = &BigNumBuf.ptr[nIndex];
+   pNegBigNum.
+
+
+
+
+
+
+   /* We have to add one to the value in the Item if it negative.
+    * That might mean making the length bigger by one
+    */
+   for(nIndex = 0; nIndex < Item.val.bigNum.len; nIndex++) {
+      if(((const uint8_t *)Item.val.bigNum.ptr)[nIndex] != 0xff) {
+         break;
+      }
+   }
+
+#endif
+
+
+
+
+}
+#endif

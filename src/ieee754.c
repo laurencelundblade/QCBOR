@@ -837,31 +837,37 @@ IEEE754_UintToDouble(const uint64_t uInt, const int uIsNegative)
    uint64_t uDoubleSignificand;
    int      nPrecisionBits;
 
-   /* Figure out the exponent and normalize the significand. This is
-    * done by shifting out all leading zero bits and counting them. If
-    * none are shifted out, the exponent is 63. */
-   uDoubleSignificand = uInt;
-   nDoubleUnbiasedExponent = 63;
-   while(1) {
-      if(uDoubleSignificand & 0x8000000000000000UL) {
-         break;
+   if(uInt == 0) {
+      uDoubleSignificand = 0; // TODO: test this
+      nDoubleUnbiasedExponent = 0;
+      
+   } else  {
+      /* Figure out the exponent and normalize the significand. This is
+       * done by shifting out all leading zero bits and counting them. If
+       * none are shifted out, the exponent is 63. */
+      uDoubleSignificand = uInt;
+      nDoubleUnbiasedExponent = 63;
+      while(1) {
+         if(uDoubleSignificand & 0x8000000000000000UL) {
+            break;
+         }
+         uDoubleSignificand <<= 1;
+         nDoubleUnbiasedExponent--;
+      };
+
+      /* Position significand correctly for a double. Only shift 63 bits
+       * because of the 1 that is present by implication in IEEE 754.*/
+      uDoubleSignificand >>= 63 - DOUBLE_NUM_SIGNIFICAND_BITS;
+
+      /* Subtract 1 which is present by implication in IEEE 754 */
+      uDoubleSignificand -= 1ULL << (DOUBLE_NUM_SIGNIFICAND_BITS);
+
+      nPrecisionBits = IEEE754_Private_CountPrecisionBits(uInt) - (64 - nDoubleUnbiasedExponent);
+
+      if(nPrecisionBits > DOUBLE_NUM_SIGNIFICAND_BITS) {
+         /* Will lose precision if converted */
+         return IEEE754_UINT_TO_DOUBLE_OOB;
       }
-      uDoubleSignificand <<= 1;
-      nDoubleUnbiasedExponent--;
-   };
-
-   /* Position significand correctly for a double. Only shift 63 bits
-    * because of the 1 that is present by implication in IEEE 754.*/
-   uDoubleSignificand >>= 63 - DOUBLE_NUM_SIGNIFICAND_BITS;
-
-   /* Subtract 1 which is present by implication in IEEE 754 */
-   uDoubleSignificand -= 1ULL << (DOUBLE_NUM_SIGNIFICAND_BITS);
-
-   nPrecisionBits = IEEE754_Private_CountPrecisionBits(uInt) - (64 - nDoubleUnbiasedExponent);
-
-   if(nPrecisionBits > DOUBLE_NUM_SIGNIFICAND_BITS) {
-      /* Will lose precision if converted */
-      return IEEE754_UINT_TO_DOUBLE_OOB;
    }
 
    return IEEE754_AssembleDouble((uint64_t)uIsNegative,

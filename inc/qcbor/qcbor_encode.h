@@ -468,6 +468,23 @@ void
 QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
 
 
+/* What if you want to mix and match behaviors? */
+
+
+/* This
+ *
+ * no error when output indefinite lengths
+ * changes behavior of AddDouble to not reduce
+ * changes behavior of AddNegativeBignNum to not output 65-bit negs
+ *
+ * PreferredSerialization of integers is not disabled
+ * (and can never be).
+ *
+ */
+void
+QCBOREncode_SerializationNonPreferred(QCBOREncodeContext *pCtx);
+
+
 /**
  * @brief Select preferred serialization mode.
  *
@@ -614,14 +631,14 @@ QCBOREncode_Allow(QCBOREncodeContext *pCtx, uint8_t uAllow);
  *
  * The integer will be encoded and added to the CBOR output.
  *
- * This function figures out the size and the sign and encodes in the
- * correct minimal CBOR. Specifically, it will select CBOR major type
+ * This function figures out the size and the sign and encodes using
+ * CBOR preferred serialization. Specifically, it will select CBOR major type
  * 0 or 1 based on sign and will encode to 1, 2, 4 or 8 bytes
  * depending on the value of the integer. Values less than 24
  * effectively encode to one byte because they are encoded in with the
- * CBOR major type.  This is a neat and efficient characteristic of
+ * CBOR major type. This is a neat and efficient characteristic of
  * CBOR that can be taken advantage of when designing CBOR-based
- * protocols. If integers like tags can be kept between -23 and 23
+ * protocols. If integers can be kept between -23 and 23
  * they will be encoded in one byte including the major type.
  *
  * If you pass a smaller int, say an @c int16_t or a small value, say
@@ -663,7 +680,7 @@ QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t uNu
  * @param[in] pCtx  The encoding context to add the integer to.
  * @param[in] uNum  The integer to add.
  *
- * The integer will be encoded and added to the CBOR output.
+ * The integer is encoded and added to the CBOR output.
  *
  * The only reason so use this function is for integers larger than
  * @c INT64_MAX and smaller than @c UINT64_MAX. Otherwise
@@ -680,55 +697,6 @@ QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64
 static void
 QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t uNum);
 
-
-/**
- * @brief Add a negative 64-bit integer to encoded output
- *
- * @param[in] pCtx  The encoding context to add the integer to.
- * @param[in] uNum  The integer to add.
- *
- * QCBOREncode_AddInt64() is much better to encode negative integers
- * than this.  What this can do is add integers with one more
- * significant bit than an int64_t (a "65-bit" integer if you count
- * the sign as a bit) which is possible because CBOR happens to
- * support such integers.
- *
- * Because use of this is discouraged. It must be explicitly allowed
- * by passing @ref QCBOR_ENCODE_ALLOW_65_BIG_NEG to a call to
- * QCBOREncode_Allow().
- *
- * The actual value encoded is -uNum - 1. That is, give 0 for uNum to
- * transmit -1, give 1 to transmit -2 and give UINT64_MAX to transmit
- * -UINT64_MAX-1 (18446744073709551616). The interface is odd like
- * this so all negative values CBOR can represent can be encoded by
- * QCBOR (making this a complete CBOR implementation).
- *
- * The most negative value QCBOREncode_AddInt64() can encode is
- * -9223372036854775808 which is -2^63 or negative 0x800000000000.
- * This can encode from -9223372036854775809 to -18446744073709551616
- * or -2^63 - 1 to -2^64. Note that it is not possible to represent
- * positive or negative 18446744073709551616 in any standard C data
- * type.
- *
- * Negative integers are normally decoded in QCBOR with type
- * @ref QCBOR_TYPE_INT64.  Integers in the range of -9223372036854775809
- * to -18446744073709551616 are returned as @ref QCBOR_TYPE_65BIT_NEG_INT.
- *
- * WARNING: some CBOR decoders will be unable to decode -2^63 - 1 to
- * -2^64.  Also, most CPUs do not have registers that can represent
- * this range.  If you need 65-bit negative integers, you likely need
- * negative 66, 67 and 68-bit negative integers so it is likely better
- * to use CBOR big numbers where you can have any number of bits. See
- * QCBOREncode_AddTNegativeBignum() and @ref Serialization.
- */
-void
-QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pCtx, uint64_t uNum);
-
-static void
-QCBOREncode_AddNegativeUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t uNum);
-
-static void
-QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t uNum);
 
 /**
  * @brief  Add a UTF-8 text string to the encoded output.
@@ -836,6 +804,7 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  *
  * By default, this will error out on an attempt to encode a NaN with
  * a payload. See QCBOREncode_Allow() and @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
+ * TODO: document dCBOR use case
  */
 void
 QCBOREncode_AddDouble(QCBOREncodeContext *pCtx, double dNum);
@@ -1204,7 +1173,7 @@ QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, Useful
  * however, COSE which defines representations for keys chose not to
  * use this particular type.
  */
-static void
+void
 QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pCtx,
                                uint8_t             uTagRequirement,
                                UsefulBufC          Bytes);
@@ -1252,11 +1221,13 @@ QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx,
  * @ref CBOR_TAG_NEG_BIGNUM indicating the binary string is a negative
  * big number.
  *
- * Often big numbers are used to represent cryptographic keys,
- * however, COSE which defines representations for keys chose not to
- * use this particular type.
+ * This method does NOT add 1 as required for CBOR encoding of
+ * negative numbers. This MUST be done before the bytes are
+ * passed in here. This is just a pass-through. See also @ref CBOR_TAG_NEG_BIGNUM.
+ *
+ * TODO: this varies behavior depending on mode; no it won't
  */
-static void
+void
 QCBOREncode_AddTNegativeBignum(QCBOREncodeContext *pCtx,
                                uint8_t             uTagRequirement,
                                UsefulBufC          Bytes);
@@ -1288,6 +1259,16 @@ QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                     int64_t             nLabel,
                                     UsefulBufC          Bytes);
 
+
+
+void
+QCBOREncode_AddTNegativeBignumNoPreferred(QCBOREncodeContext *pCtx,
+                                          uint8_t             uTagRequirement,
+                                          UsefulBufC          Bytes);
+void
+QCBOREncode_AddTPositiveBignumNoPreferred(QCBOREncodeContext *pMe,
+                                          const uint8_t       uTagRequirement,
+                                          const UsefulBufC    Bytes);
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
@@ -2654,24 +2635,6 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddNegativeUInt64ToMap(QCBOREncodeContext *pMe, const char *szLabel, uint64_t uNum)
-{
-   /* Use _AddBuffer() because _AddSZString() is defined below, not above */
-   QCBOREncode_Private_AddBuffer(pMe,
-                                 CBOR_MAJOR_TYPE_TEXT_STRING,
-                                 UsefulBuf_FromSZ(szLabel));
-   QCBOREncode_AddNegativeUInt64(pMe, uNum);
-}
-
-static inline void
-QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint64_t uNum)
-{
-   QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddNegativeUInt64(pMe, uNum);
-}
-
-
-static inline void
 QCBOREncode_AddText(QCBOREncodeContext *pMe, const UsefulBufC Text)
 {
    QCBOREncode_Private_AddBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, Text);
@@ -2987,16 +2950,6 @@ QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pMe,
 }
 
 
-static inline void
-QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pMe,
-                               const uint8_t       uTagRequirement,
-                               const UsefulBufC    Bytes)
-{
-   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_POS_BIGNUM);
-   }
-   QCBOREncode_AddBytes(pMe, Bytes);
-}
 
 static inline void
 QCBOREncode_AddTPositiveBignumToMapSZ(QCBOREncodeContext *pMe,
@@ -3007,6 +2960,9 @@ QCBOREncode_AddTPositiveBignumToMapSZ(QCBOREncodeContext *pMe,
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTPositiveBignum(pMe, uTagRequirement, Bytes);
 }
+
+
+
 
 static inline void
 QCBOREncode_AddTPositiveBignumToMapN(QCBOREncodeContext *pMe,
@@ -3047,16 +3003,7 @@ QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pMe,
 }
 
 
-static inline void
-QCBOREncode_AddTNegativeBignum(QCBOREncodeContext *pMe,
-                               const uint8_t       uTagRequirement,
-                               const UsefulBufC    Bytes)
-{
-   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_NEG_BIGNUM);
-   }
-   QCBOREncode_AddBytes(pMe, Bytes);
-}
+
 
 static inline void
 QCBOREncode_AddTNegativeBignumToMapSZ(QCBOREncodeContext *pMe,
