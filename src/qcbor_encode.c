@@ -704,6 +704,18 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
 }
 
 
+/*
+ * Public functions for adding negative integers. See qcbor/qcbor_encode.h
+ */
+void
+QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
+{
+   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uValue, 0);
+
+   QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
+}
+
+
 /**
  * @brief Semi-private method to add a buffer full of bytes to encoded output.
  *
@@ -853,6 +865,17 @@ QCBOREncode_AddDouble(QCBOREncodeContext *pMe, double dNum)
          case IEEE754_ToInt_IS_UINT:
             QCBOREncode_AddUInt64(pMe, IntResult.integer.un_signed);
             return;
+         case IEEE754_ToInt_IS_65BIT_NEG:
+            {
+               uint64_t xx;
+               if(IntResult.integer.un_signed == 0) {
+                  xx = UINT64_MAX;
+               } else {
+                  xx = IntResult.integer.un_signed-1;
+               }
+               QCBOREncode_AddNegativeUInt64(pMe, xx);
+            }
+            return;
          case IEEE754_ToInt_NaN:
             dNum = NAN;
             bNoNaNPayload = true;
@@ -925,6 +948,17 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pMe, float fNum)
             return;
          case IEEE754_ToInt_IS_UINT:
             QCBOREncode_AddUInt64(pMe, IntResult.integer.un_signed);
+            return;
+         case IEEE754_ToInt_IS_65BIT_NEG:
+            {
+               uint64_t xx;
+               if(IntResult.integer.un_signed == 0) {
+                  xx = UINT64_MAX;
+               } else {
+                  xx = IntResult.integer.un_signed-1;
+               }
+               QCBOREncode_AddNegativeUInt64(pMe, xx);
+            }
             return;
          case IEEE754_ToInt_NaN:
             fNum = NAN;
@@ -1082,7 +1116,6 @@ QCBOREncode_Private_RemoveLeadingZeros(UsefulBufC String)
 }
 
 
-
 void
 QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pMe,
                                const uint8_t       uTagRequirement,
@@ -1146,9 +1179,7 @@ QCBOREncode_AddTNegativeBignum(QCBOREncodeContext *pMe,
             uInt--; /* CBOR's negative offset of 1  */
          }
       }
-
-      QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uInt, 0);
-      QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
+      QCBOREncode_AddNegativeUInt64(pMe, uInt);
 
    } else {
       QCBOREncode_AddTNegativeBignumNoPreferred(pMe, uTagRequirement, BigNum);

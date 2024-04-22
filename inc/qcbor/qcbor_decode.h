@@ -220,7 +220,7 @@ typedef enum {
 
 /** Type for an integer that decoded either between @c INT64_MIN and
  *  @c INT32_MIN or @c INT32_MAX and @c INT64_MAX. Data is in member
- *  @c val.int64. See also \ref QCBOR_TYPE_NEGBIGNUM */
+ *  @c val.int64. See also \ref QCBOR_TYPE_65BIT_NEG_INT */
 #define QCBOR_TYPE_INT64          2
 
 /** Type for an integer that decoded to a more than @c INT64_MAX and
@@ -332,6 +332,7 @@ typedef enum {
  * See QCBOREncode_AddNegativeUInt64() for a longer explanation
  * and warning. */
 #define QCBOR_TYPE_65BIT_NEG_INT 28
+
 
 #define QCBOR_TYPE_BREAK         31 /* Used internally; never returned */
 

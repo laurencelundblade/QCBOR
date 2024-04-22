@@ -481,8 +481,8 @@ QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  * (and can never be).
  *
  */
-void
-QCBOREncode_SerializationNonPreferred(QCBOREncodeContext *pCtx);
+static void
+QCBOREncode_SerializationAny(QCBOREncodeContext *pCtx);
 
 
 /**
@@ -696,6 +696,56 @@ QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64
 
 static void
 QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t uNum);
+
+
+/**
+ * @brief Add a negative 64-bit integer to encoded output
+ *
+ * @param[in] pCtx  The encoding context to add the integer to.
+ * @param[in] uNum  The integer to add.
+ *
+ * QCBOREncode_AddInt64() is much better to encode negative integers
+ * than this.  What this can do is add integers with one more
+ * significant bit than an int64_t (a "65-bit" integer if you count
+ * the sign as a bit) which is possible because CBOR happens to
+ * support such integers.
+ *
+ * Because use of this is discouraged. It must be explicitly allowed
+ * by passing @ref QCBOR_ENCODE_ALLOW_65_BIG_NEG to a call to
+ * QCBOREncode_Allow().
+ *
+ * The actual value encoded is -uNum - 1. That is, give 0 for uNum to
+ * transmit -1, give 1 to transmit -2 and give UINT64_MAX to transmit
+ * -UINT64_MAX-1 (18446744073709551616). The interface is odd like
+ * this so all negative values CBOR can represent can be encoded by
+ * QCBOR (making this a complete CBOR implementation).
+ *
+ * The most negative value QCBOREncode_AddInt64() can encode is
+ * -9223372036854775808 which is -2^63 or negative 0x800000000000.
+ * This can encode from -9223372036854775809 to -18446744073709551616
+ * or -2^63 - 1 to -2^64. Note that it is not possible to represent
+ * positive or negative 18446744073709551616 in any standard C data
+ * type.
+ *
+ * Negative integers are normally decoded in QCBOR with type
+ * @ref QCBOR_TYPE_INT64.  Integers in the range of -9223372036854775809
+ * to -18446744073709551616 are returned as @ref QCBOR_TYPE_65BIT_NEG_INT.
+ *
+ * WARNING: some CBOR decoders will be unable to decode -2^63 - 1 to
+ * -2^64.  Also, most CPUs do not have registers that can represent
+ * this range.  If you need 65-bit negative integers, you likely need
+ * negative 66, 67 and 68-bit negative integers so it is likely better
+ * to use CBOR big numbers where you can have any number of bits. See
+ * QCBOREncode_AddTNegativeBignum() and @ref Serialization.
+ */
+void
+QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pCtx, uint64_t uNum);
+
+static void
+QCBOREncode_AddNegativeUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t uNum);
+
+static void
+QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t uNum);
 
 
 /**
@@ -2579,6 +2629,12 @@ QCBOREncode_SerializationPreferred(QCBOREncodeContext *pMe)
 }
 
 static inline void
+QCBOREncode_SerializationAny(QCBOREncodeContext *pMe)
+{
+   pMe->uMode = QCBOR_ENCODE_MODE_ANY;
+}
+
+static inline void
 QCBOREncode_Allow(QCBOREncodeContext *pMe, const uint8_t uAllow)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
@@ -2631,6 +2687,24 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddUInt64(pMe, uNum);
+}
+
+
+static inline void
+QCBOREncode_AddNegativeUInt64ToMap(QCBOREncodeContext *pMe, const char *szLabel, uint64_t uNum)
+{
+   /* Use _AddBuffer() because _AddSZString() is defined below, not above */
+   QCBOREncode_Private_AddBuffer(pMe,
+                                 CBOR_MAJOR_TYPE_TEXT_STRING,
+                                 UsefulBuf_FromSZ(szLabel));
+   QCBOREncode_AddNegativeUInt64(pMe, uNum);
+}
+
+static inline void
+QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint64_t uNum)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddNegativeUInt64(pMe, uNum);
 }
 
 

@@ -841,29 +841,31 @@ Done:
  * @brief Decode integer types, major types 0 and 1.
  *
  * @param[in] nMajorType     The CBOR major type (0 or 1).
- * @param[in] uArgument      The argument from the head.
+ * @param[in] uArgument      The argument from the CBOR head.
  * @param[out] pDecodedItem  The filled in decoded item.
- *
- * @retval QCBOR_ERR_INT_OVERFLOW Too-large negative encountered
  *
  * Must only be called when major type is 0 or 1.
  *
  * CBOR doesn't explicitly specify two's compliment for integers but
  * all CPUs use it these days and the test vectors in the RFC are
- * so. All integers in the CBOR structure are positive and the major
+ * so. All integers in encoded CBOR are unsigned and the CBOR major
  * type indicates positive or negative.  CBOR can express positive
- * integers up to 2^x - 1 where x is the number of bits and negative
- * integers down to 2^x.  Note that negative numbers can be one more
- * away from zero than positive.  Stdint, as far as I can tell, uses
- * two's compliment to represent negative integers.
+ * integers up to 2^64 - 1 negative integers down to -2^64.  Note that
+ * negative numbers can be one more
+ * away from zero than positive because there is no negative zero.
+ *
+ * The "65-bit negs" are values CBOR can encode that can't fit
+ * into an int64_t or uint64_t. They decoded as a special type
+ * QCBOR_TYPE_65BIT_NEG_INT. Not that this type does NOT
+ * take into account the offset of one for CBOR negative integers.
+ * It must be applied to get the correct value. Applying this offset
+ * would overflow a uint64_t.
  */
-static QCBORError
+static void
 QCBOR_Private_DecodeInteger(const int      nMajorType,
                             const uint64_t uArgument,
                             QCBORItem     *pDecodedItem)
 {
-   QCBORError uReturn = QCBOR_SUCCESS;
-
    if(nMajorType == CBOR_MAJOR_TYPE_POSITIVE_INT) {
       if (uArgument <= INT64_MAX) {
          pDecodedItem->val.int64 = (int64_t)uArgument;
@@ -876,42 +878,16 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
 
    } else {
       if(uArgument <= INT64_MAX) {
-         /* CBOR's representation of negative numbers lines up with
-          * the two-compliment representation. A negative integer has
-          * one more in range than a positive integer. INT64_MIN is
-          * equal to (-INT64_MAX) - 1.
-          */
+         /* INT64_MIN is one further away from 0 than INT64_MAX
+          * so the -1 here doesn't overflow. */
          pDecodedItem->val.int64 = (-(int64_t)uArgument) - 1;
          pDecodedItem->uDataType = QCBOR_TYPE_INT64;
 
       } else {
-#if 1
          pDecodedItem->val.uint64 = uArgument;
          pDecodedItem->uDataType  = QCBOR_TYPE_65BIT_NEG_INT;
-#else
-         // TODO: #ifdef to disable this so the critical integer decoder is as small as possible we want it to be
-         /* uArgument is > INT64_MAX, so make a big number.
-          * This does NOT subtract 1 as usual for CBOR negative
-          * numbers because. 
-          That is left to the user of the big num. It also
-          * avoids QCBOR having to implement big number subtraction
-          * and keeps our buffer size here to 8, rather than 9
-          * bytes. 9 bytes would increase QCBORItem size. Phew!
-	       */
-         uint8_t *pByte = &pDecodedItem->val.PrivateBigNum.bigNumBuf[7];
-         uint64_t uNum = uArgument;
-         while(uNum) {
-            *pByte-- = uNum & 0xff;
-            uNum >>= 8;
-         }
-         pDecodedItem->val.bigNum.ptr = &pDecodedItem->val.PrivateBigNum.bigNumBuf;
-         pDecodedItem->val.bigNum.len = sizeof(uArgument);
-         pDecodedItem->uDataType      = QCBOR_TYPE_NEGBIGNUM;
-#endif
       }
    }
-
-   return uReturn;
 }
 
 
@@ -1239,7 +1215,7 @@ QCBOR_Private_DecodeAtomicDataItem(UsefulInputBuf               *pUInBuf,
          if(nAdditionalInfo == LEN_IS_INDEFINITE) {
             uReturn = QCBOR_ERR_BAD_INT;
          } else {
-            uReturn = QCBOR_Private_DecodeInteger(nMajorType, uArgument, pDecodedItem);
+            QCBOR_Private_DecodeInteger(nMajorType, uArgument, pDecodedItem);
          }
          break;
 
@@ -7078,7 +7054,6 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
    struct IEEE754_ToInt ToInt;
    double               d;
    QCBORError           uError;
-   //uint64_t             xxx;
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -7136,12 +7111,17 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
 
       case QCBOR_TYPE_65BIT_NEG_INT:
          if(Item.val.uint64 == UINT64_MAX) {
-            // Can't represent 18446744073709551616 in any kind of 64-bit int to
-            // pass to IEEE754_UintToDouble so special case for this one value
+            /* The value -18446744073709551616 is encoded as an
+             * unsigned 18446744073709551615. It's a whole number that
+             * needs to be returned as a double. It can't be handled
+             * by IEEE754_UintToDouble because 18446744073709551616
+             * doesn't fit into a uint64_t. You can't get it by adding
+             * 1 to 18446744073709551615.
+             */
             pNumber->val.dfnum = -18446744073709551616.0;
             pNumber->uDataType = QCBOR_TYPE_DOUBLE;
          } else {
-            d = IEEE754_UintToDouble(Item.val.uint64+1, 1);
+            d = IEEE754_UintToDouble(Item.val.uint64 + 1, 1);
             if(d == IEEE754_UINT_TO_DOUBLE_OOB) {
                *pNumber = Item;
             } else {
@@ -7150,38 +7130,6 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
             }
          }
          break;
-
-#if 0
-      case QCBOR_TYPE_NEGBIGNUM:
-         // TODO: big numbers != 8 bytes
-         if(Item.val.bigNum.len > 8) {
-            *pNumber = Item;
-         } else {
-            /* endian conversion */
-            size_t i;
-            xxx = 0;
-            for(i = 0; i < Item.val.bigNum.len; i++) {
-               xxx = (xxx << 8) + ((uint8_t *)Item.val.bigNum.ptr)[i];
-            }
-            if(xxx == UINT64_MAX) {
-               /* Special case because UINT64_MAX + 1 over flows, but is easily representable as a float
-                * A function to convert big nums to float, would avoid this special case. */
-               d = -18446744073709551616.0;
-            } else {
-               xxx++; // Add one because of CBOR offset of negative numbers
-               d = IEEE754_UintToDouble(xxx, 1);
-            }
-            if(d == IEEE754_UINT_TO_DOUBLE_OOB) {
-               // TODO: is this right?
-               *pNumber = Item;
-            } else {
-               pNumber->val.dfnum = d;
-               pNumber->uDataType = QCBOR_TYPE_DOUBLE;
-            }
-         }
-         break;
-#endif
-
 
       default:
          pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
@@ -7209,7 +7157,7 @@ QCBORDecode_65BitNegToBigNum(const QCBORItem Item,
       static const uint8_t TwoToThe63Plus1[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
       return UsefulBuf_Copy(BigNumBuf, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(TwoToThe63Plus1));
    } else {
-      uNum = Item.val.uint64+1; /* The offset for CBOR negatives */
+      uNum = Item.val.uint64 + 1; /* The offset for CBOR negatives */
 
       uint8_t *pByte = &((uint8_t *)BigNumBuf.ptr)[BigNumBuf.len-1];
       while(uNum) {
@@ -7221,9 +7169,11 @@ QCBORDecode_65BitNegToBigNum(const QCBORItem Item,
          }
       }
       size_t uLen = (size_t)(pByte - (uint8_t *)BigNumBuf.ptr) + BigNumBuf.len;
-      return (UsefulBufC){pByte, uLen}; // TODO: size
+      return (UsefulBufC){pByte, uLen};
    }
 }
+
+
 
 #if 0
 void
@@ -7319,4 +7269,36 @@ QCBORDecode_FixNegBigNum(const QCBORItem Item,
 
 
 }
+#endif
+
+
+#if 0
+      case QCBOR_TYPE_NEGBIGNUM:
+         // TODO: big numbers != 8 bytes
+         if(Item.val.bigNum.len > 8) {
+            *pNumber = Item;
+         } else {
+            /* endian conversion */
+            size_t i;
+            xxx = 0;
+            for(i = 0; i < Item.val.bigNum.len; i++) {
+               xxx = (xxx << 8) + ((uint8_t *)Item.val.bigNum.ptr)[i];
+            }
+            if(xxx == UINT64_MAX) {
+               /* Special case because UINT64_MAX + 1 over flows, but is easily representable as a float
+                * A function to convert big nums to float, would avoid this special case. */
+               d = -18446744073709551616.0;
+            } else {
+               xxx++; // Add one because of CBOR offset of negative numbers
+               d = IEEE754_UintToDouble(xxx, 1);
+            }
+            if(d == IEEE754_UINT_TO_DOUBLE_OOB) {
+               // TODO: is this right?
+               *pNumber = Item;
+            } else {
+               pNumber->val.dfnum = d;
+               pNumber->uDataType = QCBOR_TYPE_DOUBLE;
+            }
+         }
+         break;
 #endif
