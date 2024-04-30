@@ -1010,12 +1010,14 @@ QCBOREncode_AddTNegativeBignumNoPreferredOld(QCBOREncodeContext *pMe,
 static int
 Carry(UsefulBufC BigNum)
 {
+   int carry;
    UsefulBufC SubBigNum;
+
    if(BigNum.len == 0) {
       return 1;
    } else {
       SubBigNum = (UsefulBufC){((uint8_t *)BigNum.ptr)+1, BigNum.len - 1}; // TODO: c++
-      int carry = Carry(SubBigNum);
+      carry = Carry(SubBigNum);
       if(*(uint8_t *)BigNum.ptr == 0x00 && carry) {
          return 1;
       } else {
@@ -1049,19 +1051,20 @@ QCBOREncode_AddTNegativeBignumNoPreferred(QCBOREncodeContext *pMe,
    /* This subtracts one, possibly making the string shorter */
    // 0x01 -> 0x00
    // 0x01 0x00 -> 0xff
+   // 0x00 0x01 0x00 -> 0x00 0xff
    // 0x02 0x00 -> 0x01 0xff
    // 0xff -> 0xfe
    // 0xff 0x00 -> 0xfe 0xff
+   //      0xff 0x00 -> 0xfe 0xff
+   // 0x01 0x00 0x00 -> 0xff 0xff
    /* Subtract 1 */
-   /* Loop over bytes */
    //size_t  i;
 
-
-
-   /* Have to predict the length up front as it goes in the head */
+   /* Have to predict the length up front because it goes in the head */
+   /* What about leading zeros? */
    size_t  len;
    UsefulBufC Next2;
-   Next2.len = Bytes.len -1;
+   Next2.len = Bytes.len - 1;
    Next2.ptr = (const uint8_t *)Bytes.ptr + 1;
    int carry = Carry(Next2);
    len = Bytes.len;
@@ -1081,7 +1084,7 @@ QCBOREncode_AddTNegativeBignumNoPreferred(QCBOREncodeContext *pMe,
       if(carry) {
          byte--;
       }
-      if(byte || bCopiedSomething || Next.len == 0) { /* No leading zeros, but one zero is OK */
+      if(bCopiedSomething || Next.len == 0) { /* No leading zeros, but one zero is OK */
          UsefulOutBuf_AppendByte(&(pMe->OutBuf), byte);
          bCopiedSomething = true;
       }
@@ -1115,31 +1118,36 @@ QCBOREncode_Private_RemoveLeadingZeros(UsefulBufC String)
    return String;
 }
 
+/* This will return an erroneous value if BigNum.len > 8 */
+/* Convert from bignum to uint with endianess conversion */
+static uint64_t
+QCBOREncode_Private_BigNumToUInt(const UsefulBufC BigNum)
+{
+   uint64_t uInt;
+   size_t   uIndex;
+
+   uInt = 0;
+   for(uIndex = 0; uIndex < BigNum.len; uIndex++) {
+      uInt = (uInt << 8) + ((const uint8_t *)BigNum.ptr)[uIndex];
+   }
+
+   return uInt;
+}
+
 
 void
 QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pMe,
                                const uint8_t       uTagRequirement,
-                               const UsefulBufC    Bytes)
+                               const UsefulBufC    BigNum)
 {
-   UsefulBufC BigNum;
-   uint64_t   uInt;
-   size_t     uIndex;
-
-   /* Here we do preferred serialization. That requires removal of leading zeros */
-   BigNum = QCBOREncode_Private_RemoveLeadingZeros(Bytes);
-
    if(BigNum.len <= 8) {
-      /* Must convert to type 1 */
-      /* Convert from bignum to uint with endianess conversion */
-      uInt = 0;
-      for(uIndex = 0; uIndex < BigNum.len; uIndex++) {
-         uInt = (uInt << 8) + ((const uint8_t *)BigNum.ptr)[uIndex];
-      }
-
-      QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_POSITIVE_INT, uInt, 0);
-      QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
+      /* Preferred serialization requires conversion to type 0 */
+      QCBOREncode_AddUInt64(pMe, QCBOREncode_Private_BigNumToUInt(BigNum));
    } else {
-      QCBOREncode_AddTPositiveBignumNoPreferred(pMe, uTagRequirement, Bytes);
+      /* Preferred serialization requires removing leading zeros */
+      QCBOREncode_AddTPositiveBignumNoPreferred(pMe,
+                                                uTagRequirement,
+                                                QCBOREncode_Private_RemoveLeadingZeros(BigNum));
    }
 }
 

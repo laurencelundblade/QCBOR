@@ -128,6 +128,18 @@ UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual,
 }
 
 
+static inline int32_t
+MakeTestResultCode(uint32_t   uTestCase,
+                   uint32_t   uTestNumber,
+                   QCBORError uErrorCode)
+{
+   uint32_t uCode = (uTestCase * 1000000) +
+                    (uTestNumber * 1000) +
+                    (uint32_t)uErrorCode;
+   return (int32_t)uCode;
+}
+
+
 // One big buffer that is used by all the tests to encode into
 // Putting it in uninitialized data is better than using a lot
 // of stack. The tests should run on small devices too.
@@ -945,7 +957,7 @@ int32_t IntegerValuesTest1(void)
    return(nReturn);
 }
 
-struct BNT {
+struct BigNumEncodeTest {
    const char *szDescription;
    UsefulBufC  BigNum;
    /* Expect all to succeed; no special error codes needed */
@@ -955,14 +967,23 @@ struct BNT {
    UsefulBufC  NegativePreferred;
 };
 
-struct BNT fooo[] = {
+struct BigNumEncodeTest BigNumEncodeTestCases[] = {
    {
-      "2^64 - 1 or 18446744073709551615 pos and neg",
-      {"\xff\xff\xff\xff\xff\xff\xff\xff", 8},
-      {"\xC2\x48\xff\xff\xff\xff\xff\xff\xff\xff", 10},
-      {"\x1B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
-      {"\xC3\x48\xff\xff\xff\xff\xff\xff\xff\xfe", 10},
-      {"\x3B\xff\xff\xff\xff\xff\xff\xff\xfe", 9},
+      "2^96 -1 or 79228162514264337593543950335 pos and neg with leading zeros",
+      {"\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 15},
+      {"\xC2\x4F\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 17},
+      {"\xC2\x4C\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 14},
+      {"\xC3\x4F\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe", 17},
+      {"\xC3\x4C\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe", 14},
+   },
+
+   {
+      "2^64+1 or 18446744073709551617 pos and neg)",
+      {"\x01\x00\x00\x00\x00\x00\x00\x00\x01", 9},
+      {"\xC2\x49\x01\x00\x00\x00\x00\x00\x00\x00\x01", 11},
+      {"\xC2\x49\x01\x00\x00\x00\x00\x00\x00\x00\x01", 11},
+      {"\xC3\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      {"\xC3\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
    },
    {
       "2^64 or 18446744073709551616 pos and neg)",
@@ -973,12 +994,12 @@ struct BNT fooo[] = {
       {"\x3B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
    },
    {
-      "2^64+1 or 18446744073709551617 pos and neg)",
-      {"\x01\x00\x00\x00\x00\x00\x00\x00\x01", 9},
-      {"\xC2\x49\x01\x00\x00\x00\x00\x00\x00\x00\x01", 11},
-      {"\xC2\x49\x01\x00\x00\x00\x00\x00\x00\x00\x01", 11},
-      {"\xC3\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
-      {"\xC3\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      "2^64 - 1 or 18446744073709551615 pos and neg",
+      {"\xff\xff\xff\xff\xff\xff\xff\xff", 8},
+      {"\xC2\x48\xff\xff\xff\xff\xff\xff\xff\xff", 10},
+      {"\x1B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      {"\xC3\x48\xff\xff\xff\xff\xff\xff\xff\xfe", 10},
+      {"\x3B\xff\xff\xff\xff\xff\xff\xff\xfe", 9},
    },
    {
       "1 and -1",
@@ -995,40 +1016,54 @@ struct BNT fooo[] = {
       {"\x00", 1},
       NULLUsefulBufC,
       NULLUsefulBufC,
+   },
+   {
+      "leading zeros -- 0 and error",
+      {"\x00\x00\x00\x00", 4},
+      {"\xC2\x44\x00\x00\x00\x00", 6},
+      {"\x00", 1},
+      NULLUsefulBufC,
+      NULLUsefulBufC,
    }
+
 };
 
 
 int32_t BigNumEncodeTests(void)
 {
-   int i;
+   unsigned           uTestIndex;
+   unsigned           uTestCount;
    QCBOREncodeContext Enc;
-   UsefulBufC  B;
+   UsefulBufC         B;
+   const struct BigNumEncodeTest *pTest;
    /* Encode by calling BigNum methods
     * Cover all BigNum methods
     * Cover case when 65-bit negs are output
     * Cover preferred serialization
     */
 
-   const struct BNT *pTest;
 
-   const int count = (int)C_ARRAY_COUNT(fooo, struct BNT);
+   uTestCount = (int)C_ARRAY_COUNT(BigNumEncodeTestCases, struct BigNumEncodeTest);
 
-   for(i = 0; i < count; i++) {
-      pTest = &fooo[i];
+   for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
+      pTest = &BigNumEncodeTestCases[uTestIndex];
+
+      if(uTestIndex == 0) {
+         B.len = 0; /* Line of code so a break point can be set. */
+      }
 
       QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
       QCBOREncode_AddTPositiveBignumNoPreferred(&Enc, QCBOR_ENCODE_AS_TAG, pTest->BigNum);
       QCBOREncode_Finish(&Enc, &B);
       if(UsefulBuf_Compare(B, pTest->PositiveNoPreferred)) {
-         return 100 * i + 1;
+         return MakeTestResultCode(uTestIndex, 1, QCBOR_SUCCESS);
       }
 
       QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
       QCBOREncode_AddPositiveBignum (&Enc, pTest->BigNum);
       QCBOREncode_Finish(&Enc, &B);
       if(UsefulBuf_Compare(B, pTest->PositivePreferred)) {
-         return 100 * i + 2;
+         return MakeTestResultCode(uTestIndex, 2, QCBOR_SUCCESS);
       }
 
       if(!UsefulBuf_IsNULLC(pTest->NegativeNoPreferred)){
@@ -1036,7 +1071,7 @@ int32_t BigNumEncodeTests(void)
          QCBOREncode_AddTNegativeBignumNoPreferred(&Enc, QCBOR_ENCODE_AS_TAG, pTest->BigNum);
          QCBOREncode_Finish(&Enc, &B);
          if(UsefulBuf_Compare(B, pTest->NegativeNoPreferred)) {
-            return 100 * i + 3;
+            return MakeTestResultCode(uTestIndex, 3, QCBOR_SUCCESS);
          }
       }
 
@@ -1045,7 +1080,7 @@ int32_t BigNumEncodeTests(void)
          QCBOREncode_AddNegativeBignum(&Enc, pTest->BigNum);
          QCBOREncode_Finish(&Enc, &B);
          if(UsefulBuf_Compare(B, pTest->NegativePreferred)) {
-            return 100 * i + 4;
+            return MakeTestResultCode(uTestIndex, 4, QCBOR_SUCCESS);
          }
       }
    }

@@ -523,6 +523,8 @@ FloatValuesTests(void)
          uDecoded = 1;
       }
 
+   //   printf("XXX     %f\n", pTestCase->dNumber);
+
       /* Number Encode of Preferred */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);

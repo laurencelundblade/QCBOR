@@ -569,8 +569,6 @@ QCBOREncode_SerializationCDE(QCBOREncodeContext *pCtx);
  * This mode forces all NaNs to the half-precision queit NaN. Also see
  * QCBOREncode_Allow().
  *
- * dCBOR also disallows 65-bit negative integers.
- *
  * dCBOR disallows use of any simple type other than true, false and
  * NULL. In particular it disallows use of "undef" produced by
  * QCBOREncode_AddUndef().
@@ -710,10 +708,6 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t u
  * the sign as a bit) which is possible because CBOR happens to
  * support such integers.
  *
- * Because use of this is discouraged. It must be explicitly allowed
- * by passing @ref QCBOR_ENCODE_ALLOW_65_BIG_NEG to a call to
- * QCBOREncode_Allow().
- *
  * The actual value encoded is -uNum - 1. That is, give 0 for uNum to
  * transmit -1, give 1 to transmit -2 and give UINT64_MAX to transmit
  * -UINT64_MAX-1 (18446744073709551616). The interface is odd like
@@ -721,9 +715,9 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t u
  * QCBOR (making this a complete CBOR implementation).
  *
  * The most negative value QCBOREncode_AddInt64() can encode is
- * -9223372036854775808 which is -2^63 or negative 0x800000000000.
+ * -9223372036854775808 which is -(2^63) or negative 0x800000000000.
  * This can encode from -9223372036854775809 to -18446744073709551616
- * or -2^63 - 1 to -2^64. Note that it is not possible to represent
+ * or -(2^63 +1)  to -(2^64). Note that it is not possible to represent
  * positive or negative 18446744073709551616 in any standard C data
  * type.
  *
@@ -731,8 +725,8 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t u
  * @ref QCBOR_TYPE_INT64.  Integers in the range of -9223372036854775809
  * to -18446744073709551616 are returned as @ref QCBOR_TYPE_65BIT_NEG_INT.
  *
- * WARNING: some CBOR decoders will be unable to decode -2^63 - 1 to
- * -2^64.  Also, most CPUs do not have registers that can represent
+ * WARNING: some CBOR decoders will be unable to decode -(2^63 + 1) to
+ * -(2^64).  Also, most CPUs do not have registers that can represent
  * this range.  If you need 65-bit negative integers, you likely need
  * negative 66, 67 and 68-bit negative integers so it is likely better
  * to use CBOR big numbers where you can have any number of bits. See
@@ -821,40 +815,42 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] dNum  The double-precision number to add.
  *
- * This encodes and outputs a floating-point number. CBOR major type 7
- * is used.
- *
- * This implements preferred serialization, selectively encoding the
- * double-precision floating-point number as either double-precision,
+ * This encodes using preferred serialization, selectively encoding
+ * the input floating-point number as either double-precision,
  * single-precision or half-precision. Infinity, NaN and 0 are always
- * encoded as half-precision. If no precision will be lost in the
- * conversion to half-precision, then it will be converted and
- * encoded. If not and no precision will be lost in conversion to
- * single-precision, then it will be converted and encoded. If not,
- * then no conversion is performed, and it encoded as a
- * double-precision.
+ * encoded as half-precision. The reduction to single-precision or
+ * half-precision is only performed if there is no loss or precision.
  *
  * Half-precision floating-point numbers take up 2 bytes, half that of
- * single-precision, one quarter of double-precision
+ * single-precision, one quarter of double-precision. This can reduce
+ * the size of encoded output a lot, especially if the values 0,
+ * infinity and NaN occur frequently.
  *
- * This automatically reduces the size of encoded CBOR, maybe even by
- * four if most of values are 0, infinity or NaN.
+ * QCBOR decoding returns double-precision reversing this reduction.
  *
- * When decoded, QCBOR will usually return these values as
- * double-precision.
- *
- * It is possible to disable this preferred serialization when compiling
- * QCBOR. In that case, this functions the same as
- * QCBOREncode_AddDoubleNoPreferred().
+ * Normally this outputs only CBOR major type 7.  If
+ * QCBOREncode_SerializationdCBOR() is called to enter dCBOR mode,
+ * floating-point inputs that are whole integers are further reduced
+ * to CBOR type 0 and 1. This is a unification of the floating-point
+ * and integer number spaces such that there is only one encoding of
+ * any numeric value. Note that this will result in the whole integers
+ * from -(2^63+1) to -(2^64) being encode as CBOR major type 1 which
+ * can't be directly decoded into an int64_t or uint64_t. See
+ * QCBORDecode_GetNumberConvertPrecisely(), a good method to use to
+ * decode dCBOR.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
+ *
+ * It is possible that preferred serialization is disabled when the
+ * QCBOR library was built. In that case, this functions the same as
+ * QCBOREncode_AddDoubleNoPreferred().
  *
  * See also QCBOREncode_AddDoubleNoPreferred(), QCBOREncode_AddFloat()
  * and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
  *
  * By default, this will error out on an attempt to encode a NaN with
- * a payload. See QCBOREncode_Allow() and @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
- * TODO: document dCBOR use case
+ * a payload. See QCBOREncode_Allow() and @ref
+ * QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
  */
 void
 QCBOREncode_AddDouble(QCBOREncodeContext *pCtx, double dNum);
@@ -873,7 +869,7 @@ QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNu
  * @param[in] fNum  The single-precision number to add.
  *
  * This is identical to QCBOREncode_AddDouble() except the input is
- * single-precision.
+ * single-precision. It also supports dCBOR.
  *
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddDoubleNoPreferred(),
  * and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.

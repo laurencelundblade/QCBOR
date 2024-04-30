@@ -63,6 +63,19 @@ static void PrintUsefulBufC(const char *szLabel, UsefulBufC Buf)
 }
 #endif /* PRINT_FUNCTIONS_FOR_DEBUGGING */
 
+
+static inline int32_t
+MakeTestResultCode(uint32_t   uTestCase,
+                   uint32_t   uTestNumber,
+                   QCBORError uErrorCode)
+{
+   uint32_t uCode = (uTestCase * 1000000) +
+                    (uTestNumber * 1000) +
+                    (uint32_t)uErrorCode;
+   return (int32_t)uCode;
+}
+
+
 /*
    [
       -18446744073709551616,
@@ -3821,6 +3834,131 @@ static const uint8_t spBigNumInput[] = {
     0x38, 0x3F,
        0xC3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
+
+struct BignumDecodeTest {
+   const char *szDescription;
+   UsefulBufC  Encoded;
+   QCBORError  uErr;
+   UsefulBufC  ExpectedBigNum;
+   bool        bExpectedSign;
+};
+
+static struct BignumDecodeTest BignumDecodeTests[] = {
+   {
+      "-18446744073709551617",
+      {"\xC3\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      QCBOR_SUCCESS,
+      {"\x01\x00\x00\x00\x00\x00\x00\x00\x01", 9},
+      true
+   },
+   {
+      "-18446744073709551616 preferred",
+      {"\x3B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_SUCCESS,
+      {"\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9},
+      true
+   },
+   {
+      "-18446744073709551616 as big num",
+      {"\xC3\x48\xff\xff\xff\xff\xff\xff\xff\xff", 10},
+      QCBOR_SUCCESS,
+      {"\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9},
+      true
+   },
+   {
+      "Preferred -1",
+      {"\x20", 1},
+      QCBOR_SUCCESS,
+      {"\x01", 1},
+      true
+   },
+   {
+      "bignum -1",
+      {"\xc3\x42\x00\x00", 4},
+      QCBOR_SUCCESS,
+      {"\x01", 1},
+      true
+   },
+   {
+      "bignum -1 empty buffer",
+      {"\xc3\x40", 2},
+      QCBOR_SUCCESS,
+      {"\x01", 1},
+      true
+   },
+   {
+      "Preferred Zero",
+      {"\x00", 1},
+      QCBOR_SUCCESS,
+      {"\x00", 1},
+      false
+   },
+   {
+      "Bignum zero",
+      {"\xC2\x40", 2},
+      QCBOR_SUCCESS,
+      {"\x00", 1},
+      false
+   },
+   {
+      "Bignum zero with leading zeros",
+      {"\xC2\x43\x00\x00\x00", 5},
+      QCBOR_SUCCESS,
+      {"\x00", 1},
+      false
+   },
+   {
+      "Preferred one",
+      {"\x01", 1},
+      QCBOR_SUCCESS,
+      {"\x01", 1},
+      false
+   },
+   {
+      "Bignum one",
+      {"\xc2\x41\x01", 3},
+      QCBOR_SUCCESS,
+      {"\x01", 1},
+      false
+   },
+   {
+      "512 with leading zeros",
+      {"\x1A\x00\x00\x02\x00", 5},
+      QCBOR_SUCCESS,
+      {"\x02\x00", 2},
+      false
+   },
+   {
+      "512 with leading zeros again",
+      {"\xc2\x46\x00\x00\x00\x00\x02\x00", 8},
+      QCBOR_SUCCESS,
+      {"\x02\x00", 2},
+      false
+   },
+   {
+      "Preferred UINT64_MAX",
+      {"\x1B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_SUCCESS,
+      {"\xff\xff\xff\xff\xff\xff\xff\xff", 8},
+      false
+   },
+   {
+      "Bignum UINT64_MAX",
+      {"\xC2\x48\xff\xff\xff\xff\xff\xff\xff\xff", 10},
+      QCBOR_SUCCESS,
+      {"\xff\xff\xff\xff\xff\xff\xff\xff", 8},
+      false
+   },
+   {
+      "UINT64_MAX + 1",
+      {"\xC2\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      QCBOR_SUCCESS,
+      {"\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9},
+      false
+   }
+};
+
+
 #ifndef QCBOR_DISABLE_TAGS
 /* The expected big num */
 static const uint8_t spBigNum[] = {
@@ -3829,7 +3967,7 @@ static const uint8_t spBigNum[] = {
 #endif /* QCBOR_DISABLE_TAGS */
 
 
-int32_t BignumParseTest(void)
+int32_t BignumDecodeTest(void)
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -3904,6 +4042,48 @@ int32_t BignumParseTest(void)
       UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum))){
       return -16;
    }
+
+   unsigned                  uTestIndex;
+   unsigned                  uTestCount;
+   struct BignumDecodeTest  *pTest;
+   QCBORError                uErr;
+   UsefulBuf_MAKE_STACK_UB(  BignumBuf, 200);
+   UsefulBufC                ResultBigNum;
+   bool                      bIsNeg;
+
+   uTestCount = (int)C_ARRAY_COUNT(BignumDecodeTests, struct BignumDecodeTest);
+
+   for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
+      pTest = &BignumDecodeTests[uTestIndex];
+
+      if(uTestIndex == 11) {
+         bIsNeg = false; /* Line of code so a break point can be set. */
+      }
+
+      QCBORDecode_Init(&DCtx, pTest->Encoded, 0);
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 1, uErr);
+      }
+
+      uErr = QCBORDecode_PreferedBigNum(Item, BignumBuf, &ResultBigNum, &bIsNeg);
+      if(uErr != pTest->uErr) {
+         return MakeTestResultCode(uTestIndex, 2, uErr);
+      }
+
+      if(uErr != QCBOR_SUCCESS) {
+         continue; /* This test passed */
+      }
+
+      if(UsefulBuf_Compare(ResultBigNum, pTest->ExpectedBigNum)) {
+         return MakeTestResultCode(uTestIndex, 3, 0);
+      }
+
+      if(bIsNeg != pTest->bExpectedSign) {
+         return MakeTestResultCode(uTestIndex, 4, 0);
+      }
+   }
+
 #else
 
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_TAGS_DISABLED) {

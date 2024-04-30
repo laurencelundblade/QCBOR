@@ -314,7 +314,7 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  * to-be-decoded CBOR and the decoded types.
  *
  * The CBOR input can be integers (major type 0 or 1) or floats (major
- * type 7).  If not these \ref QCBOR_ERR_UNEXPECTED_TYPE will be set.
+ * type 7).  If not these, \ref QCBOR_ERR_UNEXPECTED_TYPE will be set.
  *
  * The conversion is as follows.
  *
@@ -327,24 +327,24 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  * including conversion of floating-point values that are whole
  * numbers.
  *
- * Most other numbers are returned as a double as indicated by \ref
- * QCBOR_TYPE_DOUBLE floating point with one set of exceptions.
+ * Most other numbers are returned as a double as indicated by 
+ * \ref QCBOR_TYPE_DOUBLE floating point with one set of exceptions.
  *
- * The exception are negative whole numbers in the range of -2^63 - 1
- * to -2^64 that have too much precision to be represented as a
- * double. Doubles have only 52 bits of precision so they can't
+ * The exception is negative whole numbers in the range of -(2^63 + 1)
+ * to -(2^64) that have too much precision to be represented as a
+ * double. Doubles have only 52 bits of precision, so they can't
  * precisely represent every whole integer in this range. CBOR can
  * represent these values with 64-bits of precision and when this
- * function encounters them they are eturned as \ref
- * QCBOR_TYPE_65BIT_NEG_INT.  See the description of this type for
+ * function encounters them they are returned as 
+ * \ref QCBOR_TYPE_65BIT_NEG_INT.  See the description of this type for
  * instructions to gets its value.  Also see QCBORDecode_FixTODO().
  *
- * To give an example the value -18446744073709551616 can't be
+ * To give an example, the value -18446744073709551616 can't be
  * represented by an int64_t or uint64_t, but can be represented by a
  * double so it is returned by this function as a double. The value
  * -18446744073709551617 however can't be represented by a double
- * because it has too much precision, so it is returned as \ref
- * QCBOR_TYPE_65BIT_NEG_INT.
+ * because it has too much precision, so it is returned as 
+ * \ref QCBOR_TYPE_65BIT_NEG_INT.
  *
  * This is useful for DCBOR which essentially combines floats and
  * integers into one number space.
@@ -359,16 +359,47 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
 
 
 /*
+ * @brief Decode next item as big number with preferred serialization.
 
- ... This works on integers and big numbers as input.
- Floats, big floats and decimal fractions will give
- an error.
 
- It always returns a big number.
+ * This works on all CBOR type 0 and 1 integers and all tag 2 and
+ * 3 big numbers. If the next item is other, the error
+ * UNEXPECTED_TYPE will be returned.
+
+ * This always returns the result as a big number. The
+ * integer types 0 and 1 will be converted. The value
+ * 0 is always returned as a one-byte big number with
+ * the value 0x00.
+
+ * If BigNumBuf is too small, pBigNum.ptr will be NULL
+ * and pBigNum.len reports the required length. The size
+ * of BigNumBuf might have to be one larger than the
+ * size of the tag 2 or 3 being decode because of two
+ * cases. In CBOR the value of a tag 3 big number is
+ * -n - 1. The subtraction of one might have a carry.
+ * For example, an encoded tag 3 that is 0xff, is
+ * returned here as 0x01 0x00. This is the only place
+ * in all of RFC 8949 except for indefinite length strings
+ * where the encoded buffer off the wire can't be
+ * returned directly, the only place some storage allocation
+ * is required.
+ *
+ * This is the decode-side implementation of preferred
+ * serialization of big numbers described in section 3.4.3
+ * of RFC 8949. It implements the decode-side unification
+ * of big numbers and regular integers.
+ *
+ * This can also be used if you happen to want type 0 and type 1
+ * integers converted to big numbers.
+ *
  */
 void
-QCBORDecode_GetAsBigInteger(QCBORDecodeContext *pCtx,
-                                      QCBORItem          *pNumber);
+QCBORDecode_GetBigNumberPreferred(QCBORDecodeContext *pCtx,
+                                  UsefulBuf           BigNumBuf,
+                                  UsefulBufC         *pBigNum,
+                                  bool               *pIsNegative);
+
+
 
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
 

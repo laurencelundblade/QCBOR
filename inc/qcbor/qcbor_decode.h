@@ -1279,10 +1279,65 @@ static void
 QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
 
 
-void
-QCBORDecode_FixNegBigNum(const QCBORItem Item,
-                         UsefulBuf       BigNumBuf,
-                         UsefulBufC      *pNegBigNum);
+/**
+ * @brief Decode a preferred serialization big number.
+ *
+ * @param[in] Item    The number to process.
+ * @param[in] BigNumBuf  The buffer to output to.
+ * @param[out] pBigNum   The resulting big number.
+ * @param[out] pIsNegative  The sign of the resulting big number.
+ *
+ * This exists to process an item
+ * that is expected to be a big number encoded with preferred serialization.
+ * This processing is not part of the
+ * main decoding because of the number of types it
+ * involves, because it needs a buffer to output to,
+ * and to keep code size of the core decoding small.
+ *
+ * This works on all CBOR type 0 and 1 integers and all tag 2 and
+ * 3 big numbers.  In terms of QCBOR types, this works on \ref QCBOR_TYPE_INT64,
+ * \ref QCBOR_TYPE_UINT64,  \ref QCBOR_TYPE_65BIT_NEG,
+ * \ref QCBOR_TYPE_POSITIVE_BIGNUM and \ref QCBOR_TYPE_NEGATIVE_BIGNUM
+ *
+ * This always returns the result as a big number. The
+ * integer types 0 and 1 are converted. Leading zeros are removed. The value
+ * 0 is always returned as a one-byte big number with
+ * the value 0x00.
+
+ * If \c BigNumBuf is too small, \c pBigNum.ptr will be \c NULL
+ * and \c pBigNum.len reports the required length. The size
+ * of \c BigNumBuf might have to be one larger than the
+ * size of the tag 2 or 3 being decode because of two
+ * cases. In CBOR the value of a tag 3 big number is
+ * -n - 1. The subtraction of one might have a carry.
+ * For example, an encoded tag 3 that is 0xff, is
+ * returned here as 0x01 0x00.  The other case is
+ * a empty tag 2 which is returned as a one-byte
+ * big number with the value 0x00.
+ * (This is the only place
+ * in all of RFC 8949 except for indefinite length strings
+ * where the encoded buffer off the wire can't be
+ * returned directly, the only place some storage allocation
+ * is required.)
+ *
+ * This is the decode-side implementation of preferred
+ * serialization of big numbers described in section 3.4.3
+ * of RFC 8949. It implements the decode-side unification
+ * of big numbers and regular integers.
+ *
+ * This can also be used if you happen to want type 0 and type 1
+ * integers converted to big numbers.
+ *
+ * If QCBOR is being used in an environment with a
+ * full big number library, it may be better (less object code) to use
+ * the big number library than this, particularly to subtract
+ * one for tag 3.
+ */
+QCBORError
+QCBORDecode_PreferedBigNum(const QCBORItem Item,
+                           UsefulBuf       BigNumBuf,
+                           UsefulBufC     *pBigNum,
+                           bool           *pIsNegative);
 
 
 /**
