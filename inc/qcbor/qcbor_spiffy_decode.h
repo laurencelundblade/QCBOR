@@ -337,7 +337,7 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  * represent these values with 64-bits of precision and when this
  * function encounters them they are returned as 
  * \ref QCBOR_TYPE_65BIT_NEG_INT.  See the description of this type for
- * instructions to gets its value.  Also see QCBORDecode_FixTODO().
+ * instructions to gets its value.  Also see QCBORDecode_BignumPreferred().
  *
  * To give an example, the value -18446744073709551616 can't be
  * represented by an int64_t or uint64_t, but can be represented by a
@@ -358,46 +358,57 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
                                       QCBORItem          *pNumber);
 
 
-/*
- * @brief Decode next item as big number with preferred serialization.
-
-
- * This works on all CBOR type 0 and 1 integers and all tag 2 and
- * 3 big numbers. If the next item is other, the error
- * UNEXPECTED_TYPE will be returned.
-
- * This always returns the result as a big number. The
- * integer types 0 and 1 will be converted. The value
- * 0 is always returned as a one-byte big number with
- * the value 0x00.
-
- * If BigNumBuf is too small, pBigNum.ptr will be NULL
- * and pBigNum.len reports the required length. The size
- * of BigNumBuf might have to be one larger than the
- * size of the tag 2 or 3 being decode because of two
- * cases. In CBOR the value of a tag 3 big number is
- * -n - 1. The subtraction of one might have a carry.
- * For example, an encoded tag 3 that is 0xff, is
- * returned here as 0x01 0x00. This is the only place
- * in all of RFC 8949 except for indefinite length strings
- * where the encoded buffer off the wire can't be
- * returned directly, the only place some storage allocation
- * is required.
+/**
+ * @brief Decode next item as a big number encoded using preferred serialization.
  *
- * This is the decode-side implementation of preferred
- * serialization of big numbers described in section 3.4.3
- * of RFC 8949. It implements the decode-side unification
- * of big numbers and regular integers.
+ * @param[in] pCtx          The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[in] BigNumBuf     The buffer to write the result into.
+ * @param[in,out] pbIsNegative  Set to true if the resulting big number is negative.
+ * @param[out] pBigNum      The output big number.
  *
- * This can also be used if you happen to want type 0 and type 1
- * integers converted to big numbers.
+ * See QCBORDecode_PreferedBigNum() in full detail.
  *
+ * The type processing rules are as follows.
+ *
+ * This always succeeds on type 0 and 1 integers (QCBOR_TYPE_INT64, QCBOR_TYPE_UINT64 and QCBOR_TYPE_65_BIT_NEG)
+ * no matter what uTagRequirement is. The rest of the rules pertain to what happens if
+ * the CBOR is not type 0 or type 1.
+ *
+ * If uTagRequirement is REQUIRE, this will fail on anything but a full and correct tag 2 or tag 3 big number.
+ *
+ * If uTagRequreiement is QCBOR_TAG_REQUIREMENT_NOT_A_TAG then this will fail on anything
+ * but a byte string.
+ *
+ * If QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, then this will succeed on either a byte string
+ * or a tag 2 or 3.
+ *
+ * If the item is a bare byte string, not a tag 2 or 3, then pbIsNegative is an input
+ * parameter that determines the sign of the big number. The sign must be known
+ * because the decoding of a positive big number is different than a negative.
  */
 void
-QCBORDecode_GetBigNumberPreferred(QCBORDecodeContext *pCtx,
-                                  UsefulBuf           BigNumBuf,
-                                  UsefulBufC         *pBigNum,
-                                  bool               *pIsNegative);
+QCBORDecode_GetBigNumPreferred(QCBORDecodeContext *pCtx,
+                               uint8_t             uTagRequirement,
+                               UsefulBuf           BigNumBuf,
+                               UsefulBufC         *pBigNum,
+                               bool               *pbIsNegative);
+
+void
+QCBORDecode_GetBigNumPreferredInMapN(QCBORDecodeContext *pCtx,
+                                     uint8_t             uTagRequirement,
+                                     int64_t             nLabel,
+                                     UsefulBuf           BigNumBuf,
+                                     UsefulBufC         *pBigNum,
+                                     bool               *pbIsNegative);
+
+void
+QCBORDecode_GetBigNumPreferredInMapSZ(QCBORDecodeContext *pCtx,
+                                      uint8_t             uTagRequirement,
+                                      const char         *szLabel,
+                                      UsefulBuf           BigNumBuf,
+                                      UsefulBufC         *pBigNum,
+                                      bool               *pbIsNegative);
 
 
 

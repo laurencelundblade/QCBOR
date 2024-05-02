@@ -415,106 +415,6 @@ FloatValuesTests(void)
    uint32_t                     uDecoded2;
 #endif
 
-#if 0
-   double neg_base, increment;
-   uint64_t u_increment;
-
-   uint64_t n_neg_base = 0xC3DFFFFFFFFFFFFA;
-   memcpy(&neg_base, &n_neg_base, 8);
-
-   increment = -1024;
-#if 1
-   for(int i = 0; i < 20; i++) {
-      // Change sign for conversion to uint64_t
-      double pos_base = -neg_base;
-
-      // Convert to uint64_t
-      struct IEEE754_ToInt i1 = IEEE754_DoubleToInt(pos_base);
-      if(i1.type != 1) {
-         return -1;
-      }
-
-      // Copy double into a uint64_t so we can look at the bit pattern
-      memcpy(&n_neg_base, &neg_base, 8);
-
-      /* The double representation; the CBOR type 1 representation of the same value */
-
-      printf("%f  %llx   %llu  %llx\n", neg_base, n_neg_base, i1.integer.un_signed, i1.integer.un_signed);
-
-      double increment_check = neg_base + increment;
-      if(increment_check == neg_base) {
-         /* Have to double increment because the exponent went up */
-         increment *=2;
-         increment_check = neg_base + increment;
-      }
-      neg_base = increment_check;
-   }
-
-#endif
-
-
-
-   //uint64_t u_base = 9223372036854769664;
-   //uint64_t u_base = 18014398509481982U;
-   uint64_t u_base = 18446744073709551615U; // UINT64_MAX
-    // uint64_t u_base = 18446744073709550000U;
-    //u_base -= 4095;
-
-   increment = 512;
-   u_increment = 512;
-
-   for(int i = 0; i < 20; i++) {
-      if(u_base == 0) {
-         break;
-      }
-      // Change sign for conversion to uint64_t
-      double pos_base = IEEE754_UintToDouble(u_base, 1);
-
-      uint64_t u_view;
-
-      // Copy double into a uint64_t so we can look at the bit pattern
-      memcpy(&u_view, &pos_base, 8);
-
-      /* The double representation; the CBOR type 1 representation of the same value */
-
-
-      if(pos_base != 0.5) {
-         printf("%f  %llx", pos_base, u_view);
-      } else {
-         printf("                                             ");
-
-      }
-
-      printf("  %llu  %llx    ",  u_base, u_base);
-
-      uint64_t u_cbor = u_base - 1;
-
-      printf("  %llu  %llx    \n",  u_cbor, u_cbor);
-
-
-      u_base += u_increment;
-   }
-/*
-
-   memcpy(&x1, &zzz, 8);
-   uint64_t yyy = 0x7ffffffffffff800;
-
-   zzz = 0xC3DFFFFFFFFFFFFE;
-   memcpy(&x2, &zzz, 8);
-
-   double aaa = x1 - x2;
-
-
-
-
-   // -9.2233720368547748E+18
-   // -9.2233720368547738E+18
-
-   (void)yyy;
-   (void)yy1;
-   (void)aaa;*/
-#endif
-
    /* Test a variety of doubles */
    for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &FloatTestCases[uTestIndex];
@@ -522,8 +422,6 @@ FloatValuesTests(void)
       if(uTestIndex == 40) {
          uDecoded = 1;
       }
-
-   //   printf("XXX     %f\n", pTestCase->dNumber);
 
       /* Number Encode of Preferred */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);

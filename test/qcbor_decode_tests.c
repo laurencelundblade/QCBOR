@@ -3866,6 +3866,14 @@ static struct BignumDecodeTest BignumDecodeTests[] = {
       true
    },
    {
+      "-9223372036854775808  -(2^63)",
+      {"\x3B\x7f\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_SUCCESS,
+      {"\x80\x00\x00\x00\x00\x00\x00\x00", 8},
+      true
+   },
+
+   {
       "Preferred -1",
       {"\x20", 1},
       QCBOR_SUCCESS,
@@ -3933,6 +3941,13 @@ static struct BignumDecodeTest BignumDecodeTests[] = {
       {"\xc2\x46\x00\x00\x00\x00\x02\x00", 8},
       QCBOR_SUCCESS,
       {"\x02\x00", 2},
+      false
+   },
+   {
+      "1297093868730187896 (a byte pattern with zeros and different digits",
+      {"\x1B\x12\x00\x34\x00\x56\x00\x00\x78", 9},
+      QCBOR_SUCCESS,
+      {"\x12\x00\x34\x00\x56\x00\x00\x78", 8},
       false
    },
    {
@@ -4056,7 +4071,7 @@ int32_t BignumDecodeTest(void)
    for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
       pTest = &BignumDecodeTests[uTestIndex];
 
-      if(uTestIndex == 11) {
+      if(uTestIndex == 13) {
          bIsNeg = false; /* Line of code so a break point can be set. */
       }
 
@@ -4066,7 +4081,7 @@ int32_t BignumDecodeTest(void)
          return MakeTestResultCode(uTestIndex, 1, uErr);
       }
 
-      uErr = QCBORDecode_PreferedBigNum(Item, BignumBuf, &ResultBigNum, &bIsNeg);
+      uErr = QCBORDecode_BignumPreferred(Item, BignumBuf, &ResultBigNum, &bIsNeg);
       if(uErr != pTest->uErr) {
          return MakeTestResultCode(uTestIndex, 2, uErr);
       }
@@ -4082,6 +4097,27 @@ int32_t BignumDecodeTest(void)
       if(bIsNeg != pTest->bExpectedSign) {
          return MakeTestResultCode(uTestIndex, 4, 0);
       }
+
+      uErr = QCBORDecode_BignumPreferred(Item, (UsefulBuf){NULL, 200}, &ResultBigNum, &bIsNeg);
+      if(ResultBigNum.len != pTest->ExpectedBigNum.len) {
+         return MakeTestResultCode(uTestIndex, 5, uErr);
+      }
+
+      QCBORDecode_Init(&DCtx, pTest->Encoded, 0);
+      QCBORDecode_GetBigNumPreferred(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, BignumBuf,  &ResultBigNum, &bIsNeg);
+      uErr = QCBORDecode_GetError(&DCtx);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 6, uErr);
+      }
+
+      if(UsefulBuf_Compare(ResultBigNum, pTest->ExpectedBigNum)) {
+         return MakeTestResultCode(uTestIndex, 7, 0);
+      }
+
+      if(bIsNeg != pTest->bExpectedSign) {
+         return MakeTestResultCode(uTestIndex, 8, 0);
+      }
+
    }
 
 #else
@@ -9215,23 +9251,21 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
 };
 
 
-#include <stdio.h>
-
 int32_t
-PreciseNumbersTest(void)
+PreciseNumbersDecodeTest(void)
 {
-   int                i;
+   unsigned           uTestIndex;
+   unsigned           uTestCount;
    QCBORError         uErr;
    QCBORItem          Item;
    QCBORDecodeContext DCtx;
    const struct PreciseNumberConversion *pTest;
 
-   const int count = (int)C_ARRAY_COUNT(PreciseNumberConversions, struct PreciseNumberConversion);
+   uTestCount = C_ARRAY_COUNT(PreciseNumberConversions, struct PreciseNumberConversion);
+   for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
+      pTest = &PreciseNumberConversions[uTestIndex];
 
-   for(i = 0; i < count; i++) {
-      pTest = &PreciseNumberConversions[i];
-
-      if(i == 16) {
+      if(uTestIndex == 16) {
          uErr = 99; // For break point only
       }
 
@@ -9242,11 +9276,11 @@ PreciseNumbersTest(void)
       uErr = QCBORDecode_GetError(&DCtx);
 
       if(uErr != pTest->uError) {
-         return i * 1000 + (int)uErr;
+         return MakeTestResultCode(uTestIndex, 1, uErr);
       }
 
       if(pTest->qcborType != Item.uDataType) {
-         return i * 1000 + 200;
+         return MakeTestResultCode(uTestIndex, 2, 0);
       }
 
       if(pTest->qcborType == QCBOR_TYPE_NONE) {
@@ -9255,32 +9289,31 @@ PreciseNumbersTest(void)
 
       switch(pTest->qcborType) {
          case QCBOR_TYPE_INT64:
-            printf("%lld %lld\n", pTest->number.int64, Item.val.int64);
             if(Item.val.int64 != pTest->number.int64) {
-               return i * 1000 + 300;
+               return MakeTestResultCode(uTestIndex, 3, 0);
             }
             break;
 
          case QCBOR_TYPE_UINT64:
             if(Item.val.uint64 != pTest->number.uint64) {
-               return i * 1000 + 400;
+               return MakeTestResultCode(uTestIndex, 4, 0);
             }
             break;
 
          case QCBOR_TYPE_DOUBLE:
             if(isnan(pTest->number.d)) {
                if(!isnan(Item.val.dfnum)) {
-                  return i * 1000 + 600;
+                  return MakeTestResultCode(uTestIndex, 5, 0);
                }
             } else {
                if(Item.val.dfnum != pTest->number.d) {
-                  return i * 1000 + 500;
+                  return MakeTestResultCode(uTestIndex, 6, 0);
                }
             }
             break;
 
          case QCBOR_TYPE_NEGBIGNUM:
-            // Should probably figure out hot to check the value
+            // TODO: Should probably figure out how to check the value
             break;
       }
    }

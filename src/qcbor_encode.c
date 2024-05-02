@@ -1084,7 +1084,7 @@ QCBOREncode_AddTNegativeBignumNoPreferred(QCBOREncodeContext *pMe,
       if(carry) {
          byte--;
       }
-      if(bCopiedSomething || Next.len == 0) { /* No leading zeros, but one zero is OK */
+      if(bCopiedSomething || Next.len == 0 || byte != 0) { /* No leading zeros, but one zero is OK */
          UsefulOutBuf_AppendByte(&(pMe->OutBuf), byte);
          bCopiedSomething = true;
       }
