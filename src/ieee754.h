@@ -97,6 +97,7 @@ typedef struct {
 struct IEEE754_ToInt {
    enum {IEEE754_ToInt_IS_INT,
          IEEE754_ToInt_IS_UINT,
+         IEEE754_ToInt_IS_65BIT_NEG,
          IEEE754_ToInt_NO_CONVERSION,
          IEEE754_ToInt_NaN
    } type;

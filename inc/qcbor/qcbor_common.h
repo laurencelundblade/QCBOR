@@ -536,6 +536,10 @@ typedef enum {
     * QCBOREncode_Allow() */
    QCBOR_ERR_NOT_ALLOWED = 80,
 
+   /* Can't output a negative zero big num */
+   QCBOR_ERR_NO_NEGATIVE_ZERO = 81,
+
+
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
     * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */

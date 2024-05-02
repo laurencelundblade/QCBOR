@@ -48,7 +48,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  */
 
-//#define PRINT_FUNCTIONS_FOR_DEBUGGING
+#define PRINT_FUNCTIONS_FOR_DEBUGGING
 
 #ifdef  PRINT_FUNCTIONS_FOR_DEBUGGING
 #include <stdio.h>
@@ -125,6 +125,18 @@ UsefulBuf_CompareWithDiagnostic(UsefulBufC Actual,
    }
    return 0;
 
+}
+
+
+static inline int32_t
+MakeTestResultCode(uint32_t   uTestCase,
+                   uint32_t   uTestNumber,
+                   QCBORError uErrorCode)
+{
+   uint32_t uCode = (uTestCase * 1000000) +
+                    (uTestNumber * 1000) +
+                    (uint32_t)uErrorCode;
+   return (int32_t)uCode;
 }
 
 
@@ -276,10 +288,10 @@ int32_t BasicEncodeTest(void)
 
 
 static const uint8_t spExpectedEncodedAll[] = {
- 0x98, 0x24, 0x66, 0x55, 0x49, 0x4e, 0x54, 0x36, 0x32, 0xd8,
+ 0x98, 0x23, 0x66, 0x55, 0x49, 0x4e, 0x54, 0x36, 0x32, 0xd8,
  0x64, 0x1a, 0x05, 0x5d, 0x23, 0x15, 0x65, 0x49, 0x4e, 0x54,
  0x36, 0x34, 0xd8, 0x4c, 0x1b, 0x00, 0x00, 0x00, 0x12, 0x16,
- 0xaf, 0x2b, 0x15, 0x00, 0x38, 0x2b, 0x20, 0xa4, 0x63, 0x4c, 0x42,
+ 0xaf, 0x2b, 0x15, 0x00, 0x38, 0x2b, 0xa4, 0x63, 0x4c, 0x42,
  0x4c, 0x18, 0x4d, 0x23, 0x18, 0x58, 0x78, 0x1a, 0x4e, 0x45,
  0x47, 0x4c, 0x42, 0x4c, 0x54, 0x48, 0x41, 0x54, 0x20, 0x49,
  0x53, 0x20, 0x4b, 0x49, 0x4e, 0x44, 0x20, 0x4f, 0x46, 0x20,
@@ -476,11 +488,11 @@ static const uint8_t spExpectedEncodedAll[] = {
  0x71, 0x47, 0x65, 0x6f, 0x72, 0x67, 0x65, 0x20, 0x69, 0x73,
  0x20, 0x74, 0x68, 0x65, 0x20, 0x6d, 0x61, 0x6e, 0xf5, 0x19,
  0x10, 0x41, 0xf5, 0xC2, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00,
- 0x00, 0x00, 0x00, 0x00, 0xC3, 0x49, 0x01, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x00, 0x01, 0xC3, 0x49, 0x01, 0x00, 0x00, 0x00,
  0x00, 0x00, 0x00, 0x00, 0x00, 0xA4, 0x63, 0x42, 0x4E, 0x2B,
  0xC2, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
- 0x00, 0x18, 0x40, 0xC2, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00,
- 0x00, 0x00, 0x00, 0x00, 0x63, 0x42, 0x4E, 0x2D, 0xC3, 0x49,
+ 0x01, 0x18, 0x40, 0xC2, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x00, 0x01, 0x63, 0x42, 0x4E, 0x2D, 0xC3, 0x49,
  0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x38,
  0x3F, 0xC3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
  0x00, 0x00
@@ -523,7 +535,6 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_AddInt64(pECtx, 77689989909);
    QCBOREncode_AddUInt64(pECtx, 0);
    QCBOREncode_AddInt64(pECtx, -44);
-   QCBOREncode_AddNegativeUInt64(pECtx, 0);
 
    /* ints that go in maps */
    QCBOREncode_OpenMap(pECtx);
@@ -672,7 +683,7 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_CloseMap(pECtx);
 
    /* Big numbers */
-   static const uint8_t pBignum[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+   static const uint8_t pBignum[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
    const UsefulBufC BIGNUM = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pBignum);
    QCBOREncode_AddPositiveBignum(pECtx, BIGNUM);
    QCBOREncode_AddNegativeBignum(pECtx, BIGNUM);
@@ -737,13 +748,6 @@ int32_t AllAddMethodsTest(void)
    uExpectedErr = QCBOR_SUCCESS;
 #endif
 
-   /* Test the QCBOR_ERR_NOT_ALLOWED error codes */
-   QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   QCBOREncode_AddNegativeUInt64(&ECtx, 1);
-   if(QCBOREncode_Finish(&ECtx, &Enc) != uExpectedErr) {
-      nReturn = -21;
-      goto Done;
-   }
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
@@ -951,6 +955,137 @@ int32_t IntegerValuesTest1(void)
      return -2;
 
    return(nReturn);
+}
+
+struct BigNumEncodeTest {
+   const char *szDescription;
+   UsefulBufC  BigNum;
+   /* Expect all to succeed; no special error codes needed */
+   UsefulBufC  PositiveNoPreferred;
+   UsefulBufC  PositivePreferred;
+   UsefulBufC  NegativeNoPreferred;
+   UsefulBufC  NegativePreferred;
+};
+
+struct BigNumEncodeTest BigNumEncodeTestCases[] = {
+   {
+      "2^96 -1 or 79228162514264337593543950335 pos and neg with leading zeros",
+      {"\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 15},
+      {"\xC2\x4F\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 17},
+      {"\xC2\x4C\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 14},
+      {"\xC3\x4F\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe", 14}, // TODO: should this preserve leading zeros?
+      {"\xC3\x4C\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe", 14},
+   },
+
+   {
+      "2^64+1 or 18446744073709551617 pos and neg)",
+      {"\x01\x00\x00\x00\x00\x00\x00\x00\x01", 9},
+      {"\xC2\x49\x01\x00\x00\x00\x00\x00\x00\x00\x01", 11},
+      {"\xC2\x49\x01\x00\x00\x00\x00\x00\x00\x00\x01", 11},
+      {"\xC3\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      {"\xC3\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+   },
+   {
+      "2^64 or 18446744073709551616 pos and neg)",
+      {"\x01\x00\x00\x00\x0000\x00\x00\x00", 9},
+      {"\xC2\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      {"\xC2\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      {"\xC3\x48\xff\xff\xff\xff\xff\xff\xff\xff", 10},
+      {"\x3B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+   },
+   {
+      "2^64 - 1 or 18446744073709551615 pos and neg",
+      {"\xff\xff\xff\xff\xff\xff\xff\xff", 8},
+      {"\xC2\x48\xff\xff\xff\xff\xff\xff\xff\xff", 10},
+      {"\x1B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      {"\xC3\x48\xff\xff\xff\xff\xff\xff\xff\xfe", 10},
+      {"\x3B\xff\xff\xff\xff\xff\xff\xff\xfe", 9},
+   },
+   {
+      "1 and -1",
+      {"\x01", 1},
+      {"\xC2\x41\x01", 3},
+      {"\x01", 1},
+      {"\xC3\x41\x00", 3},
+      {"\x20", 1},
+   },
+   {
+      "0 and error",
+      {"\x00", 1},
+      {"\xC2\x41\x00", 3},
+      {"\x00", 1},
+      NULLUsefulBufC,
+      NULLUsefulBufC,
+   },
+   {
+      "leading zeros -- 0 and error",
+      {"\x00\x00\x00\x00", 4},
+      {"\xC2\x44\x00\x00\x00\x00", 6},
+      {"\x00", 1},
+      NULLUsefulBufC,
+      NULLUsefulBufC,
+   }
+
+};
+
+
+int32_t BigNumEncodeTests(void)
+{
+   unsigned           uTestIndex;
+   unsigned           uTestCount;
+   QCBOREncodeContext Enc;
+   UsefulBufC         B;
+   const struct BigNumEncodeTest *pTest;
+   /* Encode by calling BigNum methods
+    * Cover all BigNum methods
+    * Cover case when 65-bit negs are output
+    * Cover preferred serialization
+    */
+
+
+   uTestCount = (int)C_ARRAY_COUNT(BigNumEncodeTestCases, struct BigNumEncodeTest);
+
+   for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
+      pTest = &BigNumEncodeTestCases[uTestIndex];
+
+      if(uTestIndex == 3) {
+         B.len = 0; /* Line of code so a break point can be set. */
+      }
+
+      QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+      QCBOREncode_AddTPositiveBignumNoPreferred(&Enc, QCBOR_ENCODE_AS_TAG, pTest->BigNum);
+      QCBOREncode_Finish(&Enc, &B);
+      if(UsefulBuf_Compare(B, pTest->PositiveNoPreferred)) {
+         return MakeTestResultCode(uTestIndex, 1, QCBOR_SUCCESS);
+      }
+
+      QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+      QCBOREncode_AddPositiveBignum (&Enc, pTest->BigNum);
+      QCBOREncode_Finish(&Enc, &B);
+      if(UsefulBuf_Compare(B, pTest->PositivePreferred)) {
+         return MakeTestResultCode(uTestIndex, 2, QCBOR_SUCCESS);
+      }
+
+      if(!UsefulBuf_IsNULLC(pTest->NegativeNoPreferred)){
+         QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+         QCBOREncode_AddTNegativeBignumNoPreferred(&Enc, QCBOR_ENCODE_AS_TAG, pTest->BigNum);
+         QCBOREncode_Finish(&Enc, &B);
+         if(UsefulBuf_Compare(B, pTest->NegativeNoPreferred)) {
+            return MakeTestResultCode(uTestIndex, 3, QCBOR_SUCCESS);
+         }
+      }
+
+      if(!UsefulBuf_IsNULLC(pTest->NegativePreferred)){
+         QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+         QCBOREncode_AddNegativeBignum(&Enc, pTest->BigNum);
+         QCBOREncode_Finish(&Enc, &B);
+         if(UsefulBuf_Compare(B, pTest->NegativePreferred)) {
+            return MakeTestResultCode(uTestIndex, 4, QCBOR_SUCCESS);
+         }
+      }
+   }
+
+   return 0;
 }
 
 
@@ -2745,12 +2880,12 @@ static const uint8_t spExpectedExponentAndMantissaArray[] = {
    0x07, 0x08, 0x09, 0x10, 0xC4, 0x82, 0x1B, 0x7F,
    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC3,
    0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-   0x08, 0x09, 0x10, 0xC5, 0x82, 0x19, 0x01, 0x2C,
+   0x08, 0x09, 0x0F, 0xC5, 0x82, 0x19, 0x01, 0x2C,
    0x18, 0x64, 0xC5, 0x82, 0x33, 0xC2, 0x4A, 0x01,
    0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
    0x10, 0xC5, 0x82, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF,
    0xFF, 0xFF, 0xFF, 0xFF, 0xC3, 0x4A, 0x01, 0x02,
-   0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10};
+   0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0F};
 
 
 /*
@@ -2789,10 +2924,10 @@ static const uint8_t spExpectedExponentAndMantissaMap[] = {
    0x67, 0x61, 0x74, 0x69, 0x76, 0x65, 0xC4, 0x82,
    0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
    0xFF, 0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05,
-   0x06, 0x07, 0x08, 0x09, 0x10, 0x19, 0x01, 0xF4,
+   0x06, 0x07, 0x08, 0x09, 0x0F, 0x19, 0x01, 0xF4,
    0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF,
    0xFF, 0xFF, 0xFF, 0xC3, 0x4A, 0x01, 0x02, 0x03,
-   0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x69,
+   0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0F, 0x69,
    0x62, 0x69, 0x67, 0x20, 0x66, 0x6C, 0x6F, 0x61,
    0x74, 0xC5, 0x82, 0x19, 0x01, 0x2C, 0x18, 0x64,
    0x19, 0x02, 0x58, 0xC5, 0x82, 0x19, 0x01, 0x2C,
@@ -2809,13 +2944,14 @@ static const uint8_t spExpectedExponentAndMantissaMap[] = {
    0x20, 0x6E, 0x65, 0x67, 0x61, 0x74, 0x69, 0x76,
    0x65, 0xC5, 0x82, 0x3B, 0x7F, 0xFF, 0xFF, 0xFF,
    0xFF, 0xFF, 0xFF, 0xFF, 0xC3, 0x4A, 0x01, 0x02,
-   0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
+   0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0F,
    0x19, 0x03, 0x20, 0xC5, 0x82, 0x3B, 0x7F, 0xFF,
    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC3, 0x4A,
    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-   0x09, 0x10
+   0x09, 0x0F
 };
 
+// TODO: add bignum encode tests
 
 int32_t ExponentAndMantissaEncodeTests(void)
 {
@@ -3644,6 +3780,9 @@ int32_t DCBORTest(void)
    QCBOREncode_AddInt64ToMap(&EC, "a", 1);
    QCBOREncode_AddDoubleToMap(&EC, "x", 2.0);
    QCBOREncode_AddDoubleToMap(&EC, "r", 3.4028234663852886E+38);
+   QCBOREncode_AddDoubleToMap(&EC, "d1", -18446744073709549568.0);
+   QCBOREncode_AddDoubleToMap(&EC, "d2", -18446744073709551616.0);
+   QCBOREncode_AddDoubleToMap(&EC, "d3", -18446744073709555712.0);
    QCBOREncode_AddDoubleToMap(&EC, "b", NAN);
 
    QCBOREncode_CloseMap(&EC);
@@ -3651,9 +3790,7 @@ int32_t DCBORTest(void)
    QCBOREncode_Finish(&EC, &Encoded);
 
    static const uint8_t spExpecteddCBOR[] = {
-      0xA5, 0x61, 0x61, 0x01, 0x61, 0x62, 0xF9, 0x7E,
-      0x00, 0x61, 0x6B, 0x01, 0x61, 0x72, 0xFA, 0x7F,
-      0x7F, 0xFF, 0xFF, 0x61, 0x78, 0x02};
+      0xA8, 0x61, 0x61, 0x01, 0x61, 0x62, 0xF9, 0x7E, 0x00, 0x61, 0x6B, 0x01, 0x61, 0x72, 0xFA, 0x7F, 0x7F, 0xFF, 0xFF, 0x61, 0x78, 0x02, 0x62, 0x64, 0x31, 0x3B, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF7, 0xFF, 0x62, 0x64, 0x32, 0x3B, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x62, 0x64, 0x33, 0xFB, 0xC3, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
 
    if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpecteddCBOR),
                         Encoded)) {
@@ -3696,13 +3833,6 @@ int32_t DCBORTest(void)
       return 102;
    }
 
-   /* 65-bit negative integers */
-   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   QCBOREncode_SerializationdCBOR(&EC);
-   QCBOREncode_AddNegativeUInt64(&EC, 1);
-   if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
-      return 103;
-   }
 
    /* Improvement: when indefinite length string encoding is supported
     * test it here too. */

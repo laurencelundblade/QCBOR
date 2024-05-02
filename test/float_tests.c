@@ -281,10 +281,12 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFB\xC3\xDF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\xC3\xDF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\xC3\xDF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x3B\x7F\xFF\xFF\xFF\xFF\xFF\xFB\xFF", 9}},
 
-   /* -18446742974197924000.0.0 -- large negative that converts to float, but too large for int64 */
-   {-18446742974197924000.0,                     -18446742974197924000.0f,
+   //3B FF FF FE FF FF FF FF FF
+   // -18446742974197923840
+   /* -18446742974197923840.0 -- large negative that converts to float, but too large for int64 */
+   {-18446742974197923840.0,                     -18446742974197923840.0f,
     {"\xFA\xDF\x7F\xFF\xFF",                 5}, {"\xFB\xC3\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
-    {"\xFA\xDF\x7F\xFF\xFF",                 5}, {"\xFA\xDF\x7F\xFF\xFF",                 5}},
+    {"\xFA\xDF\x7F\xFF\xFF",                 5}, {"\x3B\xFF\xFF\xFE\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* 3.4028234663852886E+38 -- largest possible single */
    {3.4028234663852886E+38,                      3.40282347E+38f,
@@ -385,6 +387,9 @@ static const struct NaNTestCase NaNTestCases[] =  {
    {0, 0, {NULL, 0}, {NULL, 0}, {NULL, 0}, {NULL, 0} }
 };
 
+#include <stdio.h>
+
+//#include "ieee754.h"
 
 /* Public function. See float_tests.h
  *
@@ -414,7 +419,7 @@ FloatValuesTests(void)
    for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &FloatTestCases[uTestIndex];
 
-      if(uTestIndex == 34) {
+      if(uTestIndex == 40) {
          uDecoded = 1;
       }
 
