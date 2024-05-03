@@ -8631,16 +8631,14 @@ int32_t PeekAndRewindTest(void)
 
    QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_EnterBstrWrapped(&DCtx, 2, NULL);
-   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_INPUT_TOO_LARGE) {
-      /* TODO: This is what happens when trying to enter
-       * indefinite-length byte string wrapped CBOR.  Tolerate for
-       * now. Eventually it needs to be fixed so this works, but that
-       * is not simple.
-       */
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING) {
       return 7300;
    }
 
    /*
+    Improvement: Fix QCBORDecode_EnterBstrWrapped() so it can work on
+    allocated strings. This is a fairly big job because of all the
+    UsefulBuf internal book keeping that needs tweaking.
    QCBORDecode_GetUInt64(&DCtx, &i);
    if(i != 42) {
       return 7110;
@@ -8649,7 +8647,8 @@ int32_t PeekAndRewindTest(void)
    QCBORDecode_GetUInt64(&DCtx, &i);
    if(i != 42) {
       return 7220;
-   }*/
+   }
+    */
 
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 

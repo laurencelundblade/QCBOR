@@ -4106,6 +4106,11 @@ QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe,
       return;
    }
 
+   if(Item.uDataAlloc) {
+      pMe->uLastError = QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING;
+      return;
+   }
+
    pMe->uLastError = (uint8_t)QCBORDecode_Private_EnterBstrWrapped(pMe,
                                                                   &Item,
                                                                    uTagRequirement,

@@ -523,6 +523,11 @@ typedef enum {
     * (to save object code). */
    QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 78,
 
+   /** QCBORDecode_EnterBstrWrapped() cannot be used on
+    * indefinite-length strings because they exist in memory pool for
+    * a @ref QCBORStringAllocate. */
+   QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING = 79,
+
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
     * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */
