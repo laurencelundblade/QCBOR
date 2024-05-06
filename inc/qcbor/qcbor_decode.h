@@ -64,7 +64,7 @@ extern "C" {
  * nodes are either arrays or maps. Fundamentally, CBOR decoding is a
  * pre-order traversal of this tree with CBOR sequences a minor
  * exception. Calling QCBORDecode_GetNext() repeatedly will perform
- * this. It is possible to decode any CBOR by only calling
+ * this. QCBOR maintains an internal traversal cursor. It is possible to decode any CBOR by only calling
  * QCBORDecode_GetNext(), though this doesn't take advantage of many
  * QCBOR features.
  *
@@ -1032,6 +1032,38 @@ QCBORDecode_VPeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  */
 QCBORError
 QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
+
+
+
+/**
+ * @brief Get the current traversal cursort offset in the input CBOR.
+ *
+ * @param[in]  pCtx          The decoder context.
+ *
+ * @returns The traversal cursor offset or @c UINT32_MAX.
+
+ * The position returned is always the start of the next
+ * item that would be next decoded with QCBORDecode_VGetNext().
+ * If the cursor is at the end of the input, @c UINT32_MAX
+ * is returned.
+ *
+ * When decoding map items, the
+ * position returned is always of the label, never the
+ * value.
+ *
+ * For indefinite-length items, the CBOR break bytes are consumed
+ * when the last item in an indefinite length array or map is consumed
+ * so the cursor is at the next item to be decoded as expected.
+ *
+ * There are some special rules for the traversal cursor when
+ * fetching map items by label. See the decription of @SpiffyDecode.
+ *
+ * There is no corresponding seek because it is too complicated
+ * to restore the internal decoder state that tracks nesting.
+ */
+uint32_t
+QCBORDecode_Tell(QCBORDecodeContext *pCtx);
+
 
 
 /**

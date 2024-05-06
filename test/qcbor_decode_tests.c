@@ -5996,6 +5996,17 @@ static int32_t EnterMapCursorTest(void)
 {
    QCBORDecodeContext DCtx;
    QCBORItem          Item1;
+   int64_t            nInt;
+   QCBORError         uErr;
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNested), 0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetInt64InMapN (&DCtx, 3, &nInt);
+   uErr = QCBORDecode_GetNext(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_INT64) {
+      return 700;
+   }
+
 
    int i;
    for(i = 0; i < 13; i++) {
@@ -8908,6 +8919,105 @@ ErrorHandlingTests(void)
    if(QCBORDecode_IsNotWellFormedError(QCBOR_ERR_ARRAY_DECODE_TOO_LONG)) {
       return -23;
    }
+
+   return 0;
+}
+
+
+int32_t TellTests(void)
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem          Item;
+   uint32_t           uPosition;
+   int                i;
+   int64_t            n;
+
+   static const uint32_t aPos[] =
+       {0, 1, 17, 42, 50, 58, 72, 85, 98, 112, UINT32_MAX};
+
+   static const uint32_t aPosIndef[] =
+       {0, 1, 17, 42, 50, 59, 73, 86, 99, 113, UINT32_MAX};
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    0);
+
+
+   for(i = 0; ; i++) {
+      uPosition = QCBORDecode_Tell(&DCtx);
+      if(uPosition != aPos[i]) {
+         return i;
+      }
+
+      if(uPosition == UINT32_MAX) {
+         break;
+      }
+
+      QCBORDecode_VGetNext(&DCtx, &Item);
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapIndefEncoded),
+                    0);
+
+   for(i = 0; ; i++) {
+      uPosition = QCBORDecode_Tell(&DCtx);
+      if(uPosition != aPosIndef[i]) {
+         return i + 100;
+      }
+
+      if(uPosition == UINT32_MAX) {
+         break;
+      }
+
+      QCBORDecode_VGetNext(&DCtx, &Item);
+   }
+
+   /* Next, some tests with entered maps and arrays */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, &Item);
+   if(QCBORDecode_Tell(&DCtx) != 1) {
+      return 200;
+   }
+   QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer", &n);
+   if(QCBORDecode_Tell(&DCtx) != 1) {
+      return 200;
+   }
+   QCBORDecode_EnterMapFromMapSZ(&DCtx, "map in a map");
+   if(QCBORDecode_Tell(&DCtx) != 72) {
+      return 201;
+   }
+
+   QCBORDecode_GetInt64InMapSZ(&DCtx, "another int", &n);
+   if(n != 98) {
+      return 99;
+   }
+   /* Getting non-aggregate types doesn't affect cursor position. */
+   if(QCBORDecode_Tell(&DCtx) != 72) {
+      return 200;
+   }
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   if(QCBORDecode_Tell(&DCtx) != 85) {
+      return 202;
+   }
+   QCBORDecode_GetInt64InMapSZ(&DCtx, "another int", &n);
+   if(n != 98) {
+      return 99;
+   }
+   /* Getting non-aggregate types doesn't affect cursor position. */
+   if(QCBORDecode_Tell(&DCtx) != 85) {
+      return 200;
+   }
+
+   QCBORDecode_ExitMap(&DCtx);
+   if(QCBORDecode_Tell(&DCtx) != UINT32_MAX) {
+      return 203;
+   }
+
+
+
 
    return 0;
 }

@@ -474,7 +474,7 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
    /* This expression integer-promotes to type int. The code above in
     * function guarantees that nAdditionalInfo will never be larger
     * than 0x1f. The caller may pass in a too-large uMajor type. The
-    * conversion to unint8_t will cause an integer wrap around and
+    * conversion to uint8_t will cause an integer wrap around and
     * incorrect CBOR will be generated, but no security issue will
     * occur.
     */
