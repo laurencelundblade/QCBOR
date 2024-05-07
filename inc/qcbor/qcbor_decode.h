@@ -198,7 +198,7 @@ typedef enum {
 } QCBORDecodeMode;
 
 /**
- * The maximum size of input to the decoder. Slightly less than UINT32_MAX
+ * The maximum size of input to the decoder. Slightly less than @c UINT32_MAX
  * to make room for some special indicator values.
  */
 #define QCBOR_MAX_DECODE_INPUT_SIZE (UINT32_MAX - 2)
@@ -1034,36 +1034,34 @@ QCBORError
 QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
 
 
-
 /**
  * @brief Get the current traversal cursort offset in the input CBOR.
  *
- * @param[in]  pCtx          The decoder context.
+ * @param[in]  pCtx   The decoder context.
  *
  * @returns The traversal cursor offset or @c UINT32_MAX.
 
  * The position returned is always the start of the next
  * item that would be next decoded with QCBORDecode_VGetNext().
- * If the cursor is at the end of the input, @c UINT32_MAX
+ * If the cursor is at the end of the input or in the error state, @c UINT32_MAX
  * is returned.
  *
  * When decoding map items, the
  * position returned is always of the label, never the
  * value.
  *
- * For indefinite-length items, the CBOR break bytes are consumed
- * when the last item in an indefinite length array or map is consumed
+ * For indefinite-length arrays and maps, the break byte is consumed
+ * when the last item in the array or map is consumed
  * so the cursor is at the next item to be decoded as expected.
  *
  * There are some special rules for the traversal cursor when
- * fetching map items by label. See the decription of @SpiffyDecode.
+ * fetching map items by label. See the description of @SpiffyDecode.
  *
- * There is no corresponding seek because it is too complicated
+ * There is no corresponding seek method because it is too complicated
  * to restore the internal decoder state that tracks nesting.
  */
 uint32_t
 QCBORDecode_Tell(QCBORDecodeContext *pCtx);
-
 
 
 /**
@@ -1092,7 +1090,7 @@ QCBORDecode_Tell(QCBORDecodeContext *pCtx);
  * See also @ref CBORTags, @ref Tag-Usage and @ref Tags-Overview.
  *
  * To reduce memory used by a QCBORItem, tag numbers larger than
- * UINT16_MAX are mapped so the tag numbers in @c uTags should be
+ * @c UINT16_MAX are mapped so the tag numbers in @c uTags should be
  * accessed with this function rather than directly.
  *
  * This returns @ref CBOR_TAG_INVALID64 if any error occurred when
@@ -1305,8 +1303,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * @return 0 on success -1 if not
  *
  * When decoding an integer, the CBOR decoder will return the value as
- * an int64_t unless the integer is in the range of @c INT64_MAX and @c
- * UINT64_MAX. That is, unless the value is so large that it can only be
+ * an int64_t unless the integer is in the range of @c INT64_MAX and 
+ * @c UINT64_MAX. That is, unless the value is so large that it can only be
  * represented as a @c uint64_t, it will be an @c int64_t.
  *
  * CBOR itself doesn't size the individual integers it carries at
@@ -1518,7 +1516,7 @@ QCBORDecode_IsTagged(QCBORDecodeContext *pCtx,
  * been decoded.
  *
  * This is not backwards compatibile in two ways. First, it is limited
- * to \ref QCBOR_MAX_TAGS_PER_ITEM items whereas previously it was
+ * to @ref QCBOR_MAX_TAGS_PER_ITEM items whereas previously it was
  * unlimited. Second, it will not inlucde the tags that QCBOR decodes
  * internally.
  *

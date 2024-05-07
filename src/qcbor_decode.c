@@ -3138,22 +3138,20 @@ QCBORDecode_VGetNextConsume(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 uint32_t
 QCBORDecode_Tell(QCBORDecodeContext *pMe)
 {
-   size_t xx;
+   size_t uCursorOffset;
 
-   xx = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
-
-   if(xx == UsefulInputBuf_GetBufferLength(&(pMe->InBuf))) {
+   if(pMe->uLastError != QCBOR_SUCCESS) {
       return UINT32_MAX;
-   } else {
-      return (uint32_t)xx;
    }
 
-   /*
+   uCursorOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
 
-    Confirm position is as expected in maps and arrays for
-     - definite length
-     - indefinite lengths
-    */
+   if(uCursorOffset == UsefulInputBuf_GetBufferLength(&(pMe->InBuf))) {
+      return UINT32_MAX;
+   } else {
+      /* Cast is safe because decoder input size is restricted. */
+      return (uint32_t)uCursorOffset;
+   }
 }
 
 
