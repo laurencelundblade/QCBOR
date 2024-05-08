@@ -56,7 +56,7 @@ extern "C" {
  * # QCBOR Basic Decode
  *
  * This section discusses decoding assuming familiarity with the
- * general description of this encoder / decoder in section @ref
+ * general description of this encoder-decoder in section @ref
  * Overview.
  *
  * Encoded CBOR has a tree structure where the leaf nodes are
