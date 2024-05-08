@@ -73,7 +73,7 @@ struct DoubleTestCase {
  * other formats.  CDE and DCBOR standards are not complete yet,
  * encodings are a guess.  C string literals are used because they
  * are the shortest notation. They are used __with a length__ . Null
- * termination doesn't work because * there are zero bytes.
+ * termination doesn't work because there are zero bytes.
  */
 static const struct DoubleTestCase DoubleTestCases[] =  {
    /* Zero */
