@@ -271,10 +271,10 @@ typedef struct __QCBORDecodeNesting  {
        *
        * This also records whether a level is bounded or not. All
        * byte-count tracked levels (the top-level sequence and
-       * bstr-wrapped CBOR) are bounded implicitly. Maps and arrays may or may
-       * not be bounded. They are bounded if they were Entered() and
-       * not if they were traversed with GetNext(). They are marked as
-       * bounded by uStartOffset not being UINT32_MAX.
+       * bstr-wrapped CBOR) are bounded implicitly. Maps and arrays
+       * may or may not be bounded. They are bounded if they were
+       * Entered() and not if they were traversed with GetNext(). They
+       * are marked as bounded by uStartOffset not being @c UINT32_MAX.
        */
       /*
        * If uLevelType can put in a separately indexed array, the
