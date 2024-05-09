@@ -91,9 +91,6 @@ extern "C" {
  * QCBORDecode_EnterArray() can be used to narrow the traversal to the
  * extent of the array.
  *
- * QCBORDecode_EnterArray() can be used to narrow the traversal to the
- * extent of the array.
- *
  * All the QCBORDecode_GetXxxxInMapX() methods support duplicate label
  * detection and will result in an error if the map has duplicate
  * labels.
@@ -701,7 +698,7 @@ QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char *szLabel);
  * The items in the array that was entered do not have to have been
  * consumed for this to succeed.
  *
- * This sets the pre-order traversal cursor to the item after the
+ * This sets the traversal cursor to the item after the
  * array that was exited.
  *
  * This will result in an error if any item in the array is not well
@@ -740,7 +737,7 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  * fully exited.
  *
  * While in bounded mode, QCBORDecode_GetNext() works as usual on the
- * map and the pre-order traversal cursor is maintained. It starts out
+ * map and the traversal cursor is maintained. It starts out
  * at the first item in the map just entered. Attempts to get items
  * off the end of the map will give error @ref QCBOR_ERR_NO_MORE_ITEMS
  * rather going to the next item after the map as it would when not in
@@ -751,12 +748,12 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  * non-aggregate items by label behaves differently from entering subordinate
  * aggregate items by label.  See dicussion in @ref SpiffyDecode.
  *
- * Exiting leaves the pre-order cursor at the data item following the
+ * Exiting leaves the traversal cursor at the data item following the
  * last entry in the map or at the end of the input CBOR if there
  * nothing after the map.
  *
  * Entering and Exiting a map is a way to skip over an entire map and
- * its contents. After QCBORDecode_ExitMap(), the pre-order traversal
+ * its contents. After QCBORDecode_ExitMap(), the traversal
  * cursor will be at the first item after the map.
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
@@ -786,7 +783,7 @@ QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char *szLabel);
  * The items in the map that was entered do not have to have been
  * consumed for this to succeed.
  *
- * This sets the pre-order traversal cursor to the item after the map
+ * This sets the traversal cursor to the item after the map
  * that was exited.
  *
  * This will result in an error if any item in the map is not well
@@ -845,7 +842,7 @@ QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
  * with little nesting, this is of little consequence, but may be of
  * consequence for large deeply nested CBOR structures on slow CPUs.
  *
- * The position of the pre-order traversal cursor is not changed.
+ * The position of the traversal cursor is not changed.
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  *
@@ -892,7 +889,7 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  * QCBORDecode_EnterMapinMapN(), QCBORDecode_EnterArrayInMapN() and
  * such to descend into and process maps and arrays.
  *
- * The position of the pre-order traversal cursor is not changed.
+ * The position of the traversal cursor is not changed.
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  *
@@ -1825,7 +1822,7 @@ QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx,
  * The items in the wrapped CBOR that was entered do not have to have
  * been consumed for this to succeed.
  *
- * The this sets the pre-order traversal cursor to the item after the
+ * The this sets the traversal cursor to the item after the
  * byte string that was exited.
  */
 void

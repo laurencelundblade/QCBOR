@@ -3132,6 +3132,29 @@ QCBORDecode_VGetNextConsume(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 }
 
 
+/*
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
+uint32_t
+QCBORDecode_Tell(QCBORDecodeContext *pMe)
+{
+   size_t uCursorOffset;
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return UINT32_MAX;
+   }
+
+   uCursorOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
+
+   if(uCursorOffset == UsefulInputBuf_GetBufferLength(&(pMe->InBuf))) {
+      return UINT32_MAX;
+   } else {
+      /* Cast is safe because decoder input size is restricted. */
+      return (uint32_t)uCursorOffset;
+   }
+}
+
+
 /**
  * @brief Rewind cursor to start as if map or array were just entered.
  *
@@ -3262,6 +3285,7 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
    }
 
    QCBORDecodeNesting SaveNesting;
+   size_t uSavePos = UsefulInputBuf_Tell(&(pMe->InBuf));
    DecodeNesting_PrepareForMapSearch(&(pMe->nesting), &SaveNesting);
 
    /* Reposition to search from the start of the map / array */
@@ -3378,6 +3402,7 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
  Done:
    DecodeNesting_RestoreFromMapSearch(&(pMe->nesting), &SaveNesting);
+   UsefulInputBuf_Seek(&(pMe->InBuf), uSavePos);
 
  Done2:
    /* For all items not found, set the data and label type to QCBOR_TYPE_NONE */
