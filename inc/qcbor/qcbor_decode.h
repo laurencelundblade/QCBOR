@@ -1062,6 +1062,13 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * outside of the array or map. The array or map must be exited before
  * QCBORDecode_VGetNext() will decode it.
  *
+ * In many cases the position returned will be in the middle of
+ * an array or map. It will not be possible to start decoding at
+ * that location with another instance of the decoder and go to
+ * the end. It is not valid CBOR. If the input is a CBOR sequence
+ * and the position is not in the moddle of an array or map
+ * then it is possible to decode to the end.
+ *
  * There is no corresponding seek method because it is too complicated
  * to restore the internal decoder state that tracks nesting.
  */
