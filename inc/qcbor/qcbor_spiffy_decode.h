@@ -753,7 +753,7 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  * nothing after the map.
  *
  * Entering and Exiting a map is a way to skip over an entire map and
- * its contents. After QCBORDecode_ExitMap(), thetraversal
+ * its contents. After QCBORDecode_ExitMap(), the traversal
  * cursor will be at the first item after the map.
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
