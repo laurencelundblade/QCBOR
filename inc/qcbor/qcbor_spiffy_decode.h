@@ -717,10 +717,18 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  @brief Get the bytes that make up an array.
 
  @param[in] pCtx           The decode context.
- @param[out] puNumItems    Place to return the number of items in the array.
+ @param[out] pItem         Place to return the array item.
  @param[out] pEncodedCBOR  Place to return pointer and length of the array.
 
  The next item to decode must be an array.
+
+ TODO: return the array Item, not just the number of items in it
+ That will give the label and tags of it too.
+
+ @c pItem will have the label and tags for the array. It is filled
+ in the same as if GetNext() were called on the array item. In
+ particular the array count will be filled in for definite-length
+ arrays and set to XXXX for indefinite-length arrays.
 
  This works on both definite and indefinite length arrays (unless
  indefinite length array decoding has been disabled).
@@ -729,6 +737,14 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  length in bytes includes it and all the member data items. If the map
  occurs in another map and thus has a label, the label is not included
  in what is returned.
+
+ You can pass pEncodedCBOR directly to QCBORDecode_Init() if you want to
+ create a separate decoder instance.
+
+ QCBORDecode_GetArray() consumes the entire array and leaves
+ the traversal cursor at the item after the array. QCBORDecode_GetArrayFromMapN()
+ and QCBORDecode_GetArrayFromMapSZ() don't affect the traversal
+ cursor.
 
  This traverses the whole array and every subordinate array or map in
  it. This is necessary to determine the length of the array. The
@@ -739,17 +755,17 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  See also QCBORDecode_EnterArray().
  */
 static void QCBORDecode_GetArray(QCBORDecodeContext *pCtx,
-                                 uint16_t           *puNumItems,
+                                 QCBORItem          *pItem,
                                  UsefulBufC         *pEncodedCBOR);
 
 static void QCBORDecode_GetArrayFromMapN(QCBORDecodeContext *pCtx,
                                          int64_t             nLabel,
-                                         uint16_t           *puNumItems,
+                                         QCBORItem          *pItem,
                                          UsefulBufC         *pEncodedCBOR);
 
 static void QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pCtx,
                                           const char         *szLabel,
-                                          uint16_t           *puNumItems,
+                                          QCBORItem          *pItem,
                                           UsefulBufC         *pEncodedCBOR);
 
 
@@ -842,7 +858,7 @@ QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
  @brief Get the bytes that make up a map.
 
  @param[in] pCtx           The decode context.
- @param[out] puNumItems    Place to return the number of items in the map.
+ @param[out] pItem    TODO:.
  @param[out] pEncodedCBOR  Place to return pointer and length of the map.
 
  The next item to decode must be a map.
@@ -864,17 +880,17 @@ QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
  See also QCBORDecode_EnterMap().
  */
 static void QCBORDecode_GetMap(QCBORDecodeContext *pCtx,
-                               uint16_t           *puNumItems,
+                               QCBORItem          *pItem,
                                UsefulBufC         *pEncodedCBOR);
 
 static void QCBORDecode_GetMapFromMapN(QCBORDecodeContext *pCtx,
                                  int64_t             nLabel,
-                                 uint16_t           *puNumItems,
+                                       QCBORItem          *pItem,
                                  UsefulBufC         *pEncodedCBOR);
 
 static void QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pCtx,
                                    const char         *szLabel,
-                                   uint16_t           *puNumItems,
+                                        QCBORItem          *pItem,
                                    UsefulBufC         *pEncodedCBOR);
 
 
@@ -2155,8 +2171,8 @@ QCBORDecode_ExitMap(QCBORDecodeContext *pMe)
  * @brief Semi-private. Get pointer, length and item count of a map or array.
  *
  * @param[in] pCtx   The decode context.
- * @param[in] uType   CBOR major type, either array or map.
- * @param[out] puNumItems   The number of data items in the map or array.
+ * @param[in] uType   CBOR major type, either array/map.
+ * @param[out] pItem   The item for the array/map.
  * @param[out] pEncodedCBOR   Pointer and length of the encoded map or array.
  *
  * The next item to be decoded must be a map or array as specified by \c uType.
@@ -2166,7 +2182,7 @@ QCBORDecode_ExitMap(QCBORDecodeContext *pMe)
 void 
 QCBORDecode_Private_GetMapOrArray(QCBORDecodeContext *pCtx,
                                   uint8_t             uType,
-                                  uint16_t           *puNumItems,
+                                  QCBORItem           *pItem,
                                   UsefulBufC         *pEncodedCBOR);
 
 
@@ -2175,7 +2191,7 @@ QCBORDecode_Private_GetMapOrArray(QCBORDecodeContext *pCtx,
  *
  * @param[in] pCtx   The decode context.
  * @param[in] pTarget   The label and type of the array or map to retrieve.
- * @param[out] puNumItems   The number of data items in the map or array.
+ * @param[out] pItem   TODO:
  * @param[out] pEncodedCBOR   Pointer and length of the encoded map or array.
  *
  * The next item to be decoded must be a map or array as specified by \c uType.
@@ -2184,23 +2200,23 @@ QCBORDecode_Private_GetMapOrArray(QCBORDecodeContext *pCtx,
  */
 void QCBORDecode_Private_SearchAndGetMapOrArray(QCBORDecodeContext *pCtx,
                                                 QCBORItem          *pTarget,
-                                                uint16_t           *puNumItems,
+                                                QCBORItem          *pItem,
                                                 UsefulBufC         *pEncodedCBOR);
 
 
 static inline void
 QCBORDecode_GetArray(QCBORDecodeContext *pMe,
-                     uint16_t           *puNumItems,
+                     QCBORItem          *pItem,
                      UsefulBufC         *pEncodedCBOR)
 {
-   QCBORDecode_Private_GetMapOrArray(pMe, QCBOR_TYPE_ARRAY, puNumItems, pEncodedCBOR);
+   QCBORDecode_Private_GetMapOrArray(pMe, QCBOR_TYPE_ARRAY, pItem, pEncodedCBOR);
 }
 
 
 static inline void
 QCBORDecode_GetArrayFromMapN(QCBORDecodeContext *pMe,
                              int64_t             nLabel,
-                             uint16_t           *puNumItems,
+                             QCBORItem          *pItem,
                              UsefulBufC         *pEncodedCBOR)
 {
    QCBORItem OneItemSeach[2];
@@ -2209,14 +2225,14 @@ QCBORDecode_GetArrayFromMapN(QCBORDecodeContext *pMe,
    OneItemSeach[0].uDataType   = QCBOR_TYPE_ARRAY;
    OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE;
 
-   QCBORDecode_Private_SearchAndGetMapOrArray(pMe, OneItemSeach, puNumItems, pEncodedCBOR);
+   QCBORDecode_Private_SearchAndGetMapOrArray(pMe, OneItemSeach, pItem, pEncodedCBOR);
 }
 
 
 static inline void
 QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pMe,
                               const char         *szLabel,
-                              uint16_t           *puNumItems,
+                              QCBORItem          *pItem,
                               UsefulBufC         *pEncodedCBOR)
 {
    QCBORItem OneItemSeach[2];
@@ -2225,22 +2241,22 @@ QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pMe,
    OneItemSeach[0].uDataType   = QCBOR_TYPE_ARRAY;
    OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE;
 
-   QCBORDecode_Private_SearchAndGetMapOrArray(pMe, OneItemSeach, puNumItems, pEncodedCBOR);
+   QCBORDecode_Private_SearchAndGetMapOrArray(pMe, OneItemSeach, pItem, pEncodedCBOR);
 }
 
 static inline void
 QCBORDecode_GetMap(QCBORDecodeContext *pMe,
-                   uint16_t           *puNumItems,
+                   QCBORItem          *pItem,
                    UsefulBufC         *pEncodedCBOR)
 {
-   QCBORDecode_Private_GetMapOrArray(pMe, QCBOR_TYPE_MAP, puNumItems, pEncodedCBOR);
+   QCBORDecode_Private_GetMapOrArray(pMe, QCBOR_TYPE_MAP, pItem, pEncodedCBOR);
 }
 
 
 static inline void
 QCBORDecode_GetMapFromMapN(QCBORDecodeContext *pMe,
                            int64_t             nLabel,
-                           uint16_t           *puNumItems,
+                           QCBORItem          *pItem,
                            UsefulBufC         *pEncodedCBOR)
 {
    QCBORItem OneItemSeach[2];
@@ -2249,14 +2265,14 @@ QCBORDecode_GetMapFromMapN(QCBORDecodeContext *pMe,
    OneItemSeach[0].uDataType   = QCBOR_TYPE_MAP;
    OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE;
 
-   QCBORDecode_Private_SearchAndGetMapOrArray(pMe, OneItemSeach, puNumItems, pEncodedCBOR);
+   QCBORDecode_Private_SearchAndGetMapOrArray(pMe, OneItemSeach, pItem, pEncodedCBOR);
 }
 
 
 static inline void
 QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
                             const char         *szLabel,
-                            uint16_t           *puNumItems,
+                            QCBORItem          *pItem,
                             UsefulBufC         *pEncodedCBOR)
 {
    QCBORItem OneItemSeach[2];
@@ -2265,7 +2281,7 @@ QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
    OneItemSeach[0].uDataType    = QCBOR_TYPE_MAP;
    OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
 
-   QCBORDecode_Private_SearchAndGetMapOrArray(pMe, OneItemSeach, puNumItems, pEncodedCBOR);
+   QCBORDecode_Private_SearchAndGetMapOrArray(pMe, OneItemSeach, pItem, pEncodedCBOR);
 }
 
 

@@ -8865,14 +8865,13 @@ int32_t GetMapAndArrayTest(void)
    QCBORDecode_VGetNextConsume(&DCtx, &Item);
 
 
-   uint16_t uNumItems;
    UsefulBufC ArrayCBOR;
 
-   QCBORDecode_GetArray(&DCtx, &uNumItems, &ArrayCBOR);
+   QCBORDecode_GetArray(&DCtx, &Item, &ArrayCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
       return 44;
    }
-   if(uNumItems != 2) {
+   if(Item.val.uCount != 2) {
       return 1;
    }
    if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
@@ -8880,11 +8879,11 @@ int32_t GetMapAndArrayTest(void)
    }
 
 
-   QCBORDecode_GetMap(&DCtx, &uNumItems, &ArrayCBOR);
+   QCBORDecode_GetMap(&DCtx, &Item, &ArrayCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
       return 44;
    }
-   if(uNumItems != 4) {
+   if(Item.val.uCount != 4) {
       return 1;
    }
    if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {
@@ -8894,12 +8893,12 @@ int32_t GetMapAndArrayTest(void)
 
    QCBORDecode_GetArrayFromMapSZ(&DCtx,
                                  "an array of two strings",
-                                 &uNumItems,
+                                 &Item,
                                  &ArrayCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
       return 44;
    }
-   if(uNumItems != 2) {
+   if(Item.val.uCount != 2) {
       return 1;
    }
    if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
@@ -8907,11 +8906,11 @@ int32_t GetMapAndArrayTest(void)
    }
 
 
-   QCBORDecode_GetMapFromMapSZ(&DCtx, "map in a map", &uNumItems, &ArrayCBOR);
+   QCBORDecode_GetMapFromMapSZ(&DCtx, "map in a map", &Item, &ArrayCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
       return 44;
    }
-   if(uNumItems != 4) {
+   if(Item.val.uCount != 4) {
       return 1;
    }
    if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {

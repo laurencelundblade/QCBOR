@@ -1491,7 +1491,10 @@ static int UsefulInputBuf_BytesAvailable(UsefulInputBuf *pUInBuf, size_t uLen);
  *
  * @return SIZE_MAX if @c p is out of range, the byte offset if not.
  */
-static inline size_t UsefulInputBuf_PointerToOffset(UsefulInputBuf *pUInBuf, const void *p);
+static size_t UsefulInputBuf_PointerToOffset(UsefulInputBuf *pUInBuf, const void *p);
+
+
+static const void *UsefulInputBuf_OffsetToPointer(UsefulInputBuf *pUInBuf, size_t uOffset);
 
 
 /**
@@ -2261,6 +2264,24 @@ static inline size_t UsefulInputBuf_PointerToOffset(UsefulInputBuf *pUInBuf, con
 {
    return UsefulBuf_PointerToOffset(pUInBuf->UB, p);
 }
+
+
+// TODO: move and test this
+static inline const void *UsefulBuf_OffsetToPointer(UsefulBufC UB, size_t uOffset)
+{
+   if(uOffset > UB.len) {
+      return NULL;
+   }
+
+   return (const uint8_t *)UB.ptr + uOffset;
+}
+
+
+static inline const void *UsefulInputBuf_OffsetToPointer(UsefulInputBuf *pUInBuf, size_t uOffset)
+{
+   return UsefulBuf_OffsetToPointer(pUInBuf->UB, uOffset);
+}
+
 
 
 static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *pMe, size_t uNum)

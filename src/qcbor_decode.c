@@ -3105,7 +3105,7 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
       uReturn = QCBOR_SUCCESS;
 
    } else {
-      /* pItemToConsume is not a map or array.  Just pass the nesting
+      /* pItemToConsume is not a map or array. Just pass the nesting
        * level through. */
       *puNextNestLevel = pItemToConsume->uNextNestLevel;
 
@@ -3486,15 +3486,63 @@ Done:
 void
 QCBORDecode_Private_GetMapOrArray(QCBORDecodeContext *pMe,
                                   uint8_t             uType,
-                                  uint16_t           *puNumItems,
+                                  QCBORItem          *pItem,
                                   UsefulBufC         *pEncodedCBOR)
 {
    QCBORError uErr;
+//   QCBORItem Item;
+  // size_t uStart;
+   //size_t uEnd;
+   uint8_t uNest;
 
+#ifdef NEWNO
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
+   uErr = QCBORDecode_Private_GetNextTagNumber(pMe, &Item);
+   if(uErr) {
+      pMe->uLastError = (uint8_t)uErr;
+      goto Done;
+   }
+   if(Item.uDataType != uType) {
+      pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+      goto Done;
+   }
+
+   /* This only works on maps and arrays and we are going to consume
+    * it entirely, so we can skip/replicate
+    * the other decode layers. */
+   if(uType == QCBOR_TYPE_MAP) {
+      uStart = UsefulInputBuf_Tell(&(pMe->InBuf));
+      uErr = QCBORDecode_Private_GetNextTagNumber(pMe, &Item);
+      if(uErr) {
+         pMe->uLastError = (uint8_t)uErr;
+         goto Done;
+      }
+      // TODO: combining into Item
+      *pItem = Item;
+   } else {
+      uStart = UsefulInputBuf_Tell(&(pMe->InBuf));
+      *pItem = Item;
+   }
+
+   /* Now consume the entire array/map to find the end */
+   uErr = QCBORDecode_Private_ConsumeItem(pMe, pItem, &uNest);
+   if(uErr) {
+      pMe->uLastError = (uint8_t)uErr;
+      goto Done;
+   }
+
+   uEnd = UsefulInputBuf_Tell(&(pMe->InBuf));
+
+   pEncodedCBOR->ptr = UsefulInputBuf_OffsetToPointer(&(pMe->InBuf),uStart);
+   pEncodedCBOR->len = uEnd - uStart;
+
+#endif
+
+
+#ifdef OLD
    /* First thing is to figure out the start of the
     * array or map that we are, getting, which is NOT
     * the start of the label that might be in front of it.
@@ -3547,6 +3595,58 @@ QCBORDecode_Private_GetMapOrArray(QCBORDecodeContext *pMe,
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
+#endif
+
+
+   /* First thing is to figure out the start of the
+    * array or map that we are, getting, which is NOT
+    * the start of the label that might be in front of it.
+    * The cursor has to be put back to the position
+    */
+   size_t uSavedStart = UsefulInputBuf_Tell(&(pMe->InBuf));
+   size_t uStartOfActual;
+   bool bInMap = DecodeNesting_IsCurrentTypeMap(&(pMe->nesting));
+
+   uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, pItem);
+   if(uErr) {
+      pMe->uLastError = (uint8_t)uErr;
+      return;
+   }
+
+   if(pItem->uDataType != uType) {
+      pMe->uLastError = 88;
+      return;
+   }
+
+   if(bInMap) {
+      QCBORItem LabelItem; /* not used, but must be given */
+      size_t uSavedXx = UsefulInputBuf_Tell(&(pMe->InBuf));
+
+      UsefulInputBuf_Seek(&(pMe->InBuf), uSavedStart);
+
+      uErr = QCBORDecode_Private_GetNextTagNumber(pMe, &LabelItem);
+      if(uErr != QCBOR_SUCCESS) {
+         pMe->uLastError = (uint8_t)uErr;
+         goto Done;
+      }
+      uStartOfActual = UsefulInputBuf_Tell(&(pMe->InBuf));
+      UsefulInputBuf_Seek(&(pMe->InBuf), uSavedXx);
+   } else {
+      uStartOfActual = uSavedStart;
+   }
+
+   /* Now consume the entire array/map to find the end */
+   uErr = QCBORDecode_Private_ConsumeItem(pMe, pItem, &uNest);
+   if(uErr) {
+      pMe->uLastError = (uint8_t)uErr;
+      goto Done;
+   }
+
+   size_t uEnd = UsefulInputBuf_Tell(&(pMe->InBuf));
+
+   /* Fill in returned values */
+   pEncodedCBOR->ptr = (const uint8_t *)pMe->InBuf.UB.ptr + uStartOfActual;
+   pEncodedCBOR->len = uEnd - uStartOfActual;
 
 Done:
    return;
@@ -3556,7 +3656,7 @@ Done:
 /* Semi-private, see qcbor_spiffy_decode.h */
 void QCBORDecode_Private_SearchAndGetMapOrArray(QCBORDecodeContext *pMe,
                             QCBORItem          *pTarget,
-                            uint16_t           *puNumItems,
+                                                QCBORItem          *pItem,
                             UsefulBufC         *pEncodedCBOR)
 {
    MapSearchInfo Info;
@@ -3568,12 +3668,17 @@ void QCBORDecode_Private_SearchAndGetMapOrArray(QCBORDecodeContext *pMe,
    /* Save the whole position of things so they can be restored.
     * so the cursor position is unchanged by this operation, like
     * all the other GetXxxxInMap() operations. */
+   // TODO: is this right?
    QCBORDecodeNesting SaveNesting;
    DecodeNesting_PrepareForMapSearch(&(pMe->nesting), &SaveNesting);
 
    UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset);
 
-   QCBORDecode_Private_GetMapOrArray(pMe, pTarget[0].uDataType, puNumItems, pEncodedCBOR);
+   // TODO: make sure this doesn't affect anything it shouldn't See EnterArrayFromMap
+   DecodeNesting_ResetMapOrArrayCount(&(pMe->nesting));
+
+
+   QCBORDecode_Private_GetMapOrArray(pMe, pTarget[0].uDataType, pItem, pEncodedCBOR);
 
    // TODO: UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset); ???
    DecodeNesting_RestoreFromMapSearch(&(pMe->nesting), &SaveNesting);
