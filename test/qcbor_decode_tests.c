@@ -6003,6 +6003,9 @@ static int32_t EnterMapCursorTest(void)
    QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetInt64InMapN (&DCtx, 3, &nInt);
    uErr = QCBORDecode_GetNext(&DCtx, &Item1);
+   if(uErr != QCBOR_SUCCESS) {
+      return 701;
+   }
    if(Item1.uDataType != QCBOR_TYPE_INT64) {
       return 700;
    }
@@ -8866,6 +8869,8 @@ static uint8_t spFood[] = {
 int32_t GetMapAndArrayTest(void)
 {
    QCBORDecodeContext DCtx;
+   size_t uPosition ;
+
 
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
@@ -8889,6 +8894,9 @@ int32_t GetMapAndArrayTest(void)
       return 2;
    }
 
+   uPosition = QCBORDecode_Tell(&DCtx);
+
+
 
    QCBORDecode_GetMap(&DCtx, &Item, &ArrayCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
@@ -8902,6 +8910,7 @@ int32_t GetMapAndArrayTest(void)
    }
 
 
+   uPosition = QCBORDecode_Tell(&DCtx);
    QCBORDecode_GetArrayFromMapSZ(&DCtx,
                                  "an array of two strings",
                                  &Item,
@@ -8915,8 +8924,13 @@ int32_t GetMapAndArrayTest(void)
    if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
       return 2;
    }
+   if(uPosition != QCBORDecode_Tell(&DCtx)) {
+      return 33;
+   }
 
+   QCBORDecode_Rewind(&DCtx);
 
+   uPosition = QCBORDecode_Tell(&DCtx);
    QCBORDecode_GetMapFromMapSZ(&DCtx, "map in a map", &Item, &ArrayCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
       return 44;
@@ -8926,6 +8940,9 @@ int32_t GetMapAndArrayTest(void)
    }
    if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {
       return 2;
+   }
+   if(uPosition != QCBORDecode_Tell(&DCtx)) {
+      return 33;
    }
 
    return 0;

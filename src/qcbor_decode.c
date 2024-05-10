@@ -3507,184 +3507,120 @@ Done:
 
 
 
-/* Semi-private, see qcbor_spiffy_decode.h */
+/**
+ * @brief Semi-private. Get pointer, length and item for a an array or map.
+ *
+ * @param[in] pMe           The decode context.
+ * @param[in] uType          CBOR major type, either array/map.
+ * @param[out] pItem         The item for the array/map.
+ * @param[out] pEncodedCBOR  Pointer and length of the encoded map or array.
+ *
+ * The next item to be decoded must be a map or array as specified by \c uType.
+ *
+ * \c pItem will be filled in with the label and tags of the array or map
+ * in addition to \c pEncodedCBOR giving the pointer and length of the
+ * encoded CBOR.
+ *
+ * When this is complete, the traversal cursor is at the end of the array or
+ * map that was retrieved.
+ */
 void
 QCBORDecode_Private_GetMapOrArray(QCBORDecodeContext *pMe,
-                                  uint8_t             uType,
+                                  const uint8_t       uType,
                                   QCBORItem          *pItem,
                                   UsefulBufC         *pEncodedCBOR)
 {
    QCBORError uErr;
-//   QCBORItem Item;
-  // size_t uStart;
-   //size_t uEnd;
-   uint8_t uNest;
+   uint8_t    uNestLevel;
+   size_t     uStartingCursor;
+   size_t     uStartOfReturned;
+   size_t     uEndOfReturned;
+   size_t     uTempSaveCursor;
+   bool       bInMap;
+   QCBORItem  LabelItem;
 
-#ifdef NEWNO
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
+   uStartingCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
+   bInMap = DecodeNesting_IsCurrentTypeMap(&(pMe->nesting));
 
-   uErr = QCBORDecode_Private_GetNextTagNumber(pMe, &Item);
-   if(uErr) {
-      pMe->uLastError = (uint8_t)uErr;
-      goto Done;
-   }
-   if(Item.uDataType != uType) {
-      pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
-      goto Done;
-   }
-
-   /* This only works on maps and arrays and we are going to consume
-    * it entirely, so we can skip/replicate
-    * the other decode layers. */
-   if(uType == QCBOR_TYPE_MAP) {
-      uStart = UsefulInputBuf_Tell(&(pMe->InBuf));
-      uErr = QCBORDecode_Private_GetNextTagNumber(pMe, &Item);
-      if(uErr) {
-         pMe->uLastError = (uint8_t)uErr;
-         goto Done;
-      }
-      // TODO: combining into Item
-      *pItem = Item;
-   } else {
-      uStart = UsefulInputBuf_Tell(&(pMe->InBuf));
-      *pItem = Item;
-   }
-
-   /* Now consume the entire array/map to find the end */
-   uErr = QCBORDecode_Private_ConsumeItem(pMe, pItem, &uNest);
-   if(uErr) {
-      pMe->uLastError = (uint8_t)uErr;
-      goto Done;
-   }
-
-   uEnd = UsefulInputBuf_Tell(&(pMe->InBuf));
-
-   pEncodedCBOR->ptr = UsefulInputBuf_OffsetToPointer(&(pMe->InBuf),uStart);
-   pEncodedCBOR->len = uEnd - uStart;
-
-#endif
-
-
-#ifdef OLD
-   /* First thing is to figure out the start of the
-    * array or map that we are, getting, which is NOT
-    * the start of the label that might be in front of it.
-    * The cursor has to be put back to the position
-    */
-   size_t uSavedStart = UsefulInputBuf_Tell(&(pMe->InBuf));
-
-   if(DecodeNesting_IsCurrentTypeMap(&(pMe->nesting))) {
-      QCBORItem LabelItem; /* not used, but must be given */
-      uErr = QCBORDecode_Private_GetNextTagNumber(pMe, &LabelItem);
-      if(uErr != QCBOR_SUCCESS) {
-         pMe->uLastError = (uint8_t)uErr;
-         goto Done;
-      }
-   }
-   // This will increment the consumed count and not put it back! TODO: fix this
-
-   /* Cursor is after label, if there was one, and at array/map. */
-   size_t uStartOfActual = UsefulInputBuf_Tell(&(pMe->InBuf));
-
-   UsefulInputBuf_Seek(&(pMe->InBuf), uSavedStart);
-   /* Done figuring out the start of the actual array/map */
-
-   /* Traverse the array/map to count the number of items in it
-    * and to leave the cursor at end of it. */
-   QCBORItem Item;
-   QCBORDecode_Private_EnterBoundedMapOrArray(pMe, uType, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   QCBORDecode_Private_CopyTags(pMe, &Item); // TODO: really do this?
-
-   MapSearchInfo Info;
-   QCBORItem     Dummy;
-   Dummy.uLabelType = QCBOR_TYPE_NONE;
-   uErr = QCBORDecode_Private_MapSearch(pMe, &Dummy, &Info, NULL);
-   if(QCBORDecode_IsUnrecoverableError(uErr)) {
-      pMe->uLastError = (uint8_t)uErr;
-      goto Done;
-   }
-
-   /* Fill in returned values */
-   pEncodedCBOR->ptr = (const uint8_t *)pMe->InBuf.UB.ptr + uStartOfActual;
-   pEncodedCBOR->len = pMe->uMapEndOffsetCache - uStartOfActual;
-   *puNumItems = Info.uItemCount;
-
-   
-   QCBORDecode_Private_ExitBoundedMapOrArray(pMe, uType);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-#endif
-
-
-   /* First thing is to figure out the start of the
-    * array or map that we are, getting, which is NOT
-    * the start of the label that might be in front of it.
-    * The cursor has to be put back to the position
-    */
-   size_t uSavedStart = UsefulInputBuf_Tell(&(pMe->InBuf));
-   size_t uStartOfActual;
-   bool bInMap = DecodeNesting_IsCurrentTypeMap(&(pMe->nesting));
-
+   /* Could call GetNext here, but don't need to because this
+    * is only interested in arrays and maps. */
    uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, pItem);
-   if(uErr) {
+   if(uErr != QCBOR_SUCCESS) {
       pMe->uLastError = (uint8_t)uErr;
       return;
    }
 
    if(pItem->uDataType != uType) {
-      pMe->uLastError = 88;
+      pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
       return;
    }
 
    if(bInMap) {
-      QCBORItem LabelItem; /* not used, but must be given */
-      size_t uSavedXx = UsefulInputBuf_Tell(&(pMe->InBuf));
-
-      UsefulInputBuf_Seek(&(pMe->InBuf), uSavedStart);
+      /* If the item is in a map, the start of the array/map
+       * itself, not the label, must be found. Do this by
+       * rewinding to the starting position and fetching
+       * just the label data item. QCBORDecode_Private_GetNextTagNumber()
+       * doesn't do any of the array/map item counting or nesting
+       * level tracking. Used here it will just fetech the label
+       * data item.
+       *
+       * Have to save the cursor and put it back to the position
+       * after the full item once the label as been fetched by
+       * itself.
+       */
+      uTempSaveCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
+      UsefulInputBuf_Seek(&(pMe->InBuf), uStartingCursor);
 
       uErr = QCBORDecode_Private_GetNextTagNumber(pMe, &LabelItem);
       if(uErr != QCBOR_SUCCESS) {
          pMe->uLastError = (uint8_t)uErr;
          goto Done;
       }
-      uStartOfActual = UsefulInputBuf_Tell(&(pMe->InBuf));
-      UsefulInputBuf_Seek(&(pMe->InBuf), uSavedXx);
+
+      uStartOfReturned = UsefulInputBuf_Tell(&(pMe->InBuf));
+      UsefulInputBuf_Seek(&(pMe->InBuf), uTempSaveCursor);
    } else {
-      uStartOfActual = uSavedStart;
+      uStartOfReturned = uStartingCursor;
    }
 
-   /* Now consume the entire array/map to find the end */
-   uErr = QCBORDecode_Private_ConsumeItem(pMe, pItem, &uNest);
-   if(uErr) {
+   /* Consume the entire array/map to find the end */
+   uErr = QCBORDecode_Private_ConsumeItem(pMe, pItem, &uNestLevel);
+   if(uErr != QCBOR_SUCCESS) {
       pMe->uLastError = (uint8_t)uErr;
       goto Done;
    }
 
-   size_t uEnd = UsefulInputBuf_Tell(&(pMe->InBuf));
-
    /* Fill in returned values */
-   pEncodedCBOR->ptr = (const uint8_t *)pMe->InBuf.UB.ptr + uStartOfActual;
-   pEncodedCBOR->len = uEnd - uStartOfActual;
+   uEndOfReturned = UsefulInputBuf_Tell(&(pMe->InBuf));
+   pEncodedCBOR->ptr = UsefulInputBuf_OffsetToPointer(&(pMe->InBuf), uStartOfReturned);
+   pEncodedCBOR->len = uEndOfReturned - uStartOfReturned;
 
 Done:
    return;
 }
 
 
-/* Semi-private, see qcbor_spiffy_decode.h */
-void QCBORDecode_Private_SearchAndGetMapOrArray(QCBORDecodeContext *pMe,
-                            QCBORItem          *pTarget,
-                                                QCBORItem          *pItem,
-                            UsefulBufC         *pEncodedCBOR)
+/**
+ * @brief Semi-private. Get pointer, length and item count of an array or map.
+ *
+ * @param[in] pMe           The decode context.
+ * @param[in] pTarget        The label and type of the array or map to retrieve.
+ * @param[out] pItem         The item for the array/map.
+ * @param[out] pEncodedCBOR  Pointer and length of the encoded map or array.
+ *
+ * The next item to be decoded must be a map or array as specified by \c uType.
+ *
+ * When this is complete, the traversal cursor is unchanged.
+ */void
+QCBORDecode_Private_SearchAndGetMapOrArray(QCBORDecodeContext *pMe,
+                                           QCBORItem          *pTarget,
+                                           QCBORItem          *pItem,
+                                           UsefulBufC         *pEncodedCBOR)
 {
-   MapSearchInfo Info;
+   MapSearchInfo      Info;
+   QCBORDecodeNesting SaveNesting;
+   size_t             uSaveCursor;
+
    pMe->uLastError = (uint8_t)QCBORDecode_Private_MapSearch(pMe, pTarget, &Info, NULL);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -3694,18 +3630,15 @@ void QCBORDecode_Private_SearchAndGetMapOrArray(QCBORDecodeContext *pMe,
     * so the cursor position is unchanged by this operation, like
     * all the other GetXxxxInMap() operations. */
    // TODO: is this right?
-   QCBORDecodeNesting SaveNesting;
    DecodeNesting_PrepareForMapSearch(&(pMe->nesting), &SaveNesting);
-
-   UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset);
+   uSaveCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
 
    // TODO: make sure this doesn't affect anything it shouldn't See EnterArrayFromMap
    DecodeNesting_ResetMapOrArrayCount(&(pMe->nesting));
-
-
+   UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset);
    QCBORDecode_Private_GetMapOrArray(pMe, pTarget[0].uDataType, pItem, pEncodedCBOR);
 
-   // TODO: UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset); ???
+   UsefulInputBuf_Seek(&(pMe->InBuf), uSaveCursor);
    DecodeNesting_RestoreFromMapSearch(&(pMe->nesting), &SaveNesting);
 }
 

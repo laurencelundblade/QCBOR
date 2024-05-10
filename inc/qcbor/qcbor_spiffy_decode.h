@@ -711,45 +711,41 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
 
 /**
- @brief Get the bytes that make up an array.
-
- @param[in] pCtx           The decode context.
- @param[out] pItem         Place to return the array item.
- @param[out] pEncodedCBOR  Place to return pointer and length of the array.
-
- The next item to decode must be an array.
-
- TODO: return the array Item, not just the number of items in it
- That will give the label and tags of it too.
-
- @c pItem will have the label and tags for the array. It is filled
- in the same as if GetNext() were called on the array item. In
- particular the array count will be filled in for definite-length
- arrays and set to XXXX for indefinite-length arrays.
-
- This works on both definite and indefinite length arrays (unless
- indefinite length array decoding has been disabled).
-
- The pointer returned is to the data item that opens the array. The
- length in bytes includes it and all the member data items. If the map
- occurs in another map and thus has a label, the label is not included
- in what is returned.
-
- You can pass pEncodedCBOR directly to QCBORDecode_Init() if you want to
- create a separate decoder instance.
-
- QCBORDecode_GetArray() consumes the entire array and leaves
- the traversal cursor at the item after the array. QCBORDecode_GetArrayFromMapN()
- and QCBORDecode_GetArrayFromMapSZ() don't affect the traversal
- cursor.
-
- This traverses the whole array and every subordinate array or map in
- it. This is necessary to determine the length of the array. The
- traversal cursor is left at the first item after the array.
-
- This will fail if any item in the array is not well-formed.
-
- See also QCBORDecode_EnterArray().
+ * @brief Get the encoded bytes that make up an array.
+ *
+ * @param[in] pCtx           The decode context.
+ * @param[out] pItem         Place to return the item.
+ * @param[out] pEncodedCBOR  Place to return pointer and length of the array.
+ *
+ * The next item to decode must be an array.
+ *
+ * The encoded bytes of the array will be returned. They can be
+ * decoded by another decoder instance.
+ *
+ * @c pItem will have the label and tags for the array. It is filled
+ * in the same as if QCBORDecode_GetNext() were called on the array item. In
+ * particular, the array count will be filled in for definite-length
+ * arrays and set to @c UINT16_MAX for indefinite-length arrays.
+ *
+ * This works on both definite and indefinite length arrays (unless
+ * indefinite length array decoding has been disabled).
+ *
+ * The pointer returned is to the data item that opens the array. The
+ * length in bytes includes it and all the member data items. If the array
+ * occurs in another map and thus has a label, the label is not included
+ * in what is returned.
+ *
+ * QCBORDecode_GetArray() consumes the entire array and leaves
+ * the traversal cursor at the item after the array. QCBORDecode_GetArrayFromMapN()
+ * and QCBORDecode_GetArrayFromMapSZ() don't affect the traversal
+ * cursor.
+ *
+ * This traverses the whole array and every subordinate array or map in
+ * it. This is necessary to determine the length of the array.
+ *
+ * This will fail if any item in the array is not well-formed.
+ *
+ * See also QCBORDecode_EnterArray().
  */
 static void QCBORDecode_GetArray(QCBORDecodeContext *pCtx,
                                  QCBORItem          *pItem,
@@ -2164,41 +2160,20 @@ QCBORDecode_ExitMap(QCBORDecodeContext *pMe)
 }
 
 
-/**
- * @brief Semi-private. Get pointer, length and item count of a map or array.
- *
- * @param[in] pCtx   The decode context.
- * @param[in] uType   CBOR major type, either array/map.
- * @param[out] pItem   The item for the array/map.
- * @param[out] pEncodedCBOR   Pointer and length of the encoded map or array.
- *
- * The next item to be decoded must be a map or array as specified by \c uType.
- *
- * When this is complete, the traversal cursor is at the end of the array or map that was retrieved.
- */
+/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
 void 
 QCBORDecode_Private_GetMapOrArray(QCBORDecodeContext *pCtx,
                                   uint8_t             uType,
-                                  QCBORItem           *pItem,
+                                  QCBORItem          *pItem,
                                   UsefulBufC         *pEncodedCBOR);
 
 
-/**
- * @brief Semi-private. Get pointer, length and item count of a map or array.
- *
- * @param[in] pCtx   The decode context.
- * @param[in] pTarget   The label and type of the array or map to retrieve.
- * @param[out] pItem   TODO:
- * @param[out] pEncodedCBOR   Pointer and length of the encoded map or array.
- *
- * The next item to be decoded must be a map or array as specified by \c uType.
- *
- * When this is complete, the traversal cursor is unchanged.
- */
-void QCBORDecode_Private_SearchAndGetMapOrArray(QCBORDecodeContext *pCtx,
-                                                QCBORItem          *pTarget,
-                                                QCBORItem          *pItem,
-                                                UsefulBufC         *pEncodedCBOR);
+/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+void
+QCBORDecode_Private_SearchAndGetMapOrArray(QCBORDecodeContext *pCtx,
+                                           QCBORItem          *pTarget,
+                                           QCBORItem          *pItem,
+                                           UsefulBufC         *pEncodedCBOR);
 
 
 static inline void
