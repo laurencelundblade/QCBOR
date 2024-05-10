@@ -1,7 +1,7 @@
 /*==============================================================================
  run_tests.c -- test aggregator and results reporting
 
- Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
  Copyright (c) 2021, Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
@@ -67,6 +67,7 @@ static test_entry2 s_tests2[] = {
 
 static test_entry s_tests[] = {
     TEST_ENTRY(GetMapAndArrayTest),
+    TEST_ENTRY(TellTests),
     TEST_ENTRY(ErrorHandlingTests),
     TEST_ENTRY(OpenCloseBytesTest),
     TEST_ENTRY(EnterBstrTest),

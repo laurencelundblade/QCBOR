@@ -60,7 +60,7 @@ int RunTestsQCBOR(const char *szTestNames[],
 
 
 /**
- @brief Print sizes of encoder / decoder contexts.
+ @brief Print sizes of encoder-decoder contexts.
 
  @param[in] pfOutput     Function that is called to output text strings.
  @param[in] pOutCtx      Context pointer passed to output function.
