@@ -8846,13 +8846,17 @@ int32_t BoolTest(void)
 
 
 
-static uint8_t spFoo[] = {
+static const uint8_t spFoo[] = {
 0x82, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e,
 0x67, 0x31, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e,
    0x67, 0x32};
 
+static const uint8_t spFooIndef[] = {
+0x9f, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e,
+0x67, 0x31, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e,
+   0x67, 0x32, 0xff};
 
-static uint8_t spFood[] = {
+static const uint8_t spFood[] = {
 0xa4,
 0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x31,
 0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62, 0x79,
@@ -8866,10 +8870,32 @@ static uint8_t spFood[] = {
    0x74, 0x69, 0x73, 0x74, 0x69, 0x63, 0x73};
 
 
+static const uint8_t spFoodIndef[] = {
+0xbf,
+0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x31,
+0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62, 0x79,
+0x74, 0x65, 0x73, 0x20, 0x32, 0x44, 0x79, 0x79,
+0x79, 0x79, 0x6b, 0x61, 0x6e, 0x6f, 0x74, 0x68,
+0x65, 0x72, 0x20, 0x69, 0x6e, 0x74, 0x18, 0x62,
+0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32, 0x78,
+0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x64,
+0x61, 0x6d, 0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73,
+0x20, 0x61, 0x6e, 0x64, 0x20, 0x73, 0x74, 0x61,
+   0x74, 0x69, 0x73, 0x74, 0x69, 0x63, 0x73, 0xff};
+
+static const uint8_t spXx[] = {
+   0x9f, 0x00, 0x4f, 0xff
+};
+
+
+
+
 int32_t GetMapAndArrayTest(void)
 {
    QCBORDecodeContext DCtx;
    size_t uPosition ;
+   QCBORItem Item;
+   UsefulBufC ReturnedEncodedCBOR;
 
 
    QCBORDecode_Init(&DCtx,
@@ -8877,35 +8903,37 @@ int32_t GetMapAndArrayTest(void)
                     0);
 
    QCBORDecode_EnterMap(&DCtx, NULL);
-   QCBORItem Item;
    QCBORDecode_VGetNextConsume(&DCtx, &Item);
 
 
-   UsefulBufC ArrayCBOR;
-
-   QCBORDecode_GetArray(&DCtx, &Item, &ArrayCBOR);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
       return 44;
    }
    if(Item.val.uCount != 2) {
       return 1;
    }
-   if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
       return 2;
+   }
+
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FROM_SZ_LITERAL("an array of two strings"))) {
+      return 3;
    }
 
    uPosition = QCBORDecode_Tell(&DCtx);
 
 
 
-   QCBORDecode_GetMap(&DCtx, &Item, &ArrayCBOR);
+   QCBORDecode_GetMap(&DCtx, &Item, &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
       return 44;
    }
    if(Item.val.uCount != 4) {
       return 1;
    }
-   if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {
       return 2;
    }
 
@@ -8914,14 +8942,14 @@ int32_t GetMapAndArrayTest(void)
    QCBORDecode_GetArrayFromMapSZ(&DCtx,
                                  "an array of two strings",
                                  &Item,
-                                 &ArrayCBOR);
+                                 &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
       return 44;
    }
    if(Item.val.uCount != 2) {
       return 1;
    }
-   if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
       return 2;
    }
    if(uPosition != QCBORDecode_Tell(&DCtx)) {
@@ -8931,18 +8959,143 @@ int32_t GetMapAndArrayTest(void)
    QCBORDecode_Rewind(&DCtx);
 
    uPosition = QCBORDecode_Tell(&DCtx);
-   QCBORDecode_GetMapFromMapSZ(&DCtx, "map in a map", &Item, &ArrayCBOR);
+   QCBORDecode_GetMapFromMapSZ(&DCtx, "map in a map", &Item, &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
       return 44;
    }
    if(Item.val.uCount != 4) {
       return 1;
    }
-   if(UsefulBuf_Compare(ArrayCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {
       return 2;
    }
    if(uPosition != QCBORDecode_Tell(&DCtx)) {
       return 33;
+   }
+
+   uPosition = QCBORDecode_Tell(&DCtx);
+   QCBORDecode_GetArrayFromMapSZ(&DCtx, "map in a map", &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 44;
+   }
+   if(UINT32_MAX != QCBORDecode_Tell(&DCtx)) {
+      return 33;
+   }
+   QCBORDecode_GetAndResetError(&DCtx);
+   if(uPosition != QCBORDecode_Tell(&DCtx)) {
+      return 33;
+   }
+
+
+
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapIndefEncoded),
+                    0);
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item);
+
+
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 44;
+   }
+   if(Item.val.uCount != UINT16_MAX) {
+      return 1;
+   }
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFooIndef))) {
+      return 2;
+   }
+
+   if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      UsefulBuf_Compare(Item.label.string, UsefulBuf_FROM_SZ_LITERAL("an array of two strings"))) {
+      return 3;
+   }
+
+   uPosition = QCBORDecode_Tell(&DCtx);
+
+
+
+   QCBORDecode_GetMap(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 44;
+   }
+   if(Item.val.uCount != UINT16_MAX) {
+      return 1;
+   }
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoodIndef))) {
+      return 2;
+   }
+
+
+   uPosition = QCBORDecode_Tell(&DCtx);
+   QCBORDecode_GetArrayFromMapSZ(&DCtx,
+                                 "an array of two strings",
+                                 &Item,
+                                 &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 44;
+   }
+   if(Item.val.uCount != 2) {
+      return 1;
+   }
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
+      return 2;
+   }
+   if(uPosition != QCBORDecode_Tell(&DCtx)) {
+      return 33;
+   }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   uPosition = QCBORDecode_Tell(&DCtx);
+   QCBORDecode_GetMapFromMapSZ(&DCtx, "map in a map", &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx)) {
+      return 44;
+   }
+   if(Item.val.uCount != 4) {
+      return 1;
+   }
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {
+      return 2;
+   }
+   if(uPosition != QCBORDecode_Tell(&DCtx)) {
+      return 33;
+   }
+
+   uPosition = QCBORDecode_Tell(&DCtx);
+   QCBORDecode_GetArrayFromMapSZ(&DCtx, "map in a map", &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 44;
+   }
+   if(UINT32_MAX != QCBORDecode_Tell(&DCtx)) {
+      return 33;
+   }
+   QCBORDecode_GetAndResetError(&DCtx);
+   if(uPosition != QCBORDecode_Tell(&DCtx)) {
+      return 33;
+   }
+
+
+
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spXx),
+                    0);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_HIT_END) {
+      return 44;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spXx),
+                    0);
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_HIT_END) {
+      return 44;
    }
 
    return 0;

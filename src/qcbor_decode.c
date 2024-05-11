@@ -3510,7 +3510,7 @@ Done:
 /**
  * @brief Semi-private. Get pointer, length and item for a an array or map.
  *
- * @param[in] pMe           The decode context.
+ * @param[in] pMe            The decode context.
  * @param[in] uType          CBOR major type, either array/map.
  * @param[out] pItem         The item for the array/map.
  * @param[out] pEncodedCBOR  Pointer and length of the encoded map or array.
@@ -3525,7 +3525,7 @@ Done:
  * map that was retrieved.
  */
 void
-QCBORDecode_Private_GetMapOrArray(QCBORDecodeContext *pMe,
+QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
                                   const uint8_t       uType,
                                   QCBORItem          *pItem,
                                   UsefulBufC         *pEncodedCBOR)
@@ -3571,11 +3571,8 @@ QCBORDecode_Private_GetMapOrArray(QCBORDecodeContext *pMe,
       uTempSaveCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
       UsefulInputBuf_Seek(&(pMe->InBuf), uStartingCursor);
 
-      uErr = QCBORDecode_Private_GetNextTagNumber(pMe, &LabelItem);
-      if(uErr != QCBOR_SUCCESS) {
-         pMe->uLastError = (uint8_t)uErr;
-         goto Done;
-      }
+      /* Item has been fetched once so safe to ignore error. */
+      (void)QCBORDecode_Private_GetNextTagNumber(pMe, &LabelItem);
 
       uStartOfReturned = UsefulInputBuf_Tell(&(pMe->InBuf));
       UsefulInputBuf_Seek(&(pMe->InBuf), uTempSaveCursor);
@@ -3603,7 +3600,7 @@ Done:
 /**
  * @brief Semi-private. Get pointer, length and item count of an array or map.
  *
- * @param[in] pMe           The decode context.
+ * @param[in] pMe            The decode context.
  * @param[in] pTarget        The label and type of the array or map to retrieve.
  * @param[out] pItem         The item for the array/map.
  * @param[out] pEncodedCBOR  Pointer and length of the encoded map or array.
@@ -3612,7 +3609,7 @@ Done:
  *
  * When this is complete, the traversal cursor is unchanged.
  */void
-QCBORDecode_Private_SearchAndGetMapOrArray(QCBORDecodeContext *pMe,
+QCBORDecode_Private_SearchAndGetArrayOrMap(QCBORDecodeContext *pMe,
                                            QCBORItem          *pTarget,
                                            QCBORItem          *pItem,
                                            UsefulBufC         *pEncodedCBOR)
@@ -3636,7 +3633,7 @@ QCBORDecode_Private_SearchAndGetMapOrArray(QCBORDecodeContext *pMe,
    // TODO: make sure this doesn't affect anything it shouldn't See EnterArrayFromMap
    DecodeNesting_ResetMapOrArrayCount(&(pMe->nesting));
    UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset);
-   QCBORDecode_Private_GetMapOrArray(pMe, pTarget[0].uDataType, pItem, pEncodedCBOR);
+   QCBORDecode_Private_GetArrayOrMap(pMe, pTarget[0].uDataType, pItem, pEncodedCBOR);
 
    UsefulInputBuf_Seek(&(pMe->InBuf), uSaveCursor);
    DecodeNesting_RestoreFromMapSearch(&(pMe->nesting), &SaveNesting);
