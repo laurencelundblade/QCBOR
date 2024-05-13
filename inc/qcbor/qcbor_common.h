@@ -237,7 +237,7 @@ extern "C" {
 
 
 /**
- * Error codes returned by QCBOR Encoder and Decoder.
+ * Error codes returned by QCBOR Encoder-Decoder.
  *
  * They are grouped to keep the code size of
  * QCBORDecode_IsNotWellFormedError() and

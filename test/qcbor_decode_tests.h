@@ -323,4 +323,7 @@ int32_t CBORTestIssue134(void);
 int32_t ErrorHandlingTests(void);
 
 
+int32_t TellTests(void);
+
+
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */
