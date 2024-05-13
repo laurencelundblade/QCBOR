@@ -1896,8 +1896,8 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
  * CBOR. QCBORDecode_ExitBstrWrapped() must be called to resume
  * processing CBOR outside the wrapped CBOR.
  *
- * This does not (currently) work on indefinite-length strings. The
- * (confusing) error @ref QCBOR_ERR_INPUT_TOO_LARGE will be set.
+ * This does not work on indefinite-length strings. The
+ * error @ref QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING will be set.
  *
  * If @c pBstr is not @c NULL the pointer and length of the wrapped
  * CBOR will be returned. This is usually not needed, but sometimes

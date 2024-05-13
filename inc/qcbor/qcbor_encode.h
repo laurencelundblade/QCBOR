@@ -366,6 +366,7 @@ extern "C" {
  * - Tags on labels are ignored during decoding.
  * - The maximum tag nesting is @c QCBOR_MAX_TAGS_PER_ITEM (typically 4).
  * - Works only on 32- and 64-bit CPUs.
+ * - QCBORDecode_EnterBstrWrapped() doesn't work on indefinite-length strings.
  *
  * The public interface uses @c size_t for all lengths. Internally the
  * implementation uses 32-bit lengths by design to use less memory and
