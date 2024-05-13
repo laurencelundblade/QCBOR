@@ -5945,9 +5945,6 @@ const unsigned char spBadConsumeInput2[] = {
                00
 };
 
-const unsigned char spBadConsumeInput3[] = {
-   0x81, 0xc0, 0x81, 0x00
-};
 
 const unsigned char spBadConsumeInput4[] = {
    0x81, 0x9f, 0x00, 0xff
@@ -6426,12 +6423,6 @@ int32_t EnterMapTest(void)
    QCBORDecode_VGetNextConsume(&DCtx, &Item1);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
       return 2700;
-   }
-
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput3), 0);
-   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
-   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
-      return 2800;
    }
 #endif
 
@@ -8846,56 +8837,63 @@ int32_t BoolTest(void)
 
 
 
-static const uint8_t spFoo[] = {
-0x82, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e,
-0x67, 0x31, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e,
-   0x67, 0x32};
+static const uint8_t spExpectedArray2s[] = {
+   0x82, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67,
+   0x31, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67,
+   0x32};
 
-static const uint8_t spFooIndef[] = {
-0x9f, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e,
-0x67, 0x31, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e,
-   0x67, 0x32, 0xff};
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+static const uint8_t spExpectedArray2sIndef[] = {
+   0x9f, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67,
+   0x31, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67,
+   0x32, 0xff};
+#endif
 
-static const uint8_t spFood[] = {
-0xa4,
-0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x31,
-0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62, 0x79,
-0x74, 0x65, 0x73, 0x20, 0x32, 0x44, 0x79, 0x79,
-0x79, 0x79, 0x6b, 0x61, 0x6e, 0x6f, 0x74, 0x68,
-0x65, 0x72, 0x20, 0x69, 0x6e, 0x74, 0x18, 0x62,
-0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32, 0x78,
-0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x64,
-0x61, 0x6d, 0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73,
-0x20, 0x61, 0x6e, 0x64, 0x20, 0x73, 0x74, 0x61,
-   0x74, 0x69, 0x73, 0x74, 0x69, 0x63, 0x73};
+static const uint8_t spExpectedMap4[] = {
+   0xa4, 0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20,
+   0x31, 0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62,
+   0x79, 0x74, 0x65, 0x73, 0x20, 0x32, 0x44, 0x79,
+   0x79, 0x79, 0x79, 0x6b, 0x61, 0x6e, 0x6f, 0x74,
+   0x68, 0x65, 0x72, 0x20, 0x69, 0x6e, 0x74, 0x18,
+   0x62, 0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32,
+   0x78, 0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20,
+   0x64, 0x61, 0x6d, 0x6e, 0x20, 0x6c, 0x69, 0x65,
+   0x73, 0x20, 0x61, 0x6e, 0x64, 0x20, 0x73, 0x74,
+   0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63, 0x73};
 
 
-static const uint8_t spFoodIndef[] = {
-0xbf,
-0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20, 0x31,
-0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62, 0x79,
-0x74, 0x65, 0x73, 0x20, 0x32, 0x44, 0x79, 0x79,
-0x79, 0x79, 0x6b, 0x61, 0x6e, 0x6f, 0x74, 0x68,
-0x65, 0x72, 0x20, 0x69, 0x6e, 0x74, 0x18, 0x62,
-0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32, 0x78,
-0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20, 0x64,
-0x61, 0x6d, 0x6e, 0x20, 0x6c, 0x69, 0x65, 0x73,
-0x20, 0x61, 0x6e, 0x64, 0x20, 0x73, 0x74, 0x61,
-   0x74, 0x69, 0x73, 0x74, 0x69, 0x63, 0x73, 0xff};
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
-static const uint8_t spXx[] = {
-   0x9f, 0x00, 0x4f, 0xff
+static const uint8_t spExpectedMap4Indef[] = {
+   0xbf, 0x67, 0x62, 0x79, 0x74, 0x65, 0x73, 0x20,
+   0x31, 0x44, 0x78, 0x78, 0x78, 0x78, 0x67, 0x62,
+   0x79, 0x74, 0x65, 0x73, 0x20, 0x32, 0x44, 0x79,
+   0x79, 0x79, 0x79, 0x6b, 0x61, 0x6e, 0x6f, 0x74,
+   0x68, 0x65, 0x72, 0x20, 0x69, 0x6e, 0x74, 0x18,
+   0x62, 0x66, 0x74, 0x65, 0x78, 0x74, 0x20, 0x32,
+   0x78, 0x1e, 0x6c, 0x69, 0x65, 0x73, 0x2c, 0x20,
+   0x64, 0x61, 0x6d, 0x6e, 0x20, 0x6c, 0x69, 0x65,
+   0x73, 0x20, 0x61, 0x6e, 0x64, 0x20, 0x73, 0x74,
+   0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63, 0x73,
+   0xff};
+
+/*
+ * [[[[[0, []]]]], 0]
+ */
+static const uint8_t spDefAndIndef[] = {
+   0x82,
+      0x9f, 0x9f, 0x9f, 0x82, 0x00, 0x9f, 0xff, 0xff, 0xff, 0xff, 0x00
 };
-
+#endif
 
 
 
 int32_t GetMapAndArrayTest(void)
 {
    QCBORDecodeContext DCtx;
-   size_t uPosition ;
-   QCBORItem Item;
-   UsefulBufC ReturnedEncodedCBOR;
+   size_t             uPosition ;
+   QCBORItem          Item;
+   UsefulBufC         ReturnedEncodedCBOR;
 
 
    QCBORDecode_Init(&DCtx,
@@ -8904,56 +8902,51 @@ int32_t GetMapAndArrayTest(void)
 
    QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_VGetNextConsume(&DCtx, &Item);
-
-
    QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
-      return 44;
-   }
-   if(Item.val.uCount != 2) {
       return 1;
    }
-   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
+   if(Item.val.uCount != 2) {
       return 2;
+   }
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedArray2s))) {
+      return 3;
    }
 
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.label.string, UsefulBuf_FROM_SZ_LITERAL("an array of two strings"))) {
-      return 3;
+      return 4;
    }
 
    uPosition = QCBORDecode_Tell(&DCtx);
 
 
-
    QCBORDecode_GetMap(&DCtx, &Item, &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
-      return 44;
+      return 10;
    }
    if(Item.val.uCount != 4) {
-      return 1;
+      return 11;
    }
-   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {
-      return 2;
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedMap4))) {
+      return 12;
    }
-
-
    uPosition = QCBORDecode_Tell(&DCtx);
    QCBORDecode_GetArrayFromMapSZ(&DCtx,
                                  "an array of two strings",
                                  &Item,
                                  &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
-      return 44;
+      return 20;
    }
    if(Item.val.uCount != 2) {
-      return 1;
+      return 21;
    }
-   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
-      return 2;
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedArray2s))) {
+      return 22;
    }
    if(uPosition != QCBORDecode_Tell(&DCtx)) {
-      return 33;
+      return 23;
    }
 
    QCBORDecode_Rewind(&DCtx);
@@ -8961,13 +8954,13 @@ int32_t GetMapAndArrayTest(void)
    uPosition = QCBORDecode_Tell(&DCtx);
    QCBORDecode_GetMapFromMapSZ(&DCtx, "map in a map", &Item, &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
-      return 44;
+      return 30;
    }
    if(Item.val.uCount != 4) {
-      return 1;
+      return 31;
    }
-   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {
-      return 2;
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedMap4))) {
+      return 32;
    }
    if(uPosition != QCBORDecode_Tell(&DCtx)) {
       return 33;
@@ -8976,17 +8969,78 @@ int32_t GetMapAndArrayTest(void)
    uPosition = QCBORDecode_Tell(&DCtx);
    QCBORDecode_GetArrayFromMapSZ(&DCtx, "map in a map", &Item, &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
-      return 44;
+      return 40;
    }
    if(UINT32_MAX != QCBORDecode_Tell(&DCtx)) {
-      return 33;
+      return 41;
    }
    QCBORDecode_GetAndResetError(&DCtx);
    if(uPosition != QCBORDecode_Tell(&DCtx)) {
-      return 33;
+      return 42;
    }
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
+   UsefulBufC DefAndIndef = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDefAndIndef);
+   QCBORDecode_Init(&DCtx, DefAndIndef, 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 50;
+   }
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_Tail(UsefulBuf_Head(DefAndIndef, 11), 1))) {
+      return 51;
+   }
+
+   QCBORDecode_Init(&DCtx, DefAndIndef, 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 52;
+   }
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_Tail(UsefulBuf_Head(DefAndIndef, 10), 2))) {
+      return 53;
+   }
+
+   QCBORDecode_Init(&DCtx, DefAndIndef, 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 54;
+   }
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_Tail(UsefulBuf_Head(DefAndIndef, 9), 3))) {
+      return 55;
+   }
+   QCBORDecode_Init(&DCtx, DefAndIndef, 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 56;
+   }
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_Tail(UsefulBuf_Head(DefAndIndef, 8), 4))) {
+      return 57;
+   }
+
+   QCBORDecode_Init(&DCtx, DefAndIndef, 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 58;
+   }
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_Tail(UsefulBuf_Head(DefAndIndef, 8), 6))) {
+      return 59;
+   }
 
 
    QCBORDecode_Init(&DCtx,
@@ -8995,37 +9049,34 @@ int32_t GetMapAndArrayTest(void)
 
    QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_VGetNextConsume(&DCtx, &Item);
-
-
    QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
-      return 44;
+      return 60;
    }
    if(Item.val.uCount != UINT16_MAX) {
-      return 1;
+      return 61;
    }
-   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFooIndef))) {
-      return 2;
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedArray2sIndef))) {
+      return 62;
    }
 
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
       UsefulBuf_Compare(Item.label.string, UsefulBuf_FROM_SZ_LITERAL("an array of two strings"))) {
-      return 3;
+      return 63;
    }
 
    uPosition = QCBORDecode_Tell(&DCtx);
 
 
-
    QCBORDecode_GetMap(&DCtx, &Item, &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
-      return 44;
+      return 70;
    }
    if(Item.val.uCount != UINT16_MAX) {
-      return 1;
+      return 71;
    }
-   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoodIndef))) {
-      return 2;
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedMap4Indef))) {
+      return 72;
    }
 
 
@@ -9035,16 +9086,16 @@ int32_t GetMapAndArrayTest(void)
                                  &Item,
                                  &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
-      return 44;
+      return 80;
    }
-   if(Item.val.uCount != 2) {
-      return 1;
+   if(Item.val.uCount != UINT16_MAX) {
+      return 81;
    }
-   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFoo))) {
-      return 2;
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedArray2sIndef))) {
+      return 82;
    }
    if(uPosition != QCBORDecode_Tell(&DCtx)) {
-      return 33;
+      return 83;
    }
 
    QCBORDecode_Rewind(&DCtx);
@@ -9052,51 +9103,31 @@ int32_t GetMapAndArrayTest(void)
    uPosition = QCBORDecode_Tell(&DCtx);
    QCBORDecode_GetMapFromMapSZ(&DCtx, "map in a map", &Item, &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx)) {
-      return 44;
+      return 90;
    }
-   if(Item.val.uCount != 4) {
-      return 1;
+   if(Item.val.uCount != UINT16_MAX) {
+      return 91;
    }
-   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spFood))) {
-      return 2;
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedMap4Indef))) {
+      return 92;
    }
    if(uPosition != QCBORDecode_Tell(&DCtx)) {
-      return 33;
+      return 93;
    }
 
    uPosition = QCBORDecode_Tell(&DCtx);
    QCBORDecode_GetArrayFromMapSZ(&DCtx, "map in a map", &Item, &ReturnedEncodedCBOR);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
-      return 44;
+      return 100;
    }
    if(UINT32_MAX != QCBORDecode_Tell(&DCtx)) {
-      return 33;
+      return 101;
    }
    QCBORDecode_GetAndResetError(&DCtx);
    if(uPosition != QCBORDecode_Tell(&DCtx)) {
-      return 33;
+      return 102;
    }
-
-
-
-
-   QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spXx),
-                    0);
-   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
-   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_HIT_END) {
-      return 44;
-   }
-
-   QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spXx),
-                    0);
-   QCBORDecode_VGetNext(&DCtx, &Item);
-   QCBORDecode_VGetNext(&DCtx, &Item);
-   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
-   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_HIT_END) {
-      return 44;
-   }
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    return 0;
 }

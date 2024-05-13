@@ -2280,29 +2280,6 @@ QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-// Semi-private
-void
-QCBORDecode_GetInt64ConvertInternal(QCBORDecodeContext *pMe,
-                                    uint32_t            uConvertTypes,
-                                    int64_t            *pnValue,
-                                    QCBORItem          *pItem);
-
-// Semi-private
-void
-QCBORDecode_GetInt64ConvertInternalInMapN(QCBORDecodeContext *pMe,
-                                          int64_t             nLabel,
-                                          uint32_t            uConvertTypes,
-                                          int64_t            *pnValue,
-                                          QCBORItem          *pItem);
-
-// Semi-private
-void
-QCBORDecode_GetInt64ConvertInternalInMapSZ(QCBORDecodeContext *pMe,
-                                           const char         *szLabel,
-                                           uint32_t            uConvertTypes,
-                                           int64_t            *pnValue,
-                                           QCBORItem          *pItem);
-
 
 static inline void
 QCBORDecode_GetInt64Convert(QCBORDecodeContext *pMe,

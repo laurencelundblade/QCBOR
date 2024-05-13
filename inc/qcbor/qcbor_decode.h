@@ -984,7 +984,10 @@ QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * This is the same as QCBORDecode_VGetNext() but the contents of the
  * entire map or array will be consumed if the item is a map or array.
  *
- * In order to go back to decode the contents of a map or array
+ * If an array or map is being consumed by this, an error will
+ * occur if any of the items in the array or map are in error.
+ *
+ * In order to go back to decode the contents of an array or map
  * consumed by this, the decoder must be rewound using
  * QCBORDecode_Rewind().
  */
