@@ -735,10 +735,13 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  * occurs in another map and thus has a label, the label is not included
  * in what is returned.
  *
+ * If the array is preceeded by tags, those encoded tags are included
+ * in the encoded CBOR that is returned.
+ *
  * QCBORDecode_GetArray() consumes the entire array and leaves the
- * traversal cursor at the item after the
- * array. QCBORDecode_GetArrayFromMapN() and
- * QCBORDecode_GetArrayFromMapSZ() don't affect the traversal cursor.
+ * traversal cursor at the item after the array.
+ * QCBORDecode_GetArrayFromMapN() and QCBORDecode_GetArrayFromMapSZ()
+ * don't affect the traversal cursor.
  *
  * This traverses the whole array and every subordinate array or map in
  * it. This is necessary to determine the length of the array.
@@ -877,10 +880,13 @@ QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
  * occurs in another map and thus has a label, the label is not included
  * in what is returned.
  *
+ * If the map is preceeded by tags, those encoded tags are included in
+ * the encoded CBOR that is returned.
+ *
  * QCBORDecode_GetMap() consumes the entire array and leaves the
- * traversal cursor at the item after the
- * map. QCBORDecode_GetMapFromMapN() and
- * QCBORDecode_GetMapFromMapSZ() don't affect the traversal cursor.
+ * traversal cursor at the item after the map.
+ * QCBORDecode_GetMapFromMapN() and QCBORDecode_GetMapFromMapSZ()
+ * don't affect the traversal cursor.
  *
  * This traverses the whole map and every subordinate array or map in
  * it. This is necessary to determine the length of the map. The

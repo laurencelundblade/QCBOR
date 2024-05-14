@@ -8886,6 +8886,9 @@ static const uint8_t spDefAndIndef[] = {
 #endif
 
 
+/* An exp / mant tag in two nested arrays */
+static const uint8_t spExpMant[] = {0x81, 0x81, 0xC4, 0x82, 0x20, 0x03};
+
 
 int32_t GetMapAndArrayTest(void)
 {
@@ -8977,6 +8980,30 @@ int32_t GetMapAndArrayTest(void)
    if(uPosition != QCBORDecode_Tell(&DCtx)) {
       return 42;
    }
+
+
+
+   UsefulBufC ExpMant = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpMant);
+   QCBORDecode_Init(&DCtx, ExpMant, 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 200;
+   }
+   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return 201;
+   }
+   if(!QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_DECIMAL_FRACTION)) {
+      return 202;
+   }
+   if(Item.val.uCount != 2) {
+      return 201;
+   }
+   if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_Tail(ExpMant, 2))) {
+      return 205;
+   }
+
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 

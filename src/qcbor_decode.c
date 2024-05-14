@@ -3249,6 +3249,8 @@ typedef struct {
  *
  * @param[in]  pMe           The decode context to search.
  * @param[in,out] pItemArray The items to search for and the items found.
+ * @param[out] pInfo         Several bits of meta-info returned by search.
+ * @param[in] pCallBack      Callback object or @c NULL.
  *   TODO: fix params
  *
  * @retval QCBOR_ERR_NOT_ENTERED     Trying to search without entering a map.
@@ -3650,11 +3652,9 @@ QCBORDecode_Private_SearchAndGetArrayOrMap(QCBORDecodeContext *pMe,
    /* Save the whole position of things so they can be restored.
     * so the cursor position is unchanged by this operation, like
     * all the other GetXxxxInMap() operations. */
-   // TODO: is this right?
    DecodeNesting_PrepareForMapSearch(&(pMe->nesting), &SaveNesting);
    uSaveCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
 
-   // TODO: make sure this doesn't affect anything it shouldn't See EnterArrayFromMap
    DecodeNesting_ResetMapOrArrayCount(&(pMe->nesting));
    UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset);
    QCBORDecode_Private_GetArrayOrMap(pMe, pTarget[0].uDataType, pItem, pEncodedCBOR);
