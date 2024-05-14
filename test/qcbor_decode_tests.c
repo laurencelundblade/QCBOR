@@ -8883,11 +8883,13 @@ static const uint8_t spDefAndIndef[] = {
    0x82,
       0x9f, 0x9f, 0x9f, 0x82, 0x00, 0x9f, 0xff, 0xff, 0xff, 0xff, 0x00
 };
-#endif
+#endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
+#ifndef QCBOR_DISABLE_TAGS
 /* An exp / mant tag in two nested arrays */
 static const uint8_t spExpMant[] = {0x81, 0x81, 0xC4, 0x82, 0x20, 0x03};
+#endif /* !QCBOR_DISABLE_TAGS */
 
 
 int32_t GetMapAndArrayTest(void)
@@ -8982,7 +8984,7 @@ int32_t GetMapAndArrayTest(void)
    }
 
 
-
+#ifndef QCBOR_DISABLE_TAGS
    UsefulBufC ExpMant = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpMant);
    QCBORDecode_Init(&DCtx, ExpMant, 0);
    QCBORDecode_EnterArray(&DCtx, NULL);
@@ -9003,6 +9005,7 @@ int32_t GetMapAndArrayTest(void)
    if(UsefulBuf_Compare(ReturnedEncodedCBOR, UsefulBuf_Tail(ExpMant, 2))) {
       return 205;
    }
+#endif /* !QCBOR_DISABLE_TAGS */
 
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
@@ -9153,7 +9156,7 @@ int32_t GetMapAndArrayTest(void)
    if(uPosition != QCBORDecode_Tell(&DCtx)) {
       return 102;
    }
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    return 0;
 }

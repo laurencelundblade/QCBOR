@@ -3278,9 +3278,9 @@ typedef struct {
  */
 static QCBORError
 QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
-          QCBORItem          *pItemArray,
-          MapSearchInfo      *pInfo,
-          MapSearchCallBack  *pCallBack)
+                              QCBORItem          *pItemArray,
+                              MapSearchInfo      *pInfo,
+                              MapSearchCallBack  *pCallBack)
 {
    QCBORError uReturn;
    uint64_t   uFoundItemBitMap = 0;
