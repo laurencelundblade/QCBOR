@@ -15,10 +15,10 @@ backwards compatibility.
 
 ![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
 
-**QCBOR** is a powerful, commercial-quality CBOR encoder/decoder that
+**QCBOR** is a powerful, commercial-quality CBOR encoder-decoder that
 implements these RFCs:
 
-* [RFC8949](https://tools.ietf.org/html/rfc8949) The CBOR Standard. (Everything
+* [RFC8949](https://tools.ietf.org/html/rfc8949) The CBOR Standard. (Nearly everything
 except sorting of encoded maps)
 * [RFC7049](https://tools.ietf.org/html/rfc7049) The previous CBOR standard.
 Replaced by RFC 8949.
@@ -183,11 +183,14 @@ QCBOR.
 
 ## Code Status
 
-The current version is v1.1, a small feature addition and bug fix
-release over QCBOR 1.0.
+The official current release is version 1.3. Changes over the last few
+years have been only minor bug fixes, minor feature additions and
+documentation improvements. QCBOR 1.x is highly stable.
 
-Code has been stable for over a year. The last major change was in
-fall of 2020.
+Work on some larger feature additions is ongoing in "dev" branch.
+This includes more explicit support for preferred serialization and
+CDE (CBOR Deterministic Encoding).  It will eventually be release as
+QCBOR 2.x.
 
 QCBOR was originally developed by Qualcomm. It was [open sourced
 through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a

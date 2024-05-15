@@ -91,9 +91,6 @@ extern "C" {
  * QCBORDecode_EnterArray() can be used to narrow the traversal to the
  * extent of the array.
  *
- * QCBORDecode_EnterArray() can be used to narrow the traversal to the
- * extent of the array.
- *
  * All the QCBORDecode_GetXxxxInMapX() methods support duplicate label
  * detection and will result in an error if the map has duplicate
  * labels.
@@ -726,8 +723,8 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  * Nested arrays and maps may be entered to a depth of
  * @ref QCBOR_MAX_ARRAY_NESTING.
  *
- * See also QCBORDecode_ExitArray(), QCBORDecode_EnterMap() and
- * QCBORDecode_EnterBstrWrapped().
+ * See also QCBORDecode_ExitArray(), QCBORDecode_EnterMap(),
+ * QCBORDecode_EnterBstrWrapped() and QCBORDecode_GetArray().
  */
 static void
 QCBORDecode_EnterArray(QCBORDecodeContext *pCtx, QCBORItem *pItem);
@@ -749,7 +746,7 @@ QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char *szLabel);
  * The items in the array that was entered do not have to have been
  * consumed for this to succeed.
  *
- * This sets the pre-order traversal cursor to the item after the
+ * This sets the traversal cursor to the item after the
  * array that was exited.
  *
  * This will result in an error if any item in the array is not well
@@ -760,6 +757,65 @@ static void
 QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
 
 
+
+/**
+ * @brief Get the encoded bytes that make up an array.
+ *
+ * @param[in] pCtx           The decode context.
+ * @param[out] pItem         Place to return the item.
+ * @param[out] pEncodedCBOR  Place to return pointer and length of the array.
+ *
+ * The next item to decode must be an array.
+ *
+ * The encoded bytes of the array will be returned. They can be
+ * decoded by another decoder instance.
+ *
+ * @c pItem will have the label and tags for the array. It is filled
+ * in the same as if QCBORDecode_GetNext() were called on the array item. In
+ * particular, the array count will be filled in for definite-length
+ * arrays and set to @c UINT16_MAX for indefinite-length arrays.
+ *
+ * This works on both definite and indefinite length arrays (unless
+ * indefinite length array decoding has been disabled).
+ *
+ * The pointer returned is to the data item that opens the array. The
+ * length in bytes includes it and all the member data items. If the array
+ * occurs in another map and thus has a label, the label is not included
+ * in what is returned.
+ *
+ * If the array is preceeded by tags, those encoded tags are included
+ * in the encoded CBOR that is returned.
+ *
+ * QCBORDecode_GetArray() consumes the entire array and leaves the
+ * traversal cursor at the item after the array.
+ * QCBORDecode_GetArrayFromMapN() and QCBORDecode_GetArrayFromMapSZ()
+ * don't affect the traversal cursor.
+ *
+ * This traverses the whole array and every subordinate array or map in
+ * it. This is necessary to determine the length of the array.
+ *
+ * This will fail if any item in the array is not well-formed.
+ *
+ * This uses a few hundred bytes of stack, more than most methods.
+ *
+ * See also QCBORDecode_EnterArray().
+ */
+static void
+QCBORDecode_GetArray(QCBORDecodeContext *pCtx,
+                     QCBORItem          *pItem,
+                     UsefulBufC         *pEncodedCBOR);
+
+static void
+QCBORDecode_GetArrayFromMapN(QCBORDecodeContext *pCtx,
+                             int64_t             nLabel,
+                             QCBORItem          *pItem,
+                             UsefulBufC         *pEncodedCBOR);
+
+static void
+QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pCtx,
+                              const char         *szLabel,
+                              QCBORItem          *pItem,
+                              UsefulBufC         *pEncodedCBOR);
 
 
 /**
@@ -788,7 +844,7 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  * fully exited.
  *
  * While in bounded mode, QCBORDecode_GetNext() works as usual on the
- * map and the pre-order traversal cursor is maintained. It starts out
+ * map and the traversal cursor is maintained. It starts out
  * at the first item in the map just entered. Attempts to get items
  * off the end of the map will give error @ref QCBOR_ERR_NO_MORE_ITEMS
  * rather going to the next item after the map as it would when not in
@@ -799,12 +855,12 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  * non-aggregate items by label behaves differently from entering subordinate
  * aggregate items by label.  See dicussion in @ref SpiffyDecode.
  *
- * Exiting leaves the pre-order cursor at the data item following the
+ * Exiting leaves the traversal cursor at the data item following the
  * last entry in the map or at the end of the input CBOR if there
  * nothing after the map.
  *
  * Entering and Exiting a map is a way to skip over an entire map and
- * its contents. After QCBORDecode_ExitMap(), the pre-order traversal
+ * its contents. After QCBORDecode_ExitMap(), the traversal
  * cursor will be at the first item after the map.
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
@@ -813,6 +869,8 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  * QCBORDecode_EnterBstrWrapped().  Entering and exiting any nested
  * combination of maps, arrays and bstr-wrapped CBOR is supported up
  * to the maximum of @ref QCBOR_MAX_ARRAY_NESTING.
+ *
+ * See also QCBORDecode_GetMap().
  */
 static void
 QCBORDecode_EnterMap(QCBORDecodeContext *pCtx, QCBORItem *pItem);
@@ -834,7 +892,7 @@ QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char *szLabel);
  * The items in the map that was entered do not have to have been
  * consumed for this to succeed.
  *
- * This sets the pre-order traversal cursor to the item after the map
+ * This sets the traversal cursor to the item after the map
  * that was exited.
  *
  * This will result in an error if any item in the map is not well
@@ -843,6 +901,67 @@ QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char *szLabel);
  */
 static void
 QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
+
+
+/**
+ * @brief Get the bytes that make up a map.
+ *
+ * @param[in] pCtx           The decode context.
+ * @param[out] pItem         Place to return the item.
+ * @param[out] pEncodedCBOR  Place to return pointer and length of the map.
+ *
+ * The next item to decode must be a map.
+ *
+ * The encoded bytes of the map will be returned. They can be
+ * decoded by another decoder instance.
+ *
+ *  @c pItem will have the label and tags for the array. It is filled
+ * in the same as if QCBORDecode_GetNext() were called on the map item. In
+ * particular, the map count will be filled in for definite-length
+ * maps and set to @c UINT16_MAX for indefinite-length maps.
+ *
+ * This works on both definite and indefinite length maps (unless
+ * indefinite length map decoding has been disabled).
+ *
+ * The pointer returned is to the data item that opens the map. The
+ * length in bytes includes it and all the member data items. If the map
+ * occurs in another map and thus has a label, the label is not included
+ * in what is returned.
+ *
+ * If the map is preceeded by tags, those encoded tags are included in
+ * the encoded CBOR that is returned.
+ *
+ * QCBORDecode_GetMap() consumes the entire array and leaves the
+ * traversal cursor at the item after the map.
+ * QCBORDecode_GetMapFromMapN() and QCBORDecode_GetMapFromMapSZ()
+ * don't affect the traversal cursor.
+ *
+ * This traverses the whole map and every subordinate array or map in
+ * it. This is necessary to determine the length of the map. The
+ * traversal cursor is left at the first item after the map.
+ *
+ * This will fail if any item in the map is not well-formed.
+ *
+ * This uses a few hundred bytes of stack, more than most methods.
+ *
+ * See also QCBORDecode_EnterMap().
+ */
+static void
+QCBORDecode_GetMap(QCBORDecodeContext *pCtx,
+                   QCBORItem          *pItem,
+                   UsefulBufC         *pEncodedCBOR);
+
+static void
+QCBORDecode_GetMapFromMapN(QCBORDecodeContext *pCtx,
+                           int64_t             nLabel,
+                           QCBORItem          *pItem,
+                           UsefulBufC         *pEncodedCBOR);
+
+static void
+QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pCtx,
+                            const char         *szLabel,
+                            QCBORItem          *pItem,
+                            UsefulBufC         *pEncodedCBOR);
 
 
 /**
@@ -893,7 +1012,7 @@ QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
  * with little nesting, this is of little consequence, but may be of
  * consequence for large deeply nested CBOR structures on slow CPUs.
  *
- * The position of the pre-order traversal cursor is not changed.
+ * The position of the traversal cursor is not changed.
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  *
@@ -940,7 +1059,7 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  * QCBORDecode_EnterMapinMapN(), QCBORDecode_EnterArrayInMapN() and
  * such to descend into and process maps and arrays.
  *
- * The position of the pre-order traversal cursor is not changed.
+ * The position of the traversal cursor is not changed.
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  *
@@ -1831,8 +1950,8 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
  * CBOR. QCBORDecode_ExitBstrWrapped() must be called to resume
  * processing CBOR outside the wrapped CBOR.
  *
- * This does not (currently) work on indefinite-length strings. The
- * (confusing) error @ref QCBOR_ERR_INPUT_TOO_LARGE will be set.
+ * This does not work on indefinite-length strings. The
+ * error @ref QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING will be set.
  *
  * If @c pBstr is not @c NULL the pointer and length of the wrapped
  * CBOR will be returned. This is usually not needed, but sometimes
@@ -1873,7 +1992,7 @@ QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx,
  * The items in the wrapped CBOR that was entered do not have to have
  * been consumed for this to succeed.
  *
- * The this sets the pre-order traversal cursor to the item after the
+ * The this sets the traversal cursor to the item after the
  * byte string that was exited.
  */
 void
@@ -2115,6 +2234,103 @@ static inline void
 QCBORDecode_ExitMap(QCBORDecodeContext *pMe)
 {
    QCBORDecode_Private_ExitBoundedMapOrArray(pMe, QCBOR_TYPE_MAP);
+}
+
+
+/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+void
+QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pCtx,
+                                  uint8_t             uType,
+                                  QCBORItem          *pItem,
+                                  UsefulBufC         *pEncodedCBOR);
+
+
+/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+void
+QCBORDecode_Private_SearchAndGetArrayOrMap(QCBORDecodeContext *pCtx,
+                                           QCBORItem          *pTarget,
+                                           QCBORItem          *pItem,
+                                           UsefulBufC         *pEncodedCBOR);
+
+
+static inline void
+QCBORDecode_GetArray(QCBORDecodeContext *pMe,
+                     QCBORItem          *pItem,
+                     UsefulBufC         *pEncodedCBOR)
+{
+   QCBORDecode_Private_GetArrayOrMap(pMe, QCBOR_TYPE_ARRAY, pItem, pEncodedCBOR);
+}
+
+
+static inline void
+QCBORDecode_GetArrayFromMapN(QCBORDecodeContext *pMe,
+                             int64_t             nLabel,
+                             QCBORItem          *pItem,
+                             UsefulBufC         *pEncodedCBOR)
+{
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
+   OneItemSeach[0].label.int64 = nLabel;
+   OneItemSeach[0].uDataType   = QCBOR_TYPE_ARRAY;
+   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE;
+
+   QCBORDecode_Private_SearchAndGetArrayOrMap(pMe, OneItemSeach, pItem, pEncodedCBOR);
+}
+
+
+static inline void
+QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pMe,
+                              const char         *szLabel,
+                              QCBORItem          *pItem,
+                              UsefulBufC         *pEncodedCBOR)
+{
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSeach[0].uDataType    = QCBOR_TYPE_ARRAY;
+   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
+
+   QCBORDecode_Private_SearchAndGetArrayOrMap(pMe, OneItemSeach, pItem, pEncodedCBOR);
+}
+
+static inline void
+QCBORDecode_GetMap(QCBORDecodeContext *pMe,
+                   QCBORItem          *pItem,
+                   UsefulBufC         *pEncodedCBOR)
+{
+   QCBORDecode_Private_GetArrayOrMap(pMe, QCBOR_TYPE_MAP, pItem, pEncodedCBOR);
+}
+
+
+static inline void
+QCBORDecode_GetMapFromMapN(QCBORDecodeContext *pMe,
+                           int64_t             nLabel,
+                           QCBORItem          *pItem,
+                           UsefulBufC         *pEncodedCBOR)
+{
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
+   OneItemSeach[0].label.int64 = nLabel;
+   OneItemSeach[0].uDataType   = QCBOR_TYPE_MAP;
+   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE;
+
+   QCBORDecode_Private_SearchAndGetArrayOrMap(pMe, OneItemSeach, pItem, pEncodedCBOR);
+}
+
+
+static inline void
+QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
+                            const char         *szLabel,
+                            QCBORItem          *pItem,
+                            UsefulBufC         *pEncodedCBOR)
+{
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSeach[0].uDataType    = QCBOR_TYPE_MAP;
+   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
+
+   QCBORDecode_Private_SearchAndGetArrayOrMap(pMe, OneItemSeach, pItem, pEncodedCBOR);
 }
 
 

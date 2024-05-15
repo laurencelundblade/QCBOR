@@ -484,7 +484,7 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
    /* This expression integer-promotes to type int. The code above in
     * function guarantees that nAdditionalInfo will never be larger
     * than 0x1f. The caller may pass in a too-large uMajor type. The
-    * conversion to unint8_t will cause an integer wrap around and
+    * conversion to uint8_t will cause an integer wrap around and
     * incorrect CBOR will be generated, but no security issue will
     * occur.
     */
@@ -1594,15 +1594,13 @@ QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
 QCBORError
 QCBOREncode_Finish(QCBOREncodeContext *pMe, UsefulBufC *pEncodedCBOR)
 {
-   QCBORError uReturn = QCBOREncode_GetErrorState(pMe);
-
-   if(uReturn != QCBOR_SUCCESS) {
+   if(QCBOREncode_GetErrorState(pMe) != QCBOR_SUCCESS) {
       goto Done;
    }
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(Nesting_IsInNest(&(pMe->nesting))) {
-      uReturn = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
+      pMe->uError = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
       goto Done;
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
@@ -1610,7 +1608,7 @@ QCBOREncode_Finish(QCBOREncodeContext *pMe, UsefulBufC *pEncodedCBOR)
    *pEncodedCBOR = UsefulOutBuf_OutUBuf(&(pMe->OutBuf));
 
 Done:
-   return uReturn;
+   return pMe->uError;
 }
 
 
