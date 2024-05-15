@@ -547,7 +547,10 @@ typedef enum {
     * Other issues are reported as either QCBOR_ERR_CDE_CONFORMANCE or QCBOR_ERR_PREFERRED_CONFORMANCE. */
    QCBOR_ERR_DCBOR_CONFORMANCE = 83,
 
-   
+   /** A map is unsorted and should be for CDE or dCBOR. */
+   QCBOR_ERR_UNSORTED = 84,
+
+
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
     * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */

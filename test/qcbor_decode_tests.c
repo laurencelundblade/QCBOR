@@ -1825,7 +1825,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
          uCBORError = 9; /* For setting break points */
       }
 
-      if(strncmp("255.875 single sh", pF->szDescription, 10) == 0) {
+      if(strncmp("unsorted map", pF->szDescription, 10) == 0) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -9089,14 +9089,30 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
 
-#if 0 /* Haven't implemented sort checking yet */
+#if 1 /* Haven't implemented sort checking yet */
    /* --- Unsorted maps --- */
    // TODO: more of these with different types of labels
-   { "unsorted map",
+   { "unsorted map with text labels",
       QCBOR_DECODE_MODE_CDE,
       {"\xa2\x61\x62\x00\x61\x61\x01", 7},
-      QCBOR_ERR_CDE_CONFORMANCE
+      QCBOR_ERR_UNSORTED
    },
+   { "reverse sorted map with integer labels",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xa5\x19\x03\xE8\xf6\x18\x64\xf6\x00\xf6\x29\xf6\x3A\x00\x01\x86\x9f\xf6", 18},
+      QCBOR_ERR_UNSORTED
+   },
+#ifdef PERVERSE /* a legit sort test, but who handles maps with a map as label? */
+
+   { "unsorted map with labels of all types",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xA8\x80\x07\xC1\x18\x58\x02\x64\x74\x65\x78\x74\x03\x01\x01\xA0\x04"
+       "\x42\x78\x78\x05\xF5\x06\xFB\x40\x21\x8A\x3D\x70\xA3\xD7\x0A\x07", 33},
+      QCBOR_ERR_NO_MORE_ITEMS
+      //QCBOR_ERR_CDE_CONFORMANCE
+   }
+#endif
+
 #endif
 };
 
