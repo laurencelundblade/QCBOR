@@ -72,6 +72,8 @@ static test_entry s_tests[] = {
 #endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
    TEST_ENTRY(ErrorHandlingTests),
    TEST_ENTRY(OpenCloseBytesTest),
+   TEST_ENTRY(GetMapAndArrayTest),
+   TEST_ENTRY(TellTests),
    TEST_ENTRY(EnterBstrTest),
    TEST_ENTRY(IntegerConvertTest),
    TEST_ENTRY(EnterMapTest),
@@ -127,6 +129,7 @@ static test_entry s_tests[] = {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    TEST_ENTRY(HalfPrecisionAgainstRFCCodeTest),
    TEST_ENTRY(FloatValuesTests),
+   TEST_ENTRY(PreciseNumbersTest),
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
    TEST_ENTRY(GeneralFloatEncodeTests),
    TEST_ENTRY(GeneralFloatDecodeTests),

@@ -341,7 +341,7 @@ extern "C" {
  * float type as 32-bits and a C double type as 64-bits. Floating-point
  * epoch dates will be unsupported.
  *
- * If USEFULBUF_DISABLE_ALL_FLOATis defined, then floating point
+ * If USEFULBUF_DISABLE_ALL_FLOAT is defined, then floating point
  * support is completely disabled. Decoding functions return
  * @ref QCBOR_ERR_ALL_FLOAT_DISABLED if a floating point value is
  * encountered during decoding. Functions that are encoding floating
@@ -349,31 +349,33 @@ extern "C" {
  *
  * ## Limitations
  *
- * Summary Limits of this implementation:
+ * Summary limitations:
  * - The entire encoded CBOR must fit into contiguous memory.
- * - Max size of encoded / decoded CBOR data is a few bytes less than @c UINT32_MAX (4GB).
- * - Max array / map nesting level when encoding / decoding is
+ * - Max size of encoded CBOR data is a few bytes less than
+ *   @c UINT32_MAX (4GB).
+ * - Max array / map nesting level when encoding or decoding is
  *   @ref QCBOR_MAX_ARRAY_NESTING (this is typically 15).
- * - Max items in an array or map when encoding / decoding is
+ * - Max items in an array or map when encoding or decoding is
  *   @ref QCBOR_MAX_ITEMS_IN_ARRAY (typically 65,536).
  * - Does not directly support labels in maps other than text strings & integers.
- * - Does not directly support integer labels greater than @c INT64_MAX.
+ * - Does not directly support integer labels beyond whats fits in @c int64_t
+ *   or @c uint64_t.
  * - Epoch dates limited to @c INT64_MAX (+/- 292 billion years).
- * - Exponents for bigfloats and decimal integers are limited to @c INT64_MAX.
+ * - Exponents for bigfloats and decimal integers are limited to whats fits in
+ *   @c int64_t.
  * - Tags on labels are ignored during decoding.
  * - The maximum tag nesting is @c QCBOR_MAX_TAGS_PER_ITEM (typically 4).
- * - Works only on 32- and 64-bit CPUs (modifications could make it work
- *   on 16-bit CPUs).
+ * - Works only on 32- and 64-bit CPUs.
+ * - QCBORDecode_EnterBstrWrapped() doesn't work on indefinite-length strings.
  *
  * The public interface uses @c size_t for all lengths. Internally the
  * implementation uses 32-bit lengths by design to use less memory and
  * fit structures on the stack. This limits the encoded CBOR it can
- * work with to size @c UINT32_MAX (4GB) which should be enough.
+ * work with to size @c UINT32_MAX (4GB).
  *
- * This implementation assumes two's compliment integer machines.
- * @c <stdint.h> also requires this. It is possible to modify this
- * implementation for another integer representation, but all modern
- * machines seem to be two's compliment.
+ * This implementation requires two's compliment integers. While
+ * C doesn't require two's compliment,  <stdint.h> does. Other
+ * parts of this implementation may also require two's compliment.
  */
 
 
@@ -4116,15 +4118,17 @@ static inline QCBORError
 QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
 {
    if(UsefulOutBuf_GetError(&(pMe->OutBuf))) {
-      // Items didn't fit in the buffer.
-      // This check catches this condition for all the appends and inserts
-      // so checks aren't needed when the appends and inserts are performed.
-      // And of course UsefulBuf will never overrun the input buffer given
-      // to it. No complex analysis of the error handling in this file is
-      // needed to know that is true. Just read the UsefulBuf code.
+      /* Items didn't fit in the buffer. This check catches this
+       * condition for all the appends and inserts so checks aren't
+       * needed when the appends and inserts are performed.  And of
+       * course UsefulBuf will never overrun the input buffer given to
+       * it. No complex analysis of the error handling in this file is
+       * needed to know that is true. Just read the UsefulBuf code.
+       */
       pMe->uError = QCBOR_ERR_BUFFER_TOO_SMALL;
-      // QCBOR_ERR_BUFFER_TOO_SMALL masks other errors, but that is
-      // OK. Once the caller fixes this, they'll be unmasked.
+      /* QCBOR_ERR_BUFFER_TOO_SMALL masks other errors, but that is
+       * OK. Once the caller fixes this, they'll be unmasked.
+       */
    }
 
    return (QCBORError)pMe->uError;

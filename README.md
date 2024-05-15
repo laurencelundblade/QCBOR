@@ -15,10 +15,10 @@ backwards compatibility.
 
 ![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
 
-**QCBOR** is a powerful, commercial-quality CBOR encoder/decoder that
+**QCBOR** is a powerful, commercial-quality CBOR encoder-decoder that
 implements these RFCs:
 
-* [RFC8949](https://tools.ietf.org/html/rfc8949) The CBOR Standard. (Everything
+* [RFC8949](https://tools.ietf.org/html/rfc8949) The CBOR Standard. (Nearly everything
 except sorting of encoded maps)
 * [RFC7049](https://tools.ietf.org/html/rfc7049) The previous CBOR standard.
 Replaced by RFC 8949.
@@ -183,11 +183,14 @@ QCBOR.
 
 ## Code Status
 
-The current version is v1.1, a small feature addition and bug fix
-release over QCBOR 1.0.
+The official current release is version 1.3. Changes over the last few
+years have been only minor bug fixes, minor feature additions and
+documentation improvements. QCBOR 1.x is highly stable.
 
-Code has been stable for over a year. The last major change was in
-fall of 2020.
+Work on some larger feature additions is ongoing in "dev" branch.
+This includes more explicit support for preferred serialization and
+CDE (CBOR Deterministic Encoding).  It will eventually be release as
+QCBOR 2.x.
 
 QCBOR was originally developed by Qualcomm. It was [open sourced
 through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a
@@ -335,23 +338,23 @@ This saves only a small amount of object code. The primary purpose for
 defining this is to remove dependency on floating point hardware and
 libraries.
 
+
 #### #define QCBOR_DISABLE_PREFERRED_FLOAT
 
-This eliminates support for half-precision
-and CBOR preferred serialization by disabling
-QCBOR's shift and mask based implementation of
-half-precision floating-point.
+This eliminates support of:
+- encode/decode of half-precision
+- shortest-form encoding of floats
+- QCBORDecode_GetNumberConvertPrecisely()
 
-With this defined, single and double-precision floating-point
-numbers can still be encoded and decoded. Conversion
-of floating-point to and from integers, big numbers and
-such is also supported. Floating-point dates are still
-supported.
+This saves about 1KB of object code, though much of this can be saved
+by not calling any functions to encode doubles or floats or
+QCBORDecode_GetNumberConvertPrecisely
 
-The primary reason to define this is to save object code.
-Roughly 900 bytes are saved, though about half of this
-can be saved just by not calling any functions that
-encode floating-point numbers.
+With this defined, single and double-precision floating-point numbers
+can still be encoded and decoded. Some conversion of floating-point to
+and from integers, big numbers and such is also supported. Floating-point
+dates are still supported.
+
 
 #### #define USEFULBUF_DISABLE_ALL_FLOAT
 

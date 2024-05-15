@@ -238,7 +238,7 @@ extern "C" {
 
 
 /**
- * Error codes returned by QCBOR Encoder and Decoder.
+ * Error codes returned by QCBOR Encoder-Decoder.
  *
  * They are grouped to keep the code size of
  * QCBORDecode_IsNotWellFormedError() and
@@ -535,6 +535,10 @@ typedef enum {
     * negative integer) without allowing it by calling
     * QCBOREncode_Allow() */
    QCBOR_ERR_NOT_ALLOWED = 80,
+   /** QCBORDecode_EnterBstrWrapped() cannot be used on
+    * indefinite-length strings because they exist in memory pool for
+    * a @ref QCBORStringAllocate. */
+   QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING = 81,
 
    /** Decoded CBOR is does not conform to preferred serialization. The CBOR head's argument is not encoded in shortest form, or indefinite lengths are used.*/
    QCBOR_ERR_PREFERRED_CONFORMANCE = 81,

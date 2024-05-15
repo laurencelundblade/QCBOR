@@ -673,6 +673,22 @@ const char *UBUtilTests(void)
       return "Incorrect pointer offset for start";
    }
 
+   if(UsefulBuf_OffsetToPointer(Boo, 0) != &pB[0]) {
+      return "Wrong OffsetToPointer";
+   }
+
+   if(UsefulBuf_OffsetToPointer(Boo, 3) != NULL) {
+      return "Didn't validate offset correctly";
+   }
+
+   if(UsefulBuf_OffsetToPointer(Boo, 2) != &pB[2]) {
+      return "Wrong OffsetToPointer 2";
+   }
+
+   if(UsefulBuf_OffsetToPointer(NULLUsefulBufC, 2) != NULL) {
+      return "Failed OffsetToPtr on NULLUsefulBufC";
+   }
+
    return NULL;
 }
 
@@ -798,6 +814,20 @@ const char *  UIBTest_IntegerFormat(void)
 
    if(UsefulInputBuf_PointerToOffset(&UIB, O.ptr) != 0) {
       return "PointerToOffset not working";
+   }
+
+
+   const uint8_t pB[] = {0x01, 0x02, 0x03};
+   UsefulBufC Boo = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pB);
+
+   UsefulInputBuf_Init(&UIB, Boo);
+
+   if(UsefulInputBuf_OffsetToPointer(&UIB, 0) != &pB[0]) {
+      return "OffsetToPointer fail";
+   }
+
+   if(UsefulInputBuf_OffsetToPointer(&UIB, SIZE_MAX) != NULL) {
+      return "OffsetToPointer SIZE_MAX fail";
    }
 
    return NULL;

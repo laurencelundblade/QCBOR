@@ -2528,6 +2528,8 @@ int32_t EncodeErrorTests(void)
 {
    QCBOREncodeContext EC;
    QCBORError         uErr;
+   UsefulBufC         EncodedResult;
+   MakeUsefulBufOnStack(SmallBuffer, 4);
 
 
    // ------ Test for QCBOR_ERR_BUFFER_TOO_LARGE ------
@@ -2723,6 +2725,31 @@ int32_t EncodeErrorTests(void)
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
+   /* Test that still-open error sticks */
+   QCBOREncode_Init(&EC, Large);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_Finish(&EC, &EncodedResult);
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return -120;
+   }
+#else /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_SUCCESS) {
+      return -122;
+   }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   /* Test that too-small error is sticky */
+   QCBOREncode_Init(&EC, SmallBuffer);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddInt64(&EC, INT64_MAX);
+   QCBOREncode_AddInt64(&EC, INT64_MAX);
+   QCBOREncode_AddInt64(&EC, INT64_MAX);
+   QCBOREncode_CloseArray(&EC);
+   QCBOREncode_Finish(&EC, &EncodedResult);
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_ERR_BUFFER_TOO_SMALL) {
+      return -130;
+   }
 
    return 0;
 }
