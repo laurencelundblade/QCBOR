@@ -323,4 +323,12 @@ int32_t CBORTestIssue134(void);
 int32_t ErrorHandlingTests(void);
 
 
+/*
+ * Test QCBORDecode_GetArray and QCBORDecode_GetMap
+ */
+int32_t GetMapAndArrayTest(void);
+
+int32_t TellTests(void);
+
+
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */
