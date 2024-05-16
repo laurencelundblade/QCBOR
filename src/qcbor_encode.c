@@ -114,7 +114,7 @@ Nesting_Increment(QCBORTrackNesting *pNesting)
    if(1 >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
       return QCBOR_ERR_ARRAY_TOO_LONG;
    }
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    pNesting->pCurrentNesting->uCount++;
 
@@ -426,6 +426,7 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
    /* The 5 bits in the initial byte that are not the major type */
    int nAdditionalInfo;
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    if(uMajorType > QCBOR_INDEFINITE_LEN_TYPE_MODIFIER) {
       /* Special case for start & end of indefinite length */
       uMajorType  = uMajorType - QCBOR_INDEFINITE_LEN_TYPE_MODIFIER;
@@ -438,7 +439,9 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
        #endif
       nAdditionalInfo = CBOR_SIMPLE_BREAK;
 
-   } else if (uArgument < CBOR_TWENTY_FOUR && uMinLen == 0) {
+   } else
+#endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+      if (uArgument < CBOR_TWENTY_FOUR && uMinLen == 0) {
       /* Simple case where argument is < 24 */
       nAdditionalInfo = (int)uArgument;
 
@@ -500,41 +503,6 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
 
 
 /**
- * @brief Append the CBOR head, the major type and argument
- *
- * @param pMe          Encoder context.
- * @param uMajorType  Major type to insert.
- * @param uArgument   The argument (an integer value or a length).
- * @param uMinLen     The minimum number of bytes for encoding the CBOR argument.
- *
- * This formats the CBOR "head" and appends it to the output.
- */
-static void
-QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext *pMe,
-                                   const uint8_t       uMajorType,
-                                   const uint64_t      uArgument,
-                                   const uint8_t       uMinLen)
-{
-   /* A stack buffer large enough for a CBOR head */
-   UsefulBuf_MAKE_STACK_UB  (pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
-
-   UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
-                                                    uMajorType,
-                                                    uMinLen,
-                                                    uArgument);
-
-   /* No check for EncodedHead == NULLUsefulBufC is performed here to
-    * save object code. It is very clear that pBufferForEncodedHead is
-    * the correct size. If EncodedHead == NULLUsefulBufC then
-    * UsefulOutBuf_AppendUsefulBuf() will do nothing so there is no
-    * security hole introduced.
-    */
-
-   UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), EncodedHead);
-}
-
-
-/**
  * @brief Check for errors when decreasing nesting.
  *
  * @param pMe          QCBOR encoding context.
@@ -566,7 +534,7 @@ QCBOREncode_Private_CheckDecreaseNesting(QCBOREncodeContext *pMe,
       return true;
    }
 
-#else
+#else /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    /* None of these checks are performed if the encode guards are
     * turned off as they all relate to correct calling.
     *
@@ -576,7 +544,7 @@ QCBOREncode_Private_CheckDecreaseNesting(QCBOREncodeContext *pMe,
 
    (void)uMajorType;
    (void)pMe;
-#endif
+#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    return false;
 }
@@ -649,18 +617,48 @@ QCBOREncode_Private_IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
 }
 
 
-/*
- * Public functions for adding unsigned integers. See qcbor/qcbor_encode.h
+/**
+ * @brief Append the CBOR head, the major type and argument
+ *
+ * @param pMe          Encoder context.
+ * @param uMajorType  Major type to insert.
+ * @param uArgument   The argument (an integer value or a length).
+ * @param uMinLen     The minimum number of bytes for encoding the CBOR argument.
+ *
+ * This formats the CBOR "head" and appends it to the output.
+ *
+ * This also increments the array/map item counter in most cases.
  */
 void
-QCBOREncode_AddUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
+QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext *pMe,
+                                   const uint8_t       uMajorType,
+                                   const uint64_t      uArgument,
+                                   const uint8_t       uMinLen)
 {
-   QCBOREncode_Private_AppendCBORHead(pMe,
-                                      CBOR_MAJOR_TYPE_POSITIVE_INT,
-                                      uValue,
-                                      0);
+   /* A stack buffer large enough for a CBOR head */
+   UsefulBuf_MAKE_STACK_UB  (pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
 
-   QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
+   UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
+                                                    uMajorType,
+                                                    uMinLen,
+                                                    uArgument);
+
+   /* No check for EncodedHead == NULLUsefulBufC is performed here to
+    * save object code. It is very clear that pBufferForEncodedHead is
+    * the correct size. If EncodedHead == NULLUsefulBufC then
+    * UsefulOutBuf_AppendUsefulBuf() will do nothing so there is no
+    * security hole introduced.
+    */
+
+   UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), EncodedHead);
+   if(!(uMajorType & QCBOR_INDEFINITE_LEN_TYPE_MODIFIER || uMajorType == CBOR_MAJOR_TYPE_TAG)) {
+      /* Don't increment the map count for tag or break because that is
+       * not needed. Don't do it for indefinite-length arrays and maps
+       * because it is done elsewhere. This is never called for definite-length
+       * arrays and maps.
+       */
+      QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
+   }
 }
 
 
@@ -687,128 +685,44 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
       uMajorType = CBOR_MAJOR_TYPE_POSITIVE_INT;
    }
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, uValue, 0);
-
-   QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
 }
 
 
 /**
  * @brief Semi-private method to add a buffer full of bytes to encoded output.
  *
- * @param[in] pMe       The encoding context to add the integer to.
+ * @param[in] pMe       The encoding context to add the string to.
  * @param[in] uMajorType The CBOR major type of the bytes.
  * @param[in] Bytes      The bytes to add.
  *
- * Use QCBOREncode_AddText() or QCBOREncode_AddBytes() or
- * QCBOREncode_AddEncoded() instead. They are inline functions that
- * call this and supply the correct major type. This function is
- * public to make the inline functions work to keep the overall code
- * size down and because the C language has no way to make it private.
+ * Called by inline functions to add text and byte strings.
  *
- * If this is called the major type should be @c CBOR_MAJOR_TYPE_TEXT_STRING,
- * @c CBOR_MAJOR_TYPE_BYTE_STRING or @c CBOR_MAJOR_NONE_TYPE_RAW. The
- * last one is special for adding already-encoded CBOR.
- *
- * This does the work of adding actual strings bytes to the CBOR
- * output (as opposed to adding numbers and opening / closing
- * aggregate types).
-
- * There are four use cases:
- *   CBOR_MAJOR_TYPE_BYTE_STRING -- Byte strings
- *   CBOR_MAJOR_TYPE_TEXT_STRING -- Text strings
- *   CBOR_MAJOR_NONE_TYPE_RAW -- Already-encoded CBOR
- *   CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY -- Special case
- *
- * The first two add the head plus the actual bytes. The third just
- * adds the bytes as the heas is presumed to be in the bytes. The
- * fourth just adds the head for the very special case of
- * QCBOREncode_AddBytesLenOnly().
+ * (This used to support QCBOREncode_AddEncoded() and QCBOREncode_AddBytesLenOnly(),
+ * but that was pulled out to make this smaller. This is one of the most used methods
+ * and they are some of the least used).
  */
 void
 QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pMe,
                               const uint8_t       uMajorType,
                               const UsefulBufC    Bytes)
 {
-   /* If it is not Raw CBOR, add the type and the length */
-   if(uMajorType != CBOR_MAJOR_NONE_TYPE_RAW) {
-      uint8_t uRealMajorType = uMajorType;
-      if(uRealMajorType == CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
-         uRealMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
-      }
-      QCBOREncode_Private_AppendCBORHead(pMe, uRealMajorType, Bytes.len, 0);
-   }
-
-   if(uMajorType != CBOR_MAJOR_NONE_TYPE_BSTR_LEN_ONLY) {
-      /* Actually add the bytes */
-      UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
-   }
-
-   QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
+   QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, Bytes.len, 0);
+   UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
 }
 
 
 /*
- * Public functions for adding a tag. See qcbor/qcbor_encode.h
+ * Public functions for adding raw encoded CBOR. See qcbor/qcbor_encode.h
  */
 void
-QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
+QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
 {
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_TAG, uTag, 0);
-}
-
-
-/**
- * @brief  Semi-private method to add simple types.
- *
- * @param[in] pMe     The encoding context to add the simple value to.
- * @param[in] uMinLen  Minimum encoding size for uNum. Usually 0.
- * @param[in] uNum     One of CBOR_SIMPLEV_FALSE through _UNDEF or other.
- *
- * This is used to add simple types like true and false.
- *
- * Call QCBOREncode_AddBool(), QCBOREncode_AddNULL(),
- * QCBOREncode_AddUndef() instead of this.
- *
- * This function can add simple values that are not defined by CBOR
- * yet. This expansion point in CBOR should not be used unless they are
- * standardized.
- *
- * Error handling is the same as QCBOREncode_AddInt64().
- */
-void
-QCBOREncode_Private_AddType7(QCBOREncodeContext *pMe,
-                             const uint8_t       uMinLen,
-                             const uint64_t      uNum)
-{
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uError == QCBOR_SUCCESS) {
-      if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
-         pMe->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
-         return;
-      }
-   }
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-
-   /* AppendCBORHead() does endian swapping for the float / double */
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_SIMPLE, uNum, uMinLen);
-
+   UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Encoded);
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
 }
 
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-/*
- * Public functions for adding a double. See qcbor/qcbor_encode.h
- */
-void
-QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
-{
-   QCBOREncode_Private_AddType7(pMe,
-                                sizeof(uint64_t),
-                                UsefulBufUtil_CopyDoubleToUint64(dNum));
-}
-
-
 /*
  * Public functions for adding a double. See qcbor/qcbor_encode.h
  */
@@ -822,18 +736,6 @@ QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    QCBOREncode_AddDoubleNoPreferred(pMe, dNum);
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-}
-
-
-/*
- * Public functions for adding a float. See qcbor/qcbor_encode.h
- */
-void
-QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float fNum)
-{
-   QCBOREncode_Private_AddType7(pMe,
-                                sizeof(uint32_t),
-                                UsefulBufUtil_CopyFloatToUint32(fNum));
 }
 
 
