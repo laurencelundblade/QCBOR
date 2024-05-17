@@ -2288,7 +2288,7 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  * encode the head in a 10 byte buffer with this function, hash that and
  * then hash the 100,000 bytes using the same hash context.
  *
- * See also QCBOREncode_AddBytesLenOnly();
+ * See also QCBOREncode_AddBytesLenOnly(); TODO: remove this?
  */
 UsefulBufC
 QCBOREncode_EncodeHead(UsefulBuf Buffer,
@@ -2351,44 +2351,31 @@ QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pCtx,
                                    int64_t             nExponent);
 
 
-
 /**
- * @brief  Semi-private method to add simple types.
+ * @brief  Semi-private method to add simple items and floating-point.
  *
- * @param[in] pMe     The encoding context to add the simple value to.
- * @param[in] uMinLen  Minimum encoding size for uNum. Usually 0.
- * @param[in] uNum     One of CBOR_SIMPLEV_FALSE through _UNDEF or other.
+ * @param[in] pMe        The encoding context.
+ * @param[in] uMinLen    Minimum encoding size for uNum. Usually 0.
+ * @param[in] uArgument  The value to add.
  *
- * This is used to add simple types like true and false.
+ * This is used to add simple types like true and false and float-point
+ * values, both of which are type 7.
  *
  * Call QCBOREncode_AddBool(), QCBOREncode_AddNULL(),
- * QCBOREncode_AddUndef() instead of this.
- *
- * This function can add simple values that are not defined by CBOR
- * yet. This expansion point in CBOR should not be used unless they are
- * standardized.
+ * QCBOREncode_AddUndef() QCBOREncode_AddDouble() instead of this.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  */
 static inline void
 QCBOREncode_Private_AddType7(QCBOREncodeContext *pMe,
                              const uint8_t       uMinLen,
-                             const uint64_t      uNum)
+                             const uint64_t      uArgument)
 {
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
-      /* This check often is optimized out because uNum is known at compile time. */
-      pMe->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
-      return;
-   }
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-
-   /* AppendCBORHead() does endian swapping for the float / double */
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_SIMPLE, uNum, uMinLen);
+   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_SIMPLE, uArgument, uMinLen);
 }
 
 
-static void
+static void // TODO:
 QCBOREncode_AddBytesLenOnly(QCBOREncodeContext *pCtx,
                             UsefulBufC          Bytes);
 
@@ -2403,6 +2390,11 @@ QCBOREncode_AddBytesLenOnlyToMapN(QCBOREncodeContext *pCtx,
                                  UsefulBufC           Bytes);
 
 
+/* Forward declaration */
+static void
+QCBOREncode_AddSZString(QCBOREncodeContext *pMe, const char *szString);
+
+
 
 
 static inline void
@@ -2410,10 +2402,7 @@ QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe,
                           const char        *szLabel,
                           const int64_t      uNum)
 {
-   /* Use _AddBuffer() because _AddSZString() is defined below, not above */
-   QCBOREncode_Private_AddBuffer(pMe,
-                                 CBOR_MAJOR_TYPE_TEXT_STRING,
-                                 UsefulBuf_FromSZ(szLabel));
+   QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddInt64(pMe, uNum);
 }
 
@@ -2439,10 +2428,7 @@ QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pMe,
                            const char         *szLabel,
                            const uint64_t      uNum)
 {
-   /* Use _AddBuffer() because _AddSZString() is defined below, not above */
-   QCBOREncode_Private_AddBuffer(pMe,
-                                 CBOR_MAJOR_TYPE_TEXT_STRING,
-                                 UsefulBuf_FromSZ(szLabel));
+   QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddUInt64(pMe, uNum);
 }
 
@@ -3685,25 +3671,33 @@ QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext *pMe,
 }
 
 
-
-static inline void
-XQCBOREncode_Private_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum)
-{
-   QCBOREncode_Private_AddType7(pMe, 0, uNum);
-}
-
+/**
+ * @brief Add a simple value.
+ *
+ * @param[in] pMe    The encode context.
+ * @param[in] uNum   The simple value.
+ *
+ * Use !CBOREncode_AddBool(), QCBOREncode_AddUndef()... instead of this.
+ *
+ * This function can add simple values that are not defined by CBOR
+ * yet. This expansion point in CBOR should not be used unless they are
+ * standardized.
+ *
+ * This could be made a public function if simple values start
+ * getting used a lot.
+ */
 static inline void
 QCBOREncode_Private_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum)
 {
-   if(pMe->uError == QCBOR_SUCCESS) {
-      if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
-         pMe->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
-         return;
-      }
+   /* This check often is optimized out because uNum is known at compile time. */
+   // TODO: is this check right?
+   if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
+      pMe->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
+      return;
    }
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_SIMPLE, uNum, 0);
-}
 
+   QCBOREncode_Private_AddType7(pMe, 0, uNum);
+}
 
 static inline void
 QCBOREncode_Private_AddSimpleToMap(QCBOREncodeContext *pMe,
@@ -3731,7 +3725,6 @@ QCBOREncode_AddBool(QCBOREncodeContext *pMe, const bool b)
    if(b) {
       uSimple = CBOR_SIMPLEV_TRUE;
    }
-
    QCBOREncode_Private_AddSimple(pMe, uSimple);
 }
 

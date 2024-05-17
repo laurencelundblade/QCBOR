@@ -503,100 +503,6 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
 
 
 /**
- * @brief Check for errors when decreasing nesting.
- *
- * @param pMe          QCBOR encoding context.
- * @param uMajorType  The major type of the nesting.
- *
- * Check that there is no previous error, that there is actually some
- * nesting and that the major type of the opening of the nesting
- * matches the major type of the nesting being closed.
- *
- * This is called when closing maps, arrays, byte string wrapping and
- * open/close of byte strings.
- */
-static bool
-QCBOREncode_Private_CheckDecreaseNesting(QCBOREncodeContext *pMe,
-                                         const uint8_t       uMajorType)
-{
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uError != QCBOR_SUCCESS) {
-      return true;
-   }
-
-   if(!Nesting_IsInNest(&(pMe->nesting))) {
-      pMe->uError = QCBOR_ERR_TOO_MANY_CLOSES;
-      return true;
-   }
-
-   if(Nesting_GetMajorType(&(pMe->nesting)) != uMajorType) {
-      pMe->uError = QCBOR_ERR_CLOSE_MISMATCH;
-      return true;
-   }
-
-#else /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-   /* None of these checks are performed if the encode guards are
-    * turned off as they all relate to correct calling.
-    *
-    * Turning off all these checks does not turn off any checking for
-    * buffer overflows or pointer issues.
-    */
-
-   (void)uMajorType;
-   (void)pMe;
-#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-
-   return false;
-}
-
-
-/**
- * @brief Insert the CBOR head for a map, array or wrapped bstr
- *
- * @param pMe          QCBOR encoding context.
- * @param uMajorType  One of CBOR_MAJOR_TYPE_XXXX.
- * @param uLen        The length of the data item.
- *
- * When an array, map or bstr was opened, nothing was done but note
- * the position. This function goes back to that position and inserts
- * the CBOR Head with the major type and length.
- */
-static void
-QCBOREncode_Private_InsertCBORHead(QCBOREncodeContext *pMe,
-                                   uint8_t             uMajorType,
-                                   size_t              uLen)
-{
-   if(QCBOREncode_Private_CheckDecreaseNesting(pMe, uMajorType)) {
-      return;
-   }
-
-   if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
-      uMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
-   }
-
-   /* A stack buffer large enough for a CBOR head (9 bytes) */
-   UsefulBuf_MAKE_STACK_UB(pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
-
-   UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
-                                                   uMajorType,
-                                                   0,
-                                                   uLen);
-
-   /* No check for EncodedHead == NULLUsefulBufC is performed here to
-    * save object code. It is very clear that pBufferForEncodedHead is
-    * the correct size. If EncodedHead == NULLUsefulBufC then
-    * UsefulOutBuf_InsertUsefulBuf() will do nothing so there is no
-    * security hole introduced.
-    */
-   UsefulOutBuf_InsertUsefulBuf(&(pMe->OutBuf),
-                                EncodedHead,
-                                Nesting_GetStartPos(&(pMe->nesting)));
-
-   Nesting_Decrease(&(pMe->nesting));
-}
-
-
-/**
  * @brief Increment item counter for maps and arrays.
  *
  * @param pMe          QCBOR encoding context.
@@ -613,14 +519,14 @@ QCBOREncode_Private_IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
    }
 #else
    (void)Nesting_Increment(&(pMe->nesting));
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
 
 /**
  * @brief Append the CBOR head, the major type and argument
  *
- * @param pMe          Encoder context.
+ * @param pMe         Encoder context.
  * @param uMajorType  Major type to insert.
  * @param uArgument   The argument (an integer value or a length).
  * @param uMinLen     The minimum number of bytes for encoding the CBOR argument.
@@ -651,6 +557,7 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext *pMe,
     */
 
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), EncodedHead);
+
    if(!(uMajorType & QCBOR_INDEFINITE_LEN_TYPE_MODIFIER || uMajorType == CBOR_MAJOR_TYPE_TAG)) {
       /* Don't increment the map count for tag or break because that is
        * not needed. Don't do it for indefinite-length arrays and maps
@@ -697,9 +604,10 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
  *
  * Called by inline functions to add text and byte strings.
  *
- * (This used to support QCBOREncode_AddEncoded() and QCBOREncode_AddBytesLenOnly(),
- * but that was pulled out to make this smaller. This is one of the most used methods
- * and they are some of the least used).
+ * (This used to support QCBOREncode_AddEncoded() and
+ * QCBOREncode_AddBytesLenOnly(), but that was pulled out to make this
+ * smaller. This is one of the most used methods and they are some of
+ * the least used).
  */
 void
 QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pMe,
@@ -889,6 +797,100 @@ QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
 
 
 /**
+ * @brief Check for errors when decreasing nesting.
+ *
+ * @param pMe          QCBOR encoding context.
+ * @param uMajorType  The major type of the nesting.
+ *
+ * Check that there is no previous error, that there is actually some
+ * nesting and that the major type of the opening of the nesting
+ * matches the major type of the nesting being closed.
+ *
+ * This is called when closing maps, arrays, byte string wrapping and
+ * open/close of byte strings.
+ */
+static bool
+QCBOREncode_Private_CheckDecreaseNesting(QCBOREncodeContext *pMe,
+                                         const uint8_t       uMajorType)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uError != QCBOR_SUCCESS) {
+      return true;
+   }
+
+   if(!Nesting_IsInNest(&(pMe->nesting))) {
+      pMe->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+      return true;
+   }
+
+   if(Nesting_GetMajorType(&(pMe->nesting)) != uMajorType) {
+      pMe->uError = QCBOR_ERR_CLOSE_MISMATCH;
+      return true;
+   }
+
+#else /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+   /* None of these checks are performed if the encode guards are
+    * turned off as they all relate to correct calling.
+    *
+    * Turning off all these checks does not turn off any checking for
+    * buffer overflows or pointer issues.
+    */
+
+   (void)uMajorType;
+   (void)pMe;
+#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   return false;
+}
+
+
+/**
+ * @brief Insert the CBOR head for a map, array or wrapped bstr
+ *
+ * @param pMe         QCBOR encoding context.
+ * @param uMajorType  One of CBOR_MAJOR_TYPE_XXXX.
+ * @param uLen        The length of the data item.
+ *
+ * When an array, map or bstr was opened, nothing was done but note
+ * the position. This function goes back to that position and inserts
+ * the CBOR Head with the major type and length.
+ */
+static void
+QCBOREncode_Private_CloseAggregate(QCBOREncodeContext *pMe,
+                                   uint8_t             uMajorType,
+                                   size_t              uLen)
+{
+   if(QCBOREncode_Private_CheckDecreaseNesting(pMe, uMajorType)) {
+      return;
+   }
+
+   if(uMajorType == CBOR_MAJOR_NONE_TYPE_OPEN_BSTR) {
+      uMajorType = CBOR_MAJOR_TYPE_BYTE_STRING;
+   }
+
+   /* A stack buffer large enough for a CBOR head (9 bytes) */
+   UsefulBuf_MAKE_STACK_UB(pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
+
+   UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
+                                                   uMajorType,
+                                                   0,
+                                                   uLen);
+
+   /* No check for EncodedHead == NULLUsefulBufC is performed here to
+    * save object code. It is very clear that pBufferForEncodedHead is
+    * the correct size. If EncodedHead == NULLUsefulBufC then
+    * UsefulOutBuf_InsertUsefulBuf() will do nothing so there is no
+    * security hole introduced.
+    */
+   UsefulOutBuf_InsertUsefulBuf(&(pMe->OutBuf),
+                                EncodedHead,
+                                Nesting_GetStartPos(&(pMe->nesting)));
+
+   Nesting_Decrease(&(pMe->nesting));
+}
+
+
+/**
  * @brief Semi-private method to close a map, array or bstr wrapped CBOR
  *
  * @param[in] pMe           The context to add to.
@@ -900,7 +902,7 @@ void
 QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
                                     const uint8_t       uMajorType)
 {
-   QCBOREncode_Private_InsertCBORHead(pMe, uMajorType, Nesting_GetCount(&(pMe->nesting)));
+   QCBOREncode_Private_CloseAggregate(pMe, uMajorType, Nesting_GetCount(&(pMe->nesting)));
 }
 
 
@@ -923,7 +925,7 @@ QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *pMe,
    const size_t uBstrLen = uEndPosition - uInsertPosition;
 
    /* Actually insert */
-   QCBOREncode_Private_InsertCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uBstrLen);
+   QCBOREncode_Private_CloseAggregate(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uBstrLen);
 
    if(pWrappedCBOR) {
       /* Return pointer and length to the enclosed encoded CBOR. The
@@ -1009,7 +1011,7 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
       return;
    }
 
-   QCBOREncode_Private_InsertCBORHead(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR, uAmount);
+   QCBOREncode_Private_CloseAggregate(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR, uAmount);
 }
 
 
