@@ -935,6 +935,7 @@ int32_t SimpleValuesTest1(void)
    return(nReturn);
 }
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 /*
  9F                  # array(5)
    F5               # primitive(21)
@@ -981,6 +982,7 @@ int32_t SimpleValuesIndefiniteLengthTest1(void)
 
    return(nReturn);
 }
+#endif
 
 /*
 A5                                      # map(5)

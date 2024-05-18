@@ -772,6 +772,7 @@ QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
 }
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 /**
  * @brief Semi-private method to open a map, array with indefinite length
  *
@@ -794,6 +795,7 @@ QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
     */
    QCBOREncode_Private_OpenMapOrArray(pMe, uMajorType);
 }
+#endif
 
 
 /**
@@ -1015,6 +1017,8 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
 }
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+
 /**
  * @brief Semi-private method to close a map, array with indefinite length
  *
@@ -1036,6 +1040,7 @@ QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
    QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
    Nesting_Decrease(&(pMe->nesting));
 }
+#endif
 
 
 /*

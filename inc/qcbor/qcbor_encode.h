@@ -3723,10 +3723,12 @@ static inline void
 QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum)
 {
    /* This check often is optimized out because uNum is known at compile time. */
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
       pMe->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
       return;
    }
+#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    QCBOREncode_Private_AddType7(pMe, 0, uNum);
 }
