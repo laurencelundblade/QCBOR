@@ -1748,7 +1748,6 @@ static void
 QCBOREncode_AddBoolToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, bool b);
 
 
-
 /**
  * @brief  Add a NULL to the encoded output.
  *
@@ -1793,6 +1792,33 @@ QCBOREncode_AddUndefToMap(QCBOREncodeContext *pCtx, const char *szLabel);
 
 static void
 QCBOREncode_AddUndefToMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
+
+
+/**
+ * @brief Add a simple value.
+ *
+ * @param[in] pMe    The encode context.
+ * @param[in] uNum   The simple value.
+ *
+ * Use QCBOREncode_AddBool(), QCBOREncode_AddUndef()... instead of this.
+ *
+ * Use this to add simple values beyond those in defined RFC
+ * 8949. Simple values must be registered with IANA. There is no range
+ * of values for proprietary use.
+ * https://www.iana.org/assignments/cbor-simple-values/cbor-simple-values.xhtml
+ */
+static void
+QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum);
+
+static void
+QCBOREncode_AddSimpleToMap(QCBOREncodeContext *pMe,
+                           const char         *szLabel,
+                           const uint8_t       uSimple);
+
+static void
+QCBOREncode_AddSimpleToMapN(QCBOREncodeContext *pMe,
+                            const int64_t       nLabel,
+                            const uint8_t       uSimple);
 
 
 /**
@@ -2287,8 +2313,6 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  * 100,010 byte buffer and encode it normally. Alternatively, you can
  * encode the head in a 10 byte buffer with this function, hash that and
  * then hash the 100,000 bytes using the same hash context.
- *
- * See also QCBOREncode_AddBytesLenOnly(); TODO: remove this?
  */
 UsefulBufC
 QCBOREncode_EncodeHead(UsefulBuf Buffer,
@@ -3671,26 +3695,10 @@ QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext *pMe,
 }
 
 
-/**
- * @brief Add a simple value.
- *
- * @param[in] pMe    The encode context.
- * @param[in] uNum   The simple value.
- *
- * Use !CBOREncode_AddBool(), QCBOREncode_AddUndef()... instead of this.
- *
- * This function can add simple values that are not defined by CBOR
- * yet. This expansion point in CBOR should not be used unless they are
- * standardized.
- *
- * This could be made a public function if simple values start
- * getting used a lot.
- */
 static inline void
-QCBOREncode_Private_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum)
+QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum)
 {
    /* This check often is optimized out because uNum is known at compile time. */
-   // TODO: is this check right?
    if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
       pMe->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
       return;
@@ -3700,21 +3708,21 @@ QCBOREncode_Private_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum)
 }
 
 static inline void
-QCBOREncode_Private_AddSimpleToMap(QCBOREncodeContext *pMe,
+QCBOREncode_AddSimpleToMap(QCBOREncodeContext *pMe,
                                    const char         *szLabel,
                                    const uint8_t       uSimple)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_Private_AddSimple(pMe, uSimple);
+   QCBOREncode_AddSimple(pMe, uSimple);
 }
 
 static inline void
-QCBOREncode_Private_AddSimpleToMapN(QCBOREncodeContext *pMe,
+QCBOREncode_AddSimpleToMapN(QCBOREncodeContext *pMe,
                                     const int64_t       nLabel,
                                     const uint8_t       uSimple)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_Private_AddSimple(pMe, uSimple);
+   QCBOREncode_AddSimple(pMe, uSimple);
 }
 
 
@@ -3725,7 +3733,7 @@ QCBOREncode_AddBool(QCBOREncodeContext *pMe, const bool b)
    if(b) {
       uSimple = CBOR_SIMPLEV_TRUE;
    }
-   QCBOREncode_Private_AddSimple(pMe, uSimple);
+   QCBOREncode_AddSimple(pMe, uSimple);
 }
 
 static inline void
@@ -3746,7 +3754,7 @@ QCBOREncode_AddBoolToMapN(QCBOREncodeContext *pMe, const int64_t nLabel, const b
 static inline void
 QCBOREncode_AddNULL(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_AddSimple(pMe, CBOR_SIMPLEV_NULL);
+   QCBOREncode_AddSimple(pMe, CBOR_SIMPLEV_NULL);
 }
 
 static inline void
@@ -3767,7 +3775,7 @@ QCBOREncode_AddNULLToMapN(QCBOREncodeContext *pMe, const int64_t nLabel)
 static inline void
 QCBOREncode_AddUndef(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_AddSimple(pMe, CBOR_SIMPLEV_UNDEF);
+   QCBOREncode_AddSimple(pMe, CBOR_SIMPLEV_UNDEF);
 }
 
 static inline void
