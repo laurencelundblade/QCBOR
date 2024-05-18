@@ -2287,8 +2287,6 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  * 100,010 byte buffer and encode it normally. Alternatively, you can
  * encode the head in a 10 byte buffer with this function, hash that and
  * then hash the 100,000 bytes using the same hash context.
- *
- * See also QCBOREncode_AddBytesLenOnly(); TODO: remove this?
  */
 UsefulBufC
 QCBOREncode_EncodeHead(UsefulBuf Buffer,
@@ -2375,7 +2373,31 @@ QCBOREncode_Private_AddType7(QCBOREncodeContext *pMe,
 }
 
 
-static void // TODO:
+/**
+ * @brief Semi-private method to add only the type and length of a byte string.
+ *
+ * @param[in] pCtx    The context to initialize.
+ * @param[in] Bytes   Pointer and length of the input data.
+ *
+ * This will be removed in QCBOR 2.0. It was never a public function.
+ *
+ * This is the same as QCBOREncode_AddBytes() except it only adds the
+ * CBOR encoding for the type and the length. It doesn't actually add
+ * the bytes. You can't actually produce correct CBOR with this and
+ * the rest of this API. It is only used for a special case where the
+ * valid CBOR is created manually by putting this type and length in
+ * and then adding the actual bytes. In particular, when only a hash
+ * of the encoded CBOR is needed, where the type and header are hashed
+ * separately and then the bytes is hashed. This makes it possible to
+ * implement COSE Sign1 with only one copy of the payload in the
+ * output buffer, rather than two, roughly cutting memory use in half.
+ *
+ * This is only used for this odd case, but this is a supported
+ * tested function for QCBOR 1.0.
+ *
+ * See also QCBOREncode_EncodeHead().
+ */
+static void
 QCBOREncode_AddBytesLenOnly(QCBOREncodeContext *pCtx,
                             UsefulBufC          Bytes);
 
