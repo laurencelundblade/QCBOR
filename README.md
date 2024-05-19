@@ -378,17 +378,21 @@ available options and the associated #defines.
 ## Code Size
 
 These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
+All QCBOR_DISABLE_XXX are set and compiler stack frame checking is disabled
+for smallest but not for largest. Smallest is the library functions for a
+protocol with strings, integers, arrays, maps and Booleans, but not floats
+and standard tag types.
 
     |               | smallest | largest |
     |---------------|----------|---------|
-    | encode only   |      900 |    2100 |
+    | encode only   |      850 |    2200 |
     | decode only   |     1550 |   13300 |
-    | combined      |     2450 |   15500 |
+    | combined      |     2500 |   15500 |
 
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
- main factor is in this is the number of QCBOR functions called and
- which ones they are. QCBOR is constructed with less internal
+ main factor is the number of QCBOR functions called and
+ which ones they are. QCBOR minimizes internal
  interdependency so only code necessary for the called functions is
  brought in.
 

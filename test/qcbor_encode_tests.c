@@ -643,17 +643,17 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_OpenMap(pECtx);
    QCBOREncode_AddSZString(pECtx, "s1");
    QCBOREncode_AddTag(pECtx, 88);
-   QCBOREncode_Private_AddSimple(pECtx, 255);
-   QCBOREncode_Private_AddSimpleToMap(pECtx, "s2", 0);
+   QCBOREncode_AddSimple(pECtx, 255);
+   QCBOREncode_AddSimpleToMap(pECtx, "s2", 0);
    QCBOREncode_AddSZString(pECtx, "s3");
    QCBOREncode_AddTag(pECtx, 88);
-   QCBOREncode_Private_AddSimple(pECtx, 33);
+   QCBOREncode_AddSimple(pECtx, 33);
    QCBOREncode_AddInt64(pECtx, 88378374); // label before tag
    QCBOREncode_AddTag(pECtx, 88);
-   QCBOREncode_Private_AddSimple(pECtx, 255);
+   QCBOREncode_AddSimple(pECtx, 255);
    QCBOREncode_AddInt64(pECtx, 89); // label before tag
    QCBOREncode_AddTag(pECtx, 88);
-   QCBOREncode_Private_AddSimple(pECtx, 19);
+   QCBOREncode_AddSimple(pECtx, 19);
    QCBOREncode_CloseMap(pECtx);
 
    /* UUIDs */
@@ -935,6 +935,7 @@ int32_t SimpleValuesTest1(void)
    return(nReturn);
 }
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 /*
  9F                  # array(5)
    F5               # primitive(21)
@@ -981,6 +982,7 @@ int32_t SimpleValuesIndefiniteLengthTest1(void)
 
    return(nReturn);
 }
+#endif
 
 /*
 A5                                      # map(5)
@@ -1647,7 +1649,7 @@ FormatRTICResults(uint8_t uRResult,
 
       // The result: 0 if scan happened and found nothing; 1 if it happened and
       // found something wrong; 2 if it didn't happen
-      QCBOREncode_Private_AddSimpleToMap(&ECtx, "integrity", uRResult);
+      QCBOREncode_AddSimpleToMap(&ECtx, "integrity", uRResult);
 
       // Add the diagnostic code
       QCBOREncode_AddSZStringToMap(&ECtx, "type", szType);
@@ -2653,7 +2655,7 @@ int32_t EncodeErrorTests(void)
    /* ------ QCBOR_ERR_UNSUPPORTED -------- */
    QCBOREncode_Init(&EC, Large);
    QCBOREncode_OpenArray(&EC);
-   QCBOREncode_Private_AddSimple(&EC, 24); /* CBOR_SIMPLEV_RESERVED_START */
+   QCBOREncode_AddSimple(&EC, 24); /* CBOR_SIMPLEV_RESERVED_START */
    uErr = QCBOREncode_FinishGetSize(&EC, &xx);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_ENCODE_UNSUPPORTED) {
@@ -2668,7 +2670,7 @@ int32_t EncodeErrorTests(void)
 
    QCBOREncode_Init(&EC, Large);
    QCBOREncode_OpenArray(&EC);
-   QCBOREncode_Private_AddSimple(&EC, 31); /* CBOR_SIMPLEV_RESERVED_END */
+   QCBOREncode_AddSimple(&EC, 31); /* CBOR_SIMPLEV_RESERVED_END */
    uErr = QCBOREncode_FinishGetSize(&EC, &xx);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_ENCODE_UNSUPPORTED) {
