@@ -1425,7 +1425,7 @@ UsefulOutBuf_OutUBufOffset(UsefulOutBuf *pUOutBuf, size_t uOffset);
  * and @c start2. It compares bytes at those two starting points until
  * they are not equal or @c uLen1 or @c uLen2 is reached. If the
  * length of the string given is off the end of the output data, the
- * string will be effectively concated to the data in the output
+ * string will be effectively truncated to the data in the output
  * buffer for the comparison.
  *
  * This returns positive when @c uStart1 lexographically sorts ahead
