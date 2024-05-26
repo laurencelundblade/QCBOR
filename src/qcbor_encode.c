@@ -630,38 +630,40 @@ QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
 }
 
 
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
-/*
- * Public functions for adding a double. See qcbor/qcbor_encode.h
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+/**
+ * @brief Semi-private method to add a double using preferred encoding.
+ *
+ * @param[in] pMe   The encode context.
+ * @param[in] dNum  The double to add.
+ *
+ * This converts the double to a float or half-precision if it can be done
+ * without a loss of precision. See QCBOREncode_AddDouble().
  */
 void
-QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
+QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, const double dNum)
 {
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    const IEEE754_union uNum = IEEE754_DoubleToSmaller(dNum, true);
-
    QCBOREncode_Private_AddType7(pMe, (uint8_t)uNum.uSize, uNum.uValue);
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   QCBOREncode_AddDoubleNoPreferred(pMe, dNum);
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 
 
-/*
- * Public functions for adding a float. See qcbor/qcbor_encode.h
+/**
+ * @brief Semi-private method to add a float using preferred encoding.
+ *
+ * @param[in] pMe   The encode context.
+ * @param[in] fNum  The float to add.
+ *
+ * This converts the float to a half-precision if it can be done
+ * without a loss of precision. See QCBOREncode_AddFloat().
  */
 void
-QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
+QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, const float fNum)
 {
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    const IEEE754_union uNum = IEEE754_SingleToHalf(fNum);
-
    QCBOREncode_Private_AddType7(pMe, (uint8_t)uNum.uSize, uNum.uValue);
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   QCBOREncode_AddFloatNoPreferred(pMe, fNum);
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 }
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#endif /* !QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA

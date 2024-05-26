@@ -649,7 +649,7 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  * See also QCBOREncode_AddDoubleNoPreferred(), QCBOREncode_AddFloat()
  * and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
  */
-void
+static void
 QCBOREncode_AddDouble(QCBOREncodeContext *pCtx, double dNum);
 
 static void
@@ -671,7 +671,7 @@ QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNu
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddDoubleNoPreferred(),
  * and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
  */
-void
+static void
 QCBOREncode_AddFloat(QCBOREncodeContext *pCtx, float fNum);
 
 static void
@@ -2341,6 +2341,16 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pCtx,
                               UsefulBufC          Bytes);
 
 
+/* Semi-private function for adding a double with preferred encoding. See qcbor_encode.c */
+void
+QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, const double dNum);
+
+
+/* Semi-private function for adding a float with preferred encoding. See qcbor_encode.c */
+void
+QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, const float fNum);
+
+
 /* Semi-private funcion used by public inline functions. See qcbor_encode.c */
 void
 QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pCtx,
@@ -2572,6 +2582,16 @@ QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float fNum)
 
 
 static inline void
+QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
+{
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+   QCBOREncode_Private_AddPreferredDouble(pMe, dNum);
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
+   QCBOREncode_AddDoubleNoPreferred(pMe, dNum);
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+}
+
+static inline void
 QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pMe,
                            const char         *szLabel,
                            const double        dNum)
@@ -2587,6 +2607,17 @@ QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddDouble(pMe, dNum);
+}
+
+
+static inline void
+QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
+{
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+   QCBOREncode_Private_AddPreferredFloat(pMe, fNum);
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
+   QCBOREncode_AddFloatNoPreferred(pMe, fNum);
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 
 static inline void
