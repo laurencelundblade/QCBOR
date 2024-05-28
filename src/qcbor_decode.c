@@ -372,12 +372,12 @@ DecodeNesting_IsBoundedType(const QCBORDecodeNesting *pNesting, uint8_t uType)
       return false;
    }
 
-   uint8_t uT = pNesting->pCurrentBounded->uLevelType;
-   if(uT == QCBOR_TYPE_MAP_AS_ARRAY) {
-      uT = QCBOR_TYPE_ARRAY;
+   uint8_t uItemDataType = pNesting->pCurrentBounded->uLevelType;
+   if(uItemDataType == QCBOR_TYPE_MAP_AS_ARRAY) {
+      uItemDataType = QCBOR_TYPE_ARRAY;
    }
 
-   if(uT != uType) {
+   if(uItemDataType != uType) {
       return false;
    }
 
@@ -3579,12 +3579,12 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
       return;
    }
 
-   uint8_t uT = pItem->uDataType;
-   if(uT == QCBOR_TYPE_MAP_AS_ARRAY) {
-      uT = QCBOR_TYPE_ARRAY;
+   uint8_t uItemDataType = pItem->uDataType;
+   if(uItemDataType == QCBOR_TYPE_MAP_AS_ARRAY) {
+      uItemDataType = QCBOR_TYPE_ARRAY;
    }
 
-   if(uT != uType) {
+   if(uItemDataType != uType) {
       pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
       return;
    }
@@ -4070,11 +4070,11 @@ QCBORDecode_Private_EnterBoundedMapOrArray(QCBORDecodeContext *pMe,
       goto Done;
    }
 
-   uint8_t uT = Item.uDataType;
-   if(uT == QCBOR_TYPE_MAP_AS_ARRAY ) {
-      uT = QCBOR_TYPE_ARRAY;
+   uint8_t uItemDataType = Item.uDataType;
+   if(uItemDataType == QCBOR_TYPE_MAP_AS_ARRAY ) {
+      uItemDataType = QCBOR_TYPE_ARRAY;
    }
-   if(uT != uType) {
+   if(uItemDataType != uType) {
       uErr = QCBOR_ERR_UNEXPECTED_TYPE;
       goto Done;
    }
