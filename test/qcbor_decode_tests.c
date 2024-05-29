@@ -1098,7 +1098,13 @@ int32_t ShortBufferParseTest2(void)
 }
 
 
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+/* This test requires indef strings, HW float and preferred float */
+#if !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS) && \
+    !defined(QCBOR_DISABLE_FLOAT_HW_USE) && \
+    !defined(QCBOR_DISABLE_PREFERRED_FLOAT) && \
+    !defined(QCBOR_DISABLE_TAGS) && \
+    !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS)
+
 static const uint8_t pPerverseLabels[] = {
    0xae,
 
@@ -1130,7 +1136,7 @@ static const uint8_t pPerverseLabels[] = {
 
    0xd9, 0x01, 0x02, 0xbf, 0x7f, 0x61, 0x4a, 0x61, 0x4b, 0xff, 0x00, 0xf4, 0xd7, 0x80 ,0xff, 0x61, 0x6e
 };
-#endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+#endif
 
 
 /*
@@ -1261,8 +1267,14 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
    return 0;
 }
 
+/* This test requires indef strings, HW float and preferred float,... */
+#if !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS) && \
+    !defined(QCBOR_DISABLE_FLOAT_HW_USE) && \
+    !defined(QCBOR_DISABLE_PREFERRED_FLOAT) && \
+    !defined(QCBOR_DISABLE_TAGS) && \
+    !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS)
 
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+/* Decode a one byte string and match to letter. */
 static QCBORError
 GetTextX(QCBORDecodeContext *pDecode, uint8_t letter)
 {
@@ -1285,7 +1297,7 @@ GetTextX(QCBORDecodeContext *pDecode, uint8_t letter)
 
    return QCBOR_SUCCESS;
 }
-#endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+#endif
 
 
 /*
@@ -1501,7 +1513,13 @@ int32_t ParseMapAsArrayTest(void)
       return -50;
    }
 
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+/* This test requires indef strings, HW float and preferred float */
+#if !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS) && \
+    !defined(QCBOR_DISABLE_FLOAT_HW_USE) && \
+    !defined(QCBOR_DISABLE_PREFERRED_FLOAT) && \
+    !defined(QCBOR_DISABLE_TAGS) && \
+    !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS)
+
    UsefulBufC         Encoded;
 
    /* Big decode of a map with a wide variety or labels */
@@ -2063,7 +2081,7 @@ int32_t ParseMapAsArrayTest(void)
    if(uErr) {
       return MakeTestResultCode(11, 26, uErr);
    }
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+#endif /* QCBOR_DISABLE_... */
 
    return 0;
 }
