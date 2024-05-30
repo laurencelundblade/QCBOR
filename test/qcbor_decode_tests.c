@@ -1098,7 +1098,7 @@ int32_t ShortBufferParseTest2(void)
 }
 
 
-/* This test requires indef strings, HW float and preferred float */
+/* This test requires indef strings, HW float and preferred float,... */
 #if !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS) && \
     !defined(QCBOR_DISABLE_FLOAT_HW_USE) && \
     !defined(QCBOR_DISABLE_PREFERRED_FLOAT) && \
@@ -1267,6 +1267,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
    return 0;
 }
 
+
 /* This test requires indef strings, HW float and preferred float,... */
 #if !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS) && \
     !defined(QCBOR_DISABLE_FLOAT_HW_USE) && \
@@ -1274,9 +1275,9 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
     !defined(QCBOR_DISABLE_TAGS) && \
     !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS)
 
-/* Decode a one byte string and match to letter. */
+/* Utility to decode a one byte string and match to letter. */
 static QCBORError
-GetTextX(QCBORDecodeContext *pDecode, uint8_t letter)
+CheckOneLetterString(QCBORDecodeContext *pDecode, uint8_t letter)
 {
    UsefulBufC Text;
    QCBORError uErr;
@@ -1513,7 +1514,7 @@ int32_t ParseMapAsArrayTest(void)
       return -50;
    }
 
-/* This test requires indef strings, HW float and preferred float */
+   /* This test requires indef strings, HW float and preferred float,... */
 #if !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS) && \
     !defined(QCBOR_DISABLE_FLOAT_HW_USE) && \
     !defined(QCBOR_DISABLE_PREFERRED_FLOAT) && \
@@ -1932,19 +1933,19 @@ int32_t ParseMapAsArrayTest(void)
    bool b;
    QCBORDecode_GetBool(&DCtx, &b);
 
-   uErr = GetTextX(&DCtx, 'a');
+   uErr = CheckOneLetterString(&DCtx, 'a');
    if(uErr) {
       return MakeTestResultCode(11, 1, uErr);
    }
 
    QCBORDecode_GetNull(&DCtx);
-   uErr = GetTextX(&DCtx, 'b');
+   uErr = CheckOneLetterString(&DCtx, 'b');
    if(uErr) {
       return MakeTestResultCode(11, 2, uErr);
    }
 
    QCBORDecode_VGetNext(&DCtx,  &Item);
-   uErr = GetTextX(&DCtx, 'c');
+   uErr = CheckOneLetterString(&DCtx, 'c');
    if(uErr) {
       return MakeTestResultCode(11, 3, uErr);
    }
@@ -1954,7 +1955,7 @@ int32_t ParseMapAsArrayTest(void)
    if(!isnan(dNum)) {
       return MakeTestResultCode(11, 4, 0);
    }
-   uErr = GetTextX(&DCtx, 'd');
+   uErr = CheckOneLetterString(&DCtx, 'd');
    if(uErr) {
       return MakeTestResultCode(11, 5, uErr);
    }
@@ -1963,7 +1964,7 @@ int32_t ParseMapAsArrayTest(void)
    if( dNum != 3.4028234663852886E+38 ) {
       return MakeTestResultCode(11, 6, 0);
    }
-   uErr = GetTextX(&DCtx, 'e');
+   uErr = CheckOneLetterString(&DCtx, 'e');
    if(uErr) {
       return MakeTestResultCode(11, 7, uErr);
    }
@@ -1972,7 +1973,7 @@ int32_t ParseMapAsArrayTest(void)
    if(dNum != -INFINITY) {
       return MakeTestResultCode(11, 8, 0);
    }
-   uErr = GetTextX(&DCtx, 'f');
+   uErr = CheckOneLetterString(&DCtx, 'f');
    if(uErr) {
       return MakeTestResultCode(11, 9, uErr);
    }
@@ -1982,7 +1983,7 @@ int32_t ParseMapAsArrayTest(void)
    QCBORDecode_GetInt64(&DCtx, &nInt);
    QCBORDecode_GetInt64(&DCtx, &nInt);
    QCBORDecode_ExitArray(&DCtx);
-   uErr = GetTextX(&DCtx, 'g');
+   uErr = CheckOneLetterString(&DCtx, 'g');
    if(uErr) {
       return MakeTestResultCode(11, 10, uErr);
    }
@@ -1995,12 +1996,12 @@ int32_t ParseMapAsArrayTest(void)
    QCBORDecode_ExitArray(&DCtx);
    QCBORDecode_ExitArray(&DCtx);
    QCBORDecode_ExitArray(&DCtx);
-   uErr = GetTextX(&DCtx, 'h');
+   uErr = CheckOneLetterString(&DCtx, 'h');
    if(uErr) {
       return MakeTestResultCode(11, 11, uErr);
    }
    QCBORDecode_GetEpochDate(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
-   uErr = GetTextX(&DCtx, 'i');
+   uErr = CheckOneLetterString(&DCtx, 'i');
    if(uErr) {
       return MakeTestResultCode(11, 12, uErr);
    }
@@ -2014,13 +2015,13 @@ int32_t ParseMapAsArrayTest(void)
    QCBORDecode_GetInt64(&DCtx, &nInt);
    QCBORDecode_ExitArray(&DCtx);
    QCBORDecode_ExitArray(&DCtx);
-   uErr = GetTextX(&DCtx, 'j');
+   uErr = CheckOneLetterString(&DCtx, 'j');
    if(uErr) {
       return MakeTestResultCode(11, 13, uErr);
    }
 
    QCBORDecode_GetArray(&DCtx, &Item, &Encoded);
-   uErr = GetTextX(&DCtx, 'k');
+   uErr = CheckOneLetterString(&DCtx, 'k');
    if(uErr) {
       return MakeTestResultCode(11, 14, uErr);
    }
@@ -2030,13 +2031,13 @@ int32_t ParseMapAsArrayTest(void)
    QCBORDecode_GetInt64(&DCtx, &nInt);
    QCBORDecode_GetInt64(&DCtx, &nInt);
    QCBORDecode_ExitArray(&DCtx);
-   uErr = GetTextX(&DCtx, 'l');
+   uErr = CheckOneLetterString(&DCtx, 'l');
    if(uErr) {
       return MakeTestResultCode(11, 15, uErr);
    }
 
    QCBORDecode_GetTextString(&DCtx, &Encoded);
-   uErr = GetTextX(&DCtx, 'm');
+   uErr = CheckOneLetterString(&DCtx, 'm');
    if(uErr) {
       return MakeTestResultCode(11, 16, uErr);
    }
@@ -2071,7 +2072,7 @@ int32_t ParseMapAsArrayTest(void)
    }
    QCBORDecode_ExitArray(&DCtx);
    QCBORDecode_ExitArray(&DCtx);
-   uErr = GetTextX(&DCtx, 'n');
+   uErr = CheckOneLetterString(&DCtx, 'n');
    if(uErr) {
       return MakeTestResultCode(11, 25, uErr);
    }
