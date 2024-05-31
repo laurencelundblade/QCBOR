@@ -310,10 +310,10 @@ typedef enum {
 /** Type for the simple value undef. */
 #define QCBOR_TYPE_UNDEF         23
 
-/** Type for a floating-point number. Data is in @c val.float. */
+/** Type for a floating-point number. Data is in @c val.fnum. */
 #define QCBOR_TYPE_FLOAT         26
 
-/** Type for a double floating-point number. Data is in @c val.double. */
+/** Type for a double floating-point number. Data is in @c val.dfnum. */
 #define QCBOR_TYPE_DOUBLE        27
 
 /** Special type for integers between -2^63 - 1 to -2^64 that

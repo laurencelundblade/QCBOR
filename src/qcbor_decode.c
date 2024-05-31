@@ -372,7 +372,12 @@ DecodeNesting_IsBoundedType(const QCBORDecodeNesting *pNesting, uint8_t uType)
       return false;
    }
 
-   if(pNesting->pCurrentBounded->uLevelType != uType) {
+   uint8_t uItemDataType = pNesting->pCurrentBounded->uLevelType;
+   if(uItemDataType == QCBOR_TYPE_MAP_AS_ARRAY) {
+      uItemDataType = QCBOR_TYPE_ARRAY;
+   }
+
+   if(uItemDataType != uType) {
       return false;
    }
 
@@ -1743,15 +1748,18 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
        * strings.
        */
       if(pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
-         if(pDecodedItem->val.uCount > QCBOR_MAX_ITEMS_IN_ARRAY/2) {
-            uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
-            goto Done;
-         }
          pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
-         /* Cast is safe because of check against QCBOR_MAX_ITEMS_IN_ARRAY/2.
-          * Cast is needed because of integer promotion.
-          */
-         pDecodedItem->val.uCount = (uint16_t)(pDecodedItem->val.uCount * 2);
+         if(pDecodedItem->val.uCount != UINT16_MAX) {
+            /* Adjust definite-length map item count */
+            if(pDecodedItem->val.uCount > QCBOR_MAX_ITEMS_IN_ARRAY/2) {
+               uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
+               goto Done;
+            }
+            /* Cast is safe because of check against QCBOR_MAX_ITEMS_IN_ARRAY/2.
+             * Cast is needed because of integer promotion.
+             */
+            pDecodedItem->val.uCount = (uint16_t)(pDecodedItem->val.uCount * 2);
+         }
       }
    }
 
@@ -3569,7 +3577,12 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
       return;
    }
 
-   if(pItem->uDataType != uType) {
+   uint8_t uItemDataType = pItem->uDataType;
+   if(uItemDataType == QCBOR_TYPE_MAP_AS_ARRAY) {
+      uItemDataType = QCBOR_TYPE_ARRAY;
+   }
+
+   if(uItemDataType != uType) {
       pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
       return;
    }
@@ -4054,7 +4067,12 @@ QCBORDecode_Private_EnterBoundedMapOrArray(QCBORDecodeContext *pMe,
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
-   if(Item.uDataType != uType) {
+
+   uint8_t uItemDataType = Item.uDataType;
+   if(uItemDataType == QCBOR_TYPE_MAP_AS_ARRAY ) {
+      uItemDataType = QCBOR_TYPE_ARRAY;
+   }
+   if(uItemDataType != uType) {
       uErr = QCBOR_ERR_UNEXPECTED_TYPE;
       goto Done;
    }

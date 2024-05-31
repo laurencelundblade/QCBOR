@@ -2371,9 +2371,9 @@ static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pMe)
 
    /* The cursor is off the end of the input buffer given.
     * Presuming there are no bugs in this code, this should never happen.
-    * If it so, the struct was corrupted. The check is retained as
+    * If it is so, the struct was corrupted. The check is retained as
     * as a defense in case there is a bug in this code or the struct is
-    * corrupted.
+    * corrupted by an attacker or accidentally.
     */
    if(pMe->cursor > pMe->UB.len) {
       return 0;
