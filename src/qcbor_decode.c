@@ -105,8 +105,10 @@ QCBORItem_IsMapOrArray(const QCBORItem Item)
 {
    const uint8_t uDataType = Item.uDataType;
    return uDataType == QCBOR_TYPE_MAP ||
-          uDataType == QCBOR_TYPE_ARRAY ||
-          uDataType == QCBOR_TYPE_MAP_AS_ARRAY;
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+          uDataType == QCBOR_TYPE_MAP_AS_ARRAY ||
+#endif
+          uDataType == QCBOR_TYPE_ARRAY;
 }
 
 static bool
@@ -373,9 +375,11 @@ DecodeNesting_IsBoundedType(const QCBORDecodeNesting *pNesting, uint8_t uType)
    }
 
    uint8_t uItemDataType = pNesting->pCurrentBounded->uLevelType;
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    if(uItemDataType == QCBOR_TYPE_MAP_AS_ARRAY) {
       uItemDataType = QCBOR_TYPE_ARRAY;
    }
+#endif
 
    if(uItemDataType != uType) {
       return false;
@@ -865,9 +869,15 @@ Done:
 static QCBORError
 QCBOR_Private_DecodeInteger(const int      nMajorType,
                             const uint64_t uArgument,
+                            const int      nAdditionalInfo,
                             QCBORItem     *pDecodedItem)
 {
    QCBORError uReturn = QCBOR_SUCCESS;
+
+   if(nAdditionalInfo == LEN_IS_INDEFINITE) {
+      uReturn = QCBOR_ERR_BAD_INT;
+      goto Done;
+   }
 
    if(nMajorType == CBOR_MAJOR_TYPE_POSITIVE_INT) {
       if (uArgument <= INT64_MAX) {
@@ -896,6 +906,30 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
          uReturn = QCBOR_ERR_INT_OVERFLOW;
       }
    }
+
+Done:
+   return uReturn;
+}
+
+
+static QCBORError
+QCBOR_Private_DecodeTag(const int      nAdditionalInfo,
+                        const uint64_t uArgument,
+                        QCBORItem     *pDecodedItem)
+{
+   QCBORError uReturn;
+
+#ifndef QCBOR_DISABLE_TAGS
+      if(nAdditionalInfo == LEN_IS_INDEFINITE) {
+         uReturn = QCBOR_ERR_BAD_INT;
+      } else {
+         pDecodedItem->val.uTagV = uArgument;
+         pDecodedItem->uDataType = QCBOR_TYPE_TAG;
+         uReturn = QCBOR_SUCCESS;
+      }
+#else /* QCBOR_DISABLE_TAGS */
+      uReturn = QCBOR_ERR_TAGS_DISABLED;
+#endif /* QCBOR_DISABLE_TAGS */
 
    return uReturn;
 }
@@ -1067,71 +1101,14 @@ Done:
  */
 static QCBORError
 QCBOR_Private_DecodeBytes(const QCBORInternalAllocator *pAllocator,
+                          int                           nMajorType,
                           const uint64_t                uStrLen,
+                          int                           nAdditionalInfo,
                           UsefulInputBuf               *pUInBuf,
                           QCBORItem                    *pDecodedItem)
 {
    QCBORError uReturn = QCBOR_SUCCESS;
 
-   /* CBOR lengths can be 64 bits, but size_t is not 64 bits on all
-    * CPUs.  This check makes the casts to size_t below safe.
-    *
-    * The max is 4 bytes less than the largest sizeof() so this can be
-    * tested by putting a SIZE_MAX length in the CBOR test input (no
-    * one will care the limit on strings is 4 bytes shorter).
-    */
-   if(uStrLen > SIZE_MAX-4) {
-      uReturn = QCBOR_ERR_STRING_TOO_LONG;
-      goto Done;
-   }
-
-   const UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, (size_t)uStrLen);
-   if(UsefulBuf_IsNULLC(Bytes)) {
-      /* Failed to get the bytes for this string item */
-      uReturn = QCBOR_ERR_HIT_END;
-      goto Done;
-   }
-
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-   /* Note that this is not where allocation to coalesce
-    * indefinite-length strings is done. This is for when the caller
-    * has requested all strings be allocated. Disabling indefinite
-    * length strings also disables this allocate-all option.
-    */
-   if(pAllocator) {
-      /* request to use the string allocator to make a copy */
-      UsefulBuf NewMem = StringAllocator_Allocate(pAllocator, (size_t)uStrLen);
-      if(UsefulBuf_IsNULL(NewMem)) {
-         uReturn = QCBOR_ERR_STRING_ALLOCATE;
-         goto Done;
-      }
-      pDecodedItem->val.string = UsefulBuf_Copy(NewMem, Bytes);
-      pDecodedItem->uDataAlloc = 1;
-      goto Done;
-   }
-#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
-   (void)pAllocator;
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
-
-   /* Normal case with no string allocator */
-   pDecodedItem->val.string = Bytes;
-
-Done:
-   return uReturn;
-}
-
-
-/**
- * @brief Map the CBOR major types for strings to the QCBOR types.
- *
- * @param[in] nCBORMajorType  The CBOR major type to convert.
- * @retturns QCBOR type number.
- *
- * This only works for the two string types.
- */
-static uint8_t
-QCBOR_Private_ConvertStringMajorTypes(int nCBORMajorType)
-{
    #if CBOR_MAJOR_TYPE_BYTE_STRING + 4 != QCBOR_TYPE_BYTE_STRING
    #error QCBOR_TYPE_BYTE_STRING no lined up with major type
    #endif
@@ -1139,22 +1116,75 @@ QCBOR_Private_ConvertStringMajorTypes(int nCBORMajorType)
    #if CBOR_MAJOR_TYPE_TEXT_STRING + 4 != QCBOR_TYPE_TEXT_STRING
    #error QCBOR_TYPE_TEXT_STRING no lined up with major type
    #endif
+   pDecodedItem->uDataType = (uint8_t)(nMajorType + 4);
 
-   return (uint8_t)(nCBORMajorType + 4);
+
+   if(nAdditionalInfo == LEN_IS_INDEFINITE) {
+      pDecodedItem->val.string = (UsefulBufC){NULL, QCBOR_STRING_LENGTH_INDEFINITE};
+
+   } else {
+      /* CBOR lengths can be 64 bits, but size_t is not 64 bits on all
+       * CPUs.  This check makes the casts to size_t below safe.
+       *
+       * The max is 4 bytes less than the largest sizeof() so this can be
+       * tested by putting a SIZE_MAX length in the CBOR test input (no
+       * one will care the limit on strings is 4 bytes shorter).
+       */
+      if(uStrLen > SIZE_MAX-4) {
+         uReturn = QCBOR_ERR_STRING_TOO_LONG;
+         goto Done;
+      }
+
+      const UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(pUInBuf, (size_t)uStrLen);
+      if(UsefulBuf_IsNULLC(Bytes)) {
+         /* Failed to get the bytes for this string item */
+         uReturn = QCBOR_ERR_HIT_END;
+         goto Done;
+      }
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+      /* Note that this is not where allocation to coalesce
+       * indefinite-length strings is done. This is for when the caller
+       * has requested all strings be allocated. Disabling indefinite
+       * length strings also disables this allocate-all option.
+       */
+      if(pAllocator) {
+         /* request to use the string allocator to make a copy */
+         UsefulBuf NewMem = StringAllocator_Allocate(pAllocator, (size_t)uStrLen);
+         if(UsefulBuf_IsNULL(NewMem)) {
+            uReturn = QCBOR_ERR_STRING_ALLOCATE;
+            goto Done;
+         }
+         pDecodedItem->val.string = UsefulBuf_Copy(NewMem, Bytes);
+         pDecodedItem->uDataAlloc = 1;
+         goto Done;
+      }
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+      (void)pAllocator;
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+      /* Normal case with no string allocator */
+      pDecodedItem->val.string = Bytes;
+   }
+
+Done:
+   return uReturn;
 }
 
 
-/**
- * @brief Map the CBOR major types  for arrays/maps  to the QCBOR types.
- *
- * @param[in] nCBORMajorType  The CBOR major type to convert.
- * @retturns QCBOR type number.
- *
- * This only works for the two aggregate types.
- */
-static uint8_t
-QCBORDecode_Private_ConvertArrayOrMapType(int nCBORMajorType)
+
+
+
+static QCBORError
+QCBOR_Private_DecodeArrayOrMap(const uint8_t  uMode,
+                               const int      nMajorType,
+                               const uint64_t uItemCount,
+                               const int      nAdditionalInfo,
+                               QCBORItem     *pDecodedItem)
 {
+   QCBORError uReturn;
+
+   /* ------ Sort out the data type ------ */
    #if QCBOR_TYPE_ARRAY != CBOR_MAJOR_TYPE_ARRAY
    #error QCBOR_TYPE_ARRAY value not lined up with major type
    #endif
@@ -1162,15 +1192,56 @@ QCBORDecode_Private_ConvertArrayOrMapType(int nCBORMajorType)
    #if QCBOR_TYPE_MAP != CBOR_MAJOR_TYPE_MAP
    #error QCBOR_TYPE_MAP value not lined up with major type
    #endif
+   pDecodedItem->uDataType = (uint8_t)nMajorType;
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+   if(uMode == QCBOR_DECODE_MODE_MAP_AS_ARRAY && nMajorType == QCBOR_TYPE_MAP) {
+      pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
+   }
+#endif
 
-   return (uint8_t)(nCBORMajorType);
+   uReturn = QCBOR_SUCCESS;
+
+   if(nAdditionalInfo == LEN_IS_INDEFINITE) {
+      /* ------ Indefinite-length arra/map ----- */
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+      pDecodedItem->val.uCount = QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH;
+#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+      uReturn = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
+#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+   } else {
+
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+      if(uMode == QCBOR_DECODE_MODE_MAP_AS_ARRAY && nMajorType == QCBOR_TYPE_MAP) {
+         /* ------ Definite-length map as array ------ */
+
+         if(uItemCount > QCBOR_MAX_ITEMS_IN_ARRAY/2) {
+            uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
+         } else {
+            /* cast OK because of check above */
+            pDecodedItem->val.uCount = (uint16_t)uItemCount*2;
+         }
+
+      } else
+#endif
+      {
+         /* ------ Definite-length array/map ------ */
+         if(uItemCount > QCBOR_MAX_ITEMS_IN_ARRAY) {
+            uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
+         } else {
+            /* cast OK because of check above */
+            pDecodedItem->val.uCount = (uint16_t)uItemCount;
+         }
+      }
+   }
+
+   return uReturn;
 }
 
 
 /**
  * @brief Decode a single primitive data item (decode layer 6).
  *
- * @param[in] pUInBuf       Input buffer to read data item from.
+ * param[in] pUInBuf       Input buffer to read data item from.
  * @param[out] pDecodedItem  The filled-in decoded item.
  * @param[in] pAllocator    The allocator to use for strings or NULL.
  *
@@ -1194,7 +1265,7 @@ QCBORDecode_Private_ConvertArrayOrMapType(int nCBORMajorType)
  * no combing of data items.
  */
 static QCBORError
-QCBOR_Private_DecodeAtomicDataItem(UsefulInputBuf               *pUInBuf,
+QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext           *pMe,
                                    QCBORItem                    *pDecodedItem,
                                    const QCBORInternalAllocator *pAllocator)
 {
@@ -1211,67 +1282,29 @@ QCBOR_Private_DecodeAtomicDataItem(UsefulInputBuf               *pUInBuf,
 
    memset(pDecodedItem, 0, sizeof(QCBORItem));
 
-   uReturn = QCBOR_Private_DecodeHead(pUInBuf, &nMajorType, &uArgument, &nAdditionalInfo);
+   uReturn = QCBOR_Private_DecodeHead(&(pMe->InBuf), &nMajorType, &uArgument, &nAdditionalInfo);
    if(uReturn) {
       goto Done;
    }
 
-   /* At this point the major type and the argument are valid. We've
-    * got the type and the argument that starts every CBOR data item.
-    */
    switch (nMajorType) {
       case CBOR_MAJOR_TYPE_POSITIVE_INT: /* Major type 0 */
       case CBOR_MAJOR_TYPE_NEGATIVE_INT: /* Major type 1 */
-         if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-            uReturn = QCBOR_ERR_BAD_INT;
-         } else {
-            uReturn = QCBOR_Private_DecodeInteger(nMajorType, uArgument, pDecodedItem);
-         }
+         uReturn = QCBOR_Private_DecodeInteger(nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_BYTE_STRING: /* Major type 2 */
       case CBOR_MAJOR_TYPE_TEXT_STRING: /* Major type 3 */
-         pDecodedItem->uDataType = QCBOR_Private_ConvertStringMajorTypes(nMajorType);
-         if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-            pDecodedItem->val.string = (UsefulBufC){NULL, QCBOR_STRING_LENGTH_INDEFINITE};
-         } else {
-            uReturn = QCBOR_Private_DecodeBytes(pAllocator, uArgument, pUInBuf, pDecodedItem);
-         }
+         uReturn = QCBOR_Private_DecodeBytes(pAllocator, nMajorType, uArgument, nAdditionalInfo, &(pMe->InBuf), pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_ARRAY: /* Major type 4 */
       case CBOR_MAJOR_TYPE_MAP:   /* Major type 5 */
-         if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-            /* Indefinite-length string. */
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-            pDecodedItem->val.uCount = QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH;
-#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
-            uReturn = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
-            break;
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
-         } else {
-            /* Definite-length string. */
-            if(uArgument > QCBOR_MAX_ITEMS_IN_ARRAY) {
-                uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
-                goto Done;
-             }
-            /* cast OK because of check above */
-            pDecodedItem->val.uCount = (uint16_t)uArgument;
-         }
-         pDecodedItem->uDataType = QCBORDecode_Private_ConvertArrayOrMapType(nMajorType);
+         uReturn = QCBOR_Private_DecodeArrayOrMap(pMe->uDecodeMode, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_TAG: /* Major type 6, tag numbers */
-#ifndef QCBOR_DISABLE_TAGS
-         if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-            uReturn = QCBOR_ERR_BAD_INT;
-         } else {
-            pDecodedItem->val.uTagV = uArgument;
-            pDecodedItem->uDataType = QCBOR_TYPE_TAG;
-         }
-#else /* QCBOR_DISABLE_TAGS */
-         uReturn = QCBOR_ERR_TAGS_DISABLED;
-#endif /* QCBOR_DISABLE_TAGS */
+         uReturn = QCBOR_Private_DecodeTag(nAdditionalInfo, uArgument, pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_SIMPLE:
@@ -1370,7 +1403,7 @@ QCBORDecode_Private_GetNextFullString(QCBORDecodeContext *pMe,
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
    QCBORError uReturn;
-   uReturn = QCBOR_Private_DecodeAtomicDataItem(&(pMe->InBuf), pDecodedItem, pAllocatorForGetNext);
+   uReturn = QCBOR_Private_DecodeAtomicDataItem(pMe, pDecodedItem, pAllocatorForGetNext);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -1404,7 +1437,7 @@ QCBORDecode_Private_GetNextFullString(QCBORDecodeContext *pMe,
        * be allocated. They are always copied in the the contiguous
        * buffer allocated here.
        */
-      uReturn = QCBOR_Private_DecodeAtomicDataItem(&(pMe->InBuf), &StringChunkItem, NULL);
+      uReturn = QCBOR_Private_DecodeAtomicDataItem(pMe, &StringChunkItem, NULL);
       if(uReturn) {
          break;
       }
@@ -1677,7 +1710,7 @@ Done:
  * @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG   Too many items in array.
  * @retval QCBOR_ERR_MAP_LABEL_TYPE          Map label not string or integer.
  *
- * If a the current nesting level is a map, then this
+ * If the current nesting level is a map, then this
  * combines pairs of items into one data item with a label
  * and value.
  *
@@ -1688,12 +1721,16 @@ Done:
  * is treated like an array to allow caller to do their
  * own label processing.
  */
+
 static QCBORError
 QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
                                     QCBORItem          *pDecodedItem)
 {
-   QCBORError uReturn = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
-   if(uReturn != QCBOR_SUCCESS) {
+   QCBORItem  LabelItem;
+   QCBORError uErr;
+
+   uErr = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
+   if(QCBORDecode_IsUnrecoverableError(uErr)) {
       goto Done;
    }
 
@@ -1702,71 +1739,60 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
       goto Done;
    }
 
-   if(pMe->uDecodeMode != QCBOR_DECODE_MODE_MAP_AS_ARRAY) {
-      /* Normal decoding of maps -- combine label and value into one item. */
+   if(!DecodeNesting_IsCurrentTypeMap(&(pMe->nesting))) {
+      /* Not decoding a map; nothing to do */
+      /* This is where maps-as-arrays is effected too */
+      goto Done;
+   }
 
-      if(DecodeNesting_IsCurrentTypeMap(&(pMe->nesting))) {
-         /* Save label in pDecodedItem and get the next which will
-          * be the real data item.
-          */
-         QCBORItem LabelItem = *pDecodedItem;
-         uReturn = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
-         if(QCBORDecode_IsUnrecoverableError(uReturn)) {
-            goto Done;
-         }
+   /* Decoding a map entry, so the item so far is the label; must get value */
+   LabelItem = *pDecodedItem;
+   uErr = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
+   if(QCBORDecode_IsUnrecoverableError(uErr)) {
+      goto Done;
+   }
 
-         pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
+   pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
+   pDecodedItem->uLabelType  = LabelItem.uDataType;
 
-         if(LabelItem.uDataType == QCBOR_TYPE_TEXT_STRING) {
-            /* strings are always good labels */
-            pDecodedItem->label.string = LabelItem.val.string;
-            pDecodedItem->uLabelType = QCBOR_TYPE_TEXT_STRING;
-         } else if (QCBOR_DECODE_MODE_MAP_STRINGS_ONLY == pMe->uDecodeMode) {
-            /* It's not a string and we only want strings */
-            uReturn = QCBOR_ERR_MAP_LABEL_TYPE;
-            goto Done;
-         } else if(LabelItem.uDataType == QCBOR_TYPE_INT64) {
-            pDecodedItem->label.int64 = LabelItem.val.int64;
-            pDecodedItem->uLabelType = QCBOR_TYPE_INT64;
-         } else if(LabelItem.uDataType == QCBOR_TYPE_UINT64) {
-            pDecodedItem->label.uint64 = LabelItem.val.uint64;
-            pDecodedItem->uLabelType = QCBOR_TYPE_UINT64;
-         } else if(LabelItem.uDataType == QCBOR_TYPE_BYTE_STRING) {
-            pDecodedItem->label.string = LabelItem.val.string;
-            pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
-            pDecodedItem->uLabelType = QCBOR_TYPE_BYTE_STRING;
-         } else {
-            /* label is not an int or a string. It is an arrray
-             * or a float or such and this implementation doesn't handle that.
-             * Also, tags on labels are ignored.
-             */
-            uReturn = QCBOR_ERR_MAP_LABEL_TYPE;
-            goto Done;
-         }
-      }
-   } else {
-      /* Decoding of maps as arrays to let the caller decide what to do
-       * about labels, particularly lables that are not integers or
-       * strings.
-       */
-      if(pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
-         pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
-         if(pDecodedItem->val.uCount != UINT16_MAX) {
-            /* Adjust definite-length map item count */
-            if(pDecodedItem->val.uCount > QCBOR_MAX_ITEMS_IN_ARRAY/2) {
-               uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
-               goto Done;
-            }
-            /* Cast is safe because of check against QCBOR_MAX_ITEMS_IN_ARRAY/2.
-             * Cast is needed because of integer promotion.
-             */
-            pDecodedItem->val.uCount = (uint16_t)(pDecodedItem->val.uCount * 2);
-         }
-      }
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+   /* QCBOR_DECODE_MODE_MAP_STRINGS_ONLY was a bad idea. Maybe
+    * get rid of it in QCBOR 2.0
+    */
+   if(pMe->uDecodeMode == QCBOR_DECODE_MODE_MAP_STRINGS_ONLY &&
+      LabelItem.uDataType != QCBOR_TYPE_TEXT_STRING) {
+      uErr = QCBOR_ERR_MAP_LABEL_TYPE;
+      goto Done;
+   }
+#endif /* !QCBOR_DISABLE_NON_INTEGER_LABELS */
+
+   switch(LabelItem.uDataType) {
+      case QCBOR_TYPE_INT64:
+         pDecodedItem->label.int64 = LabelItem.val.int64;
+         break;
+
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+      case QCBOR_TYPE_UINT64:
+         pDecodedItem->label.uint64 = LabelItem.val.uint64;
+         break;
+
+      case QCBOR_TYPE_TEXT_STRING:
+      case QCBOR_TYPE_BYTE_STRING:
+         pDecodedItem->label.string = LabelItem.val.string;
+         break;
+#endif /* !QCBOR_DISABLE_NON_INTEGER_LABELS */
+
+         /*       case QCBOR_TYPE_BREAK:
+          uErr = 99;
+          goto Done; */
+
+      default:
+         uErr = QCBOR_ERR_MAP_LABEL_TYPE;
+         goto Done;
    }
 
 Done:
-   return uReturn;
+   return uErr;
 }
 
 
@@ -1774,7 +1800,7 @@ Done:
 /**
  * @brief Peek and see if next data item is a break;
  *
- * @param[in]  pUIB            UsefulInputBuf to read from.
+ * param[in]  pUIB            UsefulInputBuf to read from.
  * @param[out] pbNextIsBreak   Indicate if next was a break or not.
  *
  * @return  Any decoding error.
@@ -1783,19 +1809,19 @@ Done:
  * if not it is not consumed.
 */
 static QCBORError
-QCBOR_Private_NextIsBreak(UsefulInputBuf *pUIB, bool *pbNextIsBreak)
+QCBOR_Private_NextIsBreak(QCBORDecodeContext *pMe, bool *pbNextIsBreak)
 {
    *pbNextIsBreak = false;
-   if(UsefulInputBuf_BytesUnconsumed(pUIB) != 0) {
+   if(UsefulInputBuf_BytesUnconsumed(&(pMe->InBuf)) != 0) {
       QCBORItem Peek;
-      size_t uPeek = UsefulInputBuf_Tell(pUIB);
-      QCBORError uReturn = QCBOR_Private_DecodeAtomicDataItem(pUIB, &Peek, NULL);
+      size_t uPeek = UsefulInputBuf_Tell(&(pMe->InBuf));
+      QCBORError uReturn = QCBOR_Private_DecodeAtomicDataItem(pMe, &Peek, NULL);
       if(uReturn != QCBOR_SUCCESS) {
          return uReturn;
       }
       if(Peek.uDataType != QCBOR_TYPE_BREAK) {
          /* It is not a break, rewind so it can be processed normally. */
-         UsefulInputBuf_Seek(pUIB, uPeek);
+         UsefulInputBuf_Seek(&(pMe->InBuf), uPeek);
       } else {
          *pbNextIsBreak = true;
       }
@@ -1863,7 +1889,7 @@ QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd, bo
 
          /* Check for a break which is what ends indefinite-length arrays/maps */
          bool bIsBreak = false;
-         uReturn = QCBOR_Private_NextIsBreak(&(pMe->InBuf), &bIsBreak);
+         uReturn = QCBOR_Private_NextIsBreak(pMe, &bIsBreak);
          if(uReturn != QCBOR_SUCCESS) {
             goto Done;
          }
@@ -3580,9 +3606,11 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    }
 
    uint8_t uItemDataType = pItem->uDataType;
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    if(uItemDataType == QCBOR_TYPE_MAP_AS_ARRAY) {
       uItemDataType = QCBOR_TYPE_ARRAY;
    }
+#endif
 
    if(uItemDataType != uType) {
       pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
@@ -4071,9 +4099,11 @@ QCBORDecode_Private_EnterBoundedMapOrArray(QCBORDecodeContext *pMe,
    }
 
    uint8_t uItemDataType = Item.uDataType;
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    if(uItemDataType == QCBOR_TYPE_MAP_AS_ARRAY ) {
       uItemDataType = QCBOR_TYPE_ARRAY;
    }
+#endif
    if(uItemDataType != uType) {
       uErr = QCBOR_ERR_UNEXPECTED_TYPE;
       goto Done;

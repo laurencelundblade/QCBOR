@@ -66,8 +66,12 @@ static test_entry2 s_tests2[] = {
 
 
 static test_entry s_tests[] = {
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
     TEST_ENTRY(GetMapAndArrayTest),
     TEST_ENTRY(TellTests),
+    TEST_ENTRY(ParseMapAsArrayTest),
+   TEST_ENTRY(SpiffyDateDecodeTest),
+#endif
     TEST_ENTRY(ErrorHandlingTests),
     TEST_ENTRY(OpenCloseBytesTest),
     TEST_ENTRY(EnterBstrTest),
@@ -76,7 +80,6 @@ static test_entry s_tests[] = {
     TEST_ENTRY(QCBORHeadTest),
     TEST_ENTRY(EmptyMapsAndArraysTest),
     TEST_ENTRY(NotWellFormedTests),
-    TEST_ENTRY(ParseMapAsArrayTest),
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
     TEST_ENTRY(IndefiniteLengthNestTest),
     TEST_ENTRY(IndefiniteLengthArrayMapTest),
@@ -98,7 +101,9 @@ static test_entry s_tests[] = {
     TEST_ENTRY(AllAddMethodsTest),
     TEST_ENTRY(ParseTooDeepArrayTest),
     TEST_ENTRY(ComprehensiveInputTest),
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
     TEST_ENTRY(ParseMapTest),
+#endif
     TEST_ENTRY(BasicEncodeTest),
     TEST_ENTRY(NestedMapTest),
     TEST_ENTRY(BignumParseTest),
@@ -107,7 +112,6 @@ static test_entry s_tests[] = {
     TEST_ENTRY(DateParseTest),
     TEST_ENTRY(DecodeTaggedTypeTests),
 #endif /* QCBOR_DISABLE_TAGS */
-    TEST_ENTRY(SpiffyDateDecodeTest),
     TEST_ENTRY(ShortBufferParseTest2),
     TEST_ENTRY(ShortBufferParseTest),
     TEST_ENTRY(ParseDeepArrayTest),
@@ -117,7 +121,9 @@ static test_entry s_tests[] = {
     TEST_ENTRY(AllocAllStringsTest),
     TEST_ENTRY(MemPoolTest),
     TEST_ENTRY(IndefiniteLengthStringTest),
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
     TEST_ENTRY(SpiffyIndefiniteLengthStringsTests),
+#endif
     TEST_ENTRY(SetUpAllocatorTest),
     TEST_ENTRY(CBORTestIssue134),
 #endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
@@ -133,7 +139,9 @@ static test_entry s_tests[] = {
     TEST_ENTRY(BstrWrapErrorTest),
     TEST_ENTRY(BstrWrapNestTest),
     TEST_ENTRY(CoseSign1TBSTest),
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
     TEST_ENTRY(StringDecoderModeFailTest),
+#endif
     TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
     TEST_ENTRY_DISABLED(TooLargeInputTest),
     TEST_ENTRY(EncodeErrorTests),
@@ -143,7 +151,9 @@ static test_entry s_tests[] = {
     TEST_ENTRY(EncodeLengthThirtyoneTest),
     TEST_ENTRY(CBORSequenceDecodeTests),
     TEST_ENTRY(IntToTests),
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
     TEST_ENTRY(PeekAndRewindTest),
+#endif
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
     TEST_ENTRY(ExponentAndMantissaDecodeTests),
 #ifndef QCBOR_DISABLE_TAGS

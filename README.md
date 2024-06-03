@@ -443,6 +443,7 @@ code. The amount saved is an approximation.
     | QCBOR_DISABLE_PREFERRED_FLOAT           |   900 |
     | QCBOR_DISABLE_FLOAT_HW_USE              |    50 |
     | QCBOR_DISABLE_TAGS                      |   400 |
+    | QCBOR_DISABLE_NON_INTEGER_LABELS        |   200 |
     | USEFULBUF_DISABLE_ALL_FLOAT             |   950 |
 
 QCBOR_DISABLE_ENCODE_USAGE_GUARDS affects encoding only.  It doesn't
@@ -481,6 +482,12 @@ QCBOR_DISABLE_TAGS disables all decoding of CBOR tags. If the input has
 a single tag, the error is unrecoverable so it is suitable only for protocols that
 have no tags. "Borrowed" tag content formats (e.g. an epoch-based date
 without the tag number), can still be processed.
+
+QCBOR_DISABLE_NON_INTEGER_LABELS causes any label that doesn't
+fit in an int64_t to result in a QCBOR_ERR_MAP_LABEL_TYPE error.
+This also disables QCBOR_DECODE_MODE_MAP_AS_ARRAY and 
+QCBOR_DECODE_MODE_MAP_STRINGS_ONLY. It is fairly common for CBOR-based
+protocols to use only small integers as labels.
 
 See the discussion above on floating-point.
 
