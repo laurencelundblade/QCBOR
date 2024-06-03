@@ -1051,9 +1051,13 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * @returns The traversal cursor offset or @c UINT32_MAX.
 
  * The position returned is always the start of the next item that
- * would be next decoded with QCBORDecode_VGetNext().  If the cursor
- * is at the end of the input or in the error state, @c UINT32_MAX is
- * returned.
+ * would be next decoded with QCBORDecode_VGetNext(). The cursor
+ * returned may be at the end of the input in which case the next call
+ * to QCBORDecode_VGetNext() will result in the @ref
+ * QCBOR_ERR_NO_MORE_ITEMS. See also QCBORDecode_AtEnd().
+ *
+ * If the decoder is in error state from previous decoding,
+ * @c UINT32_MAX is returned.
  *
  * When decoding map items, the position returned is always of the
  * label, never the value.
@@ -1081,8 +1085,23 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * There is no corresponding seek method because it is too complicated
  * to restore the internal decoder state that tracks nesting.
  */
-uint32_t
+static uint32_t
 QCBORDecode_Tell(QCBORDecodeContext *pCtx);
+
+
+/**
+ * @brief Tell whether cursor is at end of the input.
+ *
+ * @param[in] pCtx   The decoder context.
+ *
+ * @returns Error code possibly indicating end of input.
+ *
+ * This returns the same as QCBORDecode_GetError() except that @ref
+ * QCBOR_ERR_NO_MORE_ITEMS is returned if the travseral cursor is at
+ * the end of the input.
+ */
+QCBORError
+QCBORDecode_EndCheck(QCBORDecodeContext *pCtx);
 
 
 /**
@@ -1564,6 +1583,17 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx,
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  * ---- */
+
+static inline uint32_t
+QCBORDecode_Tell(QCBORDecodeContext *pMe)
+{
+   if(pMe->uLastError) {
+      return UINT32_MAX;
+   }
+
+   /* Cast is safe because decoder input size is restricted. */
+   return (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
+}
 
 static inline QCBORError
 QCBORDecode_GetError(QCBORDecodeContext *pMe)

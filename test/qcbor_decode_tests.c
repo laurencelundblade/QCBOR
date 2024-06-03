@@ -9913,7 +9913,7 @@ int32_t TellTests(void)
    int64_t            nDecodedInt;
 
    static const uint32_t aPos[] =
-       {0, 1, 17, 42, 50, 58, 72, 85, 98, 112, UINT32_MAX};
+       {0, 1, 17, 42, 50, 58, 72, 85, 98, 112, 151};
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
                     0);
@@ -9923,7 +9923,7 @@ int32_t TellTests(void)
          return nIndex;
       }
 
-      if(uPosition == UINT32_MAX) {
+      if(QCBORDecode_EndCheck(&DCtx)) {
          break;
       }
 
@@ -9932,7 +9932,7 @@ int32_t TellTests(void)
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    static const uint32_t aPosIndef[] =
-       {0, 1, 17, 42, 50, 59, 73, 86, 99, 113, UINT32_MAX};
+       {0, 1, 17, 42, 50, 59, 73, 86, 99, 113, 154};
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapIndefEncoded),
                     0);
@@ -9943,7 +9943,7 @@ int32_t TellTests(void)
          return nIndex + 100;
       }
 
-      if(uPosition == UINT32_MAX) {
+      if(QCBORDecode_EndCheck(&DCtx)) {
          break;
       }
 
@@ -9990,7 +9990,7 @@ int32_t TellTests(void)
    }
 
    QCBORDecode_ExitMap(&DCtx);
-   if(QCBORDecode_Tell(&DCtx) != UINT32_MAX) {
+   if(QCBORDecode_Tell(&DCtx) != 151) {
       return 1009;
    }
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_NO_MORE_ITEMS) {
@@ -10037,7 +10037,7 @@ int32_t TellTests(void)
    }
 
    QCBORDecode_ExitMap(&DCtx);
-   if(QCBORDecode_Tell(&DCtx) != UINT32_MAX) {
+   if(QCBORDecode_Tell(&DCtx) != 154) {
       return 2008;
    }
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_NO_MORE_ITEMS) {
@@ -10056,6 +10056,10 @@ int32_t TellTests(void)
    if(QCBORDecode_Tell(&DCtx) != UINT32_MAX) {
       return 3000;
    }
+   if(QCBORDecode_EndCheck(&DCtx) != QCBOR_ERR_MAP_NOT_ENTERED) {
+      return 3001;
+   }
+
 
    /* Empties tests */
    const uint8_t pMinimalCBOR[] = {0xa0}; // One empty map
@@ -10063,19 +10067,25 @@ int32_t TellTests(void)
    if(QCBORDecode_Tell(&DCtx) != 0) {
       return 4000;
    }
+   if(QCBORDecode_EndCheck(&DCtx) != QCBOR_SUCCESS) {
+      return 4008;
+   }
    QCBORDecode_EnterMap(&DCtx, &Item);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
       return 4001;
    }
-   if(QCBORDecode_Tell(&DCtx) != UINT32_MAX) {
+   if(QCBORDecode_Tell(&DCtx) != 1) {
       return 4002;
    }
    QCBORDecode_ExitMap(&DCtx);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
-      return 4001;
+      return 4003;
    }
-   if(QCBORDecode_Tell(&DCtx) != UINT32_MAX) {
-      return 4002;
+   if(QCBORDecode_Tell(&DCtx) != 1) {
+      return 4004;
+   }
+   if(QCBORDecode_EndCheck(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 4005;
    }
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_NO_MORE_ITEMS) {
       return 4010;
@@ -10091,15 +10101,18 @@ int32_t TellTests(void)
    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
       return 4101;
    }
-   if(QCBORDecode_Tell(&DCtx) != UINT32_MAX) {
+   if(QCBORDecode_Tell(&DCtx) != 2) {
       return 4102;
    }
    QCBORDecode_ExitMap(&DCtx);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
-      return 4101;
+      return 4103;
    }
-   if(QCBORDecode_Tell(&DCtx) != UINT32_MAX) {
-      return 4102;
+   if(QCBORDecode_Tell(&DCtx) != 2) {
+      return 4104;
+   }
+   if(QCBORDecode_EndCheck(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 4005;
    }
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_NO_MORE_ITEMS) {
       return 4110;
@@ -10136,7 +10149,7 @@ int32_t TellTests(void)
    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
       return 5007;
    }
-   if(QCBORDecode_Tell(&DCtx) != UINT32_MAX) {
+   if(QCBORDecode_Tell(&DCtx) != 20) {
       return 5008;
    }
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_NO_MORE_ITEMS) {
@@ -10171,7 +10184,7 @@ int32_t TellTests(void)
    }
 
    static const uint32_t aEmptiesPos[] =
-       {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, UINT32_MAX};
+       {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 15};
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmpties),
                     0);
@@ -10181,7 +10194,7 @@ int32_t TellTests(void)
          return nIndex + 200;
       }
 
-      if(uPosition == UINT32_MAX) {
+      if(QCBORDecode_EndCheck(&DCtx)) {
          break;
       }
 
@@ -10190,7 +10203,7 @@ int32_t TellTests(void)
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    static const uint32_t aIndefEmptiesPos[] =
-       {0, 1, 2, 4, 5, 7, 8, 10, 12, 13, 16, 19, UINT32_MAX};
+       {0, 1, 2, 4, 5, 7, 8, 10, 12, 13, 16, 19, 25};
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sEmptiesIndef),
                     0);
@@ -10200,7 +10213,7 @@ int32_t TellTests(void)
          return nIndex + 300;
       }
 
-      if(uPosition == UINT32_MAX) {
+      if(QCBORDecode_EndCheck(&DCtx)) {
          break;
       }
 

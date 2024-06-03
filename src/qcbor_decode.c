@@ -3161,23 +3161,22 @@ QCBORDecode_VGetNextConsume(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
-uint32_t
-QCBORDecode_Tell(QCBORDecodeContext *pMe)
+QCBORError
+QCBORDecode_EndCheck(QCBORDecodeContext *pMe)
 {
    size_t uCursorOffset;
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      return UINT32_MAX;
+      return pMe->uLastError;
    }
 
    uCursorOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
 
    if(uCursorOffset == UsefulInputBuf_GetBufferLength(&(pMe->InBuf))) {
-      return UINT32_MAX;
-   } else {
-      /* Cast is safe because decoder input size is restricted. */
-      return (uint32_t)uCursorOffset;
+      return QCBOR_ERR_NO_MORE_ITEMS;
    }
+
+   return QCBOR_SUCCESS;
 }
 
 
