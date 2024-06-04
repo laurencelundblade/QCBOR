@@ -17,6 +17,10 @@ jobs:
 
         - os-image: ubuntu-latest
           container: ubuntu:22.04
+          dis-xxx: '-DQCBOR_DISABLE_NON_INTEGER_LABELS'
+
+        - os-image: ubuntu-latest
+          container: ubuntu:22.04
           dis-xxx: '-DQCBOR_DISABLE_TAGS'
 
         - os-image: ubuntu-latest
