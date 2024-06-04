@@ -3164,10 +3164,12 @@ QCBORDecode_VGetNextConsume(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 QCBORError
 QCBORDecode_EndCheck(QCBORDecodeContext *pMe)
 {
-   size_t uCursorOffset;
+   size_t     uCursorOffset;
+   QCBORError uErr;
 
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return pMe->uLastError;
+   uErr = QCBORDecode_GetError(pMe);
+   if(uErr != QCBOR_SUCCESS) {
+      return uErr;
    }
 
    uCursorOffset = UsefulInputBuf_Tell(&(pMe->InBuf));

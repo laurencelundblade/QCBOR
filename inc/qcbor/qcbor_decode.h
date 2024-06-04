@@ -1096,9 +1096,9 @@ QCBORDecode_Tell(QCBORDecodeContext *pCtx);
  *
  * @returns Error code possibly indicating end of input.
  *
- * This returns the same as QCBORDecode_GetError() except that @ref
- * QCBOR_ERR_NO_MORE_ITEMS is returned if the travseral cursor is at
- * the end of the input.
+ * This returns the same as QCBORDecode_GetError() except that
+ * @ref QCBOR_ERR_NO_MORE_ITEMS is returned if the travseral cursor
+ * is at the end of the input.
  */
 QCBORError
 QCBORDecode_EndCheck(QCBORDecodeContext *pCtx);
