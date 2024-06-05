@@ -657,13 +657,32 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  *                    usually is).
  *
  * This enters an array for decoding in bounded mode. The items in
- * array are decoded in order the same as when not in bounded mode,
- * but the decoding will not proceed past the end or the array. The
- * error @ref QCBOR_ERR_NO_MORE_ITEMS will be set when the end of the
- * array is encountered. To decode past the end of the array,
- * QCBORDecode_ExitArray() must be called. Also, QCBORDecode_Finish()
- * will return an error if all arrays that were enetered are not
- * exited.
+ * the array are decoded in order the same as when not in bounded mode,
+ * but the decoding will not proceed past the end or the array.
+ *
+ * The typical way to iterate over items in an array is to call
+ * QCBORDecode_VGetNext() until @ref QCBOR_ERR_NO_MORE_ITEMS is
+ * returned.  Other methods like QCBORDecode_GetInt64(),
+ * QCBORDecode_GetBignum() and such may also called.
+ *
+ * Nested decoding of arrays may be handled by calling
+ * QCBORDecode_EnterArray() or by using QCBORDecode_VGetNext() to
+ * descend into and back out of the nested array.
+ *
+ * QCBORDecode_Rewind() can be called to restart decoding from the
+ * first item in the array.
+ *
+ * When all decoding in array is complete QCBORDecode_ExitArray() must
+ * be called. It is a decoding error to not have a corresponding call
+ * to QCBORDecode_ExitArray() for every call to QCBORDecode_EnterArray().
+ * If not @ref QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN will be returned when
+ * QCBORDecode_Finish() is called.
+ *
+ * When QCBORDecode_ExitArray() is called the traversal cusor is at
+ * the item right after the array. This is true whether or not all
+ * items in the array are consumed. QCBORDecode_ExitArray() can even
+ * be called right after QCBORDecode_EnterArray() as a way to skip
+ * over an array and all its contents.
  *
  * This works the same for definite and indefinite length arrays.
  *
