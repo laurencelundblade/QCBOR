@@ -9900,6 +9900,41 @@ ErrorHandlingTests(void)
       return -23;
    }
 
+   /* Test error strings */
+   const char *szErrString;
+
+   szErrString = qcbor_err_to_str(QCBOR_ERR_ARRAY_DECODE_TOO_LONG);
+   if(szErrString == NULL) {
+      return -100;
+   }
+   if(strcmp(szErrString, "QCBOR_ERR_ARRAY_DECODE_TOO_LONG")) {
+      return -101;
+   }
+
+   szErrString = qcbor_err_to_str(QCBOR_SUCCESS);
+   if(szErrString == NULL) {
+      return -102;
+   }
+   if(strcmp(szErrString, "QCBOR_SUCCESS")) {
+      return -103;
+   }
+
+   szErrString = qcbor_err_to_str(100);
+   if(szErrString == NULL) {
+      return -104;
+   }
+   if(strcmp(szErrString, "Unidentified QCBOR error")) {
+      return -105;
+   }
+
+   szErrString = qcbor_err_to_str(200);
+   if(szErrString == NULL) {
+      return -106;
+   }
+   if(strcmp(szErrString, "USER_DEFINED_200")) {
+      return -107;
+   }
+
    return 0;
 }
 
