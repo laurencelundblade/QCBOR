@@ -547,6 +547,10 @@ typedef enum {
  *
  * @return  NULL-terminated string describing error or "Unidentified
  *          error" if the error is not known.
+ *
+ * This is not thread-safe because it uses a static buffer
+ * for formatting, but this is only a diagnostic and the only
+ * consequence is the wrong description.
  */
 const char *qcbor_err_to_str(QCBORError err);
 
