@@ -543,7 +543,7 @@ typedef enum {
 /**
  * @brief Get string describing an error code.
  *
- * @param[in] err   The error code.
+ * @param[in] uErr   The error code.
  *
  * @return  NULL-terminated string describing error or "Unidentified
  *          error" if the error is not known.
@@ -552,7 +552,8 @@ typedef enum {
  * for formatting, but this is only a diagnostic and the only
  * consequence is the wrong description.
  */
-const char *qcbor_err_to_str(QCBORError err);
+const char *
+qcbor_err_to_str(QCBORError uErr);
 
 
 
