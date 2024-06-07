@@ -928,7 +928,10 @@ QCBOR_Private_DecodeTag(const int      nAdditionalInfo,
          uReturn = QCBOR_SUCCESS;
       }
 #else /* QCBOR_DISABLE_TAGS */
-      uReturn = QCBOR_ERR_TAGS_DISABLED;
+   (void)nAdditionalInfo;
+   (void)uArgument;
+   (void)pDecodedItem;
+   uReturn = QCBOR_ERR_TAGS_DISABLED;
 #endif /* QCBOR_DISABLE_TAGS */
 
    return uReturn;
@@ -1197,6 +1200,8 @@ QCBOR_Private_DecodeArrayOrMap(const uint8_t  uMode,
    if(uMode == QCBOR_DECODE_MODE_MAP_AS_ARRAY && nMajorType == QCBOR_TYPE_MAP) {
       pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
    }
+#else
+   (void)uMode;
 #endif
 
    uReturn = QCBOR_SUCCESS;
