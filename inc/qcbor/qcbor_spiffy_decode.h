@@ -2236,6 +2236,7 @@ QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pMe,
                               QCBORItem          *pItem,
                               UsefulBufC         *pEncodedCBOR)
 {
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORItem OneItemSeach[2];
    OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
    OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
@@ -2243,6 +2244,12 @@ QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pMe,
    OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
 
    QCBORDecode_Private_SearchAndGetArrayOrMap(pMe, OneItemSeach, pItem, pEncodedCBOR);
+#else
+   (void)szLabel;
+   (void)pItem;
+   (void)pEncodedCBOR;
+   pMe->uLastError =  QCBOR_ERR_MAP_LABEL_TYPE;
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 }
 
 static inline void
@@ -2276,6 +2283,7 @@ QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
                             QCBORItem          *pItem,
                             UsefulBufC         *pEncodedCBOR)
 {
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORItem OneItemSeach[2];
    OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
    OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
@@ -2283,6 +2291,12 @@ QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
    OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
 
    QCBORDecode_Private_SearchAndGetArrayOrMap(pMe, OneItemSeach, pItem, pEncodedCBOR);
+#else
+   (void)szLabel;
+   (void)pItem;
+   (void)pEncodedCBOR;
+   pMe->uLastError =  QCBOR_ERR_MAP_LABEL_TYPE;
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 }
 
 

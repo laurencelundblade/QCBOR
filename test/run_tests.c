@@ -71,7 +71,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(TellTests),
     TEST_ENTRY(ParseMapAsArrayTest),
    TEST_ENTRY(SpiffyDateDecodeTest),
-#endif
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
     TEST_ENTRY(ErrorHandlingTests),
     TEST_ENTRY(OpenCloseBytesTest),
     TEST_ENTRY(EnterBstrTest),
@@ -103,7 +103,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ComprehensiveInputTest),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
     TEST_ENTRY(ParseMapTest),
-#endif
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
     TEST_ENTRY(BasicEncodeTest),
     TEST_ENTRY(NestedMapTest),
     TEST_ENTRY(BignumParseTest),
@@ -123,7 +123,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(IndefiniteLengthStringTest),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
     TEST_ENTRY(SpiffyIndefiniteLengthStringsTests),
-#endif
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
     TEST_ENTRY(SetUpAllocatorTest),
     TEST_ENTRY(CBORTestIssue134),
 #endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
@@ -141,7 +141,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(CoseSign1TBSTest),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
     TEST_ENTRY(StringDecoderModeFailTest),
-#endif
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
     TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
     TEST_ENTRY_DISABLED(TooLargeInputTest),
     TEST_ENTRY(EncodeErrorTests),
@@ -153,7 +153,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(IntToTests),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
     TEST_ENTRY(PeekAndRewindTest),
-#endif
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
     TEST_ENTRY(ExponentAndMantissaDecodeTests),
 #ifndef QCBOR_DISABLE_TAGS

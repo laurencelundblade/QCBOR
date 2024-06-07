@@ -443,7 +443,7 @@ code. The amount saved is an approximation.
     | QCBOR_DISABLE_PREFERRED_FLOAT           |   900 |
     | QCBOR_DISABLE_FLOAT_HW_USE              |    50 |
     | QCBOR_DISABLE_TAGS                      |   400 |
-    | QCBOR_DISABLE_NON_INTEGER_LABELS        |   200 |
+    | QCBOR_DISABLE_NON_INTEGER_LABELS        |   140 |
     | USEFULBUF_DISABLE_ALL_FLOAT             |   950 |
 
 QCBOR_DISABLE_ENCODE_USAGE_GUARDS affects encoding only.  It doesn't
