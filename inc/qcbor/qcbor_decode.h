@@ -510,10 +510,6 @@ typedef struct _QCBORItem {
 
    } val;
 
-   /** Union for the different label types selected based on @c uLabelType.
-    * If compiles with QCBOR_DISABLE_NON_INTEGER_LABELS, int64 is the
-    * only one used.
-    */
    union {
       /** The label for @c uLabelType for @ref QCBOR_TYPE_INT64 */
       int64_t     int64;

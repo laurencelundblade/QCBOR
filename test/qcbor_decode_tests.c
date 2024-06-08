@@ -2420,10 +2420,6 @@ int32_t NotWellFormedTests(void)
       const struct someBinaryBytes *pBytes = &paNotWellFormedCBOR[nIterate];
       const UsefulBufC Input = (UsefulBufC){pBytes->p, pBytes->n};
 
-      if(nIterate == 86) {
-         nIterate = 86;
-      }
-
       // Set up decoder context. String allocator needed for indefinite
       // string test cases
       QCBORDecodeContext DCtx;
@@ -2850,9 +2846,14 @@ static const struct DecodeFailTestInput Failures[] = {
       {"\xa1\x00\xff", 3},
       QCBOR_ERR_BAD_BREAK
    },
-   { "Map of length 2 with 2nd member replaced by a break",
+   { "Map of length 2 with 2nd entry label replaced by a break",
       QCBOR_DECODE_MODE_NORMAL,
-      {"\xa2\x00\x00\xff", 4},
+      {"\xa2\x00\x00\xff\x00", 5},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Map of length 2 with 2nd entry value replaced by a break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa2\x00\x00\x01\xff", 5},
       QCBOR_ERR_BAD_BREAK
    },
 

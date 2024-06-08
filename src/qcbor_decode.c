@@ -1425,10 +1425,37 @@ QCBORDecode_Private_GetNextFullString(QCBORDecodeContext *pMe,
     */
    QCBORError uReturn;
 
+   /* A note about string allocation -- Memory for strings is
+    * allocated either because 1) indefinte-length string chunks are
+    * being coalecsed or 2) caller has requested all strings be
+    * allocated.  The first case is handed below here. The second case
+    * is handled in DecodeString if the bAllocate is true. That
+    * boolean originates here with pMe->bStringAllocateAll immediately
+    * below. That is, QCBOR_Private_DecodeAtomicDataItem() is called
+    * in two different contexts here 1) main-line processing which is
+    * where definite-length strings need to be allocated if
+    * bStringAllocateAll is true and 2) processing chunks of
+    * indefinite-lengths strings in in which case there must be no
+    * allocation.
+    */
+
+
    uReturn = QCBOR_Private_DecodeAtomicDataItem(pMe, pMe->bStringAllocateAll, pDecodedItem);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
+
+
+   /* This is where out-of-place break is detected for the whole
+    * decoding stack. Break is an error for everything that calls
+    * QCBORDecode_Private_GetNextFullString(), so the check is
+    * centralized here.
+    */
+   if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
+      uReturn = QCBOR_ERR_BAD_BREAK;
+      goto Done;
+   }
+
 
    /* Skip out if not an indefinite-length string */
    const uint8_t uStringType = pDecodedItem->uDataType;
@@ -1453,10 +1480,10 @@ QCBORDecode_Private_GetNextFullString(QCBORDecodeContext *pMe,
    for(;;) {
       /* Get QCBORItem for next chunk */
       QCBORItem StringChunkItem;
-      /* Pass a false to DecodeAtomicDataItem() because the
-       * individual string chunks in an indefinite-length must not
-       * be allocated. They are always copied into the allocated contiguous
-       * buffer allocated here.
+      /* Pass false to DecodeAtomicDataItem() because the individual
+       * string chunks in an indefinite-length must not be
+       * allocated. They are always copied into the allocated
+       * contiguous buffer allocated here.
        */
       uReturn = QCBOR_Private_DecodeAtomicDataItem(pMe, false, &StringChunkItem);
       if(uReturn) {
@@ -1730,16 +1757,13 @@ Done:
  * @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG   Too many items in array.
  * @retval QCBOR_ERR_MAP_LABEL_TYPE          Map label not string or integer.
  *
- * If the current nesting level is a map, then this
- * combines pairs of items into one data item with a label
- * and value.
+ * If the current nesting level is a map, then this combines pairs of
+ * items into one data item with a label and value.
  *
- * This is passthrough if the current nesting level is
- * not a map.
+ * This is passthrough if the current nesting level is not a map.
  *
- * This also implements maps-as-array mode where a map
- * is treated like an array to allow caller to do their
- * own label processing.
+ * This also implements maps-as-array mode where a map is treated like
+ * an array to allow caller to do their own label processing.
  */
 
 static QCBORError
@@ -1754,29 +1778,30 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
       goto Done;
    }
 
-   if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
-      /* Break can't be a map entry */
-      goto Done;
-   }
-
    if(!DecodeNesting_IsCurrentTypeMap(&(pMe->nesting))) {
-      /* Not decoding a map; nothing to do */
-      /* This is where maps-as-arrays is effected too */
+      /* Not decoding a map. Nothing to do. */
+      /* When decoding maps-as-arrays, the type will be
+       * QCBOR_TYPE_MAP_AS_ARRAY and this function will exit
+       * here. This is now map processing for maps-as-arrays is not
+       * done. */
       goto Done;
    }
 
-   /* Decoding a map entry, so the item so far is the label; must get value */
+   /* Decoding a map entry, so the item decoded above was the label */
    LabelItem = *pDecodedItem;
+
+   /* Get the value of the map item */
    uErr = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
    if(QCBORDecode_IsUnrecoverableError(uErr)) {
       goto Done;
    }
 
+   /* Combine the label item and value item into one */
    pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
    pDecodedItem->uLabelType  = LabelItem.uDataType;
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-   /* QCBOR_DECODE_MODE_MAP_STRINGS_ONLY was a bad idea. Maybe
+   /* QCBOR_DECODE_MODE_MAP_STRINGS_ONLY might have been a bad idea. Maybe
     * get rid of it in QCBOR 2.0
     */
    if(pMe->uDecodeMode == QCBOR_DECODE_MODE_MAP_STRINGS_ONLY &&
@@ -1784,7 +1809,7 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
       uErr = QCBOR_ERR_MAP_LABEL_TYPE;
       goto Done;
    }
-#endif /* !QCBOR_DISABLE_NON_INTEGER_LABELS */
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    switch(LabelItem.uDataType) {
       case QCBOR_TYPE_INT64:
@@ -1800,11 +1825,7 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
       case QCBOR_TYPE_BYTE_STRING:
          pDecodedItem->label.string = LabelItem.val.string;
          break;
-#endif /* !QCBOR_DISABLE_NON_INTEGER_LABELS */
-
-         /*       case QCBOR_TYPE_BREAK:
-          uErr = 99;
-          goto Done; */
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
       default:
          uErr = QCBOR_ERR_MAP_LABEL_TYPE;
@@ -2037,14 +2058,6 @@ QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
    uReturn = QCBORDecode_Private_GetNextMapEntry(pMe, pDecodedItem);
    if(QCBORDecode_IsUnrecoverableError(uReturn)) {
       /* Error is so bad that traversal is not possible. */
-      goto Done;
-   }
-
-   /* Breaks ending arrays/maps are processed later in the call to
-    * QCBORDecode_NestLevelAscender(). They should never show up here.
-    */
-   if(pDecodedItem->uDataType == QCBOR_TYPE_BREAK) {
-      uReturn = QCBOR_ERR_BAD_BREAK;
       goto Done;
    }
 
