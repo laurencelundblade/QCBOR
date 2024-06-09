@@ -982,18 +982,18 @@ QCBOR_Private_DecodeString(QCBORDecodeContext  *pMe,
          goto Done;
       }
 
+      if(bAllocate) {
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-       if(bAllocate) {
-          /* --- Put string in allocated memory --- */
+         /* --- Put string in allocated memory --- */
 
-          /* Note that this is not where allocation to coalesce
-           * indefinite-length strings is done. This is for when the
-           * caller has requested all strings be allocated. Disabling
-           * indefinite length strings also disables this allocate-all
-           * option.
-           */
+         /* Note that this is not where allocation to coalesce
+          * indefinite-length strings is done. This is for when the
+          * caller has requested all strings be allocated. Disabling
+          * indefinite length strings also disables this allocate-all
+          * option.
+          */
 
-          if(pMe->StringAllocator.pfAllocator == NULL) {
+         if(pMe->StringAllocator.pfAllocator == NULL) {
             uReturn = QCBOR_ERR_NO_STRING_ALLOCATOR;
             goto Done;
          }
@@ -1004,14 +1004,13 @@ QCBOR_Private_DecodeString(QCBORDecodeContext  *pMe,
          }
          pDecodedItem->val.string = UsefulBuf_Copy(NewMem, Bytes);
          pDecodedItem->uDataAlloc = 1;
-         goto Done;
-      }
 #else
-      (void)bAllocate;
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
-
-      /* --- Normal case with no string allocator --- */
-      pDecodedItem->val.string = Bytes;
+         uReturn = QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED;
+#endif /*  ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+      } else {
+         /* --- Normal case with no string allocator --- */
+         pDecodedItem->val.string = Bytes;
+      }
    }
 
 Done:
@@ -1074,7 +1073,7 @@ QCBOR_Private_DecodeArrayOrMap(const uint8_t  uMode,
       pDecodedItem->val.uCount = QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH;
 #else /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
       uReturn = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
    } else {
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
@@ -1315,7 +1314,7 @@ Done:
  * @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG   Too many items in array/map.
  * @retval QCBOR_ERR_TAGS_DISABLED           QCBOR_DISABLE_TAGS is defined.
  *
- * This decodes the most primitive / atomic data item. It does no
+ * This decodes the most primitive/atomic data item. It does no
  * combining of data items.
  */
 static QCBORError
@@ -1329,7 +1328,7 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
    int      nAdditionalInfo = 0;
 
    /* Decode the "head" that every CBOR item has into the major type,
-    * length and the additional info.
+    * argument and the additional info.
     */
    uReturn = QCBOR_Private_DecodeHead(&(pMe->InBuf), &nMajorType, &uArgument, &nAdditionalInfo);
    if(uReturn != QCBOR_SUCCESS) {

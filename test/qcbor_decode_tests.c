@@ -5324,7 +5324,9 @@ int32_t AllocAllStringsTest(void)
       Item1.val.int64 != 42 ||
       Item1.uDataAlloc != 0 ||
       Item1.uLabelAlloc == 0 ||
-      UsefulBufCompareToSZ(Item1.label.string, "first integer")) {
+      UsefulBufCompareToSZ(Item1.label.string, "first integer") ||
+      Item1.label.string.ptr < Pool.ptr ||
+      Item1.label.string.ptr > (const void *)((const uint8_t *)Pool.ptr + Pool.len)) {
       return -4;
    }
 

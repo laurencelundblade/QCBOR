@@ -510,6 +510,7 @@ typedef struct _QCBORItem {
 
    } val;
 
+   /** Union holding the different label types selected based on @c uLabelType */
    union {
       /** The label for @c uLabelType for @ref QCBOR_TYPE_INT64 */
       int64_t     int64;
