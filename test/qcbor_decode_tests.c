@@ -1139,6 +1139,7 @@ static const uint8_t pPerverseLabels[] = {
 #endif
 
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 /*
  Decode and thoroughly check a moderately complex
  set of maps. Can be run in QCBOR_DECODE_MODE_NORMAL or in
@@ -1266,7 +1267,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
 
    return 0;
 }
-
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
 /* This test requires indef strings, HW float and preferred float,... */
 #if !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS) && \
@@ -2089,6 +2090,7 @@ int32_t ParseMapAsArrayTest(void)
 
 
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 
 /*
  Fully or partially decode pValidMapEncoded. When
@@ -2296,7 +2298,6 @@ static int32_t ExtraBytesTest(int nLevel)
 
 
 
-
 int32_t ParseMapTest(void)
 {
    // Parse a moderatly complex map structure very thoroughly
@@ -2324,6 +2325,7 @@ int32_t ParseMapTest(void)
 
    return nResult;
 }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
 
 /* The simple-values including some not well formed */
@@ -2417,10 +2419,6 @@ int32_t NotWellFormedTests(void)
    for(uint16_t nIterate = 0; nIterate < nArraySize; nIterate++) {
       const struct someBinaryBytes *pBytes = &paNotWellFormedCBOR[nIterate];
       const UsefulBufC Input = (UsefulBufC){pBytes->p, pBytes->n};
-
-      if(nIterate == 86) {
-         nIterate = 86;
-      }
 
       // Set up decoder context. String allocator needed for indefinite
       // string test cases
@@ -2848,9 +2846,14 @@ static const struct DecodeFailTestInput Failures[] = {
       {"\xa1\x00\xff", 3},
       QCBOR_ERR_BAD_BREAK
    },
-   { "Map of length 2 with 2nd member replaced by a break",
+   { "Map of length 2 with 2nd entry label replaced by a break",
       QCBOR_DECODE_MODE_NORMAL,
-      {"\xa2\x00\x00\xff", 4},
+      {"\xa2\x00\x00\xff\x00", 5},
+      QCBOR_ERR_BAD_BREAK
+   },
+   { "Map of length 2 with 2nd entry value replaced by a break",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xa2\x00\x00\x01\xff", 5},
       QCBOR_ERR_BAD_BREAK
    },
 
@@ -4459,12 +4462,14 @@ int32_t OptTagParseTest(void)
  * These are showing the big numbers converted to integers.
  * The tag numbers are not shown.
  *
- * [ 18446744073709551616,
- *   -18446744073709551617,
- *   {"BN+": 18446744073709551616,
- *     64: 18446744073709551616,
- *     "BN-": -18446744073709551617,
- *     -64: -18446744073709551617
+ * [
+ *   18446744073709551616,
+ *  -18446744073709551617,
+ *   {
+ *     -64: -18446744073709551617,
+ *      64: 18446744073709551616,
+ *     "BN+": 18446744073709551616,
+ *     "BN-": -18446744073709551617
  *   }
  * ]
  */
@@ -4474,14 +4479,15 @@ static const uint8_t spBigNumInput[] = {
    0xC2, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
    0xC3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
    0xA4,
-     0x63, 0x42, 0x4E, 0x2B,
-       0xC2, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+     0x38, 0x3F,
+      0xC3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
      0x18, 0x40,
        0xC2, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x63, 0x42, 0x4E, 0x2D,
-       0xC3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x38, 0x3F,
-       0xC3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+     0x63, 0x42, 0x4E, 0x2B,
+       0xC2, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+     0x63, 0x42, 0x4E, 0x2D,
+       0xC3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
 
 #ifndef QCBOR_DISABLE_TAGS
 /* The expected big num */
@@ -4534,11 +4540,12 @@ int32_t BignumParseTest(void)
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return -9;
-   if(Item.uDataType != QCBOR_TYPE_POSBIGNUM ||
-      Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      return -15;
+   if(Item.uDataType != QCBOR_TYPE_NEGBIGNUM ||
+      Item.uLabelType != QCBOR_TYPE_INT64 ||
+      Item.label.int64 != -64 ||
       UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum))){
-      return -10;
+      return -16;
    }
 
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
@@ -4550,6 +4557,15 @@ int32_t BignumParseTest(void)
       return -12;
    }
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
+      return -9;
+   if(Item.uDataType != QCBOR_TYPE_POSBIGNUM ||
+      Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
+      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum))){
+      return -10;
+   }
+
    if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
       return -13;
    if(Item.uDataType != QCBOR_TYPE_NEGBIGNUM ||
@@ -4558,14 +4574,9 @@ int32_t BignumParseTest(void)
       return -14;
    }
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return -15;
-   if(Item.uDataType != QCBOR_TYPE_NEGBIGNUM ||
-      Item.uLabelType != QCBOR_TYPE_INT64 ||
-      Item.label.int64 != -64 ||
-      UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum))){
-      return -16;
-   }
+
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
+
 #else
 
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_TAGS_DISABLED) {
@@ -4575,7 +4586,6 @@ int32_t BignumParseTest(void)
 
    return 0;
 }
-
 
 
 static int32_t CheckItemWithIntLabel(QCBORDecodeContext *pCtx,
@@ -4591,15 +4601,13 @@ static int32_t CheckItemWithIntLabel(QCBORDecodeContext *pCtx,
    if((nCBORError = QCBORDecode_GetNext(pCtx, &Item))) return -1;
    if(Item.uDataType != uDataType) return -1;
    if(uNestingLevel > 0) {
-      if(Item.uLabelType != QCBOR_TYPE_INT64 &&
-         Item.uLabelType != QCBOR_TYPE_UINT64) {
+      if(Item.uLabelType != QCBOR_TYPE_INT64) {
          return -1;
       }
-      if(Item.uLabelType == QCBOR_TYPE_INT64) {
-         if(Item.label.int64 != nLabel) return -1;
-      } else  {
-         if(Item.label.uint64 != (uint64_t)nLabel) return -1;
+      if(Item.label.int64 != nLabel) {
+         return -1;
       }
+
    }
    if(Item.uNestingLevel != uNestingLevel) return -1;
    if(Item.uNextNestLevel != uNextNest) return -1;
@@ -4609,7 +4617,6 @@ static int32_t CheckItemWithIntLabel(QCBORDecodeContext *pCtx,
    }
    return 0;
 }
-
 
 // Same code checks definite and indefinite length versions of the map
 static int32_t CheckCSRMaps(QCBORDecodeContext *pDC)
@@ -5013,6 +5020,7 @@ static const uint8_t spIndefiniteLenStringBad4[] = {
    // missing end of string
 };
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 static const uint8_t spIndefiniteLenStringLabel[] = {
    0xa1, // Array of length one
    0x7f, // text string marked with indefinite length
@@ -5021,6 +5029,7 @@ static const uint8_t spIndefiniteLenStringLabel[] = {
    0xff, // ending break
    0x01 // integer being labeled.
 };
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
 /**
  Make an indefinite length string
@@ -5229,6 +5238,7 @@ int32_t IndefiniteLengthStringTest(void)
       return -29;
    }
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    // --- label is an indefinite length string ------
    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefiniteLenStringLabel), QCBOR_DECODE_MODE_NORMAL);
 
@@ -5254,6 +5264,7 @@ int32_t IndefiniteLengthStringTest(void)
    if(QCBORDecode_Finish(&DC)) {
       return -34;
    }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    return 0;
 }
@@ -5281,6 +5292,7 @@ int32_t AllocAllStringsTest(void)
       return -2;
    }
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    // Next parse, save pointers to a few strings, destroy original and
    // see all is OK.
    UsefulBuf_MAKE_STACK_UB(CopyOfStorage, sizeof(pValidMapEncoded) + QCBOR_DECODE_MIN_MEM_POOL_SIZE);
@@ -5312,7 +5324,9 @@ int32_t AllocAllStringsTest(void)
       Item1.val.int64 != 42 ||
       Item1.uDataAlloc != 0 ||
       Item1.uLabelAlloc == 0 ||
-      UsefulBufCompareToSZ(Item1.label.string, "first integer")) {
+      UsefulBufCompareToSZ(Item1.label.string, "first integer") ||
+      Item1.label.string.ptr < Pool.ptr ||
+      Item1.label.string.ptr > (const void *)((const uint8_t *)Pool.ptr + Pool.len)) {
       return -4;
    }
 
@@ -5361,6 +5375,7 @@ int32_t AllocAllStringsTest(void)
    if(nCBORError != QCBOR_ERR_STRING_ALLOCATE) {
       return -10;
    }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    return 0;
 }
@@ -6736,7 +6751,6 @@ static int32_t EnterMapCursorTest(void)
 int32_t EnterMapTest(void)
 {
    QCBORItem          Item1;
-   QCBORItem          ArrayItem;
    QCBORDecodeContext DCtx;
    int32_t            nReturn;
    QCBORError         uErr;
@@ -6785,13 +6799,17 @@ int32_t EnterMapTest(void)
       return 3011;
    }
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    (void)pValidMapIndefEncoded;
    nReturn = SpiffyDecodeBasicMap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapIndefEncoded));
    if(nReturn) {
       return nReturn + 20000;
    }
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+   QCBORItem          ArrayItem;
 
    nReturn = SpiffyDecodeBasicMap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
    if(nReturn) {
@@ -6873,20 +6891,25 @@ int32_t EnterMapTest(void)
    if(QCBORDecode_GetNext(&DCtx, &Item1) != QCBOR_ERR_NO_MORE_ITEMS) {
       return 2007;
    }
+#endif /* !QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleArray), 0);
    QCBORDecode_EnterArray(&DCtx, NULL);
    int64_t nDecodedInt2;
+
+   UsefulBufC String;
+   QCBORDecode_GetTextStringInMapN(&DCtx, 88, &String);
+   uErr = QCBORDecode_GetAndResetError(&DCtx);
+   if(uErr != QCBOR_ERR_MAP_NOT_ENTERED){
+      return 2009;
+   }
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORDecode_GetInt64InMapSZ(&DCtx, "another int",  &nDecodedInt2);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
    if(uErr != QCBOR_ERR_MAP_NOT_ENTERED){
       return 2008;
    }
-   UsefulBufC String;
-   QCBORDecode_GetTextStringInMapN(&DCtx, 88, &String);
-   if(uErr != QCBOR_ERR_MAP_NOT_ENTERED){
-      return 2009;
-   }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap), 0);
@@ -7013,6 +7036,7 @@ int32_t EnterMapTest(void)
    }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
    QCBORDecode_VGetNextConsume(&DCtx, &Item1);
    if(Item1.uDataType != QCBOR_TYPE_MAP) {
@@ -7061,6 +7085,7 @@ int32_t EnterMapTest(void)
    if(QCBORDecode_GetError(&DCtx)) {
       return 2410;
    }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    nReturn = DecodeNestedIterate();
 
@@ -8610,6 +8635,7 @@ int32_t SpiffyIndefiniteLengthStringsTests(void)
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 /*
  * An array of an integer and an array. The second array contains
  * a bstr-wrapped map.
@@ -8670,10 +8696,10 @@ static const uint8_t pValidIndefWrappedMapEncoded[] = {
    0x73,
    0xff, 0xff
 };
-#endif
-
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
 static const uint8_t pWithEmptyMap[] = {0x82, 0x18, 0x64, 0xa0};
+
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 static const uint8_t pWithEmptyMapInDef[] = {0x9f, 0x18, 0x64, 0xbf, 0xff, 0xff};
@@ -8700,12 +8726,16 @@ static const uint8_t pWrappedByIndefiniteLength[] = {
 };
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
+#endif
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 int32_t PeekAndRewindTest(void)
 {
    QCBORItem          Item;
    QCBORError         nCBORError;
    QCBORDecodeContext DCtx;
+
+   // Improvement: rework this test to use only integer labels.
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
 
@@ -9315,7 +9345,7 @@ int32_t PeekAndRewindTest(void)
    }
     */
 
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
    // Rewind an indefnite length byte-string wrapped sequence
@@ -9323,7 +9353,7 @@ int32_t PeekAndRewindTest(void)
    return 0;
 }
 
-
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
 
 static const uint8_t spBooleansInMap[] =
@@ -9495,7 +9525,7 @@ int32_t BoolTest(void)
 }
 
 
-
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 static const uint8_t spExpectedArray2s[] = {
    0x82, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67,
    0x31, 0x67, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67,
@@ -9545,13 +9575,13 @@ static const uint8_t spDefAndIndef[] = {
 };
 #endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
-
 #ifndef QCBOR_DISABLE_TAGS
 /* An exp / mant tag in two nested arrays */
 static const uint8_t spExpMant[] = {0x81, 0x81, 0xC4, 0x82, 0x20, 0x03};
 #endif /* !QCBOR_DISABLE_TAGS */
+#endif
 
-
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 int32_t GetMapAndArrayTest(void)
 {
    QCBORDecodeContext DCtx;
@@ -9559,7 +9589,7 @@ int32_t GetMapAndArrayTest(void)
    QCBORItem          Item;
    UsefulBufC         ReturnedEncodedCBOR;
 
-
+   // Improvement: rework so it can run with QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
                     0);
@@ -9816,10 +9846,11 @@ int32_t GetMapAndArrayTest(void)
    if(uPosition != QCBORDecode_Tell(&DCtx)) {
       return 102;
    }
-#endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    return 0;
 }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    
 int32_t
@@ -9947,6 +9978,7 @@ int32_t TellTests(void)
    int                nIndex;
    int64_t            nDecodedInt;
 
+   // Improvement: rewrite so this can run with only integer labels
    static const uint32_t aPos[] =
        {0, 1, 17, 42, 50, 58, 72, 85, 98, 112, UINT32_MAX};
    QCBORDecode_Init(&DCtx,
