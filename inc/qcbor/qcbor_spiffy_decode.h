@@ -1170,6 +1170,37 @@ QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
+ * @brief Decode the next item as a CBOR simple value.
+ *
+ * @param[in] pCtx            The decode context.
+ * @param[out] puSimpleValue  The simplle value returned.
+ *
+ * The purpose of this is to get a CBOR simple value other than a
+ * Boolean, NULL or "undefined", but this works on all simple
+ * values. See QCBOREncode_AddSimple() for more details on simple
+ * values in general.
+ *
+ * See QCBORDecode_GetBool(), QCBORDecode_GetNull(),
+ * QCBORDecode_GetUndefined() for the preferred way of getting those
+ * simple values.
+ */
+void
+QCBORDecode_GetSimple(QCBORDecodeContext *pCtx, uint8_t *puSimpleValue);
+
+static void
+QCBORDecode_GetSimpleInMapN(QCBORDecodeContext *pCtx,
+                            int64_t             nLabel,
+                            uint8_t            *puSimpleValue);
+
+static void
+QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pCtx,
+                             const char         *szLabel,
+                             uint8_t            *puSimpleValue);
+
+
+
+
+/**
  * @brief Decode the next item as a date string.
  *
  * @param[in] pCtx             The decode context.
@@ -2570,6 +2601,34 @@ QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pMe,
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_UNDEF, &Item);
 }
+
+
+static inline void
+QCBORDecode_GetSimpleInMapN(QCBORDecodeContext *pMe,
+                            const int64_t       nLabel,
+                            uint8_t            *puSimple)
+{
+   QCBORItem Item;
+
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_UKNOWN_SIMPLE, &Item);
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      *puSimple = Item.val.uSimple;
+   }
+}
+
+static inline void
+QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pMe,
+                             const char         *szLabel,
+                             uint8_t            *puSimple)
+{
+   QCBORItem Item;
+
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_UKNOWN_SIMPLE, &Item);
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      *puSimple = Item.val.uSimple;
+   }
+}
+
 
 
 static inline void

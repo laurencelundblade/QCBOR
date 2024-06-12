@@ -4503,6 +4503,47 @@ QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe,
 
 
 
+void
+QCBORDecode_GetSimple(QCBORDecodeContext *pMe, uint8_t *puSimple)
+{
+   QCBORItem Item;
+
+   QCBORDecode_VGetNext(pMe, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   /* It's kind of lame to remap true...undef back to simple values, but
+    * this function isn't used much.
+    */
+   switch(Item.uDataType) {
+      case QCBOR_TYPE_UKNOWN_SIMPLE:
+         *puSimple = Item.val.uSimple;
+         break;
+
+      case QCBOR_TYPE_TRUE:
+         *puSimple = CBOR_SIMPLEV_TRUE;
+         break;
+
+      case QCBOR_TYPE_FALSE:
+         *puSimple = CBOR_SIMPLEV_FALSE;
+         break;
+
+      case QCBOR_TYPE_NULL:
+         *puSimple = CBOR_SIMPLEV_NULL;
+         break;
+
+      case QCBOR_TYPE_UNDEF:
+         *puSimple = CBOR_SIMPLEV_UNDEF;
+         break;
+
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+         return;
+   }
+}
+
+
 /**
  * @brief Common processing for an epoch date.
  *

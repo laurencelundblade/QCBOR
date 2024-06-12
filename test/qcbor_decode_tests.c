@@ -2332,79 +2332,127 @@ static const uint8_t spSimpleValues[] = {
    0xf8, 0x00, 0xf8, 0x13, 0xf8, 0x1f, 0xf8, 0x20,
    0xf8, 0xff};
 
-int32_t ParseSimpleTest(void)
+
+static const uint8_t spGoodSimpleValues[] = {
+   0x88, 0xf4, 0xf5, 0xf6, 0xf7, 0xe0, 0xf3,
+   0xf8, 0x20,
+   0xf8, 0xff};
+
+int32_t SimpleValueDecodeTests(void)
 {
    QCBORDecodeContext DCtx;
-   QCBORItem Item;
-   QCBORError nCBORError;
-
+   QCBORItem          Item;
+   QCBORError         uErr;
 
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSimpleValues),
                     QCBOR_DECODE_MODE_NORMAL);
 
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return (int32_t)nCBORError;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item)))
+      return (int32_t)uErr;
    if(Item.uDataType != QCBOR_TYPE_ARRAY ||
       Item.val.uCount != 10)
-      return -1;
+      return 1;
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return (int32_t)nCBORError;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item)))
+      return (int32_t)uErr;
    if(Item.uDataType != QCBOR_TYPE_FALSE)
-      return -1;
+      return 2;
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return (int32_t)nCBORError;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item)))
+      return (int32_t)uErr;
    if(Item.uDataType != QCBOR_TYPE_TRUE)
-      return -1;
+      return 3;
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return (int32_t)nCBORError;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item)))
+      return (int32_t)uErr;
    if(Item.uDataType != QCBOR_TYPE_NULL)
-      return -1;
+      return 4;
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return (int32_t)nCBORError;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item)))
+      return (int32_t)uErr;
    if(Item.uDataType != QCBOR_TYPE_UNDEF)
-      return -1;
+      return 5;
 
    // A break
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_BAD_BREAK)
-      return -1;
+      return 6;
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return (int32_t)nCBORError;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item)))
+      return (int32_t)uErr;
    if(Item.uDataType != QCBOR_TYPE_UKNOWN_SIMPLE || Item.val.uSimple != 0)
-      return -1;
+      return 7;
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return (int32_t)nCBORError;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item)))
+      return (int32_t)uErr;
    if(Item.uDataType != QCBOR_TYPE_UKNOWN_SIMPLE || Item.val.uSimple != 19)
-      return -1;
+      return 8;
 
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_BAD_TYPE_7)
-      return -1;
+      return 9;
 
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_BAD_TYPE_7)
-      return -1;
+      return 10;
 
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_BAD_TYPE_7)
-      return -1;
+      return 11;
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return (int32_t)nCBORError;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item)))
+      return (int32_t)uErr;
    if(Item.uDataType != QCBOR_TYPE_UKNOWN_SIMPLE || Item.val.uSimple != 32)
-      return -1;
+      return 12;
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item)))
-      return (int32_t)nCBORError;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item)))
+      return (int32_t)uErr;
    if(Item.uDataType != QCBOR_TYPE_UKNOWN_SIMPLE || Item.val.uSimple != 255)
-      return -1;
+      return 13;
 
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spGoodSimpleValues),
+                    QCBOR_DECODE_MODE_NORMAL);
+
+   uint8_t uSimple;
+
+   QCBORDecode_EnterArray(&DCtx, &Item);
+   QCBORDecode_GetSimple(&DCtx, &uSimple);
+   if(QCBORDecode_GetError(&DCtx) || uSimple != CBOR_SIMPLEV_FALSE) {
+      return 20;
+   }
+   QCBORDecode_GetSimple(&DCtx, &uSimple);
+   if(QCBORDecode_GetError(&DCtx) || uSimple != CBOR_SIMPLEV_TRUE) {
+      return 21;
+   }
+   QCBORDecode_GetSimple(&DCtx, &uSimple);
+   if(QCBORDecode_GetError(&DCtx) || uSimple != CBOR_SIMPLEV_NULL) {
+      return 22;
+   }
+   QCBORDecode_GetSimple(&DCtx, &uSimple);
+   if(QCBORDecode_GetError(&DCtx) || uSimple != CBOR_SIMPLEV_UNDEF) {
+      return 23;
+   }
+   QCBORDecode_GetSimple(&DCtx, &uSimple);
+   if(QCBORDecode_GetError(&DCtx) || uSimple != 0) {
+      return 24;
+   }
+   QCBORDecode_GetSimple(&DCtx, &uSimple);
+   if(QCBORDecode_GetError(&DCtx) || uSimple != 19) {
+      return 25;
+   }
+   QCBORDecode_GetSimple(&DCtx, &uSimple);
+   if(QCBORDecode_GetError(&DCtx) || uSimple != 32) {
+      return 26;
+   }
+   QCBORDecode_GetSimple(&DCtx, &uSimple);
+   if(QCBORDecode_GetError(&DCtx) || uSimple != 255) {
+      return 27;
+   }
+   QCBORDecode_GetSimple(&DCtx, &uSimple);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 28;
+   }
    return 0;
-
 }
 
 
