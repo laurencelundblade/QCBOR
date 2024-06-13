@@ -1132,7 +1132,7 @@ QCBOR_Private_DecodeTag(const uint64_t uTagNumber,
    }
 #else /* QCBOR_DISABLE_TAGS */
    (void)nAdditionalInfo;
-   (void)uArgument;
+   (void)uTagNumber;
    (void)pDecodedItem;
    return QCBOR_ERR_TAGS_DISABLED;
 #endif /* QCBOR_DISABLE_TAGS */
