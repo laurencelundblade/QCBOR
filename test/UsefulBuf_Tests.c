@@ -875,6 +875,19 @@ const char *  UIBTest_IntegerFormat(void)
       return "Didn't detect off-end request of UsefulInputBuf";
    }
 
+   if(!UsefulInputBuf_GetError(&UIB)) {
+      return "UIB Error state not reported";
+   }
+
+   UsefulInputBuf_Init(&UIB, Boo);
+   if(UsefulInputBuf_GetBufferLength(&UIB) != Boo.len) {
+      return "UIB length wrong";
+   }
+   UsefulInputBuf_SetBufferLength(&UIB, 1);
+   if(UsefulInputBuf_GetBufferLength(&UIB) != 1) {
+      return "UIB SetBufferLength failed";
+   }
+
    return NULL;
 }
 
