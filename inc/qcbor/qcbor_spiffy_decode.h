@@ -1187,12 +1187,12 @@ QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
 void
 QCBORDecode_GetSimple(QCBORDecodeContext *pCtx, uint8_t *puSimpleValue);
 
-static void
+void
 QCBORDecode_GetSimpleInMapN(QCBORDecodeContext *pCtx,
                             int64_t             nLabel,
                             uint8_t            *puSimpleValue);
 
-static void
+void
 QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pCtx,
                              const char         *szLabel,
                              uint8_t            *puSimpleValue);
@@ -2600,33 +2600,6 @@ QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pMe,
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_UNDEF, &Item);
-}
-
-
-static inline void
-QCBORDecode_GetSimpleInMapN(QCBORDecodeContext *pMe,
-                            const int64_t       nLabel,
-                            uint8_t            *puSimple)
-{
-   QCBORItem Item;
-
-   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_UKNOWN_SIMPLE, &Item);
-   if(pMe->uLastError == QCBOR_SUCCESS) {
-      *puSimple = Item.val.uSimple;
-   }
-}
-
-static inline void
-QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pMe,
-                             const char         *szLabel,
-                             uint8_t            *puSimple)
-{
-   QCBORItem Item;
-
-   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_UKNOWN_SIMPLE, &Item);
-   if(pMe->uLastError == QCBOR_SUCCESS) {
-      *puSimple = Item.val.uSimple;
-   }
 }
 
 

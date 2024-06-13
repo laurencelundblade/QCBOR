@@ -2332,11 +2332,11 @@ static const uint8_t spSimpleValues[] = {
    0xf8, 0x00, 0xf8, 0x13, 0xf8, 0x1f, 0xf8, 0x20,
    0xf8, 0xff};
 
-
+/* A map of good simple values, plus one well-formed integer */
 static const uint8_t spGoodSimpleValues[] = {
-   0x88, 0xf4, 0xf5, 0xf6, 0xf7, 0xe0, 0xf3,
-   0xf8, 0x20,
-   0xf8, 0xff};
+   0xa9, 0x01, 0xf4, 0x02, 0xf5, 0x03, 0xf6, 0x04, 0xf7,
+   0x05, 0xe0, 0x06, 0xf3, 0x07, 0xc6, 0xf8, 0x20, 0x61, 0x40,
+   0xf8, 0xff, 0x0f, 0x0f};
 
 int32_t SimpleValueDecodeTests(void)
 {
@@ -2415,7 +2415,7 @@ int32_t SimpleValueDecodeTests(void)
 
    uint8_t uSimple;
 
-   QCBORDecode_EnterArray(&DCtx, &Item);
+   QCBORDecode_EnterMap(&DCtx, &Item);
    QCBORDecode_GetSimple(&DCtx, &uSimple);
    if(QCBORDecode_GetError(&DCtx) || uSimple != CBOR_SIMPLEV_FALSE) {
       return 20;
@@ -2441,17 +2441,47 @@ int32_t SimpleValueDecodeTests(void)
       return 25;
    }
    QCBORDecode_GetSimple(&DCtx, &uSimple);
-   if(QCBORDecode_GetError(&DCtx) || uSimple != 32) {
+   if(QCBORDecode_GetError(&DCtx) || uSimple != 32 ||
+      QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 6) {
       return 26;
    }
    QCBORDecode_GetSimple(&DCtx, &uSimple);
    if(QCBORDecode_GetError(&DCtx) || uSimple != 255) {
       return 27;
    }
+   QCBORDecode_VGetNext(&DCtx, &Item);
    QCBORDecode_GetSimple(&DCtx, &uSimple);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
       return 28;
    }
+
+   QCBORDecode_Rewind(&DCtx);
+
+   QCBORDecode_GetSimpleInMapN(&DCtx, 6, &uSimple);
+   if(QCBORDecode_GetError(&DCtx) || uSimple != 19) {
+      return 30;
+   }
+
+   QCBORDecode_GetSimpleInMapSZ(&DCtx, "@", &uSimple);
+   if(QCBORDecode_GetError(&DCtx) || uSimple != 255) {
+      return 31;
+   }
+
+   QCBORDecode_GetSimpleInMapN(&DCtx, 99, &uSimple);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+      return 32;
+   }
+
+   QCBORDecode_GetSimpleInMapSZ(&DCtx, "xx", &uSimple);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+      return 33;
+   }
+
+   QCBORDecode_GetSimpleInMapN(&DCtx, 15, &uSimple);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 34;
+   }
+
    return 0;
 }
 
