@@ -85,7 +85,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY(IndefiniteLengthArrayMapTest),
     TEST_ENTRY(NestedMapTestIndefLen),
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
-    TEST_ENTRY(ParseSimpleTest),
+    TEST_ENTRY(SimpleValueDecodeTests),
     TEST_ENTRY(DecodeFailureTests),
     TEST_ENTRY(EncodeRawTest),
     TEST_ENTRY(RTICResultsTest),

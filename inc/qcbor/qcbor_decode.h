@@ -1101,7 +1101,7 @@ QCBORDecode_Tell(QCBORDecodeContext *pCtx);
  * in the QCBORItem.
  *
  * Tags nest. Here the tag with index 0 has the data item as its content. The
- *  tag with index 1 has the tag at index 0 has its content and so forth.
+ * tag with index 1 has the tag at index 0 has its content and so forth.
  *
  * Deep tag nesting is rare so this implementation imposes a limit of
  * @ref QCBOR_MAX_TAGS_PER_ITEM on nesting and returns @ref

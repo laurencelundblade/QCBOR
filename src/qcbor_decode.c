@@ -4584,6 +4584,97 @@ QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
+/**
+ * @brief Process simple values.
+ *
+ * @param[in] pMe     The decode context.
+ * @param[in] pItem   The item with the simple value.
+ * @param[out] puSimple  The simple value output.
+ *
+ * Sets the internal error if the item isn't a true or a false. Also
+ * records any tag numbers as the tag numbers of the last item.
+ */
+static void
+QCBORDecode_Private_ProcessSimple(QCBORDecodeContext *pMe,
+                                  const QCBORItem    *pItem,
+                                  uint8_t            *puSimple)
+{
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   /* It's kind of lame to remap true...undef back to simple values, but
+    * this function isn't used much and to not do it would require
+    * changing GetNext() behavior in an incompatible way.
+    */
+   switch(pItem->uDataType) {
+      case QCBOR_TYPE_UKNOWN_SIMPLE:
+         *puSimple = pItem->val.uSimple;
+         break;
+
+      case QCBOR_TYPE_TRUE:
+         *puSimple = CBOR_SIMPLEV_TRUE;
+         break;
+
+      case QCBOR_TYPE_FALSE:
+         *puSimple = CBOR_SIMPLEV_FALSE;
+         break;
+
+      case QCBOR_TYPE_NULL:
+         *puSimple = CBOR_SIMPLEV_NULL;
+         break;
+
+      case QCBOR_TYPE_UNDEF:
+         *puSimple = CBOR_SIMPLEV_UNDEF;
+         break;
+
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+         return;
+   }
+   QCBORDecode_Private_CopyTags(pMe, pItem);
+}
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
+void
+QCBORDecode_GetSimple(QCBORDecodeContext *pMe, uint8_t *puSimple)
+{
+   QCBORItem Item;
+
+   QCBORDecode_VGetNext(pMe, &Item);
+   QCBORDecode_Private_ProcessSimple(pMe, &Item, puSimple);
+}
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
+void
+QCBORDecode_GetSimpleInMapN(QCBORDecodeContext *pMe,
+                            int64_t             nLabel,
+                            uint8_t            *puSimpleValue)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+
+   QCBORDecode_Private_ProcessSimple(pMe, &Item, puSimpleValue);
+}
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
+void
+QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pMe,
+                             const char         *szLabel,
+                             uint8_t            *puSimpleValue)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+
+   QCBORDecode_Private_ProcessSimple(pMe, &Item, puSimpleValue);
+}
+
 
 
 /**
