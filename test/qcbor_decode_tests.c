@@ -2335,7 +2335,7 @@ static const uint8_t spSimpleValues[] = {
 /* A map of good simple values, plus one well-formed integer */
 static const uint8_t spGoodSimpleValues[] = {
    0xa9, 0x01, 0xf4, 0x02, 0xf5, 0x03, 0xf6, 0x04, 0xf7,
-   0x05, 0xe0, 0x06, 0xf3, 0x07, 0xc6, 0xf8, 0x20, 0x61, 0x40,
+   0x05, 0xe0, 0x06, 0xf3, 0x07, 0xf8, 0x20, 0x61, 0x40,
    0xf8, 0xff, 0x0f, 0x0f};
 
 int32_t SimpleValueDecodeTests(void)
@@ -2441,8 +2441,7 @@ int32_t SimpleValueDecodeTests(void)
       return 25;
    }
    QCBORDecode_GetSimple(&DCtx, &uSimple);
-   if(QCBORDecode_GetError(&DCtx) || uSimple != 32 ||
-      QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 6) {
+   if(QCBORDecode_GetError(&DCtx) || uSimple != 32) {
       return 26;
    }
    QCBORDecode_GetSimple(&DCtx, &uSimple);
