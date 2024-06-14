@@ -2625,45 +2625,6 @@ QCBOREncode_Private_AddType7(QCBOREncodeContext *pMe,
 }
 
 
-/**
- * @brief Semi-private method to add only the type and length of a byte string.
- *
- * @param[in] pCtx    The context to initialize.
- * @param[in] Bytes   Pointer and length of the input data.
- *
- * This will be removed in QCBOR 2.0. It was never a public function.
- *
- * This is the same as QCBOREncode_AddBytes() except it only adds the
- * CBOR encoding for the type and the length. It doesn't actually add
- * the bytes. You can't actually produce correct CBOR with this and
- * the rest of this API. It is only used for a special case where the
- * valid CBOR is created manually by putting this type and length in
- * and then adding the actual bytes. In particular, when only a hash
- * of the encoded CBOR is needed, where the type and header are hashed
- * separately and then the bytes is hashed. This makes it possible to
- * implement COSE Sign1 with only one copy of the payload in the
- * output buffer, rather than two, roughly cutting memory use in half.
- *
- * This is only used for this odd case, but this is a supported
- * tested function for QCBOR 1.0.
- *
- * See also QCBOREncode_EncodeHead().
- */
-static void
-QCBOREncode_AddBytesLenOnly(QCBOREncodeContext *pCtx,
-                            UsefulBufC          Bytes);
-
-static void
-QCBOREncode_AddBytesLenOnlyToMap(QCBOREncodeContext *pCtx,
-                                 const char         *szLabel,
-                                 UsefulBufC          Bytes);
-
-static void
-QCBOREncode_AddBytesLenOnlyToMapN(QCBOREncodeContext *pCtx,
-                                 int64_t              nLabel,
-                                 UsefulBufC           Bytes);
-
-
 /* Forward declaration */
 static void
 QCBOREncode_AddSZString(QCBOREncodeContext *pMe, const char *szString);
@@ -3080,35 +3041,6 @@ QCBOREncode_OpenBytesInMapN(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_OpenBytes(pMe, pPlace);
-}
-
-
-/*
- * Public functions for adding only a byte string length. See qcbor/qcbor_encode.h
- */
-static inline void
-QCBOREncode_AddBytesLenOnly(QCBOREncodeContext *pMe, const UsefulBufC Bytes)
-{
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, Bytes.len, 0);
-}
-
-
-static inline void
-QCBOREncode_AddBytesLenOnlyToMap(QCBOREncodeContext *pMe,
-                                 const char         *szLabel,
-                                 const UsefulBufC    Bytes)
-{
-    QCBOREncode_AddSZString(pMe, szLabel);
-    QCBOREncode_AddBytesLenOnly(pMe, Bytes);
-}
-
-static inline void
-QCBOREncode_AddBytesLenOnlyToMapN(QCBOREncodeContext *pMe,
-                                  const int64_t       nLabel,
-                                  const UsefulBufC    Bytes)
-{
-    QCBOREncode_AddInt64(pMe, nLabel);
-    QCBOREncode_AddBytesLenOnly(pMe, Bytes);
 }
 
 
