@@ -666,6 +666,10 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  * QCBORDecode_GetBignum() and such may also called until
  * QCBORDecode_GetError() doesn't return QCBOR_SUCCESS.
  *
+ * Another option is to get the array item count from
+ * @c pItem->val.uCount, but note that that will not work with
+ * indefinte-length arrays, where as QCBORDecode_GetError() will.
+ *
  * Nested decoding of arrays may be handled by calling
  * QCBORDecode_EnterArray() or by using QCBORDecode_VGetNext() to
  * descend into and back out of the nested array.
