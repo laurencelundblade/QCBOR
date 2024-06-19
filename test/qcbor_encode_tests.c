@@ -736,7 +736,6 @@ int32_t AllAddMethodsTest(void)
 #else
    uExpectedErr = QCBOR_SUCCESS;
 #endif
-
    /* Test the QCBOR_ERR_NOT_ALLOWED error codes */
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_AddNegativeUInt64(&ECtx, 1);
@@ -744,6 +743,13 @@ int32_t AllAddMethodsTest(void)
       nReturn = -21;
       goto Done;
    }
+
+
+#if !defined(QCBOR_DISABLE_ENCODE_USAGE_GUARDS) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+   uExpectedErr = QCBOR_ERR_NOT_ALLOWED;
+#else
+   uExpectedErr = QCBOR_SUCCESS;
+#endif
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
@@ -3478,7 +3484,7 @@ SortMapTest(void)
    if(uErr) {
       return 91;
    }
-
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    static const uint8_t spIndefItems[] = {
       0xA4, 0x62, 0x62, 0x62, 0x02, 0x64, 0x61, 0x61,
       0x61, 0x61, 0x01, 0x7F, 0x61, 0x61, 0x61, 0x61,
@@ -3520,7 +3526,7 @@ SortMapTest(void)
                                       &CompareDiagnostics)) {
       return 102;
    }
-
+#endif
 
    /* --- Duplicate label test  --- */
    QCBOREncode_Init(&EC, TestBuf);
@@ -3613,6 +3619,7 @@ int32_t CDETest(void)
    uExpectedErr = QCBOR_SUCCESS;
 #endif
 
+#ifndef  QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    /* Next, make sure methods that encode non-CDE error out */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_SerializationCDE(&EC);
@@ -3621,6 +3628,7 @@ int32_t CDETest(void)
    if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
       return 100;
    }
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    return 0;
 }
@@ -3667,6 +3675,7 @@ int32_t DCBORTest(void)
 
    /* Next, make sure methods that encode of non-CDE error out */
 
+#ifndef  QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    /* Indefinite-length map */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_SerializationdCBOR(&EC);
@@ -3684,6 +3693,7 @@ int32_t DCBORTest(void)
    if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
       return 101;
    }
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    /* The "undef" special value */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
