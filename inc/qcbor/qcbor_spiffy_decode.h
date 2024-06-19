@@ -1218,6 +1218,37 @@ QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
+ * @brief Decode the next item as a CBOR simple value.
+ *
+ * @param[in] pCtx            The decode context.
+ * @param[out] puSimpleValue  The simplle value returned.
+ *
+ * The purpose of this is to get a CBOR simple value other than a
+ * Boolean, NULL or "undefined", but this works on all simple
+ * values. See QCBOREncode_AddSimple() for more details on simple
+ * values in general.
+ *
+ * See QCBORDecode_GetBool(), QCBORDecode_GetNull(),
+ * QCBORDecode_GetUndefined() for the preferred way of getting those
+ * simple values.
+ */
+void
+QCBORDecode_GetSimple(QCBORDecodeContext *pCtx, uint8_t *puSimpleValue);
+
+void
+QCBORDecode_GetSimpleInMapN(QCBORDecodeContext *pCtx,
+                            int64_t             nLabel,
+                            uint8_t            *puSimpleValue);
+
+void
+QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pCtx,
+                             const char         *szLabel,
+                             uint8_t            *puSimpleValue);
+
+
+
+
+/**
  * @brief Decode the next item as a date string.
  *
  * @param[in] pCtx             The decode context.
@@ -2284,6 +2315,7 @@ QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pMe,
                               QCBORItem          *pItem,
                               UsefulBufC         *pEncodedCBOR)
 {
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORItem OneItemSeach[2];
    OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
    OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
@@ -2291,6 +2323,12 @@ QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pMe,
    OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
 
    QCBORDecode_Private_SearchAndGetArrayOrMap(pMe, OneItemSeach, pItem, pEncodedCBOR);
+#else
+   (void)szLabel;
+   (void)pItem;
+   (void)pEncodedCBOR;
+   pMe->uLastError =  QCBOR_ERR_MAP_LABEL_TYPE;
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 }
 
 static inline void
@@ -2324,6 +2362,7 @@ QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
                             QCBORItem          *pItem,
                             UsefulBufC         *pEncodedCBOR)
 {
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORItem OneItemSeach[2];
    OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
    OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
@@ -2331,6 +2370,12 @@ QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
    OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
 
    QCBORDecode_Private_SearchAndGetArrayOrMap(pMe, OneItemSeach, pItem, pEncodedCBOR);
+#else
+   (void)szLabel;
+   (void)pItem;
+   (void)pEncodedCBOR;
+   pMe->uLastError =  QCBOR_ERR_MAP_LABEL_TYPE;
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 }
 
 
@@ -2618,6 +2663,7 @@ QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pMe,
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_UNDEF, &Item);
 }
+
 
 
 static inline void

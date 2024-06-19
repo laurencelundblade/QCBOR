@@ -1990,15 +1990,20 @@ QCBOREncode_AddUndefToMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
  * @param[in] pMe    The encode context.
  * @param[in] uNum   The simple value.
  *
- * Use QCBOREncode_AddBool(), QCBOREncode_AddUndef()... instead of this.
+ * QCBOREncode_AddBool(), QCBOREncode_AddUndef() and
+ * QCBOREncode_AddNull() are preferred to this for the simple values
+ * defined in RFC 8949, but this can be used for them too.
  *
- * Use this to add simple values beyond those in defined RFC
- * 8949. Simple values must be registered with IANA. There is no range
- * of values for proprietary use.
+ * The main purpose of this is to add simple values beyond those in
+ * defined RFC 8949. Note that simple values must be registered with
+ * IANA. Those in the range of 0 to 19 must be standardized.  Those in
+ * the range of 32 to 255 do not require a standard, but must be
+ * publically specified. There is no range of values for proprietary
+ * use. See
  * https://www.iana.org/assignments/cbor-simple-values/cbor-simple-values.xhtml
  */
 static void
-QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum);
+QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint8_t uNum);
 
 static void
 QCBOREncode_AddSimpleToMap(QCBOREncodeContext *pMe,
@@ -3954,7 +3959,7 @@ QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum)
+QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint8_t uNum)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(pMe->uMode >= QCBOR_ENCODE_MODE_DCBOR) {
@@ -3976,8 +3981,8 @@ QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum)
 
 static inline void
 QCBOREncode_AddSimpleToMap(QCBOREncodeContext *pMe,
-                                   const char         *szLabel,
-                                   const uint8_t       uSimple)
+                           const char         *szLabel,
+                           const uint8_t       uSimple)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddSimple(pMe, uSimple);
@@ -3985,8 +3990,8 @@ QCBOREncode_AddSimpleToMap(QCBOREncodeContext *pMe,
 
 static inline void
 QCBOREncode_AddSimpleToMapN(QCBOREncodeContext *pMe,
-                                    const int64_t       nLabel,
-                                    const uint8_t       uSimple)
+                            const int64_t       nLabel,
+                            const uint8_t       uSimple)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddSimple(pMe, uSimple);
