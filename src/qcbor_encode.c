@@ -1330,6 +1330,7 @@ QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
 }
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 /*
  * Public functions for closing sorted maps. See qcbor/qcbor_encode.h
  */
@@ -1343,6 +1344,7 @@ QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pMe)
 
    QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 /*

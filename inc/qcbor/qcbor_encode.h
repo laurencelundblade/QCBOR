@@ -838,6 +838,8 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  *
  * By default, this will error out on an attempt to encode a NaN with
  * a payload. See QCBOREncode_Allow() and @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
+ * If preferred serialization is disabled at compliation, this check for
+ * for NaN payloads is disabled.
  */
 static void
 QCBOREncode_AddDouble(QCBOREncodeContext *pCtx, double dNum);
