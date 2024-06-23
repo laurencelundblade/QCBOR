@@ -165,6 +165,8 @@ extern "C" {
  * a uin32_t.
  *
  * This will cause trouble on a machine where size_t is less than 32-bits.
+ *
+ * TODO: make this public?
  */
 #define QCBOR_MAX_ARRAY_OFFSET  (UINT32_MAX - 100)
 
@@ -267,13 +269,13 @@ typedef struct __QCBORDecodeNesting  {
        *   1) Byte count tracking. This is for the top level input CBOR
        *   which might be a single item or a CBOR sequence and byte
        *   string wrapped encoded CBOR.
-       *   2) Item tracking. This is for maps and arrays.
+       *   2) Item count tracking. This is for maps and arrays.
        *
        * uLevelType has value QCBOR_TYPE_BYTE_STRING for 1) and
        * QCBOR_TYPE_MAP or QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP_AS_ARRAY
        * for 2).
        *
-       * Item tracking is either for definite or indefinite-length
+       * Item count tracking is either for definite or indefinite-length
        * maps/arrays. For definite lengths, the total count and items
        * unconsumed are tracked. For indefinite-length, uTotalCount is
        * QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH (UINT16_MAX) and
@@ -284,16 +286,16 @@ typedef struct __QCBORDecodeNesting  {
        * uCountCursor is QCBOR_COUNT_INDICATES_ZERO_LENGTH to indicate
        * it is empty.
        *
-       * This also records whether a level is bounded or not.  All
+       * This also records whether a level is bounded or not. All
        * byte-count tracked levels (the top-level sequence and
-       * bstr-wrapped CBOR) are bounded. Maps and arrays may or may
-       * not be bounded. They are bounded if they were Entered() and
-       * not if they were traversed with GetNext(). They are marked as
-       * bounded by uStartOffset not being UINT32_MAX.
+       * bstr-wrapped CBOR) are bounded implicitly. Maps and arrays
+       * may or may not be bounded. They are bounded if they were
+       * Entered() and not if they were traversed with GetNext(). They
+       * are marked as bounded by uStartOffset not being @c UINT32_MAX.
        */
       /*
        * If uLevelType can put in a separately indexed array, the
-       * union/ struct will be 8 bytes rather than 9 and a lot of
+       * union/struct will be 8 bytes rather than 9 and a lot of
        * wasted padding for alignment will be saved.
        */
       uint8_t  uLevelType;
@@ -304,6 +306,8 @@ typedef struct __QCBORDecodeNesting  {
             uint16_t uCountTotal;
             uint16_t uCountCursor;
 #define QCBOR_NON_BOUNDED_OFFSET UINT32_MAX
+            /* The start of the array or map in bounded mode so
+             * the input can be rewound for GetInMapXx() by label. */
             uint32_t uStartOffset;
          } ma; /* for maps and arrays */
          struct {
@@ -390,7 +394,6 @@ struct _QCBORDecodeContext {
 /* Used internally in the impementation here Must not conflict with
  * any of the official CBOR types
  */
-#define CBOR_MAJOR_NONE_TYPE_RAW            9
 #define CBOR_MAJOR_NONE_TAG_LABEL_REORDER  10
 #define CBOR_MAJOR_NONE_TYPE_OPEN_BSTR     12
 

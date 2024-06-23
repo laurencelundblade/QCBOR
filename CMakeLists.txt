@@ -72,6 +72,25 @@ if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
     )
 endif()
 
+set(HEADERS
+    inc/qcbor/qcbor.h
+    inc/qcbor/qcbor_common.h
+    inc/qcbor/qcbor_private.h
+    inc/qcbor/qcbor_encode.h
+    inc/qcbor/qcbor_decode.h
+    inc/qcbor/qcbor_spiffy_decode.h
+    inc/qcbor/UsefulBuf.h
+)
+set_target_properties(
+    qcbor PROPERTIES
+    PUBLIC_HEADER "${HEADERS}"
+)
+include(GNUInstallDirs)
+install(
+    TARGETS qcbor
+    PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/qcbor"
+)
+
 if (NOT BUILD_QCBOR_TEST STREQUAL "OFF")
     add_subdirectory(test)
 endif()

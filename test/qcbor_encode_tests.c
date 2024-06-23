@@ -639,17 +639,17 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_OpenMap(pECtx);
    QCBOREncode_AddSZString(pECtx, "s1");
    QCBOREncode_AddTag(pECtx, 88);
-   QCBOREncode_Private_AddSimple(pECtx, 255);
-   QCBOREncode_Private_AddSimpleToMap(pECtx, "s2", 0);
+   QCBOREncode_AddSimple(pECtx, 255);
+   QCBOREncode_AddSimpleToMap(pECtx, "s2", 0);
    QCBOREncode_AddSZString(pECtx, "s3");
    QCBOREncode_AddTag(pECtx, 88);
-   QCBOREncode_Private_AddSimple(pECtx, 33);
+   QCBOREncode_AddSimple(pECtx, 33);
    QCBOREncode_AddInt64(pECtx, 88378374); // label before tag
    QCBOREncode_AddTag(pECtx, 88);
-   QCBOREncode_Private_AddSimple(pECtx, 255);
+   QCBOREncode_AddSimple(pECtx, 255);
    QCBOREncode_AddInt64(pECtx, 89); // label before tag
    QCBOREncode_AddTag(pECtx, 88);
-   QCBOREncode_Private_AddSimple(pECtx, 19);
+   QCBOREncode_AddSimple(pECtx, 19);
    QCBOREncode_CloseMap(pECtx);
 
    /* UUIDs */
@@ -745,6 +745,13 @@ int32_t AllAddMethodsTest(void)
       goto Done;
    }
 
+
+#if !defined(QCBOR_DISABLE_ENCODE_USAGE_GUARDS) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+   uExpectedErr = QCBOR_ERR_NOT_ALLOWED;
+#else
+   uExpectedErr = QCBOR_SUCCESS;
+#endif
+
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    /* 0x7ff8000000000001ULL is a NaN with a payload. */
@@ -783,6 +790,7 @@ int32_t AllAddMethodsTest(void)
       nReturn = -24;
       goto Done;
    }
+
 
    /* 0x7ffc0000UL is a NaN with a payload. */
    QCBOREncode_AddFloat(&ECtx, UsefulBufUtil_CopyUint32ToFloat(0x7ffc0000UL));
@@ -999,6 +1007,7 @@ int32_t SimpleValuesTest1(void)
    return(nReturn);
 }
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 /*
  9F                  # array(5)
    F5               # primitive(21)
@@ -1045,6 +1054,7 @@ int32_t SimpleValuesIndefiniteLengthTest1(void)
 
    return(nReturn);
 }
+#endif
 
 /*
 A5                                      # map(5)
@@ -1711,7 +1721,7 @@ FormatRTICResults(uint8_t uRResult,
 
       // The result: 0 if scan happened and found nothing; 1 if it happened and
       // found something wrong; 2 if it didn't happen
-      QCBOREncode_Private_AddSimpleToMap(&ECtx, "integrity", uRResult);
+      QCBOREncode_AddSimpleToMap(&ECtx, "integrity", uRResult);
 
       // Add the diagnostic code
       QCBOREncode_AddSZStringToMap(&ECtx, "type", szType);
@@ -2528,6 +2538,8 @@ int32_t EncodeErrorTests(void)
 {
    QCBOREncodeContext EC;
    QCBORError         uErr;
+   UsefulBufC         EncodedResult;
+   MakeUsefulBufOnStack(SmallBuffer, 4);
 
 
    // ------ Test for QCBOR_ERR_BUFFER_TOO_LARGE ------
@@ -2696,7 +2708,7 @@ int32_t EncodeErrorTests(void)
    /* ------ QCBOR_ERR_UNSUPPORTED -------- */
    QCBOREncode_Init(&EC, Large);
    QCBOREncode_OpenArray(&EC);
-   QCBOREncode_Private_AddSimple(&EC, 24); /* CBOR_SIMPLEV_RESERVED_START */
+   QCBOREncode_AddSimple(&EC, 24); /* CBOR_SIMPLEV_RESERVED_START */
    uErr = QCBOREncode_FinishGetSize(&EC, &xx);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_ENCODE_UNSUPPORTED) {
@@ -2711,7 +2723,7 @@ int32_t EncodeErrorTests(void)
 
    QCBOREncode_Init(&EC, Large);
    QCBOREncode_OpenArray(&EC);
-   QCBOREncode_Private_AddSimple(&EC, 31); /* CBOR_SIMPLEV_RESERVED_END */
+   QCBOREncode_AddSimple(&EC, 31); /* CBOR_SIMPLEV_RESERVED_END */
    uErr = QCBOREncode_FinishGetSize(&EC, &xx);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_ENCODE_UNSUPPORTED) {
@@ -2723,6 +2735,31 @@ int32_t EncodeErrorTests(void)
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
+   /* Test that still-open error sticks */
+   QCBOREncode_Init(&EC, Large);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_Finish(&EC, &EncodedResult);
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return -120;
+   }
+#else /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_SUCCESS) {
+      return -122;
+   }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   /* Test that too-small error is sticky */
+   QCBOREncode_Init(&EC, SmallBuffer);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddInt64(&EC, INT64_MAX);
+   QCBOREncode_AddInt64(&EC, INT64_MAX);
+   QCBOREncode_AddInt64(&EC, INT64_MAX);
+   QCBOREncode_CloseArray(&EC);
+   QCBOREncode_Finish(&EC, &EncodedResult);
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_ERR_BUFFER_TOO_SMALL) {
+      return -130;
+   }
 
    return 0;
 }
@@ -3196,7 +3233,24 @@ SortMapTest(void)
    if(uErr) {
       return 31;
    }
-   static const uint8_t spNested[] = {
+
+   /* Correctly sorted.
+    * {
+    *   88: 1(888888),
+    *   428: {
+    *     "null": null,
+    *     "array": [
+    *       "hi",
+    *       "there"
+    *     ],
+    *     "empty1": {},
+    *     "empty2": {}
+    *   },
+    *   "boo": true,
+    *   "three": 3
+    *  }
+    */
+   static const uint8_t spSorted[] = {
       0xA4, 0x18, 0x58, 0xC1, 0x1A, 0x00, 0x0D, 0x90,
       0x38, 0x19, 0x01, 0xAC, 0xA4, 0x64, 0x6E, 0x75,
       0x6C, 0x6C, 0xF6, 0x65, 0x61, 0x72, 0x72, 0x61,
@@ -3207,10 +3261,71 @@ SortMapTest(void)
       0x65, 0x74, 0x68, 0x72, 0x65, 0x65, 0x03};
 
    if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
-                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNested),
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSorted),
                                       &CompareDiagnostics)) {
       return 32;
    }
+
+
+   /* Same data items, but added in a different order */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+     QCBOREncode_AddInt64ToMap(&EC, "three", 3);
+     QCBOREncode_OpenMapInMapN(&EC, 428);
+       QCBOREncode_OpenMapInMap(&EC, "empty1");
+         QCBOREncode_CloseAndSortMap(&EC);
+       QCBOREncode_OpenArrayInMap(&EC, "array");
+         QCBOREncode_AddSZString(&EC, "hi");
+         QCBOREncode_AddSZString(&EC, "there");
+         QCBOREncode_CloseArray(&EC);
+       QCBOREncode_OpenMapInMap(&EC, "empty2");
+         QCBOREncode_CloseAndSortMap(&EC);
+       QCBOREncode_AddNULLToMap(&EC, "null");
+       QCBOREncode_CloseAndSortMap(&EC);
+     QCBOREncode_AddDateEpochToMapN(&EC, 88, 888888);
+     QCBOREncode_AddBoolToMap(&EC, "boo", true);
+     QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 31;
+   }
+
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSorted),
+                                      &CompareDiagnostics)) {
+      return 32;
+   }
+
+   /* Same data items, but added in a different order */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+     QCBOREncode_AddBoolToMap(&EC, "boo", true);
+     QCBOREncode_OpenMapInMapN(&EC, 428);
+       QCBOREncode_OpenMapInMap(&EC, "empty1");
+         QCBOREncode_CloseAndSortMap(&EC);
+       QCBOREncode_OpenArrayInMap(&EC, "array");
+         QCBOREncode_AddSZString(&EC, "hi");
+         QCBOREncode_AddSZString(&EC, "there");
+         QCBOREncode_CloseArray(&EC);
+       QCBOREncode_OpenMapInMap(&EC, "empty2");
+         QCBOREncode_CloseAndSortMap(&EC);
+       QCBOREncode_AddNULLToMap(&EC, "null");
+       QCBOREncode_CloseAndSortMap(&EC);
+     QCBOREncode_AddDateEpochToMapN(&EC, 88, 888888);
+     QCBOREncode_AddInt64ToMap(&EC, "three", 3);
+     QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr) {
+      return 31;
+   }
+
+   if(UsefulBuf_CompareWithDiagnostic(EncodedAndSorted,
+                                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSorted),
+                                      &CompareDiagnostics)) {
+      return 32;
+   }
+
+
 
    /* --- Degenerate case of everything in order --- */
    QCBOREncode_Init(&EC, TestBuf);
@@ -3386,7 +3501,7 @@ SortMapTest(void)
    if(uErr) {
       return 91;
    }
-
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    static const uint8_t spIndefItems[] = {
       0xA4, 0x62, 0x62, 0x62, 0x02, 0x64, 0x61, 0x61,
       0x61, 0x61, 0x01, 0x7F, 0x61, 0x61, 0x61, 0x61,
@@ -3428,6 +3543,44 @@ SortMapTest(void)
                                       &CompareDiagnostics)) {
       return 102;
    }
+#endif
+
+   /* --- Duplicate label test  --- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddInt64ToMapN(&EC, 3, 3);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
+   QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+      return 114;
+   }
+
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddInt64ToMapN(&EC, 3, 3);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 1, 2);
+   QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
+   QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+      return 115;
+   }
+
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_AddInt64ToMap(&EC, "abc", 3);
+   QCBOREncode_AddInt64ToMap(&EC, "def", 1);
+   QCBOREncode_AddInt64ToMap(&EC, "def", 1);
+   QCBOREncode_AddInt64ToMap(&EC, "def", 2);
+   QCBOREncode_CloseAndSortMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+      return 116;
+   }
 
    return 0;
 }
@@ -3437,6 +3590,7 @@ SortMapTest(void)
 
 #include <math.h> /* For INFINITY and NAN and isnan() */
 
+#endif
 
 /* Public function. See qcbor_encode_tests.h */
 int32_t CDETest(void)
@@ -3484,6 +3638,7 @@ int32_t CDETest(void)
 #endif
 
 
+#ifndef  QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    /* Next, make sure methods that encode non-CDE error out */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_SerializationCDE(&EC);
@@ -3553,6 +3708,8 @@ int32_t DCBORTest(void)
 
    /* Next, make sure methods that encode of non-CDE error out */
 
+
+#ifndef  QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    /* Indefinite-length map */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_SerializationdCBOR(&EC);
@@ -3570,6 +3727,8 @@ int32_t DCBORTest(void)
    if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
       return 101;
    }
+
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    /* The "undef" special value */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));

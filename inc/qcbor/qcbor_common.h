@@ -44,12 +44,6 @@ extern "C" {
 #endif
 
 
-//#define QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-
-//#define QCBOR_DISABLE_FLOAT_HW_USE
-
-//#define QCBOR_DISABLE_PREFERRED_FLOAT
-
 
 /**
  * @file qcbor_common.h
@@ -244,7 +238,7 @@ extern "C" {
 
 
 /**
- * Error codes returned by QCBOR Encoder and Decoder.
+ * Error codes returned by QCBOR Encoder-Decoder.
  *
  * They are grouped to keep the code size of
  * QCBORDecode_IsNotWellFormedError() and
@@ -414,7 +408,7 @@ typedef enum {
     *  this error is returned. This error is unrecoverable because the
     *  built-in tag decoding doesn't try to consume the unexpected
     *  type. In previous versions of QCBOR this was considered a
-    *  recoverable error hence @ref QCBOR_ERR_BAD_TAG_CONTENT. Going
+    *  recoverable error hence QCBOR_ERR_BAD_TAG_CONTENT. Going
     *  back further, RFC 7049 use the name "optional tags". That name
     *  is no longer used because "optional" was causing confusion. See
     *  also @ref QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT. */
@@ -540,8 +534,20 @@ typedef enum {
    /* Trying to encode something that is discouraged (e.g., 65-bit
     * negative integer) without allowing it by calling
     * QCBOREncode_Allow() */
-   QCBOR_ERR_NOT_ALLOWED = 80
+   QCBOR_ERR_NOT_ALLOWED = 80,
 
+   /** QCBORDecode_EnterBstrWrapped() cannot be used on
+    * indefinite-length strings because they exist in memory pool for
+    * a @ref QCBORStringAllocate. */
+   QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING = 81,
+
+   /** A range of error codes that can be made use of by the
+    * caller. QCBOR internally does nothing with these except notice
+    * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */
+   QCBOR_ERR_FIRST_USER_DEFINED = 128,
+
+   /** See \ref QCBOR_ERR_FIRST_USER_DEFINED */
+   QCBOR_ERR_LAST_USER_DEFINED = 255
 
    /* This is stored in uint8_t; never add values > 255 */
 } QCBORError;
@@ -550,12 +556,17 @@ typedef enum {
 /**
  * @brief Get string describing an error code.
  *
- * @param[in] err   The error code.
+ * @param[in] uErr   The error code.
  *
  * @return  NULL-terminated string describing error or "Unidentified
  *          error" if the error is not known.
+ *
+ * This is not thread-safe because it uses a static buffer
+ * for formatting, but this is only a diagnostic and the only
+ * consequence is the wrong description.
  */
-const char *qcbor_err_to_str(QCBORError err);
+const char *
+qcbor_err_to_str(QCBORError uErr);
 
 
 

@@ -1,5 +1,5 @@
 /*==============================================================================
-  cmd_line_mainc.c -- Runs tests for QCBOR encoder / decoder
+  cmd_line_mainc.c -- Runs tests for QCBOR encoder-decoder
 
  Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
 
