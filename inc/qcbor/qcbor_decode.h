@@ -1157,7 +1157,7 @@ QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t
  * list of recorded tag numbers.  This gets the tags for the most
  * recently decoded item.
  *
- * If a decoding error set then this returns CBOR_TAG_INVALID64.
+ * If a decoding error is set, then this returns CBOR_TAG_INVALID64.
  */
 uint64_t
 QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);

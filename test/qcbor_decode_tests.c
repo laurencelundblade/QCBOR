@@ -4464,6 +4464,69 @@ int32_t OptTagParseTest(void)
 
 
    QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                    QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 55799) {
+      return 200;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 55799) {
+      return 202;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != 55799) {
+      return 203;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
+      return 204;
+   }
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
+      return 200;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 5859837686836516696) {
+      return 202;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != CBOR_TAG_INVALID64) {
+      return 203;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
+      return 204;
+   }
+
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                    QCBOR_DECODE_MODE_MAP_AS_ARRAY);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 55799) {
+      return 200;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 55799) {
+      return 202;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != 55799) {
+      return 203;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
+      return 204;
+   }
+   int64_t nInt;
+   QCBORDecode_GetInt64(&DCtx, &nInt);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
+      return 200;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 6) {
+      return 200;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != CBOR_TAG_INVALID64) {
+      return 203;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
+      return 204;
+   }
+
+   QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
                     QCBOR_DECODE_MODE_NORMAL);
 
@@ -9459,6 +9522,14 @@ static const uint8_t spUndefinedInMap[] =
 };
 
 
+static const uint8_t spTaggedSimples[] =
+{
+   0xd8, 0x58, 0xd8, 0x2c, 0xd6, 0xf5,
+   0xd9, 0x0f, 0xA0, 0xf7
+};
+
+
+
 int32_t BoolTest(void)
 {
    QCBORDecodeContext DCtx;
@@ -9597,6 +9668,36 @@ int32_t BoolTest(void)
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_HIT_END) {
       return 15;
    }
+
+#ifndef QCBOR_DISABLE_TAGS
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTaggedSimples),
+                    0);
+   QCBORDecode_GetBool(&DCtx, &b);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 22) {
+      return 401;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 44) {
+      return 402;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != 88) {
+      return 403;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
+      return 404;
+   }
+   QCBORDecode_GetUndefined(&DCtx);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 4000) {
+      return 405;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != CBOR_TAG_INVALID64) {
+      return 406;
+   }
+   QCBORDecode_GetNull(&DCtx); /* Off the end */
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != CBOR_TAG_INVALID64) {
+      return 407;
+   }
+#endif /* ! QCBOR_DISABLE_TAGS */
 
    return 0;
 }
