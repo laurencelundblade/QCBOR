@@ -1425,7 +1425,7 @@ QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
 }
 
 static inline int
-QCBOR_Int64UToInt16(int64_t src, uint16_t *dest)
+QCBOR_Int64ToUInt16(int64_t src, uint16_t *dest)
 {
    if(src > UINT16_MAX || src < 0) {
       return -1;

@@ -8017,12 +8017,12 @@ int32_t IntToTests(void)
    }
 
 
-   nErrCode = QCBOR_Int64UToInt16((int64_t)UINT16_MAX, &u16);
+   nErrCode = QCBOR_Int64ToUInt16((int64_t)UINT16_MAX, &u16);
    if(nErrCode == -1 || u16 != UINT16_MAX) {
       return 21;
    }
 
-   nErrCode = QCBOR_Int64UToInt16((int64_t)0, &u16);
+   nErrCode = QCBOR_Int64ToUInt16((int64_t)0, &u16);
    if(nErrCode == -1 || u16 != 0) {
       return 22;
    }
