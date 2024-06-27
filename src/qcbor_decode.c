@@ -2359,7 +2359,7 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
  */
 static QCBORError
 QCBORDecode_Private_ExpMantissa(QCBORDecodeContext *pMe,
-                                        QCBORItem          *pDecodedItem)
+                                QCBORItem          *pDecodedItem)
 {
    QCBORError uReturn;
 
@@ -2370,7 +2370,7 @@ QCBORDecode_Private_ExpMantissa(QCBORDecodeContext *pMe,
    }
 
    /* A check for pDecodedItem->val.uCount == 2 would work for
-    * definite-length arrays, but not for indefinite.  Instead remember
+    * definite-length arrays, but not for indefinite. Instead remember
     * the nesting level the two integers must be at, which is one
     * deeper than that of the array.
     */
@@ -2378,7 +2378,7 @@ QCBORDecode_Private_ExpMantissa(QCBORDecodeContext *pMe,
 
    /* --- Get the exponent --- */
    QCBORItem exponentItem;
-   uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, &exponentItem);
+   uReturn = QCBORDecode_GetNext(pMe, &exponentItem);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -3415,6 +3415,9 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
       /* Get the item */
       QCBORItem Item;
+      /* QCBORDecode_Private_GetNextTagContent() rather than GetNext()
+       * because a label match is performed on recoverable errors to
+       * be able to return the the error code for the found item. */
       QCBORError uResult = QCBORDecode_Private_GetNextTagContent(pMe, &Item);
       if(QCBORDecode_IsUnrecoverableError(uResult)) {
          /* The map/array can't be decoded when unrecoverable errors occur */
@@ -3438,8 +3441,8 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
             }
             if(uResult != QCBOR_SUCCESS) {
                /* The label matches, but the data item is in error.
-                * It is OK to have recoverable errors on items that are not
-                * matched. */
+                * It is OK to have recoverable errors on items that
+                * are not matched. */
                uReturn = uResult;
                goto Done;
             }
@@ -3544,15 +3547,17 @@ QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
 
    QCBORError uReturn = QCBORDecode_Private_MapSearch(pMe, OneItemSeach, NULL, NULL);
 
-   *pItem = OneItemSeach[0];
-
    if(uReturn != QCBOR_SUCCESS) {
+      pItem->uDataType  = QCBOR_TYPE_NONE;
+      pItem->uLabelType = QCBOR_TYPE_NONE;
       goto Done;
    }
+
    if(OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
       uReturn = QCBOR_ERR_LABEL_NOT_FOUND;
    }
 
+   *pItem = OneItemSeach[0];
    QCBORDecode_Private_CopyTags(pMe, pItem);
 
  Done:
@@ -3583,6 +3588,8 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
    QCBORError uReturn = QCBORDecode_Private_MapSearch(pMe, OneItemSeach, NULL, NULL);
 
    if(uReturn != QCBOR_SUCCESS) {
+      pItem->uDataType  = QCBOR_TYPE_NONE;
+      pItem->uLabelType = QCBOR_TYPE_NONE;
       goto Done;
    }
    if(OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
@@ -3591,9 +3598,9 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
    }
 
    *pItem = OneItemSeach[0];
-Done:
    QCBORDecode_Private_CopyTags(pMe, pItem);
 
+Done:
 #else
    (void)pMe;
    (void)szLabel;

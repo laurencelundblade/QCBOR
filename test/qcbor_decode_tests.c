@@ -2562,19 +2562,19 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 8) {
+      if(nIndex == 4) {
          uCBORError = 9; /* For setting break points */
       }
 
-      /* Iterate until there is an error of some sort of error */
+      /* Iterate until there is an error of some sort */
       do {
-         /* Set to something none-zero, something other than QCBOR_TYPE_NONE */
+         /* Set to something non-zero, something other than QCBOR_TYPE_NONE */
          memset(&Item, 0x33, sizeof(Item));
 
          uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
       } while(uCBORError == QCBOR_SUCCESS);
 
-      /* Must get the expected error or the this test fails
+      /* Must get the expected error or the this test fails.
        * The data and label type must also be QCBOR_TYPE_NONE.
        */
       if(uCBORError != pF->nError ||
@@ -4484,16 +4484,16 @@ int32_t OptTagParseTest(void)
 
    QCBORDecode_EnterMap(&DCtx, NULL);
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
-      return 200;
+      return 210;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 5859837686836516696) {
-      return 202;
+      return 212;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != CBOR_TAG_INVALID64) {
-      return 203;
+      return 213;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
-      return 204;
+      return 214;
    }
 
 
@@ -4503,13 +4503,13 @@ int32_t OptTagParseTest(void)
    QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_EnterMapFromMapN(&DCtx, -23);
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
-      return 200;
+      return 220;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 5859837686836516696) {
-      return 200;
+      return 221;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != CBOR_TAG_INVALID64) {
-      return 200;
+      return 222;
    }
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
@@ -4518,30 +4518,30 @@ int32_t OptTagParseTest(void)
                     QCBOR_DECODE_MODE_MAP_AS_ARRAY);
    QCBORDecode_EnterArray(&DCtx, NULL);
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 55799) {
-      return 200;
+      return 230;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 55799) {
-      return 202;
+      return 231;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != 55799) {
-      return 203;
+      return 232;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
-      return 204;
+      return 234;
    }
    int64_t nInt;
    QCBORDecode_GetInt64(&DCtx, &nInt);
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
-      return 200;
+      return 240;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 6) {
-      return 200;
+      return 241;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != CBOR_TAG_INVALID64) {
-      return 203;
+      return 242;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
-      return 204;
+      return 243;
    }
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
@@ -4555,27 +4555,27 @@ int32_t OptTagParseTest(void)
    // untagged date string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_SUCCESS) {
-      return 200;
+      return 250;
    }
    // untagged byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
-      return 201;
+      return 251;
    }
    // tagged regex
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
-      return 202;
+      return 252;
    }
    // tagged date string with a byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
-      return 203;
+      return 253;
    }
    // See comments above
    QCBORDecode_ExitArray(&DCtx);
    if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
-      return 204;
+      return 254;
    }
 
    QCBORDecode_Init(&DCtx,
@@ -6298,8 +6298,8 @@ static const struct DecodeFailTestInput ExponentAndMantissaFailures[] = {
    },
    {"bad content for big num",
       QCBOR_DECODE_MODE_NORMAL,
-      {"\xC4\x82\xc2\x01\x1f", 5},
-      QCBOR_ERR_BAD_INT
+      {"\xC4\x82\xC2\x01\x1F", 5},
+      QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT
    },
    {"Bad integer for exponent",
       QCBOR_DECODE_MODE_NORMAL,
