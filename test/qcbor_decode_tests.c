@@ -2446,6 +2446,7 @@ int32_t SimpleValueDecodeTests(void)
    if(QCBORDecode_GetError(&DCtx) || uSimple != 32) {
       return 26;
    }
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORDecode_GetSimple(&DCtx, &uSimple);
    if(QCBORDecode_GetError(&DCtx) || uSimple != 255) {
       return 27;
@@ -2482,6 +2483,7 @@ int32_t SimpleValueDecodeTests(void)
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
       return 34;
    }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    return 0;
 }
@@ -4497,6 +4499,22 @@ int32_t OptTagParseTest(void)
 
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                    QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_EnterMapFromMapN(&DCtx, -23);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
+      return 200;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 5859837686836516696) {
+      return 200;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != CBOR_TAG_INVALID64) {
+      return 200;
+   }
+
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
                     QCBOR_DECODE_MODE_MAP_AS_ARRAY);
    QCBORDecode_EnterArray(&DCtx, NULL);
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 55799) {
@@ -4525,6 +4543,7 @@ int32_t OptTagParseTest(void)
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
       return 204;
    }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
@@ -9522,11 +9541,13 @@ static const uint8_t spUndefinedInMap[] =
 };
 
 
+#ifndef QCBOR_DISABLE_TAGS
 static const uint8_t spTaggedSimples[] =
 {
    0xd8, 0x58, 0xd8, 0x2c, 0xd6, 0xf5,
    0xd9, 0x0f, 0xA0, 0xf7
 };
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 
 
