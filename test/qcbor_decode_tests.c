@@ -2446,6 +2446,7 @@ int32_t SimpleValueDecodeTests(void)
    if(QCBORDecode_GetError(&DCtx) || uSimple != 32) {
       return 26;
    }
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORDecode_GetSimple(&DCtx, &uSimple);
    if(QCBORDecode_GetError(&DCtx) || uSimple != 255) {
       return 27;
@@ -2482,6 +2483,7 @@ int32_t SimpleValueDecodeTests(void)
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
       return 34;
    }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    return 0;
 }
@@ -2560,19 +2562,19 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 8) {
+      if(nIndex == 4) {
          uCBORError = 9; /* For setting break points */
       }
 
-      /* Iterate until there is an error of some sort of error */
+      /* Iterate until there is an error of some sort */
       do {
-         /* Set to something none-zero, something other than QCBOR_TYPE_NONE */
+         /* Set to something non-zero, something other than QCBOR_TYPE_NONE */
          memset(&Item, 0x33, sizeof(Item));
 
          uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
       } while(uCBORError == QCBOR_SUCCESS);
 
-      /* Must get the expected error or the this test fails
+      /* Must get the expected error or the this test fails.
        * The data and label type must also be QCBOR_TYPE_NONE.
        */
       if(uCBORError != pF->nError ||
@@ -4464,6 +4466,86 @@ int32_t OptTagParseTest(void)
 
 
    QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                    QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 55799) {
+      return 200;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 55799) {
+      return 202;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != 55799) {
+      return 203;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
+      return 204;
+   }
+
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
+      return 210;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 5859837686836516696) {
+      return 212;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != CBOR_TAG_INVALID64) {
+      return 213;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
+      return 214;
+   }
+
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                    QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_EnterMapFromMapN(&DCtx, -23);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
+      return 220;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 5859837686836516696) {
+      return 221;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != CBOR_TAG_INVALID64) {
+      return 222;
+   }
+
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                    QCBOR_DECODE_MODE_MAP_AS_ARRAY);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 55799) {
+      return 230;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 55799) {
+      return 231;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != 55799) {
+      return 232;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
+      return 234;
+   }
+   int64_t nInt;
+   QCBORDecode_GetInt64(&DCtx, &nInt);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
+      return 240;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 6) {
+      return 241;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != CBOR_TAG_INVALID64) {
+      return 242;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
+      return 243;
+   }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
+
+   QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
                     QCBOR_DECODE_MODE_NORMAL);
 
@@ -4473,27 +4555,27 @@ int32_t OptTagParseTest(void)
    // untagged date string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_SUCCESS) {
-      return 200;
+      return 250;
    }
    // untagged byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
-      return 201;
+      return 251;
    }
    // tagged regex
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
-      return 202;
+      return 252;
    }
    // tagged date string with a byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
-      return 203;
+      return 253;
    }
    // See comments above
    QCBORDecode_ExitArray(&DCtx);
    if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
-      return 204;
+      return 254;
    }
 
    QCBORDecode_Init(&DCtx,
@@ -6216,8 +6298,8 @@ static const struct DecodeFailTestInput ExponentAndMantissaFailures[] = {
    },
    {"bad content for big num",
       QCBOR_DECODE_MODE_NORMAL,
-      {"\xC4\x82\xc2\x01\x1f", 5},
-      QCBOR_ERR_BAD_INT
+      {"\xC4\x82\xC2\x01\x1F", 5},
+      QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT
    },
    {"Bad integer for exponent",
       QCBOR_DECODE_MODE_NORMAL,
@@ -9459,6 +9541,16 @@ static const uint8_t spUndefinedInMap[] =
 };
 
 
+#ifndef QCBOR_DISABLE_TAGS
+static const uint8_t spTaggedSimples[] =
+{
+   0xd8, 0x58, 0xd8, 0x2c, 0xd6, 0xf5,
+   0xd9, 0x0f, 0xA0, 0xf7
+};
+#endif /* ! QCBOR_DISABLE_TAGS */
+
+
+
 int32_t BoolTest(void)
 {
    QCBORDecodeContext DCtx;
@@ -9597,6 +9689,36 @@ int32_t BoolTest(void)
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_HIT_END) {
       return 15;
    }
+
+#ifndef QCBOR_DISABLE_TAGS
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTaggedSimples),
+                    0);
+   QCBORDecode_GetBool(&DCtx, &b);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 22) {
+      return 401;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 44) {
+      return 402;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != 88) {
+      return 403;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
+      return 404;
+   }
+   QCBORDecode_GetUndefined(&DCtx);
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 4000) {
+      return 405;
+   }
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != CBOR_TAG_INVALID64) {
+      return 406;
+   }
+   QCBORDecode_GetNull(&DCtx); /* Off the end */
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != CBOR_TAG_INVALID64) {
+      return 407;
+   }
+#endif /* ! QCBOR_DISABLE_TAGS */
 
    return 0;
 }

@@ -980,11 +980,11 @@ QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
  * if there is more than one occurance of the label being searched
  * for.
  *
- * Duplicate label detection is performed for the item being sought,
- * but only for the item being sought.
+ * Duplicate label detection is performed for the item being sought
+ * and only for the item being sought.
  *
  * This performs a full decode of every item in the map being
- * searched, which involves a full traversal of every item. For maps
+ * searched which involves a full traversal of every item. For maps
  * with little nesting, this is of little consequence, but may be of
  * consequence for large deeply nested CBOR structures on slow CPUs.
  *

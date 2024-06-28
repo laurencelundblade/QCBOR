@@ -1126,7 +1126,7 @@ QCBORDecode_EndCheck(QCBORDecodeContext *pCtx);
  * Deep tag nesting is rare so this implementation imposes a limit of
  * @ref QCBOR_MAX_TAGS_PER_ITEM on nesting and returns @ref
  * QCBOR_ERR_TOO_MANY_TAGS if there are more. This is a limit of this
- * imple* mentation, not of CBOR. (To be able to handle deeper
+ * implementation, not of CBOR. (To be able to handle deeper
  * nesting, the constant can be increased and the library
  * recompiled. It will use more memory).
  *
@@ -1145,19 +1145,23 @@ QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t
 
 
 /**
- * @brief Returns the tag numbers for last-fetched item.
+ * @brief Returns the tag numbers for last-decoded item.
  *
  * @param[in] pCtx    The decoder context.
  * @param[in] uIndex The index of the tag to get.
  *
- * @returns The actual nth tag value or CBOR_TAG_INVALID64.
+ * @returns The nth tag number or CBOR_TAG_INVALID64.
  *
- * See QCBORDecode_GetNthTag(). This is the same but works with spiffy
- * decoding functions that do not return a QCBORItem with a
- * list of recorded tag numbers.  This gets the tags for the most
- * recently decoded item.
+ * This returns tags of the most recently decoded item.  See
+ * QCBORDecode_GetNthTag(). This is particularly of use for spiffy
+ * decode functions that don't return a @ref QCBORItem.
  *
- * If a decoding error set then this returns CBOR_TAG_INVALID64.
+ * This does not work for QCBORDecode_GetNext(),
+ * QCBORDecode_PeekNext(), QCBORDecode_VPeekNext() or
+ * QCBORDecode_VGetNextConsume() but these all return a
+ * @ref QCBORItem, so it is not necessary.
+ *
+ * If a decoding error is set, then this returns CBOR_TAG_INVALID64.
  */
 uint64_t
 QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
