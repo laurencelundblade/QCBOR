@@ -1428,7 +1428,7 @@ QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
  * https://github.com/laurencelundblade/QCBOR/pull/243
  * For backwards compatibility
  */
-#define CBOR_Int64UToInt16 QCBOR_Int64ToUInt16
+#define QCBOR_Int64UToInt16 QCBOR_Int64ToUInt16
 
 static inline int
 QCBOR_Int64ToUInt16(int64_t src, uint16_t *dest)
