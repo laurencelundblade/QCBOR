@@ -2853,7 +2853,7 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
 
 
 
-
+#if 0
 /* Compare at n1 and n2 until end of input or a byte is different. */
 static int
 UsefulInputBuf_Compare(UsefulInputBuf *pIn, size_t uOffset1, size_t uOffset2)
@@ -2871,7 +2871,7 @@ UsefulInputBuf_Compare(UsefulInputBuf *pIn, size_t uOffset1, size_t uOffset2)
 
    return memcmp(p1, p2, uMax);
 }
-
+#endif
 
 static int
 UsefulInputBuf_Compare2(UsefulInputBuf *pIn, size_t uOffset1, size_t uLen1, size_t uOffset2, size_t uLen2)
@@ -2901,10 +2901,10 @@ UsefulInputBuf_Compare2(UsefulInputBuf *pIn, size_t uOffset1, size_t uLen1, size
 
 
 static QCBORError
-Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
-                           uint8_t *puNestLevel,
-                           size_t *puLabelStart,
-                           size_t *puLabelLen)
+QCBORDecode_Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
+                                       uint8_t            *puNestLevel,
+                                       size_t             *puLabelStart,
+                                       size_t             *puLabelLen)
 {
    QCBORError uErr;
    QCBORItem  Item;
@@ -2914,27 +2914,19 @@ Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
    *puLabelStart = UsefulInputBuf_Tell(&(pMe->InBuf));
    /* Ignore errors here and let QCBORDecode_Private_GetNextMapOrArray() process them, because it does the full and proper job,
     * particularly of end detection. */
+   // TODO: deal with tags on the label
    (void)QCBORDecode_Private_GetNextTagNumber(pMe, &Item);
    (void)QCBORDecode_Private_ConsumeItem(pMe, &Item, NULL, &uLevel);
    *puLabelLen = UsefulInputBuf_Tell(&(pMe->InBuf)) - *puLabelStart;
 
-
    /* Rewind to start of label and consume the label and value */
    UsefulInputBuf_Seek(&(pMe->InBuf), *puLabelStart);
-
    uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, &Item);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
-
    *puNestLevel = Item.uNestingLevel;
-
    uErr = QCBORDecode_Private_ConsumeItem(pMe, &Item, NULL, &uLevel);
-   if(uErr != QCBOR_SUCCESS) {
-      goto Done;
-   }
-
-   uErr = QCBOR_SUCCESS;
 
 Done:
    return uErr;
@@ -2942,19 +2934,22 @@ Done:
 
 
 static QCBORError
-QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe, uint8_t uNestLevel, size_t pp1, size_t ll1)
+QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
+                              uint8_t uNestLevel,
+                              size_t uCompareLabelStart,
+                              size_t uCompareLabelLen)
 {
    QCBORError uErr;
-   size_t p1, l1;
-   uint8_t uLevel;
-
-   // TODO: this has issues with tags on labels
+   size_t     uLabelStart;
+   size_t     uLabelLen;
+   uint8_t    uLevel;
+   int        nCompare;
 
    const QCBORDecodeNesting SaveNesting = pMe->nesting;
    const UsefulInputBuf Save = pMe->InBuf;
 
    do {
-      uErr = Private_GetLabelAndConsume(pMe, &uLevel, &p1, &l1);
+      uErr = QCBORDecode_Private_GetLabelAndConsume(pMe, &uLevel, &uLabelStart, &uLabelLen);
       if(uErr != QCBOR_SUCCESS) {
          if(uErr == QCBOR_ERR_NO_MORE_ITEMS) {
             uErr = QCBOR_SUCCESS; // Successful end
@@ -2968,7 +2963,10 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe, uint8_t uNestLevel, size_
 
       // TODO: test successful end for indefinite length maps
 
-      if(UsefulInputBuf_Compare2(&(pMe->InBuf), pp1, ll1, p1, l1) == 0) {
+      nCompare = UsefulInputBuf_Compare2(&(pMe->InBuf),
+                                         uCompareLabelStart, uCompareLabelLen,
+                                         uLabelStart, uLabelLen);
+      if(nCompare == 0) {
          uErr = QCBOR_ERR_DUPLICATE_LABEL;
          break;
       }
@@ -3004,9 +3002,9 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pI)
     */
 
    p1 = SIZE_MAX;
-   l1 = SIZE_MAX; // To keep uninitialized warning in check
+   l1 = SIZE_MAX; // To avoid uninitialized warning
    while(1) {
-      uErr = Private_GetLabelAndConsume(pMe, &uLevel, &p2, &l2);
+      uErr = QCBORDecode_Private_GetLabelAndConsume(pMe, &uLevel, &p2, &l2);
       if(uErr != QCBOR_SUCCESS) {
          if(uErr == QCBOR_ERR_NO_MORE_ITEMS) {
             uErr = QCBOR_SUCCESS; /* Successful exit from loop */
@@ -3020,13 +3018,9 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pI)
 
       if(p1 != SIZE_MAX) {
          /* First time through, don't compare because we haven't got two
-          * items to compare yet */
+          * items yet */
 
-         /* Here it is known that the items being checked for order are
-          * not duplicates. They are known to be greater or lesser than. */
-
-         /* Now compare labels at p1 and p2 */
-         if(UsefulInputBuf_Compare(&(pMe->InBuf), p1, p2) > 0) {
+         if(UsefulInputBuf_Compare2(&(pMe->InBuf), p1, l1, p2, l2) > 0) {
             uErr = QCBOR_ERR_UNSORTED;
             break;
          }
