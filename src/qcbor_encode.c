@@ -519,6 +519,7 @@ QCBOREncode_Private_IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
    }
 #else
    (void)Nesting_Increment(&(pMe->nesting));
+TODO: testing CI
 #endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
