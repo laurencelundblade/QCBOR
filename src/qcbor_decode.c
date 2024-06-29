@@ -3319,7 +3319,6 @@ typedef struct {
  * @param[in,out] pItemArray The items to search for and the items found.
  * @param[out] pInfo         Several bits of meta-info returned by search.
  * @param[in] pCallBack      Callback object or @c NULL.
- *   TODO: fix params
  *
  * @retval QCBOR_ERR_NOT_ENTERED     Trying to search without entering a map.
  *
