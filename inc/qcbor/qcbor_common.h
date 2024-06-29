@@ -44,6 +44,7 @@ extern "C" {
 #endif
 
 
+
 /**
  * @file qcbor_common.h
  *
@@ -60,8 +61,8 @@ extern "C" {
  *   - QCBOR 1.1 is indicated by the #define QCBOR_1_1
  *   - QCBOR 1.0 is indicated by the absence of all the above
  */
-#define QCBOR_VERSION_MAJOR 1
-#define QCBOR_VERSION_MINOR 3
+#define QCBOR_VERSION_MAJOR 2
+#define QCBOR_VERSION_MINOR 0
 #define QCBOR_VERSION_PATCH 0
 
 
@@ -407,7 +408,7 @@ typedef enum {
     *  this error is returned. This error is unrecoverable because the
     *  built-in tag decoding doesn't try to consume the unexpected
     *  type. In previous versions of QCBOR this was considered a
-    *  recoverable error hence @ref QCBOR_ERR_BAD_TAG_CONTENT. Going
+    *  recoverable error hence QCBOR_ERR_BAD_TAG_CONTENT. Going
     *  back further, RFC 7049 use the name "optional tags". That name
     *  is no longer used because "optional" was causing confusion. See
     *  also @ref QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT. */
@@ -523,10 +524,21 @@ typedef enum {
     * (to save object code). */
    QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 78,
 
+   /** Attempt to output non-preferred, non-CDE or non-dCBOR when not
+    * allowed by mode. See QCBOREncode_SerializationPreferred(),
+    * QCBOREncode_SerializationCDE(),
+    * QCBOREncode_SerializationdCBOR().
+    */
+   QCBOR_ERR_NOT_PREFERRED = 79,
+
+   /* Trying to encode something that is discouraged (e.g., 65-bit
+    * negative integer) without allowing it by calling
+    * QCBOREncode_Allow() */
+   QCBOR_ERR_NOT_ALLOWED = 80,
    /** QCBORDecode_EnterBstrWrapped() cannot be used on
     * indefinite-length strings because they exist in memory pool for
     * a @ref QCBORStringAllocate. */
-   QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING = 79,
+   QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING = 81,
 
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice

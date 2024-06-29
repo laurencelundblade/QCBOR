@@ -132,7 +132,9 @@ MakeTestResultCode(uint32_t   uTestCase,
  */
 
 static const uint8_t spExpectedEncodedInts[] = {
-   0x98, 0x2f, 0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff,
+   0x98, 0x31, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff,
+   0xff, 0xff, 0xff, 0x3b, 0xFf, 0xff, 0xff, 0xff, 0xff,
+   0xff, 0xff, 0xfe, 0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff,
    0xff, 0xff, 0xff, 0x3b, 0x00, 0x00, 0x00, 0x01,
    0x00, 0x00, 0x00, 0x00, 0x3a, 0xff, 0xff, 0xff,
    0xff, 0x3a, 0xff, 0xff, 0xff, 0xfe, 0x3a, 0xff,
@@ -168,6 +170,18 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_ARRAY)
+      return -1;
+
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
+      return (int32_t)nCBORError;
+   if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT ||
+      Item.val.uint64 != 18446744073709551615ULL)
+      return -1;
+
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
+      return (int32_t)nCBORError;
+   if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT ||
+      Item.val.uint64 != 18446744073709551614ULL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
@@ -487,14 +501,6 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
 }
 
 
-/* One less than the smallest negative integer allowed in C. Decoding
-   this should fail.
-   -9223372036854775809
- */
-static const uint8_t spTooSmallNegative[] = {
-   0x3b, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-};
-
 
 /*
    Tests the decoding of lots of different integers sizes
@@ -513,16 +519,6 @@ int32_t IntegerValuesParseTest(void)
    nReturn = IntegerValuesParseTestInternal(&DCtx);
    if(nReturn) {
       return nReturn;
-   }
-
-   // The one large negative integer that can be parsed
-   QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooSmallNegative),
-                    QCBOR_DECODE_MODE_NORMAL);
-
-   QCBORItem item;
-   if(QCBORDecode_GetNext(&DCtx, &item) != QCBOR_ERR_INT_OVERFLOW) {
-      nReturn = -4000;
    }
 
    return(nReturn);
@@ -6719,13 +6715,12 @@ static const uint8_t spMapOfEmpty[] = {
  */
 static const uint8_t spRecoverableMapErrors[] = {
 #ifndef QCBOR_DISABLE_TAGS
-   0xa6,
+   0xa5,
    0x04, 0xc1, 0xfb, 0x7e, 0x37, 0xe4, 0x3c, 0x88, 0x00, 0x75, 0x9c,
    0x01, 0xd8, 0xe0, 0xd8, 0xe1, 0xd8, 0xe2, 0xd8, 0xe3, 0xd8, 0x04, 0x00,
 #else
    0xa4,
 #endif
-   0x03, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
    0x05, 0x00,
    0x05, 0x00,
    0x08, 0x08,
@@ -7132,12 +7127,6 @@ int32_t EnterMapTest(void)
    (void)QCBORDecode_GetAndResetError(&DCtx);
 #endif
 
-
-   QCBORDecode_GetInt64InMapN(&DCtx, 0x03, &nInt);
-   uErr = QCBORDecode_GetAndResetError(&DCtx);
-   if(uErr != QCBOR_ERR_INT_OVERFLOW) {
-      return 2023;
-   }
 
 #ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_GetEpochDateInMapN(&DCtx, 0x04, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
@@ -7640,13 +7629,23 @@ static const struct NumberConversion NumberConversions[] = {
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
-      "Negative integer -18446744073709551616",
-      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, 9},
+      "Negative integer -9223372036854775808",
+      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
       -9223372036854775807-1, // INT64_MIN
       QCBOR_SUCCESS,
       0ULL,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
       -9223372036854775808.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      "Negative integer -18446744073709551616",
+      {(uint8_t[]){0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
+      0ULL,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0ULL,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      -18446744073709551616.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
@@ -7712,6 +7711,9 @@ static int32_t SetUpDecoder(QCBORDecodeContext *DCtx, UsefulBufC CBOR, UsefulBuf
 
 int32_t IntegerConvertTest(void)
 {
+   uint64_t uInt;
+
+
    const int nNumTests = C_ARRAY_COUNT(NumberConversions,
                                        struct NumberConversion);
 
@@ -7742,7 +7744,6 @@ int32_t IntegerConvertTest(void)
          return (int32_t)(3333+nIndex);
       }
 
-      uint64_t uInt;
       QCBORDecode_GetUInt64ConvertAll(&DCtx, 0xffff, &uInt);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorUint64) {
          return (int32_t)(4000+nIndex);
@@ -9722,6 +9723,214 @@ int32_t BoolTest(void)
 
    return 0;
 }
+
+
+#if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+
+struct PreciseNumberConversion {
+   char       *szDescription;
+   UsefulBufC  CBOR;
+   QCBORError  uError;
+   uint8_t     qcborType;
+   struct {
+      int64_t  int64;
+      uint64_t uint64;
+      double   d;
+   } number;
+};
+
+
+static const struct PreciseNumberConversion PreciseNumberConversions[] = {
+   {
+      "-0.00",
+      {"\xf9\x80\x00", 3},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {0, 0, 0}
+   },
+   {
+      "NaN",
+      {"\xf9\x7e\x00", 3},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, NAN}
+   },
+   {
+      "NaN payload",
+      {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, NAN}
+   },
+   {
+      "65536.0 single",
+      {"\xFA\x47\x80\x00\x00", 5},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {65536, 0, 0}
+   },
+   {
+      "Infinity",
+      {"\xf9\x7c\x00", 3},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, INFINITY}
+   },
+   {
+      "1.0",
+      {"\xf9\x3c\x00", 3},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {1, 0, 0}
+   },
+   {
+      "UINT64_MAX",
+      {"\x1B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_UINT64,
+      {0, UINT64_MAX, 0}
+   },
+   {
+      "INT64_MIN",
+      {"\x3B\x7f\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {INT64_MIN, 0, 0}
+   },
+   {
+      "18446742974197923840",
+      {"\xFB\x43\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_UINT64,
+      {0, 18446742974197923840ULL, 0}
+   },
+   {
+      "65-bit neg, too much precision",
+      {"\x3B\x80\x00\x00\x00\x00\x00\x00\x01", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_65BIT_NEG_INT,
+      {0, 0x8000000000000001, 0}
+   },
+   {
+      "65-bit neg lots of precision",
+      {"\x3B\xff\xff\xff\xff\xff\xff\xf0\x00", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, -18446744073709547521.0}
+   },
+   {
+      "65-bit neg very precise",
+      {"\x3B\xff\xff\xff\xff\xff\xff\xf8\x00", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, -18446744073709549569.0}
+   },
+   {
+      "65-bit neg too precise",
+      {"\x3B\xff\xff\xff\xff\xff\xff\xfc\x00", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_65BIT_NEG_INT,
+      {0, 18446744073709550592ULL, 0.0}
+   },
+   {
+      "65-bit neg, power of two",
+      {"\x3B\x80\x00\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, -9223372036854775809.0}
+   },
+   {
+      "Zero",
+      {"\x00", 1},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {0, 0, 0}
+   },
+   {
+      "Pi",
+      {"\xFB\x40\x09\x2A\xDB\x40\x2D\x16\xB9", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, 3.145926}
+   },
+   {
+      "String",
+      {"\x60", 1},
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_TYPE_NONE,
+      {0, 0, 0}
+   }
+};
+
+
+int32_t
+PreciseNumbersTest(void)
+{
+   int                i;
+   QCBORError         uErr;
+   QCBORItem          Item;
+   QCBORDecodeContext DCtx;
+   const struct PreciseNumberConversion *pTest;
+
+   const int count = (int)C_ARRAY_COUNT(PreciseNumberConversions, struct PreciseNumberConversion);
+
+   for(i = 0; i < count; i++) {
+      pTest = &PreciseNumberConversions[i];
+
+      if(i == 11) {
+         uErr = 99; // For break point only
+      }
+
+      QCBORDecode_Init(&DCtx, pTest->CBOR, 0);
+
+      QCBORDecode_GetNumberConvertPrecisely(&DCtx, &Item);
+
+      uErr = QCBORDecode_GetError(&DCtx);
+
+      if(uErr != pTest->uError) {
+         return i * 1000 + (int)uErr;
+      }
+
+      if(pTest->qcborType != Item.uDataType) {
+         return i * 1000 + 200;
+      }
+
+      if(pTest->qcborType == QCBOR_TYPE_NONE) {
+         continue;
+      }
+
+      switch(pTest->qcborType) {
+         case QCBOR_TYPE_INT64:
+            if(Item.val.int64 != pTest->number.int64) {
+               return i * 1000 + 300;
+            }
+            break;
+
+         case QCBOR_TYPE_UINT64:
+         case QCBOR_TYPE_65BIT_NEG_INT:
+            if(Item.val.uint64 != pTest->number.uint64) {
+               return i * 1000 + 400;
+            }
+            break;
+
+         case QCBOR_TYPE_DOUBLE:
+            if(isnan(pTest->number.d)) {
+               if(!isnan(Item.val.dfnum)) {
+                  return i * 1000 + 600;
+               }
+            } else {
+               if(Item.val.dfnum != pTest->number.d) {
+                  return i * 1000 + 500;
+               }
+            }
+            break;
+      }
+   }
+   return 0;
+}
+
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
 
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
