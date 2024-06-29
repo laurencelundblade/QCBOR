@@ -2357,7 +2357,7 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
  */
 static QCBORError
 QCBORDecode_Private_ExpMantissa(QCBORDecodeContext *pMe,
-                                        QCBORItem          *pDecodedItem)
+                                QCBORItem          *pDecodedItem)
 {
    QCBORError uReturn;
 
@@ -2368,7 +2368,7 @@ QCBORDecode_Private_ExpMantissa(QCBORDecodeContext *pMe,
    }
 
    /* A check for pDecodedItem->val.uCount == 2 would work for
-    * definite-length arrays, but not for indefinite.  Instead remember
+    * definite-length arrays, but not for indefinite. Instead remember
     * the nesting level the two integers must be at, which is one
     * deeper than that of the array.
     */
@@ -2376,7 +2376,7 @@ QCBORDecode_Private_ExpMantissa(QCBORDecodeContext *pMe,
 
    /* --- Get the exponent --- */
    QCBORItem exponentItem;
-   uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, &exponentItem);
+   uReturn = QCBORDecode_GetNext(pMe, &exponentItem);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -2401,7 +2401,7 @@ QCBORDecode_Private_ExpMantissa(QCBORDecodeContext *pMe,
 
    /* --- Get the mantissa --- */
    QCBORItem mantissaItem;
-   uReturn = QCBORDecode_Private_GetNextTagContent(pMe, &mantissaItem);
+   uReturn = QCBORDecode_GetNext(pMe, &mantissaItem);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -2707,7 +2707,7 @@ QCBORError
 QCBORDecode_GetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    QCBORError uErr;
-   uErr = QCBORDecode_Private_GetNextTagContent(pMe, pDecodedItem);
+   uErr =  QCBORDecode_Private_GetNextTagContent(pMe, pDecodedItem);
    if(uErr != QCBOR_SUCCESS) {
       pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
       pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
@@ -2750,6 +2750,17 @@ QCBORDecode_VPeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 }
 
 
+static void
+QCBORDecode_Private_CopyTags(QCBORDecodeContext *pMe, const QCBORItem *pItem)
+{
+#ifndef QCBOR_DISABLE_TAGS
+   memcpy(pMe->uLastTags, pItem->uTags, sizeof(pItem->uTags));
+#else
+   (void)pMe;
+   (void)pItem;
+#endif
+}
+
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
@@ -2763,6 +2774,7 @@ QCBORDecode_VGetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
    }
 
    pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, pDecodedItem);
+   QCBORDecode_Private_CopyTags(pMe, pDecodedItem);
 }
 
 
@@ -3131,17 +3143,6 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
 
 
 
-static void
-QCBORDecode_Private_CopyTags(QCBORDecodeContext *pMe, const QCBORItem *pItem)
-{
-#ifndef QCBOR_DISABLE_TAGS
-   memcpy(pMe->uLastTags, pItem->uTags, sizeof(pItem->uTags));
-#else
-   (void)pMe;
-   (void)pItem;
-#endif
-}
-
 
 /**
  * @brief Consume an entire map or array including its contents.
@@ -3217,23 +3218,24 @@ QCBORDecode_VGetNextConsume(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
-uint32_t
-QCBORDecode_Tell(QCBORDecodeContext *pMe)
+QCBORError
+QCBORDecode_EndCheck(QCBORDecodeContext *pMe)
 {
-   size_t uCursorOffset;
+   size_t     uCursorOffset;
+   QCBORError uErr;
 
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return UINT32_MAX;
+   uErr = QCBORDecode_GetError(pMe);
+   if(uErr != QCBOR_SUCCESS) {
+      return uErr;
    }
 
    uCursorOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
 
    if(uCursorOffset == UsefulInputBuf_GetBufferLength(&(pMe->InBuf))) {
-      return UINT32_MAX;
-   } else {
-      /* Cast is safe because decoder input size is restricted. */
-      return (uint32_t)uCursorOffset;
+      return QCBOR_ERR_NO_MORE_ITEMS;
    }
+
+   return QCBOR_SUCCESS;
 }
 
 
@@ -3315,7 +3317,6 @@ typedef struct {
  * @param[in,out] pItemArray The items to search for and the items found.
  * @param[out] pInfo         Several bits of meta-info returned by search.
  * @param[in] pCallBack      Callback object or @c NULL.
- *   TODO: fix params
  *
  * @retval QCBOR_ERR_NOT_ENTERED     Trying to search without entering a map.
  *
@@ -3411,6 +3412,9 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
       /* Get the item */
       QCBORItem Item;
+      /* QCBORDecode_Private_GetNextTagContent() rather than GetNext()
+       * because a label match is performed on recoverable errors to
+       * be able to return the the error code for the found item. */
       QCBORError uResult = QCBORDecode_Private_GetNextTagContent(pMe, &Item);
       if(QCBORDecode_IsUnrecoverableError(uResult)) {
          /* The map/array can't be decoded when unrecoverable errors occur */
@@ -3434,8 +3438,8 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
             }
             if(uResult != QCBOR_SUCCESS) {
                /* The label matches, but the data item is in error.
-                * It is OK to have recoverable errors on items that are not
-                * matched. */
+                * It is OK to have recoverable errors on items that
+                * are not matched. */
                uReturn = uResult;
                goto Done;
             }
@@ -3540,14 +3544,18 @@ QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
 
    QCBORError uReturn = QCBORDecode_Private_MapSearch(pMe, OneItemSeach, NULL, NULL);
 
-   *pItem = OneItemSeach[0];
-
    if(uReturn != QCBOR_SUCCESS) {
+      pItem->uDataType  = QCBOR_TYPE_NONE;
+      pItem->uLabelType = QCBOR_TYPE_NONE;
       goto Done;
    }
+
    if(OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
       uReturn = QCBOR_ERR_LABEL_NOT_FOUND;
    }
+
+   *pItem = OneItemSeach[0];
+   QCBORDecode_Private_CopyTags(pMe, pItem);
 
  Done:
    pMe->uLastError = (uint8_t)uReturn;
@@ -3577,6 +3585,8 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
    QCBORError uReturn = QCBORDecode_Private_MapSearch(pMe, OneItemSeach, NULL, NULL);
 
    if(uReturn != QCBOR_SUCCESS) {
+      pItem->uDataType  = QCBOR_TYPE_NONE;
+      pItem->uLabelType = QCBOR_TYPE_NONE;
       goto Done;
    }
    if(OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
@@ -3585,8 +3595,9 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
    }
 
    *pItem = OneItemSeach[0];
-Done:
+   QCBORDecode_Private_CopyTags(pMe, pItem);
 
+Done:
 #else
    (void)pMe;
    (void)szLabel;
@@ -4529,7 +4540,6 @@ QCBORDecode_Private_ProcessBool(QCBORDecodeContext *pMe,
          pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
          break;
    }
-   QCBORDecode_Private_CopyTags(pMe, pItem);
 }
 
 
@@ -4539,15 +4549,8 @@ QCBORDecode_Private_ProcessBool(QCBORDecodeContext *pMe,
 void
 QCBORDecode_GetBool(QCBORDecodeContext *pMe, bool *pValue)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      /* Already in error state, do nothing */
-      return;
-   }
-
    QCBORItem  Item;
-
-   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
-
+   QCBORDecode_VGetNext(pMe, &Item);
    QCBORDecode_Private_ProcessBool(pMe, &Item, pValue);
 }
 
@@ -4562,7 +4565,6 @@ QCBORDecode_GetBoolInMapN(QCBORDecodeContext *pMe,
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
-
    QCBORDecode_Private_ProcessBool(pMe, &Item, pValue);
 }
 
@@ -4577,7 +4579,6 @@ QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe,
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
-
    QCBORDecode_Private_ProcessBool(pMe, &Item, pValue);
 }
 
@@ -4630,7 +4631,6 @@ QCBORDecode_Private_ProcessSimple(QCBORDecodeContext *pMe,
          pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
          return;
    }
-   QCBORDecode_Private_CopyTags(pMe, pItem);
 }
 
 /*
@@ -4640,7 +4640,6 @@ void
 QCBORDecode_GetSimple(QCBORDecodeContext *pMe, uint8_t *puSimple)
 {
    QCBORItem Item;
-
    QCBORDecode_VGetNext(pMe, &Item);
    QCBORDecode_Private_ProcessSimple(pMe, &Item, puSimple);
 }
@@ -4655,7 +4654,6 @@ QCBORDecode_GetSimpleInMapN(QCBORDecodeContext *pMe,
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
-
    QCBORDecode_Private_ProcessSimple(pMe, &Item, puSimpleValue);
 }
 
@@ -4669,7 +4667,6 @@ QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pMe,
 {
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
-
    QCBORDecode_Private_ProcessSimple(pMe, &Item, puSimpleValue);
 }
 
@@ -4718,10 +4715,6 @@ QCBORDecode_Private_ProcessEpochDate(QCBORDecodeContext *pMe,
       }
    }
 
-   // Save the tags in the last item's tags in the decode context
-   // for QCBORDecode_GetNthTagOfLast()
-   QCBORDecode_Private_CopyTags(pMe, pItem);
-
    *pnTime = pItem->val.epochDate.nSeconds;
 
 Done:
@@ -4738,14 +4731,8 @@ QCBORDecode_GetEpochDate(QCBORDecodeContext *pMe,
                          uint8_t             uTagRequirement,
                          int64_t            *pnTime)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state, do nothing
-      return;
-   }
-
    QCBORItem  Item;
-   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
-
+   QCBORDecode_VGetNext(pMe, &Item);
    QCBORDecode_Private_ProcessEpochDate(pMe, &Item, uTagRequirement, pnTime);
 }
 
@@ -4825,11 +4812,6 @@ QCBORDecode_Private_ProcessEpochDays(QCBORDecodeContext *pMe,
       }
    }
 
-   /* Save the tags in the last item's tags in the decode context
-    * for QCBORDecode_GetNthTagOfLast()
-    */
-   QCBORDecode_Private_CopyTags(pMe, pItem);
-
    *pnDays = pItem->val.epochDays;
 
 Done:
@@ -4845,14 +4827,8 @@ QCBORDecode_GetEpochDays(QCBORDecodeContext *pMe,
                          uint8_t             uTagRequirement,
                          int64_t            *pnDays)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      /* Already in error state, do nothing */
-      return;
-   }
-
    QCBORItem  Item;
-   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
-
+   QCBORDecode_VGetNext(pMe, &Item);
    QCBORDecode_Private_ProcessEpochDays(pMe, &Item, uTagRequirement, pnDays);
 }
 
@@ -4896,17 +4872,10 @@ QCBORDecode_Private_GetTaggedString(QCBORDecodeContext         *pMe,
                                     const QCBOR_Private_TagSpec TagSpec,
                                     UsefulBufC                 *pBstr)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      /* Already in error state, do nothing */
-      return;
-   }
-
-   QCBORError uError;
    QCBORItem  Item;
 
-   uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError != QCBOR_SUCCESS) {
-      pMe->uLastError = (uint8_t)uError;
+   QCBORDecode_VGetNext(pMe, &Item);
+   if(pMe->uLastError) {
       return;
    }
 
@@ -4973,15 +4942,9 @@ QCBORDecode_GetBignum(QCBORDecodeContext *pMe,
                       UsefulBufC         *pValue,
                       bool               *pbIsNegative)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state, do nothing
-      return;
-   }
-
    QCBORItem  Item;
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError != QCBOR_SUCCESS) {
-      pMe->uLastError = (uint8_t)uError;
+   QCBORDecode_VGetNext(pMe, &Item);
+   if(pMe->uLastError) {
       return;
    }
 
@@ -5582,13 +5545,8 @@ QCBORDecode_Private_GetInt64Convert(QCBORDecodeContext *pMe,
                                     int64_t            *pnValue,
                                     QCBORItem          *pItem)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   QCBORError uError = QCBORDecode_GetNext(pMe, pItem);
-   if(uError) {
-      pMe->uLastError = (uint8_t)uError;
+   QCBORDecode_VGetNext(pMe, pItem);
+   if(pMe->uLastError) {
       return;
    }
 
@@ -6000,23 +5958,12 @@ QCBORDecode_Private_GetUInt64Convert(QCBORDecodeContext *pMe,
                                      uint64_t           *puValue,
                                      QCBORItem          *pItem)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
+   QCBORDecode_VGetNext(pMe, pItem);
+   if(pMe->uLastError) {
       return;
    }
 
-   QCBORItem Item;
-
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError) {
-      pMe->uLastError = (uint8_t)uError;
-      return;
-   }
-
-   if(pItem) {
-      *pItem = Item;
-   }
-
-   pMe->uLastError = (uint8_t)QCBOR_Private_ConvertUInt64(&Item,
+   pMe->uLastError = (uint8_t)QCBOR_Private_ConvertUInt64(pItem,
                                                           uConvertTypes,
                                                           puValue);
 }
@@ -6069,10 +6016,6 @@ QCBORDecode_Private_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pMe,
                                             uint64_t           *puValue,
                                             QCBORItem          *pItem)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, pItem);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -6402,13 +6345,8 @@ QCBORDecode_Private_GetDoubleConvert(QCBORDecodeContext *pMe,
                                      double             *pdValue,
                                      QCBORItem          *pItem)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   QCBORError uError = QCBORDecode_GetNext(pMe, pItem);
-   if(uError) {
-      pMe->uLastError = (uint8_t)uError;
+   QCBORDecode_VGetNext(pMe, pItem);
+   if(pMe->uLastError) {
       return;
    }
 
@@ -6465,10 +6403,6 @@ QCBORDecode_Private_GetDoubleConvertInMapSZ(QCBORDecodeContext *pMe,
                                             double             *pdValue,
                                             QCBORItem          *pItem)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, pItem);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -6883,6 +6817,10 @@ QCBOR_Private_ProcessExpMantissa(QCBORDecodeContext         *pMe,
 {
    QCBORError uErr;
 
+   if(pMe->uLastError) {
+      return;
+   }
+
    uErr = QCBOR_Private_ExpMantissaTypeHandler(pMe, TagSpec, pItem);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
@@ -6946,6 +6884,10 @@ QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
 {
    QCBORError uErr;
 
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
    uErr = QCBOR_Private_ExpMantissaTypeHandler(pMe, TagSpec, pItem);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
@@ -7008,16 +6950,8 @@ QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pMe,
                                int64_t             *pnMantissa,
                                int64_t             *pnExponent)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORItem Item;
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError) {
-      pMe->uLastError = (uint8_t)uError;
-      return;
-   }
+   QCBORDecode_VGetNext(pMe, &Item);
 
    const QCBOR_Private_TagSpec TagSpec =
    {
@@ -7045,10 +6979,6 @@ QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pMe,
                                      int64_t             *pnMantissa,
                                      int64_t             *pnExponent)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
@@ -7078,10 +7008,6 @@ QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
                                       int64_t             *pnMantissa,
                                       int64_t             *pnExponent)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
 
@@ -7112,16 +7038,8 @@ QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pMe,
                                   bool               *pbMantissaIsNegative,
                                   int64_t            *pnExponent)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORItem Item;
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError) {
-      pMe->uLastError = (uint8_t)uError;
-      return;
-   }
+   QCBORDecode_VGetNext(pMe, &Item);
 
    const QCBOR_Private_TagSpec TagSpec =
    {
@@ -7153,15 +7071,9 @@ QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pMe,
                                         bool               *pbIsNegative,
                                         int64_t            *pnExponent)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
 
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
 
    const QCBOR_Private_TagSpec TagSpec =
    {
@@ -7193,15 +7105,8 @@ QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
                                          bool               *pbIsNegative,
                                          int64_t            *pnExponent)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
 
    const QCBOR_Private_TagSpec TagSpec =
    {
@@ -7230,16 +7135,9 @@ QCBORDecode_GetBigFloat(QCBORDecodeContext *pMe,
                         int64_t             *pnMantissa,
                         int64_t             *pnExponent)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORItem Item;
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError) {
-      pMe->uLastError = (uint8_t)uError;
-      return;
-   }
+   QCBORDecode_VGetNext(pMe, &Item);
+
    const QCBOR_Private_TagSpec TagSpec =
    {
       uTagRequirement,
@@ -7266,15 +7164,8 @@ QCBORDecode_GetBigFloatInMapN(QCBORDecodeContext *pMe,
                               int64_t            *pnMantissa,
                               int64_t            *pnExponent)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
 
    const QCBOR_Private_TagSpec TagSpec =
    {
@@ -7302,15 +7193,8 @@ QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pMe,
                                int64_t            *pnMantissa,
                                int64_t            *pnExponent)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
 
    const QCBOR_Private_TagSpec TagSpec =
    {
@@ -7339,16 +7223,8 @@ QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pMe,
                            bool               *pbMantissaIsNegative,
                            int64_t            *pnExponent)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORItem Item;
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError) {
-      pMe->uLastError = (uint8_t)uError;
-      return;
-   }
+   QCBORDecode_VGetNext(pMe, &Item);
 
    const QCBOR_Private_TagSpec TagSpec =
    {
@@ -7380,15 +7256,8 @@ QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pMe,
                                  bool               *pbIsNegative,
                                  int64_t            *pnExponent)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORItem Item;
    QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
 
    const QCBOR_Private_TagSpec TagSpec =
    {
@@ -7420,15 +7289,8 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
                                   bool               *pbIsNegative,
                                   int64_t            *pnExponent)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
 
    const QCBOR_Private_TagSpec TagSpec =
    {
