@@ -705,13 +705,37 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  *                    usually is).
  *
  * This enters an array for decoding in bounded mode. The items in
- * array are decoded in order the same as when not in bounded mode,
- * but the decoding will not proceed past the end or the array. The
- * error @ref QCBOR_ERR_NO_MORE_ITEMS will be set when the end of the
- * array is encountered. To decode past the end of the array,
- * QCBORDecode_ExitArray() must be called. Also, QCBORDecode_Finish()
- * will return an error if all arrays that were enetered are not
- * exited.
+ * the array are decoded in order the same as when not in bounded mode,
+ * but the decoding will not proceed past the end or the array.
+ *
+ * The typical way to iterate over items in an array is to call
+ * QCBORDecode_VGetNext() until QCBORDecode_GetError() returns
+ * @ref QCBOR_ERR_NO_MORE_ITEMS. Other methods like QCBORDecode_GetInt64(),
+ * QCBORDecode_GetBignum() and such may also called until
+ * QCBORDecode_GetError() doesn't return QCBOR_SUCCESS.
+ *
+ * Another option is to get the array item count from
+ * @c pItem->val.uCount, but note that that will not work with
+ * indefinte-length arrays, where as QCBORDecode_GetError() will.
+ *
+ * Nested decoding of arrays may be handled by calling
+ * QCBORDecode_EnterArray() or by using QCBORDecode_VGetNext() to
+ * descend into and back out of the nested array.
+ *
+ * QCBORDecode_Rewind() can be called to restart decoding from the
+ * first item in the array.
+ *
+ * When all decoding in an array is complete, QCBORDecode_ExitArray() must
+ * be called. It is a decoding error to not have a corresponding call
+ * to QCBORDecode_ExitArray() for every call to QCBORDecode_EnterArray().
+ * If not, @ref QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN will be returned when
+ * QCBORDecode_Finish() is called.
+ *
+ * After QCBORDecode_ExitArray() is called the traversal cusor is at
+ * the item right after the array. This is true whether or not all
+ * items in the array were consumed. QCBORDecode_ExitArray() can even
+ * be called right after QCBORDecode_EnterArray() as a way to skip
+ * over an array and all its contents.
  *
  * This works the same for definite and indefinite length arrays.
  *
@@ -1004,11 +1028,11 @@ QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
  * if there is more than one occurance of the label being searched
  * for.
  *
- * Duplicate label detection is performed for the item being sought,
- * but only for the item being sought.
+ * Duplicate label detection is performed for the item being sought
+ * and only for the item being sought.
  *
  * This performs a full decode of every item in the map being
- * searched, which involves a full traversal of every item. For maps
+ * searched which involves a full traversal of every item. For maps
  * with little nesting, this is of little consequence, but may be of
  * consequence for large deeply nested CBOR structures on slow CPUs.
  *
@@ -1215,6 +1239,37 @@ QCBORDecode_GetUndefinedInMapN(QCBORDecodeContext *pCtx,
 static void
 QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
                                 const char         *szLabel);
+
+
+/**
+ * @brief Decode the next item as a CBOR simple value.
+ *
+ * @param[in] pCtx            The decode context.
+ * @param[out] puSimpleValue  The simplle value returned.
+ *
+ * The purpose of this is to get a CBOR simple value other than a
+ * Boolean, NULL or "undefined", but this works on all simple
+ * values. See QCBOREncode_AddSimple() for more details on simple
+ * values in general.
+ *
+ * See QCBORDecode_GetBool(), QCBORDecode_GetNull(),
+ * QCBORDecode_GetUndefined() for the preferred way of getting those
+ * simple values.
+ */
+void
+QCBORDecode_GetSimple(QCBORDecodeContext *pCtx, uint8_t *puSimpleValue);
+
+void
+QCBORDecode_GetSimpleInMapN(QCBORDecodeContext *pCtx,
+                            int64_t             nLabel,
+                            uint8_t            *puSimpleValue);
+
+void
+QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pCtx,
+                             const char         *szLabel,
+                             uint8_t            *puSimpleValue);
+
+
 
 
 /**
@@ -2284,6 +2339,7 @@ QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pMe,
                               QCBORItem          *pItem,
                               UsefulBufC         *pEncodedCBOR)
 {
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORItem OneItemSeach[2];
    OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
    OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
@@ -2291,6 +2347,12 @@ QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pMe,
    OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
 
    QCBORDecode_Private_SearchAndGetArrayOrMap(pMe, OneItemSeach, pItem, pEncodedCBOR);
+#else
+   (void)szLabel;
+   (void)pItem;
+   (void)pEncodedCBOR;
+   pMe->uLastError =  QCBOR_ERR_MAP_LABEL_TYPE;
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 }
 
 static inline void
@@ -2324,6 +2386,7 @@ QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
                             QCBORItem          *pItem,
                             UsefulBufC         *pEncodedCBOR)
 {
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORItem OneItemSeach[2];
    OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
    OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
@@ -2331,6 +2394,12 @@ QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
    OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
 
    QCBORDecode_Private_SearchAndGetArrayOrMap(pMe, OneItemSeach, pItem, pEncodedCBOR);
+#else
+   (void)szLabel;
+   (void)pItem;
+   (void)pEncodedCBOR;
+   pMe->uLastError =  QCBOR_ERR_MAP_LABEL_TYPE;
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 }
 
 
@@ -2618,6 +2687,7 @@ QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pMe,
    QCBORItem Item;
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_UNDEF, &Item);
 }
+
 
 
 static inline void

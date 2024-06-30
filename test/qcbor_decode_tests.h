@@ -126,7 +126,7 @@ int32_t ParseMapAsArrayTest(void);
 /*
  Test parsing of some simple values like true, false, null...
  */
-int32_t ParseSimpleTest(void);
+int32_t SimpleValueDecodeTests(void);
 
 
 /*

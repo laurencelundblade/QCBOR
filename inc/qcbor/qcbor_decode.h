@@ -320,10 +320,10 @@ typedef enum {
 /** Type for the simple value undef. */
 #define QCBOR_TYPE_UNDEF         23
 
-/** Type for a floating-point number. Data is in @c val.float. */
+/** Type for a floating-point number. Data is in @c val.fnum. */
 #define QCBOR_TYPE_FLOAT         26
 
-/** Type for a double floating-point number. Data is in @c val.double. */
+/** Type for a double floating-point number. Data is in @c val.dfnum. */
 #define QCBOR_TYPE_DOUBLE        27
 
 /** Special type for integers between -2^63 - 1 to -2^64 that
@@ -530,13 +530,15 @@ typedef struct _QCBORItem {
 
    /** Union holding the different label types selected based on @c uLabelType */
    union {
+      /** The label for @c uLabelType for @ref QCBOR_TYPE_INT64 */
+      int64_t     int64;
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+      /** The label for @c uLabelType for @ref QCBOR_TYPE_UINT64 */
+      uint64_t    uint64;
       /** The label for @c uLabelType @ref QCBOR_TYPE_BYTE_STRING and
        *  @ref QCBOR_TYPE_TEXT_STRING */
       UsefulBufC  string;
-      /** The label for @c uLabelType for @ref QCBOR_TYPE_INT64 */
-      int64_t     int64;
-      /** The label for @c uLabelType for @ref QCBOR_TYPE_UINT64 */
-      uint64_t    uint64;
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
    } label;
 
 #ifndef QCBOR_DISABLE_TAGS
@@ -1069,9 +1071,13 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * @returns The traversal cursor offset or @c UINT32_MAX.
 
  * The position returned is always the start of the next item that
- * would be next decoded with QCBORDecode_VGetNext().  If the cursor
- * is at the end of the input or in the error state, @c UINT32_MAX is
- * returned.
+ * would be next decoded with QCBORDecode_VGetNext(). The cursor
+ * returned may be at the end of the input in which case the next call
+ * to QCBORDecode_VGetNext() will result in the @ref
+ * QCBOR_ERR_NO_MORE_ITEMS. See also QCBORDecode_AtEnd().
+ *
+ * If the decoder is in error state from previous decoding,
+ * @c UINT32_MAX is returned.
  *
  * When decoding map items, the position returned is always of the
  * label, never the value.
@@ -1099,8 +1105,24 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * There is no corresponding seek method because it is too complicated
  * to restore the internal decoder state that tracks nesting.
  */
-uint32_t
+static uint32_t
 QCBORDecode_Tell(QCBORDecodeContext *pCtx);
+
+
+/**
+ * @brief Tell whether cursor is at end of the input.
+ *
+ * @param[in] pCtx   The decoder context.
+ *
+ * @returns Error code possibly indicating end of input.
+ *
+ * This returns the same as QCBORDecode_GetError() except that @ref
+ * QCBOR_ERR_NO_MORE_ITEMS is returned if the travseral cursor is at
+ * the end of the CBOR input bytes (not the end of an entered array or
+ * map).
+ */
+QCBORError
+QCBORDecode_EndCheck(QCBORDecodeContext *pCtx);
 
 
 /**
@@ -1117,12 +1139,12 @@ QCBORDecode_Tell(QCBORDecodeContext *pCtx);
  * in the QCBORItem.
  *
  * Tags nest. Here the tag with index 0 has the data item as its content. The
- *  tag with index 1 has the tag at index 0 has its content and so forth.
+ * tag with index 1 has the tag at index 0 has its content and so forth.
  *
  * Deep tag nesting is rare so this implementation imposes a limit of
  * @ref QCBOR_MAX_TAGS_PER_ITEM on nesting and returns @ref
  * QCBOR_ERR_TOO_MANY_TAGS if there are more. This is a limit of this
- * imple* mentation, not of CBOR. (To be able to handle deeper
+ * implementation, not of CBOR. (To be able to handle deeper
  * nesting, the constant can be increased and the library
  * recompiled. It will use more memory).
  *
@@ -1141,19 +1163,23 @@ QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t
 
 
 /**
- * @brief Returns the tag numbers for last-fetched item.
+ * @brief Returns the tag numbers for last-decoded item.
  *
  * @param[in] pCtx    The decoder context.
  * @param[in] uIndex The index of the tag to get.
  *
- * @returns The actual nth tag value or CBOR_TAG_INVALID64.
+ * @returns The nth tag number or CBOR_TAG_INVALID64.
  *
- * See QCBORDecode_GetNthTag(). This is the same but works with spiffy
- * decoding functions that do not return a QCBORItem with a
- * list of recorded tag numbers.  This gets the tags for the most
- * recently decoded item.
+ * This returns tags of the most recently decoded item.  See
+ * QCBORDecode_GetNthTag(). This is particularly of use for spiffy
+ * decode functions that don't return a @ref QCBORItem.
  *
- * If a decoding error set then this returns CBOR_TAG_INVALID64.
+ * This does not work for QCBORDecode_GetNext(),
+ * QCBORDecode_PeekNext(), QCBORDecode_VPeekNext() or
+ * QCBORDecode_VGetNextConsume() but these all return a
+ * @ref QCBORItem, so it is not necessary.
+ *
+ * If a decoding error is set, then this returns CBOR_TAG_INVALID64.
  */
 uint64_t
 QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
@@ -1420,8 +1446,14 @@ QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
    return 0;
 }
 
+/**
+ * https://github.com/laurencelundblade/QCBOR/pull/243
+ * For backwards compatibility
+ */
+#define QCBOR_Int64UToInt16 QCBOR_Int64ToUInt16
+
 static inline int
-QCBOR_Int64UToInt16(int64_t src, uint16_t *dest)
+QCBOR_Int64ToUInt16(int64_t src, uint16_t *dest)
 {
    if(src > UINT16_MAX || src < 0) {
       return -1;
@@ -1582,6 +1614,17 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx,
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  * ---- */
+
+static inline uint32_t
+QCBORDecode_Tell(QCBORDecodeContext *pMe)
+{
+   if(pMe->uLastError) {
+      return UINT32_MAX;
+   }
+
+   /* Cast is safe because decoder input size is restricted. */
+   return (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
+}
 
 static inline QCBORError
 QCBORDecode_GetError(QCBORDecodeContext *pMe)

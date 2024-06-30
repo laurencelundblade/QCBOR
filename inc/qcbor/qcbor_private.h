@@ -394,7 +394,6 @@ struct _QCBORDecodeContext {
 /* Used internally in the impementation here Must not conflict with
  * any of the official CBOR types
  */
-#define CBOR_MAJOR_NONE_TYPE_RAW            9
 #define CBOR_MAJOR_NONE_TAG_LABEL_REORDER  10
 #define CBOR_MAJOR_NONE_TYPE_OPEN_BSTR     12
 
