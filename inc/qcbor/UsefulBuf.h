@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 1/7/2024     llundblade      Add UsefulInputBuf_Compare().
  10/05/2024   llundblade      Add Xxx_OffsetToPointer.
  28/02/2024   llundblade      Rearrange UsefulOutBuf_Compare().
  19/11/2023   llundblade      Add UsefulOutBuf_GetOutput().
@@ -1822,6 +1823,32 @@ static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pUInBuf);
 static void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pUInBuf, size_t uNewLen);
 
 
+/**
+ * @brief Compare two ranges of bytes somewhere in the input buffer.
+ *
+ * @param[in] pUInBuf   The input buffer.
+ * @param[in] uOffset1  Offset of first range of bytes.
+ * @param[in] uLen1     Length of first range of bytes.
+ * @param[in] uOffset2  Offset of second range of bytes.
+ * @param[in] uLen2     Length of second range of bytes.
+ *
+ * This returns the same as UsefulBuf_Compare().
+ * 
+ * If the offset or the length plus offset or a range extends outside
+ * the input buffer, that range of bytes will be considered greater
+ * than the other string. If both are outside this is considered a
+ * degenerate condition and the first string is considered larger.
+ *
+ * This is a somewhat odd function of UsefulInputBuf as it is not used
+ * for consuming data. QCBOR uses it for map order and duplicate
+ * checking.
+ */
+int
+UsefulInputBuf_Compare(UsefulInputBuf *pUInBuf,
+                       const size_t    uOffset1,
+                       const size_t    uLen1,
+                       const size_t    uOffset2,
+                       const size_t    uLen2);
 
 
 /*----------------------------------------------------------

@@ -888,6 +888,32 @@ const char *  UIBTest_IntegerFormat(void)
       return "UIB SetBufferLength failed";
    }
 
+   UsefulBufC CompCheck = UsefulBuf_FROM_SZ_LITERAL("abcd");
+   UsefulInputBuf_Init(&UIB, CompCheck);
+
+   // TODO: fully test this (and check code coverage)
+   if(UsefulInputBuf_Compare(&UIB, 0, 2, 2, 2) >= 0) {
+      return "UB 1 compared greater than UB2";
+   }
+   if(UsefulInputBuf_Compare(&UIB, 0, 2, 0, 2) != 0) {
+      return "UB1 and UB2 didn't compare equally";
+   }
+   if(UsefulInputBuf_Compare(&UIB, 2, 2, 0, 2) <= 0) {
+      return "UB2 compared less than UB1";
+   }
+   if(UsefulInputBuf_Compare(&UIB, 4, 1, 2, 2) <= 0) {
+      return "Off-the-end UB1 compared as less than UB2";
+   }
+   if(UsefulInputBuf_Compare(&UIB, 0, 5, 2, 2) <= 0) {
+      return "Off-the-end UB1 compared as less than UB2 (second)";
+   }
+   if(UsefulInputBuf_Compare(&UIB, 0, 2, 5, 1) >= 0) {
+      return "Off-the-end UB2 compared as less than UB2";
+   }
+   if(UsefulInputBuf_Compare(&UIB, 0, 2, 2, 3) >= 0) {
+      return "Off-the-end UB2 compared as less than UB2 (second)";
+   }
+
    return NULL;
 }
 

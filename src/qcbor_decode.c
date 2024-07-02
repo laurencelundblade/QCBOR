@@ -173,9 +173,6 @@ QCBORItem_MatchLabel(const QCBORItem Item1, const QCBORItem Item2)
 }
 
 
-
-
-
 /*
  Returns true if Item1 and Item2 are the same type
  or if either are of QCBOR_TYPE_ANY.
@@ -872,7 +869,6 @@ QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
       goto Done;
    }
 
-
    /* All successful if arrived here. */
    uReturn           = QCBOR_SUCCESS;
    *pnMajorType      = nTmpMajorType;
@@ -1180,7 +1176,7 @@ QCBORDecode_Private_HalfConformance(const double d, const uint8_t uDecodeMode)
    struct IEEE754_ToInt ToInt;
 
    /* Only need to check for conversion to integer because
-    * half-precision is alwasy preferred serialization. Don't
+    * half-precision is always preferred serialization. Don't
     * need special checker for half-precision because whole
     * numbers always convert perfectly from half to double.
     */
@@ -1189,9 +1185,11 @@ QCBORDecode_Private_HalfConformance(const double d, const uint8_t uDecodeMode)
       if(ToInt.type != QCBOR_TYPE_DOUBLE) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
+
+      // TODO: what about NaN payload?
    }
 
-   return 0;
+   return QCBOR_SUCCESS;
 }
 
 
@@ -1202,16 +1200,19 @@ QCBORDecode_Private_SingleConformance(const float f, const uint8_t uDecodeMode)
    IEEE754_union        ToSmaller;
 
    if(uDecodeMode >= QCBOR_DECODE_MODE_DCBOR) {
+      /* See if it could have been encoded as an integer */
       ToInt = IEEE754_SingleToInt(f);
       if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
+
+      /* Make sure there is no NaN payload */
       if(IEEE754_IsNotStandardSingleNaN(f)) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
    }
 
-   /* Next, check to see if it can be decoded shorter */
+   /* See if it could have been encoded shorter */
    if(uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED) {
       ToSmaller = IEEE754_SingleToHalf(f, true);
       if(ToSmaller.uSize != sizeof(float)) {
@@ -1219,7 +1220,7 @@ QCBORDecode_Private_SingleConformance(const float f, const uint8_t uDecodeMode)
       }
    }
 
-   return 0;
+   return QCBOR_SUCCESS;
 }
 
 
@@ -1230,17 +1231,18 @@ QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
    IEEE754_union        ToSmaller;
 
    if(uDecodeMode >= QCBOR_DECODE_MODE_DCBOR) {
+      /* See if it could have been encoded as an integer */
       ToInt = IEEE754_DoubleToInt(d);
-
       if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
+      /* Make sure there is no NaN payload */
       if(IEEE754_IsNotStandardDoubleNaN(d)) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
    }
    
-   /* Next check to see if it can be decoded shorter */
+   /* See if it could have been encoded shorter */
    if(uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED) {
       ToSmaller = IEEE754_DoubleToSmaller(d, true, true);
       if(ToSmaller.uSize != sizeof(double)) {
@@ -1248,7 +1250,7 @@ QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
       }
    }
 
-   return 0;
+   return QCBOR_SUCCESS;
 }
 #else /* QCBOR_DISABLE_DECODE_CONFORMANCE */
 
@@ -1284,7 +1286,7 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
                           QCBORItem     *pDecodedItem)
 {
    QCBORError uReturn = QCBOR_SUCCESS;
-   float      f;
+   float      single;
 
    switch(nAdditionalInfo) {
       case HALF_PREC_FLOAT: /* 25 */
@@ -1315,8 +1317,8 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
           * The cast to uint32_t is safe because the encoded value was
           * 32 bits. It was widened to 64 bits to be passed in here.
           */
-         f = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
-         uReturn = QCBORDecode_Private_SingleConformance(f, uDecodeMode);
+         single = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
+         uReturn = QCBORDecode_Private_SingleConformance(single, uDecodeMode);
          if(uReturn != QCBOR_SUCCESS) {
             break;
          }
@@ -1324,7 +1326,7 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
          /* In the normal case, use HW to convert float to
           * double. */
-         pDecodedItem->val.dfnum = (double)f;
+         pDecodedItem->val.dfnum = (double)single;
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
          /* Use of float HW is disabled, return as a float. */
@@ -1336,8 +1338,8 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
           * anyone disabling FLOAT HW use doesn't care about floats
           * and wants to save object code.
           */
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
          uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
          break;
 
@@ -1439,7 +1441,7 @@ QCBOR_Private_DecodeType7(const uint8_t  uDecodeMode,
             uReturn = QCBOR_ERR_DCBOR_CONFORMANCE;
             goto Done;
          }
-#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
+#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
          break; /* nothing to do */
 
       case CBOR_SIMPLEV_ONEBYTE: /* 24 */
@@ -1516,13 +1518,12 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
    uint64_t uArgument = 0;
    int      nAdditionalInfo = 0;
 
-   memset(pDecodedItem, 0, sizeof(QCBORItem));
-
    /* Decode the "head" that every CBOR item has into the major type,
     * argument and the additional info.
     */
    uReturn = QCBOR_Private_DecodeHead(&(pMe->InBuf),
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+                                      // TODO: make this prettier; will optimizer take out stuff without ifdef?
                                       pMe->uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED,
 #endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
                                       &nMajorType,
@@ -2907,53 +2908,16 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
 
 
 
-#if 0
-/* Compare at n1 and n2 until end of input or a byte is different. */
-static int
-UsefulInputBuf_Compare(UsefulInputBuf *pIn, size_t uOffset1, size_t uOffset2)
-{
-   const uint8_t *p1, *p2;
-   size_t uInputSize = UsefulInputBuf_GetBufferLength(pIn);
-
-   p1 = (uint8_t *)pIn->UB.ptr + uOffset1;
-   p2 = (uint8_t *)pIn->UB.ptr + uOffset2;
-
-   size_t uMax = uInputSize - uOffset1;
-   if(uInputSize - uOffset2 < uMax) {
-      uMax = uInputSize - uOffset2;
-   }
-
-   return memcmp(p1, p2, uMax);
-}
-#endif
-
-static int
-UsefulInputBuf_Compare2(UsefulInputBuf *pIn, size_t uOffset1, size_t uLen1, size_t uOffset2, size_t uLen2)
-{
-   UsefulBufC U1;
-   UsefulBufC U2;
-   size_t     uInputSize;
-
-   uInputSize = UsefulInputBuf_GetBufferLength(pIn);
-
-   U1.ptr = (uint8_t *)pIn->UB.ptr + uOffset1;
-   if(uOffset1 + uLen1 > uInputSize) {
-      U1.len = uInputSize - uOffset1;
-   } else {
-      U1.len = uLen1;
-   }
-
-   U2.ptr = (uint8_t *)pIn->UB.ptr + uOffset2;
-   if(uOffset2 + uLen2 > uInputSize) {
-      U2.len = uInputSize - uOffset2;
-   } else {
-      U2.len = uLen2;
-   }
-
-   return UsefulBuf_Compare(U1, U2);
-}
 
 
+
+
+/*
+ *
+ * This consumes the next item. It returns the starting
+ * position of the label and the length of the label. It
+ * also returns the nest level of the item consumed.
+ */
 static QCBORError
 QCBORDecode_Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
                                        uint8_t            *puNestLevel,
@@ -2964,11 +2928,12 @@ QCBORDecode_Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
    QCBORItem  Item;
    uint8_t    uLevel;
 
-   /* Get the label */
+   /* Get the label and consume it should it be complex */
    *puLabelStart = UsefulInputBuf_Tell(&(pMe->InBuf));
    /* Ignore errors here and let QCBORDecode_Private_GetNextMapOrArray() process them, because it does the full and proper job,
     * particularly of end detection. */
    // TODO: deal with tags on the label
+   // TODO: test lots of different labels
    (void)QCBORDecode_Private_GetNextTagNumber(pMe, &Item);
    (void)QCBORDecode_Private_ConsumeItem(pMe, &Item, NULL, &uLevel);
    *puLabelLen = UsefulInputBuf_Tell(&(pMe->InBuf)) - *puLabelStart;
@@ -2986,12 +2951,18 @@ Done:
    return uErr;
 }
 
-
+/* Loop over items in a map until the end of the map looking for
+ * duplicates. This starts at the current position in the map,
+ * not at the beginning of the map.
+ *
+ * This saves and restores the traversal cursor and nest
+ * tracking so they are the same on exit as they were on entry.
+ */
 static QCBORError
 QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
-                              uint8_t uNestLevel,
-                              size_t uCompareLabelStart,
-                              size_t uCompareLabelLen)
+                              const uint8_t       uNestLevel,
+                              const size_t        uCompareLabelStart,
+                              const size_t        uCompareLabelLen)
 {
    QCBORError uErr;
    size_t     uLabelStart;
@@ -3000,24 +2971,25 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
    int        nCompare;
 
    const QCBORDecodeNesting SaveNesting = pMe->nesting;
-   const UsefulInputBuf Save = pMe->InBuf;
+   const UsefulInputBuf     Save        = pMe->InBuf;
+
 
    do {
       uErr = QCBORDecode_Private_GetLabelAndConsume(pMe, &uLevel, &uLabelStart, &uLabelLen);
       if(uErr != QCBOR_SUCCESS) {
          if(uErr == QCBOR_ERR_NO_MORE_ITEMS) {
-            uErr = QCBOR_SUCCESS; // Successful end
+            uErr = QCBOR_SUCCESS; /* Successful end */
          }
          break;
       }
 
       if(uLevel != uNestLevel) {
-         break; // Successful end of loop
+         break; /* Successful end of loop */
       }
 
       // TODO: test successful end for indefinite length maps
 
-      nCompare = UsefulInputBuf_Compare2(&(pMe->InBuf),
+      nCompare = UsefulInputBuf_Compare(&(pMe->InBuf),
                                          uCompareLabelStart, uCompareLabelLen,
                                          uLabelStart, uLabelLen);
       if(nCompare == 0) {
@@ -3035,14 +3007,14 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
 
 /* This does sort order and duplicate detection on a map. It works
  * on map labels of any type, even map labels that are maps (even
- * though QCBOR doesn't support decoding them).
+ * though QCBOR doesn't directly support decoding them).
  */
 static QCBORError
-QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pI)
+QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToCheck)
 {
    QCBORError uErr;
-   uint8_t    uLevel;
-   size_t     p1, p2, l1, l2;
+   uint8_t    uNestLevel;
+   size_t     offset2, offset1, length2, length1;
 
    const QCBORDecodeNesting SaveNesting = pMe->nesting;
    const UsefulInputBuf Save = pMe->InBuf;
@@ -3052,13 +3024,12 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pI)
     * CheckDup on each one which also runs over the remaining
     * items in the map checking for duplicates. So duplicate
     * checking runs in n^2.
-
     */
 
-   p1 = SIZE_MAX;
-   l1 = SIZE_MAX; // To avoid uninitialized warning
+   offset2 = SIZE_MAX;
+   length2 = SIZE_MAX; // To avoid uninitialized warning
    while(1) {
-      uErr = QCBORDecode_Private_GetLabelAndConsume(pMe, &uLevel, &p2, &l2);
+      uErr = QCBORDecode_Private_GetLabelAndConsume(pMe, &uNestLevel, &offset1, &length1);
       if(uErr != QCBOR_SUCCESS) {
          if(uErr == QCBOR_ERR_NO_MORE_ITEMS) {
             uErr = QCBOR_SUCCESS; /* Successful exit from loop */
@@ -3066,27 +3037,26 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pI)
          break;
       }
 
-      if(uLevel < pI->uNextNestLevel) {
+      if(uNestLevel < pMapToCheck->uNextNestLevel) {
          break; /* Successful exit from loop */
       }
 
-      if(p1 != SIZE_MAX) {
-         /* First time through, don't compare because we haven't got two
-          * items yet */
-
-         if(UsefulInputBuf_Compare2(&(pMe->InBuf), p1, l1, p2, l2) > 0) {
+      if(offset2 != SIZE_MAX) {
+         /* Check that the labels are ordered. Check is not done the first
+          * time through the loop when offset2 is unset. */
+         if(UsefulInputBuf_Compare(&(pMe->InBuf), offset2, length2, offset1, length1) > 0) {
             uErr = QCBOR_ERR_UNSORTED;
             break;
          }
       }
 
-      uErr = QCBORDecode_Private_CheckDups(pMe, pI->uNextNestLevel, p2, l2);
+      uErr = QCBORDecode_Private_CheckDups(pMe, pMapToCheck->uNextNestLevel, offset1, length1);
       if(uErr != QCBOR_SUCCESS) {
          break;
       }
 
-      p1 = p2;
-      l1 = l2;
+      offset2 = offset1;
+      length2 = length1;
    }
 
    pMe->nesting = SaveNesting;
