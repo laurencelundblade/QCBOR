@@ -874,6 +874,7 @@ IEEE754_UintToDouble(const uint64_t uInt, const int uIsNegative)
 
 
 /* Public function; see ieee754.h */
+// TODO: rename to "NoPayload" or such
 int
 IEEE754_IsNotStandardDoubleNaN(const double d)
 {
