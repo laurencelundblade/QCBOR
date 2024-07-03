@@ -469,14 +469,14 @@ UsefulInputBuf_Compare(UsefulInputBuf *pUInBuf,
    if(uOffset1 > uInputSize || uLen1 > uInputSize - uOffset1) {
       return 1;
    }
-   UB1.ptr = (uint8_t *)pUInBuf->UB.ptr + uOffset1;
+   UB1.ptr = (const uint8_t *)pUInBuf->UB.ptr + uOffset1;
    UB1.len = uLen1;
 
    /* Careful length check that works even if uLen2 + uOffset2 > SIZE_MAX */
    if(uOffset2 > uInputSize || uLen2 > uInputSize - uOffset2) {
       return -1;
    }
-   UB2.ptr = (uint8_t *)pUInBuf->UB.ptr + uOffset2;
+   UB2.ptr = (const uint8_t *)pUInBuf->UB.ptr + uOffset2;
    UB2.len = uLen1;
 
    return UsefulBuf_Compare(UB1, UB2);

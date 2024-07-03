@@ -2558,7 +2558,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 25) {
+      if(nIndex == 46) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -10005,11 +10005,13 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
 #if 1 /* Haven't implemented sort checking yet */
    /* --- Unsorted maps --- */
    // TODO: more of these with different types of labels
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    { "unsorted map with text labels",
       QCBOR_DECODE_MODE_CDE,
       {"\xa2\x61\x62\x00\x61\x61\x01", 7},
       QCBOR_ERR_UNSORTED
    },
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
    { "reverse sorted map with integer labels",
       QCBOR_DECODE_MODE_CDE,
       {"\xa5\x19\x03\xE8\xf6\x18\x64\xf6\x00\xf6\x29\xf6\x3A\x00\x01\x86\x9f\xf6", 18},

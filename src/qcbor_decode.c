@@ -1297,7 +1297,7 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
    QCBORError uReturn = QCBOR_SUCCESS;
    float      single;
 
-   (void)single; /* Avoid unused error from various #ifdefs */
+   (void)single; /* Avoid unused error from various #ifndefs */
 
    switch(nAdditionalInfo) {
       case HALF_PREC_FLOAT: /* 25 */
@@ -1340,7 +1340,7 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
          /* Use of float HW is disabled, return as a float. */
-         pDecodedItem->val.fnum  = f;
+         pDecodedItem->val.fnum  = single;
          pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
 
          /* IEEE754_FloatToDouble() could be used here to return as
