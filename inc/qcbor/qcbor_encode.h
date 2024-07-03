@@ -880,7 +880,7 @@ QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float dNum)
  * @param[in] dNum  The double-precision number to add.
  *
  * Output a double-precision float straight-through with no checking or
- * processing for preferred serializtion, dCBOR or other.
+ * processing for preferred serialization, dCBOR or other.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *

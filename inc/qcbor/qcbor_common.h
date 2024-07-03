@@ -43,7 +43,6 @@ extern "C" {
 #endif
 #endif
 
-//#define QCBOR_DISABLE_DECODE_CONFORMANCE
 
 /**
  * @file qcbor_common.h
@@ -554,6 +553,8 @@ typedef enum {
    /** A map is unsorted and should be for CDE or dCBOR. */
    QCBOR_ERR_UNSORTED = 84,
 
+   /** Conformance checking requested, preferred serialization disabled, float in the input. */
+   QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE = 85,
 
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice

@@ -874,9 +874,8 @@ IEEE754_UintToDouble(const uint64_t uInt, const int uIsNegative)
 
 
 /* Public function; see ieee754.h */
-// TODO: rename to "NoPayload" or such
 int
-IEEE754_IsNotStandardDoubleNaN(const double d)
+IEEE754_DoubleHasNaNPayload(const double d)
 {
    const uint64_t uDouble                 = CopyDoubleToUint64(d);
    const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
@@ -896,19 +895,20 @@ IEEE754_IsNotStandardDoubleNaN(const double d)
 
 /* Public function; see ieee754.h */
 int
-IEEE754_IsNotStandardSingleNaN(const float f)
+IEEE754_SingleHasNaNPayload(const float f)
 {
    const uint32_t uSingle                 = CopyFloatToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
    const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
-   const uint32_t uSingleleSignificand    = uSingle & SINGLE_SIGNIFICAND_MASK;
+   const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
 
    if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN &&
-      uSingleleSignificand != 0 &&
-      uSingleleSignificand != SINGLE_QUIET_NAN_BIT) {
+      uSingleSignificand != 0 &&
+      uSingleSignificand != SINGLE_QUIET_NAN_BIT) {
       return 1;
    } else {
       return 0;
    }
 }
+

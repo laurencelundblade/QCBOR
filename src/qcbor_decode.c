@@ -1169,7 +1169,8 @@ QCBOR_Private_DecodeTag(const uint64_t uTagNumber,
 }
 
 
-#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+#if !defined(QCBOR_DISABLE_DECODE_CONFORMANCE) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+
 static QCBORError
 QCBORDecode_Private_HalfConformance(const double d, const uint8_t uDecodeMode)
 {
@@ -1179,14 +1180,17 @@ QCBORDecode_Private_HalfConformance(const double d, const uint8_t uDecodeMode)
     * half-precision is always preferred serialization. Don't
     * need special checker for half-precision because whole
     * numbers always convert perfectly from half to double.
+    *
+    * This catches half-precision with NaN payload too.
+    *
+    * The only thing allowed here is a double/half-precision that
+    * can't be converted to anything but a double.
     */
    if(uDecodeMode >= QCBOR_DECODE_MODE_DCBOR) {
       ToInt = IEEE754_DoubleToInt(d);
       if(ToInt.type != QCBOR_TYPE_DOUBLE) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
-
-      // TODO: what about NaN payload?
    }
 
    return QCBOR_SUCCESS;
@@ -1207,7 +1211,7 @@ QCBORDecode_Private_SingleConformance(const float f, const uint8_t uDecodeMode)
       }
 
       /* Make sure there is no NaN payload */
-      if(IEEE754_IsNotStandardSingleNaN(f)) {
+      if(IEEE754_SingleHasNaNPayload(f)) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
    }
@@ -1237,7 +1241,7 @@ QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
       /* Make sure there is no NaN payload */
-      if(IEEE754_IsNotStandardDoubleNaN(d)) {
+      if(IEEE754_DoubleHasNaNPayload(d)) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
    }
@@ -1252,27 +1256,32 @@ QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
 
    return QCBOR_SUCCESS;
 }
-#else /* QCBOR_DISABLE_DECODE_CONFORMANCE */
-
-static QCBORError
-QCBORDecode_Private_HalfConformance(const double d, uint8_t uDecodeMode)
-{
-   return QCBOR_SUCCESS;
-}
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
 
 static QCBORError
 QCBORDecode_Private_SingleConformance(const float f, uint8_t uDecodeMode)
 {
-   return QCBOR_SUCCESS;
+   (void)f;
+   if(uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED) {
+      return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
+   } else {
+      return QCBOR_SUCCESS;
+   }
 }
 
 static QCBORError
 QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
 {
-   return QCBOR_SUCCESS;
+   (void)d;
+   if(uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED) {
+      return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
+   } else {
+      return QCBOR_SUCCESS;
+   }
 }
-
-#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
+#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE && ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
 
@@ -1288,10 +1297,12 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
    QCBORError uReturn = QCBOR_SUCCESS;
    float      single;
 
+   (void)single; /* Avoid unused error from various #ifdefs */
+
    switch(nAdditionalInfo) {
       case HALF_PREC_FLOAT: /* 25 */
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         /* Half-precision is returned as a double.  The cast to
+         /* Half-precision is returned as a double. The cast to
           * uint16_t is safe because the encoded value was 16 bits. It
           * was widened to 64 bits to be passed in here.
           */
@@ -1302,8 +1313,7 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
          if(uReturn != QCBOR_SUCCESS) {
             break;
          }
-
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          uReturn = FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS);
          break;
 
@@ -1352,7 +1362,7 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
          if(uReturn != QCBOR_SUCCESS) {
             break;
          }
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
          uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
          break;
    }
