@@ -52,4 +52,6 @@ const char *  UBUTest_CopyUtil(void);
 
 const char * UBAdvanceTest(void);
 
+const char * UOBExtraTests(void);
+
 #endif
