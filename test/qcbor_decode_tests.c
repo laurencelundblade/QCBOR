@@ -2558,11 +2558,11 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 46) {
+      if(nIndex == 50) {
          uCBORError = 9; /* For setting break points */
       }
 
-      if(strncmp("NAN half with payload (signaling)", pF->szDescription, 10) == 0) {
+      if(strncmp("map with out-of-order labels that ", pF->szDescription, 15) == 0) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -2574,7 +2574,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
          uCBORError = QCBORDecode_GetNext(&DCtx, &Item);
       } while(uCBORError == QCBOR_SUCCESS);
 
-      /* Must get the expected error or the this test fails.
+      /* Must get the expected error or the test fails.
        * The data and label type must also be QCBOR_TYPE_NONE.
        */
       if(uCBORError != pF->nError ||
@@ -9747,11 +9747,6 @@ int32_t BoolTest(void)
 
 /* These are all well-formed and valid CBOR, but fail
  * conformance with preferred, CDE or dCBOR.
- *
- * There are no tests for duplicate map keys here because
- * it is not well-formed or valid CBOR. Duplicate
- * map keys are not a CDE or dCBOR error, but a general
- * CBOR error.
  */
 static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    /* --- Major type 0 and 1 not shortest-form --- */
@@ -9801,11 +9796,11 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
    /* TODO: what to do about this test?
-   { "65-bit negative not allowed in dCBOR",
-      QCBOR_DECODE_MODE_DCBOR,
-      {"\x3b\xff\xff\xff\xff\xff\xff\xff\xff", 9},
-      QCBOR_ERR_DCBOR_CONFORMANCE
-   },*/
+    { "65-bit negative not allowed in dCBOR",
+    QCBOR_DECODE_MODE_DCBOR,
+    {"\x3b\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+    QCBOR_ERR_DCBOR_CONFORMANCE
+    },*/
 
    /* --- Simple values not allowed in dCBOR --- */
    { "undefined not allowed in dCBOR",
@@ -9979,6 +9974,11 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xd9\x00\xff\x00", 4},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
+   { "tag number on lable not shortest-form",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xA3\xC1\x00\x61\x61\xD8\x01\x00\x61\x62\xD9\x00\x01\x00\x61\x63", 16},
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
 
    /* --- Indefinite lengths --- */
    { "indefinite-length byte string",
@@ -10002,11 +10002,9 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
 
-#if 1 /* Haven't implemented sort checking yet */
    /* --- Unsorted maps --- */
-   // TODO: more of these with different types of labels
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-   { "unsorted map with text labels",
+   { "simple unsorted map with text labels",
       QCBOR_DECODE_MODE_CDE,
       {"\xa2\x61\x62\x00\x61\x61\x01", 7},
       QCBOR_ERR_UNSORTED
@@ -10017,26 +10015,71 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xa5\x19\x03\xE8\xf6\x18\x64\xf6\x00\xf6\x29\xf6\x3A\x00\x01\x86\x9f\xf6", 18},
       QCBOR_ERR_UNSORTED
    },
-#ifdef PERVERSE /* a legit sort test, but who handles maps with a map as label? */
-
    { "unsorted map with labels of all types",
       QCBOR_DECODE_MODE_CDE,
       {"\xA8\x80\x07\xC1\x18\x58\x02\x64\x74\x65\x78\x74\x03\x01\x01\xA0\x04"
-       "\x42\x78\x78\x05\xF5\x06\xFB\x40\x21\x8A\x3D\x70\xA3\xD7\x0A\x07", 33},
-      QCBOR_ERR_NO_MORE_ITEMS
-      //QCBOR_ERR_CDE_CONFORMANCE
-   }
-#endif
+         "\x42\x78\x78\x05\xF5\x06\xFB\x40\x21\x8A\x3D\x70\xA3\xD7\x0A\x07", 33},
+      QCBOR_ERR_UNSORTED
+   },
+   {"map with out-of-order labels that are arrays",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xA3\x83\x00\x01\x02\x61\x63\x83\x00\x01\x00\x61\x61\x83\x00\x01\x01\x61\x62", 19},
+      QCBOR_ERR_UNSORTED
+   },
+   {"map with out-of-order labels that have tags",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xA3\xC1\x18\x63\x61\x61\xD9\x07\xD0\x18\x63\x61\x63\xD8\x30\x18\x63\x61\x62", 19},
+      QCBOR_ERR_UNSORTED
+   },
 
-#endif
+   /* --- Maps with dup labels --- */
+   { "simple map with dup integer labels",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xa2\x00\x00\x00\x00", 5},
+      QCBOR_ERR_DUPLICATE_LABEL
+   },
+   {"map with dup map labels",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xA3\xA1\x03\x03\x61\x61\xA1\x02\x02\x61\x62\xA1\x03\x03\x61\x63", 16},
+      QCBOR_ERR_DUPLICATE_LABEL
+   }
+};
+
+
+static UsefulBufC CorrectlySorted[] = {
+   /* This one is correctly sorted, but is not correct preferred serialization. QCBOR checks
+    * the sort order of the map without checking the preferred serialization of the
+    * map items, so this test passes. */
+   {"\xa4\x01\x61\x61\xf9\x3C\x00\x61\x62\xFA\x3F\x80\x00\x00\x61\x62\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00\x61\x63", 27},
+   {"\xa3\x00\x61\x61\x01\x61\x62\xa3\x0c\x61\x78\x0b\x61\x79\x0a\x61\x7a\x61\x63", 19},
+   {"\xA3\xE0\x61\x61\xF5\x61\x62\xFB\x3F\xF1\x99\x99\x99\x99\x99\x9A\x61\x63", 18},
+   {"\xa2\x00\x00\x01\x01", 5},
+   {"\xA0", 1},
+   NULLUsefulBufC
 };
 
 
 
-int32_t DecodeConformanceTests(void)
+int32_t 
+DecodeConformanceTests(void)
 {
+   QCBORDecodeContext DCtx;
+   QCBORItem          Item;
+   QCBORError         uErr;
+   uint32_t           uTestIndex;
+
+   for(uTestIndex = 0; UsefulBuf_IsNULLC(CorrectlySorted[uTestIndex]); uTestIndex++) {
+      QCBORDecode_Init(&DCtx, CorrectlySorted[uTestIndex], QCBOR_DECODE_MODE_CDE);
+
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(1, uTestIndex, uErr);
+      }
+   }
+
    return ProcessDecodeFailures(DecodeConformanceFailures,
                                 C_ARRAY_COUNT(DecodeConformanceFailures, struct DecodeFailTestInput));
+
 }
 
 

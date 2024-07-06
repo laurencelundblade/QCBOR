@@ -195,13 +195,19 @@ typedef enum {
    /** See QCBORDecode_Init() */
    QCBOR_DECODE_MODE_MAP_AS_ARRAY = 2,
    /** TODO:
-    This requires preferred serialization -- no indef lengths; shortest form integers and floats */
+    * This requires preferred serialization -- no indef lengths; shortest form integers and floats */
    QCBOR_DECODE_MODE_PREFERRED = 3,
 
-   /** This require maps to be sorted */
+   /** This require maps to be sorted by label. This also performs full duplicat label checking
+    * on every map before it is returned. This mode adds considerable CPU-time expense
+    * to decoding.
+    *
+    * This also performs all the checks that QCBOR_DECODE_MODE_PREFERRED
+    * does. */
    QCBOR_DECODE_MODE_CDE = 4,
    
-   /* This requires integer-float unification */
+   /** This requires integer-float unification. It performs all the checks that
+    * QCBOR_DECODE_MODE_CDE does. */
    QCBOR_DECODE_MODE_DCBOR = 5
 
    /* This is stored in uint8_t in places; never add values > 255 */
@@ -564,7 +570,6 @@ typedef struct _QCBORItem {
     */
    uint16_t uTags[QCBOR_MAX_TAGS_PER_ITEM];
 #endif
-
 } QCBORItem;
 
 /**

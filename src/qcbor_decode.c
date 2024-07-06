@@ -1932,6 +1932,29 @@ Done:
 }
 
 
+/* Only works in definite lengths. Used to skip over labels that
+ * are maps or arrays.
+ */
+static QCBORError
+ConsumeArrayOrMap(QCBORDecodeContext *pMe, int nCount)
+{
+   QCBORError uErr, uErr2;
+   QCBORItem  Item;
+
+   uErr = QCBOR_SUCCESS;
+   for(;nCount > 0; nCount--) {
+      uErr2 = QCBORDecode_Private_GetNextTagNumber(pMe, &Item);
+      if(QCBORDecode_IsUnrecoverableError(uErr2)) {
+         break;
+      }
+      if(uErr2 != QCBOR_SUCCESS) {
+         uErr = uErr2;
+      }
+   }
+
+   return uErr;
+}
+
 /**
  * @brief Combine a map entry label and value into one item (decode layer 3).
  *
@@ -1971,13 +1994,13 @@ Done:
  * This also implements maps-as-array mode where a map is treated like
  * an array to allow caller to do their own label processing.
  */
-
 static QCBORError
 QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
-                                    QCBORItem          *pDecodedItem)
+                                    QCBORItem          *pDecodedItem,
+                                    uint32_t           *puLabelEndOffset)
 {
    QCBORItem  LabelItem;
-   QCBORError uErr;
+   QCBORError uErr, uErr2;
 
    uErr = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
    if(QCBORDecode_IsUnrecoverableError(uErr)) {
@@ -1996,10 +2019,34 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
    /* Decoding a map entry, so the item decoded above was the label */
    LabelItem = *pDecodedItem;
 
+   if(QCBORItem_IsMapOrArray(LabelItem) && pMe->bAllowAllLabels) {
+      int nCount = LabelItem.val.uCount;
+      if(LabelItem.uDataType != QCBOR_TYPE_ARRAY) {
+         nCount *= 2;
+      }
+      uErr2 = ConsumeArrayOrMap(pMe, nCount);
+      if(QCBORDecode_IsUnrecoverableError(uErr2))  {
+         goto Done;
+      }
+      if(uErr2 != QCBOR_SUCCESS) {
+         uErr = uErr2;
+      }
+   }
+   if(puLabelEndOffset != NULL) {
+      /* Cast is OK because lengths are all 32-bit in QCBOR */
+      *puLabelEndOffset = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
+   }
+
+
    /* Get the value of the map item */
-   uErr = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
-   if(QCBORDecode_IsUnrecoverableError(uErr)) {
+   uErr2 = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
+   if(QCBORDecode_IsUnrecoverableError(uErr2)) {
+      uErr = uErr2;
       goto Done;
+   }
+   if(uErr2 != QCBOR_SUCCESS) {
+      /* The recoverable error for the value overrides the recoverable error for the label, if there was an error for the label */
+      uErr = uErr2;
    }
 
    /* Combine the label item and value item into one */
@@ -2034,8 +2081,10 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
       default:
-         uErr = QCBOR_ERR_MAP_LABEL_TYPE;
-         goto Done;
+         if(!pMe->bAllowAllLabels) {
+            uErr = QCBOR_ERR_MAP_LABEL_TYPE;
+            goto Done;
+         }
    }
 
 Done:
@@ -2233,7 +2282,8 @@ Done:
 static QCBORError
 QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
                                       bool               *pbBreak,
-                                      QCBORItem          *pDecodedItem)
+                                      QCBORItem          *pDecodedItem,
+                                      uint32_t           *puLabelEndOffset)
 {
    QCBORError uReturn;
    /* ==== First: figure out if at the end of a traversal ==== */
@@ -2261,7 +2311,7 @@ QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
    }
 
    /* ==== Next: not at the end, so get another item ==== */
-   uReturn = QCBORDecode_Private_GetNextMapEntry(pMe, pDecodedItem);
+   uReturn = QCBORDecode_Private_GetNextMapEntry(pMe, pDecodedItem, puLabelEndOffset);
    if(QCBORDecode_IsUnrecoverableError(uReturn)) {
       /* Error is so bad that traversal is not possible. */
       goto Done;
@@ -2833,7 +2883,7 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
 {
    QCBORError uReturn;
 
-   uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pDecodedItem);
+   uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pDecodedItem, NULL);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -2937,29 +2987,23 @@ QCBORDecode_Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
    QCBORError uErr;
    QCBORItem  Item;
    uint8_t    uLevel;
+   uint32_t   uLabelOffset;
 
    /* Get the label and consume it should it be complex */
    *puLabelStart = UsefulInputBuf_Tell(&(pMe->InBuf));
-   /* Ignore errors here and let QCBORDecode_Private_GetNextMapOrArray() process them, because it does the full and proper job,
-    * particularly of end detection. */
-   // TODO: deal with tags on the label
-   // TODO: test lots of different labels
-   (void)QCBORDecode_Private_GetNextTagNumber(pMe, &Item);
-   (void)QCBORDecode_Private_ConsumeItem(pMe, &Item, NULL, &uLevel);
-   *puLabelLen = UsefulInputBuf_Tell(&(pMe->InBuf)) - *puLabelStart;
 
-   /* Rewind to start of label and consume the label and value */
-   UsefulInputBuf_Seek(&(pMe->InBuf), *puLabelStart);
-   uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, &Item);
+   uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, &Item, &uLabelOffset);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
+   *puLabelLen = uLabelOffset - *puLabelStart;
    *puNestLevel = Item.uNestingLevel;
    uErr = QCBORDecode_Private_ConsumeItem(pMe, &Item, NULL, &uLevel);
 
 Done:
    return uErr;
 }
+
 
 /* Loop over items in a map until the end of the map looking for
  * duplicates. This starts at the current position in the map,
@@ -2982,7 +3026,6 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
 
    const QCBORDecodeNesting SaveNesting = pMe->nesting;
    const UsefulInputBuf     Save        = pMe->InBuf;
-
 
    do {
       uErr = QCBORDecode_Private_GetLabelAndConsume(pMe, &uLevel, &uLabelStart, &uLabelLen);
@@ -3028,6 +3071,7 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToChe
 
    const QCBORDecodeNesting SaveNesting = pMe->nesting;
    const UsefulInputBuf Save = pMe->InBuf;
+   pMe->bAllowAllLabels = 1;
 
    /* This loop runs over all the items in the map once, comparing
     * each adjacent pair for correct ordering. It also calls
@@ -3069,6 +3113,7 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToChe
       length2 = length1;
    }
 
+   pMe->bAllowAllLabels = 0;
    pMe->nesting = SaveNesting;
    pMe->InBuf = Save;
 
@@ -3558,7 +3603,7 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
        * arrays by using the nesting level
        */
       do {
-         uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pbBreak, &Item);
+         uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pbBreak, &Item, NULL);
          if(QCBORDecode_IsUnrecoverableError(uReturn) ||
             uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
             goto Done;
@@ -4030,8 +4075,8 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    bInMap = DecodeNesting_IsCurrentTypeMap(&(pMe->nesting));
 
    /* Could call GetNext here, but don't need to because this
-    * is only interested in arrays and maps. */
-   uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pItem);
+    * is only interested in arrays and maps. TODO: swithc to GetNext()? */
+   uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pItem, NULL);
    if(uErr != QCBOR_SUCCESS) {
       pMe->uLastError = (uint8_t)uErr;
       return;

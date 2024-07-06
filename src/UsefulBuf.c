@@ -477,7 +477,7 @@ UsefulInputBuf_Compare(UsefulInputBuf *pUInBuf,
       return -1;
    }
    UB2.ptr = (const uint8_t *)pUInBuf->UB.ptr + uOffset2;
-   UB2.len = uLen1;
+   UB2.len = uLen2;
 
    return UsefulBuf_Compare(UB1, UB2);
 }
