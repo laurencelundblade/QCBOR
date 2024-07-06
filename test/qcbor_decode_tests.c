@@ -2558,7 +2558,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 50) {
+      if(nIndex == 49) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -9974,11 +9974,13 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xd9\x00\xff\x00", 4},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
+#if !defined(QCBOR_DISABLE_TAGS) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
    { "tag number on lable not shortest-form",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xA3\xC1\x00\x61\x61\xD8\x01\x00\x61\x62\xD9\x00\x01\x00\x61\x63", 16},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
+#endif
 
    /* --- Indefinite lengths --- */
    { "indefinite-length byte string",
@@ -10015,22 +10017,24 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xa5\x19\x03\xE8\xf6\x18\x64\xf6\x00\xf6\x29\xf6\x3A\x00\x01\x86\x9f\xf6", 18},
       QCBOR_ERR_UNSORTED
    },
-   { "unsorted map with labels of all types",
-      QCBOR_DECODE_MODE_CDE,
-      {"\xA8\x80\x07\xC1\x18\x58\x02\x64\x74\x65\x78\x74\x03\x01\x01\xA0\x04"
-         "\x42\x78\x78\x05\xF5\x06\xFB\x40\x21\x8A\x3D\x70\xA3\xD7\x0A\x07", 33},
-      QCBOR_ERR_UNSORTED
-   },
    {"map with out-of-order labels that are arrays",
       QCBOR_DECODE_MODE_CDE,
       {"\xA3\x83\x00\x01\x02\x61\x63\x83\x00\x01\x00\x61\x61\x83\x00\x01\x01\x61\x62", 19},
       QCBOR_ERR_UNSORTED
+   },
+#if !defined(QCBOR_DISABLE_TAGS)
+   { "unsorted map with labels of all types",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xA8\x80\x07\xC1\x18\x58\x02\x64\x74\x65\x78\x74\x03\x01\x01\xA0\x04"
+         "\x42\x78\x78\x05\xF5\x06\xFB\x40\x21\x8A\x3D\x70\xA3\xD7\x0A\x07", 33},
+      PREFERRED_ERR
    },
    {"map with out-of-order labels that have tags",
       QCBOR_DECODE_MODE_CDE,
       {"\xA3\xC1\x18\x63\x61\x61\xD9\x07\xD0\x18\x63\x61\x63\xD8\x30\x18\x63\x61\x62", 19},
       QCBOR_ERR_UNSORTED
    },
+#endif
 
    /* --- Maps with dup labels --- */
    { "simple map with dup integer labels",
