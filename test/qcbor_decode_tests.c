@@ -2558,7 +2558,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 50) {
+      if(nIndex == 49) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -10022,7 +10022,7 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xA3\x83\x00\x01\x02\x61\x63\x83\x00\x01\x00\x61\x61\x83\x00\x01\x01\x61\x62", 19},
       QCBOR_ERR_UNSORTED
    },
-#if !defined(QCBOR_DISABLE_TAGS)
+#if !defined(QCBOR_DISABLE_TAGS) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
    { "unsorted map with labels of all types",
       QCBOR_DECODE_MODE_CDE,
       {"\xA8\x80\x07\xC1\x18\x58\x02\x64\x74\x65\x78\x74\x03\x01\x01\xA0\x04"
