@@ -168,7 +168,7 @@ QCBOR.
 
 ## Code Status
 
-The official current release is version 1.3. Changes over the last few
+The official current release is version 1.4. Changes over the last few
 years have been only minor bug fixes, minor feature additions and
 documentation improvements. QCBOR 1.x is highly stable.
 
@@ -577,5 +577,5 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Copyright for this README
 
-Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
 Copyright (c) 2021-2023, Arm Limited. All rights reserved.

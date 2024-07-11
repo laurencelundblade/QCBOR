@@ -61,7 +61,7 @@ extern "C" {
  *   - QCBOR 1.0 is indicated by the absence of all the above
  */
 #define QCBOR_VERSION_MAJOR 1
-#define QCBOR_VERSION_MINOR 3
+#define QCBOR_VERSION_MINOR 4
 #define QCBOR_VERSION_PATCH 0
 
 
