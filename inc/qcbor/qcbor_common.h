@@ -43,8 +43,6 @@ extern "C" {
 #endif
 #endif
 
-
-
 /**
  * @file qcbor_common.h
  *
@@ -531,14 +529,32 @@ typedef enum {
     */
    QCBOR_ERR_NOT_PREFERRED = 79,
 
-   /* Trying to encode something that is discouraged (e.g., 65-bit
+   /** Trying to encode something that is discouraged (e.g., 65-bit
     * negative integer) without allowing it by calling
     * QCBOREncode_Allow() */
    QCBOR_ERR_NOT_ALLOWED = 80,
+
    /** QCBORDecode_EnterBstrWrapped() cannot be used on
-    * indefinite-length strings because they exist in memory pool for
+    * indefinite-length strings because they exist in the memory pool for
     * a @ref QCBORStringAllocate. */
    QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING = 81,
+
+   /** Decoded CBOR is does not conform to preferred serialization. The CBOR head's argument is not encoded in shortest form, or indefinite lengths are used.*/
+   QCBOR_ERR_PREFERRED_CONFORMANCE = 82,
+
+   /** Decoded CBOR does not conform to CDE. This occurs when a map is not sorted. Other
+    * CDE issues are reported as QCBOR_ERR_PREFERRED_CONFORMANCE. */
+   QCBOR_ERR_CDE_CONFORMANCE = 83,
+
+   /** Decoded CBOR does not conform to dCBOR. Floating point numbers are not reduced to integers.
+    * Other issues are reported as either QCBOR_ERR_CDE_CONFORMANCE or QCBOR_ERR_PREFERRED_CONFORMANCE. */
+   QCBOR_ERR_DCBOR_CONFORMANCE = 84,
+
+   /** A map is unsorted and should be for CDE or dCBOR. */
+   QCBOR_ERR_UNSORTED = 85,
+
+   /** Conformance checking requested, preferred serialization disabled, float in the input. */
+   QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE = 86,
 
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice

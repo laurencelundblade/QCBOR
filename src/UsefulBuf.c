@@ -44,6 +44,7 @@
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 1/7/2024    llundblade   Add UsefulInputBuf_Compare().
  21/05/2024  llundblade   Comment formatting and some code tidiness.
  28/02/2022  llundblade   Rearrange UsefulOutBuf_Compare().
  19/11/2023  llundblade   Add UsefulOutBuf_GetOutput().
@@ -444,6 +445,41 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pMe, size_t uAmount)
    /* Won't overflow because of check using UsefulInputBuf_BytesAvailable() */
    pMe->cursor += uAmount;
    return result;
+}
+
+
+/*
+ * Public function -- see UsefulBuf.h
+ *
+ * Code Reviewers: THIS FUNCTION DOES POINTER MATH
+ */
+int
+UsefulInputBuf_Compare(UsefulInputBuf *pUInBuf,
+                       const size_t    uOffset1,
+                       const size_t    uLen1,
+                       const size_t    uOffset2,
+                       const size_t    uLen2)
+{
+   UsefulBufC UB1;
+   UsefulBufC UB2;
+
+   const size_t uInputSize = UsefulInputBuf_GetBufferLength(pUInBuf);
+
+   /* Careful length check that works even if uLen1 + uOffset1 > SIZE_MAX */
+   if(uOffset1 > uInputSize || uLen1 > uInputSize - uOffset1) {
+      return 1;
+   }
+   UB1.ptr = (const uint8_t *)pUInBuf->UB.ptr + uOffset1;
+   UB1.len = uLen1;
+
+   /* Careful length check that works even if uLen2 + uOffset2 > SIZE_MAX */
+   if(uOffset2 > uInputSize || uLen2 > uInputSize - uOffset2) {
+      return -1;
+   }
+   UB2.ptr = (const uint8_t *)pUInBuf->UB.ptr + uOffset2;
+   UB2.len = uLen2;
+
+   return UsefulBuf_Compare(UB1, UB2);
 }
 
 

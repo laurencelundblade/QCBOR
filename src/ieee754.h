@@ -223,7 +223,7 @@ IEEE754_UintToDouble(uint64_t uInt, int uIsNegative);
  * represent a NaN.
  */
 int
-IEEE754_IsNotStandardDoubleNaN(double dNum);
+IEEE754_DoubleHasNaNPayload(double dNum);
 
 
 
@@ -234,11 +234,11 @@ IEEE754_IsNotStandardDoubleNaN(double dNum);
  *
  * @returns 0 if a quiet NaN, 1 if it has a payload.
  *
- * See IEEE754_IsNotStandardDoubleNaN(). A single precision quiet NaN
+ * See IEEE754_DoubleHasNaNPayload(). A single precision quiet NaN
  * is 0x7fc00000.
  */
 int
-IEEE754_IsNotStandardSingleNaN(float fNum);
+IEEE754_SingleHasNaNPayload(float fNum);
 
 
 #endif /* ieee754_h */

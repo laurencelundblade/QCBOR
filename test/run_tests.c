@@ -67,10 +67,18 @@ static test_entry2 s_tests2[] = {
 
 
 static test_entry s_tests[] = {
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+   TEST_ENTRY(DecodeConformanceTests),
+#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
+   TEST_ENTRY(ErrorHandlingTests),
+   TEST_ENTRY(OpenCloseBytesTest),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    TEST_ENTRY(GetMapAndArrayTest),
    TEST_ENTRY(TellTests),
    TEST_ENTRY(ParseMapAsArrayTest),
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   TEST_ENTRY(ArrayNestingTest3),
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    TEST_ENTRY(SpiffyDateDecodeTest),
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
    TEST_ENTRY(ErrorHandlingTests),
@@ -86,7 +94,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(IndefiniteLengthNestTest),
    TEST_ENTRY(IndefiniteLengthArrayMapTest),
    TEST_ENTRY(NestedMapTestIndefLen),
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    TEST_ENTRY(SimpleValueDecodeTests),
    TEST_ENTRY(DecodeFailureTests),
@@ -95,11 +103,6 @@ static test_entry s_tests[] = {
    TEST_ENTRY(MapEncodeTest),
    TEST_ENTRY(ArrayNestingTest1),
    TEST_ENTRY(ArrayNestingTest2),
-
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   TEST_ENTRY(ArrayNestingTest3),
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-
    TEST_ENTRY(EncodeDateTest),
    TEST_ENTRY(SimpleValuesTest1),
    TEST_ENTRY(IntegerValuesTest1),
@@ -164,8 +167,6 @@ static test_entry s_tests[] = {
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    TEST_ENTRY(PeekAndRewindTest),
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
-
-
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
    TEST_ENTRY(ExponentAndMantissaDecodeTests),
