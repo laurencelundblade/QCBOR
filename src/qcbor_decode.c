@@ -3157,7 +3157,7 @@ QCBORDecode_GetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
       /* Traverse map checking sort order and for duplicates */
       uErr = QCBORDecode_Private_CheckMap(pMe, pDecodedItem);
    }
-#endif
+#endif /* ! QCBOR_DISABLE_CONFORMANCE */
    if(uErr != QCBOR_SUCCESS) {
       pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
       pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
@@ -4041,7 +4041,7 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    bInMap = DecodeNesting_IsCurrentTypeMap(&(pMe->nesting));
 
    /* Could call GetNext here, but don't need to because this
-    * is only interested in arrays and maps. TODO: swithc to GetNext()? */
+    * is only interested in arrays and maps. TODO: switch to GetNext()? */
    uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pItem, NULL);
    if(uErr != QCBOR_SUCCESS) {
       pMe->uLastError = (uint8_t)uErr;

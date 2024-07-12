@@ -10105,6 +10105,13 @@ DecodeConformanceTests(void)
       }
    }
 
+   /* Make sure EnterMap is handling errors */
+   QCBORDecode_Init(&DCtx,UsefulBuf_FROM_SZ_LITERAL("\xa2\x00\x00\x00\x00"), QCBOR_DECODE_MODE_CDE);
+   QCBORDecode_EnterMap(&DCtx, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_DUPLICATE_LABEL) {
+      return 5000;
+   }
+
    return ProcessDecodeFailures(DecodeConformanceFailures,
                                 C_ARRAY_COUNT(DecodeConformanceFailures, struct DecodeFailTestInput));
 
