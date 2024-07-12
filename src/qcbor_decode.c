@@ -1932,29 +1932,6 @@ Done:
 }
 
 
-/* Only works in definite lengths. Used to skip over labels that
- * are maps or arrays.
- */
-static QCBORError
-ConsumeArrayOrMap(QCBORDecodeContext *pMe, int nCount)
-{
-   QCBORError uErr, uErr2;
-   QCBORItem  Item;
-
-   uErr = QCBOR_SUCCESS;
-   for(;nCount > 0; nCount--) {
-      uErr2 = QCBORDecode_Private_GetNextTagNumber(pMe, &Item);
-      if(QCBORDecode_IsUnrecoverableError(uErr2)) {
-         break;
-      }
-      if(uErr2 != QCBOR_SUCCESS) {
-         uErr = uErr2;
-      }
-   }
-
-   return uErr;
-}
-
 /**
  * @brief Combine a map entry label and value into one item (decode layer 3).
  *
@@ -2018,25 +1995,11 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
 
    /* Decoding a map entry, so the item decoded above was the label */
    LabelItem = *pDecodedItem;
-
-   if(QCBORItem_IsMapOrArray(LabelItem) && pMe->bAllowAllLabels) {
-      int nCount = LabelItem.val.uCount;
-      if(LabelItem.uDataType != QCBOR_TYPE_ARRAY) {
-         nCount *= 2;
-      }
-      uErr2 = ConsumeArrayOrMap(pMe, nCount);
-      if(QCBORDecode_IsUnrecoverableError(uErr2))  {
-         goto Done;
-      }
-      if(uErr2 != QCBOR_SUCCESS) {
-         uErr = uErr2;
-      }
-   }
+   
    if(puLabelEndOffset != NULL) {
-      /* Cast is OK because lengths are all 32-bit in QCBOR */
-      *puLabelEndOffset = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
-   }
-
+       /* Cast is OK because lengths are all 32-bit in QCBOR */
+       *puLabelEndOffset = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
+    }
 
    /* Get the value of the map item */
    uErr2 = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
@@ -2081,7 +2044,12 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
       default:
-         if(!pMe->bAllowAllLabels) {
+         /* It is possible to skip over labels that are non-aggregate
+          * types like floats, but not to skip over labels that are
+          * arrays or maps. We might eventually handle more label
+          * types like floats as they are not too hard and we now
+          * have QCBOR_DISABLE_NON_INTEGER_LABELS */
+         if(!pMe->bAllowAllLabels || QCBORItem_IsMapOrArray(LabelItem)) {
             uErr = QCBOR_ERR_MAP_LABEL_TYPE;
             goto Done;
          }
@@ -2959,24 +2927,67 @@ Done:
 }
 
 
-// TODO: move this forward declration?
+/**
+ * @brief Consume an entire map or array including its contents.
+ *
+ * @param[in]  pMe              The decoder context.
+ * @param[in]  pItemToConsume   The array/map whose contents are to be
+ *                              consumed.
+ * @param[out] puNextNestLevel  The next nesting level after the item was
+ *                              fully consumed.
+ *
+ * This may be called when @c pItemToConsume is not an array or
+ * map. In that case, this is just a pass through for @c puNextNestLevel
+ * since there is nothing to do.
+ */
 static QCBORError
 QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
                                 const QCBORItem    *pItemToConsume,
                                 bool               *pbBreak,
-                                uint8_t            *puNextNestLevel);
+                                uint8_t            *puNextNestLevel)
+{
+   QCBORError uReturn;
+   QCBORItem  Item;
 
+   /* If it is a map or array, this will tell if it is empty. */
+   const bool bIsEmpty = (pItemToConsume->uNextNestLevel <= pItemToConsume->uNestingLevel);
 
+   if(QCBORItem_IsMapOrArray(*pItemToConsume) && !bIsEmpty) {
+      /* There is only real work to do for non-empty maps and arrays */
 
+      /* This works for definite- and indefinite-length maps and
+       * arrays by using the nesting level
+       */
+      do {
+         uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pbBreak, &Item, NULL);
+         if(QCBORDecode_IsUnrecoverableError(uReturn) ||
+            uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
+            goto Done;
+         }
+      } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
 
+      *puNextNestLevel = Item.uNextNestLevel;
 
+      uReturn = QCBOR_SUCCESS;
+
+   } else {
+      /* pItemToConsume is not a map or array. Just pass the nesting
+       * level through. */
+      *puNextNestLevel = pItemToConsume->uNextNestLevel;
+
+      uReturn = QCBOR_SUCCESS;
+   }
+
+Done:
+    return uReturn;
+}
 
 
 /*
  *
- * This consumes the next item. It returns the starting
- * position of the label and the length of the label. It
- * also returns the nest level of the item consumed.
+ * This consumes the next item. It returns the starting position of
+ * the label and the length of the label. It also returns the nest
+ * level of the item consumed.
  */
 static QCBORError
 QCBORDecode_Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
@@ -3006,11 +3017,11 @@ Done:
 
 
 /* Loop over items in a map until the end of the map looking for
- * duplicates. This starts at the current position in the map,
- * not at the beginning of the map.
+ * duplicates. This starts at the current position in the map, not at
+ * the beginning of the map.
  *
- * This saves and restores the traversal cursor and nest
- * tracking so they are the same on exit as they were on entry.
+ * This saves and restores the traversal cursor and nest tracking so
+ * they are the same on exit as they were on entry.
  */
 static QCBORError
 QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
@@ -3040,8 +3051,17 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
          break; /* Successful end of loop */
       }
 
-      // TODO: test successful end for indefinite length maps
-
+      /* This check for dups works for labels that are preferred
+       * serialization and are not maps. If the labels are not in
+       * preferred serialization, then the check has to be more
+       * complicated and is type-specific because it uses the decoded
+       * value, not the encoded CBOR. It is further complicated for
+       * maps because the order of items in a map that is a label
+       * doesn't matter when checking that is is the duplicate of
+       * another map that is a label. QCBOR so far only turns on this
+       * dup checking as part of CDE checking which requires preferred
+       * serialization.  See 5.6 in RFC 8949.
+       */
       nCompare = UsefulInputBuf_Compare(&(pMe->InBuf),
                                          uCompareLabelStart, uCompareLabelLen,
                                          uLabelStart, uLabelLen);
@@ -3058,9 +3078,9 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
 }
 
 
-/* This does sort order and duplicate detection on a map. It works
- * on map labels of any type, even map labels that are maps (even
- * though QCBOR doesn't directly support decoding them).
+/* This does sort order and duplicate detection on a map. The and all
+ * it's members must be in preferred serialization so the comparisons
+ * work correctly.
  */
 static QCBORError
 QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToCheck)
@@ -3074,10 +3094,9 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToChe
    pMe->bAllowAllLabels = 1;
 
    /* This loop runs over all the items in the map once, comparing
-    * each adjacent pair for correct ordering. It also calls
-    * CheckDup on each one which also runs over the remaining
-    * items in the map checking for duplicates. So duplicate
-    * checking runs in n^2.
+    * each adjacent pair for correct ordering. It also calls CheckDup
+    * on each one which also runs over the remaining items in the map
+    * checking for duplicates. So duplicate checking runs in n^2.
     */
 
    offset2 = SIZE_MAX;
@@ -3096,8 +3115,12 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToChe
       }
 
       if(offset2 != SIZE_MAX) {
-         /* Check that the labels are ordered. Check is not done the first
-          * time through the loop when offset2 is unset. */
+         /* Check that the labels are ordered. Check is not done the
+          * first time through the loop when offset2 is unset. Since
+          * this does comparison of the items in encoded form they
+          * must be preferred serialization encoded. See RFC 8949
+          * 4.2.1.
+          */
          if(UsefulInputBuf_Compare(&(pMe->InBuf), offset2, length2, offset1, length1) > 0) {
             uErr = QCBOR_ERR_UNSORTED;
             break;
@@ -3568,63 +3591,6 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
 }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-
-
-
-/**
- * @brief Consume an entire map or array including its contents.
- *
- * @param[in]  pMe              The decoder context.
- * @param[in]  pItemToConsume   The array/map whose contents are to be
- *                              consumed.
- * @param[out] puNextNestLevel  The next nesting level after the item was
- *                              fully consumed.
- *
- * This may be called when @c pItemToConsume is not an array or
- * map. In that case, this is just a pass through for @c puNextNestLevel
- * since there is nothing to do.
- */
-static QCBORError
-QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
-                                const QCBORItem    *pItemToConsume,
-                                bool               *pbBreak,
-                                uint8_t            *puNextNestLevel)
-{
-   QCBORError uReturn;
-   QCBORItem  Item;
-
-   /* If it is a map or array, this will tell if it is empty. */
-   const bool bIsEmpty = (pItemToConsume->uNextNestLevel <= pItemToConsume->uNestingLevel);
-
-   if(QCBORItem_IsMapOrArray(*pItemToConsume) && !bIsEmpty) {
-      /* There is only real work to do for non-empty maps and arrays */
-
-      /* This works for definite- and indefinite-length maps and
-       * arrays by using the nesting level
-       */
-      do {
-         uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pbBreak, &Item, NULL);
-         if(QCBORDecode_IsUnrecoverableError(uReturn) ||
-            uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
-            goto Done;
-         }
-      } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
-
-      *puNextNestLevel = Item.uNextNestLevel;
-
-      uReturn = QCBOR_SUCCESS;
-
-   } else {
-      /* pItemToConsume is not a map or array. Just pass the nesting
-       * level through. */
-      *puNextNestLevel = pItemToConsume->uNextNestLevel;
-
-      uReturn = QCBOR_SUCCESS;
-   }
-
-Done:
-    return uReturn;
-}
 
 
 /*

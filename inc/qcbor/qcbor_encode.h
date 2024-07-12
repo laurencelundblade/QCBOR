@@ -358,6 +358,7 @@ extern "C" {
  * - Max items in an array or map when encoding or decoding is
  *   @ref QCBOR_MAX_ITEMS_IN_ARRAY (typically 65,536).
  * - Does not directly support labels in maps other than text strings & integers.
+ * - Traversal, duplicate and sort order checking errors out for labels that are arrays or maps.
  * - Does not directly support integer labels beyond whats fits in @c int64_t
  *   or @c uint64_t.
  * - Epoch dates limited to @c INT64_MAX (+/- 292 billion years).

@@ -891,7 +891,6 @@ const char *  UIBTest_IntegerFormat(void)
    UsefulBufC CompCheck = UsefulBuf_FROM_SZ_LITERAL("abcd");
    UsefulInputBuf_Init(&UIB, CompCheck);
 
-   // TODO: fully test this (and check code coverage)
    if(UsefulInputBuf_Compare(&UIB, 0, 2, 2, 2) >= 0) {
       return "UB 1 compared greater than UB2";
    }

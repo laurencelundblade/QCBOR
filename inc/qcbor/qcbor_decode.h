@@ -194,16 +194,27 @@ typedef enum {
    QCBOR_DECODE_MODE_MAP_STRINGS_ONLY = 1,
    /** See QCBORDecode_Init() */
    QCBOR_DECODE_MODE_MAP_AS_ARRAY = 2,
-   /** TODO:
-    * This requires preferred serialization -- no indef lengths; shortest form integers and floats */
+   /**
+    * This checks that the input is encoded with preferred
+    * serialization. The checking is performed as each item is
+    * decoded. If no QCBORDecode_GetXxx() is called for an item,
+    * there's no check on that item. Preferred serialization was first
+    * defined in section 4.1 of RFC 8949, but is more sharply in
+    * draft-ietf-cbor-cde. Summarizing, the requirements are: the use
+    * of definite-length encoding only, integers, including string
+    * lengths and tags, must be in shortest form, and floating-point
+    * numbers must be reduced to shortest form all the way to
+    * half-precision. */
    QCBOR_DECODE_MODE_PREFERRED = 3,
 
-   /** This require maps to be sorted by label. This also performs full duplicat label checking
-    * on every map before it is returned. This mode adds considerable CPU-time expense
-    * to decoding.
+   /** This checks that maps in the input are sorted by label as
+    * described in RFC 8949 section 4.2.1.  This also performs
+    * duplicate label checking.  This mode adds considerable CPU-time
+    * expense to decoding, though it is probably only of consequence
+    * for large inputs on slow CPUs.
     *
-    * This also performs all the checks that QCBOR_DECODE_MODE_PREFERRED
-    * does. */
+    * This also performs all the checks that
+    * QCBOR_DECODE_MODE_PREFERRED does. */
    QCBOR_DECODE_MODE_CDE = 4,
    
    /** This requires integer-float unification. It performs all the checks that

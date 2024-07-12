@@ -2558,11 +2558,11 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 49) {
+      if(nIndex == 54) {
          uCBORError = 9; /* For setting break points */
       }
 
-      if(strncmp("map with out-of-order labels that ", pF->szDescription, 15) == 0) {
+      if(strncmp("map with map label with non-preferred part", pF->szDescription, 25) == 0) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -10020,13 +10020,19 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    {"map with out-of-order labels that are arrays",
       QCBOR_DECODE_MODE_CDE,
       {"\xA3\x83\x00\x01\x02\x61\x63\x83\x00\x01\x00\x61\x61\x83\x00\x01\x01\x61\x62", 19},
-      QCBOR_ERR_UNSORTED
+      QCBOR_ERR_MAP_LABEL_TYPE
    },
 #if !defined(QCBOR_DISABLE_TAGS) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
-   { "unsorted map with labels of all types",
+   { "unsorted map with labels of all types including arrays and maps",
       QCBOR_DECODE_MODE_CDE,
       {"\xA8\x80\x07\xC1\x18\x58\x02\x64\x74\x65\x78\x74\x03\x01\x01\xA0\x04"
          "\x42\x78\x78\x05\xF5\x06\xFB\x40\x21\x8A\x3D\x70\xA3\xD7\x0A\x07", 33},
+      QCBOR_ERR_MAP_LABEL_TYPE
+   },
+   { "unsorted map with labels of all non-aggregate types",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xA6\xC1\x18\x58\x02\x64\x74\x65\x78\x74\x03\x01\x01"
+         "\x42\x78\x78\x05\xF5\x06\xFB\x40\x21\x8A\x3D\x70\xA3\xD7\x0A\x07", 29},
       QCBOR_ERR_UNSORTED
    },
    {"map with out-of-order labels that have tags",
@@ -10045,16 +10051,34 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    {"map with dup map labels",
       QCBOR_DECODE_MODE_CDE,
       {"\xA3\xA1\x03\x03\x61\x61\xA1\x02\x02\x61\x62\xA1\x03\x03\x61\x63", 16},
-      QCBOR_ERR_DUPLICATE_LABEL
-   }
-};
+      QCBOR_ERR_MAP_LABEL_TYPE
+   },
+
+   /* --- Maps with bad labels --- */
+   { "map with invalid label",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xa1\x1c\x01", 3},
+      QCBOR_ERR_UNSUPPORTED
+   },
+
+   { "map with array label with invalid parts",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xa1\x81\x1c\x01", 4},
+      QCBOR_ERR_MAP_LABEL_TYPE
+   },
+
+   { "map with map label with non-preferred part",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xa1\xa1\x19\x00\x00\x01\x02", 7},
+      QCBOR_ERR_MAP_LABEL_TYPE
+   }};
 
 
 static UsefulBufC CorrectlySorted[] = {
    /* This one is correctly sorted, but is not correct preferred serialization. QCBOR checks
     * the sort order of the map without checking the preferred serialization of the
     * map items, so this test passes. */
-   {"\xa4\x01\x61\x61\xf9\x3C\x00\x61\x62\xFA\x3F\x80\x00\x00\x61\x62\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00\x61\x63", 27},
+   {"\xa4\x01\x61\x61\xf9\x3C\x00\x61\x62\xFA\x3F\x80\x00\x00\x61\x63\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00\x61\x64", 27},
    {"\xa3\x00\x61\x61\x01\x61\x62\xa3\x0c\x61\x78\x0b\x61\x79\x0a\x61\x7a\x61\x63", 19},
    {"\xA3\xE0\x61\x61\xF5\x61\x62\xFB\x3F\xF1\x99\x99\x99\x99\x99\x9A\x61\x63", 18},
    {"\xa2\x00\x00\x01\x01", 5},

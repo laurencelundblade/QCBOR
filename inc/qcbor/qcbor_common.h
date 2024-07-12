@@ -31,6 +31,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
 
+//#define USEFULBUF_DISABLE_ALL_FLOAT
 
 #ifndef qcbor_common_h
 #define qcbor_common_h
