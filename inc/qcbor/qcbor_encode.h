@@ -341,7 +341,7 @@ extern "C" {
  * float type as 32-bits and a C double type as 64-bits. Floating-point
  * epoch dates will be unsupported.
  *
- * If USEFULBUF_DISABLE_ALL_FLOATis defined, then floating point
+ * If USEFULBUF_DISABLE_ALL_FLOAT is defined, then floating point
  * support is completely disabled. Decoding functions return
  * @ref QCBOR_ERR_ALL_FLOAT_DISABLED if a floating point value is
  * encountered during decoding. Functions that are encoding floating
@@ -349,31 +349,34 @@ extern "C" {
  *
  * ## Limitations
  *
- * Summary Limits of this implementation:
+ * Summary limitations:
  * - The entire encoded CBOR must fit into contiguous memory.
- * - Max size of encoded / decoded CBOR data is a few bytes less than @c UINT32_MAX (4GB).
- * - Max array / map nesting level when encoding / decoding is
+ * - Max size of encoded CBOR data is a few bytes less than
+ *   @c UINT32_MAX (4GB).
+ * - Max array / map nesting level when encoding or decoding is
  *   @ref QCBOR_MAX_ARRAY_NESTING (this is typically 15).
- * - Max items in an array or map when encoding / decoding is
+ * - Max items in an array or map when encoding or decoding is
  *   @ref QCBOR_MAX_ITEMS_IN_ARRAY (typically 65,536).
  * - Does not directly support labels in maps other than text strings & integers.
- * - Does not directly support integer labels greater than @c INT64_MAX.
+ * - Traversal, duplicate and sort order checking errors out for labels that are arrays or maps.
+ * - Does not directly support integer labels beyond whats fits in @c int64_t
+ *   or @c uint64_t.
  * - Epoch dates limited to @c INT64_MAX (+/- 292 billion years).
- * - Exponents for bigfloats and decimal integers are limited to @c INT64_MAX.
+ * - Exponents for bigfloats and decimal integers are limited to whats fits in
+ *   @c int64_t.
  * - Tags on labels are ignored during decoding.
  * - The maximum tag nesting is @c QCBOR_MAX_TAGS_PER_ITEM (typically 4).
- * - Works only on 32- and 64-bit CPUs (modifications could make it work
- *   on 16-bit CPUs).
+ * - Works only on 32- and 64-bit CPUs.
+ * - QCBORDecode_EnterBstrWrapped() doesn't work on indefinite-length strings.
  *
  * The public interface uses @c size_t for all lengths. Internally the
  * implementation uses 32-bit lengths by design to use less memory and
  * fit structures on the stack. This limits the encoded CBOR it can
- * work with to size @c UINT32_MAX (4GB) which should be enough.
+ * work with to size @c UINT32_MAX (4GB).
  *
- * This implementation assumes two's compliment integer machines.
- * @c <stdint.h> also requires this. It is possible to modify this
- * implementation for another integer representation, but all modern
- * machines seem to be two's compliment.
+ * This implementation requires two's compliment integers. While
+ * C doesn't require two's compliment,  <stdint.h> does. Other
+ * parts of this implementation may also require two's compliment.
  */
 
 
@@ -686,7 +689,7 @@ QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t uNu
  *
  * Error handling is the same as for QCBOREncode_AddInt64().
  */
-void
+static void
 QCBOREncode_AddUInt64(QCBOREncodeContext *pCtx, uint64_t uNum);
 
 static void
@@ -851,8 +854,10 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  * By default, this will error out on an attempt to encode a NaN with
  * a payload. See QCBOREncode_Allow() and @ref
  * QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
+ * If preferred serialization is disabled at compliation, this check for
+ * for NaN payloads is disabled.
  */
-void
+static void
 QCBOREncode_AddDouble(QCBOREncodeContext *pCtx, double dNum);
 
 static void
@@ -874,7 +879,7 @@ QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNu
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddDoubleNoPreferred(),
  * and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
  */
-void
+static void
 QCBOREncode_AddFloat(QCBOREncodeContext *pCtx, float fNum);
 
 static void
@@ -890,18 +895,15 @@ QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float dNum)
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] dNum  The double-precision number to add.
  *
- * This always outputs the number as a 64-bit double-precision.
- * Preferred serialization is not used.
+ * Output a double-precision float straight-through with no checking or
+ * processing for preferred serialization, dCBOR or other.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
- *
- * By default, this will error out on an attempt to encode a NaN with
- * a payload. See QCBOREncode_Allow() and @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
  *
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(), and
  * QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
  */
-void
+static void
 QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pCtx, double dNum);
 
 static void
@@ -917,18 +919,15 @@ QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] fNum  The single-precision number to add.
  *
- * This always outputs the number as a 32-bit single-precision.
- * Preferred serialization is not used.
+ * Output a single-precision float straight-through with no checking or
+ * processing for preferred serializtion, dCBOR or other.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
- *
- * By default, this will error out on an attempt to encode a NaN with
- * a payload. See QCBOREncode_Allow() and @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
  *
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(), and
  * QCBOREncode_AddDoubleNoPreferred() and @ref Floating-Point.
  */
-void
+static void
 QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pCtx, float fNum);
 
 static void
@@ -962,7 +961,7 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
  * tags. See QCBORDecode_GetNext() for discussion of decoding custom
  * tags.
  */
-void
+static void
 QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
 
 
@@ -1969,7 +1968,6 @@ static void
 QCBOREncode_AddBoolToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, bool b);
 
 
-
 /**
  * @brief  Add a NULL to the encoded output.
  *
@@ -2014,6 +2012,38 @@ QCBOREncode_AddUndefToMap(QCBOREncodeContext *pCtx, const char *szLabel);
 
 static void
 QCBOREncode_AddUndefToMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
+
+
+/**
+ * @brief Add a simple value.
+ *
+ * @param[in] pMe    The encode context.
+ * @param[in] uNum   The simple value.
+ *
+ * QCBOREncode_AddBool(), QCBOREncode_AddUndef() and
+ * QCBOREncode_AddNull() are preferred to this for the simple values
+ * defined in RFC 8949, but this can be used for them too.
+ *
+ * The main purpose of this is to add simple values beyond those in
+ * defined RFC 8949. Note that simple values must be registered with
+ * IANA. Those in the range of 0 to 19 must be standardized.  Those in
+ * the range of 32 to 255 do not require a standard, but must be
+ * publically specified. There is no range of values for proprietary
+ * use. See
+ * https://www.iana.org/assignments/cbor-simple-values/cbor-simple-values.xhtml
+ */
+static void
+QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint8_t uNum);
+
+static void
+QCBOREncode_AddSimpleToMap(QCBOREncodeContext *pMe,
+                           const char         *szLabel,
+                           const uint8_t       uSimple);
+
+static void
+QCBOREncode_AddSimpleToMapN(QCBOREncodeContext *pMe,
+                            const int64_t       nLabel,
+                            const uint8_t       uSimple);
 
 
 /**
@@ -2368,7 +2398,7 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pCtx);
  * must be enclosed in a map or array. At the top level the raw
  * CBOR must be a single data item.
  */
-static void
+void
 QCBOREncode_AddEncoded(QCBOREncodeContext *pCtx, UsefulBufC Encoded);
 
 static void
@@ -2548,10 +2578,27 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
    ========================================================================= */
 
 /* Semi-private funcion used by public inline functions. See qcbor_encode.c */
+void QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext *pMe,
+                                        const uint8_t       uMajorType,
+                                        const uint64_t      uArgument,
+                                        const uint8_t       uMinLen);
+
+
+/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
 void
 QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pCtx,
                               uint8_t             uMajorType,
                               UsefulBufC          Bytes);
+
+
+/* Semi-private function for adding a double with preferred encoding. See qcbor_encode.c */
+void
+QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, const double dNum);
+
+
+/* Semi-private function for adding a float with preferred encoding. See qcbor_encode.c */
+void
+QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, const float fNum);
 
 
 /* Semi-private funcion used by public inline functions. See qcbor_encode.c */
@@ -2580,13 +2627,6 @@ QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
 
 /* Semi-private funcion used by public inline functions. See qcbor_encode.c */
 void
-QCBOREncode_Private_AddType7(QCBOREncodeContext *pCtx,
-                             uint8_t             uMinLen,
-                             uint64_t            uNum);
-
-
-/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
-void
 QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pCtx,
                                    uint64_t            uTag,
                                    UsefulBufC          BigNumMantissa,
@@ -2595,6 +2635,34 @@ QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pCtx,
                                    int64_t             nExponent);
 
 
+
+/**
+ * @brief  Semi-private method to add simple items and floating-point.
+ *
+ * @param[in] pMe        The encoding context.
+ * @param[in] uMinLen    Minimum encoding size for uNum. Usually 0.
+ * @param[in] uArgument  The value to add.
+ *
+ * This is used to add simple types like true and false and float-point
+ * values, both of which are type 7.
+ *
+ * Call QCBOREncode_AddBool(), QCBOREncode_AddNULL(),
+ * QCBOREncode_AddUndef() QCBOREncode_AddDouble() instead of this.
+ *
+ * Error handling is the same as QCBOREncode_AddInt64().
+ */
+static inline void
+QCBOREncode_Private_AddType7(QCBOREncodeContext *pMe,
+                             const uint8_t       uMinLen,
+                             const uint64_t      uArgument)
+{
+   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_SIMPLE, uArgument, uMinLen);
+}
+
+
+/* Forward declaration */
+static void
+QCBOREncode_AddSZString(QCBOREncodeContext *pMe, const char *szString);
 
 
 static inline void
@@ -2647,10 +2715,7 @@ QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe,
                           const char        *szLabel,
                           const int64_t      uNum)
 {
-   /* Use _AddBuffer() because _AddSZString() is defined below, not above */
-   QCBOREncode_Private_AddBuffer(pMe,
-                                 CBOR_MAJOR_TYPE_TEXT_STRING,
-                                 UsefulBuf_FromSZ(szLabel));
+   QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddInt64(pMe, uNum);
 }
 
@@ -2665,14 +2730,18 @@ QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
+QCBOREncode_AddUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
+{
+   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_POSITIVE_INT, uValue, 0);
+}
+
+
+static inline void
 QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pMe,
                            const char         *szLabel,
                            const uint64_t      uNum)
 {
-   /* Use _AddBuffer() because _AddSZString() is defined below, not above */
-   QCBOREncode_Private_AddBuffer(pMe,
-                                 CBOR_MAJOR_TYPE_TEXT_STRING,
-                                 UsefulBuf_FromSZ(szLabel));
+   QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddUInt64(pMe, uNum);
 }
 
@@ -2754,7 +2823,47 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pMe,
 }
 
 
+
+/*
+ * Public functions for adding a tag. See qcbor/qcbor_encode.h
+ */
+static inline void
+QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
+{
+   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_TAG, uTag, 0);
+}
+
+
+
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
+
+static inline void
+QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
+{
+   QCBOREncode_Private_AddType7(pMe,
+                                sizeof(uint64_t),
+                                UsefulBufUtil_CopyDoubleToUint64(dNum));
+}
+
+static inline void
+QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float fNum)
+{
+   QCBOREncode_Private_AddType7(pMe,
+                                sizeof(uint32_t),
+                                UsefulBufUtil_CopyFloatToUint32(fNum));
+}
+
+
+static inline void
+QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
+{
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+   QCBOREncode_Private_AddPreferredDouble(pMe, dNum);
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
+   QCBOREncode_AddDoubleNoPreferred(pMe, dNum);
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+}
+
 static inline void
 QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pMe,
                            const char         *szLabel,
@@ -2771,6 +2880,17 @@ QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddDouble(pMe, dNum);
+}
+
+
+static inline void
+QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
+{
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+   QCBOREncode_Private_AddPreferredFloat(pMe, fNum);
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
+   QCBOREncode_AddFloatNoPreferred(pMe, fNum);
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 
 static inline void
@@ -2827,6 +2947,8 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddFloatNoPreferred(pMe, dNum);
 }
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+
+
 
 
 
@@ -3856,9 +3978,8 @@ QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext *pMe,
 }
 
 
-
 static inline void
-QCBOREncode_Private_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum)
+QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint8_t uNum)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(pMe->uMode >= QCBOR_ENCODE_MODE_DCBOR) {
@@ -3868,27 +3989,32 @@ QCBOREncode_Private_AddSimple(QCBOREncodeContext *pMe, const uint64_t uNum)
          return;
       }
    }
-#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+   /* This check often is optimized out because uNum is known at compile time. */
+   if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
+      pMe->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
+      return;
+   }
+#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    QCBOREncode_Private_AddType7(pMe, 0, uNum);
 }
 
 static inline void
-QCBOREncode_Private_AddSimpleToMap(QCBOREncodeContext *pMe,
-                                   const char         *szLabel,
-                                   const uint8_t       uSimple)
+QCBOREncode_AddSimpleToMap(QCBOREncodeContext *pMe,
+                           const char         *szLabel,
+                           const uint8_t       uSimple)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_Private_AddSimple(pMe, uSimple);
+   QCBOREncode_AddSimple(pMe, uSimple);
 }
 
 static inline void
-QCBOREncode_Private_AddSimpleToMapN(QCBOREncodeContext *pMe,
-                                    const int64_t       nLabel,
-                                    const uint8_t       uSimple)
+QCBOREncode_AddSimpleToMapN(QCBOREncodeContext *pMe,
+                            const int64_t       nLabel,
+                            const uint8_t       uSimple)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_Private_AddSimple(pMe, uSimple);
+   QCBOREncode_AddSimple(pMe, uSimple);
 }
 
 
@@ -3899,7 +4025,7 @@ QCBOREncode_AddBool(QCBOREncodeContext *pMe, const bool b)
    if(b) {
       uSimple = CBOR_SIMPLEV_TRUE;
    }
-   QCBOREncode_Private_AddSimple(pMe, uSimple);
+   QCBOREncode_AddSimple(pMe, uSimple);
 }
 
 static inline void
@@ -3920,7 +4046,7 @@ QCBOREncode_AddBoolToMapN(QCBOREncodeContext *pMe, const int64_t nLabel, const b
 static inline void
 QCBOREncode_AddNULL(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_AddSimple(pMe, CBOR_SIMPLEV_NULL);
+   QCBOREncode_AddSimple(pMe, CBOR_SIMPLEV_NULL);
 }
 
 static inline void
@@ -3941,7 +4067,7 @@ QCBOREncode_AddNULLToMapN(QCBOREncodeContext *pMe, const int64_t nLabel)
 static inline void
 QCBOREncode_AddUndef(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_AddSimple(pMe, CBOR_SIMPLEV_UNDEF);
+   QCBOREncode_AddSimple(pMe, CBOR_SIMPLEV_UNDEF);
 }
 
 static inline void
@@ -4098,11 +4224,6 @@ QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pMe, UsefulBufC *pWrappedCBOR)
 }
 
 
-static inline void
-QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
-{
-   QCBOREncode_Private_AddBuffer(pMe, CBOR_MAJOR_NONE_TYPE_RAW, Encoded);
-}
 
 static inline void
 QCBOREncode_AddEncodedToMap(QCBOREncodeContext *pMe,
@@ -4133,15 +4254,17 @@ static inline QCBORError
 QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
 {
    if(UsefulOutBuf_GetError(&(pMe->OutBuf))) {
-      // Items didn't fit in the buffer.
-      // This check catches this condition for all the appends and inserts
-      // so checks aren't needed when the appends and inserts are performed.
-      // And of course UsefulBuf will never overrun the input buffer given
-      // to it. No complex analysis of the error handling in this file is
-      // needed to know that is true. Just read the UsefulBuf code.
+      /* Items didn't fit in the buffer. This check catches this
+       * condition for all the appends and inserts so checks aren't
+       * needed when the appends and inserts are performed.  And of
+       * course UsefulBuf will never overrun the input buffer given to
+       * it. No complex analysis of the error handling in this file is
+       * needed to know that is true. Just read the UsefulBuf code.
+       */
       pMe->uError = QCBOR_ERR_BUFFER_TOO_SMALL;
-      // QCBOR_ERR_BUFFER_TOO_SMALL masks other errors, but that is
-      // OK. Once the caller fixes this, they'll be unmasked.
+      /* QCBOR_ERR_BUFFER_TOO_SMALL masks other errors, but that is
+       * OK. Once the caller fixes this, they'll be unmasked.
+       */
    }
 
    return (QCBORError)pMe->uError;

@@ -15,10 +15,10 @@ backwards compatibility.
 
 ![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
 
-**QCBOR** is a powerful, commercial-quality CBOR encoder/decoder that
+**QCBOR** is a powerful, commercial-quality CBOR encoder-decoder that
 implements these RFCs:
 
-* [RFC8949](https://tools.ietf.org/html/rfc8949) The CBOR Standard. (Everything
+* [RFC8949](https://tools.ietf.org/html/rfc8949) The CBOR Standard. (Nearly everything
 except sorting of encoded maps)
 * [RFC7049](https://tools.ietf.org/html/rfc7049) The previous CBOR standard.
 Replaced by RFC 8949.
@@ -183,11 +183,14 @@ QCBOR.
 
 ## Code Status
 
-The current version is v1.1, a small feature addition and bug fix
-release over QCBOR 1.0.
+The official current release is version 1.3. Changes over the last few
+years have been only minor bug fixes, minor feature additions and
+documentation improvements. QCBOR 1.x is highly stable.
 
-Code has been stable for over a year. The last major change was in
-fall of 2020.
+Work on some larger feature additions is ongoing in "dev" branch.
+This includes more explicit support for preferred serialization and
+CDE (CBOR Deterministic Encoding).  It will eventually be release as
+QCBOR 2.x.
 
 QCBOR was originally developed by Qualcomm. It was [open sourced
 through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a
@@ -390,17 +393,21 @@ available options and the associated #defines.
 ## Code Size
 
 These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
+All QCBOR_DISABLE_XXX are set and compiler stack frame checking is disabled
+for smallest but not for largest. Smallest is the library functions for a
+protocol with strings, integers, arrays, maps and Booleans, but not floats
+and standard tag types.
 
     |               | smallest | largest |
     |---------------|----------|---------|
-    | encode only   |      900 |    2100 |
+    | encode only   |      850 |    2200 |
     | decode only   |     1550 |   13300 |
-    | combined      |     2450 |   15500 |
+    | combined      |     2500 |   15500 |
 
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
- main factor is in this is the number of QCBOR functions called and
- which ones they are. QCBOR is constructed with less internal
+ main factor is the number of QCBOR functions called and
+ which ones they are. QCBOR minimizes internal
  interdependency so only code necessary for the called functions is
  brought in.
 
@@ -451,6 +458,7 @@ code. The amount saved is an approximation.
     | QCBOR_DISABLE_PREFERRED_FLOAT           |   900 |
     | QCBOR_DISABLE_FLOAT_HW_USE              |    50 |
     | QCBOR_DISABLE_TAGS                      |   400 |
+    | QCBOR_DISABLE_NON_INTEGER_LABELS        |   140 |
     | USEFULBUF_DISABLE_ALL_FLOAT             |   950 |
 
 QCBOR_DISABLE_ENCODE_USAGE_GUARDS affects encoding only.  It doesn't
@@ -489,6 +497,12 @@ QCBOR_DISABLE_TAGS disables all decoding of CBOR tags. If the input has
 a single tag, the error is unrecoverable so it is suitable only for protocols that
 have no tags. "Borrowed" tag content formats (e.g. an epoch-based date
 without the tag number), can still be processed.
+
+QCBOR_DISABLE_NON_INTEGER_LABELS causes any label that doesn't
+fit in an int64_t to result in a QCBOR_ERR_MAP_LABEL_TYPE error.
+This also disables QCBOR_DECODE_MODE_MAP_AS_ARRAY and
+QCBOR_DECODE_MODE_MAP_STRINGS_ONLY. It is fairly common for CBOR-based
+protocols to use only small integers as labels.
 
 See the discussion above on floating-point.
 

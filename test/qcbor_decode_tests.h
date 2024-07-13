@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2024, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -126,7 +126,7 @@ int32_t ParseMapAsArrayTest(void);
 /*
  Test parsing of some simple values like true, false, null...
  */
-int32_t ParseSimpleTest(void);
+int32_t SimpleValueDecodeTests(void);
 
 
 /*
@@ -319,9 +319,22 @@ Test GitHub issue #134: decode an indefinite-length string with a zero-length fi
 int32_t CBORTestIssue134(void);
 
 
+/*
+ * Test the decode checking features for dCBOR, CDE and preferred.
+ */
+int32_t DecodeConformanceTests(void);
+
 int32_t PreciseNumbersDecodeTest(void);
 
 int32_t ErrorHandlingTests(void);
+
+
+/*
+ * Test QCBORDecode_GetArray and QCBORDecode_GetMap
+ */
+int32_t GetMapAndArrayTest(void);
+
+int32_t TellTests(void);
 
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

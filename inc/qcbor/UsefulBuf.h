@@ -43,7 +43,9 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
- 28/02/2022   llundblade      Rearrange UsefulOutBuf_Compare().
+ 1/7/2024     llundblade      Add UsefulInputBuf_Compare().
+ 10/05/2024   llundblade      Add Xxx_OffsetToPointer.
+ 28/02/2024   llundblade      Rearrange UsefulOutBuf_Compare().
  19/11/2023   llundblade      Add UsefulOutBuf_GetOutput().
  19/11/2023   llundblade      Add UsefulOutBuf_Swap().
  19/11/2023   llundblade      Add UsefulOutBuf_Compare().
@@ -651,14 +653,25 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
 /**
- @brief Convert a pointer to an offset with bounds checking.
-
- @param[in] UB  Pointer to the UsefulInputBuf.
- @param[in] p   Pointer to convert to offset.
-
- @return SIZE_MAX if @c p is out of range, the byte offset if not.
+ * @brief Convert a pointer to an offset with bounds checking.
+ *
+ * @param[in] UB  A UsefulBuf.
+ * @param[in] p   Pointer to convert to offset.
+ *
+ * @return SIZE_MAX if @c p is out of range, the byte offset if not.
 */
 static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p);
+
+
+/**
+ * @brief Convert an offset to a pointer with bounds checking.
+ *
+ * @param[in] UB       A UsefulBuf.
+ * @param[in] uOffset  Offset in @c pUInBuf.
+ *
+ * @return @c NULL if @c uOffset is out of range, a pointer into the buffer if not.
+ */
+static inline const void *UsefulBuf_OffsetToPointer(UsefulBufC UB, size_t uOffset);
 
 
 #ifndef USEFULBUF_DISABLE_DEPRECATED
@@ -1413,7 +1426,7 @@ UsefulOutBuf_OutUBufOffset(UsefulOutBuf *pUOutBuf, size_t uOffset);
  * and @c start2. It compares bytes at those two starting points until
  * they are not equal or @c uLen1 or @c uLen2 is reached. If the
  * length of the string given is off the end of the output data, the
- * string will be effectively concated to the data in the output
+ * string will be effectively truncated to the data in the output
  * buffer for the comparison.
  *
  * This returns positive when @c uStart1 lexographically sorts ahead
@@ -1589,7 +1602,18 @@ static int UsefulInputBuf_BytesAvailable(UsefulInputBuf *pUInBuf, size_t uLen);
  *
  * @return SIZE_MAX if @c p is out of range, the byte offset if not.
  */
-static inline size_t UsefulInputBuf_PointerToOffset(UsefulInputBuf *pUInBuf, const void *p);
+static size_t UsefulInputBuf_PointerToOffset(UsefulInputBuf *pUInBuf, const void *p);
+
+
+/**
+ * @brief Convert an offset to a pointer with bounds checking.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ * @param[in] uOffset  Offset in @c pUInBuf.
+ *
+ * @return @c NULL if @c uOffset is out of range, a pointer into the buffer if not.
+ */
+static const void *UsefulInputBuf_OffsetToPointer(UsefulInputBuf *pUInBuf, size_t uOffset);
 
 
 /**
@@ -1799,6 +1823,32 @@ static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pUInBuf);
 static void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pUInBuf, size_t uNewLen);
 
 
+/**
+ * @brief Compare two ranges of bytes somewhere in the input buffer.
+ *
+ * @param[in] pUInBuf   The input buffer.
+ * @param[in] uOffset1  Offset of first range of bytes.
+ * @param[in] uLen1     Length of first range of bytes.
+ * @param[in] uOffset2  Offset of second range of bytes.
+ * @param[in] uLen2     Length of second range of bytes.
+ *
+ * This returns the same as UsefulBuf_Compare().
+ * 
+ * If the offset or the length plus offset or a range extends outside
+ * the input buffer, that range of bytes will be considered greater
+ * than the other string. If both are outside this is considered a
+ * degenerate condition and the first string is considered larger.
+ *
+ * This is a somewhat odd function of UsefulInputBuf as it is not used
+ * for consuming data. QCBOR uses it for map order and duplicate
+ * checking.
+ */
+int
+UsefulInputBuf_Compare(UsefulInputBuf *pUInBuf,
+                       const size_t    uOffset1,
+                       const size_t    uLen1,
+                       const size_t    uOffset2,
+                       const size_t    uLen2);
 
 
 /*----------------------------------------------------------
@@ -1953,6 +2003,18 @@ static inline size_t UsefulBuf_PointerToOffset(UsefulBufC UB, const void *p)
 
    return uOffset;
 }
+
+
+static inline const void *UsefulBuf_OffsetToPointer(UsefulBufC UB, size_t uOffset)
+{
+   if(UsefulBuf_IsNULLC(UB) || uOffset >= UB.len) {
+      return NULL;
+   }
+
+   return (const uint8_t *)UB.ptr + uOffset;
+}
+
+
 
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
@@ -2336,9 +2398,9 @@ static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pMe)
 
    /* The cursor is off the end of the input buffer given.
     * Presuming there are no bugs in this code, this should never happen.
-    * If it so, the struct was corrupted. The check is retained as
+    * If it is so, the struct was corrupted. The check is retained as
     * as a defense in case there is a bug in this code or the struct is
-    * corrupted.
+    * corrupted by an attacker or accidentally.
     */
    if(pMe->cursor > pMe->UB.len) {
       return 0;
@@ -2359,6 +2421,12 @@ static inline size_t UsefulInputBuf_PointerToOffset(UsefulInputBuf *pUInBuf, con
 {
    return UsefulBuf_PointerToOffset(pUInBuf->UB, p);
 }
+
+
+static inline const void *UsefulInputBuf_OffsetToPointer(UsefulInputBuf *pUInBuf, size_t uOffset)
+ {
+    return UsefulBuf_OffsetToPointer(pUInBuf->UB, uOffset);
+ }
 
 
 static inline UsefulBufC UsefulInputBuf_GetUsefulBuf(UsefulInputBuf *pMe, size_t uNum)
