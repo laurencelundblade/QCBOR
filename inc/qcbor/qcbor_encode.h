@@ -1200,28 +1200,37 @@ QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, Useful
 
 
 /**
- * @brief Add a positive big number to the encoded output.
+ * @brief Add a positive big number using preferred serialization.
  *
  * @param[in] pCtx             The encoding context to add the big number to.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
- * @param[in] Bytes            Pointer and length of the big number.
+ * @param[in] BigNumber            Pointer and length of the big number.
  *
- * Big numbers are integers larger than 64-bits. Their format is
- * described in [RFC 8949] (https://tools.ietf.org/html/rfc8949).
+ * @c BigNumber makes up a aribtrary precision integer in xx byte order.
+ * TODO: improve this
  *
- * It is output as CBOR major type 2, a binary string, with tag
- * @ref CBOR_TAG_POS_BIGNUM indicating the binary string is a positive
- * big number.
+ * If the value in BigNumber is greater than UINT64_MAX, this will be
+ * encoded as the CBOR tag @ref CBOR_TAG_POS_BIGNUM. If
+ * less then, it will be output as a type 0 integer. This is as
+ * required for preferred serialization described in
+ * TODO: reference
  *
- * Often big numbers are used to represent cryptographic keys,
+ * See also QCBOREncode_AddTPositiveBignumNoPreferred().
+ *
+ * This function is NOT compatible with QCBOR v1. In QCBOR v1
+ * this function is the same as QCBOREncode_AddTPositiveBignumNoPreferred().
+ * The behavior in QCBOR v1 not correct preferred serialization.
+ * See TODO: to set the mode to v1 compatibility.
+ *
+ * Sometimes big numbers are have been used represent parts of cryptographic keys,
  * however, COSE which defines representations for keys chose not to
  * use this particular type.
  */
 void
 QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pCtx,
                                uint8_t             uTagRequirement,
-                               UsefulBufC          Bytes);
+                               UsefulBufC          BigNumber);
 
 static void
 QCBOREncode_AddTPositiveBignumToMapSZ(QCBOREncodeContext *pCtx,
@@ -1250,32 +1259,50 @@ QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx,
                                     int64_t             nLabel,
                                     UsefulBufC          Bytes);
 
+/*
+ *
+ * This outputs BigNumber as tag 2. It does not use
+ * preferred serialization even if the value of the BigNumber
+ * is less that UINT64_MAX.
+ * TODO: documentation improvements
+ */
+void
+QCBOREncode_AddTPositiveBignumNoPreferred(QCBOREncodeContext *pMe,
+                                          const uint8_t       uTagRequirement,
+                                          const UsefulBufC    Bytes);
+
 
 /**
- * @brief Add a negative big number to the encoded output.
+ * @brief Add a negative big number using preferred serialization.
  *
  * @param[in] pCtx             The encoding context to add the big number to.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
- * @param[in] Bytes            Pointer and length of the big number.
+ * @param[in] BigNum            Pointer and length of the big number.
  *
- * Big numbers are integers larger than 64-bits. Their format is
- * described in [RFC 8949] (https://tools.ietf.org/html/rfc8949).
+ * This outputs @c BigNum as a type 1 if the value is greater than
+ * -UINT64_MAX (TODO: exact value) and as tag 3 if
+ * less than. This is as required for preferred serialization.
  *
- * It is output as CBOR major type 2, a binary string, with tag
- * @ref CBOR_TAG_NEG_BIGNUM indicating the binary string is a negative
- * big number.
+ * Note that the actual encoded value is 1 more than the value
+ * of BigNum as required for all encoded negative numbers in
+ * CBOR. The implementation of this function does some
+ * big number arithmatic to effect this.
  *
- * This method does NOT add 1 as required for CBOR encoding of
- * negative numbers. This MUST be done before the bytes are
- * passed in here. This is just a pass-through. See also @ref CBOR_TAG_NEG_BIGNUM.
+ * See also QCBOREncode_AddTNegativeBignumNoPreferred(). It
+ * always encodes as tag 3 regardless of the value.
  *
- * TODO: this varies behavior depending on mode; no it won't
+ * This function is not comparible with QCBOR v1. QCBOR v1
+ * just copied the BigNum straight through without adjusting
+ * the negative number by 1 and without preferred serialization
+ * outputing as type 1. By setting TODO: mode, this
+ * will go back to the v1 behavior. This behavior in
+ * v2 is more correct.
  */
 void
 QCBOREncode_AddTNegativeBignum(QCBOREncodeContext *pCtx,
                                uint8_t             uTagRequirement,
-                               UsefulBufC          Bytes);
+                               UsefulBufC          BigNum);
 
 static void
 QCBOREncode_AddTNegativeBignumToMapSZ(QCBOREncodeContext *pCtx,
@@ -1290,6 +1317,8 @@ QCBOREncode_AddTNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                      UsefulBufC          Bytes);
 
 
+/* This works exactly like QCBOREncode_AddTNegativeBignum(), but
+ * always outputs the tag number. */
 static void
 QCBOREncode_AddNegativeBignum(QCBOREncodeContext *pCtx,
                               UsefulBufC          Bytes);
@@ -1305,15 +1334,20 @@ QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                     UsefulBufC          Bytes);
 
 
-
+/*
+ *
+ * This will output the value as a tag 3 regardless of
+ * the value (doesn't matter if it is less than -UINT64_MAX.)
+ * This will add one as required for negative big nums.
+ *
+ * This will copy straight through in v1 mode even though
+ * this function didn't exist in v1.
+ */
 void
 QCBOREncode_AddTNegativeBignumNoPreferred(QCBOREncodeContext *pCtx,
                                           uint8_t             uTagRequirement,
                                           UsefulBufC          Bytes);
-void
-QCBOREncode_AddTPositiveBignumNoPreferred(QCBOREncodeContext *pMe,
-                                          const uint8_t       uTagRequirement,
-                                          const UsefulBufC    Bytes);
+
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**

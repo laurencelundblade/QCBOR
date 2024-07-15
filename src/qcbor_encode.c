@@ -774,124 +774,114 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
 
 
 
-void
-QCBOREncode_AddBignumNoPreferred(QCBOREncodeContext *pMe,
-                                 uint64_t            uTag,
-                                 uint8_t             uTagRequirement,
-                                 UsefulBufC          Bytes)
+
+/* Actual addition of a positive/negative big num tag */
+static void
+QCBOREncode_Private_AddTBignum(QCBOREncodeContext *pMe,
+                               const uint64_t      uTag,
+                               const uint8_t       uTagRequirement,
+                               const UsefulBufC    BigNum)
 {
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, uTag);
+   }
+   QCBOREncode_AddBytes(pMe, BigNum);
+}
+
+
+/* Add a positive/negative big num, non-preferred */
+static void
+QCBOREncode_Private_AddTBignumNoPreferred(QCBOREncodeContext *pMe,
+                                          const uint64_t      uTag,
+                                          const uint8_t       uTagRequirement,
+                                          const UsefulBufC    BigNum)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) {
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
       return;
    }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
-   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, uTag);
-   }
-   QCBOREncode_AddBytes(pMe, Bytes);
+   QCBOREncode_Private_AddTBignum(pMe, uTag, uTagRequirement, BigNum);
 }
 
-void
-QCBOREncode_AddTNegativeBignumNoPreferredOld(QCBOREncodeContext *pMe,
-                                          uint8_t             uTagRequirement,
-                                          UsefulBufC          Bytes)
-{
-   QCBOREncode_AddBignumNoPreferred(pMe, CBOR_TAG_NEG_BIGNUM, uTagRequirement, Bytes);
-}
 
-static int
-Carry(UsefulBufC BigNum)
+/* Is there a carry when you add 1 to the BigNum? */
+static bool
+QCBOREncode_Private_BigNumCarry(UsefulBufC BigNum)
 {
-   int carry;
+   bool       bCarry;
    UsefulBufC SubBigNum;
 
    if(BigNum.len == 0) {
-      return 1;
+      return true; /* Adding one to zero-length string gives a carry */
    } else {
-      SubBigNum = (UsefulBufC){((uint8_t *)BigNum.ptr)+1, BigNum.len - 1}; // TODO: c++
-      carry = Carry(SubBigNum);
-      if(*(uint8_t *)BigNum.ptr == 0x00 && carry) {
-         return 1;
+      SubBigNum = UsefulBuf_Tail(BigNum, 1);
+      bCarry = QCBOREncode_Private_BigNumCarry(SubBigNum);
+      if(*(uint8_t *)BigNum.ptr == 0x00 && bCarry) {
+         return true;
       } else {
-         return 0;
+         return false;
       }
    }
 }
 
+
+/*
+ * Output negative bignum bytes with subtraction of 1
+ */
 void
-QCBOREncode_AddTNegativeBignumNoPreferred(QCBOREncodeContext *pMe,
-                                          uint8_t             uTagRequirement,
-                                          UsefulBufC          Bytes)
+QCBOREncode_Private_AddTNegativeBignum(QCBOREncodeContext *pMe,
+                                       const uint8_t       uTagRequirement,
+                                       const UsefulBufC    BigNum)
 {
-   if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) { // TODO: refactor because this is called by preferred
-      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
-      return;
-   }
+   size_t     uLen;
+   bool       bCarry;
+   bool       bCopiedSomething;
+   uint8_t    uByte;
+   UsefulBufC SubString;
+   UsefulBufC NextSubString;
 
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTag(pMe, CBOR_TAG_NEG_BIGNUM);
    }
 
+   /* This works on any length without the need of an additional buffer */
 
-   if(UsefulBuf_IsValue(Bytes, 0) == SIZE_MAX ) {
-      pMe->uError = QCBOR_ERR_NO_NEGATIVE_ZERO;
-      return;
+   /* This subtracts one, possibly making the string shorter by one
+    * 0x01 -> 0x00
+    * 0x01 0x00 -> 0xff
+    * 0x00 0x01 0x00 -> 0x00 0xff
+    * 0x02 0x00 -> 0x01 0xff
+    * 0xff -> 0xfe
+    * 0xff 0x00 -> 0xfe 0xff
+    * 0x01 0x00 0x00 -> 0xff 0xff
+    */
+
+   /* Compute the length up front because it goes in the head */
+   bCarry = QCBOREncode_Private_BigNumCarry(UsefulBuf_Tail(BigNum, 1));
+   uLen = BigNum.len;
+   if(bCarry && *(const uint8_t *)BigNum.ptr >= 1 && BigNum.len > 1) {
+      uLen--;
    }
+   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uLen, 0);
 
-   /* This works on any length without the need of a buffer */
-
-   /* This subtracts one, possibly making the string shorter */
-   // 0x01 -> 0x00
-   // 0x01 0x00 -> 0xff
-   // 0x00 0x01 0x00 -> 0x00 0xff
-   // 0x02 0x00 -> 0x01 0xff
-   // 0xff -> 0xfe
-   // 0xff 0x00 -> 0xfe 0xff
-   //      0xff 0x00 -> 0xfe 0xff
-   // 0x01 0x00 0x00 -> 0xff 0xff
-   /* Subtract 1 */
-   //size_t  i;
-
-   /* Have to predict the length up front because it goes in the head */
-   /* What about leading zeros? */
-   size_t  len;
-   UsefulBufC Next2;
-   Next2.len = Bytes.len - 1;
-   Next2.ptr = (const uint8_t *)Bytes.ptr + 1;
-   int carry = Carry(Next2);
-   len = Bytes.len;
-   if(carry && *(const uint8_t *)Bytes.ptr >= 1 && Bytes.len > 1) {
-      len--;
-   }
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, len, 0);
-
-   UsefulBufC BS = Bytes;
-   bool bCopiedSomething = false;
-   while(BS.len) {
-      uint8_t byte = *((uint8_t *)BS.ptr);
-      UsefulBufC Next;
-      Next.len = BS.len -1;
-      Next.ptr = (const uint8_t *)BS.ptr + 1;
-      carry = Carry(Next);
-      if(carry) {
-         byte--;
+   SubString = BigNum;
+   bCopiedSomething = false;
+   while(SubString.len) {
+      uByte = *((uint8_t *)SubString.ptr);
+      NextSubString = UsefulBuf_Tail(SubString, 1);
+      bCarry = QCBOREncode_Private_BigNumCarry(NextSubString);
+      if(bCarry) {
+         uByte--;
       }
-      if(bCopiedSomething || Next.len == 0 || byte != 0) { /* No leading zeros, but one zero is OK */
-         UsefulOutBuf_AppendByte(&(pMe->OutBuf), byte);
+      if(bCopiedSomething || NextSubString.len == 0 || uByte != 0) { /* No leading zeros, but one zero is OK */
+         UsefulOutBuf_AppendByte(&(pMe->OutBuf), uByte);
          bCopiedSomething = true;
       }
-      BS = Next;
+      SubString = NextSubString;
    }
-}
-
-
-
-void
-QCBOREncode_AddTPositiveBignumNoPreferred(QCBOREncodeContext *pMe,
-                                          const uint8_t       uTagRequirement,
-                                          const UsefulBufC    Bytes)
-{
-   QCBOREncode_AddBignumNoPreferred(pMe, CBOR_TAG_POS_BIGNUM, uTagRequirement, Bytes);
 }
 
 
@@ -908,6 +898,49 @@ QCBOREncode_Private_RemoveLeadingZeros(UsefulBufC String)
 
    return String;
 }
+
+
+/*
+ * Public function. See qcbor/qcbor_encode.h
+ */
+void
+QCBOREncode_AddTNegativeBignumNoPreferred(QCBOREncodeContext *pMe,
+                                          const uint8_t       uTagRequirement,
+                                          const UsefulBufC    BigNum)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   if(UsefulBuf_IsValue(BigNum, 0) == SIZE_MAX) {
+      pMe->uError = QCBOR_ERR_NO_NEGATIVE_ZERO;
+      return;
+   }
+
+   if(pMe->uConfig & QCBOR_ENCODE_CONFIG_V1_COMPAT) {
+      QCBOREncode_Private_AddTBignum(pMe, CBOR_TAG_NEG_BIGNUM, uTagRequirement, BigNum);
+   } else {
+      QCBOREncode_Private_AddTNegativeBignum(pMe, uTagRequirement, QCBOREncode_Private_RemoveLeadingZeros(BigNum));
+   }
+}
+
+
+/*
+ * Public function. See qcbor/qcbor_encode.h
+ */
+void
+QCBOREncode_AddTPositiveBignumNoPreferred(QCBOREncodeContext *pMe,
+                                          const uint8_t       uTagRequirement,
+                                          const UsefulBufC    BigNum)
+{
+   QCBOREncode_Private_AddTBignumNoPreferred(pMe, CBOR_TAG_POS_BIGNUM, uTagRequirement, BigNum);
+}
+
+
+
 
 /* This will return an erroneous value if BigNum.len > 8 */
 /* Convert from bignum to uint with endianess conversion */
@@ -926,115 +959,74 @@ QCBOREncode_Private_BigNumToUInt(const UsefulBufC BigNum)
 }
 
 
+/*
+ * Public function. See qcbor/qcbor_encode.h
+ */
 void
 QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pMe,
                                const uint8_t       uTagRequirement,
                                const UsefulBufC    BigNum)
 {
-   if(BigNum.len <= 8) {
-      /* Preferred serialization requires conversion to type 0 */
-      QCBOREncode_AddUInt64(pMe, QCBOREncode_Private_BigNumToUInt(BigNum));
+   if(pMe->uConfig & QCBOR_ENCODE_CONFIG_V1_COMPAT) {
+      QCBOREncode_AddTPositiveBignumNoPreferred(pMe, uTagRequirement, BigNum);
    } else {
-      /* Preferred serialization requires removing leading zeros */
-      QCBOREncode_AddTPositiveBignumNoPreferred(pMe,
-                                                uTagRequirement,
-                                                QCBOREncode_Private_RemoveLeadingZeros(BigNum));
+      const UsefulBufC BigNumNLZ = QCBOREncode_Private_RemoveLeadingZeros(BigNum);
+      if(BigNumNLZ.len <= 8) {
+         /* Preferred serialization requires conversion to type 0 */
+         QCBOREncode_AddUInt64(pMe, QCBOREncode_Private_BigNumToUInt(BigNumNLZ));
+      } else {
+         QCBOREncode_Private_AddTBignum(pMe, CBOR_TAG_POS_BIGNUM, uTagRequirement, BigNumNLZ);
+      }
    }
 }
 
+
+/*
+ * Public function. See qcbor/qcbor_encode.h
+ */
 void
 QCBOREncode_AddTNegativeBignum(QCBOREncodeContext *pMe,
                                const uint8_t       uTagRequirement,
-                               const UsefulBufC    Bytes)
+                               const UsefulBufC    BigNum)
 {
-   UsefulBufC BigNum;
    uint64_t   uInt;
-   size_t     uIndex;
    bool       bIs2exp64;
    static const uint8_t twoExp64[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-   /* Here we do preferred serialization. That requires removal of leading zeros */
-   BigNum = QCBOREncode_Private_RemoveLeadingZeros(Bytes);
+   if(UsefulBuf_IsValue(BigNum, 0) == SIZE_MAX) {
+      pMe->uError = QCBOR_ERR_NO_NEGATIVE_ZERO;
+      return;
+   }
 
-   bIs2exp64 = !UsefulBuf_Compare(BigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(twoExp64));
+   if(pMe->uConfig & QCBOR_ENCODE_CONFIG_V1_COMPAT) {
+      QCBOREncode_AddTNegativeBignumNoPreferred(pMe, uTagRequirement, BigNum);
 
-   if(BigNum.len <= 8 || bIs2exp64) {
-      /* Must convert to type 1 */
-      if(bIs2exp64) {
-         /* 2^64 is a 9 byte big number. Since negative numbers are offset
-          * by one in CBOR, it can be encoded as a type 1 negative. The
-          * conversion below won't work because the uInt will overflow.
-          */
-         uInt = UINT64_MAX;
-      } else {
-         /* Convert from bignum to uint with endianess conversion */
-         uInt = 0;
-         for(uIndex = 0; uIndex < BigNum.len; uIndex++) {
-            uInt = (uInt << 8) + ((const uint8_t *)BigNum.ptr)[uIndex];
-         }
-         if(uInt == 0) { /* Special case for 0 which is -1 for negatives in CBOR */
-            uInt = 1;
+   } else {
+      /* Here we do preferred serialization. That requires removal of leading zeros */
+      const UsefulBufC BigNumNLZ = QCBOREncode_Private_RemoveLeadingZeros(BigNum);
+
+      bIs2exp64 = ! UsefulBuf_Compare(BigNumNLZ, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(twoExp64));
+
+      if(BigNumNLZ.len <= 8 || bIs2exp64) {
+         /* Must convert to CBOR type 1, a negative integer */
+         if(bIs2exp64) {
+            /* 2^64 is a 9 byte big number. Since negative numbers are offset
+             * by one in CBOR, it can be encoded as a type 1 negative. The
+             * conversion below won't work because the uInt will overflow
+             * before the subtraction of 1.
+             */
+            uInt = UINT64_MAX;
          } else {
+            uInt = QCBOREncode_Private_BigNumToUInt(BigNumNLZ);
             uInt--; /* CBOR's negative offset of 1  */
          }
-      }
-      QCBOREncode_AddNegativeUInt64(pMe, uInt);
+         QCBOREncode_AddNegativeUInt64(pMe, uInt);
 
-   } else {
-      QCBOREncode_AddTNegativeBignumNoPreferred(pMe, uTagRequirement, BigNum);
-   }
-}
-
-
-void
-QCBOREncode_AddTNegativeBignum2(QCBOREncodeContext *pMe,
-                               const uint8_t       uTagRequirement,
-                               const UsefulBufC    Bytes)
-{
-   UsefulBufC BigNum;
-   uint64_t   uInt;
-   size_t     uIndex;
-   bool       bIs2exp64;
-
-
-   //static const uint8_t twoExp64[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-   /* Here we do preferred serialization. That requires removal of leading zeros */
-   BigNum = QCBOREncode_Private_RemoveLeadingZeros(Bytes);
-
-   bIs2exp64 = false; //!UsefulBuf_Compare(BigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(twoExp64));
-
-   if(BigNum.len <= 8 || bIs2exp64) {
-      /* Must convert to type 1 */
-      if(bIs2exp64) {
-         /* 2^64 is a 9 byte big number. Since negative numbers are offset
-          * by one in CBOR, it can be encoded as a type 1 negative. The
-          * conversion below won't work because the uInt will overflow.
-          */
-         uInt = UINT64_MAX;
       } else {
-         /* Convert from bignum to uint with endianess conversion */
-         uInt = 0;
-         for(uIndex = 0; uIndex < BigNum.len; uIndex++) {
-            uInt = (uInt << 8) + ((const uint8_t *)BigNum.ptr)[uIndex];
-         }
-#if 0
-         if(uInt == 0) { /* Special case for 0 which is -1 for negatives in CBOR */
-            uInt = 1;
-         } else {
-            /* CBOR's negative offset of 1 is already in the big number input to QCBOR */
-         }
-#endif
+         QCBOREncode_Private_AddTNegativeBignum(pMe, uTagRequirement, BigNumNLZ);
       }
-
-      QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uInt, 0);
-      QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
-
-   } else {
-      QCBOREncode_AddTNegativeBignumNoPreferred(pMe, uTagRequirement, BigNum);
    }
 }
-
 
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA

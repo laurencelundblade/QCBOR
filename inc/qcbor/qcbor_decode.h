@@ -1399,8 +1399,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * This works on all CBOR type 0 and 1 integers and all tag 2 and 3
  * big numbers.  In terms of QCBOR types, this works on
  * \ref QCBOR_TYPE_INT64, \ref QCBOR_TYPE_UINT64,
- * \ref QCBOR_TYPE_65BIT_NEG, \ref QCBOR_TYPE_POSITIVE_BIGNUM and
- * \ref QCBOR_TYPE_NEGATIVE_BIGNUM.
+ * \ref QCBOR_TYPE_65BIT_NEG, \ref QCBOR_TYPE_POSBIGNUM and
+ * \ref QCBOR_TYPE_NEGIGNUM.
  *
  * This always returns the result as a big number. The integer types 0
  * and 1 are converted. Leading zeros are removed. The value 0 is

@@ -964,7 +964,7 @@ struct BigNumEncodeTest BigNumEncodeTestCases[] = {
       {"\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 15},
       {"\xC2\x4F\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 17},
       {"\xC2\x4C\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 14},
-      {"\xC3\x4F\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe", 14}, // TODO: should this preserve leading zeros?
+      {"\xC3\x4C\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe", 14},
       {"\xC3\x4C\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe", 14},
    },
 
@@ -1027,19 +1027,13 @@ int32_t BigNumEncodeTests(void)
    QCBOREncodeContext Enc;
    UsefulBufC         B;
    const struct BigNumEncodeTest *pTest;
-   /* Encode by calling BigNum methods
-    * Cover all BigNum methods
-    * Cover case when 65-bit negs are output
-    * Cover preferred serialization
-    */
-
 
    uTestCount = (int)C_ARRAY_COUNT(BigNumEncodeTestCases, struct BigNumEncodeTest);
 
    for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
       pTest = &BigNumEncodeTestCases[uTestIndex];
 
-      if(uTestIndex == 2) {
+      if(uTestIndex == 3) {
          B.len = 0; /* Line of code so a break point can be set. */
       }
 

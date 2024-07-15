@@ -1531,9 +1531,10 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  *
  * The negative value is computed as -1 - n, where n is the postive
  * big number in @c pValue. There is no standard representation for
- * big numbers, positive or negative in C, so this implementation
+ * big numbers, positive or negative in C, so this function
  * leaves it up to the caller to apply this computation for negative
- * big numbers.
+ * big numbers, but QCBORDecode_BignumPreferred() can be
+ * used too
  *
  * See @ref Tag-Usage for discussion on tag requirements.
  *
@@ -1545,8 +1546,8 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  * then the protocol design must have some way of indicating the sign.
  *
  * See also QCBORDecode_GetInt64ConvertAll(),
- * QCBORDecode_GetUInt64ConvertAll() and
- * QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
+ * QCBORDecode_GetUInt64ConvertAll(),
+ * QCBORDecode_GetDoubleConvertAll() and QCBORDecode_BignumPreferred() which can convert big numbers.
  *
  * See also @ref CBOR_TAG_POS_BIGNUM, @ref CBOR_TAG_NEG_BIGNUM,
  * QCBOREncode_AddPositiveBignum(), QCBOREncode_AddNegativeBignum(),
