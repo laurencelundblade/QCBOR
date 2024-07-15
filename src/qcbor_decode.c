@@ -7784,8 +7784,10 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
       return;
    }
 
+   // TODO:VGetNext?
    uError = QCBORDecode_GetNext(pMe, &Item);
    if(uError != QCBOR_SUCCESS) {
+      *pNumber = Item;
       pMe->uLastError = (uint8_t)uError;
       return;
    }

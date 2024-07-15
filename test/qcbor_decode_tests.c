@@ -4660,6 +4660,7 @@ struct BignumDecodeTest {
    bool        bExpectedSign;
 };
 
+#ifndef QCBOR_DISABLE_TAGS
 static struct BignumDecodeTest BignumDecodeTests[] = {
    {
       "-18446744073709551617",
@@ -4791,12 +4792,11 @@ static struct BignumDecodeTest BignumDecodeTests[] = {
 };
 
 
-#ifndef QCBOR_DISABLE_TAGS
 /* The expected big num */
 static const uint8_t spBigNum[] = {
    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
    0x00};
-#endif /* QCBOR_DISABLE_TAGS */
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 
 int32_t BignumDecodeTest(void)
@@ -10466,7 +10466,11 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
    {
       "-18446744073709551617 First value representable only as a tag 3 big num",
       {"\xC3\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+#ifndef QCBOR_DISABLE_TAGS
       QCBOR_ERR_UNEXPECTED_TYPE,
+#else
+      QCBOR_ERR_TAGS_DISABLED,
+#endif /* ! QCBOR_DISABLE_TAGS */
       QCBOR_TYPE_NONE,
       {0, 0, -0}
    },
