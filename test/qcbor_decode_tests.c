@@ -2535,6 +2535,7 @@ struct DecodeFailTestInput {
    QCBORError      nError;        /* The expected error */
 };
 
+#include <stdio.h>
 
 static int32_t
 ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int nNumFails)
@@ -2583,6 +2584,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       if(uCBORError != pF->nError ||
          Item.uDataType != QCBOR_TYPE_NONE ||
          Item.uLabelType != QCBOR_TYPE_NONE) {
+         puts(pF->szDescription);
          return (int32_t)(nIndex * 1000 + (int)uCBORError);
       }
    }
@@ -10318,7 +10320,7 @@ DecodeConformanceTests(void)
    QCBORDecode_Init(&DCtx,UsefulBuf_FROM_SZ_LITERAL("\xa2\x00\x00\x00\x00"), QCBOR_DECODE_MODE_CDE);
    QCBORDecode_EnterMap(&DCtx, &Item);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_DUPLICATE_LABEL) {
-      return 5000;
+      return -5000;
    }
 
    return ProcessDecodeFailures(DecodeConformanceFailures,
