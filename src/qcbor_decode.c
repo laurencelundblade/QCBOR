@@ -5304,37 +5304,8 @@ QCBORDecode_Private_GetTaggedString(QCBORDecodeContext         *pMe,
  * the tag content is correct and copy forward any further other tag
  * numbers.
  */
-QCBORError
-QCBOR_Private_ProcessBigNumNew(const uint8_t   uTagRequirement,
-                            const QCBORItem *pItem,
-                            UsefulBufC      *pValue,
-                            bool            *pbIsNegative)
-{
-   const QCBOR_Private_TagSpec TagSpec =
-   {
-      uTagRequirement,
-      {QCBOR_TYPE_POSBIGNUM, QCBOR_TYPE_NEGBIGNUM, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-      {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-   };
-
-   QCBORError uErr = QCBOR_Private_CheckTagRequirement(TagSpec, pItem);
-   if(uErr != QCBOR_SUCCESS) {
-      return uErr;
-   }
-
-   *pValue = pItem->val.string;
-
-   if(pItem->uDataType == QCBOR_TYPE_POSBIGNUM) {
-      *pbIsNegative = false;
-   } else if(pItem->uDataType == QCBOR_TYPE_NEGBIGNUM) {
-      *pbIsNegative = true;
-   }
-
-   return QCBOR_SUCCESS;
-}
-
 static QCBORError
-QCBOR_Private_ProcessBigNum(const uint8_t   uTagRequirement,
+QCBOR_Private_ProcessBigNum(const uint8_t    uTagRequirement,
                             const QCBORItem *pItem,
                             UsefulBufC      *pValue,
                             bool            *pbIsNegative)
@@ -5373,32 +5344,9 @@ QCBORDecode_GetBignum(QCBORDecodeContext *pMe,
                       bool               *pbIsNegative)
 {
    QCBORItem  Item;
+
    QCBORDecode_VGetNext(pMe, &Item);
    if(pMe->uLastError) {
-      return;
-   }
-
-   pMe->uLastError = (uint8_t)QCBOR_Private_ProcessBigNum(uTagRequirement,
-                                                          &Item,
-                                                          pValue,
-                                                          pbIsNegative);
-}
-
-void
-QCBORDecode_GetBignumOld(QCBORDecodeContext *pMe,
-                      const uint8_t       uTagRequirement,
-                      UsefulBufC         *pValue,
-                      bool               *pbIsNegative)
-{
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state, do nothing
-      return;
-   }
-
-   QCBORItem  Item;
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError != QCBOR_SUCCESS) {
-      pMe->uLastError = (uint8_t)uError;
       return;
    }
 
@@ -7963,7 +7911,7 @@ QCBORDecode_BigNumCopyPlusOne(UsefulBufC BigNum,
 
 /* This returns 1 when uNum is 0 */
 static size_t
-QCBORDecode_Private_CountNonZero(uint64_t uNum)
+QCBORDecode_Private_CountNonZeroBytes(uint64_t uNum)
 {
    size_t uCount = 0;
    do {
@@ -7980,9 +7928,9 @@ QCBORDecode_Private_CountNonZero(uint64_t uNum)
  */
 QCBORError
 QCBORDecode_BignumPreferred(const QCBORItem Item,
-                           UsefulBuf       BigNumBuf,
-                           UsefulBufC     *pBigNum,
-                           bool           *pbIsNegative)
+                            UsefulBuf       BigNumBuf,
+                            UsefulBufC     *pBigNum,
+                            bool           *pbIsNegative)
 {
    QCBORError  uResult;
    size_t      uLen;
@@ -8004,15 +7952,15 @@ QCBORDecode_BignumPreferred(const QCBORItem Item,
    /* Compute required length so it can be returned if buffer is too small */
    switch(uType) {
       case QCBOR_TYPE_INT64:
-         uLen = QCBORDecode_Private_CountNonZero((uint64_t)(Item.val.int64 < 0 ? -Item.val.int64 : Item.val.int64));
+         uLen = QCBORDecode_Private_CountNonZeroBytes((uint64_t)(Item.val.int64 < 0 ? -Item.val.int64 : Item.val.int64));
          break;
 
       case QCBOR_TYPE_UINT64:
-         uLen = QCBORDecode_Private_CountNonZero(Item.val.uint64);
+         uLen = QCBORDecode_Private_CountNonZeroBytes(Item.val.uint64);
          break;
 
       case QCBOR_TYPE_65BIT_NEG_INT:
-         uLen = Item.val.uint64 == UINT64_MAX  ? 9 : QCBORDecode_Private_CountNonZero(Item.val.uint64);
+         uLen = Item.val.uint64 == UINT64_MAX  ? 9 : QCBORDecode_Private_CountNonZeroBytes(Item.val.uint64);
          break;
 
       case QCBOR_TYPE_POSBIGNUM:

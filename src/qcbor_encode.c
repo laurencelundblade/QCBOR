@@ -819,7 +819,7 @@ QCBOREncode_Private_BigNumCarry(UsefulBufC BigNum)
    } else {
       SubBigNum = UsefulBuf_Tail(BigNum, 1);
       bCarry = QCBOREncode_Private_BigNumCarry(SubBigNum);
-      if(*(uint8_t *)BigNum.ptr == 0x00 && bCarry) {
+      if(*(const uint8_t *)BigNum.ptr == 0x00 && bCarry) {
          return true;
       } else {
          return false;
@@ -870,7 +870,7 @@ QCBOREncode_Private_AddTNegativeBignum(QCBOREncodeContext *pMe,
    SubString = BigNum;
    bCopiedSomething = false;
    while(SubString.len) {
-      uByte = *((uint8_t *)SubString.ptr);
+      uByte = *((const uint8_t *)SubString.ptr);
       NextSubString = UsefulBuf_Tail(SubString, 1);
       bCarry = QCBOREncode_Private_BigNumCarry(NextSubString);
       if(bCarry) {

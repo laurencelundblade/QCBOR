@@ -332,16 +332,17 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  * double. Doubles have only 52 bits of precision, so they can't
  * precisely represent every whole integer in this range. CBOR can
  * represent these values with 64-bits of precision and when this
- * function encounters them they are returned as 
- * \ref QCBOR_TYPE_65BIT_NEG_INT.  See the description of this type for
- * instructions to gets its value.  Also see QCBORDecode_BignumPreferred().
+ * function encounters them they are returned as \ref
+ * QCBOR_TYPE_65BIT_NEG_INT.  See the description of this type for
+ * instructions to gets its value.  Also see
+ * QCBORDecode_BignumPreferred().
  *
  * To give an example, the value -18446744073709551616 can't be
  * represented by an int64_t or uint64_t, but can be represented by a
  * double so it is returned by this function as a double. The value
  * -18446744073709551617 however can't be represented by a double
- * because it has too much precision, so it is returned as 
- * \ref QCBOR_TYPE_65BIT_NEG_INT.
+ * because it has too much precision, so it is returned as \ref
+ * QCBOR_TYPE_65BIT_NEG_INT.
  *
  * This is useful for DCBOR which essentially combines floats and
  * integers into one number space.
@@ -368,21 +369,24 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  *
  * The type processing rules are as follows.
  *
- * This always succeeds on type 0 and 1 integers (QCBOR_TYPE_INT64, QCBOR_TYPE_UINT64 and QCBOR_TYPE_65_BIT_NEG)
- * no matter what uTagRequirement is. The rest of the rules pertain to what happens if
- * the CBOR is not type 0 or type 1.
+ * This always succeeds on type 0 and 1 integers (QCBOR_TYPE_INT64,
+ * QCBOR_TYPE_UINT64 and QCBOR_TYPE_65_BIT_NEG) no matter what
+ * uTagRequirement is. The rest of the rules pertain to what happens
+ * if the CBOR is not type 0 or type 1.
  *
- * If uTagRequirement is REQUIRE, this will fail on anything but a full and correct tag 2 or tag 3 big number.
+ * If uTagRequirement is REQUIRE, this will fail on anything but a
+ * full and correct tag 2 or tag 3 big number.
  *
- * If uTagRequreiement is QCBOR_TAG_REQUIREMENT_NOT_A_TAG then this will fail on anything
- * but a byte string.
+ * If uTagRequreiement is QCBOR_TAG_REQUIREMENT_NOT_A_TAG then this
+ * will fail on anything but a byte string.
  *
- * If QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, then this will succeed on either a byte string
- * or a tag 2 or 3.
+ * If QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, then this will succeed on
+ * either a byte string or a tag 2 or 3.
  *
- * If the item is a bare byte string, not a tag 2 or 3, then pbIsNegative is an input
- * parameter that determines the sign of the big number. The sign must be known
- * because the decoding of a positive big number is different than a negative.
+ * If the item is a bare byte string, not a tag 2 or 3, then
+ * pbIsNegative is an input parameter that determines the sign of the
+ * big number. The sign must be known because the decoding of a
+ * positive big number is different than a negative.
  */
 void
 QCBORDecode_GetBigNumPreferred(QCBORDecodeContext *pCtx,
@@ -1534,7 +1538,7 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  * big numbers, positive or negative in C, so this function
  * leaves it up to the caller to apply this computation for negative
  * big numbers, but QCBORDecode_BignumPreferred() can be
- * used too
+ * used too.
  *
  * See @ref Tag-Usage for discussion on tag requirements.
  *
@@ -1553,7 +1557,9 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  * QCBOREncode_AddPositiveBignum(), QCBOREncode_AddNegativeBignum(),
  * @ref QCBOR_TYPE_POSBIGNUM and @ref QCBOR_TYPE_NEGBIGNUM.
  */
-// Improvement: Add function that converts integers and other to big nums
+// TODO: rename this to NoPreferred? Add v1 decode mode?
+// Maybe not, because this API can't be given an output buffer
+// Can't tweak this with just a mode bit.
 void
 QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,
                       uint8_t             uTagRequirement,

@@ -269,19 +269,19 @@ typedef enum {
 #define QCBOR_TYPE_TEXT_STRING    7
 
 /** Type for a positive big number. Data is in @c val.bignum, a
- *  pointer and a length. See QCBORDecode_PreferedBigNum(). */
+ *  pointer and a length. See QCBORDecode_BignumPreferred(). */
 #define QCBOR_TYPE_POSBIGNUM      9
 
 /** Type for a negative big number. Data is in @c val.bignum, a
  *  pointer and a length. Type 1 integers in the range of [-2^64,
- *  -2^63 - 1] are returned in this type.  1 MUST be subtraced from
+ *  -2^63 - 1] are returned in this type.  1 MUST be subtracted from
  *  what is returned to get the actual value. This is because of the
  *  way CBOR negative numbers are represented. QCBOR doesn't do this
  *  because it can't be done without storage allocation and QCBOR
  *  avoids storage allocation for the most part.  For example, if 1 is
  *  subtraced from a negative big number that is the two bytes 0xff
  *  0xff, the result would be 0x01 0x00 0x00, one byte longer than
- *  what was received. See QCBORDecode_PreferedBigNum(). */
+ *  what was received. See QCBORDecode_BignumPreferred(). */
 #define QCBOR_TYPE_NEGBIGNUM     10
 
 /** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
@@ -1392,15 +1392,19 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  *
  * This exists to process an item that is expected to be a big number
  * encoded with preferred serialization.  This processing is not part
- * of the main decoding because of the number of types it involves,
- * because it needs a buffer to output to, and to keep code size of
- * the core decoding small.
+ * of the main decoding because of the number of CBOR types it
+ * involves, because it needs a buffer to output to, and to keep code
+ * size of the core decoding small.
+ *
+ * This can also be used to do the subtraction of 1 for negative big
+ * numbers even if preferred serialization of big numbers is not in
+ * use.
  *
  * This works on all CBOR type 0 and 1 integers and all tag 2 and 3
  * big numbers.  In terms of QCBOR types, this works on
  * \ref QCBOR_TYPE_INT64, \ref QCBOR_TYPE_UINT64,
  * \ref QCBOR_TYPE_65BIT_NEG, \ref QCBOR_TYPE_POSBIGNUM and
- * \ref QCBOR_TYPE_NEGIGNUM.
+ * \ref QCBOR_TYPE_NEGBIGNUM.
  *
  * This always returns the result as a big number. The integer types 0
  * and 1 are converted. Leading zeros are removed. The value 0 is
@@ -1431,9 +1435,9 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * library than this, particularly to subtract one for tag 3.
  *
  * Finally, the object code for this function is suprisingly large,
- * almost 1KB. This is due to the number of data types, and the big
- * number math required to subtract one and the buffer sizing issue it
- * brings.
+ * almost 1KB. This is due to the number of CBOR data types, and the
+ * big number math required to subtract one and the buffer sizing
+ * issue it brings.
  */
 QCBORError
 QCBORDecode_BignumPreferred(const QCBORItem Item,
