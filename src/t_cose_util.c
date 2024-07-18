@@ -256,20 +256,20 @@ uint32_t
 bits_iv_alg(int32_t cose_algorithm_id)
 {
     switch(cose_algorithm_id) {
-        case T_COSE_ALGORITHM_AES128CCM_16_128:
-        case T_COSE_ALGORITHM_A128KW:
         case T_COSE_ALGORITHM_A128GCM:
+        case T_COSE_ALGORITHM_A192GCM:
+        case T_COSE_ALGORITHM_A256GCM:
+            return 96; /* 12 bytes, 4.1 of RFC 9053 */
+        case T_COSE_ALGORITHM_AES128CCM_16_128:
+        case T_COSE_ALGORITHM_AES256CCM_16_128:
+            return 104; /* 13 bytes, 4.2 of RFC 9053 */
         case T_COSE_ALGORITHM_A128CTR:
         case T_COSE_ALGORITHM_A128CBC:
         case T_COSE_ALGORITHM_A192CTR:
         case T_COSE_ALGORITHM_A192CBC:
         case T_COSE_ALGORITHM_A256CTR:
-        case T_COSE_ALGORITHM_A256CBC: return 128;
-        case T_COSE_ALGORITHM_A192KW:
-        case T_COSE_ALGORITHM_A192GCM: return 192;
-        case T_COSE_ALGORITHM_AES256CCM_16_128:
-        case T_COSE_ALGORITHM_A256KW:
-        case T_COSE_ALGORITHM_A256GCM: return 256;
+        case T_COSE_ALGORITHM_A256CBC:
+            return 128; /* 16 bytes, the same length of the AES block size */
         default: return UINT32_MAX;
     }
 }
