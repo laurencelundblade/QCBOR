@@ -2967,10 +2967,145 @@ static const uint8_t spExpectedExponentAndMantissaMap[] = {
 
 // TODO: add bignum encode tests
 
-int32_t ExponentAndMantissaEncodeTests(void)
+struct EAMEncodeTest {
+   const char *szDescription;
+   int64_t     nExponent;
+   UsefulBufC  BigNumMantissa;
+   int64_t     nMantissa;
+   bool        bSign;
+   bool        bv1Mode;
+   enum {EAM_Any, EAM_Pref, EAM_CDE} eSerialization;
+   // TODO: add tag requirement
+
+   /* Only testing successes (right?) */
+   UsefulBufC  BigFloat;
+   UsefulBufC  DecFrac;
+   UsefulBufC  BigFloatBig;
+   UsefulBufC  DecFracBig;
+};
+
+struct EAMEncodeTest EET[] = {
+   { "basic",
+      -1,
+      NULLUsefulBufC,
+      3,
+      false,
+      false,
+      EAM_Pref,
+
+      {"\xC5\x82\x20\x03", 4},
+      {"\xC4\x82\x20\x03", 4},
+      NULLUsefulBufC,
+      NULLUsefulBufC
+   },
+
+   { "bignum gets preferred",
+      -1,
+      {"\x00\x03",2},
+      0,
+      false,
+      false,
+      EAM_Pref,
+
+      NULLUsefulBufC,
+      NULLUsefulBufC,
+      {"\xC5\x82\x20\x03", 4},
+      {"\xC4\x82\x20\x03", 4},
+   }
+
+   // TODO: add more test cases, including converting some of the already-existing
+};
+
+
+
+static void
+EAMTestSetup(const struct EAMEncodeTest *pTest, QCBOREncodeContext *pEnc)
+{
+   QCBOREncode_Init(pEnc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   if(pTest->bv1Mode) {
+      QCBOREncode_Setv1Compatibility(pEnc);
+   }
+
+   switch(pTest->eSerialization) {
+      case EAM_Pref:
+         QCBOREncode_SerializationPreferred(pEnc);
+         break;
+      case EAM_CDE:
+         QCBOREncode_SerializationCDE(pEnc);
+         break;
+
+      default:
+         break;
+   }
+}
+
+
+
+int32_t
+ExponentAndMantissaEncodeTests(void)
 {
    QCBOREncodeContext EC;
    UsefulBufC         EncodedExponentAndMantissa;
+   int                nIndex;
+   QCBORError         uErr;
+
+   const int nNumberOfTests = C_ARRAY_COUNT(EET, struct EAMEncodeTest);
+
+   for(nIndex = 0; nIndex < nNumberOfTests; nIndex++) {
+      struct EAMEncodeTest *pTest = &EET[nIndex];
+
+
+      if(UsefulBuf_IsNULLC(pTest->BigNumMantissa)) {
+         EAMTestSetup(pTest, &EC);
+
+         QCBOREncode_AddDecimalFraction(&EC, pTest->nMantissa, pTest->nExponent);
+         uErr = QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa);
+         if(uErr) {
+            return MakeTestResultCode((uint32_t)nIndex, 1, uErr);
+         }
+
+         if(UsefulBuf_Compare(EncodedExponentAndMantissa, pTest->DecFrac)) {
+            return MakeTestResultCode((uint32_t)nIndex, 2, 0);
+         }
+
+         EAMTestSetup(pTest, &EC);
+         QCBOREncode_AddBigFloat(&EC, pTest->nMantissa, pTest->nExponent);
+         uErr = QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa);
+         if(uErr) {
+            return MakeTestResultCode((uint32_t)nIndex, 11, uErr);
+         }
+
+         if(UsefulBuf_Compare(EncodedExponentAndMantissa, pTest->BigFloat)) {
+            return MakeTestResultCode((uint32_t)nIndex, 12, 0);
+         }
+
+      } else {
+         EAMTestSetup(pTest, &EC);
+
+         QCBOREncode_AddDecimalFractionBigNum(&EC, pTest->BigNumMantissa, pTest->bSign, pTest->nExponent);
+         uErr = QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa);
+         if(uErr) {
+            return MakeTestResultCode((uint32_t)nIndex, 11, uErr);
+         }
+
+         if(UsefulBuf_Compare(EncodedExponentAndMantissa, pTest->DecFracBig)) {
+            return MakeTestResultCode((uint32_t)nIndex, 12, 0);
+         }
+
+         EAMTestSetup(pTest, &EC);
+
+         QCBOREncode_AddBigFloatBigNum(&EC, pTest->BigNumMantissa, pTest->bSign, pTest->nExponent);
+         uErr = QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa);
+         if(uErr) {
+            return MakeTestResultCode((uint32_t)nIndex, 11, uErr);
+         }
+
+         if(UsefulBuf_Compare(EncodedExponentAndMantissa, pTest->BigFloatBig)) {
+            return MakeTestResultCode((uint32_t)nIndex, 12, 0);
+         }
+      }
+   }
+
 
    // Constant for the big number used in all the tests.
    static const uint8_t spBigNum[] = {0x01, 0x02, 0x03, 0x04, 0x05,
@@ -3065,9 +3200,7 @@ int32_t ExponentAndMantissaEncodeTests(void)
       return -3;
    }
 
-
    struct UBCompareDiagnostic Diag;
-
    nReturn = UsefulBuf_CompareWithDiagnostic(EncodedExponentAndMantissa,
                                              UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedExponentAndMantissaMap),
                                              &Diag);

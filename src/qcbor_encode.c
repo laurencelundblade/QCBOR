@@ -928,6 +928,27 @@ QCBOREncode_AddTNegativeBignumNoPreferred(QCBOREncodeContext *pMe,
 }
 
 
+void
+QCBOREncode_AddTNegativeBignumNoPreferredToMap(QCBOREncodeContext *pMe,
+                                               const char         *szLabel,
+                                               uint8_t             uTagRequirement,
+                                               UsefulBufC          BigNumber)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddTNegativeBignumNoPreferred(pMe, uTagRequirement, BigNumber);
+}
+
+
+void
+QCBOREncode_AddTNegativeBignumNoPreferredToMapN(QCBOREncodeContext *pMe,
+                                                int64_t             nLabel,
+                                                uint8_t             uTagRequirement,
+                                                UsefulBufC          BigNumber)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddTNegativeBignumNoPreferred(pMe, uTagRequirement, BigNumber);
+}
+
 /*
  * Public function. See qcbor/qcbor_encode.h
  */
@@ -936,6 +957,26 @@ QCBOREncode_AddTPositiveBignumNoPreferred(QCBOREncodeContext *pMe,
                                           const uint8_t       uTagRequirement,
                                           const UsefulBufC    BigNum)
 {
+   QCBOREncode_Private_AddTBignumNoPreferred(pMe, CBOR_TAG_POS_BIGNUM, uTagRequirement, BigNum);
+}
+
+void
+QCBOREncode_AddTPositiveBignumNoPreferredToMap(QCBOREncodeContext *pMe,
+                                               const char         *szLabel,
+                                               const uint8_t       uTagRequirement,
+                                               const UsefulBufC    BigNum)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_Private_AddTBignumNoPreferred(pMe, CBOR_TAG_POS_BIGNUM, uTagRequirement, BigNum);
+}
+
+void
+QCBOREncode_AddTPositiveBignumNoPreferredToMapN(QCBOREncodeContext *pMe,
+                                                int64_t             nLabel,
+                                                const uint8_t       uTagRequirement,
+                                                const UsefulBufC    BigNum)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_Private_AddTBignumNoPreferred(pMe, CBOR_TAG_POS_BIGNUM, uTagRequirement, BigNum);
 }
 
@@ -1063,10 +1104,10 @@ QCBOREncode_AddTNegativeBignum(QCBOREncodeContext *pMe,
 void
 QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pMe,
                                    const uint64_t      uTag,
+                                   const int64_t       nExponent,
                                    const UsefulBufC    BigNumMantissa,
                                    const bool          bBigNumIsNegative,
-                                   const int64_t       nMantissa,
-                                   const int64_t       nExponent)
+                                   const int64_t       nMantissa)
 {
    /* This is for encoding either a big float or a decimal fraction,
     * both of which are an array of two items, an exponent and a

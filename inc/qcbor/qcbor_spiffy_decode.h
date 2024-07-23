@@ -387,6 +387,10 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * pbIsNegative is an input parameter that determines the sign of the
  * big number. The sign must be known because the decoding of a
  * positive big number is different than a negative.
+ *
+ * TODO: reevaluate whether to call this GetBigNum after tag redesign
+ * It would be more consistent to be GetBigNum with its friend named GetBigNumNoPreferred
+ * but the parameters are different so backwards compat can be with a mode bit.
  */
 void
 QCBORDecode_GetBigNumPreferred(QCBORDecodeContext *pCtx,
