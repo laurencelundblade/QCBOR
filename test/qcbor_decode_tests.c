@@ -2562,7 +2562,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 54) {
+      if(nIndex == 55) {
          uCBORError = 9; /* For setting break points */
       }
 
