@@ -868,9 +868,9 @@ IEEE754_UintToDouble(const uint64_t uInt, const int uIsNegative)
    int      nPrecisionBits;
 
    if(uInt == 0) {
-      uDoubleSignificand = 0; // TODO: test this
-      nDoubleUnbiasedExponent = 0;
-      
+      uDoubleSignificand      = 0;
+      nDoubleUnbiasedExponent = DOUBLE_EXPONENT_ZERO;
+
    } else  {
       /* Figure out the exponent and normalize the significand. This is
        * done by shifting out all leading zero bits and counting them. If
