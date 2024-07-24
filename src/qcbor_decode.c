@@ -2030,7 +2030,7 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
     */
    if(pMe->uDecodeMode == QCBOR_DECODE_MODE_MAP_STRINGS_ONLY &&
       LabelItem.uDataType != QCBOR_TYPE_TEXT_STRING) {
-      uErr = QCBOR_ERR_MAP_LABEL_TYPE;
+      uErr = 99 ; // TODO: QCBOR_ERR_MAP_LABEL_TYPE;
       goto Done;
    }
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */

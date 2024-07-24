@@ -2584,7 +2584,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       if(uCBORError != pF->nError ||
          Item.uDataType != QCBOR_TYPE_NONE ||
          Item.uLabelType != QCBOR_TYPE_NONE) {
-         // puts(pF->szDescription);
+         puts(pF->szDescription);
          return (int32_t)(nIndex * 1000 + (int)uCBORError);
       }
    }
