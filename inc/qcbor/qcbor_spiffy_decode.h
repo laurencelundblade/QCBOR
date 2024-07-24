@@ -355,6 +355,7 @@ void
 QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
                                       QCBORItem          *pNumber);
 
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 /**
  * @brief Decode next item as a big number encoded using preferred serialization.
@@ -417,7 +418,6 @@ QCBORDecode_GetBigNumPreferredInMapSZ(QCBORDecodeContext *pCtx,
 
 
 
-#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 /**
  * @brief Decode next item into a signed 64-bit integer with conversions.

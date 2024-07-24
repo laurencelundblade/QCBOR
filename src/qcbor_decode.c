@@ -1172,6 +1172,8 @@ QCBOR_Private_DecodeTag(const uint64_t uTagNumber,
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+
 #if !defined(QCBOR_DISABLE_DECODE_CONFORMANCE) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
 
 static QCBORError
@@ -1259,8 +1261,7 @@ QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
 
    return QCBOR_SUCCESS;
 }
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE && ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 static QCBORError
 QCBORDecode_Private_SingleConformance(const float f, uint8_t uDecodeMode)
@@ -1283,9 +1284,7 @@ QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
       return QCBOR_SUCCESS;
    }
 }
-#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE && ! QCBOR_DISABLE_PREFERRED_FLOAT */
-
 
 
 /*
@@ -1321,7 +1320,6 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
          break;
 
       case SINGLE_PREC_FLOAT: /* 26 */
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
          /* Single precision is normally returned as a double since
           * double is widely supported, there is no loss of precision,
           * it makes it easy for the caller in most cases and it can
@@ -1352,12 +1350,10 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
           * and wants to save object code.
           */
 #endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
-#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
          uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
          break;
 
       case DOUBLE_PREC_FLOAT: /* 27 */
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
          pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uArgument);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 
@@ -1365,13 +1361,14 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
          if(uReturn != QCBOR_SUCCESS) {
             break;
          }
-#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
          uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
          break;
    }
 
    return uReturn;
 }
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
+
 
 
 /* Make sure #define value line up as DecodeSimple counts on this. */
@@ -1440,7 +1437,11 @@ QCBOR_Private_DecodeType7(const uint8_t  uDecodeMode,
       case HALF_PREC_FLOAT: /* 25 */
       case SINGLE_PREC_FLOAT: /* 26 */
       case DOUBLE_PREC_FLOAT: /* 27 */
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
          uReturn = QCBOR_Private_DecodeFloat(uDecodeMode, nAdditionalInfo, uArgument, pDecodedItem);
+#else
+         uReturn = QCBOR_ERR_ALL_FLOAT_DISABLED;
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
          break;
 
       case CBOR_SIMPLEV_FALSE: /* 20 */
