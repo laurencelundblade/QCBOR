@@ -1531,6 +1531,8 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
    uint64_t uArgument = 0;
    int      nAdditionalInfo = 0;
 
+   memset(pDecodedItem, 0, sizeof(QCBORItem));
+
    /* Decode the "head" that every CBOR item has into the major type,
     * argument and the additional info.
     */
@@ -1542,11 +1544,10 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
                                       &nMajorType,
                                       &uArgument,
                                       &nAdditionalInfo);
+
    if(uReturn != QCBOR_SUCCESS) {
       return uReturn;
    }
-
-   memset(pDecodedItem, 0, sizeof(QCBORItem));
 
    /* All the functions below get inlined by the optimizer. This code
     * is easier to read with them all being similar functions, even if
