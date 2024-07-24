@@ -1939,6 +1939,7 @@ Done:
 #endif /* QCBOR_DISABLE_TAGS */
 }
 
+#include <stdio.h>
 
 /**
  * @brief Combine a map entry label and value into one item (decode layer 3).
@@ -2030,7 +2031,7 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
     */
    if(pMe->uDecodeMode == QCBOR_DECODE_MODE_MAP_STRINGS_ONLY &&
       LabelItem.uDataType != QCBOR_TYPE_TEXT_STRING) {
-      uErr = 99 ; // TODO: QCBOR_ERR_MAP_LABEL_TYPE;
+      uErr = QCBOR_ERR_MAP_LABEL_TYPE;
       goto Done;
    }
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
@@ -2058,6 +2059,7 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
           * types like floats as they are not too hard and we now
           * have QCBOR_DISABLE_NON_INTEGER_LABELS */
          if(!pMe->bAllowAllLabels || QCBORItem_IsMapOrArray(LabelItem)) {
+            printf("bAllow %d, type: %d\n", pMe->bAllowAllLabels, LabelItem.uDataType);
             uErr = QCBOR_ERR_MAP_LABEL_TYPE;
             goto Done;
          }
