@@ -10483,30 +10483,30 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
    },
 
 
-   /* Broken
+   //* Broken
     // TODO: fix these
 
    {
       "65-bit neg very precise",
       {"\x3B\xff\xff\xff\xff\xff\xff\xf8\x00", 9},
       QCBOR_SUCCESS,
-      QCBOR_TYPE_DOUBLE,
-      {0, 0, -18446744073709549569.0}
+      QCBOR_TYPE_65BIT_NEG_INT,
+      {0, 18446744073709549568ULL, 0.0}
    },
    {
       "65-bit neg too precise",
       {"\x3B\xff\xff\xff\xff\xff\xff\xfc\x00", 9},
       QCBOR_SUCCESS,
-      QCBOR_TYPE_NEGBIGNUM,
+      QCBOR_TYPE_65BIT_NEG_INT,
       {0, 18446744073709550592ULL, 0.0}
    },
    {
       "65-bit neg, power of two",
       {"\x3B\x80\x00\x00\x00\x00\x00\x00\x00", 9},
       QCBOR_SUCCESS,
-      QCBOR_TYPE_DOUBLE,
-      {0, 0, -9223372036854775809.0}
-   }, */
+      QCBOR_TYPE_65BIT_NEG_INT,
+      {0, 9223372036854775808ULL, 0.0}
+   },
    {
       "Zero",
       {"\x00", 1},
@@ -10545,7 +10545,7 @@ PreciseNumbersDecodeTest(void)
    for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
       pTest = &PreciseNumberConversions[uTestIndex];
 
-      if(uTestIndex == 16) {
+      if(uTestIndex == 18) {
          uErr = 99; // For break point only
       }
 
@@ -10575,6 +10575,7 @@ PreciseNumbersDecodeTest(void)
             break;
 
          case QCBOR_TYPE_UINT64:
+         case QCBOR_TYPE_NEGBIGNUM:
             if(Item.val.uint64 != pTest->number.uint64) {
                return MakeTestResultCode(uTestIndex, 4, 0);
             }
@@ -10590,10 +10591,6 @@ PreciseNumbersDecodeTest(void)
                   return MakeTestResultCode(uTestIndex, 6, 0);
                }
             }
-            break;
-
-         case QCBOR_TYPE_NEGBIGNUM:
-            // TODO: Should probably figure out how to check the value
             break;
       }
    }

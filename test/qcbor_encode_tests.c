@@ -2965,7 +2965,6 @@ static const uint8_t spExpectedExponentAndMantissaMap[] = {
    0x09, 0x0F
 };
 
-// TODO: add bignum encode tests
 
 struct EAMEncodeTest {
    const char *szDescription;
