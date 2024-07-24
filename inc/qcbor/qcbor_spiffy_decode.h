@@ -1561,9 +1561,6 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  * QCBOREncode_AddPositiveBignum(), QCBOREncode_AddNegativeBignum(),
  * @ref QCBOR_TYPE_POSBIGNUM and @ref QCBOR_TYPE_NEGBIGNUM.
  */
-// TODO: rename this to NoPreferred? Add v1 decode mode?
-// Maybe not, because this API can't be given an output buffer
-// Can't tweak this with just a mode bit.
 void
 QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,
                       uint8_t             uTagRequirement,

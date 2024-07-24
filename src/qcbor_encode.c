@@ -580,17 +580,6 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext *pMe,
 
 
 /*
- * Public functions for adding negative integers. See qcbor/qcbor_encode.h
- */
-void
-QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
-{
-   // TODO: are there things to restrict here for dCBOR?
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uValue, 0);
-}
-
-
-/*
  * Public functions for adding signed integers. See qcbor/qcbor_encode.h
  */
 void
@@ -667,6 +656,7 @@ QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
    IEEE754_union        FloatResult;
    bool                 bNoNaNPayload;
    struct IEEE754_ToInt IntResult;
+   uint64_t             uNegValue;
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(IEEE754_DoubleHasNaNPayload(dNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
@@ -686,13 +676,12 @@ QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
             return;
          case IEEE754_ToInt_IS_65BIT_NEG:
             {
-               uint64_t xx;
                if(IntResult.integer.un_signed == 0) {
-                  xx = UINT64_MAX;
+                  uNegValue = UINT64_MAX;
                } else {
-                  xx = IntResult.integer.un_signed-1;
+                  uNegValue = IntResult.integer.un_signed-1;
                }
-               QCBOREncode_AddNegativeUInt64(pMe, xx);
+               QCBOREncode_AddNegativeUInt64(pMe, uNegValue);
             }
             return;
          case IEEE754_ToInt_NaN:
@@ -727,6 +716,7 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
    IEEE754_union        FloatResult;
    bool                 bNoNaNPayload;
    struct IEEE754_ToInt IntResult;
+   uint64_t             uNegValue;
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(IEEE754_SingleHasNaNPayload(fNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
@@ -746,13 +736,12 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
             return;
          case IEEE754_ToInt_IS_65BIT_NEG:
             {
-               uint64_t xx;
                if(IntResult.integer.un_signed == 0) {
-                  xx = UINT64_MAX;
+                  uNegValue = UINT64_MAX;
                } else {
-                  xx = IntResult.integer.un_signed-1;
+                  uNegValue = IntResult.integer.un_signed-1;
                }
-               QCBOREncode_AddNegativeUInt64(pMe, xx);
+               QCBOREncode_AddNegativeUInt64(pMe, uNegValue);
             }
             return;
          case IEEE754_ToInt_NaN:

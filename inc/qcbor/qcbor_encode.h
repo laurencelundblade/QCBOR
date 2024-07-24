@@ -749,7 +749,7 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t u
  * to use CBOR big numbers where you can have any number of bits. See
  * QCBOREncode_AddTNegativeBignum() and @ref Serialization.
  */
-void
+static void
 QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pCtx, uint64_t uNum);
 
 static void
@@ -2875,12 +2875,15 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
+QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
+{
+   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uValue, 0);
+}
+
+static inline void
 QCBOREncode_AddNegativeUInt64ToMap(QCBOREncodeContext *pMe, const char *szLabel, uint64_t uNum)
 {
-   /* Use _AddBuffer() because _AddSZString() is defined below, not above */
-   QCBOREncode_Private_AddBuffer(pMe,
-                                 CBOR_MAJOR_TYPE_TEXT_STRING,
-                                 UsefulBuf_FromSZ(szLabel));
+   QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddNegativeUInt64(pMe, uNum);
 }
 
@@ -3271,9 +3274,6 @@ QCBOREncode_AddTPositiveBignumToMapSZ(QCBOREncodeContext *pMe,
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTPositiveBignum(pMe, uTagRequirement, Bytes);
 }
-
-
-
 
 static inline void
 QCBOREncode_AddTPositiveBignumToMapN(QCBOREncodeContext *pMe,

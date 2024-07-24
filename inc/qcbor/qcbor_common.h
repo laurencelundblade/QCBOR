@@ -30,7 +30,8 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
-
+//#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+#define QCBOR_DISABLE_FLOAT_HW_USE
 
 #ifndef qcbor_common_h
 #define qcbor_common_h

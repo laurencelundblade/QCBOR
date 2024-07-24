@@ -281,8 +281,6 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFB\xC3\xDF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\xC3\xDF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\xC3\xDF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x3B\x7F\xFF\xFF\xFF\xFF\xFF\xFB\xFF", 9}},
 
-   //3B FF FF FE FF FF FF FF FF
-   // -18446742974197923840
    /* -18446742974197923840.0 -- large negative that converts to float, but too large for int64 */
    {-18446742974197923840.0,                     -18446742974197923840.0f,
     {"\xFA\xDF\x7F\xFF\xFF",                 5}, {"\xFB\xC3\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
@@ -387,9 +385,6 @@ static const struct NaNTestCase NaNTestCases[] =  {
    {0, 0, {NULL, 0}, {NULL, 0}, {NULL, 0}, {NULL, 0} }
 };
 
-#include <stdio.h>
-
-//#include "ieee754.h"
 
 /* Public function. See float_tests.h
  *

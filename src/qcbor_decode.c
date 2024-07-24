@@ -1556,11 +1556,6 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
    switch (nMajorType) {
       case CBOR_MAJOR_TYPE_POSITIVE_INT: /* Major type 0 */
       case CBOR_MAJOR_TYPE_NEGATIVE_INT: /* Major type 1 */
-         if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-            uReturn = QCBOR_ERR_BAD_INT;
-         } else {
-            QCBOR_Private_DecodeInteger(nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
-         }
          return QCBOR_Private_DecodeInteger(nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
@@ -1940,7 +1935,6 @@ Done:
 #endif /* QCBOR_DISABLE_TAGS */
 }
 
-#include <stdio.h>
 
 /**
  * @brief Combine a map entry label and value into one item (decode layer 3).
@@ -2060,7 +2054,6 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
           * types like floats as they are not too hard and we now
           * have QCBOR_DISABLE_NON_INTEGER_LABELS */
          if(!pMe->bAllowAllLabels || QCBORItem_IsMapOrArray(LabelItem)) {
-            printf("bAllow %d, type: %d\n", pMe->bAllowAllLabels, LabelItem.uDataType);
             uErr = QCBOR_ERR_MAP_LABEL_TYPE;
             goto Done;
          }
@@ -8032,7 +8025,6 @@ QCBOR_Private_ProcessPreferredBigNum(const uint8_t    uTagRequirement,
                                      UsefulBufC      *pValue,
                                      bool            *pbIsNegative)
 {
-   // TODO: this may not support all the needed types
    if(pItem->uDataType != QCBOR_TYPE_INT64 &&
       pItem->uDataType != QCBOR_TYPE_UINT64 &&
       pItem->uDataType != QCBOR_TYPE_65BIT_NEG_INT) {
