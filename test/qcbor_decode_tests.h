@@ -185,7 +185,7 @@ int32_t OptTagParseTest(void);
 /*
  Parse some big numbers, positive and negative
  */
-int32_t BignumParseTest(void);
+int32_t BignumDecodeTest(void);
 
 
 /*
@@ -324,7 +324,7 @@ int32_t CBORTestIssue134(void);
  */
 int32_t DecodeConformanceTests(void);
 
-int32_t PreciseNumbersTest(void);
+int32_t PreciseNumbersDecodeTest(void);
 
 int32_t ErrorHandlingTests(void);
 

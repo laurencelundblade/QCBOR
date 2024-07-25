@@ -79,8 +79,11 @@ MakeTestResultCode(uint32_t   uTestCase,
    return (int32_t)uCode;
 }
 
+
 /*
    [
+      -18446744073709551616,
+      -18446744073709551615,
       -9223372036854775808,
       -4294967297,
       -4294967296,
@@ -175,13 +178,13 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT ||
-      Item.val.uint64 != 18446744073709551615ULL)
+      Item.val.uint64 != 0xffffffffffffffff)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT ||
-      Item.val.uint64 != 18446744073709551614ULL)
+      Item.val.uint64 != 0xfffffffffffffffe)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
@@ -2558,7 +2561,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 54) {
+      if(nIndex == 55) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -4648,15 +4651,155 @@ static const uint8_t spBigNumInput[] = {
        0xC3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
+
+struct BignumDecodeTest {
+   const char *szDescription;
+   UsefulBufC  Encoded;
+   QCBORError  uErr;
+   UsefulBufC  ExpectedBigNum;
+   bool        bExpectedSign;
+};
+
 #ifndef QCBOR_DISABLE_TAGS
+static struct BignumDecodeTest BignumDecodeTests[] = {
+   {
+      "-18446744073709551617",
+      {"\xC3\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      QCBOR_SUCCESS,
+      {"\x01\x00\x00\x00\x00\x00\x00\x00\x01", 9},
+      true
+   },
+   {
+      "-18446744073709551616 preferred",
+      {"\x3B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_SUCCESS,
+      {"\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9},
+      true
+   },
+   {
+      "-18446744073709551616 as big num",
+      {"\xC3\x48\xff\xff\xff\xff\xff\xff\xff\xff", 10},
+      QCBOR_SUCCESS,
+      {"\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9},
+      true
+   },
+   {
+      "-9223372036854775808  -(2^63)",
+      {"\x3B\x7f\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_SUCCESS,
+      {"\x80\x00\x00\x00\x00\x00\x00\x00", 8},
+      true
+   },
+
+   {
+      "Preferred -1",
+      {"\x20", 1},
+      QCBOR_SUCCESS,
+      {"\x01", 1},
+      true
+   },
+   {
+      "bignum -1",
+      {"\xc3\x42\x00\x00", 4},
+      QCBOR_SUCCESS,
+      {"\x01", 1},
+      true
+   },
+   {
+      "bignum -1 empty buffer",
+      {"\xc3\x40", 2},
+      QCBOR_SUCCESS,
+      {"\x01", 1},
+      true
+   },
+   {
+      "Preferred Zero",
+      {"\x00", 1},
+      QCBOR_SUCCESS,
+      {"\x00", 1},
+      false
+   },
+   {
+      "Bignum zero",
+      {"\xC2\x40", 2},
+      QCBOR_SUCCESS,
+      {"\x00", 1},
+      false
+   },
+   {
+      "Bignum zero with leading zeros",
+      {"\xC2\x43\x00\x00\x00", 5},
+      QCBOR_SUCCESS,
+      {"\x00", 1},
+      false
+   },
+   {
+      "Preferred one",
+      {"\x01", 1},
+      QCBOR_SUCCESS,
+      {"\x01", 1},
+      false
+   },
+   {
+      "Bignum one",
+      {"\xc2\x41\x01", 3},
+      QCBOR_SUCCESS,
+      {"\x01", 1},
+      false
+   },
+   {
+      "512 with leading zeros",
+      {"\x1A\x00\x00\x02\x00", 5},
+      QCBOR_SUCCESS,
+      {"\x02\x00", 2},
+      false
+   },
+   {
+      "512 with leading zeros again",
+      {"\xc2\x46\x00\x00\x00\x00\x02\x00", 8},
+      QCBOR_SUCCESS,
+      {"\x02\x00", 2},
+      false
+   },
+   {
+      "1297093868730187896 (a byte pattern with zeros and different digits",
+      {"\x1B\x12\x00\x34\x00\x56\x00\x00\x78", 9},
+      QCBOR_SUCCESS,
+      {"\x12\x00\x34\x00\x56\x00\x00\x78", 8},
+      false
+   },
+   {
+      "Preferred UINT64_MAX",
+      {"\x1B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_SUCCESS,
+      {"\xff\xff\xff\xff\xff\xff\xff\xff", 8},
+      false
+   },
+   {
+      "Bignum UINT64_MAX",
+      {"\xC2\x48\xff\xff\xff\xff\xff\xff\xff\xff", 10},
+      QCBOR_SUCCESS,
+      {"\xff\xff\xff\xff\xff\xff\xff\xff", 8},
+      false
+   },
+   {
+      "UINT64_MAX + 1",
+      {"\xC2\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      QCBOR_SUCCESS,
+      {"\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9},
+      false
+   }
+};
+
+
 /* The expected big num */
 static const uint8_t spBigNum[] = {
    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
    0x00};
-#endif /* QCBOR_DISABLE_TAGS */
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 
-int32_t BignumParseTest(void)
+int32_t BignumDecodeTest(void)
 {
    QCBORDecodeContext DCtx;
    QCBORItem Item;
@@ -4732,9 +4875,71 @@ int32_t BignumParseTest(void)
       UsefulBuf_Compare(Item.val.bigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNum))){
       return -14;
    }
-
-
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
+
+
+   unsigned                  uTestIndex;
+   unsigned                  uTestCount;
+   struct BignumDecodeTest  *pTest;
+   QCBORError                uErr;
+   UsefulBuf_MAKE_STACK_UB(  BignumBuf, 200);
+   UsefulBufC                ResultBigNum;
+   bool                      bIsNeg;
+
+   uTestCount = (int)C_ARRAY_COUNT(BignumDecodeTests, struct BignumDecodeTest);
+
+   for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
+      pTest = &BignumDecodeTests[uTestIndex];
+
+      if(uTestIndex == 13) {
+         bIsNeg = false; /* Line of code so a break point can be set. */
+      }
+
+      QCBORDecode_Init(&DCtx, pTest->Encoded, 0);
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 1, uErr);
+      }
+
+      uErr = QCBORDecode_BignumPreferred(Item, BignumBuf, &ResultBigNum, &bIsNeg);
+      if(uErr != pTest->uErr) {
+         return MakeTestResultCode(uTestIndex, 2, uErr);
+      }
+
+      if(uErr != QCBOR_SUCCESS) {
+         continue; /* This test passed */
+      }
+
+      if(UsefulBuf_Compare(ResultBigNum, pTest->ExpectedBigNum)) {
+         return MakeTestResultCode(uTestIndex, 3, 0);
+      }
+
+      if(bIsNeg != pTest->bExpectedSign) {
+         return MakeTestResultCode(uTestIndex, 4, 0);
+      }
+
+      uErr = QCBORDecode_BignumPreferred(Item, (UsefulBuf){NULL, 200}, &ResultBigNum, &bIsNeg);
+      if(ResultBigNum.len != pTest->ExpectedBigNum.len) {
+         return MakeTestResultCode(uTestIndex, 5, uErr);
+      }
+
+      QCBORDecode_Init(&DCtx, pTest->Encoded, 0);
+      QCBORDecode_GetBigNumPreferred(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, BignumBuf,  &ResultBigNum, &bIsNeg);
+      uErr = QCBORDecode_GetError(&DCtx);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 6, uErr);
+      }
+
+      if(UsefulBuf_Compare(ResultBigNum, pTest->ExpectedBigNum)) {
+         return MakeTestResultCode(uTestIndex, 7, 0);
+      }
+
+      if(bIsNeg != pTest->bExpectedSign) {
+         return MakeTestResultCode(uTestIndex, 8, 0);
+      }
+
+   }
+
 
 #else
 
@@ -7732,6 +7937,10 @@ int32_t IntegerConvertTest(void)
          return (int32_t)(3333+nIndex);
       }
 
+      if(nIndex == 21) {
+         uInt = 99; // For break point only
+      }
+
       int64_t nInt;
       QCBORDecode_GetInt64ConvertAll(&DCtx, 0xffff, &nInt);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorInt64) {
@@ -10109,7 +10318,7 @@ DecodeConformanceTests(void)
    QCBORDecode_Init(&DCtx,UsefulBuf_FROM_SZ_LITERAL("\xa2\x00\x00\x00\x00"), QCBOR_DECODE_MODE_CDE);
    QCBORDecode_EnterMap(&DCtx, &Item);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_DUPLICATE_LABEL) {
-      return 5000;
+      return -5000;
    }
 
    return ProcessDecodeFailures(DecodeConformanceFailures,
@@ -10187,12 +10396,42 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
       {0, UINT64_MAX, 0}
    },
    {
-      "INT64_MIN",
+      "Largest float that is also representable as int64_t",
+      {"\x3B\x7f\xff\xff\xff\xff\xff\xfb\xff", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {-9223372036854774784, 0, 0}
+   },
+   {
+      "-9223372036854775807",
+      {"\x3B\x7f\xff\xff\xff\xff\xff\xff\xfe", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {-9223372036854775807, 0, 0}
+   },
+   {
+      "Largest representable in int64_t (INT64_MIN)",
       {"\x3B\x7f\xff\xff\xff\xff\xff\xff\xff", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_INT64,
       {INT64_MIN, 0, 0}
    },
+   {
+      "-9223372036854775809 First encoded as 65-bit neg",
+      {"\x3B\x80\x00\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_65BIT_NEG_INT,
+      {0, 0, 0}
+   },
+
+   {
+      "-9223372036854777856 First float not representable as int64_t",
+      {"\x3B\x80\x00\x00\x00\x00\x00\x07\xFF", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, -9223372036854777856.0}
+   },
+
    {
       "18446742974197923840",
       {"\xFB\x43\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
@@ -10200,26 +10439,55 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
       QCBOR_TYPE_UINT64,
       {0, 18446742974197923840ULL, 0}
    },
+
    {
-      "65-bit neg, too much precision",
-      {"\x3B\x80\x00\x00\x00\x00\x00\x00\x01", 9},
-      QCBOR_SUCCESS,
-      QCBOR_TYPE_65BIT_NEG_INT,
-      {0, 0x8000000000000001, 0}
-   },
-   {
-      "65-bit neg lots of precision",
-      {"\x3B\xff\xff\xff\xff\xff\xff\xf0\x00", 9},
+      "-18446744073709547522 65-bit neg lots of precision",
+      {"\x3B\xff\xff\xff\xff\xff\xff\xef\xff", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_DOUBLE,
-      {0, 0, -18446744073709547521.0}
+      {0, 0, -18446744073709547522.0}
    },
+
+   {
+      "-18446744073709549568 Next to largest float encodable as 65-bit neg",
+      {"\x3B\xff\xff\xff\xff\xff\xff\xf7\xff", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, -18446744073709549568.0}
+   },
+
+   {
+      "-18446744073709551616 Largest possible encoded 65-bit neg",
+      {"\x3B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, -18446744073709551616.0}
+   },
+   {
+      "-18446744073709551617 First value representable only as a tag 3 big num",
+      {"\xC3\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+#ifndef QCBOR_DISABLE_TAGS
+      QCBOR_ERR_UNEXPECTED_TYPE,
+#else
+      QCBOR_ERR_TAGS_DISABLED,
+#endif /* ! QCBOR_DISABLE_TAGS */
+      QCBOR_TYPE_NONE,
+      {0, 0, -0}
+   },
+   {
+      "-18446744073709555712 First whole integer that must be encoded as float in DCBOR",
+      {"\xFB\xC3\xF0\x00\x00\x00\x00\x00\x01", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_DOUBLE,
+      {0, 0, -18446744073709555712.0}
+   },
+   
    {
       "65-bit neg very precise",
       {"\x3B\xff\xff\xff\xff\xff\xff\xf8\x00", 9},
       QCBOR_SUCCESS,
-      QCBOR_TYPE_DOUBLE,
-      {0, 0, -18446744073709549569.0}
+      QCBOR_TYPE_65BIT_NEG_INT,
+      {0, 18446744073709549568ULL, 0.0}
    },
    {
       "65-bit neg too precise",
@@ -10232,8 +10500,8 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
       "65-bit neg, power of two",
       {"\x3B\x80\x00\x00\x00\x00\x00\x00\x00", 9},
       QCBOR_SUCCESS,
-      QCBOR_TYPE_DOUBLE,
-      {0, 0, -9223372036854775809.0}
+      QCBOR_TYPE_65BIT_NEG_INT,
+      {0, 9223372036854775808ULL, 0.0}
    },
    {
       "Zero",
@@ -10260,20 +10528,20 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
 
 
 int32_t
-PreciseNumbersTest(void)
+PreciseNumbersDecodeTest(void)
 {
-   int                i;
+   unsigned           uTestIndex;
+   unsigned           uTestCount;
    QCBORError         uErr;
    QCBORItem          Item;
    QCBORDecodeContext DCtx;
    const struct PreciseNumberConversion *pTest;
 
-   const int count = (int)C_ARRAY_COUNT(PreciseNumberConversions, struct PreciseNumberConversion);
+   uTestCount = C_ARRAY_COUNT(PreciseNumberConversions, struct PreciseNumberConversion);
+   for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
+      pTest = &PreciseNumberConversions[uTestIndex];
 
-   for(i = 0; i < count; i++) {
-      pTest = &PreciseNumberConversions[i];
-
-      if(i == 11) {
+      if(uTestIndex == 18) {
          uErr = 99; // For break point only
       }
 
@@ -10284,11 +10552,11 @@ PreciseNumbersTest(void)
       uErr = QCBORDecode_GetError(&DCtx);
 
       if(uErr != pTest->uError) {
-         return i * 1000 + (int)uErr;
+         return MakeTestResultCode(uTestIndex, 1, uErr);
       }
 
       if(pTest->qcborType != Item.uDataType) {
-         return i * 1000 + 200;
+         return MakeTestResultCode(uTestIndex, 2, 0);
       }
 
       if(pTest->qcborType == QCBOR_TYPE_NONE) {
@@ -10298,25 +10566,25 @@ PreciseNumbersTest(void)
       switch(pTest->qcborType) {
          case QCBOR_TYPE_INT64:
             if(Item.val.int64 != pTest->number.int64) {
-               return i * 1000 + 300;
+               return MakeTestResultCode(uTestIndex, 3, 0);
             }
             break;
 
          case QCBOR_TYPE_UINT64:
-         case QCBOR_TYPE_65BIT_NEG_INT:
+         case QCBOR_TYPE_NEGBIGNUM:
             if(Item.val.uint64 != pTest->number.uint64) {
-               return i * 1000 + 400;
+               return MakeTestResultCode(uTestIndex, 4, 0);
             }
             break;
 
          case QCBOR_TYPE_DOUBLE:
             if(isnan(pTest->number.d)) {
                if(!isnan(Item.val.dfnum)) {
-                  return i * 1000 + 600;
+                  return MakeTestResultCode(uTestIndex, 5, 0);
                }
             } else {
                if(Item.val.dfnum != pTest->number.d) {
-                  return i * 1000 + 500;
+                  return MakeTestResultCode(uTestIndex, 6, 0);
                }
             }
             break;

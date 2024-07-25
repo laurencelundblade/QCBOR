@@ -691,6 +691,7 @@ IEEE754_DoubleToInt(const double d)
    /* Cast safe because of mask above; exponents < DOUBLE_EXPONENT_MAX */
    const int64_t  nDoubleUnbiasedExponent = (int64_t)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
+   const uint64_t bIsNegative             = uDouble & DOUBLE_SIGN_MASK;
 
    if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_ZERO) {
       if(uDoubleSignificand == 0) {
@@ -706,13 +707,21 @@ IEEE754_DoubleToInt(const double d)
          /* --- NAN --- */
          Result.type = IEEE754_ToInt_NaN; /* dCBOR doesn't care about payload */
       } else  {
-         /* --- INIFINITY --- */
+         /* --- INFINITY --- */
          Result.type = IEEE754_ToInt_NO_CONVERSION;
       }
-   } else if(nDoubleUnbiasedExponent < 0 ||
-             (nDoubleUnbiasedExponent >= ((uDouble & DOUBLE_SIGN_MASK) ? 63 : 64))) {
+   } else if(nDoubleUnbiasedExponent < 0) {
       /* --- Exponent out of range --- */
       Result.type = IEEE754_ToInt_NO_CONVERSION;
+   } else if(nDoubleUnbiasedExponent >= 64) {
+      if(nDoubleUnbiasedExponent == 64 && uDoubleSignificand == 0 && bIsNegative) {
+         /* Very special case for -18446744073709551616.0 */
+         Result.integer.un_signed = 0; /* No negative 0, use it to indicate 2^64 */
+         Result.type              = IEEE754_ToInt_IS_65BIT_NEG;
+      } else {
+         /* --- Exponent out of range --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      }
    } else {
       /* Conversion only fails when the input is too large or is not a
        * whole number, never because of lack of precision because
@@ -737,10 +746,15 @@ IEEE754_DoubleToInt(const double d)
             /* Numbers greater than 2^52 with at most 52 significant bits */
             uInteger <<= nDoubleUnbiasedExponent - DOUBLE_NUM_SIGNIFICAND_BITS;
          }
-         if(uDouble & DOUBLE_SIGN_MASK) {
+         if(bIsNegative) {
             /* Cast safe because exponent range check above */
-            Result.integer.is_signed = -((int64_t)uInteger);
-            Result.type              = IEEE754_ToInt_IS_INT;
+            if(nDoubleUnbiasedExponent == 63) {
+               Result.integer.un_signed = uInteger;
+               Result.type              = IEEE754_ToInt_IS_65BIT_NEG;
+            } else {
+               Result.integer.is_signed = -((int64_t)uInteger);
+               Result.type              = IEEE754_ToInt_IS_INT;
+            }
          } else {
             Result.integer.un_signed = uInteger;
             Result.type              = IEEE754_ToInt_IS_UINT;
@@ -769,6 +783,8 @@ IEEE754_SingleToInt(const float f)
    /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
    const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
    const uint32_t uSingleleSignificand    = uSingle & SINGLE_SIGNIFICAND_MASK;
+   const uint64_t bIsNegative             = uSingle & SINGLE_SIGN_MASK;
+
 
    if(nSingleUnbiasedExponent == SINGLE_EXPONENT_ZERO) {
       if(uSingleleSignificand == 0 && !(uSingle & SINGLE_SIGN_MASK)) {
@@ -786,10 +802,18 @@ IEEE754_SingleToInt(const float f)
       } else  {
          Result.type = IEEE754_ToInt_NO_CONVERSION;
       }
-   } else if(nSingleUnbiasedExponent < 0 ||
-             (nSingleUnbiasedExponent >= ((uSingle & SINGLE_SIGN_MASK) ? 63 : 64))) {
+   } else if(nSingleUnbiasedExponent < 0) {
       /* --- Exponent out of range --- */
        Result.type = IEEE754_ToInt_NO_CONVERSION;
+   } else if(nSingleUnbiasedExponent >= 64) {
+      if(nSingleUnbiasedExponent == 64 && uSingleleSignificand == 0 && bIsNegative) {
+         /* Very special case for -18446744073709551616.0 */
+         Result.integer.un_signed = 0; /* No negative 0, use it to indicate 2^64 */
+         Result.type              = IEEE754_ToInt_IS_65BIT_NEG;
+      } else {
+         /* --- Exponent out of range --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      }
     } else {
       /* Conversion only fails when the input is too large or is not a
        * whole number, never because of lack of precision because
@@ -814,9 +838,15 @@ IEEE754_SingleToInt(const float f)
             /* Numbers greater than 2^23 with at most 23 significant bits*/
             uInteger <<= nSingleUnbiasedExponent - SINGLE_NUM_SIGNIFICAND_BITS;
          }
-         if(uSingle & SINGLE_SIGN_MASK) {
-            Result.integer.is_signed = -((int64_t)uInteger);
-            Result.type              = IEEE754_ToInt_IS_INT;
+         if(bIsNegative) {
+         /* Cast safe because exponent range check above */
+            if(nSingleUnbiasedExponent == 63) {
+               Result.integer.un_signed = uInteger;
+               Result.type              = IEEE754_ToInt_IS_65BIT_NEG;
+            } else {
+               Result.integer.is_signed = -((int64_t)uInteger);
+               Result.type              = IEEE754_ToInt_IS_INT;
+            }
          } else {
             Result.integer.un_signed = uInteger;
             Result.type              = IEEE754_ToInt_IS_UINT;
@@ -837,31 +867,37 @@ IEEE754_UintToDouble(const uint64_t uInt, const int uIsNegative)
    uint64_t uDoubleSignificand;
    int      nPrecisionBits;
 
-   /* Figure out the exponent and normalize the significand. This is
-    * done by shifting out all leading zero bits and counting them. If
-    * none are shifted out, the exponent is 63. */
-   uDoubleSignificand = uInt;
-   nDoubleUnbiasedExponent = 63;
-   while(1) {
-      if(uDoubleSignificand & 0x8000000000000000UL) {
-         break;
+   if(uInt == 0) {
+      uDoubleSignificand      = 0;
+      nDoubleUnbiasedExponent = DOUBLE_EXPONENT_ZERO;
+
+   } else  {
+      /* Figure out the exponent and normalize the significand. This is
+       * done by shifting out all leading zero bits and counting them. If
+       * none are shifted out, the exponent is 63. */
+      uDoubleSignificand = uInt;
+      nDoubleUnbiasedExponent = 63;
+      while(1) {
+         if(uDoubleSignificand & 0x8000000000000000UL) {
+            break;
+         }
+         uDoubleSignificand <<= 1;
+         nDoubleUnbiasedExponent--;
+      };
+
+      /* Position significand correctly for a double. Only shift 63 bits
+       * because of the 1 that is present by implication in IEEE 754.*/
+      uDoubleSignificand >>= 63 - DOUBLE_NUM_SIGNIFICAND_BITS;
+
+      /* Subtract 1 which is present by implication in IEEE 754 */
+      uDoubleSignificand -= 1ULL << (DOUBLE_NUM_SIGNIFICAND_BITS);
+
+      nPrecisionBits = IEEE754_Private_CountPrecisionBits(uInt) - (64 - nDoubleUnbiasedExponent);
+
+      if(nPrecisionBits > DOUBLE_NUM_SIGNIFICAND_BITS) {
+         /* Will lose precision if converted */
+         return IEEE754_UINT_TO_DOUBLE_OOB;
       }
-      uDoubleSignificand <<= 1;
-      nDoubleUnbiasedExponent--;
-   };
-
-   /* Position significand correctly for a double. Only shift 63 bits
-    * because of the 1 that is present by implication in IEEE 754.*/
-   uDoubleSignificand >>= 63 - DOUBLE_NUM_SIGNIFICAND_BITS;
-
-   /* Subtract 1 which is present by implication in IEEE 754 */
-   uDoubleSignificand -= 1ULL << (DOUBLE_NUM_SIGNIFICAND_BITS);
-
-   nPrecisionBits = IEEE754_Private_CountPrecisionBits(uInt) - (64 - nDoubleUnbiasedExponent);
-
-   if(nPrecisionBits > DOUBLE_NUM_SIGNIFICAND_BITS) {
-      /* Will lose precision if converted */
-      return IEEE754_UINT_TO_DOUBLE_OOB;
    }
 
    return IEEE754_AssembleDouble((uint64_t)uIsNegative,

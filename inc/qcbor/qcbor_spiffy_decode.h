@@ -299,41 +299,53 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
 
 #if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
 /**
- * @brief Decode next as a number with precision-preserving conversions.
+ * @brief dCBOR Decode next as a number with precision-preserving conversions.
  *
  * @param[in] pCtx           The decode context.
- * @param[out] pNumber       The returned 64-bit signed integer.
+ * @param[out] pNumber       The returned number.
  *
- * This will get the next item as a number and return it as a C
- * data type such that no precision is lost.
+ * This gets the next item as a number and returns it as a C data type
+ * such that no precision is lost.
  *
- * The CBOR input can be integers (major type 0 or 1) or floats (major type 7).
- * If not these \ref QCBOR_ERR_UNEXPECTED_TYPE will be set.
+ * This is primarily works with integers and floats for both the
+ * to-be-decoded CBOR and the decoded types.
+ *
+ * The CBOR input can be integers (major type 0 or 1) or floats (major
+ * type 7).  If not these, \ref QCBOR_ERR_UNEXPECTED_TYPE will be set.
  *
  * The conversion is as follows.
  *
- * Whole numbers between \c INT64_MIN and \c INT64_MAX will
- * be returned as \ref QCBOR_TYPE_INT64. This includes
- * conversion of float-point values that are whole numbers.
- *
- * Whole numbers between \c INT64_MAX and \c UINT64_MAX will
- * be returned as \ref QCBOR_TYPE_UINT64, again including
+ * Whole numbers from \c INT64_MIN to \c INT64_MAX will be returned as
+ * int64_t indicated as \ref QCBOR_TYPE_INT64. This includes
  * conversion of floating-point values that are whole numbers.
  *
- * The whole numbers called "65-bit negative" in CBOR (-2^63 - 1 to -2^64) are a
- * special case. Some of them can be converted to a double without
- * loss of precision and some can't (uint64_t has 64 bits of precision; a double
- * has only 52). If they can't be converted to a double, they are returned
- * as \ref QCBOR_TYPE_65BIT_NEG_INT.
- * In many cases, it will be reasonable to error out if the
- * number type returned here is \ref QCBOR_TYPE_65BIT_NEG_INT
- * on the assumption that many protocols will never uses these.
- * See also QCBOREncode_AddNegativeUInt64() for more discussion.
+ * Whole numbers from \c INT64_MAX +1 to \c UINT64_MAX will be
+ * returned as uint64_t indicated as \ref QCBOR_TYPE_UINT64, again
+ * including conversion of floating-point values that are whole
+ * numbers.
  *
- * All others are returned as a double.
+ * Most other numbers are returned as a double as indicated by 
+ * \ref QCBOR_TYPE_DOUBLE floating point with one set of exceptions.
  *
- * This is useful for dCBOR which essentially combines floats
- * and integers into one number space.
+ * The exception is negative whole numbers in the range of -(2^63 + 1)
+ * to -(2^64) that have too much precision to be represented as a
+ * double. Doubles have only 52 bits of precision, so they can't
+ * precisely represent every whole integer in this range. CBOR can
+ * represent these values with 64-bits of precision and when this
+ * function encounters them they are returned as \ref
+ * QCBOR_TYPE_65BIT_NEG_INT.  See the description of this type for
+ * instructions to gets its value.  Also see
+ * QCBORDecode_BignumPreferred().
+ *
+ * To give an example, the value -18446744073709551616 can't be
+ * represented by an int64_t or uint64_t, but can be represented by a
+ * double so it is returned by this function as a double. The value
+ * -18446744073709551617 however can't be represented by a double
+ * because it has too much precision, so it is returned as \ref
+ * QCBOR_TYPE_65BIT_NEG_INT.
+ *
+ * This is useful for DCBOR which essentially combines floats and
+ * integers into one number space.
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  *
@@ -344,6 +356,68 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
                                       QCBORItem          *pNumber);
 
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
+/**
+ * @brief Decode next item as a big number encoded using preferred serialization.
+ *
+ * @param[in] pCtx          The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[in] BigNumBuf     The buffer to write the result into.
+ * @param[in,out] pbIsNegative  Set to true if the resulting big number is negative.
+ * @param[out] pBigNum      The output big number.
+ *
+ * See QCBORDecode_PreferedBigNum() in full detail.
+ *
+ * The type processing rules are as follows.
+ *
+ * This always succeeds on type 0 and 1 integers (QCBOR_TYPE_INT64,
+ * QCBOR_TYPE_UINT64 and QCBOR_TYPE_65_BIT_NEG) no matter what
+ * uTagRequirement is. The rest of the rules pertain to what happens
+ * if the CBOR is not type 0 or type 1.
+ *
+ * If uTagRequirement is REQUIRE, this will fail on anything but a
+ * full and correct tag 2 or tag 3 big number.
+ *
+ * If uTagRequreiement is QCBOR_TAG_REQUIREMENT_NOT_A_TAG then this
+ * will fail on anything but a byte string.
+ *
+ * If QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, then this will succeed on
+ * either a byte string or a tag 2 or 3.
+ *
+ * If the item is a bare byte string, not a tag 2 or 3, then
+ * pbIsNegative is an input parameter that determines the sign of the
+ * big number. The sign must be known because the decoding of a
+ * positive big number is different than a negative.
+ *
+ * TODO: reevaluate whether to call this GetBigNum after tag redesign
+ * It would be more consistent to be GetBigNum with its friend named GetBigNumNoPreferred
+ * but the parameters are different so backwards compat can be with a mode bit.
+ */
+void
+QCBORDecode_GetBigNumPreferred(QCBORDecodeContext *pCtx,
+                               uint8_t             uTagRequirement,
+                               UsefulBuf           BigNumBuf,
+                               UsefulBufC         *pBigNum,
+                               bool               *pbIsNegative);
+
+void
+QCBORDecode_GetBigNumPreferredInMapN(QCBORDecodeContext *pCtx,
+                                     uint8_t             uTagRequirement,
+                                     int64_t             nLabel,
+                                     UsefulBuf           BigNumBuf,
+                                     UsefulBufC         *pBigNum,
+                                     bool               *pbIsNegative);
+
+void
+QCBORDecode_GetBigNumPreferredInMapSZ(QCBORDecodeContext *pCtx,
+                                      uint8_t             uTagRequirement,
+                                      const char         *szLabel,
+                                      UsefulBuf           BigNumBuf,
+                                      UsefulBufC         *pBigNum,
+                                      bool               *pbIsNegative);
+
+
+
 
 /**
  * @brief Decode next item into a signed 64-bit integer with conversions.
@@ -1465,9 +1539,10 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  *
  * The negative value is computed as -1 - n, where n is the postive
  * big number in @c pValue. There is no standard representation for
- * big numbers, positive or negative in C, so this implementation
+ * big numbers, positive or negative in C, so this function
  * leaves it up to the caller to apply this computation for negative
- * big numbers.
+ * big numbers, but QCBORDecode_BignumPreferred() can be
+ * used too.
  *
  * See @ref Tag-Usage for discussion on tag requirements.
  *
@@ -1479,14 +1554,13 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  * then the protocol design must have some way of indicating the sign.
  *
  * See also QCBORDecode_GetInt64ConvertAll(),
- * QCBORDecode_GetUInt64ConvertAll() and
- * QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
+ * QCBORDecode_GetUInt64ConvertAll(),
+ * QCBORDecode_GetDoubleConvertAll() and QCBORDecode_BignumPreferred() which can convert big numbers.
  *
  * See also @ref CBOR_TAG_POS_BIGNUM, @ref CBOR_TAG_NEG_BIGNUM,
  * QCBOREncode_AddPositiveBignum(), QCBOREncode_AddNegativeBignum(),
  * @ref QCBOR_TYPE_POSBIGNUM and @ref QCBOR_TYPE_NEGBIGNUM.
  */
-// Improvement: Add function that converts integers and other to big nums
 void
 QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,
                       uint8_t             uTagRequirement,

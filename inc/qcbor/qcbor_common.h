@@ -31,7 +31,6 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
 
-
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
@@ -555,6 +554,9 @@ typedef enum {
 
    /** Conformance checking requested, preferred serialization disabled, float in the input. */
    QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE = 86,
+
+   /* Can't output a negative zero big num */
+   QCBOR_ERR_NO_NEGATIVE_ZERO = 87,
 
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice

@@ -67,6 +67,7 @@ static test_entry2 s_tests2[] = {
 
 
 static test_entry s_tests[] = {
+   TEST_ENTRY(BigNumEncodeTests),
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
    TEST_ENTRY(DecodeConformanceTests),
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -81,8 +82,6 @@ static test_entry s_tests[] = {
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    TEST_ENTRY(SpiffyDateDecodeTest),
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
-   TEST_ENTRY(ErrorHandlingTests),
-   TEST_ENTRY(OpenCloseBytesTest),
    TEST_ENTRY(EnterBstrTest),
    TEST_ENTRY(IntegerConvertTest),
    TEST_ENTRY(EnterMapTest),
@@ -114,7 +113,7 @@ static test_entry s_tests[] = {
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
    TEST_ENTRY(BasicEncodeTest),
    TEST_ENTRY(NestedMapTest),
-   TEST_ENTRY(BignumParseTest),
+   TEST_ENTRY(BignumDecodeTest),
 
 #ifndef QCBOR_DISABLE_TAGS
    TEST_ENTRY(OptTagParseTest),
@@ -142,7 +141,7 @@ static test_entry s_tests[] = {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    TEST_ENTRY(HalfPrecisionAgainstRFCCodeTest),
    TEST_ENTRY(FloatValuesTests),
-   TEST_ENTRY(PreciseNumbersTest),
+   TEST_ENTRY(PreciseNumbersDecodeTest),
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
    TEST_ENTRY(GeneralFloatEncodeTests),
    TEST_ENTRY(GeneralFloatDecodeTests),

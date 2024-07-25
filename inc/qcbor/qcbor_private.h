@@ -231,12 +231,19 @@ typedef struct _QCBOREncodeContext QCBORPrivateEncodeContext;
 #define QCBOR_ENCODE_MODE_DCBOR     3
 
 
+/* Operate in compatibility with QCBOR 1.0
+ * So far the differences are:
+ *  - AddNegativeBigNum and AddBigFloat with a negative big num
+ */
+#define QCBOR_ENCODE_CONFIG_V1_COMPAT 0x01
+
 struct _QCBOREncodeContext {
    /* PRIVATE DATA STRUCTURE */
    UsefulOutBuf      OutBuf;  /* Pointer to output buffer, its length and
                                * position in it. */
    uint8_t           uError;  /* Error state, always from QCBORError enum */
    uint8_t           uMode;   /* @ref QCBOR_ENCODE_MODE_PREFERRED or related */
+   uint8_t           uConfig; /* QCBOR_ENCODE_CONFIG_xxx */
    uint8_t           uAllow;  /* @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD, ... */
    void            (*pfnCloseMap)(QCBORPrivateEncodeContext *); /* Use of function
                                * pointer explained in QCBOREncode_SerializationCDE() */
