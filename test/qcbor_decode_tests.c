@@ -10481,11 +10481,7 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
       QCBOR_TYPE_DOUBLE,
       {0, 0, -18446744073709555712.0}
    },
-
-
-   //* Broken
-    // TODO: fix these
-
+   
    {
       "65-bit neg very precise",
       {"\x3B\xff\xff\xff\xff\xff\xff\xf8\x00", 9},
