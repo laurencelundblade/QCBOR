@@ -169,6 +169,7 @@ QCBOR.
 ## Code Status
 
 The official current release is version 1.4.1 Changes over the last few
+years have been only minor bug fixes, minor feature additions and
 documentation improvements. QCBOR 1.x is highly stable.
 
 Work on some larger feature additions is ongoing in "dev" branch.
