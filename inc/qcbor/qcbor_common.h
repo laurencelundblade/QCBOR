@@ -62,7 +62,7 @@ extern "C" {
  */
 #define QCBOR_VERSION_MAJOR 1
 #define QCBOR_VERSION_MINOR 4
-#define QCBOR_VERSION_PATCH 0
+#define QCBOR_VERSION_PATCH 1
 
 
 /**
