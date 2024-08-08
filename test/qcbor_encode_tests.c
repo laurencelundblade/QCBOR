@@ -180,6 +180,11 @@ int32_t BasicEncodeTest(void)
    }
 
 
+   UsefulBuf Tmp = QCBOREncode_RetrieveOutputStorage(&EC);
+   if(Tmp.ptr != spBigBuf && Tmp.len != sizeof(spBigBuf)) {
+      return -111;
+   }
+
    // Make another encoded message with the CBOR from the previous
    // put into this one
    UsefulBuf_MAKE_STACK_UB(MemoryForEncoded2, 20);
@@ -196,6 +201,8 @@ int32_t BasicEncodeTest(void)
    if(QCBOREncode_Finish(&EC, &Encoded2)) {
       return -5;
    }
+
+
     /*
      [                // 0    1:3
         451,          // 1    1:2
@@ -274,6 +281,8 @@ int32_t BasicEncodeTest(void)
    if(QCBORDecode_Finish(&DC)) {
       return -13;
    }
+
+   
 
    return 0;
 }
@@ -2652,6 +2661,12 @@ int32_t EncodeErrorTests(void)
       return -11;
    }
 
+   UsefulBuf Tmp;
+   Tmp = QCBOREncode_RetrieveOutputStorage(&EC);
+   if(Tmp.ptr != NULL && Tmp.len != UINT32_MAX) {
+      return -111;
+   }
+
    /* ------ QCBOR_ERR_UNSUPPORTED -------- */
    QCBOREncode_Init(&EC, Large);
    QCBOREncode_OpenArray(&EC);
@@ -3105,6 +3120,35 @@ OpenCloseBytesTest(void)
    if(UsefulBuf_Compare(Encoded,
                         UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenBytes2))) {
       return 11;
+   }
+
+   return 0;
+}
+
+
+int32_t SubStringTest(void)
+{
+   QCBOREncodeContext EC;
+   size_t uStart;
+   UsefulBufC SS;
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenArray(&EC);
+   uStart = QCBOREncode_Tell(&EC);
+   QCBOREncode_AddInt64(&EC, 0);
+   SS = QCBOREncode_SubString(&EC, uStart);
+   if(UsefulBuf_Compare(SS, (UsefulBufC){"\x00", 1})) {
+      return 1;
+   }
+   QCBOREncode_OpenArray(&EC);
+   SS = QCBOREncode_SubString(&EC, uStart);
+   if(!UsefulBuf_IsNULLC(SS)) {
+      return 2;
+   }
+   QCBOREncode_CloseArray(&EC);
+   SS = QCBOREncode_SubString(&EC, uStart);
+   if(UsefulBuf_Compare(SS, (UsefulBufC){"\x00\x80", 2})) {
+      return 3;
    }
 
    return 0;
