@@ -166,7 +166,24 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting == &pNesting->pArrays[0] ? false : true;
 }
+
+static bool
+Nesting_WillOffsetChange(const QCBORTrackNesting *pNesting, const size_t uOffset)
+{
+   const struct QCBORNestEntry *pEnt;
+
+   for(pEnt = &(pNesting->pArrays[0]); pEnt <= pNesting->pCurrentNesting; pEnt++) {
+      // TODO: this may return a false positive for indefinite length arrays and maps.
+      if(pEnt->uStart > uOffset) {
+         /* The offset is in front of an open array */
+         return true;
+      }
+   }
+   return false;
+}
+
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
 
 
 
@@ -1084,4 +1101,26 @@ QCBOREncode_FinishGetSize(QCBOREncodeContext *pMe, size_t *puEncodedLen)
    }
 
    return nReturn;
+}
+
+
+/*
+ * Public function to get substring of encoded-so-far. See qcbor/qcbor_encode.h
+ */
+UsefulBufC
+QCBOREncode_SubString(QCBOREncodeContext *pMe, const size_t uStart)
+{
+   if(pMe->uError) {
+      return NULLUsefulBufC;
+   }
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(Nesting_WillOffsetChange(&(pMe->nesting), uStart)) {
+      return NULLUsefulBufC;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   const size_t uEnd = QCBOREncode_Tell(pMe);
+
+   return UsefulOutBuf_SubString(&(pMe->OutBuf), uStart, uEnd - uStart);
 }

@@ -1381,6 +1381,17 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pUOutBuf);
 UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
 
 
+/*
+ * Returns a substring of the output data.
+ *
+ * This is the same as UsefulOutBuf_OutUBuf(), but
+ * returns a substring. NULLUsefulBufC is returned
+ * if the requested substring is off the end of
+ * the output bytes or if in error state.
+ */
+UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pUOutBuf,
+                                  const size_t  uStart,
+                                  const size_t  uLen);
 
 
 /**

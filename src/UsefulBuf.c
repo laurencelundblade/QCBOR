@@ -413,6 +413,34 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pMe, UsefulBuf pDest)
 }
 
 
+/*
+ * Public function -- see UsefulBuf.h
+ *
+ * Code Reviewers: THIS FUNCTION DOES POINTER MATH
+ */
+UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pMe,
+                                  const size_t  uStart,
+                                  const size_t  uLen)
+{
+   const UsefulBufC Tmp = UsefulOutBuf_OutUBuf(pMe);
+   if(UsefulBuf_IsNULLC(Tmp)) {
+      return NULLUsefulBufC;
+   }
+
+   if(uStart > Tmp.len) {
+      return NULLUsefulBufC;
+   }
+
+   if(Tmp.len - uStart < uLen) {
+      return NULLUsefulBufC;
+   }
+
+   UsefulBufC SubString;
+   SubString.ptr = (const uint8_t *)Tmp.ptr + uStart;
+   SubString.len = uLen;
+
+   return SubString;
+}
 
 
 /*

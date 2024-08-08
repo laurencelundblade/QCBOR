@@ -2253,19 +2253,33 @@ QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
 
 
 /**
- * @brief Indicate whether output buffer is NULL or not.
+ * @brief Indicate whether the output storage buffer is NULL.
  *
  * @param[in] pCtx  The encoding context.
  *
  * @return 1 if the output buffer is @c NULL.
  *
- * Sometimes a @c NULL input buffer is given to QCBOREncode_Init() so
- * that the size of the generated CBOR can be calculated without
- * allocating a buffer for it. This returns 1 when the output buffer
- * is @c NULL and 0 when it is not.
+ * As described in QCBOREncode_Init(), @c Storage.ptr may be give as @c NULL
+ * for output size calculation. This returns 1 when that is the true, and 0 if not.
  */
 static int
 QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief Retrieve the storage buffer passed in to QCBOREncode_Init().
+ *
+ * @param[in] pCtx  The encoding context.
+ *
+ * @return The output storage buffer passed to QCBOREncode_Init().
+ *
+ * This doesn't give any information about how much has been encoded
+ * or the error state. It just returns the exact \ref UsefulOutBuf given
+ * to QCBOREncode_Init().
+ */
+static UsefulBuf
+QCBOREncode_RetrieveOutputStorage(QCBOREncodeContext *pCtx);
+
 
 
 /**
@@ -2283,6 +2297,18 @@ QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
  */
 static QCBORError
 QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
+
+
+/*
+
+ */
+static size_t
+QCBOREncode_Tell(QCBOREncodeContext *pCtx);
+
+
+/* May return NULLUsefulBufC if not valid */
+UsefulBufC
+QCBOREncode_SubString(QCBOREncodeContext *pCtx, const size_t uStart);
 
 
 /**
@@ -4019,6 +4045,14 @@ QCBOREncode_IsBufferNULL(QCBOREncodeContext *pMe)
    return UsefulOutBuf_IsBufferNULL(&(pMe->OutBuf));
 }
 
+
+static inline UsefulBuf
+QCBOREncode_RetrieveOutputStorage(QCBOREncodeContext *pMe)
+{
+   return pMe->OutBuf.UB;
+}
+
+
 static inline QCBORError
 QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
 {
@@ -4038,6 +4072,24 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
 
    return (QCBORError)pMe->uError;
 }
+
+
+/*
+ *
+ * WARNING, the error state should be checked before
+ * using the value returned by this. It doesn't return
+ * any OOB value when in the error state.
+ */
+static inline size_t
+QCBOREncode_Tell(QCBOREncodeContext *pMe)
+{
+   return UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
+}
+
+
+/* May return NULL if not valid */
+UsefulBufC
+QCBOREncode_SubString(QCBOREncodeContext *pMe, const size_t uStart);
 
 
 /* ========================================================================

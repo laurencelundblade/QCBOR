@@ -191,5 +191,7 @@ int32_t QCBORHeadTest(void);
 int32_t OpenCloseBytesTest(void);
 
 
+int32_t SubStringTest(void);
+
 
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */
