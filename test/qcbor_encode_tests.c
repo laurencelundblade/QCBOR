@@ -282,8 +282,6 @@ int32_t BasicEncodeTest(void)
       return -13;
    }
 
-   
-
    return 0;
 }
 
@@ -3129,8 +3127,8 @@ OpenCloseBytesTest(void)
 int32_t SubStringTest(void)
 {
    QCBOREncodeContext EC;
-   size_t uStart;
-   UsefulBufC SS;
+   size_t             uStart;
+   UsefulBufC         SS;
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenArray(&EC);
@@ -3140,16 +3138,23 @@ int32_t SubStringTest(void)
    if(UsefulBuf_Compare(SS, (UsefulBufC){"\x00", 1})) {
       return 1;
    }
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    QCBOREncode_OpenArray(&EC);
    SS = QCBOREncode_SubString(&EC, uStart);
    if(!UsefulBuf_IsNULLC(SS)) {
       return 2;
    }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+
    QCBOREncode_CloseArray(&EC);
    SS = QCBOREncode_SubString(&EC, uStart);
    if(UsefulBuf_Compare(SS, (UsefulBufC){"\x00\x80", 2})) {
       return 3;
    }
+
+   // TODO: CloseArray and do SS again. It should error...but...
 
    return 0;
 }

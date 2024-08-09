@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 08/08/2024   llundblade      Add UsefulOutBuf_SubString().
  10/05/2024   llundblade      Add Xxx_OffsetToPointer.
  19/12/2022   llundblade      Document that adding empty data is allowed.
  4/11/2022    llundblade      Add GetOutPlace and Advance to UsefulOutBuf.
@@ -1381,13 +1382,16 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pUOutBuf);
 UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
 
 
-/*
- * Returns a substring of the output data.
+/**
+ * @beief Return a substring of the output data.
  *
- * This is the same as UsefulOutBuf_OutUBuf(), but
- * returns a substring. NULLUsefulBufC is returned
- * if the requested substring is off the end of
- * the output bytes or if in error state.
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] uStart    Offset of start of substring.
+ * @param[in] uLen      Length of substring.
+ *
+ * This is the same as UsefulOutBuf_OutUBuf(), but returns a
+ * substring. @c NULLUsefulBufC is returned if the requested substring
+ * is off the end of the output bytes or if in error state.
  */
 UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pUOutBuf,
                                   const size_t  uStart,

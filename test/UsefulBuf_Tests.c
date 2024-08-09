@@ -137,7 +137,6 @@ const char * UOBTest_NonAdversarial(void)
 
    /* Now test the size calculation mode */
    UsefulOutBuf_Init(&UOB, SizeCalculateUsefulBuf);
-   
 
    szReturn = AddStuffToUOB(&UOB);
    if(szReturn) {
@@ -280,6 +279,7 @@ const char *UOBTest_BoundaryConditionsTest(void)
    if(!UsefulBuf_IsNULLC(Out)) {
       return "SubString len should fail off end";
    }
+   // TODO: more thorough boundary condition testing of SubString
 
 
    UsefulOutBuf_Init(&UOB, (UsefulBuf){NULL, SIZE_MAX - 5});

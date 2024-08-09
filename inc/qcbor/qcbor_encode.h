@@ -2281,7 +2281,6 @@ static UsefulBuf
 QCBOREncode_RetrieveOutputStorage(QCBOREncodeContext *pCtx);
 
 
-
 /**
  * @brief Get the encoding error state.
  *
@@ -2299,14 +2298,66 @@ static QCBORError
 QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
 
 
-/*
-
+/**
+ * @brief Returns current end of encoded data.
+ *
+ * @param[in] pCtx  The encoding context.
+ *
+ * @return Byte offset of end of encoded data.
+ *
+ * The purpose of this is to enable cryptographic hashing over a
+ * subpart of thus far CBOR-encoded data.  Then perhaps a signature is
+ * added to the encoded output. But there is nothing specific to
+ * hashing or signing, so this can be used for other too.
+ *
+ * Call this to get the offset of the start of the encoded
+ * to-be-hashed CBOR items, then call
+ * QCBOREncode_SubString(). QCBOREncode_Tell() can also be called
+ * twice to get the offset of the start and end. Those offsets can be
+ * applied to the output storage buffer.
+ *
+ * This will return successfully even if the encoder is in the error
+ * state.
+ *
+ * WARNING: Any definite length arrays and maps opened after the first
+ * call to QCBOREncode_Tell() must be closed before calling
+ * QCBOREncode_SubString() or a second call to QCBOREncode_Tell(). If
+ * not the offsets returned will be incorrect.
+ *
+ * WARNING: Any definite-length arrays and maps opened before the call
+ * to QCBOREncode_Tell() for the start should NOT be closed until the
+ * substring is fully processed (e.g., the hash is computed) because
+ * closing them will change the position of the encoded CBOR.
  */
 static size_t
 QCBOREncode_Tell(QCBOREncodeContext *pCtx);
 
 
-/* May return NULLUsefulBufC if not valid */
+/**
+ * @brief Get a substring of encoded CBOR for cryptographic hash
+ *
+ * @param[in] pCtx  The encoding context.
+ * @param[in] uStart  The start offset of substring.
+ *
+ * @return Pointer and length of of substring.
+ *
+ * @c uStart is obtained by calling QCBOREncode_Tell() before encoding
+ * the first item in the substring. The data items that are to be in
+ * the substring are encoded.  Then this is called.
+ *
+ * The substring may have deeply nested arrays and maps as long as any
+ * opened after the call to QCBOREncode_Tell() are closed before this
+ * is called.
+ *
+ * This will return @ NULLUsefulBufC if the encoder is in the error
+ * state, @c uStart beyond what has been encoded or there are unclosed
+ * definite-length arrays between uStart and the current end.
+ *
+ * WARNING: Any definite-length arrays and maps opened before the call
+ * to QCBOREncode_Tell() for the start should NOT be closed until the
+ * substring is fully processed (e.g., the hash is computed) because
+ * closing them will change the position of the encoded CBOR.
+ */
 UsefulBufC
 QCBOREncode_SubString(QCBOREncodeContext *pCtx, const size_t uStart);
 
@@ -4074,22 +4125,12 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
 }
 
 
-/*
- *
- * WARNING, the error state should be checked before
- * using the value returned by this. It doesn't return
- * any OOB value when in the error state.
- */
 static inline size_t
 QCBOREncode_Tell(QCBOREncodeContext *pMe)
 {
    return UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
 }
 
-
-/* May return NULL if not valid */
-UsefulBufC
-QCBOREncode_SubString(QCBOREncodeContext *pMe, const size_t uStart);
 
 
 /* ========================================================================

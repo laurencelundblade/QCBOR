@@ -44,6 +44,7 @@
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 08/08/2024  llundblade   Add UsefulOutBuf_SubString().
  21/05/2024  llundblade   Comment formatting and some code tidiness.
  19/12/2022  llundblade   Don't pass NULL to memmove when adding empty data.
  4/11/2022   llundblade   Add GetOutPlace and Advance to UsefulOutBuf
@@ -423,6 +424,7 @@ UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pMe,
                                   const size_t  uLen)
 {
    const UsefulBufC Tmp = UsefulOutBuf_OutUBuf(pMe);
+   
    if(UsefulBuf_IsNULLC(Tmp)) {
       return NULLUsefulBufC;
    }

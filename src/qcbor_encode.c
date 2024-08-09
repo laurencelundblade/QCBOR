@@ -187,7 +187,6 @@ Nesting_WillOffsetChange(const QCBORTrackNesting *pNesting, const size_t uOffset
 
 
 
-
 /*
  * == Major CBOR Types ==
  *
