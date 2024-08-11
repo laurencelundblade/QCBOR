@@ -3128,7 +3128,10 @@ int32_t SubStringTest(void)
 {
    QCBOREncodeContext EC;
    size_t             uStart;
+   size_t             uCurrent;
    UsefulBufC         SS;
+   UsefulBufC         Encoded;
+   QCBORError         uErr;
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenArray(&EC);
@@ -3139,14 +3142,7 @@ int32_t SubStringTest(void)
       return 1;
    }
 
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    QCBOREncode_OpenArray(&EC);
-   SS = QCBOREncode_SubString(&EC, uStart);
-   if(!UsefulBuf_IsNULLC(SS)) {
-      return 2;
-   }
-#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-
 
    QCBOREncode_CloseArray(&EC);
    SS = QCBOREncode_SubString(&EC, uStart);
@@ -3154,7 +3150,55 @@ int32_t SubStringTest(void)
       return 3;
    }
 
-   // TODO: CloseArray and do SS again. It should error...but...
+
+   /* Try it on a sequence */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   uStart = QCBOREncode_Tell(&EC);
+   QCBOREncode_AddInt64(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 1);
+   SS = QCBOREncode_SubString(&EC, uStart);
+   if(UsefulBuf_Compare(SS, (UsefulBufC){"\x01\x01\x01\x01", 4})) {
+      return 10;
+   }
+
+   uCurrent = QCBOREncode_Tell(&EC);
+   if(!UsefulBuf_IsNULLC(QCBOREncode_SubString(&EC, uCurrent+1))) {
+      return 11;
+   }
+
+   /* Now cause an error */
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_CloseArray(&EC);
+   if(!UsefulBuf_IsNULLC(QCBOREncode_SubString(&EC, uStart))) {
+      return 15;
+   }
+
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_AddInt64(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 1);
+   uStart = QCBOREncode_Tell(&EC);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_OpenMapInMapN(&EC, 3);
+   QCBOREncode_OpenArrayInMapN(&EC, 4);
+   QCBOREncode_AddInt64(&EC, 0);
+   QCBOREncode_CloseArray(&EC);
+   QCBOREncode_CloseMap(&EC);
+   QCBOREncode_CloseMap(&EC);
+   SS = QCBOREncode_SubString(&EC, uStart);
+   if(UsefulBuf_Compare(SS, (UsefulBufC){"\xA1\x03\xA1\x04\x81\x00", 6})) {
+      return 20;
+   }
+
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr) {
+      return 21;
+   }
+   if(UsefulBuf_Compare(Encoded, (UsefulBufC){"\x01\x01\xA1\x03\xA1\x04\x81\x00", 8})) {
+      return 22;
+   }
 
    return 0;
 }
