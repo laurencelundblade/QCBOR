@@ -3168,12 +3168,14 @@ int32_t SubStringTest(void)
       return 11;
    }
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    /* Now cause an error */
    QCBOREncode_OpenMap(&EC);
    QCBOREncode_CloseArray(&EC);
    if(!UsefulBuf_IsNULLC(QCBOREncode_SubString(&EC, uStart))) {
       return 15;
    }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));

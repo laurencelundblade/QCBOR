@@ -131,7 +131,23 @@ const char * UOBTest_NonAdversarial(void)
    if(UsefulBuf_IsNULLC(Out) ||
       UsefulBuf_Compare(UsefulBuf_FROM_SZ_LITERAL("unbounce"), Out) ||
       UsefulOutBuf_GetError(&UOB)) {
-      szReturn = "SubString";
+      szReturn = "SubString substring";
+      goto Done;
+   }
+
+   Out = UsefulOutBuf_SubString(&UOB, 0, Expected.len);
+   if(UsefulBuf_IsNULLC(Out) ||
+      UsefulBuf_Compare(Expected, Out) ||
+      UsefulOutBuf_GetError(&UOB)) {
+      szReturn = "SubString all";
+      goto Done;
+   }
+
+   Out = UsefulOutBuf_SubString(&UOB, Expected.len, 0);
+   if(UsefulBuf_IsNULLC(Out) ||
+      UsefulBuf_Compare(UsefulBuf_FROM_SZ_LITERAL(""), Out) ||
+      UsefulOutBuf_GetError(&UOB)) {
+      szReturn = "SubString empty";
       goto Done;
    }
 
@@ -273,14 +289,24 @@ const char *UOBTest_BoundaryConditionsTest(void)
 
    UsefulBufC Out = UsefulOutBuf_SubString(&UOB, 7, 1);
    if(!UsefulBuf_IsNULLC(Out)) {
-      return "SubString start should fail off end";
+      return "SubString start should fail off end 1";
    }
    Out = UsefulOutBuf_SubString(&UOB, 5, 3);
    if(!UsefulBuf_IsNULLC(Out)) {
-      return "SubString len should fail off end";
+      return "SubString len should fail off end 2";
    }
-   // TODO: more thorough boundary condition testing of SubString
-
+   Out = UsefulOutBuf_SubString(&UOB, 0, 7);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "SubString len should fail off end 3";
+   }
+   Out = UsefulOutBuf_SubString(&UOB, 7, 0);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "SubString len should fail off end 4";
+   }
+   Out = UsefulOutBuf_SubString(&UOB, 6, 1);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "SubString len should fail off end 5";
+   }
 
    UsefulOutBuf_Init(&UOB, (UsefulBuf){NULL, SIZE_MAX - 5});
    UsefulOutBuf_AppendData(&UOB, "123456789", SIZE_MAX -6);
@@ -293,7 +319,6 @@ const char *UOBTest_BoundaryConditionsTest(void)
    if(UsefulOutBuf_GetError(&UOB)) {
       return "insert in huge should have succeeded";
    }
-
 
    UsefulOutBuf_Init(&UOB, (UsefulBuf){NULL, SIZE_MAX - 5});
    UsefulOutBuf_AppendData(&UOB, "123456789", SIZE_MAX - 4);

@@ -197,7 +197,7 @@ extern "C" {
  */
 typedef struct __QCBORTrackNesting {
   /* PRIVATE DATA STRUCTURE */
-   struct QCBORNestEntry {
+   struct {
       /* See QCBOREncode_OpenMapOrArray() for details on how this works */
       uint32_t  uStart;   /* uStart is the position where the array starts */
       uint16_t  uCount;   /* Number of items in the arrary or map; counts items

@@ -4129,8 +4129,6 @@ QCBOREncode_Tell(QCBOREncodeContext *pMe)
    return UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
 }
 
-
-
 /* ========================================================================
      END OF PRIVATE INLINE IMPLEMENTATION
    ======================================================================== */

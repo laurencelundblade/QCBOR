@@ -166,7 +166,6 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting == &pNesting->pArrays[0] ? false : true;
 }
-
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
 
