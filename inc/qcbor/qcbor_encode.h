@@ -2226,7 +2226,8 @@ QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBuf
  *
  * This may be called multiple times. It will always return the
  * same. It can also be interleaved with calls to
- * QCBOREncode_FinishGetSize().
+ * QCBOREncode_FinishGetSize(). See QCBOREncode_SubString() for a
+ * means to get the thus-far-encoded CBOR.
  *
  * QCBOREncode_GetErrorState() can be called to get the current
  * error state in order to abort encoding early as an optimization, but
@@ -2306,28 +2307,29 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  * @return Byte offset of end of encoded data.
  *
  * The purpose of this is to enable cryptographic hashing over a
- * subpart of thus far CBOR-encoded data. Then perhaps a signature over the hashed CBOR is
- * added to the encoded output. There is nothing specific to
- * hashing or signing in this, so this can be used for other too.
+ * subpart of thus far CBOR-encoded data. Then perhaps a signature
+ * over the hashed CBOR is added to the encoded output. There is
+ * nothing specific to hashing or signing in this, so this can be used
+ * for other too.
  *
  * Call this to get the offset of the start of the encoded
  * to-be-hashed CBOR items, then call
  * QCBOREncode_SubString(). QCBOREncode_Tell() can also be called
- * twice, first to get the offset of the start and second for the offset of the end. Those offsets can be
- * applied to the output storage buffer.
+ * twice, first to get the offset of the start and second for the
+ * offset of the end. Those offsets can be applied to the output
+ * storage buffer.
  *
  * This will return successfully even if the encoder is in the error
  * state.
  *
- * WARNING: All definite-length arrays and maps opened before
- * the first call QCBOREncode_Tell() must not be closed until
- * the substring is obtained and processed. Simiarly, every
- * definite-length array or map opened after the first call
- * to QCBOREncode_Tell() must be closed before the
- * substring is obtained and processed. There is no detection
- * of these errors. This is because QCBOR goes back and
- * inserts the lengths of definite-length arrays and maps
- * when they are closed. This insertion will make the
+ * WARNING: All definite-length arrays and maps opened before the
+ * first call QCBOREncode_Tell() must not be closed until the
+ * substring is obtained and processed. Simiarly, every
+ * definite-length array or map opened after the first call to
+ * QCBOREncode_Tell() must be closed before the substring is obtained
+ * and processed. There is no detection of these errors. This is
+ * because QCBOR goes back and inserts the lengths of definite-length
+ * arrays and maps when they are closed. This insertion will make the
  * offsets incorrect.
  */
 static size_t
@@ -2343,8 +2345,8 @@ QCBOREncode_Tell(QCBOREncodeContext *pCtx);
  * @return Pointer and length of of substring.
  *
  * @c uStart is obtained by calling QCBOREncode_Tell() before encoding
- * the first item in the substring. Then encode some data items. Then call
- * this. The substring returned contains the encoded data items.
+ * the first item in the substring. Then encode some data items. Then
+ * call this. The substring returned contains the encoded data items.
  *
  * The substring may have deeply nested arrays and maps as long as any
  * opened after the call to QCBOREncode_Tell() are closed before this
@@ -2353,6 +2355,10 @@ QCBOREncode_Tell(QCBOREncodeContext *pCtx);
  * This will return @c NULLUsefulBufC if the encoder is in the error
  * state or if @c uStart is byeond the end of the thus far encoded
  * data items.
+ *
+ * If @c uStart is 0, all the thus-far-encoded CBOR will be returned.
+ * Unlike QCBOREncode_Finish(), this will succeed even if some arrays
+ * and maps are not closed.
  *
  * See important usage WARNING in QCBOREncode_Tell()
  */
