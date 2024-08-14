@@ -652,6 +652,10 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue);
 size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
+UsefulBufC
+UsefulBuf_SkipLeading(UsefulBufC String, uint8_t uByte);
+
+
 /**
  * @brief Convert a pointer to an offset with bounds checking.
  *
