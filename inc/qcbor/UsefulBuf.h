@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 08/13/2024   llundblade      Add UsefulInputBuf_RetrieveUndecodedInput().
  08/08/2024   llundblade      Add UsefulOutBuf_SubString().
  10/05/2024   llundblade      Add Xxx_OffsetToPointer.
  19/12/2022   llundblade      Document that adding empty data is allowed.
@@ -1739,6 +1740,16 @@ static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pUInBuf);
 static void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pUInBuf, size_t uNewLen);
 
 
+/**
+ * @brief  Retrieve the undecoded input buffer.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * @return The input that was given to UsefulInputBuf_Init().
+ *
+ * A simple convenience method, should it be useful to get the original input back.
+ */
+static UsefulBufC UsefulInputBuf_RetrieveUndecodedInput(UsefulInputBuf *pUInBuf);
 
 
 /*----------------------------------------------------------
@@ -2509,6 +2520,11 @@ static inline int UsefulInputBuf_GetError(UsefulInputBuf *pMe)
 static inline void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pMe, size_t uNewLen)
 {
     pMe->UB.len = uNewLen;
+}
+
+static inline UsefulBufC UsefulInputBuf_RetrieveUndecodedInput(UsefulInputBuf *pMe)
+{
+   return pMe->UB;
 }
 
 

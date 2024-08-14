@@ -1239,6 +1239,19 @@ QCBORDecode_PartialFinish(QCBORDecodeContext *pCtx, size_t *puConsumed);
 
 
 /**
+ * @brief  Retrieve the undecoded input buffer.
+ *
+ * @param[in]  pCtx  The decode context.
+ *
+ * @return The input that was given to QCBORDecode_Init().
+ *
+ * A simple convenience method, should it be useful to get the original input back.
+ */
+static UsefulBufC
+QCBORDecode_RetrieveUndecodedInput(QCBORDecodeContext *pCtx);
+
+
+/**
  * @brief Get the decoding error.
  *
  * @param[in] pCtx    The decoder context.
@@ -1606,6 +1619,12 @@ QCBORDecode_Tell(QCBORDecodeContext *pMe)
 
    /* Cast is safe because decoder input size is restricted. */
    return (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
+}
+
+static inline UsefulBufC
+QCBORDecode_RetrieveUndecodedInput(QCBORDecodeContext *pMe)
+{
+   return UsefulInputBuf_RetrieveUndecodedInput(&(pMe->InBuf));
 }
 
 static inline QCBORError
