@@ -2313,24 +2313,23 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  * for other too.
  *
  * Call this to get the offset of the start of the encoded
- * to-be-hashed CBOR items, then call
- * QCBOREncode_SubString(). QCBOREncode_Tell() can also be called
- * twice, first to get the offset of the start and second for the
- * offset of the end. Those offsets can be applied to the output
- * storage buffer.
+ * to-be-hashed CBOR items, then call QCBOREncode_SubString().
+ * QCBOREncode_Tell() can also be called twice, first to get the
+ * offset of the start and second for the offset of the end. Those
+ * offsets can be applied to the output storage buffer.
  *
  * This will return successfully even if the encoder is in the error
  * state.
  *
  * WARNING: All definite-length arrays and maps opened before the
- * first call QCBOREncode_Tell() must not be closed until the
+ * first call to QCBOREncode_Tell() must not be closed until the
  * substring is obtained and processed. Simiarly, every
  * definite-length array or map opened after the first call to
  * QCBOREncode_Tell() must be closed before the substring is obtained
- * and processed. There is no detection of these errors. This is
- * because QCBOR goes back and inserts the lengths of definite-length
- * arrays and maps when they are closed. This insertion will make the
- * offsets incorrect.
+ * and processed.  The same applies for opened bytte strings. There is
+ * no detection of these errors. This occurs because QCBOR goes back
+ * and inserts the lengths of definite-length arrays and maps when
+ * they are closed. This insertion will make the offsets incorrect.
  */
 static size_t
 QCBOREncode_Tell(QCBOREncodeContext *pCtx);
@@ -4104,7 +4103,7 @@ QCBOREncode_IsBufferNULL(QCBOREncodeContext *pMe)
 static inline UsefulBuf
 QCBOREncode_RetrieveOutputStorage(QCBOREncodeContext *pMe)
 {
-   return pMe->OutBuf.UB;
+   return UsefulOutBuf_RetrieveOutputStorage(&(pMe->OutBuf));
 }
 
 

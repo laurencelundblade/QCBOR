@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 08/14/2024   llundblade      Add UsefulOutBuf_RetrieveOutputStorage().
  08/13/2024   llundblade      Add UsefulInputBuf_RetrieveUndecodedInput().
  08/08/2024   llundblade      Add UsefulOutBuf_SubString().
  10/05/2024   llundblade      Add Xxx_OffsetToPointer.
@@ -1400,6 +1401,21 @@ UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pUOutBuf,
 
 
 /**
+ * @brief Retrieve the storage buffer passed in to UsefulOutBuf_Init().
+ *
+ * @param[in] pUOutBuf  The encoding context.
+ *
+ * @return The output storage buffer passed to UsefulOutBuf_Init().
+ *
+ * This doesn't give any information about how much has been encoded
+ * or the error state. It just returns the exact \ref UsefulOutBuf given
+ * to UsefulOutBuf_Init().
+ */
+static UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pUOutBuf);
+
+
+
+/**
  * @ref UsefulInputBuf is the counterpart to @ref UsefulOutBuf. It is
  * for parsing data received.  Initialize it with the data from the
  * network. Then use the functions like UsefulInputBuf_GetBytes() to
@@ -2252,6 +2268,14 @@ static inline UsefulBuf UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf)
 
    return R;
 }
+
+
+static inline UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pMe)
+{
+   return pMe->UB;
+}
+
+
 
 
 
