@@ -2226,7 +2226,8 @@ QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBuf
  *
  * This may be called multiple times. It will always return the
  * same. It can also be interleaved with calls to
- * QCBOREncode_FinishGetSize().
+ * QCBOREncode_FinishGetSize(). See QCBOREncode_SubString() for a
+ * means to get the thus-far-encoded CBOR.
  *
  * QCBOREncode_GetErrorState() can be called to get the current
  * error state in order to abort encoding early as an optimization, but
@@ -2253,19 +2254,32 @@ QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
 
 
 /**
- * @brief Indicate whether output buffer is NULL or not.
+ * @brief Indicate whether the output storage buffer is NULL.
  *
  * @param[in] pCtx  The encoding context.
  *
  * @return 1 if the output buffer is @c NULL.
  *
- * Sometimes a @c NULL input buffer is given to QCBOREncode_Init() so
- * that the size of the generated CBOR can be calculated without
- * allocating a buffer for it. This returns 1 when the output buffer
- * is @c NULL and 0 when it is not.
+ * As described in QCBOREncode_Init(), @c Storage.ptr may be give as @c NULL
+ * for output size calculation. This returns 1 when that is the true, and 0 if not.
  */
 static int
 QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief Retrieve the storage buffer passed in to QCBOREncode_Init().
+ *
+ * @param[in] pCtx  The encoding context.
+ *
+ * @return The output storage buffer passed to QCBOREncode_Init().
+ *
+ * This doesn't give any information about how much has been encoded
+ * or the error state. It just returns the exact @ref UsefulOutBuf given
+ * to QCBOREncode_Init().
+ */
+static UsefulBuf
+QCBOREncode_RetrieveOutputStorage(QCBOREncodeContext *pCtx);
 
 
 /**
@@ -2283,6 +2297,72 @@ QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
  */
 static QCBORError
 QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief Returns current end of encoded data.
+ *
+ * @param[in] pCtx  The encoding context.
+ *
+ * @return Byte offset of end of encoded data.
+ *
+ * The purpose of this is to enable cryptographic hashing over a
+ * subpart of thus far CBOR-encoded data. Then perhaps a signature
+ * over the hashed CBOR is added to the encoded output. There is
+ * nothing specific to hashing or signing in this, so this can be used
+ * for other too.
+ *
+ * Call this to get the offset of the start of the encoded
+ * to-be-hashed CBOR items, then call QCBOREncode_SubString().
+ * QCBOREncode_Tell() can also be called twice, first to get the
+ * offset of the start and second for the offset of the end. Those
+ * offsets can be applied to the output storage buffer.
+ *
+ * This will return successfully even if the encoder is in the error
+ * state.
+ *
+ * WARNING: All definite-length arrays and maps opened before the
+ * first call to QCBOREncode_Tell() must not be closed until the
+ * substring is obtained and processed. Similarly, every
+ * definite-length array or map opened after the first call to
+ * QCBOREncode_Tell() must be closed before the substring is obtained
+ * and processed.  The same applies for opened byte strings. There is
+ * no detection of these errors. This occurs because QCBOR goes back
+ * and inserts the lengths of definite-length arrays and maps when
+ * they are closed. This insertion will make the offsets incorrect.
+ */
+static size_t
+QCBOREncode_Tell(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief Get a substring of encoded CBOR for cryptographic hash
+ *
+ * @param[in] pCtx  The encoding context.
+ * @param[in] uStart  The start offset of substring.
+ *
+ * @return Pointer and length of of substring.
+ *
+ * @c uStart is obtained by calling QCBOREncode_Tell() before encoding
+ * the first item in the substring. Then encode some data items. Then
+ * call this. The substring returned contains the encoded data items.
+ *
+ * The substring may have deeply nested arrays and maps as long as any
+ * opened after the call to QCBOREncode_Tell() are closed before this
+ * is called.
+ *
+ * This will return @c NULLUsefulBufC if the encoder is in the error
+ * state or if @c uStart is beyond the end of the thus-far encoded
+ * data items.
+ *
+ * If @c uStart is 0, all the thus-far-encoded CBOR will be returned.
+ * Unlike QCBOREncode_Finish(), this will succeed even if some arrays
+ * and maps are not closed.
+ *
+ * See important usage WARNING in QCBOREncode_Tell()
+ */
+UsefulBufC
+QCBOREncode_SubString(QCBOREncodeContext *pCtx, const size_t uStart);
 
 
 /**
@@ -4019,6 +4099,14 @@ QCBOREncode_IsBufferNULL(QCBOREncodeContext *pMe)
    return UsefulOutBuf_IsBufferNULL(&(pMe->OutBuf));
 }
 
+
+static inline UsefulBuf
+QCBOREncode_RetrieveOutputStorage(QCBOREncodeContext *pMe)
+{
+   return UsefulOutBuf_RetrieveOutputStorage(&(pMe->OutBuf));
+}
+
+
 static inline QCBORError
 QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
 {
@@ -4039,6 +4127,12 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
    return (QCBORError)pMe->uError;
 }
 
+
+static inline size_t
+QCBOREncode_Tell(QCBOREncodeContext *pMe)
+{
+   return UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
+}
 
 /* ========================================================================
      END OF PRIVATE INLINE IMPLEMENTATION

@@ -166,7 +166,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting == &pNesting->pArrays[0] ? false : true;
 }
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
 
 
@@ -1084,4 +1084,29 @@ QCBOREncode_FinishGetSize(QCBOREncodeContext *pMe, size_t *puEncodedLen)
    }
 
    return nReturn;
+}
+
+
+/*
+ * Public function to get substring of encoded-so-far. See qcbor/qcbor_encode.h
+ */
+UsefulBufC
+QCBOREncode_SubString(QCBOREncodeContext *pMe, const size_t uStart)
+{
+   if(pMe->uError) {
+      return NULLUsefulBufC;
+   }
+
+   /* An attempt was made to detect usage errors by comparing uStart
+    * to offsets of open arrays and maps in pMe->nesting, but it is
+    * not possible because there's not enough information in just
+    * the offset. It's not possible to known if Tell() was called before
+    * or after an Open(). To detect this error, the nesting level
+    * would also need to be known. This is not frequently used, so
+    * it is not worth adding this complexity.
+    */
+
+   const size_t uEnd = QCBOREncode_Tell(pMe);
+
+   return UsefulOutBuf_SubString(&(pMe->OutBuf), uStart, uEnd - uStart);
 }
