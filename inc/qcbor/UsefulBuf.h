@@ -1408,7 +1408,7 @@ UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pUOutBuf,
  * @return The output storage buffer passed to UsefulOutBuf_Init().
  *
  * This doesn't give any information about how much has been encoded
- * or the error state. It just returns the exact \ref UsefulOutBuf given
+ * or the error state. It just returns the exact @ref UsefulOutBuf given
  * to UsefulOutBuf_Init().
  */
 static UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pUOutBuf);
@@ -2274,8 +2274,6 @@ static inline UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pMe)
 {
    return pMe->UB;
 }
-
-
 
 
 

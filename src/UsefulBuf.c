@@ -424,7 +424,7 @@ UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pMe,
                                   const size_t  uLen)
 {
    const UsefulBufC Tmp = UsefulOutBuf_OutUBuf(pMe);
-   
+
    if(UsefulBuf_IsNULLC(Tmp)) {
       return NULLUsefulBufC;
    }

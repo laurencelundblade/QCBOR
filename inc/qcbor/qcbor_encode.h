@@ -2275,7 +2275,7 @@ QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
  * @return The output storage buffer passed to QCBOREncode_Init().
  *
  * This doesn't give any information about how much has been encoded
- * or the error state. It just returns the exact \ref UsefulOutBuf given
+ * or the error state. It just returns the exact @ref UsefulOutBuf given
  * to QCBOREncode_Init().
  */
 static UsefulBuf
@@ -2323,10 +2323,10 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  *
  * WARNING: All definite-length arrays and maps opened before the
  * first call to QCBOREncode_Tell() must not be closed until the
- * substring is obtained and processed. Simiarly, every
+ * substring is obtained and processed. Similarly, every
  * definite-length array or map opened after the first call to
  * QCBOREncode_Tell() must be closed before the substring is obtained
- * and processed.  The same applies for opened bytte strings. There is
+ * and processed.  The same applies for opened byte strings. There is
  * no detection of these errors. This occurs because QCBOR goes back
  * and inserts the lengths of definite-length arrays and maps when
  * they are closed. This insertion will make the offsets incorrect.
@@ -2352,7 +2352,7 @@ QCBOREncode_Tell(QCBOREncodeContext *pCtx);
  * is called.
  *
  * This will return @c NULLUsefulBufC if the encoder is in the error
- * state or if @c uStart is byeond the end of the thus far encoded
+ * state or if @c uStart is beyond the end of the thus-far encoded
  * data items.
  *
  * If @c uStart is 0, all the thus-far-encoded CBOR will be returned.
