@@ -180,6 +180,11 @@ int32_t BasicEncodeTest(void)
    }
 
 
+   UsefulBuf Tmp = QCBOREncode_RetrieveOutputStorage(&EC);
+   if(Tmp.ptr != spBigBuf && Tmp.len != sizeof(spBigBuf)) {
+      return -111;
+   }
+
    // Make another encoded message with the CBOR from the previous
    // put into this one
    UsefulBuf_MAKE_STACK_UB(MemoryForEncoded2, 20);
@@ -196,6 +201,8 @@ int32_t BasicEncodeTest(void)
    if(QCBOREncode_Finish(&EC, &Encoded2)) {
       return -5;
    }
+
+
     /*
      [                // 0    1:3
         451,          // 1    1:2
@@ -2652,6 +2659,12 @@ int32_t EncodeErrorTests(void)
       return -11;
    }
 
+   UsefulBuf Tmp;
+   Tmp = QCBOREncode_RetrieveOutputStorage(&EC);
+   if(Tmp.ptr != NULL && Tmp.len != UINT32_MAX) {
+      return -111;
+   }
+
    /* ------ QCBOR_ERR_UNSUPPORTED -------- */
    QCBOREncode_Init(&EC, Large);
    QCBOREncode_OpenArray(&EC);
@@ -3105,6 +3118,88 @@ OpenCloseBytesTest(void)
    if(UsefulBuf_Compare(Encoded,
                         UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenBytes2))) {
       return 11;
+   }
+
+   return 0;
+}
+
+
+int32_t SubStringTest(void)
+{
+   QCBOREncodeContext EC;
+   size_t             uStart;
+   size_t             uCurrent;
+   UsefulBufC         SS;
+   UsefulBufC         Encoded;
+   QCBORError         uErr;
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenArray(&EC);
+   uStart = QCBOREncode_Tell(&EC);
+   QCBOREncode_AddInt64(&EC, 0);
+   SS = QCBOREncode_SubString(&EC, uStart);
+   if(UsefulBuf_Compare(SS, (UsefulBufC){"\x00", 1})) {
+      return 1;
+   }
+
+   QCBOREncode_OpenArray(&EC);
+
+   QCBOREncode_CloseArray(&EC);
+   SS = QCBOREncode_SubString(&EC, uStart);
+   if(UsefulBuf_Compare(SS, (UsefulBufC){"\x00\x80", 2})) {
+      return 3;
+   }
+
+
+   /* Try it on a sequence */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   uStart = QCBOREncode_Tell(&EC);
+   QCBOREncode_AddInt64(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 1);
+   SS = QCBOREncode_SubString(&EC, uStart);
+   if(UsefulBuf_Compare(SS, (UsefulBufC){"\x01\x01\x01\x01", 4})) {
+      return 10;
+   }
+
+   uCurrent = QCBOREncode_Tell(&EC);
+   if(!UsefulBuf_IsNULLC(QCBOREncode_SubString(&EC, uCurrent+1))) {
+      return 11;
+   }
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   /* Now cause an error */
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_CloseArray(&EC);
+   if(!UsefulBuf_IsNULLC(QCBOREncode_SubString(&EC, uStart))) {
+      return 15;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_AddInt64(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 1);
+   uStart = QCBOREncode_Tell(&EC);
+   QCBOREncode_OpenMap(&EC);
+   QCBOREncode_OpenMapInMapN(&EC, 3);
+   QCBOREncode_OpenArrayInMapN(&EC, 4);
+   QCBOREncode_AddInt64(&EC, 0);
+   QCBOREncode_CloseArray(&EC);
+   QCBOREncode_CloseMap(&EC);
+   QCBOREncode_CloseMap(&EC);
+   SS = QCBOREncode_SubString(&EC, uStart);
+   if(UsefulBuf_Compare(SS, (UsefulBufC){"\xA1\x03\xA1\x04\x81\x00", 6})) {
+      return 20;
+   }
+
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr) {
+      return 21;
+   }
+   if(UsefulBuf_Compare(Encoded, (UsefulBufC){"\x01\x01\xA1\x03\xA1\x04\x81\x00", 8})) {
+      return 22;
    }
 
    return 0;

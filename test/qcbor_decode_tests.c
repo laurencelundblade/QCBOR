@@ -10165,6 +10165,18 @@ ErrorHandlingTests(void)
       return -107;
    }
 
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    QCBOR_DECODE_MODE_NORMAL);
+
+   UsefulBufC Xx = QCBORDecode_RetrieveUndecodedInput(&DCtx);
+   if(Xx.ptr != pValidMapEncoded) {
+      return -200;
+   }
+   if(Xx.len != sizeof(pValidMapEncoded)) {
+      return -201;
+   }
+
    return 0;
 }
 
