@@ -120,36 +120,36 @@ extern "C" {
  * are types defined in RFC 8949 and some additional ones
  * in the IANA CBOR tags registry.
  */
-/** See QCBOREncode_AddDateString(). */
+/** See QCBOREncode_AddTDateString(). */
 #define CBOR_TAG_DATE_STRING    0
-/** See QCBOREncode_AddDateEpoch(). */
+/** See QCBOREncode_AddTDateEpoch(). */
 #define CBOR_TAG_DATE_EPOCH     1
-/** See QCBOREncode_AddPositiveBignum(). */
+/** See QCBOREncode_AddTPositiveBignum(). */
 #define CBOR_TAG_POS_BIGNUM     2
-/** See QCBOREncode_AddNegativeBignum(). */
+/** See QCBOREncode_AddTNegativeBignum(). */
 #define CBOR_TAG_NEG_BIGNUM     3
 /** CBOR tag for a two-element array representing a fraction with a
  *  mantissa and base-10 scaling factor. See
- *  QCBOREncode_AddDecimalFraction() and @ref expAndMantissa. */
+ *  QCBOREncode_AddTDecimalFraction() and @ref expAndMantissa. */
 #define CBOR_TAG_DECIMAL_FRACTION  4
 /** CBOR tag for a two-element array representing a fraction with a
- *  mantissa and base-2 scaling factor. See QCBOREncode_AddBigFloat()
+ *  mantissa and base-2 scaling factor. See QCBOREncode_AddTBigFloat()
  *  and @ref expAndMantissa. */
 #define CBOR_TAG_BIGFLOAT       5
 /** Not Decoded by QCBOR. Tag for COSE format encryption with no
- *  recipient identification. See [RFC 8152, COSE]
- *  (https://tools.ietf.org/html/rfc8152). No API is provided for this
- *  tag. */
+ *  recipient identification. See [RFC 9052, COSE]
+ *  (https://www.rfc-editor.org/rfc/rfc9052.html). No API is provided
+ *  for this tag. */
 #define CBOR_TAG_COSE_ENCRYPT0 16
 #define CBOR_TAG_COSE_ENCRYPTO 16
 /** Not Decoded by QCBOR. Tag for COSE format MAC'd data with no
- *  recipient identification. See [RFC 8152, COSE]
- *  (https://tools.ietf.org/html/rfc8152). No API is provided for this
+ *  recipient identification. See [RFC 9052, COSE]
+ *  (https://www.rfc-editor.org/rfc/rfc9052.html). No API is provided for this
  *  tag. */
 #define CBOR_TAG_COSE_MAC0     17
 /** Tag for COSE format single signature signing. No API is provided
- *  for this tag. See [RFC 8152, COSE]
- *  (https://tools.ietf.org/html/rfc8152). */
+ *  for this tag. See [RFC 9052, COSE]
+ *  (https://www.rfc-editor.org/rfc/rfc9052.html). */
 #define CBOR_TAG_COSE_SIGN1    18
 /** A hint that the following byte string should be encoded in
  *  Base64URL when converting to JSON or similar text-based
@@ -164,12 +164,12 @@ extern "C" {
  *  QCBOREncode_AddBytes(). */
 #define CBOR_TAG_ENC_AS_B64    22
 /** A hint that the following byte string should be encoded in base-16
- *  format per [RFC 4648] (https://tools.ietf.org/html/rfc4648) when
- *  converting to JSON or similar text-based
- *  representations. Essentially, Base-16 encoding is the standard
- *  case- insensitive hex encoding and may be referred to as
- *  "hex". Call @c QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B16) before
- *  the call to QCBOREncode_AddBytes(). */
+ *  format per [RFC 4648]
+ *  (https://www.rfc-editor.org/rfc/rfc4648.html) when converting to
+ *  JSON or similar text-based representations. Essentially, Base-16
+ *  encoding is the standard case- insensitive hex encoding and may be
+ *  referred to as "hex". Call @c QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B16)
+ *  before the call to QCBOREncode_AddBytes(). */
 #define CBOR_TAG_ENC_AS_B16    23
 /** See QCBORDecode_EnterBstrWrapped()). */
 #define CBOR_TAG_CBOR          24
@@ -186,40 +186,40 @@ extern "C" {
 /** See QCBOREncode_AddBinaryUUID(). */
 #define CBOR_TAG_BIN_UUID      37
 /** The data is a CBOR Web Token per [RFC 8392]
- *  (https://tools.ietf.org/html/rfc8932). No API is provided for this
+ *  (https://www.rfc-editor.org/rfc/rfc8392.html). No API is provided for this
  *  tag. */
 #define CBOR_TAG_CWT           61
-/** Tag for COSE format encryption. See [RFC 8152, COSE]
- *  (https://tools.ietf.org/html/rfc8152). No API is provided for this
+/** Tag for COSE format encryption. See [RFC 9052, COSE]
+ * (https://www.rfc-editor.org/rfc/rfc9052.html). No API is provided for this
  *  tag. */
 #define CBOR_TAG_CBOR_SEQUENCE 63
-/** Not Decoded by QCBOR. Tag for COSE format encrypt. See [RFC 8152, COSE]
- *  (https://tools.ietf.org/html/rfc8152). No API is provided for this
+/** Not Decoded by QCBOR. Tag for COSE format encrypt. See [RFC 9052, COSE]
+ * (https://www.rfc-editor.org/rfc/rfc9052.html). No API is provided for this
  *  tag. */
 #define CBOR_TAG_COSE_ENCRYPT  96
 #define CBOR_TAG_ENCRYPT       96
-/** Not Decoded by QCBOR. Tag for COSE format MAC. See [RFC 8152, COSE]
-    (https://tools.ietf.org/html/rfc8152). No API is provided for this
+/** Not Decoded by QCBOR. Tag for COSE format MAC. See [RFC 9052, COSE]
+ * (https://www.rfc-editor.org/rfc/rfc9052.html). No API is provided for this
     tag. */
 #define CBOR_TAG_COSE_MAC      97
 #define CBOR_TAG_MAC           97
-/** Not Decoded by QCBOR. Tag for COSE format signed data. See [RFC 8152, COSE]
-    (https://tools.ietf.org/html/rfc8152). No API is provided for this
+/** Not Decoded by QCBOR. Tag for COSE format signed data. See [RFC 9052, COSE]
+ * (https://www.rfc-editor.org/rfc/rfc9052.html). No API is provided for this
     tag. */
 #define CBOR_TAG_COSE_SIGN     98
 #define CBOR_TAG_SIGN          98
 /** Tag for date counted by days from Jan 1 1970 per [RFC 8943]
- *  (https://tools.ietf.org/html/rfc8943). See
+ *  (https://www.rfc-editor.org/rfc/rfc8943.html). See
  *  QCBOREncode_AddTDaysEpoch(). */
 #define CBOR_TAG_DAYS_EPOCH    100
 /** Not Decoded by QCBOR. World geographic coordinates. See ISO 6709, [RFC 5870]
- *  (https://tools.ietf.org/html/rfc5870) and WGS-84. No API is
+ *  (https://www.rfc-editor.org/rfc/rfc5870.html) and WGS-84. No API is
  *  provided for this tag. */
 #define CBOR_TAG_GEO_COORD     103
 /** Binary MIME.*/
 #define CBOR_TAG_BINARY_MIME   257
 /** Tag for date string without time or time zone per [RFC 8943]
- *  (https://tools.ietf.org/html/rfc8943). See
+ *  (https://www.rfc-editor.org/rfc/rfc8943.html). See
  *  QCBOREncode_AddTDaysString(). */
 #define CBOR_TAG_DAYS_STRING   1004
 /** The magic number, self-described CBOR. No API is provided for this
