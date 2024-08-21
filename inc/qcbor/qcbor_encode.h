@@ -57,10 +57,11 @@ extern "C" {
  * # QCBOR Overview
  *
  * This implements CBOR -- Concise Binary Object Representation as
- * defined in [RFC 8949] (https://www.rfc-editor.org/rfc/rfc8949.html). More
- * information is at http://cbor.io.  This is a near-complete implementation of
- * the specification. [RFC 8742] (https://www.rfc-editor.org/rfc/rfc8742.html) CBOR
- * Sequences is also supported. Limitations are listed further down.
+ * defined in [RFC 8949] (https://www.rfc-editor.org/rfc/rfc8949.html).
+ * More information is at http://cbor.io.  This is a near-complete
+ * implementation of the specification. [RFC 8742]
+ * (https://www.rfc-editor.org/rfc/rfc8742.html) CBOR Sequences is
+ * also supported. Limitations are listed further down.
  *
  * See @ref Encoding for general discussion on encoding,
  * @ref BasicDecode for general discussion on the basic decode features
@@ -222,12 +223,13 @@ extern "C" {
  * Note that when you nest arrays or maps in a map, the nested array or
  * map has a label.
  *
- * Many CBOR-based protocols start with an array or map. This makes them
- * self-delimiting. No external length or end marker is needed to know
- * the end. It is also possible not start this way, in which case this
- * it is usually called a CBOR sequence which is described in
- * [RFC 8742] (https://www.rfc-editor.org/rfc/rfc8742.html). This encoder supports
- * either just by whether the first item added is an array, map or other.
+ * Many CBOR-based protocols start with an array or map. This makes
+ * them self-delimiting. No external length or end marker is needed to
+ * know the end. It is also possible not start this way, in which case
+ * this it is usually called a CBOR sequence which is described in
+ * [RFC 8742] (https://www.rfc-editor.org/rfc/rfc8742.html). This
+ * encoder supports either just by whether the first item added is an
+ * array, map or other.
  *
  * If QCBOR is compiled with QCBOR_DISABLE_ENCODE_USAGE_GUARDS defined,
  * the errors QCBOR_ERR_CLOSE_MISMATCH, QCBOR_ERR_ARRAY_TOO_LONG,
@@ -550,9 +552,9 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t u
  * @param[in] pCtx   The encoding context to add the text to.
  * @param[in] Text   Pointer and length of text to add.
  *
- * The text passed in must be unencoded UTF-8 according to [RFC 3629]
- * (https://www.rfc-editor.org/rfc/rfc3629.html). There is no NULL
- * termination. The text is added as CBOR major type 3.
+ * The text passed in must be unencoded UTF-8 according to
+ * [RFC 3629] (https://www.rfc-editor.org/rfc/rfc3629.html). There is
+ * no NULL termination. The text is added as CBOR major type 3.
  *
  * If called with @c nBytesLen equal to 0, an empty string will be
  * added. When @c nBytesLen is 0, @c pBytes may be @c NULL.
@@ -957,7 +959,8 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pCtx, size_t uAmount);
  * @param[in] Bytes            Pointer and length of the binary UUID.
  *
  * A binary UUID as defined in [RFC 4122]
- * (https://www.rfc-editor.org/rfc/rfc4122.html) is added to the output.
+ * (https://www.rfc-editor.org/rfc/rfc4122.html) is added to the
+ * output.
  *
  * It is output as CBOR major type 2, a binary string, with tag @ref
  * CBOR_TAG_BIN_UUID indicating the binary string is a UUID.
@@ -1481,8 +1484,8 @@ QCBOREncode_AddB64TextToMapN(QCBOREncodeContext *pCtx,
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] B64Text          Pointer and length of the base64url encoded text.
  *
- * The text content is base64URL encoded text as per [RFC 4648]
- * (https://www.rfc-editor.org/rfc/rfc4648.html).
+ * The text content is base64URL encoded text as per
+ * [RFC 4648] (https://www.rfc-editor.org/rfc/rfc4648.html).
  *
  * It is output as CBOR major type 3, a text string, with tag
  * @ref CBOR_TAG_B64URL indicating the text string is a Base64url
@@ -1637,10 +1640,10 @@ QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pCtx,
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] szDate           Null-terminated string with date to add.
  *
- * The string szDate should be in the form of [RFC 3339]
- * (https://www.rfc-editor.org/rfc/rfc3339.html) as defined by section 3.3 in
- * [RFC 4287] (https://www.rfc-editor.org/rfc/rfc4287.html). This is as
- * described in section 3.4.1 in [RFC 8949]
+ * The string szDate should be in the form of
+ * [RFC 3339] (https://www.rfc-editor.org/rfc/rfc3339.html) as defined
+ * by section 3.3 in [RFC 4287] (https://www.rfc-editor.org/rfc/rfc4287.html).
+ * This is as described in section 3.4.1 in [RFC 8949]
  * (https://www.rfc-editor.org/rfc/rfc8949.html#section3.1.4).
  *
  * Note that this function doesn't validate the format of the date
@@ -1694,10 +1697,10 @@ QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
  * @param[in] szDate           Null-terminated string with date to add.
  *
  * This date format is described in
- * [RFC 8943] (https://tools.ietf.org/html/rfc8943), but that mainly
+ * [RFC 8943] (https://www.rfc-editor.org/rfc/rfc8943.html), but that mainly
  * references RFC 3339.  The string szDate must be in the forrm
  * specified the ABNF for a full-date in
- * [RFC 3339] (https://tools.ietf.org/html/rfc3339). Examples of this
+ * [RFC 3339] (https://www.rfc-editor.org/rfc/rfc3339.html). Examples of this
  * are "1985-04-12" and "1937-01-01".  The time and the time zone are
  * never included.
  *
@@ -1924,8 +1927,8 @@ QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
  * text strings, then just call the QCBOREncode_AddXxx() function
  * explicitly to add the label. Then call it again to add the value.
  *
- * See the [RFC 8949] (https://tools.ietf.org/html/rfc8949) for a lot
- * more information on creating maps.
+ * See the [RFC 8949] (https://www.rfc-editor.org/rfc/rfc8949.html)
+ * for a lot more information on creating maps.
  */
 static void
 QCBOREncode_OpenMap(QCBOREncodeContext *pCtx);
@@ -2042,11 +2045,11 @@ QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
  * contain encoded CBOR. This increases nesting level by one.
  *
  * The typical use case is for encoded CBOR that is to be
- * cryptographically hashed, as part of a [RFC 8152, COSE]
- * (https://tools.ietf.org/html/rfc8152) implementation. The wrapping
- * byte string is taken as input by the hash function (which is why it
- * is returned by QCBOREncode_CloseBstrWrap2()).  It is also easy to
- * recover on decoding with standard CBOR decoders.
+ * cryptographically hashed, as part of a [RFC 9052, COSE]
+ * (https://www.rfc-editor.org/rfc/rfc9052.html) implementation. The
+ * wrapping byte string is taken as input by the hash function (which
+ * is why it is returned by QCBOREncode_CloseBstrWrap2()).  It is also
+ * easy to recover on decoding with standard CBOR decoders.
  *
  * Using QCBOREncode_BstrWrap() and QCBOREncode_CloseBstrWrap2()
  * avoids having to encode the items first in one buffer (e.g., the
@@ -2085,8 +2088,8 @@ QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
  *
  * A pointer and length of the enclosed encoded CBOR is returned in @c
  * *pWrappedCBOR if it is not @c NULL. The main purpose of this is so
- * this data can be hashed (e.g., with SHA-256) as part of a [RFC
- * 8152, COSE] (https://tools.ietf.org/html/rfc8152)
+ * this data can be hashed (e.g., with SHA-256) as part of a
+ * [RFC 9052, COSE] (https://www.rfc-editor.org/rfc/rfc9052.html)
  * implementation. **WARNING**, this pointer and length should be used
  * right away before any other calls to @c QCBOREncode_CloseXxx() as
  * they will move data around and the pointer and length will no
