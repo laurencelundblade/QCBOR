@@ -108,7 +108,7 @@ int32_t SimpleValuesTest1(void);
 /*
  Encodes basic maps and arrays with indefinite length
  */
-int32_t SimpleValuesIndefiniteLengthTest1(void);
+int32_t IndefiniteLengthTest(void);
 
 
 /*

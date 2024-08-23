@@ -111,7 +111,7 @@ static uint8_t
 Nesting_Increment(QCBORTrackNesting *pNesting)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(1 >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
+   if(pNesting->pCurrentNesting->uCount >= QCBOR_MAX_ITEMS_IN_ARRAY) {
       return QCBOR_ERR_ARRAY_TOO_LONG;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
