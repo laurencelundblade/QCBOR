@@ -31,7 +31,6 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
 
-
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
@@ -280,8 +279,9 @@ typedef enum {
     *  different type than is currently open.  */
    QCBOR_ERR_CLOSE_MISMATCH = 5,
 
-   /** During encoding, the array or map had too many items in it.
-    *  This limit @ref QCBOR_MAX_ITEMS_IN_ARRAY, typically 65,535. */
+   /** During encoding, the array or map had too many items in it. The
+    * limits are @ref QCBOR_MAX_ITEMS_IN_ARRAY and
+    * @ref QCBOR_MAX_ITEMS_IN_MAP. */
    QCBOR_ERR_ARRAY_TOO_LONG = 6,
 
    /** During encoding, more arrays or maps were closed than
@@ -371,6 +371,7 @@ typedef enum {
     *  This limit @ref QCBOR_MAX_ITEMS_IN_ARRAY, typically 65,534,
     *  UINT16_MAX - 1. This error makes no further decoding
     *  possible. */
+   // TODO: ..IN_MAP.
    QCBOR_ERR_ARRAY_DECODE_TOO_LONG = 42,
 
    /** When decoding, a string's size is greater than what a size_t
@@ -568,14 +569,19 @@ qcbor_err_to_str(QCBORError uErr);
 
 
 /**
- * The maximum number of items in a single array or map when encoding or
- * decoding.
+ * The maximum number of items in a single array when encoding or
+ * decoding. See also @ref QCBOR_MAX_ITEMS_IN_MAP.
  */
 #define QCBOR_MAX_ITEMS_IN_ARRAY (UINT16_MAX-1) /* -1 is because the
                                                  * value UINT16_MAX is
                                                  * used to indicate
                                                  * indefinite-length.
                                                  */
+/**
+ * The maximum number of items in a single map when encoding or
+ * decoding. See also @ref QCBOR_MAX_ITEMS_IN_ARRAY.
+ */
+#define QCBOR_MAX_ITEMS_IN_MAP  (QCBOR_MAX_ITEMS_IN_ARRAY/2)
 
 
 #ifdef __cplusplus
