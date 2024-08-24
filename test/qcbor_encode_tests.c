@@ -2779,6 +2779,19 @@ int32_t EncodeErrorTests(void)
    if(QCBOREncode_GetErrorState(&EC) != QCBOR_ERR_ARRAY_TOO_LONG) {
       return 251;
    }
+
+   QCBOREncode_Init(&EC, Large);
+   QCBOREncode_OpenMap(&EC);
+   for(i = 0; i < QCBOR_MAX_ITEMS_IN_MAP; i++) {
+      QCBOREncode_AddInt64ToMapN(&EC, 0,0);
+   }
+   if(QCBOREncode_GetErrorState(&EC)) {
+      return 250;
+   }
+   QCBOREncode_AddInt64ToMapN(&EC, 0,0);
+   if(QCBOREncode_GetErrorState(&EC) != QCBOR_ERR_ARRAY_TOO_LONG) {
+      return 251;
+   }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    return 0;

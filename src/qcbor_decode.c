@@ -461,8 +461,8 @@ DecodeNesting_EnterBoundedMapOrArray(QCBORDecodeNesting *pNesting,
 
 static QCBORError
 DecodeNesting_DescendMapOrArray(QCBORDecodeNesting *pNesting,
-                                uint8_t             uQCBORType,
-                                uint64_t            uCount)
+                                const uint8_t       uQCBORType,
+                                const uint16_t      uCount)
 {
    QCBORError uError = QCBOR_SUCCESS;
 
@@ -474,21 +474,16 @@ DecodeNesting_DescendMapOrArray(QCBORDecodeNesting *pNesting,
       /* Empty indefinite-length maps and arrays are handled elsewhere */
    }
 
-   /* Error out if arrays is too long to handle */
-   if(uCount != QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH &&
-      uCount > QCBOR_MAX_ITEMS_IN_ARRAY) {
-      uError = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
-      goto Done;
-   }
+   /* Rely on check in QCBOR_Private_DecodeArrayOrMap() for definite-length
+    * arrays and maps that are too long */
 
    uError = DecodeNesting_Descend(pNesting, uQCBORType);
    if(uError != QCBOR_SUCCESS) {
       goto Done;
    }
 
-   /* Fill in the new map/array level. Check above makes casts OK. */
-   pNesting->pCurrent->u.ma.uCountCursor  = (uint16_t)uCount;
-   pNesting->pCurrent->u.ma.uCountTotal   = (uint16_t)uCount;
+   pNesting->pCurrent->u.ma.uCountCursor = uCount;
+   pNesting->pCurrent->u.ma.uCountTotal  = uCount;
 
    DecodeNesting_ClearBoundedMode(pNesting);
 
@@ -1042,7 +1037,7 @@ Done:
 static QCBORError
 QCBOR_Private_DecodeArrayOrMap(const uint8_t  uMode,
                                const int      nMajorType,
-                               const uint64_t uItemCount,
+                               uint64_t uItemCount,
                                const int      nAdditionalInfo,
                                QCBORItem     *pDecodedItem)
 {
@@ -1075,29 +1070,20 @@ QCBOR_Private_DecodeArrayOrMap(const uint8_t  uMode,
       uReturn = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
    } else {
+      /* ----- Definite-length array/map ----- */
+      if(uItemCount > (nMajorType == QCBOR_TYPE_MAP ? QCBOR_MAX_ITEMS_IN_MAP : QCBOR_MAX_ITEMS_IN_ARRAY)) {
+         uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
+      }
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
       if(uMode == QCBOR_DECODE_MODE_MAP_AS_ARRAY && nMajorType == QCBOR_TYPE_MAP) {
-         /* ------ Definite-length map as array ------ */
-
-         if(uItemCount > QCBOR_MAX_ITEMS_IN_ARRAY/2) {
-            uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
-         } else {
-            /* cast OK because of check above */
-            pDecodedItem->val.uCount = (uint16_t)uItemCount*2;
-         }
-
-      } else
-#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
-      {
-         /* ------ Definite-length array/map ------ */
-         if(uItemCount > QCBOR_MAX_ITEMS_IN_ARRAY) {
-            uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
-         } else {
-            /* cast OK because of check above */
-            pDecodedItem->val.uCount = (uint16_t)uItemCount;
-         }
+         /* ------ Map as array ------ */
+         uItemCount *= 2;
       }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
+
+      /* cast OK because of check above */
+      pDecodedItem->val.uCount = (uint16_t)uItemCount;
    }
 
    return uReturn;
@@ -2081,8 +2067,8 @@ QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
        */
       QCBORError uDescendErr;
       uDescendErr = DecodeNesting_DescendMapOrArray(&(pMe->nesting),
-                                                pDecodedItem->uDataType,
-                                                pDecodedItem->val.uCount);
+                                                    pDecodedItem->uDataType,
+                                                    pDecodedItem->val.uCount);
       if(uDescendErr != QCBOR_SUCCESS) {
          /* This error is probably a traversal error and it overrides
           * the non-traversal error.
