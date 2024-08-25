@@ -4901,7 +4901,7 @@ int32_t BignumDecodeTest(void)
          return MakeTestResultCode(uTestIndex, 1, uErr);
       }
 
-      uErr = QCBORDecode_BignumPreferred(Item, BignumBuf, &ResultBigNum, &bIsNeg);
+      uErr = QCBORDecode_ProcessBigNumber(Item, BignumBuf, &ResultBigNum, &bIsNeg);
       if(uErr != pTest->uErr) {
          return MakeTestResultCode(uTestIndex, 2, uErr);
       }
@@ -4918,13 +4918,13 @@ int32_t BignumDecodeTest(void)
          return MakeTestResultCode(uTestIndex, 4, 0);
       }
 
-      uErr = QCBORDecode_BignumPreferred(Item, (UsefulBuf){NULL, 200}, &ResultBigNum, &bIsNeg);
+      uErr = QCBORDecode_ProcessBigNumber(Item, (UsefulBuf){NULL, 200}, &ResultBigNum, &bIsNeg);
       if(ResultBigNum.len != pTest->ExpectedBigNum.len) {
          return MakeTestResultCode(uTestIndex, 5, uErr);
       }
 
       QCBORDecode_Init(&DCtx, pTest->Encoded, 0);
-      QCBORDecode_GetBigNumPreferred(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, BignumBuf,  &ResultBigNum, &bIsNeg);
+      QCBORDecode_GetBigNumber(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, BignumBuf,  &ResultBigNum, &bIsNeg);
       uErr = QCBORDecode_GetError(&DCtx);
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex, 6, uErr);

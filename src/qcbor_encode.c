@@ -810,7 +810,7 @@ QCBOREncode_Private_BigNumCarry(UsefulBufC BigNum)
 static void
 QCBOREncode_Private_AddTNegativeBignum(QCBOREncodeContext *pMe,
                                        const uint8_t       uTagRequirement,
-                                       const UsefulBufC    BigNum)
+                                       const UsefulBufC    BigNumber)
 {
    size_t     uLen;
    bool       bCarry;
@@ -818,8 +818,6 @@ QCBOREncode_Private_AddTNegativeBignum(QCBOREncodeContext *pMe,
    uint8_t    uByte;
    UsefulBufC SubString;
    UsefulBufC NextSubString;
-
-   // TODO: need to remove leading zeros, I think
 
    QCBOREncode_Private_BigNumberTag(pMe, uTagRequirement, true);
 
@@ -837,14 +835,14 @@ QCBOREncode_Private_AddTNegativeBignum(QCBOREncodeContext *pMe,
     */
 
    /* Compute the length up front because it goes in the head */
-   bCarry = QCBOREncode_Private_BigNumCarry(UsefulBuf_Tail(BigNum, 1));
-   uLen = BigNum.len;
-   if(bCarry && *(const uint8_t *)BigNum.ptr >= 1 && BigNum.len > 1) {
+   bCarry = QCBOREncode_Private_BigNumCarry(UsefulBuf_Tail(BigNumber, 1));
+   uLen = BigNumber.len;
+   if(bCarry && *(const uint8_t *)BigNumber.ptr >= 1 && BigNumber.len > 1) {
       uLen--;
    }
    QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uLen, 0);
 
-   SubString = BigNum;
+   SubString = BigNumber;
    bCopiedSomething = false;
    while(SubString.len) {
       uByte = *((const uint8_t *)SubString.ptr);
@@ -864,15 +862,15 @@ QCBOREncode_Private_AddTNegativeBignum(QCBOREncodeContext *pMe,
 
 //GOOD
 static bool
-QCBOREncode_Private_NegBN2UInt(const UsefulBufC    BigNum, uint64_t *puInt)
+QCBOREncode_Private_NegBN2UInt(const UsefulBufC BigNumber, uint64_t *puInt)
 {
    bool       bIs2exp64;
 
    static const uint8_t twoExp64[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-   bIs2exp64 = ! UsefulBuf_Compare(BigNum, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(twoExp64));
+   bIs2exp64 = ! UsefulBuf_Compare(BigNumber, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(twoExp64));
 
-   if(BigNum.len > 8 || !bIs2exp64) {
+   if(BigNumber.len > 8 && !bIs2exp64) {
       return false;
    }
 
@@ -885,58 +883,73 @@ QCBOREncode_Private_NegBN2UInt(const UsefulBufC    BigNum, uint64_t *puInt)
        */
       *puInt = UINT64_MAX;
    } else {
-      *puInt = QCBOREncode_Private_BigNumToUInt(BigNum);
-      (*puInt)--; /* CBOR's negative offset of 1  */
+      *puInt = QCBOREncode_Private_BigNumToUInt(BigNumber);
+      (*puInt)--; /* CBOR's negative offset of 1 */
    }
    return true;
 }
 
+static UsefulBufC
+SkipLeadingZeros(const UsefulBufC String)
+{
+   UsefulBufC NLZ;
+   NLZ = UsefulBuf_SkipLeading(String, 0x00);
 
-/* This is the real one...*/
-//GOOD
+   /* An all-zero string reduces to one 0, not an empty string. */
+   if(NLZ.len == 0 && String.len > 0 && *(const uint8_t *)String.ptr == 0x00) {
+      NLZ.len++;
+   }
+
+   return NLZ;
+}
+
+/*
+ * Public functions for adding raw encoded CBOR. See qcbor/qcbor_encode.h
+ */
 void
 QCBOREncode_AddTBigNumber(QCBOREncodeContext *pMe,
-                          uint8_t             uTagRequirement,
-                          bool                bNegative,
-                          UsefulBufC          BigNumber)
+                          const uint8_t       uTagRequirement,
+                          const bool          bNegative,
+                          const UsefulBufC    BigNumber)
 {
    uint64_t uInt;
-   /* Always preferred serialization */
-   const UsefulBufC BigNumNLZ = UsefulBuf_SkipLeading(BigNumber, 0x00);
 
+   const UsefulBufC BigNumNLZ = SkipLeadingZeros(BigNumber);
+
+   /* Preferred serialization requires reduction to type 0 and 1 integers */
    if(bNegative) {
-      if(QCBOREncode_Private_NegBN2UInt(BigNumber, &uInt)) {
+      if(QCBOREncode_Private_NegBN2UInt(BigNumNLZ, &uInt)) {
+         /* Might be a 65-bit negative; use special add method for such */
          QCBOREncode_AddNegativeUInt64(pMe, uInt);
       } else {
-         QCBOREncode_Private_AddTNegativeBignum(pMe, uTagRequirement, BigNumber);
+         QCBOREncode_Private_AddTNegativeBignum(pMe, uTagRequirement, BigNumNLZ);
       }
 
    } else {
-      if(BigNumNLZ.len <= 8) {
-         /* Preferred serialization requires conversion to type 0 */
+      if(BigNumNLZ.len <= sizeof(uint64_t)) {
          QCBOREncode_AddUInt64(pMe, QCBOREncode_Private_BigNumToUInt(BigNumNLZ));
       } else {
          QCBOREncode_Private_AddTBignum(pMe, bNegative, uTagRequirement, BigNumNLZ);
       }
    }
-
-   return;
 }
 
 
-/* This is also the real one...*/
-//GOOD
+/*
+ * Public functions for adding raw encoded CBOR. See qcbor/qcbor_encode.h
+ */
 void
 QCBOREncode_AddTBigNumberNoPreferred(QCBOREncodeContext *pMe,
-                                     uint8_t             uTagRequirement,
-                                     bool                bNegative,
-                                     UsefulBufC          BigNumber)
+                                     const uint8_t       uTagRequirement,
+                                     const bool          bNegative,
+                                     const UsefulBufC    BigNumber)
 {
-   // TODO: remove leading zeros? Probably
+   const UsefulBufC BigNumNLZ = SkipLeadingZeros(BigNumber);
+
    if(bNegative) {
-      QCBOREncode_Private_AddTNegativeBignum(pMe, uTagRequirement, BigNumber);
+      QCBOREncode_Private_AddTNegativeBignum(pMe, uTagRequirement, BigNumNLZ);
    } else {
-      QCBOREncode_Private_AddTBignum(pMe, false, uTagRequirement, BigNumber);
+      QCBOREncode_Private_AddTBignum(pMe, false, uTagRequirement, BigNumNLZ);
    }
 }
 
@@ -947,10 +960,6 @@ QCBOREncode_AddTBigNumberNoPreferred(QCBOREncodeContext *pMe,
  *
  * @param[in] pMe               The encoding context to add the value to.
  * @param[in] uTag               The type 6 tag indicating what this is to be.
- * @param[in] BigNumMantissa     Is @ref NULLUsefulBufC if mantissa is an
- *                               @c int64_t or the actual big number mantissa
- *                               if not.
- * @param[in] bBigNumIsNegative  This is @c true if the big number is negative.
  * @param[in] nMantissa          The @c int64_t mantissa if it is not a big number.
  * @param[in] nExponent          The exponent.
  *
@@ -973,12 +982,11 @@ QCBOREncode_AddTBigNumberNoPreferred(QCBOREncodeContext *pMe,
  * is called instead of this.
  */
 void
-QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pMe,
-                                   const uint64_t      uTag,
-                                   const int64_t       nExponent,
-                                   const UsefulBufC    BigNumMantissa,
-                                   const bool          bBigNumIsNegative,
-                                   const int64_t       nMantissa)
+QCBOREncode_Private_AddExpMantissaInt(QCBOREncodeContext *pMe,
+                                      const int           uTagRequirement,
+                                      const uint64_t      uTag,
+                                      const int64_t       nExponent,
+                                      const int64_t       nMantissa)
 {
    /* This is for encoding either a big float or a decimal fraction,
     * both of which are an array of two items, an exponent and a
@@ -986,23 +994,100 @@ QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pMe,
     * is base-2 for big floats and base-10 for decimal fractions, but
     * that has no effect on the code here.
     */
-   if(uTag != CBOR_TAG_INVALID64) {
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTag(pMe, uTag);
    }
    QCBOREncode_OpenArray(pMe);
    QCBOREncode_AddInt64(pMe, nExponent);
-   if(!UsefulBuf_IsNULLC(BigNumMantissa)) {
-      if(bBigNumIsNegative) {
-         QCBOREncode_AddNegativeBignum(pMe, BigNumMantissa);
-      } else {
-         QCBOREncode_AddPositiveBignum(pMe, BigNumMantissa);
-      }
-   } else {
-      QCBOREncode_AddInt64(pMe, nMantissa);
-   }
+   QCBOREncode_AddInt64(pMe, nMantissa);
    QCBOREncode_CloseArray(pMe);
 }
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+
+void
+QCBOREncode_Private_AddExpMantissaBigNumber(QCBOREncodeContext *pMe,
+                                            const int           uTagRequirement,
+                                            const uint64_t      uTag,
+                                            const int64_t       nExponent,
+                                            const UsefulBufC    BigNumMantissa,
+                                            const bool          bBigNumIsNegative)
+{
+   /* This is for encoding either a big float or a decimal fraction,
+    * both of which are an array of two items, an exponent and a
+    * mantissa.  The difference between the two is that the exponent
+    * is base-2 for big floats and base-10 for decimal fractions, but
+    * that has no effect on the code here.
+    */
+   /* Separate from QCBOREncode_Private_AddExpMantissaInt because
+    * linking QCBOREncode_AddTBigNumber() adds a lot because it
+    * does preferred serialization of big numbers and the offset of 1
+    * for CBOR negative numbers.
+    */
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, uTag);
+   }
+   QCBOREncode_OpenArray(pMe);
+   QCBOREncode_AddInt64(pMe, nExponent);
+   QCBOREncode_AddTBigNumber(pMe, QCBOR_ENCODE_AS_TAG, bBigNumIsNegative, BigNumMantissa);
+   QCBOREncode_CloseArray(pMe);
+}
+
+void
+QCBOREncode_Private_AddExpMantissaBigNumberNoPreferred(QCBOREncodeContext *pMe,
+                                                       const int           uTagRequirement,
+                                                       const uint64_t      uTag,
+                                                       const int64_t       nExponent,
+                                                       const UsefulBufC    BigNumMantissa,
+                                                       const bool          bBigNumIsNegative)
+{
+   /* This is for encoding either a big float or a decimal fraction,
+    * both of which are an array of two items, an exponent and a
+    * mantissa.  The difference between the two is that the exponent
+    * is base-2 for big floats and base-10 for decimal fractions, but
+    * that has no effect on the code here.
+    */
+   /* Separate from QCBOREncode_Private_AddExpMantissaInt because
+    * linking QCBOREncode_AddTBigNumber() adds a lot because it
+    * does preferred serialization of big numbers and the offset of 1
+    * for CBOR negative numbers.
+    */
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, uTag);
+   }
+   QCBOREncode_OpenArray(pMe);
+   QCBOREncode_AddInt64(pMe, nExponent);
+   QCBOREncode_AddTBigNumberNoPreferred(pMe, QCBOR_ENCODE_AS_TAG, bBigNumIsNegative, BigNumMantissa);
+   QCBOREncode_CloseArray(pMe);
+}
+
+
+void
+QCBOREncode_Private_AddExpMantissaBigNumberOld(QCBOREncodeContext *pMe,
+                                            const int           uTagRequirement,
+                                            const uint64_t      uTag,
+                                            const int64_t       nExponent,
+                                            const UsefulBufC    BigNumMantissa,
+                                            const bool          bBigNumIsNegative)
+{
+   /* This is for encoding either a big float or a decimal fraction,
+    * both of which are an array of two items, an exponent and a
+    * mantissa.  The difference between the two is that the exponent
+    * is base-2 for big floats and base-10 for decimal fractions, but
+    * that has no effect on the code here.
+    */
+   /* Separate from QCBOREncode_Private_AddExpMantissaInt because
+    * linking QCBOREncode_AddTBigNumber() adds a lot because it
+    * does preferred serialization of big numbers and the offset of 1
+    * for CBOR negative numbers.
+    */
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, uTag);
+   }
+   QCBOREncode_OpenArray(pMe);
+   QCBOREncode_AddInt64(pMe, nExponent);
+   QCBOREncode_Private_AddTBignum(pMe, QCBOR_ENCODE_AS_TAG, bBigNumIsNegative, BigNumMantissa);
+   QCBOREncode_CloseArray(pMe);
+}
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 /**

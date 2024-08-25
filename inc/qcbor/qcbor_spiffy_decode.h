@@ -335,7 +335,7 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  * function encounters them they are returned as \ref
  * QCBOR_TYPE_65BIT_NEG_INT.  See the description of this type for
  * instructions to gets its value.  Also see
- * QCBORDecode_BignumPreferred().
+ * QCBORDecode_ProcessBigNumber().
  *
  * To give an example, the value -18446744073709551616 can't be
  * represented by an int64_t or uint64_t, but can be represented by a
@@ -393,15 +393,16 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * It would be more consistent to be GetBigNum with its friend named GetBigNumNoPreferred
  * but the parameters are different so backwards compat can be with a mode bit.
  */
+// TODO: add "T" to name of this and other Get Tag methods?
 void
-QCBORDecode_GetBigNumPreferred(QCBORDecodeContext *pCtx,
-                               uint8_t             uTagRequirement,
-                               UsefulBuf           BigNumBuf,
-                               UsefulBufC         *pBigNum,
-                               bool               *pbIsNegative);
+QCBORDecode_GetBigNumber(QCBORDecodeContext *pCtx,
+                         uint8_t             uTagRequirement,
+                         UsefulBuf           BigNumBuf,
+                         UsefulBufC         *pBigNum,
+                         bool               *pbIsNegative);
 
 void
-QCBORDecode_GetBigNumPreferredInMapN(QCBORDecodeContext *pCtx,
+QCBORDecode_GetBigNumberInMapN(QCBORDecodeContext *pCtx,
                                      uint8_t             uTagRequirement,
                                      int64_t             nLabel,
                                      UsefulBuf           BigNumBuf,
@@ -409,7 +410,7 @@ QCBORDecode_GetBigNumPreferredInMapN(QCBORDecodeContext *pCtx,
                                      bool               *pbIsNegative);
 
 void
-QCBORDecode_GetBigNumPreferredInMapSZ(QCBORDecodeContext *pCtx,
+QCBORDecode_GetBigNumberInMapSZ(QCBORDecodeContext *pCtx,
                                       uint8_t             uTagRequirement,
                                       const char         *szLabel,
                                       UsefulBuf           BigNumBuf,
@@ -417,6 +418,10 @@ QCBORDecode_GetBigNumPreferredInMapSZ(QCBORDecodeContext *pCtx,
                                       bool               *pbIsNegative);
 
 
+/* What does GetBigNumberNoPreferred do?? Is it necessary?
+ * It will error out on type 0 and 1 integers.
+
+ */
 
 
 /**
@@ -785,7 +790,7 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
  * The typical way to iterate over items in an array is to call
  * QCBORDecode_VGetNext() until QCBORDecode_GetError() returns
  * @ref QCBOR_ERR_NO_MORE_ITEMS. Other methods like QCBORDecode_GetInt64(),
- * QCBORDecode_GetBignum() and such may also called until
+ * QCBORDecode_GetBignum() and such may also be called until
  * QCBORDecode_GetError() doesn't return QCBOR_SUCCESS.
  *
  * Another option is to get the array item count from
@@ -1519,7 +1524,7 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /**
- * @brief Decode the next item as a big number.
+ * @brief Decode the next item as a big number (deprecated).
  *
  * @param[in] pCtx             The decode context.
  * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
@@ -1541,7 +1546,7 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  * big number in @c pValue. There is no standard representation for
  * big numbers, positive or negative in C, so this function
  * leaves it up to the caller to apply this computation for negative
- * big numbers, but QCBORDecode_BignumPreferred() can be
+ * big numbers, but QCBORDecode_ProcessBigNumber() can be
  * used too.
  *
  * See @ref Tag-Usage for discussion on tag requirements.
@@ -1555,7 +1560,7 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  *
  * See also QCBORDecode_GetInt64ConvertAll(),
  * QCBORDecode_GetUInt64ConvertAll(),
- * QCBORDecode_GetDoubleConvertAll() and QCBORDecode_BignumPreferred() which can convert big numbers.
+ * QCBORDecode_GetDoubleConvertAll() and QCBORDecode_ProcessBigNumber() which can convert big numbers.
  *
  * See also @ref CBOR_TAG_POS_BIGNUM, @ref CBOR_TAG_NEG_BIGNUM,
  * QCBOREncode_AddPositiveBignum(), QCBOREncode_AddNegativeBignum(),

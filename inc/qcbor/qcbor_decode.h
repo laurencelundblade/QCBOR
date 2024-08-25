@@ -269,7 +269,7 @@ typedef enum {
 #define QCBOR_TYPE_TEXT_STRING    7
 
 /** Type for a positive big number. Data is in @c val.bignum, a
- *  pointer and a length. See QCBORDecode_BignumPreferred(). */
+ *  pointer and a length. See QCBORDecode_ProcessBigNumber(). */
 #define QCBOR_TYPE_POSBIGNUM      9
 
 /** Type for a negative big number. Data is in @c val.bignum, a
@@ -281,7 +281,7 @@ typedef enum {
  *  avoids storage allocation for the most part.  For example, if 1 is
  *  subtraced from a negative big number that is the two bytes 0xff
  *  0xff, the result would be 0x01 0x00 0x00, one byte longer than
- *  what was received. See QCBORDecode_BignumPreferred(). */
+ *  what was received. See QCBORDecode_ProcessBigNumber(). */
 #define QCBOR_TYPE_NEGBIGNUM     10
 
 /** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
@@ -537,10 +537,15 @@ typedef struct _QCBORItem {
        * @ref QCBOR_TYPE_BIGFLOAT, @ref QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
        * and @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM.
        *
+       * When a negative big number is returned here, it is directly
+       * off the wire, without correcting for the offset of 1. See
+       * QCBORDecode_ProcessBigNumber() which will perform
+       * the adjustment.
+       *
        * Also see QCBOREncode_AddTDecimalFraction(),
        * QCBOREncode_AddTBigFloat(),
-       * QCBOREncode_AddTDecimalFractionBigNum() and
-       * QCBOREncode_AddTBigFloatBigNum().
+       * QCBOREncode_AddTDecimalFractionBigNumber() and
+       * QCBOREncode_AddTBigFloatBigNumber().
        */
       struct {
          int64_t nExponent;
@@ -1440,10 +1445,10 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * issue it brings.
  */
 QCBORError
-QCBORDecode_BignumPreferred(const QCBORItem Item,
-                            UsefulBuf       BigNumBuf,
-                            UsefulBufC     *pBigNum,
-                            bool           *pIsNegative);
+QCBORDecode_ProcessBigNumber(const QCBORItem Item,
+                             UsefulBuf       BigNumBuf,
+                             UsefulBufC     *pBigNum,
+                             bool           *pIsNegative);
 
 
 /**

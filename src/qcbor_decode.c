@@ -7924,10 +7924,10 @@ QCBORDecode_Private_CountNonZeroBytes(uint64_t uNum)
  * Public function, see header qcbor/qcbor_decode.h
  */
 QCBORError
-QCBORDecode_BignumPreferred(const QCBORItem Item,
-                            UsefulBuf       BigNumBuf,
-                            UsefulBufC     *pBigNum,
-                            bool           *pbIsNegative)
+QCBORDecode_ProcessBigNumber(const QCBORItem Item,
+                             UsefulBuf       BigNumBuf,
+                             UsefulBufC     *pBigNum,
+                             bool           *pbIsNegative)
 {
    QCBORError  uResult;
    size_t      uLen;
@@ -8045,7 +8045,7 @@ QCBOR_Private_ProcessPreferredBigNum(const uint8_t    uTagRequirement,
       }
    }
 
-   return QCBORDecode_BignumPreferred(*pItem, BigNumBuf, pValue, pbIsNegative);
+   return QCBORDecode_ProcessBigNumber(*pItem, BigNumBuf, pValue, pbIsNegative);
 }
 
 
@@ -8053,7 +8053,7 @@ QCBOR_Private_ProcessPreferredBigNum(const uint8_t    uTagRequirement,
  * Public function, see header qcbor/qcbor_decode.h
  */
 void
-QCBORDecode_GetBigNumPreferred(QCBORDecodeContext *pMe,
+QCBORDecode_GetBigNumber(QCBORDecodeContext *pMe,
                                const uint8_t       uTagRequirement,
                                UsefulBuf           BigNumBuf,
                                UsefulBufC         *pValue,
@@ -8073,6 +8073,29 @@ QCBORDecode_GetBigNumPreferred(QCBORDecodeContext *pMe,
    }
 
    QCBOR_Private_ProcessPreferredBigNum(uTagRequirement, &Item, BigNumBuf, pValue, pbIsNegative);
+}
+
+void
+QCBORDecode_GetBigNumberNoPreferred(QCBORDecodeContext *pMe,
+                                    const uint8_t       uTagRequirement,
+                                    UsefulBuf           BigNumBuf,
+                                    UsefulBufC         *pValue,
+                                    bool               *pbIsNegative)
+{
+   QCBORItem Item;
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      /* Already in error state, do nothing */
+      return;
+   }
+
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError != QCBOR_SUCCESS) {
+      pMe->uLastError = (uint8_t)uError;
+      return;
+   }
+
+
 }
 
 
