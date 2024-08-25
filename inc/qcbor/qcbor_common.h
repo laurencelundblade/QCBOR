@@ -31,6 +31,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
 
+
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
@@ -368,10 +369,9 @@ typedef enum {
    QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP = 41,
 
    /** During decoding, the array or map had too many items in it.
-    *  This limit @ref QCBOR_MAX_ITEMS_IN_ARRAY, typically 65,534,
-    *  UINT16_MAX - 1. This error makes no further decoding
-    *  possible. */
-   // TODO: ..IN_MAP.
+    *  This limit is @ref QCBOR_MAX_ITEMS_IN_ARRAY (65,534) for
+    *  arrays and @ref QCBOR_MAX_ITEMS_IN_MAP (32,767) for maps. This
+    *  error makes no further decoding possible. */
    QCBOR_ERR_ARRAY_DECODE_TOO_LONG = 42,
 
    /** When decoding, a string's size is greater than what a size_t

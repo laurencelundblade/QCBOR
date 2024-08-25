@@ -1037,7 +1037,7 @@ Done:
 static QCBORError
 QCBOR_Private_DecodeArrayOrMap(const uint8_t  uMode,
                                const int      nMajorType,
-                               uint64_t uItemCount,
+                               uint64_t       uItemCount,
                                const int      nAdditionalInfo,
                                QCBORItem     *pDecodedItem)
 {
@@ -1073,17 +1073,18 @@ QCBOR_Private_DecodeArrayOrMap(const uint8_t  uMode,
       /* ----- Definite-length array/map ----- */
       if(uItemCount > (nMajorType == QCBOR_TYPE_MAP ? QCBOR_MAX_ITEMS_IN_MAP : QCBOR_MAX_ITEMS_IN_ARRAY)) {
          uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
-      }
 
+      } else {
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-      if(uMode == QCBOR_DECODE_MODE_MAP_AS_ARRAY && nMajorType == QCBOR_TYPE_MAP) {
-         /* ------ Map as array ------ */
-         uItemCount *= 2;
-      }
+         if(uMode == QCBOR_DECODE_MODE_MAP_AS_ARRAY && nMajorType == QCBOR_TYPE_MAP) {
+            /* ------ Map as array ------ */
+            uItemCount *= 2;
+         }
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
-      /* cast OK because of check above */
-      pDecodedItem->val.uCount = (uint16_t)uItemCount;
+         /* cast OK because of check above */
+         pDecodedItem->val.uCount = (uint16_t)uItemCount;
+      }
    }
 
    return uReturn;
