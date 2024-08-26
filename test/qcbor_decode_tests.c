@@ -2296,9 +2296,61 @@ static int32_t ExtraBytesTest(int nLevel)
 }
 
 
+/* These are just the item that open large maps and arrays, not
+ * the items in the array. This is sufficient to test the
+ * boundary condition. */
+static const uint8_t spLargeArrayFake[] = {
+   0x99, 0xff, 0xfe};
+
+static const uint8_t spTooLargeArrayFake[] = {
+   0x99, 0xff, 0xff};
+
+static const uint8_t spLargeMapFake[] = {
+   0xb9, 0x7f, 0xff};
+
+static const uint8_t spTooLargeMapFake[] = {
+   0xba, 0x00, 0x00, 0x80, 0x00};
+
 
 int32_t ParseMapTest(void)
 {
+   QCBORDecodeContext DCtx;
+   QCBORItem          Item;
+   QCBORError         uErr;
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spLargeArrayFake),
+                    QCBOR_DECODE_MODE_NORMAL);
+   uErr = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uErr != QCBOR_SUCCESS || Item.val.uCount != QCBOR_MAX_ITEMS_IN_ARRAY) {
+      return -100;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooLargeArrayFake),
+                    QCBOR_DECODE_MODE_NORMAL);
+   uErr = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uErr != QCBOR_ERR_ARRAY_DECODE_TOO_LONG) {
+      return -101;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spLargeMapFake),
+                    QCBOR_DECODE_MODE_NORMAL);
+   uErr = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uErr != QCBOR_SUCCESS || Item.val.uCount != QCBOR_MAX_ITEMS_IN_MAP) {
+      return -110;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooLargeMapFake),
+                    QCBOR_DECODE_MODE_NORMAL);
+   uErr = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uErr != QCBOR_ERR_ARRAY_DECODE_TOO_LONG) {
+      return -111;
+   }
+
+
    // Parse a moderatly complex map structure very thoroughly
    int32_t nResult = ParseMapTest1(QCBOR_DECODE_MODE_NORMAL);
    if(nResult) {
@@ -11036,6 +11088,18 @@ ErrorHandlingTests(void)
    }
    if(strcmp(szErrString, "USER_DEFINED_200")) {
       return -107;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    QCBOR_DECODE_MODE_NORMAL);
+
+   UsefulBufC Xx = QCBORDecode_RetrieveUndecodedInput(&DCtx);
+   if(Xx.ptr != pValidMapEncoded) {
+      return -200;
+   }
+   if(Xx.len != sizeof(pValidMapEncoded)) {
+      return -201;
    }
 
    return 0;
