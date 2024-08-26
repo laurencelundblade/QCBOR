@@ -833,7 +833,6 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] dNum  The double-precision number to add.
  *
-<<<<<<< HEAD
  * This encodes using preferred serialization, selectively encoding
  * the input floating-point number as either double-precision,
  * single-precision or half-precision. Infinity, NaN and 0 are always
@@ -857,32 +856,6 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  * can't be directly decoded into an int64_t or uint64_t. See
  * QCBORDecode_GetNumberConvertPrecisely(), a good method to use to
  * decode dCBOR.
-=======
- * This encodes and outputs a double-precision floating-point
- * number. CBOR major type 7 is used.
- *
- * This implements preferred serialization, selectively encoding the
- * double-precision floating-point number as either double-precision,
- * single-precision or half-precision. Infinity, NaN and zero are
- * always encoded as half-precision. If no precision will be lost in
- * the conversion to half-precision, then it will be converted and
- * encoded. If not and no precision will be lost in conversion to
- * single-precision, then it will be converted and encoded. If not,
- * then no conversion is performed, and it encoded as a
- * double-precision.
- *
- * Half-precision floating-point numbers take up two bytes, half that
- * of single-precision, one quarter of double-precision. Preferred
- * serialization can therefore reduce message size down to one quarter
- * of the original if most of the values are zero, infinity or NaN.
- *
- * When decoded, QCBOR returns these values as double-precision even
- * if they were encoded as single or half-precision.
- *
- * It is possible to disable preferred serialization when compiling
- * QCBOR. In that case, this operates the same as
- * QCBOREncode_AddDoubleNoPreferred().
->>>>>>> master
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
@@ -916,12 +889,7 @@ QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNu
  * @param[in] fNum  The single-precision number to add.
  *
  * This is identical to QCBOREncode_AddDouble() except the input is
-<<<<<<< HEAD
  * single-precision. It also supports dCBOR.
-=======
- * single-precision. The preferred serialization output will be either
- * single-precision or half-precision.
->>>>>>> master
  *
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddDoubleNoPreferred(),
  * and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
